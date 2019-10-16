@@ -1,13 +1,40 @@
 // Copyright 2019 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+use std::error;
 use std::fmt;
-use std::io;
+use std::num::ParseIntError;
 use std::path::PathBuf;
 
-use getopts::Options;
+use getopts::{self, Matches, Options};
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+#[derive(Debug)]
+pub enum Error {
+    GetOpts(getopts::Fail),
+    InvalidArgument(String, String, ParseIntError),
+    MissingCommand,
+    MissingFilename,
+    UnknownCommand(String),
+}
+
+impl error::Error for Error {}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Error::*;
+        match self {
+            GetOpts(e) => write!(f, "Getopts Error: {}", e),
+            InvalidArgument(flag, value, e) => {
+                write!(f, "Invalid {} argument '{}': {}", flag, value, e)
+            }
+            MissingCommand => write!(f, "A command must be provided"),
+            MissingFilename => write!(f, "A file name must be provided"),
+            UnknownCommand(s) => write!(f, "Unknown command '{}'", s),
+        }
+    }
+}
+
+type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, PartialEq)]
 pub enum Command {
@@ -25,16 +52,16 @@ impl fmt::Display for Command {
 }
 
 fn show_usage(program_name: &str) {
-    println!("Usage: {} [command] <command args>", program_name);
-    println!("\nCommands:\n");
-    println!("capture - Capture to a file from CRAS");
-    println!("playback - Playback to CRAS from a file");
-    println!("\nhelp - Print help message");
+    eprintln!("Usage: {} [command] <command args>", program_name);
+    eprintln!("\nCommands:\n");
+    eprintln!("capture - Capture to a file from CRAS");
+    eprintln!("playback - Playback to CRAS from a file");
+    eprintln!("\nhelp - Print help message");
 }
 
 fn show_command_usage(program_name: &str, command: &Command, opts: &Options) {
     let brief = format!("Usage: {} {} [options] [filename]", program_name, command);
-    print!("{}", opts.usage(&brief));
+    eprint!("{}", opts.usage(&brief));
 }
 
 pub struct AudioOptions {
@@ -45,31 +72,28 @@ pub struct AudioOptions {
     pub frame_rate: Option<usize>,
 }
 
+fn get_usize_param(matches: &Matches, option_name: &str) -> Result<Option<usize>> {
+    matches.opt_get::<usize>(option_name).map_err(|e| {
+        let argument = matches.opt_str(option_name).unwrap_or_default();
+        Error::InvalidArgument(option_name.to_string(), argument, e)
+    })
+}
+
 impl AudioOptions {
     pub fn parse_from_args<T: AsRef<str>>(args: &[T]) -> Result<Option<Self>> {
         let mut opts = Options::new();
         opts.optopt("b", "buffer_size", "Buffer size in frames", "SIZE")
-            .optopt("c", "", "Number of channels", "NUM")
+            .optopt("c", "channels", "Number of channels", "NUM")
             .optopt("r", "rate", "Audio frame rate (Hz)", "RATE")
             .optflag("h", "help", "Print help message");
 
         let mut args = args.into_iter().map(|s| s.as_ref());
 
-        let program_name = args.next().ok_or_else(|| {
-            Box::new(io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Program name must be specified",
-            ))
-        })?;
-
+        let program_name = args.next().unwrap_or("cras_tests");
         let command = match args.next() {
             None => {
-                println!("Must specify a command.");
                 show_usage(program_name);
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    "No command",
-                )));
+                return Err(Error::MissingCommand);
             }
             Some("help") => {
                 show_usage(program_name);
@@ -78,12 +102,8 @@ impl AudioOptions {
             Some("capture") => Command::Capture,
             Some("playback") => Command::Playback,
             Some(s) => {
-                println!("Command \"{}\" does not exist.", s);
                 show_usage(program_name);
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    "Command does not exist",
-                )));
+                return Err(Error::UnknownCommand(s.to_string()));
             }
         };
 
@@ -91,7 +111,7 @@ impl AudioOptions {
             Ok(m) => m,
             Err(e) => {
                 show_command_usage(program_name, &command, &opts);
-                return Err(Box::new(e));
+                return Err(Error::GetOpts(e));
             }
         };
         if matches.opt_present("h") {
@@ -100,18 +120,14 @@ impl AudioOptions {
         }
         let file_name = match matches.free.get(0) {
             None => {
-                println!("Must provide file name.");
                 show_command_usage(program_name, &command, &opts);
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    "Must provide file name.",
-                )));
+                return Err(Error::MissingFilename);
             }
             Some(file_name) => PathBuf::from(file_name),
         };
-        let buffer_size = matches.opt_get::<usize>("b")?;
-        let num_channels = matches.opt_get::<usize>("c")?;
-        let frame_rate = matches.opt_get::<usize>("r")?;
+        let buffer_size = get_usize_param(&matches, "buffer_size")?;
+        let num_channels = get_usize_param(&matches, "channels")?;
+        let frame_rate = get_usize_param(&matches, "rate")?;
 
         Ok(Some(AudioOptions {
             command,
