@@ -4,6 +4,8 @@
 
 mod arguments;
 
+use std::error;
+use std::fmt;
 use std::fs::File;
 use std::io::{self, BufReader, BufWriter, Read, Write};
 use std::os::raw::c_int;
@@ -15,7 +17,33 @@ use sys_util::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 
 use crate::arguments::{AudioOptions, Command};
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+#[derive(Debug)]
+pub enum Error {
+    CreateStream(Box<dyn error::Error>),
+    FetchStream(Box<dyn error::Error>),
+    Io(io::Error),
+    Libcras(libcras::Error),
+    ParseArgs(arguments::Error),
+    SysUtil(sys_util::Error),
+}
+
+impl error::Error for Error {}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use Error::*;
+        match self {
+            CreateStream(e) => write!(f, "Failed to create stream: {}", e),
+            FetchStream(e) => write!(f, "Failed to fetch buffer from stream: {}", e),
+            Io(e) => write!(f, "IO Error: {}", e),
+            Libcras(e) => write!(f, "Libcras Error: {}", e),
+            ParseArgs(e) => write!(f, "Failed to parse arguments: {}", e),
+            SysUtil(e) => write!(f, "SysUtil Error: {}", e),
+        }
+    }
+}
+
+type Result<T> = std::result::Result<T, Error>;
 
 static INTERRUPTED: AtomicBool = AtomicBool::new(false);
 
@@ -30,8 +58,8 @@ extern "C" fn sigint_handler() {
 
 fn add_sigint_handler() -> Result<()> {
     const SIGINT: c_int = 2;
-    unsafe { register_signal_handler(SIGINT, sigint_handler)? };
-    Ok(())
+    let result = unsafe { register_signal_handler(SIGINT, sigint_handler) };
+    result.map_err(Error::SysUtil)
 }
 
 fn set_priority_to_realtime() {
@@ -67,7 +95,9 @@ fn playback(opts: AudioOptions) -> Result<()> {
     let format = opts.format.unwrap_or(SampleFormat::S16LE);
     let frame_rate = opts.frame_rate.unwrap_or(48000);
 
-    let mut sample_source: Box<dyn Read> = Box::new(BufReader::new(File::open(&opts.file_name)?));
+    let mut sample_source: Box<dyn Read> = Box::new(BufReader::new(
+        File::open(&opts.file_name).map_err(Error::Io)?,
+    ));
 
     println!(
         "Playing raw data '{}' : {}, Rate {} Hz, {}",
@@ -77,26 +107,27 @@ fn playback(opts: AudioOptions) -> Result<()> {
         channel_string(num_channels)
     );
 
-    let mut cras_client = CrasClient::new()?;
-    let (_control, mut stream) = cras_client.new_playback_stream(
-        num_channels,
-        format,
-        frame_rate,
-        opts.buffer_size.unwrap_or(256),
-    )?;
+    let mut cras_client = CrasClient::new().map_err(Error::Libcras)?;
+    let (_control, mut stream) = cras_client
+        .new_playback_stream(
+            num_channels,
+            format,
+            frame_rate,
+            opts.buffer_size.unwrap_or(256),
+        )
+        .map_err(Error::CreateStream)?;
+
     set_priority_to_realtime();
 
     add_sigint_handler()?;
     while !INTERRUPTED.load(Ordering::Acquire) {
-        let mut buffer = stream
-            .next_playback_buffer()
-            .expect("failed to get next playback buffer");
+        let mut buffer = stream.next_playback_buffer().map_err(Error::FetchStream)?;
 
         let frame_size = num_channels * format.sample_bytes();
         let frames = buffer.frame_capacity();
 
         let mut chunk = (&mut sample_source).take((frames * frame_size) as u64);
-        let transferred = io::copy(&mut chunk, &mut buffer)?;
+        let transferred = io::copy(&mut chunk, &mut buffer).map_err(Error::Io)?;
         if transferred == 0 {
             break;
         }
@@ -111,7 +142,9 @@ fn capture(opts: AudioOptions) -> Result<()> {
     let format = opts.format.unwrap_or(SampleFormat::S16LE);
     let frame_rate = opts.frame_rate.unwrap_or(48000);
 
-    let mut sample_sink: Box<dyn Write> = Box::new(BufWriter::new(File::create(&opts.file_name)?));
+    let mut sample_sink: Box<dyn Write> = Box::new(BufWriter::new(
+        File::create(&opts.file_name).map_err(Error::Io)?,
+    ));
 
     println!(
         "Recording raw data '{}' : {}, Rate {} Hz, {}",
@@ -121,33 +154,42 @@ fn capture(opts: AudioOptions) -> Result<()> {
         channel_string(num_channels)
     );
 
-    let mut cras_client = CrasClient::new()?;
+    let mut cras_client = CrasClient::new().map_err(Error::Libcras)?;
     cras_client.enable_cras_capture();
-    let (_control, mut stream) = cras_client.new_capture_stream(
-        num_channels,
-        format,
-        frame_rate,
-        opts.buffer_size.unwrap_or(256),
-    )?;
+    let (_control, mut stream) = cras_client
+        .new_capture_stream(
+            num_channels,
+            format,
+            frame_rate,
+            opts.buffer_size.unwrap_or(256),
+        )
+        .map_err(Error::CreateStream)?;
     set_priority_to_realtime();
     add_sigint_handler()?;
     while !INTERRUPTED.load(Ordering::Acquire) {
-        let mut buf = stream.next_capture_buffer()?;
-        io::copy(&mut buf, &mut sample_sink)?;
+        let mut buf = stream.next_capture_buffer().map_err(Error::FetchStream)?;
+        io::copy(&mut buf, &mut sample_sink).map_err(Error::Io)?;
     }
     Ok(())
 }
 
-fn main() -> Result<()> {
+fn run() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    let opts = match AudioOptions::parse_from_args(&args)? {
+    let opts = match AudioOptions::parse_from_args(&args).map_err(Error::ParseArgs)? {
         None => return Ok(()),
         Some(v) => v,
     };
 
     match opts.command {
-        Command::Capture => capture(opts)?,
-        Command::Playback => playback(opts)?,
-    };
-    Ok(())
+        Command::Capture => capture(opts),
+        Command::Playback => playback(opts),
+    }
+}
+
+fn main() {
+    // Use run() instead of returning a Result from main() so that we can print
+    // errors using Display instead of Debug.
+    if let Err(e) = run() {
+        eprintln!("{}", e);
+    }
 }
