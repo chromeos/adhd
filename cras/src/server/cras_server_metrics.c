@@ -54,6 +54,8 @@ const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
 const char kHfpWidebandSpeechSupported[] = "Cras.HfpWidebandSpeechSupported";
 const char kHfpWidebandSpeechPacketLoss[] = "Cras.HfpWidebandSpeechPacketLoss";
+const char kHfpWidebandSpeechSelectedCodec[] =
+	"Cras.kHfpWidebandSpeechSelectedCodec";
 
 /*
  * Records missed callback frequency only when the runtime of stream is larger
@@ -77,6 +79,7 @@ static const char *get_timespec_period_str(struct timespec ts)
 enum CRAS_SERVER_METRICS_TYPE {
 	BT_WIDEBAND_PACKET_LOSS,
 	BT_WIDEBAND_SUPPORTED,
+	BT_WIDEBAND_SELECTED_CODEC,
 	BUSYLOOP,
 	DEVICE_RUNTIME,
 	HIGHEST_DEVICE_DELAY_INPUT,
@@ -360,6 +363,25 @@ int cras_server_metrics_hfp_wideband_support(bool supported)
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: BT_WIDEBAND_SUPPORTED");
+		return err;
+	}
+	return 0;
+}
+
+int cras_server_metrics_hfp_wideband_selected_codec(int codec)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.value = codec;
+	init_server_metrics_msg(&msg, BT_WIDEBAND_SELECTED_CODEC, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: "
+				"BT_WIDEBAND_SELECTED_CODEC");
 		return err;
 	}
 	return 0;
@@ -771,6 +793,11 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	case BT_WIDEBAND_SUPPORTED:
 		cras_metrics_log_sparse_histogram(kHfpWidebandSpeechSupported,
 						  metrics_msg->data.value);
+		break;
+	case BT_WIDEBAND_SELECTED_CODEC:
+		cras_metrics_log_sparse_histogram(
+			kHfpWidebandSpeechSelectedCodec,
+			metrics_msg->data.value);
 		break;
 	case DEVICE_RUNTIME:
 		metrics_device_runtime(metrics_msg->data.device_data);

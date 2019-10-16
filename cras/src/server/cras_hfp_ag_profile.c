@@ -164,6 +164,13 @@ static int cras_hfp_ag_slc_initialized(struct hfp_slc_handle *handle)
 	cras_server_metrics_hfp_wideband_support(
 		hfp_slc_get_hf_codec_negotiation_supported(handle));
 
+	/* Log the final selected codec given that codec negotiation is
+	 * supported.
+	 */
+	if (hfp_slc_get_hf_codec_negotiation_supported(handle))
+		cras_server_metrics_hfp_wideband_selected_codec(
+			hfp_slc_get_selected_codec(handle));
+
 	/* Defer the starting of audio gateway to bt_device. */
 	return cras_bt_device_audio_gateway_initialized(ag->device);
 }
