@@ -7,6 +7,8 @@ use std::os::unix::io::{AsRawFd, RawFd};
 use std::ptr;
 use std::ptr::NonNull;
 use std::slice;
+use std::sync::atomic::{self, Ordering};
+use std::thread;
 
 use libc;
 
@@ -507,6 +509,7 @@ pub struct CrasServerState<'a> {
     addr: *mut libc::c_void,
     volume: VolatileRef<'a, u32>,
     mute: VolatileRef<'a, i32>,
+    update_count: VolatileRef<'a, u32>,
 }
 
 // It is safe to send server_state between threads as this struct has exclusive
@@ -546,6 +549,7 @@ impl<'a> CrasServerState<'a> {
                 addr: addr.as_ptr() as *mut libc::c_void,
                 volume: vref_from_addr!(addr, volume),
                 mute: vref_from_addr!(addr, mute),
+                update_count: vref_from_addr!(addr, update_count),
             })
         }
     }
@@ -562,6 +566,49 @@ impl<'a> CrasServerState<'a> {
     /// Read the current value for system mute from shared memory.
     pub fn get_system_mute(&self) -> bool {
         self.mute.load() != 0
+    }
+
+    /// Runs a closure safely such that it can be sure that the server state
+    /// was not updated during the read.
+    /// This can be used for an "atomic" read of non-atomic data from the
+    /// state shared memory.
+    #[allow(dead_code)]
+    fn synchronized_state_read<F, T>(&self, func: F) -> T
+    where
+        F: Fn() -> T,
+    {
+        // Waits until the server has completed a state update before returning
+        // the current update count.
+        let begin_server_state_read = || -> u32 {
+            loop {
+                let update_count = self.update_count.load();
+                if update_count % 2 == 0 {
+                    atomic::fence(Ordering::Acquire);
+                    return update_count;
+                } else {
+                    thread::yield_now();
+                }
+            }
+        };
+
+        // Checks that the update count has not changed since the start
+        // of the server state read.
+        let end_server_state_read = |count: u32| -> bool {
+            let result = count == self.update_count.load();
+            atomic::fence(Ordering::Release);
+            result
+        };
+
+        // Get the state's update count and run the provided closure.
+        // If the update count has not changed once the closure is finished,
+        // return the result, otherwise repeat the process.
+        loop {
+            let update_count = begin_server_state_read();
+            let result = func();
+            if end_server_state_read(update_count) {
+                return result;
+            }
+        }
     }
 }
 
@@ -712,6 +759,8 @@ mod tests {
     use super::*;
     use std::fs::File;
     use std::os::unix::io::IntoRawFd;
+    use std::sync::{Arc, Mutex};
+    use std::thread;
     use sys_util::{kernel_has_memfd, SharedMemory};
 
     #[test]
@@ -1039,5 +1088,60 @@ mod tests {
         let state_fd = unsafe { CrasServerStateShmFd::new(shm.into_raw_fd()) };
         CrasServerState::try_new(state_fd)
             .expect_err("try_new succeeded for invalid state version");
+    }
+
+    #[test]
+    fn cras_server_sync_state_read() {
+        let size = mem::size_of::<cras_server_state>();
+        let shm = create_shm(size);
+        let addr = unsafe { cras_mmap(size, libc::PROT_WRITE, shm.as_raw_fd()).unwrap() };
+        let state: &mut cras_server_state = unsafe { &mut *(addr as *mut cras_server_state) };
+        state.state_version = CRAS_SERVER_STATE_VERSION;
+        state.update_count = 14;
+        state.volume = 12;
+
+        let state_fd = unsafe { CrasServerStateShmFd::new(shm.into_raw_fd()) };
+        let state_struct = CrasServerState::try_new(state_fd).unwrap();
+
+        // Create a lock so that we can block the reader while we change the
+        // update_count;
+        let lock = Arc::new(Mutex::new(()));
+        let thread_lock = lock.clone();
+        let reader_thread = {
+            let _guard = lock.lock().unwrap();
+
+            // Create reader thread that will get the value of volume. Since we
+            // hold the lock currently, this will block until we release the lock.
+            let reader_thread = thread::spawn(move || {
+                state_struct.synchronized_state_read(|| {
+                    let _guard = thread_lock.lock().unwrap();
+                    state_struct.volume.load()
+                })
+            });
+
+            // Update volume and change update count so that the synchronized read
+            // will not return (odd update count means update in progress).
+            state.volume = 27;
+            state.update_count = 15;
+
+            reader_thread
+        };
+
+        // The lock has been released, but the reader thread should still not
+        // terminate, because of the update in progress.
+
+        // Yield thread to give reader_thread a chance to get scheduled.
+        thread::yield_now();
+        {
+            let _guard = lock.lock().unwrap();
+
+            // Update volume and change update count to indicate the write has
+            // finished.
+            state.volume = 42;
+            state.update_count = 16;
+        }
+
+        let read_value = reader_thread.join().unwrap();
+        assert_eq!(read_value, 42);
     }
 }
