@@ -201,6 +201,8 @@ fn show_control_command_usage(program_name: &str) {
         ("", "", ""),
         ("list_output_devices", "", "Print list of output devices"),
         ("list_input_devices", "", "Print list of input devices"),
+        ("list_output_nodes", "", "Print list of output nodes"),
+        ("list_input_nodes", "", "Print list of input nodes"),
     ];
     for command in &commands {
         let command_string = format!("{} {}", command.0, command.1);
@@ -216,6 +218,8 @@ pub enum ControlCommand {
     SetSystemMute(bool),
     ListOutputDevices,
     ListInputDevices,
+    ListOutputNodes,
+    ListInputNodes,
 }
 
 impl ControlCommand {
@@ -259,6 +263,8 @@ impl ControlCommand {
             }
             Some("list_output_devices") => Ok(Some(ControlCommand::ListOutputDevices)),
             Some("list_input_devices") => Ok(Some(ControlCommand::ListInputDevices)),
+            Some("list_output_nodes") => Ok(Some(ControlCommand::ListOutputNodes)),
+            Some("list_input_nodes") => Ok(Some(ControlCommand::ListInputNodes)),
             Some(s) => {
                 show_control_command_usage(program_name);
                 Err(Error::UnknownCommand(s.to_string()))

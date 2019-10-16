@@ -13,10 +13,10 @@ use std::thread;
 use libc;
 
 use cras_sys::gen::{
-    cras_audio_shm_header, cras_iodev_info, cras_server_state, CRAS_MAX_IODEVS,
-    CRAS_NUM_SHM_BUFFERS, CRAS_SERVER_STATE_VERSION, CRAS_SHM_BUFFERS_MASK,
+    cras_audio_shm_header, cras_iodev_info, cras_ionode_info, cras_server_state, CRAS_MAX_IODEVS,
+    CRAS_MAX_IONODES, CRAS_NUM_SHM_BUFFERS, CRAS_SERVER_STATE_VERSION, CRAS_SHM_BUFFERS_MASK,
 };
-use cras_sys::CrasIodevInfo;
+use cras_sys::{CrasIodevInfo, CrasIonodeInfo};
 use data_model::{VolatileRef, VolatileSlice};
 
 /// A structure wrapping a fd which contains a shared `cras_audio_shm_header`.
@@ -535,6 +535,10 @@ pub struct CrasServerState<'a> {
     output_devs: VolatileSlice<'a>,
     num_input_devs: VolatileRef<'a, u32>,
     input_devs: VolatileSlice<'a>,
+    num_output_nodes: VolatileRef<'a, u32>,
+    num_input_nodes: VolatileRef<'a, u32>,
+    output_nodes: VolatileSlice<'a>,
+    input_nodes: VolatileSlice<'a>,
     update_count: VolatileRef<'a, u32>,
 }
 
@@ -579,6 +583,10 @@ impl<'a> CrasServerState<'a> {
                 num_input_devs: vref_from_addr!(addr, num_input_devs),
                 output_devs: vslice_from_addr!(addr, output_devs),
                 input_devs: vslice_from_addr!(addr, input_devs),
+                num_output_nodes: vref_from_addr!(addr, num_output_nodes),
+                num_input_nodes: vref_from_addr!(addr, num_input_nodes),
+                output_nodes: vslice_from_addr!(addr, output_nodes),
+                input_nodes: vslice_from_addr!(addr, input_nodes),
                 update_count: vref_from_addr!(addr, update_count),
             })
         }
@@ -649,8 +657,9 @@ impl<'a> CrasServerState<'a> {
             self.output_devs.copy_to(&mut devs);
             self.num_output_devs.load()
         });
-        devs.truncate(num_devs as usize);
-        devs.into_iter().map(CrasIodevInfo::from)
+        devs.into_iter()
+            .take(num_devs as usize)
+            .map(CrasIodevInfo::from)
     }
 
     /// Gets a list of input devices
@@ -662,8 +671,39 @@ impl<'a> CrasServerState<'a> {
             self.input_devs.copy_to(&mut devs);
             self.num_input_devs.load()
         });
-        devs.truncate(num_devs as usize);
-        devs.into_iter().map(CrasIodevInfo::from)
+        devs.into_iter()
+            .take(num_devs as usize)
+            .map(CrasIodevInfo::from)
+    }
+
+    /// Gets a list of output nodes
+    ///
+    /// Read a list of the currently attached output nodes from shared memory.
+    pub fn output_nodes(&self) -> impl Iterator<Item = CrasIonodeInfo> {
+        let mut nodes: Vec<cras_ionode_info> = vec![Default::default(); CRAS_MAX_IONODES as usize];
+        let num_nodes = self.synchronized_state_read(|| {
+            self.output_nodes.copy_to(&mut nodes);
+            self.num_output_nodes.load()
+        });
+        nodes
+            .into_iter()
+            .take(num_nodes as usize)
+            .map(CrasIonodeInfo::from)
+    }
+
+    /// Gets a list of input nodes
+    ///
+    /// Read a list of the currently attached input nodes from shared memory.
+    pub fn input_nodes(&self) -> impl Iterator<Item = CrasIonodeInfo> {
+        let mut nodes: Vec<cras_ionode_info> = vec![Default::default(); CRAS_MAX_IONODES as usize];
+        let num_nodes = self.synchronized_state_read(|| {
+            self.input_nodes.copy_to(&mut nodes);
+            self.num_input_nodes.load()
+        });
+        nodes
+            .into_iter()
+            .take(num_nodes as usize)
+            .map(CrasIonodeInfo::from)
     }
 }
 

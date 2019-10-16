@@ -5,7 +5,7 @@
 use std::error;
 use std::fmt;
 
-use libcras::CrasClient;
+use libcras::{CrasClient, CrasIonodeInfo};
 
 use crate::arguments::ControlCommand;
 
@@ -28,6 +28,30 @@ impl fmt::Display for Error {
 }
 
 type Result<T> = std::result::Result<T, Error>;
+
+fn print_nodes(nodes: impl Iterator<Item = CrasIonodeInfo>) {
+    println!(
+        "{: <13}{: <7}{: <6}{: <10}{: <13}{: <20} {: <10}",
+        "Stable ID", "ID", "Vol", "Plugged", "Time", "Type", "Name"
+    );
+    for node in nodes {
+        let id = format!("{}:{}", node.iodev_index, node.ionode_index);
+        let stable_id = format!("({:08x})", node.stable_id);
+        let plugged_time = node.plugged_time.tv_sec;
+        let active = if node.active { "*" } else { " " };
+        println!(
+            "{: <13}{: <7}{: <6}{: <10}{: <13}{: <20}{}{: <10}",
+            stable_id,
+            id,
+            node.volume,
+            node.plugged,
+            plugged_time,
+            node.type_name,
+            active,
+            node.name
+        );
+    }
+}
 
 /// Connect to CRAS and run the given `ControlCommand`.
 pub fn control(command: ControlCommand) -> Result<()> {
@@ -56,6 +80,8 @@ pub fn control(command: ControlCommand) -> Result<()> {
                 println!("{: <5}{: <10}", dev.index, dev.name);
             }
         }
+        ListOutputNodes => print_nodes(cras_client.output_nodes()),
+        ListInputNodes => print_nodes(cras_client.input_nodes()),
     };
     Ok(())
 }

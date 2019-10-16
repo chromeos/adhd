@@ -129,9 +129,9 @@ use audio_streams::{
     BufferDrop, DummyStreamControl, PlaybackBufferStream, SampleFormat, StreamControl,
     StreamSource,
 };
-pub use cras_sys::gen::CRAS_CLIENT_TYPE as CrasClientType;
 use cras_sys::gen::*;
-pub use cras_sys::CrasIodevInfo;
+pub use cras_sys::gen::{CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType};
+pub use cras_sys::{CrasIodevInfo, CrasIonodeInfo};
 use sys_util::{PollContext, PollToken, SharedMemory};
 
 mod audio_socket;
@@ -322,6 +322,20 @@ impl<'a> CrasClient<'a> {
     /// Read a list of the currently attached input devices from the server shared memory.
     pub fn input_devices(&self) -> impl Iterator<Item = CrasIodevInfo> {
         self.server_state.input_devices()
+    }
+
+    /// Gets a list of output nodes
+    ///
+    /// Read a list of the currently attached output nodes from the server shared memory.
+    pub fn output_nodes(&self) -> impl Iterator<Item = CrasIonodeInfo> {
+        self.server_state.output_nodes()
+    }
+
+    /// Gets a list of input nodes
+    ///
+    /// Read a list of the currently attached input nodes from the server shared memory.
+    pub fn input_nodes(&self) -> impl Iterator<Item = CrasIonodeInfo> {
+        self.server_state.input_nodes()
     }
 
     // Gets next server_stream_id from client and increment stream_id counter.
