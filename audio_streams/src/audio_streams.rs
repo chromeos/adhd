@@ -44,7 +44,7 @@ use std::os::unix::io::RawFd;
 use std::result::Result;
 use std::time::{Duration, Instant};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SampleFormat {
     U8,
     S16LE,

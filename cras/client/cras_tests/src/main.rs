@@ -175,14 +175,14 @@ fn capture(opts: AudioOptions) -> Result<()> {
 
 fn run() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    let opts = match AudioOptions::parse_from_args(&args).map_err(Error::ParseArgs)? {
+    let command = match Command::parse(&args).map_err(Error::ParseArgs)? {
         None => return Ok(()),
         Some(v) => v,
     };
 
-    match opts.command {
-        Command::Capture => capture(opts),
-        Command::Playback => playback(opts),
+    match command {
+        Command::Capture(audio_opts) => capture(audio_opts),
+        Command::Playback(audio_opts) => playback(audio_opts),
     }
 }
 
