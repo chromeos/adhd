@@ -8,12 +8,15 @@
 #include <stdint.h>
 
 extern "C" {
+#include "cras_bt_log.h"
 #include "cras_iodev_list.h"
 #include "cras_mix.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
+
+struct cras_bt_event_log* btlog;
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
@@ -41,6 +44,7 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   cras_observer_server_init();
   cras_mix_init(0);
   cras_iodev_list_init();
-
+  /* Initializes btlog for CRAS_SERVER_DUMP_BT path with CRAS_DBUS defined. */
+  btlog = cras_bt_event_log_init();
   return 0;
 }
