@@ -3,13 +3,16 @@
 // found in the LICENSE file.
 extern crate data_model;
 
+use std::os::raw::c_char;
+
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 pub mod gen;
 use gen::{
-    _snd_pcm_format, audio_message, cras_audio_format_packed, CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL,
+    _snd_pcm_format, audio_message, cras_audio_format_packed, cras_iodev_info,
+    CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL,
 };
 
 unsafe impl data_model::DataInit for gen::audio_message {}
@@ -17,6 +20,7 @@ unsafe impl data_model::DataInit for gen::cras_client_connected {}
 unsafe impl data_model::DataInit for gen::cras_client_stream_connected {}
 unsafe impl data_model::DataInit for gen::cras_connect_message {}
 unsafe impl data_model::DataInit for gen::cras_disconnect_stream_message {}
+unsafe impl data_model::DataInit for gen::cras_iodev_info {}
 unsafe impl data_model::DataInit for gen::cras_server_state {}
 unsafe impl data_model::DataInit for gen::cras_set_system_mute {}
 unsafe impl data_model::DataInit for gen::cras_set_system_volume {}
@@ -55,6 +59,42 @@ impl Default for audio_message {
             error: 0,
             frames: 0,
             id: CRAS_AUDIO_MESSAGE_ID::NUM_AUDIO_MESSAGES,
+        }
+    }
+}
+
+impl Default for cras_iodev_info {
+    fn default() -> Self {
+        Self {
+            idx: 0,
+            name: [0; 64usize],
+            stable_id: 0,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CrasIodevInfo {
+    pub index: u32,
+    pub name: String,
+}
+
+fn cstring_to_string(cstring: &[c_char]) -> String {
+    let null_idx = match cstring.iter().enumerate().find(|(_, &c)| c == 0) {
+        Some((i, _)) => i,
+        None => return "".to_owned(),
+    };
+
+    let ptr = cstring.as_ptr() as *const u8;
+    let slice = unsafe { core::slice::from_raw_parts(ptr, null_idx) };
+    String::from_utf8_lossy(slice).to_string()
+}
+
+impl From<cras_iodev_info> for CrasIodevInfo {
+    fn from(info: cras_iodev_info) -> Self {
+        Self {
+            index: info.idx,
+            name: cstring_to_string(&info.name),
         }
     }
 }

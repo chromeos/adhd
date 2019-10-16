@@ -198,6 +198,9 @@ fn show_control_command_usage(program_name: &str) {
             "MUTE",
             "Set the system mute state to MUTE (true or false)",
         ),
+        ("", "", ""),
+        ("list_output_devices", "", "Print list of output devices"),
+        ("list_input_devices", "", "Print list of input devices"),
     ];
     for command in &commands {
         let command_string = format!("{} {}", command.0, command.1);
@@ -211,6 +214,8 @@ pub enum ControlCommand {
     SetSystemVolume(u32),
     GetSystemMute,
     SetSystemMute(bool),
+    ListOutputDevices,
+    ListInputDevices,
 }
 
 impl ControlCommand {
@@ -252,6 +257,8 @@ impl ControlCommand {
                 })?;
                 Ok(Some(ControlCommand::SetSystemMute(mute)))
             }
+            Some("list_output_devices") => Ok(Some(ControlCommand::ListOutputDevices)),
+            Some("list_input_devices") => Ok(Some(ControlCommand::ListInputDevices)),
             Some(s) => {
                 show_control_command_usage(program_name);
                 Err(Error::UnknownCommand(s.to_string()))

@@ -13,10 +13,11 @@ use std::thread;
 use libc;
 
 use cras_sys::gen::{
-    cras_audio_shm_header, cras_server_state, CRAS_NUM_SHM_BUFFERS, CRAS_SERVER_STATE_VERSION,
-    CRAS_SHM_BUFFERS_MASK,
+    cras_audio_shm_header, cras_iodev_info, cras_server_state, CRAS_MAX_IODEVS,
+    CRAS_NUM_SHM_BUFFERS, CRAS_SERVER_STATE_VERSION, CRAS_SHM_BUFFERS_MASK,
 };
-use data_model::VolatileRef;
+use cras_sys::CrasIodevInfo;
+use data_model::{VolatileRef, VolatileSlice};
 
 /// A structure wrapping a fd which contains a shared `cras_audio_shm_header`.
 /// * `shm_fd` - A shared memory fd contains a `cras_audio_shm_header`
@@ -506,6 +507,23 @@ unsafe fn cras_mmap(
     cras_mmap_offset(len, prot, fd, 0)
 }
 
+/// An unsafe macro for getting a `VolatileSlice` representing an entire array
+/// field from a given NonNull pointer.
+///
+/// To use this macro safely, we need to
+/// - Make sure the pointer address is readable and writeable for its struct.
+/// - Make sure all `VolatileSlice`s generated from this macro have exclusive ownership for the same
+/// pointer.
+/// - Make sure the length of the array field is non-zero.
+#[macro_export]
+macro_rules! vslice_from_addr {
+    ($addr:ident, $($field:ident).*) => {{
+        let ptr = &mut $addr.as_mut().$($field).* as *mut _ as *mut u8;
+        let size = std::mem::size_of_val(&$addr.as_mut().$($field).*) as u64;
+        VolatileSlice::new(ptr, size)
+    }};
+}
+
 /// A structure that points to RO shared memory area - `cras_server_state`
 /// The structure is created from a shared memory fd which contains the structure.
 #[derive(Debug)]
@@ -513,6 +531,10 @@ pub struct CrasServerState<'a> {
     addr: *mut libc::c_void,
     volume: VolatileRef<'a, u32>,
     mute: VolatileRef<'a, i32>,
+    num_output_devs: VolatileRef<'a, u32>,
+    output_devs: VolatileSlice<'a>,
+    num_input_devs: VolatileRef<'a, u32>,
+    input_devs: VolatileSlice<'a>,
     update_count: VolatileRef<'a, u32>,
 }
 
@@ -553,6 +575,10 @@ impl<'a> CrasServerState<'a> {
                 addr: addr.as_ptr() as *mut libc::c_void,
                 volume: vref_from_addr!(addr, volume),
                 mute: vref_from_addr!(addr, mute),
+                num_output_devs: vref_from_addr!(addr, num_output_devs),
+                num_input_devs: vref_from_addr!(addr, num_input_devs),
+                output_devs: vslice_from_addr!(addr, output_devs),
+                input_devs: vslice_from_addr!(addr, input_devs),
                 update_count: vref_from_addr!(addr, update_count),
             })
         }
@@ -576,10 +602,9 @@ impl<'a> CrasServerState<'a> {
     /// was not updated during the read.
     /// This can be used for an "atomic" read of non-atomic data from the
     /// state shared memory.
-    #[allow(dead_code)]
-    fn synchronized_state_read<F, T>(&self, func: F) -> T
+    fn synchronized_state_read<F, T>(&self, mut func: F) -> T
     where
-        F: Fn() -> T,
+        F: FnMut() -> T,
     {
         // Waits until the server has completed a state update before returning
         // the current update count.
@@ -613,6 +638,32 @@ impl<'a> CrasServerState<'a> {
                 return result;
             }
         }
+    }
+
+    /// Gets a list of output devices
+    ///
+    /// Read a list of the currently attached output devices from shared memory.
+    pub fn output_devices(&self) -> impl Iterator<Item = CrasIodevInfo> {
+        let mut devs: Vec<cras_iodev_info> = vec![Default::default(); CRAS_MAX_IODEVS as usize];
+        let num_devs = self.synchronized_state_read(|| {
+            self.output_devs.copy_to(&mut devs);
+            self.num_output_devs.load()
+        });
+        devs.truncate(num_devs as usize);
+        devs.into_iter().map(CrasIodevInfo::from)
+    }
+
+    /// Gets a list of input devices
+    ///
+    /// Read a list of the currently attached input devices from shared memory.
+    pub fn input_devices(&self) -> impl Iterator<Item = CrasIodevInfo> {
+        let mut devs: Vec<cras_iodev_info> = vec![Default::default(); CRAS_MAX_IODEVS as usize];
+        let num_devs = self.synchronized_state_read(|| {
+            self.input_devs.copy_to(&mut devs);
+            self.num_input_devs.load()
+        });
+        devs.truncate(num_devs as usize);
+        devs.into_iter().map(CrasIodevInfo::from)
     }
 }
 

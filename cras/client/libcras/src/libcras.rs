@@ -131,6 +131,7 @@ use audio_streams::{
 };
 pub use cras_sys::gen::CRAS_CLIENT_TYPE as CrasClientType;
 use cras_sys::gen::*;
+pub use cras_sys::CrasIodevInfo;
 use sys_util::{PollContext, PollToken, SharedMemory};
 
 mod audio_socket;
@@ -307,6 +308,20 @@ impl<'a> CrasClient<'a> {
     /// Read the current value for system mute from the server shared memory.
     pub fn get_system_mute(&self) -> bool {
         self.server_state.get_system_mute()
+    }
+
+    /// Gets a list of output devices
+    ///
+    /// Read a list of the currently attached output devices from the server shared memory.
+    pub fn output_devices(&self) -> impl Iterator<Item = CrasIodevInfo> {
+        self.server_state.output_devices()
+    }
+
+    /// Gets a list of input devices
+    ///
+    /// Read a list of the currently attached input devices from the server shared memory.
+    pub fn input_devices(&self) -> impl Iterator<Item = CrasIodevInfo> {
+        self.server_state.input_devices()
     }
 
     // Gets next server_stream_id from client and increment stream_id counter.

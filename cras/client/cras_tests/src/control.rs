@@ -44,6 +44,18 @@ pub fn control(command: ControlCommand) -> Result<()> {
         SetSystemMute(mute) => {
             cras_client.set_system_mute(mute).map_err(Error::Libcras)?;
         }
+        ListOutputDevices => {
+            println!("{: <5}{: <10}", "ID", "Name");
+            for dev in cras_client.output_devices() {
+                println!("{: <5}{: <10}", dev.index, dev.name);
+            }
+        }
+        ListInputDevices => {
+            println!("{: <5}{: <10}", "ID", "Name");
+            for dev in cras_client.input_devices() {
+                println!("{: <5}{: <10}", dev.index, dev.name);
+            }
+        }
     };
     Ok(())
 }
