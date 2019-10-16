@@ -10,42 +10,35 @@ use getopts::Options;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug, PartialEq)]
-pub enum Subcommand {
+pub enum Command {
     Capture,
     Playback,
 }
 
-impl fmt::Display for Subcommand {
+impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Subcommand::Capture => write!(f, "capture"),
-            Subcommand::Playback => write!(f, "playback"),
+            Command::Capture => write!(f, "capture"),
+            Command::Playback => write!(f, "playback"),
         }
     }
 }
 
-fn show_usage<T: AsRef<str>>(program_name: T) {
-    println!(
-        "Usage: {} [subcommand] <subcommand args>",
-        program_name.as_ref()
-    );
-    println!("\nSubcommands:\n");
+fn show_usage(program_name: &str) {
+    println!("Usage: {} [command] <command args>", program_name);
+    println!("\nCommands:\n");
     println!("capture - Capture to a file from CRAS");
     println!("playback - Playback to CRAS from a file");
     println!("\nhelp - Print help message");
 }
 
-fn show_subcommand_usage<T: AsRef<str>>(program_name: T, subcommand: &Subcommand, opts: &Options) {
-    let brief = format!(
-        "Usage: {} {} [options] [filename]",
-        program_name.as_ref(),
-        subcommand
-    );
+fn show_command_usage(program_name: &str, command: &Command, opts: &Options) {
+    let brief = format!("Usage: {} {} [options] [filename]", program_name, command);
     print!("{}", opts.usage(&brief));
 }
 
 pub struct AudioOptions {
-    pub subcommand: Subcommand,
+    pub command: Command,
     pub file_name: PathBuf,
     pub buffer_size: Option<usize>,
     pub num_channels: Option<usize>,
@@ -69,27 +62,27 @@ impl AudioOptions {
             ))
         })?;
 
-        let subcommand = match args.next() {
+        let command = match args.next() {
             None => {
-                println!("Must specify a subcommand.");
+                println!("Must specify a command.");
                 show_usage(program_name);
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "No subcommand",
+                    "No command",
                 )));
             }
             Some("help") => {
-                show_usage(&program_name);
+                show_usage(program_name);
                 return Ok(None);
             }
-            Some("capture") => Subcommand::Capture,
-            Some("playback") => Subcommand::Playback,
+            Some("capture") => Command::Capture,
+            Some("playback") => Command::Playback,
             Some(s) => {
-                println!("Subcommand \"{}\" does not exist.", s);
-                show_usage(&program_name);
+                println!("Command \"{}\" does not exist.", s);
+                show_usage(program_name);
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    "Subcommand does not exist",
+                    "Command does not exist",
                 )));
             }
         };
@@ -97,18 +90,18 @@ impl AudioOptions {
         let matches = match opts.parse(args) {
             Ok(m) => m,
             Err(e) => {
-                show_subcommand_usage(&program_name, &subcommand, &opts);
+                show_command_usage(program_name, &command, &opts);
                 return Err(Box::new(e));
             }
         };
         if matches.opt_present("h") {
-            show_subcommand_usage(&program_name, &subcommand, &opts);
+            show_command_usage(program_name, &command, &opts);
             return Ok(None);
         }
         let file_name = match matches.free.get(0) {
             None => {
                 println!("Must provide file name.");
-                show_subcommand_usage(&program_name, &subcommand, &opts);
+                show_command_usage(program_name, &command, &opts);
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "Must provide file name.",
@@ -121,7 +114,7 @@ impl AudioOptions {
         let frame_rate = matches.opt_get::<usize>("r")?;
 
         Ok(Some(AudioOptions {
-            subcommand,
+            command,
             file_name,
             buffer_size,
             num_channels,
@@ -140,7 +133,7 @@ mod tests {
         let opts = AudioOptions::parse_from_args(&["cras_tests", "playback", "output.wav"])
             .unwrap()
             .unwrap();
-        assert_eq!(opts.subcommand, Subcommand::Playback);
+        assert_eq!(opts.command, Command::Playback);
         assert_eq!(opts.file_name, OsString::from("output.wav"));
         assert_eq!(opts.frame_rate, None);
         assert_eq!(opts.num_channels, None);
@@ -149,7 +142,7 @@ mod tests {
         let opts = AudioOptions::parse_from_args(&["cras_tests", "capture", "input.flac"])
             .unwrap()
             .unwrap();
-        assert_eq!(opts.subcommand, Subcommand::Capture);
+        assert_eq!(opts.command, Command::Capture);
         assert_eq!(opts.file_name, OsString::from("input.flac"));
         assert_eq!(opts.frame_rate, None);
         assert_eq!(opts.num_channels, None);
@@ -166,7 +159,7 @@ mod tests {
         ])
         .unwrap()
         .unwrap();
-        assert_eq!(opts.subcommand, Subcommand::Playback);
+        assert_eq!(opts.command, Command::Playback);
         assert_eq!(opts.file_name, OsString::from("output.wav"));
         assert_eq!(opts.frame_rate, Some(44100));
         assert_eq!(opts.num_channels, Some(2));

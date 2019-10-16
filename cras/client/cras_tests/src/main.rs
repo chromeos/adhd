@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-mod audio_options;
+mod arguments;
 
 use std::fs::File;
 use std::io::{self, BufReader, BufWriter, Read, Write};
@@ -13,7 +13,7 @@ use audio_streams::StreamSource;
 use libcras::CrasClient;
 use sys_util::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 
-use crate::audio_options::{AudioOptions, Subcommand};
+use crate::arguments::{AudioOptions, Command};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -130,9 +130,9 @@ fn main() -> Result<()> {
         Some(v) => v,
     };
 
-    match opts.subcommand {
-        Subcommand::Capture => capture(opts)?,
-        Subcommand::Playback => playback(opts)?,
+    match opts.command {
+        Command::Capture => capture(opts)?,
+        Command::Playback => playback(opts)?,
     };
     Ok(())
 }
