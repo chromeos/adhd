@@ -58,6 +58,13 @@ else
 fi
 AC_SUBST(WEBRTC_APM_LIBS)
 
+# Build fuzzer binaries
+AC_ARG_ENABLE([fuzzer], AS_HELP_STRING([--enable-fuzzer], [Enable fuzzer build]), have_fuzzer=$enableval, have_fuzzer=no)
+AM_CONDITIONAL(HAVE_FUZZER, test "$have_fuzzer" = "yes")
+if test "$have_fuzzer" = "yes"; then
+    AC_DEFINE(HAVE_FUZZER, 1, [Define to build fuzzers.])
+fi
+
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 	     AC_ERROR([*** libasound has no external plugin SDK]), -ldl)
