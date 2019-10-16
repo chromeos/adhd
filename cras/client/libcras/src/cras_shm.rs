@@ -360,6 +360,7 @@ impl<'a> CrasAudioHeader<'a> {
     ///  * overlaps some other buffer `[other_offset, other_offset + used_size)`
     ///  * is close enough to the end of the samples area that the buffer would
     ///    be shorter than `frame_size`.
+    #[allow(dead_code)]
     fn set_buffer_offset(&mut self, idx: usize, offset: usize) -> io::Result<()> {
         self.check_buffer_offset(idx, offset)?;
 
