@@ -93,6 +93,7 @@ static int cras_alsa_jack_list_has_hctl_jacks_return_val;
 static jack_state_change_callback* cras_alsa_jack_list_create_cb;
 static void* cras_alsa_jack_list_create_cb_data;
 static char test_card_name[] = "TestCard";
+static char test_pcm_name[] = "TestPCM";
 static char test_dev_name[] = "TestDev";
 static char test_dev_id[] = "TestDevId";
 static size_t cras_iodev_add_node_called;
@@ -241,9 +242,10 @@ static struct cras_iodev* alsa_iodev_create_with_default_parameters(
     struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     enum CRAS_STREAM_DIRECTION direction) {
-  return alsa_iodev_create(card_index, test_card_name, 0, test_dev_name, dev_id,
-                           card_type, is_first, mixer, config, ucm, fake_hctl,
-                           direction, 0, 0, (char*)"123");
+  return alsa_iodev_create(card_index, test_card_name, 0, test_pcm_name,
+                           test_dev_name, dev_id, card_type, is_first, mixer,
+                           config, ucm, fake_hctl, direction, 0, 0,
+                           (char*)"123");
 }
 
 namespace {

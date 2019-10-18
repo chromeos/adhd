@@ -38,7 +38,6 @@
 #include "softvol_curve.h"
 #include "utlist.h"
 
-#define MAX_ALSA_DEV_NAME_LENGTH 9 /* Alsa names "hw:XX,YY" + 1 for null. */
 #define HOTWORD_DEV "Wake on Voice"
 #define DEFAULT "(default)"
 #define HDMI "HDMI"
@@ -102,7 +101,7 @@ struct alsa_input_node {
 /*
  * Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
  * base - The cras_iodev structure "base class".
- * dev - String that names this device (e.g. "hw:0,0").
+ * pcm_name - The PCM name passed to snd_pcm_open() (e.g. "hw:0,0").
  * dev_name - value from snd_pcm_info_get_name
  * dev_id - value from snd_pcm_info_get_id
  * device_index - ALSA index of device, Y in "hw:X:Y".
@@ -139,7 +138,7 @@ struct alsa_input_node {
  */
 struct alsa_io {
 	struct cras_iodev base;
-	char *dev;
+	char *pcm_name;
 	char *dev_name;
 	char *dev_id;
 	uint32_t device_index;
@@ -392,7 +391,7 @@ static int open_dev(struct cras_iodev *iodev)
 
 	/* For legacy UCM path which doesn't have PlaybackPCM or CapturePCM. */
 	if (pcm_name == NULL)
-		pcm_name = aio->dev;
+		pcm_name = aio->pcm_name;
 
 	rc = cras_alsa_pcm_open(&handle, pcm_name, aio->alsa_stream);
 	if (rc < 0)
@@ -421,7 +420,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
 	syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
-	       aio->dev, iodev->format->frame_rate,
+	       aio->pcm_name, iodev->format->frame_rate,
 	       iodev->format->num_channels);
 
 	rc = set_hwparams(iodev);
@@ -864,7 +863,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 	}
 
 	cras_iodev_free_resources(&aio->base);
-	free(aio->dev);
+	free(aio->pcm_name);
 	if (aio->dev_id)
 		free(aio->dev_id);
 	if (aio->dev_name)
@@ -1917,9 +1916,9 @@ static int get_valid_frames(const struct cras_iodev *odev,
 
 struct cras_iodev *
 alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
-		  const char *dev_name, const char *dev_id,
-		  enum CRAS_ALSA_CARD_TYPE card_type, int is_first,
-		  struct cras_alsa_mixer *mixer,
+		  const char *pcm_name, const char *dev_name,
+		  const char *dev_id, enum CRAS_ALSA_CARD_TYPE card_type,
+		  int is_first, struct cras_alsa_mixer *mixer,
 		  const struct cras_card_config *config,
 		  struct cras_use_case_mgr *ucm, snd_hctl_t *hctl,
 		  enum CRAS_STREAM_DIRECTION direction, size_t usb_vid,
@@ -1955,11 +1954,9 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 	}
 	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
-	aio->dev = (char *)malloc(MAX_ALSA_DEV_NAME_LENGTH);
-	if (aio->dev == NULL)
+	aio->pcm_name = strdup(pcm_name);
+	if (aio->pcm_name == NULL)
 		goto cleanup_iodev;
-	snprintf(aio->dev, MAX_ALSA_DEV_NAME_LENGTH, "hw:%zu,%zu", card_index,
-		 device_index);
 
 	if (direction == CRAS_STREAM_INPUT) {
 		aio->alsa_stream = SND_PCM_STREAM_CAPTURE;

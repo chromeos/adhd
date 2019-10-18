@@ -25,7 +25,7 @@
 #include "utlist.h"
 
 #define MAX_ALSA_CARDS 32 /* Alsa limit on number of cards. */
-#define MAX_ALSA_PCM_NAME_LENGTH 6 /* Alsa names "hw:XX" + 1 for null. */
+#define MAX_ALSA_PCM_NAME_LENGTH 9 /* Alsa pcm name "hw:XX,YY" + 1 for null. */
 #define MAX_INI_NAME_LENGTH 63 /* 63 chars + 1 for null where declared. */
 #define MAX_COUPLED_OUTPUT_SIZE 4
 
@@ -84,6 +84,7 @@ struct cras_iodev *create_iodev_for_device(
 	struct iodev_list_node *new_dev;
 	struct iodev_list_node *node;
 	int first = 1;
+	char pcm_name[MAX_ALSA_PCM_NAME_LENGTH];
 
 	/* Find whether this is the first device in this direction, and
 	 * avoid duplicate device indexes. */
@@ -103,22 +104,28 @@ struct cras_iodev *create_iodev_for_device(
 	if (new_dev == NULL)
 		return NULL;
 
+	/* Append device index to card namem, ex: 'hw:0', for the PCM name of
+	 * target iodev. */
+	snprintf(pcm_name, MAX_ALSA_PCM_NAME_LENGTH, "%s,%u", alsa_card->name,
+		 device_index);
+
 	new_dev->direction = direction;
-	new_dev->iodev = alsa_iodev_create(
-		info->card_index, card_name, device_index, dev_name, dev_id,
-		info->card_type, first, alsa_card->mixer, alsa_card->config,
-		alsa_card->ucm, alsa_card->hctl, direction, info->usb_vendor_id,
-		info->usb_product_id, info->usb_serial_number);
+	new_dev->iodev =
+		alsa_iodev_create(info->card_index, card_name, device_index,
+				  pcm_name, dev_name, dev_id, info->card_type,
+				  first, alsa_card->mixer, alsa_card->config,
+				  alsa_card->ucm, alsa_card->hctl, direction,
+				  info->usb_vendor_id, info->usb_product_id,
+				  info->usb_serial_number);
 	if (new_dev->iodev == NULL) {
-		syslog(LOG_ERR, "Couldn't create alsa_iodev for %u:%u\n",
-		       info->card_index, device_index);
+		syslog(LOG_ERR, "Couldn't create alsa_iodev for %s", pcm_name);
 		free(new_dev);
 		return NULL;
 	}
 
-	syslog(LOG_DEBUG, "New %s device %u:%d",
+	syslog(LOG_DEBUG, "New %s device %s",
 	       direction == CRAS_STREAM_OUTPUT ? "playback" : "capture",
-	       info->card_index, device_index);
+	       pcm_name);
 
 	DL_APPEND(alsa_card->iodevs, new_dev);
 	return new_dev->iodev;
