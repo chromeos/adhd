@@ -1,9 +1,10 @@
 // Copyright 2019 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::io;
 use std::os::unix::io::{AsRawFd, RawFd};
+use std::{io, mem};
 
+use cras_sys::gen::{cras_disconnect_stream_message, cras_server_message, CRAS_SERVER_MESSAGE_ID};
 use sys_util::{net::UnixSeqpacket, ScmSocket};
 
 use data_model::DataInit;
@@ -50,6 +51,32 @@ impl CrasServerSocket {
     pub fn try_clone(&self) -> io::Result<CrasServerSocket> {
         let new_sock = self.socket.try_clone()?;
         Ok(CrasServerSocket { socket: new_sock })
+    }
+
+    /// Send a message to request disconnection of the given stream.
+    ///
+    /// Builds a `cras_disconnect_stream_message` containing `stream_id` and
+    /// sends it to the server.
+    /// No response is expected.
+    ///
+    /// # Arguments
+    ///
+    /// * `stream_id` - The id of the stream that should be disconnected.
+    ///
+    /// # Errors
+    ///
+    /// * If the message was not written to the server socket successfully.
+    pub fn disconnect_stream(&self, stream_id: u32) -> io::Result<()> {
+        let msg_header = cras_server_message {
+            length: mem::size_of::<cras_disconnect_stream_message>() as u32,
+            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_DISCONNECT_STREAM,
+        };
+        let server_cmsg = cras_disconnect_stream_message {
+            header: msg_header,
+            stream_id,
+        };
+        self.send_server_message_with_fds(&server_cmsg, &[])
+            .map(|_| ())
     }
 }
 

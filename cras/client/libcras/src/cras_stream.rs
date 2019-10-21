@@ -4,17 +4,13 @@
 use std::cmp::min;
 use std::io;
 use std::marker::PhantomData;
-use std::mem;
 use std::{error, fmt};
 
 use audio_streams::{
     capture::{CaptureBuffer, CaptureBufferStream},
     BufferDrop, PlaybackBuffer, PlaybackBufferStream,
 };
-use cras_sys::gen::{
-    cras_disconnect_stream_message, cras_server_message, snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID,
-    CRAS_SERVER_MESSAGE_ID, CRAS_STREAM_DIRECTION,
-};
+use cras_sys::gen::{snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_STREAM_DIRECTION};
 use sys_util::error;
 
 use crate::audio_socket::{AudioMessage, AudioSocket};
@@ -192,19 +188,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> Drop for CrasStream<'a, T> {
     /// the return message.
     /// Logs an error message to stderr if the method fails.
     fn drop(&mut self) {
-        // Send stream disconnect message
-        let msg_header = cras_server_message {
-            length: mem::size_of::<cras_disconnect_stream_message>() as u32,
-            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_DISCONNECT_STREAM,
-        };
-        let server_cmsg = cras_disconnect_stream_message {
-            header: msg_header,
-            stream_id: self.stream_id,
-        };
-        if let Err(e) = self
-            .server_socket
-            .send_server_message_with_fds(&server_cmsg, &[])
-        {
+        if let Err(e) = self.server_socket.disconnect_stream(self.stream_id) {
             error!("CrasStream::Drop error: {}", e);
         }
     }
