@@ -156,6 +156,11 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 		       buffer_frames);
 		return -EINVAL;
 	}
+	if (format->num_channels < 0 || format->num_channels > CRAS_CH_MAX) {
+		syslog(LOG_ERR, "rstream: invalid num_channels %zu\n",
+		       format->num_channels);
+		return -EINVAL;
+	}
 	if (stream_out == NULL) {
 		syslog(LOG_ERR, "rstream: stream_out can't be NULL\n");
 		return -EINVAL;
