@@ -131,7 +131,7 @@ use audio_streams::{
 };
 pub use cras_sys::gen::CRAS_CLIENT_TYPE as CrasClientType;
 use cras_sys::gen::*;
-use sys_util::{PollContext, PollToken};
+use sys_util::{PollContext, PollToken, SharedMemory};
 
 mod audio_socket;
 use crate::audio_socket::AudioSocket;
@@ -140,12 +140,15 @@ use crate::cras_server_socket::CrasServerSocket;
 mod cras_shm;
 use crate::cras_shm::CrasServerState;
 pub mod cras_shm_stream;
+use crate::cras_shm_stream::CrasShmStream;
 mod cras_stream;
 use crate::cras_stream::{CrasCaptureData, CrasPlaybackData, CrasStream, CrasStreamData};
 mod cras_client_message;
 use crate::cras_client_message::*;
 pub mod cras_types;
+use crate::cras_types::{pcm_format, StreamDirection};
 pub mod shm_streams;
+use crate::shm_streams::{NullShmStream, ShmStream, ShmStreamSource};
 
 #[derive(Debug)]
 pub enum Error {
@@ -198,8 +201,8 @@ impl From<cras_client_message::Error> for Error {
     }
 }
 
-/// A CRAS server client, which implements StreamSource. It can create audio streams connecting
-/// to CRAS server.
+/// A CRAS server client, which implements StreamSource and ShmStreamSource.
+/// It can create audio streams connecting to CRAS server.
 pub struct CrasClient<'a> {
     server_socket: CrasServerSocket,
     server_state: CrasServerState<'a>,
@@ -410,6 +413,12 @@ impl<'a> CrasClient<'a> {
                 .map_err(Into::into)
             })
     }
+
+    /// Returns any open file descriptors needed by CrasClient.
+    /// This function is shared between StreamSource and ShmStreamSource.
+    fn keep_fds(&self) -> Vec<RawFd> {
+        vec![self.server_socket.as_raw_fd()]
+    }
 }
 
 impl<'a> StreamSource for CrasClient<'a> {
@@ -470,6 +479,86 @@ impl<'a> StreamSource for CrasClient<'a> {
     }
 
     fn keep_fds(&self) -> Option<Vec<RawFd>> {
-        Some(vec![self.server_socket.as_raw_fd()])
+        Some(CrasClient::keep_fds(self))
+    }
+}
+
+impl<'a> ShmStreamSource for CrasClient<'a> {
+    fn new_stream(
+        &mut self,
+        direction: StreamDirection,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: usize,
+        buffer_size: usize,
+        client_shm: &SharedMemory,
+        buffer_offsets: [u32; 2],
+    ) -> std::result::Result<Box<dyn ShmStream>, Box<dyn error::Error>> {
+        if direction == StreamDirection::Capture && !self.cras_capture {
+            return Ok(Box::new(NullShmStream::new(
+                buffer_size,
+                num_channels,
+                format,
+                frame_rate,
+            )));
+        }
+
+        let buffer_size = buffer_size as u32;
+
+        // Prepares server message
+        let stream_id = self.next_server_stream_id();
+        let pcm_format = pcm_format(format);
+        let audio_format = cras_audio_format_packed::new(pcm_format, frame_rate, num_channels);
+        let msg_header = cras_server_message {
+            length: mem::size_of::<cras_connect_message>() as u32,
+            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
+        };
+
+        let server_cmsg = cras_connect_message {
+            header: msg_header,
+            proto_version: CRAS_PROTO_VER,
+            direction: direction.into(),
+            stream_id,
+            stream_type: CRAS_STREAM_TYPE::CRAS_STREAM_TYPE_DEFAULT,
+            buffer_frames: buffer_size,
+            cb_threshold: buffer_size,
+            flags: 0,
+            format: audio_format,
+            dev_idx: CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
+            effects: 0,
+            client_type: self.client_type,
+            client_shm_size: client_shm.size() as u32,
+            buffer_offsets,
+        };
+
+        // Creates AudioSocket pair
+        let (sock1, sock2) = UnixStream::pair()?;
+
+        // Sends `CRAS_SERVER_CONNECT_STREAM` message
+        let fds = [sock2.as_raw_fd(), client_shm.as_raw_fd()];
+        self.server_socket
+            .send_server_message_with_fds(&server_cmsg, &fds)?;
+
+        loop {
+            let result = CrasClient::wait_for_message(&mut self.server_socket)?;
+            if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
+                let audio_socket = AudioSocket::new(sock1);
+                let stream = CrasShmStream::try_new(
+                    stream_id,
+                    self.server_socket.try_clone()?,
+                    audio_socket,
+                    direction,
+                    num_channels,
+                    format,
+                    header_fd,
+                    samples_fd,
+                )?;
+                return Ok(Box::new(stream));
+            }
+        }
+    }
+
+    fn keep_fds(&self) -> Vec<RawFd> {
+        CrasClient::keep_fds(self)
     }
 }
