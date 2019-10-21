@@ -228,8 +228,13 @@ impl<'a> CrasAudioHeader<'a> {
         self.frame_size.load() as usize
     }
 
-    /// Gets the size in bytes of the shared memory buffer.
-    fn get_used_size(&self) -> usize {
+    /// Gets the max size in bytes of each shared memory buffer within
+    /// the samples area.
+    ///
+    /// # Returns
+    ///
+    /// * `usize` - Value of `used_size` fetched from the shared memory header.
+    pub fn get_used_size(&self) -> usize {
         self.used_size.load() as usize
     }
 
@@ -301,7 +306,7 @@ impl<'a> CrasAudioHeader<'a> {
         Ok(())
     }
 
-    /// Sets `read_offset[idx]` of to count of written bytes.
+    /// Sets `read_offset[idx]` to count of written bytes.
     ///
     /// # Arguments
     /// `idx` - 0 <= `idx` < `CRAS_NUM_SHM_BUFFERS`
@@ -362,8 +367,7 @@ impl<'a> CrasAudioHeader<'a> {
     ///  * overlaps some other buffer `[other_offset, other_offset + used_size)`
     ///  * is close enough to the end of the samples area that the buffer would
     ///    be shorter than `frame_size`.
-    #[allow(dead_code)]
-    fn set_buffer_offset(&mut self, idx: usize, offset: usize) -> io::Result<()> {
+    pub fn set_buffer_offset(&mut self, idx: usize, offset: usize) -> io::Result<()> {
         self.check_buffer_offset(idx, offset)?;
 
         let buffer_offset = self.buffer_offset.get(idx).ok_or_else(index_out_of_range)?;
@@ -680,6 +684,16 @@ pub fn create_header_and_buffers<'a>(
     let buffer = CrasAudioBuffer::new(samples_fd)?;
 
     Ok((header, buffer))
+}
+
+/// Creates header from header and samples shared memory fds. Use this function
+/// when mapping the samples shm is not necessary, for instance with a
+/// client-provided shm stream.
+pub fn create_header<'a>(
+    header_fd: CrasAudioShmHeaderFd,
+    samples_fd: CrasShmFd,
+) -> io::Result<(CrasAudioHeader<'a>)> {
+    Ok(CrasAudioHeader::new(header_fd, samples_fd.size)?)
 }
 
 /// A structure wrapping a fd which contains a shared memory area and its size.

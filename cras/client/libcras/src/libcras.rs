@@ -139,6 +139,7 @@ mod cras_server_socket;
 use crate::cras_server_socket::CrasServerSocket;
 mod cras_shm;
 use crate::cras_shm::CrasServerState;
+pub mod cras_shm_stream;
 mod cras_stream;
 use crate::cras_stream::{CrasCaptureData, CrasPlaybackData, CrasStream, CrasStreamData};
 mod cras_client_message;
