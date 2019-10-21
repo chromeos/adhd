@@ -143,6 +143,8 @@ mod cras_stream;
 use crate::cras_stream::{CrasCaptureData, CrasPlaybackData, CrasStream, CrasStreamData};
 mod cras_client_message;
 use crate::cras_client_message::*;
+pub mod cras_types;
+pub mod shm_streams;
 
 #[derive(Debug)]
 pub enum Error {
