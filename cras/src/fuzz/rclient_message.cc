@@ -4,6 +4,7 @@
  */
 
 #include <assert.h>
+#include <fuzzer/FuzzedDataProvider.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -21,7 +22,17 @@ struct cras_bt_event_log* btlog;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   cras_rclient* client = cras_rclient_create(0, 0, CRAS_CONTROL);
-  cras_rclient_buffer_from_client(client, data, size, NULL, 0);
+  if (size < 300) {
+    /* Feeds input data directly if the given bytes is too short. */
+    cras_rclient_buffer_from_client(client, data, size, NULL, 0);
+  } else {
+    FuzzedDataProvider data_provider(data, size);
+    int fds[1] = {0};
+    int num_fds = data_provider.ConsumeIntegralInRange(0, 1);
+    std::vector<uint8_t> msg = data_provider.ConsumeRemainingBytes<uint8_t>();
+    cras_rclient_buffer_from_client(client, msg.data(), msg.size(), fds,
+                                    num_fds);
+  }
   cras_rclient_destroy(client);
 
   return 0;
