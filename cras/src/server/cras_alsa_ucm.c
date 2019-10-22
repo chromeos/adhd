@@ -20,8 +20,6 @@ static const char edid_var[] = "EDIDFile";
 static const char cap_var[] = "CaptureControl";
 static const char mic_positions[] = "MicPositions";
 static const char override_type_name_var[] = "OverrideNodeType";
-static const char output_dsp_name_var[] = "OutputDspName";
-static const char input_dsp_name_var[] = "InputDspName";
 static const char dsp_name_var[] = "DspName";
 static const char mixer_var[] = "MixerName";
 static const char swap_mode_suffix[] = "Swap Mode";
@@ -637,22 +635,6 @@ const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
 		return NULL;
 
 	return file_name;
-}
-
-const char *ucm_get_dsp_name_default(struct cras_use_case_mgr *mgr,
-				     int direction)
-{
-	const char *var = (direction == CRAS_STREAM_OUTPUT) ?
-				  output_dsp_name_var :
-				  input_dsp_name_var;
-	const char *dsp_name = NULL;
-	int rc;
-
-	rc = get_var(mgr, var, "", uc_verb(mgr), &dsp_name);
-	if (rc)
-		return NULL;
-
-	return dsp_name;
 }
 
 const char *ucm_get_dsp_name_for_dev(struct cras_use_case_mgr *mgr,

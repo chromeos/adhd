@@ -155,17 +155,6 @@ char *ucm_get_dev_for_mixer(struct cras_use_case_mgr *mgr, const char *mixer,
 const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
 				      const char *dev);
 
-/* Gets the default dsp name.
- * Args:
- *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
- *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
- * Returns:
- *    A pointer to the allocated string containing the default dsp name, or
- *    NULL if no default dsp name is found.
- */
-const char *ucm_get_dsp_name_default(struct cras_use_case_mgr *mgr,
-				     int direction);
-
 /* Gets the dsp name which is associated with the given ucm device.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.

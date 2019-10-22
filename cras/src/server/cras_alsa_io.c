@@ -127,8 +127,6 @@ struct alsa_input_node {
  * jack_list - List of alsa jack controls for this device.
  * ucm - CRAS use case manager, if configuration is found.
  * mmap_offset - offset returned from mmap_begin.
- * dsp_name_default - the default dsp name for the device. It can be overridden
- *     by the jack specific dsp name.
  * poll_fd - Descriptor used to block until data is ready.
  * dma_period_set_microsecs - If non-zero, the value to apply to the dma_period.
  * free_running - true if device is playing zeros in the buffer without
@@ -161,7 +159,6 @@ struct alsa_io {
 	struct cras_alsa_jack_list *jack_list;
 	struct cras_use_case_mgr *ucm;
 	snd_pcm_uframes_t mmap_offset;
-	const char *dsp_name_default;
 	int poll_fd;
 	unsigned int dma_period_set_microsecs;
 	int free_running;
@@ -882,7 +879,6 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
 		free(node);
 	}
 
-	free((void *)aio->dsp_name_default);
 	cras_iodev_free_resources(&aio->base);
 	free(aio->dev);
 	if (aio->dev_id)
@@ -1443,8 +1439,7 @@ static const struct cras_alsa_jack *get_jack_from_node(struct cras_ionode *node)
 
 /*
  * Returns the dsp name specified in the ucm config. If there is a dsp name
- * specified for the active node, use that. Otherwise use the default dsp name
- * for the alsa_io device.
+ * specified for the active node, use that. Otherwise NULL should be returned.
  */
 static const char *get_active_dsp_name(struct alsa_io *aio)
 {
@@ -1453,7 +1448,7 @@ static const char *get_active_dsp_name(struct alsa_io *aio)
 	if (node == NULL)
 		return NULL;
 
-	return node->dsp_name ?: aio->dsp_name_default;
+	return node->dsp_name;
 }
 
 /*
@@ -2093,8 +2088,6 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 		unsigned int level;
 		int rc;
 
-		aio->dsp_name_default =
-			ucm_get_dsp_name_default(ucm, direction);
 		/* Set callback for swap mode if it is supported
 		 * in ucm modifier. */
 		if (ucm_swap_mode_exists(ucm))
