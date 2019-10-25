@@ -270,6 +270,11 @@ static const struct {
 		.type = CRAS_NODE_TYPE_BLUETOOTH,
 		.position = NODE_POSITION_EXTERNAL,
 	},
+	{
+		.name = "Echo Reference",
+		.type = CRAS_NODE_TYPE_ECHO_REFERENCE,
+		.position = NODE_POSITION_INTERNAL,
+	},
 };
 
 static int set_hwparams(struct cras_iodev *iodev)
