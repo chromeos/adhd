@@ -146,6 +146,8 @@ struct cras_audio_shm {
  * samples_prot - the mapping protections to use when mapping samples. Allowed
  *                values are PROT_READ or PROT_WRITE.
  * shm_out - pointer where the created cras_audio_shm will be stored.
+ *
+ * Returns 0 on success or a negative error code on failure.
  */
 int cras_audio_shm_create(struct cras_shm_info *header_info,
 			  struct cras_shm_info *samples_info, int samples_prot,

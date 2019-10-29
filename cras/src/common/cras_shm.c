@@ -129,7 +129,7 @@ int cras_audio_shm_create(struct cras_shm_info *header_info,
 		mmap(NULL, shm->header_info.length, PROT_READ | PROT_WRITE,
 		     MAP_SHARED, shm->header_info.fd, 0);
 	if (shm->header == (struct cras_audio_shm_header *)-1) {
-		ret = errno;
+		ret = -errno;
 		syslog(LOG_ERR, "cras_shm: mmap failed to map shm for header.");
 		goto free_shm;
 	}
@@ -137,7 +137,7 @@ int cras_audio_shm_create(struct cras_shm_info *header_info,
 	shm->samples = mmap(NULL, shm->samples_info.length, samples_prot,
 			    MAP_SHARED, shm->samples_info.fd, 0);
 	if (shm->samples == (uint8_t *)-1) {
-		ret = errno;
+		ret = -errno;
 		syslog(LOG_ERR,
 		       "cras_shm: mmap failed to map shm for samples.");
 		goto free_shm;
