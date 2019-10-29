@@ -474,7 +474,7 @@ int cras_server_init()
  * Returns 0 on success and leaves the created fd and the address information
  * in server_socket.
  * When error occurs, the created fd will be closed and the file path will be
- * unlinked.
+ * unlinked and returns negative error code.
  */
 static int create_and_listen_server_socket(enum CRAS_CONNECTION_TYPE conn_type,
 					   struct server_socket *server_socket)
@@ -508,7 +508,7 @@ static int create_and_listen_server_socket(enum CRAS_CONNECTION_TYPE conn_type,
 		  sizeof(struct sockaddr_un));
 	if (rc < 0) {
 		syslog(LOG_ERR, "Bind to server socket failed.");
-		rc = errno;
+		rc = -errno;
 		goto error;
 	}
 
@@ -519,7 +519,7 @@ static int create_and_listen_server_socket(enum CRAS_CONNECTION_TYPE conn_type,
 
 	if (listen(socket_fd, 5) != 0) {
 		syslog(LOG_ERR, "Listen on server socket failed.");
-		rc = errno;
+		rc = -errno;
 		goto error;
 	}
 
