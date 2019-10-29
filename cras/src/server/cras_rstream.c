@@ -169,6 +169,11 @@ static int verify_rstream_parameters(enum CRAS_STREAM_DIRECTION direction,
 		syslog(LOG_ERR, "rstream: format can't be NULL\n");
 		return -EINVAL;
 	}
+	if (format->frame_rate < 4000 || format->frame_rate > 192000) {
+		syslog(LOG_ERR, "rstream: invalid frame_rate %zu\n",
+		       format->frame_rate);
+		return -EINVAL;
+	}
 	if ((format->format != SND_PCM_FORMAT_S16_LE) &&
 	    (format->format != SND_PCM_FORMAT_S32_LE) &&
 	    (format->format != SND_PCM_FORMAT_U8) &&
