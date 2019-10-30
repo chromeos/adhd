@@ -130,8 +130,11 @@ use audio_streams::{
     StreamSource,
 };
 use cras_sys::gen::*;
-pub use cras_sys::gen::{CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType};
-pub use cras_sys::{CrasIodevInfo, CrasIonodeInfo};
+pub use cras_sys::gen::{
+    CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType,
+    CRAS_STREAM_DIRECTION as CrasStreamDirection,
+};
+pub use cras_sys::{AudioDebugInfo, CrasIodevInfo, CrasIonodeInfo};
 use sys_util::{PollContext, PollToken, SharedMemory};
 
 mod audio_socket;
@@ -336,6 +339,30 @@ impl<'a> CrasClient<'a> {
     /// Read a list of the currently attached input nodes from the server shared memory.
     pub fn input_nodes(&self) -> impl Iterator<Item = CrasIonodeInfo> {
         self.server_state.input_nodes()
+    }
+
+    /// Gets the server's audio debug info.
+    ///
+    /// Sends a message to the server requesting an update of audio debug info,
+    /// waits for the response, and then reads the info from the server state.
+    ///
+    /// # Errors
+    ///
+    /// * If sending the message to the server failed.
+    /// * If an unexpected response message is received.
+    pub fn get_audio_debug_info(&mut self) -> Result<AudioDebugInfo> {
+        let header = cras_server_message {
+            length: mem::size_of::<cras_dump_audio_thread>() as u32,
+            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_DUMP_AUDIO_THREAD,
+        };
+        let msg = cras_dump_audio_thread { header };
+
+        self.server_socket.send_server_message_with_fds(&msg, &[])?;
+
+        match CrasClient::wait_for_message(&mut self.server_socket)? {
+            ServerResult::DebugInfoReady => Ok(self.server_state.get_audio_debug_info()),
+            _ => Err(Error::MessageTypeError),
+        }
     }
 
     // Gets next server_stream_id from client and increment stream_id counter.

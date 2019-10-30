@@ -110,6 +110,7 @@ fn gen() -> String {
         .whitelist_type("CRAS_.*")
         .whitelist_var("CRAS_.*")
         .whitelist_type("audio_message")
+        .whitelist_var("MAX_DEBUG_.*")
         .rustified_enum("CRAS_.*")
         .rustified_enum("_snd_pcm_.*")
         .generate()

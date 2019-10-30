@@ -3,7 +3,9 @@
 // found in the LICENSE file.
 extern crate data_model;
 
+use std::fmt;
 use std::os::raw::c_char;
+use std::time::Duration;
 
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]
@@ -11,16 +13,19 @@ use std::os::raw::c_char;
 #[allow(non_snake_case)]
 pub mod gen;
 use gen::{
-    _snd_pcm_format, audio_message, cras_audio_format_packed, cras_iodev_info, cras_ionode_info,
-    cras_ionode_info__bindgen_ty_1, cras_timespec, CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL,
-    CRAS_NODE_TYPE,
+    _snd_pcm_format, audio_dev_debug_info, audio_message, cras_audio_format_packed,
+    cras_iodev_info, cras_ionode_info, cras_ionode_info__bindgen_ty_1, cras_timespec,
+    CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL, CRAS_NODE_TYPE, CRAS_STREAM_DIRECTION,
 };
 
 unsafe impl data_model::DataInit for gen::audio_message {}
+unsafe impl data_model::DataInit for gen::audio_debug_info {}
+unsafe impl data_model::DataInit for gen::audio_dev_debug_info {}
 unsafe impl data_model::DataInit for gen::cras_client_connected {}
 unsafe impl data_model::DataInit for gen::cras_client_stream_connected {}
 unsafe impl data_model::DataInit for gen::cras_connect_message {}
 unsafe impl data_model::DataInit for gen::cras_disconnect_stream_message {}
+unsafe impl data_model::DataInit for gen::cras_dump_audio_thread {}
 unsafe impl data_model::DataInit for gen::cras_iodev_info {}
 unsafe impl data_model::DataInit for gen::cras_ionode_info {}
 unsafe impl data_model::DataInit for gen::cras_server_state {}
@@ -178,5 +183,117 @@ impl From<cras_ionode_info> for CrasIonodeInfo {
                 tv_nsec: info.plugged_time.tv_usec * 1000,
             },
         }
+    }
+}
+
+impl From<u32> for CRAS_STREAM_DIRECTION {
+    fn from(node_type: u32) -> CRAS_STREAM_DIRECTION {
+        use CRAS_STREAM_DIRECTION::*;
+        match node_type {
+            0 => CRAS_STREAM_OUTPUT,
+            1 => CRAS_STREAM_INPUT,
+            2 => CRAS_STREAM_UNDEFINED,
+            3 => CRAS_STREAM_POST_MIX_PRE_DSP,
+            _ => CRAS_STREAM_UNDEFINED,
+        }
+    }
+}
+
+impl Default for audio_dev_debug_info {
+    fn default() -> Self {
+        Self {
+            dev_name: [0; 64],
+            buffer_size: 0,
+            min_buffer_level: 0,
+            min_cb_level: 0,
+            max_cb_level: 0,
+            frame_rate: 0,
+            num_channels: 0,
+            est_rate_ratio: 0.0,
+            direction: 0,
+            num_underruns: 0,
+            num_severe_underruns: 0,
+            highest_hw_level: 0,
+            runtime_sec: 0,
+            runtime_nsec: 0,
+            longest_wake_sec: 0,
+            longest_wake_nsec: 0,
+            software_gain_scaler: 0.0,
+        }
+    }
+}
+
+/// A rust-style representation of the server's packed audio_dev_debug_info
+/// struct.
+#[derive(Debug)]
+pub struct AudioDevDebugInfo {
+    pub dev_name: String,
+    pub buffer_size: u32,
+    pub min_buffer_level: u32,
+    pub min_cb_level: u32,
+    pub max_cb_level: u32,
+    pub frame_rate: u32,
+    pub num_channels: u32,
+    pub est_rate_ratio: f64,
+    pub direction: CRAS_STREAM_DIRECTION,
+    pub num_underruns: u32,
+    pub num_severe_underruns: u32,
+    pub highest_hw_level: u32,
+    pub runtime: Duration,
+    pub longest_wake: Duration,
+    pub software_gain_scaler: f64,
+}
+
+impl From<audio_dev_debug_info> for AudioDevDebugInfo {
+    fn from(info: audio_dev_debug_info) -> Self {
+        Self {
+            dev_name: cstring_to_string(&info.dev_name),
+            buffer_size: info.buffer_size,
+            min_buffer_level: info.min_buffer_level,
+            min_cb_level: info.min_cb_level,
+            max_cb_level: info.max_cb_level,
+            frame_rate: info.frame_rate,
+            num_channels: info.num_channels,
+            est_rate_ratio: info.est_rate_ratio,
+            direction: CRAS_STREAM_DIRECTION::from(u32::from(info.direction)),
+            num_underruns: info.num_underruns,
+            num_severe_underruns: info.num_severe_underruns,
+            highest_hw_level: info.highest_hw_level,
+            runtime: Duration::new(info.runtime_sec.into(), info.runtime_nsec),
+            longest_wake: Duration::new(info.longest_wake_sec.into(), info.longest_wake_nsec),
+            software_gain_scaler: info.software_gain_scaler,
+        }
+    }
+}
+
+impl fmt::Display for AudioDevDebugInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Device: {}", self.dev_name)?;
+        writeln!(f, "  Direction: {:?}", self.direction)?;
+        writeln!(f, "  Buffer size: {}", self.buffer_size)?;
+        writeln!(f, "  Minimum buffer level: {}", self.min_buffer_level)?;
+        writeln!(f, "  Minimum callback level: {}", self.min_cb_level)?;
+        writeln!(f, "  Max callback level: {}", self.max_cb_level)?;
+        writeln!(f, "  Frame rate: {}", self.frame_rate)?;
+        writeln!(f, "  Number of channels: {}", self.num_channels)?;
+        writeln!(f, "  Estimated rate ratio: {:.2}", self.est_rate_ratio)?;
+        writeln!(f, "  Underrun count: {}", self.num_underruns)?;
+        writeln!(f, "  Severe underrun count: {}", self.num_severe_underruns)?;
+        writeln!(f, "  Highest hardware level: {}", self.highest_hw_level)?;
+        writeln!(f, "  Runtime: {:?}", self.runtime)?;
+        writeln!(f, "  Longest wake: {:?}", self.longest_wake)?;
+        writeln!(f, "  Software gain scaler: {}", self.software_gain_scaler)?;
+        Ok(())
+    }
+}
+
+/// A rust-style representation of the server's audio debug info.
+pub struct AudioDebugInfo {
+    pub devices: Vec<AudioDevDebugInfo>,
+}
+
+impl AudioDebugInfo {
+    pub fn new(devices: Vec<AudioDevDebugInfo>) -> Self {
+        Self { devices }
     }
 }

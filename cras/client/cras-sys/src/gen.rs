@@ -23,6 +23,8 @@ pub const CRAS_MAX_IONODES: u32 = 20;
 pub const CRAS_MAX_ATTACHED_CLIENTS: u32 = 20;
 pub const CRAS_MAX_AUDIO_THREAD_SNAPSHOTS: u32 = 10;
 pub const CRAS_MAX_HOTWORD_MODEL_NAME_SIZE: u32 = 12;
+pub const MAX_DEBUG_DEVS: u32 = 4;
+pub const MAX_DEBUG_STREAMS: u32 = 8;
 pub const CRAS_BT_EVENT_LOG_SIZE: u32 = 1024;
 pub const CRAS_SERVER_STATE_VERSION: u32 = 2;
 pub const CRAS_PROTO_VER: u32 = 6;
@@ -2356,6 +2358,7 @@ pub enum CRAS_NODE_TYPE {
     CRAS_NODE_TYPE_FALLBACK_NORMAL = 12,
     CRAS_NODE_TYPE_FALLBACK_ABNORMAL = 13,
     CRAS_NODE_TYPE_UNKNOWN = 14,
+    CRAS_NODE_TYPE_ECHO_REFERENCE = 15,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

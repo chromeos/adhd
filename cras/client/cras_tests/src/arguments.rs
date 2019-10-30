@@ -238,10 +238,15 @@ fn show_control_command_usage(program_name: &str) {
         ("list_input_devices", "", "Print list of input devices"),
         ("list_output_nodes", "", "Print list of output nodes"),
         ("list_input_nodes", "", "Print list of input nodes"),
+        (
+            "dump_audio_debug_info",
+            "",
+            "Print stream info, device info, and audio thread log.",
+        ),
     ];
     for command in &commands {
         let command_string = format!("{} {}", command.0, command.1);
-        eprintln!("\t{: <20} {}", command_string, command.2);
+        eprintln!("\t{: <23} {}", command_string, command.2);
     }
 }
 
@@ -255,6 +260,7 @@ pub enum ControlCommand {
     ListInputDevices,
     ListOutputNodes,
     ListInputNodes,
+    DumpAudioDebugInfo,
 }
 
 impl ControlCommand {
@@ -300,6 +306,7 @@ impl ControlCommand {
             Some("list_input_devices") => Ok(Some(ControlCommand::ListInputDevices)),
             Some("list_output_nodes") => Ok(Some(ControlCommand::ListOutputNodes)),
             Some("list_input_nodes") => Ok(Some(ControlCommand::ListInputNodes)),
+            Some("dump_audio_debug_info") => Ok(Some(ControlCommand::DumpAudioDebugInfo)),
             Some(s) => {
                 show_control_command_usage(program_name);
                 Err(Error::UnknownCommand(s.to_string()))

@@ -5,7 +5,7 @@
 use std::error;
 use std::fmt;
 
-use libcras::{CrasClient, CrasIonodeInfo};
+use libcras::{AudioDebugInfo, CrasClient, CrasIonodeInfo};
 
 use crate::arguments::ControlCommand;
 
@@ -53,6 +53,15 @@ fn print_nodes(nodes: impl Iterator<Item = CrasIonodeInfo>) {
     }
 }
 
+fn print_audio_debug_info(info: &AudioDebugInfo) {
+    println!("Audio Debug Stats:");
+    println!("-------------devices------------");
+    for device in &info.devices {
+        println!("{}", device);
+        println!();
+    }
+}
+
 /// Connect to CRAS and run the given `ControlCommand`.
 pub fn control(command: ControlCommand) -> Result<()> {
     use ControlCommand::*;
@@ -82,6 +91,10 @@ pub fn control(command: ControlCommand) -> Result<()> {
         }
         ListOutputNodes => print_nodes(cras_client.output_nodes()),
         ListInputNodes => print_nodes(cras_client.input_nodes()),
+        DumpAudioDebugInfo => {
+            let debug_info = cras_client.get_audio_debug_info().map_err(Error::Libcras)?;
+            print_audio_debug_info(&debug_info);
+        }
     };
     Ok(())
 }

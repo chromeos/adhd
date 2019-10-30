@@ -13,10 +13,11 @@ use std::thread;
 use libc;
 
 use cras_sys::gen::{
-    cras_audio_shm_header, cras_iodev_info, cras_ionode_info, cras_server_state, CRAS_MAX_IODEVS,
-    CRAS_MAX_IONODES, CRAS_NUM_SHM_BUFFERS, CRAS_SERVER_STATE_VERSION, CRAS_SHM_BUFFERS_MASK,
+    audio_dev_debug_info, cras_audio_shm_header, cras_iodev_info, cras_ionode_info,
+    cras_server_state, CRAS_MAX_IODEVS, CRAS_MAX_IONODES, CRAS_NUM_SHM_BUFFERS,
+    CRAS_SERVER_STATE_VERSION, CRAS_SHM_BUFFERS_MASK, MAX_DEBUG_DEVS,
 };
-use cras_sys::{CrasIodevInfo, CrasIonodeInfo};
+use cras_sys::{AudioDebugInfo, AudioDevDebugInfo, CrasIodevInfo, CrasIonodeInfo};
 use data_model::{VolatileRef, VolatileSlice};
 
 /// A structure wrapping a fd which contains a shared `cras_audio_shm_header`.
@@ -540,6 +541,8 @@ pub struct CrasServerState<'a> {
     output_nodes: VolatileSlice<'a>,
     input_nodes: VolatileSlice<'a>,
     update_count: VolatileRef<'a, u32>,
+    debug_info_num_devs: VolatileRef<'a, u32>,
+    debug_info_devs: VolatileSlice<'a>,
 }
 
 // It is safe to send server_state between threads as this struct has exclusive
@@ -588,6 +591,8 @@ impl<'a> CrasServerState<'a> {
                 output_nodes: vslice_from_addr!(addr, output_nodes),
                 input_nodes: vslice_from_addr!(addr, input_nodes),
                 update_count: vref_from_addr!(addr, update_count),
+                debug_info_num_devs: vref_from_addr!(addr, audio_debug_info.num_devs),
+                debug_info_devs: vslice_from_addr!(addr, audio_debug_info.devs),
             })
         }
     }
@@ -704,6 +709,24 @@ impl<'a> CrasServerState<'a> {
             .into_iter()
             .take(num_nodes as usize)
             .map(CrasIonodeInfo::from)
+    }
+
+    /// Get audio debug info
+    ///
+    /// Loads the server's audio_debug_info struct and converts it into an
+    /// idiomatic rust representation.
+    pub fn get_audio_debug_info(&self) -> AudioDebugInfo {
+        let mut devs: Vec<audio_dev_debug_info> = vec![Default::default(); MAX_DEBUG_DEVS as usize];
+        let num_devs = self.synchronized_state_read(|| {
+            self.debug_info_devs.copy_to(&mut devs);
+            self.debug_info_num_devs.load()
+        });
+        let dev_info = devs
+            .into_iter()
+            .take(num_devs as usize)
+            .map(AudioDevDebugInfo::from)
+            .collect();
+        AudioDebugInfo::new(dev_info)
     }
 }
 

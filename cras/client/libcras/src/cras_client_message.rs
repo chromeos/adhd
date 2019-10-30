@@ -80,6 +80,7 @@ pub enum ServerResult {
     Connected(u32, CrasServerStateShmFd),
     /// stream_id, header_fd, samples_fd
     StreamConnected(u32, CrasAudioShmHeaderFd, CrasShmFd),
+    DebugInfoReady,
 }
 
 impl ServerResult {
@@ -110,6 +111,9 @@ impl ServerResult {
                     // Safe because CRAS ensures that the second fd has length 'samples_shm_size'
                     unsafe { CrasShmFd::new(message.fds[1], cmsg.samples_shm_size as usize) },
                 ))
+            }
+            CRAS_CLIENT_MESSAGE_ID::CRAS_CLIENT_AUDIO_DEBUG_INFO_READY => {
+                Ok(ServerResult::DebugInfoReady)
             }
             _ => Err(Error::MessageTypeError),
         }
@@ -165,6 +169,10 @@ impl CrasClientMessage {
                 2 => Ok(()),
                 _ => Err(Error::MessageNumFdError),
             },
+            CRAS_CLIENT_AUDIO_DEBUG_INFO_READY => match fd_nums {
+                0 => Ok(()),
+                _ => Err(Error::MessageNumFdError),
+            },
             _ => Err(Error::MessageTypeError),
         }
     }
@@ -175,6 +183,9 @@ impl CrasClientMessage {
         match u32::from_le_bytes(self.data[offset..offset + 4].try_into()?) {
             id if id == (CRAS_CLIENT_CONNECTED as u32) => Ok(CRAS_CLIENT_CONNECTED),
             id if id == (CRAS_CLIENT_STREAM_CONNECTED as u32) => Ok(CRAS_CLIENT_STREAM_CONNECTED),
+            id if id == (CRAS_CLIENT_AUDIO_DEBUG_INFO_READY as u32) => {
+                Ok(CRAS_CLIENT_AUDIO_DEBUG_INFO_READY)
+            }
             _ => Err(Error::MessageIdError),
         }
     }
