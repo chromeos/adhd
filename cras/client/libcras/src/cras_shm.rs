@@ -1,6 +1,7 @@
 // Copyright 2019 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+use std::convert::TryFrom;
 use std::io;
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
@@ -13,11 +14,13 @@ use std::thread;
 use libc;
 
 use cras_sys::gen::{
-    audio_dev_debug_info, cras_audio_shm_header, cras_iodev_info, cras_ionode_info,
-    cras_server_state, CRAS_MAX_IODEVS, CRAS_MAX_IONODES, CRAS_NUM_SHM_BUFFERS,
-    CRAS_SERVER_STATE_VERSION, CRAS_SHM_BUFFERS_MASK, MAX_DEBUG_DEVS,
+    audio_dev_debug_info, audio_stream_debug_info, cras_audio_shm_header, cras_iodev_info,
+    cras_ionode_info, cras_server_state, CRAS_MAX_IODEVS, CRAS_MAX_IONODES, CRAS_NUM_SHM_BUFFERS,
+    CRAS_SERVER_STATE_VERSION, CRAS_SHM_BUFFERS_MASK, MAX_DEBUG_DEVS, MAX_DEBUG_STREAMS,
 };
-use cras_sys::{AudioDebugInfo, AudioDevDebugInfo, CrasIodevInfo, CrasIonodeInfo};
+use cras_sys::{
+    AudioDebugInfo, AudioDevDebugInfo, AudioStreamDebugInfo, CrasIodevInfo, CrasIonodeInfo,
+};
 use data_model::{VolatileRef, VolatileSlice};
 
 /// A structure wrapping a fd which contains a shared `cras_audio_shm_header`.
@@ -543,6 +546,8 @@ pub struct CrasServerState<'a> {
     update_count: VolatileRef<'a, u32>,
     debug_info_num_devs: VolatileRef<'a, u32>,
     debug_info_devs: VolatileSlice<'a>,
+    debug_info_num_streams: VolatileRef<'a, u32>,
+    debug_info_streams: VolatileSlice<'a>,
 }
 
 // It is safe to send server_state between threads as this struct has exclusive
@@ -593,6 +598,8 @@ impl<'a> CrasServerState<'a> {
                 update_count: vref_from_addr!(addr, update_count),
                 debug_info_num_devs: vref_from_addr!(addr, audio_debug_info.num_devs),
                 debug_info_devs: vslice_from_addr!(addr, audio_debug_info.devs),
+                debug_info_num_streams: vref_from_addr!(addr, audio_debug_info.num_streams),
+                debug_info_streams: vslice_from_addr!(addr, audio_debug_info.streams),
             })
         }
     }
@@ -715,18 +722,32 @@ impl<'a> CrasServerState<'a> {
     ///
     /// Loads the server's audio_debug_info struct and converts it into an
     /// idiomatic rust representation.
-    pub fn get_audio_debug_info(&self) -> AudioDebugInfo {
+    ///
+    /// # Errors
+    /// * If any of the stream debug information structs are invalid.
+    pub fn get_audio_debug_info(&self) -> Result<AudioDebugInfo, cras_sys::Error> {
         let mut devs: Vec<audio_dev_debug_info> = vec![Default::default(); MAX_DEBUG_DEVS as usize];
-        let num_devs = self.synchronized_state_read(|| {
+        let mut streams: Vec<audio_stream_debug_info> =
+            vec![Default::default(); MAX_DEBUG_STREAMS as usize];
+        let (num_devs, num_streams) = self.synchronized_state_read(|| {
             self.debug_info_devs.copy_to(&mut devs);
-            self.debug_info_num_devs.load()
+            self.debug_info_streams.copy_to(&mut streams);
+            (
+                self.debug_info_num_devs.load(),
+                self.debug_info_num_streams.load(),
+            )
         });
         let dev_info = devs
             .into_iter()
             .take(num_devs as usize)
             .map(AudioDevDebugInfo::from)
             .collect();
-        AudioDebugInfo::new(dev_info)
+        let stream_info = streams
+            .into_iter()
+            .take(num_streams as usize)
+            .map(AudioStreamDebugInfo::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(AudioDebugInfo::new(dev_info, stream_info))
     }
 }
 

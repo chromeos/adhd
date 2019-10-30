@@ -130,10 +130,7 @@ use audio_streams::{
     StreamSource,
 };
 use cras_sys::gen::*;
-pub use cras_sys::gen::{
-    CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType,
-    CRAS_STREAM_DIRECTION as CrasStreamDirection,
-};
+pub use cras_sys::gen::{CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType};
 pub use cras_sys::{AudioDebugInfo, CrasIodevInfo, CrasIonodeInfo};
 use sys_util::{PollContext, PollToken, SharedMemory};
 
@@ -158,6 +155,7 @@ use crate::shm_streams::{NullShmStream, ShmStream, ShmStreamSource};
 pub enum Error {
     CrasClientMessageError(cras_client_message::Error),
     CrasStreamError(cras_stream::Error),
+    CrasSysError(cras_sys::Error),
     IoError(io::Error),
     SysUtilError(sys_util::Error),
     MessageTypeError,
@@ -171,6 +169,7 @@ impl fmt::Display for Error {
         match self {
             Error::CrasClientMessageError(ref err) => err.fmt(f),
             Error::CrasStreamError(ref err) => err.fmt(f),
+            Error::CrasSysError(ref err) => err.fmt(f),
             Error::IoError(ref err) => err.fmt(f),
             Error::SysUtilError(ref err) => err.fmt(f),
             Error::MessageTypeError => write!(f, "Message type error"),
@@ -360,7 +359,10 @@ impl<'a> CrasClient<'a> {
         self.server_socket.send_server_message_with_fds(&msg, &[])?;
 
         match CrasClient::wait_for_message(&mut self.server_socket)? {
-            ServerResult::DebugInfoReady => Ok(self.server_state.get_audio_debug_info()),
+            ServerResult::DebugInfoReady => Ok(self
+                .server_state
+                .get_audio_debug_info()
+                .map_err(Error::CrasSysError)?),
             _ => Err(Error::MessageTypeError),
         }
     }

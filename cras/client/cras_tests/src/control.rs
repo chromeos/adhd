@@ -60,6 +60,12 @@ fn print_audio_debug_info(info: &AudioDebugInfo) {
         println!("{}", device);
         println!();
     }
+
+    println!("-------------stream_dump------------");
+    for stream in &info.streams {
+        println!("{}", stream);
+        println!();
+    }
 }
 
 /// Connect to CRAS and run the given `ControlCommand`.
