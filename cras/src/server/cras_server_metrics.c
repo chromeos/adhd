@@ -127,6 +127,7 @@ enum CRAS_METRICS_DEVICE_TYPE {
 	CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK,
 	CRAS_METRICS_DEVICE_SILENT_HOTWORD,
 	CRAS_METRICS_DEVICE_UNKNOWN,
+	CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC,
 };
 
 struct cras_server_metrics_stream_config {
@@ -237,6 +238,8 @@ metrics_device_type_str(enum CRAS_METRICS_DEVICE_TYPE device_type)
 		return "Bluetooth";
 	case CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC:
 		return "BluetoothNarrowBandMic";
+	case CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC:
+		return "BluetoothWideBandMic";
 	case CRAS_METRICS_DEVICE_NO_DEVICE:
 		return "NoDevice";
 	/* Other dummy devices. */
@@ -315,7 +318,11 @@ get_metrics_device_type(struct cras_iodev *iodev)
 		case CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE:
 			return CRAS_METRICS_DEVICE_A2DP;
 		case CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY:
-			return CRAS_METRICS_DEVICE_HFP;
+			/* HFP narrow band has its own node type so we know
+			 * this is wideband mic for sure. */
+			return (iodev->direction == CRAS_STREAM_INPUT) ?
+				       CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC :
+				       CRAS_METRICS_DEVICE_HFP;
 		case CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY:
 			return CRAS_METRICS_DEVICE_HSP;
 		default:
