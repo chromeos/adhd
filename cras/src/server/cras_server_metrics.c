@@ -307,19 +307,23 @@ get_metrics_device_type(struct cras_iodev *iodev)
 		return CRAS_METRICS_DEVICE_POST_DSP_LOOPBACK;
 	case CRAS_NODE_TYPE_USB:
 		return CRAS_METRICS_DEVICE_USB;
-	case CRAS_NODE_TYPE_BLUETOOTH:
+	case CRAS_NODE_TYPE_BLUETOOTH: {
 #ifdef CRAS_DBUS
-		if (cras_bt_io_on_profile(iodev,
-					  CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE))
+		enum cras_bt_device_profile profile =
+			cras_bt_io_profile_to_log(iodev);
+		switch (profile) {
+		case CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE:
 			return CRAS_METRICS_DEVICE_A2DP;
-		if (cras_bt_io_on_profile(
-			    iodev, CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY))
+		case CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY:
 			return CRAS_METRICS_DEVICE_HFP;
-		if (cras_bt_io_on_profile(
-			    iodev, CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY))
+		case CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY:
 			return CRAS_METRICS_DEVICE_HSP;
+		default:
+			break;
+		}
 #endif
 		return CRAS_METRICS_DEVICE_BLUETOOTH;
+	}
 	case CRAS_NODE_TYPE_BLUETOOTH_NB_MIC:
 		return CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC;
 	case CRAS_NODE_TYPE_UNKNOWN:

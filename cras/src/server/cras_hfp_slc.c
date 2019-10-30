@@ -804,6 +804,11 @@ void hfp_slc_destroy(struct hfp_slc_handle *slc_handle)
 	free(slc_handle);
 }
 
+int hfp_slc_is_hsp(struct hfp_slc_handle *handle)
+{
+	return handle->is_hsp;
+}
+
 int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
 {
 	/* If codec negotiation is not supported on HF, or the negotiation

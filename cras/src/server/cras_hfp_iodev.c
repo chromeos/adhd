@@ -250,6 +250,12 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 {
 }
 
+int hfp_iodev_is_hsp(struct cras_iodev *iodev)
+{
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+	return hfp_slc_is_hsp(hfpio->slc);
+}
+
 void hfp_free_resources(struct hfp_io *hfpio)
 {
 	struct cras_ionode *node;

@@ -469,4 +469,8 @@ int cras_iodev_default_no_stream_playback(struct cras_iodev* odev, int enable) {
   return 0;
 }
 
+int hfp_iodev_is_hsp(struct cras_iodev* iodev) {
+  return 0;
+}
+
 }  // extern "C"

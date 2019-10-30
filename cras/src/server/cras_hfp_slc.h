@@ -71,6 +71,11 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 /* Destroys an hfp_slc_handle. */
 void hfp_slc_destroy(struct hfp_slc_handle *handle);
 
+/* Returns true if this SLC is created for headset profile(HSP), false
+ * means it's created for hands-free profile(HFP).
+ */
+int hfp_slc_is_hsp(struct hfp_slc_handle *handle);
+
 /* Sets the call status to notify handsfree device. */
 int hfp_set_call_status(struct hfp_slc_handle *handle, int call);
 

@@ -8,6 +8,7 @@
 
 #include "cras_bt_io.h"
 #include "cras_bt_device.h"
+#include "cras_hfp_iodev.h"
 #include "cras_utf8.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -558,6 +559,20 @@ int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
 {
 	struct bt_node *btnode = (struct bt_node *)bt_iodev->active_node;
 	return !!(profile & btnode->profile);
+}
+
+enum cras_bt_device_profile
+cras_bt_io_profile_to_log(struct cras_iodev *bt_iodev)
+{
+	struct bt_node *btnode = (struct bt_node *)bt_iodev->active_node;
+
+	if (btnode->profile & CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE)
+		return CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
+
+	if (hfp_iodev_is_hsp(btnode->profile_dev))
+		return CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+	else
+		return CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
 }
 
 unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,

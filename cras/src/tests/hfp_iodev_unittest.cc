@@ -378,6 +378,10 @@ int hfp_slc_get_selected_codec(struct hfp_slc_handle* handle) {
   return HFP_CODEC_ID_CVSD;
 }
 
+int hfp_slc_is_hsp(struct hfp_slc_handle* handle) {
+  return 0;
+}
+
 }  // extern "C"
 
 int main(int argc, char** argv) {
