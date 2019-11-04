@@ -4,7 +4,7 @@
 use std::error;
 use std::fmt;
 use std::os::unix::io::RawFd;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use audio_streams::SampleFormat;
 use sys_util::SharedMemory;
@@ -190,5 +190,315 @@ pub trait ShmStreamSource: Send {
     /// closing needed file descriptors.
     fn keep_fds(&self) -> Vec<RawFd> {
         Vec::new()
+    }
+}
+
+/// Class that implements ShmStream trait but does nothing with the samples
+pub struct NullShmStream {
+    buffer_size: usize,
+    frame_size: usize,
+    interval: Duration,
+    next_frame: Duration,
+    start_time: Instant,
+}
+
+impl NullShmStream {
+    /// Attempt to create a new NullShmStream with the given number of channels,
+    /// format, and buffer_size.
+    pub fn new(
+        buffer_size: usize,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: usize,
+    ) -> Self {
+        let interval = Duration::from_millis(buffer_size as u64 * 1000 / frame_rate as u64);
+        Self {
+            buffer_size,
+            frame_size: format.sample_bytes() * num_channels,
+            interval,
+            next_frame: interval,
+            start_time: Instant::now(),
+        }
+    }
+}
+
+impl BufferSet for NullShmStream {
+    fn callback(&mut self, _offset: usize, _frames: usize) -> GenericResult<()> {
+        Ok(())
+    }
+}
+
+impl ShmStream for NullShmStream {
+    fn frame_size(&self) -> usize {
+        self.frame_size
+    }
+
+    fn wait_for_next_action_with_timeout<'a>(
+        &'a mut self,
+        timeout: Duration,
+    ) -> GenericResult<Option<ServerRequest<'a>>> {
+        let elapsed = self.start_time.elapsed();
+        if elapsed < self.next_frame {
+            if timeout < self.next_frame - elapsed {
+                std::thread::sleep(timeout);
+                return Ok(None);
+            } else {
+                std::thread::sleep(self.next_frame - elapsed);
+            }
+        }
+        self.next_frame += self.interval;
+        Ok(Some(ServerRequest::new(self.buffer_size, self)))
+    }
+}
+
+/// Source of `NullShmStream` objects.
+#[derive(Default)]
+pub struct NullShmStreamSource;
+
+impl NullShmStreamSource {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl ShmStreamSource for NullShmStreamSource {
+    fn new_stream(
+        &mut self,
+        _direction: StreamDirection,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: usize,
+        buffer_size: usize,
+        _client_shm: &SharedMemory,
+        _buffer_offsets: [u32; 2],
+    ) -> GenericResult<Box<dyn ShmStream>> {
+        let new_stream = NullShmStream::new(buffer_size, num_channels, format, frame_rate);
+        Ok(Box::new(new_stream))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
+    use sync::{Condvar, Mutex};
+
+    #[derive(Clone)]
+    pub struct MockShmStream {
+        request_size: usize,
+        frame_size: usize,
+        request_notifier: Arc<(Mutex<bool>, Condvar)>,
+    }
+
+    impl MockShmStream {
+        /// Attempt to create a new MockShmStream with the given number of
+        /// channels, format, and buffer_size.
+        pub fn new(num_channels: usize, format: SampleFormat, buffer_size: usize) -> Self {
+            Self {
+                request_size: buffer_size,
+                frame_size: format.sample_bytes() * num_channels,
+                request_notifier: Arc::new((Mutex::new(false), Condvar::new())),
+            }
+        }
+
+        /// Call to request data from the stream, causing it to return from
+        /// `wait_for_next_action_with_timeout`. Will block until
+        /// `set_buffer_offset_and_frames` is called on the ServerRequest returned
+        /// from `wait_for_next_action_with_timeout`, or until `timeout` elapses.
+        /// Returns true if a response was successfully received.
+        pub fn trigger_callback_with_timeout(&mut self, timeout: Duration) -> bool {
+            let &(ref lock, ref cvar) = &*self.request_notifier;
+            let mut requested = lock.lock();
+            *requested = true;
+            cvar.notify_one();
+            let start_time = Instant::now();
+            while *requested {
+                requested = cvar.wait_timeout(requested, timeout).0;
+                if start_time.elapsed() > timeout {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    impl BufferSet for MockShmStream {
+        fn callback(&mut self, _offset: usize, _frames: usize) -> GenericResult<()> {
+            let &(ref lock, ref cvar) = &*self.request_notifier;
+            let mut requested = lock.lock();
+            *requested = false;
+            cvar.notify_one();
+            Ok(())
+        }
+    }
+
+    impl ShmStream for MockShmStream {
+        fn frame_size(&self) -> usize {
+            self.frame_size
+        }
+
+        fn wait_for_next_action_with_timeout<'a>(
+            &'a mut self,
+            timeout: Duration,
+        ) -> GenericResult<Option<ServerRequest<'a>>> {
+            {
+                let start_time = Instant::now();
+                let &(ref lock, ref cvar) = &*self.request_notifier;
+                let mut requested = lock.lock();
+                while !*requested {
+                    requested = cvar.wait_timeout(requested, timeout).0;
+                    if start_time.elapsed() > timeout {
+                        return Ok(None);
+                    }
+                }
+            }
+
+            Ok(Some(ServerRequest::new(self.request_size, self)))
+        }
+    }
+
+    /// Source of `MockShmStream` objects.
+    #[derive(Clone, Default)]
+    pub struct MockShmStreamSource {
+        last_stream: Arc<(Mutex<Option<MockShmStream>>, Condvar)>,
+    }
+
+    impl MockShmStreamSource {
+        pub fn new() -> Self {
+            Default::default()
+        }
+
+        /// Get the last stream that has been created from this source. If no stream
+        /// has been created, block until one has.
+        pub fn get_last_stream(&self) -> MockShmStream {
+            let &(ref last_stream, ref cvar) = &*self.last_stream;
+            let mut stream = last_stream.lock();
+            loop {
+                match *stream {
+                    None => stream = cvar.wait(stream),
+                    Some(ref s) => return s.clone(),
+                };
+            }
+        }
+    }
+
+    impl ShmStreamSource for MockShmStreamSource {
+        fn new_stream(
+            &mut self,
+            _direction: StreamDirection,
+            num_channels: usize,
+            format: SampleFormat,
+            _frame_rate: usize,
+            buffer_size: usize,
+            _client_shm: &SharedMemory,
+            _buffer_offsets: [u32; 2],
+        ) -> GenericResult<Box<dyn ShmStream>> {
+            let &(ref last_stream, ref cvar) = &*self.last_stream;
+            let mut stream = last_stream.lock();
+
+            let new_stream = MockShmStream::new(num_channels, format, buffer_size);
+            *stream = Some(new_stream.clone());
+            cvar.notify_one();
+            Ok(Box::new(new_stream))
+        }
+    }
+
+    #[test]
+    fn mock_trigger_callback() {
+        let stream_source = MockShmStreamSource::new();
+        let mut thread_stream_source = stream_source.clone();
+
+        let buffer_size = 480;
+        let num_channels = 2;
+        let format = SampleFormat::S24LE;
+        let shm = SharedMemory::anon().expect("Failed to create shm");
+
+        let handle = std::thread::spawn(move || {
+            let mut stream = thread_stream_source
+                .new_stream(
+                    StreamDirection::Playback,
+                    num_channels,
+                    format,
+                    44100,
+                    buffer_size,
+                    &shm,
+                    [400, 8000],
+                )
+                .expect("Failed to create stream");
+
+            let request = stream
+                .wait_for_next_action_with_timeout(Duration::from_secs(5))
+                .expect("Failed to wait for next action");
+            let result = match request {
+                Some(r) => {
+                    let requested = r.requested_frames();
+                    r.set_buffer_offset_and_frames(872, requested)
+                        .expect("Failed to set buffer offset and frames");
+                    requested
+                }
+                None => 0,
+            };
+            result
+        });
+
+        let mut stream = stream_source.get_last_stream();
+        assert!(stream.trigger_callback_with_timeout(Duration::from_secs(1)));
+
+        let requested_frames = handle.join().expect("Failed to join thread");
+        assert_eq!(requested_frames, buffer_size);
+    }
+
+    #[test]
+    fn null_consumption_rate() {
+        let frame_rate = 44100;
+        let buffer_size = 480;
+        let interval = Duration::from_millis(buffer_size as u64 * 1000 / frame_rate as u64);
+
+        let shm = SharedMemory::anon().expect("Failed to create shm");
+
+        let mut stream_source = NullShmStreamSource::new();
+        let mut stream = stream_source
+            .new_stream(
+                StreamDirection::Playback,
+                2,
+                SampleFormat::S24LE,
+                frame_rate,
+                buffer_size,
+                &shm,
+                [400, 8000],
+            )
+            .expect("Failed to create stream");
+
+        let start = Instant::now();
+
+        let timeout = Duration::from_secs(5);
+        let request = stream
+            .wait_for_next_action_with_timeout(timeout)
+            .expect("Failed to wait for first request")
+            .expect("First request should not have timed out");
+        request
+            .set_buffer_offset_and_frames(276, 480)
+            .expect("Failed to set buffer offset and length");
+
+        // The second call should block until the first buffer is consumed.
+        let _request = stream
+            .wait_for_next_action_with_timeout(timeout)
+            .expect("Failed to wait for second request");
+        let elapsed = start.elapsed();
+        assert!(
+            elapsed > interval,
+            "wait_for_next_action_with_timeout didn't block long enough: {:?}",
+            elapsed
+        );
+
+        assert!(
+            elapsed < timeout,
+            "wait_for_next_action_with_timeout blocked for too long: {:?}",
+            elapsed
+        );
     }
 }

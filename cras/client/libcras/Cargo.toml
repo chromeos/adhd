@@ -12,4 +12,5 @@ audio_streams = { path = "../../../audio_streams" } # provided by ebuild
 libc = "*"
 cras-sys = { path = "../cras-sys" } # provided by ebuild
 data_model = { path = "../../../../../platform/crosvm/data_model" } # provided by ebuild
+sync = { path = "../../../../../platform/crosvm/sync" } # provided by ebuild
 sys_util = { path = "../../../../../platform/crosvm/sys_util" } # provided by ebuild
