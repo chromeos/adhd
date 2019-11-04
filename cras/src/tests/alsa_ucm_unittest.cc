@@ -834,6 +834,31 @@ TEST(AlsaUcm, DefaultNodeGain) {
   ASSERT_TRUE(ret);
 }
 
+TEST(AlsaUcm, IntrinsicVolume) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  long intrinsic_vol;
+  int ret;
+  std::string id = "=IntrinsicVolume/Internal Mic/HiFi";
+  std::string value = "-2000";
+
+  ResetStubData();
+
+  /* Value can be found in UCM. */
+  snd_use_case_get_value[id] = value;
+
+  ret = ucm_get_intrinsic_volume(mgr, "Internal Mic", &intrinsic_vol);
+
+  EXPECT_EQ(0, ret);
+  EXPECT_EQ(-2000, intrinsic_vol);
+
+  ResetStubData();
+
+  /* Value can not be found in UCM. */
+  ret = ucm_get_intrinsic_volume(mgr, "Internal Mic", &intrinsic_vol);
+
+  ASSERT_TRUE(ret);
+}
+
 TEST(AlsaUcm, UseFullySpecifiedUCMConfig) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   int fully_specified_flag;

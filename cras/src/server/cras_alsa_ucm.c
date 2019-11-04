@@ -37,6 +37,18 @@ static const char coupled_mixers[] = "CoupledMixers";
 static const char dependent_device_name_var[] = "DependentPCM";
 static const char preempt_hotword_var[] = "PreemptHotword";
 static const char echo_reference_dev_name_var[] = "EchoReferenceDev";
+
+/*
+ * Set this value in a SectionDevice to specify the intrinsic volume in
+ * 0.01 dBFS. It currently only supports input devices. You should get the
+ * value by recording samples without either hardware or software gain. We are
+ * still working on building a standard process for measuring it. The value you
+ * see now in our UCM is just estimated value. If it is set, CRAS will enable
+ * software gain and use the value as a reference volume for calculating the
+ * appropriate software gain to apply to the device to meet our target volume.
+ */
+static const char intrinsic_volume_var[] = "IntrinsicVolume";
+
 /*
  * Set this value in a SectionDevice to specify the minimum software gain in
  * 0.01 dB and enable software gain on this node. It must be used with
@@ -717,6 +729,19 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
 	if (rc)
 		return rc;
 	*gain = value;
+	return 0;
+}
+
+int ucm_get_intrinsic_volume(struct cras_use_case_mgr *mgr, const char *dev,
+			     long *vol)
+{
+	int value;
+	int rc;
+
+	rc = get_int(mgr, intrinsic_volume_var, dev, uc_verb(mgr), &value);
+	if (rc)
+		return rc;
+	*vol = value;
 	return 0;
 }
 
