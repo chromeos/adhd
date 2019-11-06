@@ -1559,7 +1559,8 @@ void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
 static int cras_iodev_drop_frames(struct cras_iodev *iodev, unsigned int frames)
 {
 	struct timespec hw_tstamp;
-	int rc;
+	int i, rc;
+	unsigned int target_frames, dropped_frames = 0;
 
 	if (iodev->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
@@ -1568,23 +1569,33 @@ static int cras_iodev_drop_frames(struct cras_iodev *iodev, unsigned int frames)
 	if (rc < 0)
 		return rc;
 
-	frames = MIN(frames, rc);
-
-	rc = iodev->get_buffer(iodev, &iodev->input_data->area, &frames);
-	if (rc < 0)
-		return rc;
-
-	rc = iodev->put_buffer(iodev, frames);
-	if (rc < 0)
-		return rc;
+	target_frames = MIN(frames, rc);
 
 	/*
-	 * Tell rate estimator that some frames have been dropped to avoid calculating
-	 * the wrong rate.
+	 * Loop reading the buffer, at most twice. This is to cover when
+	 * circular buffer is at the end and returns partial of the target
+	 * frames.
 	 */
-	rate_estimator_add_frames(iodev->rate_est, -frames);
+	for (i = 0; (dropped_frames < target_frames) && (i < 2); i++) {
+		frames = target_frames - dropped_frames;
+		rc = iodev->get_buffer(iodev, &iodev->input_data->area,
+				       &frames);
+		if (rc < 0)
+			return rc;
 
-	ATLOG(atlog, AUDIO_THREAD_DEV_DROP_FRAMES, iodev->info.idx, frames, 0);
+		rc = iodev->put_buffer(iodev, frames);
+		if (rc < 0)
+			return rc;
+		dropped_frames += frames;
+		/*
+		 * Tell rate estimator that some frames have been dropped to
+		 * avoid calculating the wrong rate.
+		 */
+		rate_estimator_add_frames(iodev->rate_est, -frames);
+	}
+
+	ATLOG(atlog, AUDIO_THREAD_DEV_DROP_FRAMES, iodev->info.idx,
+	      dropped_frames, 0);
 
 	return frames;
 }
