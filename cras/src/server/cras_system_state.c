@@ -116,7 +116,7 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 		board_config.default_output_buffer_size;
 	exp_state->aec_supported = board_config.aec_supported;
 	exp_state->aec_group_id = board_config.aec_group_id;
-	exp_state->bt_wbs_enabled = 0;
+	exp_state->bt_wbs_enabled = board_config.bt_wbs_enabled;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");

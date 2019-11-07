@@ -14,11 +14,13 @@ static const unsigned int MAX_KEY_LEN = 63;
 static const int32_t DEFAULT_OUTPUT_BUFFER_SIZE = 512;
 static const int32_t AEC_SUPPORTED_DEFAULT = 0;
 static const int32_t AEC_GROUP_ID_DEFAULT = -1;
+static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 0;
 
 #define CONFIG_NAME "board.ini"
 #define DEFAULT_OUTPUT_BUF_SIZE_INI_KEY "output:default_output_buffer_size"
 #define AEC_SUPPORTED_INI_KEY "processing:aec_supported"
 #define AEC_GROUP_ID_INI_KEY "processing:group_id"
+#define BLUETOOTH_WBS_ENABLED_INI_KEY "bluetooth:wbs_enabled"
 
 void cras_board_config_get(const char *config_path,
 			   struct cras_board_config *board_config)
@@ -55,6 +57,11 @@ void cras_board_config_get(const char *config_path,
 	ini_key[MAX_KEY_LEN] = 0;
 	board_config->aec_group_id =
 		iniparser_getint(ini, ini_key, AEC_GROUP_ID_DEFAULT);
+
+	snprintf(ini_key, MAX_KEY_LEN, BLUETOOTH_WBS_ENABLED_INI_KEY);
+	ini_key[MAX_KEY_LEN] = 0;
+	board_config->bt_wbs_enabled = iniparser_getint(
+		ini, ini_key, BLUETOOTH_WBS_ENABLED_INI_DEFAULT);
 
 	iniparser_freedict(ini);
 	syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
