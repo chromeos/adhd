@@ -256,7 +256,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	 * TODO(hychao): AND the two conditions to let bluetooth daemon
 	 * control whether to turn on WBS feature.
 	 */
-	ag_features = profile->features;
+	ag_features = CRAS_AG_SUPPORTED_FEATURES;
 	if (cras_system_get_bt_wbs_enabled() &&
 	    cras_bt_adapter_wbs_supported(adapter))
 		ag_features |= AG_CODEC_NEGOTIATION;
@@ -332,8 +332,9 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 	ag->device = device;
 	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
-	ag->slc_handle = hfp_slc_create(rfcomm_fd, 1, profile->features, device,
-					NULL, cras_hfp_ag_slc_disconnected);
+	ag->slc_handle =
+		hfp_slc_create(rfcomm_fd, 1, CRAS_AG_SUPPORTED_FEATURES, device,
+			       NULL, cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
 	cras_hfp_ag_slc_initialized(ag->slc_handle);
 	return 0;
