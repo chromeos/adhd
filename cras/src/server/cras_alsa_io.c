@@ -2194,41 +2194,6 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev)
 	return 0;
 }
 
-/*
- * We need this to work around with some boards out there with incorrect
- * PlaybackPCM or CapturePCM values.
- * TODO(hychao): remove this function when we fix all UCM files.
- * Args:
- *    alsa_dev - expected to be of format 'hw:0,1' where 0 is the card index
- *        and 1 is the device_index.
- *    device_index - Device index to associate with certain node specified
- *        in UCM file, not necessarily be the same device index parsed from
- *        alsa_dev.
- * Returns:
- *    A PCM name derived from alsa_dev but with the dev index part be set
- *    to device_index.
- */
-static char *prepare_pcm_name(const char *alsa_dev, int device_index)
-{
-	char *pcm_name, *pos;
-	int len;
-
-	len = MAX_ALSA_DEV_NAME_LENGTH;
-	pcm_name = (char *)calloc(1, len);
-	strncpy(pcm_name, alsa_dev, len);
-	pos = pcm_name;
-
-	while (*pos && len) {
-		char c = *pos;
-		++pos;
-		--len;
-		if (c == ',')
-			break;
-	}
-	snprintf(pos, len, "%d", device_index);
-	return pcm_name;
-}
-
 int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 				       struct ucm_section *section)
 {
@@ -2264,14 +2229,12 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 		output_node = new_output(aio, control, section->name);
 		if (!output_node)
 			return -ENOMEM;
-		output_node->pcm_name =
-			prepare_pcm_name(aio->dev, section->dev_idx);
+		output_node->pcm_name = strdup(section->pcm_name);
 	} else if (iodev->direction == CRAS_STREAM_INPUT) {
 		input_node = new_input(aio, control, section->name);
 		if (!input_node)
 			return -ENOMEM;
-		input_node->pcm_name =
-			prepare_pcm_name(aio->dev, section->dev_idx);
+		input_node->pcm_name = strdup(section->pcm_name);
 	}
 
 	if (section->jack_type && !strcmp(section->jack_type, "always"))
