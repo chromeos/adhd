@@ -56,12 +56,14 @@ void cras_rstream_config_init_with_message(
 	const struct cras_audio_format *remote_fmt,
 	struct cras_rstream_config *stream_config)
 {
+	const uint32_t buffer_offsets[2] = { msg->buffer_offsets[0],
+					     msg->buffer_offsets[1] };
 	cras_rstream_config_init(client, msg->stream_id, msg->stream_type,
 				 msg->client_type, msg->direction, msg->dev_idx,
 				 msg->flags, msg->effects, remote_fmt,
 				 msg->buffer_frames, msg->cb_threshold, aud_fd,
 				 client_shm_fd, msg->client_shm_size,
-				 msg->buffer_offsets, stream_config);
+				 buffer_offsets, stream_config);
 }
 
 void cras_rstream_config_cleanup(struct cras_rstream_config *stream_config)
