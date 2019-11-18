@@ -882,6 +882,7 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 			       "UCM configuration for device '%s' missing"
 			       " PlaybackPCM or CapturePCM definition.",
 			       dev_name);
+			free((void *)pcm_name);
 			goto error_cleanup;
 		}
 
@@ -890,6 +891,7 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 			       "PlaybackPCM or CapturePCM for '%s' must be in"
 			       " the form 'hw:<card>,<number>'",
 			       dev_name);
+			free((void *)pcm_name);
 			goto error_cleanup;
 		}
 
