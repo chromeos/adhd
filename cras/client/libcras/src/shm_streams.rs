@@ -4,9 +4,11 @@
 use std::error;
 use std::fmt;
 use std::os::unix::io::RawFd;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use audio_streams::SampleFormat;
+use sync::{Condvar, Mutex};
 use sys_util::SharedMemory;
 
 use crate::cras_types::StreamDirection;
@@ -277,135 +279,132 @@ impl ShmStreamSource for NullShmStreamSource {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    };
-    use sync::{Condvar, Mutex};
+#[derive(Clone)]
+pub struct MockShmStream {
+    request_size: usize,
+    frame_size: usize,
+    request_notifier: Arc<(Mutex<bool>, Condvar)>,
+}
 
-    #[derive(Clone)]
-    pub struct MockShmStream {
-        request_size: usize,
-        frame_size: usize,
-        request_notifier: Arc<(Mutex<bool>, Condvar)>,
+impl MockShmStream {
+    /// Attempt to create a new MockShmStream with the given number of
+    /// channels, format, and buffer_size.
+    pub fn new(num_channels: usize, format: SampleFormat, buffer_size: usize) -> Self {
+        Self {
+            request_size: buffer_size,
+            frame_size: format.sample_bytes() * num_channels,
+            request_notifier: Arc::new((Mutex::new(false), Condvar::new())),
+        }
     }
 
-    impl MockShmStream {
-        /// Attempt to create a new MockShmStream with the given number of
-        /// channels, format, and buffer_size.
-        pub fn new(num_channels: usize, format: SampleFormat, buffer_size: usize) -> Self {
-            Self {
-                request_size: buffer_size,
-                frame_size: format.sample_bytes() * num_channels,
-                request_notifier: Arc::new((Mutex::new(false), Condvar::new())),
+    /// Call to request data from the stream, causing it to return from
+    /// `wait_for_next_action_with_timeout`. Will block until
+    /// `set_buffer_offset_and_frames` is called on the ServerRequest returned
+    /// from `wait_for_next_action_with_timeout`, or until `timeout` elapses.
+    /// Returns true if a response was successfully received.
+    pub fn trigger_callback_with_timeout(&mut self, timeout: Duration) -> bool {
+        let &(ref lock, ref cvar) = &*self.request_notifier;
+        let mut requested = lock.lock();
+        *requested = true;
+        cvar.notify_one();
+        let start_time = Instant::now();
+        while *requested {
+            requested = cvar.wait_timeout(requested, timeout).0;
+            if start_time.elapsed() > timeout {
+                // We failed to get a callback in time, mark this as false.
+                *requested = false;
+                return false;
             }
         }
 
-        /// Call to request data from the stream, causing it to return from
-        /// `wait_for_next_action_with_timeout`. Will block until
-        /// `set_buffer_offset_and_frames` is called on the ServerRequest returned
-        /// from `wait_for_next_action_with_timeout`, or until `timeout` elapses.
-        /// Returns true if a response was successfully received.
-        pub fn trigger_callback_with_timeout(&mut self, timeout: Duration) -> bool {
+        return true;
+    }
+}
+
+impl BufferSet for MockShmStream {
+    fn callback(&mut self, _offset: usize, _frames: usize) -> GenericResult<()> {
+        let &(ref lock, ref cvar) = &*self.request_notifier;
+        let mut requested = lock.lock();
+        *requested = false;
+        cvar.notify_one();
+        Ok(())
+    }
+}
+
+impl ShmStream for MockShmStream {
+    fn frame_size(&self) -> usize {
+        self.frame_size
+    }
+
+    fn wait_for_next_action_with_timeout<'a>(
+        &'a mut self,
+        timeout: Duration,
+    ) -> GenericResult<Option<ServerRequest<'a>>> {
+        {
+            let start_time = Instant::now();
             let &(ref lock, ref cvar) = &*self.request_notifier;
             let mut requested = lock.lock();
-            *requested = true;
-            cvar.notify_one();
-            let start_time = Instant::now();
-            while *requested {
+            while !*requested {
                 requested = cvar.wait_timeout(requested, timeout).0;
                 if start_time.elapsed() > timeout {
-                    return false;
+                    return Ok(None);
                 }
             }
-
-            return true;
         }
+
+        Ok(Some(ServerRequest::new(self.request_size, self)))
+    }
+}
+
+/// Source of `MockShmStream` objects.
+#[derive(Clone, Default)]
+pub struct MockShmStreamSource {
+    last_stream: Arc<(Mutex<Option<MockShmStream>>, Condvar)>,
+}
+
+impl MockShmStreamSource {
+    pub fn new() -> Self {
+        Default::default()
     }
 
-    impl BufferSet for MockShmStream {
-        fn callback(&mut self, _offset: usize, _frames: usize) -> GenericResult<()> {
-            let &(ref lock, ref cvar) = &*self.request_notifier;
-            let mut requested = lock.lock();
-            *requested = false;
-            cvar.notify_one();
-            Ok(())
+    /// Get the last stream that has been created from this source. If no stream
+    /// has been created, block until one has.
+    pub fn get_last_stream(&self) -> MockShmStream {
+        let &(ref last_stream, ref cvar) = &*self.last_stream;
+        let mut stream = last_stream.lock();
+        loop {
+            match &*stream {
+                None => stream = cvar.wait(stream),
+                Some(ref s) => return s.clone(),
+            };
         }
     }
+}
 
-    impl ShmStream for MockShmStream {
-        fn frame_size(&self) -> usize {
-            self.frame_size
-        }
+impl ShmStreamSource for MockShmStreamSource {
+    fn new_stream(
+        &mut self,
+        _direction: StreamDirection,
+        num_channels: usize,
+        format: SampleFormat,
+        _frame_rate: usize,
+        buffer_size: usize,
+        _client_shm: &SharedMemory,
+        _buffer_offsets: [u32; 2],
+    ) -> GenericResult<Box<dyn ShmStream>> {
+        let &(ref last_stream, ref cvar) = &*self.last_stream;
+        let mut stream = last_stream.lock();
 
-        fn wait_for_next_action_with_timeout<'a>(
-            &'a mut self,
-            timeout: Duration,
-        ) -> GenericResult<Option<ServerRequest<'a>>> {
-            {
-                let start_time = Instant::now();
-                let &(ref lock, ref cvar) = &*self.request_notifier;
-                let mut requested = lock.lock();
-                while !*requested {
-                    requested = cvar.wait_timeout(requested, timeout).0;
-                    if start_time.elapsed() > timeout {
-                        return Ok(None);
-                    }
-                }
-            }
-
-            Ok(Some(ServerRequest::new(self.request_size, self)))
-        }
+        let new_stream = MockShmStream::new(num_channels, format, buffer_size);
+        *stream = Some(new_stream.clone());
+        cvar.notify_one();
+        Ok(Box::new(new_stream))
     }
+}
 
-    /// Source of `MockShmStream` objects.
-    #[derive(Clone, Default)]
-    pub struct MockShmStreamSource {
-        last_stream: Arc<(Mutex<Option<MockShmStream>>, Condvar)>,
-    }
-
-    impl MockShmStreamSource {
-        pub fn new() -> Self {
-            Default::default()
-        }
-
-        /// Get the last stream that has been created from this source. If no stream
-        /// has been created, block until one has.
-        pub fn get_last_stream(&self) -> MockShmStream {
-            let &(ref last_stream, ref cvar) = &*self.last_stream;
-            let mut stream = last_stream.lock();
-            loop {
-                match *stream {
-                    None => stream = cvar.wait(stream),
-                    Some(ref s) => return s.clone(),
-                };
-            }
-        }
-    }
-
-    impl ShmStreamSource for MockShmStreamSource {
-        fn new_stream(
-            &mut self,
-            _direction: StreamDirection,
-            num_channels: usize,
-            format: SampleFormat,
-            _frame_rate: usize,
-            buffer_size: usize,
-            _client_shm: &SharedMemory,
-            _buffer_offsets: [u32; 2],
-        ) -> GenericResult<Box<dyn ShmStream>> {
-            let &(ref last_stream, ref cvar) = &*self.last_stream;
-            let mut stream = last_stream.lock();
-
-            let new_stream = MockShmStream::new(num_channels, format, buffer_size);
-            *stream = Some(new_stream.clone());
-            cvar.notify_one();
-            Ok(Box::new(new_stream))
-        }
-    }
+#[cfg(test)]
+pub mod tests {
+    use super::*;
 
     #[test]
     fn mock_trigger_callback() {
