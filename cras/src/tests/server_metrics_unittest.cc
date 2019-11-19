@@ -286,10 +286,11 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   stream.first_missed_cb_ts.tv_nsec = 0;
 
   stream.direction = CRAS_STREAM_INPUT;
+  stream.client_type = CRAS_CLIENT_TYPE_TEST;
   cras_server_metrics_stream_destroy(&stream);
 
   subtract_timespecs(&clock_gettime_retspec, &stream.start_ts, &diff_ts);
-  EXPECT_EQ(sent_msgs.size(), 2);
+  EXPECT_EQ(sent_msgs.size(), 3);
 
   // Log missed cb frequency.
   EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
@@ -309,6 +310,15 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
             MISSED_CB_FREQUENCY_AFTER_RESCHEDULING_INPUT);
   EXPECT_EQ(sent_msgs[1].data.value,
             (stream.num_missed_cb - 1) * 86400 / diff_ts.tv_sec);
+
+  // Log stream runtime.
+  EXPECT_EQ(sent_msgs[2].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[2].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[2].metrics_type, STREAM_RUNTIME);
+  EXPECT_EQ(sent_msgs[2].data.stream_data.type, CRAS_CLIENT_TYPE_TEST);
+  EXPECT_EQ(sent_msgs[2].data.stream_data.direction, CRAS_STREAM_INPUT);
+  EXPECT_EQ(sent_msgs[2].data.stream_data.runtime.tv_sec, 1000);
 }
 
 TEST(ServerMetricsTestSuite, SetMetricsBusyloop) {

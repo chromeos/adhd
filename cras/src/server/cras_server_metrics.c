@@ -96,7 +96,8 @@ enum CRAS_SERVER_METRICS_TYPE {
 	MISSED_CB_SECOND_TIME_INPUT,
 	MISSED_CB_SECOND_TIME_OUTPUT,
 	NUM_UNDERRUNS,
-	STREAM_CONFIG
+	STREAM_CONFIG,
+	STREAM_RUNTIME
 };
 
 enum CRAS_METRICS_DEVICE_TYPE {
@@ -145,6 +146,12 @@ struct cras_server_metrics_device_data {
 	struct timespec runtime;
 };
 
+struct cras_server_metrics_stream_data {
+	enum CRAS_CLIENT_TYPE type;
+	enum CRAS_STREAM_DIRECTION direction;
+	struct timespec runtime;
+};
+
 struct cras_server_metrics_timespec_data {
 	struct timespec runtime;
 	unsigned count;
@@ -154,6 +161,7 @@ union cras_server_metrics_data {
 	unsigned value;
 	struct cras_server_metrics_stream_config stream_config;
 	struct cras_server_metrics_device_data device_data;
+	struct cras_server_metrics_stream_data stream_data;
 	struct cras_server_metrics_timespec_data timespec_data;
 };
 
@@ -251,6 +259,31 @@ metrics_device_type_str(enum CRAS_METRICS_DEVICE_TYPE device_type)
 		return "SilentHotword";
 	case CRAS_METRICS_DEVICE_UNKNOWN:
 		return "Unknown";
+	default:
+		return "InvalidType";
+	}
+}
+
+static inline const char *
+metrics_client_type_str(enum CRAS_CLIENT_TYPE client_type)
+{
+	switch (client_type) {
+	case CRAS_CLIENT_TYPE_UNKNOWN:
+		return "Unknown";
+	case CRAS_CLIENT_TYPE_LEGACY:
+		return "Legacy";
+	case CRAS_CLIENT_TYPE_TEST:
+		return "Test";
+	case CRAS_CLIENT_TYPE_PCM:
+		return "PCM";
+	case CRAS_CLIENT_TYPE_CHROME:
+		return "Chrome";
+	case CRAS_CLIENT_TYPE_ARC:
+		return "ARC";
+	case CRAS_CLIENT_TYPE_CROSVM:
+		return "CrOSVM";
+	case CRAS_CLIENT_TYPE_SERVER_STREAM:
+		return "ServerStream";
 	default:
 		return "InvalidType";
 	}
@@ -721,6 +754,32 @@ static int cras_server_metrics_stream_config(const struct cras_rstream *stream)
 	return 0;
 }
 
+/* Logs runtime of a stream. */
+int cras_server_metrics_stream_runtime(const struct cras_rstream *stream)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	struct timespec now;
+	int err;
+
+	data.stream_data.type = stream->client_type;
+	data.stream_data.direction = stream->direction;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &stream->start_ts, &data.stream_data.runtime);
+
+	init_server_metrics_msg(&msg, STREAM_RUNTIME, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: STREAM_RUNTIME");
+		return err;
+	}
+
+	return 0;
+}
+
 int cras_server_metrics_stream_create(const struct cras_rstream *stream)
 {
 	return cras_server_metrics_stream_config(stream);
@@ -728,7 +787,12 @@ int cras_server_metrics_stream_create(const struct cras_rstream *stream)
 
 int cras_server_metrics_stream_destroy(const struct cras_rstream *stream)
 {
-	return cras_server_metrics_missed_cb_frequency(stream);
+	int rc;
+	rc = cras_server_metrics_missed_cb_frequency(stream);
+	if (rc < 0)
+		return rc;
+	rc = cras_server_metrics_stream_runtime(stream);
+	return rc;
 }
 
 int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
@@ -767,6 +831,18 @@ static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 		cras_metrics_log_sparse_histogram(kDeviceTypeInput, data.type);
 	else
 		cras_metrics_log_sparse_histogram(kDeviceTypeOutput, data.type);
+}
+
+static void metrics_stream_runtime(struct cras_server_metrics_stream_data data)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
+		 "Cras.%sStreamRuntime.%s",
+		 data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
+		 metrics_client_type_str(data.type));
+	cras_metrics_log_histogram(metrics_name, (unsigned)data.runtime.tv_sec,
+				   0, 10000, 20);
 }
 
 static void metrics_busyloop(struct cras_server_metrics_timespec_data data)
@@ -898,6 +974,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		break;
 	case STREAM_CONFIG:
 		metrics_stream_config(metrics_msg->data.stream_config);
+		break;
+	case STREAM_RUNTIME:
+		metrics_stream_runtime(metrics_msg->data.stream_data);
 		break;
 	case BUSYLOOP:
 		metrics_busyloop(metrics_msg->data.timespec_data);
