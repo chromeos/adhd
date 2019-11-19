@@ -365,12 +365,14 @@ int cras_rstream_create(struct cras_rstream_config *config,
 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &stream->start_ts);
 
+	cras_server_metrics_stream_create(stream);
+
 	return 0;
 }
 
 void cras_rstream_destroy(struct cras_rstream *stream)
 {
-	cras_server_metrics_missed_cb_frequency(stream);
+	cras_server_metrics_stream_destroy(stream);
 	cras_system_state_stream_removed(stream->direction);
 	close(stream->fd);
 	cras_audio_shm_destroy(stream->shm);

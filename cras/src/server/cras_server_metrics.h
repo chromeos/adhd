@@ -40,14 +40,14 @@ int cras_server_metrics_longest_fetch_delay(unsigned delay_msec);
 /* Logs the number of underruns of a device. */
 int cras_server_metrics_num_underruns(unsigned num_underruns);
 
-/* Logs the frequency of missed callback. */
-int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream);
-
 /* Logs the missed callback event. */
 int cras_server_metrics_missed_cb_event(const struct cras_rstream *stream);
 
-/* Logs the stream configurations from clients. */
-int cras_server_metrics_stream_config(struct cras_rstream_config *config);
+/* Logs information when a stream creates. */
+int cras_server_metrics_stream_create(const struct cras_rstream *stream);
+
+/* Logs information when a stream destroys. */
+int cras_server_metrics_stream_destroy(const struct cras_rstream *stream);
 
 /* Logs the number of busyloops for different time periods. */
 int cras_server_metrics_busyloop(struct timespec *ts, unsigned count);

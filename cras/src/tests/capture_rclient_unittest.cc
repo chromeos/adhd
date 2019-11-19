@@ -20,7 +20,6 @@ extern "C" {
 }
 static unsigned int cras_make_fd_nonblocking_called;
 static unsigned int cras_observer_remove_called;
-static unsigned int cras_server_metrics_stream_config_called;
 static int stream_list_add_called;
 static int stream_list_add_return;
 static unsigned int stream_list_rm_called;
@@ -31,7 +30,6 @@ static unsigned int cras_rstream_config_init_with_message_called;
 void ResetStubData() {
   cras_make_fd_nonblocking_called = 0;
   cras_observer_remove_called = 0;
-  cras_server_metrics_stream_config_called = 0;
   stream_list_add_called = 0;
   stream_list_add_return = 0;
   stream_list_rm_called = 0;
@@ -266,11 +264,6 @@ void cras_observer_remove(struct cras_observer_client* client) {
 }
 
 unsigned int cras_rstream_get_effects(const struct cras_rstream* stream) {
-  return 0;
-}
-
-int cras_server_metrics_stream_config(struct cras_rstream_config* config) {
-  cras_server_metrics_stream_config_called++;
   return 0;
 }
 

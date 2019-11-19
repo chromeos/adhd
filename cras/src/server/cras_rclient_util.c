@@ -184,9 +184,6 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 		goto cleanup_config;
 	}
 
-	/* Metrics logs the stream configurations. */
-	cras_server_metrics_stream_config(&stream_config);
-
 	/* Cleanup local object explicitly. */
 	cras_rstream_config_cleanup(&stream_config);
 	return 0;

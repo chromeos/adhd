@@ -926,7 +926,7 @@ capture_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 capture_rclient_unittest_LDADD = -lgtest -lpthread
 
 rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \
-	common/cras_shm.c $(CRAS_SELINUX_UNITTEST_SOURCES)
+	common/cras_shm.c tests/metrics_stub.cc $(CRAS_SELINUX_UNITTEST_SOURCES)
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server $(SELINUX_CFLAGS)
 rstream_unittest_LDADD = $(SELINUX_LIBS) \

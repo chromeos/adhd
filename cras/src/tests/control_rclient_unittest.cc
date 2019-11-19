@@ -45,7 +45,6 @@ static unsigned int stream_list_add_stream_called;
 static unsigned int stream_list_disconnect_stream_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_rm_output_called;
-static unsigned int cras_server_metrics_stream_config_called;
 static struct cras_audio_shm dummy_shm;
 static struct cras_rstream dummy_rstream;
 static size_t cras_observer_num_ops_registered;
@@ -65,7 +64,6 @@ void ResetStubData() {
   cras_rstream_create_return = 0;
   cras_rstream_create_stream_out = (struct cras_rstream*)NULL;
   cras_iodev_attach_stream_retval = 0;
-  cras_server_metrics_stream_config_called = 0;
   cras_system_set_volume_value = 0;
   cras_system_set_volume_called = 0;
   cras_system_set_capture_gain_value = 0;
@@ -204,7 +202,6 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   EXPECT_EQ(1, cras_rstream_config_init_with_message_called);
   EXPECT_EQ(1, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
-  EXPECT_EQ(0, cras_server_metrics_stream_config_called);
 }
 
 TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
@@ -221,7 +218,6 @@ TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
   EXPECT_NE(0, out_msg.err);
   EXPECT_EQ(stream_list_add_stream_called,
             stream_list_disconnect_stream_called);
-  EXPECT_EQ(0, cras_server_metrics_stream_config_called);
 }
 
 TEST_F(RClientMessagesSuite, ConnectMsgFromOldClient) {
@@ -247,7 +243,6 @@ TEST_F(RClientMessagesSuite, ConnectMsgFromOldClient) {
   EXPECT_EQ(1, cras_rstream_config_init_with_message_called);
   EXPECT_EQ(1, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
-  EXPECT_EQ(1, cras_server_metrics_stream_config_called);
 }
 
 TEST_F(RClientMessagesSuite, StreamConnectMessageValidDirection) {
@@ -276,7 +271,6 @@ TEST_F(RClientMessagesSuite, StreamConnectMessageValidDirection) {
     EXPECT_EQ(called, cras_rstream_config_init_with_message_called);
     EXPECT_EQ(called, stream_list_add_stream_called);
     EXPECT_EQ(0, stream_list_disconnect_stream_called);
-    EXPECT_EQ(called, cras_server_metrics_stream_config_called);
   }
 }
 
@@ -300,7 +294,6 @@ TEST_F(RClientMessagesSuite, StreamConnectMessageInvalidDirection) {
   EXPECT_EQ(-EINVAL, out_msg.err);
   EXPECT_EQ(0, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
-  EXPECT_EQ(0, cras_server_metrics_stream_config_called);
 }
 
 TEST_F(RClientMessagesSuite, StreamConnectMessageInvalidClientId) {
@@ -344,7 +337,6 @@ TEST_F(RClientMessagesSuite, SuccessReply) {
   EXPECT_EQ(1, cras_rstream_config_init_with_message_called);
   EXPECT_EQ(1, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
-  EXPECT_EQ(1, cras_server_metrics_stream_config_called);
 }
 
 TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
@@ -367,7 +359,6 @@ TEST_F(RClientMessagesSuite, SuccessCreateThreadReply) {
   EXPECT_EQ(1, cras_rstream_config_init_with_message_called);
   EXPECT_EQ(1, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
-  EXPECT_EQ(1, cras_server_metrics_stream_config_called);
 }
 
 TEST_F(RClientMessagesSuite, SetVolume) {
@@ -1007,11 +998,6 @@ int cras_observer_ops_are_empty(const struct cras_observer_ops* ops) {
 
 void cras_observer_remove(struct cras_observer_client* client) {
   cras_observer_remove_called++;
-}
-
-int cras_server_metrics_stream_config(struct cras_rstream_config* config) {
-  cras_server_metrics_stream_config_called++;
-  return 0;
 }
 
 void cras_rstream_config_init_with_message(

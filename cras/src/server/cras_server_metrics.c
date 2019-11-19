@@ -540,7 +540,9 @@ int cras_server_metrics_num_underruns(unsigned num_underruns)
 	return 0;
 }
 
-int cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
+/* Logs the frequency of missed callback. */
+static int
+cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 {
 	struct cras_server_metrics_message msg;
 	union cras_server_metrics_data data;
@@ -693,18 +695,19 @@ int cras_server_metrics_missed_cb_event(struct cras_rstream *stream)
 	return rc;
 }
 
-int cras_server_metrics_stream_config(struct cras_rstream_config *config)
+/* Logs the stream configurations from clients. */
+static int cras_server_metrics_stream_config(const struct cras_rstream *stream)
 {
 	struct cras_server_metrics_message msg;
 	union cras_server_metrics_data data;
 	int err;
 
-	data.stream_config.direction = config->direction;
-	data.stream_config.cb_threshold = (unsigned)config->cb_threshold;
-	data.stream_config.flags = (unsigned)config->flags;
-	data.stream_config.format = (int)config->format->format;
-	data.stream_config.rate = (unsigned)config->format->frame_rate;
-	data.stream_config.client_type = config->client_type;
+	data.stream_config.direction = stream->direction;
+	data.stream_config.cb_threshold = (unsigned)stream->cb_threshold;
+	data.stream_config.flags = (unsigned)stream->flags;
+	data.stream_config.format = (int)stream->format.format;
+	data.stream_config.rate = (unsigned)stream->format.frame_rate;
+	data.stream_config.client_type = stream->client_type;
 
 	init_server_metrics_msg(&msg, STREAM_CONFIG, data);
 	err = cras_server_metrics_message_send(
@@ -716,6 +719,16 @@ int cras_server_metrics_stream_config(struct cras_rstream_config *config)
 	}
 
 	return 0;
+}
+
+int cras_server_metrics_stream_create(const struct cras_rstream *stream)
+{
+	return cras_server_metrics_stream_config(stream);
+}
+
+int cras_server_metrics_stream_destroy(const struct cras_rstream *stream)
+{
+	return cras_server_metrics_missed_cb_frequency(stream);
 }
 
 int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
