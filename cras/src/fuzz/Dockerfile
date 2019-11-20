@@ -10,6 +10,7 @@ RUN apt-get -y update && \
       apt-get install -y \
       automake \
       build-essential \
+      cargo \
       cmake \
       ctags \
       g++ \

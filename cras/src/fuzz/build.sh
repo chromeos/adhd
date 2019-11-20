@@ -10,6 +10,8 @@ mkdir $WORK/cras
 cd $SRC/cras
 ./git_prepare.sh
 ./configure --disable-dbus --disable-webrtc-apm
+cargo build --release --manifest-path $SRC/cras/src/server/rust/Cargo.toml && \
+  cp $SRC/cras/src/server/rust/target/release/libcras_rust.a /usr/local/lib
 make -j$(nproc)
 
 $CXX $CXXFLAGS $FUZZER_LDFLAGS \
@@ -17,6 +19,6 @@ $CXX $CXXFLAGS $FUZZER_LDFLAGS \
   -I $SRC/cras/src/server \
   -I $SRC/cras/src/common \
   $SRC/cras/src/.libs/libcrasserver.a \
-  -lpthread -lrt -ludev -ldl -lm \
+  -lcras_rust -lpthread -lrt -ludev -ldl -lm \
   -lFuzzingEngine \
   -Wl,-Bstatic -liniparser -lasound -lspeexdsp -Wl,-Bdynamic
