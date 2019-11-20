@@ -20,7 +20,12 @@
 
 #define CRAS_MAX_SYSTEM_VOLUME 100
 #define DEFAULT_CAPTURE_GAIN 2000 /* 20dB of gain. */
-/* Default to 1--dB of range for palyback and capture. */
+/* Default to -6 dBFS as 90% of CrOS boards use microphone with -26dBFS
+ * sensitivity under 94dB SPL @ 1kHz and we generally added 20dB gain to it.
+ * This is a temporary value that should be refined when the standard process
+ * measuring intrinsic volume is built. */
+#define DEFAULT_CAPTURE_VOLUME_DBFS -600
+/* Default to 1--dB of range for playback and capture. */
 #define DEFAULT_MIN_VOLUME_DBFS -10000
 #define DEFAULT_MAX_VOLUME_DBFS 0
 #define DEFAULT_MIN_CAPTURE_GAIN -5000

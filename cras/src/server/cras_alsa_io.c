@@ -780,12 +780,13 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 	/* Only set the volume if the dev is active. */
 	if (!has_handle(aio))
 		return;
-	gain = cras_iodev_adjust_active_node_gain(
-		iodev, cras_system_get_capture_gain());
 
 	/* Set hardware gain to 0dB if software gain is needed. */
 	if (cras_iodev_software_volume_needed(iodev))
 		gain = 0;
+	else
+		gain = cras_iodev_adjust_active_node_gain(
+			iodev, cras_system_get_capture_gain());
 
 	ain = get_active_input(aio);
 
@@ -1106,7 +1107,10 @@ static void set_input_node_software_volume_needed(struct alsa_input_node *input,
 	input->base.min_software_gain = DEFAULT_MIN_CAPTURE_GAIN;
 	input->base.max_software_gain = 0;
 
-	/* Enable software gain only if max software gain is specified in UCM. */
+	/* TODO(enshuo): Deprecate the max and min software gain when intrinsic
+	 * volume is done. */
+
+	/* Enable software gain if max software gain is specified in UCM. */
 	if (!aio->ucm)
 		return;
 
@@ -1160,6 +1164,29 @@ static void set_input_default_node_gain(struct alsa_input_node *input,
 		return;
 
 	input->base.capture_gain = default_node_gain;
+}
+
+static void set_input_node_intrinsic_volume(struct alsa_input_node *input,
+					    struct alsa_io *aio)
+{
+	long volume;
+	int rc;
+
+	input->base.intrinsic_volume = 0;
+
+	if (!aio->ucm)
+		return;
+
+	rc = ucm_get_intrinsic_volume(aio->ucm, input->base.name, &volume);
+	if (rc)
+		return;
+
+	input->base.intrinsic_volume = volume;
+	input->base.capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - volume;
+	syslog(LOG_INFO,
+	       "Use software gain %ld for %s because IntrinsicVolume %ld is"
+	       " specified in UCM",
+	       input->base.capture_gain, input->base.name, volume);
 }
 
 static void check_auto_unplug_output_node(struct alsa_io *aio,
@@ -1296,6 +1323,7 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	set_node_initial_state(&input->base, aio->card_type);
 	set_input_node_software_volume_needed(input, aio);
 	set_input_default_node_gain(input, aio);
+	set_input_node_intrinsic_volume(input, aio);
 
 	if (aio->ucm) {
 		/* Check mic positions only for internal mic. */
