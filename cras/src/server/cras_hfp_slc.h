@@ -38,11 +38,30 @@ struct cras_bt_device;
 #define AG_HF_INDICATORS 0x0400
 #define AG_ESCO_S4_T2_SETTINGS 0x0800
 
+/*
+ * Apple specific bluetooth commands that extend accessory capabilities.
+ * Per Accessory Design Guidelines for Apple devices, command AT+XAPL
+ */
+
+#define APL_RESERVED 0x01
+#define APL_BATTERY 0x02
+#define APL_DOCKED_OR_POWERED 0x04
+#define APL_SIRI 0x08
+#define APL_NOISE_REDUCTION 0x10
+
+#define CRAS_APL_SUPPORTED_FEATURES (APL_BATTERY)
+
 /* Codec ids for codec negotiation, per HFP 1.7.1 spec appendix B. */
 #define HFP_CODEC_UNUSED 0
 #define HFP_CODEC_ID_CVSD 1
 #define HFP_CODEC_ID_MSBC 2
 #define HFP_MAX_CODECS 3
+
+/* Hands-free HFP supported battery indicator bit definition.
+ * This is currently only used for logging purpose. */
+#define CRAS_HFP_BATTERY_INDICATOR_NONE 0x0
+#define CRAS_HFP_BATTERY_INDICATOR_HFP 0x1
+#define CRAS_HFP_BATTERY_INDICATOR_APPLE 0x2
 
 /* Callback to call when service level connection initialized. */
 typedef int (*hfp_slc_init_cb)(struct hfp_slc_handle *handle);
@@ -112,5 +131,9 @@ int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle);
 
 /* Gets if the remote HF supports codec negotiation. */
 int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle);
+
+/* Gets an enum representing which spec the HF supports battery indicator.
+ * Apple, HFP, none, or both. */
+int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle *handle);
 
 #endif /* CRAS_HFP_SLC_H_ */

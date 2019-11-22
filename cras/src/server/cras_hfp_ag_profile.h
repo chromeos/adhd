@@ -12,7 +12,7 @@
 #include "cras_hfp_slc.h"
 
 /* The bitmap of HFP AG feature supported by CRAS */
-#define CRAS_AG_SUPPORTED_FEATURES (AG_ENHANCED_CALL_STATUS)
+#define CRAS_AG_SUPPORTED_FEATURES (AG_ENHANCED_CALL_STATUS | AG_HF_INDICATORS)
 
 struct hfp_slc_handle;
 

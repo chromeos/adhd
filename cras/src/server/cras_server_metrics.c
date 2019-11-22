@@ -53,6 +53,9 @@ const char kStreamEffects[] = "Cras.StreamEffects";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
+const char kHfpBatteryIndicatorSupported[] =
+	"Cras.HfpBatteryIndicatorSupported";
+const char kHfpBatteryReport[] = "Cras.HfpBatteryReport";
 const char kHfpWidebandSpeechSupported[] = "Cras.HfpWidebandSpeechSupported";
 const char kHfpWidebandSpeechPacketLoss[] = "Cras.HfpWidebandSpeechPacketLoss";
 const char kHfpWidebandSpeechSelectedCodec[] =
@@ -78,6 +81,8 @@ static const char *get_timespec_period_str(struct timespec ts)
 
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
+	BT_BATTERY_INDICATOR_SUPPORTED,
+	BT_BATTERY_REPORT,
 	BT_WIDEBAND_PACKET_LOSS,
 	BT_WIDEBAND_SUPPORTED,
 	BT_WIDEBAND_SELECTED_CODEC,
@@ -372,6 +377,44 @@ get_metrics_device_type(struct cras_iodev *iodev)
 	default:
 		return CRAS_METRICS_DEVICE_UNKNOWN;
 	}
+}
+
+int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.value = battery_indicator_support;
+	init_server_metrics_msg(&msg, BT_BATTERY_INDICATOR_SUPPORTED, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: "
+				"BT_BATTERY_INDICATOR_SUPPORTED");
+		return err;
+	}
+	return 0;
+}
+
+int cras_server_metrics_hfp_battery_report(int battery_report)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.value = battery_report;
+	init_server_metrics_msg(&msg, BT_BATTERY_REPORT, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: "
+				"BT_BATTERY_REPORT");
+		return err;
+	}
+	return 0;
 }
 
 int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio)
@@ -937,6 +980,14 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	struct cras_server_metrics_message *metrics_msg =
 		(struct cras_server_metrics_message *)msg;
 	switch (metrics_msg->metrics_type) {
+	case BT_BATTERY_INDICATOR_SUPPORTED:
+		cras_metrics_log_sparse_histogram(kHfpBatteryIndicatorSupported,
+						  metrics_msg->data.value);
+		break;
+	case BT_BATTERY_REPORT:
+		cras_metrics_log_sparse_histogram(kHfpBatteryReport,
+						  metrics_msg->data.value);
+		break;
 	case BT_WIDEBAND_PACKET_LOSS:
 		cras_metrics_log_histogram(kHfpWidebandSpeechPacketLoss,
 					   metrics_msg->data.value, 0, 1000,

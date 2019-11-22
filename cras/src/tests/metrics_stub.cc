@@ -34,6 +34,14 @@ int cras_server_metrics_num_underruns(unsigned num_underruns) {
   return 0;
 }
 
+int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support) {
+  return 0;
+}
+
+int cras_server_metrics_hfp_battery_report(int battery_report) {
+  return 0;
+}
+
 int cras_server_metrics_hfp_wideband_support(bool supported) {
   return 0;
 }

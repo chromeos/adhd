@@ -107,6 +107,9 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 {
 	DL_DELETE(connected_ags, ag);
 
+	cras_server_metrics_hfp_battery_indicator(
+		hfp_slc_get_hf_supports_battery_indicator(ag->slc_handle));
+
 	if (need_go_sco_pcm(ag->device)) {
 		if (ag->idev)
 			hfp_alsa_iodev_destroy(ag->idev);

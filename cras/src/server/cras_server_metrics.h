@@ -13,6 +13,14 @@
 
 extern const char kNoCodecsFoundMetric[];
 
+/* Logs an enum representing which spec does HFP headset supports battery
+ * indicator. Apple, HFP, none or both. */
+int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support);
+
+/* Logs an enum representing the spec through which the battery level change
+ * event reported. Apple or HFP.*/
+int cras_server_metrics_hfp_battery_report(int battery_report);
+
 /* Logs if connected HFP headset supports wideband speech. */
 int cras_server_metrics_hfp_wideband_support(bool supported);
 

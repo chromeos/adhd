@@ -229,6 +229,10 @@ int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle* handle) {
   return 1;
 }
 
+int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle* handle) {
+  return 0;
+}
+
 struct cras_bt_device* cras_a2dp_connected_device() {
   return NULL;
 }

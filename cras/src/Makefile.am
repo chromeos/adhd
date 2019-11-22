@@ -844,7 +844,7 @@ hfp_ag_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 hfp_ag_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_slc_unittest_SOURCES = tests/hfp_slc_unittest.cc \
-	server/cras_hfp_slc.c
+	server/cras_hfp_slc.c tests/metrics_stub.cc
 hfp_slc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_slc_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
