@@ -25,6 +25,9 @@ pub trait BufferSet {
     /// indicates the number of audio frames that can be read from or written to
     /// the buffer.
     fn callback(&mut self, offset: usize, frames: usize) -> GenericResult<()>;
+
+    /// Called when the client ignores a request from the server.
+    fn ignore(&mut self) -> GenericResult<()>;
 }
 
 #[derive(Debug)]
@@ -107,6 +110,15 @@ impl<'a> ServerRequest<'a> {
         }
 
         self.buffer_set.callback(offset, frames)
+    }
+
+    /// Ignore this request
+    ///
+    /// If the client does not intend to respond to this ServerRequest with a
+    /// buffer, they should call this function. The stream will be notified that
+    /// the request has been ignored and will handle it properly.
+    pub fn ignore_request(self) -> GenericResult<()> {
+        self.buffer_set.ignore()
     }
 }
 
@@ -228,6 +240,10 @@ impl BufferSet for NullShmStream {
     fn callback(&mut self, _offset: usize, _frames: usize) -> GenericResult<()> {
         Ok(())
     }
+
+    fn ignore(&mut self) -> GenericResult<()> {
+        Ok(())
+    }
 }
 
 impl ShmStream for NullShmStream {
@@ -319,14 +335,23 @@ impl MockShmStream {
 
         return true;
     }
-}
 
-impl BufferSet for MockShmStream {
-    fn callback(&mut self, _offset: usize, _frames: usize) -> GenericResult<()> {
+    fn notify_request(&mut self) {
         let &(ref lock, ref cvar) = &*self.request_notifier;
         let mut requested = lock.lock();
         *requested = false;
         cvar.notify_one();
+    }
+}
+
+impl BufferSet for MockShmStream {
+    fn callback(&mut self, _offset: usize, _frames: usize) -> GenericResult<()> {
+        self.notify_request();
+        Ok(())
+    }
+
+    fn ignore(&mut self) -> GenericResult<()> {
+        self.notify_request();
         Ok(())
     }
 }
