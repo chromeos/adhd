@@ -135,6 +135,7 @@ static int hfp_alsa_close_dev(struct cras_iodev *iodev)
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 
+	hfp_set_call_status(hfp_alsa_io->slc, 0);
 	cras_bt_device_put_sco(hfp_alsa_io->device);
 	cras_iodev_free_format(iodev);
 	return aio->close_dev(aio);

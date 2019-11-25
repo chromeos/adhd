@@ -251,6 +251,7 @@ TEST_F(HfpAlsaIodev, CloseDev) {
                                 CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
   iodev->close_dev(iodev);
 
+  EXPECT_EQ(1, hfp_set_call_status_called);
   EXPECT_EQ(1, cras_iodev_free_format_called);
   EXPECT_EQ(1, fake_close_dev_called);
 
