@@ -6,7 +6,7 @@
 #ifndef CRAS_BT_CONSTANTS_H_
 #define CRAS_BT_CONSTANTS_H_
 
-#define BLUEZ_SERVICE "org.chromium.Bluetooth"
+#define BLUEZ_SERVICE "org.bluez"
 
 #define BLUEZ_INTERFACE_ADAPTER "org.bluez.Adapter1"
 #define BLUEZ_INTERFACE_DEVICE "org.bluez.Device1"
