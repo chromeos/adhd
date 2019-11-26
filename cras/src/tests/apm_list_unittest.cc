@@ -52,18 +52,23 @@ TEST(ApmList, AddRemoveApm) {
   list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
-  EXPECT_NE((void*)NULL, cras_apm_list_add(list, dev_ptr, &fmt));
-  EXPECT_EQ((void*)NULL, cras_apm_list_get(list, dev_ptr2));
+  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, dev_ptr, &fmt));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr));
 
-  EXPECT_NE((void*)NULL, cras_apm_list_add(list, dev_ptr2, &fmt));
-  EXPECT_NE((void*)NULL, cras_apm_list_get(list, dev_ptr));
+  cras_apm_list_start_apm(list, dev_ptr);
+  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr2));
 
-  cras_apm_list_remove(list, dev_ptr);
-  EXPECT_EQ((void*)NULL, cras_apm_list_get(list, dev_ptr));
-  EXPECT_NE((void*)NULL, cras_apm_list_get(list, dev_ptr2));
+  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, dev_ptr2, &fmt));
+  cras_apm_list_start_apm(list, dev_ptr2);
+  cras_apm_list_stop_apm(list, dev_ptr);
 
-  cras_apm_list_remove(list, dev_ptr2);
-  EXPECT_EQ((void*)NULL, cras_apm_list_get(list, dev_ptr2));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr));
+  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr2));
+
+  cras_apm_list_stop_apm(list, dev_ptr2);
+  cras_apm_list_remove_apm(list, dev_ptr);
+  cras_apm_list_remove_apm(list, dev_ptr2);
 
   cras_apm_list_destroy(list);
 }
@@ -81,7 +86,7 @@ TEST(ApmList, ApmProcessForwardBuffer) {
   list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
-  apm = cras_apm_list_add(list, dev_ptr, &fmt);
+  apm = cras_apm_list_add_apm(list, dev_ptr, &fmt);
 
   buf = float_buffer_create(500, 2);
   float_buffer_written(buf, 300);
@@ -159,7 +164,8 @@ TEST(ApmList, ApmProcessReverseData) {
   list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
-  apm = cras_apm_list_add(list, dev_ptr, &fmt);
+  apm = cras_apm_list_add_apm(list, dev_ptr, &fmt);
+  cras_apm_list_start_apm(list, dev_ptr);
 
   ext_dsp_module_value->run(ext_dsp_module_value, 250);
   EXPECT_EQ(0, webrtc_apm_process_reverse_stream_f_called);
@@ -184,11 +190,11 @@ TEST(ApmList, StreamAddToAlreadyOpenedDev) {
   list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
-  apm1 = cras_apm_list_add(list, dev_ptr, &fmt);
+  apm1 = cras_apm_list_add_apm(list, dev_ptr, &fmt);
   EXPECT_EQ(1, webrtc_apm_create_called);
   EXPECT_NE((void*)NULL, apm1);
 
-  apm2 = cras_apm_list_add(list, dev_ptr, &fmt);
+  apm2 = cras_apm_list_add_apm(list, dev_ptr, &fmt);
   EXPECT_EQ(1, webrtc_apm_create_called);
   EXPECT_EQ(apm1, apm2);
 

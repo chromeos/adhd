@@ -27,7 +27,25 @@ int cras_apm_list_deinit();
 
 /*
  * Creates an list to hold all APM instances created when a stream
- * attaches to an iodev.
+ * attaches to iodev(s). This should be called in main thread.
+ *
+ * Below diagram explains the life cycle of an APM instance, how are
+ * related APIs used, and in which thread should each API be called.
+ *
+ * Main thread                     Audio thread
+ * maintaining apm_list            maintaining active_apms
+ * -----------                     ------------
+ * cras_apm_list_create
+ * cras_apm_list_add_apm    ->     cras_apm_list_start_apm
+ *
+ *                                 cras_apm_list_get_active_apm
+ *                                 cras_apm_list_process
+ *                                 cras_apm_list_get_processed
+ *                                 cras_apm_list_put_processed
+ *
+ * cras_apm_list_remove_apm <-     cras_apm_list_stop_apm
+ * cras_apm_list_destroy
+ *
  * Args:
  *    stream_ptr - Pointer to the stream.
  *    effects - Bit map specifying the enabled effects on this stream.
@@ -37,22 +55,37 @@ struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects);
 /*
  * Creates a cras_apm associated to given dev_ptr and adds it to the list.
  * If there already exists an APM instance linked to dev_ptr, we assume
- * the open format is unchanged so just return it.
+ * the open format is unchanged so just return it. This should be called
+ * in main thread.
  * Args:
  *    list - The list holding APM instances.
  *    dev_ptr - Pointer to the iodev to add new APM for.
  *    fmt - Format of the audio data used for this cras_apm.
  */
-struct cras_apm *cras_apm_list_add(struct cras_apm_list *list, void *dev_ptr,
-				   const struct cras_audio_format *fmt);
+struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
+				       void *dev_ptr,
+				       const struct cras_audio_format *fmt);
 
 /*
- * Gets the cras_apm instance in the list that associates with given dev.
+ * Gets the active APM instance that is associated to given stream and dev pair.
+ * This should be called in audio thread.
  * Args:
- *    list - The list holding APM instances.
+ *    stream_ptr - Pointer to the stream.
  *    dev_ptr - The iodev as key to look up associated APM.
  */
-struct cras_apm *cras_apm_list_get(struct cras_apm_list *list, void *dev_ptr);
+struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr, void *dev_ptr);
+
+/*
+ * Starts the APM instance in the list that is associated with dev_ptr by
+ * adding it to the active APM list in audio thread.
+ */
+void cras_apm_list_start_apm(struct cras_apm_list *list, void *dev_ptr);
+
+/*
+ * Stops the APM instance in the list that is associated with dev_ptr by
+ * removing it from the active APM list in audio thread.
+ */
+void cras_apm_list_stop_apm(struct cras_apm_list *list, void *dev_ptr);
 
 /*
  * Gets the effects bit map of the APM list.
@@ -66,12 +99,13 @@ int cras_apm_list_destroy(struct cras_apm_list *list);
 
 /*
  * Removes an APM from the list, expected to be used when an iodev is no
- * longer open for the client stream holding the APM list.
+ * longer open for the client stream holding the APM list. This should
+ * be called in main thread.
  * Args:
  *    list - The list holding APM instances.
  *    dev_ptr - Device pointer used to look up which apm to remove.
  */
-void cras_apm_list_remove(struct cras_apm_list *list, void *dev_ptr);
+void cras_apm_list_remove_apm(struct cras_apm_list *list, void *dev_ptr);
 
 /* Passes audio data from hardware for cras_apm to process.
  * Args:
@@ -137,13 +171,13 @@ static inline struct cras_apm_list *cras_apm_list_create(void *stream_ptr,
 	return NULL;
 }
 static inline struct cras_apm *
-cras_apm_list_add(struct cras_apm_list *list, void *dev_ptr,
-		  const struct cras_audio_format *fmt)
+cras_apm_list_add_apm(struct cras_apm_list *list, void *dev_ptr,
+		      const struct cras_audio_format *fmt)
 {
 	return NULL;
 }
-static inline struct cras_apm *cras_apm_list_get(struct cras_apm_list *list,
-						 void *dev_ptr)
+static inline struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr,
+							    void *dev_ptr)
 {
 	return NULL;
 }
@@ -155,8 +189,8 @@ static inline int cras_apm_list_destroy(struct cras_apm_list *list)
 {
 	return 0;
 }
-static inline void cras_apm_list_remove(struct cras_apm_list *list,
-					void *dev_ptr)
+static inline void cras_apm_list_remove_apm(struct cras_apm_list *list,
+					    void *dev_ptr)
 {
 }
 
@@ -175,6 +209,14 @@ cras_apm_list_get_processed(struct cras_apm *apm)
 
 static inline void cras_apm_list_put_processed(struct cras_apm *apm,
 					       unsigned int frames)
+{
+}
+static inline void cras_apm_list_start_apm(struct cras_apm_list *list,
+					   void *dev_ptr)
+{
+}
+static inline void cras_apm_list_stop_apm(struct cras_apm_list *list,
+					  void *dev_ptr)
 {
 }
 

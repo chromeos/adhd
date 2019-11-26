@@ -17,7 +17,6 @@
 #include "cras_server_metrics.h"
 #include "cras_shm.h"
 #include "cras_types.h"
-#include "buffer_share.h"
 #include "cras_system_state.h"
 
 void cras_rstream_config_init(
@@ -396,10 +395,7 @@ cras_rstream_post_processing_format(const struct cras_rstream *stream,
 {
 	struct cras_apm *apm;
 
-	if (NULL == stream->apm_list)
-		return NULL;
-
-	apm = cras_apm_list_get(stream->apm_list, dev_ptr);
+	apm = cras_apm_list_get_active_apm((void *)stream, dev_ptr);
 	if (NULL == apm)
 		return NULL;
 	return cras_apm_list_get_format(apm);

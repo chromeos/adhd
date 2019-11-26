@@ -123,13 +123,19 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 			    stream_fmt->frame_rate, &stream->sleep_interval_ts);
 	stream->next_cb_ts = *cb_ts;
 
+	/* Sets up the stream & dev pair and then start APM. */
 	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
+	cras_apm_list_start_apm(stream->apm_list, dev_ptr);
 
 	return out;
 }
 
 void dev_stream_destroy(struct dev_stream *dev_stream)
 {
+	void *dev_ptr =
+		cras_rstream_dev_ptr(dev_stream->stream, dev_stream->dev_id);
+	/* Stops the APM and then unlink the dev stream pair. */
+	cras_apm_list_stop_apm(dev_stream->stream->apm_list, dev_ptr);
 	cras_rstream_dev_detach(dev_stream->stream, dev_stream->dev_id);
 	if (dev_stream->conv) {
 		cras_audio_area_destroy(dev_stream->conv_area);

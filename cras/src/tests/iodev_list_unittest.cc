@@ -1870,12 +1870,12 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
 }
 
 #ifdef HAVE_WEBRTC_APM
-struct cras_apm* cras_apm_list_add(struct cras_apm_list* list,
-                                   void* dev_ptr,
-                                   const struct cras_audio_format* fmt) {
+struct cras_apm* cras_apm_list_add_apm(struct cras_apm_list* list,
+                                       void* dev_ptr,
+                                       const struct cras_audio_format* fmt) {
   return NULL;
 }
-void cras_apm_list_remove(struct cras_apm_list* list, void* dev_ptr) {}
+void cras_apm_list_remove_apm(struct cras_apm_list* list, void* dev_ptr) {}
 int cras_apm_list_init(const char* device_config_dir) {
   return 0;
 }

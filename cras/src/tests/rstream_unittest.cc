@@ -378,7 +378,7 @@ unsigned int buffer_share_get_new_write_point(struct buffer_share* mix) {
   return 0;
 }
 
-int buffer_share_add_id(struct buffer_share* mix, unsigned int id) {
+int buffer_share_add_id(struct buffer_share* mix, unsigned int id, void* data) {
   return 0;
 }
 

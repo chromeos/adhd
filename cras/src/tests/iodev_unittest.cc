@@ -2390,7 +2390,7 @@ unsigned int buffer_share_get_new_write_point(struct buffer_share* mix) {
   return buffer_share_get_new_write_point_ret;
 }
 
-int buffer_share_add_id(struct buffer_share* mix, unsigned int id) {
+int buffer_share_add_id(struct buffer_share* mix, unsigned int id, void* data) {
   buffer_share_add_id_called++;
   return 0;
 }

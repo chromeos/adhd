@@ -1172,7 +1172,11 @@ struct cras_audio_format* cras_rstream_post_processing_format(
 int cras_audio_thread_event_drop_samples() {
   return 0;
 }
-
+void* buffer_share_get_data(const struct buffer_share* mix, unsigned int id) {
+  return NULL;
+};
+void cras_apm_list_start_apm(struct cras_apm_list* list, void* dev_ptr){};
+void cras_apm_list_stop_apm(struct cras_apm_list* list, void* dev_ptr){};
 }  // extern "C"
 
 }  //  namespace

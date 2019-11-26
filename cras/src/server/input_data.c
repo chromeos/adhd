@@ -151,7 +151,7 @@ int input_data_get_for_stream(struct input_data *data,
 	struct cras_apm *apm;
 	int stream_offset = buffer_share_id_offset(offsets, stream->stream_id);
 
-	apm = cras_apm_list_get(stream->apm_list, data->dev_ptr);
+	apm = cras_apm_list_get_active_apm(stream, data->dev_ptr);
 	if (apm == NULL) {
 		/*
 		 * Case 1 and 2 from above example.
@@ -165,7 +165,7 @@ int input_data_get_for_stream(struct input_data *data,
 		apm_processed = cras_apm_list_process(apm, data->fbuffer,
 						      stream_offset);
 		if (apm_processed < 0) {
-			cras_apm_list_remove(stream->apm_list, apm);
+			cras_apm_list_remove_apm(stream->apm_list, apm);
 			return 0;
 		}
 		buffer_share_offset_update(offsets, stream->stream_id,
@@ -182,7 +182,7 @@ int input_data_put_for_stream(struct input_data *data,
 			      struct buffer_share *offsets, unsigned int frames)
 {
 	struct cras_apm *apm =
-		cras_apm_list_get(stream->apm_list, data->dev_ptr);
+		cras_apm_list_get_active_apm(stream, data->dev_ptr);
 
 	if (apm)
 		cras_apm_list_put_processed(apm, frames);

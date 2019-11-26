@@ -9,6 +9,7 @@
 #ifndef CRAS_RSTREAM_H_
 #define CRAS_RSTREAM_H_
 
+#include "buffer_share.h"
 #include "cras_apm_list.h"
 #include "cras_shm.h"
 #include "cras_types.h"
@@ -336,6 +337,12 @@ int cras_rstream_audio_ready(struct cras_rstream *stream, size_t count);
 void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id,
 			     void *dev_ptr);
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id);
+
+static inline void *cras_rstream_dev_ptr(struct cras_rstream *rstream,
+					 unsigned int dev_id)
+{
+	return buffer_share_get_data(rstream->buf_state, dev_id);
+}
 
 /* A device using this stream has read or written samples. */
 void cras_rstream_dev_offset_update(struct cras_rstream *rstream,

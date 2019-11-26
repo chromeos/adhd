@@ -81,6 +81,10 @@ struct cras_apm {
  * have more than one cras_apm when multiple input devices are
  * enabled. The most common scenario is the silent input iodev be
  * enabled when CRAS switches active input device.
+ *
+ * Note that cras_apm_list is owned and modified in main thread.
+ * Only in synchronized audio thread event this cras_apm_list is safe
+ * to access for passing single APM instance between threads.
  */
 struct cras_apm_list {
 	void *stream_ptr;
@@ -88,6 +92,22 @@ struct cras_apm_list {
 	struct cras_apm *apms;
 	struct cras_apm_list *prev, *next;
 };
+
+/*
+ * Wrappers of APM instances that are active, which means it is associated
+ * to a dev/stream pair in audio thread and ready for processing.
+ *
+ * Members:
+ *    apm - The APM for audio data processing.
+ *    stream_ptr - Stream pointer from the associated dev/stream pair.
+ *    effects - The effecets bit map of APM.
+ */
+struct active_apm {
+	struct cras_apm *apm;
+	void *stream_ptr;
+	int effects;
+	struct active_apm *prev, *next;
+} * active_apms;
 
 /*
  * Object used to analyze playback audio from output iodev. It is responsible
@@ -112,7 +132,6 @@ struct cras_apm_reverse_module {
 };
 
 static struct cras_apm_reverse_module *rmodule = NULL;
-static struct cras_apm_list *apm_list = NULL;
 static const char *aec_config_dir = NULL;
 static char ini_name[MAX_INI_NAME_LEN + 1];
 static dictionary *aec_ini = NULL;
@@ -122,14 +141,14 @@ static dictionary *apm_ini = NULL;
  * or removed. */
 static void update_process_reverse_flag()
 {
-	struct cras_apm_list *list;
+	struct active_apm *active;
 
 	if (!rmodule)
 		return;
 	rmodule->process_reverse = 0;
-	DL_FOREACH (apm_list, list) {
+	DL_FOREACH (active_apms, active) {
 		rmodule->process_reverse |=
-			!!(list->effects & APM_ECHO_CANCELLATION);
+			!!(active->effects & APM_ECHO_CANCELLATION);
 	}
 }
 
@@ -154,31 +173,34 @@ struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects)
 	if (effects == 0)
 		return NULL;
 
-	DL_SEARCH_SCALAR(apm_list, list, stream_ptr, stream_ptr);
-	if (list)
-		return list;
-
 	list = (struct cras_apm_list *)calloc(1, sizeof(*list));
+	if (list == NULL) {
+		syslog(LOG_ERR, "No memory in creating apm list");
+		return NULL;
+	}
 	list->stream_ptr = stream_ptr;
 	list->effects = effects;
 	list->apms = NULL;
-	DL_APPEND(apm_list, list);
 
 	return list;
 }
 
-struct cras_apm *cras_apm_list_get(struct cras_apm_list *list, void *dev_ptr)
+static struct active_apm *get_active_apm(void *stream_ptr, void *dev_ptr)
 {
-	struct cras_apm *apm;
+	struct active_apm *active;
 
-	if (list == NULL)
-		return NULL;
-
-	DL_FOREACH (list->apms, apm) {
-		if (apm->dev_ptr == dev_ptr)
-			return apm;
+	DL_FOREACH (active_apms, active) {
+		if ((active->apm->dev_ptr == dev_ptr) &&
+		    (active->stream_ptr == stream_ptr))
+			return active;
 	}
 	return NULL;
+}
+
+struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr, void *dev_ptr)
+{
+	struct active_apm *active = get_active_apm(stream_ptr, dev_ptr);
+	return active ? active->apm : NULL;
 }
 
 uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
@@ -189,7 +211,7 @@ uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
 		return list->effects;
 }
 
-void cras_apm_list_remove(struct cras_apm_list *list, void *dev_ptr)
+void cras_apm_list_remove_apm(struct cras_apm_list *list, void *dev_ptr)
 {
 	struct cras_apm *apm;
 
@@ -240,8 +262,9 @@ static void get_best_channels(struct cras_audio_format *apm_fmt)
 		apm_fmt->channel_layout[ch] = layout[ch];
 }
 
-struct cras_apm *cras_apm_list_add(struct cras_apm_list *list, void *dev_ptr,
-				   const struct cras_audio_format *dev_fmt)
+struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
+				       void *dev_ptr,
+				       const struct cras_audio_format *dev_fmt)
 {
 	struct cras_apm *apm;
 
@@ -286,33 +309,65 @@ struct cras_apm *cras_apm_list_add(struct cras_apm_list *list, void *dev_ptr,
 	cras_audio_area_config_channels(apm->area, &apm->fmt);
 
 	DL_APPEND(list->apms, apm);
-	update_process_reverse_flag();
 
 	return apm;
 }
 
-int cras_apm_list_destroy(struct cras_apm_list *list)
+void cras_apm_list_start_apm(struct cras_apm_list *list, void *dev_ptr)
 {
-	struct cras_apm_list *tmp;
+	struct active_apm *active;
 	struct cras_apm *apm;
 
-	DL_FOREACH (apm_list, tmp) {
-		if (tmp == list) {
-			DL_DELETE(apm_list, tmp);
-			break;
-		}
+	if (list == NULL)
+		return;
+
+	/* Check if this apm has already been started. */
+	apm = cras_apm_list_get_active_apm(list->stream_ptr, dev_ptr);
+	if (apm)
+		return;
+
+	DL_SEARCH_SCALAR(list->apms, apm, dev_ptr, dev_ptr);
+	if (apm == NULL)
+		return;
+
+	active = (struct active_apm *)calloc(1, sizeof(*active));
+	if (active == NULL) {
+		syslog(LOG_ERR, "No memory to start apm.");
+		return;
+	}
+	active->apm = apm;
+	active->stream_ptr = list->stream_ptr;
+	active->effects = list->effects;
+	DL_APPEND(active_apms, active);
+
+	update_process_reverse_flag();
+}
+
+void cras_apm_list_stop_apm(struct cras_apm_list *list, void *dev_ptr)
+{
+	struct active_apm *active;
+
+	if (list == NULL)
+		return;
+
+	active = get_active_apm(list->stream_ptr, dev_ptr);
+	if (active) {
+		DL_DELETE(active_apms, active);
+		free(active);
 	}
 
-	if (tmp == NULL)
-		return 0;
+	update_process_reverse_flag();
+}
+
+int cras_apm_list_destroy(struct cras_apm_list *list)
+{
+	struct cras_apm *apm;
 
 	DL_FOREACH (list->apms, apm) {
 		DL_DELETE(list->apms, apm);
 		apm_destroy(&apm);
 	}
 	free(list);
-
-	update_process_reverse_flag();
 
 	return 0;
 }
@@ -389,8 +444,7 @@ static void handle_device_disabled(struct cras_iodev *iodev, void *cb_data)
 
 static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 {
-	struct cras_apm_list *list;
-	struct cras_apm *apm;
+	struct active_apm *active;
 	int ret;
 	float *const *wp;
 
@@ -399,18 +453,16 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 
 	wp = float_buffer_write_pointer(fbuf);
 
-	DL_FOREACH (apm_list, list) {
-		if (!(list->effects & APM_ECHO_CANCELLATION))
+	DL_FOREACH (active_apms, active) {
+		if (!(active->effects & APM_ECHO_CANCELLATION))
 			continue;
 
-		DL_FOREACH (list->apms, apm) {
-			ret = webrtc_apm_process_reverse_stream_f(
-				apm->apm_ptr, fbuf->num_channels, frame_rate,
-				wp);
-			if (ret) {
-				syslog(LOG_ERR, "APM process reverse err");
-				return ret;
-			}
+		ret = webrtc_apm_process_reverse_stream_f(active->apm->apm_ptr,
+							  fbuf->num_channels,
+							  frame_rate, wp);
+		if (ret) {
+			syslog(LOG_ERR, "APM process reverse err");
+			return ret;
 		}
 	}
 	float_buffer_reset(fbuf);

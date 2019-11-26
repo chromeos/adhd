@@ -18,7 +18,7 @@ namespace {
 static struct cras_audio_area apm_area;
 static unsigned int cras_apm_list_process_offset_val;
 static unsigned int cras_apm_list_process_called;
-static struct cras_apm* cras_apm_list_get_ret = NULL;
+static struct cras_apm* cras_apm_list_get_active_ret = NULL;
 #endif  // HAVE_WEBRTC_APM
 
 TEST(InputData, GetForInputStream) {
@@ -55,7 +55,7 @@ TEST(InputData, GetForInputStream) {
   EXPECT_EQ(600, offset);
 #ifdef HAVE_WEBRTC_APM
   EXPECT_EQ(0, cras_apm_list_process_called);
-  cras_apm_list_get_ret = reinterpret_cast<struct cras_apm*>(0x99);
+  cras_apm_list_get_active_ret = reinterpret_cast<struct cras_apm*>(0x99);
 #endif  // HAVE_WEBRTC_APM
 
   input_data_get_for_stream(data, &stream, offsets, &area, &offset);
@@ -77,8 +77,8 @@ TEST(InputData, GetForInputStream) {
 
 extern "C" {
 #ifdef HAVE_WEBRTC_APM
-struct cras_apm* cras_apm_list_get(struct cras_apm_list* list, void* dev_ptr) {
-  return cras_apm_list_get_ret;
+struct cras_apm* cras_apm_list_get_active_apm(void* stream_ptr, void* dev_ptr) {
+  return cras_apm_list_get_active_ret;
 }
 int cras_apm_list_process(struct cras_apm* apm,
                           struct float_buffer* input,
@@ -91,7 +91,7 @@ int cras_apm_list_process(struct cras_apm* apm,
 struct cras_audio_area* cras_apm_list_get_processed(struct cras_apm* apm) {
   return &apm_area;
 }
-void cras_apm_list_remove(struct cras_apm_list* list, void* dev_ptr) {}
+void cras_apm_list_remove_apm(struct cras_apm_list* list, void* dev_ptr) {}
 void cras_apm_list_put_processed(struct cras_apm* apm, unsigned int frames) {}
 #endif  // HAVE_WEBRTC_APM
 

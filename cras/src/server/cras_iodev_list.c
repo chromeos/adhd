@@ -339,7 +339,7 @@ static void remove_all_streams_from_dev(struct cras_iodev *dev)
 	DL_FOREACH (stream_list_get(stream_list), rstream) {
 		if (rstream->apm_list == NULL)
 			continue;
-		cras_apm_list_remove(rstream->apm_list, dev);
+		cras_apm_list_remove_apm(rstream->apm_list, dev);
 	}
 }
 
@@ -620,8 +620,8 @@ static int add_stream_to_open_devs(struct cras_rstream *stream,
 	int i;
 	if (stream->apm_list) {
 		for (i = 0; i < num_iodevs; i++)
-			cras_apm_list_add(stream->apm_list, iodevs[i],
-					  iodevs[i]->format);
+			cras_apm_list_add_apm(stream->apm_list, iodevs[i],
+					      iodevs[i]->format);
 	}
 	return audio_thread_add_stream(audio_thread, stream, iodevs,
 				       num_iodevs);
