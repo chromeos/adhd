@@ -2128,6 +2128,15 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (optind < argc) {
+		printf("Warning: un-welcome arguments: ");
+		while (optind < argc)
+			printf("%s ", argv[optind++]);
+		printf("\n");
+		rc = 1;
+		goto destroy_exit;
+	}
+
 	duration_frames = duration_seconds * rate;
 	if (block_size == NOT_ASSIGNED)
 		block_size = get_block_size(PLAYBACK_BUFFERED_TIME_IN_US, rate);
