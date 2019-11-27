@@ -18,7 +18,7 @@
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 
-#define METRICS_NAME_BUFFER_SIZE 50
+#define METRICS_NAME_BUFFER_SIZE 100
 
 const char kBusyloop[] = "Cras.Busyloop";
 const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
@@ -859,24 +859,69 @@ static void metrics_busyloop(struct cras_server_metrics_timespec_data data)
 	cras_metrics_log_histogram(metrics_name, data.count, 0, 1000, 20);
 }
 
+/*
+ * Logs metrics for each group it belongs to. The UMA does not merge subgroups
+ * automatically so we need to log them separately.
+ *
+ * For example, if we call this function with argument (3, 48000,
+ * Cras.StreamSamplingRate, Input, Chrome), it will send 48000 to below
+ * metrics:
+ * Cras.StreamSamplingRate.Input.Chrome
+ * Cras.StreamSamplingRate.Input
+ * Cras.StreamSamplingRate
+ */
+static void log_sparse_histogram_each_level(int num, int sample, ...)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE] = {};
+	va_list valist;
+	int i, len = 0;
+
+	va_start(valist, sample);
+
+	for (i = 0; i < num; i++) {
+		len += snprintf(metrics_name + len,
+				METRICS_NAME_BUFFER_SIZE - len, "%s%s",
+				i ? "." : "", va_arg(valist, char *));
+		cras_metrics_log_sparse_histogram(metrics_name, sample);
+	}
+
+	va_end(valist);
+}
+
 static void
 metrics_stream_config(struct cras_server_metrics_stream_config config)
 {
+	const char *direction;
+
+	if (config.direction == CRAS_STREAM_INPUT)
+		direction = "Input";
+	else
+		direction = "Output";
+
 	/* Logs stream callback threshold. */
-	cras_metrics_log_sparse_histogram(kStreamCallbackThreshold,
-					  config.cb_threshold);
+	log_sparse_histogram_each_level(
+		3, config.cb_threshold, kStreamCallbackThreshold, direction,
+		metrics_client_type_str(config.client_type));
 
 	/* Logs stream flags. */
-	cras_metrics_log_sparse_histogram(kStreamFlags, config.flags);
+	log_sparse_histogram_each_level(
+		3, config.flags, kStreamFlags, direction,
+		metrics_client_type_str(config.client_type));
 
 	/* Logs stream effects. */
-	cras_metrics_log_sparse_histogram(kStreamEffects, config.effects);
+	log_sparse_histogram_each_level(
+		3, config.effects, kStreamEffects, direction,
+		metrics_client_type_str(config.client_type));
 
 	/* Logs stream sampling format. */
-	cras_metrics_log_sparse_histogram(kStreamSamplingFormat, config.format);
+	log_sparse_histogram_each_level(
+		3, config.format, kStreamSamplingFormat, direction,
+		metrics_client_type_str(config.client_type));
 
 	/* Logs stream sampling rate. */
-	cras_metrics_log_sparse_histogram(kStreamSamplingRate, config.rate);
+	log_sparse_histogram_each_level(
+		3, config.rate, kStreamSamplingRate, direction,
+		metrics_client_type_str(config.client_type));
 
 	/* Logs stream client type. */
 	if (config.direction == CRAS_STREAM_INPUT)
