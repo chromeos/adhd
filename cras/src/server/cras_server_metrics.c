@@ -49,6 +49,7 @@ const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
 const char kStreamClientTypeInput[] = "Cras.StreamClientTypeInput";
 const char kStreamClientTypeOutput[] = "Cras.StreamClientTypeOutput";
 const char kStreamFlags[] = "Cras.StreamFlags";
+const char kStreamEffects[] = "Cras.StreamEffects";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
@@ -135,6 +136,7 @@ struct cras_server_metrics_stream_config {
 	enum CRAS_STREAM_DIRECTION direction;
 	unsigned cb_threshold;
 	unsigned flags;
+	unsigned effects;
 	int format;
 	unsigned rate;
 	enum CRAS_CLIENT_TYPE client_type;
@@ -729,18 +731,20 @@ int cras_server_metrics_missed_cb_event(struct cras_rstream *stream)
 }
 
 /* Logs the stream configurations from clients. */
-static int cras_server_metrics_stream_config(const struct cras_rstream *stream)
+static int
+cras_server_metrics_stream_config(const struct cras_rstream_config *config)
 {
 	struct cras_server_metrics_message msg;
 	union cras_server_metrics_data data;
 	int err;
 
-	data.stream_config.direction = stream->direction;
-	data.stream_config.cb_threshold = (unsigned)stream->cb_threshold;
-	data.stream_config.flags = (unsigned)stream->flags;
-	data.stream_config.format = (int)stream->format.format;
-	data.stream_config.rate = (unsigned)stream->format.frame_rate;
-	data.stream_config.client_type = stream->client_type;
+	data.stream_config.direction = config->direction;
+	data.stream_config.cb_threshold = (unsigned)config->cb_threshold;
+	data.stream_config.flags = (unsigned)config->flags;
+	data.stream_config.effects = (unsigned)config->effects;
+	data.stream_config.format = (int)config->format->format;
+	data.stream_config.rate = (unsigned)config->format->frame_rate;
+	data.stream_config.client_type = config->client_type;
 
 	init_server_metrics_msg(&msg, STREAM_CONFIG, data);
 	err = cras_server_metrics_message_send(
@@ -780,9 +784,9 @@ int cras_server_metrics_stream_runtime(const struct cras_rstream *stream)
 	return 0;
 }
 
-int cras_server_metrics_stream_create(const struct cras_rstream *stream)
+int cras_server_metrics_stream_create(const struct cras_rstream_config *config)
 {
-	return cras_server_metrics_stream_config(stream);
+	return cras_server_metrics_stream_config(config);
 }
 
 int cras_server_metrics_stream_destroy(const struct cras_rstream *stream)
@@ -864,6 +868,9 @@ metrics_stream_config(struct cras_server_metrics_stream_config config)
 
 	/* Logs stream flags. */
 	cras_metrics_log_sparse_histogram(kStreamFlags, config.flags);
+
+	/* Logs stream effects. */
+	cras_metrics_log_sparse_histogram(kStreamEffects, config.effects);
 
 	/* Logs stream sampling format. */
 	cras_metrics_log_sparse_histogram(kStreamSamplingFormat, config.format);

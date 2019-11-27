@@ -395,7 +395,8 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {}
 
 void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {}
 
-int cras_server_metrics_stream_create(const struct cras_rstream* stream) {
+int cras_server_metrics_stream_create(
+    const struct cras_rstream_config* config) {
   return 0;
 }
 

@@ -244,18 +244,17 @@ TEST(ServerMetricsTestSuite, SetMetricsMissedCallbackEventOutputStream) {
 
 TEST(ServerMetricsTestSuite, SetMetricsStreamCreate) {
   ResetStubData();
-  struct cras_rstream stream;
+  struct cras_rstream_config config;
   struct cras_audio_format format;
 
-  stream.direction = CRAS_STREAM_INPUT;
-  stream.cb_threshold = 1024;
-  stream.flags = BULK_AUDIO_OK;
+  config.direction = CRAS_STREAM_INPUT;
+  config.cb_threshold = 1024;
+  config.flags = BULK_AUDIO_OK;
   format.format = SND_PCM_FORMAT_S16_LE;
   format.frame_rate = 48000;
-  stream.client_type = CRAS_CLIENT_TYPE_TEST;
-
-  stream.format = format;
-  cras_server_metrics_stream_create(&stream);
+  config.client_type = CRAS_CLIENT_TYPE_TEST;
+  config.format = &format;
+  cras_server_metrics_stream_create(&config);
 
   // Log stream config.
   EXPECT_EQ(sent_msgs.size(), 1);

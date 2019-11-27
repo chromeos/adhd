@@ -365,7 +365,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &stream->start_ts);
 
-	cras_server_metrics_stream_create(stream);
+	cras_server_metrics_stream_create(config);
 
 	return 0;
 }
