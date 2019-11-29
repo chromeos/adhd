@@ -714,6 +714,19 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 	cras_iodev_list_notify_active_node_changed(iodev->direction);
 }
 
+bool cras_iodev_is_aec_use_case(const struct cras_ionode *node)
+{
+	if ((node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER) ||
+	    (node->type == CRAS_NODE_TYPE_ECHO_REFERENCE))
+		return true;
+
+	if (node->type == CRAS_NODE_TYPE_MIC)
+		return (node->position == NODE_POSITION_INTERNAL) ||
+		       (node->position == NODE_POSITION_FRONT);
+
+	return false;
+}
+
 float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 {
 	unsigned int volume;

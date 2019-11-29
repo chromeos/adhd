@@ -264,9 +264,11 @@ static void get_best_channels(struct cras_audio_format *apm_fmt)
 
 struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 				       void *dev_ptr,
-				       const struct cras_audio_format *dev_fmt)
+				       const struct cras_audio_format *dev_fmt,
+				       bool is_aec_use_case)
 {
 	struct cras_apm *apm;
+	bool use_tuned_settings;
 
 	DL_FOREACH (list->apms, apm)
 		if (apm->dev_ptr == dev_ptr)
@@ -285,8 +287,23 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 	apm->fmt = *dev_fmt;
 	get_best_channels(&apm->fmt);
 
-	apm->apm_ptr = webrtc_apm_create(apm->fmt.num_channels,
-					 apm->fmt.frame_rate, aec_ini, apm_ini);
+	/* Use tuned settings only when the forward dev(capture) and reverse
+	 * dev(playback) both are in typical AEC use case. */
+	use_tuned_settings = is_aec_use_case;
+	if (rmodule->odev) {
+		use_tuned_settings &=
+			cras_iodev_is_aec_use_case(rmodule->odev->active_node);
+	}
+
+	/* Use the configs tuned specifically for internal device. Otherwise
+	 * just pass NULL so every other settings will be default. */
+	apm->apm_ptr =
+		use_tuned_settings ?
+			webrtc_apm_create(apm->fmt.num_channels,
+					  apm->fmt.frame_rate, aec_ini,
+					  apm_ini) :
+			webrtc_apm_create(apm->fmt.num_channels,
+					  apm->fmt.frame_rate, NULL, NULL);
 	if (apm->apm_ptr == NULL) {
 		syslog(LOG_ERR,
 		       "Fail to create webrtc apm for ch %zu"

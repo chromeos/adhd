@@ -1818,7 +1818,9 @@ int cras_iodev_start_volume_ramp(struct cras_iodev* odev,
   cras_iodev_start_volume_ramp_called++;
   return 0;
 }
-
+bool cras_iodev_is_aec_use_case(const struct cras_ionode* node) {
+  return 1;
+}
 bool stream_list_has_pinned_stream(struct stream_list* list,
                                    unsigned int dev_idx) {
   return stream_list_has_pinned_stream_ret[dev_idx];
@@ -1936,7 +1938,8 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
 #ifdef HAVE_WEBRTC_APM
 struct cras_apm* cras_apm_list_add_apm(struct cras_apm_list* list,
                                        void* dev_ptr,
-                                       const struct cras_audio_format* fmt) {
+                                       const struct cras_audio_format* fmt,
+                                       bool is_internal_dev) {
   return NULL;
 }
 void cras_apm_list_remove_apm(struct cras_apm_list* list, void* dev_ptr) {}

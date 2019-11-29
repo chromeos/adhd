@@ -2349,6 +2349,33 @@ TEST(IoDev, DropDeviceFramesByTime) {
   EXPECT_EQ(-360, rate_estimator_add_frames_num_frames);
 }
 
+TEST(IoDev, AecUseCaseCheck) {
+  struct cras_ionode node;
+
+  /* test output types */
+  node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  EXPECT_EQ(1, cras_iodev_is_aec_use_case(&node));
+  node.type = CRAS_NODE_TYPE_HEADPHONE;
+  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  node.type = CRAS_NODE_TYPE_HDMI;
+  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  node.type = CRAS_NODE_TYPE_USB;
+  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  node.type = CRAS_NODE_TYPE_BLUETOOTH;
+  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+
+  /* test mic positions */
+  node.type = CRAS_NODE_TYPE_MIC;
+  node.position = NODE_POSITION_INTERNAL;
+  EXPECT_EQ(1, cras_iodev_is_aec_use_case(&node));
+  node.position = NODE_POSITION_FRONT;
+  EXPECT_EQ(1, cras_iodev_is_aec_use_case(&node));
+  node.position = NODE_POSITION_EXTERNAL;
+  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  node.position = NODE_POSITION_REAR;
+  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+}
+
 extern "C" {
 
 //  From libpthread.

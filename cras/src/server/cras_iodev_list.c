@@ -634,7 +634,9 @@ static int add_stream_to_open_devs(struct cras_rstream *stream,
 	if (stream->apm_list) {
 		for (i = 0; i < num_iodevs; i++)
 			cras_apm_list_add_apm(stream->apm_list, iodevs[i],
-					      iodevs[i]->format);
+					      iodevs[i]->format,
+					      cras_iodev_is_aec_use_case(
+						      iodevs[i]->active_node));
 	}
 	return audio_thread_add_stream(audio_thread, stream, iodevs,
 				       num_iodevs);

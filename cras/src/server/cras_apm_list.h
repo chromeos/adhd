@@ -61,10 +61,12 @@ struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects);
  *    list - The list holding APM instances.
  *    dev_ptr - Pointer to the iodev to add new APM for.
  *    fmt - Format of the audio data used for this cras_apm.
+ *    is_aec_use_case - If the dev_ptr is for typical AEC use case.
  */
 struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 				       void *dev_ptr,
-				       const struct cras_audio_format *fmt);
+				       const struct cras_audio_format *fmt,
+				       bool is_aec_use_case);
 
 /*
  * Gets the active APM instance that is associated to given stream and dev pair.
@@ -172,7 +174,7 @@ static inline struct cras_apm_list *cras_apm_list_create(void *stream_ptr,
 }
 static inline struct cras_apm *
 cras_apm_list_add_apm(struct cras_apm_list *list, void *dev_ptr,
-		      const struct cras_audio_format *fmt)
+		      const struct cras_audio_format *fmt, bool is_aec_use_case)
 {
 	return NULL;
 }

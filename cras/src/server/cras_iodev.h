@@ -444,6 +444,9 @@ void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node);
 void cras_iodev_set_active_node(struct cras_iodev *iodev,
 				struct cras_ionode *node);
 
+/* Checks if the node is the typical playback or capture option for AEC usage. */
+bool cras_iodev_is_aec_use_case(const struct cras_ionode *node);
+
 /* Adjust the system volume based on the volume of the given node. */
 static inline unsigned int
 cras_iodev_adjust_node_volume(const struct cras_ionode *node,
