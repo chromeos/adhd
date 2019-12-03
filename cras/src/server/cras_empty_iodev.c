@@ -15,9 +15,9 @@
 #include "cras_types.h"
 #include "utlist.h"
 
-#define EMPTY_BUFFER_SIZE (16 * 1024)
-#define EMPTY_FRAME_SIZE 4
-#define EMPTY_FRAMES (EMPTY_BUFFER_SIZE / EMPTY_FRAME_SIZE)
+#define EMPTY_BUFFER_SIZE (32 * 1024)
+#define MAX_EMPTY_FRAME_SIZE 8
+#define EMPTY_FRAMES (EMPTY_BUFFER_SIZE / MAX_EMPTY_FRAME_SIZE)
 
 static size_t empty_supported_rates[] = { 44100, 48000, 0 };
 
