@@ -523,13 +523,26 @@ static int stream_added_cb(struct cras_rstream *rstream);
 
 static void resume_devs()
 {
+	struct enabled_dev *edev;
 	struct cras_rstream *rstream;
 
+	int has_output_stream = 0;
 	stream_list_suspended = 0;
 	DL_FOREACH (stream_list_get(stream_list), rstream) {
 		if ((rstream->flags & HOTWORD_STREAM) == HOTWORD_STREAM)
 			continue;
 		stream_added_cb(rstream);
+		if (rstream->direction == CRAS_STREAM_OUTPUT)
+			has_output_stream++;
+	}
+
+	/* To remove the short popped noise caused by applications that can not
+         * stop playback "right away" after resume, we mute all output devices
+         * for a short time if there is any output stream.*/
+	if (has_output_stream) {
+		DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
+			cras_iodev_set_ramp_mute(edev->dev, 1);
+		}
 	}
 }
 

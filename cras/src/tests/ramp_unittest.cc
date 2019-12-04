@@ -354,6 +354,28 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
   cras_ramp_destroy(ramp);
 }
 
+TEST(RampTestSuite, MuteRamp) {
+  float from = 0.0;
+  float to = 0.0;
+  int duration_frames = 48000;
+  struct cras_ramp* ramp;
+  struct cras_ramp_action action;
+
+  ResetStubData();
+
+  ramp = cras_ramp_create();
+  cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
+
+  action = cras_ramp_get_current_action(ramp);
+
+  EXPECT_EQ(CRAS_RAMP_ACTION_PARTIAL, action.type);
+  EXPECT_FLOAT_EQ(0.0, action.scaler);
+  EXPECT_FLOAT_EQ(0.0, action.increment);
+  EXPECT_FLOAT_EQ(0.0, action.target);
+
+  cras_ramp_destroy(ramp);
+}
+
 TEST(RampTestSuite, PartialRamp) {
   float from_one = 0.75;
   float to_one = 0.4;
