@@ -162,13 +162,16 @@ impl RateEstimator {
             Some(t) => t,
         };
 
-        let delta = now - start;
+        let delta = match now.checked_sub(start) {
+            Some(d) => d,
+            None => return false,
+        };
         self.window_frames += (self.last_level - level + self.level_diff).abs() as u32;
         self.level_diff = 0;
         self.last_level = level;
 
-        let secs = (delta.as_secs() as f64) + delta.subsec_nanos() as f64 / 1_000_000_000.0;
-        self.lsq.add_sample(secs, self.window_frames as f64);
+        self.lsq
+            .add_sample(delta.as_secs_f64(), self.window_frames as f64);
         if delta > self.window_size && self.lsq.num_samples > 1 {
             let rate = self.lsq.best_fit_slope();
             if (self.estimated_rate - rate).abs() < MAX_RATE_SKEW {

@@ -65,7 +65,12 @@ pub unsafe extern "C" fn rate_estimator_check(
     }
 
     let ts = &*now;
-    let now = Duration::new(ts.tv_sec as u64, ts.tv_nsec as u32);
+    if ts.tv_sec < 0 || ts.tv_nsec < 0 {
+        return 0;
+    }
+    let secs = ts.tv_sec as u64 + (ts.tv_nsec / 1_000_000_000) as u64;
+    let nsecs = (ts.tv_nsec % 1_000_000_000) as u32;
+    let now = Duration::new(secs, nsecs);
 
     (*re).update_estimated_rate(level, now) as i32
 }
