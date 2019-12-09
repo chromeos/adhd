@@ -38,6 +38,7 @@ pipe2: 1
 prctl: arg0 == PR_SET_NAME
 futex: 1
 ftruncate: 1
+fallocate: 1
 connect: 1
 bind: 1
 clock_getres: 1

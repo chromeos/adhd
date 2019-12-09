@@ -39,6 +39,7 @@ unlink: 1
 nanosleep: 1
 pipe: 1
 ftruncate: 1
+fallocate: 1
 mprotect: 1
 connect: 1
 getsockname: 1

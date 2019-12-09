@@ -39,6 +39,7 @@ unlink: 1
 lsetxattr: 1
 rt_sigprocmask: 1
 ftruncate: 1
+fallocate: 1
 futex: 1
 execve: 1
 set_robust_list: 1

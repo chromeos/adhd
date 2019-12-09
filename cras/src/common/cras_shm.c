@@ -250,7 +250,7 @@ int cras_shm_open_rw(const char *name, size_t size)
 		       strerror(-fd));
 		return fd;
 	}
-	rc = ftruncate(fd, size);
+	rc = posix_fallocate(fd, 0, size);
 	if (rc) {
 		rc = -errno;
 		syslog(LOG_ERR, "failed to set size of shm %s: %s\n", name,
