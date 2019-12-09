@@ -170,8 +170,8 @@ impl RateEstimator {
         self.level_diff = 0;
         self.last_level = level;
 
-        self.lsq
-            .add_sample(delta.as_secs_f64(), self.window_frames as f64);
+        let secs = (delta.as_secs() as f64) + delta.subsec_nanos() as f64 / 1_000_000_000.0;
+        self.lsq.add_sample(secs, self.window_frames as f64);
         if delta > self.window_size && self.lsq.num_samples > 1 {
             let rate = self.lsq.best_fit_slope();
             if (self.estimated_rate - rate).abs() < MAX_RATE_SKEW {
