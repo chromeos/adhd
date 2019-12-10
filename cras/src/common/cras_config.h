@@ -9,6 +9,7 @@
 #include "cras_types.h"
 
 #define CRAS_MIN_BUFFER_TIME_IN_US 1000 /* 1 milliseconds */
+#define CRAS_MAX_BUFFER_TIME_IN_S 10 /* 10 seconds */
 
 #define CRAS_SERVER_RT_THREAD_PRIORITY 12
 #define CRAS_CLIENT_RT_THREAD_PRIORITY 10

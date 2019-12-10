@@ -159,7 +159,8 @@ static inline int setup_shm_area(struct cras_rstream *stream,
 
 static inline int buffer_meets_size_limit(size_t buffer_size, size_t rate)
 {
-	return buffer_size > (CRAS_MIN_BUFFER_TIME_IN_US * rate) / 1000000;
+	return (buffer_size < (CRAS_MAX_BUFFER_TIME_IN_S * rate)) &&
+	       (buffer_size > (CRAS_MIN_BUFFER_TIME_IN_US * rate) / 1000000);
 }
 
 /* Verifies that the given stream parameters are valid. */
