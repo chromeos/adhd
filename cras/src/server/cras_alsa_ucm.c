@@ -828,15 +828,6 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 			goto error_cleanup;
 		}
 
-		if (dev_idx == -1) {
-			syslog(LOG_ERR,
-			       "PlaybackPCM or CapturePCM for '%s' must be in"
-			       " the form 'hw:<card>,<number>'",
-			       dev_name);
-			free((void *)pcm_name);
-			goto error_cleanup;
-		}
-
 		dependent_dev_name =
 			ucm_get_dependent_device_name_for_dev(mgr, dev_name);
 		if (dependent_dev_name) {

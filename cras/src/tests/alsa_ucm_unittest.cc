@@ -1272,33 +1272,6 @@ TEST(AlsaUcm, GetSectionsMissingPCM) {
   EXPECT_EQ(NULL, sections);
 }
 
-TEST(AlsaUcm, GetSectionsBadPCM) {
-  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  struct ucm_section* sections;
-  int i = 0;
-  const char* devices[] = {"Headphone", "The headphones jack."};
-  const char* ids[] = {"=PlaybackPCM/Headphone/HiFi", "=JackDev/Headphone/HiFi",
-                       "=CoupledMixers/Headphone/HiFi", NULL};
-  const char* values[] = {
-      "hw:my-sound-card:0",
-      "my-sound-card Headset Jack",
-      "HP-L,HP-R",
-  };
-
-  ResetStubData();
-
-  fake_list["_devices/HiFi"] = devices;
-  fake_list_size["_devices/HiFi"] = ARRAY_SIZE(devices);
-
-  while (ids[i]) {
-    snd_use_case_get_value[ids[i]] = values[i];
-    i++;
-  }
-
-  sections = ucm_get_sections(mgr);
-  EXPECT_EQ(NULL, sections);
-}
-
 TEST(AlsaUcm, CheckUseCaseVerbs) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
 
