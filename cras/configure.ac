@@ -10,6 +10,9 @@ AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE([1.10 -Wall no-define])
 #AC_CONFIG_HEADERS([config.h])
 
+# To compile with full logs, use V=1 with make instead.
+AM_SILENT_RULES([yes])
+
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_LIBTOOL
 AC_PROG_CC
