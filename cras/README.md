@@ -14,9 +14,6 @@ CRAS = ChromeOS Audio Server
 # Build cras_rust
 cargo build --release --manifest-path src/server/rust/Cargo.toml
 
-# Generate configure by running autoconf
-autoconf
-
 # Generate install-sh
 ./git_prepare.sh
 
@@ -40,6 +37,16 @@ make -j$(nproc) check
 # Install binaries to /usr/bin
 sudo make install
 ```
+
+## Code complete for for editors
+You need to install [bear] first and generate [compile commands] for
+[language server plugins in editors] by
+```
+make clean && make compile_commands.json
+```
+Then you'll get `compile_commands.json` for editor.
+Import the JSON file to your editor and you'll get useful code complete
+features for CRAS and its unit tests.
 
 # Configuration:
 
@@ -216,3 +223,7 @@ given, which is a 1dBFS per step curve from max = +0.5dBFS to min = -99.5dBFS
   dB_at_99 = -50
   dB_at_100 = 50
 ```
+
+[bear]: https://github.com/rizsotto/Bear
+[compile commands]: https://clang.llvm.org/extra/clangd/Installation.html#compile-commands-json
+[language server plugins in editors]: https://clang.llvm.org/extra/clangd/Installation.html#editor-plugins
