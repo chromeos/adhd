@@ -1,31 +1,58 @@
 CRAS = ChromeOS Audio Server
+===
 
-Directories
-src/server - the source for the sound server
-src/libcras - client library for interacting with cras
-src/common - files common to both the server and library
-src/tests - tests for cras and libcras
+# Directories
+- [src/server](src/server) - the source for the sound server
+- [src/libcras](src/libcras) - client library for interacting with cras
+- [src/common](src/common) - files common to both the server and library
+- [src/tests](src/tests) - tests for cras and libcras
+- [src/fuzz](src/fuzz) - source code and build scripts for coverage-guided
+  fuzzers for CRAS
 
-Building from source:
+# Building from source:
+```
+# Build cras_rust
+cargo build --release --manifest-path src/server/rust/Cargo.toml
+
+# Generate configure by running autoconf
+autoconf
+
+# Generate install-sh
 ./git_prepare.sh
-./configure
-make
+
+LIB_INI_PARSER=/usr/include/iniparser
+LIB_CRAS_RUST=../src/server/rust/target/release/
+
+# Configure
+CC=clang \
+CXX=clang++ \
+CXXFLAGS="-g -O2 -std=gnu++11 -Wall -I${LIB_INI_PARSER}" \
+CFLAGS="-g -O2 -Wall -I${LIB_INI_PARSER}" \
+LDFLAGS="$LDFLAGS -L${LIB_CRAS_RUST}" \
+./configure --disable-webrtc-apm --disable-alsa-plugin
+
+# Compile
+make -j$(nproc)
+
+# Compile with unit tests
+make -j$(nproc) check
+
+# Install binaries to /usr/bin
 sudo make install
+```
 
----------------------
-Configuration:
----------------------
+# Configuration:
 
-Device Blacklisting:
---------------------
+## Device Blacklisting:
+
 Blacklist of certain USB output device(s) is possible by modifying the config
-file /etc/cras/device_blacklist.
+file `/etc/cras/device_blacklist`.
 
 The format of this file is as follows:
-
+```
 [USB_Outputs]
   <vendor_id>_<product_id>_<checksum>_<device_index> = 1
-
+```
 Where vendor_id and product id are the USB identifiers for the card to
 blacklist. The checksum is the output of "cksum" command applied to the
 sysfs "descriptors" file of the device. The device index specifies the
@@ -34,26 +61,28 @@ parameter, so '= 1' enables the option.
 
 Example, blacklisting the non-functional output device reported by the C-Media
 based CAD-u1 mic:
-
+```
 [USB_Outputs]
   0d8c_0008_00000000_0 = 1
+```
 
-Card Configuration:
--------------------
+## Card Configuration:
+
 There can be a config file for each sound alsa card on the system.  This file
-lives in /etc/cras/.  The file should be named with the card name returned by
+lives in `/etc/cras/`.  The file should be named with the card name returned by
 ALSA, the string in the second set of '[]' in the aplay -l output.  The ini file
 has the following format.
 
+```
 [<output-node-name>] ; Name of the mixer control for this output.
   <config-option> = <config-value>
-
+```
 output-node-name can be speficied in a few ways to link with the real node:
-  UCM device name - The name string following the SectionDevice label in UCM
+- UCM device name - The name string following the SectionDevice label in UCM
     config, i.e. HiFi.conf
-  Jack name - Name of the mixer control for mixer jack, or the gpio jack name
+- Jack name - Name of the mixer control for mixer jack, or the gpio jack name
     listed by 'evtest' command.
-  Mixer control name - e.g. "Headphone" or "Speaker", listed by
+- Mixer control name - e.g. "Headphone" or "Speaker", listed by
     'amixer scontrols' command.
 
 Note that an output node matches to the output-node-name label in card config by
@@ -62,12 +91,12 @@ search the config file for the UCM device name. When not found, jack name will
 be used for searching, and lastly the mixer output control name.
 
 config-option can be the following:
-  volume_curve - The type of volume curve, "simple_step" or "explicit".
-  Options valid and mandatory when volume_curve = simple_step:
-    max_volume - The maximum volume for this output specified in dBFS * 100.
-    volume_step - Number of dB per volume 'tick' specified in  dBFS * 100.
-  Options valid and mandatory when volume_curve = explicit:
-    dB_at_N - The value in dB*100 that should be used for the volume at step
+- volume_curve - The type of volume curve, "simple_step" or "explicit".
+- Options valid and mandatory when volume_curve = simple_step:
+  - max_volume - The maximum volume for this output specified in dBFS * 100.
+  - volume_step - Number of dB per volume 'tick' specified in  dBFS * 100.
+- Options valid and mandatory when volume_curve = explicit:
+  - dB_at_N - The value in dB*100 that should be used for the volume at step
       "N".  There must be one of these for each setting from N=0 to 100
       inclusive.
 
@@ -78,6 +107,7 @@ step size of 0.75dBFS and the Speaker to have the curve specified by the steps
 given, which is a 1dBFS per step curve from max = +0.5dBFS to min = -99.5dBFS
 (volume step 10 is -89.5dBFS).
 
+```
 [Headphone]
   volume_curve = simple_step
   volume_step = 75
@@ -185,3 +215,4 @@ given, which is a 1dBFS per step curve from max = +0.5dBFS to min = -99.5dBFS
   dB_at_98 = -150
   dB_at_99 = -50
   dB_at_100 = 50
+```
