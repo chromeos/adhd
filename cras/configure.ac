@@ -84,6 +84,23 @@ else
 fi
 AC_SUBST(METRICS_LIBS)
 
+# Check if the system copy of the cras rust library should be used. If not, make sure cargo and rustc are present to build it.
+AC_ARG_WITH([system-cras-rust],
+	    AS_HELP_STRING([--with-system-cras-rust], [Use the system provided cras_rust library]),
+	    with_system_rust=$enableval,
+	    with_system_rust=no)
+AM_CONDITIONAL(WITH_SYSTEM_RUST, test "$with_system_rust" = "yes")
+if test "$with_system_rust" = "no"; then
+    AC_CHECK_PROG(CARGO, [cargo], [yes], [no])
+    AS_IF(test x$CARGO = xno,
+        AC_MSG_ERROR([cargo is required to build cras rust lib.])
+    )
+    AC_CHECK_PROG(RUSTC, [rustc], [yes], [no])
+    AS_IF(test x$RUSTC = xno,
+        AC_MSG_ERROR([rustc is required to build cras rust lib.])
+    )
+fi
+
 # Determine ALSA plugin directory.
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
 test "x$exec_prefix" = xNONE && exec_prefix=$prefix

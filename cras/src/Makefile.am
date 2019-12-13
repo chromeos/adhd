@@ -168,12 +168,12 @@ libcrasserver_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server/rust/src/headers \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS) $(SELINUX_CFLAGS)
 libcrasserver_la_LIBADD = \
+	$(CRAS_RUST) \
 	libcrasmix.la \
 	$(CRAS_SSE4_2) \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
-	-lcras_rust \
 	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS) \
@@ -195,7 +195,7 @@ cras_LDADD = \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
-	-lcras_rust \
+	$(CRAS_RUST) \
 	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
 	$(METRICS_LIBS) \
 	$(SBC_LIBS) \
@@ -300,6 +300,20 @@ libasound_module_pcm_cras_la_SOURCES = alsa_plugin/pcm_cras.c
 libasound_module_pcm_cras_la_LIBADD = -lasound libcras.la
 libasound_module_ctl_cras_la_SOURCES = alsa_plugin/ctl_cras.c
 libasound_module_ctl_cras_la_LIBADD = -lasound libcras.la
+
+if !WITH_SYSTEM_RUST
+RUST_FILES = \
+	server/rust/Cargo.toml \
+	server/rust/src/rate_estimator_bindings.rs \
+	server/rust/src/rate_estimator.rs
+
+CRAS_RUST = libcras_rust.a
+$(CRAS_RUST): $(RUST_FILES)
+	cargo build --release --manifest-path server/rust/Cargo.toml
+	cp server/rust/target/release/libcras_rust.a .
+else
+CRAS_RUST = -lcras_rust
+endif
 
 # Inject a dependency between the installation rules of libcras and its modules.
 # This avoids a race when the modules are relinked before libcras is actually

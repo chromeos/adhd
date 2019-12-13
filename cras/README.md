@@ -18,15 +18,13 @@ cargo build --release --manifest-path src/server/rust/Cargo.toml
 ./git_prepare.sh
 
 LIB_INI_PARSER=/usr/include/iniparser
-LIB_CRAS_RUST=../src/server/rust/target/release/
 
 # Configure
 CC=clang \
 CXX=clang++ \
 CXXFLAGS="-g -O2 -std=gnu++11 -Wall -I${LIB_INI_PARSER}" \
 CFLAGS="-g -O2 -Wall -I${LIB_INI_PARSER}" \
-LDFLAGS="$LDFLAGS -L${LIB_CRAS_RUST}" \
-./configure --disable-webrtc-apm --disable-alsa-plugin
+./configure --disable-alsa-plugin
 
 # Compile
 make -j$(nproc)
