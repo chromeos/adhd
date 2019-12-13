@@ -51,7 +51,7 @@ AC_SUBST(SELINUX_CFLAGS)
 AC_SUBST(SELINUX_LIBS)
 
 # WEBRTC APM support
-AC_ARG_ENABLE([webrtc-apm], AS_HELP_STRING([--disable-webrtc-apm], [Disable webrtc-apm uses]), have_webrtc_apm=$enableval, have_webrtc_apm=yes)
+AC_ARG_ENABLE([webrtc-apm], AS_HELP_STRING([--enable-webrtc-apm], [Enable webrtc-apm uses]), have_webrtc_apm=$enableval, have_webrtc_apm=no)
 AM_CONDITIONAL(HAVE_WEBRTC_APM, test "$have_webrtc_apm" = "yes")
 if test "$have_webrtc_apm" = "yes"; then
     PKG_CHECK_MODULES([WEBRTC_APM], [ libwebrtc_apm ])
