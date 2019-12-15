@@ -23,7 +23,7 @@
 /* Default to -6 dBFS as 90% of CrOS boards use microphone with -26dBFS
  * sensitivity under 94dB SPL @ 1kHz and we generally added 20dB gain to it.
  * This is a temporary value that should be refined when the standard process
- * measuring intrinsic volume is built. */
+ * measuring intrinsic sensitivity is built. */
 #define DEFAULT_CAPTURE_VOLUME_DBFS -600
 /* Default to 1--dB of range for playback and capture. */
 #define DEFAULT_MIN_VOLUME_DBFS -10000

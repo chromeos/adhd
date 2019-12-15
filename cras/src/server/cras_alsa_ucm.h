@@ -218,7 +218,7 @@ int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
 int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
 			      long *gain);
 
-/* Gets the value for intrinsic volume.
+/* Gets the value for intrinsic sensitivity.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
  *    dev - The device to query for intrinsic volume.
@@ -226,8 +226,8 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
  * Returns:
  *    0 on success, other error codes on failure.
  */
-int ucm_get_intrinsic_volume(struct cras_use_case_mgr *mgr, const char *dev,
-			     long *vol);
+int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr *mgr,
+				  const char *dev, long *vol);
 
 /* Gets the flag if an input device can preempt hotword recording.
  * Args:

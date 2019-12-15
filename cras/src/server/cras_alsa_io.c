@@ -1104,7 +1104,7 @@ static void set_input_node_software_volume_needed(struct alsa_input_node *input,
 	input->base.max_software_gain = 0;
 
 	/* TODO(enshuo): Deprecate the max and min software gain when intrinsic
-	 * volume is done. */
+	 * sensitivity is done. */
 
 	/* Enable software gain if max software gain is specified in UCM. */
 	if (!aio->ucm)
@@ -1162,25 +1162,25 @@ static void set_input_default_node_gain(struct alsa_input_node *input,
 	input->base.capture_gain = default_node_gain;
 }
 
-static void set_input_node_intrinsic_volume(struct alsa_input_node *input,
-					    struct alsa_io *aio)
+static void set_input_node_intrinsic_sensitivity(struct alsa_input_node *input,
+						 struct alsa_io *aio)
 {
 	long volume;
 	int rc;
 
-	input->base.intrinsic_volume = 0;
+	input->base.intrinsic_sensitivity = 0;
 
 	if (!aio->ucm)
 		return;
 
-	rc = ucm_get_intrinsic_volume(aio->ucm, input->base.name, &volume);
+	rc = ucm_get_intrinsic_sensitivity(aio->ucm, input->base.name, &volume);
 	if (rc)
 		return;
 
-	input->base.intrinsic_volume = volume;
+	input->base.intrinsic_sensitivity = volume;
 	input->base.capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - volume;
 	syslog(LOG_INFO,
-	       "Use software gain %ld for %s because IntrinsicVolume %ld is"
+	       "Use software gain %ld for %s because IntrinsicSensitivity %ld is"
 	       " specified in UCM",
 	       input->base.capture_gain, input->base.name, volume);
 }
@@ -1319,7 +1319,7 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	set_node_initial_state(&input->base, aio->card_type);
 	set_input_node_software_volume_needed(input, aio);
 	set_input_default_node_gain(input, aio);
-	set_input_node_intrinsic_volume(input, aio);
+	set_input_node_intrinsic_sensitivity(input, aio);
 
 	if (aio->ucm) {
 		/* Check mic positions only for internal mic. */

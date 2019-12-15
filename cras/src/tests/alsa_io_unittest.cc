@@ -149,7 +149,7 @@ static int ucm_get_enable_htimestamp_flag_ret;
 static const struct cras_volume_curve* fake_get_dBFS_volume_curve_val;
 static int cras_iodev_dsp_set_swap_mode_for_node_called;
 static std::map<std::string, long> ucm_get_default_node_gain_values;
-static std::map<std::string, long> ucm_get_intrinsic_volume_values;
+static std::map<std::string, long> ucm_get_intrinsic_sensitivity_values;
 static thread_callback audio_thread_cb;
 static void* audio_thread_cb_data;
 static int hotword_send_triggered_msg_called;
@@ -241,7 +241,7 @@ void ResetStubData() {
   fake_get_dBFS_volume_curve_val = NULL;
   cras_iodev_dsp_set_swap_mode_for_node_called = 0;
   ucm_get_default_node_gain_values.clear();
-  ucm_get_intrinsic_volume_values.clear();
+  ucm_get_intrinsic_sensitivity_values.clear();
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -268,7 +268,6 @@ static struct cras_iodev* alsa_iodev_create_with_default_parameters(
 }
 
 namespace {
-
 TEST(AlsaIoInit, InitializeInvalidDirection) {
   struct alsa_io* aio;
 
@@ -599,23 +598,24 @@ TEST(AlsaIoInit, SoftwareGainWithDefaultNodeGain) {
   alsa_iodev_destroy(iodev);
 }
 
-TEST(AlsaIoInit, SoftwareGainIntrinsicVolume) {
+TEST(AlsaIoInit, SoftwareGainIntrinsicSensitivity) {
   struct cras_iodev* iodev;
   struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
-  long intrinsic_volume = -2700;
+  long intrinsic_sensitivity = -2700;
 
   ResetStubData();
 
   // Set intrinsic volume to -2700 * 0.01 dBFS.
-  ucm_get_intrinsic_volume_values[INTERNAL_MICROPHONE] = intrinsic_volume;
+  ucm_get_intrinsic_sensitivity_values[INTERNAL_MICROPHONE] =
+      intrinsic_sensitivity;
 
   // Assume this is the first device so it gets internal mic node name.
   iodev = alsa_iodev_create_with_default_parameters(
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  ASSERT_EQ(intrinsic_volume, iodev->active_node->intrinsic_volume);
-  ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS - intrinsic_volume,
+  ASSERT_EQ(intrinsic_sensitivity, iodev->active_node->intrinsic_sensitivity);
+  ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS - intrinsic_sensitivity,
             iodev->active_node->capture_gain);
 
   alsa_iodev_destroy(iodev);
@@ -2858,14 +2858,14 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
-int ucm_get_intrinsic_volume(struct cras_use_case_mgr* mgr,
-                             const char* dev,
-                             long* vol) {
-  if (ucm_get_intrinsic_volume_values.find(dev) ==
-      ucm_get_intrinsic_volume_values.end())
+int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr* mgr,
+                                  const char* dev,
+                                  long* vol) {
+  if (ucm_get_intrinsic_sensitivity_values.find(dev) ==
+      ucm_get_intrinsic_sensitivity_values.end())
     return 1;
 
-  *vol = ucm_get_intrinsic_volume_values[dev];
+  *vol = ucm_get_intrinsic_sensitivity_values[dev];
   return 0;
 }
 
