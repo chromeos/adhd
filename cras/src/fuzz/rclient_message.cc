@@ -10,6 +10,7 @@
 
 extern "C" {
 #include "cras_bt_log.h"
+#include "cras_dsp.h"
 #include "cras_iodev_list.h"
 #include "cras_mix.h"
 #include "cras_observer.h"
@@ -55,6 +56,10 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   cras_observer_server_init();
   cras_mix_init(0);
   cras_iodev_list_init();
+  /* For cros fuzz, emerge adhd with USE=fuzzer will copy dsp.ini.sample to
+   * etc/cras. For OSS-Fuzz the Dockerfile will be responsible for copying the
+   * file. This shouldn't crash CRAS even if the dsp file does not exist. */
+  cras_dsp_init("/etc/cras/dsp.ini.sample");
   /* Initializes btlog for CRAS_SERVER_DUMP_BT path with CRAS_DBUS defined. */
   btlog = cras_bt_event_log_init();
   return 0;

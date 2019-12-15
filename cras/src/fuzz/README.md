@@ -12,21 +12,20 @@ Detailed instructions are available at: https://github.com/google/oss-fuzz/blob/
 sudo adduser $USER docker
 ```
 
-### Build a container from the cras directory
+### Build a container from the adhd directory
 ```
-docker build -t ossfuzz/cras -f src/fuzz/Dockerfile .
+docker build -t ossfuzz/cras -f cras/src/fuzz/Dockerfile .
 ```
 
 ### Build fuzzers
 ```
-docker run --cap-add=SYS_PTRACE -ti --rm -v $(pwd):/src/cras -v /tmp/fuzzers:/out \
-    ossfuzz/cras
+docker run --cap-add=SYS_PTRACE -ti --rm -v /tmp/fuzzers:/out ossfuzz/cras
 ```
 
 ### Look in /tmp/fuzzers to see the executables. Run them like so:
 ```
-docker run --cap-add=SYS_PTRACE -ti -v $(pwd)/src/fuzz/corpus:/corpus \
-    -v /tmp/fuzzers:/out ossfuzz/base-runner /out/rclient_message \
+docker run --cap-add=SYS_PTRACE -ti -v $(pwd)/cras/src/fuzz/corpus:/corpus \
+    -v /tmp/fuzzers:/out ossfuzz/cras /out/rclient_message \
     /corpus -runs=100
 ```
 
@@ -34,7 +33,7 @@ docker run --cap-add=SYS_PTRACE -ti -v $(pwd)/src/fuzz/corpus:/corpus \
 
 Go into docker console by
 ```
-docker run --cap-add=SYS_PTRACE -ti -v $(pwd)/src/fuzz/corpus:/corpus \
-    -v /tmp/fuzzers:/out ossfuzz/base-runner /bin/bash
+docker run --cap-add=SYS_PTRACE -ti -v $(pwd)/cras/src/fuzz/corpus:/corpus \
+    -v /tmp/fuzzers:/out ossfuzz/cras /bin/bash
 ```
 and start debugging.
