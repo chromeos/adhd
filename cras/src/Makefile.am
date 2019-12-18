@@ -350,7 +350,7 @@ cras_rclient_message_fuzzer_LDADD = \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
-	-lcras_rust \
+	$(CRAS_RUST) \
 	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
 	$(METRICS_LIBS) \
 	$(SBC_LIBS) \
@@ -919,7 +919,7 @@ rate_estimator_unittest_SOURCES = tests/rate_estimator_unittest.cc
 rate_estimator_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server \
 	 -I$(top_srcdir)/src/server/rust/src/headers
-rate_estimator_unittest_LDADD = -lcras_rust -lgtest -ldl -lpthread
+rate_estimator_unittest_LDADD = $(CRAS_RUST) -lgtest -ldl -lpthread
 
 control_rclient_unittest_SOURCES = tests/control_rclient_unittest.cc
 control_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \

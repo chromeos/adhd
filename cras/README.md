@@ -11,9 +11,6 @@ CRAS = ChromeOS Audio Server
 
 # Building from source:
 ```
-# Build cras_rust
-cargo build --release --manifest-path src/server/rust/Cargo.toml
-
 # Generate install-sh
 ./git_prepare.sh
 
