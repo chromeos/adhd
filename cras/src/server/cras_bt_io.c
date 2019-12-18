@@ -206,6 +206,11 @@ static int configure_dev(struct cras_iodev *iodev)
 
 	iodev->buffer_size = dev->buffer_size;
 	iodev->min_buffer_level = dev->min_buffer_level;
+	if (dev->start)
+		dev->state = CRAS_IODEV_STATE_OPEN;
+	else
+		dev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+
 	return 0;
 }
 
@@ -235,6 +240,7 @@ static int close_dev(struct cras_iodev *iodev)
 	if (rc < 0)
 		return rc;
 	cras_iodev_free_format(iodev);
+	dev->state = CRAS_IODEV_STATE_CLOSE;
 	return 0;
 }
 
@@ -361,6 +367,8 @@ static int output_underrun(struct cras_iodev *iodev)
 static int no_stream(struct cras_iodev *iodev, int enable)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
+	int rc;
+
 	if (!dev)
 		return -EINVAL;
 
@@ -375,8 +383,15 @@ static int no_stream(struct cras_iodev *iodev, int enable)
 		dev->min_cb_level = iodev->min_cb_level;
 		dev->max_cb_level = iodev->max_cb_level;
 		dev->buffer_size = iodev->buffer_size;
-		return dev->no_stream(dev, enable);
+		rc = dev->no_stream(dev, enable);
+		if (rc < 0)
+			return rc;
 	}
+	if (enable)
+		dev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+	else
+		dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
 	return 0;
 }
 
@@ -395,11 +410,17 @@ static int is_free_running(const struct cras_iodev *iodev)
 static int start(const struct cras_iodev *iodev)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
+	int rc;
+
 	if (!dev)
 		return -EINVAL;
 
-	if (dev->start)
-		return dev->start(dev);
+	if (dev->start) {
+		rc = dev->start(dev);
+		if (rc)
+			return rc;
+	}
+	dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 	return 0;
 }
 

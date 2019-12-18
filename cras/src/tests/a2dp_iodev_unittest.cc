@@ -7,11 +7,10 @@
 #include <stdio.h>
 
 extern "C" {
+#include "cras_a2dp_iodev.c"
 
-#include "a2dp-codecs.h"
 #include "audio_thread.h"
 #include "audio_thread_log.h"
-#include "cras_a2dp_iodev.h"
 #include "cras_audio_area.h"
 #include "cras_bt_transport.h"
 #include "cras_iodev.h"
@@ -37,13 +36,8 @@ static size_t init_a2dp_called;
 static int init_a2dp_return_val;
 static size_t destroy_a2dp_called;
 static size_t drain_a2dp_called;
-static size_t a2dp_block_size_called;
-static size_t a2dp_queued_frames_val;
 static size_t cras_iodev_free_format_called;
 static size_t cras_iodev_free_resources_called;
-static int pcm_buf_size_val[MAX_A2DP_ENCODE_CALLS];
-static unsigned int a2dp_encode_processed_bytes_val[MAX_A2DP_ENCODE_CALLS];
-static unsigned int a2dp_encode_index;
 static int a2dp_write_return_val[MAX_A2DP_WRITE_CALLS];
 static unsigned int a2dp_write_index;
 static cras_audio_area* dummy_audio_area;
@@ -69,16 +63,11 @@ void ResetStubData() {
   init_a2dp_return_val = 0;
   destroy_a2dp_called = 0;
   drain_a2dp_called = 0;
-  a2dp_block_size_called = 0;
-  a2dp_queued_frames_val = 0;
   cras_iodev_free_format_called = 0;
   cras_iodev_free_resources_called = 0;
-  memset(a2dp_encode_processed_bytes_val, 0,
-         sizeof(a2dp_encode_processed_bytes_val));
-  a2dp_encode_index = 0;
   a2dp_write_index = 0;
   /* Fake the MTU value. min_buffer_level will be derived from this value. */
-  cras_bt_transport_write_mtu_ret = 800;
+  cras_bt_transport_write_mtu_ret = 900;
   cras_iodev_fill_odev_zeros_called = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport*>(0x123);
@@ -106,6 +95,8 @@ class A2dpIodev : public testing::Test {
  protected:
   virtual void SetUp() {
     ResetStubData();
+    time_now.tv_sec = 0;
+    time_now.tv_nsec = 0;
     atlog = (audio_thread_event_log*)calloc(1, sizeof(audio_thread_event_log));
   }
 
@@ -171,6 +162,8 @@ TEST_F(A2dpIodev, OpenIodev) {
 
   iodev_set_format(iodev, &format);
   iodev->configure_dev(iodev);
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
   ASSERT_EQ(1, cras_bt_transport_acquire_called);
 
@@ -187,54 +180,34 @@ TEST_F(A2dpIodev, GetPutBuffer) {
   struct cras_audio_area *area1, *area2, *area3;
   uint8_t* area1_buf;
   unsigned frames;
+  struct a2dp_io* a2dpio;
 
   iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
 
   iodev_set_format(iodev, &format);
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
   frames = 256;
   iodev->get_buffer(iodev, &area1, &frames);
   ASSERT_EQ(256, frames);
   ASSERT_EQ(256, area1->frames);
   area1_buf = area1->channels[0].buf;
-
-  /* Test 100 frames(400 bytes) put and all processed. */
-  a2dp_encode_processed_bytes_val[0] = 400;
-  a2dp_write_index = 0;
-  a2dp_write_return_val[0] = 400;
   iodev->put_buffer(iodev, 100);
-  write_callback(write_callback_data);
-  // Start with 4k frames.
-  EXPECT_EQ(400, pcm_buf_size_val[0]);
 
+  /* Assert buffer possition shifted 100 * 4 bytes */
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(256, frames);
   ASSERT_EQ(256, area2->frames);
-
-  /* Assert buf2 points to the same position as buf1 */
   ASSERT_EQ(400, area2->channels[0].buf - area1_buf);
-
-  /* Test 100 frames(400 bytes) put, only 360 bytes processed,
-   * 40 bytes left in pcm buffer.
-   */
-  a2dp_encode_index = 0;
-  a2dp_encode_processed_bytes_val[0] = 360;
-  a2dp_encode_processed_bytes_val[1] = 0;
-  a2dp_write_index = 0;
-  a2dp_write_return_val[0] = 360;
-  a2dp_write_return_val[1] = 0;
   iodev->put_buffer(iodev, 100);
-  write_callback(write_callback_data);
-  EXPECT_EQ(400, pcm_buf_size_val[0]);
-  ASSERT_EQ(40, pcm_buf_size_val[1]);
 
+  /* Assert buffer possition shifted 100 * 4 bytes */
   iodev->get_buffer(iodev, &area3, &frames);
-
-  /* Existing buffer not completed processed, assert new buffer starts from
-   * current write pointer.
-   */
   ASSERT_EQ(256, frames);
   EXPECT_EQ(800, area3->channels[0].buf - area1_buf);
 
@@ -247,65 +220,42 @@ TEST_F(A2dpIodev, FramesQueued) {
   struct cras_audio_area* area;
   struct timespec tstamp;
   unsigned frames;
+  struct a2dp_io* a2dpio;
 
   iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
 
   iodev_set_format(iodev, &format);
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
+  /* a2dp_block_size(mtu) / format_bytes
+   * 900 / 128 * 512 / 4 = 896 */
+  EXPECT_EQ(896, a2dpio->write_block);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
   frames = 256;
   iodev->get_buffer(iodev, &area, &frames);
   ASSERT_EQ(256, frames);
   ASSERT_EQ(256, area->frames);
 
-  /* Put 100 frames, proccessed 400 bytes to a2dp buffer.
-   * Assume 200 bytes written out, queued 50 frames in a2dp buffer.
-   */
-  a2dp_encode_processed_bytes_val[0] = 400;
-  a2dp_write_return_val[0] = 50;
-  a2dp_queued_frames_val = 50;
-  time_now.tv_sec = 0;
-  time_now.tv_nsec = 1000000;
   iodev->put_buffer(iodev, 200);
-  write_callback(write_callback_data);
   EXPECT_EQ(200, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 
-  /* After writing another 200 frames, check for correct buffer level. */
+  a2dp_write_return_val[0] = 0;
+  frames = 800;
   time_now.tv_sec = 0;
-  time_now.tv_nsec = 2000000;
-  a2dp_encode_index = 0;
-  a2dp_write_index = 0;
-  a2dp_encode_processed_bytes_val[0] = 400;
-  write_callback(write_callback_data);
-  /* 1000000 nsec has passed, estimated queued frames adjusted by 44 */
-  EXPECT_EQ(156, iodev->frames_queued(iodev, &tstamp));
-  EXPECT_EQ(400, pcm_buf_size_val[0]);
-  EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
-  EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
+  time_now.tv_nsec = 25000000;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 800);
+  /* Assert 200 + 800 - 896 frames left. */
+  EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
 
-  /* Queued frames and new put buffer are all written */
-  a2dp_encode_processed_bytes_val[0] = 400;
-  a2dp_encode_processed_bytes_val[1] = 0;
-  a2dp_encode_index = 0;
-  a2dp_write_return_val[0] = 400;
-  a2dp_write_return_val[1] = -EAGAIN;
-  a2dp_write_index = 0;
-
-  /* Add wnother 200 samples, get back to the original level. */
-  time_now.tv_sec = 0;
-  time_now.tv_nsec = 50000000;
-  a2dp_encode_processed_bytes_val[0] = 600;
-  a2dp_queued_frames_val = 50;
-  iodev->put_buffer(iodev, 200);
-  EXPECT_EQ(800, pcm_buf_size_val[0]);
-  EXPECT_EQ(100, iodev->frames_queued(iodev, &tstamp));
-  EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
-  EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
   iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
 }
@@ -315,40 +265,37 @@ TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   struct cras_audio_area* area;
   struct timespec tstamp;
   unsigned frames;
+  struct a2dp_io* a2dpio;
 
   iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
 
   iodev_set_format(iodev, &format);
-  time_now.tv_sec = 0;
-  time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
 
-  ASSERT_EQ(iodev->min_buffer_level, 400);
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
-  frames = 700;
+  /* 900 / 128 * 512 / 4 */
+  ASSERT_EQ(iodev->min_buffer_level, 896);
+
+  frames = 1500;
   iodev->get_buffer(iodev, &area, &frames);
-  ASSERT_EQ(700, frames);
-  ASSERT_EQ(700, area->frames);
+  ASSERT_EQ(1500, frames);
+  ASSERT_EQ(1500, area->frames);
 
-  /* First call to a2dp_encode() processed 800 bytes. */
-  a2dp_encode_processed_bytes_val[0] = 800;
-  a2dp_encode_processed_bytes_val[1] = 0;
-  a2dp_write_return_val[0] = 200;
-
-  /* put_buffer shouldn't trigger the 2nd call to a2dp_encode() because
-   * buffer is low. Fake some data to make sure this test case will fail
-   * when a2dp_encode() called twice.
+  /*
+   * Assert put_buffer shouldn't trigger the 2nd call to a2dp_encode()
+   * because buffer is low: 896 < 1500 < 896 * 2
    */
-  a2dp_encode_processed_bytes_val[2] = 800;
-  a2dp_encode_processed_bytes_val[3] = 0;
-  a2dp_write_return_val[1] = -EAGAIN;
+  a2dp_write_return_val[0] = 0;
+  EXPECT_EQ(0, iodev->put_buffer(iodev, 1500));
+  EXPECT_EQ(1, a2dp_write_index);
 
-  time_now.tv_nsec = 10000000;
-  iodev->put_buffer(iodev, 700);
-
-  time_now.tv_nsec = 20000000;
-  EXPECT_EQ(500, iodev->frames_queued(iodev, &tstamp));
+  /* 1500 - 896 */
+  time_now.tv_nsec = 25000000;
+  EXPECT_EQ(604, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
   iodev->close_dev(iodev);
@@ -367,13 +314,16 @@ TEST_F(A2dpIodev, HandleUnderrun) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
-  EXPECT_EQ(400, iodev->min_buffer_level);
+  /* 900 / 128 * 512 / 4 */
+  EXPECT_EQ(896, iodev->min_buffer_level);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
   frames = 300;
   iodev->get_buffer(iodev, &area, &frames);
   ASSERT_EQ(300, frames);
   ASSERT_EQ(300, area->frames);
-  a2dp_encode_processed_bytes_val[0] = 0;
   a2dp_write_return_val[0] = -EAGAIN;
 
   time_now.tv_nsec = 10000000;
@@ -405,7 +355,11 @@ TEST_F(A2dpIodev, NoStreamState) {
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
-  ASSERT_EQ(400, iodev->min_buffer_level);
+  /* 900 / 128 * 512 / 4 */
+  ASSERT_EQ(896, iodev->min_buffer_level);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
   iodev->min_cb_level = 480;
   frames = 200;
@@ -546,6 +500,9 @@ int cras_bt_device_schedule_suspend(struct cras_bt_device* device,
 
 int init_a2dp(struct a2dp_info* a2dp, a2dp_sbc_t* sbc) {
   init_a2dp_called++;
+  memset(a2dp, 0, sizeof(*a2dp));
+  a2dp->frame_length = 128;
+  a2dp->codesize = 512;
   return init_a2dp_return_val;
 }
 
@@ -554,18 +511,15 @@ void destroy_a2dp(struct a2dp_info* a2dp) {
 }
 
 int a2dp_codesize(struct a2dp_info* a2dp) {
-  return 512;
+  return a2dp->codesize;
 }
 
 int a2dp_block_size(struct a2dp_info* a2dp, int encoded_bytes) {
-  a2dp_block_size_called++;
-
-  // Assumes a2dp block size is 1:1 before/after encode.
-  return encoded_bytes;
+  return encoded_bytes / a2dp->frame_length * a2dp->codesize;
 }
 
-int a2dp_queued_frames(struct a2dp_info* a2dp) {
-  return a2dp_queued_frames_val;
+int a2dp_queued_frames(const struct a2dp_info* a2dp) {
+  return a2dp->samples;
 }
 
 void a2dp_drain(struct a2dp_info* a2dp) {
@@ -577,19 +531,33 @@ int a2dp_encode(struct a2dp_info* a2dp,
                 int pcm_buf_size,
                 int format_bytes,
                 size_t link_mtu) {
-  unsigned int processed;
+  int processed = 0;
 
-  if (a2dp_encode_index == MAX_A2DP_ENCODE_CALLS)
+  if (a2dp->a2dp_buf_used + a2dp->frame_length > link_mtu)
     return 0;
-  processed = a2dp_encode_processed_bytes_val[a2dp_encode_index];
-  pcm_buf_size_val[a2dp_encode_index] = pcm_buf_size;
-  a2dp_encode_index++;
+  if (pcm_buf_size < a2dp->codesize)
+    return 0;
+
+  processed += a2dp->codesize;
+  a2dp->a2dp_buf_used += a2dp->frame_length;
+  a2dp->samples += processed / format_bytes;
+
   return processed;
 }
 
 int a2dp_write(struct a2dp_info* a2dp, int stream_fd, size_t link_mtu) {
-  return a2dp_write_return_val[a2dp_write_index++];
-  ;
+  int ret, samples;
+  if (a2dp->frame_length + a2dp->a2dp_buf_used < link_mtu)
+    return 0;
+
+  ret = a2dp_write_return_val[a2dp_write_index++];
+  if (ret < 0)
+    return ret;
+
+  samples = a2dp->samples;
+  a2dp->samples = 0;
+  a2dp->a2dp_buf_used = 0;
+  return samples;
 }
 
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {

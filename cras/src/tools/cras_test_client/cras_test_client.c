@@ -502,6 +502,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 
 	/* Prepare realtime string for arguments. */
 	switch (tag) {
+	case AUDIO_THREAD_A2DP_FLUSH:
 	case AUDIO_THREAD_READ_AUDIO_TSTAMP:
 	case AUDIO_THREAD_FILL_AUDIO_TSTAMP:
 	case AUDIO_THREAD_STREAM_RESCHEDULE:
@@ -582,6 +583,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	case AUDIO_THREAD_A2DP_ENCODE:
 		printf("%-30s proc:%d queued:%u readable:%u\n", "A2DP_ENCODE",
 		       data1, data2, data3);
+		break;
+	case AUDIO_THREAD_A2DP_FLUSH:
+		printf("%-30s state %u next flush time:%s.%09u\n", "A2DP_FLUSH",
+		       data1, time_str, nsec);
 		break;
 	case AUDIO_THREAD_A2DP_WRITE:
 		printf("%-30s written:%d queued:%u\n", "A2DP_WRITE", data1,

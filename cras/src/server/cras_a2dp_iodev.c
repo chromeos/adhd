@@ -47,6 +47,10 @@ static const struct timespec no_stream_target_frames_ts = {
  *        together with the device open timestamp to estimate how many virtual
  *        buffer is queued there.
  *    dev_open_time - The last time a2dp_ios is opened.
+ *    next_flush_time - The time when it is okay for next flush call.
+ *    flush_period - The time period between two a2dp packet writes.
+ *    write_block - How many frames of audio samples are transferred in one
+ *        a2dp packet write.
  *    num_underruns - Number of times a2dp iodev have run out of data.
  */
 struct a2dp_io {
@@ -58,6 +62,9 @@ struct a2dp_io {
 	int destroyed;
 	uint64_t bt_written_frames;
 	struct timespec dev_open_time;
+	struct timespec next_flush_time;
+	struct timespec flush_period;
+	unsigned int write_block;
 	unsigned int num_underruns;
 };
 
@@ -98,7 +105,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	iodev->supported_formats =
 		(snd_pcm_format_t *)malloc(2 * sizeof(snd_pcm_format_t));
 	iodev->supported_formats[0] = SND_PCM_FORMAT_S16_LE;
-	iodev->supported_formats[1] = 0;
+	iodev->supported_formats[1] = (snd_pcm_format_t)0;
 
 	return 0;
 }
@@ -265,14 +272,28 @@ static int configure_dev(struct cras_iodev *iodev)
 	sock_depth = 2 * cras_bt_transport_write_mtu(a2dpio->transport);
 	setsockopt(cras_bt_transport_fd(a2dpio->transport), SOL_SOCKET,
 		   SO_SNDBUF, &sock_depth, sizeof(sock_depth));
-
 	optlen = sizeof(sock_depth);
 	getsockopt(cras_bt_transport_fd(a2dpio->transport), SOL_SOCKET,
 		   SO_SNDBUF, &sock_depth, &optlen);
 	a2dpio->sock_depth_frames = a2dp_block_size(&a2dpio->a2dp, sock_depth) /
 				    cras_get_format_bytes(iodev->format);
+	/*
+	 * Calculate how many frames are encapsulated in one a2dp packet, and
+	 * the corresponding time period between two packets.
+	 */
+	a2dpio->write_block =
+		a2dp_block_size(&a2dpio->a2dp, cras_bt_transport_write_mtu(
+						       a2dpio->transport)) /
+		cras_get_format_bytes(iodev->format);
+	cras_frames_to_time(a2dpio->write_block, iodev->format->frame_rate,
+			    &a2dpio->flush_period);
 
-	iodev->min_buffer_level = a2dpio->sock_depth_frames;
+	/*
+	 * Buffer level less than one write_block can't be send over a2dp
+	 * packet. Configure min_buffer_level to this value so when stream
+	 * underruns, audio thread can take action to fill some zeros.
+	 */
+	iodev->min_buffer_level = a2dpio->write_block;
 
 	a2dpio->num_underruns = 0;
 
@@ -284,6 +305,20 @@ static int configure_dev(struct cras_iodev *iodev)
 					flush_data, iodev);
 	audio_thread_enable_callback(cras_bt_transport_fd(a2dpio->transport),
 				     0);
+	return 0;
+}
+
+static int start(const struct cras_iodev *iodev)
+{
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+
+	/*
+	 * This is called when iodev in open state, at the moment when
+	 * output sample is ready. Initialize the next_flush_time for
+	 * following flush calls.
+	 */
+	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->next_flush_time);
+
 	return 0;
 }
 
@@ -328,6 +363,10 @@ static int flush_data(void *arg)
 	int queued_frames;
 	struct a2dp_io *a2dpio;
 	struct cras_bt_device *device;
+	struct timespec now;
+	static const struct timespec flush_wake_fuzz_ts = {
+		0, 1000000 /* 1ms */
+	};
 
 	a2dpio = (struct a2dp_io *)iodev;
 	format_bytes = cras_get_format_bytes(iodev->format);
@@ -337,6 +376,20 @@ static int flush_data(void *arg)
 	 * destroyed as well. */
 	if (device == NULL)
 		return -EINVAL;
+
+	ATLOG(atlog, AUDIO_THREAD_A2DP_FLUSH, iodev->state,
+	      a2dpio->next_flush_time.tv_sec, a2dpio->next_flush_time.tv_nsec);
+
+	/* Only allow data to be flushed after start() ops is called. */
+	if ((iodev->state != CRAS_IODEV_STATE_NORMAL_RUN) &&
+	    (iodev->state != CRAS_IODEV_STATE_NO_STREAM_RUN))
+		return 0;
+
+	/* If flush gets called before targeted next flush time, do nothing. */
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	add_timespecs(&now, &flush_wake_fuzz_ts);
+	if (!timespec_after(&now, &a2dpio->next_flush_time))
+		return 0;
 
 encode_more:
 	while (buf_queued(a2dpio->pcm_buf)) {
@@ -375,6 +428,15 @@ encode_more:
 		return written;
 	}
 
+	/* Update the next flush time if one block successfully been written. */
+	if (written)
+		add_timespecs(&a2dpio->next_flush_time, &a2dpio->flush_period);
+
+	/* a2dp_write no longer return -EAGAIN when reaches here, disable
+	 * the polling write callback. */
+	audio_thread_enable_callback(cras_bt_transport_fd(a2dpio->transport),
+				     0);
+
 	/* Data succcessfully written to a2dp socket, cancel any scheduled
 	 * suspend timer. */
 	cras_bt_device_cancel_suspend(device);
@@ -386,10 +448,6 @@ encode_more:
 	queued_frames = buf_queued(a2dpio->pcm_buf) / format_bytes;
 	if (written && (iodev->min_buffer_level + written < queued_frames))
 		goto encode_more;
-
-	/* everything written. */
-	audio_thread_enable_callback(cras_bt_transport_fd(a2dpio->transport),
-				     0);
 
 	return 0;
 }
@@ -543,6 +601,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
 	iodev->set_volume = set_volume;
+	iodev->start = start;
 
 	/* Create a dummy ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
