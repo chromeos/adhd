@@ -187,6 +187,20 @@ static inline uint64_t cras_frames_since_time(const struct timespec *beg,
 	return cras_time_to_frames(&time_since, rate);
 }
 
+/* Calculates frames until time end. */
+static inline uint64_t cras_frames_until_time(const struct timespec *end,
+					      unsigned int rate)
+{
+	struct timespec now, time_until;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	if (!timespec_after(end, &now))
+		return 0;
+
+	subtract_timespecs(end, &now, &time_until);
+	return cras_time_to_frames(&time_until, rate);
+}
+
 /* Poll on the given file descriptors.
  *
  * See ppoll(). This implementation changes the value of timeout to the

@@ -424,6 +424,18 @@ static int start(const struct cras_iodev *iodev)
 	return 0;
 }
 
+static unsigned int frames_to_play_in_sleep(struct cras_iodev *iodev,
+					    unsigned int *hw_level,
+					    struct timespec *hw_tstamp)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev || !dev->frames_to_play_in_sleep)
+		return cras_iodev_default_frames_to_play_in_sleep(
+			iodev, hw_level, hw_tstamp);
+
+	return dev->frames_to_play_in_sleep(dev, hw_level, hw_tstamp);
+}
+
 struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 				     struct cras_iodev *dev,
 				     enum cras_bt_device_profile profile)
@@ -462,6 +474,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->get_num_underruns = get_num_underruns;
 	iodev->is_free_running = is_free_running;
 	iodev->start = start;
+	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
 
 	/* Input also checks |software_volume_needed| flag for using software
 	 * gain. Keep it as false for BT input.

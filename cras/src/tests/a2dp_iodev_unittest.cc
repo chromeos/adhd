@@ -260,6 +260,100 @@ TEST_F(A2dpIodev, FramesQueued) {
   a2dp_iodev_destroy(iodev);
 }
 
+TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
+  struct cras_iodev* iodev;
+  struct cras_audio_area* area;
+  unsigned frames;
+  unsigned int level;
+  unsigned long target;
+  struct timespec tstamp;
+  struct a2dp_io* a2dpio;
+
+  iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
+
+  iodev_set_format(iodev, &format);
+  iodev->configure_dev(iodev);
+  ASSERT_NE(write_callback, (void*)NULL);
+  /* a2dp_block_size(mtu) / format_bytes
+   * 900 / 128 * 512 / 4 = 896 */
+  EXPECT_EQ(896, a2dpio->write_block);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  /* Both time now and next_flush_time are at 0. Expect write_block of
+   * time to sleep */
+  EXPECT_EQ(a2dpio->write_block,
+            iodev->frames_to_play_in_sleep(iodev, &level, &tstamp));
+
+  /* Fake that 1000 frames are put and one block got flushed.
+   * Expect next_wake_time be fast forward by one flush_period. */
+  frames = 1000;
+  iodev->get_buffer(iodev, &area, &frames);
+  ASSERT_EQ(1000, frames);
+  ASSERT_EQ(1000, area->frames);
+
+  a2dp_write_return_val[0] = 0;
+  EXPECT_EQ(0, iodev->put_buffer(iodev, 1000));
+
+  /* Expect to sleep the time between now(10ms) and next_flush_time(~20.3ms). */
+  time_now.tv_nsec = 10000000;
+  frames = iodev->frames_to_play_in_sleep(iodev, &level, &tstamp);
+  target =
+      a2dpio->write_block - time_now.tv_nsec * format.frame_rate / 1000000000;
+  EXPECT_GE(frames + 1, target);
+  EXPECT_GE(target + 1, frames);
+
+  /* Time now has passed the next flush time(~20.3ms), expect to return
+   * write_block of time to sleep. */
+  time_now.tv_nsec = 25000000;
+  EXPECT_EQ(a2dpio->write_block,
+            iodev->frames_to_play_in_sleep(iodev, &level, &tstamp));
+
+  a2dp_write_return_val[1] = 0;
+  frames = 1000;
+  iodev->get_buffer(iodev, &area, &frames);
+  EXPECT_EQ(0, iodev->put_buffer(iodev, 1000));
+
+  /* Flush another write_block of data, next_wake_time fast forward by
+   * another flush_period. Expect to sleep the time between now(25ms)
+   * and next_flush_time(~40.6ms). */
+  frames = iodev->frames_to_play_in_sleep(iodev, &level, &tstamp);
+  target = a2dpio->write_block * 2 -
+           time_now.tv_nsec * format.frame_rate / 1000000000;
+  EXPECT_GE(frames + 1, target);
+  EXPECT_GE(target + 1, frames);
+
+  /* Put 1000 more frames, and make a fake failure to this flush. */
+  time_now.tv_nsec = 45000000;
+  a2dp_write_return_val[2] = -EAGAIN;
+  frames = 1000;
+  iodev->get_buffer(iodev, &area, &frames);
+  EXPECT_EQ(0, iodev->put_buffer(iodev, 1000));
+
+  /* Last a2dp write call failed with -EAGAIN, time now(45ms) is after
+   * next_flush_time. Expect to return exact |write_block| equivalant
+   * of time to sleep. */
+  EXPECT_EQ(a2dpio->write_block,
+            iodev->frames_to_play_in_sleep(iodev, &level, &tstamp));
+
+  /* Fake the event that socket becomes writable so data continues to flush.
+   * next_flush_time fast forwards by another flush_period. */
+  a2dp_write_return_val[3] = 0;
+  write_callback(write_callback_data);
+
+  /* Expect to sleep the time between now and next_flush_time(~60.9ms). */
+  frames = iodev->frames_to_play_in_sleep(iodev, &level, &tstamp);
+  target = a2dpio->write_block * 3 -
+           time_now.tv_nsec * format.frame_rate / 1000000000;
+  EXPECT_GE(frames + 1, target);
+  EXPECT_GE(target + 1, frames);
+
+  iodev->close_dev(iodev);
+  a2dp_iodev_destroy(iodev);
+}
+
 TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   struct cras_iodev* iodev;
   struct cras_audio_area* area;

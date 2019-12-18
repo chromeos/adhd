@@ -184,6 +184,10 @@ struct cras_ionode {
  * get_valid_frames - Gets number of valid frames in device which have not
  *                    played yet. Valid frames does not include zero samples
  *                    we filled under no streams state.
+ * frames_to_play_in_sleep - Returns the non-negative number of frames that
+ *        audio thread can sleep before serving this playback dev the next time.
+ *        Not implementing this ops means fall back to default behavior in
+ *        cras_iodev_default_frames_to_play_in_sleep().
  * format - The audio format being rendered or captured to hardware.
  * rate_est - Rate estimator to estimate the actual device rate.
  * area - Information about how the samples are stored.
@@ -271,6 +275,9 @@ struct cras_iodev {
 	unsigned int (*get_num_severe_underruns)(const struct cras_iodev *iodev);
 	int (*get_valid_frames)(const struct cras_iodev *odev,
 				struct timespec *tstamp);
+	unsigned int (*frames_to_play_in_sleep)(struct cras_iodev *iodev,
+						unsigned int *hw_level,
+						struct timespec *hw_tstamp);
 	struct cras_audio_format *format;
 	struct rate_estimator *rate_est;
 	struct cras_audio_area *area;
@@ -680,6 +687,17 @@ void cras_iodev_set_ext_dsp_module(struct cras_iodev *iodev,
 
 /* Put 'frames' worth of zero samples into odev. */
 int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames);
+
+/*
+ * The default implementation of frames_to_play_in_sleep ops, used when an
+ * iodev doesn't have its own logic.
+ * The default behavior is to calculate how log it takes for buffer level to
+ * run to as low as min_buffer_level.
+ */
+unsigned int
+cras_iodev_default_frames_to_play_in_sleep(struct cras_iodev *odev,
+					   unsigned int *hw_level,
+					   struct timespec *hw_tstamp);
 
 /* Gets the number of frames to play when audio thread sleeps.
  * Args:

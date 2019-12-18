@@ -350,6 +350,30 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
+static unsigned int frames_to_play_in_sleep(struct cras_iodev *iodev,
+					    unsigned int *hw_level,
+					    struct timespec *hw_tstamp)
+{
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	int frames_until;
+
+	*hw_level = frames_queued(iodev, hw_tstamp);
+	if (*hw_level < a2dpio->write_block)
+		*hw_level = 0;
+	else
+		*hw_level -= a2dpio->write_block;
+
+	frames_until = cras_frames_until_time(&a2dpio->next_flush_time,
+					      iodev->format->frame_rate);
+	if (frames_until > 0)
+		return frames_until;
+
+	/* If time has passed next_flush_time, for example when socket write
+	 * throttles, sleep a moderate of time so that audio thread doesn't
+	 * busy wake up. */
+	return a2dpio->write_block;
+}
+
 /* Flushes queued buffer, including pcm and a2dp buffer.
  * Returns:
  *    0 when the flush succeeded, -1 when error occurred.
@@ -602,6 +626,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->update_active_node = update_active_node;
 	iodev->set_volume = set_volume;
 	iodev->start = start;
+	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
 
 	/* Create a dummy ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));

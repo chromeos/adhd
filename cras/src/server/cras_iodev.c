@@ -1345,9 +1345,10 @@ int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
 		odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN);
 }
 
-unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
-						unsigned int *hw_level,
-						struct timespec *hw_tstamp)
+unsigned int
+cras_iodev_default_frames_to_play_in_sleep(struct cras_iodev *odev,
+					   unsigned int *hw_level,
+					   struct timespec *hw_tstamp)
 {
 	int rc = cras_iodev_frames_queued(odev, hw_tstamp);
 	unsigned int level = (rc < 0) ? 0 : rc;
@@ -1388,6 +1389,19 @@ unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
 		return level - MIN(odev->min_cb_level, wakeup_frames);
 	else
 		return 0;
+}
+
+unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev *odev,
+						unsigned int *hw_level,
+						struct timespec *hw_tstamp)
+{
+	/* Use odev's own implementation, if not supported then fall back
+	 * to default behavior below. */
+	if (odev->frames_to_play_in_sleep)
+		return odev->frames_to_play_in_sleep(odev, hw_level, hw_tstamp);
+	else
+		return cras_iodev_default_frames_to_play_in_sleep(
+			odev, hw_level, hw_tstamp);
 }
 
 int cras_iodev_default_no_stream_playback(struct cras_iodev *odev, int enable)
