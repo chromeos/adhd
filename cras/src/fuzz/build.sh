@@ -9,16 +9,12 @@
 
 cd $SRC/adhd/cras
 ./git_prepare.sh
-./configure --disable-dbus --disable-webrtc-apm
-cargo build --release --manifest-path ./src/server/rust/Cargo.toml && \
-  cp ./src/server/rust/target/release/libcras_rust.a /usr/local/lib
+
+FUZZER_LDFLAGS="${FUZZER_LDFLAGS} ${LIB_FUZZING_ENGINE}"
+./configure --disable-dbus --enable-fuzzer
+
+# Compile fuzzer
 make -j$(nproc)
 
-$CXX $CXXFLAGS $FUZZER_LDFLAGS \
-  $SRC/adhd/cras/src/fuzz/rclient_message.cc -o $OUT/rclient_message \
-  -I $SRC/adhd/cras/src/server \
-  -I $SRC/adhd/cras/src/common \
-  $SRC/adhd/cras/src/.libs/libcrasserver.a \
-  -lcras_rust -lpthread -lrt -ludev -ldl -lm \
-  -lFuzzingEngine \
-  -Wl,-Bstatic -liniparser -lasound -lspeexdsp -Wl,-Bdynamic
+# Copy fuzzer to /out/ directory
+cp $SRC/adhd/cras/src/cras_rclient_message_fuzzer $OUT/rclient_message
