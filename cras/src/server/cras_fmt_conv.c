@@ -64,6 +64,10 @@ static void normalize_buf(float *buf, size_t size)
 	float squre_sum = 0.0;
 	for (i = 0; i < size; i++)
 		squre_sum += buf[i] * buf[i];
+
+	if (squre_sum == 0.0)
+		return;
+
 	for (i = 0; i < size; i++)
 		buf[i] /= squre_sum;
 }
