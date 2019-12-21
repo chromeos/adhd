@@ -15,11 +15,11 @@ cras_install:
 
 cras-scripts:
 	$(ECHO) "Installing cras scripts"
-	$(INSTALL) --mode 755 -d $(DESTDIR)usr/bin/
+	$(INSTALL) --mode 755 -d $(DESTDIR)/usr/bin/
 	$(INSTALL) --mode 755 -D $(ADHD_DIR)/scripts/audio_diagnostics \
-		$(DESTDIR)usr/bin/
+		$(DESTDIR)/usr/bin/
 	$(INSTALL) --mode 755 -D $(ADHD_DIR)/scripts/asoc_dapm_graph \
-		$(DESTDIR)usr/bin/
+		$(DESTDIR)/usr/bin/
 
 cras_init_upstart:	$(ADHD_DIR)/init/cras.conf
 	$(ECHO) "Installing upstart file"
