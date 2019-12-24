@@ -37,6 +37,7 @@
 //! # }
 //! ```
 
+use std::cmp::min;
 use std::error;
 use std::fmt::{self, Display};
 use std::io::{self, Write};
@@ -197,7 +198,10 @@ impl<'a> PlaybackBuffer<'a> {
     /// Writes up to `size` bytes directly to this buffer inside of the given callback function.
     pub fn copy_cb<F: FnOnce(&mut [u8])>(&mut self, size: usize, cb: F) {
         // only write complete frames.
-        let len = size / self.buffer.frame_size * self.buffer.frame_size;
+        let len = min(
+            size / self.buffer.frame_size * self.buffer.frame_size,
+            self.buffer.buffer.len() - self.buffer.offset,
+        );
         cb(&mut self.buffer.buffer[self.buffer.offset..(self.buffer.offset + len)]);
         self.buffer.offset += len;
     }

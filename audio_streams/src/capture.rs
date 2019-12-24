@@ -27,6 +27,7 @@
 //! ```
 
 use std::{
+    cmp::min,
     error,
     fmt::{self, Display},
     io::{self, Read, Write},
@@ -96,7 +97,10 @@ impl<'a> CaptureBuffer<'a> {
 
     /// Reads up to `size` bytes directly from this buffer inside of the given callback function.
     pub fn copy_cb<F: FnOnce(&[u8])>(&mut self, size: usize, cb: F) {
-        let len = size / self.buffer.frame_size * self.buffer.frame_size;
+        let len = min(
+            size / self.buffer.frame_size * self.buffer.frame_size,
+            self.buffer.buffer.len() - self.buffer.offset,
+        );
         cb(&self.buffer.buffer[self.buffer.offset..(self.buffer.offset + len)]);
         self.buffer.offset += len;
     }
