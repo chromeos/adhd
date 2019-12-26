@@ -100,6 +100,8 @@ void cras_bt_transport_destroy(struct cras_bt_transport *transport)
 	if (transport->fd >= 0)
 		close(transport->fd);
 
+	cras_bt_device_set_use_hardware_volume(transport->device, 0);
+
 	free(transport->object_path);
 	free(transport->configuration);
 	free(transport);
