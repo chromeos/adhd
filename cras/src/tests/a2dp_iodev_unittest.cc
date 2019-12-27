@@ -52,6 +52,8 @@ static const char* cras_bt_device_name_ret;
 static unsigned int cras_bt_transport_write_mtu_ret;
 static int cras_iodev_fill_odev_zeros_called;
 static unsigned int cras_iodev_fill_odev_zeros_frames;
+static int audio_thread_enable_callback_called;
+static int audio_thread_enable_callback_val;
 
 void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
@@ -73,6 +75,7 @@ void ResetStubData() {
   /* Fake the MTU value. min_buffer_level will be derived from this value. */
   cras_bt_transport_write_mtu_ret = 900;
   cras_iodev_fill_odev_zeros_called = 0;
+  audio_thread_enable_callback_called = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport*>(0x123);
 
@@ -588,6 +591,52 @@ TEST_F(A2dpIodev, NoStreamState) {
   a2dp_iodev_destroy(iodev);
 }
 
+TEST_F(A2dpIodev, DropAfterThrottle) {
+  struct cras_iodev* iodev;
+  struct cras_audio_area* area;
+  unsigned frames, level1, level2;
+  struct timespec tstamp;
+  struct a2dp_io* a2dpio;
+
+  iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
+
+  iodev_set_format(iodev, &format);
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  iodev->configure_dev(iodev);
+  ASSERT_NE(write_callback, (void*)NULL);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  a2dp_write_return_val[0] = 0;
+  frames = 1000;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 1000);
+
+  time_now.tv_nsec = 25000000;
+  audio_thread_enable_callback_called = 0;
+  a2dp_write_return_val[1] = -EAGAIN;
+  frames = 2000;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 2000);
+  EXPECT_EQ(1, audio_thread_enable_callback_called);
+  EXPECT_EQ(1, audio_thread_enable_callback_val);
+  EXPECT_EQ(0, a2dp_reset_called);
+
+  /* Passes 3 times of 20.3ms flush period, expect two write_block of
+   * frames are dropped. */
+  time_now.tv_nsec = 65000000;
+  level1 = iodev->frames_queued(iodev, &tstamp);
+  write_callback(write_callback_data);
+  level2 = iodev->frames_queued(iodev, &tstamp);
+  EXPECT_EQ(1, a2dp_reset_called);
+  EXPECT_EQ(level1 - level2, 2 * a2dpio->write_block);
+
+  a2dp_iodev_destroy(iodev);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -810,5 +859,8 @@ int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
   return 0;
 }
 
-void audio_thread_enable_callback(int fd, int enabled) {}
+void audio_thread_enable_callback(int fd, int enabled) {
+  audio_thread_enable_callback_called++;
+  audio_thread_enable_callback_val = enabled;
+}
 }
