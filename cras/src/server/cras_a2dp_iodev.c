@@ -38,10 +38,6 @@
  *    sock_depth_frames - Socket depth in frames of the a2dp socket.
  *    pcm_buf - Buffer to hold pcm samples before encode.
  *    destroyed - Flag to note if this a2dp_io is about to destroy.
- *    bt_written_frames - Accumulated frames written to a2dp socket. Used
- *        together with the device open timestamp to estimate how many virtual
- *        buffer is queued there.
- *    dev_open_time - The last time a2dp_ios is opened.
  *    next_flush_time - The time when it is okay for next flush call.
  *    flush_period - The time period between two a2dp packet writes.
  *    drain_for_no_stream - Flag to note that some valid samples are in progress
@@ -60,8 +56,6 @@ struct a2dp_io {
 	unsigned sock_depth_frames;
 	struct byte_buffer *pcm_buf;
 	int destroyed;
-	uint64_t bt_written_frames;
-	struct timespec dev_open_time;
 	struct timespec next_flush_time;
 	struct timespec flush_period;
 	bool drain_for_no_stream;
@@ -112,29 +106,6 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return 0;
 }
 
-/* Calculates the number of virtual buffer in frames. Assuming all written
- * buffer is consumed in a constant frame rate at bluetooth device side.
- * Args:
- *    iodev: The a2dp iodev to estimate the queued frames for.
- *    fr: The amount of frames just transmitted.
- */
-static int bt_queued_frames(const struct cras_iodev *iodev, int fr)
-{
-	uint64_t consumed;
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
-
-	/* Calculate consumed frames since device has opened */
-	a2dpio->bt_written_frames += fr;
-	consumed = cras_frames_since_time(&a2dpio->dev_open_time,
-					  iodev->format->frame_rate);
-
-	if (a2dpio->bt_written_frames > consumed)
-		return a2dpio->bt_written_frames - consumed;
-	else
-		return 0;
-}
-
-/* Returns the number of frames queued in a2dp iodev's buffer. */
 static int bt_local_queued_frames(const struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
@@ -146,11 +117,9 @@ static int bt_local_queued_frames(const struct cras_iodev *iodev)
 static int frames_queued(const struct cras_iodev *iodev,
 			 struct timespec *tstamp)
 {
-	int estimate_queued_frames = bt_queued_frames(iodev, 0);
 	int local_queued_frames = bt_local_queued_frames(iodev);
 	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
-	return MIN(iodev->buffer_size,
-		   MAX(estimate_queued_frames, local_queued_frames));
+	return MIN(iodev->buffer_size, local_queued_frames);
 }
 
 static unsigned int get_num_underruns(const struct cras_iodev *iodev)
@@ -340,10 +309,6 @@ static int configure_dev(struct cras_iodev *iodev)
 	a2dpio->num_underruns = 0;
 	a2dpio->drain_for_no_stream = 0;
 	a2dpio->free_running = 0;
-
-	/* Initialize variables for bt_queued_frames() */
-	a2dpio->bt_written_frames = 0;
-	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->dev_open_time);
 
 	audio_thread_add_write_callback(cras_bt_transport_fd(a2dpio->transport),
 					a2dp_socket_write_cb, iodev);
@@ -562,12 +527,6 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 		return -EINVAL;
 
 	buf_increment_write(a2dpio->pcm_buf, written_bytes);
-
-	/* Set dev open time at when the first data arrives. */
-	if (nwritten && !a2dpio->bt_written_frames)
-		clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->dev_open_time);
-
-	bt_queued_frames(iodev, nwritten);
 
 	return flush_data(iodev);
 }

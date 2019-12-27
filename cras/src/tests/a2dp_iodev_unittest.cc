@@ -240,19 +240,37 @@ TEST_F(A2dpIodev, FramesQueued) {
   ASSERT_EQ(256, frames);
   ASSERT_EQ(256, area->frames);
 
+  /* Data less than write_block hence not written. */
   iodev->put_buffer(iodev, 200);
   EXPECT_EQ(200, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 
+  /* 200 + 800 - 896 = 104 */
   a2dp_write_return_val[0] = 0;
   frames = 800;
-  time_now.tv_sec = 0;
-  time_now.tv_nsec = 25000000;
   iodev->get_buffer(iodev, &area, &frames);
   iodev->put_buffer(iodev, 800);
-  /* Assert 200 + 800 - 896 frames left. */
   EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
+
+  /* Some time has passed, same amount of frames are queued. */
+  time_now.tv_nsec = 15000000;
+  write_callback(write_callback_data);
+  EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
+
+  /* Put 900 more frames. next_flush_time not yet passed so expect
+   * total 900 + 104 = 1004 are queued. */
+  frames = 900;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 900);
+  EXPECT_EQ(1004, iodev->frames_queued(iodev, &tstamp));
+
+  /* Time passes next_flush_time, 1004 + 300 - 896 = 408 */
+  time_now.tv_nsec = 25000000;
+  frames = 300;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 300);
+  EXPECT_EQ(408, iodev->frames_queued(iodev, &tstamp));
 
   iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
@@ -292,11 +310,17 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   ASSERT_EQ(1000, frames);
   ASSERT_EQ(1000, area->frames);
 
+  /* Expect the first block be flushed at time 0. */
+  time_now.tv_nsec = 0;
   a2dp_write_return_val[0] = 0;
   EXPECT_EQ(0, iodev->put_buffer(iodev, 1000));
+  EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp)); /* 1000 - 896 */
+
+  /* Same amount of frames are queued after some time has passed. */
+  time_now.tv_nsec = 10000000;
+  EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
 
   /* Expect to sleep the time between now(10ms) and next_flush_time(~20.3ms). */
-  time_now.tv_nsec = 10000000;
   frames = iodev->frames_to_play_in_sleep(iodev, &level, &tstamp);
   target =
       a2dpio->write_block - time_now.tv_nsec * format.frame_rate / 1000000000;
@@ -313,6 +337,7 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   frames = 1000;
   iodev->get_buffer(iodev, &area, &frames);
   EXPECT_EQ(0, iodev->put_buffer(iodev, 1000));
+  EXPECT_EQ(208, iodev->frames_queued(iodev, &tstamp)); /* 104 + 1000 - 896 */
 
   /* Flush another write_block of data, next_wake_time fast forward by
    * another flush_period. Expect to sleep the time between now(25ms)
@@ -333,6 +358,7 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   /* Last a2dp write call failed with -EAGAIN, time now(45ms) is after
    * next_flush_time. Expect to return exact |write_block| equivalant
    * of time to sleep. */
+  EXPECT_EQ(1208, iodev->frames_queued(iodev, &tstamp)); /* 208 + 1000 */
   EXPECT_EQ(a2dpio->write_block,
             iodev->frames_to_play_in_sleep(iodev, &level, &tstamp));
 
@@ -340,6 +366,7 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
    * next_flush_time fast forwards by another flush_period. */
   a2dp_write_return_val[3] = 0;
   write_callback(write_callback_data);
+  EXPECT_EQ(312, iodev->frames_queued(iodev, &tstamp)); /* 1208 - 896 */
 
   /* Expect to sleep the time between now and next_flush_time(~60.9ms). */
   frames = iodev->frames_to_play_in_sleep(iodev, &level, &tstamp);
