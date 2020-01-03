@@ -26,7 +26,6 @@ static cras_audio_format format;
 static size_t cras_bt_device_append_iodev_called;
 static size_t cras_bt_device_rm_iodev_called;
 static size_t cras_iodev_add_node_called;
-static int cras_iodev_frames_queued_called;
 static size_t cras_iodev_rm_node_called;
 static size_t cras_iodev_set_active_node_called;
 static size_t cras_bt_transport_acquire_called;
@@ -35,7 +34,7 @@ static size_t cras_bt_transport_release_called;
 static size_t init_a2dp_called;
 static int init_a2dp_return_val;
 static size_t destroy_a2dp_called;
-static size_t drain_a2dp_called;
+static size_t a2dp_reset_called;
 static size_t cras_iodev_free_format_called;
 static size_t cras_iodev_free_resources_called;
 static int a2dp_write_return_val[MAX_A2DP_WRITE_CALLS];
@@ -53,7 +52,6 @@ void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
   cras_bt_device_rm_iodev_called = 0;
   cras_iodev_add_node_called = 0;
-  cras_iodev_frames_queued_called = 0;
   cras_iodev_rm_node_called = 0;
   cras_iodev_set_active_node_called = 0;
   cras_bt_transport_acquire_called = 0;
@@ -62,7 +60,7 @@ void ResetStubData() {
   init_a2dp_called = 0;
   init_a2dp_return_val = 0;
   destroy_a2dp_called = 0;
-  drain_a2dp_called = 0;
+  a2dp_reset_called = 0;
   cras_iodev_free_format_called = 0;
   cras_iodev_free_resources_called = 0;
   a2dp_write_index = 0;
@@ -169,7 +167,7 @@ TEST_F(A2dpIodev, OpenIodev) {
 
   iodev->close_dev(iodev);
   ASSERT_EQ(1, cras_bt_transport_release_called);
-  ASSERT_EQ(1, drain_a2dp_called);
+  ASSERT_EQ(1, a2dp_reset_called);
   ASSERT_EQ(1, cras_iodev_free_format_called);
 
   a2dp_iodev_destroy(iodev);
@@ -442,8 +440,11 @@ TEST_F(A2dpIodev, NoStreamState) {
   struct cras_audio_area* area;
   struct timespec tstamp;
   unsigned frames;
+  struct a2dp_io* a2dpio;
 
   iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
+
   iodev_set_format(iodev, &format);
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
@@ -459,21 +460,62 @@ TEST_F(A2dpIodev, NoStreamState) {
   frames = 200;
   iodev->get_buffer(iodev, &area, &frames);
   iodev->put_buffer(iodev, 200);
+  EXPECT_EQ(0, a2dpio->drain_for_no_stream);
+  EXPECT_EQ(0, a2dpio->free_running);
 
+  a2dp_write_return_val[0] = 0;
   iodev->no_stream(iodev, 1);
-  EXPECT_EQ(1, cras_iodev_frames_queued_called);
+  EXPECT_EQ(1, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(1, a2dp_write_index);
+  EXPECT_EQ(1, a2dpio->drain_for_no_stream);
+  EXPECT_EQ(1, a2dpio->free_running);
+  EXPECT_EQ(a2dpio->flush_period.tv_nsec, a2dpio->next_flush_time.tv_nsec);
 
-  /* no_stream will fill the buffer to hw_level = (441 (44100 * 0.01)) * 2
-   * frames, but 200 < min_buffer_level so cras_iodev_frames_queued will return
-   * 0 in no_stream and no_stream will fill 882 frames to device buffer.
-   */
+  /* No more queued frames after entered free running state. */
+  time_now.tv_nsec = 25000000;
   frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(1082, frames);
+  ASSERT_EQ(0, frames);
 
-  /* After leaving no stream state, output buffer won't be adjusted */
+  /* Leaving no_stream state from free running will have next_flush_time
+   * set to now, and fill write_block of zeros. */
+  a2dp_write_return_val[1] = 0;
+  time_now.tv_nsec = 30000000;
   iodev->no_stream(iodev, 0);
-  frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(1082, frames);
+  EXPECT_EQ(0, a2dpio->drain_for_no_stream);
+  EXPECT_EQ(0, a2dpio->free_running);
+  EXPECT_EQ(30000000 + a2dpio->flush_period.tv_nsec,
+            a2dpio->next_flush_time.tv_nsec);
+  EXPECT_EQ(2, a2dp_write_index);
+  EXPECT_EQ(2, cras_iodev_fill_odev_zeros_called);
+  EXPECT_EQ(a2dpio->write_block, cras_iodev_fill_odev_zeros_frames);
+
+  /* Prepare 1000 more frames and enter no_stream, expect not yet enter
+   * free running state, because data not fully drained.
+   * 1000 + 896(zeros just filled) > 2 * 896.
+   */
+  a2dp_write_return_val[2] = 0;
+  a2dp_write_return_val[3] = 0;
+  frames = 1000;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 1000);
+
+  time_now.tv_nsec = 50000000;
+  iodev->no_stream(iodev, 1);
+  EXPECT_EQ(1, a2dpio->drain_for_no_stream);
+  EXPECT_EQ(0, a2dpio->free_running);
+
+  /* Draining not done yet, because next_flush_time not reached. */
+  iodev->no_stream(iodev, 1);
+  EXPECT_EQ(0, a2dpio->free_running);
+
+  /* 20ms has passed, expect all frames have been drained and entered free
+   * running state. */
+  a2dp_write_return_val[3] = 0;
+  time_now.tv_nsec = 70000000;
+  iodev->no_stream(iodev, 1);
+  EXPECT_EQ(1, a2dpio->free_running);
+
+  a2dp_iodev_destroy(iodev);
 }
 
 }  // namespace
@@ -616,8 +658,9 @@ int a2dp_queued_frames(const struct a2dp_info* a2dp) {
   return a2dp->samples;
 }
 
-void a2dp_drain(struct a2dp_info* a2dp) {
-  drain_a2dp_called++;
+void a2dp_reset(struct a2dp_info* a2dp) {
+  a2dp_reset_called++;
+  a2dp->samples = 0;
 }
 
 int a2dp_encode(struct a2dp_info* a2dp,
@@ -665,23 +708,13 @@ void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
 
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 
-int cras_iodev_frames_queued(struct cras_iodev* iodev,
-                             struct timespec* hw_tstamp) {
-  int rc;
-  cras_iodev_frames_queued_called++;
-  rc = iodev->frames_queued(iodev, hw_tstamp);
-  if (rc < 0)
-    return 0;
-  unsigned int num_queued = (unsigned int)rc;
-  if (num_queued < iodev->min_buffer_level)
-    return 0;
-
-  return num_queued - iodev->min_buffer_level;
-}
-
 int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+  struct cras_audio_area* area;
   cras_iodev_fill_odev_zeros_called++;
   cras_iodev_fill_odev_zeros_frames = frames;
+
+  odev->get_buffer(odev, &area, &frames);
+  odev->put_buffer(odev, frames);
   return 0;
 }
 

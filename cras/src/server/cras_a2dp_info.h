@@ -60,9 +60,9 @@ int a2dp_block_size(struct a2dp_info *a2dp, int encoded_bytes);
 int a2dp_queued_frames(const struct a2dp_info *a2dp);
 
 /*
- * Drains queued samples in a2dp_info.
+ * Empty all queued samples in a2dp_info.
  */
-void a2dp_drain(struct a2dp_info *a2dp);
+void a2dp_reset(struct a2dp_info *a2dp);
 
 /*
  * Encodes samples using the codec for this a2dp instance, returns the number of

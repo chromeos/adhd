@@ -104,7 +104,7 @@ int a2dp_queued_frames(const struct a2dp_info *a2dp)
 	return a2dp->samples;
 }
 
-void a2dp_drain(struct a2dp_info *a2dp)
+void a2dp_reset(struct a2dp_info *a2dp)
 {
 	a2dp->a2dp_buf_used =
 		sizeof(struct rtp_header) + sizeof(struct rtp_payload);
