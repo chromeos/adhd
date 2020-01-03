@@ -47,10 +47,6 @@ static const struct timespec no_stream_target_frames_ts = {
  *        together with the device open timestamp to estimate how many virtual
  *        buffer is queued there.
  *    dev_open_time - The last time a2dp_ios is opened.
- *    drain_complete - Flag to indicate if valid frames have all been drained
- *        in no stream state.
- *    filled_zeros_bytes - Number of zero data in bytes that have been filled
- *        in no stream state.
  *    num_underruns - Number of times a2dp iodev have run out of data.
  */
 struct a2dp_io {
@@ -62,8 +58,6 @@ struct a2dp_io {
 	int destroyed;
 	uint64_t bt_written_frames;
 	struct timespec dev_open_time;
-	bool drain_complete;
-	int filled_zeros_bytes;
 	unsigned int num_underruns;
 };
 
@@ -281,8 +275,6 @@ static int configure_dev(struct cras_iodev *iodev)
 	iodev->min_buffer_level = a2dpio->sock_depth_frames;
 
 	a2dpio->num_underruns = 0;
-	a2dpio->drain_complete = 0;
-	a2dpio->filled_zeros_bytes = 0;
 
 	/* Initialize variables for bt_queued_frames() */
 	a2dpio->bt_written_frames = 0;
