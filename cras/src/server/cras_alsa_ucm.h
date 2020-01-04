@@ -185,28 +185,6 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr,
  */
 unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr);
 
-/* Gets the value for minimum software gain.
- * Args:
- *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
- *    dev - The device to check for minimum software gain.
- *    gain - The pointer to the returned value.
- * Returns:
- *    0 on success, other error codes on failure.
- */
-int ucm_get_min_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
-			      long *gain);
-
-/* Gets the value for maximum software gain.
- * Args:
- *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
- *    dev - The device to check for maximum software gain.
- *    gain - The pointer to the returned value.
- * Returns:
- *    0 on success, other error codes on failure.
- */
-int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
-			      long *gain);
-
 /* Gets the value for default node gain.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
@@ -222,12 +200,12 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
  *    dev - The device to query for intrinsic volume.
- *    vol - The pointer to the returned value.
+ *    sensitivity - The pointer to the returned value.
  * Returns:
  *    0 on success, other error codes on failure.
  */
 int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr *mgr,
-				  const char *dev, long *vol);
+				  const char *dev, long *sensitivity);
 
 /* Gets the flag if an input device can preempt hotword recording.
  * Args:

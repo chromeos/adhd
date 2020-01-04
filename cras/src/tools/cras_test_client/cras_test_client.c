@@ -440,13 +440,11 @@ static void print_active_stream_info(struct cras_client *client)
 static void print_system_volumes(struct cras_client *client)
 {
 	printf("System Volume (0-100): %zu %s\n"
-	       "Capture Gain (%.2f - %.2f): %.2fdB %s\n",
+	       "Capture Muted : %s\n",
 	       cras_client_get_system_volume(client),
 	       cras_client_get_system_muted(client) ? "(Muted)" : "",
-	       cras_client_get_system_min_capture_gain(client) / 100.0,
-	       cras_client_get_system_max_capture_gain(client) / 100.0,
-	       cras_client_get_system_capture_gain(client) / 100.0,
-	       cras_client_get_system_capture_muted(client) ? "(Muted)" : "");
+	       cras_client_get_system_capture_muted(client) ? "Muted" :
+							      "Not muted");
 }
 
 static void print_user_muted(struct cras_client *client)
@@ -1074,7 +1072,6 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 	struct timespec sleep_ts;
 	float volume_scaler = 1.0;
 	size_t sys_volume = 100;
-	long cap_gain = 0;
 	int mute = 0;
 	int8_t layout[CRAS_CH_MAX];
 
@@ -1223,14 +1220,6 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 			sys_volume = sys_volume == 0 ? 0 : sys_volume - 1;
 			cras_client_set_system_volume(client, sys_volume);
 			break;
-		case 'K':
-			cap_gain = MIN(cap_gain + 100, 5000);
-			cras_client_set_system_capture_gain(client, cap_gain);
-			break;
-		case 'J':
-			cap_gain = cap_gain == -5000 ? -5000 : cap_gain - 100;
-			cras_client_set_system_capture_gain(client, cap_gain);
-			break;
 		case 'm':
 			mute = !mute;
 			cras_client_set_system_mute(client, mute);
@@ -1243,19 +1232,16 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 			break;
 		case 'v':
 			printf("Volume: %zu%s Min dB: %ld Max dB: %ld\n"
-			       "Capture: %ld%s Min dB: %ld Max dB: %ld\n",
+			       "Capture: %s\n",
 			       cras_client_get_system_volume(client),
 			       cras_client_get_system_muted(client) ?
 				       "(Muted)" :
 				       "",
 			       cras_client_get_system_min_volume(client),
 			       cras_client_get_system_max_volume(client),
-			       cras_client_get_system_capture_gain(client),
 			       cras_client_get_system_capture_muted(client) ?
-				       "(Muted)" :
-				       "",
-			       cras_client_get_system_min_capture_gain(client),
-			       cras_client_get_system_max_capture_gain(client));
+				       "Muted" :
+				       "Not muted");
 			break;
 		case '\'':
 			play_short_sound_periods_left =
@@ -1792,15 +1778,6 @@ int main(int argc, char **argv)
 			if (!supported_formats[i].name) {
 				printf("Unsupported format: %s\n", optarg);
 				return -EINVAL;
-			}
-			break;
-		}
-		case 'g': {
-			long gain = atol(optarg);
-			rc = cras_client_set_system_capture_gain(client, gain);
-			if (rc < 0) {
-				fprintf(stderr, "problem setting capture\n");
-				goto destroy_exit;
 			}
 			break;
 		}

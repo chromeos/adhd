@@ -25,8 +25,6 @@ static struct cras_rstream* cras_rstream_create_stream_out;
 static int cras_iodev_attach_stream_retval;
 static size_t cras_system_set_volume_value;
 static int cras_system_set_volume_called;
-static size_t cras_system_set_capture_gain_value;
-static int cras_system_set_capture_gain_called;
 static size_t cras_system_set_mute_value;
 static int cras_system_set_mute_called;
 static size_t cras_system_set_user_mute_value;
@@ -65,8 +63,6 @@ void ResetStubData() {
   cras_iodev_attach_stream_retval = 0;
   cras_system_set_volume_value = 0;
   cras_system_set_volume_called = 0;
-  cras_system_set_capture_gain_value = 0;
-  cras_system_set_capture_gain_called = 0;
   cras_system_set_mute_value = 0;
   cras_system_set_mute_called = 0;
   cras_system_set_user_mute_value = 0;
@@ -368,21 +364,6 @@ TEST_F(RClientMessagesSuite, SetVolume) {
   EXPECT_EQ(66, cras_system_set_volume_value);
 }
 
-TEST_F(RClientMessagesSuite, SetCaptureVolume) {
-  struct cras_set_system_volume msg;
-  int rc;
-
-  msg.header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN;
-  msg.header.length = sizeof(msg);
-  msg.volume = 66;
-
-  rc =
-      rclient_->ops->handle_message_from_client(rclient_, &msg.header, NULL, 0);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, cras_system_set_capture_gain_called);
-  EXPECT_EQ(66, cras_system_set_capture_gain_value);
-}
-
 TEST_F(RClientMessagesSuite, SetMute) {
   struct cras_set_system_mute msg;
   int rc;
@@ -603,21 +584,6 @@ TEST_F(RClientMessagesSuite, SendOutputMuteChanged) {
   EXPECT_EQ(msg->muted, muted);
   EXPECT_EQ(msg->user_muted, user_muted);
   EXPECT_EQ(msg->mute_locked, mute_locked);
-}
-
-TEST_F(RClientMessagesSuite, SendCaptureGainChanged) {
-  void* void_client = reinterpret_cast<void*>(rclient_);
-  char buf[1024];
-  ssize_t rc;
-  struct cras_client_volume_changed* msg =
-      (struct cras_client_volume_changed*)buf;
-  const int32_t gain = 90;
-
-  send_capture_gain_changed(void_client, gain);
-  rc = read(pipe_fds_[0], buf, sizeof(buf));
-  ASSERT_EQ(rc, (ssize_t)sizeof(*msg));
-  EXPECT_EQ(msg->header.id, CRAS_CLIENT_CAPTURE_GAIN_CHANGED);
-  EXPECT_EQ(msg->volume, gain);
 }
 
 TEST_F(RClientMessagesSuite, SendCaptureMuteChanged) {
@@ -843,11 +809,6 @@ void cras_system_state_dump_snapshots() {
 void cras_system_set_volume(size_t volume) {
   cras_system_set_volume_value = volume;
   cras_system_set_volume_called++;
-}
-
-void cras_system_set_capture_gain(long gain) {
-  cras_system_set_capture_gain_value = gain;
-  cras_system_set_capture_gain_called++;
 }
 
 //  From system_state.

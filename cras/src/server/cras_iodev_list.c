@@ -555,18 +555,6 @@ void sys_suspend_change(void *arg, int suspended)
 		resume_devs();
 }
 
-/* Called when the system capture gain changes.  Pass the current capture_gain
- * setting to the default input if it is active. */
-void sys_cap_gain_change(void *context, int32_t gain)
-{
-	struct cras_iodev *dev;
-
-	DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
-		if (dev->set_capture_gain && cras_iodev_is_open(dev))
-			dev->set_capture_gain(dev);
-	}
-}
-
 /* Called when the system capture mute state changes.  Pass the current capture
  * mute setting to the default input if it is active. */
 static void sys_cap_mute_change(void *context, int muted, int mute_locked)
@@ -1035,7 +1023,6 @@ void cras_iodev_list_init()
 	memset(&observer_ops, 0, sizeof(observer_ops));
 	observer_ops.output_volume_changed = sys_vol_change;
 	observer_ops.output_mute_changed = sys_mute_change;
-	observer_ops.capture_gain_changed = sys_cap_gain_change;
 	observer_ops.capture_mute_changed = sys_cap_mute_change;
 	observer_ops.suspend_changed = sys_suspend_change;
 	list_observer = cras_observer_add(&observer_ops, NULL);

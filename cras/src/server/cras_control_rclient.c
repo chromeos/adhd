@@ -335,14 +335,6 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		cras_system_set_mute_locked(
 			((const struct cras_set_system_mute *)msg)->mute);
 		break;
-	case CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN: {
-		const struct cras_set_system_capture_gain *m =
-			(const struct cras_set_system_capture_gain *)msg;
-		if (!MSG_LEN_VALID(msg, struct cras_set_system_capture_gain))
-			return -EINVAL;
-		cras_system_set_capture_gain(m->gain);
-		break;
-	}
 	case CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE:
 		if (!MSG_LEN_VALID(msg, struct cras_set_system_mute))
 			return -EINVAL;

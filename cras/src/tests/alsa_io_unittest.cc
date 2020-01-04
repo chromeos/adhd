@@ -49,8 +49,6 @@ static struct mixer_control*
     cras_alsa_mixer_get_control_for_section_return_value;
 static size_t sys_get_volume_called;
 static size_t sys_get_volume_return_value;
-static size_t sys_get_capture_gain_called;
-static long sys_get_capture_gain_return_value;
 static size_t alsa_mixer_set_mute_called;
 static int alsa_mixer_set_mute_value;
 static size_t alsa_mixer_get_dB_range_called;
@@ -77,7 +75,6 @@ static std::vector<struct mixer_control*>
 static std::vector<int> cras_alsa_mixer_set_output_active_state_values;
 static cras_audio_format* fake_format;
 static size_t sys_set_volume_limits_called;
-static size_t sys_set_capture_gain_limits_called;
 static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
 static size_t cras_alsa_mixer_get_maximum_capture_gain_called;
 static struct mixer_control* cras_alsa_jack_get_mixer_output_ret;
@@ -121,13 +118,6 @@ static const char* cras_alsa_jack_get_name_ret_value = 0;
 static char default_jack_name[] = "Something Jack";
 static int auto_unplug_input_node_ret = 0;
 static int auto_unplug_output_node_ret = 0;
-static int ucm_get_min_software_gain_called;
-static int ucm_get_min_software_gain_ret_value;
-static long ucm_get_min_software_gain_value;
-static int ucm_get_max_software_gain_called;
-static int ucm_get_max_software_gain_ret_value;
-static long ucm_get_max_software_gain_value;
-static long cras_system_set_capture_gain_limits_set_value[2];
 static long cras_alsa_mixer_get_minimum_capture_gain_ret_value;
 static long cras_alsa_mixer_get_maximum_capture_gain_ret_value;
 static snd_pcm_state_t snd_pcm_state_ret;
@@ -163,7 +153,6 @@ void ResetStubData() {
   cras_alsa_start_called = 0;
   cras_alsa_fill_properties_called = 0;
   sys_get_volume_called = 0;
-  sys_get_capture_gain_called = 0;
   alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_capture_dBFS_called = 0;
   sys_get_mute_called = 0;
@@ -182,8 +171,6 @@ void ResetStubData() {
   cras_alsa_mixer_set_output_active_state_outputs.clear();
   cras_alsa_mixer_set_output_active_state_values.clear();
   sys_set_volume_limits_called = 0;
-  sys_set_capture_gain_limits_called = 0;
-  sys_get_capture_gain_return_value = 0;
   cras_alsa_mixer_get_minimum_capture_gain_called = 0;
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
   cras_alsa_mixer_get_output_volume_curve_called = 0;
@@ -214,16 +201,8 @@ void ResetStubData() {
   cras_alsa_jack_get_name_called = 0;
   cras_alsa_jack_get_name_ret_value = default_jack_name;
   cras_alsa_jack_update_monitor_fake_name = 0;
-  ucm_get_min_software_gain_called = 0;
-  ucm_get_min_software_gain_ret_value = -1;
-  ucm_get_min_software_gain_value = 0;
-  ucm_get_max_software_gain_called = 0;
-  ucm_get_max_software_gain_ret_value = -1;
-  ucm_get_max_software_gain_value = 0;
   cras_card_config_get_volume_curve_for_control_called = 0;
   cras_card_config_get_volume_curve_vals.clear();
-  cras_system_set_capture_gain_limits_set_value[0] = -1;
-  cras_system_set_capture_gain_limits_set_value[1] = -1;
   cras_alsa_mixer_get_minimum_capture_gain_ret_value = 0;
   cras_alsa_mixer_get_maximum_capture_gain_ret_value = 0;
   snd_pcm_state_ret = SND_PCM_STATE_RUNNING;
@@ -480,124 +459,6 @@ TEST(AlsaIoInit, UsbCardUseSoftwareVolume) {
   alsa_iodev_destroy(iodev);
 }
 
-TEST(AlsaIoInit, UseSoftwareGain) {
-  struct cras_iodev* iodev;
-  struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
-
-  /* MaxSoftwareGain is specified in UCM */
-  ResetStubData();
-  ucm_get_min_software_gain_ret_value = 1;
-  ucm_get_min_software_gain_value = 1;
-  ucm_get_max_software_gain_ret_value = 0;
-  ucm_get_max_software_gain_value = 2000;
-  iodev = alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
-      CRAS_STREAM_INPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
-  EXPECT_EQ(DEFAULT_MIN_CAPTURE_GAIN, iodev->active_node->min_software_gain);
-  EXPECT_EQ(2000, iodev->active_node->max_software_gain);
-  ASSERT_EQ(1, sys_set_capture_gain_limits_called);
-  /* The gain range is [DEFAULT_MIN_CAPTURE_GAIN, maximum software gain]. */
-  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0],
-            DEFAULT_MIN_CAPTURE_GAIN);
-  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 2000);
-
-  alsa_iodev_destroy(iodev);
-
-  /* MaxSoftwareGain and MinSoftwareGain are specified in UCM. */
-  ResetStubData();
-  ucm_get_min_software_gain_ret_value = 0;
-  ucm_get_min_software_gain_value = 1000;
-  ucm_get_max_software_gain_ret_value = 0;
-  ucm_get_max_software_gain_value = 2000;
-  iodev = alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
-      CRAS_STREAM_INPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
-  EXPECT_EQ(1000, iodev->active_node->min_software_gain);
-  EXPECT_EQ(2000, iodev->active_node->max_software_gain);
-  ASSERT_EQ(1, sys_set_capture_gain_limits_called);
-  /* The gain range is [minimum software gain, maximum software gain]. */
-  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0], 1000);
-  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 2000);
-
-  alsa_iodev_destroy(iodev);
-
-  /* MinSoftwareGain is larger than MaxSoftwareGain in UCM. */
-  ResetStubData();
-  ucm_get_min_software_gain_ret_value = 0;
-  ucm_get_min_software_gain_value = 3000;
-  ucm_get_max_software_gain_ret_value = 0;
-  ucm_get_max_software_gain_value = 2000;
-  iodev = alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
-      CRAS_STREAM_INPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
-  EXPECT_EQ(DEFAULT_MIN_CAPTURE_GAIN, iodev->active_node->min_software_gain);
-  EXPECT_EQ(2000, iodev->active_node->max_software_gain);
-  ASSERT_EQ(1, sys_set_capture_gain_limits_called);
-  /* The gain range is [DEFAULT_MIN_CAPTURE_GAIN, maximum software gain]. */
-  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0],
-            DEFAULT_MIN_CAPTURE_GAIN);
-  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 2000);
-
-  alsa_iodev_destroy(iodev);
-
-  /* MaxSoftwareGain is not specified in UCM. */
-  ResetStubData();
-  ucm_get_max_software_gain_ret_value = 1;
-  ucm_get_max_software_gain_value = 1;
-  cras_alsa_mixer_get_minimum_capture_gain_ret_value = -500;
-  cras_alsa_mixer_get_maximum_capture_gain_ret_value = 500;
-  iodev = alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
-      CRAS_STREAM_INPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(0, iodev->active_node->software_volume_needed);
-  EXPECT_EQ(0, iodev->active_node->max_software_gain);
-  ASSERT_EQ(1, sys_set_capture_gain_limits_called);
-  /* The gain range is reported by controls. */
-  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[0], -500);
-  ASSERT_EQ(cras_system_set_capture_gain_limits_set_value[1], 500);
-
-  alsa_iodev_destroy(iodev);
-}
-
-TEST(AlsaIoInit, SoftwareGainWithDefaultNodeGain) {
-  struct cras_iodev* iodev;
-  struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
-  long system_gain = 500;
-  long default_node_gain = -1000;
-
-  ResetStubData();
-
-  // Use software gain.
-  ucm_get_max_software_gain_ret_value = 0;
-  ucm_get_max_software_gain_value = 2000;
-
-  // Set default node gain to -1000 * 0.01 dB.
-  ucm_get_default_node_gain_values[INTERNAL_MICROPHONE] = default_node_gain;
-
-  // Assume this is the first device so it gets internal mic node name.
-  iodev = alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
-      CRAS_STREAM_INPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-
-  // Gain on node is 300 * 0.01 dB.
-  iodev->active_node->capture_gain = default_node_gain;
-
-  // cras_iodev will call cras_iodev_adjust_active_node_gain to get gain for
-  // software gain.
-  ASSERT_EQ(system_gain + default_node_gain,
-            cras_iodev_adjust_active_node_gain(iodev, system_gain));
-
-  alsa_iodev_destroy(iodev);
-}
-
 TEST(AlsaIoInit, SoftwareGainIntrinsicSensitivity) {
   struct cras_iodev* iodev;
   struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
@@ -605,7 +466,7 @@ TEST(AlsaIoInit, SoftwareGainIntrinsicSensitivity) {
 
   ResetStubData();
 
-  // Set intrinsic volume to -2700 * 0.01 dBFS.
+  // Set intrinsic sensitivity to -2700 * 0.01 dBFS/Pa.
   ucm_get_intrinsic_sensitivity_values[INTERNAL_MICROPHONE] =
       intrinsic_sensitivity;
 
@@ -717,8 +578,6 @@ TEST(AlsaIoInit, OpenCapture) {
   EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_minimum_capture_gain_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_maximum_capture_gain_called);
-  EXPECT_EQ(1, sys_set_capture_gain_limits_called);
-  EXPECT_EQ(1, sys_get_capture_gain_called);
   EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
   EXPECT_EQ(1, sys_get_capture_mute_called);
   EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
@@ -734,8 +593,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
   struct cras_iodev* iodev;
   struct cras_audio_format format;
   struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
-  long system_gain = 2000;
-  long default_node_gain = -1000;
+  long default_node_gain = 1000;
 
   ResetStubData();
   // Set default node gain to -1000 * 0.01 dB.
@@ -751,15 +609,24 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
 
   // Check the default node gain is the same as what specified in UCM.
   EXPECT_EQ(default_node_gain, iodev->active_node->capture_gain);
-  // System gain is set to 2000 * 0.01 dB.
-  sys_get_capture_gain_return_value = system_gain;
+  cras_alsa_mixer_get_minimum_capture_gain_ret_value = 0;
+  cras_alsa_mixer_get_maximum_capture_gain_ret_value = 2000;
 
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
-  // Hardware gain is set to (2000 - 1000) * 0.01 dB.
-  EXPECT_EQ(system_gain + default_node_gain, alsa_mixer_set_capture_dBFS_value);
+  // Hardware gain is in the hardware gain range and set to 1000 * 0.01 dB.
+  EXPECT_EQ(default_node_gain, alsa_mixer_set_capture_dBFS_value);
+
+  // Check we do respect the hardware maximum capture gain.
+  cras_alsa_mixer_get_maximum_capture_gain_ret_value = 500;
+
+  iodev->open_dev(iodev);
+  iodev->configure_dev(iodev);
+  iodev->close_dev(iodev);
+
+  EXPECT_EQ(500, alsa_mixer_set_capture_dBFS_value);
 
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -772,8 +639,6 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
 
   /* Meet the requirements of using software gain. */
   ResetStubData();
-  ucm_get_max_software_gain_ret_value = 0;
-  ucm_get_max_software_gain_value = 2000;
 
   iodev = alsa_iodev_create_with_default_parameters(
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, fake_ucm,
@@ -784,9 +649,6 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
   format.num_channels = 1;
   cras_iodev_set_format(iodev, &format);
 
-  /* System gain is set to 1000 * 0.01 dB */
-  sys_get_capture_gain_return_value = 1000;
-
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
@@ -796,12 +658,13 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
 
   /* Test the case where software gain is not needed. */
   iodev->active_node->software_volume_needed = 0;
+  iodev->active_node->capture_gain = 1000;
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
-  /* Hardware gain is set to 1000 * 0.01 dB as got from system capture gain.*/
-  EXPECT_EQ(1000, alsa_mixer_set_capture_dBFS_value);
+  /* Hardware gain is set to 1000 * 0.01 dB as got from catpure_gain.*/
+  EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_value);
 
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -1320,6 +1183,7 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   static const char* jack_name = "TestCard - Headset Jack";
   int rc;
   struct ucm_section* section;
+  long intrinsic_sensitivity = -2700;
 
   ResetStubData();
   inputs[0] = reinterpret_cast<struct mixer_control*>(3);
@@ -1338,7 +1202,6 @@ TEST(AlsaOutputNode, InputsFromUCM) {
 
   // First node.
   cras_alsa_mixer_get_control_for_section_return_value = inputs[0];
-  ucm_get_max_software_gain_ret_value = -1;
   section = ucm_section_create(INTERNAL_MICROPHONE, "hw:0,1", 0, -1,
                                CRAS_STREAM_INPUT, NULL, NULL);
   ucm_section_add_coupled(section, "MIC-L", MIXER_NAME_VOLUME);
@@ -1348,8 +1211,8 @@ TEST(AlsaOutputNode, InputsFromUCM) {
 
   // Add a second node (will use the same iodev).
   cras_alsa_mixer_get_control_name_called = 0;
-  ucm_get_max_software_gain_ret_value = 0;
-  ucm_get_max_software_gain_value = 2000;
+  // Set intrinsic sensitivity to enable software gain.
+  ucm_get_intrinsic_sensitivity_values[MIC] = intrinsic_sensitivity;
   cras_alsa_jack_list_add_jack_for_section_result_jack =
       reinterpret_cast<struct cras_alsa_jack*>(1);
   cras_alsa_mixer_get_control_for_section_return_value = inputs[1];
@@ -1359,7 +1222,7 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   ucm_section_free_list(section);
 
-  // Jack plug of an unkonwn device should do nothing.
+  // Jack plug of an unknown device should do nothing.
   cras_alsa_jack_get_mixer_input_ret = NULL;
   cras_alsa_jack_get_name_ret_value = "Some other jack";
   jack_input_plug_event(reinterpret_cast<struct cras_alsa_jack*>(4), 0, aio);
@@ -1377,7 +1240,6 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   EXPECT_EQ(2, cras_alsa_jack_list_add_jack_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_control_name_called);
-  EXPECT_EQ(1, sys_set_capture_gain_limits_called);
   EXPECT_EQ(2, cras_iodev_add_node_called);
   EXPECT_EQ(2, ucm_get_dma_period_for_dev_called);
   EXPECT_EQ(0, aio->dma_period_set_microsecs);
@@ -1393,10 +1255,9 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
   EXPECT_EQ(1, ucm_set_enabled_called);
-  EXPECT_EQ(1, sys_set_capture_gain_limits_called);
   EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
-  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
-  EXPECT_EQ(2000, iodev->active_node->max_software_gain);
+  ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS - intrinsic_sensitivity,
+            iodev->active_node->capture_gain);
 
   alsa_iodev_destroy(iodev);
 }
@@ -2476,11 +2337,6 @@ size_t cras_system_get_volume() {
   return sys_get_volume_return_value;
 }
 
-long cras_system_get_capture_gain() {
-  sys_get_capture_gain_called++;
-  return sys_get_capture_gain_return_value;
-}
-
 int cras_system_get_mute() {
   sys_get_mute_called++;
   return sys_get_mute_return_value;
@@ -2493,12 +2349,6 @@ int cras_system_get_capture_mute() {
 
 void cras_system_set_volume_limits(long min, long max) {
   sys_set_volume_limits_called++;
-}
-
-void cras_system_set_capture_gain_limits(long min, long max) {
-  cras_system_set_capture_gain_limits_set_value[0] = min;
-  cras_system_set_capture_gain_limits_set_value[1] = max;
-  sys_set_capture_gain_limits_called++;
 }
 
 //  From cras_alsa_mixer.
@@ -2718,22 +2568,6 @@ unsigned int ucm_get_enable_htimestamp_flag(struct cras_use_case_mgr* mgr) {
 
 unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
   return 0;
-}
-
-int ucm_get_min_software_gain(struct cras_use_case_mgr* mgr,
-                              const char* dev,
-                              long* gain) {
-  ucm_get_min_software_gain_called++;
-  *gain = ucm_get_min_software_gain_value;
-  return ucm_get_min_software_gain_ret_value;
-}
-
-int ucm_get_max_software_gain(struct cras_use_case_mgr* mgr,
-                              const char* dev,
-                              long* gain) {
-  ucm_get_max_software_gain_called++;
-  *gain = ucm_get_max_software_gain_value;
-  return ucm_get_max_software_gain_ret_value;
 }
 
 char* ucm_get_hotword_models(struct cras_use_case_mgr* mgr) {

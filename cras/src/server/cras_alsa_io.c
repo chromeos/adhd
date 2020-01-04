@@ -768,8 +768,7 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 {
 	const struct alsa_io *aio = (const struct alsa_io *)iodev;
 	struct alsa_input_node *ain;
-	long gain;
-
+	long min_capture_gain, max_capture_gain, gain;
 	assert(aio);
 	if (aio->mixer == NULL)
 		return;
@@ -778,14 +777,19 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 	if (!has_handle(aio))
 		return;
 
+	ain = get_active_input(aio);
+
 	/* Set hardware gain to 0dB if software gain is needed. */
 	if (cras_iodev_software_volume_needed(iodev))
 		gain = 0;
-	else
-		gain = cras_iodev_adjust_active_node_gain(
-			iodev, cras_system_get_capture_gain());
-
-	ain = get_active_input(aio);
+	else {
+		min_capture_gain = cras_alsa_mixer_get_minimum_capture_gain(
+			aio->mixer, ain ? ain->mixer_input : NULL);
+		max_capture_gain = cras_alsa_mixer_get_maximum_capture_gain(
+			aio->mixer, ain ? ain->mixer_input : NULL);
+		gain = MAX(iodev->active_node->capture_gain, min_capture_gain);
+		gain = MIN(gain, max_capture_gain);
+	}
 
 	cras_alsa_mixer_set_capture_dBFS(aio->mixer, gain,
 					 ain ? ain->mixer_input : NULL);
@@ -819,28 +823,6 @@ static void init_device_settings(struct alsa_io *aio)
 		set_alsa_volume(&aio->base);
 		set_alsa_mute(&aio->base);
 	} else {
-		struct mixer_control *mixer_input = NULL;
-		struct alsa_input_node *ain = get_active_input(aio);
-		long min_capture_gain, max_capture_gain;
-
-		if (ain)
-			mixer_input = ain->mixer_input;
-
-		if (cras_iodev_software_volume_needed(&aio->base)) {
-			min_capture_gain =
-				cras_iodev_minimum_software_gain(&aio->base);
-			max_capture_gain =
-				cras_iodev_maximum_software_gain(&aio->base);
-		} else {
-			min_capture_gain =
-				cras_alsa_mixer_get_minimum_capture_gain(
-					aio->mixer, mixer_input);
-			max_capture_gain =
-				cras_alsa_mixer_get_maximum_capture_gain(
-					aio->mixer, mixer_input);
-		}
-		cras_system_set_capture_gain_limits(min_capture_gain,
-						    max_capture_gain);
 		set_alsa_capture_gain(&aio->base);
 	}
 }
@@ -1092,80 +1074,24 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 		       output->base.name);
 }
 
-static void set_input_node_software_volume_needed(struct alsa_input_node *input,
-						  struct alsa_io *aio)
-{
-	long min_software_gain;
-	long max_software_gain;
-	int rc;
-
-	input->base.software_volume_needed = 0;
-	input->base.min_software_gain = DEFAULT_MIN_CAPTURE_GAIN;
-	input->base.max_software_gain = 0;
-
-	/* TODO(enshuo): Deprecate the max and min software gain when intrinsic
-	 * sensitivity is done. */
-
-	/* Enable software gain if max software gain is specified in UCM. */
-	if (!aio->ucm)
-		return;
-
-	rc = ucm_get_max_software_gain(aio->ucm, input->base.name,
-				       &max_software_gain);
-
-	/* If max software gain doesn't exist, skip min software gain setting. */
-	if (rc)
-		return;
-
-	input->base.software_volume_needed = 1;
-	input->base.max_software_gain = max_software_gain;
-	syslog(LOG_INFO,
-	       "Use software gain for %s with max %ld because it is specified"
-	       " in UCM",
-	       input->base.name, max_software_gain);
-
-	/* Enable min software gain if it is specified in UCM. */
-	rc = ucm_get_min_software_gain(aio->ucm, input->base.name,
-				       &min_software_gain);
-	if (rc)
-		return;
-
-	if (min_software_gain > max_software_gain) {
-		syslog(LOG_ERR,
-		       "Ignore MinSoftwareGain %ld because it is larger than "
-		       "MaxSoftwareGain %ld",
-		       min_software_gain, max_software_gain);
-		return;
-	}
-
-	syslog(LOG_INFO,
-	       "Use software gain for %s with min %ld because it is specified"
-	       " in UCM",
-	       input->base.name, min_software_gain);
-	input->base.min_software_gain = min_software_gain;
-}
-
 static void set_input_default_node_gain(struct alsa_input_node *input,
 					struct alsa_io *aio)
 {
-	long default_node_gain;
-	int rc;
+	long gain;
+
+	input->base.capture_gain = DEFAULT_CAPTURE_GAIN;
 
 	if (!aio->ucm)
 		return;
 
-	rc = ucm_get_default_node_gain(aio->ucm, input->base.name,
-				       &default_node_gain);
-	if (rc)
-		return;
-
-	input->base.capture_gain = default_node_gain;
+	if (ucm_get_default_node_gain(aio->ucm, input->base.name, &gain) == 0)
+		input->base.capture_gain = gain;
 }
 
 static void set_input_node_intrinsic_sensitivity(struct alsa_input_node *input,
 						 struct alsa_io *aio)
 {
-	long volume;
+	long sensitivity;
 	int rc;
 
 	input->base.intrinsic_sensitivity = 0;
@@ -1173,16 +1099,17 @@ static void set_input_node_intrinsic_sensitivity(struct alsa_input_node *input,
 	if (!aio->ucm)
 		return;
 
-	rc = ucm_get_intrinsic_sensitivity(aio->ucm, input->base.name, &volume);
+	rc = ucm_get_intrinsic_sensitivity(aio->ucm, input->base.name,
+					   &sensitivity);
 	if (rc)
 		return;
 
-	input->base.intrinsic_sensitivity = volume;
-	input->base.capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - volume;
+	input->base.intrinsic_sensitivity = sensitivity;
+	input->base.capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
 	syslog(LOG_INFO,
 	       "Use software gain %ld for %s because IntrinsicSensitivity %ld is"
 	       " specified in UCM",
-	       input->base.capture_gain, input->base.name, volume);
+	       input->base.capture_gain, input->base.name, sensitivity);
 }
 
 static void check_auto_unplug_output_node(struct alsa_io *aio,
@@ -1317,7 +1244,6 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	input->mixer_input = cras_input;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
-	set_input_node_software_volume_needed(input, aio);
 	set_input_default_node_gain(input, aio);
 	set_input_node_intrinsic_sensitivity(input, aio);
 

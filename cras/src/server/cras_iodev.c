@@ -741,13 +741,10 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 
 float cras_iodev_get_software_gain_scaler(const struct cras_iodev *iodev)
 {
-	float scaler = 1.0f;
-	if (cras_iodev_software_volume_needed(iodev)) {
-		long gain = cras_iodev_adjust_active_node_gain(
-			iodev, cras_system_get_capture_gain());
-		scaler = convert_softvol_scaler_from_dB(gain);
-	}
-	return scaler;
+	if (cras_iodev_software_volume_needed(iodev))
+		return convert_softvol_scaler_from_dB(
+			iodev->active_node->capture_gain);
+	return 1.0f;
 }
 
 int cras_iodev_get_valid_frames(struct cras_iodev *odev,
@@ -975,8 +972,8 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		/*
 		 * The device specific gain scaler to be used in audio thread.
 		 * It's expected to stick to 1.0f if device has hardware gain
-		 * control. For alsa device, this gain value can be configured
-		 * through UCM labels DefaultNodeGain.
+		 * control. For alsa device, this gain value will be configured
+		 * based on UCM labels IntrinsicSensitivity.
 		 */
 		iodev->software_gain_scaler =
 			cras_iodev_get_software_gain_scaler(iodev);

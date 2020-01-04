@@ -30,13 +30,6 @@ Methods		void SetOutputVolume(int32 volume)
 
 			Sets the system output mute from user action.
 
-		void SetInputGain(int32 gain)
-
-			Sets the capture gain of the system. Gain is specified
-			in dBFS * 100.  For example 5dB of gain would be
-			specified with an argument of 500, while -10 would be
-			specified with -1000, and 11.5 maps to 1150.
-
 		void SetInputNodeGain(uint64 node_id, int32 gain)
 
 			Sets the capture gain of the node. Gain is specified

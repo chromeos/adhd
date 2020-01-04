@@ -57,9 +57,8 @@ void cras_system_set_volume(size_t volume);
 /* Gets the current system volume. */
 size_t cras_system_get_volume();
 
-/* Sets the system capture volume.  Will be applied by the active device. */
-void cras_system_set_capture_gain(long gain);
-/* Gets the current system capture volume. */
+/* Gets the current system capture volume. As we remove the support of setting
+ * system capture gain, it should always be DEFAULT_CAPTURE_GAIN now. */
 long cras_system_get_capture_gain();
 
 /* Sets if the system is muted by the user. */
@@ -107,19 +106,6 @@ void cras_system_set_volume_limits(long min, long max);
 long cras_system_get_min_volume();
 /* Returns the dB value when volume = CRAS_MAX_SYSTEM_VOLUME, in dB * 100. */
 long cras_system_get_max_volume();
-
-/* Sets the limits in dB * 100 of the MAX and MIN capture gain.  This will allow
- * clients to query what range of control is available.  Both arguments are
- * specified as dB * 100.
- * Args:
- *     min - minimum allowed capture gain.
- *     max - maximum allowed capture gaax.
- */
-void cras_system_set_capture_gain_limits(long min, long max);
-/* Returns the max value allowed for capture gain in dB * 100. */
-long cras_system_get_min_capture_gain();
-/* Returns the min value allowed for capture gain in dB * 100. */
-long cras_system_get_max_capture_gain();
 
 /* Returns the default value of output buffer size in frames. */
 int cras_system_get_default_output_buffer_size();

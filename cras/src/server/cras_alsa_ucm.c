@@ -50,17 +50,6 @@ static const char echo_reference_dev_name_var[] = "EchoReferenceDev";
 static const char intrinsic_sensitivity_var[] = "IntrinsicSensitivity";
 
 /*
- * Set this value in a SectionDevice to specify the minimum software gain in
- * 0.01 dB and enable software gain on this node. It must be used with
- * MaxSoftwareGain. If not, the value will be ignored.
- */
-static const char min_software_gain[] = "MinSoftwareGain";
-/*
- * Set this value in a SectionDevice to specify the maximum software gain in
- * 0.01 dB and enable software gain on this node.
- */
-static const char max_software_gain[] = "MaxSoftwareGain";
-/*
  * Set this value in a SectionDevice to specify the default node gain in
  * 0.01 dB.
  */
@@ -682,32 +671,6 @@ unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr)
 	return value;
 }
 
-int ucm_get_min_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
-			      long *gain)
-{
-	int value;
-	int rc;
-
-	rc = get_int(mgr, min_software_gain, dev, uc_verb(mgr), &value);
-	if (rc)
-		return rc;
-	*gain = value;
-	return 0;
-}
-
-int ucm_get_max_software_gain(struct cras_use_case_mgr *mgr, const char *dev,
-			      long *gain)
-{
-	int value;
-	int rc;
-
-	rc = get_int(mgr, max_software_gain, dev, uc_verb(mgr), &value);
-	if (rc)
-		return rc;
-	*gain = value;
-	return 0;
-}
-
 int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
 			      long *gain)
 {
@@ -722,7 +685,7 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
 }
 
 int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr *mgr,
-				  const char *dev, long *vol)
+				  const char *dev, long *sensitivity)
 {
 	int value;
 	int rc;
@@ -730,7 +693,7 @@ int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr *mgr,
 	rc = get_int(mgr, intrinsic_sensitivity_var, dev, uc_verb(mgr), &value);
 	if (rc)
 		return rc;
-	*vol = value;
+	*sensitivity = value;
 	return 0;
 }
 

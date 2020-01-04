@@ -47,9 +47,6 @@
 	"    <method name=\"SetSuspendAudio\">\n"                               \
 	"      <arg name=\"suspend\" type=\"b\" direction=\"in\"/>\n"           \
 	"    </method>\n"                                                       \
-	"    <method name=\"SetInputGain\">\n"                                  \
-	"      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"              \
-	"    </method>\n"                                                       \
 	"    <method name=\"SetInputNodeGain\">\n"                              \
 	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
 	"      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"              \
@@ -60,7 +57,6 @@
 	"    <method name=\"GetVolumeState\">\n"                                \
 	"      <arg name=\"output_volume\" type=\"i\" direction=\"out\"/>\n"    \
 	"      <arg name=\"output_mute\" type=\"b\" direction=\"out\"/>\n"      \
-	"      <arg name=\"input_gain\" type=\"i\" direction=\"out\"/>\n"       \
 	"      <arg name=\"input_mute\" type=\"b\" direction=\"out\"/>\n"       \
 	"      <arg name=\"output_user_mute\" type=\"b\" direction=\"out\"/>\n" \
 	"    </method>\n"                                                       \
@@ -302,23 +298,6 @@ handle_set_suspend_audio(DBusConnection *conn, DBusMessage *message, void *arg)
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_set_input_gain(DBusConnection *conn,
-					       DBusMessage *message, void *arg)
-{
-	int rc;
-	dbus_int32_t new_gain;
-
-	rc = get_single_arg(message, DBUS_TYPE_INT32, &new_gain);
-	if (rc)
-		return rc;
-
-	cras_system_set_capture_gain(new_gain);
-
-	send_empty_reply(conn, message);
-
-	return DBUS_HANDLER_RESULT_HANDLED;
-}
-
 static DBusHandlerResult handle_set_input_node_gain(DBusConnection *conn,
 						    DBusMessage *message,
 						    void *arg)
@@ -370,7 +349,6 @@ handle_get_volume_state(DBusConnection *conn, DBusMessage *message, void *arg)
 	dbus_int32_t volume;
 	dbus_bool_t system_muted;
 	dbus_bool_t user_muted;
-	dbus_int32_t capture_gain;
 	dbus_bool_t capture_muted;
 
 	reply = dbus_message_new_method_return(message);
@@ -378,12 +356,10 @@ handle_get_volume_state(DBusConnection *conn, DBusMessage *message, void *arg)
 	volume = cras_system_get_volume();
 	system_muted = cras_system_get_system_mute();
 	user_muted = cras_system_get_user_mute();
-	capture_gain = cras_system_get_capture_gain();
 	capture_muted = cras_system_get_capture_mute();
 
 	dbus_message_append_args(reply, DBUS_TYPE_INT32, &volume,
 				 DBUS_TYPE_BOOLEAN, &system_muted,
-				 DBUS_TYPE_INT32, &capture_gain,
 				 DBUS_TYPE_BOOLEAN, &capture_muted,
 				 DBUS_TYPE_BOOLEAN, &user_muted,
 				 DBUS_TYPE_INVALID);
@@ -834,9 +810,6 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetSuspendAudio")) {
 		return handle_set_suspend_audio(conn, message, arg);
-	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
-					       "SetInputGain")) {
-		return handle_set_input_gain(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetInputNodeGain")) {
 		return handle_set_input_node_gain(conn, message, arg);

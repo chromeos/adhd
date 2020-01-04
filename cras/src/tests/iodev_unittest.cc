@@ -73,7 +73,6 @@ static unsigned int post_dsp_hook_called;
 static const uint8_t* post_dsp_hook_frames;
 static void* post_dsp_hook_cb_data;
 static int iodev_buffer_size;
-static long cras_system_get_capture_gain_ret_value;
 static uint8_t audio_buffer[BUFFER_SIZE];
 static struct cras_audio_area* audio_area;
 static unsigned int put_buffer_nframes;
@@ -159,7 +158,6 @@ void ResetStubData() {
   post_dsp_hook_called = 0;
   post_dsp_hook_frames = NULL;
   iodev_buffer_size = 0;
-  cras_system_get_capture_gain_ret_value = 0;
   // Assume there is some data in audio buffer.
   memset(audio_buffer, 0xff, sizeof(audio_buffer));
   if (audio_area) {
@@ -1169,21 +1167,15 @@ TEST(IoDev, SoftwareGain) {
   iodev.active_node = &ionode;
   iodev.active_node->dev = &iodev;
 
-  ionode.capture_gain = 400;
+  ionode.capture_gain = 2400;
   ionode.software_volume_needed = 1;
-  ionode.max_software_gain = 3000;
 
-  // Check that system volume changes software volume if needed.
-  cras_system_get_capture_gain_ret_value = 2000;
-  // system_gain + node_gain = 2000 + 400  = 2400
   // 2400 * 0.01 dB is 15.848931
   EXPECT_FLOAT_EQ(15.848931, cras_iodev_get_software_gain_scaler(&iodev));
-  EXPECT_FLOAT_EQ(3000, cras_iodev_maximum_software_gain(&iodev));
 
   // Software gain scaler should be 1.0 if software gain is not needed.
   ionode.software_volume_needed = 0;
   EXPECT_FLOAT_EQ(1.0, cras_iodev_get_software_gain_scaler(&iodev));
-  EXPECT_FLOAT_EQ(0, cras_iodev_maximum_software_gain(&iodev));
 }
 
 // This get_buffer implementation set returned frames larger than requested
@@ -2566,10 +2558,6 @@ float softvol_get_scaler(unsigned int volume_index) {
 
 size_t cras_system_get_volume() {
   return cras_system_get_volume_return;
-}
-
-long cras_system_get_capture_gain() {
-  return cras_system_get_capture_gain_ret_value;
 }
 
 int cras_system_get_mute() {

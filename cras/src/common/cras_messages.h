@@ -34,7 +34,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SET_SYSTEM_MUTE,
 	CRAS_SERVER_SET_USER_MUTE,
 	CRAS_SERVER_SET_SYSTEM_MUTE_LOCKED,
-	CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN,
+	CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN, /* Deprecated */
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE,
 	CRAS_SERVER_SET_SYSTEM_CAPTURE_MUTE_LOCKED,
 	CRAS_SERVER_SET_NODE_ATTR,
@@ -197,20 +197,6 @@ static inline void cras_fill_set_system_volume(struct cras_set_system_volume *m,
 {
 	m->volume = volume;
 	m->header.id = CRAS_SERVER_SET_SYSTEM_VOLUME;
-	m->header.length = sizeof(*m);
-}
-
-/* Sets the capture gain. */
-struct __attribute__((__packed__)) cras_set_system_capture_gain {
-	struct cras_server_message header;
-	int32_t gain;
-};
-static inline void
-cras_fill_set_system_capture_gain(struct cras_set_system_capture_gain *m,
-				  long gain)
-{
-	m->gain = gain;
-	m->header.id = CRAS_SERVER_SET_SYSTEM_CAPTURE_GAIN;
 	m->header.length = sizeof(*m);
 }
 

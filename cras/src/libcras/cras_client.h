@@ -682,20 +682,6 @@ int cras_client_set_stream_volume(struct cras_client *client,
  */
 int cras_client_set_system_volume(struct cras_client *client, size_t volume);
 
-/* Sets the capture gain of the system.
- *
- * Gain is specified in dBFS * 100.  For example 5dB of gain would be specified
- * with an argument of 500, while -10 would be specified with -1000.
- *
- * Args:
- *    client - The client from cras_client_create.
- *    gain - The gain in dBFS * 100.
- * Returns:
- *    0 for success, -EPIPE if there is an I/O error talking to the server, or
- *    -EINVAL if 'client' is invalid.
- */
-int cras_client_set_system_capture_gain(struct cras_client *client, long gain);
-
 /* Sets the mute state of the system.
  *
  * Args:
@@ -771,17 +757,6 @@ int cras_client_set_system_capture_mute_locked(struct cras_client *client,
  */
 size_t cras_client_get_system_volume(const struct cras_client *client);
 
-/* Gets the current system capture gain.
- *
- * Requires that the connection to the server has been established.
- *
- * Args:
- *    client - The client from cras_client_create.
- * Returns:
- *    The current system capture volume in dB * 100.
- */
-long cras_client_get_system_capture_gain(const struct cras_client *client);
-
 /* Gets the current system mute state.
  *
  * Requires that the connection to the server has been established.
@@ -832,28 +807,6 @@ long cras_client_get_system_min_volume(const struct cras_client *client);
  *    the level of attenuation at volume == 100.
  */
 long cras_client_get_system_max_volume(const struct cras_client *client);
-
-/* Gets the current minimum system capture gain.
- *
- * Requires that the connection to the server has been established.
- *
- * Args:
- *    client - The client from cras_client_create.
- * Returns:
- *    The minimum capture gain for the current input device in dBFS * 100.
- */
-long cras_client_get_system_min_capture_gain(const struct cras_client *client);
-
-/* Gets the current maximum system capture gain.
- *
- * Requires that the connection to the server has been established.
- *
- * Args:
- *    client - The client from cras_client_create.
- * Returns:
- *    The maximum capture gain for the current input device in dBFS * 100.
- */
-long cras_client_get_system_max_capture_gain(const struct cras_client *client);
 
 /* Gets audio debug info.
  *

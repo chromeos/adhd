@@ -2448,17 +2448,6 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume)
 	return write_message_to_server(client, &msg.header);
 }
 
-int cras_client_set_system_capture_gain(struct cras_client *client, long gain)
-{
-	struct cras_set_system_capture_gain msg;
-
-	if (client == NULL)
-		return -EINVAL;
-
-	cras_fill_set_system_capture_gain(&msg, gain);
-	return write_message_to_server(client, &msg.header);
-}
-
 int cras_client_set_system_mute(struct cras_client *client, int mute)
 {
 	struct cras_set_system_mute msg;
@@ -2611,34 +2600,6 @@ long cras_client_get_system_max_volume(const struct cras_client *client)
 	max_volume = client->server_state->max_volume_dBFS;
 	server_state_unlock(client, lock_rc);
 	return max_volume;
-}
-
-long cras_client_get_system_min_capture_gain(const struct cras_client *client)
-{
-	long min_gain;
-	int lock_rc;
-
-	lock_rc = server_state_rdlock(client);
-	if (lock_rc)
-		return 0;
-
-	min_gain = client->server_state->min_capture_gain;
-	server_state_unlock(client, lock_rc);
-	return min_gain;
-}
-
-long cras_client_get_system_max_capture_gain(const struct cras_client *client)
-{
-	long max_gain;
-	int lock_rc;
-
-	lock_rc = server_state_rdlock(client);
-	if (lock_rc)
-		return 0;
-
-	max_gain = client->server_state->max_capture_gain;
-	server_state_unlock(client, lock_rc);
-	return max_gain;
 }
 
 const struct audio_debug_info *
