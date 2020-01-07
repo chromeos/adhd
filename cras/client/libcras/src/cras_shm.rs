@@ -692,7 +692,7 @@ pub fn create_header_and_buffers<'a>(
 pub fn create_header<'a>(
     header_fd: CrasAudioShmHeaderFd,
     samples_fd: CrasShmFd,
-) -> io::Result<(CrasAudioHeader<'a>)> {
+) -> io::Result<CrasAudioHeader<'a>> {
     Ok(CrasAudioHeader::new(header_fd, samples_fd.size)?)
 }
 
