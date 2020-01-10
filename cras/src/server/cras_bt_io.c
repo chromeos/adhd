@@ -332,18 +332,6 @@ leave:
 		dev->update_active_node(dev, node_idx, dev_enabled);
 }
 
-static int output_underrun(struct cras_iodev *odev)
-{
-	/*
-	 * Currently CRAS detects output underrun in a way that doesn't
-	 * apply to bluetooth use case. Override this handle function
-	 * for bt_io so audio thread won't fill zero.
-	 * TODO(hychao): when we figure out how to detect clock drift on
-	 * headset, implement this function.
-	 */
-	return 0;
-}
-
 static int no_stream(struct cras_iodev *iodev, int enable)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
@@ -423,7 +411,6 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
 	iodev->no_stream = no_stream;
-	iodev->output_underrun = output_underrun;
 	iodev->is_free_running = is_free_running;
 	iodev->start = start;
 
