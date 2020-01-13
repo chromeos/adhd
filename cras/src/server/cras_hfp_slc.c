@@ -654,7 +654,7 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 static int indicator_activation(struct hfp_slc_handle *handle, const char *cmd)
 {
 	/* AT+BIA=[[<indrep 1>][,[<indrep 2>][,...[,[<indrep n>]]]]] */
-	syslog(LOG_ERR, "Bluetooth indicator activation command %s", cmd);
+	syslog(LOG_INFO, "Bluetooth indicator activation command %s", cmd);
 	return hfp_send(handle, AT_CMD("OK"));
 }
 
