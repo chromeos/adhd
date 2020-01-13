@@ -538,7 +538,7 @@ int cras_client_update_audio_thread_snapshots(struct cras_client *client,
  *        be called when buffer_frames have been captured).
  *    unused - No longer used.
  *    stream_type - media or talk (currently only support "default").
- *    flags - None currently used.
+ *    flags - Currently only used for CRAS_INPUT_STREAM_FLAG.
  *    user_data - Pointer that will be passed to the callback.
  *    aud_cb - Called when audio is needed(playback) or ready(capture). Allowed
  *        return EOF to indicate that the stream should terminate.

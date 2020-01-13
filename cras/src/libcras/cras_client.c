@@ -139,7 +139,7 @@ struct cras_stream_params {
  * id - Unique stream identifier.
  * aud_fd - After server connects audio messages come in here.
  * direction - playback, capture, or loopback (see CRAS_STREAM_DIRECTION).
- * flags - Currently not used.
+ * flags - Currently only used for CRAS_INPUT_STREAM_FLAG.
  * volume_scaler - Amount to scale the stream by, 0.0 to 1.0. Client could
  *    change this scaler value before stream actually connected, so we need
  *    to cache it until shm is prepared and apply it.
@@ -1491,18 +1491,30 @@ static int client_thread_add_stream(struct cras_client *client,
 	cras_stream_id_t new_id;
 	struct client_stream *out;
 
-	/* Find the hotword device index. */
-	if ((stream->flags & HOTWORD_STREAM) == HOTWORD_STREAM &&
-	    dev_idx == NO_DEVICE) {
+	if ((stream->flags & HOTWORD_STREAM) == HOTWORD_STREAM) {
 		int hotword_idx;
 		hotword_idx = cras_client_get_first_dev_type_idx(
 			client, CRAS_NODE_TYPE_HOTWORD, CRAS_STREAM_INPUT);
-		if (hotword_idx < 0) {
-			syslog(LOG_ERR,
-			       "cras_client: add_stream: Finding hotword dev");
-			return hotword_idx;
+
+		/* Find the hotword device index. */
+		if (dev_idx == NO_DEVICE) {
+			if (hotword_idx < 0) {
+				syslog(LOG_ERR,
+				       "cras_client: add_stream: No hotword dev");
+				return hotword_idx;
+			} else {
+				dev_idx = hotword_idx;
+			}
 		}
-		dev_idx = hotword_idx;
+		/* A known Use case for client to pin hotword stream on a not
+		 * hotword device is to use internal mic for Assistant to work
+		 * on board without usable DSP hotwording. We assume there will
+		 * be only one hotword device exists. */
+		else if (dev_idx != hotword_idx) {
+			/* Unmask the flag to fallback to normal pinned stream
+			 * on specified device. */
+			stream->flags &= ~HOTWORD_STREAM;
+		}
 	}
 
 	/* Find an available stream id. */
