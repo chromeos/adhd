@@ -12,6 +12,7 @@ use sync::{Condvar, Mutex};
 use sys_util::SharedMemory;
 
 use crate::cras_types::StreamDirection;
+use crate::CrasStreamEffect;
 
 type GenericResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -177,6 +178,7 @@ pub trait ShmStreamSource: Send {
     /// * `buffer_size` - The maximum size of an audio buffer. This will be the
     ///                   size used for transfers of audio data between client
     ///                   and server.
+    /// * `effects` - Audio effects to use for the stream, such as echo-cancellation.
     /// * `client_shm` - The shared memory area that will contain samples.
     /// * `buffer_offsets` - The two initial values to use as buffer offsets
     ///                      for streams. This way, the server will not write
@@ -193,6 +195,7 @@ pub trait ShmStreamSource: Send {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
+        effects: CrasStreamEffect,
         client_shm: &SharedMemory,
         buffer_offsets: [u32; 2],
     ) -> GenericResult<Box<dyn ShmStream>>;
@@ -287,6 +290,7 @@ impl ShmStreamSource for NullShmStreamSource {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
+        _effects: CrasStreamEffect,
         _client_shm: &SharedMemory,
         _buffer_offsets: [u32; 2],
     ) -> GenericResult<Box<dyn ShmStream>> {
@@ -414,6 +418,7 @@ impl ShmStreamSource for MockShmStreamSource {
         format: SampleFormat,
         _frame_rate: usize,
         buffer_size: usize,
+        _effects: CrasStreamEffect,
         _client_shm: &SharedMemory,
         _buffer_offsets: [u32; 2],
     ) -> GenericResult<Box<dyn ShmStream>> {
@@ -449,6 +454,7 @@ pub mod tests {
                     format,
                     44100,
                     buffer_size,
+                    CrasStreamEffect::empty(),
                     &shm,
                     [400, 8000],
                 )
@@ -492,6 +498,7 @@ pub mod tests {
                 SampleFormat::S24LE,
                 frame_rate,
                 buffer_size,
+                CrasStreamEffect::empty(),
                 &shm,
                 [400, 8000],
             )

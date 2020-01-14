@@ -707,14 +707,47 @@ pub enum CRAS_CLIENT_TYPE {
     CRAS_CLIENT_TYPE_CROSVM = 6,
     CRAS_CLIENT_TYPE_SERVER_STREAM = 7,
 }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum CRAS_STREAM_EFFECT {
-    APM_ECHO_CANCELLATION = 1,
-    APM_NOISE_SUPRESSION = 2,
-    APM_GAIN_CONTROL = 4,
-    APM_VOICE_DETECTION = 8,
+impl CRAS_STREAM_EFFECT {
+    pub const APM_ECHO_CANCELLATION: CRAS_STREAM_EFFECT = CRAS_STREAM_EFFECT(1);
 }
+impl CRAS_STREAM_EFFECT {
+    pub const APM_NOISE_SUPRESSION: CRAS_STREAM_EFFECT = CRAS_STREAM_EFFECT(2);
+}
+impl CRAS_STREAM_EFFECT {
+    pub const APM_GAIN_CONTROL: CRAS_STREAM_EFFECT = CRAS_STREAM_EFFECT(4);
+}
+impl CRAS_STREAM_EFFECT {
+    pub const APM_VOICE_DETECTION: CRAS_STREAM_EFFECT = CRAS_STREAM_EFFECT(8);
+}
+impl ::std::ops::BitOr<CRAS_STREAM_EFFECT> for CRAS_STREAM_EFFECT {
+    type Output = Self;
+    #[inline]
+    fn bitor(self, other: Self) -> Self {
+        CRAS_STREAM_EFFECT(self.0 | other.0)
+    }
+}
+impl ::std::ops::BitOrAssign for CRAS_STREAM_EFFECT {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: CRAS_STREAM_EFFECT) {
+        self.0 |= rhs.0;
+    }
+}
+impl ::std::ops::BitAnd<CRAS_STREAM_EFFECT> for CRAS_STREAM_EFFECT {
+    type Output = Self;
+    #[inline]
+    fn bitand(self, other: Self) -> Self {
+        CRAS_STREAM_EFFECT(self.0 & other.0)
+    }
+}
+impl ::std::ops::BitAndAssign for CRAS_STREAM_EFFECT {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: CRAS_STREAM_EFFECT) {
+        self.0 &= rhs.0;
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct CRAS_STREAM_EFFECT(pub u32);
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 pub struct cras_attached_client_info {

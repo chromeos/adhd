@@ -113,6 +113,7 @@ fn gen() -> String {
         .whitelist_var("MAX_DEBUG_.*")
         .rustified_enum("CRAS_.*")
         .rustified_enum("_snd_pcm_.*")
+        .bitfield_enum("CRAS_STREAM_EFFECT")
         .generate()
         .expect(format!("Unable to generate {} code", name).as_str());
 

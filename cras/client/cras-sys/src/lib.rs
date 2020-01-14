@@ -18,7 +18,7 @@ use gen::{
     _snd_pcm_format, audio_dev_debug_info, audio_message, audio_stream_debug_info,
     cras_audio_format_packed, cras_iodev_info, cras_ionode_info, cras_ionode_info__bindgen_ty_1,
     cras_timespec, CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL, CRAS_CLIENT_TYPE, CRAS_NODE_TYPE,
-    CRAS_STREAM_DIRECTION, CRAS_STREAM_TYPE,
+    CRAS_STREAM_DIRECTION, CRAS_STREAM_EFFECT, CRAS_STREAM_TYPE,
 };
 
 unsafe impl data_model::DataInit for gen::audio_message {}
@@ -518,5 +518,17 @@ pub struct AudioDebugInfo {
 impl AudioDebugInfo {
     pub fn new(devices: Vec<AudioDevDebugInfo>, streams: Vec<AudioStreamDebugInfo>) -> Self {
         Self { devices, streams }
+    }
+}
+
+impl Into<u64> for CRAS_STREAM_EFFECT {
+    fn into(self) -> u64 {
+        u64::from(self.0)
+    }
+}
+
+impl CRAS_STREAM_EFFECT {
+    pub fn empty() -> Self {
+        CRAS_STREAM_EFFECT(0)
     }
 }
