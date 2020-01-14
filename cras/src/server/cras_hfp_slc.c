@@ -372,7 +372,7 @@ static int apple_accessory_state_change(struct hfp_slc_handle *handle,
 static int apple_supported_features(struct hfp_slc_handle *handle,
 				    const char *cmd)
 {
-	char *tokens, *features, *tmp;
+	char *tokens, *features;
 	int apple_features, err;
 	char buf[64];
 
@@ -382,7 +382,7 @@ static int apple_supported_features(struct hfp_slc_handle *handle,
 	tokens = strdup(cmd);
 	strtok(tokens, "=");
 
-	tmp = strtok(NULL, ",");
+	strtok(NULL, ",");
 	features = strtok(NULL, ",");
 	apple_features = atoi(features);
 
