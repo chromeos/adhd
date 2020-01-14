@@ -14,13 +14,11 @@ CRAS = ChromeOS Audio Server
 # Generate install-sh
 ./git_prepare.sh
 
-LIB_INI_PARSER=/usr/include/iniparser
-
 # Configure
 CC=clang \
 CXX=clang++ \
-CXXFLAGS="-g -O2 -std=gnu++11 -Wall -I${LIB_INI_PARSER}" \
-CFLAGS="-g -O2 -Wall -I${LIB_INI_PARSER}" \
+CXXFLAGS="-g -O2 -std=gnu++11 -Wall" \
+CFLAGS="-g -O2 -Wall" \
 ./configure --disable-alsa-plugin
 
 # Compile

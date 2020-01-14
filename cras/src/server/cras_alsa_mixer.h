@@ -6,9 +6,6 @@
 #ifndef _CRAS_ALSA_MIXER_H
 #define _CRAS_ALSA_MIXER_H
 
-#include <alsa/asoundlib.h>
-#include <iniparser.h>
-
 #include "cras_types.h"
 
 /* cras_alsa_mixer represents the alsa mixer interface for an alsa card.  It

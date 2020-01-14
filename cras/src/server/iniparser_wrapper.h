@@ -5,7 +5,11 @@
 #ifndef INIPARSER_WRAPPER_H_
 #define INIPARSER_WRAPPER_H_
 
+#ifdef HAVE_INIPARSER_INIPARSER_H
+#include <iniparser/iniparser.h>
+#else
 #include <iniparser.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>

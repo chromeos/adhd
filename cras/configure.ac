@@ -26,6 +26,8 @@ AC_CONFIG_FILES([Makefile src/Makefile libcras.pc])
 PKG_CHECK_MODULES([LIBSPEEX], [ speexdsp >= 1.2 ])
 PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.1.0 ])
 
+AC_CHECK_HEADERS([iniparser/iniparser.h])
+
 AC_ARG_ENABLE([dbus], AS_HELP_STRING([--disable-dbus], [Disable all DBUS uses]), have_dbus=$enableval, have_dbus=yes)
 AM_CONDITIONAL(HAVE_DBUS, test "$have_dbus" = "yes")
 if test "$have_dbus" = "yes"; then

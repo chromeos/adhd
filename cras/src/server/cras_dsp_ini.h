@@ -6,11 +6,11 @@
 #ifndef CRAS_DSP_INI_H_
 #define CRAS_DSP_INI_H_
 
+#include "iniparser_wrapper.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <iniparser.h>
 
 #include "array.h"
 #include "dumper.h"

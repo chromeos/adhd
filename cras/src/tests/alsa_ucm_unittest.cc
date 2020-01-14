@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
-#include <iniparser.h>
 #include <stdio.h>
 #include <syslog.h>
 
