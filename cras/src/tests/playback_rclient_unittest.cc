@@ -25,7 +25,6 @@ static int stream_list_add_return;
 static unsigned int stream_list_rm_called;
 static struct cras_audio_shm dummy_shm;
 static struct cras_rstream dummy_rstream;
-static unsigned int cras_rstream_config_init_with_message_called;
 
 void ResetStubData() {
   cras_make_fd_nonblocking_called = 0;
@@ -33,7 +32,6 @@ void ResetStubData() {
   stream_list_add_called = 0;
   stream_list_add_return = 0;
   stream_list_rm_called = 0;
-  cras_rstream_config_init_with_message_called = 0;
 }
 
 namespace {
@@ -114,7 +112,6 @@ TEST_F(CPRMessageSuite, StreamConnectMessage) {
   fd_ = 100;
   rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
   EXPECT_EQ(1, cras_make_fd_nonblocking_called);
-  EXPECT_EQ(1, cras_rstream_config_init_with_message_called);
   EXPECT_EQ(1, stream_list_add_called);
   EXPECT_EQ(0, stream_list_rm_called);
 
@@ -144,7 +141,6 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidDirection) {
                                                    1);
     EXPECT_EQ(-EINVAL, rc);
     EXPECT_EQ(0, cras_make_fd_nonblocking_called);
-    EXPECT_EQ(0, cras_rstream_config_init_with_message_called);
     EXPECT_EQ(0, stream_list_add_called);
     EXPECT_EQ(0, stream_list_rm_called);
 
@@ -172,7 +168,6 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
       rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
   EXPECT_EQ(-EINVAL, rc);
   EXPECT_EQ(0, cras_make_fd_nonblocking_called);
-  EXPECT_EQ(0, cras_rstream_config_init_with_message_called);
   EXPECT_EQ(0, stream_list_add_called);
   EXPECT_EQ(0, stream_list_rm_called);
 
@@ -212,7 +207,6 @@ TEST_F(CPRMessageSuite, StreamConnectMessageOldProtocal) {
   rc =
       rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
   EXPECT_EQ(1, cras_make_fd_nonblocking_called);
-  EXPECT_EQ(1, cras_rstream_config_init_with_message_called);
   EXPECT_EQ(1, stream_list_add_called);
   EXPECT_EQ(0, stream_list_rm_called);
 
@@ -309,17 +303,5 @@ int stream_list_add(struct stream_list* list,
 
   return ret;
 }
-
-void cras_rstream_config_init_with_message(
-    struct cras_rclient* client,
-    const struct cras_connect_message* msg,
-    int* aud_fd,
-    int* client_shm_fd,
-    const struct cras_audio_format* remote_fmt,
-    struct cras_rstream_config* stream_config) {
-  cras_rstream_config_init_with_message_called++;
-}
-
-void cras_rstream_config_cleanup(struct cras_rstream_config* stream_config) {}
 
 }  // extern "C"

@@ -1382,7 +1382,6 @@ static int stream_connected(struct client_stream *stream,
 {
 	int rc, samples_prot;
 	unsigned int i;
-	struct cras_audio_format mfmt;
 	struct cras_shm_info header_info, samples_info;
 
 	if (msg->err || num_fds != 2) {
@@ -1391,8 +1390,6 @@ static int stream_connected(struct client_stream *stream,
 		rc = msg->err;
 		goto err_ret;
 	}
-
-	unpack_cras_audio_format(&mfmt, &msg->format);
 
 	rc = cras_shm_info_init_with_fd(stream_fds[0], cras_shm_header_size(),
 					&header_info);

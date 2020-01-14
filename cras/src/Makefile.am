@@ -145,6 +145,7 @@ cras_server_SOURCES = \
 	server/cras_playback_rclient.c \
 	server/cras_capture_rclient.c \
 	server/cras_rstream.c \
+	server/cras_rstream_config.c \
 	server/cras_server_metrics.c \
 	server/cras_system_state.c \
 	server/cras_tm.c \
@@ -921,26 +922,30 @@ rate_estimator_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 	 -I$(top_srcdir)/src/server/rust/src/headers
 rate_estimator_unittest_LDADD = $(CRAS_RUST) -lgtest -ldl -lpthread
 
-control_rclient_unittest_SOURCES = tests/control_rclient_unittest.cc
+control_rclient_unittest_SOURCES = tests/control_rclient_unittest.cc \
+				   server/cras_rstream_config.c
 control_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS)
 control_rclient_unittest_LDADD = -lgtest -lpthread
 
-playback_rclient_unittest_SOURCES = tests/playback_rclient_unittest.cc
+playback_rclient_unittest_SOURCES = tests/playback_rclient_unittest.cc \
+				    server/cras_rstream_config.c
 playback_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS)
 playback_rclient_unittest_LDADD = -lgtest -lpthread
 
-capture_rclient_unittest_SOURCES = tests/capture_rclient_unittest.cc
+capture_rclient_unittest_SOURCES = tests/capture_rclient_unittest.cc \
+				   server/cras_rstream_config.c
 capture_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS)
 capture_rclient_unittest_LDADD = -lgtest -lpthread
 
 rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \
-	common/cras_shm.c tests/metrics_stub.cc $(CRAS_SELINUX_UNITTEST_SOURCES)
+	common/cras_shm.c tests/metrics_stub.cc \
+	server/cras_rstream_config.c $(CRAS_SELINUX_UNITTEST_SOURCES)
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server $(SELINUX_CFLAGS)
 rstream_unittest_LDADD = $(SELINUX_LIBS) \

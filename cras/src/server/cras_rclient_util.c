@@ -144,14 +144,13 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 		goto reply_err;
 	}
 
-	unpack_cras_audio_format(&remote_fmt, &msg->format);
+	remote_fmt = unpack_cras_audio_format(&msg->format);
 
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);
 
-	cras_rstream_config_init_with_message(client, msg, &aud_fd,
-					      &client_shm_fd, &remote_fmt,
-					      &stream_config);
+	stream_config = cras_rstream_config_init_with_message(
+		client, msg, &aud_fd, &client_shm_fd, &remote_fmt);
 	rc = stream_list_add(cras_iodev_list_get_stream_list(), &stream_config,
 			     &stream);
 	if (rc)
