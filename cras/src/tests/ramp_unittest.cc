@@ -315,6 +315,22 @@ TEST(RampTestSuite, RampDownWhileHalfWayRampUp) {
   cras_ramp_destroy(ramp);
 }
 
+TEST(RampTestSuite, NullWontCrash) {
+  float from;
+  float to;
+  int duration_frames = 48000;
+  int rc = 0;
+  struct cras_ramp* ramp = NULL;
+
+  ResetStubData();
+
+  from = 0.0;
+  to = 1.0;
+  rc = cras_mute_ramp_start(ramp, from, to, duration_frames, NULL, NULL);
+
+  EXPECT_EQ(-EINVAL, rc);
+}
+
 TEST(RampTestSuite, RampDownWhileHalfWayRampDown) {
   float from = 1.0;
   float to = 0.0;

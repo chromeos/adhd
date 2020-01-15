@@ -62,6 +62,9 @@ int cras_ramp_start(struct cras_ramp *ramp, int mute_ramp, float from, float to,
 {
 	struct cras_ramp_action action;
 
+	if (!ramp)
+		return -EINVAL;
+
 	/* if from == to == 0 means we want to mute for duration_frames */
 	if (from == to && from != 0)
 		return 0;

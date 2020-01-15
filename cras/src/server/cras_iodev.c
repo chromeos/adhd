@@ -1572,6 +1572,9 @@ int cras_iodev_set_mute(struct cras_iodev *iodev)
 
 int cras_iodev_set_ramp_mute(struct cras_iodev *odev, int ramp_mute)
 {
+	if (!odev->ramp)
+		return 0;
+
 	if (ramp_mute) {
 		if (output_should_mute(odev))
 			return 0;
