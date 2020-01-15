@@ -242,9 +242,6 @@ static int encode_a2dp_packet(struct a2dp_io *a2dpio)
 			&a2dpio->a2dp, buf_read_pointer(a2dpio->pcm_buf),
 			buf_readable(a2dpio->pcm_buf), format_bytes,
 			cras_bt_transport_write_mtu(a2dpio->transport));
-		ATLOG(atlog, AUDIO_THREAD_A2DP_ENCODE, processed,
-		      buf_queued(a2dpio->pcm_buf),
-		      buf_readable(a2dpio->pcm_buf));
 		if (processed == -ENOSPC || processed == 0)
 			break;
 		if (processed < 0)
