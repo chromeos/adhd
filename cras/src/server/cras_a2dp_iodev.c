@@ -20,6 +20,7 @@
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
 #include "cras_audio_area.h"
+#include "cras_audio_thread_monitor.h"
 #include "cras_bt_device.h"
 #include "cras_iodev.h"
 #include "cras_util.h"
@@ -27,6 +28,7 @@
 #include "rtp.h"
 #include "utlist.h"
 
+#define A2DP_DROP_EVENT_COUNT_THRESHOLD 3
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 #define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)
 
@@ -310,6 +312,11 @@ static void possibly_drop_blocks(struct a2dp_io *a2dpio)
 	}
 	ATLOG(atlog, AUDIO_THREAD_A2DP_DROP, buf_queued(a2dpio->pcm_buf),
 	      drop_count, 0);
+
+	/* Dropping three blocks typically means 50ms (= 3 * 900 / 48000)
+	 * of data. */
+	if (drop_count > A2DP_DROP_EVENT_COUNT_THRESHOLD)
+		cras_audio_thread_event_a2dp_drop();
 }
 
 /*
