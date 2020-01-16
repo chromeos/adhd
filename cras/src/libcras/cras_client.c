@@ -1500,14 +1500,14 @@ static int client_thread_add_stream(struct cras_client *client,
 				       "cras_client: add_stream: No hotword dev");
 				return hotword_idx;
 			} else {
-				dev_idx = hotword_idx;
+				dev_idx = (uint32_t)hotword_idx;
 			}
 		}
 		/* A known Use case for client to pin hotword stream on a not
 		 * hotword device is to use internal mic for Assistant to work
 		 * on board without usable DSP hotwording. We assume there will
 		 * be only one hotword device exists. */
-		else if (dev_idx != hotword_idx) {
+		else if (dev_idx != (uint32_t)hotword_idx) {
 			/* Unmask the flag to fallback to normal pinned stream
 			 * on specified device. */
 			stream->flags &= ~HOTWORD_STREAM;
