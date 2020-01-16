@@ -126,11 +126,12 @@ static void cmd_reload_ini()
 	struct ini *old_ini = ini;
 	struct cras_dsp_context *ctx;
 
-	ini = cras_dsp_ini_create(ini_filename);
-	if (!ini) {
+	struct ini *new_ini = cras_dsp_ini_create(ini_filename);
+	if (!new_ini) {
 		syslog(LOG_DEBUG, "cannot create dsp ini");
 		return;
 	}
+	ini = new_ini;
 
 	DL_FOREACH (context_list, ctx) {
 		cmd_load_pipeline(ctx, ini);
