@@ -2258,9 +2258,6 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 		input_node->pcm_name = strdup(section->pcm_name);
 	}
 
-	if (section->jack_type && !strcmp(section->jack_type, "always"))
-		aio->jack_always_plugged = 1;
-
 	/* Find any jack controls for this device. */
 	rc = cras_alsa_jack_list_add_jack_for_section(aio->jack_list, section,
 						      &jack);
@@ -2278,6 +2275,9 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 		} else if (input_node) {
 			input_node->jack = jack;
 		}
+	} else if (aio->card_type == ALSA_CARD_TYPE_USB) {
+		/* No jack is found, assume device is always plugged */
+		aio->jack_always_plugged = 1;
 	}
 	return 0;
 }
