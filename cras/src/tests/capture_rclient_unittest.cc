@@ -304,4 +304,8 @@ int stream_list_add(struct stream_list* list,
   return ret;
 }
 
+bool cras_audio_format_valid(const struct cras_audio_format* fmt) {
+  return true;
+}
+
 }  // extern "C"

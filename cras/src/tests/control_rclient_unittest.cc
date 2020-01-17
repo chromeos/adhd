@@ -992,4 +992,8 @@ void cras_observer_remove(struct cras_observer_client* client) {
   cras_observer_remove_called++;
 }
 
+bool cras_audio_format_valid(const struct cras_audio_format* fmt) {
+  return true;
+}
+
 }  // extern "C"

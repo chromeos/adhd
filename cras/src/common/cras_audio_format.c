@@ -71,6 +71,17 @@ int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
 	return 0;
 }
 
+bool cras_audio_format_valid(const struct cras_audio_format *fmt)
+{
+	int i;
+	for (i = 0; i < CRAS_CH_MAX; i++) {
+		if (fmt->channel_layout[i] >= (int)fmt->num_channels) {
+			return false;
+		}
+	}
+	return true;
+}
+
 /* Destroy an audio format struct created with cras_audio_format_crate. */
 void cras_audio_format_destroy(struct cras_audio_format *fmt)
 {

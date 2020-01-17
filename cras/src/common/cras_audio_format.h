@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -143,6 +144,9 @@ struct cras_audio_format *cras_audio_format_create(snd_pcm_format_t format,
 
 /* Destroy an audio format struct created with cras_audio_format_crate. */
 void cras_audio_format_destroy(struct cras_audio_format *fmt);
+
+/* Returns true if the audio format is valid */
+bool cras_audio_format_valid(const struct cras_audio_format *fmt);
 
 /* Sets the channel layout for given format.
  *    format - The format structure to carry channel layout info

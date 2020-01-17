@@ -136,6 +136,10 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 
 	rc = rclient_validate_stream_connect_params(client, msg, aud_fd,
 						    client_shm_fd);
+	remote_fmt = unpack_cras_audio_format(&msg->format);
+	if (rc == 0 && !cras_audio_format_valid(&remote_fmt)) {
+		rc = -EINVAL;
+	}
 	if (rc) {
 		if (client_shm_fd >= 0)
 			close(client_shm_fd);
@@ -143,8 +147,6 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 			close(aud_fd);
 		goto reply_err;
 	}
-
-	remote_fmt = unpack_cras_audio_format(&msg->format);
 
 	/* When full, getting an error is preferable to blocking. */
 	cras_make_fd_nonblocking(aud_fd);
