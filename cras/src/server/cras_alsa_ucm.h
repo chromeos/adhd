@@ -418,6 +418,30 @@ const char *ucm_get_jack_name_for_dev(struct cras_use_case_mgr *mgr,
 const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
 				      const char *dev);
 
+/* Gets the jack dev of this device on the card.
+ *
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for jack name.
+ * Returns:
+ *    A pointer to the allocated string containing the input jack name, or NULL
+ *    if no jack name is found.
+ */
+const char *ucm_get_jack_dev_for_dev(struct cras_use_case_mgr *mgr,
+				     const char *dev);
+
+/* Gets the jack control of this device on the card.
+ *
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for jack type.
+ * Returns:
+ *    A pointer to the allocated string containing the alsa jack name, or NULL
+ *    if no jack type is found or the found jack type is invalid.
+ */
+const char *ucm_get_jack_control_for_dev(struct cras_use_case_mgr *mgr,
+					 const char *dev);
+
 /* Gets the jack switch number for this device.
  * Some sound cards can detect multiple types of connections into the
  * audio jack - for example distinguish between line-out and headphones

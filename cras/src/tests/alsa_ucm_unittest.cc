@@ -1030,6 +1030,54 @@ TEST(AlsaUcm, GetJackNameForDevice) {
   free((void*)jack_name_2);
 }
 
+TEST(AlsaUcm, GetJackDevForDevice) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  const char *jack_name_1, *jack_name_2;
+  const char* devices[] = {"Dev1", "Comment for Dev1", "Dev2",
+                           "Comment for Dev2"};
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=JackDev/Dev1/HiFi";
+  std::string value_1 = "JackDev1";
+
+  snd_use_case_get_value[id_1] = value_1;
+  jack_name_1 = ucm_get_jack_dev_for_dev(mgr, "Dev1");
+  jack_name_2 = ucm_get_jack_dev_for_dev(mgr, "Dev2");
+
+  EXPECT_EQ(0, strcmp(jack_name_1, value_1.c_str()));
+  EXPECT_EQ(NULL, jack_name_2);
+
+  free((void*)jack_name_1);
+  free((void*)jack_name_2);
+}
+
+TEST(AlsaUcm, GetJackControlForDevice) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  const char *jack_name_1, *jack_name_2;
+  const char* devices[] = {"Dev1", "Comment for Dev1", "Dev2",
+                           "Comment for Dev2"};
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=JackControl/Dev1/HiFi";
+  std::string value_1 = "JackControl1";
+
+  snd_use_case_get_value[id_1] = value_1;
+  jack_name_1 = ucm_get_jack_control_for_dev(mgr, "Dev1");
+  jack_name_2 = ucm_get_jack_control_for_dev(mgr, "Dev2");
+
+  EXPECT_EQ(0, strcmp(jack_name_1, value_1.c_str()));
+  EXPECT_EQ(NULL, jack_name_2);
+
+  free((void*)jack_name_1);
+  free((void*)jack_name_2);
+}
+
 TEST(AlsaUcm, GetJackTypeForDevice) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   const char *jack_type_1, *jack_type_2, *jack_type_3, *jack_type_4;

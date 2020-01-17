@@ -15,6 +15,8 @@
 
 static const char jack_var[] = "JackName";
 static const char jack_type_var[] = "JackType";
+static const char jack_control_var[] = "JackControl";
+static const char jack_dev_var[] = "JackDev";
 static const char jack_switch_var[] = "JackSwitch";
 static const char edid_var[] = "EDIDFile";
 static const char cap_var[] = "CaptureControl";
@@ -581,6 +583,11 @@ char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
 
 	section_names = ucm_get_devices_for_var(mgr, jack_var, jack, direction);
 
+	/* Temp work around for UCM refactor */
+	if (!section_names)
+		section_names = ucm_get_devices_for_var(mgr, jack_dev_var, jack,
+							direction);
+
 	DL_FOREACH (section_names, c) {
 		if (!strcmp(c->name, "Mic")) {
 			/* Skip mic section for output */
@@ -860,8 +867,10 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 		enum CRAS_STREAM_DIRECTION dir = CRAS_STREAM_UNDEFINED;
 		int dev_idx = -1;
 		int dependent_dev_idx = -1;
-		const char *jack_name;
-		const char *jack_type;
+		const char *jack_name = NULL;
+		const char *jack_type = NULL;
+		const char *jack_dev;
+		const char *jack_control;
 		const char *mixer_name;
 		struct mixer_name *m_name;
 		int rc;
@@ -912,13 +921,29 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 
 		jack_name = ucm_get_jack_name_for_dev(mgr, dev_name);
 		jack_type = ucm_get_jack_type_for_dev(mgr, dev_name);
+		jack_dev = ucm_get_jack_dev_for_dev(mgr, dev_name);
+		jack_control = ucm_get_jack_control_for_dev(mgr, dev_name);
 		mixer_name = ucm_get_mixer_name_for_dev(mgr, dev_name);
+
+		if (!jack_name) {
+			if (jack_dev) {
+				jack_name = strdup(jack_dev);
+				jack_type = strdup("gpio");
+			} else if (jack_control) {
+				jack_name = strdup(jack_control);
+				jack_type = strdup("hctl");
+			}
+		}
 
 		dev_sec = ucm_section_create(dev_name, pcm_name, dev_idx,
 					     dependent_dev_idx, dir, jack_name,
 					     jack_type);
 		if (pcm_name)
 			free((void *)pcm_name);
+		if (jack_dev)
+			free((void *)jack_dev);
+		if (jack_control)
+			free((void *)jack_control);
 		if (jack_name)
 			free((void *)jack_name);
 		if (jack_type)
@@ -1145,6 +1170,33 @@ const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
 			free((void *)name);
 		return NULL;
 	}
+
+	return name;
+}
+
+const char *ucm_get_jack_control_for_dev(struct cras_use_case_mgr *mgr,
+					 const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, jack_control_var, dev, uc_verb(mgr), &name);
+	if (rc)
+		return NULL;
+
+	return name;
+}
+
+const char *ucm_get_jack_dev_for_dev(struct cras_use_case_mgr *mgr,
+				     const char *dev)
+{
+	const char *name = NULL;
+	int rc;
+
+	rc = get_var(mgr, jack_dev_var, dev, uc_verb(mgr), &name);
+	if (rc)
+		return NULL;
+
 	return name;
 }
 
