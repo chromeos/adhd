@@ -621,6 +621,106 @@ static int add_control_by_name(struct cras_alsa_mixer *cmix,
 	return 0;
 }
 
+/* Combine multiple headphone controls into one.
+ *
+ * Most devices have just one headphone jack with a corresponding
+ * volume control and mute switch. Looking at the output of `amixer
+ * controls` you might see something like this:
+ *
+ *     numid=25,iface=CARD,name='Headphone Jack'
+ *     numid=4,iface=MIXER,name='Headphone Playback Switch'
+ *     numid=3,iface=MIXER,name='Headphone Playback Volume'
+ *
+ * This gets further simplified in the simple controls, so `amixer
+ * scontrols` will have a single control combining the playback switch
+ * and volume:
+ *
+ *     Simple mixer control 'Headphone',0
+ *
+ * Some devices have an optional dock that has its own headphone
+ * jack. Now things get more complicated, because the two headphone
+ * jacks can have separate mute switches but a shared volume
+ * control. Now the `amixer controls` look like this:
+ *
+ *     numid=24,iface=CARD,name='Dock Headphone Jack'
+ *     numid=25,iface=CARD,name='Headphone Jack'
+ *     numid=4,iface=MIXER,name='Headphone Playback Switch'
+ *     numid=5,iface=MIXER,name='Headphone Playback Switch',index=1
+ *     numid=3,iface=MIXER,name='Headphone Playback Volume'
+ *
+ * And the `amixer scontrols` look like this:
+ *
+ *     Simple mixer control 'Headphone',0
+ *     Simple mixer control 'Headphone',1
+ *
+ * Both of the simple mixer controls have a mute switch, but only the
+ * first one has a volume control, but that volume control actually
+ * controls both the dock and regular headphone outputs.
+ *
+ * When a headphone is plugged in, cras is supposed to mute the
+ * speaker control, unmute the headphone control, and raise the
+ * headphone volume. It uses a simple substring search to match jacks
+ * with outputs. See `find_jack_controls` where it calls
+ * `cras_alsa_mixer_get_output_matching_name`. This is basically
+ * matching the "Headphone Jack" control (which reports whether the
+ * headphones are plugged in or not) with the first simple mixer
+ * control that contains the string "Headphone". So now whichever
+ * headphone jack is plugged in, the first simple Headphone control
+ * will get unmuted and volume raised. On at least some models (such
+ * as the Lenovo x240) the first headphone control is for the dock
+ * headphone control, so when plugging into the regular headphone jack
+ * you don't get any sound.
+ *
+ * To fix this, search all of the mixer output controls for the ones
+ * named "Headphone". If there's more than one, take all of the mixer
+ * control elements (these are things like left and right channel
+ * volume and mute switch) and add them to the first headphone
+ * control. Then, delete the additional control.
+ *
+ * This fix does result in a little less control for the user compared
+ * to some ideal fix. If they have a dock, they won't be able to see
+ * separate Headphone and Dock Headphone outputs in the audio menu;
+ * they'll just get a single Headphone output that controls both. We
+ * could potentially fix this by modifying the kernel such that the
+ * dock headphone controls were named with a "Dock" prefix, then
+ * modifying cras to know about Dock Headphones, and also tie the
+ * volume controls to both the Dock Headphone output and the regular
+ * Headphone output. This is probably more complication than we need
+ * to handle for now though, considering that although we do support
+ * devices that have optional docks, we don't actually support any
+ * docks right now.  */
+static void combine_headphone_controls(struct cras_alsa_mixer *cmix)
+{
+	struct mixer_control *control;
+	struct mixer_control *first_headphone_control = NULL;
+
+	DL_FOREACH (cmix->output_controls, control) {
+		/* Skip non-headphone controls */
+		if (strcmp(control->name, "Headphone") != 0) {
+			continue;
+		}
+
+		if (first_headphone_control) {
+			syslog(LOG_INFO,
+			       "Removing additional headphone control\n");
+
+			/* Move the control elements from this control to the first
+			 * headphone control */
+			DL_CONCAT(first_headphone_control->elements,
+				  control->elements);
+			control->elements = NULL;
+
+			/* Remove this control from the mixer. According to comments in
+			 * cras/src/common/utlist.h it is safe to do this during
+			 * iteration. */
+			DL_DELETE(cmix->output_controls, control);
+			mixer_control_destroy(control);
+		} else {
+			first_headphone_control = control;
+		}
+	}
+}
+
 /*
  * Exported interface.
  */
@@ -808,6 +908,8 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 			}
 		}
 	}
+
+	combine_headphone_controls(cmix);
 
 	/* Handle coupled output names for speaker */
 	if (coupled_controls) {
