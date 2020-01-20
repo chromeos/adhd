@@ -64,7 +64,7 @@ struct a2dp_io {
 	unsigned int num_underruns;
 };
 
-static int flush_data(const struct cras_iodev *iodev);
+static int encode_and_flush(const struct cras_iodev *iodev);
 
 static int update_supported_formats(struct cras_iodev *iodev)
 {
@@ -189,7 +189,7 @@ static int enter_no_stream(struct a2dp_io *a2dpio)
 						   a2dpio->write_block);
 		a2dpio->drain_for_no_stream = 1;
 	}
-	flush_data(odev);
+	encode_and_flush(odev);
 
 	local_queued_frames = bt_local_queued_frames(odev);
 	if (local_queued_frames < a2dpio->write_block) {
@@ -206,7 +206,7 @@ static int leave_no_stream(struct a2dp_io *a2dpio)
 	struct cras_iodev *odev = &a2dpio->base;
 
 	if (!a2dpio->free_running) {
-		flush_data(odev);
+		encode_and_flush(odev);
 	} else {
 		/*
 		 * Fast forward next_flush_time to now. Then immediately fill
@@ -238,13 +238,41 @@ static int no_stream(struct cras_iodev *odev, int enable)
 		return leave_no_stream(a2dpio);
 }
 
+/* Encode as much PCM data as we can until the buffer level of a2dp_info
+ * reaches MTU.
+ * Returns:
+ *    0 for success, otherwise negative error code.
+ */
+static int encode_a2dp_packet(struct a2dp_io *a2dpio)
+{
+	int processed;
+	size_t format_bytes = cras_get_format_bytes(a2dpio->base.format);
+
+	while (buf_queued(a2dpio->pcm_buf)) {
+		processed = a2dp_encode(
+			&a2dpio->a2dp, buf_read_pointer(a2dpio->pcm_buf),
+			buf_readable(a2dpio->pcm_buf), format_bytes,
+			cras_bt_transport_write_mtu(a2dpio->transport));
+		ATLOG(atlog, AUDIO_THREAD_A2DP_ENCODE, processed,
+		      buf_queued(a2dpio->pcm_buf),
+		      buf_readable(a2dpio->pcm_buf));
+		if (processed == -ENOSPC || processed == 0)
+			break;
+		if (processed < 0)
+			return processed;
+
+		buf_increment_read(a2dpio->pcm_buf, processed);
+	}
+	return 0;
+}
+
 /*
  * To be called when a2dp socket becomes writable.
  */
 static int a2dp_socket_write_cb(void *arg)
 {
 	struct cras_iodev *iodev = (struct cras_iodev *)arg;
-	return flush_data(iodev);
+	return encode_and_flush(iodev);
 }
 
 static int configure_dev(struct cras_iodev *iodev)
@@ -275,8 +303,6 @@ static int configure_dev(struct cras_iodev *iodev)
 	if (!a2dpio->pcm_buf)
 		return -ENOMEM;
 
-	iodev->buffer_size = PCM_BUF_MAX_SIZE_FRAMES;
-
 	/* Set up the socket to hold two MTUs full of data before returning
 	 * EAGAIN.  This will allow the write to be throttled when a reasonable
 	 * amount of data is queued. */
@@ -298,6 +324,9 @@ static int configure_dev(struct cras_iodev *iodev)
 		cras_get_format_bytes(iodev->format);
 	cras_frames_to_time(a2dpio->write_block, iodev->format->frame_rate,
 			    &a2dpio->flush_period);
+
+	/* PCM buffer size plus one encoded a2dp packet. */
+	iodev->buffer_size = PCM_BUF_MAX_SIZE_FRAMES + a2dpio->write_block;
 
 	/*
 	 * Buffer level less than one write_block can't be send over a2dp
@@ -383,13 +412,13 @@ static unsigned int frames_to_play_in_sleep(struct cras_iodev *iodev,
 	return a2dpio->write_block;
 }
 
-/* Flushes queued buffer, including pcm and a2dp buffer.
+/* Encodes PCM data to a2dp frames and try to flush it to the socket.
  * Returns:
  *    0 when the flush succeeded, -1 when error occurred.
  */
-static int flush_data(const struct cras_iodev *iodev)
+static int encode_and_flush(const struct cras_iodev *iodev)
 {
-	int processed;
+	int err;
 	size_t format_bytes;
 	int written = 0;
 	int queued_frames;
@@ -417,28 +446,16 @@ static int flush_data(const struct cras_iodev *iodev)
 	    (iodev->state != CRAS_IODEV_STATE_NO_STREAM_RUN))
 		return 0;
 
+	err = encode_a2dp_packet(a2dpio);
+	if (err < 0)
+		return err;
+
+do_flush:
 	/* If flush gets called before targeted next flush time, do nothing. */
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	add_timespecs(&now, &flush_wake_fuzz_ts);
 	if (!timespec_after(&now, &a2dpio->next_flush_time))
 		return 0;
-
-encode_more:
-	while (buf_queued(a2dpio->pcm_buf)) {
-		processed = a2dp_encode(
-			&a2dpio->a2dp, buf_read_pointer(a2dpio->pcm_buf),
-			buf_readable(a2dpio->pcm_buf), format_bytes,
-			cras_bt_transport_write_mtu(a2dpio->transport));
-		ATLOG(atlog, AUDIO_THREAD_A2DP_ENCODE, processed,
-		      buf_queued(a2dpio->pcm_buf),
-		      buf_readable(a2dpio->pcm_buf));
-		if (processed == -ENOSPC || processed == 0)
-			break;
-		if (processed < 0)
-			return 0;
-
-		buf_increment_read(a2dpio->pcm_buf, processed);
-	}
 
 	written = a2dp_write(&a2dpio->a2dp,
 			     cras_bt_transport_fd(a2dpio->transport),
@@ -478,8 +495,13 @@ encode_more:
 	 * to min_buffer_level so that another A2DP write could causes underrun.
 	 */
 	queued_frames = buf_queued(a2dpio->pcm_buf) / format_bytes;
-	if (written && (iodev->min_buffer_level + written < queued_frames))
-		goto encode_more;
+	if (written &&
+	    (iodev->min_buffer_level + a2dpio->write_block < queued_frames)) {
+		err = encode_a2dp_packet(a2dpio);
+		if (err < 0)
+			return err;
+		goto do_flush;
+	}
 
 	return 0;
 }
@@ -528,7 +550,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 
 	buf_increment_write(a2dpio->pcm_buf, written_bytes);
 
-	return flush_data(iodev);
+	return encode_and_flush(iodev);
 }
 
 static int flush_buffer(struct cras_iodev *iodev)
