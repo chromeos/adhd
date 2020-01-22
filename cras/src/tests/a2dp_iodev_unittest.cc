@@ -389,6 +389,7 @@ TEST_F(A2dpIodev, HandleUnderrun) {
   ASSERT_EQ(1, cras_iodev_fill_odev_zeros_called);
   EXPECT_EQ(150, cras_iodev_fill_odev_zeros_frames);
 
+  iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
 }
 
