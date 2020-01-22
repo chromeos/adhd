@@ -197,7 +197,7 @@ pub trait ShmStreamSource: Send {
         buffer_size: usize,
         effects: CrasStreamEffect,
         client_shm: &SharedMemory,
-        buffer_offsets: [u32; 2],
+        buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>>;
 
     /// Get a list of file descriptors used by the implementation.
@@ -292,7 +292,7 @@ impl ShmStreamSource for NullShmStreamSource {
         buffer_size: usize,
         _effects: CrasStreamEffect,
         _client_shm: &SharedMemory,
-        _buffer_offsets: [u32; 2],
+        _buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>> {
         let new_stream = NullShmStream::new(buffer_size, num_channels, format, frame_rate);
         Ok(Box::new(new_stream))
@@ -420,7 +420,7 @@ impl ShmStreamSource for MockShmStreamSource {
         buffer_size: usize,
         _effects: CrasStreamEffect,
         _client_shm: &SharedMemory,
-        _buffer_offsets: [u32; 2],
+        _buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>> {
         let &(ref last_stream, ref cvar) = &*self.last_stream;
         let mut stream = last_stream.lock();

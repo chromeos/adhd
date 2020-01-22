@@ -59,7 +59,7 @@ struct __attribute__((__packed__)) cras_audio_shm_header {
 	int32_t callback_pending;
 	uint32_t num_overruns;
 	struct cras_timespec ts;
-	uint32_t buffer_offset[CRAS_NUM_SHM_BUFFERS];
+	uint64_t buffer_offset[CRAS_NUM_SHM_BUFFERS];
 };
 
 /* Returns the number of bytes needed to hold a cras_audio_shm_header. */
@@ -584,7 +584,7 @@ static inline unsigned cras_shm_used_frames(const struct cras_audio_shm *shm)
 }
 
 /* Returns the size of the samples shm region. */
-static inline unsigned cras_shm_samples_size(const struct cras_audio_shm *shm)
+static inline uint64_t cras_shm_samples_size(const struct cras_audio_shm *shm)
 {
 	return shm->samples_info.length;
 }

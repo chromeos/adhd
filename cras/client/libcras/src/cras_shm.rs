@@ -63,7 +63,7 @@ pub struct CrasAudioHeader<'a> {
     write_buf_idx: VolatileRef<'a, u32>,
     read_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
     write_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
-    buffer_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
+    buffer_offset: [VolatileRef<'a, u64>; CRAS_NUM_SHM_BUFFERS as usize],
 }
 
 // It is safe to send audio buffers between threads as this struct has exclusive ownership of the
@@ -376,7 +376,7 @@ impl<'a> CrasAudioHeader<'a> {
         self.check_buffer_offset(idx, offset)?;
 
         let buffer_offset = self.buffer_offset.get(idx).ok_or_else(index_out_of_range)?;
-        buffer_offset.store(offset as u32);
+        buffer_offset.store(offset as u64);
         Ok(())
     }
 
@@ -821,14 +821,14 @@ pub fn create_header_and_buffers<'a>(
     Ok((header, buffer))
 }
 
-/// Creates header from header and samples shared memory fds. Use this function
+/// Creates header from header shared memory fds. Use this function
 /// when mapping the samples shm is not necessary, for instance with a
 /// client-provided shm stream.
 pub fn create_header<'a>(
     header_fd: CrasAudioShmHeaderFd,
-    samples_fd: CrasShmFd,
+    samples_len: usize,
 ) -> io::Result<CrasAudioHeader<'a>> {
-    Ok(CrasAudioHeader::new(header_fd, samples_fd.size)?)
+    Ok(CrasAudioHeader::new(header_fd, samples_len)?)
 }
 
 /// A structure wrapping a fd which contains a shared memory area and its size.

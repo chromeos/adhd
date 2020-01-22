@@ -27,7 +27,7 @@ pub const MAX_DEBUG_DEVS: u32 = 4;
 pub const MAX_DEBUG_STREAMS: u32 = 8;
 pub const CRAS_BT_EVENT_LOG_SIZE: u32 = 1024;
 pub const CRAS_SERVER_STATE_VERSION: u32 = 2;
-pub const CRAS_PROTO_VER: u32 = 6;
+pub const CRAS_PROTO_VER: u32 = 7;
 pub const CRAS_SERV_MAX_MSG_SIZE: u32 = 256;
 pub const CRAS_CLIENT_MAX_MSG_SIZE: u32 = 256;
 pub const CRAS_MAX_HOTWORD_MODELS: u32 = 243;
@@ -2549,14 +2549,14 @@ pub struct cras_connect_message {
     pub dev_idx: u32,
     pub effects: u64,
     pub client_type: CRAS_CLIENT_TYPE,
-    pub client_shm_size: u32,
-    pub buffer_offsets: [u32; 2usize],
+    pub client_shm_size: u64,
+    pub buffer_offsets: [u64; 2usize],
 }
 #[test]
 fn bindgen_test_layout_cras_connect_message() {
     assert_eq!(
         ::std::mem::size_of::<cras_connect_message>(),
-        87usize,
+        99usize,
         concat!("Size of: ", stringify!(cras_connect_message))
     );
     assert_eq!(
@@ -2710,7 +2710,7 @@ fn bindgen_test_layout_cras_connect_message() {
         unsafe {
             &(*(::std::ptr::null::<cras_connect_message>())).buffer_offsets as *const _ as usize
         },
-        79usize,
+        83usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_connect_message),
@@ -4623,13 +4623,13 @@ pub struct cras_audio_shm_header {
     pub callback_pending: i32,
     pub num_overruns: u32,
     pub ts: cras_timespec,
-    pub buffer_offset: [u32; 2usize],
+    pub buffer_offset: [u64; 2usize],
 }
 #[test]
 fn bindgen_test_layout_cras_audio_shm_header() {
     assert_eq!(
         ::std::mem::size_of::<cras_audio_shm_header>(),
-        80usize,
+        88usize,
         concat!("Size of: ", stringify!(cras_audio_shm_header))
     );
     assert_eq!(

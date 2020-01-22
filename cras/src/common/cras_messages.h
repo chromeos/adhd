@@ -16,7 +16,7 @@
 
 /* Rev when message format changes. If new messages are added, or message ID
  * values change. */
-#define CRAS_PROTO_VER 6
+#define CRAS_PROTO_VER 7
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 #define CRAS_MAX_HOTWORD_MODELS 243
@@ -113,10 +113,10 @@ struct __attribute__((__packed__)) cras_connect_message {
 	uint32_t dev_idx; /* device to attach stream, 0 if none */
 	uint64_t effects; /* Bit map of requested effects. */
 	enum CRAS_CLIENT_TYPE client_type; /* chrome, or arc, etc. */
-	uint32_t client_shm_size; /* Size of client-provided samples shm, if any */
+	uint64_t client_shm_size; /* Size of client-provided samples shm, if any */
 	/* Initial values for shm samples buffer offsets. These will be 0 for
 	 * streams that do not use client-provided shm */
-	uint32_t buffer_offsets[2];
+	uint64_t buffer_offsets[2];
 };
 
 /*
@@ -564,8 +564,8 @@ static inline void cras_fill_client_connected(struct cras_client_connected *m,
  * Reply from server that a stream has been successfully added.
  * Two file descriptors are added, input shm followed by out shm.
  *
- * samples_shm_size is shm_max_size for old clients.
- * TODO(fletcherw) remove comment once all clients are on CRAS_PROTO_VER >= 3.
+ * |samples_shm_size| is valid for normal streams, not client-provided
+ * shm streams.
  */
 struct __attribute__((__packed__)) cras_client_stream_connected {
 	struct cras_client_message header;
@@ -585,6 +585,9 @@ cras_fill_client_stream_connected(struct cras_client_stream_connected *m,
 	m->err = err;
 	m->stream_id = stream_id;
 	pack_cras_audio_format(&m->format, format);
+	if (samples_shm_size > UINT32_MAX) {
+		samples_shm_size = UINT32_MAX;
+	}
 	m->samples_shm_size = samples_shm_size;
 	m->effects = effects;
 	m->header.id = CRAS_CLIENT_STREAM_CONNECTED;

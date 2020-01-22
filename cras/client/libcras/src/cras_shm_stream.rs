@@ -10,7 +10,7 @@ use sys_util::error;
 
 use crate::audio_socket::{AudioMessage, AudioSocket};
 use crate::cras_server_socket::CrasServerSocket;
-use crate::cras_shm::{self, CrasAudioHeader, CrasAudioShmHeaderFd, CrasShmFd};
+use crate::cras_shm::{self, CrasAudioHeader, CrasAudioShmHeaderFd};
 use crate::cras_types::StreamDirection;
 use crate::shm_streams::{BufferSet, ServerRequest, ShmStream};
 
@@ -60,7 +60,7 @@ impl<'a> CrasShmStream<'a> {
     /// * `num_channels` - The number of audio channels for the stream.
     /// * `format` - The format to use for the stream's samples.
     /// * `header_fd` - The file descriptor for the audio header shm area.
-    /// * `samples_fd` - The file descriptor for the audio samples shm area.
+    /// * `samples_len` - The size of the audio samples shm area.
     ///
     /// # Returns
     ///
@@ -68,7 +68,7 @@ impl<'a> CrasShmStream<'a> {
     ///
     /// # Errors
     ///
-    /// * If `header_fd` and `samples_fd` could not be successfully mmapped.
+    /// * If `header_fd` could not be successfully mmapped.
     pub fn try_new(
         stream_id: u32,
         server_socket: CrasServerSocket,
@@ -77,9 +77,9 @@ impl<'a> CrasShmStream<'a> {
         num_channels: usize,
         format: SampleFormat,
         header_fd: CrasAudioShmHeaderFd,
-        samples_fd: CrasShmFd,
+        samples_len: usize,
     ) -> Result<Self, Box<dyn error::Error>> {
-        let header = cras_shm::create_header(header_fd, samples_fd)?;
+        let header = cras_shm::create_header(header_fd, samples_len)?;
         Ok(Self {
             stream_id,
             server_socket,

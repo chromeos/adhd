@@ -132,6 +132,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 	struct cras_audio_format remote_fmt;
 	struct cras_rstream_config stream_config;
 	int rc, header_fd, samples_fd;
+	size_t samples_size;
 	int stream_fds[2];
 
 	rc = rclient_validate_stream_connect_params(client, msg, aud_fd,
@@ -160,11 +161,23 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 
 	/* Tell client about the stream setup. */
 	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
-	cras_fill_client_stream_connected(
-		&stream_connected, 0, /* No error. */
-		msg->stream_id, &remote_fmt,
-		cras_rstream_get_samples_shm_size(stream),
-		cras_rstream_get_effects(stream));
+
+	// Check that shm size is at most UINT32_MAX for non-shm streams.
+	samples_size = cras_rstream_get_samples_shm_size(stream);
+	if (samples_size > UINT32_MAX && client_shm_fd < 0) {
+		syslog(LOG_ERR,
+		       "Non client-provided shm stream has samples shm larger "
+		       "than uint32_t: %zu",
+		       samples_size);
+		if (aud_fd >= 0)
+			close(aud_fd);
+		rc = -EINVAL;
+		goto cleanup_config;
+	}
+	cras_fill_client_stream_connected(&stream_connected, 0, /* No error. */
+					  msg->stream_id, &remote_fmt,
+					  samples_size,
+					  cras_rstream_get_effects(stream));
 	reply = &stream_connected.header;
 
 	rc = cras_rstream_get_shm_fds(stream, &header_fd, &samples_fd);

@@ -593,7 +593,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
         buffer_size: usize,
         effects: CRAS_STREAM_EFFECT,
         client_shm: &SharedMemory,
-        buffer_offsets: [u32; 2],
+        buffer_offsets: [u64; 2],
     ) -> std::result::Result<Box<dyn ShmStream>, Box<dyn error::Error>> {
         if direction == StreamDirection::Capture && !self.cras_capture {
             return Ok(Box::new(NullShmStream::new(
@@ -628,7 +628,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
             dev_idx: CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
             effects: effects.into(),
             client_type: self.client_type,
-            client_shm_size: client_shm.size() as u32,
+            client_shm_size: client_shm.size(),
             buffer_offsets,
         };
 
@@ -642,7 +642,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
 
         loop {
             let result = CrasClient::wait_for_message(&mut self.server_socket)?;
-            if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
+            if let ServerResult::StreamConnected(_stream_id, header_fd, _samples_fd) = result {
                 let audio_socket = AudioSocket::new(sock1);
                 let stream = CrasShmStream::try_new(
                     stream_id,
@@ -652,7 +652,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
                     num_channels,
                     format,
                     header_fd,
-                    samples_fd,
+                    client_shm.size() as usize,
                 )?;
                 return Ok(Box::new(stream));
             }

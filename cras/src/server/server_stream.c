@@ -49,7 +49,7 @@ void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx)
 {
 	int audio_fd = -1;
 	int client_shm_fd = -1;
-	uint32_t buffer_offsets[2] = { 0, 0 };
+	uint64_t buffer_offsets[2] = { 0, 0 };
 
 	if (stream_config) {
 		syslog(LOG_ERR, "server stream already exists, dev %u",

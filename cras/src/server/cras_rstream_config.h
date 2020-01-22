@@ -69,7 +69,7 @@ void cras_rstream_config_init(
 	uint32_t effects, const struct cras_audio_format *format,
 	size_t buffer_frames, size_t cb_threshold, int *audio_fd,
 	int *client_shm_fd, size_t client_shm_size,
-	const uint32_t buffer_offsets[2],
+	const uint64_t buffer_offsets[2],
 	struct cras_rstream_config *stream_config);
 
 /* Fills cras_rstream_config with given parameters and a cras_connect_message.
