@@ -347,9 +347,21 @@ static int apple_accessory_state_change(struct hfp_slc_handle *handle,
 	tokens = strdup(cmd);
 	strtok(tokens, "=");
 	num = strtok(NULL, ",");
+	if (!num) {
+		free(tokens);
+		return hfp_send(handle, AT_CMD("ERROR"));
+	}
+
 	for (i = 0; i < atoi(num); i++) {
 		key = strtok(NULL, ",");
 		val = strtok(NULL, ",");
+		if (!key || !val) {
+			syslog(LOG_WARNING,
+			       "IPHONEACCEV: Expected %d kv pairs but got %d",
+			       atoi(num), i);
+			break;
+		}
+
 		if (atoi(key) == 1) {
 			level = atoi(val);
 			if (level >= 0 && level < 10)
