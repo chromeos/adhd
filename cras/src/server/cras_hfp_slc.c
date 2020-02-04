@@ -21,7 +21,7 @@
 
 /* The timeout between service level initialized and codec negotiation
  * completed. */
-#define CODEC_NEGOTIATION_TIMEOUT_MS 500
+#define CODEC_NEGOTIATION_TIMEOUT_MS 10000
 #define SLC_BUF_SIZE_BYTES 256
 
 /* Indicator update command response and indicator indices.
@@ -251,6 +251,7 @@ static void initialize_slc_handle(struct cras_timer *timer, void *arg)
 	 */
 	if ((handle->selected_codec == HFP_CODEC_UNUSED) &&
 	    handle->hf_codec_supported[HFP_CODEC_ID_MSBC]) {
+		syslog(LOG_ERR, "Failed to enable mSBC, fallback to CVSD");
 		handle->preferred_codec = HFP_CODEC_ID_CVSD;
 		select_preferred_codec(handle);
 	}
