@@ -198,6 +198,8 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 	int rc, cmd_len;
 
 	cmd_len = strlen(cmd);
+	if (cmd_len < 4)
+		goto error_out;
 
 	if (cmd[3] == '>') {
 		/* Handle memory dial. Extract memory location from command
@@ -218,6 +220,10 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 
 	handle->telephony->callsetup = 2;
 	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 2);
+
+error_out:
+	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	return hfp_send(handle, AT_CMD("ERROR"));
 }
 
 /* AT+VTS command to generate a DTMF code. Mandatory per spec 4.27. */
@@ -397,6 +403,9 @@ static int apple_supported_features(struct hfp_slc_handle *handle,
 
 	strtok(NULL, ",");
 	features = strtok(NULL, ",");
+	if (!features)
+		goto error_out;
+
 	apple_features = atoi(features);
 
 	if (apple_features & APL_BATTERY)
@@ -408,6 +417,11 @@ static int apple_supported_features(struct hfp_slc_handle *handle,
 	err = hfp_send(handle, buf);
 	free(tokens);
 	return err;
+
+error_out:
+	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	free(tokens);
+	return hfp_send(handle, AT_CMD("ERROR"));
 }
 
 /* Handles the event when headset reports its available codecs list. */
@@ -697,8 +711,13 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 	tokens = strdup(cmd);
 	strtok(tokens, "=");
 	key = strtok(NULL, ",");
+	if (!key)
+		goto error_out;
+
 	if (atoi(key) == 2) {
 		val = strtok(NULL, ",");
+		if (!val)
+			goto error_out;
 		level = atoi(val);
 		if (level >= 0 && level < 100)
 			cras_server_metrics_hfp_battery_report(
@@ -709,6 +728,11 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 	}
 	free(tokens);
 	return hfp_send(handle, AT_CMD("OK"));
+
+error_out:
+	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	free(tokens);
+	return hfp_send(handle, AT_CMD("ERROR"));
 }
 
 /* AT+VGM and AT+VGS command reports the current mic and speaker gain
@@ -760,6 +784,8 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 	tokens = strdup(cmd);
 	strtok(tokens, "=");
 	features = strtok(NULL, ",");
+	if (!features)
+		goto error_out;
 
 	hf_features = atoi(features);
 	BTLOG(btlog, BT_HFP_SUPPORTED_FEATURES, 0, hf_features);
@@ -780,6 +806,11 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 		return err;
 
 	return hfp_send(handle, AT_CMD("OK"));
+
+error_out:
+	free(tokens);
+	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	return hfp_send(handle, AT_CMD("ERROR"));
 }
 
 int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
@@ -947,6 +978,9 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 				      hfp_slc_disconnect_cb disconnect_cb)
 {
 	struct hfp_slc_handle *handle;
+
+	if (!disconnect_cb)
+		return NULL;
 
 	handle = (struct hfp_slc_handle *)calloc(1, sizeof(*handle));
 	if (!handle)
