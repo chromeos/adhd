@@ -18,3 +18,4 @@ make -j$(nproc)
 
 # Copy fuzzer to /out/ directory
 cp $SRC/adhd/cras/src/cras_rclient_message_fuzzer $OUT/rclient_message
+cp $SRC/adhd/cras/src/cras_hfp_slc_fuzzer $OUT/cras_hfp_slc_fuzzer

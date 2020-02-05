@@ -330,21 +330,18 @@ $(hide_install)-asound_module_ctl_crasLTLIBRARIES: install-libLTLIBRARIES
 # ==== Fuzzer section
 if HAVE_FUZZER
 FUZZERS = \
-	cras_rclient_message_fuzzer
+	cras_rclient_message_fuzzer \
+	cras_hfp_slc_fuzzer
+
 noinst_PROGRAMS += $(FUZZERS)
 
-cras_rclient_message_fuzzer_SOURCES = \
-	fuzz/rclient_message.cc
-
-cras_rclient_message_fuzzer_CPPFLAGS = $(COMMON_CPPFLAGS) \
+FUZZER_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS)
 
-cras_rclient_message_fuzzer_LDFLAGS = $(FUZZER_LDFLAGS)
-
-cras_rclient_message_fuzzer_LDADD = \
+FUZZER_LDADD = \
 	libcrasmix.la \
 	libcrasserver.la \
 	$(CRAS_SSE4_2) \
@@ -357,6 +354,20 @@ cras_rclient_message_fuzzer_LDADD = \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS) \
 	$(WEBRTC_APM_LIBS)
+
+cras_rclient_message_fuzzer_SOURCES = \
+	fuzz/rclient_message.cc
+
+cras_rclient_message_fuzzer_CPPFLAGS = $(FUZZER_CPPFLAGS)
+cras_rclient_message_fuzzer_LDFLAGS = $(FUZZER_LDFLAGS)
+cras_rclient_message_fuzzer_LDADD = $(FUZZER_LDADD)
+
+cras_hfp_slc_fuzzer_SOURCES = \
+	fuzz/cras_hfp_slc.cc
+
+cras_hfp_slc_fuzzer_CPPFLAGS = $(FUZZER_CPPFLAGS)
+cras_hfp_slc_fuzzer_LDFLAGS = $(FUZZER_LDFLAGS)
+cras_hfp_slc_fuzzer_LDADD = $(FUZZER_LDADD)
 endif
 
 # ==== Tests section

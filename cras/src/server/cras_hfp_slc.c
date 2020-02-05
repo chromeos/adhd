@@ -934,6 +934,12 @@ static int handle_at_command(struct hfp_slc_handle *slc_handle, const char *cmd)
 	return hfp_send(slc_handle, AT_CMD("ERROR"));
 }
 
+int handle_at_command_for_test(struct hfp_slc_handle *slc_handle,
+			       const char *cmd)
+{
+	return handle_at_command(slc_handle, cmd);
+}
+
 static void slc_watch_callback(void *arg)
 {
 	struct hfp_slc_handle *handle = (struct hfp_slc_handle *)arg;

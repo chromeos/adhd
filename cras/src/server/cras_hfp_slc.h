@@ -136,4 +136,8 @@ int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle);
  * Apple, HFP, none, or both. */
 int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle *handle);
 
+// Expose internal AT command handling for fuzzing.
+int handle_at_command_for_test(struct hfp_slc_handle *slc_handle,
+			       const char *cmd);
+
 #endif /* CRAS_HFP_SLC_H_ */
