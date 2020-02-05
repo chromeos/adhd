@@ -17,6 +17,7 @@
 #include "cras_iodev_list.h"
 #include "cras_observer.h"
 #include "cras_system_state.h"
+#include "cras_utf8.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -441,6 +442,14 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	id = node->iodev_idx;
 	id = (id << 32) | node->ionode_idx;
 	active = !!node->active;
+
+	// If dev_name is not utf8, libdbus may abort cras.
+	if (!is_utf8_string(dev_name)) {
+		syslog(LOG_ERR,
+		       "Non-utf8 device name '%s' cannot be sent via dbus",
+		       dev_name);
+		dev_name = "";
+	}
 
 	if (!dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, "{sv}",
 					      &dict))
