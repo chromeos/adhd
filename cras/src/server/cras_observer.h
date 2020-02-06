@@ -98,4 +98,8 @@ void cras_observer_notify_hotword_triggered(int64_t tv_sec, int64_t tv_nsec);
 /* Notify observers the non-empty audio state changed. */
 void cras_observer_notify_non_empty_audio_state_changed(int active);
 
+/* Notify observers the bluetooth headset battery level changed. */
+void cras_observer_notify_bt_battery_changed(const char *address,
+					     uint32_t level);
+
 #endif /* CRAS_OBSERVER_H */

@@ -10,6 +10,7 @@
 
 #include "cras_bt_device.h"
 #include "cras_bt_log.h"
+#include "cras_observer.h"
 #include "cras_telephony.h"
 #include "cras_hfp_slc.h"
 #include "cras_server_metrics.h"
@@ -67,6 +68,8 @@
  *        negotiation.
  *    hf_supports_battery_indicator - Bit map of battery indicator support of
  *    	connected HF.
+ *    hf_battery - Current battery level of HF reported by the HF. The data
+ *    range should be 0 ~ 100. Use -1 for no battery level reported.
  *    preferred_codec - CVSD or mSBC based on the situation and strategy. This
  *        need not to be equal to selected_codec because codec negotiation
  *        process may fail.
@@ -96,6 +99,7 @@ struct hfp_slc_handle {
 	bool hf_codec_supported[HFP_MAX_CODECS];
 	int hf_supports_codec_negotiation;
 	int hf_supports_battery_indicator;
+	int hf_battery;
 	int preferred_codec;
 	int selected_codec;
 	int pending_codec_negotiation;
@@ -371,13 +375,22 @@ static int apple_accessory_state_change(struct hfp_slc_handle *handle,
 
 		if (atoi(key) == 1) {
 			level = atoi(val);
-			if (level >= 0 && level < 10)
+			if (level >= 0 && level < 10) {
 				cras_server_metrics_hfp_battery_report(
 					CRAS_HFP_BATTERY_INDICATOR_APPLE);
-			else
+				level = (level + 1) * 10;
+				if (handle->hf_battery != level) {
+					handle->hf_battery = level;
+					cras_observer_notify_bt_battery_changed(
+						cras_bt_device_address(
+							handle->device),
+						(uint32_t)(level));
+				}
+			} else {
 				syslog(LOG_ERR,
 				       "Get invalid battery status from cmd:%s",
 				       cmd);
+			}
 		}
 	}
 	free(tokens);
@@ -706,7 +719,9 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 	char *tokens, *key, *val;
 	int level;
 	/* AT+BIEV= <assigned number>,<value> (Update value of indicator)
-	 * We only care about battery level, which is with assigned number 2
+	 * We only care about battery level, which is with assigned number 2.
+	 * The valid value for battery level should be 0 ~ 100 defined by the
+	 * spec.
 	 */
 	tokens = strdup(cmd);
 	strtok(tokens, "=");
@@ -719,12 +734,19 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 		if (!val)
 			goto error_out;
 		level = atoi(val);
-		if (level >= 0 && level < 100)
+		if (level >= 0 && level < 100) {
 			cras_server_metrics_hfp_battery_report(
 				CRAS_HFP_BATTERY_INDICATOR_HFP);
-		else
+			if (handle->hf_battery != level) {
+				handle->hf_battery = level;
+				cras_observer_notify_bt_battery_changed(
+					cras_bt_device_address(handle->device),
+					(uint32_t)(level));
+			}
+		} else {
 			syslog(LOG_ERR,
 			       "Get invalid battery status from cmd:%s", cmd);
+		}
 	}
 	free(tokens);
 	return hfp_send(handle, AT_CMD("OK"));
@@ -1001,6 +1023,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 	handle->preferred_codec = HFP_CODEC_ID_CVSD;
 	handle->selected_codec = HFP_CODEC_UNUSED;
 	handle->hf_supports_battery_indicator = CRAS_HFP_BATTERY_INDICATOR_NONE;
+	handle->hf_battery = -1;
 	cras_system_add_select_fd(handle->rfcomm_fd, slc_watch_callback,
 				  handle);
 

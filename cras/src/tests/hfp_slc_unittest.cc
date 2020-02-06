@@ -17,6 +17,7 @@ extern "C" {
 static struct hfp_slc_handle* handle;
 static struct cras_telephony_handle fake_telephony;
 static int cras_bt_device_update_hardware_volume_called;
+static int cras_observer_notify_bt_batter_changed_called;
 static int slc_initialized_cb_called;
 static int slc_disconnected_cb_called;
 static int cras_system_add_select_fd_called;
@@ -35,6 +36,7 @@ void ResetStubData() {
   slc_initialized_cb_called = 0;
   cras_system_add_select_fd_called = 0;
   cras_bt_device_update_hardware_volume_called = 0;
+  cras_observer_notify_bt_batter_changed_called = 0;
   slc_cb = NULL;
   slc_cb_data = NULL;
 }
@@ -286,9 +288,18 @@ int cras_system_add_select_fd(int fd,
 
 void cras_system_rm_select_fd(int fd) {}
 
+const char* cras_bt_device_address(struct cras_bt_device* device) {
+  return "";
+}
+
 void cras_bt_device_update_hardware_volume(struct cras_bt_device* device,
                                            int volume) {
   cras_bt_device_update_hardware_volume_called++;
+}
+
+void cras_observer_notify_bt_battery_changed(const char* address,
+                                             uint32_t level) {
+  cras_observer_notify_bt_batter_changed_called++;
 }
 
 /* To return fake errno */

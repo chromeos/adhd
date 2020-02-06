@@ -53,6 +53,9 @@ struct cras_observer_ops {
 	/* State regarding whether non-empty audio is being played/captured has
 	 * changed. */
 	void (*non_empty_audio_state_changed)(void *context, int non_empty);
+	/* Bluetooth headset battery level changed. */
+	void (*bt_battery_changed)(void *context, const char *address,
+				   uint32_t level);
 };
 
 #endif /* CRAS_OBSERVER_OPS_H */
