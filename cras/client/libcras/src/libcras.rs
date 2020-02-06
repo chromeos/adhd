@@ -126,14 +126,12 @@ use std::{error, fmt};
 
 use audio_streams::{
     capture::{CaptureBufferStream, DummyCaptureStream},
+    shm_streams::{NullShmStream, ShmStream, ShmStreamSource},
     BufferDrop, DummyStreamControl, PlaybackBufferStream, SampleFormat, StreamControl,
-    StreamSource,
+    StreamDirection, StreamEffect, StreamSource,
 };
 use cras_sys::gen::*;
-pub use cras_sys::gen::{
-    CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType,
-    CRAS_STREAM_EFFECT as CrasStreamEffect,
-};
+pub use cras_sys::gen::{CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType};
 pub use cras_sys::{AudioDebugInfo, CrasIodevInfo, CrasIonodeInfo};
 use sys_util::{PollContext, PollToken, SharedMemory};
 
@@ -149,10 +147,6 @@ mod cras_stream;
 use crate::cras_stream::{CrasCaptureData, CrasPlaybackData, CrasStream, CrasStreamData};
 mod cras_client_message;
 use crate::cras_client_message::*;
-pub mod cras_types;
-use crate::cras_types::{pcm_format, StreamDirection};
-pub mod shm_streams;
-use crate::shm_streams::{NullShmStream, ShmStream, ShmStreamSource};
 
 #[derive(Debug)]
 pub enum Error {
@@ -394,15 +388,8 @@ impl<'a> CrasClient<'a> {
     ) -> Result<CrasStream<'b, T>> {
         let stream_id = self.next_server_stream_id();
 
-        let pcm_format = match format {
-            SampleFormat::U8 => snd_pcm_format_t::SND_PCM_FORMAT_U8,
-            SampleFormat::S16LE => snd_pcm_format_t::SND_PCM_FORMAT_S16_LE,
-            SampleFormat::S24LE => snd_pcm_format_t::SND_PCM_FORMAT_S24_LE,
-            SampleFormat::S32LE => snd_pcm_format_t::SND_PCM_FORMAT_S32_LE,
-        };
-
         // Prepares server message
-        let audio_format = cras_audio_format_packed::new(pcm_format, rate, channel_num);
+        let audio_format = cras_audio_format_packed::new(format.into(), rate, channel_num);
         let msg_header = cras_server_message {
             length: mem::size_of::<cras_connect_message>() as u32,
             id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
@@ -443,7 +430,7 @@ impl<'a> CrasClient<'a> {
                     direction,
                     rate,
                     channel_num,
-                    pcm_format,
+                    format.into(),
                     audio_socket,
                     header_fd,
                     samples_fd,
@@ -591,7 +578,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-        effects: CRAS_STREAM_EFFECT,
+        effects: StreamEffect,
         client_shm: &SharedMemory,
         buffer_offsets: [u64; 2],
     ) -> std::result::Result<Box<dyn ShmStream>, Box<dyn error::Error>> {
@@ -608,8 +595,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
 
         // Prepares server message
         let stream_id = self.next_server_stream_id();
-        let pcm_format = pcm_format(format);
-        let audio_format = cras_audio_format_packed::new(pcm_format, frame_rate, num_channels);
+        let audio_format = cras_audio_format_packed::new(format.into(), frame_rate, num_channels);
         let msg_header = cras_server_message {
             length: mem::size_of::<cras_connect_message>() as u32,
             id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
@@ -626,7 +612,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
             flags: 0,
             format: audio_format,
             dev_idx: CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
-            effects: effects.into(),
+            effects: CRAS_STREAM_EFFECT::from(effects).into(),
             client_type: self.client_type,
             client_shm_size: client_shm.size(),
             buffer_offsets,

@@ -8,3 +8,5 @@ edition = "2018"
 path = "src/audio_streams.rs"
 
 [dependencies]
+sync = { path = "../../../platform/crosvm/sync" } # provided by ebuild
+sys_util = { path = "../../../platform/crosvm/sys_util" } # provided by ebuild

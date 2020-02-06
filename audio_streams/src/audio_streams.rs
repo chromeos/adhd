@@ -77,7 +77,22 @@ impl Display for SampleFormat {
     }
 }
 
+/// Valid directions of an audio stream.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum StreamDirection {
+    Playback,
+    Capture,
+}
+
+/// Valid effects for an audio stream.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum StreamEffect {
+    NoEffect,
+    EchoCancellation,
+}
+
 pub mod capture;
+pub mod shm_streams;
 
 /// `StreamSource` creates streams for playback or capture of audio.
 pub trait StreamSource: Send {

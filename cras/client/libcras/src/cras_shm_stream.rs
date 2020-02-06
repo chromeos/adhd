@@ -4,15 +4,16 @@
 use std::time::Duration;
 use std::{error, fmt};
 
-use audio_streams::SampleFormat;
+use audio_streams::{
+    shm_streams::{BufferSet, ServerRequest, ShmStream},
+    SampleFormat, StreamDirection,
+};
 use cras_sys::gen::CRAS_AUDIO_MESSAGE_ID;
 use sys_util::error;
 
 use crate::audio_socket::{AudioMessage, AudioSocket};
 use crate::cras_server_socket::CrasServerSocket;
 use crate::cras_shm::{self, CrasAudioHeader, CrasAudioShmHeaderFd};
-use crate::cras_types::StreamDirection;
-use crate::shm_streams::{BufferSet, ServerRequest, ShmStream};
 
 #[derive(Debug)]
 pub enum Error {

@@ -1,6 +1,7 @@
 // Copyright 2019 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+extern crate audio_streams;
 extern crate data_model;
 
 use std::convert::{TryFrom, TryInto};
@@ -17,9 +18,11 @@ pub mod gen;
 use gen::{
     _snd_pcm_format, audio_dev_debug_info, audio_message, audio_stream_debug_info,
     cras_audio_format_packed, cras_iodev_info, cras_ionode_info, cras_ionode_info__bindgen_ty_1,
-    cras_timespec, CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL, CRAS_CLIENT_TYPE, CRAS_NODE_TYPE,
-    CRAS_STREAM_DIRECTION, CRAS_STREAM_EFFECT, CRAS_STREAM_TYPE,
+    cras_timespec, snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL, CRAS_CLIENT_TYPE,
+    CRAS_NODE_TYPE, CRAS_STREAM_DIRECTION, CRAS_STREAM_EFFECT, CRAS_STREAM_TYPE,
 };
+
+use audio_streams::{SampleFormat, StreamDirection, StreamEffect};
 
 unsafe impl data_model::DataInit for gen::audio_message {}
 unsafe impl data_model::DataInit for gen::audio_debug_info {}
@@ -530,5 +533,37 @@ impl Into<u64> for CRAS_STREAM_EFFECT {
 impl CRAS_STREAM_EFFECT {
     pub fn empty() -> Self {
         CRAS_STREAM_EFFECT(0)
+    }
+}
+
+impl From<StreamDirection> for CRAS_STREAM_DIRECTION {
+    /// Convert an audio_streams StreamDirection into the corresponding CRAS_STREAM_DIRECTION.
+    fn from(direction: StreamDirection) -> Self {
+        match direction {
+            StreamDirection::Playback => CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT,
+            StreamDirection::Capture => CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
+        }
+    }
+}
+
+impl From<StreamEffect> for CRAS_STREAM_EFFECT {
+    /// Convert an audio_streams StreamEffect into the corresponding CRAS_STREAM_EFFECT.
+    fn from(effect: StreamEffect) -> Self {
+        match effect {
+            StreamEffect::NoEffect => CRAS_STREAM_EFFECT::empty(),
+            StreamEffect::EchoCancellation => CRAS_STREAM_EFFECT::APM_ECHO_CANCELLATION,
+        }
+    }
+}
+
+/// Convert an audio_streams SampleFormat into the corresponding pcm_format.
+impl From<SampleFormat> for snd_pcm_format_t {
+    fn from(format: SampleFormat) -> Self {
+        match format {
+            SampleFormat::U8 => snd_pcm_format_t::SND_PCM_FORMAT_U8,
+            SampleFormat::S16LE => snd_pcm_format_t::SND_PCM_FORMAT_S16_LE,
+            SampleFormat::S24LE => snd_pcm_format_t::SND_PCM_FORMAT_S24_LE,
+            SampleFormat::S32LE => snd_pcm_format_t::SND_PCM_FORMAT_S32_LE,
+        }
     }
 }

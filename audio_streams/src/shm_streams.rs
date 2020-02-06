@@ -7,12 +7,10 @@ use std::os::unix::io::RawFd;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use audio_streams::SampleFormat;
 use sync::{Condvar, Mutex};
 use sys_util::SharedMemory;
 
-use crate::cras_types::StreamDirection;
-use crate::CrasStreamEffect;
+use crate::{SampleFormat, StreamDirection, StreamEffect};
 
 type GenericResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -195,7 +193,7 @@ pub trait ShmStreamSource: Send {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-        effects: CrasStreamEffect,
+        effects: StreamEffect,
         client_shm: &SharedMemory,
         buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>>;
@@ -290,7 +288,7 @@ impl ShmStreamSource for NullShmStreamSource {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-        _effects: CrasStreamEffect,
+        _effects: StreamEffect,
         _client_shm: &SharedMemory,
         _buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>> {
@@ -418,7 +416,7 @@ impl ShmStreamSource for MockShmStreamSource {
         format: SampleFormat,
         _frame_rate: usize,
         buffer_size: usize,
-        _effects: CrasStreamEffect,
+        _effects: StreamEffect,
         _client_shm: &SharedMemory,
         _buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>> {
@@ -454,7 +452,7 @@ pub mod tests {
                     format,
                     44100,
                     buffer_size,
-                    CrasStreamEffect::empty(),
+                    StreamEffect::NoEffect,
                     &shm,
                     [400, 8000],
                 )
@@ -498,7 +496,7 @@ pub mod tests {
                 SampleFormat::S24LE,
                 frame_rate,
                 buffer_size,
-                CrasStreamEffect::empty(),
+                StreamEffect::NoEffect,
                 &shm,
                 [400, 8000],
             )
