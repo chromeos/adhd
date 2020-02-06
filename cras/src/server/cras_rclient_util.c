@@ -164,7 +164,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 
 	// Check that shm size is at most UINT32_MAX for non-shm streams.
 	samples_size = cras_rstream_get_samples_shm_size(stream);
-	if (samples_size > UINT32_MAX && client_shm_fd < 0) {
+	if (samples_size > UINT32_MAX && stream_config.client_shm_fd < 0) {
 		syslog(LOG_ERR,
 		       "Non client-provided shm stream has samples shm larger "
 		       "than uint32_t: %zu",
