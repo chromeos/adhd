@@ -71,6 +71,12 @@
 	"  </attribute>"                                                       \
 	"</record>"
 
+/* The supported features value in +BSRF command response of HFP AG in CRAS */
+#define BSRF_SUPPORTED_FEATURES (AG_ENHANCED_CALL_STATUS | AG_HF_INDICATORS)
+
+/* The "SupportedFeatures" attribute value of HFP AG service record in CRAS. */
+#define SDP_SUPPORTED_FEATURES 0
+
 /* Object representing the audio gateway role for HFP/HSP.
  * Members:
  *    idev - The input iodev for HFP/HSP.
@@ -259,7 +265,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	 * TODO(hychao): AND the two conditions to let bluetooth daemon
 	 * control whether to turn on WBS feature.
 	 */
-	ag_features = CRAS_AG_SUPPORTED_FEATURES;
+	ag_features = BSRF_SUPPORTED_FEATURES;
 	if (cras_system_get_bt_wbs_enabled() &&
 	    cras_bt_adapter_wbs_supported(adapter))
 		ag_features |= AG_CODEC_NEGOTIATION;
@@ -298,7 +304,7 @@ static struct cras_bt_profile cras_hfp_ag_profile = {
 	.uuid = HFP_AG_UUID,
 	.version = HFP_VERSION_1_5,
 	.role = NULL,
-	.features = CRAS_AG_SUPPORTED_FEATURES & 0x1F,
+	.features = SDP_SUPPORTED_FEATURES,
 	.record = NULL,
 	.release = cras_hfp_ag_release,
 	.new_connection = cras_hfp_ag_new_connection,
@@ -336,7 +342,7 @@ static int cras_hsp_ag_new_connection(DBusConnection *conn,
 	ag->conn = conn;
 	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
 	ag->slc_handle =
-		hfp_slc_create(rfcomm_fd, 1, CRAS_AG_SUPPORTED_FEATURES, device,
+		hfp_slc_create(rfcomm_fd, 1, BSRF_SUPPORTED_FEATURES, device,
 			       NULL, cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
 	cras_hfp_ag_slc_initialized(ag->slc_handle);
