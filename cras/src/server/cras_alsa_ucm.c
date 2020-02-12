@@ -13,8 +13,6 @@
 #include "cras_util.h"
 #include "utlist.h"
 
-static const char jack_var[] = "JackName";
-static const char jack_type_var[] = "JackType";
 static const char jack_control_var[] = "JackControl";
 static const char jack_dev_var[] = "JackDev";
 static const char jack_switch_var[] = "JackSwitch";
@@ -570,12 +568,8 @@ char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
 	struct section_name *section_names, *c;
 	char *ret = NULL;
 
-	section_names = ucm_get_devices_for_var(mgr, jack_var, jack, direction);
-
-	/* Temp work around for UCM refactor */
-	if (!section_names)
-		section_names = ucm_get_devices_for_var(mgr, jack_dev_var, jack,
-							direction);
+	section_names =
+		ucm_get_devices_for_var(mgr, jack_dev_var, jack, direction);
 
 	DL_FOREACH (section_names, c) {
 		if (!strcmp(c->name, "Mic")) {
@@ -882,20 +876,16 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 			free((void *)dependent_dev_name);
 		}
 
-		jack_name = ucm_get_jack_name_for_dev(mgr, dev_name);
-		jack_type = ucm_get_jack_type_for_dev(mgr, dev_name);
 		jack_dev = ucm_get_jack_dev_for_dev(mgr, dev_name);
 		jack_control = ucm_get_jack_control_for_dev(mgr, dev_name);
 		mixer_name = ucm_get_mixer_name_for_dev(mgr, dev_name);
 
-		if (!jack_name) {
-			if (jack_dev) {
-				jack_name = strdup(jack_dev);
-				jack_type = strdup("gpio");
-			} else if (jack_control) {
-				jack_name = strdup(jack_control);
-				jack_type = strdup("hctl");
-			}
+		if (jack_dev) {
+			jack_name = jack_dev;
+			jack_type = "gpio";
+		} else if (jack_control) {
+			jack_name = jack_control;
+			jack_type = "hctl";
 		}
 
 		dev_sec = ucm_section_create(dev_name, pcm_name, dev_idx,
@@ -907,10 +897,6 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 			free((void *)jack_dev);
 		if (jack_control)
 			free((void *)jack_control);
-		if (jack_name)
-			free((void *)jack_name);
-		if (jack_type)
-			free((void *)jack_type);
 
 		if (!dev_sec) {
 			syslog(LOG_ERR, "Failed to allocate memory.");
@@ -1102,39 +1088,6 @@ int ucm_list_section_devices_by_device_name(
 		free(c);
 	}
 	return listed;
-}
-
-const char *ucm_get_jack_name_for_dev(struct cras_use_case_mgr *mgr,
-				      const char *dev)
-{
-	const char *name = NULL;
-	int rc;
-
-	rc = get_var(mgr, jack_var, dev, uc_verb(mgr), &name);
-	if (rc)
-		return NULL;
-
-	return name;
-}
-
-const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
-				      const char *dev)
-{
-	const char *name = NULL;
-	int rc;
-
-	rc = get_var(mgr, jack_type_var, dev, uc_verb(mgr), &name);
-	if (rc)
-		return NULL;
-
-	if (strcmp(name, "hctl") && strcmp(name, "gpio")) {
-		syslog(LOG_ERR, "Unknown jack type: %s", name);
-		if (name)
-			free((void *)name);
-		return NULL;
-	}
-
-	return name;
 }
 
 const char *ucm_get_jack_control_for_dev(struct cras_use_case_mgr *mgr,
