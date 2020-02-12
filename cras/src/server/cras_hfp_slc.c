@@ -734,7 +734,7 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 		if (!val)
 			goto error_out;
 		level = atoi(val);
-		if (level >= 0 && level < 100) {
+		if (level >= 0 && level <= 100) {
 			cras_server_metrics_hfp_battery_report(
 				CRAS_HFP_BATTERY_INDICATOR_HFP);
 			if (handle->hf_battery != level) {
