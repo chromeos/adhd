@@ -43,6 +43,7 @@ use std::fmt::{self, Display};
 use std::io::{self, Write};
 use std::os::unix::io::RawFd;
 use std::result::Result;
+use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -93,6 +94,38 @@ pub enum StreamEffect {
 
 pub mod capture;
 pub mod shm_streams;
+
+impl Default for StreamEffect {
+    fn default() -> Self {
+        StreamEffect::NoEffect
+    }
+}
+
+/// Errors that are possible from a `StreamEffect`.
+#[derive(Debug)]
+pub enum StreamEffectError {
+    InvalidEffect,
+}
+
+impl error::Error for StreamEffectError {}
+
+impl Display for StreamEffectError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            StreamEffectError::InvalidEffect => write!(f, "Must be in [EchoCancellation, aec]"),
+        }
+    }
+}
+
+impl FromStr for StreamEffect {
+    type Err = StreamEffectError;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "EchoCancellation" | "aec" => Ok(StreamEffect::EchoCancellation),
+            _ => Err(StreamEffectError::InvalidEffect),
+        }
+    }
+}
 
 /// `StreamSource` creates streams for playback or capture of audio.
 pub trait StreamSource: Send {
