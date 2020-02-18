@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 extern "C" {
+#include "cras_apm_list.h"
 #include "cras_bt_log.h"
 #include "cras_dsp.h"
 #include "cras_iodev_list.h"
@@ -55,6 +56,7 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
 
   cras_observer_server_init();
   cras_mix_init(0);
+  cras_apm_list_init("/etc/cras");
   cras_iodev_list_init();
   /* For cros fuzz, emerge adhd with USE=fuzzer will copy dsp.ini.sample to
    * etc/cras. For OSS-Fuzz the Dockerfile will be responsible for copying the
