@@ -950,10 +950,12 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
 		/* If device supports start ops, device can be in open state.
 		 * Otherwise, device starts running right after opening. */
-		if (iodev->start)
+		if (iodev->start) {
 			iodev->state = CRAS_IODEV_STATE_OPEN;
-		else
+		} else {
 			iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
+			cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+		}
 	} else {
 		iodev->input_data = input_data_create(iodev);
 		/* If this is the echo reference dev, its ext_dsp_module will

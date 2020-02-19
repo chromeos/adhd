@@ -1224,6 +1224,8 @@ TEST(IoDev, OpenOutputDeviceNoStart) {
   iodev.configure_dev = configure_dev;
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.format = &audio_fmt;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
   ResetStubData();
 
   iodev.state = CRAS_IODEV_STATE_CLOSE;
@@ -1244,6 +1246,8 @@ TEST(IoDev, OpenOutputDeviceWithLowRateFmt) {
   iodev.configure_dev = configure_dev;
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.format = &audio_fmt;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
   ResetStubData();
 
   cras_audio_format low_rate_fmt = audio_fmt;
@@ -1365,6 +1369,8 @@ TEST(IoDev, AddRmStream) {
   iodev.no_stream = simple_no_stream;
   iodev.format = &audio_fmt;
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
   rstream1.cb_threshold = 800;
   stream1.stream = &rstream1;
   stream1.is_running = 0;
@@ -1418,6 +1424,8 @@ TEST(IoDev, RmStreamUpdateFetchTime) {
   iodev.no_stream = simple_no_stream;
   iodev.format = &audio_fmt;
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
   rstream1.direction = CRAS_STREAM_OUTPUT;
   rstream2.direction = CRAS_STREAM_OUTPUT;
   rstream3.direction = CRAS_STREAM_OUTPUT;
@@ -1465,6 +1473,8 @@ TEST(IoDev, StartStreams) {
   iodev1.configure_dev = configure_dev;
   iodev1.format = &audio_fmt;
   iodev1.state = CRAS_IODEV_STATE_NORMAL_RUN;
+  iodev1.get_buffer = get_buffer;
+  iodev1.put_buffer = put_buffer;
   iodev2.configure_dev = configure_dev;
   iodev2.format = &audio_fmt;
   iodev2.state = CRAS_IODEV_STATE_NORMAL_RUN;
@@ -2117,6 +2127,8 @@ TEST(IoDev, RequestReset) {
   iodev.configure_dev = configure_dev;
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.format = &audio_fmt;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
 
   iodev.state = CRAS_IODEV_STATE_CLOSE;
   iodev_buffer_size = 1024;
