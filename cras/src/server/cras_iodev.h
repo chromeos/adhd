@@ -747,10 +747,13 @@ int cras_iodev_reset_request(struct cras_iodev *iodev);
 /* Handle output underrun.
  * Args:
  *    odev[in] - The output device.
+ *    hw_level[in] - The current hw_level. Used in the debug log.
+ *    frames_written[in] - The number of written frames. Used in the debug log.
  * Returns:
  *    0 on success. Negative error code on failure.
  */
-int cras_iodev_output_underrun(struct cras_iodev *odev);
+int cras_iodev_output_underrun(struct cras_iodev *odev, unsigned int hw_level,
+			       unsigned int frames_written);
 
 /* Start ramping samples up/down on a device.
  * Args:

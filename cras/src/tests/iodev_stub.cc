@@ -150,7 +150,9 @@ int cras_iodev_odev_should_wake(const struct cras_iodev* odev) {
   return 1;
 }
 
-int cras_iodev_output_underrun(struct cras_iodev* odev) {
+int cras_iodev_output_underrun(struct cras_iodev* odev,
+                               unsigned int hw_level,
+                               unsigned int frames_written) {
   return 0;
 }
 

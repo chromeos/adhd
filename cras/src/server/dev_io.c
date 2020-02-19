@@ -1028,10 +1028,8 @@ int dev_io_playback_write(struct open_dev **odevs,
 			 * we should handle it.
 			 */
 			if (hw_level <= total_written) {
-				ATLOG(atlog, AUDIO_THREAD_UNDERRUN,
-				      adev->dev->info.idx, hw_level,
-				      total_written);
-				rc = cras_iodev_output_underrun(adev->dev);
+				rc = cras_iodev_output_underrun(
+					adev->dev, hw_level, total_written);
 				if (rc < 0) {
 					handle_dev_err(rc, odevs, adev);
 				} else {

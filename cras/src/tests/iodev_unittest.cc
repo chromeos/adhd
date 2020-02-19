@@ -2177,7 +2177,7 @@ TEST(IoDev, HandleOutputUnderrun) {
   iodev.min_cb_level = frames;
 
   // Default case, fill one block of zeros.
-  EXPECT_EQ(0, cras_iodev_output_underrun(&iodev));
+  EXPECT_EQ(0, cras_iodev_output_underrun(&iodev, 0, 0));
 
   EXPECT_EQ(frames, put_buffer_nframes);
   zeros = (int16_t*)calloc(frames * 2, sizeof(*zeros));
@@ -2187,7 +2187,7 @@ TEST(IoDev, HandleOutputUnderrun) {
 
   // Test iodev has output_underrun ops.
   iodev.output_underrun = output_underrun;
-  EXPECT_EQ(0, cras_iodev_output_underrun(&iodev));
+  EXPECT_EQ(0, cras_iodev_output_underrun(&iodev, 0, 0));
   EXPECT_EQ(1, output_underrun_called);
 }
 

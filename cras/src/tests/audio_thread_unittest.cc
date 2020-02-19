@@ -1311,7 +1311,9 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
   return 0;
 }
 
-int cras_iodev_output_underrun(struct cras_iodev* odev) {
+int cras_iodev_output_underrun(struct cras_iodev* odev,
+                               unsigned int hw_level,
+                               unsigned int frames_written) {
   cras_iodev_output_underrun_called++;
   return 0;
 }

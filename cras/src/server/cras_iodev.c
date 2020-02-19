@@ -81,7 +81,7 @@ static int default_no_stream_playback(struct cras_iodev *odev)
 
 	/* If underrun happened, handle underrun and get hw_level again. */
 	if (hw_level == 0) {
-		rc = cras_iodev_output_underrun(odev);
+		rc = cras_iodev_output_underrun(odev, hw_level, 0);
 		if (rc < 0)
 			return rc;
 
@@ -1322,8 +1322,11 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 	return 0;
 }
 
-int cras_iodev_output_underrun(struct cras_iodev *odev)
+int cras_iodev_output_underrun(struct cras_iodev *odev, unsigned int hw_level,
+			       unsigned int frames_written)
 {
+	ATLOG(atlog, AUDIO_THREAD_UNDERRUN, odev->info.idx, hw_level,
+	      frames_written);
 	cras_audio_thread_event_underrun();
 	if (odev->output_underrun)
 		return odev->output_underrun(odev);
