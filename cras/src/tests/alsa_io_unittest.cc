@@ -1860,6 +1860,7 @@ class AlsaFreeRunTestSuite : public testing::Test {
     fmt_.frame_rate = 48000;
     fmt_.num_channels = 2;
     aio.base.frames_queued = frames_queued;
+    aio.base.output_underrun = alsa_output_underrun;
     aio.base.direction = CRAS_STREAM_OUTPUT;
     aio.base.format = &fmt_;
     aio.base.buffer_size = BUFFER_SIZE;
@@ -2780,6 +2781,12 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t* handle, snd_pcm_uframes_t ahead) {
 
 int cras_iodev_default_no_stream_playback(struct cras_iodev* odev, int enable) {
   return 0;
+}
+
+int cras_iodev_output_underrun(struct cras_iodev* odev,
+                               unsigned int hw_level,
+                               unsigned int frames_written) {
+  return odev->output_underrun(odev);
 }
 
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev* iodev) {

@@ -1730,8 +1730,8 @@ static int adjust_appl_ptr_samples_remaining(struct cras_iodev *odev)
 	 * If underrun happened, handle it. Because alsa_output_underrun function
 	 * has already called adjust_appl_ptr, we don't need to call it again.
 	 */
-	if (real_hw_level < odev->min_buffer_level)
-		return odev->output_underrun(odev);
+	if (real_hw_level <= odev->min_buffer_level)
+		return cras_iodev_output_underrun(odev, real_hw_level, 0);
 
 	if (real_hw_level > aio->filled_zeros_for_draining)
 		valid_sample = real_hw_level - aio->filled_zeros_for_draining;
@@ -1783,8 +1783,8 @@ static int possibly_enter_free_run(struct cras_iodev *odev)
 	real_hw_level = rc;
 
 	/* If underrun happened, handle it and enter free run state. */
-	if (real_hw_level < odev->min_buffer_level) {
-		rc = odev->output_underrun(odev);
+	if (real_hw_level <= odev->min_buffer_level) {
+		rc = cras_iodev_output_underrun(odev, real_hw_level, 0);
 		if (rc < 0)
 			return rc;
 		aio->free_running = 1;
