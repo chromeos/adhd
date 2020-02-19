@@ -52,7 +52,6 @@ static const unsigned int PROFILE_DROP_SUSPEND_DELAY_MS = 5000;
  */
 static const unsigned int CONN_WATCH_PERIOD_MS = 2000;
 static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
-static const unsigned int PROFILE_CONN_RETRIES = 3;
 
 static const unsigned int CRAS_SUPPORTED_PROFILES =
 	CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
@@ -544,6 +543,10 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 	struct cras_tm *tm;
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
 	int rc;
+	bool a2dp_supported;
+	bool a2dp_connected;
+	bool hfp_supported;
+	bool hfp_connected;
 
 	BTLOG(btlog, BT_DEV_CONN_WATCH_CB, device->conn_watch_retries,
 	      device->profiles);
@@ -553,27 +556,34 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 	if (!device->profiles)
 		return;
 
-	/* If A2DP is not ready, try connect it after a while. */
-	if (cras_bt_device_supports_profile(device,
-					    CRAS_BT_DEVICE_PROFILE_A2DP_SINK) &&
-	    !cras_bt_device_is_profile_connected(
-		    device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK)) {
-		if (0 == device->conn_watch_retries % PROFILE_CONN_RETRIES)
+	a2dp_supported = cras_bt_device_supports_profile(
+		device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
+	a2dp_connected = cras_bt_device_is_profile_connected(
+		device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
+	hfp_supported = cras_bt_device_supports_profile(
+		device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+	hfp_connected = cras_bt_device_is_profile_connected(
+		device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+
+	/* If not both A2DP and HFP are supported, simply wait for BlueZ
+	 * to notify us about the new connection.
+	 * Otherwise, when seeing one but not the other profile is connected,
+	 * send message to ask BlueZ to connect the pending one.
+	 */
+	if (a2dp_supported && hfp_supported) {
+		/* If both a2dp and hfp are not connected, do nothing. BlueZ
+		 * should be responsible to notify connection of one profile.
+		 */
+		if (!a2dp_connected && hfp_connected)
 			cras_bt_device_connect_profile(device->conn, device,
 						       A2DP_SINK_UUID);
-		goto arm_retry_timer;
-	}
-
-	/* If HFP is not ready, try connect it after a while. */
-	if (cras_bt_device_supports_profile(
-		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE) &&
-	    !cras_bt_device_is_profile_connected(
-		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE)) {
-		if (0 == device->conn_watch_retries % PROFILE_CONN_RETRIES)
+		if (a2dp_connected && !hfp_connected)
 			cras_bt_device_connect_profile(device->conn, device,
 						       HFP_HF_UUID);
-		goto arm_retry_timer;
 	}
+
+	if (a2dp_supported != a2dp_connected || hfp_supported != hfp_connected)
+		goto arm_retry_timer;
 
 	/* Expected profiles are all connected, no more connection watch
 	 * callback will be scheduled.

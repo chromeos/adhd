@@ -15,6 +15,8 @@ extern "C" {
 #define FAKE_OBJ_PATH "/obj/path"
 }
 
+static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
+
 static struct cras_iodev* cras_bt_io_create_profile_ret;
 static struct cras_iodev* cras_bt_io_append_btio_val;
 static struct cras_ionode* cras_bt_io_get_profile_ret;
@@ -229,8 +231,9 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
   /* Schedule another timer, if A2DP not yet configured. */
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_tm_create_timer_called);
-  EXPECT_EQ(1, dbus_message_new_method_call_called);
-  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
+
+  /* ConnectProfile must not be called, since this is A2DP only case. */
+  EXPECT_EQ(0, dbus_message_new_method_call_called);
 
   cras_bt_device_a2dp_configured(device);
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
@@ -262,8 +265,9 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
   /* Schedule another timer, if HFP AG not yet intialized. */
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_tm_create_timer_called);
-  EXPECT_EQ(1, dbus_message_new_method_call_called);
-  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
+
+  /* ConnectProfile must not be called, since this is HFP only case. */
+  EXPECT_EQ(0, dbus_message_new_method_call_called);
 
   cras_bt_device_audio_gateway_initialized(device);
 
@@ -298,12 +302,19 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_tm_create_timer_called);
 
+  /* ConnectProfile must not be called, since the first profile connection
+   * should be initiated by Bluez.
+   */
+  EXPECT_EQ(0, dbus_message_new_method_call_called);
+
   cras_bt_device_audio_gateway_initialized(device);
 
   /* Schedule another timer, because A2DP is not ready. */
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(3, cras_tm_create_timer_called);
   EXPECT_EQ(0, cras_hfp_ag_start_called);
+
+  /* ConnectProfile should be called to connect A2DP, since HFP is connected */
   EXPECT_EQ(1, dbus_message_new_method_call_called);
   EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
 
@@ -372,29 +383,20 @@ TEST_F(BtDeviceTestSuite, A2dpDropped) {
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
+  cras_bt_device_audio_gateway_initialized(device);
+  cras_bt_device_a2dp_configured(device);
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
 
-  /* Schedule another timer, if HFP AG not yet intialized. */
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-  EXPECT_EQ(1, dbus_message_new_method_call_called);
-  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
-
-  cras_bt_device_a2dp_configured(device);
-
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(3, cras_tm_create_timer_called);
-
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
-  EXPECT_EQ(4, cras_tm_create_timer_called);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
 
   /* Expect suspend timer is scheduled. */
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
   EXPECT_EQ(1, cras_hfp_ag_suspend_connected_device_called);
-  EXPECT_EQ(2, dbus_message_new_method_call_called);
+  EXPECT_EQ(1, dbus_message_new_method_call_called);
   EXPECT_STREQ("Disconnect", dbus_message_new_method_call_method);
 
   cras_bt_device_remove(device);
@@ -486,17 +488,11 @@ TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
 
-  /* Schedule another timer, if HFP AG not yet intialized. */
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-  EXPECT_EQ(1, dbus_message_new_method_call_called);
-  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
-
   cras_bt_device_a2dp_configured(device);
 
-  for (int i = 0; i < 29; i++) {
+  for (int i = 0; i < CONN_WATCH_MAX_RETRIES; i++) {
     cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-    EXPECT_EQ(i + 3, cras_tm_create_timer_called);
+    EXPECT_EQ(i + 2, cras_tm_create_timer_called);
     EXPECT_EQ(0, cras_a2dp_start_called);
     EXPECT_EQ(0, cras_hfp_ag_start_called);
     EXPECT_EQ(0, cras_hfp_ag_remove_conflict_called);
