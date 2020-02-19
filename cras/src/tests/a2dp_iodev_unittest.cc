@@ -584,6 +584,7 @@ TEST_F(A2dpIodev, NoStreamState) {
   iodev->no_stream(iodev, 1);
   EXPECT_EQ(1, a2dpio->free_running);
 
+  iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
 }
 
