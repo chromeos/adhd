@@ -115,7 +115,6 @@ struct alsa_input_node {
  * jack_always_plugged - true if this node is always plugged even without jack.
  * enable_htimestamp - True when the device's htimestamp is used.
  * handle - Handle to the opened ALSA device.
- * num_underruns - Number of times we have run out of data (playback only).
  * num_severe_underruns - Number of times we have run out of data badly.
                           Unlike num_underruns which records for the duration
                           where device is opened, num_severe_underruns records
@@ -151,7 +150,6 @@ struct alsa_io {
 	int jack_always_plugged;
 	int enable_htimestamp;
 	snd_pcm_t *handle;
-	unsigned int num_underruns;
 	unsigned int num_severe_underruns;
 	snd_pcm_stream_t alsa_stream;
 	struct cras_alsa_mixer *mixer;
@@ -415,7 +413,6 @@ static int configure_dev(struct cras_iodev *iodev)
 	 */
 	if (iodev->format == NULL)
 		return -EINVAL;
-	aio->num_underruns = 0;
 	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
 	aio->severe_underrun_frames =
@@ -1749,11 +1746,7 @@ static int adjust_appl_ptr_samples_remaining(struct cras_iodev *odev)
 
 static int alsa_output_underrun(struct cras_iodev *odev)
 {
-	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
-
-	/* Update number of underruns we got. */
-	aio->num_underruns++;
 
 	/* Fill whole buffer with zeros. This avoids samples left in buffer causing
 	 * noise when device plays them. */
@@ -1851,12 +1844,6 @@ static int is_free_running(const struct cras_iodev *odev)
 	struct alsa_io *aio = (struct alsa_io *)odev;
 
 	return aio->free_running;
-}
-
-static unsigned int get_num_underruns(const struct cras_iodev *iodev)
-{
-	const struct alsa_io *aio = (const struct alsa_io *)iodev;
-	return aio->num_underruns;
 }
 
 static unsigned int get_num_severe_underruns(const struct cras_iodev *iodev)
@@ -1987,7 +1974,6 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 	iodev->get_hotword_models = get_hotword_models;
 	iodev->no_stream = no_stream;
 	iodev->is_free_running = is_free_running;
-	iodev->get_num_underruns = get_num_underruns;
 	iodev->get_num_severe_underruns = get_num_severe_underruns;
 	iodev->get_valid_frames = get_valid_frames;
 	iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;

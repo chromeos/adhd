@@ -941,6 +941,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
 	iodev->max_cb_level = 0;
 	iodev->largest_cb_level = 0;
+	iodev->num_underruns = 0;
 
 	iodev->reset_request_pending = 0;
 	iodev->state = CRAS_IODEV_STATE_OPEN;
@@ -1327,6 +1328,7 @@ int cras_iodev_output_underrun(struct cras_iodev *odev, unsigned int hw_level,
 {
 	ATLOG(atlog, AUDIO_THREAD_UNDERRUN, odev->info.idx, hw_level,
 	      frames_written);
+	odev->num_underruns++;
 	cras_audio_thread_event_underrun();
 	if (odev->output_underrun)
 		return odev->output_underrun(odev);
@@ -1438,9 +1440,7 @@ int cras_iodev_prepare_output_before_write_samples(struct cras_iodev *odev)
 
 unsigned int cras_iodev_get_num_underruns(const struct cras_iodev *iodev)
 {
-	if (iodev->get_num_underruns)
-		return iodev->get_num_underruns(iodev);
-	return 0;
+	return iodev->num_underruns;
 }
 
 unsigned int cras_iodev_get_num_severe_underruns(const struct cras_iodev *iodev)

@@ -174,7 +174,6 @@ struct cras_ionode {
  * set_hotword_model - Sets the hotword model to this iodev.
  * get_hotword_models - Gets a comma separated string of the list of supported
  *     hotword models of this iodev.
- * get_num_underruns - Gets number of underrun recorded so far.
  * get_num_severe_underruns - Gets number of severe underrun recorded since
  *                            iodev was created.
  * get_valid_frames - Gets number of valid frames in device which have not
@@ -215,6 +214,7 @@ struct cras_ionode {
  * largest_cb_level - The largest callback level of streams attached to this
  *                    device. The difference with max_cb_level is it takes all
  *                    streams into account even if they have been removed.
+ * num_underruns - Number of times we have run out of data (playback only).
  * buf_state - If multiple streams are writing to this device, then this
  *     keeps track of how much each stream has written.
  * idle_timeout - The timestamp when to close the dev after being idle.
@@ -267,7 +267,6 @@ struct cras_iodev {
 	int (*set_hotword_model)(struct cras_iodev *iodev,
 				 const char *model_name);
 	char *(*get_hotword_models)(struct cras_iodev *iodev);
-	unsigned int (*get_num_underruns)(const struct cras_iodev *iodev);
 	unsigned int (*get_num_severe_underruns)(const struct cras_iodev *iodev);
 	int (*get_valid_frames)(const struct cras_iodev *odev,
 				struct timespec *tstamp);
@@ -298,6 +297,7 @@ struct cras_iodev {
 	unsigned int max_cb_level;
 	unsigned int highest_hw_level;
 	unsigned int largest_cb_level;
+	unsigned int num_underruns;
 	struct buffer_share *buf_state;
 	struct timespec idle_timeout;
 	struct timespec open_ts;

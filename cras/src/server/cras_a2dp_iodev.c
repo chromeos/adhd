@@ -47,7 +47,6 @@
  *        iodev.
  *    write_block - How many frames of audio samples are transferred in one
  *        a2dp packet write.
- *    num_underruns - Number of times a2dp iodev have run out of data.
  */
 struct a2dp_io {
 	struct cras_iodev base;
@@ -61,7 +60,6 @@ struct a2dp_io {
 	bool drain_for_no_stream;
 	bool free_running;
 	unsigned int write_block;
-	unsigned int num_underruns;
 };
 
 static int encode_and_flush(const struct cras_iodev *iodev);
@@ -122,12 +120,6 @@ static int frames_queued(const struct cras_iodev *iodev,
 	return MIN(iodev->buffer_size, local_queued_frames);
 }
 
-static unsigned int get_num_underruns(const struct cras_iodev *iodev)
-{
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
-	return a2dpio->num_underruns;
-}
-
 /*
  * dev_io_playback_write() has the logic to detect underrun scenario
  * and calls into this underrun ops, by comparing buffer level with
@@ -137,7 +129,6 @@ static unsigned int get_num_underruns(const struct cras_iodev *iodev)
  */
 static int output_underrun(struct cras_iodev *iodev)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	int local_queued_frames = bt_local_queued_frames(iodev);
 
 	/*
@@ -156,8 +147,6 @@ static int output_underrun(struct cras_iodev *iodev)
 	 */
 	if (local_queued_frames > iodev->min_buffer_level)
 		return 0;
-
-	a2dpio->num_underruns++;
 
 	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
 }
@@ -335,7 +324,6 @@ static int configure_dev(struct cras_iodev *iodev)
 	 */
 	iodev->min_buffer_level = a2dpio->write_block;
 
-	a2dpio->num_underruns = 0;
 	a2dpio->drain_for_no_stream = 0;
 	a2dpio->free_running = 0;
 
@@ -644,7 +632,6 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->flush_buffer = flush_buffer;
 	iodev->no_stream = no_stream;
 	iodev->output_underrun = output_underrun;
-	iodev->get_num_underruns = get_num_underruns;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;

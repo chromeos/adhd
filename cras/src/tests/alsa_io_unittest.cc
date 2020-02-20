@@ -1779,7 +1779,6 @@ TEST_F(AlsaVolumeMuteSuite, SetVolume) {
   aio_output_->base.format = fmt;
   aio_output_->handle = (snd_pcm_t*)0x24;
 
-  aio_output_->num_underruns = 3;  //  Something non-zero.
   sys_get_volume_return_value = fake_system_volume;
   rc = aio_output_->base.configure_dev(&aio_output_->base);
   ASSERT_EQ(0, rc);
@@ -2062,12 +2061,9 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
   int16_t* zeros;
   snd_pcm_uframes_t offset;
 
-  aio.num_underruns = 0;
-
   // Ask alsa_io to handle output underrun.
   rc = alsa_output_underrun(&aio.base);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, aio.num_underruns);
 
   // mmap buffer should be filled with zeros.
   zeros = (int16_t*)calloc(BUFFER_SIZE * 2, sizeof(*zeros));

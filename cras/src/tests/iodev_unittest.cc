@@ -84,7 +84,6 @@ struct audio_thread_event_log* atlog;
 static unsigned int simple_no_stream_called;
 static int simple_no_stream_enable;
 static int dev_stream_playback_frames_ret;
-static int get_num_underruns_ret;
 static int device_monitor_reset_device_called;
 static int output_underrun_called;
 static int set_mute_called;
@@ -179,7 +178,6 @@ void ResetStubData() {
     atlog_rw_shm_fd = atlog_ro_shm_fd = -1;
     atlog = audio_thread_event_log_init(atlog_name);
   }
-  get_num_underruns_ret = 0;
   device_monitor_reset_device_called = 0;
   output_underrun_called = 0;
   set_mute_called = 0;
@@ -2103,18 +2101,13 @@ TEST(IoDev, FramesToPlayInSleep) {
   EXPECT_EQ(got_frames, hw_level - fmt.frame_rate / 1000 * 5);
 }
 
-static unsigned int get_num_underruns(const struct cras_iodev* iodev) {
-  return get_num_underruns_ret;
-}
-
 TEST(IoDev, GetNumUnderruns) {
   struct cras_iodev iodev;
   memset(&iodev, 0, sizeof(iodev));
 
   EXPECT_EQ(0, cras_iodev_get_num_underruns(&iodev));
 
-  iodev.get_num_underruns = get_num_underruns;
-  get_num_underruns_ret = 10;
+  iodev.num_underruns = 10;
   EXPECT_EQ(10, cras_iodev_get_num_underruns(&iodev));
 }
 

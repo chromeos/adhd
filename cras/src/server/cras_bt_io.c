@@ -338,16 +338,6 @@ leave:
 		dev->update_active_node(dev, node_idx, dev_enabled);
 }
 
-static unsigned int get_num_underruns(const struct cras_iodev *iodev)
-{
-	struct cras_iodev *dev = active_profile_dev(iodev);
-	if (!dev)
-		return -EINVAL;
-	if (dev->get_num_underruns)
-		return dev->get_num_underruns(dev);
-	return 0;
-}
-
 static int output_underrun(struct cras_iodev *iodev)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
@@ -471,7 +461,6 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->update_active_node = update_active_node;
 	iodev->no_stream = no_stream;
 	iodev->output_underrun = output_underrun;
-	iodev->get_num_underruns = get_num_underruns;
 	iodev->is_free_running = is_free_running;
 	iodev->start = start;
 	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
