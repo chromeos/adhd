@@ -18,7 +18,7 @@
 struct cras_bt_player {
 	const char *object_path;
 	char *playback_status;
-	const char *identity;
+	char *identity;
 	const char *loop_status;
 	int position;
 	bool can_go_next;
@@ -52,4 +52,13 @@ int cras_bt_register_player(DBusConnection *conn,
  */
 int cras_bt_player_update_playback_status(DBusConnection *conn,
 					  const char *status);
+
+/* Updates the player identity and notifies bluetoothd.
+ * Args:
+ *    conn - The dbus connection.
+ *    identity - The identity of the registered player. This could be the name
+ *               of the app or the name of the site playing
+ *media.
+ */
+int cras_bt_player_update_identity(DBusConnection *conn, const char *identity);
 #endif /* CRAS_BT_PLAYER_H_ */

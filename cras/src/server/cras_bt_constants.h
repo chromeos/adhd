@@ -42,5 +42,10 @@
 /* The longest possible player playback status is "forward-seek" */
 #define CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX 13 * sizeof(char)
 #define CRAS_PLAYER_PLAYBACK_STATUS_DEFAULT "playing"
+/* Neither BlueZ or the MRPIS specs limited the player identity max size, 128
+ * should be large enough for most.
+ */
+#define CRAS_PLAYER_IDENTITY_SIZE_MAX 128 * sizeof(char)
+#define CRAS_PLAYER_IDENTITY_DEFAULT "DefaultPlayer"
 
 #endif /* CRAS_BT_CONSTANTS_H_ */

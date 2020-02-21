@@ -109,7 +109,7 @@ static int cras_bt_add_player(DBusConnection *conn,
 static struct cras_bt_player player = {
 	.object_path = CRAS_DEFAULT_PLAYER,
 	.playback_status = NULL,
-	.identity = "DefaultPlayer",
+	.identity = NULL,
 	.loop_status = "None",
 	.shuffle = 0,
 	.position = 0,
@@ -147,6 +147,8 @@ int cras_bt_player_create(DBusConnection *conn)
 
 	player.playback_status = malloc(CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX);
 	strcpy(player.playback_status, CRAS_PLAYER_PLAYBACK_STATUS_DEFAULT);
+	player.identity = malloc(CRAS_PLAYER_IDENTITY_SIZE_MAX);
+	strcpy(player.identity, CRAS_PLAYER_IDENTITY_DEFAULT);
 
 	if (!dbus_connection_register_object_path(
 		    conn, player.object_path, &player_vtable, &dbus_error)) {
@@ -209,6 +211,48 @@ int cras_bt_player_update_playback_status(DBusConnection *conn,
 		&dict);
 	append_key_value(&dict, "PlaybackStatus", DBUS_TYPE_STRING,
 			 DBUS_TYPE_STRING_AS_STRING, &status);
+	dbus_message_iter_close_container(&iter, &dict);
+
+	if (!dbus_connection_send(conn, msg, NULL)) {
+		dbus_message_unref(msg);
+		return -ENOMEM;
+	}
+
+	dbus_message_unref(msg);
+	return 0;
+}
+
+int cras_bt_player_update_identity(DBusConnection *conn, const char *identity)
+{
+	DBusMessage *msg;
+	DBusMessageIter iter, dict;
+	const char *playerInterface = BLUEZ_INTERFACE_MEDIA_PLAYER;
+
+	if (!identity)
+		return -EINVAL;
+
+	if (!strcasecmp(player.identity, identity))
+		return 0;
+
+	strcpy(player.identity, identity);
+
+	msg = dbus_message_new_signal(CRAS_DEFAULT_PLAYER,
+				      DBUS_INTERFACE_PROPERTIES,
+				      "PropertiesChanged");
+	if (!msg)
+		return -ENOMEM;
+
+	dbus_message_iter_init_append(msg, &iter);
+	dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING,
+				       &playerInterface);
+	dbus_message_iter_open_container(
+		&iter, DBUS_TYPE_ARRAY,
+		DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING DBUS_TYPE_STRING_AS_STRING
+			DBUS_TYPE_VARIANT_AS_STRING
+				DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+		&dict);
+	append_key_value(&dict, "Identity", DBUS_TYPE_STRING,
+			 DBUS_TYPE_STRING_AS_STRING, &identity);
 	dbus_message_iter_close_container(&iter, &dict);
 
 	if (!dbus_connection_send(conn, msg, NULL)) {
