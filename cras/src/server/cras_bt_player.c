@@ -5,15 +5,14 @@
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
-#include "cras_bt_constants.h"
 #include "cras_bt_adapter.h"
+#include "cras_bt_constants.h"
 #include "cras_bt_player.h"
 #include "cras_dbus_util.h"
 #include "utlist.h"
-
-#define CRAS_DEFAULT_PLAYER "/org/chromium/Cras/Bluetooth/DefaultPlayer"
 
 static void cras_bt_on_player_registered(DBusPendingCall *pending_call,
 					 void *data)
@@ -109,7 +108,7 @@ static int cras_bt_add_player(DBusConnection *conn,
  */
 static struct cras_bt_player player = {
 	.object_path = CRAS_DEFAULT_PLAYER,
-	.playback_status = "playing",
+	.playback_status = NULL,
 	.identity = "DefaultPlayer",
 	.loop_status = "None",
 	.shuffle = 0,
@@ -146,6 +145,9 @@ int cras_bt_player_create(DBusConnection *conn)
 
 	dbus_error_init(&dbus_error);
 
+	player.playback_status = malloc(CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX);
+	strcpy(player.playback_status, CRAS_PLAYER_PLAYBACK_STATUS_DEFAULT);
+
 	if (!dbus_connection_register_object_path(
 		    conn, player.object_path, &player_vtable, &dbus_error)) {
 		syslog(LOG_ERR, "Cannot register player %s",
@@ -165,4 +167,55 @@ int cras_bt_register_player(DBusConnection *conn,
 			    const struct cras_bt_adapter *adapter)
 {
 	return cras_bt_add_player(conn, adapter, &player);
+}
+
+int cras_bt_player_update_playback_status(DBusConnection *conn,
+					  const char *status)
+{
+	DBusMessage *msg;
+	DBusMessageIter iter, dict;
+	const char *playerInterface = BLUEZ_INTERFACE_MEDIA_PLAYER;
+
+	/* Verify the string value matches one of the possible status defined in
+	 * bluez/profiles/audio/avrcp.c
+	 */
+	if (strcasecmp(status, "stopped") != 0 &&
+	    strcasecmp(status, "playing") != 0 &&
+	    strcasecmp(status, "paused") != 0 &&
+	    strcasecmp(status, "forward-seek") != 0 &&
+	    strcasecmp(status, "reverse-seek") != 0 &&
+	    strcasecmp(status, "error") != 0)
+		return -EINVAL;
+
+	if (!strcasecmp(player.playback_status, status))
+		return 0;
+
+	strcpy(player.playback_status, status);
+
+	msg = dbus_message_new_signal(CRAS_DEFAULT_PLAYER,
+				      DBUS_INTERFACE_PROPERTIES,
+				      "PropertiesChanged");
+	if (!msg)
+		return -ENOMEM;
+
+	dbus_message_iter_init_append(msg, &iter);
+	dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING,
+				       &playerInterface);
+	dbus_message_iter_open_container(
+		&iter, DBUS_TYPE_ARRAY,
+		DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING DBUS_TYPE_STRING_AS_STRING
+			DBUS_TYPE_VARIANT_AS_STRING
+				DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+		&dict);
+	append_key_value(&dict, "PlaybackStatus", DBUS_TYPE_STRING,
+			 DBUS_TYPE_STRING_AS_STRING, &status);
+	dbus_message_iter_close_container(&iter, &dict);
+
+	if (!dbus_connection_send(conn, msg, NULL)) {
+		dbus_message_unref(msg);
+		return -ENOMEM;
+	}
+
+	dbus_message_unref(msg);
+	return 0;
 }

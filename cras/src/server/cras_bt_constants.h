@@ -12,6 +12,7 @@
 #define BLUEZ_INTERFACE_DEVICE "org.bluez.Device1"
 #define BLUEZ_INTERFACE_MEDIA "org.bluez.Media1"
 #define BLUEZ_INTERFACE_MEDIA_ENDPOINT "org.bluez.MediaEndpoint1"
+#define BLUEZ_INTERFACE_MEDIA_PLAYER "org.mpris.MediaPlayer2.Player"
 #define BLUEZ_INTERFACE_MEDIA_TRANSPORT "org.bluez.MediaTransport1"
 #define BLUEZ_INTERFACE_PLAYER "org.bluez.MediaPlayer1"
 #define BLUEZ_INTERFACE_PROFILE "org.bluez.Profile1"
@@ -35,5 +36,11 @@
 #define AVRCP_TARGET_UUID "0000110c-0000-1000-8000-00805f9b34fb"
 
 #define GENERIC_AUDIO_UUID "00001203-0000-1000-8000-00805f9b34fb"
+
+/* Constants for CRAS BT player */
+#define CRAS_DEFAULT_PLAYER "/org/chromium/Cras/Bluetooth/DefaultPlayer"
+/* The longest possible player playback status is "forward-seek" */
+#define CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX 13 * sizeof(char)
+#define CRAS_PLAYER_PLAYBACK_STATUS_DEFAULT "playing"
 
 #endif /* CRAS_BT_CONSTANTS_H_ */

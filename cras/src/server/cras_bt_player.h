@@ -17,7 +17,7 @@
  */
 struct cras_bt_player {
 	const char *object_path;
-	const char *playback_status;
+	char *playback_status;
 	const char *identity;
 	const char *loop_status;
 	int position;
@@ -45,4 +45,11 @@ int cras_bt_player_create(DBusConnection *conn);
 int cras_bt_register_player(DBusConnection *conn,
 			    const struct cras_bt_adapter *adapter);
 
+/* Updates playback status for player and notifies bluetoothd
+ * Args:
+ *    conn - The dbus connection.
+ *    status - The player playback status.
+ */
+int cras_bt_player_update_playback_status(DBusConnection *conn,
+					  const char *status);
 #endif /* CRAS_BT_PLAYER_H_ */

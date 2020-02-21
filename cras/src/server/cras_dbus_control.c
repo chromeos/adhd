@@ -11,6 +11,7 @@
 #include <syslog.h>
 
 #include "audio_thread.h"
+#include "cras_bt_player.h"
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
 #include "cras_dbus_util.h"
@@ -112,6 +113,9 @@
 	"    </method>\n"                                                       \
 	"    <method name=\"SetWbsEnabled\">\n"                                 \
 	"      <arg name=\"enabled\" type=\"b\" direction=\"in\"/>\n"           \
+	"    </method>\n"                                                       \
+	"    <method name=\"SetPlayerPlaybackStatus\">\n"                       \
+	"      <arg name=\"status\" type=\"s\" direction=\"in\"/>\n"            \
 	"    </method>\n"                                                       \
 	"  </interface>\n"                                                      \
 	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"            \
@@ -766,6 +770,31 @@ static DBusHandlerResult handle_set_wbs_enabled(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_player_playback_status(DBusConnection *conn,
+							   DBusMessage *message,
+							   void *arg)
+{
+	char *status;
+	DBusError dbus_error;
+	int rc;
+
+	dbus_error_init(&dbus_error);
+
+	rc = get_single_arg(message, DBUS_TYPE_STRING, &status);
+	if (rc)
+		return rc;
+
+	rc = cras_bt_player_update_playback_status(conn, status);
+	if (rc) {
+		syslog(LOG_WARNING,
+		       "CRAS failed to update BT Player Status: %d", rc);
+	}
+
+	send_empty_reply(conn, message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message, void *arg)
@@ -882,6 +911,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetWbsEnabled")) {
 		return handle_set_wbs_enabled(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "SetPlayerPlaybackStatus")) {
+		return handle_set_player_playback_status(conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
