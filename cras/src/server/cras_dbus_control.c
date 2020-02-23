@@ -120,6 +120,9 @@
 	"    <method name=\"SetPlayerIdentity\">\n"                             \
 	"      <arg name=\"identity\" type=\"s\" direction=\"in\"/>\n"          \
 	"    </method>\n"                                                       \
+	"    <method name=\"SetPlayerPosition\">\n"                             \
+	"      <arg name=\"position\" type=\"x\" direction=\"in\"/>\n"          \
+	"    </method>\n"                                                       \
 	"  </interface>\n"                                                      \
 	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"            \
 	"    <method name=\"Introspect\">\n"                                    \
@@ -823,6 +826,31 @@ static DBusHandlerResult handle_set_player_identity(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_player_position(DBusConnection *conn,
+						    DBusMessage *message,
+						    void *arg)
+{
+	dbus_int64_t position;
+	DBusError dbus_error;
+	int rc;
+
+	dbus_error_init(&dbus_error);
+
+	rc = get_single_arg(message, DBUS_TYPE_INT64, &position);
+	if (rc)
+		return rc;
+
+	rc = cras_bt_player_update_position(conn, position);
+	if (rc) {
+		syslog(LOG_WARNING,
+		       "CRAS failed to update BT Player Position: %d", rc);
+	}
+
+	send_empty_reply(conn, message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message, void *arg)
@@ -945,6 +973,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetPlayerIdentity")) {
 		return handle_set_player_identity(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "SetPlayerPosition")) {
+		return handle_set_player_position(conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

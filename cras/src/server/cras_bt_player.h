@@ -20,7 +20,7 @@ struct cras_bt_player {
 	char *playback_status;
 	char *identity;
 	const char *loop_status;
-	int position;
+	int64_t position;
 	bool can_go_next;
 	bool can_go_prev;
 	bool can_play;
@@ -61,4 +61,12 @@ int cras_bt_player_update_playback_status(DBusConnection *conn,
  *media.
  */
 int cras_bt_player_update_identity(DBusConnection *conn, const char *identity);
+
+/* Updates the player current track's position and notifies bluetoothd.
+ * Args:
+ *    conn - The dbus connection.
+ *    position - The current track position in microseconds.
+ */
+int cras_bt_player_update_position(DBusConnection *conn,
+				   const dbus_int64_t position);
 #endif /* CRAS_BT_PLAYER_H_ */

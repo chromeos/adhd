@@ -263,3 +263,43 @@ int cras_bt_player_update_identity(DBusConnection *conn, const char *identity)
 	dbus_message_unref(msg);
 	return 0;
 }
+
+int cras_bt_player_update_position(DBusConnection *conn,
+				   const dbus_int64_t position)
+{
+	DBusMessage *msg;
+	DBusMessageIter iter, dict;
+	const char *playerInterface = BLUEZ_INTERFACE_MEDIA_PLAYER;
+
+	if (position < 0)
+		return -EINVAL;
+
+	player.position = position;
+
+	msg = dbus_message_new_signal(CRAS_DEFAULT_PLAYER,
+				      DBUS_INTERFACE_PROPERTIES,
+				      "PropertiesChanged");
+	if (!msg)
+		return -ENOMEM;
+
+	dbus_message_iter_init_append(msg, &iter);
+	dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING,
+				       &playerInterface);
+	dbus_message_iter_open_container(
+		&iter, DBUS_TYPE_ARRAY,
+		DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING DBUS_TYPE_STRING_AS_STRING
+			DBUS_TYPE_VARIANT_AS_STRING
+				DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+		&dict);
+	append_key_value(&dict, "Position", DBUS_TYPE_INT64,
+			 DBUS_TYPE_INT64_AS_STRING, &player.position);
+	dbus_message_iter_close_container(&iter, &dict);
+
+	if (!dbus_connection_send(conn, msg, NULL)) {
+		dbus_message_unref(msg);
+		return -ENOMEM;
+	}
+
+	dbus_message_unref(msg);
+	return 0;
+}
