@@ -47,5 +47,6 @@
  */
 #define CRAS_PLAYER_IDENTITY_SIZE_MAX 128 * sizeof(char)
 #define CRAS_PLAYER_IDENTITY_DEFAULT "DefaultPlayer"
+#define CRAS_PLAYER_METADATA_SIZE_MAX 128 * sizeof(char)
 
 #endif /* CRAS_BT_CONSTANTS_H_ */

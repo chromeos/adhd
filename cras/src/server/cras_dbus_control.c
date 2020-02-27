@@ -123,6 +123,9 @@
 	"    <method name=\"SetPlayerPosition\">\n"                             \
 	"      <arg name=\"position\" type=\"x\" direction=\"in\"/>\n"          \
 	"    </method>\n"                                                       \
+	"    <method name=\"SetPlayerMetadata\">\n"                             \
+	"      <arg name=\"metadata\" type=\"a{sv}\" direction=\"in\"/>\n"      \
+	"    </method>\n"                                                       \
 	"  </interface>\n"                                                      \
 	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"            \
 	"    <method name=\"Introspect\">\n"                                    \
@@ -153,6 +156,79 @@ static int get_single_arg(DBusMessage *message, int dbus_type, void *arg)
 	}
 
 	return 0;
+}
+
+static bool get_string_metadata(DBusMessageIter *iter, const char **dst)
+{
+	if (dbus_message_iter_get_arg_type(iter) != DBUS_TYPE_STRING)
+		return FALSE;
+
+	dbus_message_iter_get_basic(iter, dst);
+	return TRUE;
+}
+
+static bool get_int64_metadata(DBusMessageIter *iter, dbus_int64_t *dst)
+{
+	if (dbus_message_iter_get_arg_type(iter) != DBUS_TYPE_INT64)
+		return FALSE;
+
+	dbus_message_iter_get_basic(iter, dst);
+	return TRUE;
+}
+
+static bool get_metadata(DBusMessage *message, const char **title,
+			 const char **artist, const char **album,
+			 dbus_int64_t *length)
+{
+	DBusError dbus_error;
+	DBusMessageIter iter, dict;
+
+	dbus_error_init(&dbus_error);
+	dbus_message_iter_init(message, &iter);
+
+	if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY)
+		return FALSE;
+
+	dbus_message_iter_recurse(&iter, &dict);
+
+	while (dbus_message_iter_get_arg_type(&dict) != DBUS_TYPE_INVALID) {
+		DBusMessageIter entry, var;
+		const char *key;
+
+		if (dbus_message_iter_get_arg_type(&dict) !=
+		    DBUS_TYPE_DICT_ENTRY)
+			return FALSE;
+
+		dbus_message_iter_recurse(&dict, &entry);
+		if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_STRING)
+			return FALSE;
+
+		dbus_message_iter_get_basic(&entry, &key);
+		dbus_message_iter_next(&entry);
+
+		if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_VARIANT)
+			return FALSE;
+
+		dbus_message_iter_recurse(&entry, &var);
+		if (strcasecmp(key, "title") == 0) {
+			if (!get_string_metadata(&var, title))
+				return FALSE;
+		} else if (strcasecmp(key, "artist") == 0) {
+			if (!get_string_metadata(&var, artist))
+				return FALSE;
+		} else if (strcasecmp(key, "album") == 0) {
+			if (!get_string_metadata(&var, album))
+				return FALSE;
+		} else if (strcasecmp(key, "length") == 0) {
+			if (!get_int64_metadata(&var, length))
+				return FALSE;
+		} else
+			syslog(LOG_WARNING, "%s not supported, ignoring", key);
+
+		dbus_message_iter_next(&dict);
+	}
+
+	return TRUE;
 }
 
 /* Helper to send an empty reply. */
@@ -851,6 +927,31 @@ static DBusHandlerResult handle_set_player_position(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_player_metadata(DBusConnection *conn,
+						    DBusMessage *message,
+						    void *arg)
+{
+	DBusError dbus_error;
+	int rc;
+
+	dbus_error_init(&dbus_error);
+	const char *title = NULL, *artist = NULL, *album = NULL;
+	dbus_int64_t length = 0;
+
+	if (!get_metadata(message, &title, &artist, &album, &length))
+		return -EINVAL;
+
+	rc = cras_bt_player_update_metadata(conn, title, artist, album, length);
+	if (rc) {
+		syslog(LOG_WARNING, "CRAS failed to update BT Metadata: %d",
+		       rc);
+	}
+
+	send_empty_reply(conn, message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message, void *arg)
@@ -976,6 +1077,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetPlayerPosition")) {
 		return handle_set_player_position(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "SetPlayerMetadata")) {
+		return handle_set_player_metadata(conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
