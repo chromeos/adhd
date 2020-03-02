@@ -239,8 +239,8 @@ struct cras_ionode {
  *                    been processed by the input DSP.
  * input_data - Used to pass audio input data to streams with or without
  *              stream side processing.
- * ramp_mute - The flag indicates if the device is in ramp_mute state (using
- *             ramp to mute for RAMP_MUTE_DURATION_SECS seconds)
+ * initial_ramp_request - The value indicates which type of ramp the device
+ * should perform when some samples are ready for playback.
  *
  */
 struct cras_iodev {
@@ -314,7 +314,7 @@ struct cras_iodev {
 	int input_streaming;
 	unsigned int input_frames_read;
 	unsigned int input_dsp_offset;
-	int ramp_mute;
+	unsigned int initial_ramp_request;
 	struct input_data *input_data;
 	struct cras_iodev *prev, *next;
 };
@@ -344,16 +344,23 @@ struct cras_iodev {
  *   first sample of new stream is ready, there is no need to change mute/unmute
  *   state.
  *
- * - CRAS_IODEV_RAMP_REQUEST_MUTE: Mute the device for RAMP_MUTE_DURATION_SECS
- *   seconds
+ * - CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE: To prevent popped noise, mute the
+ *   device for RAMP_RESUME_MUTE_DURATION_SECS seconds on sample ready after
+ *   resume if there were playback stream before suspend.
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE: To prevent popped noise, mute the
+ *   device for RAMP_SWITCH_MUTE_DURATION_SECS seconds on sample ready after
+ *   device switch if there were playback stream before switch.
  *
  */
 
 enum CRAS_IODEV_RAMP_REQUEST {
-	CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE = 0,
-	CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE = 1,
-	CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK = 2,
-	CRAS_IODEV_RAMP_REQUEST_MUTE = 3,
+	CRAS_IODEV_RAMP_REQUEST_NONE = 0,
+	CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE = 1,
+	CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE = 2,
+	CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK = 3,
+	CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE = 4,
+	CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE = 5,
 };
 
 /*
@@ -797,18 +804,6 @@ int cras_iodev_start_volume_ramp(struct cras_iodev *odev,
  *    0 on success. Negative error code on failure.
  */
 int cras_iodev_set_mute(struct cras_iodev *iodev);
-
-/* Start/stop iodev ramp_mute state.
- * Args:
- *    odev[in] - The output device.
- *    ramp_mute - 1 to set ramp_mute flag and start the ramp. The device which
- *                is not muted will be muted for RAMP_MUTE_DURATION_SECS
- *                seconds.
- *              - 0 to reset the ramp_mute flag.
- * Returns:
- *    0 on success. Negative error code on failure.
- */
-int cras_iodev_set_ramp_mute(struct cras_iodev *odev, int ramp_mute);
 
 /*
  * Checks if an output iodev's volume is zero.

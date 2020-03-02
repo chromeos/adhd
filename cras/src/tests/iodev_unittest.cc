@@ -1722,7 +1722,7 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
 
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
-
+  iodev.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
   // Case 4.1: Assume device with ramp is started and is in no stream state.
   iodev.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
   // Assume sample is ready.

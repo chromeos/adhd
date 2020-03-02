@@ -360,10 +360,12 @@ TEST_F(IoDevTestSuite, RampMuteAfterResume) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
 
   d2_.direction = CRAS_STREAM_INPUT;
+  d2_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
   rc = cras_iodev_list_add_input(&d2_);
   ASSERT_EQ(0, rc);
 
@@ -387,11 +389,12 @@ TEST_F(IoDevTestSuite, RampMuteAfterResume) {
   observer_ops->suspend_changed(NULL, 0);
 
   /* Test only output device that has stream will be muted after resume */
-  EXPECT_EQ(1, d1_.ramp_mute);
-  EXPECT_EQ(0, d2_.ramp_mute);
+  EXPECT_EQ(d1_.initial_ramp_request, CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE);
+  EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK,
+            d2_.initial_ramp_request);
 
   /* Reset d1 ramp_mute and remove output stream to test again */
-  d1_.ramp_mute = 0;
+  d1_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
   DL_DELETE(stream_list, &rstream);
   stream_list_get_ret = stream_list;
   stream_rm_cb(&rstream);
@@ -401,8 +404,10 @@ TEST_F(IoDevTestSuite, RampMuteAfterResume) {
   stream_list_get_ret = stream_list;
   observer_ops->suspend_changed(NULL, 0);
 
-  EXPECT_EQ(0, d1_.ramp_mute);
-  EXPECT_EQ(0, d2_.ramp_mute);
+  EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK,
+            d1_.initial_ramp_request);
+  EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK,
+            d2_.initial_ramp_request);
 
   cras_iodev_list_deinit();
 }
@@ -1789,11 +1794,6 @@ int cras_iodev_close(struct cras_iodev* iodev) {
   iodev->state = CRAS_IODEV_STATE_CLOSE;
   cras_iodev_close_called++;
   cras_iodev_close_dev = iodev;
-  return 0;
-}
-
-int cras_iodev_set_ramp_mute(struct cras_iodev* odev, int ramp_mute) {
-  odev->ramp_mute = ramp_mute;
   return 0;
 }
 

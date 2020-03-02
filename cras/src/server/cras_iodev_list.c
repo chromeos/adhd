@@ -530,21 +530,27 @@ static void resume_devs()
 
 	int has_output_stream = 0;
 	stream_list_suspended = 0;
+
+	/*
+	 * To remove the short popped noise caused by applications that can not
+	 * stop playback "right away" after resume, we mute all output devices
+	 * for a short time if there is any output stream.
+	 */
+	DL_FOREACH (stream_list_get(stream_list), rstream) {
+		if (rstream->direction == CRAS_STREAM_OUTPUT)
+			has_output_stream++;
+	}
+	if (has_output_stream) {
+		DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
+			edev->dev->initial_ramp_request =
+				CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE;
+		}
+	}
+
 	DL_FOREACH (stream_list_get(stream_list), rstream) {
 		if ((rstream->flags & HOTWORD_STREAM) == HOTWORD_STREAM)
 			continue;
 		stream_added_cb(rstream);
-		if (rstream->direction == CRAS_STREAM_OUTPUT)
-			has_output_stream++;
-	}
-
-	/* To remove the short popped noise caused by applications that can not
-         * stop playback "right away" after resume, we mute all output devices
-         * for a short time if there is any output stream.*/
-	if (has_output_stream) {
-		DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
-			cras_iodev_set_ramp_mute(edev->dev, 1);
-		}
 	}
 }
 
@@ -1498,6 +1504,8 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	struct cras_iodev *new_dev = NULL;
 	struct enabled_dev *edev;
 	int new_node_already_enabled = 0;
+	struct cras_rstream *rstream;
+	int has_output_stream = 0;
 	int rc;
 
 	/* find the devices for the id. */
@@ -1555,6 +1563,19 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 
 	if (new_dev && !new_node_already_enabled) {
 		new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
+
+		/* To reduce the popped noise of active device change, mute
+		 * new_dev's for RAMP_SWITCH_MUTE_DURATION_SECS s.
+		 */
+		DL_FOREACH (stream_list_get(stream_list), rstream) {
+			if (rstream->direction == CRAS_STREAM_OUTPUT)
+				has_output_stream++;
+		}
+		if (direction == CRAS_STREAM_OUTPUT && has_output_stream) {
+			new_dev->initial_ramp_request =
+				CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE;
+		}
+
 		rc = enable_device(new_dev);
 		if (rc == 0) {
 			/* Disable fallback device after new device is enabled.

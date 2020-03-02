@@ -1997,6 +1997,7 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 	iodev->ramp = cras_ramp_create();
 	if (iodev->ramp == NULL)
 		goto cleanup_iodev;
+	iodev->initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
 
 	aio->mixer = mixer;
 	aio->config = config;

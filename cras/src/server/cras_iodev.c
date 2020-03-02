@@ -37,6 +37,8 @@
 static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
 static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
 static const float RAMP_MUTE_DURATION_SECS = 0.1;
+static const float RAMP_RESUME_MUTE_DURATION_SECS = 1;
+static const float RAMP_SWITCH_MUTE_DURATION_SECS = 0.5;
 static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.1;
 
 /*
@@ -258,14 +260,11 @@ static int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 {
 	if (odev->state == CRAS_IODEV_STATE_OPEN ||
 	    odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN) {
-		int ramp_mute = odev->ramp_mute;
 		/* Starts ramping up if device should not be muted.
-		 * Both mute, ramp_mute and volume are taken into consideration.
+		 * Both mute and volume are taken into consideration.
 		 */
-		if (odev->ramp && !output_should_mute(odev) && !ramp_mute) {
-			cras_iodev_start_ramp(
-				odev,
-				CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK);
+		if (odev->ramp && !output_should_mute(odev)) {
+			cras_iodev_start_ramp(odev, odev->initial_ramp_request);
 		}
 	}
 
@@ -1474,12 +1473,6 @@ static void ramp_down_mute_callback(void *data)
 	cras_device_monitor_set_device_mute_state(odev->info.idx);
 }
 
-static void ramp_mute_callback(void *data)
-{
-	struct cras_iodev *odev = (struct cras_iodev *)data;
-	cras_iodev_set_ramp_mute(odev, 0);
-}
-
 /* Used in audio thread. Check the docstrings of CRAS_IODEV_RAMP_REQUEST. */
 int cras_iodev_start_ramp(struct cras_iodev *odev,
 			  enum CRAS_IODEV_RAMP_REQUEST request)
@@ -1513,12 +1506,19 @@ int cras_iodev_start_ramp(struct cras_iodev *odev,
 		cb = ramp_down_mute_callback;
 		cb_data = (void *)odev;
 		break;
-	case CRAS_IODEV_RAMP_REQUEST_MUTE:
+	case CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE:
 		from = 0;
 		to = 0;
-		duration_secs = RAMP_MUTE_DURATION_SECS;
-		cb = ramp_mute_callback;
-		cb_data = (void *)odev;
+		duration_secs = RAMP_RESUME_MUTE_DURATION_SECS;
+		odev->initial_ramp_request =
+			CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
+		break;
+	case CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE:
+		from = 0;
+		to = 0;
+		duration_secs = RAMP_SWITCH_MUTE_DURATION_SECS;
+		odev->initial_ramp_request =
+			CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
 		break;
 	default:
 		return -EINVAL;
@@ -1583,21 +1583,6 @@ int cras_iodev_set_mute(struct cras_iodev *iodev)
 
 	if (iodev->set_mute)
 		iodev->set_mute(iodev);
-	return 0;
-}
-
-int cras_iodev_set_ramp_mute(struct cras_iodev *odev, int ramp_mute)
-{
-	if (!odev->ramp)
-		return 0;
-
-	if (ramp_mute) {
-		if (output_should_mute(odev))
-			return 0;
-
-		cras_iodev_start_ramp(odev, CRAS_IODEV_RAMP_REQUEST_MUTE);
-	}
-	odev->ramp_mute = ramp_mute;
 	return 0;
 }
 
