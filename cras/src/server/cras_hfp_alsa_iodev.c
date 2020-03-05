@@ -260,8 +260,7 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 	name = cras_bt_device_name(device);
 	if (!name)
 		name = cras_bt_device_object_path(device);
-	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s.HFP_PCM",
-		 name);
+	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = 0;
 	iodev->info.stable_id =
 		SuperFastHash(cras_bt_device_object_path(device),
