@@ -462,6 +462,10 @@ do_flush:
 		 * EAGAIN. */
 		cras_bt_device_cancel_suspend(device);
 		cras_bt_device_schedule_suspend(device, 0);
+		/* Stop polling the socket in audio thread. Main thread will
+		 * close this iodev soon. */
+		audio_thread_enable_callback(
+			cras_bt_transport_fd(a2dpio->transport), 0);
 		return written;
 	}
 
