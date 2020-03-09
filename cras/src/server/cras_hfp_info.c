@@ -239,30 +239,40 @@ int hfp_write_msbc(struct hfp_info *info)
 	size_t encoded;
 	int err;
 	int pcm_encoded;
-	unsigned int pcm_avail;
+	unsigned int pcm_avail, to_write;
 	uint8_t *samples;
 	uint8_t *wp;
 
+	/* Make sure there are MSBC_CODE_SIZE bytes to encode. */
 	samples = buf_read_pointer_size(info->playback_buf, &pcm_avail);
-	wp = info->write_buf;
-	if (pcm_avail >= MSBC_CODE_SIZE) {
-		/* Encode more */
-		wp[0] = H2_HEADER_0;
-		wp[1] = h2_header_frames_count[info->msbc_num_out_frames % 4];
-		pcm_encoded = info->msbc_write->encode(
-			info->msbc_write, samples, pcm_avail,
-			wp + MSBC_H2_HEADER_LEN,
-			WRITE_BUF_SIZE_BYTES - MSBC_H2_HEADER_LEN, &encoded);
-		if (pcm_encoded < 0) {
-			syslog(LOG_ERR, "msbc encoding err: %s",
-			       strerror(pcm_encoded));
-			return pcm_encoded;
-		}
-		buf_increment_read(info->playback_buf, pcm_encoded);
-		pcm_avail -= pcm_encoded;
-	} else {
-		memset(wp, 0, WRITE_BUF_SIZE_BYTES);
+	if (pcm_avail < MSBC_CODE_SIZE) {
+		to_write = MSBC_CODE_SIZE - pcm_avail;
+		/*
+		 * Size of playback_buf is multiple of MSBC_CODE_SIZE so we
+		 * are safe to prepare the buffer by appending some zero bytes.
+		 */
+		wp = buf_write_pointer_size(info->playback_buf, &pcm_avail);
+		memset(wp, 0, to_write);
+		buf_increment_write(info->playback_buf, to_write);
+
+		samples = buf_read_pointer_size(info->playback_buf, &pcm_avail);
+		if (pcm_avail < MSBC_CODE_SIZE)
+			return -EINVAL;
 	}
+
+	/* Encode the next MSBC_CODE_SIZE of bytes. */
+	wp = info->write_buf;
+	wp[0] = H2_HEADER_0;
+	wp[1] = h2_header_frames_count[info->msbc_num_out_frames % 4];
+	pcm_encoded = info->msbc_write->encode(
+		info->msbc_write, samples, pcm_avail, wp + MSBC_H2_HEADER_LEN,
+		WRITE_BUF_SIZE_BYTES - MSBC_H2_HEADER_LEN, &encoded);
+	if (pcm_encoded < 0) {
+		syslog(LOG_ERR, "msbc encoding err: %s", strerror(pcm_encoded));
+		return pcm_encoded;
+	}
+	buf_increment_read(info->playback_buf, pcm_encoded);
+	pcm_avail -= pcm_encoded;
 
 msbc_send_again:
 	err = send(info->fd, info->write_buf, MSBC_PKT_SIZE, 0);
