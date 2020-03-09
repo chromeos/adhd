@@ -125,6 +125,12 @@ static int frames_queued(const struct cras_iodev *iodev,
 	return hfp_buf_queued(hfpio->info, iodev->direction);
 }
 
+static int output_underrun(struct cras_iodev *iodev)
+{
+	/* Handle it the same way as cras_iodev_output_underrun(). */
+	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+}
+
 static int configure_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
@@ -314,6 +320,7 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
 	iodev->set_volume = set_hfp_volume;
+	iodev->output_underrun = output_underrun;
 
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;

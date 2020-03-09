@@ -360,6 +360,10 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
   cras_iodev_free_resources_called++;
 }
 
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+  return 0;
+}
+
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
                                          uint8_t* base_buffer) {
