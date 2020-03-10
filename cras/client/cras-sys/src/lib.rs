@@ -7,6 +7,7 @@ extern crate data_model;
 use std::convert::{TryFrom, TryInto};
 use std::error;
 use std::fmt;
+use std::iter::FromIterator;
 use std::os::raw::c_char;
 use std::time::Duration;
 
@@ -553,6 +554,18 @@ impl From<StreamEffect> for CRAS_STREAM_EFFECT {
             StreamEffect::NoEffect => CRAS_STREAM_EFFECT::empty(),
             StreamEffect::EchoCancellation => CRAS_STREAM_EFFECT::APM_ECHO_CANCELLATION,
         }
+    }
+}
+
+impl<'a> FromIterator<&'a StreamEffect> for CRAS_STREAM_EFFECT {
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = &'a StreamEffect>,
+    {
+        iter.into_iter().fold(
+            CRAS_STREAM_EFFECT::empty(),
+            |cras_effect, &stream_effect| cras_effect | stream_effect.into(),
+        )
     }
 }
 

@@ -193,7 +193,7 @@ pub trait ShmStreamSource: Send {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-        effects: StreamEffect,
+        effects: &[StreamEffect],
         client_shm: &SharedMemory,
         buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>>;
@@ -288,7 +288,7 @@ impl ShmStreamSource for NullShmStreamSource {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-        _effects: StreamEffect,
+        _effects: &[StreamEffect],
         _client_shm: &SharedMemory,
         _buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>> {
@@ -416,7 +416,7 @@ impl ShmStreamSource for MockShmStreamSource {
         format: SampleFormat,
         _frame_rate: usize,
         buffer_size: usize,
-        _effects: StreamEffect,
+        _effects: &[StreamEffect],
         _client_shm: &SharedMemory,
         _buffer_offsets: [u64; 2],
     ) -> GenericResult<Box<dyn ShmStream>> {
@@ -452,7 +452,7 @@ pub mod tests {
                     format,
                     44100,
                     buffer_size,
-                    StreamEffect::NoEffect,
+                    &[],
                     &shm,
                     [400, 8000],
                 )
@@ -496,7 +496,7 @@ pub mod tests {
                 SampleFormat::S24LE,
                 frame_rate,
                 buffer_size,
-                StreamEffect::NoEffect,
+                &[],
                 &shm,
                 [400, 8000],
             )

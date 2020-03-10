@@ -131,7 +131,10 @@ use audio_streams::{
     StreamDirection, StreamEffect, StreamSource,
 };
 use cras_sys::gen::*;
-pub use cras_sys::gen::{CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType};
+pub use cras_sys::gen::{
+    CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType,
+    CRAS_STREAM_EFFECT as CrasStreamEffect,
+};
 pub use cras_sys::{AudioDebugInfo, CrasIodevInfo, CrasIonodeInfo};
 use sys_util::{PollContext, PollToken, SharedMemory};
 
@@ -578,7 +581,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-        effects: StreamEffect,
+        effects: &[StreamEffect],
         client_shm: &SharedMemory,
         buffer_offsets: [u64; 2],
     ) -> std::result::Result<Box<dyn ShmStream>, Box<dyn error::Error>> {
@@ -612,7 +615,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
             flags: 0,
             format: audio_format,
             dev_idx: CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
-            effects: CRAS_STREAM_EFFECT::from(effects).into(),
+            effects: effects.into_iter().collect::<CrasStreamEffect>().into(),
             client_type: self.client_type,
             client_shm_size: client_shm.size(),
             buffer_offsets,
