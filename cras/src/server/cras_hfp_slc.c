@@ -428,6 +428,10 @@ static int apple_supported_features(struct hfp_slc_handle *handle,
 	snprintf(buf, 64, AT_CMD("+XAPL=iPhone,%d"),
 		 CRAS_APL_SUPPORTED_FEATURES);
 	err = hfp_send(handle, buf);
+	if (err)
+		goto error_out;
+
+	err = hfp_send(handle, AT_CMD("OK"));
 	free(tokens);
 	return err;
 
