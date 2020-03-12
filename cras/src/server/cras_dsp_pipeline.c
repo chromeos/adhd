@@ -970,9 +970,10 @@ void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline)
 	      pipeline->min_time);
 	dumpf(d, " max processing time per block: %" PRId64 "ns\n",
 	      pipeline->max_time);
-	dumpf(d, " cpu load: %g%%\n",
-	      pipeline->total_time * 1e-9 / pipeline->total_samples *
-		      pipeline->sample_rate * 100);
+	if (pipeline->total_samples)
+		dumpf(d, " cpu load: %g%%\n",
+		      pipeline->total_time * 1e-9 / pipeline->total_samples *
+			      pipeline->sample_rate * 100);
 	dumpf(d, " instances (%d):\n", ARRAY_COUNT(&pipeline->instances));
 	ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
