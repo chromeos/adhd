@@ -777,6 +777,12 @@ static int signal_gain_setting(struct hfp_slc_handle *handle, const char *cmd)
 	 * 100/100 full. */
 	if (cmd[5] == 'S') {
 		gain = atoi(&cmd[7]);
+		if (gain < 0 || gain > 15) {
+			syslog(LOG_ERR,
+			       "signal_gain_setting: gain %d is not between 0 and 15",
+			       gain);
+			return hfp_send(handle, AT_CMD("ERROR"));
+		}
 		cras_bt_device_update_hardware_volume(handle->device,
 						      (gain + 1) * 100 / 16);
 	}
