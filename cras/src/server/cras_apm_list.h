@@ -143,6 +143,11 @@ void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames);
  */
 struct cras_audio_format *cras_apm_list_get_format(struct cras_apm *apm);
 
+/*
+ * Gets if this apm instance is using tuned settings.
+ */
+bool cras_apm_list_get_use_tuned_settings(struct cras_apm *apm);
+
 /* Sets debug recording to start or stop.
  * Args:
  *    list - List contains the apm instance to start/stop debug recording.
@@ -226,6 +231,11 @@ static inline struct cras_audio_format *
 cras_apm_list_get_format(struct cras_apm *apm)
 {
 	return NULL;
+}
+
+static inline bool cras_apm_list_get_use_tuned_settings(struct cras_apm *apm)
+{
+	return 0;
 }
 
 static inline void cras_apm_list_set_aec_dump(struct cras_apm_list *list,

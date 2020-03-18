@@ -191,3 +191,20 @@ int input_data_put_for_stream(struct input_data *data,
 
 	return 0;
 }
+
+float input_data_get_software_gain_scaler(struct input_data *data,
+					  float idev_sw_gain_scaler,
+					  struct cras_rstream *stream)
+{
+	struct cras_apm *apm;
+	/*
+	 * APM has more advanced gain control mechanism. If it is using tuned
+	 * settings, give APM total control of the captured samples without
+	 * additional gain scaler at all.
+	 */
+	apm = cras_apm_list_get_active_apm(stream, data->dev_ptr);
+	if (apm && cras_apm_list_get_use_tuned_settings(apm))
+		return 1.0f;
+
+	return idev_sw_gain_scaler * cras_rstream_get_volume_scaler(stream);
+}

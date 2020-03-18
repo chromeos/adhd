@@ -27,6 +27,7 @@ struct audio_thread_event_log* atlog;
 #include "rstream_stub.h"
 
 static float dev_stream_capture_software_gain_scaler_val;
+static float input_data_get_software_gain_scaler_val;
 static unsigned int dev_stream_capture_avail_ret = 480;
 
 namespace {
@@ -74,18 +75,16 @@ TEST_F(DevIoSuite, CaptureGain) {
                                 CRAS_NODE_TYPE_MIC);
 
   dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
-  dev->dev->software_gain_scaler = 0.99f;
   iodev_stub_frames_queued(dev->dev.get(), 20, ts);
   DL_APPEND(dev_list, dev->odev.get());
   add_stream_to_dev(dev->dev, stream);
 
-  /* For stream that uses APM, always apply gain scaler 1.0f regardless of
-   * what node/stream gains are. */
-  stream->rstream->apm_list = reinterpret_cast<struct cras_apm_list*>(0xf0f);
+  /* The applied scaler gain should match what is reported by input_data. */
+  input_data_get_software_gain_scaler_val = 1.0f;
   dev_io_capture(&dev_list);
   EXPECT_EQ(1.0f, dev_stream_capture_software_gain_scaler_val);
 
-  stream->rstream->apm_list = 0x0;
+  input_data_get_software_gain_scaler_val = 0.99f;
   dev_io_capture(&dev_list);
   EXPECT_EQ(0.99f, dev_stream_capture_software_gain_scaler_val);
 }
@@ -202,6 +201,12 @@ int input_data_put_for_stream(struct input_data* data,
                               struct buffer_share* offsets,
                               unsigned int frames) {
   return 0;
+}
+
+float input_data_get_software_gain_scaler(struct input_data* data,
+                                          float idev_sw_gain_scaler,
+                                          struct cras_rstream* stream) {
+  return input_data_get_software_gain_scaler_val;
 }
 
 int cras_audio_thread_event_drop_samples() {

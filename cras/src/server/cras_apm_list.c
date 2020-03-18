@@ -63,6 +63,9 @@ static const unsigned int MAX_INI_NAME_LEN = 63;
  *        stream.
  *    work_queue - A task queue instance created and destroyed by
  *        libwebrtc_apm.
+ *    use_tuned_settings - True if this APM uses settings tuned specifically
+ *        for this hardware in AEC use case. Otherwise it uses the generic
+ *        settings like run inside browser.
  */
 struct cras_apm {
 	webrtc_apm apm_ptr;
@@ -73,6 +76,7 @@ struct cras_apm {
 	struct cras_audio_format fmt;
 	struct cras_audio_area *area;
 	void *work_queue;
+	bool use_tuned_settings;
 	struct cras_apm *prev, *next;
 };
 
@@ -268,7 +272,6 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 				       bool is_aec_use_case)
 {
 	struct cras_apm *apm;
-	bool use_tuned_settings;
 
 	DL_FOREACH (list->apms, apm)
 		if (apm->dev_ptr == dev_ptr)
@@ -289,16 +292,16 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 
 	/* Use tuned settings only when the forward dev(capture) and reverse
 	 * dev(playback) both are in typical AEC use case. */
-	use_tuned_settings = is_aec_use_case;
+	apm->use_tuned_settings = is_aec_use_case;
 	if (rmodule->odev) {
-		use_tuned_settings &=
+		apm->use_tuned_settings &=
 			cras_iodev_is_aec_use_case(rmodule->odev->active_node);
 	}
 
 	/* Use the configs tuned specifically for internal device. Otherwise
 	 * just pass NULL so every other settings will be default. */
 	apm->apm_ptr =
-		use_tuned_settings ?
+		apm->use_tuned_settings ?
 			webrtc_apm_create(apm->fmt.num_channels,
 					  apm->fmt.frame_rate, aec_ini,
 					  apm_ini) :
@@ -686,6 +689,11 @@ void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames)
 struct cras_audio_format *cras_apm_list_get_format(struct cras_apm *apm)
 {
 	return &apm->fmt;
+}
+
+bool cras_apm_list_get_use_tuned_settings(struct cras_apm *apm)
+{
+	return apm->use_tuned_settings;
 }
 
 void cras_apm_list_set_aec_dump(struct cras_apm_list *list, void *dev_ptr,
