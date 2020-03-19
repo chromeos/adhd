@@ -808,6 +808,14 @@ long cras_client_get_system_min_volume(const struct cras_client *client);
  */
 long cras_client_get_system_max_volume(const struct cras_client *client);
 
+/* Gets the default output buffer size.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    Default output buffer size in frames. A negative error on failure.
+ */
+int cras_client_get_default_output_buffer_size(struct cras_client *client);
+
 /* Gets audio debug info.
  *
  * Requires that the connection to the server has been established.

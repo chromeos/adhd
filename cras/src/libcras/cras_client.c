@@ -2602,6 +2602,21 @@ long cras_client_get_system_max_volume(const struct cras_client *client)
 	return max_volume;
 }
 
+int cras_client_get_default_output_buffer_size(struct cras_client *client)
+{
+	int default_output_buffer_size;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return -EINVAL;
+
+	default_output_buffer_size =
+		client->server_state->default_output_buffer_size;
+	server_state_unlock(client, lock_rc);
+	return default_output_buffer_size;
+}
+
 const struct audio_debug_info *
 cras_client_get_audio_debug_info(const struct cras_client *client)
 {
