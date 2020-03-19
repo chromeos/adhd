@@ -1465,6 +1465,9 @@ static void cras_show_continuous_atlog(struct cras_client *client)
 
 	fill_time_offset(&sec_offset, &nsec_offset);
 
+	/* Set stdout buffer to line buffered mode. */
+	setlinebuf(stdout);
+
 	while (1) {
 		len = cras_client_read_atlog(client, &atlog_read_idx, &missing,
 					     &log);
