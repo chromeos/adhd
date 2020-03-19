@@ -316,7 +316,8 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
  */
 static void choose_codec_and_init_slc(struct hfp_slc_handle *handle)
 {
-	if (handle->hf_supports_codec_negotiation &&
+	if (hfp_slc_get_ag_codec_negotiation_supported(handle) &&
+	    handle->hf_supports_codec_negotiation &&
 	    handle->hf_codec_supported[HFP_CODEC_ID_MSBC]) {
 		/* Sets preferred codec to mSBC, and schedule callback to
 		 * select preferred codec until reply received or timeout.
@@ -1145,6 +1146,11 @@ int hfp_event_set_service(struct hfp_slc_handle *handle, int avail)
 	 * Since the value must be either 1 or 0. (service presence or not) */
 	handle->service = !!avail;
 	return hfp_send_ind_event_report(handle, SERVICE_IND_INDEX, avail);
+}
+
+int hfp_slc_get_ag_codec_negotiation_supported(struct hfp_slc_handle *handle)
+{
+	return handle->ag_supported_features & AG_CODEC_NEGOTIATION;
 }
 
 int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle)
