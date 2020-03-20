@@ -533,38 +533,38 @@ TEST_F(A2dpIodev, NoStreamState) {
   frames = 200;
   iodev->get_buffer(iodev, &area, &frames);
   iodev->put_buffer(iodev, 200);
-  EXPECT_EQ(0, a2dpio->drain_for_no_stream);
-  EXPECT_EQ(0, a2dpio->free_running);
 
   a2dp_write_return_val[0] = 0;
   iodev->no_stream(iodev, 1);
-  EXPECT_EQ(1, cras_iodev_fill_odev_zeros_called);
   EXPECT_EQ(1, a2dp_write_index);
-  EXPECT_EQ(1, a2dpio->drain_for_no_stream);
-  EXPECT_EQ(1, a2dpio->free_running);
   EXPECT_EQ(a2dpio->flush_period.tv_nsec, a2dpio->next_flush_time.tv_nsec);
 
-  /* No more queued frames after entered free running state. */
+  /* Some time has passed but not yet reach next flush. Entering no_stream
+   * should get at least min_buffer_level frames of data queued. */
+  time_now.tv_nsec = 10000000;
+  iodev->no_stream(iodev, 1);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  EXPECT_LE(iodev->min_buffer_level, frames);
+
+  /* Time has passed next flush time, expect  */
+  a2dp_write_return_val[1] = 0;
   time_now.tv_nsec = 25000000;
+  iodev->no_stream(iodev, 1);
   frames = iodev->frames_queued(iodev, &tstamp);
   ASSERT_EQ(0, frames);
+  EXPECT_EQ(2, a2dp_write_index);
 
-  /* Leaving no_stream state from free running will have next_flush_time
-   * set to now, and fill write_block of zeros. */
-  a2dp_write_return_val[1] = 0;
+  /* Leaving no_stream state fills buffer level back to min_buffer_level. */
+  a2dp_write_return_val[2] = 0;
   time_now.tv_nsec = 30000000;
   iodev->no_stream(iodev, 0);
-  EXPECT_EQ(0, a2dpio->drain_for_no_stream);
-  EXPECT_EQ(0, a2dpio->free_running);
-  EXPECT_EQ(30000000 + a2dpio->flush_period.tv_nsec,
-            a2dpio->next_flush_time.tv_nsec);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  ASSERT_EQ(iodev->min_buffer_level, frames);
   EXPECT_EQ(2, a2dp_write_index);
-  EXPECT_EQ(2, cras_iodev_fill_odev_zeros_called);
-  EXPECT_EQ(a2dpio->write_block, cras_iodev_fill_odev_zeros_frames);
 
-  /* Prepare 1000 more frames and enter no_stream, expect not yet enter
-   * free running state, because data not fully drained.
-   * 1000 + 896(zeros just filled) > 2 * 896.
+  /* Prepare 1000 more frames and enter no_stream, expect one block of
+   * data written. And no more zeros filled because buffer level is
+   * already higher than min_buffer_level.
    */
   a2dp_write_return_val[2] = 0;
   a2dp_write_return_val[3] = 0;
@@ -574,19 +574,21 @@ TEST_F(A2dpIodev, NoStreamState) {
 
   time_now.tv_nsec = 50000000;
   iodev->no_stream(iodev, 1);
-  EXPECT_EQ(1, a2dpio->drain_for_no_stream);
-  EXPECT_EQ(0, a2dpio->free_running);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  ASSERT_EQ(1000, frames);
+  EXPECT_EQ(3, a2dp_write_index);
 
-  /* Draining not done yet, because next_flush_time not reached. */
+  /* No more data written, because next_flush_time not reached. */
   iodev->no_stream(iodev, 1);
-  EXPECT_EQ(0, a2dpio->free_running);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  ASSERT_EQ(1000, frames);
+  EXPECT_EQ(3, a2dp_write_index);
 
-  /* 20ms has passed, expect all frames have been drained and entered free
-   * running state. */
-  a2dp_write_return_val[3] = 0;
-  time_now.tv_nsec = 70000000;
-  iodev->no_stream(iodev, 1);
-  EXPECT_EQ(1, a2dpio->free_running);
+  /* The old queued data level is higher than min_buffer_level. Expect leaving
+   * no_stream still gets the same amount of buffer level. */
+  iodev->no_stream(iodev, 0);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  ASSERT_EQ(1000, frames);
 
   iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
