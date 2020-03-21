@@ -281,6 +281,9 @@ int cras_bt_player_update_playback_status(DBusConnection *conn,
 	DBusMessageIter iter, dict;
 	const char *playerInterface = BLUEZ_INTERFACE_MEDIA_PLAYER;
 
+	if (!player.playback_status)
+		return -ENXIO;
+
 	/* Verify the string value matches one of the possible status defined in
 	 * bluez/profiles/audio/avrcp.c
 	 */
@@ -330,6 +333,9 @@ int cras_bt_player_update_identity(DBusConnection *conn, const char *identity)
 	DBusMessage *msg;
 	DBusMessageIter iter, dict;
 	const char *playerInterface = BLUEZ_INTERFACE_MEDIA_PLAYER;
+
+	if (!player.identity)
+		return -ENXIO;
 
 	if (!identity)
 		return -EINVAL;
@@ -415,6 +421,9 @@ int cras_bt_player_update_metadata(DBusConnection *conn, const char *title,
 	DBusMessageIter iter, array, dict;
 	const char *property = "Metadata";
 	const char *playerInterface = BLUEZ_INTERFACE_MEDIA_PLAYER;
+
+	if (!player.metadata)
+		return -ENXIO;
 
 	msg = dbus_message_new_signal(CRAS_DEFAULT_PLAYER,
 				      DBUS_INTERFACE_PROPERTIES,
