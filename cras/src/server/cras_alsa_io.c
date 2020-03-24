@@ -776,6 +776,14 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 
 	ain = get_active_input(aio);
 
+	cras_alsa_mixer_set_capture_mute(aio->mixer,
+					 cras_system_get_capture_mute(),
+					 ain ? ain->mixer_input : NULL);
+
+	/* For USB device without UCM config, not change a gain control. */
+	if (ain->base.type == CRAS_NODE_TYPE_USB && !aio->ucm)
+		return;
+
 	/* Set hardware gain to 0dB if software gain is needed. */
 	if (cras_iodev_software_volume_needed(iodev))
 		gain = 0;
@@ -789,9 +797,6 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 	}
 
 	cras_alsa_mixer_set_capture_dBFS(aio->mixer, gain,
-					 ain ? ain->mixer_input : NULL);
-	cras_alsa_mixer_set_capture_mute(aio->mixer,
-					 cras_system_get_capture_mute(),
 					 ain ? ain->mixer_input : NULL);
 }
 
@@ -1093,13 +1098,20 @@ static void set_input_node_intrinsic_sensitivity(struct alsa_input_node *input,
 
 	input->base.intrinsic_sensitivity = 0;
 
-	if (!aio->ucm)
+	if (aio->ucm) {
+		rc = ucm_get_intrinsic_sensitivity(aio->ucm, input->base.name,
+						   &sensitivity);
+		if (rc)
+			return;
+	} else if (input->base.type == CRAS_NODE_TYPE_USB) {
+		/*
+		 * For USB devices without UCM config, trust the default capture gain.
+		 * Set sensitivity to the default dbfs so the capture gain is 0.
+		 */
+		sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
+	} else {
 		return;
-
-	rc = ucm_get_intrinsic_sensitivity(aio->ucm, input->base.name,
-					   &sensitivity);
-	if (rc)
-		return;
+	}
 
 	input->base.intrinsic_sensitivity = sensitivity;
 	input->base.capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
