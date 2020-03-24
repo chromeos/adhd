@@ -94,3 +94,4 @@ prlimit64: 1
 tgkill: 1
 mremap: 1
 dup: 1
+_newselect: 1
