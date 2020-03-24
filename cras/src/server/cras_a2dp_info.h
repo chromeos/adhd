@@ -8,7 +8,7 @@
 
 #include "a2dp-codecs.h"
 
-#define A2DP_BUF_SIZE_BYTES 1024
+#define A2DP_BUF_SIZE_BYTES 2048
 
 /* Represents the codec and encoded state of a2dp iodev.
  * Members:

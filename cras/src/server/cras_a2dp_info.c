@@ -180,8 +180,7 @@ int a2dp_encode(struct a2dp_info *a2dp, const void *pcm_buf, int pcm_buf_size,
 int a2dp_write(struct a2dp_info *a2dp, int stream_fd, size_t link_mtu)
 {
 	/* Do avdtp write when the max number of SBC frames is reached. */
-	if (a2dp->a2dp_buf_used + a2dp->frame_length >
-	    link_mtu - sizeof(struct rtp_header) - sizeof(struct rtp_payload))
+	if (a2dp->a2dp_buf_used + a2dp->frame_length > link_mtu)
 		return avdtp_write(stream_fd, a2dp);
 
 	return 0;
