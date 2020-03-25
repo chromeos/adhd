@@ -637,6 +637,7 @@ TEST_F(A2dpIodev, DropAfterThrottle) {
   EXPECT_EQ(1, a2dp_reset_called);
   EXPECT_EQ(level1 - level2, 2 * a2dpio->write_block);
 
+  iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
 }
 
@@ -679,6 +680,7 @@ TEST_F(A2dpIodev, BufferDropAtPutBuffer) {
   /* Expect two block of data is dropped in this extreme scenario. */
   EXPECT_EQ(50, iodev->frames_queued(iodev, &tstamp));
 
+  iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
 }
 
