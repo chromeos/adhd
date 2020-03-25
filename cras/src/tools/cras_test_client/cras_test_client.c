@@ -364,16 +364,16 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
 {
 	unsigned i;
 
-	printf("\tStable Id\t ID\t%4s   Plugged\tL/R swapped\t      "
+	printf("\tStable Id\t ID\t%4s  UI       Plugged\tL/R swapped\t      "
 	       "Time Hotword\tType\t\t Name\n",
 	       is_input ? "Gain" : " Vol");
 	for (i = 0; i < num_nodes; i++)
-		printf("\t(%08x)\t%u:%u\t%5g  %7s\t%14s\t%10ld %-7s\t%-16s%c%s\n",
+		printf("\t(%08x)\t%u:%u\t%5g %f %7s\t%14s\t%10ld %-7s\t%-16s%c%s\n",
 		       nodes[i].stable_id, nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       is_input ? nodes[i].capture_gain / 100.0 :
 				  (double)nodes[i].volume,
-		       nodes[i].plugged ? "yes" : "no",
+		       nodes[i].ui_gain_scaler, nodes[i].plugged ? "yes" : "no",
 		       nodes[i].left_right_swapped ? "yes" : "no",
 		       (long)nodes[i].plugged_time.tv_sec,
 		       nodes[i].active_hotword_model, nodes[i].type,

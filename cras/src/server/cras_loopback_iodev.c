@@ -315,6 +315,7 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_LOOPBACK_TYPE type)
 	node->type = node_type;
 	node->plugged = 1;
 	node->volume = 100;
+	node->ui_gain_scaler = 1.0f;
 	node->stable_id = iodev->info.stable_id;
 	node->software_volume_needed = 0;
 	strcpy(node->name, loopdev_names[type]);

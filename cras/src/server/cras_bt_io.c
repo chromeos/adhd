@@ -490,6 +490,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 		SuperFastHash(cras_bt_device_object_path(device),
 			      strlen(cras_bt_device_object_path(device)),
 			      strlen(cras_bt_device_object_path(device)));
+	active->base.ui_gain_scaler = 1.0f;
 	/*
 	 * If the same headset is connected in wideband mode, we shall assign
 	 * a separate stable_id so the node priority/preference mechanism in

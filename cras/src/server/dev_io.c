@@ -510,7 +510,14 @@ static int capture_to_streams(struct open_dev *adev)
 						  idev->buf_state, &area,
 						  &area_offset);
 
+			/*
+			 * The UI gain scaler should always take effect.
+			 * input_data will decide if stream and iodev internal
+			 * software gains should be used or not, based on use
+			 * case.
+			 */
 			software_gain_scaler =
+				cras_iodev_get_ui_gain_scaler(idev) *
 				input_data_get_software_gain_scaler(
 					idev->input_data,
 					idev->software_gain_scaler,

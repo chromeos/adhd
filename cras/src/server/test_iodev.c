@@ -204,6 +204,7 @@ struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 		node->type = CRAS_NODE_TYPE_UNKNOWN;
 	node->volume = 100;
 	node->software_volume_needed = 0;
+	node->ui_gain_scaler = 1.0f;
 	strcpy(node->name, "(default)");
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);

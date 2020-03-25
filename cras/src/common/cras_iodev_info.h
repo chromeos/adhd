@@ -34,6 +34,7 @@ struct __attribute__((__packed__)) cras_iodev_info {
  *    active - If this is the node currently being used.
  *    volume - per-node volume (0-100)
  *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
+ *    ui_gain_scaler - Adjustable gain scaler set by Chrome.
  *    left_right_swapped - Set true if left and right channels are swapped.
  *    stable_id - ID that does not change due to device plug/unplug or reboot.
  *    mic_positions - Positions of the mic array.
@@ -52,6 +53,7 @@ struct __attribute__((__packed__)) cras_ionode_info {
 	} plugged_time;
 	uint32_t volume;
 	int32_t capture_gain;
+	float ui_gain_scaler;
 	int32_t left_right_swapped;
 	uint32_t type_enum;
 	uint32_t stable_id;

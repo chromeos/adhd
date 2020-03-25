@@ -96,7 +96,10 @@ enum CRAS_IODEV_STATE {
  *    plugged - true if the device is plugged.
  *    plugged_time - If plugged is true, this is the time it was attached.
  *    volume - per-node volume (0-100)
- *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
+ *    capture_gain - Internal per-node capture gain/attenuation (in 100*dBFS)
+ *        This is only used for CRAS internal tuning, no way to change by
+ *        client.
+ *    ui_gain_scaler - The adjustable gain scaler set by client.
  *    left_right_swapped - If left and right output channels are swapped.
  *    type - Type displayed to the user.
  *    position - Specify where on the system this node locates.
@@ -122,6 +125,7 @@ struct cras_ionode {
 	struct timeval plugged_time;
 	unsigned int volume;
 	long capture_gain;
+	float ui_gain_scaler;
 	int left_right_swapped;
 	enum CRAS_NODE_TYPE type;
 	enum CRAS_NODE_POSITION position;
@@ -488,6 +492,14 @@ cras_iodev_software_volume_needed(const struct cras_iodev *iodev)
 		return 1;
 
 	return iodev->active_node->software_volume_needed;
+}
+
+static inline float
+cras_iodev_get_ui_gain_scaler(const struct cras_iodev *iodev)
+{
+	if (!iodev->active_node)
+		return 1.0f;
+	return iodev->active_node->ui_gain_scaler;
 }
 
 /* Gets the software gain scaler should be applied on the deivce.

@@ -80,6 +80,7 @@ TEST_F(DevIoSuite, CaptureGain) {
   add_stream_to_dev(dev->dev, stream);
 
   /* The applied scaler gain should match what is reported by input_data. */
+  dev->dev->active_node->ui_gain_scaler = 1.0f;
   input_data_get_software_gain_scaler_val = 1.0f;
   dev_io_capture(&dev_list);
   EXPECT_EQ(1.0f, dev_stream_capture_software_gain_scaler_val);
@@ -87,6 +88,11 @@ TEST_F(DevIoSuite, CaptureGain) {
   input_data_get_software_gain_scaler_val = 0.99f;
   dev_io_capture(&dev_list);
   EXPECT_EQ(0.99f, dev_stream_capture_software_gain_scaler_val);
+
+  dev->dev->active_node->ui_gain_scaler = 0.6f;
+  input_data_get_software_gain_scaler_val = 0.7f;
+  dev_io_capture(&dev_list);
+  EXPECT_FLOAT_EQ(0.42f, dev_stream_capture_software_gain_scaler_val);
 }
 
 /*
