@@ -357,6 +357,11 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
+
+  /* No extra gain applied. */
+  ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS,
+            aio->base.active_node->intrinsic_sensitivity);
+  ASSERT_EQ(0, aio->base.active_node->capture_gain);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
 
@@ -665,6 +670,38 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
 
   /* Hardware gain is set to 1000 * 0.01 dB as got from catpure_gain.*/
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_value);
+
+  alsa_iodev_destroy(iodev);
+  free(fake_format);
+}
+
+TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
+  struct cras_iodev* iodev;
+  struct cras_audio_format format;
+  struct alsa_io* aio;
+
+  iodev = alsa_iodev_create_with_default_parameters(0, NULL, ALSA_CARD_TYPE_USB,
+                                                    0, fake_mixer, fake_config,
+                                                    NULL, CRAS_STREAM_INPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+
+  aio = (struct alsa_io*)iodev;
+  format.frame_rate = 48000;
+  format.num_channels = 1;
+  cras_iodev_set_format(iodev, &format);
+
+  iodev->active_node->intrinsic_sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
+  iodev->active_node->capture_gain = 0;
+
+  ResetStubData();
+  iodev->open_dev(iodev);
+  iodev->configure_dev(iodev);
+
+  EXPECT_EQ(1, sys_get_capture_mute_called);
+  EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
+
+  /* Not change mixer controls for USB devices without UCM config. */
+  EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_called);
 
   alsa_iodev_destroy(iodev);
   free(fake_format);
