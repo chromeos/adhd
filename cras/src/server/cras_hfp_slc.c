@@ -665,18 +665,25 @@ static int indicator_activation(struct hfp_slc_handle *handle, const char *cmd)
 static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 {
 	char *tokens, *key;
-	int err;
-	if (cmd[8] == '=') {
+	int err, cmd_len;
+
+	cmd_len = strlen(cmd);
+	if (cmd_len < 8)
+		goto error_out;
+
+	if (cmd[7] == '=') {
 		/* AT+BIND=? (Read AG supported indicators) */
-		if (cmd[9] == '?') {
+		if (cmd_len > 8 && cmd[8] == '?') {
 			/* +BIND: (<a>,<b>,<c>,...,<n>) (Response to AT+BIND=?)
 			 * <a> ... <n>: 0-65535, entered as decimal unsigned
 			 * integer values without leading zeros, referencing an
-			 * HF indicator assigned number. 2 is for Battery Level.
+			 * HF indicator assigned number.
+			 * 1 is for Enhanced Driver Status.
+			 * 2 is for Battery Level.
 			 * For the list of HF indicator assigned number, you can
 			 * check the  Bluetooth SIG Assigned Numbers web page.
 			 */
-			err = hfp_send(handle, AT_CMD("+BIND:2"));
+			err = hfp_send(handle, AT_CMD("+BIND: (1,2)"));
 			if (err < 0)
 				return err;
 		}
@@ -695,7 +702,7 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 		}
 	}
 	/* AT+BIND? (Read AG enabled/disabled status of indicators) */
-	else if (cmd[8] == '?') {
+	else if (cmd[7] == '?') {
 		/* +BIND: <a>,<state> (Unsolicited or Response to AT+BIND?)
 		 * This response enables the AG to notify the HF which HF
 		 * indicators are supported and their state, enabled or
@@ -706,14 +713,28 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 		 * indicator
 		 * 1 = enabled, value changes may be sent for this indicator
 		 */
-		err = hfp_send(handle, AT_CMD("+BIND:2,1"));
+
+		/* We support 1:enhanced driver status but disable it just for
+		 * passing PTS test case HFP/AG/SLC/BV-09-I
+		 */
+		err = hfp_send(handle, AT_CMD("+BIND: 1,0"));
 		if (err < 0)
 			return err;
+
+		err = hfp_send(handle, AT_CMD("+BIND: 2,1"));
+		if (err < 0)
+			return err;
+	} else {
+		goto error_out;
 	}
 	/* This OK reply is required after both +BIND AT commands. It also
 	 * covers the AT+BIND= <a>,<b>,...,<n> case.
 	 */
 	return hfp_send(handle, AT_CMD("OK"));
+
+error_out:
+	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	return hfp_send(handle, AT_CMD("ERROR"));
 }
 
 /* AT+BIEV command reports updated values of enabled HF indicators to the AG.
