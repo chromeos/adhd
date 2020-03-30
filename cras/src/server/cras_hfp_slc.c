@@ -189,6 +189,10 @@ static int call_waiting_notify(struct hfp_slc_handle *handle, const char *buf)
  */
 static int cli_notification(struct hfp_slc_handle *handle, const char *cmd)
 {
+	if (strlen(cmd) < 9) {
+		syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+		return hfp_send(handle, AT_CMD("ERROR"));
+	}
 	handle->cli_active = (cmd[8] == '1');
 	return hfp_send(handle, AT_CMD("OK"));
 }
@@ -624,6 +628,11 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 	int err;
 	char buf[64];
 
+	if (strlen(cmd) < 8) {
+		syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+		return hfp_send(handle, AT_CMD("ERROR"));
+	}
+
 	if (cmd[7] == '=') {
 		/* Indicator update test command "AT+CIND=?" */
 		err = hfp_send(handle, AT_CMD(INDICATOR_UPDATE_RSP));
@@ -791,8 +800,8 @@ static int signal_gain_setting(struct hfp_slc_handle *handle, const char *cmd)
 	int gain;
 
 	if (strlen(cmd) < 8) {
-		syslog(LOG_ERR, "Invalid gain setting command %s", cmd);
-		return -EINVAL;
+		syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+		return hfp_send(handle, AT_CMD("ERROR"));
 	}
 
 	/* Map 0 to the smallest non-zero scale 6/100, and 15 to
@@ -830,8 +839,10 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 	char response[128];
 	char *tokens, *features;
 
-	if (strlen(cmd) < 9)
-		return -EINVAL;
+	if (strlen(cmd) < 9) {
+		syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+		return hfp_send(handle, AT_CMD("ERROR"));
+	}
 
 	handle->hf_supports_codec_negotiation = 0;
 
