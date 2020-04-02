@@ -17,6 +17,7 @@
 #include "cras_bt_log.h"
 #include "cras_bt_transport.h"
 #include "cras_bt_constants.h"
+#include "cras_system_state.h"
 #include "utlist.h"
 
 struct cras_bt_transport {
@@ -465,6 +466,10 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		rc = -EINVAL;
 		goto acquire_fail;
 	}
+
+	if (cras_system_get_bt_fix_a2dp_packet_size_enabled() &&
+	    transport->write_mtu > A2DP_FIX_PACKET_SIZE)
+		transport->write_mtu = A2DP_FIX_PACKET_SIZE;
 
 	BTLOG(btlog, BT_TRANSPORT_ACQUIRE, 1, transport->fd);
 	dbus_message_unref(reply);

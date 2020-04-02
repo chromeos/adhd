@@ -122,6 +122,12 @@ void cras_system_set_bt_wbs_enabled(bool enabled);
 /* Gets the elable flag of bluetooth wideband speech feature. */
 bool cras_system_get_bt_wbs_enabled();
 
+/* Sets the flag to enable or disable Bluetooth fixed A2DP packet size. */
+void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled);
+
+/* Gets the flag of Bluetooth fixed A2DP packet size. */
+bool cras_system_get_bt_fix_a2dp_packet_size_enabled();
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.

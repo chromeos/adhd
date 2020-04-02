@@ -49,4 +49,13 @@
 #define CRAS_PLAYER_IDENTITY_DEFAULT "DefaultPlayer"
 #define CRAS_PLAYER_METADATA_SIZE_MAX 128 * sizeof(char)
 
+/* Instead of letting CRAS obtain the A2DP streaming packet size (a.k.a. AVDTP
+ * MTU) from BlueZ Media Transport, force the packet size to the default L2CAP
+ * packet size. This prevent the audio peripheral device to negotiate a larger
+ * packet size and later failed to fulfill it and causing audio artifact. This
+ * defined constant is for experiment only and is put back behind a
+ * chrome://flag.
+ */
+#define A2DP_FIX_PACKET_SIZE 672
+
 #endif /* CRAS_BT_CONSTANTS_H_ */
