@@ -626,6 +626,8 @@ cras_bt_device_start_new_conn_watch_timer(struct cras_bt_device *device)
 		tm, CONN_WATCH_PERIOD_MS, bt_device_conn_watch_cb, device);
 }
 
+static void bt_device_cancel_suspend(struct cras_bt_device *device);
+
 void cras_bt_device_set_connected(struct cras_bt_device *device, int value)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
@@ -634,8 +636,10 @@ void cras_bt_device_set_connected(struct cras_bt_device *device, int value)
 
 	if (device->connected && !value) {
 		cras_bt_profile_on_device_disconnected(device);
-		/* Device is disconnected, resets connected profiles. */
+		/* Device is disconnected, resets connected profiles and the
+		 * suspend timer which scheduled earlier. */
 		device->connected_profiles = 0;
+		bt_device_cancel_suspend(device);
 	}
 
 	device->connected = value;
@@ -650,6 +654,10 @@ void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
 					   enum cras_bt_device_profile profile)
 {
 	device->connected_profiles &= !profile;
+
+	/* Do nothing if device already disconnected. */
+	if (!device->connected)
+		return;
 
 	/* If any profile, a2dp or hfp/hsp, has dropped for some reason,
 	 * we shall make sure this device is fully disconnected within
