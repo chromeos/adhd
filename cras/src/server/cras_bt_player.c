@@ -13,6 +13,7 @@
 #include "cras_bt_constants.h"
 #include "cras_bt_player.h"
 #include "cras_dbus_util.h"
+#include "cras_utf8.h"
 #include "utlist.h"
 
 static void cras_bt_on_player_registered(DBusPendingCall *pending_call,
@@ -198,6 +199,18 @@ static void cras_bt_player_append_metadata(DBusMessageIter *iter,
 			DBUS_TYPE_VARIANT_AS_STRING
 				DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
 		&array);
+	if (!is_utf8_string(title)) {
+		syslog(LOG_INFO, "Non-utf8 title: %s", title);
+		title = "";
+	}
+	if (!is_utf8_string(album)) {
+		syslog(LOG_INFO, "Non-utf8 album: %s", album);
+		album = "";
+	}
+	if (!is_utf8_string(artist)) {
+		syslog(LOG_INFO, "Non-utf8 artist: %s", artist);
+		artist = "";
+	}
 
 	append_key_value(&array, "xesam:title", DBUS_TYPE_STRING,
 			 DBUS_TYPE_STRING_AS_STRING, &title);
@@ -339,6 +352,11 @@ int cras_bt_player_update_identity(DBusConnection *conn, const char *identity)
 
 	if (!identity)
 		return -EINVAL;
+
+	if (!is_utf8_string(identity)) {
+		syslog(LOG_INFO, "Non-utf8 identity: %s", identity);
+		identity = "";
+	}
 
 	if (!strcasecmp(player.identity, identity))
 		return 0;
