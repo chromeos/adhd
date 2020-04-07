@@ -308,50 +308,42 @@ ucm_get_devices_for_var(struct cras_use_case_mgr *mgr, const char *var,
 	return section_names;
 }
 
-static const char *
-ucm_get_playback_device_name_for_dev(struct cras_use_case_mgr *mgr,
-				     const char *dev)
+static const char *ucm_get_value_for_dev(struct cras_use_case_mgr *mgr,
+					 const char *value_var, const char *dev)
 {
 	const char *name = NULL;
 	int rc;
 
-	rc = get_var(mgr, playback_device_name_var, dev, uc_verb(mgr), &name);
+	rc = get_var(mgr, value_var, dev, uc_verb(mgr), &name);
 	if (rc)
 		return NULL;
 
 	return name;
 }
 
-static const char *
+static inline const char *
+ucm_get_playback_device_name_for_dev(struct cras_use_case_mgr *mgr,
+				     const char *dev)
+{
+	return ucm_get_value_for_dev(mgr, playback_device_name_var, dev);
+}
+
+static inline const char *
 ucm_get_capture_device_name_for_dev(struct cras_use_case_mgr *mgr,
 				    const char *dev)
 {
-	const char *name = NULL;
-	int rc;
-
-	rc = get_var(mgr, capture_device_name_var, dev, uc_verb(mgr), &name);
-	if (rc)
-		return NULL;
-
-	return name;
+	return ucm_get_value_for_dev(mgr, capture_device_name_var, dev);
 }
 
 /* Gets the value of DependentPCM property. This is used to structure two
  * SectionDevices under one cras iodev to avoid two PCMs be open at the
  * same time because of restriction in lower layer driver or hardware.
  */
-static const char *
+static inline const char *
 ucm_get_dependent_device_name_for_dev(struct cras_use_case_mgr *mgr,
 				      const char *dev)
 {
-	const char *name = NULL;
-	int rc;
-
-	rc = get_var(mgr, dependent_device_name_var, dev, uc_verb(mgr), &name);
-	if (rc)
-		return NULL;
-
-	return name;
+	return ucm_get_value_for_dev(mgr, dependent_device_name_var, dev);
 }
 
 /* Get a list of mixer names specified in a UCM variable separated by ",".
@@ -548,18 +540,10 @@ char *ucm_get_mic_positions(struct cras_use_case_mgr *mgr)
 	return control_name;
 }
 
-const char *ucm_get_override_type_name(struct cras_use_case_mgr *mgr,
-				       const char *dev)
+inline const char *ucm_get_override_type_name(struct cras_use_case_mgr *mgr,
+					      const char *dev)
 {
-	const char *override_type_name;
-	int rc;
-
-	rc = get_var(mgr, override_type_name_var, dev, uc_verb(mgr),
-		     &override_type_name);
-	if (rc)
-		return NULL;
-
-	return override_type_name;
+	return ucm_get_value_for_dev(mgr, override_type_name_var, dev);
 }
 
 char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
@@ -614,30 +598,16 @@ char *ucm_get_dev_for_mixer(struct cras_use_case_mgr *mgr, const char *mixer,
 	return ret;
 }
 
-const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
-				      const char *dev)
+inline const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
+					     const char *dev)
 {
-	const char *file_name;
-	int rc;
-
-	rc = get_var(mgr, edid_var, dev, uc_verb(mgr), &file_name);
-	if (rc)
-		return NULL;
-
-	return file_name;
+	return ucm_get_value_for_dev(mgr, edid_var, dev);
 }
 
-const char *ucm_get_dsp_name_for_dev(struct cras_use_case_mgr *mgr,
-				     const char *dev)
+inline const char *ucm_get_dsp_name_for_dev(struct cras_use_case_mgr *mgr,
+					    const char *dev)
 {
-	const char *dsp_name = NULL;
-	int rc;
-
-	rc = get_var(mgr, dsp_name_var, dev, uc_verb(mgr), &dsp_name);
-	if (rc)
-		return NULL;
-
-	return dsp_name;
+	return ucm_get_value_for_dev(mgr, dsp_name_var, dev);
 }
 
 int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr, unsigned int *level)
@@ -722,18 +692,11 @@ int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
 	return dev_idx;
 }
 
-const char *
+inline const char *
 ucm_get_echo_reference_dev_name_for_dev(struct cras_use_case_mgr *mgr,
 					const char *dev)
 {
-	const char *name = NULL;
-	int rc;
-
-	rc = get_var(mgr, echo_reference_dev_name_var, dev, uc_verb(mgr),
-		     &name);
-	if (rc)
-		return NULL;
-	return name;
+	return ucm_get_value_for_dev(mgr, echo_reference_dev_name_var, dev);
 }
 
 int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
@@ -1034,17 +997,10 @@ int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr *mgr)
 	return ret;
 }
 
-const char *ucm_get_mixer_name_for_dev(struct cras_use_case_mgr *mgr,
-				       const char *dev)
+inline const char *ucm_get_mixer_name_for_dev(struct cras_use_case_mgr *mgr,
+					      const char *dev)
 {
-	const char *name = NULL;
-	int rc;
-
-	rc = get_var(mgr, mixer_var, dev, uc_verb(mgr), &name);
-	if (rc)
-		return NULL;
-
-	return name;
+	return ucm_get_value_for_dev(mgr, mixer_var, dev);
 }
 
 struct mixer_name *ucm_get_main_volume_names(struct cras_use_case_mgr *mgr)
@@ -1090,30 +1046,16 @@ int ucm_list_section_devices_by_device_name(
 	return listed;
 }
 
-const char *ucm_get_jack_control_for_dev(struct cras_use_case_mgr *mgr,
-					 const char *dev)
+inline const char *ucm_get_jack_control_for_dev(struct cras_use_case_mgr *mgr,
+						const char *dev)
 {
-	const char *name = NULL;
-	int rc;
-
-	rc = get_var(mgr, jack_control_var, dev, uc_verb(mgr), &name);
-	if (rc)
-		return NULL;
-
-	return name;
+	return ucm_get_value_for_dev(mgr, jack_control_var, dev);
 }
 
-const char *ucm_get_jack_dev_for_dev(struct cras_use_case_mgr *mgr,
-				     const char *dev)
+inline const char *ucm_get_jack_dev_for_dev(struct cras_use_case_mgr *mgr,
+					    const char *dev)
 {
-	const char *name = NULL;
-	int rc;
-
-	rc = get_var(mgr, jack_dev_var, dev, uc_verb(mgr), &name);
-	if (rc)
-		return NULL;
-
-	return name;
+	return ucm_get_value_for_dev(mgr, jack_dev_var, dev);
 }
 
 int ucm_get_jack_switch_for_dev(struct cras_use_case_mgr *mgr, const char *dev)
