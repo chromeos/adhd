@@ -167,6 +167,25 @@ int cras_bt_add_profile(DBusConnection* conn, struct cras_bt_profile* profile) {
   return 0;
 }
 
+int cras_bt_rm_profile(DBusConnection* conn, struct cras_bt_profile* profile) {
+  internal_bt_profile = NULL;
+  return 0;
+}
+
+int cras_bt_register_profile(DBusConnection* conn,
+                             struct cras_bt_profile* profile) {
+  return 0;
+}
+
+int cras_bt_register_profiles(DBusConnection* conn) {
+  return 0;
+}
+
+int cras_bt_unregister_profile(DBusConnection* conn,
+                               struct cras_bt_profile* profile) {
+  return 0;
+}
+
 struct hfp_info* hfp_info_create() {
   return NULL;
 }
