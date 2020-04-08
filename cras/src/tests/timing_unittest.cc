@@ -1163,6 +1163,12 @@ int input_data_put_for_stream(struct input_data* data,
   return 0;
 }
 
+float input_data_get_software_gain_scaler(struct input_data* data,
+                                          float idev_sw_gain_scaler,
+                                          struct cras_rstream* stream) {
+  return 1.0;
+}
+
 struct cras_audio_format* cras_rstream_post_processing_format(
     const struct cras_rstream* stream,
     void* dev_ptr) {

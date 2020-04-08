@@ -1444,6 +1444,11 @@ int cras_audio_thread_event_drop_samples() {
   return 0;
 }
 
+float input_data_get_software_gain_scaler(struct input_data* data,
+                                          float idev_sw_gain_scaler,
+                                          struct cras_rstream* stream) {
+  return 1.0;
+}
 }  // extern "C"
 
 int main(int argc, char** argv) {
