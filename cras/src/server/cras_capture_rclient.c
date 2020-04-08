@@ -11,10 +11,8 @@
 #include "cras_rclient.h"
 #include "cras_rclient_util.h"
 #include "cras_rstream.h"
-#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "stream_list.h"
 
 /* Entry point for handling a message from the client.  Called from the main
  * server context. */
@@ -80,24 +78,7 @@ static const struct cras_rclient_ops cras_capture_rclient_ops = {
  * the connection has succeeded. */
 struct cras_rclient *cras_capture_rclient_create(int fd, size_t id)
 {
-	struct cras_rclient *client;
-	struct cras_client_connected msg;
-	int state_fd;
-
-	client = (struct cras_rclient *)calloc(1, sizeof(struct cras_rclient));
-	if (!client)
-		return NULL;
-
-	client->fd = fd;
-	client->id = id;
-
-	client->ops = &cras_capture_rclient_ops;
-	client->supported_directions =
-		cras_stream_direction_mask(CRAS_STREAM_INPUT);
-
-	cras_fill_client_connected(&msg, client->id);
-	state_fd = cras_sys_state_shm_fd();
-	client->ops->send_message_to_client(client, &msg.header, &state_fd, 1);
-
-	return client;
+	return rclient_generic_create(
+		fd, id, &cras_capture_rclient_ops,
+		cras_stream_direction_mask(CRAS_STREAM_INPUT));
 }

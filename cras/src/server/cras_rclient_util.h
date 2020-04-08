@@ -86,6 +86,22 @@ int rclient_handle_client_stream_disconnect(
 	struct cras_rclient *client,
 	const struct cras_disconnect_stream_message *msg);
 
+/* Generic rclient create function for different types of rclients.
+ * Creates a client structure and sends a message back informing the client
+ * that the connection has succeeded.
+ *
+ * Args:
+ *    fd - The file descriptor used for communication with the client.
+ *    id - Unique identifier for this client.
+ *    ops - cras_rclient_ops pointer for the client.
+ *    supported_directions - supported directions for the this rclient.
+ * Returns:
+ *    A pointer to the newly created rclient on success, NULL on failure.
+ */
+struct cras_rclient *rclient_generic_create(int fd, size_t id,
+					    const struct cras_rclient_ops *ops,
+					    int supported_directions);
+
 /*
  * Converts an old version of connect message to the correct
  * cras_connect_message. Returns zero on success, negative on failure.

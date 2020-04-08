@@ -12,6 +12,7 @@
 #include "cras_rclient_util.h"
 #include "cras_rstream.h"
 #include "cras_server_metrics.h"
+#include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -229,4 +230,30 @@ int rclient_handle_client_stream_disconnect(
 	}
 	return stream_list_rm(cras_iodev_list_get_stream_list(),
 			      msg->stream_id);
+}
+
+/* Creates a client structure and sends a message back informing the client that
+ * the connection has succeeded. */
+struct cras_rclient *rclient_generic_create(int fd, size_t id,
+					    const struct cras_rclient_ops *ops,
+					    int supported_directions)
+{
+	struct cras_rclient *client;
+	struct cras_client_connected msg;
+	int state_fd;
+
+	client = (struct cras_rclient *)calloc(1, sizeof(struct cras_rclient));
+	if (!client)
+		return NULL;
+
+	client->fd = fd;
+	client->id = id;
+	client->ops = ops;
+	client->supported_directions = supported_directions;
+
+	cras_fill_client_connected(&msg, client->id);
+	state_fd = cras_sys_state_shm_fd();
+	client->ops->send_message_to_client(client, &msg.header, &state_fd, 1);
+
+	return client;
 }
