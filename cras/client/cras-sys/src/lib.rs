@@ -163,6 +163,7 @@ impl Default for cras_ionode_info {
                 tv_usec: 0,
             },
             volume: 0,
+            ui_gain_scaler: 0.0,
             capture_gain: 0,
             left_right_swapped: 0,
             type_enum: 0,
