@@ -180,17 +180,6 @@ void audio_thread_enable_callback(int fd, int enabled)
 	}
 }
 
-bool audio_thread_is_callback_enabled(int fd)
-{
-	struct iodev_callback_list *iodev_cb;
-
-	DL_FOREACH (iodev_callbacks, iodev_cb) {
-		if (iodev_cb->fd == fd)
-			return iodev_cb->enabled;
-	}
-	return 0;
-}
-
 /* Sends a response (error code) from the audio thread to the main thread.
  * Indicates that the last message sent to the audio thread has been handled
  * with an error code of rc.

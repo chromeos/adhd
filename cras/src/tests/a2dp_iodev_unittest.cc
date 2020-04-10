@@ -76,7 +76,6 @@ void ResetStubData() {
   cras_bt_transport_write_mtu_ret = 900;
   cras_iodev_fill_odev_zeros_called = 0;
   audio_thread_enable_callback_called = 0;
-  audio_thread_enable_callback_val = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport*>(0x123);
 
@@ -641,49 +640,6 @@ TEST_F(A2dpIodev, DropAfterThrottle) {
   a2dp_iodev_destroy(iodev);
 }
 
-TEST_F(A2dpIodev, BufferDropAtPutBuffer) {
-  struct cras_iodev* iodev;
-  struct cras_audio_area* area;
-  unsigned frames, delta;
-  struct a2dp_io* a2dpio;
-  struct timespec tstamp;
-
-  iodev = a2dp_iodev_create(fake_transport);
-  a2dpio = (struct a2dp_io*)iodev;
-
-  iodev_set_format(iodev, &format);
-  time_now.tv_sec = 0;
-  time_now.tv_nsec = 0;
-  iodev->configure_dev(iodev);
-  ASSERT_NE(write_callback, (void*)NULL);
-  audio_thread_enable_callback_called = 0;
-
-  iodev->start(iodev);
-  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
-
-  /* Fake the first chunk data of write_block + 50 frames. */
-  delta = 50;
-  a2dp_write_return_val[0] = 0;
-  frames = a2dpio->write_block + delta;
-  iodev->get_buffer(iodev, &area, &frames);
-  iodev->put_buffer(iodev, frames);
-  EXPECT_EQ(1, audio_thread_enable_callback_called);
-  EXPECT_EQ(0, audio_thread_enable_callback_val);
-  EXPECT_EQ(50, iodev->frames_queued(iodev, &tstamp));
-
-  /* Assume time has passed two more write periods. */
-  time_now.tv_nsec = 25000000 * 3;
-  frames = 2 * a2dpio->write_block;
-  iodev->get_buffer(iodev, &area, &frames);
-  iodev->put_buffer(iodev, frames);
-
-  /* Expect two block of data is dropped in this extreme scenario. */
-  EXPECT_EQ(50, iodev->frames_queued(iodev, &tstamp));
-
-  iodev->close_dev(iodev);
-  a2dp_iodev_destroy(iodev);
-}
-
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -909,8 +865,5 @@ int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
 void audio_thread_enable_callback(int fd, int enabled) {
   audio_thread_enable_callback_called++;
   audio_thread_enable_callback_val = enabled;
-}
-bool audio_thread_is_callback_enabled(int fd) {
-  return audio_thread_enable_callback_val;
 }
 }

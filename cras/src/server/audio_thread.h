@@ -117,13 +117,6 @@ int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd);
 /* Enables or Disabled the callback associated with fd. */
 void audio_thread_enable_callback(int fd, int enabled);
 
-/* Returns whether the callback associated with fd is enabled. In case
- * no callback is found, return false.
- * Args:
- *    fd - The file descriptor as key to look for associated callback.
- */
-bool audio_thread_is_callback_enabled(int fd);
-
 /* Starts a thread created with audio_thread_create.
  * Args:
  *    thread - The thread to start.

@@ -260,10 +260,6 @@ static int drop_one_block(struct a2dp_io *a2dpio)
 	return 0;
 }
 
-/*
- * Check if now has passed next_flush_time by at least one flush_period.
- * If so then try drop blocks of data in the corresponding time.
- */
 static void possibly_drop_blocks(struct a2dp_io *a2dpio)
 {
 	struct timespec now, ts;
@@ -564,19 +560,11 @@ static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 	return 0;
 }
 
-/* Return if audio thread is polling for when socket becomes writable. */
-static bool is_waiting_for_socket_writable(struct a2dp_io *a2dpio)
-{
-	return audio_thread_is_callback_enabled(
-		cras_bt_transport_fd(a2dpio->transport));
-}
-
 static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
 	size_t written_bytes;
 	size_t format_bytes;
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
-	int rc = 0;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 	written_bytes = nwritten * format_bytes;
@@ -586,22 +574,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 
 	buf_increment_write(a2dpio->pcm_buf, written_bytes);
 
-	/*
-	 * There are cases when audio data got accumulated:
-	 * (1) Controller socket throttled.
-	 * (2) Audio thread schedule miss.
-	 * In either cases we shall look at how much time has passed and drop
-	 * some data before encode and flush the next block. Note that playback
-	 * underrun could happen in case (2) and output_underrun should be
-	 * triggered by audio thread as a result.
-	 */
-	possibly_drop_blocks(a2dpio);
-
-	/* Flush data if not waiting for socket to be come wrtiable. */
-	if (!is_waiting_for_socket_writable(a2dpio))
-		rc = encode_and_flush(iodev);
-
-	return rc;
+	return encode_and_flush(iodev);
 }
 
 static int flush_buffer(struct cras_iodev *iodev)
