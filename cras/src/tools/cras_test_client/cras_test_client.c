@@ -578,9 +578,6 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	case AUDIO_THREAD_STREAM_REMOVED:
 		printf("%-30s id:%x\n", "STREAM_REMOVED", data1);
 		break;
-	case AUDIO_THREAD_A2DP_DROP:
-		printf("%-30s pcm_queued_bytes:%u, drop_count:%u\n",
-		       "A2DP_DROP", data1, data2);
 		break;
 	case AUDIO_THREAD_A2DP_FLUSH:
 		printf("%-30s state %u next flush time:%s.%09u\n", "A2DP_FLUSH",

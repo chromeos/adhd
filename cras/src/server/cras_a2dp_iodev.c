@@ -227,75 +227,12 @@ static int encode_a2dp_packet(struct a2dp_io *a2dpio)
 	return 0;
 }
 
-static int drop_one_block(struct a2dp_io *a2dpio)
-{
-	int nframes, rc;
-	int local_queued_frames = bt_local_queued_frames(&a2dpio->base);
-
-	if (local_queued_frames < a2dpio->write_block)
-		return 0;
-
-	nframes = a2dp_queued_frames(&a2dpio->a2dp);
-	/*
-	 * If zero encoded frames are queued, we can simply drop a block
-	 * from pcm buffer.
-	 */
-	if (nframes == 0) {
-		buf_increment_read(
-			a2dpio->pcm_buf,
-			a2dpio->write_block *
-				cras_get_format_bytes(a2dpio->base.format));
-	}
-	/*
-	 * Otherwise encode some more pcm data to fill up encoded buffer and
-	 * discard it. The size of encoded buffer is write_block.
-	 */
-	else {
-		rc = encode_a2dp_packet(a2dpio);
-		if (rc < 0)
-			return rc;
-
-		a2dp_reset(&a2dpio->a2dp);
-	}
-	return 0;
-}
-
-static void possibly_drop_blocks(struct a2dp_io *a2dpio)
-{
-	struct timespec now, ts;
-	int err, drop_count = 0;
-
-	/* Socket finally can write after throttle. */
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-	ts = a2dpio->next_flush_time;
-	add_timespecs(&ts, &a2dpio->flush_period);
-
-	while (timespec_after(&now, &ts)) {
-		a2dpio->next_flush_time = ts;
-		err = drop_one_block(a2dpio);
-		if (err < 0)
-			syslog(LOG_ERR, "Error drop %u frames of a2dp data",
-			       a2dpio->write_block);
-		add_timespecs(&ts, &a2dpio->flush_period);
-		drop_count++;
-	}
-	ATLOG(atlog, AUDIO_THREAD_A2DP_DROP, buf_queued(a2dpio->pcm_buf),
-	      drop_count, 0);
-}
-
 /*
  * To be called when a2dp socket becomes writable.
  */
 static int a2dp_socket_write_cb(void *arg)
 {
 	struct cras_iodev *iodev = (struct cras_iodev *)arg;
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
-
-	/* Disable polling for write, since socket is now writable. */
-	audio_thread_enable_callback(cras_bt_transport_fd(a2dpio->transport),
-				     0);
-	possibly_drop_blocks(a2dpio);
-
 	return encode_and_flush(iodev);
 }
 
