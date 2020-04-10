@@ -953,9 +953,6 @@ static void print_cras_audio_thread_snapshot(
 
 	printf("Event type: ");
 	switch (snapshot->event_type) {
-	case AUDIO_THREAD_EVENT_A2DP_DROP:
-		printf("a2dp drop\n");
-		break;
 	case AUDIO_THREAD_EVENT_BUSYLOOP:
 		printf("busyloop\n");
 		break;

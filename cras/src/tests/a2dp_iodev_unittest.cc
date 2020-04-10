@@ -913,7 +913,4 @@ void audio_thread_enable_callback(int fd, int enabled) {
 bool audio_thread_is_callback_enabled(int fd) {
   return audio_thread_enable_callback_val;
 }
-int cras_audio_thread_event_a2dp_drop() {
-  return 0;
-}
 }

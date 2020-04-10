@@ -7,12 +7,6 @@
 #define CRAS_AUDIO_THREAD_MONITOR_H_
 
 /*
- * Sends a debug event to the audio thread for when a2dp iodev decides
- * to drop some data.
- */
-int cras_audio_thread_event_a2dp_drop();
-
-/*
  * Sends a debug event to the audio thread for debugging.
  */
 int cras_audio_thread_event_debug();
