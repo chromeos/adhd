@@ -11,4 +11,4 @@ compile_commands.json:
 	bear make check -j$(nproc)
 
 clean-local:
-	rm compile_commands.json
+	rm -f compile_commands.json
