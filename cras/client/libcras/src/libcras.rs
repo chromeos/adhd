@@ -454,6 +454,37 @@ impl<'a> CrasClient<'a> {
         }
     }
 
+    /// Creates a new playback stream pinned to the device at `device_index`.
+    ///
+    /// # Arguments
+    ///
+    /// * `device_index` - The device to which the stream will be attached.
+    /// * `num_channels` - The count of audio channels for the stream.
+    /// * `format` - The format to use for stream audio samples.
+    /// * `frame_rate` - The sample rate of the stream.
+    /// * `buffer_size` - The transfer size granularity in frames.
+    pub fn new_pinned_playback_stream(
+        &mut self,
+        device_index: u32,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: usize,
+        buffer_size: usize,
+    ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>
+    {
+        Ok((
+            Box::new(DummyStreamControl::new()),
+            Box::new(self.create_stream::<CrasPlaybackData>(
+                Some(device_index),
+                buffer_size as u32,
+                CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT,
+                frame_rate,
+                num_channels,
+                format,
+            )?),
+        ))
+    }
+
     /// Creates a new capture stream pinned to the device at `device_index`.
     ///
     /// This is useful for, among other things, capturing from a loopback
