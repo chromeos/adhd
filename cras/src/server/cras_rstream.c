@@ -127,10 +127,21 @@ static int verify_rstream_parameters(const struct cras_rstream_config *config,
 		       format->frame_rate);
 		return -EINVAL;
 	}
+	/*
+	 * Valid buffer settings:
+	 *   Frames in 1ms <= cb_threshold <= buffer_frames <= Frames in 10s.
+	 */
 	if (!buffer_meets_size_limit(config->buffer_frames,
 				     format->frame_rate)) {
 		syslog(LOG_ERR, "rstream: invalid buffer_frames %zu\n",
 		       config->buffer_frames);
+		return -EINVAL;
+	}
+	if (!buffer_meets_size_limit(config->cb_threshold,
+				     format->frame_rate) ||
+	    config->cb_threshold > config->buffer_frames) {
+		syslog(LOG_ERR, "rstream: invalid cb_threshold %zu\n",
+		       config->cb_threshold);
 		return -EINVAL;
 	}
 	if (format->num_channels < 0 || format->num_channels > CRAS_CH_MAX) {
@@ -154,11 +165,6 @@ static int verify_rstream_parameters(const struct cras_rstream_config *config,
 	if (config->stream_type < CRAS_STREAM_TYPE_DEFAULT ||
 	    config->stream_type >= CRAS_STREAM_NUM_TYPES) {
 		syslog(LOG_ERR, "rstream: Invalid stream type.\n");
-		return -EINVAL;
-	}
-	if (!buffer_meets_size_limit(config->cb_threshold,
-				     format->frame_rate)) {
-		syslog(LOG_ERR, "rstream: cb_threshold too low\n");
 		return -EINVAL;
 	}
 	if ((config->client_shm_size > 0 && config->client_shm_fd < 0) ||
