@@ -432,7 +432,7 @@ int cras_bt_player_update_position(DBusConnection *conn,
 }
 
 int cras_bt_player_update_metadata(DBusConnection *conn, const char *title,
-				   const char *album, const char *artist,
+				   const char *artist, const char *album,
 				   const dbus_int64_t length)
 {
 	DBusMessage *msg;
