@@ -16,6 +16,18 @@ dump_cards() {
     done
 }
 
+# Helper function: in_the_list $1 $2
+# Returns 0 if str $1 is included in delimited str $2; otherwise 1
+in_the_list() {
+    for item in $2
+    do
+        if [ "$1" = "${item}" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 echo '=== cras_test_client --dump_server_info ==='
 cras_test_client --dump_server_info
 
@@ -58,3 +70,54 @@ if [ -e /sys/kernel/debug/asoc/codecs ]; then
         i2cdump -f -y $i2c_addr
     done
 fi
+
+# Dump registers from regmaps
+
+# List of audio components
+# For kernel>=4.14, it is in /sys/kernel/debug/asoc/components
+# For kernel<4.14, it is in /sys/kernel/debug/asoc/codecs
+if [ -f /sys/kernel/debug/asoc/components ]; then
+    audio_comps=$(cat /sys/kernel/debug/asoc/components)
+else
+    audio_comps=$(cat /sys/kernel/debug/asoc/codecs)
+fi
+
+# Blacklist regmap name of dumping registers (tracked by b/154177454)
+# Use the blank space as delimiter, e.g. 'name_a name_b name_c'
+name_blacklist='snd_hda_codec_hdmi'
+
+for file_path in /sys/kernel/debug/regmap/*
+do
+    [ -e "${file_path}" ] || break  # handle the case of no files
+    component=$(basename "${file_path}")
+
+    # Skip dumping registers if component is not listed in audio_comps
+    if ! in_the_list "${component}" "${audio_comps}"; then
+        continue
+    fi
+
+    if [ ! -f "${file_path}/name" ]; then
+        echo "Failed at dump registers: ${file_path}"
+        continue
+    fi
+
+    name=$(cat "${file_path}/name")
+    echo "=== dump registers component: ${component} name: ${name} ==="
+
+    # Skip dumping registers if regmap's name is in name_blacklist
+    if in_the_list "${name}" "${name_blacklist}"; then
+        echo 'skipped dumping due to b/154177454'
+        continue
+    fi
+
+    # Store back the original value
+    # Note: $(cat cache_bypass) returns 'Y' if flag is on; otherwise 'N'
+    cache_bypass=$(cat "${file_path}/cache_bypass")
+    if [ "${cache_bypass}" = "N" ]; then
+        echo 1 > "${file_path}/cache_bypass"
+    fi
+    cat "${file_path}/registers"
+    if [ "${cache_bypass}" = "N" ]; then
+        echo 0 > "${file_path}/cache_bypass"
+    fi
+done
