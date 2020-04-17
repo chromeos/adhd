@@ -426,10 +426,8 @@ TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   struct cras_audio_area* area;
   struct timespec tstamp;
   unsigned frames;
-  struct a2dp_io* a2dpio;
 
   iodev = a2dp_iodev_create(fake_transport);
-  a2dpio = (struct a2dp_io*)iodev;
 
   iodev_set_format(iodev, &format);
   iodev->configure_dev(iodev);

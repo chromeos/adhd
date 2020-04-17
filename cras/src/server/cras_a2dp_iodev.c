@@ -97,7 +97,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int bt_local_queued_frames(const struct cras_iodev *iodev)
+static unsigned int bt_local_queued_frames(const struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	return a2dp_queued_frames(&a2dpio->a2dp) +
@@ -120,7 +120,7 @@ static int frames_queued(const struct cras_iodev *iodev,
  */
 static int fill_zeros_to_min_buffer_level(struct cras_iodev *iodev)
 {
-	int local_queued_frames = bt_local_queued_frames(iodev);
+	unsigned int local_queued_frames = bt_local_queued_frames(iodev);
 
 	if (local_queued_frames < iodev->min_buffer_level)
 		return cras_iodev_fill_odev_zeros(
@@ -137,7 +137,7 @@ static int fill_zeros_to_min_buffer_level(struct cras_iodev *iodev)
  */
 static int output_underrun(struct cras_iodev *iodev)
 {
-	int local_queued_frames = bt_local_queued_frames(iodev);
+	unsigned int local_queued_frames = bt_local_queued_frames(iodev);
 
 	/*
 	 * Examples to help understand the check:
@@ -378,7 +378,7 @@ static int encode_and_flush(const struct cras_iodev *iodev)
 	int err;
 	size_t format_bytes;
 	int written = 0;
-	int queued_frames;
+	unsigned int queued_frames;
 	struct a2dp_io *a2dpio;
 	struct cras_bt_device *device;
 	struct timespec now;
