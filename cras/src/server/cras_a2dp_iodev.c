@@ -20,6 +20,7 @@
 #include "cras_a2dp_info.h"
 #include "cras_a2dp_iodev.h"
 #include "cras_audio_area.h"
+#include "cras_audio_thread_monitor.h"
 #include "cras_bt_device.h"
 #include "cras_iodev.h"
 #include "cras_util.h"
@@ -29,6 +30,16 @@
 
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 #define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)
+
+/* Threshold for reasonable a2dp throttle log in audio dump. */
+static const struct timespec throttle_log_threshold = {
+	0, 20000000 /* 20ms */
+};
+
+/* Threshold for severe a2dp throttle event. */
+static const struct timespec throttle_event_threshold = {
+	2, 0 /* 2s */
+};
 
 /* Child of cras_iodev to handle bluetooth A2DP streaming.
  * Members:
@@ -386,7 +397,7 @@ static int encode_and_flush(const struct cras_iodev *iodev)
 	unsigned int queued_frames;
 	struct a2dp_io *a2dpio;
 	struct cras_bt_device *device;
-	struct timespec now;
+	struct timespec now, ts;
 	static const struct timespec flush_wake_fuzz_ts = {
 		0, 1000000 /* 1ms */
 	};
@@ -418,6 +429,18 @@ do_flush:
 	add_timespecs(&now, &flush_wake_fuzz_ts);
 	if (!timespec_after(&now, &a2dpio->next_flush_time))
 		return 0;
+
+	/* If the A2DP write schedule miss exceeds a small threshold, log it for
+	 * debug purpose. */
+	subtract_timespecs(&now, &a2dpio->next_flush_time, &ts);
+	if (timespec_after(&ts, &throttle_log_threshold))
+		ATLOG(atlog, AUDIO_THREAD_A2DP_THROTTLE_TIME, ts.tv_sec,
+		      ts.tv_nsec, bt_local_queued_frames(iodev));
+
+	/* Log an event if the A2DP write schedule miss exceeds a large threshold
+	 * that we consider it as something severe. */
+	if (timespec_after(&ts, &throttle_event_threshold))
+		cras_audio_thread_event_a2dp_throttle();
 
 	written = a2dp_write(&a2dpio->a2dp,
 			     cras_bt_transport_fd(a2dpio->transport),

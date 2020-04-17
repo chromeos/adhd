@@ -815,3 +815,7 @@ int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
 
 void audio_thread_enable_callback(int fd, int enabled) {}
 }
+
+int cras_audio_thread_event_a2dp_throttle() {
+  return 0;
+}

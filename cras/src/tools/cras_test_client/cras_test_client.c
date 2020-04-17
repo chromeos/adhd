@@ -583,6 +583,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s state %u next flush time:%s.%09u\n", "A2DP_FLUSH",
 		       data1, time_str, nsec);
 		break;
+	case AUDIO_THREAD_A2DP_THROTTLE_TIME:
+		printf("%-30s %u ms, queued:%u\n", "A2DP_THROTTLE_TIME",
+		       data1 * 1000 + data2 / 1000000, data3);
+		break;
 	case AUDIO_THREAD_A2DP_WRITE:
 		printf("%-30s written:%d queued:%u\n", "A2DP_WRITE", data1,
 		       data2);
@@ -954,6 +958,9 @@ static void print_cras_audio_thread_snapshot(
 
 	printf("Event type: ");
 	switch (snapshot->event_type) {
+	case AUDIO_THREAD_EVENT_A2DP_THROTTLE:
+		printf("a2dp throttle\n");
+		break;
 	case AUDIO_THREAD_EVENT_BUSYLOOP:
 		printf("busyloop\n");
 		break;
