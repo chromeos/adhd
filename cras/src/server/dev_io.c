@@ -1152,8 +1152,7 @@ static int get_next_stream_wake_from_list(struct dev_stream *streams,
 	return ret;
 }
 
-int dev_io_next_output_wake(struct open_dev **odevs, struct timespec *min_ts,
-			    const struct timespec *now)
+int dev_io_next_output_wake(struct open_dev **odevs, struct timespec *min_ts)
 {
 	struct open_dev *adev;
 	int ret = 0;

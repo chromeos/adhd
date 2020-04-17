@@ -732,7 +732,7 @@ static int fill_next_sleep_interval(struct audio_thread *thread,
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	add_timespecs(&min_ts, &now);
 	ret = dev_io_next_output_wake(&thread->open_devs[CRAS_STREAM_OUTPUT],
-				      &min_ts, &now);
+				      &min_ts);
 	ret += dev_io_next_input_wake(&thread->open_devs[CRAS_STREAM_INPUT],
 				      &min_ts);
 	if (timespec_after(&min_ts, &now))

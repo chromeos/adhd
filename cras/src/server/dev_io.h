@@ -80,8 +80,7 @@ int dev_io_next_input_wake(struct open_dev **idevs, struct timespec *min_ts);
  * Fills min_ts with the next time the system should wake to service output.
  * Returns the number of devices waiting.
  */
-int dev_io_next_output_wake(struct open_dev **odevs, struct timespec *min_ts,
-			    const struct timespec *now);
+int dev_io_next_output_wake(struct open_dev **odevs, struct timespec *min_ts);
 
 /*
  * Removes a device from a list of devices.
