@@ -506,6 +506,9 @@ struct cras_alsa_card *cras_alsa_card_create(
 		       card_name, alsa_card->ucm ? "yes" : "no");
 	}
 
+	if (info->card_type == ALSA_CARD_TYPE_INTERNAL && !alsa_card->ucm)
+		syslog(LOG_ERR, "No ucm config on internal card %s", card_name);
+
 	rc = snd_hctl_open(&alsa_card->hctl, alsa_card->name, SND_CTL_NONBLOCK);
 	if (rc < 0) {
 		syslog(LOG_DEBUG, "failed to get hctl for %s", alsa_card->name);
