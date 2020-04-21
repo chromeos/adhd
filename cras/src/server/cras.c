@@ -37,7 +37,7 @@ static void set_signals()
 int main(int argc, char **argv)
 {
 	int c, option_index;
-	int log_mask = LOG_ERR;
+	int log_mask = LOG_WARNING;
 	const char default_dsp_config[] = CRAS_CONFIG_FILE_DIR "/dsp.ini";
 	const char *dsp_config = default_dsp_config;
 	const char *device_config_dir = CRAS_CONFIG_FILE_DIR;
