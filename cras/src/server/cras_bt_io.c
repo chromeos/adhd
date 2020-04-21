@@ -106,6 +106,16 @@ static void bt_switch_to_profile(struct cras_bt_device *device,
 	}
 }
 
+/* Switches the active profile to A2DP if it can. */
+static void bt_possibly_switch_to_a2dp(struct bt_io *btio)
+{
+	if (!cras_bt_device_has_a2dp(btio->device))
+		return;
+	cras_bt_device_set_active_profile(
+		btio->device, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+	cras_bt_device_switch_profile(btio->device, &btio->base);
+}
+
 /* Checks if bt device is active for the given profile.
  */
 static int device_using_profile(struct cras_bt_device *device,
@@ -126,6 +136,7 @@ static int open_dev(struct cras_iodev *iodev)
 {
 	struct bt_io *btio = (struct bt_io *)iodev;
 	struct cras_iodev *dev = active_profile_dev(iodev);
+	int rc;
 
 	/* Force to use HFP if opening input dev. */
 	if (device_using_profile(btio->device,
@@ -137,8 +148,16 @@ static int open_dev(struct cras_iodev *iodev)
 		return -EAGAIN;
 	}
 
-	if (dev && dev->open_dev)
-		return dev->open_dev(dev);
+	if (dev && dev->open_dev) {
+		rc = dev->open_dev(dev);
+		if (rc == 0)
+			return 0;
+
+		/* If input iodev open fails, switch profile back to A2DP. */
+		if (iodev->direction == CRAS_STREAM_INPUT)
+			bt_possibly_switch_to_a2dp(btio);
+		return rc;
+	}
 
 	return 0;
 }
@@ -229,12 +248,8 @@ static int close_dev(struct cras_iodev *iodev)
 		    btio->device,
 		    CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY |
 			    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY) &&
-	    (iodev->direction == CRAS_STREAM_INPUT) &&
-	    cras_bt_device_has_a2dp(btio->device)) {
-		cras_bt_device_set_active_profile(
-			btio->device, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-		cras_bt_device_switch_profile(btio->device, iodev);
-	}
+	    (iodev->direction == CRAS_STREAM_INPUT))
+		bt_possibly_switch_to_a2dp(btio);
 
 	rc = dev->close_dev(dev);
 	if (rc < 0)
