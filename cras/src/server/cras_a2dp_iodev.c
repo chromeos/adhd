@@ -242,6 +242,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	int sock_depth;
 	int err;
 	socklen_t optlen;
+	int a2dp_payload_length;
 
 	err = cras_bt_transport_acquire(a2dpio->transport);
 	if (err < 0) {
@@ -276,12 +277,15 @@ static int configure_dev(struct cras_iodev *iodev)
 	a2dpio->sock_depth_frames = a2dp_block_size(&a2dpio->a2dp, sock_depth) /
 				    cras_get_format_bytes(iodev->format);
 	/*
+	 * Per avdtp_write, subtract the room for packet header first.
 	 * Calculate how many frames are encapsulated in one a2dp packet, and
 	 * the corresponding time period between two packets.
 	 */
+	a2dp_payload_length = cras_bt_transport_write_mtu(a2dpio->transport) -
+			      sizeof(struct rtp_header) -
+			      sizeof(struct rtp_payload);
 	a2dpio->write_block =
-		a2dp_block_size(&a2dpio->a2dp, cras_bt_transport_write_mtu(
-						       a2dpio->transport)) /
+		a2dp_block_size(&a2dpio->a2dp, a2dp_payload_length) /
 		cras_get_format_bytes(iodev->format);
 	cras_frames_to_time(a2dpio->write_block, iodev->format->frame_rate,
 			    &a2dpio->flush_period);

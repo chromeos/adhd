@@ -71,7 +71,7 @@ void ResetStubData() {
   a2dp_write_index = 0;
   a2dp_encode_called = 0;
   /* Fake the MTU value. min_buffer_level will be derived from this value. */
-  cras_bt_transport_write_mtu_ret = 900;
+  cras_bt_transport_write_mtu_ret = 950;
   cras_iodev_fill_odev_zeros_called = 0;
 
   fake_transport = reinterpret_cast<struct cras_bt_transport*>(0x123);
@@ -197,7 +197,7 @@ TEST_F(A2dpIodev, GetPutBuffer) {
   iodev->start(iodev);
   iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
-  /* 900 / 128 * 512 / 4 */
+  /* (950 - 13) / 128 * 512 / 4 */
   ASSERT_EQ(iodev->min_buffer_level, 896);
 
   frames = 1500;
@@ -271,7 +271,7 @@ TEST_F(A2dpIodev, FramesQueued) {
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
   /* a2dp_block_size(mtu) / format_bytes
-   * 900 / 128 * 512 / 4 = 896 */
+   * (950 - 13) / 128 * 512 / 4 = 896 */
   EXPECT_EQ(896, a2dpio->write_block);
 
   iodev->start(iodev);
@@ -433,7 +433,7 @@ TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
 
-  /* 900 / 128 * 512 / 4 */
+  /* (950 - 13)/ 128 * 512 / 4 */
   ASSERT_EQ(iodev->min_buffer_level, 896);
 
   iodev->start(iodev);
@@ -473,7 +473,7 @@ TEST_F(A2dpIodev, HandleUnderrun) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
-  /* 900 / 128 * 512 / 4 */
+  /* (950 - 13) / 128 * 512 / 4 */
   EXPECT_EQ(896, iodev->min_buffer_level);
 
   iodev->start(iodev);
@@ -517,7 +517,7 @@ TEST_F(A2dpIodev, NoStreamState) {
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
-  /* 900 / 128 * 512 / 4 */
+  /* (950 - 13)/ 128 * 512 / 4 */
   ASSERT_EQ(896, iodev->min_buffer_level);
 
   iodev->start(iodev);
