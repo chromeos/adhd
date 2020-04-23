@@ -11,8 +11,6 @@ use std::slice;
 use std::sync::atomic::{self, Ordering};
 use std::thread;
 
-use libc;
-
 use cras_sys::gen::{
     audio_dev_debug_info, audio_stream_debug_info, cras_audio_shm_header, cras_iodev_info,
     cras_ionode_info, cras_server_state, CRAS_MAX_IODEVS, CRAS_MAX_IONODES, CRAS_NUM_SHM_BUFFERS,
