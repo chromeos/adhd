@@ -1,0 +1,14 @@
+[package]
+name = "sound_card_init"
+version = "0.1.0"
+authors = ["The Chromium OS Authors"]
+edition = "2018"
+description = "Sound Card Initializer"
+
+[dependencies]
+getopts = "0.2"
+remain = "0.2.1"
+sys_util = "*"
+
+[patch.crates-io]
+sys_util = { path = "../../../platform/crosvm/sys_util" } # ignored by ebuild
