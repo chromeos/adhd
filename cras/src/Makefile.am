@@ -144,6 +144,7 @@ cras_server_SOURCES = \
 	server/cras_control_rclient.c \
 	server/cras_playback_rclient.c \
 	server/cras_capture_rclient.c \
+	server/cras_unified_rclient.c \
 	server/cras_rstream.c \
 	server/cras_rstream_config.c \
 	server/cras_server_metrics.c \
