@@ -692,7 +692,7 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 			 * For the list of HF indicator assigned number, you can
 			 * check the  Bluetooth SIG Assigned Numbers web page.
 			 */
-			err = hfp_send(handle, AT_CMD("+BIND: (1,2)"));
+			err = hfp_send(handle, AT_CMD("+BIND: (2)"));
 			if (err < 0)
 				return err;
 		}
@@ -723,13 +723,6 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 		 * 1 = enabled, value changes may be sent for this indicator
 		 */
 
-		/* We support 1:enhanced driver status but disable it just for
-		 * passing PTS test case HFP/AG/SLC/BV-09-I
-		 */
-		err = hfp_send(handle, AT_CMD("+BIND: 1,0"));
-		if (err < 0)
-			return err;
-
 		err = hfp_send(handle, AT_CMD("+BIND: 2,1"));
 		if (err < 0)
 			return err;
@@ -754,9 +747,8 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 	char *tokens, *key, *val;
 	int level;
 	/* AT+BIEV= <assigned number>,<value> (Update value of indicator)
-	 * We only care about battery level, which is with assigned number 2.
-	 * The valid value for battery level should be 0 ~ 100 defined by the
-	 * spec.
+	 * CRAS only supports battery level, which is with assigned number 2.
+	 * Battery level should range from 0 to 100 defined by the spec.
 	 */
 	tokens = strdup(cmd);
 	strtok(tokens, "=");
@@ -783,6 +775,7 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 			       "Get invalid battery status from cmd:%s", cmd);
 		}
 	}
+
 	free(tokens);
 	return hfp_send(handle, AT_CMD("OK"));
 
