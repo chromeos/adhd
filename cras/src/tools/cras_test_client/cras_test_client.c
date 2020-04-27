@@ -1575,7 +1575,11 @@ static void show_usage()
 	       "                                      "
 	       "          1 - For playback client.\n"
 	       "                                      "
-	       "          2 - For capture client.\n");
+	       "          2 - For capture client.\n"
+	       "                                      "
+	       "          3 - For legacy client in vms.\n"
+	       "                                      "
+	       "          4 - For unified client in vms.\n");
 	printf("--dump_audio_thread - "
 	       "Dumps audio thread info.\n");
 	printf("--dump_bt - "

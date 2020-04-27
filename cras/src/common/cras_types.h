@@ -48,6 +48,8 @@ enum CRAS_CONNECTION_TYPE {
 	CRAS_CONTROL, // For legacy client.
 	CRAS_PLAYBACK, // For playback client.
 	CRAS_CAPTURE, // For capture client.
+	CRAS_VMS_LEGACY, // For legacy client in vms.
+	CRAS_VMS_UNIFIED, // For unified client in vms.
 	CRAS_NUM_CONN_TYPE,
 };
 

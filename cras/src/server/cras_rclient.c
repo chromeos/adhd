@@ -24,6 +24,7 @@
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
+#include "cras_unified_rclient.h"
 #include "cras_util.h"
 #include "stream_list.h"
 #include "utlist.h"
@@ -71,6 +72,10 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id,
 		return cras_playback_rclient_create(fd, id);
 	case CRAS_CAPTURE:
 		return cras_capture_rclient_create(fd, id);
+	case CRAS_VMS_LEGACY:
+		return cras_playback_rclient_create(fd, id);
+	case CRAS_VMS_UNIFIED:
+		return cras_unified_rclient_create(fd, id);
 	default:
 		goto error;
 	}

@@ -17,6 +17,9 @@
 #define CRAS_SOCKET_FILE ".cras_socket"
 #define CRAS_PLAYBACK_SOCKET_FILE ".cras_playback"
 #define CRAS_CAPTURE_SOCKET_FILE ".cras_capture"
+/* Socket file paths for VMs. */
+#define CRAS_VMS_LEGACY_SOCKET_FILE "vms/.cras_socket"
+#define CRAS_VMS_UNIFIED_SOCKET_FILE "vms/.cras_unified"
 
 /* Maximum socket_path size, which is equals to sizeof(sun_path) in sockaddr_un
  * structure.
