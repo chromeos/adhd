@@ -9,7 +9,23 @@ use sys_util::{net::UnixSeqpacket, ScmSocket};
 
 use data_model::DataInit;
 
-const CRAS_SERVER_SOCKET_PATH: &str = "/run/cras/.cras_socket";
+/// Server socket type to connect.
+pub enum CrasSocketType {
+    /// A server socket type supports only playback function.
+    Legacy,
+    /// A server socket type supports both playback and capture functions.
+    Unified,
+}
+
+impl CrasSocketType {
+    fn sock_path(&self) -> &str {
+        match self {
+            Self::Legacy => "/run/cras/.cras_socket",
+            Self::Unified => "/run/cras/.cras_unified",
+        }
+    }
+}
+
 /// A socket connecting to the CRAS audio server.
 pub struct CrasServerSocket {
     socket: UnixSeqpacket,
@@ -17,8 +33,18 @@ pub struct CrasServerSocket {
 
 impl CrasServerSocket {
     pub fn new() -> io::Result<CrasServerSocket> {
-        let socket = UnixSeqpacket::connect(CRAS_SERVER_SOCKET_PATH)?;
-        Ok(CrasServerSocket { socket })
+        Self::with_type(CrasSocketType::Legacy)
+    }
+
+    /// Creates a `CrasServerSocket` with given `CrasSocketType`.
+    ///
+    /// # Errors
+    ///
+    /// Returns the `io::Error` generated when connecting to the socket on failure.
+    pub fn with_type(socket_type: CrasSocketType) -> io::Result<CrasServerSocket> {
+        Ok(CrasServerSocket {
+            socket: UnixSeqpacket::connect(socket_type.sock_path())?,
+        })
     }
 
     /// Sends a sized and packed server messge to the server socket. The message

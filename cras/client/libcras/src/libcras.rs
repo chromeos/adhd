@@ -142,6 +142,7 @@ mod audio_socket;
 use crate::audio_socket::AudioSocket;
 mod cras_server_socket;
 use crate::cras_server_socket::CrasServerSocket;
+pub use crate::cras_server_socket::CrasSocketType;
 mod cras_shm;
 use crate::cras_shm::CrasServerState;
 pub mod cras_shm_stream;
@@ -227,9 +228,18 @@ impl<'a> CrasClient<'a> {
     /// Returns error if error occurs while handling server message or message
     /// type is incorrect
     pub fn new() -> Result<Self> {
-        // Create a connection to the server.
-        let mut server_socket = CrasServerSocket::new()?;
+        Self::with_type(CrasSocketType::Legacy)
+    }
 
+    /// Tries to create a `CrasClient` with a given `CrasSocketType`.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if error occurs while handling server message or message
+    /// type is incorrect.
+    pub fn with_type(socket_type: CrasSocketType) -> Result<Self> {
+        // Create a connection to the server.
+        let mut server_socket = CrasServerSocket::with_type(socket_type)?;
         // Gets client ID and server state fd from server
         if let ServerResult::Connected(client_id, server_state_fd) =
             CrasClient::wait_for_message(&mut server_socket)?
