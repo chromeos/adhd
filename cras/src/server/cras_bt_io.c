@@ -200,6 +200,9 @@ static int update_supported_formats(struct cras_iodev *iodev)
 		(length + 1) * sizeof(*iodev->supported_formats));
 	for (i = 0; i < length + 1; i++)
 		iodev->supported_formats[i] = dev->supported_formats[i];
+
+	/* Record max supported channels into cras_iodev_info. */
+	iodev->info.max_supported_channels = dev->info.max_supported_channels;
 	return 0;
 }
 

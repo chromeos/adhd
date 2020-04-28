@@ -231,6 +231,12 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 		iodev->info.idx = SILENT_PLAYBACK_DEVICE;
 	}
 
+	/*
+	 * Record max supported channels into cras_iodev_info.
+	 * The value is the max of empty_supported_channel_counts.
+	 */
+	iodev->info.max_supported_channels = 2;
+
 	return iodev;
 }
 

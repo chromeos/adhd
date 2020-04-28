@@ -497,6 +497,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	dbus_uint64_t id;
 	const char *dev_name = dev->name;
 	dbus_uint64_t stable_dev_id = node->stable_id;
+	dbus_uint32_t max_supported_channels = dev->max_supported_channels;
 	const char *node_type = node->type;
 	const char *node_name = node->name;
 	const char *mic_positions = node->mic_positions;
@@ -538,6 +539,10 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	 */
 	if (!append_key_value(&dict, "StableDeviceId", DBUS_TYPE_UINT64,
 			      DBUS_TYPE_UINT64_AS_STRING, &stable_dev_id))
+		return FALSE;
+	if (!append_key_value(&dict, "MaxSupportedChannels", DBUS_TYPE_UINT32,
+			      DBUS_TYPE_UINT32_AS_STRING,
+			      &max_supported_channels))
 		return FALSE;
 	if (!append_key_value(&dict, "Type", DBUS_TYPE_STRING,
 			      DBUS_TYPE_STRING_AS_STRING, &node_type))

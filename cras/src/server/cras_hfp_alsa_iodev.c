@@ -321,6 +321,9 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 	cras_iodev_set_active_node(iodev, node);
 	cras_bt_device_append_iodev(device, iodev, profile);
 
+	/* Record max supported channels into cras_iodev_info. */
+	iodev->info.max_supported_channels = 1;
+
 	return iodev;
 }
 

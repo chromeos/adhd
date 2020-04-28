@@ -525,6 +525,19 @@ int cras_client_read_atlog(struct cras_client *client, uint64_t *read_idx,
 int cras_client_update_audio_thread_snapshots(struct cras_client *client,
 					      void (*cb)(struct cras_client *));
 
+/* Gets the max supported channel count of the output device from node_id.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    node_id - ID of the node.
+ *    max_channels - Out parameter will be filled with the max supported channel
+ *        count.
+ * Returns:
+ *    0 on success, or negative error code on failure.
+ */
+int cras_client_get_max_supported_channels(const struct cras_client *client,
+					   cras_node_id_t node_id,
+					   uint32_t *max_channels);
+
 /*
  * Stream handling.
  */

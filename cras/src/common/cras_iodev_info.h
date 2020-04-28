@@ -19,11 +19,13 @@
  *    idx - iodev index.
  *    name - Name displayed to the user.
  *    stable_id - ID that does not change due to device plug/unplug or reboot.
+ *    max_supported_channels - Max supported channel count of this device.
  */
 struct __attribute__((__packed__)) cras_iodev_info {
 	uint32_t idx;
 	char name[CRAS_IODEV_NAME_BUFFER_SIZE];
 	uint32_t stable_id;
+	uint32_t max_supported_channels;
 };
 
 /* Identifying information about an ionode on an iodev.

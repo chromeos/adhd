@@ -3200,6 +3200,71 @@ int cras_client_update_audio_thread_snapshots(
 	return write_message_to_server(client, &msg.header);
 }
 
+int cras_client_get_max_supported_channels(const struct cras_client *client,
+					   cras_node_id_t node_id,
+					   uint32_t *max_channels)
+{
+	size_t ndevs, nnodes;
+	struct cras_iodev_info *devs = NULL;
+	struct cras_ionode_info *nodes = NULL;
+	int rc = -EINVAL;
+	unsigned i;
+
+	if (!client) {
+		rc = -EINVAL;
+		goto quit;
+	}
+
+	devs = (struct cras_iodev_info *)malloc(CRAS_MAX_IODEVS *
+						sizeof(*devs));
+	if (!devs) {
+		rc = -ENOMEM;
+		goto quit;
+	}
+
+	nodes = (struct cras_ionode_info *)malloc(CRAS_MAX_IONODES *
+						  sizeof(*nodes));
+	if (!nodes) {
+		rc = -ENOMEM;
+		goto quit;
+	}
+
+	ndevs = CRAS_MAX_IODEVS;
+	nnodes = CRAS_MAX_IONODES;
+	rc = cras_client_get_output_devices(client, devs, nodes, &ndevs,
+					    &nnodes);
+	if (rc < 0)
+		goto quit;
+
+	rc = -ENOENT;
+	uint32_t iodev_idx;
+	for (i = 0; i < nnodes; i++) {
+		if (node_id == cras_make_node_id(nodes[i].iodev_idx,
+						 nodes[i].ionode_idx)) {
+			iodev_idx = nodes[i].iodev_idx;
+			rc = 0;
+			break;
+		}
+	}
+
+	if (rc < 0)
+		goto quit;
+
+	rc = -ENOENT;
+	for (i = 0; i < ndevs; i++) {
+		if (iodev_idx == devs[i].idx) {
+			*max_channels = devs[i].max_supported_channels;
+			rc = 0;
+			break;
+		}
+	}
+
+quit:
+	free(devs);
+	free(nodes);
+	return rc;
+}
+
 int cras_client_set_node_volume(struct cras_client *client,
 				cras_node_id_t node_id, uint8_t volume)
 {

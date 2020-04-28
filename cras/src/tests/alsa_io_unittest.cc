@@ -32,6 +32,7 @@ static int cras_alsa_start_called;
 static uint8_t* cras_alsa_mmap_begin_buffer;
 static size_t cras_alsa_mmap_begin_frames;
 static size_t cras_alsa_fill_properties_called;
+static bool cras_alsa_support_8_channels;
 static size_t alsa_mixer_set_dBFS_called;
 static int alsa_mixer_set_dBFS_value;
 static const struct mixer_control* alsa_mixer_set_dBFS_output;
@@ -153,6 +154,7 @@ void ResetStubData() {
   cras_alsa_get_avail_frames_avail = 0;
   cras_alsa_start_called = 0;
   cras_alsa_fill_properties_called = 0;
+  cras_alsa_support_8_channels = false;
   sys_get_volume_called = 0;
   alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_capture_dBFS_called = 0;
@@ -270,7 +272,8 @@ TEST(AlsaIoInit, InitializePlayback) {
   /* Get volume curve twice for iodev, and default node. */
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  EXPECT_EQ(0, cras_alsa_fill_properties_called);
+  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(
       0, strncmp(test_card_name, aio->base.info.name, strlen(test_card_name)));
@@ -377,6 +380,8 @@ TEST(AlsaIoInit, OpenPlayback) {
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+  /* Call open_dev once on update_max_supported_channels. */
+  EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   aio = (struct alsa_io*)iodev;
   format.frame_rate = 48000;
@@ -387,9 +392,9 @@ TEST(AlsaIoInit, OpenPlayback) {
   aio->free_running = 1;
   aio->filled_zeros_for_draining = 512;
   iodev->open_dev(iodev);
-  EXPECT_EQ(1, cras_alsa_open_called);
+  EXPECT_EQ(2, cras_alsa_open_called);
   iodev->configure_dev(iodev);
-  EXPECT_EQ(1, cras_alsa_open_called);
+  EXPECT_EQ(2, cras_alsa_open_called);
   EXPECT_EQ(1, sys_set_volume_limits_called);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
@@ -501,7 +506,8 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  EXPECT_EQ(0, cras_alsa_fill_properties_called);
+  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
@@ -530,7 +536,8 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
 
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  EXPECT_EQ(0, cras_alsa_fill_properties_called);
+  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
   EXPECT_EQ(0, cras_alsa_jack_list_add_jack_for_section_called);
@@ -557,7 +564,8 @@ TEST(AlsaIoInit, InitializeCapture) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
 
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  EXPECT_EQ(0, cras_alsa_fill_properties_called);
+  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_inputs_called);
 
   alsa_iodev_destroy((struct cras_iodev*)aio);
@@ -903,6 +911,30 @@ TEST(AlsaIoInit, SwapMode) {
   free(fake_node);
 }
 
+TEST(AlsaIoInit, MaxSupportedChannels) {
+  struct alsa_io* aio;
+  struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
+  int i;
+
+  // i = 0: cras_alsa_support_8_channels is false, support 2 channels only.
+  // i = 1: cras_alsa_support_8_channels is true, support up to 8 channels.
+  for (i = 0; i < 2; i++) {
+    ResetStubData();
+    cras_alsa_support_8_channels = (bool)i;
+
+    aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
+        0, test_dev_id, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config,
+        NULL, CRAS_STREAM_OUTPUT);
+    ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
+    /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+    EXPECT_EQ(1, cras_alsa_fill_properties_called);
+    uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
+    EXPECT_EQ(max_channels, aio->base.info.max_supported_channels);
+    alsa_iodev_destroy((struct cras_iodev*)aio);
+    EXPECT_EQ(1, cras_iodev_free_resources_called);
+  }
+}
+
 // Test that system settins aren't touched if no streams active.
 TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   int rc;
@@ -1040,6 +1072,45 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   alsa_iodev_destroy(iodev);
 }
 
+TEST(AlsaOutputNode, MaxSupportedChannels) {
+  struct alsa_io* aio;
+  struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
+  struct cras_iodev* iodev;
+  struct ucm_section* section;
+  int i;
+
+  // i = 0: cras_alsa_support_8_channels is false, support 2 channels only.
+  // i = 1: cras_alsa_support_8_channels is true, support up to 8 channels.
+  for (i = 0; i < 2; i++) {
+    ResetStubData();
+    cras_alsa_support_8_channels = (bool)i;
+
+    // Create the IO device.
+    iodev = alsa_iodev_create_with_default_parameters(
+        1, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
+        CRAS_STREAM_OUTPUT);
+    ASSERT_NE(iodev, (void*)NULL);
+    aio = reinterpret_cast<struct alsa_io*>(iodev);
+
+    // Node without controls or jacks.
+    section = ucm_section_create(INTERNAL_SPEAKER, "hw:0,1", 1, -1,
+                                 CRAS_STREAM_OUTPUT, NULL, NULL);
+    // Device index doesn't match.
+    EXPECT_EQ(-22, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+    section->dev_idx = 0;
+    ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+    ucm_section_free_list(section);
+
+    // Complete initialization, and make first node active.
+    alsa_iodev_ucm_complete_init(iodev);
+    /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+    EXPECT_EQ(1, cras_alsa_fill_properties_called);
+    uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
+    EXPECT_EQ(max_channels, iodev->info.max_supported_channels);
+    alsa_iodev_destroy(iodev);
+  }
+}
+
 TEST(AlsaOutputNode, OutputsFromUCM) {
   struct alsa_io* aio;
   struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
@@ -1098,12 +1169,16 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(0, cras_iodev_set_node_plugged_called);
 
   // Complete initialization, and make first node active.
+  cras_alsa_support_8_channels = false;  // Support 2 channels only.
   alsa_iodev_ucm_complete_init(iodev);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(2, cras_alsa_jack_list_add_jack_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, ucm_get_dma_period_for_dev_called);
   EXPECT_EQ(ucm_get_dma_period_for_dev_ret, aio->dma_period_set_microsecs);
+  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+  EXPECT_EQ(1, cras_alsa_fill_properties_called);
+  EXPECT_EQ(2, iodev->info.max_supported_channels);
 
   aio->handle = (snd_pcm_t*)0x24;
 
@@ -1124,10 +1199,14 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(1, ucm_set_enabled_called);
 
   // Simulate jack plug event.
+  cras_alsa_support_8_channels = true;  // Support up to 8 channels.
   cras_alsa_jack_get_mixer_output_ret = outputs[1];
   cras_alsa_jack_get_name_ret_value = jack_name;
   jack_output_plug_event(reinterpret_cast<struct cras_alsa_jack*>(4), 0, aio);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
+  /* Headphone plug event shouldn't trigger update_max_supported_channels. */
+  EXPECT_EQ(0, cras_alsa_fill_properties_called);
+  EXPECT_EQ(2, iodev->info.max_supported_channels);
 
   alsa_iodev_destroy(iodev);
 }
@@ -1856,11 +1935,6 @@ TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromNode) {
       .get_dBFS = fake_get_dBFS,
   };
 
-  fmt = (struct cras_audio_format*)malloc(sizeof(*fmt));
-  memcpy(fmt, &fmt_, sizeof(fmt_));
-  aio_output_->base.format = fmt;
-  aio_output_->handle = (snd_pcm_t*)0x24;
-
   // Headphone jack plugged and has its own volume curve.
   cras_alsa_jack_get_mixer_output_ret = NULL;
   cras_alsa_jack_get_name_ret_value = HEADPHONE;
@@ -1868,6 +1942,16 @@ TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromNode) {
   cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
   EXPECT_EQ(1, cras_alsa_jack_update_node_type_called);
   EXPECT_EQ(3, cras_card_config_get_volume_curve_for_control_called);
+
+  // These settings should be placed after plugging jacks to make it safer.
+  // If is HDMI jack, plug event will trigger update_max_supported_channels()
+  // and do open_dev() and close_dev() once. close_dev() will perform alsa_io
+  // cleanup.
+  // Headphone jack won't trigger, but we still place here due to coherence.
+  fmt = (struct cras_audio_format*)malloc(sizeof(*fmt));
+  memcpy(fmt, &fmt_, sizeof(fmt_));
+  aio_output_->base.format = fmt;
+  aio_output_->handle = (snd_pcm_t*)0x24;
 
   // Switch to node 'Headphone'.
   node = aio_output_->base.nodes->next;
@@ -2357,9 +2441,21 @@ int cras_alsa_fill_properties(snd_pcm_t* handle,
   (*rates)[0] = 44100;
   (*rates)[1] = 48000;
   (*rates)[2] = 0;
-  *channel_counts = (size_t*)malloc(sizeof(**channel_counts) * 2);
-  (*channel_counts)[0] = 2;
-  (*channel_counts)[1] = 0;
+
+  if (cras_alsa_support_8_channels) {  // Support up to 8 channels.
+    *channel_counts = (size_t*)malloc(sizeof(**channel_counts) * 6);
+    (*channel_counts)[0] = 6;
+    (*channel_counts)[1] = 4;
+    (*channel_counts)[2] = 2;
+    (*channel_counts)[3] = 1;
+    (*channel_counts)[4] = 8;
+    (*channel_counts)[5] = 0;
+  } else {  // Support 2 channels only.
+    *channel_counts = (size_t*)malloc(sizeof(**channel_counts) * 2);
+    (*channel_counts)[0] = 2;
+    (*channel_counts)[1] = 0;
+  }
+
   *formats = (snd_pcm_format_t*)malloc(sizeof(**formats) * 2);
   (*formats)[0] = SND_PCM_FORMAT_S16_LE;
   (*formats)[1] = (snd_pcm_format_t)0;

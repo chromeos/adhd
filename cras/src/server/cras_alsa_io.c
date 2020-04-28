@@ -137,6 +137,7 @@ struct alsa_input_node {
  * severe_underrun_frames - The threshold for severe underrun.
  * default_volume_curve - Default volume curve that converts from an index
  *                        to dBFS.
+ * has_dependent_dev - true if this iodev has dependent device.
  */
 struct alsa_io {
 	struct cras_iodev base;
@@ -165,6 +166,7 @@ struct alsa_io {
 	snd_pcm_uframes_t severe_underrun_frames;
 	struct cras_volume_curve *default_volume_curve;
 	int hwparams_set;
+	int has_dependent_dev;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -172,6 +174,10 @@ static void init_device_settings(struct alsa_io *aio);
 static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 				      struct cras_ionode *ionode,
 				      unsigned dev_enabled);
+
+static int get_fixed_rate(struct alsa_io *aio);
+
+static int update_supported_formats(struct cras_iodev *iodev);
 
 /*
  * Defines the default values of nodes.
@@ -1424,6 +1430,73 @@ create_volume_curve_for_jack(const struct cras_card_config *config,
 }
 
 /*
+ * Updates max_supported_channels value into cras_iodev_info.
+ * Note that supported_rates, supported_channel_counts, and supported_formats of
+ * iodev will be updated to the latest values after calling.
+ */
+static void update_max_supported_channels(struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	unsigned int max_channels = 0;
+	size_t i;
+	bool active_node_predicted = false;
+	int rc;
+
+	/*
+	 * max_supported_channels might be wrong in dependent PCM cases. Always
+	 * return 2 for such cases.
+	 */
+	if (aio->has_dependent_dev) {
+		max_channels = 2;
+		goto update_info;
+	}
+
+	if (aio->handle) {
+		syslog(LOG_ERR,
+		       "update_max_supported_channels should not be called "
+		       "while device is opened.");
+		return;
+	}
+
+	/*
+	 * In the case of updating max_supported_channels on changing jack
+	 * plugging status of devices, the active node may not be determined
+	 * yet. Use the first node as the active node for obtaining the value of
+	 * max_supported_channels.
+	 */
+	if (!iodev->active_node) {
+		if (!iodev->nodes)
+			goto update_info;
+		iodev->active_node = iodev->nodes;
+		syslog(LOG_DEBUG,
+		       "Predict ionode %s as active node temporarily.",
+		       iodev->active_node->name);
+		active_node_predicted = true;
+	}
+
+	rc = open_dev(iodev);
+	if (active_node_predicted)
+		iodev->active_node = NULL; // Reset the predicted active_node.
+	if (rc)
+		goto update_info;
+
+	rc = update_supported_formats(iodev);
+	if (rc)
+		goto close_iodev;
+
+	for (i = 0; iodev->supported_channel_counts[i] != 0; i++) {
+		if (iodev->supported_channel_counts[i] > max_channels)
+			max_channels = iodev->supported_channel_counts[i];
+	}
+
+close_iodev:
+	close_dev(iodev);
+
+update_info:
+	iodev->info.max_supported_channels = max_channels;
+}
+
+/*
  * Callback that is called when an output jack is plugged or unplugged.
  */
 static void jack_output_plug_event(const struct cras_alsa_jack *jack,
@@ -1486,6 +1559,13 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 	cras_iodev_set_node_plugged(&node->base, plugged);
 
 	check_auto_unplug_output_node(aio, &node->base, plugged);
+
+	/*
+	 * For HDMI plug event cases, update max supported channels according
+	 * to the current active node.
+	 */
+	if (node->base.type == CRAS_NODE_TYPE_HDMI)
+		update_max_supported_channels(&aio->base);
 }
 
 /*
@@ -2000,6 +2080,7 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 	}
 	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
+	aio->has_dependent_dev = 0;
 	aio->pcm_name = strdup(pcm_name);
 	if (aio->pcm_name == NULL)
 		goto cleanup_iodev;
@@ -2181,6 +2262,9 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev *iodev)
 
 	set_default_hotword_model(iodev);
 
+	/* Record max supported channels into cras_iodev_info. */
+	update_max_supported_channels(iodev);
+
 	return 0;
 }
 
@@ -2202,6 +2286,10 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 	if (((uint32_t)section->dev_idx != aio->device_index) &&
 	    ((uint32_t)section->dependent_dev_idx != aio->device_index))
 		return -EINVAL;
+
+	/* Set flag has_dependent_dev for the case of dependent device. */
+	if (section->dependent_dev_idx != -1)
+		aio->has_dependent_dev = 1;
 
 	/* This iodev is fully specified. Avoid automatic node creation. */
 	aio->fully_specified = 1;
@@ -2280,6 +2368,9 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 	}
 
 	set_default_hotword_model(iodev);
+
+	/* Record max supported channels into cras_iodev_info. */
+	update_max_supported_channels(iodev);
 }
 
 void alsa_iodev_destroy(struct cras_iodev *iodev)

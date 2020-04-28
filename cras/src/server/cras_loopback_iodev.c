@@ -290,6 +290,12 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	iodev->put_buffer = put_record_buffer;
 	iodev->flush_buffer = flush_record_buffer;
 
+	/*
+	 * Record max supported channels into cras_iodev_info.
+	 * The value is the max of loopback_supported_channel_counts.
+	 */
+	iodev->info.max_supported_channels = 2;
+
 	return iodev;
 }
 
