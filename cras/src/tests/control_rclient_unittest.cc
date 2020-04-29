@@ -186,7 +186,7 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   fd_ = 100;
   rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,
                                                  &fd_, 1);
-  EXPECT_EQ(-EINVAL, rc);
+  EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
   EXPECT_EQ(sizeof(out_msg), rc);
@@ -203,7 +203,7 @@ TEST_F(RClientMessagesSuite, ConnectMsgWithBadFd) {
 
   rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,
                                                  NULL, 0);
-  EXPECT_EQ(-EBADF, rc);
+  EXPECT_EQ(0, rc);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
   EXPECT_EQ(sizeof(out_msg), rc);
@@ -276,7 +276,7 @@ TEST_F(RClientMessagesSuite, StreamConnectMessageInvalidDirection) {
   fd_ = 100;
   rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,
                                                  &fd_, 1);
-  EXPECT_EQ(-EINVAL, rc);
+  EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_make_fd_nonblocking_called);
 
   rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
@@ -296,7 +296,7 @@ TEST_F(RClientMessagesSuite, StreamConnectMessageInvalidClientId) {
   fd_ = 100;
   rc = rclient_->ops->handle_message_from_client(rclient_, &connect_msg_.header,
                                                  &fd_, 1);
-  EXPECT_EQ(-EINVAL, rc);
+  EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_make_fd_nonblocking_called);
   EXPECT_EQ(0, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);

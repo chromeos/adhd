@@ -105,6 +105,11 @@ struct cras_rclient *rclient_generic_create(int fd, size_t id,
 /* Generic handle_message_from_client function for different types of rlicnets.
  * Supports only stream connect and stream disconnect messages.
  *
+ * If the message from clients has incorrect length (truncated message), return
+ * an error up to CRAS server.
+ * If the message from clients has invalid content, should return the errors to
+ * clients by send_message_to_client and return 0 here.
+ *
  * Args:
  *   client - The cras_rclient which gets the message.
  *   msg - The cras_server_message from client.

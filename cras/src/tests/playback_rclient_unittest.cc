@@ -141,7 +141,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidDirection) {
     fd_ = 100;
     rc = rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_,
                                                    1);
-    EXPECT_EQ(-EINVAL, rc);
+    EXPECT_EQ(0, rc);
     EXPECT_EQ(0, cras_make_fd_nonblocking_called);
     EXPECT_EQ(0, stream_list_add_called);
     EXPECT_EQ(0, stream_list_rm_called);
@@ -168,7 +168,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidClientId) {
   fd_ = 100;
   rc =
       rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
-  EXPECT_EQ(-EINVAL, rc);
+  EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_make_fd_nonblocking_called);
   EXPECT_EQ(0, stream_list_add_called);
   EXPECT_EQ(0, stream_list_rm_called);
@@ -196,7 +196,7 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidAudioFormat) {
   fd_ = 100;
   rc =
       rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
-  EXPECT_EQ(-EINVAL, rc);
+  EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_make_fd_nonblocking_called);
   EXPECT_EQ(0, stream_list_add_called);
   EXPECT_EQ(0, stream_list_rm_called);

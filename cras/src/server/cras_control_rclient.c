@@ -270,7 +270,14 @@ static int direction_valid(enum CRAS_STREAM_DIRECTION direction)
 }
 
 /* Entry point for handling a message from the client.  Called from the main
- * server context. */
+ * server context.
+ *
+ * If the message from clients has incorrect length (truncated message), return
+ * an error up to CRAS server.
+ * If the message from clients has invalid content, should return the errors to
+ * clients by send_message_to_client and return 0 here.
+ *
+ */
 static int ccr_handle_message_from_client(struct cras_rclient *client,
 					  const struct cras_server_message *msg,
 					  int *fds, unsigned int num_fds)
@@ -292,16 +299,17 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		int client_shm_fd = num_fds > 1 ? fds[1] : -1;
 		struct cras_connect_message cmsg;
 		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
-			return rclient_handle_client_stream_connect(
+			rclient_handle_client_stream_connect(
 				client,
 				(const struct cras_connect_message *)msg, fd,
 				client_shm_fd);
 		} else if (!convert_connect_message_old(msg, &cmsg)) {
-			return rclient_handle_client_stream_connect(
-				client, &cmsg, fd, client_shm_fd);
+			rclient_handle_client_stream_connect(client, &cmsg, fd,
+							     client_shm_fd);
 		} else {
 			return -EINVAL;
 		}
+		break;
 	}
 	case CRAS_SERVER_DISCONNECT_STREAM:
 		if (!MSG_LEN_VALID(msg, struct cras_disconnect_stream_message))

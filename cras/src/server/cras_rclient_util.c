@@ -281,13 +281,13 @@ int rclient_handle_message_from_client(struct cras_rclient *client,
 		int client_shm_fd = num_fds > 1 ? fds[1] : -1;
 		struct cras_connect_message cmsg;
 		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
-			rc = rclient_handle_client_stream_connect(
+			rclient_handle_client_stream_connect(
 				client,
 				(const struct cras_connect_message *)msg, fd,
 				client_shm_fd);
 		} else if (!convert_connect_message_old(msg, &cmsg)) {
-			rc = rclient_handle_client_stream_connect(
-				client, &cmsg, fd, client_shm_fd);
+			rclient_handle_client_stream_connect(client, &cmsg, fd,
+							     client_shm_fd);
 		} else {
 			return -EINVAL;
 		}
@@ -296,7 +296,7 @@ int rclient_handle_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_DISCONNECT_STREAM:
 		if (!MSG_LEN_VALID(msg, struct cras_disconnect_stream_message))
 			return -EINVAL;
-		rc = rclient_handle_client_stream_disconnect(
+		rclient_handle_client_stream_disconnect(
 			client,
 			(const struct cras_disconnect_stream_message *)msg);
 		break;
