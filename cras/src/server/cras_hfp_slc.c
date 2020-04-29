@@ -259,14 +259,16 @@ static void initialize_slc_handle(struct cras_timer *timer, void *arg)
 		handle->timer = NULL;
 
 	/*
-	 * Catch the case if mSBC codec negotiation never complete or even
+	 * Catch the case if codec negotiation never complete or even
 	 * failed. AG side falls back to use codec CVSD and also tells
 	 * HF to select CVSD again.
 	 */
-	if ((handle->selected_codec == HFP_CODEC_UNUSED) &&
-	    handle->hf_codec_supported[HFP_CODEC_ID_MSBC]) {
-		syslog(LOG_ERR, "Failed to enable mSBC, fallback to CVSD");
-		handle->preferred_codec = HFP_CODEC_ID_CVSD;
+	if (handle->selected_codec != handle->preferred_codec) {
+		if (handle->preferred_codec == HFP_CODEC_ID_MSBC) {
+			syslog(LOG_ERR,
+			       "Failed to enable mSBC, fallback to CVSD");
+			handle->preferred_codec = HFP_CODEC_ID_CVSD;
+		}
 		select_preferred_codec(handle);
 	}
 
@@ -297,38 +299,48 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 {
 	char *tokens = strdup(cmd);
 	char *codec;
-	int err;
+	int id, err;
 
 	handle->pending_codec_negotiation = 0;
 	strtok(tokens, "=");
 	codec = strtok(NULL, ",");
-
-	if (codec) {
-		BTLOG(btlog, BT_CODEC_SELECTION, 1, atoi(codec));
-		handle->selected_codec = atoi(codec);
+	id = atoi(codec);
+	if ((id <= HFP_CODEC_UNUSED) || (id >= HFP_MAX_CODECS)) {
+		syslog(LOG_ERR, "%s: invalid codec id: '%s'", __func__, cmd);
+		free(tokens);
+		return hfp_send(handle, AT_CMD("ERROR"));
 	}
 
-	err = hfp_send(handle, AT_CMD("OK"));
-	initialize_slc_handle(NULL, (void *)handle);
+	if (id != handle->preferred_codec)
+		syslog(LOG_WARNING, "%s: inconsistent codec id: '%s'", __func__,
+		       cmd);
+
+	BTLOG(btlog, BT_CODEC_SELECTION, 1, id);
+	handle->selected_codec = id;
+
 	free(tokens);
+	err = hfp_send(handle, AT_CMD("OK"));
 	return err;
 }
 
 /*
- * Possibly choose mSBC code from the supported codecs. Otherwise just
- * initialize the SLC so the default CVSD codec is used.
+ * Delay the initialization of SLC if codecs negotiation is supported and not
+ * down yet. Otherwise just initialize the SLC.
  */
 static void choose_codec_and_init_slc(struct hfp_slc_handle *handle)
 {
+	/*
+	 * We should postpone the initialize call after codec selection,
+	 * otherwise iodev could be open immediately while the headset is still
+	 * communicating about which of CVSD or mSBC codec to use.
+	 * selected_codec != preferred_codec means that either the codec
+	 * negotiation is not done, selected_codec == HFP_CODEC_UNUSED, or
+	 */
 	if (hfp_slc_get_ag_codec_negotiation_supported(handle) &&
-	    handle->hf_supports_codec_negotiation &&
-	    handle->hf_codec_supported[HFP_CODEC_ID_MSBC]) {
-		/* Sets preferred codec to mSBC, and schedule callback to
-		 * select preferred codec until reply received or timeout.
-		 */
-		handle->preferred_codec = HFP_CODEC_ID_MSBC;
+	    hfp_slc_get_hf_codec_negotiation_supported(handle) &&
+	    handle->selected_codec != handle->preferred_codec) {
 		handle->pending_codec_negotiation = 1;
-
+		select_preferred_codec(handle);
 		/* Delay init to give headset some time to confirm
 		 * codec selection. */
 		handle->timer =
@@ -336,6 +348,7 @@ static void choose_codec_and_init_slc(struct hfp_slc_handle *handle)
 					     CODEC_NEGOTIATION_TIMEOUT_MS,
 					     initialize_slc_handle, handle);
 	} else {
+		handle->selected_codec = HFP_CODEC_ID_CVSD;
 		initialize_slc_handle(NULL, (void *)handle);
 	}
 }
@@ -465,6 +478,13 @@ static int available_codecs(struct hfp_slc_handle *handle, const char *cmd)
 			BTLOG(btlog, BT_AVAILABLE_CODECS, 0, id);
 		}
 		id_str = strtok(NULL, ",");
+	}
+
+	for (id = HFP_MAX_CODECS - 1; id > 0; id--) {
+		if (handle->hf_codec_supported[id]) {
+			handle->preferred_codec = id;
+			break;
+		}
 	}
 
 	free(tokens);
