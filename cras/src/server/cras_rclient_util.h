@@ -102,6 +102,21 @@ struct cras_rclient *rclient_generic_create(int fd, size_t id,
 					    const struct cras_rclient_ops *ops,
 					    int supported_directions);
 
+/* Generic handle_message_from_client function for different types of rlicnets.
+ * Supports only stream connect and stream disconnect messages.
+ *
+ * Args:
+ *   client - The cras_rclient which gets the message.
+ *   msg - The cras_server_message from client.
+ *   fds - The array for incoming fds from client.
+ *   num_fds - The number of fds from client.
+ * Returns:
+ *   0 on success, negative error on failure.
+ */
+int rclient_handle_message_from_client(struct cras_rclient *client,
+				       const struct cras_server_message *msg,
+				       int *fds, unsigned int num_fds);
+
 /*
  * Converts an old version of connect message to the correct
  * cras_connect_message. Returns zero on success, negative on failure.

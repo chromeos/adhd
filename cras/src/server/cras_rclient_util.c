@@ -257,3 +257,52 @@ struct cras_rclient *rclient_generic_create(int fd, size_t id,
 
 	return client;
 }
+
+/* A generic entry point for handling a message from the client. Called from
+ * the main server context. */
+int rclient_handle_message_from_client(struct cras_rclient *client,
+				       const struct cras_server_message *msg,
+				       int *fds, unsigned int num_fds)
+{
+	int rc = 0;
+	assert(client && msg);
+
+	rc = rclient_validate_message_fds(msg, fds, num_fds);
+	if (rc < 0) {
+		for (int i = 0; i < (int)num_fds; i++)
+			if (fds[i] >= 0)
+				close(fds[i]);
+		return rc;
+	}
+	int fd = num_fds > 0 ? fds[0] : -1;
+
+	switch (msg->id) {
+	case CRAS_SERVER_CONNECT_STREAM: {
+		int client_shm_fd = num_fds > 1 ? fds[1] : -1;
+		struct cras_connect_message cmsg;
+		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
+			rc = rclient_handle_client_stream_connect(
+				client,
+				(const struct cras_connect_message *)msg, fd,
+				client_shm_fd);
+		} else if (!convert_connect_message_old(msg, &cmsg)) {
+			rc = rclient_handle_client_stream_connect(
+				client, &cmsg, fd, client_shm_fd);
+		} else {
+			return -EINVAL;
+		}
+		break;
+	}
+	case CRAS_SERVER_DISCONNECT_STREAM:
+		if (!MSG_LEN_VALID(msg, struct cras_disconnect_stream_message))
+			return -EINVAL;
+		rc = rclient_handle_client_stream_disconnect(
+			client,
+			(const struct cras_disconnect_stream_message *)msg);
+		break;
+	default:
+		break;
+	}
+
+	return rc;
+}
