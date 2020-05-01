@@ -490,7 +490,7 @@ TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
 
   cras_bt_device_a2dp_configured(device);
 
-  for (int i = 0; i < CONN_WATCH_MAX_RETRIES; i++) {
+  for (unsigned int i = 0; i < CONN_WATCH_MAX_RETRIES; i++) {
     cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
     EXPECT_EQ(i + 2, cras_tm_create_timer_called);
     EXPECT_EQ(0, cras_a2dp_start_called);
