@@ -25,6 +25,9 @@
 /* Time difference between two consecutive underrun logs. */
 #define UNDERRUN_LOG_TIME_SECS 30
 
+/* Limit the number of channels supported for devices: b/158509536 */
+#define TEMP_CHANNEL_LIMIT 20
+
 /* Chances to give mmap_begin to work. */
 static const size_t MAX_MMAP_BEGIN_ATTEMPTS = 3;
 /* Time to sleep between resume attempts. */
@@ -410,8 +413,19 @@ int cras_alsa_fill_properties(snd_pcm_t *handle, size_t **rates,
 	}
 	(*channel_counts)[num_found] = 0;
 	if (num_found == 0) {
-		syslog(LOG_WARNING, "No valid channel counts found.");
-		return -EINVAL;
+		// Pull the max channel count and use that.
+		unsigned int max_channels = 0;
+		rc = snd_pcm_hw_params_get_channels_max(params, &max_channels);
+		if (rc < 0) {
+			syslog(LOG_WARNING, "No valid channel counts found.");
+			return -EINVAL;
+		} else if (max_channels > TEMP_CHANNEL_LIMIT) {
+			syslog(LOG_WARNING, "Can't support so many channels.");
+			return -EINVAL;
+		} else {
+			(*channel_counts)[0] = (size_t)max_channels;
+			(*channel_counts)[1] = 0;
+		}
 	}
 
 	num_found = 0;
