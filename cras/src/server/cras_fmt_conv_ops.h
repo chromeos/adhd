@@ -73,6 +73,15 @@ size_t s16_default_all_to_all(struct cras_audio_format *out_fmt,
 			      uint8_t *out);
 
 /*
+ * Channel converter: N channels to M channels filling min(N,M) channels by
+ * directly copying to the destination.
+ */
+size_t s16_some_to_some(const struct cras_audio_format *out_fmt,
+			const size_t num_in_ch, const size_t num_out_ch,
+			const uint8_t *_in, const size_t frame_count,
+			uint8_t *_out);
+
+/*
  * Multiplies buffer vector with coefficient vector.
  */
 int16_t s16_multiply_buf_with_coef(float *coef, const int16_t *buf,

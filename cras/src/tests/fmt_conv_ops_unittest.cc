@@ -676,6 +676,65 @@ TEST(FormatConverterOpsTest, ConvertChannelsS16LE) {
   }
 }
 
+// Test Stereo to 20ch conversion.  S16_LE.
+TEST(FormatConverterOpsTest, TwoToTwentyS16LE) {
+  const size_t frames = 4096;
+  const size_t in_ch = 2;
+  const size_t out_ch = 20;
+  struct cras_audio_format fmt = {
+      .format = SND_PCM_FORMAT_S16_LE,
+      .frame_rate = 48000,
+      .num_channels = 20,
+  };
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_some_to_some(&fmt, in_ch, out_ch, (uint8_t*)src.get(),
+                                frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    size_t k;
+    // Input channles should be directly copied over.
+    for (k = 0; k < in_ch; ++k) {
+        EXPECT_EQ(src[i * in_ch + k], dst[i * out_ch + k]);
+    }
+    // The rest should be zeroed.
+    for (; k < out_ch; ++k) {
+        EXPECT_EQ(0, dst[i * out_ch + k]);
+    }
+
+  }
+}
+
+// Test 20ch to Stereo.  S16_LE.
+TEST(FormatConverterOpsTest, TwentyToTwoS16LE) {
+  const size_t frames = 4096;
+  const size_t in_ch = 20;
+  const size_t out_ch = 2;
+  struct cras_audio_format fmt = {
+      .format = SND_PCM_FORMAT_S16_LE,
+      .frame_rate = 48000,
+      .num_channels = 2,
+  };
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_some_to_some(&fmt, in_ch, out_ch, (uint8_t*)src.get(),
+                                frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    size_t k;
+    // Input channles should be directly copied over.
+    for (k = 0; k < out_ch; ++k) {
+        EXPECT_EQ(src[i * in_ch + k], dst[i * out_ch + k]);
+    }
+  }
+}
+
 extern "C" {}  // extern "C"
 
 int main(int argc, char** argv) {

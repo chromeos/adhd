@@ -210,6 +210,21 @@ static size_t default_all_to_all(struct cras_fmt_conv *conv, const uint8_t *in,
 				      in_frames, out);
 }
 
+// Fill min(in channels, out_channels), leave the rest 0s.
+static size_t default_some_to_some(struct cras_fmt_conv *conv,
+				   const uint8_t *in,
+				   size_t in_frames,
+				   uint8_t *out)
+{
+	size_t num_in_ch, num_out_ch;
+
+	num_in_ch = conv->in_fmt.num_channels;
+	num_out_ch = conv->out_fmt.num_channels;
+
+	return s16_some_to_some(&conv->out_fmt, num_in_ch, num_out_ch, in,
+				in_frames, out);
+}
+
 static size_t convert_channels(struct cras_fmt_conv *conv, const uint8_t *in,
 			       size_t in_frames, uint8_t *out)
 {
@@ -352,11 +367,17 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			} else {
 				conv->channel_converter = _51_to_stereo;
 			}
-		} else {
+		} else if (in->num_channels <= 8 && out->num_channels <= 8) {
+			// For average channel counts mix from all to all.
 			syslog(LOG_WARNING,
-			       "Using default channel map for %zu to %zu",
+			       "Using all_to_all map for %zu to %zu",
 			       in->num_channels, out->num_channels);
 			conv->channel_converter = default_all_to_all;
+		} else {
+			syslog(LOG_WARNING,
+			       "Using some_to_some channel map for %zu to %zu",
+			       in->num_channels, out->num_channels);
+			conv->channel_converter = default_some_to_some;
 		}
 	} else if (in->num_channels > 2 && !is_channel_layout_equal(in, out)) {
 		conv->num_converters++;

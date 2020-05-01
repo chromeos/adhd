@@ -345,6 +345,28 @@ size_t s16_default_all_to_all(struct cras_audio_format *out_fmt,
 }
 
 /*
+ * Copies the input channels across output channels. Drops input channels that
+ * don't fit. Ignores output channels greater than the number of input channels.
+ */
+size_t s16_some_to_some(const struct cras_audio_format *out_fmt,
+			const size_t num_in_ch, const size_t num_out_ch,
+			const uint8_t *_in, const size_t frame_count,
+			uint8_t *_out)
+{
+	unsigned int i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
+	const size_t num_copy_ch = MIN(num_in_ch, num_out_ch);
+
+	memset(out, 0, frame_count * cras_get_format_bytes(out_fmt));
+	for (i = 0; i < frame_count; i++, out += num_out_ch, in += num_in_ch) {
+		memcpy(out, in, num_copy_ch * sizeof(int16_t));
+	}
+
+	return frame_count;
+}
+
+/*
  * Multiplies buffer vector with coefficient vector.
  */
 int16_t s16_multiply_buf_with_coef(float *coef, const int16_t *buf, size_t size)
