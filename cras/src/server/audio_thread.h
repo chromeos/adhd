@@ -48,8 +48,9 @@ struct audio_thread {
 /* Callback function to be handled in main loop in audio thread.
  * Args:
  *    data - The data for callback function.
+ *    revent - The returned event from ppoll().
  */
-typedef int (*thread_callback)(void *data);
+typedef int (*thread_callback)(void *data, int revent);
 
 /* Creates an audio thread.
  * Returns:
@@ -83,23 +84,16 @@ int audio_thread_rm_open_dev(struct audio_thread *thread,
 int audio_thread_is_dev_open(struct audio_thread *thread,
 			     struct cras_iodev *dev);
 
-/* Adds an thread_callback to audio thread.
+/* Adds a thread_callback to audio thread for requested events.
  * Args:
  *    fd - The file descriptor to be polled for the callback.
- *      The callback will be called when fd is readable.
+ *      The callback will be called when any of requested events matched.
  *    cb - The callback function.
  *    data - The data for the callback function.
+ *    events - The requested events to ppoll().
  */
-void audio_thread_add_callback(int fd, thread_callback cb, void *data);
-
-/* Adds an thread_callback to audio thread.
- * Args:
- *    fd - The file descriptor to be polled for the callback.
- *      The callback will be called when fd is writeable.
- *    cb - The callback function.
- *    data - The data for the callback function.
- */
-void audio_thread_add_write_callback(int fd, thread_callback cb, void *data);
+void audio_thread_add_events_callback(int fd, thread_callback cb, void *data,
+				      int events);
 
 /* Removes an thread_callback from audio thread.
  * Args:

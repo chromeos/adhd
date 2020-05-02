@@ -230,7 +230,7 @@ static int encode_a2dp_packet(struct a2dp_io *a2dpio)
 /*
  * To be called when a2dp socket becomes writable.
  */
-static int a2dp_socket_write_cb(void *arg)
+static int a2dp_socket_write_cb(void *arg, int revent)
 {
 	struct cras_iodev *iodev = (struct cras_iodev *)arg;
 	return encode_and_flush(iodev);
@@ -300,8 +300,9 @@ static int configure_dev(struct cras_iodev *iodev)
 	 */
 	iodev->min_buffer_level = a2dpio->write_block;
 
-	audio_thread_add_write_callback(cras_bt_transport_fd(a2dpio->transport),
-					a2dp_socket_write_cb, iodev);
+	audio_thread_add_events_callback(
+		cras_bt_transport_fd(a2dpio->transport), a2dp_socket_write_cb,
+		iodev, POLLOUT | POLLERR | POLLHUP);
 	audio_thread_enable_callback(cras_bt_transport_fd(a2dpio->transport),
 				     0);
 	return 0;

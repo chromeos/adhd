@@ -541,7 +541,7 @@ recv_sample:
  * 2. When input device not attached, ignore the data just read.
  * 3. When output device attached, write one chunk of MTU bytes of data.
  */
-static int hfp_info_callback(void *arg)
+static int hfp_info_callback(void *arg, int revents)
 {
 	struct hfp_info *info = (struct hfp_info *)arg;
 	int err;
@@ -549,15 +549,22 @@ static int hfp_info_callback(void *arg)
 	if (!info->started)
 		return 0;
 
-	err = info->read_cb(info);
-	if (err < 0) {
-		syslog(LOG_ERR, "Read error");
-		goto read_write_error;
+	/* Allow last read before handling error or hang-up events. */
+	if (revents & POLLIN) {
+		err = info->read_cb(info);
+		if (err < 0) {
+			syslog(LOG_ERR, "Read error");
+			goto read_write_error;
+		}
 	}
-
 	/* Ignore the bytes just read if input dev not in present */
 	if (!info->input_format_bytes)
 		buf_increment_read(info->capture_buf, err);
+
+	if (revents & (POLLERR | POLLHUP)) {
+		syslog(LOG_ERR, "Error polling SCO socket, revent %d", revents);
+		goto read_write_error;
+	}
 
 	/* Without output stream's presence, we shall still send zero packets
 	 * to HF. This is required for some HF devices to start sending non-zero
@@ -642,7 +649,8 @@ int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
 	buf_reset(info->playback_buf);
 	buf_reset(info->capture_buf);
 
-	audio_thread_add_callback(info->fd, hfp_info_callback, info);
+	audio_thread_add_events_callback(info->fd, hfp_info_callback, info,
+					 POLLIN | POLLERR | POLLHUP);
 
 	info->started = 1;
 	info->msbc_num_out_frames = 0;

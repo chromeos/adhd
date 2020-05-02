@@ -637,7 +637,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s dev:%u\n", "DEV_REMOVED", data1);
 		break;
 	case AUDIO_THREAD_IODEV_CB:
-		printf("%-30s is_write:%u\n", "IODEV_CB", data1);
+		printf("%-30s revents:%u events:%u\n", "IODEV_CB", data1,
+		       data2);
 		break;
 	case AUDIO_THREAD_PB_MSG:
 		printf("%-30s msg_id:%u\n", "PB_MSG", data1);

@@ -256,7 +256,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   send(sock[0], sample, 48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
 
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
@@ -268,7 +268,7 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
   /* Trigger thread callback after idev added. */
   ts.tv_sec = 0;
   ts.tv_nsec = 5000000;
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
 
   rc = hfp_buf_queued(info, dev.direction);
   ASSERT_EQ(48 / 2, rc);
@@ -300,7 +300,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
   send(sock[0], sample, 48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
 
   /* Without odev in presence, zero packet should be sent. */
   rc = recv(sock[0], sample, 48, 0);
@@ -314,7 +314,7 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
 
   /* Put some fake data and trigger thread callback again */
   buf_increment_write(info->playback_buf, 1008);
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
 
   /* Assert some samples written */
   rc = recv(sock[0], sample, 48, 0);
@@ -373,7 +373,7 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   send_mSBC_packet(sock[0], pkt_count++, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
 
   /* Expect one empty mSBC packet is send, because no odev in presence. */
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
@@ -388,7 +388,7 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   send_mSBC_packet(sock[0], pkt_count, 0);
 
   /* Trigger thread callback after idev added. */
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
@@ -401,7 +401,7 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
    */
   pkt_count++;
   send_mSBC_packet(sock[0], pkt_count, 0);
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
@@ -418,7 +418,7 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   set_sbc_codec_decoded_fail(1);
 
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
@@ -434,7 +434,7 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   set_sbc_codec_decoded_fail(1);
 
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
@@ -466,7 +466,7 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   send(sock[0], sample, 63, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
 
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
@@ -477,7 +477,7 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   /* Put some fake data and trigger thread callback again */
   send(sock[0], sample, 63, 0);
   buf_increment_write(info->playback_buf, 240);
-  thread_cb((struct hfp_info*)cb_data);
+  thread_cb((struct hfp_info*)cb_data, POLLIN);
 
   /* Assert some samples written */
   rc = recv(sock[0], sample, 60, 0);
@@ -496,7 +496,10 @@ struct audio_thread* cras_iodev_list_get_audio_thread() {
   return NULL;
 }
 
-void audio_thread_add_callback(int fd, thread_callback cb, void* data) {
+void audio_thread_add_events_callback(int fd,
+                                      thread_callback cb,
+                                      void* data,
+                                      int events) {
   thread_cb = cb;
   cb_data = data;
   return;

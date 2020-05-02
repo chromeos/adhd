@@ -2142,7 +2142,7 @@ TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
   ASSERT_EQ(0, rc);
 
   ASSERT_NE(reinterpret_cast<thread_callback>(NULL), audio_thread_cb);
-  audio_thread_cb(audio_thread_cb_data);
+  audio_thread_cb(audio_thread_cb_data, POLLIN);
   EXPECT_EQ(1, hotword_send_triggered_msg_called);
   alsa_iodev_destroy(iodev);
 }
@@ -2763,7 +2763,10 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
                                          uint8_t* base_buffer) {}
 
-void audio_thread_add_callback(int fd, thread_callback cb, void* data) {
+void audio_thread_add_events_callback(int fd,
+                                      thread_callback cb,
+                                      void* data,
+                                      int events) {
   audio_thread_cb = cb;
   audio_thread_cb_data = data;
 }

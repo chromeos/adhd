@@ -297,7 +297,7 @@ TEST_F(A2dpIodev, FramesQueued) {
 
   /* Some time has passed, same amount of frames are queued. */
   time_now.tv_nsec = 15000000;
-  write_callback(write_callback_data);
+  write_callback(write_callback_data, POLLOUT);
   EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
 
   /* Put 900 more frames. next_flush_time not yet passed so expect
@@ -407,7 +407,7 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   /* Fake the event that socket becomes writable so data continues to flush.
    * next_flush_time fast forwards by another flush_period. */
   a2dp_write_return_val[3] = 0;
-  write_callback(write_callback_data);
+  write_callback(write_callback_data, POLLOUT);
   EXPECT_EQ(312, iodev->frames_queued(iodev, &tstamp)); /* 1208 - 896 */
 
   /* Expect to sleep the time between now and next_flush_time(~60.9ms). */
@@ -801,7 +801,10 @@ struct audio_thread* cras_iodev_list_get_audio_thread() {
 // From audio_thread
 struct audio_thread_event_log* atlog;
 
-void audio_thread_add_write_callback(int fd, thread_callback cb, void* data) {
+void audio_thread_add_events_callback(int fd,
+                                      thread_callback cb,
+                                      void* data,
+                                      int events) {
   write_callback = cb;
   write_callback_data = data;
 }

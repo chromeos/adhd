@@ -117,7 +117,7 @@ static struct iodev_callback_list *iodev_callbacks;
 
 struct iodev_callback_list {
 	int fd;
-	int is_write;
+	int events;
 	int enabled;
 	thread_callback cb;
 	void *cb_data;
@@ -125,8 +125,8 @@ struct iodev_callback_list {
 	struct iodev_callback_list *prev, *next;
 };
 
-static void _audio_thread_add_callback(int fd, thread_callback cb, void *data,
-				       int is_write)
+void audio_thread_add_events_callback(int fd, thread_callback cb, void *data,
+				      int events)
 {
 	struct iodev_callback_list *iodev_cb;
 
@@ -140,19 +140,9 @@ static void _audio_thread_add_callback(int fd, thread_callback cb, void *data,
 	iodev_cb->cb = cb;
 	iodev_cb->cb_data = data;
 	iodev_cb->enabled = 1;
-	iodev_cb->is_write = is_write;
+	iodev_cb->events = events;
 
 	DL_APPEND(iodev_callbacks, iodev_cb);
-}
-
-void audio_thread_add_callback(int fd, thread_callback cb, void *data)
-{
-	_audio_thread_add_callback(fd, cb, data, 0);
-}
-
-void audio_thread_add_write_callback(int fd, thread_callback cb, void *data)
-{
-	_audio_thread_add_callback(fd, cb, data, 1);
 }
 
 void audio_thread_rm_callback(int fd)
@@ -742,13 +732,10 @@ static int fill_next_sleep_interval(struct audio_thread *thread,
 }
 
 static struct pollfd *add_pollfd(struct audio_thread *thread, int fd,
-				 int is_write)
+				 int events)
 {
 	thread->pollfds[thread->num_pollfds].fd = fd;
-	if (is_write)
-		thread->pollfds[thread->num_pollfds].events = POLLOUT;
-	else
-		thread->pollfds[thread->num_pollfds].events = POLLIN;
+	thread->pollfds[thread->num_pollfds].events = events;
 	thread->num_pollfds++;
 	if (thread->num_pollfds >= thread->pollfds_size) {
 		thread->pollfds_size *= 2;
@@ -850,7 +837,7 @@ static void *audio_io_thread(void *arg)
 				continue;
 			}
 			iodev_cb->pollfd = add_pollfd(thread, iodev_cb->fd,
-						      iodev_cb->is_write);
+						      iodev_cb->events);
 			if (!iodev_cb->pollfd)
 				goto restart_poll_loop;
 		}
@@ -861,7 +848,7 @@ static void *audio_io_thread(void *arg)
 				int fd = dev_stream_poll_stream_fd(curr);
 				if (fd < 0)
 					continue;
-				if (!add_pollfd(thread, fd, 0))
+				if (!add_pollfd(thread, fd, POLLIN))
 					goto restart_poll_loop;
 			}
 		}
@@ -870,7 +857,7 @@ static void *audio_io_thread(void *arg)
 				int fd = dev_stream_poll_stream_fd(curr);
 				if (fd < 0)
 					continue;
-				if (!add_pollfd(thread, fd, 0))
+				if (!add_pollfd(thread, fd, POLLIN))
 					goto restart_poll_loop;
 			}
 		}
@@ -899,10 +886,12 @@ static void *audio_io_thread(void *arg)
 
 		DL_FOREACH (iodev_callbacks, iodev_cb) {
 			if (iodev_cb->pollfd &&
-			    iodev_cb->pollfd->revents & (POLLIN | POLLOUT)) {
+			    iodev_cb->pollfd->revents & iodev_cb->events) {
 				ATLOG(atlog, AUDIO_THREAD_IODEV_CB,
-				      iodev_cb->is_write, 0, 0);
-				iodev_cb->cb(iodev_cb->cb_data);
+				      iodev_cb->pollfd->revents,
+				      iodev_cb->events, 0);
+				iodev_cb->cb(iodev_cb->cb_data,
+					     iodev_cb->pollfd->revents);
 			}
 		}
 	}
