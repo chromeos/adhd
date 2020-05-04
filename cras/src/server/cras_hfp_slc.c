@@ -774,13 +774,15 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 			syslog(LOG_ERR,
 			       "Get invalid battery status from cmd:%s", cmd);
 		}
+	} else {
+		goto error_out;
 	}
 
 	free(tokens);
 	return hfp_send(handle, AT_CMD("OK"));
 
 error_out:
-	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	syslog(LOG_WARNING, "%s: invalid command: '%s'", __func__, cmd);
 	free(tokens);
 	return hfp_send(handle, AT_CMD("ERROR"));
 }
