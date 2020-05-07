@@ -668,7 +668,9 @@ pub enum CRAS_CONNECTION_TYPE {
     CRAS_CONTROL = 0,
     CRAS_PLAYBACK = 1,
     CRAS_CAPTURE = 2,
-    CRAS_NUM_CONN_TYPE = 3,
+    CRAS_VMS_LEGACY = 3,
+    CRAS_VMS_UNIFIED = 4,
+    CRAS_NUM_CONN_TYPE = 5,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -1718,13 +1720,12 @@ fn bindgen_test_layout_cras_bt_debug_info() {
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum CRAS_AUDIO_THREAD_EVENT_TYPE {
-    AUDIO_THREAD_EVENT_A2DP_DROP = 0,
-    AUDIO_THREAD_EVENT_BUSYLOOP = 1,
-    AUDIO_THREAD_EVENT_DEBUG = 2,
-    AUDIO_THREAD_EVENT_SEVERE_UNDERRUN = 3,
-    AUDIO_THREAD_EVENT_UNDERRUN = 4,
-    AUDIO_THREAD_EVENT_DROP_SAMPLES = 5,
-    AUDIO_THREAD_EVENT_TYPE_COUNT = 6,
+    AUDIO_THREAD_EVENT_BUSYLOOP = 0,
+    AUDIO_THREAD_EVENT_DEBUG = 1,
+    AUDIO_THREAD_EVENT_SEVERE_UNDERRUN = 2,
+    AUDIO_THREAD_EVENT_UNDERRUN = 3,
+    AUDIO_THREAD_EVENT_DROP_SAMPLES = 4,
+    AUDIO_THREAD_EVENT_TYPE_COUNT = 5,
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
