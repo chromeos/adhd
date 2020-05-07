@@ -458,6 +458,8 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		const struct cras_config_global_remix *m =
 			(const struct cras_config_global_remix *)msg;
 		float *coefficient;
+		const size_t coefficient_len =
+			m->num_channels * m->num_channels;
 
 		if (!MSG_LEN_VALID(msg, struct cras_config_global_remix) ||
 		    m->num_channels > CRAS_MAX_REMIX_CHANNELS)
@@ -467,10 +469,16 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 					     sizeof(m->coefficient[0]);
 		if (size_with_coefficients != msg->length)
 			return -EINVAL;
+
 		coefficient =
-			(float *)calloc(m->num_channels, sizeof(coefficient));
-		for (unsigned i = 0; i < m->num_channels; i++)
-			coefficient[i] = m->coefficient[i];
+			(float *)calloc(coefficient_len, sizeof(coefficient));
+		if (!coefficient) {
+			syslog(LOG_ERR,
+			       "Failed to create local coefficient array.");
+			break;
+		}
+		memcpy(coefficient, m->coefficient,
+		       coefficient_len * sizeof(coefficient));
 
 		audio_thread_config_global_remix(
 			cras_iodev_list_get_audio_thread(), m->num_channels,

@@ -20,7 +20,7 @@
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 #define CRAS_MAX_HOTWORD_MODELS 243
-#define CRAS_MAX_REMIX_CHANNELS 32
+#define CRAS_MAX_REMIX_CHANNELS 8
 #define CRAS_MAX_TEST_DATA_LEN 224
 #define CRAS_AEC_DUMP_FILE_NAME_LEN 128
 
@@ -425,7 +425,7 @@ static inline void cras_fill_suspend_message(struct cras_server_message *m,
 struct __attribute__((__packed__)) cras_config_global_remix {
 	struct cras_server_message header;
 	unsigned int num_channels;
-	float coefficient[CRAS_MAX_REMIX_CHANNELS];
+	float coefficient[CRAS_MAX_REMIX_CHANNELS * CRAS_MAX_REMIX_CHANNELS];
 };
 
 static inline void

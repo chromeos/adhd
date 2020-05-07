@@ -20,6 +20,9 @@ extern "C" {
 }
 
 //  Stub data.
+static int audio_thread_config_global_remix_called;
+static float audio_thread_config_global_remix_copy[CRAS_MAX_REMIX_CHANNELS *
+                                                   CRAS_MAX_REMIX_CHANNELS];
 static int cras_rstream_create_return;
 static struct cras_rstream* cras_rstream_create_stream_out;
 static int cras_iodev_attach_stream_retval;
@@ -58,6 +61,9 @@ static struct cras_observer_ops cras_observer_ops_are_empty_empty_ops;
 static size_t cras_observer_remove_called;
 
 void ResetStubData() {
+  audio_thread_config_global_remix_called = 0;
+  memset(audio_thread_config_global_remix_copy, 0,
+         sizeof(audio_thread_config_global_remix_copy));
   cras_rstream_create_return = 0;
   cras_rstream_create_stream_out = (struct cras_rstream*)NULL;
   cras_iodev_attach_stream_retval = 0;
@@ -433,6 +439,23 @@ TEST_F(RClientMessagesSuite, DumpSnapshots) {
   EXPECT_EQ(1, cras_system_state_dump_snapshots_called);
 }
 
+TEST_F(RClientMessagesSuite, ConfigGlobalRemix) {
+  int rc;
+  struct cras_config_global_remix msg;
+  const int num_channels = 2;
+  float coefficient[4] = {0.1, 0.2, 0.3, 0.4};
+  cras_fill_config_global_remix_command(&msg, num_channels, coefficient,
+                                        num_channels * num_channels);
+
+  rc =
+      rclient_->ops->handle_message_from_client(rclient_, &msg.header, NULL, 0);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, audio_thread_config_global_remix_called);
+  for (unsigned i = 0; i < (unsigned)num_channels * num_channels; i++) {
+    EXPECT_EQ(audio_thread_config_global_remix_copy[i], coefficient[i]);
+  }
+}
+
 void RClientMessagesSuite::RegisterNotification(
     enum CRAS_CLIENT_MESSAGE_ID msg_id,
     void* callback,
@@ -745,6 +768,9 @@ int audio_thread_resume(struct audio_thread* thread) {
 int audio_thread_config_global_remix(struct audio_thread* thread,
                                      unsigned int num_channels,
                                      const float* coefficient) {
+  audio_thread_config_global_remix_called++;
+  memcpy(audio_thread_config_global_remix_copy, coefficient,
+         num_channels * num_channels * sizeof(coefficient));
   return 0;
 }
 
