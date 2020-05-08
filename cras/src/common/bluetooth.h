@@ -74,3 +74,7 @@ struct bt_voice {
 };
 
 #define BT_VOICE_TRANSPARENT 0x0003
+
+#define BT_PKT_STATUS		16
+
+#define BT_SCM_PKT_STATUS	0x03

@@ -910,6 +910,7 @@ static int bt_address(const char *str, struct sockaddr *addr)
 static int apply_codec_settings(int fd, uint8_t codec)
 {
 	struct bt_voice voice;
+	uint32_t pkt_status;
 
 	memset(&voice, 0, sizeof(voice));
 	if (codec == HFP_CODEC_ID_CVSD)
@@ -926,6 +927,12 @@ static int apply_codec_settings(int fd, uint8_t codec)
 	    0) {
 		syslog(LOG_ERR, "Failed to apply voice setting");
 		return -1;
+	}
+
+	pkt_status = 1;
+	if (setsockopt(fd, SOL_BLUETOOTH, BT_PKT_STATUS, &pkt_status,
+		       sizeof(pkt_status))) {
+		syslog(LOG_ERR, "Failed to enable BT_PKT_STATUS");
 	}
 	return 0;
 }
