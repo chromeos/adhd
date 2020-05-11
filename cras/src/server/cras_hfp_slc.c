@@ -263,6 +263,19 @@ static void initialize_slc_handle(struct cras_timer *timer, void *arg)
 	}
 }
 
+/* Handles the event that headset request to start a codec connection
+ * procedure.
+ */
+static int bluetooth_codec_connection(struct hfp_slc_handle *handle,
+				      const char *cmd)
+{
+	/* Reset current selected codec to force a new codec connection
+	 * procedure when the next hfp_slc_codec_connection_setup is called.
+	 */
+	handle->selected_codec = HFP_CODEC_UNUSED;
+	return hfp_send(handle, AT_CMD("OK"));
+}
+
 /* Handles the event that headset request to select specific codec. */
 static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 				     const char *cmd)
@@ -913,6 +926,7 @@ static struct at_command at_commands[] = {
 	{ "ATA", answer_call },
 	{ "ATD", dial_number },
 	{ "AT+BAC", available_codecs },
+	{ "AT+BCC", bluetooth_codec_connection },
 	{ "AT+BCS", bluetooth_codec_selection },
 	{ "AT+BIA", indicator_activation },
 	{ "AT+BIEV", indicator_state_change },
