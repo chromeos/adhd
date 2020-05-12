@@ -354,21 +354,39 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 {
 	unsigned i;
 
-	printf("\tID\tName\n");
+	printf("\tID\tMaxCha\tName\n");
 	for (i = 0; i < num_devs; i++)
-		printf("\t%u\t%s\n", devs[i].idx, devs[i].name);
+		printf("\t%u\t%u\t%s\n", devs[i].idx,
+		       devs[i].max_supported_channels, devs[i].name);
 }
 
-static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
+static void print_node_info(struct cras_client *client,
+			    const struct cras_ionode_info *nodes, int num_nodes,
 			    int is_input)
 {
 	unsigned i;
 
 	printf("\tStable Id\t ID\t%4s  UI       Plugged\tL/R swapped\t      "
-	       "Time Hotword\tType\t\t Name\n",
+	       "Time Hotword\tType\t\tMaxCha Name\n",
 	       is_input ? "Gain" : " Vol");
-	for (i = 0; i < num_nodes; i++)
-		printf("\t(%08x)\t%u:%u\t%5g %f %7s\t%14s\t%10ld %-7s\t%-16s%c%s\n",
+	for (i = 0; i < num_nodes; i++) {
+		char max_channels_str[7];
+		if (is_input) {
+			// Print "X" as don't-care for input nodes because
+			// cras_client_get_max_supported_channels() is only valid for outputs.
+			strcpy(max_channels_str, "     X");
+		} else {
+			uint32_t max_channels;
+			int rc = cras_client_get_max_supported_channels(
+				client,
+				cras_make_node_id(nodes[i].iodev_idx,
+						  nodes[i].ionode_idx),
+				&max_channels);
+			if (rc)
+				max_channels = 0;
+			sprintf(max_channels_str, "%6u", max_channels);
+		}
+		printf("\t(%08x)\t%u:%u\t%5g %f %7s\t%14s\t%10ld %-7s\t%-16s%-6s%c%s\n",
 		       nodes[i].stable_id, nodes[i].iodev_idx,
 		       nodes[i].ionode_idx,
 		       is_input ? nodes[i].capture_gain / 100.0 :
@@ -377,7 +395,9 @@ static void print_node_info(const struct cras_ionode_info *nodes, int num_nodes,
 		       nodes[i].left_right_swapped ? "yes" : "no",
 		       (long)nodes[i].plugged_time.tv_sec,
 		       nodes[i].active_hotword_model, nodes[i].type,
-		       nodes[i].active ? '*' : ' ', nodes[i].name);
+		       max_channels_str, nodes[i].active ? '*' : ' ',
+		       nodes[i].name);
+	}
 }
 
 static void print_device_lists(struct cras_client *client)
@@ -396,7 +416,7 @@ static void print_device_lists(struct cras_client *client)
 	printf("Output Devices:\n");
 	print_dev_info(devs, num_devs);
 	printf("Output Nodes:\n");
-	print_node_info(nodes, num_nodes, 0);
+	print_node_info(client, nodes, num_nodes, 0);
 
 	num_devs = MAX_IODEVS;
 	num_nodes = MAX_IONODES;
@@ -405,7 +425,7 @@ static void print_device_lists(struct cras_client *client)
 	printf("Input Devices:\n");
 	print_dev_info(devs, num_devs);
 	printf("Input Nodes:\n");
-	print_node_info(nodes, num_nodes, 1);
+	print_node_info(client, nodes, num_nodes, 1);
 }
 
 static void print_attached_client_list(struct cras_client *client)
