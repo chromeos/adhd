@@ -16,6 +16,7 @@
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
+#include "cras_util.h"
 
 /* Message start and end with "\r\n". refer to spec 4.33. */
 #define AT_CMD(cmd) "\r\n" cmd "\r\n"
@@ -25,6 +26,10 @@
 /* The timeout between service level initialized and codec negotiation
  * completed. */
 #define CODEC_NEGOTIATION_TIMEOUT_MS 10000
+/* The sleep time before reading and processing the following AT commands during
+ * codec connection setup.
+ */
+#define CODEC_CONN_SLEEP_TIME_US 2000
 #define SLC_BUF_SIZE_BYTES 256
 
 /* Indicator update command response and indicator indices.
@@ -1018,21 +1023,17 @@ int handle_at_command_for_test(struct hfp_slc_handle *slc_handle,
 	return handle_at_command(slc_handle, cmd);
 }
 
-static void slc_watch_callback(void *arg)
+static int process_at_commands(struct hfp_slc_handle *handle)
 {
-	struct hfp_slc_handle *handle = (struct hfp_slc_handle *)arg;
 	ssize_t bytes_read;
 	int err;
 
 	bytes_read =
 		read(handle->rfcomm_fd, &handle->buf[handle->buf_write_idx],
 		     SLC_BUF_SIZE_BYTES - handle->buf_write_idx - 1);
-	if (bytes_read < 0) {
-		syslog(LOG_ERR, "Error reading slc command %s",
-		       strerror(errno));
-		handle->disconnect_cb(handle);
-		return;
-	}
+	if (bytes_read < 0)
+		return bytes_read;
+
 	handle->buf_write_idx += bytes_read;
 	handle->buf[handle->buf_write_idx] = '\0';
 
@@ -1046,7 +1047,7 @@ static void slc_watch_callback(void *arg)
 		err = handle_at_command(handle,
 					&handle->buf[handle->buf_read_idx]);
 		if (err < 0)
-			return;
+			return 0;
 
 		/* Shift the read index */
 		handle->buf_read_idx = 1 + end_char - handle->buf;
@@ -1069,9 +1070,22 @@ static void slc_watch_callback(void *arg)
 			handle->buf_write_idx = 0;
 		}
 	}
+	return bytes_read;
+}
+
+static void slc_watch_callback(void *arg)
+{
+	struct hfp_slc_handle *handle = (struct hfp_slc_handle *)arg;
+	int err;
+
+	err = process_at_commands(handle);
+	if (err < 0) {
+		syslog(LOG_ERR, "Error reading slc command %s",
+		       strerror(errno));
+		handle->disconnect_cb(handle);
+	}
 
 	post_at_command_tasks(handle);
-
 	return;
 }
 
@@ -1138,6 +1152,67 @@ int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
 		return handle->preferred_codec;
 	else
 		return handle->selected_codec;
+}
+
+int hfp_slc_codec_connection_setup(struct hfp_slc_handle *handle)
+{
+	/* The time we wait for codec selection response. */
+	static struct timespec timeout = { 0, 100000000 };
+	struct pollfd poll_fd;
+	int rc = 0;
+	struct timespec ts = timeout;
+
+	/*
+	 * Codec negotiation is not required, if either AG or HF doesn't support
+	 * it or it has been done once.
+	 */
+	if (!hfp_slc_get_hf_codec_negotiation_supported(handle) ||
+	    !hfp_slc_get_ag_codec_negotiation_supported(handle) ||
+	    handle->selected_codec == handle->preferred_codec)
+		return 0;
+
+redo_codec_conn:
+	select_preferred_codec(handle);
+
+	poll_fd.fd = handle->rfcomm_fd;
+	poll_fd.events = POLLIN;
+
+	ts = timeout;
+	while (rc <= 0) {
+		rc = cras_poll(&poll_fd, 1, &ts, NULL);
+		if (rc == -ETIMEDOUT) {
+			/*
+	 		 * Catch the case that the first initial codec
+			 * negotiation timeout. AG side falls back to use codec
+			 * CVSD and also tells HF to select CVSD again. The
+			 * assumption is that if HF successes one codec
+			 * negotiation, the following should also success, so
+			 * we'll keep retrying the codec negotiation.
+	 		 */
+			if (handle->selected_codec == HFP_CODEC_UNUSED) {
+				syslog(LOG_ERR,
+				       "Failed to enable %d, fallback to CVSD",
+				       handle->preferred_codec);
+				handle->preferred_codec = HFP_CODEC_ID_CVSD;
+				select_preferred_codec(handle);
+			}
+			return rc;
+		}
+	}
+
+	if (rc > 0) {
+		do {
+			usleep(CODEC_CONN_SLEEP_TIME_US);
+			rc = process_at_commands(handle);
+		} while (rc == -EAGAIN);
+
+		if (rc <= 0)
+			return rc;
+		if (handle->selected_codec != handle->preferred_codec)
+			goto redo_codec_conn;
+	}
+
+	return 0;
 }
 
 int hfp_set_call_status(struct hfp_slc_handle *handle, int call)

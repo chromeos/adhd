@@ -145,6 +145,11 @@ static int configure_dev(struct cras_iodev *iodev)
 	if (hfp_info_running(hfpio->info))
 		goto add_dev;
 
+	/*
+	 * Might require a codec negotiation before building the sco connection.
+	 */
+	hfp_slc_codec_connection_setup(hfpio->slc);
+
 	sk = cras_bt_device_sco_connect(hfpio->device,
 					hfp_slc_get_selected_codec(hfpio->slc));
 	if (sk < 0)

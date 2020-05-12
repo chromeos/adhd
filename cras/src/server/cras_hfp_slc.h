@@ -142,6 +142,9 @@ int hfp_slc_get_ag_codec_negotiation_supported(struct hfp_slc_handle *handle);
  * Apple, HFP, none, or both. */
 int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle *handle);
 
+/* Init the codec negotiation process if needed. */
+int hfp_slc_codec_connection_setup(struct hfp_slc_handle *handle);
+
 // Expose internal AT command handling for fuzzing.
 int handle_at_command_for_test(struct hfp_slc_handle *slc_handle,
 			       const char *cmd);
