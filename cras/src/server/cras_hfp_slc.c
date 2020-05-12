@@ -23,9 +23,6 @@
 
 /* The timeout between event reporting and HF indicator commands */
 #define HF_INDICATORS_TIMEOUT_MS 2000
-/* The timeout between service level initialized and codec negotiation
- * completed. */
-#define CODEC_NEGOTIATION_TIMEOUT_MS 10000
 /* The sleep time before reading and processing the following AT commands during
  * codec connection setup.
  */
@@ -260,25 +257,6 @@ static void initialize_slc_handle(struct cras_timer *timer, void *arg)
 	if (timer)
 		handle->timer = NULL;
 
-	/*
-	 * Catch the case if codec negotiation never complete or even
-	 * failed. AG side falls back to use codec CVSD and also tells
-	 * HF to select CVSD again.
-	 */
-	if (handle->selected_codec != handle->preferred_codec) {
-		if (handle->preferred_codec == HFP_CODEC_ID_MSBC) {
-			syslog(LOG_ERR,
-			       "Failed to enable mSBC, fallback to CVSD");
-			handle->preferred_codec = HFP_CODEC_ID_CVSD;
-		}
-		select_preferred_codec(handle);
-	}
-
-	/*
-	 * Codec negotiation is considered to be ended at this point.
-	 * The owner of init_cb may use hfp_slc_get_selected_codec() to
-	 * query the final codec to use for this connection.
-	 */
 	if (handle->init_cb) {
 		handle->init_cb(handle);
 		handle->init_cb = NULL;
@@ -312,38 +290,6 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 	free(tokens);
 	err = hfp_send(handle, AT_CMD("OK"));
 	return err;
-}
-
-/*
- * Delay the initialization of SLC if codecs negotiation is supported and not
- * down yet. Otherwise just initialize the SLC.
- */
-static void choose_codec_and_init_slc(struct cras_timer *timer, void *arg)
-{
-	struct hfp_slc_handle *handle = (struct hfp_slc_handle *)arg;
-	if (timer)
-		handle->timer = NULL;
-	/*
-	 * We should postpone the initialize call after codec selection,
-	 * otherwise iodev could be open immediately while the headset is still
-	 * communicating about which of CVSD or mSBC codec to use.
-	 * selected_codec != preferred_codec means that either the codec
-	 * negotiation is not done, selected_codec == HFP_CODEC_UNUSED, or
-	 */
-	if (hfp_slc_get_ag_codec_negotiation_supported(handle) &&
-	    hfp_slc_get_hf_codec_negotiation_supported(handle) &&
-	    handle->selected_codec != handle->preferred_codec) {
-		select_preferred_codec(handle);
-		/* Delay init to give headset some time to confirm
-		 * codec selection. */
-		handle->timer =
-			cras_tm_create_timer(cras_system_state_get_tm(),
-					     CODEC_NEGOTIATION_TIMEOUT_MS,
-					     initialize_slc_handle, handle);
-	} else {
-		handle->selected_codec = HFP_CODEC_ID_CVSD;
-		initialize_slc_handle(NULL, (void *)handle);
-	}
 }
 
 /*
@@ -533,13 +479,13 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 		handle->timer =
 			cras_tm_create_timer(cras_system_state_get_tm(),
 					     HF_INDICATORS_TIMEOUT_MS,
-					     choose_codec_and_init_slc, handle);
+					     initialize_slc_handle, handle);
 	/*
 	 * Otherwise, regard the Service Level Connection to be fully
 	 * initialized and ready for the potential codec negotiation.
 	 */
 	else
-		choose_codec_and_init_slc(NULL, (void *)handle);
+		initialize_slc_handle(NULL, (void *)handle);
 
 event_reporting_done:
 	free(tokens);
@@ -757,7 +703,7 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 		 * Consider the Service Level Connection to be fully initialized
 		 * and thereby established, after successfully responded with OK
 		 */
-		choose_codec_and_init_slc(NULL, (void *)handle);
+		initialize_slc_handle(NULL, (void *)handle);
 		return 0;
 	} else {
 		goto error_out;
@@ -1287,6 +1233,13 @@ int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle)
 int hfp_slc_get_hf_hf_indicators_supported(struct hfp_slc_handle *handle)
 {
 	return handle->hf_supported_features & HF_HF_INDICATORS;
+}
+
+bool hfp_slc_get_wideband_speech_supported(struct hfp_slc_handle *handle)
+{
+	return hfp_slc_get_ag_codec_negotiation_supported(handle) &&
+	       hfp_slc_get_hf_codec_negotiation_supported(handle) &&
+	       handle->hf_codec_supported[HFP_CODEC_ID_MSBC];
 }
 
 int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle *handle)

@@ -329,10 +329,10 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	strcpy(node->name, iodev->info.name);
 
 	node->plugged = 1;
-	/* If headset mic uses legacy narrow band, i.e CVSD codec, report a
+	/* If headset mic doesn't support the wideband speech, report a
 	 * different node type so UI can set different plug priority. */
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
-	if ((hfp_slc_get_selected_codec(hfpio->slc) == HFP_CODEC_ID_CVSD) &&
+	if (!hfp_slc_get_wideband_speech_supported(hfpio->slc) &&
 	    (dir == CRAS_STREAM_INPUT))
 		node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
 

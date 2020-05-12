@@ -271,6 +271,11 @@ TEST(HfpSlc, CodecNegotiation) {
   codec = hfp_slc_get_selected_codec(handle);
   EXPECT_EQ(HFP_CODEC_ID_MSBC, codec);
 
+  /* Fake HF selects mSBC codec. */
+  err = write(sock[1], "AT+BCS=2\r", 9);
+  ASSERT_EQ(err, 9);
+
+  err = hfp_slc_codec_connection_setup(handle);
   /* Assert CRAS initiates codec selection to mSBC. */
   memset(buf, 0, 256);
   err = read(sock[1], buf, 256);
@@ -281,21 +286,11 @@ TEST(HfpSlc, CodecNegotiation) {
   ASSERT_EQ(err, 9);
   slc_cb(slc_cb_data);
 
-  /* Fake that receiving codec selection from HF. */
-  err = write(sock[1], "AT+BCS=2\r", 9);
-  ASSERT_EQ(err, 9);
-  slc_cb(slc_cb_data);
-
-  memset(buf, 0, 256);
-  err = read(sock[1], buf, 256);
-  pos = strstr(buf, "\r\n+BCS:2\r\n");
-  ASSERT_EQ((void*)NULL, pos);
-
   hfp_slc_destroy(handle);
   cras_bt_event_log_deinit(btlog);
 }
 
-TEST(HfpSlc, CodecNegotiationTimeout) {
+TEST(HfpSlc, CodecNegotiationCapabilityChanged) {
   int codec;
   int err;
   int sock[2];
@@ -329,29 +324,40 @@ TEST(HfpSlc, CodecNegotiationTimeout) {
   ASSERT_EQ(err, 16);
   slc_cb(slc_cb_data);
 
-  ASSERT_NE((void*)NULL, cras_tm_timer_cb);
-
   /* Assert that AG side prefers mSBC codec. */
   codec = hfp_slc_get_selected_codec(handle);
   EXPECT_EQ(HFP_CODEC_ID_MSBC, codec);
 
+  /* Fake HF selects mSBC codec. */
+  err = write(sock[1], "AT+BCS=2\r", 9);
+  ASSERT_EQ(err, 9);
+
+  err = hfp_slc_codec_connection_setup(handle);
   /* Assert CRAS initiates codec selection to mSBC. */
   memset(buf, 0, 256);
   err = read(sock[1], buf, 256);
   pos = strstr(buf, "\r\n+BCS:2\r\n");
   ASSERT_NE((void*)NULL, pos);
 
-  /* Assume codec negotiation failed. so timeout is reached. */
-  cras_tm_timer_cb(NULL, cras_tm_timer_cb_data);
+  /* Fake that HF changes supported codecs. */
+  err = write(sock[1], "AT+BAC=1\r", 9);
+  ASSERT_EQ(err, 9);
+  slc_cb(slc_cb_data);
+  err = read(sock[1], buf, 256);
 
-  codec = hfp_slc_get_selected_codec(handle);
-  EXPECT_EQ(HFP_CODEC_ID_CVSD, codec);
+  /* Fake HF selects CVSD codec. */
+  err = write(sock[1], "AT+BCS=1\r", 9);
+  ASSERT_EQ(err, 9);
 
-  /* Expects CRAS fallback and selects to CVSD codec. */
+  err = hfp_slc_codec_connection_setup(handle);
+  /* Assert CRAS initiates codec selection to CVSD. */
   memset(buf, 0, 256);
   err = read(sock[1], buf, 256);
   pos = strstr(buf, "\r\n+BCS:1\r\n");
   ASSERT_NE((void*)NULL, pos);
+
+  codec = hfp_slc_get_selected_codec(handle);
+  EXPECT_EQ(HFP_CODEC_ID_CVSD, codec);
 
   hfp_slc_destroy(handle);
   cras_bt_event_log_deinit(btlog);
@@ -415,6 +421,13 @@ struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
   cras_tm_timer_cb = cb;
   cras_tm_timer_cb_data = cb_data;
   return reinterpret_cast<struct cras_timer*>(0x404);
+}
+
+int cras_poll(struct pollfd* fds,
+              nfds_t nfds,
+              struct timespec* timeout,
+              const sigset_t* sigmask) {
+  return 1;
 }
 
 void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {}

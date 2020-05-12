@@ -382,6 +382,10 @@ int hfp_slc_get_selected_codec(struct hfp_slc_handle* handle) {
   return HFP_CODEC_ID_CVSD;
 }
 
+bool hfp_slc_get_wideband_speech_supported(struct hfp_slc_handle* handle) {
+  return false;
+}
+
 int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle) {
   return 0;
 }
