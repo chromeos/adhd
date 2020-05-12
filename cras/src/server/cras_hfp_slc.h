@@ -132,6 +132,9 @@ int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle);
 /* Gets if the remote HF supports codec negotiation. */
 int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle);
 
+/* Gets if the remote HF supports HF indicator. */
+int hfp_slc_get_hf_hf_indicators_supported(struct hfp_slc_handle *handle);
+
 /* Gets if the AG side supports codec negotiation. */
 int hfp_slc_get_ag_codec_negotiation_supported(struct hfp_slc_handle *handle);
 

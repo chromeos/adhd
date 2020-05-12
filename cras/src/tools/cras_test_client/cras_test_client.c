@@ -877,6 +877,9 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s profiles supported %u, connected %u\n",
 		       "DEV_SUSPEND_CB", data1, data2);
 		break;
+	case BT_HFP_HF_INDICATOR:
+		printf("%-30s HF read AG %s indicator\n", "HFP_HF_INDICATOR",
+		       data1 ? "enabled" : "supported");
 	case BT_HFP_NEW_CONNECTION:
 		printf("%-30s\n", "HFP_NEW_CONNECTION");
 		break;

@@ -20,6 +20,8 @@
 /* Message start and end with "\r\n". refer to spec 4.33. */
 #define AT_CMD(cmd) "\r\n" cmd "\r\n"
 
+/* The timeout between event reporting and HF indicator commands */
+#define HF_INDICATORS_TIMEOUT_MS 2000
 /* The timeout between service level initialized and codec negotiation
  * completed. */
 #define CODEC_NEGOTIATION_TIMEOUT_MS 10000
@@ -63,15 +65,13 @@
  *    callheld - Current callheld status of AG stored in SLC.
  *    ind_event_report - Activate status of indicator events reporting.
  *    ag_supported_features - Supported AG features bitmap.
- *    hf_codec_supported - Flags to indicate if codec is supported in HF.
- *    hf_supports_codec_negotiation - If the connected HF supports codec
- *        negotiation.
+ *    hf_supported_features - Bit map of HF supported features.
  *    hf_supports_battery_indicator - Bit map of battery indicator support of
- *    	connected HF.
+ *        connected HF.
  *    hf_battery - Current battery level of HF reported by the HF. The data
  *    range should be 0 ~ 100. Use -1 for no battery level reported.
  *    preferred_codec - CVSD or mSBC based on the situation and strategy. This
- *        need not to be equal to selected_codec because codec negotiation
+ *        needs not to be equal to selected_codec because codec negotiation
  *        process may fail.
  *    selected_codec - The codec id defaults to HFP_CODEC_UNUSED and changes
  *        only if codec negotiation is supported and the negotiation flow
@@ -97,7 +97,7 @@ struct hfp_slc_handle {
 	int ind_event_report;
 	int ag_supported_features;
 	bool hf_codec_supported[HFP_MAX_CODECS];
-	int hf_supports_codec_negotiation;
+	int hf_supported_features;
 	int hf_supports_battery_indicator;
 	int hf_battery;
 	int preferred_codec;
@@ -327,8 +327,11 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
  * Delay the initialization of SLC if codecs negotiation is supported and not
  * down yet. Otherwise just initialize the SLC.
  */
-static void choose_codec_and_init_slc(struct hfp_slc_handle *handle)
+static void choose_codec_and_init_slc(struct cras_timer *timer, void *arg)
 {
+	struct hfp_slc_handle *handle = (struct hfp_slc_handle *)arg;
+	if (timer)
+		handle->timer = NULL;
 	/*
 	 * We should postpone the initialize call after codec selection,
 	 * otherwise iodev could be open immediately while the headset is still
@@ -532,13 +535,21 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 	}
 
 	/*
-	 * Consider the Service Level Connection to be fully initialized,
-	 * and thereby established, after successfully responded with OK.
-	 * However we should postpone the initialize call after codec selection,
-	 * otherwise iodev could be open immediately while the headset is still
-	 * communicating about which of CVSD or mSBC codec to use.
+	 * Wait for HF to retrieve information about HF indicators and consider
+	 * the Service Level Connection to be fully initialized, and thereby
+	 * established, if HF doesn't support HF indicators.
 	 */
-	choose_codec_and_init_slc(handle);
+	if (hfp_slc_get_hf_hf_indicators_supported(handle))
+		handle->timer =
+			cras_tm_create_timer(cras_system_state_get_tm(),
+					     HF_INDICATORS_TIMEOUT_MS,
+					     choose_codec_and_init_slc, handle);
+	/*
+	 * Otherwise, regard the Service Level Connection to be fully
+	 * initialized and ready for the potential codec negotiation.
+	 */
+	else
+		choose_codec_and_init_slc(NULL, (void *)handle);
 
 event_reporting_done:
 	free(tokens);
@@ -712,6 +723,7 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 			 * For the list of HF indicator assigned number, you can
 			 * check the  Bluetooth SIG Assigned Numbers web page.
 			 */
+			BTLOG(btlog, BT_HFP_HF_INDICATOR, 1, 0);
 			err = hfp_send(handle, AT_CMD("+BIND: (2)"));
 			if (err < 0)
 				return err;
@@ -742,10 +754,21 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 		 * indicator
 		 * 1 = enabled, value changes may be sent for this indicator
 		 */
+		BTLOG(btlog, BT_HFP_HF_INDICATOR, 0, 0);
 
 		err = hfp_send(handle, AT_CMD("+BIND: 2,1"));
 		if (err < 0)
 			return err;
+
+		err = hfp_send(handle, AT_CMD("OK"));
+		if (err)
+			return err;
+		/*
+		 * Consider the Service Level Connection to be fully initialized
+		 * and thereby established, after successfully responded with OK
+		 */
+		choose_codec_and_init_slc(NULL, (void *)handle);
+		return 0;
 	} else {
 		goto error_out;
 	}
@@ -850,7 +873,7 @@ static int subscriber_number(struct hfp_slc_handle *handle, const char *buf)
  */
 static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 {
-	int err, hf_features;
+	int err;
 	char response[128];
 	char *tokens, *features;
 
@@ -859,18 +882,15 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 		return hfp_send(handle, AT_CMD("ERROR"));
 	}
 
-	handle->hf_supports_codec_negotiation = 0;
-
 	tokens = strdup(cmd);
 	strtok(tokens, "=");
 	features = strtok(NULL, ",");
 	if (!features)
 		goto error_out;
 
-	hf_features = atoi(features);
-	BTLOG(btlog, BT_HFP_SUPPORTED_FEATURES, 0, hf_features);
-	if (hf_features & HF_CODEC_NEGOTIATION)
-		handle->hf_supports_codec_negotiation = 1;
+	handle->hf_supported_features = atoi(features);
+	BTLOG(btlog, BT_HFP_SUPPORTED_FEATURES, 0,
+	      handle->hf_supported_features);
 	free(tokens);
 
 	/* AT+BRSF=<feature> command received, ignore the HF supported feature
@@ -1075,6 +1095,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 	handle->rfcomm_fd = fd;
 	handle->is_hsp = is_hsp;
 	handle->ag_supported_features = ag_supported_features;
+	handle->hf_supported_features = 0;
 	handle->device = device;
 	handle->init_cb = init_cb;
 	handle->disconnect_cb = disconnect_cb;
@@ -1202,7 +1223,12 @@ int hfp_slc_get_ag_codec_negotiation_supported(struct hfp_slc_handle *handle)
 
 int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle)
 {
-	return handle->hf_supports_codec_negotiation;
+	return handle->hf_supported_features & HF_CODEC_NEGOTIATION;
+}
+
+int hfp_slc_get_hf_hf_indicators_supported(struct hfp_slc_handle *handle)
+{
+	return handle->hf_supported_features & HF_HF_INDICATORS;
 }
 
 int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle *handle)
