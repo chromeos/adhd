@@ -281,12 +281,6 @@ TEST(HfpSlc, CodecNegotiation) {
   ASSERT_EQ(err, 9);
   slc_cb(slc_cb_data);
 
-  /* Assert CRAS initiates codec selection to mSBC. */
-  memset(buf, 0, 256);
-  err = read(sock[1], buf, 256);
-  pos = strstr(buf, "\r\n+BCS:2\r\n");
-  ASSERT_NE((void*)NULL, pos);
-
   /* Fake that receiving codec selection from HF. */
   err = write(sock[1], "AT+BCS=2\r", 9);
   ASSERT_EQ(err, 9);

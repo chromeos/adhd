@@ -81,8 +81,6 @@
  *    selected_codec - The codec id defaults to HFP_CODEC_UNUSED and changes
  *        only if codec negotiation is supported and the negotiation flow
  *        has completed.
- *    pending_codec_negotiation - True if codec negotiation process has started
- *        but haven't got reply from HF.
  *    telephony - A reference of current telephony handle.
  *    device - The associated bt device.
  */
@@ -107,7 +105,6 @@ struct hfp_slc_handle {
 	int hf_battery;
 	int preferred_codec;
 	int selected_codec;
-	int pending_codec_negotiation;
 	struct cras_bt_device *device;
 	struct cras_timer *timer;
 
@@ -288,16 +285,6 @@ static void initialize_slc_handle(struct cras_timer *timer, void *arg)
 	}
 }
 
-/* Tasks to execute after receiving an AT command. This is useful because
- * some HF replies to command X only after it sends command Y. We rely on
- * this function to achieve reliable codec negotiation.
- */
-static void post_at_command_tasks(struct hfp_slc_handle *handle)
-{
-	if (handle->pending_codec_negotiation)
-		select_preferred_codec(handle);
-}
-
 /* Handles the event that headset request to select specific codec. */
 static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 				     const char *cmd)
@@ -306,7 +293,6 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 	char *codec;
 	int id, err;
 
-	handle->pending_codec_negotiation = 0;
 	strtok(tokens, "=");
 	codec = strtok(NULL, ",");
 	id = atoi(codec);
@@ -347,7 +333,6 @@ static void choose_codec_and_init_slc(struct cras_timer *timer, void *arg)
 	if (hfp_slc_get_ag_codec_negotiation_supported(handle) &&
 	    hfp_slc_get_hf_codec_negotiation_supported(handle) &&
 	    handle->selected_codec != handle->preferred_codec) {
-		handle->pending_codec_negotiation = 1;
 		select_preferred_codec(handle);
 		/* Delay init to give headset some time to confirm
 		 * codec selection. */
@@ -1084,8 +1069,6 @@ static void slc_watch_callback(void *arg)
 		       strerror(errno));
 		handle->disconnect_cb(handle);
 	}
-
-	post_at_command_tasks(handle);
 	return;
 }
 
