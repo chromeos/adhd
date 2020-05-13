@@ -31,6 +31,7 @@ sendto: 1
 brk: 1
 munmap: 1
 socket: arg0 == AF_UNIX || arg0 == AF_BLUETOOTH || arg0 == AF_NETLINK
+socketpair: 1
 statfs: 1
 getsockopt: 1
 accept: 1
@@ -76,6 +77,7 @@ sched_get_priority_min: 1
 sched_setscheduler: 1
 setrlimit: 1
 set_robust_list: 1
+setpriority: 1
 setsockopt: 1
 set_tid_address: 1
 sysinfo: 1
