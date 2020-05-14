@@ -256,6 +256,20 @@ ucm_get_echo_reference_dev_name_for_dev(struct cras_use_case_mgr *mgr,
 int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
 				enum CRAS_STREAM_DIRECTION direction);
 
+/* Gets the channel count at which to run this device.
+ *
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for channel count.
+ *    direction - playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
+ *    channels - The pointer to the returned channel count.
+ * Returns:
+ *    0 on success, other error codes on failure.
+ */
+int ucm_get_channels_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
+			     enum CRAS_STREAM_DIRECTION direction,
+			     size_t *channels);
+
 /* Gets the capture channel map for this device.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.

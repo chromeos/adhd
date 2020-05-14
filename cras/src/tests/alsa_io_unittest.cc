@@ -1466,6 +1466,83 @@ TEST(AlsaOutputNode, AutoUnplugInputNode) {
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
 
+TEST(AlsaLoopback, InitializePlayback) {
+  struct alsa_io* aio;
+  struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
+  struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
+  struct cras_iodev* iodev;
+  static const char* jack_name = "TestCard - Alsa Loopback";
+  struct mixer_control* outputs[1];
+  struct ucm_section* section;
+
+  ResetStubData();
+  outputs[0] = reinterpret_cast<struct mixer_control*>(3);
+  cras_alsa_mixer_list_outputs_outputs = outputs;
+  cras_alsa_mixer_list_outputs_outputs_length = ARRAY_SIZE(outputs);
+  cras_alsa_mixer_get_control_name_values[outputs[0]] = LOOPBACK_PLAYBACK;
+
+  // Create the IO device.
+  iodev = alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
+      CRAS_STREAM_OUTPUT);
+  ASSERT_NE(iodev, (void*)NULL);
+  aio = reinterpret_cast<struct alsa_io*>(iodev);
+
+  // Add node.
+  section = ucm_section_create(LOOPBACK_PLAYBACK, "hw:0,1", 0, -1,
+                               CRAS_STREAM_OUTPUT, jack_name, NULL);
+  ucm_section_set_mixer_name(section, LOOPBACK_PLAYBACK);
+  cras_alsa_jack_list_add_jack_for_section_result_jack = NULL;
+  cras_alsa_mixer_get_control_for_section_return_value = outputs[0];
+  ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  ucm_section_free_list(section);
+
+  // Complete initialization, and check the loopback playback node is plugged as
+  // the active node.
+  alsa_iodev_ucm_complete_init(iodev);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  ASSERT_NE(aio->base.active_node, (void*)NULL);
+  EXPECT_STREQ(LOOPBACK_PLAYBACK, aio->base.active_node->name);
+  EXPECT_EQ(1, aio->base.active_node->plugged);
+
+  alsa_iodev_destroy(iodev);
+}
+
+TEST(AlsaLoopback, InitializeCapture) {
+  struct alsa_io* aio;
+  struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
+  struct cras_iodev* iodev;
+  static const char* jack_name = "TestCard - Alsa Loopback";
+  struct ucm_section* section;
+
+  ResetStubData();
+
+  // Create the IO device.
+  iodev = alsa_iodev_create_with_default_parameters(
+      1, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
+      CRAS_STREAM_INPUT);
+  ASSERT_NE(iodev, (void*)NULL);
+  aio = reinterpret_cast<struct alsa_io*>(iodev);
+
+  // Node without controls or jacks.
+  cras_alsa_jack_list_add_jack_for_section_result_jack =
+      reinterpret_cast<struct cras_alsa_jack*>(1);
+  section = ucm_section_create(LOOPBACK_CAPTURE, "hw:0,1", 0, -1,
+                               CRAS_STREAM_INPUT, jack_name, NULL);
+  ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  ucm_section_free_list(section);
+
+  // Complete initialization, and check the loopback capture node is plugged as
+  // the active node.
+  alsa_iodev_ucm_complete_init(iodev);
+  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
+  ASSERT_NE(aio->base.active_node, (void*)NULL);
+  EXPECT_STREQ(LOOPBACK_CAPTURE, aio->base.active_node->name);
+  EXPECT_EQ(1, aio->base.active_node->plugged);
+
+  alsa_iodev_destroy(iodev);
+}
+
 TEST(AlsaInitNode, SetNodeInitialState) {
   struct cras_ionode node;
   struct cras_iodev dev;
@@ -2632,6 +2709,13 @@ int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr* mgr,
 
 int ucm_get_preempt_hotword(struct cras_use_case_mgr* mgr, const char* dev) {
   return 0;
+}
+
+int ucm_get_channels_for_dev(struct cras_use_case_mgr* mgr,
+                             const char* dev,
+                             enum CRAS_STREAM_DIRECTION direction,
+                             size_t* channels) {
+  return -EINVAL;
 }
 
 struct cras_volume_curve* cras_volume_curve_create_default() {

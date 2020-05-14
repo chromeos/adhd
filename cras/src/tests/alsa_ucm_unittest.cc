@@ -419,6 +419,38 @@ TEST(AlsaUcm, GetDeviceRateForDevice) {
   EXPECT_EQ(snd_use_case_get_id[1], id_2);
 }
 
+TEST(AlsaUcm, GetDeviceChannelsForDevice) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  int rc;
+  size_t input_dev_channels, output_dev_channels;
+  const char* devices[] = {"Dev1", "Comment for Dev1", "Dev2",
+                           "Comment for Dev2"};
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=CaptureChannels/Dev1/HiFi";
+  std::string id_2 = "=PlaybackChannels/Dev2/HiFi";
+  std::string value_1 = "4";
+  std::string value_2 = "8";
+
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_value[id_2] = value_2;
+  rc = ucm_get_channels_for_dev(mgr, "Dev1", CRAS_STREAM_INPUT,
+                                &input_dev_channels);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(4, input_dev_channels);
+  rc = ucm_get_channels_for_dev(mgr, "Dev2", CRAS_STREAM_OUTPUT,
+                                &output_dev_channels);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(8, output_dev_channels);
+
+  ASSERT_EQ(2, snd_use_case_get_called);
+  EXPECT_EQ(snd_use_case_get_id[0], id_1);
+  EXPECT_EQ(snd_use_case_get_id[1], id_2);
+}
+
 TEST(AlsaUcm, GetCaptureChannelMapForDevice) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   int8_t channel_layout[CRAS_CH_MAX];

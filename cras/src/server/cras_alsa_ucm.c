@@ -30,9 +30,11 @@ static const char dma_period_var[] = "DmaPeriodMicrosecs";
 static const char disable_software_volume[] = "DisableSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
 static const char playback_device_rate_var[] = "PlaybackRate";
+static const char playback_channels_var[] = "PlaybackChannels";
 static const char capture_device_name_var[] = "CapturePCM";
 static const char capture_device_rate_var[] = "CaptureRate";
 static const char capture_channel_map_var[] = "CaptureChannelMap";
+static const char capture_channels_var[] = "CaptureChannels";
 static const char coupled_mixers[] = "CoupledMixers";
 static const char dependent_device_name_var[] = "DependentPCM";
 static const char preempt_hotword_var[] = "PreemptHotword";
@@ -735,6 +737,31 @@ int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
 		return rc;
 
 	return value;
+}
+
+int ucm_get_channels_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
+			     enum CRAS_STREAM_DIRECTION direction,
+			     size_t *channels)
+{
+	int value;
+	int rc;
+	const char *var_name;
+
+	if (direction == CRAS_STREAM_OUTPUT)
+		var_name = playback_channels_var;
+	else if (direction == CRAS_STREAM_INPUT)
+		var_name = capture_channels_var;
+	else
+		return -EINVAL;
+
+	rc = get_int(mgr, var_name, dev, uc_verb(mgr), &value);
+	if (rc)
+		return rc;
+	if (value < 0)
+		return -1;
+
+	*channels = (size_t)value;
+	return 0;
 }
 
 int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr *mgr,

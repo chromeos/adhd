@@ -598,6 +598,7 @@ enum CRAS_NODE_TYPE {
 	CRAS_NODE_TYPE_FALLBACK_ABNORMAL,
 	CRAS_NODE_TYPE_UNKNOWN,
 	CRAS_NODE_TYPE_ECHO_REFERENCE,
+	CRAS_NODE_TYPE_ALSA_LOOPBACK,
 };
 
 /* Position values to described where a node locates on the system.

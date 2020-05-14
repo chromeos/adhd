@@ -229,6 +229,8 @@ static const char *node_type_to_str(struct cras_ionode *node)
 		return "FALLBACK_ABNORMAL";
 	case CRAS_NODE_TYPE_ECHO_REFERENCE:
 		return "ECHO_REFERENCE";
+	case CRAS_NODE_TYPE_ALSA_LOOPBACK:
+		return "ALSA_LOOPBACK";
 	case CRAS_NODE_TYPE_UNKNOWN:
 	default:
 		return "UNKNOWN";

@@ -140,6 +140,7 @@ enum CRAS_METRICS_DEVICE_TYPE {
 	CRAS_METRICS_DEVICE_SILENT_HOTWORD,
 	CRAS_METRICS_DEVICE_UNKNOWN,
 	CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC,
+	CRAS_METRICS_DEVICE_ALSA_LOOPBACK,
 };
 
 struct cras_server_metrics_stream_config {
@@ -262,6 +263,8 @@ metrics_device_type_str(enum CRAS_METRICS_DEVICE_TYPE device_type)
 		return "BluetoothWideBandMic";
 	case CRAS_METRICS_DEVICE_NO_DEVICE:
 		return "NoDevice";
+	case CRAS_METRICS_DEVICE_ALSA_LOOPBACK:
+		return "AlsaLoopback";
 	/* Other dummy devices. */
 	case CRAS_METRICS_DEVICE_NORMAL_FALLBACK:
 		return "NormalFallback";
@@ -378,6 +381,8 @@ get_metrics_device_type(struct cras_iodev *iodev)
 	}
 	case CRAS_NODE_TYPE_BLUETOOTH_NB_MIC:
 		return CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC;
+	case CRAS_NODE_TYPE_ALSA_LOOPBACK:
+		return CRAS_METRICS_DEVICE_ALSA_LOOPBACK;
 	case CRAS_NODE_TYPE_UNKNOWN:
 	default:
 		return CRAS_METRICS_DEVICE_UNKNOWN;

@@ -47,6 +47,8 @@
 #define HEADPHONE "Headphone"
 #define MIC "Mic"
 #define USB "USB"
+#define LOOPBACK_CAPTURE "Loopback Capture"
+#define LOOPBACK_PLAYBACK "Loopback Playback"
 
 /*
  * For USB, pad the output buffer.  This avoids a situation where there isn't a
@@ -267,6 +269,16 @@ static const struct {
 	{
 		.name = "Echo Reference",
 		.type = CRAS_NODE_TYPE_ECHO_REFERENCE,
+		.position = NODE_POSITION_INTERNAL,
+	},
+	{
+		.name = LOOPBACK_CAPTURE,
+		.type = CRAS_NODE_TYPE_ALSA_LOOPBACK,
+		.position = NODE_POSITION_INTERNAL,
+	},
+	{
+		.name = LOOPBACK_PLAYBACK,
+		.type = CRAS_NODE_TYPE_ALSA_LOOPBACK,
 		.position = NODE_POSITION_INTERNAL,
 	},
 };
@@ -1587,6 +1599,29 @@ static int get_fixed_rate(struct alsa_io *aio)
 	return ucm_get_sample_rate_for_dev(aio->ucm, name, aio->base.direction);
 }
 
+static size_t get_fixed_channels(struct alsa_io *aio)
+{
+	const char *name;
+	int rc;
+	size_t channels;
+
+	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
+		struct alsa_output_node *active = get_active_output(aio);
+		if (!active)
+			return -ENOENT;
+		name = active->base.name;
+	} else {
+		struct alsa_input_node *active = get_active_input(aio);
+		if (!active)
+			return -ENOENT;
+		name = active->base.name;
+	}
+
+	rc = ucm_get_channels_for_dev(aio->ucm, name, aio->base.direction,
+				      &channels);
+	return (rc) ? 0 : channels;
+}
+
 /*
  * Updates the supported sample rates and channel counts.
  */
@@ -1595,6 +1630,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	int err;
 	int fixed_rate;
+	size_t fixed_channels;
 
 	free(iodev->supported_rates);
 	iodev->supported_rates = NULL;
@@ -1618,6 +1654,16 @@ static int update_supported_formats(struct cras_iodev *iodev)
 				2 * sizeof(iodev->supported_rates[0]));
 			iodev->supported_rates[0] = fixed_rate;
 			iodev->supported_rates[1] = 0;
+		}
+
+		/* Allow UCM to override supported channel counts. */
+		fixed_channels = get_fixed_channels(aio);
+		if (fixed_channels > 0) {
+			free(iodev->supported_channel_counts);
+			iodev->supported_channel_counts = (size_t *)malloc(
+				2 * sizeof(iodev->supported_channel_counts[0]));
+			iodev->supported_channel_counts[0] = fixed_channels;
+			iodev->supported_channel_counts[1] = 0;
 		}
 	}
 	return 0;
