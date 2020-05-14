@@ -58,8 +58,9 @@ static void ResetStubData() {
 }
 
 static int add_stub(int fd,
-                    void (*cb)(void* data),
+                    void (*cb)(void* data, int revents),
                     void* callback_data,
+                    int events,
                     void* select_data) {
   add_stub_called++;
   select_data_value = select_data;
@@ -79,7 +80,11 @@ static int add_task_stub(void (*cb)(void* data),
   return 0;
 }
 
-static void callback_stub(void* data) {
+static void callback_stub(void* data, int revents) {
+  callback_stub_called++;
+}
+
+static void task_stub(void* data) {
   callback_stub_called++;
 }
 
@@ -314,7 +319,7 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
 
   ResetStubData();
   do_sys_init();
-  rc = cras_system_add_select_fd(7, callback_stub, stub_data);
+  rc = cras_system_add_select_fd(7, callback_stub, stub_data, POLLIN);
   EXPECT_NE(0, rc);
   EXPECT_EQ(0, add_stub_called);
   EXPECT_EQ(0, rm_stub_called);
@@ -326,7 +331,7 @@ TEST(SystemSettingsRegisterSelectDescriptor, AddSelectFd) {
   EXPECT_EQ(-EEXIST, rc);
   EXPECT_EQ(0, add_stub_called);
   EXPECT_EQ(0, rm_stub_called);
-  rc = cras_system_add_select_fd(7, callback_stub, stub_data);
+  rc = cras_system_add_select_fd(7, callback_stub, stub_data, POLLIN);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, add_stub_called);
   EXPECT_EQ(select_data, select_data_value);
@@ -343,13 +348,13 @@ TEST(SystemSettingsAddTask, AddTask) {
   int rc;
 
   do_sys_init();
-  rc = cras_system_add_task(callback_stub, stub_data);
+  rc = cras_system_add_task(task_stub, stub_data);
   EXPECT_NE(0, rc);
   EXPECT_EQ(0, add_task_stub_called);
   rc = cras_system_set_add_task_handler(add_task_stub, task_data);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, add_task_stub_called);
-  rc = cras_system_add_task(callback_stub, stub_data);
+  rc = cras_system_add_task(task_stub, stub_data);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, add_task_stub_called);
   EXPECT_EQ(task_data, task_data_value);

@@ -171,7 +171,7 @@ static struct mixer_name *filter_controls(struct cras_use_case_mgr *ucm,
 
 /* Handles notifications from alsa controls.  Called by main thread when a poll
  * fd provided by alsa signals there is an event available. */
-static void alsa_control_event_pending(void *arg)
+static void alsa_control_event_pending(void *arg, int revent)
 {
 	struct cras_alsa_card *card;
 
@@ -573,7 +573,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 			DL_APPEND(alsa_card->hctl_poll_fds, registered_fd);
 			rc = cras_system_add_select_fd(
 				registered_fd->fd, alsa_control_event_pending,
-				alsa_card);
+				alsa_card, POLLIN);
 			if (rc < 0) {
 				DL_DELETE(alsa_card->hctl_poll_fds,
 					  registered_fd);

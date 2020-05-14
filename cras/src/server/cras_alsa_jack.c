@@ -380,7 +380,7 @@ static void display_info_delay_cb(struct cras_timer *timer, void *arg)
  *   file has data to read.  Perform autoswitching to / from the
  *   associated device when data is available.
  */
-static void gpio_switch_callback(void *arg)
+static void gpio_switch_callback(void *arg, int events)
 {
 	struct cras_alsa_jack *jack = arg;
 	int i;
@@ -503,8 +503,8 @@ static int cras_complete_gpio_jack(struct gpio_switch_list_data *data,
 		cras_free_jack(jack, 0);
 		return -EIO;
 	}
-	r = cras_system_add_select_fd(jack->gpio.fd, gpio_switch_callback,
-				      jack);
+	r = cras_system_add_select_fd(jack->gpio.fd, gpio_switch_callback, jack,
+				      POLLIN);
 	if (r < 0) {
 		/* Not yet registered with system select. */
 		cras_free_jack(jack, 0);

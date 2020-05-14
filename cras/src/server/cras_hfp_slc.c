@@ -1021,7 +1021,7 @@ static int process_at_commands(struct hfp_slc_handle *handle)
 	return bytes_read;
 }
 
-static void slc_watch_callback(void *arg)
+static void slc_watch_callback(void *arg, int revents)
 {
 	struct hfp_slc_handle *handle = (struct hfp_slc_handle *)arg;
 	int err;
@@ -1030,6 +1030,7 @@ static void slc_watch_callback(void *arg)
 	if (err < 0) {
 		syslog(LOG_ERR, "Error reading slc command %s",
 		       strerror(errno));
+		cras_system_rm_select_fd(handle->rfcomm_fd);
 		handle->disconnect_cb(handle);
 	}
 	return;
@@ -1069,8 +1070,8 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 	handle->selected_codec = HFP_CODEC_UNUSED;
 	handle->hf_supports_battery_indicator = CRAS_HFP_BATTERY_INDICATOR_NONE;
 	handle->hf_battery = -1;
-	cras_system_add_select_fd(handle->rfcomm_fd, slc_watch_callback,
-				  handle);
+	cras_system_add_select_fd(handle->rfcomm_fd, slc_watch_callback, handle,
+				  POLLIN | POLLERR | POLLHUP);
 
 	return handle;
 }

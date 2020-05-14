@@ -171,8 +171,8 @@ int cras_system_alsa_card_exists(unsigned alsa_card_index);
  *    0 on success, or -EBUSY if there is already a registered handler.
  */
 int cras_system_set_select_handler(
-	int (*add)(int fd, void (*callback)(void *data), void *callback_data,
-		   void *select_data),
+	int (*add)(int fd, void (*callback)(void *data, int revents),
+		   void *callback_data, int events, void *select_data),
 	void (*rm)(int fd, void *select_data), void *select_data);
 
 /* Adds the fd and callback pair.  When select indicates that fd is readable,
@@ -181,11 +181,12 @@ int cras_system_set_select_handler(
  *    fd - The file descriptor to pass to select(2).
  *    callback - The callback to call when fd is ready.
  *    callback_data - Value passed back to the callback.
+ *    events - The events to poll for.
  * Returns:
  *    0 on success or a negative error code on failure.
  */
-int cras_system_add_select_fd(int fd, void (*callback)(void *data),
-			      void *callback_data);
+int cras_system_add_select_fd(int fd, void (*callback)(void *data, int revents),
+			      void *callback_data, int events);
 
 /* Removes the fd from the list of fds that are passed to select.
  * Args:

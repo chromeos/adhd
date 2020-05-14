@@ -64,8 +64,8 @@ static struct {
 	pthread_mutex_t update_lock;
 	struct cras_tm *tm;
 	/* Select loop callback registration. */
-	int (*fd_add)(int fd, void (*cb)(void *data), void *cb_data,
-		      void *select_data);
+	int (*fd_add)(int fd, void (*cb)(void *data, int events), void *cb_data,
+		      int events, void *select_data);
 	void (*fd_rm)(int fd, void *select_data);
 	void *select_data;
 	int (*add_task)(void (*callback)(void *data), void *callback_data,
@@ -406,8 +406,8 @@ int cras_system_alsa_card_exists(unsigned alsa_card_index)
 }
 
 int cras_system_set_select_handler(
-	int (*add)(int fd, void (*callback)(void *data), void *callback_data,
-		   void *select_data),
+	int (*add)(int fd, void (*callback)(void *data, int events),
+		   void *callback_data, int events, void *select_data),
 	void (*rm)(int fd, void *select_data), void *select_data)
 {
 	if (state.fd_add != NULL || state.fd_rm != NULL)
@@ -418,12 +418,13 @@ int cras_system_set_select_handler(
 	return 0;
 }
 
-int cras_system_add_select_fd(int fd, void (*callback)(void *data),
-			      void *callback_data)
+int cras_system_add_select_fd(int fd, void (*callback)(void *data, int revents),
+			      void *callback_data, int events)
 {
 	if (state.fd_add == NULL)
 		return -EINVAL;
-	return state.fd_add(fd, callback, callback_data, state.select_data);
+	return state.fd_add(fd, callback, callback_data, events,
+			    state.select_data);
 }
 
 int cras_system_set_add_task_handler(int (*add_task)(void (*cb)(void *data),
