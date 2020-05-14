@@ -896,7 +896,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 	struct sockaddr addr;
 	struct cras_bt_adapter *adapter;
 	struct timespec timeout = { 1, 0 };
-	struct pollfd *pollfds;
+	struct pollfd pollfd;
 
 	adapter = cras_bt_device_adapter(device);
 	if (!adapter) {
@@ -924,9 +924,6 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 
 	/* Connect to remote in nonblocking mode */
 	fcntl(sk, F_SETFL, O_NONBLOCK);
-	pollfds = (struct pollfd *)malloc(sizeof(*pollfds));
-	pollfds[0].fd = sk;
-	pollfds[0].events = POLLOUT;
 
 	if (bt_address(cras_bt_device_address(device), &addr))
 		goto error;
@@ -942,15 +939,18 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 		goto error;
 	}
 
-	err = ppoll(pollfds, 1, &timeout, NULL);
+	pollfd.fd = sk;
+	pollfd.events = POLLOUT;
+
+	err = ppoll(&pollfd, 1, &timeout, NULL);
 	if (err <= 0) {
 		syslog(LOG_ERR, "Connect SCO: poll for writable timeout");
 		goto error;
 	}
 
-	if (pollfds[0].revents & (POLLERR | POLLHUP)) {
+	if (pollfd.revents & (POLLERR | POLLHUP)) {
 		syslog(LOG_ERR, "SCO socket error, revents: %u",
-		       pollfds[0].revents);
+		       pollfd.revents);
 		bt_device_schedule_suspend(device, 0);
 		goto error;
 	}
