@@ -466,6 +466,8 @@ static void bt_device_remove_conflict(struct cras_bt_device *device)
 		cras_a2dp_suspend_connected_device(connected);
 }
 
+static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg);
+
 int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 {
 	BTLOG(btlog, BT_AUDIO_GATEWAY_INIT, device->profiles, 0);
@@ -473,6 +475,15 @@ int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 	 * checks. */
 	device->connected_profiles |= (CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
 				       CRAS_BT_DEVICE_PROFILE_HSP_HEADSET);
+
+	/* If device connects HFP but not reporting correct UUID, manually add
+	 * it to allow CRAS to enumerate audio node for it. We're seeing this
+	 * behavior on qualification test software. */
+	if (!cras_bt_device_supports_profile(
+		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE)) {
+		cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
+		bt_device_conn_watch_cb(NULL, (void *)device);
+	}
 
 	return 0;
 }
