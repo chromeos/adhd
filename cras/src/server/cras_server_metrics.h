@@ -13,6 +13,22 @@
 
 extern const char kNoCodecsFoundMetric[];
 
+enum CRAS_METRICS_BT_SCO_ERROR_TYPE {
+	CRAS_METRICS_SCO_SKT_SUCCESS = 0,
+	CRAS_METRICS_SCO_SKT_CONNECT_ERROR = 1,
+	CRAS_METRICS_SCO_SKT_OPEN_ERROR = 2,
+	CRAS_METRICS_SCO_SKT_POLL_TIMEOUT = 3,
+	CRAS_METRICS_SCO_SKT_POLL_ERR_HUP = 4,
+};
+
+/* Logs the error type happens when setting up SCO connection. This is mainly
+ * used to track whether the setup of SCO connection succeeds and the frequency
+ * of different errors. This will also be used to track if our fixes for these
+ * errors address the issues we find.
+ */
+int cras_server_metrics_hfp_sco_connection_error(
+	enum CRAS_METRICS_BT_SCO_ERROR_TYPE type);
+
 /* Logs an enum representing which spec does HFP headset supports battery
  * indicator. Apple, HFP, none or both. */
 int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support);

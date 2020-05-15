@@ -31,6 +31,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "utlist.h"
@@ -52,6 +53,12 @@ static const unsigned int PROFILE_DROP_SUSPEND_DELAY_MS = 5000;
  */
 static const unsigned int CONN_WATCH_PERIOD_MS = 2000;
 static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
+
+/* This is used when a critical SCO failure happens and is worth scheduling a
+ * suspend in case for some reason BT headset stays connected in baseband and
+ * confuses user.
+ */
+static const unsigned int SCO_SUSPEND_DELAY_MS = 5000;
 
 static const unsigned int CRAS_SUPPORTED_PROFILES =
 	CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
@@ -943,6 +950,8 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 	if (sk < 0) {
 		syslog(LOG_ERR, "Failed to create socket: %s (%d)",
 		       strerror(errno), errno);
+		cras_server_metrics_hfp_sco_connection_error(
+			CRAS_METRICS_SCO_SKT_OPEN_ERROR);
 		return -errno;
 	}
 
@@ -969,6 +978,8 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 	if (err && errno != EINPROGRESS) {
 		syslog(LOG_ERR, "Failed to connect: %s (%d)", strerror(errno),
 		       errno);
+		cras_server_metrics_hfp_sco_connection_error(
+			CRAS_METRICS_SCO_SKT_CONNECT_ERROR);
 		goto error;
 	}
 
@@ -978,16 +989,23 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 	err = ppoll(&pollfd, 1, &timeout, NULL);
 	if (err <= 0) {
 		syslog(LOG_ERR, "Connect SCO: poll for writable timeout");
+		cras_server_metrics_hfp_sco_connection_error(
+			CRAS_METRICS_SCO_SKT_POLL_TIMEOUT);
 		goto error;
 	}
 
 	if (pollfd.revents & (POLLERR | POLLHUP)) {
-		syslog(LOG_ERR, "SCO socket error, revents: %u",
-		       pollfd.revents);
-		bt_device_schedule_suspend(device, 0);
+		syslog(LOG_ERR,
+		       "SCO socket error, revents: %u. Suspend in %u seconds",
+		       pollfd.revents, SCO_SUSPEND_DELAY_MS);
+		cras_server_metrics_hfp_sco_connection_error(
+			CRAS_METRICS_SCO_SKT_POLL_ERR_HUP);
+		bt_device_schedule_suspend(device, SCO_SUSPEND_DELAY_MS);
 		goto error;
 	}
 
+	cras_server_metrics_hfp_sco_connection_error(
+		CRAS_METRICS_SCO_SKT_SUCCESS);
 	BTLOG(btlog, BT_SCO_CONNECT, 1, sk);
 	return sk;
 

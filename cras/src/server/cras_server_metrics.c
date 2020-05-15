@@ -54,6 +54,7 @@ const char kStreamEffects[] = "Cras.StreamEffects";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
+const char kHfpScoConnectionError[] = "Cras.HfpScoConnectionError";
 const char kHfpBatteryIndicatorSupported[] =
 	"Cras.HfpBatteryIndicatorSupported";
 const char kHfpBatteryReport[] = "Cras.HfpBatteryReport";
@@ -84,6 +85,7 @@ static const char *get_timespec_period_str(struct timespec ts)
 enum CRAS_SERVER_METRICS_TYPE {
 	BT_BATTERY_INDICATOR_SUPPORTED,
 	BT_BATTERY_REPORT,
+	BT_SCO_CONNECTION_ERROR,
 	BT_WIDEBAND_PACKET_LOSS,
 	BT_WIDEBAND_SUPPORTED,
 	BT_WIDEBAND_SELECTED_CODEC,
@@ -378,6 +380,26 @@ get_metrics_device_type(struct cras_iodev *iodev)
 	default:
 		return CRAS_METRICS_DEVICE_UNKNOWN;
 	}
+}
+
+int cras_server_metrics_hfp_sco_connection_error(
+	enum CRAS_METRICS_BT_SCO_ERROR_TYPE type)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.value = type;
+	init_server_metrics_msg(&msg, BT_SCO_CONNECTION_ERROR, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: "
+				"BT_SCO_CONNECTION_ERROR");
+		return err;
+	}
+	return 0;
 }
 
 int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support)
@@ -981,6 +1003,10 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	struct cras_server_metrics_message *metrics_msg =
 		(struct cras_server_metrics_message *)msg;
 	switch (metrics_msg->metrics_type) {
+	case BT_SCO_CONNECTION_ERROR:
+		cras_metrics_log_sparse_histogram(kHfpScoConnectionError,
+						  metrics_msg->data.value);
+		break;
 	case BT_BATTERY_INDICATOR_SUPPORTED:
 		cras_metrics_log_sparse_histogram(kHfpBatteryIndicatorSupported,
 						  metrics_msg->data.value);
