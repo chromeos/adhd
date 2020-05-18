@@ -532,8 +532,8 @@ unsafe fn cras_mmap(
 macro_rules! vslice_from_addr {
     ($addr:ident, $($field:ident).*) => {{
         let ptr = &mut $addr.as_mut().$($field).* as *mut _ as *mut u8;
-        let size = std::mem::size_of_val(&$addr.as_mut().$($field).*) as u64;
-        VolatileSlice::new(ptr, size)
+        let size = std::mem::size_of_val(&$addr.as_mut().$($field).*);
+        VolatileSlice::from_raw_parts(ptr, size)
     }};
 }
 
