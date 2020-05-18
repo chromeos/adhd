@@ -286,6 +286,8 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 
 	strtok(tokens, "=");
 	codec = strtok(NULL, ",");
+	if (!codec)
+		goto bcs_cmd_cleanup;
 	id = atoi(codec);
 	if ((id <= HFP_CODEC_UNUSED) || (id >= HFP_MAX_CODECS)) {
 		syslog(LOG_ERR, "%s: invalid codec id: '%s'", __func__, cmd);
@@ -300,6 +302,7 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 	BTLOG(btlog, BT_CODEC_SELECTION, 1, id);
 	handle->selected_codec = id;
 
+bcs_cmd_cleanup:
 	free(tokens);
 	err = hfp_send(handle, AT_CMD("OK"));
 	return err;
