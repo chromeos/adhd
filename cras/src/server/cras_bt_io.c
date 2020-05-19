@@ -491,8 +491,8 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 		iodev->set_volume = set_bt_volume;
 	}
 
-	/* Create the dummy node set to plugged so it's the only node exposed
-	 * to UI, and point it to the first profile dev. */
+	/* Create the dummy node so it's the only node exposed to UI, and
+	 * point it to the first profile dev. */
 	active = (struct bt_node *)calloc(1, sizeof(*active));
 	if (!active)
 		return NULL;
@@ -500,7 +500,6 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	active->base.idx = btio->next_node_id++;
 	active->base.type = dev->active_node->type;
 	active->base.volume = 100;
-	active->base.plugged = 1;
 	active->base.stable_id =
 		SuperFastHash(cras_bt_device_object_path(device),
 			      strlen(cras_bt_device_object_path(device)),
@@ -519,7 +518,6 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 				      active->base.stable_id);
 	active->profile = profile;
 	active->profile_dev = dev;
-	gettimeofday(&active->base.plugged_time, NULL);
 	strcpy(active->base.name, dev->info.name);
 	/* The node name exposed to UI should be a valid UTF8 string. */
 	if (!is_utf8_string(active->base.name))

@@ -46,6 +46,8 @@ static struct cras_bt_device* cras_a2dp_connected_device_ret;
 static struct cras_bt_device* cras_a2dp_suspend_connected_device_dev;
 static struct cras_timer* cras_tm_cancel_timer_arg;
 static struct cras_timer* cras_tm_create_timer_ret;
+static size_t cras_iodev_set_node_plugged_called;
+static int cras_iodev_set_node_plugged_value;
 
 struct MockDBusMessage {
   int type;
@@ -72,6 +74,7 @@ void ResetStubData() {
   dbus_message_new_method_call_method = NULL;
   dbus_message_new_method_call_called = 0;
   cras_a2dp_connected_device_ret = NULL;
+  cras_iodev_set_node_plugged_called = 0;
 }
 
 static void FreeMockDBusMessage(MockDBusMessage* head) {
@@ -173,6 +176,8 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
                                     CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
   cras_bt_device_rm_iodev(device, &d2_);
   EXPECT_EQ(1, cras_bt_io_remove_called);
+  EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
+  EXPECT_EQ(0, cras_iodev_set_node_plugged_value);
 
   /* Test A2DP disconnection will cause bt_io destroy. */
   cras_bt_io_try_remove_ret = 0;
@@ -180,6 +185,8 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   EXPECT_EQ(1, cras_bt_io_remove_called);
   EXPECT_EQ(1, cras_bt_io_destroy_called);
   EXPECT_EQ(0, cras_bt_device_get_active_profile(device));
+  EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
+  EXPECT_EQ(0, cras_iodev_set_node_plugged_value);
   cras_bt_device_remove(device);
 }
 
@@ -236,10 +243,16 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
   EXPECT_EQ(0, dbus_message_new_method_call_called);
 
   cras_bt_device_a2dp_configured(device);
+
+  /* Prepate the iodev created by cras_a2dp_start. */
+  cras_bt_device_append_iodev(device, &d1_, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_tm_create_timer_called);
   EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
   EXPECT_EQ(1, cras_a2dp_start_called);
+  EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
+  EXPECT_EQ(1, cras_iodev_set_node_plugged_value);
 
   cras_bt_device_remove(device);
   FreeMockDBusMessage(msg_root);
@@ -271,10 +284,16 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
 
   cras_bt_device_audio_gateway_initialized(device);
 
+  /* Prepate the iodev created by ag initialization. */
+  cras_bt_device_append_iodev(device, &d3_,
+                              CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_tm_create_timer_called);
   EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
   EXPECT_EQ(1, cras_hfp_ag_start_called);
+  EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
+  EXPECT_EQ(1, cras_iodev_set_node_plugged_value);
 
   cras_bt_device_remove(device);
   FreeMockDBusMessage(msg_root);
@@ -617,6 +636,11 @@ int cras_iodev_open(struct cras_iodev* dev,
 
 int cras_iodev_close(struct cras_iodev* dev) {
   return 0;
+}
+
+void cras_iodev_set_node_plugged(struct cras_ionode* ionode, int plugged) {
+  cras_iodev_set_node_plugged_called++;
+  cras_iodev_set_node_plugged_value = plugged;
 }
 
 int cras_iodev_list_dev_is_enabled(const struct cras_iodev* dev) {

@@ -385,6 +385,25 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 	}
 }
 
+/*
+ * Sets the audio nodes to 'plugged' means UI can select it and open it
+ * for streams. Sets to 'unplugged' to hide these nodes from UI, when device
+ * disconnects in progress.
+ */
+static void bt_device_set_nodes_plugged(struct cras_bt_device *device,
+					 int plugged)
+{
+	struct cras_iodev *iodev;
+
+	iodev = device->bt_iodevs[CRAS_STREAM_INPUT];
+	if (iodev)
+		cras_iodev_set_node_plugged(iodev->active_node, plugged);
+
+	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
+	if (iodev)
+		cras_iodev_set_node_plugged(iodev->active_node, plugged);
+}
+
 static void bt_device_switch_profile(struct cras_bt_device *device,
 				     struct cras_iodev *bt_iodev,
 				     int enable_dev);
@@ -394,6 +413,8 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 {
 	struct cras_iodev *bt_iodev;
 	int rc;
+
+	bt_device_set_nodes_plugged(device, 0);
 
 	bt_iodev = device->bt_iodevs[iodev->direction];
 	if (bt_iodev) {
@@ -617,6 +638,7 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 			bt_device_schedule_suspend(device, 0);
 		}
 	}
+	bt_device_set_nodes_plugged(device, 1);
 	return;
 
 arm_retry_timer:
