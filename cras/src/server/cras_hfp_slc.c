@@ -30,14 +30,18 @@
 #define SLC_BUF_SIZE_BYTES 256
 
 /* Indicator update command response and indicator indices.
- * Note that indicator index starts from '1'.
+ * Note that indicator index starts from '1', index 0 is used for CRAS to record
+ * if the event report has been enabled or not.
  */
+#define CRAS_INDICATOR_ENABLE_INDEX 0
 #define BATTERY_IND_INDEX 1
 #define SIGNAL_IND_INDEX 2
 #define SERVICE_IND_INDEX 3
 #define CALL_IND_INDEX 4
 #define CALLSETUP_IND_INDEX 5
 #define CALLHELD_IND_INDEX 6
+#define ROAM_IND_INDEX 7
+#define INDICATOR_IND_MAX 8
 #define INDICATOR_UPDATE_RSP                                                   \
 	"+CIND: "                                                              \
 	"(\"battchg\",(0-5)),"                                                 \
@@ -65,7 +69,7 @@
  *    signal - Current signal strength of AG stored in SLC.
  *    service - Current service availability of AG stored in SLC.
  *    callheld - Current callheld status of AG stored in SLC.
- *    ind_event_report - Activate status of indicator events reporting.
+ *    ind_event_reports - Activate statuses of indicator events reporting.
  *    ag_supported_features - Supported AG features bitmap.
  *    hf_supported_features - Bit map of HF supported features.
  *    hf_supports_battery_indicator - Bit map of battery indicator support of
@@ -94,7 +98,7 @@ struct hfp_slc_handle {
 	int signal;
 	int service;
 	int callheld;
-	int ind_event_report;
+	int ind_event_reports[INDICATOR_IND_MAX];
 	int ag_supported_features;
 	bool hf_codec_supported[HFP_MAX_CODECS];
 	int hf_supported_features;
@@ -140,7 +144,9 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 {
 	char cmd[64];
 
-	if (handle->is_hsp || !handle->ind_event_report)
+	if (handle->is_hsp ||
+	    !handle->ind_event_reports[CRAS_INDICATOR_ENABLE_INDEX] ||
+	    !handle->ind_event_reports[ind_index])
 		return 0;
 
 	snprintf(cmd, 64, AT_CMD("+CIEV: %d,%d"), ind_index, value);
@@ -478,7 +484,8 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 		goto event_reporting_done;
 	}
 	if (atoi(mode) == FORWARD_UNSOLICIT_RESULT_CODE)
-		handle->ind_event_report = atoi(tmp);
+		handle->ind_event_reports[CRAS_INDICATOR_ENABLE_INDEX] =
+			atoi(tmp);
 
 	err = hfp_send(handle, AT_CMD("OK"));
 	if (err) {
@@ -641,13 +648,38 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 }
 
 /* AT+BIA command to change the subset of indicators that shall be
- * sent by the AG. It is okay to ignore this command here since we
- * don't do event reporting(CMER).
+ * sent by the AG.
  */
 static int indicator_activation(struct hfp_slc_handle *handle, const char *cmd)
 {
-	/* AT+BIA=[[<indrep 1>][,[<indrep 2>][,...[,[<indrep n>]]]]] */
-	syslog(LOG_INFO, "Bluetooth indicator activation command %s", cmd);
+	char *ptr;
+	int idx = BATTERY_IND_INDEX;
+
+	/* AT+BIA=[[<indrep 1>][,[<indrep 2>][,...[,[<indrep n>]]]]]
+	 * According to the spec:
+	 * - The indicator state can be omitted and the current reporting
+	 *   states of the indicator shall not change.
+	 *     Ex: AT+BIA=,1,,0
+	 *         Only the 2nd and 4th indicators may be affected.
+	 * - HF can provide fewer indicators than AG and states not provided
+	 *   shall not change.
+	 *     Ex: CRAS supports 7 indicators and gets AT+BIA=1,0,1
+	 *         Only the first three indicators may be affected.
+	 * - Call, Call Setup and Held Call are mandatory and should be always
+	 *   on no matter what state HF set.
+	 */
+	ptr = strchr(cmd, '=');
+	while (ptr && idx < INDICATOR_IND_MAX) {
+		if (idx != CALL_IND_INDEX && idx != CALLSETUP_IND_INDEX &&
+		    idx != CALLHELD_IND_INDEX) {
+			if (*(ptr + 1) == '1')
+				handle->ind_event_reports[idx] = 1;
+			else if (*(ptr + 1) == '0')
+				handle->ind_event_reports[idx] = 0;
+		}
+		ptr = strchr(ptr + 1, ',');
+		idx++;
+	}
 	return hfp_send(handle, AT_CMD("OK"));
 }
 
@@ -1045,6 +1077,7 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 				      hfp_slc_disconnect_cb disconnect_cb)
 {
 	struct hfp_slc_handle *handle;
+	int i;
 
 	if (!disconnect_cb)
 		return NULL;
@@ -1064,7 +1097,9 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 	handle->battery = 5;
 	handle->signal = 5;
 	handle->service = 1;
-	handle->ind_event_report = 0;
+	handle->ind_event_reports[CRAS_INDICATOR_ENABLE_INDEX] = 0;
+	for (i = BATTERY_IND_INDEX; i < INDICATOR_IND_MAX; i++)
+		handle->ind_event_reports[i] = 1;
 	handle->telephony = cras_telephony_get();
 	handle->preferred_codec = HFP_CODEC_ID_CVSD;
 	handle->selected_codec = HFP_CODEC_UNUSED;
