@@ -337,6 +337,20 @@ TEST(ServerMetricsTestSuite, SetMetricsBusyloop) {
   EXPECT_EQ(sent_msgs[0].data.timespec_data.count, 3);
 }
 
+TEST(ServerMetricsTestSuite, SetMetricsBusyloopLength) {
+  ResetStubData();
+  unsigned length = 5;
+
+  cras_server_metrics_busyloop_length(length);
+
+  EXPECT_EQ(sent_msgs.size(), 1);
+  EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[0].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[0].metrics_type, BUSYLOOP_LENGTH);
+  EXPECT_EQ(sent_msgs[0].data.value, 5);
+}
+
 extern "C" {
 
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,

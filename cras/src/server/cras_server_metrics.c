@@ -22,6 +22,7 @@
 #define METRICS_NAME_BUFFER_SIZE 100
 
 const char kBusyloop[] = "Cras.Busyloop";
+const char kBusyloopLength[] = "Cras.BusyloopLength";
 const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
 const char kDeviceTypeOutput[] = "Cras.DeviceTypeOutput";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
@@ -90,6 +91,7 @@ enum CRAS_SERVER_METRICS_TYPE {
 	BT_WIDEBAND_SUPPORTED,
 	BT_WIDEBAND_SELECTED_CODEC,
 	BUSYLOOP,
+	BUSYLOOP_LENGTH,
 	DEVICE_RUNTIME,
 	HIGHEST_DEVICE_DELAY_INPUT,
 	HIGHEST_DEVICE_DELAY_OUTPUT,
@@ -885,6 +887,26 @@ int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
 	return 0;
 }
 
+int cras_server_metrics_busyloop_length(unsigned length)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.value = length;
+
+	init_server_metrics_msg(&msg, BUSYLOOP_LENGTH, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: BUSYLOOP_LENGTH");
+		return err;
+	}
+	return 0;
+}
+
 static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 {
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
@@ -1110,6 +1132,10 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		break;
 	case BUSYLOOP:
 		metrics_busyloop(metrics_msg->data.timespec_data);
+		break;
+	case BUSYLOOP_LENGTH:
+		cras_metrics_log_histogram(
+			kBusyloopLength, metrics_msg->data.value, 0, 1000, 50);
 		break;
 	default:
 		syslog(LOG_ERR, "Unknown metrics type %u",

@@ -37,6 +37,13 @@
  */
 #define MAX_CONTINUOUS_ZERO_SLEEP_COUNT 2
 
+/*
+ * If the number of continuous zero sleep is equal to this limit, the value
+ * will be recorded immediately. It can ensure all busyloop will be recorded
+ * even if the busyloop does not stop.
+ */
+#define MAX_CONTINUOUS_ZERO_SLEEP_METRIC_LIMIT 1000
+
 /* Messages that can be sent from the main context to the audio thread. */
 enum AUDIO_THREAD_COMMAND {
 	AUDIO_THREAD_ADD_OPEN_DEV,
@@ -783,7 +790,18 @@ static void check_busyloop(struct timespec *wait_ts)
 			busyloop_count++;
 			cras_audio_thread_event_busyloop();
 		}
+		if (continuous_zero_sleep_count ==
+		    MAX_CONTINUOUS_ZERO_SLEEP_METRIC_LIMIT)
+			cras_server_metrics_busyloop_length(
+				continuous_zero_sleep_count);
+
 	} else {
+		if (continuous_zero_sleep_count >=
+			    MAX_CONTINUOUS_ZERO_SLEEP_COUNT &&
+		    continuous_zero_sleep_count <
+			    MAX_CONTINUOUS_ZERO_SLEEP_METRIC_LIMIT)
+			cras_server_metrics_busyloop_length(
+				continuous_zero_sleep_count);
 		continuous_zero_sleep_count = 0;
 	}
 }

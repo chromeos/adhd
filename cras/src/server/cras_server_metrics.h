@@ -76,6 +76,9 @@ int cras_server_metrics_stream_destroy(const struct cras_rstream *stream);
 /* Logs the number of busyloops for different time periods. */
 int cras_server_metrics_busyloop(struct timespec *ts, unsigned count);
 
+/* Logs the length of busyloops. */
+int cras_server_metrics_busyloop_length(unsigned length);
+
 /* Initialize metrics logging stuff. */
 int cras_server_metrics_init();
 

@@ -54,4 +54,8 @@ int cras_server_metrics_busyloop(struct timespec* ts, unsigned count) {
   return 0;
 }
 
+int cras_server_metrics_busyloop_length(unsigned count) {
+  return 0;
+}
+
 }  // extern "C"
