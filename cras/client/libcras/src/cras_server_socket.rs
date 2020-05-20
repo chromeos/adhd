@@ -65,10 +65,13 @@ impl CrasServerSocket {
     ) -> io::Result<usize> {
         match fds.len() {
             0 => self.socket.send(message.as_slice()),
-            _ => match self.send_with_fds(message.as_slice(), fds) {
-                Ok(len) => Ok(len),
-                Err(err) => Err(io::Error::new(io::ErrorKind::Other, format!("{}", err))),
-            },
+            _ => {
+                let ioslice = io::IoSlice::new(message.as_slice());
+                match self.send_with_fds(&[ioslice], fds) {
+                    Ok(len) => Ok(len),
+                    Err(err) => Err(io::Error::new(io::ErrorKind::Other, format!("{}", err))),
+                }
+            }
         }
     }
 
