@@ -115,7 +115,6 @@ cras_server_SOURCES = \
 	server/cras_alsa_jack.c \
 	server/cras_alsa_mixer.c \
 	server/cras_alsa_mixer_name.c \
-	server/cras_alsa_plugin_io.c \
 	server/cras_alsa_ucm.c \
 	server/cras_alsa_ucm_section.c \
 	server/cras_audio_area.c \
