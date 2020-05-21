@@ -1296,7 +1296,7 @@ int cras_rstream_flush_old_audio_messages(struct cras_rstream* stream) {
   return 0;
 }
 
-int cras_server_metrics_missed_cb_event(const struct cras_rstream* stream) {
+int cras_server_metrics_missed_cb_event(struct cras_rstream* stream) {
   cras_server_metrics_missed_cb_event_called++;
   return 0;
 }

@@ -49,7 +49,7 @@ int cras_server_metrics_longest_fetch_delay(unsigned delay_msec);
 int cras_server_metrics_num_underruns(unsigned num_underruns);
 
 /* Logs the missed callback event. */
-int cras_server_metrics_missed_cb_event(const struct cras_rstream *stream);
+int cras_server_metrics_missed_cb_event(struct cras_rstream *stream);
 
 /* Logs information when a stream creates. */
 int cras_server_metrics_stream_create(const struct cras_rstream_config *config);
