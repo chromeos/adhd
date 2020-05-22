@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <syslog.h>
 
+#include "cras_alsa_plugin_io.h"
 #include "cras_apm_list.h"
 #include "cras_config.h"
 #include "cras_iodev_list.h"
@@ -138,6 +139,7 @@ int main(int argc, char **argv)
 	cras_dsp_init(dsp_config);
 	cras_apm_list_init(device_config_dir);
 	cras_iodev_list_init();
+	cras_alsa_plugin_io_init(device_config_dir);
 
 	/* Start the server. */
 	return cras_server_run(profile_disable_mask);
