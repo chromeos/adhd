@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //! ```
-//! use audio_streams::{SampleFormat, StreamSource, DummyStreamSource};
+//! use audio_streams::{BoxError, SampleFormat, StreamSource, DummyStreamSource};
 //! use std::io::Read;
 //!
 //! const buffer_size: usize = 120;
 //! const num_channels: usize = 2;
 //!
-//! # fn main() -> std::result::Result<(), Box<std::error::Error>> {
+//! # fn main() -> std::result::Result<(),BoxError> {
 //! let mut stream_source = DummyStreamSource::new();
 //! let sample_format = SampleFormat::S16LE;
 //! let frame_size = num_channels * sample_format.sample_bytes();
@@ -34,11 +34,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::{AudioBuffer, BufferDrop, DummyBufferDrop, SampleFormat};
+use super::{AudioBuffer, BoxError, BufferDrop, DummyBufferDrop, SampleFormat};
 
 /// `CaptureBufferStream` provides `CaptureBuffer`s to read with audio samples from capture.
 pub trait CaptureBufferStream: Send {
-    fn next_capture_buffer<'a>(&'a mut self) -> Result<CaptureBuffer<'a>, Box<dyn error::Error>>;
+    fn next_capture_buffer<'a>(&'a mut self) -> Result<CaptureBuffer<'a>, BoxError>;
 }
 
 /// `CaptureBuffer` contains a block of audio samples got from capture stream. It provides
@@ -155,7 +155,7 @@ impl DummyCaptureStream {
 }
 
 impl CaptureBufferStream for DummyCaptureStream {
-    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, Box<dyn error::Error>> {
+    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, BoxError> {
         if let Some(start_time) = self.start_time {
             if start_time.elapsed() < self.next_frame {
                 std::thread::sleep(self.next_frame - start_time.elapsed());

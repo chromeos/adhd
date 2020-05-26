@@ -13,13 +13,13 @@
 //! the samples written to it are committed to the `PlaybackBufferStream` it came from.
 //!
 //! ```
-//! use audio_streams::{SampleFormat, StreamSource, DummyStreamSource};
+//! use audio_streams::{BoxError, SampleFormat, StreamSource, DummyStreamSource};
 //! use std::io::Write;
 //!
 //! const buffer_size: usize = 120;
 //! const num_channels: usize = 2;
 //!
-//! # fn main() -> std::result::Result<(), Box<std::error::Error>> {
+//! # fn main() -> std::result::Result<(), BoxError> {
 //! let mut stream_source = DummyStreamSource::new();
 //! let sample_format = SampleFormat::S16LE;
 //! let frame_size = num_channels * sample_format.sample_bytes();
@@ -101,6 +101,9 @@ impl Default for StreamEffect {
     }
 }
 
+/// Errors that can pass across threads.
+pub type BoxError = Box<dyn error::Error + Send + Sync>;
+
 /// Errors that are possible from a `StreamEffect`.
 #[derive(Debug)]
 pub enum StreamEffectError {
@@ -137,7 +140,7 @@ pub trait StreamSource: Send {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-    ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<dyn error::Error>>;
+    ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>;
 
     /// Returns a stream control and buffer generator object. These are separate as the buffer
     /// generator might want to be passed to the audio stream.
@@ -153,7 +156,7 @@ pub trait StreamSource: Send {
             Box<dyn StreamControl>,
             Box<dyn capture::CaptureBufferStream>,
         ),
-        Box<dyn error::Error>,
+        BoxError,
     > {
         Ok((
             Box::new(DummyStreamControl::new()),
@@ -175,7 +178,7 @@ pub trait StreamSource: Send {
 
 /// `PlaybackBufferStream` provides `PlaybackBuffer`s to fill with audio samples for playback.
 pub trait PlaybackBufferStream: Send {
-    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, Box<dyn error::Error>>;
+    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, BoxError>;
 }
 
 /// `StreamControl` provides a way to set the volume and mute states of a stream. `StreamControl`
@@ -334,7 +337,7 @@ impl DummyStream {
 }
 
 impl PlaybackBufferStream for DummyStream {
-    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, Box<dyn error::Error>> {
+    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, BoxError> {
         if let Some(start_time) = self.start_time {
             if start_time.elapsed() < self.next_frame {
                 std::thread::sleep(self.next_frame - start_time.elapsed());
@@ -381,8 +384,7 @@ impl StreamSource for DummyStreamSource {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-    ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), Box<dyn error::Error>>
-    {
+    ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError> {
         Ok((
             Box::new(DummyStreamControl::new()),
             Box::new(DummyStream::new(

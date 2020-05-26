@@ -10,9 +10,9 @@ use std::time::{Duration, Instant};
 use sync::{Condvar, Mutex};
 use sys_util::SharedMemory;
 
-use crate::{SampleFormat, StreamDirection, StreamEffect};
+use crate::{BoxError, SampleFormat, StreamDirection, StreamEffect};
 
-type GenericResult<T> = std::result::Result<T, Box<dyn error::Error>>;
+type GenericResult<T> = std::result::Result<T, BoxError>;
 
 /// `BufferSet` is used as a callback mechanism for `ServerRequest` objects.
 /// It is meant to be implemented by the audio stream, allowing arbitrary code

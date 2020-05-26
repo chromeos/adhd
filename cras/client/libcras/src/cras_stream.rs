@@ -8,7 +8,7 @@ use std::{error, fmt};
 
 use audio_streams::{
     capture::{CaptureBuffer, CaptureBufferStream},
-    BufferDrop, PlaybackBuffer, PlaybackBufferStream,
+    BoxError, BufferDrop, PlaybackBuffer, PlaybackBufferStream,
 };
 use cras_sys::gen::{snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_STREAM_DIRECTION};
 use sys_util::error;
@@ -195,7 +195,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> Drop for CrasStream<'a, T> {
 }
 
 impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream<'a, T> {
-    fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, Box<dyn error::Error>> {
+    fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, BoxError> {
         // Wait for request audio message
         self.wait_request_data()?;
         let header = self.controls.header_mut();
@@ -208,7 +208,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream
 }
 
 impl<'a, T: CrasStreamData<'a> + BufferDrop> CaptureBufferStream for CrasStream<'a, T> {
-    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, Box<dyn error::Error>> {
+    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, BoxError> {
         // Wait for data ready message
         let frames = self.wait_data_ready()?;
         let header = self.controls.header_mut();

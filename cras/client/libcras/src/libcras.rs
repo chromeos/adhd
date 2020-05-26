@@ -23,9 +23,9 @@
 //! use std::fs::File;
 //! use std::io::{Read, Write};
 //! use std::thread::{spawn, JoinHandle};
-//! type Result<T> = std::result::Result<T, Box<std::error::Error>>;
+//! type Result<T> = std::result::Result<T, BoxError>;
 //!
-//! use libcras::{CrasClient, CrasClientType};
+//! use libcras::{BoxError, CrasClient, CrasClientType};
 //! use audio_streams::{SampleFormat, StreamSource};
 //!
 //! const BUFFER_SIZE: usize = 256;
@@ -76,9 +76,9 @@
 //! use std::fs::File;
 //! use std::io::{Read, Write};
 //! use std::thread::{spawn, JoinHandle};
-//! type Result<T> = std::result::Result<T, Box<std::error::Error>>;
+//! type Result<T> = std::result::Result<T, BoxError>;
 //!
-//! use libcras::{CrasClient, CrasClientType};
+//! use libcras::{BoxError, CrasClient, CrasClientType};
 //! use audio_streams::{SampleFormat, StreamSource};
 //!
 //! const BUFFER_SIZE: usize = 256;
@@ -124,6 +124,7 @@ use std::os::unix::{
 };
 use std::{error, fmt};
 
+pub use audio_streams::BoxError;
 use audio_streams::{
     capture::{CaptureBufferStream, DummyCaptureStream},
     shm_streams::{NullShmStream, ShmStream, ShmStreamSource},
@@ -472,10 +473,7 @@ impl<'a> CrasClient<'a> {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-    ) -> std::result::Result<
-        (Box<dyn StreamControl>, Box<dyn CaptureBufferStream>),
-        Box<dyn error::Error>,
-    > {
+    ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         Ok((
             Box::new(DummyStreamControl::new()),
             Box::new(self.create_stream::<CrasCaptureData>(
@@ -526,10 +524,8 @@ impl<'a> StreamSource for CrasClient<'a> {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-    ) -> std::result::Result<
-        (Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>),
-        Box<dyn error::Error>,
-    > {
+    ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>
+    {
         Ok((
             Box::new(DummyStreamControl::new()),
             Box::new(self.create_stream::<CrasPlaybackData>(
@@ -549,10 +545,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         format: SampleFormat,
         frame_rate: usize,
         buffer_size: usize,
-    ) -> std::result::Result<
-        (Box<dyn StreamControl>, Box<dyn CaptureBufferStream>),
-        Box<dyn error::Error>,
-    > {
+    ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         if self.cras_capture {
             Ok((
                 Box::new(DummyStreamControl::new()),
@@ -594,7 +587,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
         effects: &[StreamEffect],
         client_shm: &SharedMemory,
         buffer_offsets: [u64; 2],
-    ) -> std::result::Result<Box<dyn ShmStream>, Box<dyn error::Error>> {
+    ) -> std::result::Result<Box<dyn ShmStream>, BoxError> {
         if direction == StreamDirection::Capture && !self.cras_capture {
             return Ok(Box::new(NullShmStream::new(
                 buffer_size,

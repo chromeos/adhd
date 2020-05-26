@@ -12,15 +12,15 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::{SampleFormat, StreamSource};
 use hound::{WavReader, WavSpec, WavWriter};
-use libcras::{CrasClient, CrasNodeType};
+use libcras::{BoxError, CrasClient, CrasNodeType};
 use sys_util::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 
 use crate::arguments::{AudioOptions, FileType, LoopbackType};
 
 #[derive(Debug)]
 pub enum Error {
-    CreateStream(Box<dyn error::Error>),
-    FetchStream(Box<dyn error::Error>),
+    CreateStream(BoxError),
+    FetchStream(BoxError),
     FloatingPointSamples,
     InvalidWavFile(hound::Error),
     Io(io::Error),

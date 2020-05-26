@@ -6,7 +6,7 @@ use std::{error, fmt};
 
 use audio_streams::{
     shm_streams::{BufferSet, ServerRequest, ShmStream},
-    SampleFormat, StreamDirection,
+    BoxError, SampleFormat, StreamDirection,
 };
 use cras_sys::gen::CRAS_AUDIO_MESSAGE_ID;
 use sys_util::error;
@@ -79,7 +79,7 @@ impl<'a> CrasShmStream<'a> {
         format: SampleFormat,
         header_fd: CrasAudioShmHeaderFd,
         samples_len: usize,
-    ) -> Result<Self, Box<dyn error::Error>> {
+    ) -> Result<Self, BoxError> {
         let header = cras_shm::create_header(header_fd, samples_len)?;
         Ok(Self {
             stream_id,
@@ -112,7 +112,7 @@ impl<'a> ShmStream for CrasShmStream<'a> {
     fn wait_for_next_action_with_timeout(
         &mut self,
         timeout: Duration,
-    ) -> Result<Option<ServerRequest>, Box<dyn error::Error>> {
+    ) -> Result<Option<ServerRequest>, BoxError> {
         let expected_id = match self.direction {
             StreamDirection::Playback => CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_REQUEST_DATA,
             StreamDirection::Capture => CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_DATA_READY,
@@ -132,7 +132,7 @@ impl<'a> ShmStream for CrasShmStream<'a> {
 }
 
 impl BufferSet for CrasShmStream<'_> {
-    fn callback(&mut self, offset: usize, frames: usize) -> Result<(), Box<dyn error::Error>> {
+    fn callback(&mut self, offset: usize, frames: usize) -> Result<(), BoxError> {
         self.header
             .set_buffer_offset(self.next_buffer_idx, offset)?;
         self.next_buffer_idx ^= 1;
@@ -162,7 +162,7 @@ impl BufferSet for CrasShmStream<'_> {
         Ok(())
     }
 
-    fn ignore(&mut self) -> Result<(), Box<dyn error::Error>> {
+    fn ignore(&mut self) -> Result<(), BoxError> {
         // We send an empty buffer for an ignored playback request since the
         // server will not read from a 0-length buffer. We don't do anything for
         // an ignored capture request, since we don't have a way to communicate
