@@ -170,12 +170,6 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	if (!dev)
 		return -EINVAL;
 
-	if (dev->format == NULL) {
-		dev->format = (struct cras_audio_format *)malloc(
-			sizeof(*dev->format));
-		*dev->format = *iodev->format;
-	}
-
 	if (dev->update_supported_formats) {
 		rc = dev->update_supported_formats(dev);
 		if (rc)
@@ -217,7 +211,13 @@ static int configure_dev(struct cras_iodev *iodev)
 		return -EINVAL;
 
 	/* Fill back the format iodev is using. */
-	*dev->format = *iodev->format;
+	if (dev->format == NULL) {
+		dev->format = (struct cras_audio_format *)malloc(
+			sizeof(*dev->format));
+		if (!dev->format)
+			return -ENOMEM;
+		*dev->format = *iodev->format;
+	}
 
 	rc = dev->configure_dev(dev);
 	if (rc)

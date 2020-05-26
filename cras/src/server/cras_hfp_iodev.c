@@ -44,12 +44,10 @@ static int update_supported_formats(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
-	/* 16 bit, mono, 8kHz for narrowband and 16KHz for wideband */
-	iodev->format->format = SND_PCM_FORMAT_S16_LE;
-
 	free(iodev->supported_rates);
 	iodev->supported_rates = (size_t *)malloc(2 * sizeof(size_t));
 
+	/* 16 bit, mono, 8kHz for narrowband and 16KHz for wideband */
 	iodev->supported_rates[0] =
 		(hfp_slc_get_selected_codec(hfpio->slc) == HFP_CODEC_ID_MSBC) ?
 			16000 :
@@ -139,6 +137,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
 		return -EINVAL;
+
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 

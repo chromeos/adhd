@@ -448,6 +448,17 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 	snd_pcm_format_t actual_format;
 	int rc;
 
+	/* Update supported formats on iodev before negotiating the final value
+	 * with what stream requested.
+	 */
+	if (iodev->update_supported_formats) {
+		rc = iodev->update_supported_formats(iodev);
+		if (rc) {
+			syslog(LOG_ERR, "Failed to update formats");
+			return rc;
+		}
+	}
+
 	/* If this device isn't already using a format, try to match the one
 	 * requested in "fmt". */
 	if (iodev->format == NULL) {
@@ -455,14 +466,6 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 		if (!iodev->format)
 			return -ENOMEM;
 		*iodev->format = *fmt;
-
-		if (iodev->update_supported_formats) {
-			rc = iodev->update_supported_formats(iodev);
-			if (rc) {
-				syslog(LOG_ERR, "Failed to update formats");
-				goto error;
-			}
-		}
 
 		/* Finds the actual rate of device before allocating DSP
 		 * because DSP needs to use the rate of device, not rate of

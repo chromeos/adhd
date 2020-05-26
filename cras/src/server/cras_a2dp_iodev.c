@@ -77,7 +77,6 @@ static int update_supported_formats(struct cras_iodev *iodev)
 
 	cras_bt_transport_configuration(a2dpio->transport, &a2dp, sizeof(a2dp));
 
-	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	channel = (a2dp.channel_mode == SBC_CHANNEL_MODE_MONO) ? 1 : 2;
 
 	if (a2dp.frequency & SBC_SAMPLING_FREQ_48000)
