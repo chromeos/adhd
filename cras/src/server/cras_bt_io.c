@@ -328,6 +328,7 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 	struct cras_ionode *node;
 	struct bt_node *active = (struct bt_node *)iodev->active_node;
 	struct cras_iodev *dev;
+	int rc;
 
 	if (device_using_profile(btio->device, active->profile))
 		goto leave;
@@ -351,6 +352,15 @@ leave:
 	dev = active_profile_dev(iodev);
 	if (dev && dev->update_active_node)
 		dev->update_active_node(dev, node_idx, dev_enabled);
+
+	/* Update supported formats here to get the supported formats from the
+	 * new updated active profile dev.
+	 */
+	rc = update_supported_formats(iodev);
+	if (rc) {
+		syslog(LOG_ERR, "Failed to update supported formats, rc=%d",
+		       rc);
+	}
 }
 
 static int output_underrun(struct cras_iodev *iodev)
