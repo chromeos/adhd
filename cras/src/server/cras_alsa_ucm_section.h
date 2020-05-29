@@ -31,7 +31,7 @@ struct ucm_section {
 	const char *jack_type;
 	/* Switch number for jack from linux/input.h, or -1. */
 	int jack_switch;
-	/* MixerName value. */
+	/* (Playback/Capture)MixerElem value. */
 	const char *mixer_name;
 	/* CoupledMixers value. */
 	struct mixer_name *coupled;

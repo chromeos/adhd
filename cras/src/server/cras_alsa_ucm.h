@@ -320,18 +320,6 @@ int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model);
  */
 int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr *mgr);
 
-/* Gets the mixer name of this device on the card.
- *
- * Args:
- *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
- *    dev - The device to check for device name
- * Returns:
- *    A pointer to the allocated string containing the mixer name, or NULL
- *    if no device name is found.
- */
-const char *ucm_get_mixer_name_for_dev(struct cras_use_case_mgr *mgr,
-				       const char *dev);
-
 /* Gets the playback mixer name of this device on the card.
  *
  * Args:

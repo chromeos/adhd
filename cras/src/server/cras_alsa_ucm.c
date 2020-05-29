@@ -20,7 +20,6 @@ static const char edid_var[] = "EDIDFile";
 static const char cap_var[] = "CaptureControl";
 static const char override_type_name_var[] = "OverrideNodeType";
 static const char dsp_name_var[] = "DspName";
-static const char mixer_var[] = "MixerName";
 static const char playback_mixer_elem_var[] = "PlaybackMixerElem";
 static const char capture_mixer_elem_var[] = "CaptureMixerElem";
 static const char swap_mode_suffix[] = "Swap Mode";
@@ -575,18 +574,15 @@ char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
 char *ucm_get_dev_for_mixer(struct cras_use_case_mgr *mgr, const char *mixer,
 			    enum CRAS_STREAM_DIRECTION dir)
 {
-	struct section_name *section_names, *c;
+	struct section_name *section_names = NULL, *c;
 	char *ret = NULL;
 
-	section_names = ucm_get_devices_for_var(mgr, mixer_var, mixer, dir);
-	if (!section_names) {
-		if (dir == CRAS_STREAM_OUTPUT) {
-			section_names = ucm_get_devices_for_var(
-				mgr, playback_mixer_elem_var, mixer, dir);
-		} else if (dir == CRAS_STREAM_INPUT) {
-			section_names = ucm_get_devices_for_var(
-				mgr, capture_mixer_elem_var, mixer, dir);
-		}
+	if (dir == CRAS_STREAM_OUTPUT) {
+		section_names = ucm_get_devices_for_var(
+			mgr, playback_mixer_elem_var, mixer, dir);
+	} else if (dir == CRAS_STREAM_INPUT) {
+		section_names = ucm_get_devices_for_var(
+			mgr, capture_mixer_elem_var, mixer, dir);
 	}
 
 	if (section_names)
@@ -860,16 +856,12 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 
 		jack_dev = ucm_get_jack_dev_for_dev(mgr, dev_name);
 		jack_control = ucm_get_jack_control_for_dev(mgr, dev_name);
-		mixer_name = ucm_get_mixer_name_for_dev(mgr, dev_name);
-		if (!mixer_name) {
-			if (dir == CRAS_STREAM_OUTPUT)
-				mixer_name =
-					ucm_get_playback_mixer_elem_for_dev(
-						mgr, dev_name);
-			else if (dir == CRAS_STREAM_INPUT)
-				mixer_name = ucm_get_capture_mixer_elem_for_dev(
-					mgr, dev_name);
-		}
+		if (dir == CRAS_STREAM_OUTPUT)
+			mixer_name = ucm_get_playback_mixer_elem_for_dev(
+				mgr, dev_name);
+		else if (dir == CRAS_STREAM_INPUT)
+			mixer_name = ucm_get_capture_mixer_elem_for_dev(
+				mgr, dev_name);
 
 		if (jack_dev) {
 			jack_name = jack_dev;
@@ -1023,12 +1015,6 @@ int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr *mgr)
 	ret = !strcmp(flag, "1");
 	free(flag);
 	return ret;
-}
-
-inline const char *ucm_get_mixer_name_for_dev(struct cras_use_case_mgr *mgr,
-					      const char *dev)
-{
-	return ucm_get_value_for_dev(mgr, mixer_var, dev);
 }
 
 inline const char *

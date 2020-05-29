@@ -347,8 +347,8 @@ TEST(AlsaUcm, GetDevForMixer) {
 
   fake_list["_devices/HiFi"] = devices;
   fake_list_size["_devices/HiFi"] = 4;
-  std::string id_1 = "=MixerName/Dev1/HiFi";
-  std::string id_2 = "=MixerName/Dev2/HiFi";
+  std::string id_1 = "=PlaybackMixerElem/Dev1/HiFi";
+  std::string id_2 = "=CaptureMixerElem/Dev2/HiFi";
   std::string value_1 = "Value1";
   std::string value_2 = "Value2";
 
@@ -894,15 +894,15 @@ TEST(AlsaUcm, GetMixerNameForDevice) {
 
   fake_list["_devices/HiFi"] = devices;
   fake_list_size["_devices/HiFi"] = 4;
-  std::string id_1 = "=MixerName/Dev1/HiFi";
-  std::string id_2 = "=MixerName/Dev2/HiFi";
+  std::string id_1 = "=PlaybackMixerElem/Dev1/HiFi";
+  std::string id_2 = "=CaptureMixerElem/Dev2/HiFi";
   std::string value_1 = "MixerName1";
   std::string value_2 = "MixerName2";
 
   snd_use_case_get_value[id_1] = value_1;
   snd_use_case_get_value[id_2] = value_2;
-  mixer_name_1 = ucm_get_mixer_name_for_dev(mgr, "Dev1");
-  mixer_name_2 = ucm_get_mixer_name_for_dev(mgr, "Dev2");
+  mixer_name_1 = ucm_get_playback_mixer_elem_for_dev(mgr, "Dev1");
+  mixer_name_2 = ucm_get_capture_mixer_elem_for_dev(mgr, "Dev2");
 
   EXPECT_EQ(0, strcmp(mixer_name_1, value_1.c_str()));
   EXPECT_EQ(0, strcmp(mixer_name_2, value_2.c_str()));
@@ -1157,14 +1157,14 @@ TEST(AlsaUcm, GetSections) {
                        "=CapturePCM/Mic/HiFi",
                        "=JackDev/Mic/HiFi",
                        "=JackSwitch/Mic/HiFi",
-                       "=MixerName/Mic/HiFi",
+                       "=CaptureMixerElem/Mic/HiFi",
 
                        "=CapturePCM/Internal Mic/HiFi",
                        "=CoupledMixers/Internal Mic/HiFi",
                        "=JackSwitch/Internal Mic/HiFi",
 
                        "=PlaybackPCM/HDMI/HiFi",
-                       "=MixerName/HDMI/HiFi",
+                       "=PlaybackMixerElem/HDMI/HiFi",
 
                        NULL};
   const char* values[] = {
