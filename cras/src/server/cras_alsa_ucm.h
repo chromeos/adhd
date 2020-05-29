@@ -327,6 +327,30 @@ int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr *mgr);
 const char *ucm_get_mixer_name_for_dev(struct cras_use_case_mgr *mgr,
 				       const char *dev);
 
+/* Gets the playback mixer name of this device on the card.
+ *
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for device name
+ * Returns:
+ *    A pointer to the allocated string containing the mixer name, or NULL
+ *    if no device name is found.
+ */
+const char *ucm_get_playback_mixer_elem_for_dev(struct cras_use_case_mgr *mgr,
+						const char *dev);
+
+/* Gets the capture mixer name of this device on the card.
+ *
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for device name
+ * Returns:
+ *    A pointer to the allocated string containing the mixer name, or NULL
+ *    if no device name is found.
+ */
+const char *ucm_get_capture_mixer_elem_for_dev(struct cras_use_case_mgr *mgr,
+					       const char *dev);
+
 /* Gets the mixer names for the main volume controls on the card.
  *
  * The main volume controls in the list are considered in series.
