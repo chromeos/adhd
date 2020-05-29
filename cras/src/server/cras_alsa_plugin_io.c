@@ -200,7 +200,7 @@ void cras_alsa_plugin_io_init(const char *device_config_dir)
 	int nsec, i;
 	enum CRAS_STREAM_DIRECTION direction;
 	const char *sec_name;
-	char *tmp, *pcm_name, *ctl_name, *card_name;
+	const char *tmp, *pcm_name, *ctl_name, *card_name;
 
 	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s", device_config_dir,
 		 PLUGINS_INI);
