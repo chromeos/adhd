@@ -178,7 +178,7 @@ pub trait StreamSource: Send {
 
 /// `PlaybackBufferStream` provides `PlaybackBuffer`s to fill with audio samples for playback.
 pub trait PlaybackBufferStream: Send {
-    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, BoxError>;
+    fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, BoxError>;
 }
 
 /// `StreamControl` provides a way to set the volume and mute states of a stream. `StreamControl`
@@ -337,7 +337,7 @@ impl DummyStream {
 }
 
 impl PlaybackBufferStream for DummyStream {
-    fn next_playback_buffer<'a>(&'a mut self) -> Result<PlaybackBuffer<'a>, BoxError> {
+    fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, BoxError> {
         if let Some(start_time) = self.start_time {
             if start_time.elapsed() < self.next_frame {
                 std::thread::sleep(self.next_frame - start_time.elapsed());

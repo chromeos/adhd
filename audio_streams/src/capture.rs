@@ -38,7 +38,7 @@ use super::{AudioBuffer, BoxError, BufferDrop, DummyBufferDrop, SampleFormat};
 
 /// `CaptureBufferStream` provides `CaptureBuffer`s to read with audio samples from capture.
 pub trait CaptureBufferStream: Send {
-    fn next_capture_buffer<'a>(&'a mut self) -> Result<CaptureBuffer<'a>, BoxError>;
+    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, BoxError>;
 }
 
 /// `CaptureBuffer` contains a block of audio samples got from capture stream. It provides
