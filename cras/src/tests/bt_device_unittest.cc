@@ -245,6 +245,7 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
   cras_bt_device_a2dp_configured(device);
 
   /* Prepate the iodev created by cras_a2dp_start. */
+  cras_bt_io_create_profile_ret = &bt_iodev1;
   cras_bt_device_append_iodev(device, &d1_, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
 
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
@@ -285,6 +286,7 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
   cras_bt_device_audio_gateway_initialized(device);
 
   /* Prepate the iodev created by ag initialization. */
+  cras_bt_io_create_profile_ret = &bt_iodev2;
   cras_bt_device_append_iodev(device, &d3_,
                               CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
