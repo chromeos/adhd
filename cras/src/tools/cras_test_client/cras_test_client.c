@@ -909,7 +909,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		       "DEV_CONN_WATCH_CB", data1, data2);
 		break;
 	case BT_DEV_SUSPEND_CB:
-		printf("%-30s profiles supported %u, connected %u\n",
+		printf("%-30s profiles supported %u, reason %u\n",
 		       "DEV_SUSPEND_CB", data1, data2);
 		break;
 	case BT_HFP_HF_INDICATOR:

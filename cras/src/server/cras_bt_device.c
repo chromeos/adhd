@@ -90,6 +90,7 @@ static const unsigned int CRAS_SUPPORTED_PROFILES =
  *        profile switch.
  *    sco_fd - The file descriptor of the SCO connection.
  *    sco_ref_count - The reference counts of the SCO connection.
+ *    suspend_reason - The reason code for why suspend is scheduled.
  */
 struct cras_bt_device {
 	DBusConnection *conn;
@@ -112,6 +113,7 @@ struct cras_bt_device {
 	struct cras_timer *switch_profile_timer;
 	int sco_fd;
 	size_t sco_ref_count;
+	enum cras_bt_device_suspend_reason suspend_reason;
 
 	struct cras_bt_device *prev, *next;
 };
@@ -128,7 +130,8 @@ struct bt_device_msg {
 	enum BT_DEVICE_COMMAND cmd;
 	struct cras_bt_device *device;
 	struct cras_iodev *dev;
-	unsigned int arg;
+	unsigned int arg1;
+	unsigned int arg2;
 };
 
 static struct cras_bt_device *devices;
@@ -573,8 +576,9 @@ cras_bt_device_is_profile_connected(const struct cras_bt_device *device,
 	return !!(device->connected_profiles & profile);
 }
 
-static void bt_device_schedule_suspend(struct cras_bt_device *device,
-				       unsigned int msec);
+static void
+bt_device_schedule_suspend(struct cras_bt_device *device, unsigned int msec,
+			   enum cras_bt_device_suspend_reason suspend_reason);
 
 /* Callback used to periodically check if supported profiles are connected. */
 static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
@@ -642,7 +646,8 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg)
 		if (rc) {
 			syslog(LOG_ERR, "Start audio gateway failed, rc %d",
 			       rc);
-			bt_device_schedule_suspend(device, 0);
+			bt_device_schedule_suspend(device, 0,
+						   HFP_AG_START_FAILURE);
 		}
 	}
 	bt_device_set_nodes_plugged(device, 1);
@@ -659,7 +664,7 @@ arm_retry_timer:
 					     bt_device_conn_watch_cb, device);
 	} else {
 		syslog(LOG_ERR, "Connection watch timeout.");
-		bt_device_schedule_suspend(device, 0);
+		bt_device_schedule_suspend(device, 0, CONN_WATCH_TIME_OUT);
 	}
 }
 
@@ -714,7 +719,8 @@ void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
 	 * given time so that user does not see a headset stay connected
 	 * but works with partial function.
 	 */
-	bt_device_schedule_suspend(device, PROFILE_DROP_SUSPEND_DELAY_MS);
+	bt_device_schedule_suspend(device, PROFILE_DROP_SUSPEND_DELAY_MS,
+				   UNEXPECTED_PROFILE_DROP);
 }
 
 /*
@@ -1007,7 +1013,8 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 		       pollfd.revents, SCO_SUSPEND_DELAY_MS);
 		cras_server_metrics_hfp_sco_connection_error(
 			CRAS_METRICS_SCO_SKT_POLL_ERR_HUP);
-		bt_device_schedule_suspend(device, SCO_SUSPEND_DELAY_MS);
+		bt_device_schedule_suspend(device, SCO_SUSPEND_DELAY_MS,
+					   HFP_SCO_SOCKET_ERROR);
 		goto error;
 	}
 
@@ -1064,7 +1071,8 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
 static void init_bt_device_msg(struct bt_device_msg *msg,
 			       enum BT_DEVICE_COMMAND cmd,
 			       struct cras_bt_device *device,
-			       struct cras_iodev *dev, unsigned int arg)
+			       struct cras_iodev *dev, unsigned int arg1,
+			       unsigned int arg2)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.type = CRAS_MAIN_BT;
@@ -1072,7 +1080,8 @@ static void init_bt_device_msg(struct bt_device_msg *msg,
 	msg->cmd = cmd;
 	msg->device = device;
 	msg->dev = dev;
-	msg->arg = arg;
+	msg->arg1 = arg1;
+	msg->arg2 = arg2;
 }
 
 int cras_bt_device_cancel_suspend(struct cras_bt_device *device)
@@ -1080,19 +1089,20 @@ int cras_bt_device_cancel_suspend(struct cras_bt_device *device)
 	struct bt_device_msg msg;
 	int rc;
 
-	init_bt_device_msg(&msg, BT_DEVICE_CANCEL_SUSPEND, device, NULL, 0);
+	init_bt_device_msg(&msg, BT_DEVICE_CANCEL_SUSPEND, device, NULL, 0, 0);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
 
-int cras_bt_device_schedule_suspend(struct cras_bt_device *device,
-				    unsigned int msec)
+int cras_bt_device_schedule_suspend(
+	struct cras_bt_device *device, unsigned int msec,
+	enum cras_bt_device_suspend_reason suspend_reason)
 {
 	struct bt_device_msg msg;
 	int rc;
 
-	init_bt_device_msg(&msg, BT_DEVICE_SCHEDULE_SUSPEND, device, NULL,
-			   msec);
+	init_bt_device_msg(&msg, BT_DEVICE_SCHEDULE_SUSPEND, device, NULL, msec,
+			   suspend_reason);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
@@ -1126,7 +1136,7 @@ int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
 	int rc;
 
 	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV, device,
-			   bt_iodev, 0);
+			   bt_iodev, 0, 0);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
@@ -1137,7 +1147,8 @@ int cras_bt_device_switch_profile(struct cras_bt_device *device,
 	struct bt_device_msg msg;
 	int rc;
 
-	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE, device, bt_iodev, 0);
+	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE, device, bt_iodev, 0,
+			   0);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
@@ -1226,21 +1237,45 @@ static void bt_device_suspend_cb(struct cras_timer *timer, void *arg)
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
 
 	BTLOG(btlog, BT_DEV_SUSPEND_CB, device->profiles,
-	      device->connected_profiles);
+	      device->suspend_reason);
 	device->suspend_timer = NULL;
+
+	/* Error log the reason so we can track them in user reports. */
+	switch (device->suspend_reason) {
+	case A2DP_LONG_TX_FAILURE:
+		syslog(LOG_ERR, "Suspend dev: A2DP long Tx failure");
+		break;
+	case A2DP_TX_FATAL_ERROR:
+		syslog(LOG_ERR, "Suspend dev: A2DP Tx fatal error");
+		break;
+	case CONN_WATCH_TIME_OUT:
+		syslog(LOG_ERR, "Suspend dev: Conn watch times out");
+		break;
+	case HFP_SCO_SOCKET_ERROR:
+		syslog(LOG_ERR, "Suspend dev: SCO socket error");
+		break;
+	case HFP_AG_START_FAILURE:
+		syslog(LOG_ERR, "Suspend dev: HFP AG start failure");
+		break;
+	case UNEXPECTED_PROFILE_DROP:
+		syslog(LOG_ERR, "Suspend dev: Unexpected profile drop");
+		break;
+	}
 
 	cras_a2dp_suspend_connected_device(device);
 	cras_hfp_ag_suspend_connected_device(device);
 	cras_bt_device_disconnect(device->conn, device);
 }
 
-static void bt_device_schedule_suspend(struct cras_bt_device *device,
-				       unsigned int msec)
+static void
+bt_device_schedule_suspend(struct cras_bt_device *device, unsigned int msec,
+			   enum cras_bt_device_suspend_reason suspend_reason)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
 
 	if (device->suspend_timer)
 		return;
+	device->suspend_reason = suspend_reason;
 	device->suspend_timer =
 		cras_tm_create_timer(tm, msec, bt_device_suspend_cb, device);
 }
@@ -1276,7 +1311,8 @@ static void bt_device_process_msg(struct cras_main_message *msg, void *arg)
 		bt_device_switch_profile(bt_msg->device, bt_msg->dev, 1);
 		break;
 	case BT_DEVICE_SCHEDULE_SUSPEND:
-		bt_device_schedule_suspend(bt_msg->device, bt_msg->arg);
+		bt_device_schedule_suspend(bt_msg->device, bt_msg->arg1,
+					   bt_msg->arg2);
 		break;
 	case BT_DEVICE_CANCEL_SUSPEND:
 		bt_device_cancel_suspend(bt_msg->device);

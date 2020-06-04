@@ -461,7 +461,8 @@ do_flush:
 	if (written == -EAGAIN) {
 		/* If EAGAIN error lasts longer than 5 seconds, suspend the
 		 * a2dp connection. */
-		cras_bt_device_schedule_suspend(device, 5000);
+		cras_bt_device_schedule_suspend(device, 5000,
+						A2DP_LONG_TX_FAILURE);
 		audio_thread_config_events_callback(
 			cras_bt_transport_fd(a2dpio->transport), TRIGGER_POLL);
 		return 0;
@@ -469,7 +470,7 @@ do_flush:
 		/* Suspend a2dp immediately when receives error other than
 		 * EAGAIN. */
 		cras_bt_device_cancel_suspend(device);
-		cras_bt_device_schedule_suspend(device, 0);
+		cras_bt_device_schedule_suspend(device, 0, A2DP_TX_FATAL_ERROR);
 		/* Stop polling the socket in audio thread. Main thread will
 		 * close this iodev soon. */
 		audio_thread_config_events_callback(
