@@ -50,6 +50,11 @@ int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio) {
   return 0;
 }
 
+int cras_server_metrics_hfp_sco_connection_error(
+    enum CRAS_METRICS_BT_SCO_ERROR_TYPE type) {
+  return 0;
+}
+
 int cras_server_metrics_busyloop(struct timespec* ts, unsigned count) {
   return 0;
 }

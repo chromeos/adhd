@@ -671,7 +671,8 @@ audio_thread_monitor_unittest_LDADD = -lgtest -lpthread -lrt
 
 if HAVE_DBUS
 bt_device_unittest_SOURCES = tests/bt_device_unittest.cc \
-	server/cras_bt_device.c
+	server/cras_bt_device.c \
+	tests/metrics_stub.cc
 bt_device_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_device_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
