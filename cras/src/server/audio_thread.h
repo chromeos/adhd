@@ -45,6 +45,18 @@ struct audio_thread {
 	struct cras_fmt_conv *remix_converter;
 };
 
+/*
+ * Enum to specify how a registered event callback be triggered.
+ * TRIGGER_NONE - Callback will not be triggered.
+ * TRIGGER_POLL - Triggered by poll given fd and revent.
+ * TRIGGER_WAKEUP - Triggered everytime when audio thread wakes up.
+ */
+enum AUDIO_THREAD_EVENTS_CB_TRIGGER {
+	TRIGGER_NONE,
+	TRIGGER_POLL,
+	TRIGGER_WAKEUP,
+};
+
 /* Callback function to be handled in main loop in audio thread.
  * Args:
  *    data - The data for callback function.
@@ -84,7 +96,8 @@ int audio_thread_rm_open_dev(struct audio_thread *thread,
 int audio_thread_is_dev_open(struct audio_thread *thread,
 			     struct cras_iodev *dev);
 
-/* Adds a thread_callback to audio thread for requested events.
+/* Adds a thread_callback to audio thread for requested events. By default
+ * the callback trigger is set to TRIGGER_POLL.
  * Args:
  *    fd - The file descriptor to be polled for the callback.
  *      The callback will be called when any of requested events matched.
@@ -108,8 +121,13 @@ void audio_thread_rm_callback(int fd);
  */
 int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd);
 
-/* Enables or Disabled the callback associated with fd. */
-void audio_thread_enable_callback(int fd, int enabled);
+/* Configures the callback associated with fd when it should be triggerred.
+ * Args:
+ *    fd - The file descriptor associate to the callback.
+ *    trigger - Specifies how the callback should be triggered.
+ */
+void audio_thread_config_events_callback(
+	int fd, enum AUDIO_THREAD_EVENTS_CB_TRIGGER trigger);
 
 /* Starts a thread created with audio_thread_create.
  * Args:

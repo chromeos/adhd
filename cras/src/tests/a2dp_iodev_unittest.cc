@@ -52,6 +52,9 @@ static const char* cras_bt_device_name_ret;
 static unsigned int cras_bt_transport_write_mtu_ret;
 static int cras_iodev_fill_odev_zeros_called;
 static unsigned int cras_iodev_fill_odev_zeros_frames;
+static int audio_thread_config_events_callback_called;
+static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
+    audio_thread_config_events_callback_trigger;
 
 void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
@@ -416,6 +419,58 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
            time_now.tv_nsec * format.frame_rate / 1000000000;
   EXPECT_GE(frames + 1, target);
   EXPECT_GE(target + 1, frames);
+
+  iodev->close_dev(iodev);
+  a2dp_iodev_destroy(iodev);
+}
+
+TEST_F(A2dpIodev, EnableThreadCallbackAtBufferFull) {
+  struct cras_iodev* iodev;
+  struct cras_audio_area* area;
+  struct timespec tstamp;
+  unsigned frames;
+  struct a2dp_io* a2dpio;
+
+  iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
+
+  iodev_set_format(iodev, &format);
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  iodev->configure_dev(iodev);
+  ASSERT_NE(write_callback, (void*)NULL);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  audio_thread_config_events_callback_called = 0;
+  a2dp_write_return_val[0] = 0;
+  frames = iodev->buffer_size;
+  iodev->get_buffer(iodev, &area, &frames);
+  EXPECT_LE(frames, iodev->buffer_size);
+  EXPECT_EQ(0, iodev->put_buffer(iodev, frames));
+  EXPECT_EQ(1, a2dp_write_index);
+  EXPECT_EQ(a2dpio->flush_period.tv_nsec, a2dpio->next_flush_time.tv_nsec);
+  EXPECT_EQ(1, audio_thread_config_events_callback_called);
+  EXPECT_EQ(TRIGGER_NONE, audio_thread_config_events_callback_trigger);
+
+  /* Fastfoward time 1ms, not yet reaches the next flush time. */
+  time_now.tv_nsec = 1000000;
+
+  /* Cram into iodev as much data as possible. Expect its buffer to
+   * be full because flush time does not yet met. */
+  frames = iodev->buffer_size;
+  iodev->get_buffer(iodev, &area, &frames);
+  EXPECT_LE(frames, iodev->buffer_size);
+  EXPECT_EQ(0, iodev->put_buffer(iodev, frames));
+  frames = iodev->frames_queued(iodev, &tstamp);
+  EXPECT_EQ(frames, iodev->buffer_size);
+
+  /* Expect a2dp_write didn't get called in last get/put buffer. And
+   * audio thread callback has been enabled. */
+  EXPECT_EQ(1, a2dp_write_index);
+  EXPECT_EQ(2, audio_thread_config_events_callback_called);
+  EXPECT_EQ(TRIGGER_WAKEUP, audio_thread_config_events_callback_trigger);
 
   iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
@@ -813,7 +868,12 @@ int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
   return 0;
 }
 
-void audio_thread_enable_callback(int fd, int enabled) {}
+void audio_thread_config_events_callback(
+    int fd,
+    enum AUDIO_THREAD_EVENTS_CB_TRIGGER trigger) {
+  audio_thread_config_events_callback_called++;
+  audio_thread_config_events_callback_trigger = trigger;
+}
 }
 
 int cras_audio_thread_event_a2dp_throttle() {
