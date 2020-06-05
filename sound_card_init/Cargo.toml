@@ -6,9 +6,19 @@ edition = "2018"
 description = "Sound Card Initializer"
 
 [dependencies]
+audio_streams = "*"
+cros_alsa = "*"
 getopts = "0.2"
+libcras = "*"
 remain = "0.2.1"
+max98390d = { path = "max98390d" }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.8.11"
 sys_util = "*"
 
 [patch.crates-io]
+audio_streams = { path = "../audio_streams" }  # ignored by ebuild
+cros_alsa = { path = "../cros_alsa" } # ignored by ebuild
+cros_alsa_derive = { path = "../cros_alsa/cros_alsa_derive" } # ignored by ebuild
+libcras = { path = "../cras/client/libcras" }  # ignored by ebuild
 sys_util = { path = "../../../platform/crosvm/sys_util" } # ignored by ebuild

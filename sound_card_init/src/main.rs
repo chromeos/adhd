@@ -24,6 +24,8 @@ use getopts::Options;
 use remain::sorted;
 use sys_util::{error, info, syslog};
 
+use max98390d::run_max98390d;
+
 type Result<T> = std::result::Result<T, Error>;
 const CONF_DIR: &str = "/etc/sound_card_init";
 
@@ -100,11 +102,16 @@ fn get_config(args: &Args) -> Result<String> {
 fn sound_card_init() -> std::result::Result<(), Box<dyn error::Error>> {
     let args = parse_args()?;
     info!("sound_card_id: {}", args.sound_card_id);
-    let _conf = get_config(&args)?;
+    let conf = get_config(&args)?;
 
     match args.sound_card_id.as_str() {
+        "sofcmlmax98390d" => {
+            run_max98390d(&args.sound_card_id, &conf)?;
+            info!("run_max98390d() finished successfully.");
+        }
         _ => return Err(Error::UnsupportedSoundCard(args.sound_card_id).into()),
     };
+    Ok(())
 }
 
 fn main() {
