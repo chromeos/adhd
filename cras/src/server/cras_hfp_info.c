@@ -544,7 +544,7 @@ recv_sample:
 static int hfp_info_callback(void *arg, int revents)
 {
 	struct hfp_info *info = (struct hfp_info *)arg;
-	int err;
+	int err = 0;
 
 	if (!info->started)
 		return 0;
