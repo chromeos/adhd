@@ -18,8 +18,6 @@
 #include "iniparser_wrapper.h"
 #include "utlist.h"
 
-static const unsigned int MAX_INI_NAME_LEN = 63;
-
 #define PLUGINS_INI "plugins.ini"
 #define PLUGIN_KEY_CTL "ctl"
 #define PLUGIN_KEY_DIR "dir"
@@ -46,8 +44,8 @@ struct alsa_plugin {
 
 static struct alsa_plugin *plugins;
 
-static char ini_name[MAX_INI_NAME_LEN + 1];
-static char key_name[MAX_INI_NAME_LEN + 1];
+static char ini_name[MAX_INI_NAME_LENGTH + 1];
+static char key_name[MAX_INI_NAME_LENGTH + 1];
 static dictionary *plugins_ini = NULL;
 
 static void hctl_event_pending(void *arg, int revents)
@@ -202,9 +200,9 @@ void cras_alsa_plugin_io_init(const char *device_config_dir)
 	const char *sec_name;
 	const char *tmp, *pcm_name, *ctl_name, *card_name;
 
-	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s", device_config_dir,
+	snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", device_config_dir,
 		 PLUGINS_INI);
-	ini_name[MAX_INI_NAME_LEN] = '\0';
+	ini_name[MAX_INI_NAME_LENGTH] = '\0';
 
 	plugins_ini = iniparser_load_wrapper(ini_name);
 	if (!plugins_ini)
@@ -215,7 +213,7 @@ void cras_alsa_plugin_io_init(const char *device_config_dir)
 		sec_name = iniparser_getsecname(plugins_ini, i);
 
 		/* Parse dir=output or dir=input */
-		snprintf(key_name, MAX_INI_NAME_LEN, "%s:%s", sec_name,
+		snprintf(key_name, MAX_INI_NAME_LENGTH, "%s:%s", sec_name,
 			 PLUGIN_KEY_DIR);
 		tmp = iniparser_getstring(plugins_ini, key_name, NULL);
 		if (strcmp(tmp, "output") == 0)
@@ -227,7 +225,7 @@ void cras_alsa_plugin_io_init(const char *device_config_dir)
 
 		/* pcm=<plugin-pcm-name> this name will be used with
 		 * snd_pcm_open. */
-		snprintf(key_name, MAX_INI_NAME_LEN, "%s:%s", sec_name,
+		snprintf(key_name, MAX_INI_NAME_LENGTH, "%s:%s", sec_name,
 			 PLUGIN_KEY_PCM);
 		pcm_name = iniparser_getstring(plugins_ini, key_name, NULL);
 		if (!pcm_name)
@@ -235,7 +233,7 @@ void cras_alsa_plugin_io_init(const char *device_config_dir)
 
 		/* ctl=<plugin-ctl-name> this name will be used with
 		 * snd_hctl_open. */
-		snprintf(key_name, MAX_INI_NAME_LEN, "%s:%s", sec_name,
+		snprintf(key_name, MAX_INI_NAME_LENGTH, "%s:%s", sec_name,
 			 PLUGIN_KEY_CTL);
 		ctl_name = iniparser_getstring(plugins_ini, key_name, NULL);
 		if (!ctl_name)
@@ -243,7 +241,7 @@ void cras_alsa_plugin_io_init(const char *device_config_dir)
 
 		/* card=<card-name> this name will be used with
 		 * snd_use_case_mgr_open. */
-		snprintf(key_name, MAX_INI_NAME_LEN, "%s:%s", sec_name,
+		snprintf(key_name, MAX_INI_NAME_LENGTH, "%s:%s", sec_name,
 			 PLUGIN_KEY_CARD);
 		card_name = iniparser_getstring(plugins_ini, key_name, NULL);
 		if (!card_name)

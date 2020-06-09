@@ -26,7 +26,6 @@
 
 #define MAX_ALSA_CARDS 32 /* Alsa limit on number of cards. */
 #define MAX_ALSA_PCM_NAME_LENGTH 9 /* Alsa pcm name "hw:XX,YY" + 1 for null. */
-#define MAX_INI_NAME_LENGTH 63 /* 63 chars + 1 for null where declared. */
 #define MAX_COUPLED_OUTPUT_SIZE 4
 
 struct iodev_list_node {

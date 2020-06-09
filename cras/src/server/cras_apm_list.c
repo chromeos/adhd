@@ -22,8 +22,6 @@
 #include "iniparser_wrapper.h"
 #include "utlist.h"
 
-static const unsigned int MAX_INI_NAME_LEN = 63;
-
 #define AEC_CONFIG_NAME "aec.ini"
 #define APM_CONFIG_NAME "apm.ini"
 
@@ -137,7 +135,7 @@ struct cras_apm_reverse_module {
 
 static struct cras_apm_reverse_module *rmodule = NULL;
 static const char *aec_config_dir = NULL;
-static char ini_name[MAX_INI_NAME_LEN + 1];
+static char ini_name[MAX_INI_NAME_LENGTH + 1];
 static dictionary *aec_ini = NULL;
 static dictionary *apm_ini = NULL;
 
@@ -529,9 +527,9 @@ void reverse_data_configure(struct ext_dsp_module *ext,
 
 static void get_aec_ini(const char *config_dir)
 {
-	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s", config_dir,
+	snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", config_dir,
 		 AEC_CONFIG_NAME);
-	ini_name[MAX_INI_NAME_LEN] = '\0';
+	ini_name[MAX_INI_NAME_LENGTH] = '\0';
 
 	if (aec_ini) {
 		iniparser_freedict(aec_ini);
@@ -544,9 +542,9 @@ static void get_aec_ini(const char *config_dir)
 
 static void get_apm_ini(const char *config_dir)
 {
-	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s", config_dir,
+	snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", config_dir,
 		 APM_CONFIG_NAME);
-	ini_name[MAX_INI_NAME_LEN] = '\0';
+	ini_name[MAX_INI_NAME_LENGTH] = '\0';
 
 	if (apm_ini) {
 		iniparser_freedict(apm_ini);

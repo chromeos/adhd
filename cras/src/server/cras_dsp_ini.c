@@ -9,7 +9,6 @@
 #include "cras_dsp_ini.h"
 #include "iniparser_wrapper.h"
 
-#define MAX_INI_KEY_LENGTH 64 /* names like "output_source:output_0" */
 #define MAX_NR_PORT 128 /* the max number of ports for a plugin */
 #define MAX_PORT_NAME_LENGTH 20 /* names like "output_32" */
 #define MAX_DUMMY_INI_CH 20 /* Max number of channels to create dummy ini */
@@ -63,7 +62,7 @@
 static const char *getstring(struct ini *ini, const char *sec_name,
 			     const char *key)
 {
-	char full_key[MAX_INI_KEY_LENGTH];
+	char full_key[MAX_INI_KEY_LENGTH + 1];
 	snprintf(full_key, sizeof(full_key), "%s:%s", sec_name, key);
 	return iniparser_getstring(ini->dict, full_key, NULL);
 }

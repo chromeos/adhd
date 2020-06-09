@@ -9,9 +9,6 @@
 #include "cras_board_config.h"
 #include "iniparser_wrapper.h"
 
-/* Allocate 63 chars + 1 for null where declared. */
-static const unsigned int MAX_INI_NAME_LEN = 63;
-static const unsigned int MAX_KEY_LEN = 63;
 static const int32_t DEFAULT_OUTPUT_BUFFER_SIZE = 512;
 static const int32_t AEC_SUPPORTED_DEFAULT = 0;
 static const int32_t AEC_GROUP_ID_DEFAULT = -1;
@@ -27,8 +24,8 @@ static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 0;
 void cras_board_config_get(const char *config_path,
 			   struct cras_board_config *board_config)
 {
-	char ini_name[MAX_INI_NAME_LEN + 1];
-	char ini_key[MAX_KEY_LEN + 1];
+	char ini_name[MAX_INI_NAME_LENGTH + 1];
+	char ini_key[MAX_INI_KEY_LENGTH + 1];
 	char *ptr;
 	dictionary *ini;
 
@@ -39,36 +36,37 @@ void cras_board_config_get(const char *config_path,
 	if (config_path == NULL)
 		return;
 
-	snprintf(ini_name, MAX_INI_NAME_LEN, "%s/%s", config_path, CONFIG_NAME);
-	ini_name[MAX_INI_NAME_LEN] = '\0';
+	snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", config_path,
+		 CONFIG_NAME);
+	ini_name[MAX_INI_NAME_LENGTH] = '\0';
 	ini = iniparser_load_wrapper(ini_name);
 	if (ini == NULL) {
 		syslog(LOG_DEBUG, "No ini file %s", ini_name);
 		return;
 	}
 
-	snprintf(ini_key, MAX_KEY_LEN, DEFAULT_OUTPUT_BUF_SIZE_INI_KEY);
-	ini_key[MAX_KEY_LEN] = 0;
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, DEFAULT_OUTPUT_BUF_SIZE_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	board_config->default_output_buffer_size =
 		iniparser_getint(ini, ini_key, DEFAULT_OUTPUT_BUFFER_SIZE);
 
-	snprintf(ini_key, MAX_KEY_LEN, AEC_SUPPORTED_INI_KEY);
-	ini_key[MAX_KEY_LEN] = 0;
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, AEC_SUPPORTED_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	board_config->aec_supported =
 		iniparser_getint(ini, ini_key, AEC_SUPPORTED_DEFAULT);
 
-	snprintf(ini_key, MAX_KEY_LEN, AEC_GROUP_ID_INI_KEY);
-	ini_key[MAX_KEY_LEN] = 0;
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, AEC_GROUP_ID_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	board_config->aec_group_id =
 		iniparser_getint(ini, ini_key, AEC_GROUP_ID_DEFAULT);
 
-	snprintf(ini_key, MAX_KEY_LEN, BLUETOOTH_WBS_ENABLED_INI_KEY);
-	ini_key[MAX_KEY_LEN] = 0;
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, BLUETOOTH_WBS_ENABLED_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	board_config->bt_wbs_enabled = iniparser_getint(
 		ini, ini_key, BLUETOOTH_WBS_ENABLED_INI_DEFAULT);
 
-	snprintf(ini_key, MAX_KEY_LEN, UCM_IGNORE_SUFFIX_KEY);
-	ini_key[MAX_KEY_LEN] = 0;
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, UCM_IGNORE_SUFFIX_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	ptr = iniparser_getstring(ini, ini_key, "");
 	if (ptr) {
 		board_config->ucm_ignore_suffix = strdup(ptr);
