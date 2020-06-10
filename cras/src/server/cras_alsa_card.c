@@ -25,6 +25,7 @@
 #include "utlist.h"
 
 #define MAX_ALSA_CARDS 32 /* Alsa limit on number of cards. */
+#define MAX_ALSA_CARD_NAME_LENGTH 6 /* Alsa card name "hw:XX" + 1 for null. */
 #define MAX_ALSA_PCM_NAME_LENGTH 9 /* Alsa pcm name "hw:XX,YY" + 1 for null. */
 #define MAX_COUPLED_OUTPUT_SIZE 4
 
@@ -42,7 +43,7 @@ struct hctl_poll_fd {
 };
 
 /* Holds information about each sound card on the system.
- * name - of the form hw:XX,YY.
+ * name - of the form hw:XX.
  * card_index - 0 based index, value of "XX" in the name.
  * iodevs - Input and output devices for this card.
  * mixer - Controls the mixer controls for this card.
@@ -52,7 +53,7 @@ struct hctl_poll_fd {
  * config - Config info for this card, can be NULL if none found.
  */
 struct cras_alsa_card {
-	char name[MAX_ALSA_PCM_NAME_LENGTH];
+	char name[MAX_ALSA_CARD_NAME_LENGTH];
 	size_t card_index;
 	struct iodev_list_node *iodevs;
 	struct cras_alsa_mixer *mixer;
@@ -468,7 +469,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 		return NULL;
 	alsa_card->card_index = info->card_index;
 
-	snprintf(alsa_card->name, MAX_ALSA_PCM_NAME_LENGTH, "hw:%u",
+	snprintf(alsa_card->name, MAX_ALSA_CARD_NAME_LENGTH, "hw:%u",
 		 info->card_index);
 
 	rc = snd_ctl_open(&handle, alsa_card->name, 0);
