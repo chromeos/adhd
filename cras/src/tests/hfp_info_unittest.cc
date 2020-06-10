@@ -38,7 +38,7 @@ namespace {
 TEST(HfpInfo, AddRmDev) {
   ResetStubData();
 
-  info = hfp_info_create(HFP_CODEC_ID_CVSD);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
   dev.direction = CRAS_STREAM_OUTPUT;
 
@@ -56,7 +56,7 @@ TEST(HfpInfo, AddRmDev) {
 TEST(HfpInfo, AddRmDevInvalid) {
   ResetStubData();
 
-  info = hfp_info_create(HFP_CODEC_ID_CVSD);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
 
   dev.direction = CRAS_STREAM_OUTPUT;
@@ -77,10 +77,10 @@ TEST(HfpInfo, AcquirePlaybackBuffer) {
 
   ResetStubData();
 
-  info = hfp_info_create(HFP_CODEC_ID_CVSD);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
 
-  hfp_info_start(1, 48, info);
+  hfp_info_start(1, 48, HFP_CODEC_ID_CVSD, info);
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
@@ -125,10 +125,10 @@ TEST(HfpInfo, AcquireCaptureBuffer) {
 
   ResetStubData();
 
-  info = hfp_info_create(HFP_CODEC_ID_CVSD);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
 
-  hfp_info_start(1, 48, info);
+  hfp_info_start(1, 48, HFP_CODEC_ID_CVSD, info);
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
@@ -173,11 +173,11 @@ TEST(HfpInfo, HfpReadWriteFD) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create(HFP_CODEC_ID_CVSD);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
 
   dev.direction = CRAS_STREAM_INPUT;
-  hfp_info_start(sock[1], 48, info);
+  hfp_info_start(sock[1], 48, HFP_CODEC_ID_CVSD, info);
   ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
 
   /* Mock the sco fd and send some fake data */
@@ -224,10 +224,10 @@ TEST(HfpInfo, StartHfpInfo) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create(HFP_CODEC_ID_CVSD);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
 
-  hfp_info_start(sock[0], 48, info);
+  hfp_info_start(sock[0], 48, HFP_CODEC_ID_CVSD, info);
   ASSERT_EQ(1, hfp_info_running(info));
   ASSERT_EQ(cb_data, (void*)info);
 
@@ -247,11 +247,11 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create(HFP_CODEC_ID_CVSD);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
 
   /* Start and send two chunk of fake data */
-  hfp_info_start(sock[1], 48, info);
+  hfp_info_start(sock[1], 48, HFP_CODEC_ID_CVSD, info);
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
@@ -292,10 +292,10 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create(HFP_CODEC_ID_CVSD);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
 
-  hfp_info_start(sock[1], 48, info);
+  hfp_info_start(sock[1], 48, HFP_CODEC_ID_CVSD, info);
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
@@ -363,13 +363,15 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   set_sbc_codec_decoded_out(MSBC_CODE_SIZE);
 
-  info = hfp_info_create(HFP_CODEC_ID_MSBC);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
-  ASSERT_EQ(2, get_msbc_codec_create_called());
-  ASSERT_EQ(1, cras_msbc_plc_create_called);
+  ASSERT_EQ(0, get_msbc_codec_create_called());
+  ASSERT_EQ(0, cras_msbc_plc_create_called);
 
   /* Start and send an mSBC packets with all zero samples */
-  hfp_info_start(sock[1], 63, info);
+  hfp_info_start(sock[1], 63, HFP_CODEC_ID_MSBC, info);
+  ASSERT_EQ(2, get_msbc_codec_create_called());
+  ASSERT_EQ(1, cras_msbc_plc_create_called);
   send_mSBC_packet(sock[0], pkt_count++, 0);
 
   /* Trigger thread callback */
@@ -459,10 +461,10 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   set_sbc_codec_encoded_out(57);
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create(HFP_CODEC_ID_MSBC);
+  info = hfp_info_create();
   ASSERT_NE(info, (void*)NULL);
 
-  hfp_info_start(sock[1], 63, info);
+  hfp_info_start(sock[1], 63, HFP_CODEC_ID_MSBC, info);
   send(sock[0], sample, 63, 0);
 
   /* Trigger thread callback */

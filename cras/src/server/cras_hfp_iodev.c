@@ -159,7 +159,8 @@ static int configure_dev(struct cras_iodev *iodev)
 		hfpio->device, sk, hfp_slc_get_selected_codec(hfpio->slc));
 
 	/* Start hfp_info */
-	err = hfp_info_start(sk, mtu, hfpio->info);
+	err = hfp_info_start(sk, mtu, hfp_slc_get_selected_codec(hfpio->slc),
+			     hfpio->info);
 	if (err)
 		goto error;
 

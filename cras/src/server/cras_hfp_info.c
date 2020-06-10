@@ -595,7 +595,7 @@ read_write_error:
 	return 0;
 }
 
-struct hfp_info *hfp_info_create(int codec)
+struct hfp_info *hfp_info_create()
 {
 	struct hfp_info *info;
 	info = (struct hfp_info *)calloc(1, sizeof(*info));
@@ -609,17 +609,6 @@ struct hfp_info *hfp_info_create(int codec)
 	info->playback_buf = byte_buffer_create(MAX_HFP_BUF_SIZE_BYTES);
 	if (!info->playback_buf)
 		goto error;
-
-	if (codec == HFP_CODEC_ID_MSBC) {
-		info->write_cb = hfp_write_msbc;
-		info->read_cb = hfp_read_msbc;
-		info->msbc_read = cras_msbc_codec_create();
-		info->msbc_write = cras_msbc_codec_create();
-		info->msbc_plc = cras_msbc_plc_create();
-	} else {
-		info->write_cb = hfp_write;
-		info->read_cb = hfp_read;
-	}
 
 	return info;
 
@@ -639,7 +628,7 @@ int hfp_info_running(struct hfp_info *info)
 	return info->started;
 }
 
-int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
+int hfp_info_start(int fd, unsigned int mtu, int codec, struct hfp_info *info)
 {
 	info->fd = fd;
 	info->mtu = mtu;
@@ -648,6 +637,17 @@ int hfp_info_start(int fd, unsigned int mtu, struct hfp_info *info)
 	info->packet_size = mtu;
 	buf_reset(info->playback_buf);
 	buf_reset(info->capture_buf);
+
+	if (codec == HFP_CODEC_ID_MSBC) {
+		info->write_cb = hfp_write_msbc;
+		info->read_cb = hfp_read_msbc;
+		info->msbc_read = cras_msbc_codec_create();
+		info->msbc_write = cras_msbc_codec_create();
+		info->msbc_plc = cras_msbc_plc_create();
+	} else {
+		info->write_cb = hfp_write;
+		info->read_cb = hfp_read;
+	}
 
 	audio_thread_add_events_callback(info->fd, hfp_info_callback, info,
 					 POLLIN | POLLERR | POLLHUP);
@@ -672,6 +672,23 @@ int hfp_info_stop(struct hfp_info *info)
 	info->fd = 0;
 	info->started = 0;
 
+	/* Unset the write/read callbacks. */
+	info->write_cb = NULL;
+	info->read_cb = NULL;
+
+	if (info->msbc_read) {
+		cras_sbc_codec_destroy(info->msbc_read);
+		info->msbc_read = NULL;
+	}
+	if (info->msbc_write) {
+		cras_sbc_codec_destroy(info->msbc_write);
+		info->msbc_write = NULL;
+	}
+	if (info->msbc_plc) {
+		cras_msbc_plc_destroy(info->msbc_plc);
+		info->msbc_plc = NULL;
+	}
+
 	if (info->msbc_num_in_frames) {
 		cras_server_metrics_hfp_packet_loss(
 			(float)info->msbc_num_lost_frames /
@@ -688,13 +705,6 @@ void hfp_info_destroy(struct hfp_info *info)
 
 	if (info->playback_buf)
 		byte_buffer_destroy(&info->playback_buf);
-
-	if (info->msbc_read)
-		cras_sbc_codec_destroy(info->msbc_read);
-	if (info->msbc_write)
-		cras_sbc_codec_destroy(info->msbc_write);
-	if (info->msbc_plc)
-		cras_msbc_plc_destroy(info->msbc_plc);
 
 	free(info);
 }

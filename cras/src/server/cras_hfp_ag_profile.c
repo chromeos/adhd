@@ -435,8 +435,7 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 		ag->odev = hfp_alsa_iodev_create(out_aio, ag->device,
 						 ag->slc_handle, ag->profile);
 	} else {
-		ag->info = hfp_info_create(
-			hfp_slc_get_selected_codec(ag->slc_handle));
+		ag->info = hfp_info_create();
 		ag->idev =
 			hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
 					 ag->slc_handle, ag->profile, ag->info);

@@ -306,7 +306,7 @@ int hfp_info_running(struct hfp_info* info) {
   return hfp_info_running_return_val;
 }
 
-int hfp_info_start(int fd, unsigned int mtu, struct hfp_info* info) {
+int hfp_info_start(int fd, unsigned int mtu, int codec, struct hfp_info* info) {
   hfp_info_start_called++;
   return 0;
 }
