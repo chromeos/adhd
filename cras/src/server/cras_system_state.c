@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <string.h>
@@ -27,6 +28,11 @@
 struct card_list {
 	struct cras_alsa_card *card;
 	struct card_list *prev, *next;
+};
+
+struct name_list {
+	char name[NAME_MAX];
+	struct name_list *prev, *next;
 };
 
 /* The system state.
@@ -59,6 +65,7 @@ static struct {
 	size_t shm_size;
 	const char *device_config_dir;
 	const char *internal_ucm_suffix;
+	struct name_list *ignore_suffix_cards;
 	struct cras_device_blacklist *device_blacklist;
 	struct card_list *cards;
 	pthread_mutex_t update_lock;
@@ -75,6 +82,39 @@ static struct {
 	pthread_t main_thread_tid;
 	bool bt_fix_a2dp_packet_size;
 } state;
+
+/* The string format is CARD1,CARD2,CARD3. Divide it into a list. */
+void init_ignore_suffix_cards(char *str)
+{
+	struct name_list *card;
+	char *ptr;
+
+	state.ignore_suffix_cards = NULL;
+
+	if (str == NULL)
+		return;
+
+	ptr = strtok(str, ",");
+	while (ptr != NULL) {
+		card = (struct name_list *)calloc(1, sizeof(*card));
+		if (!card) {
+			syslog(LOG_ERR, "Failed to call calloc: %d", errno);
+			return;
+		}
+		strncpy(card->name, ptr, NAME_MAX - 1);
+		DL_APPEND(state.ignore_suffix_cards, card);
+		ptr = strtok(NULL, ",");
+	}
+}
+
+void deinit_ignore_suffix_cards()
+{
+	struct name_list *card;
+	DL_FOREACH (state.ignore_suffix_cards, card) {
+		DL_DELETE(state.ignore_suffix_cards, card);
+		free(card);
+	}
+}
 
 /*
  * Exported Interface.
@@ -130,6 +170,8 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	 * to change device blacklist at run time. */
 	state.device_config_dir = device_config_dir;
 	state.internal_ucm_suffix = NULL;
+	init_ignore_suffix_cards(board_config.ucm_ignore_suffix);
+	free(board_config.ucm_ignore_suffix);
 
 	state.tm = cras_tm_init();
 	if (!state.tm) {
@@ -171,6 +213,7 @@ void cras_system_state_deinit()
 			close(state.shm_fd_ro);
 	}
 
+	deinit_ignore_suffix_cards();
 	pthread_mutex_destroy(&state.update_lock);
 }
 
@@ -349,6 +392,16 @@ bool cras_system_get_bt_fix_a2dp_packet_size_enabled()
 	return state.bt_fix_a2dp_packet_size;
 }
 
+bool cras_system_check_ignore_ucm_suffix(const char *card_name)
+{
+	struct name_list *card;
+	DL_FOREACH (state.ignore_suffix_cards, card) {
+		if (!strcmp(card->name, card_name))
+			return true;
+	}
+	return false;
+}
+
 int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 {
 	struct card_list *card;
@@ -364,11 +417,10 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 		if (card_index == cras_alsa_card_get_index(card->card))
 			return -EEXIST;
 	}
-	alsa_card = cras_alsa_card_create(
-		alsa_card_info, state.device_config_dir, state.device_blacklist,
-		(alsa_card_info->card_type == ALSA_CARD_TYPE_INTERNAL) ?
-			state.internal_ucm_suffix :
-			NULL);
+	alsa_card =
+		cras_alsa_card_create(alsa_card_info, state.device_config_dir,
+				      state.device_blacklist,
+				      state.internal_ucm_suffix);
 	if (alsa_card == NULL)
 		return -ENOMEM;
 	card = calloc(1, sizeof(*card));

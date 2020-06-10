@@ -4,9 +4,11 @@
 
 #include <gtest/gtest.h>
 #include <stdio.h>
+#include <string.h>
 
 extern "C" {
 #include "cras_alert.h"
+#include "cras_board_config.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
@@ -36,6 +38,7 @@ static size_t cras_observer_notify_output_mute_called;
 static size_t cras_observer_notify_capture_mute_called;
 static size_t cras_observer_notify_suspend_changed_called;
 static size_t cras_observer_notify_num_active_streams_called;
+static struct cras_board_config fake_board_config;
 
 static void ResetStubData() {
   cras_alsa_card_create_called = 0;
@@ -55,6 +58,7 @@ static void ResetStubData() {
   cras_observer_notify_capture_mute_called = 0;
   cras_observer_notify_suspend_changed_called = 0;
   cras_observer_notify_num_active_streams_called = 0;
+  memset(&fake_board_config, 0, sizeof(fake_board_config));
 }
 
 static int add_stub(int fd,
@@ -410,6 +414,17 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
   cras_system_state_deinit();
 }
 
+TEST(SystemStateSuite, IgnoreUCMSuffix) {
+  fake_board_config.ucm_ignore_suffix = strdup("TEST1,TEST2,TEST3");
+  do_sys_init();
+
+  EXPECT_EQ(1, cras_system_check_ignore_ucm_suffix("TEST1"));
+  EXPECT_EQ(1, cras_system_check_ignore_ucm_suffix("TEST2"));
+  EXPECT_EQ(1, cras_system_check_ignore_ucm_suffix("TEST3"));
+  EXPECT_EQ(0, cras_system_check_ignore_ucm_suffix("TEST4"));
+  cras_system_state_deinit();
+}
+
 extern "C" {
 
 struct cras_alsa_card* cras_alsa_card_create(
@@ -494,6 +509,11 @@ void cras_observer_notify_suspend_changed(int suspended) {
 void cras_observer_notify_num_active_streams(enum CRAS_STREAM_DIRECTION dir,
                                              uint32_t num_active_streams) {
   cras_observer_notify_num_active_streams_called++;
+}
+
+void cras_board_config_get(const char* config_path,
+                           struct cras_board_config* board_config) {
+  *board_config = fake_board_config;
 }
 
 }  // extern "C"

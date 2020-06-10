@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <errno.h>
 #include <syslog.h>
 
 #include "cras_board_config.h"
@@ -21,17 +22,20 @@ static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 0;
 #define AEC_SUPPORTED_INI_KEY "processing:aec_supported"
 #define AEC_GROUP_ID_INI_KEY "processing:group_id"
 #define BLUETOOTH_WBS_ENABLED_INI_KEY "bluetooth:wbs_enabled"
+#define UCM_IGNORE_SUFFIX_KEY "ucm:ignore_suffix"
 
 void cras_board_config_get(const char *config_path,
 			   struct cras_board_config *board_config)
 {
 	char ini_name[MAX_INI_NAME_LEN + 1];
 	char ini_key[MAX_KEY_LEN + 1];
+	char *ptr;
 	dictionary *ini;
 
 	board_config->default_output_buffer_size = DEFAULT_OUTPUT_BUFFER_SIZE;
 	board_config->aec_supported = AEC_SUPPORTED_DEFAULT;
 	board_config->aec_group_id = AEC_GROUP_ID_DEFAULT;
+	board_config->ucm_ignore_suffix = NULL;
 	if (config_path == NULL)
 		return;
 
@@ -62,6 +66,15 @@ void cras_board_config_get(const char *config_path,
 	ini_key[MAX_KEY_LEN] = 0;
 	board_config->bt_wbs_enabled = iniparser_getint(
 		ini, ini_key, BLUETOOTH_WBS_ENABLED_INI_DEFAULT);
+
+	snprintf(ini_key, MAX_KEY_LEN, UCM_IGNORE_SUFFIX_KEY);
+	ini_key[MAX_KEY_LEN] = 0;
+	ptr = iniparser_getstring(ini, ini_key, "");
+	if (ptr) {
+		board_config->ucm_ignore_suffix = strdup(ptr);
+		if (!board_config->ucm_ignore_suffix)
+			syslog(LOG_ERR, "Failed to call strdup: %d", errno);
+	}
 
 	iniparser_freedict(ini);
 	syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);

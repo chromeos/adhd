@@ -128,6 +128,9 @@ void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled);
 /* Gets the flag of Bluetooth fixed A2DP packet size. */
 bool cras_system_get_bt_fix_a2dp_packet_size_enabled();
 
+/* Checks if the card ignores the ucm suffix. */
+bool cras_system_check_ignore_ucm_suffix(const char *card_name);
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.

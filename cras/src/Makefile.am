@@ -986,7 +986,7 @@ stream_list_unittest_LDADD = -lgtest -lpthread
 
 system_state_unittest_SOURCES = tests/system_state_unittest.cc \
 	server/cras_system_state.c common/cras_shm.c \
-	server/config/cras_board_config.c $(CRAS_SELINUX_UNITTEST_SOURCES)
+       	$(CRAS_SELINUX_UNITTEST_SOURCES)
 system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config $(SELINUX_CFLAGS)

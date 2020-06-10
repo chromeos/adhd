@@ -13,6 +13,7 @@ struct cras_board_config {
 	int32_t aec_supported;
 	int32_t aec_group_id;
 	int32_t bt_wbs_enabled;
+	char *ucm_ignore_suffix;
 };
 
 /* Gets a configuration based on the config file specified.

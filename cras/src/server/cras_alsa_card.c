@@ -490,6 +490,10 @@ struct cras_alsa_card *cras_alsa_card_create(
 		goto error_bail;
 	}
 
+	if (info->card_type != ALSA_CARD_TYPE_INTERNAL ||
+	    cras_system_check_ignore_ucm_suffix(card_name))
+		ucm_suffix = NULL;
+
 	/* Read config file for this card if it exists. */
 	alsa_card->config =
 		cras_card_config_create(device_config_dir, card_name);
