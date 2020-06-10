@@ -1165,18 +1165,16 @@ redo_codec_conn:
 		if (rc == -ETIMEDOUT) {
 			/*
 	 		 * Catch the case that the first initial codec
-			 * negotiation timeout. AG side falls back to use codec
-			 * CVSD and also tells HF to select CVSD again. The
-			 * assumption is that if HF successes one codec
-			 * negotiation, the following should also success, so
-			 * we'll keep retrying the codec negotiation.
+			 * negotiation timeout. At this point we're not sure
+			 * if HF is good with the preferred codec from AG.
+			 * Fallback to CVSD doesn't help because very likely
+			 * HF won't reply that either. The best thing we can
+			 * do is just leave a warning log.
 	 		 */
 			if (handle->selected_codec == HFP_CODEC_UNUSED) {
-				syslog(LOG_ERR,
-				       "Failed to enable %d, fallback to CVSD",
+				syslog(LOG_WARNING,
+				       "Proceed using codec %d without HF reply",
 				       handle->preferred_codec);
-				handle->preferred_codec = HFP_CODEC_ID_CVSD;
-				select_preferred_codec(handle);
 			}
 			return rc;
 		}
