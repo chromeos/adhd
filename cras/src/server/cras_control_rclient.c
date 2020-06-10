@@ -457,6 +457,8 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 	case CRAS_CONFIG_GLOBAL_REMIX: {
 		const struct cras_config_global_remix *m =
 			(const struct cras_config_global_remix *)msg;
+		float *coefficient;
+
 		if (!MSG_LEN_VALID(msg, struct cras_config_global_remix) ||
 		    m->num_channels > CRAS_MAX_REMIX_CHANNELS)
 			return -EINVAL;
@@ -465,9 +467,15 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 					     sizeof(m->coefficient[0]);
 		if (size_with_coefficients != msg->length)
 			return -EINVAL;
+		coefficient =
+			(float *)calloc(m->num_channels, sizeof(coefficient));
+		for (unsigned i = 0; i < m->num_channels; i++)
+			coefficient[i] = m->coefficient[i];
+
 		audio_thread_config_global_remix(
 			cras_iodev_list_get_audio_thread(), m->num_channels,
-			m->coefficient);
+			coefficient);
+		free(coefficient);
 		break;
 	}
 	case CRAS_SERVER_GET_HOTWORD_MODELS: {
