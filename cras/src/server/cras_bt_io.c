@@ -111,8 +111,8 @@ static void bt_possibly_switch_to_a2dp(struct bt_io *btio)
 {
 	if (!cras_bt_device_has_a2dp(btio->device))
 		return;
-	cras_bt_device_set_active_profile(
-		btio->device, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+	cras_bt_device_set_active_profile(btio->device,
+					  CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
 	cras_bt_device_switch_profile(btio->device, &btio->base);
 }
 

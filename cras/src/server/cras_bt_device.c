@@ -398,7 +398,7 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
  * disconnects in progress.
  */
 static void bt_device_set_nodes_plugged(struct cras_bt_device *device,
-					 int plugged)
+					int plugged)
 {
 	struct cras_iodev *iodev;
 
