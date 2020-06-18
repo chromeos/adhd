@@ -107,7 +107,7 @@ cras_server_SOURCES = \
 	server/buffer_share.c \
 	server/config/cras_board_config.c \
 	server/config/cras_card_config.c \
-	server/config/cras_device_blacklist.c \
+	server/config/cras_device_blocklist.c \
 	server/cras_alert.c \
 	server/cras_alsa_card.c \
 	server/cras_alsa_helpers.c \
@@ -418,7 +418,7 @@ TESTS = \
 	device_monitor_unittest \
 	dev_io_unittest \
 	dev_stream_unittest \
-	device_blacklist_unittest \
+	device_blocklist_unittest \
 	dsp_core_unittest \
 	dsp_ini_unittest \
 	dsp_pipeline_unittest \
@@ -750,12 +750,12 @@ dev_stream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 dev_stream_unittest_LDADD = -lgtest -liniparser -lpthread -lrt
 
-device_blacklist_unittest_SOURCES = tests/device_blacklist_unittest.cc \
-	server/config/cras_device_blacklist.c
-device_blacklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+device_blocklist_unittest_SOURCES = tests/device_blocklist_unittest.cc \
+	server/config/cras_device_blocklist.c
+device_blocklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config $(CRAS_UT_TMPDIR_CFLAGS)
-device_blacklist_unittest_LDADD = -lgtest -liniparser -lpthread
+device_blocklist_unittest_LDADD = -lgtest -liniparser -lpthread
 
 device_monitor_unittest_SOURCES = tests/device_monitor_unittest.cc
 device_monitor_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \

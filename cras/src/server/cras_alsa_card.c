@@ -14,7 +14,7 @@
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_ucm.h"
-#include "cras_device_blacklist.h"
+#include "cras_device_blocklist.h"
 #include "cras_card_config.h"
 #include "cras_config.h"
 #include "cras_iodev.h"
@@ -146,15 +146,15 @@ static int card_has_hctl_jack(struct cras_alsa_card *alsa_card)
 }
 
 /* Check if a device should be ignored for this card. Returns non-zero if the
- * device is in the blacklist and should be ignored.
+ * device is in the blocklist and should be ignored.
  */
 static int should_ignore_dev(struct cras_alsa_card_info *info,
-			     struct cras_device_blacklist *blacklist,
+			     struct cras_device_blocklist *blocklist,
 			     size_t device_index)
 {
 	if (info->card_type == ALSA_CARD_TYPE_USB)
-		return cras_device_blacklist_check(
-			blacklist, info->usb_vendor_id, info->usb_product_id,
+		return cras_device_blocklist_check(
+			blocklist, info->usb_vendor_id, info->usb_product_id,
 			info->usb_desc_checksum, device_index);
 	return 0;
 }
@@ -195,7 +195,7 @@ static void alsa_control_event_pending(void *arg, int revent)
 
 static int
 add_controls_and_iodevs_by_matching(struct cras_alsa_card_info *info,
-				    struct cras_device_blacklist *blacklist,
+				    struct cras_device_blocklist *blocklist,
 				    struct cras_alsa_card *alsa_card,
 				    const char *card_name, snd_ctl_t *handle)
 {
@@ -258,7 +258,7 @@ add_controls_and_iodevs_by_matching(struct cras_alsa_card_info *info,
 		/* Check for playback devices. */
 		snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_PLAYBACK);
 		if (snd_ctl_pcm_info(handle, dev_info) == 0 &&
-		    !should_ignore_dev(info, blacklist, dev_idx)) {
+		    !should_ignore_dev(info, blocklist, dev_idx)) {
 			struct cras_iodev *iodev = create_iodev_for_device(
 				alsa_card, info, card_name,
 				snd_pcm_info_get_name(dev_info),
@@ -449,7 +449,7 @@ static void configure_echo_reference_dev(struct cras_alsa_card *alsa_card)
 
 struct cras_alsa_card *cras_alsa_card_create(
 	struct cras_alsa_card_info *info, const char *device_config_dir,
-	struct cras_device_blacklist *blacklist, const char *ucm_suffix)
+	struct cras_device_blocklist *blocklist, const char *ucm_suffix)
 {
 	snd_ctl_t *handle = NULL;
 	int rc, n;
@@ -553,7 +553,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 						      card_name, handle);
 	else
 		rc = add_controls_and_iodevs_by_matching(
-			info, blacklist, alsa_card, card_name, handle);
+			info, blocklist, alsa_card, card_name, handle);
 	if (rc)
 		goto error_bail;
 

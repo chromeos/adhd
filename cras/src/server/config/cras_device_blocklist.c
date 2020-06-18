@@ -3,11 +3,11 @@
  * found in the LICENSE file.
  */
 
-#include "cras_device_blacklist.h"
+#include "cras_device_blocklist.h"
 #include "iniparser_wrapper.h"
 #include "utlist.h"
 
-struct cras_device_blacklist {
+struct cras_device_blocklist {
 	dictionary *ini;
 };
 
@@ -15,42 +15,42 @@ struct cras_device_blacklist {
  * Exported Interface
  */
 
-struct cras_device_blacklist *
-cras_device_blacklist_create(const char *config_path)
+struct cras_device_blocklist *
+cras_device_blocklist_create(const char *config_path)
 {
-	struct cras_device_blacklist *blacklist;
+	struct cras_device_blocklist *blocklist;
 	char ini_name[MAX_INI_NAME_LENGTH + 1];
 
-	blacklist = calloc(1, sizeof(*blacklist));
-	if (!blacklist)
+	blocklist = calloc(1, sizeof(*blocklist));
+	if (!blocklist)
 		return NULL;
 
 	snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", config_path,
-		 "device_blacklist");
+		 "device_blocklist");
 	ini_name[MAX_INI_NAME_LENGTH] = '\0';
-	blacklist->ini = iniparser_load_wrapper(ini_name);
+	blocklist->ini = iniparser_load_wrapper(ini_name);
 
-	return blacklist;
+	return blocklist;
 }
 
-void cras_device_blacklist_destroy(struct cras_device_blacklist *blacklist)
+void cras_device_blocklist_destroy(struct cras_device_blocklist *blocklist)
 {
-	if (blacklist && blacklist->ini)
-		iniparser_freedict(blacklist->ini);
-	free(blacklist);
+	if (blocklist && blocklist->ini)
+		iniparser_freedict(blocklist->ini);
+	free(blocklist);
 }
 
-int cras_device_blacklist_check(struct cras_device_blacklist *blacklist,
+int cras_device_blocklist_check(struct cras_device_blocklist *blocklist,
 				unsigned vendor_id, unsigned product_id,
 				unsigned desc_checksum, unsigned device_index)
 {
 	char ini_key[MAX_INI_KEY_LENGTH + 1];
 
-	if (!blacklist)
+	if (!blocklist)
 		return 0;
 
 	snprintf(ini_key, MAX_INI_KEY_LENGTH, "USB_Outputs:%04x_%04x_%08x_%u",
 		 vendor_id, product_id, desc_checksum, device_index);
 	ini_key[MAX_INI_KEY_LENGTH] = 0;
-	return iniparser_getboolean(blacklist->ini, ini_key, 0);
+	return iniparser_getboolean(blocklist->ini, ini_key, 0);
 }

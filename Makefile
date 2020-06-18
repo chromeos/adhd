@@ -52,7 +52,7 @@ cras_init: cras_init_upstart cras_init_scripts
 
 endif
 
-$(DESTDIR)/etc/cras/device_blacklist:	$(ADHD_DIR)/cras-config/device_blacklist
+$(DESTDIR)/etc/cras/device_blocklist:	$(ADHD_DIR)/cras-config/device_blocklist
 	$(ECHO) "Installing '$<' to '$@'"
 	$(INSTALL) --mode 644 -D $< $@
 
@@ -83,7 +83,7 @@ install:	$(DESTDIR)/lib/firmware/$(BOARD)_alsa.fw
 
 endif
 
-install:	$(DESTDIR)/etc/cras/device_blacklist \
+install:	$(DESTDIR)/etc/cras/device_blocklist \
 		cras-scripts \
 		cras_install \
 		cras_init

@@ -430,7 +430,7 @@ extern "C" {
 struct cras_alsa_card* cras_alsa_card_create(
     struct cras_alsa_card_info* info,
     const char* device_config_dir,
-    struct cras_device_blacklist* blacklist) {
+    struct cras_device_blocklist* blocklist) {
   cras_alsa_card_create_called++;
   cras_alsa_card_config_dir = device_config_dir;
   return kFakeAlsaCard;
@@ -444,12 +444,12 @@ size_t cras_alsa_card_get_index(const struct cras_alsa_card* alsa_card) {
   return 0;
 }
 
-struct cras_device_blacklist* cras_device_blacklist_create(
+struct cras_device_blocklist* cras_device_blocklist_create(
     const char* config_path) {
   return NULL;
 }
 
-void cras_device_blacklist_destroy(struct cras_device_blacklist* blacklist) {}
+void cras_device_blocklist_destroy(struct cras_device_blocklist* blocklist) {}
 
 struct cras_alert* cras_alert_create(cras_alert_prepare prepare,
                                      unsigned int flags) {

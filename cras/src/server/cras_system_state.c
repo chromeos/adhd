@@ -16,7 +16,7 @@
 #include "cras_alsa_card.h"
 #include "cras_board_config.h"
 #include "cras_config.h"
-#include "cras_device_blacklist.h"
+#include "cras_device_blocklist.h"
 #include "cras_observer.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
@@ -46,7 +46,7 @@ struct name_list {
  *    device_config_dir - Directory of device configs where volume curves live.
  *    internal_ucm_suffix - The suffix to append to internal card name to
  *        control which ucm config file to load.
- *    device_blacklist - Blacklist of device the server will ignore.
+ *    device_blocklist - Blocklist of device the server will ignore.
  *    cards - A list of active sound cards in the system.
  *    update_lock - Protects the update_count, as audio threads can update the
  *      stream count.
@@ -66,7 +66,7 @@ static struct {
 	const char *device_config_dir;
 	const char *internal_ucm_suffix;
 	struct name_list *ignore_suffix_cards;
-	struct cras_device_blacklist *device_blacklist;
+	struct cras_device_blocklist *device_blocklist;
 	struct card_list *cards;
 	pthread_mutex_t update_lock;
 	struct cras_tm *tm;
@@ -165,9 +165,9 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	state.exp_state = exp_state;
 
 	/* Directory for volume curve configs.
-	 * Note that device_config_dir does not affect device blacklist.
-	 * Device blacklist is common to all boards so we do not need
-	 * to change device blacklist at run time. */
+	 * Note that device_config_dir does not affect device blocklist.
+	 * Device blocklist is common to all boards so we do not need
+	 * to change device blocklist at run time. */
 	state.device_config_dir = device_config_dir;
 	state.internal_ucm_suffix = NULL;
 	init_ignore_suffix_cards(board_config.ucm_ignore_suffix);
@@ -179,9 +179,9 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 		exit(-ENOMEM);
 	}
 
-	/* Read config file for blacklisted devices. */
-	state.device_blacklist =
-		cras_device_blacklist_create(CRAS_CONFIG_FILE_DIR);
+	/* Read config file for blocklisted devices. */
+	state.device_blocklist =
+		cras_device_blocklist_create(CRAS_CONFIG_FILE_DIR);
 
 	/* Initialize snapshot buffer memory */
 	memset(&state.snapshot_buffer, 0,
@@ -202,7 +202,7 @@ void cras_system_state_deinit()
 {
 	/* Free any resources used.  This prevents unit tests from leaking. */
 
-	cras_device_blacklist_destroy(state.device_blacklist);
+	cras_device_blocklist_destroy(state.device_blocklist);
 
 	cras_tm_deinit(state.tm);
 
@@ -419,7 +419,7 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
 	}
 	alsa_card =
 		cras_alsa_card_create(alsa_card_info, state.device_config_dir,
-				      state.device_blacklist,
+				      state.device_blocklist,
 				      state.internal_ucm_suffix);
 	if (alsa_card == NULL)
 		return -ENOMEM;

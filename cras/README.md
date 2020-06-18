@@ -43,10 +43,10 @@ features for CRAS and its unit tests.
 
 # Configuration:
 
-## Device Blacklisting:
+## Device Blocklisting:
 
-Blacklist of certain USB output device(s) is possible by modifying the config
-file `/etc/cras/device_blacklist`.
+Blocklist of certain USB output device(s) is possible by modifying the config
+file `/etc/cras/device_blocklist`.
 
 The format of this file is as follows:
 ```
@@ -54,12 +54,12 @@ The format of this file is as follows:
   <vendor_id>_<product_id>_<checksum>_<device_index> = 1
 ```
 Where vendor_id and product id are the USB identifiers for the card to
-blacklist. The checksum is the output of "cksum" command applied to the
+blocklist. The checksum is the output of "cksum" command applied to the
 sysfs "descriptors" file of the device. The device index specifies the
-index of the output device in the card to blacklist.  This is a bool
+index of the output device in the card to blocklist.  This is a bool
 parameter, so '= 1' enables the option.
 
-Example, blacklisting the non-functional output device reported by the C-Media
+Example, blocklisting the non-functional output device reported by the C-Media
 based CAD-u1 mic:
 ```
 [USB_Outputs]
