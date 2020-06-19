@@ -1071,13 +1071,17 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 
 	/* Calculate whether the final output was non-empty, if requested. */
 	if (is_non_empty) {
-		unsigned int i;
-		for (i = 0; i < nframes * cras_get_format_bytes(fmt); i++) {
-			if (frames[i]) {
-				*is_non_empty = 1;
-				break;
-			}
-		}
+		const size_t bytes = nframes * cras_get_format_bytes(fmt);
+
+		/*
+		 * Speed up checking frames are all zeros using memcmp.
+		 * frames contains all zeros if both conditions are met:
+		 *  - frames[0] is 0.
+		 *  - frames[i] == frames[i+1] for i in [0, 1, ..., bytes - 2].
+		 */
+		*is_non_empty = bytes ? (*frames || memcmp(frames, frames + 1,
+							   bytes - 1)) :
+					0;
 	}
 
 	DL_FOREACH (iodev->loopbacks, loopback) {
