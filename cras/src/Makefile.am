@@ -877,11 +877,11 @@ iodev_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 iodev_list_unittest_LDADD = -lgtest -lpthread
 
 loopback_iodev_unittest_SOURCES = tests/loopback_iodev_unittest.cc \
-	server/cras_loopback_iodev.c common/sfh.c
+	server/cras_loopback_iodev.c common/cras_shm.c common/sfh.c
 loopback_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-loopback_iodev_unittest_LDADD = -lgtest -lpthread
+loopback_iodev_unittest_LDADD = -lgtest -lpthread -lrt
 
 input_data_unittest_SOURCES = tests/input_data_unittest.cc \
 	server/input_data.c

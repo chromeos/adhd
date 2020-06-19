@@ -7,6 +7,7 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "audio_thread_log.h"
 #include "byte_buffer.h"
 #include "cras_audio_area.h"
 #include "cras_config.h"
@@ -85,6 +86,9 @@ static int sample_hook(const uint8_t *frames, unsigned int nframes,
 		nframes -= frames_to_copy;
 		frames_copied += frames_to_copy;
 	}
+
+	ATLOG(atlog, AUDIO_THREAD_LOOPBACK_SAMPLE_HOOK, nframes + frames_copied,
+	      frames_copied, 0);
 
 	return frames_copied;
 }
@@ -215,6 +219,8 @@ static int get_record_buffer(struct cras_iodev *iodev,
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 	unsigned int avail_frames = buf_readable(sbuf) / frame_bytes;
 
+	ATLOG(atlog, AUDIO_THREAD_LOOPBACK_GET, *frames, avail_frames, 0);
+
 	*frames = MIN(avail_frames, *frames);
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
@@ -232,6 +238,7 @@ static int put_record_buffer(struct cras_iodev *iodev, unsigned nframes)
 
 	buf_increment_read(sbuf, nframes * frame_bytes);
 	loopdev->read_frames += nframes;
+	ATLOG(atlog, AUDIO_THREAD_LOOPBACK_PUT, nframes, 0, 0);
 	return 0;
 }
 

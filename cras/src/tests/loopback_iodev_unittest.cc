@@ -7,6 +7,11 @@
 #include <stdlib.h>
 
 extern "C" {
+// For audio_thread_log.h use.
+struct audio_thread_event_log* atlog;
+int atlog_rw_shm_fd;
+int atlog_ro_shm_fd;
+#include "audio_thread_log.h"
 #include "cras_audio_area.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -36,6 +41,8 @@ static void* device_enabled_callback_cb_data;
 static int cras_iodev_list_register_loopback_called;
 static int cras_iodev_list_unregister_loopback_called;
 
+static char* atlog_name;
+
 class LoopBackTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
@@ -58,6 +65,11 @@ class LoopBackTestSuite : public testing::Test {
     cras_iodev_list_set_device_enabled_callback_called = 0;
     cras_iodev_list_register_loopback_called = 0;
     cras_iodev_list_unregister_loopback_called = 0;
+
+    ASSERT_FALSE(asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0);
+    /* To avoid un-used variable warning. */
+    atlog_rw_shm_fd = atlog_ro_shm_fd = -1;
+    atlog = audio_thread_event_log_init(atlog_name);
   }
 
   virtual void TearDown() {
@@ -66,6 +78,8 @@ class LoopBackTestSuite : public testing::Test {
     EXPECT_EQ(NULL, device_enabled_callback_cb);
     EXPECT_EQ(NULL, device_disabled_callback_cb);
     free(dummy_audio_area);
+    audio_thread_event_log_deinit(atlog, atlog_name);
+    free(atlog_name);
   }
 
   uint8_t buf_[kBufferSize];

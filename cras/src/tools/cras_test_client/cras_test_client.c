@@ -700,6 +700,17 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s dev:%u frames:%u\n", "DEV_DROP_FRAMES", data1,
 		       data2);
 		break;
+	case AUDIO_THREAD_LOOPBACK_PUT:
+		printf("%-30s nframes_committed:%u\n", "LOOPBACK_PUT", data1);
+		break;
+	case AUDIO_THREAD_LOOPBACK_GET:
+		printf("%-30s nframes_requested:%u avail:%u\n", "LOOPBACK_GET",
+		       data1, data2);
+		break;
+	case AUDIO_THREAD_LOOPBACK_SAMPLE_HOOK:
+		printf("%-30s frames_to_copy:%u frames_copied:%u\n",
+		       "LOOPBACK_SAMPLE", data1, data2);
+		break;
 	default:
 		printf("%-30s tag:%u\n", "UNKNOWN", tag);
 		break;
