@@ -60,6 +60,9 @@ static int sample_hook_start(bool start, void *cb_data)
 
 /*
  * Called in the put buffer function of the sender that hooked to.
+ *
+ * Returns:
+ *   Number of frames copied to the sample buffer in the hook.
  */
 static int sample_hook(const uint8_t *frames, unsigned int nframes,
 		       const struct cras_audio_format *fmt, void *cb_data)
@@ -67,17 +70,23 @@ static int sample_hook(const uint8_t *frames, unsigned int nframes,
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)cb_data;
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
 	unsigned int frame_bytes = cras_get_format_bytes(fmt);
-	unsigned int frames_to_copy, bytes_to_copy;
+	unsigned int frames_to_copy, bytes_to_copy, frames_copied = 0;
+	int i;
 
-	frames_to_copy = MIN(buf_writable(sbuf) / frame_bytes, nframes);
-	if (!frames_to_copy)
-		return 0;
+	for (i = 0; i < 2; i++) {
+		frames_to_copy = MIN(buf_writable(sbuf) / frame_bytes, nframes);
+		if (!frames_to_copy)
+			break;
 
-	bytes_to_copy = frames_to_copy * frame_bytes;
-	memcpy(buf_write_pointer(sbuf), frames, bytes_to_copy);
-	buf_increment_write(sbuf, bytes_to_copy);
+		bytes_to_copy = frames_to_copy * frame_bytes;
+		memcpy(buf_write_pointer(sbuf), frames, bytes_to_copy);
+		buf_increment_write(sbuf, bytes_to_copy);
+		frames += bytes_to_copy;
+		nframes -= frames_to_copy;
+		frames_copied += frames_to_copy;
+	}
 
-	return frames_to_copy;
+	return frames_copied;
 }
 
 static void update_first_output_to_loopback(struct loopback_iodev *loopdev)
