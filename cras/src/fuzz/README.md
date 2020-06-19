@@ -11,11 +11,16 @@ Detailed instructions are available at: https://github.com/google/oss-fuzz/blob/
 ```
 sudo adduser $USER docker
 ```
+### Sync to the latest base-builder
+```
+docker pull gcr.io/oss-fuzz-base/base-builder
+```
 
 ### Build a container from the adhd directory
 ```
 docker build -t ossfuzz/cras -f cras/src/fuzz/Dockerfile .
 ```
+Add `--no-cache` if you want a complete rebuild.
 
 ### Build fuzzers
 ```
