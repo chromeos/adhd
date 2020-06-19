@@ -191,6 +191,50 @@ TEST_F(DevIoSuite, SendCapturedNoNeedToResetDevices) {
   EXPECT_EQ(false, rc);
 }
 
+/*
+ * On loopback and hotword devices, if any hw_level is larger than
+ *  1.5 * largest_cb_level and DROP_FRAMES_THRESHOLD_MS, do nothing.
+ */
+TEST_F(DevIoSuite, SendCapturedNoNeedToDrop) {
+  struct timespec start;
+  struct timespec drop_time;
+  struct open_dev* dev_list = NULL;
+  bool rc;
+
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  AddFakeDataToStream(stream.get(), 0);
+
+  DevicePtr dev1 =
+      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_HOTWORD);
+  DevicePtr dev2 = create_device(CRAS_STREAM_INPUT, 480, &format,
+                                 CRAS_NODE_TYPE_POST_MIX_PRE_DSP);
+  DevicePtr dev3 =
+      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_POST_DSP);
+
+  DL_APPEND(dev_list, dev1->odev.get());
+  DL_APPEND(dev_list, dev2->odev.get());
+  DL_APPEND(dev_list, dev3->odev.get());
+
+  add_stream_to_dev(dev1->dev, stream);
+  add_stream_to_dev(dev2->dev, stream);
+  add_stream_to_dev(dev3->dev, stream);
+
+  iodev_stub_frames_queued(dev1->dev.get(), 4800, start);
+  iodev_stub_frames_queued(dev2->dev.get(), 4800, start);
+  iodev_stub_frames_queued(dev2->dev.get(), 4800, start);
+
+  EXPECT_EQ(0, dev_io_send_captured_samples(dev_list));
+
+  rc = iodev_stub_get_drop_time(dev1->dev.get(), &drop_time);
+  EXPECT_EQ(false, rc);
+
+  rc = iodev_stub_get_drop_time(dev2->dev.get(), &drop_time);
+  EXPECT_EQ(false, rc);
+
+  rc = iodev_stub_get_drop_time(dev3->dev.get(), &drop_time);
+  EXPECT_EQ(false, rc);
+}
+
 /* Stubs */
 extern "C" {
 

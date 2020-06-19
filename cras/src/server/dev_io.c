@@ -342,7 +342,9 @@ static bool input_devices_can_drop_samples(struct cras_iodev *iodev)
 	if (!iodev->streams)
 		return false;
 	if (!iodev->active_node ||
-	    iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD)
+	    iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD ||
+	    iodev->active_node->type == CRAS_NODE_TYPE_POST_MIX_PRE_DSP ||
+	    iodev->active_node->type == CRAS_NODE_TYPE_POST_DSP)
 		return false;
 	return true;
 }
