@@ -50,6 +50,11 @@ int cras_audio_thread_event_send(enum CRAS_AUDIO_THREAD_EVENT_TYPE event_type)
 	return cras_main_message_send(&msg.header);
 }
 
+int cras_audio_thread_event_a2dp_overrun()
+{
+	return cras_audio_thread_event_send(AUDIO_THREAD_EVENT_A2DP_OVERRUN);
+}
+
 int cras_audio_thread_event_a2dp_throttle()
 {
 	return cras_audio_thread_event_send(AUDIO_THREAD_EVENT_A2DP_THROTTLE);

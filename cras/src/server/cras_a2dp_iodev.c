@@ -437,6 +437,8 @@ do_flush:
 			audio_thread_config_events_callback(
 				cras_bt_transport_fd(a2dpio->transport),
 				TRIGGER_WAKEUP);
+			cras_audio_thread_event_a2dp_overrun();
+			syslog(LOG_WARNING, "Buffer overrun in A2DP iodev");
 		}
 		return 0;
 	}

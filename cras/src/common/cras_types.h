@@ -422,6 +422,7 @@ struct __attribute__((__packed__)) cras_bt_debug_info {
  * or they will be ignored by the handler.
  */
 enum CRAS_AUDIO_THREAD_EVENT_TYPE {
+	AUDIO_THREAD_EVENT_A2DP_OVERRUN,
 	AUDIO_THREAD_EVENT_A2DP_THROTTLE,
 	AUDIO_THREAD_EVENT_BUSYLOOP,
 	AUDIO_THREAD_EVENT_DEBUG,

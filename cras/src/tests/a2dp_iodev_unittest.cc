@@ -878,6 +878,10 @@ void audio_thread_config_events_callback(
 }
 }
 
+int cras_audio_thread_event_a2dp_overrun() {
+  return 0;
+}
+
 int cras_audio_thread_event_a2dp_throttle() {
   return 0;
 }
