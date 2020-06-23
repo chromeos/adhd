@@ -125,16 +125,17 @@ static int frames_queued(const struct cras_iodev *iodev,
 
 /*
  * Utility function to fill zero frames until buffer level reaches
- * min_buffer_level. This is useful to allocate just enough data to write
+ * target_level. This is useful to allocate just enough data to write
  * to controller, while not introducing extra latency.
  */
-static int fill_zeros_to_min_buffer_level(struct cras_iodev *iodev)
+static int fill_zeros_to_target_level(struct cras_iodev *iodev,
+				      unsigned int target_level)
 {
 	unsigned int local_queued_frames = bt_local_queued_frames(iodev);
 
-	if (local_queued_frames < iodev->min_buffer_level)
+	if (local_queued_frames < target_level)
 		return cras_iodev_fill_odev_zeros(
-			iodev, iodev->min_buffer_level - local_queued_frames);
+			iodev, target_level - local_queued_frames);
 	return 0;
 }
 
@@ -170,15 +171,19 @@ static int output_underrun(struct cras_iodev *iodev)
 }
 
 /*
- * This wil be called multiple times when a2dpio is in no_stream state.
- * Simply fill zero frames to one write_block to ensure enough audio data
- * can be written at next flush_period.
+ * This will be called multiple times when a2dpio is in no_stream state
+ * frames_to_play_in_sleep ops determins how regular this will be called.
  */
 static int enter_no_stream(struct a2dp_io *a2dpio)
 {
 	struct cras_iodev *odev = &a2dpio->base;
 	int rc;
-	rc = fill_zeros_to_min_buffer_level(odev);
+	/*
+         * Setting target level to 3 times of min_buffer_level.
+         * We want hw_level to stay bewteen 1-2 times of min_buffer_level on
+	 * top of the underrun threshold(i.e one min_cb_level).
+         */
+	rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
 	if (rc)
 		syslog(LOG_ERR, "Error in A2DP enter_no_stream");
 	return encode_and_flush(odev);
@@ -194,14 +199,19 @@ static int leave_no_stream(struct a2dp_io *a2dpio)
 	struct cras_iodev *odev = &a2dpio->base;
 
 	/*
-	 * Less than mib_buffer_level could easily get into underrun with small
-	 * size stream.
-	 * More than min_buffer_level means unecessary latency to subsequent
-	 * stream.
-	 */
-	return fill_zeros_to_min_buffer_level(odev);
+	 * Since stream data is ready, just make sure hw_level doesn't underrun
+	 * after one flush. Hence setting the target level to 2 times of
+	 * min_buffer_level.
+         */
+	return fill_zeros_to_target_level(odev, 2 * odev->min_buffer_level);
 }
 
+/*
+ * Makes sure there's enough data(zero frames) to flush when no stream presents.
+ * Note that the underrun condition is when real buffer level goes below
+ * min_buffer_level, so we want to keep data at a reasonable higher level on top
+ * of that.
+ */
 static int no_stream(struct cras_iodev *odev, int enable)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)odev;

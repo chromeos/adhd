@@ -557,7 +557,51 @@ TEST_F(A2dpIodev, HandleUnderrun) {
   a2dp_iodev_destroy(iodev);
 }
 
-TEST_F(A2dpIodev, NoStreamState) {
+TEST_F(A2dpIodev, LeavingNoStreamStateWithSmallStreamDoesntUnderrun) {
+  struct cras_iodev* iodev;
+  struct cras_audio_area* area;
+  struct timespec tstamp;
+  unsigned frames;
+  struct a2dp_io* a2dpio;
+
+  iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
+
+  iodev_set_format(iodev, &format);
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  iodev->configure_dev(iodev);
+  ASSERT_NE(write_callback, (void*)NULL);
+  /* (950 - 13)/ 128 * 512 / 4 */
+  ASSERT_EQ(896, iodev->min_buffer_level);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  /* Put iodev in no_stream state. Verify it doesn't underrun after each
+   * call of no_stream ops. */
+  a2dp_write_return_val[0] = 0;
+  iodev->no_stream(iodev, 1);
+  EXPECT_EQ(1, a2dp_write_index);
+  EXPECT_EQ(a2dpio->flush_period.tv_nsec, a2dpio->next_flush_time.tv_nsec);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  EXPECT_LE(iodev->min_buffer_level, frames);
+
+  /* Some time has passed and a small stream of 200 frames block is added.
+   * Verify leaving no_stream state doesn't underrun immediately. */
+  time_now.tv_nsec = 20000000;
+  iodev->no_stream(iodev, 1);
+  frames = 200;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, 200);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  EXPECT_LE(iodev->min_buffer_level, frames);
+
+  iodev->close_dev(iodev);
+  a2dp_iodev_destroy(iodev);
+}
+
+TEST_F(A2dpIodev, NoStreamStateFillZerosToTargetLevel) {
   struct cras_iodev* iodev;
   struct cras_audio_area* area;
   struct timespec tstamp;
@@ -589,60 +633,83 @@ TEST_F(A2dpIodev, NoStreamState) {
   EXPECT_EQ(a2dpio->flush_period.tv_nsec, a2dpio->next_flush_time.tv_nsec);
 
   /* Some time has passed but not yet reach next flush. Entering no_stream
-   * should get at least min_buffer_level frames of data queued. */
+   * fills buffer to 3 times of min_buffer_level. */
   time_now.tv_nsec = 10000000;
   iodev->no_stream(iodev, 1);
   frames = iodev->frames_queued(iodev, &tstamp);
-  EXPECT_LE(iodev->min_buffer_level, frames);
+  EXPECT_EQ(3 * iodev->min_buffer_level, frames);
 
-  /* Time has passed next flush time, expect  */
+  /* Time has passed next flush time, expect one block is flushed.  */
   a2dp_write_return_val[1] = 0;
   time_now.tv_nsec = 25000000;
   iodev->no_stream(iodev, 1);
   frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(0, frames);
+  ASSERT_EQ(2 * iodev->min_buffer_level, frames);
   EXPECT_EQ(2, a2dp_write_index);
 
-  /* Leaving no_stream state fills buffer level back to min_buffer_level. */
+  /* Leaving no_stream state fills buffer level back to  2 * min_buffer_level.
+   */
   a2dp_write_return_val[2] = 0;
   time_now.tv_nsec = 30000000;
   iodev->no_stream(iodev, 0);
   frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(iodev->min_buffer_level, frames);
+  ASSERT_EQ(2 * iodev->min_buffer_level, frames);
   EXPECT_EQ(2, a2dp_write_index);
-
-  /* Prepare 1000 more frames and enter no_stream, expect one block of
-   * data written. And no more zeros filled because buffer level is
-   * already higher than min_buffer_level.
-   */
-  a2dp_write_return_val[2] = 0;
-  a2dp_write_return_val[3] = 0;
-  frames = 1000;
-  iodev->get_buffer(iodev, &area, &frames);
-  iodev->put_buffer(iodev, 1000);
-
-  time_now.tv_nsec = 50000000;
-  iodev->no_stream(iodev, 1);
-  frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(1000, frames);
-  EXPECT_EQ(3, a2dp_write_index);
-
-  /* No more data written, because next_flush_time not reached. */
-  iodev->no_stream(iodev, 1);
-  frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(1000, frames);
-  EXPECT_EQ(3, a2dp_write_index);
-
-  /* The old queued data level is higher than min_buffer_level. Expect leaving
-   * no_stream still gets the same amount of buffer level. */
-  iodev->no_stream(iodev, 0);
-  frames = iodev->frames_queued(iodev, &tstamp);
-  ASSERT_EQ(1000, frames);
 
   iodev->close_dev(iodev);
   a2dp_iodev_destroy(iodev);
 }
 
+TEST_F(A2dpIodev, EnterNoStreamStateAtHighBufferLevelDoesntFillMore) {
+  struct cras_iodev* iodev;
+  struct cras_audio_area* area;
+  struct timespec tstamp;
+  unsigned frames, start_level;
+  struct a2dp_io* a2dpio;
+
+  iodev = a2dp_iodev_create(fake_transport);
+  a2dpio = (struct a2dp_io*)iodev;
+
+  iodev_set_format(iodev, &format);
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
+  iodev->configure_dev(iodev);
+  ASSERT_NE(write_callback, (void*)NULL);
+  /* (950 - 13)/ 128 * 512 / 4 */
+  ASSERT_EQ(896, iodev->min_buffer_level);
+
+  iodev->start(iodev);
+  iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  a2dp_write_return_val[0] = 0;
+  start_level = 6000;
+  frames = start_level;
+  iodev->get_buffer(iodev, &area, &frames);
+  iodev->put_buffer(iodev, frames);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  /* Assert one block has fluxhed */
+  EXPECT_EQ(start_level - iodev->min_buffer_level, frames);
+  EXPECT_EQ(1, a2dp_write_index);
+  EXPECT_EQ(a2dpio->flush_period.tv_nsec, a2dpio->next_flush_time.tv_nsec);
+
+  a2dp_write_return_val[1] = 0;
+  time_now.tv_nsec = 25000000;
+  iodev->no_stream(iodev, 1);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  /* Next flush time meets requirement so another block is flushed. */
+  ASSERT_EQ(start_level - 2 * iodev->min_buffer_level, frames);
+
+  a2dp_write_return_val[2] = 0;
+  time_now.tv_nsec = 50000000;
+  iodev->no_stream(iodev, 1);
+  frames = iodev->frames_queued(iodev, &tstamp);
+  /* Another block flushed at leaving no stream state. No more data
+   * filled because level is high. */
+  ASSERT_EQ(start_level - 3 * iodev->min_buffer_level, frames);
+
+  iodev->close_dev(iodev);
+  a2dp_iodev_destroy(iodev);
+}
 }  // namespace
 
 int main(int argc, char** argv) {
