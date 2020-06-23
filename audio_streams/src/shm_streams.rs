@@ -126,6 +126,9 @@ pub trait ShmStream: Send {
     /// Get the size of a frame of audio data for this stream.
     fn frame_size(&self) -> usize;
 
+    /// Get the number of channels of audio data for this stream.
+    fn num_channels(&self) -> usize;
+
     /// Waits until the next server message indicating action is required.
     ///
     /// For playback streams, this will be `AUDIO_MESSAGE_REQUEST_DATA`, meaning
@@ -210,6 +213,7 @@ pub trait ShmStreamSource: Send {
 
 /// Class that implements ShmStream trait but does nothing with the samples
 pub struct NullShmStream {
+    num_channels: usize,
     buffer_size: usize,
     frame_size: usize,
     interval: Duration,
@@ -228,6 +232,7 @@ impl NullShmStream {
     ) -> Self {
         let interval = Duration::from_millis(buffer_size as u64 * 1000 / frame_rate as u64);
         Self {
+            num_channels,
             buffer_size,
             frame_size: format.sample_bytes() * num_channels,
             interval,
@@ -250,6 +255,10 @@ impl BufferSet for NullShmStream {
 impl ShmStream for NullShmStream {
     fn frame_size(&self) -> usize {
         self.frame_size
+    }
+
+    fn num_channels(&self) -> usize {
+        self.num_channels
     }
 
     fn wait_for_next_action_with_timeout<'a>(
@@ -299,6 +308,7 @@ impl ShmStreamSource for NullShmStreamSource {
 
 #[derive(Clone)]
 pub struct MockShmStream {
+    num_channels: usize,
     request_size: usize,
     frame_size: usize,
     request_notifier: Arc<(Mutex<bool>, Condvar)>,
@@ -309,6 +319,7 @@ impl MockShmStream {
     /// channels, format, and buffer_size.
     pub fn new(num_channels: usize, format: SampleFormat, buffer_size: usize) -> Self {
         Self {
+            num_channels,
             request_size: buffer_size,
             frame_size: format.sample_bytes() * num_channels,
             request_notifier: Arc::new((Mutex::new(false), Condvar::new())),
@@ -361,6 +372,10 @@ impl BufferSet for MockShmStream {
 impl ShmStream for MockShmStream {
     fn frame_size(&self) -> usize {
         self.frame_size
+    }
+
+    fn num_channels(&self) -> usize {
+        self.num_channels
     }
 
     fn wait_for_next_action_with_timeout<'a>(
