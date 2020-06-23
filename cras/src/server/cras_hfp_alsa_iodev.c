@@ -45,31 +45,8 @@ static int hfp_alsa_update_supported_formats(struct cras_iodev *iodev)
 {
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
-	int rc, i;
 
 	/* 16 bit, mono, 8kHz (narrow band speech); */
-	rc = aio->update_supported_formats(aio);
-	if (rc)
-		return rc;
-
-	for (i = 0; aio->supported_rates[i]; ++i)
-		if (aio->supported_rates[i] == 8000)
-			break;
-	if (aio->supported_rates[i] != 8000)
-		return -EINVAL;
-
-	for (i = 0; aio->supported_channel_counts[i]; ++i)
-		if (aio->supported_channel_counts[i] == 1)
-			break;
-	if (aio->supported_channel_counts[i] != 1)
-		return -EINVAL;
-
-	for (i = 0; aio->supported_formats[i]; ++i)
-		if (aio->supported_formats[i] == SND_PCM_FORMAT_S16_LE)
-			break;
-	if (aio->supported_formats[i] != SND_PCM_FORMAT_S16_LE)
-		return -EINVAL;
-
 	free(aio->format);
 	aio->format = malloc(sizeof(struct cras_audio_format));
 	if (!aio->format)

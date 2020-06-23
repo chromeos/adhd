@@ -221,7 +221,8 @@ TEST_F(HfpAlsaIodev, UpdateSupportedFormat) {
                                 CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
   iodev->update_supported_formats(iodev);
 
-  EXPECT_EQ(1, fake_update_supported_formats_called);
+  // update_supported_format on alsa_io is not called.
+  EXPECT_EQ(0, fake_update_supported_formats_called);
   for (size_t i = 0; i < 2; ++i) {
     EXPECT_EQ(supported_rates[i], iodev->supported_rates[i]);
     EXPECT_EQ(supported_channel_counts[i], iodev->supported_channel_counts[i]);
