@@ -1254,7 +1254,6 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 {
 	struct cras_iodev *iodev = &aio->base;
 	struct alsa_input_node *input;
-	char *mic_positions;
 	int err;
 
 	input = (struct alsa_input_node *)calloc(1, sizeof(*input));
@@ -1275,18 +1274,6 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	set_input_node_intrinsic_sensitivity(input, aio);
 
 	if (aio->ucm) {
-		/* Check mic positions only for internal mic. */
-		if ((input->base.type == CRAS_NODE_TYPE_MIC) &&
-		    (input->base.position == NODE_POSITION_INTERNAL)) {
-			mic_positions = ucm_get_mic_positions(aio->ucm);
-			if (mic_positions) {
-				strncpy(input->base.mic_positions,
-					mic_positions,
-					sizeof(input->base.mic_positions) - 1);
-				free(mic_positions);
-			}
-		}
-
 		/* Check if channel map is specified in UCM. */
 		input->channel_layout = (int8_t *)malloc(
 			CRAS_CH_MAX * sizeof(*input->channel_layout));

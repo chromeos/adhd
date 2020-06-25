@@ -18,7 +18,6 @@ static const char jack_dev_var[] = "JackDev";
 static const char jack_switch_var[] = "JackSwitch";
 static const char edid_var[] = "EDIDFile";
 static const char cap_var[] = "CaptureControl";
-static const char mic_positions[] = "MicPositions";
 static const char override_type_name_var[] = "OverrideNodeType";
 static const char dsp_name_var[] = "DspName";
 static const char mixer_var[] = "MixerName";
@@ -527,21 +526,6 @@ char *ucm_get_cap_control(struct cras_use_case_mgr *mgr, const char *ucm_dev)
 	int rc;
 
 	rc = get_var(mgr, cap_var, ucm_dev, uc_verb(mgr), &value);
-	if (!rc) {
-		control_name = strdup(value);
-		free((void *)value);
-	}
-
-	return control_name;
-}
-
-char *ucm_get_mic_positions(struct cras_use_case_mgr *mgr)
-{
-	char *control_name = NULL;
-	const char *value;
-	int rc;
-
-	rc = get_var(mgr, mic_positions, "", uc_verb(mgr), &value);
 	if (!rc) {
 		control_name = strdup(value);
 		free((void *)value);

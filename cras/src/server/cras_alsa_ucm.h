@@ -98,15 +98,6 @@ char *ucm_get_flag(struct cras_use_case_mgr *mgr, const char *flag_name);
  */
 char *ucm_get_cap_control(struct cras_use_case_mgr *mgr, const char *ucm_dev);
 
-/* Gets the mic positions string for internal mic.
- * Args:
- *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
- * Returns:
- *    A pointer to the allocated string containing the mic positions
- *    information, or NULL if not specified.
- */
-char *ucm_get_mic_positions(struct cras_use_case_mgr *mgr);
-
 /* Gets the new node type name which user wants to override the old one for
  * given ucm device.
  * Args:

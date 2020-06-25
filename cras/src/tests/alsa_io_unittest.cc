@@ -2748,10 +2748,6 @@ char* ucm_get_flag(struct cras_use_case_mgr* mgr, const char* flag_name) {
   return NULL;
 }
 
-char* ucm_get_mic_positions(struct cras_use_case_mgr* mgr) {
-  return NULL;
-}
-
 int ucm_swap_mode_exists(struct cras_use_case_mgr* mgr) {
   return ucm_swap_mode_exists_ret_value;
 }
