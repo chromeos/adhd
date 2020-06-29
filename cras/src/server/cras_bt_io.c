@@ -454,6 +454,19 @@ static unsigned int frames_to_play_in_sleep(struct cras_iodev *iodev,
 	return dev->frames_to_play_in_sleep(dev, hw_level, hw_tstamp);
 }
 
+static int get_valid_frames(struct cras_iodev *iodev,
+			    struct timespec *hw_tstamp)
+{
+	struct cras_iodev *dev = active_profile_dev(iodev);
+	if (!dev)
+		return -EINVAL;
+
+	if (dev->get_valid_frames)
+		return dev->get_valid_frames(dev, hw_tstamp);
+
+	return cras_iodev_frames_queued(iodev, hw_tstamp);
+}
+
 struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 				     struct cras_iodev *dev,
 				     enum cras_bt_device_profile profile)
@@ -490,6 +503,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	iodev->no_stream = no_stream;
 	iodev->output_underrun = output_underrun;
 	iodev->is_free_running = is_free_running;
+	iodev->get_valid_frames = get_valid_frames;
 	iodev->start = start;
 	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
 

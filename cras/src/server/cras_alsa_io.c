@@ -1995,8 +1995,7 @@ static void set_default_hotword_model(struct cras_iodev *iodev)
 			return;
 }
 
-static int get_valid_frames(const struct cras_iodev *odev,
-			    struct timespec *tstamp)
+static int get_valid_frames(struct cras_iodev *odev, struct timespec *tstamp)
 {
 	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;

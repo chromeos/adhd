@@ -272,7 +272,7 @@ struct cras_iodev {
 				 const char *model_name);
 	char *(*get_hotword_models)(struct cras_iodev *iodev);
 	unsigned int (*get_num_severe_underruns)(const struct cras_iodev *iodev);
-	int (*get_valid_frames)(const struct cras_iodev *odev,
+	int (*get_valid_frames)(struct cras_iodev *odev,
 				struct timespec *tstamp);
 	unsigned int (*frames_to_play_in_sleep)(struct cras_iodev *iodev,
 						unsigned int *hw_level,

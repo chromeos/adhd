@@ -33,6 +33,15 @@ struct hfp_alsa_io {
 	struct cras_iodev *aio;
 };
 
+static int hfp_alsa_get_valid_frames(struct cras_iodev *iodev,
+				     struct timespec *hw_tstamp)
+{
+	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
+	struct cras_iodev *aio = hfp_alsa_io->aio;
+
+	return aio->get_valid_frames(aio, hw_tstamp);
+}
+
 static int hfp_alsa_open_dev(struct cras_iodev *iodev)
 {
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
@@ -271,6 +280,7 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 	iodev->update_active_node = hfp_alsa_update_active_node;
 	iodev->start = hfp_alsa_start;
 	iodev->set_volume = hfp_alsa_set_volume;
+	iodev->get_valid_frames = hfp_alsa_get_valid_frames;
 	iodev->no_stream = hfp_alsa_no_stream;
 	iodev->is_free_running = hfp_alsa_is_free_running;
 	iodev->output_underrun = hfp_alsa_output_underrun;

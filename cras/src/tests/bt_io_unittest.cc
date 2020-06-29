@@ -469,6 +469,11 @@ int cras_iodev_default_no_stream_playback(struct cras_iodev* odev, int enable) {
   return 0;
 }
 
+int cras_iodev_frames_queued(struct cras_iodev* iodev,
+                             struct timespec* hw_tstamp) {
+  return 0;
+}
+
 unsigned int cras_iodev_default_frames_to_play_in_sleep(
     struct cras_iodev* odev,
     unsigned int* hw_level,
