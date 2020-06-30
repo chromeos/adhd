@@ -71,6 +71,15 @@ if test "$have_fuzzer" = "yes"; then
 fi
 
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
+AC_CHECK_HEADERS([iniparser/iniparser.h iniparser.h], [FOUND_INIPARSER=1;break])
+test [$FOUND_INIPARSER] || AC_MSG_ERROR([Missing iniparser, please install.])
+AC_SEARCH_LIBS([LADSPA], [ladspa-sdk], [], [
+	AC_CHECK_HEADERS([ladspa.h], [], [
+		AC_MSG_ERROR([Missing ladspa-sdk, please install.])
+	])
+])
+PKG_CHECK_MODULES([UDEV], [ udev >= 1.0 ])
+PKG_CHECK_MODULES([GTEST], [ gtest >= 1.0 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 	     AC_ERROR([*** libasound has no external plugin SDK]), -ldl)
 
