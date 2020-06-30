@@ -103,9 +103,6 @@ enum CRAS_IODEV_STATE {
  *    left_right_swapped - If left and right output channels are swapped.
  *    type - Type displayed to the user.
  *    position - Specify where on the system this node locates.
- *    mic_positions - Whitespace-separated microphone positions using Cartesian
- *      coordinates in meters with ordering x, y, z. The string is formatted as:
- *      "x1 y1 z1 ... xn yn zn" for an n-microphone array.
  *    name - Name displayed to the user.
  *    dsp_name - The "DspName" variable specified in the ucm config.
  *    active_hotword_model - name of the currently selected hotword model.
@@ -129,7 +126,6 @@ struct cras_ionode {
 	int left_right_swapped;
 	enum CRAS_NODE_TYPE type;
 	enum CRAS_NODE_POSITION position;
-	char mic_positions[CRAS_NODE_MIC_POS_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	const char *dsp_name;
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];

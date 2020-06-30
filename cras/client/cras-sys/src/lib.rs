@@ -169,7 +169,6 @@ impl Default for cras_ionode_info {
             left_right_swapped: 0,
             type_enum: 0,
             stable_id: 0,
-            mic_positions: [0; 128usize],
             type_: [0; 32usize],
             name: [0; 64usize],
             active_hotword_model: [0; 16usize],

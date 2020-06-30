@@ -261,7 +261,6 @@ static int fill_node_list(struct iodev_list *list,
 			node_info->left_right_swapped =
 				node->left_right_swapped;
 			node_info->stable_id = node->stable_id;
-			strcpy(node_info->mic_positions, node->mic_positions);
 			strcpy(node_info->name, node->name);
 			strcpy(node_info->active_hotword_model,
 			       node->active_hotword_model);

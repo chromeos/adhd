@@ -39,7 +39,6 @@ struct __attribute__((__packed__)) cras_iodev_info {
  *    ui_gain_scaler - Adjustable gain scaler set by Chrome.
  *    left_right_swapped - Set true if left and right channels are swapped.
  *    stable_id - ID that does not change due to device plug/unplug or reboot.
- *    mic_positions - Positions of the mic array.
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
  *    active_hotword_model - name of the currently selected hotword model.
@@ -59,7 +58,6 @@ struct __attribute__((__packed__)) cras_ionode_info {
 	int32_t left_right_swapped;
 	uint32_t type_enum;
 	uint32_t stable_id;
-	char mic_positions[CRAS_NODE_MIC_POS_BUFFER_SIZE];
 	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
