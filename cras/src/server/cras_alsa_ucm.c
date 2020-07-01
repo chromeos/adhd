@@ -495,8 +495,8 @@ int ucm_set_enabled(struct cras_use_case_mgr *mgr, const char *dev, int enable)
 		return 0;
 	syslog(LOG_DEBUG, "UCM %s %s", enable ? "enable" : "disable", dev);
 	rc = snd_use_case_set(mgr->mgr, enable ? "_enadev" : "_disdev", dev);
-	if (rc) {
-		syslog(LOG_ERR, "Can not %s UCM for card %s, rc = %d",
+	if (rc && (rc != -ENOENT || ucm_has_fully_specified_ucm_flag(mgr))) {
+		syslog(LOG_ERR, "Can not %s UCM for device %s, rc = %d",
 		       enable ? "enable" : "disable", dev, rc);
 	}
 	return rc;
