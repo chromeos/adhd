@@ -62,7 +62,7 @@ int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
 	 * channel count set in format.
 	 */
 	for (i = 0; i < CRAS_CH_MAX; i++)
-		if (layout[i] >= (int)format->num_channels)
+		if (layout[i] < -1 || layout[i] >= (int)format->num_channels)
 			return -EINVAL;
 
 	for (i = 0; i < CRAS_CH_MAX; i++)
@@ -71,11 +71,13 @@ int cras_audio_format_set_channel_layout(struct cras_audio_format *format,
 	return 0;
 }
 
+/* Verifies if all channel_layout[i] are in [-1, fmt->num_channels). */
 bool cras_audio_format_valid(const struct cras_audio_format *fmt)
 {
 	int i;
 	for (i = 0; i < CRAS_CH_MAX; i++) {
-		if (fmt->channel_layout[i] >= (int)fmt->num_channels) {
+		if (fmt->channel_layout[i] < -1 ||
+		    fmt->channel_layout[i] >= (int)fmt->num_channels) {
 			return false;
 		}
 	}
