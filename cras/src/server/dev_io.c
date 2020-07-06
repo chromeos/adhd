@@ -186,6 +186,7 @@ static int fetch_streams(struct open_dev *adev)
 			      shm->header->write_offset[0],
 			      shm->header->write_offset[1]);
 			dev_stream_update_next_wake_time(dev_stream);
+			cras_server_metrics_missed_cb_event(dev_stream->stream);
 			continue;
 		}
 
