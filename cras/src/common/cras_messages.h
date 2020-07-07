@@ -58,6 +58,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_DUMP_BT,
 	CRAS_SERVER_SET_BT_WBS_ENABLED,
 	CRAS_SERVER_GET_ATLOG_FD,
+	CRAS_SERVER_DUMP_MAIN,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -349,6 +350,17 @@ struct __attribute__((__packed__)) cras_get_atlog_fd {
 static inline void cras_fill_get_atlog_fd(struct cras_get_atlog_fd *m)
 {
 	m->header.id = CRAS_SERVER_GET_ATLOG_FD;
+	m->header.length = sizeof(*m);
+}
+
+/* Dump events in CRAS main thread. */
+struct __attribute__((__packed__)) cras_dump_main {
+	struct cras_server_message header;
+};
+
+static inline void cras_fill_dump_main(struct cras_dump_main *m)
+{
+	m->header.id = CRAS_SERVER_DUMP_MAIN;
 	m->header.length = sizeof(*m);
 }
 

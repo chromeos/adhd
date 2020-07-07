@@ -9,6 +9,7 @@ extern "C" {
 #include "audio_thread_log.h"
 #include "cras_audio_area.h"
 #include "cras_iodev.h"
+#include "cras_main_thread_log.h"
 #include "cras_ramp.h"
 #include "cras_rstream.h"
 #include "dev_stream.h"
@@ -267,9 +268,14 @@ class IoDevSetFormatTestSuite : public testing::Test {
     iodev_.dsp_context = NULL;
 
     cras_audio_format_set_channel_layout_called = 0;
+
+    main_log = main_thread_event_log_init();
   }
 
-  virtual void TearDown() { cras_iodev_free_format(&iodev_); }
+  virtual void TearDown() {
+    cras_iodev_free_format(&iodev_);
+    main_thread_event_log_deinit(main_log);
+  }
 
   struct cras_iodev iodev_;
   size_t sample_rates_[3];
@@ -1056,6 +1062,8 @@ TEST(IoNodePlug, PlugUnplugNode) {
   struct cras_iodev iodev;
   struct cras_ionode ionode, ionode2;
 
+  main_log = main_thread_event_log_init();
+
   memset(&iodev, 0, sizeof(iodev));
   memset(&ionode, 0, sizeof(ionode));
   memset(&ionode2, 0, sizeof(ionode2));
@@ -1077,6 +1085,7 @@ TEST(IoNodePlug, PlugUnplugNode) {
   EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
   cras_iodev_set_node_plugged(&ionode2, 0);
   EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
+  main_thread_event_log_deinit(main_log);
 }
 
 TEST(IoDev, AddRemoveNode) {
@@ -2396,6 +2405,8 @@ TEST(IoDev, DeviceOverrun) {
 }
 
 extern "C" {
+
+struct main_thread_event_log* main_log;
 
 //  From libpthread.
 int pthread_create(pthread_t* thread,

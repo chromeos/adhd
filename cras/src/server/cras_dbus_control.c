@@ -17,6 +17,7 @@
 #include "cras_dbus_util.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_iodev_list.h"
+#include "cras_main_thread_log.h"
 #include "cras_observer.h"
 #include "cras_system_state.h"
 #include "cras_utf8.h"
@@ -369,6 +370,7 @@ static DBusHandlerResult handle_set_output_user_mute(DBusConnection *conn,
 		return rc;
 
 	cras_system_set_user_mute(new_mute);
+	MAINLOG(main_log, MAIN_THREAD_SET_OUTPUT_USER_MUTE, new_mute, 0);
 
 	send_empty_reply(conn, message);
 

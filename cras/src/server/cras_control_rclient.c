@@ -15,6 +15,7 @@
 #include "cras_dsp.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_main_thread_log.h"
 #include "cras_messages.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
@@ -401,6 +402,19 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_GET_ATLOG_FD:
 		get_atlog_fd(client);
 		break;
+	case CRAS_SERVER_DUMP_MAIN: {
+		struct cras_client_audio_debug_info_ready msg;
+		struct cras_server_state *state;
+
+		state = cras_system_state_get_no_lock();
+		memcpy(&state->main_thread_debug_info.main_log, main_log,
+		       sizeof(struct main_thread_event_log));
+
+		cras_fill_client_audio_debug_info_ready(&msg);
+		client->ops->send_message_to_client(client, &msg.header, NULL,
+						    0);
+		break;
+	}
 	case CRAS_SERVER_DUMP_BT: {
 		struct cras_client_audio_debug_info_ready msg;
 		struct cras_server_state *state;

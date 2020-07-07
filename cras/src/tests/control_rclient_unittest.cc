@@ -9,6 +9,7 @@
 extern "C" {
 #include "audio_thread.h"
 #include "cras_bt_log.h"
+#include "cras_main_thread_log.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
 #include "cras_rstream.h"
@@ -159,6 +160,7 @@ class RClientMessagesSuite : public testing::Test {
     connect_msg_.dev_idx = NO_DEVICE;
     connect_msg_.client_shm_size = 0;
     btlog = cras_bt_event_log_init();
+    main_log = main_thread_event_log_init();
     ResetStubData();
   }
 
@@ -168,6 +170,7 @@ class RClientMessagesSuite : public testing::Test {
     close(pipe_fds_[0]);
     close(pipe_fds_[1]);
     cras_bt_event_log_deinit(btlog);
+    main_thread_event_log_deinit(main_log);
   }
 
   void RegisterNotification(enum CRAS_CLIENT_MESSAGE_ID msg_id,
@@ -734,6 +737,7 @@ int main(int argc, char** argv) {
 extern "C" {
 
 struct cras_bt_event_log* btlog;
+struct main_thread_event_log* main_log;
 
 struct audio_thread* cras_iodev_list_get_audio_thread() {
   return iodev_get_thread_return;

@@ -252,6 +252,7 @@ static inline uint32_t node_index_of(cras_node_id_t id)
 #define MAX_DEBUG_STREAMS 8
 #define AUDIO_THREAD_EVENT_LOG_SIZE (1024 * 6)
 #define CRAS_BT_EVENT_LOG_SIZE 1024
+#define MAIN_THREAD_EVENT_LOG_SIZE 1024
 
 /* There are 8 bits of space for events. */
 enum AUDIO_THREAD_LOG_EVENTS {
@@ -303,6 +304,40 @@ enum AUDIO_THREAD_LOG_EVENTS {
 	AUDIO_THREAD_LOOPBACK_GET,
 	AUDIO_THREAD_LOOPBACK_SAMPLE_HOOK,
 	AUDIO_THREAD_DEV_OVERRUN,
+};
+
+/* Important events in main thread.
+ * MAIN_THREAD_DEV_DISABLE - When an iodev closes at stream removal.
+ * MAIN_THREAD_DEV_INIT - When an iodev opens when stream attachs.
+ * MAIN_THREAD_ADD_ACTIVE_NODE - When an iodev is set as an additional
+ *    active device.
+ * MAIN_THREAD_SELECT_NODE - When UI selects an iodev as active.
+ * MAIN_THREAD_NODE_PLUGGED - When a jack of iodev is plugged/unplugged.
+ * MAIN_THREAD_ADD_TO_DEV_LIST - When iodev is added to list.
+ * MAIN_THREAD_INPUT_NODE_GAIN - When input node gain changes.
+ * MAIN_THREAD_OUTPUT_NODE_VOLUME - When output node volume changes.
+ * MAIN_THREAD_SET_OUTPUT_USER_MUTE - When output mute state is set.
+ * MAIN_THREAD_RESUME_DEVS - When system resumes and notifies CRAS.
+ * MAIN_THREAD_SUSPEND_DEVS - When system suspends and notifies CRAS.
+ * MAIN_THREAD_STREAM_ADDED - When an audio stream is added.
+ * MAIN_THREAD_STREAM_REMOVED - When an audio stream is removed.
+ */
+enum MAIN_THREAD_LOG_EVENTS {
+	/* iodev related */
+	MAIN_THREAD_DEV_DISABLE,
+	MAIN_THREAD_DEV_INIT,
+	MAIN_THREAD_ADD_ACTIVE_NODE,
+	MAIN_THREAD_SELECT_NODE,
+	MAIN_THREAD_NODE_PLUGGED,
+	MAIN_THREAD_ADD_TO_DEV_LIST,
+	MAIN_THREAD_INPUT_NODE_GAIN,
+	MAIN_THREAD_OUTPUT_NODE_VOLUME,
+	MAIN_THREAD_SET_OUTPUT_USER_MUTE,
+	MAIN_THREAD_RESUME_DEVS,
+	MAIN_THREAD_SUSPEND_DEVS,
+	/* stream related */
+	MAIN_THREAD_STREAM_ADDED,
+	MAIN_THREAD_STREAM_REMOVED,
 };
 
 /* There are 8 bits of space for events. */
@@ -401,6 +436,23 @@ struct __attribute__((__packed__)) audio_debug_info {
 	struct audio_thread_event_log log;
 };
 
+struct __attribute__((__packed__)) main_thread_event {
+	uint32_t tag_sec;
+	uint32_t nsec;
+	uint32_t data1;
+	uint32_t data2;
+};
+
+struct __attribute__((__packed__)) main_thread_event_log {
+	uint32_t write_pos;
+	uint32_t len;
+	struct main_thread_event log[MAIN_THREAD_EVENT_LOG_SIZE];
+};
+
+struct __attribute__((__packed__)) main_thread_debug_info {
+	struct main_thread_event_log main_log;
+};
+
 struct __attribute__((__packed__)) cras_bt_event {
 	uint32_t tag_sec;
 	uint32_t nsec;
@@ -493,6 +545,7 @@ struct __attribute__((__packed__)) cras_audio_thread_snapshot_buffer {
  *    snapshot_buffer - ring buffer for storing audio thread snapshots.
  *    bt_debug_info - ring buffer for storing bluetooth event logs.
  *    bt_wbs_enabled - Whether or not bluetooth wideband speech is enabled.
+ *    main_thread_debug_info - ring buffer for storing main thread event logs.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__((packed, aligned(4))) cras_server_state {
@@ -529,6 +582,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 	struct cras_bt_debug_info bt_debug_info;
 	int32_t bt_wbs_enabled;
+	struct main_thread_debug_info main_thread_debug_info;
 };
 
 /* Actions for card add/remove/change. */

@@ -21,6 +21,7 @@
 #include "cras_dsp_pipeline.h"
 #include "cras_fmt_conv.h"
 #include "cras_iodev.h"
+#include "cras_main_thread_log.h"
 #include "cras_iodev_list.h"
 #include "cras_mix.h"
 #include "cras_ramp.h"
@@ -685,6 +686,8 @@ void cras_iodev_set_node_plugged(struct cras_ionode *node, int plugged)
 	if (node->plugged == plugged)
 		return;
 	node->plugged = plugged;
+	MAINLOG(main_log, MAIN_THREAD_NODE_PLUGGED, node->dev->info.idx,
+		plugged);
 	if (plugged) {
 		gettimeofday(&node->plugged_time, NULL);
 	} else if (node == node->dev->active_node) {

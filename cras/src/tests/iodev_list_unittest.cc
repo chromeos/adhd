@@ -12,6 +12,7 @@ extern "C" {
 #include "audio_thread.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_main_thread_log.h"
 #include "cras_observer_ops.h"
 #include "cras_ramp.h"
 #include "cras_rstream.h"
@@ -107,6 +108,7 @@ int device_in_vector(std::vector<struct cras_iodev*> v,
 class IoDevTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
+    main_log = main_thread_event_log_init();
     cras_iodev_list_reset();
 
     cras_iodev_close_called = 0;
@@ -239,7 +241,10 @@ class IoDevTestSuite : public testing::Test {
     dummy_hotword_iodev.update_active_node = update_active_node;
   }
 
-  virtual void TearDown() { cras_iodev_list_reset(); }
+  virtual void TearDown() {
+    cras_iodev_list_reset();
+    main_thread_event_log_deinit(main_log);
+  }
 
   static void set_volume_1(struct cras_iodev* iodev) { set_volume_1_called_++; }
 
@@ -1762,6 +1767,7 @@ int main(int argc, char** argv) {
 extern "C" {
 
 // Stubs
+struct main_thread_event_log* main_log;
 
 struct cras_server_state* cras_system_state_update_begin() {
   return server_state_update_begin_return;

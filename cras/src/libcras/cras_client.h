@@ -477,6 +477,16 @@ int cras_client_dump_dsp_info(struct cras_client *client);
 int cras_client_update_audio_debug_info(struct cras_client *client,
 					void (*cb)(struct cras_client *));
 
+/* Asks the server to dump current main thread information.
+ * Args:
+ *    client - The client from cras_client_create.
+ *    cb - A function to call when the data is received.
+ * Returns:
+ *    0 on success, -EINVAL if the client isn't valid or isn't running.
+ */
+int cras_client_update_main_thread_debug_info(struct cras_client *client,
+					      void (*cb)(struct cras_client *));
+
 /* Asks the server to dump bluetooth debug information.
  * Args:
  *    client - The client from cras_client_create.
@@ -855,6 +865,16 @@ cras_client_get_audio_debug_info(const struct cras_client *client);
  */
 const struct cras_bt_debug_info *
 cras_client_get_bt_debug_info(const struct cras_client *client);
+
+/* Gets main thread debug info.
+ * Args:
+ *    client - The client from cras_client_create.
+ * Returns:
+ *    A pointer to the debug info. This info is updated and requested by
+ *    calling cras_client_update_main_thread_debug_info.
+ */
+const struct main_thread_debug_info *
+cras_client_get_main_thread_debug_info(const struct cras_client *client);
 
 /* Gets audio thread snapshot buffer.
  *
