@@ -458,15 +458,15 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		const struct cras_config_global_remix *m =
 			(const struct cras_config_global_remix *)msg;
 		float *coefficient;
-		const size_t coefficient_len =
-			m->num_channels * m->num_channels;
 
 		if (!MSG_LEN_VALID(msg, struct cras_config_global_remix) ||
 		    m->num_channels > CRAS_MAX_REMIX_CHANNELS)
 			return -EINVAL;
-		size_t size_with_coefficients =
-			sizeof(*m) + m->num_channels * m->num_channels *
-					     sizeof(m->coefficient[0]);
+		const size_t coefficient_len =
+			m->num_channels * m->num_channels;
+		const size_t size_with_coefficients =
+			sizeof(*m) +
+			coefficient_len * sizeof(m->coefficient[0]);
 		if (size_with_coefficients != msg->length)
 			return -EINVAL;
 
