@@ -85,6 +85,11 @@ int cras_audio_thread_event_drop_samples()
 	return cras_audio_thread_event_send(AUDIO_THREAD_EVENT_DROP_SAMPLES);
 }
 
+int cras_audio_thread_event_dev_overrun()
+{
+	return cras_audio_thread_event_send(AUDIO_THREAD_EVENT_DEV_OVERRUN);
+}
+
 static struct timespec last_event_snapshot_time[AUDIO_THREAD_EVENT_TYPE_COUNT];
 
 /*

@@ -711,6 +711,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s frames_to_copy:%u frames_copied:%u\n",
 		       "LOOPBACK_SAMPLE", data1, data2);
 		break;
+	case AUDIO_THREAD_DEV_OVERRUN:
+		printf("%-30s dev:%u hw_level:%u\n", "DEV_OVERRUN", data1,
+		       data2);
+		break;
 	default:
 		printf("%-30s tag:%u\n", "UNKNOWN", tag);
 		break;
@@ -1003,6 +1007,9 @@ static void print_cras_audio_thread_snapshot(
 		break;
 	case AUDIO_THREAD_EVENT_DROP_SAMPLES:
 		printf("drop samples\n");
+		break;
+	case AUDIO_THREAD_EVENT_DEV_OVERRUN:
+		printf("device overrun\n");
 		break;
 	case AUDIO_THREAD_EVENT_DEBUG:
 		printf("debug\n");

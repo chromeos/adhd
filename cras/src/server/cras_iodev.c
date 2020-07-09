@@ -1596,6 +1596,22 @@ int cras_iodev_set_mute(struct cras_iodev *iodev)
 void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
 					unsigned int hw_level)
 {
+	/*
+	 * If the hw_level is unreasonably high and reach to the device's
+	 * buffer size, regard it as a device overrun.
+	 * In the normal status, the hw_level for should be between 1 to 2
+	 * largest_cb_level for an output device and 0 to 1 largest_cb_level
+	 * for an input device. Therefore, larger than 3 can be considered
+	 * unreasonable.
+	 */
+	if (hw_level == iodev->buffer_size &&
+	    iodev->largest_cb_level * 3 < iodev->buffer_size) {
+		ATLOG(atlog, AUDIO_THREAD_DEV_OVERRUN, iodev->info.idx,
+		      hw_level, 0);
+		/* Only log the event when the first time it happens. */
+		if (iodev->highest_hw_level != hw_level)
+			cras_audio_thread_event_dev_overrun();
+	}
 	iodev->highest_hw_level = MAX(iodev->highest_hw_level, hw_level);
 }
 
