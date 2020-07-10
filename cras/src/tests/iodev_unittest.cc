@@ -2749,6 +2749,10 @@ int cras_server_metrics_device_runtime(struct cras_iodev* iodev) {
   return 0;
 }
 
+int cras_server_metrics_device_volume(struct cras_iodev* iodev) {
+  return 0;
+}
+
 }  // extern "C"
 }  //  namespace
 

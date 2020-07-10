@@ -1003,7 +1003,10 @@ int cras_iodev_close(struct cras_iodev *iodev)
 	if (!cras_iodev_is_open(iodev))
 		return 0;
 
-	cras_server_metrics_device_runtime(iodev);
+	if (iodev->active_node) {
+		cras_server_metrics_device_runtime(iodev);
+		cras_server_metrics_device_volume(iodev);
+	}
 
 	if (iodev->input_data) {
 		if (iodev->ext_dsp_module == &iodev->input_data->ext)

@@ -25,6 +25,7 @@ const char kBusyloop[] = "Cras.Busyloop";
 const char kBusyloopLength[] = "Cras.BusyloopLength";
 const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
 const char kDeviceTypeOutput[] = "Cras.DeviceTypeOutput";
+const char kDeviceVolume[] = "Cras.DeviceVolume";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
@@ -93,6 +94,7 @@ enum CRAS_SERVER_METRICS_TYPE {
 	BUSYLOOP,
 	BUSYLOOP_LENGTH,
 	DEVICE_RUNTIME,
+	DEVICE_VOLUME,
 	HIGHEST_DEVICE_DELAY_INPUT,
 	HIGHEST_DEVICE_DELAY_OUTPUT,
 	HIGHEST_INPUT_HW_LEVEL,
@@ -157,6 +159,7 @@ struct cras_server_metrics_device_data {
 	enum CRAS_METRICS_DEVICE_TYPE type;
 	enum CRAS_STREAM_DIRECTION direction;
 	struct timespec runtime;
+	unsigned value;
 };
 
 struct cras_server_metrics_stream_data {
@@ -525,6 +528,31 @@ int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: DEVICE_RUNTIME");
+		return err;
+	}
+
+	return 0;
+}
+
+int cras_server_metrics_device_volume(struct cras_iodev *iodev)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	if (iodev->direction == CRAS_STREAM_INPUT)
+		return 0;
+
+	data.device_data.type = get_metrics_device_type(iodev);
+	data.device_data.value = iodev->active_node->volume;
+
+	init_server_metrics_msg(&msg, DEVICE_VOLUME, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: DEVICE_VOLUME");
 		return err;
 	}
 
@@ -930,6 +958,15 @@ static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 		cras_metrics_log_sparse_histogram(kDeviceTypeOutput, data.type);
 }
 
+static void metrics_device_volume(struct cras_server_metrics_device_data data)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s", kDeviceVolume,
+		 metrics_device_type_str(data.type));
+	cras_metrics_log_histogram(metrics_name, data.value, 0, 100, 20);
+}
+
 static void metrics_stream_runtime(struct cras_server_metrics_stream_data data)
 {
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
@@ -1058,6 +1095,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		break;
 	case DEVICE_RUNTIME:
 		metrics_device_runtime(metrics_msg->data.device_data);
+		break;
+	case DEVICE_VOLUME:
+		metrics_device_volume(metrics_msg->data.device_data);
 		break;
 	case HIGHEST_DEVICE_DELAY_INPUT:
 		cras_metrics_log_histogram(kHighestDeviceDelayInput,
