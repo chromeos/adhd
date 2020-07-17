@@ -22,6 +22,7 @@ struct hfp_alsa_io {
 static struct cras_iodev fake_sco_out, fake_sco_in;
 static struct cras_bt_device* fake_device;
 static struct hfp_slc_handle* fake_slc;
+static struct cras_audio_format fake_format;
 
 static size_t cras_bt_device_append_iodev_called;
 static size_t cras_bt_device_rm_iodev_called;
@@ -240,12 +241,22 @@ TEST_F(HfpAlsaIodev, UpdateSupportedFormat) {
 TEST_F(HfpAlsaIodev, ConfigureDev) {
   struct cras_iodev* iodev;
   size_t buf_size = 8192;
+  struct hfp_alsa_io* hfp_alsa_io;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
   fake_sco_out.buffer_size = buf_size;
   iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc,
                                 CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+  hfp_alsa_io = (struct hfp_alsa_io*)iodev;
+  iodev->format = &fake_format;
   iodev->configure_dev(iodev);
+
+  EXPECT_EQ(fake_format.num_channels, hfp_alsa_io->aio->format->num_channels);
+  EXPECT_EQ(fake_format.frame_rate, hfp_alsa_io->aio->format->frame_rate);
+  EXPECT_EQ(fake_format.format, hfp_alsa_io->aio->format->format);
+  for (int i = 0; i < CRAS_CH_MAX; i++)
+    EXPECT_EQ(fake_format.channel_layout[i],
+              hfp_alsa_io->aio->format->channel_layout[i]);
 
   EXPECT_EQ(1, fake_configure_dev_called);
   EXPECT_EQ(0, hfp_set_call_status_called);

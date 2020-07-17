@@ -52,18 +52,7 @@ static int hfp_alsa_open_dev(struct cras_iodev *iodev)
 
 static int hfp_alsa_update_supported_formats(struct cras_iodev *iodev)
 {
-	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
-	struct cras_iodev *aio = hfp_alsa_io->aio;
-
 	/* 16 bit, mono, 8kHz (narrow band speech); */
-	free(aio->format);
-	aio->format = malloc(sizeof(struct cras_audio_format));
-	if (!aio->format)
-		return -ENOMEM;
-	aio->format->format = SND_PCM_FORMAT_S16_LE;
-	aio->format->frame_rate = 8000;
-	aio->format->num_channels = 1;
-
 	free(iodev->supported_rates);
 	iodev->supported_rates = malloc(2 * sizeof(*iodev->supported_rates));
 	if (!iodev->supported_rates)
@@ -95,6 +84,15 @@ static int hfp_alsa_configure_dev(struct cras_iodev *iodev)
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 	int rc;
+
+	/* Fill back the format iodev is using. */
+	if (aio->format == NULL) {
+		aio->format = (struct cras_audio_format *)malloc(
+			sizeof(*aio->format));
+		if (!aio->format)
+			return -ENOMEM;
+		*aio->format = *iodev->format;
+	}
 
 	rc = aio->configure_dev(aio);
 	if (rc) {
