@@ -503,6 +503,8 @@ pub mod tests {
 
         let shm = SharedMemory::anon().expect("Failed to create shm");
 
+        let start = Instant::now();
+
         let mut stream_source = NullShmStreamSource::new();
         let mut stream = stream_source
             .new_stream(
@@ -516,8 +518,6 @@ pub mod tests {
                 [400, 8000],
             )
             .expect("Failed to create stream");
-
-        let start = Instant::now();
 
         let timeout = Duration::from_secs(5);
         let request = stream
