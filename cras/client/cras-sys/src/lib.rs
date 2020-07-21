@@ -121,6 +121,7 @@ impl Default for cras_iodev_info {
             idx: 0,
             name: [0; 64usize],
             stable_id: 0,
+            max_supported_channels: 0,
         }
     }
 }
