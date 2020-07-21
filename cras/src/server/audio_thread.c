@@ -894,6 +894,16 @@ static void *audio_io_thread(void *arg)
 
 		rc = ppoll(thread->pollfds, thread->num_pollfds, wait_ts, NULL);
 		ATLOG(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
+
+		/* Handle callbacks registered by TRIGGER_WAKEUP */
+		DL_FOREACH (iodev_callbacks, iodev_cb) {
+			if (iodev_cb->trigger == TRIGGER_WAKEUP) {
+				ATLOG(atlog, AUDIO_THREAD_IODEV_CB, 0, 0, 0);
+				iodev_cb->cb(iodev_cb->cb_data, 0);
+			}
+		}
+
+		/* If there's no pollfd ready to handle. */
 		if (rc <= 0)
 			continue;
 
@@ -911,9 +921,6 @@ static void *audio_io_thread(void *arg)
 				      iodev_cb->events, 0);
 				iodev_cb->cb(iodev_cb->cb_data,
 					     iodev_cb->pollfd->revents);
-			} else if (iodev_cb->trigger == TRIGGER_WAKEUP) {
-				ATLOG(atlog, AUDIO_THREAD_IODEV_CB, 0, 0, 0);
-				iodev_cb->cb(iodev_cb->cb_data, 0);
 			}
 		}
 	}
