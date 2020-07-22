@@ -394,6 +394,11 @@ bool cras_system_get_bt_fix_a2dp_packet_size_enabled()
 
 bool cras_system_check_ignore_ucm_suffix(const char *card_name)
 {
+	/* Check the general case: ALSA Loopback card "Loopback". */
+	if (!strcmp("Loopback", card_name))
+		return true;
+
+	/* Check board-specific ignore ucm suffix cards. */
 	struct name_list *card;
 	DL_FOREACH (state.ignore_suffix_cards, card) {
 		if (!strcmp(card->name, card_name))
