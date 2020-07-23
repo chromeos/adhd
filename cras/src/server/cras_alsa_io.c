@@ -1935,6 +1935,10 @@ static int leave_free_run(struct cras_iodev *odev)
 	struct alsa_io *aio = (struct alsa_io *)odev;
 	int rc;
 
+	/* Restart rate estimation because free run internval should not
+	 * be included. */
+	cras_iodev_reset_rate_estimator(odev);
+
 	if (aio->free_running)
 		rc = adjust_appl_ptr_for_leaving_free_run(odev);
 	else
