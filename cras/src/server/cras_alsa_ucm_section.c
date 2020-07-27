@@ -13,16 +13,11 @@
 
 static void ucm_section_free(struct ucm_section *section)
 {
-	if (section->name)
-		free((void *)section->name);
-	if (section->pcm_name)
-		free((void *)section->pcm_name);
-	if (section->jack_name)
-		free((void *)section->jack_name);
-	if (section->jack_type)
-		free((void *)section->jack_type);
-	if (section->mixer_name)
-		free((void *)section->mixer_name);
+	free((void *)section->name);
+	free((void *)section->pcm_name);
+	free((void *)section->jack_name);
+	free((void *)section->jack_type);
+	free((void *)section->mixer_name);
 	mixer_name_free(section->coupled);
 	free(section);
 }
