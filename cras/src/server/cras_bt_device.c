@@ -1036,12 +1036,23 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
 	struct sco_options so;
 	socklen_t len = sizeof(so);
 	struct cras_bt_adapter *adapter;
+	uint32_t wbs_pkt_len = 0;
+	socklen_t optlen = sizeof(wbs_pkt_len);
 
 	adapter = cras_bt_adapter_get(device->adapter_obj_path);
 
 	if (cras_bt_adapter_on_usb(adapter)) {
-		return (codec == HFP_CODEC_ID_MSBC) ? USB_MSBC_PKT_SIZE :
-						      USB_CVSD_PKT_SIZE;
+		if (codec == HFP_CODEC_ID_MSBC) {
+			/* BT_SNDMTU and BT_RCVMTU return the same value. */
+			if (getsockopt(sco_socket, SOL_BLUETOOTH, BT_SNDMTU,
+				       &wbs_pkt_len, &optlen))
+				syslog(LOG_ERR, "Failed to get BT_SNDMTU");
+
+			return (wbs_pkt_len > 0) ? wbs_pkt_len :
+						   USB_MSBC_PKT_SIZE;
+		} else {
+			return USB_CVSD_PKT_SIZE;
+		}
 	}
 
 	/* For non-USB cases, query the SCO MTU from driver. */
