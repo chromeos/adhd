@@ -30,8 +30,8 @@ void stream_list_destroy(struct stream_list *list);
 
 struct cras_rstream *stream_list_get(struct stream_list *list);
 
-/* Creates a cras_rstream from cras_rstreaem_config and adds the cras_rstream
- * to stream_list.
+/* Creates a cras_rstream from cras_rstream_config and inserts the cras_rstream
+ * to stream_list in descending order by channel count.
  *
  * Args:
  *   list - stream_list to add streams.

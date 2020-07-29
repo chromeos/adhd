@@ -81,12 +81,19 @@ int stream_list_add(struct stream_list *list,
 		    struct cras_rstream **stream)
 {
 	int rc;
+	struct cras_rstream *next_stream;
 
 	rc = list->stream_create_cb(stream_config, stream);
 	if (rc)
 		return rc;
 
-	DL_APPEND(list->streams, *stream);
+	/* Keep stream list in descending order by channel count. */
+	DL_FOREACH (list->streams, next_stream) {
+		if ((*stream)->format.num_channels >=
+		    next_stream->format.num_channels)
+			break;
+	}
+	DL_INSERT(list->streams, next_stream, *stream);
 	rc = list->stream_added_cb(*stream);
 	if (rc) {
 		DL_DELETE(list->streams, *stream);

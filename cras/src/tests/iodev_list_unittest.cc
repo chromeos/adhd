@@ -83,6 +83,7 @@ static size_t cras_observer_notify_node_left_right_swapped_called;
 static size_t cras_observer_notify_input_node_gain_called;
 static int cras_iodev_open_called;
 static int cras_iodev_open_ret[8];
+static struct cras_audio_format cras_iodev_open_fmt;
 static int set_mute_called;
 static std::vector<struct cras_iodev*> set_mute_dev_vector;
 static std::vector<unsigned int> audio_thread_dev_start_ramp_dev_vector;
@@ -128,6 +129,10 @@ class IoDevTestSuite : public testing::Test {
 
     channel_counts_[0] = 2;
     channel_counts_[1] = 0;
+
+    fmt_.format = SND_PCM_FORMAT_S16_LE;
+    fmt_.frame_rate = 48000;
+    fmt_.num_channels = 2;
 
     memset(&d1_, 0, sizeof(d1_));
     memset(&d2_, 0, sizeof(d2_));
@@ -266,6 +271,7 @@ class IoDevTestSuite : public testing::Test {
   struct cras_iodev d1_;
   struct cras_iodev d2_;
   struct cras_iodev d3_;
+  struct cras_audio_format fmt_;
   size_t sample_rates_[3];
   size_t channel_counts_[2];
   static int set_volume_1_called_;
@@ -302,6 +308,8 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
 
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
@@ -348,6 +356,56 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   EXPECT_EQ(3, cras_observer_notify_active_node_called);
 }
 
+/* Check that the suspend/resume call of active iodev will be triggered and
+ * fallback device will be transciently enabled while adding a new stream whose
+ * channel count is higher than the active iodev. */
+TEST_F(IoDevTestSuite, ReopenDevForHigherChannels) {
+  struct cras_rstream rstream, rstream2;
+  struct cras_rstream* stream_list = NULL;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+  memset(&rstream2, 0, sizeof(rstream2));
+  rstream.format = fmt_;
+  rstream2.format = fmt_;
+  rstream2.format.num_channels = 6;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+
+  audio_thread_add_open_dev_called = 0;
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+                                  cras_make_node_id(d1_.info.idx, 1));
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+  stream_add_cb(&rstream);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+  EXPECT_EQ(1, cras_iodev_open_called);
+  EXPECT_EQ(2, cras_iodev_open_fmt.num_channels);
+
+  audio_thread_add_stream_called = 0;
+  audio_thread_add_open_dev_called = 0;
+  cras_iodev_open_called = 0;
+
+  /* stream_list should be descending ordered by channel count. */
+  DL_PREPEND(stream_list, &rstream2);
+  stream_list_get_ret = stream_list;
+  stream_add_cb(&rstream2);
+  /* Added both rstreams to fallback device, then re-opened d1. */
+  EXPECT_EQ(4, audio_thread_add_stream_called);
+  EXPECT_EQ(2, audio_thread_add_open_dev_called);
+  EXPECT_EQ(2, cras_iodev_open_called);
+  EXPECT_EQ(6, cras_iodev_open_fmt.num_channels);
+
+  cras_iodev_list_deinit();
+}
+
 /* Check that after resume, all output devices enter ramp mute state if there is
  * any output stream. */
 TEST_F(IoDevTestSuite, RampMuteAfterResume) {
@@ -368,6 +426,9 @@ TEST_F(IoDevTestSuite, RampMuteAfterResume) {
   d2_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
   rc = cras_iodev_list_add_input(&d2_);
   ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+  d2_.format = &fmt_;
 
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
@@ -424,6 +485,8 @@ TEST_F(IoDevTestSuite, InitDevFailShouldEnableFallback) {
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
 
+  d1_.format = &fmt_;
+
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d1_.info.idx, 0));
 
@@ -456,6 +519,9 @@ TEST_F(IoDevTestSuite, InitDevWithEchoRef) {
   snprintf(d2_.active_node->name, CRAS_NODE_NAME_BUFFER_SIZE, "echo ref");
   rc = cras_iodev_list_add_input(&d2_);
   ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+  d2_.format = &fmt_;
 
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d1_.info.idx, 0));
@@ -501,6 +567,9 @@ TEST_F(IoDevTestSuite, SelectNodeOpenFailShouldScheduleRetry) {
   d2_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+  d2_.format = &fmt_;
 
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d1_.info.idx, 1));
@@ -571,11 +640,14 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   struct cras_rstream* stream_list = NULL;
 
   memset(&rstream, 0, sizeof(rstream));
+  rstream.format = fmt_;
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
 
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d1_.info.idx, 0));
@@ -603,6 +675,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
 
+  dummy_empty_iodev[CRAS_STREAM_OUTPUT].format = &fmt_;
   cras_tm_timer_cb = NULL;
   cras_iodev_open_ret[3] = -5;
   stream_add_cb(&rstream);
@@ -625,6 +698,8 @@ TEST_F(IoDevTestSuite, PinnedStreamInitFailShouldScheduleRetry) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
 
   rstream.is_pinned = 1;
   rstream.pinned_dev_idx = d1_.info.idx;
@@ -680,6 +755,9 @@ TEST_F(IoDevTestSuite, SelectNode) {
   node2.idx = 2;
   rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+  d2_.format = &fmt_;
 
   audio_thread_add_open_dev_called = 0;
   audio_thread_rm_open_dev_called = 0;
@@ -750,6 +828,9 @@ TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
   node2.idx = 2;
   rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+  d2_.format = &fmt_;
 
   audio_thread_add_open_dev_called = 0;
   audio_thread_rm_open_dev_called = 0;
@@ -1024,7 +1105,7 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
 TEST_F(IoDevTestSuite, AddRemoveInput) {
   struct cras_iodev_info* dev_info;
   int rc, i;
-  uint32_t found_mask;
+  uint64_t found_mask;
 
   d1_.direction = CRAS_STREAM_INPUT;
   d2_.direction = CRAS_STREAM_INPUT;
@@ -1057,8 +1138,8 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
     found_mask = 0;
     for (i = 0; i < rc; i++) {
       uint32_t idx = dev_info[i].idx;
-      EXPECT_EQ(0, (found_mask & (1 << idx)));
-      found_mask |= (1 << idx);
+      EXPECT_EQ(0, (found_mask & (static_cast<uint64_t>(1) << idx)));
+      found_mask |= (static_cast<uint64_t>(1) << idx);
     }
   }
   if (rc > 0)
@@ -1317,6 +1398,10 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   rc = cras_iodev_list_add_output(&d3_);
   ASSERT_EQ(0, rc);
 
+  d1_.format = &fmt_;
+  d2_.format = &fmt_;
+  d3_.format = &fmt_;
+
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
                                   cras_make_node_id(d3_.info.idx, 1));
@@ -1364,6 +1449,8 @@ TEST_F(IoDevTestSuite, DrainTimerCancel) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
+
+  d1_.format = &fmt_;
 
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
@@ -1447,6 +1534,9 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   d2_.info.idx = 2;
   EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
 
+  d1_.format = &fmt_;
+  d2_.format = &fmt_;
+
   // Setup pinned stream.
   memset(&rstream, 0, sizeof(rstream));
   rstream.is_pinned = 1;
@@ -1506,6 +1596,9 @@ TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
   d2_.direction = CRAS_STREAM_OUTPUT;
   EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
 
+  d1_.format = &fmt_;
+  d2_.format = &fmt_;
+
   // Setup pinned stream.
   memset(&rstream, 0, sizeof(rstream));
   rstream.is_pinned = 1;
@@ -1561,6 +1654,8 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
   d1_.direction = CRAS_STREAM_INPUT;
   EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
 
+  d1_.format = &fmt_;
+
   memset(&rstream, 0, sizeof(rstream));
   rstream.is_pinned = 1;
   rstream.pinned_dev_idx = d1_.info.idx;
@@ -1605,6 +1700,8 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
   node1.type = CRAS_NODE_TYPE_HOTWORD;
   d1_.direction = CRAS_STREAM_INPUT;
   EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+
+  d1_.format = &fmt_;
 
   memset(&rstream, 0, sizeof(rstream));
   rstream.is_pinned = 1;
@@ -1787,6 +1884,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
                     const struct cras_audio_format* fmt) {
   if (cras_iodev_open_ret[cras_iodev_open_called] == 0)
     iodev->state = CRAS_IODEV_STATE_OPEN;
+  cras_iodev_open_fmt = *fmt;
   return cras_iodev_open_ret[cras_iodev_open_called++];
 }
 
