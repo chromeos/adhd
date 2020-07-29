@@ -48,7 +48,6 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -k 'tmpfs,/run,tmpfs,MS_NODEV|MS_NOEXEC|MS_NOSUID,mode=755,size=10M' \
         -b /run/cras,/run/cras,1 \
         -b /run/dbus,/run/dbus,1 \
-        -b /run/systemd/journal \
         -b /run/udev,/run/udev \
         -b /dev,/dev \
         -b /dev/shm,/dev/shm,1 \
