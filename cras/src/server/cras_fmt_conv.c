@@ -384,11 +384,12 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 		conv->ch_conv_mtx = cras_channel_conv_matrix_create(in, out);
 		if (conv->ch_conv_mtx == NULL) {
 			syslog(LOG_ERR,
-			       "Failed to create channel conversion matrix");
-			cras_fmt_conv_destroy(&conv);
-			return NULL;
+			       "Failed to create channel conversion matrix."
+			       "Fallback to default_all_to_all.");
+			conv->channel_converter = default_all_to_all;
+		} else {
+			conv->channel_converter = convert_channels;
 		}
-		conv->channel_converter = convert_channels;
 	}
 	/* Set up sample rate conversion. */
 	if (in->frame_rate != out->frame_rate) {
