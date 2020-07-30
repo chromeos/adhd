@@ -411,9 +411,10 @@ int hfp_read_msbc(struct hfp_info *info)
 	struct iovec iov;
 	struct cmsghdr *cmsg;
 	const unsigned int control_size = CMSG_SPACE(sizeof(int));
-	char control[control_size] = { 0 };
+	char control[control_size];
 	uint8_t pkt_status;
 
+	memset(control, 0, sizeof(control));
 recv_msbc_bytes:
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
