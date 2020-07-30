@@ -1075,7 +1075,6 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
 }
 
 TEST(AlsaOutputNode, MaxSupportedChannels) {
-  struct alsa_io* aio;
   struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
   struct cras_iodev* iodev;
   struct ucm_section* section;
@@ -1092,7 +1091,6 @@ TEST(AlsaOutputNode, MaxSupportedChannels) {
         1, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
         CRAS_STREAM_OUTPUT);
     ASSERT_NE(iodev, (void*)NULL);
-    aio = reinterpret_cast<struct alsa_io*>(iodev);
 
     // Node without controls or jacks.
     section = ucm_section_create(INTERNAL_SPEAKER, "hw:0,1", 1, -1,

@@ -722,6 +722,7 @@ extern "C" {
 int cras_bt_transport_configuration(const struct cras_bt_transport* transport,
                                     void* configuration,
                                     int len) {
+  memset(configuration, 0, len);
   cras_bt_transport_configuration_called++;
   return 0;
 }
