@@ -510,7 +510,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
 		return;
 
-	/* Convert from monotomic raw clock to realtime clock. */
+	/* Convert from monotonic raw clock to realtime clock. */
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
 	t = localtime(&lt);
@@ -864,7 +864,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
 		return;
 
-	/* Convert from monotomic raw clock to realtime clock. */
+	/* Convert from monotonic raw clock to realtime clock. */
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
 	t = localtime(&lt);
@@ -905,7 +905,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		       data2);
 		break;
 	case BT_DEV_CONNECTED_CHANGE:
-		printf("%-30s profiles %u now %u\n", "DEV_CONENCTED_CHANGE",
+		printf("%-30s profiles %u now %u\n", "DEV_CONNECTED_CHANGE",
 		       data1, data2);
 		break;
 	case BT_DEV_CONN_WATCH_CB:
@@ -1446,7 +1446,7 @@ static void check_output_plugged(struct cras_client *client, const char *name)
 	       cras_client_output_dev_plugged(client, name) ? "Yes" : "No");
 }
 
-/* Repeatedly mute and unmute the output until there is an error. */
+/* Repeatedly mute and un-mute the output until there is an error. */
 static void mute_loop_test(struct cras_client *client, int auto_reconnect)
 {
 	int mute = 0;
@@ -1610,7 +1610,7 @@ static void show_usage()
 	printf("--capture_file <name> - "
 	       "Name of file to record to.\n");
 	printf("--capture_gain <dB> - "
-	       "Set system caputre gain in dB*100 (100 = 1dB).\n");
+	       "Set system capture gain in dB*100 (100 = 1dB).\n");
 	printf("--capture_mute <0|1> - "
 	       "Set capture mute state.\n");
 	printf("--channel_layout <layout_str> - "
@@ -1657,7 +1657,7 @@ static void show_usage()
 	printf("--mute <0|1> - "
 	       "Set system mute state.\n");
 	printf("--mute_loop_test <0|1> - "
-	       "Continuously loop mute/umute.\n"
+	       "Continuously loop mute/un-mute.\n"
 	       "                         "
 	       "Argument: 0 - stop on error.\n"
 	       "                         "
@@ -1711,7 +1711,7 @@ static void show_usage()
 	printf("--suspend <0|1> - "
 	       "Set audio suspend state.\n");
 	printf("--swap_left_right <N>:<M>:<0|1> - "
-	       "Swap or unswap (1 or 0) the left and right channel for the "
+	       "Swap or un-swap (1 or 0) the left and right channel for the "
 	       "ionode with the given index M on the device with index N\n");
 	printf("--stream_type <N> - "
 	       "Specify the type of the stream.\n");
