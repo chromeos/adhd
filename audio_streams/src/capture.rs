@@ -233,8 +233,8 @@ mod tests {
             let mut stream_buffer = stream.next_capture_buffer().unwrap();
             let mut cp_buf = [0xa5u8; 480 * 2 * 2];
             assert_eq!(stream_buffer.read(&mut cp_buf).unwrap(), 480 * 2 * 2);
-            for i in 0..cp_buf.len() {
-                assert_eq!(cp_buf[i], 0, "Read samples should all be zeros.");
+            for buf in cp_buf.iter() {
+                assert_eq!(*buf, 0, "Read samples should all be zeros.");
             }
         }
         // The second call should block until the first buffer is consumed.

@@ -134,6 +134,7 @@ impl FromStr for StreamEffect {
 pub trait StreamSource: Send {
     /// Returns a stream control and buffer generator object. These are separate as the buffer
     /// generator might want to be passed to the audio stream.
+    #[allow(clippy::type_complexity)]
     fn new_playback_stream(
         &mut self,
         num_channels: usize,
@@ -145,6 +146,7 @@ pub trait StreamSource: Send {
     /// Returns a stream control and buffer generator object. These are separate as the buffer
     /// generator might want to be passed to the audio stream.
     /// Default implementation returns `DummyStreamControl` and `DummyCaptureStream`.
+    #[allow(clippy::type_complexity)]
     fn new_capture_stream(
         &mut self,
         num_channels: usize,
@@ -378,6 +380,7 @@ impl DummyStreamSource {
 }
 
 impl StreamSource for DummyStreamSource {
+    #[allow(clippy::type_complexity)]
     fn new_playback_stream(
         &mut self,
         num_channels: usize,
@@ -426,7 +429,7 @@ mod tests {
             const FRAME_SIZE: usize = 4;
             let mut buf = [0u8; 480 * FRAME_SIZE];
             let mut pb_buf = PlaybackBuffer::new(FRAME_SIZE, &mut buf, &mut test_drop).unwrap();
-            pb_buf.write(&[0xa5u8; 480 * FRAME_SIZE]).unwrap();
+            pb_buf.write_all(&[0xa5u8; 480 * FRAME_SIZE]).unwrap();
         }
         assert_eq!(test_drop.frame_count, 480);
     }

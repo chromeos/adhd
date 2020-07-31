@@ -189,6 +189,7 @@ pub trait ShmStreamSource: Send {
     /// # Errors
     ///
     /// * If sending the connect stream message to the server fails.
+    #[allow(clippy::too_many_arguments)]
     fn new_stream(
         &mut self,
         direction: StreamDirection,
@@ -346,7 +347,7 @@ impl MockShmStream {
             }
         }
 
-        return true;
+        true
     }
 
     fn notify_request(&mut self) {
@@ -476,7 +477,7 @@ pub mod tests {
             let request = stream
                 .wait_for_next_action_with_timeout(Duration::from_secs(5))
                 .expect("Failed to wait for next action");
-            let result = match request {
+            match request {
                 Some(r) => {
                     let requested = r.requested_frames();
                     r.set_buffer_offset_and_frames(872, requested)
@@ -484,8 +485,7 @@ pub mod tests {
                     requested
                 }
                 None => 0,
-            };
-            result
+            }
         });
 
         let mut stream = stream_source.get_last_stream();
