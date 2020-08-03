@@ -321,7 +321,7 @@ impl Write for WavSink {
                     // even though the wav encoder does.
                     // TODO(fletcherw): add S24_LE support to hound.
                     if self.format == SampleFormat::S24LE {
-                        sample = sample << 8;
+                        sample <<= 8;
                     }
 
                     self.wav_writer.write_sample(sample).or_else(|e| {
@@ -385,7 +385,6 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
 
             let loopback_node = cras_client
                 .input_nodes()
-                .into_iter()
                 .find(|node| node.node_type == node_type)
                 .ok_or(Error::NoLoopbackNode(node_type))?;
 
