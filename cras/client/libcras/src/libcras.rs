@@ -403,7 +403,8 @@ impl<'a> CrasClient<'a> {
         let stream_id = self.next_server_stream_id();
 
         // Prepares server message
-        let audio_format = cras_audio_format_packed::new(format.into(), rate, channel_num);
+        let audio_format =
+            cras_audio_format_packed::new(format.into(), rate, channel_num, direction);
         let msg_header = cras_server_message {
             length: mem::size_of::<cras_connect_message>() as u32,
             id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
@@ -632,7 +633,12 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
 
         // Prepares server message
         let stream_id = self.next_server_stream_id();
-        let audio_format = cras_audio_format_packed::new(format.into(), frame_rate, num_channels);
+        let audio_format = cras_audio_format_packed::new(
+            format.into(),
+            frame_rate,
+            num_channels,
+            direction.into(),
+        );
         let msg_header = cras_server_message {
             length: mem::size_of::<cras_connect_message>() as u32,
             id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
