@@ -464,6 +464,7 @@ impl<'a> CrasClient<'a> {
     /// * `format` - The format to use for stream audio samples.
     /// * `frame_rate` - The sample rate of the stream.
     /// * `buffer_size` - The transfer size granularity in frames.
+    #[allow(clippy::type_complexity)]
     pub fn new_pinned_playback_stream(
         &mut self,
         device_index: u32,
@@ -498,6 +499,7 @@ impl<'a> CrasClient<'a> {
     /// * `format` - The format to use for stream audio samples.
     /// * `frame_rate` - The sample rate of the stream.
     /// * `buffer_size` - The transfer size granularity in frames.
+    #[allow(clippy::type_complexity)]
     pub fn new_pinned_capture_stream(
         &mut self,
         device_index: u32,
@@ -550,6 +552,7 @@ impl<'a> CrasClient<'a> {
 }
 
 impl<'a> StreamSource for CrasClient<'a> {
+    #[allow(clippy::type_complexity)]
     fn new_playback_stream(
         &mut self,
         num_channels: usize,
@@ -571,6 +574,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         ))
     }
 
+    #[allow(clippy::type_complexity)]
     fn new_capture_stream(
         &mut self,
         num_channels: usize,
@@ -655,7 +659,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
             flags: 0,
             format: audio_format,
             dev_idx: CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
-            effects: effects.into_iter().collect::<CrasStreamEffect>().into(),
+            effects: effects.iter().collect::<CrasStreamEffect>().into(),
             client_type: self.client_type,
             client_shm_size: client_shm.size(),
             buffer_offsets,

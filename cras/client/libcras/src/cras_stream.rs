@@ -134,6 +134,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
     ///
     /// # Returns
     /// `CrasStream` - CRAS client stream.
+    #[allow(clippy::too_many_arguments)]
     pub fn try_new(
         stream_id: u32,
         server_socket: CrasServerSocket,

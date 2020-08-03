@@ -71,6 +71,7 @@ impl<'a> CrasShmStream<'a> {
     /// # Errors
     ///
     /// * If `header_fd` could not be successfully mmapped.
+    #[allow(clippy::too_many_arguments)]
     pub fn try_new(
         stream_id: u32,
         server_socket: CrasServerSocket,
@@ -129,7 +130,7 @@ impl<'a> ShmStream for CrasShmStream<'a> {
             .read_audio_message_with_timeout(Some(timeout))?
         {
             Some(AudioMessage::Success { id, frames }) if id == expected_id => {
-                return Ok(Some(ServerRequest::new(frames as usize, self)));
+                Ok(Some(ServerRequest::new(frames as usize, self)))
             }
             None => Ok(None),
             _ => Err(Box::new(Error::MessageTypeError)),
