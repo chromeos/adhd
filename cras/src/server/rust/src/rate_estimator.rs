@@ -183,6 +183,6 @@ impl RateEstimator {
             self.window_frames = 0;
             return true;
         }
-        return false;
+        false
     }
 }

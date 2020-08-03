@@ -8,9 +8,11 @@ use libc;
 
 use crate::RateEstimator;
 
-#[no_mangle]
+/// # Safety
+///
 /// To use this function safely, `window_size` must be a valid pointer to a
 /// timespec.
+#[no_mangle]
 pub unsafe extern "C" fn rate_estimator_create(
     rate: libc::c_uint,
     window_size: *const libc::timespec,
@@ -29,9 +31,11 @@ pub unsafe extern "C" fn rate_estimator_create(
     }
 }
 
-#[no_mangle]
+/// # Safety
+///
 /// To use this function safely, `re` must be a pointer returned from
 /// rate_estimator_create, or null.
+#[no_mangle]
 pub unsafe extern "C" fn rate_estimator_destroy(re: *mut RateEstimator) {
     if re.is_null() {
         return;
@@ -40,9 +44,11 @@ pub unsafe extern "C" fn rate_estimator_destroy(re: *mut RateEstimator) {
     drop(Box::from_raw(re));
 }
 
-#[no_mangle]
+/// # Safety
+///
 /// To use this function safely, `re` must be a pointer returned from
 /// rate_estimator_create, or null.
+#[no_mangle]
 pub unsafe extern "C" fn rate_estimator_add_frames(re: *mut RateEstimator, frames: libc::c_int) {
     if re.is_null() {
         return;
@@ -51,10 +57,12 @@ pub unsafe extern "C" fn rate_estimator_add_frames(re: *mut RateEstimator, frame
     (*re).add_frames(frames)
 }
 
-#[no_mangle]
+/// # Safety
+///
 /// To use this function safely, `re` must be a pointer returned from
 /// rate_estimator_create, or null, and `now` must be a valid pointer to a
 /// timespec.
+#[no_mangle]
 pub unsafe extern "C" fn rate_estimator_check(
     re: *mut RateEstimator,
     level: libc::c_int,
@@ -75,9 +83,11 @@ pub unsafe extern "C" fn rate_estimator_check(
     (*re).update_estimated_rate(level, now) as i32
 }
 
-#[no_mangle]
+/// # Safety
+///
 /// To use this function safely, `re` must be a pointer returned from
 /// rate_estimator_create, or null.
+#[no_mangle]
 pub unsafe extern "C" fn rate_estimator_get_rate(re: *const RateEstimator) -> libc::c_double {
     if re.is_null() {
         return 0.0;
@@ -86,9 +96,11 @@ pub unsafe extern "C" fn rate_estimator_get_rate(re: *const RateEstimator) -> li
     (*re).get_estimated_rate()
 }
 
-#[no_mangle]
+/// # Safety
+///
 /// To use this function safely, `re` must be a pointer returned from
 /// rate_estimator_create, or null.
+#[no_mangle]
 pub unsafe extern "C" fn rate_estimator_reset_rate(re: *mut RateEstimator, rate: libc::c_uint) {
     if re.is_null() {
         return;

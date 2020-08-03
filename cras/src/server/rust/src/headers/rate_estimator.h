@@ -31,12 +31,16 @@
 typedef struct rate_estimator rate_estimator;
 
 /**
+ * # Safety
+ *
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null.
  */
 void rate_estimator_add_frames(rate_estimator *re, int frames);
 
 /**
+ * # Safety
+ *
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null, and `now` must be a valid pointer to a
  * timespec.
@@ -45,6 +49,8 @@ int32_t rate_estimator_check(rate_estimator *re, int level,
 			     const struct timespec *now);
 
 /**
+ * # Safety
+ *
  * To use this function safely, `window_size` must be a valid pointer to a
  * timespec.
  */
@@ -53,18 +59,24 @@ rate_estimator *rate_estimator_create(unsigned int rate,
 				      double smooth_factor);
 
 /**
+ * # Safety
+ *
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null.
  */
 void rate_estimator_destroy(rate_estimator *re);
 
 /**
+ * # Safety
+ *
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null.
  */
 double rate_estimator_get_rate(const rate_estimator *re);
 
 /**
+ * # Safety
+ *
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null.
  */
