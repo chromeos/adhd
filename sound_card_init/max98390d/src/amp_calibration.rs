@@ -29,6 +29,7 @@ const FRAME_RATE: usize = 48000;
 const NUM_CHANNELS: usize = 2;
 const FORMAT: SampleFormat = SampleFormat::S16LE;
 const DURATION_MS: usize = 1000;
+const WARM_UP_DURATION_MS: usize = 150;
 
 /// Amp volume mode emulation used by set_volume().
 #[derive(PartialEq)]
@@ -268,6 +269,8 @@ impl<'a> AmpCalibration<'a> {
         let handle = thread::spawn(move || -> Result<()> {
             let local_buffer = [0u8; FRAMES_PER_BUFFER * NUM_CHANNELS * 2];
             let iterations: usize = (FRAME_RATE * DURATION_MS) / FRAMES_PER_BUFFER / 1000;
+            let warm_up_iterations: usize =
+                (FRAME_RATE * WARM_UP_DURATION_MS) / FRAMES_PER_BUFFER / 1000;
 
             let (_control, mut stream) = cras_client
                 .new_pinned_playback_stream(
@@ -290,7 +293,8 @@ impl<'a> AmpCalibration<'a> {
                 let _write_frames = buffer.write(&local_buffer).map_err(Error::PlaybackFailed)?;
 
                 // Notifies the main thread to start the calibration.
-                if i == 1 {
+                // The mute playing time need to be longer than WARM_UP_DURATION_MS to get rdc properly.
+                if i == warm_up_iterations {
                     let (lock, cvar) = &*playback_started;
                     let mut started = lock.lock()?;
                     *started = true;
