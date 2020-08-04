@@ -89,7 +89,7 @@ AC_ARG_ENABLE([alsa-plugin], AS_HELP_STRING([--disable-alsa-plugin],
 AC_ARG_ENABLE([metrics], AS_HELP_STRING([--enable-metrics], [Enable metrics uses]), have_metrics=$enableval, have_metrics=no)
 if test "$have_metrics" = "yes"; then
     AC_DEFINE(HAVE_LIB_METRICS, 1, [Define to use libmetrics])
-    METRICS_LIBS=-lmetrics-${BASE_VER}
+    METRICS_LIBS=-lmetrics
 else
     METRICS_LIBS=
 fi
