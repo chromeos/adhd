@@ -619,12 +619,42 @@ TEST(FormatConverterOpsTest, StereoTo3chS16LE) {
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
+    int32_t sum = 0;
     for (size_t k = 0; k < in_ch; ++k)
-      src[i * in_ch + k] /= in_ch;
-    for (size_t k = 1; k < in_ch; ++k)
-      src[i * in_ch + 0] += src[i * in_ch + k];
+      sum += (int32_t)src[i * in_ch + k];
+    src[i * in_ch + 0] = (int16_t)(sum / (int32_t)in_ch);
   }
   for (size_t i = 0; i < frames; ++i) {
+    for (size_t k = 0; k < out_ch; ++k)
+      EXPECT_EQ(src[i * in_ch + 0], dst[i * out_ch + k]);
+  }
+}
+
+// Test 6ch to 8ch conversion.  S16_LE.
+TEST(FormatConverterOpsTest, 6chTo8chS16LE) {
+  const size_t frames = 65536;
+  const size_t in_ch = 6;
+  const size_t out_ch = 8;
+  struct cras_audio_format fmt = {
+      .format = SND_PCM_FORMAT_S16_LE,
+      .frame_rate = 48000,
+      .num_channels = 8,
+  };
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+  for (size_t i = 0; i < frames; ++i) {
+    for (size_t k = 0; k < in_ch; k++) {
+      src[i * in_ch + k] = (k == 0) ? (INT16_MIN + (int16_t)i) : 0;
+    }
+  }
+
+  size_t ret = s16_default_all_to_all(&fmt, in_ch, out_ch, (uint8_t*)src.get(),
+                                      frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    src[i * in_ch + 0] /= (int16_t)in_ch;
     for (size_t k = 0; k < out_ch; ++k)
       EXPECT_EQ(src[i * in_ch + 0], dst[i * out_ch + k]);
   }

@@ -331,14 +331,22 @@ size_t s16_default_all_to_all(struct cras_audio_format *out_fmt,
 	unsigned int in_ch, out_ch, i;
 	const int16_t *in = (const int16_t *)_in;
 	int16_t *out = (int16_t *)_out;
+	int32_t sum;
 
-	memset(out, 0, in_frames * cras_get_format_bytes(out_fmt));
-	for (out_ch = 0; out_ch < num_out_ch; out_ch++) {
+	for (i = 0; i < in_frames; i++) {
+		sum = 0;
 		for (in_ch = 0; in_ch < num_in_ch; in_ch++) {
-			for (i = 0; i < in_frames; i++) {
-				out[out_ch + i * num_out_ch] +=
-					in[in_ch + i * num_in_ch] / num_in_ch;
-			}
+			sum += (int32_t)in[in_ch + i * num_in_ch];
+		}
+		/*
+		 * 1. Divide `int32_t` by `size_t` without an explicit
+		 *    conversion will generate corrupted results.
+		 * 2. After the division, `sum` should be in the range of
+		 *    int16_t. No clipping is needed.
+		 */
+		sum /= (int32_t)num_in_ch;
+		for (out_ch = 0; out_ch < num_out_ch; out_ch++) {
+			out[out_ch + i * num_out_ch] = (int16_t)sum;
 		}
 	}
 	return in_frames;
