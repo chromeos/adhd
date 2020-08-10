@@ -78,7 +78,7 @@ AC_SEARCH_LIBS([LADSPA], [ladspa-sdk], [], [
 		AC_MSG_ERROR([Missing ladspa-sdk, please install.])
 	])
 ])
-PKG_CHECK_MODULES([UDEV], [ udev >= 1.0 ])
+PKG_CHECK_MODULES([UDEV], [ libudev >= 1.0 ])
 PKG_CHECK_MODULES([GTEST], [ gtest >= 1.0 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 	     AC_ERROR([*** libasound has no external plugin SDK]), -ldl)

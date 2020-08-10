@@ -18,7 +18,6 @@ RUN apt-get -y update && \
       ladspa-sdk \
       libasound-dev \
       libdbus-1-dev \
-      libgtest-dev \
       libncurses5-dev \
       libsbc-dev \
       libsndfile-dev \
@@ -36,11 +35,14 @@ RUN cd /tmp && git clone https://github.com/ndevilla/iniparser.git && \
       chmod 644 /usr/local/include/dictionary.h /usr/local/include/iniparser.h && \
       chmod 644 /usr/local/lib/libiniparser.a && \
       chmod 755 /usr/local/lib/libiniparser.so.*
-RUN cd /usr/src/gtest && \
-      cmake . && \
-      make && \
-      chmod 644 *.a && \
-      cp *.a /usr/local/lib
+
+RUN cd /tmp && git clone https://github.com/google/googletest.git -b v1.8.x && \
+      cd googletest && \
+      mkdir build && cd build && \
+      cmake .. -DBUILD_SHARED_LIBS=ON \
+         -DINSTALL_GTEST=ON \
+         -DCMAKE_INSTALL_PREFIX:PATH=/usr && \
+      make && make install
 
 # Need to build and install alsa so there is a static lib.
 RUN mkdir -p /tmp/alsa-build && cd /tmp/alsa-build && \
