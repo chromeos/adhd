@@ -719,6 +719,21 @@ static int gpio_switch_list_by_matching(const char *dev_path,
 	return data->rc;
 }
 
+/* Find ELD control for HDMI/DP gpio jack. */
+static snd_hctl_elem_t *find_eld_control_by_dev_index(snd_hctl_t *hctl,
+						      unsigned int dev_idx)
+{
+	static const char eld_control_name[] = "ELD";
+	snd_ctl_elem_id_t *elem_id;
+
+	snd_ctl_elem_id_alloca(&elem_id);
+	snd_ctl_elem_id_clear(elem_id);
+	snd_ctl_elem_id_set_interface(elem_id, SND_CTL_ELEM_IFACE_PCM);
+	snd_ctl_elem_id_set_device(elem_id, dev_idx);
+	snd_ctl_elem_id_set_name(elem_id, eld_control_name);
+	return snd_hctl_find_elem(hctl, elem_id);
+}
+
 /* Find GPIO jacks for this jack_list.
  * Args:
  *    jack_list - Jack list to add to.
@@ -754,8 +769,13 @@ static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 		gpio_switch_list_for_each(gpio_switch_list_with_section, &data);
 	else
 		gpio_switch_list_for_each(gpio_switch_list_by_matching, &data);
-	if (result_jack)
+	if (result_jack) {
 		*result_jack = data.result_jack;
+
+		/* Find ELD control for HDMI/DP gpio jack. */
+		(*result_jack)->eld_control = find_eld_control_by_dev_index(
+			jack_list->hctl, jack_list->device_index);
+	}
 	return data.rc;
 }
 
@@ -858,7 +878,6 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list)
 	static const char *const input_jack_base_names[] = {
 		"Mic Jack",
 	};
-	static const char eld_control_name[] = "ELD";
 	const char *const *jack_names;
 	unsigned int num_jack_names;
 
@@ -932,17 +951,9 @@ static int find_jack_controls(struct cras_alsa_jack_list *jack_list)
 		name = snd_hctl_elem_get_name(jack->elem);
 		if (!is_jack_hdmi_dp(name))
 			continue;
-		for (elem = snd_hctl_first_elem(jack_list->hctl); elem != NULL;
-		     elem = snd_hctl_elem_next(elem)) {
-			if (strcmp(snd_hctl_elem_get_name(elem),
-				   eld_control_name))
-				continue;
-			if (snd_hctl_elem_get_device(elem) !=
-			    jack_list->device_index)
-				continue;
-			jack->eld_control = elem;
-			break;
-		}
+
+		jack->eld_control = find_eld_control_by_dev_index(
+			jack_list->hctl, jack_list->device_index);
 	}
 
 	return 0;
@@ -968,7 +979,6 @@ static int find_hctl_jack_for_section(struct cras_alsa_jack_list *jack_list,
 				      struct ucm_section *section,
 				      struct cras_alsa_jack **result_jack)
 {
-	static const char eld_control_name[] = "ELD";
 	snd_hctl_elem_t *elem;
 	snd_ctl_elem_id_t *elem_id;
 	struct cras_alsa_jack *jack;
@@ -1019,10 +1029,8 @@ static int find_hctl_jack_for_section(struct cras_alsa_jack_list *jack_list,
 		return 0;
 
 	/* Look up ELD control. */
-	snd_ctl_elem_id_set_name(elem_id, eld_control_name);
-	elem = snd_hctl_find_elem(jack_list->hctl, elem_id);
-	if (elem)
-		jack->eld_control = elem;
+	jack->eld_control = find_eld_control_by_dev_index(
+		jack_list->hctl, jack_list->device_index);
 	return 0;
 }
 

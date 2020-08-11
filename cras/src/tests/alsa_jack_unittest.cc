@@ -216,14 +216,15 @@ static struct cras_alsa_jack_list* run_test_with_elem_list(
   EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   EXPECT_EQ(ucm ? njacks : 0, ucm_get_dev_for_jack_called);
   EXPECT_EQ(ucm ? njacks : 0, ucm_get_override_type_name_called);
-  EXPECT_EQ(1 + nhdmi_jacks, snd_hctl_first_elem_called);
+  EXPECT_EQ(1, snd_hctl_first_elem_called);
   EXPECT_EQ(njacks, snd_hctl_elem_set_callback_called);
+  EXPECT_EQ(nhdmi_jacks, snd_hctl_find_elem_called);
 
   /* For some functions, the number of calls to them could
    * be larger then expected count if there is ELD control
    * in given elements. */
-  EXPECT_GE(snd_hctl_elem_next_called, nelems + nhdmi_jacks);
-  EXPECT_GE(snd_hctl_elem_get_name_called, nelems + njacks);
+  EXPECT_GE(snd_hctl_elem_next_called, nelems);
+  EXPECT_GE(snd_hctl_elem_get_name_called, nelems);
 
   if (direction == CRAS_STREAM_OUTPUT) {
     EXPECT_EQ(njacks, cras_alsa_mixer_get_output_matching_name_called);
@@ -678,7 +679,7 @@ TEST(AlsaJacks, CreateHDMIJacksWithELD) {
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
 
   /* Assert get device is called for the ELD control */
-  EXPECT_EQ(1, snd_hctl_elem_get_device_called);
+  EXPECT_EQ(1, snd_hctl_find_elem_called);
   cras_alsa_jack_list_destroy(jack_list);
 }
 
