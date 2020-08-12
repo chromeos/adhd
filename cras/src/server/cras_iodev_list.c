@@ -1117,6 +1117,7 @@ void cras_iodev_list_deinit()
 	empty_iodev_destroy(fallback_devs[CRAS_STREAM_INPUT]);
 	empty_iodev_destroy(fallback_devs[CRAS_STREAM_OUTPUT]);
 	stream_list_destroy(stream_list);
+	main_thread_event_log_deinit(main_log);
 	if (list_observer) {
 		cras_observer_remove(list_observer);
 		list_observer = NULL;

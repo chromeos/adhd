@@ -108,7 +108,6 @@ int device_in_vector(std::vector<struct cras_iodev*> v,
 class IoDevTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
-    main_log = main_thread_event_log_init();
     cras_iodev_list_reset();
 
     cras_iodev_close_called = 0;
@@ -243,7 +242,6 @@ class IoDevTestSuite : public testing::Test {
 
   virtual void TearDown() {
     cras_iodev_list_reset();
-    main_thread_event_log_deinit(main_log);
   }
 
   static void set_volume_1(struct cras_iodev* iodev) { set_volume_1_called_++; }
@@ -969,6 +967,7 @@ TEST_F(IoDevTestSuite, AddWrongDirection) {
 TEST_F(IoDevTestSuite, AddRemoveOutput) {
   struct cras_iodev_info* dev_info;
   int rc;
+  cras_iodev_list_init();
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
@@ -1000,6 +999,7 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   EXPECT_EQ(0, rc);
   free(dev_info);
   EXPECT_EQ(0, cras_observer_notify_active_node_called);
+  cras_iodev_list_deinit();
 }
 
 // Test output_mute_changed callback.
@@ -1078,6 +1078,7 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
 
 // Test enable/disable an iodev.
 TEST_F(IoDevTestSuite, EnableDisableDevice) {
+  cras_iodev_list_init();
   device_enabled_count = 0;
   device_disabled_count = 0;
 
@@ -1086,17 +1087,18 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
   EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(
                    device_enabled_cb, device_disabled_cb, (void*)0xABCD));
 
-  // Enable a device.
+  // Enable a device, fallback should be diabled accordingly.
   cras_iodev_list_enable_dev(&d1_);
   EXPECT_EQ(&d1_, device_enabled_dev);
   EXPECT_EQ((void*)0xABCD, device_enabled_cb_data);
   EXPECT_EQ(1, device_enabled_count);
+  EXPECT_EQ(1, device_disabled_count);
   EXPECT_EQ(&d1_, cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
 
   // Disable a device.
   cras_iodev_list_disable_dev(&d1_, false);
   EXPECT_EQ(&d1_, device_disabled_dev);
-  EXPECT_EQ(1, device_disabled_count);
+  EXPECT_EQ(2, device_disabled_count);
   EXPECT_EQ((void*)0xABCD, device_disabled_cb_data);
 
   EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(
@@ -1104,6 +1106,7 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
   EXPECT_EQ(2, cras_observer_notify_active_node_called);
 
   EXPECT_EQ(0, cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL));
+  cras_iodev_list_deinit();
 }
 
 // Test adding/removing an input dev to the list.
@@ -1180,6 +1183,7 @@ TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
   d2_.direction = CRAS_STREAM_INPUT;
 
   server_state_update_begin_return = NULL;
+  cras_iodev_list_init();
 
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(0, rc);
@@ -1190,6 +1194,7 @@ TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
 
   EXPECT_EQ(0, cras_iodev_list_rm_input(&d1_));
   EXPECT_EQ(0, cras_iodev_list_rm_input(&d2_));
+  cras_iodev_list_deinit();
 }
 
 // Test removing the last input.
