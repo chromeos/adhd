@@ -773,8 +773,11 @@ static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 		*result_jack = data.result_jack;
 
 		/* Find ELD control for HDMI/DP gpio jack. */
-		(*result_jack)->eld_control = find_eld_control_by_dev_index(
-			jack_list->hctl, jack_list->device_index);
+		if (*result_jack)
+			(*result_jack)->eld_control =
+				find_eld_control_by_dev_index(
+					jack_list->hctl,
+					jack_list->device_index);
 	}
 	return data.rc;
 }
