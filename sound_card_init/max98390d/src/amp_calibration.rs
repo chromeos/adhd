@@ -29,7 +29,7 @@ const FRAME_RATE: usize = 48000;
 const NUM_CHANNELS: usize = 2;
 const FORMAT: SampleFormat = SampleFormat::S16LE;
 const DURATION_MS: usize = 1000;
-const WARM_UP_DURATION_MS: usize = 150;
+const WARM_UP_DURATION_MS: usize = 300;
 
 /// Amp volume mode emulation used by set_volume().
 #[derive(PartialEq)]
