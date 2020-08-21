@@ -472,12 +472,4 @@ unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr *mgr,
  */
 unsigned int ucm_get_optimize_no_stream_flag(struct cras_use_case_mgr *mgr);
 
-/* Retrieve the flag that enables use of htimestamp.
- * Args:
- *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
- * Returns:
- *    1 if the flag is enabled. 0 otherwise.
- */
-unsigned int ucm_get_enable_htimestamp_flag(struct cras_use_case_mgr *mgr);
-
 #endif /* _CRAS_ALSA_UCM_H */

@@ -137,7 +137,6 @@ static int cras_iodev_frames_queued_ret;
 static int cras_iodev_buffer_avail_ret;
 static int cras_alsa_resume_appl_ptr_called;
 static int cras_alsa_resume_appl_ptr_ahead;
-static int ucm_get_enable_htimestamp_flag_ret;
 static const struct cras_volume_curve* fake_get_dBFS_volume_curve_val;
 static int cras_iodev_dsp_set_swap_mode_for_node_called;
 static std::map<std::string, long> ucm_get_default_node_gain_values;
@@ -220,7 +219,6 @@ void ResetStubData() {
   cras_iodev_buffer_avail_ret = 0;
   cras_alsa_resume_appl_ptr_called = 0;
   cras_alsa_resume_appl_ptr_ahead = 0;
-  ucm_get_enable_htimestamp_flag_ret = 0;
   fake_get_dBFS_volume_curve_val = NULL;
   cras_iodev_dsp_set_swap_mode_for_node_called = 0;
   ucm_get_default_node_gain_values.clear();
@@ -2473,7 +2471,7 @@ int cras_alsa_set_hwparams(snd_pcm_t* handle,
                            unsigned int dma_period_time) {
   return 0;
 }
-int cras_alsa_set_swparams(snd_pcm_t* handle, int* enable_htimestamp) {
+int cras_alsa_set_swparams(snd_pcm_t* handle) {
   return 0;
 }
 int cras_alsa_get_avail_frames(snd_pcm_t* handle,
@@ -2766,10 +2764,6 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
                              unsigned int* level) {
   *level = 0;
   return 0;
-}
-
-unsigned int ucm_get_enable_htimestamp_flag(struct cras_use_case_mgr* mgr) {
-  return ucm_get_enable_htimestamp_flag_ret;
 }
 
 unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {

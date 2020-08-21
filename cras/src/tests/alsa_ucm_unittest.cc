@@ -862,28 +862,6 @@ TEST(AlsaUcm, UseFullySpecifiedUCMConfig) {
   ASSERT_FALSE(fully_specified_flag);
 }
 
-TEST(AlsaUcm, EnableHtimestampFlag) {
-  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  unsigned int enable_htimestamp_flag;
-
-  std::string id = "=EnableHtimestamp//HiFi";
-  ResetStubData();
-
-  /* Flag is not set */
-  enable_htimestamp_flag = ucm_get_enable_htimestamp_flag(mgr);
-  ASSERT_FALSE(enable_htimestamp_flag);
-
-  /* Flag is set to "1". */
-  snd_use_case_get_value[id] = std::string("1");
-  enable_htimestamp_flag = ucm_get_enable_htimestamp_flag(mgr);
-  ASSERT_TRUE(enable_htimestamp_flag);
-
-  /* Flag is set to "0". */
-  snd_use_case_get_value[id] = std::string("0");
-  enable_htimestamp_flag = ucm_get_enable_htimestamp_flag(mgr);
-  ASSERT_FALSE(enable_htimestamp_flag);
-}
-
 TEST(AlsaUcm, GetMixerNameForDevice) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   const char *mixer_name_1, *mixer_name_2;

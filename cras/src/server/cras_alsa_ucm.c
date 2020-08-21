@@ -57,7 +57,6 @@ static const char default_node_gain[] = "DefaultNodeGain";
 static const char hotword_model_prefix[] = "Hotword Model";
 static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
 static const char main_volume_names[] = "MainVolumeNames";
-static const char enable_htimestamp_var[] = "EnableHtimestamp";
 
 /* Use case verbs corresponding to CRAS_STREAM_TYPE. */
 static const char *use_case_verbs[] = {
@@ -1120,16 +1119,4 @@ unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr *mgr,
 	if (rc || value < 0)
 		return 0;
 	return value;
-}
-
-unsigned int ucm_get_enable_htimestamp_flag(struct cras_use_case_mgr *mgr)
-{
-	char *flag;
-	int ret = 0;
-	flag = ucm_get_flag(mgr, enable_htimestamp_var);
-	if (!flag)
-		return 0;
-	ret = !strcmp(flag, "1");
-	free(flag);
-	return ret;
 }

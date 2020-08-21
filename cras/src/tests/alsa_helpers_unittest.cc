@@ -167,29 +167,7 @@ TEST(AlsaHelper, Htimestamp) {
   snd_pcm_uframes_t used;
   snd_pcm_uframes_t severe_underrun_frames = 480;
   struct timespec tstamp;
-  int htimestamp_enabled = 1;
   const char* dev_name = "dev_name";
-
-  // Enable htimestamp use.
-  ResetStubData();
-  EXPECT_EQ(0, cras_alsa_set_swparams(mock_handle, &htimestamp_enabled));
-  EXPECT_EQ(snd_pcm_sw_params_set_tstamp_mode_called, 1);
-  EXPECT_EQ(snd_pcm_sw_params_set_tstamp_type_called, 1);
-  EXPECT_EQ(1, htimestamp_enabled);
-
-  // Try to enable htimestamp use: not supported.
-  ResetStubData();
-  snd_pcm_sw_params_ret_vals.push_back(-EINVAL);
-  EXPECT_EQ(0, cras_alsa_set_swparams(mock_handle, &htimestamp_enabled));
-  EXPECT_EQ(snd_pcm_sw_params_set_tstamp_mode_called, 2);
-  EXPECT_EQ(snd_pcm_sw_params_set_tstamp_type_called, 2);
-  EXPECT_EQ(0, htimestamp_enabled);
-
-  // Disable htimestamp use.
-  ResetStubData();
-  EXPECT_EQ(0, cras_alsa_set_swparams(mock_handle, &htimestamp_enabled));
-  EXPECT_EQ(snd_pcm_sw_params_set_tstamp_mode_called, 0);
-  EXPECT_EQ(snd_pcm_sw_params_set_tstamp_type_called, 0);
 
   ResetStubData();
   tstamp.tv_sec = 0;
