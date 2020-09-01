@@ -753,6 +753,11 @@ static int init_pinned_device(struct cras_iodev *dev,
 	return 0;
 }
 
+/*
+ * Close device enabled by pinned stream. Since it's NOT in the enabled
+ * dev list, make sure update_active_node() is called to correctly
+ * configure the ALSA UCM or BT profile state.
+ */
 static int close_pinned_device(struct cras_iodev *dev)
 {
 	close_dev(dev);
@@ -990,61 +995,28 @@ static int disable_device(struct enabled_dev *edev, bool force)
 	DL_DELETE(enabled_devs[dir], edev);
 	free(edev);
 	dev->is_enabled = 0;
-	if (force)
+	if (force) {
 		cancel_pending_init_retries(dev->info.idx);
-
-	/*
-	 * Pull all default streams off this device.
-	 * Pull all pinned streams off as well if force is true.
-	 */
-	DL_FOREACH (stream_list_get(stream_list), stream) {
-		if (stream->direction != dev->direction)
-			continue;
-		if (stream->is_pinned && !force)
-			continue;
-		audio_thread_disconnect_stream(audio_thread, stream, dev);
 	}
-	/* If this is a force disable call, that guarantees pinned streams have
-	 * all been detached. Otherwise check with stream_list to see if
-	 * there's still a pinned stream using this device.
-	 */
-	if (!force && stream_list_has_pinned_stream(stream_list, dev->info.idx))
+	/* If there's a pinned stream exists, simply disconnect all the normal
+	 * streams off this device and return. */
+	else if (stream_list_has_pinned_stream(stream_list, dev->info.idx)) {
+		DL_FOREACH (stream_list_get(stream_list), stream) {
+			if (stream->direction != dev->direction)
+				continue;
+			if (stream->is_pinned)
+				continue;
+			audio_thread_disconnect_stream(audio_thread, stream,
+						       dev);
+		}
 		return 0;
+	}
+
 	DL_FOREACH (device_enable_cbs, callback)
 		callback->disabled_cb(dev, callback->cb_data);
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 
-	return 0;
-}
-
-/*
- * Assume the device is not in enabled_devs list.
- * Assume there is no default stream on the device.
- * An example is that this device is unplugged while it is playing
- * a pinned stream. The device and stream may have been removed in
- * audio thread due to I/O error handling.
- */
-static int force_close_pinned_only_device(struct cras_iodev *dev)
-{
-	struct cras_rstream *rstream;
-
-	/* Pull pinned streams off this device. Note that this is initiated
-	 * from server side, so the pin stream still exist in stream_list
-	 * pending client side to actually remove it.
-	 */
-	DL_FOREACH (stream_list_get(stream_list), rstream) {
-		if (rstream->direction != dev->direction)
-			continue;
-		if (!rstream->is_pinned)
-			continue;
-		if (dev->info.idx != rstream->pinned_dev_idx)
-			continue;
-		audio_thread_disconnect_stream(audio_thread, rstream, dev);
-	}
-
-	close_dev(dev);
-	dev->update_active_node(dev, dev->active_node->idx, 0);
 	return 0;
 }
 
@@ -1184,7 +1156,7 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev, bool force_close)
 	 */
 	if (!edev_to_disable) {
 		if (force_close)
-			force_close_pinned_only_device(dev);
+			close_pinned_device(dev);
 		return;
 	}
 
@@ -1202,25 +1174,13 @@ void cras_iodev_list_disable_dev(struct cras_iodev *dev, bool force_close)
 
 void cras_iodev_list_suspend_dev(unsigned int dev_idx)
 {
-	struct cras_rstream *rstream;
 	struct cras_iodev *dev = find_dev(dev_idx);
 
 	if (!dev)
 		return;
 
-	DL_FOREACH (stream_list_get(stream_list), rstream) {
-		if (rstream->direction != dev->direction)
-			continue;
-		/* Disconnect all streams that are either:
-		 * (1) normal stream while dev is enabled by UI, or
-		 * (2) stream specifically pins to this dev.
-		 */
-		if ((dev->is_enabled && !rstream->is_pinned) ||
-		    (rstream->is_pinned &&
-		     (dev->info.idx != rstream->pinned_dev_idx)))
-			audio_thread_disconnect_stream(audio_thread, rstream,
-						       dev);
-	}
+	/* Remove all streams including the pinned streams, and close
+	 * this iodev. */
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 }
