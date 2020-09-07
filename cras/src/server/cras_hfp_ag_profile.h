@@ -59,4 +59,8 @@ struct hfp_slc_handle *cras_hfp_ag_get_active_handle();
 /* Gets the SLC handle for given cras_bt_device. */
 struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device);
 
+/* Iterate all possible AGs (theoratically only one) and signal its battery
+ * level */
+void cras_hfp_ag_resend_device_battery_level();
+
 #endif /* CRAS_HFP_AG_PROFILE_H_ */

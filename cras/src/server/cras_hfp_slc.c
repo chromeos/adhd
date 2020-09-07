@@ -1297,3 +1297,8 @@ int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle *handle)
 {
 	return handle->hf_supports_battery_indicator;
 }
+
+int hfp_slc_get_hf_battery_level(struct hfp_slc_handle *handle)
+{
+	return handle->hf_battery;
+}
