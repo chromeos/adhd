@@ -302,6 +302,8 @@ metrics_client_type_str(enum CRAS_CLIENT_TYPE client_type)
 		return "CrOSVM";
 	case CRAS_CLIENT_TYPE_SERVER_STREAM:
 		return "ServerStream";
+	case CRAS_CLIENT_TYPE_LACROS:
+		return "LaCrOS";
 	default:
 		return "InvalidType";
 	}

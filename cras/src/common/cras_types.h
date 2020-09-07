@@ -164,6 +164,7 @@ enum CRAS_CLIENT_TYPE {
 	CRAS_CLIENT_TYPE_ARC, /* ARC++ */
 	CRAS_CLIENT_TYPE_CROSVM, /* CROSVM */
 	CRAS_CLIENT_TYPE_SERVER_STREAM, /* Server stream */
+	CRAS_CLIENT_TYPE_LACROS, /* LaCrOS */
 };
 
 #define ENUM_STR(x)                                                            \
@@ -200,6 +201,7 @@ cras_client_type_str(enum CRAS_CLIENT_TYPE client_type)
 	ENUM_STR(CRAS_CLIENT_TYPE_ARC)
 	ENUM_STR(CRAS_CLIENT_TYPE_CROSVM)
 	ENUM_STR(CRAS_CLIENT_TYPE_SERVER_STREAM)
+	ENUM_STR(CRAS_CLIENT_TYPE_LACROS)
 	default:
 		return "INVALID_CLIENT_TYPE";
 	}
