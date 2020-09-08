@@ -1019,7 +1019,8 @@ int cras_iodev_close(struct cras_iodev *iodev)
 
 	rc = iodev->close_dev(iodev);
 	if (rc)
-		return rc;
+		syslog(LOG_ERR, "Error closing dev %s, rc %d", iodev->info.name,
+		       rc);
 	iodev->state = CRAS_IODEV_STATE_CLOSE;
 	if (iodev->ramp)
 		cras_ramp_reset(iodev->ramp);
