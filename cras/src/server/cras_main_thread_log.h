@@ -49,7 +49,7 @@ static inline void main_thread_event_log_data(struct main_thread_event_log *log,
 	if (!log)
 		return;
 
-	clock_gettime(CLOCK_REALTIME, &now);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	log->log[log->write_pos].tag_sec =
 		(event << 24) | ((now.tv_sec % 86400) & 0x00ffffff);
 	log->log[log->write_pos].nsec = now.tv_nsec;
