@@ -877,7 +877,11 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 		printf("%-30s dev %u force %u\n", "DEV_DISABLE", data1, data2);
 		break;
 	case MAIN_THREAD_DEV_INIT:
-		printf("%-30s dev %u\n", "DEV_INIT", data1);
+		printf("%-30s dev %u ch %u\n", "DEV_INIT", data1, data2);
+		break;
+	case MAIN_THREAD_DEV_REOPEN:
+		printf("%-30s new ch %u old ch %u\n", "DEV_REOPEN", data1,
+		       data2);
 		break;
 	case MAIN_THREAD_ADD_ACTIVE_NODE:
 		printf("%-30s dev %u\n", "ADD_ACTIVE_NODE", data1);

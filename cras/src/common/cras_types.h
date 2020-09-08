@@ -309,6 +309,7 @@ enum AUDIO_THREAD_LOG_EVENTS {
 /* Important events in main thread.
  * MAIN_THREAD_DEV_DISABLE - When an iodev closes at stream removal.
  * MAIN_THREAD_DEV_INIT - When an iodev opens when stream attachs.
+ * MAIN_THREAD_DEV_REOPEN - When an iodev reopens for format change.
  * MAIN_THREAD_ADD_ACTIVE_NODE - When an iodev is set as an additional
  *    active device.
  * MAIN_THREAD_SELECT_NODE - When UI selects an iodev as active.
@@ -326,6 +327,7 @@ enum MAIN_THREAD_LOG_EVENTS {
 	/* iodev related */
 	MAIN_THREAD_DEV_DISABLE,
 	MAIN_THREAD_DEV_INIT,
+	MAIN_THREAD_DEV_REOPEN,
 	MAIN_THREAD_ADD_ACTIVE_NODE,
 	MAIN_THREAD_SELECT_NODE,
 	MAIN_THREAD_NODE_PLUGGED,

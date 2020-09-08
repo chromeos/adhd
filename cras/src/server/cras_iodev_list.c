@@ -477,7 +477,8 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *rstream)
 	if (cras_iodev_is_open(dev))
 		return 0;
 	cancel_pending_init_retries(dev->info.idx);
-	MAINLOG(main_log, MAIN_THREAD_DEV_INIT, dev->info.idx, 0);
+	MAINLOG(main_log, MAIN_THREAD_DEV_INIT, dev->info.idx,
+		rstream->format.num_channels);
 
 	rc = cras_iodev_open(dev, rstream->cb_threshold, &rstream->format);
 	if (rc)
@@ -847,6 +848,9 @@ static int stream_added_cb(struct cras_rstream *rstream)
 			 * current format of the device. Fallback device will
 			 * be transciently enabled during the device re-opening.
 			 */
+			MAINLOG(main_log, MAIN_THREAD_DEV_REOPEN,
+				rstream->format.num_channels,
+				edev->dev->format->num_channels);
 			syslog(LOG_INFO, "re-open %s for higher channel count",
 			       edev->dev->info.name);
 			possibly_enable_fallback(rstream->direction, false);
