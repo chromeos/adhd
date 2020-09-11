@@ -263,6 +263,10 @@ int cras_audio_thread_event_drop_samples() {
   return 0;
 }
 
+int cras_audio_thread_event_severe_underrun() {
+  return 0;
+}
+
 int dev_stream_attached_devs(const struct dev_stream* dev_stream) {
   return 0;
 }

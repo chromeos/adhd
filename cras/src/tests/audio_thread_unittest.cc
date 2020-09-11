@@ -18,6 +18,7 @@ extern "C" {
 #define FIRST_CB_LEVEL 480
 
 static int cras_audio_thread_event_busyloop_called;
+static int cras_audio_thread_event_severe_underrun_called;
 static unsigned int cras_rstream_dev_offset_called;
 static unsigned int cras_rstream_dev_offset_ret[MAX_CALLS];
 static const struct cras_rstream*
@@ -963,6 +964,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackSevereUnderrun) {
   thread_add_stream(thread_, &rstream, &piodev, 1);
 
   // Assume device is running and there is a severe underrun.
+  cras_audio_thread_event_severe_underrun_called = 0;
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
   frames_queued_ = -EPIPE;
 
@@ -975,6 +977,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackSevereUnderrun) {
   // Audio thread should ask main thread to reset device.
   EXPECT_EQ(1, cras_iodev_reset_request_called);
   EXPECT_EQ(&iodev, cras_iodev_reset_request_iodev);
+  EXPECT_EQ(1, cras_audio_thread_event_severe_underrun_called);
 
   thread_rm_open_dev(thread_, CRAS_STREAM_OUTPUT, iodev.info.idx);
   TearDownRstream(&rstream);
@@ -1441,6 +1444,11 @@ int cras_audio_thread_event_busyloop() {
 }
 
 int cras_audio_thread_event_drop_samples() {
+  return 0;
+}
+
+int cras_audio_thread_event_severe_underrun() {
+  cras_audio_thread_event_severe_underrun_called++;
   return 0;
 }
 

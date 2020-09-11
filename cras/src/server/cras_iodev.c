@@ -1275,9 +1275,6 @@ int cras_iodev_frames_queued(struct cras_iodev *iodev,
 	int rc;
 
 	rc = iodev->frames_queued(iodev, hw_tstamp);
-	if (rc == -EPIPE)
-		cras_audio_thread_event_severe_underrun();
-
 	if (rc < 0)
 		return rc;
 
