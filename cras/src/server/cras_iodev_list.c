@@ -384,6 +384,7 @@ static void close_dev(struct cras_iodev *dev)
 	if (!cras_iodev_is_open(dev))
 		return;
 
+	MAINLOG(main_log, MAIN_THREAD_DEV_CLOSE, dev->info.idx, 0);
 	remove_all_streams_from_dev(dev);
 	dev->idle_timeout.tv_sec = 0;
 	cras_iodev_close(dev);

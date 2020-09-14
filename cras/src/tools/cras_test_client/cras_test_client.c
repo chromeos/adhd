@@ -873,6 +873,9 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 	printf("%s.%09u cras mainlog  ", time_str, nsec);
 
 	switch (tag) {
+	case MAIN_THREAD_DEV_CLOSE:
+		printf("%-30s dev %u\n", "DEV_CLOSE", data1);
+		break;
 	case MAIN_THREAD_DEV_DISABLE:
 		printf("%-30s dev %u force %u\n", "DEV_DISABLE", data1, data2);
 		break;
