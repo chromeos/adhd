@@ -255,6 +255,10 @@ int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle* handle) {
   return 0;
 }
 
+int hfp_slc_get_hf_battery_level(struct hfp_slc_handle* handle) {
+  return -1;
+}
+
 struct cras_bt_device* cras_a2dp_connected_device() {
   return NULL;
 }
@@ -266,6 +270,10 @@ int cras_bt_device_supports_profile(const struct cras_bt_device* device,
 
 void cras_a2dp_suspend_connected_device(struct cras_bt_device* device) {}
 
+const char* cras_bt_device_address(const struct cras_bt_device* device) {
+  return "";
+}
+
 int cras_bt_device_audio_gateway_initialized(struct cras_bt_device* device) {
   return 0;
 }
@@ -276,6 +284,11 @@ void cras_bt_device_notify_profile_dropped(
   cras_bt_device_notify_profile_dropped_called++;
   cras_bt_device_notify_profile_dropped_dev = device;
   cras_bt_device_notify_profile_dropped_profile = profile;
+}
+
+void cras_observer_notify_bt_battery_changed(const char* address,
+                                             uint32_t level) {
+  return;
 }
 
 bool cras_system_get_bt_wbs_enabled() {
