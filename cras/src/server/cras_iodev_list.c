@@ -381,10 +381,8 @@ static void possibly_disable_echo_reference(struct cras_iodev *dev)
  */
 static void close_dev(struct cras_iodev *dev)
 {
-	if (!cras_iodev_is_open(dev)) {
-		syslog(LOG_WARNING, "Unexpected closed dev %s", dev->info.name);
+	if (!cras_iodev_is_open(dev))
 		return;
-	}
 
 	remove_all_streams_from_dev(dev);
 	dev->idle_timeout.tv_sec = 0;
