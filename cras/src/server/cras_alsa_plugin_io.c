@@ -149,6 +149,16 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
 
 	DL_APPEND(plugins, plugin);
 
+	ucm_sections = ucm_get_sections(plugin->ucm);
+	DL_FOREACH (ucm_sections, section) {
+		rc = cras_alsa_mixer_add_controls_in_section(plugin->mixer,
+							     section);
+		if (rc)
+			syslog(LOG_ERR,
+			       "Failed adding control to plugin,"
+			       "section %s mixer_name %s",
+			       section->name, section->mixer_name);
+	}
 	plugin->iodev =
 		alsa_iodev_create(0, card_name, 0, pcm_name, "", "",
 				  ALSA_CARD_TYPE_USB, 1, /* is first */
@@ -156,7 +166,6 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
 				  plugin->hctl, direction, DUMMY_USB_VID,
 				  DUMMY_USB_PID, DUMMY_USB_SERIAL_NUMBER);
 
-	ucm_sections = ucm_get_sections(plugin->ucm);
 	DL_FOREACH (ucm_sections, section) {
 		if (section->dir != plugin->iodev->direction)
 			continue;
