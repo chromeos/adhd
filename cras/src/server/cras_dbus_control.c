@@ -372,7 +372,7 @@ static DBusHandlerResult handle_set_output_user_mute(DBusConnection *conn,
 		return rc;
 
 	cras_system_set_user_mute(new_mute);
-	MAINLOG(main_log, MAIN_THREAD_SET_OUTPUT_USER_MUTE, new_mute, 0);
+	MAINLOG(main_log, MAIN_THREAD_SET_OUTPUT_USER_MUTE, new_mute, 0, 0);
 
 	send_empty_reply(conn, message);
 

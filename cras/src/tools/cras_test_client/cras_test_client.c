@@ -857,6 +857,7 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 	unsigned int nsec = log->log[tag_idx].nsec;
 	unsigned int data1 = log->log[tag_idx].data1;
 	unsigned int data2 = log->log[tag_idx].data2;
+	unsigned int data3 = log->log[tag_idx].data3;
 	time_t lt;
 	struct tm *t;
 
@@ -880,11 +881,12 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 		printf("%-30s dev %u force %u\n", "DEV_DISABLE", data1, data2);
 		break;
 	case MAIN_THREAD_DEV_INIT:
-		printf("%-30s dev %u ch %u\n", "DEV_INIT", data1, data2);
+		printf("%-30s dev %u ch %u rate %u\n", "DEV_INIT", data1, data2,
+		       data3);
 		break;
 	case MAIN_THREAD_DEV_REOPEN:
-		printf("%-30s new ch %u old ch %u\n", "DEV_REOPEN", data1,
-		       data2);
+		printf("%-30s new ch %u old ch %u rate %u\n", "DEV_REOPEN",
+		       data1, data2, data3);
 		break;
 	case MAIN_THREAD_ADD_ACTIVE_NODE:
 		printf("%-30s dev %u\n", "ADD_ACTIVE_NODE", data1);
@@ -918,7 +920,10 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 		printf("SUSPEND_DEVS\n");
 		break;
 	case MAIN_THREAD_STREAM_ADDED:
-		printf("%-30s stream 0x%x\n", "STREAM_ADDED", data1);
+		printf("%-30s %s stream 0x%x buffer frames %u\n",
+		       "STREAM_ADDED",
+		       (data2 == CRAS_STREAM_OUTPUT ? "output" : "input"),
+		       data1, data3);
 		break;
 	case MAIN_THREAD_STREAM_REMOVED:
 		printf("%-30s stream 0x%x\n", "STREAM_REMOVED", data1);

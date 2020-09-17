@@ -447,6 +447,7 @@ struct __attribute__((__packed__)) main_thread_event {
 	uint32_t nsec;
 	uint32_t data1;
 	uint32_t data2;
+	uint32_t data3;
 };
 
 struct __attribute__((__packed__)) main_thread_event_log {

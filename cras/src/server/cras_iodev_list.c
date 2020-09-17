@@ -384,7 +384,7 @@ static void close_dev(struct cras_iodev *dev)
 	if (!cras_iodev_is_open(dev))
 		return;
 
-	MAINLOG(main_log, MAIN_THREAD_DEV_CLOSE, dev->info.idx, 0);
+	MAINLOG(main_log, MAIN_THREAD_DEV_CLOSE, dev->info.idx, 0, 0);
 	remove_all_streams_from_dev(dev);
 	dev->idle_timeout.tv_sec = 0;
 	cras_iodev_close(dev);
@@ -463,7 +463,7 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *rstream)
 		return 0;
 	cancel_pending_init_retries(dev->info.idx);
 	MAINLOG(main_log, MAIN_THREAD_DEV_INIT, dev->info.idx,
-		rstream->format.num_channels);
+		rstream->format.num_channels, rstream->format.frame_rate);
 
 	rc = cras_iodev_open(dev, rstream->cb_threshold, &rstream->format);
 	if (rc)
@@ -483,7 +483,7 @@ static void suspend_devs()
 	struct enabled_dev *edev;
 	struct cras_rstream *rstream;
 
-	MAINLOG(main_log, MAIN_THREAD_SUSPEND_DEVS, 0, 0);
+	MAINLOG(main_log, MAIN_THREAD_SUSPEND_DEVS, 0, 0, 0);
 
 	DL_FOREACH (stream_list_get(stream_list), rstream) {
 		if (rstream->is_pinned) {
@@ -524,7 +524,7 @@ static void resume_devs()
 	int has_output_stream = 0;
 	stream_list_suspended = 0;
 
-	MAINLOG(main_log, MAIN_THREAD_RESUME_DEVS, 0, 0);
+	MAINLOG(main_log, MAIN_THREAD_RESUME_DEVS, 0, 0, 0);
 
 	/*
 	 * To remove the short popped noise caused by applications that can not
@@ -815,7 +815,8 @@ static int stream_added_cb(struct cras_rstream *rstream)
 	if (stream_list_suspended)
 		return 0;
 
-	MAINLOG(main_log, MAIN_THREAD_STREAM_ADDED, rstream->stream_id, 0);
+	MAINLOG(main_log, MAIN_THREAD_STREAM_ADDED, rstream->stream_id,
+		rstream->direction, rstream->buffer_frames);
 
 	if (rstream->is_pinned)
 		return pinned_stream_added(rstream);
@@ -840,7 +841,8 @@ static int stream_added_cb(struct cras_rstream *rstream)
 			 */
 			MAINLOG(main_log, MAIN_THREAD_DEV_REOPEN,
 				rstream->format.num_channels,
-				edev->dev->format->num_channels);
+				edev->dev->format->num_channels,
+				edev->dev->format->frame_rate);
 			syslog(LOG_INFO, "re-open %s for higher channel count",
 			       edev->dev->info.name);
 			possibly_enable_fallback(rstream->direction, false);
@@ -938,7 +940,7 @@ static int stream_removed_cb(struct cras_rstream *rstream)
 	if (rc)
 		return rc;
 
-	MAINLOG(main_log, MAIN_THREAD_STREAM_REMOVED, rstream->stream_id, 0);
+	MAINLOG(main_log, MAIN_THREAD_STREAM_REMOVED, rstream->stream_id, 0, 0);
 
 	if (rstream->is_pinned)
 		pinned_stream_removed(rstream);
@@ -986,7 +988,7 @@ static int disable_device(struct enabled_dev *edev, bool force)
 	struct cras_rstream *stream;
 	struct device_enabled_cb *callback;
 
-	MAINLOG(main_log, MAIN_THREAD_DEV_DISABLE, dev->info.idx, force);
+	MAINLOG(main_log, MAIN_THREAD_DEV_DISABLE, dev->info.idx, force, 0);
 	/*
 	 * Remove from enabled dev list. However this dev could have a stream
 	 * pinned to it, only cancel pending init timers when force flag is set.
@@ -1114,7 +1116,7 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	if (!new_dev || new_dev->direction != dir)
 		return;
 
-	MAINLOG(main_log, MAIN_THREAD_ADD_ACTIVE_NODE, new_dev->info.idx, 0);
+	MAINLOG(main_log, MAIN_THREAD_ADD_ACTIVE_NODE, new_dev->info.idx, 0, 0);
 
 	/* If the new dev is already enabled but its active node needs to be
 	 * changed. Disable new dev first, update active node, and then
@@ -1241,7 +1243,7 @@ int cras_iodev_list_add_output(struct cras_iodev *output)
 		return rc;
 
 	MAINLOG(main_log, MAIN_THREAD_ADD_TO_DEV_LIST, output->info.idx,
-		CRAS_STREAM_OUTPUT);
+		CRAS_STREAM_OUTPUT, 0);
 	return 0;
 }
 
@@ -1257,7 +1259,7 @@ int cras_iodev_list_add_input(struct cras_iodev *input)
 		return rc;
 
 	MAINLOG(main_log, MAIN_THREAD_ADD_TO_DEV_LIST, input->info.idx,
-		CRAS_STREAM_INPUT);
+		CRAS_STREAM_INPUT, 0);
 	return 0;
 }
 
@@ -1507,7 +1509,7 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
 	/* find the devices for the id. */
 	new_dev = find_dev(dev_index_of(node_id));
 
-	MAINLOG(main_log, MAIN_THREAD_SELECT_NODE, dev_index_of(node_id), 0);
+	MAINLOG(main_log, MAIN_THREAD_SELECT_NODE, dev_index_of(node_id), 0, 0);
 
 	/* Do nothing if the direction is mismatched. The new_dev == NULL case
 	   could happen if node_id is 0 (no selection), or the client tries
@@ -1616,7 +1618,7 @@ static int set_node_volume(struct cras_iodev *iodev, unsigned int node_idx,
 		iodev->set_volume(iodev);
 	cras_iodev_list_notify_node_volume(node);
 	MAINLOG(main_log, MAIN_THREAD_OUTPUT_NODE_VOLUME, iodev->info.idx,
-		volume);
+		volume, 0);
 	return 0;
 }
 
@@ -1643,7 +1645,8 @@ static int set_node_capture_gain(struct cras_iodev *iodev,
 	if (iodev->set_capture_gain)
 		iodev->set_capture_gain(iodev);
 	cras_iodev_list_notify_node_capture_gain(node);
-	MAINLOG(main_log, MAIN_THREAD_INPUT_NODE_GAIN, iodev->info.idx, value);
+	MAINLOG(main_log, MAIN_THREAD_INPUT_NODE_GAIN, iodev->info.idx, value,
+		0);
 	return 0;
 }
 

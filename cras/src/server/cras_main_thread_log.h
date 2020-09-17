@@ -13,10 +13,10 @@
 #define CRAS_MAIN_THREAD_LOGGING 1
 
 #if (CRAS_MAIN_THREAD_LOGGING)
-#define MAINLOG(log, event, data1, data2)                                      \
-	main_thread_event_log_data(log, event, data1, data2);
+#define MAINLOG(log, event, data1, data2, data3)                               \
+	main_thread_event_log_data(log, event, data1, data2, data3);
 #else
-#define MAINLOG(log, event, data1, data2)
+#define MAINLOG(log, event, data1, data2, data3)
 #endif
 
 extern struct main_thread_event_log *main_log;
@@ -42,7 +42,8 @@ main_thread_event_log_deinit(struct main_thread_event_log *log)
 
 static inline void main_thread_event_log_data(struct main_thread_event_log *log,
 					      enum MAIN_THREAD_LOG_EVENTS event,
-					      uint32_t data1, uint32_t data2)
+					      uint32_t data1, uint32_t data2,
+					      uint32_t data3)
 {
 	struct timespec now;
 
@@ -55,6 +56,7 @@ static inline void main_thread_event_log_data(struct main_thread_event_log *log,
 	log->log[log->write_pos].nsec = now.tv_nsec;
 	log->log[log->write_pos].data1 = data1;
 	log->log[log->write_pos].data2 = data2;
+	log->log[log->write_pos].data3 = data3;
 	log->write_pos++;
 	log->write_pos %= MAIN_THREAD_EVENT_LOG_SIZE;
 }
