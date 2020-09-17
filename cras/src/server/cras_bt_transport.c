@@ -331,6 +331,7 @@ void cras_bt_transport_update_properties(struct cras_bt_transport *transport,
 
 			dbus_message_iter_get_basic(&variant_iter, &volume);
 			transport->volume = volume;
+			BTLOG(btlog, BT_TRANSPORT_UPDATE_VOLUME, volume, 0);
 			cras_bt_transport_update_device(transport);
 		}
 
@@ -384,6 +385,7 @@ int cras_bt_transport_set_volume(struct cras_bt_transport *transport,
 	DBusMessageIter message_iter, variant;
 	DBusPendingCall *pending_call;
 
+	BTLOG(btlog, BT_TRANSPORT_SET_VOLUME, volume, 0);
 	method_call =
 		dbus_message_new_method_call(BLUEZ_SERVICE,
 					     transport->object_path,

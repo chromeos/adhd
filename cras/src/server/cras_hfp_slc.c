@@ -836,6 +836,7 @@ static int signal_gain_setting(struct hfp_slc_handle *handle, const char *cmd)
 			       gain);
 			return hfp_send(handle, AT_CMD("ERROR"));
 		}
+		BTLOG(btlog, BT_HFP_UPDATE_SPEAKER_GAIN, gain, 0);
 		cras_bt_device_update_hardware_volume(handle->device,
 						      (gain + 1) * 100 / 16);
 	}
@@ -903,6 +904,7 @@ int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain)
 
 	/* Normailize gain value to 0-15 */
 	gain = gain * 15 / 100;
+	BTLOG(btlog, BT_HFP_SET_SPEAKER_GAIN, gain, 0);
 	snprintf(command, 128, AT_CMD("+VGS=%d"), gain);
 
 	return hfp_send(handle, command);

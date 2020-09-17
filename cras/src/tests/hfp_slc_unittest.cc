@@ -61,6 +61,8 @@ TEST(HfpSlc, InitializeSlc) {
   char* chp;
   ResetStubData();
 
+  btlog = cras_bt_event_log_init();
+
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
   handle = hfp_slc_create(sock[0], 0, AG_ENHANCED_CALL_STATUS, device,
                           slc_initialized_cb, slc_disconnected_cb);
@@ -110,6 +112,7 @@ TEST(HfpSlc, InitializeSlc) {
   ASSERT_EQ(1, cras_bt_device_update_hardware_volume_called);
 
   hfp_slc_destroy(handle);
+  cras_bt_event_log_deinit(btlog);
 }
 
 TEST(HfpSlc, DisconnectSlc) {

@@ -1005,6 +1005,14 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	case BT_HFP_HF_INDICATOR:
 		printf("%-30s HF read AG %s indicator\n", "HFP_HF_INDICATOR",
 		       data1 ? "enabled" : "supported");
+	case BT_HFP_SET_SPEAKER_GAIN:
+		printf("%-30s HF set speaker gain %u\n", "HFP_SET_SPEAKER_GAIN",
+		       data1);
+		break;
+	case BT_HFP_UPDATE_SPEAKER_GAIN:
+		printf("%-30s HF update speaker gain %u\n",
+		       "HFP_UPDATE_SPEAKER_GAIN", data1);
+		break;
 	case BT_HFP_NEW_CONNECTION:
 		printf("%-30s\n", "HFP_NEW_CONNECTION");
 		break;
@@ -1038,6 +1046,12 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		break;
 	case BT_TRANSPORT_RELEASE:
 		printf("%-30s\n", "TRANSPORT_RELEASE");
+		break;
+	case BT_TRANSPORT_SET_VOLUME:
+		printf("%-30s %d\n", "TRANSPORT_SET_VOLUME", data1);
+		break;
+	case BT_TRANSPORT_UPDATE_VOLUME:
+		printf("%-30s %d\n", "TRANSPORT_UPDATE_VOLUME", data1);
 		break;
 	default:
 		printf("%-30s\n", "UNKNOWN");
