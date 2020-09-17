@@ -1005,6 +1005,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	case BT_HFP_HF_INDICATOR:
 		printf("%-30s HF read AG %s indicator\n", "HFP_HF_INDICATOR",
 		       data1 ? "enabled" : "supported");
+		break;
 	case BT_HFP_SET_SPEAKER_GAIN:
 		printf("%-30s HF set speaker gain %u\n", "HFP_SET_SPEAKER_GAIN",
 		       data1);
