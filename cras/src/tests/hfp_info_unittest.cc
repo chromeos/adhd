@@ -346,10 +346,11 @@ void send_mSBC_packet(int fd, unsigned seq, int broken_pkt) {
 
   hci_sco_buf[1] = headers[seq % 4];
 
+  /* Assume typical 60 bytes case. */
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
   iov.iov_base = hci_sco_buf;
-  iov.iov_len = HCI_SCO_PKT_SIZE;
+  iov.iov_len = 60;
   msg.msg_control = control;
   msg.msg_controllen = control_size;
 

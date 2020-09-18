@@ -40,10 +40,15 @@
 /* For one mSBC 1 compressed wideband audio channel the HCI packets will
  * be 3 octets of HCI header + 60 octets of data. */
 #define MSBC_PKT_SIZE 60
-#define WRITE_BUF_SIZE_BYTES MSBC_PKT_SIZE
-#define HCI_SCO_PKT_SIZE (MSBC_PKT_SIZE)
 
 #define H2_HEADER_0 0x01
+
+/* Supported HCI SCO packet sizes. The wideband speech mSBC frame parsing
+ * code ties to limited packet size values. Specifically list them out
+ * to check against when setting packet size.
+ */
+static const size_t wbs_supported_packet_size[] = { 60, 0 };
+static const size_t wbs_hci_sco_buffer_size[] = { 60, 0 };
 
 /* Second octet of H2 header is composed by 4 bits fixed 0x8 and 4 bits
  * sequence number 0000, 0011, 1100, 1111. */
@@ -70,7 +75,8 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
  *     read_cb - Callback to call when SCO socket can read. It returns the
  *         number of PCM bytes read.
  *     write_cb - Callback to call when SCO socket can write.
- *     hci_sco_buf - Buffer to read one HCI SCO packet.
+ *     write_buf - Temp buffer for writeing HCI SCO packet in wideband.
+ *     read_buf - Temp buffer for reading HCI SCO packet in wideband.
  *     input_format_bytes - The audio format bytes for input device. 0 means
  *         there is no input device for the hfp_info.
  *     output_format_bytes - The audio format bytes for output device. 0 means
@@ -91,8 +97,8 @@ struct hfp_info {
 	unsigned int msbc_num_lost_frames;
 	int (*read_cb)(struct hfp_info *info);
 	int (*write_cb)(struct hfp_info *info);
-	uint8_t write_buf[WRITE_BUF_SIZE_BYTES];
-	uint8_t hci_sco_buf[HCI_SCO_PKT_SIZE];
+	uint8_t *write_buf;
+	uint8_t *read_buf;
 	size_t input_format_bytes;
 	size_t output_format_bytes;
 };
@@ -266,7 +272,7 @@ int hfp_write_msbc(struct hfp_info *info)
 	wp[1] = h2_header_frames_count[info->msbc_num_out_frames % 4];
 	pcm_encoded = info->msbc_write->encode(
 		info->msbc_write, samples, pcm_avail, wp + MSBC_H2_HEADER_LEN,
-		WRITE_BUF_SIZE_BYTES - MSBC_H2_HEADER_LEN, &encoded);
+		MSBC_PKT_SIZE - MSBC_H2_HEADER_LEN, &encoded);
 	if (pcm_encoded < 0) {
 		syslog(LOG_ERR, "msbc encoding err: %s", strerror(pcm_encoded));
 		return pcm_encoded;
@@ -281,7 +287,7 @@ msbc_send_again:
 			goto msbc_send_again;
 		return err;
 	}
-	if (err != MSBC_PKT_SIZE) {
+	if (err != info->packet_size) {
 		syslog(LOG_ERR, "Partially write %d bytes for mSBC", err);
 		return -1;
 	}
@@ -418,8 +424,8 @@ int hfp_read_msbc(struct hfp_info *info)
 recv_msbc_bytes:
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
-	iov.iov_base = info->hci_sco_buf;
-	iov.iov_len = HCI_SCO_PKT_SIZE;
+	iov.iov_base = info->read_buf;
+	iov.iov_len = info->packet_size;
 	msg.msg_control = control;
 	msg.msg_controllen = control_size;
 
@@ -434,7 +440,7 @@ recv_msbc_bytes:
 	 * Treat return code 0 (socket shutdown) as error here. BT stack
 	 * shall send signal to main thread for device disconnection.
 	 */
-	if (err != HCI_SCO_PKT_SIZE) {
+	if (err != info->packet_size) {
 		syslog(LOG_ERR, "Partially read %d bytes for mSBC packet", err);
 		return -1;
 	}
@@ -464,7 +470,7 @@ recv_msbc_bytes:
 	/* There is chance that erroneous data reporting gives us false positive.
 	 * If mSBC frame extraction fails, we shall handle it as packet loss.
 	 */
-	frame_head = extract_msbc_frame(info->hci_sco_buf, MSBC_PKT_SIZE, &seq);
+	frame_head = extract_msbc_frame(info->read_buf, MSBC_PKT_SIZE, &seq);
 	if (!frame_head) {
 		syslog(LOG_ERR, "Failed to extract msbc frame");
 		return handle_packet_loss(info);
@@ -661,6 +667,22 @@ int hfp_info_start(int fd, unsigned int mtu, int codec, struct hfp_info *info)
 	buf_reset(info->capture_buf);
 
 	if (codec == HFP_CODEC_ID_MSBC) {
+		int i;
+		for (i = 0; wbs_supported_packet_size[i] != 0; i++) {
+			if (info->packet_size == wbs_supported_packet_size[i])
+				break;
+		}
+		/* In case of unsupported value, error log and fallback to
+		 * MSBC_PKT_SIZE(60). */
+		if (wbs_supported_packet_size[i] == 0) {
+			syslog(LOG_ERR, "Unsupported packet size %u",
+			       info->packet_size);
+			i = 0;
+		}
+		info->packet_size = wbs_supported_packet_size[i];
+		info->write_buf = (uint8_t *)malloc(wbs_hci_sco_buffer_size[i]);
+		info->read_buf = (uint8_t *)malloc(wbs_hci_sco_buffer_size[i]);
+
 		info->write_cb = hfp_write_msbc;
 		info->read_cb = hfp_read_msbc;
 		info->msbc_read = cras_msbc_codec_create();
@@ -697,6 +719,11 @@ int hfp_info_stop(struct hfp_info *info)
 	/* Unset the write/read callbacks. */
 	info->write_cb = NULL;
 	info->read_cb = NULL;
+
+	if (info->write_buf)
+		free(info->write_buf);
+	if (info->read_buf)
+		free(info->read_buf);
 
 	if (info->msbc_read) {
 		cras_sbc_codec_destroy(info->msbc_read);
