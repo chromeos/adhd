@@ -463,24 +463,27 @@ recv_msbc_bytes:
 	 * 0x11 - Data partially lost.
 	 */
 	if (pkt_status) {
-		syslog(LOG_ERR, "HCI SCO status flag %u", pkt_status);
-		return handle_packet_loss(info);
+		syslog(LOG_DEBUG, "HCI SCO status flag %u", pkt_status);
+		frame_head = NULL;
+	} else {
+		frame_head =
+			extract_msbc_frame(info->read_buf, MSBC_PKT_SIZE, &seq);
+		if (!frame_head)
+			syslog(LOG_DEBUG, "Failed to extract msbc frame");
 	}
 
-	/* There is chance that erroneous data reporting gives us false positive.
-	 * If mSBC frame extraction fails, we shall handle it as packet loss.
+	/*
+	 * Done with parsing the raw bytes just read. If mSBC frame head not
+	 * found, we shall handle it as packet loss.
 	 */
-	frame_head = extract_msbc_frame(info->read_buf, MSBC_PKT_SIZE, &seq);
-	if (!frame_head) {
-		syslog(LOG_ERR, "Failed to extract msbc frame");
+	if (!frame_head)
 		return handle_packet_loss(info);
-	}
 
 	/*
 	 * Consider packet loss when found discontinuity in sequence number.
 	 */
 	while (seq != (info->msbc_num_in_frames % 4)) {
-		syslog(LOG_ERR, "SCO packet seq unmatch");
+		syslog(LOG_DEBUG, "SCO packet seq unmatch");
 		err = handle_packet_loss(info);
 		if (err < 0)
 			return err;
