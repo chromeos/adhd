@@ -25,8 +25,7 @@
 
 #define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
-#define HFP_VERSION_1_5 0x0105
-#define HFP_VERSION_1_7 0x0107
+#define HFP_VERSION 0x0107
 #define HSP_AG_PROFILE_NAME "Headset Voice gateway"
 #define HSP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HSPAG"
 #define HSP_VERSION_1_2 0x0102
@@ -77,8 +76,7 @@
 #define BSRF_SUPPORTED_FEATURES (AG_ENHANCED_CALL_STATUS | AG_HF_INDICATORS)
 
 /* The "SupportedFeatures" attribute value of HFP AG service record in CRAS. */
-#define SDP_SUPPORTED_FEATURES 0
-#define SDP_SUPPORTED_FEATURES_1_7 FEATURES_AG_WIDE_BAND_SPEECH
+#define SDP_SUPPORTED_FEATURES FEATURES_AG_WIDE_BAND_SPEECH
 
 /* Object representing the audio gateway role for HFP/HSP.
  * Members:
@@ -306,39 +304,15 @@ static struct cras_bt_profile cras_hfp_ag_profile = {
 	.name = HFP_AG_PROFILE_NAME,
 	.object_path = HFP_AG_PROFILE_PATH,
 	.uuid = HFP_AG_UUID,
-	.version = HFP_VERSION_1_7,
+	.version = HFP_VERSION,
 	.role = NULL,
-	.features = SDP_SUPPORTED_FEATURES_1_7,
+	.features = SDP_SUPPORTED_FEATURES,
 	.record = NULL,
 	.release = cras_hfp_ag_release,
 	.new_connection = cras_hfp_ag_new_connection,
 	.request_disconnection = cras_hfp_ag_request_disconnection,
 	.cancel = cras_hfp_ag_cancel
 };
-
-int cras_hfp_ag_profile_next_handsfree(DBusConnection *conn, bool enabled)
-{
-	unsigned int target_version = HFP_VERSION_1_5;
-	unsigned int target_feature = SDP_SUPPORTED_FEATURES;
-
-	if (enabled) {
-		target_version = HFP_VERSION_1_7;
-		target_feature = SDP_SUPPORTED_FEATURES_1_7;
-	}
-
-	if (cras_hfp_ag_profile.version == target_version)
-		return 0;
-
-	cras_bt_unregister_profile(conn, &cras_hfp_ag_profile);
-	cras_bt_rm_profile(conn, &cras_hfp_ag_profile);
-
-	cras_hfp_ag_profile.features = target_feature;
-	cras_hfp_ag_profile.version = target_version;
-
-	cras_bt_add_profile(conn, &cras_hfp_ag_profile);
-	cras_bt_register_profile(conn, &cras_hfp_ag_profile);
-	return 0;
-}
 
 int cras_hfp_ag_profile_create(DBusConnection *conn)
 {

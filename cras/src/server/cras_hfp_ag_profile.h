@@ -26,12 +26,6 @@
 
 struct hfp_slc_handle;
 
-/* Re-registers HFP to the next version. Currently on HFP 1.5 and next is 1.7.
- * Args:
- *    enabled - True to register HFP 1.7 otherwise to HFP 1.5
- */
-int cras_hfp_ag_profile_next_handsfree(DBusConnection *conn, bool enabled);
-
 /* Adds a profile instance for HFP AG (Hands-Free Profile Audio Gateway). */
 int cras_hfp_ag_profile_create(DBusConnection *conn);
 
