@@ -380,6 +380,7 @@ TEST_F(IoDevTestSuite, ReopenDevForHigherChannels) {
   ASSERT_EQ(0, rc);
 
   d1_.format = &fmt_;
+  d1_.info.max_supported_channels = 2;
 
   audio_thread_add_open_dev_called = 0;
   cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
@@ -399,6 +400,20 @@ TEST_F(IoDevTestSuite, ReopenDevForHigherChannels) {
   /* stream_list should be descending ordered by channel count. */
   DL_PREPEND(stream_list, &rstream2);
   stream_list_get_ret = stream_list;
+  stream_add_cb(&rstream2);
+  /* The channel count(=6) of rstream2 exceeds d1's max_supported_channels(=2),
+   * rstream2 will be added directly to d1, which will not be re-opened. */
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(0, audio_thread_add_open_dev_called);
+  EXPECT_EQ(0, cras_iodev_open_called);
+
+  d1_.info.max_supported_channels = 6;
+  stream_rm_cb(&rstream2);
+
+  audio_thread_add_stream_called = 0;
+  audio_thread_add_open_dev_called = 0;
+  cras_iodev_open_called = 0;
+
   stream_add_cb(&rstream2);
   /* Added both rstreams to fallback device, then re-opened d1. */
   EXPECT_EQ(4, audio_thread_add_stream_called);

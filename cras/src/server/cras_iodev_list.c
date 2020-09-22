@@ -833,11 +833,15 @@ static int stream_added_cb(struct cras_rstream *rstream)
 
 		if (cras_iodev_is_open(edev->dev) &&
 		    (rstream->format.num_channels >
-		     edev->dev->format->num_channels)) {
+		     edev->dev->format->num_channels) &&
+		    (rstream->format.num_channels <=
+		     edev->dev->info.max_supported_channels)) {
 			/* Re-open the device with the format of the attached
 			 * stream if it has higher channel count than the
-			 * current format of the device. Fallback device will
-			 * be transciently enabled during the device re-opening.
+			 * current format of the device, and doesn't exceed the
+			 * max_supported_channels of the device.
+			 * Fallback device will be transciently enabled during
+			 * the device re-opening.
 			 */
 			MAINLOG(main_log, MAIN_THREAD_DEV_REOPEN,
 				rstream->format.num_channels,
