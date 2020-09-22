@@ -12,7 +12,7 @@
 static const int32_t DEFAULT_OUTPUT_BUFFER_SIZE = 512;
 static const int32_t AEC_SUPPORTED_DEFAULT = 0;
 static const int32_t AEC_GROUP_ID_DEFAULT = -1;
-static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 0;
+static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 1;
 
 #define CONFIG_NAME "board.ini"
 #define DEFAULT_OUTPUT_BUF_SIZE_INI_KEY "output:default_output_buffer_size"
@@ -33,6 +33,7 @@ void cras_board_config_get(const char *config_path,
 	board_config->aec_supported = AEC_SUPPORTED_DEFAULT;
 	board_config->aec_group_id = AEC_GROUP_ID_DEFAULT;
 	board_config->ucm_ignore_suffix = NULL;
+	board_config->bt_wbs_enabled = BLUETOOTH_WBS_ENABLED_INI_DEFAULT;
 	if (config_path == NULL)
 		return;
 
