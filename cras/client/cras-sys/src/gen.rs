@@ -721,6 +721,7 @@ pub enum CRAS_CLIENT_TYPE {
     CRAS_CLIENT_TYPE_ARC = 5,
     CRAS_CLIENT_TYPE_CROSVM = 6,
     CRAS_CLIENT_TYPE_SERVER_STREAM = 7,
+    CRAS_CLIENT_TYPE_LACROS = 8,
 }
 impl CRAS_STREAM_EFFECT {
     pub const APM_ECHO_CANCELLATION: CRAS_STREAM_EFFECT = CRAS_STREAM_EFFECT(1);
@@ -1583,6 +1584,145 @@ fn bindgen_test_layout_audio_debug_info() {
 }
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
+pub struct main_thread_event {
+    pub tag_sec: u32,
+    pub nsec: u32,
+    pub data1: u32,
+    pub data2: u32,
+}
+#[test]
+fn bindgen_test_layout_main_thread_event() {
+    assert_eq!(
+        ::std::mem::size_of::<main_thread_event>(),
+        16usize,
+        concat!("Size of: ", stringify!(main_thread_event))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<main_thread_event>(),
+        1usize,
+        concat!("Alignment of ", stringify!(main_thread_event))
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<main_thread_event>())).tag_sec as *const _ as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(main_thread_event),
+            "::",
+            stringify!(tag_sec)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<main_thread_event>())).nsec as *const _ as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(main_thread_event),
+            "::",
+            stringify!(nsec)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<main_thread_event>())).data1 as *const _ as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(main_thread_event),
+            "::",
+            stringify!(data1)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<main_thread_event>())).data2 as *const _ as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(main_thread_event),
+            "::",
+            stringify!(data2)
+        )
+    );
+}
+#[repr(C, packed)]
+#[derive(Copy, Clone)]
+pub struct main_thread_event_log {
+    pub write_pos: u32,
+    pub len: u32,
+    pub log: [main_thread_event; 1024usize],
+}
+#[test]
+fn bindgen_test_layout_main_thread_event_log() {
+    assert_eq!(
+        ::std::mem::size_of::<main_thread_event_log>(),
+        16392usize,
+        concat!("Size of: ", stringify!(main_thread_event_log))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<main_thread_event_log>(),
+        1usize,
+        concat!("Alignment of ", stringify!(main_thread_event_log))
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<main_thread_event_log>())).write_pos as *const _ as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(main_thread_event_log),
+            "::",
+            stringify!(write_pos)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<main_thread_event_log>())).len as *const _ as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(main_thread_event_log),
+            "::",
+            stringify!(len)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<main_thread_event_log>())).log as *const _ as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(main_thread_event_log),
+            "::",
+            stringify!(log)
+        )
+    );
+}
+#[repr(C, packed)]
+#[derive(Copy, Clone)]
+pub struct main_thread_debug_info {
+    pub main_log: main_thread_event_log,
+}
+#[test]
+fn bindgen_test_layout_main_thread_debug_info() {
+    assert_eq!(
+        ::std::mem::size_of::<main_thread_debug_info>(),
+        16392usize,
+        concat!("Size of: ", stringify!(main_thread_debug_info))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<main_thread_debug_info>(),
+        1usize,
+        concat!("Alignment of ", stringify!(main_thread_debug_info))
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<main_thread_debug_info>())).main_log as *const _ as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(main_thread_debug_info),
+            "::",
+            stringify!(main_log)
+        )
+    );
+}
+#[repr(C, packed)]
+#[derive(Debug, Copy, Clone)]
 pub struct cras_bt_event {
     pub tag_sec: u32,
     pub nsec: u32,
@@ -1873,12 +2013,13 @@ pub struct cras_server_state {
     pub snapshot_buffer: cras_audio_thread_snapshot_buffer,
     pub bt_debug_info: cras_bt_debug_info,
     pub bt_wbs_enabled: i32,
+    pub main_thread_debug_info: main_thread_debug_info,
 }
 #[test]
 fn bindgen_test_layout_cras_server_state() {
     assert_eq!(
         ::std::mem::size_of::<cras_server_state>(),
-        1393704usize,
+        1410096usize,
         concat!("Size of: ", stringify!(cras_server_state))
     );
     assert_eq!(
@@ -2250,6 +2391,19 @@ fn bindgen_test_layout_cras_server_state() {
             stringify!(bt_wbs_enabled)
         )
     );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<cras_server_state>())).main_thread_debug_info as *const _
+                as usize
+        },
+        1393704usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_server_state),
+            "::",
+            stringify!(main_thread_debug_info)
+        )
+    );
 }
 pub const cras_notify_device_action_CRAS_DEVICE_ACTION_ADD: cras_notify_device_action = 0;
 pub const cras_notify_device_action_CRAS_DEVICE_ACTION_REMOVE: cras_notify_device_action = 1;
@@ -2417,6 +2571,7 @@ pub enum CRAS_SERVER_MESSAGE_ID {
     CRAS_SERVER_DUMP_BT = 28,
     CRAS_SERVER_SET_BT_WBS_ENABLED = 29,
     CRAS_SERVER_GET_ATLOG_FD = 30,
+    CRAS_SERVER_DUMP_MAIN = 31,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -3378,6 +3533,34 @@ fn bindgen_test_layout_cras_get_atlog_fd() {
         concat!(
             "Offset of field: ",
             stringify!(cras_get_atlog_fd),
+            "::",
+            stringify!(header)
+        )
+    );
+}
+#[repr(C, packed)]
+#[derive(Debug, Copy, Clone)]
+pub struct cras_dump_main {
+    pub header: cras_server_message,
+}
+#[test]
+fn bindgen_test_layout_cras_dump_main() {
+    assert_eq!(
+        ::std::mem::size_of::<cras_dump_main>(),
+        8usize,
+        concat!("Size of: ", stringify!(cras_dump_main))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<cras_dump_main>(),
+        1usize,
+        concat!("Alignment of ", stringify!(cras_dump_main))
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<cras_dump_main>())).header as *const _ as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_dump_main),
             "::",
             stringify!(header)
         )

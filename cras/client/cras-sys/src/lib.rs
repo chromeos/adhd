@@ -420,6 +420,7 @@ impl TryFrom<u32> for CRAS_CLIENT_TYPE {
             5 => Ok(CRAS_CLIENT_TYPE_ARC),
             6 => Ok(CRAS_CLIENT_TYPE_CROSVM),
             7 => Ok(CRAS_CLIENT_TYPE_SERVER_STREAM),
+            8 => Ok(CRAS_CLIENT_TYPE_LACROS),
             _ => Err(Error::InvalidClientType(client_type)),
         }
     }
