@@ -973,6 +973,11 @@ static void metrics_stream_runtime(struct cras_server_metrics_stream_data data)
 {
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
 
+	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "Cras.%sStreamRuntime",
+		 data.direction == CRAS_STREAM_INPUT ? "Input" : "Output");
+	cras_metrics_log_histogram(metrics_name, (unsigned)data.runtime.tv_sec,
+				   0, 10000, 20);
+
 	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
 		 "Cras.%sStreamRuntime.%s",
 		 data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
