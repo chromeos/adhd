@@ -1630,6 +1630,7 @@ static int set_node_capture_gain(struct cras_iodev *iodev,
 				 unsigned int node_idx, int value)
 {
 	struct cras_ionode *node;
+	int db_scale;
 
 	node = find_node(iodev, node_idx);
 	if (!node)
@@ -1641,10 +1642,11 @@ static int set_node_capture_gain(struct cras_iodev *iodev,
 	if (value > 100)
 		value = 100;
 
-	/* Linear maps (0, 100) to (-4000, 4000) dBFS. Calculate and store
-	 * corresponding scaler in ui_gain_scaler. */
+	/* Linear maps (0, 50) to (-4000, 0) and (50, 100) to (0, 2000) dBFS.
+	 * Calculate and store corresponding scaler in ui_gain_scaler. */
+	db_scale = (value > 50) ? 40 : 80;
 	node->ui_gain_scaler =
-		convert_softvol_scaler_from_dB((value - 50) * 80);
+		convert_softvol_scaler_from_dB((value - 50) * db_scale);
 
 	if (iodev->set_capture_gain)
 		iodev->set_capture_gain(iodev);

@@ -33,7 +33,8 @@ Methods		void SetOutputVolume(int32 volume)
 		void SetInputNodeGain(uint64 node_id, int32 gain)
 
 			Sets the capture gain of the node. gain is a 0-100
-			integer which linearly maps to range [-40dB, 40dB].
+			integer which linearly maps [0, 50] to range [-40dB, 0dB]
+			and [50, 100] to [0dB, 20dB],
 			Default gain value is 50, which is 0dB.
 
 		void SetInputMute(boolean mute_on)
