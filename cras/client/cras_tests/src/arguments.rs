@@ -132,7 +132,14 @@ pub struct AudioOptions {
     pub buffer_size: Option<usize>,
     pub num_channels: Option<usize>,
     pub format: Option<SampleFormat>,
-    pub frame_rate: Option<usize>,
+    pub frame_rate: Option<u32>,
+}
+
+fn get_u32_param(matches: &Matches, option_name: &str) -> Result<Option<u32>> {
+    matches.opt_get::<u32>(option_name).map_err(|e| {
+        let argument = matches.opt_str(option_name).unwrap_or_default();
+        Error::InvalidArgument(option_name.to_string(), argument, e.to_string())
+    })
 }
 
 fn get_usize_param(matches: &Matches, option_name: &str) -> Result<Option<usize>> {
@@ -183,7 +190,7 @@ impl AudioOptions {
         }
 
         let loopback_type = if matches.opt_defined("loopback") {
-            match matches.opt_str("loopback").as_ref().map(|s| s.as_str()) {
+            match matches.opt_str("loopback").as_deref() {
                 Some("pre_dsp") => Some(LoopbackType::PreDsp),
                 Some("post_dsp") => Some(LoopbackType::PostDsp),
                 Some(s) => {
@@ -210,7 +217,7 @@ impl AudioOptions {
         let extension = file_name
             .extension()
             .map(|s| s.to_string_lossy().into_owned());
-        let file_type = match extension.as_ref().map(String::as_str) {
+        let file_type = match extension.as_deref() {
             Some("wav") | Some("wave") => FileType::Wav,
             Some("raw") | None => FileType::Raw,
             Some(extension) => return Err(Error::InvalidFiletype(extension.to_string())),
@@ -218,8 +225,8 @@ impl AudioOptions {
 
         let buffer_size = get_usize_param(&matches, "buffer_size")?;
         let num_channels = get_usize_param(&matches, "channels")?;
-        let frame_rate = get_usize_param(&matches, "rate")?;
-        let format = match matches.opt_str("format").as_ref().map(|s| s.as_str()) {
+        let frame_rate = get_u32_param(&matches, "rate")?;
+        let format = match matches.opt_str("format").as_deref() {
             Some("U8") => Some(SampleFormat::U8),
             Some("S16_LE") => Some(SampleFormat::S16LE),
             Some("S24_LE") => Some(SampleFormat::S24LE),

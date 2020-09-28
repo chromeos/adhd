@@ -93,13 +93,13 @@ impl cras_audio_format_packed {
     /// Structure `cras_audio_format_packed`
     pub fn new(
         format: _snd_pcm_format,
-        rate: usize,
+        rate: u32,
         num_channels: usize,
         direction: CRAS_STREAM_DIRECTION,
     ) -> Self {
         Self {
             format: format as i32,
-            frame_rate: rate as u32,
+            frame_rate: rate,
             num_channels: num_channels as u32,
             channel_layout: Self::default_channel_layout(num_channels, direction),
         }

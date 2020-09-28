@@ -136,7 +136,7 @@ impl DummyCaptureStream {
     pub fn new(
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> Self {
         let frame_size = format.sample_bytes() * num_channels;

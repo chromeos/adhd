@@ -129,6 +129,9 @@ pub trait ShmStream: Send {
     /// Get the number of channels of audio data for this stream.
     fn num_channels(&self) -> usize;
 
+    /// Get the frame rate of audio data for this stream.
+    fn frame_rate(&self) -> u32;
+
     /// Waits until the next server message indicating action is required.
     ///
     /// For playback streams, this will be `AUDIO_MESSAGE_REQUEST_DATA`, meaning
@@ -195,7 +198,7 @@ pub trait ShmStreamSource: Send {
         direction: StreamDirection,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
         effects: &[StreamEffect],
         client_shm: &SharedMemory,
@@ -215,6 +218,7 @@ pub trait ShmStreamSource: Send {
 /// Class that implements ShmStream trait but does nothing with the samples
 pub struct NullShmStream {
     num_channels: usize,
+    frame_rate: u32,
     buffer_size: usize,
     frame_size: usize,
     interval: Duration,
@@ -224,16 +228,17 @@ pub struct NullShmStream {
 
 impl NullShmStream {
     /// Attempt to create a new NullShmStream with the given number of channels,
-    /// format, and buffer_size.
+    /// format, frame_rate, and buffer_size.
     pub fn new(
         buffer_size: usize,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
     ) -> Self {
         let interval = Duration::from_millis(buffer_size as u64 * 1000 / frame_rate as u64);
         Self {
             num_channels,
+            frame_rate,
             buffer_size,
             frame_size: format.sample_bytes() * num_channels,
             interval,
@@ -260,6 +265,10 @@ impl ShmStream for NullShmStream {
 
     fn num_channels(&self) -> usize {
         self.num_channels
+    }
+
+    fn frame_rate(&self) -> u32 {
+        self.frame_rate
     }
 
     fn wait_for_next_action_with_timeout<'a>(
@@ -296,7 +305,7 @@ impl ShmStreamSource for NullShmStreamSource {
         _direction: StreamDirection,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
         _effects: &[StreamEffect],
         _client_shm: &SharedMemory,
@@ -310,6 +319,7 @@ impl ShmStreamSource for NullShmStreamSource {
 #[derive(Clone)]
 pub struct MockShmStream {
     num_channels: usize,
+    frame_rate: u32,
     request_size: usize,
     frame_size: usize,
     request_notifier: Arc<(Mutex<bool>, Condvar)>,
@@ -317,10 +327,16 @@ pub struct MockShmStream {
 
 impl MockShmStream {
     /// Attempt to create a new MockShmStream with the given number of
-    /// channels, format, and buffer_size.
-    pub fn new(num_channels: usize, format: SampleFormat, buffer_size: usize) -> Self {
+    /// channels, frame_rate, format, and buffer_size.
+    pub fn new(
+        num_channels: usize,
+        frame_rate: u32,
+        format: SampleFormat,
+        buffer_size: usize,
+    ) -> Self {
         Self {
             num_channels,
+            frame_rate,
             request_size: buffer_size,
             frame_size: format.sample_bytes() * num_channels,
             request_notifier: Arc::new((Mutex::new(false), Condvar::new())),
@@ -379,6 +395,10 @@ impl ShmStream for MockShmStream {
         self.num_channels
     }
 
+    fn frame_rate(&self) -> u32 {
+        self.frame_rate
+    }
+
     fn wait_for_next_action_with_timeout<'a>(
         &'a mut self,
         timeout: Duration,
@@ -430,7 +450,7 @@ impl ShmStreamSource for MockShmStreamSource {
         _direction: StreamDirection,
         num_channels: usize,
         format: SampleFormat,
-        _frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
         _effects: &[StreamEffect],
         _client_shm: &SharedMemory,
@@ -439,7 +459,7 @@ impl ShmStreamSource for MockShmStreamSource {
         let &(ref last_stream, ref cvar) = &*self.last_stream;
         let mut stream = last_stream.lock();
 
-        let new_stream = MockShmStream::new(num_channels, format, buffer_size);
+        let new_stream = MockShmStream::new(num_channels, frame_rate, format, buffer_size);
         *stream = Some(new_stream.clone());
         cvar.notify_one();
         Ok(Box::new(new_stream))

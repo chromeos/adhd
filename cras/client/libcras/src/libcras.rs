@@ -29,7 +29,7 @@
 //! use audio_streams::{SampleFormat, StreamSource};
 //!
 //! const BUFFER_SIZE: usize = 256;
-//! const FRAME_RATE: usize = 44100;
+//! const FRAME_RATE: u32 = 44100;
 //! const NUM_CHANNELS: usize = 2;
 //! const FORMAT: SampleFormat = SampleFormat::S16LE;
 //!
@@ -82,7 +82,7 @@
 //! use audio_streams::{SampleFormat, StreamSource};
 //!
 //! const BUFFER_SIZE: usize = 256;
-//! const FRAME_RATE: usize = 44100;
+//! const FRAME_RATE: u32 = 44100;
 //! const NUM_CHANNELS: usize = 2;
 //! const FORMAT: SampleFormat = SampleFormat::S16LE;
 //!
@@ -396,7 +396,7 @@ impl<'a> CrasClient<'a> {
         device_index: Option<u32>,
         block_size: u32,
         direction: CRAS_STREAM_DIRECTION,
-        rate: usize,
+        rate: u32,
         channel_num: usize,
         format: SampleFormat,
     ) -> Result<CrasStream<'b, T>> {
@@ -470,7 +470,7 @@ impl<'a> CrasClient<'a> {
         device_index: u32,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>
     {
@@ -505,7 +505,7 @@ impl<'a> CrasClient<'a> {
         device_index: u32,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         Ok((
@@ -557,7 +557,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         &mut self,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>
     {
@@ -579,7 +579,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         &mut self,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         if self.cras_capture {
@@ -618,7 +618,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
         direction: StreamDirection,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
         effects: &[StreamEffect],
         client_shm: &SharedMemory,
@@ -683,6 +683,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
                     audio_socket,
                     direction,
                     num_channels,
+                    frame_rate,
                     format,
                     header_fd,
                     client_shm.size() as usize,

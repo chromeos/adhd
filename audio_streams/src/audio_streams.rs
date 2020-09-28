@@ -139,7 +139,7 @@ pub trait StreamSource: Send {
         &mut self,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>;
 
@@ -151,7 +151,7 @@ pub trait StreamSource: Send {
         &mut self,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> Result<
         (
@@ -320,7 +320,7 @@ impl DummyStream {
     pub fn new(
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> Self {
         let frame_size = format.sample_bytes() * num_channels;
@@ -385,7 +385,7 @@ impl StreamSource for DummyStreamSource {
         &mut self,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
         buffer_size: usize,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError> {
         Ok((

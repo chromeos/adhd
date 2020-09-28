@@ -46,6 +46,7 @@ pub struct CrasShmStream<'a> {
     header: CrasAudioHeader<'a>,
     frame_size: usize,
     num_channels: usize,
+    frame_rate: u32,
     // The index of the next buffer within SHM to set the buffer offset for.
     next_buffer_idx: usize,
 }
@@ -78,6 +79,7 @@ impl<'a> CrasShmStream<'a> {
         audio_socket: AudioSocket,
         direction: StreamDirection,
         num_channels: usize,
+        frame_rate: u32,
         format: SampleFormat,
         header_fd: CrasAudioShmHeaderFd,
         samples_len: usize,
@@ -91,6 +93,7 @@ impl<'a> CrasShmStream<'a> {
             header,
             frame_size: format.sample_bytes() * num_channels,
             num_channels,
+            frame_rate,
             // We have either sent zero or two offsets to the server, so we will
             // need to update index 0 next.
             next_buffer_idx: 0,
@@ -114,6 +117,10 @@ impl<'a> ShmStream for CrasShmStream<'a> {
 
     fn num_channels(&self) -> usize {
         self.num_channels
+    }
+
+    fn frame_rate(&self) -> u32 {
+        self.frame_rate
     }
 
     fn wait_for_next_action_with_timeout(

@@ -95,7 +95,7 @@ struct WavSource {
     wav_reader: WavReader<BufReader<File>>,
     format: SampleFormat,
     num_channels: usize,
-    frame_rate: usize,
+    frame_rate: u32,
 }
 
 impl WavSource {
@@ -122,7 +122,7 @@ impl WavSource {
             eprintln!("Warning: number of channels changed to {}", num_channels);
         }
 
-        let frame_rate = spec.sample_rate as usize;
+        let frame_rate = spec.sample_rate;
         if opts.frame_rate.is_some() && Some(frame_rate) != opts.frame_rate {
             eprintln!("Warning: frame rate changed to {}", frame_rate);
         }
@@ -143,7 +143,7 @@ impl WavSource {
         self.num_channels
     }
 
-    fn frame_rate(&self) -> usize {
+    fn frame_rate(&self) -> u32 {
         self.frame_rate
     }
 }
@@ -248,11 +248,11 @@ impl WavSink {
         path: P,
         num_channels: usize,
         format: SampleFormat,
-        frame_rate: usize,
+        frame_rate: u32,
     ) -> Result<Self> {
         let spec = WavSpec {
             channels: num_channels as u16,
-            sample_rate: frame_rate as u32,
+            sample_rate: frame_rate,
             bits_per_sample: (format.sample_bytes() * 8) as u16,
             sample_format: hound::SampleFormat::Int,
         };
@@ -278,11 +278,11 @@ impl Write for WavSink {
         match self.format {
             SampleFormat::U8 => {
                 for sample in samples {
-                    self.wav_writer.write_sample(*sample as i8).or_else(|e| {
-                        Err(io::Error::new(
+                    self.wav_writer.write_sample(*sample as i8).map_err(|e| {
+                        io::Error::new(
                             io::ErrorKind::Other,
                             format!("Failed to write sample: {}", e),
-                        ))
+                        )
                     })?;
                 }
             }
@@ -301,11 +301,11 @@ impl Write for WavSink {
                 // on drop.
                 // The flush method only writes data from the i16_writer to the underlying
                 // WavWriter, it does not actually guarantee a flush to disk.
-                writer.flush().or_else(|e| {
-                    Err(io::Error::new(
+                writer.flush().map_err(|e| {
+                    io::Error::new(
                         io::ErrorKind::Other,
                         format!("Failed to flush SampleWriter: {}", e),
-                    ))
+                    )
                 })?;
             }
             SampleFormat::S24LE | SampleFormat::S32LE => {
@@ -324,11 +324,11 @@ impl Write for WavSink {
                         sample <<= 8;
                     }
 
-                    self.wav_writer.write_sample(sample).or_else(|e| {
-                        Err(io::Error::new(
+                    self.wav_writer.write_sample(sample).map_err(|e| {
+                        io::Error::new(
                             io::ErrorKind::Other,
                             format!("Failed to write sample: {}", e),
-                        ))
+                        )
                     })?;
                 }
             }
@@ -338,11 +338,11 @@ impl Write for WavSink {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.wav_writer.flush().or_else(|e| {
-            Err(io::Error::new(
+        self.wav_writer.flush().map_err(|e| {
+            io::Error::new(
                 io::ErrorKind::Other,
                 format!("Failed to flush WavWriter: {}", e),
-            ))
+            )
         })
     }
 }

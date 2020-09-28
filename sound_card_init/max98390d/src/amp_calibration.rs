@@ -25,11 +25,11 @@ const CALI_ERROR_UPPER_LIMIT: f32 = 0.3;
 const CALI_ERROR_LOWER_LIMIT: f32 = 0.03;
 
 const FRAMES_PER_BUFFER: usize = 256;
-const FRAME_RATE: usize = 48000;
+const FRAME_RATE: u32 = 48000;
 const NUM_CHANNELS: usize = 2;
 const FORMAT: SampleFormat = SampleFormat::S16LE;
-const DURATION_MS: usize = 1000;
-const WARM_UP_DURATION_MS: usize = 300;
+const DURATION_MS: u32 = 1000;
+const WARM_UP_DURATION_MS: u32 = 300;
 
 /// Amp volume mode emulation used by set_volume().
 #[derive(PartialEq)]
@@ -268,9 +268,9 @@ impl<'a> AmpCalibration<'a> {
 
         let handle = thread::spawn(move || -> Result<()> {
             let local_buffer = [0u8; FRAMES_PER_BUFFER * NUM_CHANNELS * 2];
-            let iterations: usize = (FRAME_RATE * DURATION_MS) / FRAMES_PER_BUFFER / 1000;
-            let warm_up_iterations: usize =
-                (FRAME_RATE * WARM_UP_DURATION_MS) / FRAMES_PER_BUFFER / 1000;
+            let iterations = (FRAME_RATE * DURATION_MS) / FRAMES_PER_BUFFER as u32 / 1000;
+            let warm_up_iterations =
+                (FRAME_RATE * WARM_UP_DURATION_MS) / FRAMES_PER_BUFFER as u32 / 1000;
 
             let (_control, mut stream) = cras_client
                 .new_pinned_playback_stream(
