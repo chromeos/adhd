@@ -92,7 +92,7 @@ static inline int count_non_empty_dev(struct open_dev *adevs)
 	return count;
 }
 
-static void check_non_empty_state_transition(struct open_dev *adevs)
+int dev_io_check_non_empty_state_transition(struct open_dev *adevs)
 {
 	int new_non_empty_dev_count = count_non_empty_dev(adevs);
 
@@ -103,6 +103,7 @@ static void check_non_empty_state_transition(struct open_dev *adevs)
 									    0);
 
 	non_empty_device_count = new_non_empty_dev_count;
+	return non_empty_device_count > 0;
 }
 
 /* Checks whether it is time to fetch. */
@@ -1088,8 +1089,6 @@ void dev_io_run(struct open_dev **odevs, struct open_dev **idevs,
 	dev_io_capture(idevs);
 	dev_io_send_captured_samples(*idevs);
 	dev_io_playback_write(odevs, output_converter);
-
-	check_non_empty_state_transition(*odevs);
 }
 
 static int input_adev_ignore_wake(const struct open_dev *adev)
@@ -1215,7 +1214,7 @@ void dev_io_rm_open_dev(struct open_dev **odev_list, struct open_dev *dev_to_rm)
 	cras_server_metrics_highest_hw_level(dev_to_rm->dev->highest_hw_level,
 					     dev_to_rm->dev->direction);
 
-	check_non_empty_state_transition(*odev_list);
+	dev_io_check_non_empty_state_transition(*odev_list);
 
 	ATLOG(atlog, AUDIO_THREAD_DEV_REMOVED, dev_to_rm->dev->info.idx, 0, 0);
 

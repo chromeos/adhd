@@ -71,6 +71,12 @@ void dev_io_run(struct open_dev **odevs, struct open_dev **idevs,
 		struct cras_fmt_conv *output_converter);
 
 /*
+ * Checks the non-empty device state in active output lists and return
+ * if there's at least one non-empty device.
+ */
+int dev_io_check_non_empty_state_transition(struct open_dev *adevs);
+
+/*
  * Fills min_ts with the next time the system should wake to service input.
  * Returns the number of devices waiting.
  */

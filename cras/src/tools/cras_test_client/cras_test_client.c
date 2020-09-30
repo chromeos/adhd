@@ -541,8 +541,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s num_fds:%d\n", "WAKE", (int)data1);
 		break;
 	case AUDIO_THREAD_SLEEP:
-		printf("%-30s sleep:%09d.%09d\n", "SLEEP", (int)data1,
-		       (int)data2);
+		printf("%-30s sleep:%09d.%09d non_empty %u\n", "SLEEP",
+		       (int)data1, (int)data2, (int)data3);
 		break;
 	case AUDIO_THREAD_READ_AUDIO:
 		printf("%-30s dev:%u hw_level:%u read:%u\n", "READ_AUDIO",
