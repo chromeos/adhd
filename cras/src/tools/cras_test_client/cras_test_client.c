@@ -504,7 +504,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	unsigned int data2 = log->log[tag_idx].data2;
 	unsigned int data3 = log->log[tag_idx].data3;
 	time_t lt;
-	struct tm *t;
+	struct tm t;
 
 	/* Skip unused log entries. */
 	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
@@ -513,8 +513,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	/* Convert from monotonic raw clock to realtime clock. */
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
-	t = localtime(&lt);
-	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", t);
+	localtime_r(&lt, &t);
+	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", &t);
 
 	printf("%s.%09u cras atlog  ", time_str, nsec);
 
@@ -533,8 +533,8 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	}
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
-	t = localtime(&lt);
-	strftime(time_str, 128, " %H:%M:%S", t);
+	localtime_r(&lt, &t);
+	strftime(time_str, 128, " %H:%M:%S", &t);
 
 	switch (tag) {
 	case AUDIO_THREAD_WAKE:
@@ -859,7 +859,7 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 	unsigned int data2 = log->log[tag_idx].data2;
 	unsigned int data3 = log->log[tag_idx].data3;
 	time_t lt;
-	struct tm *t;
+	struct tm t;
 
 	/* Skip unused log entries. */
 	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
@@ -868,8 +868,8 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 	/* Convert from monotomic raw clock to realtime clock. */
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
-	t = localtime(&lt);
-	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", t);
+	localtime_r(&lt, &t);
+	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", &t);
 
 	printf("%s.%09u cras mainlog  ", time_str, nsec);
 
@@ -944,7 +944,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	unsigned int data1 = log->log[tag_idx].data1;
 	unsigned int data2 = log->log[tag_idx].data2;
 	time_t lt;
-	struct tm *t;
+	struct tm t;
 
 	/* Skip unused log entries. */
 	if (log->log[tag_idx].tag_sec == 0 && log->log[tag_idx].nsec == 0)
@@ -953,8 +953,8 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	/* Convert from monotonic raw clock to realtime clock. */
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
-	t = localtime(&lt);
-	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", t);
+	localtime_r(&lt, &t);
+	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", &t);
 
 	printf("%s.%09u cras btlog  ", time_str, nsec);
 
