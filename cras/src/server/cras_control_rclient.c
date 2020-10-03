@@ -477,7 +477,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		    m->num_channels > CRAS_MAX_REMIX_CHANNELS)
 			return -EINVAL;
 		const size_t coefficient_len =
-			m->num_channels * m->num_channels;
+			(size_t)m->num_channels * (size_t)m->num_channels;
 		const size_t size_with_coefficients =
 			sizeof(*m) +
 			coefficient_len * sizeof(m->coefficient[0]);

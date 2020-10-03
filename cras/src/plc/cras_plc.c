@@ -141,7 +141,7 @@ float cross_correlation(int16_t *x, int16_t *y)
 		x2 += ((float)x[i]) * x[i];
 		y2 += ((float)y[i]) * y[i];
 	}
-	return sum / sqrt(x2 * y2);
+	return sum / sqrtf(x2 * y2);
 }
 
 int pattern_match(int16_t *hist)

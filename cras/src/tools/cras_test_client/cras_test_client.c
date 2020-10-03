@@ -310,7 +310,7 @@ put_stdin_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	int rc = 0;
 	uint32_t frame_bytes = cras_client_format_bytes_per_frame(aud_format);
 
-	rc = read(0, playback_samples, frames * frame_bytes);
+	rc = read(0, playback_samples, (size_t)frames * (size_t)frame_bytes);
 	if (rc <= 0) {
 		terminate_stream_loop();
 		return -1;
@@ -2174,7 +2174,8 @@ int main(int argc, char **argv)
 
 			s = strtok(optarg, ":");
 			nch = atoi(s);
-			coeff = (float *)calloc(nch * nch, sizeof(*coeff));
+			coeff = (float *)calloc((size_t)nch * (size_t)nch,
+						sizeof(*coeff));
 			for (size = 0; size < nch * nch; size++) {
 				s = strtok(NULL, ",");
 				if (NULL == s)

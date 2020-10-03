@@ -1324,7 +1324,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 
 		/* This assumes consecutive channel areas. */
 		buf = area->channels[0].buf;
-		memset(buf, 0, frames_written * frame_bytes);
+		memset(buf, 0, (size_t)frames_written * (size_t)frame_bytes);
 		cras_iodev_put_output_buffer(odev, buf, frames_written, NULL,
 					     NULL);
 		frames -= frames_written;

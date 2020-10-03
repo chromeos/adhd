@@ -3362,10 +3362,10 @@ int cras_client_config_global_remix(struct cras_client *client,
 {
 	struct cras_config_global_remix *msg;
 	int rc;
+	size_t nchan = (size_t)num_channels;
 
 	msg = (struct cras_config_global_remix *)malloc(
-		sizeof(*msg) +
-		num_channels * num_channels * sizeof(*coefficient));
+		sizeof(*msg) + nchan * nchan * sizeof(*coefficient));
 	cras_fill_config_global_remix_command(msg, num_channels, coefficient,
 					      num_channels * num_channels);
 	rc = write_message_to_server(client, &msg->header);

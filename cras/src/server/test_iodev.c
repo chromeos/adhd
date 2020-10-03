@@ -102,7 +102,8 @@ static int put_buffer(struct cras_iodev *iodev, unsigned frames)
 	struct test_iodev *testio = (struct test_iodev *)iodev;
 
 	/* Input */
-	buf_increment_read(testio->audbuff, frames * testio->fmt_bytes);
+	buf_increment_read(testio->audbuff,
+			   (size_t)frames * (size_t)testio->fmt_bytes);
 
 	return 0;
 }
@@ -241,8 +242,9 @@ unsigned int test_iodev_add_samples(struct test_iodev *testio, uint8_t *samples,
 
 	write_ptr = buf_write_pointer_size(testio->audbuff, &avail);
 	count = MIN(count, avail);
-	memcpy(write_ptr, samples, count * testio->fmt_bytes);
-	buf_increment_write(testio->audbuff, count * testio->fmt_bytes);
+	memcpy(write_ptr, samples, (size_t)count * (size_t)testio->fmt_bytes);
+	buf_increment_write(testio->audbuff,
+			    (size_t)count * (size_t)testio->fmt_bytes);
 	return count;
 }
 

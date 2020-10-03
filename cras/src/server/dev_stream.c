@@ -259,7 +259,8 @@ static unsigned int capture_with_fmt_conv(struct dev_stream *dev_stream,
 		total_read += read_frames;
 		source_samples += read_frames * source_frame_bytes;
 		buf_increment_write(dev_stream->conv_buffer,
-				    write_frames * dst_frame_bytes);
+				    (size_t)write_frames *
+					    (size_t)dst_frame_bytes);
 	}
 
 	return total_read;
@@ -317,7 +318,7 @@ capture_copy_converted_to_stream(struct dev_stream *dev_stream,
 				     software_gain_scaler);
 
 		buf_increment_read(dev_stream->conv_buffer,
-				   write_frames * frame_bytes);
+				   (size_t)write_frames * (size_t)frame_bytes);
 		total_written += write_frames;
 		cras_rstream_dev_offset_update(rstream, write_frames,
 					       dev_stream->dev_id);

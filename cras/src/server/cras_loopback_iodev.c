@@ -236,7 +236,7 @@ static int put_record_buffer(struct cras_iodev *iodev, unsigned nframes)
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 
-	buf_increment_read(sbuf, nframes * frame_bytes);
+	buf_increment_read(sbuf, (size_t)nframes * (size_t)frame_bytes);
 	loopdev->read_frames += nframes;
 	ATLOG(atlog, AUDIO_THREAD_LOOPBACK_PUT, nframes, 0, 0);
 	return 0;
