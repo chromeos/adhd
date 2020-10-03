@@ -1015,10 +1015,15 @@ static void log_sparse_histogram_each_level(int num, int sample, ...)
 
 	va_start(valist, sample);
 
-	for (i = 0; i < num; i++) {
-		len += snprintf(metrics_name + len,
+	for (i = 0; i < num && len < METRICS_NAME_BUFFER_SIZE; i++) {
+		int metric_len = snprintf(metrics_name + len,
 				METRICS_NAME_BUFFER_SIZE - len, "%s%s",
 				i ? "." : "", va_arg(valist, char *));
+		// Exit early on error or running out of bufferspace. Avoids
+		// logging partial or corrupted strings.
+		if (metric_len < 0 || metric_len > METRICS_NAME_BUFFER_SIZE - len)
+			break;
+		len += metric_len;
 		cras_metrics_log_sparse_histogram(metrics_name, sample);
 	}
 
