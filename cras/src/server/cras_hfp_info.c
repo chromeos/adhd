@@ -314,7 +314,7 @@ msbc_send_again:
 			goto msbc_send_again;
 		return err;
 	}
-	if (err != info->packet_size) {
+	if (err != (int)info->packet_size) {
 		syslog(LOG_ERR, "Partially write %d bytes for mSBC", err);
 		return -1;
 	}
@@ -481,7 +481,7 @@ recv_msbc_bytes:
 	 * Treat return code 0 (socket shutdown) as error here. BT stack
 	 * shall send signal to main thread for device disconnection.
 	 */
-	if (err != info->packet_size) {
+	if (err != (int)info->packet_size) {
 		syslog(LOG_ERR, "Partially read %d bytes for mSBC packet", err);
 		return -1;
 	}
