@@ -1177,6 +1177,11 @@ struct cras_audio_format* cras_rstream_post_processing_format(
 int cras_audio_thread_event_drop_samples() {
   return 0;
 }
+
+int cras_audio_thread_event_severe_underrun() {
+  return 0;
+}
+
 void* buffer_share_get_data(const struct buffer_share* mix, unsigned int id) {
   return NULL;
 };
