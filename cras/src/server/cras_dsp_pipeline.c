@@ -435,6 +435,7 @@ struct pipeline *cras_dsp_pipeline_create(struct ini *ini,
 
 	if (rc < 0) {
 		syslog(LOG_ERR, "failed to construct pipeline");
+		cras_dsp_pipeline_free(pipeline);
 		return NULL;
 	}
 
