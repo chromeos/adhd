@@ -850,7 +850,7 @@ static void get_input_devices_drop_time(struct open_dev *idev_list,
 static void dev_io_drop_samples(struct open_dev *idev_list)
 {
 	struct open_dev *adev;
-	struct timespec drop_time;
+	struct timespec drop_time = {};
 	int rc;
 
 	get_input_devices_drop_time(idev_list, &drop_time);
