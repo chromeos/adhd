@@ -796,7 +796,7 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 					 ain ? ain->mixer_input : NULL);
 
 	/* For USB device without UCM config, not change a gain control. */
-	if (ain->base.type == CRAS_NODE_TYPE_USB && !aio->ucm)
+	if (ain && ain->base.type == CRAS_NODE_TYPE_USB && !aio->ucm)
 		return;
 
 	/* Set hardware gain to 0dB if software gain is needed. */
