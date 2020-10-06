@@ -525,6 +525,17 @@ static int allocate_buffers(struct pipeline *pipeline)
 			peak_buf = MAX(peak_buf, need_buf);
 		}
 	}
+	/*
+	 * cras_dsp_pipeline_create creates pipeline with source and sink and it
+	 * makes sure all ports could be accessed from some sources, which means
+	 * that there is at least one source with out > 0 and in == 0.
+	 * This will give us peak_buf > 0 in the previous calculation.
+	 */
+	if (peak_buf <= 0) {
+		syslog(LOG_ERR, "peak_buf = %d, which must be greater than 0.",
+		       peak_buf);
+		return -1;
+	}
 
 	/* then allocate the buffers */
 	pipeline->peak_buf = peak_buf;
