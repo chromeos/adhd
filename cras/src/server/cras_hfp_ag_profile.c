@@ -290,10 +290,10 @@ static void cras_hfp_ag_request_disconnection(struct cras_bt_profile *profile,
 
 	DL_FOREACH (connected_ags, ag) {
 		if (ag->slc_handle && ag->device == device) {
-			destroy_audio_gateway(ag);
 			cras_bt_device_notify_profile_dropped(
 				ag->device,
 				CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+			destroy_audio_gateway(ag);
 		}
 	}
 }
@@ -386,9 +386,9 @@ static void cras_hsp_ag_request_disconnection(struct cras_bt_profile *profile,
 
 	DL_FOREACH (connected_ags, ag) {
 		if (ag->slc_handle && ag->device == device) {
-			destroy_audio_gateway(ag);
 			cras_bt_device_notify_profile_dropped(
 				ag->device, CRAS_BT_DEVICE_PROFILE_HSP_HEADSET);
+			destroy_audio_gateway(ag);
 		}
 	}
 }
