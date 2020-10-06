@@ -1403,7 +1403,6 @@ static int stream_connected(struct client_stream *stream,
 		goto err_ret;
 	}
 
-	samples_prot = 0;
 	if (stream->direction == CRAS_STREAM_OUTPUT)
 		samples_prot = PROT_WRITE;
 	else
@@ -2138,7 +2137,7 @@ int cras_client_create_with_type(struct cras_client **client,
 
 	rc = fill_socket_file((*client), conn_type);
 	if (rc < 0) {
-		goto free_error;
+		goto free_server_event_fd;
 	}
 
 	rc = cras_file_wait_create((*client)->sock_file,
@@ -2171,10 +2170,11 @@ int cras_client_create_with_type(struct cras_client **client,
 
 	return 0;
 free_error:
-	if ((*client)->server_event_fd >= 0)
-		close((*client)->server_event_fd);
 	cras_file_wait_destroy((*client)->sock_file_wait);
 	free((void *)(*client)->sock_file);
+free_server_event_fd:
+	if ((*client)->server_event_fd >= 0)
+		close((*client)->server_event_fd);
 free_cond:
 	pthread_cond_destroy(&(*client)->stream_start_cond);
 free_lock:
