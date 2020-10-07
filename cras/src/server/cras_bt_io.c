@@ -522,7 +522,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	 * point it to the first profile dev. */
 	active = (struct bt_node *)calloc(1, sizeof(*active));
 	if (!active)
-		return NULL;
+		goto error;
 	active->base.dev = iodev;
 	active->base.idx = btio->next_node_id++;
 	active->base.type = dev->active_node->type;
