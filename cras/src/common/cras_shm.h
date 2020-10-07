@@ -564,11 +564,12 @@ static inline void cras_shm_set_used_size(struct cras_audio_shm *shm,
 	uint32_t i;
 
 	shm->config.used_size = used_size;
-	if (shm->header)
+	if (shm->header) {
 		shm->header->config.used_size = used_size;
 
-	for (i = 0; i < CRAS_NUM_SHM_BUFFERS; i++)
-		cras_shm_set_buffer_offset(shm, i, i * used_size);
+		for (i = 0; i < CRAS_NUM_SHM_BUFFERS; i++)
+			cras_shm_set_buffer_offset(shm, i, i * used_size);
+	}
 }
 
 /* Returns the used size of the shm region in bytes. */
