@@ -270,7 +270,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	 * control whether to turn on WBS feature.
 	 */
 	ag_features = BSRF_SUPPORTED_FEATURES;
-	if (cras_system_get_bt_wbs_enabled() &&
+	if (cras_system_get_bt_wbs_enabled() && adapter &&
 	    cras_bt_adapter_wbs_supported(adapter))
 		ag_features |= AG_CODEC_NEGOTIATION;
 
