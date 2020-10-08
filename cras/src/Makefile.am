@@ -155,6 +155,7 @@ cras_server_SOURCES = \
 	server/cras_volume_curve.c \
 	server/dev_io.c \
 	server/dev_stream.c \
+	server/ewma_power.c \
 	server/input_data.c \
 	server/linear_resampler.c \
 	server/polled_interval_checker.c \
@@ -437,6 +438,7 @@ TESTS = \
 	edid_utils_unittest \
 	empty_iodev_unittest \
 	expr_unittest \
+	ewma_power_unittest \
 	file_wait_unittest \
 	float_buffer_unittest \
 	fmt_conv_unittest \
@@ -879,6 +881,12 @@ buffer_share_unittest_SOURCES = tests/buffer_share_unittest.cc \
 buffer_share_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 buffer_share_unittest_LDADD = -lgtest -liniparser -lpthread
+
+ewma_power_unittest_SOURCES = tests/ewma_power_unittest.cc \
+	server/ewma_power.c
+ewma_power_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
+ewma_power_unittest_LDADD = -lgtest
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c

@@ -292,6 +292,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->num_missed_cb = 0;
 	stream->is_pinned = (config->dev_idx != NO_DEVICE);
 	stream->pinned_dev_idx = config->dev_idx;
+	ewma_power_init(&stream->ewma, stream->format.frame_rate);
 
 	rc = setup_shm_area(stream, config);
 	if (rc < 0) {
@@ -472,9 +473,16 @@ void cras_rstream_update_input_write_pointer(struct cras_rstream *rstream)
 
 void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream)
 {
+	size_t nfr = 0;
+	uint8_t *src;
 	unsigned int nwritten =
 		buffer_share_get_new_write_point(rstream->buf_state);
 
+	/* Retrieve the read pointer |src| start from which to calculate
+	 * the EWMA power. */
+	src = cras_shm_get_readable_frames(rstream->shm, 0, &nfr);
+	ewma_power_calculate(&rstream->ewma, (int16_t *)src,
+			     rstream->format.num_channels, nwritten);
 	cras_shm_buffer_read(rstream->shm, nwritten);
 }
 

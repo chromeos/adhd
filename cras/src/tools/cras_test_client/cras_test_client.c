@@ -588,10 +588,16 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s id:%x shm_frames:%u cb_pending:%u\n",
 		       "WRITE_STREAMS_STREAM", data1, data2, data3);
 		break;
-	case AUDIO_THREAD_FETCH_STREAM:
-		printf("%-30s id:%x cbth:%u delay:%u\n",
-		       "WRITE_STREAMS_FETCH_STREAM", data1, data2, data3);
+	case AUDIO_THREAD_FETCH_STREAM: {
+		float f = *((float *)&data3);
+		/* Convert to dBFS and set to zero if it's insignificantly low.
+		 * Picking the the same threshold 1.0e-10f as in Chrome.
+		 */
+		f = (f < 1.0e-10f) ? 0.0f : 10.0f * log10f(f);
+		printf("%-30s id:%x cbth:%u power:%f dBFS\n",
+		       "WRITE_STREAMS_FETCH_STREAM", data1, data2, f);
 		break;
+	}
 	case AUDIO_THREAD_STREAM_ADDED:
 		printf("%-30s id:%x dev:%u\n", "STREAM_ADDED", data1, data2);
 		break;

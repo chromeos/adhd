@@ -14,6 +14,7 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_rstream_config.h"
+#include "ewma_power.h"
 
 struct cras_connect_message;
 struct cras_rclient;
@@ -55,6 +56,7 @@ struct master_dev_info {
  *    first_missed_cb_ts - The time when the first missed callback happens.
  *    buf_state - State of the buffer from all devices for this stream.
  *    apm_list - List of audio processing module instances.
+ *    ewma - The ewma instance to calculate stream volume.
  *    num_attached_devs - Number of iodevs this stream has attached to.
  *    num_missed_cb - Number of callback schedules have been missed.
  *    queued_frames - Cached value of the number of queued frames in shm.
@@ -85,6 +87,7 @@ struct cras_rstream {
 	struct timespec first_missed_cb_ts;
 	struct buffer_share *buf_state;
 	struct cras_apm_list *apm_list;
+	struct ewma_power ewma;
 	int num_attached_devs;
 	int num_missed_cb;
 	int queued_frames;

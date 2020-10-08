@@ -194,7 +194,8 @@ static int fetch_streams(struct open_dev *adev)
 		dev_stream_set_delay(dev_stream, delay);
 
 		ATLOG(atlog, AUDIO_THREAD_FETCH_STREAM, rstream->stream_id,
-		      cras_rstream_get_cb_threshold(rstream), delay);
+		      cras_rstream_get_cb_threshold(rstream),
+		      *((uint32_t *)&rstream->ewma.power));
 
 		rc = dev_stream_request_playback_samples(dev_stream, &now);
 		if (rc < 0) {
