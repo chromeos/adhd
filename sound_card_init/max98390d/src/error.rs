@@ -25,6 +25,7 @@ pub enum Error {
     InvalidDatastore,
     InvalidTemperature(i32),
     LargeCalibrationDiff(i32, i32),
+    MissingDSMParam,
     MutexPoisonError,
     NewPlayStreamFailed(libcras::BoxError),
     NextPlaybackBufferFailed(libcras::BoxError),
@@ -79,6 +80,7 @@ impl fmt::Display for Error {
                 rdc, temp
             ),
             MutexPoisonError => write!(f, "mutex is poisoned"),
+            MissingDSMParam => write!(f, "missing dsm_param.bin"),
             NewPlayStreamFailed(e) => write!(f, "{}", e),
             NextPlaybackBufferFailed(e) => write!(f, "{}", e),
             PlaybackFailed(e) => write!(f, "{}", e),

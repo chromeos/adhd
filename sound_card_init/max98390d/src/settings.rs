@@ -7,10 +7,13 @@ use serde::Deserialize;
 
 use crate::error::{Error, Result};
 
-/// `DeviceSettings` includes the settings of max98390. It currently includes the settings of amplifier calibration.
+/// `DeviceSettings` includes the settings of max98390. It currently includes:
+/// * the settings of amplifier calibration.
+/// * the path of dsm_param.
 #[derive(Debug, Default, PartialEq, Deserialize, Clone)]
 pub struct DeviceSettings {
     pub amp_calibrations: Vec<AmpCalibSettings>,
+    pub dsm_param: String,
 }
 
 /// `AmpCalibSettings` includes the settings needed for amplifier calibration.

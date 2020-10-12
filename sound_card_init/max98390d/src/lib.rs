@@ -10,6 +10,8 @@ mod error;
 mod settings;
 mod vpd;
 
+use std::path::Path;
+
 use cros_alsa::Card;
 use sys_util::error;
 
@@ -32,6 +34,21 @@ pub fn run_max98390d(snd_card: &str, conf: &str) -> Result<()> {
     let settings = DeviceSettings::from_yaml_str(conf)?;
     let mut card = Card::new(snd_card)?;
 
+    if !Path::new(&settings.dsm_param).exists() {
+        for s in &settings.amp_calibrations {
+            let mut amp_calib = match AmpCalibration::new(&mut card, s.clone()) {
+                Ok(amp) => amp,
+                Err(e) => {
+                    error!("{}.", e);
+                    continue;
+                }
+            };
+            if let Err(e) = amp_calib.set_volume(VolumeMode::Low) {
+                error!("failed to set volume to low: {}.", e);
+            }
+        }
+        return Err(Error::MissingDSMParam);
+    }
     // If some error occurs during the calibration, the iteration will continue running the
     // calibration for the next amp.
     let results: Vec<Result<()>> = settings
