@@ -75,3 +75,4 @@ getrandom: 1
 rt_sigreturn: 1
 wait4: 1
 restart_syscall: 1
+sched_yield: 1
