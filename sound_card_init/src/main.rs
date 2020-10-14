@@ -25,6 +25,7 @@ use remain::sorted;
 use sys_util::{error, info, syslog};
 
 use max98390d::run_max98390d;
+use utils::run_time;
 
 type Result<T> = std::result::Result<T, Error>;
 const CONF_DIR: &str = "/etc/sound_card_init";
@@ -99,24 +100,35 @@ fn get_config(args: &Args) -> Result<String> {
 }
 
 /// Parses the CONF_DIR/<sound_card_id>.yaml and starts sound card initialization.
-fn sound_card_init() -> std::result::Result<(), Box<dyn error::Error>> {
-    let args = parse_args()?;
+fn sound_card_init(args: &Args) -> std::result::Result<(), Box<dyn error::Error>> {
     info!("sound_card_id: {}", args.sound_card_id);
-    let conf = get_config(&args)?;
+    let conf = get_config(args)?;
 
     match args.sound_card_id.as_str() {
         "sofcmlmax98390d" => {
             run_max98390d(&args.sound_card_id, &conf)?;
             info!("run_max98390d() finished successfully.");
+            Ok(())
         }
-        _ => return Err(Error::UnsupportedSoundCard(args.sound_card_id).into()),
-    };
-    Ok(())
+        _ => Err(Error::UnsupportedSoundCard(args.sound_card_id.clone()).into()),
+    }
 }
 
 fn main() {
     syslog::init().expect("failed to initialize syslog");
-    if let Err(e) = sound_card_init() {
+    let args = match parse_args() {
+        Ok(args) => args,
+        Err(e) => {
+            error!("failed to parse arguments: {}", e);
+            return;
+        }
+    };
+
+    if let Err(e) = sound_card_init(&args) {
         error!("sound_card_init: {}", e);
+    }
+
+    if let Err(e) = run_time::now_to_file(&args.sound_card_id) {
+        error!("failed to create sound_card_init run time file: {}", e);
     }
 }

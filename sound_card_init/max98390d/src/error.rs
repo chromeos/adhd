@@ -6,6 +6,7 @@ use std::fmt;
 use std::io;
 use std::num::ParseIntError;
 use std::sync::PoisonError;
+use std::time;
 
 use remain::sorted;
 
@@ -21,8 +22,10 @@ pub enum Error {
     CrasClientFailed(libcras::Error),
     DeserializationFailed(String, serde_yaml::Error),
     FileIOFailed(String, io::Error),
+    HotSpeaker,
     InternalSpeakerNotFound,
     InvalidDatastore,
+    InvalidShutDownTime,
     InvalidTemperature(i32),
     LargeCalibrationDiff(i32, i32),
     MissingDSMParam,
@@ -30,8 +33,10 @@ pub enum Error {
     NewPlayStreamFailed(libcras::BoxError),
     NextPlaybackBufferFailed(libcras::BoxError),
     PlaybackFailed(io::Error),
+    ReadTimestampFailed(utils::error::Error),
     SerializationFailed(serde_yaml::Error),
     StartPlaybackTimeout,
+    SystemTimeError(time::SystemTimeError),
     VPDParseFailed(String, ParseIntError),
     WorkerPanics,
 }
@@ -67,6 +72,7 @@ impl fmt::Display for Error {
             CrasClientFailed(e) => write!(f, "failed to create cras client: {}", e),
             DeserializationFailed(file, e) => write!(f, "failed to parse {}: {}", file, e),
             FileIOFailed(file, e) => write!(f, "{}: {}", file, e),
+            InvalidShutDownTime => write!(f, "invalid shutdown time"),
             InternalSpeakerNotFound => write!(f, "internal speaker is not found in cras"),
             InvalidTemperature(temp) => write!(
                 f,
@@ -74,18 +80,21 @@ impl fmt::Display for Error {
                 temp
             ),
             InvalidDatastore => write!(f, "invalid datastore format"),
+            HotSpeaker => write!(f, "skip boot time calibration as the speakers may be hot"),
             LargeCalibrationDiff(rdc, temp) => write!(
                 f,
                 "calibration difference is too large, rdc: {}, temp: {}",
                 rdc, temp
             ),
-            MutexPoisonError => write!(f, "mutex is poisoned"),
             MissingDSMParam => write!(f, "missing dsm_param.bin"),
+            MutexPoisonError => write!(f, "mutex is poisoned"),
             NewPlayStreamFailed(e) => write!(f, "{}", e),
             NextPlaybackBufferFailed(e) => write!(f, "{}", e),
             PlaybackFailed(e) => write!(f, "{}", e),
+            ReadTimestampFailed(e) => write!(f, "{}", e),
             SerializationFailed(e) => write!(f, "failed to serialize yaml: {}", e),
             StartPlaybackTimeout => write!(f, "playback is not started in time"),
+            SystemTimeError(e) => write!(f, "{}", e),
             VPDParseFailed(file, e) => write!(f, "failed to parse vpd {}: {}", file, e),
             WorkerPanics => write!(f, "run_play_zero_worker panics"),
         }

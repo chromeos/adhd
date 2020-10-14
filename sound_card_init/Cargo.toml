@@ -12,6 +12,7 @@ getopts = "0.2"
 libcras = "*"
 remain = "0.2.1"
 max98390d = { path = "max98390d" }
+utils = { path = "utils" }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8.11"
 sys_util = "*"

@@ -123,24 +123,10 @@ impl<'a> AmpCalibration<'a> {
         };
 
         if !self.validate_temperature(temp_cali) {
-            match datastore {
-                None => return Err(Error::InvalidTemperature(temp_cali)),
-                Some(d) => match d {
-                    Datastore::UseVPD => {
-                        info!("invalid temperature: {}, use VPD values.", temp_cali);
-                        return Ok(());
-                    }
-                    Datastore::DSM { rdc, ambient_temp } => {
-                        info!("invalid temperature: {}, use datastore values.", temp_cali);
-                        self.card
-                            .control_by_name::<IntControl>(&self.setting.amp.rdc_ctrl)?
-                            .set(rdc)?;
-                        self.card
-                            .control_by_name::<IntControl>(&self.setting.amp.temp_ctrl)?
-                            .set(ambient_temp)?;
-                        return Ok(());
-                    }
-                },
+            info!("invalid temperature: {}.", temp_cali);
+            return match datastore {
+                None => Err(Error::InvalidTemperature(temp_cali)),
+                Some(d) => self.apply_datastore(d),
             };
         }
 
@@ -149,22 +135,10 @@ impl<'a> AmpCalibration<'a> {
         } else if diff < CALI_ERROR_LOWER_LIMIT {
             match datastore {
                 None => Datastore::UseVPD.save(self.card.name(), &self.setting.calib_file)?,
-                Some(d) => match d {
-                    Datastore::UseVPD => {
-                        info!("rdc diff: {}, use VPD values.", diff);
-                    }
-                    Datastore::DSM { rdc, ambient_temp } => {
-                        info!("rdc diff: {}, use datastore values.", diff);
-                        self.card
-                            .control_by_name::<IntControl>(&self.setting.amp.rdc_ctrl)?
-                            .set(rdc)?;
-                        self.card
-                            .control_by_name::<IntControl>(&self.setting.amp.temp_ctrl)?
-                            .set(ambient_temp)?;
-                    }
-                },
+                Some(d) => self.apply_datastore(d)?,
             }
         } else {
+            info!("apply boot time calibration values.");
             self.card
                 .control_by_name::<IntControl>(&self.setting.amp.rdc_ctrl)?
                 .set(rdc_cali)?;
@@ -178,6 +152,22 @@ impl<'a> AmpCalibration<'a> {
             .save(self.card.name(), &self.setting.calib_file)?;
         }
         Ok(())
+    }
+
+    fn apply_datastore(&mut self, d: Datastore) -> Result<()> {
+        info!("apply datastore values.");
+        match d {
+            Datastore::UseVPD => Ok(()),
+            Datastore::DSM { rdc, ambient_temp } => {
+                self.card
+                    .control_by_name::<IntControl>(&self.setting.amp.rdc_ctrl)?
+                    .set(rdc)?;
+                self.card
+                    .control_by_name::<IntControl>(&self.setting.amp.temp_ctrl)?
+                    .set(ambient_temp)?;
+                Ok(())
+            }
+        }
     }
 
     fn validate_temperature(&self, temp: i32) -> bool {
@@ -213,7 +203,7 @@ impl<'a> AmpCalibration<'a> {
                     return Err(Error::StartPlaybackTimeout);
                 } else {
                     // Spurious wakes. Decrements the sleep duration by the amount slept.
-                    timeout = timeout - start_time.elapsed();
+                    timeout -= start_time.elapsed();
                 }
             }
         }
@@ -311,5 +301,19 @@ impl<'a> AmpCalibration<'a> {
         });
 
         Ok(handle)
+    }
+
+    /// Skips max98390d boot time calibration when the speaker may be hot.
+    ///
+    /// If datastore exists, applies the stored value and sets volume to high.
+    /// If datastore does not exist, sets volume to low.
+    pub fn hot_speaker_workflow(&mut self) -> Result<()> {
+        if let Ok(sci_calib) = Datastore::from_file(self.card.name(), &self.setting.calib_file) {
+            self.apply_datastore(sci_calib)?;
+            self.set_volume(VolumeMode::High)?;
+            return Ok(());
+        }
+        info!("no datastore, set volume low");
+        self.set_volume(VolumeMode::Low)
     }
 }

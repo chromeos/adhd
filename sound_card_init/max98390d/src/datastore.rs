@@ -7,10 +7,9 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use sys_util::info;
+use utils::DATASTORE_DIR;
 
 use crate::error::{Error, Result};
-
-const DATASTORE_DIR: &str = "/var/lib/sound_card_init";
 
 /// `Datastore`, which stores and reads calibration values in yaml format.
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]
