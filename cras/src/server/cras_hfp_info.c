@@ -19,6 +19,7 @@
 #include "cras_sbc_codec.h"
 #include "cras_server_metrics.h"
 #include "utlist.h"
+#include "packet_status_logger.h"
 
 /* The max buffer size. Note that the actual used size must set to multiple
  * of SCO packet size, and the packet size does not necessarily be equal to
@@ -93,6 +94,7 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
  *     read_align_cb - Callback used to align mSBC frame reading with read buf.
  *     msbc_read_current_corrupted - Flag to mark if the current mSBC frame
  *         read is corrupted.
+ *     wbs_logger - The logger for packet status in WBS.
  */
 struct hfp_info {
 	int fd;
@@ -119,6 +121,7 @@ struct hfp_info {
 	size_t read_rp;
 	int (*read_align_cb)(uint8_t *buf);
 	bool msbc_read_current_corrupted;
+	struct packet_status_logger *wbs_logger;
 };
 
 int hfp_info_add_iodev(struct hfp_info *info,
@@ -403,6 +406,20 @@ static const uint8_t *extract_msbc_frame(const uint8_t *input, int len,
 	return NULL;
 }
 
+/* Log value 0 when packet is received. */
+static void log_wbs_packet_received(struct hfp_info *info)
+{
+	if (info->wbs_logger)
+		packet_status_logger_update(info->wbs_logger, 0);
+}
+
+/* Log value 1 when packet is lost. */
+static void log_wbs_packet_lost(struct hfp_info *info)
+{
+	if (info->wbs_logger)
+		packet_status_logger_update(info->wbs_logger, 1);
+}
+
 /*
  * Handle the case when mSBC frame is considered lost.
  * Args:
@@ -418,6 +435,8 @@ static int handle_packet_loss(struct hfp_info *info)
 	 * case we treat it as one mSBC frame read but dropped. */
 	info->msbc_num_in_frames++;
 	info->msbc_num_lost_frames++;
+
+	log_wbs_packet_lost(info);
 
 	in_bytes = buf_write_pointer_size(info->capture_buf, &pcm_avail);
 	if (pcm_avail < MSBC_CODE_SIZE)
@@ -580,6 +599,7 @@ recv_msbc_bytes:
 		pcm_read += err;
 	} else {
 		/* Good mSBC frame decoded. */
+		log_wbs_packet_received(info);
 		buf_increment_write(info->capture_buf, pcm_decoded);
 		info->msbc_num_in_frames++;
 		cras_msbc_plc_handle_good_frames(info->msbc_plc, capture_buf,
@@ -723,6 +743,12 @@ error:
 	return NULL;
 }
 
+void hfp_info_set_wbs_logger(struct hfp_info *info,
+			     struct packet_status_logger *wbs_logger)
+{
+	info->wbs_logger = wbs_logger;
+}
+
 int hfp_info_running(struct hfp_info *info)
 {
 	return info->started;
@@ -760,6 +786,8 @@ int hfp_info_start(int fd, unsigned int mtu, int codec, struct hfp_info *info)
 		info->msbc_read = cras_msbc_codec_create();
 		info->msbc_write = cras_msbc_codec_create();
 		info->msbc_plc = cras_msbc_plc_create();
+
+		packet_status_logger_init(info->wbs_logger);
 	} else {
 		info->write_cb = hfp_write;
 		info->read_cb = hfp_read;

@@ -15,6 +15,7 @@
 
 #include "cras_audio_format.h"
 #include "cras_iodev_info.h"
+#include "packet_status_logger.h"
 
 /* Architecture independent timespec */
 struct __attribute__((__packed__)) cras_timespec {
@@ -479,6 +480,7 @@ struct __attribute__((__packed__)) cras_bt_event_log {
 
 struct __attribute__((__packed__)) cras_bt_debug_info {
 	struct cras_bt_event_log bt_log;
+	struct packet_status_logger wbs_logger;
 };
 
 /*

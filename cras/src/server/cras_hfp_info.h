@@ -30,6 +30,10 @@ struct hfp_info *hfp_info_create();
 /* Destroys given hfp_info instance. */
 void hfp_info_destroy(struct hfp_info *info);
 
+/* Sets the wbs_logger to hfp_info instance. */
+void hfp_info_set_wbs_logger(struct hfp_info *info,
+			     struct packet_status_logger *wbs_logger);
+
 /* Checks if given hfp_info is running. */
 int hfp_info_running(struct hfp_info *info);
 

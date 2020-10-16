@@ -1072,12 +1072,30 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	}
 }
 
+static void convert_to_time_str(const struct timespec *ts, time_t sec_offset,
+				int32_t nsec_offset)
+{
+	time_t lt = ts->tv_sec;
+	struct tm *t;
+	unsigned int time_nsec;
+
+	/* Assuming tv_nsec doesn't exceed 10^9 */
+	time_nsec = ts->tv_nsec;
+	convert_time((unsigned int *)&lt, &time_nsec, sec_offset, nsec_offset);
+	t = localtime(&lt);
+	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", t);
+	snprintf(time_str + strlen(time_str), 128 - strlen(time_str), ".%09u",
+		 time_nsec);
+}
+
 static void cras_bt_debug_info(struct cras_client *client)
 {
 	const struct cras_bt_debug_info *info;
 	time_t sec_offset;
 	int32_t nsec_offset;
 	int i, j;
+	struct timespec ts;
+	struct packet_status_logger wbs_logger;
 
 	info = cras_client_get_bt_debug_info(client);
 	fill_time_offset(&sec_offset, &nsec_offset);
@@ -1089,6 +1107,23 @@ static void cras_bt_debug_info(struct cras_client *client)
 		j++;
 		j %= info->bt_log.len;
 	}
+
+	printf("-------------WBS packet loss------------\n");
+	wbs_logger = info->wbs_logger;
+
+	packet_status_logger_begin_ts(&wbs_logger, &ts);
+	convert_to_time_str(&ts, sec_offset, nsec_offset);
+	printf("%s [begin]\n", time_str);
+
+	packet_status_logger_end_ts(&wbs_logger, &ts);
+	convert_to_time_str(&ts, sec_offset, nsec_offset);
+	printf("%s [end]\n", time_str);
+
+	printf("In hex format:\n");
+	packet_status_logger_dump_hex(&wbs_logger);
+
+	printf("In binary format:\n");
+	packet_status_logger_dump_binary(&wbs_logger);
 
 	/* Signal main thread we are done after the last chunk. */
 	pthread_mutex_lock(&done_mutex);

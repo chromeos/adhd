@@ -987,4 +987,8 @@ bool cras_audio_format_valid(const struct cras_audio_format* fmt) {
   return true;
 }
 
+struct packet_status_logger* cras_hfp_ag_get_wbs_logger() {
+  return NULL;
+}
+
 }  // extern "C"

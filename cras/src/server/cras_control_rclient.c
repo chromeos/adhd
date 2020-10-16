@@ -15,6 +15,7 @@
 #include "cras_dsp.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_hfp_ag_profile.h"
 #include "cras_main_thread_log.h"
 #include "cras_messages.h"
 #include "cras_observer.h"
@@ -423,9 +424,14 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 #ifdef CRAS_DBUS
 		memcpy(&state->bt_debug_info.bt_log, btlog,
 		       sizeof(struct cras_bt_debug_info));
+		memcpy(&state->bt_debug_info.wbs_logger,
+		       cras_hfp_ag_get_wbs_logger(),
+		       sizeof(struct packet_status_logger));
 #else
 		memset(&state->bt_debug_info.bt_log, 0,
 		       sizeof(struct cras_bt_debug_info));
+		memset(&state->bt_debug_info.wbs_logger, 0,
+		       sizeof(struct packet_status_logger));
 #endif
 
 		cras_fill_client_audio_debug_info_ready(&msg);

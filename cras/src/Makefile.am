@@ -46,6 +46,7 @@ noinst_PROGRAMS =
 if HAVE_DBUS
 CRAS_DBUS_SOURCES = \
 	common/cras_sbc_codec.c \
+	common/packet_status_logger.c \
 	server/cras_bt_manager.c \
 	server/cras_bt_adapter.c \
 	server/cras_bt_device.c \
@@ -281,6 +282,7 @@ include_HEADERS = \
 	common/cras_types.h \
 	common/cras_util.h \
 	common/edid_utils.h \
+	common/packet_status_logger.h \
 	common/utlist.h \
 	libcras/cras_client.h \
 	libcras/cras_helpers.h
@@ -957,8 +959,9 @@ control_rclient_unittest_SOURCES = tests/control_rclient_unittest.cc \
 				   server/cras_rstream_config.c
 control_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS)
-control_rclient_unittest_LDADD = -lgtest -lpthread
+	-I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS) \
+	$(DBUS_CFLAGS)
+control_rclient_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 playback_rclient_unittest_SOURCES = tests/playback_rclient_unittest.cc \
 				    server/cras_rstream_config.c

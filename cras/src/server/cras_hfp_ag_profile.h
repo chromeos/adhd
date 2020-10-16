@@ -53,6 +53,9 @@ struct hfp_slc_handle *cras_hfp_ag_get_active_handle();
 /* Gets the SLC handle for given cras_bt_device. */
 struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device);
 
+/* Gets the logger for WBS packet status. */
+struct packet_status_logger *cras_hfp_ag_get_wbs_logger();
+
 /* Iterate all possible AGs (theoratically only one) and signal its battery
  * level */
 void cras_hfp_ag_resend_device_battery_level();

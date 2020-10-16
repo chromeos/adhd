@@ -286,6 +286,9 @@ void cras_bt_device_notify_profile_dropped(
   cras_bt_device_notify_profile_dropped_profile = profile;
 }
 
+void hfp_info_set_wbs_logger(struct hfp_info* info,
+                             struct packet_status_logger* wbs_logger) {}
+
 void cras_observer_notify_bt_battery_changed(const char* address,
                                              uint32_t level) {
   return;

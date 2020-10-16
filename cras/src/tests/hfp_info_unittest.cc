@@ -549,6 +549,10 @@ int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc* plc,
   cras_msbc_plc_handle_good_frames_called++;
   return MSBC_CODE_SIZE;
 }
+void packet_status_logger_init(struct packet_status_logger* logger) {}
+
+void packet_status_logger_update(struct packet_status_logger* logger,
+                                 bool val) {}
 }
 
 int main(int argc, char** argv) {

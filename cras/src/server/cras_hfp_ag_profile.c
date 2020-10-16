@@ -22,6 +22,7 @@
 #include "cras_iodev_list.h"
 #include "cras_observer.h"
 #include "utlist.h"
+#include "packet_status_logger.h"
 
 #define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
@@ -103,6 +104,7 @@ struct audio_gateway {
 };
 
 static struct audio_gateway *connected_ags;
+static struct packet_status_logger wbs_logger;
 
 static int need_go_sco_pcm(struct cras_bt_device *device)
 {
@@ -411,6 +413,7 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 						 ag->slc_handle, ag->profile);
 	} else {
 		ag->info = hfp_info_create();
+		hfp_info_set_wbs_logger(ag->info, &wbs_logger);
 		ag->idev =
 			hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
 					 ag->slc_handle, ag->profile, ag->info);
@@ -451,6 +454,11 @@ struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device)
 			return ag->slc_handle;
 	}
 	return NULL;
+}
+
+struct packet_status_logger *cras_hfp_ag_get_wbs_logger()
+{
+	return &wbs_logger;
 }
 
 void cras_hfp_ag_resend_device_battery_level()
