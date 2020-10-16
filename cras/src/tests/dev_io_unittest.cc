@@ -137,6 +137,49 @@ TEST_F(DevIoSuite, SendCapturedNeedToResetDevices) {
 }
 
 /*
+ * If any hw_level is larger than 0.5 * buffer_size and
+ * DROP_FRAMES_THRESHOLD_MS, reset all input devices.
+ */
+
+TEST_F(DevIoSuite, SendCapturedNeedToResetDevices2) {
+  struct timespec start;
+  struct timespec drop_time;
+  struct open_dev* dev_list = NULL;
+  bool rc;
+
+  stream = create_stream(1, 1, CRAS_STREAM_INPUT, 2000, &format);
+
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+  AddFakeDataToStream(stream.get(), 0);
+
+  DevicePtr dev1 =
+      create_device(CRAS_STREAM_INPUT, 2048, &format, CRAS_NODE_TYPE_MIC);
+  DevicePtr dev2 =
+      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC);
+  DL_APPEND(dev_list, dev1->odev.get());
+  DL_APPEND(dev_list, dev2->odev.get());
+  add_stream_to_dev(dev1->dev, stream);
+  add_stream_to_dev(dev2->dev, stream);
+
+  iodev_stub_frames_queued(dev1->dev.get(), 2480, start);
+  iodev_stub_frames_queued(dev2->dev.get(), 2480, start);
+  EXPECT_EQ(0, dev_io_send_captured_samples(dev_list));
+
+  /*
+   * Should drop frames to one min_cb_level, which is 2480 - 2000 = 480 (10ms).
+   */
+  rc = iodev_stub_get_drop_time(dev1->dev.get(), &drop_time);
+  EXPECT_EQ(true, rc);
+  EXPECT_EQ(0, drop_time.tv_sec);
+  EXPECT_EQ(10000000, drop_time.tv_nsec);
+
+  rc = iodev_stub_get_drop_time(dev2->dev.get(), &drop_time);
+  EXPECT_EQ(true, rc);
+  EXPECT_EQ(0, drop_time.tv_sec);
+  EXPECT_EQ(10000000, drop_time.tv_nsec);
+}
+
+/*
  * If the hw_level is larger than 1.5 * largest_cb_level but less than
  * DROP_FRAMES_THRESHOLD_MS, do nothing.
  */
@@ -161,7 +204,10 @@ TEST_F(DevIoSuite, SendCapturedLevelLessThanThreshold) {
   EXPECT_EQ(false, rc);
 }
 
-/* If all hw_level is less than 1.5 * largest_cb_level, do nothing. */
+/*
+ * If all hw_level is less than 1.5 * largest_cb_level and 0.5 * buffer_size,
+ * do nothing.
+ */
 TEST_F(DevIoSuite, SendCapturedNoNeedToResetDevices) {
   struct timespec start;
   struct timespec drop_time;
