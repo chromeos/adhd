@@ -193,9 +193,18 @@ static int fetch_streams(struct open_dev *adev)
 
 		dev_stream_set_delay(dev_stream, delay);
 
-		ATLOG(atlog, AUDIO_THREAD_FETCH_STREAM, rstream->stream_id,
-		      cras_rstream_get_cb_threshold(rstream),
-		      *((uint32_t *)&rstream->ewma.power));
+		// The log only accepts uint32 arguments, so the float power
+		// must be written as bits and assumed to have a float when
+		// parsing the log.
+		if (sizeof(uint32_t) == sizeof(float)) {
+			uint32_t pow_as_int;
+			memcpy(&pow_as_int, &rstream->ewma.power,
+			       sizeof(uint32_t));
+			ATLOG(atlog, AUDIO_THREAD_FETCH_STREAM,
+			      rstream->stream_id,
+			      cras_rstream_get_cb_threshold(rstream),
+			      pow_as_int);
+		}
 
 		rc = dev_stream_request_playback_samples(dev_stream, &now);
 		if (rc < 0) {
