@@ -972,7 +972,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s\n", "ADAPTER_REMOVED");
 		break;
 	case BT_A2DP_CONFIGURED:
-		printf("%-30s connected profiles %u\n", "A2DP_CONFIGURED",
+		printf("%-30s connected profiles 0x%.2x\n", "A2DP_CONFIGURED",
 		       data1);
 		break;
 	case BT_A2DP_START:
@@ -982,8 +982,8 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s\n", "A2DP_SUSPENDED");
 		break;
 	case BT_AUDIO_GATEWAY_INIT:
-		printf("%-30s supported profiles %u\n", "AUDIO_GATEWAY_INIT",
-		       data1);
+		printf("%-30s supported profiles 0x%.2x\n",
+		       "AUDIO_GATEWAY_INIT", data1);
 		break;
 	case BT_AUDIO_GATEWAY_START:
 		printf("%-30s \n", "AUDIO_GATEWAY_START");
@@ -997,11 +997,12 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		       data2);
 		break;
 	case BT_DEV_CONNECTED_CHANGE:
-		printf("%-30s profiles %u now %u\n", "DEV_CONNECTED_CHANGE",
-		       data1, data2);
+		printf("%-30s supported profiles 0x%.2x now %s\n",
+		       "DEV_CONNECTED_CHANGE", data1,
+		       data2 ? "connected" : "disconnected");
 		break;
 	case BT_DEV_CONN_WATCH_CB:
-		printf("%-30s %u retries left, supported profiles %u\n",
+		printf("%-30s %u retries left, supported profiles 0x%.2x\n",
 		       "DEV_CONN_WATCH_CB", data1, data2);
 		break;
 	case BT_DEV_SUSPEND_CB:
@@ -1027,8 +1028,8 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s\n", "HFP_REQUEST_DISCONNECT");
 		break;
 	case BT_HFP_SUPPORTED_FEATURES:
-		printf("%-30s role %s features %u\n", "HFP_SUPPORTED_FEATURES",
-		       data1 ? "AG" : "HF", data2);
+		printf("%-30s role %s features 0x%.4x\n",
+		       "HFP_SUPPORTED_FEATURES", data1 ? "AG" : "HF", data2);
 		break;
 	case BT_HSP_NEW_CONNECTION:
 		printf("%-30s\n", "HSP_NEW_CONNECTION");
@@ -1037,7 +1038,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s\n", "HSP_REQUEST_DISCONNECT");
 		break;
 	case BT_NEW_AUDIO_PROFILE_AFTER_CONNECT:
-		printf("%-30s old %u, new %u\n",
+		printf("%-30s old 0x%.2x, new 0x%.2x\n",
 		       "NEW_AUDIO_PROFILE_AFTER_CONNECT", data1, data2);
 		break;
 	case BT_RESET:
