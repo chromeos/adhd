@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "cras_audio_area.h"
+
 /*
  * The exponentially weighted moving average power module used to
  * calculate the energe level in audio stream.
@@ -43,5 +45,13 @@ void ewma_power_init(struct ewma_power *ewma, unsigned int rate);
  */
 void ewma_power_calculate(struct ewma_power *ewma, const int16_t *buf,
 			  unsigned int channels, unsigned int size);
+
+/*
+ * Feeds non-interleaved audio data to ewma_power to calculate the
+ * latest power value. This is similar to ewma_power_calculate but
+ * accepts cras_audio_area.
+ */
+void ewma_power_calculate_area(struct ewma_power *ewma, const int16_t *buf,
+			       struct cras_audio_area *area, unsigned int size);
 
 #endif /* EWMA_POWER_H_ */

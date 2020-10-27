@@ -2760,6 +2760,18 @@ int cras_server_metrics_device_volume(struct cras_iodev* iodev) {
   return 0;
 }
 
+void ewma_power_init(struct ewma_power* ewma, unsigned int rate){};
+
+void ewma_power_calculate(struct ewma_power* ewma,
+                          const int16_t* buf,
+                          unsigned int channels,
+                          unsigned int size){};
+
+void ewma_power_calculate_area(struct ewma_power* ewma,
+                               const int16_t* buf,
+                               struct cras_audio_area* area,
+                               unsigned int size){};
+
 }  // extern "C"
 }  //  namespace
 

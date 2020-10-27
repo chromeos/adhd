@@ -19,6 +19,7 @@
 #include "cras_dsp.h"
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
+#include "ewma_power.h"
 
 struct buffer_share;
 struct cras_fmt_conv;
@@ -237,7 +238,7 @@ struct cras_ionode {
  *              stream side processing.
  * initial_ramp_request - The value indicates which type of ramp the device
  * should perform when some samples are ready for playback.
- *
+ * ewma - The ewma instance to calculate iodev volume.
  */
 struct cras_iodev {
 	void (*set_volume)(struct cras_iodev *iodev);
@@ -312,6 +313,7 @@ struct cras_iodev {
 	unsigned int input_dsp_offset;
 	unsigned int initial_ramp_request;
 	struct input_data *input_data;
+	struct ewma_power ewma;
 	struct cras_iodev *prev, *next;
 };
 

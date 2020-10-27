@@ -572,25 +572,30 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		printf("%-30s dev:%u tstamp:%s.%09u\n", "READ_AUDIO_TSTAMP",
 		       data1, time_str, nsec);
 		break;
-	case AUDIO_THREAD_READ_AUDIO_DONE:
-		printf("%-30s read_remainder:%u\n", "READ_AUDIO_DONE", data1);
+	case AUDIO_THREAD_READ_AUDIO_DONE: {
+		float f = get_ewma_power_as_float(data2);
+		printf("%-30s read_remainder:%u power:%f dBFS\n",
+		       "READ_AUDIO_DONE", data1, f);
 		break;
+	}
 	case AUDIO_THREAD_READ_OVERRUN:
 		printf("%-30s dev:%u stream:%x num_overruns:%u\n",
 		       "READ_AUDIO_OVERRUN", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO:
-		printf("%-30s dev:%u hw_level:%u\n", "FILL_AUDIO", data1,
-		       data2);
+		printf("%-30s dev:%u hw_level:%u min_cb_level:%u\n",
+		       "FILL_AUDIO", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_FILL_AUDIO_TSTAMP:
 		printf("%-30s dev:%u tstamp:%s.%09u\n", "FILL_AUDIO_TSTAMP",
 		       data1, time_str, nsec);
 		break;
-	case AUDIO_THREAD_FILL_AUDIO_DONE:
-		printf("%-30s hw_level:%u total_written:%u min_cb_level:%u\n",
-		       "FILL_AUDIO_DONE", data1, data2, data3);
+	case AUDIO_THREAD_FILL_AUDIO_DONE: {
+		float f = get_ewma_power_as_float(data3);
+		printf("%-30s hw_level:%u total_written:%u power:%f dBFS\n",
+		       "FILL_AUDIO_DONE", data1, data2, f);
 		break;
+	}
 	case AUDIO_THREAD_WRITE_STREAMS_WAIT:
 		printf("%-30s stream:%x\n", "WRITE_STREAMS_WAIT", data1);
 		break;

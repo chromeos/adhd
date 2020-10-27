@@ -885,7 +885,9 @@ buffer_share_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 buffer_share_unittest_LDADD = -lgtest -liniparser -lpthread
 
 ewma_power_unittest_SOURCES = tests/ewma_power_unittest.cc \
+	common/cras_audio_format.c server/cras_audio_area.c \
 	server/ewma_power.c
+
 ewma_power_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 ewma_power_unittest_LDADD = -lgtest

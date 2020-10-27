@@ -44,3 +44,26 @@ void ewma_power_calculate(struct ewma_power *ewma, const int16_t *buf,
 		}
 	}
 }
+
+void ewma_power_calculate_area(struct ewma_power *ewma, const int16_t *buf,
+			       struct cras_audio_area *area, unsigned int size)
+{
+	int i, ch;
+	float power, f;
+	for (i = 0; i < size; i += ewma->step_fr * area->num_channels) {
+		power = 0.0f;
+		for (ch = 0; ch < area->num_channels; ch++) {
+			if (area->channels[ch].ch_set == 0)
+				continue;
+			f = buf[i + ch] / 32768.0f;
+			power += f * f / area->num_channels;
+		}
+		if (!ewma->power_set) {
+			ewma->power = power;
+			ewma->power_set = 1;
+		} else {
+			ewma->power = smooth_factor * power +
+				      (1 - smooth_factor) * ewma->power;
+		}
+	}
+}

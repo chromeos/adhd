@@ -953,6 +953,8 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	iodev->highest_hw_level = 0;
 	iodev->input_dsp_offset = 0;
 
+	ewma_power_init(&iodev->ewma, iodev->format->frame_rate);
+
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
 		/* If device supports start ops, device can be in open state.
 		 * Otherwise, device starts running right after opening. */
@@ -1097,6 +1099,9 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 					    loopback->cb_data);
 	}
 
+	ewma_power_calculate(&iodev->ewma, (int16_t *)frames,
+			     iodev->format->num_channels, nframes);
+
 	rc = apply_dsp(iodev, frames, nframes);
 	if (rc)
 		return rc;
@@ -1200,6 +1205,11 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 			       *frames - iodev->input_dsp_offset);
 		if (rc)
 			return rc;
+		ewma_power_calculate_area(
+			&iodev->ewma,
+			(int16_t *)(hw_buffer +
+				    iodev->input_dsp_offset * frame_bytes),
+			data->area, *frames - iodev->input_dsp_offset);
 	}
 
 	if (cras_system_get_capture_mute())
