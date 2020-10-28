@@ -16,18 +16,6 @@
 static unsigned int server_stream_block_size = 480;
 
 /*
- * Server stream doesn't care what format is used, because no
- * client is reading data from stream. The main point is to
- * make pinned device open and let data flow through its dsp
- * pipeline.
- */
-static struct cras_audio_format format = {
-	SND_PCM_FORMAT_S16_LE,
-	48000,
-	2,
-};
-
-/*
  * Information of a stream created by server. Currently only
  * one server stream is allowed, for echo reference use.
  */
@@ -45,7 +33,8 @@ static void server_stream_add_cb(void *data)
 	stream_list_add(stream_list, stream_config, &stream);
 }
 
-void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx)
+void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx,
+			  struct cras_audio_format *format)
 {
 	int audio_fd = -1;
 	int client_shm_fd = -1;
@@ -64,7 +53,7 @@ void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx)
 		CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_SERVER_STREAM,
 		CRAS_STREAM_INPUT, dev_idx,
 		/*flags=*/SERVER_ONLY,
-		/*effects=*/0, &format, server_stream_block_size,
+		/*effects=*/0, format, server_stream_block_size,
 		server_stream_block_size, &audio_fd, &client_shm_fd,
 		/*client_shm_size=*/0, buffer_offsets, stream_config);
 
