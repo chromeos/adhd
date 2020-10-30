@@ -423,7 +423,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		state = cras_system_state_get_no_lock();
 #ifdef CRAS_DBUS
 		memcpy(&state->bt_debug_info.bt_log, btlog,
-		       sizeof(struct cras_bt_debug_info));
+		       sizeof(struct cras_bt_event_log));
 		memcpy(&state->bt_debug_info.wbs_logger,
 		       cras_hfp_ag_get_wbs_logger(),
 		       sizeof(struct packet_status_logger));
