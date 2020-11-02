@@ -493,6 +493,26 @@ static void convert_time(unsigned int *sec, unsigned int *nsec,
 	*nsec = nsec_offset;
 }
 
+static float get_ewma_power_as_float(uint32_t data)
+{
+	float f = 0.0f;
+
+	/* Convert from the uint32_t log type back to float.
+	 * If data cannot be assigned to float, default value will
+	 * be printed as -inf to hint the problem.
+	 */
+	if (sizeof(uint32_t) == sizeof(float))
+		memcpy(&f, &data, sizeof(float));
+	else
+		printf("%-30s float to uint32_t\n", "MEMORY_NOT_ALIGNED");
+
+	/* Convert to dBFS and set to zero if it's
+	 * insignificantly low.  Picking the same threshold
+	 * 1.0e-10f as in Chrome.
+	 */
+	return (f < 1.0e-10f) ? -INFINITY : 10.0f * log10f(f);
+}
+
 static void show_alog_tag(const struct audio_thread_event_log *log,
 			  unsigned int tag_idx, int32_t sec_offset,
 			  int32_t nsec_offset)
@@ -589,18 +609,9 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "WRITE_STREAMS_STREAM", data1, data2, data3);
 		break;
 	case AUDIO_THREAD_FETCH_STREAM: {
-		// Convert from the uint32_t log type back to float.
-		if (sizeof(uint32_t) == sizeof(float)) {
-			float f;
-			memcpy(&f, &data3, sizeof(float));
-			/* Convert to dBFS and set to zero if it's
-			 * insignificantly low.  Picking the the same threshold
-			 * 1.0e-10f as in Chrome.
-		         */
-			f = (f < 1.0e-10f) ? 0.0f : 10.0f * log10f(f);
-			printf("%-30s id:%x cbth:%u power:%f dBFS\n",
-			       "WRITE_STREAMS_FETCH_STREAM", data1, data2, f);
-		}
+		float f = get_ewma_power_as_float(data3);
+		printf("%-30s id:%x cbth:%u power:%f dBFS\n",
+		       "WRITE_STREAMS_FETCH_STREAM", data1, data2, f);
 		break;
 	}
 	case AUDIO_THREAD_STREAM_ADDED:
