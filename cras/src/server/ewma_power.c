@@ -33,7 +33,7 @@ void ewma_power_calculate(struct ewma_power *ewma, const int16_t *buf,
 		power = 0.0f;
 		for (ch = 0; ch < channels; ch++) {
 			f = buf[i + ch] / 32768.0f;
-			power = f * f / channels;
+			power += f * f / channels;
 		}
 		if (!ewma->power_set) {
 			ewma->power = power;

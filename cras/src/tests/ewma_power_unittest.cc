@@ -64,6 +64,16 @@ TEST(EWMAPower, PowerInStereoData) {
   for (i = 0; i < 30; i++)
     ewma_power_calculate(&ewma, buf, 2, 480);
   EXPECT_LT(ewma.power, 1.0e-10);
+
+  // Assume the data is silent in the other channel.
+  ewma_power_init(&ewma, 48000);
+
+  for (i = 0; i < 960; i += 2) {
+    buf[i] = 0x0ffe;
+    buf[i + 1] = 0x0;
+  }
+  ewma_power_calculate(&ewma, buf, 2, 480);
+  EXPECT_LT(0.0f, ewma.power);
 }
 
 }  // namespace
