@@ -1549,7 +1549,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 	 * For HDMI plug event cases, update max supported channels according
 	 * to the current active node.
 	 */
-	if (node->base.type == CRAS_NODE_TYPE_HDMI)
+	if (node->base.type == CRAS_NODE_TYPE_HDMI && plugged)
 		update_max_supported_channels(&aio->base);
 }
 
@@ -2355,8 +2355,11 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 
 	set_default_hotword_model(iodev);
 
+	node = iodev->active_node;
+
 	/* Record max supported channels into cras_iodev_info. */
-	update_max_supported_channels(iodev);
+	if (node && node->plugged)
+		update_max_supported_channels(iodev);
 }
 
 void alsa_iodev_destroy(struct cras_iodev *iodev)
