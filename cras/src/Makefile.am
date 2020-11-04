@@ -55,6 +55,7 @@ CRAS_DBUS_SOURCES = \
 	server/cras_bt_player.c \
 	server/cras_bt_io.c \
 	server/cras_bt_profile.c \
+	server/cras_bt_battery_provider.c \
 	server/cras_dbus.c \
 	server/cras_dbus_util.c \
 	server/cras_dbus_control.c \

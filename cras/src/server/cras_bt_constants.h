@@ -9,6 +9,9 @@
 #define BLUEZ_SERVICE "org.bluez"
 
 #define BLUEZ_INTERFACE_ADAPTER "org.bluez.Adapter1"
+#define BLUEZ_INTERFACE_BATTERY_PROVIDER "org.bluez.BatteryProvider1"
+#define BLUEZ_INTERFACE_BATTERY_PROVIDER_MANAGER                               \
+	"org.bluez.BatteryProviderManager1"
 #define BLUEZ_INTERFACE_DEVICE "org.bluez.Device1"
 #define BLUEZ_INTERFACE_MEDIA "org.bluez.Media1"
 #define BLUEZ_INTERFACE_MEDIA_ENDPOINT "org.bluez.MediaEndpoint1"
@@ -21,6 +24,9 @@
 #ifndef DBUS_INTERFACE_OBJECT_MANAGER
 #define DBUS_INTERFACE_OBJECT_MANAGER "org.freedesktop.DBus.ObjectManager"
 #endif
+#define DBUS_SIGNAL_INTERFACES_ADDED "InterfacesAdded"
+#define DBUS_SIGNAL_INTERFACES_REMOVED "InterfacesRemoved"
+#define DBUS_SIGNAL_PROPERTIES_CHANGED "PropertiesChanged"
 
 /* UUIDs taken from lib/uuid.h in the BlueZ source */
 #define HSP_HS_UUID "00001108-0000-1000-8000-00805f9b34fb"
@@ -48,6 +54,10 @@
 #define CRAS_PLAYER_IDENTITY_SIZE_MAX 128 * sizeof(char)
 #define CRAS_PLAYER_IDENTITY_DEFAULT "DefaultPlayer"
 #define CRAS_PLAYER_METADATA_SIZE_MAX 128 * sizeof(char)
+
+#define CRAS_DEFAULT_BATTERY_PROVIDER                                          \
+	"/org/chromium/Cras/Bluetooth/BatteryProvider"
+#define CRAS_DEFAULT_BATTERY_PREFIX "/org/bluez/hci0/dev_"
 
 /* Instead of letting CRAS obtain the A2DP streaming packet size (a.k.a. AVDTP
  * MTU) from BlueZ Media Transport, force the packet size to the default L2CAP
