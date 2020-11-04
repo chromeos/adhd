@@ -12,6 +12,10 @@
 #define PACKET_STATUS_LEN_BYTES 64
 #define WBS_FRAME_NS 7500000
 
+/* Avoid 32, 40, 64 consecutive hex characters so CrOS feedback redact
+ * tool doesn't trim our dump. */
+#define PACKET_STATUS_LOG_LINE_WRAP 50
+
 /*
  * Object to log consecutive packets' status.
  * Members:
@@ -99,23 +103,24 @@ packet_status_logger_dump_hex(const struct packet_status_logger *logger)
 static inline void
 packet_status_logger_dump_binary(const struct packet_status_logger *logger)
 {
-	int i, j, tmp;
-
 	/* Don't print the bits after wp if buffer hasn't wrapped. */
-	for (i = (logger->num_wraps ? 0 : (logger->size - logger->wp));
-	     i < logger->size;) {
-		j = (logger->wp + i) % logger->size;
-		tmp = logger->data[j / 8];
-		for (j %= 8; j < 8; i++, j++, tmp >>= 1) {
-			if (i && (i % PACKET_STATUS_LEN_BYTES == 0)) {
-				printf("\n");
-				if (i == logger->size)
-					break;
-			}
-			printf("%d", 1U & tmp);
-		}
-		if (i == logger->size)
+	int head = logger->num_wraps ? logger->wp : 0;
+	int len = logger->num_wraps ? logger->size : logger->wp;
+	int i, j;
+
+	for (i = 0; i < len; ++i) {
+		j = (head + i) % logger->size;
+		printf("%d", (logger->data[j / 8] >> (j % 8)) & 1U);
+		if ((i + 1) % PACKET_STATUS_LOG_LINE_WRAP == 0)
 			printf("\n");
+	}
+	/* Fill dummy digit 'D' until the last line wraps. */
+	if (len % PACKET_STATUS_LOG_LINE_WRAP) {
+		while (len % PACKET_STATUS_LOG_LINE_WRAP) {
+			printf("D");
+			++len;
+		}
+		printf("\n");
 	}
 }
 
