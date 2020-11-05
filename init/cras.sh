@@ -62,4 +62,4 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -- \
         /usr/bin/cras \
         ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} ${DISABLE_PROFILE} \
-        ${INTERNAL_UCM_SUFFIX}
+        ${INTERNAL_UCM_SUFFIX} ${CRAS_ARGS}
