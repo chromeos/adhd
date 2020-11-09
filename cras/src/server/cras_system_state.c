@@ -156,6 +156,8 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	exp_state->aec_supported = board_config.aec_supported;
 	exp_state->aec_group_id = board_config.aec_group_id;
 	exp_state->bt_wbs_enabled = board_config.bt_wbs_enabled;
+	exp_state->deprioritize_bt_wbs_mic =
+		board_config.deprioritize_bt_wbs_mic;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -380,6 +382,11 @@ void cras_system_set_bt_wbs_enabled(bool enabled)
 bool cras_system_get_bt_wbs_enabled()
 {
 	return !!state.exp_state->bt_wbs_enabled;
+}
+
+bool cras_system_get_deprioritize_bt_wbs_mic()
+{
+	return !!state.exp_state->deprioritize_bt_wbs_mic;
 }
 
 void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled)

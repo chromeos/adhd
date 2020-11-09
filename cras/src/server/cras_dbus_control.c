@@ -75,6 +75,9 @@
 	"    <method name=\"GetSystemAecGroupId\">\n"                           \
 	"      <arg name=\"group_id\" type=\"i\" direction=\"out\"/>\n"         \
 	"    </method>\n"                                                       \
+	"    <method name=\"GetDeprioritizeBtWbsMic\">\n"                       \
+	"      <arg name=\"deprioritized\" type=\"b\" direction=\"out\"/>\n"    \
+	"    </method>\n"                                                       \
 	"    <method name=\"SetActiveOutputNode\">\n"                           \
 	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
 	"    </method>\n"                                                       \
@@ -671,6 +674,27 @@ static DBusHandlerResult handle_get_system_aec_group_id(DBusConnection *conn,
 }
 
 static DBusHandlerResult
+handle_get_deprioritize_bt_wbs_mic(DBusConnection *conn, DBusMessage *message,
+				   void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_bool_t deprioritized;
+
+	reply = dbus_message_new_method_return(message);
+
+	deprioritized = cras_system_get_deprioritize_bt_wbs_mic();
+	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &deprioritized,
+				 DBUS_TYPE_INVALID);
+
+	dbus_connection_send(conn, reply, &serial);
+
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult
 handle_set_active_node(DBusConnection *conn, DBusMessage *message, void *arg,
 		       enum CRAS_STREAM_DIRECTION direction)
 {
@@ -1051,6 +1075,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetSystemAecGroupId")) {
 		return handle_get_system_aec_group_id(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "GetDeprioritizeBtWbsMic")) {
+		return handle_get_deprioritize_bt_wbs_mic(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetActiveOutputNode")) {
 		return handle_set_active_node(conn, message, arg,

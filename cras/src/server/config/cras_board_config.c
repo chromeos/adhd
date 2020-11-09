@@ -13,12 +13,14 @@ static const int32_t DEFAULT_OUTPUT_BUFFER_SIZE = 512;
 static const int32_t AEC_SUPPORTED_DEFAULT = 0;
 static const int32_t AEC_GROUP_ID_DEFAULT = -1;
 static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 1;
+static const int32_t BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT = 0;
 
 #define CONFIG_NAME "board.ini"
 #define DEFAULT_OUTPUT_BUF_SIZE_INI_KEY "output:default_output_buffer_size"
 #define AEC_SUPPORTED_INI_KEY "processing:aec_supported"
 #define AEC_GROUP_ID_INI_KEY "processing:group_id"
 #define BLUETOOTH_WBS_ENABLED_INI_KEY "bluetooth:wbs_enabled"
+#define BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_KEY "bluetooth:deprioritize_wbs_mic"
 #define UCM_IGNORE_SUFFIX_KEY "ucm:ignore_suffix"
 
 void cras_board_config_get(const char *config_path,
@@ -34,6 +36,8 @@ void cras_board_config_get(const char *config_path,
 	board_config->aec_group_id = AEC_GROUP_ID_DEFAULT;
 	board_config->ucm_ignore_suffix = NULL;
 	board_config->bt_wbs_enabled = BLUETOOTH_WBS_ENABLED_INI_DEFAULT;
+	board_config->deprioritize_bt_wbs_mic =
+		BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT;
 	if (config_path == NULL)
 		return;
 
@@ -65,6 +69,12 @@ void cras_board_config_get(const char *config_path,
 	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	board_config->bt_wbs_enabled = iniparser_getint(
 		ini, ini_key, BLUETOOTH_WBS_ENABLED_INI_DEFAULT);
+
+	snprintf(ini_key, MAX_INI_KEY_LENGTH,
+		 BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
+	board_config->deprioritize_bt_wbs_mic = iniparser_getint(
+		ini, ini_key, BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT);
 
 	snprintf(ini_key, MAX_INI_KEY_LENGTH, UCM_IGNORE_SUFFIX_KEY);
 	ini_key[MAX_INI_KEY_LENGTH] = 0;

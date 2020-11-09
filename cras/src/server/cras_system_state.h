@@ -122,6 +122,12 @@ void cras_system_set_bt_wbs_enabled(bool enabled);
 /* Gets the elable flag of bluetooth wideband speech feature. */
 bool cras_system_get_bt_wbs_enabled();
 
+/*
+ * Returns if Bluetooth WBS mic should be deprioritized for selecting
+ * as default audio input option.
+ */
+bool cras_system_get_deprioritize_bt_wbs_mic();
+
 /* Sets the flag to enable or disable Bluetooth fixed A2DP packet size. */
 void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled);
 
