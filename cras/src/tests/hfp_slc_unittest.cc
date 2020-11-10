@@ -202,7 +202,7 @@ TEST(HfpSlc, InitializeSlcSupportsHfIndicator) {
   /* Assert "\r\n+BIND: (2)\r\n" response is received */
   err = read(sock[1], buf, 256);
 
-  chp = strstr(buf, "\r\n+BIND: (2)\r\n");
+  chp = strstr(buf, "\r\n+BIND: (1,2)\r\n");
   ASSERT_NE((void*)NULL, (void*)chp);
   chp = strstr(buf, "\r\nOK\r\n");
   ASSERT_NE((void*)NULL, (void*)chp);

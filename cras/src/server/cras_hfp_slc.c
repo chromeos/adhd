@@ -708,7 +708,14 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 			 * check the  Bluetooth SIG Assigned Numbers web page.
 			 */
 			BTLOG(btlog, BT_HFP_HF_INDICATOR, 1, 0);
-			err = hfp_send(handle, AT_CMD("+BIND: (2)"));
+			/* "2" is for HF Battery Level that we support. We don't
+			 * support "1" but this is a workaround for Pixel Buds 2
+			 * which expects this exact combination for battery
+			 * reporting (HFP 1.7 standard) to work. This workaround
+			 * is fine since we don't enable Safety Drive with
+			 * +BIND: 1,1 (b/172680041).
+			 */
+			err = hfp_send(handle, AT_CMD("+BIND: (1,2)"));
 			if (err < 0)
 				return err;
 		}
@@ -738,6 +745,14 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 		 * indicator
 		 * 1 = enabled, value changes may be sent for this indicator
 		 */
+
+		/* We don't support Enhanced Driver Status, so explicitly
+		 * disable it (b/172680041).
+		 */
+		err = hfp_send(handle, AT_CMD("+BIND: 1,0"));
+		if (err < 0)
+			return err;
+
 		BTLOG(btlog, BT_HFP_HF_INDICATOR, 0, 0);
 
 		err = hfp_send(handle, AT_CMD("+BIND: 2,1"));
