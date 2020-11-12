@@ -923,6 +923,9 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
 struct audio_thread* cras_iodev_list_get_audio_thread() {
   return NULL;
 }
+// From ewma_power
+void ewma_power_disable(struct ewma_power* ewma) {}
+
 // From audio_thread
 struct audio_thread_event_log* atlog;
 

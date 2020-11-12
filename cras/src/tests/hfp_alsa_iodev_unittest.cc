@@ -477,6 +477,9 @@ void cras_iodev_set_active_node(struct cras_iodev* iodev,
   iodev->active_node = node;
 }
 
+// From ewma_power
+void ewma_power_disable(struct ewma_power* ewma) {}
+
 size_t cras_system_get_volume() {
   return 0;
 }

@@ -684,6 +684,8 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->info.max_supported_channels =
 		(a2dp.channel_mode == SBC_CHANNEL_MODE_MONO) ? 1 : 2;
 
+	ewma_power_disable(&iodev->ewma);
+
 	return iodev;
 error:
 	if (a2dpio) {

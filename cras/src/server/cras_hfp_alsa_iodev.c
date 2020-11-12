@@ -309,6 +309,10 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 	/* Record max supported channels into cras_iodev_info. */
 	iodev->info.max_supported_channels = 1;
 
+	/* Specifically disable EWMA calculation on this and the child iodev. */
+	ewma_power_disable(&iodev->ewma);
+	ewma_power_disable(&aio->ewma);
+
 	return iodev;
 }
 

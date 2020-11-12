@@ -18,8 +18,14 @@
  */
 const static float smooth_factor = 0.095;
 
+void ewma_power_disable(struct ewma_power *ewma)
+{
+	ewma->enabled = 0;
+}
+
 void ewma_power_init(struct ewma_power *ewma, unsigned int rate)
 {
+	ewma->enabled = 1;
 	ewma->power_set = 0;
 	ewma->step_fr = rate / EWMA_SAMPLE_RATE;
 }
@@ -29,6 +35,9 @@ void ewma_power_calculate(struct ewma_power *ewma, const int16_t *buf,
 {
 	int i, ch;
 	float power, f;
+
+	if (!ewma->enabled)
+		return;
 	for (i = 0; i < size; i += ewma->step_fr * channels) {
 		power = 0.0f;
 		for (ch = 0; ch < channels; ch++) {
@@ -50,6 +59,9 @@ void ewma_power_calculate_area(struct ewma_power *ewma, const int16_t *buf,
 {
 	int i, ch;
 	float power, f;
+
+	if (!ewma->enabled)
+		return;
 	for (i = 0; i < size; i += ewma->step_fr * area->num_channels) {
 		power = 0.0f;
 		for (ch = 0; ch < area->num_channels; ch++) {

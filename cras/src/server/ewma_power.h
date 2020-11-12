@@ -16,14 +16,22 @@
  * calculate the energe level in audio stream.
  * Members:
  *    power_set - Flag to note if the first power value has set.
+ *    enabled - Flag to enable ewma calculation. Set to false to
+ *        make all calculations no-ops.
  *    power - The power value.
  *    step_fr - How many frames to sample one for EWMA calculation.
  */
 struct ewma_power {
 	bool power_set;
+	bool enabled;
 	float power;
 	unsigned int step_fr;
 };
+
+/*
+ * Disables the ewma instance.
+ */
+void ewma_power_disable(struct ewma_power *ewma);
 
 /*
  * Initializes the ewma_power object.
