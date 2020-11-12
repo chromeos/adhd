@@ -734,6 +734,14 @@ static snd_hctl_elem_t *find_eld_control_by_dev_index(snd_hctl_t *hctl,
 	return snd_hctl_find_elem(hctl, elem_id);
 }
 
+/* For non-gpio jack, check if it's of type hdmi/dp by
+ * matching jack name. */
+static int is_jack_hdmi_dp(const char *jack_name)
+{
+	static const char *hdmi_dp = "HDMI/DP";
+	return strncmp(jack_name, hdmi_dp, strlen(hdmi_dp)) == 0;
+}
+
 /* Find GPIO jacks for this jack_list.
  * Args:
  *    jack_list - Jack list to add to.
@@ -772,8 +780,9 @@ static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 	if (result_jack) {
 		*result_jack = data.result_jack;
 
-		/* Find ELD control for HDMI/DP gpio jack. */
-		if (*result_jack)
+		/* Find ELD control only for HDMI/DP gpio jack. */
+		if (*result_jack &&
+		    is_jack_hdmi_dp((*result_jack)->gpio.device_name))
 			(*result_jack)->eld_control =
 				find_eld_control_by_dev_index(
 					jack_list->hctl,
@@ -831,14 +840,6 @@ static unsigned int hctl_jack_device_index(const char *name)
 	if (device_index < 0)
 		return 0;
 	return (unsigned int)device_index;
-}
-
-/* For non-gpio jack, check if it's of type hdmi/dp by
- * matching jack name. */
-static int is_jack_hdmi_dp(const char *jack_name)
-{
-	static const char *hdmi_dp = "HDMI/DP";
-	return strncmp(jack_name, hdmi_dp, strlen(hdmi_dp)) == 0;
 }
 
 /* Checks if the given control name is in the supplied list of possible jack
