@@ -55,7 +55,7 @@ pub enum SampleFormat {
 }
 
 impl SampleFormat {
-    pub fn sample_bytes(&self) -> usize {
+    pub fn sample_bytes(self) -> usize {
         use SampleFormat::*;
         match self {
             U8 => 1,
