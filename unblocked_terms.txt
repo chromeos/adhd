@@ -8,5 +8,4 @@
 dummy
 master
 \bnative
-sanity
 white.?list

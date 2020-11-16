@@ -340,7 +340,7 @@ TEST_F(CreateSuite, CreateSRC44to48) {
   // Converter tmp and output buffers are large enough for device output.
   unsigned int device_frames =
       cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames, out_fmt.frame_rate);
-  EXPECT_LE(kBufferFrames, device_frames);  // Sanity check.
+  EXPECT_LE(kBufferFrames, device_frames);  // Soundness check.
   EXPECT_LE(device_frames, config_format_converter_frames);
   EXPECT_LE(device_frames, dev_stream->conv_buffer_size_frames);
   dev_stream_destroy(dev_stream);
@@ -364,7 +364,7 @@ TEST_F(CreateSuite, CreateSRC44from48Input) {
   // Converter tmp and output buffers are large enough for device input.
   unsigned int device_frames =
       cras_frames_at_rate(out_fmt.frame_rate, kBufferFrames, in_fmt.frame_rate);
-  EXPECT_LE(kBufferFrames, device_frames);  // Sanity check.
+  EXPECT_LE(kBufferFrames, device_frames);  // Soundness check.
   EXPECT_LE(device_frames, config_format_converter_frames);
   EXPECT_EQ(&processed_fmt, config_format_converter_from_fmt);
   EXPECT_LE(device_frames, dev_stream->conv_buffer_size_frames);
@@ -420,7 +420,7 @@ TEST_F(CreateSuite, CreateSRC8to48) {
   // Converter tmp and output buffers are large enough for device output.
   unsigned int device_frames =
       cras_frames_at_rate(in_fmt.frame_rate, kBufferFrames, out_fmt.frame_rate);
-  EXPECT_LE(kBufferFrames, device_frames);  // Sanity check.
+  EXPECT_LE(kBufferFrames, device_frames);  // Soundness check.
   EXPECT_LE(device_frames, config_format_converter_frames);
   EXPECT_LE(device_frames, dev_stream->conv_buffer_size_frames);
   dev_stream_destroy(dev_stream);
@@ -441,7 +441,7 @@ TEST_F(CreateSuite, CreateSRC8from48Input) {
   // Converter tmp and output buffers are large enough for device input.
   unsigned int device_frames =
       cras_frames_at_rate(out_fmt.frame_rate, kBufferFrames, in_fmt.frame_rate);
-  EXPECT_LE(kBufferFrames, device_frames);  // Sanity check.
+  EXPECT_LE(kBufferFrames, device_frames);  // Soundness check.
   EXPECT_LE(device_frames, config_format_converter_frames);
   EXPECT_LE(device_frames, dev_stream->conv_buffer_size_frames);
   dev_stream_destroy(dev_stream);
