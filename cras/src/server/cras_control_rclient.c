@@ -299,15 +299,11 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 	switch (msg->id) {
 	case CRAS_SERVER_CONNECT_STREAM: {
 		int client_shm_fd = num_fds > 1 ? fds[1] : -1;
-		struct cras_connect_message cmsg;
 		if (MSG_LEN_VALID(msg, struct cras_connect_message)) {
 			rclient_handle_client_stream_connect(
 				client,
 				(const struct cras_connect_message *)msg, fd,
 				client_shm_fd);
-		} else if (!convert_connect_message_old(msg, &cmsg)) {
-			rclient_handle_client_stream_connect(client, &cmsg, fd,
-							     client_shm_fd);
 		} else {
 			return -EINVAL;
 		}

@@ -177,44 +177,6 @@ TEST_F(CCRMessageSuite, StreamConnectMessageInvalidClientId) {
   EXPECT_EQ(stream_id, out_msg.stream_id);
 }
 
-/*
- * TODO(yuhsaun): Remove this test when there are no client uses the old
- * craslib. (CRAS_PROTO_VER = 5)
- */
-TEST_F(CCRMessageSuite, StreamConnectMessageOldProtocal) {
-  struct cras_client_stream_connected out_msg;
-  int rc;
-
-  struct cras_connect_message_old msg;
-  cras_stream_id_t stream_id = 0x10002;
-
-  msg.proto_version = 5;
-  msg.direction = CRAS_STREAM_INPUT;
-  msg.stream_id = stream_id;
-  msg.stream_type = CRAS_STREAM_TYPE_DEFAULT;
-  msg.buffer_frames = 480;
-  msg.cb_threshold = 240;
-  msg.flags = 0;
-  msg.effects = 0;
-  pack_cras_audio_format(&msg.format, &fmt);
-  msg.dev_idx = NO_DEVICE;
-  msg.client_shm_size = 0;
-  msg.client_type = CRAS_CLIENT_TYPE_TEST;
-  msg.header.id = CRAS_SERVER_CONNECT_STREAM;
-  msg.header.length = sizeof(struct cras_connect_message_old);
-
-  fd_ = 100;
-  rc =
-      rclient_->ops->handle_message_from_client(rclient_, &msg.header, &fd_, 1);
-  EXPECT_EQ(1, cras_make_fd_nonblocking_called);
-  EXPECT_EQ(1, stream_list_add_called);
-  EXPECT_EQ(0, stream_list_rm_called);
-
-  rc = read(pipe_fds_[0], &out_msg, sizeof(out_msg));
-  EXPECT_EQ(sizeof(out_msg), rc);
-  EXPECT_EQ(stream_id, out_msg.stream_id);
-}
-
 TEST_F(CCRMessageSuite, StreamDisconnectMessage) {
   struct cras_disconnect_stream_message msg;
   cras_stream_id_t stream_id = 0x10002;
