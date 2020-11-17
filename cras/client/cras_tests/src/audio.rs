@@ -317,9 +317,11 @@ impl Write for WavSink {
                         samples[sample_bytes * i + 3],
                     ]);
 
-                    // Upsample to 32 bit since CRAS doesn't support S24_3LE,
-                    // even though the wav encoder does.
-                    // TODO(fletcherw): add S24_LE support to hound.
+                    // Upsample to 32 bit since CRAS doesn't support S24_3LE.
+                    // Our wav encoder/decoder, hound, does have support for
+                    // S24_LE, but it hasn't released a new version since the
+                    // support was added. If getting that support is an issue,
+                    // push upstream to cut a new a release.
                     if self.format == SampleFormat::S24LE {
                         sample <<= 8;
                     }
