@@ -1409,6 +1409,9 @@ int cras_device_monitor_set_device_mute_state(unsigned int dev_idx) {
   cras_device_monitor_set_device_mute_state_called++;
   return 0;
 }
+int cras_device_monitor_error_close(unsigned int dev_idx) {
+  return 0;
+}
 
 int cras_iodev_drop_frames_by_time(struct cras_iodev* iodev,
                                    struct timespec ts) {

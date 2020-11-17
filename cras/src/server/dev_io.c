@@ -10,6 +10,7 @@
 #include "audio_thread_log.h"
 #include "cras_audio_area.h"
 #include "cras_audio_thread_monitor.h"
+#include "cras_device_monitor.h"
 #include "cras_iodev.h"
 #include "cras_non_empty_audio_handler.h"
 #include "cras_rstream.h"
@@ -46,6 +47,12 @@ static const int DROP_FRAMES_THRESHOLD_MS = 50;
 
 /* The number of devices playing/capturing non-empty stream(s). */
 static int non_empty_device_count = 0;
+
+/* The timestamp of last EIO error time. */
+static struct timespec last_io_err_time = { 0, 0 };
+
+/* The gap time to avoid repeated error close request to main thread. */
+static const int ERROR_CLOSE_GAP_TIME_SECS = 10;
 
 /* Gets the master device which the stream is attached to. */
 static inline struct cras_iodev *get_master_dev(const struct dev_stream *stream)
@@ -934,12 +941,30 @@ int dev_io_send_captured_samples(struct open_dev *idev_list)
 static void handle_dev_err(int err_rc, struct open_dev **odevs,
 			   struct open_dev *adev)
 {
+	struct timespec diff, now;
 	if (err_rc == -EPIPE) {
 		/* Handle severe underrun. */
 		ATLOG(atlog, AUDIO_THREAD_SEVERE_UNDERRUN, adev->dev->info.idx,
 		      0, 0);
 		cras_iodev_reset_request(adev->dev);
 		cras_audio_thread_event_severe_underrun();
+	} else if (err_rc == -EIO) {
+		syslog(LOG_WARNING, "I/O err, reseting %s dev %s",
+		       adev->dev->direction == CRAS_STREAM_OUTPUT ? "output" :
+								    "input",
+		       adev->dev->info.name);
+		clock_gettime(CLOCK_REALTIME, &now);
+		subtract_timespecs(&now, &last_io_err_time, &diff);
+		if ((last_io_err_time.tv_sec == 0 &&
+		     last_io_err_time.tv_nsec == 0) ||
+		    diff.tv_sec > ERROR_CLOSE_GAP_TIME_SECS)
+			cras_iodev_reset_request(adev->dev);
+		else
+			cras_device_monitor_error_close(adev->dev->info.idx);
+
+		last_io_err_time = now;
+	} else {
+		syslog(LOG_ERR, "Dev %s err %d", adev->dev->info.name, err_rc);
 	}
 	/* Device error, remove it. */
 	dev_io_rm_open_dev(odevs, adev);

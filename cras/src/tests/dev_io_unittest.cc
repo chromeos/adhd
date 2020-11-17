@@ -376,6 +376,9 @@ struct dev_stream* dev_stream_create(struct cras_rstream* stream,
                                      struct timespec* cb_ts) {
   return 0;
 }
+int cras_device_monitor_error_close(unsigned int dev_idx) {
+  return 0;
+}
 }  // extern "C"
 
 }  //  namespace
