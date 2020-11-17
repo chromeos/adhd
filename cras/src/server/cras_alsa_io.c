@@ -374,7 +374,7 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int dummy_hotword_cb(void *arg, int revents)
+static int empty_hotword_cb(void *arg, int revents)
 {
 	/* Only need this once. */
 	struct alsa_io *aio = (struct alsa_io *)arg;
@@ -490,7 +490,7 @@ static int configure_dev(struct cras_iodev *iodev)
 
 		if (aio->poll_fd >= 0)
 			audio_thread_add_events_callback(
-				aio->poll_fd, dummy_hotword_cb, aio, POLLIN);
+				aio->poll_fd, empty_hotword_cb, aio, POLLIN);
 	}
 
 	/* Capture starts right away, playback will wait for samples. */

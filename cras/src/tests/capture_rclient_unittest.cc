@@ -23,8 +23,8 @@ static unsigned int cras_observer_remove_called;
 static int stream_list_add_called;
 static int stream_list_add_return;
 static unsigned int stream_list_rm_called;
-static struct cras_audio_shm dummy_shm;
-static struct cras_rstream dummy_rstream;
+static struct cras_audio_shm mock_shm;
+static struct cras_rstream mock_rstream;
 
 void ResetStubData() {
   cras_make_fd_nonblocking_called = 0;
@@ -252,16 +252,16 @@ int stream_list_add(struct stream_list* list,
                     struct cras_rstream** stream) {
   int ret;
 
-  *stream = &dummy_rstream;
+  *stream = &mock_rstream;
 
   stream_list_add_called++;
   ret = stream_list_add_return;
   if (ret)
     stream_list_add_return = -EINVAL;
 
-  dummy_rstream.shm = &dummy_shm;
-  dummy_rstream.direction = config->direction;
-  dummy_rstream.stream_id = config->stream_id;
+  mock_rstream.shm = &mock_shm;
+  mock_rstream.direction = config->direction;
+  mock_rstream.stream_id = config->stream_id;
 
   return ret;
 }

@@ -44,8 +44,8 @@ static struct audio_thread thread;
 static struct cras_iodev loopback_input;
 static int cras_iodev_close_called;
 static struct cras_iodev* cras_iodev_close_dev;
-static struct cras_iodev dummy_hotword_iodev;
-static struct cras_iodev dummy_empty_iodev[2];
+static struct cras_iodev mock_hotword_iodev;
+static struct cras_iodev mock_empty_iodev[2];
 static stream_callback* stream_add_cb;
 static stream_callback* stream_rm_cb;
 static struct cras_rstream* stream_list_get_ret;
@@ -233,11 +233,11 @@ class IoDevTestSuite : public testing::Test {
     DL_APPEND(fake_sco_out_dev.nodes, &fake_sco_out_node);
     fake_sco_in_node.is_sco_pcm = 0;
     fake_sco_out_node.is_sco_pcm = 0;
-    dummy_empty_iodev[0].state = CRAS_IODEV_STATE_CLOSE;
-    dummy_empty_iodev[0].update_active_node = update_active_node;
-    dummy_empty_iodev[1].state = CRAS_IODEV_STATE_CLOSE;
-    dummy_empty_iodev[1].update_active_node = update_active_node;
-    dummy_hotword_iodev.update_active_node = update_active_node;
+    mock_empty_iodev[0].state = CRAS_IODEV_STATE_CLOSE;
+    mock_empty_iodev[0].update_active_node = update_active_node;
+    mock_empty_iodev[1].state = CRAS_IODEV_STATE_CLOSE;
+    mock_empty_iodev[1].update_active_node = update_active_node;
+    mock_hotword_iodev.update_active_node = update_active_node;
   }
 
   virtual void TearDown() {
@@ -681,8 +681,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   EXPECT_EQ(2, cras_iodev_open_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(0, update_active_node_called);
-  EXPECT_EQ(&dummy_empty_iodev[CRAS_STREAM_OUTPUT],
-            audio_thread_add_stream_dev);
+  EXPECT_EQ(&mock_empty_iodev[CRAS_STREAM_OUTPUT], audio_thread_add_stream_dev);
 
   EXPECT_NE((void*)NULL, cras_tm_timer_cb);
   EXPECT_EQ(1, cras_tm_create_timer_called);
@@ -693,7 +692,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   EXPECT_EQ(1, cras_tm_create_timer_called);
   EXPECT_EQ(1, audio_thread_add_stream_called);
 
-  dummy_empty_iodev[CRAS_STREAM_OUTPUT].format = &fmt_;
+  mock_empty_iodev[CRAS_STREAM_OUTPUT].format = &fmt_;
   cras_tm_timer_cb = NULL;
   cras_iodev_open_ret[3] = -5;
   stream_add_cb(&rstream);
@@ -1752,7 +1751,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   EXPECT_EQ(2, update_active_node_called);
   // Unselect d1_ and select to d2_
   EXPECT_EQ(&d2_, update_active_node_iodev_val[0]);
-  EXPECT_EQ(&dummy_empty_iodev[CRAS_STREAM_OUTPUT],
+  EXPECT_EQ(&mock_empty_iodev[CRAS_STREAM_OUTPUT],
             update_active_node_iodev_val[1]);
 
   // Remove pinned stream from d1, check d1 is closed after stream removed.
@@ -1869,14 +1868,14 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
   EXPECT_EQ(&d1_, audio_thread_disconnect_stream_dev);
   EXPECT_EQ(2, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
-  EXPECT_EQ(&dummy_hotword_iodev, audio_thread_add_stream_dev);
+  EXPECT_EQ(&mock_hotword_iodev, audio_thread_add_stream_dev);
 
   /* Resume hotword streams, verify the stream disconnects from
    * the empty iodev and connects back to the real hotword iodev. */
   EXPECT_EQ(0, cras_iodev_list_resume_hotword_stream());
   EXPECT_EQ(2, audio_thread_disconnect_stream_called);
   EXPECT_EQ(&rstream, audio_thread_disconnect_stream_stream);
-  EXPECT_EQ(&dummy_hotword_iodev, audio_thread_disconnect_stream_dev);
+  EXPECT_EQ(&mock_hotword_iodev, audio_thread_disconnect_stream_dev);
   EXPECT_EQ(3, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
   EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
@@ -1910,7 +1909,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
   /* Hotword stream connected, verify it is added to the empty iodev. */
   EXPECT_EQ(0, stream_add_cb(&rstream));
   EXPECT_EQ(1, audio_thread_add_stream_called);
-  EXPECT_EQ(&dummy_hotword_iodev, audio_thread_add_stream_dev);
+  EXPECT_EQ(&mock_hotword_iodev, audio_thread_add_stream_dev);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
 
   /* Resume hotword streams, now the existing hotword stream should disconnect
@@ -1918,7 +1917,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
   EXPECT_EQ(0, cras_iodev_list_resume_hotword_stream());
   EXPECT_EQ(1, audio_thread_disconnect_stream_called);
   EXPECT_EQ(&rstream, audio_thread_disconnect_stream_stream);
-  EXPECT_EQ(&dummy_hotword_iodev, audio_thread_disconnect_stream_dev);
+  EXPECT_EQ(&mock_hotword_iodev, audio_thread_disconnect_stream_dev);
   EXPECT_EQ(2, audio_thread_add_stream_called);
   EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
   EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
@@ -2035,9 +2034,9 @@ struct cras_iodev* empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
                                       enum CRAS_NODE_TYPE node_type) {
   struct cras_iodev* dev;
   if (node_type == CRAS_NODE_TYPE_HOTWORD) {
-    dev = &dummy_hotword_iodev;
+    dev = &mock_hotword_iodev;
   } else {
-    dev = &dummy_empty_iodev[direction];
+    dev = &mock_empty_iodev[direction];
   }
   dev->direction = direction;
   if (dev->active_node == NULL) {

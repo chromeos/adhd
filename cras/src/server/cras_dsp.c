@@ -208,15 +208,15 @@ void cras_dsp_load_pipeline(struct cras_dsp_context *ctx)
 	cmd_load_pipeline(ctx, global_ini);
 }
 
-void cras_dsp_load_dummy_pipeline(struct cras_dsp_context *ctx,
-				  unsigned int num_channels)
+void cras_dsp_load_mock_pipeline(struct cras_dsp_context *ctx,
+				 unsigned int num_channels)
 {
-	struct ini *dummy_ini;
-	dummy_ini = create_dummy_ini(ctx->purpose, num_channels);
-	if (dummy_ini == NULL)
-		syslog(LOG_ERR, "Failed to create dummy ini");
+	struct ini *mock_ini;
+	mock_ini = create_mock_ini(ctx->purpose, num_channels);
+	if (mock_ini == NULL)
+		syslog(LOG_ERR, "Failed to create mock ini");
 	else
-		cmd_load_pipeline(ctx, dummy_ini);
+		cmd_load_pipeline(ctx, mock_ini);
 }
 
 struct pipeline *cras_dsp_get_pipeline(struct cras_dsp_context *ctx)

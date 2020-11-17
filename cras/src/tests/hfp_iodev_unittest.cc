@@ -43,7 +43,7 @@ static size_t hfp_fill_output_with_zeros_called;
 static size_t hfp_force_output_level_called;
 static size_t hfp_force_output_level_target;
 static size_t fake_buffer_size = 500;
-static cras_audio_area* dummy_audio_area;
+static cras_audio_area* mock_audio_area;
 
 void ResetStubData() {
   cras_bt_device_append_iodev_called = 0;
@@ -73,9 +73,9 @@ void ResetStubData() {
 
   fake_info = reinterpret_cast<struct hfp_info*>(0x123);
 
-  if (!dummy_audio_area) {
-    dummy_audio_area = (cras_audio_area*)calloc(
-        1, sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
+  if (!mock_audio_area) {
+    mock_audio_area = (cras_audio_area*)calloc(
+        1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
   }
 }
 
@@ -86,8 +86,8 @@ class HfpIodev : public testing::Test {
   virtual void SetUp() { ResetStubData(); }
 
   virtual void TearDown() {
-    free(dummy_audio_area);
-    dummy_audio_area = NULL;
+    free(mock_audio_area);
+    mock_audio_area = NULL;
   }
 };
 
@@ -354,7 +354,7 @@ void hfp_force_output_level(struct hfp_info* info, unsigned int level) {
 }
 
 void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
-  iodev->area = dummy_audio_area;
+  iodev->area = mock_audio_area;
 }
 
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
@@ -370,7 +370,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
                                          uint8_t* base_buffer) {
-  dummy_audio_area->channels[0].buf = base_buffer;
+  mock_audio_area->channels[0].buf = base_buffer;
 }
 
 int hfp_set_call_status(struct hfp_slc_handle* handle, int call) {

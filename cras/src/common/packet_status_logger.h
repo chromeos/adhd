@@ -114,7 +114,7 @@ packet_status_logger_dump_binary(const struct packet_status_logger *logger)
 		if ((i + 1) % PACKET_STATUS_LOG_LINE_WRAP == 0)
 			printf("\n");
 	}
-	/* Fill dummy digit 'D' until the last line wraps. */
+	/* Fill indicator digit 'D' until the last line wraps. */
 	if (len % PACKET_STATUS_LOG_LINE_WRAP) {
 		while (len % PACKET_STATUS_LOG_LINE_WRAP) {
 			printf("D");

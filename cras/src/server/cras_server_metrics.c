@@ -268,7 +268,7 @@ metrics_device_type_str(enum CRAS_METRICS_DEVICE_TYPE device_type)
 		return "NoDevice";
 	case CRAS_METRICS_DEVICE_ALSA_LOOPBACK:
 		return "AlsaLoopback";
-	/* Other dummy devices. */
+	/* Other fallback devices. */
 	case CRAS_METRICS_DEVICE_NORMAL_FALLBACK:
 		return "NormalFallback";
 	case CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK:

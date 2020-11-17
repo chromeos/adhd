@@ -162,7 +162,7 @@ void cras_apm_list_set_aec_dump(struct cras_apm_list *list, void *dev_ptr,
 
 /*
  * If webrtc audio processing library is not available then define all
- * cras_apm_list functions as dummy. As long as cras_apm_list_add returns
+ * cras_apm_list functions as empty. As long as cras_apm_list_add returns
  * NULL, non of the other functions should be called.
  */
 static inline int cras_apm_list_init(const char *device_config_dir)

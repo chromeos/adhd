@@ -24,9 +24,9 @@
 #define PLUGIN_KEY_PCM "pcm"
 #define PLUGIN_KEY_CARD "card"
 
-#define DUMMY_USB_VID 0x00
-#define DUMMY_USB_PID 0x00
-#define DUMMY_USB_SERIAL_NUMBER "serial-number-not-used"
+#define NULL_USB_VID 0x00
+#define NULL_USB_PID 0x00
+#define NULL_USB_SERIAL_NUMBER "serial-number-not-used"
 
 struct hctl_poll_fd {
 	int fd;
@@ -159,12 +159,11 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
 			       "section %s mixer_name %s",
 			       section->name, section->mixer_name);
 	}
-	plugin->iodev =
-		alsa_iodev_create(0, card_name, 0, pcm_name, "", "",
-				  ALSA_CARD_TYPE_USB, 1, /* is first */
-				  plugin->mixer, NULL, plugin->ucm,
-				  plugin->hctl, direction, DUMMY_USB_VID,
-				  DUMMY_USB_PID, DUMMY_USB_SERIAL_NUMBER);
+	plugin->iodev = alsa_iodev_create(0, card_name, 0, pcm_name, "", "",
+					  ALSA_CARD_TYPE_USB, 1, /* is first */
+					  plugin->mixer, NULL, plugin->ucm,
+					  plugin->hctl, direction, NULL_USB_VID,
+					  NULL_USB_PID, NULL_USB_SERIAL_NUMBER);
 
 	DL_FOREACH (ucm_sections, section) {
 		if (section->dir != plugin->iodev->direction)

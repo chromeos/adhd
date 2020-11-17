@@ -201,7 +201,7 @@ struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 	 */
 	iodev->info.max_supported_channels = 1;
 
-	/* Create a dummy ionode */
+	/* Create an empty ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
 	node->plugged = 1;

@@ -239,7 +239,7 @@ int cras_iodev_is_zero_volume(const struct cras_iodev *odev)
  *  |                        ----------------              | device from
  *  |                        | S1  Open     |              | audio_thread and
  *  |                        ----------------              | closes device
- *  | Device with dummy start       |                      |
+ *  | Device with empty start       |                      |
  *  | ops transits into             | Sample is ready      |
  *  | no stream state right         V                      |
  *  | after open.            ----------------              |
@@ -527,8 +527,8 @@ static void add_ext_dsp_module_to_pipeline(struct cras_iodev *iodev)
 
 	if (!pipeline) {
 		cras_iodev_alloc_dsp(iodev);
-		cras_dsp_load_dummy_pipeline(iodev->dsp_context,
-					     iodev->format->num_channels);
+		cras_dsp_load_mock_pipeline(iodev->dsp_context,
+					    iodev->format->num_channels);
 		pipeline = cras_dsp_get_pipeline(iodev->dsp_context);
 	}
 	/* dsp_context mutex locked. Now it's safe to modify dsp

@@ -44,7 +44,7 @@ static size_t cras_iodev_free_resources_called;
 static int a2dp_write_return_val[MAX_A2DP_WRITE_CALLS];
 static unsigned int a2dp_write_index;
 static int a2dp_encode_called;
-static cras_audio_area* dummy_audio_area;
+static cras_audio_area* mock_audio_area;
 static thread_callback write_callback;
 static void* write_callback_data;
 static const char* fake_device_name = "fake device name";
@@ -79,9 +79,9 @@ void ResetStubData() {
 
   fake_transport = reinterpret_cast<struct cras_bt_transport*>(0x123);
 
-  if (!dummy_audio_area) {
-    dummy_audio_area = (cras_audio_area*)calloc(
-        1, sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
+  if (!mock_audio_area) {
+    mock_audio_area = (cras_audio_area*)calloc(
+        1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
   }
 
   write_callback = NULL;
@@ -108,8 +108,8 @@ class A2dpIodev : public testing::Test {
   }
 
   virtual void TearDown() {
-    free(dummy_audio_area);
-    dummy_audio_area = NULL;
+    free(mock_audio_area);
+    mock_audio_area = NULL;
     free(atlog);
   }
 };
@@ -899,7 +899,7 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
 }
 
 void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
-  iodev->area = dummy_audio_area;
+  iodev->area = mock_audio_area;
 }
 
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
@@ -917,7 +917,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
                                          uint8_t* base_buffer) {
-  dummy_audio_area->channels[0].buf = base_buffer;
+  mock_audio_area->channels[0].buf = base_buffer;
 }
 
 struct audio_thread* cras_iodev_list_get_audio_thread() {

@@ -664,7 +664,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	iodev->start = start;
 	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
 
-	/* Create a dummy ionode */
+	/* Create an empty ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
 	strcpy(node->name, iodev->info.name);

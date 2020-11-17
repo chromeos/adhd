@@ -199,7 +199,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 	iodev->update_active_node = update_active_node;
 	iodev->no_stream = cras_iodev_default_no_stream_playback;
 
-	/* Create a dummy ionode */
+	/* Create an empty ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
 	node->type = node_type;

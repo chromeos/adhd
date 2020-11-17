@@ -47,8 +47,8 @@ static unsigned int stream_list_add_stream_called;
 static unsigned int stream_list_disconnect_stream_called;
 static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_iodev_list_rm_output_called;
-static struct cras_audio_shm dummy_shm;
-static struct cras_rstream dummy_rstream;
+static struct cras_audio_shm mock_shm;
+static struct cras_rstream mock_rstream;
 static size_t cras_observer_num_ops_registered;
 static size_t cras_observer_register_notify_called;
 static size_t cras_observer_add_called;
@@ -887,16 +887,16 @@ int stream_list_add(struct stream_list* list,
                     struct cras_rstream** stream) {
   int ret;
 
-  *stream = &dummy_rstream;
+  *stream = &mock_rstream;
 
   stream_list_add_stream_called++;
   ret = stream_list_add_stream_return;
   if (ret)
     stream_list_add_stream_return = -EINVAL;
 
-  dummy_rstream.shm = &dummy_shm;
-  dummy_rstream.direction = config->direction;
-  dummy_rstream.stream_id = config->stream_id;
+  mock_rstream.shm = &mock_shm;
+  mock_rstream.direction = config->direction;
+  mock_rstream.stream_id = config->stream_id;
 
   return ret;
 }

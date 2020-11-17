@@ -60,7 +60,7 @@ static unsigned int cras_mix_mute_count;
 static unsigned int cras_dsp_num_input_channels_return;
 static unsigned int cras_dsp_num_output_channels_return;
 struct cras_dsp_context* cras_dsp_context_new_return;
-static unsigned int cras_dsp_load_dummy_pipeline_called;
+static unsigned int cras_dsp_load_mock_pipeline_called;
 static unsigned int rate_estimator_add_frames_num_frames;
 static unsigned int rate_estimator_add_frames_called;
 static int cras_system_get_mute_return;
@@ -148,7 +148,7 @@ void ResetStubData() {
   cras_dsp_num_input_channels_return = 2;
   cras_dsp_num_output_channels_return = 2;
   cras_dsp_context_new_return = NULL;
-  cras_dsp_load_dummy_pipeline_called = 0;
+  cras_dsp_load_mock_pipeline_called = 0;
   rate_estimator_add_frames_num_frames = 0;
   rate_estimator_add_frames_called = 0;
   cras_system_get_mute_return = 0;
@@ -2240,12 +2240,12 @@ TEST(IoDev, SetExtDspMod) {
   EXPECT_EQ(3, cras_dsp_get_pipeline_called);
   EXPECT_EQ(3, cras_dsp_pipeline_set_sink_ext_module_called);
 
-  /* If pipeline doesn't exist, dummy pipeline should be loaded. */
+  /* If pipeline doesn't exist, mock pipeline should be loaded. */
   cras_dsp_get_pipeline_ret = 0x0;
   cras_iodev_set_ext_dsp_module(&iodev, &ext);
   EXPECT_EQ(3, ext_mod_configure_called);
   EXPECT_EQ(5, cras_dsp_get_pipeline_called);
-  EXPECT_EQ(1, cras_dsp_load_dummy_pipeline_called);
+  EXPECT_EQ(1, cras_dsp_load_mock_pipeline_called);
   EXPECT_EQ(4, cras_dsp_pipeline_set_sink_ext_module_called);
 }
 
@@ -2479,9 +2479,9 @@ void cras_dsp_context_free(struct cras_dsp_context* ctx) {
 }
 
 void cras_dsp_load_pipeline(struct cras_dsp_context* ctx) {}
-void cras_dsp_load_dummy_pipeline(struct cras_dsp_context* ctx,
-                                  unsigned int num_channels) {
-  cras_dsp_load_dummy_pipeline_called++;
+void cras_dsp_load_mock_pipeline(struct cras_dsp_context* ctx,
+                                 unsigned int num_channels) {
+  cras_dsp_load_mock_pipeline_called++;
 }
 
 void cras_dsp_set_variable_string(struct cras_dsp_context* ctx,

@@ -29,7 +29,7 @@ static const unsigned int kFrameBytes = 4;
 static const unsigned int kBufferSize = kBufferFrames * kFrameBytes;
 
 static struct timespec time_now;
-static cras_audio_area* dummy_audio_area;
+static cras_audio_area* mock_audio_area;
 static loopback_hook_data_t loop_hook;
 static struct cras_iodev* enabled_dev;
 static unsigned int cras_iodev_list_add_input_called;
@@ -46,8 +46,8 @@ static char* atlog_name;
 class LoopBackTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
-    dummy_audio_area = (cras_audio_area*)calloc(
-        1, sizeof(*dummy_audio_area) + sizeof(cras_channel_area) * 2);
+    mock_audio_area = (cras_audio_area*)calloc(
+        1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
     for (unsigned int i = 0; i < kBufferSize; i++) {
       buf_[i] = rand();
     }
@@ -77,7 +77,7 @@ class LoopBackTestSuite : public testing::Test {
     EXPECT_EQ(1, cras_iodev_list_rm_input_called);
     EXPECT_EQ(NULL, device_enabled_callback_cb);
     EXPECT_EQ(NULL, device_disabled_callback_cb);
-    free(dummy_audio_area);
+    free(mock_audio_area);
     audio_thread_event_log_deinit(atlog, atlog_name);
     free(atlog_name);
   }
@@ -224,7 +224,7 @@ extern "C" {
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
                                          uint8_t* base_buffer) {
-  dummy_audio_area->channels[0].buf = base_buffer;
+  mock_audio_area->channels[0].buf = base_buffer;
 }
 
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
@@ -232,7 +232,7 @@ void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 void cras_iodev_free_format(struct cras_iodev* iodev) {}
 
 void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
-  iodev->area = dummy_audio_area;
+  iodev->area = mock_audio_area;
 }
 
 void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {

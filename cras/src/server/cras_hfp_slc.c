@@ -942,7 +942,7 @@ static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
  *
  * An initialized service level connection is the pre-condition for all
  * call related procedures. Note that for the call related commands,
- * we are good to just respond with a dummy "OK".
+ * we are good to just respond with a meaningless "OK".
  *
  * The procedure to establish a service level connection is described below:
  *

@@ -518,7 +518,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 		iodev->set_volume = set_bt_volume;
 	}
 
-	/* Create the dummy node so it's the only node exposed to UI, and
+	/* Create the fake node so it's the only node exposed to UI, and
 	 * point it to the first profile dev. */
 	active = (struct bt_node *)calloc(1, sizeof(*active));
 	if (!active)

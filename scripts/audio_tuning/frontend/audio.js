@@ -1105,7 +1105,7 @@ function check_button(div, handler) {
   this.update = update;
 }
 
-function dummy() {
+function empty() {
 }
 
 /* Changes the opacity of a div. */
@@ -1185,7 +1185,7 @@ function drc_card(parent, index, lower_freq, freq_label) {
   var f_slider;
   if (lower_freq == 0) {  /* Special case for the lowest band */
     f_slider = new slider_input_log(table, freq_label, lower_freq, 0, 1,
-                                    'Hz', 0, dummy);
+                                    'Hz', 0, empty);
     f_slider.hide(true);
   } else {
     f_slider = new slider_input_log(table, freq_label, lower_freq, 1,
