@@ -738,8 +738,10 @@ static snd_hctl_elem_t *find_eld_control_by_dev_index(snd_hctl_t *hctl,
  * matching jack name. */
 static int is_jack_hdmi_dp(const char *jack_name)
 {
-	static const char *hdmi_dp = "HDMI/DP";
-	return strncmp(jack_name, hdmi_dp, strlen(hdmi_dp)) == 0;
+	// TODO(hychao): Use the information provided in UCM instead of
+	// name matching.
+	static const char *hdmi_dp = "HDMI";
+	return !!strstr(jack_name, hdmi_dp);
 }
 
 /* Find GPIO jacks for this jack_list.
