@@ -51,6 +51,11 @@ size_t s16_stereo_to_51(size_t left, size_t right, size_t center,
 size_t s16_51_to_stereo(const uint8_t *in, size_t in_frames, uint8_t *out);
 
 /*
+ * Channel converter: 5.1 surround to quad.
+ */
+size_t s16_51_to_quad(const uint8_t *in, size_t in_frames, uint8_t *out);
+
+/*
  * Channel converter: stereo to quad (front L/R, rear L/R).
  */
 size_t s16_stereo_to_quad(size_t front_left, size_t front_right,

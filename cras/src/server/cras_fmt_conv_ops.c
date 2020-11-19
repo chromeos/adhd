@@ -258,6 +258,51 @@ size_t s16_51_to_stereo(const uint8_t *_in, size_t in_frames, uint8_t *_out)
 }
 
 /*
+ * Channel converter: 5.1 surround to quad (front L/R, rear L/R).
+ *
+ * The out buffer can have room for just quad samples. This convert function
+ * is used as the default behavior when channel layout is not set from the
+ * client side.
+ */
+size_t s16_51_to_quad(const uint8_t *_in, size_t in_frames, uint8_t *_out)
+{
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
+	static const unsigned int l_quad = 0;
+	static const unsigned int r_quad = 1;
+	static const unsigned int rl_quad = 2;
+	static const unsigned int rr_quad = 3;
+
+	static const unsigned int l_51 = 0;
+	static const unsigned int r_51 = 1;
+	static const unsigned int center_51 = 2;
+	static const unsigned int lfe_51 = 3;
+	static const unsigned int rl_51 = 4;
+	static const unsigned int rr_51 = 5;
+
+	/* Use normalized_factor from the left channel = 1 / (|1| + |0.707| + |0.5|)
+	 * to prevent overflow. */
+	const float normalized_factor = 0.453;
+	size_t i;
+	for (i = 0; i < in_frames; i++) {
+		int16_t half_center;
+		int16_t lfe;
+
+		half_center = in[6 * i + center_51] * 0.707 * normalized_factor;
+		lfe = in[6 * i + lfe_51] * 0.5 * normalized_factor;
+		out[4 * i + l_quad] = normalized_factor * in[6 * i + l_51] +
+				      half_center + lfe;
+		out[4 * i + r_quad] = normalized_factor * in[6 * i + r_51] +
+				      half_center + lfe;
+		out[4 * i + rl_quad] =
+			normalized_factor * in[6 * i + rl_51] + lfe;
+		out[4 * i + rr_quad] =
+			normalized_factor * in[6 * i + rr_51] + lfe;
+	}
+	return in_frames;
+}
+
+/*
  * Channel converter: stereo to quad (front L/R, rear L/R).
  *
  * Fit left/right of input to the front left/right of output respectively

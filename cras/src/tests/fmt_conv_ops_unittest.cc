@@ -503,6 +503,46 @@ TEST(FormatConverterOpsTest, _51ToStereoS16LE) {
   }
 }
 
+// Test 5.1 to Quad conversion.  S16_LE.
+TEST(FormatConverterOpsTest, _51ToQuadS16LE) {
+  const size_t frames = 4096;
+  const size_t in_ch = 6;
+  const size_t out_ch = 4;
+  const unsigned int fl_quad = 0;
+  const unsigned int fr_quad = 1;
+  const unsigned int rl_quad = 2;
+  const unsigned int rr_quad = 3;
+
+  const unsigned int fl_51 = 0;
+  const unsigned int fr_51 = 1;
+  const unsigned int center_51 = 2;
+  const unsigned int lfe_51 = 3;
+  const unsigned int rl_51 = 4;
+  const unsigned int rr_51 = 5;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_51_to_quad((uint8_t*)src.get(), frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  /* Use normalized_factor from the left channel = 1 / (|1| + |0.707| + |0.5|)
+   * to prevent overflow. */
+  const float normalized_factor = 0.453;
+  for (size_t i = 0; i < frames; ++i) {
+    int16_t half_center = src[i * 6 + center_51] * 0.707 * normalized_factor;
+    int16_t lfe = src[6 * i + lfe_51] * 0.5 * normalized_factor;
+    int16_t fl = normalized_factor * src[6 * i + fl_51] + half_center + lfe;
+    int16_t fr = normalized_factor * src[6 * i + fr_51] + half_center + lfe;
+    int16_t rl = normalized_factor * src[6 * i + rl_51] + lfe;
+    int16_t rr = normalized_factor * src[6 * i + rr_51] + lfe;
+    EXPECT_EQ(fl, dst[4 * i + fl_quad]);
+    EXPECT_EQ(fr, dst[4 * i + fr_quad]);
+    EXPECT_EQ(rl, dst[4 * i + rl_quad]);
+    EXPECT_EQ(rr, dst[4 * i + rr_quad]);
+  }
+}
+
 // Test Stereo to Quad conversion.  S16_LE, Specify.
 TEST(FormatConverterOpsTest, StereoToQuadS16LESpecify) {
   const size_t frames = 4096;
