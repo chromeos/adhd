@@ -235,20 +235,24 @@ size_t s16_51_to_stereo(const uint8_t *_in, size_t in_frames, uint8_t *_out)
 	int16_t *out = (int16_t *)_out;
 	static const unsigned int left_idx = 0;
 	static const unsigned int right_idx = 1;
-	/* static const unsigned int left_surround_idx = 2; */
-	/* static const unsigned int right_surround_idx = 3; */
-	static const unsigned int center_idx = 4;
-	/* static const unsigned int lfe_idx = 5; */
+	static const unsigned int center_idx = 2;
+	/* static const unsigned int lfe_idx = 3; */
+	/* static const unsigned int left_surround_idx = 4; */
+	/* static const unsigned int right_surround_idx = 5; */
+
 	size_t i;
-
+	int16_t half_center;
+	/* Use the normalized_factor from the left channel = 1 / (|1| + |0.707|)
+	 * to prevent mixing overflow.
+	 */
+	const float normalized_factor = 0.585;
 	for (i = 0; i < in_frames; i++) {
-		unsigned int half_center;
-
-		half_center = in[6 * i + center_idx] / 2;
+		half_center =
+			in[6 * i + center_idx] * 0.707 * normalized_factor;
 		out[2 * i + left_idx] =
-			s16_add_and_clip(in[6 * i + left_idx], half_center);
+			in[6 * i + left_idx] * normalized_factor + half_center;
 		out[2 * i + right_idx] =
-			s16_add_and_clip(in[6 * i + right_idx], half_center);
+			in[6 * i + right_idx] * normalized_factor + half_center;
 	}
 	return in_frames;
 }

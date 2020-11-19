@@ -9,6 +9,7 @@
 #include <syslog.h>
 #include <endian.h>
 #include <limits.h>
+#include <math.h>
 
 #include "cras_fmt_conv.h"
 #include "cras_fmt_conv_ops.h"
@@ -58,21 +59,35 @@ static int is_channel_layout_equal(const struct cras_audio_format *a,
 	return 1;
 }
 
-static void normalize_buf(float *buf, size_t size)
+/*
+ * Calculates the normalize_factor abs_sum(ci) from given coefficients.
+ * Since sum(ci / abs_sum(ci)) <= 1, this could prevent sample overflow while
+ * upmixing or downmixing.
+ */
+static float normalize_factor(float *buf, size_t n)
 {
 	int i;
-	float squre_sum = 0.0;
-	for (i = 0; i < size; i++)
-		squre_sum += buf[i] * buf[i];
+	float abs_sum = 0.0;
+	for (i = 0; i < n; i++)
+		abs_sum += fabs(buf[i]);
 
-	if (squre_sum == 0.0)
-		return;
-
-	for (i = 0; i < size; i++)
-		buf[i] /= squre_sum;
+	return 1.0 / abs_sum;
 }
 
-/* Populates the down mix matrix by rules:
+/*
+ * Normalize all channels with the same factor to maintain
+ * the energy ratio between original channels.
+ */
+static void normalize(float **mtx, size_t m, size_t n, float factor)
+{
+	int i, j;
+	for (i = 0; i < m; i++)
+		for (j = 0; j < n; j++)
+			mtx[i][j] *= factor;
+}
+
+/*
+ * Populates the down mix matrix by rules:
  * 1. Front/side left(right) channel will mix to left(right) of
  *    full scale.
  * 2. Center and LFE will be split equally to left and right.
@@ -106,9 +121,7 @@ static void surround51_to_stereo_downmix_mtx(float **mtx,
 		mtx[STEREO_L][layout[CRAS_CH_LFE]] = 0.707;
 		mtx[STEREO_R][layout[CRAS_CH_LFE]] = 0.707;
 	}
-
-	normalize_buf(mtx[STEREO_L], 6);
-	normalize_buf(mtx[STEREO_R], 6);
+	normalize(mtx, 2, 6, normalize_factor(mtx[STEREO_L], 6));
 }
 
 static int is_supported_format(const struct cras_audio_format *fmt)

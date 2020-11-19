@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 #include <limits.h>
+#include <math.h>
+#include <stdint.h>
 #include <sys/param.h>
 
 #include <memory>
@@ -477,7 +479,7 @@ TEST(FormatConverterOpsTest, _51ToStereoS16LE) {
   const size_t out_ch = 2;
   const size_t left = 0;
   const size_t right = 1;
-  const size_t center = 4;
+  const size_t center = 2;
 
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
@@ -486,11 +488,18 @@ TEST(FormatConverterOpsTest, _51ToStereoS16LE) {
       s16_51_to_stereo((uint8_t*)src.get(), frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
+  /* Use the normalized_factor from the left channel = 1 / (|1| + |0.707|)
+   * to prevent mixing overflow.
+   */
+  const float normalized_factor = 0.585;
+
   for (size_t i = 0; i < frames; ++i) {
-    int16_t half_center = src[i * 6 + center] / 2;
-    EXPECT_EQ(S16AddAndClip(src[i * 6 + left], half_center), dst[i * 2 + left]);
-    EXPECT_EQ(S16AddAndClip(src[i * 6 + right], half_center),
-              dst[i * 2 + right]);
+    int16_t half_center = src[i * 6 + center] * 0.707 * normalized_factor;
+    int16_t l = normalized_factor * src[i * 6 + left] + half_center;
+    int16_t r = normalized_factor * src[i * 6 + right] + half_center;
+
+    EXPECT_EQ(l, dst[i * 2 + left]);
+    EXPECT_EQ(r, dst[i * 2 + right]);
   }
 }
 
