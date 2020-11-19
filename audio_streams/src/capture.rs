@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //! ```
-//! use audio_streams::{BoxError, SampleFormat, StreamSource, DummyStreamSource};
+//! use audio_streams::{BoxError, SampleFormat, StreamSource, NoopStreamSource};
 //! use std::io::Read;
 //!
 //! const buffer_size: usize = 120;
 //! const num_channels: usize = 2;
 //!
 //! # fn main() -> std::result::Result<(),BoxError> {
-//! let mut stream_source = DummyStreamSource::new();
+//! let mut stream_source = NoopStreamSource::new();
 //! let sample_format = SampleFormat::S16LE;
 //! let frame_size = num_channels * sample_format.sample_bytes();
 //!
@@ -34,7 +34,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::{AudioBuffer, BoxError, BufferDrop, DummyBufferDrop, SampleFormat};
+use super::{AudioBuffer, BoxError, BufferDrop, NoopBufferDrop, SampleFormat};
 
 /// `CaptureBufferStream` provides `CaptureBuffer`s to read with audio samples from capture.
 pub trait CaptureBufferStream: Send {
@@ -123,16 +123,16 @@ impl<'a> Drop for CaptureBuffer<'a> {
 }
 
 /// Stream that provides null capture samples.
-pub struct DummyCaptureStream {
+pub struct NoopCaptureStream {
     buffer: Vec<u8>,
     frame_size: usize,
     interval: Duration,
     next_frame: Duration,
     start_time: Option<Instant>,
-    buffer_drop: DummyBufferDrop,
+    buffer_drop: NoopBufferDrop,
 }
 
-impl DummyCaptureStream {
+impl NoopCaptureStream {
     pub fn new(
         num_channels: usize,
         format: SampleFormat,
@@ -141,20 +141,20 @@ impl DummyCaptureStream {
     ) -> Self {
         let frame_size = format.sample_bytes() * num_channels;
         let interval = Duration::from_millis(buffer_size as u64 * 1000 / frame_rate as u64);
-        DummyCaptureStream {
+        NoopCaptureStream {
             buffer: vec![0; buffer_size * frame_size],
             frame_size,
             interval,
             next_frame: interval,
             start_time: None,
-            buffer_drop: DummyBufferDrop {
+            buffer_drop: NoopBufferDrop {
                 which_buffer: false,
             },
         }
     }
 }
 
-impl CaptureBufferStream for DummyCaptureStream {
+impl CaptureBufferStream for NoopCaptureStream {
     fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, BoxError> {
         if let Some(start_time) = self.start_time {
             if start_time.elapsed() < self.next_frame {
@@ -182,7 +182,7 @@ mod tests {
     fn invalid_buffer_length() {
         // Capture buffers can't be created with a size that isn't divisible by the frame size.
         let mut cp_buf = [0xa5u8; 480 * 2 * 2 + 1];
-        let mut buffer_drop = DummyBufferDrop {
+        let mut buffer_drop = NoopBufferDrop {
             which_buffer: false,
         };
         assert!(CaptureBuffer::new(2, &mut cp_buf, &mut buffer_drop).is_err());
@@ -212,7 +212,7 @@ mod tests {
 
     #[test]
     fn sixteen_bit_stereo() {
-        let mut server = DummyStreamSource::new();
+        let mut server = NoopStreamSource::new();
         let (_, mut stream) = server
             .new_capture_stream(2, SampleFormat::S16LE, 48000, 480)
             .unwrap();
@@ -224,7 +224,7 @@ mod tests {
 
     #[test]
     fn consumption_rate() {
-        let mut server = DummyStreamSource::new();
+        let mut server = NoopStreamSource::new();
         let (_, mut stream) = server
             .new_capture_stream(2, SampleFormat::S16LE, 48000, 480)
             .unwrap();

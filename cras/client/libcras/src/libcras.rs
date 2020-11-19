@@ -126,9 +126,9 @@ use std::{error, fmt};
 
 pub use audio_streams::BoxError;
 use audio_streams::{
-    capture::{CaptureBufferStream, DummyCaptureStream},
+    capture::{CaptureBufferStream, NoopCaptureStream},
     shm_streams::{NullShmStream, ShmStream, ShmStreamSource},
-    BufferDrop, DummyStreamControl, PlaybackBufferStream, SampleFormat, StreamControl,
+    BufferDrop, NoopStreamControl, PlaybackBufferStream, SampleFormat, StreamControl,
     StreamDirection, StreamEffect, StreamSource,
 };
 use cras_sys::gen::*;
@@ -475,7 +475,7 @@ impl<'a> CrasClient<'a> {
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>
     {
         Ok((
-            Box::new(DummyStreamControl::new()),
+            Box::new(NoopStreamControl::new()),
             Box::new(self.create_stream::<CrasPlaybackData>(
                 Some(device_index),
                 buffer_size as u32,
@@ -509,7 +509,7 @@ impl<'a> CrasClient<'a> {
         buffer_size: usize,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         Ok((
-            Box::new(DummyStreamControl::new()),
+            Box::new(NoopStreamControl::new()),
             Box::new(self.create_stream::<CrasCaptureData>(
                 Some(device_index),
                 buffer_size as u32,
@@ -562,7 +562,7 @@ impl<'a> StreamSource for CrasClient<'a> {
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>
     {
         Ok((
-            Box::new(DummyStreamControl::new()),
+            Box::new(NoopStreamControl::new()),
             Box::new(self.create_stream::<CrasPlaybackData>(
                 None,
                 buffer_size as u32,
@@ -584,7 +584,7 @@ impl<'a> StreamSource for CrasClient<'a> {
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         if self.cras_capture {
             Ok((
-                Box::new(DummyStreamControl::new()),
+                Box::new(NoopStreamControl::new()),
                 Box::new(self.create_stream::<CrasCaptureData>(
                     None,
                     buffer_size as u32,
@@ -596,8 +596,8 @@ impl<'a> StreamSource for CrasClient<'a> {
             ))
         } else {
             Ok((
-                Box::new(DummyStreamControl::new()),
-                Box::new(DummyCaptureStream::new(
+                Box::new(NoopStreamControl::new()),
+                Box::new(NoopCaptureStream::new(
                     num_channels,
                     format,
                     frame_rate,
