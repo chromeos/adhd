@@ -1092,14 +1092,14 @@ static void convert_to_time_str(const struct timespec *ts, time_t sec_offset,
 				int32_t nsec_offset)
 {
 	time_t lt = ts->tv_sec;
-	struct tm *t;
+	struct tm t;
 	unsigned int time_nsec;
 
 	/* Assuming tv_nsec doesn't exceed 10^9 */
 	time_nsec = ts->tv_nsec;
 	convert_time((unsigned int *)&lt, &time_nsec, sec_offset, nsec_offset);
-	t = localtime(&lt);
-	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", t);
+	localtime_r(&lt, &t);
+	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", &t);
 	snprintf(time_str + strlen(time_str), 128 - strlen(time_str), ".%09u",
 		 time_nsec);
 }
