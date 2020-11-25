@@ -53,7 +53,6 @@ exit_group: 1
 fchmod: 1
 fchmodat: 1
 flock: 1
-flock: 1
 getegid: 1
 geteuid: 1
 getgid: 1
