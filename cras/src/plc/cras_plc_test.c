@@ -54,7 +54,7 @@ bool *generate_pl_seq(int input_file_size, float pl_percent)
 bool *parse_pl_hex(int input_file_size, const char *pl_hex)
 {
 	char tmp[3];
-	uint8_t val;
+	uint8_t val = 0;
 	int i, pl_hex_len, seq_len;
 	bool *seq;
 
