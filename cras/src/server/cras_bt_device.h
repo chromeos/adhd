@@ -63,8 +63,8 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *invalidated_array_iter);
 
 /* Updates the supported profiles on dev. Expose for unit test. */
-int cras_bt_device_add_supported_profiles(struct cras_bt_device *device,
-					  const char *uuid);
+int cras_bt_device_set_supported_profiles(struct cras_bt_device *device,
+					  unsigned int profiles);
 
 /* Checks if profile is claimed supported by the device. */
 int cras_bt_device_supports_profile(const struct cras_bt_device *device,
@@ -133,7 +133,8 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev);
 
 /* Gets the active profile of the bt device. */
-int cras_bt_device_get_active_profile(const struct cras_bt_device *device);
+unsigned int
+cras_bt_device_get_active_profile(const struct cras_bt_device *device);
 
 /* Sets the active profile of the bt device. */
 void cras_bt_device_set_active_profile(struct cras_bt_device *device,

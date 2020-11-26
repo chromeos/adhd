@@ -79,6 +79,8 @@ static const unsigned int CRAS_SUPPORTED_PROFILES =
  *    connected - If this devices is connected.
  *    connected_profiles - OR'ed all connected audio profiles.
  *    profiles - OR'ed by all audio profiles this device supports.
+ *    hidden_profiles - OR'ed by all audio profiles this device actually
+ *        supports but is not scanned by BlueZ.
  *    bt_iodevs - The pointer to the cras_iodevs of this device.
  *    active_profile - The flag to indicate the active audio profile this
  *        device is currently using.
@@ -102,8 +104,9 @@ struct cras_bt_device {
 	int paired;
 	int trusted;
 	int connected;
-	enum cras_bt_device_profile connected_profiles;
-	enum cras_bt_device_profile profiles;
+	unsigned int connected_profiles;
+	unsigned int profiles;
+	unsigned int hidden_profiles;
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
 	unsigned int active_profile;
 	int use_hardware_volume;
@@ -512,14 +515,18 @@ int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 	 * behavior on qualification test software. */
 	if (!cras_bt_device_supports_profile(
 		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE)) {
-		cras_bt_device_add_supported_profiles(device, HFP_HF_UUID);
+		unsigned int profiles =
+			device->profiles | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
+		cras_bt_device_set_supported_profiles(device, profiles);
+		device->hidden_profiles |= CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
 		bt_device_conn_watch_cb(NULL, (void *)device);
 	}
 
 	return 0;
 }
 
-int cras_bt_device_get_active_profile(const struct cras_bt_device *device)
+unsigned int
+cras_bt_device_get_active_profile(const struct cras_bt_device *device)
 {
 	return device->active_profile;
 }
@@ -566,6 +573,19 @@ static void cras_bt_device_log_profile(const struct cras_bt_device *device,
 		syslog(LOG_DEBUG, "Bluetooth Device: %s is HSP audio gateway",
 		       device->address);
 		break;
+	}
+}
+
+static void cras_bt_device_log_profiles(const struct cras_bt_device *device,
+					unsigned int profiles)
+{
+	unsigned int profile;
+
+	while (profiles) {
+		/* Get the LSB of profiles */
+		profile = profiles & -profiles;
+		cras_bt_device_log_profile(device, profile);
+		profiles ^= profile;
 	}
 }
 
@@ -708,7 +728,7 @@ void cras_bt_device_set_connected(struct cras_bt_device *device, int value)
 void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
 					   enum cras_bt_device_profile profile)
 {
-	device->connected_profiles &= !profile;
+	device->connected_profiles &= ~profile;
 
 	/* Do nothing if device already disconnected. */
 	if (!device->connected)
@@ -723,37 +743,33 @@ void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
 				   UNEXPECTED_PROFILE_DROP);
 }
 
-/*
- * Check if the uuid is of a new audio profile that isn't listed
- * as supported by device.
+/* Refresh the list of known supported profiles.
  * Args:
- *    device - The BT device holding supported profiles bitmap.
- *    uuid - UUID string from the device properties notified by BlueZ.
+ *    device - The BT device holding scanned profiles bitmap.
+ *    profiles - The OR'ed profiles the device claims to support as is notified
+ *               by BlueZ.
  * Returns:
- *    True if uuid is a new audio profiles not already supported by device.
+ *    The OR'ed profiles that are both supported by Cras and isn't previously
+ *    supported by the device.
  */
-int cras_bt_device_add_supported_profiles(struct cras_bt_device *device,
-					  const char *uuid)
+int cras_bt_device_set_supported_profiles(struct cras_bt_device *device,
+					  unsigned int profiles)
 {
-	enum cras_bt_device_profile profile =
-		cras_bt_device_profile_from_uuid(uuid);
-
-	if (profile == 0)
+	/* Do nothing if no new profiles. */
+	if ((device->profiles & profiles) == profiles)
 		return 0;
 
-	/* Do nothing if this profile is not new. */
-	if (device->profiles & profile)
-		return 0;
+	unsigned int new_profiles = profiles & ~device->profiles;
 
 	/* Log this event as we might need to re-intialize the BT audio nodes
 	 * if new audio profile is reported for already connected device. */
-	if (device->connected && (profile & CRAS_SUPPORTED_PROFILES))
+	if (device->connected && (new_profiles & CRAS_SUPPORTED_PROFILES))
 		BTLOG(btlog, BT_NEW_AUDIO_PROFILE_AFTER_CONNECT,
-		      device->profiles, profile);
-	device->profiles |= profile;
-	cras_bt_device_log_profile(device, profile);
+		      device->profiles, new_profiles);
+	cras_bt_device_log_profiles(device, new_profiles);
+	device->profiles = profiles | device->hidden_profiles;
 
-	return (profile & CRAS_SUPPORTED_PROFILES);
+	return (new_profiles & CRAS_SUPPORTED_PROFILES);
 }
 
 void cras_bt_device_update_properties(struct cras_bt_device *device,
@@ -821,6 +837,7 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				  "as") == 0 &&
 			   strcmp(key, "UUIDs") == 0) {
 			DBusMessageIter uuid_array_iter;
+			unsigned int profiles = 0;
 
 			dbus_message_iter_recurse(&variant_iter,
 						  &uuid_array_iter);
@@ -830,22 +847,21 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 
 				dbus_message_iter_get_basic(&uuid_array_iter,
 							    &uuid);
-
-				/*
-				 * If updated properties includes new audio
-				 * profile, and device is connected, we need
-				 * to start connection watcher. This is needed
-				 * because on some bluetooth device, supported
-				 * profiles do not present when device
-				 * interface is added and they are updated
-				 * later.
-				 */
-				if (cras_bt_device_add_supported_profiles(
-					    device, uuid))
-					watch_needed = device->connected;
+				profiles |=
+					cras_bt_device_profile_from_uuid(uuid);
 
 				dbus_message_iter_next(&uuid_array_iter);
 			}
+
+			/* If updated properties includes new audio profile and
+			 * device is connected, we need to start connection
+			 * watcher. This is needed because on some bluetooth
+			 * devices, supported profiles do not present when
+			 * device interface is added and they are updated later.
+			 */
+			if (cras_bt_device_set_supported_profiles(device,
+								  profiles))
+				watch_needed = device->connected;
 		}
 
 		dbus_message_iter_next(properties_array_iter);
@@ -876,7 +892,7 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 		} else if (strcmp(key, "Connected") == 0) {
 			device->connected = 0;
 		} else if (strcmp(key, "UUIDs") == 0) {
-			device->profiles = 0;
+			device->profiles = device->hidden_profiles;
 		}
 
 		dbus_message_iter_next(invalidated_array_iter);

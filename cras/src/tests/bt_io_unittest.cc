@@ -423,7 +423,8 @@ int cras_iodev_list_rm_input(struct cras_iodev* dev) {
 }
 
 // From bt device
-int cras_bt_device_get_active_profile(const struct cras_bt_device* device) {
+unsigned int cras_bt_device_get_active_profile(
+    const struct cras_bt_device* device) {
   return cras_bt_device_get_active_profile_ret;
 }
 
