@@ -51,6 +51,8 @@ enum CRAS_CONNECTION_TYPE {
 	CRAS_CAPTURE, // For capture client.
 	CRAS_VMS_LEGACY, // For legacy client in vms.
 	CRAS_VMS_UNIFIED, // For unified client in vms.
+	CRAS_PLUGIN_PLAYBACK, // For playback client in vms/plugin.
+	CRAS_PLUGIN_UNIFIED, // For unified client in vms/plugin.
 	CRAS_NUM_CONN_TYPE,
 };
 
@@ -166,7 +168,14 @@ enum CRAS_CLIENT_TYPE {
 	CRAS_CLIENT_TYPE_CROSVM, /* CROSVM */
 	CRAS_CLIENT_TYPE_SERVER_STREAM, /* Server stream */
 	CRAS_CLIENT_TYPE_LACROS, /* LaCrOS */
+	CRAS_CLIENT_TYPE_PLUGIN, /* PluginVM */
+	CRAS_NUM_CLIENT_TYPE, /* numbers of CRAS_CLIENT_TYPE */
 };
+
+static inline bool cras_validate_client_type(enum CRAS_CLIENT_TYPE client_type)
+{
+	return 0 <= client_type && client_type < CRAS_NUM_CLIENT_TYPE;
+}
 
 #define ENUM_STR(x)                                                            \
 	case x:                                                                \
@@ -203,6 +212,7 @@ cras_client_type_str(enum CRAS_CLIENT_TYPE client_type)
 	ENUM_STR(CRAS_CLIENT_TYPE_CROSVM)
 	ENUM_STR(CRAS_CLIENT_TYPE_SERVER_STREAM)
 	ENUM_STR(CRAS_CLIENT_TYPE_LACROS)
+	ENUM_STR(CRAS_CLIENT_TYPE_PLUGIN)
 	default:
 		return "INVALID_CLIENT_TYPE";
 	}

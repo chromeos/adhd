@@ -20,6 +20,9 @@
 /* Socket file paths for VMs. */
 #define CRAS_VMS_LEGACY_SOCKET_FILE "vms/.cras_socket"
 #define CRAS_VMS_UNIFIED_SOCKET_FILE "vms/.cras_unified"
+/* Socket file paths for pluginVM. */
+#define CRAS_PLUGIN_PLAYBACK_SOCKET_FILE "vms/plugin/playback/.cras_socket"
+#define CRAS_PLUGIN_UNIFIED_SOCKET_FILE "vms/plugin/unified/.cras_socket"
 
 /* Maximum socket_path size, which is equals to sizeof(sun_path) in sockaddr_un
  * structure.
