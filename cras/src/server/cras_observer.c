@@ -7,6 +7,7 @@
 
 #include "cras_alert.h"
 #include "cras_iodev_list.h"
+#include "cras_types.h"
 #include "utlist.h"
 
 struct cras_observer_client {
@@ -35,6 +36,7 @@ struct cras_observer_alerts {
 	struct cras_alert *num_active_streams[CRAS_NUM_DIRECTIONS];
 	struct cras_alert *non_empty_audio_state_changed;
 	struct cras_alert *bt_battery_changed;
+	struct cras_alert *num_input_streams_with_permission;
 };
 
 struct cras_observer_server {
@@ -74,6 +76,10 @@ struct cras_observer_alert_data_suspend {
 struct cras_observer_alert_data_streams {
 	enum CRAS_STREAM_DIRECTION direction;
 	uint32_t num_active_streams;
+};
+
+struct cras_observer_alert_data_input_streams {
+	uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE];
 };
 
 struct cras_observer_alert_data_hotword_triggered {
@@ -253,6 +259,20 @@ static void num_active_streams_alert(void *arg, void *data)
 	}
 }
 
+static void num_input_streams_with_permission_alert(void *arg, void *data)
+{
+	struct cras_observer_client *client;
+	struct cras_observer_alert_data_input_streams *input_streams_data =
+		(struct cras_observer_alert_data_input_streams *)data;
+
+	DL_FOREACH (g_observer->clients, client) {
+		if (client->ops.num_input_streams_with_permission_changed)
+			client->ops.num_input_streams_with_permission_changed(
+				client->context,
+				input_streams_data->num_input_streams);
+	}
+}
+
 static void hotword_triggered_alert(void *arg, void *data)
 {
 	struct cras_observer_client *client;
@@ -353,6 +373,7 @@ int cras_observer_server_init()
 	CRAS_OBSERVER_SET_ALERT(hotword_triggered, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(non_empty_audio_state_changed, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(bt_battery_changed, NULL, 0);
+	CRAS_OBSERVER_SET_ALERT(num_input_streams_with_permission, NULL, 0);
 
 	CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(num_active_streams,
 					       CRAS_STREAM_OUTPUT);
@@ -385,6 +406,8 @@ void cras_observer_server_free()
 	cras_alert_destroy(g_observer->alerts.hotword_triggered);
 	cras_alert_destroy(g_observer->alerts.non_empty_audio_state_changed);
 	cras_alert_destroy(g_observer->alerts.bt_battery_changed);
+	cras_alert_destroy(
+		g_observer->alerts.num_input_streams_with_permission);
 	cras_alert_destroy(
 		g_observer->alerts.num_active_streams[CRAS_STREAM_OUTPUT]);
 	cras_alert_destroy(
@@ -556,6 +579,21 @@ void cras_observer_notify_num_active_streams(enum CRAS_STREAM_DIRECTION dir,
 	data.direction = dir;
 	data.num_active_streams = num_active_streams;
 	alert = g_observer->alerts.num_active_streams[dir];
+	if (!alert)
+		return;
+
+	cras_alert_pending_data(alert, &data, sizeof(data));
+}
+
+void cras_observer_notify_input_streams_with_permission(
+	uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE])
+{
+	struct cras_observer_alert_data_input_streams data;
+	struct cras_alert *alert;
+
+	memcpy(&data.num_input_streams, num_input_streams,
+	       sizeof(*num_input_streams) * CRAS_NUM_CLIENT_TYPE);
+	alert = g_observer->alerts.num_input_streams_with_permission;
 	if (!alert)
 		return;
 

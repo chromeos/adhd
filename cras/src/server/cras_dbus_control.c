@@ -108,6 +108,9 @@
 	"    <method name=\"GetNumberOfActiveInputStreams\">\n"                 \
 	"      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"              \
 	"    </method>\n"                                                       \
+	"    <method name=\"GetNumberOfInputStreamsWithPermission\">\n"         \
+	"      <arg name=\"num\" type=\"a{sv}\" direction=\"out\"/>\n"          \
+	"    </method>\n"                                                       \
 	"    <method name=\"SetGlobalOutputChannelRemix\">\n"                   \
 	"      <arg name=\"num_channels\" type=\"i\" direction=\"in\"/>\n"      \
 	"      <arg name=\"coefficient\" type=\"ad\" direction=\"in\"/>\n"      \
@@ -808,6 +811,65 @@ handle_get_num_active_streams_use_output_hw(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static bool append_num_input_streams_with_permission(
+	DBusMessage *message, uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE])
+{
+	DBusMessageIter array;
+	DBusMessageIter dict;
+	unsigned type;
+
+	dbus_message_iter_init_append(message, &array);
+	for (type = 0; type < CRAS_NUM_CLIENT_TYPE; ++type) {
+		const char *client_type_str = cras_client_type_str(type);
+		if (!is_utf8_string(client_type_str)) {
+			syslog(LOG_ERR,
+			       "Non-utf8 clinet_type_str '%s' cannot be sent "
+			       "via dbus",
+			       client_type_str);
+			client_type_str = "";
+		}
+
+		if (!dbus_message_iter_open_container(&array, DBUS_TYPE_ARRAY,
+						      "{sv}", &dict))
+			return false;
+		if (!append_key_value(&dict, "ClientType", DBUS_TYPE_STRING,
+				      DBUS_TYPE_STRING_AS_STRING,
+				      &client_type_str))
+			return false;
+		if (!append_key_value(&dict, "NumStreamsWithPermission",
+				      DBUS_TYPE_UINT32,
+				      DBUS_TYPE_UINT32_AS_STRING,
+				      &num_input_streams[type]))
+			return false;
+		if (!dbus_message_iter_close_container(&array, &dict))
+			return false;
+	}
+	return true;
+}
+
+static DBusHandlerResult
+handle_get_num_input_streams_with_permission(DBusConnection *conn,
+					     DBusMessage *message, void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE] = {};
+
+	reply = dbus_message_new_method_return(message);
+
+	cras_system_state_get_input_streams_with_permission(num_input_streams);
+	if (!append_num_input_streams_with_permission(reply, num_input_streams))
+		goto error;
+
+	dbus_connection_send(conn, reply, &serial);
+	dbus_message_unref(reply);
+	return DBUS_HANDLER_RESULT_HANDLED;
+
+error:
+	dbus_message_unref(reply);
+	return DBUS_HANDLER_RESULT_NEED_MEMORY;
+}
+
 static DBusHandlerResult
 handle_set_global_output_channel_remix(DBusConnection *conn,
 				       DBusMessage *message, void *arg)
@@ -1115,6 +1177,11 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 								  arg);
 	} else if (dbus_message_is_method_call(
 			   message, CRAS_CONTROL_INTERFACE,
+			   "GetNumberOfInputStreamsWithPermission")) {
+		return handle_get_num_input_streams_with_permission(
+			conn, message, arg);
+	} else if (dbus_message_is_method_call(
+			   message, CRAS_CONTROL_INTERFACE,
 			   "GetNumberOfActiveOutputStreams")) {
 		return handle_get_num_active_streams_use_output_hw(
 			conn, message, arg);
@@ -1342,6 +1409,25 @@ static void signal_num_active_streams_changed(void *context,
 	dbus_message_unref(msg);
 }
 
+static void signal_num_input_streams_with_permission_changed(
+	void *context, uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE])
+{
+	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+
+	msg = create_dbus_message("NumberOfInputStreamsWithPermissionChanged");
+	if (!msg)
+		return;
+
+	if (!append_num_input_streams_with_permission(msg, num_input_streams))
+		goto error;
+
+	dbus_connection_send(control->conn, msg, &serial);
+error:
+	dbus_message_unref(msg);
+}
+
 static void signal_hotword_triggered(void *context, int64_t tv_sec,
 				     int64_t tv_nsec)
 {
@@ -1426,6 +1512,8 @@ void cras_dbus_control_start(DBusConnection *conn)
 	observer_ops.capture_mute_changed = signal_capture_mute;
 	observer_ops.num_active_streams_changed =
 		signal_num_active_streams_changed;
+	observer_ops.num_input_streams_with_permission_changed =
+		signal_num_input_streams_with_permission_changed;
 	observer_ops.nodes_changed = signal_nodes_changed;
 	observer_ops.active_node_changed = signal_active_node_changed;
 	observer_ops.input_node_gain_changed = signal_node_capture_gain_changed;

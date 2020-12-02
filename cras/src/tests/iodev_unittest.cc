@@ -2462,9 +2462,11 @@ unsigned int buffer_share_id_offset(const struct buffer_share* mix,
 }
 
 // From cras_system_state.
-void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {}
+void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
+                                    enum CRAS_CLIENT_TYPE client_type) {}
 
-void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {}
+void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
+                                      enum CRAS_CLIENT_TYPE client_type) {}
 
 // From cras_dsp
 struct cras_dsp_context* cras_dsp_context_new(int sample_rate,

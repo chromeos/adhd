@@ -518,7 +518,8 @@ void cras_system_rm_select_fd(int fd)
 		state.fd_rm(fd, state.select_data);
 }
 
-void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction)
+void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
+				    enum CRAS_CLIENT_TYPE client_type)
 {
 	struct cras_server_state *s;
 
@@ -528,13 +529,19 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction)
 
 	s->num_active_streams[direction]++;
 	s->num_streams_attached++;
+	if (direction == CRAS_STREAM_INPUT) {
+		s->num_input_streams_with_permission[client_type]++;
+		cras_observer_notify_input_streams_with_permission(
+			s->num_input_streams_with_permission);
+	}
 
 	cras_system_state_update_complete();
 	cras_observer_notify_num_active_streams(
 		direction, s->num_active_streams[direction]);
 }
 
-void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction)
+void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
+				      enum CRAS_CLIENT_TYPE client_type)
 {
 	struct cras_server_state *s;
 	unsigned i, sum;
@@ -552,6 +559,11 @@ void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction)
 		cras_clock_gettime(CLOCK_MONOTONIC_RAW,
 				   &s->last_active_stream_time);
 	s->num_active_streams[direction]--;
+	if (direction == CRAS_STREAM_INPUT) {
+		s->num_input_streams_with_permission[client_type]--;
+		cras_observer_notify_input_streams_with_permission(
+			s->num_input_streams_with_permission);
+	}
 
 	cras_system_state_update_complete();
 	cras_observer_notify_num_active_streams(
@@ -571,6 +583,15 @@ unsigned cras_system_state_get_active_streams_by_direction(
 	enum CRAS_STREAM_DIRECTION direction)
 {
 	return state.exp_state->num_active_streams[direction];
+}
+
+void cras_system_state_get_input_streams_with_permission(
+	uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE])
+{
+	unsigned type;
+	for (type = 0; type < CRAS_NUM_CLIENT_TYPE; ++type)
+		num_input_streams[type] =
+			state.exp_state->num_input_streams_with_permission[type];
 }
 
 void cras_system_state_get_last_stream_active_time(struct cras_timespec *ts)

@@ -397,9 +397,11 @@ void ewma_power_calculate(struct ewma_power* ewma,
                           unsigned int channels,
                           unsigned int size) {}
 
-void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction) {}
+void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
+                                    enum CRAS_CLIENT_TYPE client_type) {}
 
-void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction) {}
+void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
+                                      enum CRAS_CLIENT_TYPE client_type) {}
 
 int cras_server_metrics_stream_create(
     const struct cras_rstream_config* config) {
