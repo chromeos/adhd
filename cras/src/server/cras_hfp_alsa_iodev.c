@@ -51,12 +51,18 @@ static int hfp_alsa_open_dev(struct cras_iodev *iodev)
 
 static int hfp_alsa_update_supported_formats(struct cras_iodev *iodev)
 {
+	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
+
 	/* 16 bit, mono, 8kHz (narrow band speech); */
 	free(iodev->supported_rates);
 	iodev->supported_rates = malloc(2 * sizeof(*iodev->supported_rates));
 	if (!iodev->supported_rates)
 		return -ENOMEM;
-	iodev->supported_rates[0] = 8000;
+	iodev->supported_rates[0] =
+		(hfp_slc_get_selected_codec(hfp_alsa_io->slc) ==
+		 HFP_CODEC_ID_MSBC) ?
+			16000 :
+			8000;
 	iodev->supported_rates[1] = 0;
 
 	free(iodev->supported_channel_counts);
@@ -98,6 +104,8 @@ static int hfp_alsa_configure_dev(struct cras_iodev *iodev)
 		syslog(LOG_ERR, "Failed to configure aio: %d\n", rc);
 		return rc;
 	}
+
+	hfp_slc_codec_connection_setup(hfp_alsa_io->slc);
 
 	rc = cras_bt_device_get_sco(
 		hfp_alsa_io->device,
@@ -291,8 +299,7 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 	/* If headset mic uses legacy narrow band, i.e CVSD codec, report a
 	 * different node type so UI can set different plug priority. */
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
-	if ((hfp_slc_get_selected_codec(hfp_alsa_io->slc) ==
-	     HFP_CODEC_ID_CVSD) &&
+	if (!hfp_slc_get_wideband_speech_supported(hfp_alsa_io->slc) &&
 	    (iodev->direction == CRAS_STREAM_INPUT))
 		node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
 	node->volume = 100;

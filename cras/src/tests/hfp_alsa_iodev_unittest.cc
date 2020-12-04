@@ -525,6 +525,14 @@ int hfp_event_speaker_gain(struct hfp_slc_handle* handle, int gain) {
   return 0;
 }
 
+bool hfp_slc_get_wideband_speech_supported(struct hfp_slc_handle* handle) {
+  return false;
+}
+
+int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle) {
+  return 0;
+}
+
 int cras_bt_device_get_sco(struct cras_bt_device* device, int codec) {
   return 0;
 }
