@@ -16,9 +16,8 @@ use libc::strlen;
 use remain::sorted;
 
 pub type Result<T> = std::result::Result<T, Error>;
-type BoxError = Box<dyn error::Error + Send + Sync>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 /// Possible errors that can occur in FFI functions.
 pub enum FFIError {
     Rc(i32),
@@ -36,7 +35,7 @@ impl fmt::Display for FFIError {
 }
 
 #[sorted]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 /// Possible errors that can occur in cros-alsa::control_primitive.
 pub enum Error {
     /// Control with the given name does not exist.
@@ -51,10 +50,13 @@ pub enum Error {
     ElemInfoMallocFailed(FFIError),
     /// Failed to call snd_ctl_elem_value_malloc().
     ElemValueMallocFailed(FFIError),
-    /// Input is not a valid CString.
-    InvalidCString(BoxError),
+    /// The slice used to create a CStr does not have one and only one null
+    /// byte positioned at the end.
+    FromBytesWithNulError(FromBytesWithNulError),
     /// Failed to convert to a valid ElemType.
     InvalidElemType(u32),
+    /// An error indicating that an interior nul byte was found.
+    NulError(NulError),
     /// Failed to call snd_strerror().
     SndStrErrorFailed(i32),
     /// UTF-8 validation failed
@@ -73,8 +75,9 @@ impl fmt::Display for Error {
             ElemIdMallocFailed(e) => write!(f, "snd_ctl_elem_id_malloc failed: {}", e),
             ElemInfoMallocFailed(e) => write!(f, "snd_ctl_elem_info_malloc failed: {}", e),
             ElemValueMallocFailed(e) => write!(f, "snd_ctl_elem_value_malloc failed: {}", e),
-            InvalidCString(e) => write!(f, "invalid CString: {}", e),
+            FromBytesWithNulError(e) => write!(f, "invalid CString: {}", e),
             InvalidElemType(v) => write!(f, "invalid ElemType: {}", v),
+            NulError(e) => write!(f, "invalid CString: {}", e),
             SndStrErrorFailed(e) => write!(f, "snd_strerror() failed: {}", e),
             Utf8Error(e) => write!(f, "{}", e),
         }
@@ -95,13 +98,13 @@ impl From<str::Utf8Error> for Error {
 
 impl From<FromBytesWithNulError> for Error {
     fn from(err: FromBytesWithNulError) -> Error {
-        Error::InvalidCString(err.into())
+        Error::FromBytesWithNulError(err)
     }
 }
 
 impl From<NulError> for Error {
     fn from(err: NulError) -> Error {
-        Error::InvalidCString(err.into())
+        Error::NulError(err)
     }
 }
 
@@ -323,6 +326,18 @@ impl ElemInfo {
     pub fn count(&self) -> usize {
         // Safe because self.0.as_ptr() is a valid snd_ctl_elem_info_t*.
         unsafe { snd_ctl_elem_info_get_count(self.0.as_ptr()) as usize }
+    }
+
+    /// Safe [snd_ctl_elem_info_is_tlv_readable](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#gaac6bb412e5a9fffb5509e98a10de45b5) wrapper.
+    pub fn tlv_readable(&self) -> bool {
+        // Safe because self.0.as_ptr() is a valid snd_ctl_elem_info_t*.
+        unsafe { snd_ctl_elem_info_is_tlv_readable(self.0.as_ptr()) as usize == 1 }
+    }
+
+    /// Safe [snd_ctl_elem_info_is_tlv_writable](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#gacfbaae80d710b6feac682f8ba10a0341) wrapper.
+    pub fn tlv_writable(&self) -> bool {
+        // Safe because self.0.as_ptr() is a valid snd_ctl_elem_info_t*.
+        unsafe { snd_ctl_elem_info_is_tlv_writable(self.0.as_ptr()) as usize == 1 }
     }
 }
 

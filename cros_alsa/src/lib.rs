@@ -44,14 +44,17 @@
 mod card;
 mod control;
 mod control_primitive;
+pub mod control_tlv;
 pub mod elem;
 
 pub use self::card::Card;
 pub use self::control::{Control, ControlOps, IntControl, StereoVolumeControl, SwitchControl};
 pub use self::control_primitive::{Ctl, ElemId};
+pub use self::control_tlv::{ControlTLV, TLV};
 
 pub use self::card::Error as CardError;
 pub use self::control::Error as ControlError;
+pub use self::control_tlv::Error as ControlTLVError;
 pub use self::elem::Error as ElemError;
 
 #[allow(unused_imports)]
