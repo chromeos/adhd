@@ -195,6 +195,6 @@ impl CrasClientMessage {
         if self.len != mem::size_of::<T>() {
             return Err(Error::InvalidSize);
         }
-        T::from_slice(&self.data[..mem::size_of::<T>()]).ok_or_else(|| Error::MessageFromSliceError)
+        T::from_slice(&self.data[..mem::size_of::<T>()]).ok_or(Error::MessageFromSliceError)
     }
 }

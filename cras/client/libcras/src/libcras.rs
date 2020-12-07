@@ -535,7 +535,7 @@ impl<'a> CrasClient<'a> {
         let tokens: Vec<Token> = events.iter_readable().map(|e| e.token()).collect();
         tokens
             .get(0)
-            .ok_or_else(|| Error::UnexpectedExit)
+            .ok_or(Error::UnexpectedExit)
             .and_then(|ref token| {
                 match token {
                     Token::ServerMsg => ServerResult::handle_server_message(socket),
