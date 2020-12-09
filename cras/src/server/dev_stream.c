@@ -87,9 +87,12 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	} else {
 		/*
 		 * For input, take into account the stream specific processing
-		 * like AEC. Use the post processing format to configure format
-		 * converter.
+		 * like AEC. APM exists only in input path, and has no dependency
+		 * to dev_stream. Starts APM in dev_stream's constructor just to
+		 * align with its life cycle, and then gets the post processing
+		 * format to configure format converter.
 		 */
+		cras_apm_list_start_apm(stream->apm_list, dev_ptr);
 		ofmt = cras_rstream_post_processing_format(stream, dev_ptr) ?:
 			       dev_fmt,
 		rc = config_format_converter(&out->conv, stream->direction,
@@ -123,9 +126,8 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 			    stream_fmt->frame_rate, &stream->sleep_interval_ts);
 	stream->next_cb_ts = *cb_ts;
 
-	/* Sets up the stream & dev pair and then start APM. */
+	/* Sets up the stream & dev pair. */
 	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
-	cras_apm_list_start_apm(stream->apm_list, dev_ptr);
 
 	return out;
 }
