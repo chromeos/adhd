@@ -61,9 +61,7 @@ static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
 static const unsigned int SCO_SUSPEND_DELAY_MS = 5000;
 
 static const unsigned int CRAS_SUPPORTED_PROFILES =
-	CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
-	CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
-	CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+	CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
 
 /* Object to represent a general bluetooth device, and used to
  * associate with some CRAS modules if it supports audio.
