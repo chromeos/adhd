@@ -236,7 +236,3 @@ Signals		OutputVolumeChanged(int32 volume)
 		HotwordTriggered(int64 tv_sec, int64 tv_nsec)
 
 			Indicates that hotword was triggered at the given timestamp.
-
-		BluetoothBatteryChanged(string address, uint32 level)
-
-			Indicates the battery level of a bluetooth device changed.
