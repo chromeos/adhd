@@ -137,8 +137,6 @@
 	"    <method name=\"SetPlayerMetadata\">\n"                             \
 	"      <arg name=\"metadata\" type=\"a{sv}\" direction=\"in\"/>\n"      \
 	"    </method>\n"                                                       \
-	"    <method name=\"ResendBluetoothBattery\">\n"                        \
-	"    </method>\n"                                                       \
 	"  </interface>\n"                                                      \
 	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"            \
 	"    <method name=\"Introspect\">\n"                                    \
@@ -1060,17 +1058,6 @@ static DBusHandlerResult handle_set_player_metadata(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_resend_bluetooth_battery(DBusConnection *conn,
-							 DBusMessage *message,
-							 void *arg)
-{
-	cras_hfp_ag_resend_device_battery_level();
-
-	send_empty_reply(conn, message);
-
-	return DBUS_HANDLER_RESULT_HANDLED;
-}
-
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message, void *arg)
@@ -1210,9 +1197,6 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetPlayerMetadata")) {
 		return handle_set_player_metadata(conn, message, arg);
-	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
-					       "ResendBluetoothBattery")) {
-		return handle_resend_bluetooth_battery(conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

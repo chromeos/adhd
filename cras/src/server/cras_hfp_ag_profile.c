@@ -20,7 +20,6 @@
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_iodev_list.h"
-#include "cras_observer.h"
 #include "utlist.h"
 #include "packet_status_logger.h"
 
@@ -459,19 +458,6 @@ struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device)
 struct packet_status_logger *cras_hfp_ag_get_wbs_logger()
 {
 	return &wbs_logger;
-}
-
-void cras_hfp_ag_resend_device_battery_level()
-{
-	struct audio_gateway *ag;
-	int level;
-	DL_FOREACH (connected_ags, ag) {
-		level = hfp_slc_get_hf_battery_level(ag->slc_handle);
-		if (level >= 0 && level <= 100)
-			cras_observer_notify_bt_battery_changed(
-				cras_bt_device_address(ag->device),
-				(uint32_t)(level));
-	}
 }
 
 int cras_hsp_ag_profile_create(DBusConnection *conn)
