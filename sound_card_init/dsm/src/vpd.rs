@@ -13,25 +13,26 @@ const VPD_DIR: &str = "/sys/firmware/vpd/ro/vpdfile";
 /// `VPD`, which represents the amplifier factory calibration values.
 #[derive(Default, Debug)]
 pub struct VPD {
-    /// dsm_calib_r0 is (11 / 3) / actual_rdc * 2^20.
     pub dsm_calib_r0: i32,
-    /// dsm_calib_temp is actual_temp * 2^12 / 100.
     pub dsm_calib_temp: i32,
 }
 
 impl VPD {
-    /// Creates a `VPD` and initializes its fields from the given VPD files.
-    pub fn from_file(rdc_file: &str, temp_file: &str) -> Result<VPD> {
+    /// Creates a `VPD` and initializes its fields from VPD_DIR/dsm_calib_r0_{channel}.
+    /// # Arguments
+    ///
+    /// * `channel` - channel number.
+    pub fn new(channel: usize) -> Result<VPD> {
         let mut vpd: VPD = Default::default();
-        vpd.dsm_calib_r0 = read_vpd_files(rdc_file)?;
-        vpd.dsm_calib_temp = read_vpd_files(temp_file)?;
+        vpd.dsm_calib_r0 = read_vpd_files(&format!("dsm_calib_r0_{}", channel))?;
+        vpd.dsm_calib_temp = read_vpd_files(&format!("dsm_calib_temp_{}", channel))?;
         Ok(vpd)
     }
 }
 
 fn read_vpd_files(file: &str) -> Result<i32> {
     let path = PathBuf::from(VPD_DIR).with_file_name(file);
-    let io_err = |e| Error::FileIOFailed(path.to_string_lossy().to_string(), e);
+    let io_err = |e| Error::FileIOFailed(path.to_owned(), e);
     let mut reader = BufReader::new(File::open(&path).map_err(io_err)?);
     let mut line = String::new();
     reader.read_line(&mut line).map_err(io_err)?;

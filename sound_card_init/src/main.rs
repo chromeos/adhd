@@ -14,9 +14,6 @@
 use std::env;
 use std::error;
 use std::fmt;
-use std::fs;
-use std::io;
-use std::path::PathBuf;
 use std::process;
 use std::string::String;
 
@@ -24,11 +21,10 @@ use getopts::Options;
 use remain::sorted;
 use sys_util::{error, info, syslog};
 
-use max98390d::run_max98390d;
-use utils::run_time;
+use amp::AmpBuilder;
+use dsm::utils::run_time;
 
 type Result<T> = std::result::Result<T, Error>;
-const CONF_DIR: &str = "/etc/sound_card_init";
 
 #[derive(Default)]
 struct Args {
@@ -39,9 +35,7 @@ struct Args {
 #[derive(Debug)]
 enum Error {
     MissingOption(String),
-    OpenConfigFailed(String, io::Error),
     ParseArgsFailed(getopts::Fail),
-    UnsupportedSoundCard(String),
 }
 
 impl error::Error for Error {}
@@ -51,9 +45,7 @@ impl fmt::Display for Error {
         use Error::*;
         match self {
             MissingOption(option) => write!(f, "missing required option: {}", option),
-            OpenConfigFailed(file, e) => write!(f, "failed to open file {}: {}", file, e),
             ParseArgsFailed(e) => write!(f, "parse_args failed: {}", e),
-            UnsupportedSoundCard(name) => write!(f, "unsupported sound card: {}", name),
         }
     }
 }
@@ -90,28 +82,14 @@ fn parse_args() -> Result<Args> {
     Ok(Args { sound_card_id })
 }
 
-fn get_config(args: &Args) -> Result<String> {
-    let config_path = PathBuf::from(CONF_DIR)
-        .join(&args.sound_card_id)
-        .with_extension("yaml");
-
-    fs::read_to_string(&config_path)
-        .map_err(|e| Error::OpenConfigFailed(config_path.to_string_lossy().to_string(), e))
-}
-
-/// Parses the CONF_DIR/<sound_card_id>.yaml and starts sound card initialization.
+/// Parses the CONF_DIR/<sound_card_id>.yaml and starts boot time calibration.
 fn sound_card_init(args: &Args) -> std::result::Result<(), Box<dyn error::Error>> {
     info!("sound_card_id: {}", args.sound_card_id);
-    let conf = get_config(args)?;
+    AmpBuilder::new(&args.sound_card_id)
+        .build()?
+        .boot_time_calibration()?;
 
-    match args.sound_card_id.as_str() {
-        "sofcmlmax98390d" => {
-            run_max98390d(&args.sound_card_id, &conf)?;
-            info!("run_max98390d() finished successfully.");
-            Ok(())
-        }
-        _ => Err(Error::UnsupportedSoundCard(args.sound_card_id.clone()).into()),
-    }
+    Ok(())
 }
 
 fn main() {
@@ -124,8 +102,9 @@ fn main() {
         }
     };
 
-    if let Err(e) = sound_card_init(&args) {
-        error!("sound_card_init: {}", e);
+    match sound_card_init(&args) {
+        Ok(_) => info!("sound_card_init finished successfully."),
+        Err(e) => error!("sound_card_init: {}", e),
     }
 
     if let Err(e) = run_time::now_to_file(&args.sound_card_id) {

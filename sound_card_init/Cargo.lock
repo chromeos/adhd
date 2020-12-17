@@ -11,6 +11,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "amp"
+version = "0.1.0"
+dependencies = [
+ "cros_alsa",
+ "dsm",
+ "remain",
+ "serde",
+ "serde_yaml",
+ "sys_util",
+]
+
+[[package]]
+name = "android_log-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85965b6739a430150bdd138e2374a98af0c3ee0d030b3bb7fc3bddff58d0102e"
+
+[[package]]
 name = "assertions"
 version = "0.1.0"
 
@@ -58,6 +76,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dsm"
+version = "0.1.0"
+dependencies = [
+ "audio_streams",
+ "cros_alsa",
+ "libcras",
+ "remain",
+ "serde",
+ "serde_yaml",
+ "sys_util",
+]
+
+[[package]]
 name = "dtoa"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -94,20 +125,6 @@ name = "linked-hash-map"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8dd5a6d5999d9907cda8ed67bbd137d3af8085216c2ac62de5be860bd41f304a"
-
-[[package]]
-name = "max98390d"
-version = "0.1.0"
-dependencies = [
- "audio_streams",
- "cros_alsa",
- "libcras",
- "remain",
- "serde",
- "serde_yaml",
- "sys_util",
- "utils",
-]
 
 [[package]]
 name = "pkg-config"
@@ -189,16 +206,16 @@ dependencies = [
 name = "sound_card_init"
 version = "0.1.0"
 dependencies = [
+ "amp",
  "audio_streams",
  "cros_alsa",
+ "dsm",
  "getopts",
  "libcras",
- "max98390d",
  "remain",
  "serde",
  "serde_yaml",
  "sys_util",
- "utils",
 ]
 
 [[package]]
@@ -220,6 +237,7 @@ version = "0.1.0"
 name = "sys_util"
 version = "0.1.0"
 dependencies = [
+ "android_log-sys",
  "data_model",
  "libc",
  "poll_token_derive",
@@ -250,15 +268,6 @@ name = "unicode-xid"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
-
-[[package]]
-name = "utils"
-version = "0.1.0"
-dependencies = [
- "remain",
- "serde",
- "serde_yaml",
-]
 
 [[package]]
 name = "yaml-rust"

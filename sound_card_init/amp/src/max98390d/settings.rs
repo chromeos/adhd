@@ -3,35 +3,18 @@
 // found in the LICENSE file.
 use std::string::String;
 
+use dsm::{self, Error, Result};
 use serde::Deserialize;
-
-use crate::error::{Error, Result};
 
 /// `DeviceSettings` includes the settings of max98390. It currently includes:
 /// * the settings of amplifier calibration.
 /// * the path of dsm_param.
 #[derive(Debug, Default, PartialEq, Deserialize, Clone)]
 pub struct DeviceSettings {
-    pub amp_calibrations: Vec<AmpCalibSettings>,
-    pub dsm_param: String,
+    pub amp_calibrations: AmpCalibSettings,
 }
-
-/// `AmpCalibSettings` includes the settings needed for amplifier calibration.
 #[derive(Debug, Default, PartialEq, Deserialize, Clone)]
-pub struct AmpCalibSettings {
-    /// `AmpSettings`.
-    pub amp: AmpSettings,
-    /// Vpd file of Rdc.
-    pub rdc_vpd: String,
-    /// Vpd file of ambient temperature.
-    pub temp_vpd: String,
-    /// File to store the boot time calibration values.
-    pub calib_file: String,
-}
-
-/// `AmpSettings` represents mixer control names and amp params needed for amplifier calibration.
-#[derive(Debug, Default, PartialEq, Deserialize, Clone)]
-pub struct AmpSettings {
+pub struct AmpCalibCtrl {
     // Mixer control to get/set rdc value.
     pub rdc_ctrl: String,
     // Mixer control to get/set ambient temperature value.
@@ -40,14 +23,22 @@ pub struct AmpSettings {
     pub calib_ctrl: String,
     // Mixer control to adjust volume.
     pub volume_ctrl: String,
-    // The threshold to put volume into normal.
-    pub volume_high_limit: i32,
-    // The threshold to put volume into protected mode.
-    pub volume_low_limit: i32,
-    // The upper limit of a valid temperature value.
-    pub temp_upper_limit: i32,
-    // The lower limit of a valid temperature value.
-    pub temp_lower_limit: i32,
+}
+
+/// `AmpCalibSettings` includes the settings needed for amplifier calibration.
+#[derive(Debug, Default, PartialEq, Deserialize, Clone)]
+pub struct AmpCalibSettings {
+    // Mixer control to get/set rdc value.
+    pub controls: Vec<AmpCalibCtrl>,
+    // Path of the dsm_param.bin file.
+    pub dsm_param: String,
+}
+
+impl AmpCalibSettings {
+    /// Returns the number of channels.
+    pub fn num_channels(&self) -> usize {
+        self.controls.len()
+    }
 }
 
 impl DeviceSettings {

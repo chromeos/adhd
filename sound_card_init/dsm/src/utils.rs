@@ -4,18 +4,13 @@
 //! It contains common utils shared within sound_card_init.
 #![deny(missing_docs)]
 
-//! The error definitions for utils.
-pub mod error;
-
 use std::fs::File;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crate::datastore::Datastore;
 use crate::error::{Error, Result};
-
-/// The path of datastore.
-pub const DATASTORE_DIR: &str = "/var/lib/sound_card_init";
 
 fn duration_from_file(path: &PathBuf) -> Result<Duration> {
     let reader =
@@ -80,7 +75,7 @@ pub mod run_time {
     }
 
     fn run_time_file(snd_card: &str) -> PathBuf {
-        PathBuf::from(DATASTORE_DIR)
+        PathBuf::from(Datastore::DATASTORE_DIR)
             .join(snd_card)
             .join(RUN_TIME_FILE)
     }
