@@ -11,4 +11,5 @@ dsm = { path = "../dsm" }
 remain = "0.2.1"
 serde = { version = "1.0", features = ["derive"]}
 serde_yaml = "0.8.11"
+sof_sys = "*"
 sys_util = "*"

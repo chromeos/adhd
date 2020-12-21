@@ -21,9 +21,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     AlsaCardError(cros_alsa::CardError),
     AlsaControlError(cros_alsa::ControlError),
+    AlsaControlTLVError(cros_alsa::ControlTLVError),
     CalibrationTimeout,
     CrasClientFailed(libcras::Error),
     DeserializationFailed(String, serde_yaml::Error),
+    DSMParamUpdateFailed(cros_alsa::ControlTLVError),
     FileIOFailed(PathBuf, io::Error),
     InternalSpeakerNotFound,
     InvalidDatastore,
@@ -46,6 +48,16 @@ pub enum Error {
     ZeroPlayerIsRunning,
 }
 
+impl PartialEq for Error {
+    // Implement eq for more Error when needed.
+    fn eq(&self, other: &Error) -> bool {
+        match (self, other) {
+            (Error::InvalidDSMParam, Error::InvalidDSMParam) => true,
+            _ => false,
+        }
+    }
+}
+
 impl From<cros_alsa::CardError> for Error {
     fn from(err: cros_alsa::CardError) -> Error {
         Error::AlsaCardError(err)
@@ -55,6 +67,12 @@ impl From<cros_alsa::CardError> for Error {
 impl From<cros_alsa::ControlError> for Error {
     fn from(err: cros_alsa::ControlError) -> Error {
         Error::AlsaControlError(err)
+    }
+}
+
+impl From<cros_alsa::ControlTLVError> for Error {
+    fn from(err: cros_alsa::ControlTLVError) -> Error {
+        Error::AlsaControlTLVError(err)
     }
 }
 
@@ -70,9 +88,11 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
         match self {
-            AlsaCardError(e) => write!(f, "{}", e),
-            AlsaControlError(e) => write!(f, "{}", e),
+            AlsaCardError(e) => write!(f, "AlsaCardError: {}", e),
+            AlsaControlError(e) => write!(f, "AlsaControlError: {}", e),
+            AlsaControlTLVError(e) => write!(f, "AlsaControlTLVError: {}", e),
             CalibrationTimeout => write!(f, "calibration is not finished in time"),
+            DSMParamUpdateFailed(e) => write!(f, "failed to update DsmParam, err: {}", e),
             CrasClientFailed(e) => write!(f, "failed to create cras client: {}", e),
             DeserializationFailed(file_path, e) => {
                 write!(f, "failed to parse {}: {}", file_path, e)

@@ -5,10 +5,12 @@
 //! to create `Amp` objects.
 #![deny(missing_docs)]
 
+mod max98373d;
 mod max98390d;
 
 use dsm::Error;
 
+use max98373d::Max98373;
 use max98390d::Max98390;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -29,6 +31,7 @@ impl<'a> AmpBuilder<'a> {
     pub fn build(&self) -> Result<Box<dyn Amp>> {
         match self.sound_card_id {
             "sofcmlmax98390d" => Ok(Box::new(Max98390::new(self.sound_card_id)?) as Box<dyn Amp>),
+            "sofrt5682" => Ok(Box::new(Max98373::new(self.sound_card_id)?) as Box<dyn Amp>),
             _ => Err(Error::UnsupportedSoundCard(self.sound_card_id.to_owned())),
         }
     }
