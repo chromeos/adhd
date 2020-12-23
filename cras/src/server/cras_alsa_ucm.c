@@ -72,7 +72,7 @@ struct section_name {
 
 struct cras_use_case_mgr {
 	snd_use_case_mgr_t *mgr;
-	const char *name;
+	char *name;
 	unsigned int avail_use_cases;
 	enum CRAS_STREAM_TYPE use_case;
 };
@@ -394,6 +394,10 @@ struct cras_use_case_mgr *ucm_create(const char *name)
 	if (!mgr)
 		return NULL;
 
+	mgr->name = strdup(name);
+	if (!mgr->name)
+		goto cleanup;
+
 	rc = snd_use_case_mgr_open(&mgr->mgr, name);
 	if (rc) {
 		syslog(LOG_WARNING, "Can not open ucm for card %s, rc = %d",
@@ -401,7 +405,6 @@ struct cras_use_case_mgr *ucm_create(const char *name)
 		goto cleanup;
 	}
 
-	mgr->name = name;
 	mgr->avail_use_cases = 0;
 	num_verbs = snd_use_case_get_list(mgr->mgr, "_verbs", &list);
 	for (i = 0; i < num_verbs; i += 2) {
@@ -424,6 +427,7 @@ struct cras_use_case_mgr *ucm_create(const char *name)
 cleanup_mgr:
 	snd_use_case_mgr_close(mgr->mgr);
 cleanup:
+	free(mgr->name);
 	free(mgr);
 	return NULL;
 }
@@ -431,6 +435,7 @@ cleanup:
 void ucm_destroy(struct cras_use_case_mgr *mgr)
 {
 	snd_use_case_mgr_close(mgr->mgr);
+	free(mgr->name);
 	free(mgr);
 }
 
