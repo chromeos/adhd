@@ -2888,6 +2888,12 @@ const char* cras_alsa_jack_get_ucm_device(const struct cras_alsa_jack* jack) {
   return NULL;
 }
 
+void ucm_disable_all_hotword_models(struct cras_use_case_mgr* mgr) {}
+
+int ucm_enable_hotword_model(struct cras_use_case_mgr* mgr) {
+  return 0;
+}
+
 int ucm_get_default_node_gain(struct cras_use_case_mgr* mgr,
                               const char* dev,
                               long* gain) {

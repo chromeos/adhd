@@ -2418,12 +2418,10 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 				      unsigned dev_enabled)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
+	int rc = 0;
 
-	if (iodev->active_node == ionode) {
-		enable_active_ucm(aio, dev_enabled);
-		init_device_settings(aio);
-		return 0;
-	}
+	if (iodev->active_node == ionode)
+		goto skip;
 
 	/* Disable jack ucm before switching node. */
 	enable_active_ucm(aio, 0);
@@ -2433,7 +2431,16 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 	cras_iodev_set_active_node(iodev, ionode);
 	aio->base.dsp_name = get_active_dsp_name(aio);
 	cras_iodev_update_dsp(iodev);
+skip:
 	enable_active_ucm(aio, dev_enabled);
+	if (ionode->type == CRAS_NODE_TYPE_HOTWORD) {
+		if (dev_enabled) {
+			rc = ucm_enable_hotword_model(aio->ucm);
+			if (rc < 0)
+				return rc;
+		} else
+			ucm_disable_all_hotword_models(aio->ucm);
+	}
 	/* Setting the volume will also unmute if the system isn't muted. */
 	init_device_settings(aio);
 	return 0;

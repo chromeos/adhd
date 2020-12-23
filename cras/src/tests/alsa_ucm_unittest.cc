@@ -28,11 +28,13 @@ static unsigned snd_use_case_get_called;
 static std::vector<std::string> snd_use_case_get_id;
 static int snd_use_case_set_return;
 static std::map<std::string, std::string> snd_use_case_get_value;
+static std::map<std::string, unsigned> snd_use_case_geti_value;
 static unsigned snd_use_case_set_called;
 static std::vector<std::pair<std::string, std::string> > snd_use_case_set_param;
 static std::map<std::string, const char**> fake_list;
 static std::map<std::string, unsigned> fake_list_size;
 static unsigned snd_use_case_free_list_called;
+static unsigned snd_use_case_geti_called;
 static std::vector<std::string> list_devices_callback_names;
 static std::vector<void*> list_devices_callback_args;
 static struct cras_use_case_mgr cras_ucm_mgr;
@@ -45,10 +47,12 @@ static void ResetStubData() {
   snd_use_case_set_return = 0;
   snd_use_case_get_called = 0;
   snd_use_case_set_called = 0;
+  snd_use_case_geti_called = 0;
   snd_use_case_set_param.clear();
   snd_use_case_free_list_called = 0;
   snd_use_case_get_id.clear();
   snd_use_case_get_value.clear();
+  snd_use_case_geti_value.clear();
   fake_list.clear();
   fake_list_size.clear();
   fake_list["_verbs"] = avail_verbs;
@@ -57,6 +61,7 @@ static void ResetStubData() {
   list_devices_callback_args.clear();
   snd_use_case_mgr_open_mgr_ptr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   cras_ucm_mgr.use_case = CRAS_STREAM_TYPE_DEFAULT;
+  cras_ucm_mgr.hotword_modifier = NULL;
 }
 
 static void list_devices_callback(const char* section_name, void* arg) {
@@ -522,26 +527,85 @@ TEST(AlsaUcm, SetHotwordModel) {
   const char* modifiers[] = {"Hotword Model en", "Comment1",
                              "Hotword Model jp", "Comment2",
                              "Hotword Model de", "Comment3"};
-  const char* enabled_mods[] = {"Hotword Model en"};
+  const char* enabled_mods[] = {"Hotword Model jp"};
+  int ret;
+  std::string id = "_modstatus/Hotword Model jp";
   ResetStubData();
 
+  snd_use_case_geti_value[id] = 1;
   fake_list["_modifiers/HiFi"] = modifiers;
   fake_list_size["_modifiers/HiFi"] = 6;
 
   EXPECT_EQ(-EINVAL, ucm_set_hotword_model(mgr, "zh"));
   EXPECT_EQ(0, snd_use_case_set_called);
 
+  ret = ucm_set_hotword_model(mgr, "jp");
+
+  EXPECT_EQ(0, ret);
+  EXPECT_EQ(0, snd_use_case_set_called);
+  EXPECT_EQ(0, strcmp(mgr->hotword_modifier, "Hotword Model jp"));
+
   fake_list["_enamods"] = enabled_mods;
   fake_list_size["_enamods"] = 1;
-  ucm_set_hotword_model(mgr, "jp");
-
+  ret = ucm_set_hotword_model(mgr, "de");
+  EXPECT_EQ(0, ret);
   EXPECT_EQ(2, snd_use_case_set_called);
+  EXPECT_EQ(1, snd_use_case_geti_called);
+  EXPECT_EQ(
+      snd_use_case_set_param[0],
+      std::make_pair(std::string("_dismod"), std::string("Hotword Model jp")));
+  EXPECT_EQ(
+      snd_use_case_set_param[1],
+      std::make_pair(std::string("_enamod"), std::string("Hotword Model de")));
+  free(mgr->hotword_modifier);
+}
+
+TEST(AlsaUcm, DisableAllHotwordModels) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  const char* modifiers[] = {"Hotword Model en", "Comment1",
+                             "Hotword Model jp", "Comment2",
+                             "Hotword Model de", "Comment3"};
+  const char* enabled_mods[] = {"Hotword Model en"};
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers;
+  fake_list_size["_modifiers/HiFi"] = 6;
+  fake_list["_enamods"] = enabled_mods;
+  fake_list_size["_enamods"] = 1;
+
+  ucm_disable_all_hotword_models(mgr);
+
+  EXPECT_EQ(1, snd_use_case_set_called);
   EXPECT_EQ(
       snd_use_case_set_param[0],
       std::make_pair(std::string("_dismod"), std::string("Hotword Model en")));
+}
+
+TEST(AlsaUcm, EnableHotwordModel) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  const char* modifiers[] = {"Hotword Model en", "Comment1",
+                             "Hotword Model jp", "Comment2",
+                             "Hotword Model de", "Comment3"};
+  const char* enabled_mods[] = {""};
+  int ret;
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers;
+  fake_list_size["_modifiers/HiFi"] = 6;
+  fake_list["_enamods"] = enabled_mods;
+  fake_list_size["_enamods"] = 0;
+
+  EXPECT_EQ(-EINVAL, ucm_enable_hotword_model(mgr));
+
+  mgr->hotword_modifier = strdup("Hotword Model de");
+  ret = ucm_enable_hotword_model(mgr);
+
+  EXPECT_EQ(0, ret);
+  EXPECT_EQ(1, snd_use_case_set_called);
   EXPECT_EQ(
-      snd_use_case_set_param[1],
-      std::make_pair(std::string("_enamod"), std::string("Hotword Model jp")));
+      snd_use_case_set_param[0],
+      std::make_pair(std::string("_enamod"), std::string("Hotword Model de")));
+  free(mgr->hotword_modifier);
 }
 
 TEST(AlsaUcm, SwapModeExists) {
@@ -1403,6 +1467,19 @@ int snd_use_case_get_list(snd_use_case_mgr_t* uc_mgr,
 
 int snd_use_case_free_list(const char* list[], int items) {
   snd_use_case_free_list_called++;
+  return 0;
+}
+
+int snd_use_case_geti(snd_use_case_mgr_t* uc_mgr,
+                      const char* identifier,
+                      long* value) {
+  snd_use_case_geti_called++;
+  if (snd_use_case_geti_value.find(identifier) ==
+      snd_use_case_geti_value.end()) {
+    *value = 0;
+    return -1;
+  }
+  *value = snd_use_case_geti_value[identifier];
   return 0;
 }
 

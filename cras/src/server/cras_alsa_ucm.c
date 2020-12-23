@@ -75,6 +75,7 @@ struct cras_use_case_mgr {
 	char *name;
 	unsigned int avail_use_cases;
 	enum CRAS_STREAM_TYPE use_case;
+	char *hotword_modifier;
 };
 
 static inline const char *uc_verb(struct cras_use_case_mgr *mgr)
@@ -406,6 +407,7 @@ struct cras_use_case_mgr *ucm_create(const char *name)
 	}
 
 	mgr->avail_use_cases = 0;
+	mgr->hotword_modifier = NULL;
 	num_verbs = snd_use_case_get_list(mgr->mgr, "_verbs", &list);
 	for (i = 0; i < num_verbs; i += 2) {
 		for (j = 0; j < CRAS_STREAM_NUM_TYPES; ++j) {
@@ -989,14 +991,57 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 	return models;
 }
 
-int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model)
+void ucm_disable_all_hotword_models(struct cras_use_case_mgr *mgr)
 {
 	const char **list;
 	int num_enmods, mod_idx;
-	char *model_mod = NULL;
+	/* Disable all currently enabled hotword model modifiers. */
+	num_enmods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
+	if (num_enmods <= 0)
+		return;
+
+	for (mod_idx = 0; mod_idx < num_enmods; mod_idx++) {
+		if (!strncmp(list[mod_idx], hotword_model_prefix,
+			     strlen(hotword_model_prefix)))
+			ucm_set_modifier_enabled(mgr, list[mod_idx], 0);
+	}
+	snd_use_case_free_list(list, num_enmods);
+}
+
+int ucm_enable_hotword_model(struct cras_use_case_mgr *mgr)
+{
+	if (mgr->hotword_modifier)
+		return ucm_set_modifier_enabled(mgr, mgr->hotword_modifier, 1);
+	return -EINVAL;
+}
+
+static int ucm_is_modifier_enabled(struct cras_use_case_mgr *mgr,
+				   char *modifier, long *value)
+{
+	int rc;
+	char *id;
+	size_t len = strlen(modifier) + 11 + 1;
+
+	id = (char *)malloc(len);
+
+	if (!id)
+		return -ENOMEM;
+
+	snprintf(id, len, "_modstatus/%s", modifier);
+	rc = snd_use_case_geti(mgr->mgr, id, value);
+	free(id);
+	return rc;
+}
+
+int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model)
+{
+	char *model_mod;
+	long mod_status = 0;
 	size_t model_mod_size =
 		strlen(model) + 1 + strlen(hotword_model_prefix) + 1;
+
 	model_mod = (char *)malloc(model_mod_size);
+
 	if (!model_mod)
 		return -ENOMEM;
 	snprintf(model_mod, model_mod_size, "%s %s", hotword_model_prefix,
@@ -1006,21 +1051,16 @@ int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model)
 		return -EINVAL;
 	}
 
-	/* Disable all currently enabled horword model modifiers. */
-	num_enmods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
-	if (num_enmods <= 0)
-		goto enable_mod;
+	/* If check failed, just move on, dont fail incoming model */
+	if (mgr->hotword_modifier)
+		ucm_is_modifier_enabled(mgr, mgr->hotword_modifier,
+					&mod_status);
 
-	for (mod_idx = 0; mod_idx < num_enmods; mod_idx++) {
-		if (!strncmp(list[mod_idx], hotword_model_prefix,
-			     strlen(hotword_model_prefix)))
-			ucm_set_modifier_enabled(mgr, list[mod_idx], 0);
-	}
-	snd_use_case_free_list(list, num_enmods);
-
-enable_mod:
-	ucm_set_modifier_enabled(mgr, model_mod, 1);
-	free((void *)model_mod);
+	ucm_disable_all_hotword_models(mgr);
+	free(mgr->hotword_modifier);
+	mgr->hotword_modifier = model_mod;
+	if (mod_status)
+		return ucm_enable_hotword_model(mgr);
 	return 0;
 }
 
