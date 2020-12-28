@@ -83,6 +83,5 @@ void server_stream_destroy(struct stream_list *stream_list,
 		syslog(LOG_ERR, "No server stream to destroy");
 		return;
 	}
-	/* Schedule remove stream in next main thread loop. */
-	cras_system_add_task(server_stream_rm_cb, stream_list);
+	server_stream_rm_cb(stream_list);
 }

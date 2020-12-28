@@ -388,8 +388,9 @@ static void close_dev(struct cras_iodev *dev)
 	MAINLOG(main_log, MAIN_THREAD_DEV_CLOSE, dev->info.idx, 0, 0);
 	remove_all_streams_from_dev(dev);
 	dev->idle_timeout.tv_sec = 0;
-	cras_iodev_close(dev);
+	/* close echo ref first to avoid underrun in hardware */
 	possibly_disable_echo_reference(dev);
+	cras_iodev_close(dev);
 }
 
 static void idle_dev_check(struct cras_timer *timer, void *data)
