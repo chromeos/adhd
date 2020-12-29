@@ -3815,3 +3815,95 @@ int cras_client_disable_hotword_callback(struct cras_client *client,
 	free(handle);
 	return 0;
 }
+
+struct libcras_client *libcras_client_create()
+{
+	struct libcras_client *client = (struct libcras_client *)calloc(
+		1, sizeof(struct libcras_client));
+	if (!client) {
+		syslog(LOG_ERR, "cras_client: calloc failed");
+		return NULL;
+	}
+	if (cras_client_create(&client->client_)) {
+		libcras_client_destroy(client);
+		return NULL;
+	}
+	client->api_version = CRAS_API_VERSION;
+	client->connect = cras_client_connect;
+	client->connect_timeout = cras_client_connect_timeout;
+	client->connected_wait = cras_client_connected_wait;
+	client->run_thread = cras_client_run_thread;
+	client->stop = cras_client_stop;
+	client->add_pinned_stream = cras_client_add_pinned_stream;
+	client->rm_stream = cras_client_rm_stream;
+	client->set_stream_volume = cras_client_set_stream_volume;
+	return client;
+}
+
+void libcras_client_destroy(struct libcras_client *client)
+{
+	cras_client_destroy(client->client_);
+	free(client);
+}
+
+int stream_params_set(struct cras_stream_params *params,
+		      enum CRAS_STREAM_DIRECTION direction,
+		      size_t buffer_frames, size_t cb_threshold,
+		      enum CRAS_STREAM_TYPE stream_type,
+		      enum CRAS_CLIENT_TYPE client_type, uint32_t flags,
+		      void *user_data, cras_unified_cb_t unified_cb,
+		      cras_playback_cb_t aud_cb, cras_error_cb_t err_cb,
+		      size_t rate, snd_pcm_format_t format, size_t num_channels)
+{
+	params->direction = direction;
+	params->buffer_frames = buffer_frames;
+	params->cb_threshold = cb_threshold;
+	params->stream_type = stream_type;
+	params->client_type = client_type;
+	params->flags = flags;
+	params->user_data = user_data;
+	params->unified_cb = unified_cb;
+	params->aud_cb = aud_cb;
+	params->err_cb = err_cb;
+	params->format.frame_rate = rate;
+	params->format.format = format;
+	params->format.num_channels = num_channels;
+	return 0;
+}
+
+int stream_params_set_channel_layout(struct cras_stream_params *params,
+				     int length, const int8_t *layout)
+{
+	if (length != CRAS_CH_MAX)
+		return -EINVAL;
+	return cras_audio_format_set_channel_layout(&params->format, layout);
+}
+
+struct libcras_stream_params *libcras_stream_params_create()
+{
+	struct libcras_stream_params *params =
+		(struct libcras_stream_params *)calloc(
+			1, sizeof(struct libcras_stream_params));
+	if (!params) {
+		syslog(LOG_ERR, "cras_client: calloc failed");
+		return NULL;
+	}
+	params->params_ = (struct cras_stream_params *)calloc(
+		1, sizeof(struct cras_stream_params));
+	if (params->params_ == NULL) {
+		syslog(LOG_ERR, "cras_client: calloc failed");
+		free(params->params_);
+		return NULL;
+	}
+	params->api_version = CRAS_API_VERSION;
+	params->set = stream_params_set;
+	params->set_channel_layout = stream_params_set_channel_layout;
+	params->enable_aec = cras_client_stream_params_enable_aec;
+	return params;
+}
+
+void libcras_stream_params_destroy(struct libcras_stream_params *params)
+{
+	free(params->params_);
+	free(params);
+}

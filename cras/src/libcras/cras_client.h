@@ -1308,6 +1308,298 @@ int cras_client_set_input_node_gain_changed_callback(
 int cras_client_set_num_active_streams_changed_callback(
 	struct cras_client *client,
 	cras_client_num_active_streams_changed_callback cb);
+
+/*
+ * The functions below prefixed with libcras wrap the original CRAS library
+ * They provide an interface that maps the pointers to the functions above.
+ * Please add a new function instead of modifying the existing function.
+ * Here are some rules about how to add a new function:
+ * 1. Increase the CRAS_API_VERSION by 1.
+ * 2. Write a new function in cras_client.c.
+ * 3. Append the corresponding pointer to the structure. Remeber DO NOT change
+ *    the order of functions in the structs.
+ * 4. Assign the pointer to the new function in cras_client.c.
+ * 5. Create the inline function in cras_client.h, which is used by clients.
+ * 6. Add CHECK_VERSION in the inline function. If the api_version is smaller
+ *    than the supported version, this inline function will return -ENOSYS.
+ */
+
+#define CRAS_API_VERSION 1
+#define CHECK_VERSION(object, version)                                         \
+	if (object->api_version < version) {                                   \
+		return -ENOSYS;                                                \
+	}
+
+struct libcras_client {
+	int api_version;
+	struct cras_client *client_;
+	int (*connect)(struct cras_client *client);
+	int (*connect_timeout)(struct cras_client *client,
+			       unsigned int timeout_ms);
+	int (*connected_wait)(struct cras_client *client);
+	int (*run_thread)(struct cras_client *client);
+	int (*stop)(struct cras_client *client);
+	int (*add_pinned_stream)(struct cras_client *client, uint32_t dev_idx,
+				 cras_stream_id_t *stream_id_out,
+				 struct cras_stream_params *config);
+	int (*rm_stream)(struct cras_client *client,
+			 cras_stream_id_t stream_id);
+	int (*set_stream_volume)(struct cras_client *client,
+				 cras_stream_id_t stream_id,
+				 float volume_scaler);
+};
+
+struct libcras_stream_params {
+	int api_version;
+	struct cras_stream_params *params_;
+	int (*set)(struct cras_stream_params *params,
+		   enum CRAS_STREAM_DIRECTION direction, size_t buffer_frames,
+		   size_t cb_threshold, enum CRAS_STREAM_TYPE stream_type,
+		   enum CRAS_CLIENT_TYPE client_type, uint32_t flags,
+		   void *user_data, cras_unified_cb_t unified_cb,
+		   cras_playback_cb_t aud_cb, cras_error_cb_t err_cb,
+		   size_t rate, snd_pcm_format_t format, size_t num_channels);
+	int (*set_channel_layout)(struct cras_stream_params *params, int length,
+				  const int8_t *layout);
+	void (*enable_aec)(struct cras_stream_params *params);
+};
+
+/*
+ * Creates a new client.
+ * Returns:
+ *    If success, return a valid libcras_client pointer. Otherwise, return
+ *    NULL.
+ */
+struct libcras_client *libcras_client_create();
+
+/*
+ * Destroys a client.
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ */
+void libcras_client_destroy(struct libcras_client *client);
+
+/*
+ * Connects a client to the running server.
+ * Waits forever (until interrupted or connected).
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ */
+inline int libcras_client_connect(struct libcras_client *client)
+{
+	return client->connect(client->client_);
+}
+
+/*
+ * Connects a client to the running server, retries until timeout.
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ *    timeout_ms - timeout in milliseconds or negative to wait forever.
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ */
+inline int libcras_client_connect_timeout(struct libcras_client *client,
+					  unsigned int timeout_ms)
+{
+	return client->connect_timeout(client->client_, timeout_ms);
+}
+
+/*
+ * Wait up to 1 second for the client thread to complete the server connection.
+ *
+ * After libcras_client_run_thread() is executed, this function can be
+ * used to ensure that the connection has been established with the server and
+ * ensure that any information about the server is up to date. If
+ * libcras_client_run_thread() has not yet been executed, or
+ * libcras_client_stop() was executed and thread isn't running, then this
+ * function returns -EINVAL.
+ *
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ */
+inline int libcras_client_connected_wait(struct libcras_client *client)
+{
+	return client->connected_wait(client->client_);
+}
+
+/*
+ * Begins running the client control thread.
+ *
+ * Required for stream operations and other operations noted below.
+ *
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ * Returns:
+ *    0 on success, or a negative error code on failure (from errno.h).
+ */
+inline int libcras_client_run_thread(struct libcras_client *client)
+{
+	return client->run_thread(client->client_);
+}
+
+/*
+ * Stops running a client.
+ * This function is executed automatically by cras_client_destroy().
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ * Returns:
+ *    0 on success or if the thread was already stopped, -EINVAL if the client
+ *    isn't valid.
+ */
+inline int libcras_client_stop(struct libcras_client *client)
+{
+	return client->stop(client->client_);
+}
+
+/*
+ * Creates a pinned stream and return the stream id or < 0 on error.
+ *
+ * Requires execution of libcras_client_run_thread(), and an active
+ * connection to the audio server.
+ *
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ *    dev_idx - Index of the device to attach the newly created stream.
+ *    stream_id_out - On success will be filled with the new stream id.
+ *        Guaranteed to be set before any callbacks are made.
+ *    params - The pointer specifying the parameters for the stream.
+ *        (returned from libcras_stream_params_create)
+ * Returns:
+ *    0 on success, negative error code on failure (from errno.h).
+ */
+inline int libcras_client_add_pinned_stream(
+	struct libcras_client *client, uint32_t dev_idx,
+	cras_stream_id_t *stream_id_out, struct libcras_stream_params *params)
+{
+	return client->add_pinned_stream(client->client_, dev_idx,
+					 stream_id_out, params->params_);
+}
+
+/*
+ * Removes a currently playing/capturing stream.
+ *
+ * Requires execution of libcras_client_run_thread().
+ *
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ *    stream_id - ID returned from libcras_client_add_stream to identify
+ *        the stream to remove.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int libcras_client_rm_stream(struct libcras_client *client,
+				    cras_stream_id_t stream_id)
+{
+	return client->rm_stream(client->client_, stream_id);
+}
+
+/*
+ * Sets the volume scaling factor for the given stream.
+ *
+ * Requires execution of cras_client_run_thread().
+ *
+ * Args:
+ *    client - pointer returned from "libcras_client_create".
+ *    stream_id - ID returned from libcras_client_add_stream.
+ *    volume_scaler - 0.0-1.0 the new value to scale this stream by.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int libcras_client_set_stream_volume(struct libcras_client *client,
+					    cras_stream_id_t stream_id,
+					    float volume_scaler)
+{
+	return client->set_stream_volume(client->client_, stream_id,
+					 volume_scaler);
+}
+
+/*
+ * Creates a new struct to save stream params.
+ * Returns:
+ *    If success, return a valid libcras_stream_params pointer. Otherwise,
+ *    return NULL.
+ */
+struct libcras_stream_params *libcras_stream_params_create();
+
+/*
+ * Destroys a stream params instance.
+ * Args:
+ *    params - The pointer returned from libcras_stream_params_create.
+ */
+void libcras_stream_params_destroy(struct libcras_stream_params *params);
+
+/*
+ * Setup stream configuration parameters.
+ * Args:
+ *    params - The pointer returned from libcras_stream_params_create.
+ *    direction - Playback(CRAS_STREAM_OUTPUT) or capture(CRAS_STREAM_INPUT).
+ *    buffer_frames - total number of audio frames to buffer (dictates latency).
+ *    cb_threshold - For playback, call back for more data when the buffer
+ *        reaches this level. For capture, this is ignored (Audio callback will
+ *        be called when buffer_frames have been captured).
+ *    stream_type - Media or talk (currently only support "default").
+ *    client_type - The client type, like Chrome or CrOSVM.
+ *    flags - Currently only used for CRAS_INPUT_STREAM_FLAG.
+ *    user_data - Pointer that will be passed to the callback.
+ *    unified_cb - The playback callback. Called when audio is needed.
+ *    aud_cb - The capture callback. Called when audio is ready.
+ *    err_cb - Called when there is an error with the stream.
+ *    rate - The sample rate of the audio stream.
+ *    format - The format of the audio stream.
+ *    num_channels - The number of channels of the audio stream.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int libcras_stream_params_set(
+	struct libcras_stream_params *params,
+	enum CRAS_STREAM_DIRECTION direction, size_t buffer_frames,
+	size_t cb_threshold, enum CRAS_STREAM_TYPE stream_type,
+	enum CRAS_CLIENT_TYPE client_type, uint32_t flags, void *user_data,
+	cras_unified_cb_t unified_cb, cras_playback_cb_t aud_cb,
+	cras_error_cb_t err_cb, size_t rate, snd_pcm_format_t format,
+	size_t num_channels)
+{
+	return params->set(params->params_, direction, buffer_frames,
+			   cb_threshold, stream_type, client_type, flags,
+			   user_data, unified_cb, aud_cb, err_cb, rate, format,
+			   num_channels);
+}
+
+/*
+ * Sets channel layout on given stream parameter.
+ * Args:
+ *    params - The pointer returned from libcras_stream_params_create.
+ *    length - The length of the array.
+ *    layout - An integer array representing the position of each channel in
+ *    enum CRAS_CHANNEL.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int
+libcras_stream_params_set_channel_layout(struct libcras_stream_params *params,
+					 int length, const int8_t *layout)
+{
+	return params->set_channel_layout(params->params_, length, layout);
+}
+
+/*
+ * Enables AEC on given stream parameter.
+ * Args:
+ *    params - The pointer returned from libcras_stream_params_create.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int
+libcras_stream_params_enable_aec(struct libcras_stream_params *params)
+{
+	params->enable_aec(params->params_);
+	return 0;
+}
+
 #ifdef __cplusplus
 }
 #endif
