@@ -1349,6 +1349,21 @@ struct libcras_client {
 				 float volume_scaler);
 };
 
+struct cras_stream_cb_data;
+struct libcras_stream_cb_data {
+	int api_version;
+	struct cras_stream_cb_data *data_;
+	int (*get_stream_id)(struct cras_stream_cb_data *data,
+			     cras_stream_id_t *id);
+	int (*get_buf)(struct cras_stream_cb_data *data, uint8_t **buf);
+	int (*get_frames)(struct cras_stream_cb_data *data,
+			  unsigned int *frames);
+	int (*get_latency)(struct cras_stream_cb_data *data,
+			   struct timespec *latency);
+	int (*get_user_arg)(struct cras_stream_cb_data *data, void **user_arg);
+};
+typedef int (*libcras_stream_cb_t)(struct libcras_stream_cb_data *data);
+
 struct libcras_stream_params {
 	int api_version;
 	struct cras_stream_params *params_;
@@ -1356,9 +1371,9 @@ struct libcras_stream_params {
 		   enum CRAS_STREAM_DIRECTION direction, size_t buffer_frames,
 		   size_t cb_threshold, enum CRAS_STREAM_TYPE stream_type,
 		   enum CRAS_CLIENT_TYPE client_type, uint32_t flags,
-		   void *user_data, cras_unified_cb_t unified_cb,
-		   cras_playback_cb_t aud_cb, cras_error_cb_t err_cb,
-		   size_t rate, snd_pcm_format_t format, size_t num_channels);
+		   void *user_data, libcras_stream_cb_t stream_cb,
+		   cras_error_cb_t err_cb, size_t rate, snd_pcm_format_t format,
+		   size_t num_channels);
 	int (*set_channel_layout)(struct cras_stream_params *params, int length,
 				  const int8_t *layout);
 	void (*enable_aec)(struct cras_stream_params *params);
@@ -1545,8 +1560,8 @@ void libcras_stream_params_destroy(struct libcras_stream_params *params);
  *    client_type - The client type, like Chrome or CrOSVM.
  *    flags - Currently only used for CRAS_INPUT_STREAM_FLAG.
  *    user_data - Pointer that will be passed to the callback.
- *    unified_cb - The playback callback. Called when audio is needed.
- *    aud_cb - The capture callback. Called when audio is ready.
+ *    stream_cb - The audio callback. Called when audio is needed(playback) or
+ *        ready(capture).
  *    err_cb - Called when there is an error with the stream.
  *    rate - The sample rate of the audio stream.
  *    format - The format of the audio stream.
@@ -1559,13 +1574,12 @@ inline int libcras_stream_params_set(
 	enum CRAS_STREAM_DIRECTION direction, size_t buffer_frames,
 	size_t cb_threshold, enum CRAS_STREAM_TYPE stream_type,
 	enum CRAS_CLIENT_TYPE client_type, uint32_t flags, void *user_data,
-	cras_unified_cb_t unified_cb, cras_playback_cb_t aud_cb,
-	cras_error_cb_t err_cb, size_t rate, snd_pcm_format_t format,
-	size_t num_channels)
+	libcras_stream_cb_t stream_cb, cras_error_cb_t err_cb, size_t rate,
+	snd_pcm_format_t format, size_t num_channels)
 {
 	return params->set(params->params_, direction, buffer_frames,
 			   cb_threshold, stream_type, client_type, flags,
-			   user_data, unified_cb, aud_cb, err_cb, rate, format,
+			   user_data, stream_cb, err_cb, rate, format,
 			   num_channels);
 }
 
@@ -1598,6 +1612,80 @@ libcras_stream_params_enable_aec(struct libcras_stream_params *params)
 {
 	params->enable_aec(params->params_);
 	return 0;
+}
+
+/*
+ * Gets stream id from the callback data.
+ * Args:
+ *    data - The pointer passed to the callback function.
+ *    id - The pointer to save the stream id.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int
+libcras_stream_cb_data_get_stream_id(struct libcras_stream_cb_data *data,
+				     cras_stream_id_t *id)
+{
+	return data->get_stream_id(data->data_, id);
+}
+
+/*
+ * Gets stream buf from the callback data.
+ * Args:
+ *    data - The pointer passed to the callback function.
+ *    buf - The pointer to save the stream buffer.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int libcras_stream_cb_data_get_buf(struct libcras_stream_cb_data *data,
+					  uint8_t **buf)
+{
+	return data->get_buf(data->data_, buf);
+}
+
+/*
+ * Gets how many frames to read or play from the callback data.
+ * Args:
+ *    data - The pointer passed to the callback function.
+ *    frames - The pointer to save the number of frames.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int
+libcras_stream_cb_data_get_frames(struct libcras_stream_cb_data *data,
+				  unsigned int *frames)
+{
+	return data->get_frames(data->data_, frames);
+}
+
+/*
+ * Gets the latency from the callback data.
+ * Args:
+ *    data - The pointer passed to the callback function.
+ *    frames - The timespec pointer to save the latency.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int
+libcras_stream_cb_data_get_latency(struct libcras_stream_cb_data *data,
+				   struct timespec *latency)
+{
+	return data->get_latency(data->data_, latency);
+}
+
+/*
+ * Gets the user data from the callback data.
+ * Args:
+ *    data - The pointer passed to the callback function.
+ *    frames - The pointer to save the user data.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+inline int
+libcras_stream_cb_data_get_usr_arg(struct libcras_stream_cb_data *data,
+				   void **user_arg)
+{
+	return data->get_user_arg(data->data_, user_arg);
 }
 
 #ifdef __cplusplus

@@ -119,7 +119,8 @@ struct thread_state {
 };
 
 /* Parameters used when setting up a capture or playback stream. See comment
- * above cras_client_create_stream_params in the header for descriptions. */
+ * above cras_client_stream_params_create or libcras_stream_params_set in the
+ * header for descriptions. */
 struct cras_stream_params {
 	enum CRAS_STREAM_DIRECTION direction;
 	size_t buffer_frames;
@@ -133,6 +134,7 @@ struct cras_stream_params {
 	cras_unified_cb_t unified_cb;
 	cras_error_cb_t err_cb;
 	struct cras_audio_format format;
+	libcras_stream_cb_t stream_cb;
 };
 
 /* Represents an attached audio stream.
@@ -273,6 +275,92 @@ struct cras_hotword_handle {
 	cras_hotword_error_cb_t err_cb;
 	void *user_data;
 };
+
+struct cras_stream_cb_data {
+	cras_stream_id_t stream_id;
+	enum CRAS_STREAM_DIRECTION direction;
+	uint8_t *buf;
+	unsigned int frames;
+	struct timespec sample_ts;
+	void *user_arg;
+};
+
+int stream_cb_get_stream_id(struct cras_stream_cb_data *data,
+			    cras_stream_id_t *id)
+{
+	*id = data->stream_id;
+	return 0;
+}
+
+int stream_cb_get_buf(struct cras_stream_cb_data *data, uint8_t **buf)
+{
+	*buf = data->buf;
+	return 0;
+}
+
+int stream_cb_get_frames(struct cras_stream_cb_data *data, unsigned int *frames)
+{
+	*frames = data->frames;
+	return 0;
+}
+
+int stream_cb_get_latency(struct cras_stream_cb_data *data,
+			  struct timespec *latency)
+{
+	if (data->direction == CRAS_STREAM_INPUT)
+		cras_client_calc_capture_latency(&data->sample_ts, latency);
+	else
+		cras_client_calc_playback_latency(&data->sample_ts, latency);
+	return 0;
+}
+
+int stream_cb_get_user_arg(struct cras_stream_cb_data *data, void **user_arg)
+{
+	*user_arg = data->user_arg;
+	return 0;
+}
+
+struct libcras_stream_cb_data *
+libcras_stream_cb_data_create(cras_stream_id_t stream_id,
+			      enum CRAS_STREAM_DIRECTION direction,
+			      uint8_t *buf, unsigned int frames,
+			      struct timespec sample_ts, void *user_arg)
+{
+	struct libcras_stream_cb_data *data =
+		(struct libcras_stream_cb_data *)calloc(
+			1, sizeof(struct libcras_stream_cb_data));
+	if (!data) {
+		syslog(LOG_ERR, "cras_client: calloc: %s", strerror(errno));
+		return NULL;
+	}
+	data->data_ = (struct cras_stream_cb_data *)calloc(
+		1, sizeof(struct cras_stream_cb_data));
+	if (!data->data_) {
+		syslog(LOG_ERR, "cras_client: calloc: %s", strerror(errno));
+		free(data);
+		return NULL;
+	}
+	data->api_version = CRAS_API_VERSION;
+	data->get_stream_id = stream_cb_get_stream_id;
+	data->get_buf = stream_cb_get_buf;
+	data->get_frames = stream_cb_get_frames;
+	data->get_latency = stream_cb_get_latency;
+	data->get_user_arg = stream_cb_get_user_arg;
+	data->data_->stream_id = stream_id;
+	data->data_->direction = direction;
+	data->data_->buf = buf;
+	data->data_->frames = frames;
+	data->data_->sample_ts = sample_ts;
+	data->data_->user_arg = user_arg;
+	return data;
+}
+
+void libcras_stream_cb_data_destroy(struct libcras_stream_cb_data *data)
+{
+	if (data)
+		free(data->data_);
+	free(data);
+}
 
 /*
  * Local Helpers
@@ -1084,6 +1172,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	uint8_t *captured_frames;
 	struct timespec ts;
 	int rc = 0;
+	struct libcras_stream_cb_data *data;
 
 	config = stream->config;
 	/* If this message is for an output stream, log error and drop it. */
@@ -1098,14 +1187,24 @@ static int handle_capture_data_ready(struct client_stream *stream,
 
 	cras_timespec_to_timespec(&ts, &stream->shm->header->ts);
 
-	if (config->unified_cb)
+	if (config->stream_cb) {
+		data = libcras_stream_cb_data_create(
+			stream->id, stream->direction, captured_frames,
+			num_frames, ts, config->user_data);
+		if (!data)
+			return -errno;
+		frames = config->stream_cb(data);
+		libcras_stream_cb_data_destroy(data);
+		data = NULL;
+	} else if (config->unified_cb) {
 		frames = config->unified_cb(stream->client, stream->id,
 					    captured_frames, NULL, num_frames,
 					    &ts, NULL, config->user_data);
-	else
+	} else {
 		frames = config->aud_cb(stream->client, stream->id,
 					captured_frames, num_frames, &ts,
 					config->user_data);
+	}
 	if (frames < 0) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
 		rc = frames;
@@ -1152,6 +1251,7 @@ static int handle_playback_request(struct client_stream *stream,
 	struct cras_stream_params *config;
 	struct cras_audio_shm *shm = stream->shm;
 	struct timespec ts;
+	struct libcras_stream_cb_data *data;
 
 	config = stream->config;
 
@@ -1169,13 +1269,24 @@ static int handle_playback_request(struct client_stream *stream,
 	cras_timespec_to_timespec(&ts, &shm->header->ts);
 
 	/* Get samples from the user */
-	if (config->unified_cb)
+	if (config->stream_cb) {
+		data = libcras_stream_cb_data_create(stream->id,
+						     stream->direction, buf,
+						     num_frames, ts,
+						     config->user_data);
+		if (!data)
+			return -errno;
+		frames = config->stream_cb(data);
+		libcras_stream_cb_data_destroy(data);
+		data = NULL;
+	} else if (config->unified_cb) {
 		frames = config->unified_cb(stream->client, stream->id, NULL,
 					    buf, num_frames, NULL, &ts,
 					    config->user_data);
-	else
+	} else {
 		frames = config->aud_cb(stream->client, stream->id, buf,
 					num_frames, &ts, config->user_data);
+	}
 	if (frames < 0) {
 		send_stream_message(stream, CLIENT_STREAM_EOF);
 		rc = frames;
@@ -2255,6 +2366,7 @@ struct cras_stream_params *cras_client_stream_params_create(
 	params->user_data = user_data;
 	params->aud_cb = aud_cb;
 	params->unified_cb = 0;
+	params->stream_cb = 0;
 	params->err_cb = err_cb;
 	memcpy(&(params->format), format, sizeof(*format));
 	return params;
@@ -2328,6 +2440,7 @@ struct cras_stream_params *cras_client_unified_params_create(
 	params->user_data = user_data;
 	params->aud_cb = 0;
 	params->unified_cb = unified_cb;
+	params->stream_cb = 0;
 	params->err_cb = err_cb;
 	memcpy(&(params->format), format, sizeof(*format));
 
@@ -2350,7 +2463,8 @@ static inline int cras_client_send_add_stream_command_message(
 	if (client == NULL || config == NULL || stream_id_out == NULL)
 		return -EINVAL;
 
-	if (config->aud_cb == NULL && config->unified_cb == NULL)
+	if (config->stream_cb == NULL && config->aud_cb == NULL &&
+	    config->unified_cb == NULL)
 		return -EINVAL;
 
 	if (config->err_cb == NULL)
@@ -3851,9 +3965,9 @@ int stream_params_set(struct cras_stream_params *params,
 		      size_t buffer_frames, size_t cb_threshold,
 		      enum CRAS_STREAM_TYPE stream_type,
 		      enum CRAS_CLIENT_TYPE client_type, uint32_t flags,
-		      void *user_data, cras_unified_cb_t unified_cb,
-		      cras_playback_cb_t aud_cb, cras_error_cb_t err_cb,
-		      size_t rate, snd_pcm_format_t format, size_t num_channels)
+		      void *user_data, libcras_stream_cb_t stream_cb,
+		      cras_error_cb_t err_cb, size_t rate,
+		      snd_pcm_format_t format, size_t num_channels)
 {
 	params->direction = direction;
 	params->buffer_frames = buffer_frames;
@@ -3862,8 +3976,7 @@ int stream_params_set(struct cras_stream_params *params,
 	params->client_type = client_type;
 	params->flags = flags;
 	params->user_data = user_data;
-	params->unified_cb = unified_cb;
-	params->aud_cb = aud_cb;
+	params->stream_cb = stream_cb;
 	params->err_cb = err_cb;
 	params->format.frame_rate = rate;
 	params->format.format = format;
