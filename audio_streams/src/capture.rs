@@ -157,8 +157,9 @@ impl NoopCaptureStream {
 impl CaptureBufferStream for NoopCaptureStream {
     fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, BoxError> {
         if let Some(start_time) = self.start_time {
-            if start_time.elapsed() < self.next_frame {
-                std::thread::sleep(self.next_frame - start_time.elapsed());
+            let elapsed = start_time.elapsed();
+            if elapsed < self.next_frame {
+                std::thread::sleep(self.next_frame - elapsed);
             }
             self.next_frame += self.interval;
         } else {

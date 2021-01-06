@@ -341,8 +341,9 @@ impl NoopStream {
 impl PlaybackBufferStream for NoopStream {
     fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, BoxError> {
         if let Some(start_time) = self.start_time {
-            if start_time.elapsed() < self.next_frame {
-                std::thread::sleep(self.next_frame - start_time.elapsed());
+            let elapsed = start_time.elapsed();
+            if elapsed < self.next_frame {
+                std::thread::sleep(self.next_frame - elapsed);
             }
             self.next_frame += self.interval;
         } else {
