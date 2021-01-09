@@ -967,4 +967,9 @@ struct packet_status_logger* cras_hfp_ag_get_wbs_logger() {
   return NULL;
 }
 
+void detect_rtc_stream_pair(struct stream_list* list,
+                            struct cras_rstream* stream) {
+  return;
+}
+
 }  // extern "C"

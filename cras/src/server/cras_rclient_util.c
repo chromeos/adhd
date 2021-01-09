@@ -170,6 +170,8 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 	if (rc)
 		goto cleanup_config;
 
+	detect_rtc_stream_pair(cras_iodev_list_get_stream_list(), stream);
+
 	/* Tell client about the stream setup. */
 	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
 

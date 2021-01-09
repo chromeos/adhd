@@ -201,6 +201,19 @@ static inline uint64_t cras_frames_until_time(const struct timespec *end,
 	return cras_time_to_frames(&time_until, rate);
 }
 
+/* Returns true if the difference between a and b is  shorter than t. */
+static inline bool timespec_diff_shorter_than(const struct timespec *a,
+					      const struct timespec *b,
+					      const struct timespec *t)
+{
+	struct timespec diff;
+	if (timespec_after(a, b))
+		subtract_timespecs(a, b, &diff);
+	else
+		subtract_timespecs(b, a, &diff);
+	return timespec_after(t, &diff);
+}
+
 /* Poll on the given file descriptors.
  *
  * See ppoll(). This implementation changes the value of timeout to the

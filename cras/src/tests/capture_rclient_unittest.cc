@@ -270,4 +270,9 @@ bool cras_audio_format_valid(const struct cras_audio_format* fmt) {
   return true;
 }
 
+void detect_rtc_stream_pair(struct stream_list* list,
+                            struct cras_rstream* stream) {
+  return;
+}
+
 }  // extern "C"
