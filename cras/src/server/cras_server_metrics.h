@@ -61,9 +61,6 @@ int cras_server_metrics_highest_device_delay(
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
 					 enum CRAS_STREAM_DIRECTION direction);
 
-/* Logs the longest fetch delay of a stream in millisecond. */
-int cras_server_metrics_longest_fetch_delay(unsigned delay_msec);
-
 /* Logs the number of underruns of a device. */
 int cras_server_metrics_num_underruns(unsigned num_underruns);
 

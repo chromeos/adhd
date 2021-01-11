@@ -132,20 +132,6 @@ TEST(ServerMetricsTestSuite, SetMetricHighestHardwareLevel) {
   EXPECT_EQ(sent_msgs[0].data.value, hw_level);
 }
 
-TEST(ServerMetricsTestSuite, SetMetricsLongestFetchDelay) {
-  ResetStubData();
-  unsigned int delay = 100;
-
-  cras_server_metrics_longest_fetch_delay(delay);
-
-  EXPECT_EQ(sent_msgs.size(), 1);
-  EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
-  EXPECT_EQ(sent_msgs[0].header.length,
-            sizeof(struct cras_server_metrics_message));
-  EXPECT_EQ(sent_msgs[0].metrics_type, LONGEST_FETCH_DELAY);
-  EXPECT_EQ(sent_msgs[0].data.value, delay);
-}
-
 TEST(ServerMetricsTestSuite, SetMetricsNumUnderruns) {
   ResetStubData();
   unsigned int underrun = 10;
@@ -283,6 +269,10 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   stream.num_missed_cb = 5;
   stream.first_missed_cb_ts.tv_sec = 100;
   stream.first_missed_cb_ts.tv_nsec = 0;
+  stream.longest_fetch_interval.tv_sec = 1;
+  stream.longest_fetch_interval.tv_nsec = 0;
+  stream.sleep_interval_ts.tv_sec = 0;
+  stream.sleep_interval_ts.tv_nsec = 5000000;
 
   stream.direction = CRAS_STREAM_INPUT;
   stream.client_type = CRAS_CLIENT_TYPE_TEST;
@@ -290,7 +280,7 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   cras_server_metrics_stream_destroy(&stream);
 
   subtract_timespecs(&clock_gettime_retspec, &stream.start_ts, &diff_ts);
-  EXPECT_EQ(sent_msgs.size(), 3);
+  EXPECT_EQ(sent_msgs.size(), 4);
 
   // Log missed cb frequency.
   EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
@@ -321,6 +311,18 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
             CRAS_STREAM_TYPE_DEFAULT);
   EXPECT_EQ(sent_msgs[2].data.stream_data.direction, CRAS_STREAM_INPUT);
   EXPECT_EQ(sent_msgs[2].data.stream_data.runtime.tv_sec, 1000);
+
+  // Log longest fetch delay.
+  EXPECT_EQ(sent_msgs[3].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[3].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[3].metrics_type, LONGEST_FETCH_DELAY);
+  EXPECT_EQ(sent_msgs[3].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
+  EXPECT_EQ(sent_msgs[3].data.stream_data.stream_type,
+            CRAS_STREAM_TYPE_DEFAULT);
+  EXPECT_EQ(sent_msgs[3].data.stream_data.direction, CRAS_STREAM_INPUT);
+  EXPECT_EQ(sent_msgs[3].data.stream_data.runtime.tv_sec, 0);
+  EXPECT_EQ(sent_msgs[3].data.stream_data.runtime.tv_nsec, 995000000);
 }
 
 TEST(ServerMetricsTestSuite, SetMetricsBusyloop) {

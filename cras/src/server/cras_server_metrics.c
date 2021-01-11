@@ -698,13 +698,31 @@ int cras_server_metrics_highest_hw_level(unsigned hw_level,
 	return 0;
 }
 
-int cras_server_metrics_longest_fetch_delay(unsigned delay_msec)
+/* Logs longest fetch delay of a stream. */
+int cras_server_metrics_longest_fetch_delay(const struct cras_rstream *stream)
 {
 	struct cras_server_metrics_message msg;
 	union cras_server_metrics_data data;
 	int err;
 
-	data.value = delay_msec;
+	data.stream_data.client_type = stream->client_type;
+	data.stream_data.stream_type = stream->stream_type;
+	data.stream_data.direction = stream->direction;
+
+	/*
+	 * There is no delay when the sleep_interval_ts larger than the
+	 * longest_fetch_interval.
+	 */
+	if (!timespec_after(&stream->longest_fetch_interval,
+			    &stream->sleep_interval_ts)) {
+		data.stream_data.runtime.tv_sec = 0;
+		data.stream_data.runtime.tv_nsec = 0;
+	} else {
+		subtract_timespecs(&stream->longest_fetch_interval,
+				   &stream->sleep_interval_ts,
+				   &data.stream_data.runtime);
+	}
+
 	init_server_metrics_msg(&msg, LONGEST_FETCH_DELAY, data);
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
@@ -958,7 +976,9 @@ int cras_server_metrics_stream_destroy(const struct cras_rstream *stream)
 	if (rc < 0)
 		return rc;
 	rc = cras_server_metrics_stream_runtime(stream);
-	return rc;
+	if (rc < 0)
+		return rc;
+	return cras_server_metrics_longest_fetch_delay(stream);
 }
 
 int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
@@ -1026,6 +1046,17 @@ static void metrics_device_volume(struct cras_server_metrics_device_data data)
 	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s", kDeviceVolume,
 		 metrics_device_type_str(data.type));
 	cras_metrics_log_histogram(metrics_name, data.value, 0, 100, 20);
+}
+
+static void
+metrics_longest_fetch_delay(struct cras_server_metrics_stream_data data)
+{
+	int fetch_delay_msec =
+		data.runtime.tv_sec * 1000 + data.runtime.tv_nsec / 1000000;
+	log_sparse_histogram_each_level(
+		3, fetch_delay_msec, kStreamTimeoutMilliSeconds,
+		metrics_client_type_str(data.client_type),
+		metrics_stream_type_str(data.stream_type));
 }
 
 static void metrics_stream_runtime(struct cras_server_metrics_stream_data data)
@@ -1153,9 +1184,7 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 					   20);
 		break;
 	case LONGEST_FETCH_DELAY:
-		cras_metrics_log_histogram(kStreamTimeoutMilliSeconds,
-					   metrics_msg->data.value, 1, 20000,
-					   10);
+		metrics_longest_fetch_delay(metrics_msg->data.stream_data);
 		break;
 	case MISSED_CB_FIRST_TIME_INPUT:
 		cras_metrics_log_histogram(kMissedCallbackFirstTimeInput,
