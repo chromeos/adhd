@@ -286,6 +286,7 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
 
   stream.direction = CRAS_STREAM_INPUT;
   stream.client_type = CRAS_CLIENT_TYPE_TEST;
+  stream.stream_type = CRAS_STREAM_TYPE_DEFAULT;
   cras_server_metrics_stream_destroy(&stream);
 
   subtract_timespecs(&clock_gettime_retspec, &stream.start_ts, &diff_ts);
@@ -315,7 +316,9 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   EXPECT_EQ(sent_msgs[2].header.length,
             sizeof(struct cras_server_metrics_message));
   EXPECT_EQ(sent_msgs[2].metrics_type, STREAM_RUNTIME);
-  EXPECT_EQ(sent_msgs[2].data.stream_data.type, CRAS_CLIENT_TYPE_TEST);
+  EXPECT_EQ(sent_msgs[2].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
+  EXPECT_EQ(sent_msgs[2].data.stream_data.stream_type,
+            CRAS_STREAM_TYPE_DEFAULT);
   EXPECT_EQ(sent_msgs[2].data.stream_data.direction, CRAS_STREAM_INPUT);
   EXPECT_EQ(sent_msgs[2].data.stream_data.runtime.tv_sec, 1000);
 }

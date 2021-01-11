@@ -163,7 +163,8 @@ struct cras_server_metrics_device_data {
 };
 
 struct cras_server_metrics_stream_data {
-	enum CRAS_CLIENT_TYPE type;
+	enum CRAS_CLIENT_TYPE client_type;
+	enum CRAS_STREAM_TYPE stream_type;
 	enum CRAS_STREAM_DIRECTION direction;
 	struct timespec runtime;
 };
@@ -309,6 +310,27 @@ metrics_client_type_str(enum CRAS_CLIENT_TYPE client_type)
 	}
 }
 
+static inline const char *
+metrics_stream_type_str(enum CRAS_STREAM_TYPE stream_type)
+{
+	switch (stream_type) {
+	case CRAS_STREAM_TYPE_DEFAULT:
+		return "Default";
+	case CRAS_STREAM_TYPE_MULTIMEDIA:
+		return "Multimedia";
+	case CRAS_STREAM_TYPE_VOICE_COMMUNICATION:
+		return "VoiceCommunication";
+	case CRAS_STREAM_TYPE_SPEECH_RECOGNITION:
+		return "SpeechRecognition";
+	case CRAS_STREAM_TYPE_PRO_AUDIO:
+		return "ProAudio";
+	case CRAS_STREAM_TYPE_ACCESSIBILITY:
+		return "Accessibility";
+	default:
+		return "InvalidType";
+	}
+}
+
 static enum CRAS_METRICS_DEVICE_TYPE
 get_metrics_device_type(struct cras_iodev *iodev)
 {
@@ -392,6 +414,42 @@ get_metrics_device_type(struct cras_iodev *iodev)
 	default:
 		return CRAS_METRICS_DEVICE_UNKNOWN;
 	}
+}
+
+/*
+ * Logs metrics for each group it belongs to. The UMA does not merge subgroups
+ * automatically so we need to log them separately.
+ *
+ * For example, if we call this function with argument (3, 48000,
+ * Cras.StreamSamplingRate, Input, Chrome), it will send 48000 to below
+ * metrics:
+ * Cras.StreamSamplingRate.Input.Chrome
+ * Cras.StreamSamplingRate.Input
+ * Cras.StreamSamplingRate
+ */
+static void log_sparse_histogram_each_level(int num, int sample, ...)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE] = {};
+	va_list valist;
+	int i, len = 0;
+
+	va_start(valist, sample);
+
+	for (i = 0; i < num && len < METRICS_NAME_BUFFER_SIZE; i++) {
+		int metric_len =
+			snprintf(metrics_name + len,
+				 METRICS_NAME_BUFFER_SIZE - len, "%s%s",
+				 i ? "." : "", va_arg(valist, char *));
+		// Exit early on error or running out of bufferspace. Avoids
+		// logging partial or corrupted strings.
+		if (metric_len < 0 ||
+		    metric_len > METRICS_NAME_BUFFER_SIZE - len)
+			break;
+		len += metric_len;
+		cras_metrics_log_sparse_histogram(metrics_name, sample);
+	}
+
+	va_end(valist);
 }
 
 int cras_server_metrics_hfp_sco_connection_error(
@@ -869,7 +927,8 @@ int cras_server_metrics_stream_runtime(const struct cras_rstream *stream)
 	struct timespec now;
 	int err;
 
-	data.stream_data.type = stream->client_type;
+	data.stream_data.client_type = stream->client_type;
+	data.stream_data.stream_type = stream->stream_type;
 	data.stream_data.direction = stream->direction;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	subtract_timespecs(&now, &stream->start_ts, &data.stream_data.runtime);
@@ -975,15 +1034,11 @@ static void metrics_stream_runtime(struct cras_server_metrics_stream_data data)
 
 	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "Cras.%sStreamRuntime",
 		 data.direction == CRAS_STREAM_INPUT ? "Input" : "Output");
-	cras_metrics_log_histogram(metrics_name, (unsigned)data.runtime.tv_sec,
-				   0, 10000, 20);
 
-	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
-		 "Cras.%sStreamRuntime.%s",
-		 data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
-		 metrics_client_type_str(data.type));
-	cras_metrics_log_histogram(metrics_name, (unsigned)data.runtime.tv_sec,
-				   0, 10000, 20);
+	log_sparse_histogram_each_level(
+		3, (int)data.runtime.tv_sec, metrics_name,
+		metrics_client_type_str(data.client_type),
+		metrics_stream_type_str(data.stream_type));
 }
 
 static void metrics_busyloop(struct cras_server_metrics_timespec_data data)
@@ -994,40 +1049,6 @@ static void metrics_busyloop(struct cras_server_metrics_timespec_data data)
 		 get_timespec_period_str(data.runtime));
 
 	cras_metrics_log_histogram(metrics_name, data.count, 0, 1000, 20);
-}
-
-/*
- * Logs metrics for each group it belongs to. The UMA does not merge subgroups
- * automatically so we need to log them separately.
- *
- * For example, if we call this function with argument (3, 48000,
- * Cras.StreamSamplingRate, Input, Chrome), it will send 48000 to below
- * metrics:
- * Cras.StreamSamplingRate.Input.Chrome
- * Cras.StreamSamplingRate.Input
- * Cras.StreamSamplingRate
- */
-static void log_sparse_histogram_each_level(int num, int sample, ...)
-{
-	char metrics_name[METRICS_NAME_BUFFER_SIZE] = {};
-	va_list valist;
-	int i, len = 0;
-
-	va_start(valist, sample);
-
-	for (i = 0; i < num && len < METRICS_NAME_BUFFER_SIZE; i++) {
-		int metric_len = snprintf(metrics_name + len,
-				METRICS_NAME_BUFFER_SIZE - len, "%s%s",
-				i ? "." : "", va_arg(valist, char *));
-		// Exit early on error or running out of bufferspace. Avoids
-		// logging partial or corrupted strings.
-		if (metric_len < 0 || metric_len > METRICS_NAME_BUFFER_SIZE - len)
-			break;
-		len += metric_len;
-		cras_metrics_log_sparse_histogram(metrics_name, sample);
-	}
-
-	va_end(valist);
 }
 
 static void
