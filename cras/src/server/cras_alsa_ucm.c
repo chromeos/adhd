@@ -437,6 +437,7 @@ cleanup:
 void ucm_destroy(struct cras_use_case_mgr *mgr)
 {
 	snd_use_case_mgr_close(mgr->mgr);
+	free(mgr->hotword_modifier);
 	free(mgr->name);
 	free(mgr);
 }
