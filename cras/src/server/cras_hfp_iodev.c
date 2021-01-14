@@ -167,6 +167,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	hfpio->filled_zeros = 0;
 add_dev:
 	hfp_info_add_iodev(hfpio->info, iodev->direction, iodev->format);
+	hfp_set_call_status(hfpio->slc, 1);
 
 	iodev->buffer_size = hfp_buf_size(hfpio->info, iodev->direction);
 
@@ -181,8 +182,10 @@ static int close_dev(struct cras_iodev *iodev)
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
 	hfp_info_rm_iodev(hfpio->info, iodev->direction);
-	if (hfp_info_running(hfpio->info) && !hfp_info_has_iodev(hfpio->info))
+	if (hfp_info_running(hfpio->info) && !hfp_info_has_iodev(hfpio->info)) {
 		hfp_info_stop(hfpio->info);
+		hfp_set_call_status(hfpio->slc, 0);
+	}
 
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
