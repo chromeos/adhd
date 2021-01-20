@@ -134,6 +134,12 @@ void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled);
 /* Gets the flag of Bluetooth fixed A2DP packet size. */
 bool cras_system_get_bt_fix_a2dp_packet_size_enabled();
 
+/* Sets the flag to enable or disable Noise Cancellation. */
+void cras_system_set_noise_cancellation_enabled(bool enabled);
+
+/* Gets the flag of Noise Cancellation. */
+bool cras_system_get_noise_cancellation_enabled();
+
 /* Checks if the card ignores the ucm suffix. */
 bool cras_system_check_ignore_ucm_suffix(const char *card_name);
 

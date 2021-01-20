@@ -158,6 +158,7 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	exp_state->bt_wbs_enabled = board_config.bt_wbs_enabled;
 	exp_state->deprioritize_bt_wbs_mic =
 		board_config.deprioritize_bt_wbs_mic;
+	exp_state->noise_cancellation_enabled = 0;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -397,6 +398,16 @@ void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled)
 bool cras_system_get_bt_fix_a2dp_packet_size_enabled()
 {
 	return state.bt_fix_a2dp_packet_size;
+}
+
+void cras_system_set_noise_cancellation_enabled(bool enabled)
+{
+	state.exp_state->noise_cancellation_enabled = enabled;
+}
+
+bool cras_system_get_noise_cancellation_enabled()
+{
+	return !!state.exp_state->noise_cancellation_enabled;
 }
 
 bool cras_system_check_ignore_ucm_suffix(const char *card_name)

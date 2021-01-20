@@ -573,6 +573,7 @@ struct __attribute__((__packed__)) cras_audio_thread_snapshot_buffer {
  *    main_thread_debug_info - ring buffer for storing main thread event logs.
  *    num_input_streams_with_permission - An array containing numbers of input
  *        streams with permission in each client type.
+ *    noise_cancellation_enabled - Whether or not Noise Cancellation is enabled.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__((packed, aligned(4))) cras_server_state {
@@ -612,6 +613,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	int32_t deprioritize_bt_wbs_mic;
 	struct main_thread_debug_info main_thread_debug_info;
 	uint32_t num_input_streams_with_permission[CRAS_NUM_CLIENT_TYPE];
+	int32_t noise_cancellation_enabled;
 };
 
 /* Actions for card add/remove/change. */
