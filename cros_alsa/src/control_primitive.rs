@@ -342,6 +342,7 @@ impl ElemInfo {
 }
 
 /// [snd_ctl_t](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#ga06628f38def84a0fe3da74041db9d51f) wrapper.
+#[derive(Debug)]
 pub struct Ctl(ptr::NonNull<snd_ctl_t>, PhantomData<snd_ctl_t>);
 
 impl Drop for Ctl {
