@@ -996,6 +996,10 @@ void ucm_disable_all_hotword_models(struct cras_use_case_mgr *mgr)
 {
 	const char **list;
 	int num_enmods, mod_idx;
+
+	if (!mgr)
+		return;
+
 	/* Disable all currently enabled hotword model modifiers. */
 	num_enmods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
 	if (num_enmods <= 0)
