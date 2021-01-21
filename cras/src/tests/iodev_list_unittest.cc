@@ -95,6 +95,7 @@ static struct cras_rstream* audio_thread_disconnect_stream_stream;
 static int audio_thread_disconnect_stream_called;
 static struct cras_iodev fake_sco_in_dev, fake_sco_out_dev;
 static struct cras_ionode fake_sco_in_node, fake_sco_out_node;
+static int server_state_hotword_pause_at_suspend;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
@@ -238,6 +239,7 @@ class IoDevTestSuite : public testing::Test {
     mock_empty_iodev[1].state = CRAS_IODEV_STATE_CLOSE;
     mock_empty_iodev[1].update_active_node = update_active_node;
     mock_hotword_iodev.update_active_node = update_active_node;
+    server_state_hotword_pause_at_suspend = 0;
   }
 
   virtual void TearDown() {
@@ -1942,6 +1944,68 @@ TEST_F(IoDevTestSuite, GetSCOPCMIodevs) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, HotwordStreamsPausedAtSystemSuspend) {
+  struct cras_rstream rstream;
+  struct cras_rstream* stream_list = NULL;
+  cras_iodev_list_init();
+
+  node1.type = CRAS_NODE_TYPE_HOTWORD;
+  d1_.direction = CRAS_STREAM_INPUT;
+  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+
+  d1_.format = &fmt_;
+
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.is_pinned = 1;
+  rstream.pinned_dev_idx = d1_.info.idx;
+  rstream.flags = HOTWORD_STREAM;
+
+  /* Add a hotword stream. */
+  EXPECT_EQ(0, stream_add_cb(&rstream));
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+
+  DL_APPEND(stream_list, &rstream);
+  stream_list_get_ret = stream_list;
+
+  server_state_hotword_pause_at_suspend = 1;
+
+  /* Trigger system suspend. Verify hotword stream is moved to empty dev. */
+  observer_ops->suspend_changed(NULL, 1);
+  EXPECT_EQ(1, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_disconnect_stream_stream);
+  EXPECT_EQ(&d1_, audio_thread_disconnect_stream_dev);
+  EXPECT_EQ(2, audio_thread_add_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  EXPECT_EQ(&mock_hotword_iodev, audio_thread_add_stream_dev);
+
+  /* Trigger system resume. Verify hotword stream is moved to real dev.*/
+  observer_ops->suspend_changed(NULL, 0);
+  EXPECT_EQ(2, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_disconnect_stream_stream);
+  EXPECT_EQ(&mock_hotword_iodev, audio_thread_disconnect_stream_dev);
+  EXPECT_EQ(3, audio_thread_add_stream_called);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+
+  server_state_hotword_pause_at_suspend = 0;
+  audio_thread_disconnect_stream_called = 0;
+  audio_thread_add_stream_called = 0;
+
+  /* Trigger system suspend. Verify hotword stream is not touched. */
+  observer_ops->suspend_changed(NULL, 1);
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(0, audio_thread_add_stream_called);
+
+  /* Trigger system resume. Verify hotword stream is not touched.*/
+  observer_ops->suspend_changed(NULL, 0);
+  EXPECT_EQ(0, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(0, audio_thread_add_stream_called);
+
+  cras_iodev_list_deinit();
+}
+
 }  //  namespace
 
 int main(int argc, char** argv) {
@@ -2244,6 +2308,10 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   tp->tv_sec = clock_gettime_retspec.tv_sec;
   tp->tv_nsec = clock_gettime_retspec.tv_nsec;
   return 0;
+}
+
+bool cras_system_get_hotword_pause_at_suspend() {
+  return !!server_state_hotword_pause_at_suspend;
 }
 
 }  // extern "C"

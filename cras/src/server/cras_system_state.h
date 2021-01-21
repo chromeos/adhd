@@ -143,6 +143,12 @@ bool cras_system_get_noise_cancellation_enabled();
 /* Checks if the card ignores the ucm suffix. */
 bool cras_system_check_ignore_ucm_suffix(const char *card_name);
 
+/* Returns true if hotword detection is paused at system suspend. */
+bool cras_system_get_hotword_pause_at_suspend();
+
+/* Sets whether to pause hotword detection at system suspend. */
+void cras_system_set_hotword_pause_at_suspend(bool pause);
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.

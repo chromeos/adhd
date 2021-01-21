@@ -972,4 +972,6 @@ void detect_rtc_stream_pair(struct stream_list* list,
   return;
 }
 
+void cras_system_set_hotword_pause_at_suspend(bool pause) {}
+
 }  // extern "C"

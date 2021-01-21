@@ -160,6 +160,8 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	exp_state->deprioritize_bt_wbs_mic =
 		board_config.deprioritize_bt_wbs_mic;
 	exp_state->noise_cancellation_enabled = 0;
+	exp_state->hotword_pause_at_suspend =
+		board_config.hotword_pause_at_suspend;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -425,6 +427,16 @@ bool cras_system_check_ignore_ucm_suffix(const char *card_name)
 			return true;
 	}
 	return false;
+}
+
+bool cras_system_get_hotword_pause_at_suspend()
+{
+	return !!state.exp_state->hotword_pause_at_suspend;
+}
+
+void cras_system_set_hotword_pause_at_suspend(bool pause)
+{
+	state.exp_state->hotword_pause_at_suspend = pause;
 }
 
 int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)

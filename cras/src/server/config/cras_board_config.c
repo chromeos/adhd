@@ -14,6 +14,7 @@ static const int32_t AEC_SUPPORTED_DEFAULT = 0;
 static const int32_t AEC_GROUP_ID_DEFAULT = -1;
 static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 1;
 static const int32_t BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT = 0;
+static const int32_t HOTWORD_PAUSE_AT_SUSPEND_DEFAULT = 0;
 
 #define CONFIG_NAME "board.ini"
 #define DEFAULT_OUTPUT_BUF_SIZE_INI_KEY "output:default_output_buffer_size"
@@ -22,6 +23,7 @@ static const int32_t BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT = 0;
 #define BLUETOOTH_WBS_ENABLED_INI_KEY "bluetooth:wbs_enabled"
 #define BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_KEY "bluetooth:deprioritize_wbs_mic"
 #define UCM_IGNORE_SUFFIX_KEY "ucm:ignore_suffix"
+#define HOTWORD_PAUSE_AT_SUSPEND "hotword:pause_at_suspend"
 
 void cras_board_config_get(const char *config_path,
 			   struct cras_board_config *board_config)
@@ -84,6 +86,11 @@ void cras_board_config_get(const char *config_path,
 		if (!board_config->ucm_ignore_suffix)
 			syslog(LOG_ERR, "Failed to call strdup: %d", errno);
 	}
+
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, HOTWORD_PAUSE_AT_SUSPEND);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
+	board_config->hotword_pause_at_suspend = iniparser_getint(
+		ini, ini_key, HOTWORD_PAUSE_AT_SUSPEND_DEFAULT);
 
 	iniparser_freedict(ini);
 	syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);

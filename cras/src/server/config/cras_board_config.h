@@ -15,6 +15,7 @@ struct cras_board_config {
 	int32_t bt_wbs_enabled;
 	int32_t deprioritize_bt_wbs_mic;
 	char *ucm_ignore_suffix;
+	int32_t hotword_pause_at_suspend;
 };
 
 /* Gets a configuration based on the config file specified.

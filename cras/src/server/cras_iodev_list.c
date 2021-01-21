@@ -91,6 +91,9 @@ static int stream_list_suspended = 0;
 static const unsigned int INIT_DEV_DELAY_MS = 1000;
 /* Flag to indicate that hotword streams are suspended. */
 static int hotword_suspended = 0;
+/* Flag to indicate that suspended hotword streams should be auto-resumed at
+ * system resume. */
+static int hotword_auto_resume = 0;
 
 static void idle_dev_check(struct cras_timer *timer, void *data);
 
@@ -491,6 +494,11 @@ static void suspend_devs()
 		if (rstream->is_pinned) {
 			struct cras_iodev *dev;
 
+			/* Skip closing hotword stream in the first pass.
+			 * Closing an input device may resume hotword stream
+			 * with its post_close_iodev_hook so we should deal
+			 * with hotword stream in the second pass.
+			 */
 			if ((rstream->flags & HOTWORD_STREAM) == HOTWORD_STREAM)
 				continue;
 
@@ -514,6 +522,14 @@ static void suspend_devs()
 	DL_FOREACH (enabled_devs[CRAS_STREAM_INPUT], edev) {
 		close_dev(edev->dev);
 	}
+
+	/* Doing this check after all the other enabled iodevs are closed to
+	 * ensure preempted hotword streams obey the pause_at_suspend flag.
+	 */
+	if (cras_system_get_hotword_pause_at_suspend()) {
+		cras_iodev_list_suspend_hotword_streams();
+		hotword_auto_resume = 1;
+	}
 }
 
 static int stream_added_cb(struct cras_rstream *rstream);
@@ -527,6 +543,14 @@ static void resume_devs()
 	stream_list_suspended = 0;
 
 	MAINLOG(main_log, MAIN_THREAD_RESUME_DEVS, 0, 0, 0);
+
+	/* Auto-resume based on the local flag in case the system state flag has
+	 * changed.
+	 */
+	if (hotword_auto_resume) {
+		cras_iodev_list_resume_hotword_stream();
+		hotword_auto_resume = 0;
+	}
 
 	/*
 	 * To remove the short popped noise caused by applications that can not
