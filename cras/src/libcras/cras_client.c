@@ -3930,6 +3930,54 @@ int cras_client_disable_hotword_callback(struct cras_client *client,
 	return 0;
 }
 
+int get_nodes(struct cras_client *client, enum CRAS_STREAM_DIRECTION direction,
+	      struct libcras_node_info ***nodes, size_t *num)
+{
+	struct cras_iodev_info iodevs[CRAS_MAX_IODEVS];
+	struct cras_ionode_info ionodes[CRAS_MAX_IONODES];
+	size_t num_devs = CRAS_MAX_IODEVS, num_nodes = CRAS_MAX_IONODES;
+	int rc, i, j;
+
+	*num = 0;
+	if (direction == CRAS_STREAM_INPUT) {
+		rc = cras_client_get_input_devices(client, iodevs, ionodes,
+						   &num_devs, &num_nodes);
+	} else {
+		rc = cras_client_get_output_devices(client, iodevs, ionodes,
+						    &num_devs, &num_nodes);
+	}
+
+	if (rc < 0) {
+		syslog(LOG_ERR, "Failed to get devices: %d", rc);
+		return rc;
+	}
+
+	*nodes = (struct libcras_node_info **)calloc(
+		num_nodes, sizeof(struct libcras_node_info *));
+
+	for (i = 0; i < num_devs; i++) {
+		for (j = 0; j < num_nodes; j++) {
+			if (iodevs[i].idx != ionodes[j].iodev_idx)
+				continue;
+			(*nodes)[*num] = libcras_node_info_create(&iodevs[i],
+								  &ionodes[j]);
+			if ((*nodes)[*num] == NULL) {
+				rc = -errno;
+				goto clean;
+			}
+			(*num)++;
+		}
+	}
+	return 0;
+clean:
+	for (i = 0; i < *num; i++)
+		libcras_node_info_destroy((*nodes)[i]);
+	free(*nodes);
+	*nodes = NULL;
+	*num = 0;
+	return rc;
+}
+
 struct libcras_client *libcras_client_create()
 {
 	struct libcras_client *client = (struct libcras_client *)calloc(
@@ -3951,6 +3999,7 @@ struct libcras_client *libcras_client_create()
 	client->add_pinned_stream = cras_client_add_pinned_stream;
 	client->rm_stream = cras_client_rm_stream;
 	client->set_stream_volume = cras_client_set_stream_volume;
+	client->get_nodes = get_nodes;
 	return client;
 }
 
@@ -4019,4 +4068,121 @@ void libcras_stream_params_destroy(struct libcras_stream_params *params)
 {
 	free(params->params_);
 	free(params);
+}
+
+struct cras_node_info {
+	uint64_t id;
+	uint32_t dev_idx;
+	uint32_t node_idx;
+	uint32_t max_supported_channels;
+	bool plugged;
+	bool active;
+	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
+	char node_name[CRAS_NODE_NAME_BUFFER_SIZE];
+	char dev_name[CRAS_IODEV_NAME_BUFFER_SIZE];
+};
+
+int cras_node_info_get_id(struct cras_node_info *node, uint64_t *id)
+{
+	(*id) = node->id;
+	return 0;
+}
+
+int cras_node_info_get_dev_idx(struct cras_node_info *node, uint32_t *dev_idx)
+{
+	(*dev_idx) = node->dev_idx;
+	return 0;
+}
+
+int cras_node_info_get_node_idx(struct cras_node_info *node, uint32_t *node_idx)
+{
+	(*node_idx) = node->node_idx;
+	return 0;
+}
+
+int cras_node_info_get_max_supported_channels(struct cras_node_info *node,
+					      uint32_t *max_supported_channels)
+{
+	(*max_supported_channels) = node->max_supported_channels;
+	return 0;
+}
+
+int cras_node_info_is_plugged(struct cras_node_info *node, bool *is_plugged)
+{
+	(*is_plugged) = node->plugged;
+	return 0;
+}
+
+int cras_node_info_is_active(struct cras_node_info *node, bool *is_active)
+{
+	(*is_active) = node->active;
+	return 0;
+}
+
+int cras_node_info_get_type(struct cras_node_info *node, char **type)
+{
+	(*type) = node->type;
+	return 0;
+}
+
+int cras_node_info_get_node_name(struct cras_node_info *node, char **node_name)
+{
+	(*node_name) = node->node_name;
+	return 0;
+}
+
+int cras_node_info_get_dev_name(struct cras_node_info *node, char **dev_name)
+{
+	(*dev_name) = node->dev_name;
+	return 0;
+}
+
+struct libcras_node_info *
+libcras_node_info_create(struct cras_iodev_info *iodev,
+			 struct cras_ionode_info *ionode)
+{
+	struct libcras_node_info *node = (struct libcras_node_info *)calloc(
+		1, sizeof(struct libcras_node_info));
+	if (!node) {
+		syslog(LOG_ERR, "cras_client: calloc failed");
+		return NULL;
+	}
+	node->node_ = (struct cras_node_info *)calloc(
+		1, sizeof(struct cras_node_info));
+	if (node->node_ == NULL) {
+		syslog(LOG_ERR, "cras_client: calloc failed");
+		free(node);
+		return NULL;
+	}
+	node->api_version = CRAS_API_VERSION;
+	node->node_->id =
+		cras_make_node_id(ionode->iodev_idx, ionode->ionode_idx);
+	node->node_->dev_idx = ionode->iodev_idx;
+	node->node_->node_idx = ionode->ionode_idx;
+	node->node_->max_supported_channels = iodev->max_supported_channels;
+	node->node_->plugged = ionode->plugged;
+	node->node_->active = ionode->active;
+	strncpy(node->node_->type, ionode->type,
+		CRAS_NODE_TYPE_BUFFER_SIZE - 1);
+	strncpy(node->node_->node_name, ionode->name,
+		CRAS_NODE_NAME_BUFFER_SIZE - 1);
+	strncpy(node->node_->dev_name, iodev->name,
+		CRAS_IODEV_NAME_BUFFER_SIZE - 1);
+	node->get_id = cras_node_info_get_id;
+	node->get_dev_idx = cras_node_info_get_dev_idx;
+	node->get_node_idx = cras_node_info_get_node_idx;
+	node->get_max_supported_channels =
+		cras_node_info_get_max_supported_channels;
+	node->is_plugged = cras_node_info_is_plugged;
+	node->is_active = cras_node_info_is_active;
+	node->get_type = cras_node_info_get_type;
+	node->get_node_name = cras_node_info_get_node_name;
+	node->get_dev_name = cras_node_info_get_dev_name;
+	return node;
+}
+
+void libcras_node_info_destroy(struct libcras_node_info *node)
+{
+	free(node->node_);
+	free(node);
 }

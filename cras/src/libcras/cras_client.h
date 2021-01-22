@@ -1330,6 +1330,21 @@ int cras_client_set_num_active_streams_changed_callback(
 		return -ENOSYS;                                                \
 	}
 
+struct libcras_node_info {
+	int api_version;
+	struct cras_node_info *node_;
+	int (*get_id)(struct cras_node_info *node, uint64_t *id);
+	int (*get_dev_idx)(struct cras_node_info *node, uint32_t *dev_idx);
+	int (*get_node_idx)(struct cras_node_info *node, uint32_t *node_idx);
+	int (*get_max_supported_channels)(struct cras_node_info *node,
+					  uint32_t *max_supported_channels);
+	int (*is_plugged)(struct cras_node_info *node, bool *plugged);
+	int (*is_active)(struct cras_node_info *node, bool *active);
+	int (*get_type)(struct cras_node_info *node, char **name);
+	int (*get_node_name)(struct cras_node_info *node, char **name);
+	int (*get_dev_name)(struct cras_node_info *node, char **name);
+};
+
 struct libcras_client {
 	int api_version;
 	struct cras_client *client_;
@@ -1347,6 +1362,9 @@ struct libcras_client {
 	int (*set_stream_volume)(struct cras_client *client,
 				 cras_stream_id_t stream_id,
 				 float volume_scaler);
+	int (*get_nodes)(struct cras_client *client,
+			 enum CRAS_STREAM_DIRECTION direction,
+			 struct libcras_node_info ***nodes, size_t *num);
 };
 
 struct cras_stream_cb_data;
@@ -1532,6 +1550,14 @@ inline int libcras_client_set_stream_volume(struct libcras_client *client,
 					 volume_scaler);
 }
 
+inline int libcras_client_get_nodes(struct libcras_client *client,
+				    enum CRAS_STREAM_DIRECTION direction,
+				    struct libcras_node_info ***nodes,
+				    size_t *num)
+{
+	return client->get_nodes(client->client_, direction, nodes, num);
+}
+
 /*
  * Creates a new struct to save stream params.
  * Returns:
@@ -1686,6 +1712,67 @@ libcras_stream_cb_data_get_usr_arg(struct libcras_stream_cb_data *data,
 				   void **user_arg)
 {
 	return data->get_user_arg(data->data_, user_arg);
+}
+
+struct libcras_node_info *
+libcras_node_info_create(struct cras_iodev_info *iodev,
+			 struct cras_ionode_info *ionode);
+void libcras_node_info_destroy(struct libcras_node_info *node);
+
+inline int libcras_node_info_get_id(struct libcras_node_info *node,
+				    uint64_t *id)
+{
+	return node->get_id(node->node_, id);
+}
+
+inline int libcras_node_info_get_dev_idx(struct libcras_node_info *node,
+					 uint32_t *dev_idx)
+{
+	return node->get_dev_idx(node->node_, dev_idx);
+}
+
+inline int libcras_node_info_get_node_idx(struct libcras_node_info *node,
+					  uint32_t *node_idx)
+{
+	return node->get_node_idx(node->node_, node_idx);
+}
+
+inline int
+libcras_node_info_get_max_supported_channels(struct libcras_node_info *node,
+					     uint32_t *max_supported_channels)
+{
+	return node->get_max_supported_channels(node->node_,
+						max_supported_channels);
+}
+
+inline int libcras_node_info_is_plugged(struct libcras_node_info *node,
+					bool *plugged)
+{
+	return node->is_plugged(node->node_, plugged);
+}
+
+inline int libcras_node_info_is_active(struct libcras_node_info *node,
+				       bool *active)
+{
+	return node->is_active(node->node_, active);
+}
+
+inline int libcras_node_info_get_type(struct libcras_node_info *node,
+				      char **type)
+{
+	return node->get_type(node->node_, type);
+}
+
+inline int libcras_node_info_get_node_name(struct libcras_node_info *node,
+					   char **name)
+{
+	return node->get_node_name(node->node_, name);
+}
+
+inline int libcras_node_info_get_dev_name(struct libcras_node_info *node,
+					  char **name)
+{
+	return node->get_dev_name(node->node_, name);
 }
 
 #ifdef __cplusplus
