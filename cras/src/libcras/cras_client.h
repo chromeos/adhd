@@ -1365,6 +1365,13 @@ struct libcras_client {
 	int (*get_nodes)(struct cras_client *client,
 			 enum CRAS_STREAM_DIRECTION direction,
 			 struct libcras_node_info ***nodes, size_t *num);
+	int (*get_default_output_buffer_size)(struct cras_client *client,
+					      int *size);
+	int (*get_aec_group_id)(struct cras_client *client, int *id);
+	int (*get_aec_supported)(struct cras_client *client, int *supported);
+	int (*get_system_muted)(struct cras_client *client, int *muted);
+	int (*set_system_mute)(struct cras_client *client, int mute);
+	int (*get_loopback_dev_idx)(struct cras_client *client, int *idx);
 };
 
 struct cras_stream_cb_data;
@@ -1556,6 +1563,43 @@ inline int libcras_client_get_nodes(struct libcras_client *client,
 				    size_t *num)
 {
 	return client->get_nodes(client->client_, direction, nodes, num);
+}
+
+inline int
+libcras_client_get_default_output_buffer_size(struct libcras_client *client,
+					      int *size)
+{
+	return client->get_default_output_buffer_size(client->client_, size);
+}
+
+inline int libcras_client_get_aec_group_id(struct libcras_client *client,
+					   int *id)
+{
+	return client->get_aec_group_id(client->client_, id);
+}
+
+inline int libcras_client_get_aec_supported(struct libcras_client *client,
+					    int *supported)
+{
+	return client->get_aec_supported(client->client_, supported);
+}
+
+inline int libcras_client_get_system_muted(struct libcras_client *client,
+					   int *muted)
+{
+	return client->get_aec_group_id(client->client_, muted);
+}
+
+inline int libcras_client_set_system_mute(struct libcras_client *client,
+					  int mute)
+{
+	return client->set_system_mute(client->client_, mute);
+}
+
+inline int libcras_client_get_loopback_dev_idx(struct libcras_client *client,
+					       int *idx)
+{
+	return client->get_loopback_dev_idx(client->client_, idx);
 }
 
 /*

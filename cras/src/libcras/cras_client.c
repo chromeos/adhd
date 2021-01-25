@@ -3978,6 +3978,46 @@ clean:
 	return rc;
 }
 
+int get_default_output_buffer_size(struct cras_client *client, int *size)
+{
+	int rc = cras_client_get_default_output_buffer_size(client);
+	if (rc < 0)
+		return rc;
+	*size = rc;
+	return 0;
+}
+
+int get_aec_group_id(struct cras_client *client, int *id)
+{
+	int rc = cras_client_get_aec_group_id(client);
+	if (rc < 0)
+		return rc;
+	*id = rc;
+	return 0;
+}
+
+int get_aec_supported(struct cras_client *client, int *supported)
+{
+	*supported = cras_client_get_aec_supported(client);
+	return 0;
+}
+
+int get_system_muted(struct cras_client *client, int *muted)
+{
+	*muted = cras_client_get_system_muted(client);
+	return 0;
+}
+
+int get_loopback_dev_idx(struct cras_client *client, int *idx)
+{
+	int rc = cras_client_get_first_dev_type_idx(
+		client, CRAS_NODE_TYPE_POST_MIX_PRE_DSP, CRAS_STREAM_INPUT);
+	if (rc < 0)
+		return rc;
+	*idx = rc;
+	return 0;
+}
+
 struct libcras_client *libcras_client_create()
 {
 	struct libcras_client *client = (struct libcras_client *)calloc(
@@ -4000,6 +4040,12 @@ struct libcras_client *libcras_client_create()
 	client->rm_stream = cras_client_rm_stream;
 	client->set_stream_volume = cras_client_set_stream_volume;
 	client->get_nodes = get_nodes;
+	client->get_default_output_buffer_size = get_default_output_buffer_size;
+	client->get_aec_group_id = get_aec_group_id;
+	client->get_aec_supported = get_aec_supported;
+	client->get_system_muted = get_system_muted;
+	client->set_system_mute = cras_client_set_system_mute;
+	client->get_loopback_dev_idx = get_loopback_dev_idx;
 	return client;
 }
 
