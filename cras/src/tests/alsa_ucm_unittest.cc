@@ -693,6 +693,76 @@ TEST(AlsaUcm, DisableSwapMode) {
   EXPECT_EQ(1, snd_use_case_set_called);
 }
 
+TEST(AlsaUcm, NoiseCancellationExists) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  int rc;
+  const char* node = "Internal Mic";
+  const char* modifiers_1[] = {"Internal Mic Noise Cancellation", "Comment"};
+  const char* modifiers_2[] = {"Internal Mic Noise Augmentation", "Comment"};
+  const char* modifiers_3[] = {"Microphone Noise Cancellation", "Comment"};
+
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers_1;
+  fake_list_size["_modifiers/HiFi"] = 2;
+  rc = ucm_node_noise_cancellation_exists(mgr, node);
+  EXPECT_EQ(1, rc);
+
+  fake_list["_modifiers/HiFi"] = modifiers_2;
+  fake_list_size["_modifiers/HiFi"] = 2;
+  rc = ucm_node_noise_cancellation_exists(mgr, node);
+  EXPECT_EQ(0, rc);
+
+  fake_list["_modifiers/HiFi"] = modifiers_3;
+  fake_list_size["_modifiers/HiFi"] = 2;
+  rc = ucm_node_noise_cancellation_exists(mgr, node);
+  EXPECT_EQ(0, rc);
+}
+
+TEST(AlsaUcm, EnableDisableNoiseCancellation) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  int rc;
+  const char* modifiers[] = {"Internal Mic Noise Cancellation", "Comment1",
+                             "Microphone Noise Cancellation", "Comment2"};
+  const char* modifiers_enabled[] = {"Internal Mic Noise Cancellation"};
+
+  ResetStubData();
+
+  fake_list["_modifiers/HiFi"] = modifiers;
+  fake_list_size["_modifiers/HiFi"] = 4;
+
+  fake_list["_enamods"] = modifiers_enabled;
+  fake_list_size["_enamods"] = 1;
+
+  snd_use_case_set_return = 0;
+
+  rc = ucm_enable_node_noise_cancellation(mgr, "Line In", 1);
+  EXPECT_EQ(-EPERM, rc);  // Modifier is not existed
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  rc = ucm_enable_node_noise_cancellation(mgr, "Line In", 0);
+  EXPECT_EQ(-EPERM, rc);  // Modifier is not existed
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  rc = ucm_enable_node_noise_cancellation(mgr, "Microphone", 0);
+  EXPECT_EQ(0, rc);  // Modifier is already disabled
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  rc = ucm_enable_node_noise_cancellation(mgr, "Microphone", 1);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, snd_use_case_set_called);
+
+  snd_use_case_set_called = 0;
+
+  rc = ucm_enable_node_noise_cancellation(mgr, "Internal Mic", 1);
+  EXPECT_EQ(0, rc);  // Modifier is already enabled
+  EXPECT_EQ(0, snd_use_case_set_called);
+
+  rc = ucm_enable_node_noise_cancellation(mgr, "Internal Mic", 0);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, snd_use_case_set_called);
+}
+
 TEST(AlsaFlag, GetFlag) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   char* flag_value;

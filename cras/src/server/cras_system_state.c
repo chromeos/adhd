@@ -18,6 +18,7 @@
 #include "cras_board_config.h"
 #include "cras_config.h"
 #include "cras_device_blocklist.h"
+#include "cras_iodev_list.h"
 #include "cras_observer.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
@@ -406,7 +407,11 @@ bool cras_system_get_bt_fix_a2dp_packet_size_enabled()
 
 void cras_system_set_noise_cancellation_enabled(bool enabled)
 {
-	state.exp_state->noise_cancellation_enabled = enabled;
+	/* When the flag is toggled, propagate to all iodevs immediately. */
+	if (cras_system_get_noise_cancellation_enabled() != enabled) {
+		state.exp_state->noise_cancellation_enabled = enabled;
+		cras_iodev_list_reset_for_noise_cancellation();
+	}
 }
 
 bool cras_system_get_noise_cancellation_enabled()

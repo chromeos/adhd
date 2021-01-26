@@ -1881,6 +1881,24 @@ void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
 	}
 }
 
+void cras_iodev_list_reset_for_noise_cancellation()
+{
+	struct cras_iodev *dev;
+	bool enabled = cras_system_get_noise_cancellation_enabled();
+
+	DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
+		if (!cras_iodev_is_open(dev) ||
+		    !cras_iodev_support_noise_cancellation(dev))
+			continue;
+		syslog(LOG_INFO, "Re-open %s for %s noise cancellation",
+		       dev->info.name, enabled ? "enabling" : "disabling");
+		possibly_enable_fallback(CRAS_STREAM_INPUT, false);
+		cras_iodev_list_suspend_dev(dev->info.idx);
+		cras_iodev_list_resume_dev(dev->info.idx);
+		possibly_disable_fallback(CRAS_STREAM_INPUT);
+	}
+}
+
 void cras_iodev_list_reset()
 {
 	struct enabled_dev *edev;

@@ -22,7 +22,6 @@ static const char override_type_name_var[] = "OverrideNodeType";
 static const char dsp_name_var[] = "DspName";
 static const char playback_mixer_elem_var[] = "PlaybackMixerElem";
 static const char capture_mixer_elem_var[] = "CaptureMixerElem";
-static const char swap_mode_suffix[] = "Swap Mode";
 static const char min_buffer_level_var[] = "MinBufferLevel";
 static const char dma_period_var[] = "DmaPeriodMicrosecs";
 static const char disable_software_volume[] = "DisableSoftwareVolume";
@@ -37,6 +36,11 @@ static const char coupled_mixers[] = "CoupledMixers";
 static const char dependent_device_name_var[] = "DependentPCM";
 static const char preempt_hotword_var[] = "PreemptHotword";
 static const char echo_reference_dev_name_var[] = "EchoReferenceDev";
+
+/* SectionModifier prefixes and suffixes. */
+static const char hotword_model_prefix[] = "Hotword Model";
+static const char swap_mode_suffix[] = "Swap Mode";
+static const char noise_cancellation_suffix[] = "Noise Cancellation";
 
 /*
  * Set this value in a SectionDevice to specify the intrinsic sensitivity in
@@ -54,7 +58,6 @@ static const char intrinsic_sensitivity_var[] = "IntrinsicSensitivity";
  * 0.01 dB.
  */
 static const char default_node_gain[] = "DefaultNodeGain";
-static const char hotword_model_prefix[] = "Hotword Model";
 static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
 static const char main_volume_names[] = "MainVolumeNames";
 
@@ -63,6 +66,8 @@ static const char *use_case_verbs[] = {
 	"HiFi",	  "Multimedia", "Voice Call",
 	"Speech", "Pro Audio",	"Accessibility",
 };
+
+static const size_t max_section_name_len = 100;
 
 /* Represents a list of section names found in UCM. */
 struct section_name {
@@ -377,6 +382,21 @@ static struct mixer_name *ucm_get_mixer_names(struct cras_use_case_mgr *mgr,
 	return names;
 }
 
+/* Gets the modifier name of Noise Cancellation for the given node_name. */
+static void ucm_get_node_noise_cancellation_name(const char *node_name,
+						 char *mod_name)
+{
+	size_t len =
+		strlen(node_name) + 1 + strlen(noise_cancellation_suffix) + 1;
+	if (len > max_section_name_len) {
+		syslog(LOG_ERR,
+		       "Length of the given section name is %zu > %zu(max)",
+		       len, max_section_name_len);
+		len = max_section_name_len;
+	}
+	snprintf(mod_name, len, "%s %s", node_name, noise_cancellation_suffix);
+}
+
 /* Exported Interface */
 
 struct cras_use_case_mgr *ucm_create(const char *name)
@@ -492,6 +512,51 @@ int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
 	}
 	rc = ucm_set_modifier_enabled(mgr, swap_mod, enable);
 	free((void *)swap_mod);
+	return rc;
+}
+
+int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr *mgr,
+				       const char *node_name)
+{
+	char *node_modifier_name = NULL;
+	int exists;
+
+	node_modifier_name = (char *)malloc(max_section_name_len);
+	if (!node_modifier_name)
+		return 0;
+	ucm_get_node_noise_cancellation_name(node_name, node_modifier_name);
+	exists = ucm_mod_exists_with_name(mgr, node_modifier_name);
+	free((void *)node_modifier_name);
+	return exists;
+}
+
+int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr *mgr,
+				       const char *node_name, int enable)
+{
+	char *node_modifier_name = NULL;
+	int rc;
+
+	node_modifier_name = (char *)malloc(max_section_name_len);
+	if (!node_modifier_name)
+		return -ENOMEM;
+	ucm_get_node_noise_cancellation_name(node_name, node_modifier_name);
+	if (!ucm_mod_exists_with_name(mgr, node_modifier_name)) {
+		syslog(LOG_ERR, "Can not find modifier %s.",
+		       node_modifier_name);
+		free((void *)node_modifier_name);
+		return -EPERM;
+	}
+	if (modifier_enabled(mgr, node_modifier_name) == !!enable) {
+		syslog(LOG_DEBUG, "Modifier %s is already %s.",
+		       node_modifier_name, enable ? "enabled" : "disabled");
+		free((void *)node_modifier_name);
+		return 0;
+	}
+
+	syslog(LOG_DEBUG, "UCM %s Modifier %s", enable ? "enable" : "disable",
+	       node_modifier_name);
+	rc = ucm_set_modifier_enabled(mgr, node_modifier_name, enable);
+	free((void *)node_modifier_name);
 	return rc;
 }
 

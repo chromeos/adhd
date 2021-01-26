@@ -391,6 +391,7 @@ static int open_dev(struct cras_iodev *iodev)
 	snd_pcm_t *handle;
 	int rc;
 	const char *pcm_name = NULL;
+	int enable_noise_cancellation;
 
 	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
 		struct alsa_output_node *aout =
@@ -411,6 +412,19 @@ static int open_dev(struct cras_iodev *iodev)
 		return rc;
 
 	aio->handle = handle;
+
+	/* Enable or disable noise cancellation if it supports. */
+	if (iodev->direction == CRAS_STREAM_INPUT &&
+	    ucm_node_noise_cancellation_exists(aio->ucm,
+					       iodev->active_node->name)) {
+		enable_noise_cancellation =
+			cras_system_get_noise_cancellation_enabled();
+		rc = ucm_enable_node_noise_cancellation(
+			aio->ucm, iodev->active_node->name,
+			enable_noise_cancellation);
+		if (rc < 0)
+			return rc;
+	}
 
 	return 0;
 }
@@ -2021,6 +2035,17 @@ static int get_valid_frames(struct cras_iodev *odev, struct timespec *tstamp)
 	return 0;
 }
 
+static int support_noise_cancellation(const struct cras_iodev *iodev)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+
+	if (!iodev->active_node)
+		return 0;
+
+	return ucm_node_noise_cancellation_exists(aio->ucm,
+						  iodev->active_node->name);
+}
+
 /*
  * Exported Interface.
  */
@@ -2098,6 +2123,7 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 	iodev->get_num_severe_underruns = get_num_severe_underruns;
 	iodev->get_valid_frames = get_valid_frames;
 	iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
+	iodev->support_noise_cancellation = support_noise_cancellation;
 
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;

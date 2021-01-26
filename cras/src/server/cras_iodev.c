@@ -1695,3 +1695,13 @@ int cras_iodev_drop_frames_by_time(struct cras_iodev *iodev, struct timespec ts)
 
 	return rc;
 }
+
+bool cras_iodev_support_noise_cancellation(const struct cras_iodev *iodev)
+{
+	if (iodev->direction != CRAS_STREAM_INPUT)
+		return false;
+
+	if (iodev->support_noise_cancellation)
+		return !!iodev->support_noise_cancellation(iodev);
+	return false;
+}

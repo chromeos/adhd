@@ -2559,6 +2559,10 @@ void cras_system_set_volume_limits(long min, long max) {
   sys_set_volume_limits_called++;
 }
 
+bool cras_system_get_noise_cancellation_enabled() {
+  return false;
+}
+
 //  From cras_alsa_mixer.
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer* m,
                               long dB_level,
@@ -2805,6 +2809,17 @@ int ucm_get_channels_for_dev(struct cras_use_case_mgr* mgr,
                              enum CRAS_STREAM_DIRECTION direction,
                              size_t* channels) {
   return -EINVAL;
+}
+
+int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr* mgr,
+                                       const char* node_name) {
+  return 0;
+}
+
+int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr* mgr,
+                                       const char* node_name,
+                                       int enable) {
+  return 0;
 }
 
 struct cras_volume_curve* cras_volume_curve_create_default() {

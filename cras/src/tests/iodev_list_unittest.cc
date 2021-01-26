@@ -2006,6 +2006,43 @@ TEST_F(IoDevTestSuite, HotwordStreamsPausedAtSystemSuspend) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, SetNoiseCancellation) {
+  struct cras_rstream rstream;
+  struct cras_rstream* stream_list = NULL;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  rc = cras_iodev_list_add_input(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+
+  rstream.direction = CRAS_STREAM_INPUT;
+
+  audio_thread_add_open_dev_called = 0;
+  audio_thread_rm_open_dev_called = 0;
+  cras_iodev_list_add_active_node(CRAS_STREAM_INPUT,
+                                  cras_make_node_id(d1_.info.idx, 1));
+  DL_APPEND(stream_list, &rstream);
+  stream_add_cb(&rstream);
+  stream_list_get_ret = stream_list;
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(1, audio_thread_add_open_dev_called);
+
+  // reset_for_noise_cancellation causes device suspend & resume
+  // While suspending d1_: rm d1_, open fallback
+  // While resuming d1_: rm fallback, open d1_
+  cras_iodev_list_reset_for_noise_cancellation();
+  EXPECT_EQ(3, audio_thread_add_open_dev_called);
+  EXPECT_EQ(2, audio_thread_rm_open_dev_called);
+
+  cras_iodev_list_deinit();
+}
+
 }  //  namespace
 
 int main(int argc, char** argv) {
@@ -2026,6 +2063,10 @@ void cras_system_state_update_complete() {}
 
 int cras_system_get_mute() {
   return system_get_mute_return;
+}
+
+bool cras_system_get_noise_cancellation_enabled() {
+  return false;
 }
 
 struct audio_thread* audio_thread_create() {
@@ -2165,6 +2206,10 @@ int cras_iodev_set_mute(struct cras_iodev* iodev) {
 
 void cras_iodev_set_node_plugged(struct cras_ionode* node, int plugged) {
   set_node_plugged_called++;
+}
+
+bool cras_iodev_support_noise_cancellation(const struct cras_iodev* iodev) {
+  return true;
 }
 
 int cras_iodev_start_volume_ramp(struct cras_iodev* odev,

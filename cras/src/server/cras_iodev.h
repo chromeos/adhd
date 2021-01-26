@@ -184,6 +184,8 @@ struct cras_ionode {
  *        audio thread can sleep before serving this playback dev the next time.
  *        Not implementing this ops means fall back to default behavior in
  *        cras_iodev_default_frames_to_play_in_sleep().
+ * support_noise_cancellation - (Optional) Checks if the device supports noise
+ *                              cancellation.
  * format - The audio format being rendered or captured to hardware.
  * rate_est - Rate estimator to estimate the actual device rate.
  * area - Information about how the samples are stored.
@@ -274,6 +276,7 @@ struct cras_iodev {
 	unsigned int (*frames_to_play_in_sleep)(struct cras_iodev *iodev,
 						unsigned int *hw_level,
 						struct timespec *hw_tstamp);
+	int (*support_noise_cancellation)(const struct cras_iodev *iodev);
 	struct cras_audio_format *format;
 	struct rate_estimator *rate_est;
 	struct cras_audio_area *area;
@@ -832,5 +835,13 @@ void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
  */
 int cras_iodev_drop_frames_by_time(struct cras_iodev *iodev,
 				   struct timespec ts);
+
+/* Checks if an input device supports noise cancellation.
+ * Args:
+ *    iodev - The device.
+ * Returns:
+ *    True if device supports noise cancellation. False otherwise.
+ */
+bool cras_iodev_support_noise_cancellation(const struct cras_iodev *iodev);
 
 #endif /* CRAS_IODEV_H_ */
