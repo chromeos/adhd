@@ -14,7 +14,7 @@ use std::{
 };
 
 use cros_alsa::{Card, IntControl, SwitchControl};
-use dsm::{CalibData, Error, Result, SpeakerStatus, ZeroPlayer, DSM};
+use dsm::{CalibData, Error, Result, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
 
 use crate::{Amp, CONF_DIR};
 use settings::{AmpCalibSettings, DeviceSettings};
@@ -48,13 +48,17 @@ impl Amp for Max98390 {
             return Err(Error::MissingDSMParam);
         }
 
-        let dsm = DSM::new(
+        let mut dsm = DSM::new(
             &self.card.name(),
             self.setting.num_channels(),
-            Self::rdc_diff,
-            Self::celsius_to_dsm_unit(Self::TEMP_UPPER_LIMIT_CELSIUS),
-            Self::celsius_to_dsm_unit(Self::TEMP_LOWER_LIMIT_CELSIUS),
+            Self::rdc_to_ohm,
+            Self::TEMP_UPPER_LIMIT_CELSIUS,
+            Self::TEMP_LOWER_LIMIT_CELSIUS,
         );
+        dsm.set_temp_converter(TempConverter::new(
+            Self::dsm_unit_to_celsius,
+            Self::celsius_to_dsm_unit,
+        ));
 
         self.set_volume(VolumeMode::Low)?;
         let calib = match dsm.check_speaker_over_heated_workflow()? {
@@ -102,11 +106,6 @@ impl Max98390 {
         })
     }
 
-    /// Converts the ambient temperature from celsius to the DSM unit.
-    fn celsius_to_dsm_unit(celsius: f32) -> f32 {
-        celsius * ((1 << 12) as f32) / 100.0
-    }
-
     /// Sets the card volume control to given VolumeMode.
     fn set_volume(&mut self, mode: VolumeMode) -> Result<()> {
         for control in &self.setting.controls {
@@ -125,7 +124,7 @@ impl Max98390 {
                 .set(rdc)?;
             self.card
                 .control_by_name::<IntControl>(&self.setting.controls[ch].temp_ctrl)?
-                .set(temp)?;
+                .set(Self::celsius_to_dsm_unit(temp))?;
         }
         Ok(())
     }
@@ -155,19 +154,32 @@ impl Max98390 {
                     .get()?;
                 card.control_by_name::<SwitchControl>(&control.calib_ctrl)?
                     .off()?;
-                Ok(CalibData { rdc, temp })
+                Ok(CalibData {
+                    rdc,
+                    temp: Self::dsm_unit_to_celsius(temp),
+                })
             })
             .collect::<Result<Vec<CalibData>>>()?;
         zero_player.stop()?;
         Ok(calib)
     }
 
-    // rdc_cali is (11 / 3) / actual_rdc * 2^20.
-    // Given that rdc_cali is the inverse of hardware real_rdc, the result of `rdc_diff`
-    // equals to transforming `rdc`s to `real_rdc`s and calculating the relative difference
-    // from the `real_rdc`s.
-    fn rdc_diff(x: i32, x_ref: i32) -> f32 {
-        (x - x_ref).abs() as f32 / x as f32
+    /// Converts the ambient temperature from celsius to the DSM unit.
+    #[inline]
+    fn celsius_to_dsm_unit(celsius: f32) -> i32 {
+        (celsius * ((1 << 12) as f32) / 100.0) as i32
+    }
+
+    /// Converts the ambient temperature from  DSM unit to celsius.
+    #[inline]
+    fn dsm_unit_to_celsius(temp: i32) -> f32 {
+        temp as f32 * 100.0 / (1 << 12) as f32
+    }
+
+    /// Converts the calibrated value to real DC resistance in ohm unit.
+    #[inline]
+    fn rdc_to_ohm(x: i32) -> f32 {
+        3.66 * (1 << 20) as f32 / x as f32
     }
 }
 
@@ -178,11 +190,29 @@ mod tests {
     fn celsius_to_dsm_unit() {
         assert_eq!(
             Max98390::celsius_to_dsm_unit(Max98390::TEMP_UPPER_LIMIT_CELSIUS),
-            1638.4
+            1638
         );
         assert_eq!(
             Max98390::celsius_to_dsm_unit(Max98390::TEMP_LOWER_LIMIT_CELSIUS),
-            0.0
+            0
         );
+    }
+
+    #[test]
+    fn dsm_unit_to_celsius() {
+        assert_eq!(
+            Max98390::dsm_unit_to_celsius(1638).round(),
+            Max98390::TEMP_UPPER_LIMIT_CELSIUS
+        );
+        assert_eq!(
+            Max98390::dsm_unit_to_celsius(0),
+            Max98390::TEMP_LOWER_LIMIT_CELSIUS
+        );
+    }
+
+    #[test]
+    fn rdc_to_ohm() {
+        assert_eq!(Max98390::rdc_to_ohm(1123160), 3.416956);
+        assert_eq!(Max98390::rdc_to_ohm(1157049), 3.3168762);
     }
 }
