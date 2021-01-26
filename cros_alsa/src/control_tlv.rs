@@ -164,7 +164,8 @@ impl TryFrom<Vec<u32>> for TLV {
 
     /// Constructs a TLV from a vector with the following alsa tlv header validation:
     ///  1 . tlv_buf[Self::LEN_OFFSET] should be multiple of size_of::<u32>
-    ///  2 . tlv_buf[Self::LEN_OFFSET] should be the length of tlv value in byte.
+    ///  2 . tlv_buf[Self::LEN_OFFSET] is the length of tlv value in byte and
+    ///      should be less than the buffer length * size_of::<u32>.
     fn try_from(data: Vec<u32>) -> Result<Self> {
         if data.len() < 2 {
             return Err(Error::InvalidTLV);
@@ -175,7 +176,7 @@ impl TryFrom<Vec<u32>> for TLV {
         }
 
         if data[Self::LEN_OFFSET] / size_of::<u32>() as u32
-            != data[Self::VALUE_OFFSET..].len() as u32
+            > data[Self::VALUE_OFFSET..].len() as u32
         {
             return Err(Error::InvalidTLV);
         }
@@ -283,9 +284,16 @@ mod tests {
     }
 
     #[test]
-    fn test_tlv_invalid_length() {
+    fn test_tlv_length_is_not_multiple_of_sizeof_int() {
         // Invalid tlv length in data[Self::LEN_OFFSET].
         let tlv_buf = vec![0, 1, 2, 3, 4];
+        assert_eq!(TLV::try_from(tlv_buf).unwrap_err(), Error::InvalidTLV);
+    }
+
+    #[test]
+    fn test_tlv_length_larger_than_buff_size() {
+        // Invalid tlv length in data[Self::LEN_OFFSET].
+        let tlv_buf = vec![0, 16, 2, 3, 4];
         assert_eq!(TLV::try_from(tlv_buf).unwrap_err(), Error::InvalidTLV);
     }
 
