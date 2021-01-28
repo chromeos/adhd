@@ -14,6 +14,7 @@ use std::{fs, thread};
 
 use cros_alsa::{Card, IntControl};
 use dsm::{CalibData, Error, Result, SpeakerStatus, ZeroPlayer, DSM};
+use sys_util::info;
 
 use crate::{Amp, CONF_DIR};
 use dsm_param::*;
@@ -46,19 +47,27 @@ impl Amp for Max98373 {
         );
         self.set_volume(VolumeMode::Low)?;
 
-        let calib = match dsm.check_speaker_over_heated_workflow()? {
-            SpeakerStatus::Hot(previous_calib) => previous_calib,
-            SpeakerStatus::Cold => {
-                let all_temp = self.get_ambient_temp()?;
-                let all_rdc = self.do_rdc_calibration()?;
-                all_rdc
-                    .iter()
-                    .zip(all_temp)
-                    .enumerate()
-                    .map(|(ch, (&rdc, temp))| {
-                        dsm.decide_calibration_value_workflow(ch, CalibData { rdc, temp })
-                    })
-                    .collect::<Result<Vec<_>>>()?
+        let calib = if !self.setting.boot_time_calibration_enabled {
+            info!("skip boot time calibration and use vpd values");
+            // Needs Rdc updates to be done after internal speaker is ready otherwise
+            // it would be overwritten by the DSM blob update.
+            dsm.wait_for_speakers_ready()?;
+            dsm.get_all_vpd_calibration_value()?
+        } else {
+            match dsm.check_speaker_over_heated_workflow()? {
+                SpeakerStatus::Hot(previous_calib) => previous_calib,
+                SpeakerStatus::Cold => {
+                    let all_temp = self.get_ambient_temp()?;
+                    let all_rdc = self.do_rdc_calibration()?;
+                    all_rdc
+                        .iter()
+                        .zip(all_temp)
+                        .enumerate()
+                        .map(|(ch, (&rdc, temp))| {
+                            dsm.decide_calibration_value_workflow(ch, CalibData { rdc, temp })
+                        })
+                        .collect::<Result<Vec<_>>>()?
+                }
             }
         };
         self.apply_calibration_value(&calib)?;

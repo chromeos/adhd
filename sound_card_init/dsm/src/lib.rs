@@ -9,8 +9,12 @@ pub mod utils;
 mod vpd;
 mod zero_player;
 
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{
+    thread,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
+use libcras::{CrasClient, CrasNodeType};
 use sys_util::{error, info};
 
 use crate::datastore::Datastore;
@@ -239,6 +243,48 @@ impl DSM {
             .save(&self.snd_card, channel)?;
             Ok(calib_data)
         }
+    }
+
+    /// Gets the calibration values from vpd.
+    ///
+    /// # Results
+    ///
+    /// * `Vec<CalibData>` - the calibration values in vpd.
+    ///
+    /// # Errors
+    ///
+    /// * Failed to read vpd.
+    pub fn get_all_vpd_calibration_value(&self) -> Result<Vec<CalibData>> {
+        (0..self.num_channels)
+            .map(|ch| self.get_vpd_calibration_value(ch))
+            .collect::<Result<Vec<_>>>()
+    }
+
+    /// Blocks until the internal speakers are ready.
+    ///
+    /// # Errors
+    ///
+    /// * Failed to wait the internal speakers to be ready.
+    pub fn wait_for_speakers_ready(&self) -> Result<()> {
+        let find_speaker = || -> Result<()> {
+            let cras_client = CrasClient::new().map_err(Error::CrasClientFailed)?;
+            let _node = cras_client
+                .output_nodes()
+                .find(|node| node.node_type == CrasNodeType::CRAS_NODE_TYPE_INTERNAL_SPEAKER)
+                .ok_or(Error::InternalSpeakerNotFound)?;
+            Ok(())
+        };
+        // TODO(b/155007305): Implement cras_client.wait_node_change and use it here.
+        const RETRY: usize = 3;
+        const RETRY_INTERVAL: Duration = Duration::from_millis(500);
+        for _ in 0..RETRY {
+            match find_speaker() {
+                Ok(_) => return Ok(()),
+                Err(e) => error!("retry on finding speaker: {}", e),
+            };
+            thread::sleep(RETRY_INTERVAL);
+        }
+        Err(Error::InternalSpeakerNotFound)
     }
 
     fn is_first_boot(&self) -> bool {
