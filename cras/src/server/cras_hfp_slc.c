@@ -441,12 +441,10 @@ static int available_codecs(struct hfp_slc_handle *handle, const char *cmd)
 		id_str = strtok(NULL, ",");
 	}
 
-	for (id = HFP_MAX_CODECS - 1; id > 0; id--) {
-		if (handle->hf_codec_supported[id]) {
-			handle->preferred_codec = id;
-			break;
-		}
-	}
+	if (hfp_slc_get_wideband_speech_supported(handle))
+		handle->preferred_codec = HFP_CODEC_ID_MSBC;
+	else
+		handle->preferred_codec = HFP_CODEC_ID_CVSD;
 
 	free(tokens);
 	return hfp_send(handle, AT_CMD("OK"));
