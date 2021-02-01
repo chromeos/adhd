@@ -936,6 +936,70 @@ static int terminate_call(struct hfp_slc_handle *handle, const char *cmd)
 	return cras_telephony_event_terminate_call();
 }
 
+/* AT+XEVENT is defined by Android to support vendor specific features.
+ * Currently, the only known supported case for CrOS is the battery event sent
+ * by some Plantronics headsets.
+ */
+static int vendor_specific_features(struct hfp_slc_handle *handle,
+				    const char *cmd)
+{
+	char *tokens, *event, *level_str, *num_of_level_str;
+	int level, num_of_level;
+
+	tokens = strdup(cmd);
+	strtok(tokens, "=");
+	event = strtok(NULL, ",");
+	if (!event)
+		goto error_out;
+
+	/* AT+XEVENT=BATTERY,Level,NumberOfLevel,MinutesOfTalkTime,IsCharging
+	 * Level: The charge level with a zero-based integer.
+	 * NumberOfLevel: How many charging levels there are.
+	 * MinuteOfTalkTime: The estimated number of talk minutes remaining.
+	 * IsCharging: A 0 or 1 value.
+	 *
+	 * We only support the battery level and thus only care about the first
+	 * 3 arguments.
+	 */
+	if (!strncmp(event, "BATTERY", 7)) {
+		level_str = strtok(NULL, ",");
+		num_of_level_str = strtok(NULL, ",");
+		if (!level_str || !num_of_level_str)
+			goto error_out;
+
+		level = atoi(level_str);
+		num_of_level = atoi(num_of_level_str);
+		if (level < 0 || num_of_level <= 1 || level >= num_of_level)
+			goto error_out;
+
+		level = level * 100 / (num_of_level - 1);
+		if (handle->hf_battery != level) {
+			handle->hf_supports_battery_indicator |=
+				CRAS_HFP_BATTERY_INDICATOR_PLANTRONICS;
+			cras_server_metrics_hfp_battery_report(
+				CRAS_HFP_BATTERY_INDICATOR_PLANTRONICS);
+			handle->hf_battery = level;
+			cras_observer_notify_bt_battery_changed(
+				cras_bt_device_address(handle->device),
+				(uint32_t)(level));
+		}
+	}
+
+	free(tokens);
+	/* For Plantronic headsets, it is required to reply "OK" for the first
+	 * AT+XEVENT=USER-AGENT... command to tell the headset our support of
+	 * the xevent protocol. Otherwise, all following events including
+	 * BATTERY won't be sent.
+	 */
+	return hfp_send(handle, AT_CMD("OK"));
+
+error_out:
+	syslog(LOG_ERR, "%s: malformed vendor specific command: '%s'", __func__,
+	       cmd);
+	free(tokens);
+	return hfp_send(handle, AT_CMD("ERROR"));
+}
+
 /* AT commands to support in order to conform HFP specification.
  *
  * An initialized service level connection is the pre-condition for all
@@ -997,6 +1061,7 @@ static struct at_command at_commands[] = {
 	{ "AT+VG", signal_gain_setting },
 	{ "AT+VTS", dtmf_tone },
 	{ "AT+XAPL", apple_supported_features },
+	{ "AT+XEVENT", vendor_specific_features },
 	{ 0 }
 };
 
