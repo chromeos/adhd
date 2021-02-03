@@ -14,6 +14,7 @@
 #include <syslog.h>
 
 #include "cras_alsa_card.h"
+#include "cras_alert.h"
 #include "cras_board_config.h"
 #include "cras_config.h"
 #include "cras_device_blocklist.h"
@@ -342,6 +343,7 @@ void cras_system_set_suspended(int suspended)
 {
 	state.exp_state->suspended = suspended;
 	cras_observer_notify_suspend_changed(suspended);
+	cras_alert_process_all_pending_alerts();
 }
 
 void cras_system_set_volume_limits(long min, long max)
