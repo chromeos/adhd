@@ -32,6 +32,7 @@ class RstreamTestSuite : public testing::Test {
 
     config_.stream_id = 555;
     config_.stream_type = CRAS_STREAM_TYPE_DEFAULT;
+    config_.client_type = CRAS_CLIENT_TYPE_UNKNOWN;
     config_.direction = CRAS_STREAM_OUTPUT;
     config_.dev_idx = NO_DEVICE;
     config_.flags = 0;

@@ -167,6 +167,11 @@ static int verify_rstream_parameters(const struct cras_rstream_config *config,
 		syslog(LOG_ERR, "rstream: Invalid stream type.\n");
 		return -EINVAL;
 	}
+	if (config->client_type < CRAS_CLIENT_TYPE_UNKNOWN ||
+	    config->client_type >= CRAS_NUM_CLIENT_TYPE) {
+		syslog(LOG_ERR, "rstream: Invalid client type.\n");
+		return -EINVAL;
+	}
 	if ((config->client_shm_size > 0 && config->client_shm_fd < 0) ||
 	    (config->client_shm_size == 0 && config->client_shm_fd >= 0)) {
 		syslog(LOG_ERR, "rstream: invalid client-provided shm info\n");
