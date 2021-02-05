@@ -992,7 +992,7 @@ static int vendor_specific_features(struct hfp_slc_handle *handle,
 		if (level < 0 || num_of_level <= 1 || level >= num_of_level)
 			goto error_out;
 
-		level = level * 100 / (num_of_level - 1);
+		level = (int64_t)level * 100 / (num_of_level - 1);
 		if (handle->hf_battery != level) {
 			handle->hf_supports_battery_indicator |=
 				CRAS_HFP_BATTERY_INDICATOR_PLANTRONICS;
