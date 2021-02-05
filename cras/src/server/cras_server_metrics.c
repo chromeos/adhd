@@ -26,6 +26,7 @@ const char kBusyloopLength[] = "Cras.BusyloopLength";
 const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
 const char kDeviceTypeOutput[] = "Cras.DeviceTypeOutput";
 const char kDeviceVolume[] = "Cras.DeviceVolume";
+const char kFetchDelayMilliSeconds[] = "Cras.FetchDelayMilliSeconds";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
@@ -47,12 +48,12 @@ const char kMissedCallbackSecondTimeInput[] =
 const char kMissedCallbackSecondTimeOutput[] =
 	"Cras.MissedCallbackSecondTimeOutput";
 const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
-const char kStreamTimeoutMilliSeconds[] = "Cras.StreamTimeoutMilliSeconds";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
 const char kStreamClientTypeInput[] = "Cras.StreamClientTypeInput";
 const char kStreamClientTypeOutput[] = "Cras.StreamClientTypeOutput";
 const char kStreamFlags[] = "Cras.StreamFlags";
 const char kStreamEffects[] = "Cras.StreamEffects";
+const char kStreamRuntime[] = "Cras.StreamRuntime";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
@@ -447,6 +448,33 @@ static void log_sparse_histogram_each_level(int num, int sample, ...)
 			break;
 		len += metric_len;
 		cras_metrics_log_sparse_histogram(metrics_name, sample);
+	}
+
+	va_end(valist);
+}
+
+static void log_histogram_each_level(int num, int sample, int min, int max,
+				     int nbuckets, ...)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE] = {};
+	va_list valist;
+	int i, len = 0;
+
+	va_start(valist, nbuckets);
+
+	for (i = 0; i < num && len < METRICS_NAME_BUFFER_SIZE; i++) {
+		int metric_len =
+			snprintf(metrics_name + len,
+				 METRICS_NAME_BUFFER_SIZE - len, "%s%s",
+				 i ? "." : "", va_arg(valist, char *));
+		// Exit early on error or running out of bufferspace. Avoids
+		// logging partial or corrupted strings.
+		if (metric_len < 0 ||
+		    metric_len > METRICS_NAME_BUFFER_SIZE - len)
+			break;
+		len += metric_len;
+		cras_metrics_log_histogram(metrics_name, sample, min, max,
+					   nbuckets);
 	}
 
 	va_end(valist);
@@ -1053,21 +1081,17 @@ metrics_longest_fetch_delay(struct cras_server_metrics_stream_data data)
 {
 	int fetch_delay_msec =
 		data.runtime.tv_sec * 1000 + data.runtime.tv_nsec / 1000000;
-	log_sparse_histogram_each_level(
-		3, fetch_delay_msec, kStreamTimeoutMilliSeconds,
-		metrics_client_type_str(data.client_type),
-		metrics_stream_type_str(data.stream_type));
+	log_histogram_each_level(3, fetch_delay_msec, 0, 10000, 20,
+				 kFetchDelayMilliSeconds,
+				 metrics_client_type_str(data.client_type),
+				 metrics_stream_type_str(data.stream_type));
 }
 
 static void metrics_stream_runtime(struct cras_server_metrics_stream_data data)
 {
-	char metrics_name[METRICS_NAME_BUFFER_SIZE];
-
-	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "Cras.%sStreamRuntime",
-		 data.direction == CRAS_STREAM_INPUT ? "Input" : "Output");
-
-	log_sparse_histogram_each_level(
-		3, (int)data.runtime.tv_sec, metrics_name,
+	log_histogram_each_level(
+		4, (int)data.runtime.tv_sec, 0, 10000, 20, kStreamRuntime,
+		data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
 		metrics_client_type_str(data.client_type),
 		metrics_stream_type_str(data.stream_type));
 }
