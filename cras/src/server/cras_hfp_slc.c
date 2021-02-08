@@ -607,6 +607,26 @@ static int operator_selection(struct hfp_slc_handle *handle, const char *buf)
 	return hfp_send(handle, AT_CMD("OK"));
 }
 
+/* The AT+CHLD command is used to control call hold, release, and multiparty
+ * states.
+ */
+static int call_hold(struct hfp_slc_handle *handle, const char *buf)
+{
+	int rc;
+
+	// Chrome OS doesn't yet support CHLD features but we need to reply
+	// the query with an empty feature list rather than "ERROR" to increase
+	// interoperability with certain devices (b/172413440).
+	if (strlen(buf) > 8 && buf[7] == '=' && buf[8] == '?') {
+		rc = hfp_send(handle, AT_CMD("+CHLD:"));
+		if (rc)
+			return rc;
+		return hfp_send(handle, AT_CMD("OK"));
+	}
+
+	return hfp_send(handle, AT_CMD("ERROR"));
+}
+
 /* AT+CIND command retrieves the supported indicator and its corresponding
  * range and order index or read current status of indicators. Mandatory
  * support per spec 4.2.
@@ -1062,6 +1082,7 @@ static struct at_command at_commands[] = {
 	{ "AT+VTS", dtmf_tone },
 	{ "AT+XAPL", apple_supported_features },
 	{ "AT+XEVENT", vendor_specific_features },
+	{ "AT+CHLD", call_hold },
 	{ 0 }
 };
 
