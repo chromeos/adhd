@@ -586,12 +586,13 @@ static int capture_to_streams(struct open_dev *adev)
  *    write_limit - The maximum number of frames to write to dst.
  *
  * Returns:
- *    The number of frames rendered on success, a negative error code otherwise.
+ *    The number of frames rendered on success.
  *    This number of frames is the minimum of the amount of frames each stream
  *    could provide which is the maximum that can currently be rendered.
  */
-static int write_streams(struct open_dev **odevs, struct open_dev *adev,
-			 uint8_t *dst, size_t write_limit)
+static unsigned int write_streams(struct open_dev **odevs,
+				  struct open_dev *adev, uint8_t *dst,
+				  size_t write_limit)
 {
 	struct cras_iodev *odev = adev->dev;
 	struct dev_stream *curr;
@@ -775,9 +776,6 @@ int write_output_samples(struct open_dev **odevs, struct open_dev *adev,
 		/* TODO(dgreid) - This assumes interleaved audio. */
 		dst = area->channels[0].buf;
 		written = write_streams(odevs, adev, dst, frames);
-		if (written < 0) /* pcm has been closed */
-			return (int)written;
-
 		if (written < (snd_pcm_sframes_t)frames)
 			/* Got all the samples from client that we can, but it
 			 * won't fill the request. */
