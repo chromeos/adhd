@@ -56,6 +56,7 @@ static struct cras_iodev* cras_iodev_start_ramp_odev;
 static enum CRAS_IODEV_RAMP_REQUEST cras_iodev_start_ramp_request;
 static struct timespec clock_gettime_retspec;
 static struct timespec init_cb_ts_;
+static struct timespec sleep_interval_ts_;
 static std::map<const struct dev_stream*, struct timespec>
     dev_stream_wake_time_val;
 static int cras_device_monitor_set_device_mute_state_called;
@@ -1225,10 +1226,12 @@ struct dev_stream* dev_stream_create(struct cras_rstream* stream,
                                      unsigned int dev_id,
                                      const struct cras_audio_format* dev_fmt,
                                      void* dev_ptr,
-                                     struct timespec* cb_ts) {
+                                     struct timespec* cb_ts,
+                                     const struct timespec* sleep_interval_ts) {
   struct dev_stream* out = static_cast<dev_stream*>(calloc(1, sizeof(*out)));
   out->stream = stream;
   init_cb_ts_ = *cb_ts;
+  sleep_interval_ts_ = *sleep_interval_ts;
   return out;
 }
 
@@ -1415,6 +1418,10 @@ int cras_device_monitor_error_close(unsigned int dev_idx) {
 
 int cras_iodev_drop_frames_by_time(struct cras_iodev* iodev,
                                    struct timespec ts) {
+  return 0;
+}
+
+bool cras_iodev_is_on_internal_card(const struct cras_ionode* node) {
   return 0;
 }
 

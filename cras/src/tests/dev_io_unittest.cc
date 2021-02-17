@@ -8,6 +8,7 @@
 #include <time.h>
 
 #include <memory>
+#include <unordered_map>
 
 extern "C" {
 #include "cras_iodev.h"    // stubbed
@@ -29,6 +30,13 @@ struct audio_thread_event_log* atlog;
 static float dev_stream_capture_software_gain_scaler_val;
 static float input_data_get_software_gain_scaler_val;
 static unsigned int dev_stream_capture_avail_ret = 480;
+struct set_dev_rate_data {
+  unsigned int dev_rate;
+  double dev_rate_ratio;
+  double master_rate_ratio;
+  int coarse_rate_adjust;
+};
+std::unordered_map<struct dev_stream*, set_dev_rate_data> set_dev_rate_map;
 
 namespace {
 
@@ -39,6 +47,7 @@ class DevIoSuite : public testing::Test {
     iodev_stub_reset();
     rstream_stub_reset();
     fill_audio_format(&format, 48000);
+    set_dev_rate_map.clear();
     stream = create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
   }
 
@@ -70,6 +79,7 @@ TEST_F(DevIoSuite, SendCapturedFails) {
 
 TEST_F(DevIoSuite, CaptureGain) {
   struct open_dev* dev_list = NULL;
+  struct open_dev* odev_list = NULL;
   struct timespec ts;
   DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
                                 CRAS_NODE_TYPE_MIC);
@@ -82,17 +92,77 @@ TEST_F(DevIoSuite, CaptureGain) {
   /* The applied scaler gain should match what is reported by input_data. */
   dev->dev->active_node->ui_gain_scaler = 1.0f;
   input_data_get_software_gain_scaler_val = 1.0f;
-  dev_io_capture(&dev_list);
+  dev_io_capture(&dev_list, &odev_list);
   EXPECT_EQ(1.0f, dev_stream_capture_software_gain_scaler_val);
 
   input_data_get_software_gain_scaler_val = 0.99f;
-  dev_io_capture(&dev_list);
+  dev_io_capture(&dev_list, &odev_list);
   EXPECT_EQ(0.99f, dev_stream_capture_software_gain_scaler_val);
 
   dev->dev->active_node->ui_gain_scaler = 0.6f;
   input_data_get_software_gain_scaler_val = 0.7f;
-  dev_io_capture(&dev_list);
+  dev_io_capture(&dev_list, &odev_list);
   EXPECT_FLOAT_EQ(0.42f, dev_stream_capture_software_gain_scaler_val);
+}
+
+/*
+ * When input and output devices are on the internal sound card,
+ * and their device rates are the same, use the estimated rate
+ * on the output device as the estimated rate of input device.
+ */
+TEST_F(DevIoSuite, CopyOutputEstimatedRate) {
+  struct open_dev* idev_list = NULL;
+  struct open_dev* odev_list = NULL;
+  struct timespec ts;
+  DevicePtr out_dev = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                    CRAS_NODE_TYPE_INTERNAL_SPEAKER);
+  DevicePtr in_dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
+                                   CRAS_NODE_TYPE_MIC);
+
+  in_dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+  iodev_stub_frames_queued(in_dev->dev.get(), 20, ts);
+  DL_APPEND(idev_list, in_dev->odev.get());
+  add_stream_to_dev(in_dev->dev, stream);
+  DL_APPEND(odev_list, out_dev->odev.get());
+  iodev_stub_on_internal_card(out_dev->dev->active_node, 1);
+  iodev_stub_on_internal_card(in_dev->dev->active_node, 1);
+
+  iodev_stub_est_rate_ratio(in_dev->dev.get(), 0.8f);
+  iodev_stub_est_rate_ratio(out_dev->dev.get(), 1.2f);
+
+  dev_io_capture(&idev_list, &odev_list);
+
+  EXPECT_FLOAT_EQ(1.2f, set_dev_rate_map[stream->dstream.get()].dev_rate_ratio);
+}
+
+/*
+ * When input and output devices are not both on the internal sound card,
+ * estimated rates are independent.
+ */
+TEST_F(DevIoSuite, InputOutputIndependentEstimatedRate) {
+  struct open_dev* idev_list = NULL;
+  struct open_dev* odev_list = NULL;
+  struct timespec ts;
+  DevicePtr out_dev = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                    CRAS_NODE_TYPE_INTERNAL_SPEAKER);
+  DevicePtr in_dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
+                                   CRAS_NODE_TYPE_USB);
+
+  in_dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+  iodev_stub_frames_queued(in_dev->dev.get(), 20, ts);
+  DL_APPEND(idev_list, in_dev->odev.get());
+  add_stream_to_dev(in_dev->dev, stream);
+  DL_APPEND(odev_list, out_dev->odev.get());
+  iodev_stub_on_internal_card(out_dev->dev->active_node, 1);
+  iodev_stub_on_internal_card(in_dev->dev->active_node, 0);
+
+  iodev_stub_est_rate_ratio(in_dev->dev.get(), 0.8f);
+  iodev_stub_est_rate_ratio(out_dev->dev.get(), 1.2f);
+  iodev_stub_update_rate(in_dev->dev.get(), 1);
+
+  dev_io_capture(&idev_list, &odev_list);
+
+  EXPECT_FLOAT_EQ(0.8f, set_dev_rate_map[stream->dstream.get()].dev_rate_ratio);
 }
 
 /*
@@ -333,7 +403,15 @@ void dev_stream_set_dev_rate(struct dev_stream* dev_stream,
                              unsigned int dev_rate,
                              double dev_rate_ratio,
                              double master_rate_ratio,
-                             int coarse_rate_adjust) {}
+                             int coarse_rate_adjust) {
+  set_dev_rate_data new_data;
+  new_data.dev_rate = dev_rate;
+  new_data.dev_rate_ratio = dev_rate_ratio;
+  new_data.master_rate_ratio = master_rate_ratio;
+  new_data.coarse_rate_adjust = coarse_rate_adjust;
+
+  set_dev_rate_map[dev_stream] = new_data;
+}
 int dev_stream_capture_update_rstream(struct dev_stream* dev_stream) {
   return 0;
 }
@@ -373,7 +451,8 @@ struct dev_stream* dev_stream_create(struct cras_rstream* stream,
                                      unsigned int dev_id,
                                      const struct cras_audio_format* dev_fmt,
                                      void* dev_ptr,
-                                     struct timespec* cb_ts) {
+                                     struct timespec* cb_ts,
+                                     const struct timespec* sleep_interval_ts) {
   return 0;
 }
 int cras_device_monitor_error_close(unsigned int dev_idx) {

@@ -2404,6 +2404,20 @@ TEST(IoDev, DeviceOverrun) {
   EXPECT_EQ(1, cras_audio_thread_event_dev_overrun_called);
 }
 
+TEST(IoDev, OnInternalCard) {
+  static struct cras_ionode node;
+  node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  EXPECT_EQ(1, cras_iodev_is_on_internal_card(&node));
+  node.type = CRAS_NODE_TYPE_HEADPHONE;
+  EXPECT_EQ(1, cras_iodev_is_on_internal_card(&node));
+  node.type = CRAS_NODE_TYPE_MIC;
+  EXPECT_EQ(1, cras_iodev_is_on_internal_card(&node));
+  node.type = CRAS_NODE_TYPE_USB;
+  EXPECT_EQ(0, cras_iodev_is_on_internal_card(&node));
+  node.type = CRAS_NODE_TYPE_BLUETOOTH;
+  EXPECT_EQ(0, cras_iodev_is_on_internal_card(&node));
+}
+
 extern "C" {
 
 struct main_thread_event_log* main_log;

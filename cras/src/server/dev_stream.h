@@ -46,10 +46,27 @@ struct dev_stream {
 	int is_running;
 };
 
+/*
+ * Creates a dev_stream.
+ *
+ * Args:
+ *    stream - The associated rstream.
+ *    dev_id - Index of the device.
+ *    dev_fmt - The format of the device.
+ *    dev_ptr - A pointer to the device
+ *    cb_ts - A pointer to the initial callback time.
+ *    sleep_interval_ts - A pointer to the initial sleep interval.
+ *        Set to null to calculate the value from device rate and block size.
+ *        Note that we need this argument so that output device sleep interval
+ *        can use input device sleep interval in the beginning to have perfect
+ *        alignment in WebRTC use case.
+ * Returns the pointer to the created dev_stream.
+ */
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt,
-				     void *dev_ptr, struct timespec *cb_ts);
+				     void *dev_ptr, struct timespec *cb_ts,
+				     const struct timespec *sleep_interval_ts);
 void dev_stream_destroy(struct dev_stream *dev_stream);
 
 /*

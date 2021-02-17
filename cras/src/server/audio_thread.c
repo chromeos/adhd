@@ -443,7 +443,8 @@ static int thread_add_stream(struct audio_thread *thread,
 {
 	int rc;
 
-	rc = dev_io_append_stream(&thread->open_devs[stream->direction], stream,
+	rc = dev_io_append_stream(&thread->open_devs[CRAS_STREAM_OUTPUT],
+				  &thread->open_devs[CRAS_STREAM_INPUT], stream,
 				  iodevs, num_iodevs);
 	if (rc < 0)
 		return rc;

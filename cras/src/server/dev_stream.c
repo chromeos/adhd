@@ -63,7 +63,8 @@ unsigned int max_frames_for_conversion(unsigned int stream_frames,
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt,
-				     void *dev_ptr, struct timespec *cb_ts)
+				     void *dev_ptr, struct timespec *cb_ts,
+				     const struct timespec *sleep_interval_ts)
 {
 	struct dev_stream *out;
 	struct cras_audio_format *stream_fmt = &stream->format;
@@ -122,8 +123,15 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	out->conv_buffer = byte_buffer_create(buf_bytes);
 	out->conv_area = cras_audio_area_create(ofmt->num_channels);
 
-	cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
-			    stream_fmt->frame_rate, &stream->sleep_interval_ts);
+	/* Use sleep interval hint from argument if it is provided */
+	if (sleep_interval_ts) {
+		stream->sleep_interval_ts = *sleep_interval_ts;
+	} else {
+		cras_frames_to_time(cras_rstream_get_cb_threshold(stream),
+				    stream_fmt->frame_rate,
+				    &stream->sleep_interval_ts);
+	}
+
 	stream->next_cb_ts = *cb_ts;
 
 	/* Sets up the stream & dev pair. */

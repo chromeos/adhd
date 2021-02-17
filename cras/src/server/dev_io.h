@@ -58,8 +58,9 @@ int write_output_samples(struct open_dev **odevs, struct open_dev *adev,
  * Captures samples from each device in the list.
  *    list - Pointer to the list of input devices.  Devices that fail to read
  *           will be removed from the list.
+ *    olist - Pointer to the list of output devices.
  */
-int dev_io_capture(struct open_dev **list);
+int dev_io_capture(struct open_dev **list, struct open_dev **olist);
 
 /*
  * Send samples that have been captured to their streams.
@@ -101,7 +102,7 @@ struct open_dev *dev_io_find_open_dev(struct open_dev *odev_list,
 				      unsigned int dev_idx);
 
 /* Append a new stream to a specified set of iodevs. */
-int dev_io_append_stream(struct open_dev **dev_list,
+int dev_io_append_stream(struct open_dev **odevs, struct open_dev **idevs,
 			 struct cras_rstream *stream,
 			 struct cras_iodev **iodevs, unsigned int num_iodevs);
 

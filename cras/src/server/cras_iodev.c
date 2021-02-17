@@ -732,6 +732,17 @@ bool cras_iodev_is_aec_use_case(const struct cras_ionode *node)
 	return false;
 }
 
+bool cras_iodev_is_on_internal_card(const struct cras_ionode *node)
+{
+	if (node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER)
+		return true;
+	if (node->type == CRAS_NODE_TYPE_HEADPHONE)
+		return true;
+	if (node->type == CRAS_NODE_TYPE_MIC)
+		return true;
+	return false;
+}
+
 float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 {
 	unsigned int volume;
