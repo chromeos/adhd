@@ -10,7 +10,6 @@
 #include <vector>
 
 extern "C" {
-
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
@@ -487,7 +486,7 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(0, aio->filled_zeros_for_draining);
   EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
             aio->severe_underrun_frames);
-
+  iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
 }
@@ -510,6 +509,7 @@ TEST(AlsaIoInit, QuadChannelInternalSpeakerOpenPlayback) {
   iodev->configure_dev(iodev);
 
   EXPECT_EQ(3, display_rotation);
+  iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
 }
@@ -669,7 +669,7 @@ TEST(AlsaIoInit, OpenCapture) {
   EXPECT_EQ(1, cras_alsa_start_called);
   EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
             aio->severe_underrun_frames);
-
+  iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
 }
@@ -779,7 +779,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
 
   /* Not change mixer controls for USB devices without UCM config. */
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_called);
-
+  iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
 }
@@ -2111,6 +2111,7 @@ TEST_F(AlsaVolumeMuteSuite, GetDefaultVolumeCurve) {
 
   aio_output_->base.set_volume(&aio_output_->base);
   EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
+  aio_output_->base.close_dev(&aio_output_->base);
   free(fmt);
 }
 
@@ -2151,6 +2152,7 @@ TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromNode) {
 
   aio_output_->base.set_volume(&aio_output_->base);
   EXPECT_EQ(&hp_curve, fake_get_dBFS_volume_curve_val);
+  aio_output_->base.close_dev(&aio_output_->base);
   free(fmt);
 }
 
@@ -2500,6 +2502,7 @@ TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
   ASSERT_NE(reinterpret_cast<thread_callback>(NULL), audio_thread_cb);
   audio_thread_cb(audio_thread_cb_data, POLLIN);
   EXPECT_EQ(1, hotword_send_triggered_msg_called);
+  iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
 }
 
