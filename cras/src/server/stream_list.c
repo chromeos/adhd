@@ -11,10 +11,10 @@
 #include "utlist.h"
 
 /*
- * If the time difference of two streams is short than 1s, they may be the RTC
+ * If the time difference of two streams is short than 10s, they may be the RTC
  * streams.
  */
-static const struct timespec RTC_STREAM_THRESHOLD = { 1, 0 };
+static const struct timespec RTC_STREAM_THRESHOLD = { 10, 0 };
 
 struct stream_list {
 	struct cras_rstream *streams;
