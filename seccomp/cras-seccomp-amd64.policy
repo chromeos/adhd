@@ -38,6 +38,7 @@ socket: arg0 == AF_UNIX || arg0 == AF_BLUETOOTH || arg0 == AF_NETLINK
 socketpair: 1
 unlink: 1
 nanosleep: 1
+clock_nanosleep: 1
 pipe: 1
 ftruncate: 1
 fallocate: 1

@@ -64,6 +64,7 @@ exit_group: 1
 getsockname: 1
 getdents: 1
 nanosleep: 1
+clock_nanosleep: 1
 epoll_ctl: 1
 sched_setscheduler: 1
 restart_syscall: 1

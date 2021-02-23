@@ -68,6 +68,7 @@ listen: 1
 lsetxattr: 1
 madvise: 1
 nanosleep: 1
+clock_nanosleep: 1
 restart_syscall: 1
 rt_sigprocmask: 1
 rt_sigreturn: 1
