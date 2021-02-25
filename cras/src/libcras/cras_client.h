@@ -1577,6 +1577,14 @@ inline int libcras_client_get_nodes(struct libcras_client *client,
 	return client->get_nodes(client->client_, direction, nodes, num);
 }
 
+/*
+ * Gets the default output buffer size.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    size - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int
 libcras_client_get_default_output_buffer_size(struct libcras_client *client,
 					      int *size)
@@ -1584,30 +1592,70 @@ libcras_client_get_default_output_buffer_size(struct libcras_client *client,
 	return client->get_default_output_buffer_size(client->client_, size);
 }
 
+/*
+ * Gets the AEC group ID.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    id - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_client_get_aec_group_id(struct libcras_client *client,
 					   int *id)
 {
 	return client->get_aec_group_id(client->client_, id);
 }
 
+/*
+ * Gets whether AEC is supported.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    supported - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_client_get_aec_supported(struct libcras_client *client,
 					    int *supported)
 {
 	return client->get_aec_supported(client->client_, supported);
 }
 
+/*
+ * Gets whether the system is muted.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    muted - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_client_get_system_muted(struct libcras_client *client,
 					   int *muted)
 {
 	return client->get_aec_group_id(client->client_, muted);
 }
 
+/*
+ * Mutes or unmutes the system.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    mute - 1 is to mute and 0 is to unmute.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_client_set_system_mute(struct libcras_client *client,
 					  int mute)
 {
 	return client->set_system_mute(client->client_, mute);
 }
 
+/*
+ * Gets the index of the loopback device.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    idx - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_client_get_loopback_dev_idx(struct libcras_client *client,
 					       int *idx)
 {
