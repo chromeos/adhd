@@ -1557,6 +1557,18 @@ inline int libcras_client_set_stream_volume(struct libcras_client *client,
 					 volume_scaler);
 }
 
+/*
+ * Gets the current list of audio nodes.
+ *
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    direction - Input or output.
+ *    nodes - Array that will be filled with libcras_node_info pointers.
+ *    num - Pointer to store the size of the array.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ *    Remember to call libcras_node_info_array_destroy to free the array.
+ */
 inline int libcras_client_get_nodes(struct libcras_client *client,
 				    enum CRAS_STREAM_DIRECTION direction,
 				    struct libcras_node_info ***nodes,
@@ -1758,29 +1770,72 @@ libcras_stream_cb_data_get_usr_arg(struct libcras_stream_cb_data *data,
 	return data->get_user_arg(data->data_, user_arg);
 }
 
-struct libcras_node_info *
-libcras_node_info_create(struct cras_iodev_info *iodev,
-			 struct cras_ionode_info *ionode);
+/*
+ * Destroys a node info instance.
+ * Args:
+ *    node - The libcras_node_info pointer to destroy.
+ */
 void libcras_node_info_destroy(struct libcras_node_info *node);
 
+/*
+ * Destroys a node info array.
+ * Args:
+ *    nodes - The libcras_node_info pointer array to destroy.
+ *    num - The size of the array.
+ */
+void libcras_node_info_array_destroy(struct libcras_node_info **nodes,
+				     size_t num);
+
+/*
+ * Gets ID from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    id - The pointer to save ID.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_node_info_get_id(struct libcras_node_info *node,
 				    uint64_t *id)
 {
 	return node->get_id(node->node_, id);
 }
 
+/*
+ * Gets device index from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    dev_idx - The pointer to the device index.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_node_info_get_dev_idx(struct libcras_node_info *node,
 					 uint32_t *dev_idx)
 {
 	return node->get_dev_idx(node->node_, dev_idx);
 }
 
+/*
+ * Gets node index from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    node_idx - The pointer to save the node index.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_node_info_get_node_idx(struct libcras_node_info *node,
 					  uint32_t *node_idx)
 {
 	return node->get_node_idx(node->node_, node_idx);
 }
 
+/*
+ * Gets the max supported channels from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    max_supported_channels - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int
 libcras_node_info_get_max_supported_channels(struct libcras_node_info *node,
 					     uint32_t *max_supported_channels)
@@ -1789,30 +1844,70 @@ libcras_node_info_get_max_supported_channels(struct libcras_node_info *node,
 						max_supported_channels);
 }
 
+/*
+ * Gets whether the node is plugged from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    plugged - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_node_info_is_plugged(struct libcras_node_info *node,
 					bool *plugged)
 {
 	return node->is_plugged(node->node_, plugged);
 }
 
+/*
+ * Gets whether the node is active from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    active - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_node_info_is_active(struct libcras_node_info *node,
 				       bool *active)
 {
 	return node->is_active(node->node_, active);
 }
 
+/*
+ * Gets device type from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    type - The pointer to save the device type.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_node_info_get_type(struct libcras_node_info *node,
 				      char **type)
 {
 	return node->get_type(node->node_, type);
 }
 
+/*
+ * Gets device name from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    name - The pointer to save the device name.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_node_info_get_node_name(struct libcras_node_info *node,
 					   char **name)
 {
 	return node->get_node_name(node->node_, name);
 }
 
+/*
+ * Gets node name from the node info pointer.
+ * Args:
+ *    node - The node info pointer. (Returned from libcras_client_get_nodes)
+ *    name - The pointer to save the node name.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
 inline int libcras_node_info_get_dev_name(struct libcras_node_info *node,
 					  char **name)
 {

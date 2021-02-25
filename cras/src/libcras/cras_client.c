@@ -371,6 +371,10 @@ static int client_thread_rm_stream(struct cras_client *client,
 static int handle_message_from_server(struct cras_client *client);
 static int reregister_notifications(struct cras_client *client);
 
+static struct libcras_node_info *
+libcras_node_info_create(struct cras_iodev_info *iodev,
+			 struct cras_ionode_info *ionode);
+
 /*
  * Unlock the server_state_rwlock if lock_rc is 0.
  *
@@ -4231,4 +4235,13 @@ void libcras_node_info_destroy(struct libcras_node_info *node)
 {
 	free(node->node_);
 	free(node);
+}
+
+void libcras_node_info_array_destroy(struct libcras_node_info **nodes,
+				     size_t num)
+{
+	int i;
+	for (i = 0; i < num; i++)
+		libcras_node_info_destroy(nodes[i]);
+	free(nodes);
 }
