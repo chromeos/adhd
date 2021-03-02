@@ -414,7 +414,7 @@ static int open_dev(struct cras_iodev *iodev)
 	aio->handle = handle;
 
 	/* Enable or disable noise cancellation if it supports. */
-	if (iodev->direction == CRAS_STREAM_INPUT &&
+	if (aio->ucm && iodev->direction == CRAS_STREAM_INPUT &&
 	    ucm_node_noise_cancellation_exists(aio->ucm,
 					       iodev->active_node->name)) {
 		enable_noise_cancellation =
@@ -2039,7 +2039,7 @@ static int support_noise_cancellation(const struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 
-	if (!iodev->active_node)
+	if (!aio->ucm || !iodev->active_node)
 		return 0;
 
 	return ucm_node_noise_cancellation_exists(aio->ucm,
