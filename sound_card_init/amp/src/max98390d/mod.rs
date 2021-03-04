@@ -8,15 +8,12 @@
 mod settings;
 
 use std::time::Duration;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 use cros_alsa::{Card, IntControl, SwitchControl};
 use dsm::{CalibData, Error, Result, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
 
-use crate::{Amp, CONF_DIR};
+use crate::Amp;
 use settings::{AmpCalibSettings, DeviceSettings};
 
 /// Amp volume mode emulation used by set_volume().
@@ -85,6 +82,7 @@ impl Max98390 {
     /// # Arguments
     ///
     /// * `card_name` - card name.
+    /// * `config_path` - config file path.
     ///
     /// # Results
     ///
@@ -93,12 +91,9 @@ impl Max98390 {
     /// # Errors
     ///
     /// * If `Card` creation from sound card name fails.
-    pub fn new(card_name: &str) -> Result<Self> {
-        let config_path = PathBuf::from(CONF_DIR)
-            .join(card_name)
-            .with_extension("yaml");
-        let conf =
-            fs::read_to_string(&config_path).map_err(|e| Error::FileIOFailed(config_path, e))?;
+    pub fn new(card_name: &str, config_path: &Path) -> Result<Self> {
+        let conf = fs::read_to_string(config_path)
+            .map_err(|e| Error::FileIOFailed(config_path.to_path_buf(), e))?;
         let settings = DeviceSettings::from_yaml_str(&conf)?;
         Ok(Self {
             card: Card::new(card_name)?,

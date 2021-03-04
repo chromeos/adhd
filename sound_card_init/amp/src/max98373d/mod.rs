@@ -8,7 +8,7 @@
 mod dsm_param;
 mod settings;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 use std::{fs, thread};
 
@@ -16,7 +16,7 @@ use cros_alsa::{Card, IntControl};
 use dsm::{CalibData, Error, Result, SpeakerStatus, ZeroPlayer, DSM};
 use sys_util::info;
 
-use crate::{Amp, CONF_DIR};
+use crate::Amp;
 use dsm_param::*;
 use settings::{AmpCalibSettings, DeviceSettings};
 
@@ -89,6 +89,7 @@ impl Max98373 {
     /// # Arguments
     ///
     /// * `card_name` - card_name.
+    /// * `config_path` - config file path.
     ///
     /// # Results
     ///
@@ -97,12 +98,9 @@ impl Max98373 {
     /// # Errors
     ///
     /// * If `Card` creation from sound card name fails.
-    pub fn new(card_name: &str) -> Result<Self> {
-        let config_path = PathBuf::from(CONF_DIR)
-            .join(card_name)
-            .with_extension("yaml");
-        let conf =
-            fs::read_to_string(&config_path).map_err(|e| Error::FileIOFailed(config_path, e))?;
+    pub fn new(card_name: &str, config_path: &Path) -> Result<Self> {
+        let conf = fs::read_to_string(config_path)
+            .map_err(|e| Error::FileIOFailed(config_path.to_path_buf(), e))?;
         let settings = DeviceSettings::from_yaml_str(&conf)?;
         Ok(Self {
             card: Card::new(card_name)?,
