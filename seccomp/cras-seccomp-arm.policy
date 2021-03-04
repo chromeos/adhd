@@ -3,9 +3,11 @@
 # found in the LICENSE file.
 
 clock_gettime: 1
+clock_gettime64: 1
 poll: 1
 read: 1
 ppoll: 1
+ppoll_time64: 1
 write: 1
 writev: 1
 recv: 1
@@ -41,6 +43,7 @@ rt_sigprocmask: 1
 ftruncate: 1
 fallocate: 1
 futex: 1
+futex_time64: 1
 execve: 1
 set_robust_list: 1
 socket: arg0 == AF_UNIX || arg0 == AF_BLUETOOTH || arg0 == AF_NETLINK
@@ -65,6 +68,7 @@ getsockname: 1
 getdents: 1
 nanosleep: 1
 clock_nanosleep: 1
+clock_nanosleep_time64: 1
 epoll_ctl: 1
 sched_setscheduler: 1
 restart_syscall: 1
@@ -73,6 +77,7 @@ getresuid32: 1
 exit: 1
 prctl: arg0 == PR_SET_NAME
 clock_getres: 1
+clock_getres_time64: 1
 epoll_create1: 1
 fchmod: 1
 setpriority: 1
