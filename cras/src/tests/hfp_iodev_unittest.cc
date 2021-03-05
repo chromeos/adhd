@@ -285,6 +285,10 @@ const char* cras_bt_device_object_path(const struct cras_bt_device* device) {
   return "/fake/object/path";
 }
 
+int cras_bt_device_get_stable_id(const struct cras_bt_device* device) {
+  return 123;
+}
+
 // From cras_hfp_info
 int hfp_info_add_iodev(struct hfp_info* info,
                        enum CRAS_STREAM_DIRECTION direction,

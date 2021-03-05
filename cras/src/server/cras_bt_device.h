@@ -50,6 +50,10 @@ void cras_bt_device_reset();
 struct cras_bt_device *cras_bt_device_get(const char *object_path);
 
 const char *cras_bt_device_object_path(const struct cras_bt_device *device);
+
+/* Gets the stable id of given cras_bt_device. */
+int cras_bt_device_get_stable_id(const struct cras_bt_device *device);
+
 struct cras_bt_adapter *
 cras_bt_device_adapter(const struct cras_bt_device *device);
 const char *cras_bt_device_address(const struct cras_bt_device *device);

@@ -24,7 +24,6 @@
 #include "cras_bt_device.h"
 #include "cras_iodev.h"
 #include "cras_util.h"
-#include "sfh.h"
 #include "rtp.h"
 #include "utlist.h"
 
@@ -644,10 +643,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 
 	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-	iodev->info.stable_id =
-		SuperFastHash(cras_bt_device_object_path(device),
-			      strlen(cras_bt_device_object_path(device)),
-			      strlen(cras_bt_device_object_path(device)));
+	iodev->info.stable_id = cras_bt_device_get_stable_id(device);
 
 	iodev->configure_dev = configure_dev;
 	iodev->frames_queued = frames_queued;

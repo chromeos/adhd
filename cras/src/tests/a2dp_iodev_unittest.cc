@@ -803,6 +803,10 @@ const char* cras_bt_device_object_path(const struct cras_bt_device* device) {
   return "/org/bluez/hci0/dev_1A_2B_3C_4D_5E_6F";
 }
 
+int cras_bt_device_get_stable_id(const struct cras_bt_device* device) {
+  return 123;
+}
+
 void cras_bt_device_append_iodev(struct cras_bt_device* device,
                                  struct cras_iodev* iodev,
                                  enum cras_bt_device_profile profile) {

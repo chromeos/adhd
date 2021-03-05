@@ -1017,10 +1017,13 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s dir %u codec id %u\n", "CODEC_SELECTION", data1,
 		       data2);
 		break;
-	case BT_DEV_CONNECTED_CHANGE:
-		printf("%-30s supported profiles 0x%.2x now %s\n",
-		       "DEV_CONNECTED_CHANGE", data1,
-		       data2 ? "connected" : "disconnected");
+	case BT_DEV_CONNECTED:
+		printf("%-30s supported profiles 0x%.2x stable_id 0x%08x\n",
+		       "DEV_CONNECTED", data1, data2);
+		break;
+	case BT_DEV_DISCONNECTED:
+		printf("%-30s supported profiles 0x%.2x stable_id 0x%08x\n",
+		       "DEV_DISCONNECTED", data1, data2);
 		break;
 	case BT_DEV_CONN_WATCH_CB:
 		printf("%-30s %u retries left, supported profiles 0x%.2x\n",

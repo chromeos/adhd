@@ -458,6 +458,10 @@ const char* cras_bt_device_object_path(const struct cras_bt_device* device) {
   return "/fake/object/path";
 }
 
+int cras_bt_device_get_stable_id(const struct cras_bt_device* device) {
+  return 123;
+}
+
 int cras_bt_device_get_use_hardware_volume(struct cras_bt_device* device) {
   return 1;
 }

@@ -17,7 +17,6 @@
 #include "cras_iodev.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
-#include "sfh.h"
 #include "utlist.h"
 
 /* Implementation of bluetooth hands-free profile iodev.
@@ -309,10 +308,7 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 
 	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = 0;
-	iodev->info.stable_id =
-		SuperFastHash(cras_bt_device_object_path(device),
-			      strlen(cras_bt_device_object_path(device)),
-			      strlen(cras_bt_device_object_path(device)));
+	iodev->info.stable_id = cras_bt_device_get_stable_id(device);
 
 	iodev->configure_dev = configure_dev;
 	iodev->frames_queued = frames_queued;

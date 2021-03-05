@@ -615,7 +615,7 @@ a2dp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
 a2dp_info_unittest_LDADD = -lgtest -lpthread
 
-a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc common/sfh.c
+a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc
 a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
@@ -688,7 +688,7 @@ audio_thread_monitor_unittest_LDADD = -lgtest -lpthread -lrt
 if HAVE_DBUS
 bt_device_unittest_SOURCES = tests/bt_device_unittest.cc \
 	server/cras_bt_device.c \
-	tests/metrics_stub.cc
+	tests/metrics_stub.cc common/sfh.c
 bt_device_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_device_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
@@ -863,13 +863,13 @@ hfp_info_unittest_LDADD = -lgtest -lpthread
 
 if HAVE_DBUS
 hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \
-	server/cras_hfp_iodev.c common/sfh.c
+	server/cras_hfp_iodev.c
 hfp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_alsa_iodev_unittest_SOURCES = tests/hfp_alsa_iodev_unittest.cc \
-	server/cras_hfp_alsa_iodev.c common/sfh.c
+	server/cras_hfp_alsa_iodev.c
 hfp_alsa_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_alsa_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)

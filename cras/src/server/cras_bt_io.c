@@ -527,10 +527,7 @@ struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
 	active->base.idx = btio->next_node_id++;
 	active->base.type = dev->active_node->type;
 	active->base.volume = 100;
-	active->base.stable_id =
-		SuperFastHash(cras_bt_device_object_path(device),
-			      strlen(cras_bt_device_object_path(device)),
-			      strlen(cras_bt_device_object_path(device)));
+	active->base.stable_id = cras_bt_device_get_stable_id(device);
 	active->base.ui_gain_scaler = 1.0f;
 	/*
 	 * If the same headset is connected in wideband mode, we shall assign

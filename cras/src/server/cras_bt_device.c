@@ -34,6 +34,7 @@
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
+#include "sfh.h"
 #include "utlist.h"
 
 /*
@@ -91,6 +92,7 @@ static const unsigned int CRAS_SUPPORTED_PROFILES =
  *    sco_fd - The file descriptor of the SCO connection.
  *    sco_ref_count - The reference counts of the SCO connection.
  *    suspend_reason - The reason code for why suspend is scheduled.
+ *    stable_id - The unique and persistent id of this bt_device.
  */
 struct cras_bt_device {
 	DBusConnection *conn;
@@ -115,6 +117,7 @@ struct cras_bt_device {
 	int sco_fd;
 	size_t sco_ref_count;
 	enum cras_bt_device_suspend_reason suspend_reason;
+	unsigned int stable_id;
 
 	struct cras_bt_device *prev, *next;
 };
@@ -174,6 +177,9 @@ struct cras_bt_device *cras_bt_device_create(DBusConnection *conn,
 		free(device);
 		return NULL;
 	}
+	device->stable_id =
+		SuperFastHash(device->object_path, strlen(device->object_path),
+			      strlen(device->object_path));
 
 	DL_APPEND(devices, device);
 
@@ -341,6 +347,11 @@ struct cras_bt_device *cras_bt_device_get(const char *object_path)
 const char *cras_bt_device_object_path(const struct cras_bt_device *device)
 {
 	return device->object_path;
+}
+
+int cras_bt_device_get_stable_id(const struct cras_bt_device *device)
+{
+	return device->stable_id;
 }
 
 struct cras_bt_adapter *
@@ -704,10 +715,14 @@ static void bt_device_cancel_suspend(struct cras_bt_device *device);
 void cras_bt_device_set_connected(struct cras_bt_device *device, int value)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
-	if (device->connected || value)
-		BTLOG(btlog, BT_DEV_CONNECTED_CHANGE, device->profiles, value);
+	if (!device->connected && value) {
+		BTLOG(btlog, BT_DEV_CONNECTED, device->profiles,
+		      device->stable_id);
+	}
 
 	if (device->connected && !value) {
+		BTLOG(btlog, BT_DEV_DISCONNECTED, device->profiles,
+		      device->stable_id);
 		cras_bt_profile_on_device_disconnected(device);
 		/* Device is disconnected, resets connected profiles and the
 		 * suspend timer which scheduled earlier. */
