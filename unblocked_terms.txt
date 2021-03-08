@@ -5,7 +5,6 @@
 #
 # See repohooks/README.md for more details.
 
-dummy
 master
 \bnative
 white.?list

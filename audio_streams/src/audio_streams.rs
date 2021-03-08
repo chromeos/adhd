@@ -359,19 +359,6 @@ impl PlaybackBufferStream for NoopStream {
 }
 
 /// No-op control for `NoopStream`s.
-/// Should be deprecated once all existing use of DummyStreamControl removed.
-#[derive(Default)]
-pub struct DummyStreamControl;
-
-impl DummyStreamControl {
-    pub fn new() -> Self {
-        DummyStreamControl {}
-    }
-}
-
-impl StreamControl for DummyStreamControl {}
-
-/// No-op control for `NoopStream`s.
 #[derive(Default)]
 pub struct NoopStreamControl;
 
