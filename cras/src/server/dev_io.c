@@ -54,10 +54,10 @@ static struct timespec last_io_err_time = { 0, 0 };
 /* The gap time to avoid repeated error close request to main thread. */
 static const int ERROR_CLOSE_GAP_TIME_SECS = 10;
 
-/* Gets the master device which the stream is attached to. */
-static inline struct cras_iodev *get_master_dev(const struct dev_stream *stream)
+/* Gets the main device which the stream is attached to. */
+static inline struct cras_iodev *get_main_dev(const struct dev_stream *stream)
 {
-	return (struct cras_iodev *)stream->stream->master_dev.dev_ptr;
+	return (struct cras_iodev *)stream->stream->main_dev.dev_ptr;
 }
 
 /* Updates the estimated sample rate of open device to all attached
@@ -67,12 +67,12 @@ static void update_estimated_rate(struct open_dev *adev,
 				  struct open_dev *odev_list,
 				  bool self_rate_need_update)
 {
-	struct cras_iodev *master_dev;
+	struct cras_iodev *main_dev;
 	struct cras_iodev *dev = adev->dev;
 	struct cras_iodev *tracked_dev = NULL;
 	struct dev_stream *dev_stream;
 	double dev_rate_ratio;
-	double master_dev_rate_ratio;
+	double main_dev_rate_ratio;
 
 	/*
 	 * If there is an output device on the same sound card running with the same
@@ -101,24 +101,24 @@ static void update_estimated_rate(struct open_dev *adev,
 		return;
 
 	DL_FOREACH (dev->streams, dev_stream) {
-		master_dev = get_master_dev(dev_stream);
-		if (master_dev == NULL) {
-			syslog(LOG_ERR, "Fail to find master open dev.");
+		main_dev = get_main_dev(dev_stream);
+		if (main_dev == NULL) {
+			syslog(LOG_ERR, "Fail to find main open dev.");
 			continue;
 		}
 
 		if (tracked_dev) {
 			dev_rate_ratio =
 				cras_iodev_get_est_rate_ratio(tracked_dev);
-			master_dev_rate_ratio = dev_rate_ratio;
+			main_dev_rate_ratio = dev_rate_ratio;
 		} else {
 			dev_rate_ratio = cras_iodev_get_est_rate_ratio(dev);
-			master_dev_rate_ratio =
-				cras_iodev_get_est_rate_ratio(master_dev);
+			main_dev_rate_ratio =
+				cras_iodev_get_est_rate_ratio(main_dev);
 		}
 
 		dev_stream_set_dev_rate(dev_stream, dev->format->frame_rate,
-					dev_rate_ratio, master_dev_rate_ratio,
+					dev_rate_ratio, main_dev_rate_ratio,
 					adev->coarse_rate_adjust);
 	}
 }

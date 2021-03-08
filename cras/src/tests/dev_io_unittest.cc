@@ -33,7 +33,7 @@ static unsigned int dev_stream_capture_avail_ret = 480;
 struct set_dev_rate_data {
   unsigned int dev_rate;
   double dev_rate_ratio;
-  double master_rate_ratio;
+  double main_rate_ratio;
   int coarse_rate_adjust;
 };
 std::unordered_map<struct dev_stream*, set_dev_rate_data> set_dev_rate_map;
@@ -402,12 +402,12 @@ int dev_stream_mix(struct dev_stream* dev_stream,
 void dev_stream_set_dev_rate(struct dev_stream* dev_stream,
                              unsigned int dev_rate,
                              double dev_rate_ratio,
-                             double master_rate_ratio,
+                             double main_rate_ratio,
                              int coarse_rate_adjust) {
   set_dev_rate_data new_data;
   new_data.dev_rate = dev_rate;
   new_data.dev_rate_ratio = dev_rate_ratio;
-  new_data.master_rate_ratio = master_rate_ratio;
+  new_data.main_rate_ratio = main_rate_ratio;
   new_data.coarse_rate_adjust = coarse_rate_adjust;
 
   set_dev_rate_map[dev_stream] = new_data;

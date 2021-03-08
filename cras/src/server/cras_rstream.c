@@ -292,8 +292,8 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->cb_threshold = config->cb_threshold;
 	stream->client = config->client;
 	stream->shm = NULL;
-	stream->master_dev.dev_id = NO_DEVICE;
-	stream->master_dev.dev_ptr = NULL;
+	stream->main_dev.dev_id = NO_DEVICE;
+	stream->main_dev.dev_ptr = NULL;
 	stream->num_missed_cb = 0;
 	stream->is_pinned = (config->dev_idx != NO_DEVICE);
 	stream->pinned_dev_idx = config->dev_idx;
@@ -431,12 +431,12 @@ void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id,
 	if (buffer_share_add_id(rstream->buf_state, dev_id, dev_ptr) == 0)
 		rstream->num_attached_devs++;
 
-	/* TODO(hychao): Handle master device assignment for complicated
+	/* TODO(hychao): Handle main device assignment for complicated
 	 * routing case.
 	 */
-	if (rstream->master_dev.dev_id == NO_DEVICE) {
-		rstream->master_dev.dev_id = dev_id;
-		rstream->master_dev.dev_ptr = dev_ptr;
+	if (rstream->main_dev.dev_id == NO_DEVICE) {
+		rstream->main_dev.dev_id = dev_id;
+		rstream->main_dev.dev_ptr = dev_ptr;
 	}
 }
 
@@ -445,18 +445,18 @@ void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 	if (buffer_share_rm_id(rstream->buf_state, dev_id) == 0)
 		rstream->num_attached_devs--;
 
-	if (rstream->master_dev.dev_id == dev_id) {
+	if (rstream->main_dev.dev_id == dev_id) {
 		int i;
 		struct id_offset *o;
 
-		/* Choose the first device id as master. */
-		rstream->master_dev.dev_id = NO_DEVICE;
-		rstream->master_dev.dev_ptr = NULL;
+		/* Choose the first device id as a main device. */
+		rstream->main_dev.dev_id = NO_DEVICE;
+		rstream->main_dev.dev_ptr = NULL;
 		for (i = 0; i < rstream->buf_state->id_sz; i++) {
 			o = &rstream->buf_state->wr_idx[i];
 			if (o->used) {
-				rstream->master_dev.dev_id = o->id;
-				rstream->master_dev.dev_ptr = o->data;
+				rstream->main_dev.dev_id = o->id;
+				rstream->main_dev.dev_ptr = o->data;
 				break;
 			}
 		}

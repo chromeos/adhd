@@ -547,13 +547,13 @@ TEST_F(CreateSuite, CaptureAvailConvBufHasSamples) {
   dev_stream_destroy(dev_stream);
 }
 
-TEST_F(CreateSuite, SetDevRateNotMasterDev) {
+TEST_F(CreateSuite, SetDevRateNotMainDev) {
   struct dev_stream* dev_stream;
   unsigned int dev_id = 9;
 
   rstream_.format = fmt_s16le_48;
   rstream_.direction = CRAS_STREAM_INPUT;
-  rstream_.master_dev.dev_id = 4;
+  rstream_.main_dev.dev_id = 4;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
   dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
                                  (void*)0x55, &cb_ts, NULL);
@@ -575,14 +575,14 @@ TEST_F(CreateSuite, SetDevRateNotMasterDev) {
   dev_stream_destroy(dev_stream);
 }
 
-TEST_F(CreateSuite, SetDevRateMasterDev) {
+TEST_F(CreateSuite, SetDevRateMainDev) {
   struct dev_stream* dev_stream;
   unsigned int dev_id = 9;
   unsigned int expected_ts_nsec;
 
   rstream_.format = fmt_s16le_48;
   rstream_.direction = CRAS_STREAM_INPUT;
-  rstream_.master_dev.dev_id = dev_id;
+  rstream_.main_dev.dev_id = dev_id;
   config_format_converter_conv = reinterpret_cast<struct cras_fmt_conv*>(0x33);
   dev_stream = dev_stream_create(&rstream_, dev_id, &fmt_s16le_44_1,
                                  (void*)0x55, &cb_ts, NULL);

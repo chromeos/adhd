@@ -72,21 +72,21 @@ void dev_stream_destroy(struct dev_stream *dev_stream);
 /*
  * Update the estimated sample rate of the device. For multiple active
  * devices case, the linear resampler will be configured by the estimated
- * rate ration of the master device and the current active device the
+ * rate ration of the main device and the current active device the
  * rstream attaches to.
  *
  * Args:
  *    dev_stream - The structure holding the stream.
  *    dev_rate - The sample rate device is using.
  *    dev_rate_ratio - The ratio of estimated rate and used rate.
- *    master_rate_ratio - The ratio of estimated rate and used rate of
- *        master device.
+ *    main_rate_ratio - The ratio of estimated rate and used rate of
+ *        main device.
  *    coarse_rate_adjust - The flag to indicate the direction device
  *        sample rate should adjust to.
  */
 void dev_stream_set_dev_rate(struct dev_stream *dev_stream,
 			     unsigned int dev_rate, double dev_rate_ratio,
-			     double master_rate_ratio, int coarse_rate_adjust);
+			     double main_rate_ratio, int coarse_rate_adjust);
 
 /*
  * Renders count frames from shm into dst.  Updates count if anything is

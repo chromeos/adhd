@@ -20,12 +20,12 @@ struct cras_connect_message;
 struct cras_rclient;
 struct dev_mix;
 
-/* Holds informations about the master active device.
+/* Holds informations about the main active device.
  * Members:
- *    dev_id - id of the master device.
- *    dev_ptr - pointer to the master device.
+ *    dev_id - id of the main device.
+ *    dev_ptr - pointer to the main device.
  */
-struct master_dev_info {
+struct main_dev_info {
 	int dev_id;
 	void *dev_ptr;
 };
@@ -42,7 +42,7 @@ struct master_dev_info {
  *    fd - Socket for requesting and sending audio buffer events.
  *    buffer_frames - Buffer size in frames.
  *    cb_threshold - Callback client when this much is left.
- *    master_dev_info - The info of the master device this stream attaches to.
+ *    main_dev_info - The info of the main device this stream attaches to.
  *    is_draining - The stream is draining and waiting to be removed.
  *    client - The client who uses this stream.
  *    shm - shared memory
@@ -74,7 +74,7 @@ struct cras_rstream {
 	size_t buffer_frames;
 	size_t cb_threshold;
 	int is_draining;
-	struct master_dev_info master_dev;
+	struct main_dev_info main_dev;
 	struct cras_rclient *client;
 	struct cras_audio_shm *shm;
 	struct cras_audio_area *audio_area;

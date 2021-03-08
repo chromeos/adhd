@@ -152,9 +152,9 @@ void add_stream_to_dev(IodevPtr& dev, const StreamPtr& stream) {
   dev->largest_cb_level = std::max(stream->rstream->cb_threshold,
                                    static_cast<size_t>(dev->max_cb_level));
 
-  if (stream->rstream->master_dev.dev_id == NO_DEVICE) {
-    stream->rstream->master_dev.dev_id = dev->info.idx;
-    stream->rstream->master_dev.dev_ptr = dev.get();
+  if (stream->rstream->main_dev.dev_id == NO_DEVICE) {
+    stream->rstream->main_dev.dev_id = dev->info.idx;
+    stream->rstream->main_dev.dev_ptr = dev.get();
   }
 }
 

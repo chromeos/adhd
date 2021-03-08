@@ -1271,7 +1271,7 @@ void dev_stream_set_delay(const struct dev_stream* dev_stream,
 void dev_stream_set_dev_rate(struct dev_stream* dev_stream,
                              unsigned int dev_rate,
                              double dev_rate_ratio,
-                             double master_rate_ratio,
+                             double main_rate_ratio,
                              int coarse_rate_adjust) {}
 
 void dev_stream_update_frames(const struct dev_stream* dev_stream) {}
