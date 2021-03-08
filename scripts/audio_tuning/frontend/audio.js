@@ -1570,7 +1570,7 @@ function DrcDrawer(canvas) {
   var kneeThresholdDb;
   var kneeThreshold;
   var ykneeThresholdDb;
-  var masterLinearGain;
+  var mainLinearGain;
 
   var maxOutputDb = 6;
   var minOutputDb = -36;
@@ -1662,10 +1662,10 @@ function DrcDrawer(canvas) {
     kneeThreshold = dBToLinear(kneeThresholdDb);
     ykneeThresholdDb = linearToDb(kneeCurve(kneeThreshold, curve_k));
 
-    /* Calculate masterLinearGain */
+    /* Calculate mainLinearGain */
     var fullRangeGain = saturate(1, curve_k);
     var fullRangeMakeupGain = Math.pow(1 / fullRangeGain, 0.6);
-    masterLinearGain = dBToLinear(boost) * fullRangeMakeupGain;
+    mainLinearGain = dBToLinear(boost) * fullRangeMakeupGain;
 
     /* Clear canvas */
     var width = canvas.width;
@@ -1725,7 +1725,7 @@ function DrcDrawer(canvas) {
       var inputDb = xpixelToDb(x);
       var inputLinear = dBToLinear(inputDb);
       var outputLinear = saturate(inputLinear, curve_k);
-      outputLinear *= masterLinearGain;
+      outputLinear *= mainLinearGain;
       var outputDb = linearToDb(outputLinear);
       var y = dBToYPixel(outputDb);
 
