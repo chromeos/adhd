@@ -10,6 +10,7 @@ use std::error;
 use std::fmt;
 use std::iter::FromIterator;
 use std::os::raw::c_char;
+use std::str::FromStr;
 use std::time::Duration;
 
 #[allow(dead_code)]
@@ -47,6 +48,7 @@ unsafe impl data_model::DataInit for gen::cras_set_system_volume {}
 pub enum Error {
     InvalidChannel(i8),
     InvalidClientType(u32),
+    InvalidClientTypeStr,
     InvalidStreamType(u32),
 }
 
@@ -68,6 +70,7 @@ impl fmt::Display for Error {
                 t,
                 CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_SERVER_STREAM as u32 + 1
             ),
+            InvalidClientTypeStr => write!(f, "Invalid client type string"),
             InvalidStreamType(t) => write!(
                 f,
                 "Stream type {} is not within valid range [0, {})",
@@ -422,6 +425,18 @@ impl TryFrom<u32> for CRAS_CLIENT_TYPE {
             7 => Ok(CRAS_CLIENT_TYPE_SERVER_STREAM),
             8 => Ok(CRAS_CLIENT_TYPE_LACROS),
             _ => Err(Error::InvalidClientType(client_type)),
+        }
+    }
+}
+
+impl FromStr for CRAS_CLIENT_TYPE {
+    type Err = Error;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        use CRAS_CLIENT_TYPE::*;
+        match s {
+            "crosvm" => Ok(CRAS_CLIENT_TYPE_CROSVM),
+            "arcvm" => Ok(CRAS_CLIENT_TYPE_ARCVM),
+            _ => Err(Error::InvalidClientTypeStr),
         }
     }
 }

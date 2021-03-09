@@ -748,7 +748,9 @@ pub enum CRAS_CONNECTION_TYPE {
     CRAS_CAPTURE = 2,
     CRAS_VMS_LEGACY = 3,
     CRAS_VMS_UNIFIED = 4,
-    CRAS_NUM_CONN_TYPE = 5,
+    CRAS_PLUGIN_PLAYBACK = 5,
+    CRAS_PLUGIN_UNIFIED = 6,
+    CRAS_NUM_CONN_TYPE = 7,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -798,6 +800,9 @@ pub enum CRAS_CLIENT_TYPE {
     CRAS_CLIENT_TYPE_CROSVM = 6,
     CRAS_CLIENT_TYPE_SERVER_STREAM = 7,
     CRAS_CLIENT_TYPE_LACROS = 8,
+    CRAS_CLIENT_TYPE_PLUGIN = 9,
+    CRAS_CLIENT_TYPE_ARCVM = 10,
+    CRAS_NUM_CLIENT_TYPE = 11,
 }
 impl CRAS_STREAM_EFFECT {
     pub const APM_ECHO_CANCELLATION: CRAS_STREAM_EFFECT = CRAS_STREAM_EFFECT(1);
@@ -914,24 +919,25 @@ pub enum CRAS_BT_LOG_EVENTS {
     BT_A2DP_START = 6,
     BT_A2DP_SUSPENDED = 7,
     BT_CODEC_SELECTION = 8,
-    BT_DEV_CONNECTED_CHANGE = 9,
-    BT_DEV_CONN_WATCH_CB = 10,
-    BT_DEV_SUSPEND_CB = 11,
-    BT_HFP_NEW_CONNECTION = 12,
-    BT_HFP_REQUEST_DISCONNECT = 13,
-    BT_HFP_SUPPORTED_FEATURES = 14,
-    BT_HFP_HF_INDICATOR = 15,
-    BT_HFP_SET_SPEAKER_GAIN = 16,
-    BT_HFP_UPDATE_SPEAKER_GAIN = 17,
-    BT_HSP_NEW_CONNECTION = 18,
-    BT_HSP_REQUEST_DISCONNECT = 19,
-    BT_NEW_AUDIO_PROFILE_AFTER_CONNECT = 20,
-    BT_RESET = 21,
-    BT_SCO_CONNECT = 22,
-    BT_TRANSPORT_ACQUIRE = 23,
-    BT_TRANSPORT_RELEASE = 24,
-    BT_TRANSPORT_SET_VOLUME = 25,
-    BT_TRANSPORT_UPDATE_VOLUME = 26,
+    BT_DEV_CONNECTED = 9,
+    BT_DEV_DISCONNECTED = 10,
+    BT_DEV_CONN_WATCH_CB = 11,
+    BT_DEV_SUSPEND_CB = 12,
+    BT_HFP_NEW_CONNECTION = 13,
+    BT_HFP_REQUEST_DISCONNECT = 14,
+    BT_HFP_SUPPORTED_FEATURES = 15,
+    BT_HFP_HF_INDICATOR = 16,
+    BT_HFP_SET_SPEAKER_GAIN = 17,
+    BT_HFP_UPDATE_SPEAKER_GAIN = 18,
+    BT_HSP_NEW_CONNECTION = 19,
+    BT_HSP_REQUEST_DISCONNECT = 20,
+    BT_NEW_AUDIO_PROFILE_AFTER_CONNECT = 21,
+    BT_RESET = 22,
+    BT_SCO_CONNECT = 23,
+    BT_TRANSPORT_ACQUIRE = 24,
+    BT_TRANSPORT_RELEASE = 25,
+    BT_TRANSPORT_SET_VOLUME = 26,
+    BT_TRANSPORT_UPDATE_VOLUME = 27,
 }
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
@@ -2117,12 +2123,15 @@ pub struct cras_server_state {
     pub bt_wbs_enabled: i32,
     pub deprioritize_bt_wbs_mic: i32,
     pub main_thread_debug_info: main_thread_debug_info,
+    pub num_input_streams_with_permission: [u32; 11usize],
+    pub noise_cancellation_enabled: i32,
+    pub hotword_pause_at_suspend: i32,
 }
 #[test]
 fn bindgen_test_layout_cras_server_state() {
     assert_eq!(
         ::std::mem::size_of::<cras_server_state>(),
-        1414292usize,
+        1414344usize,
         concat!("Size of: ", stringify!(cras_server_state))
     );
     assert_eq!(
@@ -2518,6 +2527,45 @@ fn bindgen_test_layout_cras_server_state() {
             stringify!(cras_server_state),
             "::",
             stringify!(main_thread_debug_info)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<cras_server_state>())).num_input_streams_with_permission
+                as *const _ as usize
+        },
+        1414292usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_server_state),
+            "::",
+            stringify!(num_input_streams_with_permission)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<cras_server_state>())).noise_cancellation_enabled as *const _
+                as usize
+        },
+        1414336usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_server_state),
+            "::",
+            stringify!(noise_cancellation_enabled)
+        )
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<cras_server_state>())).hotword_pause_at_suspend as *const _
+                as usize
+        },
+        1414340usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_server_state),
+            "::",
+            stringify!(hotword_pause_at_suspend)
         )
     );
 }
