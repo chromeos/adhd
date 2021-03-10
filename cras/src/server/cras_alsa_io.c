@@ -2329,7 +2329,7 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev *iodev,
 
 	/* Check here in case the DmaPeriodMicrosecs flag has only been
 	 * specified on one of many device entries with the same PCM. */
-	if (!aio->dma_period_set_microsecs)
+	if (aio->ucm && !aio->dma_period_set_microsecs)
 		aio->dma_period_set_microsecs =
 			ucm_get_dma_period_for_dev(aio->ucm, section->name);
 
@@ -2484,7 +2484,7 @@ static int alsa_iodev_set_active_node(struct cras_iodev *iodev,
 	cras_iodev_update_dsp(iodev);
 skip:
 	enable_active_ucm(aio, dev_enabled);
-	if (ionode->type == CRAS_NODE_TYPE_HOTWORD) {
+	if (aio->ucm && ionode->type == CRAS_NODE_TYPE_HOTWORD) {
 		if (dev_enabled) {
 			rc = ucm_enable_hotword_model(aio->ucm);
 			if (rc < 0)
