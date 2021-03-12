@@ -271,10 +271,10 @@ impl ShmStream for NullShmStream {
         self.frame_rate
     }
 
-    fn wait_for_next_action_with_timeout<'a>(
-        &'a mut self,
+    fn wait_for_next_action_with_timeout(
+        &mut self,
         timeout: Duration,
-    ) -> GenericResult<Option<ServerRequest<'a>>> {
+    ) -> GenericResult<Option<ServerRequest>> {
         let elapsed = self.start_time.elapsed();
         if elapsed < self.next_frame {
             if timeout < self.next_frame - elapsed {
@@ -399,10 +399,10 @@ impl ShmStream for MockShmStream {
         self.frame_rate
     }
 
-    fn wait_for_next_action_with_timeout<'a>(
-        &'a mut self,
+    fn wait_for_next_action_with_timeout(
+        &mut self,
         timeout: Duration,
-    ) -> GenericResult<Option<ServerRequest<'a>>> {
+    ) -> GenericResult<Option<ServerRequest>> {
         {
             let start_time = Instant::now();
             let &(ref lock, ref cvar) = &*self.request_notifier;

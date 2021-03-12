@@ -165,20 +165,20 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
 
     fn wait_request_data(&mut self) -> Result<(), Error> {
         match self.controls.audio_sock_mut().read_audio_message()? {
-            AudioMessage::Success { id, .. } => match id {
-                CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_REQUEST_DATA => Ok(()),
-                _ => Err(Error::MessageTypeError),
-            },
+            AudioMessage::Success {
+                id: CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_REQUEST_DATA,
+                ..
+            } => Ok(()),
             _ => Err(Error::MessageTypeError),
         }
     }
 
     fn wait_data_ready(&mut self) -> Result<u32, Error> {
         match self.controls.audio_sock_mut().read_audio_message()? {
-            AudioMessage::Success { id, frames } => match id {
-                CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_DATA_READY => Ok(frames),
-                _ => Err(Error::MessageTypeError),
-            },
+            AudioMessage::Success {
+                id: CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_DATA_READY,
+                frames,
+            } => Ok(frames),
             _ => Err(Error::MessageTypeError),
         }
     }
