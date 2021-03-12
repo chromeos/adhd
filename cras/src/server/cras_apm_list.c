@@ -239,13 +239,12 @@ static void get_best_channels(struct cras_audio_format *apm_fmt)
 	int ch;
 	int8_t layout[CRAS_CH_MAX];
 
-	/* Assume device format has correct channel layout populated. */
-	if (apm_fmt->num_channels <= 2)
-		return;
-
-	/* If the device provides recording from more channels than we care
-	 * about, construct a new channel layout containing subset of original
-	 * channels that matches either FL, FR, or FC.
+	/* Using the format from dev_fmt is dangerous because input device
+	 * could have wild configurations like unuse the 1st channel and
+	 * connects 2nd channel to the only mic. Data in the first channel
+	 * is what APM cares about so always construct a new channel layout
+	 * containing subset of original channels that matches either FL, FR,
+	 * or FC.
 	 * TODO(hychao): extend the logic when we have a stream that wants
 	 * to record channels like RR(rear right).
 	 */

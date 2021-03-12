@@ -79,6 +79,64 @@ static void delete_tempdir(char* dir) {
   rmdir(dir);
 }
 
+static void init_channel_layout(struct cras_audio_format* fmt) {
+  int i;
+  for (i = 0; i < CRAS_CH_MAX; i++)
+    fmt->channel_layout[i] = -1;
+}
+
+TEST(ApmList, AddApmInputDevUnuseFirstChannel) {
+  struct cras_audio_format fmt;
+  struct cras_audio_format* val;
+  struct cras_apm* apm;
+  int ch;
+  const int num_test_casts = 9;
+  int test_layouts[num_test_casts][CRAS_CH_MAX] = {
+      {0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+      {0, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+      {0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+      {1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+      {1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+      {2, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+      {2, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+      {3, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+      {3, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
+  int test_num_channels[num_test_casts] = {1, 2, 2, 2, 2, 3, 4, 4, 4};
+
+  fmt.frame_rate = 48000;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+
+  cras_apm_list_init("");
+  list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, list);
+
+  for (int i = 0; i < num_test_casts; i++) {
+    fmt.num_channels = test_num_channels[i];
+    init_channel_layout(&fmt);
+    for (ch = 0; ch < CRAS_CH_MAX; ch++)
+      fmt.channel_layout[ch] = test_layouts[i][ch];
+
+    /* Input dev is of aec use case. */
+    apm = cras_apm_list_add_apm(list, dev_ptr, &fmt, 1);
+    EXPECT_NE((void*)NULL, apm);
+
+    /* Assert that the post-processing format never has an unset
+     * first channel in the layout. */
+    bool first_channel_found_in_layout = 0;
+    val = cras_apm_list_get_format(apm);
+    for (ch = 0; ch < CRAS_CH_MAX; ch++)
+      if (0 == val->channel_layout[ch])
+        first_channel_found_in_layout = 1;
+
+    EXPECT_EQ(1, first_channel_found_in_layout);
+
+    cras_apm_list_remove_apm(list, dev_ptr);
+  }
+
+  cras_apm_list_destroy(list);
+  cras_apm_list_deinit();
+}
+
 TEST(ApmList, AddRemoveApm) {
   struct cras_audio_format fmt;
   char* dir;
@@ -170,6 +228,9 @@ TEST(ApmList, ApmProcessForwardBuffer) {
   fmt.num_channels = 2;
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
+  init_channel_layout(&fmt);
+  fmt.channel_layout[CRAS_CH_FL] = 0;
+  fmt.channel_layout[CRAS_CH_FR] = 1;
 
   cras_apm_list_init("");
 
