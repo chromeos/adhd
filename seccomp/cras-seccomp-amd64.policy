@@ -20,6 +20,7 @@ getrandom: 1
 access: 1
 fcntl: 1
 getdents: 1
+getdents64: 1
 sendmsg: 1
 stat: 1
 statfs: 1
