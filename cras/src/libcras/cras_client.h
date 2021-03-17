@@ -1320,6 +1320,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    the order of functions in the structs.
  * 4. Assign the pointer to the new function in cras_client.c.
  * 5. Create the inline function in cras_client.h, which is used by clients.
+ *    Remember to add DISABLE_CFI_ICALL on the inline function.
  * 6. Add CHECK_VERSION in the inline function. If the api_version is smaller
  *    than the supported version, this inline function will return -ENOSYS.
  */
@@ -1329,6 +1330,12 @@ int cras_client_set_num_active_streams_changed_callback(
 	if (object->api_version < version) {                                   \
 		return -ENOSYS;                                                \
 	}
+
+/*
+ * The inline functions use the indirect function call. Therefore, they are
+ * incompatible with CFI-icall.
+ */
+#define DISABLE_CFI_ICALL __attribute__((no_sanitize("cfi-icall")))
 
 struct libcras_node_info {
 	int api_version;
@@ -1427,6 +1434,7 @@ void libcras_client_destroy(struct libcras_client *client);
  * Returns:
  *    0 on success, or a negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_connect(struct libcras_client *client)
 {
 	return client->connect(client->client_);
@@ -1440,6 +1448,7 @@ inline int libcras_client_connect(struct libcras_client *client)
  * Returns:
  *    0 on success, or a negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_connect_timeout(struct libcras_client *client,
 					  unsigned int timeout_ms)
 {
@@ -1461,6 +1470,7 @@ inline int libcras_client_connect_timeout(struct libcras_client *client,
  * Returns:
  *    0 on success, or a negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_connected_wait(struct libcras_client *client)
 {
 	return client->connected_wait(client->client_);
@@ -1476,6 +1486,7 @@ inline int libcras_client_connected_wait(struct libcras_client *client)
  * Returns:
  *    0 on success, or a negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_run_thread(struct libcras_client *client)
 {
 	return client->run_thread(client->client_);
@@ -1490,6 +1501,7 @@ inline int libcras_client_run_thread(struct libcras_client *client)
  *    0 on success or if the thread was already stopped, -EINVAL if the client
  *    isn't valid.
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_stop(struct libcras_client *client)
 {
 	return client->stop(client->client_);
@@ -1511,6 +1523,7 @@ inline int libcras_client_stop(struct libcras_client *client)
  * Returns:
  *    0 on success, negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_add_pinned_stream(
 	struct libcras_client *client, uint32_t dev_idx,
 	cras_stream_id_t *stream_id_out, struct libcras_stream_params *params)
@@ -1531,6 +1544,7 @@ inline int libcras_client_add_pinned_stream(
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_rm_stream(struct libcras_client *client,
 				    cras_stream_id_t stream_id)
 {
@@ -1549,6 +1563,7 @@ inline int libcras_client_rm_stream(struct libcras_client *client,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_set_stream_volume(struct libcras_client *client,
 					    cras_stream_id_t stream_id,
 					    float volume_scaler)
@@ -1569,6 +1584,7 @@ inline int libcras_client_set_stream_volume(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  *    Remember to call libcras_node_info_array_destroy to free the array.
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_get_nodes(struct libcras_client *client,
 				    enum CRAS_STREAM_DIRECTION direction,
 				    struct libcras_node_info ***nodes,
@@ -1585,6 +1601,7 @@ inline int libcras_client_get_nodes(struct libcras_client *client,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int
 libcras_client_get_default_output_buffer_size(struct libcras_client *client,
 					      int *size)
@@ -1600,6 +1617,7 @@ libcras_client_get_default_output_buffer_size(struct libcras_client *client,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_get_aec_group_id(struct libcras_client *client,
 					   int *id)
 {
@@ -1614,6 +1632,7 @@ inline int libcras_client_get_aec_group_id(struct libcras_client *client,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_get_aec_supported(struct libcras_client *client,
 					    int *supported)
 {
@@ -1628,6 +1647,7 @@ inline int libcras_client_get_aec_supported(struct libcras_client *client,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_get_system_muted(struct libcras_client *client,
 					   int *muted)
 {
@@ -1642,6 +1662,7 @@ inline int libcras_client_get_system_muted(struct libcras_client *client,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_set_system_mute(struct libcras_client *client,
 					  int mute)
 {
@@ -1656,6 +1677,7 @@ inline int libcras_client_set_system_mute(struct libcras_client *client,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_client_get_loopback_dev_idx(struct libcras_client *client,
 					       int *idx)
 {
@@ -1699,6 +1721,7 @@ void libcras_stream_params_destroy(struct libcras_stream_params *params);
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_stream_params_set(
 	struct libcras_stream_params *params,
 	enum CRAS_STREAM_DIRECTION direction, size_t buffer_frames,
@@ -1723,6 +1746,7 @@ inline int libcras_stream_params_set(
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int
 libcras_stream_params_set_channel_layout(struct libcras_stream_params *params,
 					 int length, const int8_t *layout)
@@ -1737,6 +1761,7 @@ libcras_stream_params_set_channel_layout(struct libcras_stream_params *params,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int
 libcras_stream_params_enable_aec(struct libcras_stream_params *params)
 {
@@ -1752,6 +1777,7 @@ libcras_stream_params_enable_aec(struct libcras_stream_params *params)
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int
 libcras_stream_cb_data_get_stream_id(struct libcras_stream_cb_data *data,
 				     cras_stream_id_t *id)
@@ -1767,6 +1793,7 @@ libcras_stream_cb_data_get_stream_id(struct libcras_stream_cb_data *data,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_stream_cb_data_get_buf(struct libcras_stream_cb_data *data,
 					  uint8_t **buf)
 {
@@ -1781,6 +1808,7 @@ inline int libcras_stream_cb_data_get_buf(struct libcras_stream_cb_data *data,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int
 libcras_stream_cb_data_get_frames(struct libcras_stream_cb_data *data,
 				  unsigned int *frames)
@@ -1796,6 +1824,7 @@ libcras_stream_cb_data_get_frames(struct libcras_stream_cb_data *data,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int
 libcras_stream_cb_data_get_latency(struct libcras_stream_cb_data *data,
 				   struct timespec *latency)
@@ -1811,6 +1840,7 @@ libcras_stream_cb_data_get_latency(struct libcras_stream_cb_data *data,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int
 libcras_stream_cb_data_get_usr_arg(struct libcras_stream_cb_data *data,
 				   void **user_arg)
@@ -1842,6 +1872,7 @@ void libcras_node_info_array_destroy(struct libcras_node_info **nodes,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_node_info_get_id(struct libcras_node_info *node,
 				    uint64_t *id)
 {
@@ -1856,6 +1887,7 @@ inline int libcras_node_info_get_id(struct libcras_node_info *node,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_node_info_get_dev_idx(struct libcras_node_info *node,
 					 uint32_t *dev_idx)
 {
@@ -1870,6 +1902,7 @@ inline int libcras_node_info_get_dev_idx(struct libcras_node_info *node,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_node_info_get_node_idx(struct libcras_node_info *node,
 					  uint32_t *node_idx)
 {
@@ -1884,6 +1917,7 @@ inline int libcras_node_info_get_node_idx(struct libcras_node_info *node,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int
 libcras_node_info_get_max_supported_channels(struct libcras_node_info *node,
 					     uint32_t *max_supported_channels)
@@ -1900,6 +1934,7 @@ libcras_node_info_get_max_supported_channels(struct libcras_node_info *node,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_node_info_is_plugged(struct libcras_node_info *node,
 					bool *plugged)
 {
@@ -1914,6 +1949,7 @@ inline int libcras_node_info_is_plugged(struct libcras_node_info *node,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_node_info_is_active(struct libcras_node_info *node,
 				       bool *active)
 {
@@ -1928,6 +1964,7 @@ inline int libcras_node_info_is_active(struct libcras_node_info *node,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_node_info_get_type(struct libcras_node_info *node,
 				      char **type)
 {
@@ -1942,6 +1979,7 @@ inline int libcras_node_info_get_type(struct libcras_node_info *node,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_node_info_get_node_name(struct libcras_node_info *node,
 					   char **name)
 {
@@ -1956,6 +1994,7 @@ inline int libcras_node_info_get_node_name(struct libcras_node_info *node,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
+DISABLE_CFI_ICALL
 inline int libcras_node_info_get_dev_name(struct libcras_node_info *node,
 					  char **name)
 {
