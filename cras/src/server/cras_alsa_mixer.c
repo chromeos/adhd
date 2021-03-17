@@ -943,7 +943,7 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer, long dBFS,
 	assert(cras_mixer);
 
 	/* dBFS is normally < 0 to specify the attenuation from max. max is the
-	 * combined max of the master controls and the current output.
+	 * combined max of the main controls and the current output.
 	 */
 	to_set = dBFS + cras_mixer->max_volume_dB;
 	if (cras_alsa_mixer_has_volume(mixer_output))
