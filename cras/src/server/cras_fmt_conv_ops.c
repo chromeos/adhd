@@ -223,6 +223,44 @@ size_t s16_stereo_to_51(size_t left, size_t right, size_t center,
 }
 
 /*
+ * Channel converter: quad to 5.1 surround.
+ *
+ * Fit the front left/right of input to the front left/right of output
+ * and rear left/right of input to the rear left/right of output
+ * respectively and fill others with zero.
+ */
+size_t s16_quad_to_51(size_t font_left, size_t front_right, size_t rear_left,
+		      size_t rear_right, const uint8_t *_in, size_t in_frames,
+		      uint8_t *_out)
+{
+	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
+
+	memset(out, 0, sizeof(*out) * 6 * in_frames);
+
+	if (font_left != -1 && front_right != -1 && rear_left != -1 &&
+	    rear_right != -1)
+		for (i = 0; i < in_frames; i++) {
+			out[6 * i + font_left] = in[4 * i];
+			out[6 * i + front_right] = in[4 * i + 1];
+			out[6 * i + rear_left] = in[4 * i + 2];
+			out[6 * i + rear_right] = in[4 * i + 3];
+		}
+	else
+		/* Use default 5.1 channel mapping for the conversion.
+		 */
+		for (i = 0; i < in_frames; i++) {
+			out[6 * i] = in[4 * i];
+			out[6 * i + 1] = in[4 * i + 1];
+			out[6 * i + 4] = in[4 * i + 2];
+			out[6 * i + 5] = in[4 * i + 3];
+		}
+
+	return in_frames;
+}
+
+/*
  * Channel converter: 5.1 surround to stereo.
  *
  * The out buffer can have room for just stereo samples. This convert function

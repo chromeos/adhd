@@ -418,6 +418,39 @@ TEST(FormatConverterOpsTest, StereoTo51S16LECenter) {
   }
 }
 
+// Test Quad to 5.1 conversion. S16_LE.
+TEST(FormatConverterOpsTest, QuadTo51S16LE) {
+  const size_t frames = 4096;
+  const size_t in_ch = 4;
+  const size_t out_ch = 6;
+  const unsigned int fl_quad = 0;
+  const unsigned int fr_quad = 1;
+  const unsigned int rl_quad = 2;
+  const unsigned int rr_quad = 3;
+
+  const unsigned int fl_51 = 0;
+  const unsigned int fr_51 = 1;
+  const unsigned int center_51 = 2;
+  const unsigned int lfe_51 = 3;
+  const unsigned int rl_51 = 4;
+  const unsigned int rr_51 = 5;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_quad_to_51(fl_51, fr_51, rl_51, rr_51, (uint8_t*)src.get(),
+                              frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+  for (size_t i = 0; i < frames; ++i) {
+    EXPECT_EQ(0, dst[i * 6 + center_51]);
+    EXPECT_EQ(0, dst[i * 6 + lfe_51]);
+    EXPECT_EQ(src[i * 4 + fl_quad], dst[i * 6 + fl_51]);
+    EXPECT_EQ(src[i * 4 + fr_quad], dst[i * 6 + fr_51]);
+    EXPECT_EQ(src[i * 4 + rl_quad], dst[i * 6 + rl_51]);
+    EXPECT_EQ(src[i * 4 + rr_quad], dst[i * 6 + rr_51]);
+  }
+}
+
 // Test Stereo to 5.1 conversion.  S16_LE, LeftRight.
 TEST(FormatConverterOpsTest, StereoTo51S16LELeftRight) {
   const size_t frames = 4096;
