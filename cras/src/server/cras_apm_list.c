@@ -276,7 +276,9 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 			return apm;
 
 	// TODO(hychao): Remove the check when we enable more effects.
-	if (!(list->effects & APM_ECHO_CANCELLATION))
+	if (!((list->effects & APM_ECHO_CANCELLATION) ||
+	      (list->effects & APM_NOISE_SUPRESSION) ||
+	      (list->effects & APM_GAIN_CONTROL)))
 		return NULL;
 
 	apm = (struct cras_apm *)calloc(1, sizeof(*apm));
@@ -296,15 +298,29 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 			cras_iodev_is_aec_use_case(rmodule->odev->active_node);
 	}
 
+	/* Determine whether to enforce effects to be on (regardless of settings
+	 * in the apm.ini file). */
+	unsigned int enforce_aec_on = 0;
+	if (list->effects & APM_ECHO_CANCELLATION) {
+		enforce_aec_on = 1;
+	}
+	unsigned int enforce_ns_on = 0;
+	if (list->effects & APM_NOISE_SUPRESSION) {
+		enforce_ns_on = 1;
+	}
+	unsigned int enforce_agc_on = 0;
+	if (list->effects & APM_GAIN_CONTROL) {
+		enforce_agc_on = 1;
+	}
+
 	/* Use the configs tuned specifically for internal device. Otherwise
 	 * just pass NULL so every other settings will be default. */
-	apm->apm_ptr =
-		apm->is_aec_use_case ?
-			webrtc_apm_create(apm->fmt.num_channels,
-					  apm->fmt.frame_rate, aec_ini,
-					  apm_ini) :
-			webrtc_apm_create(apm->fmt.num_channels,
-					  apm->fmt.frame_rate, NULL, NULL);
+	dictionary *aec_ini_use = apm->is_aec_use_case ? aec_ini : NULL;
+	dictionary *apm_ini_use = apm->is_aec_use_case ? apm_ini : NULL;
+
+	apm->apm_ptr = webrtc_apm_create_with_enforced_effects(
+		apm->fmt.num_channels, apm->fmt.frame_rate, aec_ini_use,
+		apm_ini_use, enforce_aec_on, enforce_ns_on, enforce_agc_on);
 	if (apm->apm_ptr == NULL) {
 		syslog(LOG_ERR,
 		       "Fail to create webrtc apm for ch %zu"

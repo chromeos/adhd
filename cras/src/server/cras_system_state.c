@@ -157,6 +157,8 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 		board_config.default_output_buffer_size;
 	exp_state->aec_supported = board_config.aec_supported;
 	exp_state->aec_group_id = board_config.aec_group_id;
+	exp_state->ns_supported = board_config.ns_supported;
+	exp_state->agc_supported = board_config.agc_supported;
 	exp_state->bt_wbs_enabled = board_config.bt_wbs_enabled;
 	exp_state->deprioritize_bt_wbs_mic =
 		board_config.deprioritize_bt_wbs_mic;
@@ -379,6 +381,16 @@ int cras_system_get_aec_supported()
 int cras_system_get_aec_group_id()
 {
 	return state.exp_state->aec_group_id;
+}
+
+int cras_system_get_ns_supported()
+{
+	return state.exp_state->ns_supported;
+}
+
+int cras_system_get_agc_supported()
+{
+	return state.exp_state->agc_supported;
 }
 
 void cras_system_set_bt_wbs_enabled(bool enabled)

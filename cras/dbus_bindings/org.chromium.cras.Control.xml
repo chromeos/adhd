@@ -60,6 +60,12 @@
     <method name="GetSystemAecGroupId">
       <arg name="group_id" type="i" direction="out"/>
     </method>
+    <method name="GetSystemNsSupported">
+      <arg name="supported" type="b" direction="out"/>
+    </method>
+    <method name="GetSystemAgcSupported">
+      <arg name="supported" type="b" direction="out"/>
+    </method>
     <method name="GetDeprioritizeBtWbsMic">
       <arg name="deprioritized" type="b" direction="out"/>
     </method>

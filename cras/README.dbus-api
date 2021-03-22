@@ -139,6 +139,16 @@ Methods		void SetOutputVolume(int32 volume)
 			Returns 1 if system echo cancellation is supported,
 			otherwise return 0.
 
+		void GetSystemNsSupported();
+
+			Returns 1 if system noise suppression is supported,
+			otherwise return 0.
+
+		void GetSystemAgcSupported();
+
+			Returns 1 if system automatic gain control is supported,
+			otherwise return 0.
+
 		void SetActiveOutputNode(uint64 node_id);
 
 			Requests the specified node to be used for

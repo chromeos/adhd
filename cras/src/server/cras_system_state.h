@@ -116,6 +116,12 @@ int cras_system_get_aec_supported();
 /* Returns the system aec group id is available. */
 int cras_system_get_aec_group_id();
 
+/* Returns if system ns is supported. */
+int cras_system_get_ns_supported();
+
+/* Returns if system agc is supported. */
+int cras_system_get_agc_supported();
+
 /* Sets the flag to enable or disable bluetooth wideband speech feature. */
 void cras_system_set_bt_wbs_enabled(bool enabled);
 

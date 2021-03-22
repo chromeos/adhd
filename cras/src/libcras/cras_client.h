@@ -1313,7 +1313,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 1
+#define CRAS_API_VERSION 2
 #define CHECK_VERSION(object, version)                                         \
 	if (object->api_version < version) {                                   \
 		return -ENOSYS;                                                \
@@ -1401,6 +1401,8 @@ struct libcras_stream_params {
 	int (*set_channel_layout)(struct cras_stream_params *params, int length,
 				  const int8_t *layout);
 	void (*enable_aec)(struct cras_stream_params *params);
+	void (*enable_ns)(struct cras_stream_params *params);
+	void (*enable_agc)(struct cras_stream_params *params);
 };
 
 /*
@@ -1758,6 +1760,37 @@ inline int
 libcras_stream_params_enable_aec(struct libcras_stream_params *params)
 {
 	params->enable_aec(params->params_);
+	return 0;
+}
+
+/*
+ * Enables NS on given stream parameter.
+ * Args:
+ *    params - The pointer returned from libcras_stream_params_create.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int libcras_stream_params_enable_ns(struct libcras_stream_params *params)
+{
+	CHECK_VERSION(params, 2);
+	params->enable_ns(params->params_);
+	return 0;
+}
+
+/*
+ * Enables AGC on given stream parameter.
+ * Args:
+ *    params - The pointer returned from libcras_stream_params_create.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int
+libcras_stream_params_enable_agc(struct libcras_stream_params *params)
+{
+	CHECK_VERSION(params, 2);
+	params->enable_agc(params->params_);
 	return 0;
 }
 

@@ -4095,6 +4095,8 @@ struct libcras_stream_params *libcras_stream_params_create()
 	params->set = stream_params_set;
 	params->set_channel_layout = stream_params_set_channel_layout;
 	params->enable_aec = cras_client_stream_params_enable_aec;
+	params->enable_ns = cras_client_stream_params_enable_ns;
+	params->enable_agc = cras_client_stream_params_enable_agc;
 	return params;
 }
 

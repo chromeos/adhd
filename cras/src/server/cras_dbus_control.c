@@ -627,6 +627,48 @@ static DBusHandlerResult handle_get_system_aec_group_id(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_system_ns_supported(DBusConnection *conn,
+						    DBusMessage *message,
+						    void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_bool_t ns_supported;
+
+	reply = dbus_message_new_method_return(message);
+
+	ns_supported = cras_system_get_ns_supported();
+	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &ns_supported,
+				 DBUS_TYPE_INVALID);
+
+	dbus_connection_send(conn, reply, &serial);
+
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult handle_system_agc_supported(DBusConnection *conn,
+						     DBusMessage *message,
+						     void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_bool_t agc_supported;
+
+	reply = dbus_message_new_method_return(message);
+
+	agc_supported = cras_system_get_agc_supported();
+	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &agc_supported,
+				 DBUS_TYPE_INVALID);
+
+	dbus_connection_send(conn, reply, &serial);
+
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 static DBusHandlerResult
 handle_get_deprioritize_bt_wbs_mic(DBusConnection *conn, DBusMessage *message,
 				   void *arg)
@@ -1112,6 +1154,12 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetSystemAecGroupId")) {
 		return handle_get_system_aec_group_id(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "GetSystemNsSupported")) {
+		return handle_system_ns_supported(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "GetSystemAgcSupported")) {
+		return handle_system_agc_supported(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetDeprioritizeBtWbsMic")) {
 		return handle_get_deprioritize_bt_wbs_mic(conn, message, arg);

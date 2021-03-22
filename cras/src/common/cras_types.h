@@ -568,6 +568,8 @@ struct __attribute__((__packed__)) cras_audio_thread_snapshot_buffer {
  *    aec_supported - Flag to indicate if system aec is supported.
  *    aec_group_id  - Group ID for the system aec to use for separating aec
  *        tunings.
+ *    ns_supported - if system ns is supported.
+ *    agc_supported - if system agc is supported.
  *    snapshot_buffer - ring buffer for storing audio thread snapshots.
  *    bt_debug_info - ring buffer for storing bluetooth event logs.
  *    bt_wbs_enabled - Whether or not bluetooth wideband speech is enabled.
@@ -624,6 +626,8 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	int32_t noise_cancellation_enabled;
 	int32_t noise_cancellation_supported;
 	int32_t hotword_pause_at_suspend;
+	int32_t ns_supported;
+	int32_t agc_supported;
 };
 
 /* Actions for card add/remove/change. */

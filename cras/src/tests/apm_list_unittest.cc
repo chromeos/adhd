@@ -400,10 +400,14 @@ struct apm_config* apm_config_get(const char* device_config_dir) {
   return NULL;
 }
 void apm_config_dump(struct apm_config* config) {}
-webrtc_apm webrtc_apm_create(unsigned int num_channels,
-                             unsigned int frame_rate,
-                             dictionary* aec_ini,
-                             dictionary* apm_ini) {
+webrtc_apm webrtc_apm_create_with_enforced_effects(
+    unsigned int num_channels,
+    unsigned int frame_rate,
+    dictionary* aec_ini,
+    dictionary* apm_ini,
+    unsigned int enforce_aec_on,
+    unsigned int enforce_ns_on,
+    unsigned int enforce_agc_on) {
   webrtc_apm_create_called++;
   webrtc_apm_create_aec_ini_val = aec_ini;
   webrtc_apm_create_apm_ini_val = apm_ini;
