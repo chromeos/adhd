@@ -59,7 +59,7 @@ type Result<T> = std::result::Result<T, Error>;
 
 static INTERRUPTED: AtomicBool = AtomicBool::new(false);
 
-extern "C" fn sigint_handler() {
+extern "C" fn sigint_handler(_: c_int) {
     // Check if we've already received one SIGINT. If we have, the program may
     // be misbehaving and not terminating, so to be safe we'll forcefully exit.
     if INTERRUPTED.load(Ordering::Acquire) {
