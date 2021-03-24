@@ -1021,6 +1021,7 @@ int cras_iodev_close(struct cras_iodev *iodev)
 
 	if (iodev->active_node) {
 		cras_server_metrics_device_runtime(iodev);
+		cras_server_metrics_device_gain(iodev);
 		cras_server_metrics_device_volume(iodev);
 	}
 

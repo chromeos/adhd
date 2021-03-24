@@ -49,6 +49,9 @@ int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio);
 /* Logs runtime of a device. */
 int cras_server_metrics_device_runtime(struct cras_iodev *iodev);
 
+/* Logs the gain of a device. */
+int cras_server_metrics_device_gain(struct cras_iodev *iodev);
+
 /* Logs the volume of a device. */
 int cras_server_metrics_device_volume(struct cras_iodev *iodev);
 

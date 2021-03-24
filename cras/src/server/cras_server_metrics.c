@@ -25,6 +25,7 @@ const char kBusyloop[] = "Cras.Busyloop";
 const char kBusyloopLength[] = "Cras.BusyloopLength";
 const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
 const char kDeviceTypeOutput[] = "Cras.DeviceTypeOutput";
+const char kDeviceGain[] = "Cras.DeviceGain";
 const char kDeviceVolume[] = "Cras.DeviceVolume";
 const char kFetchDelayMilliSeconds[] = "Cras.FetchDelayMilliSeconds";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
@@ -94,6 +95,7 @@ enum CRAS_SERVER_METRICS_TYPE {
 	BT_WIDEBAND_SELECTED_CODEC,
 	BUSYLOOP,
 	BUSYLOOP_LENGTH,
+	DEVICE_GAIN,
 	DEVICE_RUNTIME,
 	DEVICE_VOLUME,
 	HIGHEST_DEVICE_DELAY_INPUT,
@@ -626,6 +628,31 @@ int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 	return 0;
 }
 
+int cras_server_metrics_device_gain(struct cras_iodev *iodev)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	int err;
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		return 0;
+
+	data.device_data.type = get_metrics_device_type(iodev);
+	data.device_data.value =
+		(unsigned)100 * iodev->active_node->ui_gain_scaler;
+
+	init_server_metrics_msg(&msg, DEVICE_GAIN, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: DEVICE_GAIN");
+		return err;
+	}
+
+	return 0;
+}
+
 int cras_server_metrics_device_volume(struct cras_iodev *iodev)
 {
 	struct cras_server_metrics_message msg;
@@ -1071,6 +1098,15 @@ static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 		cras_metrics_log_sparse_histogram(kDeviceTypeOutput, data.type);
 }
 
+static void metrics_device_gain(struct cras_server_metrics_device_data data)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s", kDeviceGain,
+		 metrics_device_type_str(data.type));
+	cras_metrics_log_histogram(metrics_name, data.value, 0, 2000, 20);
+}
+
 static void metrics_device_volume(struct cras_server_metrics_device_data data)
 {
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
@@ -1184,6 +1220,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		cras_metrics_log_sparse_histogram(
 			kHfpWidebandSpeechSelectedCodec,
 			metrics_msg->data.value);
+		break;
+	case DEVICE_GAIN:
+		metrics_device_gain(metrics_msg->data.device_data);
 		break;
 	case DEVICE_RUNTIME:
 		metrics_device_runtime(metrics_msg->data.device_data);
