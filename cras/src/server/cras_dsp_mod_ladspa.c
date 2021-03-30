@@ -39,7 +39,8 @@ static void deactivate(struct dsp_module *module)
 	desc->deactivate(data->handle);
 }
 
-static int instantiate(struct dsp_module *module, unsigned long sample_rate)
+static int instantiate(struct dsp_module *module, unsigned long sample_rate,
+		       struct cras_expr_env *env)
 {
 	struct ladspa_data *data = module->data;
 	const LADSPA_Descriptor *desc = data->descriptor;

@@ -97,7 +97,8 @@ TEST_F(DspTestSuite, Simple) {
 }
 
 static int empty_instantiate(struct dsp_module* module,
-                             unsigned long sample_rate) {
+                             unsigned long sample_rate,
+                             struct cras_expr_env* env) {
   return 0;
 }
 

@@ -62,7 +62,9 @@ struct data {
   int get_properties_called;
 };
 
-static int instantiate(struct dsp_module* module, unsigned long sample_rate) {
+static int instantiate(struct dsp_module* module,
+                       unsigned long sample_rate,
+                       struct cras_expr_env* env) {
   struct data* data = (struct data*)module->data;
   data->instantiate_called++;
   data->sample_rate = sample_rate;
@@ -267,7 +269,7 @@ TEST_F(DspPipelineTestSuite, Simple) {
   ASSERT_TRUE(m2);
 
   ASSERT_EQ(1, cras_dsp_pipeline_get_num_input_channels(p));
-  ASSERT_EQ(0, cras_dsp_pipeline_instantiate(p, 48000));
+  ASSERT_EQ(0, cras_dsp_pipeline_instantiate(p, 48000, &env));
 
   struct data* d1 = (struct data*)m1->data;
   struct data* d2 = (struct data*)m2->data;
@@ -435,7 +437,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
   ASSERT_FALSE(find_module("m6"));
 
   ASSERT_EQ(2, cras_dsp_pipeline_get_num_input_channels(p));
-  ASSERT_EQ(0, cras_dsp_pipeline_instantiate(p, 48000));
+  ASSERT_EQ(0, cras_dsp_pipeline_instantiate(p, 48000, &env));
 
   struct data* d0 = (struct data*)m0->data;
   struct data* d1 = (struct data*)m1->data;
@@ -488,7 +490,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
   ASSERT_EQ(1 + 3 + 5, cras_dsp_pipeline_get_delay(p));
 
   cras_dsp_pipeline_deinstantiate(p);
-  cras_dsp_pipeline_instantiate(p, 44100);
+  cras_dsp_pipeline_instantiate(p, 44100, &env);
 
   ASSERT_EQ(1, d5->deinstantiate_called);
   ASSERT_EQ(2, d5->instantiate_called);

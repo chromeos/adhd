@@ -7,6 +7,7 @@
 #include <syslog.h>
 #include "dumper.h"
 #include "cras_expr.h"
+#include "cras_iodev_info.h"
 #include "cras_dsp_ini.h"
 #include "cras_dsp_pipeline.h"
 #include "dsp_util.h"
@@ -46,6 +47,11 @@ static void initialize_environment(struct cras_expr_env *env)
 	cras_expr_env_set_variable_boolean(env, "disable_drc", 0);
 	cras_expr_env_set_variable_string(env, "dsp_name", "");
 	cras_expr_env_set_variable_boolean(env, "swap_lr_disabled", 1);
+	cras_expr_env_set_variable_integer(env, "display_rotation", ROTATE_0);
+	cras_expr_env_set_variable_integer(env, "FL", CRAS_CH_FL);
+	cras_expr_env_set_variable_integer(env, "FR", CRAS_CH_FR);
+	cras_expr_env_set_variable_integer(env, "RL", CRAS_CH_RL);
+	cras_expr_env_set_variable_integer(env, "RR", CRAS_CH_RR);
 }
 
 static void destroy_pipeline(struct pipeline *pipeline)
@@ -84,7 +90,8 @@ static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx,
 		goto bail;
 	}
 
-	if (cras_dsp_pipeline_instantiate(pipeline, ctx->sample_rate) != 0) {
+	if (cras_dsp_pipeline_instantiate(pipeline, ctx->sample_rate,
+					  &ctx->env) != 0) {
 		syslog(LOG_ERR, "cannot instantiate pipeline");
 		goto bail;
 	}

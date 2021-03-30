@@ -60,10 +60,12 @@ int cras_dsp_pipeline_load(struct pipeline *pipeline);
 /* Instantiates the pipeline given the sampling rate.
  * Args:
  *    sample_rate - The audio sampling rate.
+ *    env         - The expression environment.
  * Returns:
  *    0 if successful. -1 otherwise.
  */
-int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate);
+int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate,
+				  struct cras_expr_env *env);
 
 /* The counterpart of cras_dsp_pipeline_instantiate(). To change the
  * sampling rate, this must be called before another call to

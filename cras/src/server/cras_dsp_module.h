@@ -24,10 +24,12 @@ struct dsp_module {
 	 * calling instantiate again.
 	 * Args:
 	 *    sample_rate - The sampling rate for the audio data, like 44100.
+	 *    env         - The expression environment.
 	 * Returns:
 	 *    0 if the initialization is successful. -1 otherwise.
 	 */
-	int (*instantiate)(struct dsp_module *mod, unsigned long sample_rate);
+	int (*instantiate)(struct dsp_module *mod, unsigned long sample_rate,
+			   struct cras_expr_env *env);
 
 	/* Assigns the memory location for a port of this module.
 	 * Args:

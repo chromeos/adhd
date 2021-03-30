@@ -649,14 +649,20 @@ static void calculate_audio_delay(struct pipeline *pipeline)
 	}
 }
 
-int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate)
+int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate,
+				  struct cras_expr_env *env)
 {
 	int i;
 	struct instance *instance;
 
+	if (!env) {
+		syslog(LOG_ERR, "invalid cras_expr_env");
+		return -1;
+	}
+
 	ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
-		if (module->instantiate(module, sample_rate) != 0)
+		if (module->instantiate(module, sample_rate, env) != 0)
 			return -1;
 		instance->instantiated = 1;
 		syslog(LOG_DEBUG, "instantiate %s", instance->plugin->label);

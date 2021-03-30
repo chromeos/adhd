@@ -4,18 +4,22 @@
  */
 
 #include <stdlib.h>
+#include <syslog.h>
 #include "cras_dsp_module.h"
+#include "cras_types.h"
 #include "drc.h"
 #include "dsp_util.h"
 #include "dcblock.h"
 #include "eq.h"
 #include "eq2.h"
+#include "quad_rotation.h"
 
 /*
  *  empty module functions (for source and sink)
  */
 static int empty_instantiate(struct dsp_module *module,
-			     unsigned long sample_rate)
+			     unsigned long sample_rate,
+			     struct cras_expr_env *env)
 {
 	return 0;
 }
@@ -66,10 +70,144 @@ static void empty_init_module(struct dsp_module *module)
 }
 
 /*
+ *  quad_rotation module functions
+ */
+
+/* Validates the port_map for quad_rotation. */
+static bool quad_rotation_valid_port_map(int *port_map)
+{
+	int used[NUM_SPEAKER_POS_QUAD] = {};
+	for (int i = 0; i < NUM_SPEAKER_POS_QUAD; i++) {
+		if (port_map[i] < 0 || port_map[i] > NUM_SPEAKER_POS_QUAD ||
+		    used[port_map[i]] == 1)
+			return false;
+		used[port_map[i]] = 1;
+	}
+	return true;
+}
+
+static int quad_rotation_instantiate(struct dsp_module *module,
+				     unsigned long sample_rate,
+				     struct cras_expr_env *env)
+{
+	struct quad_rotation *data;
+	struct cras_expr_expression *expr;
+	int rc = 0;
+	const char *channel_str[] = { "FF", "RL", "RR", "FR" };
+
+	/* four port for input, four for output, and 1 parameters */
+	module->data = calloc(1, sizeof(struct quad_rotation));
+	if (!module->data) {
+		syslog(LOG_ERR, "quad_rotation calloc failed");
+		goto fail;
+	}
+	data = (struct quad_rotation *)module->data;
+	expr = cras_expr_expression_parse("display_rotation");
+	rc = cras_expr_expression_eval_int(expr, env, (int *)&data->rotation);
+	cras_expr_expression_free(expr);
+	if (rc < 0)
+		goto fail;
+	for (int i = 0; i < NUM_SPEAKER_POS_QUAD; i++) {
+		expr = cras_expr_expression_parse(channel_str[i]);
+		rc = cras_expr_expression_eval_int(expr, env,
+						   &data->port_map[i]);
+		cras_expr_expression_free(expr);
+		if (rc < 0)
+			goto fail;
+	}
+	if (!quad_rotation_valid_port_map(data->port_map)) {
+		syslog(LOG_ERR, "invalid port_map for quad_rotation");
+		goto fail;
+	}
+
+	return 0;
+
+fail:
+	if (module->data) {
+		free(module->data);
+		module->data = NULL;
+	}
+	syslog(LOG_ERR, "quad_rotation_instantiate failed");
+	return -1;
+}
+
+static void quad_rotation_connect_port(struct dsp_module *module,
+				       unsigned long port, float *data_location)
+{
+	struct quad_rotation *data;
+	float **ports;
+
+	data = (struct quad_rotation *)module->data;
+	ports = (float **)data->ports;
+	ports[port] = data_location;
+}
+
+static void quad_rotation_deinstantiate(struct dsp_module *module)
+{
+	if (module->data) {
+		free(module->data);
+		module->data = NULL;
+	}
+}
+
+/*  Moves data on the four channels according to the orientation of the display
+ *  and the channel map. For example, when the display rotates 90 degrees
+ *  clockwise, moves the data of SPK_POS_RL to SPK_POS_FL, moves the data of
+ *  SPK_POS_FL to SPK_POS_FR, moves the data of SPK_POS_RR to SPK_POS_RL, and
+ *  moves the data of SPK_POS_FR to SPK_POS_RR.
+ *  (The FL in the below graph is equal to SPK_POS_FL, which means the physical
+ *  speaker at the position FL. The "*" is the top of the device.)
+ *  _________       __________      ___________      __________
+ * │         │     │         │     │         │     │         │
+ * │RL  *  RR│     │FL     RL│     │FR     FL│     │RR     FR│
+ * │         │     │        *│     │         │     │*        │
+ * │FL     FR│     │FR     RR│     │RR  *  RL│     │RL     FL│
+ * │_________│     │_________│     │_________│     │_________│
+ *  ROTATE_0         ROTATE_90      ROTATE_180       ROTATE_270
+ */
+
+static void quad_rotation_run(struct dsp_module *module,
+			      unsigned long sample_count)
+{
+	struct quad_rotation *data = NULL;
+	float **ports;
+
+	data = (struct quad_rotation *)module->data;
+	ports = (float **)data->ports;
+
+	switch (data->rotation) {
+	case ROTATE_90:
+		quad_rotation_rotate_90(data, CLOCK_WISE, sample_count);
+		break;
+	case ROTATE_180:
+		quad_rotation_swap(data, SPK_POS_FL, SPK_POS_RR, sample_count);
+		quad_rotation_swap(data, SPK_POS_RL, SPK_POS_FR, sample_count);
+		break;
+	case ROTATE_270:
+		quad_rotation_rotate_90(data, ANTI_CLOCK_WISE, sample_count);
+		break;
+	default:
+		break;
+	}
+}
+
+static void quad_rotation_init_module(struct dsp_module *module)
+{
+	module->instantiate = &quad_rotation_instantiate;
+	module->connect_port = &quad_rotation_connect_port;
+	module->get_delay = &empty_get_delay;
+	module->run = &quad_rotation_run;
+	module->deinstantiate = &quad_rotation_deinstantiate;
+	module->free_module = &empty_free_module;
+	module->get_properties = &empty_get_properties;
+}
+
+/*
  *  swap_lr module functions
  */
 static int swap_lr_instantiate(struct dsp_module *module,
-			       unsigned long sample_rate)
+			       unsigned long sample_rate,
+			       struct cras_expr_env *env)
 {
 	module->data = calloc(4, sizeof(float *));
 	return 0;
@@ -118,7 +256,8 @@ static void swap_lr_init_module(struct dsp_module *module)
  *  invert_lr module functions
  */
 static int invert_lr_instantiate(struct dsp_module *module,
-				 unsigned long sample_rate)
+				 unsigned long sample_rate,
+				 struct cras_expr_env *env)
 {
 	module->data = calloc(4, sizeof(float *));
 	return 0;
@@ -163,7 +302,8 @@ static void invert_lr_init_module(struct dsp_module *module)
  *  mix_stereo module functions
  */
 static int mix_stereo_instantiate(struct dsp_module *module,
-				  unsigned long sample_rate)
+				  unsigned long sample_rate,
+				  struct cras_expr_env *env)
 {
 	module->data = calloc(4, sizeof(float *));
 	return 0;
@@ -221,7 +361,8 @@ struct dcblock_data {
 };
 
 static int dcblock_instantiate(struct dsp_module *module,
-			       unsigned long sample_rate)
+			       unsigned long sample_rate,
+			       struct cras_expr_env *env)
 {
 	struct dcblock_data *data;
 
@@ -292,7 +433,8 @@ struct eq_data {
 	float *ports[2 + MAX_BIQUADS_PER_EQ * 4];
 };
 
-static int eq_instantiate(struct dsp_module *module, unsigned long sample_rate)
+static int eq_instantiate(struct dsp_module *module, unsigned long sample_rate,
+			  struct cras_expr_env *env)
 {
 	struct eq_data *data;
 
@@ -365,7 +507,8 @@ struct eq2_data {
 	float *ports[4 + MAX_BIQUADS_PER_EQ2 * 8];
 };
 
-static int eq2_instantiate(struct dsp_module *module, unsigned long sample_rate)
+static int eq2_instantiate(struct dsp_module *module, unsigned long sample_rate,
+			   struct cras_expr_env *env)
 {
 	struct eq2_data *data;
 
@@ -448,7 +591,8 @@ struct drc_data {
 	float *ports[4 + 1 + 8 * 3];
 };
 
-static int drc_instantiate(struct dsp_module *module, unsigned long sample_rate)
+static int drc_instantiate(struct dsp_module *module, unsigned long sample_rate,
+			   struct cras_expr_env *env)
 {
 	struct drc_data *data;
 
@@ -542,7 +686,8 @@ struct sink_data {
 };
 
 static int sink_instantiate(struct dsp_module *module,
-			    unsigned long sample_rate)
+			    unsigned long sample_rate,
+			    struct cras_expr_env *env)
 {
 	module->data = (struct sink_data *)calloc(1, sizeof(struct sink_data));
 	return 0;
@@ -621,6 +766,8 @@ struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
 		drc_init_module(module);
 	} else if (strcmp(plugin->label, "swap_lr") == 0) {
 		swap_lr_init_module(module);
+	} else if (strcmp(plugin->label, "quad_rotation") == 0) {
+		quad_rotation_init_module(module);
 	} else if (strcmp(plugin->label, "sink") == 0) {
 		sink_init_module(module);
 	} else {

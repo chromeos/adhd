@@ -11,6 +11,7 @@
 #include "dsp_util.h"
 #include "eq.h"
 #include "eq2.h"
+#include "quad_rotation.h"
 
 namespace {
 
@@ -34,6 +35,74 @@ static float magnitude_at(float* data, size_t len, float f) {
     im += data[i] * sin(i * f);
   }
   return sqrt(re * re + im * im) * (2.0 / len);
+}
+
+TEST(QuadRotationTest, QuadRotationRotate90) {
+  const int FRAMES = 10;
+  const int SAMPLES = FRAMES * 4;
+  float input[SAMPLES] = {
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+  };
+
+  float answer[SAMPLES] = {
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  };
+
+  struct quad_rotation* data =
+      (struct quad_rotation*)calloc(1, sizeof(struct quad_rotation));
+
+  for (int i = 0; i < 4; i++) {
+    data->ports[i] = input + i * FRAMES;
+    data->ports[4 + i] = input + i * FRAMES;
+  }
+  data->port_map[SPK_POS_FL] = CRAS_CH_FL;
+  data->port_map[SPK_POS_FR] = CRAS_CH_FR;
+  data->port_map[SPK_POS_RL] = CRAS_CH_RL;
+  data->port_map[SPK_POS_RR] = CRAS_CH_RR;
+
+  quad_rotation_rotate_90(data, ANTI_CLOCK_WISE, FRAMES);
+
+  for (int i = 0; i < SAMPLES; i++) {
+    EXPECT_EQ(answer[i], input[i]);
+  }
+
+  free(data);
+}
+
+TEST(QuadRotationTest, QuadRotationSwap) {
+  const int FRAMES = 10;
+  const int SAMPLES = FRAMES * 4;
+  float input[SAMPLES] = {
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+  };
+
+  float answer[SAMPLES] = {
+      3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  };
+
+  struct quad_rotation* data =
+      (struct quad_rotation*)calloc(1, sizeof(struct quad_rotation));
+  for (int i = 0; i < 4; i++) {
+    data->ports[i] = input + i * FRAMES;
+    data->ports[4 + i] = input + i * FRAMES;
+  }
+  data->port_map[SPK_POS_FL] = CRAS_CH_FL;
+  data->port_map[SPK_POS_FR] = CRAS_CH_FR;
+  data->port_map[SPK_POS_RL] = CRAS_CH_RL;
+  data->port_map[SPK_POS_RR] = CRAS_CH_RR;
+
+  quad_rotation_swap(data, SPK_POS_FL, SPK_POS_RR, FRAMES);
+  quad_rotation_swap(data, SPK_POS_RL, SPK_POS_FR, FRAMES);
+
+  for (int i = 0; i < SAMPLES; i++) {
+    EXPECT_EQ(answer[i], input[i]);
+  }
+
+  free(data);
 }
 
 TEST(InterleaveTest, All) {

@@ -127,6 +127,7 @@ cras_server_SOURCES = \
 	dsp/dsp_util.c \
 	dsp/eq.c \
 	dsp/eq2.c \
+	dsp/quad_rotation.c \
 	plc/cras_plc.c\
 	server/audio_thread.c \
 	server/buffer_share.c \
@@ -810,8 +811,9 @@ device_monitor_unittest_LDADD = -lgtest -lpthread
 
 dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c dsp/eq2.c \
 	dsp/biquad.c dsp/dsp_util.c dsp/crossover.c dsp/crossover2.c dsp/drc.c \
-	dsp/drc_kernel.c dsp/drc_math.c
-dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
+	dsp/drc_kernel.c dsp/drc_math.c dsp/quad_rotation.c
+dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS) \
+  -I$(top_srcdir)/src/server
 dsp_core_unittest_LDADD = -lgtest -lpthread
 
 dsp_ini_unittest_SOURCES = tests/dsp_ini_unittest.cc \

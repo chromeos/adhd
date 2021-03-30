@@ -15,6 +15,15 @@
 #define CRAS_NODE_NAME_BUFFER_SIZE 64
 #define CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE 16
 
+/* Screen Rotation in clock-wise degrees. */
+enum CRAS_SCREEN_ROTATION {
+	ROTATE_0 = 0,
+	ROTATE_90,
+	ROTATE_180,
+	ROTATE_270,
+	NUM_CRAS_SCREEN_ROTATION,
+};
+
 /* Identifying information about an IO device.
  *    idx - iodev index.
  *    name - Name displayed to the user.
