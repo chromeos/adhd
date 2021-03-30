@@ -41,6 +41,7 @@ static size_t notify_active_node_changed_called;
 static int dsp_context_new_sample_rate;
 static const char* dsp_context_new_purpose;
 static int dsp_context_free_called;
+static int display_rotation;
 static int update_channel_layout_called;
 static int update_channel_layout_return_val;
 static int cras_audio_format_set_channel_layout_called;
@@ -131,6 +132,7 @@ void ResetStubData() {
   dsp_context_new_sample_rate = 0;
   dsp_context_new_purpose = NULL;
   dsp_context_free_called = 0;
+  display_rotation = ROTATE_0;
   cras_audio_format_set_channel_layout_called = 0;
   cras_dsp_get_pipeline_called = 0;
   cras_dsp_get_pipeline_ret = 0;
@@ -267,6 +269,8 @@ class IoDevSetFormatTestSuite : public testing::Test {
     iodev_.supported_formats = pcm_formats_;
     iodev_.dsp_context = NULL;
 
+    memset(&node_, 0, sizeof(node_));
+
     cras_audio_format_set_channel_layout_called = 0;
 
     main_log = main_thread_event_log_init();
@@ -278,6 +282,7 @@ class IoDevSetFormatTestSuite : public testing::Test {
   }
 
   struct cras_iodev iodev_;
+  struct cras_ionode node_;
   size_t sample_rates_[3];
   size_t channel_counts_[3];
   snd_pcm_format_t pcm_formats_[3];
@@ -2418,6 +2423,41 @@ TEST(IoDev, OnInternalCard) {
   EXPECT_EQ(0, cras_iodev_is_on_internal_card(&node));
 }
 
+class IoDevSetDisplayRotationSuite : public testing::Test {
+ protected:
+  virtual void SetUp() {
+    ResetStubData();
+    memset(&iodev_, 0, sizeof(iodev_));
+    memset(&node_, 0, sizeof(node_));
+    iodev_.dsp_context = reinterpret_cast<cras_dsp_context*>(0xf0f);
+    node_.display_rotation = ROTATE_0;
+  }
+
+  struct cras_iodev iodev_;
+  struct cras_ionode node_;
+};
+
+TEST_F(IoDevSetDisplayRotationSuite, NotActiveNode) {
+  int rc;
+
+  rc =
+      cras_iodev_dsp_set_display_rotation_for_node(&iodev_, &node_, ROTATE_180);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(ROTATE_180, node_.display_rotation);
+  EXPECT_EQ(ROTATE_0, display_rotation);
+}
+
+TEST_F(IoDevSetDisplayRotationSuite, ActiveNode) {
+  int rc;
+
+  iodev_.active_node = &node_;
+  rc =
+      cras_iodev_dsp_set_display_rotation_for_node(&iodev_, &node_, ROTATE_180);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(ROTATE_180, node_.display_rotation);
+  EXPECT_EQ(ROTATE_180, display_rotation);
+}
+
 extern "C" {
 
 struct main_thread_event_log* main_log;
@@ -2507,6 +2547,13 @@ void cras_dsp_set_variable_string(struct cras_dsp_context* ctx,
 void cras_dsp_set_variable_boolean(struct cras_dsp_context* ctx,
                                    const char* key,
                                    char value) {}
+
+void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
+                                   const char* key,
+                                   int value) {
+  if (!strcmp(key, "display_rotation"))
+    display_rotation = value;
+}
 
 struct pipeline* cras_dsp_get_pipeline(struct cras_dsp_context* ctx) {
   cras_dsp_get_pipeline_called++;

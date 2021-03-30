@@ -48,6 +48,10 @@ void cras_dsp_set_variable_string(struct cras_dsp_context *ctx, const char *key,
 void cras_dsp_set_variable_boolean(struct cras_dsp_context *ctx,
 				   const char *key, char value);
 
+/* Sets a configuration integer variable in the context. */
+void cras_dsp_set_variable_integer(struct cras_dsp_context *ctx,
+				   const char *key, int value);
+
 /* Loads the pipeline to the context. This should be called again when
  * new values of configuration variables may change the plugin
  * graph. The actual loading happens in another thread to avoid

@@ -102,6 +102,7 @@ enum CRAS_IODEV_STATE {
  *        client.
  *    ui_gain_scaler - The adjustable gain scaler set by client.
  *    left_right_swapped - If left and right output channels are swapped.
+ *    display_rotation - The currect display rotation status.
  *    type - Type displayed to the user.
  *    position - Specify where on the system this node locates.
  *    name - Name displayed to the user.
@@ -125,6 +126,7 @@ struct cras_ionode {
 	long capture_gain;
 	float ui_gain_scaler;
 	int left_right_swapped;
+	enum CRAS_SCREEN_ROTATION display_rotation;
 	enum CRAS_NODE_TYPE type;
 	enum CRAS_NODE_POSITION position;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
@@ -144,6 +146,8 @@ struct cras_ionode {
  * set_mute - Function to call if the system mute state changes.
  * set_capture_mute - Function to call if the system capture mute state changes.
  * set_swap_mode_for_node - Function to call to set swap mode for the node.
+ * set_display_rotation_for_node - Function to call to update the display
+ *                                 rotaion for the node.
  * open_dev - Opens the device.
  * configure_dev - Configures the device.
  * close_dev - Closes the device if it is open.
@@ -249,6 +253,9 @@ struct cras_iodev {
 	void (*set_capture_mute)(struct cras_iodev *iodev);
 	int (*set_swap_mode_for_node)(struct cras_iodev *iodev,
 				      struct cras_ionode *node, int enable);
+	int (*set_display_rotation_for_node)(struct cras_iodev *iodev,
+					     struct cras_ionode *node,
+					     enum CRAS_SCREEN_ROTATION);
 	int (*open_dev)(struct cras_iodev *iodev);
 	int (*configure_dev)(struct cras_iodev *iodev);
 	int (*close_dev)(struct cras_iodev *iodev);
@@ -421,6 +428,21 @@ void cras_iodev_fill_time_from_frames(size_t frames, size_t frame_rate,
  *    iodev - device which the state changes.
  */
 void cras_iodev_update_dsp(struct cras_iodev *iodev);
+
+/* Sets display_rotation on a node using dsp. This function can be called when
+ * dsp pipline is not created yet. It will take effect when dsp pipeline
+ * is created later. If there is dsp pipeline, this function triggers a dsp
+ * pipeline reload and display_rotation takes effect right away.
+ * Args:
+ *    iodev - device to be changed as display rotated.
+ *    node - the node to be changed as display rotated.
+ *    rotation - screen Rotation in clock-wise degrees.
+ * Returns:
+ *    0 on success, error code on failure.
+ */
+int cras_iodev_dsp_set_display_rotation_for_node(struct cras_iodev *iodev,
+						 struct cras_ionode *node,
+						 enum CRAS_SCREEN_ROTATION);
 
 /* Sets swap mode on a node using dsp. This function can be called when
  * dsp pipline is not created yet. It will take effect when dsp pipeline

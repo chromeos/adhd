@@ -3031,6 +3031,13 @@ int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev* iodev,
   return 0;
 }
 
+int cras_iodev_dsp_set_display_rotation_for_node(
+    struct cras_iodev* iodev,
+    struct cras_ionode* node,
+    enum CRAS_SCREEN_ROTATION rotation) {
+  return 0;
+}
+
 struct cras_ramp* cras_ramp_create() {
   return (struct cras_ramp*)0x1;
 }

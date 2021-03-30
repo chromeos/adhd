@@ -210,6 +210,12 @@ void cras_dsp_set_variable_boolean(struct cras_dsp_context *ctx,
 	cras_expr_env_set_variable_boolean(&ctx->env, key, value);
 }
 
+void cras_dsp_set_variable_integer(struct cras_dsp_context *ctx,
+				   const char *key, int value)
+{
+	cras_expr_env_set_variable_integer(&ctx->env, key, value);
+}
+
 void cras_dsp_load_pipeline(struct cras_dsp_context *ctx)
 {
 	cmd_load_pipeline(ctx, global_ini);

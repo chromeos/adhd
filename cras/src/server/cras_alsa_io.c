@@ -2123,6 +2123,8 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 	iodev->get_num_severe_underruns = get_num_severe_underruns;
 	iodev->get_valid_frames = get_valid_frames;
 	iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
+	iodev->set_display_rotation_for_node =
+		cras_iodev_dsp_set_display_rotation_for_node;
 	iodev->support_noise_cancellation = support_noise_cancellation;
 
 	if (card_type == ALSA_CARD_TYPE_USB)
