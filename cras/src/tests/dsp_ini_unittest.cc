@@ -174,6 +174,144 @@ TEST_F(DspIniTestSuite, Flows) {
   cras_dsp_ini_free(ini);
 }
 
+TEST_F(DspIniTestSuite, QuadRotation) {
+  /*
+   *  Stated in ini:
+   *
+   *   m0 == (a0, a1, a2, a3) == m2
+   *
+   *  After inserting swap_lr plugin:
+   *
+   *   m0 == (a0, a1, a2, a3) == quad_rotation ==
+   *      (quad_rot_out_0, quad_rot_out_1, quad_rot_out_2, quad_rot_out_3) == m2
+   *
+   */
+  const char content[] = R"content([M0]
+library=builtin
+label=source
+purpose=playback
+output_0={a0}
+output_1={a1}
+output_2={a2}
+output_3={a3}
+[M1]
+library=builtin
+label=sink
+purpose=playback
+input_0={a0}
+input_1={a1}
+input_2={a2}
+input_3={a3}
+)content";
+  fprintf(fp, "%s", content);
+  CloseFile();
+
+  struct ini* ini = cras_dsp_ini_create(filename);
+
+  /* 2 plugins and 1 quad_rotation plugin. */
+
+  EXPECT_EQ(3, ARRAY_COUNT(&ini->plugins));
+
+  struct plugin* m0 = ARRAY_ELEMENT(&ini->plugins, 0);
+  struct plugin* m1 = ARRAY_ELEMENT(&ini->plugins, 1);
+  struct plugin* m_quad_rotation = ARRAY_ELEMENT(&ini->plugins, 2);
+
+  EXPECT_EQ(4, ARRAY_COUNT(&m0->ports));
+  EXPECT_EQ(4, ARRAY_COUNT(&m1->ports));
+  EXPECT_EQ(8, ARRAY_COUNT(&m_quad_rotation->ports));
+
+  struct port* m0_ports[4];
+  struct port* m_quad_rotation_ports[8];
+  struct port* m1_ports[4];
+  for (int i = 0; i < 4; i++) {
+    m0_ports[i] = ARRAY_ELEMENT(&m0->ports, i);
+    m1_ports[i] = ARRAY_ELEMENT(&m1->ports, i);
+  }
+
+  for (int i = 0; i < 8; i++) {
+    m_quad_rotation_ports[i] = ARRAY_ELEMENT(&m_quad_rotation->ports, i);
+  }
+
+  /* flow              flow_id    from port          to port
+   * -------------------------------------------------------------
+   * a0                0          m0[0]               m_quad_rotation[0]
+   * a1                1          m0[1]               m_quad_rotation[1]
+   * a2                2          m0[2]               m_quad_rotation[2]
+   * a3                3          m0[3]               m_quad_rotation[3]
+   * quad_rotation_0   4          m_quad_rotation[4]  m1[0]
+   * quad_rotation_1   5          m_quad_rotation[5]  m1[1]
+   * quad_rotation_2   6          m_quad_rotation[6]  m1[2]
+   * quad_rotation_3   7          m_quad_rotation[7]  m1[3]
+   */
+
+  EXPECT_EQ(0, m0_ports[0]->flow_id);
+  EXPECT_EQ(1, m0_ports[1]->flow_id);
+  EXPECT_EQ(2, m0_ports[2]->flow_id);
+  EXPECT_EQ(3, m0_ports[3]->flow_id);
+  EXPECT_EQ(0, m_quad_rotation_ports[0]->flow_id);
+  EXPECT_EQ(1, m_quad_rotation_ports[1]->flow_id);
+  EXPECT_EQ(2, m_quad_rotation_ports[2]->flow_id);
+  EXPECT_EQ(3, m_quad_rotation_ports[3]->flow_id);
+
+  EXPECT_EQ(4, m_quad_rotation_ports[4]->flow_id);
+  EXPECT_EQ(5, m_quad_rotation_ports[5]->flow_id);
+  EXPECT_EQ(6, m_quad_rotation_ports[6]->flow_id);
+  EXPECT_EQ(7, m_quad_rotation_ports[7]->flow_id);
+  EXPECT_EQ(4, m1_ports[0]->flow_id);
+  EXPECT_EQ(5, m1_ports[1]->flow_id);
+  EXPECT_EQ(6, m1_ports[2]->flow_id);
+  EXPECT_EQ(7, m1_ports[3]->flow_id);
+
+  struct flow* flow_a[4];
+  struct flow* flow_quad_rotation[4];
+  for (int i = 0; i < 4; i++) {
+    flow_a[i] = ARRAY_ELEMENT(&ini->flows, i);
+    flow_quad_rotation[i] = ARRAY_ELEMENT(&ini->flows, i + 4);
+  }
+
+  EXPECT_EQ(flow_a[0]->from, m0);
+  EXPECT_EQ(flow_a[0]->from_port, 0);
+  EXPECT_EQ(flow_a[0]->to, m_quad_rotation);
+  EXPECT_EQ(flow_a[0]->to_port, 0);
+
+  EXPECT_EQ(flow_a[1]->from, m0);
+  EXPECT_EQ(flow_a[1]->from_port, 1);
+  EXPECT_EQ(flow_a[1]->to, m_quad_rotation);
+  EXPECT_EQ(flow_a[1]->to_port, 1);
+
+  EXPECT_EQ(flow_a[2]->from, m0);
+  EXPECT_EQ(flow_a[2]->from_port, 2);
+  EXPECT_EQ(flow_a[2]->to, m_quad_rotation);
+  EXPECT_EQ(flow_a[2]->to_port, 2);
+
+  EXPECT_EQ(flow_a[3]->from, m0);
+  EXPECT_EQ(flow_a[3]->from_port, 3);
+  EXPECT_EQ(flow_a[3]->to, m_quad_rotation);
+  EXPECT_EQ(flow_a[3]->to_port, 3);
+
+  EXPECT_EQ(flow_quad_rotation[0]->from, m_quad_rotation);
+  EXPECT_EQ(flow_quad_rotation[0]->from_port, 4);
+  EXPECT_EQ(flow_quad_rotation[0]->to, m1);
+  EXPECT_EQ(flow_quad_rotation[0]->to_port, 0);
+
+  EXPECT_EQ(flow_quad_rotation[1]->from, m_quad_rotation);
+  EXPECT_EQ(flow_quad_rotation[1]->from_port, 5);
+  EXPECT_EQ(flow_quad_rotation[1]->to, m1);
+  EXPECT_EQ(flow_quad_rotation[1]->to_port, 1);
+
+  EXPECT_EQ(flow_quad_rotation[2]->from, m_quad_rotation);
+  EXPECT_EQ(flow_quad_rotation[2]->from_port, 6);
+  EXPECT_EQ(flow_quad_rotation[2]->to, m1);
+  EXPECT_EQ(flow_quad_rotation[2]->to_port, 2);
+
+  EXPECT_EQ(flow_quad_rotation[3]->from, m_quad_rotation);
+  EXPECT_EQ(flow_quad_rotation[3]->from_port, 7);
+  EXPECT_EQ(flow_quad_rotation[3]->to, m1);
+  EXPECT_EQ(flow_quad_rotation[3]->to_port, 3);
+
+  cras_dsp_ini_free(ini);
+}
+
 TEST_F(DspIniTestSuite, TwoChannelWithSwap) {
   /*
    *  Stated in ini:

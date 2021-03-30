@@ -258,6 +258,69 @@ struct plugin *find_first_playback_sink_plugin(struct ini *ini)
 	return NULL;
 }
 
+/* Fills fields for a swap_lr plugin.*/
+static void fill_quad_rotaion_plugin(struct ini *ini, struct plugin *plugin,
+				     int input_flowid[4], int output_flowid[4])
+{
+	int i;
+	const int QUAD = 4;
+
+	plugin->title = "quad_rotation";
+	plugin->library = "builtin";
+	plugin->label = "quad_rotation";
+	plugin->purpose = "playback";
+
+	for (i = 0; i < QUAD; i++)
+		add_audio_port(ini, plugin, input_flowid[i], PORT_INPUT);
+
+	for (i = 0; i < QUAD; i++)
+		add_audio_port(ini, plugin, output_flowid[i], PORT_OUTPUT);
+}
+
+/* Inserts a quad_rotation plugin before sink for quad-channel
+ * playback dsp. Handles the port change such that
+ * the port originally connects to sink will connect to quad_rotation.
+ */
+static int insert_quad_rotation_plugin(struct ini *ini)
+{
+	struct plugin *quad_rotation, *sink;
+	int i;
+	const int QUAD = 4;
+	int sink_input_flowid[QUAD];
+	int quad_rotation_output_flowid[QUAD];
+	const char *name[4] = { "{quad_rotation_0}", "{quad_rotation_1}",
+				"{quad_rotation_2}", "{quad_rotation_3}" };
+
+	/* Only add quad_rotation plugin for quad-channel playback dsp.
+	 */
+	sink = find_first_playback_sink_plugin(ini);
+	if ((sink == NULL) || ARRAY_COUNT(&sink->ports) != QUAD)
+		return 0;
+
+	/* Gets the original flow ids of the sink input ports. */
+	for (i = 0; i < QUAD; i++) {
+		/* Gets the original flow ids of the sink input ports. */
+		sink_input_flowid[i] = ARRAY_ELEMENT(&sink->ports, i)->flow_id;
+		quad_rotation_output_flowid[i] = add_new_flow(ini, name[i]);
+		if (quad_rotation_output_flowid[i] == INVALID_FLOW_ID) {
+			syslog(LOG_ERR,
+			       "Can not create flow id for quad_rotation_output");
+			return -EINVAL;
+		}
+	}
+	quad_rotation = ARRAY_APPEND_ZERO(&ini->plugins);
+	fill_quad_rotaion_plugin(ini, quad_rotation, sink_input_flowid,
+				 quad_rotation_output_flowid);
+
+	/* Look up first sink again because ini->plugins could be realloc'ed */
+	sink = find_first_playback_sink_plugin(ini);
+	for (i = 0; i < QUAD; i++)
+		ARRAY_ELEMENT(&sink->ports, i)->flow_id =
+			quad_rotation_output_flowid[i];
+
+	return 0;
+}
+
 /* Inserts a swap_lr plugin before sink. Handles the port change such that
  * the port originally connects to sink will connect to swap_lr.
  */
@@ -391,6 +454,13 @@ struct ini *cras_dsp_ini_create(const char *ini_filename)
 	rc = insert_swap_lr_plugin(ini);
 	if (rc < 0) {
 		syslog(LOG_ERR, "failed to insert swap_lr plugin");
+		goto bail;
+	}
+
+	/* Insert a quad_rotation plugin before sink. */
+	rc = insert_quad_rotation_plugin(ini);
+	if (rc < 0) {
+		syslog(LOG_ERR, "failed to insert quad_rotation plugin");
 		goto bail;
 	}
 
