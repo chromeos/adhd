@@ -24,6 +24,12 @@ enum CRAS_SCREEN_ROTATION {
 	NUM_CRAS_SCREEN_ROTATION,
 };
 
+/* Verify if the stream_id fits the given client_id */
+static inline int cras_validate_screen_rotation(int r)
+{
+	return r >= ROTATE_0 && r < NUM_CRAS_SCREEN_ROTATION;
+}
+
 /* Identifying information about an IO device.
  *    idx - iodev index.
  *    name - Name displayed to the user.
@@ -47,6 +53,7 @@ struct __attribute__((__packed__)) cras_iodev_info {
  *    capture_gain - per-node capture gain/attenuation (in 100*dBFS)
  *    ui_gain_scaler - Adjustable gain scaler set by Chrome.
  *    left_right_swapped - Set true if left and right channels are swapped.
+ *    display_rotation - the display rotation state.
  *    stable_id - ID that does not change due to device plug/unplug or reboot.
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
@@ -70,6 +77,7 @@ struct __attribute__((__packed__)) cras_ionode_info {
 	char type[CRAS_NODE_TYPE_BUFFER_SIZE];
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
+	enum CRAS_SCREEN_ROTATION display_rotation;
 };
 
 /* This is used in the cras_client_set_node_attr API.
@@ -77,12 +85,14 @@ struct __attribute__((__packed__)) cras_ionode_info {
  *    IONODE_ATTR_VOLUME - set the node's output volume.
  *    IONODE_ATTR_CAPTURE_GAIN - set the node's capture gain.
  *    IONODE_ATTR_SWAP_LEFT_RIGHT - Swap the node's left and right channel.
+ *    IONODE_ATTR_DISPLAY_ROTATION - set the node's display rotation state.
  */
 enum ionode_attr {
 	IONODE_ATTR_PLUGGED,
 	IONODE_ATTR_VOLUME,
 	IONODE_ATTR_CAPTURE_GAIN,
-	IONODE_ATTR_SWAP_LEFT_RIGHT
+	IONODE_ATTR_SWAP_LEFT_RIGHT,
+	IONODE_ATTR_DISPLAY_ROTATION
 };
 
 #endif /* CRAS_IODEV_INFO_H_ */

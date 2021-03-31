@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <map>
+#include "cras_iodev_info.h"
 
 extern "C" {
 #include "audio_thread.h"
@@ -74,6 +75,8 @@ static unsigned update_active_node_node_idx_val[5];
 static unsigned update_active_node_dev_enabled_val[5];
 static int set_swap_mode_for_node_called;
 static int set_swap_mode_for_node_enable;
+static int set_display_rotation_for_node_called;
+static enum CRAS_SCREEN_ROTATION display_rotation;
 static int cras_iodev_start_volume_ramp_called;
 static size_t cras_observer_add_called;
 static size_t cras_observer_remove_called;
@@ -150,6 +153,7 @@ class IoDevTestSuite : public testing::Test {
     d1_.update_supported_formats = NULL;
     d1_.update_active_node = update_active_node;
     d1_.set_swap_mode_for_node = set_swap_mode_for_node;
+    d1_.set_display_rotation_for_node = set_node_display_rotation;
     d1_.format = NULL;
     d1_.direction = CRAS_STREAM_OUTPUT;
     d1_.info.idx = -999;
@@ -224,6 +228,7 @@ class IoDevTestSuite : public testing::Test {
     set_mute_dev_vector.clear();
     set_swap_mode_for_node_called = 0;
     set_swap_mode_for_node_enable = 0;
+    set_display_rotation_for_node_called = 0;
     cras_iodev_start_volume_ramp_called = 0;
     audio_thread_dev_start_ramp_dev_vector.clear();
     audio_thread_dev_start_ramp_called = 0;
@@ -263,6 +268,14 @@ class IoDevTestSuite : public testing::Test {
     update_active_node_iodev_val[i] = iodev;
     update_active_node_node_idx_val[i] = node_idx;
     update_active_node_dev_enabled_val[i] = dev_enabled;
+  }
+
+  static int set_node_display_rotation(struct cras_iodev* iodev,
+                                       struct cras_ionode* node,
+                                       enum CRAS_SCREEN_ROTATION rotation) {
+    set_display_rotation_for_node_called++;
+    display_rotation = rotation;
+    return 0;
   }
 
   static int set_swap_mode_for_node(struct cras_iodev* iodev,
@@ -1417,6 +1430,29 @@ TEST_F(IoDevTestSuite, SetNodeSwapLeftRight) {
   EXPECT_EQ(0, set_swap_mode_for_node_enable);
   EXPECT_EQ(0, node1.left_right_swapped);
   EXPECT_EQ(2, cras_observer_notify_node_left_right_swapped_called);
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, SetNodeDisplayRotation) {
+  int rc;
+  cras_iodev_list_init();
+
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+  node1.idx = 1;
+  node1.dev = &d1_;
+
+  cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
+                                IONODE_ATTR_DISPLAY_ROTATION, ROTATE_180);
+  EXPECT_EQ(1, set_display_rotation_for_node_called);
+  EXPECT_EQ(ROTATE_180, display_rotation);
+  EXPECT_EQ(ROTATE_180, node1.display_rotation);
+
+  cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
+                                IONODE_ATTR_DISPLAY_ROTATION, ROTATE_270);
+  EXPECT_EQ(2, set_display_rotation_for_node_called);
+  EXPECT_EQ(ROTATE_270, display_rotation);
+  EXPECT_EQ(ROTATE_270, node1.display_rotation);
   cras_iodev_list_deinit();
 }
 
