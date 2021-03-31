@@ -202,6 +202,37 @@ static DBusHandlerResult handle_set_output_node_volume(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult
+handle_display_rotation(DBusConnection *conn, DBusMessage *message, void *arg)
+{
+	cras_node_id_t id;
+	dbus_uint32_t rotation;
+	DBusError dbus_error;
+
+	dbus_error_init(&dbus_error);
+
+	if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_UINT64, &id,
+				   DBUS_TYPE_UINT32, &rotation,
+				   DBUS_TYPE_INVALID)) {
+		syslog(LOG_WARNING, "Bad method received: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	if (!cras_validate_screen_rotation(rotation)) {
+		syslog(LOG_WARNING, "Invalid display rotation received: %u",
+		       rotation);
+	} else {
+		cras_iodev_list_set_node_attr(id, IONODE_ATTR_DISPLAY_ROTATION,
+					      rotation);
+	}
+
+	send_empty_reply(conn, message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 static DBusHandlerResult handle_swap_left_right(DBusConnection *conn,
 						DBusMessage *message, void *arg)
 {
@@ -991,6 +1022,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetOutputNodeVolume")) {
 		return handle_set_output_node_volume(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "SetDisplayRotation")) {
+		return handle_display_rotation(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SwapLeftRight")) {
 		return handle_swap_left_right(conn, message, arg);

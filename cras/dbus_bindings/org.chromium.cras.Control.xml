@@ -19,6 +19,10 @@
       <arg name="node_id" type="t" direction="in"/>
       <arg name="swap" type="b" direction="in"/>
     </method>
+    <method name="SetDisplayRotation">
+      <arg name="node_id" type="t" direction="in"/>
+      <arg name="rotation" type="u" direction="in"/>
+    </method>
     <method name="SetOutputMute">
       <arg name="mute_on" type="b" direction="in"/>
     </method>
