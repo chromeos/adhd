@@ -46,15 +46,16 @@
 
 /* Supported HCI SCO packet sizes. The wideband speech mSBC frame parsing
  * code ties to limited packet size values. Specifically list them out
- * to check against when setting packet size.
+ * to check against when setting packet size. The first entry is the default
+ * value as a fallback.
  *
  * Temp buffer size should be set to least common multiple of HCI SCO packet
  * size and MSBC_PKT_SIZE for optimizing buffer copy.
  * To add a new supported packet size value, add corresponding entry to the
  * lists, test the read/write msbc code, and fix the code if needed.
  */
-static const size_t wbs_supported_packet_size[] = { 60, 24, 0 };
-static const size_t wbs_hci_sco_buffer_size[] = { 60, 120, 0 };
+static const size_t wbs_supported_packet_size[] = { 60, 24, 48, 72, 0 };
+static const size_t wbs_hci_sco_buffer_size[] = { 60, 120, 240, 360, 0 };
 
 /* Second octet of H2 header is composed by 4 bits fixed 0x8 and 4 bits
  * sequence number 0000, 0011, 1100, 1111. */
@@ -480,6 +481,9 @@ int sco_read_msbc(struct cras_sco *sco)
 	char control[control_size];
 	uint8_t pkt_status;
 
+	if (sco->read_rp + MSBC_PKT_SIZE <= sco->read_wp)
+		goto extract;
+
 	memset(control, 0, sizeof(control));
 recv_msbc_bytes:
 	msg.msg_iov = &iov;
@@ -543,6 +547,7 @@ recv_msbc_bytes:
 	if (sco->read_rp + MSBC_PKT_SIZE > sco->read_wp)
 		return 0;
 
+extract:
 	if (sco->msbc_read_current_corrupted) {
 		syslog(LOG_DEBUG, "mSBC frame corrputed from packet status");
 		sco->msbc_read_current_corrupted = 0;
