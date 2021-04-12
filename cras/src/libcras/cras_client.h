@@ -1335,7 +1335,11 @@ int cras_client_set_num_active_streams_changed_callback(
  * The inline functions use the indirect function call. Therefore, they are
  * incompatible with CFI-icall.
  */
+#if defined(__clang__)
 #define DISABLE_CFI_ICALL __attribute__((no_sanitize("cfi-icall")))
+#else
+#define DISABLE_CFI_ICALL
+#endif
 
 struct libcras_node_info {
 	int api_version;
