@@ -3959,8 +3959,8 @@ int get_nodes(struct cras_client *client, enum CRAS_STREAM_DIRECTION direction,
 	*nodes = (struct libcras_node_info **)calloc(
 		num_nodes, sizeof(struct libcras_node_info *));
 
-	for (i = 0; i < num_devs; i++) {
-		for (j = 0; j < num_nodes; j++) {
+	for (i = 0; i < (int)num_devs; i++) {
+		for (j = 0; j < (int)num_nodes; j++) {
 			if (iodevs[i].idx != ionodes[j].iodev_idx)
 				continue;
 			(*nodes)[*num] = libcras_node_info_create(&iodevs[i],
@@ -3974,7 +3974,7 @@ int get_nodes(struct cras_client *client, enum CRAS_STREAM_DIRECTION direction,
 	}
 	return 0;
 clean:
-	for (i = 0; i < *num; i++)
+	for (i = 0; i < (int)*num; i++)
 		libcras_node_info_destroy((*nodes)[i]);
 	free(*nodes);
 	*nodes = NULL;
@@ -4243,7 +4243,7 @@ void libcras_node_info_array_destroy(struct libcras_node_info **nodes,
 				     size_t num)
 {
 	int i;
-	for (i = 0; i < num; i++)
+	for (i = 0; i < (int)num; i++)
 		libcras_node_info_destroy(nodes[i]);
 	free(nodes);
 }
