@@ -112,7 +112,7 @@ static inline void add_timespecs(struct timespec *a, const struct timespec *b)
 	}
 }
 
-/* Converts a fixed-size cras_timespec to a native timespec */
+/* Converts a fixed-size cras_timespec to a time.h defined timespec */
 static inline void cras_timespec_to_timespec(struct timespec *dest,
 					     const struct cras_timespec *src)
 {

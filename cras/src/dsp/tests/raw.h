@@ -21,7 +21,7 @@ extern "C" {
  *    first half of the buffer contains left channel data, and the second half
  *    contains the right channel data.
  * The raw file is assumed to have two channel 16 bit signed integer samples in
- * native endian. The raw file can be created by:
+ * platform-specific endian. The raw file can be created by:
  *    sox input.wav output.raw
  * The raw file can be played by:
  *    play -r 44100 -s -b 16 -c 2 test.raw

@@ -194,8 +194,8 @@ function build_graph() {
     sourceNode.disconnect();
     if (get_global('enable_drc') || get_global('enable_eq') ||
         get_global('enable_fft')) {
-      connect_from_native(pin(sourceNode), audio_graph);
-      connect_to_native(audio_graph, pin(audioContext.destination));
+      connect_from_src_to(pin(sourceNode), audio_graph);
+      connect_from_out_to(audio_graph, pin(audioContext.destination));
     } else {
       /* no processing needed, directly connect from source to destination. */
       sourceNode.connect(audioContext.destination);
@@ -454,10 +454,10 @@ function eq_2chan() {
   var splitter = audioContext.createChannelSplitter(2);
   var merger = audioContext.createChannelMerger(2);
 
-  connect_from_native(pin(splitter, 0), eqcs[0]);
-  connect_from_native(pin(splitter, 1), eqcs[1]);
-  connect_to_native(eqcs[0], pin(merger, 0));
-  connect_to_native(eqcs[1], pin(merger, 1));
+  connect_from_src_to(pin(splitter, 0), eqcs[0]);
+  connect_from_src_to(pin(splitter, 1), eqcs[1]);
+  connect_from_out_to(eqcs[0], pin(merger, 0));
+  connect_from_out_to(eqcs[1], pin(merger, 1));
 
   function input(n) {
     return [pin(splitter)];
@@ -830,7 +830,7 @@ function connect(c1, c2, n, m) {
 }
 
 /* Connects from pin "from" to the n-th input of component c2 */
-function connect_from_native(from, c2, n) {
+function connect_from_src_to(from, c2, n) {
   n = n || 0;  /* default is the first input */
   ins = c2.input(n);
   for (var i = 0; i < ins.length; i++) {
@@ -840,7 +840,7 @@ function connect_from_native(from, c2, n) {
 }
 
 /* Connects from m-th output of component c1 to pin "to" */
-function connect_to_native(c1, to, m) {
+function connect_from_out_to(c1, to, m) {
   m = m || 0;  /* default is the first output */
   outs = c1.output(m);
   for (var i = 0; i < outs.length; i++) {
