@@ -13,6 +13,7 @@
 #include "audio_thread.h"
 #include "cras_bt_player.h"
 #include "cras_dbus.h"
+#include "cras_dbus_bindings.h" /* Generated from Makefile */
 #include "cras_dbus_control.h"
 #include "cras_dbus_util.h"
 #include "cras_hfp_ag_profile.h"
@@ -26,127 +27,6 @@
 
 #define CRAS_CONTROL_INTERFACE "org.chromium.cras.Control"
 #define CRAS_ROOT_OBJECT_PATH "/org/chromium/cras"
-#define CONTROL_INTROSPECT_XML                                                  \
-	DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE                               \
-	"<node>\n"                                                              \
-	"  <interface name=\"" CRAS_CONTROL_INTERFACE "\">\n"                   \
-	"    <method name=\"SetOutputVolume\">\n"                               \
-	"      <arg name=\"volume\" type=\"i\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetOutputNodeVolume\">\n"                           \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"      <arg name=\"volume\" type=\"i\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                       \
-	"    <method name=\"SwapLeftRight\">\n"                                 \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"      <arg name=\"swap\" type=\"b\" direction=\"in\"/>\n"              \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetOutputMute\">\n"                                 \
-	"      <arg name=\"mute_on\" type=\"b\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetOutputUserMute\">\n"                             \
-	"      <arg name=\"mute_on\" type=\"b\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetSuspendAudio\">\n"                               \
-	"      <arg name=\"suspend\" type=\"b\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetInputNodeGain\">\n"                              \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"      <arg name=\"gain\" type=\"i\" direction=\"in\"/>\n"              \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetInputMute\">\n"                                  \
-	"      <arg name=\"mute_on\" type=\"b\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetVolumeState\">\n"                                \
-	"      <arg name=\"output_volume\" type=\"i\" direction=\"out\"/>\n"    \
-	"      <arg name=\"output_mute\" type=\"b\" direction=\"out\"/>\n"      \
-	"      <arg name=\"input_mute\" type=\"b\" direction=\"out\"/>\n"       \
-	"      <arg name=\"output_user_mute\" type=\"b\" direction=\"out\"/>\n" \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetDefaultOutputBufferSize\">\n"                    \
-	"      <arg name=\"buffer_size\" type=\"i\" direction=\"out\"/>\n"      \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetNodes\">\n"                                      \
-	"      <arg name=\"nodes\" type=\"a{sv}\" direction=\"out\"/>\n"        \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetSystemAecSupported\">\n"                         \
-	"      <arg name=\"supported\" type=\"b\" direction=\"out\"/>\n"        \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetSystemAecGroupId\">\n"                           \
-	"      <arg name=\"group_id\" type=\"i\" direction=\"out\"/>\n"         \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetDeprioritizeBtWbsMic\">\n"                       \
-	"      <arg name=\"deprioritized\" type=\"b\" direction=\"out\"/>\n"    \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetActiveOutputNode\">\n"                           \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetActiveInputNode\">\n"                            \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"AddActiveInputNode\">\n"                            \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"AddActiveOutputNode\">\n"                           \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"RemoveActiveInputNode\">\n"                         \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"RemoveActiveOutputNode\">\n"                        \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetFixA2dpPacketSize\">\n"                          \
-	"      <arg name=\"toggle\" type=\"b\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetNumberOfActiveStreams\">\n"                      \
-	"      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"              \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetNumberOfActiveOutputStreams\">\n"                \
-	"      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"              \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetNumberOfActiveInputStreams\">\n"                 \
-	"      <arg name=\"num\" type=\"i\" direction=\"out\"/>\n"              \
-	"    </method>\n"                                                       \
-	"    <method name=\"GetNumberOfInputStreamsWithPermission\">\n"         \
-	"      <arg name=\"num\" type=\"a{sv}\" direction=\"out\"/>\n"          \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetGlobalOutputChannelRemix\">\n"                   \
-	"      <arg name=\"num_channels\" type=\"i\" direction=\"in\"/>\n"      \
-	"      <arg name=\"coefficient\" type=\"ad\" direction=\"in\"/>\n"      \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetHotwordModel\">\n"                               \
-	"      <arg name=\"node_id\" type=\"t\" direction=\"in\"/>\n"           \
-	"      <arg name=\"model_name\" type=\"s\" direction=\"in\"/>\n"        \
-	"    </method>\n"                                                       \
-	"    <method name=\"IsAudioOutputActive\">\n"                           \
-	"      <arg name=\"active\" type=\"b\" direction=\"out\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetWbsEnabled\">\n"                                 \
-	"      <arg name=\"enabled\" type=\"b\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetNoiseCancellationEnabled\">\n"                   \
-	"      <arg name=\"enabled\" type=\"b\" direction=\"in\"/>\n"           \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetPlayerPlaybackStatus\">\n"                       \
-	"      <arg name=\"status\" type=\"s\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetPlayerIdentity\">\n"                             \
-	"      <arg name=\"identity\" type=\"s\" direction=\"in\"/>\n"          \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetPlayerPosition\">\n"                             \
-	"      <arg name=\"position\" type=\"x\" direction=\"in\"/>\n"          \
-	"    </method>\n"                                                       \
-	"    <method name=\"SetPlayerMetadata\">\n"                             \
-	"      <arg name=\"metadata\" type=\"a{sv}\" direction=\"in\"/>\n"      \
-	"    </method>\n"                                                       \
-	"  </interface>\n"                                                      \
-	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"            \
-	"    <method name=\"Introspect\">\n"                                    \
-	"      <arg name=\"data\" type=\"s\" direction=\"out\"/>\n"             \
-	"    </method>\n"                                                       \
-	"  </interface>\n"                                                      \
-	"</node>\n"
 
 struct cras_dbus_control {
 	DBusConnection *conn;
@@ -1091,7 +971,7 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	if (dbus_message_is_method_call(message, DBUS_INTERFACE_INTROSPECTABLE,
 					"Introspect")) {
 		DBusMessage *reply;
-		const char *xml = CONTROL_INTROSPECT_XML;
+		const char *xml = org_chromium_cras_Control_xml;
 
 		reply = dbus_message_new_method_return(message);
 		if (!reply)

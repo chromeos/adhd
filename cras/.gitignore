@@ -42,4 +42,5 @@ tags
 /src/cras_monitor
 /src/cras_router
 /src/cras_test_client
+/src/common/cras_dbus_bindings.h
 /src/common/cras_version.h

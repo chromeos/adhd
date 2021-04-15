@@ -43,7 +43,29 @@ COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
 bin_PROGRAMS = cras cras_test_client cras_monitor cras_router
 noinst_PROGRAMS =
 
+BUILT_SOURCES =
+
 if HAVE_DBUS
+DBUS_XML_FILES = \
+	$(top_srcdir)/dbus_bindings/org.chromium.cras.Control.xml
+BUILT_SOURCES += common/cras_dbus_bindings.h
+
+common/cras_dbus_bindings.h: Makefile ${DBUS_XML_FILES}
+	cp ${DBUS_XML_FILES} .
+	echo "#ifndef CRAS_DBUS_BINDINGS_H_" >> $@.tmp
+	echo "#define CRAS_DBUS_BINDINGS_H_" >> $@.tmp
+	for xml in ${DBUS_XML_FILES}; do \
+		local_xml=$$(basename $$xml); \
+		xxd -i $$local_xml >> $@.tmp; \
+		rm $$local_xml; \
+	done
+	sed -i 's/unsigned char/static const char/' $@.tmp
+	sed -i 's/unsigned int/__attribute__((unused)) static unsigned int/' $@.tmp
+	sed -i 's/}/,0x00\}/' $@.tmp
+	echo "#endif /* CRAS_DBUS_BINDINGS_H_ */" >> $@.tmp
+	mv $@{.tmp,}
+DBUS_CFLAGS += -I$(top_builddir)/src/common
+
 CRAS_DBUS_SOURCES = \
 	common/cras_sbc_codec.c \
 	common/packet_status_logger.c \
@@ -497,7 +519,7 @@ cras_router_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/libcras \
 
 tools/cras_router/cras_router.c: common/cras_version.h
 
-CLEANFILES = common/cras_version.h
+CLEANFILES = common/cras_version.h $(BUILT_SOURCES)
 .PHONY: common/cras_version.h
 common/cras_version.h:
 	if echo "$(CPPFLAGS)" | grep -q -- '-DVCSID='; then \
