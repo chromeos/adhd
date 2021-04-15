@@ -964,7 +964,8 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 	iodev->highest_hw_level = 0;
 	iodev->input_dsp_offset = 0;
 
-	ewma_power_init(&iodev->ewma, iodev->format->frame_rate);
+	ewma_power_init(&iodev->ewma, iodev->format->format,
+			iodev->format->frame_rate);
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
 		/* If device supports start ops, device can be in open state.

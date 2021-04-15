@@ -2776,7 +2776,9 @@ int cras_server_metrics_device_volume(struct cras_iodev* iodev) {
   return 0;
 }
 
-void ewma_power_init(struct ewma_power* ewma, unsigned int rate){};
+void ewma_power_init(struct ewma_power* ewma,
+                     snd_pcm_format_t fmt,
+                     unsigned int rate){};
 
 void ewma_power_calculate(struct ewma_power* ewma,
                           const int16_t* buf,

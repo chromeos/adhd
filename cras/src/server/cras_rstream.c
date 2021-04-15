@@ -297,7 +297,8 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->num_missed_cb = 0;
 	stream->is_pinned = (config->dev_idx != NO_DEVICE);
 	stream->pinned_dev_idx = config->dev_idx;
-	ewma_power_init(&stream->ewma, stream->format.frame_rate);
+	ewma_power_init(&stream->ewma, stream->format.format,
+			stream->format.frame_rate);
 
 	rc = setup_shm_area(stream, config);
 	if (rc < 0) {

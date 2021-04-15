@@ -20,12 +20,14 @@
  *        make all calculations no-ops.
  *    power - The power value.
  *    step_fr - How many frames to sample one for EWMA calculation.
+ *    fmt - The sample format of audio data.
  */
 struct ewma_power {
 	bool power_set;
 	bool enabled;
 	float power;
 	unsigned int step_fr;
+	snd_pcm_format_t fmt;
 };
 
 /*
@@ -37,10 +39,12 @@ void ewma_power_disable(struct ewma_power *ewma);
  * Initializes the ewma_power object.
  * Args:
  *    ewma - The ewma_power object to initialize.
+ *    fmt - The sample format of the audio data.
  *    rate - The sample rate of the audio data that the ewma object
  *        will calculate power from.
  */
-void ewma_power_init(struct ewma_power *ewma, unsigned int rate);
+void ewma_power_init(struct ewma_power *ewma, snd_pcm_format_t fmt,
+		     unsigned int rate);
 
 /*
  * Feeds an audio buffer to ewma_power object to calculate the

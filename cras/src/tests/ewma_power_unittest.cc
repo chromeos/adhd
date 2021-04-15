@@ -19,7 +19,7 @@ TEST(EWMAPower, RelativePowerValue) {
   for (i = 0; i < 480; i++)
     buf[i] = 0x00fe;
 
-  ewma_power_init(&ewma, 48000);
+  ewma_power_init(&ewma, SND_PCM_FORMAT_S16_LE, 48000);
   EXPECT_EQ(48, ewma.step_fr);
 
   ewma_power_calculate(&ewma, buf, 1, 480);
@@ -44,7 +44,7 @@ TEST(EWMAPower, PowerInStereoData) {
   int i;
   float f;
 
-  ewma_power_init(&ewma, 48000);
+  ewma_power_init(&ewma, SND_PCM_FORMAT_S16_LE, 48000);
 
   for (i = 0; i < 960; i += 2) {
     buf[i] = 0x0;
@@ -66,7 +66,7 @@ TEST(EWMAPower, PowerInStereoData) {
   EXPECT_LT(ewma.power, 1.0e-10);
 
   // Assume the data is silent in the other channel.
-  ewma_power_init(&ewma, 48000);
+  ewma_power_init(&ewma, SND_PCM_FORMAT_S16_LE, 48000);
 
   for (i = 0; i < 960; i += 2) {
     buf[i] = 0x0ffe;
@@ -95,7 +95,7 @@ TEST(EWMAPower, PowerInAudioArea) {
     buf[i + 2] = 0x0;
     buf[i + 3] = 0x0ffe;
   }
-  ewma_power_init(&ewma, 48000);
+  ewma_power_init(&ewma, SND_PCM_FORMAT_S16_LE, 48000);
   ewma_power_calculate_area(&ewma, buf, area, 480);
   f = ewma.power;
   EXPECT_LT(0.0f, f);
@@ -105,7 +105,7 @@ TEST(EWMAPower, PowerInAudioArea) {
   layout[CRAS_CH_FR] = 2;
   cras_audio_format_set_channel_layout(fmt, layout);
   cras_audio_area_config_channels(area, fmt);
-  ewma_power_init(&ewma, 48000);
+  ewma_power_init(&ewma, SND_PCM_FORMAT_S16_LE, 48000);
   ewma_power_calculate_area(&ewma, buf, area, 480);
   EXPECT_GT(f, ewma.power);
 
@@ -113,7 +113,7 @@ TEST(EWMAPower, PowerInAudioArea) {
   layout[CRAS_CH_FL] = 1;
   cras_audio_format_set_channel_layout(fmt, layout);
   cras_audio_area_config_channels(area, fmt);
-  ewma_power_init(&ewma, 48000);
+  ewma_power_init(&ewma, SND_PCM_FORMAT_S16_LE, 48000);
   ewma_power_calculate_area(&ewma, buf, area, 480);
   EXPECT_EQ(0.0f, ewma.power);
 

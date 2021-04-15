@@ -391,7 +391,9 @@ unsigned int buffer_share_id_offset(const struct buffer_share* mix,
                                     unsigned int id) {
   return 0;
 }
-void ewma_power_init(struct ewma_power* ewma, unsigned int rate) {}
+void ewma_power_init(struct ewma_power* ewma,
+                     snd_pcm_format_t fmt,
+                     unsigned int rate) {}
 
 void ewma_power_calculate(struct ewma_power* ewma,
                           const int16_t* buf,

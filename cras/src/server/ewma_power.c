@@ -23,9 +23,11 @@ void ewma_power_disable(struct ewma_power *ewma)
 	ewma->enabled = 0;
 }
 
-void ewma_power_init(struct ewma_power *ewma, unsigned int rate)
+void ewma_power_init(struct ewma_power *ewma, snd_pcm_format_t fmt,
+		     unsigned int rate)
 {
 	ewma->enabled = 1;
+	ewma->fmt = fmt;
 	ewma->power_set = 0;
 	ewma->step_fr = rate / EWMA_SAMPLE_RATE;
 }
@@ -36,7 +38,7 @@ void ewma_power_calculate(struct ewma_power *ewma, const int16_t *buf,
 	int i, ch;
 	float power, f;
 
-	if (!ewma->enabled)
+	if (!ewma->enabled || (ewma->fmt != SND_PCM_FORMAT_S16_LE))
 		return;
 	for (i = 0; i < size; i += ewma->step_fr * channels) {
 		power = 0.0f;
