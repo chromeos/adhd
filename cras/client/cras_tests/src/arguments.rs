@@ -8,6 +8,8 @@ use audio_streams::SampleFormat;
 use getopts::{self, Matches, Options};
 use thiserror::Error as ThisError;
 
+use crate::getter::{self, GetCommand};
+
 #[derive(ThisError, Debug)]
 pub enum Error {
     #[error("Getopts Error: {0:}")]
@@ -24,6 +26,8 @@ pub enum Error {
     MissingFilename,
     #[error("Unknown command '{0:}'")]
     UnknownCommand(String),
+    #[error("failed in get command: {0:}")]
+    GetCommand(#[from] getter::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -35,6 +39,7 @@ pub enum Command {
     Capture(AudioOptions),
     Playback(AudioOptions),
     Control(ControlCommand),
+    Get(GetCommand),
 }
 
 impl Command {
@@ -59,6 +64,9 @@ impl Command {
             ),
             Some("control") => {
                 Ok(ControlCommand::parse(program_name, remaining_args)?.map(Command::Control))
+            }
+            Some("get") => {
+                Ok(GetCommand::parse(program_name, "get", remaining_args)?.map(Command::Get))
             }
             Some(s) => {
                 show_usage(program_name);
@@ -89,6 +97,7 @@ fn show_usage(program_name: &str) {
     eprintln!("capture - Capture to a file from CRAS");
     eprintln!("playback - Playback to CRAS from a file");
     eprintln!("control - Get and set server settings");
+    eprintln!("get - Get server status or settings");
     eprintln!("\nhelp - Print help message");
 }
 

@@ -1,2 +1,3 @@
 target/
 .*.rustfmt
+src/bindings/

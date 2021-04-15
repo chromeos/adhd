@@ -6,11 +6,15 @@ edition = "2018"
 
 [dependencies]
 audio_streams = { path = "../../../audio_streams" } # provided by ebuild
+dbus = "0.8"
 getopts = "0.2.18"
 hound = "3.4.0"
 libcras = { path = "../libcras" } # provided by ebuild
 sys_util = { path = "../../../../../platform/crosvm/sys_util" } # provided by ebuild
 thiserror = "1.0.20"
+
+[build-dependencies]
+chromeos-dbus-bindings = { path = "../../../../../platform2/chromeos-dbus-bindings" } # provided by ebuild
 
 [profile.release]
 lto = true
