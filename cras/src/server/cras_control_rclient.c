@@ -15,7 +15,9 @@
 #include "cras_dsp.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#ifdef CRAS_DBUS
 #include "cras_hfp_ag_profile.h"
+#endif
 #include "cras_main_thread_log.h"
 #include "cras_messages.h"
 #include "cras_observer.h"
