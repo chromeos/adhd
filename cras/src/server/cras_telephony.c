@@ -9,51 +9,13 @@
 
 #include <dbus/dbus.h>
 
+#include "cras_dbus_bindings.h"
 #include "cras_telephony.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_slc.h"
 
 #define CRAS_TELEPHONY_INTERFACE "org.chromium.cras.Telephony"
 #define CRAS_TELEPHONY_OBJECT_PATH "/org/chromium/cras/telephony"
-#define TELEPHONY_INTROSPECT_XML                                               \
-	DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE                              \
-	"<node>\n"                                                             \
-	"  <interface name=\"" CRAS_TELEPHONY_INTERFACE "\">\n"                \
-	"    <method name=\"AnswerCall\">\n"                                   \
-	"    </method>\n"                                                      \
-	"    <method name=\"IncomingCall\">\n"                                 \
-	"      <arg name=\"value\" type=\"s\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                      \
-	"    <method name=\"TerminateCall\">\n"                                \
-	"    </method>\n"                                                      \
-	"    <method name=\"SetBatteryLevel\">\n"                              \
-	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                      \
-	"    <method name=\"SetSignalStrength\">\n"                            \
-	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                      \
-	"    <method name=\"SetServiceAvailability\">\n"                       \
-	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                      \
-	"    <method name=\"SetDialNumber\">\n"                                \
-	"      <arg name=\"value\" type=\"s\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                      \
-	"    <method name=\"SetCallheld\">\n"                                  \
-	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                      \
-	"    <method name=\"SetCallsetup\">\n"                                 \
-	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                      \
-	"    <method name=\"SetCall\">\n"                                      \
-	"      <arg name=\"value\" type=\"i\" direction=\"in\"/>\n"            \
-	"    </method>\n"                                                      \
-	"  </interface>\n"                                                     \
-	"  <interface name=\"" DBUS_INTERFACE_INTROSPECTABLE "\">\n"           \
-	"    <method name=\"Introspect\">\n"                                   \
-	"      <arg name=\"data\" type=\"s\" direction=\"out\"/>\n"            \
-	"    </method>\n"                                                      \
-	"  </interface>\n"                                                     \
-	"</node>\n"
 
 static struct cras_telephony_handle telephony_handle;
 
@@ -278,7 +240,7 @@ handle_telephony_message(DBusConnection *conn, DBusMessage *message, void *arg)
 	if (dbus_message_is_method_call(message, DBUS_INTERFACE_INTROSPECTABLE,
 					"Introspect")) {
 		DBusMessage *reply;
-		const char *xml = TELEPHONY_INTROSPECT_XML;
+		const char *xml = org_chromium_cras_Telephony_xml;
 
 		reply = dbus_message_new_method_return(message);
 		if (!reply)

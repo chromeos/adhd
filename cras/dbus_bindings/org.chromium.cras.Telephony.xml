@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Copyright 2021 The Chromium OS Authors. All rights reserved.
+  Use of this source code is governed by a BSD-style license that can be
+  found in the LICENSE file.
+-->
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.chromium.cras.Telephony">
+    <method name="AnswerCall">
+    </method>
+    <method name="IncomingCall">
+      <arg name="value" type="s" direction="in"/>
+    </method>
+    <method name="TerminateCall">
+    </method>
+    <method name="SetBatteryLevel">
+      <arg name="value" type="i" direction="in"/>
+    </method>
+    <method name="SetSignalStrength">
+      <arg name="value" type="i" direction="in"/>
+    </method>
+    <method name="SetServiceAvailability">
+      <arg name="value" type="i" direction="in"/>
+    </method>
+    <method name="SetDialNumber">
+      <arg name="value" type="s" direction="in"/>
+    </method>
+    <method name="SetCallheld">
+      <arg name="value" type="i" direction="in"/>
+    </method>
+    <method name="SetCallsetup">
+      <arg name="value" type="i" direction="in"/>
+    </method>
+    <method name="SetCall">
+      <arg name="value" type="i" direction="in"/>
+    </method>
+  </interface>
+  <interface name="org.freedesktop.DBus.Introspectable">
+    <method name="Introspect">
+      <arg name="data" type="s" direction="out"/>
+    </method>
+  </interface>
+</node>

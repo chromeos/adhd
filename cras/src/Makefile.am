@@ -47,7 +47,8 @@ BUILT_SOURCES =
 
 if HAVE_DBUS
 DBUS_XML_FILES = \
-	$(top_srcdir)/dbus_bindings/org.chromium.cras.Control.xml
+	$(top_srcdir)/dbus_bindings/org.chromium.cras.Control.xml \
+	$(top_srcdir)/dbus_bindings/org.chromium.cras.Telephony.xml
 BUILT_SOURCES += common/cras_dbus_bindings.h
 
 common/cras_dbus_bindings.h: Makefile ${DBUS_XML_FILES}
