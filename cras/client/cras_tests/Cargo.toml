@@ -10,6 +10,7 @@ getopts = "0.2.18"
 hound = "3.4.0"
 libcras = { path = "../libcras" } # provided by ebuild
 sys_util = { path = "../../../../../platform/crosvm/sys_util" } # provided by ebuild
+thiserror = "1.0.20"
 
 [profile.release]
 lto = true

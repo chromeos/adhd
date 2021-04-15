@@ -1,45 +1,29 @@
 // Copyright 2019 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::error;
 use std::fmt;
 use std::path::PathBuf;
 
 use audio_streams::SampleFormat;
 use getopts::{self, Matches, Options};
+use thiserror::Error as ThisError;
 
-#[derive(Debug)]
+#[derive(ThisError, Debug)]
 pub enum Error {
+    #[error("Getopts Error: {0:}")]
     GetOpts(getopts::Fail),
+    #[error("Invalid {0:} argument '{1:}': {2:}")]
     InvalidArgument(String, String, String),
+    #[error("Invalid file extension '{0:}'. Supported types are 'wav' and 'raw'")]
     InvalidFiletype(String),
+    #[error("Missing argument for {0:}")]
     MissingArgument(String),
+    #[error("A command must be provided")]
     MissingCommand,
+    #[error("A file name must be provided")]
     MissingFilename,
+    #[error("Unknown command '{0:}'")]
     UnknownCommand(String),
-}
-
-impl error::Error for Error {}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Error::*;
-        match self {
-            GetOpts(e) => write!(f, "Getopts Error: {}", e),
-            InvalidArgument(flag, value, error_msg) => {
-                write!(f, "Invalid {} argument '{}': {}", flag, value, error_msg)
-            }
-            InvalidFiletype(extension) => write!(
-                f,
-                "Invalid file extension '{}'. Supported types are 'wav' and 'raw'",
-                extension
-            ),
-            MissingArgument(subcommand) => write!(f, "Missing argument for {}", subcommand),
-            MissingCommand => write!(f, "A command must be provided"),
-            MissingFilename => write!(f, "A file name must be provided"),
-            UnknownCommand(s) => write!(f, "Unknown command '{}'", s),
-        }
-    }
 }
 
 type Result<T> = std::result::Result<T, Error>;
