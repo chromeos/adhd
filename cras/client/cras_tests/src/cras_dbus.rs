@@ -27,6 +27,8 @@ pub enum DBusControlOp {
     GetNumberOfActiveStreams,
     GetDefaultOutputBufferSize,
     Introspect,
+    GetOutputVolume,
+    SetOutputVolume(i32),
 }
 
 impl DBusControlOp {
@@ -61,6 +63,12 @@ impl DBusControlOp {
             }
             Self::Introspect => {
                 println!("{}", proxy.introspect().map_err(Error::DBusCall)?);
+            }
+            Self::GetOutputVolume => {
+                println!("{}", proxy.get_volume_state().map_err(Error::DBusCall)?.0);
+            }
+            Self::SetOutputVolume(volume) => {
+                proxy.set_output_volume(volume).map_err(Error::DBusCall)?;
             }
         }
         Ok(())

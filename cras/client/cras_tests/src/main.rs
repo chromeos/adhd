@@ -7,6 +7,7 @@ mod audio;
 mod control;
 mod cras_dbus;
 mod getter;
+mod setter;
 
 use std::error;
 use std::fmt;
@@ -21,6 +22,7 @@ pub enum Error {
     ParseArgs(arguments::Error),
     Control(control::Error),
     Get(getter::Error),
+    Set(setter::Error),
 }
 
 impl error::Error for Error {}
@@ -33,6 +35,7 @@ impl fmt::Display for Error {
             ParseArgs(e) => write!(f, "Failed to parse arguments: {}", e),
             Control(e) => e.fmt(f),
             Get(e) => e.fmt(f),
+            Set(e) => e.fmt(f),
         }
     }
 }
@@ -51,6 +54,7 @@ fn run() -> Result<()> {
         Command::Control(command) => control(command).map_err(Error::Control),
         Command::Playback(audio_opts) => playback(audio_opts).map_err(Error::Audio),
         Command::Get(command) => command.run().map_err(Error::Get),
+        Command::Set(command) => command.run().map_err(Error::Set),
     }
 }
 

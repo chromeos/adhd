@@ -9,6 +9,7 @@ use getopts::{self, Matches, Options};
 use thiserror::Error as ThisError;
 
 use crate::getter::{self, GetCommand};
+use crate::setter::{self, SetCommand};
 
 #[derive(ThisError, Debug)]
 pub enum Error {
@@ -28,6 +29,8 @@ pub enum Error {
     UnknownCommand(String),
     #[error("failed in get command: {0:}")]
     GetCommand(#[from] getter::Error),
+    #[error("failed in set command: {0:}")]
+    SetCommand(#[from] setter::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -40,6 +43,7 @@ pub enum Command {
     Playback(AudioOptions),
     Control(ControlCommand),
     Get(GetCommand),
+    Set(SetCommand),
 }
 
 impl Command {
@@ -67,6 +71,9 @@ impl Command {
             }
             Some("get") => {
                 Ok(GetCommand::parse(program_name, "get", remaining_args)?.map(Command::Get))
+            }
+            Some("set") => {
+                Ok(SetCommand::parse(program_name, "set", remaining_args)?.map(Command::Set))
             }
             Some(s) => {
                 show_usage(program_name);
@@ -98,6 +105,7 @@ fn show_usage(program_name: &str) {
     eprintln!("playback - Playback to CRAS from a file");
     eprintln!("control - Get and set server settings");
     eprintln!("get - Get server status or settings");
+    eprintln!("set - Set server status or settings");
     eprintln!("\nhelp - Print help message");
 }
 

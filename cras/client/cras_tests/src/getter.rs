@@ -34,6 +34,7 @@ impl GetCommand {
             Some("num_active_streams") => Ok(Some(Self::DBusControl(
                 DBusControlOp::GetNumberOfActiveStreams,
             ))),
+            Some("output_volume") => Ok(Some(Self::DBusControl(DBusControlOp::GetOutputVolume))),
             Some("default_output_buffer_size") => Ok(Some(Self::DBusControl(
                 DBusControlOp::GetDefaultOutputBufferSize,
             ))),
@@ -70,6 +71,7 @@ impl GetCommand {
                 "",
                 "Get default output buffer size",
             ),
+            ("output_volume", "", "Get current output volume (0 - 100)"),
             (
                 "control_introspect",
                 "",
@@ -111,6 +113,12 @@ mod tests {
                 .unwrap()
                 .unwrap(),
             GetCommand::DBusControl(DBusControlOp::GetDefaultOutputBufferSize)
+        );
+        assert_eq!(
+            GetCommand::parse("cras_tests", "get", &["output_volume"])
+                .unwrap()
+                .unwrap(),
+            GetCommand::DBusControl(DBusControlOp::GetOutputVolume)
         );
     }
 }
