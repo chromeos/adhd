@@ -2383,6 +2383,15 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 	/* Record max supported channels into cras_iodev_info. */
 	if (node && node->plugged)
 		update_max_supported_channels(iodev);
+
+	/*
+	 * Update the flag of noise cancellation supported to cras_system_state.
+	 * The flag is set to true if there is any device supporting noise
+	 * cancellation on UCM modifier.
+	 */
+	if (aio->ucm && node && iodev->direction == CRAS_STREAM_INPUT &&
+	    ucm_node_noise_cancellation_exists(aio->ucm, node->name))
+		cras_system_set_noise_cancellation_supported();
 }
 
 void alsa_iodev_destroy(struct cras_iodev *iodev)

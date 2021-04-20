@@ -110,6 +110,9 @@
     <method name="SetNoiseCancellationEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>
+    <method name="IsNoiseCancellationSupported">
+      <arg name="supported" type="b" direction="out"/>
+    </method>
     <method name="SetPlayerPlaybackStatus">
       <arg name="status" type="s" direction="in"/>
     </method>

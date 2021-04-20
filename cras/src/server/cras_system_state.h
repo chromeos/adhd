@@ -140,6 +140,12 @@ void cras_system_set_noise_cancellation_enabled(bool enabled);
 /* Gets the flag of Noise Cancellation. */
 bool cras_system_get_noise_cancellation_enabled();
 
+/* Sets the flag to be true. */
+void cras_system_set_noise_cancellation_supported();
+
+/* Returns if Noise Cancellation is supported. */
+bool cras_system_get_noise_cancellation_supported();
+
 /* Checks if the card ignores the ucm suffix. */
 bool cras_system_check_ignore_ucm_suffix(const char *card_name);
 

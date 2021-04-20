@@ -622,6 +622,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	struct main_thread_debug_info main_thread_debug_info;
 	uint32_t num_input_streams_with_permission[CRAS_NUM_CLIENT_TYPE];
 	int32_t noise_cancellation_enabled;
+	int32_t noise_cancellation_supported;
 	int32_t hotword_pause_at_suspend;
 };
 

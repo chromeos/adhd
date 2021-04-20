@@ -890,6 +890,17 @@ handle_set_noise_cancellation_enabled(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult
+handle_is_noise_cancellation_supported(DBusConnection *conn,
+				       DBusMessage *message, void *arg)
+{
+	dbus_int32_t supported = cras_system_get_noise_cancellation_supported();
+
+	send_int32_reply(conn, message, supported);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 static DBusHandlerResult handle_set_player_playback_status(DBusConnection *conn,
 							   DBusMessage *message,
 							   void *arg)
@@ -1124,6 +1135,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       "SetNoiseCancellationEnabled")) {
 		return handle_set_noise_cancellation_enabled(conn, message,
 							     arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "IsNoiseCancellationSupported")) {
+		return handle_is_noise_cancellation_supported(conn, message,
+							      arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetPlayerPlaybackStatus")) {
 		return handle_set_player_playback_status(conn, message, arg);

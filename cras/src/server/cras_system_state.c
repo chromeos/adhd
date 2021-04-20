@@ -161,6 +161,7 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	exp_state->deprioritize_bt_wbs_mic =
 		board_config.deprioritize_bt_wbs_mic;
 	exp_state->noise_cancellation_enabled = 0;
+	exp_state->noise_cancellation_supported = 0;
 	exp_state->hotword_pause_at_suspend =
 		board_config.hotword_pause_at_suspend;
 
@@ -417,6 +418,16 @@ void cras_system_set_noise_cancellation_enabled(bool enabled)
 bool cras_system_get_noise_cancellation_enabled()
 {
 	return !!state.exp_state->noise_cancellation_enabled;
+}
+
+void cras_system_set_noise_cancellation_supported()
+{
+	state.exp_state->noise_cancellation_supported = 1;
+}
+
+bool cras_system_get_noise_cancellation_supported()
+{
+	return !!state.exp_state->noise_cancellation_supported;
 }
 
 bool cras_system_check_ignore_ucm_suffix(const char *card_name)
