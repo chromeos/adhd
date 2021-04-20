@@ -1,3 +1,8 @@
+// Copyright 2021 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+use std::error;
+
 use thiserror::Error as ThisError;
 
 use crate::cras_dbus::{self, DBusControlOp};
@@ -9,12 +14,14 @@ pub enum Error {
     UnknownCommand(String),
     #[error("A command must be provided")]
     MissingCommand,
-    #[error("faild in cras_dbus: {0:}")]
+    #[error("failed in cras_dbus: {0:}")]
     CrasDBus(cras_dbus::Error),
     #[error("Missing argument for {0:}")]
     MissingArgument(String),
     #[error("Invalid {0:} argument '{1:}': {2:}")]
     InvalidArgument(String, String, String),
+    #[error("Invalid matrix size")]
+    InvalidMatrixSize,
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -22,6 +29,14 @@ type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, PartialEq)]
 pub enum SetCommand {
     DBusControl(DBusControlOp),
+}
+
+fn missing_argument(s: &str) -> Error {
+    Error::MissingArgument(s.to_string())
+}
+
+fn invalid_argument(cmd: &str, arg: &str, e: &dyn error::Error) -> Error {
+    Error::InvalidArgument(cmd.to_string(), arg.to_string(), e.to_string())
 }
 
 impl SetCommand {
@@ -32,36 +47,44 @@ impl SetCommand {
         args: &[T],
     ) -> Result<Option<Self>> {
         let mut args = args.iter().map(|s| s.as_ref());
-        match args.next() {
-            Some("help") => {
-                Self::show_usage(program_name, command_name);
-                Ok(None)
-            }
-            Some("output_volume") => {
-                let volume_str = args
+        let cmd = args.next().ok_or_else(|| {
+            Self::show_usage(program_name, command_name);
+            Error::MissingCommand
+        })?;
+        match cmd {
+            "help" => Ok(None),
+            "output_volume" => {
+                let volume = args
                     .next()
-                    .ok_or_else(|| Error::MissingArgument("output_volume".to_string()))?;
+                    .ok_or_else(|| missing_argument(cmd))
+                    .map(|s| s.parse::<i32>().map_err(|e| invalid_argument(cmd, s, &e)))??;
 
-                let volume = volume_str.parse::<i32>().map_err(|e| {
-                    Error::InvalidArgument(
-                        "output_volume".to_string(),
-                        volume_str.to_string(),
-                        e.to_string(),
-                    )
-                })?;
                 Ok(Some(Self::DBusControl(DBusControlOp::SetOutputVolume(
                     volume,
                 ))))
             }
-            Some(s) => {
-                Self::show_usage(program_name, command_name);
-                Err(Error::UnknownCommand(s.to_string()))
+            "global_remix" => {
+                let num_channels = args
+                    .next()
+                    .ok_or_else(|| missing_argument(cmd))
+                    .map(|s| s.parse::<u32>().map_err(|e| invalid_argument(cmd, s, &e)))??;
+                let coefficients = args
+                    .map(|s| s.parse::<f64>().map_err(|e| invalid_argument(cmd, s, &e)))
+                    .collect::<Result<Vec<_>>>()?;
+                if coefficients.len() as u32 != num_channels * num_channels {
+                    Err(Error::InvalidMatrixSize)
+                } else {
+                    Ok(Some(Self::DBusControl(
+                        DBusControlOp::SetGlobalOutputChannelRemix(num_channels, coefficients),
+                    )))
+                }
             }
-            None => {
-                Self::show_usage(program_name, command_name);
-                Err(Error::MissingCommand)
-            }
+            s => Err(Error::UnknownCommand(s.to_string())),
         }
+        .map_err(|e| {
+            Self::show_usage(program_name, command_name);
+            e
+        })
     }
 
     // Consumes and executes the current operation.
@@ -83,6 +106,11 @@ impl SetCommand {
                 "output_volume",
                 "VOLUME",
                 "Set output to the given VOLUME (0 - 100).",
+            ),
+            (
+                "global_remix",
+                "NUM_CHANNELS [COEFFICENTS]",
+                "Float array representing |num_channels| * |num_channels| matrix.",
             ),
         ];
 
@@ -110,6 +138,25 @@ mod tests {
                 .unwrap()
                 .unwrap(),
             SetCommand::DBusControl(DBusControlOp::SetOutputVolume(50))
+        );
+        assert!(SetCommand::parse(
+            "cras_tests",
+            "set",
+            &["global_remix", "2", "0.5", "0.5", "0.5"]
+        )
+        .is_err());
+        assert_eq!(
+            SetCommand::parse(
+                "cras_tests",
+                "set",
+                &["global_remix", "2", "0.5", "0.5", "0.5", "0.5"]
+            )
+            .unwrap()
+            .unwrap(),
+            SetCommand::DBusControl(DBusControlOp::SetGlobalOutputChannelRemix(
+                2,
+                vec![0.5, 0.5, 0.5, 0.5]
+            ))
         );
     }
 }

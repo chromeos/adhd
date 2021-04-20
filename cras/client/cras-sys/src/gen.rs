@@ -35,7 +35,6 @@ pub const CRAS_PROTO_VER: u32 = 7;
 pub const CRAS_SERV_MAX_MSG_SIZE: u32 = 256;
 pub const CRAS_CLIENT_MAX_MSG_SIZE: u32 = 256;
 pub const CRAS_MAX_HOTWORD_MODELS: u32 = 243;
-pub const CRAS_MAX_REMIX_CHANNELS: u32 = 8;
 pub const CRAS_MAX_TEST_DATA_LEN: u32 = 224;
 pub const CRAS_AEC_DUMP_FILE_NAME_LEN: u32 = 128;
 pub const CRAS_NUM_SHM_BUFFERS: u32 = 2;
@@ -3713,60 +3712,6 @@ fn bindgen_test_layout_cras_test_dev_command() {
             stringify!(cras_test_dev_command),
             "::",
             stringify!(data)
-        )
-    );
-}
-#[repr(C, packed)]
-#[derive(Copy, Clone)]
-pub struct cras_config_global_remix {
-    pub header: cras_server_message,
-    pub num_channels: ::std::os::raw::c_uint,
-    pub coefficient: [f32; 64usize],
-}
-#[test]
-fn bindgen_test_layout_cras_config_global_remix() {
-    assert_eq!(
-        ::std::mem::size_of::<cras_config_global_remix>(),
-        268usize,
-        concat!("Size of: ", stringify!(cras_config_global_remix))
-    );
-    assert_eq!(
-        ::std::mem::align_of::<cras_config_global_remix>(),
-        1usize,
-        concat!("Alignment of ", stringify!(cras_config_global_remix))
-    );
-    assert_eq!(
-        unsafe { &(*(::std::ptr::null::<cras_config_global_remix>())).header as *const _ as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(cras_config_global_remix),
-            "::",
-            stringify!(header)
-        )
-    );
-    assert_eq!(
-        unsafe {
-            &(*(::std::ptr::null::<cras_config_global_remix>())).num_channels as *const _ as usize
-        },
-        8usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(cras_config_global_remix),
-            "::",
-            stringify!(num_channels)
-        )
-    );
-    assert_eq!(
-        unsafe {
-            &(*(::std::ptr::null::<cras_config_global_remix>())).coefficient as *const _ as usize
-        },
-        12usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(cras_config_global_remix),
-            "::",
-            stringify!(coefficient)
         )
     );
 }

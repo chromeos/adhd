@@ -472,38 +472,6 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_RESUME:
 		cras_system_set_suspended(0);
 		break;
-	case CRAS_CONFIG_GLOBAL_REMIX: {
-		const struct cras_config_global_remix *m =
-			(const struct cras_config_global_remix *)msg;
-		float *coefficient;
-
-		if (!MSG_LEN_VALID(msg, struct cras_config_global_remix) ||
-		    m->num_channels > CRAS_MAX_REMIX_CHANNELS)
-			return -EINVAL;
-		const size_t coefficient_len =
-			(size_t)m->num_channels * (size_t)m->num_channels;
-		const size_t size_with_coefficients =
-			sizeof(*m) +
-			coefficient_len * sizeof(m->coefficient[0]);
-		if (size_with_coefficients != msg->length)
-			return -EINVAL;
-
-		coefficient =
-			(float *)calloc(coefficient_len, sizeof(coefficient));
-		if (!coefficient) {
-			syslog(LOG_ERR,
-			       "Failed to create local coefficient array.");
-			break;
-		}
-		memcpy(coefficient, m->coefficient,
-		       coefficient_len * sizeof(coefficient));
-
-		audio_thread_config_global_remix(
-			cras_iodev_list_get_audio_thread(), m->num_channels,
-			coefficient);
-		free(coefficient);
-		break;
-	}
 	case CRAS_SERVER_GET_HOTWORD_MODELS: {
 		if (!MSG_LEN_VALID(msg, struct cras_get_hotword_models))
 			return -EINVAL;

@@ -1,3 +1,6 @@
+// Copyright 2021 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 use thiserror::Error as ThisError;
 
 use crate::cras_dbus::{self, DBusControlOp};
@@ -9,7 +12,7 @@ pub enum Error {
     UnknownCommand(String),
     #[error("A command must be provided")]
     MissingCommand,
-    #[error("faild in cras_dbus: {0:}")]
+    #[error("failed in cras_dbus: {0:}")]
     CrasDBus(cras_dbus::Error),
 }
 

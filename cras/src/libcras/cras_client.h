@@ -1045,18 +1045,6 @@ int cras_client_get_first_dev_type_idx(const struct cras_client *client,
  */
 int cras_client_set_suspend(struct cras_client *client, int suspend);
 
-/* Configures the global converter for output remixing.
- *
- * Args:
- *    client - The client from cras_client_create.
- *    num_channels - Number of output channels.
- *    coefficient - Float array representing |num_channels| * |num_channels|
- *        matrix. Channels of mixed PCM output will be remixed by
- *        multiplying this matrix.
- */
-int cras_client_config_global_remix(struct cras_client *client,
-				    unsigned num_channels, float *coefficient);
-
 /* Gets the set of supported hotword language models on a node. The supported
  * models may differ on different nodes.
  *

@@ -29,6 +29,8 @@ pub enum DBusControlOp {
     Introspect,
     GetOutputVolume,
     SetOutputVolume(i32),
+    /// (num_channels, coefficients)
+    SetGlobalOutputChannelRemix(u32, Vec<f64>),
 }
 
 impl DBusControlOp {
@@ -69,6 +71,11 @@ impl DBusControlOp {
             }
             Self::SetOutputVolume(volume) => {
                 proxy.set_output_volume(volume).map_err(Error::DBusCall)?;
+            }
+            Self::SetGlobalOutputChannelRemix(num_channels, coefficients) => {
+                proxy
+                    .set_global_output_channel_remix(num_channels as i32, coefficients)
+                    .map_err(Error::DBusCall)?;
             }
         }
         Ok(())

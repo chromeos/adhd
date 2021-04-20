@@ -20,7 +20,6 @@
 #define CRAS_SERV_MAX_MSG_SIZE 256
 #define CRAS_CLIENT_MAX_MSG_SIZE 256
 #define CRAS_MAX_HOTWORD_MODELS 243
-#define CRAS_MAX_REMIX_CHANNELS 8
 #define CRAS_MAX_TEST_DATA_LEN 224
 #define CRAS_AEC_DUMP_FILE_NAME_LEN 128
 
@@ -49,7 +48,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_TEST_DEV_COMMAND,
 	CRAS_SERVER_SUSPEND,
 	CRAS_SERVER_RESUME,
-	CRAS_CONFIG_GLOBAL_REMIX,
+	CRAS_CONFIG_GLOBAL_REMIX, /* Deprecated */
 	CRAS_SERVER_GET_HOTWORD_MODELS,
 	CRAS_SERVER_SET_HOTWORD_MODEL,
 	CRAS_SERVER_REGISTER_NOTIFICATION,
@@ -406,27 +405,6 @@ static inline void cras_fill_suspend_message(struct cras_server_message *m,
 {
 	m->id = is_suspend ? CRAS_SERVER_SUSPEND : CRAS_SERVER_RESUME;
 	m->length = sizeof(*m);
-}
-
-/*
- * Configures the global remix converter.
- * `num_channels` must be less than `CRAS_MAX_REMIX_CHANNELS`.
- */
-struct __attribute__((__packed__)) cras_config_global_remix {
-	struct cras_server_message header;
-	unsigned int num_channels;
-	float coefficient[CRAS_MAX_REMIX_CHANNELS * CRAS_MAX_REMIX_CHANNELS];
-};
-
-static inline void
-cras_fill_config_global_remix_command(struct cras_config_global_remix *m,
-				      unsigned int num_channels, float *coeff,
-				      unsigned int count)
-{
-	m->header.id = CRAS_CONFIG_GLOBAL_REMIX;
-	m->header.length = sizeof(*m) + count * sizeof(*coeff);
-	m->num_channels = num_channels;
-	memcpy(m->coefficient, coeff, count * sizeof(*coeff));
 }
 
 /* Get supported hotword models. */
