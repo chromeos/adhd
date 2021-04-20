@@ -81,4 +81,39 @@ struct bt_voice {
 
 #define BT_PKT_STATUS 16
 
+#define BT_CODEC 19
+struct bt_codec {
+	uint8_t id;
+	uint16_t cid;
+	uint16_t vid;
+	uint8_t data_path_id;
+	uint8_t num_caps;
+	struct codec_caps {
+		uint8_t len;
+		uint8_t data[];
+	} caps[];
+} __attribute__((packed));
+
+struct bt_codecs {
+	uint8_t num_codecs;
+	struct bt_codec codecs[];
+} __attribute__((packed));
+
+/* Per BLUETOOTH CORE SPECIFICATION Version 5.2 | Vol 4, Part E, Host Controller
+ * Interface Functional Specification, 7.3.101 Configure Data Path command:
+ * The Data_Path_ID parameter shall indicate the logical transport channel
+ * number to be configured. Note that 0x01 ~ 0xFE is vendor-specific.
+ */
+#define HCI_CONFIG_DATA_PATH_ID_DEFAULT 0x00
+#define HCI_CONFIG_DATA_PATH_ID_OFFLOAD 0x01
+
+/* Per BLUETOOTH CORE SPECIFICATION Version 5.2 | Vol 4, Part E, Host Controller
+ * Interface Functional Specification,
+ * 7.4.10 Read Local Supported Codec Capabilities command:
+ * The first octet of Codec_ID parameter shall indicate the coding format
+ * defined in HCI Assigned Numbers.
+ */
+#define HCI_CONFIG_CODEC_ID_FORMAT_CVSD 0x02
+#define HCI_CONFIG_CODEC_ID_FORMAT_MSBC 0x05
+
 #define BT_SCM_PKT_STATUS 0x03

@@ -926,11 +926,52 @@ static int bt_address(const char *str, struct sockaddr *addr)
 	return 0;
 }
 
+static int apply_hfp_offload_codec_settings(int fd, uint8_t codec)
+{
+	struct bt_codecs *codecs;
+	uint8_t buffer[255];
+	int err;
+
+	syslog(LOG_INFO, "apply hfp offload codec settings: codecid(%d)",
+	       codec);
+	memset(buffer, 0x00, sizeof(buffer));
+
+	codecs = (void *)buffer;
+
+	switch (codec) {
+	case HFP_CODEC_ID_CVSD:
+		codecs->codecs[0].id = HCI_CONFIG_CODEC_ID_FORMAT_CVSD;
+		break;
+	case HFP_CODEC_ID_MSBC:
+		codecs->codecs[0].id = HCI_CONFIG_CODEC_ID_FORMAT_MSBC;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	codecs->num_codecs = 1;
+	codecs->codecs[0].data_path_id = HCI_CONFIG_DATA_PATH_ID_OFFLOAD;
+	codecs->codecs[0].num_caps = 0x00;
+
+	err = setsockopt(fd, SOL_BLUETOOTH, BT_CODEC, codecs, sizeof(buffer));
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to set codec: %s (%d)", strerror(errno),
+		       err);
+		return err;
+	}
+
+	syslog(LOG_INFO, "Successfully applied codec settings");
+
+	return err;
+}
+
 /* Apply codec specific settings to the socket fd. */
 static int apply_codec_settings(int fd, uint8_t codec)
 {
 	struct bt_voice voice;
 	uint32_t pkt_status;
+
+	syslog(LOG_INFO, "apply hfp HCI codec settings: codecid(%d)", codec);
 
 	memset(&voice, 0, sizeof(voice));
 	if (codec == HFP_CODEC_ID_CVSD)
@@ -964,6 +1005,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 	struct cras_bt_adapter *adapter;
 	struct timespec timeout = { 1, 0 };
 	struct pollfd pollfd;
+	char *use_offload;
 
 	adapter = cras_bt_device_adapter(device);
 	if (!adapter) {
@@ -997,7 +1039,15 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 	if (bt_address(cras_bt_device_address(device), &addr))
 		goto error;
 
-	err = apply_codec_settings(sk, codec);
+	/* TODO(johnylin): Use UCM config to indicate whether the offload is
+	 *                 applied on this board.
+	 */
+	use_offload = getenv("USE_OFFLOAD");
+
+	if (use_offload && !strncmp(use_offload, "yes", 3))
+		err = apply_hfp_offload_codec_settings(sk, codec);
+	else
+		err = apply_codec_settings(sk, codec);
 	if (err)
 		goto error;
 
