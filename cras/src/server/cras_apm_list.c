@@ -610,6 +610,8 @@ static void get_apm_ini(const char *config_dir)
 
 int cras_apm_list_init(const char *device_config_dir)
 {
+	static const char *cras_apm_metrics_prefix = "Cras.";
+
 	if (rmodule == NULL) {
 		rmodule = (struct cras_apm_reverse_module *)calloc(
 			1, sizeof(*rmodule));
@@ -620,6 +622,7 @@ int cras_apm_list_init(const char *device_config_dir)
 	aec_config_dir = device_config_dir;
 	get_aec_ini(aec_config_dir);
 	get_apm_ini(aec_config_dir);
+	webrtc_apm_init_metrics(cras_apm_metrics_prefix);
 
 	update_first_output_dev_to_process();
 	cras_iodev_list_set_device_enabled_callback(

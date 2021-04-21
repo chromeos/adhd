@@ -400,6 +400,7 @@ struct apm_config* apm_config_get(const char* device_config_dir) {
   return NULL;
 }
 void apm_config_dump(struct apm_config* config) {}
+void webrtc_apm_init_metrics(const char* prefix) {}
 webrtc_apm webrtc_apm_create_with_enforced_effects(
     unsigned int num_channels,
     unsigned int frame_rate,
