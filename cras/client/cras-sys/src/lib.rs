@@ -13,11 +13,15 @@ use std::os::raw::c_char;
 use std::str::FromStr;
 use std::time::Duration;
 
+/// Generated in build time.
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
-pub mod gen;
+#[allow(clippy::cognitive_complexity)]
+pub mod gen {
+    include!("gen.rs");
+}
 use gen::{
     _snd_pcm_format, audio_dev_debug_info, audio_message, audio_stream_debug_info,
     cras_audio_format_packed, cras_iodev_info, cras_ionode_info, cras_ionode_info__bindgen_ty_1,

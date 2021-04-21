@@ -1,2 +1,4 @@
 Cargo.lock
 target
+c_headers/
+src/gen.rs
