@@ -4,6 +4,7 @@
 use std::time::Duration;
 
 use dbus::blocking::Connection;
+use libcras::CrasScreenRotation;
 use thiserror::Error as ThisError;
 
 const CRAS_DBUS_DESTINATION: &str = "org.chromium.cras";
@@ -31,6 +32,7 @@ pub enum DBusControlOp {
     SetOutputVolume(i32),
     /// (num_channels, coefficients)
     SetGlobalOutputChannelRemix(u32, Vec<f64>),
+    SetDisplayRotation(u64, CrasScreenRotation),
 }
 
 impl DBusControlOp {
@@ -75,6 +77,11 @@ impl DBusControlOp {
             Self::SetGlobalOutputChannelRemix(num_channels, coefficients) => {
                 proxy
                     .set_global_output_channel_remix(num_channels as i32, coefficients)
+                    .map_err(Error::DBusCall)?;
+            }
+            Self::SetDisplayRotation(node_id, rotation) => {
+                proxy
+                    .set_display_rotation(node_id, rotation as u32)
                     .map_err(Error::DBusCall)?;
             }
         }

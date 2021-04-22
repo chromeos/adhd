@@ -6,6 +6,7 @@ use std::error;
 use thiserror::Error as ThisError;
 
 use crate::cras_dbus::{self, DBusControlOp};
+use libcras::{CrasIodevNodeId, CrasScreenRotation};
 
 // Errors for set command.
 #[derive(ThisError, Debug)]
@@ -78,6 +79,27 @@ impl SetCommand {
                         DBusControlOp::SetGlobalOutputChannelRemix(num_channels, coefficients),
                     )))
                 }
+            }
+            "display_rotation" => {
+                let node_id = args
+                    .next()
+                    .ok_or_else(|| missing_argument(cmd))
+                    .and_then(|s| {
+                        s.parse::<CrasIodevNodeId>()
+                            .map_err(|e| invalid_argument(cmd, s, &e))
+                    })?;
+
+                let rotation = args
+                    .next()
+                    .ok_or_else(|| missing_argument(cmd))
+                    .and_then(|s| {
+                        s.parse::<CrasScreenRotation>()
+                            .map_err(|e| invalid_argument(cmd, s, &e))
+                    })?;
+                Ok(Some(Self::DBusControl(DBusControlOp::SetDisplayRotation(
+                    node_id.into(),
+                    rotation,
+                ))))
             }
             s => Err(Error::UnknownCommand(s.to_string())),
         }
@@ -157,6 +179,21 @@ mod tests {
                 2,
                 vec![0.5, 0.5, 0.5, 0.5]
             ))
+        );
+        assert_eq!(
+            SetCommand::parse("cras_tests", "set", &["display_rotation", "7:0", "2"])
+                .unwrap()
+                .unwrap(),
+            SetCommand::DBusControl(DBusControlOp::SetDisplayRotation(
+                30064771072,
+                CrasScreenRotation::ROTATE_180
+            ))
+        );
+        assert!(
+            SetCommand::parse("cras_tests", "set", &["display_rotation", "7:0", "20"]).is_err()
+        );
+        assert!(
+            SetCommand::parse("cras_tests", "set", &["display_rotation", "7:0:1", "2"]).is_err()
         );
     }
 }

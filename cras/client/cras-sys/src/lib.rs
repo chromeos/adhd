@@ -50,6 +50,7 @@ pub enum Error {
     InvalidChannel(i8),
     InvalidClientType(u32),
     InvalidClientTypeStr,
+    InvalidCrasIodevNodeId,
     InvalidScreenRotation,
     InvalidStreamType(u32),
 }
@@ -73,6 +74,7 @@ impl fmt::Display for Error {
                 CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_SERVER_STREAM as u32 + 1
             ),
             InvalidClientTypeStr => write!(f, "Invalid client type string"),
+            InvalidCrasIodevNodeId => write!(f, "Invalid iodev_node_id string"),
             InvalidScreenRotation => write!(f, "Invalid screen rotation"),
             InvalidStreamType(t) => write!(
                 f,
@@ -258,6 +260,35 @@ impl From<u32> for CRAS_NODE_TYPE {
             10 => CRAS_NODE_TYPE_BLUETOOTH,
             _ => CRAS_NODE_TYPE_UNKNOWN,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct CrasIodevNodeId {
+    pub iodev_index: u32,
+    pub ionode_index: u32,
+}
+impl FromStr for CrasIodevNodeId {
+    type Err = Error;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let v: Vec<u32> = s
+            .split(':')
+            .map(|s| s.parse::<u32>().map_err(|_| Error::InvalidCrasIodevNodeId))
+            .collect::<Result<Vec<_>, _>>()?;
+        if v.len() != 2 {
+            return Err(Error::InvalidCrasIodevNodeId);
+        }
+        Ok(CrasIodevNodeId {
+            iodev_index: v[0],
+            ionode_index: v[1],
+        })
+    }
+}
+
+impl Into<u64> for CrasIodevNodeId {
+    fn into(self) -> u64 {
+        let id = self.iodev_index as u64;
+        (id << 32) | self.ionode_index as u64
     }
 }
 
