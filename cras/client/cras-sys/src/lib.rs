@@ -22,7 +22,8 @@ use gen::{
     _snd_pcm_format, audio_dev_debug_info, audio_message, audio_stream_debug_info,
     cras_audio_format_packed, cras_iodev_info, cras_ionode_info, cras_ionode_info__bindgen_ty_1,
     cras_timespec, snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL, CRAS_CLIENT_TYPE,
-    CRAS_NODE_TYPE, CRAS_STREAM_DIRECTION, CRAS_STREAM_EFFECT, CRAS_STREAM_TYPE,
+    CRAS_NODE_TYPE, CRAS_SCREEN_ROTATION, CRAS_STREAM_DIRECTION, CRAS_STREAM_EFFECT,
+    CRAS_STREAM_TYPE,
 };
 
 use audio_streams::{SampleFormat, StreamDirection, StreamEffect};
@@ -49,6 +50,7 @@ pub enum Error {
     InvalidChannel(i8),
     InvalidClientType(u32),
     InvalidClientTypeStr,
+    InvalidScreenRotation,
     InvalidStreamType(u32),
 }
 
@@ -71,6 +73,7 @@ impl fmt::Display for Error {
                 CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_SERVER_STREAM as u32 + 1
             ),
             InvalidClientTypeStr => write!(f, "Invalid client type string"),
+            InvalidScreenRotation => write!(f, "Invalid screen rotation"),
             InvalidStreamType(t) => write!(
                 f,
                 "Stream type {} is not within valid range [0, {})",
@@ -233,6 +236,7 @@ impl Default for cras_ionode_info {
             type_: [0; 32usize],
             name: [0; 64usize],
             active_hotword_model: [0; 16usize],
+            display_rotation: CRAS_SCREEN_ROTATION::ROTATE_0,
         }
     }
 }
@@ -652,6 +656,20 @@ impl From<SampleFormat> for snd_pcm_format_t {
             SampleFormat::S16LE => snd_pcm_format_t::SND_PCM_FORMAT_S16_LE,
             SampleFormat::S24LE => snd_pcm_format_t::SND_PCM_FORMAT_S24_LE,
             SampleFormat::S32LE => snd_pcm_format_t::SND_PCM_FORMAT_S32_LE,
+        }
+    }
+}
+
+impl FromStr for CRAS_SCREEN_ROTATION {
+    type Err = Error;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        use CRAS_SCREEN_ROTATION::*;
+        match s {
+            "0" => Ok(ROTATE_0),
+            "1" => Ok(ROTATE_90),
+            "2" => Ok(ROTATE_180),
+            "3" => Ok(ROTATE_270),
+            _ => Err(Error::InvalidScreenRotation),
         }
     }
 }

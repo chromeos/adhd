@@ -47,6 +47,15 @@ pub type __int64_t = ::std::os::raw::c_long;
 pub type __uint64_t = ::std::os::raw::c_ulong;
 pub type __time_t = ::std::os::raw::c_long;
 pub type __syscall_slong_t = ::std::os::raw::c_long;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum CRAS_SCREEN_ROTATION {
+    ROTATE_0 = 0,
+    ROTATE_90 = 1,
+    ROTATE_180 = 2,
+    ROTATE_270 = 3,
+    NUM_CRAS_SCREEN_ROTATION = 4,
+}
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct cras_iodev_info {
@@ -127,6 +136,7 @@ pub struct cras_ionode_info {
     pub type_: [::std::os::raw::c_char; 32usize],
     pub name: [::std::os::raw::c_char; 64usize],
     pub active_hotword_model: [::std::os::raw::c_char; 16usize],
+    pub display_rotation: CRAS_SCREEN_ROTATION,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -175,7 +185,7 @@ fn bindgen_test_layout_cras_ionode_info__bindgen_ty_1() {
 fn bindgen_test_layout_cras_ionode_info() {
     assert_eq!(
         ::std::mem::size_of::<cras_ionode_info>(),
-        168usize,
+        172usize,
         concat!("Size of: ", stringify!(cras_ionode_info))
     );
     assert_eq!(
@@ -327,11 +337,24 @@ fn bindgen_test_layout_cras_ionode_info() {
             stringify!(active_hotword_model)
         )
     );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<cras_ionode_info>())).display_rotation as *const _ as usize
+        },
+        168usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(cras_ionode_info),
+            "::",
+            stringify!(display_rotation)
+        )
+    );
 }
 pub const ionode_attr_IONODE_ATTR_PLUGGED: ionode_attr = 0;
 pub const ionode_attr_IONODE_ATTR_VOLUME: ionode_attr = 1;
 pub const ionode_attr_IONODE_ATTR_CAPTURE_GAIN: ionode_attr = 2;
 pub const ionode_attr_IONODE_ATTR_SWAP_LEFT_RIGHT: ionode_attr = 3;
+pub const ionode_attr_IONODE_ATTR_DISPLAY_ROTATION: ionode_attr = 4;
 pub type ionode_attr = u32;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2130,7 +2153,7 @@ pub struct cras_server_state {
 fn bindgen_test_layout_cras_server_state() {
     assert_eq!(
         ::std::mem::size_of::<cras_server_state>(),
-        1414344usize,
+        1414504usize,
         concat!("Size of: ", stringify!(cras_server_state))
     );
     assert_eq!(
@@ -2346,7 +2369,7 @@ fn bindgen_test_layout_cras_server_state() {
     );
     assert_eq!(
         unsafe { &(*(::std::ptr::null::<cras_server_state>())).input_nodes as *const _ as usize },
-        6464usize,
+        6544usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2358,7 +2381,7 @@ fn bindgen_test_layout_cras_server_state() {
         unsafe {
             &(*(::std::ptr::null::<cras_server_state>())).num_attached_clients as *const _ as usize
         },
-        9824usize,
+        9984usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2368,7 +2391,7 @@ fn bindgen_test_layout_cras_server_state() {
     );
     assert_eq!(
         unsafe { &(*(::std::ptr::null::<cras_server_state>())).client_info as *const _ as usize },
-        9828usize,
+        9988usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2378,7 +2401,7 @@ fn bindgen_test_layout_cras_server_state() {
     );
     assert_eq!(
         unsafe { &(*(::std::ptr::null::<cras_server_state>())).update_count as *const _ as usize },
-        10148usize,
+        10308usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2390,7 +2413,7 @@ fn bindgen_test_layout_cras_server_state() {
         unsafe {
             &(*(::std::ptr::null::<cras_server_state>())).num_active_streams as *const _ as usize
         },
-        10152usize,
+        10312usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2403,7 +2426,7 @@ fn bindgen_test_layout_cras_server_state() {
             &(*(::std::ptr::null::<cras_server_state>())).last_active_stream_time as *const _
                 as usize
         },
-        10168usize,
+        10328usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2415,7 +2438,7 @@ fn bindgen_test_layout_cras_server_state() {
         unsafe {
             &(*(::std::ptr::null::<cras_server_state>())).audio_debug_info as *const _ as usize
         },
-        10184usize,
+        10344usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2428,7 +2451,7 @@ fn bindgen_test_layout_cras_server_state() {
             &(*(::std::ptr::null::<cras_server_state>())).default_output_buffer_size as *const _
                 as usize
         },
-        134448usize,
+        134608usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2440,7 +2463,7 @@ fn bindgen_test_layout_cras_server_state() {
         unsafe {
             &(*(::std::ptr::null::<cras_server_state>())).non_empty_status as *const _ as usize
         },
-        134452usize,
+        134612usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2450,7 +2473,7 @@ fn bindgen_test_layout_cras_server_state() {
     );
     assert_eq!(
         unsafe { &(*(::std::ptr::null::<cras_server_state>())).aec_supported as *const _ as usize },
-        134456usize,
+        134616usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2460,7 +2483,7 @@ fn bindgen_test_layout_cras_server_state() {
     );
     assert_eq!(
         unsafe { &(*(::std::ptr::null::<cras_server_state>())).aec_group_id as *const _ as usize },
-        134460usize,
+        134620usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2472,7 +2495,7 @@ fn bindgen_test_layout_cras_server_state() {
         unsafe {
             &(*(::std::ptr::null::<cras_server_state>())).snapshot_buffer as *const _ as usize
         },
-        134464usize,
+        134624usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2482,7 +2505,7 @@ fn bindgen_test_layout_cras_server_state() {
     );
     assert_eq!(
         unsafe { &(*(::std::ptr::null::<cras_server_state>())).bt_debug_info as *const _ as usize },
-        1377308usize,
+        1377468usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2494,7 +2517,7 @@ fn bindgen_test_layout_cras_server_state() {
         unsafe {
             &(*(::std::ptr::null::<cras_server_state>())).bt_wbs_enabled as *const _ as usize
         },
-        1393796usize,
+        1393956usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2507,7 +2530,7 @@ fn bindgen_test_layout_cras_server_state() {
             &(*(::std::ptr::null::<cras_server_state>())).deprioritize_bt_wbs_mic as *const _
                 as usize
         },
-        1393800usize,
+        1393960usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2520,7 +2543,7 @@ fn bindgen_test_layout_cras_server_state() {
             &(*(::std::ptr::null::<cras_server_state>())).main_thread_debug_info as *const _
                 as usize
         },
-        1393804usize,
+        1393964usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2533,7 +2556,7 @@ fn bindgen_test_layout_cras_server_state() {
             &(*(::std::ptr::null::<cras_server_state>())).num_input_streams_with_permission
                 as *const _ as usize
         },
-        1414292usize,
+        1414452usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2546,7 +2569,7 @@ fn bindgen_test_layout_cras_server_state() {
             &(*(::std::ptr::null::<cras_server_state>())).noise_cancellation_enabled as *const _
                 as usize
         },
-        1414336usize,
+        1414496usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),
@@ -2559,7 +2582,7 @@ fn bindgen_test_layout_cras_server_state() {
             &(*(::std::ptr::null::<cras_server_state>())).hotword_pause_at_suspend as *const _
                 as usize
         },
-        1414340usize,
+        1414500usize,
         concat!(
             "Offset of field: ",
             stringify!(cras_server_state),

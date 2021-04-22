@@ -134,7 +134,7 @@ use audio_streams::{
 use cras_sys::gen::*;
 pub use cras_sys::gen::{
     CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType,
-    CRAS_STREAM_EFFECT as CrasStreamEffect,
+    CRAS_SCREEN_ROTATION as CrasScreenRotation, CRAS_STREAM_EFFECT as CrasStreamEffect,
 };
 pub use cras_sys::{AudioDebugInfo, CrasIodevInfo, CrasIonodeInfo, Error as CrasSysError};
 use sys_util::{PollContext, PollToken, SharedMemory};
