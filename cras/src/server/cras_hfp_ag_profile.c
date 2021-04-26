@@ -14,7 +14,7 @@
 #include "cras_bt_log.h"
 #include "cras_bt_profile.h"
 #include "cras_hfp_ag_profile.h"
-#include "cras_hfp_info.h"
+#include "cras_sco.h"
 #include "cras_hfp_iodev.h"
 #include "cras_hfp_alsa_iodev.h"
 #include "cras_server_metrics.h"
@@ -37,7 +37,7 @@
  * Members:
  *    idev - The input iodev for HFP.
  *    odev - The output iodev for HFP.
- *    info - The hfp_info object for SCO audio.
+ *    sco - The cras_sco object for SCO audio.
  *    slc_handle - The service level connection.
  *    device - The bt device associated with this audio gateway.
  *    a2dp_delay_retries - The number of retries left to delay starting
@@ -47,7 +47,7 @@
 struct audio_gateway {
 	struct cras_iodev *idev;
 	struct cras_iodev *odev;
-	struct hfp_info *info;
+	struct cras_sco *sco;
 	struct hfp_slc_handle *slc_handle;
 	struct cras_bt_device *device;
 	int a2dp_delay_retries;
@@ -83,10 +83,10 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 			hfp_iodev_destroy(ag->odev);
 	}
 
-	if (ag->info) {
-		if (hfp_info_running(ag->info))
-			hfp_info_stop(ag->info);
-		hfp_info_destroy(ag->info);
+	if (ag->sco) {
+		if (cras_sco_running(ag->sco))
+			cras_sco_stop(ag->sco);
+		cras_sco_destroy(ag->sco);
 	}
 	if (ag->slc_handle)
 		hfp_slc_destroy(ag->slc_handle);
@@ -302,12 +302,12 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 		ag->odev = hfp_alsa_iodev_create(out_aio, ag->device,
 						 ag->slc_handle);
 	} else {
-		ag->info = hfp_info_create();
-		hfp_info_set_wbs_logger(ag->info, &wbs_logger);
+		ag->sco = cras_sco_create();
+		cras_sco_set_wbs_logger(ag->sco, &wbs_logger);
 		ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
-					    ag->slc_handle, ag->info);
+					    ag->slc_handle, ag->sco);
 		ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
-					    ag->slc_handle, ag->info);
+					    ag->slc_handle, ag->sco);
 	}
 
 	if (!ag->idev && !ag->odev) {

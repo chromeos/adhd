@@ -85,11 +85,11 @@ CRAS_DBUS_SOURCES = \
 	server/cras_hfp_ag_profile.c \
 	server/cras_hfp_iodev.c \
 	server/cras_hfp_alsa_iodev.c \
-	server/cras_hfp_info.c \
 	server/cras_hfp_slc.c \
 	server/cras_a2dp_endpoint.c \
 	server/cras_a2dp_info.c \
 	server/cras_a2dp_iodev.c \
+	server/cras_sco.c \
 	server/cras_telephony.c \
 	server/cras_utf8.c
 else
@@ -471,7 +471,7 @@ TESTS = \
 	float_buffer_unittest \
 	fmt_conv_unittest \
 	fmt_conv_ops_unittest \
-	hfp_info_unittest \
+	cras_sco_unittest \
 	buffer_share_unittest \
 	input_data_unittest \
 	iodev_list_unittest \
@@ -880,11 +880,11 @@ fmt_conv_ops_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 fmt_conv_ops_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
 
-hfp_info_unittest_SOURCES = tests/hfp_info_unittest.cc \
+cras_sco_unittest_SOURCES = tests/cras_sco_unittest.cc \
 	tests/metrics_stub.cc tests/sbc_codec_stub.cc
-hfp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+cras_sco_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/plc
-hfp_info_unittest_LDADD = -lgtest -lpthread
+cras_sco_unittest_LDADD = -lgtest -lpthread
 
 if HAVE_DBUS
 hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \

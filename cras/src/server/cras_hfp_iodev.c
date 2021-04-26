@@ -12,7 +12,7 @@
 #include "cras_audio_area.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_iodev.h"
-#include "cras_hfp_info.h"
+#include "cras_sco.h"
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_system_state.h"
@@ -24,17 +24,17 @@
  *    base - The cras_iodev structure base class.
  *    device - The assciated bt_device.
  *    slc - Handle to the HFP service level connection.
- *    info - hfp_info taking care of SCO data read/write.
+ *    sco - cras_sco taking care of SCO data read/write.
  *    drain_complete - Flag to indicate if valid samples are drained
  *        in no stream state. Only used for output.
  *    filled_zeros - Number of zero data in frames have been filled
- *        to buffer of hfp_info in no stream state. Only used for output
+ *        to buffer of cras_sco in no stream state. Only used for output
  */
 struct hfp_io {
 	struct cras_iodev base;
 	struct cras_bt_device *device;
 	struct hfp_slc_handle *slc;
-	struct hfp_info *info;
+	struct cras_sco *sco;
 	bool drain_complete;
 	unsigned int filled_zeros;
 };
@@ -81,15 +81,15 @@ static int no_stream(struct cras_iodev *iodev, int enable)
 	if (enable) {
 		if (!hfpio->drain_complete && (hw_level <= hfpio->filled_zeros))
 			hfpio->drain_complete = 1;
-		hfpio->filled_zeros += hfp_fill_output_with_zeros(
-			hfpio->info, iodev->buffer_size);
+		hfpio->filled_zeros += cras_sco_fill_output_with_zeros(
+			hfpio->sco, iodev->buffer_size);
 		return 0;
 	}
 
 	/* Leave no stream state.*/
 	level_target = iodev->min_cb_level;
 	if (hfpio->drain_complete) {
-		hfp_force_output_level(hfpio->info, level_target);
+		cras_sco_force_output_level(hfpio->sco, level_target);
 	} else {
 		unsigned int valid_samples = 0;
 		if (hw_level > hfpio->filled_zeros)
@@ -97,10 +97,10 @@ static int no_stream(struct cras_iodev *iodev, int enable)
 		level_target = MAX(level_target, valid_samples);
 
 		if (level_target > hw_level)
-			hfp_fill_output_with_zeros(hfpio->info,
-						   level_target - hw_level);
+			cras_sco_fill_output_with_zeros(
+				hfpio->sco, level_target - hw_level);
 		else
-			hfp_force_output_level(hfpio->info, level_target);
+			cras_sco_force_output_level(hfpio->sco, level_target);
 	}
 	hfpio->drain_complete = 0;
 	hfpio->filled_zeros = 0;
@@ -113,13 +113,13 @@ static int frames_queued(const struct cras_iodev *iodev,
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
-	if (!hfp_info_running(hfpio->info))
+	if (!cras_sco_running(hfpio->sco))
 		return -1;
 
 	/* Do not enable timestamp mechanism on HFP device because last time
 	 * stamp might be a long time ago and it is not really useful. */
 	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
-	return hfp_buf_queued(hfpio->info, iodev->direction);
+	return cras_sco_buf_queued(hfpio->sco, iodev->direction);
 }
 
 static int output_underrun(struct cras_iodev *iodev)
@@ -140,7 +140,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
-	if (hfp_info_running(hfpio->info))
+	if (cras_sco_running(hfpio->sco))
 		goto add_dev;
 
 	/*
@@ -156,19 +156,19 @@ static int configure_dev(struct cras_iodev *iodev)
 	mtu = cras_bt_device_sco_packet_size(
 		hfpio->device, sk, hfp_slc_get_selected_codec(hfpio->slc));
 
-	/* Start hfp_info */
-	err = hfp_info_start(sk, mtu, hfp_slc_get_selected_codec(hfpio->slc),
-			     hfpio->info);
+	/* Start cras_sco */
+	err = cras_sco_start(sk, mtu, hfp_slc_get_selected_codec(hfpio->slc),
+			     hfpio->sco);
 	if (err)
 		goto error;
 
 	hfpio->drain_complete = 0;
 	hfpio->filled_zeros = 0;
 add_dev:
-	hfp_info_add_iodev(hfpio->info, iodev->direction, iodev->format);
+	cras_sco_add_iodev(hfpio->sco, iodev->direction, iodev->format);
 	hfp_set_call_status(hfpio->slc, 1);
 
-	iodev->buffer_size = hfp_buf_size(hfpio->info, iodev->direction);
+	iodev->buffer_size = cras_sco_buf_size(hfpio->sco, iodev->direction);
 
 	return 0;
 error:
@@ -180,9 +180,9 @@ static int close_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
-	hfp_info_rm_iodev(hfpio->info, iodev->direction);
-	if (hfp_info_running(hfpio->info) && !hfp_info_has_iodev(hfpio->info)) {
-		hfp_info_stop(hfpio->info);
+	cras_sco_rm_iodev(hfpio->sco, iodev->direction);
+	if (cras_sco_running(hfpio->sco) && !cras_sco_has_iodev(hfpio->sco)) {
+		cras_sco_stop(hfpio->sco);
 		hfp_set_call_status(hfpio->slc, 0);
 	}
 
@@ -217,10 +217,10 @@ static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 	uint8_t *dst = NULL;
 
-	if (!hfp_info_running(hfpio->info))
+	if (!cras_sco_running(hfpio->sco))
 		return -1;
 
-	hfp_buf_acquire(hfpio->info, iodev->direction, &dst, frames);
+	cras_sco_buf_acquire(hfpio->sco, iodev->direction, &dst, frames);
 
 	iodev->area->frames = *frames;
 	/* HFP is mono only. */
@@ -236,10 +236,10 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
-	if (!hfp_info_running(hfpio->info))
+	if (!cras_sco_running(hfpio->sco))
 		return -1;
 
-	hfp_buf_release(hfpio->info, iodev->direction, nwritten);
+	cras_sco_buf_release(hfpio->sco, iodev->direction, nwritten);
 	return 0;
 }
 
@@ -249,8 +249,8 @@ static int flush_buffer(struct cras_iodev *iodev)
 	unsigned nframes;
 
 	if (iodev->direction == CRAS_STREAM_INPUT) {
-		nframes = hfp_buf_queued(hfpio->info, iodev->direction);
-		hfp_buf_release(hfpio->info, iodev->direction, nframes);
+		nframes = cras_sco_buf_queued(hfpio->sco, iodev->direction);
+		cras_sco_buf_release(hfpio->sco, iodev->direction, nframes);
 	}
 	return 0;
 }
@@ -277,7 +277,7 @@ void hfp_free_resources(struct hfp_io *hfpio)
 struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 				    struct cras_bt_device *device,
 				    struct hfp_slc_handle *slc,
-				    struct hfp_info *info)
+				    struct cras_sco *sco)
 {
 	struct hfp_io *hfpio;
 	struct cras_iodev *iodev;
@@ -338,7 +338,7 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	cras_bt_device_append_iodev(device, iodev,
 				    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
-	hfpio->info = info;
+	hfpio->sco = sco;
 
 	/* Record max supported channels into cras_iodev_info. */
 	iodev->info.max_supported_channels = 1;

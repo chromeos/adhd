@@ -7,7 +7,7 @@
 #define CRAS_HFP_IODEV_H_
 
 #include "cras_bt_device.h"
-#include "cras_hfp_info.h"
+#include "cras_sco.h"
 #include "cras_types.h"
 
 struct hfp_slc_handle;
@@ -18,7 +18,7 @@ struct hfp_slc_handle;
 struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 				    struct cras_bt_device *device,
 				    struct hfp_slc_handle *slc,
-				    struct hfp_info *info);
+				    struct cras_sco *sco);
 
 void hfp_iodev_destroy(struct cras_iodev *iodev);
 

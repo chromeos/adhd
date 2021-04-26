@@ -13,10 +13,10 @@ using testing::internal::CaptureStdout;
 using testing::internal::GetCapturedStdout;
 
 extern "C" {
-#include "cras_hfp_info.c"
+#include "cras_sco.c"
 #include "sbc_codec_stub.h"
 }
-static struct hfp_info* info;
+static struct cras_sco* sco;
 static struct cras_iodev dev;
 static cras_audio_format format;
 
@@ -40,134 +40,134 @@ void ResetStubData() {
 
 namespace {
 
-TEST(HfpInfo, AddRmDev) {
+TEST(CrasSco, AddRmDev) {
   ResetStubData();
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
   dev.direction = CRAS_STREAM_OUTPUT;
 
   /* Test add dev */
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
-  ASSERT_TRUE(hfp_info_has_iodev(info));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
+  ASSERT_TRUE(cras_sco_has_iodev(sco));
 
   /* Test remove dev */
-  ASSERT_EQ(0, hfp_info_rm_iodev(info, dev.direction));
-  ASSERT_FALSE(hfp_info_has_iodev(info));
+  ASSERT_EQ(0, cras_sco_rm_iodev(sco, dev.direction));
+  ASSERT_FALSE(cras_sco_has_iodev(sco));
 
-  hfp_info_destroy(info);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, AddRmDevInvalid) {
+TEST(CrasSco, AddRmDevInvalid) {
   ResetStubData();
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
 
   dev.direction = CRAS_STREAM_OUTPUT;
 
   /* Remove an iodev which doesn't exist */
-  ASSERT_NE(0, hfp_info_rm_iodev(info, dev.direction));
+  ASSERT_NE(0, cras_sco_rm_iodev(sco, dev.direction));
 
   /* Adding an iodev twice returns error code */
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
-  ASSERT_NE(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
+  ASSERT_NE(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  hfp_info_destroy(info);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, AcquirePlaybackBuffer) {
+TEST(CrasSco, AcquirePlaybackBuffer) {
   unsigned buffer_frames, buffer_frames2, queued;
   uint8_t* samples;
 
   ResetStubData();
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
 
-  hfp_info_start(1, 48, HFP_CODEC_ID_CVSD, info);
+  cras_sco_start(1, 48, HFP_CODEC_ID_CVSD, sco);
   dev.direction = CRAS_STREAM_OUTPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   buffer_frames = 500;
-  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
+  cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
   ASSERT_EQ(500, buffer_frames);
 
-  hfp_buf_release(info, dev.direction, 500);
-  ASSERT_EQ(500, hfp_buf_queued(info, dev.direction));
+  cras_sco_buf_release(sco, dev.direction, 500);
+  ASSERT_EQ(500, cras_sco_buf_queued(sco, dev.direction));
 
   /* Assert the amount of frames of available buffer + queued buf is
    * greater than or equal to the buffer size, 2 bytes per frame
    */
-  queued = hfp_buf_queued(info, dev.direction);
+  queued = cras_sco_buf_queued(sco, dev.direction);
   buffer_frames = 500;
-  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
-  ASSERT_GE(info->playback_buf->used_size / 2, buffer_frames + queued);
+  cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
+  ASSERT_GE(sco->playback_buf->used_size / 2, buffer_frames + queued);
 
   /* Consume all queued data from read buffer */
-  buf_increment_read(info->playback_buf, queued * 2);
+  buf_increment_read(sco->playback_buf, queued * 2);
 
-  queued = hfp_buf_queued(info, dev.direction);
+  queued = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(0, queued);
 
   /* Assert consecutive acquire buffer will acquire full used size of buffer */
   buffer_frames = 500;
-  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
-  hfp_buf_release(info, dev.direction, buffer_frames);
+  cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
+  cras_sco_buf_release(sco, dev.direction, buffer_frames);
 
   buffer_frames2 = 500;
-  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames2);
-  hfp_buf_release(info, dev.direction, buffer_frames2);
+  cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames2);
+  cras_sco_buf_release(sco, dev.direction, buffer_frames2);
 
-  ASSERT_GE(info->playback_buf->used_size / 2, buffer_frames + buffer_frames2);
+  ASSERT_GE(sco->playback_buf->used_size / 2, buffer_frames + buffer_frames2);
 
-  hfp_info_destroy(info);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, AcquireCaptureBuffer) {
+TEST(CrasSco, AcquireCaptureBuffer) {
   unsigned buffer_frames, buffer_frames2;
   uint8_t* samples;
 
   ResetStubData();
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
 
-  hfp_info_start(1, 48, HFP_CODEC_ID_CVSD, info);
+  cras_sco_start(1, 48, HFP_CODEC_ID_CVSD, sco);
   dev.direction = CRAS_STREAM_INPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   /* Put fake data 100 bytes(50 frames) in capture buf for test */
-  buf_increment_write(info->capture_buf, 100);
+  buf_increment_write(sco->capture_buf, 100);
 
   /* Assert successfully acquire and release 100 bytes of data */
   buffer_frames = 50;
-  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
+  cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
   ASSERT_EQ(50, buffer_frames);
 
-  hfp_buf_release(info, dev.direction, buffer_frames);
-  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
+  cras_sco_buf_release(sco, dev.direction, buffer_frames);
+  ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
   /* Push fake data to capture buffer */
-  buf_increment_write(info->capture_buf, info->capture_buf->used_size - 100);
-  buf_increment_write(info->capture_buf, 100);
+  buf_increment_write(sco->capture_buf, sco->capture_buf->used_size - 100);
+  buf_increment_write(sco->capture_buf, 100);
 
   /* Assert consecutive acquire call will consume the whole buffer */
   buffer_frames = 1000;
-  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames);
-  hfp_buf_release(info, dev.direction, buffer_frames);
+  cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
+  cras_sco_buf_release(sco, dev.direction, buffer_frames);
   ASSERT_GE(1000, buffer_frames);
 
   buffer_frames2 = 1000;
-  hfp_buf_acquire(info, dev.direction, &samples, &buffer_frames2);
-  hfp_buf_release(info, dev.direction, buffer_frames2);
+  cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames2);
+  cras_sco_buf_release(sco, dev.direction, buffer_frames2);
 
-  ASSERT_GE(info->capture_buf->used_size / 2, buffer_frames + buffer_frames2);
+  ASSERT_GE(sco->capture_buf->used_size / 2, buffer_frames + buffer_frames2);
 
-  hfp_info_destroy(info);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, HfpReadWriteFD) {
+TEST(CrasSco, HfpReadWriteFD) {
   int rc;
   int sock[2];
   uint8_t sample[480];
@@ -178,72 +178,72 @@ TEST(HfpInfo, HfpReadWriteFD) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
 
   dev.direction = CRAS_STREAM_INPUT;
-  hfp_info_start(sock[1], 48, HFP_CODEC_ID_CVSD, info);
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  cras_sco_start(sock[1], 48, HFP_CODEC_ID_CVSD, sco);
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   /* Mock the sco fd and send some fake data */
   send(sock[0], sample, 48, 0);
 
-  rc = hfp_read(info);
+  rc = sco_read(sco);
   ASSERT_EQ(48, rc);
 
-  rc = hfp_buf_queued(info, dev.direction);
+  rc = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(48 / 2, rc);
 
   /* Fill the write buffer*/
-  buffer_count = info->capture_buf->used_size;
-  buf = buf_write_pointer_size(info->capture_buf, &buffer_count);
-  buf_increment_write(info->capture_buf, buffer_count);
+  buffer_count = sco->capture_buf->used_size;
+  buf = buf_write_pointer_size(sco->capture_buf, &buffer_count);
+  buf_increment_write(sco->capture_buf, buffer_count);
   ASSERT_NE((void*)NULL, buf);
 
-  rc = hfp_read(info);
+  rc = sco_read(sco);
   ASSERT_EQ(0, rc);
 
-  ASSERT_EQ(0, hfp_info_rm_iodev(info, dev.direction));
+  ASSERT_EQ(0, cras_sco_rm_iodev(sco, dev.direction));
   dev.direction = CRAS_STREAM_OUTPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   /* Initial buffer is empty */
-  rc = hfp_write(info);
+  rc = sco_write(sco);
   ASSERT_EQ(0, rc);
 
   buffer_count = 1024;
-  buf = buf_write_pointer_size(info->playback_buf, &buffer_count);
-  buf_increment_write(info->playback_buf, buffer_count);
+  buf = buf_write_pointer_size(sco->playback_buf, &buffer_count);
+  buf_increment_write(sco->playback_buf, buffer_count);
 
-  rc = hfp_write(info);
+  rc = sco_write(sco);
   ASSERT_EQ(48, rc);
 
   rc = recv(sock[0], sample, 48, 0);
   ASSERT_EQ(48, rc);
 
-  hfp_info_destroy(info);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, StartHfpInfo) {
+TEST(CrasSco, StartCrasSco) {
   int sock[2];
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
 
-  hfp_info_start(sock[0], 48, HFP_CODEC_ID_CVSD, info);
-  ASSERT_EQ(1, hfp_info_running(info));
-  ASSERT_EQ(cb_data, (void*)info);
+  cras_sco_start(sock[0], 48, HFP_CODEC_ID_CVSD, sco);
+  ASSERT_EQ(1, cras_sco_running(sco));
+  ASSERT_EQ(cb_data, (void*)sco);
 
-  hfp_info_stop(info);
-  ASSERT_EQ(0, hfp_info_running(info));
+  cras_sco_stop(sco);
+  ASSERT_EQ(0, cras_sco_running(sco));
   ASSERT_EQ(NULL, cb_data);
 
-  hfp_info_destroy(info);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, StartHfpInfoAndRead) {
+TEST(CrasSco, StartCrasScoAndRead) {
   int rc;
   int sock[2];
   uint8_t sample[480];
@@ -252,43 +252,43 @@ TEST(HfpInfo, StartHfpInfoAndRead) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
 
   /* Start and send two chunk of fake data */
-  hfp_info_start(sock[1], 48, HFP_CODEC_ID_CVSD, info);
+  cras_sco_start(sock[1], 48, HFP_CODEC_ID_CVSD, sco);
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   dev.direction = CRAS_STREAM_INPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   /* Expect no data read, since no idev present at previous thread callback */
-  rc = hfp_buf_queued(info, dev.direction);
+  rc = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(0, rc);
 
   /* Trigger thread callback after idev added. */
   ts.tv_sec = 0;
   ts.tv_nsec = 5000000;
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
 
-  rc = hfp_buf_queued(info, dev.direction);
+  rc = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(48 / 2, rc);
 
   /* Assert wait time is unchanged. */
   ASSERT_EQ(0, ts.tv_sec);
   ASSERT_EQ(5000000, ts.tv_nsec);
 
-  hfp_info_stop(info);
-  ASSERT_EQ(0, hfp_info_running(info));
+  cras_sco_stop(sco);
+  ASSERT_EQ(0, cras_sco_running(sco));
 
-  hfp_info_destroy(info);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, StartHfpInfoAndWrite) {
+TEST(CrasSco, StartCrasScoAndWrite) {
   int rc;
   int sock[2];
   uint8_t sample[480];
@@ -297,37 +297,37 @@ TEST(HfpInfo, StartHfpInfoAndWrite) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
 
-  hfp_info_start(sock[1], 48, HFP_CODEC_ID_CVSD, info);
+  cras_sco_start(sock[1], 48, HFP_CODEC_ID_CVSD, sco);
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   /* Without odev in presence, zero packet should be sent. */
   rc = recv(sock[0], sample, 48, 0);
   ASSERT_EQ(48, rc);
 
   dev.direction = CRAS_STREAM_OUTPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   /* Assert queued samples unchanged before output device added */
-  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
+  ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
   /* Put some fake data and trigger thread callback again */
-  buf_increment_write(info->playback_buf, 1008);
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  buf_increment_write(sco->playback_buf, 1008);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   /* Assert some samples written */
   rc = recv(sock[0], sample, 48, 0);
   ASSERT_EQ(48, rc);
-  ASSERT_EQ(480, hfp_buf_queued(info, dev.direction));
+  ASSERT_EQ(480, cras_sco_buf_queued(sco, dev.direction));
 
-  hfp_info_stop(info);
-  hfp_info_destroy(info);
+  cras_sco_stop(sco);
+  cras_sco_destroy(sco);
 }
 
 void send_mSBC_packet(int fd, unsigned seq, int broken_pkt) {
@@ -371,7 +371,7 @@ void send_mSBC_packet(int fd, unsigned seq, int broken_pkt) {
   sendmsg(fd, &msg, 0);
 }
 
-TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
+TEST(CrasSco, StartCrasScoAndReadMsbc) {
   int sock[2];
   int pkt_count = 0;
   int rc;
@@ -382,39 +382,39 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   set_sbc_codec_decoded_out(MSBC_CODE_SIZE);
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
   ASSERT_EQ(0, get_msbc_codec_create_called());
   ASSERT_EQ(0, cras_msbc_plc_create_called);
 
   /* Start and send an mSBC packets with all zero samples */
-  hfp_info_start(sock[1], 63, HFP_CODEC_ID_MSBC, info);
+  cras_sco_start(sock[1], 63, HFP_CODEC_ID_MSBC, sco);
   ASSERT_EQ(2, get_msbc_codec_create_called());
   ASSERT_EQ(1, cras_msbc_plc_create_called);
   send_mSBC_packet(sock[0], pkt_count++, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   /* Expect one empty mSBC packet is send, because no odev in presence. */
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   dev.direction = CRAS_STREAM_INPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   /* Expect no data read, since no idev present at previous thread callback */
-  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
+  ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
   send_mSBC_packet(sock[0], pkt_count, 0);
 
   /* Trigger thread callback after idev added. */
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
-            hfp_buf_queued(info, dev.direction));
+            cras_sco_buf_queued(sco, dev.direction));
   ASSERT_EQ(2, cras_msbc_plc_handle_good_frames_called);
   pkt_count++;
   /* When the third packet is lost, we should call the handle_bad_packet and
@@ -422,7 +422,7 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
    */
   pkt_count++;
   send_mSBC_packet(sock[0], pkt_count, 0);
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
@@ -430,7 +430,7 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(1, cras_msbc_plc_handle_bad_frames_called);
   ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
-            hfp_buf_queued(info, dev.direction));
+            cras_sco_buf_queued(sco, dev.direction));
   pkt_count++;
   /* If the erroneous data reporting marks the packet as broken, we should
    * also call the handle_bad_packet and have the right size of samples queued.
@@ -439,14 +439,14 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   set_sbc_codec_decoded_fail(1);
 
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(2, cras_msbc_plc_handle_bad_frames_called);
   ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
-            hfp_buf_queued(info, dev.direction));
+            cras_sco_buf_queued(sco, dev.direction));
   pkt_count++;
   /* If we can't decode the packet, we should also call the handle_bad_packet
    * and have the right size of samples queued
@@ -455,22 +455,22 @@ TEST(HfpInfo, StartHfpInfoAndReadMsbc) {
 
   set_sbc_codec_decoded_fail(1);
 
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(3, cras_msbc_plc_handle_bad_frames_called);
   ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
-            hfp_buf_queued(info, dev.direction));
+            cras_sco_buf_queued(sco, dev.direction));
 
-  hfp_info_stop(info);
-  ASSERT_EQ(0, hfp_info_running(info));
+  cras_sco_stop(sco);
+  ASSERT_EQ(0, cras_sco_running(sco));
 
-  hfp_info_destroy(info);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
+TEST(CrasSco, StartCrasScoAndWriteMsbc) {
   int rc;
   int sock[2];
   uint8_t sample[480];
@@ -480,36 +480,36 @@ TEST(HfpInfo, StartHfpInfoAndWriteMsbc) {
   set_sbc_codec_encoded_out(57);
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  info = hfp_info_create();
-  ASSERT_NE(info, (void*)NULL);
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
 
-  hfp_info_start(sock[1], 63, HFP_CODEC_ID_MSBC, info);
+  cras_sco_start(sock[1], 63, HFP_CODEC_ID_MSBC, sco);
   send(sock[0], sample, 63, 0);
 
   /* Trigger thread callback */
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   dev.direction = CRAS_STREAM_OUTPUT;
-  ASSERT_EQ(0, hfp_info_add_iodev(info, dev.direction, dev.format));
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   /* Assert queued samples unchanged before output device added */
-  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
+  ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
   /* Put some fake data and trigger thread callback again */
   send(sock[0], sample, 63, 0);
-  buf_increment_write(info->playback_buf, 240);
-  thread_cb((struct hfp_info*)cb_data, POLLIN);
+  buf_increment_write(sco->playback_buf, 240);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   /* Assert some samples written */
   rc = recv(sock[0], sample, 60, 0);
   ASSERT_EQ(60, rc);
-  ASSERT_EQ(0, hfp_buf_queued(info, dev.direction));
+  ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
-  hfp_info_stop(info);
-  hfp_info_destroy(info);
+  cras_sco_stop(sco);
+  cras_sco_destroy(sco);
 }
 
-TEST(HfpInfo, WBSLoggerPacketStatusDumpBinary) {
+TEST(CrasSco, WBSLoggerPacketStatusDumpBinary) {
   struct packet_status_logger logger;
   char log_regex[64];
   int num_wraps[5] = {0, 0, 0, 1, 1};

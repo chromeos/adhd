@@ -151,7 +151,7 @@ void hfp_alsa_iodev_destroy(struct cras_iodev* iodev) {
 struct cras_iodev* hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
                                     struct cras_bt_device* device,
                                     struct hfp_slc_handle* slc,
-                                    struct hfp_info* info) {
+                                    struct cras_sco* sco) {
   hfp_iodev_create_called++;
   return (struct cras_iodev*)0xdeadbeef;
 }
@@ -184,19 +184,19 @@ int cras_bt_unregister_profile(DBusConnection* conn,
   return 0;
 }
 
-struct hfp_info* hfp_info_create() {
+struct cras_sco* cras_sco_create() {
   return NULL;
 }
 
-int hfp_info_running(struct hfp_info* info) {
+int cras_sco_running(struct cras_sco* sco) {
   return 0;
 }
 
-int hfp_info_stop(struct hfp_info* info) {
+int cras_sco_stop(struct cras_sco* sco) {
   return 0;
 }
 
-void hfp_info_destroy(struct hfp_info* info) {}
+void cras_sco_destroy(struct cras_sco* sco) {}
 
 void hfp_slc_destroy(struct hfp_slc_handle* slc_handle) {}
 
@@ -279,7 +279,7 @@ void cras_bt_device_notify_profile_dropped(
   cras_bt_device_notify_profile_dropped_profile = profile;
 }
 
-void hfp_info_set_wbs_logger(struct hfp_info* info,
+void cras_sco_set_wbs_logger(struct cras_sco* sco,
                              struct packet_status_logger* wbs_logger) {}
 
 void cras_observer_notify_bt_battery_changed(const char* address,
