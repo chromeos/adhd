@@ -588,8 +588,6 @@ int cras_server_run(unsigned int profile_disable_mask)
 		cras_bt_start(dbus_conn);
 		if (!(profile_disable_mask & CRAS_SERVER_PROFILE_MASK_HFP))
 			cras_hfp_ag_profile_create(dbus_conn);
-		if (!(profile_disable_mask & CRAS_SERVER_PROFILE_MASK_HSP))
-			cras_hsp_ag_profile_create(dbus_conn);
 		cras_telephony_start(dbus_conn);
 		if (!(profile_disable_mask & CRAS_SERVER_PROFILE_MASK_A2DP))
 			cras_a2dp_endpoint_create(dbus_conn);

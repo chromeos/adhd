@@ -26,51 +26,6 @@
 #define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"
 #define HFP_VERSION 0x0107
-#define HSP_AG_PROFILE_NAME "Headset Voice gateway"
-#define HSP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HSPAG"
-#define HSP_VERSION_1_2 0x0102
-#define HSP_VERSION_1_2_STR "0x0102"
-
-#define HSP_AG_RECORD                                                          \
-	"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"                          \
-	"<record>"                                                             \
-	"  <attribute id=\"0x0001\">"                                          \
-	"    <sequence>"                                                       \
-	"      <uuid value=\"" HSP_AG_UUID "\" />"                             \
-	"      <uuid value=\"" GENERIC_AUDIO_UUID "\" />"                      \
-	"    </sequence>"                                                      \
-	"  </attribute>"                                                       \
-	"  <attribute id=\"0x0004\">"                                          \
-	"    <sequence>"                                                       \
-	"      <sequence>"                                                     \
-	"        <uuid value=\"0x0100\" />"                                    \
-	"      </sequence>"                                                    \
-	"      <sequence>"                                                     \
-	"        <uuid value=\"0x0003\" />"                                    \
-	"        <uint8 value=\"0x0c\" />"                                     \
-	"      </sequence>"                                                    \
-	"    </sequence>"                                                      \
-	"  </attribute>"                                                       \
-	"  <attribute id=\"0x0005\">"                                          \
-	"    <sequence>"                                                       \
-	"      <uuid value=\"0x1002\" />"                                      \
-	"    </sequence>"                                                      \
-	"  </attribute>"                                                       \
-	"  <attribute id=\"0x0009\">"                                          \
-	"    <sequence>"                                                       \
-	"      <sequence>"                                                     \
-	"        <uuid value=\"" HSP_HS_UUID "\" />"                           \
-	"        <uint16 value=\"" HSP_VERSION_1_2_STR "\" />"                 \
-	"      </sequence>"                                                    \
-	"    </sequence>"                                                      \
-	"  </attribute>"                                                       \
-	"  <attribute id=\"0x0100\">"                                          \
-	"    <text value=\"" HSP_AG_PROFILE_NAME "\" />"                       \
-	"  </attribute>"                                                       \
-	"  <attribute id=\"0x0301\" >"                                         \
-	"    <uint8 value=\"0x01\" />"                                         \
-	"  </attribute>"                                                       \
-	"</record>"
 
 /* The supported features value in +BSRF command response of HFP AG in CRAS */
 #define BSRF_SUPPORTED_FEATURES (AG_ENHANCED_CALL_STATUS | AG_HF_INDICATORS)
@@ -78,17 +33,16 @@
 /* The "SupportedFeatures" attribute value of HFP AG service record in CRAS. */
 #define SDP_SUPPORTED_FEATURES FEATURES_AG_WIDE_BAND_SPEECH
 
-/* Object representing the audio gateway role for HFP/HSP.
+/* Object representing the audio gateway role for HFP.
  * Members:
- *    idev - The input iodev for HFP/HSP.
- *    odev - The output iodev for HFP/HSP.
+ *    idev - The input iodev for HFP.
+ *    odev - The output iodev for HFP.
  *    info - The hfp_info object for SCO audio.
  *    slc_handle - The service level connection.
  *    device - The bt device associated with this audio gateway.
  *    a2dp_delay_retries - The number of retries left to delay starting
- *        the hfp/hsp audio gateway to wait for a2dp connection.
+ *        the hfp audio gateway to wait for a2dp connection.
  *    conn - The dbus connection used to send message to bluetoothd.
- *    profile - The profile enum of this audio gateway.
  */
 struct audio_gateway {
 	struct cras_iodev *idev;
@@ -98,7 +52,6 @@ struct audio_gateway {
 	struct cras_bt_device *device;
 	int a2dp_delay_retries;
 	DBusConnection *conn;
-	enum cras_bt_device_profile profile;
 	struct audio_gateway *prev, *next;
 };
 
@@ -259,7 +212,6 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;
 	ag->conn = conn;
-	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
 
 	adapter = cras_bt_device_adapter(device);
 	/*
@@ -273,7 +225,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	    cras_bt_adapter_wbs_supported(adapter))
 		ag_features |= AG_CODEC_NEGOTIATION;
 
-	ag->slc_handle = hfp_slc_create(rfcomm_fd, 0, ag_features, device,
+	ag->slc_handle = hfp_slc_create(rfcomm_fd, ag_features, device,
 					cras_hfp_ag_slc_initialized,
 					cras_hfp_ag_slc_disconnected);
 	DL_APPEND(connected_ags, ag);
@@ -320,67 +272,6 @@ int cras_hfp_ag_profile_create(DBusConnection *conn)
 	return cras_bt_add_profile(conn, &cras_hfp_ag_profile);
 }
 
-static int cras_hsp_ag_new_connection(DBusConnection *conn,
-				      struct cras_bt_profile *profile,
-				      struct cras_bt_device *device,
-				      int rfcomm_fd)
-{
-	struct audio_gateway *ag;
-
-	BTLOG(btlog, BT_HSP_NEW_CONNECTION, 0, 0);
-
-	if (has_audio_gateway(device)) {
-		syslog(LOG_ERR,
-		       "Audio gateway exists when %s connects for profile %s",
-		       cras_bt_device_name(device), profile->name);
-		close(rfcomm_fd);
-		return 0;
-	}
-
-	if (check_for_conflict_ag(device))
-		return -1;
-
-	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
-	ag->device = device;
-	ag->conn = conn;
-	ag->profile = cras_bt_device_profile_from_uuid(profile->uuid);
-	ag->slc_handle =
-		hfp_slc_create(rfcomm_fd, 1, BSRF_SUPPORTED_FEATURES, device,
-			       NULL, cras_hfp_ag_slc_disconnected);
-	DL_APPEND(connected_ags, ag);
-	cras_hfp_ag_slc_initialized(ag->slc_handle);
-	return 0;
-}
-
-static void cras_hsp_ag_request_disconnection(struct cras_bt_profile *profile,
-					      struct cras_bt_device *device)
-{
-	struct audio_gateway *ag;
-
-	BTLOG(btlog, BT_HSP_REQUEST_DISCONNECT, 0, 0);
-
-	DL_FOREACH (connected_ags, ag) {
-		if (ag->slc_handle && ag->device == device) {
-			cras_bt_device_notify_profile_dropped(
-				ag->device, CRAS_BT_DEVICE_PROFILE_HSP_HEADSET);
-			destroy_audio_gateway(ag);
-		}
-	}
-}
-
-static struct cras_bt_profile cras_hsp_ag_profile = {
-	.name = HSP_AG_PROFILE_NAME,
-	.object_path = HSP_AG_PROFILE_PATH,
-	.uuid = HSP_AG_UUID,
-	.version = HSP_VERSION_1_2,
-	.role = NULL,
-	.record = HSP_AG_RECORD,
-	.release = cras_hfp_ag_release,
-	.new_connection = cras_hsp_ag_new_connection,
-	.request_disconnection = cras_hsp_ag_request_disconnection,
-	.cancel = cras_hfp_ag_cancel
-};
-
 int cras_hfp_ag_start(struct cras_bt_device *device)
 {
 	struct audio_gateway *ag;
@@ -407,18 +298,16 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 		out_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT);
 
 		ag->idev = hfp_alsa_iodev_create(in_aio, ag->device,
-						 ag->slc_handle, ag->profile);
+						 ag->slc_handle);
 		ag->odev = hfp_alsa_iodev_create(out_aio, ag->device,
-						 ag->slc_handle, ag->profile);
+						 ag->slc_handle);
 	} else {
 		ag->info = hfp_info_create();
 		hfp_info_set_wbs_logger(ag->info, &wbs_logger);
-		ag->idev =
-			hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
-					 ag->slc_handle, ag->profile, ag->info);
-		ag->odev =
-			hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
-					 ag->slc_handle, ag->profile, ag->info);
+		ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
+					    ag->slc_handle, ag->info);
+		ag->odev = hfp_iodev_create(CRAS_STREAM_OUTPUT, ag->device,
+					    ag->slc_handle, ag->info);
 	}
 
 	if (!ag->idev && !ag->odev) {
@@ -460,7 +349,3 @@ struct packet_status_logger *cras_hfp_ag_get_wbs_logger()
 	return &wbs_logger;
 }
 
-int cras_hsp_ag_profile_create(DBusConnection *conn)
-{
-	return cras_bt_add_profile(conn, &cras_hsp_ag_profile);
-}

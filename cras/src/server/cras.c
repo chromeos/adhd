@@ -77,10 +77,6 @@ int main(int argc, char **argv)
 					profile_disable_mask |=
 						CRAS_SERVER_PROFILE_MASK_HFP;
 				}
-				if (strncmp(optarg, "hsp", 3) == 0) {
-					profile_disable_mask |=
-						CRAS_SERVER_PROFILE_MASK_HSP;
-				}
 				if (strncmp(optarg, "a2dp", 4) == 0) {
 					profile_disable_mask |=
 						CRAS_SERVER_PROFILE_MASK_A2DP;

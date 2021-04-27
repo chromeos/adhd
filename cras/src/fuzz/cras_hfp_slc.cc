@@ -27,14 +27,13 @@ int disconnect_cb(struct hfp_slc_handle*) {
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   FuzzedDataProvider data_provider(data, size);
-  bool is_hsp = data_provider.ConsumeIntegralInRange(0, 1);
   int ag_supported_features = data_provider.ConsumeIntegral<int>();
   std::string command = data_provider.ConsumeRemainingBytesAsString();
   int fd = open("/dev/null", O_RDWR);
 
   struct cras_bt_device* bt_dev = cras_bt_device_create(NULL, "");
-  struct hfp_slc_handle* handle = hfp_slc_create(
-      fd, is_hsp, ag_supported_features, bt_dev, NULL, &disconnect_cb);
+  struct hfp_slc_handle* handle =
+      hfp_slc_create(fd, ag_supported_features, bt_dev, NULL, &disconnect_cb);
   if (!handle)
     return 0;
 

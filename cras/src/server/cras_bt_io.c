@@ -18,7 +18,7 @@
 #define DEFAULT_BT_DEVICE_NAME "BLUETOOTH"
 
 /* Extends cras_ionode to hold bluetooth profile information
- * so that iodevs of different profile(A2DP or HFP/HSP) can be
+ * so that iodevs of different profile(A2DP or HFP) can be
  * associated with the same bt_io.
  * Members:
  *    base - The base class cras_ionode.
@@ -90,11 +90,8 @@ static void bt_switch_to_profile(struct cras_bt_device *device,
 {
 	switch (profile) {
 	case CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY:
-	case CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY:
 		cras_bt_device_set_active_profile(
-			device,
-			CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY |
-				CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+			device, CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 		break;
 	case CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE:
 		cras_bt_device_set_active_profile(
@@ -127,7 +124,7 @@ static int device_using_profile(struct cras_bt_device *device,
 /* Checks if the condition is met to switch to a different profile based
  * on two rules:
  * (1) Prefer to use A2DP for output since the audio quality is better.
- * (2) Must use HFP/HSP for input since A2DP doesn't support audio input.
+ * (2) Must use HFP for input since A2DP doesn't support audio input.
  *
  * If the profile switch happens, return non-zero error code, otherwise
  * return zero.
@@ -247,10 +244,8 @@ static int close_dev(struct cras_iodev *iodev)
 	/* If input iodev is in open state and being closed, switch profile
 	 * from HFP to A2DP. */
 	if (cras_iodev_is_open(iodev) &&
-	    device_using_profile(
-		    btio->device,
-		    CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY |
-			    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY) &&
+	    device_using_profile(btio->device,
+				 CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY) &&
 	    (iodev->direction == CRAS_STREAM_INPUT))
 		bt_possibly_switch_to_a2dp(btio);
 
@@ -658,10 +653,7 @@ cras_bt_io_profile_to_log(struct cras_iodev *bt_iodev)
 	if (btnode->profile & CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE)
 		return CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
 
-	if (hfp_iodev_is_hsp(btnode->profile_dev))
-		return CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
-	else
-		return CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
+	return CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
 }
 
 unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,

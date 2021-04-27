@@ -29,9 +29,6 @@
 #define DBUS_SIGNAL_PROPERTIES_CHANGED "PropertiesChanged"
 
 /* UUIDs taken from lib/uuid.h in the BlueZ source */
-#define HSP_HS_UUID "00001108-0000-1000-8000-00805f9b34fb"
-#define HSP_AG_UUID "00001112-0000-1000-8000-00805f9b34fb"
-
 #define HFP_HF_UUID "0000111e-0000-1000-8000-00805f9b34fb"
 #define HFP_AG_UUID "0000111f-0000-1000-8000-00805f9b34fb"
 

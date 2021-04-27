@@ -208,8 +208,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnOpenDevForInputDev) {
   cras_bt_device_get_active_profile_ret = CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
   bt_iodev->open_dev(bt_iodev);
 
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY |
-                CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
+  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
             cras_bt_device_set_active_profile_val);
   EXPECT_EQ(1, cras_bt_device_switch_profile_enable_dev_called);
   cras_bt_io_destroy(bt_iodev);
@@ -238,8 +237,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
   bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
   cras_bt_device_get_active_profile_ret =
-      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
-      CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
   cras_bt_device_has_a2dp_ret = 1;
   bt_iodev->close_dev(bt_iodev);
 
@@ -257,8 +255,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevNoSupportA2dp) {
   bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
   cras_bt_device_get_active_profile_ret =
-      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
-      CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
   cras_bt_device_has_a2dp_ret = 0;
   bt_iodev->close_dev(bt_iodev);
 
@@ -274,8 +271,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevInCloseState) {
   bt_iodev->state = CRAS_IODEV_STATE_CLOSE;
 
   cras_bt_device_get_active_profile_ret =
-      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
-      CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
+      CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
   cras_bt_device_has_a2dp_ret = 1;
   bt_iodev->close_dev(bt_iodev);
 
@@ -343,8 +339,7 @@ TEST_F(BtIoBasicSuite, CreateSetDeviceActiveProfileToHFP) {
   bt_iodev = cras_bt_io_create(fake_device, &iodev_,
                                CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY |
-                CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY,
+  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
             cras_bt_device_set_active_profile_val);
   cras_bt_io_destroy(bt_iodev);
 }
@@ -483,10 +478,6 @@ unsigned int cras_iodev_default_frames_to_play_in_sleep(
     struct cras_iodev* odev,
     unsigned int* hw_level,
     struct timespec* hw_tstamp) {
-  return 0;
-}
-
-int hfp_iodev_is_hsp(struct cras_iodev* iodev) {
   return 0;
 }
 

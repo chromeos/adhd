@@ -22,8 +22,7 @@ struct hfp_slc_handle;
  */
 struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 					 struct cras_bt_device *device,
-					 struct hfp_slc_handle *slc,
-					 enum cras_bt_device_profile profile);
+					 struct hfp_slc_handle *slc);
 
 void hfp_alsa_iodev_destroy(struct cras_iodev *iodev);
 

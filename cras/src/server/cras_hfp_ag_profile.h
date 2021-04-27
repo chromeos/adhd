@@ -29,15 +29,12 @@ struct hfp_slc_handle;
 /* Adds a profile instance for HFP AG (Hands-Free Profile Audio Gateway). */
 int cras_hfp_ag_profile_create(DBusConnection *conn);
 
-/* Adds a profile instance for HSP AG (Headset Profile Audio Gateway). */
-int cras_hsp_ag_profile_create(DBusConnection *conn);
-
 /* Starts the HFP audio gateway for audio input/output. */
 int cras_hfp_ag_start(struct cras_bt_device *device);
 
 /*
  * Suspends all connected audio gateways except the one associated to device.
- * Used to stop previously running HFP/HSP audio when a new device is connected.
+ * Used to stop previously running HFP audio when a new device is connected.
  * Args:
  *    device - The device that we want to keep connection while others should
  *        be removed.

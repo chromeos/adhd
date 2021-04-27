@@ -29,9 +29,7 @@ enum cras_bt_device_profile {
 	CRAS_BT_DEVICE_PROFILE_AVRCP_REMOTE = (1 << 2),
 	CRAS_BT_DEVICE_PROFILE_AVRCP_TARGET = (1 << 3),
 	CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE = (1 << 4),
-	CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY = (1 << 5),
-	CRAS_BT_DEVICE_PROFILE_HSP_HEADSET = (1 << 6),
-	CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY = (1 << 7)
+	CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY = (1 << 5)
 };
 
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid);

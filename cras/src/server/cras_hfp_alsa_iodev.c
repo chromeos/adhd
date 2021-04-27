@@ -243,8 +243,7 @@ static int hfp_alsa_output_underrun(struct cras_iodev *iodev)
 
 struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 					 struct cras_bt_device *device,
-					 struct hfp_slc_handle *slc,
-					 enum cras_bt_device_profile profile)
+					 struct hfp_slc_handle *slc)
 {
 	struct hfp_alsa_io *hfp_alsa_io;
 	struct cras_iodev *iodev;
@@ -309,7 +308,8 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 	 * info from hfp_alsa iodev and node. */
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
-	cras_bt_device_append_iodev(device, iodev, profile);
+	cras_bt_device_append_iodev(device, iodev,
+				    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
 	/* Record max supported channels into cras_iodev_info. */
 	iodev->info.max_supported_channels = 1;

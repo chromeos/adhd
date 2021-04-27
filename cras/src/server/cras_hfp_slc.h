@@ -74,7 +74,6 @@ typedef int (*hfp_slc_disconnect_cb)(struct hfp_slc_handle *handle);
  * to read and handle received AT commands.
  * Args:
  *    fd - the rfcomm fd used to initialize service level connection
- *    is_hsp - if the slc handle is created for headset profile
  *    ag_supported_features - Supported AG features bitmap.
  *    device - The bt device associated with the created slc object
  *    init_cb - the callback function to be triggered when a service level
@@ -82,19 +81,13 @@ typedef int (*hfp_slc_disconnect_cb)(struct hfp_slc_handle *handle);
  *    disconnect_cb - the callback function to be triggered when the service
  *        level connection is disconnected.
  */
-struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
-				      int ag_supported_features,
+struct hfp_slc_handle *hfp_slc_create(int fd, int ag_supported_features,
 				      struct cras_bt_device *device,
 				      hfp_slc_init_cb init_cb,
 				      hfp_slc_disconnect_cb disconnect_cb);
 
 /* Destroys an hfp_slc_handle. */
 void hfp_slc_destroy(struct hfp_slc_handle *handle);
-
-/* Returns true if this SLC is created for headset profile(HSP), false
- * means it's created for hands-free profile(HFP).
- */
-int hfp_slc_is_hsp(struct hfp_slc_handle *handle);
 
 /* Sets the call status to notify handsfree device. */
 int hfp_set_call_status(struct hfp_slc_handle *handle, int call);

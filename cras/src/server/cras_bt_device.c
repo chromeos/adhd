@@ -142,11 +142,7 @@ static struct cras_bt_device *devices;
 
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid)
 {
-	if (strcmp(uuid, HSP_HS_UUID) == 0)
-		return CRAS_BT_DEVICE_PROFILE_HSP_HEADSET;
-	else if (strcmp(uuid, HSP_AG_UUID) == 0)
-		return CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
-	else if (strcmp(uuid, HFP_HF_UUID) == 0)
+	if (strcmp(uuid, HFP_HF_UUID) == 0)
 		return CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
 	else if (strcmp(uuid, HFP_AG_UUID) == 0)
 		return CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
@@ -514,10 +510,9 @@ static void bt_device_conn_watch_cb(struct cras_timer *timer, void *arg);
 int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 {
 	BTLOG(btlog, BT_AUDIO_GATEWAY_INIT, device->profiles, 0);
-	/* Marks HFP/HSP as connected. This is what connection watcher
+	/* Marks HFP as connected. This is what connection watcher
 	 * checks. */
-	device->connected_profiles |= (CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE |
-				       CRAS_BT_DEVICE_PROFILE_HSP_HEADSET);
+	device->connected_profiles |= CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
 
 	/* If device connects HFP but not reporting correct UUID, manually add
 	 * it to allow CRAS to enumerate audio node for it. We're seeing this
@@ -572,14 +567,6 @@ static void cras_bt_device_log_profile(const struct cras_bt_device *device,
 		break;
 	case CRAS_BT_DEVICE_PROFILE_AVRCP_TARGET:
 		syslog(LOG_DEBUG, "Bluetooth Device: %s is AVRCP target",
-		       device->address);
-		break;
-	case CRAS_BT_DEVICE_PROFILE_HSP_HEADSET:
-		syslog(LOG_DEBUG, "Bluetooth Device: %s is HSP headset",
-		       device->address);
-		break;
-	case CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY:
-		syslog(LOG_DEBUG, "Bluetooth Device: %s is HSP audio gateway",
 		       device->address);
 		break;
 	}
@@ -1240,7 +1227,7 @@ static void bt_device_switch_profile(struct cras_bt_device *device,
 
 	/* If a bt iodev is active, temporarily force close it.
 	 * Note that we need to check all bt_iodevs for the situation that both
-	 * input and output are active while switches from HFP/HSP to A2DP.
+	 * input and output are active while switches from HFP to A2DP.
 	 */
 	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
 		iodev = device->bt_iodevs[dir];

@@ -139,8 +139,7 @@ struct cras_iodev* cras_iodev_list_get_sco_pcm_iodev(
 
 struct cras_iodev* hfp_alsa_iodev_create(enum CRAS_STREAM_DIRECTION dir,
                                          struct cras_bt_device* device,
-                                         struct hfp_slc_handle* slc,
-                                         enum cras_bt_device_profile profile) {
+                                         struct hfp_slc_handle* slc) {
   hfp_alsa_iodev_create_called++;
   return (struct cras_iodev*)0xdeadbeef;
 }
@@ -152,7 +151,6 @@ void hfp_alsa_iodev_destroy(struct cras_iodev* iodev) {
 struct cras_iodev* hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
                                     struct cras_bt_device* device,
                                     struct hfp_slc_handle* slc,
-                                    enum cras_bt_device_profile profile,
                                     struct hfp_info* info) {
   hfp_iodev_create_called++;
   return (struct cras_iodev*)0xdeadbeef;
@@ -218,10 +216,6 @@ const char* cras_bt_device_name(const struct cras_bt_device* device) {
 void cras_bt_device_set_append_iodev_cb(struct cras_bt_device* device,
                                         void (*cb)(void* data)) {}
 
-enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char* uuid) {
-  return CRAS_BT_DEVICE_PROFILE_HSP_AUDIOGATEWAY;
-}
-
 struct cras_bt_adapter* cras_bt_device_adapter(
     const struct cras_bt_device* device) {
   return reinterpret_cast<struct cras_bt_adapter*>(0x123);
@@ -232,7 +226,6 @@ int cras_bt_adapter_wbs_supported(struct cras_bt_adapter* adapter) {
 }
 
 struct hfp_slc_handle* hfp_slc_create(int fd,
-                                      int is_hsp,
                                       int ag_supported_features,
                                       struct cras_bt_device* device,
                                       hfp_slc_init_cb init_cb,

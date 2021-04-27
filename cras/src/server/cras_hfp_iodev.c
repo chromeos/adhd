@@ -260,12 +260,6 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 {
 }
 
-int hfp_iodev_is_hsp(struct cras_iodev *iodev)
-{
-	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-	return hfp_slc_is_hsp(hfpio->slc);
-}
-
 void hfp_free_resources(struct hfp_io *hfpio)
 {
 	struct cras_ionode *node;
@@ -283,7 +277,6 @@ void hfp_free_resources(struct hfp_io *hfpio)
 struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 				    struct cras_bt_device *device,
 				    struct hfp_slc_handle *slc,
-				    enum cras_bt_device_profile profile,
 				    struct hfp_info *info)
 {
 	struct hfp_io *hfpio;
@@ -342,7 +335,8 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	 * info from HFP iodev and node. */
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
-	cras_bt_device_append_iodev(device, iodev, profile);
+	cras_bt_device_append_iodev(device, iodev,
+				    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
 	hfpio->info = info;
 

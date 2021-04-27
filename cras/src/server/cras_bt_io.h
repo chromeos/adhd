@@ -30,7 +30,7 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev, struct cras_iodev *dev,
 int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
 			  enum cras_bt_device_profile profile);
 
-/* Returns A2DP, HFP or HSP that this bt_iodev is running for.
+/* Returns A2DP or HFP that this bt_iodev is running for.
  * Do NOT use this function except for logging.
  */
 enum cras_bt_device_profile

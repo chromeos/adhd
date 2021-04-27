@@ -89,7 +89,6 @@ struct hfp_slc_handle {
 	char buf[SLC_BUF_SIZE_BYTES];
 	int buf_read_idx;
 	int buf_write_idx;
-	int is_hsp;
 	int rfcomm_fd;
 	hfp_slc_init_cb init_cb;
 	hfp_slc_disconnect_cb disconnect_cb;
@@ -144,8 +143,7 @@ static int hfp_send_ind_event_report(struct hfp_slc_handle *handle,
 {
 	char cmd[64];
 
-	if (handle->is_hsp ||
-	    !handle->ind_event_reports[CRAS_INDICATOR_ENABLE_INDEX] ||
+	if (!handle->ind_event_reports[CRAS_INDICATOR_ENABLE_INDEX] ||
 	    !handle->ind_event_reports[ind_index])
 		return 0;
 
@@ -159,9 +157,6 @@ static int hfp_send_calling_line_identification(struct hfp_slc_handle *handle,
 						const char *number, int type)
 {
 	char cmd[64];
-
-	if (handle->is_hsp)
-		return 0;
 
 	if (handle->telephony->call) {
 		snprintf(cmd, 64, AT_CMD("+CCWA: \"%s\",%d"), number, type);
@@ -1171,8 +1166,7 @@ static void slc_watch_callback(void *arg, int revents)
 
 /* Exported interfaces */
 
-struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
-				      int ag_supported_features,
+struct hfp_slc_handle *hfp_slc_create(int fd, int ag_supported_features,
 				      struct cras_bt_device *device,
 				      hfp_slc_init_cb init_cb,
 				      hfp_slc_disconnect_cb disconnect_cb)
@@ -1188,7 +1182,6 @@ struct hfp_slc_handle *hfp_slc_create(int fd, int is_hsp,
 		return NULL;
 
 	handle->rfcomm_fd = fd;
-	handle->is_hsp = is_hsp;
 	handle->ag_supported_features = ag_supported_features;
 	handle->hf_supported_features = 0;
 	handle->device = device;
@@ -1220,11 +1213,6 @@ void hfp_slc_destroy(struct hfp_slc_handle *slc_handle)
 				     slc_handle->timer);
 	close(slc_handle->rfcomm_fd);
 	free(slc_handle);
-}
-
-int hfp_slc_is_hsp(struct hfp_slc_handle *handle)
-{
-	return handle->is_hsp;
 }
 
 int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
@@ -1318,9 +1306,6 @@ int hfp_event_incoming_call(struct hfp_slc_handle *handle, const char *number,
 			    int type)
 {
 	int rc;
-
-	if (handle->is_hsp)
-		return 0;
 
 	if (handle->cli_active) {
 		rc = hfp_send_calling_line_identification(handle, number, type);

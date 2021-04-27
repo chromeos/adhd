@@ -6,18 +6,13 @@
 device_config_dir="$(cros_config /audio/main cras-config-dir)"
 internal_ucm_suffix="$(cros_config /audio/main ucm-suffix)"
 
-# Deprecate HSP since it's just too old.
-# TODO(hychao): Clean up all CRAS codes that are related to HSP once we're
-# sure no headset breaks because of that.
-DISABLE_PROFILE="--disable_profile=hsp"
-
 # Handle legacy config.
 if [ -z "${device_config_dir}" ]; then
   # Disable HSP/HFP on Google WiFi (Gale) with UART-HCI Bluetooth
   # which is incapable of handling SCO audio.
   platform_name="$(mosys platform name)"
   if [ "$platform_name" = "Gale" ]; then
-      DISABLE_PROFILE="--disable_profile=hfp,hsp"
+      DISABLE_PROFILE="--disable_profile=hfp"
   fi
   # For boards that need a different device config, check which config
   # directory to use. Use that directory for both volume curves

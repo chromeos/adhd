@@ -92,8 +92,8 @@ class HfpIodev : public testing::Test {
 };
 
 TEST_F(HfpIodev, CreateHfpOutputIodev) {
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
-                           CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, fake_info);
+  iodev =
+      hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc, fake_info);
 
   ASSERT_EQ(CRAS_STREAM_OUTPUT, iodev->direction);
   ASSERT_EQ(1, cras_bt_device_append_iodev_called);
@@ -108,8 +108,7 @@ TEST_F(HfpIodev, CreateHfpOutputIodev) {
 }
 
 TEST_F(HfpIodev, CreateHfpInputIodev) {
-  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc,
-                           CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, fake_info);
+  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc, fake_info);
 
   ASSERT_EQ(CRAS_STREAM_INPUT, iodev->direction);
   ASSERT_EQ(1, cras_bt_device_append_iodev_called);
@@ -126,8 +125,8 @@ TEST_F(HfpIodev, CreateHfpInputIodev) {
 }
 
 TEST_F(HfpIodev, OpenHfpIodev) {
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
-                           CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, fake_info);
+  iodev =
+      hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc, fake_info);
   iodev->format = &fake_format;
 
   /* hfp_info not start yet */
@@ -150,8 +149,7 @@ TEST_F(HfpIodev, OpenHfpIodev) {
 }
 
 TEST_F(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
-  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc,
-                           CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, fake_info);
+  iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc, fake_info);
 
   iodev->format = &fake_format;
 
@@ -177,8 +175,8 @@ TEST_F(HfpIodev, PutGetBuffer) {
   unsigned frames;
 
   ResetStubData();
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
-                           CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, fake_info);
+  iodev =
+      hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc, fake_info);
   iodev->format = &fake_format;
   iodev->configure_dev(iodev);
 
@@ -200,8 +198,8 @@ TEST_F(HfpIodev, NoStreamState) {
   unsigned frames;
 
   ResetStubData();
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc,
-                           CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, fake_info);
+  iodev =
+      hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc, fake_info);
   iodev->format = &fake_format;
   iodev->configure_dev(iodev);
   iodev->min_cb_level = iodev->buffer_size / 2;
@@ -394,10 +392,6 @@ bool hfp_slc_get_wideband_speech_supported(struct hfp_slc_handle* handle) {
 }
 
 int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle) {
-  return 0;
-}
-
-int hfp_slc_is_hsp(struct hfp_slc_handle* handle) {
   return 0;
 }
 
