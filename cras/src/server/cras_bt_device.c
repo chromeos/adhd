@@ -89,8 +89,6 @@ static const unsigned int CRAS_SUPPORTED_PROFILES =
  *    suspend_timer - The timer used to suspend device.
  *    switch_profile_timer - The timer used to delay enabling iodev after
  *        profile switch.
- *    sco_fd - The file descriptor of the SCO connection.
- *    sco_ref_count - The reference counts of the SCO connection.
  *    suspend_reason - The reason code for why suspend is scheduled.
  *    stable_id - The unique and persistent id of this bt_device.
  */
@@ -114,8 +112,6 @@ struct cras_bt_device {
 	struct cras_timer *conn_watch_timer;
 	struct cras_timer *suspend_timer;
 	struct cras_timer *switch_profile_timer;
-	int sco_fd;
-	size_t sco_ref_count;
 	enum cras_bt_device_suspend_reason suspend_reason;
 	unsigned int stable_id;
 
@@ -1372,25 +1368,4 @@ void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 
 	iodev->active_node->volume = volume;
 	cras_iodev_list_notify_node_volume(iodev->active_node);
-}
-
-int cras_bt_device_get_sco(struct cras_bt_device *device, int codec)
-{
-	if (device->sco_ref_count == 0) {
-		device->sco_fd = cras_bt_device_sco_connect(device, codec);
-		if (device->sco_fd < 0)
-			return device->sco_fd;
-	}
-
-	++device->sco_ref_count;
-	return 0;
-}
-
-void cras_bt_device_put_sco(struct cras_bt_device *device)
-{
-	if (device->sco_ref_count == 0)
-		return;
-
-	if (--device->sco_ref_count == 0)
-		close(device->sco_fd);
 }

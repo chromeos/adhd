@@ -79,13 +79,17 @@ TEST(CrasSco, AddRmDevInvalid) {
 TEST(CrasSco, AcquirePlaybackBuffer) {
   unsigned buffer_frames, buffer_frames2, queued;
   uint8_t* samples;
+  int sock[2];
 
   ResetStubData();
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
   sco = cras_sco_create();
   ASSERT_NE(sco, (void*)NULL);
 
-  cras_sco_start(1, 48, HFP_CODEC_ID_CVSD, sco);
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
@@ -121,19 +125,24 @@ TEST(CrasSco, AcquirePlaybackBuffer) {
 
   ASSERT_GE(sco->playback_buf->used_size / 2, buffer_frames + buffer_frames2);
 
+  cras_sco_stop(sco);
+  cras_sco_close_fd(sco);
   cras_sco_destroy(sco);
 }
 
 TEST(CrasSco, AcquireCaptureBuffer) {
   unsigned buffer_frames, buffer_frames2;
   uint8_t* samples;
+  int sock[2];
 
   ResetStubData();
 
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
   sco = cras_sco_create();
   ASSERT_NE(sco, (void*)NULL);
 
-  cras_sco_start(1, 48, HFP_CODEC_ID_CVSD, sco);
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
@@ -164,6 +173,8 @@ TEST(CrasSco, AcquireCaptureBuffer) {
 
   ASSERT_GE(sco->capture_buf->used_size / 2, buffer_frames + buffer_frames2);
 
+  cras_sco_stop(sco);
+  cras_sco_close_fd(sco);
   cras_sco_destroy(sco);
 }
 
@@ -182,7 +193,8 @@ TEST(CrasSco, HfpReadWriteFD) {
   ASSERT_NE(sco, (void*)NULL);
 
   dev.direction = CRAS_STREAM_INPUT;
-  cras_sco_start(sock[1], 48, HFP_CODEC_ID_CVSD, sco);
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
   /* Mock the sco fd and send some fake data */
@@ -221,6 +233,7 @@ TEST(CrasSco, HfpReadWriteFD) {
   rc = recv(sock[0], sample, 48, 0);
   ASSERT_EQ(48, rc);
 
+  cras_sco_close_fd(sco);
   cras_sco_destroy(sco);
 }
 
@@ -232,7 +245,8 @@ TEST(CrasSco, StartCrasSco) {
   sco = cras_sco_create();
   ASSERT_NE(sco, (void*)NULL);
 
-  cras_sco_start(sock[0], 48, HFP_CODEC_ID_CVSD, sco);
+  cras_sco_set_fd(sco, sock[0]);
+  cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   ASSERT_EQ(1, cras_sco_running(sco));
   ASSERT_EQ(cb_data, (void*)sco);
 
@@ -240,6 +254,7 @@ TEST(CrasSco, StartCrasSco) {
   ASSERT_EQ(0, cras_sco_running(sco));
   ASSERT_EQ(NULL, cb_data);
 
+  cras_sco_close_fd(sco);
   cras_sco_destroy(sco);
 }
 
@@ -256,7 +271,8 @@ TEST(CrasSco, StartCrasScoAndRead) {
   ASSERT_NE(sco, (void*)NULL);
 
   /* Start and send two chunk of fake data */
-  cras_sco_start(sock[1], 48, HFP_CODEC_ID_CVSD, sco);
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
@@ -285,6 +301,7 @@ TEST(CrasSco, StartCrasScoAndRead) {
   cras_sco_stop(sco);
   ASSERT_EQ(0, cras_sco_running(sco));
 
+  cras_sco_close_fd(sco);
   cras_sco_destroy(sco);
 }
 
@@ -300,7 +317,8 @@ TEST(CrasSco, StartCrasScoAndWrite) {
   sco = cras_sco_create();
   ASSERT_NE(sco, (void*)NULL);
 
-  cras_sco_start(sock[1], 48, HFP_CODEC_ID_CVSD, sco);
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
@@ -327,6 +345,7 @@ TEST(CrasSco, StartCrasScoAndWrite) {
   ASSERT_EQ(480, cras_sco_buf_queued(sco, dev.direction));
 
   cras_sco_stop(sco);
+  cras_sco_close_fd(sco);
   cras_sco_destroy(sco);
 }
 
@@ -388,7 +407,8 @@ TEST(CrasSco, StartCrasScoAndReadMsbc) {
   ASSERT_EQ(0, cras_msbc_plc_create_called);
 
   /* Start and send an mSBC packets with all zero samples */
-  cras_sco_start(sock[1], 63, HFP_CODEC_ID_MSBC, sco);
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(63, HFP_CODEC_ID_MSBC, sco);
   ASSERT_EQ(2, get_msbc_codec_create_called());
   ASSERT_EQ(1, cras_msbc_plc_create_called);
   send_mSBC_packet(sock[0], pkt_count++, 0);
@@ -467,6 +487,7 @@ TEST(CrasSco, StartCrasScoAndReadMsbc) {
   cras_sco_stop(sco);
   ASSERT_EQ(0, cras_sco_running(sco));
 
+  cras_sco_close_fd(sco);
   cras_sco_destroy(sco);
 }
 
@@ -483,7 +504,8 @@ TEST(CrasSco, StartCrasScoAndWriteMsbc) {
   sco = cras_sco_create();
   ASSERT_NE(sco, (void*)NULL);
 
-  cras_sco_start(sock[1], 63, HFP_CODEC_ID_MSBC, sco);
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(63, HFP_CODEC_ID_MSBC, sco);
   send(sock[0], sample, 63, 0);
 
   /* Trigger thread callback */
@@ -506,6 +528,7 @@ TEST(CrasSco, StartCrasScoAndWriteMsbc) {
   ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
   cras_sco_stop(sco);
+  cras_sco_close_fd(sco);
   cras_sco_destroy(sco);
 }
 

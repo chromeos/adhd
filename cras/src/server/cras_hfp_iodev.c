@@ -153,11 +153,12 @@ static int configure_dev(struct cras_iodev *iodev)
 	if (sk < 0)
 		goto error;
 
+	cras_sco_set_fd(hfpio->sco, sk);
 	mtu = cras_bt_device_sco_packet_size(
 		hfpio->device, sk, hfp_slc_get_selected_codec(hfpio->slc));
 
 	/* Start cras_sco */
-	err = cras_sco_start(sk, mtu, hfp_slc_get_selected_codec(hfpio->slc),
+	err = cras_sco_start(mtu, hfp_slc_get_selected_codec(hfpio->slc),
 			     hfpio->sco);
 	if (err)
 		goto error;
@@ -183,6 +184,7 @@ static int close_dev(struct cras_iodev *iodev)
 	cras_sco_rm_iodev(hfpio->sco, iodev->direction);
 	if (cras_sco_running(hfpio->sco) && !cras_sco_has_iodev(hfpio->sco)) {
 		cras_sco_stop(hfpio->sco);
+		cras_sco_close_fd(hfpio->sco);
 		hfp_set_call_status(hfpio->slc, 0);
 	}
 

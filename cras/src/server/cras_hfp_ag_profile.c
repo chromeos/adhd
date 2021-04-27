@@ -291,6 +291,7 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 	if (ag->idev)
 		return 0;
 
+	ag->sco = cras_sco_create();
 	if (need_go_sco_pcm(device)) {
 		struct cras_iodev *in_aio, *out_aio;
 
@@ -298,11 +299,10 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 		out_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT);
 
 		ag->idev = hfp_alsa_iodev_create(in_aio, ag->device,
-						 ag->slc_handle);
+						 ag->slc_handle, ag->sco);
 		ag->odev = hfp_alsa_iodev_create(out_aio, ag->device,
-						 ag->slc_handle);
+						 ag->slc_handle, ag->sco);
 	} else {
-		ag->sco = cras_sco_create();
 		cras_sco_set_wbs_logger(ag->sco, &wbs_logger);
 		ag->idev = hfp_iodev_create(CRAS_STREAM_INPUT, ag->device,
 					    ag->slc_handle, ag->sco);

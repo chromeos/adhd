@@ -24,12 +24,14 @@
  *    device - The corresponding remote BT device.
  *    slc - The service level connection.
  *    aio - The effective iodev for playback/capture.
+ *    sco - The cras_sco instance for configuring audio path.
  */
 struct hfp_alsa_io {
 	struct cras_iodev base;
 	struct cras_bt_device *device;
 	struct hfp_slc_handle *slc;
 	struct cras_iodev *aio;
+	struct cras_sco *sco;
 };
 
 static int hfp_alsa_get_valid_frames(struct cras_iodev *iodev,
@@ -105,9 +107,17 @@ static int hfp_alsa_configure_dev(struct cras_iodev *iodev)
 		return rc;
 	}
 
+	/* Check the associated SCO object first. Because configuring
+	 * the shared SCO object can only be done once for the HFP
+	 * input and output devices pair.
+	 */
+	rc = cras_sco_get_fd(hfp_alsa_io->sco);
+	if (rc >= 0)
+		goto add_dev;
+
 	hfp_slc_codec_connection_setup(hfp_alsa_io->slc);
 
-	rc = cras_bt_device_get_sco(
+	rc = cras_bt_device_sco_connect(
 		hfp_alsa_io->device,
 		hfp_slc_get_selected_codec(hfp_alsa_io->slc));
 	if (rc < 0) {
@@ -115,7 +125,11 @@ static int hfp_alsa_configure_dev(struct cras_iodev *iodev)
 		return rc;
 	}
 
+	cras_sco_set_fd(hfp_alsa_io->sco, rc);
 	hfp_set_call_status(hfp_alsa_io->slc, 1);
+
+add_dev:
+	cras_sco_add_iodev(hfp_alsa_io->sco, iodev->direction, iodev->format);
 	iodev->buffer_size = aio->buffer_size;
 
 	return 0;
@@ -126,8 +140,16 @@ static int hfp_alsa_close_dev(struct cras_iodev *iodev)
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 
-	hfp_set_call_status(hfp_alsa_io->slc, 0);
-	cras_bt_device_put_sco(hfp_alsa_io->device);
+	cras_sco_rm_iodev(hfp_alsa_io->sco, iodev->direction);
+
+	/* Check the associated SCO object because cleaning up the
+	 * shared SLC and SCO objects should be done when the later
+	 * of HFP input or output device gets closed.
+	 */
+	if (!cras_sco_has_iodev(hfp_alsa_io->sco)) {
+		hfp_set_call_status(hfp_alsa_io->slc, 0);
+		cras_sco_close_fd(hfp_alsa_io->sco);
+	}
 	cras_iodev_free_format(iodev);
 	return aio->close_dev(aio);
 }
@@ -243,7 +265,8 @@ static int hfp_alsa_output_underrun(struct cras_iodev *iodev)
 
 struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 					 struct cras_bt_device *device,
-					 struct hfp_slc_handle *slc)
+					 struct hfp_slc_handle *slc,
+					 struct cras_sco *sco)
 {
 	struct hfp_alsa_io *hfp_alsa_io;
 	struct cras_iodev *iodev;
@@ -259,6 +282,7 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 
 	hfp_alsa_io->device = device;
 	hfp_alsa_io->slc = slc;
+	hfp_alsa_io->sco = sco;
 	hfp_alsa_io->aio = aio;
 
 	/* Set iodev's name to device readable name or the address. */

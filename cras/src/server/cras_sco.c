@@ -755,14 +755,38 @@ void cras_sco_set_wbs_logger(struct cras_sco *sco,
 	sco->wbs_logger = wbs_logger;
 }
 
+int cras_sco_set_fd(struct cras_sco *sco, int fd)
+{
+	/* Valid only when existing fd isn't set and the new fd is
+	 * non-negative to prevent leak. */
+	if (sco->fd >= 0 || fd < 0)
+		return -EINVAL;
+	sco->fd = fd;
+	return 0;
+}
+
+int cras_sco_get_fd(struct cras_sco *sco)
+{
+	return sco->fd;
+}
+
+void cras_sco_close_fd(struct cras_sco *sco)
+{
+	if (sco->fd < 0)
+		return;
+	close(sco->fd);
+	sco->fd = -1;
+}
+
 int cras_sco_running(struct cras_sco *sco)
 {
 	return sco->started;
 }
 
-int cras_sco_start(int fd, unsigned int mtu, int codec, struct cras_sco *sco)
+int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 {
-	sco->fd = fd;
+	if (sco->fd == 0)
+		return -EINVAL;
 	sco->mtu = mtu;
 
 	/* Initialize to MTU, it may change when actually read the socket. */
@@ -826,9 +850,6 @@ int cras_sco_stop(struct cras_sco *sco)
 
 	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
 				      sco->fd);
-
-	close(sco->fd);
-	sco->fd = -1;
 	sco->started = 0;
 
 	/* Unset the write/read callbacks. */
