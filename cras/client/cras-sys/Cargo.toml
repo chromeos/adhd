@@ -9,6 +9,3 @@ include = ["Cargo.toml", "build.rs", "src/lib.rs", "src/gen.rs"]
 [dependencies]
 audio_streams = { path = "../../../audio_streams" } # provided by ebuild
 data_model = { path = "../../../../../platform/crosvm/data_model" } # provided by ebuild
-
-[build-dependencies]
-bindgen = "0.56"
