@@ -170,10 +170,8 @@ static void quad_rotation_run(struct dsp_module *module,
 			      unsigned long sample_count)
 {
 	struct quad_rotation *data = NULL;
-	float **ports;
 
 	data = (struct quad_rotation *)module->data;
-	ports = (float **)data->ports;
 
 	switch (data->rotation) {
 	case ROTATE_90:
