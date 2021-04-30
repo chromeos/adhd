@@ -837,7 +837,7 @@ pub fn create_header<'a>(
     header_fd: CrasAudioShmHeaderFd,
     samples_len: usize,
 ) -> io::Result<CrasAudioHeader<'a>> {
-    Ok(CrasAudioHeader::new(header_fd, samples_len)?)
+    CrasAudioHeader::new(header_fd, samples_len)
 }
 
 /// A structure wrapping a fd which contains a shared memory area and its size.
