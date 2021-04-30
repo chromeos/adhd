@@ -35,9 +35,9 @@ pub enum AudioMessage {
 }
 
 /// Converts AudioMessage to raw audio_message for CRAS audio server.
-impl Into<audio_message> for AudioMessage {
-    fn into(self) -> audio_message {
-        match self {
+impl From<AudioMessage> for audio_message {
+    fn from(message: AudioMessage) -> audio_message {
+        match message {
             AudioMessage::Success { id, frames } => audio_message {
                 id,
                 error: 0,

@@ -289,10 +289,10 @@ impl FromStr for CrasIodevNodeId {
     }
 }
 
-impl Into<u64> for CrasIodevNodeId {
-    fn into(self) -> u64 {
-        let id = self.iodev_index as u64;
-        (id << 32) | self.ionode_index as u64
+impl From<CrasIodevNodeId> for u64 {
+    fn from(v: CrasIodevNodeId) -> u64 {
+        let id = v.iodev_index as u64;
+        (id << 32) | v.ionode_index as u64
     }
 }
 
@@ -639,9 +639,9 @@ impl AudioDebugInfo {
     }
 }
 
-impl Into<u64> for CRAS_STREAM_EFFECT {
-    fn into(self) -> u64 {
-        u64::from(self.0)
+impl From<CRAS_STREAM_EFFECT> for u64 {
+    fn from(effect: CRAS_STREAM_EFFECT) -> u64 {
+        u64::from(effect.0)
     }
 }
 
