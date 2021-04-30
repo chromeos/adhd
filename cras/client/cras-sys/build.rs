@@ -15,7 +15,7 @@ fn main() {
         remove_file(gen_file).expect("Failed to remove generated file.");
     }
     let header_dir = Path::new("../../src/common");
-    let output = Command::new("bindgen")
+    let status = Command::new("bindgen")
         .arg(header_dir.join("cras_bindgen.h").to_str().unwrap())
         .args(&["--whitelist-type", "cras_.*"])
         .args(&["--whitelist-var", "cras_.*"])
@@ -27,7 +27,7 @@ fn main() {
         .args(&["--rustified-enum", "_snd_pcm_.*"])
         .args(&["--bitfield-enum", "CRAS_STREAM_EFFECT"])
         .args(&["--output", gen_file.to_str().unwrap()])
-        .output()
+        .status()
         .expect("Failed in bindgen command.");
-    assert!(output.status.success(), "Got error from bindgen command");
+    assert!(status.success(), "Got error from bindgen command");
 }
