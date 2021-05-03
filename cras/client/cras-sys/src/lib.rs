@@ -243,6 +243,7 @@ impl Default for cras_ionode_info {
             name: [0; 64usize],
             active_hotword_model: [0; 16usize],
             display_rotation: CRAS_SCREEN_ROTATION::ROTATE_0,
+            audio_effect: 0,
         }
     }
 }

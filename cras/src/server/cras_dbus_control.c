@@ -424,6 +424,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	dbus_uint64_t node_volume = node->volume;
 	dbus_int64_t node_capture_gain = node->capture_gain;
 	char *models, *empty_models = "";
+	dbus_uint32_t node_audio_effect = node->audio_effect;
 
 	is_input = (direction == CRAS_STREAM_INPUT);
 	id = node->iodev_idx;
@@ -474,6 +475,9 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 		return FALSE;
 	if (!append_key_value(&dict, "NodeCaptureGain", DBUS_TYPE_INT64,
 			      DBUS_TYPE_INT64_AS_STRING, &node_capture_gain))
+		return FALSE;
+	if (!append_key_value(&dict, "NodeAudioEffect", DBUS_TYPE_UINT32,
+			      DBUS_TYPE_UINT32_AS_STRING, &node_audio_effect))
 		return FALSE;
 
 	models = cras_iodev_list_get_hotword_models(id);

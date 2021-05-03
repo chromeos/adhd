@@ -58,6 +58,8 @@ struct __attribute__((__packed__)) cras_iodev_info {
  *    type - Type displayed to the user.
  *    name - Name displayed to the user.
  *    active_hotword_model - name of the currently selected hotword model.
+ *    audio_effect - Bit-wise audio effect support information. See enum
+ *                   audio_effect_type.
  */
 struct __attribute__((__packed__)) cras_ionode_info {
 	uint32_t iodev_idx;
@@ -78,6 +80,7 @@ struct __attribute__((__packed__)) cras_ionode_info {
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
 	enum CRAS_SCREEN_ROTATION display_rotation;
+	uint32_t audio_effect;
 };
 
 /* This is used in the cras_client_set_node_attr API.
@@ -94,5 +97,11 @@ enum ionode_attr {
 	IONODE_ATTR_SWAP_LEFT_RIGHT,
 	IONODE_ATTR_DISPLAY_ROTATION
 };
+
+/* The bitmask enum of audio effects. Bit is toggled on for supporting.
+ * This should be always aligned to system_api/dbus/service_constants.h.
+ *    EFFECT_TYPE_NOISE_CANCELLATION - Noise Cancellation support.
+ */
+enum audio_effect_type { EFFECT_TYPE_NOISE_CANCELLATION = 1 << 0 };
 
 #endif /* CRAS_IODEV_INFO_H_ */

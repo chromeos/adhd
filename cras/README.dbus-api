@@ -112,9 +112,9 @@ Methods		void SetOutputVolume(int32 volume)
 				uint64 PluggedTime
 					The time that this device was plugged
 					in. This value is in microseconds.
-				unit64 NodeVolume
+				uint64 NodeVolume
 					The node volume indexed from 0 to 100.
-				unit64 NodeCaptureGain
+				uint64 NodeCaptureGain
 					The capture gain of node in dBFS * 100.
 				string HotwordModels
 					A string of comma-separated hotword
@@ -122,6 +122,11 @@ Methods		void SetOutputVolume(int32 volume)
 					node. e.g. "en_au,en_gb,en_us"
 					The string is empty if the node type is
 					not HOTWORD.
+				uint32 NodeAudioEffect
+					The support information of audio effects
+					in bit-wise manner, which is defined by
+					enum "audio_effect_type" in
+					src/common/cras_iodev_info.h.
 
 		void GetSystemAecSupported();
 
