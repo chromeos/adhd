@@ -1,13 +1,18 @@
 // Copyright 2019 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+use std::env;
+use std::fs::remove_file;
 use std::path::Path;
 use std::process::Command;
 
 fn main() {
     let gen_file = Path::new("./src/gen.rs");
     if gen_file.exists() {
-        return;
+        if env::var("CROS_RUST") == Ok(String::from("1")) {
+            return;
+        }
+        remove_file(gen_file).expect("Failed to remove generated file.");
     }
     let header_dir = Path::new("../../src/common");
     let output = Command::new("bindgen")
