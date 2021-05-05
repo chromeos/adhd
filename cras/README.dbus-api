@@ -54,7 +54,6 @@ Methods		void SetOutputVolume(int32 volume)
 			Returns the volume and capture gain as follows:
 				int32 output_volume (0-100)
 				boolean output_mute
-				int32 input_gain (in dBFS * 100)
 				boolean input_mute
 				boolean output_user_mute
 
