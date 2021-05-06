@@ -550,6 +550,41 @@ static DBusHandlerResult handle_get_nodes(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_get_node_infos(DBusConnection *conn,
+					       DBusMessage *message, void *arg)
+{
+	DBusMessage *reply;
+	DBusMessageIter array;
+	DBusMessageIter dict;
+	DBusHandlerResult rc = DBUS_HANDLER_RESULT_HANDLED;
+	dbus_uint32_t serial = 0;
+
+	reply = dbus_message_new_method_return(message);
+	dbus_message_iter_init_append(reply, &array);
+	if (!dbus_message_iter_open_container(&array, DBUS_TYPE_ARRAY, "a{sv}",
+					      &dict)) {
+		rc = FALSE;
+		goto error;
+	}
+	if (!append_nodes(CRAS_STREAM_OUTPUT, &dict)) {
+		rc = DBUS_HANDLER_RESULT_NEED_MEMORY;
+		goto error;
+	}
+	if (!append_nodes(CRAS_STREAM_INPUT, &dict)) {
+		rc = DBUS_HANDLER_RESULT_NEED_MEMORY;
+		goto error;
+	}
+	if (!dbus_message_iter_close_container(&array, &dict)) {
+		rc = FALSE;
+		goto error;
+	}
+	dbus_connection_send(conn, reply, &serial);
+
+error:
+	dbus_message_unref(reply);
+	return rc;
+}
+
 static DBusHandlerResult handle_get_system_aec_supported(DBusConnection *conn,
 							 DBusMessage *message,
 							 void *arg)
@@ -1068,6 +1103,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetNodes")) {
 		return handle_get_nodes(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "GetNodeInfos")) {
+		return handle_get_node_infos(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetSystemAecSupported")) {
 		return handle_get_system_aec_supported(conn, message, arg);

@@ -127,6 +127,13 @@ Methods		void SetOutputVolume(int32 volume)
 					enum "audio_effect_type" in
 					src/common/cras_iodev_info.h.
 
+		{dict},{dict},... GetNodeInfos()
+
+			Similar to GetNodes, but this one returns an array of
+			dict and has signature "aa{sv}". Clients using
+			chromeos-dbus-bindings should use this method instead of
+			"GetNodes".
+
 		void GetSystemAecSupported();
 
 			Returns 1 if system echo cancellation is supported,
