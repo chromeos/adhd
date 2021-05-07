@@ -2244,7 +2244,8 @@ void cras_iodev_set_node_plugged(struct cras_ionode* node, int plugged) {
   set_node_plugged_called++;
 }
 
-bool cras_iodev_support_noise_cancellation(const struct cras_iodev* iodev) {
+bool cras_iodev_support_noise_cancellation(const struct cras_iodev* iodev,
+                                           unsigned node_idx) {
   return true;
 }
 

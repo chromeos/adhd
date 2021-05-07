@@ -274,6 +274,7 @@ static int fill_node_list(struct iodev_list *list,
 			snprintf(node_info->type, sizeof(node_info->type), "%s",
 				 node_type_to_str(node));
 			node_info->type_enum = node->type;
+			node_info->audio_effect = node->audio_effect;
 			node_info++;
 			i++;
 			if (i == out_size)
@@ -1906,8 +1907,9 @@ void cras_iodev_list_reset_for_noise_cancellation()
 	bool enabled = cras_system_get_noise_cancellation_enabled();
 
 	DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
-		if (!cras_iodev_is_open(dev) ||
-		    !cras_iodev_support_noise_cancellation(dev))
+		if (!cras_iodev_is_open(dev) || dev->active_node == NULL ||
+		    !cras_iodev_support_noise_cancellation(
+			    dev, dev->active_node->idx))
 			continue;
 		syslog(LOG_INFO, "Re-open %s for %s noise cancellation",
 		       dev->info.name, enabled ? "enabling" : "disabling");

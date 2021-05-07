@@ -115,6 +115,8 @@ enum CRAS_IODEV_STATE {
  *    intrinsic_sensitivity - The "IntrinsicSensitivity" in 0.01 dBFS/Pa
  *    specified in the ucm config.
  *    stable_id - id for node that doesn't change after unplug/plug.
+ *    audio_effect - Bit-wise audio effect support information. See enum
+ *                   audio_effect_type in cras_iodev_info.h.
  *    is_sco_pcm - Bool to indicate whether the ionode is for SCO over PCM.
  */
 struct cras_ionode {
@@ -137,6 +139,7 @@ struct cras_ionode {
 	long intrinsic_sensitivity;
 	unsigned int stable_id;
 	int is_sco_pcm;
+	uint32_t audio_effect;
 	struct cras_ionode *prev, *next;
 };
 
@@ -188,7 +191,7 @@ struct cras_ionode {
  *        audio thread can sleep before serving this playback dev the next time.
  *        Not implementing this ops means fall back to default behavior in
  *        cras_iodev_default_frames_to_play_in_sleep().
- * support_noise_cancellation - (Optional) Checks if the device supports noise
+ * support_noise_cancellation - (Optional) Checks if the node supports noise
  *                              cancellation.
  * format - The audio format being rendered or captured to hardware.
  * rate_est - Rate estimator to estimate the actual device rate.
@@ -283,7 +286,8 @@ struct cras_iodev {
 	unsigned int (*frames_to_play_in_sleep)(struct cras_iodev *iodev,
 						unsigned int *hw_level,
 						struct timespec *hw_tstamp);
-	int (*support_noise_cancellation)(const struct cras_iodev *iodev);
+	int (*support_noise_cancellation)(const struct cras_iodev *iodev,
+					  unsigned node_idx);
 	struct cras_audio_format *format;
 	struct rate_estimator *rate_est;
 	struct cras_audio_area *area;
@@ -861,12 +865,14 @@ void cras_iodev_update_highest_hw_level(struct cras_iodev *iodev,
 int cras_iodev_drop_frames_by_time(struct cras_iodev *iodev,
 				   struct timespec ts);
 
-/* Checks if an input device supports noise cancellation.
+/* Checks if an input node supports noise cancellation.
  * Args:
  *    iodev - The device.
+ *    node_idx - The index of the node.
  * Returns:
- *    True if device supports noise cancellation. False otherwise.
+ *    True if the node supports noise cancellation. False otherwise.
  */
-bool cras_iodev_support_noise_cancellation(const struct cras_iodev *iodev);
+bool cras_iodev_support_noise_cancellation(const struct cras_iodev *iodev,
+					   unsigned node_idx);
 
 #endif /* CRAS_IODEV_H_ */

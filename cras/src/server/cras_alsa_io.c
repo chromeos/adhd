@@ -413,10 +413,10 @@ static int open_dev(struct cras_iodev *iodev)
 
 	aio->handle = handle;
 
-	/* Enable or disable noise cancellation if it supports. */
-	if (aio->ucm && iodev->direction == CRAS_STREAM_INPUT &&
-	    ucm_node_noise_cancellation_exists(aio->ucm,
-					       iodev->active_node->name)) {
+	/* Enable or disable noise cancellation for the active node if
+	 * supported.
+	 */
+	if (iodev->active_node->audio_effect & EFFECT_TYPE_NOISE_CANCELLATION) {
 		enable_noise_cancellation =
 			cras_system_get_noise_cancellation_enabled();
 		rc = ucm_enable_node_noise_cancellation(
@@ -1300,6 +1300,19 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 		}
 
 		input->base.dsp_name = ucm_get_dsp_name_for_dev(aio->ucm, name);
+
+		/* Check if noise cancellation is supported. */
+		if (ucm_node_noise_cancellation_exists(aio->ucm, name)) {
+			/*
+			 * Update the flag of noise cancellation supported to
+			 * cras_system_state. The flag is set to true if there
+			 * is any node supporting noise cancellation on UCM
+			 * modifier.
+			 */
+			cras_system_set_noise_cancellation_supported();
+			input->base.audio_effect |=
+				EFFECT_TYPE_NOISE_CANCELLATION;
+		}
 	}
 
 	cras_iodev_add_node(&aio->base, &input->base);
@@ -2035,15 +2048,22 @@ static int get_valid_frames(struct cras_iodev *odev, struct timespec *tstamp)
 	return 0;
 }
 
-static int support_noise_cancellation(const struct cras_iodev *iodev)
+static int support_noise_cancellation(const struct cras_iodev *iodev,
+				      unsigned node_idx)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
+	struct cras_ionode *n;
 
-	if (!aio->ucm || !iodev->active_node)
+	if (!aio->ucm)
 		return 0;
 
-	return ucm_node_noise_cancellation_exists(aio->ucm,
-						  iodev->active_node->name);
+	DL_FOREACH (iodev->nodes, n) {
+		if (n->idx == node_idx) {
+			return ucm_node_noise_cancellation_exists(aio->ucm,
+								  n->name);
+		}
+	}
+	return 0;
 }
 
 /*
@@ -2383,15 +2403,6 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 	/* Record max supported channels into cras_iodev_info. */
 	if (node && node->plugged)
 		update_max_supported_channels(iodev);
-
-	/*
-	 * Update the flag of noise cancellation supported to cras_system_state.
-	 * The flag is set to true if there is any device supporting noise
-	 * cancellation on UCM modifier.
-	 */
-	if (aio->ucm && node && iodev->direction == CRAS_STREAM_INPUT &&
-	    ucm_node_noise_cancellation_exists(aio->ucm, node->name))
-		cras_system_set_noise_cancellation_supported();
 }
 
 void alsa_iodev_destroy(struct cras_iodev *iodev)

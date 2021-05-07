@@ -64,6 +64,7 @@ static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
 static size_t sys_get_capture_mute_called;
 static int sys_get_capture_mute_return_value;
+static size_t sys_set_noise_cancellation_supported_called;
 static struct cras_alsa_mixer* fake_mixer = (struct cras_alsa_mixer*)1;
 static struct cras_card_config* fake_config = (struct cras_card_config*)2;
 static struct mixer_control** cras_alsa_mixer_list_outputs_outputs;
@@ -224,6 +225,7 @@ void ResetStubData() {
   ucm_get_default_node_gain_values.clear();
   ucm_get_intrinsic_sensitivity_values.clear();
   cras_iodev_reset_rate_estimator_called = 0;
+  sys_set_noise_cancellation_supported_called = 0;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -1321,10 +1323,14 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   ucm_section_add_coupled(section, "MIC-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "MIC-R", MIXER_NAME_VOLUME);
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  ASSERT_EQ(1, sys_set_noise_cancellation_supported_called);
+  ASSERT_NE(iodev->nodes, (void*)NULL);
+  ASSERT_TRUE(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION);
   ucm_section_free_list(section);
 
   // Add a second node (will use the same iodev).
   cras_alsa_mixer_get_control_name_called = 0;
+  sys_set_noise_cancellation_supported_called = 0;
   // Set intrinsic sensitivity to enable software gain.
   ucm_get_intrinsic_sensitivity_values[MIC] = intrinsic_sensitivity;
   cras_alsa_jack_list_add_jack_for_section_result_jack =
@@ -1334,6 +1340,7 @@ TEST(AlsaOutputNode, InputsFromUCM) {
                                jack_name, "hctl");
   ucm_section_set_mixer_name(section, MIC);
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  ASSERT_EQ(0, sys_set_noise_cancellation_supported_called);
   ucm_section_free_list(section);
 
   // Jack plug of an unknown device should do nothing.
@@ -2559,6 +2566,10 @@ void cras_system_set_volume_limits(long min, long max) {
   sys_set_volume_limits_called++;
 }
 
+void cras_system_set_noise_cancellation_supported() {
+  sys_set_noise_cancellation_supported_called++;
+}
+
 bool cras_system_get_noise_cancellation_enabled() {
   return false;
 }
@@ -2813,6 +2824,9 @@ int ucm_get_channels_for_dev(struct cras_use_case_mgr* mgr,
 
 int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr* mgr,
                                        const char* node_name) {
+  // Assume that noise cancellation exists on internal microphone.
+  if (!strcmp(node_name, INTERNAL_MICROPHONE))
+    return 1;
   return 0;
 }
 
