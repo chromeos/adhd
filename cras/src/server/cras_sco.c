@@ -714,7 +714,7 @@ read_write_error:
 	 */
 	audio_thread_rm_callback(sco->fd);
 	close(sco->fd);
-	sco->fd = 0;
+	sco->fd = -1;
 	sco->started = 0;
 
 	return 0;
@@ -734,6 +734,7 @@ struct cras_sco *cras_sco_create()
 	sco->playback_buf = byte_buffer_create(MAX_HFP_BUF_SIZE_BYTES);
 	if (!sco->playback_buf)
 		goto error;
+	sco->fd = -1;
 
 	return sco;
 
@@ -827,7 +828,7 @@ int cras_sco_stop(struct cras_sco *sco)
 				      sco->fd);
 
 	close(sco->fd);
-	sco->fd = 0;
+	sco->fd = -1;
 	sco->started = 0;
 
 	/* Unset the write/read callbacks. */
