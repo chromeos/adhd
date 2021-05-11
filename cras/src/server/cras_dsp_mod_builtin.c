@@ -93,7 +93,7 @@ static int quad_rotation_instantiate(struct dsp_module *module,
 	struct quad_rotation *data;
 	struct cras_expr_expression *expr;
 	int rc = 0;
-	const char *channel_str[] = { "FF", "RL", "RR", "FR" };
+	const char *channel_str[] = { "FL", "RL", "RR", "FR" };
 
 	/* four port for input, four for output, and 1 parameters */
 	module->data = calloc(1, sizeof(struct quad_rotation));
@@ -105,15 +105,21 @@ static int quad_rotation_instantiate(struct dsp_module *module,
 	expr = cras_expr_expression_parse("display_rotation");
 	rc = cras_expr_expression_eval_int(expr, env, (int *)&data->rotation);
 	cras_expr_expression_free(expr);
-	if (rc < 0)
+	if (rc < 0) {
+		syslog(LOG_ERR,
+		       "failed to eval display_rotation for quad_rotation");
 		goto fail;
+	}
 	for (int i = 0; i < NUM_SPEAKER_POS_QUAD; i++) {
 		expr = cras_expr_expression_parse(channel_str[i]);
 		rc = cras_expr_expression_eval_int(expr, env,
 						   &data->port_map[i]);
 		cras_expr_expression_free(expr);
-		if (rc < 0)
+		if (rc < 0) {
+			syslog(LOG_ERR, "failed to eval %s for quad_rotation",
+			       channel_str[i]);
 			goto fail;
+		}
 	}
 	if (!quad_rotation_valid_port_map(data->port_map)) {
 		syslog(LOG_ERR, "invalid port_map for quad_rotation");
