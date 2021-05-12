@@ -65,6 +65,8 @@
  *        typical AEC use case. This flag decides whether to use settings
  *        tuned specifically for this hardware if exists. Otherwise it uses
  *        the generic settings like run inside browser.
+ *    only_symmetric_content_in_render - Flag to indicate whether content has
+ *        beenobserved in the left or right channel which is not identical.
  */
 struct cras_apm {
 	webrtc_apm apm_ptr;
@@ -76,6 +78,7 @@ struct cras_apm {
 	struct cras_audio_area *area;
 	void *work_queue;
 	bool is_aec_use_case;
+	bool only_symmetric_content_in_render;
 	struct cras_apm *prev, *next;
 };
 
@@ -139,6 +142,8 @@ static const char *aec_config_dir = NULL;
 static char ini_name[MAX_INI_NAME_LENGTH + 1];
 static dictionary *aec_ini = NULL;
 static dictionary *apm_ini = NULL;
+static const int apm_frame_length_ms = 10;
+static const int apm_num_frames_per_second = 1000 / apm_frame_length_ms;
 
 /* Update the global process reverse flag. Should be called when apms are added
  * or removed. */
@@ -227,6 +232,24 @@ void cras_apm_list_remove_apm(struct cras_apm_list *list, void *dev_ptr)
 }
 
 /*
+ * For playout, Chromium generally upmixes mono audio content to stereo before
+ * passing the signal to CrAS. To avoid that APM in CrAS treats these as proper
+ * stereo signals, this method detects when the content in the first two
+ * channels is non-symmetric. That detection allows APM to treat stereo signal
+ * as upmixed mono.
+ */
+int left_and_right_channels_are_symmetric(int num_channels, int rate,
+					  float *const *data)
+{
+	if (num_channels <= 1) {
+		return true;
+	}
+
+	const int frame_length = rate / apm_num_frames_per_second;
+	return (0 == memcmp(data[0], data[1], frame_length * sizeof(float)));
+}
+
+/*
  * WebRTC APM handles no more than stereo + keyboard mic channels.
  * Ignore keyboard mic feature for now because that requires processing on
  * mixed buffer from two input devices. Based on that we should modify the best
@@ -290,6 +313,9 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 	apm->fmt = *dev_fmt;
 	get_best_channels(&apm->fmt);
 
+	/* Reset detection of proper stereo */
+	apm->only_symmetric_content_in_render = true;
+
 	/* Use tuned settings only when the forward dev(capture) and reverse
 	 * dev(playback) both are in typical AEC use case. */
 	apm->is_aec_use_case = is_aec_use_case;
@@ -335,10 +361,11 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 	apm->work_queue = NULL;
 
 	/* WebRTC APM wants 10 ms equivalence of data to process. */
-	apm->buffer = byte_buffer_create(10 * apm->fmt.frame_rate / 1000 *
+	const int frame_length =
+		apm->fmt.frame_rate / apm_num_frames_per_second;
+	apm->buffer = byte_buffer_create(frame_length *
 					 cras_get_format_bytes(&apm->fmt));
-	apm->fbuffer = float_buffer_create(10 * apm->fmt.frame_rate / 1000,
-					   apm->fmt.num_channels);
+	apm->fbuffer = float_buffer_create(frame_length, apm->fmt.num_channels);
 	apm->area = cras_audio_area_create(apm->fmt.num_channels);
 	cras_audio_area_config_channels(apm->area, &apm->fmt);
 
@@ -491,8 +518,18 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 		if (!(active->effects & APM_ECHO_CANCELLATION))
 			continue;
 
+		if (active->apm->only_symmetric_content_in_render) {
+			active->apm->only_symmetric_content_in_render =
+				left_and_right_channels_are_symmetric(
+					fbuf->num_channels, frame_rate, wp);
+		}
+		int num_unique_channels =
+			active->apm->only_symmetric_content_in_render ?
+				1 :
+				fbuf->num_channels;
+
 		ret = webrtc_apm_process_reverse_stream_f(active->apm->apm_ptr,
-							  fbuf->num_channels,
+							  num_unique_channels,
 							  frame_rate, wp);
 		if (ret) {
 			syslog(LOG_ERR, "APM process reverse err");
