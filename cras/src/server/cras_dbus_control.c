@@ -409,6 +409,7 @@ handle_get_default_output_buffer_size(DBusConnection *conn,
 static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 				    const struct cras_iodev_info *dev,
 				    const struct cras_ionode_info *node,
+				    const struct audio_debug_info *info,
 				    enum CRAS_STREAM_DIRECTION direction)
 {
 	DBusMessageIter dict;
@@ -430,6 +431,19 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	id = node->iodev_idx;
 	id = (id << 32) | node->ionode_idx;
 	active = !!node->active;
+
+	uint32_t num_underruns = 0;
+	uint32_t num_severe_underruns = 0;
+	if (active && info) {
+		for (int i = 0; i < info->num_devs; i++) {
+			if (info->devs[i].dev_idx == node->iodev_idx) {
+				num_underruns = info->devs[i].num_underruns;
+				num_severe_underruns =
+					info->devs[i].num_severe_underruns;
+				break;
+			}
+		}
+	}
 
 	// If dev_name is not utf8, libdbus may abort cras.
 	if (!is_utf8_string(dev_name)) {
@@ -489,19 +503,40 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	}
 	free(models);
 
+	if (active && info) {
+		if (!append_key_value(
+			    &dict, "NumberOfUnderruns", DBUS_TYPE_UINT32,
+			    DBUS_TYPE_UINT32_AS_STRING, &num_underruns)) {
+			return FALSE;
+		}
+		if (!append_key_value(&dict, "NumberOfSevereUnderruns",
+				      DBUS_TYPE_UINT32,
+				      DBUS_TYPE_UINT32_AS_STRING,
+				      &num_severe_underruns)) {
+			return FALSE;
+		}
+	}
+
 	if (!dbus_message_iter_close_container(iter, &dict))
 		return FALSE;
 
 	return TRUE;
 }
 
+enum DUMP_DEBUG_INFO {
+	DISABLED,
+	ENABLED,
+};
+
 /* Appends the information about all nodes in a given direction. Returns false
  * if not enough memory. */
 static dbus_bool_t append_nodes(enum CRAS_STREAM_DIRECTION direction,
+				const enum DUMP_DEBUG_INFO debug_info,
 				DBusMessageIter *array)
 {
 	const struct cras_iodev_info *devs;
 	const struct cras_ionode_info *nodes;
+	struct audio_debug_info info = {};
 	int ndevs, nnodes;
 	int i, j;
 
@@ -512,6 +547,10 @@ static dbus_bool_t append_nodes(enum CRAS_STREAM_DIRECTION direction,
 		ndevs = cras_system_state_get_input_devs(&devs);
 		nnodes = cras_system_state_get_input_nodes(&nodes);
 	}
+
+	if (debug_info == ENABLED)
+		audio_thread_dump_thread_info(
+			cras_iodev_list_get_audio_thread(), &info);
 
 	for (i = 0; i < nnodes; i++) {
 		/* Don't reply unplugged nodes. */
@@ -524,7 +563,9 @@ static dbus_bool_t append_nodes(enum CRAS_STREAM_DIRECTION direction,
 		if (j == ndevs)
 			continue;
 		/* Send information about this node. */
-		if (!append_node_dict(array, &devs[j], &nodes[i], direction))
+		if (!append_node_dict(array, &devs[j], &nodes[i],
+				      (debug_info == ENABLED ? &info : NULL),
+				      direction))
 			return FALSE;
 	}
 
@@ -540,9 +581,9 @@ static DBusHandlerResult handle_get_nodes(DBusConnection *conn,
 
 	reply = dbus_message_new_method_return(message);
 	dbus_message_iter_init_append(reply, &array);
-	if (!append_nodes(CRAS_STREAM_OUTPUT, &array))
+	if (!append_nodes(CRAS_STREAM_OUTPUT, DISABLED, &array))
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
-	if (!append_nodes(CRAS_STREAM_INPUT, &array))
+	if (!append_nodes(CRAS_STREAM_INPUT, DISABLED, &array))
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
 	dbus_connection_send(conn, reply, &serial);
 	dbus_message_unref(reply);
@@ -566,11 +607,12 @@ static DBusHandlerResult handle_get_node_infos(DBusConnection *conn,
 		rc = FALSE;
 		goto error;
 	}
-	if (!append_nodes(CRAS_STREAM_OUTPUT, &dict)) {
+	/* Sets debug_info to ENABLED to get output underruns. */
+	if (!append_nodes(CRAS_STREAM_OUTPUT, ENABLED, &dict)) {
 		rc = DBUS_HANDLER_RESULT_NEED_MEMORY;
 		goto error;
 	}
-	if (!append_nodes(CRAS_STREAM_INPUT, &dict)) {
+	if (!append_nodes(CRAS_STREAM_INPUT, DISABLED, &dict)) {
 		rc = DBUS_HANDLER_RESULT_NEED_MEMORY;
 		goto error;
 	}

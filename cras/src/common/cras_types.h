@@ -425,6 +425,7 @@ struct __attribute__((__packed__)) audio_dev_debug_info {
 	uint32_t longest_wake_sec;
 	uint32_t longest_wake_nsec;
 	double software_gain_scaler;
+	uint32_t dev_idx;
 };
 
 struct __attribute__((__packed__)) audio_stream_debug_info {

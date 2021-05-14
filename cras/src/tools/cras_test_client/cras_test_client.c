@@ -765,7 +765,8 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 			       "Input" :
 			       "Output",
 		       info->devs[i].dev_name);
-		printf("buffer_size: %u\n"
+		printf("dev_idx: %u\n"
+		       "buffer_size: %u\n"
 		       "min_buffer_level: %u\n"
 		       "min_cb_level: %u\n"
 		       "max_cb_level: %u\n"
@@ -778,6 +779,7 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		       "runtime: %u.%09u\n"
 		       "longest_wake: %u.%09u\n"
 		       "software_gain_scaler: %lf\n",
+		       (unsigned int)info->devs[i].dev_idx,
 		       (unsigned int)info->devs[i].buffer_size,
 		       (unsigned int)info->devs[i].min_buffer_level,
 		       (unsigned int)info->devs[i].min_cb_level,

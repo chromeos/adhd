@@ -508,6 +508,7 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	di->runtime_nsec = time_since.tv_nsec;
 	di->longest_wake_sec = adev->longest_wake.tv_sec;
 	di->longest_wake_nsec = adev->longest_wake.tv_nsec;
+	di->dev_idx = adev->dev->info.idx;
 
 	if (fmt) {
 		di->frame_rate = fmt->frame_rate;

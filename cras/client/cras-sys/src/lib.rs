@@ -366,6 +366,7 @@ impl Default for audio_dev_debug_info {
             longest_wake_sec: 0,
             longest_wake_nsec: 0,
             software_gain_scaler: 0.0,
+            ..Default::default()
         }
     }
 }
