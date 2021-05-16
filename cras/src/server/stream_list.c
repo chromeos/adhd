@@ -5,8 +5,6 @@
 
 #include <syslog.h>
 #include "cras_rstream.h"
-#include "cras_tm.h"
-#include "cras_types.h"
 #include "stream_list.h"
 #include "utlist.h"
 
@@ -125,6 +123,19 @@ int stream_list_rm(struct stream_list *list, cras_stream_id_t id)
 	}
 	delete_streams(NULL, list);
 
+	return 0;
+}
+
+int stream_list_direct_rm(struct stream_list *list, cras_stream_id_t id)
+{
+	struct cras_rstream *to_remove;
+
+	DL_SEARCH_SCALAR(list->streams, to_remove, stream_id, id);
+	if (!to_remove || to_remove->direction != CRAS_STREAM_INPUT)
+		return -EINVAL;
+	DL_DELETE(list->streams, to_remove);
+	list->stream_removed_cb(to_remove);
+	list->stream_destroy_cb(to_remove);
 	return 0;
 }
 

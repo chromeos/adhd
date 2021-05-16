@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 
+#include "cras_tm.h"
 #include "cras_types.h"
 #include "utlist.h"
 
@@ -46,6 +47,11 @@ int stream_list_add(struct stream_list *list,
 		    struct cras_rstream **stream);
 
 int stream_list_rm(struct stream_list *list, cras_stream_id_t id);
+
+/* Removes the stream with the given id directly from stream_list without
+ * draining. Only supports streams with direction = CRAS_STREAM_INPUT.
+ */
+int stream_list_direct_rm(struct stream_list *list, cras_stream_id_t id);
 
 int stream_list_rm_all_client_streams(struct stream_list *list,
 				      struct cras_rclient *rclient);

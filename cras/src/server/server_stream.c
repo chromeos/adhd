@@ -68,7 +68,11 @@ static void server_stream_rm_cb(void *data)
 	if (stream_config == NULL)
 		return;
 
-	if (stream_list_rm(stream_list, stream_config->stream_id))
+	/*
+	 * Server stream needs no 'draining' state. Uses stream_list_direct_rm
+	 * here to prevent recursion.
+	 */
+	if (stream_list_direct_rm(stream_list, stream_config->stream_id))
 		syslog(LOG_ERR, "Server stream %x no longer exist",
 		       stream_config->stream_id);
 
