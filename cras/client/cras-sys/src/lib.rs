@@ -347,6 +347,8 @@ impl From<u32> for CRAS_STREAM_DIRECTION {
 }
 
 impl Default for audio_dev_debug_info {
+    // Calling Default::default in this context is not recursion.
+    #[allow(unconditional_recursion)]
     fn default() -> Self {
         Self {
             dev_name: [0; 64],
