@@ -94,6 +94,8 @@ static int hotword_suspended = 0;
 /* Flag to indicate that suspended hotword streams should be auto-resumed at
  * system resume. */
 static int hotword_auto_resume = 0;
+/* Flag to indicate that Noise Cancellation is blocked. */
+static bool noise_cancellation_blocked = false;
 
 static void idle_dev_check(struct cras_timer *timer, void *data);
 
@@ -275,6 +277,9 @@ static int fill_node_list(struct iodev_list *list,
 				 node_type_to_str(node));
 			node_info->type_enum = node->type;
 			node_info->audio_effect = node->audio_effect;
+			if (noise_cancellation_blocked)
+				node_info->audio_effect &=
+					~EFFECT_TYPE_NOISE_CANCELLATION;
 			node_info++;
 			i++;
 			if (i == out_size)
@@ -383,6 +388,53 @@ static void possibly_disable_echo_reference(struct cras_iodev *dev)
 }
 
 /*
+ * Blocks Noise Cancellation when any of following conditions is met:
+ *    1. Internal Speaker is the active output node and the device is enabled.
+ *    2. Internal Speaker is opened.
+ */
+static void possibly_block_noise_cancellation(const struct cras_iodev *dev)
+{
+	if (noise_cancellation_blocked)
+		return;
+
+	if (dev->direction == CRAS_STREAM_INPUT)
+		return;
+
+	if (!dev->active_node ||
+	    dev->active_node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER)
+		return;
+
+	if (cras_iodev_list_dev_is_enabled(dev) || cras_iodev_is_open(dev)) {
+		noise_cancellation_blocked = true;
+		cras_iodev_list_update_device_list();
+		cras_iodev_list_notify_nodes_changed();
+	}
+}
+
+/*
+ * Unblocks Noise Cancellation when all of following conditions are met:
+ *    1. Internal Speaker is the active output node and the device is disabled.
+ *    2. Internal Speaker is closed.
+ */
+static void possibly_unblock_noise_cancellation(const struct cras_iodev *dev)
+{
+	if (!noise_cancellation_blocked)
+		return;
+
+	if (dev->direction == CRAS_STREAM_INPUT)
+		return;
+
+	if (!dev->active_node ||
+	    dev->active_node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER)
+		return;
+
+	if (!cras_iodev_list_dev_is_enabled(dev) && !cras_iodev_is_open(dev)) {
+		noise_cancellation_blocked = false;
+		cras_iodev_list_update_device_list();
+		cras_iodev_list_notify_nodes_changed();
+	}
+}
+/*
  * Removes all attached streams and close dev if it's opened.
  */
 static void close_dev(struct cras_iodev *dev)
@@ -396,6 +448,8 @@ static void close_dev(struct cras_iodev *dev)
 	/* close echo ref first to avoid underrun in hardware */
 	possibly_disable_echo_reference(dev);
 	cras_iodev_close(dev);
+	/* Unblock Noise Cancellation when speaker node device is closed. */
+	possibly_unblock_noise_cancellation(dev);
 }
 
 static void idle_dev_check(struct cras_timer *timer, void *data)
@@ -481,6 +535,9 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *rstream)
 		cras_iodev_close(dev);
 
 	possibly_enable_echo_reference(dev);
+
+	/* Block Noise Cancellation when speaker node device is opened. */
+	possibly_block_noise_cancellation(dev);
 
 	return rc;
 }
@@ -1009,6 +1066,9 @@ static int enable_device(struct cras_iodev *dev)
 	DL_FOREACH (device_enable_cbs, callback)
 		callback->enabled_cb(dev, callback->cb_data);
 
+	/* Block Noise Cancellation when speaker node device is enabled. */
+	possibly_block_noise_cancellation(dev);
+
 	return 0;
 }
 
@@ -1050,6 +1110,9 @@ static int disable_device(struct enabled_dev *edev, bool force)
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 
+	/* Unblock Noise Cancellation when speaker node device is disabled. */
+	possibly_unblock_noise_cancellation(dev);
+
 	return 0;
 }
 
@@ -1068,6 +1131,7 @@ void cras_iodev_list_init()
 	observer_ops.suspend_changed = sys_suspend_change;
 	list_observer = cras_observer_add(&observer_ops, NULL);
 	idle_timer = NULL;
+	noise_cancellation_blocked = false;
 
 	main_log = main_thread_event_log_init();
 

@@ -580,6 +580,8 @@ struct __attribute__((__packed__)) cras_audio_thread_snapshot_buffer {
  *    num_input_streams_with_permission - An array containing numbers of input
  *        streams with permission in each client type.
  *    noise_cancellation_enabled - Whether or not Noise Cancellation is enabled.
+ *    noise_cancellation_supported - Whether or not Noise Cancellation is
+ *        supported by at least one input node.
  *    hotword_pause_at_suspend - 1 = Pause hotword detection when the system
  *        suspends. Hotword detection is resumed after system resumes.
  *        0 - Hotword detection is allowed to continue running after system
