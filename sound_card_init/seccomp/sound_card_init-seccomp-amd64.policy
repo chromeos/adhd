@@ -48,6 +48,7 @@ nanosleep: 1
 clock_nanosleep: 1
 openat: 1
 pipe2: 1
+poll: 1
 ppoll: 1
 prctl: arg0 == 0x3 || arg0 == 0x4
 prlimit64: 1
