@@ -115,6 +115,10 @@ Methods		void SetOutputVolume(int32 volume)
 					The node volume indexed from 0 to 100.
 				uint64 NodeCaptureGain
 					The capture gain of node in dBFS * 100.
+					It's not used by any clients.
+				uint32 InputNodeGain
+					The input node gain set by UI. Its value
+					ranges from 0 to 100.
 				string HotwordModels
 					A string of comma-separated hotword
 					language model locales supported by this

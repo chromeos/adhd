@@ -23,6 +23,7 @@
 #include "cras_system_state.h"
 #include "cras_utf8.h"
 #include "cras_util.h"
+#include "softvol_curve.h"
 #include "utlist.h"
 
 #define CRAS_CONTROL_INTERFACE "org.chromium.cras.Control"
@@ -493,6 +494,16 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	if (!append_key_value(&dict, "NodeAudioEffect", DBUS_TYPE_UINT32,
 			      DBUS_TYPE_UINT32_AS_STRING, &node_audio_effect))
 		return FALSE;
+
+	if (is_input) {
+		uint32_t input_node_gain = convert_input_node_gain_from_dBFS(
+			convert_dBFS_from_softvol_scaler(node->ui_gain_scaler));
+		if (!append_key_value(&dict, "InputNodeGain", DBUS_TYPE_UINT32,
+				      DBUS_TYPE_UINT32_AS_STRING,
+				      &input_node_gain)) {
+			return FALSE;
+		}
+	}
 
 	models = cras_iodev_list_get_hotword_models(id);
 	if (!append_key_value(&dict, "HotwordModels", DBUS_TYPE_STRING,
