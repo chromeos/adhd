@@ -338,6 +338,7 @@ enum AUDIO_THREAD_LOG_EVENTS {
  * MAIN_THREAD_SUSPEND_DEVS - When system suspends and notifies CRAS.
  * MAIN_THREAD_STREAM_ADDED - When an audio stream is added.
  * MAIN_THREAD_STREAM_REMOVED - When an audio stream is removed.
+ * MAIN_THREAD_NOISE_CANCELLATION - When Noise Cancellation is enabled/disabled.
  */
 enum MAIN_THREAD_LOG_EVENTS {
 	/* iodev related */
@@ -357,6 +358,8 @@ enum MAIN_THREAD_LOG_EVENTS {
 	/* stream related */
 	MAIN_THREAD_STREAM_ADDED,
 	MAIN_THREAD_STREAM_REMOVED,
+	/* server state related */
+	MAIN_THREAD_NOISE_CANCELLATION,
 };
 
 /* There are 8 bits of space for events. */

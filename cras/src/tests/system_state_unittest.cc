@@ -9,6 +9,7 @@
 extern "C" {
 #include "cras_alert.h"
 #include "cras_board_config.h"
+#include "cras_main_thread_log.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
@@ -464,6 +465,9 @@ TEST(SystemStateSuite, SetNoiseCancellationEnabled) {
 }
 
 extern "C" {
+
+// Stubs
+struct main_thread_event_log* main_log;
 
 struct cras_alsa_card* cras_alsa_card_create(
     struct cras_alsa_card_info* info,

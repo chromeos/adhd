@@ -19,6 +19,7 @@
 #include "cras_config.h"
 #include "cras_device_blocklist.h"
 #include "cras_iodev_list.h"
+#include "cras_main_thread_log.h"
 #include "cras_observer.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
@@ -422,6 +423,10 @@ void cras_system_set_noise_cancellation_enabled(bool enabled)
 {
 	/* When the flag is toggled, propagate to all iodevs immediately. */
 	if (cras_system_get_noise_cancellation_enabled() != enabled) {
+		MAINLOG(main_log, MAIN_THREAD_NOISE_CANCELLATION, enabled, 0,
+			0);
+		syslog(LOG_DEBUG, "Noise Cancellation is %s",
+		       enabled ? "enabled" : "disabled");
 		state.exp_state->noise_cancellation_enabled = enabled;
 		cras_iodev_list_reset_for_noise_cancellation();
 	}

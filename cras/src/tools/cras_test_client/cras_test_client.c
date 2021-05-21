@@ -957,6 +957,10 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 	case MAIN_THREAD_STREAM_REMOVED:
 		printf("%-30s stream 0x%x\n", "STREAM_REMOVED", data1);
 		break;
+	case MAIN_THREAD_NOISE_CANCELLATION:
+		printf("%-30s %s\n", "NOISE_CANCELLATION",
+		       data1 ? "enabled" : "disabled");
+		break;
 	default:
 		printf("%-30s\n", "UNKNOWN");
 		break;
