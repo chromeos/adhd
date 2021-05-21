@@ -2332,6 +2332,10 @@ bool cras_system_get_noise_cancellation_enabled() {
   return false;
 }
 
+bool cras_system_get_bypass_block_noise_cancellation() {
+  return false;
+}
+
 struct audio_thread* audio_thread_create() {
   return &thread;
 }

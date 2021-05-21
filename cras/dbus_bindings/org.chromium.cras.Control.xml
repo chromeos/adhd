@@ -122,6 +122,9 @@
     <method name="IsNoiseCancellationSupported">
       <arg name="supported" type="b" direction="out"/>
     </method>
+    <method name="SetBypassBlockNoiseCancellation">
+      <arg name="bypass" type="b" direction="in"/>
+    </method>
     <method name="SetPlayerPlaybackStatus">
       <arg name="status" type="s" direction="in"/>
     </method>

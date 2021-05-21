@@ -152,6 +152,12 @@ void cras_system_set_noise_cancellation_supported();
 /* Returns if Noise Cancellation is supported. */
 bool cras_system_get_noise_cancellation_supported();
 
+/* Sets the flag to bypass block/unblock Noise Cancellation mechanism. */
+void cras_system_set_bypass_block_noise_cancellation(bool bypass);
+
+/* Gets the flag of bypass block/unblock Noise Cancellation mechanism. */
+bool cras_system_get_bypass_block_noise_cancellation();
+
 /* Checks if the card ignores the ucm suffix. */
 bool cras_system_check_ignore_ucm_suffix(const char *card_name);
 

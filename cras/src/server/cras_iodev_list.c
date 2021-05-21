@@ -277,7 +277,8 @@ static int fill_node_list(struct iodev_list *list,
 				 node_type_to_str(node));
 			node_info->type_enum = node->type;
 			node_info->audio_effect = node->audio_effect;
-			if (noise_cancellation_blocked)
+			if (noise_cancellation_blocked &&
+			    !cras_system_get_bypass_block_noise_cancellation())
 				node_info->audio_effect &=
 					~EFFECT_TYPE_NOISE_CANCELLATION;
 			node_info++;
@@ -406,6 +407,9 @@ static void possibly_block_noise_cancellation(const struct cras_iodev *dev)
 
 	if (cras_iodev_list_dev_is_enabled(dev) || cras_iodev_is_open(dev)) {
 		noise_cancellation_blocked = true;
+		if (cras_system_get_bypass_block_noise_cancellation())
+			return;
+
 		cras_iodev_list_update_device_list();
 		cras_iodev_list_notify_nodes_changed();
 	}
@@ -430,6 +434,9 @@ static void possibly_unblock_noise_cancellation(const struct cras_iodev *dev)
 
 	if (!cras_iodev_list_dev_is_enabled(dev) && !cras_iodev_is_open(dev)) {
 		noise_cancellation_blocked = false;
+		if (cras_system_get_bypass_block_noise_cancellation())
+			return;
+
 		cras_iodev_list_update_device_list();
 		cras_iodev_list_notify_nodes_changed();
 	}

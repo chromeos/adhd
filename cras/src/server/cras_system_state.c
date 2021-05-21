@@ -165,6 +165,7 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 		board_config.deprioritize_bt_wbs_mic;
 	exp_state->noise_cancellation_enabled = 0;
 	exp_state->noise_cancellation_supported = 0;
+	exp_state->bypass_block_noise_cancellation = 0;
 	exp_state->hotword_pause_at_suspend =
 		board_config.hotword_pause_at_suspend;
 
@@ -445,6 +446,22 @@ void cras_system_set_noise_cancellation_supported()
 bool cras_system_get_noise_cancellation_supported()
 {
 	return !!state.exp_state->noise_cancellation_supported;
+}
+
+void cras_system_set_bypass_block_noise_cancellation(bool bypass)
+{
+	syslog(LOG_DEBUG, "Set bypass_block_noise_cancellation to %s",
+	       bypass ? "true" : "false");
+	state.exp_state->bypass_block_noise_cancellation = bypass;
+
+	/* Update nodes info immediately to adopt bypass status. */
+	cras_iodev_list_update_device_list();
+	cras_iodev_list_notify_nodes_changed();
+}
+
+bool cras_system_get_bypass_block_noise_cancellation()
+{
+	return !!state.exp_state->bypass_block_noise_cancellation;
 }
 
 bool cras_system_check_ignore_ucm_suffix(const char *card_name)

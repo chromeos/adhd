@@ -585,6 +585,8 @@ struct __attribute__((__packed__)) cras_audio_thread_snapshot_buffer {
  *    noise_cancellation_enabled - Whether or not Noise Cancellation is enabled.
  *    noise_cancellation_supported - Whether or not Noise Cancellation is
  *        supported by at least one input node.
+ *    bypass_block_noise_cancellation - Flag to bypass block/unblock Noise
+ *        Cancellation mechanism.
  *    hotword_pause_at_suspend - 1 = Pause hotword detection when the system
  *        suspends. Hotword detection is resumed after system resumes.
  *        0 - Hotword detection is allowed to continue running after system
@@ -631,6 +633,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	uint32_t num_input_streams_with_permission[CRAS_NUM_CLIENT_TYPE];
 	int32_t noise_cancellation_enabled;
 	int32_t noise_cancellation_supported;
+	int32_t bypass_block_noise_cancellation;
 	int32_t hotword_pause_at_suspend;
 	int32_t ns_supported;
 	int32_t agc_supported;
