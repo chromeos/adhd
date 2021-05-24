@@ -270,6 +270,21 @@ class IoDevTestSuite : public testing::Test {
     update_active_node_dev_enabled_val[i] = dev_enabled;
   }
 
+  static void set_active_node_by_id(struct cras_iodev* iodev,
+                                    unsigned node_idx,
+                                    unsigned dev_enabled) {
+    struct cras_ionode* n;
+
+    update_active_node_called++;
+
+    DL_FOREACH (iodev->nodes, n) {
+      if (n->idx == node_idx) {
+        iodev->active_node = n;
+        return;
+      }
+    }
+  }
+
   static int set_node_display_rotation(struct cras_iodev* iodev,
                                        struct cras_ionode* node,
                                        enum CRAS_SCREEN_ROTATION rotation) {
@@ -2152,15 +2167,21 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
   node3.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
   EXPECT_EQ(0, cras_iodev_list_add_input(&d3_));
 
-  // Select headphone as the active node.
-  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
-                              cras_make_node_id(d2_.info.idx, node2.idx));
-
   // Make sure shared state was updated.
   EXPECT_EQ(1, server_state_stub.num_input_devs);
   ASSERT_EQ(1, server_state_stub.num_input_nodes);
   EXPECT_EQ(node3.audio_effect, server_state_stub.input_nodes[0].audio_effect);
   EXPECT_EQ(0, cras_observer_notify_nodes_called);
+
+  // Select internal speaker as the active node.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, node1.idx));
+
+  // Block Noise Cancellation because internal speaker is enabled.
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(default_audio_effect,
+            server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(1, cras_observer_notify_nodes_called);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -2181,7 +2202,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
   EXPECT_EQ(&rstream1, audio_thread_add_stream_stream);
   EXPECT_EQ(1, update_active_node_called);
   EXPECT_EQ(&d1_, update_active_node_iodev_val[0]);
-  // Block Noise Cancellation because pinned stream is added to d1.
+  // Noise Cancellation is still blocked.
   ASSERT_EQ(1, server_state_stub.num_input_nodes);
   EXPECT_EQ(default_audio_effect,
             server_state_stub.input_nodes[0].audio_effect);
@@ -2204,6 +2225,17 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
   stream_list_has_pinned_stream_ret[d2_.info.idx] = 0;
   EXPECT_EQ(0, stream_rm_cb(&rstream2));
   // Nothing changed for removing pinned stream from d2.
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(default_audio_effect,
+            server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(1, cras_observer_notify_nodes_called);
+
+  stream_list_has_pinned_stream_ret[d1_.info.idx] = 1;
+  // Select headphone as the active node.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d2_.info.idx, node2.idx));
+  // Noise Cancellation is still blocked because pinned stream is still attached
+  // to d1 (internal speaker).
   ASSERT_EQ(1, server_state_stub.num_input_nodes);
   EXPECT_EQ(default_audio_effect,
             server_state_stub.input_nodes[0].audio_effect);
@@ -2245,7 +2277,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
   EXPECT_EQ(0, cras_observer_notify_nodes_called);
 
-  // Select internal speker as the active node, which means internal speaker
+  // Select internal speaker as the active node, which means internal speaker
   // device is enabled, yet opened.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d1_.info.idx, node1.idx));
@@ -2302,6 +2334,108 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   ASSERT_EQ(1, server_state_stub.num_input_nodes);
   EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
   EXPECT_EQ(2, cras_observer_notify_nodes_called);
+
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
+  struct cras_rstream rstream;
+  struct cras_ionode node1_2;
+
+  uint32_t default_audio_effect = 0x8000;
+
+  cras_iodev_list_init();
+
+  memset(&node1_2, 0, sizeof(node1_2));
+
+  // Add output device with two nodes (node1 is active node).
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.info.idx = 1;
+  d1_.update_active_node = set_active_node_by_id;
+  d1_.nodes = NULL;
+  node1.idx = 1;
+  node1.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  DL_APPEND(d1_.nodes, &node1);
+  node1_2.idx = 2;
+  node1_2.type = CRAS_NODE_TYPE_HEADPHONE;
+  DL_APPEND(d1_.nodes, &node1_2);
+  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+
+  // Add input device for checking Noise Cancellation state.
+  d2_.direction = CRAS_STREAM_INPUT;
+  d2_.info.idx = 2;
+  node2.idx = 2;
+  node2.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
+  EXPECT_EQ(0, cras_iodev_list_add_input(&d2_));
+
+  // Make sure shared state was updated.
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(0, cras_observer_notify_nodes_called);
+
+  // Select internal speaker as the active node.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, node1.idx));
+  EXPECT_EQ(1, cras_iodev_list_dev_is_enabled(&d1_));
+
+  // Noise Cancellation is blocked.
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(default_audio_effect,
+            server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(1, cras_observer_notify_nodes_called);
+
+  // Select headphone as the active node.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, node1_2.idx));
+  EXPECT_EQ(1, cras_iodev_list_dev_is_enabled(&d1_));
+
+  // Noise Cancellation is unblocked.
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(2, cras_observer_notify_nodes_called);
+
+  // Select internal speaker as the active node.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, node1.idx));
+  EXPECT_EQ(1, cras_iodev_list_dev_is_enabled(&d1_));
+
+  // Noise Cancellation is blocked.
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(default_audio_effect,
+            server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(3, cras_observer_notify_nodes_called);
+
+  d1_.format = &fmt_;
+
+  // Setup pinned streams.
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.is_pinned = 1;
+  rstream.pinned_dev_idx = d1_.info.idx;
+
+  // Add pinned stream to d1, which means internal speaker device is opened.
+  update_active_node_called = 0;
+  EXPECT_EQ(0, stream_add_cb(&rstream));
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+  EXPECT_EQ(&d1_, audio_thread_add_stream_dev);
+  EXPECT_EQ(&rstream, audio_thread_add_stream_stream);
+  EXPECT_EQ(1, update_active_node_called);
+  EXPECT_EQ(1, cras_iodev_is_open(&d1_));
+
+  // Select headphone as the active node.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, node1_2.idx));
+  EXPECT_EQ(1, cras_iodev_list_dev_is_enabled(&d1_));
+
+  // Noise Cancellation is unblocked because headphone is the active node, and
+  // the pinned stream is played by headphone.
+  EXPECT_EQ(1, cras_iodev_list_dev_is_enabled(&d1_));
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(4, cras_observer_notify_nodes_called);
+
+  // Remove pinned stream from d1.
+  stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
+  EXPECT_EQ(0, stream_rm_cb(&rstream));
 
   cras_iodev_list_deinit();
 }
