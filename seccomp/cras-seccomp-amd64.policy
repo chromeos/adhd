@@ -10,6 +10,7 @@ recvfrom: 1
 poll: 1
 ppoll: 1
 fstat: 1
+newfstatat: 1
 write: 1
 writev: 1
 open: 1
