@@ -1227,6 +1227,12 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 	/* TODO(hychao) - This assumes interleaved audio. */
 	hw_buffer = data->area->channels[0].buf;
 
+	/* Mute input buffer before effects like AEC are applied, in which
+	 * case the stream will read from the processed buffer so we miss
+	 * the chance to mute. */
+	if (cras_system_get_capture_mute())
+		cras_mix_mute_buffer(hw_buffer, frame_bytes, *frames);
+
 	/*
 	 * input_dsp_offset records the position where input dsp has applied to
 	 * last time. It's possible the requested |frames| count is smaller
@@ -1249,9 +1255,6 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 				    iodev->input_dsp_offset * frame_bytes),
 			data->area, *frames - iodev->input_dsp_offset);
 	}
-
-	if (cras_system_get_capture_mute())
-		cras_mix_mute_buffer(hw_buffer, frame_bytes, *frames);
 
 	return rc;
 }

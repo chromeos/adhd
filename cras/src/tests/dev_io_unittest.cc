@@ -458,6 +458,9 @@ struct dev_stream* dev_stream_create(struct cras_rstream* stream,
 int cras_device_monitor_error_close(unsigned int dev_idx) {
   return 0;
 }
+int cras_system_get_capture_mute() {
+  return 0;
+}
 }  // extern "C"
 
 }  //  namespace

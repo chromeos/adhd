@@ -15,6 +15,7 @@
 #include "cras_non_empty_audio_handler.h"
 #include "cras_rstream.h"
 #include "cras_server_metrics.h"
+#include "cras_system_state.h"
 #include "dev_stream.h"
 #include "input_data.h"
 #include "polled_interval_checker.h"
@@ -604,6 +605,13 @@ static int capture_to_streams(struct open_dev *adev, struct open_dev *odev_list)
 					idev->input_data,
 					idev->software_gain_scaler,
 					stream->stream);
+
+			/* Although the input hw buffer is zeroed out, it's
+			 * possible to have processing blocks generate data
+			 * into the buffer area, so do the second round of
+			 * mute here. */
+			if (cras_system_get_capture_mute())
+				software_gain_scaler = 0.0f;
 
 			this_read =
 				dev_stream_capture(stream, area, area_offset,
