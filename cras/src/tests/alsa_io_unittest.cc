@@ -3056,6 +3056,12 @@ struct cras_ramp* cras_ramp_create() {
   return (struct cras_ramp*)0x1;
 }
 
+int cras_server_metrics_device_noise_cancellation_enabled(
+    struct cras_iodev* iodev,
+    bool enabled) {
+  return 0;
+}
+
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   tp->tv_sec = clock_gettime_retspec.tv_sec;

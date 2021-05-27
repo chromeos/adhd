@@ -29,6 +29,7 @@
 #include "cras_messages.h"
 #include "cras_ramp.h"
 #include "cras_rclient.h"
+#include "cras_server_metrics.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
@@ -424,6 +425,8 @@ static int open_dev(struct cras_iodev *iodev)
 			enable_noise_cancellation);
 		if (rc < 0)
 			return rc;
+		cras_server_metrics_device_noise_cancellation_enabled(
+			iodev, enable_noise_cancellation);
 	}
 
 	return 0;

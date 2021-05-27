@@ -55,6 +55,10 @@ int cras_server_metrics_device_gain(struct cras_iodev *iodev);
 /* Logs the volume of a device. */
 int cras_server_metrics_device_volume(struct cras_iodev *iodev);
 
+/* Logs if Noise Cancellation is enabled of a device. */
+int cras_server_metrics_device_noise_cancellation_enabled(
+	struct cras_iodev *iodev, bool enabled);
+
 /* Logs the highest delay time of a device. */
 int cras_server_metrics_highest_device_delay(
 	unsigned int hw_level, unsigned int largest_cb_level,
