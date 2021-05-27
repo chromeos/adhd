@@ -441,24 +441,24 @@ TEST(SystemStateSuite, SetNoiseCancellationEnabled) {
   ResetStubData();
   do_sys_init();
 
-  EXPECT_EQ(0, cras_system_get_noise_cancellation_enabled());
+  bool enabled = cras_system_get_noise_cancellation_enabled();
 
-  cras_system_set_noise_cancellation_enabled(0);
-  EXPECT_EQ(0, cras_system_get_noise_cancellation_enabled());
+  cras_system_set_noise_cancellation_enabled(enabled);
+  EXPECT_EQ(enabled, cras_system_get_noise_cancellation_enabled());
   EXPECT_EQ(0, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_noise_cancellation_enabled(1);
-  EXPECT_EQ(1, cras_system_get_noise_cancellation_enabled());
+  cras_system_set_noise_cancellation_enabled(!enabled);
+  EXPECT_EQ(!enabled, cras_system_get_noise_cancellation_enabled());
   EXPECT_EQ(1, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_noise_cancellation_enabled(1);
-  EXPECT_EQ(1, cras_system_get_noise_cancellation_enabled());
+  cras_system_set_noise_cancellation_enabled(!enabled);
+  EXPECT_EQ(!enabled, cras_system_get_noise_cancellation_enabled());
   // cras_iodev_list_reset_for_noise_cancellation shouldn't be called if state
   // is already enabled/disabled.
   EXPECT_EQ(1, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_noise_cancellation_enabled(0);
-  EXPECT_EQ(0, cras_system_get_noise_cancellation_enabled());
+  cras_system_set_noise_cancellation_enabled(enabled);
+  EXPECT_EQ(enabled, cras_system_get_noise_cancellation_enabled());
   EXPECT_EQ(2, cras_iodev_list_reset_for_noise_cancellation_called);
 
   cras_system_state_deinit();
