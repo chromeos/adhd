@@ -491,7 +491,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 	if (!append_key_value(&dict, "NodeCaptureGain", DBUS_TYPE_INT64,
 			      DBUS_TYPE_INT64_AS_STRING, &node_capture_gain))
 		return FALSE;
-	if (!append_key_value(&dict, "NodeAudioEffect", DBUS_TYPE_UINT32,
+	if (!append_key_value(&dict, "AudioEffect", DBUS_TYPE_UINT32,
 			      DBUS_TYPE_UINT32_AS_STRING, &node_audio_effect))
 		return FALSE;
 
