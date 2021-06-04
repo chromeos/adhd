@@ -1028,9 +1028,19 @@ static DBusHandlerResult
 handle_is_noise_cancellation_supported(DBusConnection *conn,
 				       DBusMessage *message, void *arg)
 {
-	dbus_int32_t supported = cras_system_get_noise_cancellation_supported();
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_bool_t nc_supported;
 
-	send_int32_reply(conn, message, supported);
+	reply = dbus_message_new_method_return(message);
+
+	nc_supported = cras_system_get_noise_cancellation_supported();
+	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &nc_supported,
+				 DBUS_TYPE_INVALID);
+
+	dbus_connection_send(conn, reply, &serial);
+
+	dbus_message_unref(reply);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
