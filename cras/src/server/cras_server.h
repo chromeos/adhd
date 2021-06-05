@@ -9,12 +9,6 @@
 #ifndef CRAS_SERVER_H_
 #define CRAS_SERVER_H_
 
-/*
- * Bitmask for cras_server_run() argument profile_disable_mask
- */
-#define CRAS_SERVER_PROFILE_MASK_HFP (1 << 0)
-#define CRAS_SERVER_PROFILE_MASK_A2DP (1 << 1)
-
 /* Reserver client id 0-15 for internal server usage. */
 #define RESERVED_CLIENT_IDS 16
 #define SERVER_STREAM_CLIENT_ID 0

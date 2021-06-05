@@ -24,14 +24,9 @@
 #include <unistd.h>
 
 #ifdef CRAS_DBUS
-#include "cras_a2dp_endpoint.h"
 #include "cras_bt_manager.h"
-#include "cras_bt_device.h"
-#include "cras_bt_player.h"
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
-#include "cras_hfp_ag_profile.h"
-#include "cras_telephony.h"
 #endif
 #include "cras_alert.h"
 #include "cras_audio_thread_monitor.h"
@@ -567,9 +562,6 @@ int cras_server_run(unsigned int profile_disable_mask)
 	pollfds = malloc(sizeof(*pollfds) * pollfds_size);
 
 	cras_udev_start_sound_subsystem_monitor();
-#ifdef CRAS_DBUS
-	cras_bt_device_start_monitor();
-#endif
 
 	cras_server_metrics_init();
 
@@ -585,13 +577,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 	dbus_threads_init_default();
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
-		cras_bt_start(dbus_conn);
-		if (!(profile_disable_mask & CRAS_SERVER_PROFILE_MASK_HFP))
-			cras_hfp_ag_profile_create(dbus_conn);
-		cras_telephony_start(dbus_conn);
-		if (!(profile_disable_mask & CRAS_SERVER_PROFILE_MASK_A2DP))
-			cras_a2dp_endpoint_create(dbus_conn);
-		cras_bt_player_create(dbus_conn);
+		cras_bt_start(dbus_conn, profile_disable_mask);
 		cras_dbus_control_start(dbus_conn);
 	}
 #endif

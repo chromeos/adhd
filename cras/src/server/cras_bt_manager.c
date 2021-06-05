@@ -10,6 +10,7 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras_a2dp_endpoint.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_manager.h"
 #include "cras_bt_adapter.h"
@@ -20,6 +21,8 @@
 #include "cras_bt_profile.h"
 #include "cras_bt_transport.h"
 #include "cras_bt_battery_provider.h"
+#include "cras_hfp_ag_profile.h"
+#include "cras_telephony.h"
 #include "utlist.h"
 
 struct cras_bt_event_log *btlog;
@@ -498,11 +501,12 @@ static DBusHandlerResult cras_bt_handle_properties_changed(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-void cras_bt_start(DBusConnection *conn)
+void cras_bt_start(DBusConnection *conn, unsigned int profile_disable_mask)
 {
 	DBusError dbus_error;
 
 	btlog = cras_bt_event_log_init();
+	cras_bt_device_start_monitor();
 
 	dbus_error_init(&dbus_error);
 
@@ -562,6 +566,19 @@ void cras_bt_start(DBusConnection *conn)
 		goto add_filter_error;
 
 	cras_bt_get_managed_objects(conn);
+
+	/*
+	 * At this point we successfully registered for BlueZ interfaces added
+	 * events.  Let's add the profile implementations locally so they can be
+	 * registered to corresponding interfaces later.
+	 */
+	if (!(profile_disable_mask & CRAS_BT_PROFILE_MASK_HFP))
+		cras_hfp_ag_profile_create(conn);
+	cras_telephony_start(conn);
+	if (!(profile_disable_mask & CRAS_BT_PROFILE_MASK_A2DP))
+		cras_a2dp_endpoint_create(conn);
+	cras_bt_player_create(conn);
+
 	return;
 
 add_match_error:

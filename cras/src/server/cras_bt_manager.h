@@ -8,7 +8,14 @@
 
 #include <dbus/dbus.h>
 
-void cras_bt_start(DBusConnection *conn);
+/*
+ * Bitmask for CRAS supported BT profiles. Currently only used for disabling
+ * selected profiles on cras_bt_start().
+ */
+#define CRAS_BT_PROFILE_MASK_HFP (1 << 0)
+#define CRAS_BT_PROFILE_MASK_A2DP (1 << 1)
+
+void cras_bt_start(DBusConnection *conn, unsigned profile_disable_mask);
 void cras_bt_stop(DBusConnection *conn);
 
 #endif /* CRAS_BT_MANAGER_H_ */

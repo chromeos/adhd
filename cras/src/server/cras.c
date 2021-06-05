@@ -11,6 +11,7 @@
 
 #include "cras_alsa_plugin_io.h"
 #include "cras_apm_list.h"
+#include "cras_bt_manager.h"
 #include "cras_config.h"
 #include "cras_iodev_list.h"
 #include "cras_server.h"
@@ -75,11 +76,11 @@ int main(int argc, char **argv)
 			while ((optarg != NULL) && (*optarg != 0)) {
 				if (strncmp(optarg, "hfp", 3) == 0) {
 					profile_disable_mask |=
-						CRAS_SERVER_PROFILE_MASK_HFP;
+						CRAS_BT_PROFILE_MASK_HFP;
 				}
 				if (strncmp(optarg, "a2dp", 4) == 0) {
 					profile_disable_mask |=
-						CRAS_SERVER_PROFILE_MASK_A2DP;
+						CRAS_BT_PROFILE_MASK_A2DP;
 				}
 				optarg = strchr(optarg, ',');
 				if (optarg != NULL) {
