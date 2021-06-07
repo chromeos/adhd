@@ -116,6 +116,9 @@
     <method name="IsAudioOutputActive">
       <arg name="active" type="b" direction="out"/>
     </method>
+    <method name="SetFlossEnabled">
+      <arg name="enabled" type="b" direction="in"/>
+    </method>
     <method name="SetWbsEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>

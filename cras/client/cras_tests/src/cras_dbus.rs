@@ -33,6 +33,7 @@ pub enum DBusControlOp {
     /// (num_channels, coefficients)
     SetGlobalOutputChannelRemix(u32, Vec<f64>),
     SetDisplayRotation(u64, CrasScreenRotation),
+    SetFlossEnabled(bool),
 }
 
 impl DBusControlOp {
@@ -83,6 +84,9 @@ impl DBusControlOp {
                 proxy
                     .set_display_rotation(node_id, rotation as u32)
                     .map_err(Error::DBusCall)?;
+            }
+            Self::SetFlossEnabled(enabled) => {
+                proxy.set_floss_enabled(enabled).map_err(Error::DBusCall)?;
             }
         }
         Ok(())

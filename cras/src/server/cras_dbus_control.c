@@ -16,6 +16,7 @@
 #include "cras_dbus_bindings.h" /* Generated from Makefile */
 #include "cras_dbus_control.h"
 #include "cras_dbus_util.h"
+#include "cras_fl_manager.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_iodev_list.h"
 #include "cras_main_thread_log.h"
@@ -1010,6 +1011,23 @@ static DBusHandlerResult handle_is_audio_active(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult
+handle_set_floss_enabled(DBusConnection *conn, DBusMessage *message, void *arg)
+{
+	int rc;
+	dbus_bool_t enabled;
+
+	rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+	if (rc)
+		return rc;
+
+	cras_floss_set_enabled(enabled);
+
+	send_empty_reply(conn, message);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 static DBusHandlerResult handle_set_wbs_enabled(DBusConnection *conn,
 						DBusMessage *message, void *arg)
 {
@@ -1323,6 +1341,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "IsAudioOutputActive")) {
 		return handle_is_audio_active(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "SetFlossEnabled")) {
+		return handle_set_floss_enabled(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetWbsEnabled")) {
 		return handle_set_wbs_enabled(conn, message, arg);

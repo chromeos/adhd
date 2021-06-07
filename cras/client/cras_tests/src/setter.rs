@@ -101,6 +101,15 @@ impl SetCommand {
                     rotation,
                 ))))
             }
+            "floss_enabled" => {
+                let enabled = args
+                    .next()
+                    .ok_or_else(|| missing_argument(cmd))
+                    .and_then(|s| s.parse::<bool>().map_err(|e| invalid_argument(cmd, s, &e)))?;
+                Ok(Some(Self::DBusControl(DBusControlOp::SetFlossEnabled(
+                    enabled,
+                ))))
+            }
             s => Err(Error::UnknownCommand(s.to_string())),
         }
         .map_err(|e| {
@@ -133,6 +142,11 @@ impl SetCommand {
                 "global_remix",
                 "NUM_CHANNELS [COEFFICENTS]",
                 "Float array representing |num_channels| * |num_channels| matrix.",
+            ),
+            (
+                "floss_enabled",
+                "ENABLED",
+                "Enable or disable using Floss as Bluetooth stack",
             ),
         ];
 
@@ -195,5 +209,12 @@ mod tests {
         assert!(
             SetCommand::parse("cras_tests", "set", &["display_rotation", "7:0:1", "2"]).is_err()
         );
+        assert_eq!(
+            SetCommand::parse("cras_tests", "set", &["floss_enabled", "true"])
+                .unwrap()
+                .unwrap(),
+            SetCommand::DBusControl(DBusControlOp::SetFlossEnabled(true))
+        );
+        assert!(SetCommand::parse("cras_tests", "set", &["floss_enabled", "3"]).is_err());
     }
 }
