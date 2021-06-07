@@ -646,7 +646,7 @@ int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
 }
 
 enum cras_bt_device_profile
-cras_bt_io_profile_to_log(struct cras_iodev *bt_iodev)
+cras_bt_io_profile_to_log(const struct cras_iodev *bt_iodev)
 {
 	struct bt_node *btnode = (struct bt_node *)bt_iodev->active_node;
 

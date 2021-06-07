@@ -51,6 +51,7 @@ const char kMissedCallbackSecondTimeInput[] =
 const char kMissedCallbackSecondTimeOutput[] =
 	"Cras.MissedCallbackSecondTimeOutput";
 const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
+const char kRtcDevicePair[] = "Cras.RtcDevicePair";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
 const char kStreamClientTypeInput[] = "Cras.StreamClientTypeInput";
 const char kStreamClientTypeOutput[] = "Cras.StreamClientTypeOutput";
@@ -115,10 +116,15 @@ enum CRAS_SERVER_METRICS_TYPE {
 	MISSED_CB_SECOND_TIME_INPUT,
 	MISSED_CB_SECOND_TIME_OUTPUT,
 	NUM_UNDERRUNS,
+	RTC_RUNTIME,
 	STREAM_CONFIG,
 	STREAM_RUNTIME
 };
 
+/*
+ * Please do not change the order of this enum. It will affect the result of
+ * metrics.
+ */
 enum CRAS_METRICS_DEVICE_TYPE {
 	/* Output devices. */
 	CRAS_METRICS_DEVICE_INTERNAL_SPEAKER,
@@ -180,12 +186,19 @@ struct cras_server_metrics_timespec_data {
 	unsigned count;
 };
 
+struct cras_server_metrics_rtc_data {
+	enum CRAS_METRICS_DEVICE_TYPE in_type;
+	enum CRAS_METRICS_DEVICE_TYPE out_type;
+	struct timespec runtime;
+};
+
 union cras_server_metrics_data {
 	unsigned value;
 	struct cras_server_metrics_stream_config stream_config;
 	struct cras_server_metrics_device_data device_data;
 	struct cras_server_metrics_stream_data stream_data;
 	struct cras_server_metrics_timespec_data timespec_data;
+	struct cras_server_metrics_rtc_data rtc_data;
 };
 
 /*
@@ -340,7 +353,7 @@ metrics_stream_type_str(enum CRAS_STREAM_TYPE stream_type)
 }
 
 static enum CRAS_METRICS_DEVICE_TYPE
-get_metrics_device_type(struct cras_iodev *iodev)
+get_metrics_device_type(const struct cras_iodev *iodev)
 {
 	/* Check whether it is a special device. */
 	if (iodev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
@@ -599,6 +612,36 @@ int cras_server_metrics_hfp_wideband_selected_codec(int codec)
 				"BT_WIDEBAND_SELECTED_CODEC");
 		return err;
 	}
+	return 0;
+}
+
+int cras_server_metrics_webrtc_devs_runtime(const struct cras_iodev *in_dev,
+					    const struct cras_iodev *out_dev,
+					    const struct timespec *rtc_start_ts)
+{
+	struct cras_server_metrics_message msg;
+	union cras_server_metrics_data data;
+	struct timespec now;
+	int err;
+
+	data.rtc_data.in_type = get_metrics_device_type(in_dev);
+	data.rtc_data.out_type = get_metrics_device_type(out_dev);
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, rtc_start_ts, &data.rtc_data.runtime);
+
+	/* Skip logging RTC streams which run less than 1s. */
+	if (data.rtc_data.runtime.tv_sec < 1)
+		return 0;
+
+	init_server_metrics_msg(&msg, RTC_RUNTIME, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: RTC_RUNTIME");
+		return err;
+	}
+
 	return 0;
 }
 
@@ -1160,6 +1203,25 @@ metrics_longest_fetch_delay(struct cras_server_metrics_stream_data data)
 				 metrics_stream_type_str(data.stream_type));
 }
 
+static void metrics_rtc_runtime(struct cras_server_metrics_rtc_data data)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE];
+	int value;
+
+	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
+		 "Cras.RtcRuntime.%s.%s", metrics_device_type_str(data.in_type),
+		 metrics_device_type_str(data.out_type));
+	cras_metrics_log_histogram(metrics_name, (unsigned)data.runtime.tv_sec,
+				   0, 10000, 20);
+
+	/*
+	 * The first 2 digits represents the input device which the last 2 digits
+	 * represents the output device. The type is from CRAS_METRICS_DEVICE_TYPE.
+	 */
+	value = data.in_type * 100 + data.out_type;
+	cras_metrics_log_sparse_histogram(kRtcDevicePair, value);
+}
+
 static void metrics_stream_runtime(struct cras_server_metrics_stream_data data)
 {
 	log_histogram_each_level(
@@ -1334,6 +1396,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		cras_metrics_log_histogram(kUnderrunsPerDevice,
 					   metrics_msg->data.value, 0, 1000,
 					   10);
+		break;
+	case RTC_RUNTIME:
+		metrics_rtc_runtime(metrics_msg->data.rtc_data);
 		break;
 	case STREAM_CONFIG:
 		metrics_stream_config(metrics_msg->data.stream_config);

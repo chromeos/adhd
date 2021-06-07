@@ -46,6 +46,11 @@ int cras_server_metrics_hfp_wideband_selected_codec(int codec);
 /* Logs the number of packet loss per 1000 packets under HFP capture. */
 int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio);
 
+/* Logs runtime of webrtc device pairs. */
+int cras_server_metrics_webrtc_devs_runtime(const struct cras_iodev *in_dev,
+					    const struct cras_iodev *out_dev,
+					    const struct timespec *rtc_start_ts);
+
 /* Logs runtime of a device. */
 int cras_server_metrics_device_runtime(struct cras_iodev *iodev);
 

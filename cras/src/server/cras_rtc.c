@@ -7,6 +7,7 @@
 #include "cras_iodev.h"
 #include "cras_rtc.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -95,6 +96,8 @@ void cras_rtc_add_stream(struct cras_rstream *stream, struct cras_iodev *iodev)
 void cras_rtc_remove_stream(struct cras_rstream *stream, unsigned int dev_id)
 {
 	struct rtc_data *data;
+	struct rtc_data *tmp;
+	struct timespec *start_ts;
 
 	if (!check_rtc_stream(stream, dev_id))
 		return;
@@ -104,11 +107,27 @@ void cras_rtc_remove_stream(struct cras_rstream *stream, unsigned int dev_id)
 		if (!data)
 			return;
 		DL_DELETE(input_list, data);
+		DL_FOREACH (output_list, tmp) {
+			start_ts = timespec_after(&data->start_ts,
+						  &tmp->start_ts) ?
+					   &data->start_ts :
+					   &tmp->start_ts;
+			cras_server_metrics_webrtc_devs_runtime(
+				data->iodev, tmp->iodev, start_ts);
+		}
 	} else {
 		data = find_rtc_stream(output_list, stream, dev_id);
 		if (!data)
 			return;
 		DL_DELETE(output_list, data);
+		DL_FOREACH (input_list, tmp) {
+			start_ts = timespec_after(&data->start_ts,
+						  &tmp->start_ts) ?
+					   &data->start_ts :
+					   &tmp->start_ts;
+			cras_server_metrics_webrtc_devs_runtime(
+				tmp->iodev, data->iodev, start_ts);
+		}
 	}
 	free(data);
 }

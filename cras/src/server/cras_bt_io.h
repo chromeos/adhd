@@ -34,7 +34,7 @@ int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
  * Do NOT use this function except for logging.
  */
 enum cras_bt_device_profile
-cras_bt_io_profile_to_log(struct cras_iodev *bt_iodev);
+cras_bt_io_profile_to_log(const struct cras_iodev *bt_iodev);
 
 /* Dry-run the profile device removal from bt_iodev.
  * Returns:
