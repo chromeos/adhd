@@ -329,37 +329,33 @@ static void interleave_stereo(float *input1, float *input2, int16_t *output,
 	int chunk = frames >> 2;
 	frames &= 3;
 
-	if (chunk) {
-		// clang-format off
-		__asm__ __volatile__(
-			"1:                                         \n"
-			"lddqu (%[input1]), %%xmm0                  \n"
-			"lddqu (%[input2]), %%xmm2                  \n"
-			"add $16, %[input1]                         \n"
-			"add $16, %[input2]                         \n"
-			"movaps %%xmm0, %%xmm1                      \n"
-			"unpcklps %%xmm2, %%xmm0                    \n"
-			"unpckhps %%xmm2, %%xmm1                    \n"
-			"paddsw %[scale_2_15], %%xmm0               \n"
-			"paddsw %[scale_2_15], %%xmm1               \n"
-			"cvtps2dq %%xmm0, %%xmm0                    \n"
-			"cvtps2dq %%xmm1, %%xmm1                    \n"
-			"packssdw %%xmm1, %%xmm0                    \n"
-			"movdqu %%xmm0, (%[output])                 \n"
-			"add $16, %[output]                         \n"
-			"sub $1, %[chunk]                           \n"
-			"jnz 1b                                     \n"
-			: /* output */
-			  [chunk]"+r"(chunk),
-			  [input1]"+r"(input1),
-			  [input2]"+r"(input2),
-			  [output]"+r"(output)
-			: /* input */
-			  [scale_2_15]"x"(_mm_set1_epi32(15 << 23)),
-			  [clamp_large]"x"(_mm_set1_ps(32767.0f))
-			: /* clobber */
-			  "xmm0", "xmm1", "xmm2", "memory", "cc");
-		// clang-format on
+	while (chunk--) {
+		/*
+		 * _mm_castsi128_ps and __mm_castps_si128 do not generate any
+		 * instructions, thus they have zero latency.
+		 */
+		/* | L3 | L2 | L1 | L0 |*/
+		__m128 l = _mm_loadu_ps(input1);
+		/* | R3 | R2 | R1 | R0 |*/
+		__m128 r = _mm_loadu_ps(input2);
+		/*
+		 * Bits [30:23] are exponent bits for a |float|.
+		 * Adding (15<<23) to that part is equivalent to
+		 * |float| * 2^15.
+		 */
+		__m128i scale_2_15 = _mm_set1_epi32(15 << 23);
+		/* | R1 | L1 | R0 | L0 | and scales each with 2^15. */
+		__m128 scaled_lo_f = _mm_castsi128_ps(_mm_adds_epi16(
+			_mm_castps_si128(_mm_unpacklo_ps(l, r)), scale_2_15));
+		/* | R3 | L3 | R2 | L2 | and scales each with 2^15. */
+		__m128 scaled_hi_f = _mm_castsi128_ps(_mm_adds_epi16(
+			_mm_castps_si128(_mm_unpackhi_ps(l, r)), scale_2_15));
+		__m128i res = _mm_packs_epi32(_mm_cvtps_epi32(scaled_lo_f),
+					      _mm_cvtps_epi32(scaled_hi_f));
+		_mm_storeu_si128((__m128i *)(output), res);
+		input1 += 4;
+		input2 += 4;
+		output += 8;
 	}
 
 	/* The remaining samples */
