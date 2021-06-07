@@ -188,7 +188,8 @@ cras_server_SOURCES = \
 	server/server_stream.c \
 	server/stream_list.c \
 	server/test_iodev.c \
-	server/softvol_curve.c
+	server/softvol_curve.c \
+	server/cras_rtc.c
 
 SERVER_RUST_SRCDIR = $(top_srcdir)/src/server/rust
 
@@ -453,6 +454,7 @@ TESTS = \
 	checksum_unittest \
 	cras_abi_unittest \
 	cras_client_unittest \
+	cras_rtc_unittest \
 	cras_tm_unittest \
 	device_monitor_unittest \
 	dev_io_unittest \
@@ -757,6 +759,11 @@ cras_client_unittest_SOURCES = tests/cras_client_unittest.cc \
 cras_client_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras
 cras_client_unittest_LDADD = -lgtest -lpthread -lrt -lspeexdsp
+
+cras_rtc_unittest_SOURCES = tests/cras_rtc_unittest.cc server/cras_rtc.c
+cras_rtc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	 -I$(top_srcdir)/src/server
+cras_rtc_unittest_LDADD = -lgtest -lpthread
 
 cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
 cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
