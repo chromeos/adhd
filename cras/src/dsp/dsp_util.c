@@ -277,46 +277,34 @@ static void deinterleave_stereo(int16_t *input, float *output1, float *output2,
 	/* L0 R0 L1 R1 L2 R2 L3 R3... -> L0 L1 L2 L3... R0 R1 R2 R3... */
 	int chunk = frames >> 3;
 	frames &= 7;
-	if (chunk) {
-		// clang-format off
-		__asm__ __volatile__(
-			"1:                                         \n"
-			"lddqu (%[input]), %%xmm0                   \n"
-			"lddqu 16(%[input]), %%xmm1                 \n"
-			"add $32, %[input]                          \n"
-			"movdqa %%xmm0, %%xmm2                      \n"
-			"movdqa %%xmm1, %%xmm3                      \n"
-			"pslld $16, %%xmm0                          \n"
-			"pslld $16, %%xmm1                          \n"
-			"psrad $16, %%xmm2                          \n"
-			"psrad $16, %%xmm3                          \n"
-			"cvtdq2ps %%xmm0, %%xmm0                    \n"
-			"cvtdq2ps %%xmm1, %%xmm1                    \n"
-			"cvtdq2ps %%xmm2, %%xmm2                    \n"
-			"cvtdq2ps %%xmm3, %%xmm3                    \n"
-			"mulps %[scale_2_n31], %%xmm0               \n"
-			"mulps %[scale_2_n31], %%xmm1               \n"
-			"mulps %[scale_2_n15], %%xmm2               \n"
-			"mulps %[scale_2_n15], %%xmm3               \n"
-			"movdqu %%xmm0, (%[output1])                \n"
-			"movdqu %%xmm1, 16(%[output1])              \n"
-			"movdqu %%xmm2, (%[output2])                \n"
-			"movdqu %%xmm3, 16(%[output2])              \n"
-			"add $32, %[output1]                        \n"
-			"add $32, %[output2]                        \n"
-			"sub $1, %[chunk]                           \n"
-			"jnz 1b                                     \n"
-			: /* output */
-			  [chunk]"+r"(chunk),
-			  [input]"+r"(input),
-			  [output1]"+r"(output1),
-			  [output2]"+r"(output2)
-			: /* input */
-			  [scale_2_n31]"x"(_mm_set1_ps(1.0f/(1<<15)/(1<<16))),
-			  [scale_2_n15]"x"(_mm_set1_ps(1.0f/(1<<15)))
-			: /* clobber */
-			  "xmm0", "xmm1", "xmm2", "xmm3", "memory", "cc");
-		// clang-format on
+	while (chunk--) {
+		__m128i l_0 = _mm_loadu_si128((__m128i const *)input);
+		__m128i l_1 = _mm_loadu_si128((__m128i const *)(input + 8));
+		__m128i r_0 = _mm_srai_epi32(l_0, 16);
+		__m128i r_1 = _mm_srai_epi32(l_1, 16);
+		l_0 = _mm_slli_epi32(l_0, 16);
+		l_1 = _mm_slli_epi32(l_1, 16);
+
+		const __m128 scale_2_n31 =
+			_mm_set1_ps(1.0f / (1 << 15) / (1 << 16));
+		const __m128 scale_2_n15 = _mm_set1_ps(1.0f / (1 << 15));
+		__m128 lf_0 = _mm_cvtepi32_ps(l_0);
+		__m128 lf_1 = _mm_cvtepi32_ps(l_1);
+		__m128 rf_0 = _mm_cvtepi32_ps(r_0);
+		__m128 rf_1 = _mm_cvtepi32_ps(r_1);
+		lf_0 = _mm_mul_ps(lf_0, scale_2_n31);
+		lf_1 = _mm_mul_ps(lf_1, scale_2_n31);
+		rf_0 = _mm_mul_ps(rf_0, scale_2_n15);
+		rf_1 = _mm_mul_ps(rf_1, scale_2_n15);
+		_mm_storeu_si128((__m128i *)output1, _mm_castps_si128(lf_0));
+		_mm_storeu_si128((__m128i *)(output1 + 4),
+				 _mm_castps_si128(lf_1));
+		_mm_storeu_si128((__m128i *)output2, _mm_castps_si128(rf_0));
+		_mm_storeu_si128((__m128i *)(output2 + 4),
+				 _mm_castps_si128(rf_1));
+		input += 16;
+		output1 += 8;
+		output2 += 8;
 	}
 
 	/* The remaining samples. */
