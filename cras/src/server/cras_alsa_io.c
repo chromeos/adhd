@@ -432,6 +432,32 @@ static int open_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
+static void
+init_quad_rotation_dsp_env_for_internal_speaker(struct cras_iodev *iodev)
+{
+	if (iodev->active_node &&
+	    iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER &&
+	    iodev->format && iodev->format->num_channels == 4) {
+		cras_dsp_set_variable_integer(
+			iodev->dsp_context, "display_rotation",
+			iodev->active_node->display_rotation);
+		cras_dsp_set_variable_integer(
+			iodev->dsp_context, "FL",
+			iodev->format->channel_layout[CRAS_CH_FL]);
+		cras_dsp_set_variable_integer(
+			iodev->dsp_context, "FR",
+			iodev->format->channel_layout[CRAS_CH_FR]);
+		cras_dsp_set_variable_integer(
+			iodev->dsp_context, "RL",
+			iodev->format->channel_layout[CRAS_CH_RL]);
+		cras_dsp_set_variable_integer(
+			iodev->dsp_context, "RR",
+			iodev->format->channel_layout[CRAS_CH_RR]);
+
+		cras_iodev_update_dsp(iodev);
+	}
+}
+
 static int configure_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
@@ -461,6 +487,9 @@ static int configure_dev(struct cras_iodev *iodev)
 	rc = cras_alsa_set_channel_map(aio->handle, iodev->format);
 	if (rc < 0)
 		return rc;
+
+	/* Initialize the dsp context for quad rotation plugin */
+	init_quad_rotation_dsp_env_for_internal_speaker(iodev);
 
 	/* Configure software params. */
 	rc = cras_alsa_set_swparams(aio->handle);

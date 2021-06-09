@@ -147,6 +147,14 @@ static void* audio_thread_cb_data;
 static int hotword_send_triggered_msg_called;
 static struct timespec clock_gettime_retspec;
 static unsigned cras_iodev_reset_rate_estimator_called;
+static unsigned display_rotation;
+
+void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
+                                   const char* key,
+                                   int value) {
+  if (!strcmp(key, "display_rotation"))
+    display_rotation = value;
+}
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -226,6 +234,7 @@ void ResetStubData() {
   ucm_get_intrinsic_sensitivity_values.clear();
   cras_iodev_reset_rate_estimator_called = 0;
   sys_set_noise_cancellation_supported_called = 0;
+  display_rotation = 0;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -406,6 +415,30 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
             aio->severe_underrun_frames);
 
+  alsa_iodev_destroy(iodev);
+  free(fake_format);
+}
+
+TEST(AlsaIoInit, QuadChannelInternalSpeakerOpenPlayback) {
+  struct cras_iodev* iodev;
+  struct cras_audio_format format;
+  struct alsa_io* aio;
+
+  ResetStubData();
+  iodev = alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_OUTPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+  aio = (struct alsa_io*)iodev;
+  format.frame_rate = 48000;
+  format.num_channels = 4;
+  cras_iodev_set_format(iodev, &format);
+  iodev->active_node->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  iodev->active_node->display_rotation = ROTATE_270;
+  iodev->open_dev(iodev);
+  iodev->configure_dev(iodev);
+
+  EXPECT_EQ(3, display_rotation);
   alsa_iodev_destroy(iodev);
   free(fake_format);
 }
