@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
 	dsp_enable_flush_denormal_to_zero();
 	dsp_util_clear_fp_exceptions();
-	drc = drc_new(44100);
+	drc = drc_new(44100, 2);
 
 	drc->emphasis_disabled = 0;
 	drc_set_param(drc, 0, PARAM_CROSSOVER_LOWER_FREQ, 0);

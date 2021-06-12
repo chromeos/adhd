@@ -105,6 +105,9 @@ enum { PARAM_THRESHOLD,
 #define DRC_DEFAULT_PRE_DELAY 0.006f
 
 struct drc {
+	/* number of channels */
+	int num_channels;
+
 	/* sample rate in Hz */
 	float sample_rate;
 
@@ -127,8 +130,8 @@ struct drc {
 	/* Temporary buffer used during drc_process(). The mid and high band
 	 * signal is stored in these buffers (the low band is stored in the
 	 * original input buffer). */
-	float *data1[DRC_NUM_CHANNELS];
-	float *data2[DRC_NUM_CHANNELS];
+	float *data1[DRC_MAX_CHANNELS];
+	float *data2[DRC_MAX_CHANNELS];
 };
 
 /* DRC needs the parameters to be set before initialization. So drc_new() should
@@ -149,7 +152,7 @@ struct drc {
  */
 
 /* Allocates a DRC. */
-struct drc *drc_new(float sample_rate);
+struct drc *drc_new(float sample_rate, int num_channels);
 
 /* Initializes a DRC. */
 void drc_init(struct drc *drc);
@@ -157,11 +160,12 @@ void drc_init(struct drc *drc);
 /* Frees a DRC.*/
 void drc_free(struct drc *drc);
 
-/* Processes input data using a DRC.
+/* Processes n channel input data using a DRC, where n is even and
+ * n <= DRC_MAX_CHANNELS.
  * Args:
  *    drc - The DRC we want to use.
- *    float **data - Pointers to input/output data. The input must be stereo
- *        and one channel is pointed by data[0], another pointed by data[1]. The
+ *    float **data - Pointers to input/output data. The channel number must
+ *        be even. The n channel data are pointed by data[0] to data[n]. The
  *        output data is stored in the same place.
  *    frames - The number of frames to process.
  */

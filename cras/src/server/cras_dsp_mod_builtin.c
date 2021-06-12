@@ -593,9 +593,9 @@ struct drc_data {
 	int sample_rate;
 	struct drc *drc; /* Initialized in the first call of drc_run() */
 
-	/* Two ports for input, two for output, one for disable_emphasis,
-	 * and 8 parameters each band */
-	float *ports[4 + 1 + 8 * 3];
+	/* NUM_CHANNELS ports for input, NUM_CHANNELS for output, one
+	 * for disable_emphasis, and 8 parameters each band */
+	float *ports[DRC_MAX_CHANNELS * 2 + 1 + 8 * 3];
 };
 
 static int drc_instantiate(struct dsp_module *module, unsigned long sample_rate,
@@ -622,13 +622,14 @@ static int drc_get_delay(struct dsp_module *module)
 	return DRC_DEFAULT_PRE_DELAY * data->sample_rate;
 }
 
+/* The drc process for stereo */
 static void drc_run(struct dsp_module *module, unsigned long sample_count)
 {
 	struct drc_data *data = (struct drc_data *)module->data;
 	if (!data->drc) {
 		int i;
 		float nyquist = data->sample_rate / 2;
-		struct drc *drc = drc_new(data->sample_rate);
+		struct drc *drc = drc_new(data->sample_rate, 2);
 
 		data->drc = drc;
 		drc->emphasis_disabled = (int)*data->ports[4];
