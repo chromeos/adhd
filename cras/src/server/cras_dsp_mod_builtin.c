@@ -622,19 +622,19 @@ static int drc_get_delay(struct dsp_module *module)
 	return DRC_DEFAULT_PRE_DELAY * data->sample_rate;
 }
 
-/* The drc process for stereo */
-static void drc_run(struct dsp_module *module, unsigned long sample_count)
+static void drc_generic_run(struct dsp_module *module, int num_channels,
+			    unsigned long sample_count)
 {
+	int i;
 	struct drc_data *data = (struct drc_data *)module->data;
 	if (!data->drc) {
-		int i;
 		float nyquist = data->sample_rate / 2;
-		struct drc *drc = drc_new(data->sample_rate, 2);
+		struct drc *drc = drc_new(data->sample_rate, num_channels);
 
 		data->drc = drc;
-		drc->emphasis_disabled = (int)*data->ports[4];
+		drc->emphasis_disabled = (int)*data->ports[2 * num_channels];
 		for (i = 0; i < 3; i++) {
-			int k = 5 + i * 8;
+			int k = 2 * num_channels + 1 + i * 8;
 			float f = *data->ports[k];
 			float enable = *data->ports[k + 1];
 			float threshold = *data->ports[k + 2];
@@ -655,14 +655,19 @@ static void drc_run(struct dsp_module *module, unsigned long sample_count)
 		}
 		drc_init(drc);
 	}
-	if (data->ports[0] != data->ports[2])
-		memcpy(data->ports[2], data->ports[0],
-		       sizeof(float) * sample_count);
-	if (data->ports[1] != data->ports[3])
-		memcpy(data->ports[3], data->ports[1],
-		       sizeof(float) * sample_count);
 
-	drc_process(data->drc, &data->ports[2], (int)sample_count);
+	for (i = 0; i < num_channels; i++) {
+		if (data->ports[i] != data->ports[i + num_channels])
+			memcpy(data->ports[i + num_channels], data->ports[i],
+			       sizeof(float) * sample_count);
+	}
+	drc_process(data->drc, &data->ports[num_channels], (int)sample_count);
+}
+
+/* The drc process for stereo */
+static void drc_run(struct dsp_module *module, unsigned long sample_count)
+{
+	drc_generic_run(module, 2, sample_count);
 }
 
 static void drc_deinstantiate(struct dsp_module *module)
@@ -679,6 +684,24 @@ static void drc_init_module(struct dsp_module *module)
 	module->connect_port = &drc_connect_port;
 	module->get_delay = &drc_get_delay;
 	module->run = &drc_run;
+	module->deinstantiate = &drc_deinstantiate;
+	module->free_module = &empty_free_module;
+	module->get_properties = &empty_get_properties;
+	module->dump = &empty_dump;
+}
+
+/* The drc process for quad channel */
+static void drc_quad_run(struct dsp_module *module, unsigned long sample_count)
+{
+	drc_generic_run(module, 4, sample_count);
+}
+
+static void drc_quad_init_module(struct dsp_module *module)
+{
+	module->instantiate = &drc_instantiate;
+	module->connect_port = &drc_connect_port;
+	module->get_delay = &drc_get_delay;
+	module->run = &drc_quad_run;
 	module->deinstantiate = &drc_deinstantiate;
 	module->free_module = &empty_free_module;
 	module->get_properties = &empty_get_properties;
@@ -772,6 +795,8 @@ struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin)
 		eq2_init_module(module);
 	} else if (strcmp(plugin->label, "drc") == 0) {
 		drc_init_module(module);
+	} else if (strcmp(plugin->label, "drc_quad") == 0) {
+		drc_quad_init_module(module);
 	} else if (strcmp(plugin->label, "swap_lr") == 0) {
 		swap_lr_init_module(module);
 	} else if (strcmp(plugin->label, "quad_rotation") == 0) {
