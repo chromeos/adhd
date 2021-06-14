@@ -135,6 +135,8 @@ cras_server_SOURCES = \
 	server/config/cras_board_config.c \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blocklist.c \
+	server/cras_a2dp_manager.c \
+	server/cras_a2dp_pcm_iodev.c \
 	server/cras_alert.c \
 	server/cras_alsa_card.c \
 	server/cras_alsa_helpers.c \
@@ -439,6 +441,7 @@ endif
 TESTS = \
 	$(DBUS_TESTS) \
 	$(CRAS_WEBRTC_APM_TESTS) \
+	a2dp_pcm_iodev_unittest \
 	audio_area_unittest \
 	audio_format_unittest \
 	audio_thread_unittest \
@@ -648,6 +651,12 @@ a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 endif
+
+a2dp_pcm_iodev_unittest_SOURCES = tests/a2dp_pcm_iodev_unittest.cc \
+	common/sfh.c
+a2dp_pcm_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common
+a2dp_pcm_iodev_unittest_LDADD = -lgtest -lpthread
 
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
 	common/sfh.c \
