@@ -660,3 +660,26 @@ void cras_bt_stop(DBusConnection *conn)
 {
 	current->stop(current);
 }
+
+void cras_bt_switch_stack(struct bt_stack *target)
+{
+	if (!target)
+		return;
+	if (current == target)
+		return;
+
+	current->stop(current);
+
+	/* Inherit the same configuration, swap current then start. */
+	target->profile_disable_mask = current->profile_disable_mask;
+	target->conn = current->conn;
+	current = target;
+	current->start(current);
+}
+
+void cras_bt_switch_default_stack()
+{
+	if (current == &default_stack)
+		return;
+	cras_bt_switch_stack(&default_stack);
+}

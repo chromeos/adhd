@@ -82,6 +82,7 @@ CRAS_DBUS_SOURCES = \
 	server/cras_dbus.c \
 	server/cras_dbus_util.c \
 	server/cras_dbus_control.c \
+	server/cras_fl_manager.c \
 	server/cras_hfp_ag_profile.c \
 	server/cras_hfp_iodev.c \
 	server/cras_hfp_alsa_iodev.c \
@@ -419,6 +420,7 @@ DBUS_TESTS = \
 	alsa_io_unittest \
 	bt_device_unittest \
 	bt_io_unittest \
+	bt_manager_unittest \
 	hfp_iodev_unittest \
 	hfp_alsa_iodev_unittest \
 	hfp_ag_profile_unittest \
@@ -723,6 +725,12 @@ bt_io_unittest_SOURCES = tests/bt_io_unittest.cc common/sfh.c
 bt_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_io_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+
+bt_manager_unittest_SOURCES = tests/bt_manager_unittest.cc \
+	server/cras_bt_manager.c
+bt_manager_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
+	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
+bt_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 endif
 
 biquad_unittest_SOURCES = tests/biquad_unittest.cc \

@@ -37,4 +37,10 @@ void cras_bt_start(DBusConnection *conn, unsigned profile_disable_mask);
 /* Stops the current bt_stack interface. */
 void cras_bt_stop(DBusConnection *conn);
 
+/* Switches the current running stack to target. */
+void cras_bt_switch_stack(struct bt_stack *target);
+
+/* Switches the current running stack to default. */
+void cras_bt_switch_default_stack();
+
 #endif /* CRAS_BT_MANAGER_H_ */
