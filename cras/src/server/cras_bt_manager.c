@@ -27,6 +27,16 @@
 
 struct cras_bt_event_log *btlog;
 
+static void cras_bt_start_bluez(struct bt_stack *s);
+static void cras_bt_stop_bluez(struct bt_stack *s);
+
+static struct bt_stack default_stack = {
+	.conn = NULL,
+	.start = cras_bt_start_bluez,
+	.stop = cras_bt_stop_bluez,
+};
+static struct bt_stack *current = &default_stack;
+
 static void cras_bt_interface_added(DBusConnection *conn,
 				    const char *object_path,
 				    const char *interface_name,
@@ -501,11 +511,11 @@ static DBusHandlerResult cras_bt_handle_properties_changed(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-void cras_bt_start(DBusConnection *conn, unsigned int profile_disable_mask)
+static void cras_bt_start_bluez(struct bt_stack *s)
 {
+	DBusConnection *conn = s->conn;
 	DBusError dbus_error;
 
-	btlog = cras_bt_event_log_init();
 	cras_bt_device_start_monitor();
 
 	dbus_error_init(&dbus_error);
@@ -572,10 +582,10 @@ void cras_bt_start(DBusConnection *conn, unsigned int profile_disable_mask)
 	 * events.  Let's add the profile implementations locally so they can be
 	 * registered to corresponding interfaces later.
 	 */
-	if (!(profile_disable_mask & CRAS_BT_PROFILE_MASK_HFP))
+	if (!(s->profile_disable_mask & CRAS_BT_PROFILE_MASK_HFP))
 		cras_hfp_ag_profile_create(conn);
 	cras_telephony_start(conn);
-	if (!(profile_disable_mask & CRAS_BT_PROFILE_MASK_A2DP))
+	if (!(s->profile_disable_mask & CRAS_BT_PROFILE_MASK_A2DP))
 		cras_a2dp_endpoint_create(conn);
 	cras_bt_player_create(conn);
 
@@ -595,8 +605,9 @@ add_filter_error:
 	return;
 }
 
-void cras_bt_stop(DBusConnection *conn)
+static void cras_bt_stop_bluez(struct bt_stack *s)
 {
+	DBusConnection *conn = s->conn;
 	cras_bt_reset();
 
 	dbus_bus_remove_match(conn,
@@ -633,4 +644,19 @@ void cras_bt_stop(DBusConnection *conn)
 				      NULL);
 	dbus_connection_remove_filter(conn, cras_bt_handle_properties_changed,
 				      NULL);
+}
+
+void cras_bt_start(DBusConnection *conn, unsigned profile_disable_mask)
+{
+	if (btlog == NULL)
+		btlog = cras_bt_event_log_init();
+
+	/* Configure the current stack and start it. */
+	current->profile_disable_mask = profile_disable_mask;
+	current->conn = conn;
+	current->start(current);
+}
+void cras_bt_stop(DBusConnection *conn)
+{
+	current->stop(current);
 }
