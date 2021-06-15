@@ -131,3 +131,8 @@ void cras_rtc_remove_stream(struct cras_rstream *stream, unsigned int dev_id)
 	}
 	free(data);
 }
+
+bool cras_rtc_is_running()
+{
+	return input_list && output_list;
+}

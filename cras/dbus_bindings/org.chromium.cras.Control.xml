@@ -69,6 +69,9 @@
     <method name="GetDeprioritizeBtWbsMic">
       <arg name="deprioritized" type="b" direction="out"/>
     </method>
+    <method name="GetRtcRunning">
+      <arg name="deprioritized" type="b" direction="out"/>
+    </method>
     <method name="SetActiveOutputNode">
       <arg name="node_id" type="t" direction="in"/>
     </method>

@@ -20,6 +20,7 @@
 #include "cras_iodev_list.h"
 #include "cras_main_thread_log.h"
 #include "cras_observer.h"
+#include "cras_rtc.h"
 #include "cras_system_state.h"
 #include "cras_utf8.h"
 #include "cras_util.h"
@@ -743,6 +744,26 @@ handle_get_deprioritize_bt_wbs_mic(DBusConnection *conn, DBusMessage *message,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_get_rtc_running(DBusConnection *conn,
+						DBusMessage *message, void *arg)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	dbus_bool_t running;
+
+	reply = dbus_message_new_method_return(message);
+
+	running = cras_rtc_is_running();
+	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &running,
+				 DBUS_TYPE_INVALID);
+
+	dbus_connection_send(conn, reply, &serial);
+
+	dbus_message_unref(reply);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 static DBusHandlerResult
 handle_set_active_node(DBusConnection *conn, DBusMessage *message, void *arg,
 		       enum CRAS_STREAM_DIRECTION direction)
@@ -1244,6 +1265,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetDeprioritizeBtWbsMic")) {
 		return handle_get_deprioritize_bt_wbs_mic(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "GetRtcRunning")) {
+		return handle_get_rtc_running(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetActiveOutputNode")) {
 		return handle_set_active_node(conn, message, arg,

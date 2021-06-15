@@ -6,7 +6,7 @@
 #include "cras_iodev.h"
 
 /*
- * Add a stream into the RTC detector. This function will detect whether
+ * Adds a stream into the RTC detector. This function will detect whether
  * there are RTC streams.
  * Args:
  * 	stream - A stream added.
@@ -15,9 +15,12 @@
 void cras_rtc_add_stream(struct cras_rstream *stream, struct cras_iodev *iodev);
 
 /*
- * Remove a stream from the RTC detector.
+ * Removes a stream from the RTC detector.
  * Args:
  * 	stream - A stream removed.
  * 	dev_id - A device id which the stream is attached to.
  */
 void cras_rtc_remove_stream(struct cras_rstream *stream, unsigned int dev_id);
+
+/* Returns whether there are running RTC streams. */
+bool cras_rtc_is_running();

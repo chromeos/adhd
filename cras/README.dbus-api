@@ -153,6 +153,11 @@ Methods		void SetOutputVolume(int32 volume)
 			Returns 1 if system automatic gain control is supported,
 			otherwise return 0.
 
+		boolean GetRtcRunning();
+
+			Returns true if there are running RTC streams, otherwise
+			return false.
+
 		void SetActiveOutputNode(uint64 node_id);
 
 			Requests the specified node to be used for
