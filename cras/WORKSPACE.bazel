@@ -1,0 +1,26 @@
+# Copyright 2021 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# For building from ebuild, we need to download files from following http_archive urls,
+# upload those to chromeos-mirror by steps in
+# https://chromium.googlesource.com/chromiumos/docs/+/HEAD/archive_mirrors.md#updating-localmirror-localmirror_private
+# and add
+# "<url in http_archive> -> <archived file name in chromeos-mirror>"
+# into `bazel_external_uris` in cras-bench-9999.ebuild to make it works.
+
+http_archive(
+    name = "com_github_google_benchmark",
+    sha256 = "3bff5f237c317ddfd8d5a9b96b3eede7c0802e799db520d38ce756a2a46a18a0",
+    strip_prefix = "benchmark-1.5.5",
+    urls = ["https://github.com/google/benchmark/archive/refs/tags/v1.5.5.tar.gz"],
+)
+
+http_archive(
+    name = "rules_cc",
+    sha256 = "cf3b76a90c86c0554c5b10f4b160f05af71d252026b71362c4674e2fb9936cf9",
+    strip_prefix = "rules_cc-01d4a48911d5e7591ecb1c06d3b8af47fe872371",
+    urls = ["https://github.com/bazelbuild/rules_cc/archive/01d4a48911d5e7591ecb1c06d3b8af47fe872371.zip"],
+)
