@@ -26,6 +26,7 @@
 //! # }
 //! ```
 
+use async_trait::async_trait;
 use std::{
     cmp::min,
     error,
@@ -35,10 +36,19 @@ use std::{
 };
 
 use super::{AudioBuffer, BoxError, BufferDrop, NoopBufferDrop, SampleFormat};
+use cros_async::{Executor, TimerAsync};
 
 /// `CaptureBufferStream` provides `CaptureBuffer`s to read with audio samples from capture.
 pub trait CaptureBufferStream: Send {
     fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, BoxError>;
+}
+
+#[async_trait(?Send)]
+pub trait AsyncCaptureBufferStream: Send {
+    async fn next_capture_buffer<'a>(
+        &'a mut self,
+        _ex: &Executor,
+    ) -> Result<CaptureBuffer<'a>, BoxError>;
 }
 
 /// `CaptureBuffer` contains a block of audio samples got from capture stream. It provides
@@ -174,6 +184,30 @@ impl CaptureBufferStream for NoopCaptureStream {
     }
 }
 
+#[async_trait(?Send)]
+impl AsyncCaptureBufferStream for NoopCaptureStream {
+    async fn next_capture_buffer<'a>(
+        &'a mut self,
+        ex: &Executor,
+    ) -> Result<CaptureBuffer<'a>, BoxError> {
+        if let Some(start_time) = self.start_time {
+            let elapsed = start_time.elapsed();
+            if elapsed < self.next_frame {
+                TimerAsync::sleep(ex, self.next_frame - elapsed).await?;
+            }
+            self.next_frame += self.interval;
+        } else {
+            self.start_time = Some(Instant::now());
+            self.next_frame = self.interval;
+        }
+        Ok(CaptureBuffer::new(
+            self.frame_size,
+            &mut self.buffer,
+            &mut self.buffer_drop,
+        )?)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::*;
@@ -193,7 +227,7 @@ mod tests {
     fn trigger() {
         struct TestDrop {
             frame_count: usize,
-        };
+        }
         impl BufferDrop for TestDrop {
             fn trigger(&mut self, nwritten: usize) {
                 self.frame_count += nwritten;
@@ -246,5 +280,35 @@ mod tests {
             "next_capture_buffer didn't block long enough {}",
             elapsed.subsec_millis()
         );
+    }
+
+    #[test]
+    fn consumption_rate_async() {
+        async fn this_test(ex: &Executor) {
+            let mut server = NoopStreamSource::new();
+            let (_, mut stream) = server
+                .new_async_capture_stream(2, SampleFormat::S16LE, 48000, 480)
+                .unwrap();
+            let start = Instant::now();
+            {
+                let mut stream_buffer = stream.next_capture_buffer(ex).await.unwrap();
+                let mut cp_buf = [0xa5u8; 480 * 2 * 2];
+                assert_eq!(stream_buffer.read(&mut cp_buf).unwrap(), 480 * 2 * 2);
+                for buf in cp_buf.iter() {
+                    assert_eq!(*buf, 0, "Read samples should all be zeros.");
+                }
+            }
+            // The second call should block until the first buffer is consumed.
+            let _stream_buffer = stream.next_capture_buffer(ex).await.unwrap();
+            let elapsed = start.elapsed();
+            assert!(
+                elapsed > Duration::from_millis(10),
+                "next_capture_buffer didn't block long enough {}",
+                elapsed.subsec_millis()
+            );
+        }
+
+        let ex = Executor::new().expect("failed to create executor");
+        ex.run_until(this_test(&ex)).unwrap();
     }
 }

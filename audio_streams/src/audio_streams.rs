@@ -37,6 +37,7 @@
 //! # }
 //! ```
 
+use async_trait::async_trait;
 use std::cmp::min;
 use std::error;
 use std::fmt::{self, Display};
@@ -45,6 +46,8 @@ use std::os::unix::io::RawFd;
 use std::result::Result;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
+
+use cros_async::{Executor, TimerAsync};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SampleFormat {
@@ -130,6 +133,21 @@ impl FromStr for StreamEffect {
     }
 }
 
+#[derive(Debug)]
+pub enum Error {
+    Unimplemented,
+}
+
+impl error::Error for Error {}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Unimplemented => write!(f, "Unimplemented"),
+        }
+    }
+}
+
 /// `StreamSource` creates streams for playback or capture of audio.
 pub trait StreamSource: Send {
     /// Returns a stream control and buffer generator object. These are separate as the buffer
@@ -142,6 +160,19 @@ pub trait StreamSource: Send {
         frame_rate: u32,
         buffer_size: usize,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>;
+
+    /// Returns a stream control and async buffer generator object. These are separate as the buffer
+    /// generator might want to be passed to the audio stream.
+    #[allow(clippy::type_complexity)]
+    fn new_async_playback_stream(
+        &mut self,
+        _num_channels: usize,
+        _format: SampleFormat,
+        _frame_rate: u32,
+        _buffer_size: usize,
+    ) -> Result<(Box<dyn StreamControl>, Box<dyn AsyncPlaybackBufferStream>), BoxError> {
+        Err(Box::new(Error::Unimplemented))
+    }
 
     /// Returns a stream control and buffer generator object. These are separate as the buffer
     /// generator might want to be passed to the audio stream.
@@ -171,6 +202,34 @@ pub trait StreamSource: Send {
         ))
     }
 
+    /// Returns a stream control and async buffer generator object. These are separate as the buffer
+    /// generator might want to be passed to the audio stream.
+    /// Default implementation returns `NoopStreamControl` and `NoopCaptureStream`.
+    #[allow(clippy::type_complexity)]
+    fn new_async_capture_stream(
+        &mut self,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: u32,
+        buffer_size: usize,
+    ) -> Result<
+        (
+            Box<dyn StreamControl>,
+            Box<dyn capture::AsyncCaptureBufferStream>,
+        ),
+        BoxError,
+    > {
+        Ok((
+            Box::new(NoopStreamControl::new()),
+            Box::new(capture::NoopCaptureStream::new(
+                num_channels,
+                format,
+                frame_rate,
+                buffer_size,
+            )),
+        ))
+    }
+
     /// Returns any open file descriptors needed by the implementor. The FD list helps users of the
     /// StreamSource enter Linux jails making sure not to close needed FDs.
     fn keep_fds(&self) -> Option<Vec<RawFd>> {
@@ -181,6 +240,16 @@ pub trait StreamSource: Send {
 /// `PlaybackBufferStream` provides `PlaybackBuffer`s to fill with audio samples for playback.
 pub trait PlaybackBufferStream: Send {
     fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, BoxError>;
+}
+
+/// `PlaybackBufferStream` provides `PlaybackBuffer`s asynchronously to fill with audio samples for
+/// playback.
+#[async_trait(?Send)]
+pub trait AsyncPlaybackBufferStream: Send {
+    async fn next_playback_buffer<'a>(
+        &'a mut self,
+        _ex: &Executor,
+    ) -> Result<PlaybackBuffer<'a>, BoxError>;
 }
 
 /// `StreamControl` provides a way to set the volume and mute states of a stream. `StreamControl`
@@ -358,6 +427,30 @@ impl PlaybackBufferStream for NoopStream {
     }
 }
 
+#[async_trait(?Send)]
+impl AsyncPlaybackBufferStream for NoopStream {
+    async fn next_playback_buffer<'a>(
+        &'a mut self,
+        ex: &Executor,
+    ) -> Result<PlaybackBuffer<'a>, BoxError> {
+        if let Some(start_time) = self.start_time {
+            let elapsed = start_time.elapsed();
+            if elapsed < self.next_frame {
+                TimerAsync::sleep(ex, self.next_frame - elapsed).await?;
+            }
+            self.next_frame += self.interval;
+        } else {
+            self.start_time = Some(Instant::now());
+            self.next_frame = self.interval;
+        }
+        Ok(PlaybackBuffer::new(
+            self.frame_size,
+            &mut self.buffer,
+            &mut self.buffer_drop,
+        )?)
+    }
+}
+
 /// No-op control for `NoopStream`s.
 #[derive(Default)]
 pub struct NoopStreamControl;
@@ -399,6 +492,25 @@ impl StreamSource for NoopStreamSource {
             )),
         ))
     }
+
+    #[allow(clippy::type_complexity)]
+    fn new_async_playback_stream(
+        &mut self,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: u32,
+        buffer_size: usize,
+    ) -> Result<(Box<dyn StreamControl>, Box<dyn AsyncPlaybackBufferStream>), BoxError> {
+        Ok((
+            Box::new(NoopStreamControl::new()),
+            Box::new(NoopStream::new(
+                num_channels,
+                format,
+                frame_rate,
+                buffer_size,
+            )),
+        ))
+    }
 }
 
 #[cfg(test)]
@@ -419,7 +531,7 @@ mod tests {
     fn trigger() {
         struct TestDrop {
             frame_count: usize,
-        };
+        }
         impl BufferDrop for TestDrop {
             fn trigger(&mut self, nwritten: usize) {
                 self.frame_count += nwritten;
@@ -467,5 +579,32 @@ mod tests {
             "next_playback_buffer didn't block long enough {}",
             elapsed.subsec_millis()
         );
+    }
+
+    #[test]
+    fn consumption_rate_async() {
+        async fn this_test(ex: &Executor) {
+            let mut server = NoopStreamSource::new();
+            let (_, mut stream) = server
+                .new_async_playback_stream(2, SampleFormat::S16LE, 48000, 480)
+                .unwrap();
+            let start = Instant::now();
+            {
+                let mut stream_buffer = stream.next_playback_buffer(ex).await.unwrap();
+                let pb_buf = [0xa5u8; 480 * 2 * 2];
+                assert_eq!(stream_buffer.write(&pb_buf).unwrap(), 480 * 2 * 2);
+            }
+            // The second call should block until the first buffer is consumed.
+            let _stream_buffer = stream.next_playback_buffer(ex).await.unwrap();
+            let elapsed = start.elapsed();
+            assert!(
+                elapsed > Duration::from_millis(10),
+                "next_playback_buffer didn't block long enough {}",
+                elapsed.subsec_millis()
+            );
+        }
+
+        let ex = Executor::new().expect("failed to create executor");
+        ex.run_until(this_test(&ex)).unwrap();
     }
 }
