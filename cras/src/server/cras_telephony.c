@@ -303,6 +303,7 @@ void cras_telephony_start(DBusConnection *conn)
 
 	DBusError dbus_error;
 
+	dbus_error_init(&dbus_error);
 	telephony_handle.dbus_conn = conn;
 	dbus_connection_ref(telephony_handle.dbus_conn);
 
