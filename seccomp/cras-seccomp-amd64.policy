@@ -94,3 +94,4 @@ tgkill: 1
 mremap: 1
 dup: 1
 gettimeofday: 1
+fstatfs: 1

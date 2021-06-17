@@ -102,3 +102,4 @@ tgkill: 1
 mremap: 1
 dup: 1
 _newselect: 1
+fstatfs64: 1
