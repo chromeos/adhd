@@ -23,11 +23,10 @@ static void free_data_buffer(struct drc *drc);
 static void free_emphasis_eq(struct drc *drc);
 static void free_kernel(struct drc *drc);
 
-struct drc *drc_new(float sample_rate, int num_channels)
+struct drc *drc_new(float sample_rate)
 {
 	struct drc *drc = (struct drc *)calloc(1, sizeof(struct drc));
 	drc->sample_rate = sample_rate;
-	drc->num_channels = num_channels;
 	set_default_parameters(drc);
 	return drc;
 }
@@ -54,7 +53,7 @@ static void init_data_buffer(struct drc *drc)
 	int i;
 	size_t size = sizeof(float) * DRC_PROCESS_MAX_FRAMES;
 
-	for (i = 0; i < drc->num_channels; i++) {
+	for (i = 0; i < DRC_NUM_CHANNELS; i++) {
 		drc->data1[i] = (float *)calloc(1, size);
 		drc->data2[i] = (float *)calloc(1, size);
 	}
@@ -65,7 +64,7 @@ static void free_data_buffer(struct drc *drc)
 {
 	int i;
 
-	for (i = 0; i < drc->num_channels; i++) {
+	for (i = 0; i < DRC_NUM_CHANNELS; i++) {
 		free(drc->data1[i]);
 		free(drc->data2[i]);
 	}
@@ -215,7 +214,7 @@ static void init_kernel(struct drc *drc)
 	int i;
 
 	for (i = 0; i < DRC_NUM_KERNELS; i++) {
-		dk_init(&drc->kernel[i], drc->sample_rate, drc->num_channels);
+		dk_init(&drc->kernel[i], drc->sample_rate);
 
 		float db_threshold = drc_get_param(drc, i, PARAM_THRESHOLD);
 		float db_knee = drc_get_param(drc, i, PARAM_KNEE);
@@ -372,19 +371,13 @@ void drc_process(struct drc *drc, float **data, int frames)
 	float **data1 = drc->data1;
 	float **data2 = drc->data2;
 
-	for (i = 0; i < drc->num_channels; i += 2) {
-		const int ch1 = i;
-		const int ch2 = i + 1;
-		/* Apply pre-emphasis filter if it is not disabled. */
-		if (!drc->emphasis_disabled) {
-			eq2_process(drc->emphasis_eq, data[ch1], data[ch2],
-				    frames);
-		}
-		/* Crossover */
-		crossover2_process(&drc->xo2, frames, data[ch1], data[ch2],
-				   data1[ch1], data1[ch2], data2[ch1],
-				   data2[ch2]);
-	}
+	/* Apply pre-emphasis filter if it is not disabled. */
+	if (!drc->emphasis_disabled)
+		eq2_process(drc->emphasis_eq, data[0], data[1], frames);
+
+	/* Crossover */
+	crossover2_process(&drc->xo2, frames, data[0], data[1], data1[0],
+			   data1[1], data2[0], data2[1]);
 
 	/* Apply compression to each band of the signal. The processing is
 	 * performed in place.
@@ -394,16 +387,10 @@ void drc_process(struct drc *drc, float **data, int frames)
 	dk_process(&drc->kernel[2], data2, frames);
 
 	/* Sum the three bands of signal */
-	for (i = 0; i < drc->num_channels; i++)
+	for (i = 0; i < DRC_NUM_CHANNELS; i++)
 		sum3(data[i], data1[i], data2[i], frames);
 
 	/* Apply de-emphasis filter if emphasis is not disabled. */
-	if (!drc->emphasis_disabled) {
-		for (i = 0; i < drc->num_channels; i += 2) {
-			const int ch1 = i;
-			const int ch2 = i + 1;
-			eq2_process(drc->deemphasis_eq, data[ch1], data[ch2],
-				    frames);
-		}
-	}
+	if (!drc->emphasis_disabled)
+		eq2_process(drc->deemphasis_eq, data[0], data[1], frames);
 }

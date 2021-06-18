@@ -15,10 +15,9 @@
 extern "C" {
 #endif
 
-#define DRC_MAX_CHANNELS 4
+#define DRC_NUM_CHANNELS 2
 
 struct drc_kernel {
-	int num_channels;
 	float sample_rate;
 
 	/* The detector_average is the target gain obtained by looking at the
@@ -34,7 +33,7 @@ struct drc_kernel {
 
 	/* Lookahead section. */
 	unsigned last_pre_delay_frames;
-	float *pre_delay_buffers[DRC_MAX_CHANNELS];
+	float *pre_delay_buffers[DRC_NUM_CHANNELS];
 	int pre_delay_read_index;
 	int pre_delay_write_index;
 
@@ -79,8 +78,8 @@ struct drc_kernel {
 	float scaled_desired_gain;
 };
 
-/* Initializes a drc kernel. The num_channels must <= DRC_MAX_CHANNELS */
-void dk_init(struct drc_kernel *dk, float sample_rate, int num_channels);
+/* Initializes a drc kernel */
+void dk_init(struct drc_kernel *dk, float sample_rate);
 
 /* Frees a drc kernel */
 void dk_free(struct drc_kernel *dk);

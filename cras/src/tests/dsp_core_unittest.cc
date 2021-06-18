@@ -430,7 +430,7 @@ TEST(DrcTest, All) {
   struct drc* drc;
 
   dsp_enable_flush_denormal_to_zero();
-  drc = drc_new(44100, 2);
+  drc = drc_new(44100);
 
   drc_set_param(drc, 0, PARAM_CROSSOVER_LOWER_FREQ, 0);
   drc_set_param(drc, 0, PARAM_ENABLED, 1);

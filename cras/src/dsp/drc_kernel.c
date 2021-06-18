@@ -28,7 +28,7 @@
 const float uninitialized_value = -1;
 static int drc_math_initialized;
 
-void dk_init(struct drc_kernel *dk, float sample_rate, int num_channels)
+void dk_init(struct drc_kernel *dk, float sample_rate)
 {
 	int i;
 
@@ -38,7 +38,6 @@ void dk_init(struct drc_kernel *dk, float sample_rate, int num_channels)
 	}
 
 	dk->sample_rate = sample_rate;
-	dk->num_channels = num_channels;
 	dk->detector_average = 0;
 	dk->compressor_gain = 1;
 	dk->enabled = 0;
@@ -60,7 +59,7 @@ void dk_init(struct drc_kernel *dk, float sample_rate, int num_channels)
 	assert_on_compile(DIVISION_FRAMES % 4 == 0);
 	/* Allocate predelay buffers */
 	assert_on_compile_is_power_of_2(MAX_PRE_DELAY_FRAMES);
-	for (i = 0; i < dk->num_channels; i++) {
+	for (i = 0; i < DRC_NUM_CHANNELS; i++) {
 		size_t size = sizeof(float) * MAX_PRE_DELAY_FRAMES;
 		dk->pre_delay_buffers[i] = (float *)calloc(1, size);
 	}
@@ -69,7 +68,7 @@ void dk_init(struct drc_kernel *dk, float sample_rate, int num_channels)
 void dk_free(struct drc_kernel *dk)
 {
 	int i;
-	for (i = 0; i < dk->num_channels; ++i)
+	for (i = 0; i < DRC_NUM_CHANNELS; ++i)
 		free(dk->pre_delay_buffers[i]);
 }
 
@@ -94,7 +93,7 @@ static void set_pre_delay_time(struct drc_kernel *dk, float pre_delay_time)
 
 	if (dk->last_pre_delay_frames != pre_delay_frames) {
 		dk->last_pre_delay_frames = pre_delay_frames;
-		for (i = 0; i < dk->num_channels; ++i) {
+		for (i = 0; i < DRC_NUM_CHANNELS; ++i) {
 			size_t size = sizeof(float) * MAX_PRE_DELAY_FRAMES;
 			memset(dk->pre_delay_buffers[i], 0, size);
 		}
@@ -980,7 +979,7 @@ static void dk_copy_fragment(struct drc_kernel *dk, float *data_channels[],
 	int read_index = dk->pre_delay_read_index;
 	int j;
 
-	for (j = 0; j < dk->num_channels; ++j) {
+	for (j = 0; j < DRC_NUM_CHANNELS; ++j) {
 		memcpy(&dk->pre_delay_buffers[j][write_index],
 		       &data_channels[j][frame_index],
 		       frames_to_process * sizeof(float));
@@ -1015,7 +1014,7 @@ static void dk_process_delay_only(struct drc_kernel *dk, float *data_channels[],
 		 * available input samples. */
 		int chunk = min(large - small, MAX_PRE_DELAY_FRAMES - large);
 		chunk = min(chunk, count - i);
-		for (j = 0; j < dk->num_channels; ++j) {
+		for (j = 0; j < DRC_NUM_CHANNELS; ++j) {
 			memcpy(&dk->pre_delay_buffers[j][write_index],
 			       &data_channels[j][i], chunk * sizeof(float));
 			memcpy(&data_channels[j][i],
