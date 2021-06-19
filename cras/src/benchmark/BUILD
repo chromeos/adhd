@@ -5,14 +5,16 @@
 cc_binary(
     name = "cras_bench",
     srcs = [
-        "main.cc",
+        "dsp_benchmark.cc",
+        "mixer_ops_benchmark.cc",
     ],
     copts = [
         "-Isrc/common",
     ],
     linkopts = ["-lm"],
     deps = [
+        "//src/dsp:eq2",
         "//src/server:cras_mix_ops",
-        "@com_github_google_benchmark//:benchmark",
+        "@com_github_google_benchmark//:benchmark_main",
     ],
 )

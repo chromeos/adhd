@@ -9,6 +9,7 @@
 
 #include <benchmark/benchmark.h>
 
+namespace {
 extern "C" {
 #include "src/server/cras_mix_ops.h"
 }
@@ -55,6 +56,4 @@ static void BM_CrasMixerOpsMixAdd(benchmark::State& state) {
 }
 
 BENCHMARK(BM_CrasMixerOpsMixAdd)->RangeMultiplier(2)->Range(256, 8 << 10);
-
-// Run the benchmark
-BENCHMARK_MAIN();
+}  // namespace
