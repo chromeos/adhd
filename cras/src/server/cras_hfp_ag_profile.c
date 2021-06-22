@@ -272,6 +272,12 @@ int cras_hfp_ag_profile_create(DBusConnection *conn)
 	return cras_bt_add_profile(conn, &cras_hfp_ag_profile);
 }
 
+int cras_hfp_ag_profile_destroy(DBusConnection *conn)
+{
+	cras_bt_unregister_profile(conn, &cras_hfp_ag_profile);
+	return cras_bt_rm_profile(conn, &cras_hfp_ag_profile);
+}
+
 int cras_hfp_ag_start(struct cras_bt_device *device)
 {
 	struct audio_gateway *ag;

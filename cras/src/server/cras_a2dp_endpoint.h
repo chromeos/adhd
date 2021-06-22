@@ -12,6 +12,9 @@ struct cras_iodev;
 
 int cras_a2dp_endpoint_create(DBusConnection *conn);
 
+/* Unregisters A2DP endpoint. */
+int cras_a2dp_endpoint_destroy(DBusConnection *conn);
+
 /* Gets the connected a2dp device, NULL is returned when there's none. */
 struct cras_bt_device *cras_a2dp_connected_device();
 

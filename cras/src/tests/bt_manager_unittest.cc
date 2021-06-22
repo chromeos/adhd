@@ -9,9 +9,14 @@ extern "C" {
 }
 
 static int cras_hfp_ag_profile_create_called;
+static int cras_hfp_ag_profile_destroy_called;
 static int cras_telephony_start_called;
+static int cras_telephony_stop_called;
 static int cras_a2dp_endpoint_create_called;
+static int cras_a2dp_endpoint_destroy_called;
 static int cras_bt_player_create_called;
+static int cras_bt_player_destroy_called;
+static int cras_bt_unregister_battery_provider_called;
 static int dbus_connection_add_filter_called;
 static int dbus_connection_remove_filter_called;
 static int cras_bt_device_start_monitor_called;
@@ -28,9 +33,14 @@ static bt_stack fake_stack;
 
 void ResetStubData() {
   cras_hfp_ag_profile_create_called = 0;
+  cras_hfp_ag_profile_destroy_called = 0;
   cras_telephony_start_called = 0;
+  cras_telephony_stop_called = 0;
   cras_a2dp_endpoint_create_called = 0;
+  cras_a2dp_endpoint_destroy_called = 0;
   cras_bt_player_create_called = 0;
+  cras_bt_player_destroy_called = 0;
+  cras_bt_unregister_battery_provider_called = 0;
   cras_bt_device_start_monitor_called = 0;
   cras_bt_device_stop_monitor_called = 0;
   dbus_connection_add_filter_called = 0;
@@ -53,6 +63,7 @@ TEST(BtManager, StartStop) {
   ASSERT_EQ(1, cras_telephony_start_called);
   ASSERT_EQ(1, cras_a2dp_endpoint_create_called);
   ASSERT_EQ(1, cras_bt_player_create_called);
+  ASSERT_EQ(0, cras_bt_player_destroy_called);
   ASSERT_EQ(0, dbus_connection_remove_filter_called);
   ASSERT_LT(0, dbus_connection_add_filter_called);
   ASSERT_EQ(1, cras_bt_device_start_monitor_called);
@@ -61,6 +72,11 @@ TEST(BtManager, StartStop) {
   cras_bt_stop(NULL);
   ASSERT_LT(0, dbus_connection_remove_filter_called);
   ASSERT_EQ(1, cras_bt_device_stop_monitor_called);
+  ASSERT_EQ(1, cras_hfp_ag_profile_destroy_called);
+  ASSERT_EQ(1, cras_telephony_stop_called);
+  ASSERT_EQ(1, cras_a2dp_endpoint_destroy_called);
+  ASSERT_EQ(1, cras_bt_player_destroy_called);
+  ASSERT_EQ(1, cras_bt_unregister_battery_provider_called);
 }
 
 TEST(BtManager, SwitchStackThenBackToDefault) {
@@ -71,16 +87,29 @@ TEST(BtManager, SwitchStackThenBackToDefault) {
   cras_bt_start(NULL, 0x00);
   ASSERT_EQ(0, dbus_connection_remove_filter_called);
   ASSERT_EQ(1, cras_bt_device_start_monitor_called);
+  ASSERT_EQ(1, cras_hfp_ag_profile_create_called);
+  ASSERT_EQ(1, cras_telephony_start_called);
+  ASSERT_EQ(1, cras_a2dp_endpoint_create_called);
+  ASSERT_EQ(1, cras_bt_player_create_called);
 
   cras_bt_switch_stack(&fake_stack);
   ASSERT_LT(0, dbus_connection_remove_filter_called);
   ASSERT_EQ(1, fake_start_called);
   ASSERT_EQ(0, fake_stop_called);
   ASSERT_EQ(1, cras_bt_device_stop_monitor_called);
+  ASSERT_EQ(1, cras_hfp_ag_profile_destroy_called);
+  ASSERT_EQ(1, cras_telephony_stop_called);
+  ASSERT_EQ(1, cras_a2dp_endpoint_destroy_called);
+  ASSERT_EQ(1, cras_bt_player_destroy_called);
+  ASSERT_EQ(1, cras_bt_unregister_battery_provider_called);
 
   cras_bt_switch_default_stack();
   ASSERT_EQ(1, fake_stop_called);
   ASSERT_EQ(2, cras_bt_device_start_monitor_called);
+  ASSERT_EQ(2, cras_hfp_ag_profile_create_called);
+  ASSERT_EQ(2, cras_telephony_start_called);
+  ASSERT_EQ(2, cras_a2dp_endpoint_create_called);
+  ASSERT_EQ(2, cras_bt_player_create_called);
 }
 
 }  // namespace
@@ -161,12 +190,23 @@ int cras_hfp_ag_profile_create(DBusConnection* conn) {
   cras_hfp_ag_profile_create_called++;
   return 0;
 }
+int cras_hfp_ag_profile_destroy(DBusConnection* conn) {
+  cras_hfp_ag_profile_destroy_called++;
+  return 0;
+}
 void cras_telephony_start(DBusConnection* conn) {
   cras_telephony_start_called++;
+}
+void cras_telephony_stop() {
+  cras_telephony_stop_called++;
 }
 
 int cras_a2dp_endpoint_create(DBusConnection* conn) {
   cras_a2dp_endpoint_create_called++;
+  return 0;
+}
+int cras_a2dp_endpoint_destroy(DBusConnection* conn) {
+  cras_a2dp_endpoint_destroy_called++;
   return 0;
 }
 
@@ -191,6 +231,9 @@ int cras_bt_register_battery_provider(DBusConnection* conn,
                                       const struct cras_bt_adapter* adapter) {
   return 0;
 }
+void cras_bt_unregister_battery_provider(DBusConnection* conn) {
+  cras_bt_unregister_battery_provider_called++;
+}
 void cras_bt_battery_provider_reset() {}
 
 int cras_bt_register_player(DBusConnection* conn,
@@ -199,6 +242,10 @@ int cras_bt_register_player(DBusConnection* conn,
 }
 int cras_bt_player_create(DBusConnection* conn) {
   cras_bt_player_create_called++;
+  return 0;
+}
+int cras_bt_player_destroy(DBusConnection* conn) {
+  cras_bt_player_destroy_called++;
   return 0;
 }
 struct cras_bt_transport* cras_bt_transport_get(const char* object_path) {

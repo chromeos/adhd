@@ -309,6 +309,79 @@ int cras_bt_register_battery_provider(DBusConnection *conn,
 	return 0;
 }
 
+static void on_battery_provider_unregistered(DBusPendingCall *pending_call,
+					     void *data)
+{
+	DBusMessage *reply;
+
+	reply = dbus_pending_call_steal_reply(pending_call);
+	dbus_pending_call_unref(pending_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR)
+		syslog(LOG_ERR, "UnregisterBatteryProvider returned error: %s",
+		       dbus_message_get_error_name(reply));
+
+	dbus_message_unref(reply);
+}
+
+static int unregister_battery_provider(DBusConnection *conn,
+				       const struct cras_bt_adapter *adapter)
+{
+	const char *adapter_path;
+	DBusMessage *method_call;
+	DBusPendingCall *pending_call;
+
+	adapter_path = cras_bt_adapter_object_path(adapter);
+
+	method_call = dbus_message_new_method_call(
+		BLUEZ_SERVICE, adapter_path,
+		BLUEZ_INTERFACE_BATTERY_PROVIDER_MANAGER,
+		"UnregisterBatteryProvider");
+	if (!method_call)
+		return -ENOMEM;
+
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_OBJECT_PATH,
+				      &battery_provider.object_path,
+				      DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
+					     DBUS_TIMEOUT_USE_DEFAULT)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_message_unref(method_call);
+	if (!pending_call)
+		return -EIO;
+
+	if (!dbus_pending_call_set_notify(pending_call,
+					  on_battery_provider_unregistered,
+					  NULL, NULL)) {
+		dbus_pending_call_cancel(pending_call);
+		dbus_pending_call_unref(pending_call);
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+void cras_bt_unregister_battery_provider(DBusConnection *conn)
+{
+	struct cras_bt_adapter **adapters;
+	size_t num_adapters, i;
+
+	num_adapters = cras_bt_adapter_get_list(&adapters);
+
+	for (i = 0; i < num_adapters; ++i)
+		unregister_battery_provider(conn, adapters[i]);
+	free(adapters);
+
+	cras_bt_battery_provider_reset();
+}
+
 /* Removes a battery object and signals the removal on D-Bus as well. */
 static void cleanup_battery(struct cras_bt_battery_provider *provider,
 			    struct cras_bt_battery *battery)

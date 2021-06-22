@@ -88,4 +88,10 @@ int cras_bt_unregister_profile(DBusConnection *conn,
  */
 int cras_bt_register_profiles(DBusConnection *conn);
 
+/* Unregisters all added profiles.
+ * Args:
+ *    conn - The dbus connection.
+ */
+int cras_bt_unregister_profiles(DBusConnection *conn);
+
 #endif /* CRAS_BT_PROFILE_H_ */

@@ -608,7 +608,6 @@ add_filter_error:
 static void cras_bt_stop_bluez(struct bt_stack *s)
 {
 	DBusConnection *conn = s->conn;
-	cras_bt_reset();
 	cras_bt_device_stop_monitor();
 
 	dbus_bus_remove_match(conn,
@@ -645,6 +644,18 @@ static void cras_bt_stop_bluez(struct bt_stack *s)
 				      NULL);
 	dbus_connection_remove_filter(conn, cras_bt_handle_properties_changed,
 				      NULL);
+
+	/* Unregister all objects we've registered. */
+	if (!(s->profile_disable_mask & CRAS_BT_PROFILE_MASK_HFP))
+		cras_hfp_ag_profile_destroy(conn);
+	cras_telephony_stop();
+	if (!(s->profile_disable_mask & CRAS_BT_PROFILE_MASK_A2DP))
+		cras_a2dp_endpoint_destroy(conn);
+	cras_bt_player_destroy(conn);
+	cras_bt_unregister_battery_provider(conn);
+
+	/* Clean up the cached objects bluetoothd has told us. */
+	cras_bt_reset();
 }
 
 void cras_bt_start(DBusConnection *conn, unsigned profile_disable_mask)

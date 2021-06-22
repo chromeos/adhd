@@ -47,6 +47,9 @@ struct cras_bt_player {
  */
 int cras_bt_player_create(DBusConnection *conn);
 
+/* Unregisters player callback from dBus. */
+int cras_bt_player_destroy(DBusConnection *conn);
+
 /* Registers created player to bluetoothd. This is used when an bluetooth
  * adapter got enumerated.
  * Args:
@@ -55,6 +58,12 @@ int cras_bt_player_create(DBusConnection *conn);
  */
 int cras_bt_register_player(DBusConnection *conn,
 			    const struct cras_bt_adapter *adapter);
+
+/* Unregisters the created adapter from bluetoothd. This is used when CRAS
+ * disconnects from bluetoothd.
+ */
+int cras_bt_unregister_player(DBusConnection *conn,
+			      const struct cras_bt_adapter *adapter);
 
 /* Updates playback status for player and notifies bluetoothd
  * Args:

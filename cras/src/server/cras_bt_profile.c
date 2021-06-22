@@ -439,6 +439,20 @@ int cras_bt_add_profile(DBusConnection *conn, struct cras_bt_profile *profile)
 	return 0;
 }
 
+int cras_bt_unregister_profiles(DBusConnection *conn)
+{
+	struct cras_bt_profile *profile;
+	int err;
+
+	DL_FOREACH (profiles, profile) {
+		err = cras_bt_unregister_profile(conn, profile);
+		if (err)
+			return err;
+	}
+
+	return 0;
+}
+
 int cras_bt_rm_profile(DBusConnection *conn, struct cras_bt_profile *profile)
 {
 	DL_DELETE(profiles, profile);

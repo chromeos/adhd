@@ -29,6 +29,9 @@ struct hfp_slc_handle;
 /* Adds a profile instance for HFP AG (Hands-Free Profile Audio Gateway). */
 int cras_hfp_ag_profile_create(DBusConnection *conn);
 
+/* Removes the HFP AG registration. */
+int cras_hfp_ag_profile_destroy(DBusConnection *conn);
+
 /* Starts the HFP audio gateway for audio input/output. */
 int cras_hfp_ag_start(struct cras_bt_device *device);
 

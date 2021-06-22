@@ -41,6 +41,11 @@ struct cras_bt_battery_provider {
 int cras_bt_register_battery_provider(DBusConnection *conn,
 				      const struct cras_bt_adapter *adapter);
 
+/* Unregisters battery provide from bluetoothd. This is used when CRAS
+ * disconnects from bluetoothd.
+ */
+void cras_bt_unregister_battery_provider(DBusConnection *conn);
+
 /* Resets internal state of battery provider. */
 void cras_bt_battery_provider_reset();
 

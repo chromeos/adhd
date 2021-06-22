@@ -183,6 +183,12 @@ int cras_a2dp_endpoint_create(DBusConnection *conn)
 	return cras_bt_endpoint_add(conn, &cras_a2dp_endpoint);
 }
 
+int cras_a2dp_endpoint_destroy(DBusConnection *conn)
+{
+	cras_bt_endpoint_rm(conn, &cras_a2dp_endpoint);
+	return 0;
+}
+
 void cras_a2dp_start(struct cras_bt_device *device)
 {
 	struct cras_bt_transport *transport = cras_a2dp_endpoint.transport;
