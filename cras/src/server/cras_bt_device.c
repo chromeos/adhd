@@ -1351,6 +1351,11 @@ void cras_bt_device_start_monitor()
 				      NULL);
 }
 
+void cras_bt_device_stop_monitor()
+{
+	cras_main_message_rm_handler(CRAS_MAIN_BT);
+}
+
 void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 					   int volume)
 {

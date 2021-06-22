@@ -43,6 +43,9 @@ int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
 				  cras_message_callback callback,
 				  void *callback_data);
 
+/* Unregisters the handler for given type of message. */
+void cras_main_message_rm_handler(enum CRAS_MAIN_MESSAGE_TYPE type);
+
 /* Initialize the message handling mechanism in main thread. */
 void cras_main_message_init();
 

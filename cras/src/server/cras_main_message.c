@@ -46,6 +46,19 @@ int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
 	return 0;
 }
 
+void cras_main_message_rm_handler(enum CRAS_MAIN_MESSAGE_TYPE type)
+{
+	struct cras_main_msg_callback *cb;
+
+	DL_FOREACH (main_msg_callbacks, cb) {
+		if (cb->type == type) {
+			DL_DELETE(main_msg_callbacks, cb);
+			free(cb);
+			break;
+		}
+	}
+}
+
 int cras_main_message_send(struct cras_main_message *msg)
 {
 	int err;

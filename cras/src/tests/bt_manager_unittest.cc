@@ -14,6 +14,8 @@ static int cras_a2dp_endpoint_create_called;
 static int cras_bt_player_create_called;
 static int dbus_connection_add_filter_called;
 static int dbus_connection_remove_filter_called;
+static int cras_bt_device_start_monitor_called;
+static int cras_bt_device_stop_monitor_called;
 static int fake_start_called;
 static void fake_start(bt_stack* s) {
   fake_start_called++;
@@ -29,6 +31,8 @@ void ResetStubData() {
   cras_telephony_start_called = 0;
   cras_a2dp_endpoint_create_called = 0;
   cras_bt_player_create_called = 0;
+  cras_bt_device_start_monitor_called = 0;
+  cras_bt_device_stop_monitor_called = 0;
   dbus_connection_add_filter_called = 0;
   dbus_connection_remove_filter_called = 0;
   fake_start_called = 0;
@@ -51,9 +55,12 @@ TEST(BtManager, StartStop) {
   ASSERT_EQ(1, cras_bt_player_create_called);
   ASSERT_EQ(0, dbus_connection_remove_filter_called);
   ASSERT_LT(0, dbus_connection_add_filter_called);
+  ASSERT_EQ(1, cras_bt_device_start_monitor_called);
+  ASSERT_EQ(0, cras_bt_device_stop_monitor_called);
 
   cras_bt_stop(NULL);
   ASSERT_LT(0, dbus_connection_remove_filter_called);
+  ASSERT_EQ(1, cras_bt_device_stop_monitor_called);
 }
 
 TEST(BtManager, SwitchStackThenBackToDefault) {
@@ -63,14 +70,17 @@ TEST(BtManager, SwitchStackThenBackToDefault) {
   ResetStubData();
   cras_bt_start(NULL, 0x00);
   ASSERT_EQ(0, dbus_connection_remove_filter_called);
+  ASSERT_EQ(1, cras_bt_device_start_monitor_called);
 
   cras_bt_switch_stack(&fake_stack);
   ASSERT_LT(0, dbus_connection_remove_filter_called);
   ASSERT_EQ(1, fake_start_called);
   ASSERT_EQ(0, fake_stop_called);
+  ASSERT_EQ(1, cras_bt_device_stop_monitor_called);
 
   cras_bt_switch_default_stack();
   ASSERT_EQ(1, fake_stop_called);
+  ASSERT_EQ(2, cras_bt_device_start_monitor_called);
 }
 
 }  // namespace
@@ -130,7 +140,12 @@ struct cras_bt_device* cras_bt_device_create(DBusConnection* conn,
   return NULL;
 }
 void cras_bt_device_reset() {}
-void cras_bt_device_start_monitor() {}
+void cras_bt_device_start_monitor() {
+  cras_bt_device_start_monitor_called++;
+}
+void cras_bt_device_stop_monitor() {
+  cras_bt_device_stop_monitor_called++;
+}
 struct cras_bt_device* cras_bt_device_get(const char* object_path) {
   return NULL;
 }

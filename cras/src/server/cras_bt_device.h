@@ -164,6 +164,9 @@ int cras_bt_device_switch_profile(struct cras_bt_device *device,
 
 void cras_bt_device_start_monitor();
 
+/* Stops monitoring messages sent for connected BT device. */
+void cras_bt_device_stop_monitor();
+
 /* Checks if the device has an iodev for A2DP. */
 int cras_bt_device_has_a2dp(struct cras_bt_device *device);
 

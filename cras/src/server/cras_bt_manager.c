@@ -609,6 +609,7 @@ static void cras_bt_stop_bluez(struct bt_stack *s)
 {
 	DBusConnection *conn = s->conn;
 	cras_bt_reset();
+	cras_bt_device_stop_monitor();
 
 	dbus_bus_remove_match(conn,
 			      "type='signal',"
