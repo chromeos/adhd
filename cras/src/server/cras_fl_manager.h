@@ -3,11 +3,11 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FLUORIDE_H_
-#define CRAS_FLUORIDE_H_
+#ifndef CRAS_FL_MANAGER_H_
+#define CRAS_FL_MANAGER_H_
 
 #include <stdbool.h>
 
-void cras_fluoride_set_enable(bool enable);
+void cras_floss_set_enabled(bool enable);
 
-#endif /* CRAS_FLUORIDE_H_ */
+#endif /* CRAS_FL_MANAGER_H_ */

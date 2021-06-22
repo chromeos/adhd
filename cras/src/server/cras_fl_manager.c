@@ -7,24 +7,24 @@
 
 #include "cras_bt_manager.h"
 
-static void fluoride_start(struct bt_stack *s)
+static void floss_start(struct bt_stack *s)
 {
 }
 
-static void fluoride_stop(struct bt_stack *s)
+static void floss_stop(struct bt_stack *s)
 {
 }
 
-static struct bt_stack fluoride = {
+static struct bt_stack floss = {
 	.conn = NULL,
-	.start = fluoride_start,
-	.stop = fluoride_stop,
+	.start = floss_start,
+	.stop = floss_stop,
 };
 
-void cras_fluoride_set_enable(bool enable)
+void cras_floss_set_enabled(bool enable)
 {
 	if (enable)
-		cras_bt_switch_stack(&fluoride);
+		cras_bt_switch_stack(&floss);
 	else
 		cras_bt_switch_default_stack();
 }
