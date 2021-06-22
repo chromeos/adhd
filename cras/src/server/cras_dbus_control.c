@@ -129,36 +129,72 @@ static bool get_metadata(DBusMessage *message, const char **title,
 }
 
 /* Helper to send an empty reply. */
-static void send_empty_reply(DBusConnection *conn, DBusMessage *message)
+static DBusHandlerResult send_empty_reply(DBusConnection *conn,
+					  DBusMessage *message)
 {
 	DBusMessage *reply;
 	dbus_uint32_t serial = 0;
+	DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
-		return;
+		return DBUS_HANDLER_RESULT_NEED_MEMORY;
 
-	dbus_connection_send(conn, reply, &serial);
+	if (!dbus_connection_send(conn, reply, &serial))
+		ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
 
 	dbus_message_unref(reply);
+	return ret;
 }
 
 /* Helper to send an int32 reply. */
-static void send_int32_reply(DBusConnection *conn, DBusMessage *message,
-			     dbus_int32_t value)
+static DBusHandlerResult
+send_int32_reply(DBusConnection *conn, DBusMessage *message, dbus_int32_t value)
 {
 	DBusMessage *reply;
 	dbus_uint32_t serial = 0;
+	DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
 
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
-		return;
+		return DBUS_HANDLER_RESULT_NEED_MEMORY;
 
-	dbus_message_append_args(reply, DBUS_TYPE_INT32, &value,
-				 DBUS_TYPE_INVALID);
-	dbus_connection_send(conn, reply, &serial);
+	if (!dbus_message_append_args(reply, DBUS_TYPE_INT32, &value,
+				      DBUS_TYPE_INVALID)) {
+		ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
+		goto unref_reply;
+	}
+	if (!dbus_connection_send(conn, reply, &serial))
+		ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
 
+unref_reply:
 	dbus_message_unref(reply);
+	return ret;
+}
+
+/* Helper to send an bool reply. */
+static DBusHandlerResult
+send_bool_reply(DBusConnection *conn, DBusMessage *message, dbus_bool_t value)
+{
+	DBusMessage *reply;
+	dbus_uint32_t serial = 0;
+	DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
+
+	reply = dbus_message_new_method_return(message);
+	if (!reply)
+		return DBUS_HANDLER_RESULT_NEED_MEMORY;
+
+	if (!dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &value,
+				      DBUS_TYPE_INVALID)) {
+		ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
+		goto unref_reply;
+	}
+	if (!dbus_connection_send(conn, reply, &serial))
+		ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
+
+unref_reply:
+	dbus_message_unref(reply);
+	return ret;
 }
 
 /* Handlers for exported DBus method calls. */
@@ -390,19 +426,9 @@ static DBusHandlerResult
 handle_get_default_output_buffer_size(DBusConnection *conn,
 				      DBusMessage *message, void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_int32_t buffer_size;
+	dbus_int32_t buffer_size = cras_system_get_default_output_buffer_size();
 
-	reply = dbus_message_new_method_return(message);
-
-	buffer_size = cras_system_get_default_output_buffer_size();
-	dbus_message_append_args(reply, DBUS_TYPE_INT32, &buffer_size,
-				 DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
+	send_int32_reply(conn, message, buffer_size);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -644,19 +670,9 @@ static DBusHandlerResult handle_get_system_aec_supported(DBusConnection *conn,
 							 DBusMessage *message,
 							 void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_bool_t system_aec_supported;
+	dbus_bool_t system_aec_supported = cras_system_get_aec_supported();
 
-	reply = dbus_message_new_method_return(message);
-
-	system_aec_supported = cras_system_get_aec_supported();
-	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN,
-				 &system_aec_supported, DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
+	send_bool_reply(conn, message, system_aec_supported);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -665,19 +681,9 @@ static DBusHandlerResult handle_get_system_aec_group_id(DBusConnection *conn,
 							DBusMessage *message,
 							void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_int32_t system_aec_group_id;
+	dbus_int32_t system_aec_group_id = cras_system_get_aec_group_id();
 
-	reply = dbus_message_new_method_return(message);
-
-	system_aec_group_id = cras_system_get_aec_group_id();
-	dbus_message_append_args(reply, DBUS_TYPE_INT32, &system_aec_group_id,
-				 DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
+	send_int32_reply(conn, message, system_aec_group_id);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -686,19 +692,9 @@ static DBusHandlerResult handle_system_ns_supported(DBusConnection *conn,
 						    DBusMessage *message,
 						    void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_bool_t ns_supported;
+	dbus_bool_t ns_supported = cras_system_get_ns_supported();
 
-	reply = dbus_message_new_method_return(message);
-
-	ns_supported = cras_system_get_ns_supported();
-	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &ns_supported,
-				 DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
+	send_bool_reply(conn, message, ns_supported);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -707,19 +703,9 @@ static DBusHandlerResult handle_system_agc_supported(DBusConnection *conn,
 						     DBusMessage *message,
 						     void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_bool_t agc_supported;
+	dbus_bool_t agc_supported = cras_system_get_agc_supported();
 
-	reply = dbus_message_new_method_return(message);
-
-	agc_supported = cras_system_get_agc_supported();
-	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &agc_supported,
-				 DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
+	send_bool_reply(conn, message, agc_supported);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -728,19 +714,9 @@ static DBusHandlerResult
 handle_get_deprioritize_bt_wbs_mic(DBusConnection *conn, DBusMessage *message,
 				   void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_bool_t deprioritized;
+	dbus_bool_t deprioritized = cras_system_get_deprioritize_bt_wbs_mic();
 
-	reply = dbus_message_new_method_return(message);
-
-	deprioritized = cras_system_get_deprioritize_bt_wbs_mic();
-	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &deprioritized,
-				 DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
+	send_bool_reply(conn, message, deprioritized);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -748,19 +724,9 @@ handle_get_deprioritize_bt_wbs_mic(DBusConnection *conn, DBusMessage *message,
 static DBusHandlerResult handle_get_rtc_running(DBusConnection *conn,
 						DBusMessage *message, void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_bool_t running;
+	dbus_bool_t running = cras_rtc_is_running();
 
-	reply = dbus_message_new_method_return(message);
-
-	running = cras_rtc_is_running();
-	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &running,
-				 DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
+	send_bool_reply(conn, message, running);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
@@ -1067,19 +1033,9 @@ static DBusHandlerResult
 handle_is_noise_cancellation_supported(DBusConnection *conn,
 				       DBusMessage *message, void *arg)
 {
-	DBusMessage *reply;
-	dbus_uint32_t serial = 0;
-	dbus_bool_t nc_supported;
+	dbus_bool_t supported = cras_system_get_noise_cancellation_supported();
 
-	reply = dbus_message_new_method_return(message);
-
-	nc_supported = cras_system_get_noise_cancellation_supported();
-	dbus_message_append_args(reply, DBUS_TYPE_BOOLEAN, &nc_supported,
-				 DBUS_TYPE_INVALID);
-
-	dbus_connection_send(conn, reply, &serial);
-
-	dbus_message_unref(reply);
+	send_bool_reply(conn, message, supported);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
