@@ -119,8 +119,10 @@ cras_bt_endpoint_set_configuration(DBusConnection *conn, DBusMessage *message,
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
-	if (!dbus_connection_send(conn, reply, NULL))
+	if (!dbus_connection_send(conn, reply, NULL)) {
+		dbus_message_unref(reply);
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
+	}
 
 	dbus_message_unref(reply);
 	return DBUS_HANDLER_RESULT_HANDLED;
@@ -165,8 +167,10 @@ cras_bt_endpoint_select_configuration(DBusConnection *conn,
 			"org.chromium.Cras.Error.UnsupportedConfiguration",
 			"Unable to select configuration from capabilities");
 
-		if (!dbus_connection_send(conn, reply, NULL))
+		if (!dbus_connection_send(conn, reply, NULL)) {
+			dbus_message_unref(reply);
 			return DBUS_HANDLER_RESULT_NEED_MEMORY;
+		}
 
 		dbus_message_unref(reply);
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -176,10 +180,14 @@ cras_bt_endpoint_select_configuration(DBusConnection *conn,
 	if (!reply)
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
 	if (!dbus_message_append_args(reply, DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-				      &configuration, len, DBUS_TYPE_INVALID))
+				      &configuration, len, DBUS_TYPE_INVALID)) {
+		dbus_message_unref(reply);
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
-	if (!dbus_connection_send(conn, reply, NULL))
+	}
+	if (!dbus_connection_send(conn, reply, NULL)) {
+		dbus_message_unref(reply);
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
+	}
 
 	dbus_message_unref(reply);
 	return DBUS_HANDLER_RESULT_HANDLED;
@@ -221,8 +229,10 @@ cras_bt_endpoint_clear_configuration(DBusConnection *conn, DBusMessage *message,
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
-	if (!dbus_connection_send(conn, reply, NULL))
+	if (!dbus_connection_send(conn, reply, NULL)) {
+		dbus_message_unref(reply);
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
+	}
 
 	dbus_message_unref(reply);
 	return DBUS_HANDLER_RESULT_HANDLED;
@@ -247,8 +257,10 @@ cras_bt_endpoint_release(DBusConnection *conn, DBusMessage *message, void *arg)
 	reply = dbus_message_new_method_return(message);
 	if (!reply)
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
-	if (!dbus_connection_send(conn, reply, NULL))
+	if (!dbus_connection_send(conn, reply, NULL)) {
+		dbus_message_unref(reply);
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;
+	}
 
 	dbus_message_unref(reply);
 	return DBUS_HANDLER_RESULT_HANDLED;
@@ -272,10 +284,14 @@ static DBusHandlerResult cras_bt_handle_endpoint_message(DBusConnection *conn,
 		if (!reply)
 			return DBUS_HANDLER_RESULT_NEED_MEMORY;
 		if (!dbus_message_append_args(reply, DBUS_TYPE_STRING, &xml,
-					      DBUS_TYPE_INVALID))
+					      DBUS_TYPE_INVALID)) {
+			dbus_message_unref(reply);
 			return DBUS_HANDLER_RESULT_NEED_MEMORY;
-		if (!dbus_connection_send(conn, reply, NULL))
+		}
+		if (!dbus_connection_send(conn, reply, NULL)) {
+			dbus_message_unref(reply);
 			return DBUS_HANDLER_RESULT_NEED_MEMORY;
+		}
 
 		dbus_message_unref(reply);
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -476,8 +492,10 @@ int cras_bt_unregister_endpoint(DBusConnection *conn,
 
 	if (!dbus_message_append_args(method_call, DBUS_TYPE_OBJECT_PATH,
 				      &endpoint->object_path,
-				      DBUS_TYPE_INVALID))
+				      DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
 		return -ENOMEM;
+	}
 
 	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
 					     DBUS_TIMEOUT_USE_DEFAULT)) {

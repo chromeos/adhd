@@ -119,8 +119,10 @@ cras_bt_profile_handle_new_connection(DBusConnection *conn,
 		reply = dbus_message_new_error(
 			message, "org.chromium.Cras.Error.RejectNewConnection",
 			"Possibly another headset already in use");
-		if (!dbus_connection_send(conn, reply, NULL))
+		if (!dbus_connection_send(conn, reply, NULL)) {
+			dbus_message_unref(reply);
 			return DBUS_HANDLER_RESULT_NEED_MEMORY;
+		}
 
 		dbus_message_unref(reply);
 		return DBUS_HANDLER_RESULT_HANDLED;

@@ -221,8 +221,10 @@ int cras_bt_device_connect_profile(DBusConnection *conn,
 		return -ENOMEM;
 
 	if (!dbus_message_append_args(method_call, DBUS_TYPE_STRING, &uuid,
-				      DBUS_TYPE_INVALID))
+				      DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
 		return -ENOMEM;
+	}
 
 	dbus_error_init(&dbus_error);
 
