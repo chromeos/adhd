@@ -84,6 +84,7 @@ CRAS_DBUS_SOURCES = \
 	server/cras_dbus_util.c \
 	server/cras_dbus_control.c \
 	server/cras_fl_manager.c \
+	server/cras_fl_media.c \
 	server/cras_hfp_ag_profile.c \
 	server/cras_hfp_iodev.c \
 	server/cras_hfp_alsa_iodev.c \

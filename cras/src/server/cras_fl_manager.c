@@ -11,6 +11,7 @@
 
 #include "cras_bt_constants.h"
 #include "cras_bt_manager.h"
+#include "cras_fl_media.h"
 
 #define BT_MANAGER_SERVICE_NAME "org.chromium.bluetooth.Manager"
 #define BT_MANAGER_INTERFACE "org.chromium.bluetooth.Manager"
@@ -18,6 +19,13 @@
 #define BT_CALLBACK_INTERFACE "org.chromium.bluetooth.ManagerCallback"
 
 #define CRAS_BT_OBJECT_PATH "/org/chromium/cras/bluetooth"
+
+enum BtState {
+	BT_STATE_OFF,
+	BT_STATE_TURNING_ON,
+	BT_STATE_ON,
+	BT_STATE_TURNING_OFF
+};
 
 static void floss_manager_on_register_callback(DBusPendingCall *pending_call,
 					       void *data)
@@ -82,6 +90,7 @@ static void floss_manager_on_get_state(DBusPendingCall *pending_call,
 {
 	DBusMessage *reply;
 	DBusError dbus_error;
+	DBusConnection *conn = (DBusConnection *)data;
 	int bt_state = 0;
 
 	reply = dbus_pending_call_steal_reply(pending_call);
@@ -103,6 +112,12 @@ static void floss_manager_on_get_state(DBusPendingCall *pending_call,
 	}
 
 	syslog(LOG_DEBUG, "GetState receives reply, state %d", bt_state);
+	// TODO: retrieve the default adapter instead of GetState
+	if (bt_state == BT_STATE_OFF)
+		floss_media_stop(conn);
+	else if (bt_state == BT_STATE_ON)
+		floss_media_start(conn, 0);
+
 	dbus_message_unref(reply);
 }
 
@@ -167,6 +182,10 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection *conn,
 	}
 
 	syslog(LOG_DEBUG, "OnHciEnabledChanged %d %d", hci_interface, enabled);
+	if (enabled)
+		floss_media_start(conn, hci_interface);
+	else
+		floss_media_stop(conn);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
