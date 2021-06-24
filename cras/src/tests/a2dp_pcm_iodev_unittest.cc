@@ -32,8 +32,8 @@ static unsigned cras_iodev_list_rm_output_called;
 static cras_audio_area* mock_audio_area;
 static unsigned cras_iodev_init_audio_area_called;
 static unsigned cras_iodev_free_audio_area_called;
-static unsigned cras_a2dp_skt_acquire_called;
-static unsigned cras_a2dp_skt_release_called;
+static unsigned cras_floss_a2dp_start_called;
+static unsigned cras_floss_a2dp_stop_called;
 static unsigned cras_a2dp_cancel_suspend_called;
 static unsigned cras_a2dp_schedule_suspend_called;
 static thread_callback write_callback;
@@ -41,6 +41,7 @@ static void* write_callback_data;
 static int audio_thread_config_events_callback_called;
 static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
+static int cras_floss_a2dp_fill_format_called;
 
 void ResetStubData() {
   cras_iodev_add_node_called = 0;
@@ -52,13 +53,14 @@ void ResetStubData() {
   cras_iodev_list_rm_output_called = 0;
   cras_iodev_init_audio_area_called = 0;
   cras_iodev_free_audio_area_called = 0;
-  cras_a2dp_skt_acquire_called = 0;
-  cras_a2dp_skt_release_called = 0;
+  cras_floss_a2dp_start_called = 0;
+  cras_floss_a2dp_stop_called = 0;
   cras_a2dp_cancel_suspend_called = 0;
   cras_a2dp_schedule_suspend_called = 0;
   write_callback = NULL;
   audio_thread_config_events_callback_called = 0;
   audio_thread_config_events_callback_trigger = TRIGGER_NONE;
+  cras_floss_a2dp_fill_format_called = 0;
   if (!mock_audio_area) {
     mock_audio_area = (cras_audio_area*)calloc(
         1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
@@ -87,7 +89,7 @@ class A2dpPcmIodev : public testing::Test {
 TEST_F(A2dpPcmIodev, CreateDestroyA2dpPcmIodev) {
   struct cras_iodev* iodev;
 
-  iodev = a2dp_pcm_iodev_create();
+  iodev = a2dp_pcm_iodev_create(NULL, 0, 0, 0);
 
   EXPECT_NE(iodev, (void*)NULL);
   EXPECT_EQ(iodev->direction, CRAS_STREAM_OUTPUT);
@@ -95,6 +97,7 @@ TEST_F(A2dpPcmIodev, CreateDestroyA2dpPcmIodev) {
   EXPECT_EQ(1, cras_iodev_add_node_called);
   EXPECT_EQ(1, cras_iodev_set_active_node_called);
   EXPECT_EQ(1, cras_iodev_list_add_output_called);
+  EXPECT_EQ(1, cras_floss_a2dp_fill_format_called);
 
   a2dp_pcm_iodev_destroy(iodev);
 
@@ -106,21 +109,21 @@ TEST_F(A2dpPcmIodev, CreateDestroyA2dpPcmIodev) {
 TEST_F(A2dpPcmIodev, OpenCloseIodev) {
   struct cras_iodev* iodev;
 
-  iodev = a2dp_pcm_iodev_create();
+  iodev = a2dp_pcm_iodev_create(NULL, 0, 0, 0);
 
   iodev_set_format(iodev, &format);
   iodev->configure_dev(iodev);
   iodev->start(iodev);
   iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
-  EXPECT_EQ(1, cras_a2dp_skt_acquire_called);
+  EXPECT_EQ(1, cras_floss_a2dp_start_called);
   EXPECT_EQ(1, cras_iodev_init_audio_area_called);
   EXPECT_NE(write_callback, (void*)NULL);
   EXPECT_EQ(1, audio_thread_config_events_callback_called);
   EXPECT_EQ(TRIGGER_NONE, audio_thread_config_events_callback_trigger);
 
   iodev->close_dev(iodev);
-  EXPECT_EQ(1, cras_a2dp_skt_release_called);
+  EXPECT_EQ(1, cras_floss_a2dp_stop_called);
   EXPECT_EQ(1, cras_a2dp_cancel_suspend_called);
   EXPECT_EQ(1, cras_iodev_free_format_called);
   EXPECT_EQ(1, cras_iodev_free_audio_area_called);
@@ -221,13 +224,37 @@ void audio_thread_config_events_callback(
 }
 
 // A2DP manager
-int cras_a2dp_skt_acquire() {
-  cras_a2dp_skt_acquire_called++;
-  return FAKE_SOCKET_FD;
+const char* cras_floss_a2dp_get_display_name(struct cras_a2dp* a2dp) {
+  return "display_name";
 }
 
-int cras_a2dp_skt_release() {
-  cras_a2dp_skt_release_called++;
+const char* cras_floss_a2dp_get_addr(struct cras_a2dp* a2dp) {
+  return "11:22:33:44:55:66";
+}
+
+int cras_floss_a2dp_fill_format(int sample_rate,
+                                int bits_per_sample,
+                                int channel_mode,
+                                size_t** rates,
+                                snd_pcm_format_t** formats,
+                                size_t** channel_counts) {
+  cras_floss_a2dp_fill_format_called += 1;
+  *rates = (size_t*)malloc(sizeof(**rates));
+  *formats = (snd_pcm_format_t*)malloc(sizeof(**formats));
+  *channel_counts = (size_t*)malloc(sizeof(**channel_counts));
+  return 0;
+}
+
+int cras_floss_a2dp_start(struct cras_a2dp* a2dp,
+                          struct cras_audio_format* fmt,
+                          int* skt) {
+  cras_floss_a2dp_start_called++;
+  *skt = FAKE_SOCKET_FD;
+  return 0;
+}
+
+int cras_floss_a2dp_stop(struct cras_a2dp* a2dp) {
+  cras_floss_a2dp_stop_called++;
   return 0;
 }
 

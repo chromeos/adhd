@@ -10,6 +10,8 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras_a2dp_manager.h"
+
 #define BT_SERVICE_NAME "org.chromium.bluetooth"
 #define BT_MEDIA_OBJECT "/org/chromium/bluetooth/media"
 #define BT_MEDIA_INTERFACE "org.chromium.bluetooth.BluetoothMedia"
@@ -24,6 +26,7 @@ struct fl_media {
 	unsigned int hci;
 	char obj_path[BT_MEDIA_OBJECT_PATH_SIZE_MAX];
 	DBusConnection *conn;
+	struct cras_a2dp *a2dp;
 };
 
 static struct fl_media *active_fm = NULL;
@@ -102,6 +105,183 @@ static int floss_media_init(DBusConnection *conn, const struct fl_media *fm)
 		dbus_pending_call_cancel(pending_call);
 		dbus_pending_call_unref(pending_call);
 		return -ENOMEM;
+	}
+	return 0;
+}
+
+int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
+{
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+
+	syslog(LOG_DEBUG, "floss_media_set_active_device");
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE,
+					     "SetActiveDevice");
+	if (!method_call)
+		return -ENOMEM;
+
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_STRING, &addr,
+				      DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_error_init(&dbus_error);
+	reply = dbus_connection_send_with_reply_and_block(
+		active_fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT,
+		&dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send SetActiveDevice %s: %s", addr,
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "SetActiveDevice returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return -EIO;
+	}
+	return 0;
+}
+
+int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
+				      unsigned int bps, unsigned int channels)
+{
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+	dbus_uint32_t sample_rate = rate;
+	dbus_uint32_t bits_per_sample = bps;
+	dbus_uint32_t channel_mode = channels;
+
+	syslog(LOG_DEBUG, "floss_media_a2dp_set_audio_config");
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE,
+					     "SetAudioConfig");
+	if (!method_call)
+		return -ENOMEM;
+
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_UINT32,
+				      &sample_rate, DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_UINT32,
+				      &bits_per_sample, DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_UINT32,
+				      &channel_mode, DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_error_init(&dbus_error);
+	reply = dbus_connection_send_with_reply_and_block(
+		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send SetAudioConfig: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "SetAudioConfig returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return -EIO;
+	}
+	return 0;
+}
+
+int floss_media_a2dp_start_audio_request(struct fl_media *fm)
+{
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+
+	syslog(LOG_DEBUG, "floss_media_a2dp_start_audio_request");
+
+	if (!fm) {
+		syslog(LOG_WARNING, "%s: Floss media not started", __func__);
+		return -EINVAL;
+	}
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE,
+					     "StartAudioRequest");
+	if (!method_call)
+		return -ENOMEM;
+
+	dbus_error_init(&dbus_error);
+	reply = dbus_connection_send_with_reply_and_block(
+		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send StartAudioRequest: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "StartAudioRequest returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return -EIO;
+	}
+	return 0;
+}
+
+int floss_media_a2dp_stop_audio_request(struct fl_media *fm)
+{
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+
+	syslog(LOG_DEBUG, "floss_media_a2dp_stop_audio_request");
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE,
+					     "StopAudioRequest");
+	if (!method_call)
+		return -ENOMEM;
+
+	dbus_error_init(&dbus_error);
+
+	reply = dbus_connection_send_with_reply_and_block(
+		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send StopAudioRequest: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "StopAudioRequest returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return -EIO;
 	}
 	return 0;
 }
@@ -200,8 +380,14 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 
-		syslog(LOG_DEBUG, "OnBluetoothAudioDeviceAdded %s", addr);
-		// a2dp_pcm_iodev_create()
+		if (active_fm->a2dp) {
+			syslog(LOG_WARNING,
+			       "Multiple A2DP devices added, override the older");
+			cras_floss_a2dp_destroy(active_fm->a2dp);
+		}
+		active_fm->a2dp =
+			cras_floss_a2dp_create(active_fm, addr, sample_rate,
+					       bits_per_sample, channel_mode);
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(
@@ -215,7 +401,11 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 		}
 
 		syslog(LOG_DEBUG, "OnBluetoothAudioDeviceRemoved %s", addr);
-		// a2dp_pcm_iodev_destroy
+		if (active_fm && active_fm->a2dp) {
+			cras_floss_a2dp_destroy(active_fm->a2dp);
+			active_fm->a2dp = NULL;
+		}
+
 		return DBUS_HANDLER_RESULT_HANDLED;
 	}
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -265,7 +455,10 @@ int floss_media_stop(DBusConnection *conn)
 						    CRAS_BT_MEDIA_OBJECT_PATH))
 		syslog(LOG_WARNING, "Couldn't unregister BT media obj path");
 
+	/* Clean up iodev when BT forced to stop. */
 	if (active_fm) {
+		if (active_fm->a2dp)
+			cras_floss_a2dp_destroy(active_fm->a2dp);
 		free(active_fm);
 		active_fm = NULL;
 	}

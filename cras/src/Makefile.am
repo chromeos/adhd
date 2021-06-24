@@ -421,6 +421,7 @@ if HAVE_DBUS
 DBUS_TESTS = \
 	a2dp_info_unittest \
 	a2dp_iodev_unittest \
+	a2dp_manager_unittest \
 	alsa_io_unittest \
 	bt_device_unittest \
 	bt_io_unittest \
@@ -652,6 +653,13 @@ a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc
 a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+
+a2dp_manager_unittest_SOURCES = tests/a2dp_manager_unittest.cc \
+	server/cras_a2dp_manager.c
+a2dp_manager_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common $(DBUS_CFLAGS)
+a2dp_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+
 endif
 
 a2dp_pcm_iodev_unittest_SOURCES = tests/a2dp_pcm_iodev_unittest.cc \

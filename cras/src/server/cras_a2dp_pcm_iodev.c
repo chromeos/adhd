@@ -47,11 +47,12 @@ static const struct timespec throttle_event_threshold = {
  *    base - The cras_iodev structure "base class"
  *    audio_fd - The sockets for device to read and write
  *    sock_depth_frames - Socket depth of the a2dp pcm socket.
- *    pcm_buf - Buffer to hold pcm samples before encode.
+ *    ncm_buf - Buffer to hold pcm samples before encode.
  *    next_flush_time - The time when it is okay for next flush call.
  *    flush_period - The time period between two a2dp packet writes.
  *    write_block - How many frames of audio samples we prefer to write in one
  *        socket write.
+ *    a2dp - The associated cras_a2dp object.
  */
 struct a2dp_io {
 	struct cras_iodev base;
@@ -61,34 +62,14 @@ struct a2dp_io {
 	struct timespec next_flush_time;
 	struct timespec flush_period;
 	unsigned int write_block;
+	struct cras_a2dp *a2dp;
 };
 
 static int flush(const struct cras_iodev *iodev);
 
 static int update_supported_formats(struct cras_iodev *iodev)
 {
-	size_t rate = 0;
-	size_t channel;
-
-	channel = 2;
-	rate = 48000;
-
-	free(iodev->supported_rates);
-	iodev->supported_rates = (size_t *)malloc(2 * sizeof(rate));
-	iodev->supported_rates[0] = rate;
-	iodev->supported_rates[1] = 0;
-
-	free(iodev->supported_channel_counts);
-	iodev->supported_channel_counts = (size_t *)malloc(2 * sizeof(channel));
-	iodev->supported_channel_counts[0] = channel;
-	iodev->supported_channel_counts[1] = 0;
-
-	free(iodev->supported_formats);
-	iodev->supported_formats =
-		(snd_pcm_format_t *)malloc(2 * sizeof(snd_pcm_format_t));
-	iodev->supported_formats[0] = SND_PCM_FORMAT_S16_LE;
-	iodev->supported_formats[1] = (snd_pcm_format_t)0;
-
+	/* Supported formats are fixed when iodev created. */
 	return 0;
 }
 
@@ -199,17 +180,16 @@ static int configure_dev(struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	int sock_depth;
-	int audio_skt;
+	int rc;
 	socklen_t optlen;
 	size_t format_bytes;
 
-	audio_skt = cras_a2dp_skt_acquire();
-	if (audio_skt < 0) {
-		syslog(LOG_ERR, "Socket acquire failed");
-		return audio_skt;
+	rc = cras_floss_a2dp_start(a2dpio->a2dp, iodev->format,
+				   &a2dpio->audio_fd);
+	if (rc < 0) {
+		syslog(LOG_ERR, "A2dp start failed");
+		return rc;
 	}
-
-	a2dpio->audio_fd = audio_skt;
 
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
@@ -265,7 +245,8 @@ static int close_dev(struct cras_iodev *iodev)
 
 	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
 				      a2dpio->audio_fd);
-	err = cras_a2dp_skt_release();
+	close(a2dpio->audio_fd);
+	err = cras_floss_a2dp_stop(a2dpio->a2dp);
 	if (err < 0)
 		syslog(LOG_ERR, "Socket release failed");
 
@@ -477,13 +458,15 @@ void a2dp_pcm_free_resources(struct a2dp_io *a2dpio)
 	free(a2dpio->base.supported_formats);
 }
 
-struct cras_iodev *a2dp_pcm_iodev_create()
+struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
+					 int sample_rate, int bits_per_sample,
+					 int channel_mode)
 {
 	int err;
 	struct a2dp_io *a2dpio;
 	struct cras_iodev *iodev;
 	struct cras_ionode *node;
-	const char *name;
+	const char *addr, *name;
 
 	a2dpio = (struct a2dp_io *)calloc(1, sizeof(*a2dpio));
 	if (!a2dpio)
@@ -491,17 +474,19 @@ struct cras_iodev *a2dp_pcm_iodev_create()
 
 	iodev = &a2dpio->base;
 
+	a2dpio->audio_fd = -1;
+	a2dpio->a2dp = a2dp;
+
 	/* A2DP only does output now */
 	iodev->direction = CRAS_STREAM_OUTPUT;
 
-	/* Set a mock a2dp device name. This should be replaced once we're able
-	 * to get the bluetooth device's name through Floss
-	 */
-	name = "MOCK_A2DP_DEVICE";
-
+	name = cras_floss_a2dp_get_display_name(a2dp);
 	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-	iodev->info.stable_id = SuperFastHash(name, strlen(name), strlen(name));
+
+	/* Address determines the unique stable id. */
+	addr = cras_floss_a2dp_get_addr(a2dp);
+	iodev->info.stable_id = SuperFastHash(addr, strlen(addr), strlen(addr));
 
 	iodev->configure_dev = configure_dev;
 	iodev->frames_queued = frames_queued;
@@ -517,6 +502,11 @@ struct cras_iodev *a2dp_pcm_iodev_create()
 	iodev->set_volume = set_volume;
 	iodev->start = start;
 	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
+
+	cras_floss_a2dp_fill_format(sample_rate, bits_per_sample, channel_mode,
+				    &iodev->supported_rates,
+				    &iodev->supported_formats,
+				    &iodev->supported_channel_counts);
 
 	/* Create an empty ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
