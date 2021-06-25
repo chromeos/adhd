@@ -5,7 +5,7 @@
 # Defines a docker image that can build cras fuzzers.
 #
 FROM gcr.io/oss-fuzz-base/base-builder
-LABEL maintainer="dgreid@chromium.org"
+LABEL maintainer="paulhsia@chromium.org"
 
 COPY . "${SRC}/adhd"
 COPY cras/src/fuzz/build.sh "${SRC}/build.sh"
