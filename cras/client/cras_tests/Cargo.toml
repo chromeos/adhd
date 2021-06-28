@@ -5,7 +5,7 @@ authors = ["The Chromium OS Authors"]
 edition = "2018"
 
 [dependencies]
-audio_streams = { path = "../../../audio_streams" } # provided by ebuild
+audio_streams = { path = "../../../../../platform/crosvm/audio_streams" } # provided by ebuild
 dbus = "0.8"
 getopts = "0.2.18"
 hound = "3.4.0"
