@@ -20,6 +20,7 @@
 #include "cras_bt_log.h"
 #include "cras_config.h"
 #include "cras_iodev.h"
+#include "cras_main_message.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 
@@ -34,6 +35,18 @@ static struct a2dp {
 	int skt_fd;
 	struct cras_timer *suspend_timer;
 } connected_a2dp;
+
+enum A2DP_COMMAND {
+	A2DP_CANCEL_SUSPEND,
+	A2DP_SCHEDULE_SUSPEND,
+};
+
+struct a2dp_msg {
+	struct cras_main_message header;
+	enum A2DP_COMMAND cmd;
+	struct cras_iodev *dev;
+	unsigned int arg1;
+};
 
 void fill_local_a2dp_skt_addr(struct sockaddr_un *addr)
 {
@@ -61,9 +74,58 @@ void cras_a2dp_suspend_connected_iodev()
 	connected_a2dp.skt_fd = -1;
 }
 
+static void a2dp_suspend_cb(struct cras_timer *timer, void *arg)
+{
+	cras_a2dp_suspend_connected_iodev();
+}
+
+static void a2dp_schedule_suspend(unsigned int msec)
+{
+	struct cras_tm *tm;
+
+	if (connected_a2dp.suspend_timer)
+		return;
+
+	tm = cras_system_state_get_tm();
+	connected_a2dp.suspend_timer =
+		cras_tm_create_timer(tm, msec, a2dp_suspend_cb, NULL);
+}
+
+static void a2dp_cancel_suspend()
+{
+	struct cras_tm *tm;
+
+	if (connected_a2dp.suspend_timer == NULL)
+		return;
+
+	tm = cras_system_state_get_tm();
+	cras_tm_cancel_timer(tm, connected_a2dp.suspend_timer);
+	connected_a2dp.suspend_timer = NULL;
+}
+
+static void a2dp_process_msg(struct cras_main_message *msg, void *arg)
+{
+	struct a2dp_msg *a2dp_msg = (struct a2dp_msg *)msg;
+
+	if (a2dp_msg->dev == NULL || connected_a2dp.iodev != a2dp_msg->dev)
+		return;
+
+	switch (a2dp_msg->cmd) {
+	case A2DP_CANCEL_SUSPEND:
+		a2dp_cancel_suspend();
+		break;
+	case A2DP_SCHEDULE_SUSPEND:
+		a2dp_schedule_suspend(a2dp_msg->arg1);
+		break;
+	default:
+		break;
+	}
+}
+
 void cras_floss_a2dp_start()
 {
 	BTLOG(btlog, BT_A2DP_START, 0, 0);
+	cras_main_message_add_handler(CRAS_MAIN_A2DP, a2dp_process_msg, NULL);
 
 	if (connected_a2dp.iodev) {
 		syslog(LOG_WARNING,
@@ -79,6 +141,7 @@ void cras_floss_a2dp_start()
 
 void cras_floss_a2dp_stop()
 {
+	cras_main_message_rm_handler(CRAS_MAIN_A2DP);
 	cras_a2dp_suspend_connected_iodev();
 	cras_a2dp_skt_release();
 }
@@ -146,31 +209,34 @@ error:
 	return rc;
 }
 
-static void a2dp_suspend_cb(struct cras_timer *timer, void *arg)
+static void init_a2dp_msg(struct a2dp_msg *msg, enum A2DP_COMMAND cmd,
+			  struct cras_iodev *dev, unsigned int arg1)
 {
-	cras_a2dp_suspend_connected_iodev();
+	memset(msg, 0, sizeof(*msg));
+	msg->header.type = CRAS_MAIN_A2DP;
+	msg->header.length = sizeof(*msg);
+	msg->cmd = cmd;
+	msg->dev = dev;
+	msg->arg1 = arg1;
+}
+
+static void send_a2dp_message(enum A2DP_COMMAND cmd, unsigned int arg1)
+{
+	struct a2dp_msg msg;
+	int rc;
+
+	init_a2dp_msg(&msg, cmd, connected_a2dp.iodev, arg1);
+	rc = cras_main_message_send((struct cras_main_message *)&msg);
+	if (rc)
+		syslog(LOG_ERR, "Failed to send a2dp message %d", cmd);
 }
 
 void cras_a2dp_schedule_suspend(unsigned int msec)
 {
-	struct cras_tm *tm;
-
-	if (connected_a2dp.suspend_timer)
-		return;
-
-	tm = cras_system_state_get_tm();
-	connected_a2dp.suspend_timer =
-		cras_tm_create_timer(tm, msec, a2dp_suspend_cb, NULL);
+	send_a2dp_message(A2DP_SCHEDULE_SUSPEND, msec);
 }
 
 void cras_a2dp_cancel_suspend()
 {
-	struct cras_tm *tm;
-
-	if (connected_a2dp.suspend_timer == NULL)
-		return;
-
-	tm = cras_system_state_get_tm();
-	cras_tm_cancel_timer(tm, connected_a2dp.suspend_timer);
-	connected_a2dp.suspend_timer = NULL;
+	send_a2dp_message(A2DP_CANCEL_SUSPEND, 0);
 }
