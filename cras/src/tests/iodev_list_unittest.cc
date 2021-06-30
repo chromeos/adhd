@@ -2450,7 +2450,6 @@ int main(int argc, char** argv) {
 extern "C" {
 
 // Stubs
-struct main_thread_event_log* main_log;
 
 struct cras_server_state* cras_system_state_update_begin() {
   return server_state_update_begin_return;
