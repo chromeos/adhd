@@ -422,14 +422,12 @@ TEST(AlsaIoInit, OpenPlayback) {
 TEST(AlsaIoInit, QuadChannelInternalSpeakerOpenPlayback) {
   struct cras_iodev* iodev;
   struct cras_audio_format format;
-  struct alsa_io* aio;
 
   ResetStubData();
   iodev = alsa_iodev_create_with_default_parameters(
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  aio = (struct alsa_io*)iodev;
   format.frame_rate = 48000;
   format.num_channels = 4;
   cras_iodev_set_format(iodev, &format);
@@ -655,6 +653,8 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
 
+  format.frame_rate = 48000;
+  format.num_channels = 1;
   cras_iodev_set_format(iodev, &format);
 
   // Check the default node gain is the same as what specified in UCM.
