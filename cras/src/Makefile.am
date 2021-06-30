@@ -948,7 +948,7 @@ ewma_power_unittest_SOURCES = tests/ewma_power_unittest.cc \
 
 ewma_power_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-ewma_power_unittest_LDADD = -lgtest
+ewma_power_unittest_LDADD = -lgtest -lpthread
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc \
 	server/cras_iodev_list.c
