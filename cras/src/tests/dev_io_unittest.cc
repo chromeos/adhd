@@ -49,6 +49,7 @@ class DevIoSuite : public testing::Test {
     fill_audio_format(&format, 48000);
     set_dev_rate_map.clear();
     stream = create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
   }
 
   virtual void TearDown() { free(atlog); }
@@ -56,6 +57,7 @@ class DevIoSuite : public testing::Test {
   size_t cb_threshold = 480;
   cras_audio_format format;
   StreamPtr stream;
+  struct timespec ts;
 };
 
 TEST_F(DevIoSuite, SendCapturedFails) {
@@ -80,7 +82,6 @@ TEST_F(DevIoSuite, SendCapturedFails) {
 TEST_F(DevIoSuite, CaptureGain) {
   struct open_dev* dev_list = NULL;
   struct open_dev* odev_list = NULL;
-  struct timespec ts;
   DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
                                 CRAS_NODE_TYPE_MIC);
 
@@ -113,7 +114,6 @@ TEST_F(DevIoSuite, CaptureGain) {
 TEST_F(DevIoSuite, CopyOutputEstimatedRate) {
   struct open_dev* idev_list = NULL;
   struct open_dev* odev_list = NULL;
-  struct timespec ts;
   DevicePtr out_dev = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
                                     CRAS_NODE_TYPE_INTERNAL_SPEAKER);
   DevicePtr in_dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
@@ -142,7 +142,6 @@ TEST_F(DevIoSuite, CopyOutputEstimatedRate) {
 TEST_F(DevIoSuite, InputOutputIndependentEstimatedRate) {
   struct open_dev* idev_list = NULL;
   struct open_dev* odev_list = NULL;
-  struct timespec ts;
   DevicePtr out_dev = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
                                     CRAS_NODE_TYPE_INTERNAL_SPEAKER);
   DevicePtr in_dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
