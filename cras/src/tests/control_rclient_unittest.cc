@@ -57,6 +57,7 @@ static size_t cras_observer_set_ops_called;
 static size_t cras_observer_ops_are_empty_called;
 static struct cras_observer_ops cras_observer_ops_are_empty_empty_ops;
 static size_t cras_observer_remove_called;
+static struct packet_status_logger wbs_logger;
 
 void ResetStubData() {
   cras_rstream_create_return = 0;
@@ -928,7 +929,7 @@ bool cras_audio_format_valid(const struct cras_audio_format* fmt) {
 }
 
 struct packet_status_logger* cras_hfp_ag_get_wbs_logger() {
-  return NULL;
+  return &wbs_logger;
 }
 
 void detect_rtc_stream_pair(struct stream_list* list,
