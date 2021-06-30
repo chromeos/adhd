@@ -597,7 +597,17 @@ int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc* plc,
   cras_msbc_plc_handle_good_frames_called++;
   return MSBC_CODE_SIZE;
 }
-void packet_status_logger_init(struct packet_status_logger* logger) {}
+
+void packet_status_logger_init(struct packet_status_logger* logger) {
+  if (logger == NULL)
+    return;
+
+  memset(logger->data, 0, PACKET_STATUS_LEN_BYTES);
+  logger->size = PACKET_STATUS_LEN_BYTES * 8;
+  logger->wp = 0;
+  logger->num_wraps = 0;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &logger->ts);
+}
 
 void packet_status_logger_update(struct packet_status_logger* logger,
                                  bool val) {}
