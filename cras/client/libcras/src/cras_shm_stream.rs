@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 use std::time::Duration;
-use std::{error, fmt};
+use std::{error, fmt, io};
 
 use audio_streams::{
     shm_streams::{BufferSet, ServerRequest, ShmStream},
@@ -134,13 +134,14 @@ impl<'a> ShmStream for CrasShmStream<'a> {
 
         match self
             .audio_socket
-            .read_audio_message_with_timeout(Some(timeout))?
+            .read_audio_message_with_timeout(Some(timeout))
         {
-            Some(AudioMessage::Success { id, frames }) if id == expected_id => {
+            Ok(AudioMessage::Success { id, frames }) if id == expected_id => {
                 Ok(Some(ServerRequest::new(frames as usize, self)))
             }
-            None => Ok(None),
-            _ => Err(Box::new(Error::MessageTypeError)),
+            Ok(_) => Err(Box::new(Error::MessageTypeError)),
+            Err(e) if e.kind() == io::ErrorKind::TimedOut => Ok(None),
+            Err(e) => Err(Box::new(e)),
         }
     }
 }

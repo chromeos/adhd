@@ -2,21 +2,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 use std::io;
-use std::io::{Read, Write};
-use std::mem;
-use std::os::unix::{
-    io::{AsRawFd, RawFd},
-    net::UnixStream,
-};
+use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
 use cras_sys::gen::{audio_message, CRAS_AUDIO_MESSAGE_ID};
+use cros_async::{Executor, TimerAsync};
+use futures::{future, future::Either, pin_mut, Future};
+
+#[cfg(test)]
 use data_model::DataInit;
-use sys_util::{PollContext, PollToken};
+
+use crate::async_audio_socket::AsyncAudioSocket;
 
 /// A structure for interacting with the CRAS server audio thread through a `UnixStream::pair`.
 pub struct AudioSocket {
-    socket: UnixStream,
+    socket: AsyncAudioSocket,
+    ex: Executor,
 }
 
 /// Audio message results which are exchanged by `CrasStream` and CRAS audio server.
@@ -65,26 +66,38 @@ impl From<audio_message> for AudioMessage {
     }
 }
 
+/// Returns io::ErrorKind::TimedOut if the given future doesn't finish within the timeout
+async fn timeout<F, T>(t: Duration, f: F, ex: &Executor) -> io::Result<T>
+where
+    F: Future<Output = T>,
+{
+    let sleep_f = TimerAsync::sleep(ex, t);
+    pin_mut!(f, sleep_f);
+    match future::select(f, sleep_f).await {
+        Either::Left((ret, _)) => Ok(ret),
+        _ => Err(io::Error::new(io::ErrorKind::TimedOut, format!("{:?}", t))),
+    }
+}
+
 impl AudioSocket {
     /// Creates `AudioSocket` from a `UnixStream`.
     ///
     /// # Arguments
     /// `socket` - A `UnixStream`.
-    pub fn new(socket: UnixStream) -> Self {
-        AudioSocket { socket }
+    pub fn new(s: UnixStream) -> Self {
+        let ex = Executor::new().expect("failed to create executor");
+        AudioSocket {
+            socket: AsyncAudioSocket::new(s, &ex).unwrap(),
+            ex,
+        }
     }
 
-    fn read_from_socket<T>(&mut self) -> io::Result<T>
+    #[cfg(test)]
+    fn read_from_socket<T>(&self) -> io::Result<T>
     where
         T: Sized + DataInit + Default,
     {
-        let mut message: T = Default::default();
-        let rc = self.socket.read(message.as_mut_slice())?;
-        if rc == mem::size_of::<T>() {
-            Ok(message)
-        } else {
-            Err(io::Error::new(io::ErrorKind::Other, "Read truncated data."))
-        }
+        self.ex.run_until(self.socket.read_from_socket())?
     }
 
     /// Blocks reading an `audio message`.
@@ -94,11 +107,8 @@ impl AudioSocket {
     ///
     /// # Errors
     /// Returns io::Error if error occurs.
-    pub fn read_audio_message(&mut self) -> io::Result<AudioMessage> {
-        match self.read_audio_message_with_timeout(None)? {
-            None => Err(io::Error::new(io::ErrorKind::Other, "Unexpected exit")),
-            Some(message) => Ok(message),
-        }
+    pub fn read_audio_message(&self) -> io::Result<AudioMessage> {
+        self.ex.run_until(self.socket.read_audio_message())?
     }
 
     /// Blocks waiting for an `audio message` until `timeout` occurs. If `timeout`
@@ -109,48 +119,16 @@ impl AudioSocket {
     /// None - If the timeout expires.
     ///
     /// # Errors
-    /// Returns io::Error if error occurs.
+    /// Returns io::Error if error occurs, or io::ErrorKind::TimedOut upon timeout
     pub fn read_audio_message_with_timeout(
         &mut self,
-        timeout: Option<Duration>,
-    ) -> io::Result<Option<AudioMessage>> {
-        #[derive(PollToken)]
-        enum Token {
-            AudioMsg,
-        }
-        let poll_ctx: PollContext<Token> =
-            match PollContext::new().and_then(|pc| pc.add(self, Token::AudioMsg).and(Ok(pc))) {
-                Ok(pc) => pc,
-                Err(e) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        format!("Failed to create PollContext: {}", e),
-                    ));
-                }
-            };
-        let events = {
-            let result = match timeout {
-                None => poll_ctx.wait(),
-                Some(duration) => poll_ctx.wait_timeout(duration),
-            };
-            match result {
-                Ok(v) => v,
-                Err(e) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        format!("Failed to poll: {:?}", e),
-                    ));
-                }
-            }
-        };
-
-        // Check the first readable message
-        let tokens: Vec<Token> = events.iter_readable().map(|e| e.token()).collect();
-        match tokens.get(0) {
-            None => Ok(None),
-            Some(&Token::AudioMsg) => {
-                let raw_msg: audio_message = self.read_from_socket()?;
-                Ok(Some(AudioMessage::from(raw_msg)))
+        t: Option<Duration>,
+    ) -> io::Result<AudioMessage> {
+        match t {
+            None => self.read_audio_message(),
+            Some(t) => {
+                self.ex
+                    .run_until(timeout(t, self.socket.read_audio_message(), &self.ex))??
             }
         }
     }
@@ -163,25 +141,17 @@ impl AudioSocket {
     ///
     /// # Errors
     /// Returns error if `libc::write` fails.
-    fn send_audio_message(&mut self, msg: AudioMessage) -> io::Result<()> {
-        let msg: audio_message = msg.into();
-        let rc = self.socket.write(msg.as_slice())?;
-        if rc < mem::size_of::<audio_message>() {
-            Err(io::Error::new(io::ErrorKind::Other, "Sent truncated data."))
-        } else {
-            Ok(())
-        }
+    #[cfg(test)]
+    fn send_audio_message(&self, msg: AudioMessage) -> io::Result<()> {
+        self.ex.run_until(self.socket.send_audio_message(msg))?
     }
 
     /// Sends the data ready message with written frame count.
     ///
     /// # Arguments
     /// * `frames` - An `u32` indicating the written frame count.
-    pub fn data_ready(&mut self, frames: u32) -> io::Result<()> {
-        self.send_audio_message(AudioMessage::Success {
-            id: CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_DATA_READY,
-            frames,
-        })
+    pub fn data_ready(&self, frames: u32) -> io::Result<()> {
+        self.ex.run_until(self.socket.data_ready(frames))?
     }
 
     /// Sends the capture ready message with read frame count.
@@ -189,17 +159,8 @@ impl AudioSocket {
     /// # Arguments
     ///
     /// * `frames` - An `u32` indicating the number of read frames.
-    pub fn capture_ready(&mut self, frames: u32) -> io::Result<()> {
-        self.send_audio_message(AudioMessage::Success {
-            id: CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_DATA_CAPTURED,
-            frames,
-        })
-    }
-}
-
-impl AsRawFd for AudioSocket {
-    fn as_raw_fd(&self) -> RawFd {
-        self.socket.as_raw_fd()
+    pub fn capture_ready(&self, frames: u32) -> io::Result<()> {
+        self.ex.run_until(self.socket.capture_ready(frames))?
     }
 }
 
@@ -233,7 +194,7 @@ mod tests {
 
     #[test]
     fn audio_socket_send_and_recv_audio_message() {
-        let (mut sender, mut receiver) = init_audio_socket_pair();
+        let (sender, receiver) = init_audio_socket_pair();
         let message_succ = AudioMessage::Success {
             id: CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_REQUEST_DATA,
             frames: 0,
@@ -257,8 +218,8 @@ mod tests {
     #[test]
     fn audio_socket_data_ready_send_and_recv() {
         let (sock1, sock2) = UnixStream::pair().unwrap();
-        let mut audio_socket_send = AudioSocket::new(sock1);
-        let mut audio_socket_recv = AudioSocket::new(sock2);
+        let audio_socket_send = AudioSocket::new(sock1);
+        let audio_socket_recv = AudioSocket::new(sock2);
         audio_socket_send.data_ready(256).unwrap();
 
         // Test receiving by using raw audio_message since CRAS audio server use this.
@@ -277,8 +238,8 @@ mod tests {
     #[test]
     fn audio_socket_capture_ready() {
         let (sock1, sock2) = UnixStream::pair().unwrap();
-        let mut audio_socket_send = AudioSocket::new(sock1);
-        let mut audio_socket_recv = AudioSocket::new(sock2);
+        let audio_socket_send = AudioSocket::new(sock1);
+        let audio_socket_recv = AudioSocket::new(sock2);
         audio_socket_send
             .capture_ready(256)
             .expect("Failed to send capture ready message.");
@@ -304,13 +265,9 @@ mod tests {
             let (sock1, _) = UnixStream::pair().unwrap();
             sock1
         };
-        let mut audio_socket = AudioSocket::new(sock1);
+        let audio_socket = AudioSocket::new(sock1);
         let res = audio_socket.data_ready(256);
         //Broken pipe
-        assert_eq!(
-            res.expect_err("Result should be an error.").kind(),
-            io::Error::from_raw_os_error(32).kind(),
-            "Error should be broken pipe.",
-        );
+        assert!(res.is_err(), "Result should be an error.",);
     }
 }

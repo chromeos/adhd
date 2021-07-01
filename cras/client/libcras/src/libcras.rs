@@ -141,6 +141,7 @@ pub use cras_sys::{
 };
 use sys_util::{PollContext, PollToken, SharedMemory};
 
+mod async_audio_socket;
 mod audio_socket;
 use crate::audio_socket::AudioSocket;
 mod cras_server_socket;

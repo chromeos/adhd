@@ -10,6 +10,12 @@ path = "src/libcras.rs"
 [dependencies]
 audio_streams = { path = "../../../audio_streams" } # provided by ebuild
 libc = "*"
+cros_async = { path = "../../../../../platform/crosvm/cros_async" } # provided by ebuild
 cras-sys = { path = "../cras-sys" } # provided by ebuild
 data_model = { path = "../../../../../platform/crosvm/data_model" } # provided by ebuild
 sys_util = { path = "../../../../../platform/crosvm/sys_util" } # provided by ebuild
+
+[dependencies.futures]
+version = "*"
+default-features = false
+features = ["alloc"]
