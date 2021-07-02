@@ -37,6 +37,7 @@ tags
 /src/Makefile
 /src/*_unittest
 /src/*_test
+/src/*_fuzzer
 /src/cmpraw
 /src/cras
 /src/cras_monitor
