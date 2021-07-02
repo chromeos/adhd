@@ -439,6 +439,9 @@ int webrtc_apm_aec_dump(webrtc_apm ptr,
                         FILE* handle) {
   return 0;
 }
+int cras_system_get_hw_echo_ref_disabled() {
+  return 0;
+}
 
 }  // extern "C"
 }  // namespace

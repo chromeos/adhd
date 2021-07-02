@@ -16,6 +16,7 @@
 #include "cras_dsp_pipeline.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_system_state.h"
 #include "dsp_util.h"
 #include "dumper.h"
 #include "float_buffer.h"
@@ -144,6 +145,8 @@ static dictionary *aec_ini = NULL;
 static dictionary *apm_ini = NULL;
 static const int apm_frame_length_ms = 10;
 static const int apm_num_frames_per_second = 1000 / apm_frame_length_ms;
+
+static bool hw_echo_ref_disabled = 0;
 
 /* Update the global process reverse flag. Should be called when apms are added
  * or removed. */
@@ -440,6 +443,9 @@ int cras_apm_list_destroy(struct cras_apm_list *list)
  */
 static struct cras_iodev *get_echo_reference_target(struct cras_iodev *iodev)
 {
+	/* Don't use HW echo_reference_dev is specified in board config. */
+	if (hw_echo_ref_disabled)
+		return iodev;
 	return iodev->echo_reference_dev ? iodev->echo_reference_dev : iodev;
 }
 
@@ -623,6 +629,7 @@ int cras_apm_list_init(const char *device_config_dir)
 	get_aec_ini(aec_config_dir);
 	get_apm_ini(aec_config_dir);
 	webrtc_apm_init_metrics(cras_apm_metrics_prefix);
+	hw_echo_ref_disabled = cras_system_get_hw_echo_ref_disabled();
 
 	update_first_output_dev_to_process();
 	cras_iodev_list_set_device_enabled_callback(

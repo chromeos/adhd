@@ -167,6 +167,9 @@ bool cras_system_get_hotword_pause_at_suspend();
 /* Sets whether to pause hotword detection at system suspend. */
 void cras_system_set_hotword_pause_at_suspend(bool pause);
 
+/* Returns if HW echo ref should be disabled. */
+bool cras_system_get_hw_echo_ref_disabled();
+
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,
  * causing its devices to become available for playback/capture.

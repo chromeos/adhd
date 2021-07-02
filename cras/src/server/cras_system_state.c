@@ -169,6 +169,7 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	exp_state->bypass_block_noise_cancellation = 0;
 	exp_state->hotword_pause_at_suspend =
 		board_config.hotword_pause_at_suspend;
+	exp_state->hw_echo_ref_disabled = board_config.hw_echo_ref_disabled;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -488,6 +489,11 @@ bool cras_system_get_hotword_pause_at_suspend()
 void cras_system_set_hotword_pause_at_suspend(bool pause)
 {
 	state.exp_state->hotword_pause_at_suspend = pause;
+}
+
+bool cras_system_get_hw_echo_ref_disabled()
+{
+	return state.exp_state->hw_echo_ref_disabled;
 }
 
 int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)
