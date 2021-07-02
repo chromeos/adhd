@@ -1578,6 +1578,32 @@ static void signal_non_empty_audio_state_changed(void *context, int non_empty)
 	dbus_message_unref(msg);
 }
 
+static void signal_severe_underrun(void *context)
+{
+	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
+	dbus_uint32_t serial = 0;
+
+	DBusMessage *msg = create_dbus_message("SevereUnderrun");
+	if (!msg)
+		return;
+
+	dbus_connection_send(control->conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
+static void signal_underrun(void *context)
+{
+	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
+	dbus_uint32_t serial = 0;
+
+	DBusMessage *msg = create_dbus_message("Underrun");
+	if (!msg)
+		return;
+
+	dbus_connection_send(control->conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -1619,6 +1645,8 @@ void cras_dbus_control_start(DBusConnection *conn)
 	observer_ops.hotword_triggered = signal_hotword_triggered;
 	observer_ops.non_empty_audio_state_changed =
 		signal_non_empty_audio_state_changed;
+	observer_ops.severe_underrun = signal_severe_underrun;
+	observer_ops.underrun = signal_underrun;
 
 	dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }

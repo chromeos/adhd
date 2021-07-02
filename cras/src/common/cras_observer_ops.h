@@ -60,6 +60,10 @@ struct cras_observer_ops {
 	/* Bluetooth headset battery level changed. */
 	void (*bt_battery_changed)(void *context, const char *address,
 				   uint32_t level);
+	/* Severe audio underrun event */
+	void (*severe_underrun)(void *context);
+	/* Audio underrun event */
+	void (*underrun)(void *context);
 };
 
 #endif /* CRAS_OBSERVER_OPS_H */

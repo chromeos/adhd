@@ -61,6 +61,8 @@ static std::vector<uint32_t> cb_num_active_streams_changed_num;
 static size_t cb_num_input_streams_with_permission_called;
 static std::vector<std::vector<uint32_t>>
     cb_num_input_streams_with_permission_array;
+static size_t cb_severe_underrun_called;
+static size_t cb_underrun_called;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -106,6 +108,8 @@ static void ResetStubData() {
   cb_num_active_streams_changed_num.clear();
   cb_num_input_streams_with_permission_called = 0;
   cb_num_input_streams_with_permission_array.clear();
+  cb_severe_underrun_called = 0;
+  cb_underrun_called = 0;
 }
 
 /* System output volume changed. */
@@ -206,6 +210,16 @@ void cb_num_input_streams_with_permission_changed(
       num_input_streams, num_input_streams + CRAS_NUM_CLIENT_TYPE));
 }
 
+void cb_severe_underrun(void* context) {
+  cb_severe_underrun_called++;
+  cb_context.push_back(context);
+}
+
+void cb_underrun(void* context) {
+  cb_underrun_called++;
+  cb_context.push_back(context);
+}
+
 class ObserverTest : public testing::Test {
  protected:
   virtual void SetUp() {
@@ -214,7 +228,7 @@ class ObserverTest : public testing::Test {
     ResetStubData();
     rc = cras_observer_server_init();
     ASSERT_EQ(0, rc);
-    EXPECT_EQ(17, cras_alert_create_called);
+    EXPECT_EQ(19, cras_alert_create_called);
     EXPECT_EQ(reinterpret_cast<void*>(output_volume_alert),
               cras_alert_add_callback_map[g_observer->alerts.output_volume]);
     EXPECT_EQ(reinterpret_cast<void*>(output_mute_alert),
@@ -259,6 +273,10 @@ class ObserverTest : public testing::Test {
     EXPECT_EQ(
         reinterpret_cast<void*>(bt_battery_changed_alert),
         cras_alert_add_callback_map[g_observer->alerts.bt_battery_changed]);
+    EXPECT_EQ(reinterpret_cast<void*>(severe_underrun_alert),
+              cras_alert_add_callback_map[g_observer->alerts.severe_underrun]);
+    EXPECT_EQ(reinterpret_cast<void*>(underrun_alert),
+              cras_alert_add_callback_map[g_observer->alerts.underrun]);
 
     cras_observer_get_ops(NULL, &ops1_);
     EXPECT_NE(0, cras_observer_ops_are_empty(&ops1_));
@@ -272,7 +290,7 @@ class ObserverTest : public testing::Test {
 
   virtual void TearDown() {
     cras_observer_server_free();
-    EXPECT_EQ(17, cras_alert_destroy_called);
+    EXPECT_EQ(19, cras_alert_destroy_called);
     ResetStubData();
   }
 
@@ -284,6 +302,8 @@ class ObserverTest : public testing::Test {
 
     ASSERT_NE(alert, reinterpret_cast<cras_alert_cb>(NULL));
     alert(NULL, data);
+
+    EXPECT_EQ(cb_context.size(), 2);
 
     EXPECT_EQ(cb_context[0], context1_);
     EXPECT_EQ(cb_context[1], context2_);
@@ -665,6 +685,30 @@ TEST_F(ObserverTest, BluetoothBatteryChanged) {
       cras_alert_pending_data_value);
   EXPECT_EQ(data->address, address);
   EXPECT_EQ(data->level, 30);
+}
+
+TEST_F(ObserverTest, SevereUnderrun) {
+  cras_observer_notify_severe_underrun();
+  EXPECT_EQ(cras_alert_pending_alert_value, g_observer->alerts.severe_underrun);
+
+  ops1_.severe_underrun = cb_severe_underrun;
+  ops2_.severe_underrun = cb_severe_underrun;
+  DoObserverAlert(severe_underrun_alert, NULL);
+  ASSERT_EQ(2, cb_severe_underrun_called);
+
+  DoObserverRemoveClear(severe_underrun_alert, NULL);
+}
+
+TEST_F(ObserverTest, Underrun) {
+  cras_observer_notify_underrun();
+  EXPECT_EQ(cras_alert_pending_alert_value, g_observer->alerts.underrun);
+
+  ops1_.underrun = cb_underrun;
+  ops2_.underrun = cb_underrun;
+  DoObserverAlert(underrun_alert, NULL);
+  ASSERT_EQ(2, cb_underrun_called);
+
+  DoObserverRemoveClear(underrun_alert, NULL);
 }
 
 // Stubs

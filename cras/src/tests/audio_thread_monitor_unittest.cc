@@ -13,6 +13,8 @@ extern "C" {
 // Function call counters
 static int cras_system_state_add_snapshot_called;
 static int audio_thread_dump_thread_info_called;
+static int cras_observer_notify_severe_underrun_called;
+static int cras_observer_notify_underrun_called;
 
 // Stub data
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;
@@ -21,6 +23,8 @@ struct cras_audio_thread_event_message message;
 void ResetStubData() {
   cras_system_state_add_snapshot_called = 0;
   audio_thread_dump_thread_info_called = 0;
+  cras_observer_notify_severe_underrun_called = 0;
+  cras_observer_notify_underrun_called = 0;
   type_set = (enum CRAS_MAIN_MESSAGE_TYPE)999;
   message.event_type = (enum CRAS_AUDIO_THREAD_EVENT_TYPE)999;
 }
@@ -91,6 +95,32 @@ TEST_F(AudioThreadMonitorTestSuite, EventHandlerIgnoreInvalidEvent) {
   EXPECT_EQ(audio_thread_dump_thread_info_called, 0);
 }
 
+TEST_F(AudioThreadMonitorTestSuite, EventHandlerSevereUnderrun) {
+  struct cras_audio_thread_event_message msg;
+  msg.event_type = AUDIO_THREAD_EVENT_SEVERE_UNDERRUN;
+  handle_audio_thread_event_message((struct cras_main_message*)&msg, NULL);
+  EXPECT_EQ(cras_observer_notify_severe_underrun_called, 1);
+  EXPECT_EQ(cras_observer_notify_underrun_called, 0);
+
+  // every severe underrun event is reported
+  handle_audio_thread_event_message((struct cras_main_message*)&msg, NULL);
+  EXPECT_EQ(cras_observer_notify_severe_underrun_called, 2);
+  EXPECT_EQ(cras_observer_notify_underrun_called, 0);
+}
+
+TEST_F(AudioThreadMonitorTestSuite, EventHandlerUnderrun) {
+  struct cras_audio_thread_event_message msg;
+  msg.event_type = AUDIO_THREAD_EVENT_UNDERRUN;
+  handle_audio_thread_event_message((struct cras_main_message*)&msg, NULL);
+  EXPECT_EQ(cras_observer_notify_severe_underrun_called, 0);
+  EXPECT_EQ(cras_observer_notify_underrun_called, 1);
+
+  // the second underrun event should be rate limited
+  handle_audio_thread_event_message((struct cras_main_message*)&msg, NULL);
+  EXPECT_EQ(cras_observer_notify_severe_underrun_called, 0);
+  EXPECT_EQ(cras_observer_notify_underrun_called, 1);
+}
+
 extern "C" {
 
 void cras_system_state_add_snapshot(
@@ -118,6 +148,14 @@ int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
 int cras_main_message_send(struct cras_main_message* msg) {
   message = *(struct cras_audio_thread_event_message*)msg;
   return 0;
+}
+
+void cras_observer_notify_severe_underrun() {
+  cras_observer_notify_severe_underrun_called++;
+}
+
+void cras_observer_notify_underrun() {
+  cras_observer_notify_underrun_called++;
 }
 
 }  // extern "C"

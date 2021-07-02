@@ -37,6 +37,8 @@ struct cras_observer_alerts {
 	struct cras_alert *non_empty_audio_state_changed;
 	struct cras_alert *bt_battery_changed;
 	struct cras_alert *num_input_streams_with_permission;
+	struct cras_alert *severe_underrun;
+	struct cras_alert *underrun;
 };
 
 struct cras_observer_server {
@@ -316,6 +318,26 @@ static void bt_battery_changed_alert(void *arg, void *data)
 	}
 }
 
+static void severe_underrun_alert(void *arg, void *data)
+{
+	struct cras_observer_client *client;
+
+	DL_FOREACH (g_observer->clients, client) {
+		if (client->ops.severe_underrun)
+			client->ops.severe_underrun(client->context);
+	}
+}
+
+static void underrun_alert(void *arg, void *data)
+{
+	struct cras_observer_client *client;
+
+	DL_FOREACH (g_observer->clients, client) {
+		if (client->ops.underrun)
+			client->ops.underrun(client->context);
+	}
+}
+
 static int cras_observer_server_set_alert(struct cras_alert **alert,
 					  cras_alert_cb cb,
 					  cras_alert_prepare prepare,
@@ -374,6 +396,8 @@ int cras_observer_server_init()
 	CRAS_OBSERVER_SET_ALERT(non_empty_audio_state_changed, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(bt_battery_changed, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(num_input_streams_with_permission, NULL, 0);
+	CRAS_OBSERVER_SET_ALERT(severe_underrun, NULL, 0);
+	CRAS_OBSERVER_SET_ALERT(underrun, NULL, 0);
 
 	CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(num_active_streams,
 					       CRAS_STREAM_OUTPUT);
@@ -406,6 +430,8 @@ void cras_observer_server_free()
 	cras_alert_destroy(g_observer->alerts.hotword_triggered);
 	cras_alert_destroy(g_observer->alerts.non_empty_audio_state_changed);
 	cras_alert_destroy(g_observer->alerts.bt_battery_changed);
+	cras_alert_destroy(g_observer->alerts.severe_underrun);
+	cras_alert_destroy(g_observer->alerts.underrun);
 	cras_alert_destroy(
 		g_observer->alerts.num_input_streams_with_permission);
 	cras_alert_destroy(
@@ -631,4 +657,14 @@ void cras_observer_notify_bt_battery_changed(const char *address,
 
 	cras_alert_pending_data(g_observer->alerts.bt_battery_changed, &data,
 				sizeof(data));
+}
+
+void cras_observer_notify_severe_underrun()
+{
+	cras_alert_pending(g_observer->alerts.severe_underrun);
+}
+
+void cras_observer_notify_underrun()
+{
+	cras_alert_pending(g_observer->alerts.underrun);
 }

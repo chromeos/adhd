@@ -143,6 +143,10 @@
     <method name="SetPlayerMetadata">
       <arg name="metadata" type="a{sv}" direction="in"/>
     </method>
+    <signal name="SevereUnderrun">
+    </signal>
+    <signal name="Underrun">
+    </signal>
   </interface>
   <interface name="org.freedesktop.DBus.Introspectable">
     <method name="Introspect">

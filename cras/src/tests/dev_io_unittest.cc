@@ -30,6 +30,7 @@ struct audio_thread_event_log* atlog;
 static float dev_stream_capture_software_gain_scaler_val;
 static float input_data_get_software_gain_scaler_val;
 static unsigned int dev_stream_capture_avail_ret = 480;
+static int cras_audio_thread_event_severe_underrun_called;
 struct set_dev_rate_data {
   unsigned int dev_rate;
   double dev_rate_ratio;
@@ -50,6 +51,7 @@ class DevIoSuite : public testing::Test {
     set_dev_rate_map.clear();
     stream = create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
     clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+    cras_audio_thread_event_severe_underrun_called = 0;
   }
 
   virtual void TearDown() { free(atlog); }
@@ -350,6 +352,26 @@ TEST_F(DevIoSuite, SendCapturedNoNeedToDrop) {
   EXPECT_EQ(false, rc);
 }
 
+TEST_F(DevIoSuite, PlaybackWriteSevereUnderrun) {
+  struct open_dev* dev_list = nullptr;
+  DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER);
+  dev1->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+  iodev_stub_frames_queued(dev1->dev.get(), -EPIPE, ts);
+
+  /* releasing the odev as it will be freed by handle_dev_err in
+   * dev_io_playback_write */
+  DL_APPEND(dev_list, dev1->odev.release());
+
+  /* verify that our test setup returns -EPIPE */
+  ASSERT_EQ(write_output_samples(nullptr, dev_list, nullptr), -EPIPE);
+
+  dev_io_playback_write(&dev_list, nullptr);
+
+  EXPECT_EQ(dev_list, nullptr);
+  EXPECT_EQ(cras_audio_thread_event_severe_underrun_called, 1);
+}
+
 /* Stubs */
 extern "C" {
 
@@ -379,6 +401,7 @@ int cras_audio_thread_event_drop_samples() {
 }
 
 int cras_audio_thread_event_severe_underrun() {
+  cras_audio_thread_event_severe_underrun_called++;
   return 0;
 }
 

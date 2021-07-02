@@ -106,4 +106,10 @@ void cras_observer_notify_non_empty_audio_state_changed(int active);
 void cras_observer_notify_bt_battery_changed(const char *address,
 					     uint32_t level);
 
+/* Notify observers of severe audio underrun */
+void cras_observer_notify_severe_underrun();
+
+/* Notify observers of audio underrun */
+void cras_observer_notify_underrun();
+
 #endif /* CRAS_OBSERVER_H */

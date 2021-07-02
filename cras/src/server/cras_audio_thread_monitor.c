@@ -8,11 +8,13 @@
 #include "audio_thread.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
+#include "cras_observer.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
 
 #define MIN_WAIT_SECOND 30
+#define UNDERRUN_EVENT_RATE_LIMIT_SECONDS 10
 
 struct cras_audio_thread_event_message {
 	struct cras_main_message header;
@@ -91,12 +93,21 @@ int cras_audio_thread_event_dev_overrun()
 }
 
 static struct timespec last_event_snapshot_time[AUDIO_THREAD_EVENT_TYPE_COUNT];
+static struct timespec last_underrun_time = { 0, 0 };
 
 /*
- * Callback function for handling audio thread events in main thread,
+ * Callback function for handling audio thread events in main thread:
+ *
+ * Snapshot:
  * which takes a snapshot of the audio thread and waits at least 30 seconds
  * for the same event type. Events with the same event type within 30 seconds
  * will be ignored by the handle function.
+ *
+ * Severe underrun:
+ *   Send D-Bus notification SevereUnderrun
+ *
+ * Underrun:
+ *   Send D-Bus notification Underrun, at a max rate of 1 out of 10 seconds
  */
 static void handle_audio_thread_event_message(struct cras_main_message *msg,
 					      void *arg)
@@ -121,11 +132,25 @@ static void handle_audio_thread_event_message(struct cras_main_message *msg,
 	 */
 	struct timespec diff_time;
 	subtract_timespecs(&now_time, last_snapshot_time, &diff_time);
-	if ((last_snapshot_time->tv_sec == 0 &&
-	     last_snapshot_time->tv_nsec == 0) ||
+	if (timespec_is_zero(last_snapshot_time) ||
 	    diff_time.tv_sec >= MIN_WAIT_SECOND) {
 		take_snapshot(audio_thread_msg->event_type);
 		*last_snapshot_time = now_time;
+	}
+	/*
+	 * Handle (severe) underrun events
+	 */
+	if (audio_thread_msg->event_type ==
+	    AUDIO_THREAD_EVENT_SEVERE_UNDERRUN) {
+		cras_observer_notify_severe_underrun();
+	} else if (audio_thread_msg->event_type ==
+		   AUDIO_THREAD_EVENT_UNDERRUN) {
+		subtract_timespecs(&now_time, &last_underrun_time, &diff_time);
+		if (timespec_is_zero(&last_underrun_time) ||
+		    diff_time.tv_sec >= UNDERRUN_EVENT_RATE_LIMIT_SECONDS) {
+			cras_observer_notify_underrun();
+			last_underrun_time = now_time;
+		}
 	}
 }
 
