@@ -28,6 +28,11 @@ PKG_CHECK_MODULES([ASOUNDLIB], [ alsa >= 1.1.0 ])
 
 AC_CHECK_HEADERS([iniparser/iniparser.h])
 
+# Default linker flag if not defined
+if test "x$LDFLAGS" = "x"; then
+    AS_VAR_APPEND([LDFLAGS], [" -Wl,-O2 -Wl,--gc-sections"])
+fi
+
 AC_ARG_ENABLE([dbus], AS_HELP_STRING([--disable-dbus], [Disable all DBUS uses]), have_dbus=$enableval, have_dbus=yes)
 AM_CONDITIONAL(HAVE_DBUS, test "$have_dbus" = "yes")
 if test "$have_dbus" = "yes"; then

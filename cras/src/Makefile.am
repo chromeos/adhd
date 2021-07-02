@@ -38,6 +38,7 @@ endif
 
 CRAS_UT_TMPDIR_CFLAGS=-DCRAS_UT_TMPDIR=\"/tmp\"
 COMMON_CPPFLAGS = -O2 -Wall -Werror -Wno-error=cpp
+COMMON_CPPFLAGS += -ffunction-sections -fdata-sections
 COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
 
 bin_PROGRAMS = cras cras_test_client cras_monitor cras_router
