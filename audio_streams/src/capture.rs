@@ -287,7 +287,7 @@ mod tests {
         async fn this_test(ex: &Executor) {
             let mut server = NoopStreamSource::new();
             let (_, mut stream) = server
-                .new_async_capture_stream(2, SampleFormat::S16LE, 48000, 480)
+                .new_async_capture_stream(2, SampleFormat::S16LE, 48000, 480, ex)
                 .unwrap();
             let start = Instant::now();
             {

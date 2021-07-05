@@ -170,6 +170,7 @@ pub trait StreamSource: Send {
         _format: SampleFormat,
         _frame_rate: u32,
         _buffer_size: usize,
+        _ex: &Executor,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn AsyncPlaybackBufferStream>), BoxError> {
         Err(Box::new(Error::Unimplemented))
     }
@@ -212,6 +213,7 @@ pub trait StreamSource: Send {
         format: SampleFormat,
         frame_rate: u32,
         buffer_size: usize,
+        _ex: &Executor,
     ) -> Result<
         (
             Box<dyn StreamControl>,
@@ -248,7 +250,7 @@ pub trait PlaybackBufferStream: Send {
 pub trait AsyncPlaybackBufferStream: Send {
     async fn next_playback_buffer<'a>(
         &'a mut self,
-        _ex: &Executor,
+        ex: &Executor,
     ) -> Result<PlaybackBuffer<'a>, BoxError>;
 }
 
@@ -500,6 +502,7 @@ impl StreamSource for NoopStreamSource {
         format: SampleFormat,
         frame_rate: u32,
         buffer_size: usize,
+        _ex: &Executor,
     ) -> Result<(Box<dyn StreamControl>, Box<dyn AsyncPlaybackBufferStream>), BoxError> {
         Ok((
             Box::new(NoopStreamControl::new()),
@@ -586,7 +589,7 @@ mod tests {
         async fn this_test(ex: &Executor) {
             let mut server = NoopStreamSource::new();
             let (_, mut stream) = server
-                .new_async_playback_stream(2, SampleFormat::S16LE, 48000, 480)
+                .new_async_playback_stream(2, SampleFormat::S16LE, 48000, 480, ex)
                 .unwrap();
             let start = Instant::now();
             {
