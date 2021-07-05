@@ -12,11 +12,11 @@ use futures::{future, future::Either, pin_mut, Future};
 #[cfg(test)]
 use data_model::DataInit;
 
-use crate::async_audio_socket::AsyncAudioSocket;
+use crate::async_;
 
 /// A structure for interacting with the CRAS server audio thread through a `UnixStream::pair`.
 pub struct AudioSocket {
-    socket: AsyncAudioSocket,
+    socket: async_::AudioSocket,
     ex: Executor,
 }
 
@@ -87,7 +87,7 @@ impl AudioSocket {
     pub fn new(s: UnixStream) -> Self {
         let ex = Executor::new().expect("failed to create executor");
         AudioSocket {
-            socket: AsyncAudioSocket::new(s, &ex).unwrap(),
+            socket: async_::AudioSocket::new(s, &ex).unwrap(),
             ex,
         }
     }

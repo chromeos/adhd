@@ -126,10 +126,10 @@ use std::{error, fmt};
 
 pub use audio_streams::BoxError;
 use audio_streams::{
-    capture::{CaptureBufferStream, NoopCaptureStream},
+    capture::{AsyncCaptureBufferStream, CaptureBufferStream, NoopCaptureStream},
     shm_streams::{NullShmStream, ShmStream, ShmStreamSource},
-    BufferCommit, NoopStreamControl, PlaybackBufferStream, SampleFormat, StreamControl,
-    StreamDirection, StreamEffect, StreamSource,
+    AsyncBufferCommit, AsyncPlaybackBufferStream, BufferCommit, NoopStreamControl,
+    PlaybackBufferStream, SampleFormat, StreamControl, StreamDirection, StreamEffect, StreamSource,
 };
 use cras_sys::gen::*;
 pub use cras_sys::gen::{
@@ -139,9 +139,10 @@ pub use cras_sys::gen::{
 pub use cras_sys::{
     AudioDebugInfo, CrasIodevInfo, CrasIodevNodeId, CrasIonodeInfo, Error as CrasSysError,
 };
+use cros_async::{AsyncError, Executor};
 use sys_util::{PollContext, PollToken, SharedMemory};
 
-mod async_audio_socket;
+mod async_;
 mod audio_socket;
 use crate::audio_socket::AudioSocket;
 mod cras_server_socket;
@@ -158,6 +159,7 @@ use crate::cras_client_message::*;
 
 #[derive(Debug)]
 pub enum Error {
+    Async(AsyncError),
     CrasClientMessageError(cras_client_message::Error),
     CrasStreamError(cras_stream::Error),
     CrasSysError(cras_sys::Error),
@@ -172,6 +174,7 @@ impl error::Error for Error {}
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Error::Async(ref err) => err.fmt(f),
             Error::CrasClientMessageError(ref err) => err.fmt(f),
             Error::CrasStreamError(ref err) => err.fmt(f),
             Error::CrasSysError(ref err) => err.fmt(f),
@@ -458,6 +461,72 @@ impl<'a> CrasClient<'a> {
         }
     }
 
+    // Creates general stream with given parameters
+    fn create_async_stream<'b, T: async_::CrasStreamData<'b> + AsyncBufferCommit>(
+        &mut self,
+        device_index: Option<u32>,
+        block_size: u32,
+        direction: CRAS_STREAM_DIRECTION,
+        rate: u32,
+        channel_num: usize,
+        format: SampleFormat,
+        ex: &Executor,
+    ) -> Result<async_::CrasStream<'b, T>> {
+        let stream_id = self.next_server_stream_id();
+
+        // Prepares server message
+        let audio_format =
+            cras_audio_format_packed::new(format.into(), rate, channel_num, direction);
+        let msg_header = cras_server_message {
+            length: mem::size_of::<cras_connect_message>() as u32,
+            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
+        };
+        let server_cmsg = cras_connect_message {
+            header: msg_header,
+            proto_version: CRAS_PROTO_VER,
+            direction,
+            stream_id,
+            stream_type: CRAS_STREAM_TYPE::CRAS_STREAM_TYPE_DEFAULT,
+            buffer_frames: block_size,
+            cb_threshold: block_size,
+            flags: 0,
+            format: audio_format,
+            dev_idx: device_index.unwrap_or(CRAS_SPECIAL_DEVICE::NO_DEVICE as u32),
+            effects: 0,
+            client_type: self.client_type,
+            client_shm_size: 0,
+            buffer_offsets: [0, 0],
+        };
+
+        // Creates AudioSocket pair
+        let (sock1, sock2) = UnixStream::pair()?;
+
+        // Sends `CRAS_SERVER_CONNECT_STREAM` message
+        let socks = [sock2.as_raw_fd()];
+        self.server_socket
+            .send_server_message_with_fds(&server_cmsg, &socks)?;
+
+        let audio_socket = async_::AudioSocket::new(sock1, ex).map_err(Error::Async)?;
+        loop {
+            let result = CrasClient::wait_for_message(&mut self.server_socket)?;
+            if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
+                return async_::CrasStream::try_new(
+                    stream_id,
+                    self.server_socket.try_clone()?,
+                    block_size,
+                    direction,
+                    rate,
+                    channel_num,
+                    format.into(),
+                    audio_socket,
+                    header_fd,
+                    samples_fd,
+                )
+                .map_err(Error::CrasStreamError);
+            }
+        }
+    }
+
     /// Creates a new playback stream pinned to the device at `device_index`.
     ///
     /// # Arguments
@@ -578,6 +647,30 @@ impl<'a> StreamSource for CrasClient<'a> {
     }
 
     #[allow(clippy::type_complexity)]
+    fn new_async_playback_stream(
+        &mut self,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: u32,
+        buffer_size: usize,
+        ex: &Executor,
+    ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn AsyncPlaybackBufferStream>), BoxError>
+    {
+        Ok((
+            Box::new(NoopStreamControl::new()),
+            Box::new(self.create_async_stream::<async_::CrasPlaybackData>(
+                None,
+                buffer_size as u32,
+                CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT,
+                frame_rate,
+                num_channels,
+                format,
+                ex,
+            )?),
+        ))
+    }
+
+    #[allow(clippy::type_complexity)]
     fn new_capture_stream(
         &mut self,
         num_channels: usize,
@@ -595,6 +688,42 @@ impl<'a> StreamSource for CrasClient<'a> {
                     frame_rate,
                     num_channels,
                     format,
+                )?),
+            ))
+        } else {
+            Ok((
+                Box::new(NoopStreamControl::new()),
+                Box::new(NoopCaptureStream::new(
+                    num_channels,
+                    format,
+                    frame_rate,
+                    buffer_size,
+                )),
+            ))
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn new_async_capture_stream(
+        &mut self,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: u32,
+        buffer_size: usize,
+        ex: &Executor,
+    ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn AsyncCaptureBufferStream>), BoxError>
+    {
+        if self.cras_capture {
+            Ok((
+                Box::new(NoopStreamControl::new()),
+                Box::new(self.create_async_stream::<async_::CrasCaptureData>(
+                    None,
+                    buffer_size as u32,
+                    CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
+                    frame_rate,
+                    num_channels,
+                    format,
+                    ex,
                 )?),
             ))
         } else {

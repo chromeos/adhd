@@ -8,6 +8,7 @@ edition = "2018"
 path = "src/libcras.rs"
 
 [dependencies]
+async-trait = "0.1.36"
 audio_streams = { path = "../../../../../platform/crosvm/audio_streams" } # provided by ebuild
 libc = "*"
 cros_async = { path = "../../../../../platform/crosvm/cros_async" } # provided by ebuild
