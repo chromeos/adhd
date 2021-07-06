@@ -128,7 +128,7 @@ pub use audio_streams::BoxError;
 use audio_streams::{
     capture::{CaptureBufferStream, NoopCaptureStream},
     shm_streams::{NullShmStream, ShmStream, ShmStreamSource},
-    BufferDrop, NoopStreamControl, PlaybackBufferStream, SampleFormat, StreamControl,
+    BufferCommit, NoopStreamControl, PlaybackBufferStream, SampleFormat, StreamControl,
     StreamDirection, StreamEffect, StreamSource,
 };
 use cras_sys::gen::*;
@@ -394,7 +394,7 @@ impl<'a> CrasClient<'a> {
     }
 
     // Creates general stream with given parameters
-    fn create_stream<'b, T: BufferDrop + CrasStreamData<'b>>(
+    fn create_stream<'b, T: BufferCommit + CrasStreamData<'b>>(
         &mut self,
         device_index: Option<u32>,
         block_size: u32,

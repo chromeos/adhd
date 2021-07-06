@@ -1228,7 +1228,7 @@ mod tests {
         let state =
             CrasServerState::try_new(state_fd).expect("try_new failed for valid server_state fd");
         assert_eq!(state.get_system_volume(), 47);
-        assert_eq!(state.get_system_mute(), true);
+        assert!(state.get_system_mute());
     }
 
     #[test]

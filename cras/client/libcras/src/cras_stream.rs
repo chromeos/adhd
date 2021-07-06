@@ -8,7 +8,7 @@ use std::{error, fmt};
 
 use audio_streams::{
     capture::{CaptureBuffer, CaptureBufferStream},
-    BoxError, BufferDrop, PlaybackBuffer, PlaybackBufferStream,
+    BoxError, BufferCommit, PlaybackBuffer, PlaybackBufferStream,
 };
 use cras_sys::gen::{snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_STREAM_DIRECTION};
 use sys_util::error;
@@ -69,9 +69,9 @@ impl<'a> CrasStreamData<'a> for CrasPlaybackData<'a> {
     }
 }
 
-impl<'a> BufferDrop for CrasPlaybackData<'a> {
-    fn trigger(&mut self, nframes: usize) {
-        let log_err = |e| error!("BufferDrop error: {}", e);
+impl<'a> BufferCommit for CrasPlaybackData<'a> {
+    fn commit(&mut self, nframes: usize) {
+        let log_err = |e| error!("buffer commit error: {}", e);
         if let Err(e) = self.header.commit_written_frames(nframes as u32) {
             log_err(e);
         }
@@ -101,9 +101,9 @@ impl<'a> CrasStreamData<'a> for CrasCaptureData<'a> {
     }
 }
 
-impl<'a> BufferDrop for CrasCaptureData<'a> {
-    fn trigger(&mut self, nframes: usize) {
-        let log_err = |e| error!("BufferDrop error: {}", e);
+impl<'a> BufferCommit for CrasCaptureData<'a> {
+    fn commit(&mut self, nframes: usize) {
+        let log_err = |e| error!("buffer commit error: {}", e);
         if let Err(e) = self.header.commit_read_frames(nframes as u32) {
             log_err(e);
         }
@@ -114,7 +114,7 @@ impl<'a> BufferDrop for CrasCaptureData<'a> {
 }
 
 #[allow(dead_code)]
-pub struct CrasStream<'a, T: CrasStreamData<'a> + BufferDrop> {
+pub struct CrasStream<'a, T: CrasStreamData<'a> + BufferCommit> {
     stream_id: u32,
     server_socket: CrasServerSocket,
     block_size: u32,
@@ -129,7 +129,7 @@ pub struct CrasStream<'a, T: CrasStreamData<'a> + BufferDrop> {
     audio_buffer: CrasAudioBuffer,
 }
 
-impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
+impl<'a, T: CrasStreamData<'a> + BufferCommit> CrasStream<'a, T> {
     /// Creates a CrasStream by given arguments.
     ///
     /// # Returns
@@ -184,7 +184,7 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> CrasStream<'a, T> {
     }
 }
 
-impl<'a, T: CrasStreamData<'a> + BufferDrop> Drop for CrasStream<'a, T> {
+impl<'a, T: CrasStreamData<'a> + BufferCommit> Drop for CrasStream<'a, T> {
     /// A blocking drop function, sends the disconnect message to `CrasClient` and waits for
     /// the return message.
     /// Logs an error message to stderr if the method fails.
@@ -195,8 +195,8 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> Drop for CrasStream<'a, T> {
     }
 }
 
-impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream<'a, T> {
-    fn next_playback_buffer(&mut self) -> Result<PlaybackBuffer, BoxError> {
+impl<'a, T: CrasStreamData<'a> + BufferCommit> PlaybackBufferStream for CrasStream<'a, T> {
+    fn next_playback_buffer<'b, 's: 'b>(&'s mut self) -> Result<PlaybackBuffer<'b>, BoxError> {
         // Wait for request audio message
         self.wait_request_data()?;
         let header = self.controls.header_mut();
@@ -208,8 +208,8 @@ impl<'a, T: CrasStreamData<'a> + BufferDrop> PlaybackBufferStream for CrasStream
     }
 }
 
-impl<'a, T: CrasStreamData<'a> + BufferDrop> CaptureBufferStream for CrasStream<'a, T> {
-    fn next_capture_buffer(&mut self) -> Result<CaptureBuffer, BoxError> {
+impl<'a, T: CrasStreamData<'a> + BufferCommit> CaptureBufferStream for CrasStream<'a, T> {
+    fn next_capture_buffer<'b, 's: 'b>(&'b mut self) -> Result<CaptureBuffer<'b>, BoxError> {
         // Wait for data ready message
         let frames = self.wait_data_ready()?;
         let header = self.controls.header_mut();
