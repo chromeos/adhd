@@ -326,6 +326,8 @@ metrics_client_type_str(enum CRAS_CLIENT_TYPE client_type)
 		return "PluginVM";
 	case CRAS_CLIENT_TYPE_ARCVM:
 		return "ARCVM";
+	case CRAS_CLIENT_TYPE_BOREALIS:
+		return "BOREALIS";
 	default:
 		return "InvalidType";
 	}

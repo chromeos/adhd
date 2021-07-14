@@ -477,6 +477,7 @@ impl FromStr for CRAS_CLIENT_TYPE {
         match s {
             "crosvm" => Ok(CRAS_CLIENT_TYPE_CROSVM),
             "arcvm" => Ok(CRAS_CLIENT_TYPE_ARCVM),
+            "borealis" => Ok(CRAS_CLIENT_TYPE_BOREALIS),
             _ => Err(Error::InvalidClientTypeStr),
         }
     }
