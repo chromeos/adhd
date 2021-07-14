@@ -330,7 +330,7 @@ static int configure_dev(struct cras_iodev *iodev)
 static int start(const struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
-
+	struct timespec extra_init_sleep;
 	/*
 	 * This is called when iodev in open state, at the moment when
 	 * output sample is ready. Initialize the next_flush_time for
@@ -338,6 +338,19 @@ static int start(const struct cras_iodev *iodev)
 	 */
 	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->next_flush_time);
 
+	/*
+	 * As we set a2dp's min_buffer_level to be a2dp's write block size,
+	 * we'll fall into underrun immediately after the first flush when
+	 * device starts if the min_cb_level is smaller than a2dp's write block.
+	 * Delaying the first flush time, so that data in buffer can accumulate
+	 * to more than a write_block of size to prevent the underrun.
+	 */
+	if (iodev->min_cb_level && iodev->min_cb_level < a2dpio->write_block) {
+		cras_frames_to_time(a2dpio->write_block,
+				    iodev->format->frame_rate,
+				    &extra_init_sleep);
+		add_timespecs(&a2dpio->next_flush_time, &extra_init_sleep);
+	}
 	return 0;
 }
 
