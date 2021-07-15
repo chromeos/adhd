@@ -5,7 +5,7 @@
   found in the LICENSE file.
 -->
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
-"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+"https://chromium.googlesource.com/chromiumos/third_party/adhd/+/refs/heads/main/cras/dbus_bindings/introspect.dtd">
 <node>
   <interface name="org.chromium.cras.Telephony">
     <method name="AnswerCall">

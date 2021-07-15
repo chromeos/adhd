@@ -220,3 +220,7 @@ given, which is a 1dBFS per step curve from max = +0.5dBFS to min = -99.5dBFS
 [bear]: https://github.com/rizsotto/Bear
 [compile commands]: https://clang.llvm.org/docs/JSONCompilationDatabase.html
 [language server plugins in editors]: https://clangd.llvm.org/installation.html#editor-plugins
+
+## DBus docs
+
+See [cras/dbus_bindings/org.chromium.cras.Control.xml](dbus_bindings/org.chromium.cras.Control.xml)

@@ -5,149 +5,496 @@
   found in the LICENSE file.
 -->
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
-"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
-<node>
+"https://chromium.googlesource.com/chromiumos/third_party/adhd/+/refs/heads/main/cras/dbus_bindings/introspect.dtd">
+<node xmlns:tp="http://telepathy.freedesktop.org/wiki/DbusSpec#extensions-v0">
   <interface name="org.chromium.cras.Control">
     <method name="SetOutputVolume">
-      <arg name="volume" type="i" direction="in"/>
+      <tp:docstring>
+        Sets the volume of the system.
+      </tp:docstring>
+      <arg name="volume" type="i" direction="in">
+        <tp:docstring>
+          Volume ranges from
+          0 to 100, and will be translated to dB based on the
+          output-specific volume curve.
+        </tp:docstring>
+      </arg>
     </method>
+
     <method name="SetOutputNodeVolume">
+      <tp:docstring>
+        Sets the volume of the given node.
+      </tp:docstring>
       <arg name="node_id" type="t" direction="in"/>
-      <arg name="volume" type="i" direction="in"/>
+      <arg name="volume" type="i" direction="in">
+        <tp:docstring>
+          Volume ranges from
+          0 to 100, and will be translated to dB based on the
+          output-specific volume curve.
+        </tp:docstring>
+      </arg>
     </method>
+
     <method name="SwapLeftRight">
+      <tp:docstring>
+        Swap the left and right channel of the given node.
+        Message will be dropped if this feature is not supported.
+      </tp:docstring>
       <arg name="node_id" type="t" direction="in"/>
       <arg name="swap" type="b" direction="in"/>
     </method>
+
     <method name="SetDisplayRotation">
+      <tp:docstring>
+        Set the display rotation state with the enum CRAS_SCREEN_ROTATION
+        which is aligned with display::Display::Rotation in
+        ui/display/display.h.
+        Message will be dropped if this feature is not supported.
+      </tp:docstring>
       <arg name="node_id" type="t" direction="in"/>
       <arg name="rotation" type="u" direction="in"/>
     </method>
+
     <method name="SetOutputMute">
+      <tp:docstring>
+        Sets the system output mute.
+      </tp:docstring>
       <arg name="mute_on" type="b" direction="in"/>
     </method>
+
     <method name="SetOutputUserMute">
+      <tp:docstring>
+        Sets the system output mute from user action.
+      </tp:docstring>
       <arg name="mute_on" type="b" direction="in"/>
     </method>
+
     <method name="SetSuspendAudio">
       <arg name="suspend" type="b" direction="in"/>
     </method>
+
     <method name="SetInputNodeGain">
+      <tp:docstring>
+        Sets the capture gain of the node.
+      </tp:docstring>
       <arg name="node_id" type="t" direction="in"/>
-      <arg name="gain" type="i" direction="in"/>
+      <arg name="gain" type="i" direction="in">
+        <tp:docstring>
+          gain is a 0-100 integer
+          which linearly maps [0, 50] to range [-40dB, 0dB]
+          and [50, 100] to [0dB, 20dB],
+          Default gain value is 50, which is 0dB.
+        </tp:docstring>
+      </arg>
     </method>
+
     <method name="SetInputMute">
+      <tp:docstring>
+        Sets the capture mute state of the system.
+        Recordings will be muted when this is set.
+      </tp:docstring>
       <arg name="mute_on" type="b" direction="in"/>
     </method>
+
     <method name="GetVolumeState">
-      <arg name="output_volume" type="i" direction="out"/>
+      <tp:docstring>
+        Returns the volume and capture gain.
+      </tp:docstring>
+      <arg name="output_volume" type="i" direction="out">
+        <tp:docstring>
+          0-100
+        </tp:docstring>
+      </arg>
       <arg name="output_mute" type="b" direction="out"/>
       <arg name="input_mute" type="b" direction="out"/>
       <arg name="output_user_mute" type="b" direction="out"/>
     </method>
+
     <method name="GetDefaultOutputBufferSize">
+      <tp:docstring>
+        Returns the default output buffer size in frames.
+      </tp:docstring>
       <arg name="buffer_size" type="i" direction="out"/>
     </method>
+
     <method name="GetNodes">
+      <tp:docstring>
+        Returns information about nodes. A node can be either
+        output or input but not both. An output node is
+        something like a speaker or a headphone, and an input
+        node is like a microphone.  The return value is a
+        sequence of dicts mapping from strings to variants
+        (e.g. signature "a{sv}a{sv}" for two nodes).  Each dict
+        contains information about a node.
+
+        Each dict contains the following properties:
+          boolean IsInput
+            false for output nodes, true for input
+            nodes.
+          uint64 Id
+            The id of this node. It is unique among
+            all nodes including both output and
+            input nodes.
+          string Type
+                  The type of this node. It can be one of
+                  following values:
+            /* for output nodes. */
+            "INTERNAL_SPEAKER","HEADPHONE", "HDMI",
+            /* for input nodes. */
+            "INTERNAL_MIC", "MIC",
+            /* for both output and input nodes. */
+            "USB", "BLUETOOTH", "UNKNOWN",
+          string Name
+            The name of this node. For example,
+            "Speaker" or "Internal Mic".
+          string DeviceName
+            The name of the device that this node
+            belongs to. For example,
+            "HDA Intel PCH: CA0132 Analog:0,0" or
+            "Creative SB Arena Headset".
+          uint64 StableDeviceId
+            The stable ID does not change due to
+            device plug/unplug or reboot.
+          uint64 StableDeviceIdNew
+            The new stable ID. Keeping both stable
+            ID and stable ID new is for backward
+            compatibility.
+          boolean Active
+            Whether this node is currently used
+            for output/input. There is one active
+            node for output and one active node for
+            input.
+          uint64 PluggedTime
+            The time that this device was plugged
+            in. This value is in microseconds.
+          uint64 NodeVolume
+            The node volume indexed from 0 to 100.
+          uint64 NodeCaptureGain
+            The capture gain of node in dBFS * 100.
+            It's not used by any clients.
+          uint32 InputNodeGain
+            The input node gain set by UI. Its value
+            ranges from 0 to 100.
+          string HotwordModels
+            A string of comma-separated hotword
+            language model locales supported by this
+            node. e.g. "en_au,en_gb,en_us"
+            The string is empty if the node type is
+            not HOTWORD.
+          uint32 NodeAudioEffect
+            The support information of audio effects
+            in bit-wise manner, which is defined by
+            enum "audio_effect_type" in
+            src/common/cras_iodev_info.h.
+      </tp:docstring>
       <arg name="nodes" type="a{sv}" direction="out"/>
     </method>
+
     <method name="GetNodeInfos">
+      <tp:docstring>
+        Similar to GetNodes, but this one returns an array of
+        dict and has signature "aa{sv}". Clients using
+        chromeos-dbus-bindings should use this method instead of
+        "GetNodes".
+      </tp:docstring>
       <arg name="nodes" type="aa{sv}" direction="out"/>
     </method>
+
     <method name="GetSystemAecSupported">
+      <tp:docstring>
+        Returns 1 if system echo cancellation is supported,
+        otherwise return 0.
+      </tp:docstring>
       <arg name="supported" type="b" direction="out"/>
     </method>
+
     <method name="GetSystemAecGroupId">
       <arg name="group_id" type="i" direction="out"/>
     </method>
+
     <method name="GetSystemNsSupported">
+      <tp:docstring>
+        Returns 1 if system noise suppression is supported,
+        otherwise return 0.
+      </tp:docstring>
       <arg name="supported" type="b" direction="out"/>
     </method>
+
     <method name="GetSystemAgcSupported">
+      <tp:docstring>
+        Returns 1 if system automatic gain control is supported,
+        otherwise return 0.
+      </tp:docstring>
       <arg name="supported" type="b" direction="out"/>
     </method>
+
     <method name="GetDeprioritizeBtWbsMic">
       <arg name="deprioritized" type="b" direction="out"/>
     </method>
+
     <method name="GetRtcRunning">
+      <tp:docstring>
+        Returns true if there are running RTC streams, otherwise
+        return false.
+      </tp:docstring>
       <arg name="deprioritized" type="b" direction="out"/>
     </method>
+
     <method name="SetActiveOutputNode">
+      <tp:docstring>
+        Requests the specified node to be used for
+        output. If node_id is 0 (which is not a valid
+        node id), cras will choose the active node
+        automatically.
+      </tp:docstring>
       <arg name="node_id" type="t" direction="in"/>
     </method>
+
     <method name="SetActiveInputNode">
+      <tp:docstring>
+        Requests the specified node to be used for
+        input. If node_id is 0 (which is not a valid
+        node id), cras will choose the active node
+        automatically.
+      </tp:docstring>
       <arg name="node_id" type="t" direction="in"/>
     </method>
+
     <method name="AddActiveInputNode">
       <arg name="node_id" type="t" direction="in"/>
     </method>
+
     <method name="AddActiveOutputNode">
       <arg name="node_id" type="t" direction="in"/>
     </method>
+
     <method name="RemoveActiveInputNode">
       <arg name="node_id" type="t" direction="in"/>
     </method>
+
     <method name="RemoveActiveOutputNode">
       <arg name="node_id" type="t" direction="in"/>
     </method>
+
     <method name="SetFixA2dpPacketSize">
       <arg name="toggle" type="b" direction="in"/>
     </method>
+
     <method name="GetNumberOfActiveStreams">
+      <tp:docstring>
+        Returns the number of streams currently being
+        played or recorded.
+      </tp:docstring>
       <arg name="num" type="i" direction="out"/>
     </method>
+
     <method name="GetNumberOfActiveOutputStreams">
+      <tp:docstring>
+        Returns the number of streams currently using output hardware.
+      </tp:docstring>
       <arg name="num" type="i" direction="out"/>
     </method>
+
     <method name="GetNumberOfActiveInputStreams">
+      <tp:docstring>
+        Returns the number of streams currently using input hardware.
+      </tp:docstring>
       <arg name="num" type="i" direction="out"/>
     </method>
+
     <method name="GetNumberOfInputStreamsWithPermission">
       <arg name="num" type="a{sv}" direction="out"/>
     </method>
+
     <method name="SetGlobalOutputChannelRemix">
+      <tp:docstring>
+        Sets the conversion matrix for global output channel
+        remixing. The coefficient array represents an N * N
+        conversion matrix M, where N is num_channels, with
+        M[i][j] = coefficient[i * N + j].
+        The remix is done by multiplying the conversion matrix
+        to each N-channel PCM data, i.e M * [L, R] = [L', R']
+        For example, coefficient [0.1, 0.9, 0.4, 0.6] will
+        result in:
+        L' = 0.1 * L + 0.9 * R
+        R' = 0.4 * L + 0.6 * R
+      </tp:docstring>
       <arg name="num_channels" type="i" direction="in"/>
       <arg name="coefficient" type="ad" direction="in"/>
     </method>
+
     <method name="SetHotwordModel">
+      <tp:docstring>
+        Set the hotword language model on the specified node.
+        The node must have type HOTWORD and the model_name must
+        be one of the supported locales returned by
+        GetNodes() HotwordModels string.
+        Returns 0 on success, or a negative errno on failure.
+      </tp:docstring>
       <arg name="node_id" type="t" direction="in"/>
       <arg name="model_name" type="s" direction="in"/>
     </method>
+
     <method name="IsAudioOutputActive">
+      <tp:docstring>
+        Returns 1 if there are currently any active output streams,
+        excluding 'fake' streams that are not actually outputting any
+        audio. Returns 0 if there are no active streams, or all active
+        streams are 'fake' streams.
+      </tp:docstring>
       <arg name="active" type="b" direction="out"/>
     </method>
+
     <method name="SetFlossEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>
+
     <method name="SetWbsEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>
+
     <method name="SetNoiseCancellationEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>
+
     <method name="IsNoiseCancellationSupported">
       <arg name="supported" type="b" direction="out"/>
     </method>
+
     <method name="SetBypassBlockNoiseCancellation">
       <arg name="bypass" type="b" direction="in"/>
     </method>
+
     <method name="SetPlayerPlaybackStatus">
       <arg name="status" type="s" direction="in"/>
     </method>
+
     <method name="SetPlayerIdentity">
       <arg name="identity" type="s" direction="in"/>
     </method>
+
     <method name="SetPlayerPosition">
       <arg name="position" type="x" direction="in"/>
     </method>
+
     <method name="SetPlayerMetadata">
       <arg name="metadata" type="a{sv}" direction="in"/>
     </method>
-    <signal name="SevereUnderrun">
+    <signal name="OutputVolumeChanged">
+      <tp:docstring>
+        Indicates that the output volume level has changed.
+      </tp:docstring>
+      <arg name="volume" type="i"/>
     </signal>
+
+    <signal name="OutputMuteChanged">
+      <tp:docstring>Indicates that the output mute state has changed.</tp:docstring>
+      <arg name="muted" type="b">
+        <tp:docstring>
+          true if the system is muted by a system process, such
+          as suspend or device switch.
+        </tp:docstring>
+      </arg>
+      <arg name="user_muted" type="b">
+        <tp:docstring>
+          true if the system has been muted by user action such as the mute key.
+        </tp:docstring>
+      </arg>
+    </signal>
+
+    <signal name="InputGainChanged">
+      <tp:docstring>Indicates what the system capture gain is now.</tp:docstring>
+      <arg name="gain" type="i">
+        <tp:docstring>
+          gain expressed in dBFS*100.
+        </tp:docstring>
+      </arg>
+    </signal>
+
+    <signal name="InputMuteChanged">
+      <tp:docstring>Indicates that the input mute state has changed.</tp:docstring>
+      <arg name="muted" type="b"/>
+    </signal>
+
+    <signal name="NodesChanged">
+      <tp:docstring>Indicates that nodes are added/removed.</tp:docstring>
+    </signal>
+
+    <signal name="ActiveOutputNodeChanged">
+      <tp:docstring>
+        Indicates that the active output node has changed.
+      </tp:docstring>
+      <arg name="node_id" type="t"/>
+    </signal>
+
+    <signal name="ActiveInputNodeChanged">
+      <tp:docstring>Indicates that the active input node has changed.</tp:docstring>
+      <arg name="node_id" type="t"/>
+    </signal>
+
+    <signal name="OutputNodeVolumeChanged">
+      <tp:docstring>Indicates the volume of the given node.</tp:docstring>
+      <arg name="node_id" type="t"></arg>
+      <arg name="volume" type="i"></arg>
+    </signal>
+
+    <signal name="InputNodeGainChanged">
+      <tp:docstring>
+        Indicates that the capture gain for the node is now.
+      </tp:docstring>
+      <arg name="node_id" type="t"></arg>
+      <arg name="gain" type="i">
+        <tp:docstring>gain expressed in dBFS*100</tp:docstring>
+      </arg>
+    </signal>
+
+    <signal name="NodeLeftRightSwappedChanged">
+      <tp:docstring>
+        Indicates the left and right channel swapping state of the
+        given node.
+      </tp:docstring>
+      <arg name="node_id" type="t"></arg>
+      <arg name="swapped" type="b"></arg>
+    </signal>
+
+    <signal name="NumberOfActiveStreamsChanged">
+      <tp:docstring>Indicates the number of active streams has changed.</tp:docstring>
+      <arg name="num_active_streams" type="i"></arg>
+    </signal>
+
+    <signal name="NumberOfInputStreamsWithPermissionChanged">
+      <arg name="num" type="a{sv}"></arg>
+    </signal>
+
+    <signal name="HotwordTriggered">
+      <tp:docstring>Indicates that hotword was triggered at the given timestamp.</tp:docstring>
+      <arg name="tv_sec" type="x"></arg>
+      <arg name="tv_nsec" type="x"></arg>
+    </signal>
+
+    <signal name="AudioOutputActiveStateChanged">
+      <tp:docstring>
+        Indicates active output state has changed.
+        See IsAudioOutputActive for details.
+      </tp:docstring>
+      <arg name="active" type="b"></arg>
+    </signal>
+
+    <signal name="SevereUnderrun">
+      <tp:docstring>
+        Indicates severe underrun.
+        Not rate limited.
+      </tp:docstring>
+    </signal>
+
     <signal name="Underrun">
+      <tp:docstring>
+        Indicates underrun.
+        Rate limited to 1 per 10 seconds.
+      </tp:docstring>
     </signal>
   </interface>
+
   <interface name="org.freedesktop.DBus.Introspectable">
     <method name="Introspect">
       <arg name="data" type="s" direction="out"/>
