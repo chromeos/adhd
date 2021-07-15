@@ -11,7 +11,39 @@ cc_library(
 )
 
 cc_library(
+    name = "drc",
+    srcs = ["drc.c"],
+    hdrs = ["drc.h"],
+    visibility = ["//src/benchmark:__pkg__"],
+    deps = [
+        ":crossover2",
+        ":drc_kernel",
+        ":eq2",
+    ],
+)
+
+cc_library(
     name = "biquad",
     srcs = ["biquad.c"],
     hdrs = ["biquad.h"],
+)
+
+cc_library(
+    name = "crossover2",
+    srcs = ["crossover2.c"],
+    hdrs = ["crossover2.h"],
+    deps = [":biquad"],
+)
+
+cc_library(
+    name = "drc_kernel",
+    srcs = ["drc_kernel.c"],
+    hdrs = ["drc_kernel.h"],
+    deps = [":drc_math"],
+)
+
+cc_library(
+    name = "drc_math",
+    srcs = ["drc_math.c"],
+    hdrs = ["drc_math.h"],
 )

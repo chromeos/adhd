@@ -13,6 +13,7 @@ cc_binary(
     ],
     linkopts = ["-lm"],
     deps = [
+        "//src/dsp:drc",
         "//src/dsp:eq2",
         "//src/server:cras_mix_ops",
         "@com_github_google_benchmark//:benchmark_main",
