@@ -5,12 +5,13 @@
 //! to create `Amp` objects.
 #![deny(missing_docs)]
 
+mod alc1011;
 mod max98373d;
 mod max98390d;
 use std::path::PathBuf;
 
+use alc1011::ALC1011;
 use dsm::Error;
-
 use max98373d::Max98373;
 use max98390d::Max98390;
 
@@ -45,6 +46,9 @@ impl<'a> AmpBuilder<'a> {
             }
             "sofrt5682" => {
                 Ok(Box::new(Max98373::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
+            }
+            "mt8195r10115682" => {
+                Ok(Box::new(ALC1011::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
             }
             _ => Err(Error::UnsupportedSoundCard(self.sound_card_id.to_owned())),
         }
