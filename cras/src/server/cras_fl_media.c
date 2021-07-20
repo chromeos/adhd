@@ -13,7 +13,9 @@
 #include "cras_a2dp_manager.h"
 
 #define BT_SERVICE_NAME "org.chromium.bluetooth"
-#define BT_MEDIA_OBJECT "/org/chromium/bluetooth/media"
+/* Object path is of the form BT_OBJECT_BASE + hci + BT_OBJECT_MEDIA */
+#define BT_OBJECT_BASE "/org/chromium/bluetooth/hci"
+#define BT_OBJECT_MEDIA "/media"
 #define BT_MEDIA_INTERFACE "org.chromium.bluetooth.BluetoothMedia"
 
 #define BT_MEDIA_CALLBACK_INTERFACE                                            \
@@ -38,8 +40,8 @@ struct fl_media *fl_media_create(int hci)
 	if (fm == NULL)
 		return NULL;
 	fm->hci = hci;
-	snprintf(fm->obj_path, BT_MEDIA_OBJECT_PATH_SIZE_MAX, "%s%d",
-		 BT_MEDIA_OBJECT, hci);
+	snprintf(fm->obj_path, BT_MEDIA_OBJECT_PATH_SIZE_MAX, "%s%d%s",
+		 BT_OBJECT_BASE, hci, BT_OBJECT_MEDIA);
 	return fm;
 }
 
