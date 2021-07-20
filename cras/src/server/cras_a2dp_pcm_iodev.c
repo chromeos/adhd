@@ -27,10 +27,9 @@
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 #define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)
 
-/* This may need future adjustment to get better performance. Floss currently
- * set a 10ms poll interval as A2DP_DATA_READ_POLL_MS. Set the block size to be
- * 20ms equivalent block under 48k sample rate. */
-#define PCM_BLOCK_SIZE (960 * 4)
+/* Floss currently set a 10ms poll interval as A2DP_DATA_READ_POLL_MS.
+ * Double it and use for scheduling here. */
+#define PCM_BLOCK_MS 20
 
 /* Threshold for reasonable a2dp throttle log in audio dump. */
 static const struct timespec throttle_log_threshold = {
@@ -206,8 +205,11 @@ static int configure_dev(struct cras_iodev *iodev)
 		   &optlen);
 	a2dpio->sock_depth_frames = sock_depth / format_bytes;
 
-	a2dpio->write_block = PCM_BLOCK_SIZE / format_bytes;
+	/* Configure write_block to frames equivalent to PCM_BLOCK_MS. */
+	a2dpio->write_block = iodev->format->frame_rate * PCM_BLOCK_MS / 1000;
 
+	/* Initialize flush_period by write_block, it will be changed
+	 * later based on socket write schedule. */
 	cras_frames_to_time(a2dpio->write_block, iodev->format->frame_rate,
 			    &a2dpio->flush_period);
 
@@ -341,7 +343,7 @@ do_flush:
 			       MSG_DONTWAIT);
 	}
 
-	ATLOG(atlog, AUDIO_THREAD_A2DP_WRITE, written,
+	ATLOG(atlog, AUDIO_THREAD_A2DP_WRITE, written / format_bytes,
 	      buf_readable(a2dpio->pcm_buf), 0);
 
 	if (written < 0) {
@@ -363,6 +365,11 @@ do_flush:
 	}
 
 	if (written > 0) {
+		/* Adds some time to next_flush_time according to how many
+		 * frames just written to socket. */
+		cras_frames_to_time(written / format_bytes,
+				    iodev->format->frame_rate,
+				    &a2dpio->flush_period);
 		add_timespecs(&a2dpio->next_flush_time, &a2dpio->flush_period);
 		buf_increment_read(a2dpio->pcm_buf, written);
 	}
