@@ -66,7 +66,6 @@ size_t s16_51_to_quad(const uint8_t *in, size_t in_frames, uint8_t *out);
  * Channel converter: stereo to quad (front L/R, rear L/R).
  */
 size_t s16_stereo_to_quad(size_t front_left, size_t front_right,
-			  size_t rear_left, size_t rear_right,
 			  const uint8_t *in, size_t in_frames, uint8_t *out);
 
 /*

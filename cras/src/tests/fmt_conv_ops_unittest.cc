@@ -589,16 +589,15 @@ TEST(FormatConverterOpsTest, StereoToQuadS16LESpecify) {
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret =
-      s16_stereo_to_quad(front_left, front_right, rear_left, rear_right,
-                         (uint8_t*)src.get(), frames, (uint8_t*)dst.get());
+  size_t ret = s16_stereo_to_quad(front_left, front_right, (uint8_t*)src.get(),
+                                  frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
     EXPECT_EQ(src[i * 2 + 0], dst[i * 4 + front_left]);
-    EXPECT_EQ(src[i * 2 + 0], dst[i * 4 + rear_left]);
+    EXPECT_EQ(0, dst[i * 4 + rear_left]);
     EXPECT_EQ(src[i * 2 + 1], dst[i * 4 + front_right]);
-    EXPECT_EQ(src[i * 2 + 1], dst[i * 4 + rear_right]);
+    EXPECT_EQ(0, dst[i * 4 + rear_right]);
   }
 }
 
@@ -609,22 +608,19 @@ TEST(FormatConverterOpsTest, StereoToQuadS16LEDefault) {
   const size_t out_ch = 4;
   const size_t front_left = -1;
   const size_t front_right = -1;
-  const size_t rear_left = -1;
-  const size_t rear_right = -1;
 
   S16LEPtr src = CreateS16LE(frames * in_ch);
   S16LEPtr dst = CreateS16LE(frames * out_ch);
 
-  size_t ret =
-      s16_stereo_to_quad(front_left, front_right, rear_left, rear_right,
-                         (uint8_t*)src.get(), frames, (uint8_t*)dst.get());
+  size_t ret = s16_stereo_to_quad(front_left, front_right, (uint8_t*)src.get(),
+                                  frames, (uint8_t*)dst.get());
   EXPECT_EQ(ret, frames);
 
   for (size_t i = 0; i < frames; ++i) {
     EXPECT_EQ(src[i * 2 + 0], dst[i * 4 + 0]);
-    EXPECT_EQ(src[i * 2 + 0], dst[i * 4 + 2]);
+    EXPECT_EQ(0, dst[i * 4 + 2]);
     EXPECT_EQ(src[i * 2 + 1], dst[i * 4 + 1]);
-    EXPECT_EQ(src[i * 2 + 1], dst[i * 4 + 3]);
+    EXPECT_EQ(0, dst[i * 4 + 3]);
   }
 }
 

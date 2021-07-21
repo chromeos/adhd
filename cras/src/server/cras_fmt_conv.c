@@ -244,15 +244,12 @@ static size_t _51_to_quad(struct cras_fmt_conv *conv, const uint8_t *in,
 static size_t stereo_to_quad(struct cras_fmt_conv *conv, const uint8_t *in,
 			     size_t in_frames, uint8_t *out)
 {
-	size_t front_left, front_right, rear_left, rear_right;
+	size_t front_left, front_right;
 
 	front_left = conv->out_fmt.channel_layout[CRAS_CH_FL];
 	front_right = conv->out_fmt.channel_layout[CRAS_CH_FR];
-	rear_left = conv->out_fmt.channel_layout[CRAS_CH_RL];
-	rear_right = conv->out_fmt.channel_layout[CRAS_CH_RR];
 
-	return s16_stereo_to_quad(front_left, front_right, rear_left,
-				  rear_right, in, in_frames, out);
+	return s16_stereo_to_quad(front_left, front_right, in, in_frames, out);
 }
 
 static size_t quad_to_stereo(struct cras_fmt_conv *conv, const uint8_t *in,

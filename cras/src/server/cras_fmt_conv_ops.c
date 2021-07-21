@@ -347,30 +347,25 @@ size_t s16_51_to_quad(const uint8_t *_in, size_t in_frames, uint8_t *_out)
  * and fill others with zero.
  */
 size_t s16_stereo_to_quad(size_t front_left, size_t front_right,
-			  size_t rear_left, size_t rear_right,
 			  const uint8_t *_in, size_t in_frames, uint8_t *_out)
 {
 	size_t i;
 	const int16_t *in = (const int16_t *)_in;
 	int16_t *out = (int16_t *)_out;
 
-	if (front_left != -1 && front_right != -1 && rear_left != -1 &&
-	    rear_right != -1)
+	memset(out, 0, sizeof(*out) * 4 * in_frames);
+	if (front_left != -1 && front_right != -1)
 		for (i = 0; i < in_frames; i++) {
 			out[4 * i + front_left] = in[2 * i];
 			out[4 * i + front_right] = in[2 * i + 1];
-			out[4 * i + rear_left] = in[2 * i];
-			out[4 * i + rear_right] = in[2 * i + 1];
 		}
 	else
-		/* Select the first four channels to convert to as the
+		/* Select the first two channels to convert to as the
 		 * default behavior.
 		 */
 		for (i = 0; i < in_frames; i++) {
 			out[4 * i] = in[2 * i];
 			out[4 * i + 1] = in[2 * i + 1];
-			out[4 * i + 2] = in[2 * i];
-			out[4 * i + 3] = in[2 * i + 1];
 		}
 
 	return in_frames;
