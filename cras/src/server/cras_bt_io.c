@@ -429,6 +429,14 @@ static int start(const struct cras_iodev *iodev)
 		return -EINVAL;
 
 	if (dev->start) {
+		/*
+		 * Fill in properties set by audio thread.  A2dp or hfp
+		 * iodevs might need them to initialize states.
+		 */
+		dev->min_cb_level = iodev->min_cb_level;
+		dev->max_cb_level = iodev->max_cb_level;
+		dev->buffer_size = iodev->buffer_size;
+
 		rc = dev->start(dev);
 		if (rc)
 			return rc;
