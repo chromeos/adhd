@@ -26,6 +26,26 @@
 #define STEREO_L 0
 #define STEREO_R 1
 
+/* Channel re-mapping table for multi-channel internal speakers.
+ * Multi-channel internal speakers are always exposed as a stereo output
+ * device. Maps the L/R channel to left/right side speakers and drops content
+ * in other channels.
+ */
+static const int internal_spk_channel_mapping[CRAS_CH_MAX][CRAS_CH_MAX] = {
+	/*FL FR RL RR FC LFE SL SR RC FLC FRC */
+	{ 1, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FL */
+	{ 0, 1, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FR */
+	{ 1, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* RL */
+	{ 0, 1, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* RR */
+	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FC */
+	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* LFE */
+	{ 1, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* SL */
+	{ 0, 1, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* SR */
+	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* RC */
+	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FLC */
+	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FRC */
+};
+
 typedef void (*sample_format_converter_t)(const uint8_t *in, size_t in_samples,
 					  uint8_t *out);
 typedef size_t (*channel_converter_t)(struct cras_fmt_conv *conv,
@@ -307,6 +327,39 @@ static size_t convert_channels(struct cras_fmt_conv *conv, const uint8_t *in,
 				    in_frames, out);
 }
 
+static float **cras_internal_spk_channel_conv_matrix_create(
+	const struct cras_audio_format *in, const struct cras_audio_format *out)
+{
+	int i, j;
+	float **mtx;
+
+	for (i = 0; i < CRAS_CH_MAX; i++) {
+		if (in->channel_layout[i] >= (int)in->num_channels ||
+		    out->channel_layout[i] >= (int)out->num_channels) {
+			syslog(LOG_ERR, "Fail to create conversion matrix "
+					"due to invalid channel layout");
+			return NULL;
+		}
+	}
+
+	mtx = cras_channel_conv_matrix_alloc(in->num_channels,
+					     out->num_channels);
+	if (!mtx)
+		return NULL;
+
+	for (i = 0; i < CRAS_CH_MAX; i++) {
+		for (j = 0; j < CRAS_CH_MAX; j++) {
+			if (internal_spk_channel_mapping[i][j] &&
+			    out->channel_layout[i] != -1 &&
+			    in->channel_layout[j] != -1)
+				mtx[out->channel_layout[i]]
+				   [in->channel_layout[j]] = 1;
+		}
+	}
+
+	return mtx;
+}
+
 /*
  * Exported interface
  */
@@ -314,7 +367,8 @@ static size_t convert_channels(struct cras_fmt_conv *conv, const uint8_t *in,
 struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   const struct cras_audio_format *out,
 					   size_t max_frames,
-					   size_t pre_linear_resample)
+					   size_t pre_linear_resample,
+					   enum CRAS_NODE_TYPE node_type)
 {
 	struct cras_fmt_conv *conv;
 	int rc;
@@ -389,11 +443,21 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	}
 
 	/* Set up channel number conversion. */
-	if (in->num_channels != out->num_channels) {
+	if (node_type == CRAS_NODE_TYPE_INTERNAL_SPEAKER &&
+	    out->num_channels > 2 && in->num_channels > 1) {
 		conv->num_converters++;
-		syslog(LOG_DEBUG, "Convert from %zu to %zu channels.",
-		       in->num_channels, out->num_channels);
-
+		conv->ch_conv_mtx =
+			cras_internal_spk_channel_conv_matrix_create(in, out);
+		if (conv->ch_conv_mtx == NULL) {
+			syslog(LOG_ERR,
+			       "Failed to create channel conversion matrix for internal speaker. "
+			       "Fallback to default_all_to_all.");
+			conv->channel_converter = default_all_to_all;
+		} else {
+			conv->channel_converter = convert_channels;
+		}
+	} else if (in->num_channels != out->num_channels) {
+		conv->num_converters++;
 		/* Populate the conversion matrix base on in/out channel count
 		 * and layout. */
 		if (in->num_channels == 1 && out->num_channels == 2) {
@@ -814,7 +878,7 @@ int config_format_converter(struct cras_fmt_conv **conv,
 			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,
 			    const struct cras_audio_format *to,
-			    unsigned int frames)
+			    enum CRAS_NODE_TYPE node_type, unsigned int frames)
 {
 	struct cras_audio_format target;
 
@@ -834,7 +898,7 @@ int config_format_converter(struct cras_fmt_conv **conv,
 	       from->format, from->frame_rate, from->num_channels,
 	       target.format, target.frame_rate, target.num_channels, frames);
 	*conv = cras_fmt_conv_create(from, &target, frames,
-				     (dir == CRAS_STREAM_INPUT));
+				     (dir == CRAS_STREAM_INPUT), node_type);
 	if (!*conv) {
 		syslog(LOG_ERR, "Failed to create format converter");
 		return -ENOMEM;

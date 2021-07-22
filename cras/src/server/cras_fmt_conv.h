@@ -22,7 +22,8 @@ struct cras_fmt_conv;
 struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 					   const struct cras_audio_format *out,
 					   size_t max_frames,
-					   size_t pre_linear_resample);
+					   size_t pre_linear_resample,
+					   enum CRAS_NODE_TYPE node_type);
 void cras_fmt_conv_destroy(struct cras_fmt_conv **conv);
 
 /* Creates the format converter for channel remixing. The conversion takes
@@ -94,12 +95,13 @@ int cras_fmt_conversion_needed(const struct cras_fmt_conv *conv);
  *    dir - the stream direction the new converter used for.
  *    from - Format to convert from.
  *    to - Format to convert to.
+ *    node_type - The CRAS_NODE_TYPE of the active node.
  *    frames - size of buffer.
  */
 int config_format_converter(struct cras_fmt_conv **conv,
 			    enum CRAS_STREAM_DIRECTION dir,
 			    const struct cras_audio_format *from,
 			    const struct cras_audio_format *to,
-			    unsigned int frames);
+			    enum CRAS_NODE_TYPE node_type, unsigned int frames);
 
 #endif /* CRAS_FMT_CONV_H_ */

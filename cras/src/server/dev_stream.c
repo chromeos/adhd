@@ -71,6 +71,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	int rc = 0;
 	unsigned int max_frames, dev_frames, buf_bytes;
 	const struct cras_audio_format *ofmt;
+	struct cras_iodev *iodev = (struct cras_iodev *)dev_ptr;
 
 	out = calloc(1, sizeof(*out));
 	out->dev_id = dev_id;
@@ -84,7 +85,9 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 
 	if (stream->direction == CRAS_STREAM_OUTPUT) {
 		rc = config_format_converter(&out->conv, stream->direction,
-					     stream_fmt, dev_fmt, max_frames);
+					     stream_fmt, dev_fmt,
+					     iodev->active_node->type,
+					     max_frames);
 	} else {
 		/*
 		 * For input, take into account the stream specific processing
@@ -97,7 +100,9 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 		ofmt = cras_rstream_post_processing_format(stream, dev_ptr) ?:
 			       dev_fmt,
 		rc = config_format_converter(&out->conv, stream->direction,
-					     ofmt, stream_fmt, max_frames);
+					     ofmt, stream_fmt,
+					     iodev->active_node->type,
+					     max_frames);
 	}
 	if (rc) {
 		free(out);

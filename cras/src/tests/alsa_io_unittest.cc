@@ -946,7 +946,7 @@ TEST(AlsaIoInit, SwapMode) {
   free(fake_node);
 }
 
-TEST(AlsaIoInit, MaxSupportedChannels) {
+TEST(AlsaIoInit, MaxSupportedChannelsInternalSpeaker) {
   struct alsa_io* aio;
   struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
   int i;
@@ -960,6 +960,30 @@ TEST(AlsaIoInit, MaxSupportedChannels) {
     aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
         0, test_dev_id, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config,
         NULL, CRAS_STREAM_OUTPUT);
+    ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
+    /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+    EXPECT_EQ(1, cras_alsa_fill_properties_called);
+    /* Always expose internal speaker as a stereo device. */
+    EXPECT_EQ(2, aio->base.info.max_supported_channels);
+    alsa_iodev_destroy((struct cras_iodev*)aio);
+    EXPECT_EQ(1, cras_iodev_free_resources_called);
+  }
+}
+
+TEST(AlsaIoInit, MaxSupportedChannels) {
+  struct alsa_io* aio;
+  struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
+  int i;
+
+  // i = 0: cras_alsa_support_8_channels is false, support 2 channels only.
+  // i = 1: cras_alsa_support_8_channels is true, support up to 8 channels.
+  for (i = 0; i < 2; i++) {
+    ResetStubData();
+    cras_alsa_support_8_channels = (bool)i;
+
+    aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
+        0, test_dev_id, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
+        CRAS_STREAM_OUTPUT);
     ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
     /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
     EXPECT_EQ(1, cras_alsa_fill_properties_called);
@@ -1107,7 +1131,7 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
   alsa_iodev_destroy(iodev);
 }
 
-TEST(AlsaOutputNode, MaxSupportedChannels) {
+TEST(AlsaOutputNode, MaxSupportedChannelsInternalSpeaker) {
   struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
   struct cras_iodev* iodev;
   struct ucm_section* section;
@@ -1138,8 +1162,8 @@ TEST(AlsaOutputNode, MaxSupportedChannels) {
     alsa_iodev_ucm_complete_init(iodev);
     /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
     EXPECT_EQ(1, cras_alsa_fill_properties_called);
-    uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
-    EXPECT_EQ(max_channels, iodev->info.max_supported_channels);
+    /* Always expose internal speaker as a stereo device. */
+    EXPECT_EQ(2, iodev->info.max_supported_channels);
     alsa_iodev_destroy(iodev);
   }
 }

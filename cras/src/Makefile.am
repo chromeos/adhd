@@ -826,7 +826,7 @@ dev_io_unittest_LDADD = \
 	-lgtest -lrt -lpthread -ldl -lm -lspeexdsp
 
 dev_stream_unittest_SOURCES = tests/dev_stream_unittest.cc \
-	server/dev_stream.c common/cras_shm.c
+	server/dev_stream.c common/cras_shm.c tests/dev_io_stubs.cc
 dev_stream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 dev_stream_unittest_LDADD = -lgtest -liniparser -lpthread -lrt
