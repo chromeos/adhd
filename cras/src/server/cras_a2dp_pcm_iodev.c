@@ -25,7 +25,6 @@
 #include "utlist.h"
 
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
-#define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)
 
 /* Floss currently set a 10ms poll interval as A2DP_DATA_READ_POLL_MS.
  * Double it and use for scheduling here. */
@@ -197,23 +196,26 @@ static int configure_dev(struct cras_iodev *iodev)
 	format_bytes = cras_get_format_bytes(iodev->format);
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
-	a2dpio->pcm_buf = byte_buffer_create(PCM_BUF_MAX_SIZE_BYTES);
+	/* Configure write_block to frames equivalent to PCM_BLOCK_MS.
+	 * And make buffer_size integer multiple of write_block so we
+	 * don't get cut easily in ring buffer. */
+	a2dpio->write_block = iodev->format->frame_rate * PCM_BLOCK_MS / 1000;
+	iodev->buffer_size = PCM_BUF_MAX_SIZE_FRAMES / a2dpio->write_block *
+			     a2dpio->write_block;
+
+	a2dpio->pcm_buf = byte_buffer_create(iodev->buffer_size * format_bytes);
 	if (!a2dpio->pcm_buf)
 		return -ENOMEM;
 
+	// TODO: remove sock depth if not used.
 	getsockopt(a2dpio->audio_fd, SOL_SOCKET, SO_SNDBUF, &sock_depth,
 		   &optlen);
 	a2dpio->sock_depth_frames = sock_depth / format_bytes;
-
-	/* Configure write_block to frames equivalent to PCM_BLOCK_MS. */
-	a2dpio->write_block = iodev->format->frame_rate * PCM_BLOCK_MS / 1000;
 
 	/* Initialize flush_period by write_block, it will be changed
 	 * later based on socket write schedule. */
 	cras_frames_to_time(a2dpio->write_block, iodev->format->frame_rate,
 			    &a2dpio->flush_period);
-
-	iodev->buffer_size = PCM_BUF_MAX_SIZE_FRAMES;
 
 	/*
 	 * As we directly write pcm here, there is no min buffer limitation.
