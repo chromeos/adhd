@@ -172,17 +172,17 @@ int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
 	if (!method_call)
 		return -ENOMEM;
 
-	if (!dbus_message_append_args(method_call, DBUS_TYPE_UINT32,
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_INT32,
 				      &sample_rate, DBUS_TYPE_INVALID)) {
 		dbus_message_unref(method_call);
 		return -ENOMEM;
 	}
-	if (!dbus_message_append_args(method_call, DBUS_TYPE_UINT32,
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_INT32,
 				      &bits_per_sample, DBUS_TYPE_INVALID)) {
 		dbus_message_unref(method_call);
 		return -ENOMEM;
 	}
-	if (!dbus_message_append_args(method_call, DBUS_TYPE_UINT32,
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_INT32,
 				      &channel_mode, DBUS_TYPE_INVALID)) {
 		dbus_message_unref(method_call);
 		return -ENOMEM;
