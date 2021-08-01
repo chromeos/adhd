@@ -54,7 +54,7 @@ TEST_F(ChannelConvMtxTestSuite, MatrixCreateSuccess) {
   ASSERT_NE(conv_mtx, (void*)NULL);
 }
 
-TEST_F(ChannelConvMtxTestSuite, MatrixCreateFail) {
+TEST_F(ChannelConvMtxTestSuite, MatrixCreateSuccess2) {
   in_fmt->channel_layout[0] = 5;
   in_fmt->channel_layout[1] = 4;
   in_fmt->channel_layout[2] = 3;
@@ -67,6 +67,25 @@ TEST_F(ChannelConvMtxTestSuite, MatrixCreateFail) {
   out_fmt->channel_layout[2] = 2;
   out_fmt->channel_layout[3] = 3;
   out_fmt->channel_layout[4] = 4;
+  out_fmt->channel_layout[7] = 5;
+
+  conv_mtx = cras_channel_conv_matrix_create(in_fmt, out_fmt);
+  ASSERT_NE(conv_mtx, (void*)NULL);
+}
+
+TEST_F(ChannelConvMtxTestSuite, MatrixCreateMissingCRAS_CH_FC) {
+  in_fmt->channel_layout[0] = 5;
+  in_fmt->channel_layout[1] = 4;
+  in_fmt->channel_layout[2] = 3;
+  in_fmt->channel_layout[3] = 2;
+  in_fmt->channel_layout[4] = 1;
+  in_fmt->channel_layout[5] = 0;
+
+  out_fmt->channel_layout[0] = 0;
+  out_fmt->channel_layout[1] = 1;
+  out_fmt->channel_layout[2] = 2;
+  out_fmt->channel_layout[3] = 3;
+  out_fmt->channel_layout[6] = 4;
   out_fmt->channel_layout[7] = 5;
 
   conv_mtx = cras_channel_conv_matrix_create(in_fmt, out_fmt);

@@ -150,15 +150,29 @@ float **cras_channel_conv_matrix_create(const struct cras_audio_format *in,
 			 * alternatives.
 			 */
 			int alt;
-			for (alt = 0; alt <= CRAS_CH_MAX; alt++) {
-				if (alt == CRAS_CH_MAX)
-					goto fail;
+			for (alt = 0; alt < CRAS_CH_MAX; alt++) {
 				if (channel_alt[i][alt] &&
 				    in->channel_layout[alt] == -1 &&
 				    out->channel_layout[alt] != -1) {
 					mtx[out->channel_layout[alt]]
 					   [in->channel_layout[i]] = 1;
 					break;
+				}
+			}
+			/* Drop the channel (except for CRAS_CH_FC)
+			 * if no allowed channel alternatives
+			 * can be found for it. CRAS_CH_FC can
+			 * not be dropped as it usually contains the dialog
+			 * content which is critical.
+			 */
+			if (alt == CRAS_CH_MAX) {
+				if (i == CRAS_CH_FC) {
+					goto fail;
+				} else {
+					syslog(LOG_ERR,
+					       "No allowed channel alternatives. Dropped channel %d.",
+					       i);
+					continue;
 				}
 			}
 		}
