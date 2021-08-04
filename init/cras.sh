@@ -41,7 +41,6 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -P /mnt/empty \
         -b /,/ \
         -k 'tmpfs,/run,tmpfs,MS_NODEV|MS_NOEXEC|MS_NOSUID,mode=755,size=10M' \
-        -b /run/bluetooth,/run/bluetooth \
         -b /run/cras,/run/cras,1 \
         -b /run/dbus,/run/dbus,1 \
         -b /run/udev,/run/udev \
