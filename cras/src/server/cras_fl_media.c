@@ -63,54 +63,6 @@ static int get_single_arg(DBusMessage *message, int dbus_type, void *arg)
 	return 0;
 }
 
-static void floss_on_initialize(DBusPendingCall *pending_call, void *data)
-{
-	DBusMessage *reply;
-
-	reply = dbus_pending_call_steal_reply(pending_call);
-	dbus_pending_call_unref(pending_call);
-
-	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_WARNING, "Initialize returned error: %s",
-		       dbus_message_get_error_name(reply));
-		dbus_message_unref(reply);
-		return;
-	}
-
-	dbus_message_unref(reply);
-}
-
-static int floss_media_init(DBusConnection *conn, const struct fl_media *fm)
-{
-	DBusMessage *method_call;
-	DBusPendingCall *pending_call;
-
-	method_call =
-		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
-					     BT_MEDIA_INTERFACE, "Initialize");
-	if (!method_call)
-		return -ENOMEM;
-
-	pending_call = NULL;
-	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
-					     DBUS_TIMEOUT_USE_DEFAULT)) {
-		dbus_message_unref(method_call);
-		return -ENOMEM;
-	}
-
-	dbus_message_unref(method_call);
-	if (!pending_call)
-		return -EIO;
-
-	if (!dbus_pending_call_set_notify(pending_call, floss_on_initialize,
-					  conn, NULL)) {
-		dbus_pending_call_cancel(pending_call);
-		dbus_pending_call_unref(pending_call);
-		return -ENOMEM;
-	}
-	return 0;
-}
-
 int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
 {
 	DBusMessage *method_call, *reply;
@@ -447,7 +399,7 @@ int floss_media_start(DBusConnection *conn, unsigned int hci)
 
 	syslog(LOG_DEBUG, "floss_media_start");
 	floss_media_register_callback(conn, active_fm);
-	floss_media_init(conn, active_fm);
+	// TODO: Call config codec to Floss when we support more than just SBC.
 	return 0;
 }
 
