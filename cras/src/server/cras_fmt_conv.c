@@ -91,16 +91,26 @@ static float normalize_factor(float *buf, size_t n)
 	for (i = 0; i < n; i++)
 		abs_sum += fabs(buf[i]);
 
+	if (abs_sum == 0.0)
+		return 0;
+
 	return 1.0 / abs_sum;
 }
 
 /*
  * Normalize all channels with the same factor to maintain
- * the energy ratio between original channels.
+ * the energy ratio between original channels. The factor should
+ * be greater than zero.
  */
 static void normalize(float **mtx, size_t m, size_t n, float factor)
 {
 	int i, j;
+
+	if (factor <= 0) {
+		syslog(LOG_ERR, "expect: normalize factor > 0, get: %f.",
+		       factor);
+	}
+
 	for (i = 0; i < m; i++)
 		for (j = 0; j < n; j++)
 			mtx[i][j] *= factor;
