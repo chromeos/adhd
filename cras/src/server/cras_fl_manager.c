@@ -85,13 +85,13 @@ static int floss_manager_register_callback(DBusConnection *conn)
 	return 0;
 }
 
-static void floss_manager_on_get_state(DBusPendingCall *pending_call,
-				       void *data)
+static void floss_manager_on_get_adapter_enabled(DBusPendingCall *pending_call,
+						 void *data)
 {
 	DBusMessage *reply;
 	DBusError dbus_error;
 	DBusConnection *conn = (DBusConnection *)data;
-	int bt_state = 0;
+	dbus_bool_t enabled = 0;
 
 	reply = dbus_pending_call_steal_reply(pending_call);
 	dbus_pending_call_unref(pending_call);
@@ -104,34 +104,38 @@ static void floss_manager_on_get_state(DBusPendingCall *pending_call,
 	}
 
 	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args(reply, &dbus_error, DBUS_TYPE_INT32,
-				   &bt_state, DBUS_TYPE_INVALID)) {
+	if (!dbus_message_get_args(reply, &dbus_error, DBUS_TYPE_BOOLEAN,
+				   &enabled, DBUS_TYPE_INVALID)) {
 		syslog(LOG_WARNING, "Bad method received: %s",
 		       dbus_error.message);
 		dbus_error_free(&dbus_error);
 	}
 
-	syslog(LOG_DEBUG, "GetState receives reply, state %d", bt_state);
-	// TODO: retrieve the default adapter instead of GetState
-	if (bt_state == BT_STATE_OFF)
+	syslog(LOG_DEBUG, "GetAdapterEnabled receives reply, state %d",
+	       enabled);
+	if (!enabled)
 		floss_media_stop(conn);
-	else if (bt_state == BT_STATE_ON)
+	else
 		floss_media_start(conn, 0);
 
 	dbus_message_unref(reply);
 }
 
-static int floss_manager_get_state(DBusConnection *conn)
+static int floss_manager_get_adapter_enabled(DBusConnection *conn, int hci)
 {
 	DBusMessage *method_call;
 	DBusPendingCall *pending_call;
+	dbus_int32_t hci_interface = hci;
 
-	method_call =
-		dbus_message_new_method_call(BT_MANAGER_SERVICE_NAME,
-					     BT_MANAGER_OBJECT,
-					     BT_MANAGER_INTERFACE, "GetState");
+	method_call = dbus_message_new_method_call(BT_MANAGER_SERVICE_NAME,
+						   BT_MANAGER_OBJECT,
+						   BT_MANAGER_INTERFACE,
+						   "GetAdapterEnabled");
 	if (!method_call)
 		return -ENOMEM;
+
+	dbus_message_append_args(method_call, DBUS_TYPE_INT32, &hci_interface,
+				 DBUS_TYPE_INVALID);
 
 	pending_call = NULL;
 	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
@@ -144,8 +148,9 @@ static int floss_manager_get_state(DBusConnection *conn)
 	if (!pending_call)
 		return -EIO;
 
-	if (!dbus_pending_call_set_notify(
-		    pending_call, floss_manager_on_get_state, conn, NULL)) {
+	if (!dbus_pending_call_set_notify(pending_call,
+					  floss_manager_on_get_adapter_enabled,
+					  conn, NULL)) {
 		dbus_pending_call_cancel(pending_call);
 		dbus_pending_call_unref(pending_call);
 		return -ENOMEM;
@@ -194,7 +199,8 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection *conn,
 static void floss_on_bt_manager_addedd(DBusConnection *conn)
 {
 	floss_manager_register_callback(conn);
-	floss_manager_get_state(conn);
+	// TODO query the default adapter index once the API is ready.
+	floss_manager_get_adapter_enabled(conn, 0);
 }
 
 static void floss_on_get_managed_objects(DBusPendingCall *pending_call,
