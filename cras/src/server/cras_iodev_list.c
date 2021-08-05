@@ -1735,7 +1735,8 @@ static int set_node_capture_gain(struct cras_iodev *iodev,
 		return -EINVAL;
 
 	node->ui_gain_scaler = convert_softvol_scaler_from_dB(
-		convert_dBFS_from_input_node_gain(value));
+		convert_dBFS_from_input_node_gain(
+			value, cras_iodev_is_node_internal_mic(node)));
 
 	if (iodev->set_capture_gain)
 		iodev->set_capture_gain(iodev);
@@ -2009,4 +2010,27 @@ void cras_iodev_list_reset()
 	devs[CRAS_STREAM_INPUT].iodevs = NULL;
 	devs[CRAS_STREAM_OUTPUT].size = 0;
 	devs[CRAS_STREAM_INPUT].size = 0;
+}
+
+long convert_dBFS_from_input_node_gain(long gain, bool is_internal_mic)
+{
+	long max_gain;
+	max_gain = is_internal_mic ? cras_system_get_max_internal_mic_gain() :
+				     DEFAULT_MAX_INPUT_NODE_GAIN;
+
+	/* Assert value in range 0 - 100. */
+	if (gain < 0)
+		gain = 0;
+	if (gain > 100)
+		gain = 100;
+	const long db_scale = (gain > 50) ? max_gain / 50 : 80;
+	return (gain - 50) * db_scale;
+}
+
+long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic)
+{
+	long max_gain;
+	max_gain = is_internal_mic ? cras_system_get_max_internal_mic_gain() :
+				     DEFAULT_MAX_INPUT_NODE_GAIN;
+	return 50 + dBFS / ((dBFS > 0) ? max_gain / 50 : 80);
 }

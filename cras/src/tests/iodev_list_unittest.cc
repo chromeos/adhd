@@ -99,6 +99,7 @@ static int audio_thread_disconnect_stream_called;
 static struct cras_iodev fake_sco_in_dev, fake_sco_out_dev;
 static struct cras_ionode fake_sco_in_node, fake_sco_out_node;
 static int server_state_hotword_pause_at_suspend;
+static int cras_system_get_max_internal_mic_gain_return;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
@@ -245,6 +246,7 @@ class IoDevTestSuite : public testing::Test {
     mock_empty_iodev[1].update_active_node = update_active_node;
     mock_hotword_iodev.update_active_node = update_active_node;
     server_state_hotword_pause_at_suspend = 0;
+    cras_system_get_max_internal_mic_gain_return = DEFAULT_MAX_INPUT_NODE_GAIN;
   }
 
   virtual void TearDown() {
@@ -2440,6 +2442,23 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   cras_iodev_list_deinit();
 }
 
+TEST(SoftvolCurveTest, InputNodeGainToDBFS) {
+  for (long gain = 0; gain <= 100; ++gain) {
+    long dBFS = convert_dBFS_from_input_node_gain(gain, false);
+    EXPECT_EQ(dBFS, (gain - 50) * ((gain > 50) ? 2000 / 50 : 80));
+    EXPECT_EQ(gain, convert_input_node_gain_from_dBFS(dBFS, 2000));
+  }
+}
+
+TEST(SoftvolCurveTest, InternalMicGainToDBFS) {
+  cras_system_get_max_internal_mic_gain_return = 1000;
+  for (long gain = 0; gain <= 100; ++gain) {
+    long dBFS = convert_dBFS_from_input_node_gain(gain, true);
+    EXPECT_EQ(dBFS, (gain - 50) * ((gain > 50) ? 1000 / 50 : 80));
+    EXPECT_EQ(gain, convert_input_node_gain_from_dBFS(dBFS, 1000));
+  }
+}
+
 }  //  namespace
 
 int main(int argc, char** argv) {
@@ -2758,6 +2777,19 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
 
 bool cras_system_get_hotword_pause_at_suspend() {
   return !!server_state_hotword_pause_at_suspend;
+}
+
+bool cras_iodev_is_node_internal_mic(const struct cras_ionode* node) {
+  if (node->type == CRAS_NODE_TYPE_MIC) {
+    return (node->position == NODE_POSITION_INTERNAL) ||
+           (node->position == NODE_POSITION_FRONT) ||
+           (node->position == NODE_POSITION_REAR);
+  }
+  return false;
+}
+
+int cras_system_get_max_internal_mic_gain() {
+  return cras_system_get_max_internal_mic_gain_return;
 }
 
 }  // extern "C"

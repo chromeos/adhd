@@ -30,6 +30,8 @@
 #define DEFAULT_MAX_VOLUME_DBFS 0
 #define DEFAULT_MIN_CAPTURE_GAIN -5000
 #define DEFAULT_MAX_CAPTURE_GAIN 5000
+/* The default maximum input node gain that users can set by UI. */
+#define DEFAULT_MAX_INPUT_NODE_GAIN 2000
 
 struct cras_tm;
 
@@ -169,6 +171,9 @@ void cras_system_set_hotword_pause_at_suspend(bool pause);
 
 /* Returns if HW echo ref should be disabled. */
 bool cras_system_get_hw_echo_ref_disabled();
+
+/* Returns the maximum internal mic gain. */
+int cras_system_get_max_internal_mic_gain();
 
 /* Adds a card at the given index to the system.  When a new card is found
  * (through a udev event notification) this will add the card to the system,

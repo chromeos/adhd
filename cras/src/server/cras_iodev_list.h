@@ -282,4 +282,15 @@ void cras_iodev_list_reset_for_noise_cancellation();
 /* For unit test only. */
 void cras_iodev_list_reset();
 
+/*
+ * Converts input_node_gain [0, 100] to dBFS.
+ * Linear maps [0, 50) to [-4000, 0) and [50, 100] to [0, max_gain] dBFS.
+ * If it is an internal mic, it will query the max gain from board.ini instead
+ * of using the default value.
+ */
+long convert_dBFS_from_input_node_gain(long gain, bool is_internal_mic);
+
+/* The inverse function of convert_dBFS_from_input_node_gain. */
+long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic);
+
 #endif /* CRAS_IODEV_LIST_H_ */

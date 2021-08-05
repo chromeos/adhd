@@ -41,8 +41,9 @@ Methods		void SetOutputVolume(int32 volume)
 
 			Sets the capture gain of the node. gain is a 0-100
 			integer which linearly maps [0, 50] to range [-40dB, 0dB]
-			and [50, 100] to [0dB, 20dB],
+			and [50, 100] to [0dB, MAX_GAIN],
 			Default gain value is 50, which is 0dB.
+			MAX_GAIN is defined in board.ini. The default value is 20dB.
 
 		void SetInputMute(boolean mute_on)
 

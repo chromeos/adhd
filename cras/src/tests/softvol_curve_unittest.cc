@@ -25,22 +25,11 @@ TEST(SoftvolCurveTest, ScalerDecibelConvert) {
   EXPECT_NEAR(scaler, 0.0177828f, ABS_ERROR);
 }
 
-TEST(SoftvolCurveTest, InputNodeGainToDBFS) {
-  for (long gain = 0; gain <= 100; ++gain) {
-    long dBFS = convert_dBFS_from_input_node_gain(gain);
-    EXPECT_EQ(dBFS, (gain - 50) * ((gain > 50) ? 40 : 80));
-    EXPECT_EQ(gain, convert_input_node_gain_from_dBFS(dBFS));
-  }
-}
-
 TEST(SoftvolCurveTest, InputNodeGainToScaler) {
-  for (long gain = 0; gain <= 100; ++gain) {
-    long dBFS = convert_dBFS_from_input_node_gain(gain);
+  for (long dBFS = 0; dBFS <= 2000; ++dBFS) {
     float scaler = convert_softvol_scaler_from_dB(dBFS);
     long dBFS_from_scaler = convert_dBFS_from_softvol_scaler(scaler);
     EXPECT_EQ(dBFS, dBFS_from_scaler);
-    long gain_from_scaler = convert_input_node_gain_from_dBFS(dBFS_from_scaler);
-    EXPECT_EQ(gain, gain_from_scaler);
   }
 }
 

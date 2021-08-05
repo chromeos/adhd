@@ -491,6 +491,12 @@ bool cras_iodev_is_aec_use_case(const struct cras_ionode *node);
 /* Checks if the node is a playback or capture node on internal card. */
 bool cras_iodev_is_on_internal_card(const struct cras_ionode *node);
 
+/* Checks if the node is the internal mic. */
+bool cras_iodev_is_node_internal_mic(const struct cras_ionode *node);
+
+/* Checks if the node type is the internal mic. */
+bool cras_iodev_is_node_type_internal_mic(const char *type);
+
 /* Adjust the system volume based on the volume of the given node. */
 static inline unsigned int
 cras_iodev_adjust_node_volume(const struct cras_ionode *node,

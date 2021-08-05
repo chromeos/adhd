@@ -768,6 +768,22 @@ bool cras_iodev_is_on_internal_card(const struct cras_ionode *node)
 	return false;
 }
 
+bool cras_iodev_is_node_internal_mic(const struct cras_ionode *node)
+{
+	if (node->type == CRAS_NODE_TYPE_MIC) {
+		return (node->position == NODE_POSITION_INTERNAL) ||
+		       (node->position == NODE_POSITION_FRONT) ||
+		       (node->position == NODE_POSITION_REAR);
+	}
+	return false;
+}
+
+bool cras_iodev_is_node_type_internal_mic(const char *type)
+{
+	return !strcmp(type, "INTERNAL_MIC") || !strcmp(type, "FRONT_MIC") ||
+	       !strcmp(type, "REAR_MIC");
+}
+
 float cras_iodev_get_software_volume_scaler(struct cras_iodev *iodev)
 {
 	unsigned int volume;

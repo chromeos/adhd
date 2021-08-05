@@ -593,8 +593,9 @@ struct __attribute__((__packed__)) cras_audio_thread_snapshot_buffer {
  *        suspends. Hotword detection is resumed after system resumes.
  *        0 - Hotword detection is allowed to continue running after system
  *        suspends, so a detected hotword can wake up the device.
- *   hw_echo_ref_disabled - Set to true to disable using HW provided echo
+ *    hw_echo_ref_disabled - Set to true to disable using HW provided echo
  *        reference in APM.
+ *    max_internal_mic_gain - The maximum internal mic gain users can set.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__((packed, aligned(4))) cras_server_state {
@@ -641,6 +642,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	int32_t ns_supported;
 	int32_t agc_supported;
 	int32_t hw_echo_ref_disabled;
+	int32_t max_internal_mic_gain;
 };
 
 /* Actions for card add/remove/change. */

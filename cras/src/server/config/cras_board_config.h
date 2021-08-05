@@ -19,6 +19,7 @@ struct cras_board_config {
 	char *ucm_ignore_suffix;
 	int32_t hotword_pause_at_suspend;
 	int32_t hw_echo_ref_disabled;
+	int32_t max_internal_mic_gain;
 };
 
 /* Gets a configuration based on the config file specified.

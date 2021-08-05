@@ -20,27 +20,6 @@ static inline float softvol_get_scaler(unsigned int volume_index)
 	return softvol_scalers[volume_index];
 }
 
-/*
- * Converts input_node_gain [0, 100] to dBFS.
- * Linear maps [0, 50) to [-4000, 0) and [50, 100] to [0, 2000] dBFS.
- */
-static inline long convert_dBFS_from_input_node_gain(long gain)
-{
-	/* Assert value in range 0 - 100. */
-	if (gain < 0)
-		gain = 0;
-	if (gain > 100)
-		gain = 100;
-	const long db_scale = (gain > 50) ? 40 : 80;
-	return (gain - 50) * db_scale;
-}
-
-/* The inverse function of convert_dBFS_from_input_node_gain. */
-static inline long convert_input_node_gain_from_dBFS(long dBFS)
-{
-	return 50 + dBFS / ((dBFS > 0) ? 40 : 80);
-}
-
 /* convert dBFS to softvol scaler */
 static inline float convert_softvol_scaler_from_dB(long dBFS)
 {

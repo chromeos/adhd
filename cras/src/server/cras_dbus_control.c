@@ -18,6 +18,7 @@
 #include "cras_dbus_util.h"
 #include "cras_fl_manager.h"
 #include "cras_hfp_ag_profile.h"
+#include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_main_thread_log.h"
 #include "cras_observer.h"
@@ -529,8 +530,11 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 		return FALSE;
 
 	if (is_input) {
-		uint32_t input_node_gain = convert_input_node_gain_from_dBFS(
-			convert_dBFS_from_softvol_scaler(node->ui_gain_scaler));
+		uint32_t input_node_gain;
+
+		input_node_gain = convert_input_node_gain_from_dBFS(
+			convert_dBFS_from_softvol_scaler(node->ui_gain_scaler),
+			cras_iodev_is_node_type_internal_mic(node_type));
 		if (!append_key_value(&dict, "InputNodeGain", DBUS_TYPE_UINT32,
 				      DBUS_TYPE_UINT32_AS_STRING,
 				      &input_node_gain)) {
