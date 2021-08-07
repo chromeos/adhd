@@ -500,7 +500,7 @@ static inline void max_abs_division(float *output, const float *data0,
 /* Update detector_average from the last input division. */
 static void dk_update_detector_average(struct drc_kernel *dk)
 {
-	float abs_input_array[DIVISION_FRAMES];
+	float abs_input_array[DIVISION_FRAMES] = { 0 };
 	const float sat_release_frames_inv_neg = dk->sat_release_frames_inv_neg;
 	const float sat_release_rate_at_neg_two_db =
 		dk->sat_release_rate_at_neg_two_db;
