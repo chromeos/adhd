@@ -148,6 +148,25 @@ static const int apm_num_frames_per_second = 1000 / apm_frame_length_ms;
 
 static bool hw_echo_ref_disabled = 0;
 
+/* Mono front center format used to configure the process outout end of
+ * APM to work around an issue that APM might pick the 1st channel of
+ * input, process and then writes to all output channels.
+ *
+ * The exact condition to trigger this:
+ * (1) More than one channel in input
+ * (2) More than one channel in output
+ * (3) multi_channel_capture is false
+ *
+ * We're not ready to turn on multi_channel_capture so the best option is
+ * to address (2). This is an acceptable fix because it makes APM's
+ * behavior align with browser APM.
+ */
+static struct cras_audio_format mono_channel = { 0, // unused
+						 0, // unused
+						 1, // mono, front center
+						 { -1, -1, -1, -1, 0, -1, -1,
+						   -1, -1, -1, -1 } };
+
 /* Update the global process reverse flag. Should be called when apms are added
  * or removed. */
 static void update_process_reverse_flag()
@@ -370,7 +389,10 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 					 cras_get_format_bytes(&apm->fmt));
 	apm->fbuffer = float_buffer_create(frame_length, apm->fmt.num_channels);
 	apm->area = cras_audio_area_create(apm->fmt.num_channels);
-	cras_audio_area_config_channels(apm->area, &apm->fmt);
+
+	/* TODO(hychao):remove mono_channel once we're ready for multi
+	 * channel capture process. */
+	cras_audio_area_config_channels(apm->area, &mono_channel);
 
 	DL_APPEND(list->apms, apm);
 
