@@ -91,6 +91,16 @@ int cras_server_metrics_busyloop(struct timespec *ts, unsigned count);
 /* Logs the length of busyloops. */
 int cras_server_metrics_busyloop_length(unsigned length);
 
+/* Logs A2dp write failure periods that exceed 20ms all summed up and then
+ * divide by the stream time. The final ratio is normalized by multipling
+ * 10^9 for metric logging. */
+int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num);
+
+/* Logs A2dp write failure periods that exceed 100ms all summed up and then
+ * divide by the stream time. The final ratio is normalized by multipling
+ * 10^9 for metric logging. */
+int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num);
+
 /* Initialize metrics logging stuff. */
 int cras_server_metrics_init();
 

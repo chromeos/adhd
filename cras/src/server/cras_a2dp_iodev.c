@@ -23,6 +23,7 @@
 #include "cras_audio_thread_monitor.h"
 #include "cras_bt_device.h"
 #include "cras_iodev.h"
+#include "cras_server_metrics.h"
 #include "cras_util.h"
 #include "rtp.h"
 #include "utlist.h"
@@ -52,6 +53,14 @@ static const struct timespec throttle_event_threshold = {
  *    flush_period - The time period between two a2dp packet writes.
  *    write_block - How many frames of audio samples are transferred in one
  *        a2dp packet write.
+ *    in_write_fail - Flag indicate if a2dp iodev is in a consecutive packet
+ *        write fail state or not.
+ *    write_fail_begin_ts - If in_write_fail is set to true, tracks the
+ *        timestamp of the beginning of consecutive packet write failure.
+ *    write_20ms_fail_time - Accumulated period of time when packet write
+ *        failure period exceeds 20ms.
+ *    write_100ms_fail_time - Accumulated period of time when packet write
+ *        failure period exceeds 100ms.
  */
 struct a2dp_io {
 	struct cras_iodev base;
@@ -63,6 +72,10 @@ struct a2dp_io {
 	struct timespec next_flush_time;
 	struct timespec flush_period;
 	unsigned int write_block;
+	bool in_write_fail;
+	struct timespec write_fail_begin_ts;
+	struct timespec write_20ms_fail_time;
+	struct timespec write_100ms_fail_time;
 };
 
 static int encode_and_flush(const struct cras_iodev *iodev);
@@ -324,6 +337,12 @@ static int configure_dev(struct cras_iodev *iodev)
 		iodev, POLLOUT | POLLERR | POLLHUP);
 	audio_thread_config_events_callback(
 		cras_bt_transport_fd(a2dpio->transport), TRIGGER_NONE);
+
+	a2dpio->in_write_fail = 0;
+	a2dpio->write_20ms_fail_time.tv_sec = 0;
+	a2dpio->write_20ms_fail_time.tv_sec = 0;
+	a2dpio->write_100ms_fail_time.tv_nsec = 0;
+	a2dpio->write_100ms_fail_time.tv_nsec = 0;
 	return 0;
 }
 
@@ -354,6 +373,39 @@ static int start(const struct cras_iodev *iodev)
 	return 0;
 }
 
+static void collect_write_fail_stats(struct a2dp_io *a2dpio)
+{
+	/* Ref idle_timeout_interval in cras_iodev_list.c */
+	static const unsigned drop_threshold_sec = 10;
+	struct timespec now, ts;
+	float stream_time, data1, data2;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &a2dpio->base.open_ts, &ts);
+
+	/* CRAS may idle for sending silence for a while. So ignore the
+	 * cases with short length. */
+	if (ts.tv_sec < drop_threshold_sec)
+		return;
+	stream_time = ts.tv_sec + ts.tv_nsec / 1000000000.0;
+
+	/*
+	 * Calculate the ratio of write failure and total stream time.
+	 * Multiply ratio value by 10^9 to fill into a count histogram.
+	 */
+	data1 = 1000000000.0 *
+		(a2dpio->write_20ms_fail_time.tv_sec +
+		 a2dpio->write_20ms_fail_time.tv_nsec / 1000000000.0) /
+		stream_time;
+	data2 = 1000000000.0 *
+		(a2dpio->write_100ms_fail_time.tv_sec +
+		 a2dpio->write_100ms_fail_time.tv_nsec / 1000000000.0) /
+		stream_time;
+
+	cras_server_metrics_a2dp_20ms_failure_over_stream((unsigned int)data1);
+	cras_server_metrics_a2dp_100ms_failure_over_stream((unsigned int)data2);
+}
+
 static int close_dev(struct cras_iodev *iodev)
 {
 	int err;
@@ -375,6 +427,9 @@ static int close_dev(struct cras_iodev *iodev)
 	device = cras_bt_transport_device(a2dpio->transport);
 	if (device)
 		cras_bt_device_cancel_suspend(device);
+
+	collect_write_fail_stats(a2dpio);
+
 	a2dp_reset(&a2dpio->a2dp);
 	byte_buffer_destroy(&a2dpio->pcm_buf);
 	cras_iodev_free_format(iodev);
@@ -404,6 +459,31 @@ static unsigned int frames_to_play_in_sleep(struct cras_iodev *iodev,
 	 * throttles, sleep a moderate of time so that audio thread doesn't
 	 * busy wake up. */
 	return a2dpio->write_block;
+}
+
+/* Tracks consecutive packet write failures. Two threshold variables
+ * are created for flexible tuning. Once we want to track a specific
+ * threshold long term, a new threshold with clear naming should be
+ * created instead.
+ */
+static void track_write_status(struct a2dp_io *a2dpio, bool write_success,
+			       const struct timespec *time_now)
+{
+	static const struct timespec fail_threshold1 = { 0, 20000000 };
+	static const struct timespec fail_threshold2 = { 0, 100000000 };
+	struct timespec ts;
+
+	if (write_success && a2dpio->in_write_fail) {
+		a2dpio->in_write_fail = false;
+		subtract_timespecs(time_now, &a2dpio->write_fail_begin_ts, &ts);
+		if (timespec_after(&ts, &fail_threshold1))
+			add_timespecs(&a2dpio->write_20ms_fail_time, &ts);
+		if (timespec_after(&ts, &fail_threshold2))
+			add_timespecs(&a2dpio->write_100ms_fail_time, &ts);
+	} else if (!write_success && !a2dpio->in_write_fail) {
+		a2dpio->in_write_fail = true;
+		a2dpio->write_fail_begin_ts = *time_now;
+	}
 }
 
 /* Encodes PCM data to a2dp frames and try to flush it to the socket.
@@ -489,6 +569,8 @@ do_flush:
 						A2DP_LONG_TX_FAILURE);
 		audio_thread_config_events_callback(
 			cras_bt_transport_fd(a2dpio->transport), TRIGGER_POLL);
+		/* Track one failure because of EAGAIN error. */
+		track_write_status(a2dpio, false, &now);
 		return 0;
 	} else if (written < 0) {
 		/* Suspend a2dp immediately when receives error other than
@@ -503,8 +585,11 @@ do_flush:
 	}
 
 	/* Update the next flush time if one block successfully been written. */
-	if (written)
+	if (written) {
 		add_timespecs(&a2dpio->next_flush_time, &a2dpio->flush_period);
+		/* Track success because packet got written. */
+		track_write_status(a2dpio, true, &now);
+	}
 
 	/* a2dp_write no longer return -EAGAIN when reaches here, disable
 	 * the polling write callback. */

@@ -960,3 +960,12 @@ int cras_audio_thread_event_a2dp_overrun() {
 int cras_audio_thread_event_a2dp_throttle() {
   return 0;
 }
+
+// From server metrics
+int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num) {
+  return 0;
+}
+
+int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num) {
+  return 0;
+}

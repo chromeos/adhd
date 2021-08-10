@@ -21,6 +21,8 @@
 
 #define METRICS_NAME_BUFFER_SIZE 100
 
+const char kA2dp20msFailureOverStream[] = "Cras.A2dp20msFailureOverStream";
+const char kA2dp100msFailureOverStream[] = "Cras.A2dp100msFailureOverStream";
 const char kBusyloop[] = "Cras.Busyloop";
 const char kBusyloopLength[] = "Cras.BusyloopLength";
 const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
@@ -90,6 +92,8 @@ static const char *get_timespec_period_str(struct timespec ts)
 
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
+	A2DP_20MS_FAILURE_OVER_STREAM,
+	A2DP_100MS_FAILURE_OVER_STREAM,
 	BT_BATTERY_INDICATOR_SUPPORTED,
 	BT_BATTERY_REPORT,
 	BT_SCO_CONNECTION_ERROR,
@@ -1127,21 +1131,51 @@ int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
 	return 0;
 }
 
-int cras_server_metrics_busyloop_length(unsigned length)
+static int send_unsigned_metrics(enum CRAS_SERVER_METRICS_TYPE type,
+				 unsigned num)
 {
 	struct cras_server_metrics_message msg;
 	union cras_server_metrics_data data;
-	int err;
 
-	data.value = length;
+	data.value = num;
 
-	init_server_metrics_msg(&msg, BUSYLOOP_LENGTH, data);
+	init_server_metrics_msg(&msg, type, data);
 
-	err = cras_server_metrics_message_send(
+	return cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
+}
+
+int cras_server_metrics_busyloop_length(unsigned length)
+{
+	int err;
+	err = send_unsigned_metrics(BUSYLOOP_LENGTH, length);
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: BUSYLOOP_LENGTH");
+		return err;
+	}
+	return 0;
+}
+
+int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num)
+{
+	int err;
+	err = send_unsigned_metrics(A2DP_20MS_FAILURE_OVER_STREAM, num);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: A2DP_20MS_FAILURE_OVER_STREAM");
+		return err;
+	}
+	return 0;
+}
+
+int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num)
+{
+	int err;
+	err = send_unsigned_metrics(A2DP_100MS_FAILURE_OVER_STREAM, num);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: A2DP_100MS_FAILURE_OVER_STREAM");
 		return err;
 	}
 	return 0;
@@ -1414,6 +1448,16 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	case BUSYLOOP_LENGTH:
 		cras_metrics_log_histogram(
 			kBusyloopLength, metrics_msg->data.value, 0, 1000, 50);
+		break;
+	case A2DP_20MS_FAILURE_OVER_STREAM:
+		cras_metrics_log_histogram(kA2dp20msFailureOverStream,
+					   metrics_msg->data.value, 0,
+					   1000000000, 20);
+		break;
+	case A2DP_100MS_FAILURE_OVER_STREAM:
+		cras_metrics_log_histogram(kA2dp100msFailureOverStream,
+					   metrics_msg->data.value, 0,
+					   1000000000, 20);
 		break;
 	default:
 		syslog(LOG_ERR, "Unknown metrics type %u",
