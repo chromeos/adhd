@@ -21,6 +21,9 @@ cras-scripts:
 	$(INSTALL) --mode 755 -D $(ADHD_DIR)/scripts/asoc_dapm_graph \
 		$(DESTDIR)/usr/bin/
 
+cras_init_tmpfile:	$(ADHD_DIR)/tmpfiles.d/cras.conf
+	$(ECHO) "Installing tmpfile.d file"
+	$(INSTALL) --mode 644 -D $< $(DESTDIR)/usr/lib/tmpfiles.d/cras.conf
 cras_init_upstart:	$(ADHD_DIR)/init/cras.conf
 	$(ECHO) "Installing upstart file"
 	$(INSTALL) --mode 644 -D $< $(DESTDIR)/etc/init/cras.conf
@@ -29,26 +32,22 @@ cras_init_scripts:	$(ADHD_DIR)/init/cras.sh
 	$(INSTALL) --mode 644 -D $< $(DESTDIR)/usr/share/cros/init/cras.sh
 
 SYSTEMD_UNIT_DIR := /usr/lib/systemd/system/
-SYSTEMD_TMPFILESD_DIR := /usr/lib/tmpfiles.d/
 
-cras_init_systemd:	$(ADHD_DIR)/init/cras.service \
-	$(ADHD_DIR)/init/cras-directories.conf
+cras_init_systemd:	$(ADHD_DIR)/init/cras.service
 	$(ECHO) "Installing systemd files"
 	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras.service \
 		$(DESTDIR)/$(SYSTEMD_UNIT_DIR)/cras.service
 	$(INSTALL) --mode 755 -d $(DESTDIR)/$(SYSTEMD_UNIT_DIR)/system-services.target.wants
 	$(LINK) -s ../cras.service \
 		$(DESTDIR)/$(SYSTEMD_UNIT_DIR)/system-services.target.wants/cras.service
-	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras-directories.conf \
-		$(DESTDIR)/$(SYSTEMD_TMPFILESD_DIR)/cras-directories.conf
 
 ifeq ($(strip $(SYSTEMD)), yes)
 
-cras_init: cras_init_systemd cras_init_scripts
+cras_init: cras_init_systemd cras_init_scripts cras_init_tmpfile
 
 else
 
-cras_init: cras_init_upstart cras_init_scripts
+cras_init: cras_init_upstart cras_init_scripts cras_init_tmpfile
 
 endif
 
