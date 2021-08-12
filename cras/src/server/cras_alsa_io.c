@@ -1535,10 +1535,11 @@ close_iodev:
 
 update_info:
 	// Always export internal speakers as a stereo device.
-	iodev->info.max_supported_channels =
-		iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER ?
-			2 :
-			max_channels;
+	if (iodev->active_node &&
+	    iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER)
+		max_channels = 2;
+
+	iodev->info.max_supported_channels = max_channels;
 }
 
 /*
