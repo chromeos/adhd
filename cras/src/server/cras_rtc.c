@@ -4,6 +4,10 @@
  */
 #include <syslog.h>
 
+#ifdef CRAS_DBUS
+#include "cras_dbus_control.h"
+#endif
+
 #include "cras_iodev.h"
 #include "cras_rtc.h"
 #include "cras_rstream.h"
@@ -51,6 +55,16 @@ static struct rtc_data *find_rtc_stream(struct rtc_data *list,
 	return NULL;
 }
 
+static void notify_rtc_active_now(bool was_active)
+{
+#ifdef CRAS_DBUS
+	bool now_active = cras_rtc_is_running();
+
+	if (now_active != was_active)
+		cras_dbus_notify_rtc_active(now_active);
+#endif
+}
+
 /*
  * Detects whether there is a RTC stream pair based on these rules:
  * 1. The cb_threshold is 480.
@@ -61,6 +75,7 @@ static struct rtc_data *find_rtc_stream(struct rtc_data *list,
 void cras_rtc_add_stream(struct cras_rstream *stream, struct cras_iodev *iodev)
 {
 	struct rtc_data *data;
+	bool rtc_active_before = cras_rtc_is_running();
 
 	if (!check_rtc_stream(stream, iodev->info.idx))
 		return;
@@ -88,6 +103,8 @@ void cras_rtc_add_stream(struct cras_rstream *stream, struct cras_iodev *iodev)
 			set_all_rtc_streams(input_list);
 		DL_APPEND(output_list, data);
 	}
+
+	notify_rtc_active_now(rtc_active_before);
 }
 
 /*
@@ -98,6 +115,7 @@ void cras_rtc_remove_stream(struct cras_rstream *stream, unsigned int dev_id)
 	struct rtc_data *data;
 	struct rtc_data *tmp;
 	struct timespec *start_ts;
+	bool rtc_active_before = cras_rtc_is_running();
 
 	if (!check_rtc_stream(stream, dev_id))
 		return;
@@ -130,6 +148,8 @@ void cras_rtc_remove_stream(struct cras_rstream *stream, unsigned int dev_id)
 		}
 	}
 	free(data);
+
+	notify_rtc_active_now(rtc_active_before);
 }
 
 bool cras_rtc_is_running()

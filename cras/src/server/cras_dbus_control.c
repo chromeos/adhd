@@ -173,6 +173,38 @@ unref_reply:
 	return ret;
 }
 
+void cras_dbus_notify_rtc_active(bool active)
+{
+	DBusMessage *msg;
+	dbus_bool_t active_val = active;
+
+	if (!dbus_control.conn) {
+		syslog(LOG_ERR, "%s: cras dbus connection not ready yet.",
+		       __func__);
+		return;
+	}
+
+	msg = dbus_message_new_method_call(
+		"org.chromium.ResourceManager", // name
+		"/org/chromium/ResourceManager", // path
+		"org.chromium.ResourceManager", // interface
+		"SetRTCActive"); // method
+	if (!msg) {
+		syslog(LOG_ERR, "%s: Unable to create dbus message.", __func__);
+		return;
+	}
+
+	if (!dbus_message_append_args(msg, DBUS_TYPE_BOOLEAN, &active_val,
+				      DBUS_TYPE_INVALID)) {
+		syslog(LOG_ERR, "%s: Unable to append bool to dbus message.",
+		       __func__);
+		return;
+	}
+
+	if (!dbus_connection_send(dbus_control.conn, msg, NULL))
+		syslog(LOG_ERR, "%s: Error sending dbus message.", __func__);
+}
+
 /* Helper to send an bool reply. */
 static DBusHandlerResult
 send_bool_reply(DBusConnection *conn, DBusMessage *message, dbus_bool_t value)

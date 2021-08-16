@@ -6,10 +6,16 @@
 #ifndef CRAS_DBUS_CONTROL_H_
 #define CRAS_DBUS_CONTROL_H_
 
+#include <stdbool.h>
+#include <dbus/dbus.h>
+
 /* Starts the dbus control interface, begins listening for incoming messages. */
 void cras_dbus_control_start(DBusConnection *conn);
 
 /* Stops monitoring the dbus interface for command messages. */
 void cras_dbus_control_stop();
+
+/* Notify resourced that RTC is active. */
+void cras_dbus_notify_rtc_active(bool active);
 
 #endif /* CRAS_DBUS_CONTROL_H_ */
