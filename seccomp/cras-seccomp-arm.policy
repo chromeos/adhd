@@ -23,6 +23,8 @@ readlinkat: 1
 sendmsg: 1
 access: 1
 getrandom: 1
+faccessat: 1
+faccessat2: 1
 mmap2: 1
 epoll_wait: 1
 getsockopt: 1

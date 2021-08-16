@@ -18,6 +18,7 @@ close: 1
 readlinkat: 1
 getrandom: 1
 faccessat: 1
+faccessat2: 1
 # Don't allow mmap or mprotect with both PROT_WRITE and PROT_EXEC
 mmap: arg2 in 0xfffffffb || arg2 in 0xfffffffd
 mprotect: arg2 in 0xfffffffb || arg2 in 0xfffffffd

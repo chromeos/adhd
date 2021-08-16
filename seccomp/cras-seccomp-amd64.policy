@@ -18,6 +18,8 @@ openat: 1
 close: 1
 readlinkat: 1
 getrandom: 1
+faccessat: 1
+faccessat2: 1
 access: 1
 fcntl: 1
 getdents: 1
