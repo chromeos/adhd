@@ -20,7 +20,7 @@ struct cras_main_msg_callback {
 	struct cras_main_msg_callback *prev, *next;
 };
 
-static int main_msg_fds[2];
+static int main_msg_fds[2] = { -1, -1 };
 static struct cras_main_msg_callback *main_msg_callbacks;
 
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
