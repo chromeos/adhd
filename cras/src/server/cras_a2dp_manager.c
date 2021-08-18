@@ -26,7 +26,7 @@
 
 #define CRAS_A2DP_SOCKET_FILE ".a2dp"
 #define CRAS_A2DP_SUSPEND_DELAY_MS (5000)
-#define FLOSS_A2DP_DATA_PATH "/run/bluetooth/.a2dp_data"
+#define FLOSS_A2DP_DATA_PATH "/run/bluetooth/audio/.a2dp_data"
 
 /*
  * Object holding information and resources of a connected A2DP headset.
