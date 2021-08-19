@@ -23,6 +23,25 @@ enum CRAS_MAIN_MESSAGE_TYPE {
 };
 
 /* Structure of the header of the message handled by main thread.
+ *
+ * For example:
+ * ------------------------------
+ * struct cras_some_int_message {
+ *     struct cras_main_message header;
+ *     int some_int;
+ * };
+ *
+ * int cras_some_int_send(int some_int) {
+ *     struct cras_some_int_message msg = CRAS_MAIN_MESSAGE_INIT;
+ *     msg.header.type = CRAS_MAIN_SOME_INT;
+ *     msg.header.length = sizeof(msg);
+ *     msg.some_int = some_int;
+ *     return cras_main_message_send((struct cras_main_message *)&msg);
+ * }
+ * ------------------------------
+ *
+ * See also CRAS_MAIN_MESSAGE_INIT.
+ *
  * Args:
  *    length - Size of the whole message.
  *    type - Type of the message.
@@ -31,6 +50,15 @@ struct cras_main_message {
 	size_t length;
 	enum CRAS_MAIN_MESSAGE_TYPE type;
 };
+
+/* This macro is for zero-initializing message structs.
+ * It would help to avoid "use-of-uninitialized-value" errors.
+ * See struct cras_main_message for details.
+ */
+#define CRAS_MAIN_MESSAGE_INIT                                                 \
+	{                                                                      \
+		.header = { 0 }                                                \
+	}
 
 /* Callback function to handle main thread message. */
 typedef void (*cras_message_callback)(struct cras_main_message *msg, void *arg);

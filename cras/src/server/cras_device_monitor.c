@@ -35,7 +35,7 @@ static void init_device_msg(struct cras_device_monitor_message *msg,
 
 int cras_device_monitor_reset_device(unsigned int dev_idx)
 {
-	struct cras_device_monitor_message msg;
+	struct cras_device_monitor_message msg = CRAS_MAIN_MESSAGE_INIT;
 	int err;
 
 	init_device_msg(&msg, RESET_DEVICE, dev_idx);
@@ -50,7 +50,7 @@ int cras_device_monitor_reset_device(unsigned int dev_idx)
 
 int cras_device_monitor_set_device_mute_state(unsigned int dev_idx)
 {
-	struct cras_device_monitor_message msg;
+	struct cras_device_monitor_message msg = CRAS_MAIN_MESSAGE_INIT;
 	int err;
 
 	init_device_msg(&msg, SET_MUTE_STATE, dev_idx);
@@ -65,7 +65,7 @@ int cras_device_monitor_set_device_mute_state(unsigned int dev_idx)
 
 int cras_device_monitor_error_close(unsigned int dev_idx)
 {
-	struct cras_device_monitor_message msg;
+	struct cras_device_monitor_message msg = CRAS_MAIN_MESSAGE_INIT;
 	int err;
 
 	init_device_msg(&msg, ERROR_CLOSE, dev_idx);

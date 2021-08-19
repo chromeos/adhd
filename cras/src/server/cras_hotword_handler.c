@@ -33,7 +33,7 @@ static void init_hotword_triggered_msg(struct hotword_triggered_msg *msg)
 
 int cras_hotword_send_triggered_msg()
 {
-	struct hotword_triggered_msg msg;
+	struct hotword_triggered_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
 	init_hotword_triggered_msg(&msg);

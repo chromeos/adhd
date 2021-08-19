@@ -27,7 +27,7 @@ static void init_non_empty_audio_msg(struct non_empty_audio_msg *msg)
 
 int cras_non_empty_audio_send_msg(int32_t non_empty)
 {
-	struct non_empty_audio_msg msg;
+	struct non_empty_audio_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
 	init_non_empty_audio_msg(&msg);

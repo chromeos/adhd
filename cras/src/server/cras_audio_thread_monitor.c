@@ -47,7 +47,7 @@ static void cras_audio_thread_event_message_init(
 
 int cras_audio_thread_event_send(enum CRAS_AUDIO_THREAD_EVENT_TYPE event_type)
 {
-	struct cras_audio_thread_event_message msg = { .header = { 0 } };
+	struct cras_audio_thread_event_message msg = CRAS_MAIN_MESSAGE_INIT;
 	cras_audio_thread_event_message_init(&msg, event_type);
 	return cras_main_message_send(&msg.header);
 }

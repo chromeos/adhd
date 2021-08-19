@@ -507,7 +507,7 @@ static void log_histogram_each_level(int num, int sample, int min, int max,
 int cras_server_metrics_hfp_sco_connection_error(
 	enum CRAS_METRICS_BT_SCO_ERROR_TYPE type)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -526,7 +526,7 @@ int cras_server_metrics_hfp_sco_connection_error(
 
 int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -545,7 +545,7 @@ int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support)
 
 int cras_server_metrics_hfp_battery_report(int battery_report)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -564,7 +564,7 @@ int cras_server_metrics_hfp_battery_report(int battery_report)
 
 int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -585,7 +585,7 @@ int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio)
 
 int cras_server_metrics_hfp_wideband_support(bool supported)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -604,7 +604,7 @@ int cras_server_metrics_hfp_wideband_support(bool supported)
 
 int cras_server_metrics_hfp_wideband_selected_codec(int codec)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -625,7 +625,7 @@ int cras_server_metrics_webrtc_devs_runtime(const struct cras_iodev *in_dev,
 					    const struct cras_iodev *out_dev,
 					    const struct timespec *rtc_start_ts)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	struct timespec now;
 	int err;
@@ -653,7 +653,7 @@ int cras_server_metrics_webrtc_devs_runtime(const struct cras_iodev *in_dev,
 
 int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	struct timespec now;
 	int err;
@@ -678,7 +678,7 @@ int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 
 int cras_server_metrics_device_gain(struct cras_iodev *iodev)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -703,7 +703,7 @@ int cras_server_metrics_device_gain(struct cras_iodev *iodev)
 
 int cras_server_metrics_device_volume(struct cras_iodev *iodev)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -729,7 +729,7 @@ int cras_server_metrics_device_volume(struct cras_iodev *iodev)
 int cras_server_metrics_device_noise_cancellation_enabled(
 	struct cras_iodev *iodev, bool enabled)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -753,7 +753,7 @@ int cras_server_metrics_highest_device_delay(
 	unsigned int hw_level, unsigned int largest_cb_level,
 	enum CRAS_STREAM_DIRECTION direction)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -800,7 +800,7 @@ int cras_server_metrics_highest_device_delay(
 int cras_server_metrics_highest_hw_level(unsigned hw_level,
 					 enum CRAS_STREAM_DIRECTION direction)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -831,7 +831,7 @@ int cras_server_metrics_highest_hw_level(unsigned hw_level,
 /* Logs longest fetch delay of a stream. */
 int cras_server_metrics_longest_fetch_delay(const struct cras_rstream *stream)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -867,7 +867,7 @@ int cras_server_metrics_longest_fetch_delay(const struct cras_rstream *stream)
 
 int cras_server_metrics_num_underruns(unsigned num_underruns)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -888,7 +888,7 @@ int cras_server_metrics_num_underruns(unsigned num_underruns)
 static int
 cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	struct timespec now, time_since;
 	double seconds, frequency;
@@ -961,7 +961,7 @@ cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 static int
 cras_server_metrics_missed_cb_first_time(const struct cras_rstream *stream)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	struct timespec time_since;
 	int err;
@@ -991,7 +991,7 @@ cras_server_metrics_missed_cb_first_time(const struct cras_rstream *stream)
 static int
 cras_server_metrics_missed_cb_second_time(const struct cras_rstream *stream)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	struct timespec now, time_since;
 	int err;
@@ -1043,7 +1043,7 @@ int cras_server_metrics_missed_cb_event(struct cras_rstream *stream)
 static int
 cras_server_metrics_stream_config(const struct cras_rstream_config *config)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -1070,7 +1070,7 @@ cras_server_metrics_stream_config(const struct cras_rstream_config *config)
 /* Logs runtime of a stream. */
 int cras_server_metrics_stream_runtime(const struct cras_rstream *stream)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	struct timespec now;
 	int err;
@@ -1113,7 +1113,7 @@ int cras_server_metrics_stream_destroy(const struct cras_rstream *stream)
 
 int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
@@ -1134,7 +1134,7 @@ int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
 static int send_unsigned_metrics(enum CRAS_SERVER_METRICS_TYPE type,
 				 unsigned num)
 {
-	struct cras_server_metrics_message msg;
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 
 	data.value = num;

@@ -1161,7 +1161,7 @@ static void init_bt_device_msg(struct bt_device_msg *msg,
 
 int cras_bt_device_cancel_suspend(struct cras_bt_device *device)
 {
-	struct bt_device_msg msg;
+	struct bt_device_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
 	init_bt_device_msg(&msg, BT_DEVICE_CANCEL_SUSPEND, device, NULL, 0, 0);
@@ -1173,7 +1173,7 @@ int cras_bt_device_schedule_suspend(
 	struct cras_bt_device *device, unsigned int msec,
 	enum cras_bt_device_suspend_reason suspend_reason)
 {
-	struct bt_device_msg msg;
+	struct bt_device_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
 	init_bt_device_msg(&msg, BT_DEVICE_SCHEDULE_SUSPEND, device, NULL, msec,
@@ -1207,7 +1207,7 @@ int cras_bt_device_schedule_suspend(
 int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
 					     struct cras_iodev *bt_iodev)
 {
-	struct bt_device_msg msg;
+	struct bt_device_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
 	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV, device,
@@ -1219,7 +1219,7 @@ int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
 int cras_bt_device_switch_profile(struct cras_bt_device *device,
 				  struct cras_iodev *bt_iodev)
 {
-	struct bt_device_msg msg;
+	struct bt_device_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
 	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE, device, bt_iodev, 0,

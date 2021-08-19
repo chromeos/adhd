@@ -273,7 +273,7 @@ static void init_a2dp_msg(struct a2dp_msg *msg, enum A2DP_COMMAND cmd,
 
 static void send_a2dp_message(enum A2DP_COMMAND cmd, unsigned int arg1)
 {
-	struct a2dp_msg msg;
+	struct a2dp_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
 	init_a2dp_msg(&msg, cmd, connected_a2dp->iodev, arg1);
