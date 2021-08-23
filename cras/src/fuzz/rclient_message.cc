@@ -18,8 +18,6 @@ extern "C" {
 #include "cras_rclient.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
-
-struct cras_bt_event_log* btlog;
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {

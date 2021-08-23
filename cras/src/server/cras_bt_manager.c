@@ -25,8 +25,6 @@
 #include "cras_telephony.h"
 #include "utlist.h"
 
-struct cras_bt_event_log *btlog;
-
 static void cras_bt_start_bluez(struct bt_stack *s);
 static void cras_bt_stop_bluez(struct bt_stack *s);
 

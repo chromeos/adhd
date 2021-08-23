@@ -17,8 +17,6 @@ extern "C" {
 #include "cras_observer.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
-
-struct cras_bt_event_log* btlog;
 }
 
 int disconnect_cb(struct hfp_slc_handle*) {

@@ -80,6 +80,7 @@ CRAS_DBUS_SOURCES = \
 	server/cras_bt_io.c \
 	server/cras_bt_profile.c \
 	server/cras_bt_battery_provider.c \
+	server/cras_bt_log.c \
 	server/cras_dbus.c \
 	server/cras_dbus_util.c \
 	server/cras_dbus_control.c \
@@ -746,7 +747,7 @@ bt_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 bt_io_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 bt_manager_unittest_SOURCES = tests/bt_manager_unittest.cc \
-	server/cras_bt_manager.c
+	server/cras_bt_manager.c server/cras_bt_log.c
 bt_manager_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
