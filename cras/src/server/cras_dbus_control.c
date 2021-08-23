@@ -188,7 +188,7 @@ void cras_dbus_notify_rtc_active(bool active)
 		"org.chromium.ResourceManager", // name
 		"/org/chromium/ResourceManager", // path
 		"org.chromium.ResourceManager", // interface
-		"SetRTCActive"); // method
+		"SetRTCAudioActive"); // method
 	if (!msg) {
 		syslog(LOG_ERR, "%s: Unable to create dbus message.", __func__);
 		return;
