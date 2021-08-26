@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 audio_streams = { path = "../../../../../platform/crosvm/audio_streams" } # provided by ebuild
-dbus = "0.8"
+dbus = "0.9"
 getopts = "0.2.18"
 hound = "3.4.0"
 libcras = { path = "../libcras" } # provided by ebuild
