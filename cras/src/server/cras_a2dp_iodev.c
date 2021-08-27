@@ -61,6 +61,7 @@ static const struct timespec throttle_event_threshold = {
  *        failure period exceeds 20ms.
  *    write_100ms_fail_time - Accumulated period of time when packet write
  *        failure period exceeds 100ms.
+ *    exit_code - To indicate the reason why A2DP iodev got destroyed.
  */
 struct a2dp_io {
 	struct cras_iodev base;
@@ -76,6 +77,7 @@ struct a2dp_io {
 	struct timespec write_fail_begin_ts;
 	struct timespec write_20ms_fail_time;
 	struct timespec write_100ms_fail_time;
+	enum A2DP_EXIT_CODE exit_code;
 };
 
 static int encode_and_flush(const struct cras_iodev *iodev);
@@ -567,12 +569,30 @@ do_flush:
 		 * a2dp connection. */
 		cras_bt_device_schedule_suspend(device, 5000,
 						A2DP_LONG_TX_FAILURE);
+		a2dpio->exit_code = A2DP_EXIT_LONG_TX_FAILURE;
+
 		audio_thread_config_events_callback(
 			cras_bt_transport_fd(a2dpio->transport), TRIGGER_POLL);
 		/* Track one failure because of EAGAIN error. */
 		track_write_status(a2dpio, false, &now);
 		return 0;
 	} else if (written < 0) {
+		/* This socket error could be triggered more than once before
+		 * a2dp iodev suspended. We want to track the first error so
+		 * check before we overwrite it. */
+		if (!a2dpio->exit_code) {
+			/* ECONNRESET is a common error when the remote headset
+			 * initiates disconnection so separate it from other
+			 * rarely happened errors. */
+			if (written == -ECONNRESET) {
+				a2dpio->exit_code = A2DP_EXIT_CONN_RESET;
+			} else {
+				a2dpio->exit_code = A2DP_EXIT_TX_FATAL_ERROR;
+				syslog(LOG_ERR, "A2DP socket write error %d",
+				       written);
+			}
+		}
+
 		/* Suspend a2dp immediately when receives error other than
 		 * EAGAIN. */
 		cras_bt_device_cancel_suspend(device);
@@ -725,6 +745,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 		syslog(LOG_ERR, "Fail to init a2dp");
 		goto error;
 	}
+	a2dpio->exit_code = A2DP_EXIT_IDLE;
 
 	iodev = &a2dpio->base;
 
@@ -796,6 +817,14 @@ void a2dp_iodev_destroy(struct cras_iodev *iodev)
 
 	a2dpio->destroyed = 1;
 	device = cras_bt_transport_device(a2dpio->transport);
+
+	/* Threads race, if we missed the socket error in audio thread,
+	 * check if iodev hasn't been closed and mark this case as
+	 * EXIT_WHILE_STREAMING. */
+	if ((iodev->state != CRAS_IODEV_STATE_CLOSE) && !a2dpio->exit_code)
+		cras_server_metrics_a2dp_exit(A2DP_EXIT_WHILE_STREAMING);
+	else
+		cras_server_metrics_a2dp_exit(a2dpio->exit_code);
 
 	/* A2DP does output only */
 	cras_bt_device_rm_iodev(device, iodev);

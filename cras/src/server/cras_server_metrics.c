@@ -21,6 +21,7 @@
 
 #define METRICS_NAME_BUFFER_SIZE 100
 
+const char kA2dpExitCode[] = "Cras.A2dpExitCode";
 const char kA2dp20msFailureOverStream[] = "Cras.A2dp20msFailureOverStream";
 const char kA2dp100msFailureOverStream[] = "Cras.A2dp100msFailureOverStream";
 const char kBusyloop[] = "Cras.Busyloop";
@@ -92,6 +93,7 @@ static const char *get_timespec_period_str(struct timespec ts)
 
 /* Type of metrics to log. */
 enum CRAS_SERVER_METRICS_TYPE {
+	A2DP_EXIT_CODE,
 	A2DP_20MS_FAILURE_OVER_STREAM,
 	A2DP_100MS_FAILURE_OVER_STREAM,
 	BT_BATTERY_INDICATOR_SUPPORTED,
@@ -1157,6 +1159,18 @@ int cras_server_metrics_busyloop_length(unsigned length)
 	return 0;
 }
 
+int cras_server_metrics_a2dp_exit(enum A2DP_EXIT_CODE code)
+{
+	int err;
+	err = send_unsigned_metrics(A2DP_EXIT_CODE, code);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: A2DP_EXIT_CODE");
+		return err;
+	}
+	return 0;
+}
+
 int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num)
 {
 	int err;
@@ -1448,6 +1462,10 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	case BUSYLOOP_LENGTH:
 		cras_metrics_log_histogram(
 			kBusyloopLength, metrics_msg->data.value, 0, 1000, 50);
+		break;
+	case A2DP_EXIT_CODE:
+		cras_metrics_log_sparse_histogram(kA2dpExitCode,
+						  metrics_msg->data.value);
 		break;
 	case A2DP_20MS_FAILURE_OVER_STREAM:
 		cras_metrics_log_histogram(kA2dp20msFailureOverStream,

@@ -962,6 +962,10 @@ int cras_audio_thread_event_a2dp_throttle() {
 }
 
 // From server metrics
+int cras_server_metrics_a2dp_exit(enum A2DP_EXIT_CODE code) {
+  return 0;
+}
+
 int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num) {
   return 0;
 }

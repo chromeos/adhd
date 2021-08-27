@@ -13,6 +13,25 @@
 
 extern const char kNoCodecsFoundMetric[];
 
+/* Codes for how A2DP exit the audio output list.
+ * IDLE - Disconnected while idle. The default disconnec reason without
+ *     anything special.
+ * WHILE_STREAMING - Disconnected while a2dp is streaming and audio
+ *     thread didn't catch any socket error.
+ * CONN_RESET - Disconnected while streaming and receiving ECONNRESET code.
+ * LONG_TX_FAILURE - CRAS request the disconnection because of longer
+ *     than 5 seconds of consecutive packet Tx failure.
+ * TX_FATAL_ERROR - CRAS request the disconnection because kernel
+ *     socket returns error code that CRAS treats as fatal error.
+ */
+enum A2DP_EXIT_CODE {
+	A2DP_EXIT_IDLE,
+	A2DP_EXIT_WHILE_STREAMING,
+	A2DP_EXIT_CONN_RESET,
+	A2DP_EXIT_LONG_TX_FAILURE,
+	A2DP_EXIT_TX_FATAL_ERROR,
+};
+
 enum CRAS_METRICS_BT_SCO_ERROR_TYPE {
 	CRAS_METRICS_SCO_SKT_SUCCESS = 0,
 	CRAS_METRICS_SCO_SKT_CONNECT_ERROR = 1,
@@ -90,6 +109,11 @@ int cras_server_metrics_busyloop(struct timespec *ts, unsigned count);
 
 /* Logs the length of busyloops. */
 int cras_server_metrics_busyloop_length(unsigned length);
+
+/* Logs the code how A2DP exit from the audio output list. Used to
+ * track the ratio of normal and abnormal scenarios and break down
+ * of individual reasons that causes the exit. */
+int cras_server_metrics_a2dp_exit(enum A2DP_EXIT_CODE code);
 
 /* Logs A2dp write failure periods that exceed 20ms all summed up and then
  * divide by the stream time. The final ratio is normalized by multipling
