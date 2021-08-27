@@ -229,6 +229,7 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
 
         let mut chunk = (&mut sample_source).take((frames * frame_size) as u64);
         let transferred = io::copy(&mut chunk, &mut buffer).map_err(Error::Io)?;
+        buffer.commit();
         if transferred == 0 {
             break;
         }

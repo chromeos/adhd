@@ -194,7 +194,7 @@ impl PlayZeroWorker {
                 .next_playback_buffer()
                 .map_err(|e| Error::NextPlaybackBufferFailed(e))?;
             let _write_frames = buffer.write(&local_buffer).map_err(Error::PlaybackFailed)?;
-
+            buffer.commit();
             // Notifies the main thread that playback of zeros has started for min_playback_time.
             if iter == min_playback_iterations {
                 let (lock, cvar) = &*self.ready;
