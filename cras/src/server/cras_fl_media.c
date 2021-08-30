@@ -24,6 +24,16 @@
 #define CRAS_BT_MEDIA_OBJECT_PATH "/org/chromium/cras/bluetooth/media"
 #define BT_MEDIA_OBJECT_PATH_SIZE_MAX 128
 
+/* Hold information and focus on logic related to communicate with the
+ * Bluetooth stack through DBus. Information and logic regarding A2DP and
+ * AVRCP should be kept in the cras_a2dp for responsibility division.
+ * Members:
+ *    hci - The id of HCI interface to use.
+ *    obj_path - Object path of the Bluetooth media.
+ *    conn - The DBus connection object used to send message to Floss Media
+ *    interface.
+ *    a2dp - Object representing the connected A2DP headset.
+ */
 struct fl_media {
 	unsigned int hci;
 	char obj_path[BT_MEDIA_OBJECT_PATH_SIZE_MAX];
@@ -240,6 +250,47 @@ int floss_media_a2dp_stop_audio_request(struct fl_media *fm)
 	return 0;
 }
 
+int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
+{
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+	dbus_int32_t absolute_volume = volume;
+
+	syslog(LOG_DEBUG, "floss_media_a2dp_set_volume: %d", absolute_volume);
+
+	method_call = dbus_message_new_method_call(
+		BT_SERVICE_NAME, fm->obj_path, BT_MEDIA_INTERFACE, "SetVolume");
+	if (!method_call)
+		return -ENOMEM;
+
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_INT32,
+				      &absolute_volume, DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_error_init(&dbus_error);
+
+	reply = dbus_connection_send_with_reply_and_block(
+		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send SetVolume: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "SetVolume returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+	}
+	return 0;
+}
+
 static void floss_on_register_callback(DBusPendingCall *pending_call,
 				       void *data)
 {
@@ -306,6 +357,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 	char *addr = NULL;
 	DBusError dbus_error;
 	dbus_int32_t sample_rate, bits_per_sample, channel_mode;
+	dbus_int32_t absolute_volume;
+	dbus_bool_t supported;
 
 	syslog(LOG_DEBUG, "Bt Media callback message: %s %s %s",
 	       dbus_message_get_path(message),
@@ -359,6 +412,43 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			cras_floss_a2dp_destroy(active_fm->a2dp);
 			active_fm->a2dp = NULL;
 		}
+
+		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_method_call(
+			   message, BT_MEDIA_CALLBACK_INTERFACE,
+			   "OnAbsoluteVolumeSupportedChanged")) {
+		rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &supported);
+		if (rc) {
+			syslog(LOG_ERR,
+			       "Failed to get support from OnAvrcpConnected");
+			return rc;
+		}
+		syslog(LOG_DEBUG, "OnAbsoluteVolumeSupportedChanged %d",
+		       supported);
+		if (active_fm && active_fm->a2dp)
+			cras_floss_a2dp_set_support_absolute_volume(
+				active_fm->a2dp, supported);
+
+		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_method_call(message,
+					       BT_MEDIA_CALLBACK_INTERFACE,
+					       "OnAbsoluteVolumeChanged")) {
+		rc = get_single_arg(message, DBUS_TYPE_INT32, &absolute_volume);
+		if (rc) {
+			syslog(LOG_ERR,
+			       "Failed to get volume from OnAbsoluteVolumeChanged");
+			return rc;
+		}
+
+		if (absolute_volume < 0 || !active_fm || !active_fm->a2dp) {
+			syslog(LOG_WARNING,
+			       "Invalid volume or non-active a2dp device. Skip the volume update");
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+		syslog(LOG_DEBUG, "OnAbsoluteVolumeChanged %d",
+		       absolute_volume);
+
+		cras_floss_a2dp_update_volume(active_fm->a2dp, absolute_volume);
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	}

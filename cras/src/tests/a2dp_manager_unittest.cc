@@ -9,11 +9,14 @@ extern "C" {
 #include "cras_audio_format.h"
 #include "cras_bt_log.h"
 #include "cras_fl_media.h"
+#include "cras_iodev.h"
 #include "cras_main_message.h"
 }
 static struct cras_a2dp* a2dp_pcm_iodev_create_a2dp_val;
 static struct cras_iodev* a2dp_pcm_iodev_create_ret;
 static struct cras_iodev* a2dp_pcm_iodev_destroy_iodev_val;
+static int a2dp_pcm_update_volume_called;
+static unsigned int a2dp_pcm_update_volume_arg;
 static cras_main_message* cras_main_message_send_msg;
 static cras_message_callback cras_main_message_add_handler_callback;
 static void* cras_main_message_add_handler_callback_data;
@@ -31,8 +34,12 @@ static int floss_media_a2dp_set_audio_config_bps;
 static int floss_media_a2dp_set_audio_config_channels;
 static int floss_media_a2dp_start_audio_request_called;
 static int floss_media_a2dp_stop_audio_request_called;
+static int floss_media_a2dp_set_volume_called;
+static int floss_media_a2dp_set_volume_arg;
 
 void ResetStubData() {
+  a2dp_pcm_update_volume_called = 0;
+  a2dp_pcm_update_volume_arg = 0;
   floss_media_a2dp_set_active_device_called = 0;
   floss_media_a2dp_set_audio_config_called = 0;
   floss_media_a2dp_set_audio_config_rate = 0;
@@ -40,6 +47,8 @@ void ResetStubData() {
   floss_media_a2dp_set_audio_config_channels = 0;
   floss_media_a2dp_start_audio_request_called = 0;
   floss_media_a2dp_stop_audio_request_called = 0;
+  floss_media_a2dp_set_volume_called = 0;
+  floss_media_a2dp_set_volume_arg = 0;
 }
 
 namespace {
@@ -54,6 +63,10 @@ class A2dpManagerTestSuite : public testing::Test {
   virtual void TearDown() {
     if (cras_main_message_send_msg)
       free(cras_main_message_send_msg);
+    if (a2dp_pcm_iodev_create_ret) {
+      free(a2dp_pcm_iodev_create_ret);
+      a2dp_pcm_iodev_create_ret = NULL;
+    }
     cras_bt_event_log_deinit(btlog);
   }
 };
@@ -71,6 +84,7 @@ TEST_F(A2dpManagerTestSuite, CreateDestroy) {
 
   cras_floss_a2dp_destroy(a2dp);
   EXPECT_EQ(a2dp_pcm_iodev_destroy_iodev_val, a2dp_pcm_iodev_create_ret);
+  a2dp_pcm_iodev_create_ret = NULL;
 }
 
 TEST_F(A2dpManagerTestSuite, StartStop) {
@@ -163,11 +177,78 @@ TEST(A2dpManager, FillFormat) {
   free(supported_formats);
 }
 
+TEST_F(A2dpManagerTestSuite, SetSupportAbsoluteVolume) {
+  a2dp_pcm_iodev_create_ret =
+      (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
+  struct cras_a2dp* a2dp = cras_floss_a2dp_create(NULL, "addr", 1, 1, 1);
+  ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
+
+  ASSERT_EQ(cras_floss_a2dp_get_support_absolute_volume(a2dp), false);
+
+  cras_floss_a2dp_set_support_absolute_volume(a2dp, true);
+  ASSERT_EQ(cras_floss_a2dp_get_support_absolute_volume(a2dp), true);
+  ASSERT_EQ(a2dp_pcm_iodev_create_ret->software_volume_needed, 0);
+
+  cras_floss_a2dp_set_support_absolute_volume(a2dp, false);
+  ASSERT_EQ(cras_floss_a2dp_get_support_absolute_volume(a2dp), false);
+  ASSERT_EQ(a2dp_pcm_iodev_create_ret->software_volume_needed, 1);
+
+  cras_floss_a2dp_destroy(a2dp);
+}
+
+TEST_F(A2dpManagerTestSuite, UpdateVolume) {
+  a2dp_pcm_iodev_create_ret =
+      (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
+  struct cras_a2dp* a2dp = cras_floss_a2dp_create(NULL, "addr", 1, 1, 1);
+  ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
+
+  cras_floss_a2dp_update_volume(a2dp, 127);
+  ASSERT_EQ(a2dp_pcm_update_volume_called, 0);
+  ASSERT_EQ(a2dp_pcm_update_volume_arg, 0);
+
+  cras_floss_a2dp_set_support_absolute_volume(a2dp, true);
+  cras_floss_a2dp_update_volume(a2dp, 127);
+  ASSERT_EQ(a2dp_pcm_update_volume_called, 1);
+  ASSERT_EQ(a2dp_pcm_update_volume_arg, 100);
+
+  cras_floss_a2dp_update_volume(a2dp, 100);
+  ASSERT_EQ(a2dp_pcm_update_volume_called, 2);
+  ASSERT_EQ(a2dp_pcm_update_volume_arg, 78);
+
+  cras_floss_a2dp_update_volume(a2dp, 150);
+  ASSERT_EQ(a2dp_pcm_update_volume_called, 3);
+  ASSERT_EQ(a2dp_pcm_update_volume_arg, 100);
+
+  cras_floss_a2dp_destroy(a2dp);
+}
+
+TEST_F(A2dpManagerTestSuite, SetVolume) {
+  a2dp_pcm_iodev_create_ret =
+      (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
+  struct cras_a2dp* a2dp = cras_floss_a2dp_create(NULL, "addr", 1, 1, 1);
+  ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
+
+  cras_floss_a2dp_set_volume(a2dp, 100);
+  ASSERT_EQ(floss_media_a2dp_set_volume_called, 0);
+  ASSERT_EQ(floss_media_a2dp_set_volume_arg, 0);
+
+  cras_floss_a2dp_set_support_absolute_volume(a2dp, true);
+  cras_floss_a2dp_set_volume(a2dp, 100);
+  ASSERT_EQ(floss_media_a2dp_set_volume_called, 1);
+  ASSERT_EQ(floss_media_a2dp_set_volume_arg, 127);
+
+  cras_floss_a2dp_set_volume(a2dp, 50);
+  ASSERT_EQ(floss_media_a2dp_set_volume_called, 2);
+  ASSERT_EQ(floss_media_a2dp_set_volume_arg, 63);
+
+  cras_floss_a2dp_destroy(a2dp);
+}
 }  // namespace
 
 extern "C" {
 struct cras_bt_event_log* btlog;
 
+/* From cras_a2dp_pcm_iodev */
 struct cras_iodev* a2dp_pcm_iodev_create(struct cras_a2dp* a2dp,
                                          int sample_rates,
                                          int sample_sizes,
@@ -175,8 +256,14 @@ struct cras_iodev* a2dp_pcm_iodev_create(struct cras_a2dp* a2dp,
   a2dp_pcm_iodev_create_a2dp_val = a2dp;
   return a2dp_pcm_iodev_create_ret;
 }
+
 void a2dp_pcm_iodev_destroy(struct cras_iodev* iodev) {
   a2dp_pcm_iodev_destroy_iodev_val = iodev;
+}
+
+void a2dp_pcm_update_volume(struct cras_iodev* iodev, unsigned int volume) {
+  a2dp_pcm_update_volume_called++;
+  a2dp_pcm_update_volume_arg = volume;
 }
 
 int cras_main_message_send(struct cras_main_message* msg) {
@@ -253,6 +340,12 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm) {
 
 int floss_media_a2dp_stop_audio_request(struct fl_media* fm) {
   floss_media_a2dp_stop_audio_request_called++;
+  return 0;
+}
+
+int floss_media_a2dp_set_volume(struct fl_media* fm, unsigned int volume) {
+  floss_media_a2dp_set_volume_called++;
+  floss_media_a2dp_set_volume_arg = volume;
   return 0;
 }
 

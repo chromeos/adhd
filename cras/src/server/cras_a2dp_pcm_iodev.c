@@ -446,6 +446,9 @@ static int flush_buffer(struct cras_iodev *iodev)
 
 static void set_volume(struct cras_iodev *iodev)
 {
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+
+	cras_floss_a2dp_set_volume(a2dpio->a2dp, iodev->active_node->volume);
 }
 
 static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
@@ -553,4 +556,13 @@ void a2dp_pcm_iodev_destroy(struct cras_iodev *iodev)
 	cras_iodev_list_rm_output(iodev);
 	cras_iodev_free_resources(iodev);
 	free(a2dpio);
+}
+
+void a2dp_pcm_update_volume(struct cras_iodev *iodev, unsigned int volume)
+{
+	if (!iodev->active_node)
+		return;
+
+	iodev->active_node->volume = volume;
+	cras_iodev_list_notify_node_volume(iodev->active_node);
 }

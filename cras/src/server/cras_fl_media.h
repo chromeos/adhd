@@ -44,6 +44,9 @@ int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr);
 int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
 				      unsigned int bps, unsigned int channels);
 
+/* Calls SetVolume method to Floss media interface. */
+int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume);
+
 /* Calls StartAudioRequest method to Floss media interface. */
 int floss_media_a2dp_start_audio_request(struct fl_media *fm);
 

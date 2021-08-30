@@ -258,6 +258,10 @@ int cras_floss_a2dp_stop(struct cras_a2dp* a2dp) {
   return 0;
 }
 
+void cras_floss_a2dp_set_volume(struct cras_a2dp* a2dp, unsigned int volume) {
+  return;
+}
+
 void cras_a2dp_cancel_suspend() {
   cras_a2dp_cancel_suspend_called++;
 }

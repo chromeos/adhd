@@ -36,6 +36,8 @@
  *    skt_fd - The socket fd to the a2dp device.
  *    suspend_timer - Timer to schedule suspending iodev at failures.
  *    addr - The address of connected a2dp device.
+ *    support_absolute_volume - If the connected a2dp device supports absolute
+ *    volume.
  */
 struct cras_a2dp {
 	struct fl_media *fm;
@@ -43,6 +45,7 @@ struct cras_a2dp {
 	int skt_fd;
 	struct cras_timer *suspend_timer;
 	char *addr;
+	bool support_absolute_volume;
 };
 
 /* We assume at most one connected A2DP headset at this moment. */
@@ -226,6 +229,48 @@ int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
 	(*channel_counts)[i] = 0;
 
 	return 0;
+}
+
+void cras_floss_a2dp_set_support_absolute_volume(struct cras_a2dp *a2dp,
+						 bool support_absolute_volume)
+{
+	a2dp->support_absolute_volume = support_absolute_volume;
+	if (a2dp->iodev)
+		a2dp->iodev->software_volume_needed = !support_absolute_volume;
+}
+
+bool cras_floss_a2dp_get_support_absolute_volume(struct cras_a2dp *a2dp)
+{
+	return a2dp->support_absolute_volume;
+}
+
+void cras_floss_a2dp_update_volume(struct cras_a2dp *a2dp, unsigned int volume)
+{
+	if (!cras_floss_a2dp_get_support_absolute_volume(a2dp)) {
+		syslog(LOG_WARNING,
+		       "Doesn't support absolute volume but get volume update"
+		       "call with volume %u.",
+		       volume);
+		return;
+	}
+
+	if (volume > 127) {
+		syslog(LOG_WARNING, "Illegal absolute volume %u. Adjust to 127",
+		       volume);
+		volume = 127;
+	}
+	volume = 100 * volume / 127;
+
+	if (a2dp->iodev)
+		a2dp_pcm_update_volume(a2dp->iodev, volume);
+}
+
+void cras_floss_a2dp_set_volume(struct cras_a2dp *a2dp, unsigned int volume)
+{
+	if (!cras_floss_a2dp_get_support_absolute_volume(a2dp))
+		return;
+
+	floss_media_a2dp_set_volume(a2dp->fm, volume * 127 / 100);
 }
 
 static void a2dp_suspend_cb(struct cras_timer *timer, void *arg)

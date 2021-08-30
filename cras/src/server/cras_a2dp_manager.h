@@ -46,6 +46,20 @@ int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
 				snd_pcm_format_t **formats,
 				size_t **channel_counts);
 
+/* Sets if the a2dp audio device supports absolute volume. */
+void cras_floss_a2dp_set_support_absolute_volume(struct cras_a2dp *a2dp,
+						 bool support_absolute_volume);
+
+/* Gets if the a2dp audio device supports absolute volume. */
+bool cras_floss_a2dp_get_support_absolute_volume(struct cras_a2dp *a2dp);
+
+/* Update the volume when receiving absolute volume changed event from the
+ * headset. */
+void cras_floss_a2dp_update_volume(struct cras_a2dp *a2dp, unsigned int volume);
+
+/* Set the volume of connected a2dp device. */
+void cras_floss_a2dp_set_volume(struct cras_a2dp *a2dp, unsigned int volume);
+
 /* Schedule a suspend request of the a2dp device. Should be called in
  * the context of audio threead. */
 void cras_a2dp_schedule_suspend(unsigned int msec);
