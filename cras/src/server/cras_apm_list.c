@@ -742,6 +742,17 @@ int cras_apm_list_process(struct cras_apm *apm, struct float_buffer *input,
 			return ret;
 		}
 
+		/* We configure APM for N-ch input to 1-ch output processing
+		 * and that has the side effect that the rest of channels are
+		 * filled with the unprocessed content from hardware mic.
+		 * Overwrite it with the processed data from first channel to
+		 * avoid leaking it later.
+		 * TODO(hychao): remove this when we're ready for multi channel
+		 * capture process.
+		 */
+		for (ch = 1; ch < apm->fbuffer->num_channels; ch++)
+			memcpy(rp[ch], rp[0], nread * sizeof(float));
+
 		dsp_util_interleave(rp, buf_write_pointer(apm->buffer),
 				    apm->fbuffer->num_channels, apm->fmt.format,
 				    nread);
