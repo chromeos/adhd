@@ -14,7 +14,7 @@ const SOURCE_DIR: &str = ".";
 const BINDINGS_TO_GENERATE: &[(&str, &str, BindingsType)] = &[(
     "org_chromium_cras_control",
     "../../dbus_bindings/org.chromium.cras.Control.xml",
-    BindingsType::Client,
+    BindingsType::Client(None),
 )];
 
 fn main() {
