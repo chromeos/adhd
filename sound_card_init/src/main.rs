@@ -122,7 +122,10 @@ fn main() {
 
     match sound_card_init(&args) {
         Ok(_) => info!("sound_card_init finished successfully."),
-        Err(e) => error!("sound_card_init: {}", e),
+        Err(e) => {
+            error!("sound_card_init: {}", e);
+            return;
+        }
     }
 
     if let Err(e) = run_time::now_to_file(&args.sound_card_id) {
