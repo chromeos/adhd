@@ -176,7 +176,7 @@ unref_reply:
 void cras_dbus_notify_rtc_active(bool active)
 {
 	DBusMessage *msg;
-	dbus_bool_t active_val = active;
+	int active_val = !!active;
 
 	if (!dbus_control.conn) {
 		syslog(LOG_ERR, "%s: cras dbus connection not ready yet.",
@@ -194,7 +194,7 @@ void cras_dbus_notify_rtc_active(bool active)
 		return;
 	}
 
-	if (!dbus_message_append_args(msg, DBUS_TYPE_BOOLEAN, &active_val,
+	if (!dbus_message_append_args(msg, DBUS_TYPE_BYTE, &active_val,
 				      DBUS_TYPE_INVALID)) {
 		syslog(LOG_ERR, "%s: Unable to append bool to dbus message.",
 		       __func__);
