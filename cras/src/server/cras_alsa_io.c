@@ -537,8 +537,12 @@ static int configure_dev(struct cras_iodev *iodev)
 	}
 
 	/* Capture starts right away, playback will wait for samples. */
-	if (aio->alsa_stream == SND_PCM_STREAM_CAPTURE)
-		cras_alsa_pcm_start(aio->handle);
+	if (aio->alsa_stream == SND_PCM_STREAM_CAPTURE) {
+		rc = cras_alsa_pcm_start(aio->handle);
+		if (rc < 0)
+			syslog(LOG_ERR, "PCM %s Failed to start, ret: %s\n",
+			       aio->pcm_name, snd_strerror(rc));
+	}
 
 	return 0;
 }
