@@ -30,6 +30,7 @@ epoll_wait: 1
 getsockopt: 1
 accept: 1
 stat64: 1
+statx: 1
 mprotect: 1
 gettimeofday: 1
 getdents64: 1
@@ -93,6 +94,7 @@ getresgid32: 1
 pipe2: 1
 sched_get_priority_max: 1
 sysinfo: 1
+fstatat64: 1
 fstatfs64: 1
 fstatfs: 1
 
