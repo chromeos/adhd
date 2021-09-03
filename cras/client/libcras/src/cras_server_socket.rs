@@ -2,14 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 use std::os::unix::io::{AsRawFd, RawFd};
+use std::str::FromStr;
 use std::{io, mem};
 
+use super::Error;
 use cras_sys::gen::{cras_disconnect_stream_message, cras_server_message, CRAS_SERVER_MESSAGE_ID};
 use sys_util::{net::UnixSeqpacket, ScmSocket};
 
 use data_model::DataInit;
 
 /// Server socket type to connect.
+#[derive(Debug, Clone, Copy)]
 pub enum CrasSocketType {
     /// A server socket type supports only playback function.
     Legacy,
@@ -22,6 +25,17 @@ impl CrasSocketType {
         match self {
             Self::Legacy => "/run/cras/.cras_socket",
             Self::Unified => "/run/cras/.cras_unified",
+        }
+    }
+}
+
+impl FromStr for CrasSocketType {
+    type Err = Error;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "legacy" => Ok(CrasSocketType::Legacy),
+            "unified" => Ok(CrasSocketType::Unified),
+            _ => Err(Error::InvalidCrasSocket),
         }
     }
 }
