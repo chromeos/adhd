@@ -12,7 +12,7 @@ use sys_util::{net::UnixSeqpacket, ScmSocket};
 use data_model::DataInit;
 
 /// Server socket type to connect.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CrasSocketType {
     /// A server socket type supports only playback function.
     Legacy,
