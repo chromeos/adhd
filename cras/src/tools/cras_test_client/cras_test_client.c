@@ -760,6 +760,14 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		return;
 
 	for (i = 0; i < info->num_devs; i++) {
+		printf("Summary: %s device [%s] %u %u %u \n",
+		       (info->devs[i].direction == CRAS_STREAM_INPUT) ?
+			       "Input" :
+			       "Output",
+		       info->devs[i].dev_name,
+		       (unsigned int)info->devs[i].buffer_size,
+		       (unsigned int)info->devs[i].frame_rate,
+		       (unsigned int)info->devs[i].num_channels);
 		printf("%s dev: %s\n",
 		       (info->devs[i].direction == CRAS_STREAM_INPUT) ?
 			       "Input" :
@@ -804,6 +812,18 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 
 	for (i = 0; i < info->num_streams; i++) {
 		int channel;
+		printf("Summary: %s stream %s %s %u %u 0x%.4x %u %u %x\n",
+		       (info->streams[i].direction == CRAS_STREAM_INPUT) ?
+			       "Input" :
+			       "Output",
+		       cras_client_type_str(info->streams[i].client_type),
+		       cras_stream_type_str(info->streams[i].stream_type),
+		       (unsigned int)info->streams[i].buffer_frames,
+		       (unsigned int)info->streams[i].cb_threshold,
+		       (unsigned int)info->streams[i].effects,
+		       (unsigned int)info->streams[i].frame_rate,
+		       (unsigned int)info->streams[i].num_channels,
+		       (unsigned int)info->streams[i].is_pinned);
 		printf("stream: 0x%" PRIx64 " dev: %u\n",
 		       info->streams[i].stream_id,
 		       (unsigned int)info->streams[i].dev_idx);
