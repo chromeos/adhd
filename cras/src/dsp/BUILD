@@ -47,3 +47,14 @@ cc_library(
     srcs = ["drc_math.c"],
     hdrs = ["drc_math.h"],
 )
+
+cc_library(
+    name = "dsp_util",
+    srcs = ["dsp_util.c"],
+    hdrs = ["dsp_util.h"],
+    copts = [
+        "-Isrc/common",
+    ],
+    visibility = ["//src/benchmark:__pkg__"],
+    deps = ["//src/common:cras_types"],
+)

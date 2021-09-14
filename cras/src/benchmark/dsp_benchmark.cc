@@ -8,20 +8,12 @@
 
 #include <benchmark/benchmark.h>
 
+#include "benchmark_util.h"
+
 namespace {
 extern "C" {
 #include "src/dsp/drc.h"
 #include "src/dsp/eq2.h"
-}
-
-// Generates a vector of |float| samples with given |size| and random
-// |engine|.
-std::vector<float> gen_float_samples(size_t size, std::mt19937& engine) {
-  std::uniform_real_distribution<float> dist(-1.0, 1.0);
-  std::vector<float> samples(size);
-  auto gen = [&dist, &engine]() { return dist(engine); };
-  std::generate(samples.begin(), samples.end(), gen);
-  return samples;
 }
 
 constexpr int NUM_CHANNELS = 2;

@@ -10,10 +10,12 @@ cc_library(
         "packet_status_logger.h",
     ],
     hdrs = [
+        "cras_audio_format.h",
         "cras_types.h",
     ],
     visibility = [
         "//src/benchmark:__pkg__",
+        "//src/dsp:__pkg__",
         "//src/server:__pkg__",
     ],
 )

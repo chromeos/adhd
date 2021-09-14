@@ -9,19 +9,11 @@
 
 #include <benchmark/benchmark.h>
 
+#include "benchmark_util.h"
+
 namespace {
 extern "C" {
 #include "src/server/cras_mix_ops.h"
-}
-
-// Generates a vector of |int16_t| samples with given |size| and random
-// |engine|.
-std::vector<int16_t> gen_s16_le_samples(size_t size, std::mt19937& engine) {
-  std::uniform_int_distribution<int16_t> dist(-32768, 32767);
-  std::vector<int16_t> samples(size);
-  auto gen = [&dist, &engine]() { return dist(engine); };
-  std::generate(samples.begin(), samples.end(), gen);
-  return samples;
 }
 
 static void BM_CrasMixerOpsScaleBuffer(benchmark::State& state) {
