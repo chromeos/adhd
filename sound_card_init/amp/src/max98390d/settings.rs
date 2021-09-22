@@ -32,6 +32,7 @@ pub struct AmpCalibSettings {
     pub controls: Vec<AmpCalibCtrl>,
     // Path of the dsm_param.bin file.
     pub dsm_param: String,
+    pub boot_time_calibration_enabled: bool,
 }
 
 impl AmpCalibSettings {

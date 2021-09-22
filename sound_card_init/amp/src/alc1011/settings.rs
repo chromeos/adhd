@@ -27,6 +27,7 @@ pub struct AmpCalibCtrl {
 pub struct AmpCalibSettings {
     // Mixer control to get/set rdc value.
     pub controls: Vec<AmpCalibCtrl>,
+    pub boot_time_calibration_enabled: bool,
 }
 
 impl AmpCalibSettings {

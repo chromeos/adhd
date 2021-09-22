@@ -29,6 +29,9 @@ impl Amp for ALC1011 {
     ///
     /// If any amplifiers fail to complete the calibration.
     fn boot_time_calibration(&mut self) -> Result<()> {
+        if self.setting.boot_time_calibration_enabled {
+            return Err(Error::BootTimeCalibrationNotSupported);
+        }
         let num_channels = self.setting.num_channels();
         let dsm = DSM::new(
             &self.card.name(),

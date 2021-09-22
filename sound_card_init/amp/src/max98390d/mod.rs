@@ -12,6 +12,7 @@ use std::{fs, path::Path};
 
 use cros_alsa::{Card, IntControl, SwitchControl};
 use dsm::{CalibData, Error, Result, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
+use sys_util::info;
 
 use crate::Amp;
 use settings::{AmpCalibSettings, DeviceSettings};
@@ -58,14 +59,22 @@ impl Amp for Max98390 {
         ));
 
         self.set_volume(VolumeMode::Low)?;
-        let calib = match dsm.check_speaker_over_heated_workflow()? {
-            SpeakerStatus::Hot(previous_calib) => previous_calib,
-            SpeakerStatus::Cold => self
-                .do_calibration()?
-                .iter()
-                .enumerate()
-                .map(|(ch, calib_data)| dsm.decide_calibration_value_workflow(ch, *calib_data))
-                .collect::<Result<Vec<_>>>()?,
+        let calib = if !self.setting.boot_time_calibration_enabled {
+            info!("skip boot time calibration and use vpd values");
+            // Needs Rdc updates to be done after internal speaker is ready otherwise
+            // it would be overwritten by the DSM blob update.
+            dsm.wait_for_speakers_ready()?;
+            dsm.get_all_vpd_calibration_value()?
+        } else {
+            match dsm.check_speaker_over_heated_workflow()? {
+                SpeakerStatus::Hot(previous_calib) => previous_calib,
+                SpeakerStatus::Cold => self
+                    .do_calibration()?
+                    .iter()
+                    .enumerate()
+                    .map(|(ch, calib_data)| dsm.decide_calibration_value_workflow(ch, *calib_data))
+                    .collect::<Result<Vec<_>>>()?,
+            }
         };
         self.apply_calibration_value(calib)?;
         self.set_volume(VolumeMode::High)?;
