@@ -284,11 +284,6 @@ static int configure_dev(struct cras_iodev *iodev)
 		return err;
 	}
 
-	/* Apply the node's volume after transport is acquired. Doing this
-	 * is necessary because the volume can not sync to hardware until
-	 * it is opened. */
-	iodev->set_volume(iodev);
-
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
 		return -EINVAL;

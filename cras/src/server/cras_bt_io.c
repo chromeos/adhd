@@ -203,6 +203,12 @@ static int update_supported_formats(struct cras_iodev *iodev)
 	return 0;
 }
 
+/*
+ * Sets up the volume to HFP or A2DP iodev using the cached volume
+ * lastly updated by headset volume events.
+ */
+static void set_bt_volume(struct cras_iodev *iodev);
+
 static int configure_dev(struct cras_iodev *iodev)
 {
 	int rc;
@@ -222,6 +228,11 @@ static int configure_dev(struct cras_iodev *iodev)
 	rc = dev->configure_dev(dev);
 	if (rc)
 		return rc;
+
+	/* Apply the node's volume after profile dev is configured. Doing this
+	 * is necessary because the volume can not sync to hardware until
+	 * it is opened. */
+	set_bt_volume(iodev);
 
 	iodev->buffer_size = dev->buffer_size;
 	iodev->min_buffer_level = dev->min_buffer_level;
