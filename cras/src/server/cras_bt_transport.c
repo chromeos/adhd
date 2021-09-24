@@ -20,6 +20,15 @@
 #include "cras_system_state.h"
 #include "utlist.h"
 
+/*
+ * We are seeing a case of MTU=65535 which is trivially unreasonable.
+ * In order to set a threshold between that bad high value and the
+ * common MTU values around 1000. Pick 4 times of A2DP_FIX_PACKET_SIZE
+ * to start with. This threshold can be changed in future whenever
+ * needed.
+ */
+#define MAX_WRITE_MTU (4 * A2DP_FIX_PACKET_SIZE)
+
 struct cras_bt_transport {
 	DBusConnection *conn;
 	char *object_path;
@@ -474,6 +483,12 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		dbus_message_unref(reply);
 		rc = -EINVAL;
 		goto acquire_fail;
+	}
+
+	if (transport->write_mtu > MAX_WRITE_MTU) {
+		syslog(LOG_WARNING, "A2DP write MTU %d unreasonably high",
+		       transport->write_mtu);
+		transport->write_mtu = A2DP_FIX_PACKET_SIZE;
 	}
 
 	if (cras_system_get_bt_fix_a2dp_packet_size_enabled() &&
