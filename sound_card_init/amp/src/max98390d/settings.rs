@@ -15,6 +15,8 @@ pub struct DeviceSettings {
 }
 #[derive(Debug, Default, PartialEq, Deserialize, Clone)]
 pub struct AmpCalibCtrl {
+    // Path of the dsm_param.bin file.
+    pub dsm_param: String,
     // Mixer control to get/set rdc value.
     pub rdc_ctrl: String,
     // Mixer control to get/set ambient temperature value.
@@ -30,8 +32,6 @@ pub struct AmpCalibCtrl {
 pub struct AmpCalibSettings {
     // Mixer control to get/set rdc value.
     pub controls: Vec<AmpCalibCtrl>,
-    // Path of the dsm_param.bin file.
-    pub dsm_param: String,
     pub boot_time_calibration_enabled: bool,
 }
 

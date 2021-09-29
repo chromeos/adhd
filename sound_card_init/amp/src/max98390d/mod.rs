@@ -42,8 +42,10 @@ impl Amp for Max98390 {
     ///
     /// If the amplifier fails to complete the calibration.
     fn boot_time_calibration(&mut self) -> Result<()> {
-        if !Path::new(&self.setting.dsm_param).exists() {
-            return Err(Error::MissingDSMParam);
+        for setting in &self.setting.controls {
+            if !Path::new(&setting.dsm_param).exists() {
+                return Err(Error::MissingDSMParam);
+            }
         }
 
         let mut dsm = DSM::new(
