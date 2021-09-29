@@ -93,7 +93,7 @@
 //!              let mut cras_client = CrasClient::new()?;
 //!              cras_client.set_client_type(CrasClientType::CRAS_CLIENT_TYPE_TEST);
 //!              let (_control, mut stream) = cras_client
-//!                  .new_capture_stream(NUM_CHANNELS, FORMAT, FRAME_RATE, BUFFER_SIZE)?;
+//!                  .new_capture_stream(NUM_CHANNELS, FORMAT, FRAME_RATE, BUFFER_SIZE, &[])?;
 //!
 //!              // Capture 1000 * BUFFER_SIZE samples to the given file
 //!              let mut file = File::create(&args[1])?;
@@ -407,6 +407,7 @@ impl<'a> CrasClient<'a> {
         rate: u32,
         channel_num: usize,
         format: SampleFormat,
+        effects: &[StreamEffect],
     ) -> Result<CrasStream<'b, T>> {
         let stream_id = self.next_server_stream_id();
 
@@ -428,7 +429,7 @@ impl<'a> CrasClient<'a> {
             flags: 0,
             format: audio_format,
             dev_idx: device_index.unwrap_or(CRAS_SPECIAL_DEVICE::NO_DEVICE as u32),
-            effects: 0,
+            effects: effects.iter().collect::<CrasStreamEffect>().into(),
             client_type: self.client_type,
             client_shm_size: 0,
             buffer_offsets: [0, 0],
@@ -472,6 +473,7 @@ impl<'a> CrasClient<'a> {
         rate: u32,
         channel_num: usize,
         format: SampleFormat,
+        effects: &[StreamEffect],
         ex: &Executor,
     ) -> Result<async_::CrasStream<'b, T>> {
         let stream_id = self.next_server_stream_id();
@@ -494,7 +496,7 @@ impl<'a> CrasClient<'a> {
             flags: 0,
             format: audio_format,
             dev_idx: device_index.unwrap_or(CRAS_SPECIAL_DEVICE::NO_DEVICE as u32),
-            effects: 0,
+            effects: effects.iter().collect::<CrasStreamEffect>().into(),
             client_type: self.client_type,
             client_shm_size: 0,
             buffer_offsets: [0, 0],
@@ -546,6 +548,7 @@ impl<'a> CrasClient<'a> {
         format: SampleFormat,
         frame_rate: u32,
         buffer_size: usize,
+        effects: &[StreamEffect],
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn PlaybackBufferStream>), BoxError>
     {
         Ok((
@@ -557,6 +560,7 @@ impl<'a> CrasClient<'a> {
                 frame_rate,
                 num_channels,
                 format,
+                effects,
             )?),
         ))
     }
@@ -581,6 +585,7 @@ impl<'a> CrasClient<'a> {
         format: SampleFormat,
         frame_rate: u32,
         buffer_size: usize,
+        effects: &[StreamEffect],
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         Ok((
             Box::new(NoopStreamControl::new()),
@@ -591,6 +596,7 @@ impl<'a> CrasClient<'a> {
                 frame_rate,
                 num_channels,
                 format,
+                effects,
             )?),
         ))
     }
@@ -644,6 +650,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                 frame_rate,
                 num_channels,
                 format,
+                &[],
             )?),
         ))
     }
@@ -667,6 +674,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                 frame_rate,
                 num_channels,
                 format,
+                &[],
                 ex,
             )?),
         ))
@@ -679,6 +687,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         format: SampleFormat,
         frame_rate: u32,
         buffer_size: usize,
+        effects: &[StreamEffect],
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         if self.cras_capture {
             Ok((
@@ -690,6 +699,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                     frame_rate,
                     num_channels,
                     format,
+                    effects,
                 )?),
             ))
         } else {
@@ -712,6 +722,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         format: SampleFormat,
         frame_rate: u32,
         buffer_size: usize,
+        effects: &[StreamEffect],
         ex: &Executor,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn AsyncCaptureBufferStream>), BoxError>
     {
@@ -725,6 +736,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                     frame_rate,
                     num_channels,
                     format,
+                    effects,
                     ex,
                 )?),
             ))

@@ -184,6 +184,7 @@ impl PlayZeroWorker {
                 Self::FORMAT,
                 Self::FRAME_RATE,
                 Self::FRAMES_PER_BUFFER,
+                &[],
             )
             .map_err(|e| Error::NewPlayStreamFailed(e))?;
 

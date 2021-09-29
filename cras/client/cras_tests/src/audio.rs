@@ -398,11 +398,12 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
                     format,
                     frame_rate,
                     buffer_size,
+                    &[],
                 )
                 .map_err(Error::CreateStream)?
         }
         None => cras_client
-            .new_capture_stream(num_channels, format, frame_rate, buffer_size)
+            .new_capture_stream(num_channels, format, frame_rate, buffer_size, &[])
             .map_err(Error::CreateStream)?,
     };
     set_priority_to_realtime();
