@@ -16,6 +16,7 @@
 #include "bluetooth.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_constants.h"
+#include "cras_string.h"
 #include "utlist.h"
 
 /*
@@ -69,7 +70,8 @@ static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter *adapter)
 	dev_info.dev_id = atoi(pos + 3);
 	err = ioctl(ctl, HCIGETDEVINFO, (void *)&dev_info);
 	if (err) {
-		syslog(LOG_ERR, "HCI get dev info error %s", strerror(errno));
+		syslog(LOG_ERR, "HCI get dev info error %s",
+		       cras_strerror(errno));
 		close(ctl);
 		return -1;
 	}

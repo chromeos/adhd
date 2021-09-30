@@ -11,6 +11,7 @@
 #include "cras_iodev.h"
 #include "cras_rtc.h"
 #include "cras_rstream.h"
+#include "cras_string.h"
 #include "cras_server_metrics.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -82,7 +83,7 @@ void cras_rtc_add_stream(struct cras_rstream *stream, struct cras_iodev *iodev)
 
 	data = (struct rtc_data *)calloc(1, sizeof(struct rtc_data));
 	if (!data) {
-		syslog(LOG_ERR, "Failed to calloc: %s", strerror(errno));
+		syslog(LOG_ERR, "Failed to calloc: %s", cras_strerror(errno));
 		return;
 	}
 	data->stream = stream;

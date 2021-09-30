@@ -17,6 +17,7 @@
 #include "cras_iodev_list.h"
 #include "cras_plc.h"
 #include "cras_sbc_codec.h"
+#include "cras_string.h"
 #include "cras_server_metrics.h"
 #include "utlist.h"
 #include "packet_status_logger.h"
@@ -299,7 +300,8 @@ int sco_write_msbc(struct cras_sco *sco)
 		sco->msbc_write, samples, pcm_avail, wp + MSBC_H2_HEADER_LEN,
 		MSBC_PKT_SIZE - MSBC_H2_HEADER_LEN, &encoded);
 	if (pcm_encoded < 0) {
-		syslog(LOG_ERR, "msbc encoding err: %s", strerror(pcm_encoded));
+		syslog(LOG_ERR, "msbc encoding err: %s",
+		       cras_strerror(pcm_encoded));
 		return pcm_encoded;
 	}
 	buf_increment_read(sco->playback_buf, pcm_encoded);
@@ -495,7 +497,8 @@ recv_msbc_bytes:
 
 	err = recvmsg(sco->fd, &msg, 0);
 	if (err < 0) {
-		syslog(LOG_ERR, "HCI SCO packet read err %s", strerror(errno));
+		syslog(LOG_ERR, "HCI SCO packet read err %s",
+		       cras_strerror(errno));
 		if (errno == EINTR)
 			goto recv_msbc_bytes;
 		return err;
@@ -629,7 +632,7 @@ int sco_read(struct cras_sco *sco)
 recv_sample:
 	err = recv(sco->fd, capture_buf, to_read, 0);
 	if (err < 0) {
-		syslog(LOG_ERR, "Read error %s", strerror(errno));
+		syslog(LOG_ERR, "Read error %s", cras_strerror(errno));
 		if (errno == EINTR)
 			goto recv_sample;
 

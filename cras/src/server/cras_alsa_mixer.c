@@ -11,6 +11,7 @@
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_mixer_name.h"
 #include "cras_alsa_ucm.h"
+#include "cras_string.h"
 #include "cras_util.h"
 #include "utlist.h"
 
@@ -101,23 +102,26 @@ static void alsa_mixer_open(const char *mixdev, snd_mixer_t **mixer)
 	*mixer = NULL;
 	rc = snd_mixer_open(mixer, 0);
 	if (rc < 0) {
-		syslog(LOG_ERR, "snd_mixer_open: %d: %s", rc, strerror(-rc));
+		syslog(LOG_ERR, "snd_mixer_open: %d: %s", rc,
+		       cras_strerror(-rc));
 		return;
 	}
 	rc = snd_mixer_attach(*mixer, mixdev);
 	if (rc < 0) {
-		syslog(LOG_ERR, "snd_mixer_attach: %d: %s", rc, strerror(-rc));
+		syslog(LOG_ERR, "snd_mixer_attach: %d: %s", rc,
+		       cras_strerror(-rc));
 		goto fail_after_open;
 	}
 	rc = snd_mixer_selem_register(*mixer, NULL, NULL);
 	if (rc < 0) {
 		syslog(LOG_ERR, "snd_mixer_selem_register: %d: %s", rc,
-		       strerror(-rc));
+		       cras_strerror(-rc));
 		goto fail_after_open;
 	}
 	rc = snd_mixer_load(*mixer);
 	if (rc < 0) {
-		syslog(LOG_ERR, "snd_mixer_load: %d: %s", rc, strerror(-rc));
+		syslog(LOG_ERR, "snd_mixer_load: %d: %s", rc,
+		       cras_strerror(-rc));
 		goto fail_after_open;
 	}
 	return;
@@ -894,7 +898,7 @@ int cras_alsa_mixer_add_controls_in_section(struct cras_alsa_mixer *cmix,
 					 section->mixer_name);
 		if (rc) {
 			syslog(LOG_ERR, "Could not add mixer control '%s': %s",
-			       section->mixer_name, strerror(-rc));
+			       section->mixer_name, cras_strerror(-rc));
 			return rc;
 		}
 	}
@@ -904,7 +908,7 @@ int cras_alsa_mixer_add_controls_in_section(struct cras_alsa_mixer *cmix,
 			cmix, section->dir, section->name, section->coupled);
 		if (rc) {
 			syslog(LOG_ERR, "Could not add coupled control: %s",
-			       strerror(-rc));
+			       cras_strerror(-rc));
 			return rc;
 		}
 	}

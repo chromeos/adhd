@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "cras_client.h"
+#include "cras_string.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_version.h"
@@ -106,7 +107,7 @@ const char *node_name_for_node_id(struct cras_client *client,
 
 	if (rc != 0) {
 		syslog(LOG_ERR, "Couldn't get output devices: %s\n",
-		       strerror(-rc));
+		       cras_strerror(-rc));
 		snprintf(buf, sizeof(buf), "%u:%u", iodev_idx,
 			 node_index_of(node_id));
 		return strdup(buf);

@@ -50,6 +50,7 @@
 #include "cras_messages.h"
 #include "cras_observer_ops.h"
 #include "cras_shm.h"
+#include "cras_string.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -330,13 +331,15 @@ libcras_stream_cb_data_create(cras_stream_id_t stream_id,
 		(struct libcras_stream_cb_data *)calloc(
 			1, sizeof(struct libcras_stream_cb_data));
 	if (!data) {
-		syslog(LOG_ERR, "cras_client: calloc: %s", strerror(errno));
+		syslog(LOG_ERR, "cras_client: calloc: %s",
+		       cras_strerror(errno));
 		return NULL;
 	}
 	data->data_ = (struct cras_stream_cb_data *)calloc(
 		1, sizeof(struct cras_stream_cb_data));
 	if (!data->data_) {
-		syslog(LOG_ERR, "cras_client: calloc: %s", strerror(errno));
+		syslog(LOG_ERR, "cras_client: calloc: %s",
+		       cras_strerror(errno));
 		free(data);
 		return NULL;
 	}
@@ -512,7 +515,7 @@ static int error_delay_next_action(struct cras_client *client, int poll_revents)
 			rc = -errno;
 			syslog(LOG_ERR,
 			       "cras_client: Could not create timerfd: %s",
-			       strerror(-rc));
+			       cras_strerror(-rc));
 			return rc;
 		}
 
@@ -524,7 +527,7 @@ static int error_delay_next_action(struct cras_client *client, int poll_revents)
 			rc = -errno;
 			syslog(LOG_ERR,
 			       "cras_client: Could not set timeout: %s",
-			       strerror(-rc));
+			       cras_strerror(-rc));
 			return rc;
 		}
 		return 0;
@@ -578,7 +581,7 @@ static int wait_for_writable_next_action(struct cras_client *client,
 		if (client->server_fd < 0) {
 			rc = -errno;
 			syslog(LOG_ERR, "cras_client: server socket failed: %s",
-			       strerror(-rc));
+			       cras_strerror(-rc));
 			return rc;
 		}
 	} else if ((poll_revents & POLLOUT) == 0) {
@@ -609,7 +612,7 @@ static int wait_for_writable_next_action(struct cras_client *client,
 		} else if (rc != -EINPROGRESS) {
 			syslog(LOG_ERR,
 			       "cras_client: server connect failed: %s",
-			       strerror(-rc));
+			       cras_strerror(-rc));
 			return rc;
 		}
 		return 0;
@@ -663,7 +666,7 @@ static int first_message_next_action(struct cras_client *client,
 
 	rc = handle_message_from_server(client);
 	if (rc < 0) {
-		syslog(LOG_ERR, "handle first message: %s", strerror(-rc));
+		syslog(LOG_ERR, "handle first message: %s", cras_strerror(-rc));
 	} else if (client->id >= 0) {
 		rc = connect_transition_action(client);
 	} else {
@@ -910,7 +913,8 @@ static int sock_file_wait_dispatch(struct cras_client *client, int poll_revents)
 	if (rc == -EAGAIN || rc == -EWOULDBLOCK)
 		rc = 0;
 	else if (rc != 0)
-		syslog(LOG_ERR, "cras_file_wait_dispatch: %s", strerror(-rc));
+		syslog(LOG_ERR, "cras_file_wait_dispatch: %s",
+		       cras_strerror(-rc));
 	return rc;
 }
 
@@ -1009,7 +1013,7 @@ static int connect_to_server(struct cras_client *client,
 
 	if (rc != 0)
 		syslog(LOG_ERR, "cras_client: Connect server failed: %s",
-		       strerror(-rc));
+		       cras_strerror(-rc));
 
 	return rc;
 }
@@ -1418,7 +1422,7 @@ static int start_aud_thread(struct client_stream *stream)
 	rc = pipe(stream->wake_fds);
 	if (rc < 0) {
 		rc = -errno;
-		syslog(LOG_ERR, "cras_client: pipe: %s", strerror(-rc));
+		syslog(LOG_ERR, "cras_client: pipe: %s", cras_strerror(-rc));
 		return rc;
 	}
 
@@ -1429,7 +1433,7 @@ static int start_aud_thread(struct client_stream *stream)
 	if (rc) {
 		pthread_mutex_unlock(&stream->client->stream_start_lock);
 		syslog(LOG_ERR, "cras_client: Couldn't create audio stream: %s",
-		       strerror(rc));
+		       cras_strerror(rc));
 		stream->thread.state = CRAS_THREAD_STOP;
 		stop_aud_thread(stream, 0);
 		return -rc;
@@ -1445,7 +1449,7 @@ static int start_aud_thread(struct client_stream *stream)
 		/* Something is very wrong: try to cancel the thread and don't
 		 * wait for it. */
 		syslog(LOG_ERR, "cras_client: Client thread not responding: %s",
-		       strerror(rc));
+		       cras_strerror(rc));
 		stop_aud_thread(stream, 0);
 		return -rc;
 	}
@@ -1557,7 +1561,8 @@ static int send_connect_message(struct cras_client *client,
 	rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
 	if (rc != 0) {
 		rc = -errno;
-		syslog(LOG_ERR, "cras_client: socketpair: %s", strerror(-rc));
+		syslog(LOG_ERR, "cras_client: socketpair: %s",
+		       cras_strerror(-rc));
 		goto fail;
 	}
 
@@ -1740,7 +1745,7 @@ static int client_attach_shm(struct cras_client *client, int shm_fd)
 	if (client->server_state == (struct cras_server_state *)-1) {
 		syslog(LOG_ERR,
 		       "cras_client: mmap failed to map shm for client: %s",
-		       strerror(-rc));
+		       cras_strerror(-rc));
 		goto error;
 	}
 
@@ -2262,7 +2267,7 @@ int cras_client_create_with_type(struct cras_client **client,
 	if (rc < 0 && rc != -ENOENT) {
 		syslog(LOG_ERR,
 		       "cras_client: Could not setup watch for '%s': %s",
-		       (*client)->sock_file, strerror(-rc));
+		       (*client)->sock_file, cras_strerror(-rc));
 		goto free_error;
 	}
 	(*client)->sock_file_exists = (rc == 0);

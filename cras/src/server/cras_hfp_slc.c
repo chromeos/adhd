@@ -15,6 +15,7 @@
 #include "cras_hfp_slc.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
+#include "cras_string.h"
 #include "cras_tm.h"
 #include "cras_util.h"
 
@@ -1157,7 +1158,7 @@ static void slc_watch_callback(void *arg, int revents)
 	err = process_at_commands(handle);
 	if (err < 0) {
 		syslog(LOG_ERR, "Error reading slc command %s",
-		       strerror(errno));
+		       cras_strerror(errno));
 		cras_system_rm_select_fd(handle->rfcomm_fd);
 		handle->disconnect_cb(handle);
 	}

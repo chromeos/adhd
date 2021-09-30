@@ -33,6 +33,7 @@
 #include "cras_main_message.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
+#include "cras_string.h"
 #include "cras_tm.h"
 #include "sfh.h"
 #include "utlist.h"
@@ -955,8 +956,8 @@ static int apply_hfp_offload_codec_settings(int fd, uint8_t codec)
 
 	err = setsockopt(fd, SOL_BLUETOOTH, BT_CODEC, codecs, sizeof(buffer));
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to set codec: %s (%d)", strerror(errno),
-		       err);
+		syslog(LOG_ERR, "Failed to set codec: %s (%d)",
+		       cras_strerror(errno), err);
 		return err;
 	}
 
@@ -1018,7 +1019,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 		    BTPROTO_SCO);
 	if (sk < 0) {
 		syslog(LOG_ERR, "Failed to create socket: %s (%d)",
-		       strerror(errno), errno);
+		       cras_strerror(errno), errno);
 		cras_server_metrics_hfp_sco_connection_error(
 			CRAS_METRICS_SCO_SKT_OPEN_ERROR);
 		return -errno;
@@ -1029,7 +1030,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 		goto error;
 	if (bind(sk, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		syslog(LOG_ERR, "Failed to bind socket: %s (%d)",
-		       strerror(errno), errno);
+		       cras_strerror(errno), errno);
 		goto error;
 	}
 
@@ -1053,8 +1054,8 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 
 	err = connect(sk, (struct sockaddr *)&addr, sizeof(addr));
 	if (err && errno != EINPROGRESS) {
-		syslog(LOG_ERR, "Failed to connect: %s (%d)", strerror(errno),
-		       errno);
+		syslog(LOG_ERR, "Failed to connect: %s (%d)",
+		       cras_strerror(errno), errno);
 		cras_server_metrics_hfp_sco_connection_error(
 			CRAS_METRICS_SCO_SKT_CONNECT_ERROR);
 		goto error;
@@ -1121,7 +1122,8 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
 
 	/* For non-USB cases, query the SCO MTU from driver. */
 	if (getsockopt(sco_socket, SOL_SCO, SCO_OPTIONS, &so, &len) < 0) {
-		syslog(LOG_ERR, "Get SCO options error: %s", strerror(errno));
+		syslog(LOG_ERR, "Get SCO options error: %s",
+		       cras_strerror(errno));
 		return DEFAULT_SCO_PKT_SIZE;
 	}
 	return so.mtu;

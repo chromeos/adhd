@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "cras_shm.h"
+#include "cras_string.h"
 
 int cras_shm_info_init(const char *stream_name, uint32_t length,
 		       struct cras_shm_info *info_out)
@@ -188,13 +189,13 @@ static void cras_shm_restorecon(int fd)
 	char *path = realpath(fd_proc_path, NULL);
 	if (path == NULL) {
 		syslog(LOG_WARNING, "Couldn't run realpath() for %s: %s",
-		       fd_proc_path, strerror(errno));
+		       fd_proc_path, cras_strerror(errno));
 		return;
 	}
 
 	if (cras_selinux_restorecon(path) < 0) {
 		syslog(LOG_WARNING, "Restorecon on %s failed: %s", fd_proc_path,
-		       strerror(errno));
+		       cras_strerror(errno));
 	}
 
 	free(path);
@@ -214,7 +215,7 @@ int cras_shm_open_rw(const char *name, size_t size)
 	if (fd < 0) {
 		fd = -errno;
 		syslog(LOG_ERR, "failed to ashmem_create_region %s: %s\n", name,
-		       strerror(-fd));
+		       cras_strerror(-fd));
 	}
 	return fd;
 }
@@ -226,7 +227,7 @@ int cras_shm_reopen_ro(const char *name, int fd)
 	if (ashmem_set_prot_region(fd, PROT_READ) != 0) {
 		fd = -errno;
 		syslog(LOG_ERR, "failed to ashmem_set_prot_region %s: %s\n",
-		       name, strerror(-fd));
+		       name, cras_strerror(-fd));
 	}
 	return fd;
 }
@@ -247,14 +248,14 @@ int cras_shm_open_rw(const char *name, size_t size)
 	if (fd < 0) {
 		fd = -errno;
 		syslog(LOG_ERR, "failed to shm_open %s: %s\n", name,
-		       strerror(-fd));
+		       cras_strerror(-fd));
 		return fd;
 	}
 	rc = posix_fallocate(fd, 0, size);
 	if (rc) {
 		rc = -errno;
 		syslog(LOG_ERR, "failed to set size of shm %s: %s\n", name,
-		       strerror(-rc));
+		       cras_strerror(-rc));
 		return rc;
 	}
 
@@ -271,7 +272,7 @@ int cras_shm_reopen_ro(const char *name, int fd)
 		fd = -errno;
 		syslog(LOG_ERR,
 		       "Failed to re-open shared memory '%s' read-only: %s",
-		       name, strerror(-fd));
+		       name, cras_strerror(-fd));
 	}
 	return fd;
 }

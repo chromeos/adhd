@@ -23,6 +23,7 @@
 #include "cras_bt_battery_provider.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_telephony.h"
+#include "cras_string.h"
 #include "utlist.h"
 
 static void cras_bt_start_bluez(struct bt_stack *s);
@@ -151,7 +152,7 @@ static void cras_bt_interface_added(DBusConnection *conn,
 				       "Error registering Battery Provider "
 				       "for adapter %s: %s",
 				       cras_bt_adapter_address(adapter),
-				       strerror(-ret));
+				       cras_strerror(-ret));
 			}
 		} else {
 			syslog(LOG_WARNING,
@@ -598,7 +599,7 @@ add_match_error:
 
 add_filter_error:
 	syslog(LOG_WARNING, "Couldn't setup Bluetooth device monitoring: %s",
-	       strerror(ENOMEM));
+	       cras_strerror(ENOMEM));
 	cras_bt_stop(conn);
 	return;
 }

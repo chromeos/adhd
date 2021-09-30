@@ -12,6 +12,7 @@
 #include "cras_bt_constants.h"
 #include "cras_bt_manager.h"
 #include "cras_fl_media.h"
+#include "cras_string.h"
 
 #define BT_MANAGER_SERVICE_NAME "org.chromium.bluetooth.Manager"
 #define BT_MANAGER_INTERFACE "org.chromium.bluetooth.Manager"
@@ -445,7 +446,7 @@ add_match_error:
 
 add_filter_error:
 	syslog(LOG_WARNING, "dBus connection add filter error: %s",
-	       strerror(ENOMEM));
+	       cras_strerror(ENOMEM));
 	s->stop(s);
 	return;
 }

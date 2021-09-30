@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <libudev.h>
 
+#include "cras_string.h"
 #include "cras_util.h"
 #include "cras_gpio_jack.h"
 
@@ -52,7 +53,7 @@ char *sys_input_get_device_name(const char *path)
 		return strdup(name);
 	} else {
 		syslog(LOG_WARNING, "Could not open '%s': %s", path,
-		       strerror(errno));
+		       cras_strerror(errno));
 		return NULL;
 	}
 }

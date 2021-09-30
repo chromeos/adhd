@@ -15,6 +15,7 @@
 #include <syslog.h>
 
 #include "cras_system_state.h"
+#include "cras_string.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_checksum.h"
@@ -199,14 +200,14 @@ static uint32_t calculate_desc_checksum(struct udev_device *dev)
 
 	if (stat(path, &stat_buf) < 0) {
 		syslog(LOG_ERR, "failed to stat file %s: %s", path,
-		       strerror(errno));
+		       cras_strerror(errno));
 		return 0;
 	}
 
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
 		syslog(LOG_ERR, "failed to open file %s: %s", path,
-		       strerror(errno));
+		       cras_strerror(errno));
 		return 0;
 	}
 

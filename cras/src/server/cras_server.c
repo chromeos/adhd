@@ -42,6 +42,7 @@
 #include "cras_rclient.h"
 #include "cras_server.h"
 #include "cras_server_metrics.h"
+#include "cras_string.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_types.h"
@@ -162,7 +163,7 @@ read_error:
 		break;
 	default:
 		syslog(LOG_DEBUG, "read err [%d] '%s', removing client %zu",
-		       -nread, strerror(-nread), client->id);
+		       -nread, cras_strerror(-nread), client->id);
 		break;
 	}
 	remove_client(client);

@@ -13,6 +13,7 @@
 #include "cras_alsa_ucm.h"
 #include "cras_system_state.h"
 #include "cras_gpio_jack.h"
+#include "cras_string.h"
 #include "cras_tm.h"
 #include "cras_util.h"
 #include "edid_utils.h"
@@ -766,7 +767,7 @@ static int find_gpio_jacks(struct cras_alsa_jack_list *jack_list,
 	rc = wait_for_dev_input_access();
 	if (rc != 0) {
 		syslog(LOG_WARNING, "Could not access /dev/input/event0: %s",
-		       strerror(rc));
+		       cras_strerror(rc));
 		return 0;
 	}
 
