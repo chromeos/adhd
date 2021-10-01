@@ -18,6 +18,7 @@
 #include "cras_bt_transport.h"
 #include "cras_bt_constants.h"
 #include "cras_system_state.h"
+#include "cras_util.h"
 #include "utlist.h"
 
 /*
@@ -43,6 +44,7 @@ struct cras_bt_transport {
 	uint16_t write_mtu;
 	int volume;
 	int removed;
+	struct timespec last_host_set_volume_ts;
 
 	struct cras_bt_endpoint *endpoint;
 	struct cras_bt_transport *prev, *next;
@@ -232,8 +234,23 @@ static void cras_bt_transport_state_changed(struct cras_bt_transport *transport)
 /* Updates bt_device when certain transport property has changed. */
 static void cras_bt_transport_update_device(struct cras_bt_transport *transport)
 {
+	/* Sets the delay after which we accept the absolute volume changed
+	 * event from headset and propagate to UI. Without this some headset
+	 * may always adjust the volume immediately after user changes it and
+	 * that annoys user by making volume slider to jump. */
+	static struct timespec delay = { 0, 500000000 }; /* 500ms */
+	struct timespec now, ts;
+
 	if (!transport->device)
 		return;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &delay, &ts);
+	if (!timespec_after(&ts, &transport->last_host_set_volume_ts)) {
+		syslog(LOG_DEBUG, "Skip volume update %d from headset",
+		       transport->volume);
+		return;
+	}
 
 	/* When the transport has non-negaive volume, it means the remote
 	 * BT audio devices supports AVRCP absolute volume. Set the flag in bt
@@ -375,13 +392,19 @@ void cras_bt_transport_update_properties(struct cras_bt_transport *transport,
 static void on_transport_volume_set(DBusPendingCall *pending_call, void *data)
 {
 	DBusMessage *reply;
+	struct cras_bt_transport *transport = (struct cras_bt_transport *)data;
 
 	reply = dbus_pending_call_steal_reply(pending_call);
 	dbus_pending_call_unref(pending_call);
 
-	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR)
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
 		syslog(LOG_ERR, "Set absolute volume returned error: %s",
 		       dbus_message_get_error_name(reply));
+	} else {
+		clock_gettime(CLOCK_MONOTONIC_RAW,
+			      &transport->last_host_set_volume_ts);
+	}
+
 	dbus_message_unref(reply);
 }
 
@@ -425,7 +448,7 @@ int cras_bt_transport_set_volume(struct cras_bt_transport *transport,
 		return -EIO;
 
 	if (!dbus_pending_call_set_notify(pending_call, on_transport_volume_set,
-					  NULL, NULL)) {
+					  (void *)transport, NULL)) {
 		dbus_pending_call_cancel(pending_call);
 		dbus_pending_call_unref(pending_call);
 		return -ENOMEM;
