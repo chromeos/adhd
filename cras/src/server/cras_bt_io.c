@@ -8,6 +8,7 @@
 
 #include "cras_bt_io.h"
 #include "cras_bt_device.h"
+#include "cras_bt_policy.h"
 #include "cras_hfp_iodev.h"
 #include "cras_utf8.h"
 #include "cras_iodev.h"
@@ -110,7 +111,7 @@ static void bt_possibly_switch_to_a2dp(struct bt_io *btio)
 		return;
 	cras_bt_device_set_active_profile(btio->device,
 					  CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-	cras_bt_device_switch_profile(btio->device, &btio->base);
+	cras_bt_policy_switch_profile(btio->device, &btio->base);
 }
 
 /* Checks if bt device is active for the given profile.
@@ -141,7 +142,7 @@ static int open_dev(struct cras_iodev *iodev)
 	    iodev->direction == CRAS_STREAM_INPUT) {
 		bt_switch_to_profile(btio->device,
 				     CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
-		cras_bt_device_switch_profile(btio->device, iodev);
+		cras_bt_policy_switch_profile(btio->device, iodev);
 		return -EAGAIN;
 	}
 
@@ -651,7 +652,7 @@ int cras_bt_io_append(struct cras_iodev *bt_iodev, struct cras_iodev *dev,
 	    cras_bt_device_can_switch_to_a2dp(btio->device)) {
 		bt_switch_to_profile(btio->device,
 				     CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-		cras_bt_device_switch_profile(btio->device, bt_iodev);
+		cras_bt_policy_switch_profile(btio->device, bt_iodev);
 		syslog(LOG_ERR, "Switch to A2DP on append");
 	}
 	return 0;

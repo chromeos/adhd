@@ -190,36 +190,6 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   cras_bt_device_remove(device);
 }
 
-TEST_F(BtDeviceTestSuite, SwitchProfile) {
-  struct cras_bt_device* device;
-
-  ResetStubData();
-  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
-  cras_bt_io_create_profile_ret = &bt_iodev1;
-  cras_bt_device_append_iodev(device, &d1_, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-  cras_bt_io_create_profile_ret = &bt_iodev2;
-  cras_bt_device_append_iodev(device, &d3_,
-                              CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
-
-  cras_bt_device_start_monitor();
-  cras_bt_device_switch_profile(device, &bt_iodev1);
-
-  /* Two bt iodevs were all active. */
-  cras_main_message_add_handler_callback(
-      cras_main_message_send_msg, cras_main_message_add_handler_callback_data);
-
-  /* One bt iodev was active, the other was not. */
-  cras_bt_device_switch_profile(device, &bt_iodev2);
-  cras_main_message_add_handler_callback(
-      cras_main_message_send_msg, cras_main_message_add_handler_callback_data);
-
-  /* Output bt iodev wasn't active, close the active input iodev. */
-  cras_bt_device_switch_profile(device, &bt_iodev2);
-  cras_main_message_add_handler_callback(
-      cras_main_message_send_msg, cras_main_message_add_handler_callback_data);
-  cras_bt_device_remove(device);
-}
-
 TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
   struct cras_bt_device* device;
   struct MockDBusMessage *msg_root, *cur;
@@ -697,8 +667,10 @@ void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
   cras_tm_cancel_timer_arg = t;
 }
 
-void cras_bt_policy_switch_profile(struct cras_bt_device* device,
-                                   struct cras_iodev* bt_iodev) {}
+int cras_bt_policy_switch_profile(struct cras_bt_device* device,
+                                  struct cras_iodev* bt_iodev) {
+  return 0;
+}
 
 void cras_bt_policy_remove_device(struct cras_bt_device* device) {}
 

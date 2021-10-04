@@ -25,7 +25,7 @@ static unsigned int cras_iodev_list_rm_input_called;
 static unsigned int cras_bt_device_set_active_profile_called;
 static unsigned int cras_bt_device_set_active_profile_val;
 static int cras_bt_device_get_active_profile_ret;
-static int cras_bt_device_switch_profile_called;
+static int cras_bt_policy_switch_profile_called;
 static int cras_bt_device_can_switch_to_a2dp_ret;
 static int cras_bt_device_has_a2dp_ret;
 static int is_utf8_string_ret_value;
@@ -43,7 +43,7 @@ void ResetStubData() {
   cras_bt_device_set_active_profile_called = 0;
   cras_bt_device_set_active_profile_val = 0;
   cras_bt_device_get_active_profile_ret = 0;
-  cras_bt_device_switch_profile_called = 0;
+  cras_bt_policy_switch_profile_called = 0;
   cras_bt_device_can_switch_to_a2dp_ret = 0;
   cras_bt_device_has_a2dp_ret = 0;
   is_utf8_string_ret_value = 1;
@@ -208,7 +208,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnOpenDevForInputDev) {
 
   EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
             cras_bt_device_set_active_profile_val);
-  EXPECT_EQ(1, cras_bt_device_switch_profile_called);
+  EXPECT_EQ(1, cras_bt_policy_switch_profile_called);
   cras_bt_io_destroy(bt_iodev);
 }
 
@@ -223,7 +223,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnOpenDevForInputDevAlreadyOnHfp) {
       CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
   bt_iodev->open_dev(bt_iodev);
 
-  EXPECT_EQ(0, cras_bt_device_switch_profile_called);
+  EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
   cras_bt_io_destroy(bt_iodev);
 }
 
@@ -241,7 +241,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
 
   EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE,
             cras_bt_device_set_active_profile_val);
-  EXPECT_EQ(1, cras_bt_device_switch_profile_called);
+  EXPECT_EQ(1, cras_bt_policy_switch_profile_called);
   cras_bt_io_destroy(bt_iodev);
 }
 
@@ -257,7 +257,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevNoSupportA2dp) {
   cras_bt_device_has_a2dp_ret = 0;
   bt_iodev->close_dev(bt_iodev);
 
-  EXPECT_EQ(0, cras_bt_device_switch_profile_called);
+  EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
   cras_bt_io_destroy(bt_iodev);
 }
 
@@ -273,7 +273,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevInCloseState) {
   cras_bt_device_has_a2dp_ret = 1;
   bt_iodev->close_dev(bt_iodev);
 
-  EXPECT_EQ(0, cras_bt_device_switch_profile_called);
+  EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
   cras_bt_io_destroy(bt_iodev);
 }
 
@@ -287,7 +287,7 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnAppendA2dpDev) {
 
   EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE,
             cras_bt_device_set_active_profile_val);
-  EXPECT_EQ(1, cras_bt_device_switch_profile_called);
+  EXPECT_EQ(1, cras_bt_policy_switch_profile_called);
   cras_bt_io_destroy(bt_iodev);
 }
 
@@ -300,7 +300,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnAppendHfpDev) {
   cras_bt_io_append(bt_iodev, &iodev2_,
                     CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
-  EXPECT_EQ(0, cras_bt_device_switch_profile_called);
+  EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
   cras_bt_io_destroy(bt_iodev);
 }
 
@@ -434,9 +434,9 @@ int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device* device) {
   return cras_bt_device_can_switch_to_a2dp_ret;
 }
 
-int cras_bt_device_switch_profile(struct cras_bt_device* device,
+int cras_bt_policy_switch_profile(struct cras_bt_device* device,
                                   struct cras_iodev* bt_iodev) {
-  cras_bt_device_switch_profile_called++;
+  cras_bt_policy_switch_profile_called++;
   return 0;
 }
 

@@ -8,6 +8,8 @@
 
 #include <dbus/dbus.h>
 
+#include "cras_types.h"
+
 struct cras_bt_adapter;
 struct cras_bt_device;
 struct cras_iodev;
@@ -21,6 +23,57 @@ enum cras_bt_device_suspend_reason {
 	HFP_SCO_SOCKET_ERROR,
 	HFP_AG_START_FAILURE,
 	UNEXPECTED_PROFILE_DROP,
+};
+
+/* Object to represent a general bluetooth device, and used to
+ * associate with some CRAS modules if it supports audio.
+ * Members:
+ *    conn - The dbus connection object used to send message to bluetoothd.
+ *    object_path - Object path of the bluetooth device.
+ *    adapter - The object path of the adapter associates with this device.
+ *    address - The BT address of this device.
+ *    name - The readable name of this device.
+ *    bluetooth_class - The bluetooth class of this device.
+ *    paired - If this device is paired.
+ *    trusted - If this device is trusted.
+ *    connected - If this devices is connected.
+ *    connected_profiles - OR'ed all connected audio profiles.
+ *    profiles - OR'ed by all audio profiles this device supports.
+ *    hidden_profiles - OR'ed by all audio profiles this device actually
+ *        supports but is not scanned by BlueZ.
+ *    bt_iodevs - The pointer to the cras_iodevs of this device.
+ *    active_profile - The flag to indicate the active audio profile this
+ *        device is currently using.
+ *    conn_watch_retries - The retry count for conn_watch_timer.
+ *    conn_watch_timer - The timer used to watch connected profiles and start
+ *        BT audio input/ouput when all profiles are ready.
+ *    suspend_timer - The timer used to suspend device.
+ *    suspend_reason - The reason code for why suspend is scheduled.
+ *    stable_id - The unique and persistent id of this bt_device.
+ */
+struct cras_bt_device {
+	DBusConnection *conn;
+	char *object_path;
+	char *adapter_obj_path;
+	char *address;
+	char *name;
+	uint32_t bluetooth_class;
+	int paired;
+	int trusted;
+	int connected;
+	unsigned int connected_profiles;
+	unsigned int profiles;
+	unsigned int hidden_profiles;
+	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
+	unsigned int active_profile;
+	int use_hardware_volume;
+	int conn_watch_retries;
+	struct cras_timer *conn_watch_timer;
+	struct cras_timer *suspend_timer;
+	enum cras_bt_device_suspend_reason suspend_reason;
+	unsigned int stable_id;
+
+	struct cras_bt_device *prev, *next;
 };
 
 enum cras_bt_device_profile {
@@ -141,16 +194,6 @@ cras_bt_device_get_active_profile(const struct cras_bt_device *device);
 /* Sets the active profile of the bt device. */
 void cras_bt_device_set_active_profile(struct cras_bt_device *device,
 				       unsigned int profile);
-
-/* Switches profile after the active profile of bt device has changed. This
- * function is used when we want to switch profile without changing the
- * iodev's status.
- * Args:
- *    device - The bluetooth device.
- *    bt_iodev - The iodev triggers the reactivaion.
- */
-int cras_bt_device_switch_profile(struct cras_bt_device *device,
-				  struct cras_iodev *bt_iodev);
 
 void cras_bt_device_start_monitor();
 

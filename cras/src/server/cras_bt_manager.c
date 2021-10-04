@@ -18,6 +18,7 @@
 #include "cras_bt_endpoint.h"
 #include "cras_bt_log.h"
 #include "cras_bt_player.h"
+#include "cras_bt_policy.h"
 #include "cras_bt_profile.h"
 #include "cras_bt_transport.h"
 #include "cras_bt_battery_provider.h"
@@ -516,6 +517,7 @@ static void cras_bt_start_bluez(struct bt_stack *s)
 	DBusError dbus_error;
 
 	cras_bt_device_start_monitor();
+	cras_bt_policy_start();
 
 	dbus_error_init(&dbus_error);
 
@@ -608,6 +610,7 @@ static void cras_bt_stop_bluez(struct bt_stack *s)
 {
 	DBusConnection *conn = s->conn;
 	cras_bt_device_stop_monitor();
+	cras_bt_policy_stop();
 
 	dbus_bus_remove_match(conn,
 			      "type='signal',"

@@ -25,6 +25,7 @@
 #include "cras_bt_constants.h"
 #include "cras_bt_log.h"
 #include "cras_bt_io.h"
+#include "cras_bt_policy.h"
 #include "cras_bt_profile.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_slc.h"
@@ -47,7 +48,6 @@
 #define USB_CVSD_PKT_SIZE 48
 #define DEFAULT_SCO_PKT_SIZE USB_CVSD_PKT_SIZE
 
-static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
 static const unsigned int PROFILE_DROP_SUSPEND_DELAY_MS = 5000;
 
 /* Check profile connections every 2 seconds and rerty 30 times maximum.
@@ -65,64 +65,9 @@ static const unsigned int SCO_SUSPEND_DELAY_MS = 5000;
 static const unsigned int CRAS_SUPPORTED_PROFILES =
 	CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
 
-/* Object to represent a general bluetooth device, and used to
- * associate with some CRAS modules if it supports audio.
- * Members:
- *    conn - The dbus connection object used to send message to bluetoothd.
- *    object_path - Object path of the bluetooth device.
- *    adapter - The object path of the adapter associates with this device.
- *    address - The BT address of this device.
- *    name - The readable name of this device.
- *    bluetooth_class - The bluetooth class of this device.
- *    paired - If this device is paired.
- *    trusted - If this device is trusted.
- *    connected - If this devices is connected.
- *    connected_profiles - OR'ed all connected audio profiles.
- *    profiles - OR'ed by all audio profiles this device supports.
- *    hidden_profiles - OR'ed by all audio profiles this device actually
- *        supports but is not scanned by BlueZ.
- *    bt_iodevs - The pointer to the cras_iodevs of this device.
- *    active_profile - The flag to indicate the active audio profile this
- *        device is currently using.
- *    conn_watch_retries - The retry count for conn_watch_timer.
- *    conn_watch_timer - The timer used to watch connected profiles and start
- *        BT audio input/ouput when all profiles are ready.
- *    suspend_timer - The timer used to suspend device.
- *    switch_profile_timer - The timer used to delay enabling iodev after
- *        profile switch.
- *    suspend_reason - The reason code for why suspend is scheduled.
- *    stable_id - The unique and persistent id of this bt_device.
- */
-struct cras_bt_device {
-	DBusConnection *conn;
-	char *object_path;
-	char *adapter_obj_path;
-	char *address;
-	char *name;
-	uint32_t bluetooth_class;
-	int paired;
-	int trusted;
-	int connected;
-	unsigned int connected_profiles;
-	unsigned int profiles;
-	unsigned int hidden_profiles;
-	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
-	unsigned int active_profile;
-	int use_hardware_volume;
-	int conn_watch_retries;
-	struct cras_timer *conn_watch_timer;
-	struct cras_timer *suspend_timer;
-	struct cras_timer *switch_profile_timer;
-	enum cras_bt_device_suspend_reason suspend_reason;
-	unsigned int stable_id;
-
-	struct cras_bt_device *prev, *next;
-};
-
 enum BT_DEVICE_COMMAND {
 	BT_DEVICE_CANCEL_SUSPEND,
 	BT_DEVICE_SCHEDULE_SUSPEND,
-	BT_DEVICE_SWITCH_PROFILE,
 };
 
 struct bt_device_msg {
@@ -285,10 +230,10 @@ static void cras_bt_device_destroy(struct cras_bt_device *device)
 	struct cras_tm *tm = cras_system_state_get_tm();
 	DL_DELETE(devices, device);
 
+	cras_bt_policy_remove_device(device);
+
 	if (device->conn_watch_timer)
 		cras_tm_cancel_timer(tm, device->conn_watch_timer);
-	if (device->switch_profile_timer)
-		cras_tm_cancel_timer(tm, device->switch_profile_timer);
 	if (device->suspend_timer)
 		cras_tm_cancel_timer(tm, device->suspend_timer);
 	free(device->adapter_obj_path);
@@ -405,9 +350,6 @@ static void bt_device_set_nodes_plugged(struct cras_bt_device *device,
 		cras_iodev_set_node_plugged(iodev->active_node, plugged);
 }
 
-static void bt_device_switch_profile(struct cras_bt_device *device,
-				     struct cras_iodev *bt_iodev);
-
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev)
 {
@@ -431,7 +373,7 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 		 */
 		if (!cras_bt_io_on_profile(bt_iodev, try_profile)) {
 			device->active_profile = try_profile;
-			bt_device_switch_profile(device, bt_iodev);
+			cras_bt_policy_switch_profile(device, bt_iodev);
 		}
 		rc = cras_bt_io_remove(bt_iodev, iodev);
 		if (rc) {
@@ -1167,118 +1109,6 @@ int cras_bt_device_schedule_suspend(
 	return rc;
 }
 
-/* This diagram describes how the profile switching happens. When
- * certain conditions met, bt iodev will call the APIs below to interact
- * with main thread to switch to another active profile.
- *
- * Audio thread:
- *  +--------------------------------------------------------------+
- *  | bt iodev                                                     |
- *  |              +------------------+    +-----------------+     |
- *  |              | condition met to |    | open, close, or |     |
- *  |           +--| change profile   |<---| append profile  |<--+ |
- *  |           |  +------------------+    +-----------------+   | |
- *  +-----------|------------------------------------------------|-+
- *              |                                                |
- * Main thread: |
- *  +-----------|------------------------------------------------|-+
- *  |           |                                                | |
- *  |           |      +------------+     +----------------+     | |
- *  |           +----->| set active |---->| switch profile |-----+ |
- *  |                  | profile    |     +----------------+       |
- *  | bt device        +------------+                              |
- *  +--------------------------------------------------------------+
- */
-int cras_bt_device_switch_profile(struct cras_bt_device *device,
-				  struct cras_iodev *bt_iodev)
-{
-	struct bt_device_msg msg = CRAS_MAIN_MESSAGE_INIT;
-	int rc;
-
-	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE, device, bt_iodev, 0,
-			   0);
-	rc = cras_main_message_send((struct cras_main_message *)&msg);
-	return rc;
-}
-
-static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
-{
-	struct cras_bt_device *device = (struct cras_bt_device *)arg;
-	struct cras_iodev *iodev;
-
-	device->switch_profile_timer = NULL;
-	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
-	if (!iodev)
-		return;
-
-	/*
-	 * During the |PROFILE_SWITCH_DELAY_MS| time interval, BT iodev could
-	 * have been enabled by others, and its active profile may have changed.
-	 * If iodev has been enabled, that means it has already picked up a
-	 * reasonable profile to use and audio thread is accessing iodev now.
-	 * We should NOT call into update_active_node from main thread
-	 * because that may mess up the active node content.
-	 */
-	iodev->update_active_node(iodev, 0, 1);
-	cras_iodev_list_resume_dev(iodev->info.idx);
-}
-
-static void bt_device_switch_profile_with_delay(struct cras_bt_device *device,
-						unsigned int delay_ms)
-{
-	struct cras_tm *tm = cras_system_state_get_tm();
-
-	if (device->switch_profile_timer) {
-		cras_tm_cancel_timer(tm, device->switch_profile_timer);
-		device->switch_profile_timer = NULL;
-	}
-	device->switch_profile_timer = cras_tm_create_timer(
-		tm, delay_ms, profile_switch_delay_cb, device);
-}
-
-/* Switches associated bt iodevs to use the active profile. This is
- * achieved by close the iodevs, update their active nodes, and then
- * finally reopen them. */
-static void bt_device_switch_profile(struct cras_bt_device *device,
-				     struct cras_iodev *bt_iodev)
-{
-	struct cras_iodev *iodev;
-	int dir;
-
-	/* If a bt iodev is active, temporarily force close it.
-	 * Note that we need to check all bt_iodevs for the situation that both
-	 * input and output are active while switches from HFP to A2DP.
-	 */
-	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
-		iodev = device->bt_iodevs[dir];
-		if (!iodev)
-			continue;
-		cras_iodev_list_suspend_dev(iodev->info.idx);
-	}
-
-	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
-		iodev = device->bt_iodevs[dir];
-		if (!iodev)
-			continue;
-
-		/* If the iodev was active or this profile switching is
-		 * triggered at opening iodev, add it to active dev list.
-		 * However for the output iodev, adding it back to active dev
-		 * list could cause immediate switching from HFP to A2DP if
-		 * there exists an output stream. Certain headset/speaker
-		 * would fail to playback afterwards when the switching happens
-		 * too soon, so put this task in a delayed callback.
-		 */
-		if (dir == CRAS_STREAM_INPUT) {
-			iodev->update_active_node(iodev, 0, 1);
-			cras_iodev_list_resume_dev(iodev->info.idx);
-		} else {
-			bt_device_switch_profile_with_delay(
-				device, PROFILE_SWITCH_DELAY_MS);
-		}
-	}
-}
-
 static void bt_device_suspend_cb(struct cras_timer *timer, void *arg)
 {
 	struct cras_bt_device *device = (struct cras_bt_device *)arg;
@@ -1351,9 +1181,6 @@ static void bt_device_process_msg(struct cras_main_message *msg, void *arg)
 		return;
 
 	switch (bt_msg->cmd) {
-	case BT_DEVICE_SWITCH_PROFILE:
-		bt_device_switch_profile(bt_msg->device, bt_msg->dev);
-		break;
 	case BT_DEVICE_SCHEDULE_SUSPEND:
 		bt_device_schedule_suspend(bt_msg->device, bt_msg->arg1,
 					   bt_msg->arg2);
