@@ -142,16 +142,6 @@ cras_bt_device_get_active_profile(const struct cras_bt_device *device);
 void cras_bt_device_set_active_profile(struct cras_bt_device *device,
 				       unsigned int profile);
 
-/* Switches profile after the active profile of bt device has changed and
- * enables bt iodev immediately. This function is used for profile switching
- * at iodev open.
- * Args:
- *    device - The bluetooth device.
- *    bt_iodev - The iodev triggers the reactivaion.
- */
-int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
-					     struct cras_iodev *bt_iodev);
-
 /* Switches profile after the active profile of bt device has changed. This
  * function is used when we want to switch profile without changing the
  * iodev's status.

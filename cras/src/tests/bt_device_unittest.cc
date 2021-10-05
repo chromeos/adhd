@@ -202,14 +202,14 @@ TEST_F(BtDeviceTestSuite, SwitchProfile) {
                               CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
 
   cras_bt_device_start_monitor();
-  cras_bt_device_switch_profile_enable_dev(device, &bt_iodev1);
+  cras_bt_device_switch_profile(device, &bt_iodev1);
 
   /* Two bt iodevs were all active. */
   cras_main_message_add_handler_callback(
       cras_main_message_send_msg, cras_main_message_add_handler_callback_data);
 
   /* One bt iodev was active, the other was not. */
-  cras_bt_device_switch_profile_enable_dev(device, &bt_iodev2);
+  cras_bt_device_switch_profile(device, &bt_iodev2);
   cras_main_message_add_handler_callback(
       cras_main_message_send_msg, cras_main_message_add_handler_callback_data);
 
@@ -312,8 +312,8 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
   EXPECT_NE((void*)NULL, device);
 
   cras_bt_device_set_supported_profiles(
-      device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
-                  CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+      device,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
@@ -362,8 +362,8 @@ TEST_F(BtDeviceTestSuite, DevConnectedConflictCheck) {
   EXPECT_NE((void*)NULL, device);
 
   cras_bt_device_set_supported_profiles(
-      device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
-                  CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+      device,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
@@ -400,8 +400,8 @@ TEST_F(BtDeviceTestSuite, A2dpDropped) {
   EXPECT_NE((void*)NULL, device);
 
   cras_bt_device_set_supported_profiles(
-      device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
-                  CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+      device,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
@@ -435,8 +435,8 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   EXPECT_NE((void*)NULL, device);
 
   cras_bt_device_set_supported_profiles(
-      device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
-                  CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+      device,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
@@ -502,8 +502,8 @@ TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
   EXPECT_NE((void*)NULL, device);
 
   cras_bt_device_set_supported_profiles(
-      device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK |
-                  CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+      device,
+      CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
@@ -696,6 +696,11 @@ void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
   cras_tm_cancel_timer_called++;
   cras_tm_cancel_timer_arg = t;
 }
+
+void cras_bt_policy_switch_profile(struct cras_bt_device* device,
+                                   struct cras_iodev* bt_iodev) {}
+
+void cras_bt_policy_remove_device(struct cras_bt_device* device) {}
 
 DBusMessage* dbus_message_new_method_call(const char* destination,
                                           const char* path,

@@ -123,7 +123,6 @@ enum BT_DEVICE_COMMAND {
 	BT_DEVICE_CANCEL_SUSPEND,
 	BT_DEVICE_SCHEDULE_SUSPEND,
 	BT_DEVICE_SWITCH_PROFILE,
-	BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV,
 };
 
 struct bt_device_msg {
@@ -365,21 +364,6 @@ const char *cras_bt_device_name(const struct cras_bt_device *device)
 	return device->name;
 }
 
-int cras_bt_device_paired(const struct cras_bt_device *device)
-{
-	return device->paired;
-}
-
-int cras_bt_device_trusted(const struct cras_bt_device *device)
-{
-	return device->trusted;
-}
-
-int cras_bt_device_connected(const struct cras_bt_device *device)
-{
-	return device->connected;
-}
-
 int cras_bt_device_supports_profile(const struct cras_bt_device *device,
 				    enum cras_bt_device_profile profile)
 {
@@ -422,8 +406,7 @@ static void bt_device_set_nodes_plugged(struct cras_bt_device *device,
 }
 
 static void bt_device_switch_profile(struct cras_bt_device *device,
-				     struct cras_iodev *bt_iodev,
-				     int enable_dev);
+				     struct cras_iodev *bt_iodev);
 
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev)
@@ -448,7 +431,7 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 		 */
 		if (!cras_bt_io_on_profile(bt_iodev, try_profile)) {
 			device->active_profile = try_profile;
-			bt_device_switch_profile(device, bt_iodev, 0);
+			bt_device_switch_profile(device, bt_iodev);
 		}
 		rc = cras_bt_io_remove(bt_iodev, iodev);
 		if (rc) {
@@ -1114,7 +1097,7 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
 				syslog(LOG_ERR, "Failed to get BT_SNDMTU");
 
 			return (wbs_pkt_len > 0) ? wbs_pkt_len :
-						   USB_MSBC_PKT_SIZE;
+							 USB_MSBC_PKT_SIZE;
 		} else {
 			return USB_CVSD_PKT_SIZE;
 		}
@@ -1206,18 +1189,6 @@ int cras_bt_device_schedule_suspend(
  *  | bt device        +------------+                              |
  *  +--------------------------------------------------------------+
  */
-int cras_bt_device_switch_profile_enable_dev(struct cras_bt_device *device,
-					     struct cras_iodev *bt_iodev)
-{
-	struct bt_device_msg msg = CRAS_MAIN_MESSAGE_INIT;
-	int rc;
-
-	init_bt_device_msg(&msg, BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV, device,
-			   bt_iodev, 0, 0);
-	rc = cras_main_message_send((struct cras_main_message *)&msg);
-	return rc;
-}
-
 int cras_bt_device_switch_profile(struct cras_bt_device *device,
 				  struct cras_iodev *bt_iodev)
 {
@@ -1269,8 +1240,7 @@ static void bt_device_switch_profile_with_delay(struct cras_bt_device *device,
  * achieved by close the iodevs, update their active nodes, and then
  * finally reopen them. */
 static void bt_device_switch_profile(struct cras_bt_device *device,
-				     struct cras_iodev *bt_iodev,
-				     int enable_dev)
+				     struct cras_iodev *bt_iodev)
 {
 	struct cras_iodev *iodev;
 	int dir;
@@ -1382,10 +1352,7 @@ static void bt_device_process_msg(struct cras_main_message *msg, void *arg)
 
 	switch (bt_msg->cmd) {
 	case BT_DEVICE_SWITCH_PROFILE:
-		bt_device_switch_profile(bt_msg->device, bt_msg->dev, 0);
-		break;
-	case BT_DEVICE_SWITCH_PROFILE_ENABLE_DEV:
-		bt_device_switch_profile(bt_msg->device, bt_msg->dev, 1);
+		bt_device_switch_profile(bt_msg->device, bt_msg->dev);
 		break;
 	case BT_DEVICE_SCHEDULE_SUSPEND:
 		bt_device_schedule_suspend(bt_msg->device, bt_msg->arg1,

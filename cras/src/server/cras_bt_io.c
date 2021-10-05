@@ -141,7 +141,7 @@ static int open_dev(struct cras_iodev *iodev)
 	    iodev->direction == CRAS_STREAM_INPUT) {
 		bt_switch_to_profile(btio->device,
 				     CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
-		cras_bt_device_switch_profile_enable_dev(btio->device, iodev);
+		cras_bt_device_switch_profile(btio->device, iodev);
 		return -EAGAIN;
 	}
 
