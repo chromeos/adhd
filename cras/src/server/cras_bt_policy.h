@@ -6,6 +6,16 @@
 #ifndef CRAS_BT_POLICY_H_
 #define CRAS_BT_POLICY_H_
 
+/* All the reasons for when CRAS schedule a suspend to BT device. */
+enum cras_bt_policy_suspend_reason {
+	A2DP_LONG_TX_FAILURE,
+	A2DP_TX_FATAL_ERROR,
+	CONN_WATCH_TIME_OUT,
+	HFP_SCO_SOCKET_ERROR,
+	HFP_AG_START_FAILURE,
+	UNEXPECTED_PROFILE_DROP,
+};
+
 /* Starts monitoring messages sent for BT audio policy functions below. */
 void cras_bt_policy_start();
 
@@ -43,5 +53,15 @@ int cras_bt_policy_switch_profile(struct cras_bt_device *device,
 
 /* Cleans up associated policy instances when device is removed. */
 void cras_bt_policy_remove_device(struct cras_bt_device *device);
+
+/* Sends message to main thread for scheduling suspend the connection
+ * of |device| after |msec| delay. */
+int cras_bt_policy_schedule_suspend(
+	struct cras_bt_device *device, unsigned int msec,
+	enum cras_bt_policy_suspend_reason suspend_reason);
+
+/* Sends message to main thread for cancling any scheduled suspension
+ * of given |device|. */
+int cras_bt_policy_cancel_suspend(struct cras_bt_device *device);
 
 #endif /* CRAS_BT_POLICY_H_ */

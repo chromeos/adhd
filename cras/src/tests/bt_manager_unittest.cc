@@ -19,8 +19,6 @@ static int cras_bt_player_destroy_called;
 static int cras_bt_unregister_battery_provider_called;
 static int dbus_connection_add_filter_called;
 static int dbus_connection_remove_filter_called;
-static int cras_bt_device_start_monitor_called;
-static int cras_bt_device_stop_monitor_called;
 static int cras_bt_policy_start_called;
 static int cras_bt_policy_stop_called;
 static int fake_start_called;
@@ -43,8 +41,6 @@ void ResetStubData() {
   cras_bt_player_create_called = 0;
   cras_bt_player_destroy_called = 0;
   cras_bt_unregister_battery_provider_called = 0;
-  cras_bt_device_start_monitor_called = 0;
-  cras_bt_device_stop_monitor_called = 0;
   cras_bt_policy_start_called = 0;
   cras_bt_policy_stop_called = 0;
   dbus_connection_add_filter_called = 0;
@@ -70,14 +66,11 @@ TEST(BtManager, StartStop) {
   ASSERT_EQ(0, cras_bt_player_destroy_called);
   ASSERT_EQ(0, dbus_connection_remove_filter_called);
   ASSERT_LT(0, dbus_connection_add_filter_called);
-  ASSERT_EQ(1, cras_bt_device_start_monitor_called);
   ASSERT_EQ(1, cras_bt_policy_start_called);
-  ASSERT_EQ(0, cras_bt_device_stop_monitor_called);
   ASSERT_EQ(0, cras_bt_policy_stop_called);
 
   cras_bt_stop(NULL);
   ASSERT_LT(0, dbus_connection_remove_filter_called);
-  ASSERT_EQ(1, cras_bt_device_stop_monitor_called);
   ASSERT_EQ(1, cras_bt_policy_stop_called);
   ASSERT_EQ(1, cras_hfp_ag_profile_destroy_called);
   ASSERT_EQ(1, cras_telephony_stop_called);
@@ -93,7 +86,6 @@ TEST(BtManager, SwitchStackThenBackToDefault) {
   ResetStubData();
   cras_bt_start(NULL, 0x00);
   ASSERT_EQ(0, dbus_connection_remove_filter_called);
-  ASSERT_EQ(1, cras_bt_device_start_monitor_called);
   ASSERT_EQ(1, cras_bt_policy_start_called);
   ASSERT_EQ(1, cras_hfp_ag_profile_create_called);
   ASSERT_EQ(1, cras_telephony_start_called);
@@ -104,7 +96,6 @@ TEST(BtManager, SwitchStackThenBackToDefault) {
   ASSERT_LT(0, dbus_connection_remove_filter_called);
   ASSERT_EQ(1, fake_start_called);
   ASSERT_EQ(0, fake_stop_called);
-  ASSERT_EQ(1, cras_bt_device_stop_monitor_called);
   ASSERT_EQ(1, cras_bt_policy_stop_called);
   ASSERT_EQ(1, cras_hfp_ag_profile_destroy_called);
   ASSERT_EQ(1, cras_telephony_stop_called);
@@ -114,7 +105,6 @@ TEST(BtManager, SwitchStackThenBackToDefault) {
 
   cras_bt_switch_default_stack();
   ASSERT_EQ(1, fake_stop_called);
-  ASSERT_EQ(2, cras_bt_device_start_monitor_called);
   ASSERT_EQ(2, cras_bt_policy_start_called);
   ASSERT_EQ(2, cras_hfp_ag_profile_create_called);
   ASSERT_EQ(2, cras_telephony_start_called);
@@ -179,12 +169,6 @@ struct cras_bt_device* cras_bt_device_create(DBusConnection* conn,
   return NULL;
 }
 void cras_bt_device_reset() {}
-void cras_bt_device_start_monitor() {
-  cras_bt_device_start_monitor_called++;
-}
-void cras_bt_device_stop_monitor() {
-  cras_bt_device_stop_monitor_called++;
-}
 struct cras_bt_device* cras_bt_device_get(const char* object_path) {
   return NULL;
 }

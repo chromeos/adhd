@@ -516,7 +516,6 @@ static void cras_bt_start_bluez(struct bt_stack *s)
 	DBusConnection *conn = s->conn;
 	DBusError dbus_error;
 
-	cras_bt_device_start_monitor();
 	cras_bt_policy_start();
 
 	dbus_error_init(&dbus_error);
@@ -609,7 +608,6 @@ add_filter_error:
 static void cras_bt_stop_bluez(struct bt_stack *s)
 {
 	DBusConnection *conn = s->conn;
-	cras_bt_device_stop_monitor();
 	cras_bt_policy_stop();
 
 	dbus_bus_remove_match(conn,

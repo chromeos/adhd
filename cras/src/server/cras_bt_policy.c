@@ -3,10 +3,17 @@
  * found in the LICENSE file.
  */
 
+#include <syslog.h>
+
+#include "cras_a2dp_endpoint.h"
 #include "cras_bt_device.h"
+#include "cras_bt_log.h"
+#include "cras_bt_policy.h"
+#include "cras_hfp_ag_profile.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "utlist.h"
@@ -15,6 +22,8 @@ static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
 
 enum BT_POLICY_COMMAND {
 	BT_POLICY_SWITCH_PROFILE,
+	BT_POLICY_SCHEDULE_SUSPEND,
+	BT_POLICY_CANCEL_SUSPEND,
 };
 
 struct bt_policy_msg {
@@ -33,6 +42,16 @@ struct profile_switch_policy {
 };
 
 struct profile_switch_policy *profile_switch_policies;
+
+/*    suspend_reason - The reason code for why suspend is scheduled. */
+struct suspend_policy {
+	struct cras_bt_device *device;
+	enum cras_bt_policy_suspend_reason suspend_reason;
+	struct cras_timer *timer;
+	struct suspend_policy *prev, *next;
+};
+
+struct suspend_policy *suspend_policies;
 
 static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 {
@@ -133,6 +152,73 @@ static void init_bt_policy_msg(struct bt_policy_msg *msg,
 	msg->arg2 = arg2;
 }
 
+static void suspend_cb(struct cras_timer *timer, void *arg)
+{
+	struct suspend_policy *policy = (struct suspend_policy *)arg;
+
+	BTLOG(btlog, BT_DEV_SUSPEND_CB, policy->device->profiles,
+	      policy->suspend_reason);
+
+	/* Error log the reason so we can track them in user reports. */
+	switch (policy->suspend_reason) {
+	case A2DP_LONG_TX_FAILURE:
+		syslog(LOG_ERR, "Suspend dev: A2DP long Tx failure");
+		break;
+	case A2DP_TX_FATAL_ERROR:
+		syslog(LOG_ERR, "Suspend dev: A2DP Tx fatal error");
+		break;
+	case CONN_WATCH_TIME_OUT:
+		syslog(LOG_ERR, "Suspend dev: Conn watch times out");
+		break;
+	case HFP_SCO_SOCKET_ERROR:
+		syslog(LOG_ERR, "Suspend dev: SCO socket error");
+		break;
+	case HFP_AG_START_FAILURE:
+		syslog(LOG_ERR, "Suspend dev: HFP AG start failure");
+		break;
+	case UNEXPECTED_PROFILE_DROP:
+		syslog(LOG_ERR, "Suspend dev: Unexpected profile drop");
+		break;
+	}
+
+	cras_a2dp_suspend_connected_device(policy->device);
+	cras_hfp_ag_suspend_connected_device(policy->device);
+	cras_bt_device_disconnect(policy->device->conn, policy->device);
+
+	DL_DELETE(suspend_policies, policy);
+	free(policy);
+}
+
+static void schedule_suspend(struct cras_bt_device *device, unsigned int msec,
+			     enum cras_bt_policy_suspend_reason suspend_reason)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+	struct suspend_policy *policy;
+
+	DL_SEARCH_SCALAR(suspend_policies, policy, device, device);
+	if (policy)
+		return;
+
+	policy = (struct suspend_policy *)calloc(1, sizeof(*policy));
+	policy->device = device;
+	policy->suspend_reason = suspend_reason;
+	policy->timer = cras_tm_create_timer(tm, msec, suspend_cb, policy);
+	DL_APPEND(suspend_policies, policy);
+}
+
+static void cancel_suspend(struct cras_bt_device *device)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+	struct suspend_policy *policy;
+
+	DL_SEARCH_SCALAR(suspend_policies, policy, device, device);
+	if (policy) {
+		cras_tm_cancel_timer(tm, policy->timer);
+		DL_DELETE(suspend_policies, policy);
+		free(policy);
+	}
+}
+
 static void process_bt_policy_msg(struct cras_main_message *msg, void *arg)
 {
 	struct bt_policy_msg *policy_msg = (struct bt_policy_msg *)msg;
@@ -140,6 +226,14 @@ static void process_bt_policy_msg(struct cras_main_message *msg, void *arg)
 	switch (policy_msg->cmd) {
 	case BT_POLICY_SWITCH_PROFILE:
 		switch_profile(policy_msg->device, policy_msg->dev);
+		break;
+	case BT_POLICY_SCHEDULE_SUSPEND:
+		schedule_suspend(
+			policy_msg->device, policy_msg->arg1,
+			(enum cras_bt_policy_suspend_reason)policy_msg->arg2);
+		break;
+	case BT_POLICY_CANCEL_SUSPEND:
+		cancel_suspend(policy_msg->device);
 		break;
 	default:
 		break;
@@ -158,6 +252,29 @@ int cras_bt_policy_switch_profile(struct cras_bt_device *device,
 	return rc;
 }
 
+int cras_bt_policy_schedule_suspend(
+	struct cras_bt_device *device, unsigned int msec,
+	enum cras_bt_policy_suspend_reason suspend_reason)
+{
+	struct bt_policy_msg msg = CRAS_MAIN_MESSAGE_INIT;
+	int rc;
+
+	init_bt_policy_msg(&msg, BT_POLICY_SCHEDULE_SUSPEND, device, NULL, msec,
+			   suspend_reason);
+	rc = cras_main_message_send((struct cras_main_message *)&msg);
+	return rc;
+}
+
+int cras_bt_policy_cancel_suspend(struct cras_bt_device *device)
+{
+	struct bt_policy_msg msg = CRAS_MAIN_MESSAGE_INIT;
+	int rc;
+
+	init_bt_policy_msg(&msg, BT_POLICY_CANCEL_SUSPEND, device, NULL, 0, 0);
+	rc = cras_main_message_send((struct cras_main_message *)&msg);
+	return rc;
+}
+
 void cras_bt_policy_remove_device(struct cras_bt_device *device)
 {
 	struct profile_switch_policy *policy;
@@ -169,6 +286,7 @@ void cras_bt_policy_remove_device(struct cras_bt_device *device)
 		cras_tm_cancel_timer(tm, policy->timer);
 		free(policy);
 	}
+	cancel_suspend(device);
 }
 
 void cras_bt_policy_start()

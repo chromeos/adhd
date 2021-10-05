@@ -822,14 +822,14 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device* device) {
   return 0;
 }
 
-int cras_bt_device_cancel_suspend(struct cras_bt_device* device) {
+int cras_bt_policy_cancel_suspend(struct cras_bt_device* device) {
   return 0;
 }
 
-int cras_bt_device_schedule_suspend(
+int cras_bt_policy_schedule_suspend(
     struct cras_bt_device* device,
     unsigned int msec,
-    enum cras_bt_device_suspend_reason suspend_reason) {
+    enum cras_bt_policy_suspend_reason suspend_reason) {
   return 0;
 }
 

@@ -18,12 +18,18 @@ static void (*cras_tm_create_timer_cb)(struct cras_timer* t, void* data);
 static void* cras_tm_create_timer_cb_data;
 static struct cras_timer* cras_tm_cancel_timer_arg;
 static struct cras_timer* cras_tm_create_timer_ret;
+static int cras_hfp_ag_suspend_connected_device_called;
+static int cras_a2dp_suspend_connected_device_called;
+static int cras_bt_device_disconnect_called;
 
 void ResetStubData() {
   cras_tm_create_timer_called = 0;
   cras_tm_cancel_timer_called = 0;
   cras_iodev_list_suspend_dev_called = 0;
   cras_iodev_list_resume_dev_called = 0;
+  cras_hfp_ag_suspend_connected_device_called = 0;
+  cras_a2dp_suspend_connected_device_called = 0;
+  cras_bt_device_disconnect_called = 0;
 }
 
 // Iodev callback
@@ -48,8 +54,10 @@ class BtPolicyTestSuite : public testing::Test {
       device.bt_iodevs[i] = NULL;
     device.bt_iodevs[CRAS_STREAM_OUTPUT] = &odev;
     device.bt_iodevs[CRAS_STREAM_INPUT] = &idev;
+
+    btlog = cras_bt_event_log_init();
   }
-  virtual void TearDown() {}
+  virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 
   struct cras_bt_device device;
   struct cras_iodev idev;
@@ -137,9 +145,42 @@ TEST_F(BtPolicyTestSuite, RemoveDevWhileSwitchProfile) {
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
 }
 
+TEST_F(BtPolicyTestSuite, ScheduleCancelSuspend) {
+  schedule_suspend(&device, 200, UNEXPECTED_PROFILE_DROP);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  /* Schedule suspend does nothing if there's a ongoing one. */
+  schedule_suspend(&device, 100, HFP_AG_START_FAILURE);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(1, cras_hfp_ag_suspend_connected_device_called);
+  EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
+  EXPECT_EQ(1, cras_bt_device_disconnect_called);
+
+  schedule_suspend(&device, 200, HFP_AG_START_FAILURE);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+
+  cancel_suspend(&device);
+  EXPECT_EQ(1, cras_tm_cancel_timer_called);
+}
+
+TEST_F(BtPolicyTestSuite, DevRemoveWithScheduleSuspend) {
+  cras_bt_policy_remove_device(&device);
+  EXPECT_EQ(0, cras_tm_cancel_timer_called);
+
+  schedule_suspend(&device, 200, UNEXPECTED_PROFILE_DROP);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  cras_bt_policy_remove_device(&device);
+  EXPECT_EQ(1, cras_tm_cancel_timer_called);
+}
+
 }  // namespace
 
 extern "C" {
+
+struct cras_bt_event_log* btlog;
 
 /* From cras_main_message */
 int cras_main_message_send(struct cras_main_message* msg) {
@@ -176,6 +217,20 @@ void cras_iodev_list_suspend_dev(unsigned int dev_idx) {
 void cras_iodev_list_resume_dev(unsigned int dev_idx) {
   cras_iodev_list_resume_dev_called++;
   cras_iodev_list_resume_dev_idx = dev_idx;
+}
+
+void cras_hfp_ag_suspend_connected_device(struct cras_bt_device* device) {
+  cras_hfp_ag_suspend_connected_device_called++;
+}
+
+void cras_a2dp_suspend_connected_device(struct cras_bt_device* device) {
+  cras_a2dp_suspend_connected_device_called++;
+}
+
+int cras_bt_device_disconnect(DBusConnection* conn,
+                              struct cras_bt_device* device) {
+  cras_bt_device_disconnect_called++;
+  return 0;
 }
 }  // extern "C"
 

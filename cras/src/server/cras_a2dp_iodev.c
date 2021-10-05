@@ -22,6 +22,7 @@
 #include "cras_audio_area.h"
 #include "cras_audio_thread_monitor.h"
 #include "cras_bt_device.h"
+#include "cras_bt_policy.h"
 #include "cras_iodev.h"
 #include "cras_server_metrics.h"
 #include "cras_util.h"
@@ -423,7 +424,7 @@ static int close_dev(struct cras_iodev *iodev)
 
 	device = cras_bt_transport_device(a2dpio->transport);
 	if (device)
-		cras_bt_device_cancel_suspend(device);
+		cras_bt_policy_cancel_suspend(device);
 
 	collect_write_fail_stats(a2dpio);
 
@@ -562,7 +563,7 @@ do_flush:
 	if (written == -EAGAIN) {
 		/* If EAGAIN error lasts longer than 5 seconds, suspend the
 		 * a2dp connection. */
-		cras_bt_device_schedule_suspend(device, 5000,
+		cras_bt_policy_schedule_suspend(device, 5000,
 						A2DP_LONG_TX_FAILURE);
 		a2dpio->exit_code = A2DP_EXIT_LONG_TX_FAILURE;
 
@@ -590,8 +591,8 @@ do_flush:
 
 		/* Suspend a2dp immediately when receives error other than
 		 * EAGAIN. */
-		cras_bt_device_cancel_suspend(device);
-		cras_bt_device_schedule_suspend(device, 0, A2DP_TX_FATAL_ERROR);
+		cras_bt_policy_cancel_suspend(device);
+		cras_bt_policy_schedule_suspend(device, 0, A2DP_TX_FATAL_ERROR);
 		/* Stop polling the socket in audio thread. Main thread will
 		 * close this iodev soon. */
 		audio_thread_config_events_callback(
@@ -613,7 +614,7 @@ do_flush:
 
 	/* Data succcessfully written to a2dp socket, cancel any scheduled
 	 * suspend timer. */
-	cras_bt_device_cancel_suspend(device);
+	cras_bt_policy_cancel_suspend(device);
 
 	/* If it looks okay to write more and we do have queued data, try
 	 * encode more. But avoid the case when PCM buffer level is too close

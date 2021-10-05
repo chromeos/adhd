@@ -9,6 +9,7 @@ extern "C" {
 #include "cras_bt_device.h"
 #include "cras_bt_io.h"
 #include "cras_bt_log.h"
+#include "cras_bt_policy.h"
 #include "cras_iodev.h"
 #include "cras_main_message.h"
 
@@ -48,6 +49,8 @@ static struct cras_timer* cras_tm_cancel_timer_arg;
 static struct cras_timer* cras_tm_create_timer_ret;
 static size_t cras_iodev_set_node_plugged_called;
 static int cras_iodev_set_node_plugged_value;
+static int cras_bt_policy_schedule_suspend_called;
+static int cras_bt_policy_cancel_suspend_called;
 
 struct MockDBusMessage {
   int type;
@@ -75,6 +78,8 @@ void ResetStubData() {
   dbus_message_new_method_call_called = 0;
   cras_a2dp_connected_device_ret = NULL;
   cras_iodev_set_node_plugged_called = 0;
+  cras_bt_policy_schedule_suspend_called = 0;
+  cras_bt_policy_cancel_suspend_called = 0;
 }
 
 static void FreeMockDBusMessage(MockDBusMessage* head) {
@@ -382,14 +387,7 @@ TEST_F(BtDeviceTestSuite, A2dpDropped) {
 
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-
-  /* Expect suspend timer is scheduled. */
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
-  EXPECT_EQ(1, cras_hfp_ag_suspend_connected_device_called);
-  EXPECT_EQ(1, dbus_message_new_method_call_called);
-  EXPECT_STREQ("Disconnect", dbus_message_new_method_call_method);
+  EXPECT_EQ(1, cras_bt_policy_schedule_suspend_called);
 
   cras_bt_device_remove(device);
   FreeMockDBusMessage(msg_root);
@@ -421,26 +419,25 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   cras_tm_create_timer_ret = reinterpret_cast<struct cras_timer*>(0x101);
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-  /* Another profile drop won't schedule another timer because one is
-   * already armed. */
+  EXPECT_EQ(1, cras_bt_policy_schedule_suspend_called);
+
+  /* Another profile drop should trigger call to policy schedule suspend. */
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(2, cras_bt_policy_schedule_suspend_called);
 
   cur = msg_root = NewMockDBusConnectedMessage(0);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
 
   /* When BlueZ reports headset disconnection, cancel the pending timer.  */
-  EXPECT_EQ(cras_tm_cancel_timer_called, 1);
-  EXPECT_EQ(cras_tm_cancel_timer_arg, (void*)0x101);
+  EXPECT_EQ(1, cras_bt_policy_cancel_suspend_called);
   FreeMockDBusMessage(msg_root);
 
   /* Headset connects again. */
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  EXPECT_EQ(3, cras_tm_create_timer_called);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
   EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
   FreeMockDBusMessage(msg_root);
 
@@ -451,13 +448,14 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
   FreeMockDBusMessage(msg_root);
 
+  cras_bt_policy_schedule_suspend_called = 0;
   cras_tm_create_timer_called = 0;
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
-  EXPECT_EQ(0, cras_tm_create_timer_called);
+  EXPECT_EQ(0, cras_bt_policy_schedule_suspend_called);
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
-  EXPECT_EQ(0, cras_tm_create_timer_called);
+  EXPECT_EQ(0, cras_bt_policy_schedule_suspend_called);
 
   cras_bt_device_remove(device);
 }
@@ -484,20 +482,14 @@ TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
 
   for (unsigned int i = 0; i < CONN_WATCH_MAX_RETRIES; i++) {
     cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-    EXPECT_EQ(i + 2, cras_tm_create_timer_called);
     EXPECT_EQ(0, cras_a2dp_start_called);
     EXPECT_EQ(0, cras_hfp_ag_start_called);
     EXPECT_EQ(0, cras_hfp_ag_remove_conflict_called);
+    if (i < CONN_WATCH_MAX_RETRIES - 1)
+      EXPECT_EQ(i + 2, cras_tm_create_timer_called);
+    else
+      EXPECT_EQ(1, cras_bt_policy_schedule_suspend_called);
   }
-
-  dbus_message_new_method_call_called = 0;
-
-  /* Expect suspend timer is scheduled. */
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
-  EXPECT_EQ(1, cras_hfp_ag_suspend_connected_device_called);
-  EXPECT_EQ(1, dbus_message_new_method_call_called);
-  EXPECT_STREQ("Disconnect", dbus_message_new_method_call_method);
 
   cras_bt_device_remove(device);
   FreeMockDBusMessage(msg_root);
@@ -669,6 +661,20 @@ void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
 
 int cras_bt_policy_switch_profile(struct cras_bt_device* device,
                                   struct cras_iodev* bt_iodev) {
+  return 0;
+}
+
+int cras_bt_policy_schedule_suspend(
+    struct cras_bt_device* device,
+    unsigned int msec,
+    enum cras_bt_policy_suspend_reason suspend_reason) {
+  cras_bt_policy_schedule_suspend_called++;
+  return 0;
+}
+
+/* Cancels any scheduled suspension of device. */
+int cras_bt_policy_cancel_suspend(struct cras_bt_device* device) {
+  cras_bt_policy_cancel_suspend_called++;
   return 0;
 }
 
