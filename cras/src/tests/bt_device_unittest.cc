@@ -11,12 +11,9 @@ extern "C" {
 #include "cras_bt_log.h"
 #include "cras_bt_policy.h"
 #include "cras_iodev.h"
-#include "cras_main_message.h"
 
 #define FAKE_OBJ_PATH "/obj/path"
 }
-
-static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
 
 static struct cras_iodev* cras_bt_io_create_profile_ret;
 static struct cras_iodev* cras_bt_io_append_btio_val;
@@ -29,28 +26,21 @@ static enum cras_bt_device_profile cras_bt_io_create_profile_val;
 static enum cras_bt_device_profile cras_bt_io_append_profile_val;
 static unsigned int cras_bt_io_try_remove_ret;
 
-static cras_main_message* cras_main_message_send_msg;
-static cras_message_callback cras_main_message_add_handler_callback;
-static void* cras_main_message_add_handler_callback_data;
-static int cras_tm_create_timer_called;
-static int cras_tm_cancel_timer_called;
 static int cras_a2dp_start_called;
 static int cras_a2dp_suspend_connected_device_called;
 static int cras_hfp_ag_remove_conflict_called;
 static int cras_hfp_ag_start_called;
 static int cras_hfp_ag_suspend_connected_device_called;
-static void (*cras_tm_create_timer_cb)(struct cras_timer* t, void* data);
-static void* cras_tm_create_timer_cb_data;
 static int dbus_message_new_method_call_called;
 static const char* dbus_message_new_method_call_method;
 static struct cras_bt_device* cras_a2dp_connected_device_ret;
 static struct cras_bt_device* cras_a2dp_suspend_connected_device_dev;
-static struct cras_timer* cras_tm_cancel_timer_arg;
-static struct cras_timer* cras_tm_create_timer_ret;
 static size_t cras_iodev_set_node_plugged_called;
 static int cras_iodev_set_node_plugged_value;
 static int cras_bt_policy_schedule_suspend_called;
 static int cras_bt_policy_cancel_suspend_called;
+static int cras_bt_policy_start_connection_watch_called;
+static int cras_bt_policy_stop_connection_watch_called;
 
 struct MockDBusMessage {
   int type;
@@ -66,9 +56,6 @@ void ResetStubData() {
   cras_bt_io_remove_called = 0;
   cras_bt_io_destroy_called = 0;
   cras_bt_io_try_remove_ret = 0;
-  cras_main_message_send_msg = NULL;
-  cras_tm_create_timer_called = 0;
-  cras_tm_cancel_timer_called = 0;
   cras_a2dp_start_called = 0;
   cras_a2dp_suspend_connected_device_called = 0;
   cras_hfp_ag_remove_conflict_called = 0;
@@ -80,6 +67,8 @@ void ResetStubData() {
   cras_iodev_set_node_plugged_called = 0;
   cras_bt_policy_schedule_suspend_called = 0;
   cras_bt_policy_cancel_suspend_called = 0;
+  cras_bt_policy_start_connection_watch_called = 0;
+  cras_bt_policy_stop_connection_watch_called = 0;
 }
 
 static void FreeMockDBusMessage(MockDBusMessage* head) {
@@ -90,6 +79,22 @@ static void FreeMockDBusMessage(MockDBusMessage* head) {
   if (head->type == DBUS_TYPE_STRING)
     free((char*)head->value);
   delete head;
+}
+
+static struct MockDBusMessage* NewMockDBusUuidMessage(const char* uuid) {
+  MockDBusMessage* msg = new MockDBusMessage{DBUS_TYPE_ARRAY, NULL};
+  MockDBusMessage* dict =
+      new MockDBusMessage{DBUS_TYPE_STRING, (void*)strdup("UUIDs")};
+  MockDBusMessage* variant = new MockDBusMessage{DBUS_TYPE_ARRAY, NULL};
+  MockDBusMessage* uuid_var =
+      new MockDBusMessage{DBUS_TYPE_STRING, (void*)strdup(uuid)};
+
+  msg->recurse = dict;
+  dict->next = new MockDBusMessage{DBUS_TYPE_INVALID, NULL};
+  dict->next->recurse = variant;
+
+  variant->recurse = uuid_var;
+  return msg;
 }
 
 static struct MockDBusMessage* NewMockDBusConnectedMessage(long connected) {
@@ -124,11 +129,7 @@ class BtDeviceTestSuite : public testing::Test {
     btlog = cras_bt_event_log_init();
   }
 
-  virtual void TearDown() {
-    if (cras_main_message_send_msg)
-      free(cras_main_message_send_msg);
-    cras_bt_event_log_deinit(btlog);
-  }
+  virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 
   static void update_active_node(struct cras_iodev* iodev,
                                  unsigned node_idx,
@@ -195,7 +196,7 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   cras_bt_device_remove(device);
 }
 
-TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
+TEST_F(BtDeviceTestSuite, AddUuidAfterConnected) {
   struct cras_bt_device* device;
   struct MockDBusMessage *msg_root, *cur;
   ResetStubData();
@@ -208,78 +209,21 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpOnly) {
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
-  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
-
-  /* Schedule another timer, if A2DP not yet configured. */
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-
-  /* ConnectProfile must not be called, since this is A2DP only case. */
-  EXPECT_EQ(0, dbus_message_new_method_call_called);
-
-  cras_bt_device_a2dp_configured(device);
-
-  /* Prepate the iodev created by cras_a2dp_start. */
-  cras_bt_io_create_profile_ret = &bt_iodev1;
-  cras_bt_device_append_iodev(device, &d1_, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-  EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
-  EXPECT_EQ(1, cras_a2dp_start_called);
-  EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
-  EXPECT_EQ(1, cras_iodev_set_node_plugged_value);
-
-  cras_bt_device_remove(device);
+  EXPECT_EQ(1, cras_bt_policy_start_connection_watch_called);
   FreeMockDBusMessage(msg_root);
-}
 
-TEST_F(BtDeviceTestSuite, SetDeviceConnectedHfpHspOnly) {
-  struct cras_bt_device* device;
-  struct MockDBusMessage *msg_root, *cur;
-
-  ResetStubData();
-
-  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
-  EXPECT_NE((void*)NULL, device);
-
-  cras_bt_device_set_supported_profiles(device,
-                                        CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
-
-  cur = msg_root = NewMockDBusConnectedMessage(1);
+  /* UUIDs updated with new profile CRAS cares. Expect connection
+   * watch policy restarts because ofr that. */
+  cur = msg_root = NewMockDBusUuidMessage(HFP_HF_UUID);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
-  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
-
-  /* Schedule another timer, if HFP AG not yet intialized. */
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-
-  /* ConnectProfile must not be called, since this is HFP only case. */
-  EXPECT_EQ(0, dbus_message_new_method_call_called);
-
-  cras_bt_device_audio_gateway_initialized(device);
-
-  /* Prepate the iodev created by ag initialization. */
-  cras_bt_io_create_profile_ret = &bt_iodev2;
-  cras_bt_device_append_iodev(device, &d3_,
-                              CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
-
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-  EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
-  EXPECT_EQ(1, cras_hfp_ag_start_called);
-  EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
-  EXPECT_EQ(1, cras_iodev_set_node_plugged_value);
+  EXPECT_EQ(2, cras_bt_policy_start_connection_watch_called);
 
   cras_bt_device_remove(device);
   FreeMockDBusMessage(msg_root);
 }
 
-TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
+TEST_F(BtDeviceTestSuite, DevRemoveConflict) {
   struct cras_bt_device* device;
-  struct MockDBusMessage *msg_root, *cur;
 
   ResetStubData();
 
@@ -289,68 +233,11 @@ TEST_F(BtDeviceTestSuite, SetDeviceConnectedA2dpHfpHsp) {
   cras_bt_device_set_supported_profiles(
       device,
       CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
-
-  cur = msg_root = NewMockDBusConnectedMessage(1);
-  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
-  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
-
-  /* Schedule another timer, if not HFP nor A2DP is ready. */
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-
-  /* ConnectProfile must not be called, since the first profile connection
-   * should be initiated by Bluez.
-   */
-  EXPECT_EQ(0, dbus_message_new_method_call_called);
-
-  cras_bt_device_audio_gateway_initialized(device);
-
-  /* Schedule another timer, because A2DP is not ready. */
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(3, cras_tm_create_timer_called);
-  EXPECT_EQ(0, cras_hfp_ag_start_called);
-
-  /* ConnectProfile should be called to connect A2DP, since HFP is connected */
-  EXPECT_EQ(1, dbus_message_new_method_call_called);
-  EXPECT_STREQ("ConnectProfile", dbus_message_new_method_call_method);
-
-  cras_bt_device_a2dp_configured(device);
-
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(3, cras_tm_create_timer_called);
-  EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
-  EXPECT_EQ(1, cras_a2dp_start_called);
-  EXPECT_EQ(1, cras_hfp_ag_start_called);
-
-  cras_bt_device_remove(device);
-  FreeMockDBusMessage(msg_root);
-}
-
-TEST_F(BtDeviceTestSuite, DevConnectedConflictCheck) {
-  struct cras_bt_device* device;
-  struct MockDBusMessage *msg_root, *cur;
-
-  ResetStubData();
-
-  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
-  EXPECT_NE((void*)NULL, device);
-
-  cras_bt_device_set_supported_profiles(
-      device,
-      CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
-
-  cur = msg_root = NewMockDBusConnectedMessage(1);
-  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  cras_bt_device_audio_gateway_initialized(device);
-  cras_bt_device_a2dp_configured(device);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
 
   /* Fake that a different device already connected with A2DP */
   cras_a2dp_connected_device_ret =
       reinterpret_cast<struct cras_bt_device*>(0x99);
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
+  cras_bt_device_remove_conflict(device);
 
   /* Expect check conflict in HFP AG and A2DP. */
   EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
@@ -358,11 +245,7 @@ TEST_F(BtDeviceTestSuite, DevConnectedConflictCheck) {
   EXPECT_EQ(cras_a2dp_suspend_connected_device_dev,
             cras_a2dp_connected_device_ret);
 
-  EXPECT_EQ(1, cras_a2dp_start_called);
-  EXPECT_EQ(1, cras_hfp_ag_start_called);
-
   cras_bt_device_remove(device);
-  FreeMockDBusMessage(msg_root);
 }
 
 TEST_F(BtDeviceTestSuite, A2dpDropped) {
@@ -380,10 +263,6 @@ TEST_F(BtDeviceTestSuite, A2dpDropped) {
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  cras_bt_device_audio_gateway_initialized(device);
-  cras_bt_device_a2dp_configured(device);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
-  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
 
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
@@ -408,21 +287,18 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
 
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
-  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
+  EXPECT_EQ(1, cras_bt_policy_start_connection_watch_called);
   FreeMockDBusMessage(msg_root);
 
   cras_bt_device_a2dp_configured(device);
   cras_bt_device_audio_gateway_initialized(device);
 
   /* Expect suspend timer is scheduled. */
-  cras_tm_create_timer_ret = reinterpret_cast<struct cras_timer*>(0x101);
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
   EXPECT_EQ(1, cras_bt_policy_schedule_suspend_called);
 
   /* Another profile drop should trigger call to policy schedule suspend. */
-  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
   EXPECT_EQ(2, cras_bt_policy_schedule_suspend_called);
@@ -437,8 +313,7 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   /* Headset connects again. */
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
-  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
+  EXPECT_EQ(2, cras_bt_policy_start_connection_watch_called);
   FreeMockDBusMessage(msg_root);
 
   /* Headset disconnects, later profile drop events shouldn't trigger
@@ -449,7 +324,6 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   FreeMockDBusMessage(msg_root);
 
   cras_bt_policy_schedule_suspend_called = 0;
-  cras_tm_create_timer_called = 0;
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
   EXPECT_EQ(0, cras_bt_policy_schedule_suspend_called);
@@ -458,41 +332,6 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   EXPECT_EQ(0, cras_bt_policy_schedule_suspend_called);
 
   cras_bt_device_remove(device);
-}
-
-TEST_F(BtDeviceTestSuite, ConnectionWatchTimeout) {
-  struct cras_bt_device* device;
-  struct MockDBusMessage *msg_root, *cur;
-
-  ResetStubData();
-
-  device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
-  EXPECT_NE((void*)NULL, device);
-
-  cras_bt_device_set_supported_profiles(
-      device,
-      CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
-
-  cur = msg_root = NewMockDBusConnectedMessage(1);
-  cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
-  EXPECT_NE((void*)NULL, cras_tm_create_timer_cb);
-
-  cras_bt_device_a2dp_configured(device);
-
-  for (unsigned int i = 0; i < CONN_WATCH_MAX_RETRIES; i++) {
-    cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
-    EXPECT_EQ(0, cras_a2dp_start_called);
-    EXPECT_EQ(0, cras_hfp_ag_start_called);
-    EXPECT_EQ(0, cras_hfp_ag_remove_conflict_called);
-    if (i < CONN_WATCH_MAX_RETRIES - 1)
-      EXPECT_EQ(i + 2, cras_tm_create_timer_called);
-    else
-      EXPECT_EQ(1, cras_bt_policy_schedule_suspend_called);
-  }
-
-  cras_bt_device_remove(device);
-  FreeMockDBusMessage(msg_root);
 }
 
 /* Stubs */
@@ -618,47 +457,6 @@ void cras_iodev_list_resume_dev(struct cras_iodev* dev) {}
 
 void cras_iodev_list_notify_node_volume(struct cras_ionode* node) {}
 
-int cras_main_message_send(struct cras_main_message* msg) {
-  // cras_main_message is a local variable from caller, we should allocate
-  // memory from heap and copy its data
-  if (cras_main_message_send_msg)
-    free(cras_main_message_send_msg);
-  cras_main_message_send_msg =
-      (struct cras_main_message*)calloc(1, msg->length);
-  memcpy((void*)cras_main_message_send_msg, (void*)msg, msg->length);
-  return 0;
-}
-
-int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
-                                  cras_message_callback callback,
-                                  void* callback_data) {
-  cras_main_message_add_handler_callback = callback;
-  cras_main_message_add_handler_callback_data = callback_data;
-  return 0;
-}
-
-/* From cras_system_state */
-struct cras_tm* cras_system_state_get_tm() {
-  return NULL;
-}
-
-/* From cras_tm */
-struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
-                                        unsigned int ms,
-                                        void (*cb)(struct cras_timer* t,
-                                                   void* data),
-                                        void* cb_data) {
-  cras_tm_create_timer_called++;
-  cras_tm_create_timer_cb = cb;
-  cras_tm_create_timer_cb_data = cb_data;
-  return cras_tm_create_timer_ret;
-}
-
-void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
-  cras_tm_cancel_timer_called++;
-  cras_tm_cancel_timer_arg = t;
-}
-
 int cras_bt_policy_switch_profile(struct cras_bt_device* device,
                                   struct cras_iodev* bt_iodev) {
   return 0;
@@ -679,6 +477,15 @@ int cras_bt_policy_cancel_suspend(struct cras_bt_device* device) {
 }
 
 void cras_bt_policy_remove_device(struct cras_bt_device* device) {}
+
+int cras_bt_policy_start_connection_watch(struct cras_bt_device* device) {
+  cras_bt_policy_start_connection_watch_called++;
+  return 0;
+}
+int cras_bt_policy_stop_connection_watch(struct cras_bt_device* device) {
+  cras_bt_policy_stop_connection_watch_called++;
+  return 0;
+}
 
 DBusMessage* dbus_message_new_method_call(const char* destination,
                                           const char* path,
@@ -735,6 +542,20 @@ int dbus_message_iter_get_arg_type(DBusMessageIter* iter) {
     return DBUS_TYPE_INVALID;
 
   return msg->type;
+}
+
+char* dbus_message_iter_get_signature(DBusMessageIter* iter) {
+  MockDBusMessage* msg;
+
+  if (iter == NULL)
+    return (char*)"";
+  msg = *(MockDBusMessage**)iter;
+  if (msg == NULL)
+    return (char*)"";
+  if ((msg->type == DBUS_TYPE_ARRAY) && msg->recurse &&
+      (msg->recurse->type == DBUS_TYPE_STRING))
+    return (char*)"as";
+  return (char*)"";
 }
 
 void dbus_message_iter_get_basic(DBusMessageIter* iter, void* value) {

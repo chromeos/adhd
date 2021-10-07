@@ -256,11 +256,6 @@ struct cras_bt_device* cras_a2dp_connected_device() {
   return NULL;
 }
 
-int cras_bt_device_supports_profile(const struct cras_bt_device* device,
-                                    enum cras_bt_device_profile profile) {
-  return 0;
-}
-
 void cras_a2dp_suspend_connected_device(struct cras_bt_device* device) {}
 
 const char* cras_bt_device_address(const struct cras_bt_device* device) {

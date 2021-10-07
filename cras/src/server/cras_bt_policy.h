@@ -64,4 +64,10 @@ int cras_bt_policy_schedule_suspend(
  * of given |device|. */
 int cras_bt_policy_cancel_suspend(struct cras_bt_device *device);
 
+/* Starts the connection watch flow in main thread. */
+int cras_bt_policy_start_connection_watch(struct cras_bt_device *device);
+
+/* Stops the connection watch flow in main thread. */
+int cras_bt_policy_stop_connection_watch(struct cras_bt_device *device);
+
 #endif /* CRAS_BT_POLICY_H_ */

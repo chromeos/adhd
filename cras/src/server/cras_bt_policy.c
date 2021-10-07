@@ -6,6 +6,7 @@
 #include <syslog.h>
 
 #include "cras_a2dp_endpoint.h"
+#include "cras_bt_constants.h"
 #include "cras_bt_device.h"
 #include "cras_bt_log.h"
 #include "cras_bt_policy.h"
@@ -17,6 +18,12 @@
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "utlist.h"
+
+/* Check profile connections every 2 seconds and rerty 30 times maximum.
+ * Attemp to connect profiles which haven't been ready every 3 retries_left.
+ */
+static const unsigned int CONN_WATCH_PERIOD_MS = 2000;
+static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
 
 static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
 
@@ -52,6 +59,15 @@ struct suspend_policy {
 };
 
 struct suspend_policy *suspend_policies;
+
+struct connection_watch {
+	struct cras_bt_device *device;
+	int retries_left;
+	struct cras_timer *timer;
+	struct connection_watch *prev, *next;
+};
+
+struct connection_watch *conn_watch_policies;
 
 static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 {
@@ -275,6 +291,132 @@ int cras_bt_policy_cancel_suspend(struct cras_bt_device *device)
 	return rc;
 }
 
+/* Callback used to periodically check if supported profiles are connected. */
+static void conn_watch_cb(struct cras_timer *timer, void *arg)
+{
+	struct cras_tm *tm;
+	struct connection_watch *policy = (struct connection_watch *)arg;
+	struct cras_bt_device *device = policy->device;
+	int rc;
+	bool a2dp_supported;
+	bool a2dp_connected;
+	bool hfp_supported;
+	bool hfp_connected;
+
+	BTLOG(btlog, BT_DEV_CONN_WATCH_CB, policy->retries_left,
+	      device->profiles);
+	policy->timer = NULL;
+
+	/* Skip the callback if it is not an audio device. */
+	if (!device->profiles)
+		goto done_with_policy;
+
+	a2dp_supported = cras_bt_device_supports_profile(
+		device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
+	a2dp_connected = cras_bt_device_is_profile_connected(
+		device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
+	hfp_supported = cras_bt_device_supports_profile(
+		device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+	hfp_connected = cras_bt_device_is_profile_connected(
+		device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+
+	/* If not both A2DP and HFP are supported, simply wait for BlueZ
+	 * to notify us about the new connection.
+	 * Otherwise, when seeing one but not the other profile is connected,
+	 * send message to ask BlueZ to connect the pending one.
+	 */
+	if (a2dp_supported && hfp_supported) {
+		/* If both a2dp and hfp are not connected, do nothing. BlueZ
+		 * should be responsible to notify connection of one profile.
+		 */
+		if (!a2dp_connected && hfp_connected)
+			cras_bt_device_connect_profile(device->conn, device,
+						       A2DP_SINK_UUID);
+		if (a2dp_connected && !hfp_connected)
+			cras_bt_device_connect_profile(device->conn, device,
+						       HFP_HF_UUID);
+	}
+
+	/* If there's still a profile missing connection, arm the timer to
+	 * retry the logic in conn_watch_cb later, and return.  */
+	if (a2dp_supported != a2dp_connected ||
+	    hfp_supported != hfp_connected) {
+		syslog(LOG_DEBUG, "conn_watch_retries: %d",
+		       policy->retries_left);
+
+		if (--policy->retries_left) {
+			tm = cras_system_state_get_tm();
+			policy->timer =
+				cras_tm_create_timer(tm, CONN_WATCH_PERIOD_MS,
+						     conn_watch_cb, policy);
+		} else {
+			syslog(LOG_ERR, "Connection watch timeout.");
+			schedule_suspend(device, 0, CONN_WATCH_TIME_OUT);
+		}
+		return;
+	}
+
+	/* Expected profiles are all connected, no more connection watch
+	 * callback will be scheduled.
+	 * Base on the decision that we expose only the latest connected
+	 * BT audio device to user, treat all other connected devices as
+	 * conflict and remove them before we start A2DP/HFP of this device.
+	 */
+	cras_bt_device_remove_conflict(device);
+
+	if (cras_bt_device_is_profile_connected(
+		    device, CRAS_BT_DEVICE_PROFILE_A2DP_SINK))
+		cras_a2dp_start(device);
+
+	if (cras_bt_device_is_profile_connected(
+		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE)) {
+		rc = cras_hfp_ag_start(device);
+		if (rc) {
+			syslog(LOG_ERR, "Start audio gateway failed, rc %d",
+			       rc);
+			schedule_suspend(device, 0, HFP_AG_START_FAILURE);
+		}
+	}
+	cras_bt_device_set_nodes_plugged(device, 1);
+
+done_with_policy:
+	DL_DELETE(conn_watch_policies, policy);
+	free(policy);
+}
+
+int cras_bt_policy_start_connection_watch(struct cras_bt_device *device)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+	struct connection_watch *policy;
+
+	DL_SEARCH_SCALAR(conn_watch_policies, policy, device, device);
+	if (policy) {
+		cras_tm_cancel_timer(tm, policy->timer);
+	} else {
+		policy = (struct connection_watch *)calloc(1, sizeof(*policy));
+		policy->device = device;
+		DL_APPEND(conn_watch_policies, policy);
+	}
+	policy->retries_left = CONN_WATCH_MAX_RETRIES;
+	policy->timer = cras_tm_create_timer(tm, CONN_WATCH_PERIOD_MS,
+					     conn_watch_cb, policy);
+	return 0;
+}
+
+int cras_bt_policy_stop_connection_watch(struct cras_bt_device *device)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+	struct connection_watch *policy;
+
+	DL_SEARCH_SCALAR(conn_watch_policies, policy, device, device);
+	if (policy) {
+		cras_tm_cancel_timer(tm, policy->timer);
+		DL_DELETE(conn_watch_policies, policy);
+		free(policy);
+	}
+	return 0;
+}
+
 void cras_bt_policy_remove_device(struct cras_bt_device *device)
 {
 	struct profile_switch_policy *policy;
@@ -287,6 +429,7 @@ void cras_bt_policy_remove_device(struct cras_bt_device *device)
 		free(policy);
 	}
 	cancel_suspend(device);
+	cras_bt_policy_stop_connection_watch(device);
 }
 
 void cras_bt_policy_start()

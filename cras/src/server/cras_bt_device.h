@@ -34,8 +34,6 @@ struct cras_timer;
  *    bt_iodevs - The pointer to the cras_iodevs of this device.
  *    active_profile - The flag to indicate the active audio profile this
  *        device is currently using.
- *    conn_watch_retries - The retry count for conn_watch_timer.
- *    conn_watch_timer - The timer used to watch connected profiles and start
  *        BT audio input/ouput when all profiles are ready.
  *    stable_id - The unique and persistent id of this bt_device.
  */
@@ -55,8 +53,6 @@ struct cras_bt_device {
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
 	unsigned int active_profile;
 	int use_hardware_volume;
-	int conn_watch_retries;
-	struct cras_timer *conn_watch_timer;
 	unsigned int stable_id;
 
 	struct cras_bt_device *prev, *next;
@@ -103,13 +99,24 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				      DBusMessageIter *properties_array_iter,
 				      DBusMessageIter *invalidated_array_iter);
 
+static inline int
+cras_bt_device_is_profile_connected(const struct cras_bt_device *device,
+				    enum cras_bt_device_profile profile)
+{
+	return !!(device->connected_profiles & profile);
+}
+
 /* Updates the supported profiles on dev. Expose for unit test. */
 int cras_bt_device_set_supported_profiles(struct cras_bt_device *device,
 					  unsigned int profiles);
 
 /* Checks if profile is claimed supported by the device. */
-int cras_bt_device_supports_profile(const struct cras_bt_device *device,
-				    enum cras_bt_device_profile profile);
+static inline int
+cras_bt_device_supports_profile(const struct cras_bt_device *device,
+				enum cras_bt_device_profile profile)
+{
+	return !!(device->profiles & profile);
+}
 
 /* Sets if the BT audio device should use hardware volume.
  * Args:
@@ -122,9 +129,6 @@ void cras_bt_device_set_use_hardware_volume(struct cras_bt_device *device,
 
 /* Gets if the BT audio device should use hardware volume. */
 int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device);
-
-/* Sets device connected state. Expose for unit test. */
-void cras_bt_device_set_connected(struct cras_bt_device *device, int value);
 
 /* Forces disconnect the bt device. Used when handling audio error
  * that we want to make the device be completely disconnected from
@@ -195,6 +199,18 @@ void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 
 /* Notifies bt_device that a2dp connection is configured. */
 void cras_bt_device_a2dp_configured(struct cras_bt_device *device);
+
+/* */
+void cras_bt_device_remove_conflict(struct cras_bt_device *device);
+
+/* */
+void cras_bt_device_set_nodes_plugged(struct cras_bt_device *device,
+				      int plugged);
+
+/* */
+int cras_bt_device_connect_profile(DBusConnection *conn,
+				   struct cras_bt_device *device,
+				   const char *uuid);
 
 /* Notifies bt device that audio gateway is initialized.
  * Args:
