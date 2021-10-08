@@ -66,6 +66,11 @@ fn parse_args() -> Result<Args> {
         "CONFIG_NAME",
     );
     opts.optflag("h", "help", "print help menu");
+    opts.optflag(
+        "",
+        "bypass_temperature_check",
+        "Bypass the temperature check and always run the calibration. It's only used for tests",
+    );
     let matches = opts
         .parse(&env::args().collect::<Vec<_>>()[1..])
         .map_err(|e| {
@@ -76,6 +81,10 @@ fn parse_args() -> Result<Args> {
     if matches.opt_present("h") {
         print_usage(&opts);
         process::exit(0);
+    }
+
+    if matches.opt_present("bypass_temperature_check") {
+        env::set_var("BYPASS_TEMPERATURE_CHECK", "true");
     }
 
     let sound_card_id = matches

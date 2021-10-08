@@ -10,7 +10,7 @@ mod vpd;
 mod zero_player;
 
 use std::{
-    thread,
+    env, thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -210,10 +210,17 @@ impl DSM {
         calib_data: CalibData,
     ) -> Result<CalibData> {
         if calib_data.temp < self.temp_lower_limit || calib_data.temp > self.temp_upper_limit {
-            info!("invalid temperature: {}.", calib_data.temp);
-            return self
-                .get_previous_calibration_value(channel)
-                .map_err(|_| Error::InvalidTemperature(calib_data.temp));
+            if env::var("BYPASS_TEMPERATURE_CHECK").is_ok() {
+                info!(
+                    "BYPASS_TEMPERATURE_CHECK. Temperature: {}.",
+                    calib_data.temp
+                );
+            } else {
+                info!("invalid temperature: {}.", calib_data.temp);
+                return self
+                    .get_previous_calibration_value(channel)
+                    .map_err(|_| Error::InvalidTemperature(calib_data.temp));
+            }
         }
         let (datastore_exist, previous_calib) = match self.get_previous_calibration_value(channel) {
             Ok(previous_calib) => (true, previous_calib),
