@@ -729,6 +729,14 @@ static int apply_hfp_offload_codec_settings(int fd, uint8_t codec)
 
 	err = setsockopt(fd, SOL_BLUETOOTH, BT_CODEC, codecs, sizeof(buffer));
 	if (err < 0) {
+		/* Fallback setting for kukui cases. The protocol is not
+		 * supported on Bluetooth kernel <= v4.19
+		 */
+		if (errno == ENOPROTOOPT) {
+			syslog(LOG_WARNING,
+			       "HCI OFFLOAD config not supported; fallback to normal setting");
+			return -ENOPROTOOPT;
+		}
 		syslog(LOG_ERR, "Failed to set codec: %s (%d)",
 		       cras_strerror(errno), err);
 		return err;
@@ -772,14 +780,14 @@ static int apply_codec_settings(int fd, uint8_t codec)
 	return 0;
 }
 
-int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
+int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
+			       bool use_offload)
 {
-	int sk = 0, err;
+	int sk = 0, err = 0;
 	struct sockaddr addr;
 	struct cras_bt_adapter *adapter;
 	struct timespec timeout = { 1, 0 };
 	struct pollfd pollfd;
-	char *use_offload;
 
 	adapter = cras_bt_device_adapter(device);
 	if (!adapter) {
@@ -813,14 +821,9 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec)
 	if (bt_address(cras_bt_device_address(device), &addr))
 		goto error;
 
-	/* TODO(johnylin): Use UCM config to indicate whether the offload is
-	 *                 applied on this board.
-	 */
-	use_offload = getenv("USE_OFFLOAD");
-
-	if (use_offload && !strncmp(use_offload, "yes", 3))
+	if (use_offload)
 		err = apply_hfp_offload_codec_settings(sk, codec);
-	else
+	if (!use_offload || err == -ENOPROTOOPT)
 		err = apply_codec_settings(sk, codec);
 	if (err)
 		goto error;

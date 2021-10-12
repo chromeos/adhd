@@ -246,7 +246,9 @@ size_t cras_system_get_volume() {
 }
 
 // From bt device
-int cras_bt_device_sco_connect(struct cras_bt_device* device, int codec) {
+int cras_bt_device_sco_connect(struct cras_bt_device* device,
+                               int codec,
+                               bool use_offload) {
   cras_bt_device_sco_connect_called++;
   return cras_bt_transport_sco_connect_return_val;
 }

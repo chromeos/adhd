@@ -148,8 +148,8 @@ static int configure_dev(struct cras_iodev *iodev)
 	 */
 	hfp_slc_codec_connection_setup(hfpio->slc);
 
-	sk = cras_bt_device_sco_connect(hfpio->device,
-					hfp_slc_get_selected_codec(hfpio->slc));
+	sk = cras_bt_device_sco_connect(
+		hfpio->device, hfp_slc_get_selected_codec(hfpio->slc), false);
 	if (sk < 0)
 		goto error;
 

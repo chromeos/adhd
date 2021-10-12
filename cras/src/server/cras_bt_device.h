@@ -7,6 +7,7 @@
 #define CRAS_BT_DEVICE_H_
 
 #include <dbus/dbus.h>
+#include <stdbool.h>
 
 #include "cras_types.h"
 
@@ -144,8 +145,10 @@ int cras_bt_device_disconnect(DBusConnection *conn,
  * Args:
  *     device - The device object to get SCO socket for.
  *     codec - 1 for CVSD, 2 for mSBC
+ *     use_offload - True for using offloading path; false otherwise.
  */
-int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec);
+int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
+			       bool use_offload);
 
 /* Gets the SCO packet size in bytes, used by HFP iodev for audio I/O.
  * The logic is built base on experience: for USB bus, respect BT Core spec

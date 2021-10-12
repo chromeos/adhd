@@ -517,7 +517,9 @@ int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle) {
   return 0;
 }
 
-int cras_bt_device_sco_connect(struct cras_bt_device* device, int codec) {
+int cras_bt_device_sco_connect(struct cras_bt_device* device,
+                               int codec,
+                               bool use_offload) {
   return 0;
 }
 
