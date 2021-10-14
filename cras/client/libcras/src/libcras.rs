@@ -409,6 +409,8 @@ impl<'a> CrasClient<'a> {
         format: SampleFormat,
         effects: &[StreamEffect],
     ) -> Result<CrasStream<'b, T>> {
+        assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
+
         let stream_id = self.next_server_stream_id();
 
         // Prepares server message
@@ -476,6 +478,8 @@ impl<'a> CrasClient<'a> {
         effects: &[StreamEffect],
         ex: &Executor,
     ) -> Result<async_::CrasStream<'b, T>> {
+        assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
+
         let stream_id = self.next_server_stream_id();
 
         // Prepares server message
@@ -587,6 +591,8 @@ impl<'a> CrasClient<'a> {
         buffer_size: usize,
         effects: &[StreamEffect],
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
+        assert!(self.cras_capture);
+
         Ok((
             Box::new(NoopStreamControl::new()),
             Box::new(self.create_stream::<CrasCaptureData>(
