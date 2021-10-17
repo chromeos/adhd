@@ -52,6 +52,8 @@ struct main_dev_info {
  *    sleep_interval_ts - Time between audio callbacks.
  *    last_fetch_ts - The time of the last stream fetch.
  *    longest_fetch_interval_ts - Longest interval between two fetches.
+ *    num_delayed_fetches - Number of fetch_interval >
+                            acceptable_fetch_interval.
  *    start_ts - The time when the stream started.
  *    first_missed_cb_ts - The time when the first missed callback happens.
  *    buf_state - State of the buffer from all devices for this stream.
@@ -63,6 +65,7 @@ struct main_dev_info {
  *    is_pinned - True if the stream is a pinned stream, false otherwise.
  *    pinned_dev_idx - device the stream is pinned, 0 if none.
  *    triggered - True if already notified TRIGGER_ONLY stream, false otherwise.
+ *    acceptable_fetch_interval - cb_threshold / sample_rate.
  */
 struct cras_rstream {
 	cras_stream_id_t stream_id;
@@ -83,6 +86,7 @@ struct cras_rstream {
 	struct timespec sleep_interval_ts;
 	struct timespec last_fetch_ts;
 	struct timespec longest_fetch_interval;
+	int num_delayed_fetches;
 	struct timespec start_ts;
 	struct timespec first_missed_cb_ts;
 	struct buffer_share *buf_state;
@@ -94,6 +98,7 @@ struct cras_rstream {
 	int is_pinned;
 	uint32_t pinned_dev_idx;
 	int triggered;
+	struct timespec acceptable_fetch_interval;
 	struct cras_rstream *prev, *next;
 };
 

@@ -14,6 +14,7 @@ extern "C" {
 #include "cras_messages.h"
 #include "cras_rstream.h"
 #include "cras_shm.h"
+#include "cras_util.h"
 }
 
 #include "metrics_stub.h"
@@ -157,6 +158,37 @@ TEST_F(RstreamTestSuite, CreateOutput) {
   cras_shm_copy_shared_config(&shm_mapped);
   EXPECT_EQ(cras_shm_used_size(&shm_mapped), cras_shm_used_size(shm_ret));
   munmap(shm_mapped.header, cras_shm_header_size());
+
+  cras_rstream_destroy(s);
+}
+
+TEST_F(RstreamTestSuite, TestNumDelayedFetch) {
+  int rc;
+  struct cras_rstream* s;
+
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+  EXPECT_NE((void*)NULL, s);
+  EXPECT_EQ(4096, cras_rstream_get_buffer_frames(s));
+  EXPECT_EQ(2048, cras_rstream_get_cb_threshold(s));
+  EXPECT_EQ(CRAS_STREAM_TYPE_DEFAULT, cras_rstream_get_type(s));
+  EXPECT_EQ(CRAS_STREAM_OUTPUT, cras_rstream_get_direction(s));
+
+  struct timespec t0;
+  struct timespec t1;
+  struct timespec fetch_time;
+  cras_frames_to_time(2048, 48000, &fetch_time);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &t0);
+  t1 = t0;
+  s->last_fetch_ts = t0;
+  add_timespecs(&t1, &fetch_time);
+  cras_rstream_record_fetch_interval(s, &t1);
+  EXPECT_EQ(0, s->num_delayed_fetches);
+
+  s->last_fetch_ts = t0;
+  add_timespecs(&t1, &fetch_time);
+  cras_rstream_record_fetch_interval(s, &t1);
+  EXPECT_EQ(1, s->num_delayed_fetches);
 
   cras_rstream_destroy(s);
 }

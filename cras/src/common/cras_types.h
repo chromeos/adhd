@@ -447,6 +447,7 @@ struct __attribute__((__packed__)) audio_stream_debug_info {
 	uint32_t num_channels;
 	uint32_t longest_fetch_sec;
 	uint32_t longest_fetch_nsec;
+	uint32_t num_delayed_fetches;
 	uint32_t num_missed_cb;
 	uint32_t num_overruns;
 	uint32_t is_pinned;

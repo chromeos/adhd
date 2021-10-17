@@ -297,6 +297,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->main_dev.dev_id = NO_DEVICE;
 	stream->main_dev.dev_ptr = NULL;
 	stream->num_missed_cb = 0;
+	stream->num_delayed_fetches = 0;
 	stream->is_pinned = (config->dev_idx != NO_DEVICE);
 	stream->pinned_dev_idx = config->dev_idx;
 	ewma_power_init(&stream->ewma, stream->format.format,
@@ -316,7 +317,8 @@ int cras_rstream_create(struct cras_rstream_config *config,
 		(stream->direction == CRAS_STREAM_INPUT) ?
 			cras_apm_list_create(stream, config->effects) :
 			NULL;
-
+	cras_frames_to_time(config->cb_threshold, config->format->frame_rate,
+			    &stream->acceptable_fetch_interval);
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
 	       config->stream_id, config->buffer_frames, config->cb_threshold);
 	*stream_out = stream;
@@ -371,6 +373,9 @@ void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,
 		subtract_timespecs(now, &rstream->last_fetch_ts, &ts);
 		if (timespec_after(&ts, &rstream->longest_fetch_interval))
 			rstream->longest_fetch_interval = ts;
+		if (timespec_after(&ts, &rstream->acceptable_fetch_interval)) {
+			rstream->num_delayed_fetches++;
+		}
 	}
 }
 

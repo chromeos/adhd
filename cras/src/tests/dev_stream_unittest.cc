@@ -138,6 +138,7 @@ class CreateSuite : public testing::Test {
     rstream_.format = fmt_s16le_44_1;
     rstream_.flags = 0;
     rstream_.num_missed_cb = 0;
+    rstream_.num_delayed_fetches = 0;
 
     config_format_converter_from_fmt = NULL;
     config_format_converter_called = 0;
