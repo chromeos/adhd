@@ -46,7 +46,10 @@ pub mod control_tlv;
 pub mod elem;
 
 pub use self::card::Card;
-pub use self::control::{Control, ControlOps, IntControl, StereoVolumeControl, SwitchControl};
+pub use self::control::{
+    Control, ControlOps, EnumControl, IntControl, SimpleEnumControl, StereoVolumeControl,
+    SwitchControl,
+};
 pub use self::control_primitive::{Ctl, ElemId};
 pub use self::control_tlv::{ControlTLV, TLV};
 

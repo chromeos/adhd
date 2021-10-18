@@ -22,7 +22,7 @@ use std::fmt;
 use libc::{c_long, c_uint};
 use remain::sorted;
 
-use crate::control_primitive::{self, snd_strerror, Ctl, ElemId, ElemType, ElemValue};
+use crate::control_primitive::{self, snd_strerror, Ctl, ElemId, ElemInfo, ElemType, ElemValue};
 
 /// The Result type of cros-alsa::elem.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -37,6 +37,8 @@ pub enum Error {
     ElemReadFailed(i32),
     /// Failed to call `snd_ctl_elem_write()`.
     ElemWriteFailed(i32),
+    /// Invalid Enum value for a Enumerated Control.
+    InvalidEnumValue(String, u32, u32),
 }
 
 impl error::Error for Error {}
@@ -54,6 +56,11 @@ impl fmt::Display for Error {
             AlsaControlAPI(e) => write!(f, "{}", e),
             ElemReadFailed(e) => write!(f, "snd_ctl_elem_read failed: {}", snd_strerror(*e)?),
             ElemWriteFailed(e) => write!(f, "snd_ctl_elem_write failed: {}", snd_strerror(*e)?),
+            InvalidEnumValue(id, val, max) => write!(
+                f,
+                "expect enum value less than: {}, got: {} for ctrl: {}",
+                max, val, id
+            ),
         }
     }
 }
@@ -97,6 +104,7 @@ impl<V: CtlElemValue, const N: usize> Elem for [V; N] {
         for i in 0..N {
             // Safe because elem.as_mut_ptr() is a valid snd_ctl_elem_value_t* and i is guaranteed to be
             // within a valid range.
+            V::elem_value_validate(handle, id, val[i])?;
             unsafe { V::elem_value_set(&mut elem, i, val[i]) };
         }
         // Safe because self.handle.as_mut_ptr() is a valid *mut snd_ctl_t and
@@ -151,6 +159,40 @@ impl CtlElemValue for i32 {
     }
 }
 
+impl CtlElemValue for u32 {
+    type T = u32;
+    /// Gets an u32 from the ElemValue.
+    unsafe fn elem_value_get(elem: &ElemValue, idx: usize) -> u32 {
+        alsa_sys::snd_ctl_elem_value_get_enumerated(elem.as_ptr(), idx as c_uint) as u32
+    }
+    /// Sets an u32 to the ElemValue.
+    unsafe fn elem_value_set(elem: &mut ElemValue, idx: usize, val: u32) {
+        alsa_sys::snd_ctl_elem_value_set_enumerated(
+            elem.as_mut_ptr(),
+            idx as c_uint,
+            val as c_uint,
+        );
+    }
+
+    /// Validate the u32 ElemValue.
+    fn elem_value_validate(handle: &mut Ctl, id: &ElemId, val: u32) -> Result<()> {
+        let info = ElemInfo::new(handle, &id)?;
+        if val >= info.items() {
+            return Err(Error::InvalidEnumValue(
+                id.name()?.to_owned(),
+                val,
+                info.items(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Returns ElemType::Integer.
+    fn elem_type() -> ElemType {
+        ElemType::Enumerated
+    }
+}
+
 /// All primitive types of a control element should implement `CtlElemValue` trait.
 pub trait CtlElemValue {
     /// The primitive type of a control element.
@@ -159,6 +201,10 @@ pub trait CtlElemValue {
     unsafe fn elem_value_get(value: &ElemValue, idx: usize) -> Self::T;
     /// Sets the value to the ElemValue.
     unsafe fn elem_value_set(value: &mut ElemValue, id: usize, val: Self::T);
+    /// Validate the input value.
+    fn elem_value_validate(_handle: &mut Ctl, _id: &ElemId, _val: Self::T) -> Result<()> {
+        Ok(())
+    }
     /// Gets the data type itself can read and write.
     fn elem_type() -> ElemType;
 }
@@ -176,3 +222,11 @@ pub trait Elem: Sized {
     /// Gets the number of value entries itself can read and write.
     fn size() -> usize;
 }
+
+impl<V: CtlEnumElemValue, const N: usize> EnumElem for [V; N] {}
+/// Use `EnumElem` trait to present Enumerated control element.
+pub trait EnumElem: Elem {}
+
+/// Implements `EnumElem` for [u32; n] where n = 1 to 128.
+pub trait CtlEnumElemValue: CtlElemValue {}
+impl CtlEnumElemValue for u32 {}

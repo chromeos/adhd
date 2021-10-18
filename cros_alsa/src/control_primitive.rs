@@ -8,11 +8,9 @@ use std::ffi::{CStr, CString, FromBytesWithNulError, NulError};
 use std::fmt;
 use std::marker::PhantomData;
 use std::ptr;
-use std::slice;
 use std::str;
 
 use alsa_sys::*;
-use libc::strlen;
 use remain::sorted;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -46,8 +44,14 @@ pub enum Error {
     ElemIdGetNameFailed,
     /// Failed to call snd_ctl_elem_id_malloc().
     ElemIdMallocFailed(FFIError),
+    /// snd_ctl_elem_info_get_item_name() returns null.
+    ElemInfoGetItemNameFailed,
+    /// Failed to call snd_ctl_elem_info().
+    ElemInfoLoadFailed(FFIError),
     /// Failed to call snd_ctl_elem_info_malloc().
     ElemInfoMallocFailed(FFIError),
+    /// Invalid Enum value for a Enumerated Control.
+    ElemInfoSetItemFailed(u32, u32),
     /// Failed to call snd_ctl_elem_value_malloc().
     ElemValueMallocFailed(FFIError),
     /// The slice used to create a CStr does not have one and only one null
@@ -73,7 +77,12 @@ impl fmt::Display for Error {
             CtlOpenFailed(e, name) => write!(f, "{} snd_ctl_open failed: {}", name, e,),
             ElemIdGetNameFailed => write!(f, "snd_ctl_elem_id_get_name failed"),
             ElemIdMallocFailed(e) => write!(f, "snd_ctl_elem_id_malloc failed: {}", e),
+            ElemInfoGetItemNameFailed => write!(f, "snd_ctl_elem_info_get_item_name failed"),
+            ElemInfoLoadFailed(e) => write!(f, "snd_ctl_elem_info failed: {}", e),
             ElemInfoMallocFailed(e) => write!(f, "snd_ctl_elem_info_malloc failed: {}", e),
+            ElemInfoSetItemFailed(val, items) => {
+                write!(f, "expect enum less than: {}, got: {}", items, val)
+            }
             ElemValueMallocFailed(e) => write!(f, "snd_ctl_elem_value_malloc failed: {}", e),
             FromBytesWithNulError(e) => write!(f, "invalid CString: {}", e),
             InvalidElemType(v) => write!(f, "invalid ElemType: {}", v),
@@ -220,9 +229,7 @@ impl ElemId {
         }
         // Safe because name is a valid *const i8, and its life time
         // is the same as the passed reference of self.
-        let s = CStr::from_bytes_with_nul(unsafe {
-            slice::from_raw_parts(name as *const u8, strlen(name) + 1)
-        })?;
+        let s = unsafe { CStr::from_ptr(name) };
         Ok(s.to_str()?)
     }
 }
@@ -306,14 +313,9 @@ impl ElemInfo {
 
         // Safe because info.as_ptr() is a valid snd_ctl_elem_info_t* and id.as_ptr() is also valid.
         unsafe { snd_ctl_elem_info_set_id(info.as_ptr(), id.as_ptr()) };
-
-        // Safe because handle.as_mut_ptr() is a valid snd_ctl_t* and info.as_ptr() is a valid
-        // snd_ctl_elem_info_t*.
-        let rc = unsafe { snd_ctl_elem_info(handle.as_mut_ptr(), info.as_ptr()) };
-        if rc < 0 {
-            return Err(Error::ControlNotFound(id.name()?.to_owned()));
-        }
-        Ok(ElemInfo(info, PhantomData))
+        let mut elem_info = ElemInfo(info, PhantomData);
+        elem_info.load(handle)?;
+        Ok(elem_info)
     }
 
     /// Safe [snd_ctl_elem_info_get_type](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#ga0fec5d22ee58d04f14b59f405adc595e) wrapper.
@@ -338,6 +340,47 @@ impl ElemInfo {
     pub fn tlv_writable(&self) -> bool {
         // Safe because self.0.as_ptr() is a valid snd_ctl_elem_info_t*.
         unsafe { snd_ctl_elem_info_is_tlv_writable(self.0.as_ptr()) as usize == 1 }
+    }
+
+    /// Safe [snd_ctl_elem_info_get_items](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#gabe5a218f256ac95ec295a175ec544453) wrapper.
+    pub fn items(&self) -> u32 {
+        // Safe because self.0.as_ptr() is a valid snd_ctl_elem_info_t* and we only call it in EnumElem.
+        unsafe { snd_ctl_elem_info_get_items(self.0.as_ptr()) }
+    }
+
+    /// Safe [snd_ctl_elem_info_get_item_name](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#gaf54afbedeb76d572bd6c6d064ce4b51b) wrapper.
+    pub fn item_name(&self) -> Result<&str> {
+        // Safe because self.0.as_ptr() is a valid snd_ctl_elem_info_t* and we only call it in EnumElem.
+        let name = unsafe { snd_ctl_elem_info_get_item_name(self.0.as_ptr()) };
+        if name.is_null() {
+            return Err(Error::ElemInfoGetItemNameFailed);
+        }
+        // Safe because name is a valid *const i8, and its life time
+        // is the same as the passed reference of self.
+        let s = unsafe { CStr::from_ptr(name) };
+        Ok(s.to_str()?)
+    }
+
+    /// Safe [snd_ctl_elem_info_set_item](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#ga3cc2ead5a5628661976507fed4c38182) wrapper.
+    pub fn set_enum(&mut self, val: u32) -> Result<()> {
+        // Safe because self.0.as_ptr() is a valid snd_ctl_elem_info_t* and we only call it in EnumElem.
+        if val >= self.items() {
+            return Err(Error::ElemInfoSetItemFailed(val, self.items()));
+        }
+        unsafe { snd_ctl_elem_info_set_item(self.0.as_ptr(), val) };
+        Ok(())
+    }
+
+    /// Safe [snd_ctl_elem_info](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#gaa41caec9e14ea618fecfacfe68f1f7d7) wrapper.
+    pub fn load(&mut self, handle: &mut Ctl) -> Result<()> {
+        // Safe because:
+        // 1. handle.as_ptr() is a valid *mut snd_ctl_t*.
+        // 2. self.0.as_ptr() is a valid *mut snd_ctl_elem_info_t*.
+        let rc = unsafe { snd_ctl_elem_info(handle.as_mut_ptr(), self.0.as_ptr()) };
+        if rc < 0 {
+            return Err(Error::ElemInfoLoadFailed(FFIError::Rc(rc)));
+        }
+        Ok(())
     }
 }
 
@@ -399,8 +442,6 @@ pub fn snd_strerror(err_num: i32) -> Result<&'static str> {
         return Err(Error::SndStrErrorFailed(err_num));
     }
     // Safe because s_ptr is a non-null *const u8 and its lifetime is static.
-    let s = CStr::from_bytes_with_nul(unsafe {
-        slice::from_raw_parts(s_ptr as *const u8, strlen(s_ptr) + 1)
-    })?;
+    let s = unsafe { CStr::from_ptr(s_ptr) };
     Ok(s.to_str()?)
 }

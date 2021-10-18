@@ -64,7 +64,7 @@ use cros_alsa_derive::ControlOps;
 use remain::sorted;
 
 use crate::control_primitive::{self, Ctl, ElemId, ElemInfo, ElemType};
-use crate::elem::{self, Elem};
+use crate::elem::{self, Elem, EnumElem};
 
 /// The Result type of cros-alsa::control.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -77,6 +77,8 @@ pub enum Error {
     AlsaControlAPI(control_primitive::Error),
     /// Error occurs in Elem.
     Elem(elem::Error),
+    /// Invalid Enum name for a Enumerated Control.
+    InvalidEnumName(String, String),
     /// Elem::size() does not match the element count of the mixer control.
     MismatchElemCount(String, usize, usize),
     /// Elem::elem_type() does not match the data type of the mixer control.
@@ -103,6 +105,7 @@ impl fmt::Display for Error {
         match self {
             AlsaControlAPI(e) => write!(f, "{}", e),
             Elem(e) => write!(f, "{}", e),
+            InvalidEnumName(id, name) => write!(f, "invalid enum name: {} for ctrl: {}", name, id),
             MismatchElemCount(name, count, elem_count) => write!(
                 f,
                 "invalid `Control::size()` of {}: expect: {}, get: {}",
@@ -167,6 +170,42 @@ pub trait ControlOps<'a>: Control<'a> {
     fn load(&mut self) -> Result<<Self as Control<'a>>::Item>;
     /// Saves the values to the mixer control.
     fn save(&mut self, val: <Self as Control<'a>>::Item) -> Result<bool>;
+}
+
+/// Each Enumerated mixer control could implement the `EnumControl` trait to allow itself to access
+/// the information specifically for enumerated controls.
+pub trait EnumControl<'a>: Control<'a>
+where
+    <Self as Control<'a>>::Item: EnumElem,
+{
+    /// Get the number of items available from a EnumControl.
+    fn items(handle: &mut Ctl, id: &ElemId) -> Result<u32> {
+        let info = ElemInfo::new(handle, id)?;
+        Ok(info.items())
+    }
+    /// Get the name of a item index from a EnumControl.
+    fn item_name(handle: &mut Ctl, id: &ElemId, val: u32) -> Result<String> {
+        let mut info = ElemInfo::new(handle, id)?;
+        info.set_enum(val)?;
+        info.load(handle)?;
+        Ok(info.item_name()?.to_owned())
+    }
+
+    /// Get the index of a enum name from a EnumControl.
+    fn item_index(handle: &mut Ctl, id: &ElemId, name: &str) -> Result<u32> {
+        let mut info = ElemInfo::new(handle, id)?;
+        for i in 0..info.items() {
+            info.set_enum(i)?;
+            info.load(handle)?;
+            if name == info.item_name()? {
+                return Ok(i);
+            }
+        }
+        Err(Error::InvalidEnumName(
+            name.to_owned(),
+            id.name()?.to_owned(),
+        ))
+    }
 }
 
 /// `Control` that reads and writes a single integer value entry.
@@ -291,6 +330,56 @@ impl<'a> SwitchControl<'a> {
 
 impl<'a> Control<'a> for SwitchControl<'a> {
     type Item = [bool; 1];
+    fn new(handle: &'a mut Ctl, id: ElemId) -> Self {
+        Self { handle, id }
+    }
+}
+
+/// `SimpleEnumControl` reads and writes a single u32 value entry.
+#[derive(ControlOps)]
+#[cros_alsa(path = "crate")]
+pub struct SimpleEnumControl<'a> {
+    handle: &'a mut Ctl,
+    id: ElemId,
+}
+
+impl<'a> SimpleEnumControl<'a> {
+    /// Gets an u32 value from the mixer control.
+    ///
+    /// # Errors
+    ///
+    /// * If it fails to read from the control.
+    pub fn get(&mut self) -> Result<u32> {
+        let val = self.load()?;
+        Ok(val[0])
+    }
+
+    /// Set an u32 value to the mixer control.
+    ///
+    /// # Errors
+    ///
+    /// * If it fails to read from the control.
+    pub fn set(&mut self, val: u32) -> Result<()> {
+        self.save([val])?;
+        Ok(())
+    }
+
+    /// Updates the enum mixer control by the enum name.
+    ///
+    /// # Errors
+    ///
+    /// * If it fails to write to the control.
+    pub fn set_by_name(&mut self, name: &str) -> Result<()> {
+        let val = Self::item_index(self.handle, &self.id, name)?;
+        self.save([val])?;
+        Ok(())
+    }
+}
+
+impl<'a> EnumControl<'a> for SimpleEnumControl<'a> {}
+
+impl<'a> Control<'a> for SimpleEnumControl<'a> {
+    type Item = [u32; 1];
     fn new(handle: &'a mut Ctl, id: ElemId) -> Self {
         Self { handle, id }
     }
