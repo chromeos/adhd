@@ -266,7 +266,8 @@ static struct cras_iodev *create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type)
 	if (loopback_iodev == NULL)
 		return NULL;
 
-	loopback_iodev->sample_buffer = byte_buffer_create(1024 * 16 * 4);
+	loopback_iodev->sample_buffer =
+		byte_buffer_create(LOOPBACK_BUFFER_SIZE * 4);
 	if (loopback_iodev->sample_buffer == NULL) {
 		free(loopback_iodev);
 		return NULL;
