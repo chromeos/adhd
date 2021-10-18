@@ -69,6 +69,7 @@ static struct cras_iodev *empty_hotword_dev;
 /* Loopback devices. */
 static struct cras_iodev *loopdev_post_mix;
 static struct cras_iodev *loopdev_post_dsp;
+static struct cras_iodev *loopdev_post_dsp_delayed;
 /* List of pending device init retries. */
 static struct dev_init_retry *init_retries;
 
@@ -225,6 +226,8 @@ static const char *node_type_to_str(struct cras_ionode *node)
 		return "POST_MIX_LOOPBACK";
 	case CRAS_NODE_TYPE_POST_DSP:
 		return "POST_DSP_LOOPBACK";
+	case CRAS_NODE_TYPE_POST_DSP_DELAYED:
+		return "POST_DSP_DELAYED_LOOPBACK";
 	case CRAS_NODE_TYPE_USB:
 		return "USB";
 	case CRAS_NODE_TYPE_BLUETOOTH:
@@ -1163,6 +1166,8 @@ void cras_iodev_list_init()
 	/* Create loopback devices. */
 	loopdev_post_mix = loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
 	loopdev_post_dsp = loopback_iodev_create(LOOPBACK_POST_DSP);
+	loopdev_post_dsp_delayed =
+		loopback_iodev_create(LOOPBACK_POST_DSP_DELAYED);
 
 	audio_thread = audio_thread_create();
 	if (!audio_thread) {
@@ -1179,6 +1184,7 @@ void cras_iodev_list_deinit()
 	audio_thread_destroy(audio_thread);
 	loopback_iodev_destroy(loopdev_post_dsp);
 	loopback_iodev_destroy(loopdev_post_mix);
+	loopback_iodev_destroy(loopdev_post_dsp_delayed);
 	empty_iodev_destroy(empty_hotword_dev);
 	empty_iodev_destroy(fallback_devs[CRAS_STREAM_INPUT]);
 	empty_iodev_destroy(fallback_devs[CRAS_STREAM_OUTPUT]);

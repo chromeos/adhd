@@ -23,6 +23,7 @@
 static const char *loopdev_names[LOOPBACK_NUM_TYPES] = {
 	"Post Mix Pre DSP Loopback",
 	"Post DSP Loopback",
+	"Post DSP Delayed Loopback",
 };
 
 static size_t loopback_supported_rates[] = { 48000, 0 };
@@ -142,6 +143,14 @@ static int frames_queued(const struct cras_iodev *iodev,
 	struct byte_buffer *sbuf = loopdev->sample_buffer;
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 
+	/* Do nothing in the transient period after iodev is open but
+	 * loopback stream not yet connected. Otherwise if we report
+	 * some frames are queued, audio thread will go ahead consume
+	 * them all and that deletes the initial delay created for
+	 * post DSP delayed version of loopback. */
+	if (!iodev->streams)
+		return 0;
+
 	if (!loopdev->started) {
 		unsigned int frames_since_start, frames_to_fill, bytes_to_fill;
 
@@ -192,6 +201,7 @@ static int configure_record_dev(struct cras_iodev *iodev)
 {
 	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
 	struct cras_iodev *edev;
+	struct byte_buffer *sbuf = loopdev->sample_buffer;
 
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 	clock_gettime(CLOCK_MONOTONIC_RAW, &loopdev->dev_start_time);
@@ -207,6 +217,13 @@ static int configure_record_dev(struct cras_iodev *iodev)
 	}
 	cras_iodev_list_set_device_enabled_callback(
 		device_enabled_hook, device_disabled_hook, (void *)iodev);
+
+	/* Fills the sample_buffer by zeros to simulate the delay caused
+	 * by real hardware. */
+	if (loopdev->loopback_type == LOOPBACK_POST_DSP_DELAYED) {
+		memset(buf_write_pointer(sbuf), 0, buf_writable(sbuf));
+		buf_increment_write(sbuf, buf_writable(sbuf));
+	}
 
 	return 0;
 }
@@ -244,11 +261,13 @@ static int put_record_buffer(struct cras_iodev *iodev, unsigned nframes)
 
 static int flush_record_buffer(struct cras_iodev *iodev)
 {
-	struct loopback_iodev *loopdev = (struct loopback_iodev *)iodev;
-	struct byte_buffer *sbuf = loopdev->sample_buffer;
-	unsigned int queued_bytes = buf_queued(sbuf);
-	buf_increment_read(sbuf, queued_bytes);
-	loopdev->read_frames = 0;
+	/*
+	 * Flush buffer is used in multiple inputs use case to align
+	 * the buffer level when the first stream connects to iodev.
+	 * Loopback device is not intended to be used in the multiple
+	 * inputs manner and we want to keep the initial delay for
+	 * the post DSP delayed version of loopback.
+	 */
 	return 0;
 }
 
@@ -323,6 +342,9 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_LOOPBACK_TYPE type)
 		break;
 	case LOOPBACK_POST_DSP:
 		node_type = CRAS_NODE_TYPE_POST_DSP;
+		break;
+	case LOOPBACK_POST_DSP_DELAYED:
+		node_type = CRAS_NODE_TYPE_POST_DSP_DELAYED;
 		break;
 	default:
 		return NULL;

@@ -1326,7 +1326,7 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 			      size_t block_size,
 			      enum CRAS_STREAM_TYPE stream_type, size_t rate,
 			      snd_pcm_format_t format, size_t num_channels,
-			      uint32_t flags, int is_loopback, int is_post_dsp)
+			      uint32_t flags, int is_loopback, int post_dsp)
 {
 	int rc, tty;
 	struct cras_stream_params *params;
@@ -1399,9 +1399,15 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 
 	cras_client_run_thread(client);
 	if (is_loopback) {
-		enum CRAS_NODE_TYPE type =
-			(is_post_dsp ? CRAS_NODE_TYPE_POST_DSP :
-				       CRAS_NODE_TYPE_POST_MIX_PRE_DSP);
+		enum CRAS_NODE_TYPE type = CRAS_NODE_TYPE_POST_MIX_PRE_DSP;
+		switch (post_dsp) {
+		case 1:
+			type = CRAS_NODE_TYPE_POST_DSP;
+			break;
+		case 2:
+			type = CRAS_NODE_TYPE_POST_DSP_DELAYED;
+			break;
+		}
 
 		cras_client_connected_wait(client);
 		pin_device_id = cras_client_get_first_dev_type_idx(
@@ -1541,7 +1547,7 @@ static int run_capture(struct cras_client *client, const char *file,
 		       size_t block_size, enum CRAS_STREAM_TYPE stream_type,
 		       size_t rate, snd_pcm_format_t format,
 		       size_t num_channels, uint32_t flags, int is_loopback,
-		       int is_post_dsp)
+		       int post_dsp)
 {
 	int fd = open(file, O_CREAT | O_RDWR | O_TRUNC, 0666);
 	if (fd == -1) {
@@ -1551,7 +1557,7 @@ static int run_capture(struct cras_client *client, const char *file,
 
 	run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size,
 			   stream_type, rate, format, num_channels, flags,
-			   is_loopback, is_post_dsp);
+			   is_loopback, post_dsp);
 
 	close(fd);
 	return 0;
@@ -1933,12 +1939,15 @@ static void show_usage()
 	printf("--playback_delay_us <N> - "
 	       "Set the time in us to delay a reply for playback when i is "
 	       "pressed\n");
-	printf("--post_dsp <0|1> - "
+	printf("--post_dsp <0|1|2> - "
 	       "Use this flag with --loopback_file. The default value is 0.\n"
 	       "                   "
 	       "Argument: 0 - Record from post-mix, pre-DSP loopback device.\n"
 	       "                   "
-	       "          1 - Record from post-DSP loopback device.\n");
+	       "          1 - Record from post-DSP loopback device.\n"
+	       "                   "
+	       "          2 - Record from post-DSP loopback device padded with "
+	       "silence in the beginning to simulate delay in real HW mic.\n");
 	printf("--set_node_volume <N>:<M>:<0-100> - "
 	       "Set the volume of the ionode with the given id\n");
 	printf("--show_latency - "

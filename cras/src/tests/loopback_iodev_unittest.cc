@@ -85,6 +85,7 @@ class LoopBackTestSuite : public testing::Test {
   uint8_t buf_[kBufferSize];
   struct cras_audio_format fmt_;
   struct cras_iodev* loop_in_;
+  struct dev_stream s_;
 };
 
 TEST_F(LoopBackTestSuite, InstallLoopHook) {
@@ -167,8 +168,16 @@ TEST_F(LoopBackTestSuite, OpenIdleSystem) {
   EXPECT_EQ(0, loop_in_->configure_dev(loop_in_));
   EXPECT_EQ(1, cras_iodev_list_set_device_enabled_callback_called);
 
+  // Shift time a bit. Expect frames_queued to return nothing because
+  // the stream hasn't been connected.
+  time_now.tv_nsec = 123 * 1e9 / 48000;
+  EXPECT_EQ(0, loop_in_->frames_queued(loop_in_, &tstamp));
+
+  // Now adds the stream to loopback iodev.
+  DL_APPEND(loop_in_->streams, &s_);
+
   // Should be 480 samples after 480/frame rate seconds
-  time_now.tv_nsec += 480 * 1e9 / 48000;
+  time_now.tv_nsec = 480 * 1e9 / 48000;
   EXPECT_EQ(480, loop_in_->frames_queued(loop_in_, &tstamp));
 
   // Verify frames from loopback record.
