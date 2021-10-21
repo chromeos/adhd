@@ -812,10 +812,12 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 
 	for (i = 0; i < info->num_streams; i++) {
 		int channel;
-		printf("Summary: %s stream %s %s %u %u 0x%.4x %u %u %x\n",
+		printf("Summary: %s stream 0x%" PRIx64
+		       " %s %s %u %u 0x%.4x %u %u %x\n",
 		       (info->streams[i].direction == CRAS_STREAM_INPUT) ?
 			       "Input" :
 			       "Output",
+		       info->streams[i].stream_id,
 		       cras_client_type_str(info->streams[i].client_type),
 		       cras_stream_type_str(info->streams[i].stream_type),
 		       (unsigned int)info->streams[i].buffer_frames,
