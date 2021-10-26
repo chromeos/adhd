@@ -1519,6 +1519,15 @@ static void update_max_supported_channels(struct cras_iodev *iodev)
 		active_node_predicted = true;
 	}
 
+	// Always export internal speakers/headphone as a stereo device.
+	if (iodev->active_node &&
+	    (iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER ||
+	     iodev->active_node->type == CRAS_NODE_TYPE_HEADPHONE ||
+	     iodev->active_node->type == CRAS_NODE_TYPE_LINEOUT)) {
+		max_channels = 2;
+		goto update_info;
+	}
+
 	rc = open_dev(iodev);
 	if (active_node_predicted)
 		iodev->active_node = NULL; // Reset the predicted active_node.
@@ -1538,11 +1547,6 @@ close_iodev:
 	close_dev(iodev);
 
 update_info:
-	// Always export internal speakers as a stereo device.
-	if (iodev->active_node &&
-	    iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER)
-		max_channels = 2;
-
 	iodev->info.max_supported_channels = max_channels;
 }
 
@@ -2441,8 +2445,14 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev *iodev)
 
 	node = iodev->active_node;
 
-	/* Record max supported channels into cras_iodev_info. */
-	if (node && node->plugged)
+	/*
+	 * Record max supported channels into cras_iodev_info.
+	 * Not check HDMI nodes here if they are unplugged because:
+	 * 1. The supported channels are different on different HDMI devices.
+	 * 2. It may cause some problems when open HDMI devices without plugging any
+	 *    device. (b/170923644)
+	 */
+	if (node && (node->plugged || node->type != CRAS_NODE_TYPE_HDMI))
 		update_max_supported_channels(iodev);
 }
 

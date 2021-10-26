@@ -283,8 +283,6 @@ TEST(AlsaIoInit, InitializePlayback) {
   /* Get volume curve twice for iodev, and default node. */
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
-  EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(
       0, strncmp(test_card_name, aio->base.info.name, strlen(test_card_name)));
@@ -539,8 +537,6 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
-  EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
@@ -569,8 +565,6 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
 
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
-  EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
   EXPECT_EQ(0, cras_alsa_jack_list_add_jack_for_section_called);
@@ -961,8 +955,9 @@ TEST(AlsaIoInit, MaxSupportedChannelsInternalSpeaker) {
         0, test_dev_id, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config,
         NULL, CRAS_STREAM_OUTPUT);
     ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-    /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
-    EXPECT_EQ(1, cras_alsa_fill_properties_called);
+    /* No need to call cras_alsa_fill_properties_called for the internal
+     * speaker. */
+    EXPECT_EQ(0, cras_alsa_fill_properties_called);
     /* Always expose internal speaker as a stereo device. */
     EXPECT_EQ(2, aio->base.info.max_supported_channels);
     alsa_iodev_destroy((struct cras_iodev*)aio);
@@ -1160,8 +1155,9 @@ TEST(AlsaOutputNode, MaxSupportedChannelsInternalSpeaker) {
 
     // Complete initialization, and make first node active.
     alsa_iodev_ucm_complete_init(iodev);
-    /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
-    EXPECT_EQ(1, cras_alsa_fill_properties_called);
+    /* No need to call cras_alsa_fill_properties_called for the internal
+     * speaker. */
+    EXPECT_EQ(0, cras_alsa_fill_properties_called);
     /* Always expose internal speaker as a stereo device. */
     EXPECT_EQ(2, iodev->info.max_supported_channels);
     alsa_iodev_destroy(iodev);
@@ -1233,8 +1229,6 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   EXPECT_EQ(2, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, ucm_get_dma_period_for_dev_called);
   EXPECT_EQ(ucm_get_dma_period_for_dev_ret, aio->dma_period_set_microsecs);
-  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
-  EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(2, iodev->info.max_supported_channels);
 
   aio->handle = (snd_pcm_t*)0x24;
