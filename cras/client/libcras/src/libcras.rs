@@ -127,7 +127,7 @@ use std::{error, fmt};
 pub use audio_streams::BoxError;
 use audio_streams::{
     capture::{AsyncCaptureBufferStream, CaptureBufferStream, NoopCaptureStream},
-    shm_streams::{NullShmStream, ShmStream, ShmStreamSource},
+    shm_streams::{NullShmStream, SharedMemory, ShmStream, ShmStreamSource},
     AsyncBufferCommit, AsyncPlaybackBufferStream, BufferCommit, NoopStreamControl,
     PlaybackBufferStream, SampleFormat, StreamControl, StreamDirection, StreamEffect, StreamSource,
 };
@@ -140,7 +140,7 @@ pub use cras_sys::{
     AudioDebugInfo, CrasIodevInfo, CrasIodevNodeId, CrasIonodeInfo, Error as CrasSysError,
 };
 use cros_async::{AsyncError, Executor};
-use sys_util::{PollContext, PollToken, SharedMemory};
+use sys_util::{PollContext, PollToken};
 
 mod async_;
 mod audio_socket;
@@ -764,7 +764,7 @@ impl<'a> StreamSource for CrasClient<'a> {
     }
 }
 
-impl<'a> ShmStreamSource for CrasClient<'a> {
+impl<'a, E: std::error::Error> ShmStreamSource<E> for CrasClient<'a> {
     fn new_stream(
         &mut self,
         direction: StreamDirection,
@@ -773,7 +773,7 @@ impl<'a> ShmStreamSource for CrasClient<'a> {
         frame_rate: u32,
         buffer_size: usize,
         effects: &[StreamEffect],
-        client_shm: &SharedMemory,
+        client_shm: &dyn SharedMemory<Error = E>,
         buffer_offsets: [u64; 2],
     ) -> std::result::Result<Box<dyn ShmStream>, BoxError> {
         if direction == StreamDirection::Capture && !self.cras_capture {
