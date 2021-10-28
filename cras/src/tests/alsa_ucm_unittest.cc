@@ -550,7 +550,7 @@ TEST(AlsaUcm, SetHotwordModel) {
   ret = ucm_set_hotword_model(mgr, "de");
   EXPECT_EQ(0, ret);
   EXPECT_EQ(2, snd_use_case_set_called);
-  EXPECT_EQ(1, snd_use_case_geti_called);
+  EXPECT_EQ(2, snd_use_case_geti_called);
   EXPECT_EQ(
       snd_use_case_set_param[0],
       std::make_pair(std::string("_dismod"), std::string("Hotword Model jp")));
