@@ -422,7 +422,7 @@ static void configure_echo_reference_dev(struct cras_alsa_card *alsa_card)
 			continue;
 
 		echo_ref_name = ucm_get_echo_reference_dev_name_for_dev(
-			alsa_card->ucm, dev_node->iodev->nodes->name);
+			alsa_card->ucm, dev_node->iodev->nodes->ucm_name);
 		if (!echo_ref_name)
 			continue;
 		DL_FOREACH (alsa_card->iodevs, echo_ref_node) {

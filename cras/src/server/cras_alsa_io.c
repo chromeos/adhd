@@ -870,7 +870,7 @@ static int set_alsa_node_swapped(struct cras_iodev *iodev,
 {
 	const struct alsa_io *aio = (const struct alsa_io *)iodev;
 	assert(aio);
-	return ucm_enable_swap_mode(aio->ucm, node->name, enable);
+	return ucm_enable_swap_mode(aio->ucm, node->ucm_name, enable);
 }
 
 /*
@@ -1149,7 +1149,8 @@ static void set_input_default_node_gain(struct alsa_input_node *input,
 	if (!aio->ucm)
 		return;
 
-	if (ucm_get_default_node_gain(aio->ucm, input->base.name, &gain) == 0)
+	if (ucm_get_default_node_gain(aio->ucm, input->base.ucm_name, &gain) ==
+	    0)
 		input->base.capture_gain = gain;
 }
 
@@ -1162,8 +1163,8 @@ static void set_input_node_intrinsic_sensitivity(struct alsa_input_node *input,
 	input->base.intrinsic_sensitivity = 0;
 
 	if (aio->ucm) {
-		rc = ucm_get_intrinsic_sensitivity(aio->ucm, input->base.name,
-						   &sensitivity);
+		rc = ucm_get_intrinsic_sensitivity(
+			aio->ucm, input->base.ucm_name, &sensitivity);
 		if (rc)
 			return;
 	} else if (input->base.type == CRAS_NODE_TYPE_USB) {
@@ -1243,6 +1244,7 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 		name ? name : cras_alsa_mixer_get_control_name(cras_output));
 
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
+	strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
 	set_output_node_software_volume_needed(output, aio);
 
@@ -1314,6 +1316,7 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 		input->base.is_sco_pcm = 1;
 	input->mixer_input = cras_input;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
+	strncpy(input->base.ucm_name, name, sizeof(input->base.ucm_name) - 1);
 	set_node_initial_state(&input->base, aio->card_type);
 	set_input_default_node_gain(input, aio);
 	set_input_node_intrinsic_sensitivity(input, aio);
@@ -1589,7 +1592,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR,
 			       "Jack '%s' was found to match output node '%s'."
 			       " Please fix your UCM configuration to match.",
-			       jack_name, node->base.name);
+			       jack_name, node->base.ucm_name);
 
 		/* If we already have the node, associate with the jack. */
 		node->jack = jack;
@@ -1662,7 +1665,7 @@ static void jack_input_plug_event(const struct cras_alsa_jack *jack,
 			syslog(LOG_ERR,
 			       "Jack '%s' was found to match input node '%s'."
 			       " Please fix your UCM configuration to match.",
-			       jack_name, node->base.name);
+			       jack_name, node->base.ucm_name);
 		node->jack = jack;
 	}
 
@@ -1722,12 +1725,12 @@ static int get_fixed_rate(struct alsa_io *aio)
 		struct alsa_output_node *active = get_active_output(aio);
 		if (!active)
 			return -ENOENT;
-		name = active->base.name;
+		name = active->base.ucm_name;
 	} else {
 		struct alsa_input_node *active = get_active_input(aio);
 		if (!active)
 			return -ENOENT;
-		name = active->base.name;
+		name = active->base.ucm_name;
 	}
 
 	return ucm_get_sample_rate_for_dev(aio->ucm, name, aio->base.direction);
@@ -1743,12 +1746,12 @@ static size_t get_fixed_channels(struct alsa_io *aio)
 		struct alsa_output_node *active = get_active_output(aio);
 		if (!active)
 			return -ENOENT;
-		name = active->base.name;
+		name = active->base.ucm_name;
 	} else {
 		struct alsa_input_node *active = get_active_input(aio);
 		if (!active)
 			return -ENOENT;
-		name = active->base.name;
+		name = active->base.ucm_name;
 	}
 
 	rc = ucm_get_channels_for_dev(aio->ucm, name, aio->base.direction,
@@ -1830,13 +1833,13 @@ static void enable_active_ucm(struct alsa_io *aio, int plugged)
 		struct alsa_output_node *active = get_active_output(aio);
 		if (!active)
 			return;
-		name = active->base.name;
+		name = active->base.ucm_name;
 		jack = active->jack;
 	} else {
 		struct alsa_input_node *active = get_active_input(aio);
 		if (!active)
 			return;
-		name = active->base.name;
+		name = active->base.ucm_name;
 		jack = active->jack;
 	}
 
@@ -2105,7 +2108,7 @@ static int support_noise_cancellation(const struct cras_iodev *iodev,
 	DL_FOREACH (iodev->nodes, n) {
 		if (n->idx == node_idx) {
 			return ucm_node_noise_cancellation_exists(aio->ucm,
-								  n->name);
+								  n->ucm_name);
 		}
 	}
 	return 0;

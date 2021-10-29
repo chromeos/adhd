@@ -106,6 +106,7 @@ enum CRAS_IODEV_STATE {
  *    type - Type displayed to the user.
  *    position - Specify where on the system this node locates.
  *    name - Name displayed to the user.
+ *    ucm_name - Name for the ucm device section.
  *    dsp_name - The "DspName" variable specified in the ucm config.
  *    active_hotword_model - name of the currently selected hotword model.
  *    softvol_scalers - pointer to software volume scalers.
@@ -132,6 +133,7 @@ struct cras_ionode {
 	enum CRAS_NODE_TYPE type;
 	enum CRAS_NODE_POSITION position;
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
+	char ucm_name[CRAS_NODE_NAME_BUFFER_SIZE];
 	const char *dsp_name;
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
 	float *softvol_scalers;
