@@ -312,6 +312,7 @@ TEST_F(BtPolicyTestSuite, ConnectionWatchTimeout) {
     else
       EXPECT_EQ((void*)suspend_policies, (void*)cras_tm_create_timer_cb_data);
   }
+  cras_bt_policy_stop_connection_watch(&device);
 }
 
 }  // namespace

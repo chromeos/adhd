@@ -349,11 +349,12 @@ static void conn_watch_cb(struct cras_timer *timer, void *arg)
 			policy->timer =
 				cras_tm_create_timer(tm, CONN_WATCH_PERIOD_MS,
 						     conn_watch_cb, policy);
+			return;
 		} else {
 			syslog(LOG_ERR, "Connection watch timeout.");
 			schedule_suspend(device, 0, CONN_WATCH_TIME_OUT);
+			goto done_with_policy;
 		}
-		return;
 	}
 
 	/* Expected profiles are all connected, no more connection watch
