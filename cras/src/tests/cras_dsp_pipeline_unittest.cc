@@ -50,6 +50,8 @@ struct data {
   int connect_port_called[MAX_MOCK_PORTS];
   float* data_location[MAX_MOCK_PORTS];
 
+  int configure_called;
+
   int run_called;
   float input[MAX_MOCK_PORTS];
   float output[MAX_MOCK_PORTS];
@@ -77,6 +79,11 @@ static void connect_port(struct dsp_module* module,
   struct data* data = (struct data*)module->data;
   data->connect_port_called[port]++;
   data->data_location[port] = data_location;
+}
+
+static void configure(struct dsp_module* module) {
+  struct data* data = (struct data*)module->data;
+  data->configure_called++;
 }
 
 static int get_delay(struct dsp_module* module) {
@@ -172,6 +179,7 @@ static struct dsp_module* create_mock_module(struct plugin* plugin) {
   module->data = data;
   module->instantiate = &instantiate;
   module->connect_port = &connect_port;
+  module->configure = &configure;
   module->get_delay = &get_delay;
   module->run = &run;
   module->deinstantiate = &deinstantiate;
@@ -289,6 +297,7 @@ TEST_F(DspPipelineTestSuite, Simple) {
   ASSERT_TRUE(d1->data_location[0]);
   ASSERT_TRUE(d1->data_location[1]);
   ASSERT_TRUE(d1->data_location[2]);
+  ASSERT_EQ(1, d1->configure_called);
   ASSERT_EQ(0, d1->run_called);
   ASSERT_EQ(0, d1->deinstantiate_called);
   ASSERT_EQ(0, d1->free_module_called);
@@ -306,6 +315,7 @@ TEST_F(DspPipelineTestSuite, Simple) {
   ASSERT_EQ(1, d2->connect_port_called[1]);
   ASSERT_TRUE(d2->data_location[0]);
   ASSERT_TRUE(d2->data_location[1]);
+  ASSERT_EQ(1, d2->configure_called);
   ASSERT_EQ(0, d2->run_called);
   ASSERT_EQ(0, d2->deinstantiate_called);
   ASSERT_EQ(0, d2->free_module_called);
@@ -486,6 +496,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
 
   /* re-instantiate */
   ASSERT_EQ(1, d5->instantiate_called);
+  ASSERT_EQ(1, d5->configure_called);
   ASSERT_EQ(1, d5->get_delay_called);
   ASSERT_EQ(1 + 3 + 5, cras_dsp_pipeline_get_delay(p));
 
@@ -494,6 +505,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
 
   ASSERT_EQ(1, d5->deinstantiate_called);
   ASSERT_EQ(2, d5->instantiate_called);
+  ASSERT_EQ(2, d5->configure_called);
   ASSERT_EQ(2, d5->get_delay_called);
   ASSERT_EQ(1 + 3 + 5, cras_dsp_pipeline_get_delay(p));
   ASSERT_EQ(0, d5->free_module_called);

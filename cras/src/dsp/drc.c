@@ -25,7 +25,10 @@ static void free_kernel(struct drc *drc);
 
 struct drc *drc_new(float sample_rate)
 {
-	struct drc *drc = (struct drc *)calloc(1, sizeof(struct drc));
+	struct drc *drc = calloc(1, sizeof(*drc));
+	if (!drc)
+		return NULL;
+
 	drc->sample_rate = sample_rate;
 	set_default_parameters(drc);
 	return drc;

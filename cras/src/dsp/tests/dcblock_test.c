@@ -45,18 +45,26 @@ static void test_file(const char *input_filename, const char *output_filename)
 
 	float *data = read_raw(input_filename, &frames);
 
-	dcblockl = dcblock_new(0.995, 48000);
-	dcblockr = dcblock_new(0.995, 48000);
+	dcblockl = dcblock_new();
+	dcblockr = dcblock_new();
+	if (!dcblockl || !dcblockr) {
+		printf("Error: failed to allocate memory for dcblock\n");
+		goto free_buffers;
+	}
+	dcblock_set_config(dcblockl, 0.995, 48000);
+	dcblock_set_config(dcblockr, 0.995, 48000);
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tp1);
 	process(dcblockl, data, frames);
 	process(dcblockr, data + frames, frames);
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tp2);
 	printf("processing takes %g seconds for %zu samples\n",
 	       tp_diff(&tp2, &tp1), frames);
-	dcblock_free(dcblockl);
-	dcblock_free(dcblockr);
 
 	write_raw(output_filename, data, frames);
+
+free_buffers:
+	dcblock_free(dcblockl);
+	dcblock_free(dcblockr);
 	free(data);
 }
 

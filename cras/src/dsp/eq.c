@@ -13,8 +13,7 @@ struct eq {
 
 struct eq *eq_new()
 {
-	struct eq *eq = (struct eq *)calloc(1, sizeof(*eq));
-	return eq;
+	return calloc(1, sizeof(struct eq));
 }
 
 void eq_free(struct eq *eq)

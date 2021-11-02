@@ -725,6 +725,11 @@ int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate,
 		}
 	}
 
+	ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
+		struct dsp_module *module = instance->module;
+		module->configure(module);
+	}
+
 	calculate_audio_delay(pipeline);
 	return 0;
 }

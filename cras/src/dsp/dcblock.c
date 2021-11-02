@@ -17,17 +17,21 @@ struct dcblock {
 	int initialized;
 };
 
-struct dcblock *dcblock_new(float R, unsigned long sample_rate)
+struct dcblock *dcblock_new()
 {
-	struct dcblock *dcblock = (struct dcblock *)calloc(1, sizeof(*dcblock));
-	dcblock->R = R;
-	dcblock->ramp_increment = 1000. / (float)(RAMP_TIME_MS * sample_rate);
-	return dcblock;
+	return calloc(1, sizeof(struct dcblock));
 }
 
 void dcblock_free(struct dcblock *dcblock)
 {
 	free(dcblock);
+}
+
+void dcblock_set_config(struct dcblock *dcblock, float R,
+			unsigned long sample_rate)
+{
+	dcblock->R = R;
+	dcblock->ramp_increment = 1000. / (float)(RAMP_TIME_MS * sample_rate);
 }
 
 /* This is the prototype of the processing loop. */

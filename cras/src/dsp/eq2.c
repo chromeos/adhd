@@ -13,8 +13,10 @@ struct eq2 {
 
 struct eq2 *eq2_new()
 {
-	struct eq2 *eq2 = (struct eq2 *)calloc(1, sizeof(*eq2));
 	int i, j;
+	struct eq2 *eq2 = calloc(1, sizeof(*eq2));
+	if (!eq2)
+		return NULL;
 
 	/* Initialize all biquads to identity filter, so if two channels have
 	 * different numbers of biquads, it still works. */

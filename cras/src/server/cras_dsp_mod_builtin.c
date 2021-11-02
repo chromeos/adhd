@@ -29,6 +29,10 @@ static void empty_connect_port(struct dsp_module *module, unsigned long port,
 {
 }
 
+static void empty_configure(struct dsp_module *module)
+{
+}
+
 static int empty_get_delay(struct dsp_module *module)
 {
 	return 0;
@@ -61,6 +65,7 @@ static void empty_init_module(struct dsp_module *module)
 {
 	module->instantiate = &empty_instantiate;
 	module->connect_port = &empty_connect_port;
+	module->configure = &empty_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &empty_run;
 	module->deinstantiate = &empty_deinstantiate;
@@ -99,9 +104,10 @@ static int quad_rotation_instantiate(struct dsp_module *module,
 	module->data = calloc(1, sizeof(struct quad_rotation));
 	if (!module->data) {
 		syslog(LOG_ERR, "quad_rotation calloc failed");
+		rc = -ENOMEM;
 		goto fail;
 	}
-	data = (struct quad_rotation *)module->data;
+	data = module->data;
 	expr = cras_expr_expression_parse("display_rotation");
 	rc = cras_expr_expression_eval_int(expr, env, (int *)&data->rotation);
 	cras_expr_expression_free(expr);
@@ -129,12 +135,10 @@ static int quad_rotation_instantiate(struct dsp_module *module,
 	return 0;
 
 fail:
-	if (module->data) {
-		free(module->data);
-		module->data = NULL;
-	}
-	syslog(LOG_ERR, "quad_rotation_instantiate failed");
-	return -1;
+	free(module->data);
+	module->data = NULL;
+	syslog(LOG_ERR, "quad_rotation_instantiate failed: %d", rc);
+	return rc;
 }
 
 static void quad_rotation_connect_port(struct dsp_module *module,
@@ -199,6 +203,7 @@ static void quad_rotation_init_module(struct dsp_module *module)
 {
 	module->instantiate = &quad_rotation_instantiate;
 	module->connect_port = &quad_rotation_connect_port;
+	module->configure = &empty_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &quad_rotation_run;
 	module->deinstantiate = &quad_rotation_deinstantiate;
@@ -215,6 +220,10 @@ static int swap_lr_instantiate(struct dsp_module *module,
 			       struct cras_expr_env *env)
 {
 	module->data = calloc(4, sizeof(float *));
+	if (!module->data) {
+		syslog(LOG_ERR, "swap_lr_instantiate failed: %d", -ENOMEM);
+		return -ENOMEM;
+	}
 	return 0;
 }
 
@@ -250,6 +259,7 @@ static void swap_lr_init_module(struct dsp_module *module)
 {
 	module->instantiate = &swap_lr_instantiate;
 	module->connect_port = &swap_lr_connect_port;
+	module->configure = &empty_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &swap_lr_run;
 	module->deinstantiate = &swap_lr_deinstantiate;
@@ -266,6 +276,10 @@ static int invert_lr_instantiate(struct dsp_module *module,
 				 struct cras_expr_env *env)
 {
 	module->data = calloc(4, sizeof(float *));
+	if (!module->data) {
+		syslog(LOG_ERR, "invert_lr_instantiate failed: %d", -ENOMEM);
+		return -ENOMEM;
+	}
 	return 0;
 }
 
@@ -297,6 +311,7 @@ static void invert_lr_init_module(struct dsp_module *module)
 {
 	module->instantiate = &invert_lr_instantiate;
 	module->connect_port = &invert_lr_connect_port;
+	module->configure = &empty_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &invert_lr_run;
 	module->deinstantiate = &invert_lr_deinstantiate;
@@ -313,6 +328,10 @@ static int mix_stereo_instantiate(struct dsp_module *module,
 				  struct cras_expr_env *env)
 {
 	module->data = calloc(4, sizeof(float *));
+	if (!module->data) {
+		syslog(LOG_ERR, "mix_stereo_instantiate failed: %d", -ENOMEM);
+		return -ENOMEM;
+	}
 	return 0;
 }
 
@@ -347,6 +366,7 @@ static void mix_stereo_init_module(struct dsp_module *module)
 {
 	module->instantiate = &mix_stereo_instantiate;
 	module->connect_port = &mix_stereo_connect_port;
+	module->configure = &empty_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &mix_stereo_run;
 	module->deinstantiate = &mix_stereo_deinstantiate;
@@ -373,29 +393,53 @@ static int dcblock_instantiate(struct dsp_module *module,
 {
 	struct dcblock_data *data;
 
-	module->data = calloc(1, sizeof(struct dcblock_data));
-	data = (struct dcblock_data *)module->data;
+	module->data = calloc(1, sizeof(*data));
+	if (!module->data) {
+		syslog(LOG_ERR, "dcblock_instantiate failed: %d", -ENOMEM);
+		return -ENOMEM;
+	}
+
+	data = module->data;
+	data->dcblockl = dcblock_new();
+	if (!data->dcblockl)
+		goto fail;
+	data->dcblockr = dcblock_new();
+	if (!data->dcblockr)
+		goto fail;
 	data->sample_rate = sample_rate;
 
 	return 0;
+fail:
+	dcblock_free(data->dcblockl);
+	dcblock_free(data->dcblockr);
+	free(module->data);
+	module->data = NULL;
+	syslog(LOG_ERR, "dcblock_instantiate failed: %d", -ENOMEM);
+	return -ENOMEM;
 }
 
 static void dcblock_connect_port(struct dsp_module *module, unsigned long port,
 				 float *data_location)
 {
-	struct dcblock_data *data = (struct dcblock_data *)module->data;
+	struct dcblock_data *data = module->data;
 	data->ports[port] = data_location;
+}
+
+static void dcblock_configure(struct dsp_module *module)
+{
+	struct dcblock_data *data = module->data;
+	if (!data) {
+		syslog(LOG_ERR, "dcblock is not instantiated");
+		return;
+	}
+
+	dcblock_set_config(data->dcblockl, *data->ports[4], data->sample_rate);
+	dcblock_set_config(data->dcblockr, *data->ports[4], data->sample_rate);
 }
 
 static void dcblock_run(struct dsp_module *module, unsigned long sample_count)
 {
-	struct dcblock_data *data = (struct dcblock_data *)module->data;
-	if (!data->dcblockl)
-		data->dcblockl =
-			dcblock_new(*data->ports[4], data->sample_rate);
-	if (!data->dcblockr)
-		data->dcblockr =
-			dcblock_new(*data->ports[4], data->sample_rate);
+	struct dcblock_data *data = module->data;
 	if (data->ports[0] != data->ports[2])
 		memcpy(data->ports[2], data->ports[0],
 		       sizeof(float) * sample_count);
@@ -409,7 +453,7 @@ static void dcblock_run(struct dsp_module *module, unsigned long sample_count)
 
 static void dcblock_deinstantiate(struct dsp_module *module)
 {
-	struct dcblock_data *data = (struct dcblock_data *)module->data;
+	struct dcblock_data *data = module->data;
 	if (data->dcblockl)
 		dcblock_free(data->dcblockl);
 	if (data->dcblockr)
@@ -421,6 +465,7 @@ static void dcblock_init_module(struct dsp_module *module)
 {
 	module->instantiate = &dcblock_instantiate;
 	module->connect_port = &dcblock_connect_port;
+	module->configure = &dcblock_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &dcblock_run;
 	module->deinstantiate = &dcblock_deinstantiate;
@@ -434,7 +479,7 @@ static void dcblock_init_module(struct dsp_module *module)
  */
 struct eq_data {
 	int sample_rate;
-	struct eq *eq; /* Initialized in the first call of eq_run() */
+	struct eq *eq; /* Initialized in eq_configure() */
 
 	/* One port for input, one for output, and 4 parameters per eq */
 	float *ports[2 + MAX_BIQUADS_PER_EQ * 4];
@@ -445,38 +490,56 @@ static int eq_instantiate(struct dsp_module *module, unsigned long sample_rate,
 {
 	struct eq_data *data;
 
-	module->data = calloc(1, sizeof(struct eq_data));
-	data = (struct eq_data *)module->data;
+	module->data = calloc(1, sizeof(*data));
+	if (!module->data)
+		goto fail;
+
+	data = module->data;
+	data->eq = eq_new();
+	if (!data->eq)
+		goto fail;
+
 	data->sample_rate = (int)sample_rate;
 	return 0;
+fail:
+	free(module->data);
+	module->data = NULL;
+	syslog(LOG_ERR, "eq_instantiate failed: %d", -ENOMEM);
+	return -ENOMEM;
 }
 
 static void eq_connect_port(struct dsp_module *module, unsigned long port,
 			    float *data_location)
 {
-	struct eq_data *data = (struct eq_data *)module->data;
+	struct eq_data *data = module->data;
 	data->ports[port] = data_location;
+}
+
+static void eq_configure(struct dsp_module *module)
+{
+	struct eq_data *data = module->data;
+	if (!data) {
+		syslog(LOG_ERR, "eq is not instantiated");
+		return;
+	}
+
+	float nyquist = data->sample_rate / 2;
+	int i;
+
+	for (i = 2; i < 2 + MAX_BIQUADS_PER_EQ * 4; i += 4) {
+		if (!data->ports[i])
+			break;
+		int type = (int)*data->ports[i];
+		float freq = *data->ports[i + 1];
+		float Q = *data->ports[i + 2];
+		float gain = *data->ports[i + 3];
+		eq_append_biquad(data->eq, type, freq / nyquist, Q, gain);
+	}
 }
 
 static void eq_run(struct dsp_module *module, unsigned long sample_count)
 {
-	struct eq_data *data = (struct eq_data *)module->data;
-	if (!data->eq) {
-		float nyquist = data->sample_rate / 2;
-		int i;
-
-		data->eq = eq_new();
-		for (i = 2; i < 2 + MAX_BIQUADS_PER_EQ * 4; i += 4) {
-			if (!data->ports[i])
-				break;
-			int type = (int)*data->ports[i];
-			float freq = *data->ports[i + 1];
-			float Q = *data->ports[i + 2];
-			float gain = *data->ports[i + 3];
-			eq_append_biquad(data->eq, type, freq / nyquist, Q,
-					 gain);
-		}
-	}
+	struct eq_data *data = module->data;
 	if (data->ports[0] != data->ports[1])
 		memcpy(data->ports[1], data->ports[0],
 		       sizeof(float) * sample_count);
@@ -485,7 +548,7 @@ static void eq_run(struct dsp_module *module, unsigned long sample_count)
 
 static void eq_deinstantiate(struct dsp_module *module)
 {
-	struct eq_data *data = (struct eq_data *)module->data;
+	struct eq_data *data = module->data;
 	if (data->eq)
 		eq_free(data->eq);
 	free(data);
@@ -495,6 +558,7 @@ static void eq_init_module(struct dsp_module *module)
 {
 	module->instantiate = &eq_instantiate;
 	module->connect_port = &eq_connect_port;
+	module->configure = &eq_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &eq_run;
 	module->deinstantiate = &eq_deinstantiate;
@@ -508,7 +572,7 @@ static void eq_init_module(struct dsp_module *module)
  */
 struct eq2_data {
 	int sample_rate;
-	struct eq2 *eq2; /* Initialized in the first call of eq2_run() */
+	struct eq2 *eq2; /* Initialized in eq2_configure() */
 
 	/* Two ports for input, two for output, and 8 parameters per eq pair */
 	float *ports[4 + MAX_BIQUADS_PER_EQ2 * 8];
@@ -519,41 +583,60 @@ static int eq2_instantiate(struct dsp_module *module, unsigned long sample_rate,
 {
 	struct eq2_data *data;
 
-	module->data = calloc(1, sizeof(struct eq2_data));
-	data = (struct eq2_data *)module->data;
+	module->data = calloc(1, sizeof(*data));
+	if (!module->data)
+		goto fail;
+
+	data = module->data;
+	data->eq2 = eq2_new();
+	if (!data->eq2)
+		goto fail;
+
 	data->sample_rate = (int)sample_rate;
 	return 0;
+fail:
+	free(module->data);
+	module->data = NULL;
+	syslog(LOG_ERR, "eq2_instantiate failed: %d", -ENOMEM);
+	return -ENOMEM;
 }
 
 static void eq2_connect_port(struct dsp_module *module, unsigned long port,
 			     float *data_location)
 {
-	struct eq2_data *data = (struct eq2_data *)module->data;
+	struct eq2_data *data = module->data;
 	data->ports[port] = data_location;
+}
+
+static void eq2_configure(struct dsp_module *module)
+{
+	struct eq2_data *data = module->data;
+	if (!data) {
+		syslog(LOG_ERR, "eq2 is not instantiated");
+		return;
+	}
+
+	float nyquist = data->sample_rate / 2;
+	int i, channel;
+
+	for (i = 4; i < 4 + MAX_BIQUADS_PER_EQ2 * 8; i += 8) {
+		if (!data->ports[i])
+			break;
+		for (channel = 0; channel < 2; channel++) {
+			int k = i + channel * 4;
+			int type = (int)*data->ports[k];
+			float freq = *data->ports[k + 1];
+			float Q = *data->ports[k + 2];
+			float gain = *data->ports[k + 3];
+			eq2_append_biquad(data->eq2, channel, type,
+					  freq / nyquist, Q, gain);
+		}
+	}
 }
 
 static void eq2_run(struct dsp_module *module, unsigned long sample_count)
 {
-	struct eq2_data *data = (struct eq2_data *)module->data;
-	if (!data->eq2) {
-		float nyquist = data->sample_rate / 2;
-		int i, channel;
-
-		data->eq2 = eq2_new();
-		for (i = 4; i < 4 + MAX_BIQUADS_PER_EQ2 * 8; i += 8) {
-			if (!data->ports[i])
-				break;
-			for (channel = 0; channel < 2; channel++) {
-				int k = i + channel * 4;
-				int type = (int)*data->ports[k];
-				float freq = *data->ports[k + 1];
-				float Q = *data->ports[k + 2];
-				float gain = *data->ports[k + 3];
-				eq2_append_biquad(data->eq2, channel, type,
-						  freq / nyquist, Q, gain);
-			}
-		}
-	}
+	struct eq2_data *data = module->data;
 
 	if (data->ports[0] != data->ports[2])
 		memcpy(data->ports[2], data->ports[0],
@@ -568,7 +651,7 @@ static void eq2_run(struct dsp_module *module, unsigned long sample_count)
 
 static void eq2_deinstantiate(struct dsp_module *module)
 {
-	struct eq2_data *data = (struct eq2_data *)module->data;
+	struct eq2_data *data = module->data;
 	if (data->eq2)
 		eq2_free(data->eq2);
 	free(data);
@@ -578,6 +661,7 @@ static void eq2_init_module(struct dsp_module *module)
 {
 	module->instantiate = &eq2_instantiate;
 	module->connect_port = &eq2_connect_port;
+	module->configure = &eq2_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &eq2_run;
 	module->deinstantiate = &eq2_deinstantiate;
@@ -591,7 +675,7 @@ static void eq2_init_module(struct dsp_module *module)
  */
 struct drc_data {
 	int sample_rate;
-	struct drc *drc; /* Initialized in the first call of drc_run() */
+	struct drc *drc; /* Initialized in drc_configure() */
 
 	/* Two ports for input, two for output, one for disable_emphasis,
 	 * and 8 parameters each band */
@@ -603,57 +687,76 @@ static int drc_instantiate(struct dsp_module *module, unsigned long sample_rate,
 {
 	struct drc_data *data;
 
-	module->data = calloc(1, sizeof(struct drc_data));
-	data = (struct drc_data *)module->data;
+	module->data = calloc(1, sizeof(*data));
+	if (!module->data)
+		goto fail;
+
+	data = module->data;
 	data->sample_rate = (int)sample_rate;
+	data->drc = drc_new(data->sample_rate);
+	if (!data->drc)
+		goto fail;
+
 	return 0;
+fail:
+	free(module->data);
+	module->data = NULL;
+	syslog(LOG_ERR, "drc_instantiate failed: %d", -ENOMEM);
+	return -ENOMEM;
 }
 
 static void drc_connect_port(struct dsp_module *module, unsigned long port,
 			     float *data_location)
 {
-	struct drc_data *data = (struct drc_data *)module->data;
+	struct drc_data *data = module->data;
 	data->ports[port] = data_location;
+}
+
+static void drc_configure(struct dsp_module *module)
+{
+	struct drc_data *data = module->data;
+	if (!data) {
+		syslog(LOG_ERR, "drc is not instantiated");
+		return;
+	}
+
+	int i;
+	float nyquist = data->sample_rate / 2;
+	struct drc *drc = data->drc;
+
+	drc->emphasis_disabled = (int)*data->ports[4];
+	for (i = 0; i < 3; i++) {
+		int k = 5 + i * 8;
+		float f = *data->ports[k];
+		float enable = *data->ports[k + 1];
+		float threshold = *data->ports[k + 2];
+		float knee = *data->ports[k + 3];
+		float ratio = *data->ports[k + 4];
+		float attack = *data->ports[k + 5];
+		float release = *data->ports[k + 6];
+		float boost = *data->ports[k + 7];
+		drc_set_param(drc, i, PARAM_CROSSOVER_LOWER_FREQ, f / nyquist);
+		drc_set_param(drc, i, PARAM_ENABLED, enable);
+		drc_set_param(drc, i, PARAM_THRESHOLD, threshold);
+		drc_set_param(drc, i, PARAM_KNEE, knee);
+		drc_set_param(drc, i, PARAM_RATIO, ratio);
+		drc_set_param(drc, i, PARAM_ATTACK, attack);
+		drc_set_param(drc, i, PARAM_RELEASE, release);
+		drc_set_param(drc, i, PARAM_POST_GAIN, boost);
+	}
+	drc_init(drc);
 }
 
 static int drc_get_delay(struct dsp_module *module)
 {
-	struct drc_data *data = (struct drc_data *)module->data;
+	struct drc_data *data = module->data;
 	return DRC_DEFAULT_PRE_DELAY * data->sample_rate;
 }
 
 static void drc_run(struct dsp_module *module, unsigned long sample_count)
 {
-	struct drc_data *data = (struct drc_data *)module->data;
-	if (!data->drc) {
-		int i;
-		float nyquist = data->sample_rate / 2;
-		struct drc *drc = drc_new(data->sample_rate);
+	struct drc_data *data = module->data;
 
-		data->drc = drc;
-		drc->emphasis_disabled = (int)*data->ports[4];
-		for (i = 0; i < 3; i++) {
-			int k = 5 + i * 8;
-			float f = *data->ports[k];
-			float enable = *data->ports[k + 1];
-			float threshold = *data->ports[k + 2];
-			float knee = *data->ports[k + 3];
-			float ratio = *data->ports[k + 4];
-			float attack = *data->ports[k + 5];
-			float release = *data->ports[k + 6];
-			float boost = *data->ports[k + 7];
-			drc_set_param(drc, i, PARAM_CROSSOVER_LOWER_FREQ,
-				      f / nyquist);
-			drc_set_param(drc, i, PARAM_ENABLED, enable);
-			drc_set_param(drc, i, PARAM_THRESHOLD, threshold);
-			drc_set_param(drc, i, PARAM_KNEE, knee);
-			drc_set_param(drc, i, PARAM_RATIO, ratio);
-			drc_set_param(drc, i, PARAM_ATTACK, attack);
-			drc_set_param(drc, i, PARAM_RELEASE, release);
-			drc_set_param(drc, i, PARAM_POST_GAIN, boost);
-		}
-		drc_init(drc);
-	}
 	if (data->ports[0] != data->ports[2])
 		memcpy(data->ports[2], data->ports[0],
 		       sizeof(float) * sample_count);
@@ -666,7 +769,7 @@ static void drc_run(struct dsp_module *module, unsigned long sample_count)
 
 static void drc_deinstantiate(struct dsp_module *module)
 {
-	struct drc_data *data = (struct drc_data *)module->data;
+	struct drc_data *data = module->data;
 	if (data->drc)
 		drc_free(data->drc);
 	free(data);
@@ -676,6 +779,7 @@ static void drc_init_module(struct dsp_module *module)
 {
 	module->instantiate = &drc_instantiate;
 	module->connect_port = &drc_connect_port;
+	module->configure = &drc_configure;
 	module->get_delay = &drc_get_delay;
 	module->run = &drc_run;
 	module->deinstantiate = &drc_deinstantiate;
@@ -696,26 +800,29 @@ static int sink_instantiate(struct dsp_module *module,
 			    unsigned long sample_rate,
 			    struct cras_expr_env *env)
 {
-	module->data = (struct sink_data *)calloc(1, sizeof(struct sink_data));
+	module->data = calloc(1, sizeof(struct sink_data));
+	if (!module->data) {
+		syslog(LOG_ERR, "sink_instantiate failed: %d", -ENOMEM);
+		return -ENOMEM;
+	}
 	return 0;
 }
 
 static void sink_deinstantiate(struct dsp_module *module)
 {
-	struct sink_data *data = (struct sink_data *)module->data;
-	free(data);
+	free(module->data);
 }
 
 static void sink_connect_port(struct dsp_module *module, unsigned long port,
 			      float *data_location)
 {
-	struct sink_data *data = (struct sink_data *)module->data;
+	struct sink_data *data = module->data;
 	data->ports[port] = data_location;
 }
 
 static void sink_run(struct dsp_module *module, unsigned long sample_count)
 {
-	struct sink_data *data = (struct sink_data *)module->data;
+	struct sink_data *data = module->data;
 
 	if (!data->ext_module)
 		return;
@@ -726,6 +833,7 @@ static void sink_init_module(struct dsp_module *module)
 {
 	module->instantiate = &sink_instantiate;
 	module->connect_port = &sink_connect_port;
+	module->configure = &empty_configure;
 	module->get_delay = &empty_get_delay;
 	module->run = &sink_run;
 	module->deinstantiate = &sink_deinstantiate;
@@ -737,7 +845,7 @@ static void sink_init_module(struct dsp_module *module)
 void cras_dsp_module_set_sink_ext_module(struct dsp_module *module,
 					 struct ext_dsp_module *ext_module)
 {
-	struct sink_data *data = (struct sink_data *)module->data;
+	struct sink_data *data = module->data;
 	int i;
 	data->ext_module = ext_module;
 

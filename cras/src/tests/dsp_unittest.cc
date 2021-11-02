@@ -106,6 +106,8 @@ static void empty_connect_port(struct dsp_module* module,
                                unsigned long port,
                                float* data_location) {}
 
+static void empty_configure(struct dsp_module* module) {}
+
 static int empty_get_delay(struct dsp_module* module) {
   return 0;
 }
@@ -129,6 +131,7 @@ static void empty_dump(struct dsp_module* module, struct dumper* d) {
 static void empty_init_module(struct dsp_module* module) {
   module->instantiate = &empty_instantiate;
   module->connect_port = &empty_connect_port;
+  module->configure = &empty_configure;
   module->get_delay = &empty_get_delay;
   module->run = &empty_run;
   module->deinstantiate = &empty_deinstantiate;

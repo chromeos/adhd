@@ -14,18 +14,22 @@ extern "C" {
 
 struct dcblock;
 
+/* Create a DC blocking filter. */
+struct dcblock *dcblock_new();
+
+/* Free a DC blocking filter. */
+void dcblock_free(struct dcblock *dcblock);
+
 /*
- * Create a DC blocking filter.
+ * Configure a DC blocking filter.
  *
  * Transfer fn: (1 - z^-1) / (1 - R * z^-1)
  * Args:
  *    R - DC block filter coefficient.
  *    sample_rate - The sample rate, in Hz.
  */
-struct dcblock *dcblock_new(float R, unsigned long sample_rate);
-
-/* Free a DC blocking filter. */
-void dcblock_free(struct dcblock *dcblock);
+void dcblock_set_config(struct dcblock *dcblock, float R,
+			unsigned long sample_rate);
 
 /* Process a buffer of audio data through the filter.
  * Args:

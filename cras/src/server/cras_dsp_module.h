@@ -26,7 +26,8 @@ struct dsp_module {
 	 *    sample_rate - The sampling rate for the audio data, like 44100.
 	 *    env         - The expression environment.
 	 * Returns:
-	 *    0 if the initialization is successful. -1 otherwise.
+	 *    0 if the initialization is successful. A negative error code
+	 *    otherwise.
 	 */
 	int (*instantiate)(struct dsp_module *mod, unsigned long sample_rate,
 			   struct cras_expr_env *env);
@@ -38,6 +39,12 @@ struct dsp_module {
 	 */
 	void (*connect_port)(struct dsp_module *mod, unsigned long port,
 			     float *data_location);
+
+	/* Configures parameters from the data in control ports if any, and
+	 * initializes the dsp engine if necessary. It should be called once
+	 * prior to the run() call.
+	 */
+	void (*configure)(struct dsp_module *mod);
 
 	/* Returns the buffering delay of this module. This should be called
 	 * only after all input control ports have been connected.
