@@ -18,9 +18,10 @@ use max98390d::Max98390;
 type Result<T> = std::result::Result<T, Error>;
 const CONF_DIR: &str = "/etc/sound_card_init";
 
-/// It creates `Amp` object based on the sound card name.
+/// It creates `Amp` object based on the speaker amplifier name.
 pub struct AmpBuilder<'a> {
     sound_card_id: &'a str,
+    amp: &'a str,
     config_path: PathBuf,
 }
 
@@ -29,28 +30,30 @@ impl<'a> AmpBuilder<'a> {
     /// # Arguments
     ///
     /// * `card_name` - card name.
+    /// * `amp` - speaker amplifier name.
     /// * `conf_file` - config file name.
-    pub fn new(sound_card_id: &'a str, conf_file: &'a str) -> Self {
+    pub fn new(sound_card_id: &'a str, amp: &'a str, conf_file: &'a str) -> Self {
         let config_path = PathBuf::from(CONF_DIR).join(conf_file);
         AmpBuilder {
             sound_card_id,
+            amp,
             config_path,
         }
     }
 
-    /// Creates an `Amp` based on the sound card name.
+    /// Creates an `Amp` based on the speaker amplifier name.
     pub fn build(&self) -> Result<Box<dyn Amp>> {
-        match self.sound_card_id {
-            "sofcmlmax98390d" => {
+        match self.amp {
+            "MAX98390" => {
                 Ok(Box::new(Max98390::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
             }
-            "sofrt5682" => {
+            "MAX98373" => {
                 Ok(Box::new(Max98373::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
             }
-            "mt8195r10115682" => {
+            "ALC1011" => {
                 Ok(Box::new(ALC1011::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
             }
-            _ => Err(Error::UnsupportedSoundCard(self.sound_card_id.to_owned())),
+            _ => Err(Error::UnsupportedAmp(self.amp.to_owned())),
         }
     }
 }

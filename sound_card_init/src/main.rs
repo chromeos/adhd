@@ -29,6 +29,7 @@ type Result<T> = std::result::Result<T, Error>;
 #[derive(Default)]
 struct Args {
     pub sound_card_id: String,
+    pub amp: String,
     pub conf: String,
 }
 
@@ -59,6 +60,12 @@ fn print_usage(opts: &Options) {
 fn parse_args() -> Result<Args> {
     let mut opts = Options::new();
     opts.optopt("", "id", "sound card id", "ID");
+    opts.optopt(
+        "",
+        "amp",
+        "the speaker amp on the device. It should be $(cros_config /audio/main speaker-amp)",
+        "Amp",
+    );
     opts.optopt(
         "",
         "conf",
@@ -95,6 +102,14 @@ fn parse_args() -> Result<Args> {
             e
         })?;
 
+    let amp = matches
+        .opt_str("amp")
+        .ok_or_else(|| Error::MissingOption("amp".to_owned()))
+        .map_err(|e| {
+            print_usage(&opts);
+            e
+        })?;
+
     let conf = matches
         .opt_str("conf")
         .ok_or_else(|| Error::MissingOption("conf".to_owned()))
@@ -105,6 +120,7 @@ fn parse_args() -> Result<Args> {
 
     Ok(Args {
         sound_card_id,
+        amp,
         conf,
     })
 }
@@ -112,7 +128,7 @@ fn parse_args() -> Result<Args> {
 /// Parses the CONF_DIR/${args.conf}.yaml and starts the boot time calibration.
 fn sound_card_init(args: &Args) -> std::result::Result<(), Box<dyn error::Error>> {
     info!("sound_card_id: {}, conf:{}", args.sound_card_id, args.conf);
-    AmpBuilder::new(&args.sound_card_id, &args.conf)
+    AmpBuilder::new(&args.sound_card_id, &args.amp, &args.conf)
         .build()?
         .boot_time_calibration()?;
 
