@@ -121,12 +121,9 @@ static int enter_no_stream(struct a2dp_io *a2dpio)
 {
 	struct cras_iodev *odev = &a2dpio->base;
 	int rc;
-	/*
-         * Setting target level to 3 times of min_buffer_level.
-         * We want hw_level to stay bewteen 1-2 times of min_buffer_level on
-	 * top of the underrun threshold(i.e one min_cb_level).
-         */
-	rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
+
+	/* We want hw_level to stay bewteen 1-2 times of write_block. */
+	rc = fill_zeros_to_target_level(odev, 2 * a2dpio->write_block);
 	if (rc)
 		syslog(LOG_ERR, "Error in A2DP enter_no_stream");
 	return flush(odev);
@@ -143,10 +140,9 @@ static int leave_no_stream(struct a2dp_io *a2dpio)
 
 	/*
 	 * Since stream data is ready, just make sure hw_level doesn't underrun
-	 * after one flush. Hence setting the target level to 2 times of
-	 * min_buffer_level.
+	 * after one flush. Hence setting the target level to write_block.
          */
-	return fill_zeros_to_target_level(odev, 2 * odev->min_buffer_level);
+	return fill_zeros_to_target_level(odev, a2dpio->write_block);
 }
 
 /*
