@@ -1825,11 +1825,11 @@ static struct option long_options[] = {
 	{"aecdump",             required_argument,      0, 'G'},
 	{"dump_bt",             no_argument,            0, 'H'},
 	{"set_wbs_enabled",     required_argument,      0, 'I'},
-	{"follow_atlog",	no_argument,		0, 'J'},
+	{"follow_atlog",        no_argument,            0, 'J'},
 	{"connection_type",     required_argument,      0, 'K'},
 	{"loopback_file",       required_argument,      0, 'L'},
 	{"mute_loop_test",      required_argument,      0, 'M'},
-	{"dump_main",		no_argument,		0, 'N'},
+	{"dump_main",           no_argument,            0, 'N'},
 	{"playback_file",       required_argument,      0, 'P'},
 	{"stream_type",         required_argument,      0, 'T'},
 	{0, 0, 0, 0}
