@@ -25,13 +25,15 @@ access: 1
 getrandom: 1
 faccessat: 1
 faccessat2: 1
-mmap2: 1
+# Don't allow mmap2 with both PROT_WRITE and PROT_EXEC.
+mmap2: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
 epoll_wait: 1
 getsockopt: 1
 accept: 1
 stat64: 1
 statx: 1
-mprotect: 1
+# Don't allow mprotect with PROT_EXEC.
+mprotect: arg2 in ~PROT_EXEC
 gettimeofday: 1
 getdents64: 1
 brk: 1
