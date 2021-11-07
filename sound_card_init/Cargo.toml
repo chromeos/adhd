@@ -25,9 +25,9 @@ sof_sys = "*"
 sys_util = "*"
 
 [patch.crates-io]
-audio_streams = { path = "../../../platform/crosvm/audio_streams" }  # ignored by ebuild
+audio_streams = { path = "../../../platform/crosvm/common/audio_streams" }  # ignored by ebuild
 cros_alsa = { path = "../cros_alsa" } # ignored by ebuild
 cros_alsa_derive = { path = "../cros_alsa/cros_alsa_derive" } # ignored by ebuild
 libcras = { path = "../cras/client/libcras" }  # ignored by ebuild
 sof_sys = { path = "../sof_sys" }  # ignored by ebuild
-sys_util = { path = "../../../platform/crosvm/sys_util" } # ignored by ebuild
+sys_util = { path = "../../../platform/crosvm/common/sys_util" } # ignored by ebuild

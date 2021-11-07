@@ -9,12 +9,12 @@ path = "src/libcras.rs"
 
 [dependencies]
 async-trait = "0.1.36"
-audio_streams = { path = "../../../../../platform/crosvm/audio_streams" } # provided by ebuild
+audio_streams = { path = "../../../../../platform/crosvm/common/audio_streams" } # provided by ebuild
 libc = "*"
-cros_async = { path = "../../../../../platform/crosvm/cros_async" } # provided by ebuild
+cros_async = { path = "../../../../../platform/crosvm/common/cros_async" } # provided by ebuild
 cras-sys = { path = "../cras-sys" } # provided by ebuild
-data_model = { path = "../../../../../platform/crosvm/data_model" } # provided by ebuild
-sys_util = { path = "../../../../../platform/crosvm/sys_util" } # provided by ebuild
+data_model = { path = "../../../../../platform/crosvm/common/data_model" } # provided by ebuild
+sys_util = { path = "../../../../../platform/crosvm/common/sys_util" } # provided by ebuild
 
 [dependencies.futures]
 version = "*"
