@@ -392,6 +392,7 @@ TEST(AlsaIoInit, OpenPlayback) {
   /* Call open_dev once on update_max_supported_channels. */
   EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   aio = (struct alsa_io*)iodev;
   format.frame_rate = 48000;
   format.num_channels = 1;
@@ -405,7 +406,7 @@ TEST(AlsaIoInit, OpenPlayback) {
   iodev->configure_dev(iodev);
   EXPECT_EQ(2, cras_alsa_open_called);
   EXPECT_EQ(1, sys_set_volume_limits_called);
-  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
+  EXPECT_EQ(2, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
   EXPECT_EQ(0, cras_iodev_set_node_plugged_called);
   EXPECT_EQ(0, aio->free_running);
@@ -959,7 +960,7 @@ TEST(AlsaIoInit, MaxSupportedChannels) {
   }
 }
 
-// Test that system settins aren't touched if no streams active.
+// Test that system settings aren't touched if no streams active.
 TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   int rc;
   struct alsa_io* aio;
@@ -985,7 +986,8 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
                                   aio->base.nodes->next, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, alsa_mixer_set_mute_called);
-  EXPECT_EQ(0, alsa_mixer_set_dBFS_called);
+  // Do set the volume even if no stream
+  EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   ASSERT_EQ(2, cras_alsa_mixer_set_output_active_state_called);
   EXPECT_EQ(outputs[0], cras_alsa_mixer_set_output_active_state_outputs[0]);
   EXPECT_EQ(0, cras_alsa_mixer_set_output_active_state_values[0]);
@@ -1997,6 +1999,8 @@ TEST_F(AlsaVolumeMuteSuite, SetVolume) {
   struct cras_audio_format* fmt;
   const size_t fake_system_volume = 55;
   const size_t fake_system_volume_dB = (fake_system_volume - 100) * 100;
+
+  ResetStubData();
 
   fmt = (struct cras_audio_format*)malloc(sizeof(*fmt));
   memcpy(fmt, &fmt_, sizeof(fmt_));

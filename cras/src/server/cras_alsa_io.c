@@ -781,10 +781,6 @@ static void set_alsa_volume(struct cras_iodev *iodev)
 	if (aio->mixer == NULL)
 		return;
 
-	/* Only set the volume if the dev is active. */
-	if (!has_handle(aio))
-		return;
-
 	volume = cras_system_get_volume();
 	curve = get_curve_for_active_output(aio);
 	if (curve == NULL)
