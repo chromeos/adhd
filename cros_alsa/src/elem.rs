@@ -58,91 +58,65 @@ impl fmt::Display for Error {
     }
 }
 
-// Uses a recursive macro to generate implementation for [bool; n] and [i32; n], n = 1 to 128.
-// The `$t:ident $($ts:ident)*` part matches and removes one token at a time. It's used for
-// counting recursive steps.
-macro_rules! impl_for_array {
-    {$n:expr, $type:ty, $t:ident $($ts:ident)*} => {
-        impl Elem for [$type; $n] {
-            type T = Self;
-            /// Reads [$type; $n] data from the mixer control.
-            ///
-            /// # Errors
-            ///
-            /// * If it fails to call `snd_ctl_elem_read()`.
-            fn load(handle: &mut Ctl, id: &ElemId) -> Result<Self::T>
-            {
-                let mut elem = ElemValue::new(id)?;
-                // Safe because self.handle.as_mut_ptr() is a valid *mut snd_ctl_t and
-                // elem.as_mut_ptr() is also a valid *mut snd_ctl_elem_value_t.
-                let rc = unsafe { alsa_sys::snd_ctl_elem_read(handle.as_mut_ptr(), elem.as_mut_ptr()) };
-                if rc < 0 {
-                    return Err(Error::ElemReadFailed(rc));
-                }
-                let mut ret = [Default::default(); $n];
-                for i in 0..$n {
-                    // Safe because elem.as_ptr() is a valid snd_ctl_elem_value_t* and i is guaranteed to be
-                    // within a valid range.
-                    ret[i] = unsafe { <$type>::elem_value_get(&elem, i) };
-                }
-                Ok(ret)
-            }
-
-            /// Updates [$type; $n] data to the mixer control.
-            ///
-            /// # Results
-            ///
-            /// * `changed` - false on success.
-            ///             - true on success when value was changed.
-            ///
-            /// # Errors
-            ///
-            /// * If it fails to call `snd_ctl_elem_write()`.
-            fn save(handle: &mut Ctl, id: &ElemId, val: Self::T) -> Result<bool> {
-                let mut elem = ElemValue::new(id)?;
-                for i in 0..$n {
-                    // Safe because elem.as_mut_ptr() is a valid snd_ctl_elem_value_t* and i is guaranteed to be
-                    // within a valid range.
-                    unsafe { <$type>::elem_value_set(&mut elem, i, val[i]) };
-                }
-                // Safe because self.handle.as_mut_ptr() is a valid *mut snd_ctl_t and
-                // elem.as_mut_ptr() is also a valid *mut snd_ctl_elem_value_t.
-                let rc = unsafe { alsa_sys::snd_ctl_elem_write(handle.as_mut_ptr(), elem.as_mut_ptr()) };
-                if rc < 0 {
-                    return Err(Error::ElemWriteFailed(rc));
-                }
-                Ok(rc > 0)
-            }
-
-            /// Gets the data type itself can read and write.
-            fn elem_type() -> ElemType {
-                <$type>::elem_type()
-            }
-
-            /// Gets the number of value entries itself can read and write.
-            fn size() -> usize {
-                $n
-            }
+impl<V: CtlElemValue, const N: usize> Elem for [V; N] {
+    type T = [<V as CtlElemValue>::T; N];
+    /// Reads [V; N] data from the mixer control.
+    ///
+    /// # Errors
+    ///
+    /// * If it fails to call `snd_ctl_elem_read()`.
+    fn load(handle: &mut Ctl, id: &ElemId) -> Result<Self::T> {
+        let mut elem = ElemValue::new(id)?;
+        // Safe because self.handle.as_mut_ptr() is a valid *mut snd_ctl_t and
+        // elem.as_mut_ptr() is also a valid *mut snd_ctl_elem_value_t.
+        let rc = unsafe { alsa_sys::snd_ctl_elem_read(handle.as_mut_ptr(), elem.as_mut_ptr()) };
+        if rc < 0 {
+            return Err(Error::ElemReadFailed(rc));
         }
-        impl_for_array!{($n - 1), $type, $($ts)*}
-    };
-    {$n:expr, $type:ty,} => {};
-}
+        let mut ret = [Default::default(); N];
+        for i in 0..N {
+            // Safe because elem.as_ptr() is a valid snd_ctl_elem_value_t* and i is guaranteed to be
+            // within a valid range.
+            ret[i] = unsafe { V::elem_value_get(&elem, i) };
+        }
+        Ok(ret)
+    }
 
-// Implements `Elem` for [i32; n] where n = 1 to 128.
-impl_for_array! {128, i32,
-T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
-T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
-T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
-T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
-}
+    /// Updates [V; N] data to the mixer control.
+    ///
+    /// # Results
+    ///
+    /// * `changed` - false on success.
+    ///             - true on success when value was changed.
+    ///
+    /// # Errors
+    ///
+    /// * If it fails to call `snd_ctl_elem_write()`.
+    fn save(handle: &mut Ctl, id: &ElemId, val: Self::T) -> Result<bool> {
+        let mut elem = ElemValue::new(id)?;
+        for i in 0..N {
+            // Safe because elem.as_mut_ptr() is a valid snd_ctl_elem_value_t* and i is guaranteed to be
+            // within a valid range.
+            unsafe { V::elem_value_set(&mut elem, i, val[i]) };
+        }
+        // Safe because self.handle.as_mut_ptr() is a valid *mut snd_ctl_t and
+        // elem.as_mut_ptr() is also a valid *mut snd_ctl_elem_value_t.
+        let rc = unsafe { alsa_sys::snd_ctl_elem_write(handle.as_mut_ptr(), elem.as_mut_ptr()) };
+        if rc < 0 {
+            return Err(Error::ElemWriteFailed(rc));
+        }
+        Ok(rc > 0)
+    }
 
-// Implements `Elem` for [bool; n] where n = 1 to 128.
-impl_for_array! {128, bool,
-T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
-T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
-T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
-T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T
+    /// Gets the data type itself can read and write.
+    fn elem_type() -> ElemType {
+        V::elem_type()
+    }
+
+    /// Gets the number of value entries itself can read and write.
+    fn size() -> usize {
+        N
+    }
 }
 
 impl CtlElemValue for bool {
@@ -178,9 +152,9 @@ impl CtlElemValue for i32 {
 }
 
 /// All primitive types of a control element should implement `CtlElemValue` trait.
-trait CtlElemValue {
+pub trait CtlElemValue {
     /// The primitive type of a control element.
-    type T;
+    type T: Default + Clone + Copy;
     /// Gets the value from the ElemValue.
     unsafe fn elem_value_get(value: &ElemValue, idx: usize) -> Self::T;
     /// Sets the value to the ElemValue.

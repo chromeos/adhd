@@ -37,8 +37,6 @@
 //! }
 //! ```
 
-// Allow the maximum recursive depth = 256 for macro expansion.
-#![recursion_limit = "256"]
 #![deny(missing_docs)]
 
 mod card;
