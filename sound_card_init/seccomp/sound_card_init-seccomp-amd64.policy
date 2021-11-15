@@ -47,6 +47,7 @@ mmap: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
 mprotect: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
 munmap: 1
 nanosleep: 1
+newfstatat: 1
 clock_nanosleep: 1
 openat: 1
 pipe2: 1
