@@ -1108,7 +1108,6 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 				       struct alsa_io *aio)
 {
 	struct cras_alsa_mixer *mixer = aio->mixer;
-	long range = 0;
 
 	if (aio->ucm && ucm_get_disable_software_volume(aio->ucm)) {
 		output->base.software_volume_needed = 0;
@@ -1124,15 +1123,6 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 	     !cras_alsa_mixer_has_volume(output->mixer_output)))
 		output->base.software_volume_needed = 1;
 
-	/* Use software volume if the usb device's volume range is smaller
-	 * than 40dB */
-	if (output->base.type == CRAS_NODE_TYPE_USB) {
-		range += cras_alsa_mixer_get_dB_range(mixer);
-		range += cras_alsa_mixer_get_output_dB_range(
-			output->mixer_output);
-		if (range < 4000)
-			output->base.software_volume_needed = 1;
-	}
 	if (output->base.software_volume_needed)
 		syslog(LOG_DEBUG, "Use software volume for node: %s",
 		       output->base.name);

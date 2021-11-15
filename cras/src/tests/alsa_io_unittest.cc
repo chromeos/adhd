@@ -472,36 +472,6 @@ TEST(AlsaIoInit, UsbCardAutoPlug) {
   alsa_iodev_destroy(iodev);
 }
 
-TEST(AlsaIoInit, UsbCardUseSoftwareVolume) {
-  struct cras_iodev* iodev;
-
-  alsa_mixer_get_dB_range_value = 1000;
-  alsa_mixer_get_output_dB_range_value = 1000;
-  ResetStubData();
-  iodev = alsa_iodev_create_with_default_parameters(0, NULL, ALSA_CARD_TYPE_USB,
-                                                    1, fake_mixer, fake_config,
-                                                    NULL, CRAS_STREAM_OUTPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(1, alsa_mixer_get_dB_range_called);
-  EXPECT_EQ(1, alsa_mixer_get_output_dB_range_called);
-  EXPECT_EQ(1, iodev->active_node->software_volume_needed);
-  alsa_iodev_destroy(iodev);
-
-  alsa_mixer_get_dB_range_value = 3000;
-  alsa_mixer_get_output_dB_range_value = 2000;
-  ResetStubData();
-  iodev = alsa_iodev_create_with_default_parameters(0, NULL, ALSA_CARD_TYPE_USB,
-                                                    1, fake_mixer, fake_config,
-                                                    NULL, CRAS_STREAM_OUTPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(1, alsa_mixer_get_dB_range_called);
-  EXPECT_EQ(1, alsa_mixer_get_output_dB_range_called);
-  EXPECT_EQ(0, iodev->active_node->software_volume_needed);
-  alsa_iodev_destroy(iodev);
-}
-
 TEST(AlsaIoInit, SoftwareGainIntrinsicSensitivity) {
   struct cras_iodev* iodev;
   struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
