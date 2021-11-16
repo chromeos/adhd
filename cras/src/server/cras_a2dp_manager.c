@@ -29,12 +29,22 @@
 #define FLOSS_A2DP_DATA_PATH "/run/bluetooth/audio/.a2dp_data"
 
 /*
+ * Object holding information about scheduled task to synchronize
+ * with BT stack for delay estimation.
+ */
+struct delay_sync_policy {
+	unsigned int msec;
+	struct cras_timer *timer;
+};
+
+/*
  * Object holding information and resources of a connected A2DP headset.
  * Members:
  *    fm - Object representing the media interface of BT adapter.
  *    iodev - The connected a2dp iodev.
  *    skt_fd - The socket fd to the a2dp device.
  *    suspend_timer - Timer to schedule suspending iodev at failures.
+ *    delay_sync - The object representing scheduled delay sync task.
  *    addr - The address of connected a2dp device.
  *    support_absolute_volume - If the connected a2dp device supports absolute
  *    volume.
@@ -44,6 +54,7 @@ struct cras_a2dp {
 	struct cras_iodev *iodev;
 	int skt_fd;
 	struct cras_timer *suspend_timer;
+	struct delay_sync_policy *delay_sync;
 	char *addr;
 	bool support_absolute_volume;
 };
@@ -104,6 +115,60 @@ static void a2dp_cancel_suspend()
 	tm = cras_system_state_get_tm();
 	cras_tm_cancel_timer(tm, connected_a2dp->suspend_timer);
 	connected_a2dp->suspend_timer = NULL;
+}
+
+static void delay_sync_cb(struct cras_timer *timer, void *arg)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+	struct timespec data_position_ts = { 0, 0 };
+	uint64_t total_bytes_read = 0;
+	uint64_t remote_delay_report_ns = 0;
+	struct cras_a2dp *a2dp = (struct cras_a2dp *)arg;
+
+	/* Updates BT stack delay only when Floss returns valid values. */
+	if (0 == floss_media_a2dp_get_presentation_position(
+			 a2dp->fm, &remote_delay_report_ns, &total_bytes_read,
+			 &data_position_ts))
+		a2dp_pcm_update_bt_stack_delay(a2dp->iodev,
+					       remote_delay_report_ns,
+					       total_bytes_read,
+					       &data_position_ts);
+
+	a2dp->delay_sync->timer = cras_tm_create_timer(
+		tm, a2dp->delay_sync->msec, delay_sync_cb, a2dp);
+	return;
+}
+
+void cras_floss_a2dp_delay_sync(struct cras_a2dp *a2dp, unsigned int init_msec,
+				unsigned int period_msec)
+{
+	struct cras_tm *tm;
+
+	if (a2dp->delay_sync || !a2dp->iodev)
+		return;
+
+	tm = cras_system_state_get_tm();
+	a2dp->delay_sync = (struct delay_sync_policy *)calloc(
+		1, sizeof(*a2dp->delay_sync));
+	a2dp->delay_sync->msec = period_msec;
+	a2dp->delay_sync->timer =
+		cras_tm_create_timer(tm, init_msec, delay_sync_cb, a2dp);
+	return;
+}
+
+static void cancel_a2dp_delay_sync(struct cras_a2dp *a2dp)
+{
+	struct cras_tm *tm = cras_system_state_get_tm();
+
+	if (!a2dp->delay_sync)
+		return;
+
+	if (a2dp->delay_sync->timer)
+		cras_tm_cancel_timer(tm, a2dp->delay_sync->timer);
+
+	free(a2dp->delay_sync);
+	a2dp->delay_sync = NULL;
+	return;
 }
 
 static void a2dp_process_msg(struct cras_main_message *msg, void *arg)
@@ -301,6 +366,7 @@ const char *cras_floss_a2dp_get_addr(struct cras_a2dp *a2dp)
 
 int cras_floss_a2dp_stop(struct cras_a2dp *a2dp)
 {
+	cancel_a2dp_delay_sync(connected_a2dp);
 	floss_media_a2dp_stop_audio_request(a2dp->fm);
 	return 0;
 }

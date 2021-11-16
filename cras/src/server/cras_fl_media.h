@@ -6,6 +6,9 @@
 #ifndef CRAS_FL_MEDIA_H_
 #define CRAS_FL_MEDIA_H_
 
+#include <stdint.h>
+#include <time.h>
+
 #include <dbus/dbus.h>
 
 #define FL_SAMPLE_RATES 8
@@ -43,6 +46,11 @@ int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr);
 /* Calls SetAudioConfig method to Floss media interface. */
 int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
 				      unsigned int bps, unsigned int channels);
+
+/* Calls GetPresentationPosition method to Floss media interface. */
+int floss_media_a2dp_get_presentation_position(
+	struct fl_media *fm, uint64_t *remote_delay_report_ns,
+	uint64_t *total_bytes_read, struct timespec *data_position_ts);
 
 /* Calls SetVolume method to Floss media interface. */
 int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume);

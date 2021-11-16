@@ -6,6 +6,8 @@
 #ifndef CRAS_A2DP_PCM_IODEV_H_
 #define CRAS_A2DP_PCM_IODEV_H_
 
+#include <stdint.h>
+
 struct cras_a2dp;
 
 /* Creates an a2dp pcm iodev. Format bitmaps as defined in cras_fl_media.h
@@ -24,5 +26,18 @@ void a2dp_pcm_iodev_destroy(struct cras_iodev *iodev);
 
 /* Update the volume of a2dp pcm iodev. */
 void a2dp_pcm_update_volume(struct cras_iodev *iodev, unsigned int volume);
+
+/* Updates the audio delay by information from BT stack. This is supposed
+ * to be used along with Floss API GetPresentationPosition.
+ * Args:
+ *    iodev - The a2dp_pcm iodev.
+ *    total_bytes_read - The total number of bytes have been read by BT stack.
+ *    remote_delay_report_ns - The AVDTP delay reporting from headset.
+ *    data_position_ts - The timestamp of when BT stack read the last byte.
+ */
+void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
+				    uint64_t total_bytes_read,
+				    uint64_t remote_delay_report_ns,
+				    struct timespec *data_position_ts);
 
 #endif /* CRS_A2DP_PCM_IODEV_H_ */

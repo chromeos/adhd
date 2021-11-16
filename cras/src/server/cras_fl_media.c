@@ -250,6 +250,140 @@ int floss_media_a2dp_stop_audio_request(struct fl_media *fm)
 	return 0;
 }
 
+static bool get_presentation_position_result(DBusMessage *message,
+					     uint64_t *remote_delay_report_ns,
+					     uint64_t *total_bytes_read,
+					     struct timespec *data_position_ts)
+{
+	DBusMessageIter iter, dict;
+	dbus_uint64_t bytes;
+	dbus_uint64_t delay_ns;
+	dbus_int64_t data_position_sec;
+	dbus_int32_t data_position_nsec;
+
+	dbus_message_iter_init(message, &iter);
+	if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
+		syslog(LOG_ERR, "GetPresentationPosition returned not array");
+		return false;
+	}
+
+	dbus_message_iter_recurse(&iter, &dict);
+
+	while (dbus_message_iter_get_arg_type(&dict) != DBUS_TYPE_INVALID) {
+		DBusMessageIter entry, var;
+		const char *key;
+
+		if (dbus_message_iter_get_arg_type(&dict) !=
+		    DBUS_TYPE_DICT_ENTRY) {
+			syslog(LOG_ERR, "entry not dictionary");
+			return FALSE;
+		}
+
+		dbus_message_iter_recurse(&dict, &entry);
+		if (dbus_message_iter_get_arg_type(&entry) !=
+		    DBUS_TYPE_STRING) {
+			syslog(LOG_ERR, "entry not string");
+			return FALSE;
+		}
+
+		dbus_message_iter_get_basic(&entry, &key);
+		dbus_message_iter_next(&entry);
+
+		if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_VARIANT)
+			return FALSE;
+
+		dbus_message_iter_recurse(&entry, &var);
+		if (strcasecmp(key, "total_bytes_read") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_UINT64)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var, &bytes);
+		} else if (strcasecmp(key, "remote_delay_report_ns") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_UINT64)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var, &delay_ns);
+		} else if (strcasecmp(key, "remote_delay_report_ns") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_UINT64)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var,
+						    &remote_delay_report_ns);
+		} else if (strcasecmp(key, "data_position_sec") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT64)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var, &data_position_sec);
+		} else if (strcasecmp(key, "data_position_nsec") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT32)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var, &data_position_nsec);
+		} else
+			syslog(LOG_WARNING, "%s not supported, ignoring", key);
+
+		dbus_message_iter_next(&dict);
+	}
+
+	*total_bytes_read = bytes;
+	*remote_delay_report_ns = delay_ns;
+	data_position_ts->tv_sec = data_position_sec;
+	data_position_ts->tv_nsec = data_position_nsec;
+	return true;
+}
+
+int floss_media_a2dp_get_presentation_position(
+	struct fl_media *fm, uint64_t *remote_delay_report_ns,
+	uint64_t *total_bytes_read, struct timespec *data_position_ts)
+{
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE,
+					     "GetPresentationPosition");
+	if (!method_call)
+		return -ENOMEM;
+
+	dbus_error_init(&dbus_error);
+
+	reply = dbus_connection_send_with_reply_and_block(
+		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send GetPresentationPosition: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "GetPresentationPosition returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return -EIO;
+	}
+
+	if (!get_presentation_position_result(reply, remote_delay_report_ns,
+					      total_bytes_read,
+					      data_position_ts)) {
+		syslog(LOG_ERR,
+		       "GetPresentationPosition returned invalid results");
+		dbus_message_unref(reply);
+		return -EIO;
+	}
+
+	return 0;
+}
+
 int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
 {
 	DBusMessage *method_call, *reply;

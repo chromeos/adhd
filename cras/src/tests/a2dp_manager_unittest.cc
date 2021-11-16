@@ -16,6 +16,7 @@ static struct cras_a2dp* a2dp_pcm_iodev_create_a2dp_val;
 static struct cras_iodev* a2dp_pcm_iodev_create_ret;
 static struct cras_iodev* a2dp_pcm_iodev_destroy_iodev_val;
 static int a2dp_pcm_update_volume_called;
+static int a2dp_pcm_update_bt_stack_delay_called;
 static unsigned int a2dp_pcm_update_volume_arg;
 static cras_main_message* cras_main_message_send_msg;
 static cras_message_callback cras_main_message_add_handler_callback;
@@ -36,10 +37,12 @@ static int floss_media_a2dp_start_audio_request_called;
 static int floss_media_a2dp_stop_audio_request_called;
 static int floss_media_a2dp_set_volume_called;
 static int floss_media_a2dp_set_volume_arg;
+static int floss_media_a2dp_get_presentation_position_called;
 
 void ResetStubData() {
   a2dp_pcm_update_volume_called = 0;
   a2dp_pcm_update_volume_arg = 0;
+  a2dp_pcm_update_bt_stack_delay_called = 0;
   floss_media_a2dp_set_active_device_called = 0;
   floss_media_a2dp_set_audio_config_called = 0;
   floss_media_a2dp_set_audio_config_rate = 0;
@@ -49,6 +52,9 @@ void ResetStubData() {
   floss_media_a2dp_stop_audio_request_called = 0;
   floss_media_a2dp_set_volume_called = 0;
   floss_media_a2dp_set_volume_arg = 0;
+  floss_media_a2dp_get_presentation_position_called = 0;
+  cras_tm_create_timer_called = 0;
+  cras_tm_cancel_timer_called = 0;
 }
 
 namespace {
@@ -109,6 +115,37 @@ TEST_F(A2dpManagerTestSuite, StartStop) {
 
   cras_floss_a2dp_stop(a2dp);
   EXPECT_EQ(floss_media_a2dp_stop_audio_request_called, 1);
+  cras_floss_a2dp_destroy(a2dp);
+}
+
+TEST_F(A2dpManagerTestSuite, DelaySync) {
+  struct cras_audio_format fmt;
+  struct cras_a2dp* a2dp;
+  int skt = -1;
+
+  a2dp_pcm_iodev_create_ret =
+      (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
+  a2dp = cras_floss_a2dp_create(NULL, "addr", 1, 1, 1);
+  ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
+
+  /* Assert the format converts to the correct bitmap as Floss defined */
+  fmt.frame_rate = 44100;
+  fmt.format = SND_PCM_FORMAT_S32_LE;
+  fmt.num_channels = 2;
+  cras_floss_a2dp_start(a2dp, &fmt, &skt);
+  EXPECT_EQ(skt, fake_skt);
+
+  cras_tm_create_timer_ret = reinterpret_cast<struct cras_timer*>(0x123);
+  cras_floss_a2dp_delay_sync(a2dp, 100, 1000);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(1, floss_media_a2dp_get_presentation_position_called);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+
+  cras_floss_a2dp_stop(a2dp);
+  EXPECT_EQ(floss_media_a2dp_stop_audio_request_called, 1);
+  EXPECT_EQ(1, cras_tm_cancel_timer_called);
   cras_floss_a2dp_destroy(a2dp);
 }
 
@@ -266,6 +303,14 @@ void a2dp_pcm_update_volume(struct cras_iodev* iodev, unsigned int volume) {
   a2dp_pcm_update_volume_arg = volume;
 }
 
+void a2dp_pcm_update_bt_stack_delay(struct cras_iodev* iodev,
+                                    uint64_t total_bytes_read,
+                                    uint64_t remote_delay_report_ns,
+                                    struct timespec* data_position_ts) {
+  a2dp_pcm_update_bt_stack_delay_called++;
+  return;
+}
+
 int cras_main_message_send(struct cras_main_message* msg) {
   // cras_main_message is a local variable from caller, we should allocate
   // memory from heap and copy its data
@@ -346,6 +391,15 @@ int floss_media_a2dp_stop_audio_request(struct fl_media* fm) {
 int floss_media_a2dp_set_volume(struct fl_media* fm, unsigned int volume) {
   floss_media_a2dp_set_volume_called++;
   floss_media_a2dp_set_volume_arg = volume;
+  return 0;
+}
+
+int floss_media_a2dp_get_presentation_position(
+    struct fl_media* fm,
+    uint64_t* remote_delay_report_ns,
+    uint64_t* total_bytes_read,
+    struct timespec* data_position_ts) {
+  floss_media_a2dp_get_presentation_position_called++;
   return 0;
 }
 

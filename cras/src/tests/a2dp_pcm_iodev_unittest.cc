@@ -262,6 +262,12 @@ void cras_floss_a2dp_set_volume(struct cras_a2dp* a2dp, unsigned int volume) {
   return;
 }
 
+void cras_floss_a2dp_delay_sync(struct cras_a2dp* a2dp,
+                                unsigned int init_msec,
+                                unsigned int period_msec) {
+  return;
+}
+
 void cras_a2dp_cancel_suspend() {
   cras_a2dp_cancel_suspend_called++;
 }

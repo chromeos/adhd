@@ -30,6 +30,17 @@
  * Double it and use for scheduling here. */
 #define PCM_BLOCK_MS 20
 
+/* Schedule the first delay sync 500ms after stream starts, and redo
+ * every 10 seconds. */
+#define INIT_DELAY_SYNC_MSEC 500
+#define DELAY_SYNC_PERIOD_MSEC 10000
+
+/* There's a period of time after streaming starts before BT stack
+ * is able to provide non-zero data_position_ts. During this period
+ * use a default value for the delay which is supposed to be derived
+ * from data_position_ts. */
+#define DEFAULT_BT_STACK_DELAY_SEC 0.2f
+
 /* Threshold for reasonable a2dp throttle log in audio dump. */
 static const struct timespec throttle_log_threshold = {
 	0, 10000000 /* 10ms */
@@ -49,6 +60,10 @@ static const struct timespec throttle_event_threshold = {
  *    flush_period - The time period between two a2dp packet writes.
  *    write_block - How many frames of audio samples we prefer to write in one
  *        socket write.
+ *    total_written_bytes - Stores the total audio data in bytes written to BT.
+ *    last_write_ts - The timestamp of when last audio data was written to BT.
+ *    bt_stack_delay - The calculated delay in frames from
+ *        a2dp_pcm_update_bt_stack_delay.
  *    a2dp - The associated cras_a2dp object.
  */
 struct a2dp_io {
@@ -58,6 +73,9 @@ struct a2dp_io {
 	struct timespec next_flush_time;
 	struct timespec flush_period;
 	unsigned int write_block;
+	unsigned long total_written_bytes;
+	struct timespec last_write_ts;
+	unsigned int bt_stack_delay;
 	struct cras_a2dp *a2dp;
 };
 
@@ -188,6 +206,9 @@ static int configure_dev(struct cras_iodev *iodev)
 	format_bytes = cras_get_format_bytes(iodev->format);
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
+	a2dpio->total_written_bytes = 0;
+	a2dpio->bt_stack_delay = 0;
+
 	/* Configure write_block to frames equivalent to PCM_BLOCK_MS.
 	 * And make buffer_size integer multiple of write_block so we
 	 * don't get cut easily in ring buffer. */
@@ -225,6 +246,8 @@ static int start(const struct cras_iodev *iodev)
 	 * following flush calls.
 	 */
 	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->next_flush_time);
+	cras_floss_a2dp_delay_sync(a2dpio->a2dp, INIT_DELAY_SYNC_MSEC,
+				   DELAY_SYNC_PERIOD_MSEC);
 
 	return 0;
 }
@@ -361,6 +384,8 @@ do_flush:
 				    &a2dpio->flush_period);
 		add_timespecs(&a2dpio->next_flush_time, &a2dpio->flush_period);
 		buf_increment_read(a2dpio->pcm_buf, written);
+		a2dpio->total_written_bytes += written;
+		a2dpio->last_write_ts = now;
 	}
 
 	/* a2dp_write no longer return -EAGAIN when reaches here, disable
@@ -384,8 +409,9 @@ static int delay_frames(const struct cras_iodev *iodev)
 	const struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	struct timespec tstamp;
 
-	/* The number of frames in the pcm buffer */
-	return frames_queued(iodev, &tstamp);
+	/* The number of frames in the pcm buffer plus the delay
+	 * derived from a2dp_pcm_update_bt_stack_delay. */
+	return frames_queued(iodev, &tstamp) + a2dpio->bt_stack_delay;
 }
 
 static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
@@ -552,4 +578,46 @@ void a2dp_pcm_update_volume(struct cras_iodev *iodev, unsigned int volume)
 
 	iodev->active_node->volume = volume;
 	cras_iodev_list_notify_node_volume(iodev->active_node);
+}
+
+void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
+				    uint64_t remote_delay_report_ns,
+				    uint64_t total_bytes_read,
+				    struct timespec *data_position_ts)
+{
+	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	size_t format_bytes = cras_get_format_bytes(iodev->format);
+	struct timespec diff;
+	unsigned int delay;
+
+	/* The BT stack delay is composed by two parts: the delay from remote
+	 * headset, and the delay from local BT stack. */
+	diff.tv_sec = 0;
+	diff.tv_nsec = remote_delay_report_ns;
+	while (diff.tv_nsec >= 1000000000) {
+		diff.tv_nsec -= 1000000000;
+		diff.tv_sec += 1;
+	}
+	delay = cras_time_to_frames(&diff, iodev->format->frame_rate);
+
+	/* Local BT stack delay is calculated based on the formula
+	 * (N1 - N0) + rate * (T1 - T0). */
+	if (!data_position_ts->tv_sec && !data_position_ts->tv_nsec) {
+		delay += iodev->format->frame_rate * DEFAULT_BT_STACK_DELAY_SEC;
+	} else if (timespec_after(data_position_ts, &a2dpio->last_write_ts)) {
+		subtract_timespecs(data_position_ts, &a2dpio->last_write_ts,
+				   &diff);
+		delay += (a2dpio->total_written_bytes - total_bytes_read) /
+				 format_bytes +
+			 cras_time_to_frames(&diff, iodev->format->frame_rate);
+	} else {
+		subtract_timespecs(&a2dpio->last_write_ts, data_position_ts,
+				   &diff);
+		delay += (a2dpio->total_written_bytes - total_bytes_read) /
+				 format_bytes -
+			 cras_time_to_frames(&diff, iodev->format->frame_rate);
+	}
+	a2dpio->bt_stack_delay = delay;
+
+	syslog(LOG_DEBUG, "Update: bt_stack_delay %u", a2dpio->bt_stack_delay);
 }
