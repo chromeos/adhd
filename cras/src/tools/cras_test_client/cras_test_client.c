@@ -71,7 +71,13 @@ static const struct timespec follow_atlog_sleep_ts = {
 	0, 50 * 1000 * 1000 /* 50 ms. */
 };
 
-/* Conditional so the client thread can signal that main should exit. */
+/*
+ * Conditional so the client thread can signal that main should exit.
+ *
+ * These should not be used directly,
+ * but through signal_done() wait_done_timeout() helpers instead.
+ */
+static bool done_flag = false;
 static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t done_cond = PTHREAD_COND_INITIALIZER;
 
@@ -217,6 +223,37 @@ static int parse_node_id_with_value(char *input, cras_node_id_t *id_out,
 	*id_out = cras_make_node_id(dev_index, node_index);
 	*value_out = value;
 	return 0;
+}
+
+/* Signal done_cond so the main thread can continue execution */
+static void signal_done()
+{
+	assert(pthread_mutex_lock(&done_mutex) == 0);
+	done_flag = true;
+	assert(pthread_cond_signal(&done_cond) == 0);
+	assert(pthread_mutex_unlock(&done_mutex) == 0);
+}
+
+/*
+ * Wait for done_cond to be signalled, with a timeout
+ * Returns non-zero error code on failure
+ */
+static int wait_done_timeout(int timeout_sec)
+{
+	int rc = 0;
+	struct timespec deadline;
+
+	if (clock_gettime(CLOCK_REALTIME, &deadline) == -1)
+		return errno;
+	deadline.tv_sec += timeout_sec;
+
+	pthread_mutex_lock(&done_mutex);
+	if (!done_flag)
+		rc = pthread_cond_timedwait(&done_cond, &done_mutex, &deadline);
+	done_flag = false;
+	pthread_mutex_unlock(&done_mutex);
+
+	return rc;
 }
 
 /* Run from callback thread. */
@@ -896,9 +933,7 @@ static void audio_debug_info(struct cras_client *client)
 	print_audio_debug_info(info);
 
 	/* Signal main thread we are done after the last chunk. */
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_signal(&done_cond);
-	pthread_mutex_unlock(&done_mutex);
+	signal_done();
 }
 
 static void show_mainlog_tag(const struct main_thread_event_log *log,
@@ -1175,9 +1210,7 @@ static void cras_bt_debug_info(struct cras_client *client)
 	packet_status_logger_dump_binary(&wbs_logger);
 
 	/* Signal main thread we are done after the last chunk. */
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_signal(&done_cond);
-	pthread_mutex_unlock(&done_mutex);
+	signal_done();
 }
 
 static void main_thread_debug_info(struct cras_client *client)
@@ -1199,9 +1232,7 @@ static void main_thread_debug_info(struct cras_client *client)
 	}
 
 	/* Signal main thread we are done after the last chunk. */
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_signal(&done_cond);
-	pthread_mutex_unlock(&done_mutex);
+	signal_done();
 }
 
 static void print_cras_audio_thread_snapshot(
@@ -1263,9 +1294,7 @@ static void audio_thread_snapshots(struct cras_client *client)
 	printf("There are %d, snapshots.\n", count);
 
 	/* Signal main thread we are done after the last chunk. */
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_signal(&done_cond);
-	pthread_mutex_unlock(&done_mutex);
+	signal_done();
 }
 
 static int start_stream(struct cras_client *client, cras_stream_id_t *stream_id,
@@ -1596,89 +1625,56 @@ static void print_server_info(struct cras_client *client)
 
 static void show_audio_thread_snapshots(struct cras_client *client)
 {
-	struct timespec wait_time;
-
 	cras_client_run_thread(client);
 	cras_client_connected_wait(client); /* To synchronize data. */
 	cras_client_update_audio_thread_snapshots(client,
 						  audio_thread_snapshots);
 
-	clock_gettime(CLOCK_REALTIME, &wait_time);
-	wait_time.tv_sec += 2;
-
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
-	pthread_mutex_unlock(&done_mutex);
+	wait_done_timeout(2);
 }
 
 static void show_audio_debug_info(struct cras_client *client)
 {
-	struct timespec wait_time;
-
 	cras_client_run_thread(client);
 	cras_client_connected_wait(client); /* To synchronize data. */
 	cras_client_update_audio_debug_info(client, audio_debug_info);
 
-	clock_gettime(CLOCK_REALTIME, &wait_time);
-	wait_time.tv_sec += 2;
-
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
-	pthread_mutex_unlock(&done_mutex);
+	wait_done_timeout(2);
 }
 
 static void show_cras_bt_debug_info(struct cras_client *client)
 {
-	struct timespec wait_time;
-
 	cras_client_run_thread(client);
 	cras_client_connected_wait(client); /* To synchronize data. */
 	cras_client_update_bt_debug_info(client, cras_bt_debug_info);
 
-	clock_gettime(CLOCK_REALTIME, &wait_time);
-	wait_time.tv_sec += 2;
-
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
-	pthread_mutex_unlock(&done_mutex);
+	wait_done_timeout(2);
 }
 
 static void show_main_thread_debug_info(struct cras_client *client)
 {
-	struct timespec wait_time;
 	cras_client_run_thread(client);
 	cras_client_connected_wait(client); /* To synchronize data. */
 	cras_client_update_main_thread_debug_info(client,
 						  main_thread_debug_info);
 
-	clock_gettime(CLOCK_REALTIME, &wait_time);
-	wait_time.tv_sec += 2;
-
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
-	pthread_mutex_unlock(&done_mutex);
+	wait_done_timeout(2);
 }
 
 static void hotword_models_cb(struct cras_client *client,
 			      const char *hotword_models)
 {
 	printf("Hotword models: %s\n", hotword_models);
+	signal_done();
 }
 
 static void print_hotword_models(struct cras_client *client, cras_node_id_t id)
 {
-	struct timespec wait_time;
-
 	cras_client_run_thread(client);
 	cras_client_connected_wait(client);
 	cras_client_get_hotword_models(client, id, hotword_models_cb);
 
-	clock_gettime(CLOCK_REALTIME, &wait_time);
-	wait_time.tv_sec += 2;
-
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
-	pthread_mutex_unlock(&done_mutex);
+	wait_done_timeout(2);
 }
 
 static void check_output_plugged(struct cras_client *client, const char *name)
@@ -1724,32 +1720,22 @@ static void show_atlog(time_t sec_offset, int32_t nsec_offset,
 
 static void unlock_main_thread(struct cras_client *client)
 {
-	pthread_mutex_lock(&done_mutex);
-	pthread_cond_signal(&done_cond);
-	pthread_mutex_unlock(&done_mutex);
+	signal_done();
 }
 
 static void cras_show_continuous_atlog(struct cras_client *client)
 {
 	struct audio_thread_event_log log;
-	struct timespec wait_time;
 	static time_t sec_offset;
 	static int32_t nsec_offset;
 	static uint64_t atlog_read_idx = 0, missing;
-	int len, rc;
+	int len;
 
 	cras_client_run_thread(client);
 	cras_client_connected_wait(client); /* To synchronize data. */
 	cras_client_get_atlog_access(client, unlock_main_thread);
 
-	clock_gettime(CLOCK_REALTIME, &wait_time);
-	wait_time.tv_sec += 2;
-
-	pthread_mutex_lock(&done_mutex);
-	rc = pthread_cond_timedwait(&done_cond, &done_mutex, &wait_time);
-	pthread_mutex_unlock(&done_mutex);
-
-	if (rc)
+	if (wait_done_timeout(2))
 		goto fail;
 
 	fill_time_offset(&sec_offset, &nsec_offset);
