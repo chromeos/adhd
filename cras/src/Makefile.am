@@ -172,6 +172,7 @@ cras_server_SOURCES = \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
 	server/cras_loopback_iodev.c \
+	server/cras_floop_iodev.c \
 	server/cras_main_message.c \
 	server/cras_mix.c \
 	server/cras_non_empty_audio_handler.c \
@@ -489,6 +490,7 @@ TESTS = \
 	expr_unittest \
 	ewma_power_unittest \
 	file_wait_unittest \
+	floop_iodev_unittest \
 	float_buffer_unittest \
 	fmt_conv_unittest \
 	fmt_conv_ops_unittest \
@@ -927,6 +929,10 @@ file_wait_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	$(CRAS_UT_TMPDIR_CFLAGS)
 file_wait_unittest_LDADD = -lgtest -lpthread
 
+floop_iodev_unittest_SOURCES = tests/floop_iodev_unittest.cc
+floop_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
+floop_iodev_unittest_LDADD = -lgtest_main -lgtest -lpthread
 
 float_buffer_unittest_SOURCES = tests/float_buffer_unittest.cc
 float_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \

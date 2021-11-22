@@ -7,6 +7,7 @@
 
 #include "audio_thread.h"
 #include "cras_empty_iodev.h"
+#include "cras_floop_iodev.h"
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
@@ -75,6 +76,8 @@ static struct cras_iodev *loopdev_post_dsp;
 static struct cras_iodev *loopdev_post_dsp_delayed;
 /* List of pending device init retries. */
 static struct dev_init_retry *init_retries;
+
+static struct cras_floop_pair *floop_pair_list;
 
 /* Keep a constantly increasing index for iodevs. Index 0 is reserved
  * to mean "no device". */
@@ -252,6 +255,10 @@ static const char *node_type_to_str(struct cras_ionode *node)
 		return "ECHO_REFERENCE";
 	case CRAS_NODE_TYPE_ALSA_LOOPBACK:
 		return "ALSA_LOOPBACK";
+	case CRAS_NODE_TYPE_FLOOP:
+		return "FLEXIBLE_LOOPBACK";
+	case CRAS_NODE_TYPE_FLOOP_INTERNAL:
+		return "FLEXIBLE_LOOPBACK_INTERNAL";
 	case CRAS_NODE_TYPE_UNKNOWN:
 	default:
 		return "UNKNOWN";
@@ -974,6 +981,26 @@ static int stream_added_cb(struct cras_rstream *rstream)
 			iodevs[num_iodevs++] = edev->dev;
 		}
 	}
+
+	/* Add the stream to flexible loopback devices */
+	if (rstream->direction == CRAS_STREAM_OUTPUT) {
+		struct cras_floop_pair *fpair;
+		DL_FOREACH (floop_pair_list, fpair) {
+			if (!cras_floop_pair_match_output_stream(fpair,
+								 rstream)) {
+				continue;
+			}
+			if (num_iodevs >= ARRAY_SIZE(iodevs)) {
+				syslog(LOG_ERR, "too many enabled devices");
+				break;
+			}
+			rc = init_device(&fpair->output, rstream);
+			if (!rc) {
+				iodevs[num_iodevs++] = &fpair->output;
+			}
+		}
+	}
+
 	if (num_iodevs) {
 		rc = add_stream_to_open_devs(rstream, iodevs, num_iodevs);
 		if (rc) {
@@ -2078,4 +2105,35 @@ long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic)
 	max_gain = is_internal_mic ? cras_system_get_max_internal_mic_gain() :
 				     DEFAULT_MAX_INPUT_NODE_GAIN;
 	return 50 + dBFS / ((dBFS > 0) ? max_gain / 50 : 80);
+}
+
+int cras_iodev_list_request_floop(const struct cras_floop_params *params)
+{
+	struct cras_floop_pair *fpair = cras_floop_pair_create(params);
+	if (!fpair)
+		return -ENOMEM;
+
+	DL_APPEND(floop_pair_list, fpair);
+
+	return fpair->input.info.idx;
+}
+
+void cras_iodev_list_enable_floop_pair(struct cras_floop_pair *pair)
+{
+	struct cras_rstream *stream;
+	DL_FOREACH (stream_list_get(stream_list), stream) {
+		if (cras_floop_pair_match_output_stream(pair, stream)) {
+			int rc = init_device(&pair->output, stream);
+			if (rc != 0) {
+				continue;
+			}
+			struct cras_iodev *devs[] = { &pair->output };
+			add_stream_to_open_devs(stream, devs, 1);
+		}
+	}
+}
+
+void cras_iodev_list_disable_floop_pair(struct cras_floop_pair *pair)
+{
+	remove_all_streams_from_dev(&pair->output);
 }

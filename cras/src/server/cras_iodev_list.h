@@ -17,6 +17,7 @@
 
 struct cras_rclient;
 struct stream_list;
+struct cras_floop_pair;
 
 /* Device enabled/disabled callback. */
 typedef void (*device_enabled_callback_t)(struct cras_iodev *dev,
@@ -297,5 +298,15 @@ long convert_dBFS_from_input_node_gain(long gain, bool is_internal_mic);
 
 /* The inverse function of convert_dBFS_from_input_node_gain. */
 long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic);
+
+/* Request the floop device with the given parameters */
+int cras_iodev_list_request_floop(const struct cras_floop_params *params);
+
+/*
+ * Callbacks for cras_floop_iodev.c to add/remove streams to/from the
+ * floop odev
+ */
+void cras_iodev_list_enable_floop_pair(struct cras_floop_pair *pair);
+void cras_iodev_list_disable_floop_pair(struct cras_floop_pair *pair);
 
 #endif /* CRAS_IODEV_LIST_H_ */

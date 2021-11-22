@@ -538,6 +538,19 @@ struct __attribute__((__packed__)) cras_audio_thread_snapshot_buffer {
 	int pos;
 };
 
+/* Flexible loopback parameters */
+struct __attribute__((__packed__)) cras_floop_params {
+	/* Bitmask of client types whose output streams
+	 * should be attached to the flexible loopback. */
+	int64_t client_types_mask;
+};
+
+static inline bool cras_floop_params_eq(const struct cras_floop_params *a,
+					const struct cras_floop_params *b)
+{
+	return a->client_types_mask == b->client_types_mask;
+}
+
 /* The server state that is shared with clients.
  *    state_version - Version of this structure.
  *    volume - index from 0-100.
@@ -725,6 +738,10 @@ enum CRAS_NODE_TYPE {
 	CRAS_NODE_TYPE_UNKNOWN,
 	CRAS_NODE_TYPE_ECHO_REFERENCE,
 	CRAS_NODE_TYPE_ALSA_LOOPBACK,
+	/* Flexible loopback input device */
+	CRAS_NODE_TYPE_FLOOP,
+	/* Flexible loopback output device used for routing */
+	CRAS_NODE_TYPE_FLOOP_INTERNAL,
 };
 
 /* Position values to described where a node locates on the system.

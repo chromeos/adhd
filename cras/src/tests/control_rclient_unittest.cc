@@ -943,4 +943,8 @@ void detect_rtc_stream_pair(struct stream_list* list,
 
 void cras_system_set_hotword_pause_at_suspend(bool pause) {}
 
+int cras_iodev_list_request_floop(const struct cras_floop_params* params) {
+  return 0;
+}
+
 }  // extern "C"

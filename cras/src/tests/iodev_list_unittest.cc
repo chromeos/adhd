@@ -2802,4 +2802,9 @@ void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
                                       enum CRAS_CLIENT_TYPE client_type,
                                       const char* node_type_pair) {}
 
+bool cras_floop_pair_match_output_stream(const struct cras_iodev* iodev,
+                                         const struct cras_rstream* stream) {
+  return false;
+}
+
 }  // extern "C"
