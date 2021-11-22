@@ -1352,7 +1352,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 3
+#define CRAS_API_VERSION 4
 #define CHECK_VERSION(object, version)                                         \
 	if (object->api_version < version) {                                   \
 		return -ENOSYS;                                                \
@@ -1412,6 +1412,8 @@ struct libcras_client {
 	int (*get_loopback_dev_idx)(struct cras_client *client, int *idx);
 	int (*set_aec_ref)(struct cras_client *client,
 			   cras_stream_id_t stream_id, uint32_t dev_idx);
+	int (*get_floop_dev_idx_by_client_types)(struct cras_client *client,
+						 int64_t client_types_mask);
 };
 
 struct cras_stream_cb_data;
@@ -1741,6 +1743,25 @@ inline int libcras_client_get_loopback_dev_idx(struct libcras_client *client,
 					       int *idx)
 {
 	return client->get_loopback_dev_idx(client->client_, idx);
+}
+
+/*
+ * Gets the index of the flexible loopback device.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    client_types_mask - Bitmask of CRAS_CLIENT_TYPE to loopback from.
+ *    idx - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int
+libcras_client_get_floop_dev_idx_by_client_types(struct libcras_client *client,
+						 int64_t client_types_mask)
+{
+	CHECK_VERSION(client, 4);
+	return client->get_floop_dev_idx_by_client_types(client->client_,
+							 client_types_mask);
 }
 
 /*

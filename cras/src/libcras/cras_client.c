@@ -4115,6 +4115,17 @@ int get_loopback_dev_idx(struct cras_client *client, int *idx)
 	return 0;
 }
 
+int get_floop_dev_idx_by_client_types(struct cras_client *client,
+				      int64_t client_types_mask, int *idx)
+{
+	int rc = cras_client_get_floop_dev_idx_by_client_types(
+		client, client_types_mask);
+	if (rc < 0)
+		return rc;
+	*idx = rc;
+	return 0;
+}
+
 static int32_t request_floop(struct cras_client *client,
 			     const struct cras_floop_params *params,
 			     const struct timespec *timeout)
@@ -4227,6 +4238,8 @@ struct libcras_client *libcras_client_create()
 	client->get_system_muted = get_system_muted;
 	client->set_system_mute = cras_client_set_system_mute;
 	client->get_loopback_dev_idx = get_loopback_dev_idx;
+	client->get_floop_dev_idx_by_client_types =
+		cras_client_get_floop_dev_idx_by_client_types;
 	return client;
 }
 
