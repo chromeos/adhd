@@ -197,6 +197,20 @@ typedef enum cras_socket_state {
 	 * connection callback. */
 } cras_socket_state_t;
 
+/* An in-flight |CRAS_SERVER_REQUEST_FLOOP| request */
+struct floop_request {
+	// mutex protecting the members
+	pthread_mutex_t mu;
+	// whether the response is fullfilled. signalled by request_floop_ready.
+	pthread_cond_t cond;
+	// whether the response is fullfilled. set by request_floop_ready
+	bool fullfilled;
+	// return value of the request
+	int32_t response;
+	// pointers for ulist.h
+	struct floop_request *prev, *next;
+};
+
 /* Represents a client used to communicate with the audio server.
  * id - Unique identifier for this client, negative until connected.
  * server_fd - Incoming messages from server.
@@ -253,6 +267,8 @@ struct cras_client {
 	cras_thread_priority_cb_t thread_priority_cb;
 	struct cras_observer_ops observer_ops;
 	void *observer_context;
+	struct floop_request *floop_request_list;
+	pthread_mutex_t floop_request_list_mu;
 };
 
 /*
@@ -1800,6 +1816,31 @@ static void cras_client_get_hotword_models_ready(struct cras_client *client,
 	client->get_hotword_models_cb = NULL;
 }
 
+static void request_floop_ready(struct cras_client *client, int32_t dev_idx,
+				uint64_t tag)
+{
+	struct floop_request *req;
+	pthread_mutex_lock(&client->floop_request_list_mu);
+
+	DL_FOREACH (client->floop_request_list, req) {
+		if (req == (struct floop_request *)tag)
+			break;
+	}
+
+	if (req == NULL)
+		goto cleanup;
+
+	pthread_mutex_lock(&req->mu);
+	req->response = dev_idx;
+	req->fullfilled = true;
+	pthread_cond_broadcast(&req->cond);
+	pthread_mutex_unlock(&req->mu);
+
+cleanup:
+	pthread_mutex_unlock(&client->floop_request_list_mu);
+	return;
+}
+
 /* Handles messages from the cras server. */
 static int handle_message_from_server(struct cras_client *client)
 {
@@ -1876,6 +1917,12 @@ static int handle_message_from_server(struct cras_client *client)
 			(struct cras_client_get_hotword_models_ready *)msg;
 		cras_client_get_hotword_models_ready(
 			client, (const char *)cmsg->hotword_models);
+		break;
+	}
+	case CRAS_CLIENT_REQUEST_FLOOP_READY: {
+		struct cras_client_request_floop_ready *cmsg =
+			(struct cras_client_request_floop_ready *)msg;
+		request_floop_ready(client, cmsg->dev_idx, cmsg->tag);
 		break;
 	}
 	case CRAS_CLIENT_OUTPUT_VOLUME_CHANGED: {
@@ -4066,6 +4113,89 @@ int get_loopback_dev_idx(struct cras_client *client, int *idx)
 		return rc;
 	*idx = rc;
 	return 0;
+}
+
+static int32_t request_floop(struct cras_client *client,
+			     const struct cras_floop_params *params,
+			     const struct timespec *timeout)
+{
+	if (!client) {
+		return -EINVAL;
+	}
+
+	int rc;
+	struct floop_request req = {
+		.mu = PTHREAD_MUTEX_INITIALIZER,
+	};
+
+	// Calculate deadline
+	struct timespec deadline;
+	clock_gettime(CLOCK_MONOTONIC, &deadline);
+	add_timespecs(&deadline, timeout);
+
+	// Set up cond var
+	pthread_condattr_t condattr;
+	rc = -pthread_condattr_init(&condattr);
+	if (rc)
+		goto cleanup_mu;
+	rc = -pthread_condattr_setclock(&condattr, CLOCK_MONOTONIC);
+	if (rc)
+		goto cleanup_condattr;
+	rc = -pthread_cond_init(&req.cond, &condattr);
+	if (rc)
+		goto cleanup_condattr;
+
+	// Add the request to the waiting list
+	pthread_mutex_lock(&client->floop_request_list_mu);
+	DL_APPEND(client->floop_request_list, &req);
+	pthread_mutex_unlock(&client->floop_request_list_mu);
+
+	// Write request message to server
+	// The request is tagged with the address of req which is unique
+	// The server will return the result along with the unique tag
+	struct cras_request_floop msg;
+	cras_fill_request_floop(&msg, params, (uint64_t)&req);
+	rc = write_message_to_server(client, &msg.header);
+	if (rc < 0) {
+		goto cleanup;
+	}
+
+	// Set result
+	pthread_mutex_lock(&req.mu);
+	if (!req.fullfilled) {
+		pthread_cond_timedwait(&req.cond, &req.mu, &deadline);
+	}
+	if (req.fullfilled) {
+		rc = req.response;
+	} else {
+		rc = -ETIMEDOUT;
+	}
+	pthread_mutex_unlock(&req.mu);
+
+cleanup:
+	// Remove the request from the waiting list
+	pthread_mutex_lock(&client->floop_request_list_mu);
+	DL_DELETE(client->floop_request_list, &req);
+	pthread_mutex_unlock(&client->floop_request_list_mu);
+
+	pthread_cond_destroy(&req.cond);
+cleanup_condattr:
+	pthread_condattr_destroy(&condattr);
+cleanup_mu:
+	pthread_mutex_destroy(&req.mu);
+
+	return rc;
+}
+
+int32_t
+cras_client_get_floop_dev_idx_by_client_types(struct cras_client *client,
+					      int64_t client_types_mask)
+{
+	const struct cras_floop_params params = {
+		.client_types_mask = client_types_mask,
+	};
+	const struct timespec timeout = { .tv_sec = 3 };
+	return request_floop(client, &params, &timeout);
 }
 
 struct libcras_client *libcras_client_create()

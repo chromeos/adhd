@@ -1874,6 +1874,15 @@ static void print_hotword_models(struct cras_client *client, cras_node_id_t id)
 	wait_done_timeout(2);
 }
 
+static void request_floop_mask(struct cras_client *client, int mask)
+{
+	cras_client_run_thread(client);
+	cras_client_connected_wait(client);
+	int32_t idx =
+		cras_client_get_floop_dev_idx_by_client_types(client, mask);
+	printf("flexible loopback dev id: %" PRId32 " \n", idx);
+}
+
 static void check_output_plugged(struct cras_client *client, const char *name)
 {
 	cras_client_run_thread(client);
@@ -2017,6 +2026,7 @@ static struct option long_options[] = {
 	{"playback_file",       required_argument,      0, 'P'},
 	{"stream_type",         required_argument,      0, 'T'},
 	{"print_nodes_inlined", no_argument,            0, 'U'},
+	{"request_floop_mask",  required_argument,      0, 'V'},
 	{0, 0, 0, 0}
 };
 // clang-format on
@@ -2111,6 +2121,9 @@ static void show_usage()
 	       "Specifies the sample rate in Hz.\n");
 	printf("--reload_dsp - "
 	       "Reload dsp configuration from the ini file\n");
+	printf("--request_floop_mask <mask> -\n"
+	       "  Requests a flexible loopback device with the given mask.\n"
+	       "  Prints the device ID; prints negative errno on error\n");
 	printf("--rm_active_input <N>:<M> - "
 	       "Removes the ionode with the given id from active input device "
 	       "list\n");
@@ -2581,6 +2594,9 @@ int main(int argc, char **argv)
 			break;
 		case 'U':
 			print_nodes_inlined(client);
+			break;
+		case 'V':
+			request_floop_mask(client, atoi(optarg));
 			break;
 
 		default:

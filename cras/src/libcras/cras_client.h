@@ -1170,6 +1170,16 @@ int cras_client_set_bt_wbs_enabled(struct cras_client *client, bool enabled);
 void cras_client_set_state_change_callback_context(struct cras_client *client,
 						   void *context);
 
+/* Requests the device ID of the flexible loopback of the given client types
+ * mask. A floop will be created if it does not already exist, otherwise an
+ * existing one will be returned.
+ *
+ * See struct cras_floop_params for the meaning of client_types_mask.
+ */
+int32_t
+cras_client_get_floop_dev_idx_by_client_types(struct cras_client *client,
+					      int64_t client_types_mask);
+
 /* Output volume change callback.
  *
  * Args:

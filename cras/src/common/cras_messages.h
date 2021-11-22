@@ -59,6 +59,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_GET_ATLOG_FD,
 	CRAS_SERVER_DUMP_MAIN,
 	CRAS_SERVER_SET_AEC_REF,
+	CRAS_SERVER_REQUEST_FLOOP,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -80,6 +81,7 @@ enum CRAS_CLIENT_MESSAGE_ID {
 	CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED,
 	/* Server -> Client */
 	CRAS_CLIENT_ATLOG_FD_READY,
+	CRAS_CLIENT_REQUEST_FLOOP_READY,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -513,6 +515,23 @@ cras_fill_register_notification_message(struct cras_register_notification *m,
 	m->do_register = do_register;
 }
 
+struct __attribute__((__packed__)) cras_request_floop {
+	struct cras_server_message header;
+	struct cras_floop_params params;
+	// message tag of the request. cras_request_floop_ready contains a tag
+	// of the same value. Used to distinguish different requests.
+	uint64_t tag;
+};
+static inline void
+cras_fill_request_floop(struct cras_request_floop *m,
+			const struct cras_floop_params *params, uint64_t tag)
+{
+	m->header.id = CRAS_SERVER_REQUEST_FLOOP;
+	m->header.length = sizeof(*m);
+	memcpy(&m->params, params, sizeof(m->params));
+	m->tag = (uintptr_t)tag;
+}
+
 /*
  * Messages sent from server to client.
  */
@@ -730,6 +749,23 @@ static inline void cras_fill_client_num_active_streams_changed(
 	m->direction = direction;
 	m->num_active_streams = num_active_streams;
 };
+
+struct __attribute__((__packed__)) cras_client_request_floop_ready {
+	struct cras_client_message header;
+	int32_t dev_idx;
+	// message tag of the response. This will be the same value sent with
+	// cras_request_floop. Used to distinguish different requests.
+	uint64_t tag;
+};
+static inline void
+cras_fill_client_request_floop_ready(struct cras_client_request_floop_ready *m,
+				     int32_t dev_idx, uint64_t tag)
+{
+	m->header.id = CRAS_CLIENT_REQUEST_FLOOP_READY;
+	m->header.length = sizeof(*m);
+	m->dev_idx = dev_idx;
+	m->tag = tag;
+}
 
 /*
  * Messages specific to passing audio between client and server

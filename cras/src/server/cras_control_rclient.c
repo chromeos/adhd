@@ -13,6 +13,7 @@
 #include "cras_config.h"
 #include "cras_control_rclient.h"
 #include "cras_dsp.h"
+#include "cras_floop_iodev.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #ifdef CRAS_DBUS
@@ -90,6 +91,16 @@ static void handle_get_hotword_models(struct cras_rclient *client,
 empty_reply:
 	cras_fill_client_get_hotword_models_ready(msg, NULL, 0);
 	client->ops->send_message_to_client(client, &msg->header, NULL, 0);
+}
+
+static void handle_request_floop(struct cras_rclient *client,
+				 const struct cras_floop_params *params,
+				 uint64_t tag)
+{
+	struct cras_client_request_floop_ready msg;
+	int32_t dev_idx = cras_iodev_list_request_floop(params);
+	cras_fill_client_request_floop_ready(&msg, dev_idx, tag);
+	client->ops->send_message_to_client(client, &msg.header, NULL, 0);
 }
 
 /* Client notification callback functions. */
@@ -515,6 +526,14 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 			return -EINVAL;
 		rclient_handle_client_set_aec_ref(
 			client, (struct cras_set_aec_ref_message *)msg);
+		break;
+	}
+	case CRAS_SERVER_REQUEST_FLOOP: {
+		const struct cras_request_floop *m =
+			(struct cras_request_floop *)msg;
+		if (!MSG_LEN_VALID(msg, struct cras_request_floop))
+			return -EINVAL;
+		handle_request_floop(client, &m->params, m->tag);
 		break;
 	}
 	default:

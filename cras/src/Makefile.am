@@ -519,7 +519,8 @@ TESTS = \
 	timing_unittest \
 	utf8_unittest \
 	util_unittest \
-	volume_curve_unittest
+	volume_curve_unittest \
+	messages_unittest
 
 check_PROGRAMS = $(TESTS)
 
@@ -1183,3 +1184,8 @@ volume_curve_unittest_SOURCES = tests/volume_curve_unittest.cc \
 volume_curve_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 volume_curve_unittest_LDADD = -lgtest -lpthread
+
+messages_unittest_SOURCES = tests/messages_unittest.cc
+messages_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common
+messages_unittest_LDADD = -lgtest_main -lgtest -lpthread
