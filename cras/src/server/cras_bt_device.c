@@ -729,13 +729,22 @@ static int apply_hfp_offload_codec_settings(int fd, uint8_t codec)
 
 	err = setsockopt(fd, SOL_BLUETOOTH, BT_CODEC, codecs, sizeof(buffer));
 	if (err < 0) {
-		/* Fallback setting for kukui cases. The protocol is not
-		 * supported on Bluetooth kernel <= v4.19
+		/* Fallback setting for kukui cases. The socket option BT_CODEC
+		 * is not supported on Bluetooth kernel <= v4.19
 		 */
 		if (errno == ENOPROTOOPT) {
 			syslog(LOG_WARNING,
-			       "HCI OFFLOAD config not supported; fallback to normal setting");
+			       "BT_CODEC socket is not supported; fallback to normal setting");
 			return -ENOPROTOOPT;
+		}
+		/* Fallback setting for kukui-kernelnext cases. The experimental
+		 * flag of Offload Codecs is not enabled on Bluetooth kernel
+		 * >= 5.10
+		 */
+		if (errno == EOPNOTSUPP) {
+			syslog(LOG_WARNING,
+			       "Offload is not enabled in BT kernel; fallback to normal setting");
+			return -EOPNOTSUPP;
 		}
 		syslog(LOG_ERR, "Failed to set codec: %s (%d)",
 		       cras_strerror(errno), err);
@@ -823,7 +832,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 
 	if (use_offload)
 		err = apply_hfp_offload_codec_settings(sk, codec);
-	if (!use_offload || err == -ENOPROTOOPT)
+	if (!use_offload || err == -ENOPROTOOPT || err == -EOPNOTSUPP)
 		err = apply_codec_settings(sk, codec);
 	if (err)
 		goto error;
