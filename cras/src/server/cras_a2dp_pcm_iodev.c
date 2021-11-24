@@ -44,7 +44,6 @@ static const struct timespec throttle_event_threshold = {
  * Members:
  *    base - The cras_iodev structure "base class"
  *    audio_fd - The sockets for device to read and write
- *    sock_depth_frames - Socket depth of the a2dp pcm socket.
  *    ncm_buf - Buffer to hold pcm samples before encode.
  *    next_flush_time - The time when it is okay for next flush call.
  *    flush_period - The time period between two a2dp packet writes.
@@ -55,7 +54,6 @@ static const struct timespec throttle_event_threshold = {
 struct a2dp_io {
 	struct cras_iodev base;
 	int audio_fd;
-	unsigned sock_depth_frames;
 	struct byte_buffer *pcm_buf;
 	struct timespec next_flush_time;
 	struct timespec flush_period;
@@ -173,9 +171,7 @@ static int a2dp_socket_write_cb(void *arg, int revent)
 static int configure_dev(struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
-	int sock_depth;
 	int rc;
-	socklen_t optlen;
 	size_t format_bytes;
 
 	rc = cras_floss_a2dp_start(a2dpio->a2dp, iodev->format,
@@ -202,11 +198,6 @@ static int configure_dev(struct cras_iodev *iodev)
 	a2dpio->pcm_buf = byte_buffer_create(iodev->buffer_size * format_bytes);
 	if (!a2dpio->pcm_buf)
 		return -ENOMEM;
-
-	// TODO: remove sock depth if not used.
-	getsockopt(a2dpio->audio_fd, SOL_SOCKET, SO_SNDBUF, &sock_depth,
-		   &optlen);
-	a2dpio->sock_depth_frames = sock_depth / format_bytes;
 
 	/* Initialize flush_period by write_block, it will be changed
 	 * later based on socket write schedule. */
@@ -393,8 +384,8 @@ static int delay_frames(const struct cras_iodev *iodev)
 	const struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	struct timespec tstamp;
 
-	/* The number of frames in the pcm buffer plus socket depth */
-	return frames_queued(iodev, &tstamp) + a2dpio->sock_depth_frames;
+	/* The number of frames in the pcm buffer */
+	return frames_queued(iodev, &tstamp);
 }
 
 static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
