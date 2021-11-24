@@ -274,8 +274,9 @@ static DBusHandlerResult handle_set_output_node_volume(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult
-handle_display_rotation(DBusConnection *conn, DBusMessage *message, void *arg)
+static DBusHandlerResult handle_set_display_rotation(DBusConnection *conn,
+						     DBusMessage *message,
+						     void *arg)
 {
 	cras_node_id_t id;
 	dbus_uint32_t rotation;
@@ -729,9 +730,9 @@ static DBusHandlerResult handle_get_system_aec_group_id(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_system_ns_supported(DBusConnection *conn,
-						    DBusMessage *message,
-						    void *arg)
+static DBusHandlerResult handle_get_system_ns_supported(DBusConnection *conn,
+							DBusMessage *message,
+							void *arg)
 {
 	dbus_bool_t ns_supported = cras_system_get_ns_supported();
 
@@ -740,9 +741,9 @@ static DBusHandlerResult handle_system_ns_supported(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_system_agc_supported(DBusConnection *conn,
-						     DBusMessage *message,
-						     void *arg)
+static DBusHandlerResult handle_get_system_agc_supported(DBusConnection *conn,
+							 DBusMessage *message,
+							 void *arg)
 {
 	dbus_bool_t agc_supported = cras_system_get_agc_supported();
 
@@ -809,8 +810,8 @@ handle_add_active_node(DBusConnection *conn, DBusMessage *message, void *arg,
 }
 
 static DBusHandlerResult
-handle_rm_active_node(DBusConnection *conn, DBusMessage *message, void *arg,
-		      enum CRAS_STREAM_DIRECTION direction)
+handle_remove_active_node(DBusConnection *conn, DBusMessage *message, void *arg,
+			  enum CRAS_STREAM_DIRECTION direction)
 {
 	int rc;
 	cras_node_id_t id;
@@ -844,17 +845,17 @@ static DBusHandlerResult handle_set_fix_a2dp_packet_size(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_get_num_active_streams(DBusConnection *conn,
-						       DBusMessage *message,
-						       void *arg)
+static DBusHandlerResult
+handle_get_number_of_active_streams(DBusConnection *conn, DBusMessage *message,
+				    void *arg)
 {
 	send_int32_reply(conn, message, cras_system_state_get_active_streams());
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
 static DBusHandlerResult
-handle_get_num_active_streams_use_input_hw(DBusConnection *conn,
-					   DBusMessage *message, void *arg)
+handle_get_number_of_active_input_streams(DBusConnection *conn,
+					  DBusMessage *message, void *arg)
 {
 	dbus_int32_t num = 0;
 	unsigned i;
@@ -870,8 +871,8 @@ handle_get_num_active_streams_use_input_hw(DBusConnection *conn,
 }
 
 static DBusHandlerResult
-handle_get_num_active_streams_use_output_hw(DBusConnection *conn,
-					    DBusMessage *message, void *arg)
+handle_get_number_of_active_output_streams(DBusConnection *conn,
+					   DBusMessage *message, void *arg)
 {
 	dbus_int32_t num = 0;
 	unsigned i;
@@ -922,9 +923,8 @@ static bool append_num_input_streams_with_permission(
 	return true;
 }
 
-static DBusHandlerResult
-handle_get_num_input_streams_with_permission(DBusConnection *conn,
-					     DBusMessage *message, void *arg)
+static DBusHandlerResult handle_get_number_of_input_streams_with_permission(
+	DBusConnection *conn, DBusMessage *message, void *arg)
 {
 	DBusMessage *reply;
 	dbus_uint32_t serial = 0;
@@ -1008,8 +1008,9 @@ handle_set_hotword_model(DBusConnection *conn, DBusMessage *message, void *arg)
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_is_audio_active(DBusConnection *conn,
-						DBusMessage *message, void *arg)
+static DBusHandlerResult handle_is_audio_output_active(DBusConnection *conn,
+						       DBusMessage *message,
+						       void *arg)
 {
 	dbus_int32_t active = cras_system_state_get_non_empty_status();
 
@@ -1233,7 +1234,7 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 		return handle_set_output_node_volume(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetDisplayRotation")) {
-		return handle_display_rotation(conn, message, arg);
+		return handle_set_display_rotation(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SwapLeftRight")) {
 		return handle_swap_left_right(conn, message, arg);
@@ -1273,10 +1274,10 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 		return handle_get_system_aec_group_id(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetSystemNsSupported")) {
-		return handle_system_ns_supported(conn, message, arg);
+		return handle_get_system_ns_supported(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetSystemAgcSupported")) {
-		return handle_system_agc_supported(conn, message, arg);
+		return handle_get_system_agc_supported(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetDeprioritizeBtWbsMic")) {
 		return handle_get_deprioritize_bt_wbs_mic(conn, message, arg);
@@ -1301,33 +1302,33 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					      CRAS_STREAM_OUTPUT);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "RemoveActiveInputNode")) {
-		return handle_rm_active_node(conn, message, arg,
-					     CRAS_STREAM_INPUT);
+		return handle_remove_active_node(conn, message, arg,
+						 CRAS_STREAM_INPUT);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "RemoveActiveOutputNode")) {
-		return handle_rm_active_node(conn, message, arg,
-					     CRAS_STREAM_OUTPUT);
+		return handle_remove_active_node(conn, message, arg,
+						 CRAS_STREAM_OUTPUT);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetFixA2dpPacketSize")) {
 		return handle_set_fix_a2dp_packet_size(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "GetNumberOfActiveStreams")) {
-		return handle_get_num_active_streams(conn, message, arg);
+		return handle_get_number_of_active_streams(conn, message, arg);
 	} else if (dbus_message_is_method_call(
 			   message, CRAS_CONTROL_INTERFACE,
 			   "GetNumberOfActiveInputStreams")) {
-		return handle_get_num_active_streams_use_input_hw(conn, message,
-								  arg);
+		return handle_get_number_of_active_input_streams(conn, message,
+								 arg);
 	} else if (dbus_message_is_method_call(
 			   message, CRAS_CONTROL_INTERFACE,
 			   "GetNumberOfInputStreamsWithPermission")) {
-		return handle_get_num_input_streams_with_permission(
+		return handle_get_number_of_input_streams_with_permission(
 			conn, message, arg);
 	} else if (dbus_message_is_method_call(
 			   message, CRAS_CONTROL_INTERFACE,
 			   "GetNumberOfActiveOutputStreams")) {
-		return handle_get_num_active_streams_use_output_hw(
-			conn, message, arg);
+		return handle_get_number_of_active_output_streams(conn, message,
+								  arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetGlobalOutputChannelRemix")) {
 		return handle_set_global_output_channel_remix(conn, message,
@@ -1337,7 +1338,7 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 		return handle_set_hotword_model(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "IsAudioOutputActive")) {
-		return handle_is_audio_active(conn, message, arg);
+		return handle_is_audio_output_active(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetFlossEnabled")) {
 		return handle_set_floss_enabled(conn, message, arg);
@@ -1388,7 +1389,7 @@ static DBusMessage *create_dbus_message(const char *name)
 
 /* Handlers for system updates that generate DBus signals. */
 
-static void signal_output_volume(void *context, int32_t volume)
+static void signal_output_volume_changed(void *context, int32_t volume)
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
 	dbus_uint32_t serial = 0;
@@ -1405,8 +1406,8 @@ static void signal_output_volume(void *context, int32_t volume)
 	dbus_message_unref(msg);
 }
 
-static void signal_output_mute(void *context, int muted, int user_muted,
-			       int mute_locked)
+static void signal_output_mute_changed(void *context, int muted, int user_muted,
+				       int mute_locked)
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
 	dbus_uint32_t serial = 0;
@@ -1425,7 +1426,7 @@ static void signal_output_mute(void *context, int muted, int user_muted,
 	dbus_message_unref(msg);
 }
 
-static void signal_capture_gain(void *context, int32_t gain)
+static void signal_input_gain_changed(void *context, int32_t gain)
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
 	dbus_uint32_t serial = 0;
@@ -1441,7 +1442,7 @@ static void signal_capture_gain(void *context, int32_t gain)
 	dbus_message_unref(msg);
 }
 
-static void signal_capture_mute(void *context, int muted, int mute_locked)
+static void signal_input_mute_changed(void *context, int muted, int mute_locked)
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
 	dbus_uint32_t serial = 0;
@@ -1491,8 +1492,9 @@ static void signal_active_node_changed(void *context,
 }
 
 /* Called by iodev_list when a node volume changes. */
-static void signal_node_volume_changed(void *context, cras_node_id_t node_id,
-				       int32_t volume)
+static void signal_output_node_volume_changed(void *context,
+					      cras_node_id_t node_id,
+					      int32_t volume)
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
 	dbus_uint32_t serial = 0;
@@ -1508,9 +1510,9 @@ static void signal_node_volume_changed(void *context, cras_node_id_t node_id,
 	dbus_message_unref(msg);
 }
 
-static void signal_node_capture_gain_changed(void *context,
-					     cras_node_id_t node_id,
-					     int capture_gain)
+static void signal_input_node_gain_changed(void *context,
+					   cras_node_id_t node_id,
+					   int capture_gain)
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
 	dbus_uint32_t serial = 0;
@@ -1546,9 +1548,10 @@ static void signal_node_left_right_swapped_changed(void *context,
 	dbus_message_unref(msg);
 }
 
-static void signal_num_active_streams_changed(void *context,
-					      enum CRAS_STREAM_DIRECTION dir,
-					      uint32_t num_active_streams)
+static void
+signal_number_of_active_streams_changed(void *context,
+					enum CRAS_STREAM_DIRECTION dir,
+					uint32_t num_active_streams)
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
 	dbus_uint32_t serial = 0;
@@ -1565,7 +1568,7 @@ static void signal_num_active_streams_changed(void *context,
 	dbus_message_unref(msg);
 }
 
-static void signal_num_input_streams_with_permission_changed(
+static void signal_number_of_input_streams_with_permission_changed(
 	void *context, uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE])
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
@@ -1601,7 +1604,8 @@ static void signal_hotword_triggered(void *context, int64_t tv_sec,
 	dbus_message_unref(msg);
 }
 
-static void signal_non_empty_audio_state_changed(void *context, int non_empty)
+static void signal_audio_output_active_state_changed(void *context,
+						     int non_empty)
 {
 	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
 
@@ -1669,23 +1673,24 @@ void cras_dbus_control_start(DBusConnection *conn)
 	}
 
 	memset(&observer_ops, 0, sizeof(observer_ops));
-	observer_ops.output_volume_changed = signal_output_volume;
-	observer_ops.output_mute_changed = signal_output_mute;
-	observer_ops.capture_gain_changed = signal_capture_gain;
-	observer_ops.capture_mute_changed = signal_capture_mute;
+	observer_ops.output_volume_changed = signal_output_volume_changed;
+	observer_ops.output_mute_changed = signal_output_mute_changed;
+	observer_ops.capture_gain_changed = signal_input_gain_changed;
+	observer_ops.capture_mute_changed = signal_input_mute_changed;
 	observer_ops.num_active_streams_changed =
-		signal_num_active_streams_changed;
+		signal_number_of_active_streams_changed;
 	observer_ops.num_input_streams_with_permission_changed =
-		signal_num_input_streams_with_permission_changed;
+		signal_number_of_input_streams_with_permission_changed;
 	observer_ops.nodes_changed = signal_nodes_changed;
 	observer_ops.active_node_changed = signal_active_node_changed;
-	observer_ops.input_node_gain_changed = signal_node_capture_gain_changed;
-	observer_ops.output_node_volume_changed = signal_node_volume_changed;
+	observer_ops.input_node_gain_changed = signal_input_node_gain_changed;
+	observer_ops.output_node_volume_changed =
+		signal_output_node_volume_changed;
 	observer_ops.node_left_right_swapped_changed =
 		signal_node_left_right_swapped_changed;
 	observer_ops.hotword_triggered = signal_hotword_triggered;
 	observer_ops.non_empty_audio_state_changed =
-		signal_non_empty_audio_state_changed;
+		signal_audio_output_active_state_changed;
 	observer_ops.severe_underrun = signal_severe_underrun;
 	observer_ops.underrun = signal_underrun;
 
