@@ -1,7 +1,10 @@
 // Copyright 2019 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::{array::TryFromSliceError, convert::TryInto, error, fmt, io, mem, os::unix::io::RawFd};
+use std::{
+    array::TryFromSliceError, convert::TryInto, error, fmt, io, io::IoSliceMut, mem,
+    os::unix::io::RawFd,
+};
 
 use cras_sys::gen::{
     cras_client_connected, cras_client_message, cras_client_stream_connected,
@@ -144,7 +147,8 @@ impl CrasClientMessage {
     // Reads a message from server_socket and checks validity of the read result
     fn try_new(server_socket: &CrasServerSocket) -> Result<CrasClientMessage> {
         let mut message: Self = Default::default();
-        let (len, fd_nums) = server_socket.recv_with_fds(&mut message.data, &mut message.fds)?;
+        let (len, fd_nums) =
+            server_socket.recv_with_fds(IoSliceMut::new(&mut message.data), &mut message.fds)?;
 
         if len < mem::size_of::<cras_client_message>() {
             Err(Error::MessageTruncated)
