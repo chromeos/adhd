@@ -65,6 +65,7 @@ static const size_t HOTWORD_BLOCK_SIZE = 320;
 enum { CLIENT_STOP,
        CLIENT_ADD_STREAM,
        CLIENT_REMOVE_STREAM,
+       CLIENT_SET_AEC_REF,
        CLIENT_SET_STREAM_VOLUME_SCALER,
        CLIENT_SERVER_CONNECT,
        CLIENT_SERVER_CONNECT_ASYNC,
@@ -79,6 +80,12 @@ struct command_msg {
 struct set_stream_volume_command_message {
 	struct command_msg header;
 	float volume_scaler;
+};
+
+/* Command to set AEC reference to given stream. */
+struct set_aec_ref_command_message {
+	struct command_msg header;
+	uint32_t dev_idx;
 };
 
 /* Adds a stream to the client.
@@ -1699,6 +1706,26 @@ static int client_thread_rm_stream(struct cras_client *client,
 	return 0;
 }
 
+static int client_thread_set_aec_ref(struct cras_client *client,
+				     cras_stream_id_t stream_id,
+				     uint32_t dev_idx)
+{
+	struct cras_set_aec_ref_message msg;
+	struct client_stream *stream = stream_from_id(client, stream_id);
+	int rc;
+
+	if (stream == NULL)
+		return 0;
+
+	if (client->server_fd_state == CRAS_SOCKET_STATE_CONNECTED) {
+		cras_fill_set_aec_ref_message(&msg, stream_id, dev_idx);
+		rc = write(client->server_fd, &msg, sizeof(msg));
+		if (rc < 0)
+			syslog(LOG_ERR, "cras_client: error setting aec ref\n");
+	}
+	return 0;
+}
+
 /* Sets the volume scaling factor for a playback or capture stream. */
 static int client_thread_set_stream_volume(struct cras_client *client,
 					   cras_stream_id_t stream_id,
@@ -2020,6 +2047,13 @@ static int handle_command_message(struct cras_client *client, int poll_revents)
 						     vol_msg->volume_scaler);
 		break;
 	}
+	case CLIENT_SET_AEC_REF: {
+		struct set_aec_ref_command_message *set_aec_ref =
+			(struct set_aec_ref_command_message *)msg;
+		rc = client_thread_set_aec_ref(client, msg->stream_id,
+					       set_aec_ref->dev_idx);
+		break;
+	}
 	case CLIENT_SERVER_CONNECT:
 		rc = connect_to_server_wait(client, false);
 		break;
@@ -2151,6 +2185,20 @@ static int send_stream_volume_command_msg(struct cras_client *client,
 	msg.header.msg_id = CLIENT_SET_STREAM_VOLUME_SCALER;
 	msg.volume_scaler = volume_scaler;
 
+	return send_command_message(client, &msg.header);
+}
+
+/* Sends a message to set AEC ref device id for given stream. */
+static int send_set_aec_ref_command_msg(struct cras_client *client,
+					cras_stream_id_t stream_id,
+					uint32_t dev_idx)
+{
+	struct set_aec_ref_command_message msg;
+
+	msg.header.len = sizeof(msg);
+	msg.header.msg_id = CLIENT_SET_AEC_REF;
+	msg.header.stream_id = stream_id;
+	msg.dev_idx = dev_idx;
 	return send_command_message(client, &msg.header);
 }
 
@@ -2558,6 +2606,15 @@ int cras_client_set_stream_volume(struct cras_client *client,
 		return -EINVAL;
 
 	return send_stream_volume_command_msg(client, stream_id, volume_scaler);
+}
+
+int cras_client_set_aec_ref(struct cras_client *client,
+			    cras_stream_id_t stream_id, uint32_t dev_idx)
+{
+	if (client == NULL)
+		return -EINVAL;
+
+	return send_set_aec_ref_command_msg(client, stream_id, dev_idx);
 }
 
 int cras_client_set_system_volume(struct cras_client *client, size_t volume)
@@ -4031,6 +4088,7 @@ struct libcras_client *libcras_client_create()
 	client->stop = cras_client_stop;
 	client->add_pinned_stream = cras_client_add_pinned_stream;
 	client->rm_stream = cras_client_rm_stream;
+	client->set_aec_ref = cras_client_set_aec_ref;
 	client->set_stream_volume = cras_client_set_stream_volume;
 	client->get_nodes = get_nodes;
 	client->get_default_output_buffer_size = get_default_output_buffer_size;

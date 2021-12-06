@@ -687,6 +687,35 @@ int cras_client_set_stream_volume(struct cras_client *client,
 				  cras_stream_id_t stream_id,
 				  float volume_scaler);
 
+/* Sets an output device to be the echo reference of an input stream.
+ * The output device is specified by the index. Before this call,
+ * input streams requesting AEC effect would use the default echo
+ * reference selected by system.
+ *
+ * When |dev_idx| is set with a value other than NO_DEVICE from
+ * enum CRAS_SPECIAL_DEVICE, it means the client stream requests to
+ * stick at using |dev_idx| no matter how the system default changes.
+ * When |dev_idx| is set to NO_DEVICE, it means the client requests
+ * to use the system default.
+ *
+ * Client caller is responsible for monitoring the devices states
+ * in server side and updating aec ref accordingly with valid
+ * |dev_idx| values. Server side implementation will follow below
+ * principles:
+ * (a) If |dev_idx| is not found on server side, this will be a no-op.
+ * (b) When device |dev_idx| is removed at any time, server side will
+ * fallback to use the system default aec ref.
+ *
+ * Args:
+ *    client - Client owning the stream.
+ *    stream_id - ID returned from cras_client_add_stream.
+ *    dev_idx - ID of the audio device to set as echo reference for
+ *        given stream.
+ * Returns:
+ *    0 on success, negative error code on failure.
+ */
+int cras_client_set_aec_ref(struct cras_client *client,
+			    cras_stream_id_t stream_id, uint32_t dev_idx);
 /*
  * System level functions.
  */
@@ -1313,7 +1342,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 2
+#define CRAS_API_VERSION 3
 #define CHECK_VERSION(object, version)                                         \
 	if (object->api_version < version) {                                   \
 		return -ENOSYS;                                                \
@@ -1371,6 +1400,8 @@ struct libcras_client {
 	int (*get_system_muted)(struct cras_client *client, int *muted);
 	int (*set_system_mute)(struct cras_client *client, int mute);
 	int (*get_loopback_dev_idx)(struct cras_client *client, int *idx);
+	int (*set_aec_ref)(struct cras_client *client,
+			   cras_stream_id_t stream_id, uint32_t dev_idx);
 };
 
 struct cras_stream_cb_data;
@@ -1543,6 +1574,30 @@ inline int libcras_client_rm_stream(struct libcras_client *client,
 				    cras_stream_id_t stream_id)
 {
 	return client->rm_stream(client->client_, stream_id);
+}
+
+/* Sets an output device to be the echo reference of an input stream.
+ * The output device is specified by the index. Before this call,
+ * input streams requesting AEC effect would use the default echo
+ * reference selected by system.
+ *
+ * See cras_client_set_aec_ref for more explanation.
+ *
+ * Args:
+ *    client - Client owning the stream.
+ *    stream_id - ID returned from cras_client_add_stream.
+ *    dev_idx - ID of the audio device to set as echo reference for
+ *        given stream.
+ * Returns:
+ *    0 on success, negative error code on failure.
+ */
+DISABLE_CFI_ICALL
+inline int libcras_client_set_aec_ref(struct libcras_client *client,
+				      cras_stream_id_t stream_id,
+				      uint32_t dev_idx)
+{
+	CHECK_VERSION(client, 3);
+	return client->set_aec_ref(client->client_, stream_id, dev_idx);
 }
 
 /*

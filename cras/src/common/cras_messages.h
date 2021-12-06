@@ -58,6 +58,7 @@ enum CRAS_SERVER_MESSAGE_ID {
 	CRAS_SERVER_SET_BT_WBS_ENABLED,
 	CRAS_SERVER_GET_ATLOG_FD,
 	CRAS_SERVER_DUMP_MAIN,
+	CRAS_SERVER_SET_AEC_REF,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -156,6 +157,21 @@ cras_fill_disconnect_stream_message(struct cras_disconnect_stream_message *m,
 	m->stream_id = stream_id;
 	m->header.id = CRAS_SERVER_DISCONNECT_STREAM;
 	m->header.length = sizeof(struct cras_disconnect_stream_message);
+}
+
+struct __attribute__((__packed__)) cras_set_aec_ref_message {
+	struct cras_server_message header;
+	cras_stream_id_t stream_id;
+	uint32_t iodev_idx;
+};
+static inline void
+cras_fill_set_aec_ref_message(struct cras_set_aec_ref_message *m,
+			      cras_stream_id_t stream_id, uint32_t iodev_idx)
+{
+	m->stream_id = stream_id;
+	m->iodev_idx = iodev_idx;
+	m->header.id = CRAS_SERVER_SET_AEC_REF;
+	m->header.length = sizeof(*m);
 }
 
 /* Move streams of "type" to the iodev at "iodev_idx". */

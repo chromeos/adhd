@@ -242,6 +242,14 @@ int rclient_handle_client_stream_disconnect(
 			      msg->stream_id);
 }
 
+int rclient_handle_client_set_aec_ref(
+	struct cras_rclient *client, const struct cras_set_aec_ref_message *msg)
+{
+	syslog(LOG_DEBUG, "rclient handle set aec ref: stream %.9x dev %u",
+	       msg->stream_id, msg->iodev_idx);
+	return 0;
+}
+
 /* Creates a client structure and sends a message back informing the client that
  * the connection has succeeded. */
 struct cras_rclient *rclient_generic_create(int fd, size_t id,
@@ -305,6 +313,12 @@ int rclient_handle_message_from_client(struct cras_rclient *client,
 		rclient_handle_client_stream_disconnect(
 			client,
 			(const struct cras_disconnect_stream_message *)msg);
+		break;
+	case CRAS_SERVER_SET_AEC_REF:
+		if (!MSG_LEN_VALID(msg, struct cras_set_aec_ref_message))
+			return -EINVAL;
+		rclient_handle_client_set_aec_ref(
+			client, (struct cras_set_aec_ref_message *)msg);
 		break;
 	default:
 		break;

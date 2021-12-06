@@ -510,6 +510,13 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 	case CRAS_SERVER_RELOAD_AEC_CONFIG:
 		cras_apm_list_reload_aec_config();
 		break;
+	case CRAS_SERVER_SET_AEC_REF: {
+		if (!MSG_LEN_VALID(msg, struct cras_set_aec_ref_message))
+			return -EINVAL;
+		rclient_handle_client_set_aec_ref(
+			client, (struct cras_set_aec_ref_message *)msg);
+		break;
+	}
 	default:
 		break;
 	}

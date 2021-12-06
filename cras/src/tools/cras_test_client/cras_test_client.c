@@ -54,6 +54,7 @@ static int pause_in_playback_reply = 1000;
 
 static char *channel_layout = NULL;
 static int pin_device_id;
+static int aec_ref_device_id;
 
 static int play_short_sound = 0;
 static int play_short_sound_periods = 0;
@@ -1350,6 +1351,21 @@ static void run_aecdump(struct cras_client *client, uint64_t stream_id,
 	}
 }
 
+static unsigned int read_dev_idx(int tty)
+{
+	char buf[16];
+	int pos = 0;
+
+	do {
+		if (read(tty, buf + pos, 1) < 1)
+			break;
+	} while (*(buf + pos) != '\n' && ++pos < 16);
+	buf[pos] = '\n';
+	/* If error occurs this will return 0. Since we're in a test
+	 * tool, just pretend as setting NO_DEVICE(value 0).*/
+	return atoi(buf);
+}
+
 static int run_file_io_stream(struct cras_client *client, int fd,
 			      enum CRAS_STREAM_DIRECTION direction,
 			      size_t block_size,
@@ -1455,6 +1471,7 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 	while (keep_looping) {
 		char input;
 		int nread;
+		unsigned int dev_idx;
 
 		FD_ZERO(&poll_set);
 		if (tty >= 0)
@@ -1478,6 +1495,11 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 			return nread;
 		}
 		switch (input) {
+		case 'a':
+			dev_idx = read_dev_idx(tty);
+			cras_client_set_aec_ref(client, stream_id, dev_idx);
+			printf("Setting AEC ref to dev: %u", dev_idx);
+			break;
 		case 'p':
 			pause_client = !pause_client;
 			break;
@@ -1816,6 +1838,7 @@ static struct option long_options[] = {
 	{"loopback_file",       required_argument,      0, 'L'},
 	{"mute_loop_test",      required_argument,      0, 'M'},
 	{"dump_main",           no_argument,            0, 'N'},
+	{"set_aec_ref",         required_argument,      0, 'O'},
 	{"playback_file",       required_argument,      0, 'P'},
 	{"stream_type",         required_argument,      0, 'T'},
 	{0, 0, 0, 0}
@@ -2368,6 +2391,9 @@ int main(int argc, char **argv)
 			break;
 		case 'N':
 			show_main_thread_debug_info(client);
+			break;
+		case 'O':
+			aec_ref_device_id = atoi(optarg);
 			break;
 		case 'P':
 			playback_file = optarg;

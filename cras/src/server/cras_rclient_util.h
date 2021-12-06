@@ -86,6 +86,18 @@ int rclient_handle_client_stream_disconnect(
 	struct cras_rclient *client,
 	const struct cras_disconnect_stream_message *msg);
 
+/* Handles message from the client requesting to set aec ref for a stream.
+ * Args:
+ *    client - The cras_rclient which gets the message.
+ *    msg - The cras_set_aec_ref_message from client.
+ *
+ * Returns:
+ *   0 on success, negative error on failure.
+ */
+int rclient_handle_client_set_aec_ref(
+	struct cras_rclient *client,
+	const struct cras_set_aec_ref_message *msg);
+
 /* Generic rclient create function for different types of rclients.
  * Creates a client structure and sends a message back informing the client
  * that the connection has succeeded.
