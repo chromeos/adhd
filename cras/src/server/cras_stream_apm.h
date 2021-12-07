@@ -166,6 +166,16 @@ void cras_stream_apm_set_aec_dump(struct cras_stream_apm *stream,
 				  const struct cras_iodev *idev, int start,
 				  int fd);
 
+/* Sets an iodev as echo ref for a stream with AEC effect.
+ * Args:
+ *    stream - Stream apm containing the apm instances with AEC effect.
+ *    echo_ref - pointer to an iodev assigned as echo ref for |stream|.
+ * Returns:
+ *    0 if success, otherwise error code.
+ */
+int cras_stream_apm_set_aec_ref(struct cras_stream_apm *stream,
+				struct cras_iodev *echo_ref);
+
 #else
 
 /*
@@ -252,6 +262,12 @@ static inline void cras_stream_apm_set_aec_dump(struct cras_stream_apm *stream,
 						const struct cras_iodev *idev,
 						int start, int fd)
 {
+}
+
+static inline int cras_stream_apm_set_aec_ref(struct cras_stream_apm *stream,
+					      struct cras_iodev *echo_ref)
+{
+	return 0;
 }
 
 #endif /* HAVE_WEBRTC_APM */

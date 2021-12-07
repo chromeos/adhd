@@ -2047,7 +2047,9 @@ void cras_iodev_list_reset_for_noise_cancellation()
 
 int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx)
 {
+	struct cras_rstream *rstream = NULL;
 	struct cras_iodev *echo_ref;
+	int rc;
 
 	if (dev_idx == NO_DEVICE) {
 		echo_ref = NULL;
@@ -2059,9 +2061,29 @@ int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx)
 			return 0;
 		}
 	}
+
+	DL_FOREACH (stream_list_get(stream_list), rstream) {
+		if (rstream->stream_id == stream_id)
+			break;
+	}
+	if (rstream == NULL) {
+		syslog(LOG_WARNING, "Stream 0x%.0x not found to set echo ref",
+		       stream_id);
+		return 0;
+	}
+
+	/* Chrome client always call to set AEC ref even CRAS reports not
+	 * supporting system AEC, so this is a common case.
+	 */
+	if (rstream->stream_apm == NULL)
+		return 0;
+
 	cras_server_metrics_set_aec_ref_device_type(echo_ref);
 
-	return 0;
+	rc = cras_stream_apm_set_aec_ref(rstream->stream_apm, echo_ref);
+	if (rc)
+		syslog(LOG_ERR, "Error setting dev %u as AEC ref", dev_idx);
+	return rc;
 }
 
 void cras_iodev_list_reset()

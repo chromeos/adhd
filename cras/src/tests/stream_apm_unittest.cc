@@ -33,6 +33,8 @@ static dictionary* webrtc_apm_create_aec_ini_val = NULL;
 static dictionary* webrtc_apm_create_apm_ini_val = NULL;
 static bool cras_apm_reverse_is_aec_use_case_ret;
 static int cras_apm_reverse_state_update_called;
+static int cras_apm_reverse_link_echo_ref_called;
+static process_reverse_needed_t process_needed_cb_value;
 static thread_callback thread_cb;
 static void* cb_data;
 static output_devices_changed_t output_devices_changed_callback = NULL;
@@ -320,6 +322,75 @@ TEST(StreamApm, ReverseDevChanged) {
   cras_stream_apm_deinit();
 }
 
+TEST(ApmList, NeedsReverseProcessing) {
+  struct cras_stream_apm* stream2;
+  struct cras_audio_format fmt;
+  struct cras_iodev *output1, *output2;
+
+  fmt.num_channels = 2;
+  fmt.frame_rate = 48000;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+
+  cras_apm_reverse_link_echo_ref_called = 0;
+  cras_apm_reverse_state_update_called = 0;
+  cras_stream_apm_init("");
+
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, stream);
+  stream2 = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, stream2);
+
+  cras_stream_apm_add(stream, idev, &fmt, 1);
+  cras_stream_apm_start(stream, idev);
+  cras_stream_apm_add(stream2, idev, &fmt, 1);
+  cras_stream_apm_start(stream2, idev);
+  EXPECT_EQ(2, cras_apm_reverse_state_update_called);
+
+  output1 = reinterpret_cast<struct cras_iodev*>(0x654);
+  EXPECT_EQ(1, process_needed_cb_value(1, output1));
+
+  output2 = reinterpret_cast<struct cras_iodev*>(0x321);
+  EXPECT_EQ(0, process_needed_cb_value(0, output2));
+
+  /* Set aec ref to output2, expect reverse process is needed for
+   * non-default |output2|. */
+  cras_stream_apm_set_aec_ref(stream, output2);
+  EXPECT_EQ(1, process_needed_cb_value(0, output2));
+  thread_cb(cb_data, POLLIN);
+  EXPECT_EQ(1, cras_apm_reverse_link_echo_ref_called);
+  EXPECT_EQ(3, cras_apm_reverse_state_update_called);
+
+  /* Process reverse is needed for default |output1| because there's still
+   * the |stream2| tracking default output. */
+  EXPECT_EQ(1, process_needed_cb_value(1, output1));
+
+  /* Set streamist back to track default output as aec ref. Expect reverse
+   * process is no longer needed on |output2|. */
+  cras_stream_apm_set_aec_ref(stream, NULL);
+  EXPECT_EQ(0, process_needed_cb_value(0, output2));
+  thread_cb(cb_data, POLLIN);
+  EXPECT_EQ(2, cras_apm_reverse_link_echo_ref_called);
+  EXPECT_EQ(4, cras_apm_reverse_state_update_called);
+
+  /* Assume the default output now changes to output2. Expect reverse process
+   * is needed, because |stream| is tracking default. And |output1| is not
+   * needed because no one is tracking it as aec ref. */
+  EXPECT_EQ(1, process_needed_cb_value(1, output2));
+  EXPECT_EQ(0, process_needed_cb_value(0, output1));
+
+  cras_stream_apm_stop(stream, idev);
+  cras_stream_apm_stop(stream2, idev);
+
+  cras_stream_apm_remove(stream, idev);
+  cras_stream_apm_remove(stream2, idev);
+
+  cras_stream_apm_destroy(stream);
+  EXPECT_EQ(3, cras_apm_reverse_link_echo_ref_called);
+  cras_stream_apm_destroy(stream2);
+  EXPECT_EQ(4, cras_apm_reverse_link_echo_ref_called);
+  cras_stream_apm_deinit();
+}
+
 extern "C" {
 void audio_thread_add_events_callback(int fd,
                                       thread_callback cb,
@@ -407,12 +478,19 @@ int webrtc_apm_aec_dump(webrtc_apm ptr,
 int cras_apm_reverse_init(process_reverse_t process_cb,
                           process_reverse_needed_t process_needed_cb,
                           output_devices_changed_t output_devices_changed_cb) {
+  process_needed_cb_value = process_needed_cb;
   output_devices_changed_callback = output_devices_changed_cb;
   return 0;
 }
 
 void cras_apm_reverse_state_update() {
   cras_apm_reverse_state_update_called++;
+}
+
+int cras_apm_reverse_link_echo_ref(struct cras_stream_apm* stream,
+                                   struct cras_iodev* echo_ref) {
+  cras_apm_reverse_link_echo_ref_called++;
+  return 0;
 }
 
 bool cras_apm_reverse_is_aec_use_case() {

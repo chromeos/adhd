@@ -95,10 +95,14 @@ struct cras_apm {
  *    effects - The effecets bit map of APM.
  *    apms - List of APMs for stream processing. It is a list because
  *        multiple input devices could be configured by user.
+ *    echo_ref - If specified, the pointer to an output iodev which shall be
+ *        used as echo ref for this apm. When set to NULL it means to
+ *        follow what the default_rmod provides as echo ref.
  */
 struct cras_stream_apm {
 	uint64_t effects;
 	struct cras_apm *apms;
+	struct cras_iodev *echo_ref;
 };
 
 /*
@@ -121,6 +125,7 @@ struct active_apm {
 /* Commands from main thread to be handled in audio thread. */
 enum APM_THREAD_CMD {
 	APM_REVERSE_DEV_CHANGED,
+	APM_SET_AEC_REF,
 };
 
 /* Message to send command to audio thread. */
@@ -183,6 +188,7 @@ struct cras_stream_apm *cras_stream_apm_create(uint64_t effects)
 	}
 	stream->effects = effects;
 	stream->apms = NULL;
+	stream->echo_ref = NULL;
 
 	return stream;
 }
@@ -423,6 +429,9 @@ int cras_stream_apm_destroy(struct cras_stream_apm *stream)
 {
 	struct cras_apm *apm;
 
+	/* Unlink any linked echo ref. */
+	cras_apm_reverse_link_echo_ref(stream, NULL);
+
 	DL_FOREACH (stream->apms, apm) {
 		DL_DELETE(stream->apms, apm);
 		apm_destroy(&apm);
@@ -433,7 +442,8 @@ int cras_stream_apm_destroy(struct cras_stream_apm *stream)
 }
 
 /* See comments for process_reverse_t */
-static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
+static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate,
+			   const struct cras_iodev *echo_ref)
 {
 	struct active_apm *active;
 	int ret;
@@ -445,6 +455,12 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 
 	DL_FOREACH (active_apms, active) {
 		if (!(active->stream->effects & APM_ECHO_CANCELLATION))
+			continue;
+
+		/* Client could assign specific echo ref to an APM. If the
+		 * running echo_ref doesn't match then do nothing. */
+		if (active->stream->echo_ref &&
+		    (active->stream->echo_ref != echo_ref))
 			continue;
 
 		if (active->apm->only_symmetric_content_in_render) {
@@ -473,13 +489,28 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
  * to ask stream APMs if there's need to process data on the reverse side.
  * This is expected to be called from cras_apm_reverse_state_update() in
  * audio thread so it's safe to access |active_apms|.
+ * Args:
+ *     default_reverse - True means |echo_ref| is the default reverse module
+ *         provided by the system default audio output device.
+ *     echo_ref - The device to check if reverse data processing is needed.
+ * Returns:
+ *     If |echo_ref| should be processed as reverse data for a subset of
+ *     active apms.
  */
-static int process_reverse_needed()
+static int process_reverse_needed(bool default_reverse,
+				  const struct cras_iodev *echo_ref)
 {
 	struct active_apm *active;
 
 	DL_FOREACH (active_apms, active) {
-		if (active->stream->effects & APM_ECHO_CANCELLATION)
+		/* No processing need when APM doesn't ask for AEC. */
+		if (!(active->stream->effects & APM_ECHO_CANCELLATION))
+			continue;
+		/* APM with NULL echo_ref means it tracks default. */
+		if (default_reverse && (active->stream->echo_ref == NULL))
+			return 1;
+		/* APM asked to track given echo_ref specifically.  */
+		if (echo_ref && (active->stream->echo_ref == echo_ref))
 			return 1;
 	}
 	return 0;
@@ -515,25 +546,23 @@ static void get_apm_ini(const char *config_dir)
 		syslog(LOG_INFO, "No apm ini file %s", ini_name);
 }
 
-static void send_apm_message(enum APM_THREAD_CMD cmd)
+static int send_apm_message(enum APM_THREAD_CMD cmd)
 {
 	struct apm_message msg;
-	int rc;
-
 	msg.cmd = cmd;
-
-	rc = write(to_thread_fds[1], &msg, sizeof(msg));
-	if (rc < 0)
-		syslog(LOG_ERR, "Err sending APM thread msg");
+	return write(to_thread_fds[1], &msg, sizeof(msg));
 }
 
 /* Triggered in main thread when devices state has changed in APM
  * reverse modules. */
 static void on_output_devices_changed()
 {
+	int rc;
 	/* Send a message to audio thread because we need to access
 	 * |active_apms|. */
-	send_apm_message(APM_REVERSE_DEV_CHANGED);
+	rc = send_apm_message(APM_REVERSE_DEV_CHANGED);
+	if (rc < 0)
+		syslog(LOG_ERR, "Error sending output devices changed message");
 }
 
 /* Receives commands and handles them in audio thread. */
@@ -557,6 +586,7 @@ static int apm_thread_callback(void *arg, int revents)
 
 	switch (msg.cmd) {
 	case APM_REVERSE_DEV_CHANGED:
+	case APM_SET_AEC_REF:
 		cras_apm_reverse_state_update();
 		break;
 	default:
@@ -757,4 +787,29 @@ void cras_stream_apm_set_aec_dump(struct cras_stream_apm *stream,
 		if (rc)
 			syslog(LOG_ERR, "Failed to stop apm debug, rc %d", rc);
 	}
+}
+
+int cras_stream_apm_set_aec_ref(struct cras_stream_apm *stream,
+				struct cras_iodev *echo_ref)
+{
+	int rc;
+
+	/* Do nothing if this is a duplicate call from client. */
+	if (stream->echo_ref == echo_ref)
+		return 0;
+
+	stream->echo_ref = echo_ref;
+
+	rc = cras_apm_reverse_link_echo_ref(stream, stream->echo_ref);
+	if (rc) {
+		syslog(LOG_ERR, "Failed to add echo ref for set aec ref call");
+		return rc;
+	}
+
+	rc = send_apm_message(APM_SET_AEC_REF);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Error sending set aec ref message.");
+		return rc;
+	}
+	return 0;
 }
