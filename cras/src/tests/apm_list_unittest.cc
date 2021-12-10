@@ -30,12 +30,11 @@ static unsigned int webrtc_apm_process_stream_f_called;
 static unsigned int webrtc_apm_process_reverse_stream_f_called;
 static device_enabled_callback_t device_enabled_callback_val;
 static struct ext_dsp_module* ext_dsp_module_value;
-static struct cras_ionode fake_node;
-static struct cras_iodev fake_iodev;
 static int webrtc_apm_create_called;
 static bool cras_iodev_is_aec_use_case_ret;
 static dictionary* webrtc_apm_create_aec_ini_val = NULL;
 static dictionary* webrtc_apm_create_apm_ini_val = NULL;
+static struct cras_iodev iodev_list_get_first_enabled_iodev_ret;
 
 TEST(ApmList, ApmListCreate) {
   list = cras_apm_list_create(stream_ptr, 0);
@@ -144,8 +143,6 @@ TEST(ApmList, AddRemoveApm) {
   fmt.num_channels = 2;
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
-  fake_iodev.active_node = &fake_node;
-  fake_node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
 
   dir = prepare_tempdir();
   cras_apm_list_init(dir);
@@ -191,7 +188,6 @@ TEST(ApmList, OutputTypeNotAecUseCase) {
   fmt.num_channels = 2;
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
-  fake_iodev.active_node = &fake_node;
 
   dir = prepare_tempdir();
   cras_apm_list_init(dir);
@@ -325,6 +321,8 @@ TEST(ApmList, ApmProcessReverseData) {
   ext_dsp_module_value->run(ext_dsp_module_value, 250);
   EXPECT_EQ(1, webrtc_apm_process_reverse_stream_f_called);
 
+  cras_apm_list_stop_apm(list, dev_ptr);
+  cras_apm_list_remove_apm(list, dev_ptr);
   float_buffer_destroy(&buf);
   cras_apm_list_destroy(list);
   cras_apm_list_deinit();
@@ -366,7 +364,7 @@ int cras_iodev_list_set_device_enabled_callback(
 }
 struct cras_iodev* cras_iodev_list_get_first_enabled_iodev(
     enum CRAS_STREAM_DIRECTION direction) {
-  return &fake_iodev;
+  return &iodev_list_get_first_enabled_iodev_ret;
 }
 void cras_iodev_set_ext_dsp_module(struct cras_iodev* iodev,
                                    struct ext_dsp_module* ext) {
