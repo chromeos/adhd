@@ -120,6 +120,14 @@ struct active_apm {
  * Object used to analyze playback audio from output iodev. It is responsible
  * to get buffer containing latest output data and provide it to the APM
  * instances which want to analyze reverse stream.
+ *
+ * - How does this reverse module connects with output iodev?
+ * An instance of this reverse module is expected to be passed as a
+ * (struct ext_dsp_module *) to cras_iodev_set_ext_dsp_module() so that
+ * when audio data runs through the associated iodev's DSP pipeline it
+ * will trigger ext->run(ext, ...) which is implemented below as
+ * reverse_data_run()
+ *
  * Member:
  *    ext - The interface implemented to process reverse(output) stream
  *        data in various formats.
@@ -127,18 +135,25 @@ struct active_apm {
  *    odev - Pointer to the output iodev playing audio as the reverse
  *        stream. NULL if there's no playback stream.
  *    dev_rate - The sample rate odev is opened for.
- *    process_reverse - Flag to indicate if there's APM has effect that
- *        needs to process reverse stream.
+ *    needs_to_process - Flag to indicate if this reverse module needs to
+ *        process. The logic could be complex to determine if the overall
+ *        APM states requires this reverse module to process. Given that
+ *        ext->run() is called rather frequent from DSP pipeline, we use
+ *        this flag to save the computation every time.
  */
 struct cras_apm_reverse_module {
 	struct ext_dsp_module ext;
 	struct float_buffer *fbuf;
 	struct cras_iodev *odev;
 	unsigned int dev_rate;
-	unsigned process_reverse;
+	unsigned needs_to_process;
 };
 
-static struct cras_apm_reverse_module *rmodule = NULL;
+/* The reverse module corresponds to the dynamically changing default
+ * enabled iodev in cras_iodev_list. It is subjected to change along
+ * with audio output device selection. */
+static struct cras_apm_reverse_module *default_rmod = NULL;
+
 static const char *aec_config_dir = NULL;
 static char ini_name[MAX_INI_NAME_LENGTH + 1];
 static dictionary *aec_ini = NULL;
@@ -167,17 +182,17 @@ static struct cras_audio_format mono_channel = { 0, // unused
 						 { -1, -1, -1, -1, 0, -1, -1,
 						   -1, -1, -1, -1 } };
 
-/* Update the global process reverse flag. Should be called when apms are added
- * or removed. */
-static void update_process_reverse_flag()
+/* Update the needs_to_process flag in global reverse modules. Should be
+ * called when apms are started or stopped. */
+static void update_needs_to_process_flag()
 {
 	struct active_apm *active;
 
-	if (!rmodule)
+	if (!default_rmod)
 		return;
-	rmodule->process_reverse = 0;
+	default_rmod->needs_to_process = 0;
 	DL_FOREACH (active_apms, active) {
-		rmodule->process_reverse |=
+		default_rmod->needs_to_process |=
 			!!(active->effects & APM_ECHO_CANCELLATION);
 	}
 }
@@ -341,9 +356,9 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 	/* Use tuned settings only when the forward dev(capture) and reverse
 	 * dev(playback) both are in typical AEC use case. */
 	apm->is_aec_use_case = is_aec_use_case;
-	if (rmodule->odev) {
-		apm->is_aec_use_case &=
-			cras_iodev_is_aec_use_case(rmodule->odev->active_node);
+	if (default_rmod->odev) {
+		apm->is_aec_use_case &= cras_iodev_is_aec_use_case(
+			default_rmod->odev->active_node);
 	}
 
 	/* Determine whether to enforce effects to be on (regardless of settings
@@ -426,7 +441,7 @@ void cras_apm_list_start_apm(struct cras_apm_list *list, void *dev_ptr)
 	active->effects = list->effects;
 	DL_APPEND(active_apms, active);
 
-	update_process_reverse_flag();
+	update_needs_to_process_flag();
 }
 
 void cras_apm_list_stop_apm(struct cras_apm_list *list, void *dev_ptr)
@@ -442,7 +457,7 @@ void cras_apm_list_stop_apm(struct cras_apm_list *list, void *dev_ptr)
 		free(active);
 	}
 
-	update_process_reverse_flag();
+	update_needs_to_process_flag();
 }
 
 int cras_apm_list_destroy(struct cras_apm_list *list)
@@ -473,13 +488,13 @@ static struct cras_iodev *get_echo_reference_target(struct cras_iodev *iodev)
 
 /*
  * Updates the first enabled output iodev in the list, determine the echo
- * reference target base on this output iodev, and register rmodule as ext dsp
- * module to this echo reference target.
+ * reference target base on this output iodev, and register default_rmod as
+ * ext dsp module to this echo reference target.
  * When this echo reference iodev is opened and audio data flows through its
  * dsp pipeline, APMs will anaylize the reverse stream. This is expected to be
  * called in main thread when output devices enable/dsiable state changes.
  */
-static void update_first_output_dev_to_process()
+static void update_first_output_for_echo_ref()
 {
 	struct cras_iodev *echo_ref;
 	struct cras_iodev *iodev =
@@ -490,18 +505,18 @@ static void update_first_output_dev_to_process()
 
 	echo_ref = get_echo_reference_target(iodev);
 
-	/* If rmodule is already tracking echo_ref, do nothing. */
-	if (rmodule->odev == echo_ref)
+	/* If default_rmod is already tracking echo_ref, do nothing. */
+	if (default_rmod->odev == echo_ref)
 		return;
 
-	/* Detach from the old iodev that rmodule was tracking. */
-	if (rmodule->odev) {
-		cras_iodev_set_ext_dsp_module(rmodule->odev, NULL);
-		rmodule->odev = NULL;
-	}
+	/* Detach from the old iodev that default_rmod was tracking.
+	 * Note that default_rmod->odev is NULL when this function is
+	 * called for the first time during init. */
+	if (default_rmod->odev)
+		cras_iodev_set_ext_dsp_module(default_rmod->odev, NULL);
 
-	rmodule->odev = echo_ref;
-	cras_iodev_set_ext_dsp_module(echo_ref, &rmodule->ext);
+	default_rmod->odev = echo_ref;
+	cras_iodev_set_ext_dsp_module(echo_ref, &default_rmod->ext);
 }
 
 static void handle_device_enabled(struct cras_iodev *iodev, void *cb_data)
@@ -510,25 +525,16 @@ static void handle_device_enabled(struct cras_iodev *iodev, void *cb_data)
 		return;
 
 	/* Register to the first enabled output device. */
-	update_first_output_dev_to_process();
+	update_first_output_for_echo_ref();
 }
 
 static void handle_device_disabled(struct cras_iodev *iodev, void *cb_data)
 {
-	struct cras_iodev *echo_ref;
-
 	if (iodev->direction != CRAS_STREAM_OUTPUT)
 		return;
 
-	echo_ref = get_echo_reference_target(iodev);
-
-	if (rmodule->odev == echo_ref) {
-		cras_iodev_set_ext_dsp_module(echo_ref, NULL);
-		rmodule->odev = NULL;
-	}
-
 	/* Register to the first enabled output device. */
-	update_first_output_dev_to_process();
+	update_first_output_for_echo_ref();
 }
 
 static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
@@ -576,7 +582,7 @@ void reverse_data_run(struct ext_dsp_module *ext, unsigned int nframes)
 	int i, offset = 0;
 	float *const *wp;
 
-	if (!rmod->process_reverse)
+	if (!rmod->needs_to_process)
 		return;
 
 	while (nframes) {
@@ -640,11 +646,11 @@ int cras_apm_list_init(const char *device_config_dir)
 {
 	static const char *cras_apm_metrics_prefix = "Cras.";
 
-	if (rmodule == NULL) {
-		rmodule = (struct cras_apm_reverse_module *)calloc(
-			1, sizeof(*rmodule));
-		rmodule->ext.run = reverse_data_run;
-		rmodule->ext.configure = reverse_data_configure;
+	if (default_rmod == NULL) {
+		default_rmod = (struct cras_apm_reverse_module *)calloc(
+			1, sizeof(*default_rmod));
+		default_rmod->ext.run = reverse_data_run;
+		default_rmod->ext.configure = reverse_data_configure;
 	}
 
 	aec_config_dir = device_config_dir;
@@ -653,9 +659,9 @@ int cras_apm_list_init(const char *device_config_dir)
 	webrtc_apm_init_metrics(cras_apm_metrics_prefix);
 	hw_echo_ref_disabled = cras_system_get_hw_echo_ref_disabled();
 
-	update_first_output_dev_to_process();
+	update_first_output_for_echo_ref();
 	cras_iodev_list_set_device_enabled_callback(
-		handle_device_enabled, handle_device_disabled, rmodule);
+		handle_device_enabled, handle_device_disabled, default_rmod);
 
 	return 0;
 }
@@ -674,11 +680,11 @@ void cras_apm_list_reload_aec_config()
 
 int cras_apm_list_deinit()
 {
-	if (rmodule) {
-		if (rmodule->fbuf)
-			float_buffer_destroy(&rmodule->fbuf);
-		free(rmodule);
-		rmodule = NULL;
+	if (default_rmod) {
+		if (default_rmod->fbuf)
+			float_buffer_destroy(&default_rmod->fbuf);
+		free(default_rmod);
+		default_rmod = NULL;
 	}
 	return 0;
 }
