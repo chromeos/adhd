@@ -268,6 +268,24 @@ static int read_and_handle_client_message(struct cras_rstream *stream)
 	return rc;
 }
 
+/*
+ * Remove allowance for DSP effects that are not supported by the board.
+ */
+static void disallow_non_supported_dsp_effects(uint32_t *effects)
+{
+	if (!cras_system_aec_on_dsp_supported()) {
+		(*effects) &= ~DSP_ECHO_CANCELLATION_ALLOWED;
+	}
+
+	if (!cras_system_ns_on_dsp_supported()) {
+		(*effects) &= ~DSP_NOISE_SUPPRESSION_ALLOWED;
+	}
+
+	if (!cras_system_agc_on_dsp_supported()) {
+		(*effects) &= ~DSP_GAIN_CONTROL_ALLOWED;
+	}
+}
+
 /* Exported functions */
 
 int cras_rstream_create(struct cras_rstream_config *config,
@@ -313,6 +331,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->fd = config->audio_fd;
 	config->audio_fd = -1;
 	stream->buf_state = buffer_share_create(stream->buffer_frames);
+	disallow_non_supported_dsp_effects(&config->effects);
 	stream->stream_apm = (stream->direction == CRAS_STREAM_INPUT) ?
 				     cras_stream_apm_create(config->effects) :
 				     NULL;

@@ -2992,6 +2992,20 @@ int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
+int ucm_enable_node_echo_cancellation(struct cras_use_case_mgr* mgr,
+                                      int enable) {
+  return 0;
+}
+
+int ucm_enable_node_noise_suppression(struct cras_use_case_mgr* mgr,
+                                      int enable) {
+  return 0;
+}
+
+int ucm_enable_node_gain_control(struct cras_use_case_mgr* mgr, int enable) {
+  return 0;
+}
+
 void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {}
 
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}

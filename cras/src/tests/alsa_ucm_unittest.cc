@@ -737,11 +737,11 @@ TEST(AlsaUcm, EnableDisableNoiseCancellation) {
   snd_use_case_set_return = 0;
 
   rc = ucm_enable_node_noise_cancellation(mgr, "Line In", 1);
-  EXPECT_EQ(-EPERM, rc);  // Modifier is not existed
+  EXPECT_EQ(-ENOTSUP, rc);  // Modifier is not existed
   EXPECT_EQ(0, snd_use_case_set_called);
 
   rc = ucm_enable_node_noise_cancellation(mgr, "Line In", 0);
-  EXPECT_EQ(-EPERM, rc);  // Modifier is not existed
+  EXPECT_EQ(-ENOTSUP, rc);  // Modifier is not existed
   EXPECT_EQ(0, snd_use_case_set_called);
 
   rc = ucm_enable_node_noise_cancellation(mgr, "Microphone", 0);

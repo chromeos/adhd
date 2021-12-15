@@ -230,6 +230,16 @@ enum CRAS_STREAM_EFFECT {
 	APM_NOISE_SUPRESSION = (1 << 1),
 	APM_GAIN_CONTROL = (1 << 2),
 	APM_VOICE_DETECTION = (1 << 3),
+	DSP_ECHO_CANCELLATION_ALLOWED = (1 << 4),
+	DSP_NOISE_SUPPRESSION_ALLOWED = (1 << 5),
+	DSP_GAIN_CONTROL_ALLOWED = (1 << 6),
+};
+
+/* */
+enum RTC_PROC_ON_DSP {
+	RTC_PROC_AEC,
+	RTC_PROC_NS,
+	RTC_PROC_AGC,
 };
 
 /* Information about a client attached to the server. */
@@ -611,8 +621,9 @@ static inline bool cras_floop_params_eq(const struct cras_floop_params *a,
  *    hw_echo_ref_disabled - Set to true to disable using HW provided echo
  *        reference in APM.
  *    max_internal_mic_gain - The maximum internal mic gain users can set.
- *    active_node_type_pair - InputType_OutputType form of string representing
- *        the active node types.
+ *    aec_on_dsp_supported - if system aec on dsp is supported.
+ *    ns_on_dsp_supported - if system ns on dsp is supported.
+ *    agc_on_dsp_supported - if system agc on dsp is supported.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__((packed, aligned(4))) cras_server_state {
@@ -660,6 +671,9 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	int32_t agc_supported;
 	int32_t hw_echo_ref_disabled;
 	int32_t max_internal_mic_gain;
+	int32_t aec_on_dsp_supported;
+	int32_t ns_on_dsp_supported;
+	int32_t agc_on_dsp_supported;
 	char active_node_type_pair[2 * CRAS_NODE_TYPE_BUFFER_SIZE + 1];
 };
 

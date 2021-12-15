@@ -595,6 +595,18 @@ void cras_client_stream_params_enable_agc(struct cras_stream_params *params);
 void cras_client_stream_params_disable_agc(struct cras_stream_params *params);
 void cras_client_stream_params_enable_vad(struct cras_stream_params *params);
 void cras_client_stream_params_disable_vad(struct cras_stream_params *params);
+void cras_client_stream_params_allow_aec_on_dsp(
+	struct cras_stream_params *params);
+void cras_client_stream_params_disallow_aec_on_dsp(
+	struct cras_stream_params *params);
+void cras_client_stream_params_allow_ns_on_dsp(
+	struct cras_stream_params *params);
+void cras_client_stream_params_disallow_ns_on_dsp(
+	struct cras_stream_params *params);
+void cras_client_stream_params_allow_agc_on_dsp(
+	struct cras_stream_params *params);
+void cras_client_stream_params_disallow_agc_on_dsp(
+	struct cras_stream_params *params);
 
 /* Setup stream configuration parameters. DEPRECATED.
  * TODO(crbug.com/972928): remove this
@@ -1446,6 +1458,9 @@ struct libcras_stream_params {
 	void (*enable_aec)(struct cras_stream_params *params);
 	void (*enable_ns)(struct cras_stream_params *params);
 	void (*enable_agc)(struct cras_stream_params *params);
+	void (*allow_aec_on_dsp)(struct cras_stream_params *params);
+	void (*allow_ns_on_dsp)(struct cras_stream_params *params);
+	void (*allow_agc_on_dsp)(struct cras_stream_params *params);
 };
 
 /*
@@ -1832,6 +1847,33 @@ libcras_stream_params_set_channel_layout(struct libcras_stream_params *params,
 					 int length, const int8_t *layout)
 {
 	return params->set_channel_layout(params->params_, length, layout);
+}
+
+DISABLE_CFI_ICALL
+inline int
+libcras_stream_params_allow_aec_on_dsp(struct libcras_stream_params *params)
+{
+	CHECK_VERSION(params, 4);
+	params->allow_aec_on_dsp(params->params_);
+	return 0;
+}
+
+DISABLE_CFI_ICALL
+inline int
+libcras_stream_params_allow_ns_on_dsp(struct libcras_stream_params *params)
+{
+	CHECK_VERSION(params, 4);
+	params->allow_ns_on_dsp(params->params_);
+	return 0;
+}
+
+DISABLE_CFI_ICALL
+inline int
+libcras_stream_params_allow_agc_on_dsp(struct libcras_stream_params *params)
+{
+	CHECK_VERSION(params, 4);
+	params->allow_agc_on_dsp(params->params_);
+	return 0;
 }
 
 /*

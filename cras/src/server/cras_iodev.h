@@ -291,6 +291,11 @@ struct cras_iodev {
 						struct timespec *hw_tstamp);
 	int (*support_noise_cancellation)(const struct cras_iodev *iodev,
 					  unsigned node_idx);
+	bool (*set_rtc_proc_enabled)(struct cras_iodev *iodev,
+				     enum RTC_PROC_ON_DSP rtc_proc,
+				     bool enabled);
+	bool (*get_rtc_proc_enabled)(struct cras_iodev *iodev,
+				     enum RTC_PROC_ON_DSP rtc_proc);
 	struct cras_audio_format *format;
 	struct rate_estimator *rate_est;
 	struct cras_audio_area *area;
@@ -883,5 +888,14 @@ int cras_iodev_drop_frames_by_time(struct cras_iodev *iodev,
  */
 bool cras_iodev_support_noise_cancellation(const struct cras_iodev *iodev,
 					   unsigned node_idx);
+
+/* */
+bool cras_iodev_set_rtc_proc_enabled(struct cras_iodev *iodev,
+				     enum RTC_PROC_ON_DSP rtc_proc,
+				     bool enabled);
+
+/* */
+bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev *iodev,
+				     enum RTC_PROC_ON_DSP rtc_proc);
 
 #endif /* CRAS_IODEV_H_ */

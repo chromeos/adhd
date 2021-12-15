@@ -144,7 +144,10 @@ struct alsa_input_node {
  * severe_underrun_frames - The threshold for severe underrun.
  * default_volume_curve - Default volume curve that converts from an index
  *                        to dBFS.
- * has_dependent_dev - true if this iodev has dependent device.
+ * has_dependent_dev - true if this iodev has dependent
+ * dsp_echo_cancellation_enabled - If echo cancellation is enabled in DSP
+ * dsp_noise_suppression_enabled - If noise suppression is enabled in DSP
+ * dsp_gain_control_enabled - If gain control is enabled in DSP
  */
 struct alsa_io {
 	struct cras_iodev base;
@@ -172,6 +175,9 @@ struct alsa_io {
 	struct cras_volume_curve *default_volume_curve;
 	int hwparams_set;
 	int has_dependent_dev;
+	bool dsp_echo_cancellation_enabled;
+	bool dsp_noise_suppression_enabled;
+	bool dsp_gain_control_enabled;
 };
 
 static void init_device_settings(struct alsa_io *aio);
@@ -2167,6 +2173,54 @@ static int support_noise_cancellation(const struct cras_iodev *iodev,
 	return 0;
 }
 
+static bool set_rtc_proc_enabled(struct cras_iodev *iodev,
+				 enum RTC_PROC_ON_DSP rtc_proc, bool enabled)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+	int rc;
+
+	if (!aio->ucm)
+		return false;
+	switch (rtc_proc) {
+	case RTC_PROC_AEC:
+		rc = ucm_enable_node_echo_cancellation(aio->ucm, enabled);
+		if (rc == 0)
+			aio->dsp_echo_cancellation_enabled = enabled;
+		break;
+	case RTC_PROC_NS:
+		rc = ucm_enable_node_noise_suppression(aio->ucm, enabled);
+		if (rc == 0)
+			aio->dsp_noise_suppression_enabled = enabled;
+		break;
+	case RTC_PROC_AGC:
+		rc = ucm_enable_node_gain_control(aio->ucm, enabled);
+		if (rc == 0)
+			aio->dsp_gain_control_enabled = enabled;
+		break;
+	default:
+		return false;
+	}
+	return true;
+}
+
+static bool get_rtc_proc_enabled(struct cras_iodev *iodev,
+				 enum RTC_PROC_ON_DSP rtc_proc)
+{
+	struct alsa_io *aio = (struct alsa_io *)iodev;
+
+	switch (rtc_proc) {
+	case RTC_PROC_AEC:
+		return aio->dsp_echo_cancellation_enabled;
+	case RTC_PROC_NS:
+		return aio->dsp_noise_suppression_enabled;
+	case RTC_PROC_AGC:
+		return aio->dsp_gain_control_enabled;
+	default:
+		return false;
+	}
+	return false;
+}
+
 /*
  * Exported Interface.
  */
@@ -2247,7 +2301,8 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 	iodev->set_display_rotation_for_node =
 		cras_iodev_dsp_set_display_rotation_for_node;
 	iodev->support_noise_cancellation = support_noise_cancellation;
-
+	iodev->set_rtc_proc_enabled = set_rtc_proc_enabled;
+	iodev->get_rtc_proc_enabled = get_rtc_proc_enabled;
 	if (card_type == ALSA_CARD_TYPE_USB)
 		iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
 

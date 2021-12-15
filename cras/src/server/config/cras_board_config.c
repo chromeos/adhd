@@ -15,6 +15,9 @@ static const int32_t AEC_GROUP_ID_DEFAULT = -1;
 static const int32_t NS_SUPPORTED_DEFAULT = 0;
 static const int32_t AGC_SUPPORTED_DEFAULT = 0;
 static const int32_t HW_ECHO_REF_DISABLED_DEFAULT = 0;
+static const int32_t AEC_ON_DSP_SUPPORTED_DEFAULT = 0;
+static const int32_t NS_ON_DSP_SUPPORTED_DEFAULT = 0;
+static const int32_t AGC_ON_DSP_SUPPORTED_DEFAULT = 0;
 static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 1;
 static const int32_t BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT = 0;
 static const int32_t HOTWORD_PAUSE_AT_SUSPEND_DEFAULT = 0;
@@ -27,6 +30,9 @@ static const int32_t MAX_INTERNAL_MIC_GAIN_DEFAULT = 2000;
 #define NS_SUPPORTED_INI_KEY "processing:ns_supported"
 #define AGC_SUPPORTED_INI_KEY "processing:agc_supported"
 #define HW_ECHO_REF_DISABLED_KEY "processing:hw_echo_ref_disabled"
+#define AEC_ON_DSP_SUPPORTED_INI_KEY "processing:aec_on_dsp_supported"
+#define NS_ON_DSP_SUPPORTED_INI_KEY "processing:ns_on_dsp_supported"
+#define AGC_ON_DSP_SUPPORTED_INI_KEY "processing:agc_on_dsp_supported"
 #define BLUETOOTH_WBS_ENABLED_INI_KEY "bluetooth:wbs_enabled"
 #define BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_KEY "bluetooth:deprioritize_wbs_mic"
 #define UCM_IGNORE_SUFFIX_KEY "ucm:ignore_suffix"
@@ -47,6 +53,9 @@ void cras_board_config_get(const char *config_path,
 	board_config->ns_supported = NS_SUPPORTED_DEFAULT;
 	board_config->agc_supported = AGC_SUPPORTED_DEFAULT;
 	board_config->hw_echo_ref_disabled = HW_ECHO_REF_DISABLED_DEFAULT;
+	board_config->aec_on_dsp_supported = AEC_ON_DSP_SUPPORTED_DEFAULT;
+	board_config->ns_on_dsp_supported = NS_ON_DSP_SUPPORTED_DEFAULT;
+	board_config->agc_on_dsp_supported = AGC_ON_DSP_SUPPORTED_DEFAULT;
 	board_config->ucm_ignore_suffix = NULL;
 	board_config->bt_wbs_enabled = BLUETOOTH_WBS_ENABLED_INI_DEFAULT;
 	board_config->deprioritize_bt_wbs_mic =
@@ -93,6 +102,21 @@ void cras_board_config_get(const char *config_path,
 	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	board_config->hw_echo_ref_disabled =
 		iniparser_getint(ini, ini_key, HW_ECHO_REF_DISABLED_DEFAULT);
+
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, AEC_ON_DSP_SUPPORTED_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
+	board_config->aec_on_dsp_supported =
+		iniparser_getint(ini, ini_key, AEC_ON_DSP_SUPPORTED_DEFAULT);
+
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, NS_ON_DSP_SUPPORTED_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
+	board_config->ns_on_dsp_supported =
+		iniparser_getint(ini, ini_key, NS_ON_DSP_SUPPORTED_DEFAULT);
+
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, AGC_ON_DSP_SUPPORTED_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
+	board_config->agc_on_dsp_supported =
+		iniparser_getint(ini, ini_key, AGC_ON_DSP_SUPPORTED_DEFAULT);
 
 	snprintf(ini_key, MAX_INI_KEY_LENGTH, BLUETOOTH_WBS_ENABLED_INI_KEY);
 	ini_key[MAX_INI_KEY_LENGTH] = 0;

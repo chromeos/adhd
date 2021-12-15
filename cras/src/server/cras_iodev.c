@@ -1765,3 +1765,20 @@ bool cras_iodev_support_noise_cancellation(const struct cras_iodev *iodev,
 		return !!iodev->support_noise_cancellation(iodev, node_idx);
 	return false;
 }
+
+bool cras_iodev_set_rtc_proc_enabled(struct cras_iodev *iodev,
+				     enum RTC_PROC_ON_DSP rtc_proc,
+				     bool enabled)
+{
+	if (iodev->set_rtc_proc_enabled)
+		return iodev->set_rtc_proc_enabled(iodev, rtc_proc, enabled);
+	return false;
+}
+
+bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev *iodev,
+				     enum RTC_PROC_ON_DSP rtc_proc)
+{
+	if (iodev->get_rtc_proc_enabled)
+		return iodev->get_rtc_proc_enabled(iodev, rtc_proc);
+	return false;
+}

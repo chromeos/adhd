@@ -2522,6 +2522,40 @@ void cras_client_stream_params_disable_vad(struct cras_stream_params *params)
 	params->effects &= ~APM_VOICE_DETECTION;
 }
 
+void cras_client_stream_params_allow_aec_on_dsp(
+	struct cras_stream_params *params)
+{
+	params->effects |= DSP_ECHO_CANCELLATION_ALLOWED;
+}
+
+void cras_client_stream_params_disallow_aec_on_dsp(
+	struct cras_stream_params *params)
+{
+	params->effects &= ~DSP_ECHO_CANCELLATION_ALLOWED;
+}
+
+void cras_client_stream_params_allow_ns_on_dsp(struct cras_stream_params *param)
+{
+	param->effects |= DSP_NOISE_SUPPRESSION_ALLOWED;
+}
+
+void cras_client_stream_params_disallow_ns_on_dsp(
+	struct cras_stream_params *params)
+{
+	params->effects &= ~DSP_NOISE_SUPPRESSION_ALLOWED;
+}
+void cras_client_stream_params_allow_agc_on_dsp(
+	struct cras_stream_params *params)
+{
+	params->effects |= DSP_GAIN_CONTROL_ALLOWED;
+}
+
+void cras_client_stream_params_disallow_agc_on_dsp(
+	struct cras_stream_params *params)
+{
+	params->effects &= ~DSP_GAIN_CONTROL_ALLOWED;
+}
+
 struct cras_stream_params *cras_client_unified_params_create(
 	enum CRAS_STREAM_DIRECTION direction, unsigned int block_size,
 	enum CRAS_STREAM_TYPE stream_type, uint32_t flags, void *user_data,
@@ -4303,6 +4337,9 @@ struct libcras_stream_params *libcras_stream_params_create()
 	params->enable_aec = cras_client_stream_params_enable_aec;
 	params->enable_ns = cras_client_stream_params_enable_ns;
 	params->enable_agc = cras_client_stream_params_enable_agc;
+	params->allow_aec_on_dsp = cras_client_stream_params_allow_aec_on_dsp;
+	params->allow_ns_on_dsp = cras_client_stream_params_allow_ns_on_dsp;
+	params->allow_agc_on_dsp = cras_client_stream_params_allow_agc_on_dsp;
 	return params;
 }
 

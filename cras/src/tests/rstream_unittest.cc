@@ -477,6 +477,18 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
 void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
                                       enum CRAS_CLIENT_TYPE client_type) {}
 
+int cras_system_aec_on_dsp_supported() {
+  return 0;
+}
+
+int cras_system_ns_on_dsp_supported() {
+  return 0;
+}
+
+int cras_system_agc_on_dsp_supported() {
+  return 0;
+}
+
 int cras_server_metrics_stream_create(
     const struct cras_rstream_config* config) {
   return 0;

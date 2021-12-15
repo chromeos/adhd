@@ -36,6 +36,11 @@ static const char coupled_mixers[] = "CoupledMixers";
 static const char dependent_device_name_var[] = "DependentPCM";
 static const char preempt_hotword_var[] = "PreemptHotword";
 static const char echo_reference_dev_name_var[] = "EchoReferenceDev";
+static const char rtc_proc_echo_cancellation_modifier[] =
+	"RTC Proc Echo Cancellation";
+static const char rtc_proc_noise_suppression_modifier[] =
+	"RTC Proc Noise Suppression";
+static const char rtc_proc_gain_control_modifier[] = "RTC Proc Gain Control";
 
 /* SectionModifier prefixes and suffixes. */
 static const char hotword_model_prefix[] = "Hotword Model";
@@ -515,49 +520,78 @@ int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
 	return rc;
 }
 
+static int ucm_modifier_try_enable(struct cras_use_case_mgr *mgr, int enable,
+				   const char *name)
+{
+	if (!ucm_mod_exists_with_name(mgr, name)) {
+		syslog(LOG_ERR, "Can not find modifier %s.", name);
+		return -ENOTSUP;
+	}
+	if (modifier_enabled(mgr, name) == !!enable) {
+		syslog(LOG_DEBUG, "Modifier %s is already %s.", name,
+		       enable ? "enabled" : "disabled");
+		return 0;
+	}
+
+	syslog(LOG_DEBUG, "UCM %s Modifier %s", enable ? "enable" : "disable",
+	       name);
+	return ucm_set_modifier_enabled(mgr, name, enable);
+}
+
+int inline ucm_node_echo_cancellation_exists(struct cras_use_case_mgr *mgr)
+{
+	return ucm_mod_exists_with_name(mgr,
+					rtc_proc_echo_cancellation_modifier);
+}
+
+int inline ucm_enable_node_echo_cancellation(struct cras_use_case_mgr *mgr,
+					     int enable)
+{
+	return ucm_modifier_try_enable(mgr, enable,
+				       rtc_proc_echo_cancellation_modifier);
+}
+
+int inline ucm_node_noise_suppression_exists(struct cras_use_case_mgr *mgr)
+{
+	return ucm_mod_exists_with_name(mgr,
+					rtc_proc_noise_suppression_modifier);
+}
+
+int inline ucm_enable_node_noise_suppression(struct cras_use_case_mgr *mgr,
+					     int enable)
+{
+	return ucm_modifier_try_enable(mgr, enable,
+				       rtc_proc_noise_suppression_modifier);
+}
+
+int inline ucm_node_gain_control_exists(struct cras_use_case_mgr *mgr)
+{
+	return ucm_mod_exists_with_name(mgr, rtc_proc_gain_control_modifier);
+}
+
+int inline ucm_enable_node_gain_control(struct cras_use_case_mgr *mgr,
+					int enable)
+{
+	return ucm_modifier_try_enable(mgr, enable,
+				       rtc_proc_gain_control_modifier);
+}
+
 int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr *mgr,
 				       const char *node_name)
 {
-	char *node_modifier_name = NULL;
-	int exists;
+	char node_modifier_name[max_section_name_len];
 
-	node_modifier_name = (char *)malloc(max_section_name_len);
-	if (!node_modifier_name)
-		return 0;
 	ucm_get_node_noise_cancellation_name(node_name, node_modifier_name);
-	exists = ucm_mod_exists_with_name(mgr, node_modifier_name);
-	free((void *)node_modifier_name);
-	return exists;
+	return ucm_mod_exists_with_name(mgr, node_modifier_name);
 }
 
 int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr *mgr,
 				       const char *node_name, int enable)
 {
-	char *node_modifier_name = NULL;
-	int rc;
+	char node_modifier_name[max_section_name_len];
 
-	node_modifier_name = (char *)malloc(max_section_name_len);
-	if (!node_modifier_name)
-		return -ENOMEM;
 	ucm_get_node_noise_cancellation_name(node_name, node_modifier_name);
-	if (!ucm_mod_exists_with_name(mgr, node_modifier_name)) {
-		syslog(LOG_ERR, "Can not find modifier %s.",
-		       node_modifier_name);
-		free((void *)node_modifier_name);
-		return -EPERM;
-	}
-	if (modifier_enabled(mgr, node_modifier_name) == !!enable) {
-		syslog(LOG_DEBUG, "Modifier %s is already %s.",
-		       node_modifier_name, enable ? "enabled" : "disabled");
-		free((void *)node_modifier_name);
-		return 0;
-	}
-
-	syslog(LOG_DEBUG, "UCM %s Modifier %s", enable ? "enable" : "disable",
-	       node_modifier_name);
-	rc = ucm_set_modifier_enabled(mgr, node_modifier_name, enable);
-	free((void *)node_modifier_name);
-	return rc;
+	return ucm_modifier_try_enable(mgr, enable, node_modifier_name);
 }
 
 int ucm_set_enabled(struct cras_use_case_mgr *mgr, const char *dev, int enable)

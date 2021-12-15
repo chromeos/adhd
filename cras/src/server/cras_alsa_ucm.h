@@ -67,6 +67,68 @@ int ucm_swap_mode_exists(struct cras_use_case_mgr *mgr);
 int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
 			 int enable);
 
+/* Checks if modifier of echo cancellation in ucm.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ * Returns:
+ *    1 if it exists, 0 otherwise.
+ */
+int ucm_node_echo_cancellation_exists(struct cras_use_case_mgr *mgr);
+
+/* Enables or disables echo cancellation. First checks if the modifier is
+ * already enabled or disabled.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ *    enable - Enable device if non-zero.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_enable_node_echo_cancellation(struct cras_use_case_mgr *mgr,
+				      int enable);
+
+/* Checks if modifier of noise suppression in ucm.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ * Returns:
+ *    1 if it exists, 0 otherwise.
+ */
+int ucm_node_noise_suppression_exists(struct cras_use_case_mgr *mgr);
+
+/* Enables or disables noise suppression. First checks if the modifier is
+ * already enabled or disabled.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ *    enable - Enable device if non-zero.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_enable_node_noise_suppression(struct cras_use_case_mgr *mgr,
+				      int enable);
+
+/* Checks if modifier of gain control in ucm.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ * Returns:
+ *    1 if it exists, 0 otherwise.
+ */
+int ucm_node_gain_control_exists(struct cras_use_case_mgr *mgr);
+
+/* Enables or disables gain control. First checks if the modifier is
+ * already enabled or disabled.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ *    enable - Enable device if non-zero.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_enable_node_gain_control(struct cras_use_case_mgr *mgr, int enable);
+
 /* Checks if modifier of noise cancellation for given node_name exists in ucm.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.

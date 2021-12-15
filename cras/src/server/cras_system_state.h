@@ -124,6 +124,15 @@ int cras_system_get_ns_supported();
 /* Returns if system agc is supported. */
 int cras_system_get_agc_supported();
 
+/* Returns if system aec on dsp is supported */
+int cras_system_aec_on_dsp_supported();
+
+/* Returns if system ns on dsp is supported */
+int cras_system_ns_on_dsp_supported();
+
+/* Returns if system agc on dsp is supported */
+int cras_system_agc_on_dsp_supported();
+
 /* Sets the flag to enable or disable bluetooth wideband speech feature. */
 void cras_system_set_bt_wbs_enabled(bool enabled);
 
