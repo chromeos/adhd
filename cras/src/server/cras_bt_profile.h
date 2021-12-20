@@ -64,7 +64,7 @@ void cras_bt_profile_reset();
 /* Notifies all profiles when a device is disconnected. */
 void cras_bt_profile_on_device_disconnected(struct cras_bt_device *device);
 
-/* Registeres |profile| with bluez.
+/* Registers |profile| with bluez.
  * Args:
  *    conn - The dbus connection.
  *    profile - Pointer to the profile structure to be registered.
@@ -72,7 +72,7 @@ void cras_bt_profile_on_device_disconnected(struct cras_bt_device *device);
 int cras_bt_register_profile(DBusConnection *conn,
 			     struct cras_bt_profile *profile);
 
-/* Unregisteres |profile| with bluez.
+/* Unregisters |profile| with bluez.
  * Args:
  *    conn - The dbus connection.
  *    profile - Pointer to the profile structure to be unregistered.

@@ -151,17 +151,17 @@ cras_bt_profile_handle_request_disconnection(DBusConnection *conn,
 {
 	DBusMessageIter message_iter;
 	DBusMessage *reply;
-	const char *prpofile_path, *object_path;
+	const char *profile_path, *object_path;
 	struct cras_bt_profile *profile;
 	struct cras_bt_device *device;
 
-	prpofile_path = dbus_message_get_path(message);
+	profile_path = dbus_message_get_path(message);
 
 	dbus_message_iter_init(message, &message_iter);
 	dbus_message_iter_get_basic(&message_iter, &object_path);
 	dbus_message_iter_next(&message_iter);
 
-	profile = cras_bt_profile_get(prpofile_path);
+	profile = cras_bt_profile_get(profile_path);
 	if (!profile)
 		goto invalid;
 

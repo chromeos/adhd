@@ -328,7 +328,7 @@ void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 	if (bt_iodev) {
 		unsigned try_profile;
 
-		/* Check what will the preffered profile be if we remove dev. */
+		/* Check what will the preferred profile be if we remove dev. */
 		try_profile = cras_bt_io_try_remove(bt_iodev, iodev);
 		if (!try_profile)
 			goto destroy_bt_io;
@@ -533,7 +533,7 @@ int cras_bt_device_set_supported_profiles(struct cras_bt_device *device,
 
 	unsigned int new_profiles = profiles & ~device->profiles;
 
-	/* Log this event as we might need to re-intialize the BT audio nodes
+	/* Log this event as we might need to re-initialize the BT audio nodes
 	 * if new audio profile is reported for already connected device. */
 	if (device->connected && (new_profiles & CRAS_SUPPORTED_PROFILES))
 		BTLOG(btlog, BT_NEW_AUDIO_PROFILE_AFTER_CONNECT,
@@ -625,8 +625,8 @@ void cras_bt_device_update_properties(struct cras_bt_device *device,
 				dbus_message_iter_next(&uuid_array_iter);
 			}
 
-			/* If updated properties includes new audio profile and
-			 * device is connected, we need to start connection
+			/* If updated properties includes new audio profiles and
+			 * device is connected, we need to start the connection
 			 * watcher. This is needed because on some bluetooth
 			 * devices, supported profiles do not present when
 			 * device interface is added and they are updated later.
