@@ -210,6 +210,10 @@ struct stream_list* cras_iodev_list_get_stream_list() {
   return NULL;
 }
 
+int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx) {
+  return 0;
+}
+
 int cras_make_fd_nonblocking(int fd) {
   cras_make_fd_nonblocking_called++;
   return 0;

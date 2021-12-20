@@ -55,6 +55,7 @@ const char kMissedCallbackSecondTimeOutput[] =
 	"Cras.MissedCallbackSecondTimeOutput";
 const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
 const char kRtcDevicePair[] = "Cras.RtcDevicePair";
+const char kSetAecRefDeviceType[] = "Cras.SetAecRefDeviceType";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
 const char kStreamClientTypeInput[] = "Cras.StreamClientTypeInput";
 const char kStreamClientTypeOutput[] = "Cras.StreamClientTypeOutput";
@@ -123,6 +124,7 @@ enum CRAS_SERVER_METRICS_TYPE {
 	MISSED_CB_SECOND_TIME_OUTPUT,
 	NUM_UNDERRUNS,
 	RTC_RUNTIME,
+	SET_AEC_REF_DEVICE_TYPE,
 	STREAM_CONFIG,
 	STREAM_RUNTIME
 };
@@ -748,6 +750,31 @@ int cras_server_metrics_device_noise_cancellation_enabled(
 		return err;
 	}
 
+	return 0;
+}
+
+int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev *iodev)
+{
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+	union cras_server_metrics_data data;
+	int err;
+
+	/* NO_DEVICE means to track system default as echo ref. We expect
+	 * this is the majority. */
+	if (iodev == NULL)
+		data.device_data.type = CRAS_METRICS_DEVICE_NO_DEVICE;
+	else
+		data.device_data.type = get_metrics_device_type(iodev);
+
+	init_server_metrics_msg(&msg, SET_AEC_REF_DEVICE_TYPE, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: "
+				"SET_AEC_REF_DEVICE_TYPE");
+		return err;
+	}
 	return 0;
 }
 
@@ -1476,6 +1503,11 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		cras_metrics_log_histogram(kA2dp100msFailureOverStream,
 					   metrics_msg->data.value, 0,
 					   1000000000, 20);
+		break;
+	case SET_AEC_REF_DEVICE_TYPE:
+		cras_metrics_log_sparse_histogram(
+			kSetAecRefDeviceType,
+			metrics_msg->data.device_data.type);
 		break;
 	default:
 		syslog(LOG_ERR, "Unknown metrics type %u",

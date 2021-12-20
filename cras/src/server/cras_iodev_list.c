@@ -17,6 +17,7 @@
 #include "cras_server.h"
 #include "cras_tm.h"
 #include "cras_types.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "server_stream.h"
 #include "softvol_curve.h"
@@ -1996,6 +1997,25 @@ void cras_iodev_list_reset_for_noise_cancellation()
 		cras_iodev_list_resume_dev(dev->info.idx);
 		possibly_disable_fallback(CRAS_STREAM_INPUT);
 	}
+}
+
+int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx)
+{
+	struct cras_iodev *echo_ref;
+
+	if (dev_idx == NO_DEVICE) {
+		echo_ref = NULL;
+	} else {
+		echo_ref = find_dev(dev_idx);
+		if (echo_ref == NULL) {
+			syslog(LOG_WARNING, "Invalid dev_idx %u to set aec ref",
+			       dev_idx);
+			return 0;
+		}
+	}
+	cras_server_metrics_set_aec_ref_device_type(echo_ref);
+
+	return 0;
 }
 
 void cras_iodev_list_reset()

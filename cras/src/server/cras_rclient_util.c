@@ -247,6 +247,7 @@ int rclient_handle_client_set_aec_ref(
 {
 	syslog(LOG_DEBUG, "rclient handle set aec ref: stream %.9x dev %u",
 	       msg->stream_id, msg->iodev_idx);
+	cras_iodev_list_set_aec_ref(msg->stream_id, msg->iodev_idx);
 	return 0;
 }
 

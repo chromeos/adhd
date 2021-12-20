@@ -279,6 +279,9 @@ int cras_iodev_list_resume_hotword_stream();
  */
 void cras_iodev_list_reset_for_noise_cancellation();
 
+/* Sets dev_idx as the aec ref for a given stream. */
+int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx);
+
 /* For unit test only. */
 void cras_iodev_list_reset();
 

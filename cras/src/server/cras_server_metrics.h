@@ -83,6 +83,9 @@ int cras_server_metrics_device_volume(struct cras_iodev *iodev);
 int cras_server_metrics_device_noise_cancellation_enabled(
 	struct cras_iodev *iodev, bool enabled);
 
+/* Logs the device type when cras clients request to set aec ref. */
+int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev *iodev);
+
 /* Logs the highest delay time of a device. */
 int cras_server_metrics_highest_device_delay(
 	unsigned int hw_level, unsigned int largest_cb_level,

@@ -826,6 +826,10 @@ void cras_dsp_reload_ini() {}
 
 void cras_dsp_dump_info() {}
 
+int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx) {
+  return 0;
+}
+
 int cras_iodev_list_set_node_attr(cras_node_id_t id,
                                   enum ionode_attr attr,
                                   int value) {
