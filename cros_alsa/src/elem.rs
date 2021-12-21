@@ -19,7 +19,7 @@ use std::default::Default;
 use std::error;
 use std::fmt;
 
-use libc::{c_long, c_uint};
+use libc::{c_long, c_uchar, c_uint};
 use remain::sorted;
 
 use crate::control_primitive::{self, snd_strerror, Ctl, ElemId, ElemInfo, ElemType, ElemValue};
@@ -190,6 +190,22 @@ impl CtlElemValue for u32 {
     /// Returns ElemType::Integer.
     fn elem_type() -> ElemType {
         ElemType::Enumerated
+    }
+}
+
+impl CtlElemValue for u8 {
+    type T = u8;
+    /// Gets an u8 from the ElemValue.
+    unsafe fn elem_value_get(elem: &ElemValue, idx: usize) -> u8 {
+        alsa_sys::snd_ctl_elem_value_get_byte(elem.as_ptr(), idx as c_uint) as u8
+    }
+    /// Sets an u8 to the ElemValue.
+    unsafe fn elem_value_set(elem: &mut ElemValue, idx: usize, val: u8) {
+        alsa_sys::snd_ctl_elem_value_set_byte(elem.as_mut_ptr(), idx as c_uint, val as c_uchar);
+    }
+    /// Returns ElemType::Bytes.
+    fn elem_type() -> ElemType {
+        ElemType::Bytes
     }
 }
 
