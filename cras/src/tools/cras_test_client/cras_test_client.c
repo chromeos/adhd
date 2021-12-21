@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#define _GNU_SOURCE // for strdupa
+
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -66,6 +68,26 @@ static int effect_agc = 0;
 static int effect_vad = 0;
 static char *aecdump_file = NULL;
 static char time_str[128];
+
+/* ionode flags used in --print_nodes_inlined */
+enum {
+	IONODE_FLAG_DIRECTION,
+	IONODE_FLAG_ACTIVE,
+	IONODE_FLAG_PLUGGED,
+	IONODE_FLAG_LR_SWAPPED,
+	IONODE_FLAG_HOTWORD,
+	IONODE_NUM_FLAGS
+};
+
+struct print_nodes_inlined_options {
+	int id_width;
+	int maxch_width;
+	int name_width;
+	int flag_width;
+	int vol_width;
+	int ui_width;
+	int type_width;
+};
 
 /* Sleep interval between cras_client_read_atlog calls. */
 static const struct timespec follow_atlog_sleep_ts = {
@@ -464,6 +486,159 @@ static void print_device_lists(struct cras_client *client)
 	print_dev_info(devs, num_devs);
 	printf("Input Nodes:\n");
 	print_node_info(client, nodes, num_nodes, 1);
+}
+
+// truncate the input string if it is too long
+//
+// keeps heads and tails as important numbers such as ":0,6" tend to be
+// in the end of the string.
+//
+// For example:
+// str_truncate(10, "foo") -> "foo"
+// str_truncate(10, "a very long string") -> "a v...ring"
+static char *str_truncate(int len, char *str)
+{
+	assert(len >= 3);
+	int actual_len = strlen(str);
+	if (actual_len <= len) {
+		return str;
+	}
+
+	int headlen = (len - 3) / 2;
+	// set ...
+	memset(str + headlen, '.', 3);
+
+	int tailstart = actual_len - (len - headlen - 3);
+	memmove(str + headlen + 3, str + tailstart, actual_len - tailstart);
+	str[len] = 0;
+
+	return str;
+}
+
+static void print_nodes_inlined_for_direction(
+	struct cras_client *client,
+	const struct print_nodes_inlined_options *opt,
+	const struct cras_iodev_info *devs, int num_devs,
+	const struct cras_ionode_info *nodes, int num_nodes, bool is_input)
+{
+	bool *has_associated_node = calloc(sizeof(bool), num_devs);
+	assert(has_associated_node != NULL);
+
+	for (int i = 0; i < num_nodes; i++) {
+		const struct cras_ionode_info *node = &nodes[i];
+
+		const char *dev_name = "<unknown>";
+		int dev_max_ch = -1;
+		int dev_id = node->iodev_idx;
+		for (int j = 0; j < num_devs; j++) {
+			if (devs[j].idx == dev_id) {
+				has_associated_node[j] = true;
+				dev_name = devs[j].name;
+				dev_max_ch = devs[j].max_supported_channels;
+				break;
+			}
+		}
+
+		char flags[IONODE_NUM_FLAGS + 1] = { 0 };
+		memset(flags, '-', IONODE_NUM_FLAGS);
+
+		flags[IONODE_FLAG_DIRECTION] = is_input ? 'I' : 'O';
+
+		if (nodes[i].active)
+			flags[IONODE_FLAG_ACTIVE] = 'A';
+
+		if (nodes[i].plugged)
+			flags[IONODE_FLAG_PLUGGED] = 'P';
+
+		if (nodes[i].left_right_swapped)
+			flags[IONODE_FLAG_LR_SWAPPED] = 'S';
+
+		// active_hotword_model not an empty string
+		if (nodes[i].active_hotword_model[0])
+			flags[IONODE_FLAG_HOTWORD] = 'H';
+
+		// clang-format off
+		printf("%*d  %-*s  %*d:%-*d  %-*s  %*d  %*f  %-*s  %s\n",
+			opt->maxch_width, dev_max_ch,
+			opt->name_width, str_truncate(opt->name_width, strdupa(dev_name)),
+			opt->id_width, dev_id,
+			opt->id_width, node->ionode_idx,
+			opt->flag_width, flags,
+			opt->vol_width, is_input ? node->capture_gain / 100: node->volume,
+			opt->ui_width, node->ui_gain_scaler,
+			opt->type_width, str_truncate(opt->type_width, strdupa(node->type)),
+			str_truncate(opt->name_width, strdupa(node->name))
+		);
+		// clang-format on
+	}
+
+	// every dev should have a node associated with it
+	for (int i = 0; i < num_devs; i++) {
+		assert(has_associated_node[i]);
+	}
+
+	free(has_associated_node);
+}
+
+static void print_nodes_inlined(struct cras_client *client)
+{
+	struct cras_iodev_info devs[MAX_IODEVS];
+	struct cras_ionode_info nodes[MAX_IONODES];
+	size_t num_devs, num_nodes;
+	int rc;
+
+	const struct print_nodes_inlined_options opt = {
+		.id_width = 2,
+		.maxch_width = 2,
+		.name_width = 30,
+		.flag_width = IONODE_NUM_FLAGS,
+		.vol_width = 3,
+		.ui_width = 8,
+		.type_width = 17 // strlen("POST_DSP_LOOPBACK") == 17
+	};
+
+	printf("%*s  %*s  /--Nodes---\n", opt.maxch_width + opt.name_width + 2,
+	       "---Devices--\\", 1 + 2 * opt.id_width, "" // ID column
+	);
+	// clang-format off
+	printf("%-*s  %-*s  %-*s  %-*s  %-*s  %-*s  %-*s  %s\n",
+		opt.maxch_width, "Ch",
+		opt.name_width, "DeviceName",
+		1 + 2 * opt.id_width, "ID",
+		opt.flag_width, "Flag",
+		opt.vol_width, "Vol",
+		opt.ui_width, "UI",
+		opt.type_width, "Type",
+		"NodeName"
+	);
+	// clang-format on
+
+	num_devs = MAX_IODEVS;
+	num_nodes = MAX_IONODES;
+	rc = cras_client_get_output_devices(client, devs, nodes, &num_devs,
+					    &num_nodes);
+	if (rc == 0)
+		print_nodes_inlined_for_direction(client, &opt, devs, num_devs,
+						  nodes, num_nodes, false);
+
+	num_devs = MAX_IODEVS;
+	num_nodes = MAX_IONODES;
+	rc = cras_client_get_input_devices(client, devs, nodes, &num_devs,
+					   &num_nodes);
+	if (rc == 0)
+		print_nodes_inlined_for_direction(client, &opt, devs, num_devs,
+						  nodes, num_nodes, true);
+
+	printf("---\n"
+	       "ID: $dev_id:$node_id\n"
+	       "Ch: Max supported channels\n"
+	       "Flags:\n"
+	       "  I: Input Node\n"
+	       "  O: Output Node\n"
+	       "  A: Active\n"
+	       "  P: Plugged\n"
+	       "  S: LR Swapped\n"
+	       "  H: There is an active hotword model\n");
 }
 
 static void print_attached_client_list(struct cras_client *client)
@@ -1841,6 +2016,7 @@ static struct option long_options[] = {
 	{"set_aec_ref",         required_argument,      0, 'O'},
 	{"playback_file",       required_argument,      0, 'P'},
 	{"stream_type",         required_argument,      0, 'T'},
+	{"print_nodes_inlined", no_argument,            0, 'U'},
 	{0, 0, 0, 0}
 };
 // clang-format on
@@ -1857,6 +2033,8 @@ static void show_usage()
 	       "list\n");
 	printf("--add_test_dev <type> - "
 	       "Add a test iodev.\n");
+	printf("--print_nodes_inlined - "
+	       "Print nodes table with devices inlined\n");
 	printf("--block_size <N> - "
 	       "The number for frames per callback(dictates latency).\n");
 	printf("--capture_file <name> - "
@@ -2400,6 +2578,9 @@ int main(int argc, char **argv)
 			break;
 		case 'T':
 			stream_type = atoi(optarg);
+			break;
+		case 'U':
+			print_nodes_inlined(client);
 			break;
 
 		default:
