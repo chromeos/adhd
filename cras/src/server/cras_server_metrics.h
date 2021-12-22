@@ -79,9 +79,9 @@ int cras_server_metrics_device_gain(struct cras_iodev *iodev);
 /* Logs the volume of a device. */
 int cras_server_metrics_device_volume(struct cras_iodev *iodev);
 
-/* Logs if Noise Cancellation is enabled of a device. */
-int cras_server_metrics_device_noise_cancellation_enabled(
-	struct cras_iodev *iodev, bool enabled);
+/* Logs the status of Noise Cancellation of a supported device. */
+int cras_server_metrics_device_noise_cancellation_status(
+	struct cras_iodev *iodev, int status);
 
 /* Logs the device type when cras clients request to set aec ref. */
 int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev *iodev);

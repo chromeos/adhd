@@ -25,6 +25,7 @@
 #include "cras_utf8.h"
 #include "cras_hotword_handler.h"
 #include "cras_iodev.h"
+#include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_ramp.h"
@@ -67,6 +68,13 @@
  * device to recover it from underrun.
  */
 #define SEVERE_UNDERRUN_MS 5000
+
+/* Enumeration for logging to CRAS server metrics. */
+enum CRAS_NOISE_CANCELLATION_STATUS {
+	CRAS_NOISE_CANCELLATION_BLOCKED,
+	CRAS_NOISE_CANCELLATION_DISABLED,
+	CRAS_NOISE_CANCELLATION_ENABLED,
+};
 
 /*
  * When entering no stream state, audio thread needs to fill extra zeros in
@@ -386,6 +394,29 @@ static int empty_hotword_cb(void *arg, int revents)
 	return 0;
 }
 
+/* Returns true if the corresponding node_info of the specified input node has
+ * Noise Cancellation flag in audio_effect. */
+static bool noise_cancellation_support_is_exposed(uint32_t dev_idx,
+						  uint32_t node_idx)
+{
+	const struct cras_ionode_info *nodes;
+	int nnodes;
+	int i;
+
+	nnodes = cras_system_state_get_input_nodes(&nodes);
+
+	for (i = 0; i < nnodes; i++) {
+		if (nodes[i].iodev_idx == dev_idx &&
+		    nodes[i].ionode_idx == node_idx)
+			return nodes[i].audio_effect &
+			       EFFECT_TYPE_NOISE_CANCELLATION;
+	}
+
+	syslog(LOG_ERR, "Cannot find input ionode_info dev_idx:%u node_idx:%u",
+	       dev_idx, node_idx);
+	return false;
+}
+
 static int open_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
@@ -393,6 +424,7 @@ static int open_dev(struct cras_iodev *iodev)
 	int rc;
 	const char *pcm_name = NULL;
 	int enable_noise_cancellation;
+	enum CRAS_NOISE_CANCELLATION_STATUS nc_status;
 
 	if (aio->base.direction == CRAS_STREAM_OUTPUT) {
 		struct alsa_output_node *aout =
@@ -425,8 +457,17 @@ static int open_dev(struct cras_iodev *iodev)
 			enable_noise_cancellation);
 		if (rc < 0)
 			return rc;
-		cras_server_metrics_device_noise_cancellation_enabled(
-			iodev, enable_noise_cancellation);
+
+		if (!noise_cancellation_support_is_exposed(
+			    iodev->info.idx, iodev->active_node->idx))
+			nc_status = CRAS_NOISE_CANCELLATION_BLOCKED;
+		else if (!enable_noise_cancellation)
+			nc_status = CRAS_NOISE_CANCELLATION_DISABLED;
+		else
+			nc_status = CRAS_NOISE_CANCELLATION_ENABLED;
+
+		cras_server_metrics_device_noise_cancellation_status(iodev,
+								     nc_status);
 	}
 
 	return 0;

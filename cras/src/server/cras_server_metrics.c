@@ -30,8 +30,8 @@ const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
 const char kDeviceTypeOutput[] = "Cras.DeviceTypeOutput";
 const char kDeviceGain[] = "Cras.DeviceGain";
 const char kDeviceVolume[] = "Cras.DeviceVolume";
-const char kDeviceNoiseCancellationEnabled[] =
-	"Cras.DeviceNoiseCancellationEnabled";
+const char kDeviceNoiseCancellationStatus[] =
+	"Cras.DeviceNoiseCancellationStatus";
 const char kFetchDelayMilliSeconds[] = "Cras.FetchDelayMilliSeconds";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
@@ -108,7 +108,7 @@ enum CRAS_SERVER_METRICS_TYPE {
 	DEVICE_GAIN,
 	DEVICE_RUNTIME,
 	DEVICE_VOLUME,
-	DEVICE_NOISE_CANCELLATION_ENABLED,
+	DEVICE_NOISE_CANCELLATION_STATUS,
 	HIGHEST_DEVICE_DELAY_INPUT,
 	HIGHEST_DEVICE_DELAY_OUTPUT,
 	HIGHEST_INPUT_HW_LEVEL,
@@ -730,23 +730,23 @@ int cras_server_metrics_device_volume(struct cras_iodev *iodev)
 	return 0;
 }
 
-int cras_server_metrics_device_noise_cancellation_enabled(
-	struct cras_iodev *iodev, bool enabled)
+int cras_server_metrics_device_noise_cancellation_status(
+	struct cras_iodev *iodev, int status)
 {
 	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
 	union cras_server_metrics_data data;
 	int err;
 
 	data.device_data.type = get_metrics_device_type(iodev);
-	data.device_data.value = enabled;
+	data.device_data.value = status;
 
-	init_server_metrics_msg(&msg, DEVICE_NOISE_CANCELLATION_ENABLED, data);
+	init_server_metrics_msg(&msg, DEVICE_NOISE_CANCELLATION_STATUS, data);
 
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
 		syslog(LOG_ERR, "Failed to send metrics message: "
-				"DEVICE_NOISE_CANCELLATION_ENABLED");
+				"DEVICE_NOISE_CANCELLATION_STATUS");
 		return err;
 	}
 
@@ -1258,13 +1258,13 @@ static void metrics_device_volume(struct cras_server_metrics_device_data data)
 	cras_metrics_log_histogram(metrics_name, data.value, 0, 100, 20);
 }
 
-static void metrics_device_noise_cancellation_enabled(
+static void metrics_device_noise_cancellation_status(
 	struct cras_server_metrics_device_data data)
 {
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
 
 	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s",
-		 kDeviceNoiseCancellationEnabled,
+		 kDeviceNoiseCancellationStatus,
 		 metrics_device_type_str(data.type));
 	cras_metrics_log_sparse_histogram(metrics_name, data.value);
 }
@@ -1402,8 +1402,8 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 	case DEVICE_VOLUME:
 		metrics_device_volume(metrics_msg->data.device_data);
 		break;
-	case DEVICE_NOISE_CANCELLATION_ENABLED:
-		metrics_device_noise_cancellation_enabled(
+	case DEVICE_NOISE_CANCELLATION_STATUS:
+		metrics_device_noise_cancellation_status(
 			metrics_msg->data.device_data);
 		break;
 	case HIGHEST_DEVICE_DELAY_INPUT:

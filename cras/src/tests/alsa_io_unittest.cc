@@ -3081,9 +3081,13 @@ struct cras_ramp* cras_ramp_create() {
   return (struct cras_ramp*)0x1;
 }
 
-int cras_server_metrics_device_noise_cancellation_enabled(
+int cras_server_metrics_device_noise_cancellation_status(
     struct cras_iodev* iodev,
-    bool enabled) {
+    int status) {
+  return 0;
+}
+
+int cras_system_state_get_input_nodes(const struct cras_ionode_info** nodes) {
   return 0;
 }
 
