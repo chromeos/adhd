@@ -163,6 +163,196 @@ static struct cras_audio_format mono_channel = { 0, // unused
 						 { -1, -1, -1, -1, 0, -1, -1,
 						   -1, -1, -1, -1 } };
 
+static inline bool should_enable_dsp_aec(uint64_t effects)
+{
+	return (effects & DSP_ECHO_CANCELLATION_ALLOWED) &&
+	       (effects & APM_ECHO_CANCELLATION);
+}
+
+static inline bool should_enable_dsp_ns(uint64_t effects)
+{
+	return (effects & DSP_NOISE_SUPPRESSION_ALLOWED) &&
+	       (effects & APM_NOISE_SUPRESSION);
+}
+
+static inline bool should_enable_dsp_agc(uint64_t effects)
+{
+	return (effects & DSP_GAIN_CONTROL_ALLOWED) &&
+	       (effects & APM_GAIN_CONTROL);
+}
+
+/*
+ * Analyzes the active APMs on the idev and returns whether any of them
+ * cause a conflict to enabling DSP |effect| on |idev.
+ */
+static bool dsp_effect_check_conflict(struct cras_iodev *const idev,
+				      enum RTC_PROC_ON_DSP effect)
+{
+	struct active_apm *active;
+
+	/* Return true if any APM should not apply the effect on DSP. */
+	DL_FOREACH (active_apms, active) {
+		if (active->apm->idev != idev)
+			continue;
+
+		switch (effect) {
+		case RTC_PROC_AEC: {
+			/*
+			 * The AEC effect can only be applied if the audio
+			 * output devices configuration meets our AEC usecase.
+			 */
+			bool is_aec_use_case =
+				cras_iodev_is_aec_use_case(idev->active_node) &&
+				cras_apm_reverse_is_aec_use_case(
+					active->stream->echo_ref);
+			if (!(is_aec_use_case &&
+			      should_enable_dsp_aec(active->stream->effects)))
+				return true;
+			break;
+		}
+		case RTC_PROC_NS:
+			if (!should_enable_dsp_ns(active->stream->effects))
+				return true;
+			break;
+		case RTC_PROC_AGC:
+			if (!should_enable_dsp_agc(active->stream->effects))
+				return true;
+			break;
+		default:
+			syslog(LOG_WARNING, "Unhandled RTC_PROC %d", effect);
+			break;
+		}
+	}
+
+	/* Return false otherwise. Nothing conflicts with activating |effect|
+	 * on |idev| */
+	return false;
+}
+
+/*
+ * Analyzes the active APMs and returns whether the effect is active in any of
+ * them.
+ */
+static bool effect_needed_for_dev(const struct cras_iodev *const idev,
+				  uint64_t effect)
+{
+	struct active_apm *active;
+	struct cras_apm *apm;
+	DL_FOREACH (active_apms, active) {
+		apm = active->apm;
+		if (apm->idev == idev &&
+		    ((bool)(active->stream->effects & effect))) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
+ * Try setting the DSP effect to the desired state. Returns the state that was
+ * achieved for the DSP effect.
+ */
+static bool toggle_dsp_effect(struct cras_iodev *const idev, uint64_t effect,
+			      bool should_be_activated)
+{
+	bool dsp_effect_activated =
+		cras_iodev_get_rtc_proc_enabled(idev, effect);
+
+	/* Toggle the DSP effect if it is not activated according to what is
+	 * specified. */
+	if (dsp_effect_activated != should_be_activated) {
+		cras_iodev_set_rtc_proc_enabled(idev, effect,
+						should_be_activated ? 1 : 0);
+
+		/* Verify the DSP effect activation state. */
+		dsp_effect_activated =
+			cras_iodev_get_rtc_proc_enabled(idev, effect);
+	}
+
+	if (dsp_effect_activated != should_be_activated)
+		syslog(LOG_ERR, "Failed to %s DSP effect 0x%lx",
+		       should_be_activated ? "enable" : "disable",
+		       (unsigned long)effect);
+
+	return dsp_effect_activated;
+}
+
+/*
+ * Iterates all active apms and applies the restrictions to determine
+ * whether or not to activate effects on DSP for each associated
+ * input devices. Called in audio thread.
+ */
+static void update_supported_dsp_effects_activation()
+{
+	/*
+	 * DSP effect restriction rules to follow in order.
+	 *
+	 * Note that there could be more than one APMs attach to the same idev
+	 * that request different effects. Therefore we need to iterate through
+	 * all APMs to find out the answer to each rule.
+	 *
+	 * 1. If the associated input and output device pair don't allign with
+	 * the AEC use case, we shall deactivate DSP effects on idev.
+	 * 2. We shall deactivate DSP effects on idev if any APM has requested
+	 * to not be applied.
+	 * 3. We shall activate DSP effects on idev if there's at least one APM
+	 * requesting it.
+	 */
+
+	/* Toggle between having effects applied on DSP and in CRAS for each APM */
+	struct active_apm *active;
+	struct cras_apm *apm;
+	LL_FOREACH (active_apms, active) {
+		apm = active->apm;
+		struct cras_iodev *const idev = apm->idev;
+
+		/* Try to activate effects on DSP. */
+		bool aec_on_dsp = false;
+		bool ns_on_dsp = false;
+		bool agc_on_dsp = false;
+
+		/*
+                 * Check all APMs on idev to see what effects are active and
+		 * what effects can be applied on DSP.
+                 */
+		bool aec_needed =
+			effect_needed_for_dev(idev, APM_ECHO_CANCELLATION);
+		bool ns_needed =
+			effect_needed_for_dev(idev, APM_NOISE_SUPRESSION);
+		bool agc_needed = effect_needed_for_dev(idev, APM_GAIN_CONTROL);
+
+		/*
+                 * Identify if effects can be activated on DSP and attempt
+		 * toggling the DSP effect.
+                 */
+		aec_on_dsp = aec_needed &&
+			     !dsp_effect_check_conflict(idev, RTC_PROC_AEC);
+		aec_on_dsp = toggle_dsp_effect(idev, RTC_PROC_AEC, aec_on_dsp);
+
+		ns_on_dsp = ns_needed && (aec_on_dsp || !aec_needed) &&
+			    !dsp_effect_check_conflict(idev, RTC_PROC_NS);
+		ns_on_dsp = toggle_dsp_effect(idev, RTC_PROC_NS, ns_on_dsp);
+
+		agc_on_dsp = agc_needed &&
+			     (ns_on_dsp || !(ns_needed || aec_needed)) &&
+			     !dsp_effect_check_conflict(idev, RTC_PROC_AGC);
+		agc_on_dsp = toggle_dsp_effect(idev, RTC_PROC_AGC, agc_on_dsp);
+
+		/*
+                 * Toggle effects on CRAS APM depending on what the state of
+                 * effect activation is on DSP.
+                 */
+		webrtc_apm_enable_effects(
+			active->apm->apm_ptr,
+			(active->stream->effects & APM_ECHO_CANCELLATION) &&
+				!aec_on_dsp,
+			(active->stream->effects & APM_NOISE_SUPRESSION) &&
+				!ns_on_dsp,
+			(active->stream->effects & APM_GAIN_CONTROL) &&
+				!agc_on_dsp);
+	}
+}
+
 static void apm_destroy(struct cras_apm **apm)
 {
 	if (*apm == NULL)
@@ -297,6 +487,9 @@ struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 				     const struct cras_audio_format *dev_fmt)
 {
 	struct cras_apm *apm;
+	bool aec_applied_on_dsp = false;
+	bool ns_applied_on_dsp = false;
+	bool agc_applied_on_dsp = false;
 
 	DL_FOREACH (stream->apms, apm)
 		if (apm->idev == idev)
@@ -322,19 +515,25 @@ struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 	apm->blocks_with_nonsymmetric_content_in_render = 0;
 	apm->blocks_with_symmetric_content_in_render = 0;
 
+	aec_applied_on_dsp =
+		cras_iodev_get_rtc_proc_enabled(idev, RTC_PROC_AEC);
+	ns_applied_on_dsp = cras_iodev_get_rtc_proc_enabled(idev, RTC_PROC_NS);
+	agc_applied_on_dsp =
+		cras_iodev_get_rtc_proc_enabled(idev, RTC_PROC_AGC);
+
 	/* Determine whether to enforce effects to be on (regardless of settings
 	 * in the apm.ini file). */
 	unsigned int enforce_aec_on = 0;
 	if (stream->effects & APM_ECHO_CANCELLATION) {
-		enforce_aec_on = 1;
+		enforce_aec_on = !aec_applied_on_dsp;
 	}
 	unsigned int enforce_ns_on = 0;
 	if (stream->effects & APM_NOISE_SUPRESSION) {
-		enforce_ns_on = 1;
+		enforce_ns_on = !ns_applied_on_dsp;
 	}
 	unsigned int enforce_agc_on = 0;
 	if (stream->effects & APM_GAIN_CONTROL) {
-		enforce_agc_on = 1;
+		enforce_agc_on = !agc_applied_on_dsp;
 	}
 
 	/*
@@ -413,6 +612,7 @@ void cras_stream_apm_start(struct cras_stream_apm *stream,
 	DL_APPEND(active_apms, active);
 
 	cras_apm_reverse_state_update();
+	update_supported_dsp_effects_activation();
 }
 
 void cras_stream_apm_stop(struct cras_stream_apm *stream,
@@ -430,6 +630,18 @@ void cras_stream_apm_stop(struct cras_stream_apm *stream,
 	}
 
 	cras_apm_reverse_state_update();
+	update_supported_dsp_effects_activation();
+
+	/* If there's no other APM using this idev any more. */
+	DL_FOREACH (active_apms, active) {
+		if (active->apm->idev == idev)
+			break;
+	}
+	if (active == NULL) {
+		cras_iodev_set_rtc_proc_enabled(idev, RTC_PROC_AEC, 0);
+		cras_iodev_set_rtc_proc_enabled(idev, RTC_PROC_NS, 0);
+		cras_iodev_set_rtc_proc_enabled(idev, RTC_PROC_AGC, 0);
+	}
 }
 
 int cras_stream_apm_destroy(struct cras_stream_apm *stream)
@@ -627,6 +839,7 @@ static int apm_thread_callback(void *arg, int revents)
 	case APM_REVERSE_DEV_CHANGED:
 	case APM_SET_AEC_REF:
 		cras_apm_reverse_state_update();
+		update_supported_dsp_effects_activation();
 		break;
 	default:
 		break;
