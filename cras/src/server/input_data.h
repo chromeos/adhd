@@ -9,19 +9,21 @@
 #include "cras_dsp_pipeline.h"
 #include "float_buffer.h"
 
+struct cras_iodev;
+
 /*
  * Structure holding the information used when a chunk of input buffer
  * is accessed by multiple streams with different properties and
  * processing requirements.
  * Member:
  *    ext - Provides interface to read and process buffer in dsp pipeline.
- *    dev_ptr - Pointer to the associated input iodev.
+ *    idev - Pointer to the associated input iodev.
  *    area - The audio area used for deinterleaved data copy.
  *    fbuffer - Floating point buffer from input device.
  */
 struct input_data {
 	struct ext_dsp_module ext;
-	void *dev_ptr;
+	const struct cras_iodev *idev;
 	struct cras_audio_area *area;
 	struct float_buffer *fbuffer;
 };
@@ -29,9 +31,9 @@ struct input_data {
 /*
  * Creates an input_data instance for input iodev.
  * Args:
- *    dev_ptr - Pointer to the associated input device.
+ *    idev - Pointer to the associated input device.
  */
-struct input_data *input_data_create(void *dev_ptr);
+struct input_data *input_data_create(const struct cras_iodev *idev);
 
 /* Destroys an input_data instance. */
 void input_data_destroy(struct input_data **data);

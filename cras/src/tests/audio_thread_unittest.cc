@@ -1442,7 +1442,7 @@ void cras_apm_list_set_debug_recording(struct cras_apm* apm,
                                        int start,
                                        const char* file_name_base) {}
 void cras_apm_list_set_aec_dump(struct cras_apm_list* list,
-                                void* dev_ptr,
+                                const struct cras_iodev* idev,
                                 int start,
                                 int fd) {}
 

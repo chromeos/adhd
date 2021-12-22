@@ -2794,7 +2794,7 @@ static void mod_configure(struct ext_dsp_module* ext,
                           unsigned int num_channels,
                           unsigned int rate) {}
 
-struct input_data* input_data_create(void* dev_ptr) {
+struct input_data* input_data_create(const struct cras_iodev* idev) {
   if (input_data_create_ret) {
     input_data_create_ret->ext.run = mod_run;
     input_data_create_ret->ext.configure = mod_configure;

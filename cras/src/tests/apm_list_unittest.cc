@@ -20,8 +20,8 @@ extern "C" {
 namespace {
 
 static void* stream_ptr = reinterpret_cast<void*>(0x123);
-static void* dev_ptr = reinterpret_cast<void*>(0x345);
-static void* dev_ptr2 = reinterpret_cast<void*>(0x678);
+static struct cras_iodev* idev = reinterpret_cast<struct cras_iodev*>(0x345);
+static struct cras_iodev* idev2 = reinterpret_cast<cras_iodev*>(0x678);
 static struct cras_apm_list* list;
 static struct cras_audio_area fake_audio_area;
 static unsigned int dsp_util_interleave_frames;
@@ -113,7 +113,7 @@ TEST(ApmList, AddApmInputDevUnuseFirstChannel) {
       fmt.channel_layout[ch] = test_layouts[i][ch];
 
     /* Input dev is of aec use case. */
-    apm = cras_apm_list_add_apm(list, dev_ptr, &fmt, 1);
+    apm = cras_apm_list_add_apm(list, idev, &fmt, 1);
     EXPECT_NE((void*)NULL, apm);
 
     /* Assert that the post-processing format never has an unset
@@ -126,7 +126,7 @@ TEST(ApmList, AddApmInputDevUnuseFirstChannel) {
 
     EXPECT_EQ(1, first_channel_found_in_layout);
 
-    cras_apm_list_remove_apm(list, dev_ptr);
+    cras_apm_list_remove_apm(list, idev);
   }
 
   cras_apm_list_destroy(list);
@@ -150,33 +150,33 @@ TEST(ApmList, AddRemoveApm) {
   EXPECT_NE((void*)NULL, list);
 
   /* Input dev is of aec use case. */
-  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, dev_ptr, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev, &fmt, 1));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev));
   EXPECT_EQ(0, cras_apm_reverse_state_update_called);
 
-  cras_apm_list_start_apm(list, dev_ptr);
-  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr));
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr2));
+  cras_apm_list_start_apm(list, idev);
+  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev2));
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
 
   /* Input dev is not of aec use case. */
-  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, dev_ptr2, &fmt, 0));
+  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev2, &fmt, 0));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_EQ((void*)NULL, webrtc_apm_create_apm_ini_val);
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
-  cras_apm_list_start_apm(list, dev_ptr2);
+  cras_apm_list_start_apm(list, idev2);
   EXPECT_EQ(2, cras_apm_reverse_state_update_called);
-  cras_apm_list_stop_apm(list, dev_ptr);
+  cras_apm_list_stop_apm(list, idev);
   EXPECT_EQ(3, cras_apm_reverse_state_update_called);
 
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr));
-  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, dev_ptr2));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev));
+  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev2));
 
-  cras_apm_list_stop_apm(list, dev_ptr2);
-  cras_apm_list_remove_apm(list, dev_ptr);
-  cras_apm_list_remove_apm(list, dev_ptr2);
+  cras_apm_list_stop_apm(list, idev2);
+  cras_apm_list_remove_apm(list, idev);
+  cras_apm_list_remove_apm(list, idev2);
 
   cras_apm_list_destroy(list);
   cras_apm_list_deinit();
@@ -200,17 +200,17 @@ TEST(ApmList, OutputTypeNotAecUseCase) {
 
   /* Output device is of aec use case. */
   cras_apm_reverse_is_aec_use_case_ret = 1;
-  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, dev_ptr, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev, &fmt, 1));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
-  cras_apm_list_remove_apm(list, dev_ptr);
+  cras_apm_list_remove_apm(list, idev);
 
   /* Output device is not of aec use case. */
   cras_apm_reverse_is_aec_use_case_ret = 0;
-  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, dev_ptr, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev, &fmt, 1));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_EQ((void*)NULL, webrtc_apm_create_apm_ini_val);
-  cras_apm_list_remove_apm(list, dev_ptr);
+  cras_apm_list_remove_apm(list, idev);
 
   cras_apm_list_destroy(list);
   cras_apm_list_deinit();
@@ -236,7 +236,7 @@ TEST(ApmList, ApmProcessForwardBuffer) {
   list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
-  apm = cras_apm_list_add_apm(list, dev_ptr, &fmt, 1);
+  apm = cras_apm_list_add_apm(list, idev, &fmt, 1);
 
   buf = float_buffer_create(500, 2);
   float_buffer_written(buf, 300);
@@ -290,11 +290,11 @@ TEST(ApmList, StreamAddToAlreadyOpenedDev) {
   list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
-  apm1 = cras_apm_list_add_apm(list, dev_ptr, &fmt, 1);
+  apm1 = cras_apm_list_add_apm(list, idev, &fmt, 1);
   EXPECT_EQ(1, webrtc_apm_create_called);
   EXPECT_NE((void*)NULL, apm1);
 
-  apm2 = cras_apm_list_add_apm(list, dev_ptr, &fmt, 1);
+  apm2 = cras_apm_list_add_apm(list, idev, &fmt, 1);
   EXPECT_EQ(1, webrtc_apm_create_called);
   EXPECT_EQ(apm1, apm2);
 

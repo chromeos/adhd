@@ -12,6 +12,7 @@ struct cras_audio_area;
 struct cras_audio_format;
 struct cras_apm;
 struct cras_apm_list;
+struct cras_iodev;
 struct float_buffer;
 
 /* APM uses 10ms per block, so it's 100 blocks per second. */
@@ -56,18 +57,18 @@ int cras_apm_list_deinit();
 struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects);
 
 /*
- * Creates a cras_apm associated to given dev_ptr and adds it to the list.
- * If there already exists an APM instance linked to dev_ptr, we assume
+ * Creates a cras_apm associated to given idev and adds it to the list.
+ * If there already exists an APM instance linked to idev, we assume
  * the open format is unchanged so just return it. This should be called
  * in main thread.
  * Args:
  *    list - The list holding APM instances.
- *    dev_ptr - Pointer to the iodev to add new APM for.
+ *    idev - Pointer to the input iodev to add new APM for.
  *    fmt - Format of the audio data used for this cras_apm.
- *    is_aec_use_case - If the dev_ptr is for typical AEC use case.
+ *    is_aec_use_case - If the idev is for typical AEC use case.
  */
 struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
-				       void *dev_ptr,
+				       struct cras_iodev *idev,
 				       const struct cras_audio_format *fmt,
 				       bool is_aec_use_case);
 
@@ -76,21 +77,24 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
  * This should be called in audio thread.
  * Args:
  *    stream_ptr - Pointer to the stream.
- *    dev_ptr - The iodev as key to look up associated APM.
+ *    idev - The iodev as key to look up associated APM.
  */
-struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr, void *dev_ptr);
+struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr,
+					      const struct cras_iodev *idev);
 
 /*
- * Starts the APM instance in the list that is associated with dev_ptr by
+ * Starts the APM instance in the list that is associated with idev by
  * adding it to the active APM list in audio thread.
  */
-void cras_apm_list_start_apm(struct cras_apm_list *list, void *dev_ptr);
+void cras_apm_list_start_apm(struct cras_apm_list *list,
+			     const struct cras_iodev *idev);
 
 /*
- * Stops the APM instance in the list that is associated with dev_ptr by
+ * Stops the APM instance in the list that is associated with idev by
  * removing it from the active APM list in audio thread.
  */
-void cras_apm_list_stop_apm(struct cras_apm_list *list, void *dev_ptr);
+void cras_apm_list_stop_apm(struct cras_apm_list *list,
+			    struct cras_iodev *idev);
 
 /*
  * Gets the effects bit map of the APM list.
@@ -108,9 +112,10 @@ int cras_apm_list_destroy(struct cras_apm_list *list);
  * be called in main thread.
  * Args:
  *    list - The list holding APM instances.
- *    dev_ptr - Device pointer used to look up which apm to remove.
+ *    idev - Device pointer used to look up which apm to remove.
  */
-void cras_apm_list_remove_apm(struct cras_apm_list *list, void *dev_ptr);
+void cras_apm_list_remove_apm(struct cras_apm_list *list,
+			      const struct cras_iodev *idev);
 
 /* Passes audio data from hardware for cras_apm to process.
  * Args:
@@ -154,12 +159,13 @@ bool cras_apm_list_get_use_tuned_settings(struct cras_apm *apm);
 /* Sets debug recording to start or stop.
  * Args:
  *    list - List contains the apm instance to start/stop debug recording.
- *    dev_ptr - Use as key to look up specific apm to do aec dump.
+ *    idev - Use as key to look up specific apm to do aec dump.
  *    start - True to set debug recording start, otherwise stop.
  *    fd - File descriptor to aec dump destination.
  */
-void cras_apm_list_set_aec_dump(struct cras_apm_list *list, void *dev_ptr,
-				int start, int fd);
+void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
+				const struct cras_iodev *idev, int start,
+				int fd);
 
 #else
 
@@ -181,13 +187,13 @@ static inline struct cras_apm_list *cras_apm_list_create(void *stream_ptr,
 	return NULL;
 }
 static inline struct cras_apm *
-cras_apm_list_add_apm(struct cras_apm_list *list, void *dev_ptr,
+cras_apm_list_add_apm(struct cras_apm_list *list, struct cras_iodev *idev,
 		      const struct cras_audio_format *fmt, bool is_aec_use_case)
 {
 	return NULL;
 }
-static inline struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr,
-							    void *dev_ptr)
+static inline struct cras_apm *
+cras_apm_list_get_active_apm(void *stream_ptr, const struct cras_iodev *idev)
 {
 	return NULL;
 }
@@ -200,7 +206,7 @@ static inline int cras_apm_list_destroy(struct cras_apm_list *list)
 	return 0;
 }
 static inline void cras_apm_list_remove_apm(struct cras_apm_list *list,
-					    void *dev_ptr)
+					    const struct cras_iodev *idev)
 {
 }
 
@@ -222,11 +228,11 @@ static inline void cras_apm_list_put_processed(struct cras_apm *apm,
 {
 }
 static inline void cras_apm_list_start_apm(struct cras_apm_list *list,
-					   void *dev_ptr)
+					   const struct cras_iodev *idev)
 {
 }
 static inline void cras_apm_list_stop_apm(struct cras_apm_list *list,
-					  void *dev_ptr)
+					  struct cras_iodev *idev)
 {
 }
 
@@ -242,7 +248,8 @@ static inline bool cras_apm_list_get_use_tuned_settings(struct cras_apm *apm)
 }
 
 static inline void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
-					      void *dev_ptr, int start, int fd)
+					      const struct cras_iodev *idev,
+					      int start, int fd)
 {
 }
 

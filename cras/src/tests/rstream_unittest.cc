@@ -452,7 +452,8 @@ int cras_server_metrics_stream_destroy(const struct cras_rstream* stream) {
 struct cras_apm_list* cras_apm_list_create(void* stream_ptr, uint64_t effects) {
   return NULL;
 }
-struct cras_apm* cras_apm_list_get_active_apm(void* stream_ptr, void* dev_ptr) {
+struct cras_apm* cras_apm_list_get_active_apm(void* stream_ptr,
+                                              const struct cras_iodev* idev) {
   return FAKE_CRAS_APM_PTR;
 }
 int cras_apm_list_destroy(struct cras_apm_list* list) {
@@ -461,7 +462,8 @@ int cras_apm_list_destroy(struct cras_apm_list* list) {
 uint64_t cras_apm_list_get_effects(struct cras_apm_list* list) {
   return APM_ECHO_CANCELLATION;
 }
-struct cras_apm* cras_apm_list_get(struct cras_apm_list* list, void* dev_ptr) {
+struct cras_apm* cras_apm_list_get(struct cras_apm_list* list,
+                                   const struct cras_iodev* idev) {
   return NULL;
 }
 struct cras_audio_format* cras_apm_list_get_format(struct cras_apm* apm) {

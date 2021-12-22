@@ -249,9 +249,7 @@ class IoDevTestSuite : public testing::Test {
     cras_system_get_max_internal_mic_gain_return = DEFAULT_MAX_INPUT_NODE_GAIN;
   }
 
-  virtual void TearDown() {
-    cras_iodev_list_reset();
-  }
+  virtual void TearDown() { cras_iodev_list_reset(); }
 
   static void set_volume_1(struct cras_iodev* iodev) { set_volume_1_called_++; }
 
@@ -2757,12 +2755,13 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
 
 #ifdef HAVE_WEBRTC_APM
 struct cras_apm* cras_apm_list_add_apm(struct cras_apm_list* list,
-                                       void* dev_ptr,
+                                       struct cras_iodev* idev,
                                        const struct cras_audio_format* fmt,
                                        bool is_internal_dev) {
   return NULL;
 }
-void cras_apm_list_remove_apm(struct cras_apm_list* list, void* dev_ptr) {}
+void cras_apm_list_remove_apm(struct cras_apm_list* list,
+                              const struct cras_iodev* idev) {}
 int cras_apm_list_init(const char* device_config_dir) {
   return 0;
 }

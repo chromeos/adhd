@@ -50,7 +50,7 @@
  *
  * Members:
  *    apm_ptr - An APM instance from libwebrtc_audio_processing
- *    dev_ptr - Pointer to the device this APM is associated with.
+ *    idev - Pointer to the input device this APM is associated with.
  *    buffer - Stores the processed/interleaved data ready for stream to read.
  *    fbuffer - Stores the floating pointer buffer from input device waiting
  *        for APM to process.
@@ -69,7 +69,7 @@
  */
 struct cras_apm {
 	webrtc_apm apm_ptr;
-	void *dev_ptr;
+	struct cras_iodev *idev;
 	struct byte_buffer *buffer;
 	struct float_buffer *fbuffer;
 	struct cras_audio_format dev_fmt;
@@ -171,21 +171,23 @@ struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects)
 	return list;
 }
 
-static struct active_apm *get_active_apm(void *stream_ptr, void *dev_ptr)
+static struct active_apm *get_active_apm(void *stream_ptr,
+					 const struct cras_iodev *idev)
 {
 	struct active_apm *active;
 
 	DL_FOREACH (active_apms, active) {
-		if ((active->apm->dev_ptr == dev_ptr) &&
+		if ((active->apm->idev == idev) &&
 		    (active->stream_ptr == stream_ptr))
 			return active;
 	}
 	return NULL;
 }
 
-struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr, void *dev_ptr)
+struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr,
+					      const struct cras_iodev *idev)
 {
-	struct active_apm *active = get_active_apm(stream_ptr, dev_ptr);
+	struct active_apm *active = get_active_apm(stream_ptr, idev);
 	return active ? active->apm : NULL;
 }
 
@@ -197,12 +199,13 @@ uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
 		return list->effects;
 }
 
-void cras_apm_list_remove_apm(struct cras_apm_list *list, void *dev_ptr)
+void cras_apm_list_remove_apm(struct cras_apm_list *list,
+			      const struct cras_iodev *idev)
 {
 	struct cras_apm *apm;
 
 	DL_FOREACH (list->apms, apm) {
-		if (apm->dev_ptr == dev_ptr) {
+		if (apm->idev == idev) {
 			DL_DELETE(list->apms, apm);
 			apm_destroy(&apm);
 		}
@@ -266,14 +269,14 @@ static void get_best_channels(struct cras_audio_format *apm_fmt)
 }
 
 struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
-				       void *dev_ptr,
+				       struct cras_iodev *idev,
 				       const struct cras_audio_format *dev_fmt,
 				       bool is_aec_use_case)
 {
 	struct cras_apm *apm;
 
 	DL_FOREACH (list->apms, apm)
-		if (apm->dev_ptr == dev_ptr)
+		if (apm->idev == idev)
 			return apm;
 
 	// TODO(hychao): Remove the check when we enable more effects.
@@ -332,7 +335,7 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 		return NULL;
 	}
 
-	apm->dev_ptr = dev_ptr;
+	apm->idev = idev;
 	apm->work_queue = NULL;
 
 	/* WebRTC APM wants 1/100 second equivalence of data(a block) to
@@ -354,7 +357,8 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 	return apm;
 }
 
-void cras_apm_list_start_apm(struct cras_apm_list *list, void *dev_ptr)
+void cras_apm_list_start_apm(struct cras_apm_list *list,
+			     const struct cras_iodev *idev)
 {
 	struct active_apm *active;
 	struct cras_apm *apm;
@@ -363,11 +367,11 @@ void cras_apm_list_start_apm(struct cras_apm_list *list, void *dev_ptr)
 		return;
 
 	/* Check if this apm has already been started. */
-	apm = cras_apm_list_get_active_apm(list->stream_ptr, dev_ptr);
+	apm = cras_apm_list_get_active_apm(list->stream_ptr, idev);
 	if (apm)
 		return;
 
-	DL_SEARCH_SCALAR(list->apms, apm, dev_ptr, dev_ptr);
+	DL_SEARCH_SCALAR(list->apms, apm, idev, idev);
 	if (apm == NULL)
 		return;
 
@@ -384,14 +388,14 @@ void cras_apm_list_start_apm(struct cras_apm_list *list, void *dev_ptr)
 	cras_apm_reverse_state_update();
 }
 
-void cras_apm_list_stop_apm(struct cras_apm_list *list, void *dev_ptr)
+void cras_apm_list_stop_apm(struct cras_apm_list *list, struct cras_iodev *idev)
 {
 	struct active_apm *active;
 
 	if (list == NULL)
 		return;
 
-	active = get_active_apm(list->stream_ptr, dev_ptr);
+	active = get_active_apm(list->stream_ptr, idev);
 	if (active) {
 		DL_DELETE(active_apms, active);
 		free(active);
@@ -633,15 +637,16 @@ bool cras_apm_list_get_use_tuned_settings(struct cras_apm *apm)
 	return apm->is_aec_use_case && (aec_ini || apm_ini);
 }
 
-void cras_apm_list_set_aec_dump(struct cras_apm_list *list, void *dev_ptr,
-				int start, int fd)
+void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
+				const struct cras_iodev *idev, int start,
+				int fd)
 {
 	struct cras_apm *apm;
 	char file_name[256];
 	int rc;
 	FILE *handle;
 
-	DL_SEARCH_SCALAR(list->apms, apm, dev_ptr, dev_ptr);
+	DL_SEARCH_SCALAR(list->apms, apm, idev, idev);
 	if (apm == NULL)
 		return;
 

@@ -26,7 +26,7 @@ static bool cras_apm_list_get_use_tuned_settings_val;
 static float cras_rstream_get_volume_scaler_val;
 
 TEST(InputData, GetForInputStream) {
-  void* dev_ptr = reinterpret_cast<void*>(0x123);
+  struct cras_iodev* idev = reinterpret_cast<struct cras_iodev*>(0x123);
   struct input_data* data;
   struct cras_rstream stream;
   struct buffer_share* offsets;
@@ -39,7 +39,7 @@ TEST(InputData, GetForInputStream) {
 #endif  // HAVE_WEBRTC_APM
   stream.stream_id = 111;
 
-  data = input_data_create(dev_ptr);
+  data = input_data_create(idev);
   data->ext.configure(&data->ext, 8192, 2, 48000);
 
   // Prepare offsets data for 2 streams.
@@ -80,7 +80,7 @@ TEST(InputData, GetForInputStream) {
 }
 
 TEST(InputData, GetSWCaptureGain) {
-  void* dev_ptr = reinterpret_cast<void*>(0x123);
+  struct cras_iodev* idev = reinterpret_cast<struct cras_iodev*>(0x123);
   struct input_data* data = NULL;
   struct cras_rstream stream;
   float gain;
@@ -89,7 +89,7 @@ TEST(InputData, GetSWCaptureGain) {
   stream.stream_id = 123;
 
 #ifdef HAVE_WEBRTC_APM
-  data = input_data_create(dev_ptr);
+  data = input_data_create(idev);
 
   cras_apm_list_get_active_ret = FAKE_CRAS_APM_PTR;
   cras_apm_list_get_use_tuned_settings_val = 1;
@@ -107,7 +107,7 @@ TEST(InputData, GetSWCaptureGain) {
   input_data_destroy(&data);
 #endif  // HAVE_WEBRTC_APM
 
-  data = input_data_create(dev_ptr);
+  data = input_data_create(idev);
   gain = input_data_get_software_gain_scaler(data, 0.6f, &stream);
   EXPECT_FLOAT_EQ(0.48f, gain);
   input_data_destroy(&data);
@@ -115,7 +115,8 @@ TEST(InputData, GetSWCaptureGain) {
 
 extern "C" {
 #ifdef HAVE_WEBRTC_APM
-struct cras_apm* cras_apm_list_get_active_apm(void* stream_ptr, void* dev_ptr) {
+struct cras_apm* cras_apm_list_get_active_apm(void* stream_ptr,
+                                              const struct cras_iodev* idev) {
   return cras_apm_list_get_active_ret;
 }
 int cras_apm_list_process(struct cras_apm* apm,
@@ -129,7 +130,8 @@ int cras_apm_list_process(struct cras_apm* apm,
 struct cras_audio_area* cras_apm_list_get_processed(struct cras_apm* apm) {
   return &apm_area;
 }
-void cras_apm_list_remove_apm(struct cras_apm_list* list, void* dev_ptr) {}
+void cras_apm_list_remove_apm(struct cras_apm_list* list,
+                              const struct cras_iodev* idev) {}
 void cras_apm_list_put_processed(struct cras_apm* apm, unsigned int frames) {}
 bool cras_apm_list_get_use_tuned_settings(struct cras_apm* apm) {
   return cras_apm_list_get_use_tuned_settings_val;
