@@ -11,12 +11,10 @@
 
 #include "byte_buffer.h"
 #include "cras_apm_list.h"
+#include "cras_apm_reverse.h"
 #include "cras_audio_area.h"
 #include "cras_audio_format.h"
-#include "cras_dsp_pipeline.h"
 #include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_system_state.h"
 #include "dsp_util.h"
 #include "dumper.h"
 #include "float_buffer.h"
@@ -116,52 +114,10 @@ struct active_apm {
 	struct active_apm *prev, *next;
 } * active_apms;
 
-/*
- * Object used to analyze playback audio from output iodev. It is responsible
- * to get buffer containing latest output data and provide it to the APM
- * instances which want to analyze reverse stream.
- *
- * - How does this reverse module connects with output iodev?
- * An instance of this reverse module is expected to be passed as a
- * (struct ext_dsp_module *) to cras_iodev_set_ext_dsp_module() so that
- * when audio data runs through the associated iodev's DSP pipeline it
- * will trigger ext->run(ext, ...) which is implemented below as
- * reverse_data_run()
- *
- * Member:
- *    ext - The interface implemented to process reverse(output) stream
- *        data in various formats.
- *    fbuf - Middle buffer holding reverse data for APMs to analyze.
- *    odev - Pointer to the output iodev playing audio as the reverse
- *        stream. NULL if there's no playback stream.
- *    dev_rate - The sample rate odev is opened for.
- *    needs_to_process - Flag to indicate if this reverse module needs to
- *        process. The logic could be complex to determine if the overall
- *        APM states requires this reverse module to process. Given that
- *        ext->run() is called rather frequent from DSP pipeline, we use
- *        this flag to save the computation every time.
- */
-struct cras_apm_reverse_module {
-	struct ext_dsp_module ext;
-	struct float_buffer *fbuf;
-	struct cras_iodev *odev;
-	unsigned int dev_rate;
-	unsigned needs_to_process;
-};
-
-/* The reverse module corresponds to the dynamically changing default
- * enabled iodev in cras_iodev_list. It is subjected to change along
- * with audio output device selection. */
-static struct cras_apm_reverse_module *default_rmod = NULL;
-
 static const char *aec_config_dir = NULL;
 static char ini_name[MAX_INI_NAME_LENGTH + 1];
 static dictionary *aec_ini = NULL;
 static dictionary *apm_ini = NULL;
-static const int apm_frame_length_ms = 10;
-static const int apm_num_frames_per_second = 1000 / apm_frame_length_ms;
-
-static bool hw_echo_ref_disabled = 0;
 
 /* Mono front center format used to configure the process outout end of
  * APM to work around an issue that APM might pick the 1st channel of
@@ -181,21 +137,6 @@ static struct cras_audio_format mono_channel = { 0, // unused
 						 1, // mono, front center
 						 { -1, -1, -1, -1, 0, -1, -1,
 						   -1, -1, -1, -1 } };
-
-/* Update the needs_to_process flag in global reverse modules. Should be
- * called when apms are started or stopped. */
-static void update_needs_to_process_flag()
-{
-	struct active_apm *active;
-
-	if (!default_rmod)
-		return;
-	default_rmod->needs_to_process = 0;
-	DL_FOREACH (active_apms, active) {
-		default_rmod->needs_to_process |=
-			!!(active->effects & APM_ECHO_CANCELLATION);
-	}
-}
 
 static void apm_destroy(struct cras_apm **apm)
 {
@@ -282,7 +223,7 @@ int left_and_right_channels_are_symmetric(int num_channels, int rate,
 		return true;
 	}
 
-	const int frame_length = rate / apm_num_frames_per_second;
+	const int frame_length = rate / APM_NUM_BLOCKS_PER_SECOND;
 	return (0 == memcmp(data[0], data[1], frame_length * sizeof(float)));
 }
 
@@ -355,11 +296,8 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 
 	/* Use tuned settings only when the forward dev(capture) and reverse
 	 * dev(playback) both are in typical AEC use case. */
-	apm->is_aec_use_case = is_aec_use_case;
-	if (default_rmod->odev) {
-		apm->is_aec_use_case &= cras_iodev_is_aec_use_case(
-			default_rmod->odev->active_node);
-	}
+	apm->is_aec_use_case =
+		is_aec_use_case && cras_apm_reverse_is_aec_use_case();
 
 	/* Determine whether to enforce effects to be on (regardless of settings
 	 * in the apm.ini file). */
@@ -397,9 +335,11 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 	apm->dev_ptr = dev_ptr;
 	apm->work_queue = NULL;
 
-	/* WebRTC APM wants 10 ms equivalence of data to process. */
+	/* WebRTC APM wants 1/100 second equivalence of data(a block) to
+	 * process. Allocate buffer based on how many frames are in this block.
+	 */
 	const int frame_length =
-		apm->fmt.frame_rate / apm_num_frames_per_second;
+		apm->fmt.frame_rate / APM_NUM_BLOCKS_PER_SECOND;
 	apm->buffer = byte_buffer_create(frame_length *
 					 cras_get_format_bytes(&apm->fmt));
 	apm->fbuffer = float_buffer_create(frame_length, apm->fmt.num_channels);
@@ -441,7 +381,7 @@ void cras_apm_list_start_apm(struct cras_apm_list *list, void *dev_ptr)
 	active->effects = list->effects;
 	DL_APPEND(active_apms, active);
 
-	update_needs_to_process_flag();
+	cras_apm_reverse_state_update();
 }
 
 void cras_apm_list_stop_apm(struct cras_apm_list *list, void *dev_ptr)
@@ -457,7 +397,7 @@ void cras_apm_list_stop_apm(struct cras_apm_list *list, void *dev_ptr)
 		free(active);
 	}
 
-	update_needs_to_process_flag();
+	cras_apm_reverse_state_update();
 }
 
 int cras_apm_list_destroy(struct cras_apm_list *list)
@@ -473,80 +413,16 @@ int cras_apm_list_destroy(struct cras_apm_list *list)
 	return 0;
 }
 
-/*
- * Determines the iodev to be used as the echo reference for APM reverse
- * analysis. If there exists the special purpose "echo reference dev" then
- * use it. Otherwise just use this output iodev.
- */
-static struct cras_iodev *get_echo_reference_target(struct cras_iodev *iodev)
-{
-	/* Don't use HW echo_reference_dev is specified in board config. */
-	if (hw_echo_ref_disabled)
-		return iodev;
-	return iodev->echo_reference_dev ? iodev->echo_reference_dev : iodev;
-}
-
-/*
- * Updates the first enabled output iodev in the list, determine the echo
- * reference target base on this output iodev, and register default_rmod as
- * ext dsp module to this echo reference target.
- * When this echo reference iodev is opened and audio data flows through its
- * dsp pipeline, APMs will anaylize the reverse stream. This is expected to be
- * called in main thread when output devices enable/dsiable state changes.
- */
-static void update_first_output_for_echo_ref()
-{
-	struct cras_iodev *echo_ref;
-	struct cras_iodev *iodev =
-		cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT);
-
-	if (iodev == NULL)
-		return;
-
-	echo_ref = get_echo_reference_target(iodev);
-
-	/* If default_rmod is already tracking echo_ref, do nothing. */
-	if (default_rmod->odev == echo_ref)
-		return;
-
-	/* Detach from the old iodev that default_rmod was tracking.
-	 * Note that default_rmod->odev is NULL when this function is
-	 * called for the first time during init. */
-	if (default_rmod->odev)
-		cras_iodev_set_ext_dsp_module(default_rmod->odev, NULL);
-
-	default_rmod->odev = echo_ref;
-	cras_iodev_set_ext_dsp_module(echo_ref, &default_rmod->ext);
-}
-
-static void handle_device_enabled(struct cras_iodev *iodev, void *cb_data)
-{
-	if (iodev->direction != CRAS_STREAM_OUTPUT)
-		return;
-
-	/* Register to the first enabled output device. */
-	update_first_output_for_echo_ref();
-}
-
-static void handle_device_disabled(struct cras_iodev *iodev, void *cb_data)
-{
-	if (iodev->direction != CRAS_STREAM_OUTPUT)
-		return;
-
-	/* Register to the first enabled output device. */
-	update_first_output_for_echo_ref();
-}
-
+/* See comments for process_reverse_t */
 static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 {
 	struct active_apm *active;
 	int ret;
-	float *const *wp;
+	float *const *rp;
+	unsigned int unused;
 
-	if (float_buffer_writable(fbuf))
-		return 0;
-
-	wp = float_buffer_write_pointer(fbuf);
+	/* Caller side ensures fbuf is full and hasn't been read at all. */
+	rp = float_buffer_read_pointer(fbuf, 0, &unused);
 
 	DL_FOREACH (active_apms, active) {
 		if (!(active->effects & APM_ECHO_CANCELLATION))
@@ -555,7 +431,7 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 		if (active->apm->only_symmetric_content_in_render) {
 			active->apm->only_symmetric_content_in_render =
 				left_and_right_channels_are_symmetric(
-					fbuf->num_channels, frame_rate, wp);
+					fbuf->num_channels, frame_rate, rp);
 		}
 		int num_unique_channels =
 			active->apm->only_symmetric_content_in_render ?
@@ -564,52 +440,28 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 
 		ret = webrtc_apm_process_reverse_stream_f(active->apm->apm_ptr,
 							  num_unique_channels,
-							  frame_rate, wp);
+							  frame_rate, rp);
 		if (ret) {
 			syslog(LOG_ERR, "APM process reverse err");
 			return ret;
 		}
 	}
-	float_buffer_reset(fbuf);
 	return 0;
 }
 
-void reverse_data_run(struct ext_dsp_module *ext, unsigned int nframes)
+/*
+ * When APM reverse module has state changes, this callback function is called
+ * to ask APM lists if there's need to process data on the reverse side.
+ */
+static int process_reverse_needed()
 {
-	struct cras_apm_reverse_module *rmod =
-		(struct cras_apm_reverse_module *)ext;
-	unsigned int writable;
-	int i, offset = 0;
-	float *const *wp;
+	struct active_apm *active;
 
-	if (!rmod->needs_to_process)
-		return;
-
-	while (nframes) {
-		process_reverse(rmod->fbuf, rmod->dev_rate);
-		writable = float_buffer_writable(rmod->fbuf);
-		writable = MIN(nframes, writable);
-		wp = float_buffer_write_pointer(rmod->fbuf);
-		for (i = 0; i < rmod->fbuf->num_channels; i++)
-			memcpy(wp[i], ext->ports[i] + offset,
-			       writable * sizeof(float));
-
-		offset += writable;
-		float_buffer_written(rmod->fbuf, writable);
-		nframes -= writable;
+	DL_FOREACH (active_apms, active) {
+		if (active->effects & APM_ECHO_CANCELLATION)
+			return 1;
 	}
-}
-
-void reverse_data_configure(struct ext_dsp_module *ext,
-			    unsigned int buffer_size, unsigned int num_channels,
-			    unsigned int rate)
-{
-	struct cras_apm_reverse_module *rmod =
-		(struct cras_apm_reverse_module *)ext;
-	if (rmod->fbuf)
-		float_buffer_destroy(&rmod->fbuf);
-	rmod->fbuf = float_buffer_create(rate / 100, num_channels);
-	rmod->dev_rate = rate;
+	return 0;
 }
 
 static void get_aec_ini(const char *config_dir)
@@ -646,24 +498,12 @@ int cras_apm_list_init(const char *device_config_dir)
 {
 	static const char *cras_apm_metrics_prefix = "Cras.";
 
-	if (default_rmod == NULL) {
-		default_rmod = (struct cras_apm_reverse_module *)calloc(
-			1, sizeof(*default_rmod));
-		default_rmod->ext.run = reverse_data_run;
-		default_rmod->ext.configure = reverse_data_configure;
-	}
-
 	aec_config_dir = device_config_dir;
 	get_aec_ini(aec_config_dir);
 	get_apm_ini(aec_config_dir);
 	webrtc_apm_init_metrics(cras_apm_metrics_prefix);
-	hw_echo_ref_disabled = cras_system_get_hw_echo_ref_disabled();
 
-	update_first_output_for_echo_ref();
-	cras_iodev_list_set_device_enabled_callback(
-		handle_device_enabled, handle_device_disabled, default_rmod);
-
-	return 0;
+	return cras_apm_reverse_init(process_reverse, process_reverse_needed);
 }
 
 void cras_apm_list_reload_aec_config()
@@ -680,12 +520,7 @@ void cras_apm_list_reload_aec_config()
 
 int cras_apm_list_deinit()
 {
-	if (default_rmod) {
-		if (default_rmod->fbuf)
-			float_buffer_destroy(&default_rmod->fbuf);
-		free(default_rmod);
-		default_rmod = NULL;
-	}
+	cras_apm_reverse_deinit();
 	return 0;
 }
 

@@ -14,6 +14,9 @@ struct cras_apm;
 struct cras_apm_list;
 struct float_buffer;
 
+/* APM uses 10ms per block, so it's 100 blocks per second. */
+#define APM_NUM_BLOCKS_PER_SECOND 100
+
 #ifdef HAVE_WEBRTC_APM
 
 /* Initialize the apm list for analyzing output data. */
