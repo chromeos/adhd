@@ -1481,8 +1481,8 @@ static void signal_active_node_changed(void *context,
 	dbus_uint32_t serial = 0;
 
 	msg = create_dbus_message((dir == CRAS_STREAM_OUTPUT) ?
-						"ActiveOutputNodeChanged" :
-						"ActiveInputNodeChanged");
+					  "ActiveOutputNodeChanged" :
+					  "ActiveInputNodeChanged");
 	if (!msg)
 		return;
 	dbus_message_append_args(msg, DBUS_TYPE_UINT64, &node_id,
@@ -1649,6 +1649,63 @@ static void signal_underrun(void *context)
 	dbus_message_unref(msg);
 }
 
+static bool fill_general_survey_dict(enum CRAS_STREAM_TYPE stream_type,
+				     enum CRAS_CLIENT_TYPE client_type,
+				     const char *node_type_pair,
+				     DBusMessageIter *dict)
+
+{
+	const char *stream_type_str = cras_stream_type_str(stream_type);
+	if (!append_key_value(dict, "StreamType", DBUS_TYPE_STRING,
+			      DBUS_TYPE_STRING_AS_STRING, &stream_type_str))
+		return FALSE;
+
+	const char *client_type_str = cras_client_type_str(client_type);
+	if (!append_key_value(dict, "ClientType", DBUS_TYPE_STRING,
+			      DBUS_TYPE_STRING_AS_STRING, &client_type_str))
+		return FALSE;
+
+	if (!append_key_value(dict, "NodeType", DBUS_TYPE_STRING,
+			      DBUS_TYPE_STRING_AS_STRING, &node_type_pair))
+		return FALSE;
+
+	return TRUE;
+}
+
+static void signal_general_survey(void *context,
+				  enum CRAS_STREAM_TYPE stream_type,
+				  enum CRAS_CLIENT_TYPE client_type,
+				  const char *node_type_pair)
+{
+	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
+	dbus_uint32_t serial = 0;
+	DBusMessage *msg;
+	DBusMessageIter array;
+	DBusMessageIter dict;
+
+	msg = create_dbus_message("SurveyTrigger");
+	if (!msg)
+		return;
+
+	dbus_message_iter_init_append(msg, &array);
+
+	if (!dbus_message_iter_open_container(&array, DBUS_TYPE_ARRAY, "{sv}",
+					      &dict))
+		goto error;
+
+	if (!fill_general_survey_dict(stream_type, client_type, node_type_pair,
+				      &dict))
+		goto error;
+
+	if (!dbus_message_iter_close_container(&array, &dict))
+		goto error;
+
+	dbus_connection_send(control->conn, msg, &serial);
+
+error:
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -1693,6 +1750,7 @@ void cras_dbus_control_start(DBusConnection *conn)
 		signal_audio_output_active_state_changed;
 	observer_ops.severe_underrun = signal_severe_underrun;
 	observer_ops.underrun = signal_underrun;
+	observer_ops.general_survey = signal_general_survey;
 
 	dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }

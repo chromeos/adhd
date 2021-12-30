@@ -598,6 +598,8 @@ struct __attribute__((__packed__)) cras_audio_thread_snapshot_buffer {
  *    hw_echo_ref_disabled - Set to true to disable using HW provided echo
  *        reference in APM.
  *    max_internal_mic_gain - The maximum internal mic gain users can set.
+ *    active_node_type_pair - InputType_OutputType form of string representing
+ *        the active node types.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__((packed, aligned(4))) cras_server_state {
@@ -645,6 +647,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	int32_t agc_supported;
 	int32_t hw_echo_ref_disabled;
 	int32_t max_internal_mic_gain;
+	char active_node_type_pair[2 * CRAS_NODE_TYPE_BUFFER_SIZE + 1];
 };
 
 /* Actions for card add/remove/change. */

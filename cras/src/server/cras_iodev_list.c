@@ -10,6 +10,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_iodev_list.h"
+#include "cras_hats.h"
 #include "cras_loopback_iodev.h"
 #include "cras_main_thread_log.h"
 #include "cras_observer.h"
@@ -1033,8 +1034,16 @@ static void pinned_stream_removed(struct cras_rstream *rstream)
  * directly from the audio thread. */
 static int stream_removed_cb(struct cras_rstream *rstream)
 {
+	struct timespec now, time_since;
 	enum CRAS_STREAM_DIRECTION direction = rstream->direction;
 	int rc;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &rstream->start_ts, &time_since);
+	if (time_since.tv_sec >= CRAS_HATS_GENERAL_SURVEY_STREAM_LIVE_SEC)
+		cras_hats_trigger_general_survey(
+			rstream->stream_type, rstream->client_type,
+			cras_system_state_get_active_node_types());
 
 	rc = audio_thread_drain_stream(audio_thread, rstream);
 	if (rc)

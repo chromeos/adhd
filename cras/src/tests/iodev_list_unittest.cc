@@ -2679,6 +2679,10 @@ struct cras_tm* cras_system_state_get_tm() {
   return NULL;
 }
 
+const char* cras_system_state_get_active_node_types() {
+  return NULL;
+}
+
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                         unsigned int ms,
                                         void (*cb)(struct cras_timer* t,
@@ -2790,5 +2794,9 @@ bool cras_iodev_is_node_internal_mic(const struct cras_ionode* node) {
 int cras_system_get_max_internal_mic_gain() {
   return cras_system_get_max_internal_mic_gain_return;
 }
+
+void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
+                                      enum CRAS_CLIENT_TYPE client_type,
+                                      const char* node_type_pair) {}
 
 }  // extern "C"

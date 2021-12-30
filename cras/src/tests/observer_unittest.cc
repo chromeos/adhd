@@ -17,6 +17,8 @@ extern "C" {
 
 namespace {
 
+static const size_t kNumAlert = 20;
+
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;
 static std::vector<struct cras_alert*> cras_alert_create_return_values;
@@ -228,7 +230,7 @@ class ObserverTest : public testing::Test {
     ResetStubData();
     rc = cras_observer_server_init();
     ASSERT_EQ(0, rc);
-    EXPECT_EQ(19, cras_alert_create_called);
+    EXPECT_EQ(kNumAlert, cras_alert_create_called);
     EXPECT_EQ(reinterpret_cast<void*>(output_volume_alert),
               cras_alert_add_callback_map[g_observer->alerts.output_volume]);
     EXPECT_EQ(reinterpret_cast<void*>(output_mute_alert),
@@ -290,7 +292,7 @@ class ObserverTest : public testing::Test {
 
   virtual void TearDown() {
     cras_observer_server_free();
-    EXPECT_EQ(19, cras_alert_destroy_called);
+    EXPECT_EQ(kNumAlert, cras_alert_destroy_called);
     ResetStubData();
   }
 

@@ -39,6 +39,7 @@ struct cras_observer_alerts {
 	struct cras_alert *num_input_streams_with_permission;
 	struct cras_alert *severe_underrun;
 	struct cras_alert *underrun;
+	struct cras_alert *general_survey;
 };
 
 struct cras_observer_server {
@@ -96,6 +97,12 @@ struct cras_observer_non_empty_audio_state {
 struct cras_observer_alert_data_bt_battery_changed {
 	const char *address;
 	uint32_t level;
+};
+
+struct cras_observer_alert_data_general_survey {
+	enum CRAS_STREAM_TYPE stream_type;
+	enum CRAS_CLIENT_TYPE client_type;
+	const char *node_type_pair;
 };
 
 /* Global observer instance. */
@@ -338,6 +345,21 @@ static void underrun_alert(void *arg, void *data)
 	}
 }
 
+static void general_survey_alert(void *arg, void *data)
+{
+	struct cras_observer_client *client;
+	struct cras_observer_alert_data_general_survey *triggered_data =
+		(struct cras_observer_alert_data_general_survey *)data;
+
+	DL_FOREACH (g_observer->clients, client) {
+		if (client->ops.general_survey)
+			client->ops.general_survey(
+				client->context, triggered_data->stream_type,
+				triggered_data->client_type,
+				triggered_data->node_type_pair);
+	}
+}
+
 static int cras_observer_server_set_alert(struct cras_alert **alert,
 					  cras_alert_cb cb,
 					  cras_alert_prepare prepare,
@@ -398,6 +420,7 @@ int cras_observer_server_init()
 	CRAS_OBSERVER_SET_ALERT(num_input_streams_with_permission, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(severe_underrun, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(underrun, NULL, 0);
+	CRAS_OBSERVER_SET_ALERT(general_survey, NULL, 0);
 
 	CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(num_active_streams,
 					       CRAS_STREAM_OUTPUT);
@@ -441,6 +464,7 @@ void cras_observer_server_free()
 	cras_alert_destroy(
 		g_observer->alerts
 			.num_active_streams[CRAS_STREAM_POST_MIX_PRE_DSP]);
+	cras_alert_destroy(g_observer->alerts.general_survey);
 	free(g_observer);
 	g_observer = NULL;
 }
@@ -667,4 +691,17 @@ void cras_observer_notify_severe_underrun()
 void cras_observer_notify_underrun()
 {
 	cras_alert_pending(g_observer->alerts.underrun);
+}
+
+void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
+					 enum CRAS_CLIENT_TYPE client_type,
+					 const char *node_type_pair)
+{
+	struct cras_observer_alert_data_general_survey data;
+
+	data.stream_type = stream_type;
+	data.client_type = client_type;
+	data.node_type_pair = node_type_pair;
+	cras_alert_pending_data(g_observer->alerts.general_survey, &data,
+				sizeof(data));
 }

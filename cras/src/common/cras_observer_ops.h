@@ -64,6 +64,10 @@ struct cras_observer_ops {
 	void (*severe_underrun)(void *context);
 	/* Audio underrun event */
 	void (*underrun)(void *context);
+	/* General Survey trigger event */
+	void (*general_survey)(void *context, enum CRAS_STREAM_TYPE stream_type,
+			       enum CRAS_CLIENT_TYPE client_type,
+			       const char *node_type_pair);
 };
 
 #endif /* CRAS_OBSERVER_OPS_H */

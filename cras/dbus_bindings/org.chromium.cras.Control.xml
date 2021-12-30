@@ -493,6 +493,11 @@
         Rate limited to 1 per 10 seconds.
       </tp:docstring>
     </signal>
+
+    <signal name="SurveyTrigger">
+      <tp:docstring>Indicates an audio survey should be triggered.</tp:docstring>
+      <arg name="properties" type="a{sv}"></arg>
+    </signal>
   </interface>
 
   <interface name="org.freedesktop.DBus.Introspectable">

@@ -342,6 +342,9 @@ int cras_system_state_get_output_nodes(const struct cras_ionode_info **nodes);
  */
 int cras_system_state_get_input_nodes(const struct cras_ionode_info **nodes);
 
+/* Return the active input and output nodes' types as a string. */
+const char *cras_system_state_get_active_node_types();
+
 /*
  * Sets the non-empty audio status.
  */

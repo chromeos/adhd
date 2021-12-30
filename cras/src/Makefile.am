@@ -117,6 +117,7 @@ cras_server_SOURCES = \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
 	common/cras_config.c \
+	common/cras_hats.c \
 	common/cras_metrics.c \
 	common/cras_shm.c \
 	common/cras_string.c \
@@ -313,6 +314,7 @@ include_HEADERS = \
 	common/cras_audio_format.h \
 	common/cras_config.h \
 	common/cras_iodev_info.h \
+	common/cras_hats.h \
 	common/cras_messages.h \
 	common/cras_shm.h \
 	common/cras_types.h \

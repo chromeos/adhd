@@ -711,6 +711,27 @@ int cras_system_state_get_input_nodes(const struct cras_ionode_info **nodes)
 	return state.exp_state->num_input_nodes;
 }
 
+const char *cras_system_state_get_active_node_types()
+{
+	char *input_type = "NONE", *output_type = "NONE";
+	int i;
+
+	for (i = 0; i < state.exp_state->num_input_nodes; i++) {
+		if (state.exp_state->input_nodes[i].active)
+			input_type = state.exp_state->input_nodes[i].type;
+	}
+	for (i = 0; i < state.exp_state->num_output_nodes; i++) {
+		if (state.exp_state->output_nodes[i].active)
+			output_type = state.exp_state->output_nodes[i].type;
+	}
+
+	snprintf(state.exp_state->active_node_type_pair,
+		 sizeof(state.exp_state->active_node_type_pair), "%s_%s",
+		 input_type, output_type);
+
+	return state.exp_state->active_node_type_pair;
+}
+
 void cras_system_state_set_non_empty_status(int non_empty)
 {
 	state.exp_state->non_empty_status = non_empty;

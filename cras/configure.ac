@@ -75,6 +75,13 @@ if test "$have_fuzzer" = "yes"; then
     AC_DEFINE(HAVE_FUZZER, 1, [Define to build fuzzers.])
 fi
 
+# HaTS support
+AC_ARG_ENABLE([hats], AS_HELP_STRING([--enable-hats], [Enable Happiness Tracking Surveys]), have_hats=$enableval, have_hats=no)
+AM_CONDITIONAL(HAVE_HATS, test "$have_hats" = "yes")
+if test "$have_hats" = "yes"; then
+    AC_DEFINE(HAVE_HATS, 1, [Define to enable Happiness Tracking Surveys])
+fi
+
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
 AC_CHECK_HEADERS([iniparser/iniparser.h iniparser.h], [FOUND_INIPARSER=1;break])
 test [$FOUND_INIPARSER] || AC_MSG_ERROR([Missing iniparser, please install.])

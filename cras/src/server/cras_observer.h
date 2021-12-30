@@ -112,4 +112,9 @@ void cras_observer_notify_severe_underrun();
 /* Notify observers of audio underrun */
 void cras_observer_notify_underrun();
 
+/* Notify observers of a general survey trigger event */
+void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
+					 enum CRAS_CLIENT_TYPE client_type,
+					 const char *node_pair_type);
+
 #endif /* CRAS_OBSERVER_H */
