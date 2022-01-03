@@ -169,11 +169,12 @@ struct cras_ionode {
  *         state after being opened.
  *         If device does not support this ops, then device will be in
  *         CRAS_IODEV_STATE_NO_STREAM_RUN.
- * no_stream - (Optional) When there is no stream, we let device keep running
+ * no_stream - When there is no stream, we let device keep running
  *             for some time to save the time to open device for the next
  *             stream. This is the no stream state of an output device.
- *             The default action of no stream state is to fill zeros
- *             periodically. Device can implement this function to define
+ *             Set no_stream to cras_iodev_default_no_stream_playback
+ *             to fill zeros periodically.
+ *             Device can implement this function to define
  *             its own optimization of entering/exiting no stream state.
  * is_free_running - (Optional) Checks if the device is in free running state.
  * output_underrun - (Optional) Handle output device underrun.
