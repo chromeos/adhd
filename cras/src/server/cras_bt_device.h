@@ -83,6 +83,11 @@ void cras_bt_device_reset();
 
 struct cras_bt_device *cras_bt_device_get(const char *object_path);
 
+/* Checks if the target bt device is still valid. Used in async events
+ * from audio thread to main thread where bt device could have already
+ * been destroyed. */
+bool cras_bt_device_valid(const struct cras_bt_device *target);
+
 const char *cras_bt_device_object_path(const struct cras_bt_device *device);
 
 /* Gets the stable id of given cras_bt_device. */

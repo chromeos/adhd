@@ -143,17 +143,33 @@ class BtDeviceTestSuite : public testing::Test {
 };
 
 TEST(BtDeviceSuite, CreateBtDevice) {
-  struct cras_bt_device* device;
+  struct cras_bt_device *device, *device2;
+  struct cras_bt_device* inval_dev;
 
   device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
   EXPECT_NE((void*)NULL, device);
 
   device = cras_bt_device_get(FAKE_OBJ_PATH);
   EXPECT_NE((void*)NULL, device);
+  EXPECT_EQ(1, cras_bt_device_valid(device));
+
+  /* Pick an address that is not a valid device for sure. */
+  inval_dev = reinterpret_cast<struct cras_bt_device*>(device + 0x1);
+  EXPECT_EQ(0, cras_bt_device_valid(inval_dev));
+
+  device2 = cras_bt_device_create(NULL, "/another/obj");
+  EXPECT_NE((void*)NULL, device2);
+  EXPECT_EQ(1, cras_bt_device_valid(device2));
+  EXPECT_EQ(1, cras_bt_device_valid(device));
 
   cras_bt_device_remove(device);
   device = cras_bt_device_get(FAKE_OBJ_PATH);
   EXPECT_EQ((void*)NULL, device);
+  EXPECT_EQ(0, cras_bt_device_valid(device));
+  EXPECT_EQ(1, cras_bt_device_valid(device2));
+
+  cras_bt_device_remove(device2);
+  EXPECT_EQ(0, cras_bt_device_valid(device2));
 }
 
 TEST_F(BtDeviceTestSuite, AppendRmIodev) {

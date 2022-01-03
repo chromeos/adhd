@@ -239,6 +239,13 @@ static void process_bt_policy_msg(struct cras_main_message *msg, void *arg)
 {
 	struct bt_policy_msg *policy_msg = (struct bt_policy_msg *)msg;
 
+	/* Before we handle the policy message, check if the memory pointing
+	 * to the bt device is still valid. It could have already been destroyed
+	 * in main thread for other reasons caused by BT stack. If that's the
+	 * case then just skip this message. */
+	if (!cras_bt_device_valid(policy_msg->device))
+		return;
+
 	switch (policy_msg->cmd) {
 	case BT_POLICY_SWITCH_PROFILE:
 		switch_profile(policy_msg->device, policy_msg->dev);

@@ -26,6 +26,7 @@ static int cras_bt_device_disconnect_called;
 static int cras_bt_device_connect_profile_called;
 static int cras_bt_device_remove_conflict_called;
 static int cras_bt_device_set_nodes_plugged_called;
+static bool cras_bt_device_valid_ret;
 
 void ResetStubData() {
   cras_tm_create_timer_called = 0;
@@ -41,6 +42,7 @@ void ResetStubData() {
   cras_bt_device_remove_conflict_called = 0;
   cras_bt_device_set_nodes_plugged_called = 0;
   cras_tm_create_timer_ret = reinterpret_cast<struct cras_timer*>(0x123);
+  cras_bt_device_valid_ret = 1;
 }
 
 // Iodev callback
@@ -70,19 +72,44 @@ class BtPolicyTestSuite : public testing::Test {
     device.bt_iodevs[CRAS_STREAM_INPUT] = &idev;
 
     btlog = cras_bt_event_log_init();
+
+    msg = CRAS_MAIN_MESSAGE_INIT;
   }
   virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 
+  struct bt_policy_msg msg;
   struct cras_bt_device device;
   struct cras_iodev idev;
   struct cras_iodev odev;
 };
 
+TEST_F(BtPolicyTestSuite, HandleMessageWithInvalidDev) {
+  /* Pretend the BT device is no longer valid. The message handler will
+   * just skip it without any issue. */
+  cras_bt_device_valid_ret = 0;
+  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  process_bt_policy_msg(&msg.header, NULL);
+
+  EXPECT_EQ(0, cras_iodev_list_suspend_dev_called);
+  EXPECT_EQ(0, cras_iodev_list_resume_dev_called);
+  EXPECT_EQ(0, cras_tm_create_timer_called);
+
+  init_bt_policy_msg(&msg, BT_POLICY_SCHEDULE_SUSPEND, &device, NULL, 200,
+                     UNEXPECTED_PROFILE_DROP);
+  process_bt_policy_msg(&msg.header, NULL);
+  EXPECT_EQ(0, cras_tm_create_timer_called);
+  EXPECT_EQ(0, cras_hfp_ag_suspend_connected_device_called);
+  EXPECT_EQ(0, cras_a2dp_suspend_connected_device_called);
+  EXPECT_EQ(0, cras_bt_device_disconnect_called);
+}
+
 TEST_F(BtPolicyTestSuite, SwitchProfile) {
   /* In the typical switch profile case, the associated input and
    * output iodev are suspended and resumed later. */
   EXPECT_EQ(0, cras_iodev_list_suspend_dev_called);
-  switch_profile(&device, &idev);
+  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  process_bt_policy_msg(&msg.header, NULL);
+
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
   EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
@@ -94,7 +121,8 @@ TEST_F(BtPolicyTestSuite, SwitchProfile) {
 }
 
 TEST_F(BtPolicyTestSuite, SwitchProfileRepeatedly) {
-  switch_profile(&device, &idev);
+  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
   EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
@@ -104,7 +132,7 @@ TEST_F(BtPolicyTestSuite, SwitchProfileRepeatedly) {
    * is executed will cause the timer being cancelled and redo
    * all the suspend/resume and timer creation.
    */
-  switch_profile(&device, &idev);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(1, cras_tm_cancel_timer_called);
   EXPECT_EQ(4, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(2, cras_iodev_list_resume_dev_called);
@@ -119,7 +147,8 @@ TEST_F(BtPolicyTestSuite, DropHfpBeforeSwitchProfile) {
    * expected to still be suspended and resumed.
    */
   device.bt_iodevs[CRAS_STREAM_INPUT] = NULL;
-  switch_profile(&device, &idev);
+  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(1, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(0, cras_iodev_list_resume_dev_called);
   EXPECT_EQ(1, cras_tm_create_timer_called);
@@ -129,7 +158,8 @@ TEST_F(BtPolicyTestSuite, DropHfpBeforeSwitchProfile) {
 }
 
 TEST_F(BtPolicyTestSuite, DropA2dpWhileSwitchProfile) {
-  switch_profile(&device, &idev);
+  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
   EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
@@ -146,7 +176,8 @@ TEST_F(BtPolicyTestSuite, DropA2dpWhileSwitchProfile) {
 }
 
 TEST_F(BtPolicyTestSuite, RemoveDevWhileSwitchProfile) {
-  switch_profile(&device, &idev);
+  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
   EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
@@ -163,11 +194,15 @@ TEST_F(BtPolicyTestSuite, RemoveDevWhileSwitchProfile) {
 }
 
 TEST_F(BtPolicyTestSuite, ScheduleCancelSuspend) {
-  schedule_suspend(&device, 200, UNEXPECTED_PROFILE_DROP);
+  init_bt_policy_msg(&msg, BT_POLICY_SCHEDULE_SUSPEND, &device, NULL, 200,
+                     UNEXPECTED_PROFILE_DROP);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
 
   /* Schedule suspend does nothing if there's a ongoing one. */
-  schedule_suspend(&device, 100, HFP_AG_START_FAILURE);
+  init_bt_policy_msg(&msg, BT_POLICY_SCHEDULE_SUSPEND, &device, NULL, 100,
+                     HFP_AG_START_FAILURE);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
 
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
@@ -175,10 +210,13 @@ TEST_F(BtPolicyTestSuite, ScheduleCancelSuspend) {
   EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
   EXPECT_EQ(1, cras_bt_device_disconnect_called);
 
-  schedule_suspend(&device, 200, HFP_AG_START_FAILURE);
+  init_bt_policy_msg(&msg, BT_POLICY_SCHEDULE_SUSPEND, &device, NULL, 200,
+                     HFP_AG_START_FAILURE);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(2, cras_tm_create_timer_called);
 
-  cancel_suspend(&device);
+  init_bt_policy_msg(&msg, BT_POLICY_CANCEL_SUSPEND, &device, NULL, 0, 0);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(1, cras_tm_cancel_timer_called);
 }
 
@@ -186,7 +224,9 @@ TEST_F(BtPolicyTestSuite, DevRemoveWithScheduleSuspend) {
   cras_bt_policy_remove_device(&device);
   EXPECT_EQ(0, cras_tm_cancel_timer_called);
 
-  schedule_suspend(&device, 200, UNEXPECTED_PROFILE_DROP);
+  init_bt_policy_msg(&msg, BT_POLICY_SCHEDULE_SUSPEND, &device, NULL, 200,
+                     UNEXPECTED_PROFILE_DROP);
+  process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
 
   cras_bt_policy_remove_device(&device);
@@ -402,6 +442,9 @@ int cras_bt_device_connect_profile(DBusConnection* conn,
                                    const char* uuid) {
   cras_bt_device_connect_profile_called++;
   return 0;
+}
+bool cras_bt_device_valid(const struct cras_bt_device* target) {
+  return cras_bt_device_valid_ret;
 }
 
 }  // extern "C"

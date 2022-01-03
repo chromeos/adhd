@@ -255,6 +255,17 @@ struct cras_bt_device *cras_bt_device_get(const char *object_path)
 	return NULL;
 }
 
+bool cras_bt_device_valid(const struct cras_bt_device *target)
+{
+	struct cras_bt_device *device;
+
+	DL_FOREACH (devices, device) {
+		if (device == target)
+			return true;
+	}
+	return false;
+}
+
 const char *cras_bt_device_object_path(const struct cras_bt_device *device)
 {
 	return device->object_path;
