@@ -305,7 +305,8 @@ static size_t get_best_rate(struct cras_iodev *iodev, size_t rrate)
 	size_t i;
 	size_t best;
 
-	if (iodev->supported_rates[0] == 0) /* No rates supported */
+	if (!iodev->supported_rates ||
+	    iodev->supported_rates[0] == 0) /* No rates supported */
 		return 0;
 
 	for (i = 0, best = 0; iodev->supported_rates[i] != 0; i++) {
