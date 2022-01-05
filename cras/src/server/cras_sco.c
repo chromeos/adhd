@@ -126,6 +126,27 @@ struct cras_sco {
 	struct packet_status_logger *wbs_logger;
 };
 
+static size_t wbs_get_supported_packet_size(size_t packet_size,
+					    size_t *buffer_size)
+{
+	int i;
+
+	for (i = 0; wbs_supported_packet_size[i] != 0; i++) {
+		if (packet_size == wbs_supported_packet_size[i])
+			break;
+	}
+	/* In case of unsupported value, error log and fallback to
+	 * MSBC_PKT_SIZE(60). */
+	if (wbs_supported_packet_size[i] == 0) {
+		syslog(LOG_ERR, "Unsupported packet size %zu", packet_size);
+		i = 0;
+	}
+
+	if (buffer_size)
+		*buffer_size = wbs_hci_sco_buffer_size[i];
+	return wbs_supported_packet_size[i];
+}
+
 int cras_sco_add_iodev(struct cras_sco *sco,
 		       enum CRAS_STREAM_DIRECTION direction,
 		       struct cras_audio_format *format)
@@ -508,8 +529,23 @@ recv_msbc_bytes:
 	 * shall send signal to main thread for device disconnection.
 	 */
 	if (err != (int)sco->packet_size) {
-		syslog(LOG_ERR, "Partially read %d bytes for mSBC packet", err);
-		return -1;
+		/* Allow the SCO packet size be modified from the default MTU
+		 * value to the size of SCO data we first read. This is for
+		 * some adapters who prefers a different value than MTU for
+		 * transmitting SCO packet.
+		 * Accept only supported packed sizes or fail.
+		 */
+		if (err && (sco->packet_size == sco->mtu) &&
+		    err == wbs_get_supported_packet_size(err, NULL)) {
+			syslog(LOG_NOTICE,
+			       "Adjusting mSBC packet size, %d from %d bytes",
+			       err, sco->packet_size);
+			sco->packet_size = err;
+		} else {
+			syslog(LOG_ERR,
+			       "Partially read %d bytes for mSBC packet", err);
+			return -1;
+		}
 	}
 
 	/* Offset in input data breaks mSBC frame parsing. Discard this packet
@@ -646,6 +682,9 @@ recv_sample:
 		 * transmitting SCO packet.
 		 */
 		if (err && (sco->packet_size == sco->mtu)) {
+			syslog(LOG_NOTICE,
+			       "Adjusting SCO packet size, %d from %d bytes",
+			       err, sco->packet_size);
 			sco->packet_size = err;
 		} else {
 			syslog(LOG_ERR,
@@ -798,21 +837,14 @@ int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 	buf_reset(sco->capture_buf);
 
 	if (codec == HFP_CODEC_ID_MSBC) {
-		int i;
-		for (i = 0; wbs_supported_packet_size[i] != 0; i++) {
-			if (sco->packet_size == wbs_supported_packet_size[i])
-				break;
-		}
-		/* In case of unsupported value, error log and fallback to
-		 * MSBC_PKT_SIZE(60). */
-		if (wbs_supported_packet_size[i] == 0) {
-			syslog(LOG_ERR, "Unsupported packet size %u",
-			       sco->packet_size);
-			i = 0;
-		}
-		sco->packet_size = wbs_supported_packet_size[i];
-		sco->write_buf = (uint8_t *)malloc(wbs_hci_sco_buffer_size[i]);
-		sco->read_buf = (uint8_t *)malloc(wbs_hci_sco_buffer_size[i]);
+		size_t packet_size;
+		size_t buffer_size;
+
+		packet_size = wbs_get_supported_packet_size(sco->packet_size,
+							    &buffer_size);
+		sco->packet_size = packet_size;
+		sco->write_buf = (uint8_t *)malloc(buffer_size);
+		sco->read_buf = (uint8_t *)malloc(buffer_size);
 
 		sco->write_cb = sco_write_msbc;
 		sco->read_cb = sco_read_msbc;
