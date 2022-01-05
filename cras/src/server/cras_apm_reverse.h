@@ -25,6 +25,11 @@ typedef int (*process_reverse_t)(struct float_buffer *fbuf,
  */
 typedef int (*process_reverse_needed_t)();
 
+/* Function to be triggered when the output devices has changed and
+ * cause APM reverse modules state changes. Called in main thread.
+ */
+typedef void (*output_devices_changed_t)();
+
 /* Initializes APM reverse module with utility functions passed in.
  *
  * APM reverse module is designed to provide stable and correct routing of
@@ -40,9 +45,12 @@ typedef int (*process_reverse_needed_t)();
  *    process_needed_cb - Function provided by caller to check if reverse
  *        processing is needed. APM reverse module uses this to re-sync
  *        states with APM lists in main thread.
+ *    output_devices_changed_cb - Function provided by caller to handle the
+ *        event when output devices has changed in reverse modules side.
  */
 int cras_apm_reverse_init(process_reverse_t process_cb,
-			  process_reverse_needed_t process_needed_cb);
+			  process_reverse_needed_t process_needed_cb,
+			  output_devices_changed_t output_devices_changed_cb);
 
 /* Notifies important state changes to APM reverse module so it handles
  * changes internally and synchronize the states with APM list.

@@ -53,6 +53,7 @@ static struct cras_apm_reverse_module *default_rmod = NULL;
 /* The utilitiy functions provided during init and wrapper to call into them. */
 static process_reverse_t process_reverse_callback;
 static process_reverse_needed_t process_reverse_needed_callback;
+static output_devices_changed_t output_devices_changed_callback;
 
 static int apm_process_reverse_callback(struct float_buffer *fbuf,
 					unsigned int frame_rate)
@@ -117,6 +118,10 @@ static void handle_iodev_states_changed(struct cras_iodev *iodev, void *cb_data)
 	 * called for the first time during init. */
 	if (old)
 		cras_iodev_set_ext_dsp_module(old, NULL);
+
+	/* Notify APM lists of the output devices change on reverse side. */
+	if (output_devices_changed_callback)
+		output_devices_changed_callback();
 }
 
 static void reverse_data_run(struct ext_dsp_module *ext, unsigned int nframes)
@@ -170,10 +175,12 @@ static void reverse_data_configure(struct ext_dsp_module *ext,
 }
 
 int cras_apm_reverse_init(process_reverse_t process_cb,
-			  process_reverse_needed_t process_needed_cb)
+			  process_reverse_needed_t process_needed_cb,
+			  output_devices_changed_t output_devices_changed_cb)
 {
 	process_reverse_callback = process_cb;
 	process_reverse_needed_callback = process_needed_cb;
+	output_devices_changed_callback = output_devices_changed_cb;
 
 	hw_echo_ref_disabled = cras_system_get_hw_echo_ref_disabled();
 

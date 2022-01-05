@@ -6,10 +6,12 @@
 #include <stdio.h>
 
 extern "C" {
+#include "audio_thread.h"
 #include "cras_apm_list.h"
 #include "cras_apm_reverse.h"
 #include "cras_audio_area.h"
 #include "cras_iodev.h"
+#include "cras_iodev_list.h"
 #include "cras_types.h"
 #include "float_buffer.h"
 #include "webrtc_apm.h"
@@ -31,6 +33,9 @@ static dictionary* webrtc_apm_create_aec_ini_val = NULL;
 static dictionary* webrtc_apm_create_apm_ini_val = NULL;
 static bool cras_apm_reverse_is_aec_use_case_ret;
 static int cras_apm_reverse_state_update_called;
+static thread_callback thread_cb;
+static void* cb_data;
+static output_devices_changed_t output_devices_changed_callback = NULL;
 
 TEST(ApmList, ApmListCreate) {
   list = cras_apm_list_create(0);
@@ -301,7 +306,40 @@ TEST(ApmList, StreamAddToAlreadyOpenedDev) {
   cras_apm_list_deinit();
 }
 
+TEST(ApmList, ReverseDevChanged) {
+  cras_apm_list_init("");
+  EXPECT_NE((void*)NULL, output_devices_changed_callback);
+  EXPECT_NE((void*)NULL, thread_cb);
+
+  cras_apm_reverse_state_update_called = 0;
+  output_devices_changed_callback();
+  EXPECT_EQ(0, cras_apm_reverse_state_update_called);
+  thread_cb(cb_data, POLLIN);
+  EXPECT_EQ(1, cras_apm_reverse_state_update_called);
+
+  cras_apm_list_deinit();
+}
+
 extern "C" {
+void audio_thread_add_events_callback(int fd,
+                                      thread_callback cb,
+                                      void* data,
+                                      int events) {
+  thread_cb = cb;
+  cb_data = data;
+  return;
+}
+int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
+  thread_cb = NULL;
+  cb_data = NULL;
+  return 0;
+}
+void audio_thread_rm_callback(int fd) {}
+
+struct audio_thread* cras_iodev_list_get_audio_thread() {
+  return NULL;
+}
+
 struct cras_audio_area* cras_audio_area_create(int num_channels) {
   return &fake_audio_area;
 }
@@ -367,7 +405,9 @@ int webrtc_apm_aec_dump(webrtc_apm ptr,
   return 0;
 }
 int cras_apm_reverse_init(process_reverse_t process_cb,
-                          process_reverse_needed_t process_needed_cb) {
+                          process_reverse_needed_t process_needed_cb,
+                          output_devices_changed_t output_devices_changed_cb) {
+  output_devices_changed_callback = output_devices_changed_cb;
   return 0;
 }
 

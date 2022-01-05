@@ -9,12 +9,14 @@
 
 #include <webrtc-apm/webrtc_apm.h>
 
+#include "audio_thread.h"
 #include "byte_buffer.h"
 #include "cras_apm_list.h"
 #include "cras_apm_reverse.h"
 #include "cras_audio_area.h"
 #include "cras_audio_format.h"
 #include "cras_iodev.h"
+#include "cras_iodev_list.h"
 #include "dsp_util.h"
 #include "dumper.h"
 #include "float_buffer.h"
@@ -117,6 +119,19 @@ struct active_apm {
 	struct cras_apm_list *list;
 	struct active_apm *prev, *next;
 } * active_apms;
+
+/* Commands from main thread to be handled in audio thread. */
+enum APM_THREAD_CMD {
+	APM_REVERSE_DEV_CHANGED,
+};
+
+/* Message to send command to audio thread. */
+struct apm_message {
+	enum APM_THREAD_CMD cmd;
+};
+
+/* Socket pair to send message from main thread to audio thread. */
+static int to_thread_fds[2] = { -1, -1 };
 
 static const char *aec_config_dir = NULL;
 static char ini_name[MAX_INI_NAME_LENGTH + 1];
@@ -457,6 +472,8 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 /*
  * When APM reverse module has state changes, this callback function is called
  * to ask APM lists if there's need to process data on the reverse side.
+ * This is expected to be called from cras_apm_reverse_state_update() in
+ * audio thread so it's safe to access |active_apms|.
  */
 static int process_reverse_needed()
 {
@@ -499,16 +516,81 @@ static void get_apm_ini(const char *config_dir)
 		syslog(LOG_INFO, "No apm ini file %s", ini_name);
 }
 
+static void send_apm_message(enum APM_THREAD_CMD cmd)
+{
+	struct apm_message msg;
+	int rc;
+
+	msg.cmd = cmd;
+
+	rc = write(to_thread_fds[1], &msg, sizeof(msg));
+	if (rc < 0)
+		syslog(LOG_ERR, "Err sending APM thread msg");
+}
+
+/* Triggered in main thread when devices state has changed in APM
+ * reverse modules. */
+static void on_output_devices_changed()
+{
+	/* Send a message to audio thread because we need to access
+	 * |active_apms|. */
+	send_apm_message(APM_REVERSE_DEV_CHANGED);
+}
+
+/* Receives commands and handles them in audio thread. */
+static int apm_thread_callback(void *arg, int revents)
+{
+	struct apm_message msg;
+	int rc;
+
+	if (revents & (POLLERR | POLLHUP)) {
+		syslog(LOG_ERR, "Error polling APM message sockect");
+		goto read_write_err;
+	}
+
+	if (revents & POLLIN) {
+		rc = read(to_thread_fds[0], &msg, sizeof(msg));
+		if (rc <= 0) {
+			syslog(LOG_ERR, "Read APM message error");
+			goto read_write_err;
+		}
+	}
+
+	switch (msg.cmd) {
+	case APM_REVERSE_DEV_CHANGED:
+		cras_apm_reverse_state_update();
+		break;
+	default:
+		break;
+	}
+	return 0;
+
+read_write_err:
+	audio_thread_rm_callback(to_thread_fds[0]);
+	return 0;
+}
+
 int cras_apm_list_init(const char *device_config_dir)
 {
 	static const char *cras_apm_metrics_prefix = "Cras.";
+	int rc;
 
 	aec_config_dir = device_config_dir;
 	get_aec_ini(aec_config_dir);
 	get_apm_ini(aec_config_dir);
 	webrtc_apm_init_metrics(cras_apm_metrics_prefix);
 
-	return cras_apm_reverse_init(process_reverse, process_reverse_needed);
+	rc = pipe(to_thread_fds);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Failed to pipe");
+		return rc;
+	}
+
+	audio_thread_add_events_callback(to_thread_fds[0], apm_thread_callback,
+					 NULL, POLLIN | POLLERR | POLLHUP);
+
+	return cras_apm_reverse_init(process_reverse, process_reverse_needed,
+				     on_output_devices_changed);
 }
 
 void cras_apm_list_reload_aec_config()
@@ -526,6 +608,12 @@ void cras_apm_list_reload_aec_config()
 int cras_apm_list_deinit()
 {
 	cras_apm_reverse_deinit();
+	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
+				      to_thread_fds[0]);
+	if (to_thread_fds[0] != -1) {
+		close(to_thread_fds[0]);
+		close(to_thread_fds[1]);
+	}
 	return 0;
 }
 

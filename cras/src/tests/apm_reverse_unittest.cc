@@ -20,6 +20,7 @@ static struct ext_dsp_module* ext_dsp_module_value[8];
 static bool cras_iodev_is_aec_use_case_ret;
 static int process_reverse_mock_called;
 static int process_reverse_needed_ret;
+static int output_devices_changed_mock_called;
 
 static int process_reverse_mock(struct float_buffer* fbuf,
                                 unsigned int frame_rate) {
@@ -28,6 +29,9 @@ static int process_reverse_mock(struct float_buffer* fbuf,
 }
 static int process_reverse_needed_mock() {
   return process_reverse_needed_ret;
+}
+static void output_devices_changed_mock() {
+  output_devices_changed_mock_called++;
 }
 
 class EchoRefTestSuite : public testing::Test {
@@ -41,16 +45,20 @@ class EchoRefTestSuite : public testing::Test {
     process_reverse_mock_called = 0;
 
     process_reverse_needed_ret = 0;
-    cras_apm_reverse_init(process_reverse_mock, process_reverse_needed_mock);
+    output_devices_changed_mock_called = 0;
+    cras_apm_reverse_init(process_reverse_mock, process_reverse_needed_mock,
+                          output_devices_changed_mock);
     EXPECT_NE((void*)NULL, device_enabled_callback_val);
     EXPECT_EQ(1, cras_iodev_set_ext_dsp_module_called);
     EXPECT_NE((void*)NULL, ext_dsp_module_value[0]);
+    EXPECT_EQ(1, output_devices_changed_mock_called);
 
     /* Save the default_rmod as ext dsp module. */
     default_ext_ = ext_dsp_module_value[0];
 
     /* Restart counter for test cases. */
     cras_iodev_set_ext_dsp_module_called = 0;
+    output_devices_changed_mock_called = 0;
   }
   virtual void TearDown() {
     /* Pretend APM list no longer needs reverse processing. */
