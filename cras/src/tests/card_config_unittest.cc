@@ -30,8 +30,7 @@ void CreateConfigFile(const char* name, const char* config_text) {
 
   snprintf(card_path, sizeof(card_path), "%s/%s", CONFIG_PATH, name);
   f = fopen(card_path, "w");
-  if (f == NULL)
-    return;
+  ASSERT_NE(f, nullptr);
 
   fprintf(f, "%s", config_text);
 
