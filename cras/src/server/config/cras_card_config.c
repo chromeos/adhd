@@ -50,6 +50,24 @@ create_explicit_curve(const struct cras_card_config *card_config,
 	return cras_volume_curve_create_explicit(dB_values);
 }
 
+static dictionary *load_card_config_ini(const char *config_path,
+					const char *card_name,
+					const char *extension)
+{
+	char ini_name[MAX_INI_NAME_LENGTH + 1];
+	snprintf(ini_name, sizeof(ini_name), "%s/%s%s", config_path, card_name,
+		 extension);
+
+	dictionary *ini = iniparser_load_wrapper(ini_name);
+	if (ini == NULL) {
+		syslog(LOG_DEBUG, "No ini file %s", ini_name);
+	} else {
+		syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
+	}
+
+	return ini;
+}
+
 /*
  * Exported interface.
  */
@@ -58,26 +76,25 @@ struct cras_card_config *cras_card_config_create(const char *config_path,
 						 const char *card_name)
 {
 	struct cras_card_config *card_config = NULL;
-	char ini_name[MAX_INI_NAME_LENGTH + 1];
 	dictionary *ini;
 
-	snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", config_path,
-		 card_name);
-	ini_name[MAX_INI_NAME_LENGTH] = '\0';
-	ini = iniparser_load_wrapper(ini_name);
+	ini = load_card_config_ini(config_path, card_name, ".card_settings");
 	if (ini == NULL) {
-		syslog(LOG_DEBUG, "No ini file %s", ini_name);
+		// fall back to ini without .card_settings suffix
+		ini = load_card_config_ini(config_path, card_name, "");
+	}
+	if (ini == NULL) {
 		return NULL;
 	}
 
 	card_config = calloc(1, sizeof(*card_config));
 	if (card_config == NULL) {
+		syslog(LOG_ERR, "OOM creating card_config");
 		iniparser_freedict(ini);
 		return NULL;
 	}
 
 	card_config->ini = ini;
-	syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
 	return card_config;
 }
 

@@ -60,6 +60,44 @@ TEST_F(CardConfigTestSuite, NoConfigFound) {
   EXPECT_EQ(NULL, config);
 }
 
+TEST_F(CardConfigTestSuite, ConfigFileWithCardSettingsSuffix) {
+  CreateConfigFile("ConfigFileWithCardConfigSuffix.card_settings", "");
+
+  struct cras_card_config* config =
+      cras_card_config_create(CONFIG_PATH, "ConfigFileWithCardConfigSuffix");
+  ASSERT_NE(nullptr, config);
+
+  cras_card_config_destroy(config);
+}
+
+TEST_F(CardConfigTestSuite, CardSettingsSuffixTakesPriority) {
+  CreateConfigFile("CardSettingsSuffixTakesPriority",
+                   R"([foo]
+volume_curve = simple_step
+volume_step = 100
+max_volume = -100
+)");
+
+  CreateConfigFile("CardSettingsSuffixTakesPriority.card_settings",
+                   R"([foo]
+volume_curve = simple_step
+volume_step = 200
+max_volume = -200
+)");
+  struct cras_card_config* config =
+      cras_card_config_create(CONFIG_PATH, "CardSettingsSuffixTakesPriority");
+  ASSERT_NE(nullptr, config);
+
+  struct cras_volume_curve* curve =
+      cras_card_config_get_volume_curve_for_control(config, "foo");
+  EXPECT_NE(nullptr, curve);
+  EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
+  EXPECT_EQ(-200, cras_volume_curve_create_simple_step_max_volume);
+  EXPECT_EQ(200, cras_volume_curve_create_simple_step_volume_step);
+
+  cras_card_config_destroy(config);
+}
+
 // Test an empty config file, should return a null volume curve.
 TEST_F(CardConfigTestSuite, EmptyConfigFileReturnsNullVolumeCurve) {
   static const char empty_config_text[] = "";
