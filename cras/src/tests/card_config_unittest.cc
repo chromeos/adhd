@@ -40,17 +40,15 @@ void CreateConfigFile(const char* name, const char* config_text) {
 class CardConfigTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
-    cras_volume_curve_create_default_called = 0;
     cras_volume_curve_create_default_return =
         reinterpret_cast<struct cras_volume_curve*>(0x55);
     cras_volume_curve_create_simple_step_return =
         reinterpret_cast<struct cras_volume_curve*>(0x56);
     cras_volume_curve_create_explicit_return =
         reinterpret_cast<struct cras_volume_curve*>(0x57);
+    cras_volume_curve_create_default_called = 0;
     cras_volume_curve_create_simple_step_called = 0;
-    cras_volume_curve_create_simple_step_return = NULL;
     cras_volume_curve_create_explicit_called = 0;
-    cras_volume_curve_create_explicit_return = NULL;
   }
 };
 
@@ -106,10 +104,10 @@ TEST_F(CardConfigTestSuite, SimpleStepConfig) {
   config = cras_card_config_create(CONFIG_PATH, simple_config_name);
   EXPECT_NE(static_cast<struct cras_card_config*>(NULL), config);
 
-  // Unknown config should return default curve.
-  curve = cras_card_config_get_volume_curve_for_control(NULL, "asdf");
+  // Unknown config should return NULL.
+  curve = cras_card_config_get_volume_curve_for_control(config, "asdf");
   EXPECT_EQ(0, cras_volume_curve_create_default_called);
-  EXPECT_EQ(static_cast<struct cras_volume_curve*>(NULL), curve);
+  EXPECT_EQ(nullptr, curve);
 
   // Test a config that specifies simple_step.
   curve = cras_card_config_get_volume_curve_for_control(config, "Card1");
