@@ -90,9 +90,12 @@ struct cras_apm {
  * Note that cras_apm_list is owned and modified in main thread.
  * Only in synchronized audio thread event this cras_apm_list is safe
  * to access for passing single APM instance between threads.
+ * Members:
+ *    effects - The effecets bit map of APM.
+ *    apms - List of APMs for stream processing. It is a list because
+ *        multiple input devices could be configured by user.
  */
 struct cras_apm_list {
-	void *stream_ptr;
 	uint64_t effects;
 	struct cras_apm *apms;
 	struct cras_apm_list *prev, *next;
@@ -101,16 +104,17 @@ struct cras_apm_list {
 /*
  * Wrappers of APM instances that are active, which means it is associated
  * to a dev/stream pair in audio thread and ready for processing.
- *
+ * The existance of an |active_apm| is the key to treat a |cras_apm| is alive
+ * and can be used for processing.
  * Members:
  *    apm - The APM for audio data processing.
- *    stream_ptr - Stream pointer from the associated dev/stream pair.
- *    effects - The effecets bit map of APM.
+ *    list - The associated |cras_apm_list| instance. It is ensured by
+ *        the objects life cycle that whenever an |active_apm| is valid
+ *        in audio thread, it's safe to access its |list| member.
  */
 struct active_apm {
 	struct cras_apm *apm;
-	void *stream_ptr;
-	int effects;
+	struct cras_apm_list *list;
 	struct active_apm *prev, *next;
 } * active_apms;
 
@@ -152,7 +156,7 @@ static void apm_destroy(struct cras_apm **apm)
 	*apm = NULL;
 }
 
-struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects)
+struct cras_apm_list *cras_apm_list_create(uint64_t effects)
 {
 	struct cras_apm_list *list;
 
@@ -164,30 +168,28 @@ struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects)
 		syslog(LOG_ERR, "No memory in creating apm list");
 		return NULL;
 	}
-	list->stream_ptr = stream_ptr;
 	list->effects = effects;
 	list->apms = NULL;
 
 	return list;
 }
 
-static struct active_apm *get_active_apm(void *stream_ptr,
+static struct active_apm *get_active_apm(struct cras_apm_list *list,
 					 const struct cras_iodev *idev)
 {
 	struct active_apm *active;
 
 	DL_FOREACH (active_apms, active) {
-		if ((active->apm->idev == idev) &&
-		    (active->stream_ptr == stream_ptr))
+		if ((active->apm->idev == idev) && (active->list == list))
 			return active;
 	}
 	return NULL;
 }
 
-struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr,
+struct cras_apm *cras_apm_list_get_active_apm(struct cras_apm_list *list,
 					      const struct cras_iodev *idev)
 {
-	struct active_apm *active = get_active_apm(stream_ptr, idev);
+	struct active_apm *active = get_active_apm(list, idev);
 	return active ? active->apm : NULL;
 }
 
@@ -367,7 +369,7 @@ void cras_apm_list_start_apm(struct cras_apm_list *list,
 		return;
 
 	/* Check if this apm has already been started. */
-	apm = cras_apm_list_get_active_apm(list->stream_ptr, idev);
+	apm = cras_apm_list_get_active_apm(list, idev);
 	if (apm)
 		return;
 
@@ -381,8 +383,7 @@ void cras_apm_list_start_apm(struct cras_apm_list *list,
 		return;
 	}
 	active->apm = apm;
-	active->stream_ptr = list->stream_ptr;
-	active->effects = list->effects;
+	active->list = list;
 	DL_APPEND(active_apms, active);
 
 	cras_apm_reverse_state_update();
@@ -395,7 +396,7 @@ void cras_apm_list_stop_apm(struct cras_apm_list *list, struct cras_iodev *idev)
 	if (list == NULL)
 		return;
 
-	active = get_active_apm(list->stream_ptr, idev);
+	active = get_active_apm(list, idev);
 	if (active) {
 		DL_DELETE(active_apms, active);
 		free(active);
@@ -429,7 +430,7 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 	rp = float_buffer_read_pointer(fbuf, 0, &unused);
 
 	DL_FOREACH (active_apms, active) {
-		if (!(active->effects & APM_ECHO_CANCELLATION))
+		if (!(active->list->effects & APM_ECHO_CANCELLATION))
 			continue;
 
 		if (active->apm->only_symmetric_content_in_render) {
@@ -462,7 +463,7 @@ static int process_reverse_needed()
 	struct active_apm *active;
 
 	DL_FOREACH (active_apms, active) {
-		if (active->effects & APM_ECHO_CANCELLATION)
+		if (active->list->effects & APM_ECHO_CANCELLATION)
 			return 1;
 	}
 	return 0;

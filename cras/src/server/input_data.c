@@ -151,7 +151,7 @@ int input_data_get_for_stream(struct input_data *data,
 	struct cras_apm *apm;
 	int stream_offset = buffer_share_id_offset(offsets, stream->stream_id);
 
-	apm = cras_apm_list_get_active_apm(stream, data->idev);
+	apm = cras_apm_list_get_active_apm(stream->apm_list, data->idev);
 	if (apm == NULL) {
 		/*
 		 * Case 1 and 2 from above example.
@@ -181,7 +181,8 @@ int input_data_put_for_stream(struct input_data *data,
 			      struct cras_rstream *stream,
 			      struct buffer_share *offsets, unsigned int frames)
 {
-	struct cras_apm *apm = cras_apm_list_get_active_apm(stream, data->idev);
+	struct cras_apm *apm =
+		cras_apm_list_get_active_apm(stream->apm_list, data->idev);
 
 	if (apm)
 		cras_apm_list_put_processed(apm, frames);
@@ -201,7 +202,7 @@ float input_data_get_software_gain_scaler(struct input_data *data,
 	 * settings, give APM total control of the captured samples without
 	 * additional gain scaler at all.
 	 */
-	apm = cras_apm_list_get_active_apm(stream, data->idev);
+	apm = cras_apm_list_get_active_apm(stream->apm_list, data->idev);
 	if (apm && cras_apm_list_get_use_tuned_settings(apm))
 		return 1.0f;
 

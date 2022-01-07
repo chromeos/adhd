@@ -491,10 +491,10 @@ void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {}
 
 #ifdef HAVE_WEBRTC_APM
 #define FAKE_CRAS_APM_PTR reinterpret_cast<struct cras_apm*>(0x99)
-struct cras_apm_list* cras_apm_list_create(void* stream_ptr, uint64_t effects) {
+struct cras_apm_list* cras_apm_list_create(uint64_t effects) {
   return NULL;
 }
-struct cras_apm* cras_apm_list_get_active_apm(void* stream_ptr,
+struct cras_apm* cras_apm_list_get_active_apm(struct cras_apm_list* list,
                                               const struct cras_iodev* idev) {
   return FAKE_CRAS_APM_PTR;
 }

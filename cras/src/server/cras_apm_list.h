@@ -51,10 +51,9 @@ int cras_apm_list_deinit();
  * cras_apm_list_destroy
  *
  * Args:
- *    stream_ptr - Pointer to the stream.
  *    effects - Bit map specifying the enabled effects on this stream.
  */
-struct cras_apm_list *cras_apm_list_create(void *stream_ptr, uint64_t effects);
+struct cras_apm_list *cras_apm_list_create(uint64_t effects);
 
 /*
  * Creates a cras_apm associated to given idev and adds it to the list.
@@ -76,10 +75,10 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
  * Gets the active APM instance that is associated to given stream and dev pair.
  * This should be called in audio thread.
  * Args:
- *    stream_ptr - Pointer to the stream.
+ *    list - The list holding APM instances.
  *    idev - The iodev as key to look up associated APM.
  */
-struct cras_apm *cras_apm_list_get_active_apm(void *stream_ptr,
+struct cras_apm *cras_apm_list_get_active_apm(struct cras_apm_list *list,
 					      const struct cras_iodev *idev);
 
 /*
@@ -181,8 +180,7 @@ static inline int cras_apm_list_init(const char *device_config_dir)
 static inline void cras_apm_list_reload_aec_config()
 {
 }
-static inline struct cras_apm_list *cras_apm_list_create(void *stream_ptr,
-							 unsigned int effects)
+static inline struct cras_apm_list *cras_apm_list_create(unsigned int effects)
 {
 	return NULL;
 }
@@ -193,7 +191,8 @@ cras_apm_list_add_apm(struct cras_apm_list *list, struct cras_iodev *idev,
 	return NULL;
 }
 static inline struct cras_apm *
-cras_apm_list_get_active_apm(void *stream_ptr, const struct cras_iodev *idev)
+cras_apm_list_get_active_apm(struct cras_apm_list *list,
+			     const struct cras_iodev *idev)
 {
 	return NULL;
 }

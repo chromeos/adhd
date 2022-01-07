@@ -313,10 +313,9 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->fd = config->audio_fd;
 	config->audio_fd = -1;
 	stream->buf_state = buffer_share_create(stream->buffer_frames);
-	stream->apm_list =
-		(stream->direction == CRAS_STREAM_INPUT) ?
-			cras_apm_list_create(stream, config->effects) :
-			NULL;
+	stream->apm_list = (stream->direction == CRAS_STREAM_INPUT) ?
+				   cras_apm_list_create(config->effects) :
+				   NULL;
 	cras_frames_to_time(config->cb_threshold, config->format->frame_rate,
 			    &stream->acceptable_fetch_interval);
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",

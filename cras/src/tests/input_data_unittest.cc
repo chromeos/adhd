@@ -115,7 +115,7 @@ TEST(InputData, GetSWCaptureGain) {
 
 extern "C" {
 #ifdef HAVE_WEBRTC_APM
-struct cras_apm* cras_apm_list_get_active_apm(void* stream_ptr,
+struct cras_apm* cras_apm_list_get_active_apm(struct cras_apm_list* list,
                                               const struct cras_iodev* idev) {
   return cras_apm_list_get_active_ret;
 }

@@ -19,7 +19,6 @@ extern "C" {
 
 namespace {
 
-static void* stream_ptr = reinterpret_cast<void*>(0x123);
 static struct cras_iodev* idev = reinterpret_cast<struct cras_iodev*>(0x345);
 static struct cras_iodev* idev2 = reinterpret_cast<cras_iodev*>(0x678);
 static struct cras_apm_list* list;
@@ -34,10 +33,10 @@ static bool cras_apm_reverse_is_aec_use_case_ret;
 static int cras_apm_reverse_state_update_called;
 
 TEST(ApmList, ApmListCreate) {
-  list = cras_apm_list_create(stream_ptr, 0);
+  list = cras_apm_list_create(0);
   EXPECT_EQ((void*)NULL, list);
 
-  list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
+  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
   EXPECT_EQ(APM_ECHO_CANCELLATION, cras_apm_list_get_effects(list));
 
@@ -103,7 +102,7 @@ TEST(ApmList, AddApmInputDevUnuseFirstChannel) {
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
   cras_apm_list_init("");
-  list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
+  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
   for (int i = 0; i < num_test_casts; i++) {
@@ -146,19 +145,19 @@ TEST(ApmList, AddRemoveApm) {
   cras_apm_reverse_is_aec_use_case_ret = 1;
   cras_apm_reverse_state_update_called = 0;
 
-  list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
+  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
   /* Input dev is of aec use case. */
   EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev, &fmt, 1));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(list, idev));
   EXPECT_EQ(0, cras_apm_reverse_state_update_called);
 
   cras_apm_list_start_apm(list, idev);
-  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev));
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev2));
+  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(list, idev));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(list, idev2));
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
 
   /* Input dev is not of aec use case. */
@@ -171,8 +170,8 @@ TEST(ApmList, AddRemoveApm) {
   cras_apm_list_stop_apm(list, idev);
   EXPECT_EQ(3, cras_apm_reverse_state_update_called);
 
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev));
-  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(stream_ptr, idev2));
+  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(list, idev));
+  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(list, idev2));
 
   cras_apm_list_stop_apm(list, idev2);
   cras_apm_list_remove_apm(list, idev);
@@ -195,7 +194,7 @@ TEST(ApmList, OutputTypeNotAecUseCase) {
   dir = prepare_tempdir();
   cras_apm_list_init(dir);
 
-  list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
+  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
   /* Output device is of aec use case. */
@@ -233,7 +232,7 @@ TEST(ApmList, ApmProcessForwardBuffer) {
 
   cras_apm_list_init("");
 
-  list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
+  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
   apm = cras_apm_list_add_apm(list, idev, &fmt, 1);
@@ -287,7 +286,7 @@ TEST(ApmList, StreamAddToAlreadyOpenedDev) {
   cras_apm_list_init("");
 
   webrtc_apm_create_called = 0;
-  list = cras_apm_list_create(stream_ptr, APM_ECHO_CANCELLATION);
+  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, list);
 
   apm1 = cras_apm_list_add_apm(list, idev, &fmt, 1);
