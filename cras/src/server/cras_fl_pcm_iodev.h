@@ -3,12 +3,15 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_A2DP_PCM_IODEV_H_
-#define CRAS_A2DP_PCM_IODEV_H_
+#ifndef CRAS_FL_PCM_IODEV_H_
+#define CRAS_FL_PCM_IODEV_H_
+
+#include "cras_types.h"
 
 #include <stdint.h>
 
 struct cras_a2dp;
+struct cras_hfp;
 
 /* Creates an a2dp pcm iodev. Format bitmaps as defined in cras_fl_media.h
  * Args:
@@ -40,4 +43,15 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
 				    uint64_t remote_delay_report_ns,
 				    struct timespec *data_position_ts);
 
-#endif /* CRS_A2DP_PCM_IODEV_H_ */
+/* Creates an hfp pcm iodev.
+ * Args:
+ *    hfp - The associated cras_hfp object.
+ *    dir - direction of the device.
+ */
+struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
+					enum CRAS_STREAM_DIRECTION dir);
+
+/* Destroys an hfp pcm iodev. */
+void hfp_pcm_iodev_destroy(struct cras_iodev *iodev);
+
+#endif /* CRAS_FL_PCM_IODEV_H_ */

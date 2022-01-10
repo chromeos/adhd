@@ -285,7 +285,7 @@ TEST_F(A2dpManagerTestSuite, SetVolume) {
 extern "C" {
 struct cras_bt_event_log* btlog;
 
-/* From cras_a2dp_pcm_iodev */
+/* From cras_fl_pcm_iodev */
 struct cras_iodev* a2dp_pcm_iodev_create(struct cras_a2dp* a2dp,
                                          int sample_rates,
                                          int sample_sizes,

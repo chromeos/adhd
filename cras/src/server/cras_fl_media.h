@@ -34,11 +34,25 @@
 #define FL_MODE_MONO 0x01
 #define FL_MODE_STEREO 0x02
 
+/* Bitmask form of enum defined on floss to expose HF's HFP codec capability. */
+#define FL_CODEC_NONE 0x00
+#define FL_CODEC_CVSD 0x01
+#define FL_CODEC_MSBC 0x02
+
 struct fl_media;
 
 int floss_media_start(DBusConnection *conn, unsigned int hci);
 
 int floss_media_stop(DBusConnection *conn);
+
+/* Calls SetActiveDevice method to Floss media interface. */
+int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr);
+
+/* Calls StartScoCall to Floss media interface. */
+int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr);
+
+/* Calls StopScoCall method to Floss media interface. */
+int floss_media_hfp_stop_audio_request(struct fl_media *fm, const char *addr);
 
 /* Calls SetActiveDevice method to Floss media interface. */
 int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr);

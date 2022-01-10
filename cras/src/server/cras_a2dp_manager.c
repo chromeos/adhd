@@ -15,10 +15,10 @@
 #include <sys/un.h>
 #include <syslog.h>
 
-#include "cras_a2dp_pcm_iodev.h"
 #include "cras_bt_log.h"
 #include "cras_config.h"
 #include "cras_fl_media.h"
+#include "cras_fl_pcm_iodev.h"
 #include "cras_iodev.h"
 #include "cras_main_message.h"
 #include "cras_system_state.h"

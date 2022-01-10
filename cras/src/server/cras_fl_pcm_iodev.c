@@ -66,7 +66,7 @@ static const struct timespec throttle_event_threshold = {
  *        a2dp_pcm_update_bt_stack_delay.
  *    a2dp - The associated cras_a2dp object.
  */
-struct a2dp_io {
+struct fl_pcm_io {
 	struct cras_iodev base;
 	int audio_fd;
 	struct byte_buffer *pcm_buf;
@@ -77,6 +77,7 @@ struct a2dp_io {
 	struct timespec last_write_ts;
 	unsigned int bt_stack_delay;
 	struct cras_a2dp *a2dp;
+	struct cras_hfp *hfp;
 };
 
 static int flush(const struct cras_iodev *iodev);
@@ -89,7 +90,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 
 static unsigned int bt_local_queued_frames(const struct cras_iodev *iodev)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 	return buf_queued(a2dpio->pcm_buf) /
 	       cras_get_format_bytes(iodev->format);
 }
@@ -133,7 +134,7 @@ static int output_underrun(struct cras_iodev *iodev)
  * This will be called multiple times when a2dpio is in no_stream state
  * frames_to_play_in_sleep ops determins how regular this will be called.
  */
-static int enter_no_stream(struct a2dp_io *a2dpio)
+static int enter_no_stream(struct fl_pcm_io *a2dpio)
 {
 	struct cras_iodev *odev = &a2dpio->base;
 	int rc;
@@ -150,7 +151,7 @@ static int enter_no_stream(struct a2dp_io *a2dpio)
  * data to one min_buffer_level. Don't flush it now because stream data is
  * coming right up which will trigger next flush at appropriate time.
  */
-static int leave_no_stream(struct a2dp_io *a2dpio)
+static int leave_no_stream(struct fl_pcm_io *a2dpio)
 {
 	struct cras_iodev *odev = &a2dpio->base;
 
@@ -169,7 +170,7 @@ static int leave_no_stream(struct a2dp_io *a2dpio)
  */
 static int no_stream(struct cras_iodev *odev, int enable)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)odev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)odev;
 
 	if (enable)
 		return enter_no_stream(a2dpio);
@@ -188,7 +189,7 @@ static int a2dp_socket_write_cb(void *arg, int revent)
 
 static int configure_dev(struct cras_iodev *iodev)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 	int rc;
 	size_t format_bytes;
 
@@ -238,7 +239,7 @@ static int configure_dev(struct cras_iodev *iodev)
 
 static int start(const struct cras_iodev *iodev)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
 	/*
 	 * This is called when iodev in open state, at the moment when
@@ -255,7 +256,7 @@ static int start(const struct cras_iodev *iodev)
 static int close_dev(struct cras_iodev *iodev)
 {
 	int err;
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
 	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
 				      a2dpio->audio_fd);
@@ -275,7 +276,7 @@ static unsigned int frames_to_play_in_sleep(struct cras_iodev *iodev,
 					    unsigned int *hw_level,
 					    struct timespec *hw_tstamp)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 	int frames_until;
 
 	*hw_level = frames_queued(iodev, hw_tstamp);
@@ -300,13 +301,13 @@ static int flush(const struct cras_iodev *iodev)
 	int written = 0;
 	unsigned int queued_frames;
 	size_t format_bytes;
-	struct a2dp_io *a2dpio;
+	struct fl_pcm_io *a2dpio;
 	struct timespec now, ts;
 	static const struct timespec flush_wake_fuzz_ts = {
 		0, 1000000 /* 1ms */
 	};
 
-	a2dpio = (struct a2dp_io *)iodev;
+	a2dpio = (struct fl_pcm_io *)iodev;
 
 	ATLOG(atlog, AUDIO_THREAD_A2DP_FLUSH, iodev->state,
 	      a2dpio->next_flush_time.tv_sec, a2dpio->next_flush_time.tv_nsec);
@@ -406,7 +407,7 @@ do_flush:
 
 static int delay_frames(const struct cras_iodev *iodev)
 {
-	const struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	const struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 	struct timespec tstamp;
 
 	/* The number of frames in the pcm buffer plus the delay
@@ -418,9 +419,9 @@ static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 		      unsigned *frames)
 {
 	size_t format_bytes;
-	struct a2dp_io *a2dpio;
+	struct fl_pcm_io *a2dpio;
 
-	a2dpio = (struct a2dp_io *)iodev;
+	a2dpio = (struct fl_pcm_io *)iodev;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 
@@ -439,7 +440,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
 	size_t written_bytes;
 	size_t format_bytes;
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 	written_bytes = nwritten * format_bytes;
@@ -459,7 +460,7 @@ static int flush_buffer(struct cras_iodev *iodev)
 
 static void set_volume(struct cras_iodev *iodev)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
 	cras_floss_a2dp_set_volume(a2dpio->a2dp, iodev->active_node->volume);
 }
@@ -469,7 +470,7 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 {
 }
 
-void a2dp_pcm_free_resources(struct a2dp_io *a2dpio)
+void a2dp_pcm_free_resources(struct fl_pcm_io *a2dpio)
 {
 	struct cras_ionode *node;
 
@@ -488,12 +489,12 @@ struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
 					 int channel_mode)
 {
 	int err;
-	struct a2dp_io *a2dpio;
+	struct fl_pcm_io *a2dpio;
 	struct cras_iodev *iodev;
 	struct cras_ionode *node;
 	const char *addr, *name;
 
-	a2dpio = (struct a2dp_io *)calloc(1, sizeof(*a2dpio));
+	a2dpio = (struct fl_pcm_io *)calloc(1, sizeof(*a2dpio));
 	if (!a2dpio)
 		goto error;
 
@@ -562,7 +563,7 @@ error:
 
 void a2dp_pcm_iodev_destroy(struct cras_iodev *iodev)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
 	/* Free resources when device successfully removed. */
 	a2dp_pcm_free_resources(a2dpio);
@@ -585,7 +586,7 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
 				    uint64_t total_bytes_read,
 				    struct timespec *data_position_ts)
 {
-	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 	size_t format_bytes = cras_get_format_bytes(iodev->format);
 	struct timespec diff;
 	unsigned int delay;
@@ -620,4 +621,14 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
 	a2dpio->bt_stack_delay = delay;
 
 	syslog(LOG_DEBUG, "Update: bt_stack_delay %u", a2dpio->bt_stack_delay);
+}
+
+struct cras_iodev *hfp_pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
+					struct cras_hfp *hfp)
+{
+	return NULL;
+}
+
+void hfp_pcm_iodev_destroy(struct cras_iodev *iodev)
+{
 }

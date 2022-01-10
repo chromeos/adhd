@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_fl_media.h"
+#include "dbus/dbus-protocol.h"
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -11,6 +13,7 @@
 #include <syslog.h>
 
 #include "cras_a2dp_manager.h"
+#include "cras_hfp_manager.h"
 
 #define BT_SERVICE_NAME "org.chromium.bluetooth"
 /* Object path is of the form BT_OBJECT_BASE + hci + BT_OBJECT_MEDIA */
@@ -33,12 +36,14 @@
  *    conn - The DBus connection object used to send message to Floss Media
  *    interface.
  *    a2dp - Object representing the connected A2DP headset.
+ *    hfp - Object representing the connected HFP headset.
  */
 struct fl_media {
 	unsigned int hci;
 	char obj_path[BT_MEDIA_OBJECT_PATH_SIZE_MAX];
 	DBusConnection *conn;
 	struct cras_a2dp *a2dp;
+	struct cras_hfp *hfp;
 };
 
 static struct fl_media *active_fm = NULL;
@@ -70,6 +75,21 @@ static int get_single_arg(DBusMessage *message, int dbus_type, void *arg)
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 
+	return 0;
+}
+
+int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr)
+{
+	return 0;
+}
+
+int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
+{
+	return 0;
+}
+
+int floss_media_hfp_stop_audio_request(struct fl_media *fm, const char *addr)
+{
 	return 0;
 }
 
@@ -492,6 +512,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 	DBusError dbus_error;
 	dbus_int32_t sample_rate, bits_per_sample, channel_mode;
 	dbus_int32_t absolute_volume;
+	dbus_int32_t hfp_caps;
 	dbus_bool_t supported;
 
 	syslog(LOG_DEBUG, "Bt Media callback message: %s %s %s",
@@ -506,7 +527,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			    message, &dbus_error, DBUS_TYPE_STRING, &addr,
 			    DBUS_TYPE_INT32, &sample_rate, DBUS_TYPE_INT32,
 			    &bits_per_sample, DBUS_TYPE_INT32, &channel_mode,
-			    DBUS_TYPE_INVALID)) {
+			    DBUS_TYPE_INT32, &hfp_caps, DBUS_TYPE_INVALID)) {
 			syslog(LOG_WARNING,
 			       "Bad OnBluetoothAudioDeviceAdded method received: %s",
 			       dbus_error.message);
@@ -514,21 +535,37 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 		}
 
-		syslog(LOG_DEBUG, "OnBluetoothAudioDeviceAdded %s %d %d %d",
-		       addr, sample_rate, bits_per_sample, channel_mode);
+		syslog(LOG_DEBUG, "OnBluetoothAudioDeviceAdded %s %d %d %d %d",
+		       addr, sample_rate, bits_per_sample, channel_mode,
+		       hfp_caps);
+
 		if (!active_fm) {
 			syslog(LOG_WARNING, "Floss media object not ready");
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 
-		if (active_fm->a2dp) {
-			syslog(LOG_WARNING,
-			       "Multiple A2DP devices added, override the older");
-			cras_floss_a2dp_destroy(active_fm->a2dp);
+		if (sample_rate != 0 && bits_per_sample != 0 &&
+		    channel_mode != 0) {
+			syslog(LOG_DEBUG, "A2DP device added.");
+			if (active_fm->a2dp) {
+				syslog(LOG_WARNING,
+				       "Multiple A2DP devices added, override the older");
+				cras_floss_a2dp_destroy(active_fm->a2dp);
+			}
+			active_fm->a2dp = cras_floss_a2dp_create(
+				active_fm, addr, sample_rate, bits_per_sample,
+				channel_mode);
 		}
-		active_fm->a2dp =
-			cras_floss_a2dp_create(active_fm, addr, sample_rate,
-					       bits_per_sample, channel_mode);
+
+		if (hfp_caps) {
+			syslog(LOG_DEBUG, "HFP device added.");
+			if (active_fm->hfp) {
+				syslog(LOG_WARNING,
+				       "Multiple HFP devices added, override the older");
+				cras_floss_hfp_destroy(active_fm->hfp);
+			}
+			active_fm->hfp = cras_floss_hfp_create(active_fm, addr);
+		}
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(
@@ -545,6 +582,10 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 		if (active_fm && active_fm->a2dp) {
 			cras_floss_a2dp_destroy(active_fm->a2dp);
 			active_fm->a2dp = NULL;
+		}
+		if (active_fm && active_fm->hfp) {
+			cras_floss_hfp_destroy(active_fm->hfp);
+			active_fm->hfp = NULL;
 		}
 
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -637,6 +678,8 @@ int floss_media_stop(DBusConnection *conn)
 	if (active_fm) {
 		if (active_fm->a2dp)
 			cras_floss_a2dp_destroy(active_fm->a2dp);
+		if (active_fm->hfp)
+			cras_floss_hfp_destroy(active_fm->hfp);
 		free(active_fm);
 		active_fm = NULL;
 	}

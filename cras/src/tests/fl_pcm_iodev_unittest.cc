@@ -8,7 +8,7 @@
 
 extern "C" {
 // To test static functions.
-#include "cras_a2dp_pcm_iodev.c"
+#include "cras_fl_pcm_iodev.c"
 
 #include "audio_thread.h"
 #include "audio_thread_log.h"

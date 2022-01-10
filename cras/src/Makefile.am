@@ -143,7 +143,7 @@ cras_server_SOURCES = \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blocklist.c \
 	server/cras_a2dp_manager.c \
-	server/cras_a2dp_pcm_iodev.c \
+	server/cras_fl_pcm_iodev.c \
 	server/cras_alert.c \
 	server/cras_alsa_card.c \
 	server/cras_alsa_helpers.c \
@@ -168,6 +168,7 @@ cras_server_SOURCES = \
 	server/cras_fmt_conv_ops.c \
 	server/cras_gpio_jack.c \
 	server/cras_hotword_handler.c \
+	server/cras_hfp_manager.c \
 	server/cras_iodev.c \
 	server/cras_iodev_list.c \
 	server/cras_loopback_iodev.c \
@@ -437,6 +438,7 @@ DBUS_TESTS = \
 	hfp_iodev_unittest \
 	hfp_alsa_iodev_unittest \
 	hfp_ag_profile_unittest \
+	hfp_manager_unittest \
 	hfp_slc_unittest
 else
 DBUS_TESTS =
@@ -453,7 +455,7 @@ endif
 TESTS = \
 	$(DBUS_TESTS) \
 	$(CRAS_WEBRTC_APM_TESTS) \
-	a2dp_pcm_iodev_unittest \
+	fl_pcm_iodev_unittest \
 	audio_area_unittest \
 	audio_format_unittest \
 	audio_thread_unittest \
@@ -672,11 +674,11 @@ a2dp_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 endif
 
-a2dp_pcm_iodev_unittest_SOURCES = tests/a2dp_pcm_iodev_unittest.cc \
+fl_pcm_iodev_unittest_SOURCES = tests/fl_pcm_iodev_unittest.cc \
 	common/sfh.c
-a2dp_pcm_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+fl_pcm_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common
-a2dp_pcm_iodev_unittest_LDADD = -lgtest -lpthread
+fl_pcm_iodev_unittest_LDADD = -lgtest -lpthread
 
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
 	common/sfh.c \
@@ -967,6 +969,12 @@ hfp_ag_profile_unittest_SOURCES = tests/hfp_ag_profile_unittest.cc \
 hfp_ag_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_ag_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+
+hfp_manager_unittest_SOURCES = tests/hfp_manager_unittest.cc \
+	server/cras_hfp_manager.c
+hfp_manager_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common $(DBUS_CFLAGS)
+hfp_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_slc_unittest_SOURCES = tests/hfp_slc_unittest.cc \
 	server/cras_hfp_slc.c tests/metrics_stub.cc common/cras_string.c
