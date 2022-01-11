@@ -51,6 +51,7 @@ void cras_board_config_get(const char *config_path,
 	board_config->bt_wbs_enabled = BLUETOOTH_WBS_ENABLED_INI_DEFAULT;
 	board_config->deprioritize_bt_wbs_mic =
 		BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT;
+	board_config->max_internal_mic_gain = MAX_INTERNAL_MIC_GAIN_DEFAULT;
 	if (config_path == NULL)
 		return;
 
