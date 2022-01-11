@@ -192,7 +192,8 @@ static int close_record_dev(struct cras_iodev *iodev)
 					    loopdev->sender_idx,
 					    loopdev->base.info.idx);
 	loopdev->sender_idx = NO_DEVICE;
-	cras_iodev_list_set_device_enabled_callback(NULL, NULL, (void *)iodev);
+	cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL,
+						    (void *)iodev);
 
 	return 0;
 }
@@ -216,7 +217,7 @@ static int configure_record_dev(struct cras_iodev *iodev)
 			sample_hook, sample_hook_start, iodev->info.idx);
 	}
 	cras_iodev_list_set_device_enabled_callback(
-		device_enabled_hook, device_disabled_hook, (void *)iodev);
+		device_enabled_hook, device_disabled_hook, NULL, (void *)iodev);
 
 	/* Fills the sample_buffer by zeros to simulate the delay caused
 	 * by real hardware. */

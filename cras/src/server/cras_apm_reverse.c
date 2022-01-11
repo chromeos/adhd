@@ -193,8 +193,9 @@ int cras_apm_reverse_init(process_reverse_t process_cb,
 		default_rmod->ext.configure = reverse_data_configure;
 	}
 
-	cras_iodev_list_set_device_enabled_callback(
-		handle_iodev_states_changed, handle_iodev_states_changed, NULL);
+	cras_iodev_list_set_device_enabled_callback(handle_iodev_states_changed,
+						    handle_iodev_states_changed,
+						    NULL, NULL);
 	handle_iodev_states_changed(NULL, NULL);
 	return 0;
 }

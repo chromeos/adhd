@@ -278,6 +278,7 @@ int cras_iodev_list_rm_input(struct cras_iodev* input) {
 int cras_iodev_list_set_device_enabled_callback(
     device_enabled_callback_t enabled_cb,
     device_disabled_callback_t disabled_cb,
+    device_removed_callback_t removed_cb,
     void* cb_data) {
   cras_iodev_list_set_device_enabled_callback_called++;
   device_enabled_callback_cb = enabled_cb;

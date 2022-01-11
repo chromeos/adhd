@@ -52,6 +52,7 @@ struct dev_init_retry {
 struct device_enabled_cb {
 	device_enabled_callback_t enabled_cb;
 	device_disabled_callback_t disabled_cb;
+	device_removed_callback_t removed_cb;
 	void *cb_data;
 	struct device_enabled_cb *next, *prev;
 };
@@ -167,6 +168,13 @@ static int add_dev_to_list(struct cras_iodev *dev)
 static int rm_dev_from_list(struct cras_iodev *dev)
 {
 	struct cras_iodev *tmp;
+	struct device_enabled_cb *callback;
+
+	//
+	DL_FOREACH (device_enable_cbs, callback) {
+		if (callback->removed_cb)
+			callback->removed_cb(dev);
+	}
 
 	DL_FOREACH (devs[dev->direction].iodevs, tmp)
 		if (tmp == dev) {
@@ -1900,7 +1908,8 @@ struct stream_list *cras_iodev_list_get_stream_list()
 
 int cras_iodev_list_set_device_enabled_callback(
 	device_enabled_callback_t enabled_cb,
-	device_disabled_callback_t disabled_cb, void *cb_data)
+	device_disabled_callback_t disabled_cb,
+	device_removed_callback_t removed_cb, void *cb_data)
 {
 	struct device_enabled_cb *callback;
 
@@ -1917,6 +1926,7 @@ int cras_iodev_list_set_device_enabled_callback(
 			1, sizeof(*callback));
 		callback->enabled_cb = enabled_cb;
 		callback->disabled_cb = disabled_cb;
+		callback->removed_cb = removed_cb;
 		callback->cb_data = cb_data;
 		DL_APPEND(device_enable_cbs, callback);
 	}

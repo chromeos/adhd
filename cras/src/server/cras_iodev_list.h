@@ -23,6 +23,7 @@ typedef void (*device_enabled_callback_t)(struct cras_iodev *dev,
 					  void *cb_data);
 typedef void (*device_disabled_callback_t)(struct cras_iodev *dev,
 					   void *cb_data);
+typedef void (*device_removed_callback_t)(struct cras_iodev *dev);
 
 /* Initialize the list of iodevs. */
 void cras_iodev_list_init();
@@ -239,7 +240,8 @@ struct stream_list *cras_iodev_list_get_stream_list();
 /* Sets the function to call when a device is enabled or disabled. */
 int cras_iodev_list_set_device_enabled_callback(
 	device_enabled_callback_t enabled_cb,
-	device_disabled_callback_t disabled_cb, void *cb_data);
+	device_disabled_callback_t disabled_cb,
+	device_removed_callback_t removed_cb, void *cb_data);
 
 /* Registers loopback to an output device.
  * Args:
