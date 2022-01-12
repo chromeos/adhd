@@ -20,6 +20,7 @@ extern "C" {
 #include "metrics_stub.h"
 
 namespace {
+static int buffer_share_get_new_write_point_ret;
 
 class RstreamTestSuite : public testing::Test {
  protected:
@@ -50,6 +51,7 @@ class RstreamTestSuite : public testing::Test {
     client_fd_ = sock[0];
 
     config_.client = NULL;
+    buffer_share_get_new_write_point_ret = 0;
   }
 
   virtual void TearDown() {
@@ -376,6 +378,38 @@ TEST_F(RstreamTestSuite, InputStreamFlushMessages) {
   cras_rstream_destroy(s);
 }
 
+TEST_F(RstreamTestSuite, UpdateOutputReadPtr) {
+  struct cras_rstream* s;
+  uint8_t* buf;
+  int rc;
+  int tmp = 1234;
+
+  config_.direction = CRAS_STREAM_INPUT;
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+
+  /* Test the scenario when data sits across double buffer in shm. */
+  buf = cras_shm_get_write_buffer_base(s->shm);
+  cras_shm_buffer_written_start(s->shm, config_.cb_threshold);
+  buf = cras_shm_get_write_buffer_base(s->shm);
+  cras_shm_buffer_written_start(s->shm, tmp);
+
+  /* Device buffer share object says this amount can be marked as read. */
+  buffer_share_get_new_write_point_ret = config_.cb_threshold + tmp;
+  cras_rstream_update_output_read_pointer(s);
+
+  /* Data sits across double buffer. */
+  buf = cras_shm_get_write_buffer_base(s->shm);
+  cras_shm_buffer_written_start(s->shm, config_.cb_threshold - tmp);
+  buf = cras_shm_get_write_buffer_base(s->shm);
+  cras_shm_buffer_written_start(s->shm, tmp);
+
+  buffer_share_get_new_write_point_ret = config_.cb_threshold;
+  cras_rstream_update_output_read_pointer(s);
+
+  cras_rstream_destroy(s);
+}
+
 }  //  namespace
 
 int main(int argc, char** argv) {
@@ -408,7 +442,7 @@ int buffer_share_offset_update(struct buffer_share* mix,
 }
 
 unsigned int buffer_share_get_new_write_point(struct buffer_share* mix) {
-  return 0;
+  return buffer_share_get_new_write_point_ret;
 }
 
 int buffer_share_add_id(struct buffer_share* mix, unsigned int id, void* data) {
@@ -430,7 +464,12 @@ void ewma_power_init(struct ewma_power* ewma,
 void ewma_power_calculate(struct ewma_power* ewma,
                           const int16_t* buf,
                           unsigned int channels,
-                          unsigned int size) {}
+                          unsigned int size) {
+  unsigned val = 0;
+  for (int i = 0; i < size * channels; i += channels) {
+    val += buf[i];
+  }
+}
 
 void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
                                     enum CRAS_CLIENT_TYPE client_type) {}
@@ -446,6 +485,9 @@ int cras_server_metrics_stream_create(
 int cras_server_metrics_stream_destroy(const struct cras_rstream* stream) {
   return 0;
 }
+void cras_rtc_add_stream(struct cras_rstream* stream,
+                         struct cras_iodev* iodev) {}
+void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {}
 
 #ifdef HAVE_WEBRTC_APM
 #define FAKE_CRAS_APM_PTR reinterpret_cast<struct cras_apm*>(0x99)

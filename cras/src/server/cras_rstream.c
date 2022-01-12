@@ -493,12 +493,21 @@ void cras_rstream_update_output_read_pointer(struct cras_rstream *rstream)
 	uint8_t *src;
 	unsigned int nwritten =
 		buffer_share_get_new_write_point(rstream->buf_state);
+	int i, offset;
 
 	/* Retrieve the read pointer |src| start from which to calculate
-	 * the EWMA power. */
-	src = cras_shm_get_readable_frames(rstream->shm, 0, &nfr);
-	ewma_power_calculate(&rstream->ewma, (int16_t *)src,
-			     rstream->format.num_channels, nwritten);
+	 * the EWMA power. |rstream->shm| has double buffer, so we need
+	 * to read twice. */
+	offset = 0;
+	for (i = 0; (i < 2) && (offset < nwritten); i++) {
+		src = cras_shm_get_readable_frames(rstream->shm, offset, &nfr);
+		if (src == NULL)
+			break;
+		ewma_power_calculate(&rstream->ewma, (int16_t *)src,
+				     rstream->format.num_channels, nfr);
+		offset += nfr;
+	}
+
 	cras_shm_buffer_read(rstream->shm, nwritten);
 }
 
