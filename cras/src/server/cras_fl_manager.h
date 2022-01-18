@@ -10,4 +10,8 @@
 
 void cras_floss_set_enabled(bool enable);
 
+int cras_floss_get_hfp_enabled();
+
+int cras_floss_get_a2dp_enabled();
+
 #endif /* CRAS_FL_MANAGER_H_ */

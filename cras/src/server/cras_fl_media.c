@@ -3,7 +3,6 @@
  * found in the LICENSE file.
  */
 
-#include "cras_fl_media.h"
 #include "dbus/dbus-protocol.h"
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -13,6 +12,8 @@
 #include <syslog.h>
 
 #include "cras_a2dp_manager.h"
+#include "cras_fl_manager.h"
+#include "cras_fl_media.h"
 #include "cras_hfp_manager.h"
 
 #define BT_SERVICE_NAME "org.chromium.bluetooth"
@@ -544,8 +545,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 
-		if (sample_rate != 0 && bits_per_sample != 0 &&
-		    channel_mode != 0) {
+		if (cras_floss_get_a2dp_enabled() && sample_rate != 0 &&
+		    bits_per_sample != 0 && channel_mode != 0) {
 			syslog(LOG_DEBUG, "A2DP device added.");
 			if (active_fm->a2dp) {
 				syslog(LOG_WARNING,
@@ -557,7 +558,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 				channel_mode);
 		}
 
-		if (hfp_caps) {
+		if (cras_floss_get_hfp_enabled() && hfp_caps) {
 			syslog(LOG_DEBUG, "HFP device added.");
 			if (active_fm->hfp) {
 				syslog(LOG_WARNING,

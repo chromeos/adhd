@@ -494,3 +494,13 @@ void cras_floss_set_enabled(bool enable)
 	else
 		cras_bt_switch_default_stack();
 }
+
+int cras_floss_get_a2dp_enabled()
+{
+	return !(floss.profile_disable_mask & CRAS_BT_PROFILE_MASK_A2DP);
+}
+
+int cras_floss_get_hfp_enabled()
+{
+	return !(floss.profile_disable_mask & CRAS_BT_PROFILE_MASK_HFP);
+}
