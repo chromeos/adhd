@@ -86,11 +86,90 @@ int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr)
 
 int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
 {
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+
+	syslog(LOG_DEBUG, "floss_media_hfp_start_sco_call: %s", addr);
+
+	if (!fm) {
+		syslog(LOG_WARNING, "%s: Floss media not started", __func__);
+		return -EINVAL;
+	}
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE,
+					     "StartScoCall");
+	if (!method_call)
+		return -ENOMEM;
+
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_STRING, &addr,
+				      DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_error_init(&dbus_error);
+	reply = dbus_connection_send_with_reply_and_block(
+		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send StartScoCall: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "StartScoCall returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return -EIO;
+	}
 	return 0;
 }
 
-int floss_media_hfp_stop_audio_request(struct fl_media *fm, const char *addr)
+int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr)
 {
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+
+	syslog(LOG_DEBUG, "floss_media_hfp_stop_sco_call");
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE, "StopScoCall");
+	if (!method_call)
+		return -ENOMEM;
+
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_STRING, &addr,
+				      DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_error_init(&dbus_error);
+
+	reply = dbus_connection_send_with_reply_and_block(
+		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send StopScoCall: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "StopScoCall returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+		return -EIO;
+	}
 	return 0;
 }
 

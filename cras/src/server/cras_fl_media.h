@@ -52,7 +52,7 @@ int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr);
 int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr);
 
 /* Calls StopScoCall method to Floss media interface. */
-int floss_media_hfp_stop_audio_request(struct fl_media *fm, const char *addr);
+int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr);
 
 /* Calls SetActiveDevice method to Floss media interface. */
 int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr);
