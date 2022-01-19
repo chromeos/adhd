@@ -6,6 +6,7 @@ access: 1
 arch_prctl: 1
 bind: 1
 brk: 1
+clock_nanosleep: 1
 clone: 1
 close: 1
 connect: 1
@@ -41,6 +42,7 @@ getsockname: 1
 gettid: 1
 getuid: 1
 ioctl: arg1 == 0x5401 || arg1 == 0xc4c85512 || arg1 == 0x540f || arg1 == 0x80045500 || arg1 == 0xc4c85513 || arg1 == 0x81785501 || arg1 == 0x5413 || arg1 == 0xc1105511 || arg1 == 0x81785501 || arg1 == 0x80045500 || arg1 == 0xc008551a || arg1 == 0xc4c85512 || arg1 == 0xc008551b || arg1 == 0xc1105511
+io_uring_setup: 1
 lseek: 1
 madvise: 1
 mmap: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
@@ -48,7 +50,6 @@ mprotect: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
 munmap: 1
 nanosleep: 1
 newfstatat: 1
-clock_nanosleep: 1
 openat: 1
 pipe2: 1
 poll: 1
@@ -79,6 +80,7 @@ socket: arg0 == 0x10 || arg0 == 0x1
 socketpair: 1
 stat: 1
 statx: 1
+tgkill: 1
 umask: 1
 uname: 1
 unlink: 1
