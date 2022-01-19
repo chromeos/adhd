@@ -245,7 +245,8 @@ cras_LDADD = \
 	$(METRICS_LIBS) \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS) \
-	$(WEBRTC_APM_LIBS)
+	$(WEBRTC_APM_LIBS) \
+	$(FEATURED_LIBS)
 
 noinst_LTLIBRARIES = \
 	$(CRAS_SSE4_2) \
@@ -408,7 +409,8 @@ FUZZER_LDADD = \
 	$(METRICS_LIBS) \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS) \
-	$(WEBRTC_APM_LIBS)
+	$(WEBRTC_APM_LIBS) \
+	$(FEATURED_LIBS)
 
 cras_rclient_message_fuzzer_SOURCES = \
 	fuzz/rclient_message.cc
@@ -974,7 +976,8 @@ hfp_alsa_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 hfp_ag_profile_unittest_SOURCES = tests/hfp_ag_profile_unittest.cc \
 	server/cras_hfp_ag_profile.c common/sfh.c tests/metrics_stub.cc
 hfp_ag_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
-	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS) \
+	-DBYPASS_FEATURE_CHECK
 hfp_ag_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_manager_unittest_SOURCES = tests/hfp_manager_unittest.cc \

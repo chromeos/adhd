@@ -8,6 +8,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#ifndef BYPASS_FEATURE_CHECK
+#include <featured/c_feature_library.h>
+#endif
+
 #include "cras_a2dp_endpoint.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_constants.h"
@@ -43,6 +47,8 @@
  *    a2dp_delay_retries - The number of retries left to delay starting
  *        the hfp audio gateway to wait for a2dp connection.
  *    conn - The dbus connection used to send message to bluetoothd.
+ *    sco_pcm_used - The flag for recording if device is initialized with
+ *        SCO PCM.
  */
 struct audio_gateway {
 	struct cras_iodev *idev;
@@ -52,16 +58,45 @@ struct audio_gateway {
 	struct cras_bt_device *device;
 	int a2dp_delay_retries;
 	DBusConnection *conn;
+	bool sco_pcm_used;
 	struct audio_gateway *prev, *next;
 };
 
 static struct audio_gateway *connected_ags;
 static struct packet_status_logger wbs_logger;
 
-static int need_go_sco_pcm(struct cras_bt_device *device)
+#ifdef BYPASS_FEATURE_CHECK
+static bool get_hfp_offload_feature_enabled()
 {
-	return cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT) ||
-	       cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT);
+	return true;
+}
+#else
+const struct Feature AUDIO_HFP_OFFLOAD_FEATURE = {
+	.name = "CrOSLateBootAudioHFPOffload",
+	.default_state = FEATURE_DISABLED_BY_DEFAULT,
+};
+
+static bool get_hfp_offload_feature_enabled()
+{
+	CFeatureLibrary lib = CFeatureLibraryNew();
+	int enabled = CFeatureLibraryIsEnabledBlocking(
+		lib, &AUDIO_HFP_OFFLOAD_FEATURE);
+	syslog(LOG_DEBUG, "Chrome Feature Service: %s = %d",
+	       AUDIO_HFP_OFFLOAD_FEATURE.name, enabled);
+	CFeatureLibraryDelete(lib);
+
+	return enabled;
+}
+#endif
+
+static bool is_sco_pcm_used()
+{
+	if (!(cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT) ||
+	      cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT)))
+		return false;
+
+	/* Check if the feature is enabled from Chrome Feature Service. */
+	return get_hfp_offload_feature_enabled();
 }
 
 static void destroy_audio_gateway(struct audio_gateway *ag)
@@ -71,7 +106,7 @@ static void destroy_audio_gateway(struct audio_gateway *ag)
 	cras_server_metrics_hfp_battery_indicator(
 		hfp_slc_get_hf_supports_battery_indicator(ag->slc_handle));
 
-	if (need_go_sco_pcm(ag->device)) {
+	if (ag->sco_pcm_used) {
 		if (ag->idev)
 			hfp_alsa_iodev_destroy(ag->idev);
 		if (ag->odev)
@@ -212,6 +247,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;
 	ag->conn = conn;
+	ag->sco_pcm_used = false;
 
 	adapter = cras_bt_device_adapter(device);
 	/*
@@ -298,7 +334,8 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 		return 0;
 
 	ag->sco = cras_sco_create();
-	if (need_go_sco_pcm(device)) {
+	ag->sco_pcm_used = is_sco_pcm_used();
+	if (ag->sco_pcm_used) {
 		struct cras_iodev *in_aio, *out_aio;
 
 		in_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT);
@@ -354,4 +391,3 @@ struct packet_status_logger *cras_hfp_ag_get_wbs_logger()
 {
 	return &wbs_logger;
 }
-

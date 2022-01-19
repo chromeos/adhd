@@ -45,6 +45,15 @@ fi
 AC_SUBST(DBUS_LIBS)
 AC_SUBST(DBUS_CFLAGS)
 
+AC_ARG_ENABLE([featured], AS_HELP_STRING([--disable-featured], [Disable all Featured uses]), have_featured=$enableval, have_featured=yes)
+AM_CONDITIONAL(HAVE_FEATURED, test "$have_featured" = "yes")
+if test "$have_featured" = "yes"; then
+    PKG_CHECK_MODULES([FEATURED], [ libfeatures_c ])
+else
+    FEATURED_LIBS=
+fi
+AC_SUBST(FEATURED_LIBS)
+
 AC_ARG_ENABLE([selinux], AS_HELP_STRING([--enable-selinux], [Enable SELinux calls]), have_selinux=$enableval, have_selinux=no)
 AM_CONDITIONAL(HAVE_SELINUX, test "$have_selinux" = "yes")
 if test "$have_selinux" = "yes"; then
