@@ -23,7 +23,7 @@ struct cras_volume_curve {
 };
 
 /* Creates a system-default volume curve. The default curve maps one volume step
- * to 1 dB down.
+ * to 0.5 dB down.
  * Returns null on error, or the new volume curve on success.
  */
 struct cras_volume_curve *cras_volume_curve_create_default();

@@ -972,19 +972,25 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer, long dBFS,
 		mixer_control_set_dBFS(mixer_output, to_set);
 }
 
-long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer *cras_mixer)
+void cras_alsa_mixer_get_playback_dBFS_range(struct cras_alsa_mixer *cras_mixer,
+					     struct mixer_control *mixer_output,
+					     long *max_volume_dB,
+					     long *min_volume_dB)
 {
-	if (!cras_mixer)
-		return 0;
-	return cras_mixer->max_volume_dB - cras_mixer->min_volume_dB;
-}
+	*max_volume_dB = 0;
+	*min_volume_dB = 0;
 
-long cras_alsa_mixer_get_output_dB_range(struct mixer_control *mixer_output)
-{
-	if (!cras_alsa_mixer_has_volume(mixer_output))
-		return 0;
+	if (cras_alsa_mixer_has_main_volume(cras_mixer)) {
+		*max_volume_dB += cras_mixer->max_volume_dB;
+		*min_volume_dB += cras_mixer->min_volume_dB;
+	}
 
-	return mixer_output->max_volume_dB - mixer_output->min_volume_dB;
+	if (cras_alsa_mixer_has_volume(mixer_output) &&
+	    mixer_output->max_volume_dB != MIXER_CONTROL_VOLUME_DB_INVALID &&
+	    mixer_output->min_volume_dB != MIXER_CONTROL_VOLUME_DB_INVALID) {
+		*max_volume_dB += mixer_output->max_volume_dB;
+		*min_volume_dB += mixer_output->min_volume_dB;
+	}
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,

@@ -1027,7 +1027,7 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_value);
 
   EXPECT_EQ(max_volumes[0] - min_volumes[0],
-            cras_alsa_mixer_get_output_dB_range(output_control));
+            output_control->max_volume_dB - output_control->min_volume_dB);
 
   cras_alsa_mixer_destroy(c);
   EXPECT_EQ(1, snd_mixer_close_called);

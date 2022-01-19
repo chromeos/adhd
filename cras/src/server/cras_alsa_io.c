@@ -1145,6 +1145,7 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 				       struct alsa_io *aio)
 {
 	struct cras_alsa_mixer *mixer = aio->mixer;
+	long max, min;
 
 	if (aio->ucm && ucm_get_disable_software_volume(aio->ucm)) {
 		output->base.software_volume_needed = 0;
@@ -1160,6 +1161,13 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 	     !cras_alsa_mixer_has_volume(output->mixer_output)))
 		output->base.software_volume_needed = 1;
 
+	/* Use software volume if the usb device's volume range is 0*/
+	if (output->base.type == CRAS_NODE_TYPE_USB) {
+		cras_alsa_mixer_get_playback_dBFS_range(
+			mixer, output->mixer_output, &max, &min);
+		if (max == min)
+			output->base.software_volume_needed = 1;
+	}
 	if (output->base.software_volume_needed)
 		syslog(LOG_DEBUG, "Use software volume for node: %s",
 		       output->base.name);
@@ -1243,6 +1251,9 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 					   const char *name)
 {
 	struct alsa_output_node *output;
+	struct cras_volume_curve *curve;
+	long max_volume, min_volume;
+
 	syslog(LOG_DEBUG, "New output node for '%s'", name);
 	if (aio == NULL) {
 		syslog(LOG_ERR, "Invalid aio when listing outputs.");
@@ -1266,9 +1277,24 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 	output->mixer_output = cras_output;
 
 	/* Volume curve. */
-	output->volume_curve = cras_card_config_get_volume_curve_for_control(
+	curve = cras_card_config_get_volume_curve_for_control(
 		aio->config,
 		name ? name : cras_alsa_mixer_get_control_name(cras_output));
+	if (!curve && aio->card_type == ALSA_CARD_TYPE_USB) {
+		cras_alsa_mixer_get_playback_dBFS_range(
+			aio->mixer, cras_output, &max_volume, &min_volume);
+		syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", name,
+		       min_volume, max_volume);
+		if (max_volume - min_volume)
+			curve = cras_volume_curve_create_simple_step(
+				max_volume, (max_volume - min_volume) / 100);
+
+		if (max_volume - min_volume <= 500)
+			syslog(LOG_WARNING,
+			       "%s' output volume range [%ld %ld] is abnormally narrow",
+			       name, min_volume, max_volume);
+	}
+	output->volume_curve = curve;
 
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
@@ -2236,6 +2262,7 @@ alsa_iodev_create(size_t card_index, const char *card_name, size_t device_index,
 		aio->default_volume_curve =
 			cras_card_config_get_volume_curve_for_control(
 				config, "Default");
+		/* Default to max volume of 0dBFS, and a step of 0.5dBFS. */
 		if (aio->default_volume_curve == NULL)
 			aio->default_volume_curve =
 				cras_volume_curve_create_default();

@@ -52,10 +52,9 @@ static size_t sys_get_volume_called;
 static size_t sys_get_volume_return_value;
 static size_t alsa_mixer_set_mute_called;
 static int alsa_mixer_set_mute_value;
-static size_t alsa_mixer_get_dB_range_called;
-static long alsa_mixer_get_dB_range_value;
-static size_t alsa_mixer_get_output_dB_range_called;
-static long alsa_mixer_get_output_dB_range_value;
+static size_t cras_alsa_mixer_get_playback_dBFS_range_called;
+static long cras_alsa_mixer_get_playback_dBFS_range_max;
+static long cras_alsa_mixer_get_playback_dBFS_range_min;
 static const struct mixer_control* alsa_mixer_set_mute_output;
 static size_t alsa_mixer_set_capture_mute_called;
 static int alsa_mixer_set_capture_mute_value;
@@ -128,6 +127,9 @@ static int cras_alsa_attempt_resume_called;
 static snd_hctl_t* fake_hctl = (snd_hctl_t*)2;
 static size_t ucm_get_dma_period_for_dev_called;
 static unsigned int ucm_get_dma_period_for_dev_ret;
+static unsigned int cras_volume_curve_create_simple_step_called;
+static long cras_volume_curve_create_simple_step_max_volume;
+static long cras_volume_curve_create_simple_step_volume_step;
 static int cras_card_config_get_volume_curve_for_control_called;
 typedef std::map<std::string, struct cras_volume_curve*> VolCurveMap;
 static VolCurveMap cras_card_config_get_volume_curve_vals;
@@ -170,8 +172,9 @@ void ResetStubData() {
   sys_get_mute_called = 0;
   sys_get_capture_mute_called = 0;
   alsa_mixer_set_mute_called = 0;
-  alsa_mixer_get_dB_range_called = 0;
-  alsa_mixer_get_output_dB_range_called = 0;
+  cras_alsa_mixer_get_playback_dBFS_range_called = 0;
+  cras_alsa_mixer_get_playback_dBFS_range_max = 0;
+  cras_alsa_mixer_get_playback_dBFS_range_min = -2000;
   alsa_mixer_set_capture_mute_called = 0;
   cras_alsa_mixer_get_control_for_section_called = 0;
   cras_alsa_mixer_get_control_for_section_return_value = NULL;
@@ -215,6 +218,7 @@ void ResetStubData() {
   cras_alsa_jack_update_monitor_fake_name = 0;
   cras_card_config_get_volume_curve_for_control_called = 0;
   cras_card_config_get_volume_curve_vals.clear();
+  cras_volume_curve_create_simple_step_called = 0;
   cras_alsa_mixer_get_minimum_capture_gain_ret_value = 0;
   cras_alsa_mixer_get_maximum_capture_gain_ret_value = 0;
   snd_pcm_state_ret = SND_PCM_STATE_RUNNING;
@@ -242,6 +246,7 @@ static long fake_get_dBFS(const struct cras_volume_curve* curve,
   fake_get_dBFS_volume_curve_val = curve;
   return (volume - 100) * 100;
 }
+
 static cras_volume_curve default_curve = {
     .get_dBFS = fake_get_dBFS,
 };
@@ -358,6 +363,14 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
+  EXPECT_EQ(2, cras_alsa_mixer_get_playback_dBFS_range_called);
+  EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
+  EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,
+            cras_volume_curve_create_simple_step_max_volume);
+  EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
+             cras_alsa_mixer_get_playback_dBFS_range_min) /
+                100,
+            cras_volume_curve_create_simple_step_volume_step);
   ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
@@ -2616,14 +2629,14 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer* cras_mixer,
   alsa_mixer_set_mute_output = mixer_output;
 }
 
-long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer* cras_mixer) {
-  alsa_mixer_get_dB_range_called++;
-  return alsa_mixer_get_dB_range_value;
-}
-
-long cras_alsa_mixer_get_output_dB_range(struct mixer_control* mixer_output) {
-  alsa_mixer_get_output_dB_range_called++;
-  return alsa_mixer_get_output_dB_range_value;
+void cras_alsa_mixer_get_playback_dBFS_range(struct cras_alsa_mixer* cras_mixer,
+                                             struct mixer_control* mixer_output,
+                                             long* max_volume_dB,
+                                             long* min_volume_dB) {
+  cras_alsa_mixer_get_playback_dBFS_range_called++;
+  *max_volume_dB = cras_alsa_mixer_get_playback_dBFS_range_max;
+  *min_volume_dB = cras_alsa_mixer_get_playback_dBFS_range_min;
+  return;
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer* m,
@@ -2859,6 +2872,15 @@ int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr* mgr,
                                        const char* node_name,
                                        int enable) {
   return 0;
+}
+
+struct cras_volume_curve* cras_volume_curve_create_simple_step(
+    long max_volume,
+    long volume_step) {
+  cras_volume_curve_create_simple_step_called++;
+  cras_volume_curve_create_simple_step_max_volume = max_volume;
+  cras_volume_curve_create_simple_step_volume_step = volume_step;
+  return &default_curve;
 }
 
 struct cras_volume_curve* cras_volume_curve_create_default() {

@@ -88,18 +88,18 @@ int cras_alsa_mixer_has_volume(const struct mixer_control *mixer_control);
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer, long dBFS,
 			      struct mixer_control *mixer_output);
 
-/* Gets the volume range of the mixer in dB.
+/* Get the output volume range for the device associated with this mixer.
  * Args:
- *    cras_mixer - The mixer to get the volume range.
+ *    cras_mixer - The mixer used to set the volume on.
+ *    mixer_output - The mixer output to set if not all attenuation can be
+ *      obtained from the main controls.  Can be null.
+ *    max_volume_dB - Filled with the max volume the output device supports.
+ *    min_volume_dB - Filled with the min volume the output device supports.
  */
-long cras_alsa_mixer_get_dB_range(struct cras_alsa_mixer *cras_mixer);
-
-/* Gets the volume range of the mixer output in dB.
- * Args:
- *    mixer_output - The mixer output to get the volume range.
- */
-long cras_alsa_mixer_get_output_dB_range(struct mixer_control *mixer_output);
-
+void cras_alsa_mixer_get_playback_dBFS_range(struct cras_alsa_mixer *cras_mixer,
+					     struct mixer_control *mixer_output,
+					     long *max_volume_dB,
+					     long *min_volume_dB);
 /* Sets the capture gain for the device associated with this mixer.
  * Args:
  *    cras_mixer - The mixer to set the volume on.
