@@ -165,6 +165,8 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	exp_state->agc_on_dsp_supported = board_config.agc_on_dsp_supported;
 
 	exp_state->bt_wbs_enabled = board_config.bt_wbs_enabled;
+	exp_state->bt_hfp_offload_finch_applied =
+		board_config.bt_hfp_offload_finch_applied;
 	exp_state->deprioritize_bt_wbs_mic =
 		board_config.deprioritize_bt_wbs_mic;
 	/* Enable Noise Cancellation as default. */
@@ -425,6 +427,11 @@ void cras_system_set_bt_wbs_enabled(bool enabled)
 bool cras_system_get_bt_wbs_enabled()
 {
 	return !!state.exp_state->bt_wbs_enabled;
+}
+
+bool cras_system_get_bt_hfp_offload_finch_applied()
+{
+	return !!state.exp_state->bt_hfp_offload_finch_applied;
 }
 
 bool cras_system_get_deprioritize_bt_wbs_mic()

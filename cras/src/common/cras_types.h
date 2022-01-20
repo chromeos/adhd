@@ -604,6 +604,8 @@ static inline bool cras_floop_params_eq(const struct cras_floop_params *a,
  *    snapshot_buffer - ring buffer for storing audio thread snapshots.
  *    bt_debug_info - ring buffer for storing bluetooth event logs.
  *    bt_wbs_enabled - Whether or not bluetooth wideband speech is enabled.
+ *    bt_hfp_offload_finch_applied - Whether or not enabling Bluetooth HFP
+ *        offload feature needs to be determined by Finch flag.
  *    deprioritize_bt_wbs_mic - Whether Bluetooth wideband speech mic
  *        should be deprioritized for selecting as default audio input.
  *    main_thread_debug_info - ring buffer for storing main thread event logs.
@@ -660,6 +662,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 	struct cras_bt_debug_info bt_debug_info;
 	int32_t bt_wbs_enabled;
+	int32_t bt_hfp_offload_finch_applied;
 	int32_t deprioritize_bt_wbs_mic;
 	struct main_thread_debug_info main_thread_debug_info;
 	uint32_t num_input_streams_with_permission[CRAS_NUM_CLIENT_TYPE];

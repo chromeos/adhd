@@ -95,8 +95,15 @@ static bool is_sco_pcm_used()
 	      cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT)))
 		return false;
 
-	/* Check if the feature is enabled from Chrome Feature Service. */
-	return get_hfp_offload_feature_enabled();
+	/* If board config "bluetooth:hfp_offload_finch_applied" is specified,
+	 * check the feature state from Chrome Feature Service to determine
+	 * whether to use HFP offload path; otherwise, always choose HFP offload
+	 * path.
+	 */
+	if (cras_system_get_bt_hfp_offload_finch_applied())
+		return get_hfp_offload_feature_enabled();
+
+	return true;
 }
 
 static void destroy_audio_gateway(struct audio_gateway *ag)

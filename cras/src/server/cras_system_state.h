@@ -139,6 +139,9 @@ void cras_system_set_bt_wbs_enabled(bool enabled);
 /* Gets the elable flag of bluetooth wideband speech feature. */
 bool cras_system_get_bt_wbs_enabled();
 
+/* Gets the flag of whether to determine BT HFP offload enabling by Finch. */
+bool cras_system_get_bt_hfp_offload_finch_applied();
+
 /*
  * Returns if Bluetooth WBS mic should be deprioritized for selecting
  * as default audio input option.

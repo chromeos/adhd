@@ -20,6 +20,7 @@ static const int32_t AEC_ON_DSP_SUPPORTED_DEFAULT = 0;
 static const int32_t NS_ON_DSP_SUPPORTED_DEFAULT = 0;
 static const int32_t AGC_ON_DSP_SUPPORTED_DEFAULT = 0;
 static const int32_t BLUETOOTH_WBS_ENABLED_INI_DEFAULT = 1;
+static const int32_t BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_DEFAULT = 0;
 static const int32_t BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT = 0;
 static const int32_t HOTWORD_PAUSE_AT_SUSPEND_DEFAULT = 0;
 static const int32_t MAX_INTERNAL_MIC_GAIN_DEFAULT = 2000;
@@ -36,6 +37,8 @@ static const int32_t MAX_INTERNAL_MIC_GAIN_DEFAULT = 2000;
 #define NS_ON_DSP_SUPPORTED_INI_KEY "processing:ns_on_dsp_supported"
 #define AGC_ON_DSP_SUPPORTED_INI_KEY "processing:agc_on_dsp_supported"
 #define BLUETOOTH_WBS_ENABLED_INI_KEY "bluetooth:wbs_enabled"
+#define BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_KEY                            \
+	"bluetooth:hfp_offload_finch_applied"
 #define BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_KEY "bluetooth:deprioritize_wbs_mic"
 #define UCM_IGNORE_SUFFIX_KEY "ucm:ignore_suffix"
 #define HOTWORD_PAUSE_AT_SUSPEND "hotword:pause_at_suspend"
@@ -61,6 +64,8 @@ void cras_board_config_get(const char *config_path,
 	board_config->agc_on_dsp_supported = AGC_ON_DSP_SUPPORTED_DEFAULT;
 	board_config->ucm_ignore_suffix = NULL;
 	board_config->bt_wbs_enabled = BLUETOOTH_WBS_ENABLED_INI_DEFAULT;
+	board_config->bt_hfp_offload_finch_applied =
+		BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_DEFAULT;
 	board_config->deprioritize_bt_wbs_mic =
 		BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT;
 	board_config->max_internal_mic_gain = MAX_INTERNAL_MIC_GAIN_DEFAULT;
@@ -130,6 +135,12 @@ void cras_board_config_get(const char *config_path,
 	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	board_config->bt_wbs_enabled = iniparser_getint(
 		ini, ini_key, BLUETOOTH_WBS_ENABLED_INI_DEFAULT);
+
+	snprintf(ini_key, MAX_INI_KEY_LENGTH,
+		 BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
+	board_config->bt_hfp_offload_finch_applied = iniparser_getint(
+		ini, ini_key, BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_DEFAULT);
 
 	snprintf(ini_key, MAX_INI_KEY_LENGTH,
 		 BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_KEY);

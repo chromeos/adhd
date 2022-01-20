@@ -286,6 +286,10 @@ bool cras_system_get_bt_wbs_enabled() {
   return true;
 }
 
+bool cras_system_get_bt_hfp_offload_finch_applied() {
+  return true;
+}
+
 int cras_server_metrics_hfp_wideband_selected_codec(int codec) {
   return HFP_CODEC_ID_MSBC;
 }
