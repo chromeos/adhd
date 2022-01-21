@@ -151,7 +151,7 @@ int input_data_get_for_stream(struct input_data *data,
 	struct cras_apm *apm;
 	int stream_offset = buffer_share_id_offset(offsets, stream->stream_id);
 
-	apm = cras_apm_list_get_active_apm(stream->apm_list, data->idev);
+	apm = cras_stream_apm_get_active(stream->stream_apm, data->idev);
 	if (apm == NULL) {
 		/*
 		 * Case 1 and 2 from above example.
@@ -162,15 +162,15 @@ int input_data_get_for_stream(struct input_data *data,
 		/*
 		 * Case 3 from above example.
 		 */
-		apm_processed = cras_apm_list_process(apm, data->fbuffer,
-						      stream_offset);
+		apm_processed = cras_stream_apm_process(apm, data->fbuffer,
+							stream_offset);
 		if (apm_processed < 0) {
-			cras_apm_list_remove_apm(stream->apm_list, data->idev);
+			cras_stream_apm_remove(stream->stream_apm, data->idev);
 			return 0;
 		}
 		buffer_share_offset_update(offsets, stream->stream_id,
 					   apm_processed);
-		*area = cras_apm_list_get_processed(apm);
+		*area = cras_stream_apm_get_processed(apm);
 		*offset = 0;
 	}
 
@@ -182,10 +182,10 @@ int input_data_put_for_stream(struct input_data *data,
 			      struct buffer_share *offsets, unsigned int frames)
 {
 	struct cras_apm *apm =
-		cras_apm_list_get_active_apm(stream->apm_list, data->idev);
+		cras_stream_apm_get_active(stream->stream_apm, data->idev);
 
 	if (apm)
-		cras_apm_list_put_processed(apm, frames);
+		cras_stream_apm_put_processed(apm, frames);
 	else
 		buffer_share_offset_update(offsets, stream->stream_id, frames);
 
@@ -202,8 +202,8 @@ float input_data_get_software_gain_scaler(struct input_data *data,
 	 * settings, give APM total control of the captured samples without
 	 * additional gain scaler at all.
 	 */
-	apm = cras_apm_list_get_active_apm(stream->apm_list, data->idev);
-	if (apm && cras_apm_list_get_use_tuned_settings(apm))
+	apm = cras_stream_apm_get_active(stream->stream_apm, data->idev);
+	if (apm && cras_stream_apm_get_use_tuned_settings(apm))
 		return 1.0f;
 
 	return idev_sw_gain_scaler * cras_rstream_get_volume_scaler(stream);

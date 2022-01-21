@@ -7,11 +7,11 @@
 
 extern "C" {
 #include "audio_thread.h"
-#include "cras_apm_list.h"
 #include "cras_apm_reverse.h"
 #include "cras_audio_area.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_stream_apm.h"
 #include "cras_types.h"
 #include "float_buffer.h"
 #include "webrtc_apm.h"
@@ -23,7 +23,7 @@ namespace {
 
 static struct cras_iodev* idev = reinterpret_cast<struct cras_iodev*>(0x345);
 static struct cras_iodev* idev2 = reinterpret_cast<cras_iodev*>(0x678);
-static struct cras_apm_list* list;
+static struct cras_stream_apm* stream;
 static struct cras_audio_area fake_audio_area;
 static unsigned int dsp_util_interleave_frames;
 static unsigned int webrtc_apm_process_stream_f_called;
@@ -37,15 +37,15 @@ static thread_callback thread_cb;
 static void* cb_data;
 static output_devices_changed_t output_devices_changed_callback = NULL;
 
-TEST(ApmList, ApmListCreate) {
-  list = cras_apm_list_create(0);
-  EXPECT_EQ((void*)NULL, list);
+TEST(StreamApm, StreamApmCreate) {
+  stream = cras_stream_apm_create(0);
+  EXPECT_EQ((void*)NULL, stream);
 
-  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, list);
-  EXPECT_EQ(APM_ECHO_CANCELLATION, cras_apm_list_get_effects(list));
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, stream);
+  EXPECT_EQ(APM_ECHO_CANCELLATION, cras_stream_apm_get_effects(stream));
 
-  cras_apm_list_destroy(list);
+  cras_stream_apm_destroy(stream);
 }
 
 static char* prepare_tempdir() {
@@ -85,7 +85,7 @@ static void init_channel_layout(struct cras_audio_format* fmt) {
     fmt->channel_layout[i] = -1;
 }
 
-TEST(ApmList, AddApmInputDevUnuseFirstChannel) {
+TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
   struct cras_audio_format fmt;
   struct cras_audio_format* val;
   struct cras_apm* apm;
@@ -106,9 +106,9 @@ TEST(ApmList, AddApmInputDevUnuseFirstChannel) {
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
-  cras_apm_list_init("");
-  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, list);
+  cras_stream_apm_init("");
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, stream);
 
   for (int i = 0; i < num_test_casts; i++) {
     fmt.num_channels = test_num_channels[i];
@@ -117,27 +117,27 @@ TEST(ApmList, AddApmInputDevUnuseFirstChannel) {
       fmt.channel_layout[ch] = test_layouts[i][ch];
 
     /* Input dev is of aec use case. */
-    apm = cras_apm_list_add_apm(list, idev, &fmt, 1);
+    apm = cras_stream_apm_add(stream, idev, &fmt, 1);
     EXPECT_NE((void*)NULL, apm);
 
     /* Assert that the post-processing format never has an unset
      * first channel in the layout. */
     bool first_channel_found_in_layout = 0;
-    val = cras_apm_list_get_format(apm);
+    val = cras_stream_apm_get_format(apm);
     for (ch = 0; ch < CRAS_CH_MAX; ch++)
       if (0 == val->channel_layout[ch])
         first_channel_found_in_layout = 1;
 
     EXPECT_EQ(1, first_channel_found_in_layout);
 
-    cras_apm_list_remove_apm(list, idev);
+    cras_stream_apm_remove(stream, idev);
   }
 
-  cras_apm_list_destroy(list);
-  cras_apm_list_deinit();
+  cras_stream_apm_destroy(stream);
+  cras_stream_apm_deinit();
 }
 
-TEST(ApmList, AddRemoveApm) {
+TEST(StreamApm, AddRemoveApm) {
   struct cras_audio_format fmt;
   char* dir;
 
@@ -146,49 +146,49 @@ TEST(ApmList, AddRemoveApm) {
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
   dir = prepare_tempdir();
-  cras_apm_list_init(dir);
+  cras_stream_apm_init(dir);
   cras_apm_reverse_is_aec_use_case_ret = 1;
   cras_apm_reverse_state_update_called = 0;
 
-  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, list);
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, stream);
 
   /* Input dev is of aec use case. */
-  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt, 1));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(list, idev));
+  EXPECT_EQ((void*)NULL, cras_stream_apm_get_active(stream, idev));
   EXPECT_EQ(0, cras_apm_reverse_state_update_called);
 
-  cras_apm_list_start_apm(list, idev);
-  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(list, idev));
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(list, idev2));
+  cras_stream_apm_start(stream, idev);
+  EXPECT_NE((void*)NULL, cras_stream_apm_get_active(stream, idev));
+  EXPECT_EQ((void*)NULL, cras_stream_apm_get_active(stream, idev2));
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
 
   /* Input dev is not of aec use case. */
-  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev2, &fmt, 0));
+  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev2, &fmt, 0));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_EQ((void*)NULL, webrtc_apm_create_apm_ini_val);
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
-  cras_apm_list_start_apm(list, idev2);
+  cras_stream_apm_start(stream, idev2);
   EXPECT_EQ(2, cras_apm_reverse_state_update_called);
-  cras_apm_list_stop_apm(list, idev);
+  cras_stream_apm_stop(stream, idev);
   EXPECT_EQ(3, cras_apm_reverse_state_update_called);
 
-  EXPECT_EQ((void*)NULL, cras_apm_list_get_active_apm(list, idev));
-  EXPECT_NE((void*)NULL, cras_apm_list_get_active_apm(list, idev2));
+  EXPECT_EQ((void*)NULL, cras_stream_apm_get_active(stream, idev));
+  EXPECT_NE((void*)NULL, cras_stream_apm_get_active(stream, idev2));
 
-  cras_apm_list_stop_apm(list, idev2);
-  cras_apm_list_remove_apm(list, idev);
-  cras_apm_list_remove_apm(list, idev2);
+  cras_stream_apm_stop(stream, idev2);
+  cras_stream_apm_remove(stream, idev);
+  cras_stream_apm_remove(stream, idev2);
 
-  cras_apm_list_destroy(list);
-  cras_apm_list_deinit();
+  cras_stream_apm_destroy(stream);
+  cras_stream_apm_deinit();
   delete_tempdir(dir);
   free(dir);
 }
 
-TEST(ApmList, OutputTypeNotAecUseCase) {
+TEST(StreamApm, OutputTypeNotAecUseCase) {
   struct cras_audio_format fmt;
   char* dir;
 
@@ -197,32 +197,32 @@ TEST(ApmList, OutputTypeNotAecUseCase) {
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
   dir = prepare_tempdir();
-  cras_apm_list_init(dir);
+  cras_stream_apm_init(dir);
 
-  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, list);
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, stream);
 
   /* Output device is of aec use case. */
   cras_apm_reverse_is_aec_use_case_ret = 1;
-  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt, 1));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
-  cras_apm_list_remove_apm(list, idev);
+  cras_stream_apm_remove(stream, idev);
 
   /* Output device is not of aec use case. */
   cras_apm_reverse_is_aec_use_case_ret = 0;
-  EXPECT_NE((void*)NULL, cras_apm_list_add_apm(list, idev, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt, 1));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_EQ((void*)NULL, webrtc_apm_create_apm_ini_val);
-  cras_apm_list_remove_apm(list, idev);
+  cras_stream_apm_remove(stream, idev);
 
-  cras_apm_list_destroy(list);
-  cras_apm_list_deinit();
+  cras_stream_apm_destroy(stream);
+  cras_stream_apm_deinit();
   delete_tempdir(dir);
   free(dir);
 }
 
-TEST(ApmList, ApmProcessForwardBuffer) {
+TEST(StreamApm, ApmProcessForwardBuffer) {
   struct cras_apm* apm;
   struct cras_audio_format fmt;
   struct cras_audio_area* area;
@@ -235,52 +235,52 @@ TEST(ApmList, ApmProcessForwardBuffer) {
   fmt.channel_layout[CRAS_CH_FL] = 0;
   fmt.channel_layout[CRAS_CH_FR] = 1;
 
-  cras_apm_list_init("");
+  cras_stream_apm_init("");
 
-  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, list);
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, stream);
 
-  apm = cras_apm_list_add_apm(list, idev, &fmt, 1);
+  apm = cras_stream_apm_add(stream, idev, &fmt, 1);
 
   buf = float_buffer_create(500, 2);
   float_buffer_written(buf, 300);
   webrtc_apm_process_stream_f_called = 0;
-  cras_apm_list_process(apm, buf, 0);
+  cras_stream_apm_process(apm, buf, 0);
   EXPECT_EQ(0, webrtc_apm_process_stream_f_called);
 
-  area = cras_apm_list_get_processed(apm);
+  area = cras_stream_apm_get_processed(apm);
   EXPECT_EQ(0, area->frames);
 
   float_buffer_reset(buf);
   float_buffer_written(buf, 200);
-  cras_apm_list_process(apm, buf, 0);
-  area = cras_apm_list_get_processed(apm);
+  cras_stream_apm_process(apm, buf, 0);
+  area = cras_stream_apm_get_processed(apm);
   EXPECT_EQ(1, webrtc_apm_process_stream_f_called);
   EXPECT_EQ(480, dsp_util_interleave_frames);
   EXPECT_EQ(480, area->frames);
 
-  /* Put some processed frames. Another apm_list process will not call
+  /* Put some processed frames. Another stream_apm process will not call
    * into webrtc_apm because the processed buffer is not yet empty.
    */
-  cras_apm_list_put_processed(apm, 200);
+  cras_stream_apm_put_processed(apm, 200);
   float_buffer_reset(buf);
   float_buffer_written(buf, 500);
-  cras_apm_list_process(apm, buf, 0);
+  cras_stream_apm_process(apm, buf, 0);
   EXPECT_EQ(1, webrtc_apm_process_stream_f_called);
 
   /* Put another 280 processed frames, so it's now ready for webrtc_apm
    * to process another chunk of 480 frames (10ms) data.
    */
-  cras_apm_list_put_processed(apm, 280);
-  cras_apm_list_process(apm, buf, 0);
+  cras_stream_apm_put_processed(apm, 280);
+  cras_stream_apm_process(apm, buf, 0);
   EXPECT_EQ(2, webrtc_apm_process_stream_f_called);
 
   float_buffer_destroy(&buf);
-  cras_apm_list_destroy(list);
-  cras_apm_list_deinit();
+  cras_stream_apm_destroy(stream);
+  cras_stream_apm_deinit();
 }
 
-TEST(ApmList, StreamAddToAlreadyOpenedDev) {
+TEST(StreamApm, StreamAddToAlreadyOpenedDev) {
   struct cras_audio_format fmt;
   struct cras_apm *apm1, *apm2;
 
@@ -288,26 +288,26 @@ TEST(ApmList, StreamAddToAlreadyOpenedDev) {
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
-  cras_apm_list_init("");
+  cras_stream_apm_init("");
 
   webrtc_apm_create_called = 0;
-  list = cras_apm_list_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, list);
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  EXPECT_NE((void*)NULL, stream);
 
-  apm1 = cras_apm_list_add_apm(list, idev, &fmt, 1);
+  apm1 = cras_stream_apm_add(stream, idev, &fmt, 1);
   EXPECT_EQ(1, webrtc_apm_create_called);
   EXPECT_NE((void*)NULL, apm1);
 
-  apm2 = cras_apm_list_add_apm(list, idev, &fmt, 1);
+  apm2 = cras_stream_apm_add(stream, idev, &fmt, 1);
   EXPECT_EQ(1, webrtc_apm_create_called);
   EXPECT_EQ(apm1, apm2);
 
-  cras_apm_list_destroy(list);
-  cras_apm_list_deinit();
+  cras_stream_apm_destroy(stream);
+  cras_stream_apm_deinit();
 }
 
-TEST(ApmList, ReverseDevChanged) {
-  cras_apm_list_init("");
+TEST(StreamApm, ReverseDevChanged) {
+  cras_stream_apm_init("");
   EXPECT_NE((void*)NULL, output_devices_changed_callback);
   EXPECT_NE((void*)NULL, thread_cb);
 
@@ -317,7 +317,7 @@ TEST(ApmList, ReverseDevChanged) {
   thread_cb(cb_data, POLLIN);
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
 
-  cras_apm_list_deinit();
+  cras_stream_apm_deinit();
 }
 
 extern "C" {

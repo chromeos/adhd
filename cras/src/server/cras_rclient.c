@@ -8,7 +8,6 @@
 #include <syslog.h>
 
 #include "audio_thread.h"
-#include "cras_apm_list.h"
 #include "cras_bt_log.h"
 #include "cras_capture_rclient.h"
 #include "cras_config.h"

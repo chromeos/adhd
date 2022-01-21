@@ -31,7 +31,7 @@ endif
 
 if HAVE_WEBRTC_APM
 CRAS_WEBRTC_APM_SOURCES = \
-	server/cras_apm_list.c \
+	server/cras_stream_apm.c \
 	server/cras_apm_reverse.c
 else
 CRAS_WEBRTC_APM_SOURCES =
@@ -446,7 +446,7 @@ endif
 
 if HAVE_WEBRTC_APM
 CRAS_WEBRTC_APM_TESTS = \
-	apm_list_unittest \
+	stream_apm_unittest \
 	apm_reverse_unittest
 else
 CRAS_WEBRTC_APM_TESTS =
@@ -719,14 +719,14 @@ alsa_ucm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 alsa_ucm_unittest_LDADD = -lgtest -lpthread
 
 if HAVE_WEBRTC_APM
-apm_list_unittest_SOURCES = tests/apm_list_unittest.cc \
-	server/cras_apm_list.c
-apm_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+stream_apm_unittest_SOURCES = tests/stream_apm_unittest.cc \
+	server/cras_stream_apm.c
+stream_apm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	$(DSP_INCLUDE_PATHS) \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
 	$(WEBRTC_APM_CFLAGS)
-apm_list_unittest_LDADD = -lgtest -liniparser
+stream_apm_unittest_LDADD = -lgtest -liniparser
 
 apm_reverse_unittest_SOURCES = tests/apm_reverse_unittest.cc \
 	server/cras_apm_reverse.c

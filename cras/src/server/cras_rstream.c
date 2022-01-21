@@ -313,9 +313,9 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	stream->fd = config->audio_fd;
 	config->audio_fd = -1;
 	stream->buf_state = buffer_share_create(stream->buffer_frames);
-	stream->apm_list = (stream->direction == CRAS_STREAM_INPUT) ?
-				   cras_apm_list_create(config->effects) :
-				   NULL;
+	stream->stream_apm = (stream->direction == CRAS_STREAM_INPUT) ?
+				     cras_stream_apm_create(config->effects) :
+				     NULL;
 	cras_frames_to_time(config->cb_threshold, config->format->frame_rate,
 			    &stream->acceptable_fetch_interval);
 	syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu",
@@ -340,15 +340,16 @@ void cras_rstream_destroy(struct cras_rstream *stream)
 	cras_audio_shm_destroy(stream->shm);
 	cras_audio_area_destroy(stream->audio_area);
 	buffer_share_destroy(stream->buf_state);
-	if (stream->apm_list)
-		cras_apm_list_destroy(stream->apm_list);
+	if (stream->stream_apm)
+		cras_stream_apm_destroy(stream->stream_apm);
 	free(stream);
 }
 
 unsigned int cras_rstream_get_effects(const struct cras_rstream *stream)
 {
-	return stream->apm_list ? cras_apm_list_get_effects(stream->apm_list) :
-				  0;
+	return stream->stream_apm ?
+		       cras_stream_apm_get_effects(stream->stream_apm) :
+		       0;
 }
 
 struct cras_audio_format *
@@ -357,10 +358,10 @@ cras_rstream_post_processing_format(const struct cras_rstream *stream,
 {
 	struct cras_apm *apm;
 
-	apm = cras_apm_list_get_active_apm((void *)stream, dev_ptr);
+	apm = cras_stream_apm_get_active((void *)stream, dev_ptr);
 	if (NULL == apm)
 		return NULL;
-	return cras_apm_list_get_format(apm);
+	return cras_stream_apm_get_format(apm);
 }
 
 void cras_rstream_record_fetch_interval(struct cras_rstream *rstream,

@@ -11,7 +11,7 @@
 
 #include "audio_thread.h"
 #include "byte_buffer.h"
-#include "cras_apm_list.h"
+#include "cras_stream_apm.h"
 #include "cras_apm_reverse.h"
 #include "cras_audio_area.h"
 #include "cras_audio_format.h"
@@ -84,23 +84,21 @@ struct cras_apm {
 };
 
 /*
- * Lists of cras_apm instances created for a stream. A stream may
- * have more than one cras_apm when multiple input devices are
- * enabled. The most common scenario is the silent input iodev be
- * enabled when CRAS switches active input device.
+ * Structure to hold cras_apm instances created for a stream. A stream may
+ * have more than one cras_apm when multiple input devices are enabled.
+ * The most common scenario is the silent input iodev be enabled when
+ * CRAS switches active input device.
  *
- * Note that cras_apm_list is owned and modified in main thread.
- * Only in synchronized audio thread event this cras_apm_list is safe
- * to access for passing single APM instance between threads.
+ * Note that cras_stream_apm is owned and modified in main thread.
+ * Access with cautious from audio thread.
  * Members:
  *    effects - The effecets bit map of APM.
  *    apms - List of APMs for stream processing. It is a list because
  *        multiple input devices could be configured by user.
  */
-struct cras_apm_list {
+struct cras_stream_apm {
 	uint64_t effects;
 	struct cras_apm *apms;
-	struct cras_apm_list *prev, *next;
 };
 
 /*
@@ -110,13 +108,13 @@ struct cras_apm_list {
  * and can be used for processing.
  * Members:
  *    apm - The APM for audio data processing.
- *    list - The associated |cras_apm_list| instance. It is ensured by
+ *    stream - The associated |cras_stream_apm| instance. It is ensured by
  *        the objects life cycle that whenever an |active_apm| is valid
- *        in audio thread, it's safe to access its |list| member.
+ *        in audio thread, it's safe to access its |stream| member.
  */
 struct active_apm {
 	struct cras_apm *apm;
-	struct cras_apm_list *list;
+	struct cras_stream_apm *stream;
 	struct active_apm *prev, *next;
 } * active_apms;
 
@@ -171,59 +169,59 @@ static void apm_destroy(struct cras_apm **apm)
 	*apm = NULL;
 }
 
-struct cras_apm_list *cras_apm_list_create(uint64_t effects)
+struct cras_stream_apm *cras_stream_apm_create(uint64_t effects)
 {
-	struct cras_apm_list *list;
+	struct cras_stream_apm *stream;
 
 	if (effects == 0)
 		return NULL;
 
-	list = (struct cras_apm_list *)calloc(1, sizeof(*list));
-	if (list == NULL) {
-		syslog(LOG_ERR, "No memory in creating apm list");
+	stream = (struct cras_stream_apm *)calloc(1, sizeof(*stream));
+	if (stream == NULL) {
+		syslog(LOG_ERR, "No memory in creating stream apm");
 		return NULL;
 	}
-	list->effects = effects;
-	list->apms = NULL;
+	stream->effects = effects;
+	stream->apms = NULL;
 
-	return list;
+	return stream;
 }
 
-static struct active_apm *get_active_apm(struct cras_apm_list *list,
+static struct active_apm *get_active_apm(struct cras_stream_apm *stream,
 					 const struct cras_iodev *idev)
 {
 	struct active_apm *active;
 
 	DL_FOREACH (active_apms, active) {
-		if ((active->apm->idev == idev) && (active->list == list))
+		if ((active->apm->idev == idev) && (active->stream == stream))
 			return active;
 	}
 	return NULL;
 }
 
-struct cras_apm *cras_apm_list_get_active_apm(struct cras_apm_list *list,
-					      const struct cras_iodev *idev)
+struct cras_apm *cras_stream_apm_get_active(struct cras_stream_apm *stream,
+					    const struct cras_iodev *idev)
 {
-	struct active_apm *active = get_active_apm(list, idev);
+	struct active_apm *active = get_active_apm(stream, idev);
 	return active ? active->apm : NULL;
 }
 
-uint64_t cras_apm_list_get_effects(struct cras_apm_list *list)
+uint64_t cras_stream_apm_get_effects(struct cras_stream_apm *stream)
 {
-	if (list == NULL)
+	if (stream == NULL)
 		return 0;
 	else
-		return list->effects;
+		return stream->effects;
 }
 
-void cras_apm_list_remove_apm(struct cras_apm_list *list,
-			      const struct cras_iodev *idev)
+void cras_stream_apm_remove(struct cras_stream_apm *stream,
+			    const struct cras_iodev *idev)
 {
 	struct cras_apm *apm;
 
-	DL_FOREACH (list->apms, apm) {
+	DL_FOREACH (stream->apms, apm) {
 		if (apm->idev == idev) {
-			DL_DELETE(list->apms, apm);
+			DL_DELETE(stream->apms, apm);
 			apm_destroy(&apm);
 		}
 	}
@@ -285,21 +283,21 @@ static void get_best_channels(struct cras_audio_format *apm_fmt)
 		apm_fmt->channel_layout[ch] = layout[ch];
 }
 
-struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
-				       struct cras_iodev *idev,
-				       const struct cras_audio_format *dev_fmt,
-				       bool is_aec_use_case)
+struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
+				     struct cras_iodev *idev,
+				     const struct cras_audio_format *dev_fmt,
+				     bool is_aec_use_case)
 {
 	struct cras_apm *apm;
 
-	DL_FOREACH (list->apms, apm)
+	DL_FOREACH (stream->apms, apm)
 		if (apm->idev == idev)
 			return apm;
 
 	// TODO(hychao): Remove the check when we enable more effects.
-	if (!((list->effects & APM_ECHO_CANCELLATION) ||
-	      (list->effects & APM_NOISE_SUPRESSION) ||
-	      (list->effects & APM_GAIN_CONTROL)))
+	if (!((stream->effects & APM_ECHO_CANCELLATION) ||
+	      (stream->effects & APM_NOISE_SUPRESSION) ||
+	      (stream->effects & APM_GAIN_CONTROL)))
 		return NULL;
 
 	apm = (struct cras_apm *)calloc(1, sizeof(*apm));
@@ -322,15 +320,15 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 	/* Determine whether to enforce effects to be on (regardless of settings
 	 * in the apm.ini file). */
 	unsigned int enforce_aec_on = 0;
-	if (list->effects & APM_ECHO_CANCELLATION) {
+	if (stream->effects & APM_ECHO_CANCELLATION) {
 		enforce_aec_on = 1;
 	}
 	unsigned int enforce_ns_on = 0;
-	if (list->effects & APM_NOISE_SUPRESSION) {
+	if (stream->effects & APM_NOISE_SUPRESSION) {
 		enforce_ns_on = 1;
 	}
 	unsigned int enforce_agc_on = 0;
-	if (list->effects & APM_GAIN_CONTROL) {
+	if (stream->effects & APM_GAIN_CONTROL) {
 		enforce_agc_on = 1;
 	}
 
@@ -347,7 +345,7 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 		       "Fail to create webrtc apm for ch %zu"
 		       " rate %zu effect %" PRIu64,
 		       dev_fmt->num_channels, dev_fmt->frame_rate,
-		       list->effects);
+		       stream->effects);
 		free(apm);
 		return NULL;
 	}
@@ -369,26 +367,26 @@ struct cras_apm *cras_apm_list_add_apm(struct cras_apm_list *list,
 	 * channel capture process. */
 	cras_audio_area_config_channels(apm->area, &mono_channel);
 
-	DL_APPEND(list->apms, apm);
+	DL_APPEND(stream->apms, apm);
 
 	return apm;
 }
 
-void cras_apm_list_start_apm(struct cras_apm_list *list,
-			     const struct cras_iodev *idev)
+void cras_stream_apm_start(struct cras_stream_apm *stream,
+			   const struct cras_iodev *idev)
 {
 	struct active_apm *active;
 	struct cras_apm *apm;
 
-	if (list == NULL)
+	if (stream == NULL)
 		return;
 
 	/* Check if this apm has already been started. */
-	apm = cras_apm_list_get_active_apm(list, idev);
+	apm = cras_stream_apm_get_active(stream, idev);
 	if (apm)
 		return;
 
-	DL_SEARCH_SCALAR(list->apms, apm, idev, idev);
+	DL_SEARCH_SCALAR(stream->apms, apm, idev, idev);
 	if (apm == NULL)
 		return;
 
@@ -398,20 +396,21 @@ void cras_apm_list_start_apm(struct cras_apm_list *list,
 		return;
 	}
 	active->apm = apm;
-	active->list = list;
+	active->stream = stream;
 	DL_APPEND(active_apms, active);
 
 	cras_apm_reverse_state_update();
 }
 
-void cras_apm_list_stop_apm(struct cras_apm_list *list, struct cras_iodev *idev)
+void cras_stream_apm_stop(struct cras_stream_apm *stream,
+			  struct cras_iodev *idev)
 {
 	struct active_apm *active;
 
-	if (list == NULL)
+	if (stream == NULL)
 		return;
 
-	active = get_active_apm(list, idev);
+	active = get_active_apm(stream, idev);
 	if (active) {
 		DL_DELETE(active_apms, active);
 		free(active);
@@ -420,15 +419,15 @@ void cras_apm_list_stop_apm(struct cras_apm_list *list, struct cras_iodev *idev)
 	cras_apm_reverse_state_update();
 }
 
-int cras_apm_list_destroy(struct cras_apm_list *list)
+int cras_stream_apm_destroy(struct cras_stream_apm *stream)
 {
 	struct cras_apm *apm;
 
-	DL_FOREACH (list->apms, apm) {
-		DL_DELETE(list->apms, apm);
+	DL_FOREACH (stream->apms, apm) {
+		DL_DELETE(stream->apms, apm);
 		apm_destroy(&apm);
 	}
-	free(list);
+	free(stream);
 
 	return 0;
 }
@@ -445,7 +444,7 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 	rp = float_buffer_read_pointer(fbuf, 0, &unused);
 
 	DL_FOREACH (active_apms, active) {
-		if (!(active->list->effects & APM_ECHO_CANCELLATION))
+		if (!(active->stream->effects & APM_ECHO_CANCELLATION))
 			continue;
 
 		if (active->apm->only_symmetric_content_in_render) {
@@ -471,7 +470,7 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate)
 
 /*
  * When APM reverse module has state changes, this callback function is called
- * to ask APM lists if there's need to process data on the reverse side.
+ * to ask stream APMs if there's need to process data on the reverse side.
  * This is expected to be called from cras_apm_reverse_state_update() in
  * audio thread so it's safe to access |active_apms|.
  */
@@ -480,7 +479,7 @@ static int process_reverse_needed()
 	struct active_apm *active;
 
 	DL_FOREACH (active_apms, active) {
-		if (active->list->effects & APM_ECHO_CANCELLATION)
+		if (active->stream->effects & APM_ECHO_CANCELLATION)
 			return 1;
 	}
 	return 0;
@@ -570,7 +569,7 @@ read_write_err:
 	return 0;
 }
 
-int cras_apm_list_init(const char *device_config_dir)
+int cras_stream_apm_init(const char *device_config_dir)
 {
 	static const char *cras_apm_metrics_prefix = "Cras.";
 	int rc;
@@ -593,7 +592,7 @@ int cras_apm_list_init(const char *device_config_dir)
 				     on_output_devices_changed);
 }
 
-void cras_apm_list_reload_aec_config()
+void cras_stream_apm_reload_aec_config()
 {
 	if (NULL == aec_config_dir)
 		return;
@@ -605,7 +604,7 @@ void cras_apm_list_reload_aec_config()
 	webrtc_apm_dump_configs(apm_ini, aec_ini);
 }
 
-int cras_apm_list_deinit()
+int cras_stream_apm_deinit()
 {
 	cras_apm_reverse_deinit();
 	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
@@ -617,8 +616,8 @@ int cras_apm_list_deinit()
 	return 0;
 }
 
-int cras_apm_list_process(struct cras_apm *apm, struct float_buffer *input,
-			  unsigned int offset)
+int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
+			    unsigned int offset)
 {
 	unsigned int writable, nframes, nread;
 	int ch, i, j, ret;
@@ -698,7 +697,7 @@ int cras_apm_list_process(struct cras_apm *apm, struct float_buffer *input,
 	return writable;
 }
 
-struct cras_audio_area *cras_apm_list_get_processed(struct cras_apm *apm)
+struct cras_audio_area *cras_stream_apm_get_processed(struct cras_apm *apm)
 {
 	uint8_t *buf_ptr;
 
@@ -708,34 +707,34 @@ struct cras_audio_area *cras_apm_list_get_processed(struct cras_apm *apm)
 	return apm->area;
 }
 
-void cras_apm_list_put_processed(struct cras_apm *apm, unsigned int frames)
+void cras_stream_apm_put_processed(struct cras_apm *apm, unsigned int frames)
 {
 	buf_increment_read(apm->buffer,
 			   frames * cras_get_format_bytes(&apm->fmt));
 }
 
-struct cras_audio_format *cras_apm_list_get_format(struct cras_apm *apm)
+struct cras_audio_format *cras_stream_apm_get_format(struct cras_apm *apm)
 {
 	return &apm->fmt;
 }
 
-bool cras_apm_list_get_use_tuned_settings(struct cras_apm *apm)
+bool cras_stream_apm_get_use_tuned_settings(struct cras_apm *apm)
 {
 	/* If input and output devices in AEC use case, plus that a
 	 * tuned setting is provided. */
 	return apm->is_aec_use_case && (aec_ini || apm_ini);
 }
 
-void cras_apm_list_set_aec_dump(struct cras_apm_list *list,
-				const struct cras_iodev *idev, int start,
-				int fd)
+void cras_stream_apm_set_aec_dump(struct cras_stream_apm *stream,
+				  const struct cras_iodev *idev, int start,
+				  int fd)
 {
 	struct cras_apm *apm;
 	char file_name[256];
 	int rc;
 	FILE *handle;
 
-	DL_SEARCH_SCALAR(list->apms, apm, idev, idev);
+	DL_SEARCH_SCALAR(stream->apms, apm, idev, idev);
 	if (apm == NULL)
 		return;
 

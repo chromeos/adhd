@@ -8,7 +8,7 @@
 
 #include "audio_thread.h"
 #include "audio_thread_log.h"
-#include "cras_apm_list.h"
+#include "cras_stream_apm.h"
 #include "cras_bt_log.h"
 #include "cras_config.h"
 #include "cras_control_rclient.h"
@@ -508,7 +508,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		break;
 	}
 	case CRAS_SERVER_RELOAD_AEC_CONFIG:
-		cras_apm_list_reload_aec_config();
+		cras_stream_apm_reload_aec_config();
 		break;
 	case CRAS_SERVER_SET_AEC_REF: {
 		if (!MSG_LEN_VALID(msg, struct cras_set_aec_ref_message))

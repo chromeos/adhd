@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_apm_list.h"
+#include "cras_stream_apm.h"
 #include "cras_apm_reverse.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
@@ -119,7 +119,7 @@ static void handle_iodev_states_changed(struct cras_iodev *iodev, void *cb_data)
 	if (old)
 		cras_iodev_set_ext_dsp_module(old, NULL);
 
-	/* Notify APM lists of the output devices change on reverse side. */
+	/* Notify stream APMs of the output devices change on reverse side. */
 	if (output_devices_changed_callback)
 		output_devices_changed_callback();
 }

@@ -466,12 +466,12 @@ static int thread_set_aec_dump(struct audio_thread *thread,
 			continue;
 
 		DL_FOREACH (adev->dev->streams, stream) {
-			if ((stream->stream->apm_list == NULL) ||
+			if ((stream->stream->stream_apm == NULL) ||
 			    (stream->stream->stream_id != stream_id))
 				continue;
 
-			cras_apm_list_set_aec_dump(stream->stream->apm_list,
-						   adev->dev, start, fd);
+			cras_stream_apm_set_aec_dump(stream->stream->stream_apm,
+						     adev->dev, start, fd);
 		}
 	}
 	return 0;
@@ -546,7 +546,7 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->longest_fetch_nsec = stream->stream->longest_fetch_interval.tv_nsec;
 	si->num_delayed_fetches = stream->stream->num_delayed_fetches;
 	si->num_overruns = cras_shm_num_overruns(stream->stream->shm);
-	si->effects = cras_apm_list_get_effects(stream->stream->apm_list);
+	si->effects = cras_stream_apm_get_effects(stream->stream->stream_apm);
 	si->pinned_dev_idx = stream->stream->pinned_dev_idx;
 	si->is_pinned = stream->stream->is_pinned;
 	si->num_missed_cb = stream->stream->num_missed_cb;

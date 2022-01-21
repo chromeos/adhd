@@ -1433,18 +1433,14 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
 
 #ifdef HAVE_WEBRTC_APM
 
-uint64_t cras_apm_list_get_effects(struct cras_apm_list* list) {
+uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
   return 0;
 }
 
-void cras_apm_list_set_debug_recording(struct cras_apm* apm,
-                                       unsigned int stream_id,
-                                       int start,
-                                       const char* file_name_base) {}
-void cras_apm_list_set_aec_dump(struct cras_apm_list* list,
-                                const struct cras_iodev* idev,
-                                int start,
-                                int fd) {}
+void cras_stream_apm_set_aec_dump(struct cras_stream_apm* stream,
+                                  const struct cras_iodev* idev,
+                                  int start,
+                                  int fd) {}
 
 #endif
 

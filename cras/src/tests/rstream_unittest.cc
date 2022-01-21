@@ -491,24 +491,24 @@ void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {}
 
 #ifdef HAVE_WEBRTC_APM
 #define FAKE_CRAS_APM_PTR reinterpret_cast<struct cras_apm*>(0x99)
-struct cras_apm_list* cras_apm_list_create(uint64_t effects) {
+struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
   return NULL;
 }
-struct cras_apm* cras_apm_list_get_active_apm(struct cras_apm_list* list,
-                                              const struct cras_iodev* idev) {
+struct cras_apm* cras_stream_apm_get_active(struct cras_stream_apm* stream,
+                                            const struct cras_iodev* idev) {
   return FAKE_CRAS_APM_PTR;
 }
-int cras_apm_list_destroy(struct cras_apm_list* list) {
+int cras_stream_apm_destroy(struct cras_stream_apm* stream) {
   return 0;
 }
-uint64_t cras_apm_list_get_effects(struct cras_apm_list* list) {
+uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
   return APM_ECHO_CANCELLATION;
 }
-struct cras_apm* cras_apm_list_get(struct cras_apm_list* list,
-                                   const struct cras_iodev* idev) {
+struct cras_apm* cras_stream_apm_get(struct cras_stream_apm* stream,
+                                     const struct cras_iodev* idev) {
   return NULL;
 }
-struct cras_audio_format* cras_apm_list_get_format(struct cras_apm* apm) {
+struct cras_audio_format* cras_stream_apm_get_format(struct cras_apm* apm) {
   return NULL;
 }
 #endif

@@ -1200,10 +1200,10 @@ struct cras_audio_format* cras_rstream_post_processing_format(
 void* buffer_share_get_data(const struct buffer_share* mix, unsigned int id) {
   return NULL;
 };
-void cras_apm_list_start_apm(struct cras_apm_list* list,
-                             const struct cras_iodev* idev){};
-void cras_apm_list_stop_apm(struct cras_apm_list* list,
-                            struct cras_iodev* idev){};
+void cras_stream_apm_start(struct cras_stream_apm* stream,
+                           const struct cras_iodev* idev){};
+void cras_stream_apm_stop(struct cras_stream_apm* stream,
+                          struct cras_iodev* idev){};
 
 int config_format_converter(struct cras_fmt_conv** conv,
                             enum CRAS_STREAM_DIRECTION dir,

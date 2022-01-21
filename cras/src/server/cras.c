@@ -10,7 +10,7 @@
 #include <syslog.h>
 
 #include "cras_alsa_plugin_io.h"
-#include "cras_apm_list.h"
+#include "cras_stream_apm.h"
 #include "cras_bt_manager.h"
 #include "cras_config.h"
 #include "cras_iodev_list.h"
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 	if (internal_ucm_suffix)
 		cras_system_state_set_internal_ucm_suffix(internal_ucm_suffix);
 	cras_dsp_init(dsp_config);
-	cras_apm_list_init(device_config_dir);
+	cras_stream_apm_init(device_config_dir);
 	cras_iodev_list_init();
 	cras_alsa_plugin_io_init(device_config_dir);
 

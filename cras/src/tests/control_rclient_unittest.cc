@@ -735,7 +735,7 @@ int audio_thread_event_log_shm_fd() {
 }
 
 #ifdef HAVE_WEBRTC_APM
-void cras_apm_list_reload_aec_config() {}
+void cras_stream_apm_reload_aec_config() {}
 #endif
 
 void cras_system_set_bt_wbs_enabled(bool enabled) {}
