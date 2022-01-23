@@ -1162,7 +1162,8 @@ int cras_iodev_put_output_buffer(struct cras_iodev *iodev, uint8_t *frames,
 		return rc;
 
 	DL_FOREACH (iodev->loopbacks, loopback) {
-		if (loopback->type == LOOPBACK_POST_DSP)
+		if ((loopback->type == LOOPBACK_POST_DSP) ||
+		    (loopback->type == LOOPBACK_POST_DSP_DELAYED))
 			loopback->hook_data(frames, nframes, iodev->format,
 					    loopback->cb_data);
 	}
