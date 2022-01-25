@@ -27,6 +27,8 @@
 #include "test_iodev.h"
 #include "utlist.h"
 
+#define NUM_OPEN_DEVS_MAX 10
+
 const struct timespec idle_timeout_interval = { .tv_sec = 10, .tv_nsec = 0 };
 
 /* Linked list of available devices. */
@@ -919,7 +921,7 @@ static int pinned_stream_added(struct cras_rstream *rstream)
 static int stream_added_cb(struct cras_rstream *rstream)
 {
 	struct enabled_dev *edev;
-	struct cras_iodev *iodevs[10];
+	struct cras_iodev *iodevs[NUM_OPEN_DEVS_MAX];
 	unsigned int num_iodevs;
 	int rc;
 	bool iodev_reopened;
@@ -2045,6 +2047,43 @@ void cras_iodev_list_reset_for_noise_cancellation()
 	}
 }
 
+/*
+ * Removes |rstream| from the attached devices and immediately reconnect
+ * it back. This is used to reconfigure the stream apm after events
+ * like echo ref changes. Called in main thread.
+ */
+static int remove_then_reconnect_stream(struct cras_rstream *rstream)
+{
+	struct enabled_dev *edev;
+	struct cras_iodev *iodevs[NUM_OPEN_DEVS_MAX];
+	unsigned int num_iodevs = 0;
+
+	audio_thread_disconnect_stream(audio_thread, rstream, NULL);
+
+	/* This is in main thread so we are confident the open devices
+	 * list doesn't change since we disconnect |rstream|.
+	 * Simply look up the pinned device or all devices in open state
+	 * and add |rstream| back to them.
+	 */
+	if (rstream->is_pinned) {
+		iodevs[0] = find_pinned_device(rstream);
+		if (!iodevs[0])
+			syslog(LOG_ERR,
+			       "Pinned dev %u not found at reconnect stream",
+			       rstream->pinned_dev_idx);
+		else
+			num_iodevs = 1;
+	} else {
+		DL_FOREACH (enabled_devs[rstream->direction], edev) {
+			if (cras_iodev_is_open(edev->dev))
+				iodevs[num_iodevs++] = edev->dev;
+		}
+	}
+	if (num_iodevs)
+		return add_stream_to_open_devs(rstream, iodevs, num_iodevs);
+	return 0;
+}
+
 int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx)
 {
 	struct cras_rstream *rstream = NULL;
@@ -2083,6 +2122,14 @@ int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx)
 	rc = cras_stream_apm_set_aec_ref(rstream->stream_apm, echo_ref);
 	if (rc)
 		syslog(LOG_ERR, "Error setting dev %u as AEC ref", dev_idx);
+
+	/* Remove then reconnect so the stream apm can be reconfigured to
+	 * reflect the change in echo reference. For example, if the echo ref
+	 * no longer is in AEC use case then stream apm should use different
+	 * settings.
+	 */
+	remove_then_reconnect_stream(rstream);
+
 	return rc;
 }
 

@@ -47,6 +47,18 @@ int cras_stream_apm_deinit();
  *                                 cras_stream_apm_get_processed
  *                                 cras_stream_apm_put_processed
  *
+ * Upon any event that requires certain apm instances to change settings.
+ * Stop and remove the apms, then add apms with new settings and start
+ * them. One way to achieved this is by reconnecting the stream.
+ *
+ * cras_stream_apm_remove_apm <-   cras_stream_apm_stop_apm
+ * cras_stream_apm_add_apm    ->   cras_stream_apm_start_apm
+ *
+ *                                 ...
+ *
+ * Finally when done with them, clean up by stop and remove all apm
+ * instances and destroy the cras_stream_apm object.
+ *
  * cras_stream_apm_remove_apm <-   cras_stream_apm_stop_apm
  * cras_stream_apm_destroy
  *
