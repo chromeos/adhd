@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 use std::string::String;
 
-use dsm::{self, Error, Result};
+use crate::Result;
 use serde::Deserialize;
 
 /// `DeviceSettings` includes the settings of max98390. It currently includes:
@@ -46,7 +46,7 @@ impl DeviceSettings {
     /// Creates a `DeviceSettings` from a yaml str.
     pub fn from_yaml_str(conf: &str) -> Result<DeviceSettings> {
         let settings: DeviceSettings = serde_yaml::from_str(conf)
-            .map_err(|e| Error::DeserializationFailed("DeviceSettings".to_owned(), e))?;
+            .map_err(|e| dsm::Error::DeserializationFailed("DeviceSettings".to_owned(), e))?;
         Ok(settings)
     }
 }

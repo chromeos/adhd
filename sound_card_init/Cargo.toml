@@ -23,6 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8.11"
 sof_sys = "*"
 sys_util = "*"
+thiserror = "*"
 
 [patch.crates-io]
 audio_streams = { path = "../../../platform/crosvm/common/audio_streams" }  # ignored by ebuild

@@ -6,6 +6,7 @@
 //! It currently supports boot time calibration for max98373d.
 #![deny(missing_docs)]
 mod dsm_param;
+mod error;
 mod settings;
 
 use std::path::Path;
@@ -13,11 +14,12 @@ use std::time::Duration;
 use std::{fs, thread};
 
 use cros_alsa::{Card, IntControl};
-use dsm::{CalibData, Error, Result, SpeakerStatus, ZeroPlayer, DSM};
+use dsm::{CalibData, SpeakerStatus, ZeroPlayer, DSM};
 use sys_util::info;
 
-use crate::Amp;
+use crate::{Amp, Result};
 use dsm_param::*;
+pub use error::Error;
 use settings::{AmpCalibSettings, DeviceSettings};
 
 /// It implements the amplifier boot time calibration flow.
@@ -34,7 +36,7 @@ impl Amp for Max98373 {
     /// If any amplifiers fail to complete the calibration.
     fn boot_time_calibration(&mut self) -> Result<()> {
         if !Path::new(&self.setting.dsm_param).exists() {
-            return Err(Error::MissingDSMParam);
+            return Err(Error::MissingDSMParam.into());
         }
 
         let num_channels = self.setting.num_channels();
@@ -65,6 +67,7 @@ impl Amp for Max98373 {
                         .enumerate()
                         .map(|(ch, (&rdc, temp))| {
                             dsm.decide_calibration_value_workflow(ch, CalibData { rdc, temp })
+                                .map_err(crate::Error::DSMError)
                         })
                         .collect::<Result<Vec<_>>>()?
                 }
@@ -100,7 +103,7 @@ impl Max98373 {
     /// * If `Card` creation from sound card name fails.
     pub fn new(card_name: &str, config_path: &Path) -> Result<Self> {
         let conf = fs::read_to_string(config_path)
-            .map_err(|e| Error::FileIOFailed(config_path.to_path_buf(), e))?;
+            .map_err(|e| dsm::Error::FileIOFailed(config_path.to_path_buf(), e))?;
         let settings = DeviceSettings::from_yaml_str(&conf)?;
         Ok(Self {
             card: Card::new(card_name)?,

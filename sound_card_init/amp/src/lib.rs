@@ -6,16 +6,17 @@
 #![deny(missing_docs)]
 
 mod alc1011;
+mod error;
 mod max98373d;
 mod max98390d;
 use std::path::PathBuf;
 
 use alc1011::ALC1011;
-use dsm::Error;
 use max98373d::Max98373;
 use max98390d::Max98390;
 
-type Result<T> = std::result::Result<T, Error>;
+pub use crate::error::{Error, Result};
+
 const CONF_DIR: &str = "/etc/sound_card_init";
 
 /// It creates `Amp` object based on the speaker amplifier name.
@@ -44,14 +45,14 @@ impl<'a> AmpBuilder<'a> {
     /// Creates an `Amp` based on the speaker amplifier name.
     pub fn build(&self) -> Result<Box<dyn Amp>> {
         match self.amp {
-            "MAX98390" => {
-                Ok(Box::new(Max98390::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
+            "ALC1011" => {
+                Ok(Box::new(ALC1011::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
             }
             "MAX98373" => {
                 Ok(Box::new(Max98373::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
             }
-            "ALC1011" => {
-                Ok(Box::new(ALC1011::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
+            "MAX98390" => {
+                Ok(Box::new(Max98390::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
             }
             _ => Err(Error::UnsupportedAmp(self.amp.to_owned())),
         }

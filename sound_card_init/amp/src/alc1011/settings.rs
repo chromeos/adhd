@@ -3,8 +3,9 @@
 // found in the LICENSE file.
 use std::string::String;
 
-use dsm::{self, Error, Result};
 use serde::Deserialize;
+
+use crate::Result;
 /// `DeviceSettings` includes the settings of ALC1011. It currently includes:
 /// * the settings of amplifier calibration.
 /// * the path of dsm_param.
@@ -41,7 +42,7 @@ impl DeviceSettings {
     /// Creates a `DeviceSettings` from a yaml str.
     pub fn from_yaml_str(conf: &str) -> Result<DeviceSettings> {
         let settings: DeviceSettings = serde_yaml::from_str(conf)
-            .map_err(|e| Error::DeserializationFailed("DeviceSettings".to_owned(), e))?;
+            .map_err(|e| dsm::Error::DeserializationFailed("DeviceSettings".to_owned(), e))?;
         Ok(settings)
     }
 }

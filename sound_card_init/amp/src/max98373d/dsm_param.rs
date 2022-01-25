@@ -6,7 +6,8 @@ use std::mem;
 use cros_alsa::{Card, TLV};
 use sof_sys::sof_abi_hdr;
 
-use dsm::{self, Error, Result};
+use crate::max98373d::error::Error;
+use crate::Result;
 
 /// Amp volume mode enumeration used by set_volume().
 #[derive(Copy, Clone, PartialEq)]
@@ -133,13 +134,13 @@ impl DSMParam {
         let param_count_pos = Self::value_pos(0, 0, DsmAPI::ParamCount);
 
         if tlv.len() < param_count_pos {
-            return Err(Error::InvalidDSMParam);
+            return Err(Error::InvalidDSMParam.into());
         }
 
         let param_count = tlv[param_count_pos] as usize;
 
         if tlv.len() != Self::SOF_HEADER_SIZE + param_count * num_channels * Self::DWORD_PER_PARAM {
-            return Err(Error::InvalidDSMParam);
+            return Err(Error::InvalidDSMParam.into());
         }
 
         Ok(Self {
@@ -188,10 +189,13 @@ mod tests {
         let data = vec![0u32; DSMParam::SOF_HEADER_SIZE];
 
         let tlv = TLV::new(0, data);
-        assert_eq!(
-            DSMParam::try_from_tlv(tlv, CHANNEL_COUNT).unwrap_err(),
-            Error::InvalidDSMParam
-        );
+        if let crate::Error::Max98373Error(e) =
+            DSMParam::try_from_tlv(tlv, CHANNEL_COUNT).unwrap_err()
+        {
+            assert_eq!(e, Error::InvalidDSMParam);
+        } else {
+            panic!("failed to evaluate the error")
+        }
     }
 
     #[test]
@@ -201,11 +205,14 @@ mod tests {
             DSMParam::SOF_HEADER_SIZE
                 + CHANNEL_COUNT * PARAM_COUNT * DSMParam::DWORD_PER_PARAM
         ];
-
         let tlv = TLV::new(0, data);
-        assert_eq!(
-            DSMParam::try_from_tlv(tlv, CHANNEL_COUNT).unwrap_err(),
-            Error::InvalidDSMParam
-        );
+
+        if let crate::Error::Max98373Error(e) =
+            DSMParam::try_from_tlv(tlv, CHANNEL_COUNT).unwrap_err()
+        {
+            assert_eq!(e, Error::InvalidDSMParam);
+        } else {
+            panic!("failed to evaluate the error")
+        }
     }
 }

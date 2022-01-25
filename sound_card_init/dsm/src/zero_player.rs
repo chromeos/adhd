@@ -165,7 +165,7 @@ impl PlayZeroWorker {
     }
 
     fn run(&mut self) -> Result<()> {
-        let mut cras_client = CrasClient::new().map_err(Error::CrasClientFailed)?;
+        let mut cras_client = CrasClient::new()?;
         // TODO(b/155007305): Implement cras_client.wait_node_change and use it here.
         let node = cras_client
             .output_nodes()
@@ -194,7 +194,7 @@ impl PlayZeroWorker {
             let mut buffer = stream
                 .next_playback_buffer()
                 .map_err(|e| Error::NextPlaybackBufferFailed(e))?;
-            let _write_frames = buffer.write(&local_buffer).map_err(Error::PlaybackFailed)?;
+            let _write_frames = buffer.write(&local_buffer)?;
             buffer.commit();
             // Notifies the main thread that playback of zeros has started for min_playback_time.
             if iter == min_playback_iterations {

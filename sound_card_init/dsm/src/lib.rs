@@ -274,7 +274,7 @@ impl DSM {
     /// * Failed to wait the internal speakers to be ready.
     pub fn wait_for_speakers_ready(&self) -> Result<()> {
         let find_speaker = || -> Result<()> {
-            let cras_client = CrasClient::new().map_err(Error::CrasClientFailed)?;
+            let cras_client = CrasClient::new()?;
             let _node = cras_client
                 .output_nodes()
                 .find(|node| node.node_type == CrasNodeType::CRAS_NODE_TYPE_INTERNAL_SPEAKER)
@@ -307,9 +307,7 @@ impl DSM {
             return Err(Error::InvalidShutDownTime);
         }
 
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(Error::SystemTimeError)?;
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?;
 
         let elapsed = now
             .checked_sub(last_shutdown)

@@ -10,10 +10,10 @@ use std::fs;
 use std::path::Path;
 
 use cros_alsa::{Card, IntControl};
-use dsm::{CalibData, Error, Result, DSM};
+use dsm::{CalibData, Error, DSM};
 use sys_util::info;
 
-use crate::Amp;
+use crate::{Amp, Result};
 use settings::{AmpCalibSettings, DeviceSettings};
 
 /// It implements the amplifier boot time calibration flow.
@@ -30,7 +30,7 @@ impl Amp for ALC1011 {
     /// If any amplifiers fail to complete the calibration.
     fn boot_time_calibration(&mut self) -> Result<()> {
         if self.setting.boot_time_calibration_enabled {
-            return Err(Error::BootTimeCalibrationNotSupported);
+            return Err(Error::BootTimeCalibrationNotSupported.into());
         }
         let num_channels = self.setting.num_channels();
         let dsm = DSM::new(

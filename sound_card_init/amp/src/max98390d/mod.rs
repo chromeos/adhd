@@ -5,16 +5,18 @@
 //! cards that use max98390d smart amp.
 //! It currently supports boot time calibration for max98390d.
 #![deny(missing_docs)]
+mod error;
 mod settings;
 
 use std::time::Duration;
 use std::{fs, path::Path};
 
 use cros_alsa::{Card, IntControl, SwitchControl};
-use dsm::{CalibData, Error, Result, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
+use dsm::{CalibData, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
 use sys_util::info;
 
-use crate::Amp;
+use crate::{Amp, Result};
+pub use error::Error;
 use settings::{AmpCalibSettings, DeviceSettings};
 
 /// Amp volume mode emulation used by set_volume().
@@ -44,7 +46,7 @@ impl Amp for Max98390 {
     fn boot_time_calibration(&mut self) -> Result<()> {
         for setting in &self.setting.controls {
             if !Path::new(&setting.dsm_param).exists() {
-                return Err(Error::MissingDSMParam);
+                return Err(Error::MissingDSMParam.into());
             }
         }
 
@@ -74,7 +76,10 @@ impl Amp for Max98390 {
                     .do_calibration()?
                     .iter()
                     .enumerate()
-                    .map(|(ch, calib_data)| dsm.decide_calibration_value_workflow(ch, *calib_data))
+                    .map(|(ch, calib_data)| {
+                        dsm.decide_calibration_value_workflow(ch, *calib_data)
+                            .map_err(crate::Error::DSMError)
+                    })
                     .collect::<Result<Vec<_>>>()?,
             }
         };
@@ -104,7 +109,7 @@ impl Max98390 {
     /// * If `Card` creation from sound card name fails.
     pub fn new(card_name: &str, config_path: &Path) -> Result<Self> {
         let conf = fs::read_to_string(config_path)
-            .map_err(|e| Error::FileIOFailed(config_path.to_path_buf(), e))?;
+            .map_err(|e| dsm::Error::FileIOFailed(config_path.to_path_buf(), e))?;
         let settings = DeviceSettings::from_yaml_str(&conf)?;
         Ok(Self {
             card: Card::new(card_name)?,

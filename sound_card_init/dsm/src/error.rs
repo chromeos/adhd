@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 use std::any::Any;
-use std::error;
-use std::fmt;
 use std::io;
 use std::num::ParseIntError;
 use std::path::PathBuf;
@@ -11,120 +9,61 @@ use std::sync::PoisonError;
 use std::time;
 
 use remain::sorted;
+use thiserror::Error as ThisError;
 
 use crate::CalibData;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[sorted]
-#[derive(Debug)]
+#[derive(Debug, ThisError)]
 pub enum Error {
-    AlsaCardError(cros_alsa::CardError),
-    AlsaControlError(cros_alsa::ControlError),
-    AlsaControlTLVError(cros_alsa::ControlTLVError),
+    #[error("boot time calibration is not supported")]
     BootTimeCalibrationNotSupported,
+    #[error("calibration is not finished in time")]
     CalibrationTimeout,
-    CrasClientFailed(libcras::Error),
+    #[error(transparent)]
+    CrasClientFailed(#[from] libcras::Error),
+    #[error("failed to parse {0}: {1}")]
     DeserializationFailed(String, serde_yaml::Error),
-    DSMParamUpdateFailed(cros_alsa::ControlTLVError),
+    #[error("{0:?}: {1}")]
     FileIOFailed(PathBuf, io::Error),
+    #[error("internal speaker is not found in cras")]
     InternalSpeakerNotFound,
+    #[error("invalid datastore format")]
     InvalidDatastore,
-    InvalidDSMParam,
+    #[error("invalid shutdown time")]
     InvalidShutDownTime,
+    #[error("invalid calibration temperature: {0}, and there is no datastore")]
     InvalidTemperature(f32),
+    #[error("calibration difference is too large, calib: {0:?}")]
     LargeCalibrationDiff(CalibData),
-    MissingDSMParam,
+    #[error("mutex is poisoned")]
     MutexPoisonError,
+    #[error("{0}")]
     NewPlayStreamFailed(libcras::BoxError),
+    #[error("{0}")]
     NextPlaybackBufferFailed(libcras::BoxError),
-    PlaybackFailed(io::Error),
+    #[error(transparent)]
+    PlaybackFailed(#[from] io::Error),
+    #[error("{0}： {1}")]
     SerdeError(PathBuf, serde_yaml::Error),
+    #[error("playback is not started in time")]
     StartPlaybackTimeout,
-    SystemTimeError(time::SystemTimeError),
-    UnsupportedAmp(String),
+    #[error(transparent)]
+    SystemTimeError(#[from] time::SystemTimeError),
+    #[error("failed to parse vpd {0}: {1}")]
     VPDParseFailed(String, ParseIntError),
+    #[error("run_play_zero_worker panics: {0:?}")]
     WorkerPanics(Box<dyn Any + Send + 'static>),
+    #[error("zero player is not running")]
     ZeroPlayerIsNotRunning,
+    #[error("zero player is running")]
     ZeroPlayerIsRunning,
-}
-
-impl PartialEq for Error {
-    // Implement eq for more Error when needed.
-    fn eq(&self, other: &Error) -> bool {
-        match (self, other) {
-            (Error::InvalidDSMParam, Error::InvalidDSMParam) => true,
-            _ => false,
-        }
-    }
-}
-
-impl From<cros_alsa::CardError> for Error {
-    fn from(err: cros_alsa::CardError) -> Error {
-        Error::AlsaCardError(err)
-    }
-}
-
-impl From<cros_alsa::ControlError> for Error {
-    fn from(err: cros_alsa::ControlError) -> Error {
-        Error::AlsaControlError(err)
-    }
-}
-
-impl From<cros_alsa::ControlTLVError> for Error {
-    fn from(err: cros_alsa::ControlTLVError) -> Error {
-        Error::AlsaControlTLVError(err)
-    }
 }
 
 impl<T> From<PoisonError<T>> for Error {
     fn from(_: PoisonError<T>) -> Error {
         Error::MutexPoisonError
-    }
-}
-
-impl error::Error for Error {}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Error::*;
-        match self {
-            AlsaCardError(e) => write!(f, "AlsaCardError: {}", e),
-            AlsaControlError(e) => write!(f, "AlsaControlError: {}", e),
-            AlsaControlTLVError(e) => write!(f, "AlsaControlTLVError: {}", e),
-            BootTimeCalibrationNotSupported => write!(f, "boot time calibration is not supported"),
-            CalibrationTimeout => write!(f, "calibration is not finished in time"),
-            DSMParamUpdateFailed(e) => write!(f, "failed to update DsmParam, err: {}", e),
-            CrasClientFailed(e) => write!(f, "failed to create cras client: {}", e),
-            DeserializationFailed(file_path, e) => {
-                write!(f, "failed to parse {}: {}", file_path, e)
-            }
-            FileIOFailed(file_path, e) => write!(f, "{:#?}: {}", file_path, e),
-            InvalidShutDownTime => write!(f, "invalid shutdown time"),
-            InternalSpeakerNotFound => write!(f, "internal speaker is not found in cras"),
-            InvalidTemperature(temp) => write!(
-                f,
-                "invalid calibration temperature: {}, and there is no datastore",
-                temp
-            ),
-            InvalidDatastore => write!(f, "invalid datastore format"),
-            InvalidDSMParam => write!(f, "invalid dsm param from kcontrol"),
-            LargeCalibrationDiff(calib) => {
-                write!(f, "calibration difference is too large, calib: {:?}", calib)
-            }
-            MissingDSMParam => write!(f, "missing dsm_param.bin"),
-            MutexPoisonError => write!(f, "mutex is poisoned"),
-            NewPlayStreamFailed(e) => write!(f, "{}", e),
-            NextPlaybackBufferFailed(e) => write!(f, "{}", e),
-            PlaybackFailed(e) => write!(f, "{}", e),
-            SerdeError(file_path, e) => write!(f, "{:?}: {}", file_path, e),
-            StartPlaybackTimeout => write!(f, "playback is not started in time"),
-            SystemTimeError(e) => write!(f, "{}", e),
-            UnsupportedAmp(name) => write!(f, "unsupported amp: {}", name),
-            VPDParseFailed(file_path, e) => write!(f, "failed to parse vpd {}: {}", file_path, e),
-            WorkerPanics(e) => write!(f, "run_play_zero_worker panics: {:#?}", e),
-            ZeroPlayerIsNotRunning => write!(f, "zero player is not running"),
-            ZeroPlayerIsRunning => write!(f, "zero player is running"),
-        }
     }
 }
