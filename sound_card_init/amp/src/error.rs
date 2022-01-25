@@ -6,6 +6,7 @@
 use remain::sorted;
 use thiserror::Error as ThisError;
 
+use crate::cs35l41;
 use crate::max98373d;
 use crate::max98390d;
 
@@ -20,6 +21,8 @@ pub enum Error {
     AlsaControlError(#[from] cros_alsa::ControlError),
     #[error(transparent)]
     AlsaControlTLVError(#[from] cros_alsa::ControlTLVError),
+    #[error(transparent)]
+    Cs35l41Error(#[from] cs35l41::Error),
     #[error(transparent)]
     DSMError(#[from] dsm::Error),
     #[error(transparent)]
