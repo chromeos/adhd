@@ -15,6 +15,7 @@ struct cras_audio_shm;
 #define CPU_X86_AVX 2
 #define CPU_X86_AVX2 4
 #define CPU_X86_FMA 8
+#define CPU_X86_TRINITY 16
 
 void cras_mix_init(unsigned int flags);
 

@@ -410,6 +410,14 @@ static unsigned int cpu_x86_flags(void)
 
 		if (ecx & (1 << 12))
 			cpu_flags |= CPU_X86_FMA;
+
+		unsigned int ext_fam = (eax >> 20) & 0xff;
+		unsigned int ext_model = (eax >> 16) & 0xf;
+		unsigned int base_fam = (eax >> 8) & 0xf;
+		unsigned int base_model = (eax >> 4) & 0xf;
+		if (ext_fam == 0x6 && ext_model == 0x1 && base_fam == 0xf &&
+		    base_model == 0x0)
+			cpu_flags |= CPU_X86_TRINITY;
 	}
 
 	if (id >= 7) {
