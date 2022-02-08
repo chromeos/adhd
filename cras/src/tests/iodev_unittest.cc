@@ -36,6 +36,7 @@ static int select_node_called;
 static enum CRAS_STREAM_DIRECTION select_node_direction;
 static cras_node_id_t select_node_id;
 static struct cras_ionode* node_selected;
+static size_t update_device_list_called;
 static size_t notify_nodes_changed_called;
 static size_t notify_active_node_changed_called;
 static int dsp_context_new_sample_rate;
@@ -127,6 +128,7 @@ int update_channel_layout(struct cras_iodev* iodev) {
 void ResetStubData() {
   cras_iodev_list_disable_dev_called = 0;
   select_node_called = 0;
+  update_device_list_called = 0;
   notify_nodes_changed_called = 0;
   notify_active_node_changed_called = 0;
   dsp_context_new_sample_rate = 0;
@@ -1100,10 +1102,13 @@ TEST(IoDev, AddRemoveNode) {
   memset(&iodev, 0, sizeof(iodev));
   memset(&ionode, 0, sizeof(ionode));
   ResetStubData();
+  EXPECT_EQ(0, update_device_list_called);
   EXPECT_EQ(0, notify_nodes_changed_called);
   cras_iodev_add_node(&iodev, &ionode);
+  EXPECT_EQ(1, update_device_list_called);
   EXPECT_EQ(1, notify_nodes_changed_called);
   cras_iodev_rm_node(&iodev, &ionode);
+  EXPECT_EQ(2, update_device_list_called);
   EXPECT_EQ(2, notify_nodes_changed_called);
 }
 
@@ -2624,6 +2629,10 @@ int cras_iodev_list_node_selected(struct cras_ionode* node) {
 
 void cras_iodev_list_disable_dev(struct cras_iodev* dev) {
   cras_iodev_list_disable_dev_called++;
+}
+
+void cras_iodev_list_update_device_list() {
+  update_device_list_called++;
 }
 
 void cras_iodev_list_notify_nodes_changed() {

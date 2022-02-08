@@ -729,12 +729,14 @@ void cras_iodev_set_node_plugged(struct cras_ionode *node, int plugged)
 void cras_iodev_add_node(struct cras_iodev *iodev, struct cras_ionode *node)
 {
 	DL_APPEND(iodev->nodes, node);
+	cras_iodev_list_update_device_list();
 	cras_iodev_list_notify_nodes_changed();
 }
 
 void cras_iodev_rm_node(struct cras_iodev *iodev, struct cras_ionode *node)
 {
 	DL_DELETE(iodev->nodes, node);
+	cras_iodev_list_update_device_list();
 	cras_iodev_list_notify_nodes_changed();
 }
 
