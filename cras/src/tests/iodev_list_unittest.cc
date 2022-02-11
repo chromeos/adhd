@@ -31,8 +31,6 @@ int system_get_mute_return;
 
 /* Data for stubs. */
 static struct cras_observer_ops* observer_ops;
-static int add_stream_called;
-static int rm_stream_called;
 static unsigned int set_node_plugged_called;
 static cras_iodev* audio_thread_remove_streams_active_dev;
 static cras_iodev* audio_thread_set_active_dev_val;
@@ -208,8 +206,6 @@ class IoDevTestSuite : public testing::Test {
     system_get_mute_return = false;
 
     /* Reset stub data. */
-    add_stream_called = 0;
-    rm_stream_called = 0;
     set_node_plugged_called = 0;
     audio_thread_rm_open_dev_called = 0;
     audio_thread_add_open_dev_called = 0;
