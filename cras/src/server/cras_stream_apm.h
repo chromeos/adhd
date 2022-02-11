@@ -76,12 +76,10 @@ struct cras_stream_apm *cras_stream_apm_create(uint64_t effects);
  *    stream - The stream apm holding APM instances.
  *    idev - Pointer to the input iodev to add new APM for.
  *    fmt - Format of the audio data used for this cras_apm.
- *    is_aec_use_case - If the idev is for typical AEC use case.
  */
 struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 				     struct cras_iodev *idev,
-				     const struct cras_audio_format *fmt,
-				     bool is_aec_use_case);
+				     const struct cras_audio_format *fmt);
 
 /*
  * Gets the active APM instance that is associated to given stream and dev pair.
@@ -165,7 +163,8 @@ struct cras_audio_format *cras_stream_apm_get_format(struct cras_apm *apm);
 /*
  * Gets if this apm instance is using tuned settings.
  */
-bool cras_stream_apm_get_use_tuned_settings(struct cras_apm *apm);
+bool cras_stream_apm_get_use_tuned_settings(struct cras_stream_apm *stream,
+					    const struct cras_iodev *idev);
 
 /* Sets debug recording to start or stop.
  * Args:
@@ -209,7 +208,7 @@ cras_stream_apm_create(unsigned int effects)
 }
 static inline struct cras_apm *
 cras_stream_apm_add(struct cras_stream_apm *stream, struct cras_iodev *idev,
-		    const struct cras_audio_format *fmt, bool is_aec_use_case)
+		    const struct cras_audio_format *fmt)
 {
 	return NULL;
 }
@@ -265,7 +264,9 @@ cras_stream_apm_get_format(struct cras_apm *apm)
 	return NULL;
 }
 
-static inline bool cras_stream_apm_get_use_tuned_settings(struct cras_apm *apm)
+static inline bool
+cras_stream_apm_get_use_tuned_settings(struct cras_stream_apm *stream,
+				       const struct cras_iodev *idev)
 {
 	return 0;
 }

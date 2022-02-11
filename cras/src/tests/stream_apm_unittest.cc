@@ -21,8 +21,9 @@ extern "C" {
 
 namespace {
 
-static struct cras_iodev* idev = reinterpret_cast<struct cras_iodev*>(0x345);
-static struct cras_iodev* idev2 = reinterpret_cast<cras_iodev*>(0x678);
+static struct cras_iodev devs[2];
+static struct cras_iodev* idev = &devs[0];
+static struct cras_iodev* idev2 = &devs[1];
 static struct cras_stream_apm* stream;
 static struct cras_audio_area fake_audio_area;
 static unsigned int dsp_util_interleave_frames;
@@ -38,6 +39,7 @@ static process_reverse_needed_t process_needed_cb_value;
 static thread_callback thread_cb;
 static void* cb_data;
 static output_devices_changed_t output_devices_changed_callback = NULL;
+static bool cras_iodev_is_aec_use_case_value;
 
 TEST(StreamApm, StreamApmCreate) {
   stream = cras_stream_apm_create(0);
@@ -107,6 +109,7 @@ TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
 
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
+  cras_iodev_is_aec_use_case_value = 1;
 
   cras_stream_apm_init("");
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
@@ -119,7 +122,7 @@ TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
       fmt.channel_layout[ch] = test_layouts[i][ch];
 
     /* Input dev is of aec use case. */
-    apm = cras_stream_apm_add(stream, idev, &fmt, 1);
+    apm = cras_stream_apm_add(stream, idev, &fmt);
     EXPECT_NE((void*)NULL, apm);
 
     /* Assert that the post-processing format never has an unset
@@ -151,12 +154,13 @@ TEST(StreamApm, AddRemoveApm) {
   cras_stream_apm_init(dir);
   cras_apm_reverse_is_aec_use_case_ret = 1;
   cras_apm_reverse_state_update_called = 0;
+  cras_iodev_is_aec_use_case_value = 1;
 
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, stream);
 
   /* Input dev is of aec use case. */
-  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
   EXPECT_EQ((void*)NULL, cras_stream_apm_get_active(stream, idev));
@@ -168,7 +172,8 @@ TEST(StreamApm, AddRemoveApm) {
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
 
   /* Input dev is not of aec use case. */
-  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev2, &fmt, 0));
+  cras_iodev_is_aec_use_case_value = 0;
+  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev2, &fmt));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_EQ((void*)NULL, webrtc_apm_create_apm_ini_val);
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
@@ -197,6 +202,7 @@ TEST(StreamApm, OutputTypeNotAecUseCase) {
   fmt.num_channels = 2;
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
+  cras_iodev_is_aec_use_case_value = 1;
 
   dir = prepare_tempdir();
   cras_stream_apm_init(dir);
@@ -206,14 +212,14 @@ TEST(StreamApm, OutputTypeNotAecUseCase) {
 
   /* Output device is of aec use case. */
   cras_apm_reverse_is_aec_use_case_ret = 1;
-  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
   cras_stream_apm_remove(stream, idev);
 
   /* Output device is not of aec use case. */
   cras_apm_reverse_is_aec_use_case_ret = 0;
-  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt, 1));
+  EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_EQ((void*)NULL, webrtc_apm_create_apm_ini_val);
   cras_stream_apm_remove(stream, idev);
@@ -236,13 +242,14 @@ TEST(StreamApm, ApmProcessForwardBuffer) {
   init_channel_layout(&fmt);
   fmt.channel_layout[CRAS_CH_FL] = 0;
   fmt.channel_layout[CRAS_CH_FR] = 1;
+  cras_iodev_is_aec_use_case_value = 1;
 
   cras_stream_apm_init("");
 
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, stream);
 
-  apm = cras_stream_apm_add(stream, idev, &fmt, 1);
+  apm = cras_stream_apm_add(stream, idev, &fmt);
 
   buf = float_buffer_create(500, 2);
   float_buffer_written(buf, 300);
@@ -289,6 +296,7 @@ TEST(StreamApm, StreamAddToAlreadyOpenedDev) {
   fmt.num_channels = 2;
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
+  cras_iodev_is_aec_use_case_value = 1;
 
   cras_stream_apm_init("");
 
@@ -296,11 +304,11 @@ TEST(StreamApm, StreamAddToAlreadyOpenedDev) {
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, stream);
 
-  apm1 = cras_stream_apm_add(stream, idev, &fmt, 1);
+  apm1 = cras_stream_apm_add(stream, idev, &fmt);
   EXPECT_EQ(1, webrtc_apm_create_called);
   EXPECT_NE((void*)NULL, apm1);
 
-  apm2 = cras_stream_apm_add(stream, idev, &fmt, 1);
+  apm2 = cras_stream_apm_add(stream, idev, &fmt);
   EXPECT_EQ(1, webrtc_apm_create_called);
   EXPECT_EQ(apm1, apm2);
 
@@ -322,6 +330,57 @@ TEST(StreamApm, ReverseDevChanged) {
   cras_stream_apm_deinit();
 }
 
+TEST(StreamApm, GetUseTunedSettings) {
+  struct cras_audio_format fmt;
+  char* dir;
+
+  fmt.num_channels = 2;
+  fmt.frame_rate = 48000;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+
+  /* No tuned aec/apm ini provided. */
+  cras_stream_apm_init("");
+
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  cras_stream_apm_add(stream, idev, &fmt);
+  cras_stream_apm_start(stream, idev);
+
+  cras_iodev_is_aec_use_case_value = 1;
+  cras_apm_reverse_is_aec_use_case_ret = 1;
+  EXPECT_EQ(false, cras_stream_apm_get_use_tuned_settings(stream, idev));
+
+  cras_stream_apm_stop(stream, idev);
+  cras_stream_apm_remove(stream, idev);
+  cras_stream_apm_destroy(stream);
+  cras_stream_apm_deinit();
+
+  /* Fake the existence of tuned apm/aec ini. */
+  dir = prepare_tempdir();
+  cras_stream_apm_init(dir);
+
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+  cras_stream_apm_add(stream, idev, &fmt);
+  cras_stream_apm_start(stream, idev);
+
+  cras_iodev_is_aec_use_case_value = 1;
+  cras_apm_reverse_is_aec_use_case_ret = 1;
+  EXPECT_EQ(true, cras_stream_apm_get_use_tuned_settings(stream, idev));
+
+  cras_iodev_is_aec_use_case_value = 0;
+  EXPECT_EQ(false, cras_stream_apm_get_use_tuned_settings(stream, idev));
+
+  cras_iodev_is_aec_use_case_value = 1;
+  cras_apm_reverse_is_aec_use_case_ret = 0;
+  EXPECT_EQ(false, cras_stream_apm_get_use_tuned_settings(stream, idev));
+
+  cras_stream_apm_stop(stream, idev);
+  cras_stream_apm_remove(stream, idev);
+  cras_stream_apm_destroy(stream);
+  cras_stream_apm_deinit();
+  delete_tempdir(dir);
+  free(dir);
+}
+
 TEST(ApmList, NeedsReverseProcessing) {
   struct cras_stream_apm* stream2;
   struct cras_audio_format fmt;
@@ -333,6 +392,7 @@ TEST(ApmList, NeedsReverseProcessing) {
 
   cras_apm_reverse_link_echo_ref_called = 0;
   cras_apm_reverse_state_update_called = 0;
+  cras_iodev_is_aec_use_case_value = 1;
   cras_stream_apm_init("");
 
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
@@ -340,9 +400,9 @@ TEST(ApmList, NeedsReverseProcessing) {
   stream2 = cras_stream_apm_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, stream2);
 
-  cras_stream_apm_add(stream, idev, &fmt, 1);
+  cras_stream_apm_add(stream, idev, &fmt);
   cras_stream_apm_start(stream, idev);
-  cras_stream_apm_add(stream2, idev, &fmt, 1);
+  cras_stream_apm_add(stream2, idev, &fmt);
   cras_stream_apm_start(stream2, idev);
   EXPECT_EQ(2, cras_apm_reverse_state_update_called);
 
@@ -409,6 +469,10 @@ void audio_thread_rm_callback(int fd) {}
 
 struct audio_thread* cras_iodev_list_get_audio_thread() {
   return NULL;
+}
+
+bool cras_iodev_is_aec_use_case(const struct cras_ionode* node) {
+  return cras_iodev_is_aec_use_case_value;
 }
 
 struct cras_audio_area* cras_audio_area_create(int num_channels) {
@@ -493,7 +557,7 @@ int cras_apm_reverse_link_echo_ref(struct cras_stream_apm* stream,
   return 0;
 }
 
-bool cras_apm_reverse_is_aec_use_case() {
+bool cras_apm_reverse_is_aec_use_case(struct cras_iodev* echo_ref) {
   return cras_apm_reverse_is_aec_use_case_ret;
 }
 void cras_apm_reverse_deinit() {}

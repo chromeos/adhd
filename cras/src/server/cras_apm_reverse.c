@@ -515,8 +515,15 @@ int cras_apm_reverse_link_echo_ref(struct cras_stream_apm *stream,
 	return 0;
 }
 
-bool cras_apm_reverse_is_aec_use_case()
+bool cras_apm_reverse_is_aec_use_case(struct cras_iodev *echo_ref)
 {
+	struct echo_ref_request *request;
+
+	DL_FOREACH (echo_ref_requests, request) {
+		if (request->rmod.odev == echo_ref)
+			return cras_iodev_is_aec_use_case(
+				echo_ref->active_node);
+	}
 	/* Invalid usage if caller didn't call init first. And we don't care
 	 * what is returned in that case, so let's give it a false. */
 	if (!default_rmod)

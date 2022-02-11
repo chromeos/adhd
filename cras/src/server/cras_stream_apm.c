@@ -62,10 +62,6 @@
  *        stream.
  *    work_queue - A task queue instance created and destroyed by
  *        libwebrtc_apm.
- *    is_aec_use_case - True if the input and output devices pair is in the
- *        typical AEC use case. This flag decides whether to use settings
- *        tuned specifically for this hardware if exists. Otherwise it uses
- *        the generic settings like run inside browser.
  *    only_symmetric_content_in_render - Flag to indicate whether content has
  *        beenobserved in the left or right channel which is not identical.
  *    blocks_with_nonsymmetric_content_in_render - Counter for the number of
@@ -84,7 +80,6 @@ struct cras_apm {
 	struct cras_audio_format fmt;
 	struct cras_audio_area *area;
 	void *work_queue;
-	bool is_aec_use_case;
 	bool only_symmetric_content_in_render;
 	int blocks_with_nonsymmetric_content_in_render;
 	int blocks_with_symmetric_content_in_render;
@@ -299,8 +294,7 @@ static void get_best_channels(struct cras_audio_format *apm_fmt)
 
 struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 				     struct cras_iodev *idev,
-				     const struct cras_audio_format *dev_fmt,
-				     bool is_aec_use_case)
+				     const struct cras_audio_format *dev_fmt)
 {
 	struct cras_apm *apm;
 
@@ -328,11 +322,6 @@ struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 	apm->blocks_with_nonsymmetric_content_in_render = 0;
 	apm->blocks_with_symmetric_content_in_render = 0;
 
-	/* Use tuned settings only when the forward dev(capture) and reverse
-	 * dev(playback) both are in typical AEC use case. */
-	apm->is_aec_use_case =
-		is_aec_use_case && cras_apm_reverse_is_aec_use_case();
-
 	/* Determine whether to enforce effects to be on (regardless of settings
 	 * in the apm.ini file). */
 	unsigned int enforce_aec_on = 0;
@@ -348,10 +337,18 @@ struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 		enforce_agc_on = 1;
 	}
 
-	/* Use the configs tuned specifically for internal device. Otherwise
-	 * just pass NULL so every other settings will be default. */
-	dictionary *aec_ini_use = apm->is_aec_use_case ? aec_ini : NULL;
-	dictionary *apm_ini_use = apm->is_aec_use_case ? apm_ini : NULL;
+	/*
+	 * |aec_ini| and |apm_ini| are tuned specifically for the typical aec
+	 * use case, i.e when both audio input and output are internal devices.
+	 * Check for that before we use these settings, or just pass NULL so
+	 * the default generic settings are used.
+	 */
+	const bool is_aec_use_case =
+		cras_iodev_is_aec_use_case(idev->active_node) &&
+		cras_apm_reverse_is_aec_use_case(stream->echo_ref);
+
+	dictionary *aec_ini_use = is_aec_use_case ? aec_ini : NULL;
+	dictionary *apm_ini_use = is_aec_use_case ? apm_ini : NULL;
 
 	apm->apm_ptr = webrtc_apm_create_with_enforced_effects(
 		apm->fmt.num_channels, apm->fmt.frame_rate, aec_ini_use,
@@ -790,11 +787,18 @@ struct cras_audio_format *cras_stream_apm_get_format(struct cras_apm *apm)
 	return &apm->fmt;
 }
 
-bool cras_stream_apm_get_use_tuned_settings(struct cras_apm *apm)
+bool cras_stream_apm_get_use_tuned_settings(struct cras_stream_apm *stream,
+					    const struct cras_iodev *idev)
 {
+	struct active_apm *active = get_active_apm(stream, idev);
+	if (active == NULL)
+		return false;
+
 	/* If input and output devices in AEC use case, plus that a
 	 * tuned setting is provided. */
-	return apm->is_aec_use_case && (aec_ini || apm_ini);
+	return cras_iodev_is_aec_use_case(idev->active_node) &&
+	       cras_apm_reverse_is_aec_use_case(stream->echo_ref) &&
+	       (aec_ini || apm_ini);
 }
 
 void cras_stream_apm_set_aec_dump(struct cras_stream_apm *stream,

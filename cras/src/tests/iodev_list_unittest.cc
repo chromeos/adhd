@@ -2760,8 +2760,7 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
 #ifdef HAVE_WEBRTC_APM
 struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
                                      struct cras_iodev* idev,
-                                     const struct cras_audio_format* fmt,
-                                     bool is_internal_dev) {
+                                     const struct cras_audio_format* fmt) {
   return NULL;
 }
 void cras_stream_apm_remove(struct cras_stream_apm* stream,

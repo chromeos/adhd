@@ -84,8 +84,14 @@ int cras_apm_reverse_link_echo_ref(struct cras_stream_apm *stream,
 				   struct cras_iodev *echo_ref);
 
 /* Returns if the audio output devices configuration meets our AEC use
- * case. */
-bool cras_apm_reverse_is_aec_use_case();
+ * case.
+ * Args:
+ *    echo_ref - The target iodev to check whether it meets AEC use case.
+ *        Passing NULL echo_ref means caller doesn't specify any echo
+ *        reference device so the check should be made on the default
+ *        output device.
+ * */
+bool cras_apm_reverse_is_aec_use_case(struct cras_iodev *echo_ref);
 
 /* Deinitializes APM reverse modules and all related resources. */
 void cras_apm_reverse_deinit();

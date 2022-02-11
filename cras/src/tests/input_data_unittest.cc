@@ -91,17 +91,14 @@ TEST(InputData, GetSWCaptureGain) {
 #ifdef HAVE_WEBRTC_APM
   data = input_data_create(idev);
 
-  cras_stream_apm_get_active_ret = FAKE_CRAS_APM_PTR;
   cras_stream_apm_get_use_tuned_settings_val = 1;
   gain = input_data_get_software_gain_scaler(data, 0.7f, &stream);
   EXPECT_FLOAT_EQ(1.0f, gain);
 
-  cras_stream_apm_get_active_ret = NULL;
+  cras_stream_apm_get_use_tuned_settings_val = 0;
   gain = input_data_get_software_gain_scaler(data, 0.7f, &stream);
   EXPECT_FLOAT_EQ(0.56f, gain);
 
-  cras_stream_apm_get_active_ret = FAKE_CRAS_APM_PTR;
-  cras_stream_apm_get_use_tuned_settings_val = 0;
   gain = input_data_get_software_gain_scaler(data, 0.6f, &stream);
   EXPECT_FLOAT_EQ(0.48f, gain);
   input_data_destroy(&data);
@@ -133,7 +130,8 @@ struct cras_audio_area* cras_stream_apm_get_processed(struct cras_apm* apm) {
 void cras_stream_apm_remove(struct cras_stream_apm* stream,
                             const struct cras_iodev* idev) {}
 void cras_stream_apm_put_processed(struct cras_apm* apm, unsigned int frames) {}
-bool cras_stream_apm_get_use_tuned_settings(struct cras_apm* apm) {
+bool cras_stream_apm_get_use_tuned_settings(struct cras_stream_apm* stream,
+                                            const struct cras_iodev* idev) {
   return cras_stream_apm_get_use_tuned_settings_val;
 }
 #endif  // HAVE_WEBRTC_APM
