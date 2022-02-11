@@ -68,6 +68,12 @@
  *        the generic settings like run inside browser.
  *    only_symmetric_content_in_render - Flag to indicate whether content has
  *        beenobserved in the left or right channel which is not identical.
+ *    blocks_with_nonsymmetric_content_in_render - Counter for the number of
+ *        consecutive frames where nonsymmetric content in render has been
+ *        observed. Used to avoid triggering on short stereo content.
+ *    blocks_with_symmetric_content_in_render - Counter for the number of
+ *        consecutive frames where symmetric content in render has been
+ *        observed. Used for falling-back to mono processing.
  */
 struct cras_apm {
 	webrtc_apm apm_ptr;
@@ -80,6 +86,8 @@ struct cras_apm {
 	void *work_queue;
 	bool is_aec_use_case;
 	bool only_symmetric_content_in_render;
+	int blocks_with_nonsymmetric_content_in_render;
+	int blocks_with_symmetric_content_in_render;
 	struct cras_apm *prev, *next;
 };
 
@@ -317,6 +325,8 @@ struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 
 	/* Reset detection of proper stereo */
 	apm->only_symmetric_content_in_render = true;
+	apm->blocks_with_nonsymmetric_content_in_render = 0;
+	apm->blocks_with_symmetric_content_in_render = 0;
 
 	/* Use tuned settings only when the forward dev(capture) and reverse
 	 * dev(playback) both are in typical AEC use case. */
@@ -464,9 +474,41 @@ static int process_reverse(struct float_buffer *fbuf, unsigned int frame_rate,
 			continue;
 
 		if (active->apm->only_symmetric_content_in_render) {
-			active->apm->only_symmetric_content_in_render =
+			bool symmetric_content =
 				left_and_right_channels_are_symmetric(
 					fbuf->num_channels, frame_rate, rp);
+
+			int non_sym_frames =
+				active->apm
+					->blocks_with_nonsymmetric_content_in_render;
+			int sym_frames =
+				active->apm
+					->blocks_with_symmetric_content_in_render;
+
+			/* Count number of consecutive frames with symmetric
+                           and non-symmetric content. */
+			non_sym_frames =
+				symmetric_content ? 0 : non_sym_frames + 1;
+			sym_frames = symmetric_content ? sym_frames + 1 : 0;
+
+			if (non_sym_frames > 2 * APM_NUM_BLOCKS_PER_SECOND) {
+				/* Only flag render content to be non-symmetric if it has
+                           been non-symmetric for at least 2 seconds. */
+
+				active->apm->only_symmetric_content_in_render =
+					false;
+			} else if (sym_frames >
+				   5 * 60 * APM_NUM_BLOCKS_PER_SECOND) {
+				/* Fall-back to consider render content as symmetric if it has
+                             been symmetric for 5 minutes. */
+				active->apm->only_symmetric_content_in_render =
+					false;
+			}
+
+			active->apm->blocks_with_nonsymmetric_content_in_render =
+				non_sym_frames;
+			active->apm->blocks_with_symmetric_content_in_render =
+				sym_frames;
 		}
 		int num_unique_channels =
 			active->apm->only_symmetric_content_in_render ?
