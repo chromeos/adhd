@@ -145,6 +145,7 @@ class IoDevTestSuite : public testing::Test {
     memset(&node1, 0, sizeof(node1));
     memset(&node2, 0, sizeof(node2));
     memset(&node3, 0, sizeof(node3));
+    memset(&clock_gettime_retspec, 0, sizeof(clock_gettime_retspec));
 
     d1_.set_volume = NULL;
     d1_.set_capture_gain = NULL;
