@@ -89,6 +89,10 @@ def check_node_id_type(root, filename):
 
 
 def lint(dtdfile: str, files: List[str], ignore_non_dbus_xml_files: bool) -> int:
+    if not files:
+        print('No files to check.')
+        return 0
+
     if ignore_non_dbus_xml_files:
         files = [
             file
@@ -129,7 +133,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument('--dtd', default=os.path.join(here, 'introspect.dtd'), help='')
-    ap.add_argument('files', nargs='+', help='xml file(s) to validate')
+    ap.add_argument('files', nargs='*', help='xml file(s) to validate')
     ap.add_argument(
         '--ignore-non-dbus-xml-files',
         action='store_true',
