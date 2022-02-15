@@ -14,8 +14,8 @@ static const struct cras_mix_ops *ops = &mixer_ops;
 static const struct cras_mix_ops *get_mixer_ops(unsigned int cpu_flags)
 {
 #if defined HAVE_FMA
-	// Exclude Trinity APUs that crash when FMA is enabled: (b/184852038)
-	if ((cpu_flags & CPU_X86_FMA) && !(cpu_flags & CPU_X86_TRINITY))
+	// Exclude APUs that crash when FMA is enabled: (b/184852038)
+	if ((cpu_flags & CPU_X86_FMA) && !(cpu_flags & CPU_X86_FMA_CRASH))
 		return &mixer_ops_fma;
 #endif
 #if defined HAVE_AVX2

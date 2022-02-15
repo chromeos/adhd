@@ -415,9 +415,14 @@ static unsigned int cpu_x86_flags(void)
 		unsigned int ext_model = (eax >> 16) & 0xf;
 		unsigned int base_fam = (eax >> 8) & 0xf;
 		unsigned int base_model = (eax >> 4) & 0xf;
+		// Trinity CPUs experience an FMA crash
 		if (ext_fam == 0x6 && ext_model == 0x1 && base_fam == 0xf &&
 		    base_model == 0x0)
-			cpu_flags |= CPU_X86_TRINITY;
+			cpu_flags |= CPU_X86_FMA_CRASH;
+		// Richland CPUs experience an FMA crash
+		if (ext_fam == 0x6 && ext_model == 0x1 && base_fam == 0xf &&
+		    base_model == 0x3)
+			cpu_flags |= CPU_X86_FMA_CRASH;
 	}
 
 	if (id >= 7) {
