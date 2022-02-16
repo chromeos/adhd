@@ -275,6 +275,10 @@ static void set_bt_volume(struct cras_iodev *iodev)
 	if (!dev)
 		return;
 
+	/* Do nothing for volume if this is an input iodev. */
+	if (iodev->direction == CRAS_STREAM_INPUT)
+		return;
+
 	if (dev->active_node)
 		dev->active_node->volume = iodev->active_node->volume;
 

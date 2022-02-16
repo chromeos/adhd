@@ -315,8 +315,10 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->set_volume = set_hfp_volume;
 	iodev->output_underrun = output_underrun;
+	/* Assign set_volume callback only for output iodev. */
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		iodev->set_volume = set_hfp_volume;
 
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
