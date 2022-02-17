@@ -116,14 +116,5 @@ do
         continue
     fi
 
-    # Store back the original value
-    # Note: $(cat cache_bypass) returns 'Y' if flag is on; otherwise 'N'
-    cache_bypass=$(cat "${file_path}/cache_bypass")
-    if [ "${cache_bypass}" = "N" ]; then
-        echo 1 > "${file_path}/cache_bypass"
-    fi
     cat "${file_path}/registers"
-    if [ "${cache_bypass}" = "N" ]; then
-        echo 0 > "${file_path}/cache_bypass"
-    fi
 done
