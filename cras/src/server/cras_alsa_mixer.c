@@ -515,16 +515,16 @@ static int add_main_capture_control(struct cras_alsa_mixer *cmix,
 	return 0;
 }
 
-/* Adds a control to the list. */
-static int add_control_with_name(struct cras_alsa_mixer *cmix,
-				 enum CRAS_STREAM_DIRECTION dir,
-				 snd_mixer_elem_t *elem, const char *name)
+static int add_control(struct cras_alsa_mixer *cmix,
+		       enum CRAS_STREAM_DIRECTION dir, snd_mixer_elem_t *elem)
 {
 	int index; /* Index part of mixer simple element */
+	const char *name;
 	struct mixer_control *c;
 	int rc;
 
 	index = snd_mixer_selem_get_index(elem);
+	name = snd_mixer_selem_get_name(elem);
 	syslog(LOG_DEBUG, "Add %s control: %s,%d\n",
 	       dir == CRAS_STREAM_OUTPUT ? "output" : "input", name, index);
 
@@ -541,13 +541,6 @@ static int add_control_with_name(struct cras_alsa_mixer *cmix,
 	else if (dir == CRAS_STREAM_INPUT)
 		DL_APPEND(cmix->input_controls, c);
 	return 0;
-}
-
-static int add_control(struct cras_alsa_mixer *cmix,
-		       enum CRAS_STREAM_DIRECTION dir, snd_mixer_elem_t *elem)
-{
-	return add_control_with_name(cmix, dir, elem,
-				     snd_mixer_selem_get_name(elem));
 }
 
 static void list_controls(struct mixer_control *control_list,
