@@ -31,8 +31,8 @@ impl Drop for ZeroPlayer {
 }
 
 impl ZeroPlayer {
-    /// It takes about 400 ms to get CRAS_NODE_TYPE_INTERNAL_SPEAKER during the boot time.
-    const TIMEOUT: Duration = Duration::from_millis(1000);
+    /// It can take more than 1000 ms to get CRAS_NODE_TYPE_INTERNAL_SPEAKER during the boot time.
+    pub const TIMEOUT: Duration = Duration::from_millis(3000);
 
     /// Returns whether the ZeroPlayer is running.
     pub fn running(&self) -> bool {
@@ -110,7 +110,7 @@ impl Drop for PlayZeroWorkerInfo {
 impl PlayZeroWorkerInfo {
     // Spawns the PlayZeroWorker.
     fn new(min_playback_time: Duration) -> Self {
-        let thread_run = Arc::new(AtomicBool::new(false));
+        let thread_run = Arc::new(AtomicBool::new(true));
         let ready = Arc::new((Mutex::new(false), Condvar::new()));
         let mut worker = PlayZeroWorker::new(min_playback_time, thread_run.clone(), ready.clone());
         Self {
@@ -177,6 +177,9 @@ impl PlayZeroWorker {
             * self.min_playback_time.as_millis() as u32)
             / Self::FRAMES_PER_BUFFER as u32
             / 1000;
+        let max_playback_iterations = (Self::FRAME_RATE * ZeroPlayer::TIMEOUT.as_millis() as u32)
+            / Self::FRAMES_PER_BUFFER as u32
+            / 1000;
         let (_control, mut stream) = cras_client
             .new_pinned_playback_stream(
                 node.iodev_index,
@@ -189,8 +192,7 @@ impl PlayZeroWorker {
             .map_err(|e| Error::NewPlayStreamFailed(e))?;
 
         let mut iter = 0;
-        self.thread_run.store(true, Ordering::Relaxed);
-        while self.thread_run.load(Ordering::Relaxed) {
+        while self.thread_run.load(Ordering::Relaxed) && iter < max_playback_iterations {
             let mut buffer = stream
                 .next_playback_buffer()
                 .map_err(|e| Error::NextPlaybackBufferFailed(e))?;
