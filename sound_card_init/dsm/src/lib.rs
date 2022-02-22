@@ -282,7 +282,7 @@ impl DSM {
             Ok(())
         };
         // TODO(b/155007305): Implement cras_client.wait_node_change and use it here.
-        const RETRY: usize = 3;
+        const RETRY: usize = 10;
         const RETRY_INTERVAL: Duration = Duration::from_millis(500);
         for _ in 0..RETRY {
             match find_speaker() {

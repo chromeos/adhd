@@ -62,12 +62,13 @@ impl Amp for Max98390 {
             Self::celsius_to_dsm_unit,
         ));
 
+        // Needs Rdc updates to be done after internal speaker is ready otherwise
+        // it would be overwritten by the DSM blob update.
+        dsm.wait_for_speakers_ready()?;
+
         self.set_volume(VolumeMode::Low)?;
         let calib = if !self.setting.boot_time_calibration_enabled {
             info!("skip boot time calibration and use vpd values");
-            // Needs Rdc updates to be done after internal speaker is ready otherwise
-            // it would be overwritten by the DSM blob update.
-            dsm.wait_for_speakers_ready()?;
             dsm.get_all_vpd_calibration_value()?
         } else {
             match dsm.check_speaker_over_heated_workflow()? {
@@ -83,6 +84,7 @@ impl Amp for Max98390 {
                     .collect::<Result<Vec<_>>>()?,
             }
         };
+        info!("applied {:?}", calib);
         self.apply_calibration_value(calib)?;
         self.set_volume(VolumeMode::High)?;
         Ok(())

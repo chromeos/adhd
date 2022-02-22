@@ -44,6 +44,7 @@ impl Amp for ALC1011 {
         dsm.wait_for_speakers_ready()?;
         let calib = dsm.get_all_vpd_calibration_value()?;
         self.apply_calibration_value(&calib)?;
+        info!("applied {:?}", calib);
         Ok(())
     }
 }

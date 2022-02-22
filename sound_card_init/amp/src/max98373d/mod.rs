@@ -47,13 +47,15 @@ impl Amp for Max98373 {
             Self::TEMP_UPPER_LIMIT_CELSIUS,
             Self::TEMP_LOWER_LIMIT_CELSIUS,
         );
+
+        // Needs Rdc updates to be done after internal speaker is ready otherwise
+        // it would be overwritten by the DSM blob update.
+        dsm.wait_for_speakers_ready()?;
+
         self.set_volume(VolumeMode::Low)?;
 
         let calib = if !self.setting.boot_time_calibration_enabled {
             info!("skip boot time calibration and use vpd values");
-            // Needs Rdc updates to be done after internal speaker is ready otherwise
-            // it would be overwritten by the DSM blob update.
-            dsm.wait_for_speakers_ready()?;
             dsm.get_all_vpd_calibration_value()?
         } else {
             match dsm.check_speaker_over_heated_workflow()? {
@@ -74,6 +76,7 @@ impl Amp for Max98373 {
             }
         };
         self.apply_calibration_value(&calib)?;
+        info!("applied {:?}", calib);
         self.set_volume(VolumeMode::High)?;
         Ok(())
     }
