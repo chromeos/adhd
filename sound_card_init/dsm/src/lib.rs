@@ -158,24 +158,18 @@ impl DSM {
         match self.is_speaker_over_heated() {
             Ok(overheated) => {
                 if overheated {
-                    let calib: Vec<CalibData> = (0..self.num_channels)
-                        .map(|ch| -> Result<CalibData> { self.get_previous_calibration_value(ch) })
-                        .collect::<Result<Vec<CalibData>>>()?;
+                    let calib = self.get_all_previous_calibration_value()?;
                     info!("the speakers are hot, the boot time calibration should be skipped");
                     return Ok(SpeakerStatus::Hot(calib));
                 }
                 Ok(SpeakerStatus::Cold)
             }
-            Err(err) => {
-                // We cannot assume the speakers are not replaced or not overheated
-                // when the shutdown time file is invalid; therefore we can not use the datastore
-                // value anymore and we can not trigger boot time calibration.
-                for ch in 0..self.num_channels {
-                    if let Err(e) = Datastore::delete(&self.snd_card, ch) {
-                        error!("error delete datastore: {}", e);
-                    }
-                }
-                Err(err)
+            Err(e) => {
+                // when the shutdown time file is invalid we assume the speakers are overheated
+                // and we can not trigger boot time calibration.
+                info!("{}, the boot time calibration is skipped", e);
+                let calib = self.get_all_previous_calibration_value()?;
+                return Ok(SpeakerStatus::Hot(calib));
             }
         }
     }
@@ -264,6 +258,21 @@ impl DSM {
     pub fn get_all_vpd_calibration_value(&self) -> Result<Vec<CalibData>> {
         (0..self.num_channels)
             .map(|ch| self.get_vpd_calibration_value(ch))
+            .collect::<Result<Vec<_>>>()
+    }
+
+    /// Gets the previous calibration values from datastore
+    ///
+    /// # Results
+    ///
+    /// * `Vec<CalibData>` - the calibration values in datastore.
+    ///
+    /// # Errors
+    ///
+    /// * Failed to read datastore.
+    fn get_all_previous_calibration_value(&self) -> Result<Vec<CalibData>> {
+        (0..self.num_channels)
+            .map(|ch| self.get_previous_calibration_value(ch))
             .collect::<Result<Vec<_>>>()
     }
 
