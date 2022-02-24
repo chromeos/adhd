@@ -1253,7 +1253,7 @@ static void check_auto_unplug_output_node(struct alsa_io *aio,
  * device it has Headphones and Speakers.
  */
 static struct alsa_output_node *new_output(struct alsa_io *aio,
-					   struct mixer_control *cras_output,
+					   struct mixer_control *cras_control,
 					   const char *name)
 {
 	struct alsa_output_node *output;
@@ -1280,20 +1280,20 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 
 	if (strcmp(name, "SCO Line Out") == 0)
 		output->base.is_sco_pcm = 1;
-	output->mixer_output = cras_output;
+	output->mixer_output = cras_control;
 
 	/* Volume curve. */
 	curve = cras_card_config_get_volume_curve_for_control(
 		aio->config,
-		name ? name : cras_alsa_mixer_get_control_name(cras_output));
+		name ? name : cras_alsa_mixer_get_control_name(cras_control));
 	if (!curve && aio->card_type == ALSA_CARD_TYPE_USB) {
 		cras_alsa_mixer_get_playback_dBFS_range(
-			aio->mixer, cras_output, &max_volume, &min_volume);
+			aio->mixer, cras_control, &max_volume, &min_volume);
 		syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", name,
 		       min_volume, max_volume);
 		if (max_volume - min_volume)
 			curve = cras_volume_curve_create_simple_step(
-				max_volume, (max_volume - min_volume) / 100);
+				0, (max_volume - min_volume) / 100);
 
 		if (max_volume - min_volume <= 500)
 			syslog(LOG_WARNING,

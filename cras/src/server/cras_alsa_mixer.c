@@ -939,6 +939,9 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer *cras_mixer, long dBFS,
 
 	assert(cras_mixer);
 
+	if (dBFS > 0)
+		syslog(LOG_WARNING, "dBFS to set should <= 0 but instead %ld",
+		       dBFS);
 	/* dBFS is normally < 0 to specify the attenuation from max. max is the
 	 * combined max of the main controls and the current output.
 	 */
