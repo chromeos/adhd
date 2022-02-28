@@ -1727,7 +1727,7 @@ DISABLE_CFI_ICALL
 inline int libcras_client_get_system_muted(struct libcras_client *client,
 					   int *muted)
 {
-	return client->get_aec_group_id(client->client_, muted);
+	return client->get_system_muted(client->client_, muted);
 }
 
 /*
