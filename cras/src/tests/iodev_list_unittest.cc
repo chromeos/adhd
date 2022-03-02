@@ -2292,6 +2292,39 @@ TEST_F(IoDevTestSuite, SetAecRefReconnectStream) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, ReconnectStreamsWithApm) {
+  struct cras_rstream rstream;
+  struct cras_rstream* stream_list = NULL;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  rc = cras_iodev_list_add_input(&d1_);
+  ASSERT_EQ(0, rc);
+
+  rstream.direction = CRAS_STREAM_INPUT;
+  rstream.stream_apm = reinterpret_cast<struct cras_stream_apm*>(0x987);
+
+  DL_APPEND(stream_list, &rstream);
+  stream_add_cb(&rstream);
+  stream_list_get_ret = stream_list;
+
+  audio_thread_add_stream_called = 0;
+  audio_thread_disconnect_stream_called = 0;
+  cras_stream_apm_remove_called = 0;
+  cras_stream_apm_add_called = 0;
+  cras_iodev_list_reconnect_streams_with_apm();
+  /* Verify the stream and apm to through correct life cycles. */
+  EXPECT_EQ(1, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(1, cras_stream_apm_remove_called);
+  EXPECT_EQ(1, cras_stream_apm_add_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   struct cras_rstream rstream;
   uint32_t default_audio_effect = 0x8000;

@@ -814,6 +814,12 @@ static void on_output_devices_changed()
 	rc = send_apm_message(APM_REVERSE_DEV_CHANGED);
 	if (rc < 0)
 		syslog(LOG_ERR, "Error sending output devices changed message");
+
+	/* The output device has just changed so for all stream_apms the
+	 * settings might need to change accordingly. Call out to iodev_list
+	 * for reconnecting those streams and apply the correct settings.
+	 */
+	cras_iodev_list_reconnect_streams_with_apm();
 }
 
 /* Receives commands and handles them in audio thread. */

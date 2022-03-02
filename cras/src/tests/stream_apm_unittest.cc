@@ -649,6 +649,7 @@ void audio_thread_rm_callback(int fd) {}
 struct audio_thread* cras_iodev_list_get_audio_thread() {
   return NULL;
 }
+void cras_iodev_list_reconnect_streams_with_apm() {}
 
 bool cras_iodev_is_aec_use_case(const struct cras_ionode* node) {
   return cras_iodev_is_aec_use_case_value;

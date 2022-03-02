@@ -2139,6 +2139,16 @@ int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx)
 	return rc;
 }
 
+void cras_iodev_list_reconnect_streams_with_apm()
+{
+	struct cras_rstream *rstream = NULL;
+	DL_FOREACH (stream_list_get(stream_list), rstream) {
+		if (rstream->stream_apm == NULL)
+			continue;
+		remove_then_reconnect_stream(rstream);
+	}
+}
+
 void cras_iodev_list_reset()
 {
 	struct enabled_dev *edev;
