@@ -21,6 +21,10 @@ extern "C" {
 
 namespace {
 static int buffer_share_get_new_write_point_ret;
+static const struct cras_iodev* cras_stream_apm_get_active_idev;
+static struct cras_stream_apm* cras_stream_apm_get_active_stream;
+static struct cras_stream_apm* fake_stream_apm =
+    reinterpret_cast<struct cras_stream_apm*>(0x123);
 
 class RstreamTestSuite : public testing::Test {
  protected:
@@ -410,6 +414,25 @@ TEST_F(RstreamTestSuite, UpdateOutputReadPtr) {
   cras_rstream_destroy(s);
 }
 
+TEST_F(RstreamTestSuite, EffectPostProcessingFormat) {
+  int rc;
+  struct cras_rstream* s;
+  struct cras_iodev* fake_idev = reinterpret_cast<struct cras_iodev*>(0x456);
+
+  config_.effects = APM_ECHO_CANCELLATION;
+  config_.direction = CRAS_STREAM_INPUT;
+
+  rc = cras_rstream_create(&config_, &s);
+  EXPECT_EQ(0, rc);
+
+  cras_stream_apm_get_active_stream = NULL;
+  cras_rstream_post_processing_format(s, fake_idev);
+  EXPECT_EQ(cras_stream_apm_get_active_stream, fake_stream_apm);
+  EXPECT_EQ(cras_stream_apm_get_active_idev, fake_idev);
+
+  cras_rstream_destroy(s);
+}
+
 }  //  namespace
 
 int main(int argc, char** argv) {
@@ -504,10 +527,12 @@ void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {}
 #ifdef HAVE_WEBRTC_APM
 #define FAKE_CRAS_APM_PTR reinterpret_cast<struct cras_apm*>(0x99)
 struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
-  return NULL;
+  return fake_stream_apm;
 }
 struct cras_apm* cras_stream_apm_get_active(struct cras_stream_apm* stream,
                                             const struct cras_iodev* idev) {
+  cras_stream_apm_get_active_stream = stream;
+  cras_stream_apm_get_active_idev = idev;
   return FAKE_CRAS_APM_PTR;
 }
 int cras_stream_apm_destroy(struct cras_stream_apm* stream) {

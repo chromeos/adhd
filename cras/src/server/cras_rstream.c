@@ -373,11 +373,11 @@ unsigned int cras_rstream_get_effects(const struct cras_rstream *stream)
 
 struct cras_audio_format *
 cras_rstream_post_processing_format(const struct cras_rstream *stream,
-				    void *dev_ptr)
+				    const struct cras_iodev *idev)
 {
 	struct cras_apm *apm;
 
-	apm = cras_stream_apm_get_active((void *)stream, dev_ptr);
+	apm = cras_stream_apm_get_active(stream->stream_apm, idev);
 	if (NULL == apm)
 		return NULL;
 	return cras_stream_apm_get_format(apm);

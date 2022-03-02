@@ -1194,7 +1194,7 @@ void cras_rstream_update_queued_frames(struct cras_rstream* rstream) {}
 
 struct cras_audio_format* cras_rstream_post_processing_format(
     const struct cras_rstream* stream,
-    void* dev_ptr) {
+    const struct cras_iodev* idev) {
   return cras_rstream_post_processing_format_val;
 }
 void* buffer_share_get_data(const struct buffer_share* mix, unsigned int id) {

@@ -1218,7 +1218,7 @@ float input_data_get_software_gain_scaler(struct input_data* data,
 
 struct cras_audio_format* cras_rstream_post_processing_format(
     const struct cras_rstream* stream,
-    void* dev_ptr) {
+    const struct cras_iodev* idev) {
   return NULL;
 }
 
