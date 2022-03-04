@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <errno.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include <sys/param.h>
@@ -19,7 +20,10 @@
 #include "cras_a2dp_manager.h"
 #include "cras_audio_area.h"
 #include "cras_audio_thread_monitor.h"
+#include "cras_hfp_manager.h"
 #include "cras_iodev.h"
+#include "cras_types.h"
+#include "cras_string.h"
 #include "cras_util.h"
 #include "sfh.h"
 #include "utlist.h"
@@ -29,6 +33,11 @@
 /* Floss currently set a 10ms poll interval as A2DP_DATA_READ_POLL_MS.
  * Double it and use for scheduling here. */
 #define PCM_BLOCK_MS 20
+
+/* 8000 (sampling rate) * 10ms * 2 (S16_LE)
+ * 10ms equivalent of PCM data for HFP narrow band. This static value is a
+ * temporary solution and should be refined to a better scheduling strategy. */
+#define HFP_PACKET_SIZE 160
 
 /* Schedule the first delay sync 500ms after stream starts, and redo
  * every 10 seconds. */
@@ -51,6 +60,13 @@ static const struct timespec throttle_event_threshold = {
 	2, 0 /* 2s */
 };
 
+/* The max buffer size. Note that the actual used size must set to multiple
+ * of SCO packet size, and the packet size does not necessarily be equal to
+ * MTU. We should keep this as common multiple of possible packet sizes, for
+ * example: 48, 60, 64, 128.
+ */
+#define FLOSS_HFP_MAX_BUF_SIZE_BYTES 28800
+
 /* Child of cras_iodev to handle bluetooth A2DP streaming.
  * Members:
  *    base - The cras_iodev structure "base class"
@@ -65,6 +81,8 @@ static const struct timespec throttle_event_threshold = {
  *    bt_stack_delay - The calculated delay in frames from
  *        a2dp_pcm_update_bt_stack_delay.
  *    a2dp - The associated cras_a2dp object.
+ *    hfp - The associated cras_hfp object.
+ *    started - If the device has been configured and attached with any stream.
  */
 struct fl_pcm_io {
 	struct cras_iodev base;
@@ -78,6 +96,7 @@ struct fl_pcm_io {
 	unsigned int bt_stack_delay;
 	struct cras_a2dp *a2dp;
 	struct cras_hfp *hfp;
+	int started;
 };
 
 static int flush(const struct cras_iodev *iodev);
@@ -85,13 +104,14 @@ static int flush(const struct cras_iodev *iodev);
 static int update_supported_formats(struct cras_iodev *iodev)
 {
 	/* Supported formats are fixed when iodev created. */
+	/* TODO(b/214148074): Support WBS */
 	return 0;
 }
 
 static unsigned int bt_local_queued_frames(const struct cras_iodev *iodev)
 {
-	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
-	return buf_queued(a2dpio->pcm_buf) /
+	struct fl_pcm_io *pcmio = (struct fl_pcm_io *)iodev;
+	return buf_queued(pcmio->pcm_buf) /
 	       cras_get_format_bytes(iodev->format);
 }
 
@@ -168,18 +188,23 @@ static int leave_no_stream(struct fl_pcm_io *a2dpio)
  * min_buffer_level, so we want to keep data at a reasonable higher level on top
  * of that.
  */
-static int no_stream(struct cras_iodev *odev, int enable)
+static int a2dp_no_stream(struct cras_iodev *odev, int enable)
 {
-	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)odev;
+	struct fl_pcm_io *pcmio = (struct fl_pcm_io *)odev;
 
 	if (enable)
-		return enter_no_stream(a2dpio);
+		return enter_no_stream(pcmio);
 	else
-		return leave_no_stream(a2dpio);
+		return leave_no_stream(pcmio);
+}
+
+static int hfp_no_stream(struct cras_iodev *iodev, int enable)
+{
+	return 0;
 }
 
 /*
- * To be called when a2dp socket becomes writable.
+ * To be called when PCM socket becomes writable.
  */
 static int a2dp_socket_write_cb(void *arg, int revent)
 {
@@ -187,7 +212,7 @@ static int a2dp_socket_write_cb(void *arg, int revent)
 	return flush(iodev);
 }
 
-static int configure_dev(struct cras_iodev *iodev)
+static int a2dp_configure_dev(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 	int rc;
@@ -237,7 +262,141 @@ static int configure_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int start(const struct cras_iodev *iodev)
+static int hfp_read(const struct cras_iodev *iodev)
+{
+	int fd, rc;
+	uint8_t *buf;
+	unsigned int to_read;
+	size_t packet_size;
+	struct fl_pcm_io *idev = (struct fl_pcm_io *)iodev;
+
+	packet_size = HFP_PACKET_SIZE;
+	fd = cras_floss_hfp_get_fd(idev->hfp);
+do_recv:
+	buf = buf_write_pointer_size(idev->pcm_buf, &to_read);
+
+	if (to_read > packet_size)
+		to_read = packet_size;
+
+	rc = recv(fd, buf, to_read, MSG_DONTWAIT);
+	if (rc <= 0) {
+		if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+			syslog(LOG_ERR, "Recv error %s", cras_strerror(errno));
+			return -1;
+		}
+		return 0;
+	}
+	buf_increment_write(idev->pcm_buf, rc);
+
+	/* Ignore the bytes just read if input dev not in present */
+	if (!idev->started)
+		buf_increment_read(idev->pcm_buf, rc);
+
+	/* Try to receive more if we haven't received the amount of data we
+	 * prefer. */
+	packet_size -= rc;
+	if (packet_size > 0)
+		goto do_recv;
+
+	return 0;
+}
+
+static int hfp_write(const struct cras_iodev *iodev)
+{
+	int fd, rc;
+	uint8_t *buf;
+	unsigned int to_send;
+	size_t packet_size;
+	struct fl_pcm_io *odev = (struct fl_pcm_io *)iodev;
+
+	packet_size = HFP_PACKET_SIZE;
+	/* Without output stream's presence, we shall still send zero packets
+	 * to HF. This is required for some HF devices to start sending non-zero
+	 * data to AG.
+	 */
+	if (!odev->started)
+		buf_increment_write(odev->pcm_buf, packet_size);
+
+	buf = buf_read_pointer_size(odev->pcm_buf, &to_send);
+	if (to_send < packet_size)
+		return 0;
+
+	fd = cras_floss_hfp_get_fd(odev->hfp);
+do_send:
+	rc = send(fd, buf, packet_size, MSG_DONTWAIT);
+	if (rc <= 0) {
+		if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+			syslog(LOG_ERR, "Send error %s", cras_strerror(errno));
+			return -1;
+		}
+		return 0;
+	}
+	buf_increment_read(odev->pcm_buf, rc);
+
+	/* Keep trying to write more if we haven't sent the amount of data
+	 * we tend to. */
+	packet_size -= rc;
+	if (packet_size > 0)
+		goto do_send;
+
+	return 0;
+}
+
+static int hfp_socket_read_write_cb(void *arg, int revents)
+{
+	int rc;
+	struct cras_hfp *hfp = (struct cras_hfp *)arg;
+	struct cras_iodev *idev, *odev;
+
+	cras_floss_hfp_get_iodevs(hfp, &idev, &odev);
+
+	/* Allow last read before handling error or hang-up events. */
+	if (revents & POLLIN) {
+		rc = hfp_read(idev);
+		if (rc)
+			return rc;
+	}
+	if (revents & (POLLERR | POLLHUP)) {
+		syslog(LOG_ERR, "Error polling SCO socket, revents %d",
+		       revents);
+		return -1;
+	}
+
+	return hfp_write(odev);
+}
+
+static int hfp_configure_dev(struct cras_iodev *iodev)
+{
+	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
+	int rc;
+
+	/* Assert format is set before opening device. */
+	if (iodev->format == NULL)
+		return -EINVAL;
+	iodev->format->format = SND_PCM_FORMAT_S16_LE;
+	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+
+	buf_reset(hfpio->pcm_buf);
+	iodev->buffer_size = hfpio->pcm_buf->used_size /
+			     cras_get_format_bytes(iodev->format);
+
+	hfpio->bt_stack_delay = 0;
+
+	/* As we directly write PCM here, there is no min buffer limitation. */
+	iodev->min_buffer_level = 0;
+
+	rc = cras_floss_hfp_start(hfpio->hfp, hfp_socket_read_write_cb,
+				  iodev->direction);
+	if (rc < 0) {
+		syslog(LOG_ERR, "HFP failed to start");
+		return rc;
+	}
+
+	hfpio->started = 1;
+	return 0;
+}
+
+static int a2dp_start(const struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
@@ -253,7 +412,7 @@ static int start(const struct cras_iodev *iodev)
 	return 0;
 }
 
-static int close_dev(struct cras_iodev *iodev)
+static int a2dp_close_dev(struct cras_iodev *iodev)
 {
 	int err;
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
@@ -272,9 +431,23 @@ static int close_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static unsigned int frames_to_play_in_sleep(struct cras_iodev *iodev,
-					    unsigned int *hw_level,
-					    struct timespec *hw_tstamp)
+static int hfp_close_dev(struct cras_iodev *iodev)
+{
+	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
+
+	hfpio->started = 0;
+	cras_floss_hfp_stop(hfpio->hfp, iodev->direction);
+
+	memset(hfpio->pcm_buf, 0, hfpio->pcm_buf->max_size);
+	buf_reset(hfpio->pcm_buf);
+	cras_iodev_free_format(iodev);
+	cras_iodev_free_audio_area(iodev);
+	return 0;
+}
+
+static unsigned int a2dp_frames_to_play_in_sleep(struct cras_iodev *iodev,
+						 unsigned int *hw_level,
+						 struct timespec *hw_tstamp)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 	int frames_until;
@@ -407,36 +580,44 @@ do_flush:
 
 static int delay_frames(const struct cras_iodev *iodev)
 {
-	const struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
+	const struct fl_pcm_io *pcmio = (struct fl_pcm_io *)iodev;
 	struct timespec tstamp;
 
 	/* The number of frames in the pcm buffer plus the delay
 	 * derived from a2dp_pcm_update_bt_stack_delay. */
-	return frames_queued(iodev, &tstamp) + a2dpio->bt_stack_delay;
+	return frames_queued(iodev, &tstamp) + pcmio->bt_stack_delay;
 }
 
 static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 		      unsigned *frames)
 {
+	struct fl_pcm_io *pcmio;
+	uint8_t *dst = NULL;
+	unsigned buf_avail = 0;
 	size_t format_bytes;
-	struct fl_pcm_io *a2dpio;
 
-	a2dpio = (struct fl_pcm_io *)iodev;
+	pcmio = (struct fl_pcm_io *)iodev;
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT && iodev->format) {
+		dst = buf_write_pointer_size(pcmio->pcm_buf, &buf_avail);
+	} else if (iodev->direction == CRAS_STREAM_INPUT && iodev->format) {
+		dst = buf_read_pointer_size(pcmio->pcm_buf, &buf_avail);
+	} else {
+		*frames = 0;
+		return 0;
+	}
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 
-	if (iodev->direction != CRAS_STREAM_OUTPUT)
-		return 0;
-
-	*frames = MIN(*frames, buf_writable(a2dpio->pcm_buf) / format_bytes);
+	*frames = MIN(*frames, buf_writable(pcmio->pcm_buf) / format_bytes);
 	iodev->area->frames = *frames;
-	cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
-					    buf_write_pointer(a2dpio->pcm_buf));
+	cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
+
 	*area = iodev->area;
 	return 0;
 }
 
-static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
+static int a2dp_put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 {
 	size_t written_bytes;
 	size_t format_bytes;
@@ -453,16 +634,54 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	return flush(iodev);
 }
 
-static int flush_buffer(struct cras_iodev *iodev)
+static int hfp_put_buffer(struct cras_iodev *iodev, unsigned frames)
+{
+	struct fl_pcm_io *pcmio = (struct fl_pcm_io *)iodev;
+	size_t format_bytes;
+
+	if (!frames)
+		return 0;
+
+	format_bytes = cras_get_format_bytes(iodev->format);
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT) {
+		buf_increment_write(pcmio->pcm_buf, frames * format_bytes);
+	} else if (iodev->direction == CRAS_STREAM_INPUT) {
+		buf_increment_read(pcmio->pcm_buf, frames * format_bytes);
+	}
+
+	return 0;
+}
+
+static int a2dp_flush_buffer(struct cras_iodev *iodev)
 {
 	return 0;
 }
 
-static void set_volume(struct cras_iodev *iodev)
+static int hfp_flush_buffer(struct cras_iodev *iodev)
+{
+	struct fl_pcm_io *pcmio = (struct fl_pcm_io *)iodev;
+	size_t format_bytes;
+	unsigned nframes;
+
+	format_bytes = cras_get_format_bytes(iodev->format);
+	if (iodev->direction == CRAS_STREAM_INPUT) {
+		nframes = buf_queued(pcmio->pcm_buf) / format_bytes;
+		buf_increment_read(pcmio->pcm_buf, nframes * format_bytes);
+	}
+	return 0;
+}
+
+static void a2dp_set_volume(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
 	cras_floss_a2dp_set_volume(a2dpio->a2dp, iodev->active_node->volume);
+}
+
+static void hfp_set_volume(struct cras_iodev *iodev)
+{
+	/* TODO(b/215089433): Support VGS. */
 }
 
 static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
@@ -470,18 +689,18 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 {
 }
 
-void a2dp_pcm_free_resources(struct fl_pcm_io *a2dpio)
+void pcm_free_base_resources(struct fl_pcm_io *pcmio)
 {
 	struct cras_ionode *node;
 
-	node = a2dpio->base.active_node;
+	node = pcmio->base.active_node;
 	if (node) {
-		cras_iodev_rm_node(&a2dpio->base, node);
+		cras_iodev_rm_node(&pcmio->base, node);
 		free(node);
 	}
-	free(a2dpio->base.supported_channel_counts);
-	free(a2dpio->base.supported_rates);
-	free(a2dpio->base.supported_formats);
+	free(pcmio->base.supported_channel_counts);
+	free(pcmio->base.supported_rates);
+	free(pcmio->base.supported_formats);
 }
 
 struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
@@ -507,27 +726,27 @@ struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
 	iodev->direction = CRAS_STREAM_OUTPUT;
 
 	name = cras_floss_a2dp_get_display_name(a2dp);
-	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
+	snprintf(iodev->info.name, sizeof(iodev->info.name), "[A2DP]%s", name);
 	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
 
 	/* Address determines the unique stable id. */
 	addr = cras_floss_a2dp_get_addr(a2dp);
 	iodev->info.stable_id = SuperFastHash(addr, strlen(addr), strlen(addr));
 
-	iodev->configure_dev = configure_dev;
+	iodev->configure_dev = a2dp_configure_dev;
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
-	iodev->put_buffer = put_buffer;
-	iodev->flush_buffer = flush_buffer;
-	iodev->no_stream = no_stream;
+	iodev->put_buffer = a2dp_put_buffer;
+	iodev->flush_buffer = a2dp_flush_buffer;
+	iodev->no_stream = a2dp_no_stream;
 	iodev->output_underrun = output_underrun;
-	iodev->close_dev = close_dev;
+	iodev->close_dev = a2dp_close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->set_volume = set_volume;
-	iodev->start = start;
-	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
+	iodev->set_volume = a2dp_set_volume;
+	iodev->start = a2dp_start;
+	iodev->frames_to_play_in_sleep = a2dp_frames_to_play_in_sleep;
 
 	cras_floss_a2dp_fill_format(sample_rate, bits_per_sample, channel_mode,
 				    &iodev->supported_rates,
@@ -555,7 +774,7 @@ struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
 	return iodev;
 error:
 	if (a2dpio) {
-		a2dp_pcm_free_resources(a2dpio);
+		pcm_free_base_resources(a2dpio);
 		free(a2dpio);
 	}
 	return NULL;
@@ -566,7 +785,7 @@ void a2dp_pcm_iodev_destroy(struct cras_iodev *iodev)
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
 	/* Free resources when device successfully removed. */
-	a2dp_pcm_free_resources(a2dpio);
+	pcm_free_base_resources(a2dpio);
 	cras_iodev_list_rm_output(iodev);
 	cras_iodev_free_resources(iodev);
 	free(a2dpio);
@@ -623,12 +842,102 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
 	syslog(LOG_DEBUG, "Update: bt_stack_delay %u", a2dpio->bt_stack_delay);
 }
 
-struct cras_iodev *hfp_pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
-					struct cras_hfp *hfp)
+struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
+					enum CRAS_STREAM_DIRECTION dir)
 {
+	int err;
+	struct fl_pcm_io *hfpio;
+	struct cras_iodev *iodev;
+	struct cras_ionode *node;
+	const char *addr, *name;
+
+	hfpio = (struct fl_pcm_io *)calloc(1, sizeof(*hfpio));
+	if (!hfpio)
+		goto error;
+
+	iodev = &hfpio->base;
+
+	hfpio->started = 0;
+	hfpio->hfp = hfp;
+
+	iodev->direction = dir;
+
+	name = cras_floss_hfp_get_display_name(hfp);
+	snprintf(iodev->info.name, sizeof(iodev->info.name), "[HFP]%s", name);
+	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
+
+	/* Address determines the unique stable id. */
+	addr = cras_floss_hfp_get_addr(hfp);
+	iodev->info.stable_id = SuperFastHash(addr, strlen(addr), strlen(addr));
+
+	iodev->configure_dev = hfp_configure_dev;
+	iodev->frames_queued = frames_queued;
+	iodev->delay_frames = delay_frames;
+	iodev->get_buffer = get_buffer;
+	iodev->put_buffer = hfp_put_buffer;
+	iodev->flush_buffer = hfp_flush_buffer;
+	iodev->no_stream = hfp_no_stream;
+	iodev->close_dev = hfp_close_dev;
+	iodev->update_supported_formats = update_supported_formats;
+	iodev->update_active_node = update_active_node;
+	iodev->set_volume = hfp_set_volume;
+	iodev->output_underrun = output_underrun;
+
+	err = cras_floss_hfp_fill_format(hfp, &iodev->supported_rates,
+					 &iodev->supported_formats,
+					 &iodev->supported_channel_counts);
+	if (err)
+		goto error;
+
+	/* Record max supported channels into cras_iodev_info. */
+	iodev->info.max_supported_channels = 1;
+
+	/* Create an empty ionode */
+	node = (struct cras_ionode *)calloc(1, sizeof(*node));
+	node->dev = iodev;
+	strcpy(node->name, iodev->info.name);
+
+	node->plugged = 1;
+	node->type = CRAS_NODE_TYPE_BLUETOOTH;
+
+	node->volume = 100;
+	gettimeofday(&node->plugged_time, NULL);
+
+	hfpio->pcm_buf = byte_buffer_create(FLOSS_HFP_MAX_BUF_SIZE_BYTES);
+	if (!hfpio->pcm_buf)
+		goto error;
+
+	cras_iodev_add_node(iodev, node);
+	cras_iodev_set_active_node(iodev, node);
+
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		err = cras_iodev_list_add_output(iodev);
+	else
+		err = cras_iodev_list_add_input(iodev);
+	if (err)
+		goto error;
+
+	ewma_power_disable(&iodev->ewma);
+
+	return iodev;
+error:
+	if (hfpio) {
+		pcm_free_base_resources(hfpio);
+		free(hfpio);
+	}
 	return NULL;
 }
 
 void hfp_pcm_iodev_destroy(struct cras_iodev *iodev)
 {
+	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
+
+	byte_buffer_destroy(&hfpio->pcm_buf);
+	pcm_free_base_resources(hfpio);
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		cras_iodev_list_rm_output(iodev);
+	else if (iodev->direction == CRAS_STREAM_INPUT)
+		cras_iodev_list_rm_input(iodev);
+	cras_iodev_free_resources(iodev);
+	free(hfpio);
 }

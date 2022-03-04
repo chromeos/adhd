@@ -143,7 +143,6 @@ cras_server_SOURCES = \
 	server/config/cras_card_config.c \
 	server/config/cras_device_blocklist.c \
 	server/cras_a2dp_manager.c \
-	server/cras_fl_pcm_iodev.c \
 	server/cras_alert.c \
 	server/cras_alsa_card.c \
 	server/cras_alsa_helpers.c \
@@ -164,6 +163,7 @@ cras_server_SOURCES = \
 	server/cras_dsp_pipeline.c \
 	server/cras_empty_iodev.c \
 	server/cras_expr.c \
+	server/cras_fl_pcm_iodev.c \
 	server/cras_fmt_conv.c \
 	server/cras_fmt_conv_ops.c \
 	server/cras_gpio_jack.c \
