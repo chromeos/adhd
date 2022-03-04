@@ -98,6 +98,9 @@ static struct cras_iodev fake_sco_in_dev, fake_sco_out_dev;
 static struct cras_ionode fake_sco_in_node, fake_sco_out_node;
 static int server_state_hotword_pause_at_suspend;
 static int cras_system_get_max_internal_mic_gain_return;
+static int cras_stream_apm_set_aec_ref_called;
+static int cras_stream_apm_remove_called;
+static int cras_stream_apm_add_called;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
@@ -2252,6 +2255,43 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, SetAecRefReconnectStream) {
+  struct cras_rstream rstream;
+  struct cras_rstream* stream_list = NULL;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  rstream.direction = CRAS_STREAM_INPUT;
+  rstream.stream_id = 123;
+  rstream.stream_apm = reinterpret_cast<struct cras_stream_apm*>(0x987);
+
+  DL_APPEND(stream_list, &rstream);
+  stream_add_cb(&rstream);
+  stream_list_get_ret = stream_list;
+
+  audio_thread_add_stream_called = 0;
+  audio_thread_disconnect_stream_called = 0;
+  cras_stream_apm_set_aec_ref_called = 0;
+  cras_stream_apm_remove_called = 0;
+  cras_stream_apm_add_called = 0;
+  cras_iodev_list_set_aec_ref(123, d1_.info.idx);
+  EXPECT_EQ(1, cras_stream_apm_set_aec_ref_called);
+  /* Verify the stream and apm to through correct life cycles. */
+  EXPECT_EQ(1, audio_thread_disconnect_stream_called);
+  EXPECT_EQ(1, cras_stream_apm_remove_called);
+  EXPECT_EQ(1, cras_stream_apm_add_called);
+  EXPECT_EQ(1, audio_thread_add_stream_called);
+
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   struct cras_rstream rstream;
   uint32_t default_audio_effect = 0x8000;
@@ -2761,11 +2801,19 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
 struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
                                      struct cras_iodev* idev,
                                      const struct cras_audio_format* fmt) {
+  cras_stream_apm_add_called++;
   return NULL;
 }
 void cras_stream_apm_remove(struct cras_stream_apm* stream,
-                            const struct cras_iodev* idev) {}
+                            const struct cras_iodev* idev) {
+  cras_stream_apm_remove_called++;
+}
 int cras_stream_apm_init(const char* device_config_dir) {
+  return 0;
+}
+int cras_stream_apm_set_aec_ref(struct cras_stream_apm* stream,
+                                struct cras_iodev* echo_ref) {
+  cras_stream_apm_set_aec_ref_called++;
   return 0;
 }
 #endif
@@ -2801,6 +2849,9 @@ void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
 bool cras_floop_pair_match_output_stream(const struct cras_iodev* iodev,
                                          const struct cras_rstream* stream) {
   return false;
+}
+int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev* iodev) {
+  return 0;
 }
 
 }  // extern "C"

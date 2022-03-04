@@ -2077,9 +2077,17 @@ static int remove_then_reconnect_stream(struct cras_rstream *rstream)
 				iodevs[num_iodevs++] = edev->dev;
 		}
 	}
-	if (num_iodevs)
-		return add_stream_to_open_devs(rstream, iodevs, num_iodevs);
-	return 0;
+	if (num_iodevs == 0)
+		return 0;
+
+	/* If |rstream| has an stream_apm, remove from those already attached
+	 * iodevs. This resets the old APM settings used on these iodevs and
+	 * allows new settings to apply when re-added to open iodevs later.
+	 */
+	for (int i = 0; rstream->stream_apm && (i < num_iodevs); i++)
+		cras_stream_apm_remove(rstream->stream_apm, iodevs[i]);
+
+	return add_stream_to_open_devs(rstream, iodevs, num_iodevs);
 }
 
 int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx)
