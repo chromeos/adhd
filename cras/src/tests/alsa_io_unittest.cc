@@ -150,6 +150,9 @@ static struct timespec clock_gettime_retspec;
 static unsigned cras_iodev_reset_rate_estimator_called;
 static unsigned display_rotation;
 static bool sys_get_noise_cancellation_supported_return_value;
+static int sys_aec_on_dsp_supported_return_value;
+static int ucm_node_echo_cancellation_exists_ret_value;
+static bool sys_bypass_block_noise_cancellation_value;
 
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
@@ -239,6 +242,9 @@ void ResetStubData() {
   cras_iodev_reset_rate_estimator_called = 0;
   display_rotation = 0;
   sys_get_noise_cancellation_supported_return_value = 0;
+  sys_aec_on_dsp_supported_return_value = 0;
+  ucm_node_echo_cancellation_exists_ret_value = 0;
+  sys_bypass_block_noise_cancellation_value = false;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -1470,6 +1476,48 @@ TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
   }
 }
 
+TEST(AlsaOutputNode, InputBypassBlockNoiseCancellation) {
+  struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
+  struct cras_iodev* iodev;
+  struct ucm_section* section;
+  int i;
+
+  // i = 0: sys_aec_on_dsp_supported is 0, ucm_aec_exists is 0
+  // i = 1: sys_aec_on_dsp_supported is 0, ucm_aec_exists is 1
+  // i = 2: sys_aec_on_dsp_supported is 1, ucm_aec_exists is 0
+  // i = 3: sys_aec_on_dsp_supported is 1, ucm_aec_exists is 1
+  for (i = 0; i < 4; i++) {
+    ResetStubData();
+    sys_get_noise_cancellation_supported_return_value = true;
+    sys_aec_on_dsp_supported_return_value = i / 2;
+    ucm_node_echo_cancellation_exists_ret_value = i % 2;
+
+    // Create the IO device for Internal Microphone.
+    iodev = alsa_iodev_create_with_default_parameters(
+        0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
+        CRAS_STREAM_INPUT);
+    ASSERT_NE(iodev, (void*)NULL);
+
+    // Create the node.
+    section = ucm_section_create(INTERNAL_MICROPHONE, "hw:0,1", 0, -1,
+                                 CRAS_STREAM_INPUT, NULL, NULL);
+    ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+    ASSERT_NE(iodev->nodes, (void*)NULL);
+
+    // NC flag in node.audio_effect should be unrelated to AEC on DSP states.
+    ASSERT_TRUE(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION);
+    // Bypass Block NC state should be true only if both
+    // cras_system_aec_on_dsp_supported and ucm_node_echo_cancellation_exists
+    // return true.
+    ASSERT_EQ(sys_bypass_block_noise_cancellation_value,
+              cras_system_aec_on_dsp_supported() &&
+                  ucm_node_echo_cancellation_exists(fake_ucm));
+
+    ucm_section_free_list(section);
+    alsa_iodev_destroy(iodev);
+  }
+}
+
 TEST(AlsaOutputNode, InputNoControlsUCM) {
   struct alsa_io* aio;
   struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
@@ -2663,6 +2711,14 @@ bool cras_system_get_noise_cancellation_enabled() {
   return false;
 }
 
+int cras_system_aec_on_dsp_supported() {
+  return sys_aec_on_dsp_supported_return_value;
+}
+
+void cras_system_set_bypass_block_noise_cancellation(bool bypass) {
+  sys_bypass_block_noise_cancellation_value = bypass;
+}
+
 //  From cras_alsa_mixer.
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer* m,
                               long dB_level,
@@ -2923,6 +2979,10 @@ int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr* mgr,
                                        const char* node_name,
                                        int enable) {
   return 0;
+}
+
+int ucm_node_echo_cancellation_exists(struct cras_use_case_mgr* mgr) {
+  return ucm_node_echo_cancellation_exists_ret_value;
 }
 
 struct cras_volume_curve* cras_volume_curve_create_simple_step(

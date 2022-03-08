@@ -1404,6 +1404,13 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 		    ucm_node_noise_cancellation_exists(aio->ucm, name)) {
 			input->base.audio_effect |=
 				EFFECT_TYPE_NOISE_CANCELLATION;
+			/* If AEC on DSP, bypass the restriction of NC usage
+			 * when Internal Speaker is the active output device.
+			 */
+			if (cras_system_aec_on_dsp_supported() &&
+			    ucm_node_echo_cancellation_exists(aio->ucm))
+				cras_system_set_bypass_block_noise_cancellation(
+					true);
 		}
 	}
 
