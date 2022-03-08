@@ -157,9 +157,6 @@ void cras_system_set_noise_cancellation_enabled(bool enabled);
 /* Gets the flag of Noise Cancellation. */
 bool cras_system_get_noise_cancellation_enabled();
 
-/* Sets the flag to be true. */
-void cras_system_set_noise_cancellation_supported();
-
 /* Returns if Noise Cancellation is supported. */
 bool cras_system_get_noise_cancellation_supported();
 

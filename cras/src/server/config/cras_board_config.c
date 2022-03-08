@@ -14,6 +14,7 @@ static const int32_t AEC_SUPPORTED_DEFAULT = 0;
 static const int32_t AEC_GROUP_ID_DEFAULT = -1;
 static const int32_t NS_SUPPORTED_DEFAULT = 0;
 static const int32_t AGC_SUPPORTED_DEFAULT = 0;
+static const int32_t NC_SUPPORTED_DEFAULT = 0;
 static const int32_t HW_ECHO_REF_DISABLED_DEFAULT = 0;
 static const int32_t AEC_ON_DSP_SUPPORTED_DEFAULT = 0;
 static const int32_t NS_ON_DSP_SUPPORTED_DEFAULT = 0;
@@ -29,6 +30,7 @@ static const int32_t MAX_INTERNAL_MIC_GAIN_DEFAULT = 2000;
 #define AEC_GROUP_ID_INI_KEY "processing:group_id"
 #define NS_SUPPORTED_INI_KEY "processing:ns_supported"
 #define AGC_SUPPORTED_INI_KEY "processing:agc_supported"
+#define NC_SUPPORTED_INI_KEY "processing:nc_supported"
 #define HW_ECHO_REF_DISABLED_KEY "processing:hw_echo_ref_disabled"
 #define AEC_ON_DSP_SUPPORTED_INI_KEY "processing:aec_on_dsp_supported"
 #define NS_ON_DSP_SUPPORTED_INI_KEY "processing:ns_on_dsp_supported"
@@ -52,6 +54,7 @@ void cras_board_config_get(const char *config_path,
 	board_config->aec_group_id = AEC_GROUP_ID_DEFAULT;
 	board_config->ns_supported = NS_SUPPORTED_DEFAULT;
 	board_config->agc_supported = AGC_SUPPORTED_DEFAULT;
+	board_config->nc_supported = NC_SUPPORTED_DEFAULT;
 	board_config->hw_echo_ref_disabled = HW_ECHO_REF_DISABLED_DEFAULT;
 	board_config->aec_on_dsp_supported = AEC_ON_DSP_SUPPORTED_DEFAULT;
 	board_config->ns_on_dsp_supported = NS_ON_DSP_SUPPORTED_DEFAULT;
@@ -97,6 +100,11 @@ void cras_board_config_get(const char *config_path,
 	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	board_config->agc_supported =
 		iniparser_getint(ini, ini_key, AGC_SUPPORTED_DEFAULT);
+
+	snprintf(ini_key, MAX_INI_KEY_LENGTH, NC_SUPPORTED_INI_KEY);
+	ini_key[MAX_INI_KEY_LENGTH] = 0;
+	board_config->nc_supported =
+		iniparser_getint(ini, ini_key, NC_SUPPORTED_DEFAULT);
 
 	snprintf(ini_key, MAX_INI_KEY_LENGTH, HW_ECHO_REF_DISABLED_KEY);
 	ini_key[MAX_INI_KEY_LENGTH] = 0;

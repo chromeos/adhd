@@ -169,7 +169,7 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 		board_config.deprioritize_bt_wbs_mic;
 	/* Enable Noise Cancellation as default. */
 	exp_state->noise_cancellation_enabled = 1;
-	exp_state->noise_cancellation_supported = 0;
+	exp_state->noise_cancellation_supported = board_config.nc_supported;
 	exp_state->bypass_block_noise_cancellation = 0;
 	exp_state->hotword_pause_at_suspend =
 		board_config.hotword_pause_at_suspend;
@@ -458,11 +458,6 @@ void cras_system_set_noise_cancellation_enabled(bool enabled)
 bool cras_system_get_noise_cancellation_enabled()
 {
 	return !!state.exp_state->noise_cancellation_enabled;
-}
-
-void cras_system_set_noise_cancellation_supported()
-{
-	state.exp_state->noise_cancellation_supported = 1;
 }
 
 bool cras_system_get_noise_cancellation_supported()

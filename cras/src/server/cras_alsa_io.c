@@ -1400,14 +1400,8 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 		input->base.dsp_name = ucm_get_dsp_name_for_dev(aio->ucm, name);
 
 		/* Check if noise cancellation is supported. */
-		if (ucm_node_noise_cancellation_exists(aio->ucm, name)) {
-			/*
-			 * Update the flag of noise cancellation supported to
-			 * cras_system_state. The flag is set to true if there
-			 * is any node supporting noise cancellation on UCM
-			 * modifier.
-			 */
-			cras_system_set_noise_cancellation_supported();
+		if (cras_system_get_noise_cancellation_supported() &&
+		    ucm_node_noise_cancellation_exists(aio->ucm, name)) {
 			input->base.audio_effect |=
 				EFFECT_TYPE_NOISE_CANCELLATION;
 		}

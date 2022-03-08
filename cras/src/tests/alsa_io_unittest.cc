@@ -63,7 +63,6 @@ static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
 static size_t sys_get_capture_mute_called;
 static int sys_get_capture_mute_return_value;
-static size_t sys_set_noise_cancellation_supported_called;
 static struct cras_alsa_mixer* fake_mixer = (struct cras_alsa_mixer*)1;
 static struct cras_card_config* fake_config = (struct cras_card_config*)2;
 static struct mixer_control** cras_alsa_mixer_list_outputs_outputs;
@@ -150,6 +149,7 @@ static int hotword_send_triggered_msg_called;
 static struct timespec clock_gettime_retspec;
 static unsigned cras_iodev_reset_rate_estimator_called;
 static unsigned display_rotation;
+static bool sys_get_noise_cancellation_supported_return_value;
 
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
@@ -237,8 +237,8 @@ void ResetStubData() {
   ucm_get_default_node_gain_values.clear();
   ucm_get_intrinsic_sensitivity_values.clear();
   cras_iodev_reset_rate_estimator_called = 0;
-  sys_set_noise_cancellation_supported_called = 0;
   display_rotation = 0;
+  sys_get_noise_cancellation_supported_return_value = 0;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -1359,14 +1359,11 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   ucm_section_add_coupled(section, "MIC-L", MIXER_NAME_VOLUME);
   ucm_section_add_coupled(section, "MIC-R", MIXER_NAME_VOLUME);
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
-  ASSERT_EQ(1, sys_set_noise_cancellation_supported_called);
   ASSERT_NE(iodev->nodes, (void*)NULL);
-  ASSERT_TRUE(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION);
   ucm_section_free_list(section);
 
   // Add a second node (will use the same iodev).
   cras_alsa_mixer_get_control_name_called = 0;
-  sys_set_noise_cancellation_supported_called = 0;
   // Set intrinsic sensitivity to enable software gain.
   ucm_get_intrinsic_sensitivity_values[MIC] = intrinsic_sensitivity;
   cras_alsa_jack_list_add_jack_for_section_result_jack =
@@ -1376,7 +1373,6 @@ TEST(AlsaOutputNode, InputsFromUCM) {
                                jack_name, "hctl");
   ucm_section_set_mixer_name(section, MIC);
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
-  ASSERT_EQ(0, sys_set_noise_cancellation_supported_called);
   ucm_section_free_list(section);
 
   // Jack plug of an unknown device should do nothing.
@@ -1417,6 +1413,61 @@ TEST(AlsaOutputNode, InputsFromUCM) {
             iodev->active_node->capture_gain);
 
   alsa_iodev_destroy(iodev);
+}
+
+TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
+  struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
+  struct cras_iodev* iodev;
+  struct ucm_section* section;
+  int i;
+
+  // i = 0: cras_system_get_noise_cancellation_supported is false
+  // i = 1: cras_system_get_noise_cancellation_supported is true
+  for (i = 0; i < 2; i++) {
+    ResetStubData();
+    sys_get_noise_cancellation_supported_return_value = (bool)i;
+
+    // Create the IO device for Internal Microphone.
+    iodev = alsa_iodev_create_with_default_parameters(
+        0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
+        CRAS_STREAM_INPUT);
+    ASSERT_NE(iodev, (void*)NULL);
+
+    // Create the node.
+    section = ucm_section_create(INTERNAL_MICROPHONE, "hw:0,1", 0, -1,
+                                 CRAS_STREAM_INPUT, NULL, NULL);
+    ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+    ASSERT_NE(iodev->nodes, (void*)NULL);
+
+    // ucm_node_noise_cancellation_exists is 1 for Internal Microphone.
+    // However NC flag in node.audio_effect will be on only if
+    // cras_system_get_noise_cancellatiobn_supported is true.
+    ASSERT_EQ(
+        sys_get_noise_cancellation_supported_return_value,
+        !!(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION));
+
+    ucm_section_free_list(section);
+    alsa_iodev_destroy(iodev);
+
+    // Create the IO device for Keyboard Microphone.
+    iodev = alsa_iodev_create_with_default_parameters(
+        0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
+        CRAS_STREAM_INPUT);
+    ASSERT_NE(iodev, (void*)NULL);
+
+    // Create the node.
+    section = ucm_section_create(KEYBOARD_MIC, "hw:0,2", 0, -1,
+                                 CRAS_STREAM_INPUT, NULL, NULL);
+    ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+    ASSERT_NE(iodev->nodes, (void*)NULL);
+
+    // ucm_node_noise_cancellation_exists is 0 for Keyboard Microphone.
+    // NC flag in node.audio_effect is off anyway.
+    ASSERT_FALSE(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION);
+
+    ucm_section_free_list(section);
+    alsa_iodev_destroy(iodev);
+  }
 }
 
 TEST(AlsaOutputNode, InputNoControlsUCM) {
@@ -2604,8 +2655,8 @@ void cras_system_set_volume_limits(long min, long max) {
   sys_set_volume_limits_called++;
 }
 
-void cras_system_set_noise_cancellation_supported() {
-  sys_set_noise_cancellation_supported_called++;
+bool cras_system_get_noise_cancellation_supported() {
+  return sys_get_noise_cancellation_supported_return_value;
 }
 
 bool cras_system_get_noise_cancellation_enabled() {
