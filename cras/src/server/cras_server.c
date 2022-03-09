@@ -423,6 +423,26 @@ static unsigned int cpu_x86_flags(void)
 		if (ext_fam == 0x6 && ext_model == 0x1 && base_fam == 0xf &&
 		    base_model == 0x3)
 			cpu_flags |= CPU_X86_FMA_CRASH;
+		// Vishera CPUs experience an FMA crash
+		if (ext_fam == 0x6 && ext_model == 0x0 && base_fam == 0xf &&
+		    base_model == 0x2)
+			cpu_flags |= CPU_X86_FMA_CRASH;
+		// Kaveri CPUs experience an FMA crash
+		if (ext_fam == 0x6 && ext_model == 0x3 && base_fam == 0xf &&
+		    base_model == 0x0)
+			cpu_flags |= CPU_X86_FMA_CRASH;
+		// Godavari CPUs experience an FMA crash
+		if (ext_fam == 0x6 && ext_model == 0x3 && base_fam == 0xf &&
+		    base_model == 0x8)
+			cpu_flags |= CPU_X86_FMA_CRASH;
+		// Carrizo CPUs experience an FMA crash
+		if (ext_fam == 0x6 && ext_model == 0x6 && base_fam == 0xf &&
+		    base_model == 0x0)
+			cpu_flags |= CPU_X86_FMA_CRASH;
+		// Bristol Ridge CPUs experience an FMA crash
+		if (ext_fam == 0x6 && ext_model == 0x6 && base_fam == 0xf &&
+		    base_model == 0x5)
+			cpu_flags |= CPU_X86_FMA_CRASH;
 	}
 
 	if (id >= 7) {
