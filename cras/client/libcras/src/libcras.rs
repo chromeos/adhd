@@ -115,7 +115,7 @@
 //! #    };
 //! #    Ok(())
 //! # }
-//! ```
+//!  ```
 use std::io;
 use std::mem;
 use std::os::unix::{
@@ -128,8 +128,9 @@ pub use audio_streams::BoxError;
 use audio_streams::{
     capture::{AsyncCaptureBufferStream, CaptureBufferStream, NoopCaptureStream},
     shm_streams::{NullShmStream, SharedMemory, ShmStream, ShmStreamSource},
-    AsyncBufferCommit, AsyncPlaybackBufferStream, BufferCommit, NoopStreamControl,
-    PlaybackBufferStream, SampleFormat, StreamControl, StreamDirection, StreamEffect, StreamSource,
+    AsyncBufferCommit, AsyncPlaybackBufferStream, AudioStreamsExecutor, BufferCommit,
+    NoopStreamControl, PlaybackBufferStream, SampleFormat, StreamControl, StreamDirection,
+    StreamEffect, StreamSource,
 };
 use cras_sys::gen::*;
 pub use cras_sys::gen::{
@@ -139,7 +140,7 @@ pub use cras_sys::gen::{
 pub use cras_sys::{
     AudioDebugInfo, CrasIodevInfo, CrasIodevNodeId, CrasIonodeInfo, Error as CrasSysError,
 };
-use cros_async::{AsyncError, Executor};
+
 use sys_util::{PollContext, PollToken};
 
 mod async_;
@@ -159,7 +160,6 @@ use crate::cras_client_message::*;
 
 #[derive(Debug)]
 pub enum Error {
-    Async(AsyncError),
     CrasClientMessageError(cras_client_message::Error),
     CrasStreamError(cras_stream::Error),
     CrasSysError(cras_sys::Error),
@@ -175,7 +175,6 @@ impl error::Error for Error {}
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::Async(ref err) => err.fmt(f),
             Error::CrasClientMessageError(ref err) => err.fmt(f),
             Error::CrasStreamError(ref err) => err.fmt(f),
             Error::CrasSysError(ref err) => err.fmt(f),
@@ -476,7 +475,7 @@ impl<'a> CrasClient<'a> {
         channel_num: usize,
         format: SampleFormat,
         effects: &[StreamEffect],
-        ex: &Executor,
+        ex: &dyn AudioStreamsExecutor,
     ) -> Result<async_::CrasStream<'b, T>> {
         assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
 
@@ -514,7 +513,7 @@ impl<'a> CrasClient<'a> {
         self.server_socket
             .send_server_message_with_fds(&server_cmsg, &socks)?;
 
-        let audio_socket = async_::AudioSocket::new(sock1, ex).map_err(Error::Async)?;
+        let audio_socket = async_::AudioSocket::new(sock1, ex)?;
         loop {
             let result = CrasClient::wait_for_message(&mut self.server_socket)?;
             if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
@@ -668,7 +667,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         format: SampleFormat,
         frame_rate: u32,
         buffer_size: usize,
-        ex: &Executor,
+        ex: &dyn AudioStreamsExecutor,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn AsyncPlaybackBufferStream>), BoxError>
     {
         Ok((
@@ -729,7 +728,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         frame_rate: u32,
         buffer_size: usize,
         effects: &[StreamEffect],
-        ex: &Executor,
+        ex: &dyn AudioStreamsExecutor,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn AsyncCaptureBufferStream>), BoxError>
     {
         if self.cras_capture {

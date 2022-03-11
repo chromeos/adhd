@@ -10,12 +10,12 @@ use std::os::unix::net::UnixStream;
 
 use audio_streams::{
     capture::{AsyncCaptureBuffer, AsyncCaptureBufferStream},
-    AsyncBufferCommit, AsyncPlaybackBuffer, AsyncPlaybackBufferStream, BoxError,
+    AsyncBufferCommit, AsyncPlaybackBuffer, AsyncPlaybackBufferStream, AsyncStream,
+    AudioStreamsExecutor, BoxError,
 };
 use cras_sys::gen::{
     audio_message, snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_STREAM_DIRECTION,
 };
-use cros_async::{AsyncResult, AsyncWrapper, Executor, IoSourceExt};
 use data_model::DataInit;
 use sys_util::error;
 
@@ -25,7 +25,7 @@ use crate::cras_shm::*;
 use crate::cras_stream::Error;
 
 pub struct AudioSocket {
-    socket: Box<dyn IoSourceExt<AsyncWrapper<UnixStream>> + Send>,
+    socket: AsyncStream,
 }
 
 impl AudioSocket {
@@ -34,9 +34,9 @@ impl AudioSocket {
     /// # Arguments
     /// `socket` - A `UnixStream`.
     /// `ex` - An `Executor`.
-    pub fn new(s: UnixStream, ex: &Executor) -> AsyncResult<AudioSocket> {
+    pub fn new(s: UnixStream, ex: &dyn AudioStreamsExecutor) -> io::Result<AudioSocket> {
         Ok(AudioSocket {
-            socket: ex.async_from(AsyncWrapper::new(s))?,
+            socket: ex.async_unix_stream(s)?,
         })
     }
 
@@ -290,7 +290,7 @@ impl<'a, T: CrasStreamData<'a> + AsyncBufferCommit> AsyncPlaybackBufferStream
 {
     async fn next_playback_buffer<'b>(
         &'b mut self,
-        _ex: &Executor,
+        _ex: &dyn AudioStreamsExecutor,
     ) -> Result<AsyncPlaybackBuffer<'b>, BoxError> {
         // Wait for request audio message
         self.wait_request_data().await?;
@@ -307,7 +307,7 @@ impl<'a, T: CrasStreamData<'a> + AsyncBufferCommit> AsyncPlaybackBufferStream
 impl<'a, T: CrasStreamData<'a> + AsyncBufferCommit> AsyncCaptureBufferStream for CrasStream<'a, T> {
     async fn next_capture_buffer<'b>(
         &'b mut self,
-        _ex: &Executor,
+        _ex: &dyn AudioStreamsExecutor,
     ) -> Result<AsyncCaptureBuffer<'b>, BoxError> {
         // Wait for data ready message
         let frames = self.wait_data_ready().await?;
@@ -325,8 +325,9 @@ impl<'a, T: CrasStreamData<'a> + AsyncBufferCommit> AsyncCaptureBufferStream for
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cros_async::Executor;
 
-    fn init_audio_socket_pair(ex: &Executor) -> (AudioSocket, AudioSocket) {
+    fn init_audio_socket_pair(ex: &dyn AudioStreamsExecutor) -> (AudioSocket, AudioSocket) {
         let (sock1, sock2) = UnixStream::pair().unwrap();
         let sender = AudioSocket::new(sock1, ex).unwrap();
         let receiver = AudioSocket::new(sock2, ex).unwrap();
@@ -335,7 +336,7 @@ mod tests {
 
     #[test]
     fn audio_socket_send_and_recv_audio_message() {
-        async fn this_test(ex: &Executor) {
+        async fn this_test(ex: &dyn AudioStreamsExecutor) {
             let (sender, receiver) = init_audio_socket_pair(ex);
             let message_succ = AudioMessage::Success {
                 id: CRAS_AUDIO_MESSAGE_ID::AUDIO_MESSAGE_REQUEST_DATA,
@@ -363,7 +364,7 @@ mod tests {
 
     #[test]
     fn audio_socket_data_ready_send_and_recv() {
-        async fn this_test(ex: &Executor) {
+        async fn this_test(ex: &dyn AudioStreamsExecutor) {
             let (sock1, sock2) = UnixStream::pair().unwrap();
             let audio_socket_send = AudioSocket::new(sock1, ex).unwrap();
             let audio_socket_recv = AudioSocket::new(sock2, ex).unwrap();
@@ -388,7 +389,7 @@ mod tests {
 
     #[test]
     fn audio_socket_capture_ready() {
-        async fn this_test(ex: &Executor) {
+        async fn this_test(ex: &dyn AudioStreamsExecutor) {
             let (sock1, sock2) = UnixStream::pair().unwrap();
             let audio_socket_send = AudioSocket::new(sock1, ex).unwrap();
             let audio_socket_recv = AudioSocket::new(sock2, ex).unwrap();
@@ -419,7 +420,7 @@ mod tests {
 
     #[test]
     fn audio_socket_send_when_broken_pipe() {
-        async fn this_test(ex: &Executor) {
+        async fn this_test(ex: &dyn AudioStreamsExecutor) {
             let sock1 = {
                 let (sock1, _) = UnixStream::pair().unwrap();
                 sock1
