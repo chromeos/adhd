@@ -438,8 +438,9 @@ static int hfp_close_dev(struct cras_iodev *iodev)
 	hfpio->started = 0;
 	cras_floss_hfp_stop(hfpio->hfp, iodev->direction);
 
-	memset(hfpio->pcm_buf, 0, hfpio->pcm_buf->max_size);
-	buf_reset(hfpio->pcm_buf);
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		memset(hfpio->pcm_buf->bytes, 0, hfpio->pcm_buf->used_size);
+
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
 	return 0;

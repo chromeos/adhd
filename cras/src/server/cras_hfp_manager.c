@@ -87,7 +87,6 @@ struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr)
 	connected_hfp->odev =
 		hfp_pcm_iodev_create(connected_hfp, CRAS_STREAM_OUTPUT);
 
-	/* TODO(b/214148074): Changed based on rate and format. */
 	connected_hfp->fd = -1;
 	return connected_hfp;
 }
