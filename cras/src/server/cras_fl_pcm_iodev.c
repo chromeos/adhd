@@ -200,7 +200,31 @@ static int a2dp_no_stream(struct cras_iodev *odev, int enable)
 
 static int hfp_no_stream(struct cras_iodev *iodev, int enable)
 {
+	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
+
+	if (iodev->direction != CRAS_STREAM_OUTPUT)
+		return 0;
+
+	/* Have output fallback to sending zeros to HF. */
+	if (enable) {
+		hfpio->started = 0;
+		memset(hfpio->pcm_buf->bytes, 0, hfpio->pcm_buf->used_size);
+	} else {
+		hfpio->started = 1;
+	}
 	return 0;
+}
+
+static int hfp_is_free_running(const struct cras_iodev *iodev)
+{
+	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
+
+	if (iodev->direction != CRAS_STREAM_OUTPUT)
+		return 0;
+
+	/* If NOT started, hfp_wrtie will automatically puts more data to
+	 * socket so audio thread doesn't need to wake up for us. */
+	return !hfpio->started;
 }
 
 /*
@@ -883,6 +907,7 @@ struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
 	iodev->update_active_node = update_active_node;
 	iodev->set_volume = hfp_set_volume;
 	iodev->output_underrun = output_underrun;
+	iodev->is_free_running = hfp_is_free_running;
 
 	err = cras_floss_hfp_fill_format(hfp, &iodev->supported_rates,
 					 &iodev->supported_formats,
