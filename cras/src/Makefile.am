@@ -680,7 +680,8 @@ a2dp_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 endif
 
 fl_pcm_iodev_unittest_SOURCES = tests/fl_pcm_iodev_unittest.cc \
-	common/sfh.c
+	common/sfh.c \
+	common/cras_string.c
 fl_pcm_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common
 fl_pcm_iodev_unittest_LDADD = -lgtest -lpthread

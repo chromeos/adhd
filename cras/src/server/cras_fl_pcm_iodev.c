@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <asm-generic/errno-base.h>
 #include <errno.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
@@ -76,7 +77,10 @@ static const struct timespec throttle_event_threshold = {
  *    flush_period - The time period between two a2dp packet writes.
  *    write_block - How many frames of audio samples we prefer to write in one
  *        socket write.
- *    total_written_bytes - Stores the total audio data in bytes written to BT.
+ *    total_written_bytes - Stores the total audio data in bytes written
+ *        to BT.
+ *    hfp_rw_offset - Stores the offset of audio data read/write to the BT. This
+ *        is used to synchronize the read and write data to the BT.
  *    last_write_ts - The timestamp of when last audio data was written to BT.
  *    bt_stack_delay - The calculated delay in frames from
  *        a2dp_pcm_update_bt_stack_delay.
@@ -92,6 +96,7 @@ struct fl_pcm_io {
 	struct timespec flush_period;
 	unsigned int write_block;
 	unsigned long total_written_bytes;
+	unsigned long hfp_rw_offset;
 	struct timespec last_write_ts;
 	unsigned int bt_stack_delay;
 	struct cras_a2dp *a2dp;
@@ -111,8 +116,10 @@ static int update_supported_formats(struct cras_iodev *iodev)
 static unsigned int bt_local_queued_frames(const struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *pcmio = (struct fl_pcm_io *)iodev;
-	return buf_queued(pcmio->pcm_buf) /
-	       cras_get_format_bytes(iodev->format);
+	if (iodev->format)
+		return buf_queued(pcmio->pcm_buf) /
+		       cras_get_format_bytes(iodev->format);
+	return 0;
 }
 
 static int frames_queued(const struct cras_iodev *iodev,
@@ -222,7 +229,7 @@ static int hfp_is_free_running(const struct cras_iodev *iodev)
 	if (iodev->direction != CRAS_STREAM_OUTPUT)
 		return 0;
 
-	/* If NOT started, hfp_wrtie will automatically puts more data to
+	/* If NOT started, hfp_write will automatically puts more data to
 	 * socket so audio thread doesn't need to wake up for us. */
 	return !hfpio->started;
 }
@@ -286,83 +293,74 @@ static int a2dp_configure_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int hfp_read(const struct cras_iodev *iodev)
+static int hfp_read(struct fl_pcm_io *idev)
 {
 	int fd, rc;
 	uint8_t *buf;
 	unsigned int to_read;
-	size_t packet_size;
-	struct fl_pcm_io *idev = (struct fl_pcm_io *)iodev;
 
-	packet_size = HFP_PACKET_SIZE;
 	fd = cras_floss_hfp_get_fd(idev->hfp);
-do_recv:
+	/* Loop to make sure ring buffer is filled. */
 	buf = buf_write_pointer_size(idev->pcm_buf, &to_read);
-
-	if (to_read > packet_size)
-		to_read = packet_size;
-
-	rc = recv(fd, buf, to_read, MSG_DONTWAIT);
-	if (rc <= 0) {
-		if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
-			syslog(LOG_ERR, "Recv error %s", cras_strerror(errno));
-			return -1;
+	while (to_read) {
+		rc = recv(fd, buf, to_read, MSG_DONTWAIT);
+		if (rc <= 0) {
+			if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+				syslog(LOG_ERR, "Recv error %s",
+				       cras_strerror(errno));
+				return -1;
+			}
+			return 0;
 		}
-		return 0;
+		buf_increment_write(idev->pcm_buf, rc);
+
+		/* Ignore the bytes just read if input dev not in present */
+		if (!idev->started)
+			buf_increment_read(idev->pcm_buf, rc);
+
+		idev->hfp_rw_offset += rc;
+
+		/* Update the to_read and buf pointer */
+		buf = buf_write_pointer_size(idev->pcm_buf, &to_read);
 	}
-	buf_increment_write(idev->pcm_buf, rc);
-
-	/* Ignore the bytes just read if input dev not in present */
-	if (!idev->started)
-		buf_increment_read(idev->pcm_buf, rc);
-
-	/* Try to receive more if we haven't received the amount of data we
-	 * prefer. */
-	packet_size -= rc;
-	if (packet_size > 0)
-		goto do_recv;
-
 	return 0;
 }
 
-static int hfp_write(const struct cras_iodev *iodev)
+static int hfp_write(struct fl_pcm_io *odev, size_t target_len)
 {
 	int fd, rc;
 	uint8_t *buf;
 	unsigned int to_send;
-	size_t packet_size;
-	struct fl_pcm_io *odev = (struct fl_pcm_io *)iodev;
 
-	packet_size = HFP_PACKET_SIZE;
 	/* Without output stream's presence, we shall still send zero packets
 	 * to HF. This is required for some HF devices to start sending non-zero
 	 * data to AG.
 	 */
 	if (!odev->started)
-		buf_increment_write(odev->pcm_buf, packet_size);
-
-	buf = buf_read_pointer_size(odev->pcm_buf, &to_send);
-	if (to_send < packet_size)
-		return 0;
+		buf_increment_write(odev->pcm_buf, target_len);
 
 	fd = cras_floss_hfp_get_fd(odev->hfp);
-do_send:
-	rc = send(fd, buf, packet_size, MSG_DONTWAIT);
-	if (rc <= 0) {
-		if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
-			syslog(LOG_ERR, "Send error %s", cras_strerror(errno));
-			return -1;
+
+	buf = buf_read_pointer_size(odev->pcm_buf, &to_send);
+	while (to_send && target_len) {
+		if (to_send > target_len)
+			to_send = target_len;
+
+		rc = send(fd, buf, to_send, MSG_DONTWAIT);
+		if (rc <= 0) {
+			if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+				syslog(LOG_ERR, "Send error %s",
+				       cras_strerror(errno));
+				return -1;
+			}
+			return 0;
 		}
-		return 0;
+		buf_increment_read(odev->pcm_buf, rc);
+
+		odev->hfp_rw_offset += rc;
+		target_len -= rc;
+		buf = buf_read_pointer_size(odev->pcm_buf, &to_send);
 	}
-	buf_increment_read(odev->pcm_buf, rc);
-
-	/* Keep trying to write more if we haven't sent the amount of data
-	 * we tend to. */
-	packet_size -= rc;
-	if (packet_size > 0)
-		goto do_send;
-
 	return 0;
 }
 
@@ -370,9 +368,10 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 {
 	int rc;
 	struct cras_hfp *hfp = (struct cras_hfp *)arg;
-	struct cras_iodev *idev, *odev;
+	struct fl_pcm_io *idev, *odev;
 
-	cras_floss_hfp_get_iodevs(hfp, &idev, &odev);
+	cras_floss_hfp_get_iodevs(hfp, (struct cras_iodev **)&idev,
+				  (struct cras_iodev **)&odev);
 
 	/* Allow last read before handling error or hang-up events. */
 	if (revents & POLLIN) {
@@ -386,7 +385,13 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 		return -1;
 	}
 
-	return hfp_write(odev);
+	rc = hfp_write(odev, idev->hfp_rw_offset > odev->hfp_rw_offset ?
+				     idev->hfp_rw_offset - odev->hfp_rw_offset :
+				     HFP_PACKET_SIZE);
+	if (idev->hfp_rw_offset == odev->hfp_rw_offset)
+		idev->hfp_rw_offset = odev->hfp_rw_offset = 0;
+
+	return rc;
 }
 
 static int hfp_configure_dev(struct cras_iodev *iodev)
@@ -634,7 +639,7 @@ static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 
-	*frames = MIN(*frames, buf_writable(pcmio->pcm_buf) / format_bytes);
+	*frames = MIN(*frames, buf_avail / format_bytes);
 	iodev->area->frames = *frames;
 	cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
 
@@ -662,16 +667,21 @@ static int a2dp_put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 static int hfp_put_buffer(struct cras_iodev *iodev, unsigned frames)
 {
 	struct fl_pcm_io *pcmio = (struct fl_pcm_io *)iodev;
-	size_t format_bytes;
+	size_t format_bytes, frames_bytes;
 
-	if (!frames)
+	if (!frames || !iodev->format)
 		return 0;
 
 	format_bytes = cras_get_format_bytes(iodev->format);
+	frames_bytes = frames * format_bytes;
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT) {
+		if (frames_bytes > buf_writable(pcmio->pcm_buf))
+			return -EINVAL;
 		buf_increment_write(pcmio->pcm_buf, frames * format_bytes);
 	} else if (iodev->direction == CRAS_STREAM_INPUT) {
+		if (frames_bytes > buf_readable(pcmio->pcm_buf))
+			return -EINVAL;
 		buf_increment_read(pcmio->pcm_buf, frames * format_bytes);
 	}
 

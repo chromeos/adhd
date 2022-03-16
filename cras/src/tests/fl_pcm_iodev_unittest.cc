@@ -39,6 +39,8 @@ static unsigned cras_floss_a2dp_stop_called;
 static unsigned cras_floss_hfp_start_called;
 static unsigned cras_floss_hfp_stop_called;
 static int cras_floss_hfp_get_fd_ret;
+static cras_iodev* cras_floss_hfp_get_iodevs_idev;
+static cras_iodev* cras_floss_hfp_get_iodevs_odev;
 static unsigned cras_a2dp_cancel_suspend_called;
 static unsigned cras_a2dp_schedule_suspend_called;
 static thread_callback write_callback;
@@ -66,6 +68,8 @@ void ResetStubData() {
   cras_floss_hfp_start_called = 0;
   cras_floss_hfp_stop_called = 0;
   cras_floss_hfp_get_fd_ret = FAKE_SOCKET_FD;
+  cras_floss_hfp_get_iodevs_idev = NULL;
+  cras_floss_hfp_get_iodevs_odev = NULL;
   cras_a2dp_cancel_suspend_called = 0;
   cras_a2dp_schedule_suspend_called = 0;
   write_callback = NULL;
@@ -85,6 +89,22 @@ int iodev_set_format(struct cras_iodev* iodev, struct cras_audio_format* fmt) {
   fmt->frame_rate = 48000;
   iodev->format = fmt;
   return 0;
+}
+
+int iodev_set_hfp_format(struct cras_iodev* iodev,
+                         struct cras_audio_format* fmt) {
+  fmt->format = SND_PCM_FORMAT_S16_LE;
+  fmt->num_channels = 1;
+  fmt->frame_rate = 8000;
+  iodev->format = fmt;
+  return 0;
+}
+
+unsigned int iodev_get_buffer(struct cras_iodev* iodev, unsigned int frame) {
+  unsigned int frame_ret = frame;
+  struct cras_audio_area* area;
+  EXPECT_EQ(0, iodev->get_buffer(iodev, &area, &frame_ret));
+  return frame_ret;
 }
 
 namespace {
@@ -179,6 +199,201 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
   EXPECT_EQ(2, cras_iodev_free_resources_called);
 }
 
+TEST_F(PcmIodev, TestHfpReadNotStarted) {
+  int sock[2];
+  struct cras_iodev* idev;
+  uint8_t sample[200];
+  struct timespec tstamp;
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  cras_floss_hfp_get_fd_ret = sock[1];
+
+  idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
+  /* Mock the pcm fd and send some fake data */
+  send(sock[0], sample, 48, 0);
+  hfp_read((fl_pcm_io*)idev);
+
+  /* Ignore the data if !idev->started  */
+  EXPECT_EQ(0, iodev_get_buffer(idev, 100));
+  EXPECT_EQ(0, frames_queued(idev, &tstamp));
+
+  hfp_pcm_iodev_destroy(idev);
+}
+
+TEST_F(PcmIodev, TestHfpReadStarted) {
+  int sock[2];
+  struct cras_iodev* idev;
+  struct fl_pcm_io* pcm_idev;
+  uint8_t sample[FLOSS_HFP_MAX_BUF_SIZE_BYTES] = {1};
+  unsigned int pcm_buf_length;
+  size_t format_bytes;
+  struct timespec tstamp;
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  cras_floss_hfp_get_fd_ret = sock[1];
+  idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
+  pcm_idev = (fl_pcm_io*)idev;
+  iodev_set_hfp_format(idev, &format);
+  format_bytes = cras_get_format_bytes(idev->format);
+  idev->configure_dev(idev);
+  pcm_buf_length = pcm_idev->pcm_buf->used_size;
+
+  /* Simple read */
+  send(sock[0], sample, 20 * format_bytes, 0);
+  hfp_read(pcm_idev);
+  /* Try to request number of frames larger than available ones */
+  EXPECT_EQ(20, iodev_get_buffer(idev, 100));
+  EXPECT_EQ(20, frames_queued(idev, &tstamp));
+
+  EXPECT_EQ(0, idev->put_buffer(idev, 20));
+  EXPECT_EQ(0, frames_queued(idev, &tstamp));
+
+  /* Send (max - 10) frames of data. 20 + max - 10 > max so we can test the case
+   * that data lives across the ring buffer boundary. */
+  send(sock[0], sample, pcm_buf_length - 10 * format_bytes, 0);
+  hfp_read(pcm_idev);
+
+  /* Check that the data is correctly write into the buffer and queued. */
+  EXPECT_EQ(pcm_buf_length / format_bytes - 10, frames_queued(idev, &tstamp));
+
+  /* Should be able to read all data from 20 to the end of the ring buffer */
+  EXPECT_EQ((pcm_buf_length - 20 * format_bytes) / format_bytes,
+            iodev_get_buffer(idev, (pcm_buf_length / format_bytes)));
+  EXPECT_EQ(0, idev->put_buffer(
+                   idev, (pcm_buf_length - 20 * format_bytes) / format_bytes));
+
+  /* Check that the remaining 10 frames are there. */
+  EXPECT_EQ(10, iodev_get_buffer(idev, (pcm_buf_length / format_bytes)));
+
+  /* TODO(b/226386060): Add tests to cover the partial read case, such that
+   * calling recv on sock[1] two consecutive times both return less than
+   * required amount of data. */
+  hfp_pcm_iodev_destroy(idev);
+}
+
+TEST_F(PcmIodev, TestHfpWriteNotStarted) {
+  int rc;
+  int sock[2];
+  struct cras_iodev* odev;
+  struct fl_pcm_io* pcm_odev;
+  uint8_t buf[200];
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  cras_floss_hfp_get_fd_ret = sock[1];
+  odev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
+  pcm_odev = (fl_pcm_io*)odev;
+
+  hfp_write((fl_pcm_io*)odev, 100);
+  /* Should still receive 100 bytes of data when odev is not started. */
+  rc = recv(sock[0], buf, sizeof(buf), 0);
+  EXPECT_EQ(100, rc);
+  EXPECT_EQ(0, buf_readable(pcm_odev->pcm_buf));
+
+  /* Get 0 frames if not configured and started */
+  EXPECT_EQ(0, iodev_get_buffer(odev, 50));
+
+  hfp_pcm_iodev_destroy(odev);
+}
+
+TEST_F(PcmIodev, TestHfpWriteStarted) {
+  int rc;
+  int sock[2];
+  struct cras_iodev* odev;
+  struct fl_pcm_io* pcm_odev;
+  uint8_t buf[FLOSS_HFP_MAX_BUF_SIZE_BYTES];
+  unsigned int pcm_buf_length, available;
+  size_t format_bytes;
+  struct timespec tstamp;
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  cras_floss_hfp_get_fd_ret = sock[1];
+  odev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
+  pcm_odev = (fl_pcm_io*)odev;
+  pcm_buf_length = pcm_odev->pcm_buf->used_size;
+  iodev_set_hfp_format(odev, &format);
+  format_bytes = cras_get_format_bytes(odev->format);
+  odev->configure_dev(odev);
+
+  /* Write offset: 150. */
+  available = iodev_get_buffer(odev, 150);
+  EXPECT_EQ(150, available);
+  EXPECT_EQ(0, odev->put_buffer(odev, available));
+
+  hfp_write(pcm_odev, 100 * format_bytes);
+  /* Read at max target_len of data. */
+  rc = recv(sock[0], buf, pcm_buf_length, 0);
+  EXPECT_EQ(100 * format_bytes, rc);
+  EXPECT_EQ(50, frames_queued(odev, &tstamp));
+
+  hfp_write(pcm_odev, 50 * format_bytes);
+  /* Read as much as data. */
+  rc = recv(sock[0], buf, pcm_buf_length, 0);
+  EXPECT_EQ(50 * format_bytes, rc);
+  EXPECT_EQ(0, frames_queued(odev, &tstamp));
+  EXPECT_EQ(0, buf_readable(pcm_odev->pcm_buf));
+
+  /* Fill the buffer to its boundary. */
+  available = iodev_get_buffer(odev, pcm_buf_length / format_bytes);
+  EXPECT_EQ(pcm_buf_length / format_bytes - 150, available);
+  EXPECT_EQ(0, odev->put_buffer(odev, available));
+
+  available = iodev_get_buffer(odev, pcm_buf_length / format_bytes);
+  EXPECT_EQ(150, available);
+  /* Fill 50 more frames. */
+  EXPECT_EQ(0, odev->put_buffer(odev, 50));
+  EXPECT_EQ(pcm_buf_length / format_bytes - 150 + 50,
+            frames_queued(odev, &tstamp));
+
+  /* Write all data in the ring buffer out. */
+  hfp_write(pcm_odev, pcm_buf_length - 100 * format_bytes);
+  /* Read as much as data. */
+  rc = recv(sock[0], buf, pcm_buf_length, 0);
+
+  /* All data in the buffer should be sent and digested. */
+  EXPECT_EQ(pcm_buf_length - 100 * format_bytes, rc);
+  EXPECT_EQ(0, frames_queued(odev, &tstamp));
+  /* The write offset is at 50 and the buffer should retrieve the space for
+   * next write. */
+  EXPECT_EQ(pcm_buf_length / format_bytes - 50,
+            iodev_get_buffer(odev, pcm_buf_length / format_bytes));
+
+  /* TODO(b/226386060): Add tests to cover the partial write case, such that
+   * calling send on sock[1] two consecutive times both write less than
+   * required amount of data. */
+  hfp_pcm_iodev_destroy(odev);
+}
+
+TEST_F(PcmIodev, TestHfpCb) {
+  int rc;
+  int sock[2];
+  uint8_t sample[200], buf[200];
+  struct fl_pcm_io *odev, *idev;
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  cras_floss_hfp_get_fd_ret = sock[1];
+  cras_floss_hfp_get_iodevs_odev =
+      hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
+  cras_floss_hfp_get_iodevs_idev =
+      hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
+  odev = (fl_pcm_io*)cras_floss_hfp_get_iodevs_odev;
+  idev = (fl_pcm_io*)cras_floss_hfp_get_iodevs_idev;
+  odev->started = idev->started = 1;
+
+  EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
+  EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLERR));
+
+  /* Output device should try to write the same number of bytes as input device
+   * read. */
+  send(sock[0], sample, 100, 0);
+  buf_increment_write(odev->pcm_buf, 150);
+  rc = hfp_socket_read_write_cb((void*)NULL, POLLIN);
+  EXPECT_EQ(0, rc);
+
+  EXPECT_EQ(100, buf_readable(idev->pcm_buf));
+  EXPECT_EQ(50, buf_readable(odev->pcm_buf));
+  rc = recv(sock[0], buf, 200, 0);
+  EXPECT_EQ(100, rc);
+}
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -341,6 +556,13 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
 
 int cras_floss_hfp_get_fd(struct cras_hfp* hfp) {
   return cras_floss_hfp_get_fd_ret;
+}
+
+void cras_floss_hfp_get_iodevs(struct cras_hfp* hfp,
+                               struct cras_iodev** idev,
+                               struct cras_iodev** odev) {
+  *idev = cras_floss_hfp_get_iodevs_idev;
+  *odev = cras_floss_hfp_get_iodevs_odev;
 }
 
 const char* cras_floss_hfp_get_display_name(struct cras_hfp* hfp) {
