@@ -2055,6 +2055,7 @@ static int remove_then_reconnect_stream(struct cras_rstream *rstream)
 	struct enabled_dev *edev;
 	struct cras_iodev *iodevs[NUM_OPEN_DEVS_MAX];
 	unsigned int num_iodevs = 0;
+	int rc;
 
 	audio_thread_disconnect_stream(audio_thread, rstream, NULL);
 
@@ -2065,10 +2066,20 @@ static int remove_then_reconnect_stream(struct cras_rstream *rstream)
 	 */
 	if (rstream->is_pinned) {
 		iodevs[0] = find_pinned_device(rstream);
-		if (!iodevs[0])
+		if (!iodevs[0]) {
 			syslog(LOG_ERR,
 			       "Pinned dev %u not found at reconnect stream",
 			       rstream->pinned_dev_idx);
+			return 0;
+		}
+		/* Although we know |rstream| is pinned on iodev[0] it could
+		 * still be in close state due to prior IO errors. Always
+		 * check and init this iodev before reconnecting |rstream|.
+		 */
+		rc = init_pinned_device(iodevs[0], rstream);
+		if (rc)
+			syslog(LOG_ERR,
+			       "Failed to open pinned device at reconnect stream");
 		else
 			num_iodevs = 1;
 	} else {
