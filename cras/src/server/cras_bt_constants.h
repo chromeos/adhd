@@ -8,6 +8,8 @@
 
 #define BLUEZ_SERVICE "org.bluez"
 
+#define BLUEZ_CHROMIUM_OBJ_PATH "/org/chromium/Bluetooth"
+
 #define BLUEZ_INTERFACE_ADAPTER "org.bluez.Adapter1"
 #define BLUEZ_INTERFACE_BATTERY_PROVIDER "org.bluez.BatteryProvider1"
 #define BLUEZ_INTERFACE_BATTERY_PROVIDER_MANAGER                               \
@@ -20,6 +22,7 @@
 #define BLUEZ_INTERFACE_PLAYER "org.bluez.MediaPlayer1"
 #define BLUEZ_INTERFACE_PROFILE "org.bluez.Profile1"
 #define BLUEZ_PROFILE_MGMT_INTERFACE "org.bluez.ProfileManager1"
+#define BLUEZ_INTERFACE_METRICS "org.chromium.Bluetooth.Metrics"
 /* Remove once our D-Bus header files are updated to define this. */
 #ifndef DBUS_INTERFACE_OBJECT_MANAGER
 #define DBUS_INTERFACE_OBJECT_MANAGER "org.freedesktop.DBus.ObjectManager"

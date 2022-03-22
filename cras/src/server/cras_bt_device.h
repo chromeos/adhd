@@ -240,4 +240,23 @@ int cras_bt_device_get_sco(struct cras_bt_device *device, int codec);
  */
 void cras_bt_device_put_sco(struct cras_bt_device *device);
 
+/* Gets the SCO HCI handle, only used for KPI metrics.
+ * Args:
+ *   sco_socket - The SCO socket.
+ * Returns:
+ *   The handle on success, -1 otherwise
+ */
+int cras_bt_device_sco_handle(int sco_socket);
+
+/*
+ * Report HFP start/stop event to BlueZ. This is only needed for KPI metrics.
+ * Args:
+ *   device - The bluetooth device.
+ *   status - True for start, false for stop.
+ *   sco_handle - The SCO HCI handle. Applicable only when status = true.
+ * Returns:
+ *   0 on success, error code otherwise.
+ */
+int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device *device,
+						bool status, int sco_handle);
 #endif /* CRAS_BT_DEVICE_H_ */

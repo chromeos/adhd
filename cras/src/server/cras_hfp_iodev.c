@@ -132,6 +132,7 @@ static int configure_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 	int sk, err, mtu;
+	int sco_handle;
 
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
@@ -163,6 +164,10 @@ static int configure_dev(struct cras_iodev *iodev)
 	if (err)
 		goto error;
 
+	sco_handle = cras_bt_device_sco_handle(sk);
+	cras_bt_device_report_hfp_start_stop_status(hfpio->device, true,
+						    sco_handle);
+
 	hfpio->drain_complete = 0;
 	hfpio->filled_zeros = 0;
 add_dev:
@@ -186,6 +191,9 @@ static int close_dev(struct cras_iodev *iodev)
 		cras_sco_stop(hfpio->sco);
 		cras_sco_close_fd(hfpio->sco);
 		hfp_set_call_status(hfpio->slc, 0);
+
+		cras_bt_device_report_hfp_start_stop_status(hfpio->device,
+							    false, 0);
 	}
 
 	cras_iodev_free_format(iodev);

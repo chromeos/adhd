@@ -24,6 +24,7 @@
 #define BTPROTO_SCO 2
 
 #define SCO_OPTIONS 0x01
+#define SCO_CONNINFO 0x02
 #define SOL_SCO 17
 
 #define HCIGETDEVINFO _IOR('H', 211, int)
@@ -64,6 +65,11 @@ struct hci_dev_info {
 
 struct sco_options {
 	uint16_t mtu;
+};
+
+struct sco_conninfo {
+	uint16_t hci_handle;
+	uint8_t dev_class[3];
 };
 
 #define SOL_BLUETOOTH 274

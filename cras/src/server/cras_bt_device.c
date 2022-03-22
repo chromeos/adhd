@@ -881,3 +881,47 @@ void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 
 	bt_io_manager_update_hardware_volume(device->bt_io_mgr, volume);
 }
+
+int cras_bt_device_sco_handle(int sco_socket)
+{
+	struct sco_conninfo info;
+	socklen_t len = sizeof(info);
+
+	/* Query the SCO handle from kernel. */
+	if (getsockopt(sco_socket, SOL_SCO, SCO_CONNINFO, &info, &len) < 0) {
+		syslog(LOG_ERR, "Get SCO handle error: %s",
+		       cras_strerror(errno));
+		return -1;
+	}
+	return info.hci_handle;
+}
+
+int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device *device,
+						bool status, int sco_handle)
+{
+	DBusMessage *method_call;
+	DBusMessageIter message_iter;
+	dbus_bool_t hfp_status = status;
+
+	method_call = dbus_message_new_method_call(BLUEZ_SERVICE,
+						   BLUEZ_CHROMIUM_OBJ_PATH,
+						   BLUEZ_INTERFACE_METRICS,
+						   "ReportHfpStatus");
+
+	if (!method_call)
+		return -ENOMEM;
+
+	dbus_message_iter_init_append(method_call, &message_iter);
+	dbus_message_iter_append_basic(&message_iter, DBUS_TYPE_BOOLEAN,
+				       &hfp_status);
+	dbus_message_iter_append_basic(&message_iter, DBUS_TYPE_INT32,
+				       &sco_handle);
+
+	if (!dbus_connection_send(device->conn, method_call, NULL)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_message_unref(method_call);
+	return 0;
+}

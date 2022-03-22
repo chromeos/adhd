@@ -291,6 +291,16 @@ int cras_bt_device_get_stable_id(const struct cras_bt_device* device) {
   return 123;
 }
 
+int cras_bt_device_sco_handle(int sco_socket) {
+  return 0;
+}
+
+int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device* device,
+                                                bool status,
+                                                int sco_handle) {
+  return 0;
+}
+
 // From cras_cras_sco*
 int cras_sco_add_iodev(struct cras_sco* sco,
                        enum CRAS_STREAM_DIRECTION direction,
