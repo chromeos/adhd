@@ -144,7 +144,7 @@ static char ini_name[MAX_INI_NAME_LENGTH + 1];
 static dictionary *aec_ini = NULL;
 static dictionary *apm_ini = NULL;
 
-/* Mono front center format used to configure the process outout end of
+/* Mono front center format used to configure the process output end of
  * APM to work around an issue that APM might pick the 1st channel of
  * input, process and then writes to all output channels.
  *
@@ -183,7 +183,7 @@ static inline bool should_enable_dsp_agc(uint64_t effects)
 
 /*
  * Analyzes the active APMs on the idev and returns whether any of them
- * cause a conflict to enabling DSP |effect| on |idev.
+ * cause a conflict to enabling DSP |effect| on |idev|.
  */
 static bool dsp_effect_check_conflict(struct cras_iodev *const idev,
 				      enum RTC_PROC_ON_DSP effect)
@@ -312,9 +312,9 @@ static void update_supported_dsp_effects_activation()
 		bool agc_on_dsp = false;
 
 		/*
-                 * Check all APMs on idev to see what effects are active and
+		 * Check all APMs on idev to see what effects are active and
 		 * what effects can be applied on DSP.
-                 */
+		 */
 		bool aec_needed =
 			effect_needed_for_dev(idev, APM_ECHO_CANCELLATION);
 		bool ns_needed =
@@ -322,9 +322,9 @@ static void update_supported_dsp_effects_activation()
 		bool agc_needed = effect_needed_for_dev(idev, APM_GAIN_CONTROL);
 
 		/*
-                 * Identify if effects can be activated on DSP and attempt
+		 * Identify if effects can be activated on DSP and attempt
 		 * toggling the DSP effect.
-                 */
+		 */
 		aec_on_dsp = aec_needed &&
 			     !dsp_effect_check_conflict(idev, RTC_PROC_AEC);
 		aec_on_dsp = toggle_dsp_effect(idev, RTC_PROC_AEC, aec_on_dsp);
@@ -339,9 +339,9 @@ static void update_supported_dsp_effects_activation()
 		agc_on_dsp = toggle_dsp_effect(idev, RTC_PROC_AGC, agc_on_dsp);
 
 		/*
-                 * Toggle effects on CRAS APM depending on what the state of
-                 * effect activation is on DSP.
-                 */
+		 * Toggle effects on CRAS APM depending on what the state of
+		 * effect activation is on DSP.
+		 */
 		webrtc_apm_enable_effects(
 			active->apm->apm_ptr,
 			(active->stream->effects & APM_ECHO_CANCELLATION) &&
