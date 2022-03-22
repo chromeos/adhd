@@ -411,6 +411,7 @@ TEST_F(RstreamTestSuite, UpdateOutputReadPtr) {
   buffer_share_get_new_write_point_ret = config_.cb_threshold;
   cras_rstream_update_output_read_pointer(s);
 
+  (void)buf;
   cras_rstream_destroy(s);
 }
 
@@ -492,6 +493,7 @@ void ewma_power_calculate(struct ewma_power* ewma,
   for (int i = 0; i < size * channels; i += channels) {
     val += buf[i];
   }
+  (void)val;
 }
 
 void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
