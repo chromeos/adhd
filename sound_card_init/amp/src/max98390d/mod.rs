@@ -66,6 +66,8 @@ impl Amp for Max98390 {
         // it would be overwritten by the DSM blob update.
         dsm.wait_for_speakers_ready()?;
 
+        let volume_state = self.get_volume_state()?;
+
         self.set_volume(VolumeMode::Low)?;
         let calib = if !self.setting.boot_time_calibration_enabled {
             info!("skip boot time calibration and use vpd values");
@@ -86,7 +88,8 @@ impl Amp for Max98390 {
         };
         info!("applied {:?}", calib);
         self.apply_calibration_value(calib)?;
-        self.set_volume(VolumeMode::High)?;
+        info!("applied {:?}", volume_state);
+        self.set_volume_from_state(volume_state)?;
         Ok(())
     }
 }
@@ -117,6 +120,40 @@ impl Max98390 {
             card: Card::new(card_name)?,
             setting: settings.amp_calibrations,
         })
+    }
+
+    /// Get the current volume for each card control listed in Amp Calib Settings.
+    /// # Reuslts
+    ///
+    /// * `Vec(String, i32)` - An array that contains the name of the control and its associated
+    ///                        volume.
+    fn get_volume_state(&mut self) -> Result<Vec<(String, i32)>> {
+        let mut volume_state: Vec<(String, i32)> = vec![];
+
+        for control in &self.setting.controls {
+            let volume = self
+                .card
+                .control_by_name::<IntControl>(&control.volume_ctrl)?
+                .get()?;
+
+            volume_state.push((control.volume_ctrl.clone(), volume));
+        }
+        Ok(volume_state)
+    }
+
+    /// Set the volume of the card control listed in `state`.
+    /// # Arguments
+    ///
+    /// * `state` - a vector with tuples of desired volume associated with the name of the control,
+    ///             format: [(control_anme, volume)].
+    ///
+    fn set_volume_from_state(&mut self, state: Vec<(String, i32)>) -> Result<()> {
+        for (control_name, volume) in state {
+            self.card
+                .control_by_name::<IntControl>(&control_name)?
+                .set(volume)?;
+        }
+        Ok(())
     }
 
     /// Sets the card volume control to given VolumeMode.
