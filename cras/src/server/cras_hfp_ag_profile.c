@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#ifndef BYPASS_FEATURE_CHECK
+#ifdef HAVE_FEATURED
 #include <featured/c_feature_library.h>
 #endif
 
@@ -65,7 +65,7 @@ struct audio_gateway {
 static struct audio_gateway *connected_ags;
 static struct packet_status_logger wbs_logger;
 
-#ifdef BYPASS_FEATURE_CHECK
+#if !defined(HAVE_FEATURED) || defined(BYPASS_FEATURE_CHECK)
 static bool get_hfp_offload_feature_enabled()
 {
 	return true;
