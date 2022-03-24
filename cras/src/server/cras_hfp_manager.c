@@ -94,7 +94,7 @@ struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr)
 int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 			 enum CRAS_STREAM_DIRECTION dir)
 {
-	int skt_fd = -1;
+	int skt_fd;
 	int rc;
 	struct sockaddr_un addr;
 	struct timespec timeout = { 10, 0 };
@@ -160,7 +160,7 @@ start_dev:
 	return 0;
 error:
 	floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
-	if (skt_fd) {
+	if (skt_fd >= 0) {
 		close(skt_fd);
 		unlink(addr.sun_path);
 	}

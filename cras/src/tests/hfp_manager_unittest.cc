@@ -10,26 +10,36 @@ extern "C" {
 #include "cras_iodev.h"
 }
 
+static size_t connect_called;
+static int connect_ret;
 static struct cras_hfp* hfp_pcm_iodev_create_hfp_val;
 static size_t hfp_pcm_iodev_create_called;
 static size_t hfp_pcm_iodev_destroy_called;
 static size_t floss_media_hfp_start_sco_called;
 static size_t floss_media_hfp_stop_sco_called;
-static thread_callback hfp_callback;
-static void* hfp_callback_data;
+static int socket_ret;
+static int audio_thread_add_events_callback_called;
+static int audio_thread_add_events_callback_fd;
+static thread_callback audio_thread_add_events_callback_cb;
+static void* audio_thread_add_events_callback_data;
 static int audio_thread_config_events_callback_called;
 static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
-static const int fake_skt = 456;
 
 void ResetStubData() {
+  connect_called = 0;
+  connect_ret = 0;
   hfp_pcm_iodev_create_hfp_val = NULL;
   hfp_pcm_iodev_create_called = 0;
   hfp_pcm_iodev_destroy_called = 0;
   floss_media_hfp_start_sco_called = 0;
   floss_media_hfp_stop_sco_called = 0;
-  hfp_callback = NULL;
+  audio_thread_add_events_callback_called = 0;
+  audio_thread_add_events_callback_fd = 0;
+  audio_thread_add_events_callback_cb = NULL;
+  audio_thread_add_events_callback_data = NULL;
   audio_thread_config_events_callback_called = 0;
+  socket_ret = 456;
 }
 
 namespace {
@@ -55,6 +65,40 @@ TEST_F(HfpManagerTestSuite, CreateDestroy) {
   EXPECT_EQ(hfp_pcm_iodev_destroy_called, 2);
 }
 
+TEST_F(HfpManagerTestSuite, StartWithSocketFail) {
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr");
+  ASSERT_NE(hfp, (struct cras_hfp*)NULL);
+
+  socket_ret = -1;
+
+  EXPECT_EQ(socket_ret, cras_floss_hfp_start(hfp, NULL, CRAS_STREAM_OUTPUT));
+
+  EXPECT_EQ(floss_media_hfp_start_sco_called, 1);
+  EXPECT_EQ(audio_thread_add_events_callback_called, 0);
+  EXPECT_EQ(floss_media_hfp_stop_sco_called, 1);
+  EXPECT_EQ(connect_called, 0);
+  EXPECT_EQ(cras_floss_hfp_get_fd(hfp), -1);
+
+  cras_floss_hfp_destroy(hfp);
+}
+
+TEST_F(HfpManagerTestSuite, StartWithConnectFail) {
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr");
+  ASSERT_NE(hfp, (struct cras_hfp*)NULL);
+
+  connect_ret = -1;
+
+  EXPECT_EQ(connect_ret, cras_floss_hfp_start(hfp, NULL, CRAS_STREAM_OUTPUT));
+
+  EXPECT_EQ(floss_media_hfp_start_sco_called, 1);
+  EXPECT_EQ(connect_called, 1);
+  EXPECT_EQ(audio_thread_add_events_callback_called, 0);
+  EXPECT_EQ(floss_media_hfp_stop_sco_called, 1);
+  EXPECT_EQ(cras_floss_hfp_get_fd(hfp), -1);
+
+  cras_floss_hfp_destroy(hfp);
+}
+
 TEST_F(HfpManagerTestSuite, StartStop) {
   struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr");
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
@@ -63,19 +107,24 @@ TEST_F(HfpManagerTestSuite, StartStop) {
 
   cras_floss_hfp_start(hfp, NULL, CRAS_STREAM_OUTPUT);
   EXPECT_EQ(floss_media_hfp_start_sco_called, 1);
-  EXPECT_EQ(cras_floss_hfp_get_fd(hfp), fake_skt);
+  EXPECT_EQ(cras_floss_hfp_get_fd(hfp), socket_ret);
 
   cras_floss_hfp_start(hfp, NULL, CRAS_STREAM_INPUT);
   EXPECT_EQ(floss_media_hfp_start_sco_called, 1);
+  EXPECT_EQ(audio_thread_add_events_callback_called, 1);
+  EXPECT_EQ(audio_thread_add_events_callback_fd, socket_ret);
+  EXPECT_EQ((struct cras_hfp*)audio_thread_add_events_callback_data, hfp);
 
   cras_floss_hfp_stop(hfp, CRAS_STREAM_OUTPUT);
   // Expect no stop sco call before CRAS_STREAM_INPUT is also stopped.
   EXPECT_EQ(floss_media_hfp_stop_sco_called, 0);
-  EXPECT_EQ(cras_floss_hfp_get_fd(hfp), fake_skt);
+  EXPECT_EQ(cras_floss_hfp_get_fd(hfp), socket_ret);
 
   cras_floss_hfp_stop(hfp, CRAS_STREAM_INPUT);
   EXPECT_EQ(floss_media_hfp_stop_sco_called, 1);
   EXPECT_EQ(cras_floss_hfp_get_fd(hfp), -1);
+
+  cras_floss_hfp_destroy(hfp);
 }
 
 }  // namespace
@@ -84,11 +133,12 @@ extern "C" {
 
 /* socket and connect */
 int socket(int domain, int type, int protocol) {
-  return fake_skt;
+  return socket_ret;
 }
 
 int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
-  return 0;
+  connect_called++;
+  return connect_ret;
 }
 
 /* From audio_thread */
@@ -98,8 +148,10 @@ void audio_thread_add_events_callback(int fd,
                                       thread_callback cb,
                                       void* data,
                                       int events) {
-  hfp_callback = cb;
-  hfp_callback_data = data;
+  audio_thread_add_events_callback_called++;
+  audio_thread_add_events_callback_fd = fd;
+  audio_thread_add_events_callback_cb = cb;
+  audio_thread_add_events_callback_data = data;
 }
 
 void audio_thread_config_events_callback(
