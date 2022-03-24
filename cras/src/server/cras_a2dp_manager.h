@@ -29,16 +29,18 @@ const char *cras_floss_a2dp_get_addr(struct cras_a2dp *a2dp);
  * Args:
  *    a2dp - The a2dp instance to start streaming.
  *    fmt - The PCM format to select for streaming.
- *    skt - To be filled with the socket to write PCM audio to. The
- *        caller is responsible to close this socket when done with it.
  * Returns:
  *    0 for success, otherwise error code.
  */
-int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt,
-			  int *skt);
+int cras_floss_a2dp_start(struct cras_a2dp *a2dp,
+			  struct cras_audio_format *fmt);
 
 /* Stops a2dp streaming. */
 int cras_floss_a2dp_stop(struct cras_a2dp *a2dp);
+
+/* Gets the file descriptor to write to the given cras_a2dp.
+ * Returns -1 if given cras_a2dp isn't started. */
+int cras_floss_a2dp_get_fd(struct cras_a2dp *a2dp);
 
 /* Schedules repeated delay sync tasks at time init_msec + N * period_msec
  * where N = 0, 1, 2...

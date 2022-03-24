@@ -42,7 +42,7 @@ struct delay_sync_policy {
  * Members:
  *    fm - Object representing the media interface of BT adapter.
  *    iodev - The connected a2dp iodev.
- *    skt_fd - The socket fd to the a2dp device.
+ *    fd - The socket fd to send pcm audio to the a2dp device.
  *    suspend_timer - Timer to schedule suspending iodev at failures.
  *    delay_sync - The object representing scheduled delay sync task.
  *    addr - The address of connected a2dp device.
@@ -52,7 +52,7 @@ struct delay_sync_policy {
 struct cras_a2dp {
 	struct fl_media *fm;
 	struct cras_iodev *iodev;
-	int skt_fd;
+	int fd;
 	struct cras_timer *suspend_timer;
 	struct delay_sync_policy *delay_sync;
 	char *addr;
@@ -73,15 +73,6 @@ struct a2dp_msg {
 	struct cras_iodev *dev;
 	unsigned int arg1;
 };
-
-void fill_local_a2dp_skt_addr(struct sockaddr_un *addr)
-{
-	memset(addr, 0, sizeof(struct sockaddr_un));
-	addr->sun_family = AF_UNIX;
-	snprintf(addr->sun_path, CRAS_MAX_SOCKET_PATH_SIZE, "%s/%s",
-		 cras_config_get_system_socket_file_dir(),
-		 CRAS_A2DP_SOCKET_FILE);
-}
 
 void fill_floss_a2dp_skt_addr(struct sockaddr_un *addr)
 {
@@ -208,7 +199,7 @@ struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
 	connected_a2dp->addr = strdup(addr);
 	connected_a2dp->iodev = a2dp_pcm_iodev_create(
 		connected_a2dp, sample_rate, bits_per_sample, channel_mode);
-	connected_a2dp->skt_fd = -1;
+	connected_a2dp->fd = -1;
 
 	BTLOG(btlog, BT_A2DP_START, 0, 0);
 	cras_main_message_add_handler(CRAS_MAIN_A2DP, a2dp_process_msg, NULL);
@@ -366,6 +357,12 @@ const char *cras_floss_a2dp_get_addr(struct cras_a2dp *a2dp)
 
 int cras_floss_a2dp_stop(struct cras_a2dp *a2dp)
 {
+	if (a2dp->fd < 0)
+		return 0;
+
+	close(a2dp->fd);
+	a2dp->fd = -1;
+
 	cancel_a2dp_delay_sync(connected_a2dp);
 	floss_media_a2dp_stop_audio_request(a2dp->fm);
 	return 0;
@@ -452,10 +449,9 @@ static void audio_format_to_floss(const struct cras_audio_format *fmt,
 	}
 }
 
-int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt,
-			  int *skt)
+int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 {
-	int skt_fd = -1;
+	int skt_fd;
 	int rc;
 	struct sockaddr_un addr;
 	struct timespec timeout = { 1, 0 };
@@ -474,7 +470,8 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt,
 	skt_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (skt_fd < 0) {
 		syslog(LOG_ERR, "A2DP socket failed");
-		return skt_fd;
+		rc = skt_fd;
+		goto error;
 	}
 
 	fill_floss_a2dp_skt_addr(&addr);
@@ -504,14 +501,20 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt,
 		goto error;
 	}
 
-	*skt = skt_fd;
+	a2dp->fd = skt_fd;
 	return 0;
 error:
-	if (skt_fd) {
+	floss_media_a2dp_stop_audio_request(a2dp->fm);
+	if (skt_fd >= 0) {
 		close(skt_fd);
 		unlink(addr.sun_path);
 	}
 	return rc;
+}
+
+int cras_floss_a2dp_get_fd(struct cras_a2dp *a2dp)
+{
+	return a2dp->fd;
 }
 
 void cras_a2dp_schedule_suspend(unsigned int msec)

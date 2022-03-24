@@ -96,7 +96,6 @@ TEST_F(A2dpManagerTestSuite, CreateDestroy) {
 TEST_F(A2dpManagerTestSuite, StartStop) {
   struct cras_audio_format fmt;
   struct cras_a2dp* a2dp = cras_floss_a2dp_create(NULL, "addr", 1, 1, 1);
-  int skt = -1;
 
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
@@ -104,8 +103,8 @@ TEST_F(A2dpManagerTestSuite, StartStop) {
   fmt.frame_rate = 44100;
   fmt.format = SND_PCM_FORMAT_S32_LE;
   fmt.num_channels = 2;
-  cras_floss_a2dp_start(a2dp, &fmt, &skt);
-  EXPECT_EQ(skt, fake_skt);
+  EXPECT_EQ(0, cras_floss_a2dp_start(a2dp, &fmt));
+  EXPECT_EQ(fake_skt, cras_floss_a2dp_get_fd(a2dp));
   EXPECT_EQ(floss_media_a2dp_set_active_device_called, 1);
   EXPECT_EQ(floss_media_a2dp_set_audio_config_called, 1);
   EXPECT_EQ(floss_media_a2dp_set_audio_config_rate, FL_RATE_44100);
@@ -121,7 +120,6 @@ TEST_F(A2dpManagerTestSuite, StartStop) {
 TEST_F(A2dpManagerTestSuite, DelaySync) {
   struct cras_audio_format fmt;
   struct cras_a2dp* a2dp;
-  int skt = -1;
 
   a2dp_pcm_iodev_create_ret =
       (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
@@ -132,8 +130,8 @@ TEST_F(A2dpManagerTestSuite, DelaySync) {
   fmt.frame_rate = 44100;
   fmt.format = SND_PCM_FORMAT_S32_LE;
   fmt.num_channels = 2;
-  cras_floss_a2dp_start(a2dp, &fmt, &skt);
-  EXPECT_EQ(skt, fake_skt);
+  EXPECT_EQ(0, cras_floss_a2dp_start(a2dp, &fmt));
+  EXPECT_EQ(fake_skt, cras_floss_a2dp_get_fd(a2dp));
 
   cras_tm_create_timer_ret = reinterpret_cast<struct cras_timer*>(0x123);
   cras_floss_a2dp_delay_sync(a2dp, 100, 1000);
@@ -341,6 +339,7 @@ struct cras_tm* cras_system_state_get_tm() {
 int socket(int domain, int type, int protocol) {
   return fake_skt;
 }
+
 int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
   return 0;
 }

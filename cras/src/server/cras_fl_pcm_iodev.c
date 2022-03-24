@@ -3,7 +3,6 @@
  * found in the LICENSE file.
  */
 
-#include <asm-generic/errno-base.h>
 #include <errno.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
@@ -71,7 +70,6 @@ static const struct timespec throttle_event_threshold = {
 /* Child of cras_iodev to handle bluetooth A2DP streaming.
  * Members:
  *    base - The cras_iodev structure "base class"
- *    audio_fd - The sockets for device to read and write
  *    ncm_buf - Buffer to hold pcm samples before encode.
  *    next_flush_time - The time when it is okay for next flush call.
  *    flush_period - The time period between two a2dp packet writes.
@@ -90,7 +88,6 @@ static const struct timespec throttle_event_threshold = {
  */
 struct fl_pcm_io {
 	struct cras_iodev base;
-	int audio_fd;
 	struct byte_buffer *pcm_buf;
 	struct timespec next_flush_time;
 	struct timespec flush_period;
@@ -246,11 +243,10 @@ static int a2dp_socket_write_cb(void *arg, int revent)
 static int a2dp_configure_dev(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
-	int rc;
+	int rc, fd;
 	size_t format_bytes;
 
-	rc = cras_floss_a2dp_start(a2dpio->a2dp, iodev->format,
-				   &a2dpio->audio_fd);
+	rc = cras_floss_a2dp_start(a2dpio->a2dp, iodev->format);
 	if (rc < 0) {
 		syslog(LOG_ERR, "A2dp start failed");
 		return rc;
@@ -287,9 +283,10 @@ static int a2dp_configure_dev(struct cras_iodev *iodev)
 	 */
 	iodev->min_buffer_level = 0;
 
-	audio_thread_add_events_callback(a2dpio->audio_fd, a2dp_socket_write_cb,
-					 iodev, POLLOUT | POLLERR | POLLHUP);
-	audio_thread_config_events_callback(a2dpio->audio_fd, TRIGGER_NONE);
+	fd = cras_floss_a2dp_get_fd(a2dpio->a2dp);
+	audio_thread_add_events_callback(fd, a2dp_socket_write_cb, iodev,
+					 POLLOUT | POLLERR | POLLHUP);
+	audio_thread_config_events_callback(fd, TRIGGER_NONE);
 	return 0;
 }
 
@@ -443,15 +440,16 @@ static int a2dp_start(const struct cras_iodev *iodev)
 
 static int a2dp_close_dev(struct cras_iodev *iodev)
 {
-	int err;
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
+	int fd;
 
-	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
-				      a2dpio->audio_fd);
-	close(a2dpio->audio_fd);
-	err = cras_floss_a2dp_stop(a2dpio->a2dp);
-	if (err < 0)
-		syslog(LOG_ERR, "Socket release failed");
+	fd = cras_floss_a2dp_get_fd(a2dpio->a2dp);
+
+	if (fd >= 0)
+		audio_thread_rm_callback_sync(
+			cras_iodev_list_get_audio_thread(), fd);
+
+	cras_floss_a2dp_stop(a2dpio->a2dp);
 
 	cras_a2dp_cancel_suspend();
 	byte_buffer_destroy(&a2dpio->pcm_buf);
@@ -502,6 +500,7 @@ static unsigned int a2dp_frames_to_play_in_sleep(struct cras_iodev *iodev,
 static int flush(const struct cras_iodev *iodev)
 {
 	int written = 0;
+	int fd;
 	unsigned int queued_frames;
 	size_t format_bytes;
 	struct fl_pcm_io *a2dpio;
@@ -519,6 +518,7 @@ static int flush(const struct cras_iodev *iodev)
 	    (iodev->state != CRAS_IODEV_STATE_NO_STREAM_RUN))
 		return 0;
 
+	fd = cras_floss_a2dp_get_fd(a2dpio->a2dp);
 do_flush:
 	/* If flush gets called before targeted next flush time, do nothing. */
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
@@ -531,8 +531,7 @@ do_flush:
 			 * case set the registered callback to be triggered at
 			 * next audio thread wake up.
 			 */
-			audio_thread_config_events_callback(a2dpio->audio_fd,
-							    TRIGGER_WAKEUP);
+			audio_thread_config_events_callback(fd, TRIGGER_WAKEUP);
 			cras_audio_thread_event_a2dp_overrun();
 			syslog(LOG_WARNING, "Buffer overrun in A2DP iodev");
 		}
@@ -552,8 +551,7 @@ do_flush:
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 	if (bt_local_queued_frames(iodev) >= a2dpio->write_block) {
-		written = send(a2dpio->audio_fd,
-			       buf_read_pointer(a2dpio->pcm_buf),
+		written = send(fd, buf_read_pointer(a2dpio->pcm_buf),
 			       MIN(a2dpio->write_block * format_bytes,
 				   buf_readable(a2dpio->pcm_buf)),
 			       MSG_DONTWAIT);
@@ -567,15 +565,13 @@ do_flush:
 			/* If EAGAIN error lasts longer than 5 seconds, suspend
 			 * the a2dp connection. */
 			cras_a2dp_schedule_suspend(5000);
-			audio_thread_config_events_callback(a2dpio->audio_fd,
-							    TRIGGER_WAKEUP);
+			audio_thread_config_events_callback(fd, TRIGGER_WAKEUP);
 			return 0;
 		} else {
 			cras_a2dp_cancel_suspend();
 			cras_a2dp_schedule_suspend(0);
 
-			audio_thread_config_events_callback(a2dpio->audio_fd,
-							    TRIGGER_NONE);
+			audio_thread_config_events_callback(fd, TRIGGER_NONE);
 			return written;
 		}
 	}
@@ -594,7 +590,7 @@ do_flush:
 
 	/* a2dp_write no longer return -EAGAIN when reaches here, disable
 	 * the polling write callback. */
-	audio_thread_config_events_callback(a2dpio->audio_fd, TRIGGER_NONE);
+	audio_thread_config_events_callback(fd, TRIGGER_NONE);
 
 	cras_a2dp_cancel_suspend();
 
@@ -754,7 +750,6 @@ struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
 
 	iodev = &a2dpio->base;
 
-	a2dpio->audio_fd = -1;
 	a2dpio->a2dp = a2dp;
 
 	/* A2DP only does output now */

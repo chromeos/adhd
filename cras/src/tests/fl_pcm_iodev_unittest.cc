@@ -36,6 +36,7 @@ static unsigned cras_iodev_init_audio_area_called;
 static unsigned cras_iodev_free_audio_area_called;
 static unsigned cras_floss_a2dp_start_called;
 static unsigned cras_floss_a2dp_stop_called;
+static int cras_floss_a2dp_get_fd_ret;
 static unsigned cras_floss_hfp_start_called;
 static unsigned cras_floss_hfp_stop_called;
 static int cras_floss_hfp_get_fd_ret;
@@ -65,6 +66,7 @@ void ResetStubData() {
   cras_iodev_free_audio_area_called = 0;
   cras_floss_a2dp_start_called = 0;
   cras_floss_a2dp_stop_called = 0;
+  cras_floss_a2dp_get_fd_ret = FAKE_SOCKET_FD;
   cras_floss_hfp_start_called = 0;
   cras_floss_hfp_stop_called = 0;
   cras_floss_hfp_get_fd_ret = FAKE_SOCKET_FD;
@@ -531,16 +533,18 @@ int cras_floss_a2dp_fill_format(int sample_rate,
 }
 
 int cras_floss_a2dp_start(struct cras_a2dp* a2dp,
-                          struct cras_audio_format* fmt,
-                          int* skt) {
+                          struct cras_audio_format* fmt) {
   cras_floss_a2dp_start_called++;
-  *skt = FAKE_SOCKET_FD;
   return 0;
 }
 
 int cras_floss_a2dp_stop(struct cras_a2dp* a2dp) {
   cras_floss_a2dp_stop_called++;
   return 0;
+}
+
+int cras_floss_a2dp_get_fd(struct cras_a2dp* a2dp) {
+  return cras_floss_a2dp_get_fd_ret;
 }
 
 void cras_floss_a2dp_set_volume(struct cras_a2dp* a2dp, unsigned int volume) {
