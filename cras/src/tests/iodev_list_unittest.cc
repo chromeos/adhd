@@ -238,8 +238,8 @@ class IoDevTestSuite : public testing::Test {
       update_active_node_iodev_val[i] = NULL;
     DL_APPEND(fake_sco_in_dev.nodes, &fake_sco_in_node);
     DL_APPEND(fake_sco_out_dev.nodes, &fake_sco_out_node);
-    fake_sco_in_node.is_sco_pcm = 0;
-    fake_sco_out_node.is_sco_pcm = 0;
+    fake_sco_in_node.btflags &= ~CRAS_BT_FLAG_SCO_OFFLOAD;
+    fake_sco_out_node.btflags &= ~CRAS_BT_FLAG_SCO_OFFLOAD;
     mock_empty_iodev[0].state = CRAS_IODEV_STATE_CLOSE;
     mock_empty_iodev[0].update_active_node = update_active_node;
     mock_empty_iodev[1].state = CRAS_IODEV_STATE_CLOSE;
@@ -1984,10 +1984,10 @@ TEST_F(IoDevTestSuite, GetSCOPCMIodevs) {
   cras_iodev_list_init();
 
   fake_sco_in_dev.direction = CRAS_STREAM_INPUT;
-  fake_sco_in_node.is_sco_pcm = 1;
+  fake_sco_in_node.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
   cras_iodev_list_add_input(&fake_sco_in_dev);
   fake_sco_out_dev.direction = CRAS_STREAM_OUTPUT;
-  fake_sco_out_node.is_sco_pcm = 1;
+  fake_sco_out_node.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
   cras_iodev_list_add_output(&fake_sco_out_dev);
 
   EXPECT_EQ(&fake_sco_in_dev,

@@ -118,7 +118,9 @@ enum CRAS_IODEV_STATE {
  *    stable_id - id for node that doesn't change after unplug/plug.
  *    audio_effect - Bit-wise audio effect support information. See enum
  *                   audio_effect_type in cras_iodev_info.h.
- *    is_sco_pcm - Bool to indicate whether the ionode is for SCO over PCM.
+ *    btflags - Bit-wise information to indicate the BT profile and attributes
+ *              that apply.
+ *              See enum CRAS_BT_FLAGS in ../common/cras_types.h.
  */
 struct cras_ionode {
 	struct cras_iodev *dev;
@@ -140,7 +142,7 @@ struct cras_ionode {
 	int software_volume_needed;
 	long intrinsic_sensitivity;
 	unsigned int stable_id;
-	int is_sco_pcm;
+	uint32_t btflags;
 	uint32_t audio_effect;
 	struct cras_ionode *prev, *next;
 };

@@ -780,4 +780,10 @@ enum CRAS_NODE_POSITION {
 	NODE_POSITION_KEYBOARD,
 };
 
+/* The bitmask enum of btflags.
+ * Bit is toggled on for each attribute that apply.
+ *    CRAS_BT_FLAG_SCO_OFFLOAD - For SCO over PCM
+ */
+enum CRAS_BT_FLAGS { CRAS_BT_FLAG_SCO_OFFLOAD = (1 << 0) };
+
 #endif /* CRAS_TYPES_H_ */
