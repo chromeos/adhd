@@ -131,6 +131,10 @@ TEST_F(PcmIodev, CreateDestroyA2dpPcmIodev) {
   EXPECT_EQ(1, cras_iodev_list_add_output_called);
   EXPECT_EQ(1, cras_floss_a2dp_fill_format_called);
 
+  EXPECT_EQ(CRAS_BT_FLAG_FLOSS,
+            CRAS_BT_FLAG_FLOSS & iodev->active_node->btflags);
+  EXPECT_EQ(CRAS_BT_FLAG_A2DP, CRAS_BT_FLAG_A2DP & iodev->active_node->btflags);
+
   a2dp_pcm_iodev_destroy(iodev);
 
   EXPECT_EQ(1, cras_iodev_rm_node_called);
@@ -176,6 +180,10 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
   EXPECT_EQ(1, cras_iodev_list_add_output_called);
   EXPECT_EQ(1, cras_iodev_set_active_node_called);
 
+  EXPECT_EQ(CRAS_BT_FLAG_FLOSS,
+            CRAS_BT_FLAG_FLOSS & odev->active_node->btflags);
+  EXPECT_EQ(CRAS_BT_FLAG_HFP, CRAS_BT_FLAG_HFP & odev->active_node->btflags);
+
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
   EXPECT_NE(idev, (void*)NULL);
@@ -185,6 +193,10 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
   EXPECT_EQ(2, cras_iodev_add_node_called);
   EXPECT_EQ(1, cras_iodev_list_add_input_called);
   EXPECT_EQ(2, cras_iodev_set_active_node_called);
+
+  EXPECT_EQ(CRAS_BT_FLAG_FLOSS,
+            CRAS_BT_FLAG_FLOSS & idev->active_node->btflags);
+  EXPECT_EQ(CRAS_BT_FLAG_HFP, CRAS_BT_FLAG_HFP & idev->active_node->btflags);
 
   hfp_pcm_iodev_destroy(odev);
 

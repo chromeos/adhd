@@ -796,6 +796,8 @@ struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);
+	node->btflags |= CRAS_BT_FLAG_FLOSS;
+	node->btflags |= CRAS_BT_FLAG_A2DP;
 
 	cras_iodev_add_node(iodev, node);
 	err = cras_iodev_list_add_output(iodev);
@@ -938,6 +940,9 @@ struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
 
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);
+
+	node->btflags |= CRAS_BT_FLAG_FLOSS;
+	node->btflags |= CRAS_BT_FLAG_HFP;
 
 	hfpio->pcm_buf = byte_buffer_create(FLOSS_HFP_MAX_BUF_SIZE_BYTES);
 	if (!hfpio->pcm_buf)

@@ -128,6 +128,9 @@ TEST_F(A2dpIodev, InitializeA2dpIodev) {
   ASSERT_EQ(1, cras_iodev_add_node_called);
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
 
+  ASSERT_EQ(0, CRAS_BT_FLAG_FLOSS & iodev->active_node->btflags);
+  ASSERT_EQ(CRAS_BT_FLAG_A2DP, CRAS_BT_FLAG_A2DP & iodev->active_node->btflags);
+
   /* Assert iodev name matches the object path when bt device doesn't
    * have its readable name populated. */
   ASSERT_STREQ(FAKE_OBJECT_PATH, iodev->info.name);

@@ -99,6 +99,9 @@ TEST_F(HfpIodev, CreateHfpOutputIodev) {
   ASSERT_EQ(1, cras_iodev_add_node_called);
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
 
+  ASSERT_EQ(0, CRAS_BT_FLAG_FLOSS & iodev->active_node->btflags);
+  ASSERT_EQ(CRAS_BT_FLAG_HFP, CRAS_BT_FLAG_HFP & iodev->active_node->btflags);
+
   hfp_iodev_destroy(iodev);
 
   ASSERT_EQ(1, cras_bt_device_rm_iodev_called);
@@ -115,6 +118,9 @@ TEST_F(HfpIodev, CreateHfpInputIodev) {
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
   /* Input device does not use software gain. */
   ASSERT_EQ(0, iodev->software_volume_needed);
+
+  ASSERT_EQ(0, CRAS_BT_FLAG_FLOSS & iodev->active_node->btflags);
+  ASSERT_EQ(CRAS_BT_FLAG_HFP, CRAS_BT_FLAG_HFP & iodev->active_node->btflags);
 
   hfp_iodev_destroy(iodev);
 

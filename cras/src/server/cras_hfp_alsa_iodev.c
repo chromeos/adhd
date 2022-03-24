@@ -328,6 +328,8 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);
 
+	node->btflags |= CRAS_BT_FLAG_HFP;
+
 	/* Prepare active node before append, so bt_io can extract correct
 	 * info from hfp_alsa iodev and node. */
 	cras_iodev_add_node(iodev, node);

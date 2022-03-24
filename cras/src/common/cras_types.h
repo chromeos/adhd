@@ -781,9 +781,17 @@ enum CRAS_NODE_POSITION {
 };
 
 /* The bitmask enum of btflags.
- * Bit is toggled on for each attribute that apply.
+ * Bit is toggled on for each attribute that applies.
+ *    CRAS_BT_FLAG_FLOSS - FLOSS is the running Bluetooth stack
  *    CRAS_BT_FLAG_SCO_OFFLOAD - For SCO over PCM
+ *    CRAS_BT_FLAG_A2DP - A2DP is the current profile
+ *    CRAS_BT_FLAG_HFP - HFP is the current profile
  */
-enum CRAS_BT_FLAGS { CRAS_BT_FLAG_SCO_OFFLOAD = (1 << 0) };
+enum CRAS_BT_FLAGS {
+	CRAS_BT_FLAG_FLOSS = (1 << 0),
+	CRAS_BT_FLAG_SCO_OFFLOAD = (1 << 1),
+	CRAS_BT_FLAG_A2DP = (1 << 2),
+	CRAS_BT_FLAG_HFP = (1 << 3)
+};
 
 #endif /* CRAS_TYPES_H_ */

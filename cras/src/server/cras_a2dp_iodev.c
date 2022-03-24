@@ -783,6 +783,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);
+	node->btflags |= CRAS_BT_FLAG_A2DP;
 
 	/* Prepare active node before append, so bt_io can extract correct
 	 * info from A2DP iodev and node. */
