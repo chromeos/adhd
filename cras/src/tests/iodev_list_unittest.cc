@@ -2830,7 +2830,6 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
   return 0;
 }
 
-#ifdef HAVE_WEBRTC_APM
 struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
                                      struct cras_iodev* idev,
                                      const struct cras_audio_format* fmt) {
@@ -2849,7 +2848,6 @@ int cras_stream_apm_set_aec_ref(struct cras_stream_apm* stream,
   cras_stream_apm_set_aec_ref_called++;
   return 0;
 }
-#endif
 
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {

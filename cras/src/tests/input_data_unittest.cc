@@ -16,13 +16,11 @@ namespace {
 
 #define FAKE_CRAS_APM_PTR reinterpret_cast<struct cras_apm*>(0x99)
 
-#ifdef HAVE_WEBRTC_APM
 static struct cras_audio_area apm_area;
 static unsigned int cras_stream_apm_process_offset_val;
 static unsigned int cras_stream_apm_process_called;
 static struct cras_apm* cras_stream_apm_get_active_ret = NULL;
 static bool cras_stream_apm_get_use_tuned_settings_val;
-#endif  // HAVE_WEBRTC_APM
 static float cras_rstream_get_volume_scaler_val;
 
 TEST(InputData, GetForInputStream) {
@@ -34,9 +32,7 @@ TEST(InputData, GetForInputStream) {
   struct cras_audio_area dev_area;
   unsigned int offset;
 
-#ifdef HAVE_WEBRTC_APM
   cras_stream_apm_process_called = 0;
-#endif  // HAVE_WEBRTC_APM
   stream.stream_id = 111;
 
   data = input_data_create(idev);
@@ -88,7 +84,6 @@ TEST(InputData, GetSWCaptureGain) {
   cras_rstream_get_volume_scaler_val = 0.8f;
   stream.stream_id = 123;
 
-#ifdef HAVE_WEBRTC_APM
   data = input_data_create(idev);
 
   cras_stream_apm_get_use_tuned_settings_val = 1;
@@ -102,7 +97,6 @@ TEST(InputData, GetSWCaptureGain) {
   gain = input_data_get_software_gain_scaler(data, 0.6f, &stream);
   EXPECT_FLOAT_EQ(0.48f, gain);
   input_data_destroy(&data);
-#endif  // HAVE_WEBRTC_APM
 
   data = input_data_create(idev);
   gain = input_data_get_software_gain_scaler(data, 0.6f, &stream);
@@ -111,7 +105,6 @@ TEST(InputData, GetSWCaptureGain) {
 }
 
 extern "C" {
-#ifdef HAVE_WEBRTC_APM
 struct cras_apm* cras_stream_apm_get_active(struct cras_stream_apm* stream,
                                             const struct cras_iodev* idev) {
   return cras_stream_apm_get_active_ret;
@@ -134,7 +127,6 @@ bool cras_stream_apm_get_use_tuned_settings(struct cras_stream_apm* stream,
                                             const struct cras_iodev* idev) {
   return cras_stream_apm_get_use_tuned_settings_val;
 }
-#endif  // HAVE_WEBRTC_APM
 
 float cras_rstream_get_volume_scaler(struct cras_rstream* rstream) {
   return cras_rstream_get_volume_scaler_val;

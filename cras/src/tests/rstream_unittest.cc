@@ -526,7 +526,6 @@ void cras_rtc_add_stream(struct cras_rstream* stream,
                          struct cras_iodev* iodev) {}
 void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {}
 
-#ifdef HAVE_WEBRTC_APM
 #define FAKE_CRAS_APM_PTR reinterpret_cast<struct cras_apm*>(0x99)
 struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
   return fake_stream_apm;
@@ -550,5 +549,4 @@ struct cras_apm* cras_stream_apm_get(struct cras_stream_apm* stream,
 struct cras_audio_format* cras_stream_apm_get_format(struct cras_apm* apm) {
   return NULL;
 }
-#endif
 }

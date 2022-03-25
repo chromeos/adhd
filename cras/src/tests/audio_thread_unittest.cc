@@ -1431,8 +1431,6 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   return 0;
 }
 
-#ifdef HAVE_WEBRTC_APM
-
 uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
   return 0;
 }
@@ -1441,8 +1439,6 @@ void cras_stream_apm_set_aec_dump(struct cras_stream_apm* stream,
                                   const struct cras_iodev* idev,
                                   int start,
                                   int fd) {}
-
-#endif
 
 int cras_audio_thread_event_busyloop() {
   cras_audio_thread_event_busyloop_called++;

@@ -34,7 +34,8 @@ CRAS_WEBRTC_APM_SOURCES = \
 	server/cras_stream_apm.c \
 	server/cras_apm_reverse.c
 else
-CRAS_WEBRTC_APM_SOURCES =
+CRAS_WEBRTC_APM_SOURCES = \
+	server/cras_stream_apm_noop.c
 endif
 
 CRAS_UT_TMPDIR_CFLAGS=-DCRAS_UT_TMPDIR=\"/tmp\"
