@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include "cras_client.h"
+#include "cras_string.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_version.h"
@@ -94,6 +95,33 @@ struct print_nodes_inlined_options {
 static const struct timespec follow_atlog_sleep_ts = {
 	0, 50 * 1000 * 1000 /* 50 ms. */
 };
+
+enum {
+	THREAD_PRIORITY_UNSET,
+	THREAD_PRIORITY_NONE, // don't set any priority settings
+	THREAD_PRIORITY_NICE, // set nice value
+	THREAD_PRIORITY_RT_RR, // set rt priority with policy SCHED_RR
+};
+static int thread_priority = THREAD_PRIORITY_UNSET;
+static int niceness_level = 0;
+static int rt_priority = 0;
+
+static void thread_priority_cb(struct cras_client *client)
+{
+	switch (thread_priority) {
+	case THREAD_PRIORITY_NONE:
+		break;
+	case THREAD_PRIORITY_NICE:
+		assert(0 == cras_set_nice_level(niceness_level));
+		break;
+	case THREAD_PRIORITY_RT_RR:
+		assert(0 == cras_set_rt_scheduling(rt_priority));
+		assert(0 == cras_set_thread_priority(rt_priority));
+		break;
+	default:
+		assert(false && "thread_priority is unset!");
+	}
+}
 
 /*
  * Conditional so the client thread can signal that main should exit.
@@ -2062,6 +2090,7 @@ static struct option long_options[] = {
 	{"stream_type",         required_argument,      0, 'T'},
 	{"print_nodes_inlined", no_argument,            0, 'U'},
 	{"request_floop_mask",  required_argument,      0, 'V'},
+	{"thread_priority",     required_argument,      0, 'W'},
 	{0, 0, 0, 0}
 };
 // clang-format on
@@ -2208,6 +2237,17 @@ static void show_usage()
 	       "Print the git commit ID that was used to build the client.\n");
 	printf("--volume <0-100> - "
 	       "Set system output volume.\n");
+	printf("--thread_priority <...> -"
+	       "Set cras_test_client's thread priority.\n"
+	       "  * If this flag is not specified, it keeps the default behavior of\n"
+	       "    setting rt priority, and fallbacks to niceness value.\n"
+	       "  * --thread_priority=none\n"
+	       "    audio thread does not set any priority.\n"
+	       "  * --thread_priority=rt:N\n"
+	       "    audio thread sets the rt priority to the integer value N.\n"
+	       "    The policy is set to SCHED_RR.\n"
+	       "  * --thread_priority=nice:N\n"
+	       "    audio thread sets the nice value to the integer value N.\n");
 }
 
 static int cras_client_create_and_connect(struct cras_client **client,
@@ -2611,7 +2651,26 @@ int main(int argc, char **argv)
 		case 'V':
 			request_floop_mask(client, atoi(optarg));
 			break;
-
+		case 'W': {
+			cras_client_set_thread_priority_cb(client,
+							   thread_priority_cb);
+			if (0 == strcmp(optarg, "none")) {
+				thread_priority = THREAD_PRIORITY_NONE;
+			} else if (str_has_prefix(optarg, "nice:")) {
+				thread_priority = THREAD_PRIORITY_NICE;
+				niceness_level = atoi(optarg + strlen("nice:"));
+			} else if (str_has_prefix(optarg, "rt:")) {
+				thread_priority = THREAD_PRIORITY_RT_RR;
+				rt_priority = atoi(optarg + strlen("rt:"));
+			} else {
+				fprintf(stderr,
+					"invalid --thread_priority argument: %s\n",
+					optarg);
+				rc = 1;
+				goto destroy_exit;
+			}
+			break;
+		}
 		default:
 			break;
 		}
