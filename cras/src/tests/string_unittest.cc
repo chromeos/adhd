@@ -14,6 +14,12 @@ TEST(String, Strerror) {
   EXPECT_STREQ(cras_strerror(65536), "Unknown error 65536");
 }
 
+TEST(String, HasPrefix) {
+  EXPECT_TRUE(str_has_prefix("string", "str"));
+  EXPECT_FALSE(str_has_prefix("string", "ring"));
+  EXPECT_FALSE(str_has_prefix("str", "string"));
+}
+
 }  //  namespace
 
 int main(int argc, char** argv) {
