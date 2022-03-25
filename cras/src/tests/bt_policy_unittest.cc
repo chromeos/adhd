@@ -25,8 +25,9 @@ static int cras_a2dp_suspend_connected_device_called;
 static int cras_bt_device_disconnect_called;
 static int cras_bt_device_connect_profile_called;
 static int cras_bt_device_remove_conflict_called;
-static int cras_bt_device_set_nodes_plugged_called;
+static int bt_io_manager_set_nodes_plugged_called;
 static bool cras_bt_device_valid_ret;
+static bool bt_io_manager_exists_ret;
 
 void ResetStubData() {
   cras_tm_create_timer_called = 0;
@@ -40,9 +41,10 @@ void ResetStubData() {
   cras_bt_device_disconnect_called = 0;
   cras_bt_device_connect_profile_called = 0;
   cras_bt_device_remove_conflict_called = 0;
-  cras_bt_device_set_nodes_plugged_called = 0;
+  bt_io_manager_set_nodes_plugged_called = 0;
   cras_tm_create_timer_ret = reinterpret_cast<struct cras_timer*>(0x123);
   cras_bt_device_valid_ret = 1;
+  bt_io_manager_exists_ret = 1;
 }
 
 // Iodev callback
@@ -66,10 +68,11 @@ class BtPolicyTestSuite : public testing::Test {
     device.profiles = 0;           /* Reset supported profiles */
     device.connected_profiles = 0; /* Reset connected profiles */
 
+    device.bt_io_mgr = &bt_io_mgr;
     for (int i = 0; i < CRAS_NUM_DIRECTIONS; i++)
-      device.bt_iodevs[i] = NULL;
-    device.bt_iodevs[CRAS_STREAM_OUTPUT] = &odev;
-    device.bt_iodevs[CRAS_STREAM_INPUT] = &idev;
+      bt_io_mgr.bt_iodevs[i] = NULL;
+    bt_io_mgr.bt_iodevs[CRAS_STREAM_OUTPUT] = &odev;
+    bt_io_mgr.bt_iodevs[CRAS_STREAM_INPUT] = &idev;
 
     btlog = cras_bt_event_log_init();
 
@@ -77,6 +80,7 @@ class BtPolicyTestSuite : public testing::Test {
   }
   virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 
+  struct bt_io_manager bt_io_mgr;
   struct bt_policy_msg msg;
   struct cras_bt_device device;
   struct cras_iodev idev;
@@ -86,14 +90,15 @@ class BtPolicyTestSuite : public testing::Test {
 TEST_F(BtPolicyTestSuite, HandleMessageWithInvalidDev) {
   /* Pretend the BT device is no longer valid. The message handler will
    * just skip it without any issue. */
-  cras_bt_device_valid_ret = 0;
-  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  init_bt_profile_switch_msg(&msg, &bt_io_mgr);
+  bt_io_manager_exists_ret = 0;
   process_bt_policy_msg(&msg.header, NULL);
 
   EXPECT_EQ(0, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(0, cras_iodev_list_resume_dev_called);
   EXPECT_EQ(0, cras_tm_create_timer_called);
 
+  cras_bt_device_valid_ret = 0;
   init_bt_policy_msg(&msg, BT_POLICY_SCHEDULE_SUSPEND, &device, NULL, 200,
                      UNEXPECTED_PROFILE_DROP);
   process_bt_policy_msg(&msg.header, NULL);
@@ -107,7 +112,8 @@ TEST_F(BtPolicyTestSuite, SwitchProfile) {
   /* In the typical switch profile case, the associated input and
    * output iodev are suspended and resumed later. */
   EXPECT_EQ(0, cras_iodev_list_suspend_dev_called);
-  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  init_bt_profile_switch_msg(&msg, &bt_io_mgr);
+
   process_bt_policy_msg(&msg.header, NULL);
 
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
@@ -121,7 +127,7 @@ TEST_F(BtPolicyTestSuite, SwitchProfile) {
 }
 
 TEST_F(BtPolicyTestSuite, SwitchProfileRepeatedly) {
-  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  init_bt_profile_switch_msg(&msg, &bt_io_mgr);
   process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
@@ -146,8 +152,8 @@ TEST_F(BtPolicyTestSuite, DropHfpBeforeSwitchProfile) {
    * profile switch still went on. The output iodev(A2DP) is
    * expected to still be suspended and resumed.
    */
-  device.bt_iodevs[CRAS_STREAM_INPUT] = NULL;
-  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  device.bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT] = NULL;
+  init_bt_profile_switch_msg(&msg, &bt_io_mgr);
   process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(1, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(0, cras_iodev_list_resume_dev_called);
@@ -158,7 +164,7 @@ TEST_F(BtPolicyTestSuite, DropHfpBeforeSwitchProfile) {
 }
 
 TEST_F(BtPolicyTestSuite, DropA2dpWhileSwitchProfile) {
-  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  init_bt_profile_switch_msg(&msg, &bt_io_mgr);
   process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
@@ -169,14 +175,14 @@ TEST_F(BtPolicyTestSuite, DropA2dpWhileSwitchProfile) {
    * the middle of profile switch. When the scheduled callback is
    * executed nothing will happen.
    */
-  device.bt_iodevs[CRAS_STREAM_OUTPUT] = NULL;
+  device.bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT] = NULL;
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
 }
 
 TEST_F(BtPolicyTestSuite, RemoveDevWhileSwitchProfile) {
-  init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, &device, &idev, 0, 0);
+  init_bt_profile_switch_msg(&msg, &bt_io_mgr);
   process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
@@ -281,7 +287,7 @@ TEST_F(BtPolicyTestSuite, ConnectionWatchA2dpAndHfp) {
   EXPECT_EQ(1, cras_bt_device_remove_conflict_called);
   EXPECT_EQ(1, cras_hfp_ag_start_called);
   EXPECT_EQ(1, cras_a2dp_start_called);
-  EXPECT_EQ(1, cras_bt_device_set_nodes_plugged_called);
+  EXPECT_EQ(1, bt_io_manager_set_nodes_plugged_called);
 
   EXPECT_EQ((void*)conn_watch_policies, (void*)NULL);
 }
@@ -303,7 +309,7 @@ TEST_F(BtPolicyTestSuite, ConnectionWatchHfpOnly) {
   EXPECT_EQ(1, cras_bt_device_remove_conflict_called);
   EXPECT_EQ(1, cras_hfp_ag_start_called);
   EXPECT_EQ(0, cras_a2dp_start_called);
-  EXPECT_EQ(1, cras_bt_device_set_nodes_plugged_called);
+  EXPECT_EQ(1, bt_io_manager_set_nodes_plugged_called);
 
   EXPECT_EQ((void*)conn_watch_policies, (void*)NULL);
 }
@@ -325,7 +331,7 @@ TEST_F(BtPolicyTestSuite, ConnectionWatchA2dpOnly) {
   EXPECT_EQ(1, cras_bt_device_remove_conflict_called);
   EXPECT_EQ(0, cras_hfp_ag_start_called);
   EXPECT_EQ(1, cras_a2dp_start_called);
-  EXPECT_EQ(1, cras_bt_device_set_nodes_plugged_called);
+  EXPECT_EQ(1, bt_io_manager_set_nodes_plugged_called);
 
   EXPECT_EQ((void*)conn_watch_policies, (void*)NULL);
 }
@@ -416,6 +422,10 @@ void cras_a2dp_suspend_connected_device(struct cras_bt_device* device) {
   cras_a2dp_suspend_connected_device_called++;
 }
 
+bool bt_io_manager_exists(struct bt_io_manager* target) {
+  return bt_io_manager_exists_ret;
+}
+
 int cras_bt_device_disconnect(DBusConnection* conn,
                               struct cras_bt_device* device) {
   cras_bt_device_disconnect_called++;
@@ -424,11 +434,6 @@ int cras_bt_device_disconnect(DBusConnection* conn,
 
 void cras_bt_device_remove_conflict(struct cras_bt_device* device) {
   cras_bt_device_remove_conflict_called++;
-}
-
-void cras_bt_device_set_nodes_plugged(struct cras_bt_device* device,
-                                      int plugged) {
-  cras_bt_device_set_nodes_plugged_called++;
 }
 
 int cras_bt_device_set_supported_profiles(struct cras_bt_device* device,
@@ -445,6 +450,9 @@ int cras_bt_device_connect_profile(DBusConnection* conn,
 }
 bool cras_bt_device_valid(const struct cras_bt_device* target) {
   return cras_bt_device_valid_ret;
+}
+void bt_io_manager_set_nodes_plugged(struct bt_io_manager* mgr, int plugged) {
+  bt_io_manager_set_nodes_plugged_called++;
 }
 
 }  // extern "C"

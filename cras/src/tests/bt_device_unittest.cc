@@ -15,17 +15,8 @@ extern "C" {
 #define FAKE_OBJ_PATH "/obj/path"
 }
 
-static struct cras_iodev* cras_bt_io_create_profile_ret;
-static struct cras_iodev* cras_bt_io_append_btio_val;
-static struct cras_ionode* cras_bt_io_get_profile_ret;
-static unsigned int cras_bt_io_create_called;
-static unsigned int cras_bt_io_append_called;
-static unsigned int cras_bt_io_remove_called;
-static unsigned int cras_bt_io_destroy_called;
-static enum cras_bt_device_profile cras_bt_io_create_profile_val;
-static enum cras_bt_device_profile cras_bt_io_append_profile_val;
-static unsigned int cras_bt_io_try_remove_ret;
-
+static unsigned int bt_io_manager_append_iodev_called;
+static unsigned int bt_io_manager_remove_iodev_called;
 static int cras_a2dp_start_called;
 static int cras_a2dp_suspend_connected_device_called;
 static int cras_hfp_ag_remove_conflict_called;
@@ -35,8 +26,6 @@ static int dbus_message_new_method_call_called;
 static const char* dbus_message_new_method_call_method;
 static struct cras_bt_device* cras_a2dp_connected_device_ret;
 static struct cras_bt_device* cras_a2dp_suspend_connected_device_dev;
-static size_t cras_iodev_set_node_plugged_called;
-static int cras_iodev_set_node_plugged_value;
 static int cras_bt_policy_schedule_suspend_called;
 static int cras_bt_policy_cancel_suspend_called;
 static int cras_bt_policy_start_connection_watch_called;
@@ -50,12 +39,6 @@ struct MockDBusMessage {
 };
 
 void ResetStubData() {
-  cras_bt_io_get_profile_ret = NULL;
-  cras_bt_io_create_called = 0;
-  cras_bt_io_append_called = 0;
-  cras_bt_io_remove_called = 0;
-  cras_bt_io_destroy_called = 0;
-  cras_bt_io_try_remove_ret = 0;
   cras_a2dp_start_called = 0;
   cras_a2dp_suspend_connected_device_called = 0;
   cras_hfp_ag_remove_conflict_called = 0;
@@ -64,7 +47,6 @@ void ResetStubData() {
   dbus_message_new_method_call_method = NULL;
   dbus_message_new_method_call_called = 0;
   cras_a2dp_connected_device_ret = NULL;
-  cras_iodev_set_node_plugged_called = 0;
   cras_bt_policy_schedule_suspend_called = 0;
   cras_bt_policy_cancel_suspend_called = 0;
   cras_bt_policy_start_connection_watch_called = 0;
@@ -175,40 +157,20 @@ TEST(BtDeviceSuite, CreateBtDevice) {
 TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   struct cras_bt_device* device;
   device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
-  bt_iodev1.nodes = reinterpret_cast<struct cras_ionode*>(0x123);
-  cras_bt_io_create_profile_ret = &bt_iodev1;
+
   cras_bt_device_append_iodev(device, &d1_, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-  EXPECT_EQ(1, cras_bt_io_create_called);
-  EXPECT_EQ(0, cras_bt_io_append_called);
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, cras_bt_io_create_profile_val);
-  cras_bt_device_set_active_profile(device, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+  EXPECT_EQ(1, bt_io_manager_append_iodev_called);
 
   cras_bt_device_append_iodev(device, &d2_,
                               CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
-  EXPECT_EQ(1, cras_bt_io_create_called);
-  EXPECT_EQ(1, cras_bt_io_append_called);
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY,
-            cras_bt_io_append_profile_val);
-  EXPECT_EQ(&bt_iodev1, cras_bt_io_append_btio_val);
+  EXPECT_EQ(2, bt_io_manager_append_iodev_called);
 
-  /* Test HFP disconnected and switch to A2DP. */
-  cras_bt_io_get_profile_ret = bt_iodev1.nodes;
-  cras_bt_io_try_remove_ret = CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
-  cras_bt_device_set_active_profile(device,
-                                    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
   cras_bt_device_rm_iodev(device, &d2_);
-  EXPECT_EQ(1, cras_bt_io_remove_called);
-  EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
-  EXPECT_EQ(0, cras_iodev_set_node_plugged_value);
+  EXPECT_EQ(1, bt_io_manager_remove_iodev_called);
 
-  /* Test A2DP disconnection will cause bt_io destroy. */
-  cras_bt_io_try_remove_ret = 0;
   cras_bt_device_rm_iodev(device, &d1_);
-  EXPECT_EQ(1, cras_bt_io_remove_called);
-  EXPECT_EQ(1, cras_bt_io_destroy_called);
-  EXPECT_EQ(0, cras_bt_device_get_active_profile(device));
-  EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
-  EXPECT_EQ(0, cras_iodev_set_node_plugged_value);
+  EXPECT_EQ(2, bt_io_manager_remove_iodev_called);
+
   cras_bt_device_remove(device);
 }
 
@@ -356,40 +318,22 @@ extern "C" {
 struct cras_bt_event_log* btlog;
 
 /* From bt_io */
-struct cras_iodev* cras_bt_io_create(struct cras_bt_device* device,
-                                     struct cras_iodev* dev,
-                                     enum cras_bt_device_profile profile) {
-  cras_bt_io_create_called++;
-  cras_bt_io_create_profile_val = profile;
-  return cras_bt_io_create_profile_ret;
+struct bt_io_manager* bt_io_manager_create() {
+  return reinterpret_cast<struct bt_io_manager*>(0x123);
 }
-void cras_bt_io_destroy(struct cras_iodev* bt_iodev) {
-  cras_bt_io_destroy_called++;
+
+void bt_io_manager_destroy(struct bt_io_manager* mgr) {}
+
+void bt_io_manager_append_iodev(struct bt_io_manager* mgr,
+                                struct cras_iodev* iodev,
+                                enum cras_bt_device_profile profile,
+                                int software_volume_needed) {
+  bt_io_manager_append_iodev_called++;
 }
-struct cras_ionode* cras_bt_io_get_profile(
-    struct cras_iodev* bt_iodev,
-    enum cras_bt_device_profile profile) {
-  return cras_bt_io_get_profile_ret;
-}
-int cras_bt_io_append(struct cras_iodev* bt_iodev,
-                      struct cras_iodev* dev,
-                      enum cras_bt_device_profile profile) {
-  cras_bt_io_append_called++;
-  cras_bt_io_append_profile_val = profile;
-  cras_bt_io_append_btio_val = bt_iodev;
-  return 0;
-}
-int cras_bt_io_on_profile(struct cras_iodev* bt_iodev,
-                          enum cras_bt_device_profile profile) {
-  return 0;
-}
-unsigned int cras_bt_io_try_remove(struct cras_iodev* bt_iodev,
-                                   struct cras_iodev* dev) {
-  return cras_bt_io_try_remove_ret;
-}
-int cras_bt_io_remove(struct cras_iodev* bt_iodev, struct cras_iodev* dev) {
-  cras_bt_io_remove_called++;
-  return 0;
+
+void bt_io_manager_remove_iodev(struct bt_io_manager* mgr,
+                                struct cras_iodev* iodev) {
+  bt_io_manager_remove_iodev_called++;
 }
 
 /* From bt_adapter */
@@ -458,11 +402,6 @@ int cras_iodev_close(struct cras_iodev* dev) {
   return 0;
 }
 
-void cras_iodev_set_node_plugged(struct cras_ionode* ionode, int plugged) {
-  cras_iodev_set_node_plugged_called++;
-  cras_iodev_set_node_plugged_value = plugged;
-}
-
 int cras_iodev_list_dev_is_enabled(const struct cras_iodev* dev) {
   return 0;
 }
@@ -473,8 +412,7 @@ void cras_iodev_list_resume_dev(struct cras_iodev* dev) {}
 
 void cras_iodev_list_notify_node_volume(struct cras_ionode* node) {}
 
-int cras_bt_policy_switch_profile(struct cras_bt_device* device,
-                                  struct cras_iodev* bt_iodev) {
+int cras_bt_policy_switch_profile(struct bt_io_manager* mgr) {
   return 0;
 }
 

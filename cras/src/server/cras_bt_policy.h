@@ -45,11 +45,10 @@ void cras_bt_policy_stop();
  *  |           |      +------------+     +----------------+     | |
  *  |           +----->| set active |---->| switch profile |-----+ |
  *  |                  | profile    |     +----------------+       |
- *  | bt device        +------------+                              |
+ *  | bt_io_manager    +------------+                              |
  *  +--------------------------------------------------------------+
  */
-int cras_bt_policy_switch_profile(struct cras_bt_device *device,
-				  struct cras_iodev *bt_iodev);
+int cras_bt_policy_switch_profile(struct bt_io_manager *mgr);
 
 /* Cleans up associated policy instances when device is removed. */
 void cras_bt_policy_remove_device(struct cras_bt_device *device);

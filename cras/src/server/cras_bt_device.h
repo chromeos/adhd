@@ -8,9 +8,9 @@
 
 #include <dbus/dbus.h>
 #include <stdbool.h>
+#include <stdint.h>
 
-#include "cras_types.h"
-
+struct bt_io_manager;
 struct cras_bt_adapter;
 struct cras_bt_device;
 struct cras_iodev;
@@ -32,11 +32,9 @@ struct cras_timer;
  *    profiles - OR'ed by all audio profiles this device supports.
  *    hidden_profiles - OR'ed by all audio profiles this device actually
  *        supports but is not scanned by BlueZ.
- *    bt_iodevs - The pointer to the cras_iodevs of this device.
- *    active_profile - The flag to indicate the active audio profile this
- *        device is currently using.
- *        BT audio input/ouput when all profiles are ready.
  *    stable_id - The unique and persistent id of this bt_device.
+ *    bt_io_mgr - The bt_io_manager in charge of managing iodevs of
+ *        different profiles and the switching in between.
  */
 struct cras_bt_device {
 	DBusConnection *conn;
@@ -51,10 +49,9 @@ struct cras_bt_device {
 	unsigned int connected_profiles;
 	unsigned int profiles;
 	unsigned int hidden_profiles;
-	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
-	unsigned int active_profile;
 	int use_hardware_volume;
 	unsigned int stable_id;
+	struct bt_io_manager *bt_io_mgr;
 
 	struct cras_bt_device *prev, *next;
 };
@@ -185,21 +182,8 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev);
 
-/* Gets the active profile of the bt device. */
-unsigned int
-cras_bt_device_get_active_profile(const struct cras_bt_device *device);
-
-/* Sets the active profile of the bt device. */
-void cras_bt_device_set_active_profile(struct cras_bt_device *device,
-				       unsigned int profile);
-
 /* Checks if the device has an iodev for A2DP. */
 int cras_bt_device_has_a2dp(struct cras_bt_device *device);
-
-/* Returns true if and only if device has an iodev for A2DP and the bt device
- * is not opening for audio capture.
- */
-int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device);
 
 /* Updates the volume to bt_device when a volume change event is reported. */
 void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
@@ -210,10 +194,6 @@ void cras_bt_device_a2dp_configured(struct cras_bt_device *device);
 
 /* */
 void cras_bt_device_remove_conflict(struct cras_bt_device *device);
-
-/* */
-void cras_bt_device_set_nodes_plugged(struct cras_bt_device *device,
-				      int plugged);
 
 /* */
 int cras_bt_device_connect_profile(DBusConnection *conn,

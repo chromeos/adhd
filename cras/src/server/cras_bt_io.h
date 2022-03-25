@@ -7,42 +7,76 @@
 #define CRAS_BT_IODEV_H_
 
 #include "cras_bt_device.h"
+#include "cras_types.h"
 
 struct cras_iodev;
 
-/* Creates a bluetooth iodev. */
-struct cras_iodev *cras_bt_io_create(struct cras_bt_device *device,
-				     struct cras_iodev *dev,
-				     enum cras_bt_device_profile profile);
+/* TODO(jrwu) deprecate all usage of this in bt_io_manager. */
+enum cras_bt_device_profile;
 
-/* Destroys a bluetooth iodev. */
-void cras_bt_io_destroy(struct cras_iodev *bt_iodev);
-
-/* Looks up for the node of given profile, returns NULL if doesn't exist. */
-struct cras_ionode *cras_bt_io_get_profile(struct cras_iodev *bt_iodev,
-					   enum cras_bt_device_profile profile);
-
-/* Appends a profile specific iodev to bt_iodev. */
-int cras_bt_io_append(struct cras_iodev *bt_iodev, struct cras_iodev *dev,
-		      enum cras_bt_device_profile profile);
-
-/* Checks if the active node of bt_io matches a profile. */
-int cras_bt_io_on_profile(struct cras_iodev *bt_iodev,
-			  enum cras_bt_device_profile profile);
-
-/* Dry-run the profile device removal from bt_iodev.
- * Returns:
- *    0 if the bt_iodev will be empty and should to be destroied
- *    after the removal, othersie the value of the next preffered
- *    profile to use.
+/*
+ *    bt_iodevs - The input and output iodevs this |bt_io_manager| manages.
+ *        These are actually wrappers to BT profile(A2DP and HFP) specific
+ *        iodevs of the same direction. This allows |bt_io_manager| to control
+ *        which BT profile to use at any scenario.
+ *    active_profile - The flag to indicate the active BT profile, A2DP or HFP
+ *        the underlying BT device is currently using. 0 means none of the BT
+ *        profile has been added.
  */
-unsigned int cras_bt_io_try_remove(struct cras_iodev *bt_iodev,
-				   struct cras_iodev *dev);
+struct bt_io_manager {
+	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
+	unsigned int active_profile;
+	struct bt_io_manager *prev, *next;
+};
 
-/* Removes a profile specific iodev from bt_iodev.
- * Returns:
- *    0 if dev is removed and bt_iodev successfully updated to
- *    the new profile, otherwise return negative error code. */
-int cras_bt_io_remove(struct cras_iodev *bt_iodev, struct cras_iodev *dev);
+/* Creates a bt_io_manager. */
+struct bt_io_manager *bt_io_manager_create();
+
+/* Destroys a bt_io_manager. */
+void bt_io_manager_destroy(struct bt_io_manager *mgr);
+
+/* Checks if bt_io_manager |target| is still alive. This is used to check
+ * the validity of a bt_io_manager before accessing it in an async function
+ * call.
+ */
+bool bt_io_manager_exists(struct bt_io_manager *target);
+
+/* Appends |iodev| associated to |profile| to this bt_io_manager. */
+void bt_io_manager_append_iodev(struct bt_io_manager *mgr,
+				struct cras_iodev *iodev,
+				enum cras_bt_device_profile profile,
+				int software_volume_needed);
+
+/* Removes the profile specific |iodev| from bt_io_manager.
+ */
+void bt_io_manager_remove_iodev(struct bt_io_manager *mgr,
+				struct cras_iodev *iodev);
+
+/*
+ * Sets the cras_iodev's nodes under |mgr| to |plugged|. There might be
+ * no need of this when BT stack can notify all profile connections in
+ * one event.
+ * Args:
+ *     mgr - The bt_io_manager controlling BT iodevs.
+ *     plugged - True means UI can select it and open it for streams.
+ *         False to hide these nodes from UI, when device disconnects
+ *         in progress.
+ */
+void bt_io_manager_set_nodes_plugged(struct bt_io_manager *mgr, int plugged);
+
+/* Checks if |mgr| currently has A2DP iodev. Used for when there are
+ * multiple BT device connections we need to decide which one to
+ * expose to user/UI.
+ */
+int bt_io_manager_has_a2dp(struct bt_io_manager *mgr);
+
+/* When AVRCP is connected set |mgr| to use hardware volume control. */
+void bt_io_manager_set_use_hardware_volume(struct bt_io_manager *mgr,
+					   int use_hardware_volume);
+
+/* When remote BT device reports volume change through AVRCP, update
+ * the volume value to |mgr|. */
+void bt_io_manager_update_hardware_volume(struct bt_io_manager *mgr,
+					  int volume);
 
 #endif /* CRAS_BT_IODEV_H_ */

@@ -8,6 +8,7 @@
 #include "cras_a2dp_endpoint.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_device.h"
+#include "cras_bt_io.h"
 #include "cras_bt_log.h"
 #include "cras_bt_policy.h"
 #include "cras_hfp_ag_profile.h"
@@ -36,6 +37,7 @@ enum BT_POLICY_COMMAND {
 struct bt_policy_msg {
 	struct cras_main_message header;
 	enum BT_POLICY_COMMAND cmd;
+	struct bt_io_manager *mgr;
 	struct cras_bt_device *device;
 	struct cras_iodev *dev;
 	unsigned int arg1;
@@ -43,7 +45,7 @@ struct bt_policy_msg {
 };
 
 struct profile_switch_policy {
-	struct cras_bt_device *device;
+	struct bt_io_manager *mgr;
 	struct cras_timer *timer;
 	struct profile_switch_policy *prev, *next;
 };
@@ -83,7 +85,7 @@ static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 	 * We should NOT call into update_active_node from main thread
 	 * because that may mess up the active node content.
 	 */
-	iodev = policy->device->bt_iodevs[CRAS_STREAM_OUTPUT];
+	iodev = policy->mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
 	if (iodev) {
 		iodev->update_active_node(iodev, 0, 1);
 		cras_iodev_list_resume_dev(iodev->info.idx);
@@ -93,12 +95,12 @@ static void profile_switch_delay_cb(struct cras_timer *timer, void *arg)
 	free(policy);
 }
 
-static void switch_profile_with_delay(struct cras_bt_device *device)
+static void switch_profile_with_delay(struct bt_io_manager *mgr)
 {
 	struct cras_tm *tm = cras_system_state_get_tm();
 	struct profile_switch_policy *policy;
 
-	DL_SEARCH_SCALAR(profile_switch_policies, policy, device, device);
+	DL_SEARCH_SCALAR(profile_switch_policies, policy, mgr, mgr);
 	if (policy) {
 		cras_tm_cancel_timer(tm, policy->timer);
 		policy->timer = NULL;
@@ -107,14 +109,13 @@ static void switch_profile_with_delay(struct cras_bt_device *device)
 			1, sizeof(*policy));
 	}
 
-	policy->device = device;
+	policy->mgr = mgr;
 	policy->timer = cras_tm_create_timer(tm, PROFILE_SWITCH_DELAY_MS,
 					     profile_switch_delay_cb, policy);
 	DL_APPEND(profile_switch_policies, policy);
 }
 
-static void switch_profile(struct cras_bt_device *device,
-			   struct cras_iodev *bt_iodev)
+static void switch_profile(struct bt_io_manager *mgr)
 {
 	struct cras_iodev *iodev;
 	int dir;
@@ -124,14 +125,14 @@ static void switch_profile(struct cras_bt_device *device,
 	 * input and output are active while switches from HFP to A2DP.
 	 */
 	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
-		iodev = device->bt_iodevs[dir];
+		iodev = mgr->bt_iodevs[dir];
 		if (!iodev)
 			continue;
 		cras_iodev_list_suspend_dev(iodev->info.idx);
 	}
 
 	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
-		iodev = device->bt_iodevs[dir];
+		iodev = mgr->bt_iodevs[dir];
 		if (!iodev)
 			continue;
 
@@ -147,7 +148,7 @@ static void switch_profile(struct cras_bt_device *device,
 			iodev->update_active_node(iodev, 0, 1);
 			cras_iodev_list_resume_dev(iodev->info.idx);
 		} else {
-			switch_profile_with_delay(device);
+			switch_profile_with_delay(mgr);
 		}
 	}
 }
@@ -166,6 +167,16 @@ static void init_bt_policy_msg(struct bt_policy_msg *msg,
 	msg->dev = dev;
 	msg->arg1 = arg1;
 	msg->arg2 = arg2;
+}
+
+static void init_bt_profile_switch_msg(struct bt_policy_msg *msg,
+				       struct bt_io_manager *mgr)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.type = CRAS_MAIN_BT_POLICY;
+	msg->header.length = sizeof(*msg);
+	msg->cmd = BT_POLICY_SWITCH_PROFILE;
+	msg->mgr = mgr;
 }
 
 static void suspend_cb(struct cras_timer *timer, void *arg)
@@ -235,20 +246,33 @@ static void cancel_suspend(struct cras_bt_device *device)
 	}
 }
 
+/* We're going to remove the dependency on cras_bt_device which is BlueZ
+ * specific. For backward compatiblity during this migration, we have to live
+ * with the complexity in checking both |msg->device| and |msg->mgr|.
+ * TODO(hychao): clean up the validity check logic.
+ */
+static bool is_message_sender_valid(struct bt_policy_msg *msg)
+{
+	if (!msg->device)
+		return bt_io_manager_exists(msg->mgr);
+
+	return cras_bt_device_valid(msg->device);
+}
+
 static void process_bt_policy_msg(struct cras_main_message *msg, void *arg)
 {
 	struct bt_policy_msg *policy_msg = (struct bt_policy_msg *)msg;
 
-	/* Before we handle the policy message, check if the memory pointing
-	 * to the bt device is still valid. It could have already been destroyed
-	 * in main thread for other reasons caused by BT stack. If that's the
-	 * case then just skip this message. */
-	if (!cras_bt_device_valid(policy_msg->device))
+	/* Before we handle the policy message, check if the sender(i.e the BT
+	 * headset) is still valid. It could have already been destroyed in
+	 * main thread for other reasons caused by BT stack. If that's the case
+	 * then just skip this message. */
+	if (!is_message_sender_valid(policy_msg))
 		return;
 
 	switch (policy_msg->cmd) {
 	case BT_POLICY_SWITCH_PROFILE:
-		switch_profile(policy_msg->device, policy_msg->dev);
+		switch_profile(policy_msg->mgr);
 		break;
 	case BT_POLICY_SCHEDULE_SUSPEND:
 		schedule_suspend(
@@ -263,14 +287,13 @@ static void process_bt_policy_msg(struct cras_main_message *msg, void *arg)
 	}
 }
 
-int cras_bt_policy_switch_profile(struct cras_bt_device *device,
-				  struct cras_iodev *bt_iodev)
+int cras_bt_policy_switch_profile(struct bt_io_manager *mgr)
 {
 	struct bt_policy_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
-	init_bt_policy_msg(&msg, BT_POLICY_SWITCH_PROFILE, device, bt_iodev, 0,
-			   0);
+	init_bt_profile_switch_msg(&msg, mgr);
+
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	return rc;
 }
@@ -385,7 +408,7 @@ static void conn_watch_cb(struct cras_timer *timer, void *arg)
 			schedule_suspend(device, 0, HFP_AG_START_FAILURE);
 		}
 	}
-	cras_bt_device_set_nodes_plugged(device, 1);
+	bt_io_manager_set_nodes_plugged(device->bt_io_mgr, 1);
 
 done_with_policy:
 	DL_DELETE(conn_watch_policies, policy);
@@ -430,7 +453,8 @@ void cras_bt_policy_remove_device(struct cras_bt_device *device)
 	struct profile_switch_policy *policy;
 	struct cras_tm *tm = cras_system_state_get_tm();
 
-	DL_SEARCH_SCALAR(profile_switch_policies, policy, device, device);
+	DL_SEARCH_SCALAR(profile_switch_policies, policy, mgr,
+			 device->bt_io_mgr);
 	if (policy) {
 		DL_DELETE(profile_switch_policies, policy);
 		cras_tm_cancel_timer(tm, policy->timer);

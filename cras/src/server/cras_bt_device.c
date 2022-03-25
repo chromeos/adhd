@@ -19,6 +19,7 @@
 #include <syslog.h>
 
 #include "bluetooth.h"
+#include "cras_bt_io.h"
 #include "cras_a2dp_endpoint.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_device.h"
@@ -84,6 +85,12 @@ struct cras_bt_device *cras_bt_device_create(DBusConnection *conn,
 	device = calloc(1, sizeof(*device));
 	if (device == NULL)
 		return NULL;
+
+	device->bt_io_mgr = bt_io_manager_create();
+	if (device->bt_io_mgr == NULL) {
+		free(device);
+		return NULL;
+	}
 
 	device->conn = conn;
 	device->object_path = strdup(object_path);
@@ -208,6 +215,7 @@ static void cras_bt_device_destroy(struct cras_bt_device *device)
 
 	cras_bt_policy_remove_device(device);
 
+	bt_io_manager_destroy(device->bt_io_mgr);
 	free(device->adapter_obj_path);
 	free(device->object_path);
 	free(device->address);
@@ -296,78 +304,14 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 				 struct cras_iodev *iodev,
 				 enum cras_bt_device_profile profile)
 {
-	struct cras_iodev *bt_iodev;
-
-	bt_iodev = device->bt_iodevs[iodev->direction];
-
-	if (bt_iodev) {
-		cras_bt_io_append(bt_iodev, iodev, profile);
-	} else {
-		device->bt_iodevs[iodev->direction] =
-			cras_bt_io_create(device, iodev, profile);
-	}
-}
-
-/*
- * Sets the audio nodes to 'plugged' means UI can select it and open it
- * for streams. Sets to 'unplugged' to hide these nodes from UI, when device
- * disconnects in progress.
- */
-void cras_bt_device_set_nodes_plugged(struct cras_bt_device *device,
-				      int plugged)
-{
-	struct cras_iodev *iodev;
-
-	iodev = device->bt_iodevs[CRAS_STREAM_INPUT];
-	if (iodev)
-		cras_iodev_set_node_plugged(iodev->active_node, plugged);
-
-	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
-	if (iodev)
-		cras_iodev_set_node_plugged(iodev->active_node, plugged);
+	bt_io_manager_append_iodev(device->bt_io_mgr, iodev, profile,
+				   !device->use_hardware_volume);
 }
 
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
 			     struct cras_iodev *iodev)
 {
-	struct cras_iodev *bt_iodev;
-	int rc;
-
-	cras_bt_device_set_nodes_plugged(device, 0);
-
-	bt_iodev = device->bt_iodevs[iodev->direction];
-	if (bt_iodev) {
-		unsigned try_profile;
-
-		/* Check what will the preferred profile be if we remove dev. */
-		try_profile = cras_bt_io_try_remove(bt_iodev, iodev);
-		if (!try_profile)
-			goto destroy_bt_io;
-
-		/* If the check result doesn't match with the active
-		 * profile we are currently using, switch to the
-		 * preffered profile before actually remove the iodev.
-		 */
-		if (!cras_bt_io_on_profile(bt_iodev, try_profile)) {
-			device->active_profile = try_profile;
-			cras_bt_policy_switch_profile(device, bt_iodev);
-		}
-		rc = cras_bt_io_remove(bt_iodev, iodev);
-		if (rc) {
-			syslog(LOG_ERR, "Fail to fallback to profile %u",
-			       try_profile);
-			goto destroy_bt_io;
-		}
-	}
-	return;
-
-destroy_bt_io:
-	device->bt_iodevs[iodev->direction] = NULL;
-	cras_bt_io_destroy(bt_iodev);
-
-	if (!device->bt_iodevs[CRAS_STREAM_INPUT] &&
-	    !device->bt_iodevs[CRAS_STREAM_OUTPUT])
-		cras_bt_device_set_active_profile(device, 0);
+	bt_io_manager_remove_iodev(device->bt_io_mgr, iodev);
 }
 
 void cras_bt_device_a2dp_configured(struct cras_bt_device *device)
@@ -378,19 +322,7 @@ void cras_bt_device_a2dp_configured(struct cras_bt_device *device)
 
 int cras_bt_device_has_a2dp(struct cras_bt_device *device)
 {
-	struct cras_iodev *odev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
-
-	/* Check if there is an output iodev with A2DP node attached. */
-	return odev &&
-	       cras_bt_io_get_profile(odev, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
-}
-
-int cras_bt_device_can_switch_to_a2dp(struct cras_bt_device *device)
-{
-	struct cras_iodev *idev = device->bt_iodevs[CRAS_STREAM_INPUT];
-
-	return cras_bt_device_has_a2dp(device) &&
-	       (!idev || !cras_iodev_is_open(idev));
+	return bt_io_manager_has_a2dp(device->bt_io_mgr);
 }
 
 void cras_bt_device_remove_conflict(struct cras_bt_device *device)
@@ -426,18 +358,6 @@ int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device)
 	}
 
 	return 0;
-}
-
-unsigned int
-cras_bt_device_get_active_profile(const struct cras_bt_device *device)
-{
-	return device->active_profile;
-}
-
-void cras_bt_device_set_active_profile(struct cras_bt_device *device,
-				       unsigned int profile)
-{
-	device->active_profile = profile;
 }
 
 static void cras_bt_device_log_profile(const struct cras_bt_device *device,
@@ -928,12 +848,9 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
 void cras_bt_device_set_use_hardware_volume(struct cras_bt_device *device,
 					    int use_hardware_volume)
 {
-	struct cras_iodev *iodev;
-
 	device->use_hardware_volume = use_hardware_volume;
-	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
-	if (iodev)
-		iodev->software_volume_needed = !use_hardware_volume;
+	bt_io_manager_set_use_hardware_volume(device->bt_io_mgr,
+					      !use_hardware_volume);
 }
 
 int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
@@ -944,18 +861,11 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)
 void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
 					   int volume)
 {
-	struct cras_iodev *iodev;
-
-	iodev = device->bt_iodevs[CRAS_STREAM_OUTPUT];
-	if (iodev == NULL)
-		return;
-
 	/* Check if this BT device is okay to use hardware volume. If not
 	 * then ignore the reported volume change event.
 	 */
 	if (!cras_bt_device_get_use_hardware_volume(device))
 		return;
 
-	iodev->active_node->volume = volume;
-	cras_iodev_list_notify_node_volume(iodev->active_node);
+	bt_io_manager_update_hardware_volume(device->bt_io_mgr, volume);
 }
