@@ -9,9 +9,6 @@
 #include <string.h>
 #include <syslog.h>
 
-#ifdef CRAS_DBUS
-#include "cras_bt_io.h"
-#endif
 #include "cras_iodev.h"
 #include "cras_metrics.h"
 #include "cras_main_message.h"
@@ -417,13 +414,11 @@ get_metrics_device_type(const struct cras_iodev *iodev)
 	case CRAS_NODE_TYPE_USB:
 		return CRAS_METRICS_DEVICE_USB;
 	case CRAS_NODE_TYPE_BLUETOOTH: {
-#ifdef CRAS_DBUS
-		enum cras_bt_device_profile profile =
-			cras_bt_io_profile_to_log(iodev);
-		switch (profile) {
-		case CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE:
+		switch (iodev->active_node->btflags &
+			(CRAS_BT_FLAG_A2DP | CRAS_BT_FLAG_HFP)) {
+		case CRAS_BT_FLAG_A2DP:
 			return CRAS_METRICS_DEVICE_A2DP;
-		case CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY:
+		case CRAS_BT_FLAG_HFP:
 			/* HFP narrow band has its own node type so we know
 			 * this is wideband mic for sure. */
 			return (iodev->direction == CRAS_STREAM_INPUT) ?
@@ -432,7 +427,6 @@ get_metrics_device_type(const struct cras_iodev *iodev)
 		default:
 			break;
 		}
-#endif
 		return CRAS_METRICS_DEVICE_BLUETOOTH;
 	}
 	case CRAS_NODE_TYPE_BLUETOOTH_NB_MIC:

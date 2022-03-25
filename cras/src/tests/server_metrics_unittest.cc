@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
+#include <map>
 #include <vector>
 
 extern "C" {
@@ -77,6 +78,38 @@ TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
   EXPECT_EQ(sent_msgs[0].data.device_data.type, CRAS_METRICS_DEVICE_HEADPHONE);
   EXPECT_EQ(sent_msgs[0].data.device_data.direction, CRAS_STREAM_OUTPUT);
   EXPECT_EQ(sent_msgs[0].data.device_data.runtime.tv_sec, 200);
+
+  std::map<uint32_t, enum CRAS_METRICS_DEVICE_TYPE> btflags_to_device = {
+      {CRAS_BT_FLAG_A2DP, CRAS_METRICS_DEVICE_A2DP},
+      {CRAS_BT_FLAG_HFP, CRAS_METRICS_DEVICE_HFP},
+  };
+
+  for (const auto& btflags_device : btflags_to_device) {
+    uint32_t btflags = btflags_device.first;
+    enum CRAS_METRICS_DEVICE_TYPE device_type = btflags_device.second;
+
+    sent_msgs.clear();
+
+    clock_gettime_retspec.tv_sec = 300;
+    clock_gettime_retspec.tv_nsec = 0;
+    iodev.open_ts.tv_sec = 100;
+    iodev.open_ts.tv_nsec = 0;
+    iodev.direction = CRAS_STREAM_OUTPUT;
+    iodev.active_node = &active_node;
+    active_node.type = CRAS_NODE_TYPE_BLUETOOTH;
+    active_node.btflags = btflags;
+
+    cras_server_metrics_device_runtime(&iodev);
+
+    EXPECT_EQ(sent_msgs.size(), 1);
+    EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
+    EXPECT_EQ(sent_msgs[0].header.length,
+              sizeof(struct cras_server_metrics_message));
+    EXPECT_EQ(sent_msgs[0].metrics_type, DEVICE_RUNTIME);
+    EXPECT_EQ(sent_msgs[0].data.device_data.type, device_type);
+    EXPECT_EQ(sent_msgs[0].data.device_data.direction, CRAS_STREAM_OUTPUT);
+    EXPECT_EQ(sent_msgs[0].data.device_data.runtime.tv_sec, 200);
+  }
 }
 
 TEST(ServerMetricsTestSuite, SetMetricsHighestDeviceDelay) {
