@@ -48,3 +48,7 @@ tags
 /src/common/cras_version.h
 
 bazel-*
+
+# clangd
+compile_commands.json
+/.cache/
