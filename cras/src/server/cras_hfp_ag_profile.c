@@ -89,12 +89,14 @@ static bool get_hfp_offload_feature_enabled()
 }
 #endif
 
+static bool is_sco_pcm_supported()
+{
+	return (cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT) ||
+		cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT));
+}
+
 static bool is_sco_pcm_used()
 {
-	if (!(cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT) ||
-	      cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT)))
-		return false;
-
 	/* If board config "bluetooth:hfp_offload_finch_applied" is specified,
 	 * check the feature state from Chrome Feature Service to determine
 	 * whether to use HFP offload path; otherwise, always choose HFP offload
@@ -324,8 +326,7 @@ int cras_hfp_ag_profile_destroy(DBusConnection *conn)
 int cras_hfp_ag_start(struct cras_bt_device *device)
 {
 	struct audio_gateway *ag;
-
-	BTLOG(btlog, BT_AUDIO_GATEWAY_START, 0, 0);
+	bool sco_pcm_supported;
 
 	DL_SEARCH_SCALAR(connected_ags, ag, device, device);
 	if (ag == NULL)
@@ -341,7 +342,13 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 		return 0;
 
 	ag->sco = cras_sco_create();
-	ag->sco_pcm_used = is_sco_pcm_used();
+
+	sco_pcm_supported = is_sco_pcm_supported();
+	ag->sco_pcm_used = sco_pcm_supported && is_sco_pcm_used();
+
+	BTLOG(btlog, BT_AUDIO_GATEWAY_START, sco_pcm_supported,
+	      ag->sco_pcm_used);
+
 	if (ag->sco_pcm_used) {
 		struct cras_iodev *in_aio, *out_aio;
 
