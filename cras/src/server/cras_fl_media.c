@@ -588,7 +588,7 @@ static DBusHandlerResult
 handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 {
 	int rc;
-	char *addr = NULL;
+	char *addr = NULL, *name = NULL;
 	DBusError dbus_error;
 	dbus_int32_t sample_rate, bits_per_sample, channel_mode;
 	dbus_int32_t absolute_volume;
@@ -607,7 +607,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			    message, &dbus_error, DBUS_TYPE_STRING, &addr,
 			    DBUS_TYPE_INT32, &sample_rate, DBUS_TYPE_INT32,
 			    &bits_per_sample, DBUS_TYPE_INT32, &channel_mode,
-			    DBUS_TYPE_INT32, &hfp_caps, DBUS_TYPE_INVALID)) {
+			    DBUS_TYPE_INT32, &hfp_caps, DBUS_TYPE_STRING, &name,
+			    DBUS_TYPE_INVALID)) {
 			syslog(LOG_WARNING,
 			       "Bad OnBluetoothAudioDeviceAdded method received: %s",
 			       dbus_error.message);
@@ -615,9 +616,10 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 		}
 
-		syslog(LOG_DEBUG, "OnBluetoothAudioDeviceAdded %s %d %d %d %d",
-		       addr, sample_rate, bits_per_sample, channel_mode,
-		       hfp_caps);
+		syslog(LOG_DEBUG,
+		       "OnBluetoothAudioDeviceAdded %s %d %d %d %d %s", addr,
+		       sample_rate, bits_per_sample, channel_mode, hfp_caps,
+		       name);
 
 		if (!active_fm) {
 			syslog(LOG_WARNING, "Floss media object not ready");
@@ -633,8 +635,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 				cras_floss_a2dp_destroy(active_fm->a2dp);
 			}
 			active_fm->a2dp = cras_floss_a2dp_create(
-				active_fm, addr, sample_rate, bits_per_sample,
-				channel_mode);
+				active_fm, addr, name, sample_rate,
+				bits_per_sample, channel_mode);
 		}
 
 		if (cras_floss_get_hfp_enabled() && hfp_caps) {
@@ -644,7 +646,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 				       "Multiple HFP devices added, override the older");
 				cras_floss_hfp_destroy(active_fm->hfp);
 			}
-			active_fm->hfp = cras_floss_hfp_create(active_fm, addr);
+			active_fm->hfp =
+				cras_floss_hfp_create(active_fm, addr, name);
 		}
 
 		return DBUS_HANDLER_RESULT_HANDLED;

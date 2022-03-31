@@ -13,8 +13,8 @@ struct fl_media;
 
 /* Creates cras_a2dp object representing a connected a2dp device. */
 struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
-					 int sample_rate, int bits_per_sample,
-					 int channel_mode);
+					 const char *name, int sample_rate,
+					 int bits_per_sample, int channel_mode);
 
 /* Destroys given cras_a2dp object. */
 void cras_floss_a2dp_destroy(struct cras_a2dp *a2dp);

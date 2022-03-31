@@ -52,13 +52,14 @@ class HfpManagerTestSuite : public testing::Test {
 };
 
 TEST_F(HfpManagerTestSuite, CreateDestroy) {
-  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr");
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name");
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
   EXPECT_EQ(hfp, hfp_pcm_iodev_create_hfp_val);
   EXPECT_EQ(hfp_pcm_iodev_create_called, 2);
+  EXPECT_EQ(strncmp("name", cras_floss_hfp_get_display_name(hfp), 4), 0);
 
   // Expect another call to hfp create returns null.
-  struct cras_hfp* expect_null = cras_floss_hfp_create(NULL, "addr2");
+  struct cras_hfp* expect_null = cras_floss_hfp_create(NULL, "addr2", "name2");
   EXPECT_EQ((void*)NULL, expect_null);
 
   cras_floss_hfp_destroy(hfp);
@@ -66,7 +67,7 @@ TEST_F(HfpManagerTestSuite, CreateDestroy) {
 }
 
 TEST_F(HfpManagerTestSuite, StartWithSocketFail) {
-  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr");
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name");
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
 
   socket_ret = -1;
@@ -83,7 +84,7 @@ TEST_F(HfpManagerTestSuite, StartWithSocketFail) {
 }
 
 TEST_F(HfpManagerTestSuite, StartWithConnectFail) {
-  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr");
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name");
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
 
   connect_ret = -1;
@@ -100,7 +101,7 @@ TEST_F(HfpManagerTestSuite, StartWithConnectFail) {
 }
 
 TEST_F(HfpManagerTestSuite, StartStop) {
-  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr");
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name");
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
 
   EXPECT_EQ(cras_floss_hfp_get_fd(hfp), -1);

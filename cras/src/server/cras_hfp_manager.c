@@ -33,6 +33,7 @@
  *    idev - The input iodev for HFP.
  *    odev - The output iodev for HFP.
  *    addr - The address of connected HFP device.
+ *    name - The name of connected hfp device.
  *    fd - The file descriptor for SCO socket.
  *    idev_started - If an input device started. This is used to determine if
  *    	a sco start or stop is required.
@@ -44,6 +45,7 @@ struct cras_hfp {
 	struct cras_iodev *idev;
 	struct cras_iodev *odev;
 	char *addr;
+	char *name;
 	int fd;
 	int idev_started;
 	int odev_started;
@@ -69,7 +71,8 @@ void set_dev_started(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir,
 }
 
 /* Creates cras_hfp object representing a connected hfp device. */
-struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr)
+struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
+				       const char *name)
 {
 	if (connected_hfp) {
 		syslog(LOG_ERR, "Hfp already connected");
@@ -82,6 +85,7 @@ struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr)
 
 	connected_hfp->fm = fm;
 	connected_hfp->addr = strdup(addr);
+	connected_hfp->name = strdup(name);
 	connected_hfp->idev =
 		hfp_pcm_iodev_create(connected_hfp, CRAS_STREAM_INPUT);
 	connected_hfp->odev =
@@ -199,8 +203,7 @@ void cras_floss_hfp_get_iodevs(struct cras_hfp *hfp, struct cras_iodev **idev,
 
 const char *cras_floss_hfp_get_display_name(struct cras_hfp *hfp)
 {
-	/* TODO: resolve display name. */
-	return hfp->addr;
+	return hfp->name;
 }
 
 const char *cras_floss_hfp_get_addr(struct cras_hfp *hfp)
@@ -242,6 +245,8 @@ void cras_floss_hfp_destroy(struct cras_hfp *hfp)
 		hfp_pcm_iodev_destroy(hfp->odev);
 	if (hfp->addr)
 		free(hfp->addr);
+	if (hfp->name)
+		free(hfp->name);
 	if (hfp->fd >= 0)
 		close(hfp->fd);
 

@@ -46,6 +46,7 @@ struct delay_sync_policy {
  *    suspend_timer - Timer to schedule suspending iodev at failures.
  *    delay_sync - The object representing scheduled delay sync task.
  *    addr - The address of connected a2dp device.
+ *    name - The name of connected a2dp device.
  *    support_absolute_volume - If the connected a2dp device supports absolute
  *    volume.
  */
@@ -56,6 +57,7 @@ struct cras_a2dp {
 	struct cras_timer *suspend_timer;
 	struct delay_sync_policy *delay_sync;
 	char *addr;
+	char *name;
 	bool support_absolute_volume;
 };
 
@@ -185,8 +187,8 @@ static void a2dp_process_msg(struct cras_main_message *msg, void *arg)
 }
 
 struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
-					 int sample_rate, int bits_per_sample,
-					 int channel_mode)
+					 const char *name, int sample_rate,
+					 int bits_per_sample, int channel_mode)
 {
 	if (connected_a2dp) {
 		syslog(LOG_ERR, "A2dp already connected");
@@ -197,6 +199,7 @@ struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
 
 	connected_a2dp->fm = fm;
 	connected_a2dp->addr = strdup(addr);
+	connected_a2dp->name = strdup(name);
 	connected_a2dp->iodev = a2dp_pcm_iodev_create(
 		connected_a2dp, sample_rate, bits_per_sample, channel_mode);
 	connected_a2dp->fd = -1;
@@ -214,6 +217,8 @@ void cras_floss_a2dp_destroy(struct cras_a2dp *a2dp)
 		a2dp_pcm_iodev_destroy(a2dp->iodev);
 	if (a2dp->addr)
 		free(a2dp->addr);
+	if (a2dp->name)
+		free(a2dp->name);
 
 	/* Iodev has been destroyed. This is called in main thread so it's
 	 * safe to suspend timer if there's any. */
@@ -346,8 +351,7 @@ static void a2dp_suspend_cb(struct cras_timer *timer, void *arg)
 
 const char *cras_floss_a2dp_get_display_name(struct cras_a2dp *a2dp)
 {
-	// TODO: resolve display name
-	return a2dp->addr;
+	return a2dp->name;
 }
 
 const char *cras_floss_a2dp_get_addr(struct cras_a2dp *a2dp)

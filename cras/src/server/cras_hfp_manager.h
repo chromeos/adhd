@@ -13,7 +13,8 @@ struct cras_hfp;
 struct fl_media;
 
 /* Creates cras_hfp object representing a connected hfp device. */
-struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr);
+struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
+				       const char *name);
 
 /* Starts hfp streaming on given cras_hfp for the specified direction.
  * Returns 0 for success, otherwise error code. */
