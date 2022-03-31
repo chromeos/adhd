@@ -34,7 +34,6 @@ struct cras_bt_transport {
 	DBusConnection *conn;
 	char *object_path;
 	struct cras_bt_device *device;
-	enum cras_bt_device_profile profile;
 	int codec;
 	void *configuration;
 	int configuration_len;
@@ -282,11 +281,7 @@ void cras_bt_transport_update_properties(struct cras_bt_transport *transport,
 
 			dbus_message_iter_get_basic(&variant_iter, &value);
 
-			if (strcmp(key, "UUID") == 0) {
-				transport->profile =
-					cras_bt_device_profile_from_uuid(value);
-
-			} else if (strcmp(key, "State") == 0) {
+			if (strcmp(key, "State") == 0) {
 				enum cras_bt_transport_state old_state =
 					transport->state;
 				transport->state =
@@ -367,8 +362,6 @@ void cras_bt_transport_update_properties(struct cras_bt_transport *transport,
 
 		if (strcmp(key, "Device") == 0) {
 			transport->device = NULL;
-		} else if (strcmp(key, "UUID") == 0) {
-			transport->profile = 0;
 		} else if (strcmp(key, "State") == 0) {
 			transport->state = CRAS_BT_TRANSPORT_STATE_IDLE;
 		} else if (strcmp(key, "Codec") == 0) {
