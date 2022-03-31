@@ -48,8 +48,6 @@ const char *
 cras_bt_transport_object_path(const struct cras_bt_transport *transport);
 struct cras_bt_device *
 cras_bt_transport_device(const struct cras_bt_transport *transport);
-enum cras_bt_device_profile
-cras_bt_transport_profile(const struct cras_bt_transport *transport);
 int cras_bt_transport_configuration(const struct cras_bt_transport *transport,
 				    void *configuration, int len);
 enum cras_bt_transport_state

@@ -792,11 +792,6 @@ struct cras_bt_device* cras_bt_transport_device(
   ;
 }
 
-enum cras_bt_device_profile cras_bt_transport_profile(
-    const struct cras_bt_transport* transport) {
-  return CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
-}
-
 // From cras_bt_device
 const char* cras_bt_device_name(const struct cras_bt_device* device) {
   return cras_bt_device_name_ret;

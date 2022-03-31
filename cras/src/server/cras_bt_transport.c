@@ -177,12 +177,6 @@ cras_bt_transport_device(const struct cras_bt_transport *transport)
 	return transport->device;
 }
 
-enum cras_bt_device_profile
-cras_bt_transport_profile(const struct cras_bt_transport *transport)
-{
-	return transport->profile;
-}
-
 int cras_bt_transport_configuration(const struct cras_bt_transport *transport,
 				    void *configuration, int len)
 {
