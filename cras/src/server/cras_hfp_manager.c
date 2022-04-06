@@ -194,6 +194,16 @@ int cras_floss_hfp_get_fd(struct cras_hfp *hfp)
 	return hfp->fd;
 }
 
+struct cras_iodev *cras_floss_hfp_get_input_iodev(struct cras_hfp *hfp)
+{
+	return hfp->idev;
+}
+
+struct cras_iodev *cras_floss_hfp_get_output_iodev(struct cras_hfp *hfp)
+{
+	return hfp->odev;
+}
+
 void cras_floss_hfp_get_iodevs(struct cras_hfp *hfp, struct cras_iodev **idev,
 			       struct cras_iodev **odev)
 {

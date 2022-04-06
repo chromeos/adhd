@@ -7,6 +7,7 @@
 #define CRAS_A2DP_MANAGER_H_
 
 #include "cras_audio_format.h"
+#include "cras_iodev.h"
 
 struct cras_a2dp;
 struct fl_media;
@@ -18,6 +19,9 @@ struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
 
 /* Destroys given cras_a2dp object. */
 void cras_floss_a2dp_destroy(struct cras_a2dp *a2dp);
+
+/* Gets the a2dp iodev managed by the given cras_a2dp. */
+struct cras_iodev *cras_floss_a2dp_get_iodev(struct cras_a2dp *a2dp);
 
 /* Gets the human readable name of a2dp device. */
 const char *cras_floss_a2dp_get_display_name(struct cras_a2dp *a2dp);

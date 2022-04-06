@@ -7,12 +7,9 @@
 
 #include "cras_a2dp_endpoint.h"
 #include "cras_bt_constants.h"
-#include "cras_bt_device.h"
-#include "cras_bt_io.h"
 #include "cras_bt_log.h"
 #include "cras_bt_policy.h"
 #include "cras_hfp_ag_profile.h"
-#include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
 #include "cras_server_metrics.h"

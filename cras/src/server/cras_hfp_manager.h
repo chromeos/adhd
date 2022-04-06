@@ -28,9 +28,11 @@ int cras_floss_hfp_stop(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir);
  * Returns -1 if given cras_hfp isn't started. */
 int cras_floss_hfp_get_fd(struct cras_hfp *hfp);
 
-/* Gets the input and output iodevs attached to the given cras_hfp. */
-void cras_floss_hfp_get_iodevs(struct cras_hfp *hfp, struct cras_iodev **idev,
-			       struct cras_iodev **odev);
+/* Gets the input iodev attached to the given cras_hfp. */
+struct cras_iodev *cras_floss_hfp_get_input_iodev(struct cras_hfp *hfp);
+
+/* Gets the output iodev attached to the given cras_hfp. */
+struct cras_iodev *cras_floss_hfp_get_output_iodev(struct cras_hfp *hfp);
 
 /* Gets the human readable name of the hfp device. */
 const char *cras_floss_hfp_get_display_name(struct cras_hfp *hfp);

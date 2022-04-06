@@ -6,6 +6,10 @@
 #ifndef CRAS_BT_POLICY_H_
 #define CRAS_BT_POLICY_H_
 
+#include "cras_bt_device.h"
+#include "cras_bt_io.h"
+#include "cras_iodev.h"
+
 /* All the reasons for when CRAS schedule a suspend to BT device. */
 enum cras_bt_policy_suspend_reason {
 	A2DP_LONG_TX_FAILURE,

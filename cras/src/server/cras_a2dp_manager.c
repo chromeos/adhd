@@ -15,11 +15,11 @@
 #include <sys/un.h>
 #include <syslog.h>
 
+#include "cras_a2dp_manager.h"
 #include "cras_bt_log.h"
 #include "cras_config.h"
 #include "cras_fl_media.h"
 #include "cras_fl_pcm_iodev.h"
-#include "cras_iodev.h"
 #include "cras_main_message.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
@@ -208,6 +208,11 @@ struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
 	cras_main_message_add_handler(CRAS_MAIN_A2DP, a2dp_process_msg, NULL);
 
 	return connected_a2dp;
+}
+
+struct cras_iodev *cras_floss_a2dp_get_iodev(struct cras_a2dp *a2dp)
+{
+	return a2dp->iodev;
 }
 
 void cras_floss_a2dp_destroy(struct cras_a2dp *a2dp)

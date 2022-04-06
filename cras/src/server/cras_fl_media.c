@@ -12,6 +12,7 @@
 #include <syslog.h>
 
 #include "cras_a2dp_manager.h"
+#include "cras_bt_io.h"
 #include "cras_fl_manager.h"
 #include "cras_fl_media.h"
 #include "cras_hfp_manager.h"
@@ -45,6 +46,7 @@ struct fl_media {
 	DBusConnection *conn;
 	struct cras_a2dp *a2dp;
 	struct cras_hfp *hfp;
+	struct bt_io_manager *bt_io_mgr;
 };
 
 static struct fl_media *active_fm = NULL;
@@ -589,6 +591,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 {
 	int rc;
 	char *addr = NULL, *name = NULL;
+	int a2dp_avail = 0, hfp_avail = 0;
 	DBusError dbus_error;
 	dbus_int32_t sample_rate, bits_per_sample, channel_mode;
 	dbus_int32_t absolute_volume;
@@ -626,29 +629,66 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 
-		if (cras_floss_get_a2dp_enabled() && sample_rate != 0 &&
-		    bits_per_sample != 0 && channel_mode != 0) {
-			syslog(LOG_DEBUG, "A2DP device added.");
+		a2dp_avail = cras_floss_get_a2dp_enabled() &&
+			     sample_rate != 0 && bits_per_sample != 0 &&
+			     channel_mode != 0;
+		hfp_avail = cras_floss_get_hfp_enabled() && hfp_caps;
+
+		if (!a2dp_avail & !hfp_avail)
+			return DBUS_HANDLER_RESULT_HANDLED;
+
+		if (!active_fm->bt_io_mgr) {
+			active_fm->bt_io_mgr = bt_io_manager_create();
+			if (!active_fm->bt_io_mgr)
+				return DBUS_HANDLER_RESULT_HANDLED;
+		}
+
+		if (a2dp_avail) {
 			if (active_fm->a2dp) {
 				syslog(LOG_WARNING,
 				       "Multiple A2DP devices added, override the older");
+				bt_io_manager_remove_iodev(
+					active_fm->bt_io_mgr,
+					cras_floss_a2dp_get_iodev(
+						active_fm->a2dp));
 				cras_floss_a2dp_destroy(active_fm->a2dp);
 			}
 			active_fm->a2dp = cras_floss_a2dp_create(
 				active_fm, addr, name, sample_rate,
 				bits_per_sample, channel_mode);
+			bt_io_manager_append_iodev(
+				active_fm->bt_io_mgr,
+				cras_floss_a2dp_get_iodev(active_fm->a2dp),
+				CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, false);
 		}
 
-		if (cras_floss_get_hfp_enabled() && hfp_caps) {
+		if (hfp_avail) {
 			syslog(LOG_DEBUG, "HFP device added.");
 			if (active_fm->hfp) {
 				syslog(LOG_WARNING,
 				       "Multiple HFP devices added, override the older");
+				bt_io_manager_remove_iodev(
+					active_fm->bt_io_mgr,
+					cras_floss_hfp_get_input_iodev(
+						active_fm->hfp));
+				bt_io_manager_remove_iodev(
+					active_fm->bt_io_mgr,
+					cras_floss_hfp_get_output_iodev(
+						active_fm->hfp));
 				cras_floss_hfp_destroy(active_fm->hfp);
 			}
 			active_fm->hfp =
 				cras_floss_hfp_create(active_fm, addr, name);
+			bt_io_manager_append_iodev(
+				active_fm->bt_io_mgr,
+				cras_floss_hfp_get_input_iodev(active_fm->hfp),
+				CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, true);
+			bt_io_manager_append_iodev(
+				active_fm->bt_io_mgr,
+				cras_floss_hfp_get_output_iodev(active_fm->hfp),
+				CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, true);
 		}
+		bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 1);
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(
@@ -662,11 +702,33 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 		}
 
 		syslog(LOG_DEBUG, "OnBluetoothAudioDeviceRemoved %s", addr);
+
+		if (!active_fm) {
+			syslog(LOG_ERR, "fl_media hasn't started or stopped");
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+
+		if (!active_fm->bt_io_mgr) {
+			syslog(LOG_ERR, "No device has been added.");
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+
+		bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 0);
 		if (active_fm && active_fm->a2dp) {
+			bt_io_manager_remove_iodev(
+				active_fm->bt_io_mgr,
+				cras_floss_a2dp_get_iodev(active_fm->a2dp));
 			cras_floss_a2dp_destroy(active_fm->a2dp);
 			active_fm->a2dp = NULL;
 		}
 		if (active_fm && active_fm->hfp) {
+			bt_io_manager_remove_iodev(
+				active_fm->bt_io_mgr,
+				cras_floss_hfp_get_input_iodev(active_fm->hfp));
+			bt_io_manager_remove_iodev(
+				active_fm->bt_io_mgr,
+				cras_floss_hfp_get_output_iodev(
+					active_fm->hfp));
 			cras_floss_hfp_destroy(active_fm->hfp);
 			active_fm->hfp = NULL;
 		}
@@ -759,6 +821,8 @@ int floss_media_stop(DBusConnection *conn)
 
 	/* Clean up iodev when BT forced to stop. */
 	if (active_fm) {
+		if (active_fm->bt_io_mgr)
+			bt_io_manager_destroy(active_fm->bt_io_mgr);
 		if (active_fm->a2dp)
 			cras_floss_a2dp_destroy(active_fm->a2dp);
 		if (active_fm->hfp)

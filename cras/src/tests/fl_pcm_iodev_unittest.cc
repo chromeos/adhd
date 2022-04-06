@@ -40,8 +40,8 @@ static int cras_floss_a2dp_get_fd_ret;
 static unsigned cras_floss_hfp_start_called;
 static unsigned cras_floss_hfp_stop_called;
 static int cras_floss_hfp_get_fd_ret;
-static cras_iodev* cras_floss_hfp_get_iodevs_idev;
-static cras_iodev* cras_floss_hfp_get_iodevs_odev;
+static cras_iodev* cras_floss_hfp_get_input_iodev_ret;
+static cras_iodev* cras_floss_hfp_get_output_iodev_ret;
 static unsigned cras_a2dp_cancel_suspend_called;
 static unsigned cras_a2dp_schedule_suspend_called;
 static thread_callback write_callback;
@@ -70,8 +70,8 @@ void ResetStubData() {
   cras_floss_hfp_start_called = 0;
   cras_floss_hfp_stop_called = 0;
   cras_floss_hfp_get_fd_ret = FAKE_SOCKET_FD;
-  cras_floss_hfp_get_iodevs_idev = NULL;
-  cras_floss_hfp_get_iodevs_odev = NULL;
+  cras_floss_hfp_get_input_iodev_ret = NULL;
+  cras_floss_hfp_get_output_iodev_ret = NULL;
   cras_a2dp_cancel_suspend_called = 0;
   cras_a2dp_schedule_suspend_called = 0;
   write_callback = NULL;
@@ -130,7 +130,6 @@ TEST_F(PcmIodev, CreateDestroyA2dpPcmIodev) {
 
   EXPECT_EQ(1, cras_iodev_add_node_called);
   EXPECT_EQ(1, cras_iodev_set_active_node_called);
-  EXPECT_EQ(1, cras_iodev_list_add_output_called);
   EXPECT_EQ(1, cras_floss_a2dp_fill_format_called);
 
   EXPECT_EQ(CRAS_BT_FLAG_FLOSS,
@@ -179,7 +178,6 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
 
   EXPECT_EQ(1, cras_floss_hfp_fill_format_called);
   EXPECT_EQ(1, cras_iodev_add_node_called);
-  EXPECT_EQ(1, cras_iodev_list_add_output_called);
   EXPECT_EQ(1, cras_iodev_set_active_node_called);
 
   EXPECT_EQ(CRAS_BT_FLAG_FLOSS,
@@ -193,7 +191,6 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
 
   EXPECT_EQ(2, cras_floss_hfp_fill_format_called);
   EXPECT_EQ(2, cras_iodev_add_node_called);
-  EXPECT_EQ(1, cras_iodev_list_add_input_called);
   EXPECT_EQ(2, cras_iodev_set_active_node_called);
 
   EXPECT_EQ(CRAS_BT_FLAG_FLOSS,
@@ -385,12 +382,12 @@ TEST_F(PcmIodev, TestHfpCb) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
   cras_floss_hfp_get_fd_ret = sock[1];
-  cras_floss_hfp_get_iodevs_odev =
+  cras_floss_hfp_get_output_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
-  cras_floss_hfp_get_iodevs_idev =
+  cras_floss_hfp_get_input_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
-  odev = (fl_pcm_io*)cras_floss_hfp_get_iodevs_odev;
-  idev = (fl_pcm_io*)cras_floss_hfp_get_iodevs_idev;
+  odev = (fl_pcm_io*)cras_floss_hfp_get_output_iodev_ret;
+  idev = (fl_pcm_io*)cras_floss_hfp_get_input_iodev_ret;
   odev->started = idev->started = 1;
 
   EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
@@ -574,11 +571,12 @@ int cras_floss_hfp_get_fd(struct cras_hfp* hfp) {
   return cras_floss_hfp_get_fd_ret;
 }
 
-void cras_floss_hfp_get_iodevs(struct cras_hfp* hfp,
-                               struct cras_iodev** idev,
-                               struct cras_iodev** odev) {
-  *idev = cras_floss_hfp_get_iodevs_idev;
-  *odev = cras_floss_hfp_get_iodevs_odev;
+struct cras_iodev* cras_floss_hfp_get_input_iodev(struct cras_hfp* hfp) {
+  return cras_floss_hfp_get_input_iodev_ret;
+}
+
+struct cras_iodev* cras_floss_hfp_get_output_iodev(struct cras_hfp* hfp) {
+  return cras_floss_hfp_get_output_iodev_ret;
 }
 
 const char* cras_floss_hfp_get_display_name(struct cras_hfp* hfp) {

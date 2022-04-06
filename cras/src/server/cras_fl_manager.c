@@ -11,6 +11,7 @@
 
 #include "cras_bt_constants.h"
 #include "cras_bt_manager.h"
+#include "cras_bt_policy.h"
 #include "cras_fl_media.h"
 #include "cras_string.h"
 
@@ -388,6 +389,8 @@ static void floss_start(struct bt_stack *s)
 	};
 	DBusError dbus_error;
 
+	cras_bt_policy_start();
+
 	dbus_error_init(&dbus_error);
 	dbus_bus_add_match(s->conn,
 			   "type='signal',"
@@ -453,6 +456,8 @@ add_filter_error:
 
 static void floss_stop(struct bt_stack *s)
 {
+	cras_bt_policy_stop();
+
 	dbus_bus_remove_match(s->conn,
 			      "type='signal',"
 			      "sender='" DBUS_SERVICE_DBUS "',"

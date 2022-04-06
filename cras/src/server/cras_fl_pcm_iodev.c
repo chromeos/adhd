@@ -367,8 +367,8 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 	struct cras_hfp *hfp = (struct cras_hfp *)arg;
 	struct fl_pcm_io *idev, *odev;
 
-	cras_floss_hfp_get_iodevs(hfp, (struct cras_iodev **)&idev,
-				  (struct cras_iodev **)&odev);
+	idev = (struct fl_pcm_io *)cras_floss_hfp_get_input_iodev(hfp);
+	odev = (struct fl_pcm_io *)cras_floss_hfp_get_output_iodev(hfp);
 
 	/* Allow last read before handling error or hang-up events. */
 	if (revents & POLLIN) {
@@ -734,6 +734,69 @@ void pcm_free_base_resources(struct fl_pcm_io *pcmio)
 	free(pcmio->base.supported_formats);
 }
 
+struct fl_pcm_io *pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
+				   const char *name, const char *addr)
+{
+	struct fl_pcm_io *pcmio;
+	struct cras_iodev *iodev;
+	struct cras_ionode *node;
+	pcmio = (struct fl_pcm_io *)calloc(1, sizeof(*pcmio));
+	if (!pcmio)
+		return NULL;
+
+	iodev = &pcmio->base;
+	iodev->direction = dir;
+
+	snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);
+	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
+
+	/* Address determines the unique stable id. */
+	iodev->info.stable_id = SuperFastHash(addr, strlen(addr), strlen(addr));
+
+	/* Same callbacks for A2DP and HFP */
+	iodev->frames_queued = frames_queued;
+	iodev->delay_frames = delay_frames;
+	iodev->get_buffer = get_buffer;
+	iodev->update_supported_formats = update_supported_formats;
+	iodev->update_active_node = update_active_node;
+	iodev->output_underrun = output_underrun;
+
+	/* A2DP specific fields */
+	iodev->start = NULL;
+	iodev->frames_to_play_in_sleep = NULL;
+
+	/* HFP specific fields */
+	iodev->is_free_running = NULL;
+
+	/* Create an empty ionode */
+	node = (struct cras_ionode *)calloc(1, sizeof(*node));
+	node->dev = iodev;
+	strcpy(node->name, iodev->info.name);
+	node->type = CRAS_NODE_TYPE_BLUETOOTH;
+	node->volume = 100;
+	gettimeofday(&node->plugged_time, NULL);
+	node->btflags |= CRAS_BT_FLAG_FLOSS;
+
+	cras_iodev_add_node(iodev, node);
+	cras_iodev_set_active_node(iodev, node);
+
+	ewma_power_disable(&iodev->ewma);
+	return pcmio;
+}
+
+static void set_a2dp_callbacks(struct cras_iodev *a2dpio)
+{
+	a2dpio->configure_dev = a2dp_configure_dev;
+	a2dpio->put_buffer = a2dp_put_buffer;
+	a2dpio->flush_buffer = a2dp_flush_buffer;
+	a2dpio->no_stream = a2dp_no_stream;
+	a2dpio->close_dev = a2dp_close_dev;
+	a2dpio->set_volume = a2dp_set_volume;
+
+	a2dpio->start = a2dp_start;
+	a2dpio->frames_to_play_in_sleep = a2dp_frames_to_play_in_sleep;
+}
+
 struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
 					 int sample_rate, int bits_per_sample,
 					 int channel_mode)
@@ -741,74 +804,31 @@ struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
 	int err;
 	struct fl_pcm_io *a2dpio;
 	struct cras_iodev *iodev;
-	struct cras_ionode *node;
-	const char *addr, *name;
-
-	a2dpio = (struct fl_pcm_io *)calloc(1, sizeof(*a2dpio));
-	if (!a2dpio)
-		goto error;
-
-	iodev = &a2dpio->base;
-
-	a2dpio->a2dp = a2dp;
 
 	/* A2DP only does output now */
-	iodev->direction = CRAS_STREAM_OUTPUT;
+	a2dpio = pcm_iodev_create(CRAS_STREAM_OUTPUT,
+				  cras_floss_a2dp_get_display_name(a2dp),
+				  cras_floss_a2dp_get_addr(a2dp));
+	syslog(LOG_DEBUG, "a2dpio_create = %p.", a2dpio);
+	if (!a2dpio)
+		return NULL;
 
-	name = cras_floss_a2dp_get_display_name(a2dp);
-	snprintf(iodev->info.name, sizeof(iodev->info.name), "[A2DP]%s", name);
-	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
+	iodev = &a2dpio->base;
+	a2dpio->a2dp = a2dp;
 
-	/* Address determines the unique stable id. */
-	addr = cras_floss_a2dp_get_addr(a2dp);
-	iodev->info.stable_id = SuperFastHash(addr, strlen(addr), strlen(addr));
-
-	iodev->configure_dev = a2dp_configure_dev;
-	iodev->frames_queued = frames_queued;
-	iodev->delay_frames = delay_frames;
-	iodev->get_buffer = get_buffer;
-	iodev->put_buffer = a2dp_put_buffer;
-	iodev->flush_buffer = a2dp_flush_buffer;
-	iodev->no_stream = a2dp_no_stream;
-	iodev->output_underrun = output_underrun;
-	iodev->close_dev = a2dp_close_dev;
-	iodev->update_supported_formats = update_supported_formats;
-	iodev->update_active_node = update_active_node;
-	iodev->set_volume = a2dp_set_volume;
-	iodev->start = a2dp_start;
-	iodev->frames_to_play_in_sleep = a2dp_frames_to_play_in_sleep;
-
-	cras_floss_a2dp_fill_format(sample_rate, bits_per_sample, channel_mode,
-				    &iodev->supported_rates,
-				    &iodev->supported_formats,
-				    &iodev->supported_channel_counts);
-
-	/* Create an empty ionode */
-	node = (struct cras_ionode *)calloc(1, sizeof(*node));
-	node->dev = iodev;
-	strcpy(node->name, iodev->info.name);
-	node->plugged = 1;
-	node->type = CRAS_NODE_TYPE_BLUETOOTH;
-	node->volume = 100;
-	gettimeofday(&node->plugged_time, NULL);
-	node->btflags |= CRAS_BT_FLAG_FLOSS;
-	node->btflags |= CRAS_BT_FLAG_A2DP;
-
-	cras_iodev_add_node(iodev, node);
-	err = cras_iodev_list_add_output(iodev);
+	err = cras_floss_a2dp_fill_format(sample_rate, bits_per_sample,
+					  channel_mode, &iodev->supported_rates,
+					  &iodev->supported_formats,
+					  &iodev->supported_channel_counts);
 	if (err)
 		goto error;
 
-	cras_iodev_set_active_node(iodev, node);
-
-	ewma_power_disable(&iodev->ewma);
-
+	iodev->active_node->btflags |= CRAS_BT_FLAG_A2DP;
+	set_a2dp_callbacks(iodev);
 	return iodev;
 error:
-	if (a2dpio) {
-		pcm_free_base_resources(a2dpio);
-		free(a2dpio);
-	}
+	pcm_free_base_resources(a2dpio);
+	free(a2dpio);
 	return NULL;
 }
 
@@ -874,47 +894,34 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
 	syslog(LOG_DEBUG, "Update: bt_stack_delay %u", a2dpio->bt_stack_delay);
 }
 
+static void set_hfp_callbacks(struct cras_iodev *hfpio)
+{
+	hfpio->configure_dev = hfp_configure_dev;
+	hfpio->put_buffer = hfp_put_buffer;
+	hfpio->flush_buffer = hfp_flush_buffer;
+	hfpio->no_stream = hfp_no_stream;
+	hfpio->close_dev = hfp_close_dev;
+	hfpio->set_volume = hfp_set_volume;
+
+	hfpio->is_free_running = hfp_is_free_running;
+}
+
 struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
 					enum CRAS_STREAM_DIRECTION dir)
 {
-	int err;
 	struct fl_pcm_io *hfpio;
 	struct cras_iodev *iodev;
-	struct cras_ionode *node;
-	const char *addr, *name;
+	int err;
 
-	hfpio = (struct fl_pcm_io *)calloc(1, sizeof(*hfpio));
+	hfpio = pcm_iodev_create(dir, cras_floss_hfp_get_display_name(hfp),
+				 cras_floss_hfp_get_addr(hfp));
 	if (!hfpio)
-		goto error;
+		return NULL;
 
 	iodev = &hfpio->base;
 
 	hfpio->started = 0;
 	hfpio->hfp = hfp;
-
-	iodev->direction = dir;
-
-	name = cras_floss_hfp_get_display_name(hfp);
-	snprintf(iodev->info.name, sizeof(iodev->info.name), "[HFP]%s", name);
-	iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-
-	/* Address determines the unique stable id. */
-	addr = cras_floss_hfp_get_addr(hfp);
-	iodev->info.stable_id = SuperFastHash(addr, strlen(addr), strlen(addr));
-
-	iodev->configure_dev = hfp_configure_dev;
-	iodev->frames_queued = frames_queued;
-	iodev->delay_frames = delay_frames;
-	iodev->get_buffer = get_buffer;
-	iodev->put_buffer = hfp_put_buffer;
-	iodev->flush_buffer = hfp_flush_buffer;
-	iodev->no_stream = hfp_no_stream;
-	iodev->close_dev = hfp_close_dev;
-	iodev->update_supported_formats = update_supported_formats;
-	iodev->update_active_node = update_active_node;
-	iodev->set_volume = hfp_set_volume;
-	iodev->output_underrun = output_underrun;
-	iodev->is_free_running = hfp_is_free_running;
 
 	err = cras_floss_hfp_fill_format(hfp, &iodev->supported_rates,
 					 &iodev->supported_formats,
@@ -925,42 +932,22 @@ struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
 	/* Record max supported channels into cras_iodev_info. */
 	iodev->info.max_supported_channels = 1;
 
-	/* Create an empty ionode */
-	node = (struct cras_ionode *)calloc(1, sizeof(*node));
-	node->dev = iodev;
-	strcpy(node->name, iodev->info.name);
-
-	node->plugged = 1;
-	node->type = CRAS_NODE_TYPE_BLUETOOTH;
-
-	node->volume = 100;
-	gettimeofday(&node->plugged_time, NULL);
-
-	node->btflags |= CRAS_BT_FLAG_FLOSS;
-	node->btflags |= CRAS_BT_FLAG_HFP;
-
+	/* We need the buffer to read/write data from/to the HFP device even
+	 * when there is no corresponding stream. */
 	hfpio->pcm_buf = byte_buffer_create(FLOSS_HFP_MAX_BUF_SIZE_BYTES);
 	if (!hfpio->pcm_buf)
 		goto error;
 
-	cras_iodev_add_node(iodev, node);
-	cras_iodev_set_active_node(iodev, node);
+	if (iodev->direction == CRAS_STREAM_INPUT)
+		iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
 
-	if (iodev->direction == CRAS_STREAM_OUTPUT)
-		err = cras_iodev_list_add_output(iodev);
-	else
-		err = cras_iodev_list_add_input(iodev);
-	if (err)
-		goto error;
-
-	ewma_power_disable(&iodev->ewma);
+	iodev->active_node->btflags |= CRAS_BT_FLAG_HFP;
+	set_hfp_callbacks(iodev);
 
 	return iodev;
 error:
-	if (hfpio) {
-		pcm_free_base_resources(hfpio);
-		free(hfpio);
-	}
+	pcm_free_base_resources(hfpio);
+	free(hfpio);
 	return NULL;
 }
 
