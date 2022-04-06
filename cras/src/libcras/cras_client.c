@@ -1400,9 +1400,10 @@ static void *audio_thread(void *arg)
 /* Pokes the audio thread so that it can notice if it has been terminated. */
 static int wake_aud_thread(struct client_stream *stream)
 {
+	char buf[1] = { 0 };
 	int rc;
 
-	rc = write(stream->wake_fds[1], &rc, 1);
+	rc = write(stream->wake_fds[1], buf, 1);
 	if (rc != 1)
 		return rc;
 	return 0;
