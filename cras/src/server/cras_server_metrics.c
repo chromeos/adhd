@@ -658,6 +658,8 @@ int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 
 	data.device_data.type = get_metrics_device_type(iodev);
 	data.device_data.direction = iodev->direction;
+	data.device_data.value = iodev->active_node->btflags;
+
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	subtract_timespecs(&now, &iodev->open_ts, &data.device_data.runtime);
 
@@ -1218,11 +1220,35 @@ int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num)
 
 static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 {
-	log_histogram_each_level(3, (unsigned)data.runtime.tv_sec, 0, 10000, 20,
-				 "Cras.DeviceRuntime",
-				 data.direction == CRAS_STREAM_INPUT ? "Input" :
-								       "Output",
-				 metrics_device_type_str(data.type));
+	switch (data.type) {
+	case CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC:
+	case CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC:
+		log_histogram_each_level(
+			5, (unsigned)data.runtime.tv_sec, 0, 10000, 20,
+			"Cras.DeviceRuntime", "Input", "HFP",
+			data.value & CRAS_BT_FLAG_SCO_OFFLOAD ? "Offloading" :
+								"NonOffloading",
+			data.type == CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC ?
+				"NarrowBandMic" :
+				"WideBandMic");
+		break;
+	case CRAS_METRICS_DEVICE_HFP:
+		log_histogram_each_level(4, (unsigned)data.runtime.tv_sec, 0,
+					 10000, 20, "Cras.DeviceRuntime",
+					 "Output", "HFP",
+					 data.value & CRAS_BT_FLAG_SCO_OFFLOAD ?
+						 "Offloading" :
+						 "NonOffloading");
+		break;
+	default:
+		log_histogram_each_level(3, (unsigned)data.runtime.tv_sec, 0,
+					 10000, 20, "Cras.DeviceRuntime",
+					 data.direction == CRAS_STREAM_INPUT ?
+						 "Input" :
+						 "Output",
+					 metrics_device_type_str(data.type));
+		break;
+	}
 
 	/* TODO(jrwu): deprecate old device runtime metrics */
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
