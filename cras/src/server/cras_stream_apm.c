@@ -632,16 +632,20 @@ void cras_stream_apm_stop(struct cras_stream_apm *stream,
 	cras_apm_reverse_state_update();
 	update_supported_dsp_effects_activation();
 
-	/* If there's no other APM using this idev any more. */
+	/* If there's still an APM using |idev| at this moment, the above call
+	 * to update_supported_dsp_effects_activation has decided the final
+	 * state of DSP effects on |idev|.
+	 */
 	DL_FOREACH (active_apms, active) {
 		if (active->apm->idev == idev)
-			break;
+			return;
 	}
-	if (active == NULL) {
-		cras_iodev_set_rtc_proc_enabled(idev, RTC_PROC_AEC, 0);
-		cras_iodev_set_rtc_proc_enabled(idev, RTC_PROC_NS, 0);
-		cras_iodev_set_rtc_proc_enabled(idev, RTC_PROC_AGC, 0);
-	}
+
+	/* Otherwise |idev| is no longer being used by stream APMs. Deactivate
+	 * any effects that has been activated. */
+	toggle_dsp_effect(idev, RTC_PROC_AEC, 0);
+	toggle_dsp_effect(idev, RTC_PROC_NS, 0);
+	toggle_dsp_effect(idev, RTC_PROC_AGC, 0);
 }
 
 int cras_stream_apm_destroy(struct cras_stream_apm *stream)

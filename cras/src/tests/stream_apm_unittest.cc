@@ -455,6 +455,38 @@ TEST(ApmList, NeedsReverseProcessing) {
   cras_stream_apm_deinit();
 }
 
+TEST(StreamApm, DSPEffectsNotSupportedShouldNotCallIodevOps) {
+  struct cras_audio_format fmt;
+  struct cras_apm* apm1;
+
+  fmt.num_channels = 2;
+  fmt.frame_rate = 48000;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+
+  cras_iodev_get_rtc_proc_enabled_called = 0;
+  cras_iodev_set_rtc_proc_enabled_called = 0;
+  iodev_rtc_proc_enabled_maps[RTC_PROC_AEC].clear();
+  iodev_rtc_proc_enabled_maps[RTC_PROC_NS].clear();
+  iodev_rtc_proc_enabled_maps[RTC_PROC_AGC].clear();
+  cras_stream_apm_init("");
+
+  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION |
+                                  APM_GAIN_CONTROL);
+  EXPECT_NE((void*)NULL, stream);
+
+  apm1 = cras_stream_apm_add(stream, idev, &fmt);
+  EXPECT_NE((void*)NULL, apm1);
+  cras_stream_apm_start(stream, idev);
+  EXPECT_EQ(0, cras_iodev_set_rtc_proc_enabled_called);
+
+  cras_stream_apm_stop(stream, idev);
+  EXPECT_EQ(0, cras_iodev_set_rtc_proc_enabled_called);
+
+  cras_stream_apm_remove(stream, idev);
+  cras_stream_apm_destroy(stream);
+  cras_stream_apm_deinit();
+}
+
 TEST(StreamApm, UpdateEffect) {
   struct cras_audio_format fmt;
   struct cras_apm* apm1;
