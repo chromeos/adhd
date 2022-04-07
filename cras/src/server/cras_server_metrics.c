@@ -1218,6 +1218,13 @@ int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num)
 
 static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 {
+	log_histogram_each_level(3, (unsigned)data.runtime.tv_sec, 0, 10000, 20,
+				 "Cras.DeviceRuntime",
+				 data.direction == CRAS_STREAM_INPUT ? "Input" :
+								       "Output",
+				 metrics_device_type_str(data.type));
+
+	/* TODO(jrwu): deprecate old device runtime metrics */
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
 
 	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
