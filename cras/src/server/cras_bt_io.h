@@ -11,21 +11,18 @@
 
 struct cras_iodev;
 
-/* TODO(jrwu) deprecate all usage of this in bt_io_manager. */
-enum cras_bt_device_profile;
-
 /*
  *    bt_iodevs - The input and output iodevs this |bt_io_manager| manages.
  *        These are actually wrappers to BT profile(A2DP and HFP) specific
  *        iodevs of the same direction. This allows |bt_io_manager| to control
  *        which BT profile to use at any scenario.
- *    active_profile - The flag to indicate the active BT profile, A2DP or HFP
- *        the underlying BT device is currently using. 0 means none of the BT
- *        profile has been added.
+ *    active_btflag - The flag to indicate the active BT profile, A2DP or HFP
+ *        the underlying BT device is currently using. It can also be set to
+ *        none.
  */
 struct bt_io_manager {
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
-	unsigned int active_profile;
+	enum CRAS_BT_FLAGS active_btflag;
 	struct bt_io_manager *prev, *next;
 };
 
@@ -41,10 +38,10 @@ void bt_io_manager_destroy(struct bt_io_manager *mgr);
  */
 bool bt_io_manager_exists(struct bt_io_manager *target);
 
-/* Appends |iodev| associated to |profile| to this bt_io_manager. */
+/* Appends |iodev| associated to |btflag| to this bt_io_manager. */
 void bt_io_manager_append_iodev(struct bt_io_manager *mgr,
 				struct cras_iodev *iodev,
-				enum cras_bt_device_profile profile,
+				enum CRAS_BT_FLAGS btflag,
 				int software_volume_needed);
 
 /* Removes the profile specific |iodev| from bt_io_manager.

@@ -334,8 +334,7 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 	 * info from hfp_alsa iodev and node. */
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
-	cras_bt_device_append_iodev(device, iodev,
-				    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+	cras_bt_device_append_iodev(device, iodev, CRAS_BT_FLAG_HFP);
 
 	/* Record max supported channels into cras_iodev_info. */
 	iodev->info.max_supported_channels = 1;

@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "cras_types.h"
+
 struct bt_io_manager;
 struct cras_bt_adapter;
 struct cras_bt_device;
@@ -168,11 +170,11 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
  * Args:
  *    device - The device to append iodev to.
  *    iodev - The iodev to add.
- *    profile - The profile of the iodev about to add.
+ *    btflag - The profile of the iodev about to add.
  */
 void cras_bt_device_append_iodev(struct cras_bt_device *device,
 				 struct cras_iodev *iodev,
-				 enum cras_bt_device_profile profile);
+				 enum CRAS_BT_FLAGS btflag);
 
 /* Removes an iodev from bt device.
  * Args:

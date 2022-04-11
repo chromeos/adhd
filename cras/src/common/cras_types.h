@@ -788,6 +788,7 @@ enum CRAS_NODE_POSITION {
  *    CRAS_BT_FLAG_HFP - HFP is the current profile
  */
 enum CRAS_BT_FLAGS {
+	CRAS_BT_FLAG_NONE = 0,
 	CRAS_BT_FLAG_FLOSS = (1 << 0),
 	CRAS_BT_FLAG_SCO_OFFLOAD = (1 << 1),
 	CRAS_BT_FLAG_A2DP = (1 << 2),

@@ -807,7 +807,7 @@ int cras_bt_device_get_stable_id(const struct cras_bt_device* device) {
 
 void cras_bt_device_append_iodev(struct cras_bt_device* device,
                                  struct cras_iodev* iodev,
-                                 enum cras_bt_device_profile profile) {
+                                 enum CRAS_BT_FLAGS btflag) {
   cras_bt_device_append_iodev_called++;
 }
 

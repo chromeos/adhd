@@ -23,12 +23,12 @@
  * Members:
  *    base - The base class cras_ionode.
  *    profile_dev - Pointer to the profile specific iodev.
- *    profile - The bluetooth profile profile_dev runs on.
+ *    btflag - The BT profile (A2DP/HFP/None) profile_dev runs on.
  */
 struct bt_node {
 	struct cras_ionode base;
 	struct cras_iodev *profile_dev;
-	unsigned int profile;
+	enum CRAS_BT_FLAGS btflag;
 };
 
 /* The structure represents a virtual input or output device of a
@@ -60,7 +60,7 @@ static struct cras_iodev *active_profile_dev(const struct cras_iodev *iodev)
 /* Adds a profile specific iodev to btio. */
 static struct cras_ionode *add_profile_dev(struct cras_iodev *bt_iodev,
 					   struct cras_iodev *dev,
-					   enum cras_bt_device_profile profile)
+					   enum CRAS_BT_FLAGS btflag)
 {
 	struct bt_node *n;
 	struct bt_io *btio = (struct bt_io *)bt_iodev;
@@ -79,21 +79,32 @@ static struct cras_ionode *add_profile_dev(struct cras_iodev *bt_iodev,
 
 	strcpy(n->base.name, dev->info.name);
 	n->profile_dev = dev;
-	n->profile = profile;
+	n->btflag = btflag;
 
 	cras_iodev_add_node(bt_iodev, &n->base);
 	return &n->base;
 }
 
 /* Looks up for the node of given profile and returns if it exist or not. */
-static bool bt_io_has_profile(struct cras_iodev *bt_iodev,
-			      enum cras_bt_device_profile profile)
+static bool bt_io_has_a2dp(struct cras_iodev *bt_iodev)
 {
 	struct cras_ionode *node;
 	struct bt_node *n;
 	DL_FOREACH (bt_iodev->nodes, node) {
 		n = (struct bt_node *)node;
-		if (n->profile & profile)
+		if (n->btflag == CRAS_BT_FLAG_A2DP)
+			return true;
+	}
+	return false;
+}
+
+static bool bt_io_has_hfp(struct cras_iodev *bt_iodev)
+{
+	struct cras_ionode *node;
+	struct bt_node *n;
+	DL_FOREACH (bt_iodev->nodes, node) {
+		n = (struct bt_node *)node;
+		if (n->btflag == CRAS_BT_FLAG_HFP)
 			return true;
 	}
 	return false;
@@ -104,8 +115,7 @@ int bt_io_manager_has_a2dp(struct bt_io_manager *mgr)
 	struct cras_iodev *odev = mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
 
 	/* Check if there is an output iodev with A2DP node attached. */
-	return odev &&
-	       bt_io_has_profile(odev, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+	return odev && bt_io_has_a2dp(odev);
 }
 
 void bt_io_manager_set_use_hardware_volume(struct bt_io_manager *mgr,
@@ -150,7 +160,7 @@ static void possibly_switch_to_a2dp(struct bt_io_manager *mgr)
 {
 	if (!bt_io_manager_has_a2dp(mgr))
 		return;
-	mgr->active_profile = CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
+	mgr->active_btflag = CRAS_BT_FLAG_A2DP;
 	cras_bt_policy_switch_profile(mgr);
 }
 
@@ -169,10 +179,9 @@ static int open_dev(struct cras_iodev *iodev)
 	int rc;
 
 	/* Force to use HFP if opening input dev. */
-	if ((btio->mgr->active_profile & CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE) &&
+	if (btio->mgr->active_btflag == CRAS_BT_FLAG_A2DP &&
 	    iodev->direction == CRAS_STREAM_INPUT) {
-		btio->mgr->active_profile =
-			CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
+		btio->mgr->active_btflag = CRAS_BT_FLAG_HFP;
 		cras_bt_policy_switch_profile(btio->mgr);
 		return -EAGAIN;
 	}
@@ -287,9 +296,8 @@ static int close_dev(struct cras_iodev *iodev)
 	/* If input iodev is in open state and being closed, switch profile
 	 * from HFP to A2DP. */
 	if (cras_iodev_is_open(iodev) &&
-	    (btio->mgr->active_profile &
-	     CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY) &&
-	    (iodev->direction == CRAS_STREAM_INPUT))
+	    btio->mgr->active_btflag == CRAS_BT_FLAG_HFP &&
+	    iodev->direction == CRAS_STREAM_INPUT)
 		possibly_switch_to_a2dp(btio->mgr);
 
 	rc = dev->close_dev(dev);
@@ -375,17 +383,17 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 	struct cras_iodev *dev;
 	int rc;
 
-	if (btio->mgr->active_profile & active->profile)
+	if (btio->mgr->active_btflag == active->btflag)
 		goto leave;
 
-	/* Switch to the correct dev using active_profile. */
+	/* Switch to the correct dev using active_btflag. */
 	DL_FOREACH (iodev->nodes, node) {
 		struct bt_node *n = (struct bt_node *)node;
 		if (n == active)
 			continue;
 
-		if (btio->mgr->active_profile & n->profile) {
-			active->profile = n->profile;
+		if (btio->mgr->active_btflag == n->btflag) {
+			active->btflag = n->btflag;
 			active->profile_dev = n->profile_dev;
 
 			/* Set volume for the new profile. */
@@ -520,7 +528,7 @@ static int get_valid_frames(struct cras_iodev *iodev,
 /* Creates a bt_io iodev wrapper. */
 static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 				       struct cras_iodev *dev,
-				       enum cras_bt_device_profile profile,
+				       enum CRAS_BT_FLAGS btflag,
 				       int software_volume_needed)
 {
 	int err;
@@ -529,8 +537,14 @@ static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 	struct cras_ionode *node;
 	struct bt_node *active;
 
-	if (!dev)
+	if (!dev || !dev->active_node)
 		return NULL;
+
+	if (!(dev->active_node->btflags & btflag)) {
+		syslog(LOG_ERR, "Incorrect btflags %d for dev %s",
+		       dev->active_node->btflags, dev->info.name);
+		return NULL;
+	}
 
 	btio = (struct bt_io *)calloc(1, sizeof(*btio));
 	if (!btio)
@@ -591,7 +605,7 @@ static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 			SuperFastHash((const char *)&active->base.type,
 				      sizeof(active->base.type),
 				      active->base.stable_id);
-	active->profile = profile;
+	active->btflag = btflag;
 	active->profile_dev = dev;
 	strcpy(active->base.name, dev->info.name);
 	/* The node name exposed to UI should be a valid UTF8 string. */
@@ -599,20 +613,20 @@ static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 		strcpy(active->base.name, DEFAULT_BT_DEVICE_NAME);
 	cras_iodev_add_node(iodev, &active->base);
 
-	node = add_profile_dev(&btio->base, dev, profile);
+	node = add_profile_dev(&btio->base, dev, btflag);
 	if (node == NULL)
 		goto error;
 
-	/* Now we're creating a new cras_bt_io for |profile| check what does
-	 * the bt_io_manager currently use as active_profile.
-	 * If |active_profile| hasn't been set at all, assign |profile| to it.
+	/* Now we're creating a new cras_bt_io for |btflag| check what does
+	 * the bt_io_manager currently use as active_btflag.
+	 * If |active_btflag| hasn't been set at all, assign |btflag| to it.
 	 * Or if this is A2DP which we treat as higiher prioirty, set to A2DP
 	 * if we can.
 	 */
-	if (!btio->mgr->active_profile ||
-	    (profile == CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE &&
+	if (!btio->mgr->active_btflag ||
+	    (btflag == CRAS_BT_FLAG_A2DP &&
 	     can_switch_to_a2dp_when_connected(btio->mgr)))
-		btio->mgr->active_profile = profile;
+		btio->mgr->active_btflag = btflag;
 
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		err = cras_iodev_list_add_output(iodev);
@@ -666,21 +680,18 @@ static void bt_io_destroy(struct cras_iodev *bt_iodev)
 }
 
 static int bt_io_append(struct cras_iodev *bt_iodev, struct cras_iodev *dev,
-			enum cras_bt_device_profile profile)
+			enum CRAS_BT_FLAGS btflag)
 {
 	struct cras_ionode *node;
 	struct bt_io *btio = (struct bt_io *)bt_iodev;
 
-	if (bt_io_has_profile(bt_iodev, profile))
-		return -EEXIST;
-
-	node = add_profile_dev(bt_iodev, dev, profile);
+	node = add_profile_dev(bt_iodev, dev, btflag);
 	if (!node)
 		return -ENOMEM;
 
-	if (profile == CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE &&
+	if (btflag == CRAS_BT_FLAG_A2DP &&
 	    can_switch_to_a2dp_when_connected(btio->mgr)) {
-		btio->mgr->active_profile = CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE;
+		btio->mgr->active_btflag = CRAS_BT_FLAG_A2DP;
 
 		// TODO(hychao): remove below after BT stop sending asynchronous
 		// A2DP and HFP connection to CRAS.
@@ -704,7 +715,7 @@ static int bt_io_remove(struct cras_iodev *bt_iodev, struct cras_iodev *dev)
 		 * this node. */
 		if (node == bt_iodev->active_node) {
 			btnode->profile_dev = NULL;
-			btnode->profile = 0;
+			btnode->btflag = CRAS_BT_FLAG_NONE;
 		} else {
 			DL_DELETE(bt_iodev->nodes, node);
 			free(node);
@@ -715,7 +726,8 @@ static int bt_io_remove(struct cras_iodev *bt_iodev, struct cras_iodev *dev)
 	 * Return err when fail to locate the active profile dev. */
 	update_active_node(bt_iodev, 0, 1);
 	btnode = (struct bt_node *)bt_iodev->active_node;
-	if ((btnode->profile == 0) || (btnode->profile_dev == NULL))
+	if ((btnode->btflag == CRAS_BT_FLAG_NONE) ||
+	    (btnode->profile_dev == NULL))
 		return -EINVAL;
 
 	return 0;
@@ -775,7 +787,7 @@ void bt_io_manager_set_nodes_plugged(struct bt_io_manager *mgr, int plugged)
 
 void bt_io_manager_append_iodev(struct bt_io_manager *mgr,
 				struct cras_iodev *iodev,
-				enum cras_bt_device_profile profile,
+				enum CRAS_BT_FLAGS btflag,
 				int software_volume_needed)
 {
 	struct cras_iodev *bt_iodev;
@@ -783,10 +795,25 @@ void bt_io_manager_append_iodev(struct bt_io_manager *mgr,
 	bt_iodev = mgr->bt_iodevs[iodev->direction];
 
 	if (bt_iodev) {
-		bt_io_append(bt_iodev, iodev, profile);
+		bool exists = false;
+		switch (btflag) {
+		case CRAS_BT_FLAG_A2DP:
+			exists = bt_io_has_a2dp(bt_iodev);
+			break;
+		case CRAS_BT_FLAG_HFP:
+			exists = bt_io_has_hfp(bt_iodev);
+			break;
+		default:
+			return; // -EINVAL
+		}
+
+		if (exists)
+			return;
+
+		bt_io_append(bt_iodev, iodev, btflag);
 	} else {
 		mgr->bt_iodevs[iodev->direction] = bt_io_create(
-			mgr, iodev, profile, software_volume_needed);
+			mgr, iodev, btflag, software_volume_needed);
 	}
 }
 
@@ -796,7 +823,7 @@ void bt_io_manager_remove_iodev(struct bt_io_manager *mgr,
 	struct cras_iodev *bt_iodev;
 	struct cras_ionode *node;
 	struct bt_node *active, *btnode;
-	unsigned profile = 0;
+	enum CRAS_BT_FLAGS btflag = CRAS_BT_FLAG_NONE;
 	int rc;
 
 	bt_io_manager_set_nodes_plugged(mgr, 0);
@@ -814,21 +841,21 @@ void bt_io_manager_remove_iodev(struct bt_io_manager *mgr,
 			 * to remove. */
 			if (btnode == active || btnode->profile_dev == iodev)
 				continue;
-			profile = btnode->profile;
+			btflag = btnode->btflag;
 			break;
 		}
 	} else {
-		profile = active->profile;
+		btflag = active->btflag;
 	}
-	if (!profile)
+	if (btflag == CRAS_BT_FLAG_NONE)
 		goto destroy_bt_io;
 
-	/* If the check result |profile| doesn't match with the active
-	 * profile we are currently using, switch to |profile| before
+	/* If the check result |btflag| doesn't match with the active
+	 * btflag we are currently using, switch to |btflag| before
 	 * actually remove the iodev.
 	 */
-	if ((profile & active->profile) == 0) {
-		mgr->active_profile = profile;
+	if (btflag != active->btflag) {
+		mgr->active_btflag = btflag;
 
 		// TODO(hychao): remove below code after BT remove HFP
 		// and A2DP from CRAS in one synchronous event.
@@ -836,7 +863,7 @@ void bt_io_manager_remove_iodev(struct bt_io_manager *mgr,
 	}
 	rc = bt_io_remove(bt_iodev, iodev);
 	if (rc) {
-		syslog(LOG_ERR, "Fail to fallback to profile %u", profile);
+		syslog(LOG_ERR, "Fail to fallback to profile %u", btflag);
 		goto destroy_bt_io;
 	}
 
@@ -848,6 +875,5 @@ destroy_bt_io:
 
 	if (!mgr->bt_iodevs[CRAS_STREAM_INPUT] &&
 	    !mgr->bt_iodevs[CRAS_STREAM_OUTPUT])
-		// TODO(hychao): use a unknown enum for this.
-		mgr->active_profile = 0;
+		mgr->active_btflag = CRAS_BT_FLAG_NONE;
 }

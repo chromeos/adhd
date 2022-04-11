@@ -158,11 +158,10 @@ TEST_F(BtDeviceTestSuite, AppendRmIodev) {
   struct cras_bt_device* device;
   device = cras_bt_device_create(NULL, FAKE_OBJ_PATH);
 
-  cras_bt_device_append_iodev(device, &d1_, CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE);
+  cras_bt_device_append_iodev(device, &d1_, CRAS_BT_FLAG_A2DP);
   EXPECT_EQ(1, bt_io_manager_append_iodev_called);
 
-  cras_bt_device_append_iodev(device, &d2_,
-                              CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+  cras_bt_device_append_iodev(device, &d2_, CRAS_BT_FLAG_HFP);
   EXPECT_EQ(2, bt_io_manager_append_iodev_called);
 
   cras_bt_device_rm_iodev(device, &d2_);
@@ -326,7 +325,7 @@ void bt_io_manager_destroy(struct bt_io_manager* mgr) {}
 
 void bt_io_manager_append_iodev(struct bt_io_manager* mgr,
                                 struct cras_iodev* iodev,
-                                enum cras_bt_device_profile profile,
+                                enum CRAS_BT_FLAGS btflag,
                                 int software_volume_needed) {
   bt_io_manager_append_iodev_called++;
 }

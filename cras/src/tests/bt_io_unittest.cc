@@ -170,11 +170,11 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   struct timespec tstamp;
   unsigned fr;
 
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP, 0);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, cras_iodev_list_add_output_called);
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, bt_io_mgr->active_profile);
+  EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
 
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
 
@@ -205,20 +205,20 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
 TEST_F(BtIoBasicSuite, AppendRmIodev) {
   ResetStubData();
 
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP, 0);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT]);
-  // EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, bt_io_mgr.active_profile);
+  // EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr.active_btflag);
 
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP, 0);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT]);
 
   iodev3_.direction = CRAS_STREAM_INPUT;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev3_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_HFP, 0);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT]);
 
@@ -233,18 +233,18 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnOpenDevForInputDev) {
   struct cras_iodev* bt_iodev;
 
   ResetStubData();
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP, 0);
   iodev2_.direction = CRAS_STREAM_INPUT;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP, 0);
+  iodev3_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_HFP, 0);
 
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->open_dev(bt_iodev);
 
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, bt_io_mgr->active_profile);
+  EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
   EXPECT_EQ(1, cras_bt_policy_switch_profile_called);
 
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
@@ -256,12 +256,12 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnOpenDevForInputDevAlreadyOnHfp) {
   struct cras_iodev* bt_iodev;
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
 
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   /* No need to switch profile if already on HFP. */
-  bt_io_mgr->active_profile = CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
+  bt_io_mgr->active_btflag = CRAS_BT_FLAG_HFP;
   bt_iodev->open_dev(bt_iodev);
 
   EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
@@ -272,19 +272,19 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
   struct cras_iodev* bt_iodev;
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
 
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
 
-  bt_io_mgr->active_profile = CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
+  bt_io_mgr->active_btflag = CRAS_BT_FLAG_HFP;
   bt_iodev->close_dev(bt_iodev);
 
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, bt_io_mgr->active_profile);
+  EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
   EXPECT_EQ(1, cras_bt_policy_switch_profile_called);
 
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
@@ -295,12 +295,12 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevNoSupportA2dp) {
   struct cras_iodev* bt_iodev;
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
-  bt_io_mgr->active_profile = CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
+  bt_io_mgr->active_btflag = CRAS_BT_FLAG_HFP;
   bt_iodev->close_dev(bt_iodev);
 
   EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
@@ -311,14 +311,14 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevInCloseState) {
   struct cras_iodev* bt_iodev;
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->state = CRAS_IODEV_STATE_CLOSE;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
 
-  bt_io_mgr->active_profile = CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY;
+  bt_io_mgr->active_btflag = CRAS_BT_FLAG_HFP;
   bt_iodev->close_dev(bt_iodev);
 
   EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
@@ -329,13 +329,13 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevInCloseState) {
 
 TEST_F(BtIoBasicSuite, SwitchProfileOnAppendA2dpDev) {
   ResetStubData();
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
 
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
 
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, bt_io_mgr->active_profile);
+  EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
   EXPECT_EQ(1, cras_bt_policy_switch_profile_called);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev2_);
@@ -343,11 +343,11 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnAppendA2dpDev) {
 
 TEST_F(BtIoBasicSuite, NoSwitchProfileOnAppendHfpDev) {
   ResetStubData();
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
 
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
 
   EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
@@ -356,9 +356,9 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnAppendHfpDev) {
 
 TEST_F(BtIoBasicSuite, CreateSetDeviceActiveProfileToA2DP) {
   ResetStubData();
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, bt_io_mgr->active_profile);
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
+  EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev2_);
 }
 
@@ -367,20 +367,20 @@ TEST_F(BtIoBasicSuite, CreateNoSetDeviceActiveProfileToA2DP) {
   ResetStubData();
 
   iodev_.direction = CRAS_STREAM_INPUT;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, bt_io_mgr->active_profile);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP, 0);
+  EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
 
   /* If the BT input is being used, no profile change to A2DP will happen. */
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev3_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_A2DP, 0);
 
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, bt_io_mgr->active_profile);
+  EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev2_);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev3_);
@@ -388,10 +388,10 @@ TEST_F(BtIoBasicSuite, CreateNoSetDeviceActiveProfileToA2DP) {
 
 TEST_F(BtIoBasicSuite, CreateSetDeviceActiveProfileToHFP) {
   ResetStubData();
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
 
-  EXPECT_EQ(CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY, bt_io_mgr->active_profile);
+  EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
 }
 
@@ -401,8 +401,8 @@ TEST_F(BtIoBasicSuite, CreateDeviceWithInvalidUTF8Name) {
   strcpy(iodev_.info.name, "Something BT");
   iodev_.info.name[0] = 0xfe;
   is_utf8_string_ret_value = 0;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_,
-                             CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE, 0);
+  iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP, 0);
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
 
   ASSERT_STREQ("BLUETOOTH", bt_iodev->active_node->name);

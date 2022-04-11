@@ -302,9 +302,9 @@ const char *cras_bt_device_name(const struct cras_bt_device *device)
 
 void cras_bt_device_append_iodev(struct cras_bt_device *device,
 				 struct cras_iodev *iodev,
-				 enum cras_bt_device_profile profile)
+				 enum CRAS_BT_FLAGS btflag)
 {
-	bt_io_manager_append_iodev(device->bt_io_mgr, iodev, profile,
+	bt_io_manager_append_iodev(device->bt_io_mgr, iodev, btflag,
 				   !device->use_hardware_volume);
 }
 

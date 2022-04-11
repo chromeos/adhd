@@ -341,8 +341,7 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	 * info from HFP iodev and node. */
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
-	cras_bt_device_append_iodev(device, iodev,
-				    CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY);
+	cras_bt_device_append_iodev(device, iodev, CRAS_BT_FLAG_HFP);
 
 	hfpio->sco = sco;
 
