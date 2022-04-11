@@ -177,6 +177,7 @@ impl DSM {
     /// Decides a good calibration value and updates the stored value according to the following
     /// logic:
     /// * Returns the previous value if the ambient temperature is not within a valid range.
+    ///   If previous value does not exist, use VPD value instead.
     /// * Returns Error::LargeCalibrationDiff if rdc difference is larger than
     ///   `CALI_ERROR_UPPER_LIMIT`.
     /// * Returns the previous value if the rdc difference is smaller than `CALI_ERROR_LOWER_LIMIT`.
@@ -203,19 +204,7 @@ impl DSM {
         channel: usize,
         calib_data: CalibData,
     ) -> Result<CalibData> {
-        if calib_data.temp < self.temp_lower_limit || calib_data.temp > self.temp_upper_limit {
-            if env::var("BYPASS_TEMPERATURE_CHECK").is_ok() {
-                info!(
-                    "BYPASS_TEMPERATURE_CHECK. Temperature: {}.",
-                    calib_data.temp
-                );
-            } else {
-                info!("invalid temperature: {}.", calib_data.temp);
-                return self
-                    .get_previous_calibration_value(channel)
-                    .map_err(|_| Error::InvalidTemperature(calib_data.temp));
-            }
-        }
+        // Look for datastore first
         let (datastore_exist, previous_calib) = match self.get_previous_calibration_value(channel) {
             Ok(previous_calib) => (true, previous_calib),
             Err(e) => {
@@ -223,6 +212,21 @@ impl DSM {
                 (false, self.get_vpd_calibration_value(channel)?)
             }
         };
+
+        if calib_data.temp < self.temp_lower_limit || calib_data.temp > self.temp_upper_limit {
+            if env::var("BYPASS_TEMPERATURE_CHECK").is_ok() {
+                info!(
+                    "BYPASS_TEMPERATURE_CHECK. Temperature: {}.",
+                    calib_data.temp
+                );
+            } else {
+                info!(
+                    "invalid temperature: {}. use previous calibration value",
+                    calib_data.temp
+                );
+                return Ok(previous_calib);
+            }
+        }
 
         let diff = {
             let calib_rdc_ohm = (self.rdc_to_ohm)(calib_data.rdc);

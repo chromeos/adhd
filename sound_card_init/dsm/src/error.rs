@@ -34,8 +34,6 @@ pub enum Error {
     InvalidDatastore,
     #[error("invalid shutdown time")]
     InvalidShutDownTime,
-    #[error("invalid calibration temperature: {0}, and there is no datastore")]
-    InvalidTemperature(f32),
     #[error("calibration difference is too large, calib: {0:?}")]
     LargeCalibrationDiff(CalibData),
     #[error("mutex is poisoned")]
