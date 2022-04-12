@@ -5,6 +5,8 @@
 
 #include <alsa/asoundlib.h>
 #include <limits.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
 
@@ -796,4 +798,31 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 		}
 	}
 	return 0;
+}
+
+/**
+ * Error function for alsa.
+ * Logs errors to syslog.
+ */
+static void cras_alsa_lib_error_handler(const char *file, int line,
+					const char *function, int err,
+					const char *fmt, ...)
+{
+	char msg[1024];
+
+	va_list arg;
+	va_start(arg, fmt);
+	int rc = vsnprintf(msg, sizeof(msg), fmt, arg);
+	va_end(arg);
+
+	if (rc < 0) {
+		return;
+	}
+
+	syslog(LOG_ERR, "[alsa-lib] %s() -> %s", function, msg);
+}
+
+void cras_alsa_lib_error_handler_init()
+{
+	snd_lib_error_set_handler(cras_alsa_lib_error_handler);
 }

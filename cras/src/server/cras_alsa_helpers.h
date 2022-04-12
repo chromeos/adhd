@@ -224,4 +224,7 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
  */
 int cras_alsa_attempt_resume(snd_pcm_t *handle);
 
+/* Register the error handling callback to log errors to syslog */
+void cras_alsa_lib_error_handler_init();
+
 #endif /* _CRAS_ALSA_HELPERS_H */

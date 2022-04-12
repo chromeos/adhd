@@ -29,6 +29,7 @@
 #include "cras_dbus_control.h"
 #endif
 #include "cras_alert.h"
+#include "cras_alsa_helpers.h"
 #include "cras_audio_thread_monitor.h"
 #include "cras_config.h"
 #include "cras_device_monitor.h"
@@ -472,6 +473,7 @@ int cras_server_init()
 {
 	/* Log to syslog. */
 	openlog("cras_server", LOG_PID, LOG_USER);
+	cras_alsa_lib_error_handler_init();
 
 	server_instance.next_client_id = RESERVED_CLIENT_IDS;
 
