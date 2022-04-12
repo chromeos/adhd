@@ -168,7 +168,13 @@ static int get_int(struct cras_use_case_mgr *mgr, const char *var,
 static int ucm_set_modifier_enabled(struct cras_use_case_mgr *mgr,
 				    const char *mod, int enable)
 {
-	return snd_use_case_set(mgr->mgr, enable ? "_enamod" : "_dismod", mod);
+	int rc;
+
+	rc = snd_use_case_set(mgr->mgr, enable ? "_enamod" : "_dismod", mod);
+	if (rc)
+		syslog(LOG_ERR, "Can not %s UCM modifier %s, rc = %d",
+		       enable ? "enable" : "disable", mod, rc);
+	return rc;
 }
 
 static int ucm_str_ends_with_suffix(const char *str, const char *suffix)
