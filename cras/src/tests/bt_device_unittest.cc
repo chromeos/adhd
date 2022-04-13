@@ -321,12 +321,14 @@ struct bt_io_manager* bt_io_manager_create() {
   return reinterpret_cast<struct bt_io_manager*>(0x123);
 }
 
+void bt_io_manager_set_use_hardware_volume(struct bt_io_manager* mgr,
+                                           int use_hardware_volume) {}
+
 void bt_io_manager_destroy(struct bt_io_manager* mgr) {}
 
 void bt_io_manager_append_iodev(struct bt_io_manager* mgr,
                                 struct cras_iodev* iodev,
-                                enum CRAS_BT_FLAGS btflag,
-                                int software_volume_needed) {
+                                enum CRAS_BT_FLAGS btflag) {
   bt_io_manager_append_iodev_called++;
 }
 

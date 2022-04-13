@@ -122,10 +122,19 @@ void bt_io_manager_set_use_hardware_volume(struct bt_io_manager *mgr,
 					   int use_hardware_volume)
 {
 	struct cras_iodev *iodev;
+	struct cras_ionode *node;
 
 	iodev = mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
-	if (iodev)
-		iodev->software_volume_needed = !use_hardware_volume;
+	if (iodev) {
+		/*
+		 * TODO(b/229031342): For BlueZ case, whether HFP uses software
+		 * volume is tied to AVRCP supported or not. We should fix this.
+		 */
+		DL_FOREACH (iodev->nodes, node) {
+			node->dev->software_volume_needed =
+				!use_hardware_volume;
+		}
+	}
 }
 
 void bt_io_manager_update_hardware_volume(struct bt_io_manager *mgr, int volume)
@@ -403,8 +412,14 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 
 leave:
 	dev = active_profile_dev(iodev);
-	if (dev && dev->update_active_node)
-		dev->update_active_node(dev, node_idx, dev_enabled);
+	if (dev) {
+		if (iodev->direction == CRAS_STREAM_OUTPUT)
+			iodev->software_volume_needed =
+				dev->software_volume_needed;
+
+		if (dev->update_active_node)
+			dev->update_active_node(dev, node_idx, dev_enabled);
+	}
 
 	/* Update supported formats here to get the supported formats from the
 	 * new updated active profile dev.
@@ -528,8 +543,7 @@ static int get_valid_frames(struct cras_iodev *iodev,
 /* Creates a bt_io iodev wrapper. */
 static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 				       struct cras_iodev *dev,
-				       enum CRAS_BT_FLAGS btflag,
-				       int software_volume_needed)
+				       enum CRAS_BT_FLAGS btflag)
 {
 	int err;
 	struct bt_io *btio;
@@ -573,13 +587,9 @@ static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 	iodev->start = start;
 	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
 
-	/* Input also checks |software_volume_needed| flag for using software
-	 * gain. Keep it as false for BT input.
-	 * TODO(hychao): after wide band speech mode is supported, consider
-	 * enable software gain.
-	 */
 	if (dev->direction == CRAS_STREAM_OUTPUT) {
-		iodev->software_volume_needed = software_volume_needed;
+		iodev->software_volume_needed =
+			dev->active_node->software_volume_needed;
 		iodev->set_volume = set_bt_volume;
 	}
 
@@ -787,8 +797,7 @@ void bt_io_manager_set_nodes_plugged(struct bt_io_manager *mgr, int plugged)
 
 void bt_io_manager_append_iodev(struct bt_io_manager *mgr,
 				struct cras_iodev *iodev,
-				enum CRAS_BT_FLAGS btflag,
-				int software_volume_needed)
+				enum CRAS_BT_FLAGS btflag)
 {
 	struct cras_iodev *bt_iodev;
 
@@ -812,8 +821,8 @@ void bt_io_manager_append_iodev(struct bt_io_manager *mgr,
 
 		bt_io_append(bt_iodev, iodev, btflag);
 	} else {
-		mgr->bt_iodevs[iodev->direction] = bt_io_create(
-			mgr, iodev, btflag, software_volume_needed);
+		mgr->bt_iodevs[iodev->direction] =
+			bt_io_create(mgr, iodev, btflag);
 	}
 }
 

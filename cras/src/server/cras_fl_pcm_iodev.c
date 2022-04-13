@@ -941,6 +941,11 @@ struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
 
+	/* TODO(b/215089433): Force software volume before we support hardware
+	 * volume control through HFP VGS. */
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		iodev->software_volume_needed = 1;
+
 	iodev->active_node->btflags |= CRAS_BT_FLAG_HFP;
 	set_hfp_callbacks(iodev);
 

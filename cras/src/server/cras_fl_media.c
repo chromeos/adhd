@@ -659,7 +659,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			bt_io_manager_append_iodev(
 				active_fm->bt_io_mgr,
 				cras_floss_a2dp_get_iodev(active_fm->a2dp),
-				CRAS_BT_FLAG_A2DP, false);
+				CRAS_BT_FLAG_A2DP);
 		}
 
 		if (hfp_avail) {
@@ -682,11 +682,11 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			bt_io_manager_append_iodev(
 				active_fm->bt_io_mgr,
 				cras_floss_hfp_get_input_iodev(active_fm->hfp),
-				CRAS_BT_FLAG_HFP, true);
+				CRAS_BT_FLAG_HFP);
 			bt_io_manager_append_iodev(
 				active_fm->bt_io_mgr,
 				cras_floss_hfp_get_output_iodev(active_fm->hfp),
-				CRAS_BT_FLAG_HFP, true);
+				CRAS_BT_FLAG_HFP);
 		}
 		bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 1);
 

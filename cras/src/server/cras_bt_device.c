@@ -304,8 +304,20 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 				 struct cras_iodev *iodev,
 				 enum CRAS_BT_FLAGS btflag)
 {
-	bt_io_manager_append_iodev(device->bt_io_mgr, iodev, btflag,
-				   !device->use_hardware_volume);
+	/*
+	 * We only support software gain scalar for input device, so it doesn't
+	 * matter if the software_volume_needed for input.
+	 */
+	if (iodev->direction == CRAS_STREAM_OUTPUT)
+		iodev->software_volume_needed = !device->use_hardware_volume;
+
+	bt_io_manager_append_iodev(device->bt_io_mgr, iodev, btflag);
+	/*
+	 * BlueZ doesn't guarantee the call sequence and
+	 * cras_bt_device_set_use_hardware_volume may have been called.
+	 */
+	bt_io_manager_set_use_hardware_volume(device->bt_io_mgr,
+					      !device->use_hardware_volume);
 }
 
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
@@ -830,7 +842,7 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
 				syslog(LOG_ERR, "Failed to get BT_SNDMTU");
 
 			return (wbs_pkt_len > 0) ? wbs_pkt_len :
-							 USB_MSBC_PKT_SIZE;
+						   USB_MSBC_PKT_SIZE;
 		} else {
 			return USB_CVSD_PKT_SIZE;
 		}

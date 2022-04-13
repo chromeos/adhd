@@ -41,8 +41,7 @@ bool bt_io_manager_exists(struct bt_io_manager *target);
 /* Appends |iodev| associated to |btflag| to this bt_io_manager. */
 void bt_io_manager_append_iodev(struct bt_io_manager *mgr,
 				struct cras_iodev *iodev,
-				enum CRAS_BT_FLAGS btflag,
-				int software_volume_needed);
+				enum CRAS_BT_FLAGS btflag);
 
 /* Removes the profile specific |iodev| from bt_io_manager.
  */

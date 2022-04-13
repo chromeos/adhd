@@ -171,7 +171,7 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   unsigned fr;
 
   iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ(1, cras_iodev_list_add_output_called);
   EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
@@ -206,19 +206,19 @@ TEST_F(BtIoBasicSuite, AppendRmIodev) {
   ResetStubData();
 
   iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT]);
   // EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr.active_btflag);
 
   iodev2_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
   EXPECT_EQ((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT]);
 
   iodev3_.direction = CRAS_STREAM_INPUT;
   iodev3_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_HFP);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT]);
 
@@ -234,12 +234,12 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnOpenDevForInputDev) {
 
   ResetStubData();
   iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP);
   iodev2_.direction = CRAS_STREAM_INPUT;
   iodev2_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP);
   iodev3_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_HFP);
 
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->open_dev(bt_iodev);
@@ -257,7 +257,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnOpenDevForInputDevAlreadyOnHfp) {
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
 
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   /* No need to switch profile if already on HFP. */
@@ -273,13 +273,13 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
 
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
   iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP);
 
   bt_io_mgr->active_btflag = CRAS_BT_FLAG_HFP;
   bt_iodev->close_dev(bt_iodev);
@@ -296,7 +296,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevNoSupportA2dp) {
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
@@ -312,11 +312,11 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevInCloseState) {
   ResetStubData();
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
   bt_iodev->state = CRAS_IODEV_STATE_CLOSE;
   iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP);
 
   bt_io_mgr->active_btflag = CRAS_BT_FLAG_HFP;
   bt_iodev->close_dev(bt_iodev);
@@ -330,10 +330,10 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnCloseInputDevInCloseState) {
 TEST_F(BtIoBasicSuite, SwitchProfileOnAppendA2dpDev) {
   ResetStubData();
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
 
   iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP);
 
   EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
   EXPECT_EQ(1, cras_bt_policy_switch_profile_called);
@@ -344,10 +344,10 @@ TEST_F(BtIoBasicSuite, SwitchProfileOnAppendA2dpDev) {
 TEST_F(BtIoBasicSuite, NoSwitchProfileOnAppendHfpDev) {
   ResetStubData();
   iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP);
 
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
 
   EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
@@ -357,7 +357,7 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnAppendHfpDev) {
 TEST_F(BtIoBasicSuite, CreateSetDeviceActiveProfileToA2DP) {
   ResetStubData();
   iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP);
   EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev2_);
 }
@@ -368,9 +368,9 @@ TEST_F(BtIoBasicSuite, CreateNoSetDeviceActiveProfileToA2DP) {
 
   iodev_.direction = CRAS_STREAM_INPUT;
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
   iodev2_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP);
   EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
 
   /* If the BT input is being used, no profile change to A2DP will happen. */
@@ -378,7 +378,7 @@ TEST_F(BtIoBasicSuite, CreateNoSetDeviceActiveProfileToA2DP) {
   bt_iodev->state = CRAS_IODEV_STATE_OPEN;
 
   iodev3_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_A2DP);
 
   EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
@@ -389,7 +389,7 @@ TEST_F(BtIoBasicSuite, CreateNoSetDeviceActiveProfileToA2DP) {
 TEST_F(BtIoBasicSuite, CreateSetDeviceActiveProfileToHFP) {
   ResetStubData();
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
 
   EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
@@ -402,7 +402,7 @@ TEST_F(BtIoBasicSuite, CreateDeviceWithInvalidUTF8Name) {
   iodev_.info.name[0] = 0xfe;
   is_utf8_string_ret_value = 0;
   iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
-  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP, 0);
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP);
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
 
   ASSERT_STREQ("BLUETOOTH", bt_iodev->active_node->name);
