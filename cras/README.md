@@ -19,7 +19,7 @@ CC=clang \
 CXX=clang++ \
 CXXFLAGS="-g -O2 -std=gnu++11 -Wall" \
 CFLAGS="-g -O2 -Wall" \
-./configure --disable-alsa-plugin
+./configure
 
 # Compile
 make -j$(nproc)
