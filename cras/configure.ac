@@ -45,7 +45,7 @@ fi
 AC_SUBST(DBUS_LIBS)
 AC_SUBST(DBUS_CFLAGS)
 
-AC_ARG_ENABLE([featured], AS_HELP_STRING([--disable-featured], [Disable all Featured uses]), have_featured=$enableval, have_featured=yes)
+AC_ARG_ENABLE([featured], AS_HELP_STRING([--enable-featured], [Enable all Featured uses]), have_featured=$enableval, have_featured=no)
 AM_CONDITIONAL(HAVE_FEATURED, test "$have_featured" = "yes")
 if test "$have_featured" = "yes"; then
     PKG_CHECK_MODULES([FEATURED], [ libfeatures_c ])
