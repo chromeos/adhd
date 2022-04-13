@@ -105,9 +105,6 @@ PKG_CHECK_MODULES([GMOCK], [ gmock >= 1.0 ])
 AC_CHECK_LIB(asound, snd_pcm_ioplug_create,,
 	     AC_ERROR([*** libasound has no external plugin SDK]), -ldl)
 
-AC_ARG_ENABLE([alsa-plugin], AS_HELP_STRING([--disable-alsa-plugin],
-                                            [Disable building of ALSA plugin]))
-
 AC_ARG_ENABLE([metrics], AS_HELP_STRING([--enable-metrics], [Enable metrics uses]), have_metrics=$enableval, have_metrics=no)
 if test "$have_metrics" = "yes"; then
     AC_DEFINE(HAVE_LIB_METRICS, 1, [Define to use libmetrics])
