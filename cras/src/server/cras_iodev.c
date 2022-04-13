@@ -42,6 +42,12 @@ static const float RAMP_RESUME_MUTE_DURATION_SECS = 1;
 static const float RAMP_SWITCH_MUTE_DURATION_SECS = 0.5;
 static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.1;
 
+/* The rate of attempt of fixing IODEV by resetting is limited to
+ * MAX_IODEV_RESET_TRIES tries per IODEV_RESET_TIMEWINDOW_SECS second.
+ */
+static const unsigned MAX_IODEV_RESET_TRIES = 5;
+static const float IODEV_RESET_TIMEWINDOW_SECS = 5.0;
+
 /*
  * It is the lastest time for the device to wake up when it is in the normal
  * run state. It represents how many remaining frames in the device buffer.
@@ -1542,9 +1548,25 @@ int cras_iodev_reset_request(struct cras_iodev *iodev)
 	 * state. We should ignore requests in this cause. Otherwise,
 	 * main thread will reset device multiple times.
 	 * The flag is cleared in cras_iodev_open.
+	 *
+	 * The number of resetting is limited by MAX_IODEV_RESET_TIMES
+	 * to avoid flooding system log.
 	 * */
 	if (iodev->reset_request_pending)
 		return 0;
+	// Token bucket algorithm for rate limiting
+	struct timespec current_ts, diff;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &current_ts);
+	subtract_timespecs(&current_ts, &iodev->last_reset, &diff);
+	iodev->num_reset -= (timespec_to_ms(&diff) / 1000.0) *
+			    MAX_IODEV_RESET_TRIES / IODEV_RESET_TIMEWINDOW_SECS;
+	iodev->num_reset = (iodev->num_reset < 0) ? 0.0 : iodev->num_reset;
+
+	if (iodev->num_reset > MAX_IODEV_RESET_TRIES - 1.0)
+		return 0;
+	iodev->num_reset += 1.0;
+	iodev->last_reset = current_ts;
+
 	iodev->reset_request_pending = 1;
 	return cras_device_monitor_reset_device(iodev->info.idx);
 }

@@ -31,6 +31,8 @@ static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;
 static const float RAMP_MUTE_DURATION_SECS = 0.1;
 static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.1;
 
+static const unsigned MAX_IODEV_RESET_TRIES = 5;
+
 static int cras_iodev_list_disable_dev_called;
 static int select_node_called;
 static enum CRAS_STREAM_DIRECTION select_node_direction;
@@ -2164,6 +2166,20 @@ TEST(IoDev, RequestReset) {
   // The reset request works.
   EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
   EXPECT_EQ(2, device_monitor_reset_device_called);
+
+  int expected_call_cnt = 2;
+
+  while (expected_call_cnt < MAX_IODEV_RESET_TRIES) {
+    cras_iodev_open(&iodev, 240, &audio_fmt);
+    EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
+    EXPECT_EQ(++expected_call_cnt, device_monitor_reset_device_called);
+  }
+
+  // After resetting `MAX_IODEV_RESET_TRIES` (= 5) times, reset request should
+  // do nothing.
+  cras_iodev_open(&iodev, 240, &audio_fmt);
+  EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
+  EXPECT_EQ(MAX_IODEV_RESET_TRIES, device_monitor_reset_device_called);
 }
 
 static int output_underrun(struct cras_iodev* iodev) {
