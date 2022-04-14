@@ -13,3 +13,37 @@ cc_library(
     visibility = ["//src/benchmark:__pkg__"],
     deps = ["//src/common:cras_types"],
 )
+
+cc_library(
+    name = "cras_alsa_helpers",
+    srcs = [
+        "cras_alsa_helpers.c",
+    ],
+    hdrs = ["cras_alsa_helpers.h"],
+    copts = ["-Isrc/common"],
+    visibility = ["//src/benchmark:__pkg__"],
+    deps = [
+        "//src/common:cras_types",
+        "//src/common:cras_util",
+    ],
+)
+
+cc_library(
+    name = "cras_alsa_ucm",
+    srcs = [
+        "cras_alsa_mixer_name.c",
+        "cras_alsa_mixer_name.h",
+        "cras_alsa_ucm.c",
+        "cras_alsa_ucm_section.c",
+    ],
+    hdrs = [
+        "cras_alsa_ucm.h",
+        "cras_alsa_ucm_section.h",
+    ],
+    copts = ["-Isrc/common"],
+    visibility = ["//src/benchmark:__pkg__"],
+    deps = [
+        "//src/common:cras_util",
+        "//src/common:utlist",
+    ],
+)

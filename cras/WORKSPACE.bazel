@@ -3,6 +3,10 @@
 # found in the LICENSE file.
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load(
+    ":pkg_config.bzl",
+    "pkg_config_repository",
+)
 
 # For building from ebuild, we need to download files from following http_archive urls,
 # upload those to chromeos-mirror by steps in
@@ -29,4 +33,13 @@ http_archive(
     sha256 = "cf3b76a90c86c0554c5b10f4b160f05af71d252026b71362c4674e2fb9936cf9",
     strip_prefix = "rules_cc-01d4a48911d5e7591ecb1c06d3b8af47fe872371",
     urls = ["https://github.com/bazelbuild/rules_cc/archive/01d4a48911d5e7591ecb1c06d3b8af47fe872371.zip"],
+)
+
+# pkg_config libraries
+pkg_config_repository(
+    name = "pkg_config",
+    libs = [
+        "libcros_config",
+        "libchrome",
+    ],
 )
