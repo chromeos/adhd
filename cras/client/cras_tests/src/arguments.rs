@@ -301,7 +301,32 @@ pub enum ControlCommand {
     ListInputDevices,
     ListOutputNodes,
     ListInputNodes,
-    DumpAudioDebugInfo,
+    DumpAudioDebugInfo(PrintMode),
+}
+
+/// Printing mode for dump_* commands
+#[derive(Debug, PartialEq)]
+pub enum PrintMode {
+    Text,
+    JSON,
+}
+
+impl PrintMode {
+    fn parse<T: AsRef<str>>(
+        program_name: &str,
+        dump_command_name: &str,
+        args: &[T],
+    ) -> Result<Self> {
+        let mut opts = Options::new();
+        opts.optflag("j", "json", "enable JSON mode");
+
+        let args = args.iter().map(|s| s.as_ref());
+        let matches = opts.parse(args).map_err(Error::GetOpts)?;
+        if matches.opt_present("j") {
+            return Ok(Self::JSON);
+        }
+        Ok(Self::Text)
+    }
 }
 
 impl ControlCommand {
@@ -347,7 +372,12 @@ impl ControlCommand {
             Some("list_input_devices") => Ok(Some(ControlCommand::ListInputDevices)),
             Some("list_output_nodes") => Ok(Some(ControlCommand::ListOutputNodes)),
             Some("list_input_nodes") => Ok(Some(ControlCommand::ListInputNodes)),
-            Some("dump_audio_debug_info") => Ok(Some(ControlCommand::DumpAudioDebugInfo)),
+            Some("dump_audio_debug_info") => {
+                let flags: Vec<&str> = args.collect();
+                Ok(Some(ControlCommand::DumpAudioDebugInfo(
+                    PrintMode::parse(program_name, "dump_audio_debug_info", &flags)?,
+                )))
+            }
             Some(s) => {
                 show_control_command_usage(program_name);
                 Err(Error::UnknownCommand(s.to_string()))

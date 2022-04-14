@@ -7,7 +7,7 @@ use std::fmt;
 
 use libcras::{AudioDebugInfo, CrasClient, CrasIonodeInfo};
 
-use crate::arguments::ControlCommand;
+use crate::arguments::{ControlCommand, PrintMode};
 
 /// An enumeration of errors that can occur when running `ControlCommand` using
 /// the `control()` function.
@@ -68,6 +68,10 @@ fn print_audio_debug_info(info: &AudioDebugInfo) {
     }
 }
 
+fn print_audio_debug_info_json(info: &AudioDebugInfo) {
+    serde_json::to_writer(std::io::stdout(), &info).unwrap();
+}
+
 /// Connect to CRAS and run the given `ControlCommand`.
 pub fn control(command: ControlCommand) -> Result<()> {
     use ControlCommand::*;
@@ -97,9 +101,12 @@ pub fn control(command: ControlCommand) -> Result<()> {
         }
         ListOutputNodes => print_nodes(cras_client.output_nodes()),
         ListInputNodes => print_nodes(cras_client.input_nodes()),
-        DumpAudioDebugInfo => {
+        DumpAudioDebugInfo(print_mode) => {
             let debug_info = cras_client.get_audio_debug_info().map_err(Error::Libcras)?;
-            print_audio_debug_info(&debug_info);
+            match print_mode {
+                PrintMode::Text => print_audio_debug_info(&debug_info),
+                PrintMode::JSON => print_audio_debug_info_json(&debug_info),
+            };
         }
     };
     Ok(())

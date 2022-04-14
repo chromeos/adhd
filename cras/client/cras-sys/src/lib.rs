@@ -13,6 +13,8 @@ use std::os::raw::c_char;
 use std::str::FromStr;
 use std::time::Duration;
 
+use serde::{Serialize, Serializer};
+
 /// Generated in build time.
 #[allow(dead_code)]
 #[allow(non_upper_case_globals)]
@@ -373,7 +375,7 @@ impl Default for audio_dev_debug_info {
 
 /// A rust-style representation of the server's packed audio_dev_debug_info
 /// struct.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct AudioDevDebugInfo {
     pub dev_name: String,
     pub buffer_size: u32,
@@ -535,7 +537,7 @@ impl TryFrom<i8> for CRAS_CHANNEL {
 
 /// A rust-style representation of the server's packed audio_stream_debug_info
 /// struct.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct AudioStreamDebugInfo {
     pub stream_id: u64,
     pub dev_idx: u32,
@@ -634,6 +636,7 @@ impl fmt::Display for AudioStreamDebugInfo {
 }
 
 /// A rust-style representation of the server's audio debug info.
+#[derive(Serialize)]
 pub struct AudioDebugInfo {
     pub devices: Vec<AudioDevDebugInfo>,
     pub streams: Vec<AudioStreamDebugInfo>,
@@ -714,3 +717,21 @@ impl FromStr for CRAS_SCREEN_ROTATION {
         }
     }
 }
+
+macro_rules! create_u32_enum_serializer {
+    ($enum_name:ty) => {
+        impl Serialize for $enum_name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                serializer.serialize_u32(*self as u32)
+            }
+        }
+    };
+}
+
+create_u32_enum_serializer!(CRAS_STREAM_DIRECTION);
+create_u32_enum_serializer!(CRAS_STREAM_TYPE);
+create_u32_enum_serializer!(CRAS_CLIENT_TYPE);
+create_u32_enum_serializer!(CRAS_CHANNEL);

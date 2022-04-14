@@ -10,6 +10,7 @@ dbus = "0.9"
 getopts = "0.2.18"
 hound = "3.4.0"
 libcras = { path = "../libcras" } # provided by ebuild
+serde_json = "1.0.64"
 sys_util = { path = "../../../../../platform/crosvm/common/sys_util" } # provided by ebuild
 thiserror = "1.0.20"
 
