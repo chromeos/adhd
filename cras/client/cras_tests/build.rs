@@ -18,5 +18,7 @@ const BINDINGS_TO_GENERATE: &[(&str, &str, BindingsType)] = &[(
 )];
 
 fn main() {
-    generate_module(Path::new(SOURCE_DIR), BINDINGS_TO_GENERATE).unwrap();
+    if let Err(e) = generate_module(Path::new(SOURCE_DIR), BINDINGS_TO_GENERATE) {
+        panic!("{}", e);
+    }
 }
