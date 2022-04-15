@@ -278,5 +278,9 @@ void detect_rtc_stream_pair(struct stream_list* list,
                             struct cras_rstream* stream) {
   return;
 }
+int cras_server_metrics_stream_connect_failure(
+    enum CRAS_STREAM_CONNECT_ERROR code) {
+  return 0;
+}
 
 }  // extern "C"

@@ -154,6 +154,8 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 			close(client_shm_fd);
 		if (aud_fd >= 0)
 			close(aud_fd);
+		cras_server_metrics_stream_connect_failure(
+			CRAS_STREAM_CONN_INVALID_FORMAT);
 		goto reply_err;
 	}
 
@@ -167,8 +169,23 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 		stream_config.client_type = client->client_type;
 	rc = stream_list_add(cras_iodev_list_get_stream_list(), &stream_config,
 			     &stream);
-	if (rc)
+	if (rc) {
+		/* Error log info in stream config so we can analyze if
+		 * certain property value could cause this stream error.
+		 */
+		syslog(LOG_ERR,
+		       "stream connection add fail: dir %u type %u client %u"
+		       "flags %u effects %u buffer %zu cb_thresh %zu"
+		       "fmt %d rate %zu ch %zu",
+		       stream_config.direction, stream_config.stream_type,
+		       stream_config.client_type, stream_config.flags,
+		       stream_config.effects, stream_config.buffer_frames,
+		       stream_config.cb_threshold, remote_fmt.format,
+		       remote_fmt.frame_rate, remote_fmt.num_channels);
+		cras_server_metrics_stream_connect_failure(
+			CRAS_STREAM_CONN_ADD_FAIL);
 		goto cleanup_config;
+	}
 
 	/* Tell client about the stream setup. */
 	syslog(LOG_DEBUG, "Send connected for stream %x\n", msg->stream_id);
@@ -183,6 +200,8 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 		if (aud_fd >= 0)
 			close(aud_fd);
 		rc = -EINVAL;
+		cras_server_metrics_stream_connect_failure(
+			CRAS_STREAM_CONN_INVALID_SHM_SIZE);
 		goto cleanup_config;
 	}
 	cras_fill_client_stream_connected(&stream_connected, 0, /* No error. */
@@ -192,8 +211,11 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 	reply = &stream_connected.header;
 
 	rc = cras_rstream_get_shm_fds(stream, &header_fd, &samples_fd);
-	if (rc)
+	if (rc) {
+		cras_server_metrics_stream_connect_failure(
+			CRAS_STREAM_CONN_INVALID_SHM_FDS);
 		goto cleanup_config;
+	}
 
 	stream_fds[0] = header_fd;
 	/* If we're using client-provided shm, samples_fd here refers to the
@@ -205,6 +227,8 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 		syslog(LOG_ERR, "Failed to send connected messaged\n");
 		stream_list_rm(cras_iodev_list_get_stream_list(),
 			       stream->stream_id);
+		cras_server_metrics_stream_connect_failure(
+			CRAS_STREAM_CONN_REPLY_FAIL);
 		goto cleanup_config;
 	}
 

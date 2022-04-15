@@ -40,6 +40,14 @@ enum CRAS_METRICS_BT_SCO_ERROR_TYPE {
 	CRAS_METRICS_SCO_SKT_POLL_ERR_HUP = 4,
 };
 
+enum CRAS_STREAM_CONNECT_ERROR {
+	CRAS_STREAM_CONN_INVALID_FORMAT,
+	CRAS_STREAM_CONN_INVALID_SHM_SIZE,
+	CRAS_STREAM_CONN_INVALID_SHM_FDS,
+	CRAS_STREAM_CONN_ADD_FAIL,
+	CRAS_STREAM_CONN_REPLY_FAIL,
+};
+
 /* Logs the error type happens when setting up SCO connection. This is mainly
  * used to track whether the setup of SCO connection succeeds and the frequency
  * of different errors. This will also be used to track if our fixes for these
@@ -127,6 +135,10 @@ int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num);
  * divide by the stream time. The final ratio is normalized by multipling
  * 10^9 for metric logging. */
 int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num);
+
+/* Logs client stream connection failures. */
+int cras_server_metrics_stream_connect_failure(
+	enum CRAS_STREAM_CONNECT_ERROR code);
 
 /* Initialize metrics logging stuff. */
 int cras_server_metrics_init();

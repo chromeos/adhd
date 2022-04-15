@@ -56,6 +56,7 @@ const char kSetAecRefDeviceType[] = "Cras.SetAecRefDeviceType";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
 const char kStreamClientTypeInput[] = "Cras.StreamClientTypeInput";
 const char kStreamClientTypeOutput[] = "Cras.StreamClientTypeOutput";
+const char kStreamConnectError[] = "Cras.StreamConnectError";
 const char kStreamFlags[] = "Cras.StreamFlags";
 const char kStreamEffects[] = "Cras.StreamEffects";
 const char kStreamRuntime[] = "Cras.StreamRuntime";
@@ -123,6 +124,7 @@ enum CRAS_SERVER_METRICS_TYPE {
 	RTC_RUNTIME,
 	SET_AEC_REF_DEVICE_TYPE,
 	STREAM_CONFIG,
+	STREAM_CONNECT_ERROR,
 	STREAM_RUNTIME
 };
 
@@ -1218,6 +1220,19 @@ int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num)
 	return 0;
 }
 
+int cras_server_metrics_stream_connect_failure(
+	enum CRAS_STREAM_CONNECT_ERROR code)
+{
+	int err;
+	err = send_unsigned_metrics(STREAM_CONNECT_ERROR, code);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message:  STREAM_CONNECT_ERROR");
+		return err;
+	}
+	return 0;
+}
+
 static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 {
 	switch (data.type) {
@@ -1506,6 +1521,10 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		break;
 	case STREAM_CONFIG:
 		metrics_stream_config(metrics_msg->data.stream_config);
+		break;
+	case STREAM_CONNECT_ERROR:
+		cras_metrics_log_sparse_histogram(kStreamConnectError,
+						  metrics_msg->data.value);
 		break;
 	case STREAM_RUNTIME:
 		metrics_stream_runtime(metrics_msg->data.stream_data);
