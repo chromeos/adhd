@@ -512,6 +512,7 @@ struct __attribute__((__packed__)) cras_bt_event_log {
 struct __attribute__((__packed__)) cras_bt_debug_info {
 	struct cras_bt_event_log bt_log;
 	struct packet_status_logger wbs_logger;
+	int32_t floss_enabled;
 };
 
 /*

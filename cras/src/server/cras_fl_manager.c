@@ -486,6 +486,7 @@ static void floss_stop(struct bt_stack *s)
 	dbus_connection_unregister_object_path(s->conn, CRAS_BT_OBJECT_PATH);
 }
 
+static bool floss_enabled;
 static struct bt_stack floss = {
 	.conn = NULL,
 	.start = floss_start,
@@ -494,10 +495,16 @@ static struct bt_stack floss = {
 
 void cras_floss_set_enabled(bool enable)
 {
+	floss_enabled = enable;
 	if (enable)
 		cras_bt_switch_stack(&floss);
 	else
 		cras_bt_switch_default_stack();
+}
+
+bool cras_floss_get_enabled()
+{
+	return floss_enabled;
 }
 
 int cras_floss_get_a2dp_enabled()

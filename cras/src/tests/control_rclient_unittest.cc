@@ -949,4 +949,8 @@ int cras_server_metrics_stream_connect_failure(
   return 0;
 }
 
+bool cras_floss_get_enabled() {
+  return false;
+}
+
 }  // extern "C"

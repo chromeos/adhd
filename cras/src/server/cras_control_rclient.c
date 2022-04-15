@@ -14,6 +14,7 @@
 #include "cras_control_rclient.h"
 #include "cras_dsp.h"
 #include "cras_floop_iodev.h"
+#include "cras_fl_manager.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #ifdef CRAS_DBUS
@@ -442,6 +443,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		memset(&state->bt_debug_info.wbs_logger, 0,
 		       sizeof(struct packet_status_logger));
 #endif
+		state->bt_debug_info.floss_enabled = cras_floss_get_enabled();
 
 		cras_fill_client_audio_debug_info_ready(&msg);
 		client->ops->send_message_to_client(client, &msg.header, NULL,

@@ -1363,6 +1363,9 @@ static void cras_bt_debug_info(struct cras_client *client)
 	fill_time_offset(&sec_offset, &nsec_offset);
 	j = info->bt_log.write_pos;
 	i = 0;
+
+	printf("Bluetooth Stack: %s\n",
+	       info->floss_enabled ? "Floss" : "BlueZ");
 	printf("BT debug log:\n");
 	for (; i < info->bt_log.len; i++) {
 		show_btlog_tag(&info->bt_log, j, sec_offset, nsec_offset);
