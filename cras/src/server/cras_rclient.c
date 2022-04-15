@@ -25,7 +25,6 @@
 #include "cras_types.h"
 #include "cras_unified_rclient.h"
 #include "cras_util.h"
-#include "stream_list.h"
 #include "utlist.h"
 
 /* Removes all streams that the client owns and destroys it. */
