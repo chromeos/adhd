@@ -266,12 +266,6 @@ void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id,
 			     void *dev_ptr);
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id);
 
-static inline void *cras_rstream_dev_ptr(struct cras_rstream *rstream,
-					 unsigned int dev_id)
-{
-	return buffer_share_get_data(rstream->buf_state, dev_id);
-}
-
 /* A device using this stream has read or written samples. */
 void cras_rstream_dev_offset_update(struct cras_rstream *rstream,
 				    unsigned int frames, unsigned int dev_id);

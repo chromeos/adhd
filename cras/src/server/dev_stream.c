@@ -65,7 +65,8 @@ unsigned int max_frames_for_conversion(unsigned int stream_frames,
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt,
-				     void *dev_ptr, struct timespec *cb_ts,
+				     struct cras_iodev *iodev,
+				     struct timespec *cb_ts,
 				     const struct timespec *sleep_interval_ts)
 {
 	struct dev_stream *out;
@@ -73,9 +74,9 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	int rc = 0;
 	unsigned int max_frames, dev_frames, buf_bytes;
 	const struct cras_audio_format *ofmt;
-	struct cras_iodev *iodev = (struct cras_iodev *)dev_ptr;
 
 	out = calloc(1, sizeof(*out));
+	out->iodev = iodev;
 	out->dev_id = dev_id;
 	out->stream = stream;
 	out->dev_rate = dev_fmt->frame_rate;
@@ -98,8 +99,8 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 		 * align with its life cycle, and then gets the post processing
 		 * format to configure format converter.
 		 */
-		cras_stream_apm_start(stream->stream_apm, dev_ptr);
-		ofmt = cras_rstream_post_processing_format(stream, dev_ptr) ?:
+		cras_stream_apm_start(stream->stream_apm, iodev);
+		ofmt = cras_rstream_post_processing_format(stream, iodev) ?:
 			       dev_fmt,
 		rc = config_format_converter(&out->conv, stream->direction,
 					     ofmt, stream_fmt,
@@ -142,7 +143,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 	stream->next_cb_ts = *cb_ts;
 
 	/* Sets up the stream & dev pair. */
-	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
+	cras_rstream_dev_attach(stream, dev_id, (void *)iodev);
 	cras_rtc_add_stream(stream, iodev);
 
 	return out;
@@ -150,10 +151,8 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 
 void dev_stream_destroy(struct dev_stream *dev_stream)
 {
-	void *dev_ptr =
-		cras_rstream_dev_ptr(dev_stream->stream, dev_stream->dev_id);
 	/* Stops the APM and then unlink the dev stream pair. */
-	cras_stream_apm_stop(dev_stream->stream->stream_apm, dev_ptr);
+	cras_stream_apm_stop(dev_stream->stream->stream_apm, dev_stream->iodev);
 	cras_rstream_dev_detach(dev_stream->stream, dev_stream->dev_id);
 	cras_rtc_remove_stream(dev_stream->stream, dev_stream->dev_id);
 	if (dev_stream->conv) {

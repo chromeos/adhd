@@ -472,7 +472,7 @@ unsigned int dev_stream_capture_avail(const struct dev_stream* dev_stream) {
 struct dev_stream* dev_stream_create(struct cras_rstream* stream,
                                      unsigned int dev_id,
                                      const struct cras_audio_format* dev_fmt,
-                                     void* dev_ptr,
+                                     struct cras_iodev* iodev,
                                      struct timespec* cb_ts,
                                      const struct timespec* sleep_interval_ts) {
   return 0;

@@ -23,6 +23,7 @@ struct cras_iodev;
  * Linked list of streams of audio from/to a client.
  * Args:
  *    dev_id - Index of the hw device.
+ *    iodev - The iodev |stream| is attaching to.
  *    stream - The rstream attached to a device.
  *    conv - Sample rate or format converter.
  *    conv_buffer - The buffer for converter if needed.
@@ -36,6 +37,7 @@ struct cras_iodev;
  */
 struct dev_stream {
 	unsigned int dev_id;
+	struct cras_iodev *iodev;
 	struct cras_rstream *stream;
 	struct cras_fmt_conv *conv;
 	struct byte_buffer *conv_buffer;
@@ -53,7 +55,7 @@ struct dev_stream {
  *    stream - The associated rstream.
  *    dev_id - Index of the device.
  *    dev_fmt - The format of the device.
- *    dev_ptr - A pointer to the device
+ *    iodev - A pointer to the iodev instance.
  *    cb_ts - A pointer to the initial callback time.
  *    sleep_interval_ts - A pointer to the initial sleep interval.
  *        Set to null to calculate the value from device rate and block size.
@@ -65,7 +67,8 @@ struct dev_stream {
 struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 				     unsigned int dev_id,
 				     const struct cras_audio_format *dev_fmt,
-				     void *dev_ptr, struct timespec *cb_ts,
+				     struct cras_iodev *iodev,
+				     struct timespec *cb_ts,
 				     const struct timespec *sleep_interval_ts);
 void dev_stream_destroy(struct dev_stream *dev_stream);
 
