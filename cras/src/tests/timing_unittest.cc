@@ -1237,6 +1237,9 @@ void cras_stream_apm_start(struct cras_stream_apm* stream,
                            const struct cras_iodev* idev){};
 void cras_stream_apm_stop(struct cras_stream_apm* stream,
                           struct cras_iodev* idev){};
+void cras_rtc_add_stream(struct cras_rstream* stream,
+                         struct cras_iodev* iodev) {}
+void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {}
 }  // extern "C"
 
 }  //  namespace

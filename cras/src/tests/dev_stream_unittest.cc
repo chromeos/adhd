@@ -1320,6 +1320,9 @@ void cras_fmt_conv_set_linear_resample_rates(struct cras_fmt_conv* conv,
 int cras_rstream_is_pending_reply(const struct cras_rstream* stream) {
   return cras_rstream_is_pending_reply_ret;
 }
+void cras_rtc_add_stream(struct cras_rstream* stream,
+                         struct cras_iodev* iodev) {}
+void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {}
 
 int cras_rstream_flush_old_audio_messages(struct cras_rstream* stream) {
   cras_rstream_flush_old_audio_messages_called++;

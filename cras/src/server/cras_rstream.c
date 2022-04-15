@@ -13,9 +13,7 @@
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_rclient.h"
-#include "cras_rtc.h"
 #include "cras_rstream.h"
-#include "cras_iodev.h"
 #include "cras_server_metrics.h"
 #include "cras_shm.h"
 #include "cras_types.h"
@@ -465,7 +463,6 @@ void cras_rstream_dev_attach(struct cras_rstream *rstream, unsigned int dev_id,
 		rstream->main_dev.dev_id = dev_id;
 		rstream->main_dev.dev_ptr = dev_ptr;
 	}
-	cras_rtc_add_stream(rstream, (struct cras_iodev *)dev_ptr);
 }
 
 void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
@@ -489,7 +486,6 @@ void cras_rstream_dev_detach(struct cras_rstream *rstream, unsigned int dev_id)
 			}
 		}
 	}
-	cras_rtc_remove_stream(rstream, dev_id);
 }
 
 void cras_rstream_dev_offset_update(struct cras_rstream *rstream,

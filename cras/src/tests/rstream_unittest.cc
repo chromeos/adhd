@@ -522,9 +522,6 @@ int cras_server_metrics_stream_create(
 int cras_server_metrics_stream_destroy(const struct cras_rstream* stream) {
   return 0;
 }
-void cras_rtc_add_stream(struct cras_rstream* stream,
-                         struct cras_iodev* iodev) {}
-void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {}
 
 #define FAKE_CRAS_APM_PTR reinterpret_cast<struct cras_apm*>(0x99)
 struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {

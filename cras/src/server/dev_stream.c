@@ -10,7 +10,9 @@
 #include "cras_fmt_conv.h"
 #include "dev_stream.h"
 #include "cras_audio_area.h"
+#include "cras_iodev.h"
 #include "cras_mix.h"
+#include "cras_rtc.h"
 #include "cras_server_metrics.h"
 #include "cras_shm.h"
 
@@ -141,6 +143,7 @@ struct dev_stream *dev_stream_create(struct cras_rstream *stream,
 
 	/* Sets up the stream & dev pair. */
 	cras_rstream_dev_attach(stream, dev_id, dev_ptr);
+	cras_rtc_add_stream(stream, iodev);
 
 	return out;
 }
@@ -152,6 +155,7 @@ void dev_stream_destroy(struct dev_stream *dev_stream)
 	/* Stops the APM and then unlink the dev stream pair. */
 	cras_stream_apm_stop(dev_stream->stream->stream_apm, dev_ptr);
 	cras_rstream_dev_detach(dev_stream->stream, dev_stream->dev_id);
+	cras_rtc_remove_stream(dev_stream->stream, dev_stream->dev_id);
 	if (dev_stream->conv) {
 		cras_audio_area_destroy(dev_stream->conv_area);
 		cras_fmt_conv_destroy(&dev_stream->conv);
