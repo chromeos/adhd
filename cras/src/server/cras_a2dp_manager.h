@@ -12,10 +12,24 @@
 struct cras_a2dp;
 struct fl_media;
 
+struct cras_fl_a2dp_codec_config {
+	int bits_per_sample;
+	int channel_mode;
+	int codec_priority;
+	int codec_type;
+	int sample_rate;
+	struct cras_fl_a2dp_codec_config *next;
+};
+
+/* Creates cras_fl_a2dp_codec object. */
+struct cras_fl_a2dp_codec_config *
+cras_floss_a2dp_codec_create(int bps, int channels, int priority, int type,
+			     int rate);
+
 /* Creates cras_a2dp object representing a connected a2dp device. */
-struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
-					 const char *name, int sample_rate,
-					 int bits_per_sample, int channel_mode);
+struct cras_a2dp *
+cras_floss_a2dp_create(struct fl_media *fm, const char *addr, const char *name,
+		       struct cras_fl_a2dp_codec_config *codecs);
 
 /* Destroys given cras_a2dp object. */
 void cras_floss_a2dp_destroy(struct cras_a2dp *a2dp);

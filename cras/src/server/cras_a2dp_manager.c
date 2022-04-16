@@ -23,6 +23,7 @@
 #include "cras_main_message.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
+#include "utlist.h"
 
 #define CRAS_A2DP_SOCKET_FILE ".a2dp"
 #define CRAS_A2DP_SUSPEND_DELAY_MS (5000)
@@ -75,6 +76,21 @@ struct a2dp_msg {
 	struct cras_iodev *dev;
 	unsigned int arg1;
 };
+
+struct cras_fl_a2dp_codec_config *
+cras_floss_a2dp_codec_create(int bps, int channels, int priority, int type,
+			     int rate)
+{
+	struct cras_fl_a2dp_codec_config *codec;
+	codec = (struct cras_fl_a2dp_codec_config *)calloc(1, sizeof(*codec));
+	codec->bits_per_sample = bps;
+	codec->codec_priority = priority;
+	codec->codec_type = type;
+	codec->channel_mode = channels;
+	codec->sample_rate = rate;
+
+	return codec;
+}
 
 void fill_floss_a2dp_skt_addr(struct sockaddr_un *addr)
 {
@@ -186,12 +202,20 @@ static void a2dp_process_msg(struct cras_main_message *msg, void *arg)
 	}
 }
 
-struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
-					 const char *name, int sample_rate,
-					 int bits_per_sample, int channel_mode)
+struct cras_a2dp *
+cras_floss_a2dp_create(struct fl_media *fm, const char *addr, const char *name,
+		       struct cras_fl_a2dp_codec_config *codecs)
 {
+	struct cras_fl_a2dp_codec_config *codec;
+
 	if (connected_a2dp) {
 		syslog(LOG_ERR, "A2dp already connected");
+		return NULL;
+	}
+
+	LL_SEARCH_SCALAR(codecs, codec, codec_type, FL_A2DP_CODEC_SRC_SBC);
+	if (codec == NULL) {
+		syslog(LOG_ERR, "No supported A2dp codec");
 		return NULL;
 	}
 
@@ -200,8 +224,10 @@ struct cras_a2dp *cras_floss_a2dp_create(struct fl_media *fm, const char *addr,
 	connected_a2dp->fm = fm;
 	connected_a2dp->addr = strdup(addr);
 	connected_a2dp->name = strdup(name);
-	connected_a2dp->iodev = a2dp_pcm_iodev_create(
-		connected_a2dp, sample_rate, bits_per_sample, channel_mode);
+	connected_a2dp->iodev =
+		a2dp_pcm_iodev_create(connected_a2dp, codec->sample_rate,
+				      codec->bits_per_sample,
+				      codec->channel_mode);
 	connected_a2dp->fd = -1;
 
 	BTLOG(btlog, BT_A2DP_START, 0, 0);

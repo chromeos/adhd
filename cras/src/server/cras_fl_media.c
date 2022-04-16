@@ -17,6 +17,7 @@
 #include "cras_fl_manager.h"
 #include "cras_fl_media.h"
 #include "cras_hfp_manager.h"
+#include "utlist.h"
 
 #define BT_SERVICE_NAME "org.chromium.bluetooth"
 /* Object path is of the form BT_OBJECT_BASE + hci + BT_OBJECT_MEDIA */
@@ -587,17 +588,233 @@ static int floss_media_register_callback(DBusConnection *conn,
 	return 0;
 }
 
+static struct cras_fl_a2dp_codec_config *
+parse_a2dp_codec(DBusMessageIter *codec)
+{
+	DBusMessageIter dict;
+	const char *key = NULL;
+	dbus_int32_t bps, channels, priority, type, rate;
+	bps = channels = priority = type = rate = -1;
+
+	dbus_message_iter_recurse(codec, &dict);
+	while (dbus_message_iter_get_arg_type(&dict) != DBUS_TYPE_INVALID) {
+		DBusMessageIter entry, var;
+		if (dbus_message_iter_get_arg_type(&dict) !=
+		    DBUS_TYPE_DICT_ENTRY) {
+			syslog(LOG_ERR, "entry not dictionary");
+			return NULL;
+		}
+
+		dbus_message_iter_recurse(&dict, &entry);
+		if (dbus_message_iter_get_arg_type(&entry) !=
+		    DBUS_TYPE_STRING) {
+			syslog(LOG_ERR, "entry not string");
+			return NULL;
+		}
+
+		dbus_message_iter_get_basic(&entry, &key);
+		dbus_message_iter_next(&entry);
+		if (dbus_message_iter_get_arg_type(&entry) !=
+		    DBUS_TYPE_VARIANT) {
+			syslog(LOG_ERR, "entry not variant");
+			return NULL;
+		}
+		dbus_message_iter_recurse(&entry, &var);
+		if (strcasecmp(key, "bits_per_sample") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT32)
+				goto invald_dict_value;
+
+			dbus_message_iter_get_basic(&var, &bps);
+		} else if (strcasecmp(key, "channel_mode") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT32)
+				goto invald_dict_value;
+
+			dbus_message_iter_get_basic(&var, &channels);
+		} else if (strcasecmp(key, "codec_priority") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT32)
+				goto invald_dict_value;
+
+			dbus_message_iter_get_basic(&var, &priority);
+		} else if (strcasecmp(key, "codec_type") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT32)
+				goto invald_dict_value;
+
+			dbus_message_iter_get_basic(&var, &type);
+		} else if (strcasecmp(key, "sample_rate") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT32)
+				goto invald_dict_value;
+
+			dbus_message_iter_get_basic(&var, &rate);
+		} else if (strcasecmp(key, "codec_specific_1") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT64)
+				goto invald_dict_value;
+
+			/* No active use case yet */
+		} else if (strcasecmp(key, "codec_specific_2") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT64)
+				goto invald_dict_value;
+
+			/* No active use case yet */
+		} else if (strcasecmp(key, "codec_specific_3") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT64)
+				goto invald_dict_value;
+
+			/* No active use case yet */
+		} else if (strcasecmp(key, "codec_specific_4") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT64)
+				goto invald_dict_value;
+
+			/* No active use case yet */
+		} else {
+			syslog(LOG_WARNING, "%s not supported, ignoring", key);
+		}
+
+		dbus_message_iter_next(&dict);
+	}
+
+	if (bps == -1 || channels == -1 || priority == -1 || type == -1 ||
+	    rate == -1) {
+		syslog(LOG_WARNING,
+		       "Ignore Incomplete a2dp_codec_config: ("
+		       "bits_per_sample:%d,"
+		       "channel_mode:%d,"
+		       "codec_priority:%d,"
+		       "codec_type:%d,"
+		       "sample_rate:%d)",
+		       bps, channels, priority, type, rate);
+		return NULL;
+	}
+
+	return cras_floss_a2dp_codec_create(bps, channels, priority, type,
+					    rate);
+invald_dict_value:
+	syslog(LOG_ERR, "Invalid value type for key %s", key);
+	return NULL;
+}
+
+static struct cras_fl_a2dp_codec_config *
+parse_a2dp_codecs(DBusMessageIter *codecs_iter)
+{
+	struct cras_fl_a2dp_codec_config *codecs = NULL, *config;
+	DBusMessageIter array_iter;
+
+	dbus_message_iter_recurse(codecs_iter, &array_iter);
+
+	while (dbus_message_iter_get_arg_type(&array_iter) !=
+	       DBUS_TYPE_INVALID) {
+		config = parse_a2dp_codec(&array_iter);
+		if (config) {
+			LL_APPEND(codecs, config);
+			syslog(LOG_DEBUG,
+			       "Parsed a2dp_codec_config: ("
+			       "bits_per_sample:%d,"
+			       "channel_mode:%d,"
+			       "codec_priority:%d,"
+			       "codec_type:%d,"
+			       "sample_rate:%d)",
+			       config->bits_per_sample, config->channel_mode,
+			       config->codec_priority, config->codec_type,
+			       config->sample_rate);
+		}
+		dbus_message_iter_next(&array_iter);
+	}
+
+	return codecs;
+}
+
+static bool parse_bluetooth_audio_device_added(
+	DBusMessage *message, const char **addr, const char **name,
+	struct cras_fl_a2dp_codec_config **codecs, dbus_int32_t *hfp_cap)
+{
+	DBusMessageIter iter, dict;
+	const char *remote_name, *address;
+
+	dbus_message_iter_init(message, &iter);
+
+	if (!dbus_message_has_signature(message, "a{sv}")) {
+		syslog(LOG_ERR,
+		       "Received wrong format BluetoothAudioDeviceAdded signal");
+		return FALSE;
+	}
+
+	dbus_message_iter_recurse(&iter, &dict);
+
+	while (dbus_message_iter_get_arg_type(&dict) != DBUS_TYPE_INVALID) {
+		DBusMessageIter entry, var;
+		const char *key;
+
+		if (dbus_message_iter_get_arg_type(&dict) !=
+		    DBUS_TYPE_DICT_ENTRY)
+			return FALSE;
+
+		dbus_message_iter_recurse(&dict, &entry);
+		if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_STRING)
+			return FALSE;
+
+		dbus_message_iter_get_basic(&entry, &key);
+		dbus_message_iter_next(&entry);
+		if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_VARIANT)
+			return FALSE;
+
+		dbus_message_iter_recurse(&entry, &var);
+		if (strcasecmp(key, "name") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_STRING)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var, &remote_name);
+		} else if (strcasecmp(key, "address") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_STRING)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var, &address);
+		} else if (strcasecmp(key, "a2dp_caps") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_ARRAY)
+				return FALSE;
+
+			*codecs = parse_a2dp_codecs(&var);
+		} else if (strcasecmp(key, "hfp_cap") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_INT32)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var, hfp_cap);
+		} else {
+			syslog(LOG_WARNING, "%s not supported, ignoring", key);
+		}
+		dbus_message_iter_next(&dict);
+	}
+
+	if (remote_name == NULL || address == NULL)
+		return FALSE;
+
+	*name = remote_name;
+	*addr = address;
+	return TRUE;
+}
+
 static DBusHandlerResult
 handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 {
 	int rc;
-	char *addr = NULL, *name = NULL;
+	const char *addr = NULL, *name = NULL;
 	int a2dp_avail = 0, hfp_avail = 0;
 	DBusError dbus_error;
-	dbus_int32_t sample_rate, bits_per_sample, channel_mode;
 	dbus_int32_t absolute_volume;
-	dbus_int32_t hfp_caps;
+	dbus_int32_t hfp_cap;
 	dbus_bool_t supported;
+	struct cras_fl_a2dp_codec_config *codecs = NULL;
 
 	syslog(LOG_DEBUG, "Bt Media callback message: %s %s %s",
 	       dbus_message_get_path(message),
@@ -607,22 +824,12 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 	if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
 					"OnBluetoothAudioDeviceAdded")) {
 		dbus_error_init(&dbus_error);
-		if (!dbus_message_get_args(
-			    message, &dbus_error, DBUS_TYPE_STRING, &addr,
-			    DBUS_TYPE_INT32, &sample_rate, DBUS_TYPE_INT32,
-			    &bits_per_sample, DBUS_TYPE_INT32, &channel_mode,
-			    DBUS_TYPE_INT32, &hfp_caps, DBUS_TYPE_STRING, &name,
-			    DBUS_TYPE_INVALID)) {
-			syslog(LOG_WARNING,
-			       "Bad OnBluetoothAudioDeviceAdded method received: %s",
-			       dbus_error.message);
-			dbus_error_free(&dbus_error);
+		if (!parse_bluetooth_audio_device_added(message, &addr, &name,
+							&codecs, &hfp_cap)) {
 			return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 		}
 
-		syslog(LOG_DEBUG,
-		       "OnBluetoothAudioDeviceAdded %s %d %d %d %d %s", addr,
-		       sample_rate, bits_per_sample, channel_mode, hfp_caps,
+		syslog(LOG_DEBUG, "OnBluetoothAudioDeviceAdded %s %s", addr,
 		       name);
 
 		if (!active_fm) {
@@ -630,10 +837,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 
-		a2dp_avail = cras_floss_get_a2dp_enabled() &&
-			     sample_rate != 0 && bits_per_sample != 0 &&
-			     channel_mode != 0;
-		hfp_avail = cras_floss_get_hfp_enabled() && hfp_caps;
+		a2dp_avail = cras_floss_get_a2dp_enabled() && codecs != NULL;
+		hfp_avail = cras_floss_get_hfp_enabled() && hfp_cap;
 
 		if (!a2dp_avail & !hfp_avail)
 			return DBUS_HANDLER_RESULT_HANDLED;
@@ -655,8 +860,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 				cras_floss_a2dp_destroy(active_fm->a2dp);
 			}
 			active_fm->a2dp = cras_floss_a2dp_create(
-				active_fm, addr, name, sample_rate,
-				bits_per_sample, channel_mode);
+				active_fm, addr, name, codecs);
 			bt_io_manager_append_iodev(
 				active_fm->bt_io_mgr,
 				cras_floss_a2dp_get_iodev(active_fm->a2dp),

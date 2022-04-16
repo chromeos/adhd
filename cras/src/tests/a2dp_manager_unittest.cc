@@ -38,6 +38,7 @@ static int floss_media_a2dp_stop_audio_request_called;
 static int floss_media_a2dp_set_volume_called;
 static int floss_media_a2dp_set_volume_arg;
 static int floss_media_a2dp_get_presentation_position_called;
+static struct cras_fl_a2dp_codec_config a2dp_codecs;
 
 void ResetStubData() {
   a2dp_pcm_update_volume_called = 0;
@@ -55,6 +56,7 @@ void ResetStubData() {
   floss_media_a2dp_get_presentation_position_called = 0;
   cras_tm_create_timer_called = 0;
   cras_tm_cancel_timer_called = 0;
+  a2dp_codecs.codec_type = FL_A2DP_CODEC_SRC_SBC;
 }
 
 namespace {
@@ -80,14 +82,14 @@ class A2dpManagerTestSuite : public testing::Test {
 TEST_F(A2dpManagerTestSuite, CreateDestroy) {
   a2dp_pcm_iodev_create_ret = reinterpret_cast<struct cras_iodev*>(0x123);
   struct cras_a2dp* a2dp =
-      cras_floss_a2dp_create(NULL, "addr", "name", 1, 1, 1);
+      cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
   EXPECT_EQ(a2dp, a2dp_pcm_iodev_create_a2dp_val);
   EXPECT_EQ(strncmp("name", cras_floss_a2dp_get_display_name(a2dp), 4), 0);
 
   // Expect another call to a2dp create returns null.
   struct cras_a2dp* expect_null =
-      cras_floss_a2dp_create(NULL, "addr2", "name2", 1, 1, 1);
+      cras_floss_a2dp_create(NULL, "addr2", "name2", &a2dp_codecs);
   EXPECT_EQ((void*)NULL, expect_null);
 
   cras_floss_a2dp_destroy(a2dp);
@@ -98,7 +100,7 @@ TEST_F(A2dpManagerTestSuite, CreateDestroy) {
 TEST_F(A2dpManagerTestSuite, StartStop) {
   struct cras_audio_format fmt;
   struct cras_a2dp* a2dp =
-      cras_floss_a2dp_create(NULL, "addr", "name", 1, 1, 1);
+      cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
 
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
@@ -126,7 +128,7 @@ TEST_F(A2dpManagerTestSuite, DelaySync) {
 
   a2dp_pcm_iodev_create_ret =
       (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
-  a2dp = cras_floss_a2dp_create(NULL, "addr", "name", 1, 1, 1);
+  a2dp = cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
   /* Assert the format converts to the correct bitmap as Floss defined */
@@ -219,7 +221,7 @@ TEST_F(A2dpManagerTestSuite, SetSupportAbsoluteVolume) {
   a2dp_pcm_iodev_create_ret =
       (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
   struct cras_a2dp* a2dp =
-      cras_floss_a2dp_create(NULL, "addr", "name", 1, 1, 1);
+      cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
   ASSERT_EQ(cras_floss_a2dp_get_support_absolute_volume(a2dp), false);
@@ -239,7 +241,7 @@ TEST_F(A2dpManagerTestSuite, UpdateVolume) {
   a2dp_pcm_iodev_create_ret =
       (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
   struct cras_a2dp* a2dp =
-      cras_floss_a2dp_create(NULL, "addr", "name", 1, 1, 1);
+      cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
   cras_floss_a2dp_update_volume(a2dp, 127);
@@ -266,7 +268,7 @@ TEST_F(A2dpManagerTestSuite, SetVolume) {
   a2dp_pcm_iodev_create_ret =
       (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
   struct cras_a2dp* a2dp =
-      cras_floss_a2dp_create(NULL, "addr", "name", 1, 1, 1);
+      cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
   cras_floss_a2dp_set_volume(a2dp, 100);

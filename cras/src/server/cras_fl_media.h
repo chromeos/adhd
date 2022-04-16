@@ -34,6 +34,16 @@
 #define FL_MODE_MONO 0x01
 #define FL_MODE_STEREO 0x02
 
+#define FL_A2DP_CODEC_SRC_SBC 0
+#define FL_A2DP_CODEC_SRC_AAC 1
+#define FL_A2DP_CODEC_SRC_APTX 2
+#define FL_A2DP_CODEC_SRC_APTXHD 3
+#define FL_A2DP_CODEC_SRC_LDAC 4
+#define FL_A2DP_CODEC_SINK_SBC 5
+#define FL_A2DP_CODEC_SINK_AAC 6
+#define FL_A2DP_CODEC_SINK_LDAC 7
+#define FL_A2DP_CODEC_MAX 8
+
 /* Bitmask form of enum defined on floss to expose HF's HFP codec capability. */
 #define FL_CODEC_NONE 0x00
 #define FL_CODEC_CVSD 0x01
