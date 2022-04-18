@@ -1,3 +1,4 @@
 target/
 .*.rustfmt
 src/bindings/
+Cargo.lock
