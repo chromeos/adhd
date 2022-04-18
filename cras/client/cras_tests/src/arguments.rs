@@ -5,85 +5,49 @@ use std::fmt;
 use std::path::PathBuf;
 
 use audio_streams::SampleFormat;
-use getopts::{self, Matches, Options};
+use clap::{ArgEnum, Args, Parser, Subcommand};
 use thiserror::Error as ThisError;
 
-use crate::getter::{self, GetCommand};
-use crate::setter::{self, SetCommand};
+use crate::getter::GetCommand;
+use crate::setter::SetCommand;
 
 #[derive(ThisError, Debug)]
 pub enum Error {
-    #[error("Getopts Error: {0:}")]
-    GetOpts(getopts::Fail),
-    #[error("Invalid {0:} argument '{1:}': {2:}")]
-    InvalidArgument(String, String, String),
     #[error("Invalid file extension '{0:}'. Supported types are 'wav' and 'raw'")]
     InvalidFiletype(String),
-    #[error("Missing argument for {0:}")]
-    MissingArgument(String),
-    #[error("A command must be provided")]
-    MissingCommand,
-    #[error("A file name must be provided")]
-    MissingFilename,
-    #[error("Unknown command '{0:}'")]
-    UnknownCommand(String),
-    #[error("failed in get command: {0:}")]
-    GetCommand(#[from] getter::Error),
-    #[error("failed in set command: {0:}")]
-    SetCommand(#[from] setter::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
 
-/// The different types of commands that can be given to cras_tests.
-/// Any options for those commands are passed as parameters to the enum values.
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Debug, Parser)]
+#[clap(global_setting(clap::AppSettings::DeriveDisplayOrder))]
 pub enum Command {
+    /// Capture to a file from CRAS
     Capture(AudioOptions),
+
+    /// Playback to CRAS from a file
     Playback(AudioOptions),
-    Control(ControlCommand),
-    Get(GetCommand),
-    Set(SetCommand),
+
+    /// Get and set server settings
+    Control {
+        #[clap(subcommand)]
+        command: ControlCommand,
+    },
+
+    /// Get server status or settings
+    Get {
+        #[clap(subcommand)]
+        command: GetCommand,
+    },
+
+    /// Set server status or settings
+    Set {
+        #[clap(subcommand)]
+        command: SetCommand,
+    },
 }
 
-impl Command {
-    pub fn parse<T: AsRef<str>>(args: &[T]) -> Result<Option<Self>> {
-        let program_name = args.get(0).map(|s| s.as_ref()).unwrap_or("cras_tests");
-        let remaining_args = args.get(2..).unwrap_or(&[]);
-        match args.get(1).map(|s| s.as_ref()) {
-            None => {
-                show_usage(program_name);
-                Err(Error::MissingCommand)
-            }
-            Some("help") => {
-                show_usage(program_name);
-                Ok(None)
-            }
-            Some("capture") => Ok(
-                AudioOptions::parse(program_name, "capture", remaining_args)?.map(Command::Capture),
-            ),
-            Some("playback") => Ok(
-                AudioOptions::parse(program_name, "playback", remaining_args)?
-                    .map(Command::Playback),
-            ),
-            Some("control") => {
-                Ok(ControlCommand::parse(program_name, remaining_args)?.map(Command::Control))
-            }
-            Some("get") => {
-                Ok(GetCommand::parse(program_name, "get", remaining_args)?.map(Command::Get))
-            }
-            Some("set") => {
-                Ok(SetCommand::parse(program_name, "set", remaining_args)?.map(Command::Set))
-            }
-            Some(s) => {
-                show_usage(program_name);
-                Err(Error::UnknownCommand(s.to_string()))
-            }
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, ArgEnum)]
 pub enum FileType {
     Raw,
     Wav,
@@ -98,296 +62,140 @@ impl fmt::Display for FileType {
     }
 }
 
-fn show_usage(program_name: &str) {
-    eprintln!("Usage: {} [command] <command args>", program_name);
-    eprintln!("\nCommands:\n");
-    eprintln!("capture - Capture to a file from CRAS");
-    eprintln!("playback - Playback to CRAS from a file");
-    eprintln!("control - Get and set server settings");
-    eprintln!("get - Get server status or settings");
-    eprintln!("set - Set server status or settings");
-    eprintln!("\nhelp - Print help message");
-}
-
-fn show_audio_command_usage(program_name: &str, command: &str, opts: &Options) {
-    let brief = format!("Usage: {} {} [options] [filename]", program_name, command);
-    eprint!("{}", opts.usage(&brief));
-}
-
 /// The possible command line options that can be passed to the 'playback' and
 /// 'capture' commands. Optional values will be `Some(_)` only if a value was
 /// explicitly provided by the user.
 ///
 /// This struct will be passed to `playback()` and `capture()`.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, ArgEnum)]
 pub enum LoopbackType {
+    #[clap(name = "pre_dsp")]
     PreDsp,
+    #[clap(name = "post_dsp")]
     PostDsp,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Debug, Args)]
 pub struct AudioOptions {
     pub file_name: PathBuf,
-    pub loopback_type: Option<LoopbackType>,
-    pub file_type: FileType,
+
+    /// Buffer size in frames
+    #[clap(short = 'b', long = "buffer_size")]
     pub buffer_size: Option<usize>,
+
+    /// Number of channels
+    #[clap(short = 'c', long = "channels")]
     pub num_channels: Option<usize>,
-    pub format: Option<SampleFormat>,
+
+    /// Sample format
+    #[clap(short = 'f', long, arg_enum)]
+    pub format: Option<SampleFormatArg>,
+
+    /// Audio frame rate (Hz)
+    #[clap(short = 'r', long = "rate")]
     pub frame_rate: Option<u32>,
-}
 
-fn get_u32_param(matches: &Matches, option_name: &str) -> Result<Option<u32>> {
-    matches.opt_get::<u32>(option_name).map_err(|e| {
-        let argument = matches.opt_str(option_name).unwrap_or_default();
-        Error::InvalidArgument(option_name.to_string(), argument, e.to_string())
-    })
-}
+    /// Capture from loopback device
+    #[clap(long = "loopback", arg_enum)]
+    pub loopback_type: Option<LoopbackType>,
 
-fn get_usize_param(matches: &Matches, option_name: &str) -> Result<Option<usize>> {
-    matches.opt_get::<usize>(option_name).map_err(|e| {
-        let argument = matches.opt_str(option_name).unwrap_or_default();
-        Error::InvalidArgument(option_name.to_string(), argument, e.to_string())
-    })
+    /// Type of the file. Defaults to file extension.
+    #[clap(long = "file_type", arg_enum)]
+    pub file_type_option: Option<FileType>,
 }
 
 impl AudioOptions {
-    fn parse<T: AsRef<str>>(
-        program_name: &str,
-        command_name: &str,
-        args: &[T],
-    ) -> Result<Option<Self>> {
-        let mut opts = Options::new();
-        opts.optopt("b", "buffer_size", "Buffer size in frames", "SIZE")
-            .optopt("c", "channels", "Number of channels", "NUM")
-            .optopt(
-                "f",
-                "format",
-                "Sample format (U8, S16_LE, S24_LE, or S32_LE)",
-                "FORMAT",
-            )
-            .optopt("r", "rate", "Audio frame rate (Hz)", "RATE")
-            .optflag("h", "help", "Print help message");
-
-        if command_name == "capture" {
-            opts.optopt(
-                "",
-                "loopback",
-                "Capture from loopback device ('pre_dsp' or 'post_dsp')",
-                "DEVICE",
-            );
-        }
-
-        let args = args.iter().map(|s| s.as_ref());
-        let matches = match opts.parse(args) {
-            Ok(m) => m,
-            Err(e) => {
-                show_audio_command_usage(program_name, command_name, &opts);
-                return Err(Error::GetOpts(e));
-            }
-        };
-        if matches.opt_present("h") {
-            show_audio_command_usage(program_name, command_name, &opts);
-            return Ok(None);
-        }
-
-        let loopback_type = if matches.opt_defined("loopback") {
-            match matches.opt_str("loopback").as_deref() {
-                Some("pre_dsp") => Some(LoopbackType::PreDsp),
-                Some("post_dsp") => Some(LoopbackType::PostDsp),
-                Some(s) => {
-                    return Err(Error::InvalidArgument(
-                        "loopback".to_string(),
-                        s.to_string(),
-                        "Loopback type must be 'pre_dsp' or 'post_dsp'".to_string(),
-                    ))
+    /// Returns the file type specified by the user, or
+    /// the file type derived from file_name.
+    pub fn file_type(&self) -> Result<FileType> {
+        match &self.file_type_option {
+            Some(ty) => Ok(ty.clone()),
+            None => {
+                let extension = self
+                    .file_name
+                    .extension()
+                    .map(|s| s.to_string_lossy().into_owned());
+                match extension.as_deref() {
+                    Some("wav") | Some("wave") => Ok(FileType::Wav),
+                    Some("raw") | None => Ok(FileType::Raw),
+                    Some(extension) => Err(Error::InvalidFiletype(extension.to_string())),
                 }
-                None => None,
             }
-        } else {
-            None
-        };
-
-        let file_name = match matches.free.get(0) {
-            None => {
-                show_audio_command_usage(program_name, command_name, &opts);
-                return Err(Error::MissingFilename);
-            }
-            Some(file_name) => PathBuf::from(file_name),
-        };
-
-        let extension = file_name
-            .extension()
-            .map(|s| s.to_string_lossy().into_owned());
-        let file_type = match extension.as_deref() {
-            Some("wav") | Some("wave") => FileType::Wav,
-            Some("raw") | None => FileType::Raw,
-            Some(extension) => return Err(Error::InvalidFiletype(extension.to_string())),
-        };
-
-        let buffer_size = get_usize_param(&matches, "buffer_size")?;
-        let num_channels = get_usize_param(&matches, "channels")?;
-        let frame_rate = get_u32_param(&matches, "rate")?;
-        let format = match matches.opt_str("format").as_deref() {
-            Some("U8") => Some(SampleFormat::U8),
-            Some("S16_LE") => Some(SampleFormat::S16LE),
-            Some("S24_LE") => Some(SampleFormat::S24LE),
-            Some("S32_LE") => Some(SampleFormat::S32LE),
-            Some(s) => {
-                show_audio_command_usage(program_name, command_name, &opts);
-                return Err(Error::InvalidArgument(
-                    "format".to_string(),
-                    s.to_string(),
-                    "Format must be 'U8', 'S16_LE', 'S24_LE', or 'S32_LE'".to_string(),
-                ));
-            }
-            None => None,
-        };
-
-        Ok(Some(AudioOptions {
-            loopback_type,
-            file_name,
-            file_type,
-            buffer_size,
-            num_channels,
-            format,
-            frame_rate,
-        }))
+        }
     }
 }
 
-fn show_control_command_usage(program_name: &str) {
-    eprintln!("Usage: {} control [command] <command args>", program_name);
-    eprintln!("");
-    eprintln!("Commands:");
-    let commands = [
-        ("help", "", "Print help message"),
-        ("", "", ""),
-        ("get_volume", "", "Get the system volume (0 - 100)"),
-        (
-            "set_volume",
-            "VOLUME",
-            "Set the system volume to VOLUME (0 - 100)",
-        ),
-        ("get_mute", "", "Get the system mute state (true or false)"),
-        (
-            "set_mute",
-            "MUTE",
-            "Set the system mute state to MUTE (true or false)",
-        ),
-        ("", "", ""),
-        ("list_output_devices", "", "Print list of output devices"),
-        ("list_input_devices", "", "Print list of input devices"),
-        ("list_output_nodes", "", "Print list of output nodes"),
-        ("list_input_nodes", "", "Print list of input nodes"),
-        (
-            "dump_audio_debug_info",
-            "",
-            "Print stream info, device info, and audio thread log.",
-        ),
-    ];
-    for command in &commands {
-        let command_string = format!("{} {}", command.0, command.1);
-        eprintln!("\t{: <23} {}", command_string, command.2);
+#[derive(PartialEq, Debug, Copy, Clone, ArgEnum)]
+pub enum SampleFormatArg {
+    #[clap(name = "U8")]
+    U8,
+
+    #[clap(name = "S16_LE")]
+    S16LE,
+
+    #[clap(name = "S24_LE")]
+    S24LE,
+
+    #[clap(name = "S32_LE")]
+    S32LE,
+}
+
+impl SampleFormatArg {
+    pub fn to_sample_format(self) -> SampleFormat {
+        use SampleFormatArg::*;
+        match self {
+            U8 => SampleFormat::U8,
+            S16LE => SampleFormat::S16LE,
+            S24LE => SampleFormat::S24LE,
+            S32LE => SampleFormat::S32LE,
+        }
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Debug, Subcommand)]
 pub enum ControlCommand {
+    /// Get the system volume (0 - 100)
+    #[clap(name = "get_volume")]
     GetSystemVolume,
-    SetSystemVolume(u32),
+
+    /// Set the system volume to VOLUME (0 - 100)
+    #[clap(name = "set_volume")]
+    SetSystemVolume { volume: u32 },
+
+    /// Get the system mute state (true or false)
+    #[clap(name = "get_mute")]
     GetSystemMute,
-    SetSystemMute(bool),
+
+    /// Set the system mute state to MUTE (true or false)
+    #[clap(name = "set_mute")]
+    SetSystemMute {
+        #[clap(parse(try_from_str))]
+        mute: bool,
+    },
+
+    /// Print list of output devices
+    #[clap(name = "list_output_devices")]
     ListOutputDevices,
+
+    /// Print list of input devices
+    #[clap(name = "list_input_devices")]
     ListInputDevices,
+
+    /// Print list of output nodes
+    #[clap(name = "list_output_nodes")]
     ListOutputNodes,
+
+    /// Print list of input nodes
+    #[clap(name = "list_input_nodes")]
     ListInputNodes,
-    DumpAudioDebugInfo(PrintMode),
-}
 
-/// Printing mode for dump_* commands
-#[derive(Debug, PartialEq)]
-pub enum PrintMode {
-    Text,
-    JSON,
-}
-
-impl PrintMode {
-    fn parse<T: AsRef<str>>(
-        program_name: &str,
-        dump_command_name: &str,
-        args: &[T],
-    ) -> Result<Self> {
-        let mut opts = Options::new();
-        opts.optflag("j", "json", "enable JSON mode");
-
-        let args = args.iter().map(|s| s.as_ref());
-        let matches = opts.parse(args).map_err(Error::GetOpts)?;
-        if matches.opt_present("j") {
-            return Ok(Self::JSON);
-        }
-        Ok(Self::Text)
-    }
-}
-
-impl ControlCommand {
-    fn parse<T: AsRef<str>>(program_name: &str, args: &[T]) -> Result<Option<Self>> {
-        let mut args = args.iter().map(|s| s.as_ref());
-        match args.next() {
-            Some("help") => {
-                show_control_command_usage(program_name);
-                Ok(None)
-            }
-            Some("get_volume") => Ok(Some(ControlCommand::GetSystemVolume)),
-            Some("set_volume") => {
-                let volume_str = args
-                    .next()
-                    .ok_or_else(|| Error::MissingArgument("set_volume".to_string()))?;
-
-                let volume = volume_str.parse::<u32>().map_err(|e| {
-                    Error::InvalidArgument(
-                        "set_volume".to_string(),
-                        volume_str.to_string(),
-                        e.to_string(),
-                    )
-                })?;
-
-                Ok(Some(ControlCommand::SetSystemVolume(volume)))
-            }
-            Some("get_mute") => Ok(Some(ControlCommand::GetSystemMute)),
-            Some("set_mute") => {
-                let mute_str = args
-                    .next()
-                    .ok_or_else(|| Error::MissingArgument("set_mute".to_string()))?;
-
-                let mute = mute_str.parse::<bool>().map_err(|e| {
-                    Error::InvalidArgument(
-                        "set_mute".to_string(),
-                        mute_str.to_string(),
-                        e.to_string(),
-                    )
-                })?;
-                Ok(Some(ControlCommand::SetSystemMute(mute)))
-            }
-            Some("list_output_devices") => Ok(Some(ControlCommand::ListOutputDevices)),
-            Some("list_input_devices") => Ok(Some(ControlCommand::ListInputDevices)),
-            Some("list_output_nodes") => Ok(Some(ControlCommand::ListOutputNodes)),
-            Some("list_input_nodes") => Ok(Some(ControlCommand::ListInputNodes)),
-            Some("dump_audio_debug_info") => {
-                let flags: Vec<&str> = args.collect();
-                Ok(Some(ControlCommand::DumpAudioDebugInfo(
-                    PrintMode::parse(program_name, "dump_audio_debug_info", &flags)?,
-                )))
-            }
-            Some(s) => {
-                show_control_command_usage(program_name);
-                Err(Error::UnknownCommand(s.to_string()))
-            }
-            None => {
-                show_control_command_usage(program_name);
-                Err(Error::MissingCommand)
-            }
-        }
-    }
+    /// Print stream info, device info
+    #[clap(name = "dump_audio_debug_info")]
+    DumpAudioDebugInfo {
+        /// Print as JSON
+        #[clap(long)]
+        json: bool,
+    },
 }
 
 #[cfg(test)]
@@ -396,30 +204,13 @@ mod tests {
 
     #[test]
     fn parse_command() {
-        let command = Command::parse(&["cras_tests", "playback", "output.wav"])
-            .unwrap()
-            .unwrap();
+        let command = Command::parse_from(&["cras_tests", "playback", "output.wav"]);
         assert_eq!(
             command,
             Command::Playback(AudioOptions {
                 file_name: PathBuf::from("output.wav"),
                 loopback_type: None,
-                file_type: FileType::Wav,
-                frame_rate: None,
-                num_channels: None,
-                format: None,
-                buffer_size: None,
-            })
-        );
-        let command = Command::parse(&["cras_tests", "capture", "input.raw"])
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            command,
-            Command::Capture(AudioOptions {
-                file_name: PathBuf::from("input.raw"),
-                loopback_type: None,
-                file_type: FileType::Raw,
+                file_type_option: None,
                 frame_rate: None,
                 num_channels: None,
                 format: None,
@@ -427,7 +218,21 @@ mod tests {
             })
         );
 
-        let command = Command::parse(&[
+        let command = Command::parse_from(&["cras_tests", "capture", "input.raw"]);
+        assert_eq!(
+            command,
+            Command::Capture(AudioOptions {
+                file_name: PathBuf::from("input.raw"),
+                loopback_type: None,
+                file_type_option: None,
+                frame_rate: None,
+                num_channels: None,
+                format: None,
+                buffer_size: None,
+            })
+        );
+
+        let command = Command::parse_from(&[
             "cras_tests",
             "playback",
             "-r",
@@ -435,15 +240,13 @@ mod tests {
             "output.wave",
             "-c",
             "2",
-        ])
-        .unwrap()
-        .unwrap();
+        ]);
         assert_eq!(
             command,
             Command::Playback(AudioOptions {
                 file_name: PathBuf::from("output.wave"),
                 loopback_type: None,
-                file_type: FileType::Wav,
+                file_type_option: None,
                 frame_rate: Some(44100),
                 num_channels: Some(2),
                 format: None,
@@ -452,15 +255,13 @@ mod tests {
         );
 
         let command =
-            Command::parse(&["cras_tests", "playback", "-r", "44100", "output", "-c", "2"])
-                .unwrap()
-                .unwrap();
+            Command::parse_from(&["cras_tests", "playback", "-r", "44100", "output", "-c", "2"]);
         assert_eq!(
             command,
             Command::Playback(AudioOptions {
                 file_name: PathBuf::from("output"),
                 loopback_type: None,
-                file_type: FileType::Raw,
+                file_type_option: None,
                 frame_rate: Some(44100),
                 num_channels: Some(2),
                 format: None,
@@ -468,18 +269,20 @@ mod tests {
             })
         );
 
-        assert!(Command::parse(&["cras_tests"]).is_err());
-        assert!(Command::parse(&["cras_tests", "capture"]).is_err());
-        assert!(Command::parse(&["cras_tests", "capture", "input.mp3"]).is_err());
-        assert!(Command::parse(&["cras_tests", "capture", "input.ogg"]).is_err());
-        assert!(Command::parse(&["cras_tests", "capture", "input.flac"]).is_err());
-        assert!(Command::parse(&["cras_tests", "playback"]).is_err());
-        assert!(Command::parse(&["cras_tests", "loopback"]).is_err());
-        assert!(Command::parse(&["cras_tests", "loopback", "file.ogg"]).is_err());
-        assert!(Command::parse(&["cras_tests", "filename.wav"]).is_err());
-        assert!(Command::parse(&["cras_tests", "filename.wav", "capture"]).is_err());
-        assert!(Command::parse(&["cras_tests", "help"]).is_ok());
-        assert!(Command::parse(&[
+        assert!(Command::try_parse_from(&["cras_tests"]).is_err());
+        assert!(Command::try_parse_from(&["cras_tests", "capture"]).is_err());
+        assert!(Command::try_parse_from(&["cras_tests", "playback"]).is_err());
+        assert!(Command::try_parse_from(&["cras_tests", "loopback"]).is_err());
+        assert!(Command::try_parse_from(&["cras_tests", "loopback", "filename.wav"]).is_err());
+        assert!(Command::try_parse_from(&["cras_tests", "filename.wav"]).is_err());
+        assert!(Command::try_parse_from(&["cras_tests", "filename.wav", "capture"]).is_err());
+        assert_eq!(
+            Command::try_parse_from(&["cras_tests", "help"])
+                .unwrap_err()
+                .kind(),
+            clap::ErrorKind::DisplayHelp
+        );
+        assert!(Command::try_parse_from(&[
             "cras_tests",
             "-c",
             "2",
@@ -489,5 +292,49 @@ mod tests {
             "44100"
         ])
         .is_err());
+    }
+
+    fn parse_file_type(args: &[&str]) -> Result<FileType> {
+        match Command::parse_from(args) {
+            Command::Playback(options) | Command::Capture(options) => options.file_type(),
+            _ => panic!("not playback/capture command"),
+        }
+    }
+
+    #[test]
+    fn file_type() {
+        assert_eq!(
+            parse_file_type(&["cras_tests", "playback", "output.wav"]).unwrap(),
+            FileType::Wav
+        );
+        assert_eq!(
+            parse_file_type(&["cras_tests", "capture", "input.raw"]).unwrap(),
+            FileType::Raw
+        );
+        assert_eq!(
+            parse_file_type(&[
+                "cras_tests",
+                "playback",
+                "-r",
+                "44100",
+                "output.wave",
+                "-c",
+                "2",
+            ])
+            .unwrap(),
+            FileType::Wav
+        );
+        assert!(matches!(
+            parse_file_type(&["cras_tests", "capture", "input.mp3"]).unwrap_err(),
+            Error::InvalidFiletype(_)
+        ));
+        assert!(matches!(
+            parse_file_type(&["cras_tests", "capture", "input.ogg"]).unwrap_err(),
+            Error::InvalidFiletype(_)
+        ));
+        assert!(matches!(
+            parse_file_type(&["cras_tests", "capture", "input.flac"]).unwrap_err(),
+            Error::InvalidFiletype(_)
+        ));
     }
 }

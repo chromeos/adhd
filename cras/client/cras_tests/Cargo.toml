@@ -6,8 +6,8 @@ edition = "2018"
 
 [dependencies]
 audio_streams = { path = "../../../../../platform/crosvm/common/audio_streams" } # provided by ebuild
+clap = { version = "3.1.10", features = ["derive"] }
 dbus = "0.9"
-getopts = "0.2.18"
 hound = "3.4.0"
 libcras = { path = "../libcras" } # provided by ebuild
 serde_json = "1.0.64"

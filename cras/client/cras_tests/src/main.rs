@@ -12,6 +12,8 @@ mod setter;
 use std::error;
 use std::fmt;
 
+use clap::Parser;
+
 use crate::arguments::Command;
 use crate::audio::{capture, playback};
 use crate::control::control;
@@ -43,18 +45,14 @@ impl fmt::Display for Error {
 type Result<T> = std::result::Result<T, Error>;
 
 fn run() -> Result<()> {
-    let args: Vec<String> = std::env::args().collect();
-    let command = match Command::parse(&args).map_err(Error::ParseArgs)? {
-        None => return Ok(()),
-        Some(v) => v,
-    };
+    let command = Command::parse();
 
     match command {
         Command::Capture(audio_opts) => capture(audio_opts).map_err(Error::Audio),
-        Command::Control(command) => control(command).map_err(Error::Control),
+        Command::Control { command } => control(command).map_err(Error::Control),
         Command::Playback(audio_opts) => playback(audio_opts).map_err(Error::Audio),
-        Command::Get(command) => command.run().map_err(Error::Get),
-        Command::Set(command) => command.run().map_err(Error::Set),
+        Command::Get { command } => command.run().map_err(Error::Get),
+        Command::Set { command } => command.run().map_err(Error::Set),
     }
 }
 

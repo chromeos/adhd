@@ -7,7 +7,7 @@ use std::fmt;
 
 use libcras::{AudioDebugInfo, CrasClient, CrasIonodeInfo};
 
-use crate::arguments::{ControlCommand, PrintMode};
+use crate::arguments::ControlCommand;
 
 /// An enumeration of errors that can occur when running `ControlCommand` using
 /// the `control()` function.
@@ -78,13 +78,13 @@ pub fn control(command: ControlCommand) -> Result<()> {
     let mut cras_client = CrasClient::new().map_err(Error::Libcras)?;
     match command {
         GetSystemVolume => println!("{}", cras_client.get_system_volume()),
-        SetSystemVolume(volume) => {
+        SetSystemVolume { volume } => {
             cras_client
                 .set_system_volume(volume)
                 .map_err(Error::Libcras)?;
         }
         GetSystemMute => println!("{}", cras_client.get_system_mute()),
-        SetSystemMute(mute) => {
+        SetSystemMute { mute } => {
             cras_client.set_system_mute(mute).map_err(Error::Libcras)?;
         }
         ListOutputDevices => {
@@ -101,12 +101,13 @@ pub fn control(command: ControlCommand) -> Result<()> {
         }
         ListOutputNodes => print_nodes(cras_client.output_nodes()),
         ListInputNodes => print_nodes(cras_client.input_nodes()),
-        DumpAudioDebugInfo(print_mode) => {
+        DumpAudioDebugInfo { json } => {
             let debug_info = cras_client.get_audio_debug_info().map_err(Error::Libcras)?;
-            match print_mode {
-                PrintMode::Text => print_audio_debug_info(&debug_info),
-                PrintMode::JSON => print_audio_debug_info_json(&debug_info),
-            };
+            if json {
+                print_audio_debug_info_json(&debug_info);
+            } else {
+                print_audio_debug_info(&debug_info);
+            }
         }
     };
     Ok(())

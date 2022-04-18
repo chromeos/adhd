@@ -15,7 +15,7 @@ use hound::{WavReader, WavSpec, WavWriter};
 use libcras::{BoxError, CrasClient, CrasNodeType};
 use sys_util::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 
-use crate::arguments::{AudioOptions, FileType, LoopbackType};
+use crate::arguments::{AudioOptions, FileType, LoopbackType, SampleFormatArg};
 
 #[derive(Debug)]
 pub enum Error {
@@ -29,6 +29,7 @@ pub enum Error {
     OpenFile(hound::Error),
     SampleBits(u16),
     SysUtil(sys_util::Error),
+    ParseArgs(crate::arguments::Error),
 }
 
 impl error::Error for Error {}
@@ -51,6 +52,7 @@ impl fmt::Display for Error {
                 bits
             ),
             SysUtil(e) => write!(f, "SysUtil Error: {}", e),
+            ParseArgs(e) => write!(f, "{}", e),
         }
     }
 }
@@ -113,8 +115,10 @@ impl WavSource {
             32 => SampleFormat::S32LE,
             s => return Err(Error::SampleBits(s)),
         };
-        if opts.format.is_some() && Some(format) != opts.format {
-            eprintln!("Warning: format changed to {:?}", format);
+        if let Some(formatopt) = opts.format {
+            if formatopt.to_sample_format() != format {
+                eprintln!("Warning: format changed to {:?}", format);
+            }
         }
 
         let num_channels = spec.channels as usize;
@@ -182,7 +186,9 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
     let num_channels;
     let frame_rate;
     let format;
-    let mut sample_source: Box<dyn Read> = match opts.file_type {
+    let file_type = opts.file_type().map_err(Error::ParseArgs)?;
+
+    let mut sample_source: Box<dyn Read> = match file_type {
         FileType::Wav => {
             let wav_source = WavSource::try_new(&opts)?;
             num_channels = wav_source.num_channels();
@@ -193,7 +199,10 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
         FileType::Raw => {
             num_channels = opts.num_channels.unwrap_or(2);
             frame_rate = opts.frame_rate.unwrap_or(48000);
-            format = opts.format.unwrap_or(SampleFormat::S16LE);
+            format = opts
+                .format
+                .unwrap_or(SampleFormatArg::S16LE)
+                .to_sample_format();
             Box::new(BufReader::new(
                 File::open(&opts.file_name).map_err(Error::Io)?,
             ))
@@ -202,7 +211,7 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
 
     println!(
         "Playing {} '{}' : {}, Rate {} Hz, {}",
-        opts.file_type,
+        file_type,
         opts.file_name.display(),
         format,
         frame_rate,
@@ -352,11 +361,15 @@ impl Write for WavSink {
 
 pub fn capture(opts: AudioOptions) -> Result<()> {
     let num_channels = opts.num_channels.unwrap_or(2);
-    let format = opts.format.unwrap_or(SampleFormat::S16LE);
+    let format = opts
+        .format
+        .unwrap_or(SampleFormatArg::S16LE)
+        .to_sample_format();
     let frame_rate = opts.frame_rate.unwrap_or(48000);
     let buffer_size = opts.buffer_size.unwrap_or(256);
+    let file_type = opts.file_type().map_err(Error::ParseArgs)?;
 
-    let mut sample_sink: Box<dyn Write> = match opts.file_type {
+    let mut sample_sink: Box<dyn Write> = match file_type {
         FileType::Raw => Box::new(BufWriter::new(
             File::create(&opts.file_name).map_err(Error::Io)?,
         )),
@@ -370,7 +383,7 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
 
     println!(
         "Recording {} '{}' : {}, Rate {} Hz, {}",
-        opts.file_type,
+        file_type,
         opts.file_name.display(),
         format,
         frame_rate,
