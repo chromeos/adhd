@@ -389,7 +389,12 @@ pub struct AudioDevDebugInfo {
     pub num_underruns: u32,
     pub num_severe_underruns: u32,
     pub highest_hw_level: u32,
+    #[serde(rename = "runtime_sec", serialize_with = "serialize_duration_secs")]
     pub runtime: Duration,
+    #[serde(
+        rename = "longest_wake_sec",
+        serialize_with = "serialize_duration_secs"
+    )]
     pub longest_wake: Duration,
     pub software_gain_scaler: f64,
 }
@@ -550,12 +555,17 @@ pub struct AudioStreamDebugInfo {
     pub flags: u32,
     pub frame_rate: u32,
     pub num_channels: u32,
+    #[serde(
+        rename = "longest_fetch_sec",
+        serialize_with = "serialize_duration_secs"
+    )]
     pub longest_fetch: Duration,
     pub num_delayed_fetches: u32,
     pub num_missed_cb: u32,
     pub num_overruns: u32,
     pub is_pinned: bool,
     pub pinned_dev_idx: u32,
+    #[serde(rename = "runtime_sec", serialize_with = "serialize_duration_secs")]
     pub runtime: Duration,
     pub stream_volume: f64,
     pub channel_layout: Vec<CRAS_CHANNEL>,
@@ -735,3 +745,11 @@ create_u32_enum_serializer!(CRAS_STREAM_DIRECTION);
 create_u32_enum_serializer!(CRAS_STREAM_TYPE);
 create_u32_enum_serializer!(CRAS_CLIENT_TYPE);
 create_u32_enum_serializer!(CRAS_CHANNEL);
+
+/// Serialize a Duration as seconds
+fn serialize_duration_secs<S>(d: &Duration, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_f64(d.as_secs_f64())
+}
