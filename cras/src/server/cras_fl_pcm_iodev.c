@@ -728,6 +728,9 @@ static void a2dp_set_volume(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
+	if (iodev->software_volume_needed)
+		return;
+
 	cras_floss_a2dp_set_volume(a2dpio->a2dp, iodev->active_node->volume);
 }
 

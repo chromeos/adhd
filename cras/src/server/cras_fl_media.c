@@ -733,7 +733,8 @@ parse_a2dp_codecs(DBusMessageIter *codecs_iter)
 
 static bool parse_bluetooth_audio_device_added(
 	DBusMessage *message, const char **addr, const char **name,
-	struct cras_fl_a2dp_codec_config **codecs, dbus_int32_t *hfp_cap)
+	struct cras_fl_a2dp_codec_config **codecs, dbus_int32_t *hfp_cap,
+	dbus_bool_t *abs_vol_supported)
 {
 	DBusMessageIter iter, dict;
 	const char *remote_name, *address;
@@ -746,8 +747,10 @@ static bool parse_bluetooth_audio_device_added(
 		return FALSE;
 	}
 
-	dbus_message_iter_recurse(&iter, &dict);
+	/* Default to False if not provided. */
+	*abs_vol_supported = FALSE;
 
+	dbus_message_iter_recurse(&iter, &dict);
 	while (dbus_message_iter_get_arg_type(&dict) != DBUS_TYPE_INVALID) {
 		DBusMessageIter entry, var;
 		const char *key;
@@ -790,6 +793,12 @@ static bool parse_bluetooth_audio_device_added(
 				return FALSE;
 
 			dbus_message_iter_get_basic(&var, hfp_cap);
+		} else if (strcasecmp(key, "absolute_volume") == 0) {
+			if (dbus_message_iter_get_arg_type(&var) !=
+			    DBUS_TYPE_BOOLEAN)
+				return FALSE;
+
+			dbus_message_iter_get_basic(&var, abs_vol_supported);
 		} else {
 			syslog(LOG_WARNING, "%s not supported, ignoring", key);
 		}
@@ -813,7 +822,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 	DBusError dbus_error;
 	dbus_int32_t absolute_volume;
 	dbus_int32_t hfp_cap;
-	dbus_bool_t supported;
+	dbus_bool_t abs_vol_supported;
 	struct cras_fl_a2dp_codec_config *codecs = NULL;
 
 	syslog(LOG_DEBUG, "Bt Media callback message: %s %s %s",
@@ -825,7 +834,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 					"OnBluetoothAudioDeviceAdded")) {
 		dbus_error_init(&dbus_error);
 		if (!parse_bluetooth_audio_device_added(message, &addr, &name,
-							&codecs, &hfp_cap)) {
+							&codecs, &hfp_cap,
+							&abs_vol_supported)) {
 			return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 		}
 
@@ -861,6 +871,9 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			}
 			active_fm->a2dp = cras_floss_a2dp_create(
 				active_fm, addr, name, codecs);
+
+			cras_floss_a2dp_set_support_absolute_volume(
+				active_fm->a2dp, abs_vol_supported);
 			bt_io_manager_append_iodev(
 				active_fm->bt_io_mgr,
 				cras_floss_a2dp_get_iodev(active_fm->a2dp),
@@ -942,17 +955,18 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 	} else if (dbus_message_is_method_call(
 			   message, BT_MEDIA_CALLBACK_INTERFACE,
 			   "OnAbsoluteVolumeSupportedChanged")) {
-		rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &supported);
+		rc = get_single_arg(message, DBUS_TYPE_BOOLEAN,
+				    &abs_vol_supported);
 		if (rc) {
 			syslog(LOG_ERR,
 			       "Failed to get support from OnAvrcpConnected");
 			return rc;
 		}
 		syslog(LOG_DEBUG, "OnAbsoluteVolumeSupportedChanged %d",
-		       supported);
+		       abs_vol_supported);
 		if (active_fm && active_fm->a2dp)
 			cras_floss_a2dp_set_support_absolute_volume(
-				active_fm->a2dp, supported);
+				active_fm->a2dp, abs_vol_supported);
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
