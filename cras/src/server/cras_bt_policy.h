@@ -54,6 +54,9 @@ void cras_bt_policy_stop();
  */
 int cras_bt_policy_switch_profile(struct bt_io_manager *mgr);
 
+/* Cleans up associated policy instnaces when bt_io_manager is removed. */
+void cras_bt_policy_remove_io_manager(struct bt_io_manager *mgr);
+
 /* Cleans up associated policy instances when device is removed. */
 void cras_bt_policy_remove_device(struct cras_bt_device *device);
 

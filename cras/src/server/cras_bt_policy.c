@@ -445,18 +445,24 @@ int cras_bt_policy_stop_connection_watch(struct cras_bt_device *device)
 	return 0;
 }
 
-void cras_bt_policy_remove_device(struct cras_bt_device *device)
+void cras_bt_policy_remove_io_manager(struct bt_io_manager *mgr)
 {
 	struct profile_switch_policy *policy;
 	struct cras_tm *tm = cras_system_state_get_tm();
 
-	DL_SEARCH_SCALAR(profile_switch_policies, policy, mgr,
-			 device->bt_io_mgr);
+	DL_SEARCH_SCALAR(profile_switch_policies, policy, mgr, mgr);
 	if (policy) {
 		DL_DELETE(profile_switch_policies, policy);
 		cras_tm_cancel_timer(tm, policy->timer);
 		free(policy);
 	}
+}
+
+void cras_bt_policy_remove_device(struct cras_bt_device *device)
+{
+	cras_bt_policy_remove_io_manager(device->bt_io_mgr);
+
+	/* Clean up the bt_device only stuff. */
 	cancel_suspend(device);
 	cras_bt_policy_stop_connection_watch(device);
 }

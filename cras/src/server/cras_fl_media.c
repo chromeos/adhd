@@ -13,6 +13,7 @@
 
 #include "cras_a2dp_manager.h"
 #include "cras_bt_io.h"
+#include "cras_bt_policy.h"
 #include "cras_fl_manager.h"
 #include "cras_fl_media.h"
 #include "cras_hfp_manager.h"
@@ -821,8 +822,10 @@ int floss_media_stop(DBusConnection *conn)
 
 	/* Clean up iodev when BT forced to stop. */
 	if (active_fm) {
-		if (active_fm->bt_io_mgr)
+		if (active_fm->bt_io_mgr) {
+			cras_bt_policy_remove_io_manager(active_fm->bt_io_mgr);
 			bt_io_manager_destroy(active_fm->bt_io_mgr);
+		}
 		if (active_fm->a2dp)
 			cras_floss_a2dp_destroy(active_fm->a2dp);
 		if (active_fm->hfp)
