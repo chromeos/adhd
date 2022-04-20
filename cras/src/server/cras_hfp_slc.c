@@ -1229,7 +1229,7 @@ int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle)
 int hfp_slc_codec_connection_setup(struct hfp_slc_handle *handle)
 {
 	/* The time we wait for codec selection response. */
-	static struct timespec timeout = { 0, 100000000 };
+	static struct timespec timeout = { 0, 300000000 };
 	struct pollfd poll_fd;
 	int rc = 0;
 	struct timespec ts = timeout;
