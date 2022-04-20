@@ -637,7 +637,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		/* Limit the log rate. */
 		if ((tstamp_now.tv_sec - tstamp_last_underrun_log.tv_sec) >
 		    UNDERRUN_LOG_TIME_SECS) {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "pcm_avail returned frames larger than buf_size: "
 			       "%s: %ld > %lu\n",
 			       dev_name, frames, buf_size);
@@ -647,6 +647,10 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		if ((frames - (snd_pcm_sframes_t)buf_size) >
 		    (snd_pcm_sframes_t)severe_underrun_frames) {
 			rc = -EPIPE;
+			syslog(LOG_ERR,
+			       "Severe underrun: pcm_avail %ld exceeds "
+			       "buf_size %lu by %lu",
+			       frames, buf_size, severe_underrun_frames);
 			goto error;
 		} else {
 			frames = buf_size;
