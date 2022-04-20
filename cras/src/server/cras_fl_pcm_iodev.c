@@ -149,22 +149,44 @@ static int fill_zeros_to_target_level(struct cras_iodev *iodev,
  * the time in a2dp case, because we lose track of samples once they're
  * flushed to socket.
  */
-static int output_underrun(struct cras_iodev *iodev)
+static int a2dp_output_underrun(struct cras_iodev *iodev)
 {
-	return 0;
+	unsigned int local_queued_frames = bt_local_queued_frames(iodev);
+
+	/*
+	 * Examples to help understand the check:
+	 *
+	 * [False-positive underrun]
+	 * Assume min_buffer_level = 1000, written 900, and flushes
+	 * 800 of data. Audio thread sees 1000 + 900 - 800 = 1100 of
+	 * data left. This is merely 100(< 900) above min_buffer_level
+	 * so audio_thread thinks it underruns, but actually not.
+	 *
+	 * [True underrun]
+	 * min_buffer_level = 1000, written 200, and flushes 800 of
+	 * data. Now that buffer runs lower than min_buffer_level so
+	 * it's indeed an underrun.
+	 */
+	if (local_queued_frames > iodev->min_buffer_level)
+		return 0;
+
+	/* Make sure the hw_level doesn't underrun after one flush. */
+	return fill_zeros_to_target_level(iodev, 2 * iodev->min_buffer_level);
 }
 
 /*
  * This will be called multiple times when a2dpio is in no_stream state
- * frames_to_play_in_sleep ops determins how regular this will be called.
+ * frames_to_play_in_sleep ops determines how regular this will be called.
  */
-static int enter_no_stream(struct fl_pcm_io *a2dpio)
+static int a2dp_enter_no_stream(struct cras_iodev *odev)
 {
-	struct cras_iodev *odev = &a2dpio->base;
 	int rc;
-
-	/* We want hw_level to stay bewteen 1-2 times of write_block. */
-	rc = fill_zeros_to_target_level(odev, 2 * a2dpio->write_block);
+	/*
+         * Setting target level to 3 times of min_buffer_level.
+         * We want hw_level to stay bewteen 1-2 times of min_buffer_level on
+	 * top of the underrun threshold(i.e one min_cb_level).
+         */
+	rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
 	if (rc)
 		syslog(LOG_ERR, "Error in A2DP enter_no_stream");
 	return flush(odev);
@@ -172,18 +194,17 @@ static int enter_no_stream(struct fl_pcm_io *a2dpio)
 
 /*
  * This is called when stream data is available to write. Prepare audio
- * data to one min_buffer_level. Don't flush it now because stream data is
+ * data to one write_block. Don't flush it now because stream data is
  * coming right up which will trigger next flush at appropriate time.
  */
-static int leave_no_stream(struct fl_pcm_io *a2dpio)
+static int a2dp_leave_no_stream(struct cras_iodev *odev)
 {
-	struct cras_iodev *odev = &a2dpio->base;
-
 	/*
 	 * Since stream data is ready, just make sure hw_level doesn't underrun
-	 * after one flush. Hence setting the target level to write_block.
+	 * after one flush. Hence setting the target level to 2 times of
+	 * min_buffer_level.
          */
-	return fill_zeros_to_target_level(odev, a2dpio->write_block);
+	return fill_zeros_to_target_level(odev, 2 * odev->min_buffer_level);
 }
 
 /*
@@ -194,12 +215,10 @@ static int leave_no_stream(struct fl_pcm_io *a2dpio)
  */
 static int a2dp_no_stream(struct cras_iodev *odev, int enable)
 {
-	struct fl_pcm_io *pcmio = (struct fl_pcm_io *)odev;
-
 	if (enable)
-		return enter_no_stream(pcmio);
+		return a2dp_enter_no_stream(odev);
 	else
-		return leave_no_stream(pcmio);
+		return a2dp_leave_no_stream(odev);
 }
 
 static int hfp_no_stream(struct cras_iodev *iodev, int enable)
@@ -279,9 +298,11 @@ static int a2dp_configure_dev(struct cras_iodev *iodev)
 			    &a2dpio->flush_period);
 
 	/*
-	 * As we directly write pcm here, there is no min buffer limitation.
+	 * Buffer level less than one preferable write_block to be sent in one
+	 * socket write. Configure min_buffer_level to this value so when stream
+	 * underruns, audio thread can take action to fill some zeros.
 	 */
-	iodev->min_buffer_level = 0;
+	iodev->min_buffer_level = a2dpio->write_block;
 
 	fd = cras_floss_a2dp_get_fd(a2dpio->a2dp);
 	audio_thread_add_events_callback(fd, a2dp_socket_write_cb, iodev,
@@ -551,10 +572,9 @@ do_flush:
 
 	format_bytes = cras_get_format_bytes(iodev->format);
 	if (bt_local_queued_frames(iodev) >= a2dpio->write_block) {
-		written = send(fd, buf_read_pointer(a2dpio->pcm_buf),
-			       MIN(a2dpio->write_block * format_bytes,
-				   buf_readable(a2dpio->pcm_buf)),
-			       MSG_DONTWAIT);
+		written =
+			send(fd, buf_read_pointer(a2dpio->pcm_buf),
+			     a2dpio->write_block * format_bytes, MSG_DONTWAIT);
 	}
 
 	ATLOG(atlog, AUDIO_THREAD_A2DP_WRITE, written / format_bytes,
@@ -598,7 +618,8 @@ do_flush:
 	 * to write more.
 	 */
 	queued_frames = buf_queued(a2dpio->pcm_buf) / format_bytes;
-	if (written && (queued_frames > a2dpio->write_block))
+	if (written &&
+	    (queued_frames >= a2dpio->write_block + iodev->min_buffer_level))
 		goto do_flush;
 
 	return 0;
@@ -759,11 +780,11 @@ struct fl_pcm_io *pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	iodev->get_buffer = get_buffer;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
-	iodev->output_underrun = output_underrun;
 
 	/* A2DP specific fields */
 	iodev->start = NULL;
 	iodev->frames_to_play_in_sleep = NULL;
+	iodev->output_underrun = NULL;
 
 	/* HFP specific fields */
 	iodev->is_free_running = NULL;
@@ -795,6 +816,7 @@ static void set_a2dp_callbacks(struct cras_iodev *a2dpio)
 
 	a2dpio->start = a2dp_start;
 	a2dpio->frames_to_play_in_sleep = a2dp_frames_to_play_in_sleep;
+	a2dpio->output_underrun = a2dp_output_underrun;
 }
 
 struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
