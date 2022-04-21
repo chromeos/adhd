@@ -17,7 +17,7 @@ CRAS = ChromeOS Audio Server
 # Configure
 CC=clang \
 CXX=clang++ \
-CXXFLAGS="-g -O2 -std=gnu++11 -Wall" \
+CXXFLAGS="-g -O2 -Wall" \
 CFLAGS="-g -O2 -Wall" \
 ./configure
 

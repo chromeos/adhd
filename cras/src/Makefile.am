@@ -5,6 +5,9 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
+AM_CFLAGS = -std=gnu11
+AM_CXXFLAGS = -std=gnu++17
+
 if HAVE_SSE42
 CRAS_SSE4_2 = libcrasmix_sse42.la
 else
@@ -843,8 +846,7 @@ dev_io_unittest_SOURCES = \
 	tests/metrics_stub.cc \
 	tests/rstream_stub.cc \
 	tests/dev_io_unittest.cc
-dev_io_unittest_CXXFLAGS = \
-	-std=c++11 -Wno-noexcept-type
+dev_io_unittest_CXXFLAGS = -Wno-noexcept-type
 dev_io_unittest_CPPFLAGS = \
 	$(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
@@ -1155,8 +1157,7 @@ timing_unittest_SOURCES = \
 	tests/metrics_stub.cc \
 	tests/rstream_stub.cc \
 	tests/timing_unittest.cc
-timing_unittest_CXXFLAGS = \
-	-std=c++11 -Wno-noexcept-type
+timing_unittest_CXXFLAGS = -Wno-noexcept-type
 timing_unittest_CPPFLAGS = \
 	$(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
