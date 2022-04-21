@@ -29,7 +29,10 @@ class BM_Apm : public benchmark::Fixture {
      * 480 frames of block size.
      */
     block_sz = rate / 100;
-    apm = webrtc_apm_create(2, rate, NULL, NULL);
+    apm = webrtc_apm_create_with_enforced_effects(
+        /*num_channels=*/2, rate, /*aec_ini=*/NULL, /*apm_ini=*/NULL,
+        /*enforce_aec_on=*/true, /*enforce_ns_on=*/false,
+        /*enforce_agc_on=*/true);
     int_samples = gen_s16_le_samples(block_sz * 2 * 2, engine);
     float_samples = gen_float_samples(block_sz * 2 * 2, engine);
   }
