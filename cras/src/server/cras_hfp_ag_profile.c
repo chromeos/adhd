@@ -71,7 +71,7 @@ static bool get_hfp_offload_feature_enabled()
 	return true;
 }
 #else
-const struct Feature AUDIO_HFP_OFFLOAD_FEATURE = {
+const struct VariationsFeature AUDIO_HFP_OFFLOAD_FEATURE = {
 	.name = "CrOSLateBootAudioHFPOffload",
 	.default_state = FEATURE_DISABLED_BY_DEFAULT,
 };
