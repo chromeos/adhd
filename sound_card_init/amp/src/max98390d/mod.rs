@@ -9,7 +9,12 @@ mod error;
 mod settings;
 
 use std::time::Duration;
-use std::{fs, path::Path};
+use std::{
+    fmt,
+    fmt::{Debug, Formatter},
+    fs,
+    path::Path,
+};
 
 use cros_alsa::{Card, IntControl, SwitchControl};
 use dsm::{CalibData, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
@@ -37,6 +42,55 @@ pub struct Max98390 {
     setting: AmpCalibSettings,
 }
 
+/// `Max98390CalibData` represents the Max98390 calibration data.
+#[derive(Clone, Copy)]
+struct Max98390CalibData {
+    /// The calibrated raw value of DC resistance of the speaker.
+    pub rdc: i32,
+    /// The ambient temperature in celsius unit at which the rdc is measured.
+    pub temp: f32,
+}
+
+impl CalibData for Max98390CalibData {
+    fn new(rdc: i32, temp: f32) -> Self {
+        Self { rdc, temp }
+    }
+
+    fn rdc(&self) -> i32 {
+        self.rdc
+    }
+
+    fn temp(&self) -> f32 {
+        self.temp
+    }
+
+    /// Converts the calibrated value to real DC resistance in ohm unit.
+    #[inline]
+    fn rdc_to_ohm(x: i32) -> f32 {
+        3.66 * (1 << 20) as f32 / x as f32
+    }
+}
+
+impl Max98390CalibData {
+    /// Converts the ambient temperature from celsius to the DSM unit.
+    #[inline]
+    fn celsius_to_dsm_unit(celsius: f32) -> i32 {
+        (celsius * ((1 << 12) as f32) / 100.0) as i32
+    }
+
+    /// Converts the ambient temperature from  DSM unit to celsius.
+    #[inline]
+    fn dsm_unit_to_celsius(temp: i32) -> f32 {
+        temp as f32 * 100.0 / (1 << 12) as f32
+    }
+}
+
+impl Debug for Max98390CalibData {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.debug_fmt(f)
+    }
+}
+
 impl Amp for Max98390 {
     /// Performs max98390d boot time calibration.
     ///
@@ -53,13 +107,12 @@ impl Amp for Max98390 {
         let mut dsm = DSM::new(
             &self.card.name(),
             self.setting.num_channels(),
-            Self::rdc_to_ohm,
             Self::TEMP_UPPER_LIMIT_CELSIUS,
             Self::TEMP_LOWER_LIMIT_CELSIUS,
         );
         dsm.set_temp_converter(TempConverter::new(
-            Self::dsm_unit_to_celsius,
-            Self::celsius_to_dsm_unit,
+            Max98390CalibData::dsm_unit_to_celsius,
+            Max98390CalibData::celsius_to_dsm_unit,
         ));
 
         // Needs Rdc updates to be done after internal speaker is ready otherwise
@@ -167,14 +220,14 @@ impl Max98390 {
     }
 
     /// Applies the calibration value to the amp.
-    fn apply_calibration_value(&mut self, calib: Vec<CalibData>) -> Result<()> {
-        for (ch, &CalibData { rdc, temp }) in calib.iter().enumerate() {
+    fn apply_calibration_value(&mut self, calib: Vec<Max98390CalibData>) -> Result<()> {
+        for (ch, &Max98390CalibData { rdc, temp }) in calib.iter().enumerate() {
             self.card
                 .control_by_name::<IntControl>(&self.setting.controls[ch].rdc_ctrl)?
                 .set(rdc)?;
             self.card
                 .control_by_name::<IntControl>(&self.setting.controls[ch].temp_ctrl)?
-                .set(Self::celsius_to_dsm_unit(temp))?;
+                .set(Max98390CalibData::celsius_to_dsm_unit(temp))?;
         }
         Ok(())
     }
@@ -183,7 +236,7 @@ impl Max98390 {
     /// from the mixer control.
     /// To get accurate calibration results, the main thread calibrates the amplifier while
     /// the `zero_player` starts another thread to play zeros to the speakers.
-    fn do_calibration(&mut self) -> Result<Vec<CalibData>> {
+    fn do_calibration(&mut self) -> Result<Vec<Max98390CalibData>> {
         let mut zero_player: ZeroPlayer = Default::default();
         zero_player.start(Self::RDC_CALIB_WARM_UP_TIME)?;
         // Playback of zeros is started for Self::RDC_CALIB_WARM_UP_TIME, and the main thread
@@ -204,32 +257,15 @@ impl Max98390 {
                     .get()?;
                 card.control_by_name::<SwitchControl>(&control.calib_ctrl)?
                     .off()?;
-                Ok(CalibData {
+                Ok(Max98390CalibData {
                     rdc,
-                    temp: Self::dsm_unit_to_celsius(temp),
+                    temp: Max98390CalibData::dsm_unit_to_celsius(temp),
                 })
             })
-            .collect::<Result<Vec<CalibData>>>()?;
+            .collect::<Result<Vec<Max98390CalibData>>>()?;
         zero_player.stop()?;
+        info!("Boot tiime calibration results: {:?}", calib);
         Ok(calib)
-    }
-
-    /// Converts the ambient temperature from celsius to the DSM unit.
-    #[inline]
-    fn celsius_to_dsm_unit(celsius: f32) -> i32 {
-        (celsius * ((1 << 12) as f32) / 100.0) as i32
-    }
-
-    /// Converts the ambient temperature from  DSM unit to celsius.
-    #[inline]
-    fn dsm_unit_to_celsius(temp: i32) -> f32 {
-        temp as f32 * 100.0 / (1 << 12) as f32
-    }
-
-    /// Converts the calibrated value to real DC resistance in ohm unit.
-    #[inline]
-    fn rdc_to_ohm(x: i32) -> f32 {
-        3.66 * (1 << 20) as f32 / x as f32
     }
 }
 
@@ -239,11 +275,11 @@ mod tests {
     #[test]
     fn celsius_to_dsm_unit() {
         assert_eq!(
-            Max98390::celsius_to_dsm_unit(Max98390::TEMP_UPPER_LIMIT_CELSIUS),
+            Max98390CalibData::celsius_to_dsm_unit(Max98390::TEMP_UPPER_LIMIT_CELSIUS),
             1638
         );
         assert_eq!(
-            Max98390::celsius_to_dsm_unit(Max98390::TEMP_LOWER_LIMIT_CELSIUS),
+            Max98390CalibData::celsius_to_dsm_unit(Max98390::TEMP_LOWER_LIMIT_CELSIUS),
             0
         );
     }
@@ -251,18 +287,18 @@ mod tests {
     #[test]
     fn dsm_unit_to_celsius() {
         assert_eq!(
-            Max98390::dsm_unit_to_celsius(1638).round(),
+            Max98390CalibData::dsm_unit_to_celsius(1638).round(),
             Max98390::TEMP_UPPER_LIMIT_CELSIUS
         );
         assert_eq!(
-            Max98390::dsm_unit_to_celsius(0),
+            Max98390CalibData::dsm_unit_to_celsius(0),
             Max98390::TEMP_LOWER_LIMIT_CELSIUS
         );
     }
 
     #[test]
     fn rdc_to_ohm() {
-        assert_eq!(Max98390::rdc_to_ohm(1123160), 3.416956);
-        assert_eq!(Max98390::rdc_to_ohm(1157049), 3.3168762);
+        assert_eq!(Max98390CalibData::rdc_to_ohm(1123160), 3.416956);
+        assert_eq!(Max98390CalibData::rdc_to_ohm(1157049), 3.3168762);
     }
 }

@@ -35,7 +35,7 @@ pub enum Error {
     #[error("invalid shutdown time")]
     InvalidShutDownTime,
     #[error("calibration difference is too large, calib: {0:?}")]
-    LargeCalibrationDiff(CalibData),
+    LargeCalibrationDiff(Box<dyn CalibData>),
     #[error("mutex is poisoned")]
     MutexPoisonError,
     #[error("{0}")]

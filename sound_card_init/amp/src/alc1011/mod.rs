@@ -6,6 +6,8 @@
 #![deny(missing_docs)]
 mod settings;
 
+use std::fmt;
+use std::fmt::{Debug, Formatter};
 use std::fs;
 use std::path::Path;
 
@@ -22,6 +24,48 @@ pub struct ALC1011 {
     setting: AmpCalibSettings,
 }
 
+/// `ALC1011CalibData` represents the ALC1011 calibration data.
+#[derive(Clone, Copy)]
+struct ALC1011CalibData {
+    /// The calibrated raw value of DC resistance of the speaker.
+    pub rdc: i32,
+    /// The ambient temperature in celsius unit at which the rdc is measured.
+    pub temp: f32,
+}
+
+impl CalibData for ALC1011CalibData {
+    fn new(rdc: i32, temp: f32) -> Self {
+        Self { rdc, temp }
+    }
+
+    fn rdc(&self) -> i32 {
+        self.rdc
+    }
+
+    fn temp(&self) -> f32 {
+        self.temp
+    }
+    /// Converts the calibrated value to real DC resistance in ohm unit.
+    #[inline]
+    fn rdc_to_ohm(x: i32) -> f32 {
+        (1 << 24) as f32 / x as f32
+    }
+}
+
+impl ALC1011CalibData {
+    /// Converts the ambient temperature from celsius to the DSM unit.
+    #[inline]
+    fn celsius_to_dsm_unit(celsius: f32) -> i32 {
+        celsius as i32
+    }
+}
+
+impl Debug for ALC1011CalibData {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.debug_fmt(f)
+    }
+}
+
 impl Amp for ALC1011 {
     /// Performs ALC1011 boot time calibration.
     ///
@@ -36,7 +80,6 @@ impl Amp for ALC1011 {
         let dsm = DSM::new(
             &self.card.name(),
             num_channels,
-            Self::rdc_to_ohm,
             Self::TEMP_UPPER_LIMIT_CELSIUS,
             Self::TEMP_LOWER_LIMIT_CELSIUS,
         );
@@ -77,28 +120,16 @@ impl ALC1011 {
     }
 
     /// Applies the calibration value to the amp.
-    fn apply_calibration_value(&mut self, calib: &[CalibData]) -> Result<()> {
-        for (ch, &CalibData { rdc, temp }) in calib.iter().enumerate() {
+    fn apply_calibration_value(&mut self, calib: &[ALC1011CalibData]) -> Result<()> {
+        for (ch, &ALC1011CalibData { rdc, temp }) in calib.iter().enumerate() {
             self.card
                 .control_by_name::<IntControl>(&self.setting.controls[ch].rdc_ctrl)?
                 .set(rdc)?;
             self.card
                 .control_by_name::<IntControl>(&self.setting.controls[ch].temp_ctrl)?
-                .set(Self::celsius_to_dsm_unit(temp))?;
+                .set(ALC1011CalibData::celsius_to_dsm_unit(temp))?;
         }
         Ok(())
-    }
-
-    /// Converts the calibrated value to real DC resistance in ohm unit.
-    #[inline]
-    fn rdc_to_ohm(x: i32) -> f32 {
-        (1 << 24) as f32 / x as f32
-    }
-
-    /// Converts the ambient temperature from celsius to the DSM unit.
-    #[inline]
-    fn celsius_to_dsm_unit(celsius: f32) -> i32 {
-        celsius as i32
     }
 }
 
@@ -108,11 +139,11 @@ mod tests {
 
     #[test]
     fn celsius_to_dsm_unit() {
-        assert_eq!(ALC1011::celsius_to_dsm_unit(25.0), 25);
+        assert_eq!(ALC1011CalibData::celsius_to_dsm_unit(25.0), 25);
     }
 
     #[test]
     fn rdc_to_ohm() {
-        assert_eq!(ALC1011::rdc_to_ohm(2081255), 8.061106);
+        assert_eq!(ALC1011CalibData::rdc_to_ohm(2081255), 8.061106);
     }
 }

@@ -10,7 +10,7 @@ mod vpd;
 mod zero_player;
 
 use std::{
-    env, thread,
+    env, fmt, thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -23,13 +23,44 @@ use crate::utils::{run_time, shutdown_time};
 use crate::vpd::VPD;
 pub use crate::zero_player::ZeroPlayer;
 
-#[derive(Debug, Clone, Copy)]
-/// `CalibData` represents the calibration data.
-pub struct CalibData {
-    /// The DC resistance of the speaker is DSM unit.
-    pub rdc: i32,
-    /// The ambient temperature in celsius unit at which the rdc is measured.
-    pub temp: f32,
+/// `CalibData` is the trait for the calibration data.
+pub trait CalibData: Send + fmt::Debug {
+    /// Creates `CalibData`. rdc is the DC resistance in raw data.
+    /// temp is the ambient temperature in celsius unit at which the
+    /// rdc is measured.
+    fn new(rdc: i32, temp: f32) -> Self
+    where
+        Self: Sized;
+    /// The function to convert the rdc to ohm unit.
+    fn rdc_to_ohm(rdc: i32) -> f32
+    where
+        Self: Sized;
+    /// The function to return the rdc in raw data.
+    fn rdc(&self) -> i32;
+    /// The function to return the rdc in ohm unit.
+    fn rdc_ohm(&self) -> f32
+    where
+        Self: Sized,
+    {
+        Self::rdc_to_ohm(self.rdc())
+    }
+    /// Return the ambient temperature in celsius unit at which the rdc is
+    /// measured.
+    fn temp(&self) -> f32;
+
+    /// It is used in the trait implementer's fmt::Debug so that the debug message
+    /// can be the same for all amps.
+    fn debug_fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
+    where
+        Self: Sized,
+    {
+        write!(
+            f,
+            "( rdc: {} ohm, temperature: {} C )",
+            self.rdc_ohm(),
+            self.temp()
+        )
+    }
 }
 
 /// `TempConverter` converts the temperature value between celsius and unit in VPD::dsm_calib_temp.
@@ -69,14 +100,14 @@ impl TempConverter {
 
 /// `SpeakerStatus` are the possible return results of
 /// DSM::check_speaker_over_heated_workflow.
-pub enum SpeakerStatus {
+pub enum SpeakerStatus<T: CalibData> {
     ///`SpeakerStatus::Cold` means the speakers are not overheated and the Amp can
     /// trigger the boot time calibration.
     Cold,
     /// `SpeakerStatus::Hot(Vec<CalibData>)` means the speakers may be too hot for calibration.
     /// The boot time calibration should be skipped and the Amp should use the previous
     /// calibration values returned by the enum.
-    Hot(Vec<CalibData>),
+    Hot(Vec<T>),
 }
 
 /// `DSM`, which implements the required initialization workflows for smart amps.
@@ -84,7 +115,6 @@ pub struct DSM {
     snd_card: String,
     num_channels: usize,
     temp_converter: TempConverter,
-    rdc_to_ohm: fn(i32) -> f32,
     temp_upper_limit: f32,
     temp_lower_limit: f32,
 }
@@ -100,7 +130,6 @@ impl DSM {
     ///
     /// * `snd_card` - `sound card name`.
     /// * `num_channels` - `number of channels`.
-    /// * `rdc_to_ohm` - `fn(rdc: i32) -> f32 to convert the CalibData::rdc to ohm unit`.
     /// * `temp_upper_limit` - the high limit of the valid ambient temperature in dsm unit.
     /// * `temp_lower_limit` - the low limit of the valid ambient temperature in dsm unit.
     ///
@@ -110,14 +139,12 @@ impl DSM {
     pub fn new(
         snd_card: &str,
         num_channels: usize,
-        rdc_to_ohm: fn(i32) -> f32,
         temp_upper_limit: f32,
         temp_lower_limit: f32,
     ) -> Self {
         Self {
             snd_card: snd_card.to_owned(),
             num_channels,
-            rdc_to_ohm,
             temp_converter: TempConverter::default(),
             temp_upper_limit,
             temp_lower_limit,
@@ -151,7 +178,7 @@ impl DSM {
     /// * The speakers are overheated and there are no previous calibration values stored.
     /// * Cannot determine whether the speakers are overheated as previous shutdown time record is
     ///   invalid.
-    pub fn check_speaker_over_heated_workflow(&self) -> Result<SpeakerStatus> {
+    pub fn check_speaker_over_heated_workflow<T: CalibData>(&self) -> Result<SpeakerStatus<T>> {
         if self.is_first_boot() {
             return Ok(SpeakerStatus::Cold);
         }
@@ -199,11 +226,11 @@ impl DSM {
     /// * VPD does not exist.
     /// * rdc difference is larger than `CALI_ERROR_UPPER_LIMIT`.
     /// * Failed to update Datastore.
-    pub fn decide_calibration_value_workflow(
+    pub fn decide_calibration_value_workflow<T: CalibData + 'static>(
         &self,
         channel: usize,
-        calib_data: CalibData,
-    ) -> Result<CalibData> {
+        calib_data: T,
+    ) -> Result<T> {
         // Look for datastore first
         let (datastore_exist, previous_calib) = match self.get_previous_calibration_value(channel) {
             Ok(previous_calib) => (true, previous_calib),
@@ -213,16 +240,16 @@ impl DSM {
             }
         };
 
-        if calib_data.temp < self.temp_lower_limit || calib_data.temp > self.temp_upper_limit {
+        if calib_data.temp() < self.temp_lower_limit || calib_data.temp() > self.temp_upper_limit {
             if env::var("BYPASS_TEMPERATURE_CHECK").is_ok() {
                 info!(
                     "BYPASS_TEMPERATURE_CHECK. Temperature: {}.",
-                    calib_data.temp
+                    calib_data.temp()
                 );
             } else {
                 info!(
                     "invalid temperature: {}. use previous calibration value",
-                    calib_data.temp
+                    calib_data.temp()
                 );
 
                 if !datastore_exist {
@@ -231,14 +258,18 @@ impl DSM {
                 return Ok(previous_calib);
             }
         }
+        info!(
+            "boot_time_calib: {:?}, previous_calib: {:?}",
+            calib_data, previous_calib
+        );
 
         let diff = {
-            let calib_rdc_ohm = (self.rdc_to_ohm)(calib_data.rdc);
-            let previous_rdc_ohm = (self.rdc_to_ohm)(previous_calib.rdc);
+            let calib_rdc_ohm = calib_data.rdc_ohm();
+            let previous_rdc_ohm = previous_calib.rdc_ohm();
             (calib_rdc_ohm - previous_rdc_ohm) / previous_rdc_ohm
         };
         if diff > Self::CALI_ERROR_UPPER_LIMIT {
-            Err(Error::LargeCalibrationDiff(calib_data))
+            Err(Error::LargeCalibrationDiff(Box::new(calib_data)))
         } else if diff < Self::CALI_ERROR_LOWER_LIMIT {
             if !datastore_exist {
                 Datastore::UseVPD.save(&self.snd_card, channel)?;
@@ -246,8 +277,8 @@ impl DSM {
             Ok(previous_calib)
         } else {
             Datastore::DSM {
-                rdc: calib_data.rdc,
-                temp: (self.temp_converter.celsius_to_vpd)(calib_data.temp),
+                rdc: calib_data.rdc(),
+                temp: (self.temp_converter.celsius_to_vpd)(calib_data.temp()),
             }
             .save(&self.snd_card, channel)?;
             Ok(calib_data)
@@ -263,7 +294,7 @@ impl DSM {
     /// # Errors
     ///
     /// * Failed to read vpd.
-    pub fn get_all_vpd_calibration_value(&self) -> Result<Vec<CalibData>> {
+    pub fn get_all_vpd_calibration_value<T: CalibData>(&self) -> Result<Vec<T>> {
         (0..self.num_channels)
             .map(|ch| self.get_vpd_calibration_value(ch))
             .collect::<Result<Vec<_>>>()
@@ -278,7 +309,7 @@ impl DSM {
     /// # Errors
     ///
     /// * Failed to read datastore.
-    fn get_all_previous_calibration_value(&self) -> Result<Vec<CalibData>> {
+    fn get_all_previous_calibration_value<T: CalibData>(&self) -> Result<Vec<T>> {
         (0..self.num_channels)
             .map(|ch| self.get_previous_calibration_value(ch))
             .collect::<Result<Vec<_>>>()
@@ -336,22 +367,22 @@ impl DSM {
         Ok(false)
     }
 
-    fn get_previous_calibration_value(&self, ch: usize) -> Result<CalibData> {
+    fn get_previous_calibration_value<T: CalibData>(&self, ch: usize) -> Result<T> {
         let sci_calib = Datastore::from_file(&self.snd_card, ch)?;
         match sci_calib {
             Datastore::UseVPD => self.get_vpd_calibration_value(ch),
-            Datastore::DSM { rdc, temp } => Ok(CalibData {
+            Datastore::DSM { rdc, temp } => Ok(CalibData::new(
                 rdc,
-                temp: (self.temp_converter.vpd_to_celsius)(temp),
-            }),
+                (self.temp_converter.vpd_to_celsius)(temp),
+            )),
         }
     }
 
-    fn get_vpd_calibration_value(&self, channel: usize) -> Result<CalibData> {
+    fn get_vpd_calibration_value<T: CalibData>(&self, channel: usize) -> Result<T> {
         let vpd = VPD::new(channel)?;
-        Ok(CalibData {
-            rdc: vpd.dsm_calib_r0,
-            temp: (self.temp_converter.vpd_to_celsius)(vpd.dsm_calib_temp),
-        })
+        Ok(CalibData::new(
+            vpd.dsm_calib_r0,
+            (self.temp_converter.vpd_to_celsius)(vpd.dsm_calib_temp),
+        ))
     }
 }

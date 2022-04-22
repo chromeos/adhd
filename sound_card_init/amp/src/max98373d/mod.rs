@@ -11,7 +11,11 @@ mod settings;
 
 use std::path::Path;
 use std::time::Duration;
-use std::{fs, thread};
+use std::{
+    fmt,
+    fmt::{Debug, Formatter},
+    fs, thread,
+};
 
 use cros_alsa::{Card, IntControl};
 use dsm::{CalibData, SpeakerStatus, ZeroPlayer, DSM};
@@ -26,6 +30,50 @@ use settings::{AmpCalibSettings, DeviceSettings};
 pub struct Max98373 {
     card: Card,
     setting: AmpCalibSettings,
+}
+
+/// `Max98373CalibData` represents the Max98373 calibration data.
+#[derive(Clone, Copy)]
+struct Max98373CalibData {
+    /// The calibrated raw value of DC resistance of the speaker.
+    pub rdc: i32,
+    /// The ambient temperature in celsius unit at which the rdc is measured.
+    pub temp: f32,
+}
+
+impl CalibData for Max98373CalibData {
+    fn new(rdc: i32, temp: f32) -> Self {
+        Self { rdc, temp }
+    }
+
+    fn rdc(&self) -> i32 {
+        self.rdc
+    }
+
+    fn temp(&self) -> f32 {
+        self.temp
+    }
+    /// Converts the calibrated value to real DC resistance in ohm unit.
+    /// Rdc (ohm) = [ID:0x12] * 3.66 / 2^27
+    #[inline]
+    fn rdc_to_ohm(x: i32) -> f32 {
+        (3.66 * x as f32) / (1 << 27) as f32
+    }
+}
+
+impl Max98373CalibData {
+    /// Converts the ambient temperature from celsius to the DsmSetAPI::DsmAmbientTemp unit.
+    #[inline]
+    fn celsius_to_dsm_unit(celsius: f32) -> i32 {
+        // Temperature (℃) = [ID:0x12] / 2^19
+        (celsius * (1 << 19) as f32) as i32
+    }
+}
+
+impl Debug for Max98373CalibData {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.debug_fmt(f)
+    }
 }
 
 impl Amp for Max98373 {
@@ -43,7 +91,6 @@ impl Amp for Max98373 {
         let dsm = DSM::new(
             &self.card.name(),
             num_channels,
-            Self::rdc_to_ohm,
             Self::TEMP_UPPER_LIMIT_CELSIUS,
             Self::TEMP_LOWER_LIMIT_CELSIUS,
         );
@@ -68,8 +115,11 @@ impl Amp for Max98373 {
                         .zip(all_temp)
                         .enumerate()
                         .map(|(ch, (&rdc, temp))| {
-                            dsm.decide_calibration_value_workflow(ch, CalibData { rdc, temp })
-                                .map_err(crate::Error::DSMError)
+                            dsm.decide_calibration_value_workflow(
+                                ch,
+                                Max98373CalibData { rdc, temp },
+                            )
+                            .map_err(crate::Error::DSMError)
                         })
                         .collect::<Result<Vec<_>>>()?
                 }
@@ -162,7 +212,7 @@ impl Max98373 {
     }
 
     /// Applies the calibration value to the amp.
-    fn apply_calibration_value(&mut self, calib: &[CalibData]) -> Result<()> {
+    fn apply_calibration_value(&mut self, calib: &[Max98373CalibData]) -> Result<()> {
         let mut dsm_param = DSMParam::new(
             &mut self.card,
             self.setting.num_channels(),
@@ -170,19 +220,13 @@ impl Max98373 {
         )?;
         for ch in 0..self.setting.num_channels() {
             dsm_param.set_rdc(ch, calib[ch].rdc);
-            dsm_param.set_ambient_temp(ch, Self::celsius_to_dsm_unit(calib[ch].temp));
+            dsm_param.set_ambient_temp(ch, Max98373CalibData::celsius_to_dsm_unit(calib[ch].temp));
         }
         self.card
             .control_tlv_by_name(&self.setting.dsm_param_write_ctrl)?
             .save(dsm_param.into())
             .map_err(Error::DSMParamUpdateFailed)?;
         Ok(())
-    }
-
-    /// Rdc (ohm) = [ID:0x12] * 3.66 / 2^27
-    #[inline]
-    fn rdc_to_ohm(x: i32) -> f32 {
-        (3.66 * x as f32) / (1 << 27) as f32
     }
 
     /// Returns the ambient temperature in celsius degree.
@@ -208,13 +252,6 @@ impl Max98373 {
     fn measured_temp_to_celsius(temp: i32) -> f32 {
         // Measured Temperature (°C) = ([Mixer Val] * 1.28) - 29
         (temp as f32 * 1.28) - 29.0
-    }
-
-    /// Converts the ambient temperature from celsius to the DsmSetAPI::DsmAmbientTemp unit.
-    #[inline]
-    fn celsius_to_dsm_unit(celsius: f32) -> i32 {
-        // Temperature (℃) = [ID:0x12] / 2^19
-        (celsius * (1 << 19) as f32) as i32
     }
 
     /// Sets the amp to the given smart pilot signal mode.
@@ -264,13 +301,13 @@ mod tests {
     use super::*;
     #[test]
     fn celsius_to_dsm_unit() {
-        assert_eq!(Max98373::celsius_to_dsm_unit(37.0), 0x01280000);
-        assert_eq!(Max98373::celsius_to_dsm_unit(50.0), 0x01900000);
+        assert_eq!(Max98373CalibData::celsius_to_dsm_unit(37.0), 0x01280000);
+        assert_eq!(Max98373CalibData::celsius_to_dsm_unit(50.0), 0x01900000);
     }
 
     #[test]
     fn rdc_to_ohm() {
-        assert_eq!(Max98373::rdc_to_ohm(0x05cea0c7), 2.656767);
+        assert_eq!(CalibData::rdc_to_ohm(0x05cea0c7), 2.656767);
     }
 
     #[test]
