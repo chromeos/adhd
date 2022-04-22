@@ -87,14 +87,15 @@ bool cras_floss_a2dp_get_support_absolute_volume(struct cras_a2dp *a2dp);
  * headset. */
 void cras_floss_a2dp_update_volume(struct cras_a2dp *a2dp, unsigned int volume);
 
-/* Set the volume of connected a2dp device. */
+/* Set the volume of the given a2dp device. */
 void cras_floss_a2dp_set_volume(struct cras_a2dp *a2dp, unsigned int volume);
 
 /* Schedule a suspend request of the a2dp device. Should be called in
  * the context of audio threead. */
-void cras_a2dp_schedule_suspend(unsigned int msec);
+void cras_floss_a2dp_schedule_suspend(struct cras_a2dp *a2dp,
+				      unsigned int msec);
 
-/* Cancel a pending suspend request if exist of the a2dp device. */
-void cras_a2dp_cancel_suspend();
+/* Cancel a pending suspend request if exist of the given a2dp device. */
+void cras_floss_a2dp_cancel_suspend(struct cras_a2dp *a2dp);
 
 #endif /* CRAS_A2DP_MANAGER_H_ */

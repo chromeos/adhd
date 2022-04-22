@@ -472,7 +472,7 @@ static int a2dp_close_dev(struct cras_iodev *iodev)
 
 	cras_floss_a2dp_stop(a2dpio->a2dp);
 
-	cras_a2dp_cancel_suspend();
+	cras_floss_a2dp_cancel_suspend(a2dpio->a2dp);
 	byte_buffer_destroy(&a2dpio->pcm_buf);
 	cras_iodev_free_format(iodev);
 	cras_iodev_free_audio_area(iodev);
@@ -584,12 +584,12 @@ do_flush:
 		if (errno == EAGAIN) {
 			/* If EAGAIN error lasts longer than 5 seconds, suspend
 			 * the a2dp connection. */
-			cras_a2dp_schedule_suspend(5000);
+			cras_floss_a2dp_schedule_suspend(a2dpio->a2dp, 5000);
 			audio_thread_config_events_callback(fd, TRIGGER_WAKEUP);
 			return 0;
 		} else {
-			cras_a2dp_cancel_suspend();
-			cras_a2dp_schedule_suspend(0);
+			cras_floss_a2dp_cancel_suspend(a2dpio->a2dp);
+			cras_floss_a2dp_schedule_suspend(a2dpio->a2dp, 0);
 
 			audio_thread_config_events_callback(fd, TRIGGER_NONE);
 			return written;
@@ -612,7 +612,7 @@ do_flush:
 	 * the polling write callback. */
 	audio_thread_config_events_callback(fd, TRIGGER_NONE);
 
-	cras_a2dp_cancel_suspend();
+	cras_floss_a2dp_cancel_suspend(a2dpio->a2dp);
 
 	/* If it looks okay to write more and we do have queued data, try
 	 * to write more.

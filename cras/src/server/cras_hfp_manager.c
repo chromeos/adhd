@@ -51,8 +51,6 @@ struct cras_hfp {
 	int odev_started;
 };
 
-static struct cras_hfp *connected_hfp = NULL;
-
 void fill_floss_hfp_skt_addr(struct sockaddr_un *addr)
 {
 	memset(addr, 0, sizeof(struct sockaddr_un));
@@ -74,25 +72,25 @@ void set_dev_started(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir,
 struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
 				       const char *name)
 {
-	if (connected_hfp) {
-		syslog(LOG_ERR, "Hfp already connected");
+	struct cras_hfp *hfp;
+	hfp = (struct cras_hfp *)calloc(1, sizeof(*hfp));
+
+	if (!hfp)
+		return NULL;
+
+	hfp->fm = fm;
+	hfp->addr = strdup(addr);
+	hfp->name = strdup(name);
+	hfp->fd = -1;
+	hfp->idev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_INPUT);
+	hfp->odev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_OUTPUT);
+	if (!hfp->idev || !hfp->odev) {
+		syslog(LOG_ERR, "Failed to create hfp pcm_iodev for %s", name);
+		cras_floss_hfp_destroy(hfp);
 		return NULL;
 	}
-	connected_hfp = (struct cras_hfp *)calloc(1, sizeof(*connected_hfp));
 
-	if (!connected_hfp)
-		return NULL;
-
-	connected_hfp->fm = fm;
-	connected_hfp->addr = strdup(addr);
-	connected_hfp->name = strdup(name);
-	connected_hfp->idev =
-		hfp_pcm_iodev_create(connected_hfp, CRAS_STREAM_INPUT);
-	connected_hfp->odev =
-		hfp_pcm_iodev_create(connected_hfp, CRAS_STREAM_OUTPUT);
-
-	connected_hfp->fd = -1;
-	return connected_hfp;
+	return hfp;
 }
 
 int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
@@ -263,5 +261,4 @@ void cras_floss_hfp_destroy(struct cras_hfp *hfp)
 	/* Must be the only static connected hfp that we are destroying,
 	 * so clear it. */
 	free(hfp);
-	connected_hfp = NULL;
 }

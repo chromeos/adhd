@@ -42,12 +42,12 @@ struct delay_sync_policy {
  * Object holding information and resources of a connected A2DP headset.
  * Members:
  *    fm - Object representing the media interface of BT adapter.
- *    iodev - The connected a2dp iodev.
+ *    iodev - The iodev of the connected a2dp.
  *    fd - The socket fd to send pcm audio to the a2dp device.
  *    suspend_timer - Timer to schedule suspending iodev at failures.
  *    delay_sync - The object representing scheduled delay sync task.
- *    addr - The address of connected a2dp device.
- *    name - The name of connected a2dp device.
+ *    addr - The address of the connected a2dp device.
+ *    name - The name of the connected a2dp device.
  *    support_absolute_volume - If the connected a2dp device supports absolute
  *    volume.
  */
@@ -61,9 +61,6 @@ struct cras_a2dp {
 	char *name;
 	bool support_absolute_volume;
 };
-
-/* We assume at most one connected A2DP headset at this moment. */
-static struct cras_a2dp *connected_a2dp = NULL;
 
 enum A2DP_COMMAND {
 	A2DP_CANCEL_SUSPEND,
@@ -102,28 +99,28 @@ void fill_floss_a2dp_skt_addr(struct sockaddr_un *addr)
 
 static void a2dp_suspend_cb(struct cras_timer *timer, void *arg);
 
-static void a2dp_schedule_suspend(unsigned int msec)
+static void a2dp_schedule_suspend(struct cras_a2dp *a2dp, unsigned int msec)
 {
 	struct cras_tm *tm;
 
-	if (connected_a2dp->suspend_timer)
+	if (a2dp->suspend_timer)
 		return;
 
 	tm = cras_system_state_get_tm();
-	connected_a2dp->suspend_timer =
-		cras_tm_create_timer(tm, msec, a2dp_suspend_cb, NULL);
+	a2dp->suspend_timer =
+		cras_tm_create_timer(tm, msec, a2dp_suspend_cb, a2dp);
 }
 
-static void a2dp_cancel_suspend()
+static void a2dp_cancel_suspend(struct cras_a2dp *a2dp)
 {
 	struct cras_tm *tm;
 
-	if (connected_a2dp->suspend_timer == NULL)
+	if (a2dp->suspend_timer == NULL)
 		return;
 
 	tm = cras_system_state_get_tm();
-	cras_tm_cancel_timer(tm, connected_a2dp->suspend_timer);
-	connected_a2dp->suspend_timer = NULL;
+	cras_tm_cancel_timer(tm, a2dp->suspend_timer);
+	a2dp->suspend_timer = NULL;
 }
 
 static void delay_sync_cb(struct cras_timer *timer, void *arg)
@@ -183,19 +180,19 @@ static void cancel_a2dp_delay_sync(struct cras_a2dp *a2dp)
 static void a2dp_process_msg(struct cras_main_message *msg, void *arg)
 {
 	struct a2dp_msg *a2dp_msg = (struct a2dp_msg *)msg;
+	struct cras_a2dp *a2dp = (struct cras_a2dp *)arg;
 
 	/* If the message was originated when another a2dp iodev was
 	 * connected, simply ignore it. */
-	if (a2dp_msg->dev == NULL || !connected_a2dp ||
-	    connected_a2dp->iodev != a2dp_msg->dev)
+	if (a2dp_msg->dev == NULL || !a2dp || a2dp->iodev != a2dp_msg->dev)
 		return;
 
 	switch (a2dp_msg->cmd) {
 	case A2DP_CANCEL_SUSPEND:
-		a2dp_cancel_suspend();
+		a2dp_cancel_suspend(a2dp);
 		break;
 	case A2DP_SCHEDULE_SUSPEND:
-		a2dp_schedule_suspend(a2dp_msg->arg1);
+		a2dp_schedule_suspend(a2dp, a2dp_msg->arg1);
 		break;
 	default:
 		break;
@@ -207,33 +204,39 @@ cras_floss_a2dp_create(struct fl_media *fm, const char *addr, const char *name,
 		       struct cras_fl_a2dp_codec_config *codecs)
 {
 	struct cras_fl_a2dp_codec_config *codec;
-
-	if (connected_a2dp) {
-		syslog(LOG_ERR, "A2dp already connected");
-		return NULL;
-	}
+	struct cras_a2dp *a2dp;
 
 	LL_SEARCH_SCALAR(codecs, codec, codec_type, FL_A2DP_CODEC_SRC_SBC);
-	if (codec == NULL) {
+	if (!codec) {
 		syslog(LOG_ERR, "No supported A2dp codec");
 		return NULL;
 	}
 
-	connected_a2dp = (struct cras_a2dp *)calloc(1, sizeof(*connected_a2dp));
+	a2dp = (struct cras_a2dp *)calloc(1, sizeof(*a2dp));
+	if (!a2dp)
+		return NULL;
 
-	connected_a2dp->fm = fm;
-	connected_a2dp->addr = strdup(addr);
-	connected_a2dp->name = strdup(name);
-	connected_a2dp->iodev =
-		a2dp_pcm_iodev_create(connected_a2dp, codec->sample_rate,
-				      codec->bits_per_sample,
-				      codec->channel_mode);
-	connected_a2dp->fd = -1;
+	a2dp->fm = fm;
+	a2dp->addr = strdup(addr);
+	a2dp->name = strdup(name);
+	a2dp->iodev = a2dp_pcm_iodev_create(a2dp, codec->sample_rate,
+					    codec->bits_per_sample,
+					    codec->channel_mode);
+
+	if (!a2dp->iodev) {
+		syslog(LOG_ERR, "Failed to create a2dp pcm_iodev for %s", name);
+		free(a2dp->addr);
+		free(a2dp->name);
+		free(a2dp);
+		return NULL;
+	}
+
+	a2dp->fd = -1;
 
 	BTLOG(btlog, BT_A2DP_START, 0, 0);
-	cras_main_message_add_handler(CRAS_MAIN_A2DP, a2dp_process_msg, NULL);
+	cras_main_message_add_handler(CRAS_MAIN_A2DP, a2dp_process_msg, a2dp);
 
-	return connected_a2dp;
+	return a2dp;
 }
 
 struct cras_iodev *cras_floss_a2dp_get_iodev(struct cras_a2dp *a2dp)
@@ -254,12 +257,11 @@ void cras_floss_a2dp_destroy(struct cras_a2dp *a2dp)
 	/* Iodev has been destroyed. This is called in main thread so it's
 	 * safe to suspend timer if there's any. */
 	cras_main_message_rm_handler(CRAS_MAIN_A2DP);
-	a2dp_cancel_suspend();
+	a2dp_cancel_suspend(a2dp);
 
-	/* Must be the only static connected a2dp that we are destroying,
+	/* Must be the only static that we are destroying,
 	 * so clear it. */
 	free(a2dp);
-	connected_a2dp = NULL;
 }
 
 int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
@@ -367,17 +369,18 @@ void cras_floss_a2dp_set_volume(struct cras_a2dp *a2dp, unsigned int volume)
 
 static void a2dp_suspend_cb(struct cras_timer *timer, void *arg)
 {
-	if (connected_a2dp == NULL)
+	struct cras_a2dp *a2dp = (struct cras_a2dp *)arg;
+	if (a2dp == NULL)
 		return;
 
 	/* Here the 'suspend' means we don't want to give a2dp to user as
 	 * audio option anymore because of failures. However we can't
 	 * alter the state that the a2dp device is still connected, i.e
-	 * the structure of fl_media and presense of cras_a2dp. The best
+	 * the structure of fl_media and presence of cras_a2dp. The best
 	 * we can do is to destroy the iodev. */
 	syslog(LOG_WARNING, "Destroying iodev for A2DP device");
-	a2dp_pcm_iodev_destroy(connected_a2dp->iodev);
-	connected_a2dp->iodev = NULL;
+	a2dp_pcm_iodev_destroy(a2dp->iodev);
+	a2dp->iodev = NULL;
 }
 
 const char *cras_floss_a2dp_get_display_name(struct cras_a2dp *a2dp)
@@ -398,7 +401,7 @@ int cras_floss_a2dp_stop(struct cras_a2dp *a2dp)
 	close(a2dp->fd);
 	a2dp->fd = -1;
 
-	cancel_a2dp_delay_sync(connected_a2dp);
+	cancel_a2dp_delay_sync(a2dp);
 	floss_media_a2dp_stop_audio_request(a2dp->fm);
 	return 0;
 }
@@ -414,12 +417,13 @@ static void init_a2dp_msg(struct a2dp_msg *msg, enum A2DP_COMMAND cmd,
 	msg->arg1 = arg1;
 }
 
-static void send_a2dp_message(enum A2DP_COMMAND cmd, unsigned int arg1)
+static void send_a2dp_message(struct cras_a2dp *a2dp, enum A2DP_COMMAND cmd,
+			      unsigned int arg1)
 {
 	struct a2dp_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
-	init_a2dp_msg(&msg, cmd, connected_a2dp->iodev, arg1);
+	init_a2dp_msg(&msg, cmd, a2dp->iodev, arg1);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	if (rc)
 		syslog(LOG_ERR, "Failed to send a2dp message %d", cmd);
@@ -530,7 +534,7 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 		syslog(LOG_ERR,
 		       "A2DP socket error, revents: %u. Suspend in %u seconds",
 		       poll_fd.revents, CRAS_A2DP_SUSPEND_DELAY_MS);
-		send_a2dp_message(A2DP_SCHEDULE_SUSPEND,
+		send_a2dp_message(a2dp, A2DP_SCHEDULE_SUSPEND,
 				  CRAS_A2DP_SUSPEND_DELAY_MS);
 		rc = -1;
 		goto error;
@@ -552,12 +556,12 @@ int cras_floss_a2dp_get_fd(struct cras_a2dp *a2dp)
 	return a2dp->fd;
 }
 
-void cras_a2dp_schedule_suspend(unsigned int msec)
+void cras_floss_a2dp_schedule_suspend(struct cras_a2dp *a2dp, unsigned int msec)
 {
-	send_a2dp_message(A2DP_SCHEDULE_SUSPEND, msec);
+	send_a2dp_message(a2dp, A2DP_SCHEDULE_SUSPEND, msec);
 }
 
-void cras_a2dp_cancel_suspend()
+void cras_floss_a2dp_cancel_suspend(struct cras_a2dp *a2dp)
 {
-	send_a2dp_message(A2DP_CANCEL_SUSPEND, 0);
+	send_a2dp_message(a2dp, A2DP_CANCEL_SUSPEND, 0);
 }

@@ -13,6 +13,7 @@ extern "C" {
 static size_t connect_called;
 static int connect_ret;
 static struct cras_hfp* hfp_pcm_iodev_create_hfp_val;
+struct cras_iodev* hfp_pcm_iodev_create_ret;
 static size_t hfp_pcm_iodev_create_called;
 static size_t hfp_pcm_iodev_destroy_called;
 static size_t floss_media_hfp_start_sco_called;
@@ -30,6 +31,7 @@ void ResetStubData() {
   connect_called = 0;
   connect_ret = 0;
   hfp_pcm_iodev_create_hfp_val = NULL;
+  hfp_pcm_iodev_create_ret = reinterpret_cast<struct cras_iodev*>(0x123);
   hfp_pcm_iodev_create_called = 0;
   hfp_pcm_iodev_destroy_called = 0;
   floss_media_hfp_start_sco_called = 0;
@@ -51,16 +53,19 @@ class HfpManagerTestSuite : public testing::Test {
   virtual void TearDown() {}
 };
 
+TEST_F(HfpManagerTestSuite, CreateFailed) {
+  hfp_pcm_iodev_create_ret = NULL;
+  /* Failing to create hfp_pcm_iodev should fail the hfp_create */
+  ASSERT_EQ(cras_floss_hfp_create(NULL, "addr", "name"),
+            (struct cras_hfp*)NULL);
+}
+
 TEST_F(HfpManagerTestSuite, CreateDestroy) {
   struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name");
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
   EXPECT_EQ(hfp, hfp_pcm_iodev_create_hfp_val);
   EXPECT_EQ(hfp_pcm_iodev_create_called, 2);
   EXPECT_EQ(strncmp("name", cras_floss_hfp_get_display_name(hfp), 4), 0);
-
-  // Expect another call to hfp create returns null.
-  struct cras_hfp* expect_null = cras_floss_hfp_create(NULL, "addr2", "name2");
-  EXPECT_EQ((void*)NULL, expect_null);
 
   cras_floss_hfp_destroy(hfp);
   EXPECT_EQ(hfp_pcm_iodev_destroy_called, 2);
@@ -177,7 +182,7 @@ struct cras_iodev* hfp_pcm_iodev_create(struct cras_hfp* hfp,
                                         enum CRAS_STREAM_DIRECTION dir) {
   hfp_pcm_iodev_create_hfp_val = hfp;
   hfp_pcm_iodev_create_called++;
-  return reinterpret_cast<struct cras_iodev*>(0x123);
+  return hfp_pcm_iodev_create_ret;
 }
 
 void hfp_pcm_iodev_destroy(struct cras_iodev* iodev) {

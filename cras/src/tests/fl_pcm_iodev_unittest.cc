@@ -42,8 +42,8 @@ static unsigned cras_floss_hfp_stop_called;
 static int cras_floss_hfp_get_fd_ret;
 static cras_iodev* cras_floss_hfp_get_input_iodev_ret;
 static cras_iodev* cras_floss_hfp_get_output_iodev_ret;
-static unsigned cras_a2dp_cancel_suspend_called;
-static unsigned cras_a2dp_schedule_suspend_called;
+static unsigned cras_floss_a2dp_cancel_suspend_called;
+static unsigned cras_floss_a2dp_schedule_suspend_called;
 static thread_callback write_callback;
 static void* write_callback_data;
 static int audio_thread_config_events_callback_called;
@@ -72,8 +72,8 @@ void ResetStubData() {
   cras_floss_hfp_get_fd_ret = FAKE_SOCKET_FD;
   cras_floss_hfp_get_input_iodev_ret = NULL;
   cras_floss_hfp_get_output_iodev_ret = NULL;
-  cras_a2dp_cancel_suspend_called = 0;
-  cras_a2dp_schedule_suspend_called = 0;
+  cras_floss_a2dp_cancel_suspend_called = 0;
+  cras_floss_a2dp_schedule_suspend_called = 0;
   write_callback = NULL;
   audio_thread_config_events_callback_called = 0;
   audio_thread_config_events_callback_trigger = TRIGGER_NONE;
@@ -161,7 +161,7 @@ TEST_F(PcmIodev, OpenCloseA2dpPcmIodev) {
 
   iodev->close_dev(iodev);
   EXPECT_EQ(1, cras_floss_a2dp_stop_called);
-  EXPECT_EQ(1, cras_a2dp_cancel_suspend_called);
+  EXPECT_EQ(1, cras_floss_a2dp_cancel_suspend_called);
   EXPECT_EQ(1, cras_iodev_free_format_called);
   EXPECT_EQ(1, cras_iodev_free_audio_area_called);
 
@@ -599,12 +599,13 @@ int cras_audio_thread_event_a2dp_throttle() {
   return 0;
 }
 
-void cras_a2dp_cancel_suspend() {
-  cras_a2dp_cancel_suspend_called++;
+void cras_floss_a2dp_cancel_suspend(struct cras_a2dp* a2dp) {
+  cras_floss_a2dp_cancel_suspend_called++;
 }
 
-void cras_a2dp_schedule_suspend(unsigned int msec) {
-  cras_a2dp_schedule_suspend_called++;
+void cras_floss_a2dp_schedule_suspend(struct cras_a2dp* a2dp,
+                                      unsigned int msec) {
+  cras_floss_a2dp_schedule_suspend_called++;
 }
 
 int cras_audio_thread_event_a2dp_overrun() {

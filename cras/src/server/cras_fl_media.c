@@ -860,9 +860,10 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 		}
 
 		if (a2dp_avail) {
+			syslog(LOG_DEBUG, "A2DP device added.");
 			if (active_fm->a2dp) {
 				syslog(LOG_WARNING,
-				       "Multiple A2DP devices added, override the older");
+				       "Multiple A2DP devices added, remove the older");
 				bt_io_manager_remove_iodev(
 					active_fm->bt_io_mgr,
 					cras_floss_a2dp_get_iodev(
@@ -872,19 +873,25 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			active_fm->a2dp = cras_floss_a2dp_create(
 				active_fm, addr, name, codecs);
 
-			cras_floss_a2dp_set_support_absolute_volume(
-				active_fm->a2dp, abs_vol_supported);
-			bt_io_manager_append_iodev(
-				active_fm->bt_io_mgr,
-				cras_floss_a2dp_get_iodev(active_fm->a2dp),
-				CRAS_BT_FLAG_A2DP);
+			if (active_fm->a2dp) {
+				cras_floss_a2dp_set_support_absolute_volume(
+					active_fm->a2dp, abs_vol_supported);
+				bt_io_manager_append_iodev(
+					active_fm->bt_io_mgr,
+					cras_floss_a2dp_get_iodev(
+						active_fm->a2dp),
+					CRAS_BT_FLAG_A2DP);
+			} else {
+				syslog(LOG_WARNING,
+				       "Failed to create the cras_a2dp_manager");
+			}
 		}
 
 		if (hfp_avail) {
 			syslog(LOG_DEBUG, "HFP device added.");
 			if (active_fm->hfp) {
 				syslog(LOG_WARNING,
-				       "Multiple HFP devices added, override the older");
+				       "Multiple HFP devices added, remove the older");
 				bt_io_manager_remove_iodev(
 					active_fm->bt_io_mgr,
 					cras_floss_hfp_get_input_iodev(
@@ -897,14 +904,22 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			}
 			active_fm->hfp =
 				cras_floss_hfp_create(active_fm, addr, name);
-			bt_io_manager_append_iodev(
-				active_fm->bt_io_mgr,
-				cras_floss_hfp_get_input_iodev(active_fm->hfp),
-				CRAS_BT_FLAG_HFP);
-			bt_io_manager_append_iodev(
-				active_fm->bt_io_mgr,
-				cras_floss_hfp_get_output_iodev(active_fm->hfp),
-				CRAS_BT_FLAG_HFP);
+
+			if (active_fm->hfp) {
+				bt_io_manager_append_iodev(
+					active_fm->bt_io_mgr,
+					cras_floss_hfp_get_input_iodev(
+						active_fm->hfp),
+					CRAS_BT_FLAG_HFP);
+				bt_io_manager_append_iodev(
+					active_fm->bt_io_mgr,
+					cras_floss_hfp_get_output_iodev(
+						active_fm->hfp),
+					CRAS_BT_FLAG_HFP);
+			} else {
+				syslog(LOG_WARNING,
+				       "Failed to create the cras_hfp_manager");
+			}
 		}
 		bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 1);
 

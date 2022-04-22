@@ -56,6 +56,7 @@ void ResetStubData() {
   floss_media_a2dp_get_presentation_position_called = 0;
   cras_tm_create_timer_called = 0;
   cras_tm_cancel_timer_called = 0;
+  cras_tm_create_timer_ret = NULL;
   a2dp_codecs.codec_type = FL_A2DP_CODEC_SRC_SBC;
 }
 
@@ -79,25 +80,43 @@ class A2dpManagerTestSuite : public testing::Test {
   }
 };
 
+TEST_F(A2dpManagerTestSuite, CreateFailed) {
+  a2dp_pcm_iodev_create_ret = NULL;
+  /* Failing to create a2dp_pcm_iodev should fail the a2dp_create */
+  ASSERT_EQ(cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs),
+            (struct cras_a2dp*)NULL);
+
+  a2dp_pcm_iodev_create_ret =
+      (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
+
+  /* NULL a2dp_codec_configs should fail the a2dp_create without a crash */
+  ASSERT_EQ(cras_floss_a2dp_create(NULL, "addr", "name",
+                                   (struct cras_fl_a2dp_codec_config*)NULL),
+            (struct cras_a2dp*)NULL);
+
+  /* Unsupported codecs should fail the a2dp_create without a crash */
+  a2dp_codecs.codec_type = FL_A2DP_CODEC_SINK_AAC;
+  ASSERT_EQ(cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs),
+            (struct cras_a2dp*)NULL);
+}
+
 TEST_F(A2dpManagerTestSuite, CreateDestroy) {
-  a2dp_pcm_iodev_create_ret = reinterpret_cast<struct cras_iodev*>(0x123);
-  struct cras_a2dp* a2dp =
-      cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
+  struct cras_a2dp* a2dp;
+
+  a2dp_pcm_iodev_create_ret =
+      (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
+  a2dp = cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
   EXPECT_EQ(a2dp, a2dp_pcm_iodev_create_a2dp_val);
   EXPECT_EQ(strncmp("name", cras_floss_a2dp_get_display_name(a2dp), 4), 0);
 
-  // Expect another call to a2dp create returns null.
-  struct cras_a2dp* expect_null =
-      cras_floss_a2dp_create(NULL, "addr2", "name2", &a2dp_codecs);
-  EXPECT_EQ((void*)NULL, expect_null);
-
   cras_floss_a2dp_destroy(a2dp);
   EXPECT_EQ(a2dp_pcm_iodev_destroy_iodev_val, a2dp_pcm_iodev_create_ret);
-  a2dp_pcm_iodev_create_ret = NULL;
 }
 
 TEST_F(A2dpManagerTestSuite, StartStop) {
+  a2dp_pcm_iodev_create_ret =
+      (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
   struct cras_audio_format fmt;
   struct cras_a2dp* a2dp =
       cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
