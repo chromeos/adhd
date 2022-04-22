@@ -136,7 +136,12 @@ fn sound_card_init(args: &Args) -> std::result::Result<(), Box<dyn error::Error>
 }
 
 fn main() {
-    syslog::init().expect("failed to initialize syslog");
+    if let Err(e) = syslog::init() {
+        // syslog macros will fail silently if syslog was not initialized.
+        // Print error msg to stderr and continue the sound_card_init operations.
+        eprintln!("failed to initialize syslog: {}", e);
+    }
+
     let args = match parse_args() {
         Ok(args) => args,
         Err(e) => {
