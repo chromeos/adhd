@@ -1002,9 +1002,24 @@ static int stream_added_cb(struct cras_rstream *rstream)
 	}
 
 	if (num_iodevs) {
+		/* Add stream failure is considered critical because it'll
+		 * trigger client side error. Collect the error type and send
+		 * for UMA metrics. */
 		rc = add_stream_to_open_devs(rstream, iodevs, num_iodevs);
+		if (rc == -EIO) {
+			cras_server_metrics_stream_add_failure(
+				CRAS_STREAM_ADD_IO_ERROR);
+		} else if (rc == -EINVAL) {
+			cras_server_metrics_stream_add_failure(
+				CRAS_STREAM_ADD_INVALID_ARG);
+		} else if (rc) {
+			cras_server_metrics_stream_add_failure(
+				CRAS_STREAM_ADD_OTHER_ERR);
+		}
+
 		if (rc) {
-			syslog(LOG_ERR, "adding stream to thread fail");
+			syslog(LOG_ERR, "adding stream to thread fail, rc %d",
+			       rc);
 			return rc;
 		}
 	} else if (!iodev_reopened) {

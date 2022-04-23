@@ -293,12 +293,18 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	int rc;
 
 	rc = verify_rstream_parameters(config, stream_out);
-	if (rc < 0)
+	if (rc < 0) {
+		cras_server_metrics_stream_create_failure(
+			CRAS_STREAM_CREATE_ERROR_INVALID_PARAM);
 		return rc;
+	}
 
 	stream = calloc(1, sizeof(*stream));
-	if (stream == NULL)
+	if (stream == NULL) {
+		cras_server_metrics_stream_create_failure(
+			CRAS_STREAM_CREATE_ERROR_NO_MEMORY);
 		return -ENOMEM;
+	}
 
 	stream->stream_id = config->stream_id;
 	stream->stream_type = config->stream_type;
@@ -321,6 +327,8 @@ int cras_rstream_create(struct cras_rstream_config *config,
 
 	rc = setup_shm_area(stream, config);
 	if (rc < 0) {
+		cras_server_metrics_stream_create_failure(
+			CRAS_STREAM_CREATE_ERROR_SHM_SETUP_FAILURE);
 		syslog(LOG_ERR, "failed to setup shm %d\n", rc);
 		free(stream);
 		return rc;

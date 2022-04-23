@@ -1442,7 +1442,7 @@ int dev_io_append_stream(struct open_dev **odevs, struct open_dev **idevs,
 		if ((stream->direction == CRAS_STREAM_INPUT) && !dev->streams) {
 			int num_flushed = dev->flush_buffer(dev);
 			if (num_flushed < 0) {
-				rc = num_flushed;
+				rc = -EIO;
 				break;
 			}
 		}
@@ -1490,7 +1490,7 @@ int dev_io_append_stream(struct open_dev **odevs, struct open_dev **idevs,
 						syslog(LOG_ERR,
 						       "Failed to set output init_cb_ts, rc = %d",
 						       level);
-						rc = -EINVAL;
+						rc = -EIO;
 						break;
 					}
 					level -= cras_frames_at_rate(

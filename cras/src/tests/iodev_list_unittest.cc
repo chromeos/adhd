@@ -17,6 +17,7 @@ extern "C" {
 #include "cras_observer_ops.h"
 #include "cras_ramp.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "stream_list.h"
@@ -2882,6 +2883,9 @@ bool cras_floop_pair_match_output_stream(const struct cras_iodev* iodev,
   return false;
 }
 int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev* iodev) {
+  return 0;
+}
+int cras_server_metrics_stream_add_failure(enum CRAS_STREAM_ADD_ERROR code) {
   return 0;
 }
 

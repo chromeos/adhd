@@ -48,6 +48,18 @@ enum CRAS_STREAM_CONNECT_ERROR {
 	CRAS_STREAM_CONN_REPLY_FAIL,
 };
 
+enum CRAS_STREAM_ADD_ERROR {
+	CRAS_STREAM_ADD_IO_ERROR,
+	CRAS_STREAM_ADD_INVALID_ARG,
+	CRAS_STREAM_ADD_OTHER_ERR,
+};
+
+enum CRAS_STREAM_CREATE_ERROR {
+	CRAS_STREAM_CREATE_ERROR_INVALID_PARAM,
+	CRAS_STREAM_CREATE_ERROR_NO_MEMORY,
+	CRAS_STREAM_CREATE_ERROR_SHM_SETUP_FAILURE,
+};
+
 /* Logs the error type happens when setting up SCO connection. This is mainly
  * used to track whether the setup of SCO connection succeeds and the frequency
  * of different errors. This will also be used to track if our fixes for these
@@ -136,9 +148,16 @@ int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num);
  * 10^9 for metric logging. */
 int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num);
 
+/* Logs failures when adding stream to open iodev. */
+int cras_server_metrics_stream_add_failure(enum CRAS_STREAM_ADD_ERROR code);
+
 /* Logs client stream connection failures. */
 int cras_server_metrics_stream_connect_failure(
 	enum CRAS_STREAM_CONNECT_ERROR code);
+
+/* Logs failures when CRAS creates dev stream. */
+int cras_server_metrics_stream_create_failure(
+	enum CRAS_STREAM_CREATE_ERROR code);
 
 /* Initialize metrics logging stuff. */
 int cras_server_metrics_init();

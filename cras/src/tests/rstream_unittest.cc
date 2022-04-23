@@ -13,6 +13,7 @@ extern "C" {
 #include "cras_audio_area.h"
 #include "cras_messages.h"
 #include "cras_rstream.h"
+#include "cras_server_metrics.h"
 #include "cras_shm.h"
 #include "cras_util.h"
 }
@@ -516,6 +517,11 @@ int cras_system_agc_on_dsp_supported() {
 
 int cras_server_metrics_stream_create(
     const struct cras_rstream_config* config) {
+  return 0;
+}
+
+int cras_server_metrics_stream_create_failure(
+    enum CRAS_STREAM_CREATE_ERROR code) {
   return 0;
 }
 
