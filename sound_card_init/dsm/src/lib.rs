@@ -224,6 +224,10 @@ impl DSM {
                     "invalid temperature: {}. use previous calibration value",
                     calib_data.temp
                 );
+
+                if !datastore_exist {
+                    Datastore::UseVPD.save(&self.snd_card, channel)?;
+                }
                 return Ok(previous_calib);
             }
         }
