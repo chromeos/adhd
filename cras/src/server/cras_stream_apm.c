@@ -784,6 +784,12 @@ static void get_aec_ini(const char *config_dir)
 	aec_ini = iniparser_load_wrapper(ini_name);
 	if (aec_ini == NULL)
 		syslog(LOG_INFO, "No aec ini file %s", ini_name);
+
+	if (0 == iniparser_getnsec(aec_ini)) {
+		iniparser_freedict(aec_ini);
+		aec_ini = NULL;
+		syslog(LOG_INFO, "Empty aec ini file %s", ini_name);
+	}
 }
 
 static void get_apm_ini(const char *config_dir)
@@ -799,6 +805,12 @@ static void get_apm_ini(const char *config_dir)
 	apm_ini = iniparser_load_wrapper(ini_name);
 	if (apm_ini == NULL)
 		syslog(LOG_INFO, "No apm ini file %s", ini_name);
+
+	if (0 == iniparser_getnsec(apm_ini)) {
+		iniparser_freedict(apm_ini);
+		apm_ini = NULL;
+		syslog(LOG_INFO, "Empty apm ini file %s", ini_name);
+	}
 }
 
 static int send_apm_message(enum APM_THREAD_CMD cmd)
