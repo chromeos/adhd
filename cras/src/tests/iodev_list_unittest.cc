@@ -2269,6 +2269,13 @@ TEST_F(IoDevTestSuite, SetAecRefReconnectStream) {
   rc = cras_iodev_list_add_output(&d1_);
   ASSERT_EQ(0, rc);
 
+  /* Prepare an enabled input iodev for stream to attach to. */
+  d2_.direction = CRAS_STREAM_INPUT;
+  d2_.info.idx = 2;
+  EXPECT_EQ(0, cras_iodev_list_add_input(&d2_));
+  cras_iodev_list_select_node(CRAS_STREAM_INPUT,
+                              cras_make_node_id(d2_.info.idx, 0));
+
   rstream.direction = CRAS_STREAM_INPUT;
   rstream.stream_id = 123;
   rstream.stream_apm = reinterpret_cast<struct cras_stream_apm*>(0x987);
@@ -2284,7 +2291,8 @@ TEST_F(IoDevTestSuite, SetAecRefReconnectStream) {
   cras_stream_apm_add_called = 0;
   cras_iodev_list_set_aec_ref(123, d1_.info.idx);
   EXPECT_EQ(1, cras_stream_apm_set_aec_ref_called);
-  /* Verify the stream and apm to through correct life cycles. */
+  /* Verify the stream and apm went through correct life cycles. Because
+   * setting AEC ref is expected to trigger stream reconnection. */
   EXPECT_EQ(1, audio_thread_disconnect_stream_called);
   EXPECT_EQ(1, cras_stream_apm_remove_called);
   EXPECT_EQ(1, cras_stream_apm_add_called);
@@ -2304,6 +2312,13 @@ TEST_F(IoDevTestSuite, ReconnectStreamsWithApm) {
   d1_.direction = CRAS_STREAM_INPUT;
   rc = cras_iodev_list_add_input(&d1_);
   ASSERT_EQ(0, rc);
+
+  /* Prepare an enabled input iodev for stream to attach to. */
+  d2_.direction = CRAS_STREAM_INPUT;
+  d2_.info.idx = 2;
+  EXPECT_EQ(0, cras_iodev_list_add_input(&d2_));
+  cras_iodev_list_select_node(CRAS_STREAM_INPUT,
+                              cras_make_node_id(d2_.info.idx, 0));
 
   rstream.direction = CRAS_STREAM_INPUT;
   rstream.stream_apm = reinterpret_cast<struct cras_stream_apm*>(0x987);
