@@ -415,6 +415,12 @@ int cras_bt_player_update_identity(DBusConnection *conn, const char *identity)
 	if (!identity)
 		return -EINVAL;
 
+	if (strnlen(identity, CRAS_PLAYER_IDENTITY_SIZE_MAX - 1) ==
+	    CRAS_PLAYER_IDENTITY_SIZE_MAX - 1) {
+		syslog(LOG_ERR, "Identity is too long, using default");
+		identity = CRAS_PLAYER_IDENTITY_DEFAULT;
+	}
+
 	if (!is_utf8_string(identity)) {
 		syslog(LOG_INFO, "Non-utf8 identity: %s", identity);
 		identity = "";
@@ -423,7 +429,8 @@ int cras_bt_player_update_identity(DBusConnection *conn, const char *identity)
 	if (!strcasecmp(player.identity, identity))
 		return 0;
 
-	strcpy(player.identity, identity);
+	strncpy(player.identity, identity, CRAS_PLAYER_IDENTITY_SIZE_MAX - 1);
+	player.identity[CRAS_PLAYER_IDENTITY_SIZE_MAX - 1] = '\0';
 
 	msg = dbus_message_new_signal(CRAS_DEFAULT_PLAYER,
 				      DBUS_INTERFACE_PROPERTIES,
