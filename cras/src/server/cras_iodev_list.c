@@ -960,13 +960,11 @@ static int stream_added_cb(struct cras_rstream *rstream)
 	if (rstream->is_pinned)
 		return pinned_stream_added(rstream);
 
-	/* Enable fallback in case an iodev reopens later. */
+	/* Catch the stream with fallback if it is already enabled */
 	if (cras_iodev_list_dev_is_enabled(fallback_devs[rstream->direction])) {
 		init_device(fallback_devs[rstream->direction], rstream);
 		add_stream_to_open_devs(rstream,
 					&fallback_devs[rstream->direction], 1);
-	} else {
-		possibly_enable_fallback(rstream->direction, false);
 	}
 
 	/* Add the new stream to all enabled iodevs at once to avoid offset
@@ -1000,6 +998,7 @@ static int stream_added_cb(struct cras_rstream *rstream)
 				edev->dev->format->frame_rate);
 			syslog(LOG_INFO, "re-open %s for higher channel count",
 			       edev->dev->info.name);
+			possibly_enable_fallback(rstream->direction, false);
 			restart_dev(edev->dev->info.idx);
 			iodev_reopened = true;
 		} else {
