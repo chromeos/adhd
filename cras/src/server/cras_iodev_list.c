@@ -917,6 +917,32 @@ static int pinned_stream_added(struct cras_rstream *rstream)
 	return add_stream_to_open_devs(rstream, &dev, 1);
 }
 
+/*
+ - This is to replace calling suspend_dev then immediately
+   resume_dev without manipulating fallback_devs
+
+ - Caller should take care of enabling fallback_devs to avoid
+   blocking client streaming.
+*/
+static void restart_dev(unsigned int dev_idx)
+{
+	struct cras_iodev *dev = find_dev(dev_idx);
+	int rc;
+
+	if (!dev)
+		return;
+
+	close_dev(dev);
+	dev->update_active_node(dev, dev->active_node->idx, 0);
+
+	dev->update_active_node(dev, dev->active_node->idx, 1);
+	rc = init_and_attach_streams(dev);
+	if (rc) {
+		syslog(LOG_INFO, "Enable dev fail at resume, rc %d", rc);
+		schedule_init_device_retry(dev);
+	}
+}
+
 static int stream_added_cb(struct cras_rstream *rstream)
 {
 	struct enabled_dev *edev;
@@ -934,11 +960,23 @@ static int stream_added_cb(struct cras_rstream *rstream)
 	if (rstream->is_pinned)
 		return pinned_stream_added(rstream);
 
+	/* Enable fallback in case an iodev reopens later. */
+	if (cras_iodev_list_dev_is_enabled(fallback_devs[rstream->direction])) {
+		init_device(fallback_devs[rstream->direction], rstream);
+		add_stream_to_open_devs(rstream,
+					&fallback_devs[rstream->direction], 1);
+	} else {
+		possibly_enable_fallback(rstream->direction, false);
+	}
+
 	/* Add the new stream to all enabled iodevs at once to avoid offset
 	 * in shm level between different ouput iodevs. */
 	num_iodevs = 0;
 	iodev_reopened = false;
 	DL_FOREACH (enabled_devs[rstream->direction], edev) {
+		if (edev->dev == fallback_devs[rstream->direction])
+			continue;
+
 		if (num_iodevs >= ARRAY_SIZE(iodevs)) {
 			syslog(LOG_ERR, "too many enabled devices");
 			break;
@@ -962,10 +1000,7 @@ static int stream_added_cb(struct cras_rstream *rstream)
 				edev->dev->format->frame_rate);
 			syslog(LOG_INFO, "re-open %s for higher channel count",
 			       edev->dev->info.name);
-			possibly_enable_fallback(rstream->direction, false);
-			cras_iodev_list_suspend_dev(edev->dev->info.idx);
-			cras_iodev_list_resume_dev(edev->dev->info.idx);
-			possibly_disable_fallback(rstream->direction);
+			restart_dev(edev->dev->info.idx);
 			iodev_reopened = true;
 		} else {
 			rc = init_device(edev->dev, rstream);
@@ -1036,6 +1071,10 @@ static int stream_added_cb(struct cras_rstream *rstream)
 		 */
 		possibly_enable_fallback(rstream->direction, true);
 	}
+
+	if (num_iodevs || iodev_reopened)
+		possibly_disable_fallback(rstream->direction);
+
 	return 0;
 }
 
@@ -2052,8 +2091,7 @@ void cras_iodev_list_reset_for_noise_cancellation()
 		syslog(LOG_INFO, "Re-open %s for %s noise cancellation",
 		       dev->info.name, enabled ? "enabling" : "disabling");
 		possibly_enable_fallback(CRAS_STREAM_INPUT, false);
-		cras_iodev_list_suspend_dev(dev->info.idx);
-		cras_iodev_list_resume_dev(dev->info.idx);
+		restart_dev(dev->info.idx);
 		possibly_disable_fallback(CRAS_STREAM_INPUT);
 	}
 }

@@ -531,6 +531,73 @@ TEST_F(IoDevTestSuite, ReopenDevForHigherChannels) {
   cras_iodev_list_deinit();
 }
 
+/* Simulate a corner case where reopen happens after a sequence of open failures
+ * and with a fallback in the enabled_devs */
+TEST_F(IoDevTestSuite, DevOpenFailsFollowedByReopenDev) {
+  struct cras_rstream rstream, rstream2;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+  memset(&rstream2, 0, sizeof(rstream2));
+  rstream.format = fmt_;
+  rstream2.format = fmt_;
+  rstream2.format.num_channels = 6;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d1_.format = &fmt_;
+  d1_.info.max_supported_channels = 2;
+
+  { /* d1_ is closed since there is no stream */
+    EVENTUALLY(EXPECT_EQ, d1_.state, CRAS_IODEV_STATE_CLOSE);
+
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
+  }
+
+  { /* Trigger stream_add_cb while d1_ is closed, and fail init_device */
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_fallback_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 0);
+    EVENTUALLY(EXPECT_EQ, d1_.state, CRAS_IODEV_STATE_CLOSE);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = -5;
+
+    DL_APPEND(stream_list_get_ret, &rstream);
+    stream_add_cb(&rstream);
+  }
+
+  { /* Open d1_ */
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
+    EVENTUALLY(EXPECT_EQ, d1_.state, CRAS_IODEV_STATE_OPEN);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = 0;
+
+    stream_add_cb(&rstream);
+  }
+
+  { /* Simulate a corner case where the reopen happens with a normal dev
+       followed by a fallback dev */
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 2);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 1);
+    EVENTUALLY(EXPECT_EQ, d1_.format->num_channels,
+               rstream2.format.num_channels);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = 0;
+
+    d1_.format->num_channels = 2;
+    d1_.info.max_supported_channels = 6;
+
+    DL_PREPEND(stream_list_get_ret, &rstream2);
+    stream_add_cb(&rstream2);
+  }
+
+  cras_iodev_list_deinit();
+}
+
 /* Check that after resume, all output devices enter ramp mute state if there is
  * any output stream. */
 TEST_F(IoDevTestSuite, RampMuteAfterResume) {
