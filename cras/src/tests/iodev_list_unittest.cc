@@ -86,7 +86,7 @@ static size_t cras_observer_notify_node_left_right_swapped_called;
 static size_t cras_observer_notify_input_node_gain_called;
 static int cras_iodev_open_called;
 static int cras_iodev_open_ret[8];
-static struct cras_audio_format cras_iodev_open_fmt;
+static struct cras_audio_format cras_iodev_open_fmt[8];
 static int set_mute_called;
 static std::vector<struct cras_iodev*> set_mute_dev_vector;
 static std::vector<unsigned int> audio_thread_dev_start_ramp_dev_vector;
@@ -422,7 +422,7 @@ TEST_F(IoDevTestSuite, ReopenDevForHigherChannels) {
   EXPECT_EQ(1, audio_thread_add_stream_called);
   EXPECT_EQ(1, audio_thread_add_open_dev_called);
   EXPECT_EQ(1, cras_iodev_open_called);
-  EXPECT_EQ(2, cras_iodev_open_fmt.num_channels);
+  EXPECT_EQ(2, cras_iodev_open_fmt[cras_iodev_open_called - 1].num_channels);
 
   audio_thread_add_stream_called = 0;
   audio_thread_add_open_dev_called = 0;
@@ -450,7 +450,7 @@ TEST_F(IoDevTestSuite, ReopenDevForHigherChannels) {
   EXPECT_EQ(4, audio_thread_add_stream_called);
   EXPECT_EQ(2, audio_thread_add_open_dev_called);
   EXPECT_EQ(2, cras_iodev_open_called);
-  EXPECT_EQ(6, cras_iodev_open_fmt.num_channels);
+  EXPECT_EQ(6, cras_iodev_open_fmt[cras_iodev_open_called - 1].num_channels);
 
   cras_iodev_list_deinit();
 }
@@ -2686,8 +2686,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
                     const struct cras_audio_format* fmt) {
   if (cras_iodev_open_ret[cras_iodev_open_called] == 0)
     iodev->state = CRAS_IODEV_STATE_OPEN;
-  cras_iodev_open_fmt = *fmt;
-  iodev->format = &cras_iodev_open_fmt;
+  cras_iodev_open_fmt[cras_iodev_open_called] = *fmt;
+  iodev->format = &cras_iodev_open_fmt[cras_iodev_open_called];
   return cras_iodev_open_ret[cras_iodev_open_called++];
 }
 
