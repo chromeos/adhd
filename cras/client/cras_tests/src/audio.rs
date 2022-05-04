@@ -424,6 +424,7 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
     while !INTERRUPTED.load(Ordering::Acquire) {
         let mut buf = stream.next_capture_buffer().map_err(Error::FetchStream)?;
         io::copy(&mut buf, &mut sample_sink).map_err(Error::Io)?;
+        buf.commit();
     }
     Ok(())
 }
