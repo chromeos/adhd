@@ -325,7 +325,8 @@ static int get_dev_list(struct iodev_list *list,
 	if (list->size == 0)
 		return 0;
 
-	dev_info = malloc(sizeof(*list_out[0]) * list->size);
+	dev_info = (struct cras_iodev_info *)malloc(sizeof(*list_out[0]) *
+						    list->size);
 	if (dev_info == NULL)
 		return -ENOMEM;
 
@@ -1121,7 +1122,7 @@ static int enable_device(struct cras_iodev *dev)
 			return -EEXIST;
 	}
 
-	edev = calloc(1, sizeof(*edev));
+	edev = (struct enabled_dev *)calloc(1, sizeof(*edev));
 	edev->dev = dev;
 	DL_APPEND(enabled_devs[dir], edev);
 	dev->is_enabled = 1;
@@ -1882,8 +1883,9 @@ int cras_iodev_list_set_node_attr(cras_node_id_t node_id, enum ionode_attr attr,
 					   value);
 		break;
 	case IONODE_ATTR_DISPLAY_ROTATION:
-		rc = set_node_display_rotation(iodev, node_index_of(node_id),
-					       value);
+		rc = set_node_display_rotation(
+			iodev, node_index_of(node_id),
+			(enum CRAS_SCREEN_ROTATION)value);
 		break;
 	case IONODE_ATTR_SWAP_LEFT_RIGHT:
 		rc = set_node_left_right_swapped(iodev, node_index_of(node_id),

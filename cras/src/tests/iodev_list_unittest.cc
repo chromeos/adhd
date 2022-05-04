@@ -12,7 +12,7 @@
 extern "C" {
 #include "audio_thread.h"
 #include "cras_iodev.h"
-#include "cras_iodev_list.h"
+#include "cras_iodev_list.c"
 #include "cras_main_thread_log.h"
 #include "cras_observer_ops.h"
 #include "cras_ramp.h"
@@ -2740,7 +2740,7 @@ struct stream_list* stream_list_create(stream_callback* add_cb,
                                        struct cras_tm* timer_manager) {
   stream_add_cb = add_cb;
   stream_rm_cb = rm_cb;
-  return reinterpret_cast<stream_list*>(0xf00);
+  return reinterpret_cast<struct stream_list*>(0xf00);
 }
 
 void stream_list_destroy(struct stream_list* list) {}
@@ -2749,7 +2749,8 @@ struct cras_rstream* stream_list_get(struct stream_list* list) {
   return stream_list_get_ret;
 }
 void server_stream_create(struct stream_list* stream_list,
-                          unsigned int dev_idx) {
+                          unsigned int dev_idx,
+                          struct cras_audio_format* format) {
   server_stream_create_called++;
 }
 void server_stream_destroy(struct stream_list* stream_list,
@@ -2893,7 +2894,7 @@ void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
                                       enum CRAS_CLIENT_TYPE client_type,
                                       const char* node_type_pair) {}
 
-bool cras_floop_pair_match_output_stream(const struct cras_iodev* iodev,
+bool cras_floop_pair_match_output_stream(const struct cras_floop_pair* pair,
                                          const struct cras_rstream* stream) {
   return false;
 }
