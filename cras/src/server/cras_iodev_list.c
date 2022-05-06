@@ -1269,15 +1269,6 @@ int cras_iodev_list_dev_is_enabled(const struct cras_iodev *dev)
 	return 0;
 }
 
-void cras_iodev_list_enable_dev(struct cras_iodev *dev)
-{
-	possibly_disable_fallback(dev->direction);
-	/* Enable ucm setting of active node. */
-	dev->update_active_node(dev, dev->active_node->idx, 1);
-	enable_device(dev);
-	cras_iodev_list_notify_active_node_changed(dev->direction);
-}
-
 void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 				     cras_node_id_t node_id)
 {
@@ -1300,7 +1291,12 @@ void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
 	}
 
 	new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
-	cras_iodev_list_enable_dev(new_dev);
+
+	possibly_disable_fallback(new_dev->direction);
+	/* Enable ucm setting of active node. */
+	new_dev->update_active_node(new_dev, new_dev->active_node->idx, 1);
+	enable_device(new_dev);
+	cras_iodev_list_notify_active_node_changed(new_dev->direction);
 }
 
 /*

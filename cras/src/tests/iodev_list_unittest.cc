@@ -347,8 +347,14 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
 
   cras_iodev_list_init();
 
+  d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(0, rc);
+
+  d2_.info.idx = 2;
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d2_);
   ASSERT_EQ(0, rc);
 
   d1_.format = &fmt_;
@@ -356,8 +362,8 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
 
-    cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
-                                    cras_make_node_id(d1_.info.idx, 1));
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
   }
 
   {
@@ -386,8 +392,10 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 0);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 2);
 
-    cras_iodev_list_disable_dev(&d1_, false);
-    cras_iodev_list_enable_dev(&d1_);
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d2_.info.idx, 0));
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
   }
 
   {
@@ -1163,13 +1171,18 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
 TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
   cras_iodev_list_init();
 
+  d1_.info.idx = 1;
+  d2_.info.idx = 2;
+
   cras_iodev_list_add_output(&d1_);
   cras_iodev_list_add_output(&d2_);
   cras_iodev_list_add_output(&d3_);
 
   // d1_ and d2_ are enabled.
-  cras_iodev_list_enable_dev(&d1_);
-  cras_iodev_list_enable_dev(&d2_);
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+                                  cras_make_node_id(d2_.info.idx, 0));
 
   // Assume d1 and d2 devices are open.
   d1_.state = CRAS_IODEV_STATE_OPEN;
@@ -1201,13 +1214,17 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
 TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   cras_iodev_list_init();
 
+  d1_.info.idx = 1;
+  d2_.info.idx = 2;
   cras_iodev_list_add_output(&d1_);
   cras_iodev_list_add_output(&d2_);
   cras_iodev_list_add_output(&d3_);
 
   // d1_ and d2_ are enabled.
-  cras_iodev_list_enable_dev(&d1_);
-  cras_iodev_list_enable_dev(&d2_);
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
+  cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
+                                  cras_make_node_id(d2_.info.idx, 0));
 
   // Assume d1 and d2 devices are open.
   d1_.state = CRAS_IODEV_STATE_OPEN;
@@ -1242,6 +1259,7 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
 
   cras_iodev_list_init();
 
+  d1_.info.idx = 1;
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
 
@@ -1257,7 +1275,8 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_enabled_cb_data, (void*)0xABCD);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
 
-    cras_iodev_list_enable_dev(&d1_);
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
   }
 
   {  // Connect a normal stream.
@@ -2383,11 +2402,13 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
 
   cras_iodev_list_init();
 
+  d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_INPUT;
   node1.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
+  d2_.info.idx = 2;
   d2_.direction = CRAS_STREAM_INPUT;
   node2.audio_effect = default_audio_effect;
-
+  d3_.info.idx = 3;
   d3_.direction = CRAS_STREAM_OUTPUT;
   node3.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
 
@@ -2409,7 +2430,8 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
   EXPECT_EQ(0, cras_observer_notify_nodes_called);
 
   // Block Noise Cancallation in audio_effect.
-  cras_iodev_list_enable_dev(&d3_);
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d3_.info.idx, 0));
   ASSERT_EQ(2, server_state_stub.num_input_nodes);
   EXPECT_EQ(default_audio_effect,
             server_state_stub.input_nodes[0].audio_effect);
