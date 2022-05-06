@@ -2368,6 +2368,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
 
   cras_iodev_list_init();
 
+  d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_INPUT;
   rc = cras_iodev_list_add_input(&d1_);
   ASSERT_EQ(0, rc);
@@ -2376,8 +2377,8 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
 
   rstream.direction = CRAS_STREAM_INPUT;
 
-  cras_iodev_list_add_active_node(CRAS_STREAM_INPUT,
-                                  cras_make_node_id(d1_.info.idx, 1));
+  cras_iodev_list_select_node(CRAS_STREAM_INPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
 
   {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
@@ -2408,8 +2409,8 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
   d1_.direction = CRAS_STREAM_INPUT;
   node1.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
   d2_.info.idx = 2;
-  d2_.direction = CRAS_STREAM_INPUT;
-  node2.audio_effect = default_audio_effect;
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  node2.type = CRAS_NODE_TYPE_HEADPHONE;
   d3_.info.idx = 3;
   d3_.direction = CRAS_STREAM_OUTPUT;
   node3.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
@@ -2419,33 +2420,30 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
 
   EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
   EXPECT_GE(d1_.info.idx, 0);
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d2_));
+  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
   EXPECT_GE(d2_.info.idx, 1);
   EXPECT_EQ(0, cras_iodev_list_add_output(&d3_));
   EXPECT_GE(d3_.info.idx, 2);
 
   // Make sure shared state was updated.
-  EXPECT_EQ(2, server_state_stub.num_input_devs);
-  ASSERT_EQ(2, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(node1.audio_effect, server_state_stub.input_nodes[1].audio_effect);
+  EXPECT_EQ(1, server_state_stub.num_input_devs);
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(node1.audio_effect, server_state_stub.input_nodes[0].audio_effect);
   EXPECT_EQ(0, cras_observer_notify_nodes_called);
 
   // Block Noise Cancallation in audio_effect.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d3_.info.idx, 0));
-  ASSERT_EQ(2, server_state_stub.num_input_nodes);
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
   EXPECT_EQ(default_audio_effect,
             server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[1].audio_effect);
   EXPECT_EQ(1, cras_observer_notify_nodes_called);
 
   // Unblock Noise Cancallation in audio_effect.
-  cras_iodev_list_disable_dev(&d3_, false);
-  ASSERT_EQ(2, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(node1.audio_effect, server_state_stub.input_nodes[1].audio_effect);
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d2_.info.idx, 0));
+  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  EXPECT_EQ(node1.audio_effect, server_state_stub.input_nodes[0].audio_effect);
   EXPECT_EQ(2, cras_observer_notify_nodes_called);
 
   cras_iodev_list_deinit();
