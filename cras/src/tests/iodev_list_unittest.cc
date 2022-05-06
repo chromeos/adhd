@@ -1866,7 +1866,7 @@ TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
   cras_iodev_list_deinit();
 }
 
-TEST_F(IoDevTestSuite, CloseDevWithPinnedStream) {
+TEST_F(IoDevTestSuite, SuspendDevWithPinnedStream) {
   int rc;
   struct cras_rstream rstream1, rstream2;
 
@@ -1874,9 +1874,13 @@ TEST_F(IoDevTestSuite, CloseDevWithPinnedStream) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   d1_.info.idx = 1;
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  d2_.info.idx = 2;
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(0, rc);
 
   memset(&rstream1, 0, sizeof(rstream1));
   memset(&rstream2, 0, sizeof(rstream2));
@@ -1885,6 +1889,9 @@ TEST_F(IoDevTestSuite, CloseDevWithPinnedStream) {
   rstream2.pinned_dev_idx = d1_.info.idx;
 
   d1_.format = &fmt_;
+
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d2_.info.idx, 0));
 
   {  // Add a normal stream
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
@@ -1900,25 +1907,6 @@ TEST_F(IoDevTestSuite, CloseDevWithPinnedStream) {
     stream_add_cb(&rstream2);
   }
 
-  {  // Force disable d1_ and make sure d1_ gets closed.
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_dev, &d1_);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
-
-    cras_iodev_list_disable_dev(&d1_, 1);
-  }
-
-  {  // Add back the two streams, first the pinned,
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 1);
-
-    stream_add_cb(&rstream2);
-  }
-
-  // ... then the normal
-  stream_add_cb(&rstream1);
-
   {  // Suspend d1_ and make sure d1_ gets closed.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
@@ -1928,7 +1916,16 @@ TEST_F(IoDevTestSuite, CloseDevWithPinnedStream) {
     cras_iodev_list_suspend_dev(d1_.info.idx);
   }
 
-  cras_iodev_list_resume_dev(d1_.info.idx);
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
+
+    /* Expect only the pinned stream got added. */
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
+
+    cras_iodev_list_resume_dev(d1_.info.idx);
+  }
 
   cras_iodev_list_deinit();
 }
@@ -1942,9 +1939,14 @@ TEST_F(IoDevTestSuite, DisableDevWithPinnedStream) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
+  d1_.info.idx = 1;
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  d2_.info.idx = 2;
 
   rc = cras_iodev_list_add_output(&d1_);
   EXPECT_EQ(0, rc);
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(0, rc);
 
   rstream1.is_pinned = 1;
   rstream1.pinned_dev_idx = d1_.info.idx;
@@ -1955,8 +1957,8 @@ TEST_F(IoDevTestSuite, DisableDevWithPinnedStream) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 0);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
 
-    cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
-                                    cras_make_node_id(d1_.info.idx, 1));
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
   }
 
   {  // Add a pinned stream.
@@ -1969,12 +1971,12 @@ TEST_F(IoDevTestSuite, DisableDevWithPinnedStream) {
 
   stream_list_has_pinned_stream_ret[d1_.info.idx] = 1;
 
-  {  // Disable d1_ expect no close dev triggered because pinned stream.
+  {  // Selects to d2_ expect no close dev triggered because pinned stream.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 0);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 0);
 
-    cras_iodev_list_disable_dev(&d1_, 0);
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d2_.info.idx, 0));
   }
 
   cras_iodev_list_deinit();
