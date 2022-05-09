@@ -1,7 +1,7 @@
 // Copyright 2020 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::fs::{remove_file, File};
+use std::fs::File;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::path::PathBuf;
 
@@ -53,14 +53,6 @@ impl Datastore {
             .flush()
             .map_err(|e| Error::FileIOFailed(path.to_owned(), e))?;
         info!("update Datastore {}: {:?}", path.to_string_lossy(), self);
-        Ok(())
-    }
-
-    /// Deletes the datastore file.
-    pub fn delete(snd_card: &str, channel: usize) -> Result<()> {
-        let path = Self::path(snd_card, channel);
-        remove_file(&path).map_err(|e| Error::FileIOFailed(path.to_owned(), e))?;
-        info!("datastore: {:#?} is deleted.", path);
         Ok(())
     }
 
