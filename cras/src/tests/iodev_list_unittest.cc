@@ -2275,7 +2275,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev,
-                         &mock_hotword_iodev);
+                         empty_hotword_dev);
 
     EVENTUALLY(EXPECT_EQ, 0, rc);
 
@@ -2288,7 +2288,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_disconnect_stream_stream,
                          &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_disconnect_stream_dev,
-                         &mock_hotword_iodev);
+                         empty_hotword_dev);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
@@ -2331,7 +2331,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
   { /* Hotword stream connected, verify it is added to the empty iodev. */
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev,
-                         &mock_hotword_iodev);
+                         empty_hotword_dev);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
 
     EVENTUALLY(EXPECT_EQ, 0, rc);
@@ -2346,7 +2346,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_disconnect_stream_stream,
                          &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_disconnect_stream_dev,
-                         &mock_hotword_iodev);
+                         empty_hotword_dev);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
@@ -2416,7 +2416,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsPausedAtSystemSuspend) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev,
-                         &mock_hotword_iodev);
+                         empty_hotword_dev);
 
     observer_ops->suspend_changed(NULL, 1);
   }
@@ -2426,7 +2426,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsPausedAtSystemSuspend) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_disconnect_stream_stream,
                          &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_disconnect_stream_dev,
-                         &mock_hotword_iodev);
+                         empty_hotword_dev);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
