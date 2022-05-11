@@ -10,7 +10,7 @@ mod vpd;
 mod zero_player;
 
 use std::{
-    env, fmt, thread,
+    fmt, thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -241,22 +241,15 @@ impl DSM {
         };
 
         if calib_data.temp() < self.temp_lower_limit || calib_data.temp() > self.temp_upper_limit {
-            if env::var("BYPASS_TEMPERATURE_CHECK").is_ok() {
-                info!(
-                    "BYPASS_TEMPERATURE_CHECK. Temperature: {}.",
-                    calib_data.temp()
-                );
-            } else {
-                info!(
-                    "invalid temperature: {}. use previous calibration value",
-                    calib_data.temp()
-                );
+            info!(
+                "invalid temperature: {}. use previous calibration value",
+                calib_data.temp()
+            );
 
-                if !datastore_exist {
-                    Datastore::UseVPD.save(&self.snd_card, channel)?;
-                }
-                return Ok(previous_calib);
+            if !datastore_exist {
+                Datastore::UseVPD.save(&self.snd_card, channel)?;
             }
+            return Ok(previous_calib);
         }
         info!(
             "boot_time_calib: {:?}, previous_calib: {:?}",
