@@ -173,7 +173,7 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 		BTLOG(btlog, BT_ADAPTER_REMOVED, 0, 0);
 		adapter = cras_bt_adapter_get(object_path);
 		if (adapter) {
-			syslog(LOG_INFO, "Bluetooth Adapter: %s removed",
+			syslog(LOG_WARNING, "Bluetooth Adapter: %s removed",
 			       cras_bt_adapter_address(adapter));
 			cras_bt_adapter_destroy(adapter);
 		}
@@ -183,7 +183,7 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 
 		device = cras_bt_device_get(object_path);
 		if (device) {
-			syslog(LOG_INFO, "Bluetooth Device: %s removed",
+			syslog(LOG_WARNING, "Bluetooth Device: %s removed",
 			       cras_bt_device_address(device));
 			cras_bt_device_remove(device);
 		}
@@ -194,13 +194,14 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 
 		transport = cras_bt_transport_get(object_path);
 		if (transport) {
-			syslog(LOG_INFO, "Bluetooth Transport: %s removed",
+			syslog(LOG_WARNING, "Bluetooth Transport: %s removed",
 			       cras_bt_transport_object_path(transport));
 			cras_bt_transport_remove(transport);
 		}
 	} else if (strcmp(interface_name,
 			  BLUEZ_INTERFACE_BATTERY_PROVIDER_MANAGER) == 0) {
-		syslog(LOG_INFO, "Bluetooth Battery Provider Manager removed");
+		syslog(LOG_WARNING,
+		       "Bluetooth Battery Provider Manager removed");
 		cras_bt_battery_provider_reset();
 	}
 }
