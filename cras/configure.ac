@@ -49,6 +49,7 @@ AC_ARG_ENABLE([featured], AS_HELP_STRING([--enable-featured], [Enable all Featur
 AM_CONDITIONAL(HAVE_FEATURED, test "$have_featured" = "yes")
 if test "$have_featured" = "yes"; then
     PKG_CHECK_MODULES([FEATURED], [ libfeatures_c ])
+    AC_DEFINE(HAVE_FEATURED, 1, [Define to build with featured.])
 else
     FEATURED_LIBS=
 fi
