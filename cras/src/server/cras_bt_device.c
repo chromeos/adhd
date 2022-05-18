@@ -317,7 +317,7 @@ void cras_bt_device_append_iodev(struct cras_bt_device *device,
 	 * cras_bt_device_set_use_hardware_volume may have been called.
 	 */
 	bt_io_manager_set_use_hardware_volume(device->bt_io_mgr,
-					      !device->use_hardware_volume);
+					      device->use_hardware_volume);
 }
 
 void cras_bt_device_rm_iodev(struct cras_bt_device *device,
@@ -862,7 +862,7 @@ void cras_bt_device_set_use_hardware_volume(struct cras_bt_device *device,
 {
 	device->use_hardware_volume = use_hardware_volume;
 	bt_io_manager_set_use_hardware_volume(device->bt_io_mgr,
-					      !use_hardware_volume);
+					      use_hardware_volume);
 }
 
 int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device)

@@ -122,7 +122,6 @@ void bt_io_manager_set_use_hardware_volume(struct bt_io_manager *mgr,
 					   int use_hardware_volume)
 {
 	struct cras_iodev *iodev;
-	struct cras_ionode *node;
 
 	iodev = mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
 	if (iodev) {
@@ -130,10 +129,7 @@ void bt_io_manager_set_use_hardware_volume(struct bt_io_manager *mgr,
 		 * TODO(b/229031342): For BlueZ case, whether HFP uses software
 		 * volume is tied to AVRCP supported or not. We should fix this.
 		 */
-		DL_FOREACH (iodev->nodes, node) {
-			node->dev->software_volume_needed =
-				!use_hardware_volume;
-		}
+		iodev->software_volume_needed = !use_hardware_volume;
 	}
 }
 
@@ -413,10 +409,6 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 leave:
 	dev = active_profile_dev(iodev);
 	if (dev) {
-		if (iodev->direction == CRAS_STREAM_OUTPUT)
-			iodev->software_volume_needed =
-				dev->software_volume_needed;
-
 		if (dev->update_active_node)
 			dev->update_active_node(dev, node_idx, dev_enabled);
 	}
@@ -588,8 +580,7 @@ static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 	iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
 
 	if (dev->direction == CRAS_STREAM_OUTPUT) {
-		iodev->software_volume_needed =
-			dev->active_node->software_volume_needed;
+		iodev->software_volume_needed = dev->software_volume_needed;
 		iodev->set_volume = set_bt_volume;
 	}
 

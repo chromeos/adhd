@@ -139,6 +139,7 @@ struct cras_ionode {
 	const char *dsp_name;
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
 	float *softvol_scalers;
+	// Note: avoid accessing software_volume_needed from ionode in the future.
 	int software_volume_needed;
 	long intrinsic_sensitivity;
 	unsigned int stable_id;
