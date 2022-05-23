@@ -58,26 +58,15 @@ def _pkg_config(repository_ctx, library):
         linkopts = linkopts,
     )
 
-def _pkg_config_library(repository_ctx, library, defines = []):
+def _pkg_config_library(repository_ctx, library, library_root, defines = []):
     result = _pkg_config(repository_ctx, library)
-    includes = []
-    library_root = repository_ctx.path("")
 
-    # For each child directory in the pkg_config include path, create a symlink under the external/ folder and add the
-    # correct -isystem path.
-    # Examples:
-    #
-    # symlink src: /build/hatch/usr/include/dbus-1.0
-    # symlink dst: /build/hatch/tmp/portage/media-sound/cras_bench-9999/work/cras_bench-9999-bazel-base/external/system_libs/build/hatch/usr/include/dbus-1.0
-    # -isystem path: external/system_libs/build/hatch/usr/include/dbus-1.0
-
-    for d in result.includes:
-        target = repository_ctx.path(d)
-        local_path = library_root
-        for s in str(target)[1:].split("/"):
-            local_path = local_path.get_child(s)
-        repository_ctx.symlink(target, local_path)
-        includes.append(str(target)[1:])
+    # Replace include directories to symlinked directories under library_root.
+    # library_root is symlinked to "/" so system libs can be included.
+    includes = [
+        library_root + path
+        for path in result.includes
+    ]
 
     hdrs_globs = []
     if result.includes:
@@ -109,8 +98,11 @@ def _pkg_config_repository(repository_ctx, libs, additional_build_file_contents)
     build_file_contents = """package(default_visibility = ["//visibility:public"])
 """
 
+    library_root = "library_root"
+    repository_ctx.symlink("/", library_root)
+
     for library in libs:
-        build_file_contents += _pkg_config_library(repository_ctx, library)
+        build_file_contents += _pkg_config_library(repository_ctx, library, library_root)
 
     build_file_contents += additional_build_file_contents
 
