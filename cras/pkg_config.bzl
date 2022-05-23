@@ -5,6 +5,7 @@
 """Provide repository rules for pkg-config libraries."""
 
 load("@com_github_bazel_skylib//lib:paths.bzl", "paths")
+load("@com_github_bazel_skylib//lib:unittest.bzl", "asserts", "unittest")
 
 _PKG_CONFIG_LIBRARY = """
 cc_library(
@@ -73,21 +74,63 @@ def _pkg_config(repository_ctx, library):
         linkopts = linkopts,
     )
 
-def _pkg_config_library(repository_ctx, library, library_root, defines = []):
+def _common_roots(paths):
+    """
+    Return common roots for paths.
+
+    Paths must be absolute and normalized.
+
+    Example:
+    _common_roots(["/a/b", "/a/b/c", "/a/d", "/a/e"]) == ["/a/b", "/a/d", "/a/e"]
+    """
+    prev_path = None
+    roots = []
+    for path in sorted(paths):
+        if path[0] != "/":
+            fail("{} is not absolute".format(repr(path)))
+
+        # Strip trailing "/", except for root (/).
+        path = path[0] + path[1:].rstrip("/")
+
+        if prev_path != None and (path.rstrip("/") + "/").startswith(prev_path.rstrip("/") + "/"):
+            # path is a descendant of prev_path
+            continue
+
+        prev_path = path
+        roots.append(path)
+    return roots
+
+def _symlink_includes(repository_ctx, library, includes):
+    """
+    Symlink system includes to a local directory and return the localized include paths.
+
+    For each child directory in the pkg_config include path, create a symlink under the external/ folder and add the
+    correct -isystem path.
+    Examples:
+        symlink src: /build/hatch/usr/include/dbus-1.0
+        symlink dst: /build/hatch/tmp/portage/media-sound/cras_bench-9999/work/cras_bench-9999-bazel-base/external/system_libs/build/hatch/usr/include/dbus-1.0
+        -isystem path: external/pkg_config/${library}/build/hatch/usr/include/dbus-1.0
+    """
+
+    # Clean up .. in path segments.
+    # Note that paths.normalize() is logical, so if /a/b/c is a symlink
+    # to another directory, then /a/b/c/.. would resolve incorrectly.
+    includes = [paths.normalize(inc) for inc in includes]
+
+    local_includes = []
+    for inc in _common_roots(includes):
+        repository_ctx.symlink(inc, library + inc)
+        local_includes.append(library + inc)
+
+    return local_includes
+
+def _pkg_config_library(repository_ctx, library, defines = []):
     result = _pkg_config(repository_ctx, library)
 
-    # Replace include directories to symlinked directories under library_root.
-    # library_root is symlinked to "/" so system libs can be included.
-    includes = [
-        library_root + path
-        for path in result.includes
-    ]
+    includes = _symlink_includes(repository_ctx, library, result.includes)
     hdrs_globs = [
-        # Bazel rejects .. in glob patterns so we normalize them.
-        # Note that normalize() is logical, so if /a/b/c is a symlink
-        # to another directory then /a/b/c/.. would resolve incorrectly.
-        "{}{}/**/*.h".format(library_root, paths.normalize(path))
-        for path in result.includes
+        "{}/**/*.h".format(inc)
+        for inc in includes
     ]
 
     return _pkg_config_library_entry(
@@ -114,11 +157,8 @@ def _pkg_config_repository(repository_ctx, libs, additional_build_file_contents)
     build_file_contents = """package(default_visibility = ["//visibility:public"])
 """
 
-    library_root = "library_root"
-    repository_ctx.symlink("/", library_root)
-
     for library in libs:
-        build_file_contents += _pkg_config_library(repository_ctx, library, library_root)
+        build_file_contents += _pkg_config_library(repository_ctx, library)
 
     build_file_contents += additional_build_file_contents
 
@@ -201,3 +241,88 @@ generate_pc = rule(
     ),
     doc = """Generate a pkg-config file (.pc) from a template (.pc.in)""",
 )
+
+def _common_roots_test_impl(ctx):
+    env = unittest.begin(ctx)
+
+    asserts.equals(
+        env,
+        ["/a/b", "/a/d", "/a/e"],
+        _common_roots(["/a/b", "/a/b/c", "/a/d", "/a/e"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/"],
+        _common_roots(["/"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/"],
+        _common_roots(["/b", "/a", "/"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/"],
+        _common_roots(["/", "/a", "/b"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/a"],
+        _common_roots(["/a", "/a/b", "/a/b/c"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/a"],
+        _common_roots(["/a/b", "/a", "/a/b/c"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/a", "/b"],
+        _common_roots(["/a", "/b/c", "/a/d", "/b"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/a", "/b"],
+        _common_roots(["/a", "/b", "/b", "/a"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/a", "/ab"],
+        _common_roots(["/a", "/ab", "/a/b"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/a/b", "/a/c"],
+        _common_roots(["/a/c", "/a/b"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/a/b"],
+        _common_roots(["/a/b/"]),
+    )
+
+    asserts.equals(
+        env,
+        ["/a/b"],
+        _common_roots(["/a/b/", "/a/b"]),
+    )
+
+    return unittest.end(env)
+
+common_roots_test = unittest.make(_common_roots_test_impl)
+
+def pkg_config_test_suite():
+    unittest.suite(
+        "pkg_config_test_suite",
+        common_roots_test,
+    )
