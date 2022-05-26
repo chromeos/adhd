@@ -31,8 +31,11 @@
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 
 /* Floss currently set a 10ms poll interval as A2DP_DATA_READ_POLL_MS.
- * Double it and use for scheduling here. */
-#define PCM_BLOCK_MS 20
+ * We can't control how the receiving side buffers and consumes data so
+ * schedule sending out PCM in blocks corresponding to 10ms to make sure
+ * Floss doesn't wait until timeout.
+ */
+#define PCM_BLOCK_MS 10
 
 /* 8000 (sampling rate) * 10ms * 2 (S16_LE)
  * 10ms equivalent of PCM data for HFP narrow band. This static value is a
