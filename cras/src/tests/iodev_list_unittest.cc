@@ -363,12 +363,12 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
   d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d2_.info.idx = 2;
   d2_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
 
@@ -416,7 +416,7 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
 
     audio_thread_drain_stream_return = 0;
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream2);
     rc = stream_rm_cb(&rstream2);
@@ -458,7 +458,7 @@ TEST_F(IoDevTestSuite, ReopenDevForHigherChannels) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
   d1_.info.max_supported_channels = 2;
@@ -547,7 +547,7 @@ TEST_F(IoDevTestSuite, DevOpenFailsFollowedByReopenDev) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
   d1_.info.max_supported_channels = 2;
@@ -611,12 +611,12 @@ TEST_F(IoDevTestSuite, RampMuteAfterResume) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   d1_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
   rc = cras_iodev_list_add_input(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -642,8 +642,8 @@ TEST_F(IoDevTestSuite, RampMuteAfterResume) {
 
   /* Test only output device that has stream will be muted after resume */
   EXPECT_EQ(d1_.initial_ramp_request, CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE);
-  EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK,
-            d2_.initial_ramp_request);
+  EXPECT_EQ(d2_.initial_ramp_request,
+            CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK);
 
   /* Reset d1 ramp_mute and remove output stream to test again */
   d1_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
@@ -655,10 +655,10 @@ TEST_F(IoDevTestSuite, RampMuteAfterResume) {
   observer_ops->suspend_changed(NULL, 1);
   observer_ops->suspend_changed(NULL, 0);
 
-  EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK,
-            d1_.initial_ramp_request);
-  EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK,
-            d2_.initial_ramp_request);
+  EXPECT_EQ(d1_.initial_ramp_request,
+            CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK);
+  EXPECT_EQ(d2_.initial_ramp_request,
+            CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK);
 
   cras_iodev_list_deinit();
 }
@@ -672,7 +672,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldEnableFallback) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
 
@@ -703,12 +703,12 @@ TEST_F(IoDevTestSuite, InitDevWithEchoRef) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   d1_.echo_reference_dev = &d2_;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_INPUT;
   snprintf(d2_.active_node->name, CRAS_NODE_NAME_BUFFER_SIZE, "echo ref");
   rc = cras_iodev_list_add_input(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -754,11 +754,11 @@ TEST_F(IoDevTestSuite, SelectNodeOpenFailShouldScheduleRetry) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -850,7 +850,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
 
@@ -909,7 +909,7 @@ TEST_F(IoDevTestSuite, PinnedStreamInitFailShouldScheduleRetry) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
 
@@ -968,20 +968,21 @@ TEST_F(IoDevTestSuite, SelectNode) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   node1.idx = 1;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   node2.idx = 2;
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
 
   {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_enabled_count, 1);
-    EVENTUALLY(EXPECT_EQ, &d1_,
-               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+    EVENTUALLY(EXPECT_EQ,
+               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT),
+               &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_disabled_count, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
@@ -1032,8 +1033,9 @@ TEST_F(IoDevTestSuite, SelectNode) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
                          1);
 
-    EVENTUALLY(EXPECT_EQ, &d2_,
-               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+    EVENTUALLY(EXPECT_EQ,
+               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT),
+               &d2_);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d2_.info.idx, 2));
@@ -1055,12 +1057,12 @@ TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   node1.idx = 1;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   node2.idx = 2;
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -1100,8 +1102,9 @@ TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
 
-    EVENTUALLY(EXPECT_EQ, &d1_,
-               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+    EVENTUALLY(EXPECT_EQ,
+               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT),
+               &d1_);
 
     cras_iodev_list_add_active_node(CRAS_STREAM_OUTPUT,
                                     cras_make_node_id(d2_.info.idx, 2));
@@ -1115,8 +1118,9 @@ TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 0);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, &d2_,
-               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+    EVENTUALLY(EXPECT_EQ,
+               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT),
+               &d2_);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d2_.info.idx, 2));
@@ -1134,18 +1138,18 @@ TEST_F(IoDevTestSuite, UpdateActiveNode) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 2);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, &d2_, update_active_node_iodev_val[0]);
-    EVENTUALLY(EXPECT_EQ, 1, update_active_node_node_idx_val[0]);
-    EVENTUALLY(EXPECT_EQ, 1, update_active_node_dev_enabled_val[0]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d2_);
+    EVENTUALLY(EXPECT_EQ, update_active_node_node_idx_val[0], 1);
+    EVENTUALLY(EXPECT_EQ, update_active_node_dev_enabled_val[0], 1);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d2_.info.idx, 1));
@@ -1158,13 +1162,13 @@ TEST_F(IoDevTestSuite, UpdateActiveNode) {
 
     const int fake_idx = MAX_SPECIAL_DEVICE_IDX;
 
-    EVENTUALLY(EXPECT_EQ, &d2_, update_active_node_iodev_val[0]);
-    EVENTUALLY(EXPECT_EQ, fake_idx, update_active_node_node_idx_val[0]);
-    EVENTUALLY(EXPECT_EQ, 0, update_active_node_dev_enabled_val[0]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d2_);
+    EVENTUALLY(EXPECT_EQ, update_active_node_node_idx_val[0], fake_idx);
+    EVENTUALLY(EXPECT_EQ, update_active_node_dev_enabled_val[0], 0);
 
-    EVENTUALLY(EXPECT_EQ, &d1_, update_active_node_iodev_val[1]);
-    EVENTUALLY(EXPECT_EQ, 0, update_active_node_node_idx_val[1]);
-    EVENTUALLY(EXPECT_EQ, 1, update_active_node_dev_enabled_val[1]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[1], &d1_);
+    EVENTUALLY(EXPECT_EQ, update_active_node_node_idx_val[1], 0);
+    EVENTUALLY(EXPECT_EQ, update_active_node_dev_enabled_val[1], 1);
 
     d2_.active_node->idx = fake_idx;
 
@@ -1181,11 +1185,11 @@ TEST_F(IoDevTestSuite, SelectNonExistingNode) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, 1, d1_.is_enabled);
+    EVENTUALLY(EXPECT_EQ, d1_.is_enabled, 1);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, 0));
@@ -1193,7 +1197,7 @@ TEST_F(IoDevTestSuite, SelectNonExistingNode) {
 
   { /* Select non-existing node should disable all devices. */
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, 0, d1_.is_enabled);
+    EVENTUALLY(EXPECT_EQ, d1_.is_enabled, 0);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT, cras_make_node_id(2, 1));
   }
@@ -1206,12 +1210,12 @@ TEST_F(IoDevTestSuite, AddWrongDirection) {
   int rc;
 
   rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(-EINVAL, rc);
+  EXPECT_EQ(rc, -EINVAL);
 
   d1_.direction = CRAS_STREAM_INPUT;
 
   rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(-EINVAL, rc);
+  EXPECT_EQ(rc, -EINVAL);
 }
 
 // Test adding/removing an iodev to the list.
@@ -1222,40 +1226,40 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   cras_iodev_list_init();
 
   rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   // Test can't insert same iodev twice.
   rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_NE(0, rc);
+  EXPECT_NE(rc, 0);
 
   // Test insert a second output.
   rc = cras_iodev_list_add_output(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   // Test that it is removed.
   rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   // Test that we can't remove a dev twice.
   rc = cras_iodev_list_rm_output(&d1_);
-  EXPECT_NE(0, rc);
+  EXPECT_NE(rc, 0);
 
   // Should be 1 dev now.
-  EXPECT_EQ(1, cras_iodev_list_get_outputs(&dev_info));
+  EXPECT_EQ(cras_iodev_list_get_outputs(&dev_info), 1);
   free(dev_info);
 
   // Passing null should return the number of outputs.
-  EXPECT_EQ(1, cras_iodev_list_get_outputs(NULL));
+  EXPECT_EQ(cras_iodev_list_get_outputs(NULL), 1);
 
   // Remove other dev.
   rc = cras_iodev_list_rm_output(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   // Should be 0 devs now.
-  EXPECT_EQ(0, cras_iodev_list_get_outputs(&dev_info));
+  EXPECT_EQ(cras_iodev_list_get_outputs(&dev_info), 0);
   free(dev_info);
 
-  EXPECT_EQ(0, cras_observer_notify_active_node_called);
+  EXPECT_EQ(cras_observer_notify_active_node_called, 0);
 
   cras_iodev_list_deinit();
 }
@@ -1287,17 +1291,17 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
 
   // d1_ and d2_ should set mute state through audio_thread_dev_start_ramp
   // because they are both open.
-  EXPECT_EQ(2, audio_thread_dev_start_ramp_called);
+  EXPECT_EQ(audio_thread_dev_start_ramp_called, 2);
   ASSERT_TRUE(
       dev_idx_in_vector(audio_thread_dev_start_ramp_dev_vector, d2_.info.idx));
   ASSERT_TRUE(
       dev_idx_in_vector(audio_thread_dev_start_ramp_dev_vector, d1_.info.idx));
-  EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE, audio_thread_dev_start_ramp_req);
+  EXPECT_EQ(audio_thread_dev_start_ramp_req, CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE);
 
   // d3_ should set mute state right away without calling ramp
   // because it is not open.
-  EXPECT_EQ(1, set_mute_called);
-  EXPECT_EQ(1, set_mute_dev_vector.size());
+  EXPECT_EQ(set_mute_called, 1);
+  EXPECT_EQ(set_mute_dev_vector.size(), 1);
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 
   cras_iodev_list_deinit();
@@ -1328,15 +1332,15 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
   observer_ops->output_mute_changed(NULL, 0, 0, 0);
 
   // d1_ should set mute state through audio_thread_dev_start_ramp.
-  EXPECT_EQ(1, audio_thread_dev_start_ramp_called);
+  EXPECT_EQ(audio_thread_dev_start_ramp_called, 1);
   ASSERT_TRUE(
       dev_idx_in_vector(audio_thread_dev_start_ramp_dev_vector, d1_.info.idx));
-  EXPECT_EQ(CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE, audio_thread_dev_start_ramp_req);
+  EXPECT_EQ(audio_thread_dev_start_ramp_req, CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE);
 
   // d2_ and d3_ should set mute state right away because they both
   // are closed.
-  EXPECT_EQ(2, set_mute_called);
-  EXPECT_EQ(2, set_mute_dev_vector.size());
+  EXPECT_EQ(set_mute_called, 2);
+  EXPECT_EQ(set_mute_dev_vector.size(), 2);
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d2_));
   ASSERT_TRUE(device_in_vector(set_mute_dev_vector, &d3_));
 
@@ -1354,7 +1358,7 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
 
   d1_.info.idx = 1;
   rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   cras_iodev_list_set_device_enabled_callback(
       device_enabled_cb, device_disabled_cb, NULL, (void*)0xABCD);
@@ -1362,8 +1366,9 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
   {  // Enable a device, fallback should be disabled accordingly.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_enabled_count, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_enabled_dev, &d1_);
-    EVENTUALLY(EXPECT_EQ, &d1_,
-               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT));
+    EVENTUALLY(EXPECT_EQ,
+               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT),
+               &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_disabled_count, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_enabled_cb_data, (void*)0xABCD);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
@@ -1413,31 +1418,31 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
 
   // Check no devices exist initially.
   rc = cras_iodev_list_get_inputs(NULL);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   EXPECT_GE(d1_.info.idx, 0);
   // Test can't insert same iodev twice.
   rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_NE(0, rc);
+  EXPECT_NE(rc, 0);
   // Test insert a second input.
   rc = cras_iodev_list_add_input(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   EXPECT_GE(d2_.info.idx, 1);
   // make sure shared state was updated.
-  EXPECT_EQ(2, server_state_stub.num_input_devs);
-  EXPECT_EQ(d2_.info.idx, server_state_stub.input_devs[0].idx);
-  EXPECT_EQ(d1_.info.idx, server_state_stub.input_devs[1].idx);
+  EXPECT_EQ(server_state_stub.num_input_devs, 2);
+  EXPECT_EQ(server_state_stub.input_devs[0].idx, d2_.info.idx);
+  EXPECT_EQ(server_state_stub.input_devs[1].idx, d1_.info.idx);
 
   // List the outputs.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(2, rc);
+  EXPECT_EQ(rc, 2);
   if (rc == 2) {
     found_mask = 0;
     for (i = 0; i < rc; i++) {
       uint32_t idx = dev_info[i].idx;
-      EXPECT_EQ(0, (found_mask & (static_cast<uint64_t>(1) << idx)));
+      EXPECT_EQ((found_mask & (static_cast<uint64_t>(1) << idx)), 0);
       found_mask |= (static_cast<uint64_t>(1) << idx);
     }
   }
@@ -1446,20 +1451,20 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
 
   // Test that it is removed.
   rc = cras_iodev_list_rm_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // Test that we can't remove a dev twice.
   rc = cras_iodev_list_rm_input(&d1_);
-  EXPECT_NE(0, rc);
+  EXPECT_NE(rc, 0);
   // Should be 1 dev now.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(1, rc);
+  EXPECT_EQ(rc, 1);
   free(dev_info);
   // Remove other dev.
   rc = cras_iodev_list_rm_input(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // Shouldn't be any devices left.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   free(dev_info);
 
   cras_iodev_list_deinit();
@@ -1477,14 +1482,14 @@ TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
   cras_iodev_list_init();
 
   rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   EXPECT_GE(d1_.info.idx, 0);
   rc = cras_iodev_list_add_input(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   EXPECT_GE(d2_.info.idx, 1);
 
-  EXPECT_EQ(0, cras_iodev_list_rm_input(&d1_));
-  EXPECT_EQ(0, cras_iodev_list_rm_input(&d2_));
+  EXPECT_EQ(cras_iodev_list_rm_input(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_rm_input(&d2_), 0);
   cras_iodev_list_deinit();
 }
 
@@ -1499,36 +1504,36 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   cras_iodev_list_init();
 
   rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   rc = cras_iodev_list_add_input(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   // Test that it is removed.
   rc = cras_iodev_list_rm_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // Add it back.
   rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // And again.
   rc = cras_iodev_list_rm_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // Add it back.
   rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // Remove other dev.
   rc = cras_iodev_list_rm_input(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // Add it back.
   rc = cras_iodev_list_add_input(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // Remove both.
   rc = cras_iodev_list_rm_input(&d2_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   rc = cras_iodev_list_rm_input(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   // Shouldn't be any devices left.
   rc = cras_iodev_list_get_inputs(&dev_info);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   cras_iodev_list_deinit();
 }
@@ -1536,13 +1541,13 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
 // Test nodes changed notification is sent.
 TEST_F(IoDevTestSuite, NodesChangedNotification) {
   cras_iodev_list_init();
-  EXPECT_EQ(1, cras_observer_add_called);
+  EXPECT_EQ(cras_observer_add_called, 1);
 
   cras_iodev_list_notify_nodes_changed();
-  EXPECT_EQ(1, cras_observer_notify_nodes_called);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 1);
 
   cras_iodev_list_deinit();
-  EXPECT_EQ(1, cras_observer_remove_called);
+  EXPECT_EQ(cras_observer_remove_called, 1);
 }
 
 // Test callback function for left right swap mode is set and called.
@@ -1553,7 +1558,7 @@ TEST_F(IoDevTestSuite, NodesLeftRightSwappedCallback) {
   memset(&ionode, 0, sizeof(ionode));
   ionode.dev = &iodev;
   cras_iodev_list_notify_node_left_right_swapped(&ionode);
-  EXPECT_EQ(1, cras_observer_notify_node_left_right_swapped_called);
+  EXPECT_EQ(cras_observer_notify_node_left_right_swapped_called, 1);
 }
 
 // Test callback function for volume and gain are set and called.
@@ -1565,8 +1570,8 @@ TEST_F(IoDevTestSuite, VolumeGainCallback) {
   ionode.dev = &iodev;
   cras_iodev_list_notify_node_volume(&ionode);
   cras_iodev_list_notify_node_capture_gain(&ionode);
-  EXPECT_EQ(1, cras_observer_notify_output_node_volume_called);
-  EXPECT_EQ(1, cras_observer_notify_input_node_gain_called);
+  EXPECT_EQ(cras_observer_notify_output_node_volume_called, 1);
+  EXPECT_EQ(cras_observer_notify_input_node_gain_called, 1);
 }
 
 TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
@@ -1578,32 +1583,32 @@ TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
   rc = cras_iodev_list_set_node_attr(cras_make_node_id(0, 0),
                                      IONODE_ATTR_PLUGGED, 1);
   EXPECT_LT(rc, 0);
-  EXPECT_EQ(0, set_node_plugged_called);
+  EXPECT_EQ(set_node_plugged_called, 0);
 
   // Add two device, each with one node.
   d1_.direction = CRAS_STREAM_INPUT;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
   node1.idx = 1;
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
   node2.idx = 2;
 
   // Mismatch id
   rc = cras_iodev_list_set_node_attr(cras_make_node_id(d2_.info.idx, 1),
                                      IONODE_ATTR_PLUGGED, 1);
   EXPECT_LT(rc, 0);
-  EXPECT_EQ(0, set_node_plugged_called);
+  EXPECT_EQ(set_node_plugged_called, 0);
 
   // Mismatch id
   rc = cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 2),
                                      IONODE_ATTR_PLUGGED, 1);
   EXPECT_LT(rc, 0);
-  EXPECT_EQ(0, set_node_plugged_called);
+  EXPECT_EQ(set_node_plugged_called, 0);
 
   // Correct device id and node id
   rc = cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                      IONODE_ATTR_PLUGGED, 1);
-  EXPECT_EQ(rc, 0);
-  EXPECT_EQ(1, set_node_plugged_called);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(set_node_plugged_called, 1);
   cras_iodev_list_deinit();
 }
 
@@ -1614,7 +1619,7 @@ TEST_F(IoDevTestSuite, SetNodeVolumeCaptureGain) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
   node1.idx = 1;
   node1.dev = &d1_;
 
@@ -1622,22 +1627,22 @@ TEST_F(IoDevTestSuite, SetNodeVolumeCaptureGain) {
   d1_.software_volume_needed = 0;
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_VOLUME, 10);
-  EXPECT_EQ(1, cras_observer_notify_output_node_volume_called);
-  EXPECT_EQ(0, cras_iodev_start_volume_ramp_called);
+  EXPECT_EQ(cras_observer_notify_output_node_volume_called, 1);
+  EXPECT_EQ(cras_iodev_start_volume_ramp_called, 0);
 
   // Even with software volume, device with NULL ramp won't trigger ramp start.
   d1_.software_volume_needed = 1;
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_VOLUME, 20);
-  EXPECT_EQ(2, cras_observer_notify_output_node_volume_called);
-  EXPECT_EQ(0, cras_iodev_start_volume_ramp_called);
+  EXPECT_EQ(cras_observer_notify_output_node_volume_called, 2);
+  EXPECT_EQ(cras_iodev_start_volume_ramp_called, 0);
 
   // System mute prevents volume ramp from starting
   system_get_mute_return = true;
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_VOLUME, 20);
-  EXPECT_EQ(3, cras_observer_notify_output_node_volume_called);
-  EXPECT_EQ(0, cras_iodev_start_volume_ramp_called);
+  EXPECT_EQ(cras_observer_notify_output_node_volume_called, 3);
+  EXPECT_EQ(cras_iodev_start_volume_ramp_called, 0);
 
   // Ramp starts only when it's non-NULL, software volume is used, and
   // system is not muted
@@ -1645,13 +1650,13 @@ TEST_F(IoDevTestSuite, SetNodeVolumeCaptureGain) {
   d1_.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_VOLUME, 20);
-  EXPECT_EQ(4, cras_observer_notify_output_node_volume_called);
-  EXPECT_EQ(1, cras_iodev_start_volume_ramp_called);
+  EXPECT_EQ(cras_observer_notify_output_node_volume_called, 4);
+  EXPECT_EQ(cras_iodev_start_volume_ramp_called, 1);
 
   d1_.direction = CRAS_STREAM_INPUT;
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_CAPTURE_GAIN, 15);
-  EXPECT_EQ(1, cras_observer_notify_input_node_gain_called);
+  EXPECT_EQ(cras_observer_notify_input_node_gain_called, 1);
   cras_iodev_list_deinit();
 }
 
@@ -1661,23 +1666,23 @@ TEST_F(IoDevTestSuite, SetNodeSwapLeftRight) {
   cras_iodev_list_init();
 
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
   node1.idx = 1;
   node1.dev = &d1_;
 
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_SWAP_LEFT_RIGHT, 1);
-  EXPECT_EQ(1, set_swap_mode_for_node_called);
-  EXPECT_EQ(1, set_swap_mode_for_node_enable);
-  EXPECT_EQ(1, node1.left_right_swapped);
-  EXPECT_EQ(1, cras_observer_notify_node_left_right_swapped_called);
+  EXPECT_EQ(set_swap_mode_for_node_called, 1);
+  EXPECT_EQ(set_swap_mode_for_node_enable, 1);
+  EXPECT_EQ(node1.left_right_swapped, 1);
+  EXPECT_EQ(cras_observer_notify_node_left_right_swapped_called, 1);
 
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_SWAP_LEFT_RIGHT, 0);
-  EXPECT_EQ(2, set_swap_mode_for_node_called);
-  EXPECT_EQ(0, set_swap_mode_for_node_enable);
-  EXPECT_EQ(0, node1.left_right_swapped);
-  EXPECT_EQ(2, cras_observer_notify_node_left_right_swapped_called);
+  EXPECT_EQ(set_swap_mode_for_node_called, 2);
+  EXPECT_EQ(set_swap_mode_for_node_enable, 0);
+  EXPECT_EQ(node1.left_right_swapped, 0);
+  EXPECT_EQ(cras_observer_notify_node_left_right_swapped_called, 2);
   cras_iodev_list_deinit();
 }
 
@@ -1686,21 +1691,21 @@ TEST_F(IoDevTestSuite, SetNodeDisplayRotation) {
   cras_iodev_list_init();
 
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
   node1.idx = 1;
   node1.dev = &d1_;
 
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_DISPLAY_ROTATION, ROTATE_180);
-  EXPECT_EQ(1, set_display_rotation_for_node_called);
-  EXPECT_EQ(ROTATE_180, display_rotation);
-  EXPECT_EQ(ROTATE_180, node1.display_rotation);
+  EXPECT_EQ(set_display_rotation_for_node_called, 1);
+  EXPECT_EQ(display_rotation, ROTATE_180);
+  EXPECT_EQ(node1.display_rotation, ROTATE_180);
 
   cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
                                 IONODE_ATTR_DISPLAY_ROTATION, ROTATE_270);
-  EXPECT_EQ(2, set_display_rotation_for_node_called);
-  EXPECT_EQ(ROTATE_270, display_rotation);
-  EXPECT_EQ(ROTATE_270, node1.display_rotation);
+  EXPECT_EQ(set_display_rotation_for_node_called, 2);
+  EXPECT_EQ(display_rotation, ROTATE_270);
+  EXPECT_EQ(node1.display_rotation, ROTATE_270);
   cras_iodev_list_deinit();
 }
 
@@ -1717,11 +1722,11 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   d3_.direction = CRAS_STREAM_OUTPUT;
 
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
   rc = cras_iodev_list_add_output(&d3_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -1760,7 +1765,7 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
 
     audio_thread_drain_stream_return = 0;
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     rc = stream_rm_cb(&rstream);
   }
@@ -1796,7 +1801,7 @@ TEST_F(IoDevTestSuite, OutputDevIdleClose) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   d1_.format = &fmt_;
 
@@ -1864,7 +1869,7 @@ TEST_F(IoDevTestSuite, DrainTimerCancel) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
 
   d1_.format = &fmt_;
 
@@ -1889,7 +1894,7 @@ TEST_F(IoDevTestSuite, DrainTimerCancel) {
 
     audio_thread_drain_stream_return = 0;
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream);
     rc = stream_rm_cb(&rstream);
@@ -1917,7 +1922,7 @@ TEST_F(IoDevTestSuite, DrainTimerCancel) {
 
     audio_thread_drain_stream_called = 0;
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream);
     rc = stream_rm_cb(&rstream);
@@ -1945,16 +1950,16 @@ TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
 
   /* d1_ will be the default_output */
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   /* Test the scenario that the selected active output removed
    * from active dev list, should be able to select back again. */
   id = cras_make_node_id(d2_.info.idx, 1);
 
   cras_iodev_list_rm_active_node(CRAS_STREAM_OUTPUT, id);
-  ASSERT_EQ(audio_thread_rm_open_dev_called, 0);
+  ASSERT_EQ(0, audio_thread_rm_open_dev_called);
 
   cras_iodev_list_deinit();
 }
@@ -1971,9 +1976,9 @@ TEST_F(IoDevTestSuite, SuspendDevWithPinnedStream) {
   d2_.info.idx = 2;
 
   rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   memset(&rstream1, 0, sizeof(rstream1));
   memset(&rstream2, 0, sizeof(rstream2));
@@ -2037,9 +2042,9 @@ TEST_F(IoDevTestSuite, DisableDevWithPinnedStream) {
   d2_.info.idx = 2;
 
   rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(rc, 0);
   rc = cras_iodev_list_add_output(&d2_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   rstream1.is_pinned = 1;
   rstream1.pinned_dev_idx = d1_.info.idx;
@@ -2085,14 +2090,14 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   d1_.info.idx = 1;
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
 
   {  // Update d1_, then update fallback (disable)
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 2);
 
-    EVENTUALLY(EXPECT_EQ, &d1_, update_active_node_iodev_val[0]);
-    EVENTUALLY(EXPECT_EQ, fallback_devs[CRAS_STREAM_OUTPUT],
-               update_active_node_iodev_val[1]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d1_);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[1],
+               fallback_devs[CRAS_STREAM_OUTPUT]);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, 0));
@@ -2100,7 +2105,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   d2_.info.idx = 2;
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -2116,9 +2121,9 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
     // Init d1_ because of pinned stream
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, &d1_, update_active_node_iodev_val[0]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d1_);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
@@ -2132,9 +2137,9 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
     // Unselect d1_ (disable but will not call update_active_node due to pinned)
     // and select d2_
-    EVENTUALLY(EXPECT_EQ, &d2_, update_active_node_iodev_val[0]);
-    EVENTUALLY(EXPECT_EQ, fallback_devs[CRAS_STREAM_OUTPUT],
-               update_active_node_iodev_val[1]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d2_);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[1],
+               fallback_devs[CRAS_STREAM_OUTPUT]);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d2_.info.idx, 0));
@@ -2148,9 +2153,9 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
     // close pinned device
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, &d1_, update_active_node_iodev_val[0]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d1_);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream);
     rc = stream_rm_cb(&rstream);
@@ -2163,7 +2168,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
     audio_thread_is_dev_open_ret = 1;
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
@@ -2182,9 +2187,9 @@ TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
 
   // Add 2 output devices.
   d1_.direction = CRAS_STREAM_OUTPUT;
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
   d2_.direction = CRAS_STREAM_OUTPUT;
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -2198,7 +2203,7 @@ TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
@@ -2247,7 +2252,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
 
   node1.type = CRAS_NODE_TYPE_HOTWORD;
   d1_.direction = CRAS_STREAM_INPUT;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
 
   d1_.format = &fmt_;
 
@@ -2260,7 +2265,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
@@ -2277,7 +2282,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev,
                          empty_hotword_dev);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     rc = cras_iodev_list_suspend_hotword_streams();
   }
@@ -2293,7 +2298,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     rc = cras_iodev_list_resume_hotword_stream();
   }
@@ -2311,7 +2316,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
 
   node1.type = CRAS_NODE_TYPE_HOTWORD;
   d1_.direction = CRAS_STREAM_INPUT;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
 
   d1_.format = &fmt_;
 
@@ -2323,7 +2328,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_disconnect_stream_called, 0);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 0);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     rc = cras_iodev_list_suspend_hotword_streams();
   }
@@ -2334,7 +2339,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
                          empty_hotword_dev);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
@@ -2351,7 +2356,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     rc = cras_iodev_list_resume_hotword_stream();
   }
@@ -2387,7 +2392,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsPausedAtSystemSuspend) {
 
   node1.type = CRAS_NODE_TYPE_HOTWORD;
   d1_.direction = CRAS_STREAM_INPUT;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
 
   d1_.format = &fmt_;
 
@@ -2400,7 +2405,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsPausedAtSystemSuspend) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
@@ -2464,7 +2469,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
   d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_INPUT;
   rc = cras_iodev_list_add_input(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
 
@@ -2520,35 +2525,35 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
   node3.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
 
   // Check no devices exist initially.
-  EXPECT_EQ(0, cras_iodev_list_get_inputs(NULL));
+  EXPECT_EQ(cras_iodev_list_get_inputs(NULL), 0);
 
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
   EXPECT_GE(d1_.info.idx, 0);
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
   EXPECT_GE(d2_.info.idx, 1);
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d3_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d3_), 0);
   EXPECT_GE(d3_.info.idx, 2);
 
   // Make sure shared state was updated.
-  EXPECT_EQ(1, server_state_stub.num_input_devs);
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node1.audio_effect, server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(0, cras_observer_notify_nodes_called);
+  EXPECT_EQ(server_state_stub.num_input_devs, 1);
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node1.audio_effect);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 0);
 
   // Block Noise Cancallation in audio_effect.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d3_.info.idx, 0));
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
   EXPECT_EQ(default_audio_effect,
             server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(1, cras_observer_notify_nodes_called);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 1);
 
   // Unblock Noise Cancallation in audio_effect.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d2_.info.idx, 0));
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node1.audio_effect, server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(2, cras_observer_notify_nodes_called);
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node1.audio_effect);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 2);
 
   cras_iodev_list_deinit();
 }
@@ -2569,34 +2574,34 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
   d1_.info.idx = 1;
   node1.idx = 1;
   node1.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   d2_.info.idx = 2;
   node2.idx = 2;
   node2.type = CRAS_NODE_TYPE_HEADPHONE;
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
 
   // Add 1 input device for checking Noise Cancellation state.
   d3_.direction = CRAS_STREAM_INPUT;
   node3.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d3_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d3_), 0);
 
   // Make sure shared state was updated.
-  EXPECT_EQ(1, server_state_stub.num_input_devs);
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node3.audio_effect, server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(0, cras_observer_notify_nodes_called);
+  EXPECT_EQ(server_state_stub.num_input_devs, 1);
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node3.audio_effect);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 0);
 
   // Select internal speaker as the active node.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d1_.info.idx, node1.idx));
 
   // Block Noise Cancellation because internal speaker is enabled.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
   EXPECT_EQ(default_audio_effect,
             server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(1, cras_observer_notify_nodes_called);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 1);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -2612,7 +2617,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, &d1_, update_active_node_iodev_val[0]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
 
     // Noise Cancellation is still blocked.
@@ -2620,7 +2625,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
                default_audio_effect);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream1);
     rc = stream_add_cb(&rstream1);
@@ -2631,7 +2636,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d2_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream2);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, &d2_, update_active_node_iodev_val[0]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d2_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
 
     // Nothing changed for adding pinned stream to d2.
@@ -2639,7 +2644,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
                default_audio_effect);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream2);
     rc = stream_add_cb(&rstream2);
@@ -2655,7 +2660,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
                default_audio_effect);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream2);
     rc = stream_rm_cb(&rstream2);
@@ -2686,7 +2691,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
                node3.audio_effect);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream1);
     rc = stream_rm_cb(&rstream1);
@@ -2705,12 +2710,12 @@ TEST_F(IoDevTestSuite, SetAecRefReconnectStream) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   rc = cras_iodev_list_add_output(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   /* Prepare an enabled input iodev for stream to attach to. */
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
 
   cras_iodev_list_select_node(CRAS_STREAM_INPUT,
                               cras_make_node_id(d2_.info.idx, 0));
@@ -2745,12 +2750,12 @@ TEST_F(IoDevTestSuite, ReconnectStreamsWithApm) {
 
   d1_.direction = CRAS_STREAM_INPUT;
   rc = cras_iodev_list_add_input(&d1_);
-  ASSERT_EQ(0, rc);
+  ASSERT_EQ(rc, 0);
 
   /* Prepare an enabled input iodev for stream to attach to. */
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
   cras_iodev_list_select_node(CRAS_STREAM_INPUT,
                               cras_make_node_id(d2_.info.idx, 0));
 
@@ -2787,24 +2792,24 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   d1_.info.idx = 1;
   node1.idx = 1;
   node1.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
 
   // Add input device for checking Noise Cancellation state.
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
   node2.idx = 2;
   node2.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
 
   // Make sure shared state was updated.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(0, cras_observer_notify_nodes_called);
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node2.audio_effect);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 0);
 
   {  // Select internal speaker as the active node, which means internal speaker
      // device is enabled, yet opened.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
-    EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
+    EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
 
     // Noise Cancellation is blocked.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
@@ -2822,12 +2827,12 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   rstream.pinned_dev_idx = d1_.info.idx;
 
   {  // Add pinned stream to d1, which means internal speaker device is opened.
-    EVENTUALLY(EXPECT_EQ, 1, cras_iodev_is_open(&d1_));
+    EVENTUALLY(EXPECT_EQ, cras_iodev_is_open(&d1_), 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
-    EVENTUALLY(EXPECT_EQ, &d1_, update_active_node_iodev_val[0]);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d1_);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
 
     // Noise Cancellation is still blocked. notify_nodes shouldn't be called.
@@ -2835,7 +2840,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
                default_audio_effect);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
@@ -2846,7 +2851,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   {  // Remove pinned stream from d1, which means internal speaker device is
      // closed.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
-    EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
+    EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
 
     // Noise Cancellation is still blocked because internal speaker device is
     // still enabled. notify_nodes shouldn't be called.
@@ -2854,7 +2859,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
                default_audio_effect);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream);
     rc = stream_rm_cb(&rstream);
@@ -2862,7 +2867,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
 
   {  // Disable internal speaker device d1.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
-    EVENTUALLY(EXPECT_EQ, 0, cras_iodev_list_dev_is_enabled(&d1_));
+    EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 0);
 
     // Noise Cancellation is unblocked because internal speaker device is
     // disabled (and closed).
@@ -2900,22 +2905,22 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   node1_2.idx = 2;
   node1_2.type = CRAS_NODE_TYPE_HEADPHONE;
   DL_APPEND(d1_.nodes, &node1_2);
-  EXPECT_EQ(0, cras_iodev_list_add_output(&d1_));
+  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
 
   // Add input device for checking Noise Cancellation state.
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
   node2.idx = 2;
   node2.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
-  EXPECT_EQ(0, cras_iodev_list_add_input(&d2_));
+  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
 
   // Make sure shared state was updated.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
-  EXPECT_EQ(0, cras_observer_notify_nodes_called);
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node2.audio_effect);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 0);
 
   {  // Select internal speaker as the active node.
-    EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
+    EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
     // Noise Cancellation is blocked.
@@ -2928,7 +2933,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   }
 
   {  // Select headphone as the active node.
-    EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
+    EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
     // Noise Cancellation is unblocked.
@@ -2941,7 +2946,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   }
 
   {  // Select internal speaker as the active node.
-    EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
+    EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
     // Noise Cancellation is blocked.
@@ -2966,14 +2971,14 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
 
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
   }
 
   {  // Select headphone as the active node.
-    EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
+    EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
     // Noise Cancellation is unblocked because headphone is the active node, and
@@ -2990,7 +2995,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
 
   {  // Remove pinned stream from d1.
-    EVENTUALLY(EXPECT_EQ, 0, rc);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream);
     rc = stream_rm_cb(&rstream);
