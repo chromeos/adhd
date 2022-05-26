@@ -809,12 +809,6 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 		       "FILL_AUDIO_DONE", data1, data2, f);
 		break;
 	}
-	case AUDIO_THREAD_WRITE_STREAMS_WAIT:
-		printf("%-30s stream:%x\n", "WRITE_STREAMS_WAIT", data1);
-		break;
-	case AUDIO_THREAD_WRITE_STREAMS_WAIT_TO:
-		printf("%-30s\n", "WRITE_STREAMS_WAIT_TO");
-		break;
 	case AUDIO_THREAD_WRITE_STREAMS_MIX:
 		printf("%-30s write_limit:%u max_offset:%u\n",
 		       "WRITE_STREAMS_MIX", data1, data2);

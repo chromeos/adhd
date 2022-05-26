@@ -579,8 +579,6 @@ static int handle_audio_thread_message(struct audio_thread *thread)
 	case AUDIO_THREAD_ADD_STREAM: {
 		struct audio_thread_add_rm_stream_msg *amsg;
 		amsg = (struct audio_thread_add_rm_stream_msg *)msg;
-		ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_WAIT,
-		      amsg->stream->stream_id, 0, 0);
 		ret = thread_add_stream(thread, amsg->stream, amsg->devs,
 					amsg->num_devs);
 		break;
