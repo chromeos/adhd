@@ -2615,16 +2615,16 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     EVENTUALLY(EXPECT_EQ, &d1_, update_active_node_iodev_val[0]);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
 
+    // Noise Cancellation is still blocked.
+    EVENTUALLY(EXPECT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
+
     EVENTUALLY(EXPECT_EQ, 0, rc);
 
     DL_APPEND(stream_list_get_ret, &rstream1);
     rc = stream_add_cb(&rstream1);
   }
-
-  // Noise Cancellation is still blocked.
-  EXPECT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
 
   {  // Add pinned stream to d2 (headphone).
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
@@ -2634,21 +2634,26 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     EVENTUALLY(EXPECT_EQ, &d2_, update_active_node_iodev_val[0]);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
 
+    // Nothing changed for adding pinned stream to d2.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
+
     EVENTUALLY(EXPECT_EQ, 0, rc);
 
     DL_APPEND(stream_list_get_ret, &rstream2);
     rc = stream_add_cb(&rstream2);
   }
 
-  // Nothing changed for adding pinned stream to d2.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
-
   stream_list_has_pinned_stream_ret[d2_.info.idx] = 0;
 
   {  // Remove pinned stream from d2.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
+
+    // Nothing changed for removing pinned stream from d2.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
 
     EVENTUALLY(EXPECT_EQ, 0, rc);
 
@@ -2656,40 +2661,36 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     rc = stream_rm_cb(&rstream2);
   }
 
-  // Nothing changed for removing pinned stream from d2.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
-
   stream_list_has_pinned_stream_ret[d1_.info.idx] = 1;
 
   {  // Select headphone as the active node.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
 
+    // Noise Cancellation is still blocked because pinned stream is still
+    // attached to d1 (internal speaker).
+    EVENTUALLY(EXPECT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
+
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d2_.info.idx, node2.idx));
   }
-
-  // Noise Cancellation is still blocked because pinned stream is still
-  // attached to d1 (internal speaker).
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
 
   stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
 
   {  // Remove pinned stream from d1.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
+    // Unblock Noise Cancellation because pinned stream is removed from d1.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               node3.audio_effect);
+
     EVENTUALLY(EXPECT_EQ, 0, rc);
 
     DL_DELETE(stream_list_get_ret, &rstream1);
     rc = stream_rm_cb(&rstream1);
   }
-
-  // Unblock Noise Cancellation because pinned stream is removed from d1.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node3.audio_effect, server_state_stub.input_nodes[0].audio_effect);
 
   cras_iodev_list_deinit();
 }
@@ -2805,14 +2806,14 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
     EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
 
+    // Noise Cancellation is blocked.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
+
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1.idx));
   }
-
-  // Noise Cancellation is blocked.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
 
   d1_.format = &fmt_;
 
@@ -2829,16 +2830,16 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     EVENTUALLY(EXPECT_EQ, &d1_, update_active_node_iodev_val[0]);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
 
+    // Noise Cancellation is still blocked. notify_nodes shouldn't be called.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
+
     EVENTUALLY(EXPECT_EQ, 0, rc);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
   }
-
-  // Noise Cancellation is still blocked. notify_nodes shouldn't be called.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
 
   stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
 
@@ -2847,29 +2848,30 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
     EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
 
+    // Noise Cancellation is still blocked because internal speaker device is
+    // still enabled. notify_nodes shouldn't be called.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
+
     EVENTUALLY(EXPECT_EQ, 0, rc);
 
     DL_DELETE(stream_list_get_ret, &rstream);
     rc = stream_rm_cb(&rstream);
   }
 
-  // Noise Cancellation is still blocked because internal speaker device is
-  // still enabled. notify_nodes shouldn't be called.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
-
   {  // Disable internal speaker device d1.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
     EVENTUALLY(EXPECT_EQ, 0, cras_iodev_list_dev_is_enabled(&d1_));
 
+    // Noise Cancellation is unblocked because internal speaker device is
+    // disabled (and closed).
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               node2.audio_effect);
+
     cras_iodev_list_disable_dev(&d1_, false);
   }
-
-  // Noise Cancellation is unblocked because internal speaker device is
-  // disabled (and closed).
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
 
   cras_iodev_list_deinit();
 }
@@ -2916,39 +2918,40 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
     EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
+    // Noise Cancellation is blocked.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
+
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1.idx));
   }
-
-  // Noise Cancellation is blocked.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
 
   {  // Select headphone as the active node.
     EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
+    // Noise Cancellation is unblocked.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               node2.audio_effect);
+
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1_2.idx));
   }
-
-  // Noise Cancellation is unblocked.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
 
   {  // Select internal speaker as the active node.
     EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
+    // Noise Cancellation is blocked.
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               default_audio_effect);
+
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1.idx));
   }
-
-  // Noise Cancellation is blocked.
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
 
   d1_.format = &fmt_;
 
@@ -2973,21 +2976,24 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
     EVENTUALLY(EXPECT_EQ, 1, cras_iodev_list_dev_is_enabled(&d1_));
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
+    // Noise Cancellation is unblocked because headphone is the active node, and
+    // the pinned stream is played by headphone.
+    EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
+    EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
+               node2.audio_effect);
+
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1_2.idx));
   }
 
-  // Noise Cancellation is unblocked because headphone is the active node, and
-  // the pinned stream is played by headphone.
-  EXPECT_EQ(1, cras_iodev_list_dev_is_enabled(&d1_));
-  ASSERT_EQ(1, server_state_stub.num_input_nodes);
-  EXPECT_EQ(node2.audio_effect, server_state_stub.input_nodes[0].audio_effect);
-
   stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
 
   {  // Remove pinned stream from d1.
+    EVENTUALLY(EXPECT_EQ, 0, rc);
+
     DL_DELETE(stream_list_get_ret, &rstream);
-    EXPECT_EQ(0, stream_rm_cb(&rstream));
+    rc = stream_rm_cb(&rstream);
   }
 
   cras_iodev_list_deinit();
