@@ -938,7 +938,7 @@ static void restart_dev(unsigned int dev_idx)
 	dev->update_active_node(dev, dev->active_node->idx, 1);
 	rc = init_and_attach_streams(dev);
 	if (rc) {
-		syslog(LOG_INFO, "Enable dev fail at resume, rc %d", rc);
+		syslog(LOG_INFO, "Enable dev fail at restart, rc %d", rc);
 		schedule_init_device_retry(dev);
 	}
 }
