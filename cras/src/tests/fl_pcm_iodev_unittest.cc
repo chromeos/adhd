@@ -40,6 +40,7 @@ static int cras_floss_a2dp_get_fd_ret;
 static unsigned cras_floss_hfp_start_called;
 static unsigned cras_floss_hfp_stop_called;
 static int cras_floss_hfp_get_fd_ret;
+static bool cras_floss_hfp_get_wbs_supported_ret;
 static cras_iodev* cras_floss_hfp_get_input_iodev_ret;
 static cras_iodev* cras_floss_hfp_get_output_iodev_ret;
 static unsigned cras_floss_a2dp_cancel_suspend_called;
@@ -72,6 +73,7 @@ void ResetStubData() {
   cras_floss_hfp_get_fd_ret = FAKE_SOCKET_FD;
   cras_floss_hfp_get_input_iodev_ret = NULL;
   cras_floss_hfp_get_output_iodev_ret = NULL;
+  cras_floss_hfp_get_wbs_supported_ret = false;
   cras_floss_a2dp_cancel_suspend_called = 0;
   cras_floss_a2dp_schedule_suspend_called = 0;
   write_callback = NULL;
@@ -378,7 +380,8 @@ TEST_F(PcmIodev, TestHfpCb) {
   int rc;
   int sock[2];
   uint8_t sample[200], buf[200];
-  struct fl_pcm_io *odev, *idev;
+  struct cras_iodev* odev;
+  struct fl_pcm_io *pcm_odev, *pcm_idev;
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
   cras_floss_hfp_get_fd_ret = sock[1];
@@ -386,9 +389,15 @@ TEST_F(PcmIodev, TestHfpCb) {
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
   cras_floss_hfp_get_input_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
-  odev = (fl_pcm_io*)cras_floss_hfp_get_output_iodev_ret;
-  idev = (fl_pcm_io*)cras_floss_hfp_get_input_iodev_ret;
-  odev->started = idev->started = 1;
+
+  odev = cras_floss_hfp_get_output_iodev_ret;
+  iodev_set_hfp_format(odev, &format);
+  odev->configure_dev(odev);
+
+  pcm_odev = (fl_pcm_io*)odev;
+  pcm_idev = (fl_pcm_io*)cras_floss_hfp_get_input_iodev_ret;
+
+  pcm_odev->started = pcm_idev->started = 1;
 
   EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
   EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLERR));
@@ -396,12 +405,12 @@ TEST_F(PcmIodev, TestHfpCb) {
   /* Output device should try to write the same number of bytes as input device
    * read. */
   send(sock[0], sample, 100, 0);
-  buf_increment_write(odev->pcm_buf, 150);
+  buf_increment_write(pcm_odev->pcm_buf, 150);
   rc = hfp_socket_read_write_cb((void*)NULL, POLLIN);
   EXPECT_EQ(0, rc);
 
-  EXPECT_EQ(100, buf_readable(idev->pcm_buf));
-  EXPECT_EQ(50, buf_readable(odev->pcm_buf));
+  EXPECT_EQ(100, buf_readable(pcm_idev->pcm_buf));
+  EXPECT_EQ(50, buf_readable(pcm_odev->pcm_buf));
   rc = recv(sock[0], buf, 200, 0);
   EXPECT_EQ(100, rc);
 }
@@ -587,11 +596,18 @@ const char* cras_floss_hfp_get_addr(struct cras_hfp* hfp) {
   return "11:22:33:44:55:66";
 }
 
+bool cras_floss_hfp_get_wbs_supported(struct cras_hfp* hfp) {
+  return cras_floss_hfp_get_wbs_supported_ret;
+}
+
 int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
                                size_t** rates,
                                snd_pcm_format_t** formats,
                                size_t** channel_counts) {
   cras_floss_hfp_fill_format_called++;
+  *rates = (size_t*)malloc(sizeof(**rates));
+  *formats = (snd_pcm_format_t*)malloc(sizeof(**formats));
+  *channel_counts = (size_t*)malloc(sizeof(**channel_counts));
   return 0;
 }
 

@@ -6,6 +6,8 @@
 #ifndef CRAS_HFP_MANAGER_H_
 #define CRAS_HFP_MANAGER_H_
 
+#include <stdbool.h>
+
 #include "audio_thread.h"
 #include "cras_types.h"
 
@@ -14,7 +16,7 @@ struct fl_media;
 
 /* Creates cras_hfp object representing a connected hfp device. */
 struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
-				       const char *name);
+				       const char *name, bool wbs_supported);
 
 /* Starts hfp streaming on given cras_hfp for the specified direction.
  * Returns 0 for success, otherwise error code. */
@@ -51,6 +53,9 @@ int cras_floss_hfp_fill_format(struct cras_hfp *hfp, size_t **rates,
 /* Convert the HFP speaker volume received from the headset's volume change
  * event to CRAS's system volume. */
 int cras_floss_hfp_convert_volume(unsigned int vgs_volume);
+
+/* Get if HFP wideband speech is supported. */
+bool cras_floss_hfp_get_wbs_supported(struct cras_hfp *hfp);
 
 /* Destroys given cras_hfp object. */
 void cras_floss_hfp_destroy(struct cras_hfp *hfp);

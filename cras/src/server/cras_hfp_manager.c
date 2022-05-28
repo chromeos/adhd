@@ -49,6 +49,7 @@ struct cras_hfp {
 	int fd;
 	int idev_started;
 	int odev_started;
+	bool wbs_supported;
 };
 
 void fill_floss_hfp_skt_addr(struct sockaddr_un *addr)
@@ -70,7 +71,7 @@ void set_dev_started(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir,
 
 /* Creates cras_hfp object representing a connected hfp device. */
 struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
-				       const char *name)
+				       const char *name, bool wbs_supported)
 {
 	struct cras_hfp *hfp;
 	hfp = (struct cras_hfp *)calloc(1, sizeof(*hfp));
@@ -82,6 +83,7 @@ struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
 	hfp->addr = strdup(addr);
 	hfp->name = strdup(name);
 	hfp->fd = -1;
+	hfp->wbs_supported = wbs_supported;
 	hfp->idev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_INPUT);
 	hfp->odev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_OUTPUT);
 	if (!hfp->idev || !hfp->odev) {
@@ -223,11 +225,10 @@ int cras_floss_hfp_fill_format(struct cras_hfp *hfp, size_t **rates,
 			       snd_pcm_format_t **formats,
 			       size_t **channel_counts)
 {
-	/* TODO(b/214148074): Support WBS. hfp is passed in advance for it*/
 	*rates = (size_t *)malloc(2 * sizeof(size_t));
 	if (!*rates)
 		return -ENOMEM;
-	(*rates)[0] = 8000;
+	(*rates)[0] = hfp->wbs_supported ? 16000 : 8000;
 	(*rates)[1] = 0;
 
 	*formats = (snd_pcm_format_t *)malloc(2 * sizeof(snd_pcm_format_t));
@@ -260,6 +261,11 @@ int cras_floss_hfp_convert_volume(unsigned int vgs_volume)
 	/* Map 0 to the smallest non-zero scale 6/100, and 15 to
 	 * 100/100 full. */
 	return (vgs_volume + 1) * 100 / 16;
+}
+
+bool cras_floss_hfp_get_wbs_supported(struct cras_hfp *hfp)
+{
+	return hfp->wbs_supported;
 }
 
 /* Destroys given cras_hfp object. */

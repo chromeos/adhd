@@ -953,7 +953,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 		}
 
 		if (hfp_avail) {
-			syslog(LOG_DEBUG, "HFP device added.");
+			syslog(LOG_DEBUG,
+			       "HFP device added with capability %d.", hfp_cap);
 			if (active_fm->hfp) {
 				syslog(LOG_WARNING,
 				       "Multiple HFP devices added, remove the older");
@@ -967,8 +968,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 						active_fm->hfp));
 				cras_floss_hfp_destroy(active_fm->hfp);
 			}
-			active_fm->hfp =
-				cras_floss_hfp_create(active_fm, addr, name);
+			active_fm->hfp = cras_floss_hfp_create(
+				active_fm, addr, name, hfp_cap & FL_CODEC_MSBC);
 
 			if (active_fm->hfp) {
 				bt_io_manager_append_iodev(

@@ -37,11 +37,6 @@
  */
 #define PCM_BLOCK_MS 10
 
-/* 8000 (sampling rate) * 10ms * 2 (S16_LE)
- * 10ms equivalent of PCM data for HFP narrow band. This static value is a
- * temporary solution and should be refined to a better scheduling strategy. */
-#define HFP_PACKET_SIZE 160
-
 /* Schedule the first delay sync 500ms after stream starts, and redo
  * every 10 seconds. */
 #define INIT_DELAY_SYNC_MSEC 500
@@ -106,11 +101,18 @@ struct fl_pcm_io {
 
 static int flush(const struct cras_iodev *iodev);
 
-static int update_supported_formats(struct cras_iodev *iodev)
+static int a2dp_update_supported_formats(struct cras_iodev *iodev)
 {
 	/* Supported formats are fixed when iodev created. */
-	/* TODO(b/214148074): Support WBS */
 	return 0;
+}
+
+static int hfp_update_supported_formats(struct cras_iodev *iodev)
+{
+	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
+	return cras_floss_hfp_fill_format(hfpio->hfp, &iodev->supported_rates,
+					  &iodev->supported_formats,
+					  &iodev->supported_channel_counts);
 }
 
 static unsigned int bt_local_queued_frames(const struct cras_iodev *iodev)
@@ -390,6 +392,7 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 	int rc;
 	struct cras_hfp *hfp = (struct cras_hfp *)arg;
 	struct fl_pcm_io *idev, *odev;
+	size_t nwrite_btyes;
 
 	idev = (struct fl_pcm_io *)cras_floss_hfp_get_input_iodev(hfp);
 	odev = (struct fl_pcm_io *)cras_floss_hfp_get_output_iodev(hfp);
@@ -406,9 +409,11 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 		return -1;
 	}
 
+	nwrite_btyes =
+		odev->write_block * cras_get_format_bytes(odev->base.format);
 	rc = hfp_write(odev, idev->hfp_rw_offset > odev->hfp_rw_offset ?
 				     idev->hfp_rw_offset - odev->hfp_rw_offset :
-				     HFP_PACKET_SIZE);
+				     nwrite_btyes);
 	if (idev->hfp_rw_offset == odev->hfp_rw_offset)
 		idev->hfp_rw_offset = odev->hfp_rw_offset = 0;
 
@@ -430,6 +435,7 @@ static int hfp_configure_dev(struct cras_iodev *iodev)
 	iodev->buffer_size = hfpio->pcm_buf->used_size /
 			     cras_get_format_bytes(iodev->format);
 
+	hfpio->write_block = iodev->format->frame_rate * PCM_BLOCK_MS / 1000;
 	hfpio->bt_stack_delay = 0;
 
 	/* As we directly write PCM here, there is no min buffer limitation. */
@@ -811,7 +817,6 @@ struct fl_pcm_io *pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
-	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;
 
 	/* A2DP specific fields */
@@ -841,6 +846,7 @@ struct fl_pcm_io *pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 static void set_a2dp_callbacks(struct cras_iodev *a2dpio)
 {
 	a2dpio->configure_dev = a2dp_configure_dev;
+	a2dpio->update_supported_formats = a2dp_update_supported_formats;
 	a2dpio->put_buffer = a2dp_put_buffer;
 	a2dpio->flush_buffer = a2dp_flush_buffer;
 	a2dpio->no_stream = a2dp_no_stream;
@@ -943,6 +949,7 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
 static void set_hfp_callbacks(struct cras_iodev *hfpio)
 {
 	hfpio->configure_dev = hfp_configure_dev;
+	hfpio->update_supported_formats = hfp_update_supported_formats;
 	hfpio->put_buffer = hfp_put_buffer;
 	hfpio->flush_buffer = hfp_flush_buffer;
 	hfpio->no_stream = hfp_no_stream;
@@ -984,7 +991,8 @@ struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
 	if (!hfpio->pcm_buf)
 		goto error;
 
-	if (iodev->direction == CRAS_STREAM_INPUT)
+	if (iodev->direction == CRAS_STREAM_INPUT &&
+	    !cras_floss_hfp_get_wbs_supported(hfp))
 		iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
 
 	iodev->active_node->btflags |= CRAS_BT_FLAG_HFP;
