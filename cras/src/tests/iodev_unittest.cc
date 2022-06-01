@@ -1284,7 +1284,7 @@ TEST(IoDev, OpenOutputDeviceWithLowRateFmt) {
   EXPECT_EQ(240, iodev.min_cb_level);
 }
 
-int fake_start(const struct cras_iodev* iodev) {
+int fake_start(struct cras_iodev* iodev) {
   return 0;
 }
 

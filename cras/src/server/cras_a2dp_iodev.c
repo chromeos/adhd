@@ -344,7 +344,7 @@ static int configure_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int start(const struct cras_iodev *iodev)
+static int start(struct cras_iodev *iodev)
 {
 	struct a2dp_io *a2dpio = (struct a2dp_io *)iodev;
 	struct timespec extra_init_sleep;

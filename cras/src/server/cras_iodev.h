@@ -279,7 +279,7 @@ struct cras_iodev {
 			  struct cras_audio_area **area, unsigned *frames);
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
 	int (*flush_buffer)(struct cras_iodev *iodev);
-	int (*start)(const struct cras_iodev *iodev);
+	int (*start)(struct cras_iodev *iodev);
 	int (*is_free_running)(const struct cras_iodev *iodev);
 	int (*output_underrun)(struct cras_iodev *iodev);
 	int (*no_stream)(struct cras_iodev *iodev, int enable);

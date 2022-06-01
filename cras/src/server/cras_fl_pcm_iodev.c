@@ -446,7 +446,7 @@ static int hfp_configure_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int a2dp_start(const struct cras_iodev *iodev)
+static int a2dp_start(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 

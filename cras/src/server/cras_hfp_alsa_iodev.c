@@ -205,7 +205,7 @@ static void hfp_alsa_update_active_node(struct cras_iodev *iodev,
 	aio->update_active_node(aio, node_idx, dev_enabled);
 }
 
-static int hfp_alsa_start(const struct cras_iodev *iodev)
+static int hfp_alsa_start(struct cras_iodev *iodev)
 {
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;

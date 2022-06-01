@@ -125,7 +125,7 @@ static void ResetStubData() {
   fake_update_active_node_called = 0;
 
   fake_sco_out.start = fake_sco_in.start =
-      (int (*)(const struct cras_iodev*))fake_start;
+      (int (*)(struct cras_iodev*))fake_start;
   fake_start_called = 0;
 
   fake_sco_out.no_stream = fake_sco_in.no_stream =

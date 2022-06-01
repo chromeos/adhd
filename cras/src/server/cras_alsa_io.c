@@ -608,7 +608,7 @@ static int has_handle(const struct alsa_io *aio)
 	return !!aio->handle;
 }
 
-static int start(const struct cras_iodev *iodev)
+static int start(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
 	snd_pcm_t *handle = aio->handle;

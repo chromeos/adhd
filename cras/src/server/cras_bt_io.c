@@ -482,7 +482,7 @@ static int is_free_running(const struct cras_iodev *iodev)
 	return 0;
 }
 
-static int start(const struct cras_iodev *iodev)
+static int start(struct cras_iodev *iodev)
 {
 	struct cras_iodev *dev = active_profile_dev(iodev);
 	int rc;
