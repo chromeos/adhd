@@ -449,6 +449,31 @@ static int hfp_configure_dev(struct cras_iodev *iodev)
 static int a2dp_start(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
+	uint8_t *buf;
+	unsigned int to_send;
+	int rc, init_level;
+	int fd = cras_floss_a2dp_get_fd(a2dpio->a2dp);
+
+	/* Send one block of silence to Floss as jitter buffer to handle
+	 * the variation in packet scheduling. */
+	cras_iodev_fill_odev_zeros(iodev, a2dpio->write_block);
+	init_level = a2dpio->write_block * cras_get_format_bytes(iodev->format);
+
+	buf = buf_read_pointer_size(a2dpio->pcm_buf, &to_send);
+	while (to_send && init_level) {
+		if (to_send > init_level)
+			to_send = init_level;
+		rc = send(fd, buf, to_send, MSG_DONTWAIT);
+		if (rc <= 0)
+			break;
+		buf_increment_read(a2dpio->pcm_buf, rc);
+		init_level -= rc;
+		buf = buf_read_pointer_size(a2dpio->pcm_buf, &to_send);
+	}
+	if (init_level)
+		syslog(LOG_WARNING,
+		       "Failed to send all init buffer, left %d bytes",
+		       init_level);
 
 	/*
 	 * This is called when iodev in open state, at the moment when
