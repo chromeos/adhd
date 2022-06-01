@@ -354,6 +354,26 @@ int floss_media_a2dp_stop_audio_request(struct fl_media *fm)
 	return 0;
 }
 
+int floss_media_a2dp_suspend(struct fl_media *fm)
+{
+	if (fm != active_fm) {
+		syslog(LOG_WARNING,
+		       "Invalid fl_media instance to suspend a2dp");
+		return 0;
+	}
+
+	if (fm->a2dp == NULL) {
+		syslog(LOG_WARNING, "Invalid a2dp instance to suspend");
+		return 0;
+	}
+
+	bt_io_manager_remove_iodev(active_fm->bt_io_mgr,
+				   cras_floss_a2dp_get_iodev(active_fm->a2dp));
+	cras_floss_a2dp_destroy(active_fm->a2dp);
+	active_fm->a2dp = NULL;
+	return 0;
+}
+
 static bool get_presentation_position_result(DBusMessage *message,
 					     uint64_t *remote_delay_report_ns,
 					     uint64_t *total_bytes_read,
@@ -948,11 +968,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 
 		bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 0);
 		if (active_fm && active_fm->a2dp) {
-			bt_io_manager_remove_iodev(
-				active_fm->bt_io_mgr,
-				cras_floss_a2dp_get_iodev(active_fm->a2dp));
-			cras_floss_a2dp_destroy(active_fm->a2dp);
-			active_fm->a2dp = NULL;
+			floss_media_a2dp_suspend(active_fm);
 		}
 		if (active_fm && active_fm->hfp) {
 			bt_io_manager_remove_iodev(

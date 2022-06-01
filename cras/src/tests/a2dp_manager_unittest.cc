@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include "test_util.h"
+
 extern "C" {
 #include "cras_a2dp_manager.h"
 #include "cras_audio_format.h"
@@ -38,6 +40,7 @@ static int floss_media_a2dp_stop_audio_request_called;
 static int floss_media_a2dp_set_volume_called;
 static int floss_media_a2dp_set_volume_arg;
 static int floss_media_a2dp_get_presentation_position_called;
+static int floss_media_a2dp_suspend_called;
 static struct cras_fl_a2dp_codec_config a2dp_codecs;
 
 void ResetStubData() {
@@ -305,6 +308,42 @@ TEST_F(A2dpManagerTestSuite, SetVolume) {
 
   cras_floss_a2dp_destroy(a2dp);
 }
+
+TEST_F(A2dpManagerTestSuite, SuspendCallback) {
+  struct cras_audio_format fmt;
+
+  fmt.frame_rate = 44100;
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.num_channels = 2;
+
+  a2dp_pcm_iodev_create_ret =
+      (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
+  struct cras_a2dp* a2dp =
+      cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
+  ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
+
+  EXPECT_EQ(0, cras_floss_a2dp_start(a2dp, &fmt));
+
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_tm_create_timer_called, 1);
+
+    cras_floss_a2dp_schedule_suspend(a2dp, 100);
+    cras_main_message_add_handler_callback(cras_main_message_send_msg,
+                                           (void*)a2dp);
+  }
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, floss_media_a2dp_suspend_called, 1);
+
+    cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  }
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, floss_media_a2dp_stop_audio_request_called,
+                         1);
+    cras_floss_a2dp_stop(a2dp);
+  }
+
+  cras_floss_a2dp_destroy(a2dp);
+}
 }  // namespace
 
 extern "C" {
@@ -426,6 +465,11 @@ int floss_media_a2dp_get_presentation_position(
     uint64_t* total_bytes_read,
     struct timespec* data_position_ts) {
   floss_media_a2dp_get_presentation_position_called++;
+  return 0;
+}
+
+int floss_media_a2dp_suspend(struct fl_media* fm) {
+  floss_media_a2dp_suspend_called++;
   return 0;
 }
 

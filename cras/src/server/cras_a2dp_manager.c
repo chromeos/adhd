@@ -379,8 +379,7 @@ static void a2dp_suspend_cb(struct cras_timer *timer, void *arg)
 	 * the structure of fl_media and presence of cras_a2dp. The best
 	 * we can do is to destroy the iodev. */
 	syslog(LOG_WARNING, "Destroying iodev for A2DP device");
-	a2dp_pcm_iodev_destroy(a2dp->iodev);
-	a2dp->iodev = NULL;
+	floss_media_a2dp_suspend(a2dp->fm);
 }
 
 const char *cras_floss_a2dp_get_display_name(struct cras_a2dp *a2dp)
