@@ -48,9 +48,35 @@ size_t s16_stereo_to_51(size_t left, size_t right, size_t center,
 /*
  * Channel converter: quad to 5.1 surround.
  */
-size_t s16_quad_to_51(size_t font_left, size_t front_right, size_t rear_left,
+size_t s16_quad_to_51(size_t front_left, size_t front_right, size_t rear_left,
 		      size_t rear_right, const uint8_t *in, size_t in_frames,
 		      uint8_t *out);
+
+/*
+ * Channel converter: mono to 7.1 surround.
+ */
+size_t s16_mono_to_71(size_t left, size_t right, size_t center,
+		      const uint8_t *in, size_t in_frames, uint8_t *out);
+
+/*
+ * Channel converter: stereo to 7.1 surround.
+ */
+size_t s16_stereo_to_71(size_t left, size_t right, size_t center,
+			const uint8_t *in, size_t in_frames, uint8_t *out);
+
+/*
+ * Channel converter: quad to 7.1 surround.
+ */
+size_t s16_quad_to_71(size_t front_left, size_t front_right, size_t rear_left,
+		      size_t rear_right, const uint8_t *in, size_t in_frames,
+		      uint8_t *out);
+
+/*
+ * Channel converter: 5.1 to 7.1 surround.
+ */
+size_t s16_51_to_71(const struct cras_audio_format *in_fmt,
+		    const struct cras_audio_format *out_fmt, const uint8_t *in,
+		    size_t in_frames, uint8_t *out);
 
 /*
  * Channel converter: 5.1 surround to stereo.

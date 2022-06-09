@@ -678,6 +678,396 @@ TEST(FormatConverterOpsTest, QuadToStereoS16LEDefault) {
   }
 }
 
+// Test mono to 8ch conversion.  S16_LE, Center.
+TEST(FormatConverterOpsTest, MonoTo8chS16LECenter) {
+  const size_t frames = 4096;
+  const size_t in_ch = 1;
+  const size_t out_ch = 8;
+  const size_t left = 0;
+  const size_t right = 1;
+  const size_t center = 2;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_mono_to_71(left, right, center, (uint8_t*)src.get(), frames,
+                              (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    for (size_t k = 0; k < 8; ++k) {
+      if (k == center)
+        EXPECT_EQ(src[i], dst[i * 8 + k]);
+      else
+        EXPECT_EQ(0, dst[i * 8 + k]);
+    }
+  }
+}
+
+// Test mono to 8ch conversion.  S16_LE, LeftRight.
+TEST(FormatConverterOpsTest, MonoTo8chS16LELeftRight) {
+  const size_t frames = 4096;
+  const size_t in_ch = 1;
+  const size_t out_ch = 8;
+  const size_t left = 0;
+  const size_t right = 1;
+  const size_t center = -1;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_mono_to_71(left, right, center, (uint8_t*)src.get(), frames,
+                              (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    for (size_t k = 0; k < 8; ++k) {
+      if (k == left || k == right)
+        EXPECT_EQ(src[i] / 2, dst[i * 8 + k]);
+      else
+        EXPECT_EQ(0, dst[i * 8 + k]);
+    }
+  }
+}
+
+// Test mono to 8ch conversion.  S16_LE, Unknown.
+TEST(FormatConverterOpsTest, MonoTo8chS16LEUnknown) {
+  const size_t frames = 4096;
+  const size_t in_ch = 1;
+  const size_t out_ch = 8;
+  const size_t left = -1;
+  const size_t right = -1;
+  const size_t center = -1;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_mono_to_71(left, right, center, (uint8_t*)src.get(), frames,
+                              (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    for (size_t k = 0; k < 8; ++k) {
+      if (k == 0)
+        EXPECT_EQ(src[i], dst[i * 8 + k]);
+      else
+        EXPECT_EQ(0, dst[i * 8 + k]);
+    }
+  }
+}
+
+// Test stereo to 8ch conversion.  S16_LE, LeftRight.
+TEST(FormatConverterOpsTest, StereoTo8chS16LELeftRight) {
+  const size_t frames = 4096;
+  const size_t in_ch = 2;
+  const size_t out_ch = 8;
+  const size_t left = 0;
+  const size_t right = 1;
+  const size_t center = -1;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_stereo_to_71(left, right, center, (uint8_t*)src.get(),
+                                frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    for (size_t k = 0; k < 8; ++k) {
+      if (k == left)
+        EXPECT_EQ(src[i * 2], dst[i * 8 + k]);
+      else if (k == right)
+        EXPECT_EQ(src[i * 2 + 1], dst[i * 8 + k]);
+      else
+        EXPECT_EQ(0, dst[i * 8 + k]);
+    }
+  }
+}
+
+// Test stereo to 8ch conversion.  S16_LE, Center.
+TEST(FormatConverterOpsTest, StereoTo8chS16LECenter) {
+  const size_t frames = 4096;
+  const size_t in_ch = 2;
+  const size_t out_ch = 8;
+  const size_t left = -1;
+  const size_t right = -1;
+  const size_t center = 2;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_stereo_to_71(left, right, center, (uint8_t*)src.get(),
+                                frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    for (size_t k = 0; k < 8; ++k) {
+      if (k == center)
+        EXPECT_EQ(S16AddAndClip(src[i * 2], src[i * 2 + 1]), dst[i * 8 + k]);
+      else
+        EXPECT_EQ(0, dst[i * 8 + k]);
+    }
+  }
+}
+
+// Test stereo to 8ch conversion.  S16_LE, Unknown.
+TEST(FormatConverterOpsTest, StereoTo8chS16LEUnknown) {
+  const size_t frames = 4096;
+  const size_t in_ch = 2;
+  const size_t out_ch = 8;
+  const size_t left = -1;
+  const size_t right = -1;
+  const size_t center = -1;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_stereo_to_71(left, right, center, (uint8_t*)src.get(),
+                                frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    for (size_t k = 0; k < 8; ++k) {
+      if (k == 0 || k == 1)
+        EXPECT_EQ(src[i * 2 + k], dst[i * 8 + k]);
+      else
+        EXPECT_EQ(0, dst[i * 8 + k]);
+    }
+  }
+}
+
+// Test quad to 8ch conversion.  S16_LE, Specify.
+TEST(FormatConverterOpsTest, QuadTo8chS16LESpecify) {
+  const size_t frames = 4096;
+  const size_t in_ch = 4;
+  const size_t out_ch = 8;
+
+  const size_t fl_quad = 0;
+  const size_t fr_quad = 1;
+  const size_t rl_quad = 2;
+  const size_t rr_quad = 3;
+
+  // Specify custom channel mapping
+  const size_t fl_71 = 7;
+  const size_t fr_71 = 6;
+  const size_t center_71 = 5;
+  const size_t lfe_71 = 4;
+  const size_t rl_71 = 3;
+  const size_t rr_71 = 2;
+  const size_t sl_71 = 1;
+  const size_t sr_71 = 0;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_quad_to_71(fl_71, fr_71, rl_71, rr_71, (uint8_t*)src.get(),
+                              frames, (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    EXPECT_EQ(src[i * 4 + fl_quad], dst[i * 8 + fl_71]);
+    EXPECT_EQ(src[i * 4 + fr_quad], dst[i * 8 + fr_71]);
+    EXPECT_EQ(src[i * 4 + rl_quad], dst[i * 8 + rl_71]);
+    EXPECT_EQ(src[i * 4 + rr_quad], dst[i * 8 + rr_71]);
+
+    EXPECT_EQ(0, dst[i * 8 + center_71]);
+    EXPECT_EQ(0, dst[i * 8 + lfe_71]);
+    EXPECT_EQ(0, dst[i * 8 + sl_71]);
+    EXPECT_EQ(0, dst[i * 8 + sr_71]);
+  }
+}
+
+// Test quad to 8ch conversion.  S16_LE, Default.
+TEST(FormatConverterOpsTest, QuadTo8chS16LEDefault) {
+  const size_t frames = 4096;
+  const size_t in_ch = 4;
+  const size_t out_ch = 8;
+
+  const size_t fl_quad = 0;
+  const size_t fr_quad = 1;
+  const size_t rl_quad = 2;
+  const size_t rr_quad = 3;
+
+  const size_t fl_71 = 0;
+  const size_t fr_71 = 1;
+  const size_t center_71 = 2;
+  const size_t lfe_71 = 3;
+  const size_t rl_71 = 4;
+  const size_t rr_71 = 5;
+  const size_t sl_71 = 6;
+  const size_t sr_71 = 7;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_quad_to_71(-1, -1, -1, -1, (uint8_t*)src.get(), frames,
+                              (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    EXPECT_EQ(src[i * 4 + fl_quad], dst[i * 8 + fl_71]);
+    EXPECT_EQ(src[i * 4 + fr_quad], dst[i * 8 + fr_71]);
+    EXPECT_EQ(src[i * 4 + rl_quad], dst[i * 8 + rl_71]);
+    EXPECT_EQ(src[i * 4 + rr_quad], dst[i * 8 + rr_71]);
+
+    EXPECT_EQ(0, dst[i * 8 + center_71]);
+    EXPECT_EQ(0, dst[i * 8 + lfe_71]);
+    EXPECT_EQ(0, dst[i * 8 + sl_71]);
+    EXPECT_EQ(0, dst[i * 8 + sr_71]);
+  }
+}
+
+// Test 6ch to 8ch conversion.  S16_LE, Specify, Rear.
+TEST(FormatConverterOpsTest, 6chTo8chS16LESpecifyRear) {
+  const size_t frames = 4096;
+  const size_t in_ch = 6;
+  const size_t out_ch = 8;
+
+  // FL FR FC LFE RL RR
+  const struct cras_audio_format in_fmt = {
+      .channel_layout = {0, 1, 4, 5, 2, 3, -1, -1, -1, -1, -1},
+  };
+  const struct cras_audio_format out_fmt = {
+      .channel_layout = {0, 1, 2, 3, 4, 5, 6, 7, -1, -1, -1},
+  };
+
+  const size_t fl_51 = in_fmt.channel_layout[CRAS_CH_FL];
+  const size_t fr_51 = in_fmt.channel_layout[CRAS_CH_FR];
+  const size_t center_51 = in_fmt.channel_layout[CRAS_CH_FC];
+  const size_t lfe_51 = in_fmt.channel_layout[CRAS_CH_LFE];
+  const size_t rl_51 = in_fmt.channel_layout[CRAS_CH_RL];
+  const size_t rr_51 = in_fmt.channel_layout[CRAS_CH_RR];
+
+  // Specify custom channel mapping
+  const size_t fl_71 = out_fmt.channel_layout[CRAS_CH_FL];
+  const size_t fr_71 = out_fmt.channel_layout[CRAS_CH_FR];
+  const size_t center_71 = out_fmt.channel_layout[CRAS_CH_FC];
+  const size_t lfe_71 = out_fmt.channel_layout[CRAS_CH_LFE];
+  const size_t rl_71 = out_fmt.channel_layout[CRAS_CH_RL];
+  const size_t rr_71 = out_fmt.channel_layout[CRAS_CH_RR];
+  const size_t sl_71 = out_fmt.channel_layout[CRAS_CH_SL];
+  const size_t sr_71 = out_fmt.channel_layout[CRAS_CH_SR];
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_51_to_71(&in_fmt, &out_fmt, (uint8_t*)src.get(), frames,
+                            (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    EXPECT_EQ(src[i * 6 + fl_51], dst[i * 8 + fl_71]);
+    EXPECT_EQ(src[i * 6 + fr_51], dst[i * 8 + fr_71]);
+    EXPECT_EQ(src[i * 6 + center_51], dst[i * 8 + center_71]);
+    EXPECT_EQ(src[i * 6 + lfe_51], dst[i * 8 + lfe_71]);
+    EXPECT_EQ(src[i * 6 + rl_51], dst[i * 8 + rl_71]);
+    EXPECT_EQ(src[i * 6 + rr_51], dst[i * 8 + rr_71]);
+
+    EXPECT_EQ(0, dst[i * 8 + sl_71]);
+    EXPECT_EQ(0, dst[i * 8 + sr_71]);
+  }
+}
+
+// Test 6ch to 8ch conversion.  S16_LE, Specify, Side.
+TEST(FormatConverterOpsTest, 6chTo8chS16LESpecifySide) {
+  const size_t frames = 4096;
+  const size_t in_ch = 6;
+  const size_t out_ch = 8;
+
+  // FL FR FC LFE SL SR
+  const struct cras_audio_format in_fmt = {
+      .channel_layout = {0, 1, -1, -1, 2, 3, 4, 5, -1, -1, -1},
+  };
+  const struct cras_audio_format out_fmt = {
+      .channel_layout = {0, 1, 2, 3, 4, 5, 6, 7, -1, -1, -1},
+  };
+
+  const size_t fl_51 = in_fmt.channel_layout[CRAS_CH_FL];
+  const size_t fr_51 = in_fmt.channel_layout[CRAS_CH_FR];
+  const size_t center_51 = in_fmt.channel_layout[CRAS_CH_FC];
+  const size_t lfe_51 = in_fmt.channel_layout[CRAS_CH_LFE];
+  const size_t sl_51 = in_fmt.channel_layout[CRAS_CH_SL];
+  const size_t sr_51 = in_fmt.channel_layout[CRAS_CH_SR];
+
+  // Specify custom channel mapping
+  const size_t fl_71 = out_fmt.channel_layout[CRAS_CH_FL];
+  const size_t fr_71 = out_fmt.channel_layout[CRAS_CH_FR];
+  const size_t center_71 = out_fmt.channel_layout[CRAS_CH_FC];
+  const size_t lfe_71 = out_fmt.channel_layout[CRAS_CH_LFE];
+  const size_t rl_71 = out_fmt.channel_layout[CRAS_CH_RL];
+  const size_t rr_71 = out_fmt.channel_layout[CRAS_CH_RR];
+  const size_t sl_71 = out_fmt.channel_layout[CRAS_CH_SL];
+  const size_t sr_71 = out_fmt.channel_layout[CRAS_CH_SR];
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_51_to_71(&in_fmt, &out_fmt, (uint8_t*)src.get(), frames,
+                            (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    EXPECT_EQ(src[i * 6 + fl_51], dst[i * 8 + fl_71]);
+    EXPECT_EQ(src[i * 6 + fr_51], dst[i * 8 + fr_71]);
+    EXPECT_EQ(src[i * 6 + center_51], dst[i * 8 + center_71]);
+    EXPECT_EQ(src[i * 6 + lfe_51], dst[i * 8 + lfe_71]);
+    EXPECT_EQ(src[i * 6 + sl_51], dst[i * 8 + sl_71]);
+    EXPECT_EQ(src[i * 6 + sr_51], dst[i * 8 + sr_71]);
+
+    EXPECT_EQ(0, dst[i * 8 + rl_71]);
+    EXPECT_EQ(0, dst[i * 8 + rr_71]);
+  }
+}
+
+// Test 6ch to 8ch conversion.  S16_LE, Default.
+TEST(FormatConverterOpsTest, 6chTo8chS16LEDefault) {
+  const size_t frames = 4096;
+  const size_t in_ch = 6;
+  const size_t out_ch = 8;
+
+  const struct cras_audio_format in_fmt = {
+      .channel_layout = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  };
+  const struct cras_audio_format out_fmt = {
+      .channel_layout = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  };
+
+  const size_t fl_51 = 0;
+  const size_t fr_51 = 1;
+  const size_t center_51 = 2;
+  const size_t lfe_51 = 3;
+  const size_t rl_51 = 4;
+  const size_t rr_51 = 5;
+
+  const size_t fl_71 = 0;
+  const size_t fr_71 = 1;
+  const size_t center_71 = 2;
+  const size_t lfe_71 = 3;
+  const size_t rl_71 = 4;
+  const size_t rr_71 = 5;
+  const size_t sl_71 = 6;
+  const size_t sr_71 = 7;
+
+  S16LEPtr src = CreateS16LE(frames * in_ch);
+  S16LEPtr dst = CreateS16LE(frames * out_ch);
+
+  size_t ret = s16_51_to_71(&in_fmt, &out_fmt, (uint8_t*)src.get(), frames,
+                            (uint8_t*)dst.get());
+  EXPECT_EQ(ret, frames);
+
+  for (size_t i = 0; i < frames; ++i) {
+    EXPECT_EQ(src[i * 6 + fl_51], dst[i * 8 + fl_71]);
+    EXPECT_EQ(src[i * 6 + fr_51], dst[i * 8 + fr_71]);
+    EXPECT_EQ(src[i * 6 + center_51], dst[i * 8 + center_71]);
+    EXPECT_EQ(src[i * 6 + lfe_51], dst[i * 8 + lfe_71]);
+    EXPECT_EQ(src[i * 6 + rl_51], dst[i * 8 + rl_71]);
+    EXPECT_EQ(src[i * 6 + rr_51], dst[i * 8 + rr_71]);
+
+    EXPECT_EQ(0, dst[i * 8 + sl_71]);
+    EXPECT_EQ(0, dst[i * 8 + sr_71]);
+  }
+}
+
 // Test Stereo to 3ch conversion.  S16_LE.
 TEST(FormatConverterOpsTest, StereoTo3chS16LE) {
   const size_t frames = 4096;
@@ -708,8 +1098,8 @@ TEST(FormatConverterOpsTest, StereoTo3chS16LE) {
   }
 }
 
-// Test 6ch to 8ch conversion.  S16_LE.
-TEST(FormatConverterOpsTest, 6chTo8chS16LE) {
+// Test 6ch to 8ch conversion with all_to_all.  S16_LE.
+TEST(FormatConverterOpsTest, 6chTo8chAllToAllS16LE) {
   const size_t frames = 65536;
   const size_t in_ch = 6;
   const size_t out_ch = 8;

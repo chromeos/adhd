@@ -259,6 +259,49 @@ static size_t quad_to_51(struct cras_fmt_conv *conv, const uint8_t *in,
 	return s16_quad_to_51(fl, fr, rl, rr, in, in_frames, out);
 }
 
+static size_t mono_to_71(struct cras_fmt_conv *conv, const uint8_t *in,
+			 size_t in_frames, uint8_t *out)
+{
+	size_t left, right, center;
+
+	left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	center = conv->out_fmt.channel_layout[CRAS_CH_FC];
+
+	return s16_mono_to_71(left, right, center, in, in_frames, out);
+}
+
+static size_t stereo_to_71(struct cras_fmt_conv *conv, const uint8_t *in,
+			   size_t in_frames, uint8_t *out)
+{
+	size_t left, right, center;
+
+	left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	center = conv->out_fmt.channel_layout[CRAS_CH_FC];
+
+	return s16_stereo_to_71(left, right, center, in, in_frames, out);
+}
+
+static size_t quad_to_71(struct cras_fmt_conv *conv, const uint8_t *in,
+			 size_t in_frames, uint8_t *out)
+{
+	size_t fl, fr, rl, rr;
+
+	fl = conv->out_fmt.channel_layout[CRAS_CH_FL];
+	fr = conv->out_fmt.channel_layout[CRAS_CH_FR];
+	rl = conv->out_fmt.channel_layout[CRAS_CH_RL];
+	rr = conv->out_fmt.channel_layout[CRAS_CH_RR];
+
+	return s16_quad_to_71(fl, fr, rl, rr, in, in_frames, out);
+}
+
+static size_t _51_to_71(struct cras_fmt_conv *conv, const uint8_t *in,
+			size_t in_frames, uint8_t *out)
+{
+	return s16_51_to_71(&conv->in_fmt, &conv->out_fmt, in, in_frames, out);
+}
+
 static size_t _51_to_stereo(struct cras_fmt_conv *conv, const uint8_t *in,
 			    size_t in_frames, uint8_t *out)
 {
@@ -484,6 +527,14 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 			conv->channel_converter = stereo_to_51;
 		} else if (in->num_channels == 4 && out->num_channels == 6) {
 			conv->channel_converter = quad_to_51;
+		} else if (in->num_channels == 1 && out->num_channels == 8) {
+			conv->channel_converter = mono_to_71;
+		} else if (in->num_channels == 2 && out->num_channels == 8) {
+			conv->channel_converter = stereo_to_71;
+		} else if (in->num_channels == 4 && out->num_channels == 8) {
+			conv->channel_converter = quad_to_71;
+		} else if (in->num_channels == 6 && out->num_channels == 8) {
+			conv->channel_converter = _51_to_71;
 		} else if (in->num_channels == 6 &&
 			   (out->num_channels == 2 || out->num_channels == 4)) {
 			int in_channel_layout_set = 0;

@@ -229,7 +229,7 @@ size_t s16_stereo_to_51(size_t left, size_t right, size_t center,
  * and rear left/right of input to the rear left/right of output
  * respectively and fill others with zero.
  */
-size_t s16_quad_to_51(size_t font_left, size_t front_right, size_t rear_left,
+size_t s16_quad_to_51(size_t front_left, size_t front_right, size_t rear_left,
 		      size_t rear_right, const uint8_t *_in, size_t in_frames,
 		      uint8_t *_out)
 {
@@ -239,10 +239,10 @@ size_t s16_quad_to_51(size_t font_left, size_t front_right, size_t rear_left,
 
 	memset(out, 0, sizeof(*out) * 6 * in_frames);
 
-	if (font_left != -1 && front_right != -1 && rear_left != -1 &&
+	if (front_left != -1 && front_right != -1 && rear_left != -1 &&
 	    rear_right != -1)
 		for (i = 0; i < in_frames; i++) {
-			out[6 * i + font_left] = in[4 * i];
+			out[6 * i + front_left] = in[4 * i];
 			out[6 * i + front_right] = in[4 * i + 1];
 			out[6 * i + rear_left] = in[4 * i + 2];
 			out[6 * i + rear_right] = in[4 * i + 3];
@@ -255,6 +255,182 @@ size_t s16_quad_to_51(size_t font_left, size_t front_right, size_t rear_left,
 			out[6 * i + 1] = in[4 * i + 1];
 			out[6 * i + 4] = in[4 * i + 2];
 			out[6 * i + 5] = in[4 * i + 3];
+		}
+
+	return in_frames;
+}
+
+/*
+ * Channel converter: mono to 7.1 surround.
+ *
+ * Fit mono to front center of the output, or split to front left/right
+ * if front center is missing from the output channel layout.
+ */
+size_t s16_mono_to_71(size_t left, size_t right, size_t center,
+		      const uint8_t *_in, size_t in_frames, uint8_t *_out)
+{
+	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
+
+	memset(out, 0, sizeof(*out) * 8 * in_frames);
+
+	if (center != -1)
+		for (i = 0; i < in_frames; i++)
+			out[8 * i + center] = in[i];
+	else if (left != -1 && right != -1)
+		for (i = 0; i < in_frames; i++) {
+			out[8 * i + right] = in[i] / 2;
+			out[8 * i + left] = in[i] / 2;
+		}
+	else
+		/* Select the first channel to convert to as the
+		 * default behavior.
+		 */
+		for (i = 0; i < in_frames; i++)
+			out[8 * i] = in[i];
+
+	return in_frames;
+}
+
+/*
+ * Channel converter: stereo to 7.1 surround.
+ *
+ * Fit the left/right of input to the front left/right of output respectively
+ * and fill others with zero. If any of the front left/right is missed from
+ * the output channel layout, mix to front center.
+ */
+size_t s16_stereo_to_71(size_t left, size_t right, size_t center,
+			const uint8_t *_in, size_t in_frames, uint8_t *_out)
+{
+	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
+
+	memset(out, 0, sizeof(*out) * 8 * in_frames);
+
+	if (left != -1 && right != -1)
+		for (i = 0; i < in_frames; i++) {
+			out[8 * i + left] = in[2 * i];
+			out[8 * i + right] = in[2 * i + 1];
+		}
+	else if (center != -1)
+		for (i = 0; i < in_frames; i++)
+			out[8 * i + center] =
+				s16_add_and_clip(in[2 * i], in[2 * i + 1]);
+	else
+		/* Select the first two channels to convert to as the
+		 * default behavior.
+		 */
+		for (i = 0; i < in_frames; i++) {
+			out[8 * i] = in[2 * i];
+			out[8 * i + 1] = in[2 * i + 1];
+		}
+
+	return in_frames;
+}
+
+/*
+ * Channel converter: quad to 7.1 surround.
+ *
+ * Fit the front left/right of input to the front left/right of output
+ * and rear left/right of input to the rear left/right of output
+ * respectively and fill others with zero.
+ */
+size_t s16_quad_to_71(size_t front_left, size_t front_right, size_t rear_left,
+		      size_t rear_right, const uint8_t *_in, size_t in_frames,
+		      uint8_t *_out)
+{
+	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
+
+	memset(out, 0, sizeof(*out) * 8 * in_frames);
+
+	if (front_left != -1 && front_right != -1 && rear_left != -1 &&
+	    rear_right != -1)
+		for (i = 0; i < in_frames; i++) {
+			out[8 * i + front_left] = in[4 * i];
+			out[8 * i + front_right] = in[4 * i + 1];
+			out[8 * i + rear_left] = in[4 * i + 2];
+			out[8 * i + rear_right] = in[4 * i + 3];
+		}
+	else
+		/* Use default 7.1 channel mapping for the conversion.
+		 */
+		for (i = 0; i < in_frames; i++) {
+			out[8 * i] = in[4 * i];
+			out[8 * i + 1] = in[4 * i + 1];
+			out[8 * i + 4] = in[4 * i + 2];
+			out[8 * i + 5] = in[4 * i + 3];
+		}
+
+	return in_frames;
+}
+
+/*
+ * Channel converter: 5.1 to 7.1 surround.
+ *
+ * Fit the FL, FR, FC, LFE, RL/SL, RR/SR channels and fill others with zero.
+ * If any of those is missed from the output channel layout, use
+ * default 5.1 mapping.
+ */
+size_t s16_51_to_71(const struct cras_audio_format *in_fmt,
+		    const struct cras_audio_format *out_fmt, const uint8_t *_in,
+		    size_t in_frames, uint8_t *_out)
+{
+	size_t i;
+	const int16_t *in = (const int16_t *)_in;
+	int16_t *out = (int16_t *)_out;
+
+	memset(out, 0, sizeof(*out) * 8 * in_frames);
+
+	size_t fl_51 = in_fmt->channel_layout[CRAS_CH_FL];
+	size_t fr_51 = in_fmt->channel_layout[CRAS_CH_FR];
+	size_t fc_51 = in_fmt->channel_layout[CRAS_CH_FC];
+	size_t lfe_51 = in_fmt->channel_layout[CRAS_CH_LFE];
+	size_t rl_51 = in_fmt->channel_layout[CRAS_CH_RL];
+	size_t rr_51 = in_fmt->channel_layout[CRAS_CH_RR];
+	size_t sl_51 = in_fmt->channel_layout[CRAS_CH_SL];
+	size_t sr_51 = in_fmt->channel_layout[CRAS_CH_SR];
+
+	size_t fl_71 = out_fmt->channel_layout[CRAS_CH_FL];
+	size_t fr_71 = out_fmt->channel_layout[CRAS_CH_FR];
+	size_t fc_71 = out_fmt->channel_layout[CRAS_CH_FC];
+	size_t lfe_71 = out_fmt->channel_layout[CRAS_CH_LFE];
+	size_t rl_71 = out_fmt->channel_layout[CRAS_CH_RL];
+	size_t rr_71 = out_fmt->channel_layout[CRAS_CH_RR];
+	size_t sl_71 = out_fmt->channel_layout[CRAS_CH_SL];
+	size_t sr_71 = out_fmt->channel_layout[CRAS_CH_SR];
+
+	if (fl_51 != -1 && fr_51 != -1 && fc_51 != -1 && lfe_51 != -1 &&
+	    fl_71 != -1 && fr_71 != -1 && fc_71 != -1 && lfe_71 != -1 &&
+	    ((rl_51 != -1 && rl_71 != -1) || (sl_51 != -1 && sl_71 != -1)) &&
+	    ((rr_51 != -1 && rr_71 != -1) || (sr_51 != -1 && sr_71 != -1)))
+		for (i = 0; i < in_frames; i++) {
+			out[8 * i + fl_71] = in[6 * i + fl_51];
+			out[8 * i + fr_71] = in[6 * i + fr_51];
+			out[8 * i + fc_71] = in[6 * i + fc_51];
+			out[8 * i + lfe_71] = in[6 * i + lfe_51];
+			if (rl_51 != -1 && rl_71 != -1)
+				out[8 * i + rl_71] = in[6 * i + rl_51];
+			if (rr_51 != -1 && rr_71 != -1)
+				out[8 * i + rr_71] = in[6 * i + rr_51];
+			if (sl_51 != -1 && sl_71 != -1)
+				out[8 * i + sl_71] = in[6 * i + sl_51];
+			if (sr_51 != -1 && sr_71 != -1)
+				out[8 * i + sr_71] = in[6 * i + sr_51];
+		}
+	else
+		/* Use default 7.1 channel mapping for the conversion.
+		 */
+		for (i = 0; i < in_frames; i++) {
+			out[8 * i] = in[6 * i];
+			out[8 * i + 1] = in[6 * i + 1];
+			out[8 * i + 2] = in[6 * i + 2];
+			out[8 * i + 3] = in[6 * i + 3];
+			out[8 * i + 4] = in[6 * i + 4];
+			out[8 * i + 5] = in[6 * i + 5];
 		}
 
 	return in_frames;
