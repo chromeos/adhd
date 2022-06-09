@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "cras_iodev.h"
+#include "cras_stream_apm.h"
 #include "float_buffer.h"
 
 /*
@@ -24,7 +25,7 @@ int cras_stream_apm_deinit()
 {
 	return 0;
 }
-struct cras_stream_apm *cras_stream_apm_create(unsigned int effects)
+struct cras_stream_apm *cras_stream_apm_create(uint64_t effects)
 {
 	return NULL;
 }
