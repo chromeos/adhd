@@ -19,6 +19,7 @@ use std::string::String;
 
 use getopts::Options;
 use remain::sorted;
+use serde::Serialize;
 use sys_util::{error, info, syslog};
 
 use amp::AmpBuilder;
@@ -26,11 +27,22 @@ use dsm::utils::run_time;
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Default)]
+enum Command {
+    ReadAppliedRdc(usize),
+    BootTimeCalibration,
+}
+
 struct Args {
     pub sound_card_id: String,
     pub amp: String,
     pub conf: String,
+    pub cmd: Command,
+}
+
+#[derive(Serialize)]
+struct AppliedRDC {
+    channel: usize,
+    rdc_in_ohm: f32,
 }
 
 #[sorted]
@@ -73,6 +85,13 @@ fn parse_args() -> Result<Args> {
         "CONFIG_NAME",
     );
     opts.optflag("h", "help", "print help menu");
+    opts.optopt(
+        "",
+        "read_applied_rdc",
+        "read_applied_rdc=<channel index>. \
+         Read the applied rdc of the input channel and skip boot time calibration",
+        "READ_APPLIED_RDC",
+    );
     let matches = opts
         .parse(&env::args().collect::<Vec<_>>()[1..])
         .map_err(|e| {
@@ -109,20 +128,42 @@ fn parse_args() -> Result<Args> {
             e
         })?;
 
+    if let Some(channel_to_read) = matches
+        .opt_str("read_applied_rdc")
+        .and_then(|ch| ch.parse::<usize>().ok())
+    {
+        return Ok(Args {
+            sound_card_id,
+            amp,
+            conf,
+            cmd: Command::ReadAppliedRdc(channel_to_read),
+        });
+    }
+
     Ok(Args {
         sound_card_id,
         amp,
         conf,
+        cmd: Command::BootTimeCalibration,
     })
 }
 
 /// Parses the CONF_DIR/${args.conf}.yaml and starts the boot time calibration.
 fn sound_card_init(args: &Args) -> std::result::Result<(), Box<dyn error::Error>> {
-    info!("sound_card_id: {}, conf:{}", args.sound_card_id, args.conf);
-    AmpBuilder::new(&args.sound_card_id, &args.amp, &args.conf)
-        .build()?
-        .boot_time_calibration()?;
-
+    let mut amp = AmpBuilder::new(&args.sound_card_id, &args.amp, &args.conf).build()?;
+    match args.cmd {
+        Command::ReadAppliedRdc(channel_to_read) => {
+            let rdc = AppliedRDC {
+                channel: channel_to_read,
+                rdc_in_ohm: amp.get_applied_rdc(channel_to_read)?,
+            };
+            println!("{}", serde_json::to_string(&rdc)?);
+        }
+        Command::BootTimeCalibration => {
+            info!("sound_card_id: {}, conf:{}", args.sound_card_id, args.conf);
+            amp.boot_time_calibration()?;
+        }
+    }
     Ok(())
 }
 

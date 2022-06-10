@@ -145,6 +145,18 @@ impl Amp for Max98390 {
         self.set_volume_from_state(volume_state)?;
         Ok(())
     }
+
+    fn get_applied_rdc(&mut self, ch: usize) -> Result<f32> {
+        if ch >= self.setting.controls.len() {
+            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+        }
+
+        Ok(Max98390CalibData::rdc_to_ohm(
+            self.card
+                .control_by_name::<IntControl>(&self.setting.controls[ch].rdc_ctrl)?
+                .get()?,
+        ))
+    }
 }
 
 impl Max98390 {

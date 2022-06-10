@@ -104,6 +104,11 @@ impl DSMParam {
         self.get(DsmAPI::AdaptiveRdc)
     }
 
+    /// Reads the applied rdc from DSMParam.
+    pub fn get_rdc(&self) -> Vec<i32> {
+        self.get(DsmAPI::DsmRdc)
+    }
+
     /// Sets DSMParam to the given the calibrated rdc.
     pub fn set_rdc(&mut self, ch: usize, rdc: i32) {
         self.set(ch, DsmAPI::DsmRdc, rdc);

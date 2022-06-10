@@ -130,6 +130,14 @@ impl Amp for Max98373 {
         self.set_volume(VolumeMode::High)?;
         Ok(())
     }
+
+    fn get_applied_rdc(&mut self, ch: usize) -> Result<f32> {
+        let rdc = self.get_rdc()?;
+        if ch >= rdc.len() {
+            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+        }
+        Ok(Max98373CalibData::rdc_to_ohm(rdc[ch]))
+    }
 }
 
 impl Max98373 {
@@ -293,6 +301,16 @@ impl Max98373 {
             &self.setting.dsm_param_read_ctrl,
         )?;
         Ok(dsm_param.get_adaptive_rdc())
+    }
+
+    /// Reads the calibrated rdc.
+    fn get_rdc(&mut self) -> Result<Vec<i32>> {
+        let dsm_param = DSMParam::new(
+            &mut self.card,
+            self.setting.num_channels(),
+            &self.setting.dsm_param_read_ctrl,
+        )?;
+        Ok(dsm_param.get_rdc())
     }
 }
 

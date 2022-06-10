@@ -63,4 +63,6 @@ impl<'a> AmpBuilder<'a> {
 pub trait Amp {
     /// The amplifier boot time calibration flow.
     fn boot_time_calibration(&mut self) -> Result<()>;
+    /// Get the applied rdc value by channel index.
+    fn get_applied_rdc(&mut self, ch: usize) -> Result<f32>;
 }
