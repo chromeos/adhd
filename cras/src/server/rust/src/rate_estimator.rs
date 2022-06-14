@@ -100,7 +100,7 @@ impl RateEstimator {
     /// # Errors
     ///    * If `smooth_factor` is not between 0.0 and 1.0
     pub fn try_new(rate: u32, window_size: Duration, smooth_factor: f64) -> Result<Self> {
-        if smooth_factor < 0.0 || smooth_factor > 1.0 {
+        if !(0.0..=1.0).contains(&smooth_factor) {
             return Err(Error::InvalidSmoothFactor(smooth_factor));
         }
 
