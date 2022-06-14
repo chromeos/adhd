@@ -40,6 +40,9 @@ const char *cras_floss_hfp_get_display_name(struct cras_hfp *hfp);
 /* Gets the address of the hfp device. */
 const char *cras_floss_hfp_get_addr(struct cras_hfp *hfp);
 
+/* Set the volume of the hfp device. */
+void cras_floss_hfp_set_volume(struct cras_hfp *hfp, unsigned int volume);
+
 /* Fills the format property lists. */
 int cras_floss_hfp_fill_format(struct cras_hfp *hfp, size_t **rates,
 			       snd_pcm_format_t **formats,

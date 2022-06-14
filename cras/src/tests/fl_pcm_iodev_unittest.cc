@@ -595,6 +595,10 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
   return 0;
 }
 
+void cras_floss_hfp_set_volume(struct cras_hfp* hfp, unsigned int volume) {
+  return;
+}
+
 int cras_audio_thread_event_a2dp_throttle() {
   return 0;
 }

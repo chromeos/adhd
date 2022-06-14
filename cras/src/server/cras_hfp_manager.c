@@ -244,6 +244,11 @@ int cras_floss_hfp_fill_format(struct cras_hfp *hfp, size_t **rates,
 	return 0;
 }
 
+void cras_floss_hfp_set_volume(struct cras_hfp *hfp, unsigned int volume)
+{
+	floss_media_hfp_set_volume(hfp->fm, volume * 15 / 100, hfp->addr);
+}
+
 /* Destroys given cras_hfp object. */
 void cras_floss_hfp_destroy(struct cras_hfp *hfp)
 {

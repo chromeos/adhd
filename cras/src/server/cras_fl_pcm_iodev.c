@@ -764,7 +764,9 @@ static void a2dp_set_volume(struct cras_iodev *iodev)
 
 static void hfp_set_volume(struct cras_iodev *iodev)
 {
-	/* TODO(b/215089433): Support VGS. */
+	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
+
+	cras_floss_hfp_set_volume(hfpio->hfp, iodev->active_node->volume);
 }
 
 static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
@@ -984,11 +986,6 @@ struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
 
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
-
-	/* TODO(b/215089433): Force software volume before we support hardware
-	 * volume control through HFP VGS. */
-	if (iodev->direction == CRAS_STREAM_OUTPUT)
-		iodev->software_volume_needed = 1;
 
 	iodev->active_node->btflags |= CRAS_BT_FLAG_HFP;
 	set_hfp_callbacks(iodev);

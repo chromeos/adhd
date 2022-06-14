@@ -177,6 +177,51 @@ int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr)
 	return 0;
 }
 
+int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
+			       const char *addr)
+{
+	DBusMessage *method_call, *reply;
+	DBusError dbus_error;
+	uint8_t vol = volume;
+
+	syslog(LOG_DEBUG, "floss_media_hfp_set_volume: %d %s", volume, addr);
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE,
+					     "SetHfpVolume");
+	if (!method_call)
+		return -ENOMEM;
+
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_BYTE, &vol,
+				      DBUS_TYPE_STRING, &addr,
+				      DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
+
+	dbus_error_init(&dbus_error);
+
+	reply = dbus_connection_send_with_reply_and_block(
+		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
+	if (!reply) {
+		syslog(LOG_ERR, "Failed to send SetVolume: %s",
+		       dbus_error.message);
+		dbus_error_free(&dbus_error);
+		dbus_message_unref(method_call);
+		return -EIO;
+	}
+
+	dbus_message_unref(method_call);
+
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		syslog(LOG_ERR, "SetVolume returned error: %s",
+		       dbus_message_get_error_name(reply));
+		dbus_message_unref(reply);
+	}
+	return 0;
+}
+
 int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
 {
 	DBusMessage *method_call, *reply;
