@@ -889,6 +889,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 	dbus_int32_t hfp_cap;
 	dbus_bool_t abs_vol_supported;
 	struct cras_fl_a2dp_codec_config *codecs = NULL;
+	uint8_t volume;
 
 	syslog(LOG_DEBUG, "Bt Media callback message: %s %s %s",
 	       dbus_message_get_path(message),
@@ -1068,6 +1069,34 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			active_fm->bt_io_mgr,
 			cras_floss_a2dp_convert_volume(active_fm->a2dp,
 						       absolute_volume));
+
+		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_method_call(message,
+					       BT_MEDIA_CALLBACK_INTERFACE,
+					       "OnHfpVolumeChanged")) {
+		dbus_error_init(&dbus_error);
+		if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_BYTE,
+					   &volume, DBUS_TYPE_STRING, &addr,
+					   DBUS_TYPE_INVALID)) {
+			syslog(LOG_ERR,
+			       "Failed to get volume and address from OnHfpVolumeChanged: %s",
+			       dbus_error.message);
+			dbus_error_free(&dbus_error);
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+
+		if (!active_fm || !active_fm->hfp ||
+		    !strcmp(cras_floss_hfp_get_addr(active_fm->hfp), addr)) {
+			syslog(LOG_WARNING,
+			       "non-active hfp device(%s). Skip the volume update",
+			       addr);
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+		syslog(LOG_DEBUG, "OnHfpVolumeChanged %u", volume);
+
+		bt_io_manager_update_hardware_volume(
+			active_fm->bt_io_mgr,
+			cras_floss_hfp_convert_volume(volume));
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	}

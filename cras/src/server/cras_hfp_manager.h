@@ -48,6 +48,10 @@ int cras_floss_hfp_fill_format(struct cras_hfp *hfp, size_t **rates,
 			       snd_pcm_format_t **formats,
 			       size_t **channel_counts);
 
+/* Convert the HFP speaker volume received from the headset's volume change
+ * event to CRAS's system volume. */
+int cras_floss_hfp_convert_volume(unsigned int vgs_volume);
+
 /* Destroys given cras_hfp object. */
 void cras_floss_hfp_destroy(struct cras_hfp *hfp);
 

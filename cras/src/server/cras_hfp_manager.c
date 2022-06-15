@@ -249,6 +249,19 @@ void cras_floss_hfp_set_volume(struct cras_hfp *hfp, unsigned int volume)
 	floss_media_hfp_set_volume(hfp->fm, volume * 15 / 100, hfp->addr);
 }
 
+int cras_floss_hfp_convert_volume(unsigned int vgs_volume)
+{
+	if (vgs_volume > 15) {
+		syslog(LOG_WARNING, "Illegal VGS volume %u. Adjust to 15",
+		       vgs_volume);
+		vgs_volume = 15;
+	}
+
+	/* Map 0 to the smallest non-zero scale 6/100, and 15 to
+	 * 100/100 full. */
+	return (vgs_volume + 1) * 100 / 16;
+}
+
 /* Destroys given cras_hfp object. */
 void cras_floss_hfp_destroy(struct cras_hfp *hfp)
 {
