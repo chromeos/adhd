@@ -7,6 +7,7 @@
 #define CRAS_SCO_H_
 
 #include "cras_audio_format.h"
+#include "cras_sr_bt_util.h"
 #include "cras_types.h"
 
 /* Linked list to hold the information of callbacks to trigger
@@ -26,6 +27,25 @@ struct cras_sco;
 /* Creates an cras_sco instance.
  */
 struct cras_sco *cras_sco_create();
+
+/* Enables the cras_sr model.
+ * This function will try to init the related fields for cras_sr.
+ *
+ * Args:
+ *    sco - The cras_sco instance.
+ *    model - The type of the model.
+ * Returns:
+ *    0 on success. Otherwise, a negative error code is returned.
+ */
+int cras_sco_enable_cras_sr_bt(struct cras_sco *sco,
+			       enum cras_sr_bt_model model);
+
+/* Disables the cras_sr model.
+ *
+ * Args:
+ *    sco - The cras_sco instance.
+ */
+void cras_sco_disable_cras_sr_bt(struct cras_sco *sco);
 
 /* Destroys given cras_sco instance. */
 void cras_sco_destroy(struct cras_sco *sco);

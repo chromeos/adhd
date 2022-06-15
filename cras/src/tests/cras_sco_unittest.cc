@@ -15,6 +15,8 @@ using testing::internal::GetCapturedStdout;
 extern "C" {
 #include "cras_sco.c"
 #include "sbc_codec_stub.h"
+#include "sr_bt_util_stub.h"
+#include "sr_stub.h"
 }
 static struct cras_sco* sco;
 static struct cras_iodev dev;
@@ -31,6 +33,8 @@ static timespec ts;
 void ResetStubData() {
   sbc_codec_stub_reset();
   cras_msbc_plc_create_called = 0;
+  cras_msbc_plc_handle_good_frames_called = 0;
+  cras_msbc_plc_handle_bad_frames_called = 0;
 
   format.format = SND_PCM_FORMAT_S16_LE;
   format.num_channels = 1;
@@ -482,6 +486,163 @@ TEST(CrasSco, StartCrasScoAndReadMsbc) {
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(3, cras_msbc_plc_handle_bad_frames_called);
   ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
+            cras_sco_buf_queued(sco, dev.direction));
+
+  cras_sco_stop(sco);
+  ASSERT_EQ(0, cras_sco_running(sco));
+
+  cras_sco_close_fd(sco);
+  cras_sco_destroy(sco);
+}
+
+class CrasScoWithSrBtTestSuite : public testing::Test {
+ protected:
+  void SetUp() override { enable_cras_sr_bt(); }
+
+  void TearDown() override { disable_cras_sr_bt(); }
+};
+
+TEST_F(CrasScoWithSrBtTestSuite, StartCrasScoAndRead) {
+  int rc;
+  int sock[2];
+  uint8_t sample[480];
+
+  ResetStubData();
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
+  ASSERT_EQ(cras_sco_enable_cras_sr_bt(sco, SR_BT_NBS), 0);
+
+  /* Start and send two chunk of fake data */
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
+  send(sock[0], sample, 48, 0);
+  send(sock[0], sample, 48, 0);
+
+  /* Trigger thread callback */
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
+
+  dev.direction = CRAS_STREAM_INPUT;
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
+
+  /* Expect no data read, since no idev present at previous thread callback */
+  rc = cras_sco_buf_queued(sco, dev.direction);
+  ASSERT_EQ(0, rc);
+
+  /* Trigger thread callback after idev added. */
+  ts.tv_sec = 0;
+  ts.tv_nsec = 5000000;
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
+
+  rc = cras_sco_buf_queued(sco, dev.direction);
+  EXPECT_EQ(48 * 3 / 2, rc);
+
+  /* Assert wait time is unchanged. */
+  ASSERT_EQ(0, ts.tv_sec);
+  ASSERT_EQ(5000000, ts.tv_nsec);
+
+  cras_sco_stop(sco);
+  ASSERT_EQ(0, cras_sco_running(sco));
+
+  cras_sco_close_fd(sco);
+  cras_sco_destroy(sco);
+}
+
+TEST_F(CrasScoWithSrBtTestSuite, StartCrasScoAndReadMsbc) {
+  int sock[2];
+  int pkt_count = 0;
+  int rc;
+  uint8_t sample[480];
+  ResetStubData();
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+
+  set_sbc_codec_decoded_out(MSBC_CODE_SIZE);
+
+  sco = cras_sco_create();
+  ASSERT_NE(sco, (void*)NULL);
+  ASSERT_EQ(0, get_msbc_codec_create_called());
+  ASSERT_EQ(0, cras_msbc_plc_create_called);
+  ASSERT_EQ(cras_sco_enable_cras_sr_bt(sco, SR_BT_WBS), 0);
+
+  /* Start and send an mSBC packets with all zero samples */
+  cras_sco_set_fd(sco, sock[1]);
+  cras_sco_start(63, HFP_CODEC_ID_MSBC, sco);
+  ASSERT_EQ(2, get_msbc_codec_create_called());
+  ASSERT_EQ(1, cras_msbc_plc_create_called);
+  send_mSBC_packet(sock[0], pkt_count++, 0);
+
+  /* Trigger thread callback */
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
+
+  /* Expect one empty mSBC packet is send, because no odev in presence. */
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
+
+  dev.direction = CRAS_STREAM_INPUT;
+  ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
+
+  /* Expect no data read, since no idev present at previous thread callback */
+  ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
+
+  send_mSBC_packet(sock[0], pkt_count, 0);
+
+  /* Trigger thread callback after idev added. */
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
+
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2 * 1.5,
+            cras_sco_buf_queued(sco, dev.direction));
+  ASSERT_EQ(2, cras_msbc_plc_handle_good_frames_called);
+  pkt_count++;
+  /* When the third packet is lost, we should call the handle_bad_packet and
+   * still have right size of samples queued
+   */
+  pkt_count++;
+  send_mSBC_packet(sock[0], pkt_count, 0);
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
+
+  /* Packet 1, 2, 4 are all good frames */
+  ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
+  ASSERT_EQ(1, cras_msbc_plc_handle_bad_frames_called);
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2 * 1.5,
+            cras_sco_buf_queued(sco, dev.direction));
+  pkt_count++;
+  /* If the erroneous data reporting marks the packet as broken, we should
+   * also call the handle_bad_packet and have the right size of samples queued.
+   */
+  send_mSBC_packet(sock[0], pkt_count, 1);
+
+  set_sbc_codec_decoded_fail(1);
+
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
+
+  ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
+  ASSERT_EQ(2, cras_msbc_plc_handle_bad_frames_called);
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2 * 1.5,
+            cras_sco_buf_queued(sco, dev.direction));
+  pkt_count++;
+  /* If we can't decode the packet, we should also call the handle_bad_packet
+   * and have the right size of samples queued
+   */
+  send_mSBC_packet(sock[0], pkt_count, 0);
+
+  set_sbc_codec_decoded_fail(1);
+
+  thread_cb((struct cras_sco*)cb_data, POLLIN);
+  rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
+  ASSERT_EQ(MSBC_PKT_SIZE, rc);
+
+  ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
+  ASSERT_EQ(3, cras_msbc_plc_handle_bad_frames_called);
+  ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2 * 1.5,
             cras_sco_buf_queued(sco, dev.direction));
 
   cras_sco_stop(sco);

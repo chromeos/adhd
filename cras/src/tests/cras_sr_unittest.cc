@@ -83,8 +83,7 @@ class BtSrTestSuite : public testing::Test {
     buf_reset(input_buf);
     output_buf = byte_buffer_create(sizeof(int16_t) * 480 * 2);
     buf_reset(output_buf);
-    sr = cras_sr_create({.model_path = "",
-                         .num_frames_per_run = 480,
+    sr = cras_sr_create({.num_frames_per_run = 480,
                          .num_channels = 1,
                          .input_sample_rate = 8000,
                          .output_sample_rate = 24000},

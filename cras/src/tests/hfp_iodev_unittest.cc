@@ -11,6 +11,7 @@ extern "C" {
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_sco.h"
+#include "sr_bt_util_stub.h"
 }
 
 static struct cras_iodev* iodev;
@@ -37,12 +38,15 @@ static size_t cras_sco_start_called;
 static size_t cras_sco_stop_called;
 static size_t cras_sco_acquire_called;
 static unsigned cras_sco_acquire_return_val;
+static int cras_sco_enable_cras_sr_bt_return_val;
 static size_t cras_sco_buf_release_called;
 static unsigned cras_sco_buf_release_nwritten_val;
 static size_t cras_sco_fill_output_with_zeros_called;
 static size_t cras_sco_forceoutput_level_called;
 static size_t cras_sco_forceoutput_level_target;
 static size_t fake_buffer_size = 500;
+static int hfp_slc_get_selected_codec_return_val;
+static bool hfp_slc_get_wideband_speech_supported_return_val;
 static cras_audio_area* mock_audio_area;
 
 void ResetStubData() {
@@ -65,11 +69,14 @@ void ResetStubData() {
   cras_sco_stop_called = 0;
   cras_sco_acquire_called = 0;
   cras_sco_acquire_return_val = 0;
+  cras_sco_enable_cras_sr_bt_return_val = 0;
   cras_sco_buf_release_called = 0;
   cras_sco_buf_release_nwritten_val = 0;
   cras_sco_fill_output_with_zeros_called = 0;
   cras_sco_forceoutput_level_called = 0;
   cras_sco_forceoutput_level_target = 0;
+  hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_CVSD;
+  hfp_slc_get_wideband_speech_supported_return_val = false;
 
   fake_sco = reinterpret_cast<struct cras_sco*>(0x123);
 
@@ -129,8 +136,48 @@ TEST_F(HfpIodev, CreateHfpInputIodev) {
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 }
 
-TEST_F(HfpIodev, OpenHfpIodev) {
-  iodev = hfp_iodev_create(CRAS_STREAM_OUTPUT, fake_device, fake_slc, fake_sco);
+struct OpenHfpIodevTestParam {
+  bool is_cras_sr_enabled;
+  bool is_wbs_enabled;
+  bool is_cras_sco_enable_cras_sr_bt_ok;
+  enum CRAS_STREAM_DIRECTION direction;
+  size_t expected_sample_rate;
+};
+
+class OpenHfpIodevTest : public testing::TestWithParam<OpenHfpIodevTestParam> {
+ protected:
+  virtual void SetUp() {
+    ResetStubData();
+
+    if (GetParam().is_cras_sr_enabled) {
+      enable_cras_sr_bt();
+    } else {
+      disable_cras_sr_bt();
+    }
+
+    if (GetParam().is_wbs_enabled) {
+      hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_MSBC;
+      hfp_slc_get_wideband_speech_supported_return_val = true;
+    }
+
+    if (GetParam().is_cras_sco_enable_cras_sr_bt_ok) {
+      cras_sco_enable_cras_sr_bt_return_val = 0;
+    } else {
+      cras_sco_enable_cras_sr_bt_return_val = -1;
+    }
+  }
+
+  virtual void TearDown() {
+    free(mock_audio_area);
+    mock_audio_area = NULL;
+
+    disable_cras_sr_bt();
+  }
+};
+
+TEST_P(OpenHfpIodevTest, TestOpenHfpIodev) {
+  const auto& param = OpenHfpIodevTest::GetParam();
+  iodev = hfp_iodev_create(param.direction, fake_device, fake_slc, fake_sco);
   iodev->format = &fake_format;
 
   /* cras_sco* not start yet */
@@ -140,6 +187,14 @@ TEST_F(HfpIodev, OpenHfpIodev) {
   ASSERT_EQ(1, cras_bt_device_sco_connect_called);
   ASSERT_EQ(1, cras_sco_start_called);
   ASSERT_EQ(1, cras_sco_add_iodev_called);
+
+  iodev->update_supported_formats(iodev);
+  ASSERT_EQ(param.expected_sample_rate, iodev->supported_rates[0]);
+  ASSERT_EQ(0, iodev->supported_rates[1]);
+  ASSERT_EQ(1, iodev->supported_channel_counts[0]);
+  ASSERT_EQ(0, iodev->supported_channel_counts[1]);
+  ASSERT_EQ(SND_PCM_FORMAT_S16_LE, iodev->supported_formats[0]);
+  ASSERT_EQ(0, iodev->supported_formats[1]);
 
   /* cras_sco* is running now */
   cras_sco_running_return_val = 1;
@@ -151,6 +206,67 @@ TEST_F(HfpIodev, OpenHfpIodev) {
   ASSERT_EQ(1, cras_iodev_free_format_called);
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    OpenHfpIodevTest,
+    testing::Values(
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = false,
+                               .is_wbs_enabled = false,
+                               .direction = CRAS_STREAM_INPUT,
+                               .expected_sample_rate = 8000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = false,
+                               .is_wbs_enabled = false,
+                               .direction = CRAS_STREAM_INPUT,
+                               .expected_sample_rate = 8000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = false,
+                               .is_wbs_enabled = true,
+                               .direction = CRAS_STREAM_OUTPUT,
+                               .expected_sample_rate = 16000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = false,
+                               .is_wbs_enabled = true,
+                               .direction = CRAS_STREAM_OUTPUT,
+                               .expected_sample_rate = 16000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = true,
+                               .is_wbs_enabled = false,
+                               .is_cras_sco_enable_cras_sr_bt_ok = true,
+                               .direction = CRAS_STREAM_INPUT,
+                               .expected_sample_rate = 24000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = true,
+                               .is_wbs_enabled = false,
+                               .is_cras_sco_enable_cras_sr_bt_ok = true,
+                               .direction = CRAS_STREAM_INPUT,
+                               .expected_sample_rate = 24000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = true,
+                               .is_wbs_enabled = true,
+                               .is_cras_sco_enable_cras_sr_bt_ok = true,
+                               .direction = CRAS_STREAM_OUTPUT,
+                               .expected_sample_rate = 16000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = true,
+                               .is_wbs_enabled = true,
+                               .is_cras_sco_enable_cras_sr_bt_ok = true,
+                               .direction = CRAS_STREAM_OUTPUT,
+                               .expected_sample_rate = 16000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = true,
+                               .is_wbs_enabled = false,
+                               .is_cras_sco_enable_cras_sr_bt_ok = false,
+                               .direction = CRAS_STREAM_INPUT,
+                               .expected_sample_rate = 8000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = true,
+                               .is_wbs_enabled = false,
+                               .is_cras_sco_enable_cras_sr_bt_ok = false,
+                               .direction = CRAS_STREAM_INPUT,
+                               .expected_sample_rate = 8000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = true,
+                               .is_wbs_enabled = true,
+                               .is_cras_sco_enable_cras_sr_bt_ok = false,
+                               .direction = CRAS_STREAM_OUTPUT,
+                               .expected_sample_rate = 16000}),
+        OpenHfpIodevTestParam({.is_cras_sr_enabled = true,
+                               .is_wbs_enabled = true,
+                               .is_cras_sco_enable_cras_sr_bt_ok = false,
+                               .direction = CRAS_STREAM_OUTPUT,
+                               .expected_sample_rate = 16000})));
 
 TEST_F(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
   iodev = hfp_iodev_create(CRAS_STREAM_INPUT, fake_device, fake_slc, fake_sco);
@@ -335,6 +451,15 @@ int cras_sco_stop(struct cras_sco* sco) {
   return 0;
 }
 
+int cras_sco_enable_cras_sr_bt(struct cras_sco* sco,
+                               enum cras_sr_bt_model model) {
+  return cras_sco_enable_cras_sr_bt_return_val;
+}
+
+void cras_sco_disable_cras_sr_bt(struct cras_sco* sco) {
+  ;
+}
+
 int cras_sco_set_fd(struct cras_sco* sco, int fd) {
   return 0;
 }
@@ -407,11 +532,11 @@ int hfp_event_speaker_gain(struct hfp_slc_handle* handle, int gain) {
 }
 
 int hfp_slc_get_selected_codec(struct hfp_slc_handle* handle) {
-  return HFP_CODEC_ID_CVSD;
+  return hfp_slc_get_selected_codec_return_val;
 }
 
 bool hfp_slc_get_wideband_speech_supported(struct hfp_slc_handle* handle) {
-  return false;
+  return hfp_slc_get_wideband_speech_supported_return_val;
 }
 
 int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle) {

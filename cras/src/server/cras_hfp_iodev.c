@@ -12,9 +12,11 @@
 #include "cras_audio_area.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_iodev.h"
-#include "cras_sco.h"
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
+#include "cras_sco.h"
+#include "cras_sr.h"
+#include "cras_sr_bt_util.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "utlist.h"
@@ -29,6 +31,7 @@
  *        in no stream state. Only used for output.
  *    filled_zeros - Number of zero data in frames have been filled
  *        to buffer of cras_sco in no stream state. Only used for output
+ *    is_cras_sr_bt_enabled - Indicates whether the cras_sr bt model is enabled.
  */
 struct hfp_io {
 	struct cras_iodev base;
@@ -37,20 +40,27 @@ struct hfp_io {
 	struct cras_sco *sco;
 	bool drain_complete;
 	unsigned int filled_zeros;
+	bool is_cras_sr_bt_enabled;
 };
+
+static size_t get_sample_rate(struct cras_iodev *iodev)
+{
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+	if (iodev->direction == CRAS_STREAM_INPUT &&
+	    hfpio->is_cras_sr_bt_enabled)
+		return 24000;
+	if (hfp_slc_get_selected_codec(hfpio->slc) == HFP_CODEC_ID_MSBC)
+		return 16000;
+	return 8000;
+}
 
 static int update_supported_formats(struct cras_iodev *iodev)
 {
-	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-
 	free(iodev->supported_rates);
 	iodev->supported_rates = (size_t *)malloc(2 * sizeof(size_t));
 
 	/* 16 bit, mono, 8kHz for narrowband and 16KHz for wideband */
-	iodev->supported_rates[0] =
-		(hfp_slc_get_selected_codec(hfpio->slc) == HFP_CODEC_ID_MSBC) ?
-			16000 :
-			8000;
+	iodev->supported_rates[0] = get_sample_rate(iodev);
 	iodev->supported_rates[1] = 0;
 
 	free(iodev->supported_channel_counts);
@@ -157,6 +167,24 @@ static int configure_dev(struct cras_iodev *iodev)
 	cras_sco_set_fd(hfpio->sco, sk);
 	mtu = cras_bt_device_sco_packet_size(
 		hfpio->device, sk, hfp_slc_get_selected_codec(hfpio->slc));
+
+	if (cras_sr_bt_can_be_enabled()) {
+		err = cras_sco_enable_cras_sr_bt(
+			hfpio->sco, hfp_slc_get_selected_codec(hfpio->slc) ==
+						    HFP_CODEC_ID_MSBC ?
+					    SR_BT_WBS :
+					    SR_BT_NBS);
+		if (err < 0) {
+			syslog(LOG_ERR, "cras_sr is disabled due to "
+					"cras_sco_enable_cras_sr_bt failed");
+			hfpio->is_cras_sr_bt_enabled = false;
+		} else {
+			hfpio->is_cras_sr_bt_enabled = true;
+		}
+	} else {
+		cras_sco_disable_cras_sr_bt(hfpio->sco);
+		hfpio->is_cras_sr_bt_enabled = false;
+	}
 
 	/* Start cras_sco */
 	err = cras_sco_start(mtu, hfp_slc_get_selected_codec(hfpio->slc),

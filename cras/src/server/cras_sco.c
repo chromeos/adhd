@@ -12,13 +12,14 @@
 #include "audio_thread.h"
 #include "bluetooth.h"
 #include "byte_buffer.h"
-#include "cras_sco.h"
 #include "cras_hfp_slc.h"
 #include "cras_iodev_list.h"
 #include "cras_plc.h"
 #include "cras_sbc_codec.h"
-#include "cras_string.h"
+#include "cras_sco.h"
 #include "cras_server_metrics.h"
+#include "cras_sr.h"
+#include "cras_string.h"
 #include "utlist.h"
 #include "packet_status_logger.h"
 
@@ -97,6 +98,9 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
  *     msbc_read_current_corrupted - Flag to mark if the current mSBC frame
  *         read is corrupted.
  *     wbs_logger - The logger for packet status in WBS.
+ *     sr_buf - The buffer for saving the input to the sr.
+ *     sr - The sr instance.
+ *     is_cras_sr_bt_enabled - Indicates whether cras_sr is enabled.
  */
 struct cras_sco {
 	int fd;
@@ -124,6 +128,9 @@ struct cras_sco {
 	int (*read_align_cb)(uint8_t *buf);
 	bool msbc_read_current_corrupted;
 	struct packet_status_logger *wbs_logger;
+	struct byte_buffer *sr_buf;
+	struct cras_sr *sr;
+	bool is_cras_sr_bt_enabled;
 };
 
 static size_t wbs_get_supported_packet_size(size_t packet_size,
@@ -699,6 +706,13 @@ recv_sample:
 	return err;
 }
 
+static void swap_capture_buf_and_sr_buf(struct cras_sco *sco)
+{
+	struct byte_buffer *tmp = sco->sr_buf;
+	sco->sr_buf = sco->capture_buf;
+	sco->capture_buf = tmp;
+}
+
 /* Callback function to handle sample read and write.
  * Note that we poll the SCO socket for read sample, since it reflects
  * there is actual some sample to read while the socket always reports
@@ -718,10 +732,25 @@ static int cras_sco_callback(void *arg, int revents)
 
 	/* Allow last read before handling error or hang-up events. */
 	if (revents & POLLIN) {
-		err = sco->read_cb(sco);
+		if (sco->is_cras_sr_bt_enabled) {
+			swap_capture_buf_and_sr_buf(sco);
+			err = sco->read_cb(sco);
+			swap_capture_buf_and_sr_buf(sco);
+		} else {
+			err = sco->read_cb(sco);
+		}
 		if (err < 0) {
 			syslog(LOG_ERR, "Read error");
 			goto read_write_error;
+		}
+		if (sco->is_cras_sr_bt_enabled) {
+			int num_consumed = cras_sr_process(sco->sr, sco->sr_buf,
+							   sco->capture_buf);
+			if (num_consumed < err) {
+				syslog(LOG_DEBUG,
+				       "Number of consumed samples is less than provided. (%d < %d).",
+				       num_consumed, err);
+			}
 		}
 	}
 	/* Ignore the bytes just read if input dev not in present */
@@ -791,6 +820,43 @@ error:
 	return NULL;
 }
 
+int cras_sco_enable_cras_sr_bt(struct cras_sco *sco,
+			       enum cras_sr_bt_model model)
+{
+	int rc = 0;
+
+	sco->sr_buf = byte_buffer_create(MAX_HFP_BUF_SIZE_BYTES);
+	if (!sco->sr_buf) {
+		syslog(LOG_ERR, "byte_buffer_create failed.");
+		rc = -ENOMEM;
+		goto cras_sco_enable_cras_sr_bt_failed;
+	}
+
+	sco->sr = cras_sr_create(cras_sr_bt_get_model_spec(model),
+				 buf_available(sco->sr_buf));
+	if (!sco->sr) {
+		syslog(LOG_ERR, "cras_sr_create failed.");
+		rc = -ENOENT;
+		goto cras_sco_enable_cras_sr_bt_failed;
+	}
+
+	sco->is_cras_sr_bt_enabled = true;
+
+	return 0;
+
+cras_sco_enable_cras_sr_bt_failed:
+	cras_sco_disable_cras_sr_bt(sco);
+	return rc;
+}
+
+void cras_sco_disable_cras_sr_bt(struct cras_sco *sco)
+{
+	byte_buffer_destroy(&sco->sr_buf);
+	cras_sr_destroy(sco->sr);
+	sco->sr = NULL;
+	sco->is_cras_sr_bt_enabled = false;
+}
+
 void cras_sco_set_wbs_logger(struct cras_sco *sco,
 			     struct packet_status_logger *wbs_logger)
 {
@@ -835,6 +901,8 @@ int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 	sco->packet_size = mtu;
 	buf_reset(sco->playback_buf);
 	buf_reset(sco->capture_buf);
+	if (sco->sr_buf)
+		buf_reset(sco->sr_buf);
 
 	if (codec == HFP_CODEC_ID_MSBC) {
 		size_t packet_size;
@@ -915,6 +983,8 @@ int cras_sco_stop(struct cras_sco *sco)
 			sco->msbc_num_in_frames);
 	}
 
+	cras_sco_disable_cras_sr_bt(sco);
+
 	return 0;
 }
 
@@ -925,6 +995,9 @@ void cras_sco_destroy(struct cras_sco *sco)
 
 	if (sco->playback_buf)
 		byte_buffer_destroy(&sco->playback_buf);
+
+	if (sco->sr_buf)
+		byte_buffer_destroy(&sco->sr_buf);
 
 	free(sco);
 }

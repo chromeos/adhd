@@ -219,6 +219,7 @@ AC_ARG_ENABLE([ml], AS_HELP_STRING([--enable-ml], [Enable all ML modules]), have
 AM_CONDITIONAL(HAVE_ML, test "$have_ml" = "yes")
 if test "$have_ml" = "yes"; then
 	PKG_CHECK_MODULES([TENSORFLOW], [ tensorflow >= 2.8.0 ])
+	AS_VAR_APPEND([TENSORFLOW_CFLAGS], [" -DHAVE_ML"])
 	TENSORFLOW_LIBS=-ltensorflowlite_c
 else
 	TENSORFLOW_LIBS=
