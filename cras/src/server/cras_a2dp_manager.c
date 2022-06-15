@@ -338,25 +338,21 @@ bool cras_floss_a2dp_get_support_absolute_volume(struct cras_a2dp *a2dp)
 	return a2dp->support_absolute_volume;
 }
 
-void cras_floss_a2dp_update_volume(struct cras_a2dp *a2dp, unsigned int volume)
+int cras_floss_a2dp_convert_volume(struct cras_a2dp *a2dp,
+				   unsigned int abs_volume)
 {
-	if (!cras_floss_a2dp_get_support_absolute_volume(a2dp)) {
+	if (!cras_floss_a2dp_get_support_absolute_volume(a2dp))
 		syslog(LOG_WARNING,
 		       "Doesn't support absolute volume but get volume update"
 		       "call with volume %u.",
-		       volume);
-		return;
-	}
+		       abs_volume);
 
-	if (volume > 127) {
+	if (abs_volume > 127) {
 		syslog(LOG_WARNING, "Illegal absolute volume %u. Adjust to 127",
-		       volume);
-		volume = 127;
+		       abs_volume);
+		abs_volume = 127;
 	}
-	volume = 100 * volume / 127;
-
-	if (a2dp->iodev)
-		a2dp_pcm_update_volume(a2dp->iodev, volume);
+	return 100 * abs_volume / 127;
 }
 
 void cras_floss_a2dp_set_volume(struct cras_a2dp *a2dp, unsigned int volume)

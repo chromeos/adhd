@@ -27,9 +27,6 @@ struct cras_iodev *a2dp_pcm_iodev_create(struct cras_a2dp *a2dp,
 /* Destroys an a2dp pcm iodev. */
 void a2dp_pcm_iodev_destroy(struct cras_iodev *iodev);
 
-/* Update the volume of a2dp pcm iodev. */
-void a2dp_pcm_update_volume(struct cras_iodev *iodev, unsigned int volume);
-
 /* Updates the audio delay by information from BT stack. This is supposed
  * to be used along with Floss API GetPresentationPosition.
  * Args:

@@ -896,15 +896,6 @@ void a2dp_pcm_iodev_destroy(struct cras_iodev *iodev)
 	free(a2dpio);
 }
 
-void a2dp_pcm_update_volume(struct cras_iodev *iodev, unsigned int volume)
-{
-	if (!iodev->active_node)
-		return;
-
-	iodev->active_node->volume = volume;
-	cras_iodev_list_notify_node_volume(iodev->active_node);
-}
-
 void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
 				    uint64_t remote_delay_report_ns,
 				    uint64_t total_bytes_read,

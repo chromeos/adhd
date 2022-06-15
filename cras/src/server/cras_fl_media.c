@@ -1010,7 +1010,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return rc;
 		}
 
-		if (absolute_volume < 0 || !active_fm || !active_fm->a2dp) {
+		if (absolute_volume < 0 || !active_fm ||
+		    !active_fm->bt_io_mgr || !active_fm->a2dp) {
 			syslog(LOG_WARNING,
 			       "Invalid volume or non-active a2dp device. Skip the volume update");
 			return DBUS_HANDLER_RESULT_HANDLED;
@@ -1018,7 +1019,10 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 		syslog(LOG_DEBUG, "OnAbsoluteVolumeChanged %d",
 		       absolute_volume);
 
-		cras_floss_a2dp_update_volume(active_fm->a2dp, absolute_volume);
+		bt_io_manager_update_hardware_volume(
+			active_fm->bt_io_mgr,
+			cras_floss_a2dp_convert_volume(active_fm->a2dp,
+						       absolute_volume));
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	}

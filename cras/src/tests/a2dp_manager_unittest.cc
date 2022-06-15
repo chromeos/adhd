@@ -17,9 +17,7 @@ extern "C" {
 static struct cras_a2dp* a2dp_pcm_iodev_create_a2dp_val;
 static struct cras_iodev* a2dp_pcm_iodev_create_ret;
 static struct cras_iodev* a2dp_pcm_iodev_destroy_iodev_val;
-static int a2dp_pcm_update_volume_called;
 static int a2dp_pcm_update_bt_stack_delay_called;
-static unsigned int a2dp_pcm_update_volume_arg;
 static cras_main_message* cras_main_message_send_msg;
 static cras_message_callback cras_main_message_add_handler_callback;
 static void* cras_main_message_add_handler_callback_data;
@@ -44,8 +42,6 @@ static int floss_media_a2dp_suspend_called;
 static struct cras_fl_a2dp_codec_config a2dp_codecs;
 
 void ResetStubData() {
-  a2dp_pcm_update_volume_called = 0;
-  a2dp_pcm_update_volume_arg = 0;
   a2dp_pcm_update_bt_stack_delay_called = 0;
   floss_media_a2dp_set_active_device_called = 0;
   floss_media_a2dp_set_audio_config_called = 0;
@@ -259,29 +255,23 @@ TEST_F(A2dpManagerTestSuite, SetSupportAbsoluteVolume) {
   cras_floss_a2dp_destroy(a2dp);
 }
 
-TEST_F(A2dpManagerTestSuite, UpdateVolume) {
+TEST_F(A2dpManagerTestSuite, ConvertVolume) {
+  int volume;
   a2dp_pcm_iodev_create_ret =
       (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
   struct cras_a2dp* a2dp =
       cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
-  cras_floss_a2dp_update_volume(a2dp, 127);
-  ASSERT_EQ(a2dp_pcm_update_volume_called, 0);
-  ASSERT_EQ(a2dp_pcm_update_volume_arg, 0);
-
   cras_floss_a2dp_set_support_absolute_volume(a2dp, true);
-  cras_floss_a2dp_update_volume(a2dp, 127);
-  ASSERT_EQ(a2dp_pcm_update_volume_called, 1);
-  ASSERT_EQ(a2dp_pcm_update_volume_arg, 100);
+  volume = cras_floss_a2dp_convert_volume(a2dp, 127);
+  ASSERT_EQ(volume, 100);
 
-  cras_floss_a2dp_update_volume(a2dp, 100);
-  ASSERT_EQ(a2dp_pcm_update_volume_called, 2);
-  ASSERT_EQ(a2dp_pcm_update_volume_arg, 78);
+  volume = cras_floss_a2dp_convert_volume(a2dp, 100);
+  ASSERT_EQ(volume, 78);
 
-  cras_floss_a2dp_update_volume(a2dp, 150);
-  ASSERT_EQ(a2dp_pcm_update_volume_called, 3);
-  ASSERT_EQ(a2dp_pcm_update_volume_arg, 100);
+  volume = cras_floss_a2dp_convert_volume(a2dp, 150);
+  ASSERT_EQ(volume, 100);
 
   cras_floss_a2dp_destroy(a2dp);
 }
@@ -360,11 +350,6 @@ struct cras_iodev* a2dp_pcm_iodev_create(struct cras_a2dp* a2dp,
 
 void a2dp_pcm_iodev_destroy(struct cras_iodev* iodev) {
   a2dp_pcm_iodev_destroy_iodev_val = iodev;
-}
-
-void a2dp_pcm_update_volume(struct cras_iodev* iodev, unsigned int volume) {
-  a2dp_pcm_update_volume_called++;
-  a2dp_pcm_update_volume_arg = volume;
 }
 
 void a2dp_pcm_update_bt_stack_delay(struct cras_iodev* iodev,

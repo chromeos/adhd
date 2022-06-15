@@ -83,9 +83,10 @@ void cras_floss_a2dp_set_support_absolute_volume(struct cras_a2dp *a2dp,
 /* Gets if the a2dp audio device supports absolute volume. */
 bool cras_floss_a2dp_get_support_absolute_volume(struct cras_a2dp *a2dp);
 
-/* Update the volume when receiving absolute volume changed event from the
- * headset. */
-void cras_floss_a2dp_update_volume(struct cras_a2dp *a2dp, unsigned int volume);
+/* Convert the absolute volume received from the headset's volume change event
+ * to CRAS's system volume. */
+int cras_floss_a2dp_convert_volume(struct cras_a2dp *a2dp,
+				   unsigned int abs_volume);
 
 /* Set the volume of the given a2dp device. */
 void cras_floss_a2dp_set_volume(struct cras_a2dp *a2dp, unsigned int volume);
