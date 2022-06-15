@@ -25,14 +25,16 @@ class BM_Apm : public benchmark::Fixture {
     std::random_device rnd_device;
     std::mt19937 engine{rnd_device()};
     rate = state.range(0);
+    WebRtcApmFeatures features;
+    features.agc2_enabled = state.range(1) == 1;
     /* APM processes data in 10ms block. Sample rate 48000 means
      * 480 frames of block size.
      */
     block_sz = rate / 100;
-    apm = webrtc_apm_create_with_enforced_effects(
+    apm = webrtc_apm_create_for_testing(
         /*num_channels=*/2, rate, /*aec_ini=*/NULL, /*apm_ini=*/NULL,
         /*enforce_aec_on=*/true, /*enforce_ns_on=*/false,
-        /*enforce_agc_on=*/true);
+        /*enforce_agc_on=*/true, features);
     int_samples = gen_s16_le_samples(block_sz * 2 * 2, engine);
     float_samples = gen_float_samples(block_sz * 2 * 2, engine);
   }
@@ -76,10 +78,7 @@ BENCHMARK_DEFINE_F(BM_Apm, ProcessBuffer)(benchmark::State& state) {
 }
 
 BENCHMARK_REGISTER_F(BM_Apm, ProcessBuffer)
-    ->Arg(16000)
-    ->Arg(32000)
-    ->Arg(44100)
-    ->Arg(48000);
+    ->ArgsProduct({{16000, 32000, 44100, 48000}, {0, 1}});
 
 /* This benchmark evaluates the APM process plus the interleave
  * and deinterleave calculation from/to int16_t samples.
@@ -104,8 +103,5 @@ BENCHMARK_DEFINE_F(BM_Apm, InterleaveAndProcess)(benchmark::State& state) {
 }
 
 BENCHMARK_REGISTER_F(BM_Apm, InterleaveAndProcess)
-    ->Arg(16000)
-    ->Arg(32000)
-    ->Arg(44100)
-    ->Arg(48000);
+    ->ArgsProduct({{16000, 32000, 44100, 48000}, {0, 1}});
 }  // namespace
