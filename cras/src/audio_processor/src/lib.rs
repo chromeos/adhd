@@ -3,8 +3,10 @@
 // found in the LICENSE file.
 
 mod buffer;
+mod processor;
 mod sample;
 pub mod slice_cast;
 
 pub use buffer::*;
+pub use processor::*;
 pub use sample::*;
