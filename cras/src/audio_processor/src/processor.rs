@@ -46,3 +46,32 @@ where
         self.process_bytes(input)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{processors, ByteProcessor, MultiBuffer};
+
+    #[test]
+    fn simple_pipeline() {
+        // Test a simple pipeline using a Vec of ByteProcessor.
+        let mut p1 = processors::InPlaceNegateAudioProcessor::<f32>::new();
+        let mut p2 = processors::NegateAudioProcessor::<f32>::new(2, 4);
+        let mut pipeline: Vec<&mut dyn ByteProcessor> = vec![&mut p1, &mut p2];
+
+        let mut bufs = MultiBuffer::<f32>::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
+        let mut slices = bufs.as_multi_slice().into_bytes();
+
+        for p in pipeline.iter_mut() {
+            slices = p.process_bytes(slices);
+        }
+
+        // Y = -(-X) = X
+        assert_eq!(
+            slices.into_typed::<f32>().into_raw(),
+            [[1., 2., 3., 4.], [5., 6., 7., 8.]]
+        );
+
+        // Y = -X; p2 does not modify the input data
+        assert_eq!(bufs.data, [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]);
+    }
+}
