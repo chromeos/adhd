@@ -107,6 +107,16 @@ impl<'a, T> MultiSlice<'a, T> {
         self.data
     }
 
+    /// Returns an iterator over the slices.
+    pub fn iter(&self) -> std::slice::Iter<&mut [T]> {
+        self.data.iter()
+    }
+
+    /// Returns an iterator over the mutable slices.
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<&'a mut [T]> {
+        self.data.iter_mut()
+    }
+
     /// Convert to `MultiSlice<u8>`.
     /// This is a "view" conversion, the underlying memory is unchanged.
     pub fn into_bytes(self) -> MultiSlice<'a, u8>
@@ -199,5 +209,36 @@ mod slice_tests {
                 .into_raw(),
             numbers
         );
+    }
+
+    #[test]
+    fn iter() {
+        let ch0 = vec![1i32, 2, 3];
+        let ch1 = vec![4i32, 5, 6, 7];
+        let mut buf = MultiBuffer::from(vec![ch0.clone(), ch1.clone()]);
+        let slices = buf.as_multi_slice();
+        let mut it = slices.iter();
+        assert_eq!(*it.next().unwrap(), ch0);
+        assert_eq!(*it.next().unwrap(), ch1);
+        assert!(it.next().is_none());
+    }
+
+    #[test]
+    fn iter_mut() {
+        let mut buf = MultiBuffer::from(vec![vec![1i32, 2, 3], vec![4i32, 5, 6, 7]]);
+        let mut slices = buf.as_multi_slice();
+        let mut it = slices.iter_mut();
+
+        let ch0 = it.next().unwrap();
+        assert_eq!(*ch0, [1, 2, 3]);
+        ch0[0] = 0;
+
+        let ch1 = it.next().unwrap();
+        assert_eq!(*ch1, [4, 5, 6, 7]);
+        ch1[1] = 0;
+
+        assert!(it.next().is_none());
+
+        assert_eq!(buf.data, vec![vec![0, 2, 3], vec![4, 0, 6, 7]]);
     }
 }
