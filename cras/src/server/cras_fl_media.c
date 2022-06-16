@@ -885,7 +885,6 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 	const char *addr = NULL, *name = NULL;
 	int a2dp_avail = 0, hfp_avail = 0;
 	DBusError dbus_error;
-	dbus_int32_t absolute_volume;
 	dbus_int32_t hfp_cap;
 	dbus_bool_t abs_vol_supported;
 	struct cras_fl_a2dp_codec_config *codecs = NULL;
@@ -1049,26 +1048,23 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 	} else if (dbus_message_is_method_call(message,
 					       BT_MEDIA_CALLBACK_INTERFACE,
 					       "OnAbsoluteVolumeChanged")) {
-		rc = get_single_arg(message, DBUS_TYPE_INT32, &absolute_volume);
+		rc = get_single_arg(message, DBUS_TYPE_BYTE, &volume);
 		if (rc) {
 			syslog(LOG_ERR,
 			       "Failed to get volume from OnAbsoluteVolumeChanged");
 			return rc;
 		}
 
-		if (absolute_volume < 0 || !active_fm ||
-		    !active_fm->bt_io_mgr || !active_fm->a2dp) {
+		if (!active_fm || !active_fm->bt_io_mgr || !active_fm->a2dp) {
 			syslog(LOG_WARNING,
-			       "Invalid volume or non-active a2dp device. Skip the volume update");
+			       "Non-active a2dp device. Skip the volume update");
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
-		syslog(LOG_DEBUG, "OnAbsoluteVolumeChanged %d",
-		       absolute_volume);
+		syslog(LOG_DEBUG, "OnAbsoluteVolumeChanged %u", volume);
 
 		bt_io_manager_update_hardware_volume(
-			active_fm->bt_io_mgr,
-			cras_floss_a2dp_convert_volume(active_fm->a2dp,
-						       absolute_volume));
+			active_fm->bt_io_mgr, cras_floss_a2dp_convert_volume(
+						      active_fm->a2dp, volume));
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
