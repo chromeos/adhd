@@ -4,6 +4,7 @@
 
 mod buffer;
 mod sample;
+pub mod slice_cast;
 
 pub use buffer::*;
 pub use sample::*;

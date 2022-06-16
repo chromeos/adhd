@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::Sample;
+use crate::{slice_cast::SliceCast, Sample};
 
 /// A `MultiBuffer` holds multiple buffers of audio samples or bytes.
 /// Each buffer typically holds a channel of audio data.
@@ -106,11 +106,36 @@ impl<'a, T> MultiSlice<'a, T> {
     pub fn into_raw(self) -> Vec<&'a mut [T]> {
         self.data
     }
+
+    /// Convert to `MultiSlice<u8>`.
+    /// This is a "view" conversion, the underlying memory is unchanged.
+    pub fn into_bytes(self) -> MultiSlice<'a, u8>
+    where
+        T: Sample,
+    {
+        MultiSlice::<'a, u8> {
+            data: self.data.into_iter().map(|slice| slice.cast()).collect(),
+        }
+    }
+}
+
+impl<'a> MultiSlice<'a, u8> {
+    /// Convert the `MultiSlice<u8>` to `MultiSlice<T>`.
+    /// This is a "view" conversion, the underlying memory is unchanged.
+    /// Panics if the size or alignment is invalid for `T`.
+    pub fn into_typed<T>(self) -> MultiSlice<'a, T>
+    where
+        T: Sample,
+    {
+        MultiSlice::<'a, T> {
+            data: self.data.into_iter().map(|slice| slice.cast()).collect(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod slice_tests {
-    use crate::MultiSlice;
+    use crate::{MultiBuffer, MultiSlice};
 
     #[test]
     fn from_vecs() {
@@ -130,5 +155,49 @@ mod slice_tests {
         slices.data[0][1] = 0;
         slices.data[1][2] = 0;
         assert_eq!(slices.into_raw(), [[1, 0, 3, 4], [5, 6, 0, 8]]);
+    }
+
+    #[test]
+    fn into_typed() {
+        let mut buf = MultiBuffer::from(vec![vec![0x11u8, 0, 0, 0x11, 0, 0x22, 0x22, 0]]);
+        assert_eq!(
+            buf.as_multi_slice().into_typed::<i32>().into_raw(),
+            [[0x11000011i32, 0x00222200]]
+        );
+        assert_eq!(
+            buf.as_multi_slice().into_typed::<f32>().into_raw(),
+            [[1.009744e-28, 3.134604e-39]]
+        );
+    }
+
+    #[test]
+    fn from_typed() {
+        let mut buf = MultiBuffer::from(vec![vec![0x11000011i32, 0x00222200]]);
+        assert_eq!(
+            buf.as_multi_slice().into_bytes().data,
+            [[0x11u8, 0, 0, 0x11, 0, 0x22, 0x22, 0]]
+        );
+
+        let mut buf: MultiBuffer<f32> = MultiBuffer::from(vec![vec![1.009744e-28, 3.134604e-39]]);
+        assert_eq!(
+            buf.as_multi_slice().into_bytes().data,
+            [[0x11u8, 0, 0, 0x11, 0, 0x22, 0x22, 0]]
+        )
+    }
+
+    #[test]
+    fn identity() {
+        let numbers = vec![
+            vec![-1f32, std::f32::consts::LN_2],
+            vec![std::f32::consts::PI, f32::MAX],
+        ];
+        let mut buf = MultiBuffer::from(numbers.clone());
+        assert_eq!(
+            buf.as_multi_slice()
+                .into_bytes()
+                .into_typed::<f32>()
+                .into_raw(),
+            numbers
+        );
     }
 }
