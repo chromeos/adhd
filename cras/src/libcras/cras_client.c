@@ -4140,6 +4140,12 @@ int get_system_muted(struct cras_client *client, int *muted)
 	return 0;
 }
 
+int get_system_capture_muted(struct cras_client *client, int *muted)
+{
+	*muted = cras_client_get_system_capture_muted(client);
+	return 0;
+}
+
 int get_loopback_dev_idx(struct cras_client *client, int *idx)
 {
 	int rc = cras_client_get_first_dev_type_idx(
@@ -4271,6 +4277,7 @@ struct libcras_client *libcras_client_create()
 	client->get_aec_group_id = get_aec_group_id;
 	client->get_aec_supported = get_aec_supported;
 	client->get_system_muted = get_system_muted;
+	client->get_system_capture_muted = get_system_capture_muted;
 	client->set_system_mute = cras_client_set_system_mute;
 	client->get_loopback_dev_idx = get_loopback_dev_idx;
 	client->get_floop_dev_idx_by_client_types =

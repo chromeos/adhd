@@ -1364,7 +1364,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 4
+#define CRAS_API_VERSION 5
 #define CHECK_VERSION(object, version)                                         \
 	if (object->api_version < version) {                                   \
 		return -ENOSYS;                                                \
@@ -1426,6 +1426,7 @@ struct libcras_client {
 			   cras_stream_id_t stream_id, uint32_t dev_idx);
 	int (*get_floop_dev_idx_by_client_types)(struct cras_client *client,
 						 int64_t client_types_mask);
+	int (*get_system_capture_muted)(struct cras_client *client, int *muted);
 };
 
 struct cras_stream_cb_data;
@@ -1728,6 +1729,23 @@ inline int libcras_client_get_system_muted(struct libcras_client *client,
 					   int *muted)
 {
 	return client->get_system_muted(client->client_, muted);
+}
+
+/*
+ * Gets whether the system capture is muted.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    muted - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int
+libcras_client_get_system_capture_muted(struct libcras_client *client,
+					int *muted)
+{
+	CHECK_VERSION(client, 5);
+	return client->get_system_capture_muted(client->client_, muted);
 }
 
 /*
