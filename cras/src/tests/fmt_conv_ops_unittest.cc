@@ -227,6 +227,33 @@ TEST(FormatConverterOpsTest, ConvertS16LEToS32LE) {
   }
 }
 
+TEST(FormatConverterOpsTest, ConvertF32LEToS16LE) {
+  constexpr size_t frames = 7;
+  float src[frames] = {-2.f, -1.f, -0.5f, 0.f, 0.5f, 1.f, 2.f};
+  int16_t dst[frames] = {0};
+  int16_t expected[frames] = {INT16_MIN, INT16_MIN, -32768 / 2, 0,
+                              32768 / 2, INT16_MAX, INT16_MAX};
+
+  convert_f32le_to_s16le(src, frames, dst);
+
+  for (size_t i = 0; i < frames; ++i) {
+    EXPECT_EQ(dst[i], expected[i]);
+  }
+}
+
+TEST(FormatConverterOpsTest, ConvertS16LEToF32LE) {
+  constexpr size_t frames = 5;
+  int16_t src[frames] = {INT16_MIN, -32768 / 2, 0, 32768 / 2, INT16_MAX};
+  float dst[frames] = {0};
+  float expected[frames] = {-1.f, -0.5f, 0.f, 0.5f, INT16_MAX / 32768.f};
+
+  convert_s16le_to_f32le(src, frames, dst);
+
+  for (size_t i = 0; i < frames; ++i) {
+    EXPECT_EQ(dst[i], expected[i]);
+  }
+}
+
 // Test Mono to Stereo conversion.  S16_LE.
 TEST(FormatConverterOpsTest, MonoToStereoS16LE) {
   const size_t frames = 4096;

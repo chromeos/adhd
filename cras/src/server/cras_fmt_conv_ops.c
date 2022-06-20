@@ -122,6 +122,21 @@ void convert_s16le_to_s32le(const uint8_t *in, size_t in_samples, uint8_t *out)
 		*_out = ((uint32_t)(int32_t)*_in << 16);
 }
 
+void convert_s16le_to_f32le(const int16_t *in, size_t in_samples, float *out)
+{
+	for (int i = 0; i < in_samples; ++i) {
+		out[i] = (float)in[i] / 32768.f;
+	}
+}
+
+void convert_f32le_to_s16le(const float *in, size_t in_samples, int16_t *out)
+{
+	for (int i = 0; i < in_samples; ++i) {
+		out[i] = (int16_t)MAX(MIN(in[i] * 32768.f, INT16_MAX),
+				      INT16_MIN);
+	}
+}
+
 /*
  * Channel converter: mono to stereo.
  */
