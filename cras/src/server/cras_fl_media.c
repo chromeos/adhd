@@ -222,6 +222,26 @@ int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
 	return 0;
 }
 
+int floss_media_hfp_suspend(struct fl_media *fm)
+{
+	if (fm != active_fm) {
+		syslog(LOG_WARNING, "Invalid fl_media instance to suspend hfp");
+		return 0;
+	}
+
+	if (fm->hfp == NULL) {
+		syslog(LOG_WARNING, "Invalid hfp instance to suspend");
+		return 0;
+	}
+	bt_io_manager_remove_iodev(fm->bt_io_mgr,
+				   cras_floss_hfp_get_input_iodev(fm->hfp));
+	bt_io_manager_remove_iodev(fm->bt_io_mgr,
+				   cras_floss_hfp_get_output_iodev(fm->hfp));
+	cras_floss_hfp_destroy(active_fm->hfp);
+	fm->hfp = NULL;
+	return 0;
+}
+
 int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
 {
 	DBusMessage *method_call, *reply;
@@ -958,15 +978,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			if (active_fm->hfp) {
 				syslog(LOG_WARNING,
 				       "Multiple HFP devices added, remove the older");
-				bt_io_manager_remove_iodev(
-					active_fm->bt_io_mgr,
-					cras_floss_hfp_get_input_iodev(
-						active_fm->hfp));
-				bt_io_manager_remove_iodev(
-					active_fm->bt_io_mgr,
-					cras_floss_hfp_get_output_iodev(
-						active_fm->hfp));
-				cras_floss_hfp_destroy(active_fm->hfp);
+				floss_media_hfp_suspend(active_fm);
 			}
 			active_fm->hfp = cras_floss_hfp_create(
 				active_fm, addr, name, hfp_cap & FL_CODEC_MSBC);
@@ -1017,15 +1029,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			floss_media_a2dp_suspend(active_fm);
 		}
 		if (active_fm && active_fm->hfp) {
-			bt_io_manager_remove_iodev(
-				active_fm->bt_io_mgr,
-				cras_floss_hfp_get_input_iodev(active_fm->hfp));
-			bt_io_manager_remove_iodev(
-				active_fm->bt_io_mgr,
-				cras_floss_hfp_get_output_iodev(
-					active_fm->hfp));
-			cras_floss_hfp_destroy(active_fm->hfp);
-			active_fm->hfp = NULL;
+			floss_media_hfp_suspend(active_fm);
 		}
 
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -1146,14 +1150,13 @@ int floss_media_stop(DBusConnection *conn)
 
 	/* Clean up iodev when BT forced to stop. */
 	if (active_fm) {
+		floss_media_a2dp_suspend(active_fm);
+		floss_media_hfp_suspend(active_fm);
+
 		if (active_fm->bt_io_mgr) {
 			cras_bt_policy_remove_io_manager(active_fm->bt_io_mgr);
 			bt_io_manager_destroy(active_fm->bt_io_mgr);
 		}
-		if (active_fm->a2dp)
-			cras_floss_a2dp_destroy(active_fm->a2dp);
-		if (active_fm->hfp)
-			cras_floss_hfp_destroy(active_fm->hfp);
 		free(active_fm);
 		active_fm = NULL;
 	}
