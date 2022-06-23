@@ -177,6 +177,9 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 		board_config.hotword_pause_at_suspend;
 	exp_state->hw_echo_ref_disabled = board_config.hw_echo_ref_disabled;
 	exp_state->max_internal_mic_gain = board_config.max_internal_mic_gain;
+	exp_state->max_internal_speaker_channels =
+		board_config.max_internal_speaker_channels;
+	exp_state->max_headphone_channels = board_config.max_headphone_channels;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -521,6 +524,16 @@ bool cras_system_get_hw_echo_ref_disabled()
 int cras_system_get_max_internal_mic_gain()
 {
 	return state.exp_state->max_internal_mic_gain;
+}
+
+int cras_system_get_max_internal_speaker_channels()
+{
+	return state.exp_state->max_internal_speaker_channels;
+}
+
+int cras_system_get_max_headphone_channels()
+{
+	return state.exp_state->max_headphone_channels;
 }
 
 int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info)

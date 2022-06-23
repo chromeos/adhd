@@ -1578,12 +1578,16 @@ static void update_max_supported_channels(struct cras_iodev *iodev)
 		active_node_predicted = true;
 	}
 
-	// Always export internal speakers/headphone as a stereo device.
 	if (iodev->active_node &&
-	    (iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER ||
-	     iodev->active_node->type == CRAS_NODE_TYPE_HEADPHONE ||
+	    iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+		max_channels = cras_system_get_max_internal_speaker_channels();
+		goto update_info;
+	}
+
+	if (iodev->active_node &&
+	    (iodev->active_node->type == CRAS_NODE_TYPE_HEADPHONE ||
 	     iodev->active_node->type == CRAS_NODE_TYPE_LINEOUT)) {
-		max_channels = 2;
+		max_channels = cras_system_get_max_headphone_channels();
 		goto update_info;
 	}
 

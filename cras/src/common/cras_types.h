@@ -625,6 +625,10 @@ static inline bool cras_floop_params_eq(const struct cras_floop_params *a,
  *    aec_on_dsp_supported - if system aec on dsp is supported.
  *    ns_on_dsp_supported - if system ns on dsp is supported.
  *    agc_on_dsp_supported - if system agc on dsp is supported.
+ *    max_internal_speaker_channels - The max_supported_channels of internal
+ *        speaker.
+ *    max_headphone_channels - The max_supported_channels of headphone
+ *        and lineout.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__((packed, aligned(4))) cras_server_state {
@@ -676,7 +680,11 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	int32_t aec_on_dsp_supported;
 	int32_t ns_on_dsp_supported;
 	int32_t agc_on_dsp_supported;
-	char active_node_type_pair[2 * CRAS_NODE_TYPE_BUFFER_SIZE + 1];
+	// Add 3 byte paddings to prevent rust bindgen structure layout
+	// mismatch in cras-sys.
+	char active_node_type_pair[2 * CRAS_NODE_TYPE_BUFFER_SIZE + 4];
+	int32_t max_internal_speaker_channels;
+	int32_t max_headphone_channels;
 };
 
 /* Actions for card add/remove/change. */

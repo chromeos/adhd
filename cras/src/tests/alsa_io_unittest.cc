@@ -153,6 +153,10 @@ static bool sys_get_noise_cancellation_supported_return_value;
 static int sys_aec_on_dsp_supported_return_value;
 static int ucm_node_echo_cancellation_exists_ret_value;
 static bool sys_bypass_block_noise_cancellation_value;
+static int sys_get_max_internal_speaker_channels_called;
+static int sys_get_max_internal_speaker_channels_return_value;
+static int sys_get_max_headphone_channels_called = 0;
+static int sys_get_max_headphone_channels_return_value = 2;
 
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
@@ -245,6 +249,10 @@ void ResetStubData() {
   sys_aec_on_dsp_supported_return_value = 0;
   ucm_node_echo_cancellation_exists_ret_value = 0;
   sys_bypass_block_noise_cancellation_value = false;
+  sys_get_max_internal_speaker_channels_called = 0;
+  sys_get_max_internal_speaker_channels_return_value = 2;
+  sys_get_max_headphone_channels_called = 0;
+  sys_get_max_headphone_channels_return_value = 2;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -940,6 +948,7 @@ TEST(AlsaIoInit, MaxSupportedChannelsInternalSpeaker) {
   for (i = 0; i < 2; i++) {
     ResetStubData();
     cras_alsa_support_8_channels = (bool)i;
+    sys_get_max_internal_speaker_channels_return_value = i * 2;
 
     aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
         0, test_dev_id, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config,
@@ -948,8 +957,10 @@ TEST(AlsaIoInit, MaxSupportedChannelsInternalSpeaker) {
     /* No need to call cras_alsa_fill_properties_called for the internal
      * speaker. */
     EXPECT_EQ(0, cras_alsa_fill_properties_called);
-    /* Always expose internal speaker as a stereo device. */
-    EXPECT_EQ(2, aio->base.info.max_supported_channels);
+    EXPECT_EQ(1, sys_get_max_internal_speaker_channels_called);
+    EXPECT_EQ(i * 2, sys_get_max_internal_speaker_channels_return_value);
+    EXPECT_EQ(sys_get_max_internal_speaker_channels_return_value,
+              aio->base.info.max_supported_channels);
     alsa_iodev_destroy((struct cras_iodev*)aio);
     EXPECT_EQ(1, cras_iodev_free_resources_called);
   }
@@ -2687,6 +2698,17 @@ const char* cras_alsa_mixer_get_control_name(
 size_t cras_system_get_volume() {
   sys_get_volume_called++;
   return sys_get_volume_return_value;
+}
+
+int cras_system_get_max_internal_speaker_channels() {
+  sys_get_max_internal_speaker_channels_called++;
+  return sys_get_max_internal_speaker_channels_return_value;
+}
+
+//  From system_state.
+int cras_system_get_max_headphone_channels() {
+  sys_get_max_headphone_channels_called++;
+  return sys_get_max_headphone_channels_return_value;
 }
 
 int cras_system_get_mute() {
