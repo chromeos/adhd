@@ -130,7 +130,7 @@ use audio_streams::{
     shm_streams::{NullShmStream, SharedMemory, ShmStream, ShmStreamSource},
     AsyncBufferCommit, AsyncPlaybackBufferStream, AudioStreamsExecutor, BufferCommit,
     NoopStreamControl, PlaybackBufferStream, SampleFormat, StreamControl, StreamDirection,
-    StreamEffect, StreamSource,
+    StreamEffect, StreamSource, StreamSourceGenerator,
 };
 use cras_sys::gen::*;
 pub use cras_sys::gen::{
@@ -846,5 +846,41 @@ impl<'a, E: std::error::Error> ShmStreamSource<E> for CrasClient<'a> {
 
     fn keep_fds(&self) -> Vec<RawFd> {
         CrasClient::keep_fds(self)
+    }
+}
+
+/// A struct that implements [`StreamSourceGenerator`].
+/// It can create a CRAS Client, which implements [`StreamSource`] to connect to CRAS server.
+pub struct CrasStreamSourceGenerator {
+    capture: bool,
+    client_type: CrasClientType,
+    socket_type: CrasSocketType,
+}
+
+impl CrasStreamSourceGenerator {
+    /// Blocks creating a new `CrasStreamSourceGenerator`.
+    ///
+    /// # Arguments
+    ///
+    /// * `capture` - Indicator to enable/disable audio capture through CRAS server.
+    /// * `client_type` - Type of the CRAS Client that we want to create.
+    /// * `socket_type` - Type of the socket for the CRAS Client to connect.
+    pub fn new(capture: bool, client_type: CrasClientType, socket_type: CrasSocketType) -> Self {
+        CrasStreamSourceGenerator {
+            capture,
+            client_type,
+            socket_type,
+        }
+    }
+}
+
+impl StreamSourceGenerator for CrasStreamSourceGenerator {
+    fn generate(&self) -> std::result::Result<Box<dyn StreamSource>, BoxError> {
+        let mut client = CrasClient::with_type(self.socket_type)?;
+        if self.capture {
+            client.enable_cras_capture();
+        }
+        client.set_client_type(self.client_type);
+        Ok(Box::new(client))
     }
 }
