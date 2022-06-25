@@ -577,7 +577,7 @@ int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
 {
 	DBusMessage *method_call, *reply;
 	DBusError dbus_error;
-	dbus_int32_t absolute_volume = volume;
+	uint8_t absolute_volume = volume;
 
 	syslog(LOG_DEBUG, "floss_media_a2dp_set_volume: %d", absolute_volume);
 
@@ -586,7 +586,7 @@ int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
 	if (!method_call)
 		return -ENOMEM;
 
-	if (!dbus_message_append_args(method_call, DBUS_TYPE_INT32,
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_BYTE,
 				      &absolute_volume, DBUS_TYPE_INVALID)) {
 		dbus_message_unref(method_call);
 		return -ENOMEM;
