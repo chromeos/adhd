@@ -477,9 +477,17 @@ else
 CRAS_WEBRTC_APM_TESTS =
 endif
 
+if HAVE_ML
+CRAS_SR_TESTS = \
+	cras_sr_unittest
+else
+CRAS_SR_TESTS =
+endif
+
 TESTS = \
 	$(DBUS_TESTS) \
 	$(CRAS_WEBRTC_APM_TESTS) \
+	$(CRAS_SR_TESTS) \
 	fl_pcm_iodev_unittest \
 	audio_area_unittest \
 	audio_format_unittest \
@@ -866,6 +874,14 @@ cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
 cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 cras_tm_unittest_LDADD = -lgtest -lpthread
+
+if HAVE_ML
+cras_sr_unittest_SOURCES = tests/cras_sr_unittest.cc server/cras_sr.c \
+	server/cras_fmt_conv_ops.c tests/am_mock.c
+cras_sr_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server
+cras_sr_unittest_LDADD = -lgtest -lpthread -lspeexdsp
+endif
 
 dev_io_unittest_SOURCES = \
 	$(CRAS_SELINUX_UNITTEST_SOURCES) \
