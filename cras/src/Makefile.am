@@ -114,10 +114,18 @@ CRAS_SELINUX_SOURCES =
 CRAS_SELINUX_UNITTEST_SOURCES =
 endif
 
+if HAVE_ML
+CRAS_DSP_AM_SOURCES = \
+	dsp/am.c
+else
+CRAS_DSP_AM_SOURCES =
+endif
+
 cras_server_SOURCES = \
 	$(CRAS_DBUS_SOURCES) \
 	$(CRAS_SELINUX_SOURCES) \
 	$(CRAS_WEBRTC_APM_SOURCES) \
+	$(CRAS_DSP_AM_SOURCES) \
 	common/cras_audio_format.c \
 	common/cras_checksum.c \
 	common/cras_config.c \
@@ -216,7 +224,7 @@ libcrasserver_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	-I$(SERVER_RUST_SRCDIR)/src/headers \
-	$(DBUS_CFLAGS) $(SBC_CFLAGS) $(SELINUX_CFLAGS)
+	$(DBUS_CFLAGS) $(SBC_CFLAGS) $(SELINUX_CFLAGS) $(TENSORFLOW_CFLAGS)
 libcrasserver_la_LIBADD = \
 	$(CRAS_RUST) \
 	libcrasmix.la \
@@ -227,7 +235,8 @@ libcrasserver_la_LIBADD = \
 	-lpthread -lasound -lrt -liniparser -ludev -ldl -lm -lspeexdsp \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS) \
-	$(SELINUX_LIBS)
+	$(SELINUX_LIBS) \
+	$(TENSORFLOW_LIBS)
 
 cras_SOURCES = \
 	server/cras.c \
@@ -587,6 +596,11 @@ check_PROGRAMS += \
 	eq2_test \
 	cmpraw
 
+if HAVE_ML
+check_PROGRAMS += \
+	am_test
+endif
+
 DSP_INCLUDE_PATHS = -I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/common
 
 crossover_test_SOURCES = dsp/crossover.c dsp/biquad.c dsp/dsp_util.c \
@@ -623,6 +637,13 @@ eq2_test_SOURCES = dsp/biquad.c dsp/eq2.c dsp/dsp_util.c dsp/tests/eq2_test.c \
 	dsp/tests/dsp_test_util.c dsp/tests/raw.c
 eq2_test_LDADD = -lrt -lm
 eq2_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
+
+if HAVE_ML
+am_test_SOURCES = dsp/am.c dsp/tests/am_test.c server/cras_fmt_conv_ops.c
+am_test_LDADD = -lrt -lm $(TENSORFLOW_LIBS)
+am_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS) \
+	$(TENSORFLOW_CFLAGS) -I$(top_srcdir)/src/server
+endif
 
 cmpraw_SOURCES = dsp/tests/cmpraw.c dsp/tests/raw.c
 cmpraw_LDADD = -lm
