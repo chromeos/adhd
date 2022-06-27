@@ -492,6 +492,7 @@ TESTS = \
 	dsp_unittest \
 	dumper_unittest \
 	edid_utils_unittest \
+	sample_buffer_unittest \
 	empty_iodev_unittest \
 	expr_unittest \
 	ewma_power_unittest \
@@ -917,6 +918,10 @@ dumper_unittest_LDADD = -lgtest -lpthread
 edid_utils_unittest_SOURCES = tests/edid_utils_unittest.cc common/edid_utils.c
 edid_utils_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 edid_utils_unittest_LDADD = -lgtest -lpthread
+
+sample_buffer_unittest_SOURCES = tests/sample_buffer_unittest.cc
+sample_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
+sample_buffer_unittest_LDADD = -lgtest -lpthread
 
 empty_iodev_unittest_SOURCES = tests/empty_iodev_unittest.cc \
 	server/cras_empty_iodev.c
