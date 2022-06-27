@@ -505,6 +505,7 @@ TESTS = \
 	card_config_unittest \
 	checksum_unittest \
 	cras_abi_unittest \
+	cras_sr_bt_util_unittest \
 	cras_client_unittest \
 	cras_rtc_unittest \
 	cras_tm_unittest \
@@ -882,6 +883,12 @@ cras_sr_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 cras_sr_unittest_LDADD = -lgtest -lpthread -lspeexdsp
 endif
+
+cras_sr_bt_util_unittest_SOURCES = tests/cras_sr_bt_util_unittest.cc \
+	server/cras_sr_bt_util.c
+cras_sr_bt_util_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
+cras_sr_bt_util_unittest_LDADD = -lgtest -lpthread
 
 dev_io_unittest_SOURCES = \
 	$(CRAS_SELINUX_UNITTEST_SOURCES) \

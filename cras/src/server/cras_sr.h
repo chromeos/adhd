@@ -11,6 +11,7 @@
 
 #ifndef CRAS_SR_H_
 #define CRAS_SR_H_
+#define CRAS_SR_MODEL_PATH_CAPACITY (256)
 
 #include <stddef.h>
 
@@ -26,7 +27,7 @@ struct cras_sr;
  *  output_sample_rate - the output sample rate of the audio data.
  */
 struct cras_sr_model_spec {
-	const char *model_path;
+	char model_path[CRAS_SR_MODEL_PATH_CAPACITY + 1];
 	size_t num_frames_per_run;
 	size_t num_channels;
 	size_t input_sample_rate;
