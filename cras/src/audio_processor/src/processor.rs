@@ -16,6 +16,8 @@ pub enum Error {
         got_channels: usize,
         got_frames: usize,
     },
+    #[error("error in hound: {0:?}")]
+    Wav(hound::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

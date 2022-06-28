@@ -8,4 +8,5 @@ authors = ["The ChromiumOS Authors"]
 
 [dependencies]
 dasp_sample = "0.11.0"
+hound = "3.4.0"
 thiserror = "1.0.30"

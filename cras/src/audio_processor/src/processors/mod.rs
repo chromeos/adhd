@@ -7,3 +7,6 @@ pub use check_shape::*;
 
 mod negate;
 pub use negate::*;
+
+mod wav;
+pub use wav::*;
