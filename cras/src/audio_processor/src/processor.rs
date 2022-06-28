@@ -5,7 +5,18 @@
 use crate::{MultiSlice, Sample};
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {}
+pub enum Error {
+    #[error(
+        "{}: want {want_channels}x{want_frames}; got {got_channels}x{got_frames}",
+        "invalid channels x frames"
+    )]
+    InvalidShape {
+        want_channels: usize,
+        want_frames: usize,
+        got_channels: usize,
+        got_frames: usize,
+    },
+}
 
 pub type Result<T> = std::result::Result<T, Error>;
 

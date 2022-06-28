@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-mod negate;
+mod check_shape;
+pub use check_shape::*;
 
+mod negate;
 pub use negate::*;

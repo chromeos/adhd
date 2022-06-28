@@ -119,6 +119,40 @@ impl<'a, T> MultiSlice<'a, T> {
         self.data.iter_mut()
     }
 
+    /// Returns the number of slices
+    pub fn channels(&self) -> usize {
+        self.data.len()
+    }
+
+    /// Returns the smallest len of the contained slices.
+    pub fn min_len(&self) -> usize {
+        self.data
+            .iter()
+            .map(|buf| buf.len())
+            .min()
+            .unwrap_or_default()
+    }
+
+    /// Returns a `MultiSlice` referencing `slice[range]` for each contained slice.
+    pub fn indexes(&mut self, range: std::ops::Range<usize>) -> MultiSlice<'_, T> {
+        MultiSlice::from_raw(
+            self.data
+                .iter_mut()
+                .map(|ch| &mut ch[range.clone()])
+                .collect(),
+        )
+    }
+
+    /// Consume self and return a `MultiSlice` referencing `slice[range]` for each contained slice.
+    pub fn into_indexes(self, range: std::ops::Range<usize>) -> Self {
+        MultiSlice::from_raw(
+            self.data
+                .into_iter()
+                .map(|ch| &mut ch[range.clone()])
+                .collect(),
+        )
+    }
+
     /// Convert to `MultiSlice<u8>`.
     /// This is a "view" conversion, the underlying memory is unchanged.
     pub fn into_bytes(self) -> MultiSlice<'a, u8>
@@ -242,5 +276,57 @@ mod slice_tests {
         assert!(it.next().is_none());
 
         assert_eq!(buf.data, vec![vec![0, 2, 3], vec![4, 0, 6, 7]]);
+    }
+
+    #[test]
+    fn min_len() {
+        let mut buf = MultiBuffer::from(vec![
+            vec![1, 2, 3, 4],
+            vec![5, 6, 7],
+            vec![8, 9, 10, 11, 12],
+        ]);
+        assert_eq!(buf.as_multi_slice().min_len(), 3);
+    }
+
+    #[test]
+    fn indexes() {
+        let mut buf = MultiBuffer::from(vec![vec![1, 2, 3, 4], vec![5, 6, 7, 8]]);
+
+        assert_eq!(
+            buf.as_multi_slice().indexes(0..2).into_raw(),
+            [[1, 2], [5, 6]]
+        );
+        assert_eq!(
+            buf.as_multi_slice().indexes(2..4).into_raw(),
+            [[3, 4], [7, 8]]
+        );
+
+        for ch in buf.as_multi_slice().indexes(1..3).iter_mut() {
+            for x in ch.iter_mut() {
+                *x = 0;
+            }
+        }
+        assert_eq!(buf.data, [[1, 0, 0, 4], [5, 0, 0, 8]]);
+    }
+
+    #[test]
+    fn into_indexes() {
+        let mut buf = MultiBuffer::from(vec![vec![1, 2, 3, 4], vec![5, 6, 7, 8]]);
+
+        assert_eq!(
+            buf.as_multi_slice().into_indexes(0..2).into_raw(),
+            [[1, 2], [5, 6]]
+        );
+        assert_eq!(
+            buf.as_multi_slice().into_indexes(2..4).into_raw(),
+            [[3, 4], [7, 8]]
+        );
+
+        for ch in buf.as_multi_slice().into_indexes(1..3).iter_mut() {
+            for x in ch.iter_mut() {
+                *x = 0;
+            }
+        }
+        assert_eq!(buf.data, [[1, 0, 0, 4], [5, 0, 0, 8]]);
     }
 }
