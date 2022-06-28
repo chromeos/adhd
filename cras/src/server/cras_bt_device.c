@@ -801,7 +801,13 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 	}
 
 	if (pollfd.revents & (POLLERR | POLLHUP)) {
-		syslog(LOG_ERR,
+		/* If SCO encounters Different Transaction Collision (0x2a)
+		 * err this poll would fail immediately but actually worth a
+		 * retry. See cras_iodev_list for retry after INIT_DEV_DELAY_MS.
+		 * TODO(hychao): Investigate how to tell between the fatal
+		 * errors and the temporary errors.
+		 */
+		syslog(LOG_WARNING,
 		       "SCO socket error, revents: %u. Suspend in %u seconds",
 		       pollfd.revents, SCO_SUSPEND_DELAY_MS);
 		cras_server_metrics_hfp_sco_connection_error(
@@ -811,6 +817,12 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 		goto error;
 	}
 
+	/*
+	 * SCO error Different Transaction Collision (0x2a) might have happened
+	 * earlier and later the SCO connection succeeds in a retry. Cancel any
+	 * timer scheduled for suspend.
+	 */
+	cras_bt_policy_cancel_suspend(device);
 	cras_server_metrics_hfp_sco_connection_error(
 		CRAS_METRICS_SCO_SKT_SUCCESS);
 	BTLOG(btlog, BT_SCO_CONNECT, 1, sk);
