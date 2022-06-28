@@ -1043,11 +1043,17 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			       "Failed to get support from OnAvrcpConnected");
 			return rc;
 		}
-		syslog(LOG_DEBUG, "OnAbsoluteVolumeSupportedChanged %d",
-		       abs_vol_supported);
-		if (active_fm && active_fm->a2dp)
-			cras_floss_a2dp_set_support_absolute_volume(
-				active_fm->a2dp, abs_vol_supported);
+
+		if (!active_fm || !active_fm->bt_io_mgr || !active_fm->a2dp) {
+			syslog(LOG_WARNING,
+			       "No active a2dp device. Skip the absolute volume support change");
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+
+		cras_floss_a2dp_set_support_absolute_volume(active_fm->a2dp,
+							    abs_vol_supported);
+		bt_io_manager_set_use_hardware_volume(active_fm->bt_io_mgr,
+						      abs_vol_supported);
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
@@ -1062,7 +1068,7 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 
 		if (!active_fm || !active_fm->bt_io_mgr || !active_fm->a2dp) {
 			syslog(LOG_WARNING,
-			       "Non-active a2dp device. Skip the volume update");
+			       "No active a2dp device. Skip the volume update");
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 		syslog(LOG_DEBUG, "OnAbsoluteVolumeChanged %u", volume);
