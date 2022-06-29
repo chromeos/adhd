@@ -7,7 +7,6 @@
 
 import re
 import subprocess
-import logging
 import cherrypy
 
 # Node Format: [Stable_Id, ID, Vol, Plugged, L/R_swapped, Time, Type, Name]
@@ -22,7 +21,7 @@ def get_plugged_nodes(plugged_nodes, lines, is_input):
   end_str = 'Attached clients:' if is_input else 'Input Devices:'
   for i in range(lines.index(start_str) + 2,
                  lines.index(end_str)):
-    node = filter(None, re.split(r'\s+|\*+', lines[i]))
+    node = list(filter(None, re.split(r'\s+|\*+', lines[i])))
     # check for nodes that are plugged nodes and loopback
     if node[PLUGGED_INDEX] == 'yes' and node[TYPE_INDEX][:4] != 'POST':
       key = node[TYPE_INDEX] + ' ' + node[NAME_INDEX]
@@ -42,13 +41,13 @@ class CrasRouterTest(object):
 
     # Stop program if currently being run.
     if 'process' in cherrypy.session:
-      print 'Existing process'
+      print('Existing process')
       # If return code is None process is still running
       if cherrypy.session['process'].poll() is None:
-        print 'Killing existing process'
+        print('Killing existing process')
         cherrypy.session['process'].kill()
       else:
-        print 'Process already finished'
+        print('Process already finished')
 
     html = """<html>
               <head>
@@ -63,7 +62,8 @@ class CrasRouterTest(object):
                 onsubmit="return validateForm()" action="start_test">
                   <h2>Input Type</h2>
               """
-    dump = subprocess.check_output(['cras_test_client', '--dump_s'])
+    dump = subprocess.check_output(['cras_test_client', '--dump_s'],
+                                   encoding='utf-8')
     if not dump:
       return 'Could not connect to server'
     dump_lines = dump.split('\n')
@@ -182,28 +182,28 @@ class CrasRouterTest(object):
     Returns:
       html for the tesing in progress page.
     """
-    print 'Beginning test'
+    print('Beginning test')
     if input_type == 'file' or output_type == 'file':
-        command = ['cras_test_client']
+      command = ['cras_test_client']
     else:
-        command = ['cras_router']
+      command = ['cras_router']
     if input_type == 'file':
       command.append('--playback_file')
       command.append(str(input_file))
     else:
       set_input = ['cras_test_client', '--select_input', str(input_type)]
       if subprocess.check_call(set_input):
-        print 'Error setting input'
+        print('Error setting input')
     if output_type == 'file':
       command.append('--capture_file')
       command.append(str(output_file))
     else:
       set_output = ['cras_test_client', '--select_output', str(output_type)]
       if subprocess.check_call(set_output):
-        print 'Error setting output'
+        print('Error setting output')
     command.append('--rate')
     command.append(str(rate))
-    print 'Running commmand: ' + str(command)
+    print('Running commmand: ' + str(command))
     p = subprocess.Popen(command)
     cherrypy.session['process'] = p
     return """
