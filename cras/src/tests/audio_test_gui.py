@@ -9,22 +9,67 @@ import re
 import subprocess
 import cherrypy
 
-# Node Format: [Stable_Id, ID, Vol, Plugged, L/R_swapped, Time, Type, Name]
+# Node Format: [Stable_Id, ID, Vol/Gain, UI, Plugged, L/R_swapped, Time,
+#               Hotword, Type, MaxCha, Name]
 ID_INDEX = 1
-PLUGGED_INDEX = 3
-TYPE_INDEX = 6
-NAME_INDEX = 7
+PLUGGED_INDEX = 4
+TYPE_INDEX = 8
+NAME_INDEX = 10
+
+# Inline Node Format: [Ch, DeviceName, ID, Flag, Vol, UI, Type, NodeName]
+# Each part has fixed width. Each part is separated by two spaces.
+CH_WIDTH = 2
+NAME_WIDTH = 30
+# ID Format: $dev_id:$node_id
+DEV_ID_WIDTH = 2
+NODE_ID_WIDTH = 2
+ID_WIDTH = DEV_ID_WIDTH + 1 + NODE_ID_WIDTH
+FLAG_WIDTH = 5
+ID_LOCATION = CH_WIDTH + NAME_WIDTH + 2 * 2
+FLAG_LOCATION = ID_LOCATION+ID_WIDTH
+HOTWORD_FLAG = 'H'
 
 
-def get_plugged_nodes(plugged_nodes, lines, is_input):
+def has_active_hotword_model(full_id, lines):
+  for line in lines:
+    if (line[ID_LOCATION:ID_LOCATION + ID_WIDTH] == full_id and
+        HOTWORD_FLAG in line[FLAG_LOCATION:FLAG_LOCATION + FLAG_WIDTH]):
+      return True
+  return False
+
+
+def get_plugged_nodes(plugged_nodes, nodes_lines, dump_lines, is_input):
+  """Gets all plugged nodes of a certain type.
+
+  Parses cras_test_client output to get all plugged nodes.
+  The nodes will be saved as a string, consisting of the nodes type and name.
+
+  Args:
+    plugged_nodes: A list to contain the plugged nodes.
+    nodes_lines: A string, the output of cras_test_client --print_nodes_inline
+    dump_lines: A string, the output of cras_test_client --dump_s
+    is_input: If True, return all plugged input nodes.
+              Return all plugged output nodes otherwise.
+  """
   start_str = 'Input Nodes:' if is_input else 'Output Nodes:'
   end_str = 'Attached clients:' if is_input else 'Input Devices:'
-  for i in range(lines.index(start_str) + 2,
-                 lines.index(end_str)):
-    node = list(filter(None, re.split(r'\s+|\*+', lines[i])))
+  for i in range(dump_lines.index(start_str) + 2,
+                 dump_lines.index(end_str)):
+    node = list(filter(None, re.split(r'\s+|\*+', dump_lines[i])))
+    # Type and NodeName come after Hotword, and Hotword may be blank.
+    # This may cause the index to be wrong. Therefore, reduce the two
+    # indexes if the node has not active hotword model
+    index_modifier = -1
+    if has_active_hotword_model(node[ID_INDEX], nodes_lines):
+      index_modifier = 0
+    # Name is last, and may contain spaces. This will be split in the
+    # split function above, so merge them.
+    node[NAME_INDEX+index_modifier] = ' '.join(node[NAME_INDEX+index_modifier:])
     # check for nodes that are plugged nodes and loopback
-    if node[PLUGGED_INDEX] == 'yes' and node[TYPE_INDEX][:4] != 'POST':
-      key = node[TYPE_INDEX] + ' ' + node[NAME_INDEX]
+    if (node[PLUGGED_INDEX] == 'yes' and
+        node[TYPE_INDEX+index_modifier][:4] != 'POST'):
+      key = (node[TYPE_INDEX+index_modifier] + ' ' +
+             node[NAME_INDEX+index_modifier])
       plugged_nodes[key] = node[ID_INDEX]
 
 
@@ -64,11 +109,15 @@ class CrasRouterTest(object):
               """
     dump = subprocess.check_output(['cras_test_client', '--dump_s'],
                                    encoding='utf-8')
-    if not dump:
+    nodes_inline = subprocess.check_output(['cras_test_client',
+                                            '--print_nodes_inline'],
+                                           encoding='utf-8')
+    if not (dump or nodes_inline):
       return 'Could not connect to server'
     dump_lines = dump.split('\n')
+    nodes_lines = nodes_inline.split('\n')
     input_plugged_nodes = {}
-    get_plugged_nodes(input_plugged_nodes, dump_lines, True)
+    get_plugged_nodes(input_plugged_nodes, nodes_lines, dump_lines, True)
     for name, node_id in input_plugged_nodes.items():
       line = '<input type ="radio" name="input_type" value="'
       line += node_id + '">' +name + '<br>\n'
@@ -81,7 +130,7 @@ class CrasRouterTest(object):
                  </div>
                <h2>Output Type</h2>"""
     output_plugged_nodes = {}
-    get_plugged_nodes(output_plugged_nodes, dump_lines, False)
+    get_plugged_nodes(output_plugged_nodes, nodes_lines, dump_lines, False)
     for name, node_id in output_plugged_nodes.items():
       line = '<input type ="radio" name="output_type" value="'
       line = line + node_id + '">' +name + '<br>\n'
