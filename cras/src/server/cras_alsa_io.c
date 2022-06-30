@@ -1274,8 +1274,6 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 		output->base.dsp_name =
 			ucm_get_dsp_name_for_dev(aio->ucm, name);
 
-	if (strcmp(name, "SCO Line Out") == 0)
-		output->base.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
 	output->mixer_output = cras_control;
 
 	/* Volume curve. */
@@ -1367,8 +1365,6 @@ static struct alsa_input_node *new_input(struct alsa_io *aio,
 	input->base.idx = aio->next_ionode_index++;
 	input->base.stable_id =
 		SuperFastHash(name, strlen(name), aio->base.info.stable_id);
-	if (strcmp(name, "SCO Line In") == 0)
-		input->base.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
 	input->mixer_input = cras_input;
 	strncpy(input->base.name, name, sizeof(input->base.name) - 1);
 	strncpy(input->base.ucm_name, name, sizeof(input->base.ucm_name) - 1);
