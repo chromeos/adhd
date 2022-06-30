@@ -93,6 +93,11 @@ int cras_server_metrics_webrtc_devs_runtime(const struct cras_iodev *in_dev,
 /* Logs runtime of a device. */
 int cras_server_metrics_device_runtime(struct cras_iodev *iodev);
 
+/* Logs device cofigure time from |beg| to |end| in milliseconds.*/
+int cras_server_metrics_device_configure_time(struct cras_iodev *iodev,
+					      struct timespec *beg,
+					      struct timespec *end);
+
 /* Logs the gain of a device. */
 int cras_server_metrics_device_gain(struct cras_iodev *iodev);
 

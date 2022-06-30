@@ -968,6 +968,7 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		    const struct cras_audio_format *fmt)
 {
 	struct cras_loopback *loopback;
+	struct timespec beg, end;
 	int rc;
 
 	if (iodev->pre_open_iodev_hook)
@@ -992,11 +993,14 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 		}
 	}
 
+	clock_gettime(CLOCK_MONOTONIC_RAW, &beg);
 	rc = iodev->configure_dev(iodev);
 	if (rc < 0) {
 		iodev->close_dev(iodev);
 		return rc;
 	}
+	clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+	cras_server_metrics_device_configure_time(iodev, &beg, &end);
 
 	/*
 	 * Convert cb_level from input format to device format

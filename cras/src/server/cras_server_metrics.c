@@ -105,6 +105,7 @@ enum CRAS_SERVER_METRICS_TYPE {
 	BT_WIDEBAND_SELECTED_CODEC,
 	BUSYLOOP,
 	BUSYLOOP_LENGTH,
+	DEVICE_CONFIGURE_TIME,
 	DEVICE_GAIN,
 	DEVICE_RUNTIME,
 	DEVICE_VOLUME,
@@ -676,6 +677,33 @@ int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 	if (err < 0) {
 		syslog(LOG_ERR,
 		       "Failed to send metrics message: DEVICE_RUNTIME");
+		return err;
+	}
+
+	return 0;
+}
+
+int cras_server_metrics_device_configure_time(struct cras_iodev *iodev,
+					      struct timespec *beg,
+					      struct timespec *end)
+{
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.device_data.type = get_metrics_device_type(iodev);
+	data.device_data.direction = iodev->direction;
+	data.device_data.value = iodev->active_node->btflags;
+
+	subtract_timespecs(end, beg, &data.device_data.runtime);
+
+	init_server_metrics_msg(&msg, DEVICE_CONFIGURE_TIME, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR,
+		       "Failed to send metrics message: DEVICE_CONFIGURE_TIME");
 		return err;
 	}
 
@@ -1310,6 +1338,42 @@ static void metrics_device_runtime(struct cras_server_metrics_device_data data)
 		cras_metrics_log_sparse_histogram(kDeviceTypeOutput, data.type);
 }
 
+static void
+metrics_device_configure_time(struct cras_server_metrics_device_data data)
+{
+	unsigned msec =
+		data.runtime.tv_sec * 1000 + data.runtime.tv_nsec / 1000000;
+	switch (data.type) {
+	case CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC:
+	case CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC:
+		log_histogram_each_level(
+			5, msec, 0, 10000, 20, "Cras.DeviceConfigureTime",
+			"Input", "HFP",
+			data.value & CRAS_BT_FLAG_SCO_OFFLOAD ? "Offloading" :
+								"NonOffloading",
+			data.type == CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC ?
+				"NarrowBandMic" :
+				"WideBandMic");
+		break;
+	case CRAS_METRICS_DEVICE_HFP:
+		log_histogram_each_level(4, msec, 0, 10000, 20,
+					 "Cras.DeviceConfigureTime", "Output",
+					 "HFP",
+					 data.value & CRAS_BT_FLAG_SCO_OFFLOAD ?
+						 "Offloading" :
+						 "NonOffloading");
+		break;
+	default:
+		log_histogram_each_level(3, msec, 0, 10000, 20,
+					 "Cras.DeviceConfigureTime",
+					 data.direction == CRAS_STREAM_INPUT ?
+						 "Input" :
+						 "Output",
+					 metrics_device_type_str(data.type));
+		break;
+	}
+}
+
 static void metrics_device_gain(struct cras_server_metrics_device_data data)
 {
 	char metrics_name[METRICS_NAME_BUFFER_SIZE];
@@ -1462,6 +1526,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		cras_metrics_log_sparse_histogram(
 			kHfpWidebandSpeechSelectedCodec,
 			metrics_msg->data.value);
+		break;
+	case DEVICE_CONFIGURE_TIME:
+		metrics_device_configure_time(metrics_msg->data.device_data);
 		break;
 	case DEVICE_GAIN:
 		metrics_device_gain(metrics_msg->data.device_data);

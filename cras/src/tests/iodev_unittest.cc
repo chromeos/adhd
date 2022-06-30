@@ -2847,6 +2847,11 @@ int cras_server_metrics_device_runtime(struct cras_iodev* iodev) {
 int cras_server_metrics_device_volume(struct cras_iodev* iodev) {
   return 0;
 }
+int cras_server_metrics_device_configure_time(struct cras_iodev* iodev,
+                                              struct timespec* beg,
+                                              struct timespec* end) {
+  return 0;
+}
 
 void ewma_power_init(struct ewma_power* ewma,
                      snd_pcm_format_t fmt,
