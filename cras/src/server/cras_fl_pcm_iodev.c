@@ -110,6 +110,12 @@ static int a2dp_update_supported_formats(struct cras_iodev *iodev)
 static int hfp_update_supported_formats(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
+	free(iodev->supported_channel_counts);
+	iodev->supported_channel_counts = NULL;
+	free(iodev->supported_rates);
+	iodev->supported_rates = NULL;
+	free(iodev->supported_formats);
+	iodev->supported_formats = NULL;
 	return cras_floss_hfp_fill_format(hfpio->hfp, &iodev->supported_rates,
 					  &iodev->supported_formats,
 					  &iodev->supported_channel_counts);
