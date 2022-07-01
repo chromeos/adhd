@@ -70,6 +70,7 @@ static struct cras_ionode *add_profile_dev(struct cras_iodev *bt_iodev,
 		return NULL;
 
 	n->base.dev = bt_iodev;
+	n->base.btflags = dev->active_node->btflags;
 	n->base.idx = btio->next_node_id++;
 	n->base.type = CRAS_NODE_TYPE_BLUETOOTH;
 	n->base.volume = 100;
@@ -398,6 +399,7 @@ static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 			continue;
 
 		if (btio->mgr->active_btflag == n->btflag) {
+			iodev->active_node->btflags = node->btflags;
 			active->btflag = n->btflag;
 			active->profile_dev = n->profile_dev;
 
@@ -590,6 +592,7 @@ static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 	if (!active)
 		goto error;
 	active->base.dev = iodev;
+	active->base.btflags = dev->active_node->btflags;
 	active->base.idx = btio->next_node_id++;
 	active->base.type = dev->active_node->type;
 	active->base.volume = 100;
