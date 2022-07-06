@@ -29,6 +29,13 @@
 
 #define CRAS_BT_MEDIA_OBJECT_PATH "/org/chromium/cras/bluetooth/media"
 
+// When A2DP audio starts polling, it could take as long as 6s (b/239370946).
+// Blocking CRAS main thread for 6 seconds is horrible and we accept that
+// when Floss is under development with some unsolved issues.
+// TODO(jrwu): shorten the max timeout before Floss launches.
+#define GET_A2DP_AUDIO_STARTED_RETRIES 1200
+#define GET_A2DP_AUDIO_STARTED_SLEEP_US 5000
+
 static struct fl_media *active_fm = NULL;
 
 struct fl_media *fl_media_create(int hci)
@@ -321,8 +328,10 @@ int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
 
 int floss_media_a2dp_start_audio_request(struct fl_media *fm)
 {
-	DBusMessage *method_call, *reply;
+	int rc = 0;
+	DBusMessage *method_call = NULL, *reply = NULL;
 	DBusError dbus_error;
+	dbus_bool_t started;
 
 	syslog(LOG_DEBUG, "floss_media_a2dp_start_audio_request");
 
@@ -345,19 +354,76 @@ int floss_media_a2dp_start_audio_request(struct fl_media *fm)
 		syslog(LOG_ERR, "Failed to send StartAudioRequest: %s",
 		       dbus_error.message);
 		dbus_error_free(&dbus_error);
-		dbus_message_unref(method_call);
-		return -EIO;
+		rc = -EIO;
+		goto cleanup;
 	}
-
-	dbus_message_unref(method_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
 		syslog(LOG_ERR, "StartAudioRequest returned error: %s",
 		       dbus_message_get_error_name(reply));
-		dbus_message_unref(reply);
-		return -EIO;
+		rc = -EIO;
+		goto cleanup;
 	}
-	return 0;
+
+	dbus_message_unref(method_call);
+	method_call = NULL;
+
+	dbus_message_unref(reply);
+	reply = NULL;
+
+	method_call =
+		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
+					     BT_MEDIA_INTERFACE,
+					     "GetA2dpAudioStarted");
+	if (!method_call)
+		return -ENOMEM;
+
+	for (int retries = 0; retries < GET_A2DP_AUDIO_STARTED_RETRIES;
+	     ++retries) {
+		dbus_error_init(&dbus_error);
+		reply = dbus_connection_send_with_reply_and_block(
+			fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT,
+			&dbus_error);
+		if (!reply) {
+			syslog(LOG_ERR,
+			       "Failed to send GetA2dpAudioStarted : %s",
+			       dbus_error.message);
+			dbus_error_free(&dbus_error);
+			rc = -EIO;
+			goto cleanup;
+		}
+
+		if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+			syslog(LOG_ERR,
+			       "GetA2dpAudioStarted returned error: %s",
+			       dbus_message_get_error_name(reply));
+			rc = -EIO;
+			goto cleanup;
+		}
+
+		if (get_single_arg(reply, DBUS_TYPE_BOOLEAN, &started) != 0) {
+			rc = -EIO;
+			goto cleanup;
+		}
+
+		dbus_message_unref(reply);
+		reply = NULL;
+
+		if (started)
+			goto cleanup;
+
+		usleep(GET_A2DP_AUDIO_STARTED_SLEEP_US);
+	}
+
+	syslog(LOG_ERR, "GetA2dpAudioStarted polling failed");
+
+cleanup:
+	if (method_call)
+		dbus_message_unref(method_call);
+	if (reply)
+		dbus_message_unref(reply);
+
+	return rc;
 }
 
 int floss_media_a2dp_stop_audio_request(struct fl_media *fm)
