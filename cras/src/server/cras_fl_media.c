@@ -1004,19 +1004,17 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 
-		if (!active_fm || !active_fm->hfp ||
-		    !strcmp(cras_floss_hfp_get_addr(active_fm->hfp), addr)) {
-			syslog(LOG_WARNING,
-			       "non-active hfp device(%s). Skip the volume update",
-			       addr);
+		if (!active_fm) {
+			syslog(LOG_ERR, "fl_media hasn't started or stopped");
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 		syslog(LOG_DEBUG, "OnHfpVolumeChanged %u", volume);
 
-		bt_io_manager_update_hardware_volume(
-			active_fm->bt_io_mgr,
-			cras_floss_hfp_convert_volume(volume));
-
+		rc = handle_on_hfp_volume_changed(active_fm, addr, volume);
+		if (rc) {
+			syslog(LOG_ERR,
+			       "Error occured in updating hfp volume %d", rc);
+		}
 		return DBUS_HANDLER_RESULT_HANDLED;
 	}
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

@@ -139,3 +139,19 @@ int handle_on_absolute_volume_changed(struct fl_media *active_fm,
 						      active_fm->a2dp, volume));
 	return 0;
 }
+
+int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
+				 uint8_t volume)
+{
+	assert(active_fm != NULL);
+	if (!active_fm->hfp || !active_fm->bt_io_mgr ||
+	    !strcmp(cras_floss_hfp_get_addr(active_fm->hfp), addr)) {
+		syslog(LOG_WARNING,
+		       "non-active hfp device(%s). Skip the volume update",
+		       addr);
+		return -EINVAL;
+	}
+	bt_io_manager_update_hardware_volume(
+		active_fm->bt_io_mgr, cras_floss_hfp_convert_volume(volume));
+	return 0;
+}
