@@ -977,17 +977,18 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return rc;
 		}
 
-		if (!active_fm || !active_fm->bt_io_mgr || !active_fm->a2dp) {
-			syslog(LOG_WARNING,
-			       "No active a2dp device. Skip the volume update");
+		if (!active_fm) {
+			syslog(LOG_ERR, "fl_media hasn't started or stopped");
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 		syslog(LOG_DEBUG, "OnAbsoluteVolumeChanged %u", volume);
 
-		bt_io_manager_update_hardware_volume(
-			active_fm->bt_io_mgr, cras_floss_a2dp_convert_volume(
-						      active_fm->a2dp, volume));
-
+		rc = handle_on_absolute_volume_changed(active_fm, volume);
+		if (rc) {
+			syslog(LOG_ERR,
+			       "Error occured in updating hardware volume %d",
+			       rc);
+		}
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(message,
 					       BT_MEDIA_CALLBACK_INTERFACE,

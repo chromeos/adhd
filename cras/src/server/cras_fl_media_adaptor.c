@@ -123,3 +123,19 @@ int handle_on_absolute_volume_supported_changed(struct fl_media *active_fm,
 	}
 	return 0;
 }
+
+int handle_on_absolute_volume_changed(struct fl_media *active_fm,
+				      uint8_t volume)
+{
+	assert(active_fm != NULL);
+	if (!active_fm->bt_io_mgr || !active_fm->a2dp) {
+		syslog(LOG_WARNING,
+		       "No active a2dp device. Skip the volume update");
+		return -EINVAL;
+	}
+	if (active_fm->a2dp)
+		bt_io_manager_update_hardware_volume(
+			active_fm->bt_io_mgr, cras_floss_a2dp_convert_volume(
+						      active_fm->a2dp, volume));
+	return 0;
+}

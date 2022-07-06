@@ -78,4 +78,16 @@ int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
 int handle_on_absolute_volume_supported_changed(struct fl_media *active_fm,
 						bool abs_vol_supported);
 
+/* Updates a2dp volume to bt_io_manager.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   volume - Hardware volume of the bluetooth device.
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_absolute_volume_changed(struct fl_media *active_fm,
+				      uint8_t volume);
+
 #endif /* CRAS_FL_MEDIA_ADAPTOR_H_ */
