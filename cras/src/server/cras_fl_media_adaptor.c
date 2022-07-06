@@ -2,6 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,5 +103,23 @@ int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
 		floss_media_hfp_suspend(active_fm);
 	}
 
+	return 0;
+}
+
+int handle_on_absolute_volume_supported_changed(struct fl_media *active_fm,
+						bool abs_vol_supported)
+{
+	assert(active_fm != NULL);
+	if (!active_fm->bt_io_mgr || !active_fm->a2dp) {
+		syslog(LOG_WARNING,
+		       "No active a2dp device. Skip the absolute volume support change");
+		return -EINVAL;
+	}
+	if (active_fm->a2dp) {
+		cras_floss_a2dp_set_support_absolute_volume(active_fm->a2dp,
+							    abs_vol_supported);
+		bt_io_manager_set_use_hardware_volume(active_fm->bt_io_mgr,
+						      abs_vol_supported);
+	}
 	return 0;
 }

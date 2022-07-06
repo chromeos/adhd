@@ -66,4 +66,16 @@ int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
 				       const char *addr);
 
+/* Sets supported absolute volume on floss a2dp.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   abs_vol_supported - Absolute volume supported by the bluetooth device.
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_absolute_volume_supported_changed(struct fl_media *active_fm,
+						bool abs_vol_supported);
+
 #endif /* CRAS_FL_MEDIA_ADAPTOR_H_ */
