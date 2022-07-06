@@ -54,4 +54,16 @@ int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 				     struct cras_fl_a2dp_codec_config *codecs,
 				     int32_t hfp_cap, bool abs_vol_supported);
 
+/* Suspends a2dp and hfp if existed when bluetooth device is removed.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   addr - The address of the added bluetooth device.
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
+				       const char *addr);
+
 #endif /* CRAS_FL_MEDIA_ADAPTOR_H_ */

@@ -934,19 +934,12 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 
-		if (!active_fm->bt_io_mgr) {
-			syslog(LOG_ERR, "No device has been added.");
-			return DBUS_HANDLER_RESULT_HANDLED;
+		rc = handle_on_bluetooth_device_removed(active_fm, addr);
+		if (rc) {
+			syslog(LOG_ERR,
+			       "Error occured in removing bluetooth device %d",
+			       rc);
 		}
-
-		bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 0);
-		if (active_fm && active_fm->a2dp) {
-			floss_media_a2dp_suspend(active_fm);
-		}
-		if (active_fm && active_fm->hfp) {
-			floss_media_hfp_suspend(active_fm);
-		}
-
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(
 			   message, BT_MEDIA_CALLBACK_INTERFACE,

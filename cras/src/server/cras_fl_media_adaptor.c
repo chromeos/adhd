@@ -84,3 +84,23 @@ int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 	}
 	return 0;
 }
+
+int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
+				       const char *addr)
+{
+	assert(active_fm != NULL);
+	if (!active_fm->bt_io_mgr) {
+		syslog(LOG_ERR, "No device has been added.");
+		return -EINVAL;
+	}
+
+	bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 0);
+	if (active_fm->a2dp) {
+		floss_media_a2dp_suspend(active_fm);
+	}
+	if (active_fm->hfp) {
+		floss_media_hfp_suspend(active_fm);
+	}
+
+	return 0;
+}
