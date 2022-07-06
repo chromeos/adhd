@@ -51,6 +51,10 @@
 
 struct fl_media;
 
+struct fl_media *floss_media_get_active_fm();
+
+int fl_media_init(int hci);
+
 int floss_media_start(DBusConnection *conn, unsigned int hci);
 
 int floss_media_stop(DBusConnection *conn);

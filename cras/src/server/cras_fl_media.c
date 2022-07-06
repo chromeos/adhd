@@ -38,16 +38,24 @@
 
 static struct fl_media *active_fm = NULL;
 
-struct fl_media *fl_media_create(int hci)
+struct fl_media *floss_media_get_active_fm()
+{
+	return active_fm;
+}
+
+int fl_media_init(int hci)
 {
 	struct fl_media *fm = (struct fl_media *)calloc(1, sizeof(*fm));
 
-	if (fm == NULL)
-		return NULL;
+	if (fm == NULL) {
+		active_fm = NULL;
+		return -ENOMEM;
+	}
 	fm->hci = hci;
 	snprintf(fm->obj_path, BT_MEDIA_OBJECT_PATH_SIZE_MAX, "%s%d%s",
 		 BT_OBJECT_BASE, hci, BT_OBJECT_MEDIA);
-	return fm;
+	active_fm = fm;
+	return 0;
 }
 
 /* helper to extract a single argument from a DBus message. */
@@ -1138,9 +1146,9 @@ int floss_media_start(DBusConnection *conn, unsigned int hci)
 		free(active_fm);
 	}
 
-	active_fm = fl_media_create(hci);
-	if (active_fm == NULL)
+	if (fl_media_init(hci)) {
 		return -ENOMEM;
+	}
 	active_fm->conn = conn;
 
 	syslog(LOG_DEBUG, "floss_media_start");

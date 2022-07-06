@@ -392,7 +392,8 @@ $(hide_install)-asound_module_ctl_crasLTLIBRARIES: install-libLTLIBRARIES
 if HAVE_FUZZER
 FUZZERS = \
 	cras_rclient_message_fuzzer \
-	cras_hfp_slc_fuzzer
+	cras_hfp_slc_fuzzer \
+	cras_fl_media_fuzzer
 
 noinst_PROGRAMS += $(FUZZERS)
 
@@ -423,6 +424,13 @@ cras_rclient_message_fuzzer_SOURCES = \
 cras_rclient_message_fuzzer_CPPFLAGS = $(FUZZER_CPPFLAGS)
 cras_rclient_message_fuzzer_LDFLAGS = $(FUZZER_LDFLAGS)
 cras_rclient_message_fuzzer_LDADD = $(FUZZER_LDADD)
+
+cras_fl_media_fuzzer_SOURCES = \
+	fuzz/cras_fl_media_fuzzer.cc
+
+cras_fl_media_fuzzer_CPPFLAGS = $(FUZZER_CPPFLAGS)
+cras_fl_media_fuzzer_LDFLAGS = $(FUZZER_LDFLAGS)
+cras_fl_media_fuzzer_LDADD = $(FUZZER_LDADD)
 
 cras_hfp_slc_fuzzer_SOURCES = \
 	fuzz/cras_hfp_slc.cc
