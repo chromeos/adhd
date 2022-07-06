@@ -68,6 +68,9 @@ int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr);
 int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
 			       const char *addr);
 
+/* Unlink hfp with bt_io_manager and destroy related resources. */
+int floss_media_hfp_suspend(struct fl_media *fm);
+
 /* Calls SetActiveDevice method to Floss media interface. */
 int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr);
 

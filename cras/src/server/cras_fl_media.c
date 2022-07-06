@@ -3,19 +3,18 @@
  * found in the LICENSE file.
  */
 
-#include "dbus/dbus-protocol.h"
 #include <dbus/dbus.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
 #include "cras_a2dp_manager.h"
 #include "cras_bt_io.h"
 #include "cras_bt_policy.h"
-#include "cras_fl_manager.h"
 #include "cras_fl_media.h"
+#include "cras_fl_media_adaptor.h"
 #include "cras_hfp_manager.h"
 #include "utlist.h"
 
@@ -29,27 +28,6 @@
 	"org.chromium.bluetooth.BluetoothMediaCallback"
 
 #define CRAS_BT_MEDIA_OBJECT_PATH "/org/chromium/cras/bluetooth/media"
-#define BT_MEDIA_OBJECT_PATH_SIZE_MAX 128
-
-/* Hold information and focus on logic related to communicate with the
- * Bluetooth stack through DBus. Information and logic regarding A2DP and
- * AVRCP should be kept in the cras_a2dp for responsibility division.
- * Members:
- *    hci - The id of HCI interface to use.
- *    obj_path - Object path of the Bluetooth media.
- *    conn - The DBus connection object used to send message to Floss Media
- *    interface.
- *    a2dp - Object representing the connected A2DP headset.
- *    hfp - Object representing the connected HFP headset.
- */
-struct fl_media {
-	unsigned int hci;
-	char obj_path[BT_MEDIA_OBJECT_PATH_SIZE_MAX];
-	DBusConnection *conn;
-	struct cras_a2dp *a2dp;
-	struct cras_hfp *hfp;
-	struct bt_io_manager *bt_io_mgr;
-};
 
 static struct fl_media *active_fm = NULL;
 
@@ -903,7 +881,6 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 {
 	int rc;
 	const char *addr = NULL, *name = NULL;
-	int a2dp_avail = 0, hfp_avail = 0;
 	DBusError dbus_error;
 	dbus_int32_t hfp_cap;
 	dbus_bool_t abs_vol_supported;
@@ -932,75 +909,13 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			return DBUS_HANDLER_RESULT_HANDLED;
 		}
 
-		a2dp_avail = cras_floss_get_a2dp_enabled() && codecs != NULL;
-		hfp_avail = cras_floss_get_hfp_enabled() && hfp_cap;
-
-		if (!a2dp_avail & !hfp_avail)
-			return DBUS_HANDLER_RESULT_HANDLED;
-
-		if (!active_fm->bt_io_mgr) {
-			active_fm->bt_io_mgr = bt_io_manager_create();
-			if (!active_fm->bt_io_mgr)
-				return DBUS_HANDLER_RESULT_HANDLED;
+		rc = handle_on_bluetooth_device_added(active_fm, addr, name,
+						      codecs, hfp_cap,
+						      abs_vol_supported);
+		if (rc) {
+			syslog(LOG_ERR,
+			       "Error occured in adding bluetooth device.");
 		}
-
-		if (a2dp_avail) {
-			syslog(LOG_DEBUG, "A2DP device added.");
-			if (active_fm->a2dp) {
-				syslog(LOG_WARNING,
-				       "Multiple A2DP devices added, remove the older");
-				bt_io_manager_remove_iodev(
-					active_fm->bt_io_mgr,
-					cras_floss_a2dp_get_iodev(
-						active_fm->a2dp));
-				cras_floss_a2dp_destroy(active_fm->a2dp);
-			}
-			active_fm->a2dp = cras_floss_a2dp_create(
-				active_fm, addr, name, codecs);
-
-			if (active_fm->a2dp) {
-				cras_floss_a2dp_set_support_absolute_volume(
-					active_fm->a2dp, abs_vol_supported);
-				bt_io_manager_append_iodev(
-					active_fm->bt_io_mgr,
-					cras_floss_a2dp_get_iodev(
-						active_fm->a2dp),
-					CRAS_BT_FLAG_A2DP);
-			} else {
-				syslog(LOG_WARNING,
-				       "Failed to create the cras_a2dp_manager");
-			}
-		}
-
-		if (hfp_avail) {
-			syslog(LOG_DEBUG,
-			       "HFP device added with capability %d.", hfp_cap);
-			if (active_fm->hfp) {
-				syslog(LOG_WARNING,
-				       "Multiple HFP devices added, remove the older");
-				floss_media_hfp_suspend(active_fm);
-			}
-			active_fm->hfp = cras_floss_hfp_create(
-				active_fm, addr, name, hfp_cap & FL_CODEC_MSBC);
-
-			if (active_fm->hfp) {
-				bt_io_manager_append_iodev(
-					active_fm->bt_io_mgr,
-					cras_floss_hfp_get_input_iodev(
-						active_fm->hfp),
-					CRAS_BT_FLAG_HFP);
-				bt_io_manager_append_iodev(
-					active_fm->bt_io_mgr,
-					cras_floss_hfp_get_output_iodev(
-						active_fm->hfp),
-					CRAS_BT_FLAG_HFP);
-			} else {
-				syslog(LOG_WARNING,
-				       "Failed to create the cras_hfp_manager");
-			}
-		}
-		bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 1);
-
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(
 			   message, BT_MEDIA_CALLBACK_INTERFACE,
