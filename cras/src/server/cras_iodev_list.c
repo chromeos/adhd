@@ -2241,7 +2241,7 @@ long convert_dBFS_from_input_node_gain(long gain, bool is_internal_mic)
 		gain = 0;
 	if (gain > 100)
 		gain = 100;
-	const long db_scale = (gain > 50) ? max_gain / 50 : 80;
+	const long db_scale = (gain > 50) ? max_gain / 50 : 40;
 	return (gain - 50) * db_scale;
 }
 
@@ -2250,7 +2250,7 @@ long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic)
 	long max_gain;
 	max_gain = is_internal_mic ? cras_system_get_max_internal_mic_gain() :
 				     DEFAULT_MAX_INPUT_NODE_GAIN;
-	return 50 + dBFS / ((dBFS > 0) ? max_gain / 50 : 80);
+	return 50 + dBFS / ((dBFS > 0) ? max_gain / 50 : 40);
 }
 
 int cras_iodev_list_request_floop(const struct cras_floop_params *params)

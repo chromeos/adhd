@@ -3007,7 +3007,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
 TEST(SoftvolCurveTest, InputNodeGainToDBFS) {
   for (long gain = 0; gain <= 100; ++gain) {
     long dBFS = convert_dBFS_from_input_node_gain(gain, false);
-    EXPECT_EQ(dBFS, (gain - 50) * ((gain > 50) ? 2000 / 50 : 80));
+    EXPECT_EQ(dBFS, (gain - 50) * ((gain > 50) ? 2000 / 50 : 40));
     EXPECT_EQ(gain, convert_input_node_gain_from_dBFS(dBFS, 2000));
   }
 }
@@ -3016,7 +3016,7 @@ TEST(SoftvolCurveTest, InternalMicGainToDBFS) {
   cras_system_get_max_internal_mic_gain_return = 1000;
   for (long gain = 0; gain <= 100; ++gain) {
     long dBFS = convert_dBFS_from_input_node_gain(gain, true);
-    EXPECT_EQ(dBFS, (gain - 50) * ((gain > 50) ? 1000 / 50 : 80));
+    EXPECT_EQ(dBFS, (gain - 50) * ((gain > 50) ? 1000 / 50 : 40));
     EXPECT_EQ(gain, convert_input_node_gain_from_dBFS(dBFS, 1000));
   }
 }

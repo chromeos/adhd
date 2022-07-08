@@ -81,7 +81,7 @@
       <arg name="gain" type="i" direction="in">
         <tp:docstring>
           gain is a 0-100 integer
-          which linearly maps [0, 50] to range [-40dB, 0dB]
+          which linearly maps [0, 50] to range [-20dB, 0dB]
           and [50, 100] to [0dB, 20dB],
           Default gain value is 50, which is 0dB.
         </tp:docstring>
