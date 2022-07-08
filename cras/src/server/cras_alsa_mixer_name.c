@@ -10,24 +10,50 @@
 #include "cras_alsa_mixer_name.h"
 #include "utlist.h"
 
+static void mixer_control_get_name_and_index(const char *name,
+					     char *mixer_control_name,
+					     int *mixer_control_index)
+{
+	size_t name_size = strlen(name);
+	size_t mixer_control_name_len = 0;
+	char *pos = strchr(name, ',');
+	if (!pos) {
+		mixer_control_name_len = name_size;
+		*mixer_control_index = 0;
+	} else {
+		mixer_control_name_len = (size_t)(pos - name);
+		*mixer_control_index = atoi(pos + 1);
+	}
+	strncpy(mixer_control_name, name, mixer_control_name_len);
+
+	// clean up remaining byte
+	mixer_control_name += mixer_control_name_len;
+	memset(mixer_control_name, 0, name_size - mixer_control_name_len);
+}
+
 struct mixer_name *mixer_name_add(struct mixer_name *names, const char *name,
 				  enum CRAS_STREAM_DIRECTION dir,
 				  mixer_name_type type)
 {
 	struct mixer_name *m_name;
-
+	int mixer_control_index;
+	char *mixer_control_name;
 	if (!name)
 		return names;
 
 	m_name = (struct mixer_name *)calloc(1, sizeof(struct mixer_name));
 	if (!m_name)
 		return names;
-
-	m_name->name = strdup(name);
-	if (!m_name->name) {
+	mixer_control_name = strdup(name);
+	if (!mixer_control_name) {
 		free(m_name);
 		return names;
 	}
+	mixer_control_get_name_and_index(name, mixer_control_name,
+					 &mixer_control_index);
+
+	m_name->name = mixer_control_name;
+	m_name->index = mixer_control_index;
 	m_name->dir = dir;
 	m_name->type = type;
 

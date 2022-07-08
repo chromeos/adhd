@@ -22,6 +22,7 @@ typedef enum mixer_name_type {
 /* Represents a list of mixer names found in ALSA. */
 struct mixer_name {
 	const char *name;
+	int index;
 	enum CRAS_STREAM_DIRECTION dir;
 	mixer_name_type type;
 	struct mixer_name *prev, *next;

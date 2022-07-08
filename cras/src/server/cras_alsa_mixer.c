@@ -336,14 +336,14 @@ static int mixer_control_create_by_name(struct mixer_control **control,
 	snd_mixer_selem_id_malloc(&sid);
 
 	DL_FOREACH (mixer_names, m_name) {
-		snd_mixer_selem_id_set_index(sid, 0);
+		snd_mixer_selem_id_set_index(sid, m_name->index);
 		snd_mixer_selem_id_set_name(sid, m_name->name);
 		elem = snd_mixer_find_selem(cmix->mixer, sid);
 		if (!elem) {
 			mixer_control_destroy(c);
 			snd_mixer_selem_id_free(sid);
-			syslog(LOG_ERR, "Unable to find simple control %s, 0",
-			       m_name->name);
+			syslog(LOG_ERR, "Unable to find simple control %s, %d",
+			       m_name->name, m_name->index);
 			return -ENOENT;
 		}
 		rc = mixer_control_add_element(c, elem);
