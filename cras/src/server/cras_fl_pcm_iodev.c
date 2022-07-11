@@ -415,8 +415,10 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 		return -1;
 	}
 
-	nwrite_btyes =
-		odev->write_block * cras_get_format_bytes(odev->base.format);
+	const struct cras_audio_format *fmt =
+		idev->base.format ?: odev->base.format;
+
+	nwrite_btyes = odev->write_block * cras_get_format_bytes(fmt);
 	rc = hfp_write(odev, idev->hfp_rw_offset > odev->hfp_rw_offset ?
 				     idev->hfp_rw_offset - odev->hfp_rw_offset :
 				     nwrite_btyes);
