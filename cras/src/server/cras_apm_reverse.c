@@ -2,6 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include <pthread.h>
 
 #include "cras_stream_apm.h"
 #include "cras_apm_reverse.h"
@@ -56,6 +57,8 @@
  *        pipeline. Here it is implemented to serve output data from |odev|
  *        for active apms to decide whether they need and to really use this
  *        data for AEC reverse processing.
+ *    mutex - The mutex to protect |fbuf| from main thread reconfigure it
+ *        while audio thread is processing the content data.
  *    fbuf - Middle buffer holding reverse data for APMs to analyze.
  *    odev - Pointer to the output iodev playing audio as the reverse
  *        stream. NULL if there's no playback stream.
@@ -68,6 +71,7 @@
  */
 struct cras_apm_reverse_module {
 	struct ext_dsp_module ext;
+	pthread_mutex_t mutex;
 	struct float_buffer *fbuf;
 	struct cras_iodev *odev;
 	unsigned int dev_rate;
@@ -184,6 +188,7 @@ static void destroy_echo_ref_request(struct echo_ref_request *req)
 {
 	if (req->rmod.fbuf)
 		float_buffer_destroy(&req->rmod.fbuf);
+	pthread_mutex_destroy(&req->rmod.mutex);
 	free(req);
 }
 
@@ -297,6 +302,7 @@ static void reverse_data_run(struct ext_dsp_module *ext, unsigned int nframes)
 	 * (i.e ext->ports) over to rmod->fbuf as AEC reference for the actual
 	 * processing work in apm_process_reverse_callback.
 	 */
+	pthread_mutex_lock(&rmod->mutex);
 	while (nframes) {
 		/* If at any moment the rmod->fbuf is full, call out to
 		 * the process reverse callback and then reset it to mark
@@ -317,6 +323,7 @@ static void reverse_data_run(struct ext_dsp_module *ext, unsigned int nframes)
 		float_buffer_written(rmod->fbuf, writable);
 		nframes -= writable;
 	}
+	pthread_mutex_unlock(&rmod->mutex);
 }
 
 static void reverse_data_configure(struct ext_dsp_module *ext,
@@ -325,11 +332,13 @@ static void reverse_data_configure(struct ext_dsp_module *ext,
 {
 	struct cras_apm_reverse_module *rmod =
 		(struct cras_apm_reverse_module *)ext;
+	pthread_mutex_lock(&rmod->mutex);
 	if (rmod->fbuf)
 		float_buffer_destroy(&rmod->fbuf);
 	rmod->fbuf = float_buffer_create(rate / APM_NUM_BLOCKS_PER_SECOND,
 					 num_channels);
 	rmod->dev_rate = rate;
+	pthread_mutex_unlock(&rmod->mutex);
 }
 
 /* Creates a cras_apm_reverse_module, which represents a DSP module runs
@@ -348,6 +357,7 @@ create_apm_reverse_module(struct cras_iodev *odev)
 	rmod = (struct cras_apm_reverse_module *)calloc(1, sizeof(*rmod));
 	if (rmod == NULL)
 		return NULL;
+	pthread_mutex_init(&rmod->mutex, NULL);
 	rmod->ext.run = reverse_data_run;
 	rmod->ext.configure = reverse_data_configure;
 	rmod->odev = odev;
@@ -402,6 +412,7 @@ create_echo_ref_request(struct cras_iodev *echo_ref)
 	req = (struct echo_ref_request *)calloc(1, sizeof(*req));
 	if (req == NULL)
 		return NULL;
+	pthread_mutex_init(&req->rmod.mutex, NULL);
 	req->rmod.odev = echo_ref;
 	req->rmod.ext.run = reverse_data_run;
 	req->rmod.ext.configure = reverse_data_configure;
@@ -551,6 +562,7 @@ void cras_apm_reverse_deinit()
 			stop_reverse_process_on_dev(default_rmod->odev);
 		if (default_rmod->fbuf)
 			float_buffer_destroy(&default_rmod->fbuf);
+		pthread_mutex_destroy(&default_rmod->mutex);
 		free(default_rmod);
 		default_rmod = NULL;
 	}
