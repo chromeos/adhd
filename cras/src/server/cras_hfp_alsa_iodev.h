@@ -9,6 +9,7 @@
 #include "cras_bt_device.h"
 #include "cras_sco.h"
 #include "cras_types.h"
+#include "cras_hfp_manager.h"
 
 struct hfp_slc_handle;
 
@@ -23,7 +24,8 @@ struct hfp_slc_handle;
 struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 					 struct cras_bt_device *device,
 					 struct hfp_slc_handle *slc,
-					 struct cras_sco *sco);
+					 struct cras_sco *sco,
+					 struct cras_hfp *hfp);
 
 void hfp_alsa_iodev_destroy(struct cras_iodev *iodev);
 

@@ -7,16 +7,23 @@
 
 extern "C" {
 #include "cras_bt_log.h"
+#include "cras_hfp_alsa_iodev.h"
 #include "cras_hfp_manager.h"
 #include "cras_iodev.h"
+#include "cras_iodev_list.h"
 }
 
+static cras_iodev* cras_iodev_list_get_sco_pcm_iodev_ret;
 static size_t connect_called;
 static int connect_ret;
 static struct cras_hfp* hfp_pcm_iodev_create_hfp_val;
+static struct cras_hfp* hfp_alsa_iodev_create_hfp_val;
 struct cras_iodev* hfp_pcm_iodev_create_ret;
+struct cras_iodev* hfp_alsa_iodev_create_ret;
 static size_t hfp_pcm_iodev_create_called;
+static size_t hfp_alsa_iodev_create_called;
 static size_t hfp_pcm_iodev_destroy_called;
+static size_t hfp_alsa_iodev_destroy_called;
 static size_t floss_media_hfp_start_sco_called;
 static size_t floss_media_hfp_stop_sco_called;
 static int socket_ret;
@@ -29,12 +36,18 @@ static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
 
 void ResetStubData() {
+  cras_iodev_list_get_sco_pcm_iodev_ret = NULL;
+
   connect_called = 0;
   connect_ret = 0;
   hfp_pcm_iodev_create_hfp_val = NULL;
+  hfp_alsa_iodev_create_hfp_val = NULL;
   hfp_pcm_iodev_create_ret = reinterpret_cast<struct cras_iodev*>(0x123);
+  hfp_alsa_iodev_create_ret = reinterpret_cast<struct cras_iodev*>(0x123);
   hfp_pcm_iodev_create_called = 0;
+  hfp_alsa_iodev_create_called = 0;
   hfp_pcm_iodev_destroy_called = 0;
+  hfp_alsa_iodev_destroy_called = 0;
   floss_media_hfp_start_sco_called = 0;
   floss_media_hfp_stop_sco_called = 0;
   audio_thread_add_events_callback_called = 0;
@@ -55,14 +68,24 @@ class HfpManagerTestSuite : public testing::Test {
   virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 };
 
-TEST_F(HfpManagerTestSuite, CreateFailed) {
+TEST_F(HfpManagerTestSuite, PCMCreateFailed) {
   hfp_pcm_iodev_create_ret = NULL;
   /* Failing to create hfp_pcm_iodev should fail the hfp_create */
   ASSERT_EQ(cras_floss_hfp_create(NULL, "addr", "name", false),
             (struct cras_hfp*)NULL);
 }
 
-TEST_F(HfpManagerTestSuite, CreateDestroy) {
+// TODO(jrwu) add this test when is_sco_pcm_used is ready
+// TEST_F(HfpManagerTestSuite, AlsaCreateFailed) {
+//   cras_iodev_list_get_sco_pcm_iodev_ret =
+//       reinterpret_cast<struct cras_iodev*>(0xabc);
+
+//   hfp_alsa_iodev_create_ret = NULL;
+//   ASSERT_EQ(cras_floss_hfp_create(NULL, "addr", "name", false),
+//             (struct cras_hfp*)NULL);
+// }
+
+TEST_F(HfpManagerTestSuite, PCMCreateDestroy) {
   struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name", false);
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
   EXPECT_EQ(hfp, hfp_pcm_iodev_create_hfp_val);
@@ -73,13 +96,29 @@ TEST_F(HfpManagerTestSuite, CreateDestroy) {
   EXPECT_EQ(hfp_pcm_iodev_destroy_called, 2);
 }
 
+// TODO(jrwu) add this test when is_sco_pcm_used is ready
+// TEST_F(HfpManagerTestSuite, AlsaCreateDestroy) {
+//   cras_iodev_list_get_sco_pcm_iodev_ret =
+//       reinterpret_cast<struct cras_iodev*>(0xabc);
+
+//   struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name", false);
+//   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
+//   EXPECT_EQ(hfp, hfp_alsa_iodev_create_hfp_val);
+//   EXPECT_EQ(hfp_alsa_iodev_create_called, 2);
+//   EXPECT_EQ(strncmp("name", cras_floss_hfp_get_display_name(hfp), 4), 0);
+
+//   cras_floss_hfp_destroy(hfp);
+//   EXPECT_EQ(hfp_alsa_iodev_destroy_called, 2);
+// }
+
 TEST_F(HfpManagerTestSuite, StartWithSocketFail) {
   struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name", false);
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
 
   socket_ret = -1;
 
-  EXPECT_EQ(socket_ret, cras_floss_hfp_start(hfp, NULL, CRAS_STREAM_OUTPUT));
+  thread_callback rwcb = reinterpret_cast<thread_callback>(0xdeadbeef);
+  EXPECT_EQ(socket_ret, cras_floss_hfp_start(hfp, rwcb, CRAS_STREAM_OUTPUT));
 
   EXPECT_EQ(floss_media_hfp_start_sco_called, 1);
   EXPECT_EQ(audio_thread_add_events_callback_called, 0);
@@ -96,7 +135,8 @@ TEST_F(HfpManagerTestSuite, StartWithConnectFail) {
 
   connect_ret = -1;
 
-  EXPECT_EQ(connect_ret, cras_floss_hfp_start(hfp, NULL, CRAS_STREAM_OUTPUT));
+  thread_callback rwcb = reinterpret_cast<thread_callback>(0xdeadbeef);
+  EXPECT_EQ(connect_ret, cras_floss_hfp_start(hfp, rwcb, CRAS_STREAM_OUTPUT));
 
   EXPECT_EQ(floss_media_hfp_start_sco_called, 1);
   EXPECT_EQ(connect_called, 1);
@@ -113,11 +153,12 @@ TEST_F(HfpManagerTestSuite, StartStop) {
 
   EXPECT_EQ(cras_floss_hfp_get_fd(hfp), -1);
 
-  cras_floss_hfp_start(hfp, NULL, CRAS_STREAM_OUTPUT);
+  thread_callback rwcb = reinterpret_cast<thread_callback>(0xdeadbeef);
+  cras_floss_hfp_start(hfp, rwcb, CRAS_STREAM_OUTPUT);
   EXPECT_EQ(floss_media_hfp_start_sco_called, 1);
   EXPECT_EQ(cras_floss_hfp_get_fd(hfp), socket_ret);
 
-  cras_floss_hfp_start(hfp, NULL, CRAS_STREAM_INPUT);
+  cras_floss_hfp_start(hfp, rwcb, CRAS_STREAM_INPUT);
   EXPECT_EQ(floss_media_hfp_start_sco_called, 1);
   EXPECT_EQ(audio_thread_add_events_callback_called, 1);
   EXPECT_EQ(audio_thread_add_events_callback_fd, socket_ret);
@@ -195,6 +236,22 @@ void hfp_pcm_iodev_destroy(struct cras_iodev* iodev) {
   return;
 }
 
+/* From cras_hfp_alsa_io */
+struct cras_iodev* hfp_alsa_iodev_create(struct cras_iodev* aio,
+                                         struct cras_bt_device* device,
+                                         struct hfp_slc_handle* slc,
+                                         struct cras_sco* sco,
+                                         struct cras_hfp* hfp) {
+  hfp_alsa_iodev_create_hfp_val = hfp;
+  hfp_alsa_iodev_create_called++;
+  return hfp_alsa_iodev_create_ret;
+}
+
+void hfp_alsa_iodev_destroy(struct cras_iodev* iodev) {
+  hfp_alsa_iodev_destroy_called++;
+  return;
+}
+
 /* From cras_fl_media */
 int floss_media_hfp_start_sco_call(struct fl_media* fm, const char* addr) {
   floss_media_hfp_start_sco_called++;
@@ -204,6 +261,11 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm, const char* addr) {
 int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
   floss_media_hfp_stop_sco_called++;
   return 0;
+}
+
+struct cras_iodev* cras_iodev_list_get_sco_pcm_iodev(
+    enum CRAS_STREAM_DIRECTION direction) {
+  return cras_iodev_list_get_sco_pcm_iodev_ret;
 }
 
 }  // extern "C"

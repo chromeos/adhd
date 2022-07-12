@@ -25,6 +25,8 @@
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 #include "cras_fl_pcm_iodev.h"
+#include "cras_hfp_alsa_iodev.h"
+#include "sfh.h"
 
 #define CRAS_HFP_SOCKET_FILE ".hfp"
 #define FLOSS_HFP_DATA_PATH "/run/bluetooth/audio/.sco_data"
@@ -53,6 +55,7 @@ struct cras_hfp {
 	int idev_started;
 	int odev_started;
 	bool wbs_supported;
+	bool sco_pcm_used;
 };
 
 void fill_floss_hfp_skt_addr(struct sockaddr_un *addr)
@@ -72,6 +75,20 @@ void set_dev_started(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir,
 		hfp->odev_started = started;
 }
 
+/* TODO(jrwu): enable this as it is in BlueZ when ready to use.
+ * And do not forget to read board config and Finch flag the same way.
+ */
+static bool is_sco_pcm_used()
+{
+	return false;
+}
+
+static bool is_sco_pcm_supported()
+{
+	return (cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT) ||
+		cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT));
+}
+
 /* Creates cras_hfp object representing a connected hfp device. */
 struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
 				       const char *name, bool wbs_supported)
@@ -87,8 +104,26 @@ struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
 	hfp->name = strdup(name);
 	hfp->fd = -1;
 	hfp->wbs_supported = wbs_supported;
-	hfp->idev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_INPUT);
-	hfp->odev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_OUTPUT);
+	hfp->sco_pcm_used = is_sco_pcm_supported() && is_sco_pcm_used();
+
+	if (hfp->sco_pcm_used) {
+		struct cras_iodev *in_aio, *out_aio;
+
+		in_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT);
+		out_aio = cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT);
+
+		hfp->idev =
+			hfp_alsa_iodev_create(in_aio, NULL, NULL, NULL, hfp);
+		hfp->odev =
+			hfp_alsa_iodev_create(out_aio, NULL, NULL, NULL, hfp);
+	} else {
+		hfp->idev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_INPUT);
+		hfp->odev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_OUTPUT);
+	}
+
+	BTLOG(btlog, BT_AUDIO_GATEWAY_START, is_sco_pcm_supported(),
+	      hfp->sco_pcm_used);
+
 	if (!hfp->idev || !hfp->odev) {
 		syslog(LOG_ERR, "Failed to create hfp pcm_iodev for %s", name);
 		cras_floss_hfp_destroy(hfp);
@@ -113,7 +148,7 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 
 	/* Check if the sco and socket connection has started by another
 	 * direction's iodev. We can skip the data channel setup if so. */
-	if (hfp->fd >= 0)
+	if (hfp->idev_started || hfp->odev_started)
 		goto start_dev;
 
 	rc = floss_media_hfp_start_sco_call(hfp->fm, hfp->addr);
@@ -133,6 +168,12 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 		       "Negotiated codec has changed from %cBS to %cBS",
 		       "NW"[hfp->wbs_supported], "NW"[updated_wbs_supported]);
 		hfp->wbs_supported = updated_wbs_supported;
+	}
+
+	if (hfp->sco_pcm_used) {
+		/* When sco is offloaded, we do not need to connect to the fd in Floss. */
+		BTLOG(btlog, BT_SCO_CONNECT, 1, -1);
+		goto start_dev;
 	}
 
 	skt_fd = socket(PF_UNIX, SOCK_STREAM | O_NONBLOCK, 0);
@@ -171,6 +212,7 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 	}
 
 	hfp->fd = skt_fd;
+
 	audio_thread_add_events_callback(hfp->fd, cb, hfp,
 					 POLLIN | POLLERR | POLLHUP);
 	BTLOG(btlog, BT_SCO_CONNECT, 1, hfp->fd);
@@ -191,7 +233,8 @@ error:
 
 int cras_floss_hfp_stop(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir)
 {
-	if (hfp->fd < 0)
+	/* i/odev_started is only used to determine SCO status. */
+	if (!(hfp->idev_started || hfp->odev_started))
 		return 0;
 
 	set_dev_started(hfp, dir, 0);
@@ -199,9 +242,11 @@ int cras_floss_hfp_stop(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir)
 	if (hfp->idev_started || hfp->odev_started)
 		return 0;
 
-	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
-				      hfp->fd);
-	close(hfp->fd);
+	if (hfp->fd >= 0) {
+		audio_thread_rm_callback_sync(
+			cras_iodev_list_get_audio_thread(), hfp->fd);
+		close(hfp->fd);
+	}
 	hfp->fd = -1;
 
 	return floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
@@ -242,6 +287,12 @@ const char *cras_floss_hfp_get_display_name(struct cras_hfp *hfp)
 const char *cras_floss_hfp_get_addr(struct cras_hfp *hfp)
 {
 	return hfp->addr;
+}
+
+const uint32_t cras_floss_hfp_get_stable_id(struct cras_hfp *hfp)
+{
+	char *addr = hfp->addr;
+	return SuperFastHash(addr, strlen(addr), strlen(addr));
 }
 
 int cras_floss_hfp_fill_format(struct cras_hfp *hfp, size_t **rates,
@@ -298,9 +349,11 @@ bool cras_floss_hfp_get_wbs_supported(struct cras_hfp *hfp)
 void cras_floss_hfp_destroy(struct cras_hfp *hfp)
 {
 	if (hfp->idev)
-		hfp_pcm_iodev_destroy(hfp->idev);
+		hfp->sco_pcm_used ? hfp_alsa_iodev_destroy(hfp->idev) :
+				    hfp_pcm_iodev_destroy(hfp->idev);
 	if (hfp->odev)
-		hfp_pcm_iodev_destroy(hfp->odev);
+		hfp->sco_pcm_used ? hfp_alsa_iodev_destroy(hfp->odev) :
+				    hfp_pcm_iodev_destroy(hfp->odev);
 	if (hfp->addr)
 		free(hfp->addr);
 	if (hfp->name)

@@ -4,6 +4,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <string.h>
 
 extern "C" {
 #include "cras_audio_format.h"
@@ -14,9 +15,10 @@ extern "C" {
 
 struct hfp_alsa_io {
   struct cras_iodev base;
+  struct cras_iodev* aio;
   struct cras_bt_device* device;
   struct hfp_slc_handle* slc;
-  struct cras_iodev* aio;
+  struct cras_hfp* hfp;
 };
 
 static struct cras_sco* fake_sco;
@@ -84,6 +86,11 @@ static void ResetStubData() {
   hfp_event_speaker_gain_called = 0;
 
   fake_sco = reinterpret_cast<struct cras_sco*>(0x123);
+  fake_device = reinterpret_cast<struct cras_bt_device*>(0x234);
+  fake_slc = reinterpret_cast<struct hfp_slc_handle*>(0x345);
+
+  memset(&fake_sco_out, 0x00, sizeof(fake_sco_out));
+
   fake_sco_out.open_dev = fake_sco_in.open_dev =
       (int (*)(struct cras_iodev*))fake_open_dev;
   fake_open_dev_called = 0;
@@ -159,7 +166,8 @@ TEST_F(HfpAlsaIodev, CreateHfpAlsaOutputIodev) {
   struct hfp_alsa_io* hfp_alsa_io;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   hfp_alsa_io = (struct hfp_alsa_io*)iodev;
 
   EXPECT_EQ(CRAS_STREAM_OUTPUT, iodev->direction);
@@ -183,7 +191,8 @@ TEST_F(HfpAlsaIodev, CreateHfpAlsaInputIodev) {
   struct hfp_alsa_io* hfp_alsa_io;
 
   fake_sco_in.direction = CRAS_STREAM_INPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_in, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_in, fake_device, fake_slc, fake_sco,
+                                NULL);
   hfp_alsa_io = (struct hfp_alsa_io*)iodev;
 
   EXPECT_EQ(CRAS_STREAM_INPUT, iodev->direction);
@@ -208,7 +217,8 @@ TEST_F(HfpAlsaIodev, OpenDev) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->open_dev(iodev);
 
   EXPECT_EQ(1, fake_open_dev_called);
@@ -228,7 +238,8 @@ TEST_F(HfpAlsaIodev, UpdateSupportedFormat) {
   fake_sco_out.supported_formats = supported_formats;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->update_supported_formats(iodev);
 
   // update_supported_format on alsa_io is not called.
@@ -249,7 +260,8 @@ TEST_F(HfpAlsaIodev, ConfigureDev) {
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
   fake_sco_out.buffer_size = buf_size;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   hfp_alsa_io = (struct hfp_alsa_io*)iodev;
   iodev->format = &fake_format;
   iodev->configure_dev(iodev);
@@ -265,6 +277,8 @@ TEST_F(HfpAlsaIodev, ConfigureDev) {
   EXPECT_EQ(1, hfp_set_call_status_called);
   EXPECT_EQ(buf_size, iodev->buffer_size);
 
+  iodev->close_dev(iodev);
+  free(hfp_alsa_io->aio->format);  // aio->close_dev is fake
   hfp_alsa_iodev_destroy(iodev);
 }
 
@@ -272,7 +286,8 @@ TEST_F(HfpAlsaIodev, CloseDev) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->close_dev(iodev);
 
   EXPECT_EQ(1, hfp_set_call_status_called);
@@ -286,7 +301,8 @@ TEST_F(HfpAlsaIodev, FramesQueued) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->frames_queued(iodev, (struct timespec*)NULL);
 
   EXPECT_EQ(1, fake_frames_queued_called);
@@ -298,7 +314,8 @@ TEST_F(HfpAlsaIodev, DelayFrames) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->delay_frames(iodev);
 
   EXPECT_EQ(1, fake_delay_frames_called);
@@ -310,7 +327,8 @@ TEST_F(HfpAlsaIodev, GetBuffer) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->get_buffer(iodev, (struct cras_audio_area**)NULL, (unsigned*)NULL);
 
   EXPECT_EQ(1, fake_get_buffer_called);
@@ -322,7 +340,8 @@ TEST_F(HfpAlsaIodev, PutBuffer) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->put_buffer(iodev, 0xdeadbeef);
 
   EXPECT_EQ(1, fake_put_buffer_called);
@@ -334,7 +353,8 @@ TEST_F(HfpAlsaIodev, FlushBuffer) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->flush_buffer(iodev);
 
   EXPECT_EQ(1, fake_flush_buffer_called);
@@ -346,7 +366,8 @@ TEST_F(HfpAlsaIodev, UpdateActiveNode) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->update_active_node(iodev, 0xdeadbeef, 0xdeadbeef);
 
   EXPECT_EQ(1, fake_update_active_node_called);
@@ -358,7 +379,8 @@ TEST_F(HfpAlsaIodev, Start) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->start(iodev);
 
   EXPECT_EQ(1, fake_start_called);
@@ -370,7 +392,8 @@ TEST_F(HfpAlsaIodev, SetVolume) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->set_volume(iodev);
 
   EXPECT_EQ(1, hfp_event_speaker_gain_called);
@@ -382,7 +405,8 @@ TEST_F(HfpAlsaIodev, NoStream) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->min_cb_level = 0xab;
   iodev->max_cb_level = 0xcd;
 
@@ -399,7 +423,8 @@ TEST_F(HfpAlsaIodev, IsFreeRunning) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->is_free_running(iodev);
 
   EXPECT_EQ(1, fake_is_free_running_called);
@@ -411,7 +436,8 @@ TEST_F(HfpAlsaIodev, OutputUnderrun) {
   struct cras_iodev* iodev;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
   iodev->min_cb_level = 0xab;
   iodev->max_cb_level = 0xcd;
 
@@ -429,7 +455,8 @@ TEST_F(HfpAlsaIodev, GetValidFrames) {
   struct timespec ts;
 
   fake_sco_out.direction = CRAS_STREAM_OUTPUT;
-  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco);
+  iodev = hfp_alsa_iodev_create(&fake_sco_out, fake_device, fake_slc, fake_sco,
+                                NULL);
 
   iodev->get_valid_frames(iodev, &ts);
 
@@ -557,6 +584,30 @@ void cras_sco_close_fd(struct cras_sco* sco) {
 
 int hfp_slc_get_selected_codec(struct hfp_slc_handle* handle) {
   return HFP_CODEC_ID_CVSD;
+}
+
+const uint32_t cras_floss_hfp_get_stable_id(struct cras_hfp* hfp) {
+  return 0;
+}
+
+int cras_floss_hfp_start(struct cras_hfp* hfp,
+                         thread_callback cb,
+                         enum CRAS_STREAM_DIRECTION dir) {
+  return 0;
+}
+
+int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
+  return 0;
+}
+
+void cras_floss_hfp_set_volume(struct cras_hfp* hfp, unsigned int volume) {}
+
+bool cras_floss_hfp_get_wbs_supported(struct cras_hfp* hfp) {
+  return true;
+}
+
+const char* cras_floss_hfp_get_display_name(struct cras_hfp* hfp) {
+  return "Floss device fake name";
 }
 
 }  // extern "C"

@@ -137,9 +137,11 @@ struct cras_iodev* cras_iodev_list_get_sco_pcm_iodev(
   return NULL;
 }
 
-struct cras_iodev* hfp_alsa_iodev_create(enum CRAS_STREAM_DIRECTION dir,
+struct cras_iodev* hfp_alsa_iodev_create(struct cras_iodev* aio,
                                          struct cras_bt_device* device,
-                                         struct hfp_slc_handle* slc) {
+                                         struct hfp_slc_handle* slc,
+                                         struct cras_sco* sco,
+                                         struct cras_hfp* hfp) {
   hfp_alsa_iodev_create_called++;
   return (struct cras_iodev*)0xdeadbeef;
 }
