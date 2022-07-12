@@ -2,6 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# rseq should be first due to frequency and purpose to decrease nptl latency
+rseq: 1
+
 clock_gettime: 1
 # Allow ioctl command of type 'A' and 'U' for SNDRV_PCM_IOCTL_* and
 # SNDRV_CTL_IOCTL_*, and EVIOCGSW(8), EVIOCGNAME(256), EVIOCGBIT(0x05, 8),
