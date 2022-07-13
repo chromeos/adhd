@@ -369,6 +369,8 @@ static void a2dp_suspend_cb(struct cras_timer *timer, void *arg)
 	if (a2dp == NULL)
 		return;
 
+	a2dp->suspend_timer = NULL;
+
 	/* Here the 'suspend' means we don't want to give a2dp to user as
 	 * audio option anymore because of failures. However we can't
 	 * alter the state that the a2dp device is still connected, i.e
