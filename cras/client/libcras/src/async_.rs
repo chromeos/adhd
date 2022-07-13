@@ -309,16 +309,26 @@ impl<'a, T: CrasStreamData<'a> + AsyncBufferCommit> AsyncCaptureBufferStream for
         &'b mut self,
         _ex: &dyn AudioStreamsExecutor,
     ) -> Result<AsyncCaptureBuffer<'b>, BoxError> {
-        // Wait for data ready message
-        let frames = self.wait_data_ready().await?;
-        let header = self.controls.header_mut();
-        let frame_size = header.get_frame_size();
-        let shm_frames = header.get_readable_frames()?;
-        let len = min(shm_frames, frames as usize) * frame_size;
-        let offset = header.get_read_buffer_offset()?;
-        let buf = &mut self.audio_buffer.get_buffer()[offset..offset + len];
+        loop {
+            // Wait for data ready message
+            let frames = self.wait_data_ready().await? as usize;
+            let header = self.controls.header_mut();
+            let shm_frames = header.get_readable_frames()?;
 
-        AsyncCaptureBuffer::new(frame_size, buf, &mut self.controls).map_err(Box::from)
+            // if shm readable frames is less than client requests, that means
+            // overrun has happened in server side and we got partial corrupted
+            // buffer. Drop the message and wait for the next one.
+            if shm_frames < frames {
+                continue;
+            }
+
+            let frame_size = header.get_frame_size();
+            let len = min(shm_frames, frames) * frame_size;
+            let offset = header.get_read_buffer_offset()?;
+            let buf = &mut self.audio_buffer.get_buffer()[offset..offset + len];
+
+            return AsyncCaptureBuffer::new(frame_size, buf, &mut self.controls).map_err(Box::from);
+        }
     }
 }
 
