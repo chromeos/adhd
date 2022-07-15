@@ -1,0 +1,15 @@
+#!/bin/sh
+# Copyright 2022 The ChromiumOS Authors.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Set the local config commit-msg-template to use the commit-msg-template for
+# ADHD's default commit message.
+# To customize the template, modify the .git/commit-msg-template.
+# To revert it, enter "git config --local --unset commit.template".
+ADHD_DIR="$(git rev-parse --show-toplevel)/scripts/git"
+ADHD_GIT_DIR="$(git rev-parse --git-dir)"
+
+cp "$ADHD_DIR/commit-msg-template" "$ADHD_GIT_DIR/"
+
+git config --local commit.template .git/commit-msg-template
