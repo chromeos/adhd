@@ -980,7 +980,8 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 						      abs_vol_supported);
 		if (rc) {
 			syslog(LOG_ERR,
-			       "Error occured in adding bluetooth device.");
+			       "Error occured in adding bluetooth device %d",
+			       rc);
 		}
 		return DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_is_method_call(
