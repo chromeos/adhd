@@ -8,7 +8,7 @@
 mod error;
 mod settings;
 
-use std::{convert::TryFrom, fmt, fs, path::Path, time::Duration};
+use std::{convert::TryFrom, fmt, fs, path::Path, thread::sleep, time::Duration};
 
 use {
     cros_alsa::{
@@ -21,7 +21,7 @@ use {
 pub use error::Error;
 use {
     crate::{Amp, Result},
-    settings::{AmpCalibSettings, DeviceSettings},
+    settings::{AmpCalibCtrl, AmpCalibSettings, DeviceSettings},
 };
 
 const FIRMWARE_TYPE_PROTECTION: &str = "Protection";
@@ -183,6 +183,10 @@ impl CS35L41 {
     const TEMP_UPPER_LIMIT_CELSIUS: f32 = 40.0;
     const TEMP_LOWER_LIMIT_CELSIUS: f32 = 0.0;
     const CALIB_APPLY_TIME: Duration = Duration::from_millis(100);
+    // Sleeps for FRIMWARE_LOADING_TIME between the
+    // firmware loading and the writing to "DSP1 Protection cd CAL_*" controls
+    // to fix the failure when applying the calibration result.
+    const FRIMWARE_LOADING_TIME: Duration = Duration::from_millis(10);
 
     /// Creates an `CS35L41`.
     /// # Arguments
@@ -210,18 +214,7 @@ impl CS35L41 {
     /// Applies the calibration value to the amp.
     fn apply_calibration_value(&mut self, calib: &[CS35L41CalibData]) -> Result<()> {
         for (ch, &CS35L41CalibData { rdc, temp }) in calib.iter().enumerate() {
-            self.card
-                .control_by_name::<SwitchControl>(&self.setting.controls[ch].preload_switch)?
-                .off()?;
-            self.card
-                .control_by_name::<SimpleEnumControl>(&self.setting.controls[ch].firmware_type)?
-                .set_by_name(FIRMWARE_TYPE_PROTECTION)?;
-            self.card
-                .control_by_name::<SimpleEnumControl>(&self.setting.controls[ch].pcm_source)?
-                .set_by_name(PCM_SOURCE_DSP)?;
-            self.card
-                .control_by_name::<SwitchControl>(&self.setting.controls[ch].preload_switch)?
-                .on()?;
+            CS35L41::load_firmware(&mut self.card, &self.setting.controls[ch])?;
 
             self.card
                 .control_by_name::<FourBytesControl>(&self.setting.controls[ch].cal_ambient)?
@@ -247,22 +240,25 @@ impl CS35L41 {
         Ok(())
     }
 
+    fn load_firmware(card: &mut Card, setting: &AmpCalibCtrl) -> Result<()> {
+        card.control_by_name::<SwitchControl>(&setting.preload_switch)?
+            .off()?;
+        card.control_by_name::<SimpleEnumControl>(&setting.firmware_type)?
+            .set_by_name(FIRMWARE_TYPE_PROTECTION)?;
+        card.control_by_name::<SimpleEnumControl>(&setting.pcm_source)?
+            .set_by_name(PCM_SOURCE_DSP)?;
+        card.control_by_name::<SwitchControl>(&setting.preload_switch)?
+            .on()?;
+        card.control_by_name::<SwitchControl>(&setting.preload_switch)?
+            .state()?;
+
+        sleep(CS35L41::FRIMWARE_LOADING_TIME);
+        Ok(())
+    }
+
     //Verifies calibration values are correctly applied.
     fn verify_calibration_applied(&mut self) -> Result<()> {
         for setting in &self.setting.controls {
-            self.card
-                .control_by_name::<SwitchControl>(&setting.preload_switch)?
-                .off()?;
-            self.card
-                .control_by_name::<SimpleEnumControl>(&setting.firmware_type)?
-                .set_by_name(FIRMWARE_TYPE_PROTECTION)?;
-            self.card
-                .control_by_name::<SimpleEnumControl>(&setting.pcm_source)?
-                .set_by_name(PCM_SOURCE_DSP)?;
-            self.card
-                .control_by_name::<SwitchControl>(&setting.preload_switch)?
-                .on()?;
-
             let status: i32 = self
                 .card
                 .control_by_name::<FourBytesControl>(&setting.cal_set_status)?
