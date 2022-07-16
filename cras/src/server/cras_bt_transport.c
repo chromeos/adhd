@@ -346,7 +346,7 @@ void cras_bt_transport_update_properties(struct cras_bt_transport *transport,
 
 			dbus_message_iter_get_basic(&variant_iter, &volume);
 			transport->volume = volume;
-			BTLOG(btlog, BT_TRANSPORT_UPDATE_VOLUME, volume, 0);
+			BTLOG(btlog, BT_A2DP_UPDATE_VOLUME, volume, 0);
 			cras_bt_transport_update_device(transport);
 		}
 
@@ -404,7 +404,7 @@ int cras_bt_transport_set_volume(struct cras_bt_transport *transport,
 	DBusMessageIter message_iter, variant;
 	DBusPendingCall *pending_call;
 
-	BTLOG(btlog, BT_TRANSPORT_SET_VOLUME, volume, 0);
+	BTLOG(btlog, BT_A2DP_SET_VOLUME, volume, 0);
 	method_call =
 		dbus_message_new_method_call(BLUEZ_SERVICE,
 					     transport->object_path,
@@ -505,12 +505,12 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 	    transport->write_mtu > A2DP_FIX_PACKET_SIZE)
 		transport->write_mtu = A2DP_FIX_PACKET_SIZE;
 
-	BTLOG(btlog, BT_TRANSPORT_ACQUIRE, 1, transport->fd);
+	BTLOG(btlog, BT_A2DP_REQUEST_START, 1, 0);
 	dbus_message_unref(reply);
 	return 0;
 
 acquire_fail:
-	BTLOG(btlog, BT_TRANSPORT_ACQUIRE, 0, 0);
+	BTLOG(btlog, BT_A2DP_REQUEST_START, 0, 0);
 	return rc;
 }
 

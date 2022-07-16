@@ -10,6 +10,7 @@
 #include <syslog.h>
 
 #include "cras_bt_constants.h"
+#include "cras_bt_log.h"
 #include "cras_bt_manager.h"
 #include "cras_bt_policy.h"
 #include "cras_fl_media.h"
@@ -115,10 +116,13 @@ static void floss_manager_on_get_adapter_enabled(DBusPendingCall *pending_call,
 
 	syslog(LOG_DEBUG, "GetAdapterEnabled receives reply, state %d",
 	       enabled);
-	if (!enabled)
+	if (!enabled) {
+		BTLOG(btlog, BT_ADAPTER_REMOVED, 0, 0);
 		floss_media_stop(conn);
-	else
+	} else {
+		BTLOG(btlog, BT_ADAPTER_ADDED, 0, 0);
 		floss_media_start(conn, 0);
+	}
 
 	dbus_message_unref(reply);
 }
@@ -200,9 +204,16 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection *conn,
 /* Things to do when bluetooth Manager interface is added. */
 static void floss_on_bt_manager_addedd(DBusConnection *conn)
 {
+	BTLOG(btlog, BT_MANAGER_ADDED, 0, 0);
 	floss_manager_register_callback(conn);
 	// TODO query the default adapter index once the API is ready.
 	floss_manager_get_adapter_enabled(conn, 0);
+}
+
+/* Things to do when bluetooth Manager interface is removed. */
+static void floss_on_bt_manager_removed(DBusConnection *conn)
+{
+	BTLOG(btlog, BT_MANAGER_REMOVED, 0, 0);
 }
 
 static void floss_on_get_managed_objects(DBusPendingCall *pending_call,
@@ -375,6 +386,9 @@ static DBusHandlerResult floss_handle_interfaces_removed(DBusConnection *conn,
 
 		syslog(LOG_DEBUG, "InterfacesRemoved %s %s", object_path,
 		       interface_name);
+
+		if (strcmp(object_path, BT_MANAGER_OBJECT) == 0)
+			floss_on_bt_manager_removed(conn);
 
 		dbus_message_iter_next(&interface_array_iter);
 	}

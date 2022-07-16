@@ -1231,11 +1231,21 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s connected profiles 0x%.2x\n", "A2DP_CONFIGURED",
 		       data1);
 		break;
+	case BT_A2DP_REQUEST_START:
+		printf("%-30s %s\n", "A2DP_REQUEST_START",
+		       data1 ? "success" : "failed");
+		break;
 	case BT_A2DP_START:
 		printf("%-30s\n", "A2DP_START");
 		break;
 	case BT_A2DP_SUSPENDED:
 		printf("%-30s\n", "A2DP_SUSPENDED");
+		break;
+	case BT_A2DP_SET_VOLUME:
+		printf("%-30s %u\n", "A2DP_SET_VOLUME", data1);
+		break;
+	case BT_A2DP_UPDATE_VOLUME:
+		printf("%-30s %u\n", "A2DP_UPDATE_VOLUME", data1);
 		break;
 	case BT_AUDIO_GATEWAY_INIT:
 		printf("%-30s supported profiles 0x%.2x\n",
@@ -1253,6 +1263,14 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	case BT_CODEC_SELECTION:
 		printf("%-30s dir %u codec id %u\n", "CODEC_SELECTION", data1,
 		       data2);
+		break;
+	case BT_DEV_ADDED:
+		printf("%-30s a2dp %s and hfp %s with codec capability bitmask %u\n",
+		       "DEV_ADDED", data1 ? "supported" : "not supported",
+		       data2 ? "supported" : "not supported", data2 << 1);
+		break;
+	case BT_DEV_REMOVED:
+		printf("%-30s\n", "DEV_REMOVED");
 		break;
 	case BT_DEV_CONNECTED:
 		printf("%-30s supported profiles 0x%.2x stable_id 0x%08x\n",
@@ -1298,6 +1316,12 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	case BT_HSP_REQUEST_DISCONNECT:
 		printf("%-30s\n", "HSP_REQUEST_DISCONNECT");
 		break;
+	case BT_MANAGER_ADDED:
+		printf("%-30s\n", "MANAGER_ADDED");
+		break;
+	case BT_MANAGER_REMOVED:
+		printf("%-30s\n", "MANAGER_REMOVED");
+		break;
 	case BT_NEW_AUDIO_PROFILE_AFTER_CONNECT:
 		printf("%-30s old 0x%.2x, new 0x%.2x\n",
 		       "NEW_AUDIO_PROFILE_AFTER_CONNECT", data1, data2);
@@ -1309,18 +1333,8 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s %s sk %d\n", "SCO_CONNECT",
 		       data1 ? "success" : "failed", (int)data2);
 		break;
-	case BT_TRANSPORT_ACQUIRE:
-		printf("%-30s %s fd %d\n", "TRANSPORT_ACQUIRE",
-		       data1 ? "success" : "failed", (int)data2);
-		break;
 	case BT_TRANSPORT_RELEASE:
 		printf("%-30s\n", "TRANSPORT_RELEASE");
-		break;
-	case BT_TRANSPORT_SET_VOLUME:
-		printf("%-30s %d\n", "TRANSPORT_SET_VOLUME", data1);
-		break;
-	case BT_TRANSPORT_UPDATE_VOLUME:
-		printf("%-30s %d\n", "TRANSPORT_UPDATE_VOLUME", data1);
 		break;
 	default:
 		printf("%-30s\n", "UNKNOWN");

@@ -17,6 +17,7 @@
 
 #include "audio_thread.h"
 #include "cras_audio_format.h"
+#include "cras_bt_log.h"
 #include "cras_config.h"
 #include "cras_hfp_manager.h"
 #include "cras_iodev_list.h"
@@ -157,6 +158,7 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 	hfp->fd = skt_fd;
 	audio_thread_add_events_callback(hfp->fd, cb, hfp,
 					 POLLIN | POLLERR | POLLHUP);
+	BTLOG(btlog, BT_SCO_CONNECT, 1, hfp->fd);
 
 start_dev:
 	set_dev_started(hfp, dir, 1);
@@ -164,6 +166,7 @@ start_dev:
 	return 0;
 error:
 	floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
+	BTLOG(btlog, BT_SCO_CONNECT, 0, skt_fd);
 	if (skt_fd >= 0) {
 		close(skt_fd);
 		unlink(addr.sun_path);
@@ -247,7 +250,10 @@ int cras_floss_hfp_fill_format(struct cras_hfp *hfp, size_t **rates,
 
 void cras_floss_hfp_set_volume(struct cras_hfp *hfp, unsigned int volume)
 {
-	floss_media_hfp_set_volume(hfp->fm, volume * 15 / 100, hfp->addr);
+	/* Normailize volume value to 0-15 */
+	volume = volume * 15 / 100;
+	BTLOG(btlog, BT_HFP_SET_SPEAKER_GAIN, volume, 0);
+	floss_media_hfp_set_volume(hfp->fm, volume, hfp->addr);
 }
 
 int cras_floss_hfp_convert_volume(unsigned int vgs_volume)

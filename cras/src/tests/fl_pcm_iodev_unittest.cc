@@ -13,6 +13,7 @@ extern "C" {
 #include "audio_thread.h"
 #include "audio_thread_log.h"
 #include "cras_audio_area.h"
+#include "cras_bt_log.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "utlist.h"
@@ -85,6 +86,7 @@ void ResetStubData() {
     mock_audio_area = (cras_audio_area*)calloc(
         1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
   }
+  btlog = cras_bt_event_log_init();
 }
 
 int iodev_set_format(struct cras_iodev* iodev, struct cras_audio_format* fmt) {
@@ -119,7 +121,10 @@ class PcmIodev : public testing::Test {
     atlog = (audio_thread_event_log*)calloc(1, sizeof(audio_thread_event_log));
   }
 
-  virtual void TearDown() { free(atlog); }
+  virtual void TearDown() {
+    free(atlog);
+    cras_bt_event_log_deinit(btlog);
+  }
 };
 
 TEST_F(PcmIodev, CreateDestroyA2dpPcmIodev) {
@@ -496,6 +501,9 @@ void ewma_power_disable(struct ewma_power* ewma) {}
 
 // From audio_thread
 struct audio_thread_event_log* atlog;
+
+// From cras_bt_log
+struct cras_bt_event_log* btlog;
 
 void audio_thread_add_events_callback(int fd,
                                       thread_callback cb,

@@ -6,6 +6,7 @@
 #include "cras_types.h"
 
 extern "C" {
+#include "cras_bt_log.h"
 #include "cras_hfp_manager.h"
 #include "cras_iodev.h"
 }
@@ -42,6 +43,7 @@ void ResetStubData() {
   audio_thread_add_events_callback_data = NULL;
   audio_thread_config_events_callback_called = 0;
   socket_ret = 456;
+  btlog = cras_bt_event_log_init();
 }
 
 namespace {
@@ -50,7 +52,7 @@ class HfpManagerTestSuite : public testing::Test {
  protected:
   virtual void SetUp() { ResetStubData(); }
 
-  virtual void TearDown() {}
+  virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 };
 
 TEST_F(HfpManagerTestSuite, CreateFailed) {
@@ -149,6 +151,9 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
 
 /* From audio_thread */
 struct audio_thread_event_log* atlog;
+
+/* From cras_bt_log */
+struct cras_bt_event_log* btlog;
 
 void audio_thread_add_events_callback(int fd,
                                       thread_callback cb,

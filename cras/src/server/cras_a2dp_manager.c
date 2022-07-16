@@ -233,7 +233,6 @@ cras_floss_a2dp_create(struct fl_media *fm, const char *addr, const char *name,
 
 	a2dp->fd = -1;
 
-	BTLOG(btlog, BT_A2DP_START, 0, 0);
 	cras_main_message_add_handler(CRAS_MAIN_A2DP, a2dp_process_msg, a2dp);
 
 	return a2dp;
@@ -360,6 +359,7 @@ void cras_floss_a2dp_set_volume(struct cras_a2dp *a2dp, unsigned int volume)
 	if (!cras_floss_a2dp_get_support_absolute_volume(a2dp))
 		return;
 
+	BTLOG(btlog, BT_A2DP_SET_VOLUME, volume, 0);
 	floss_media_a2dp_set_volume(a2dp->fm, volume * 127 / 100);
 }
 
@@ -377,6 +377,7 @@ static void a2dp_suspend_cb(struct cras_timer *timer, void *arg)
 	 * the structure of fl_media and presence of cras_a2dp. The best
 	 * we can do is to destroy the iodev. */
 	syslog(LOG_WARNING, "Destroying iodev for A2DP device");
+	BTLOG(btlog, BT_A2DP_SUSPENDED, 0, 0);
 	floss_media_a2dp_suspend(a2dp->fm);
 }
 
@@ -538,8 +539,10 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 	}
 
 	a2dp->fd = skt_fd;
+	BTLOG(btlog, BT_A2DP_REQUEST_START, 1, 0);
 	return 0;
 error:
+	BTLOG(btlog, BT_A2DP_REQUEST_START, 0, 0);
 	floss_media_a2dp_stop_audio_request(a2dp->fm);
 	if (skt_fd >= 0) {
 		close(skt_fd);

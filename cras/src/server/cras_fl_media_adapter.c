@@ -9,6 +9,7 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras_bt_log.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 
@@ -82,6 +83,8 @@ int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 	}
 	if (active_fm->a2dp != NULL || active_fm->hfp != NULL) {
 		bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 1);
+		BTLOG(btlog, BT_DEV_ADDED, a2dp_avail,
+		      hfp_avail | hfp_cap >> 1);
 	}
 	return 0;
 }
@@ -95,6 +98,7 @@ int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
 		return -EINVAL;
 	}
 
+	BTLOG(btlog, BT_DEV_REMOVED, 0, 0);
 	bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 0);
 	if (active_fm->a2dp) {
 		floss_media_a2dp_suspend(active_fm);
@@ -133,10 +137,12 @@ int handle_on_absolute_volume_changed(struct fl_media *active_fm,
 		       "No active a2dp device. Skip the volume update");
 		return -EINVAL;
 	}
-	if (active_fm->a2dp)
+	if (active_fm->a2dp) {
+		BTLOG(btlog, BT_A2DP_UPDATE_VOLUME, volume, 0);
 		bt_io_manager_update_hardware_volume(
 			active_fm->bt_io_mgr, cras_floss_a2dp_convert_volume(
 						      active_fm->a2dp, volume));
+	}
 	return 0;
 }
 
@@ -151,6 +157,7 @@ int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
 		       addr);
 		return -EINVAL;
 	}
+	BTLOG(btlog, BT_HFP_UPDATE_SPEAKER_GAIN, volume, 0);
 	bt_io_manager_update_hardware_volume(
 		active_fm->bt_io_mgr, cras_floss_hfp_convert_volume(volume));
 	return 0;
