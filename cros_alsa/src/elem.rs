@@ -17,10 +17,11 @@
 
 use std::default::Default;
 use std::error;
-use std::fmt;
+use std::fmt::{self, Debug};
 
 use libc::{c_long, c_uchar, c_uint};
 use remain::sorted;
+use sys_util::debug;
 
 use crate::control_primitive::{self, snd_strerror, Ctl, ElemId, ElemInfo, ElemType, ElemValue};
 
@@ -113,6 +114,7 @@ impl<V: CtlElemValue, const N: usize> Elem for [V; N] {
         if rc < 0 {
             return Err(Error::ElemWriteFailed(rc));
         }
+        debug!("set {}: {:#?}", id.name()?, val);
         Ok(rc > 0)
     }
 
@@ -212,7 +214,7 @@ impl CtlElemValue for u8 {
 /// All primitive types of a control element should implement `CtlElemValue` trait.
 pub trait CtlElemValue {
     /// The primitive type of a control element.
-    type T: Default + Clone + Copy;
+    type T: Default + Clone + Copy + Debug;
     /// Gets the value from the ElemValue.
     unsafe fn elem_value_get(value: &ElemValue, idx: usize) -> Self::T;
     /// Sets the value to the ElemValue.
