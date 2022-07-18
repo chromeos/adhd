@@ -758,7 +758,7 @@ impl<'a> StreamSource for CrasClient<'a> {
         }
     }
 
-    fn keep_fds(&self) -> Option<Vec<RawFd>> {
+    fn keep_rds(&self) -> Option<Vec<RawFd>> {
         Some(CrasClient::keep_fds(self))
     }
 }
