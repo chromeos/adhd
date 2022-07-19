@@ -10,7 +10,7 @@
 #include <syslog.h>
 
 #include "cras_fl_media.h"
-#include "cras_fl_media_adaptor.h"
+#include "cras_fl_media_adapter.h"
 
 int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 				     const char *addr, const char *name,

@@ -14,7 +14,7 @@
 #include "cras_bt_io.h"
 #include "cras_bt_policy.h"
 #include "cras_fl_media.h"
-#include "cras_fl_media_adaptor.h"
+#include "cras_fl_media_adapter.h"
 #include "cras_hfp_manager.h"
 #include "utlist.h"
 
