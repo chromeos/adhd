@@ -1,18 +1,4 @@
-cychiang@chromium.org
-hychao@chromium.org
-paulhsia@chromium.org
-yuhsuan@chromium.org
-eddyhsu@chromium.org
-cujomalainey@chromium.org
-johnylin@chromium.org
-enshuo@chromium.org
-aaronyu@google.com
-benzh@chromium.org
-cranelw@chromium.org
-hunghsienchen@chromium.org
-judyhsiao@google.com
-htcheong@chromium.org
-jrwu@google.com
+include chromiumos/owners:v1:/audio/OWNERS.all
 
 # For AOSP
 cychiang@google.com
