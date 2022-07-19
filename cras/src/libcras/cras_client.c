@@ -4282,6 +4282,7 @@ struct libcras_client *libcras_client_create()
 	client->get_loopback_dev_idx = get_loopback_dev_idx;
 	client->get_floop_dev_idx_by_client_types =
 		cras_client_get_floop_dev_idx_by_client_types;
+	client->set_aec_dump = cras_client_set_aec_dump;
 	return client;
 }
 
