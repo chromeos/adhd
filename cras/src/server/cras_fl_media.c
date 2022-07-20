@@ -117,6 +117,9 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
 		dbus_message_unref(reply);
 		return -EIO;
 	}
+
+	dbus_message_unref(reply);
+
 	return 0;
 }
 
@@ -159,6 +162,9 @@ int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr)
 		dbus_message_unref(reply);
 		return -EIO;
 	}
+
+	dbus_message_unref(reply);
+
 	return 0;
 }
 
@@ -204,6 +210,9 @@ int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 	}
+
+	dbus_message_unref(reply);
+
 	return 0;
 }
 
@@ -267,6 +276,9 @@ int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
 		dbus_message_unref(reply);
 		return -EIO;
 	}
+
+	dbus_message_unref(reply);
+
 	return 0;
 }
 
@@ -323,6 +335,9 @@ int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
 		dbus_message_unref(reply);
 		return -EIO;
 	}
+
+	dbus_message_unref(reply);
+
 	return 0;
 }
 
@@ -460,6 +475,9 @@ int floss_media_a2dp_stop_audio_request(struct fl_media *fm)
 		dbus_message_unref(reply);
 		return -EIO;
 	}
+
+	dbus_message_unref(reply);
+
 	return 0;
 }
 
@@ -614,6 +632,8 @@ int floss_media_a2dp_get_presentation_position(
 		return -EIO;
 	}
 
+	dbus_message_unref(reply);
+
 	return 0;
 }
 
@@ -655,6 +675,9 @@ int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 	}
+
+	dbus_message_unref(reply);
+
 	return 0;
 }
 
@@ -672,6 +695,7 @@ static void floss_on_register_callback(DBusPendingCall *pending_call,
 		dbus_message_unref(reply);
 		return;
 	}
+
 	dbus_message_unref(reply);
 }
 
