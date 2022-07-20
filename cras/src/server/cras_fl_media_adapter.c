@@ -145,7 +145,7 @@ int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
 {
 	assert(active_fm != NULL);
 	if (!active_fm->hfp || !active_fm->bt_io_mgr ||
-	    !strcmp(cras_floss_hfp_get_addr(active_fm->hfp), addr)) {
+	    strcmp(cras_floss_hfp_get_addr(active_fm->hfp), addr) != 0) {
 		syslog(LOG_WARNING,
 		       "non-active hfp device(%s). Skip the volume update",
 		       addr);
