@@ -4,3 +4,6 @@
 
 mod rate_estimator;
 pub mod rate_estimator_bindings;
+
+#[cfg(feature = "cras_dlc")]
+pub use cras_dlc::{cras_dlc_sr_bt_get_root, cras_dlc_sr_bt_is_available};

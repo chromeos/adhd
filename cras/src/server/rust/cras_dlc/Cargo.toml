@@ -1,0 +1,12 @@
+[package]
+name = "cras_dlc"
+version = "0.1.0"
+authors = ["The Chromium OS Authors"]
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.32"
+dbus = "0.9"
+protobuf = "2.16"
+system_api = "*"
+thiserror = "1.0.20"

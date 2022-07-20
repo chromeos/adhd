@@ -26,4 +26,14 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file("../include/rate_estimator.h");
+
+    Builder::new()
+        .with_src("../cras_dlc/src/lib.rs")
+        .with_no_includes()
+        .with_include_guard("CRAS_DLC_H_")
+        .with_language(cbindgen::Language::C)
+        .with_header(format!("{} {} {}", HEADER_HEAD, 2022, HEADER_TAIL))
+        .generate()
+        .expect("Unable to generate bindings")
+        .write_to_file("../include/cras_dlc.h");
 }

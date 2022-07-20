@@ -9,8 +9,15 @@ crate-type = ["staticlib"]
 
 [dependencies]
 libc = "0.2.44"
+cras_dlc = { version = "*", optional = true }
 
 [profile.release]
 lto = true
 panic = "abort"
 overflow-checks = true
+
+[patch.crates-io]
+cras_dlc = { path = "cras_dlc" }
+# Switch to path = "../../../../../../platform2/system_api" for in chroot
+# `mkdir build && cd build && ../configure --enable-dlc && make -j$(nproc)`
+system_api = { path = "system_api_stub" } # ignored by ebuild

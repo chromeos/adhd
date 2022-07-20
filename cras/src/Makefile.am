@@ -261,6 +261,7 @@ cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS)
 
+
 cras_LDADD = \
 	libcrasmix.la \
 	libcrasserver.la \
@@ -384,10 +385,17 @@ RUST_FILES = \
 	$(SERVER_RUST_SRCDIR)/src/rate_estimator_bindings.rs \
 	$(SERVER_RUST_SRCDIR)/src/rate_estimator.rs
 
+if HAVE_DLC
+FEATURES = cras_dlc
+else
+FEATURES =
+endif
+
 CRAS_RUST_TARGET_DIR = $(top_builddir)/src/server/rust/target
 CRAS_RUST = $(CRAS_RUST_TARGET_DIR)/${CARGO_BUILD_TARGET}/release/libcras_rust.a
 $(CRAS_RUST): $(RUST_FILES)
-	cargo build --release \
+	cargo build --features "$(FEATURES)" \
+		--release \
 		--manifest-path $(SERVER_RUST_SRCDIR)/Cargo.toml \
 		--target-dir $(CRAS_RUST_TARGET_DIR)
 

@@ -92,6 +92,13 @@ if test "$have_hats" = "yes"; then
     AC_DEFINE(HAVE_HATS, 1, [Define to enable Happiness Tracking Surveys])
 fi
 
+# DLC support
+AC_ARG_ENABLE([dlc], AS_HELP_STRING([--enable-dlc], [Enable dlc service integration]), have_dlc=$enableval, have_dlc=no)
+AM_CONDITIONAL(HAVE_DLC, test "$have_dlc" = "yes")
+if test "$have_dlc" = "yes"; then
+    AC_DEFINE(HAVE_DLC, 1, [Define to enable dlc integration.])
+fi
+
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
 AC_CHECK_HEADERS([iniparser/iniparser.h iniparser.h], [FOUND_INIPARSER=1;break])
 test [$FOUND_INIPARSER] || AC_MSG_ERROR([Missing iniparser, please install.])
