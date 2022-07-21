@@ -11,6 +11,7 @@
 
 extern "C" {
 #include "cras_a2dp_manager.h"
+#include "cras_bt_log.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 #include "cras_observer.h"
@@ -115,5 +116,6 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   free(shm_name);
 
   cras_observer_server_init();
+  btlog = cras_bt_event_log_init();
   return 0;
 }
