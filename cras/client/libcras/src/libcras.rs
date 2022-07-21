@@ -116,6 +116,11 @@
 //! #    Ok(())
 //! # }
 //!  ```
+
+// FIXME: See b/239850356
+// This should be removed when that bug is fixed.
+#![warn(unaligned_references)]
+
 use std::io;
 use std::mem;
 use std::os::unix::{
