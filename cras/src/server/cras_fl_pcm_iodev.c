@@ -1018,11 +1018,11 @@ void hfp_pcm_iodev_destroy(struct cras_iodev *iodev)
 	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
 
 	byte_buffer_destroy(&hfpio->pcm_buf);
-	pcm_free_base_resources(hfpio);
 	if (iodev->direction == CRAS_STREAM_OUTPUT)
 		cras_iodev_list_rm_output(iodev);
 	else if (iodev->direction == CRAS_STREAM_INPUT)
 		cras_iodev_list_rm_input(iodev);
+	pcm_free_base_resources(hfpio);
 	cras_iodev_free_resources(iodev);
 	free(hfpio);
 }
