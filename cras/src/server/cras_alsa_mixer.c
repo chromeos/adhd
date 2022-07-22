@@ -16,6 +16,7 @@
 #include "utlist.h"
 
 #define MIXER_CONTROL_VOLUME_DB_INVALID LONG_MAX
+#define MIXER_CONTROL_STEP_INVALID 0
 
 /* Represents an ALSA control element. Each device can have several of these,
  * each potentially having independent volume and mute controls.
@@ -26,6 +27,8 @@
  *                 MIXER_CONTROL_VOLUME_DB_INVALID.
  * min_volume_dB - the minimum volume for this control, or
  *                 MIXER_CONTROL_VOLUME_DB_INVALID.
+ * number_of_volume_steps - number of volume steps for this control, or
+ *                 MIXER_CONTROL_STEP_INVALID.
  */
 struct mixer_control_element {
 	snd_mixer_elem_t *elem;
@@ -33,6 +36,7 @@ struct mixer_control_element {
 	int has_mute;
 	long max_volume_dB;
 	long min_volume_dB;
+	int number_of_volume_steps;
 	struct mixer_control_element *prev, *next;
 };
 
@@ -56,6 +60,8 @@ struct mixer_control_element {
  * has_mute - non-zero indicates there is a mute switch.
  * max_volume_dB - Maximum volume available in the volume control.
  * min_volume_dB - Minimum volume available in the volume control.
+ * number_of_volume_steps - number of volume steps in the volume control, or
+ *                 MIXER_CONTROL_STEP_INVALID.
  */
 struct mixer_control {
 	const char *name;
@@ -65,6 +71,7 @@ struct mixer_control {
 	int has_mute;
 	long max_volume_dB;
 	long min_volume_dB;
+	int number_of_volume_steps;
 	struct mixer_control *prev, *next;
 };
 
@@ -137,6 +144,7 @@ mixer_control_element_create(snd_mixer_elem_t *elem,
 {
 	struct mixer_control_element *c;
 	long min, max;
+	long min_step, max_step;
 
 	if (!elem)
 		return NULL;
@@ -150,16 +158,33 @@ mixer_control_element_create(snd_mixer_elem_t *elem,
 	c->elem = elem;
 	c->max_volume_dB = MIXER_CONTROL_VOLUME_DB_INVALID;
 	c->min_volume_dB = MIXER_CONTROL_VOLUME_DB_INVALID;
+	c->number_of_volume_steps = MIXER_CONTROL_STEP_INVALID;
 
 	if (dir == CRAS_STREAM_OUTPUT) {
 		c->has_mute = snd_mixer_selem_has_playback_switch(elem);
 
-		if (snd_mixer_selem_has_playback_volume(elem) &&
-		    snd_mixer_selem_get_playback_dB_range(elem, &min, &max) ==
-			    0) {
-			c->max_volume_dB = max;
-			c->min_volume_dB = min;
-			c->has_volume = 1;
+		if (snd_mixer_selem_has_playback_volume(elem)) {
+			if (snd_mixer_selem_get_playback_dB_range(elem, &min,
+								  &max) == 0) {
+				c->max_volume_dB = max;
+				c->min_volume_dB = min;
+				c->has_volume = 1;
+			}
+
+			if (snd_mixer_selem_get_playback_volume_range(
+				    elem, &min_step, &max_step) == 0 &&
+			    0 < (max_step - min_step) &&
+			    (max_step - min_step) <= INT_MAX) {
+				c->number_of_volume_steps = max_step - min_step;
+			}
+
+			if (c->number_of_volume_steps ==
+			    MIXER_CONTROL_STEP_INVALID) {
+				syslog(LOG_ERR,
+				       "Name: [%s] Get invaild volume range [%ld:%ld]",
+				       snd_mixer_selem_get_name(elem), min_step,
+				       max_step);
+			}
 		}
 	} else if (dir == CRAS_STREAM_INPUT) {
 		c->has_mute = snd_mixer_selem_has_capture_switch(elem);
@@ -227,15 +252,20 @@ static int mixer_control_add_element(struct mixer_control *control,
 		if (control->min_volume_dB == MIXER_CONTROL_VOLUME_DB_INVALID) {
 			control->min_volume_dB = elem->min_volume_dB;
 			control->max_volume_dB = elem->max_volume_dB;
+			control->number_of_volume_steps =
+				elem->number_of_volume_steps;
 		} else if (control->min_volume_dB != elem->min_volume_dB ||
 			   control->max_volume_dB != elem->max_volume_dB) {
 			syslog(LOG_WARNING,
 			       "Element '%s' of control '%s' has different"
-			       "volume range: [%ld:%ld] ctrl: [%ld:%ld]",
+			       "volume range: [%ld:%ld] ctrl: [%ld:%ld]"
+			       "number_of_volume_steps[%d:%d]",
 			       snd_mixer_selem_get_name(elem->elem),
 			       control->name, elem->min_volume_dB,
 			       elem->max_volume_dB, control->min_volume_dB,
-			       control->max_volume_dB);
+			       control->max_volume_dB,
+			       control->number_of_volume_steps,
+			       elem->number_of_volume_steps);
 		}
 	}
 
@@ -264,6 +294,7 @@ static int mixer_control_create(struct mixer_control **control,
 	c->dir = dir;
 	c->min_volume_dB = MIXER_CONTROL_VOLUME_DB_INVALID;
 	c->max_volume_dB = MIXER_CONTROL_VOLUME_DB_INVALID;
+	c->number_of_volume_steps = MIXER_CONTROL_STEP_INVALID;
 
 	if (!name && elem)
 		name = snd_mixer_selem_get_name(elem);
@@ -1089,6 +1120,14 @@ void cras_alsa_mixer_get_playback_dBFS_range(struct cras_alsa_mixer *cras_mixer,
 		*max_volume_dB += mixer_output->max_volume_dB;
 		*min_volume_dB += mixer_output->min_volume_dB;
 	}
+}
+
+int cras_alsa_mixer_get_playback_step(struct mixer_control *mixer_output)
+{
+	if (cras_alsa_mixer_has_volume(mixer_output)) {
+		return mixer_output->number_of_volume_steps;
+	}
+	return MIXER_CONTROL_STEP_INVALID;
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,

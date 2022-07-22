@@ -55,6 +55,8 @@ static int alsa_mixer_set_mute_value;
 static size_t cras_alsa_mixer_get_playback_dBFS_range_called;
 static long cras_alsa_mixer_get_playback_dBFS_range_max;
 static long cras_alsa_mixer_get_playback_dBFS_range_min;
+static size_t cras_alsa_mixer_get_playback_step_called;
+static int32_t cras_alsa_mixer_get_playback_step_step;
 static const struct mixer_control* alsa_mixer_set_mute_output;
 static size_t alsa_mixer_set_capture_mute_called;
 static int alsa_mixer_set_capture_mute_value;
@@ -388,6 +390,9 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
+  EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
+  EXPECT_EQ(cras_alsa_mixer_get_playback_step_step,
+            aio->base.active_node->number_of_volume_steps);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 
   aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -2766,6 +2771,11 @@ void cras_alsa_mixer_get_playback_dBFS_range(struct cras_alsa_mixer* cras_mixer,
   *max_volume_dB = cras_alsa_mixer_get_playback_dBFS_range_max;
   *min_volume_dB = cras_alsa_mixer_get_playback_dBFS_range_min;
   return;
+}
+
+int cras_alsa_mixer_get_playback_step(struct mixer_control* mixer_output) {
+  cras_alsa_mixer_get_playback_step_called++;
+  return cras_alsa_mixer_get_playback_step_step;
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer* m,

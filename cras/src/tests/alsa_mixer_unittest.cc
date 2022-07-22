@@ -81,6 +81,10 @@ static size_t snd_mixer_selem_get_capture_dB_range_called;
 static size_t snd_mixer_selem_get_capture_dB_range_values_length;
 static const long* snd_mixer_selem_get_capture_dB_range_min_values;
 static const long* snd_mixer_selem_get_capture_dB_range_max_values;
+static size_t snd_mixer_selem_get_playback_volume_range_called;
+static size_t snd_mixer_selem_get_playback_volume_range_values_length;
+static const long* snd_mixer_selem_get_playback_volume_range_min_values;
+static const long* snd_mixer_selem_get_playback_volume_range_max_values;
 static size_t iniparser_getstring_return_index;
 static size_t iniparser_getstring_return_length;
 static char** iniparser_getstring_returns;
@@ -145,6 +149,12 @@ static void ResetStubData() {
   snd_mixer_selem_get_capture_dB_range_values_length = 0;
   snd_mixer_selem_get_capture_dB_range_min_values = static_cast<long*>(NULL);
   snd_mixer_selem_get_capture_dB_range_max_values = static_cast<long*>(NULL);
+  snd_mixer_selem_get_playback_volume_range_called = 0;
+  snd_mixer_selem_get_playback_volume_range_values_length = 0;
+  snd_mixer_selem_get_playback_volume_range_min_values =
+      static_cast<long*>(NULL);
+  snd_mixer_selem_get_playback_volume_range_max_values =
+      static_cast<long*>(NULL);
   snd_mixer_find_selem_called = 0;
   snd_mixer_find_elem_map.clear();
   snd_mixer_find_elem_id_name.clear();
@@ -251,6 +261,8 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
   const char* element_names[] = {
       "Unknown",
   };
+  static const long min_steps[] = {0};
+  static const long max_steps[] = {1};
   struct mixer_control* mixer_output;
   int rc;
 
@@ -261,6 +273,10 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
       ARRAY_SIZE(element_playback_volume);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
@@ -283,6 +299,10 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
       ARRAY_SIZE(element_playback_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   rc = mixer_control_create(&mixer_output, NULL,
                             reinterpret_cast<snd_mixer_elem_t*>(1),
                             CRAS_STREAM_OUTPUT);
@@ -308,6 +328,8 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   struct cras_alsa_mixer* c;
   static const long min_volumes[] = {-500};
   static const long max_volumes[] = {40};
+  static const long min_steps[] = {0};
+  static const long max_steps[] = {1};
   int element_playback_volume[] = {
       1,
       0,
@@ -333,6 +355,10 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
@@ -358,6 +384,10 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
       ARRAY_SIZE(element_playback_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   rc = mixer_control_create(&mixer_output, NULL,
                             reinterpret_cast<snd_mixer_elem_t*>(2),
                             CRAS_STREAM_OUTPUT);
@@ -397,7 +427,8 @@ TEST(AlsaMixer, CreateOneMainElement) {
   long set_dB_values[3];
   static const long min_volumes[] = {0, 0};
   static const long max_volumes[] = {950, 950};
-
+  static const long min_steps[] = {0, 0};
+  static const long max_steps[] = {1, 1};
   ResetStubData();
   snd_mixer_first_elem_return_value = reinterpret_cast<snd_mixer_elem_t*>(1);
   snd_mixer_selem_has_playback_volume_return_values = element_playback_volume;
@@ -408,6 +439,10 @@ TEST(AlsaMixer, CreateOneMainElement) {
       ARRAY_SIZE(element_playback_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
@@ -432,6 +467,10 @@ TEST(AlsaMixer, CreateOneMainElement) {
   snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   snd_mixer_selem_has_playback_volume_return_values = element_playback_volume;
   snd_mixer_selem_has_playback_volume_return_values_length =
       ARRAY_SIZE(element_playback_volume);
@@ -481,6 +520,8 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   int rc;
   static const long min_volumes[] = {-500, -1250, -500};
   static const long max_volumes[] = {40, 40, 0};
+  static const long min_steps[] = {0, 0, 0};
+  static const long max_steps[] = {1, 2, 3};
   long get_dB_returns[] = {0, 0, 0};
   long set_dB_values[3];
 
@@ -500,6 +541,10 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
   snd_mixer_selem_set_playback_dB_all_values_length = ARRAY_SIZE(set_dB_values);
   c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
@@ -540,6 +585,10 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   snd_mixer_selem_has_playback_volume_return_values = element_playback_volume;
   snd_mixer_selem_has_playback_volume_return_values_length =
       ARRAY_SIZE(element_playback_volume);
@@ -759,6 +808,8 @@ class AlsaMixerOutputs : public testing::Test {
     };
     static const long min_volumes[] = {0, 0, 0, 0, 0, 0, 500, -1250};
     static const long max_volumes[] = {0, 0, 0, 0, 0, 0, 3000, 400};
+    static const long min_steps[] = {0, 0, 0, 0, 0, 0, 0, 0};
+    static const long max_steps[] = {1, 2, 3, 4, 5, 6, 7, 8};
     static const char* element_names[] = {
         "Master", "PCM",    "Headphone", "Speaker",
         "HDMI",   "IEC958", "Capture",   "Digital Capture",
@@ -796,6 +847,10 @@ class AlsaMixerOutputs : public testing::Test {
     snd_mixer_selem_get_capture_dB_range_max_values = max_volumes;
     snd_mixer_selem_get_capture_dB_range_values_length =
         ARRAY_SIZE(min_volumes);
+    snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+    snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+    snd_mixer_selem_get_playback_volume_range_values_length =
+        ARRAY_SIZE(min_steps);
     iniparser_getstring_returns = iniparser_returns;
     iniparser_getstring_return_length = ARRAY_SIZE(iniparser_returns);
     cras_mixer_ = create_mixer_and_add_controls_by_name_matching(
@@ -930,6 +985,42 @@ TEST_F(AlsaMixerOutputs, MinMaxCaptureGainWithActiveInput) {
   free((void*)mixer_input);
 }
 
+TEST(AlsaMixer, GetPlayBackStep) {
+  int rc = 0;
+  int32_t number_of_volume_steps = 0;
+  static const long min_steps[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  static const long max_steps[] = {1, 2, 10, 20, 25, 50, 100, 400};
+  ResetStubData();
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
+
+  std::vector<mixer_control*> control_list;
+  for (int i = 1; i <= snd_mixer_selem_get_playback_volume_range_values_length;
+       i++) {
+    mixer_control* control;
+    rc = mixer_control_create(&control, "Headset",
+                              reinterpret_cast<snd_mixer_elem_t*>(i),
+                              CRAS_STREAM_OUTPUT);
+    EXPECT_EQ(0, rc);
+    control_list.push_back(control);
+  }
+  for (int i = 1; i <= snd_mixer_selem_get_playback_volume_range_values_length;
+       i++) {
+    number_of_volume_steps =
+        cras_alsa_mixer_get_playback_step(control_list[i - 1]);
+    EXPECT_EQ(number_of_volume_steps,
+              snd_mixer_selem_get_playback_volume_range_max_values[i - 1] -
+                  snd_mixer_selem_get_playback_volume_range_min_values[i - 1]);
+  }
+  EXPECT_EQ(snd_mixer_selem_get_playback_volume_range_values_length,
+            snd_mixer_selem_get_playback_volume_range_called);
+  for (mixer_control* control : control_list) {
+    mixer_control_destroy(control);
+  }
+}
+
 TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   struct cras_alsa_mixer* c;
   struct mixer_control* output_control;
@@ -937,6 +1028,8 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
 
   static const long min_volumes[] = {-70, -70};
   static const long max_volumes[] = {30, 30};
+  static const long min_steps[] = {0};
+  static const long max_steps[] = {1};
 
   long set_dB_values[2];
 
@@ -972,7 +1065,10 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
-
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL,
                                                      coupled_controls);
 
@@ -1041,7 +1137,8 @@ TEST(AlsaMixer, CoupledOutputHasMuteNoVolume) {
 
   static const long min_volumes[] = {-70};
   static const long max_volumes[] = {30};
-
+  static const long min_steps[] = {0};
+  static const long max_steps[] = {1};
   const char* coupled_output_names[] = {"Left Master", "Right Master",
                                         "Left Speaker", "Right Speaker"};
   struct mixer_name* coupled_controls = mixer_name_add_array(
@@ -1071,7 +1168,10 @@ TEST(AlsaMixer, CoupledOutputHasMuteNoVolume) {
   snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
-
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL,
                                                      coupled_controls);
 
@@ -1118,7 +1218,8 @@ TEST(AlsaMixer, CoupledOutputHasVolumeNoMute) {
 
   static const long min_volumes[] = {-70, -70};
   static const long max_volumes[] = {30, 30};
-
+  static const long min_steps[] = {0};
+  static const long max_steps[] = {1};
   const char* coupled_output_names[] = {"Left Master", "Right Master",
                                         "Left Speaker", "Right Speaker"};
   struct mixer_name* coupled_controls = mixer_name_add_array(
@@ -1148,7 +1249,10 @@ TEST(AlsaMixer, CoupledOutputHasVolumeNoMute) {
   snd_mixer_selem_get_playback_dB_range_min_values = min_volumes;
   snd_mixer_selem_get_playback_dB_range_max_values = max_volumes;
   snd_mixer_selem_get_playback_dB_range_values_length = ARRAY_SIZE(min_volumes);
-
+  snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+  snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+  snd_mixer_selem_get_playback_volume_range_values_length =
+      ARRAY_SIZE(min_steps);
   c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL,
                                                      coupled_controls);
 
@@ -1263,6 +1367,8 @@ class AlsaMixerFullySpeced : public testing::Test {
     };
     static const long min_volumes[] = {-84, -84, -84, -84, -84, 0, 0, 0};
     static const long max_volumes[] = {0, 0, 0, 0, 0, 0, 84, 84};
+    static const long min_steps[] = {0, 0, 0, 0, 0, 0, 0, 0};
+    static const long max_steps[] = {1, 2, 3, 4, 5, 6, 7, 8};
     static const char* element_names[] = {"HP-L",  "HP-R",  "SPK-L",
                                           "SPK-R", "HDMI",  "CAPTURE",
                                           "MIC-L", "MIC-R", "Unknown"};
@@ -1324,7 +1430,10 @@ class AlsaMixerFullySpeced : public testing::Test {
     snd_mixer_selem_get_capture_dB_range_max_values = max_volumes;
     snd_mixer_selem_get_capture_dB_range_values_length =
         ARRAY_SIZE(min_volumes);
-
+    snd_mixer_selem_get_playback_volume_range_min_values = min_steps;
+    snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
+    snd_mixer_selem_get_playback_volume_range_values_length =
+        ARRAY_SIZE(min_steps);
     cras_mixer_ = cras_alsa_mixer_create("hw:0");
     ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), cras_mixer_);
     EXPECT_EQ(1, snd_mixer_open_called);
@@ -1587,6 +1696,21 @@ int snd_mixer_selem_get_playback_dB_range(snd_mixer_elem_t* elem,
   } else {
     *min = snd_mixer_selem_get_playback_dB_range_min_values[index];
     *max = snd_mixer_selem_get_playback_dB_range_max_values[index];
+  }
+  return 0;
+}
+
+int snd_mixer_selem_get_playback_volume_range(snd_mixer_elem_t* elem,
+                                              long* min,
+                                              long* max) {
+  size_t index = reinterpret_cast<size_t>(elem) - 1;
+  snd_mixer_selem_get_playback_volume_range_called++;
+  if (index >= snd_mixer_selem_get_playback_volume_range_values_length) {
+    *min = 0;
+    *max = 0;
+  } else {
+    *min = snd_mixer_selem_get_playback_volume_range_min_values[index];
+    *max = snd_mixer_selem_get_playback_volume_range_max_values[index];
   }
   return 0;
 }
