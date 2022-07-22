@@ -223,6 +223,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 
 	for (length = 0; dev->supported_channel_counts[length]; length++)
 		;
+	free(iodev->supported_channel_counts);
 	iodev->supported_channel_counts = (size_t *)malloc(
 		(length + 1) * sizeof(*iodev->supported_channel_counts));
 	for (i = 0; i < length + 1; i++)
@@ -231,7 +232,7 @@ static int update_supported_formats(struct cras_iodev *iodev)
 
 	for (length = 0; dev->supported_formats[length]; length++)
 		;
-
+	free(iodev->supported_formats);
 	iodev->supported_formats = (snd_pcm_format_t *)malloc(
 		(length + 1) * sizeof(*iodev->supported_formats));
 	for (i = 0; i < length + 1; i++)
