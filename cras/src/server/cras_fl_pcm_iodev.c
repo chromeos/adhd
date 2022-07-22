@@ -906,9 +906,9 @@ void a2dp_pcm_iodev_destroy(struct cras_iodev *iodev)
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
 
 	/* Free resources when device successfully removed. */
-	pcm_free_base_resources(a2dpio);
 	cras_iodev_list_rm_output(iodev);
 	cras_iodev_free_resources(iodev);
+	pcm_free_base_resources(a2dpio);
 	free(a2dpio);
 }
 
