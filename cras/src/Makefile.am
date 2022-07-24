@@ -230,7 +230,7 @@ libcrasserver_la_SOURCES = \
 libcrasserver_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
-	-I$(SERVER_RUST_SRCDIR)/src/headers \
+	-I$(SERVER_RUST_SRCDIR)/include \
 	$(DBUS_CFLAGS) $(SBC_CFLAGS) $(SELINUX_CFLAGS) $(TENSORFLOW_CFLAGS)
 libcrasserver_la_LIBADD = \
 	$(CRAS_RUST) \
@@ -803,7 +803,7 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 	common/cras_shm.c common/cras_string.c
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
-	-I$(SERVER_RUST_SRCDIR)/src/headers
+	-I$(SERVER_RUST_SRCDIR)/include
 audio_thread_unittest_LDADD = -lgtest -lpthread -lrt
 
 audio_thread_monitor_unittest_SOURCES = tests/audio_thread_monitor_unittest.cc
@@ -913,7 +913,7 @@ dev_io_unittest_CPPFLAGS = \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
-	-I$(SERVER_RUST_SRCDIR)/src/headers \
+	-I$(SERVER_RUST_SRCDIR)/include \
 	$(SELINUX_CFLAGS)
 dev_io_unittest_LDADD = \
 	libcrasmix.la \
@@ -1099,7 +1099,7 @@ iodev_unittest_SOURCES = tests/iodev_unittest.cc \
 	server/cras_iodev.c common/cras_shm.c common/cras_string.c
 iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
-	-I$(SERVER_RUST_SRCDIR)/src/headers
+	-I$(SERVER_RUST_SRCDIR)/include
 iodev_unittest_LDADD = -lgtest -lpthread -lrt
 
 mix_unittest_SOURCES = tests/mix_unittest.cc server/cras_mix.c
@@ -1138,7 +1138,7 @@ ramp_unittest_LDADD = -lgtest -lpthread
 rate_estimator_unittest_SOURCES = tests/rate_estimator_unittest.cc
 rate_estimator_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server \
-	 -I$(SERVER_RUST_SRCDIR)/src/headers
+	 -I$(SERVER_RUST_SRCDIR)/include
 rate_estimator_unittest_LDADD = $(CRAS_RUST) -lgtest -ldl -lpthread
 
 control_rclient_unittest_SOURCES = tests/control_rclient_unittest.cc \
@@ -1228,7 +1228,7 @@ timing_unittest_CPPFLAGS = \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
-	-I$(SERVER_RUST_SRCDIR)/src/headers \
+	-I$(SERVER_RUST_SRCDIR)/include \
 	$(SELINUX_CFLAGS)
 timing_unittest_LDADD = \
 	libcrasmix.la \

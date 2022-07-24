@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use libc;
 
-use crate::RateEstimator;
+use crate::rate_estimator::RateEstimator;
 
 /// # Safety
 ///

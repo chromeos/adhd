@@ -1,8 +1,8 @@
-// Copyright 2019 The Chromium OS Authors. All rights reserved.
+// Copyright 2019 The ChromiumOS Authors.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Generated from files in cras/src/server/rust/src in adhd.
+// Generated from files in cras/src/server/rust in adhd.
 
 #ifndef RATE_ESTIMATOR_H_
 #define RATE_ESTIMATOR_H_
