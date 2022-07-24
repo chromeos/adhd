@@ -123,8 +123,8 @@ CRAS_SR_SOURCES = \
 else
 CRAS_DSP_AM_SOURCES =
 CRAS_SR_SOURCES = \
-	tests/sr_stub.cc \
-	tests/sr_bt_util_stub.cc
+	server/cras_sr_stub.c \
+	server/cras_sr_bt_util_stub.c
 endif
 
 cras_server_SOURCES = \
