@@ -8,15 +8,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#ifdef HAVE_FEATURED
-#include <featured/c_feature_library.h>
-#endif
-
 #include "cras_a2dp_endpoint.h"
 #include "cras_bt_adapter.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_log.h"
 #include "cras_bt_profile.h"
+#include "cras_featured.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_sco.h"
 #include "cras_hfp_iodev.h"
@@ -64,30 +61,6 @@ struct audio_gateway {
 
 static struct audio_gateway *connected_ags;
 static struct packet_status_logger wbs_logger;
-
-#if !defined(HAVE_FEATURED) || defined(BYPASS_FEATURE_CHECK)
-static bool get_hfp_offload_feature_enabled()
-{
-	return true;
-}
-#else
-const struct VariationsFeature AUDIO_HFP_OFFLOAD_FEATURE = {
-	.name = "CrOSLateBootAudioHFPOffload",
-	.default_state = FEATURE_DISABLED_BY_DEFAULT,
-};
-
-static bool get_hfp_offload_feature_enabled()
-{
-	CFeatureLibrary lib = CFeatureLibraryNew();
-	int enabled = CFeatureLibraryIsEnabledBlocking(
-		lib, &AUDIO_HFP_OFFLOAD_FEATURE);
-	syslog(LOG_DEBUG, "Chrome Feature Service: %s = %d",
-	       AUDIO_HFP_OFFLOAD_FEATURE.name, enabled);
-	CFeatureLibraryDelete(lib);
-
-	return enabled;
-}
-#endif
 
 static bool is_sco_pcm_supported()
 {
