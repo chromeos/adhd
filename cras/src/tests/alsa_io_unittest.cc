@@ -184,6 +184,8 @@ void ResetStubData() {
   cras_alsa_mixer_get_playback_dBFS_range_called = 0;
   cras_alsa_mixer_get_playback_dBFS_range_max = 0;
   cras_alsa_mixer_get_playback_dBFS_range_min = -2000;
+  cras_alsa_mixer_get_playback_step_called = 0;
+  cras_alsa_mixer_get_playback_step_step = 15;
   alsa_mixer_set_capture_mute_called = 0;
   cras_alsa_mixer_get_control_for_section_called = 0;
   cras_alsa_mixer_get_control_for_section_return_value = NULL;

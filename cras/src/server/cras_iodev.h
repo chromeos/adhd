@@ -121,6 +121,12 @@ enum CRAS_IODEV_STATE {
  *    btflags - Bit-wise information to indicate the BT profile and attributes
  *              that apply.
  *              See enum CRAS_BT_FLAGS in ../common/cras_types.h.
+ *    number_of_volume_steps - The total volume step of the node
+ *                         suggested by the system.
+ *                         Mainly used to calculate
+ *                         the percentage of volume change.
+ *                         This value for input node is invalid (0).
+ *                         Output nodes have valid values ​​(> 0).
  */
 struct cras_ionode {
 	struct cras_iodev *dev;
@@ -145,6 +151,7 @@ struct cras_ionode {
 	unsigned int stable_id;
 	uint32_t btflags;
 	uint32_t audio_effect;
+	int32_t number_of_volume_steps;
 	struct cras_ionode *prev, *next;
 };
 

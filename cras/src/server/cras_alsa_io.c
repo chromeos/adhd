@@ -69,6 +69,15 @@
  */
 #define SEVERE_UNDERRUN_MS 5000
 
+/* Default 25 step, volume change 4% once a time */
+#define NUMBER_OF_VOLUME_STEPS_DEFAULT 25
+
+/* maxium 25 step, volume change 4% once a time */
+#define NUMBER_OF_VOLUME_STEPS_MAX 25
+
+/* minium 10 step, volume change 10% once a time */
+#define NUMBER_OF_VOLUME_STEPS_MIN 10
+
 /* Enumeration for logging to CRAS server metrics. */
 enum CRAS_NOISE_CANCELLATION_STATUS {
 	CRAS_NOISE_CANCELLATION_BLOCKED,
@@ -1148,6 +1157,7 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 {
 	struct cras_alsa_mixer *mixer = aio->mixer;
 	long max, min;
+	int32_t number_of_volume_steps;
 
 	if (aio->ucm && ucm_get_disable_software_volume(aio->ucm)) {
 		output->base.software_volume_needed = 0;
@@ -1169,6 +1179,13 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 			mixer, output->mixer_output, &max, &min);
 		if (max == min)
 			output->base.software_volume_needed = 1;
+		number_of_volume_steps =
+			cras_alsa_mixer_get_playback_step(output->mixer_output);
+		if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
+			output->base.software_volume_needed = 1;
+			output->base.number_of_volume_steps =
+				NUMBER_OF_VOLUME_STEPS_DEFAULT;
+		}
 	}
 	if (output->base.software_volume_needed)
 		syslog(LOG_DEBUG, "Use software volume for node: %s",
@@ -1255,6 +1272,7 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 	struct alsa_output_node *output;
 	struct cras_volume_curve *curve;
 	long max_volume, min_volume;
+	int32_t number_of_volume_steps;
 
 	syslog(LOG_DEBUG, "New output node for '%s'", name);
 	if (aio == NULL) {
@@ -1270,6 +1288,8 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 	output->base.idx = aio->next_ionode_index++;
 	output->base.stable_id =
 		SuperFastHash(name, strlen(name), aio->base.info.stable_id);
+
+	output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
 	if (aio->ucm)
 		output->base.dsp_name =
 			ucm_get_dsp_name_for_dev(aio->ucm, name);
@@ -1295,6 +1315,10 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 			syslog(LOG_WARNING,
 			       "%s' output volume range [%ld %ld] is abnormally narrow",
 			       name, min_volume, max_volume);
+		number_of_volume_steps =
+			cras_alsa_mixer_get_playback_step(cras_control);
+		output->base.number_of_volume_steps =
+			MIN(number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_MAX);
 	}
 	output->volume_curve = curve;
 
