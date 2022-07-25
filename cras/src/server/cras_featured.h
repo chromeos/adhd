@@ -9,6 +9,11 @@ bool get_hfp_offload_feature_enabled()
 	return true;
 }
 
+bool get_hfp_mic_sr_feature_enabled()
+{
+	return false;
+}
+
 #else
 #include <featured/c_feature_library.h>
 
@@ -31,5 +36,15 @@ const struct VariationsFeature AUDIO_HFP_OFFLOAD_FEATURE = {
 bool get_hfp_offload_feature_enabled()
 {
 	return get_feature_enabled(&AUDIO_HFP_OFFLOAD_FEATURE);
+}
+
+const struct VariationsFeature AUDIO_HFP_MIC_SR = {
+	.name = "CrOSLateBootAudioHFPMicSR",
+	.default_state = FEATURE_DISABLED_BY_DEFAULT,
+};
+
+bool get_hfp_mic_sr_feature_enabled()
+{
+	return get_feature_enabled(&AUDIO_HFP_MIC_SR);
 }
 #endif
