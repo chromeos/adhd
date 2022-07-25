@@ -391,15 +391,13 @@ static void udev_sound_subsystem_callback(void *arg, int revents)
 
 static void compile_regex(regex_t *regex, const char *str)
 {
-	int r = regcomp(regex, str, REG_EXTENDED);
+	__attribute__((__unused__)) int r = regcomp(regex, str, REG_EXTENDED);
 	assert(r == 0);
 }
 
 static struct udev_callback_data udev_data;
 void cras_udev_start_sound_subsystem_monitor()
 {
-	int r;
-
 	udev_data.udev = udev_new();
 	assert(udev_data.udev != NULL);
 	udev_data.mon = udev_monitor_new_from_netlink(udev_data.udev, "udev");
@@ -409,9 +407,10 @@ void cras_udev_start_sound_subsystem_monitor()
 	udev_monitor_enable_receiving(udev_data.mon);
 	udev_data.fd = udev_monitor_get_fd(udev_data.mon);
 
-	r = cras_system_add_select_fd(udev_data.fd,
-				      udev_sound_subsystem_callback, &udev_data,
-				      POLLIN);
+	__attribute__((__unused__)) int r =
+		cras_system_add_select_fd(udev_data.fd,
+					  udev_sound_subsystem_callback,
+					  &udev_data, POLLIN);
 	assert(r == 0);
 	compile_regex(&pcm_regex, pcm_regex_string);
 	compile_regex(&card_regex, card_regex_string);
