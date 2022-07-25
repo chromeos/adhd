@@ -60,6 +60,12 @@ struct __attribute__((__packed__)) cras_iodev_info {
  *    active_hotword_model - name of the currently selected hotword model.
  *    audio_effect - Bit-wise audio effect support information. See enum
  *                   audio_effect_type.
+ *    number_of_volume_steps - The total volume step of the node
+ *                         suggested by the system.
+ *                         Mainly used to calculate
+ *                         the percentage of volume change.
+ *                         This value for input node is invalid (0).
+ *                         Output nodes have valid values ​​(> 0).
  */
 struct __attribute__((__packed__)) cras_ionode_info {
 	uint32_t iodev_idx;
@@ -81,6 +87,7 @@ struct __attribute__((__packed__)) cras_ionode_info {
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
 	enum CRAS_SCREEN_ROTATION display_rotation;
 	uint32_t audio_effect;
+	int32_t number_of_volume_steps;
 };
 
 /* This is used in the cras_client_set_node_attr API.

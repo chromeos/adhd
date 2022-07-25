@@ -303,6 +303,8 @@ static int fill_node_list(struct iodev_list *list,
 			    !cras_system_get_bypass_block_noise_cancellation())
 				node_info->audio_effect &=
 					~EFFECT_TYPE_NOISE_CANCELLATION;
+			node_info->number_of_volume_steps =
+				node->number_of_volume_steps;
 			node_info++;
 			i++;
 			if (i == out_size)

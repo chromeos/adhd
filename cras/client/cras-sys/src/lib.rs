@@ -255,6 +255,7 @@ impl Default for cras_ionode_info {
             active_hotword_model: [0; 16usize],
             display_rotation: CRAS_SCREEN_ROTATION::ROTATE_0,
             audio_effect: 0,
+            number_of_volume_steps: 0,
         }
     }
 }
