@@ -176,6 +176,13 @@ int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr)
 	return 0;
 }
 
+#if defined(HAVE_FUZZER)
+int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
+			       const char *addr)
+{
+	return 0;
+}
+#else
 int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
 			       const char *addr)
 {
@@ -223,6 +230,7 @@ int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
 
 	return 0;
 }
+#endif
 
 int floss_media_hfp_suspend(struct fl_media *fm)
 {
