@@ -10,6 +10,7 @@
 #include <syslog.h>
 
 #include "cras_bt_log.h"
+#include "cras_bt_policy.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 
@@ -161,4 +162,20 @@ int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
 	bt_io_manager_update_hardware_volume(
 		active_fm->bt_io_mgr, cras_floss_hfp_convert_volume(volume));
 	return 0;
+}
+
+void fl_media_destroy(struct fl_media *active_fm)
+{
+	/* Clean up iodev when BT forced to stop. */
+	if (active_fm) {
+		floss_media_a2dp_suspend(active_fm);
+		floss_media_hfp_suspend(active_fm);
+
+		if (active_fm->bt_io_mgr) {
+			cras_bt_policy_remove_io_manager(active_fm->bt_io_mgr);
+			bt_io_manager_destroy(active_fm->bt_io_mgr);
+		}
+		free(active_fm);
+		active_fm = NULL;
+	}
 }

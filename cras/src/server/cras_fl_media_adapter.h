@@ -102,4 +102,11 @@ int handle_on_absolute_volume_changed(struct fl_media *active_fm,
  */
 int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
 				 uint8_t volume);
+
+/* Destroys struct fl_media and frees up relevant resources.
+ *
+ * Args:
+ *   active_fm - The fl_media struct to be destroyed.
+ */
+void fl_media_destroy(struct fl_media *active_fm);
 #endif /* CRAS_FL_MEDIA_ADAPTOR_H_ */

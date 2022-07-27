@@ -94,8 +94,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     fuzzer_on_absolute_volume_supported_changed(&data_provider);
     fuzzer_on_absolute_volume_changed(&data_provider);
     fuzzer_on_hfp_volume_changed(&data_provider);
-    free(active_fm);
-    active_fm = NULL;
+    fl_media_destroy(active_fm);
   }
 
   return 0;

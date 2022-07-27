@@ -1171,17 +1171,6 @@ int floss_media_stop(DBusConnection *conn)
 						    CRAS_BT_MEDIA_OBJECT_PATH))
 		syslog(LOG_WARNING, "Couldn't unregister BT media obj path");
 
-	/* Clean up iodev when BT forced to stop. */
-	if (active_fm) {
-		floss_media_a2dp_suspend(active_fm);
-		floss_media_hfp_suspend(active_fm);
-
-		if (active_fm->bt_io_mgr) {
-			cras_bt_policy_remove_io_manager(active_fm->bt_io_mgr);
-			bt_io_manager_destroy(active_fm->bt_io_mgr);
-		}
-		free(active_fm);
-		active_fm = NULL;
-	}
+	fl_media_destroy(active_fm);
 	return 0;
 }
