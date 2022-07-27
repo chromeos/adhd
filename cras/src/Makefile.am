@@ -378,7 +378,7 @@ RUST_FILES = \
 	$(SERVER_RUST_SRCDIR)/src/rate_estimator.rs
 
 CRAS_RUST_TARGET_DIR = $(top_builddir)/src/server/rust/target
-CRAS_RUST = $(CRAS_RUST_TARGET_DIR)/release/libcras_rust.a
+CRAS_RUST = $(CRAS_RUST_TARGET_DIR)/${CARGO_BUILD_TARGET}/release/libcras_rust.a
 $(CRAS_RUST): $(RUST_FILES)
 	cargo build --release \
 		--manifest-path $(SERVER_RUST_SRCDIR)/Cargo.toml \
