@@ -7,7 +7,7 @@ use std::{num::ParseFloatError, time::Duration};
 use clap::Parser;
 
 use audio_processor::{
-    processors::{CheckShape, InPlaceNegateAudioProcessor, WavSink, WavSource},
+    processors::{profile, CheckShape, InPlaceNegateAudioProcessor, WavSink, WavSource},
     ByteProcessor, Error, MultiBuffer,
 };
 
@@ -28,6 +28,14 @@ struct Command {
 fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
     let seconds: f64 = arg.parse()?;
     Ok(std::time::Duration::from_secs_f64(seconds))
+}
+
+fn print_real_time_factor(stats: &profile::Measurement, name: &str, clip_duration: f64) {
+    eprintln!(
+        "real time factor ({}): {:.3}%",
+        name,
+        stats.sum.as_secs_f64() / clip_duration * 100.
+    );
 }
 
 pub fn main() {
@@ -51,14 +59,15 @@ pub fn main() {
     eprintln!("block size: {}", block_size);
     let mut source = WavSource::new(reader, block_size);
     let mut check_shape = CheckShape::<f32>::new(spec.channels as usize, block_size);
-    let mut ext = InPlaceNegateAudioProcessor::<f32>::new();
+    let ext = InPlaceNegateAudioProcessor::<f32>::new();
+    let mut profile = profile::Profile::new(ext);
     let mut sink = WavSink::new(writer);
 
     let mut pipeline: Vec<&mut dyn ByteProcessor> =
-        vec![&mut source, &mut check_shape, &mut ext, &mut sink];
+        vec![&mut source, &mut check_shape, &mut profile, &mut sink];
 
     let mut buf = MultiBuffer::new(0, 0);
-    loop {
+    'outer: loop {
         let mut slices = buf.as_multi_slice();
 
         if let Some(dur) = command.sleep_duration {
@@ -90,7 +99,7 @@ pub fn main() {
                                 got_frames, want_frames,
                             );
                         }
-                        return;
+                        break 'outer;
                     }
                     Error::Wav(_) => panic!("{}", error),
                 },
@@ -100,4 +109,10 @@ pub fn main() {
             break;
         }
     }
+
+    let clip_duration = profile.frames_processed as f64 / spec.sample_rate as f64;
+    eprintln!("cpu time: {}", profile.cpu_time);
+    eprintln!("wall time: {}", profile.wall_time);
+    print_real_time_factor(&profile.cpu_time, "cpu", clip_duration);
+    print_real_time_factor(&profile.wall_time, "wall", clip_duration);
 }

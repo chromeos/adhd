@@ -8,5 +8,7 @@ pub use check_shape::*;
 mod negate;
 pub use negate::*;
 
+pub mod profile;
+
 mod wav;
 pub use wav::*;
