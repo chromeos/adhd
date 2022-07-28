@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <cstdio>
+#include <cstring>
 
 extern "C" {
 #include "cras_a2dp_manager.h"
@@ -49,13 +51,35 @@ void active_fm_create(FuzzedDataProvider* data_provider) {
   active_fm = floss_media_get_active_fm();
 }
 
+std::string get_valid_addr(FuzzedDataProvider* data_provider) {
+  const int STR_LEN = 17;
+  char str[STR_LEN + 1] = {};
+  for (int i = 0; i < STR_LEN; i++) {
+    if ((i + 1) % 3 == 0) {
+      str[i] = ':';
+    } else {
+      snprintf(str + i, 2, "%X",
+               data_provider->ConsumeIntegralInRange<int>(0, 15));
+    }
+  }
+  return std::string(str);
+}
+
+std::string get_random_addr(FuzzedDataProvider* data_provider) {
+  return data_provider->ConsumeRandomLengthString(kMaxStringLength);
+}
+
 void fuzzer_on_bluetooth_device_added(FuzzedDataProvider* data_provider) {
   struct cras_fl_a2dp_codec_config* codecs = codecs_create(data_provider);
 
   int32_t hfp_cap = data_provider->ConsumeIntegral<int32_t>();
   bool abs_vol_supported = data_provider->ConsumeBool();
 
-  addr = data_provider->ConsumeRandomLengthString(kMaxStringLength);
+  if (data_provider->ConsumeBool()) {
+    addr = get_valid_addr(data_provider);
+  } else {
+    addr = get_random_addr(data_provider);
+  }
   std::string name = data_provider->ConsumeRandomLengthString(kMaxStringLength);
 
   handle_on_bluetooth_device_added(active_fm, addr.c_str(), name.c_str(),

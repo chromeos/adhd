@@ -8,17 +8,53 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <regex.h>
 
 #include "cras_bt_log.h"
 #include "cras_bt_policy.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 
+static int validate_bluetooth_device_address(const char *addr)
+{
+	if (!addr) {
+		syslog(LOG_ERR, "Empty bluetooth device address");
+		return -ENOMEM;
+	}
+	/* An example of addr looks like A0:1A:7D:DA:71:11
+	 * 6 sets of hexadecimal numbers
+	 * Total length: 17
+	 */
+	regex_t regex;
+	char buffer[100] = {};
+	int rc = regcomp(&regex, "^(([0-9A-F]{2}):){5}([0-9A-F]{2})$",
+			 REG_EXTENDED | REG_ICASE);
+	if (rc) {
+		regerror(rc, &regex, buffer, 100);
+		syslog(LOG_ERR, "Failed to compile regex [%s]", buffer);
+		return -EINVAL;
+	}
+	rc = regexec(&regex, addr, 0, NULL, 0);
+	regfree(&regex);
+	if (rc) {
+		syslog(LOG_ERR, "Invalid bluetooth device address %s", addr);
+		return -EINVAL;
+	}
+	return 0;
+}
+
 int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 				     const char *addr, const char *name,
 				     struct cras_fl_a2dp_codec_config *codecs,
 				     int32_t hfp_cap, bool abs_vol_supported)
 {
+	int rc = validate_bluetooth_device_address(addr);
+	if (rc) {
+		syslog(LOG_ERR, "Erroneous bluetooth device address match %d",
+		       rc);
+		return rc;
+	}
+
 	int a2dp_avail = cras_floss_get_a2dp_enabled() && codecs != NULL;
 	int hfp_avail = cras_floss_get_hfp_enabled() && hfp_cap;
 
@@ -151,6 +187,12 @@ int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
 				 uint8_t volume)
 {
 	assert(active_fm != NULL);
+	int rc = validate_bluetooth_device_address(addr);
+	if (rc) {
+		syslog(LOG_ERR, "Erroneous bluetooth device address match %d",
+		       rc);
+		return rc;
+	}
 	if (!active_fm->hfp || !active_fm->bt_io_mgr ||
 	    strcmp(cras_floss_hfp_get_addr(active_fm->hfp), addr) != 0) {
 		syslog(LOG_WARNING,
