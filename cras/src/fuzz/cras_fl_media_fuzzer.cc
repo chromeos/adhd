@@ -11,6 +11,7 @@
 
 extern "C" {
 #include "cras_a2dp_manager.h"
+#include "cras_alert.h"
 #include "cras_bt_log.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
@@ -94,6 +95,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     fuzzer_on_absolute_volume_supported_changed(&data_provider);
     fuzzer_on_absolute_volume_changed(&data_provider);
     fuzzer_on_hfp_volume_changed(&data_provider);
+    cras_alert_process_all_pending_alerts();
     fl_media_destroy(active_fm);
   }
 
