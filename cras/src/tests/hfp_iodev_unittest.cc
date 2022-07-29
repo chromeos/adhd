@@ -182,10 +182,12 @@ TEST_P(OpenHfpIodevTest, TestOpenHfpIodev) {
 
   /* cras_sco* not start yet */
   cras_sco_running_return_val = 0;
-  iodev->configure_dev(iodev);
+  iodev->open_dev(iodev);
 
   ASSERT_EQ(1, cras_bt_device_sco_connect_called);
   ASSERT_EQ(1, cras_sco_start_called);
+  ASSERT_EQ(0, cras_sco_add_iodev_called);
+  iodev->configure_dev(iodev);
   ASSERT_EQ(1, cras_sco_add_iodev_called);
 
   iodev->update_supported_formats(iodev);

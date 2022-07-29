@@ -138,21 +138,14 @@ static int output_underrun(struct cras_iodev *iodev)
 	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
 }
 
-static int configure_dev(struct cras_iodev *iodev)
+static int open_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 	int sk, err, mtu;
 	int sco_handle;
 
-	/* Assert format is set before opening device. */
-	if (iodev->format == NULL)
-		return -EINVAL;
-
-	iodev->format->format = SND_PCM_FORMAT_S16_LE;
-	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
-
 	if (cras_sco_running(hfpio->sco))
-		goto add_dev;
+		goto sco_running;
 
 	/*
 	 * Might require a codec negotiation before building the sco connection.
@@ -198,16 +191,29 @@ static int configure_dev(struct cras_iodev *iodev)
 
 	hfpio->drain_complete = 0;
 	hfpio->filled_zeros = 0;
-add_dev:
+sco_running:
+	return 0;
+error:
+	syslog(LOG_ERR, "Failed to open HPF iodev");
+	return -1;
+}
+
+static int configure_dev(struct cras_iodev *iodev)
+{
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+
+	/* Assert format is set before opening device. */
+	if (iodev->format == NULL)
+		return -EINVAL;
+
+	iodev->format->format = SND_PCM_FORMAT_S16_LE;
+	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+
 	cras_sco_add_iodev(hfpio->sco, iodev->direction, iodev->format);
 	hfp_set_call_status(hfpio->slc, 1);
-
 	iodev->buffer_size = cras_sco_buf_size(hfpio->sco, iodev->direction);
 
 	return 0;
-error:
-	syslog(LOG_ERR, "Failed to open HFP iodev");
-	return -1;
 }
 
 static int close_dev(struct cras_iodev *iodev)
@@ -348,6 +354,7 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	iodev->put_buffer = put_buffer;
 	iodev->flush_buffer = flush_buffer;
 	iodev->no_stream = no_stream;
+	iodev->open_dev = open_dev;
 	iodev->close_dev = close_dev;
 	iodev->update_supported_formats = update_supported_formats;
 	iodev->update_active_node = update_active_node;

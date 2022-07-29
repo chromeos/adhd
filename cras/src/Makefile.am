@@ -229,6 +229,8 @@ cras_server_SOURCES = \
 	server/test_iodev.c \
 	server/softvol_curve.c \
 	server/cras_rtc.c
+cras_server_CPPFLAGS = \
+	-I$(SERVER_RUST_SRCDIR)/include
 
 SERVER_RUST_SRCDIR = $(top_srcdir)/src/server/rust
 
@@ -907,9 +909,12 @@ cras_sr_unittest_LDADD = -lgtest -lpthread -lspeexdsp
 endif
 
 cras_sr_bt_util_unittest_SOURCES = tests/cras_sr_bt_util_unittest.cc \
+	server/cras_dlc_stub.c \
+	server/cras_featured_stub.c \
 	server/cras_sr_bt_util.c
 cras_sr_bt_util_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
-	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
+	-I$(SERVER_RUST_SRCDIR)/include
 cras_sr_bt_util_unittest_LDADD = -lgtest -lpthread
 
 dev_io_unittest_SOURCES = \

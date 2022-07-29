@@ -38,6 +38,7 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -b /run/bluetooth/audio,/run/bluetooth/audio \
         -b /run/cras,/run/cras,1 \
         -b /run/dbus,/run/dbus,1 \
+        -k '/run/imageloader,/run/imageloader,none,MS_BIND|MS_REC' \
         -b /run/udev,/run/udev \
         -b /dev,/dev \
         -b /dev/shm,/dev/shm,1 \

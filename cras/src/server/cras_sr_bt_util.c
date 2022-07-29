@@ -5,23 +5,21 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdbool.h>
 
+#include "cras_dlc.h"
+#include "cras_featured.h"
 #include "cras_sr_bt_util.h"
 
 int cras_sr_bt_can_be_enabled()
 {
-	/*
-	 * TODO(b/216075565): Adds checking for featured and dlc states.
-	 */
-	return 0;
+	return get_hfp_mic_sr_feature_enabled() &&
+	       cras_dlc_sr_bt_is_available();
 }
 
 struct cras_sr_model_spec cras_sr_bt_get_model_spec(enum cras_sr_bt_model model)
 {
-	/*
-	 * TODO(b/216075565): Gets the dlc_root by calling the dlc function.
-	 */
-	const char *dlc_root = "";
+	const char *dlc_root = cras_dlc_sr_bt_get_root();
 	struct cras_sr_model_spec spec = {};
 	switch (model) {
 	case SR_BT_NBS: {
