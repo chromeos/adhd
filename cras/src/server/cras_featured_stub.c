@@ -2,13 +2,16 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#ifndef CRAS_FEATURED_H_
-#define CRAS_FEATURED_H_
-
 #include <stdbool.h>
 
-bool get_hfp_offload_feature_enabled();
+#include "cras_featured.h"
 
-bool get_hfp_mic_sr_feature_enabled();
+bool get_hfp_offload_feature_enabled()
+{
+	return true;
+}
 
-#endif /* CRAS_FEATURED_H_ */
+bool get_hfp_mic_sr_feature_enabled()
+{
+	return false;
+}

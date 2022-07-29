@@ -106,6 +106,12 @@ else
 CRAS_DBUS_SOURCES =
 endif
 
+if HAVE_FEATURED
+CRAS_FEATURED_SOURCES = server/cras_featured.c
+else
+CRAS_FEATURED_SOURCES = server/cras_featured_stub.c
+endif
+
 if HAVE_SELINUX
 CRAS_SELINUX_SOURCES = common/cras_selinux_helper.c
 CRAS_SELINUX_UNITTEST_SOURCES = tests/cras_selinux_helper_unittest.c
@@ -129,6 +135,7 @@ endif
 
 cras_server_SOURCES = \
 	$(CRAS_DBUS_SOURCES) \
+	$(CRAS_FEATURED_SOURCES) \
 	$(CRAS_SELINUX_SOURCES) \
 	$(CRAS_WEBRTC_APM_SOURCES) \
 	$(CRAS_DSP_AM_SOURCES) \
@@ -1043,10 +1050,10 @@ hfp_alsa_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 hfp_alsa_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_ag_profile_unittest_SOURCES = tests/hfp_ag_profile_unittest.cc \
-	server/cras_hfp_ag_profile.c common/sfh.c tests/metrics_stub.cc
+	server/cras_hfp_ag_profile.c common/sfh.c tests/metrics_stub.cc \
+	server/cras_featured_stub.c
 hfp_ag_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
-	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS) \
-	-DBYPASS_FEATURE_CHECK
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_ag_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_manager_unittest_SOURCES = tests/hfp_manager_unittest.cc \
