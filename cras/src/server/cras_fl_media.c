@@ -653,6 +653,12 @@ int floss_media_a2dp_get_presentation_position(
 	return 0;
 }
 
+#if defined(HAVE_FUZZER)
+int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
+{
+	return 0;
+}
+#else
 int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
 {
 	DBusMessage *method_call, *reply;
@@ -696,6 +702,7 @@ int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
 
 	return 0;
 }
+#endif
 
 static void floss_on_register_callback(DBusPendingCall *pending_call,
 				       void *data)
