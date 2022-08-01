@@ -4,7 +4,7 @@
 
 use std::marker::PhantomData;
 
-use crate::{AudioProcessor, MultiBuffer, MultiSlice, SignedSample};
+use crate::{AudioProcessor, MultiBuffer, MultiSlice, Result, SignedSample};
 
 /// `InPlaceNegateAudioProcessor` is an [`AudioProcessor`] that negates the audio samples.
 /// Audio samples are modified in-place.
@@ -31,14 +31,14 @@ impl<T: SignedSample> AudioProcessor for InPlaceNegateAudioProcessor<T> {
     type I = T;
     type O = T;
 
-    fn process<'a>(&'a mut self, mut input: MultiSlice<'a, T>) -> MultiSlice<'a, T> {
+    fn process<'a>(&'a mut self, mut input: MultiSlice<'a, T>) -> Result<MultiSlice<'a, T>> {
         for channel in input.iter_mut() {
             for x in channel.iter_mut() {
                 *x = -*x;
             }
         }
 
-        input
+        Ok(input)
     }
 }
 
@@ -65,14 +65,14 @@ impl<T: SignedSample> AudioProcessor for NegateAudioProcessor<T> {
     type I = T;
     type O = T;
 
-    fn process<'a>(&'a mut self, input: MultiSlice<'a, T>) -> MultiSlice<'a, T> {
+    fn process<'a>(&'a mut self, input: MultiSlice<'a, T>) -> Result<MultiSlice<'a, T>> {
         for (inch, outch) in input.iter().zip(self.output.as_multi_slice().iter_mut()) {
             for (x, y) in inch.iter().zip(outch.iter_mut()) {
                 *y = -*x;
             }
         }
 
-        self.output.as_multi_slice()
+        Ok(self.output.as_multi_slice())
     }
 }
 
@@ -86,7 +86,7 @@ mod tests {
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
         let mut ap: InPlaceNegateAudioProcessor<f32> = Default::default();
 
-        let output = ap.process(input.as_multi_slice());
+        let output = ap.process(input.as_multi_slice()).unwrap();
 
         // output = -input
         assert_eq!(
@@ -104,7 +104,7 @@ mod tests {
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
         let mut ap = NegateAudioProcessor::new(2, 4);
 
-        let output = ap.process(input.as_multi_slice());
+        let output = ap.process(input.as_multi_slice()).unwrap();
 
         // output = -input
         assert_eq!(

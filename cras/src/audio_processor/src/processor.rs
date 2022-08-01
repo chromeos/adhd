@@ -4,6 +4,11 @@
 
 use crate::{MultiSlice, Sample};
 
+#[derive(thiserror::Error, Debug)]
+pub enum Error {}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
 /// A ByteProcessor processes multiple slices of bytes.
 /// Each iteration the `process_bytes` function is called.
 pub trait ByteProcessor {
@@ -15,7 +20,7 @@ pub trait ByteProcessor {
     /// To implement an non in-place processor, store the output on memory owned
     /// by the processor itself, then return a [`MultiSlice`] referencing the memory
     /// owned by the processor.
-    fn process_bytes<'a>(&'a mut self, input: MultiSlice<'a, u8>) -> MultiSlice<'a, u8>;
+    fn process_bytes<'a>(&'a mut self, input: MultiSlice<'a, u8>) -> Result<MultiSlice<'a, u8>>;
 }
 
 /// Convinence trait to ease implementing [`ByteProcessor`]s.
@@ -31,10 +36,11 @@ pub trait AudioProcessor {
 
     /// Process audio pointed by `input`. Return the result.
     /// See also [`ByteProcessor::process_bytes`].
-    fn process<'a>(&'a mut self, input: MultiSlice<'a, Self::I>) -> MultiSlice<'a, Self::O>;
+    fn process<'a>(&'a mut self, input: MultiSlice<'a, Self::I>)
+        -> Result<MultiSlice<'a, Self::O>>;
 
-    fn process_bytes<'a>(&'a mut self, input: MultiSlice<'a, u8>) -> MultiSlice<'a, u8> {
-        self.process(input.into_typed()).into_bytes()
+    fn process_bytes<'a>(&'a mut self, input: MultiSlice<'a, u8>) -> Result<MultiSlice<'a, u8>> {
+        self.process(input.into_typed()).map(|x| x.into_bytes())
     }
 }
 
@@ -42,7 +48,7 @@ impl<T> ByteProcessor for T
 where
     T: AudioProcessor,
 {
-    fn process_bytes<'a>(&'a mut self, input: MultiSlice<'a, u8>) -> MultiSlice<'a, u8> {
+    fn process_bytes<'a>(&'a mut self, input: MultiSlice<'a, u8>) -> Result<MultiSlice<'a, u8>> {
         self.process_bytes(input)
     }
 }
@@ -62,7 +68,7 @@ mod tests {
         let mut slices = bufs.as_multi_slice().into_bytes();
 
         for p in pipeline.iter_mut() {
-            slices = p.process_bytes(slices);
+            slices = p.process_bytes(slices).unwrap();
         }
 
         // Y = -(-X) = X
