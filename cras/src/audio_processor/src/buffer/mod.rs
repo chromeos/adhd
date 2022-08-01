@@ -4,6 +4,8 @@
 
 use crate::{slice_cast::SliceCast, Sample};
 
+mod debug;
+
 /// A `MultiBuffer` holds multiple buffers of audio samples or bytes.
 /// Each buffer typically holds a channel of audio data.
 pub struct MultiBuffer<T> {
