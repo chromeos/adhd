@@ -115,9 +115,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     FuzzedDataProvider data_provider(data, size);
     active_fm_create(&data_provider);
     fuzzer_on_bluetooth_device_added(&data_provider);
-    fuzzer_on_bluetooth_device_removed();
+    fuzzer_on_bluetooth_device_added(&data_provider);
     fuzzer_on_absolute_volume_supported_changed(&data_provider);
     fuzzer_on_absolute_volume_changed(&data_provider);
+    fuzzer_on_hfp_volume_changed(&data_provider);
+    fuzzer_on_bluetooth_device_removed();
     fuzzer_on_hfp_volume_changed(&data_provider);
     cras_alert_process_all_pending_alerts();
     fl_media_destroy(active_fm);
