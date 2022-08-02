@@ -36,6 +36,9 @@
 #define GET_A2DP_AUDIO_STARTED_RETRIES 1200
 #define GET_A2DP_AUDIO_STARTED_SLEEP_US 5000
 
+#define GET_HFP_AUDIO_STARTED_RETRIES 200
+#define GET_HFP_AUDIO_STARTED_SLEEP_US 5000
+
 static struct fl_media *active_fm = NULL;
 
 struct fl_media *floss_media_get_active_fm()
@@ -201,7 +204,9 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
 
 	dbus_message_unref(reply);
 
-	return 0;
+	return floss_media_block_until_started(fm, "GetHfpAudioStarted",
+					       GET_HFP_AUDIO_STARTED_RETRIES,
+					       GET_HFP_AUDIO_STARTED_SLEEP_US);
 }
 #endif
 

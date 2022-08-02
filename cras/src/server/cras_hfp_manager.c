@@ -118,8 +118,6 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 	if (rc < 0)
 		return rc;
 
-	/* TODO(b/213408429): Hook to a data path ready callback instead. */
-	sleep(1);
 	skt_fd = socket(PF_UNIX, SOCK_STREAM | O_NONBLOCK, 0);
 	if (skt_fd < 0) {
 		syslog(LOG_ERR, "Create HFP socket failed with error %d",
