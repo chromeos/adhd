@@ -15,10 +15,15 @@ extern "C" {
 #include "cras_a2dp_manager.h"
 #include "cras_alert.h"
 #include "cras_bt_log.h"
+#include "cras_dsp.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
+#include "cras_iodev_list.h"
+#include "cras_mix.h"
 #include "cras_observer.h"
+#include "cras_rclient.h"
 #include "cras_shm.h"
+#include "cras_stream_apm.h"
 #include "cras_system_state.h"
 }
 
@@ -27,12 +32,18 @@ extern "C" {
 
 static struct fl_media* active_fm = NULL;
 static std::string addr = "";
+static cras_rclient* client = NULL;
 
 /* This fuzzer consumes bytes of size ranging from 270 to 340.
  * Minimum fuzzing size if therefore set at 350.
  */
 const int kMinFuzzDataSize = 350;
 const int kMaxStringLength = 100;
+
+/* rclient_buffer_on_client consumes an int and a cras_server_msg
+ * struct cras_server_msg is of size 99
+ */
+const int kMinRclientMsgSize = 104;
 
 struct cras_fl_a2dp_codec_config* codecs_create(
     FuzzedDataProvider* data_provider) {
@@ -108,9 +119,26 @@ void fuzzer_on_hfp_volume_changed(FuzzedDataProvider* data_provider) {
   handle_on_hfp_volume_changed(active_fm, addr.c_str(), volume);
 }
 
+void fuzzer_rclient_buffer_on_client(FuzzedDataProvider* data_provider) {
+  if (data_provider->remaining_bytes() < kMinRclientMsgSize) {
+    return;
+  }
+  int fds[1] = {0};
+  int num_fds = data_provider->ConsumeIntegralInRange(0, 1);
+  std::vector<uint8_t> msg_byte =
+      data_provider->ConsumeBytes<uint8_t>(sizeof(struct cras_connect_message));
+  struct cras_server_message* msg =
+      (struct cras_server_message*)msg_byte.data();
+  msg->length = msg_byte.size();
+  cras_rclient_buffer_from_client(client, (const uint8_t*)msg, msg->length, fds,
+                                  num_fds);
+}
+
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+  client = cras_rclient_create(0, 0, CRAS_CONTROL);
   if (size < kMinFuzzDataSize) {
     handle_on_bluetooth_device_added(NULL, NULL, NULL, NULL, 0, 0);
+    cras_rclient_buffer_from_client(client, data, size, NULL, 0);
   } else {
     FuzzedDataProvider data_provider(data, size);
     active_fm_create(&data_provider);
@@ -119,12 +147,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     fuzzer_on_absolute_volume_supported_changed(&data_provider);
     fuzzer_on_absolute_volume_changed(&data_provider);
     fuzzer_on_hfp_volume_changed(&data_provider);
+    fuzzer_rclient_buffer_on_client(&data_provider);
     fuzzer_on_bluetooth_device_removed();
     fuzzer_on_hfp_volume_changed(&data_provider);
     cras_alert_process_all_pending_alerts();
     fl_media_destroy(active_fm);
   }
-
+  cras_rclient_destroy(client);
   return 0;
 }
 
@@ -144,5 +173,13 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
 
   cras_observer_server_init();
   btlog = cras_bt_event_log_init();
+
+  cras_mix_init(0);
+  cras_stream_apm_init("/etc/cras");
+  cras_iodev_list_init();
+  /* For cros fuzz, emerge adhd with USE=fuzzer will copy dsp.ini.sample to
+   * etc/cras. For OSS-Fuzz the Dockerfile will be responsible for copying the
+   * file. This shouldn't crash CRAS even if the dsp file does not exist. */
+  cras_dsp_init("/etc/cras/dsp.ini.sample");
   return 0;
 }
