@@ -64,7 +64,7 @@ int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 	if (!active_fm->bt_io_mgr) {
 		active_fm->bt_io_mgr = bt_io_manager_create();
 		if (!active_fm->bt_io_mgr)
-			return -EINVAL;
+			return -ENOMEM;
 	}
 
 	if (a2dp_avail) {
