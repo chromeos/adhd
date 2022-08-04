@@ -106,6 +106,13 @@ else
 CRAS_DBUS_SOURCES =
 endif
 
+# Provide `cras_dlc_stub.c` when `--disable-dlc`
+if HAVE_DLC
+CRAS_DLC_SOURCE =
+else
+CRAS_DLC_SOURCE = server/cras_dlc_stub.c
+endif
+
 if HAVE_FEATURED
 CRAS_FEATURED_SOURCES = server/cras_featured.c
 else
@@ -135,6 +142,7 @@ endif
 
 cras_server_SOURCES = \
 	$(CRAS_DBUS_SOURCES) \
+	$(CRAS_DLC_SOURCE) \
 	$(CRAS_FEATURED_SOURCES) \
 	$(CRAS_SELINUX_SOURCES) \
 	$(CRAS_WEBRTC_APM_SOURCES) \
