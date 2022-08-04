@@ -40,8 +40,8 @@ static cras_rclient* client = NULL;
 const int kMinFuzzDataSize = 350;
 const int kMaxStringLength = 100;
 
-/* rclient_buffer_on_client consumes an int and a cras_server_msg
- * struct cras_server_msg is of size 99
+/* rclient_buffer_on_client consumes an int and a cras_server_message
+ * struct cras_connect_message is of size 99
  */
 const int kMinRclientMsgSize = 104;
 
