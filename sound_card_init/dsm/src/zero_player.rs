@@ -9,7 +9,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use audio_streams::SampleFormat;
-use libcras::{CrasClient, CrasNodeType};
+use libcras::{CrasClient, CrasClientType, CrasNodeType};
 use sys_util::error;
 
 use crate::error::{Error, Result};
@@ -166,6 +166,7 @@ impl PlayZeroWorker {
 
     fn run(&mut self) -> Result<()> {
         let mut cras_client = CrasClient::new()?;
+        cras_client.set_client_type(CrasClientType::CRAS_CLIENT_TYPE_SOUND_CARD_INIT);
         // TODO(b/155007305): Implement cras_client.wait_node_change and use it here.
         let node = cras_client
             .output_nodes()

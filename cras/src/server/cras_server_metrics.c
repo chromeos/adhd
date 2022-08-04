@@ -340,6 +340,8 @@ metrics_client_type_str(enum CRAS_CLIENT_TYPE client_type)
 		return "ARCVM";
 	case CRAS_CLIENT_TYPE_BOREALIS:
 		return "BOREALIS";
+	case CRAS_CLIENT_TYPE_SOUND_CARD_INIT:
+		return "SOUND_CARD_INIT";
 	default:
 		return "InvalidType";
 	}
