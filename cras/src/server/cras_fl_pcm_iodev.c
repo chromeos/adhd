@@ -232,6 +232,20 @@ static int a2dp_no_stream(struct cras_iodev *odev, int enable)
 		return a2dp_leave_no_stream(odev);
 }
 
+static int hfp_output_underrun(struct cras_iodev *iodev)
+{
+	unsigned int local_queued_frames = bt_local_queued_frames(iodev);
+
+	/* The upper layer treat underrun in a more strict way. So even
+	 * this is called it may not be an underrun scenario to HFP audio.
+	 * Check if local buffer touches zero before trying to fill zero. */
+	if (local_queued_frames > 0)
+		return 0;
+
+	/* Handle it the same way as cras_iodev_output_underrun(). */
+	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+}
+
 static int hfp_no_stream(struct cras_iodev *iodev, int enable)
 {
 	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
@@ -960,6 +974,7 @@ static void set_hfp_callbacks(struct cras_iodev *hfpio)
 	hfpio->update_supported_formats = hfp_update_supported_formats;
 	hfpio->put_buffer = hfp_put_buffer;
 	hfpio->flush_buffer = hfp_flush_buffer;
+	hfpio->output_underrun = hfp_output_underrun;
 	hfpio->no_stream = hfp_no_stream;
 	hfpio->close_dev = hfp_close_dev;
 	hfpio->set_volume = hfp_set_volume;
