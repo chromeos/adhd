@@ -12,6 +12,8 @@ mod max98373d;
 mod max98390d;
 use std::path::PathBuf;
 
+use serde::Serialize;
+
 use alc1011::ALC1011;
 use cs35l41::CS35L41;
 use max98373d::Max98373;
@@ -62,6 +64,15 @@ impl<'a> AmpBuilder<'a> {
             _ => Err(Error::UnsupportedAmp(self.amp.to_owned())),
         }
     }
+}
+
+/// The speaker rdc calibration result applied to the amp.
+#[derive(Serialize)]
+pub struct AppliedRDC {
+    /// The channel index.
+    pub channel: usize,
+    /// The DC resistence in ohm.
+    pub rdc_in_ohm: f32,
 }
 
 /// It defines the required functions of amplifier objects.

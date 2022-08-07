@@ -12,6 +12,7 @@ members = [
 ]
 
 [dependencies]
+argh = "*"
 amp = { path = "amp" }
 audio_streams = "*"
 cros_alsa = { path = "../cros_alsa" } # provided by ebuild
