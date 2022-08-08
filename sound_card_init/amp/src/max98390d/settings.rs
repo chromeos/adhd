@@ -4,6 +4,7 @@
 use std::string::String;
 
 use crate::Result;
+use dsm::RDCRange;
 use serde::Deserialize;
 
 /// `DeviceSettings` includes the settings of max98390. It currently includes:
@@ -19,6 +20,8 @@ pub struct AmpCalibCtrl {
     pub dsm_param: String,
     // Mixer control to get/set rdc value.
     pub rdc_ctrl: String,
+    // Mixer control to get/set adaptive rdc value.
+    pub adaptive_rdc_ctrl: String,
     // Mixer control to get/set ambient temperature value.
     pub temp_ctrl: String,
     // Mixer control to trigger calibration.
@@ -33,6 +36,7 @@ pub struct AmpCalibSettings {
     // Mixer control to get/set rdc value.
     pub controls: Vec<AmpCalibCtrl>,
     pub boot_time_calibration_enabled: bool,
+    pub rdc_ranges: Vec<RDCRange>,
 }
 
 impl AmpCalibSettings {

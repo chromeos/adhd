@@ -17,8 +17,9 @@ use std::string::String;
 use argh::FromArgs;
 use libchromeos::sys::{error, info};
 use libchromeos::syslog;
+use serde::Serialize;
 
-use amp::{AmpBuilder, AppliedRDC};
+use amp::AmpBuilder;
 use dsm::utils::run_time;
 
 const IDENT: &str = "sound_card_init";
@@ -34,7 +35,9 @@ struct TopLevelCommand {
 #[argh(subcommand)]
 enum Command {
     BootTimeCalibration(BootTimeCalibrationArgs),
+    Debug(DebugArgs),
     ReadAppliedRdc(ReadAppliedRdcArgs),
+    ReadCurrentRdc(ReadCurrentRdcArgs),
 }
 
 /// read the applied rdc of the input channel
@@ -54,6 +57,25 @@ struct ReadAppliedRdcArgs {
     pub channel: usize,
 }
 
+/// read the current rdc of the input channel. Need to start a playback stream to
+/// get the correct reading.
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "read_current_rdc")]
+struct ReadCurrentRdcArgs {
+    /// the sound card id
+    #[argh(option)]
+    pub id: String,
+    /// the speaker amp on the device. It should be $(cros_config /audio/main speaker-amp)
+    #[argh(option)]
+    pub amp: String,
+    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf)
+    #[argh(option)]
+    pub conf: String,
+    /// channel index
+    #[argh(option)]
+    pub channel: usize,
+}
+
 /// run Amp boot time calibration and apply the calibration result to the Amp
 #[derive(FromArgs, PartialEq, Debug)]
 #[argh(subcommand, name = "boot_time_calibration")]
@@ -69,6 +91,42 @@ struct BootTimeCalibrationArgs {
     pub conf: String,
 }
 
+/// print the Amp debug information.
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "debug")]
+struct DebugArgs {
+    /// the sound card id.
+    #[argh(option)]
+    pub id: String,
+    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf).
+    #[argh(option)]
+    pub amp: String,
+    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf).
+    #[argh(option)]
+    pub conf: String,
+    /// show the debug message in json.
+    #[argh(switch)]
+    pub json: bool,
+}
+
+/// The speaker rdc calibration result applied to the amp.
+#[derive(Serialize)]
+pub struct AppliedRDC {
+    /// The channel index.
+    pub channel: usize,
+    /// The DC resistence in ohm.
+    pub rdc_in_ohm: f32,
+}
+
+/// The current speaker rdc estimated by the amp.
+#[derive(Serialize)]
+pub struct CurrentRDC {
+    /// The channel index.
+    pub channel: usize,
+    /// The DC resistence in ohm.
+    pub rdc_in_ohm: Option<f32>,
+}
+
 /// Parses the CONF_DIR/${args.conf}.yaml and starts the boot time calibration.
 fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn error::Error>> {
     match &args.cmd {
@@ -80,12 +138,30 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
             };
             println!("{}", serde_json::to_string(&rdc)?);
         }
+        Command::ReadCurrentRdc(param) => {
+            let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            let rdc = CurrentRDC {
+                channel: param.channel,
+                rdc_in_ohm: amp.get_current_rdc(param.channel)?,
+            };
+            println!("{}", serde_json::to_string(&rdc)?);
+        }
         Command::BootTimeCalibration(param) => {
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
             info!("sound_card_id: {}, conf:{}", param.id, param.conf);
             amp.boot_time_calibration()?;
             if let Err(e) = run_time::now_to_file(&param.id) {
                 error!("failed to create sound_card_init run time file: {}", e);
+            }
+        }
+        Command::Debug(param) => {
+            let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            info!("sound_card_id: {}, conf:{}", param.id, param.conf);
+            let info = amp.get_debug_info()?;
+            if param.json {
+                println!("{}", serde_json::to_string(&info)?);
+            } else {
+                println!("{}", serde_yaml::to_string(&info)?);
             }
         }
     }

@@ -17,7 +17,7 @@ use std::{
 };
 
 use cros_alsa::{Card, IntControl, SwitchControl};
-use dsm::{CalibData, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
+use dsm::{CalibData, RDCRange, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
 use log::info;
 
 use crate::{Amp, Result};
@@ -82,6 +82,12 @@ impl Max98390CalibData {
     #[inline]
     fn dsm_unit_to_celsius(temp: i32) -> f32 {
         temp as f32 * 100.0 / (1 << 12) as f32
+    }
+
+    /// Converts the adaptive_rdc control value to real DC resistance in ohm unit.
+    #[inline]
+    fn adaptive_rdc_to_ohm(x: i32) -> f32 {
+        x as f32 / 256.0 * 3.66 as f32
     }
 }
 
@@ -156,6 +162,30 @@ impl Amp for Max98390 {
                 .control_by_name::<IntControl>(&self.setting.controls[ch].rdc_ctrl)?
                 .get()?,
         ))
+    }
+
+    fn get_current_rdc(&mut self, ch: usize) -> Result<Option<f32>> {
+        if ch >= self.setting.controls.len() {
+            return Err(dsm::Error::InvalidChannelNumer(ch).into());
+        }
+
+        let mut zero_player: ZeroPlayer = Default::default();
+        zero_player.start(Self::RDC_CALIB_WARM_UP_TIME)?;
+        let rdc = Max98390CalibData::adaptive_rdc_to_ohm(
+            self.card
+                .control_by_name::<IntControl>(&self.setting.controls[ch].adaptive_rdc_ctrl)?
+                .get()?,
+        );
+        zero_player.stop()?;
+        Ok(Some(rdc))
+    }
+
+    fn num_channels(&mut self) -> usize {
+        self.setting.num_channels()
+    }
+
+    fn rdc_ranges(&mut self) -> Vec<RDCRange> {
+        self.setting.rdc_ranges.clone()
     }
 }
 
@@ -312,5 +342,11 @@ mod tests {
     fn rdc_to_ohm() {
         assert_eq!(Max98390CalibData::rdc_to_ohm(1123160), 3.416956);
         assert_eq!(Max98390CalibData::rdc_to_ohm(1157049), 3.3168762);
+    }
+
+    #[test]
+    fn adaptive_rdc_to_ohm() {
+        assert_eq!(Max98390CalibData::adaptive_rdc_to_ohm(245), 3.5027344);
+        assert_eq!(Max98390CalibData::adaptive_rdc_to_ohm(551), 7.8775783);
     }
 }

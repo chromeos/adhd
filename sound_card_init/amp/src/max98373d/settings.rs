@@ -4,6 +4,7 @@
 use std::string::String;
 
 use crate::Result;
+use dsm::RDCRange;
 use serde::Deserialize;
 /// `DeviceSettings` includes the settings of max98373. It currently includes:
 /// * the settings of amplifier calibration.
@@ -22,6 +23,7 @@ pub struct AmpCalibSettings {
     // Path of the dsm_param.bin file.
     pub dsm_param: String,
     pub boot_time_calibration_enabled: bool,
+    pub rdc_ranges: Vec<RDCRange>,
 }
 
 impl AmpCalibSettings {

@@ -14,7 +14,7 @@ use {
     cros_alsa::{
         elem::Elem, Card, Control, ControlOps, Ctl, ElemId, SimpleEnumControl, SwitchControl,
     },
-    dsm::{CalibData, ZeroPlayer, DSM},
+    dsm::{CalibData, RDCRange, ZeroPlayer, DSM},
     log::info,
 };
 
@@ -176,6 +176,14 @@ impl Amp for CS35L41 {
             .get()?;
 
         Ok(CS35L41CalibData::rdc_to_ohm(rdc))
+    }
+
+    fn num_channels(&mut self) -> usize {
+        self.setting.num_channels()
+    }
+
+    fn rdc_ranges(&mut self) -> Vec<RDCRange> {
+        self.setting.rdc_ranges.clone()
     }
 }
 

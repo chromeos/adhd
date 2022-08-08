@@ -12,7 +12,7 @@ use std::fs;
 use std::path::Path;
 
 use cros_alsa::{Card, IntControl};
-use dsm::{CalibData, Error, DSM};
+use dsm::{CalibData, Error, RDCRange, DSM};
 use log::info;
 
 use crate::{Amp, Result};
@@ -101,6 +101,14 @@ impl Amp for ALC1011 {
                 .control_by_name::<IntControl>(&self.setting.controls[ch].rdc_ctrl)?
                 .get()?,
         ))
+    }
+
+    fn num_channels(&mut self) -> usize {
+        self.setting.num_channels()
+    }
+
+    fn rdc_ranges(&mut self) -> Vec<RDCRange> {
+        self.setting.rdc_ranges.clone()
     }
 }
 

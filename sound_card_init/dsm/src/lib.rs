@@ -16,12 +16,19 @@ use std::{
 
 use libcras::{CrasClient, CrasNodeType};
 use log::{error, info};
+use serde::{Deserialize, Serialize};
 
 use crate::datastore::Datastore;
 pub use crate::error::{Error, Result};
 use crate::utils::{run_time, shutdown_time};
 use crate::vpd::VPD;
 pub use crate::zero_player::ZeroPlayer;
+
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize, Clone, Copy)]
+pub struct RDCRange {
+    pub lower: f32,
+    pub upper: f32,
+}
 
 /// `CalibData` is the trait for the calibration data.
 pub trait CalibData: Send + fmt::Debug {

@@ -29,6 +29,10 @@ pub enum Error {
     Max98373Error(#[from] max98373d::Error),
     #[error(transparent)]
     Max98390Error(#[from] max98390d::Error),
+    #[error(transparent)]
+    SerdeJsonError(#[from] serde_json::Error),
+    #[error(transparent)]
+    SerdeYamlError(#[from] serde_yaml::Error),
     #[error("unsupported amp: {0}")]
     UnsupportedAmp(String),
 }

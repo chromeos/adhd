@@ -4,6 +4,7 @@
 use std::string::String;
 
 use crate::Result;
+use dsm::RDCRange;
 use serde::Deserialize;
 
 /// `DeviceSettings` includes the settings of cs35l41. It currently includes:
@@ -47,6 +48,7 @@ pub struct AmpCalibSettings {
     // Mixer control to get/set rdc value.
     pub controls: Vec<AmpCalibCtrl>,
     pub boot_time_calibration_enabled: bool,
+    pub rdc_ranges: Vec<RDCRange>,
 }
 
 impl AmpCalibSettings {

@@ -16,6 +16,7 @@ use serde::Serialize;
 
 use alc1011::ALC1011;
 use cs35l41::CS35L41;
+use dsm::RDCRange;
 use max98373d::Max98373;
 use max98390d::Max98390;
 
@@ -66,13 +67,15 @@ impl<'a> AmpBuilder<'a> {
     }
 }
 
-/// The speaker rdc calibration result applied to the amp.
-#[derive(Serialize)]
-pub struct AppliedRDC {
-    /// The channel index.
-    pub channel: usize,
-    /// The DC resistence in ohm.
-    pub rdc_in_ohm: f32,
+/// The Amp debug information.
+#[derive(Serialize, Default)]
+pub struct DebugInfo {
+    /// The rdc acceptant range (ohm).
+    pub rdc_acceptant_range: Vec<RDCRange>,
+    /// The speaker rdc calibration result applied to the amp (ohm).
+    pub applied_rdc: Vec<f32>,
+    /// The current speaker rdc estimated by the amp (ohm).
+    pub current_rdc: Option<Vec<f32>>,
 }
 
 /// It defines the required functions of amplifier objects.
@@ -81,4 +84,26 @@ pub trait Amp {
     fn boot_time_calibration(&mut self) -> Result<()>;
     /// Get the applied rdc value by channel index.
     fn get_applied_rdc(&mut self, ch: usize) -> Result<f32>;
+    /// Get the current rdc value by channel index.
+    fn get_current_rdc(&mut self, _ch: usize) -> Result<Option<f32>> {
+        Ok(None)
+    }
+    /// Get the number of channels.
+    fn num_channels(&mut self) -> usize;
+    /// Get the rdc acceptant range.
+    fn rdc_ranges(&mut self) -> Vec<RDCRange>;
+    /// Get the current rdc value by channel index.
+    fn get_debug_info(&mut self) -> Result<DebugInfo> {
+        Ok(DebugInfo {
+            rdc_acceptant_range: self.rdc_ranges(),
+            applied_rdc: (0..self.num_channels())
+                .map(|ch| self.get_applied_rdc(ch))
+                .collect::<Result<Vec<f32>>>()?,
+            current_rdc: (0..self.num_channels())
+                .map(|ch| self.get_current_rdc(ch))
+                .collect::<Result<Vec<Option<f32>>>>()?
+                .into_iter()
+                .collect::<Option<Vec<f32>>>(),
+        })
+    }
 }
