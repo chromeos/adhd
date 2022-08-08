@@ -1267,7 +1267,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	case BT_DEV_ADDED:
 		printf("%-30s a2dp %s and hfp %s with codec capability bitmask %u\n",
 		       "DEV_ADDED", data1 ? "supported" : "not supported",
-		       data2 ? "supported" : "not supported", data2 << 1);
+		       (data2 & 1) ? "supported" : "not supported", data2 >> 1);
 		break;
 	case BT_DEV_REMOVED:
 		printf("%-30s\n", "DEV_REMOVED");
