@@ -81,12 +81,13 @@ static int get_single_arg(DBusMessage *message, int dbus_type, void *arg)
 
 static int floss_media_block_until_started(struct fl_media *fm,
 					   const char *method_name,
-					   int num_retries, int sleep_time_us)
+					   const char *addr, int num_retries,
+					   int sleep_time_us)
 {
 	int rc = 0;
 	DBusMessage *method_call = NULL, *reply = NULL;
 	DBusError dbus_error;
-	dbus_bool_t started;
+	uint8_t started; /* started iff non-zero */
 
 	syslog(LOG_DEBUG, "%s: polling until started", method_name);
 
@@ -99,6 +100,12 @@ static int floss_media_block_until_started(struct fl_media *fm,
 		BT_SERVICE_NAME, fm->obj_path, BT_MEDIA_INTERFACE, method_name);
 	if (!method_call)
 		return -ENOMEM;
+
+	if (!dbus_message_append_args(method_call, DBUS_TYPE_STRING, &addr,
+				      DBUS_TYPE_INVALID)) {
+		dbus_message_unref(method_call);
+		return -ENOMEM;
+	}
 
 	for (int retry = 0; retry < num_retries; ++retry) {
 		dbus_error_init(&dbus_error);
@@ -120,7 +127,7 @@ static int floss_media_block_until_started(struct fl_media *fm,
 			goto cleanup;
 		}
 
-		if (get_single_arg(reply, DBUS_TYPE_BOOLEAN, &started) != 0) {
+		if (get_single_arg(reply, DBUS_TYPE_BYTE, &started) != 0) {
 			rc = -EIO;
 			goto cleanup;
 		}
@@ -128,8 +135,10 @@ static int floss_media_block_until_started(struct fl_media *fm,
 		dbus_message_unref(reply);
 		reply = NULL;
 
-		if (started)
+		if (started) {
+			rc = started;
 			goto cleanup;
+		}
 
 		usleep(sleep_time_us);
 	}
@@ -204,7 +213,7 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
 
 	dbus_message_unref(reply);
 
-	return floss_media_block_until_started(fm, "GetHfpAudioStarted",
+	return floss_media_block_until_started(fm, "GetHfpAudioStarted", addr,
 					       GET_HFP_AUDIO_STARTED_RETRIES,
 					       GET_HFP_AUDIO_STARTED_SLEEP_US);
 }
@@ -443,7 +452,7 @@ int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
 	return 0;
 }
 
-int floss_media_a2dp_start_audio_request(struct fl_media *fm)
+int floss_media_a2dp_start_audio_request(struct fl_media *fm, const char *addr)
 {
 	DBusMessage *method_call = NULL, *reply = NULL;
 	DBusError dbus_error;
@@ -484,7 +493,7 @@ int floss_media_a2dp_start_audio_request(struct fl_media *fm)
 
 	dbus_message_unref(reply);
 
-	return floss_media_block_until_started(fm, "GetA2dpAudioStarted",
+	return floss_media_block_until_started(fm, "GetA2dpAudioStarted", addr,
 					       GET_A2DP_AUDIO_STARTED_RETRIES,
 					       GET_A2DP_AUDIO_STARTED_SLEEP_US);
 }

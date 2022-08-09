@@ -453,10 +453,28 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 	return rc;
 }
 
-static int hfp_configure_dev(struct cras_iodev *iodev)
+static int hfp_open_dev(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
 	int rc;
+
+	rc = cras_floss_hfp_start(hfpio->hfp, hfp_socket_read_write_cb,
+				  iodev->direction);
+	if (rc < 0) {
+		syslog(LOG_ERR, "HFP failed to start");
+		return rc;
+	}
+
+	if (iodev->direction == CRAS_STREAM_INPUT &&
+	    !cras_floss_hfp_get_wbs_supported(hfpio->hfp))
+		iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+
+	return 0;
+}
+
+static int hfp_configure_dev(struct cras_iodev *iodev)
+{
+	struct fl_pcm_io *hfpio = (struct fl_pcm_io *)iodev;
 
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
@@ -474,14 +492,8 @@ static int hfp_configure_dev(struct cras_iodev *iodev)
 	/* As we directly write PCM here, there is no min buffer limitation. */
 	iodev->min_buffer_level = 0;
 
-	rc = cras_floss_hfp_start(hfpio->hfp, hfp_socket_read_write_cb,
-				  iodev->direction);
-	if (rc < 0) {
-		syslog(LOG_ERR, "HFP failed to start");
-		return rc;
-	}
-
 	hfpio->started = 1;
+
 	return 0;
 }
 
@@ -981,6 +993,7 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev *iodev,
 
 static void set_hfp_callbacks(struct cras_iodev *hfpio)
 {
+	hfpio->open_dev = hfp_open_dev;
 	hfpio->configure_dev = hfp_configure_dev;
 	hfpio->update_supported_formats = hfp_update_supported_formats;
 	hfpio->put_buffer = hfp_put_buffer;

@@ -502,7 +502,7 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 			      &channel_mode);
 	floss_media_a2dp_set_audio_config(a2dp->fm, sample_rate,
 					  bits_per_sample, channel_mode);
-	floss_media_a2dp_start_audio_request(a2dp->fm);
+	floss_media_a2dp_start_audio_request(a2dp->fm, a2dp->addr);
 
 	skt_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (skt_fd < 0) {

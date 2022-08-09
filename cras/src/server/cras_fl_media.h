@@ -63,6 +63,7 @@ int floss_media_stop(DBusConnection *conn);
 int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr);
 
 /* Calls StartScoCall to Floss media interface. */
+/* Returns codec inuse (CVSD=1, mSBC=2) on success. */
 int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr);
 
 /* Calls StopScoCall method to Floss media interface. */
@@ -91,7 +92,7 @@ int floss_media_a2dp_get_presentation_position(
 int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume);
 
 /* Calls StartAudioRequest method to Floss media interface. */
-int floss_media_a2dp_start_audio_request(struct fl_media *fm);
+int floss_media_a2dp_start_audio_request(struct fl_media *fm, const char *addr);
 
 /* Calls StopAudioRequest method to Floss media interface. */
 int floss_media_a2dp_stop_audio_request(struct fl_media *fm);

@@ -120,6 +120,21 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 	if (rc < 0)
 		return rc;
 
+	if ((rc != FL_CODEC_CVSD) && (rc != FL_CODEC_MSBC)) {
+		syslog(LOG_WARNING, "Unexpected SCO codec %d, fallback to CVSD",
+		       rc);
+		rc = FL_CODEC_CVSD;
+	}
+
+	int updated_wbs_supported = rc - 1;
+
+	if (hfp->wbs_supported != updated_wbs_supported) {
+		syslog(LOG_INFO,
+		       "Negotiated codec has changed from %cBS to %cBS",
+		       "NW"[hfp->wbs_supported], "NW"[updated_wbs_supported]);
+		hfp->wbs_supported = updated_wbs_supported;
+	}
+
 	skt_fd = socket(PF_UNIX, SOCK_STREAM | O_NONBLOCK, 0);
 	if (skt_fd < 0) {
 		syslog(LOG_ERR, "Create HFP socket failed with error %d",
