@@ -43,6 +43,14 @@ static int validate_bluetooth_device_address(const char *addr)
 	return 0;
 }
 
+static int validate_hfp_codec_capability(int32_t hfp_cap)
+{
+	if (0 <= hfp_cap && hfp_cap <= (FL_CODEC_CVSD | FL_CODEC_MSBC)) {
+		return 0;
+	}
+	return -EINVAL;
+}
+
 int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 				     const char *addr, const char *name,
 				     struct cras_fl_a2dp_codec_config *codecs,
@@ -52,6 +60,12 @@ int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 	if (rc) {
 		syslog(LOG_ERR, "Erroneous bluetooth device address match %d",
 		       rc);
+		return rc;
+	}
+
+	rc = validate_hfp_codec_capability(hfp_cap);
+	if (rc) {
+		syslog(LOG_ERR, "Invalid hfp_cap: %d", hfp_cap);
 		return rc;
 	}
 
