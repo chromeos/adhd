@@ -148,6 +148,12 @@ int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr)
 	return 0;
 }
 
+#if defined(HAVE_FUZZER)
+int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
+{
+	return 0;
+}
+#else
 int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
 {
 	DBusMessage *method_call, *reply;
@@ -197,6 +203,7 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
 
 	return 0;
 }
+#endif
 
 int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr)
 {
