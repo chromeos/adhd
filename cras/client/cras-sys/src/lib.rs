@@ -10,7 +10,8 @@ extern crate audio_streams;
 extern crate data_model;
 
 use std::cmp::min;
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::error;
 use std::fmt;
 use std::iter::FromIterator;
@@ -18,7 +19,10 @@ use std::os::raw::c_char;
 use std::str::FromStr;
 use std::time::Duration;
 
-use serde::{Serialize, Serializer};
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 
 /// Generated in build time.
 #[allow(dead_code)]
@@ -492,6 +496,18 @@ impl FromStr for CRAS_CLIENT_TYPE {
             "borealis" => Ok(CRAS_CLIENT_TYPE_BOREALIS),
             _ => Err(Error::InvalidClientTypeStr),
         }
+    }
+}
+
+/// Deserialize CRAS_CLIENT_TYPE for serde using from_str method
+pub fn deserialize_cras_client_type<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<CRAS_CLIENT_TYPE, D::Error> {
+    let s = String::deserialize(deserializer)?;
+
+    match s.parse() {
+        Ok(client_type) => Ok(client_type),
+        Err(e) => Err(serde::de::Error::custom(e.to_string())),
     }
 }
 
