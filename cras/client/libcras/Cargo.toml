@@ -16,6 +16,7 @@ cras-sys = { path = "../cras-sys" } # provided by ebuild
 data_model = { path = "../../../../../platform/crosvm/common/data_model" } # provided by ebuild
 sys_util = { path = "../../../../../platform/crosvm/common/sys_util" } # provided by ebuild
 anyhow = "1.0"
+serde = "1.0.125"
 
 [dependencies.futures]
 version = "*"

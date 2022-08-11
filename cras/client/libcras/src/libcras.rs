@@ -143,7 +143,8 @@ pub use cras_sys::gen::{
     CRAS_SCREEN_ROTATION as CrasScreenRotation, CRAS_STREAM_EFFECT as CrasStreamEffect,
 };
 pub use cras_sys::{
-    AudioDebugInfo, CrasIodevInfo, CrasIodevNodeId, CrasIonodeInfo, Error as CrasSysError,
+    deserialize_cras_client_type, AudioDebugInfo, CrasIodevInfo, CrasIodevNodeId, CrasIonodeInfo,
+    Error as CrasSysError,
 };
 
 use sys_util::{PollContext, PollToken};
