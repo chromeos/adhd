@@ -636,9 +636,10 @@ struct cras_fmt_conv *cras_fmt_conv_create(const struct cras_audio_format *in,
 	/* Need num_converters-1 temp buffers, the final converter renders
 	 * directly into the output. */
 	for (i = 0; i < conv->num_converters - 1; i++) {
-		conv->tmp_bufs[i] = malloc(
+		conv->tmp_bufs[i] = calloc(
 			max_frames * 4 * /* width in bytes largest format. */
-			MAX(in->num_channels, out->num_channels));
+				MAX(in->num_channels, out->num_channels),
+			sizeof(**conv->tmp_bufs));
 		if (conv->tmp_bufs[i] == NULL) {
 			cras_fmt_conv_destroy(&conv);
 			return NULL;
