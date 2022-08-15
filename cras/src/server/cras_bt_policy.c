@@ -128,6 +128,8 @@ static void switch_profile(struct bt_io_manager *mgr)
 		cras_iodev_list_suspend_dev(iodev->info.idx);
 	}
 
+	mgr->is_profile_switching = false;
+
 	for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
 		iodev = mgr->bt_iodevs[dir];
 		if (!iodev)
@@ -288,6 +290,8 @@ int cras_bt_policy_switch_profile(struct bt_io_manager *mgr)
 {
 	struct bt_policy_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
+
+	mgr->is_profile_switching = true;
 
 	init_bt_profile_switch_msg(&msg, mgr);
 

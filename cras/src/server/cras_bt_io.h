@@ -19,10 +19,13 @@ struct cras_iodev;
  *    active_btflag - The flag to indicate the active BT profile, A2DP or HFP
  *        the underlying BT device is currently using. It can also be set to
  *        none.
+ *    is_profile_switching - The flag to indicate that there is a pending
+ *        profile-switch event, and make sure no btio be opened in between.
  */
 struct bt_io_manager {
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
 	enum CRAS_BT_FLAGS active_btflag;
+	bool is_profile_switching;
 	struct bt_io_manager *prev, *next;
 };
 

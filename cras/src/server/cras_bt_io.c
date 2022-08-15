@@ -184,6 +184,10 @@ static int open_dev(struct cras_iodev *iodev)
 		return -EAGAIN;
 	}
 
+	/* Make sure not to open when there is a pending profile-switch event. */
+	if (btio->mgr->is_profile_switching)
+		return -EAGAIN;
+
 	if (dev && dev->open_dev) {
 		rc = dev->open_dev(dev);
 		if (rc == 0)
