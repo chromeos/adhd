@@ -24,6 +24,7 @@ exit: 1
 exit_group: 1
 fcntl: 1
 fstat: 1
+fstatfs: 1
 futex: 1
 getcwd: 1
 getdents: 1
