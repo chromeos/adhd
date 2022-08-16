@@ -53,3 +53,4 @@ statx: 1
 ugetrlimit: 1
 uname: 1
 write: 1
+gettid: 1
