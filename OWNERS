@@ -6,3 +6,6 @@ hychao@google.com
 paulhsia@google.com
 yuhsuan@google.com
 eddyhsu@google.com
+
+# For seccomp
+per-file .../*.policy = file:chromiumos/overlays/chromiumos-overlay:/OWNERS.security
