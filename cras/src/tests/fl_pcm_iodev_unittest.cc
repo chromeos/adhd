@@ -53,6 +53,7 @@ static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
 static int cras_floss_a2dp_fill_format_called;
 static int cras_floss_hfp_fill_format_called;
+static int cras_floss_hfp_reconnect_called;
 
 void ResetStubData() {
   cras_iodev_add_node_called = 0;
@@ -82,6 +83,7 @@ void ResetStubData() {
   audio_thread_config_events_callback_trigger = TRIGGER_NONE;
   cras_floss_a2dp_fill_format_called = 0;
   cras_floss_hfp_fill_format_called = 0;
+  cras_floss_hfp_reconnect_called = 0;
   if (!mock_audio_area) {
     mock_audio_area = (cras_audio_area*)calloc(
         1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
@@ -404,7 +406,6 @@ TEST_F(PcmIodev, TestHfpCb) {
 
   pcm_odev->started = pcm_idev->started = 1;
 
-  EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
   EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLERR));
 
   /* Output device should try to write the same number of bytes as input device
@@ -418,6 +419,12 @@ TEST_F(PcmIodev, TestHfpCb) {
   EXPECT_EQ(50, buf_readable(pcm_odev->pcm_buf));
   rc = recv(sock[0], buf, 200, 0);
   EXPECT_EQ(100, rc);
+
+  /* After POLLHUP, there should be a reconnect, and cb should be removed. */
+  EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
+  EXPECT_EQ(NULL, write_callback);
+  EXPECT_EQ(NULL, write_callback_data);
+  EXPECT_EQ(1, cras_floss_hfp_reconnect_called);
 }
 }  // namespace
 
@@ -524,6 +531,11 @@ int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
   return 0;
 }
 
+void audio_thread_rm_callback(int fd) {
+  write_callback = NULL;
+  write_callback_data = NULL;
+}
+
 // A2DP manager
 const char* cras_floss_a2dp_get_display_name(struct cras_a2dp* a2dp) {
   return "display_name";
@@ -621,6 +633,10 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
 
 void cras_floss_hfp_set_volume(struct cras_hfp* hfp, unsigned int volume) {
   return;
+}
+
+void cras_floss_hfp_reconnect(struct cras_hfp* hfp) {
+  cras_floss_hfp_reconnect_called++;
 }
 
 int cras_audio_thread_event_a2dp_throttle() {

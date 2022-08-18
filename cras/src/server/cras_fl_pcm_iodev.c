@@ -417,6 +417,9 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 	idev = (struct fl_pcm_io *)cras_floss_hfp_get_input_iodev(hfp);
 	odev = (struct fl_pcm_io *)cras_floss_hfp_get_output_iodev(hfp);
 
+	if (!idev->started && !odev->started)
+		return 0;
+
 	/* Allow last read before handling error or hang-up events. */
 	if (revents & POLLIN) {
 		rc = hfp_read(idev);
@@ -426,6 +429,14 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 	if (revents & (POLLERR | POLLHUP)) {
 		syslog(LOG_ERR, "Error polling SCO socket, revents %d",
 		       revents);
+		if (revents & POLLHUP) {
+			syslog(LOG_INFO, "Received POLLHUP, reconnecting HFP.");
+			idev->started = 0;
+			odev->started = 0;
+			/* Leave hfp->fd for hfp_manager to cleanup. */
+			audio_thread_rm_callback(cras_floss_hfp_get_fd(hfp));
+			cras_floss_hfp_reconnect(hfp);
+		}
 		return -1;
 	}
 

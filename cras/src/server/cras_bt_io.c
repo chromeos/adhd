@@ -297,10 +297,15 @@ static int close_dev(struct cras_iodev *iodev)
 		return -EINVAL;
 
 	/* If input iodev is in open state and being closed, switch profile
-	 * from HFP to A2DP. */
+	 * from HFP to A2DP.
+	 * However, don't switch to A2DP if a profile-switch event is being queued,
+	 * which could be a special case where we want to simply restart an
+	 * existing HFP connection.
+	 */
 	if (cras_iodev_is_open(iodev) &&
 	    btio->mgr->active_btflag == CRAS_BT_FLAG_HFP &&
-	    iodev->direction == CRAS_STREAM_INPUT)
+	    iodev->direction == CRAS_STREAM_INPUT &&
+	    !btio->mgr->is_profile_switching)
 		possibly_switch_to_a2dp(btio->mgr);
 
 	rc = dev->close_dev(dev);

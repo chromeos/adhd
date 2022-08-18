@@ -18,10 +18,12 @@
 #include "audio_thread.h"
 #include "cras_audio_format.h"
 #include "cras_bt_log.h"
+#include "cras_bt_policy.h"
 #include "cras_config.h"
 #include "cras_hfp_manager.h"
 #include "cras_iodev_list.h"
 #include "cras_fl_media.h"
+#include "cras_fl_media_adapter.h"
 #include "cras_fl_pcm_iodev.h"
 
 #define CRAS_HFP_SOCKET_FILE ".hfp"
@@ -188,6 +190,11 @@ int cras_floss_hfp_stop(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir)
 	hfp->fd = -1;
 
 	return floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
+}
+
+void cras_floss_hfp_reconnect(struct cras_hfp *hfp)
+{
+	cras_bt_policy_switch_profile(hfp->fm->bt_io_mgr);
 }
 
 int cras_floss_hfp_get_fd(struct cras_hfp *hfp)
