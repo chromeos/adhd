@@ -937,3 +937,8 @@ int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device *device,
 	dbus_message_unref(method_call);
 	return 0;
 }
+
+void cras_bt_device_hfp_reconnect(struct cras_bt_device *device)
+{
+	cras_bt_policy_switch_profile(device->bt_io_mgr);
+}

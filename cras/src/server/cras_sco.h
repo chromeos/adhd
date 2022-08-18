@@ -7,6 +7,7 @@
 #define CRAS_SCO_H_
 
 #include "cras_audio_format.h"
+#include "cras_bt_device.h"
 #include "cras_sr_bt_util.h"
 #include "cras_types.h"
 
@@ -25,8 +26,11 @@ struct cras_sco_packet_size_changed_callback {
 struct cras_sco;
 
 /* Creates an cras_sco instance.
+ *
+ * Args:
+ *    device - The associated bt device.
  */
-struct cras_sco *cras_sco_create();
+struct cras_sco *cras_sco_create(struct cras_bt_device *device);
 
 /* Enables the cras_sr model.
  * This function will try to init the related fields for cras_sr.

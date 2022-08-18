@@ -314,7 +314,7 @@ int cras_hfp_ag_start(struct cras_bt_device *device)
 	if (ag->idev)
 		return 0;
 
-	ag->sco = cras_sco_create();
+	ag->sco = cras_sco_create(device);
 
 	sco_pcm_supported = is_sco_pcm_supported();
 	ag->sco_pcm_used = sco_pcm_supported && is_sco_pcm_used();

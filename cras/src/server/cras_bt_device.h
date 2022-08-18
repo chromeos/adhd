@@ -259,4 +259,11 @@ int cras_bt_device_sco_handle(int sco_socket);
  */
 int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device *device,
 						bool status, int sco_handle);
+
+/*
+ * Restart HFP, only used for handling POLLHUP in an existing connection.
+ * Args:
+ *   device - The bluetooth device.
+ */
+void cras_bt_device_hfp_reconnect(struct cras_bt_device *device);
 #endif /* CRAS_BT_DEVICE_H_ */

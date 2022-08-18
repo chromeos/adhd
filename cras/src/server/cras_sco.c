@@ -12,6 +12,7 @@
 #include "audio_thread.h"
 #include "bluetooth.h"
 #include "byte_buffer.h"
+#include "cras_bt_device.h"
 #include "cras_hfp_slc.h"
 #include "cras_iodev_list.h"
 #include "cras_plc.h"
@@ -101,6 +102,7 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
  *     sr_buf - The buffer for saving the input to the sr.
  *     sr - The sr instance.
  *     is_cras_sr_bt_enabled - Indicates whether cras_sr is enabled.
+ *     device - The associated bt device.
  */
 struct cras_sco {
 	int fd;
@@ -131,6 +133,7 @@ struct cras_sco {
 	struct byte_buffer *sr_buf;
 	struct cras_sr *sr;
 	bool is_cras_sr_bt_enabled;
+	struct cras_bt_device *device;
 };
 
 static size_t wbs_get_supported_packet_size(size_t packet_size,
@@ -759,6 +762,12 @@ static int cras_sco_callback(void *arg, int revents)
 
 	if (revents & (POLLERR | POLLHUP)) {
 		syslog(LOG_ERR, "Error polling SCO socket, revent %d", revents);
+		if (revents & POLLHUP) {
+			syslog(LOG_INFO, "Received POLLHUP, reconnecting HFP.");
+			audio_thread_rm_callback(sco->fd);
+			cras_bt_device_hfp_reconnect(sco->device);
+			return 0;
+		}
 		goto read_write_error;
 	}
 
@@ -791,7 +800,7 @@ read_write_error:
 	return 0;
 }
 
-struct cras_sco *cras_sco_create()
+struct cras_sco *cras_sco_create(struct cras_bt_device *device)
 {
 	struct cras_sco *sco;
 	sco = (struct cras_sco *)calloc(1, sizeof(*sco));
@@ -806,6 +815,7 @@ struct cras_sco *cras_sco_create()
 	if (!sco->playback_buf)
 		goto error;
 	sco->fd = -1;
+	sco->device = device;
 
 	return sco;
 

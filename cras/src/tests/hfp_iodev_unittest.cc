@@ -419,6 +419,8 @@ int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device* device,
   return 0;
 }
 
+void cras_bt_device_hfp_reconnect(struct cras_bt_device* device) {}
+
 // From cras_cras_sco*
 int cras_sco_add_iodev(struct cras_sco* sco,
                        enum CRAS_STREAM_DIRECTION direction,

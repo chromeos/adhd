@@ -496,7 +496,8 @@ DBUS_TESTS = \
 	hfp_alsa_iodev_unittest \
 	hfp_ag_profile_unittest \
 	hfp_manager_unittest \
-	hfp_slc_unittest
+	hfp_slc_unittest \
+	cras_sco_unittest
 else
 DBUS_TESTS =
 endif
@@ -560,7 +561,6 @@ TESTS = \
 	float_buffer_unittest \
 	fmt_conv_unittest \
 	fmt_conv_ops_unittest \
-	cras_sco_unittest \
 	buffer_share_unittest \
 	input_data_unittest \
 	iodev_list_unittest \
@@ -1050,12 +1050,14 @@ fmt_conv_ops_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 fmt_conv_ops_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
 
+if HAVE_DBUS
 cras_sco_unittest_SOURCES = tests/cras_sco_unittest.cc \
 	tests/metrics_stub.cc tests/sbc_codec_stub.cc common/cras_string.c \
 	tests/sr_stub.cc tests/sr_bt_util_stub.cc
 cras_sco_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/plc
-cras_sco_unittest_LDADD = -lgtest -lpthread
+	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/plc $(DBUS_CFLAGS)
+cras_sco_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+endif
 
 if HAVE_DBUS
 hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \

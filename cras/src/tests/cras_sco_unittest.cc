@@ -13,6 +13,7 @@ using testing::internal::CaptureStdout;
 using testing::internal::GetCapturedStdout;
 
 extern "C" {
+#include "cras_bt_policy.h"
 #include "cras_sco.c"
 #include "sbc_codec_stub.h"
 #include "sr_bt_util_stub.h"
@@ -30,6 +31,8 @@ static thread_callback thread_cb;
 static void* cb_data;
 static timespec ts;
 
+static struct cras_bt_device* fake_device;
+
 void ResetStubData() {
   sbc_codec_stub_reset();
   cras_msbc_plc_create_called = 0;
@@ -40,6 +43,8 @@ void ResetStubData() {
   format.num_channels = 1;
   format.frame_rate = 8000;
   dev.format = &format;
+
+  fake_device = reinterpret_cast<struct cras_bt_device*>(0x123);
 }
 
 namespace {
@@ -47,7 +52,7 @@ namespace {
 TEST(CrasSco, AddRmDev) {
   ResetStubData();
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
   dev.direction = CRAS_STREAM_OUTPUT;
 
@@ -65,7 +70,7 @@ TEST(CrasSco, AddRmDev) {
 TEST(CrasSco, AddRmDevInvalid) {
   ResetStubData();
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
   dev.direction = CRAS_STREAM_OUTPUT;
@@ -89,7 +94,7 @@ TEST(CrasSco, AcquirePlaybackBuffer) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
   cras_sco_set_fd(sco, sock[1]);
@@ -142,7 +147,7 @@ TEST(CrasSco, AcquireCaptureBuffer) {
   ResetStubData();
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
   cras_sco_set_fd(sco, sock[1]);
@@ -193,7 +198,7 @@ TEST(CrasSco, HfpReadWriteFD) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
   dev.direction = CRAS_STREAM_INPUT;
@@ -246,7 +251,7 @@ TEST(CrasSco, StartCrasSco) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
   cras_sco_set_fd(sco, sock[0]);
@@ -271,7 +276,7 @@ TEST(CrasSco, StartCrasScoAndRead) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
   /* Start and send two chunk of fake data */
@@ -318,7 +323,7 @@ TEST(CrasSco, StartCrasScoAndWrite) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
   cras_sco_set_fd(sco, sock[1]);
@@ -405,7 +410,7 @@ TEST(CrasSco, StartCrasScoAndReadMsbc) {
 
   set_sbc_codec_decoded_out(MSBC_CODE_SIZE);
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
   ASSERT_EQ(0, get_msbc_codec_create_called());
   ASSERT_EQ(0, cras_msbc_plc_create_called);
@@ -511,7 +516,7 @@ TEST_F(CrasScoWithSrBtTestSuite, StartCrasScoAndRead) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
   ASSERT_EQ(cras_sco_enable_cras_sr_bt(sco, SR_BT_NBS), 0);
 
@@ -561,7 +566,7 @@ TEST_F(CrasScoWithSrBtTestSuite, StartCrasScoAndReadMsbc) {
 
   set_sbc_codec_decoded_out(MSBC_CODE_SIZE);
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
   ASSERT_EQ(0, get_msbc_codec_create_called());
   ASSERT_EQ(0, cras_msbc_plc_create_called);
@@ -662,7 +667,7 @@ TEST(CrasSco, StartCrasScoAndWriteMsbc) {
   set_sbc_codec_encoded_out(57);
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
 
-  sco = cras_sco_create();
+  sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
   cras_sco_set_fd(sco, sock[1]);
@@ -737,6 +742,8 @@ int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd) {
 }
 
 void audio_thread_rm_callback(int fd) {}
+
+void cras_bt_device_hfp_reconnect(struct cras_bt_device* device) {}
 
 struct cras_msbc_plc* cras_msbc_plc_create() {
   cras_msbc_plc_create_called++;
