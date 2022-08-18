@@ -469,16 +469,6 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		cras_iodev_list_add_test_dev(m->type);
 		break;
 	}
-	case CRAS_SERVER_TEST_DEV_COMMAND: {
-		const struct cras_test_dev_command *m =
-			(const struct cras_test_dev_command *)msg;
-		if (!MSG_LEN_VALID(msg, struct cras_test_dev_command))
-			return -EINVAL;
-		cras_iodev_list_test_dev_command(
-			m->iodev_idx, (enum CRAS_TEST_IODEV_CMD)m->command,
-			m->data_len, m->data);
-		break;
-	}
 	case CRAS_SERVER_SUSPEND:
 		cras_system_set_suspended(1);
 		break;
