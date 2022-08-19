@@ -171,7 +171,7 @@ BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {
 
   uint8_t* buffer;
   int rc = 0;
-  snd_pcm_uframes_t offset, frames;
+  snd_pcm_uframes_t offset, frames = 4096;
 
   rc = cras_alsa_pcm_open(&handle, pcm_name.c_str(), SND_PCM_STREAM_PLAYBACK);
   if (rc < 0) {
@@ -195,15 +195,26 @@ BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {
     return;
   }
 
-  int_samples = gen_s16_le_samples(buffer_frames * channels, engine);
-  int n_bytes = buffer_frames * channels * format_bytes;
+  int_samples = gen_s16_le_samples(frames * channels, engine);
+  int n_bytes = frames * channels * format_bytes;
   memcpy(buffer, int_samples.data(), n_bytes);
 
-  std::uniform_real_distribution<double> distribution(0.5, 2);
+  std::uniform_real_distribution<double> distribution(0.0000001, 0.9999999);
+  double scale = distribution(engine);
+
+  double max_elapsed_seconds = 0.0;
   for (auto _ : state) {
-    double scale = distribution(engine);
+    auto start = std::chrono::high_resolution_clock::now();
     mixer_ops.scale_buffer(SND_PCM_FORMAT_S16_LE, buffer,
-                           buffer_frames * channels, scale);
+                        frames * channels, scale);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds =
+      std::chrono::duration_cast<std::chrono::duration<double>>(
+        end - start);
+
+    state.SetIterationTime(elapsed_seconds.count());
+    max_elapsed_seconds = fmax(max_elapsed_seconds, elapsed_seconds.count());
   }
 
   memset(buffer, 0, n_bytes);
@@ -211,13 +222,21 @@ BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {
   cras_alsa_pcm_close(handle);
 
   state.counters["frames_per_second"] = benchmark::Counter(
-      int64_t(state.iterations()) * buffer_frames, benchmark::Counter::kIsRate);
+      int64_t(state.iterations()) * frames, benchmark::Counter::kIsRate);
+
+  state.counters["time_per_4096_frames"] = benchmark::Counter(
+        int64_t(state.iterations()), benchmark::Counter::kIsRate |
+        benchmark::Counter::kInvert);
+
+  state.counters["max_time_per_4096_frames"] = max_elapsed_seconds;
 }
 
 BENCHMARK_REGISTER_F(BM_Alsa, MmapBufferAccess)
-    ->Name("BM_Alsa/MmapBufferAccess/Speaker")
-    ->Arg(0);
+  ->Name("BM_Alsa/MmapBufferAccess/Speaker")
+  ->UseManualTime()
+  ->Arg(0);
 BENCHMARK_REGISTER_F(BM_Alsa, MmapBufferAccess)
-    ->Name("BM_Alsa/MmapBufferAccess/Headphone")
-    ->Arg(1);
+  ->Name("BM_Alsa/MmapBufferAccess/Headphone")
+  ->UseManualTime()
+  ->Arg(1);
 }  // namespace

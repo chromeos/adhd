@@ -20,7 +20,7 @@ static void BM_CrasMixerOpsScaleBuffer(benchmark::State& state) {
   std::random_device rnd_device;
   std::mt19937 engine{rnd_device()};
   std::vector<int16_t> samples = gen_s16_le_samples(state.range(0), engine);
-  std::uniform_real_distribution<double> distribution(0.5, 2);
+  std::uniform_real_distribution<double> distribution(0.0000001, 0.9999999);
   for (auto _ : state) {
     double scale = distribution(engine);
     mixer_ops.scale_buffer(SND_PCM_FORMAT_S16_LE, (uint8_t*)(samples.data()),
