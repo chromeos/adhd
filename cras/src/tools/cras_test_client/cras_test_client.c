@@ -2019,7 +2019,6 @@ static struct option long_options[] = {
 	{"swap_left_right",     required_argument,      0, '3'},
 	{"version",             no_argument,            0, '4'},
 	{"add_test_dev",        required_argument,      0, '5'},
-	{"test_hotword_file",   required_argument,      0, '6'},
 	{"listen_for_hotword",  required_argument,      0, '7'},
 	{"pin_device",          required_argument,      0, '8'},
 	{"suspend",             required_argument,      0, '9'},
@@ -2446,28 +2445,6 @@ int main(int argc, char **argv)
 			break;
 		case '5': {
 			cras_client_add_test_iodev(client, atoi(optarg));
-			break;
-		}
-		case '6': {
-			const char *s;
-			int dev_index;
-
-			s = strtok(optarg, ":");
-			if (!s) {
-				show_usage();
-				return -EINVAL;
-			}
-			dev_index = atoi(s);
-
-			const char *file_name = strtok(NULL, ":");
-			if (!file_name) {
-				show_usage();
-				return -EINVAL;
-			}
-			cras_client_test_iodev_command(
-				client, dev_index,
-				TEST_IODEV_CMD_HOTWORD_TRIGGER,
-				strlen(file_name) + 1, (uint8_t *)file_name);
 			break;
 		}
 		case '7': {
