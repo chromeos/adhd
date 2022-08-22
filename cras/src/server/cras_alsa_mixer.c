@@ -783,10 +783,7 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 	};
 	/* Names of controls for individual outputs. */
 	static const char *const output_names[] = {
-		"Headphone",
-		"Headset",
-		"HDMI",
-		"Speaker",
+		"Headphone", "Headset", "Headset Earphone", "HDMI", "Speaker",
 	};
 	/* Names of controls for capture gain/attenuation and mute. */
 	static const char *const main_capture_names[] = {
