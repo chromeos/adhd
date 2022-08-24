@@ -114,7 +114,11 @@ TEST_F(BtPolicyTestSuite, SwitchProfile) {
   EXPECT_EQ(0, cras_iodev_list_suspend_dev_called);
   init_bt_profile_switch_msg(&msg, &bt_io_mgr);
 
+  bt_io_mgr.is_profile_switching = true;
+
   process_bt_policy_msg(&msg.header, NULL);
+
+  EXPECT_EQ(false, bt_io_mgr.is_profile_switching);
 
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(1, cras_iodev_list_resume_dev_called);

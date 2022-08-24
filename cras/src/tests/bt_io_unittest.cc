@@ -268,6 +268,42 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnOpenDevForInputDevAlreadyOnHfp) {
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
 }
 
+TEST_F(BtIoBasicSuite, HfpOpenDevWhileProfileSwitchEventQueued) {
+  struct cras_iodev* bt_iodev;
+  ResetStubData();
+  iodev_.direction = CRAS_STREAM_INPUT;
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
+
+  bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
+  bt_io_mgr->active_btflag = CRAS_BT_FLAG_HFP;
+
+  bt_io_mgr->is_profile_switching = true;
+  EXPECT_EQ(-EAGAIN, bt_iodev->open_dev(bt_iodev));
+
+  EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
+  bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
+}
+
+TEST_F(BtIoBasicSuite, HfpCloseDevWhileProfileSwitchEventQueued) {
+  struct cras_iodev* bt_iodev;
+  ResetStubData();
+  iodev_.direction = CRAS_STREAM_INPUT;
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
+
+  bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_INPUT];
+  bt_iodev->state = CRAS_IODEV_STATE_OPEN;
+  bt_io_mgr->active_btflag = CRAS_BT_FLAG_HFP;
+
+  bt_io_mgr->is_profile_switching = true;
+  bt_iodev->close_dev(bt_iodev);
+
+  EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
+  EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
+  bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
+}
+
 TEST_F(BtIoBasicSuite, SwitchProfileOnCloseInputDev) {
   struct cras_iodev* bt_iodev;
   ResetStubData();
