@@ -13,6 +13,7 @@
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "sfh.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 #define DEFAULT_BT_DEVICE_NAME "BLUETOOTH"
@@ -75,7 +76,7 @@ static struct cras_ionode *add_profile_dev(struct cras_iodev *bt_iodev,
 	n->base.capture_gain = 0;
 	gettimeofday(&n->base.plugged_time, NULL);
 
-	strcpy(n->base.name, dev->info.name);
+	strlcpy(n->base.name, dev->info.name, sizeof(n->base.name));
 	n->profile_dev = dev;
 
 	cras_iodev_add_node(bt_iodev, &n->base);
@@ -565,7 +566,7 @@ static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 
 	iodev = &btio->base;
 	iodev->direction = dev->direction;
-	strcpy(iodev->info.name, dev->info.name);
+	strlcpy(iodev->info.name, dev->info.name, sizeof(iodev->info.name));
 	iodev->info.stable_id = dev->info.stable_id;
 
 	iodev->open_dev = open_dev;
@@ -616,10 +617,11 @@ static struct cras_iodev *bt_io_create(struct bt_io_manager *mgr,
 
 	active->base.btflags = dev->active_node->btflags;
 	active->profile_dev = dev;
-	strcpy(active->base.name, dev->info.name);
+	strlcpy(active->base.name, dev->info.name, sizeof(active->base.name));
 	/* The node name exposed to UI should be a valid UTF8 string. */
 	if (!is_utf8_string(active->base.name))
-		strcpy(active->base.name, DEFAULT_BT_DEVICE_NAME);
+		strlcpy(active->base.name, DEFAULT_BT_DEVICE_NAME,
+			sizeof(active->base.name));
 	cras_iodev_add_node(iodev, &active->base);
 
 	node = add_profile_dev(&btio->base, dev);

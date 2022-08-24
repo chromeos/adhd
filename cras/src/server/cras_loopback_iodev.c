@@ -16,6 +16,7 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "sfh.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 #define LOOPBACK_BUFFER_SIZE 8192
@@ -364,7 +365,7 @@ struct cras_iodev *loopback_iodev_create(enum CRAS_LOOPBACK_TYPE type)
 	node->ui_gain_scaler = 1.0f;
 	node->stable_id = iodev->info.stable_id;
 	node->software_volume_needed = 0;
-	strcpy(node->name, loopdev_names[type]);
+	strlcpy(node->name, loopdev_names[type], sizeof(node->name));
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
 

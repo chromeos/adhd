@@ -28,6 +28,7 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "cras_version.h"
+#include "strlcpy.h"
 
 #define NOT_ASSIGNED (0)
 #define PLAYBACK_BUFFERED_TIME_IN_US (5000)
@@ -434,7 +435,8 @@ static void print_node_info(struct cras_client *client,
 		if (is_input) {
 			// Print "X" as don't-care for input nodes because
 			// cras_client_get_max_supported_channels() is only valid for outputs.
-			strcpy(max_channels_str, "     X");
+			strlcpy(max_channels_str, "     X",
+				sizeof(max_channels_str));
 		} else {
 			uint32_t max_channels;
 			int rc = cras_client_get_max_supported_channels(

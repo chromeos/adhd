@@ -11,6 +11,7 @@
 
 #include "cras_alsa_ucm.h"
 #include "cras_util.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 static const char jack_control_var[] = "JackControl";
@@ -1054,6 +1055,7 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 	char *models = NULL;
 	const char *model_name;
 	char *identifier;
+	size_t buf_size;
 
 	identifier = snd_use_case_identifier("_modifiers/%s", uc_verb(mgr));
 	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
@@ -1062,8 +1064,8 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 	if (num_entries <= 0)
 		return 0;
 
-	models = (char *)malloc(num_entries *
-				(CRAS_MAX_HOTWORD_MODEL_NAME_SIZE + 1));
+	buf_size = num_entries * (CRAS_MAX_HOTWORD_MODEL_NAME_SIZE + 1);
+	models = (char *)malloc(buf_size);
 
 	for (i = 0; i < num_entries; i += 2) {
 		if (!list[i])
@@ -1088,7 +1090,7 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 		if (models_len != 0)
 			models[models_len++] = ',';
 
-		strcpy(models + models_len, model_name);
+		strlcpy(models + models_len, model_name, buf_size - models_len);
 		models_len += strlen(model_name);
 	}
 	models[models_len++] = 0;

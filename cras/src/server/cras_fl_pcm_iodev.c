@@ -881,7 +881,7 @@ struct fl_pcm_io *pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	/* Create an empty ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
-	strcpy(node->name, iodev->info.name);
+	strlcpy(node->name, iodev->info.name, sizeof(node->name));
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
 	node->volume = 100;
 	gettimeofday(&node->plugged_time, NULL);

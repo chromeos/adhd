@@ -13,6 +13,7 @@
 #include "cras_iodev_list.h"
 #include "cras_rstream.h"
 #include "cras_types.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 #define EMPTY_BUFFER_SIZE (32 * 1024)
@@ -207,7 +208,7 @@ struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 	node->type = node_type;
 	node->volume = 100;
 	node->ui_gain_scaler = 1.0f;
-	strcpy(node->name, "(default)");
+	strlcpy(node->name, "(default)", sizeof(node->name));
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
 

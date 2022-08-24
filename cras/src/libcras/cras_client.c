@@ -617,7 +617,7 @@ static int wait_for_writable_next_action(struct cras_client *client,
 
 	memset(&address, 0, sizeof(struct sockaddr_un));
 	address.sun_family = AF_UNIX;
-	strcpy(address.sun_path, client->sock_file);
+	strlcpy(address.sun_path, client->sock_file, sizeof(address.sun_path));
 	rc = connect(client->server_fd, (struct sockaddr *)&address,
 		     sizeof(struct sockaddr_un));
 	if (rc != 0) {

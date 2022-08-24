@@ -19,6 +19,7 @@
 #include "cras_sr_bt_util.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 /* Implementation of bluetooth hands-free profile iodev.
@@ -365,7 +366,7 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
-	strcpy(node->name, iodev->info.name);
+	strlcpy(node->name, iodev->info.name, sizeof(node->name));
 
 	node->plugged = 1;
 	/* If headset mic doesn't support the wideband speech, report a

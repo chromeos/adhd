@@ -14,6 +14,7 @@
 #include "cras_bt_player.h"
 #include "cras_dbus_util.h"
 #include "cras_utf8.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 static void cras_bt_on_player_registered(DBusPendingCall *pending_call,
@@ -207,8 +208,10 @@ static void cras_bt_player_init()
 	player.playback_status = malloc(CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX);
 	player.identity = malloc(CRAS_PLAYER_IDENTITY_SIZE_MAX);
 
-	strcpy(player.playback_status, CRAS_PLAYER_PLAYBACK_STATUS_DEFAULT);
-	strcpy(player.identity, CRAS_PLAYER_IDENTITY_DEFAULT);
+	strlcpy(player.playback_status, CRAS_PLAYER_PLAYBACK_STATUS_DEFAULT,
+		CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX);
+	strlcpy(player.identity, CRAS_PLAYER_IDENTITY_DEFAULT,
+		CRAS_PLAYER_IDENTITY_SIZE_MAX);
 	player.position = 0;
 
 	player.metadata = cras_bt_player_metadata_init();
@@ -373,7 +376,8 @@ int cras_bt_player_update_playback_status(DBusConnection *conn,
 	if (!strcasecmp(player.playback_status, status))
 		return 0;
 
-	strcpy(player.playback_status, status);
+	strlcpy(player.playback_status, status,
+		CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX);
 
 	msg = dbus_message_new_signal(CRAS_DEFAULT_PLAYER,
 				      DBUS_INTERFACE_PROPERTIES,

@@ -17,6 +17,7 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "test_iodev.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 #define TEST_BUFFER_SIZE (16 * 1024)
@@ -212,7 +213,7 @@ struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 	node->volume = 100;
 	node->software_volume_needed = 0;
 	node->ui_gain_scaler = 1.0f;
-	strcpy(node->name, "(default)");
+	strlcpy(node->name, "(default)", sizeof(node->name));
 	cras_iodev_add_node(iodev, node);
 	cras_iodev_set_active_node(iodev, node);
 

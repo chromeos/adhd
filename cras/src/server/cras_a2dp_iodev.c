@@ -27,6 +27,7 @@
 #include "cras_server_metrics.h"
 #include "cras_util.h"
 #include "rtp.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
@@ -778,7 +779,7 @@ struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport)
 	/* Create an empty ionode */
 	node = (struct cras_ionode *)calloc(1, sizeof(*node));
 	node->dev = iodev;
-	strcpy(node->name, iodev->info.name);
+	strlcpy(node->name, iodev->info.name, sizeof(node->name));
 	node->plugged = 1;
 	node->type = CRAS_NODE_TYPE_BLUETOOTH;
 	node->volume = 100;

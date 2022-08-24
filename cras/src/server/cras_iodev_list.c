@@ -25,6 +25,7 @@
 #include "softvol_curve.h"
 #include "stream_list.h"
 #include "test_iodev.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 #define NUM_OPEN_DEVS_MAX 10
@@ -292,9 +293,11 @@ static int fill_node_list(struct iodev_list *list,
 				node->left_right_swapped;
 			node_info->display_rotation = node->display_rotation;
 			node_info->stable_id = node->stable_id;
-			strcpy(node_info->name, node->name);
-			strcpy(node_info->active_hotword_model,
-			       node->active_hotword_model);
+			strlcpy(node_info->name, node->name,
+				sizeof(node_info->name));
+			strlcpy(node_info->active_hotword_model,
+				node->active_hotword_model,
+				sizeof(node_info->active_hotword_model));
 			snprintf(node_info->type, sizeof(node_info->type), "%s",
 				 node_type_to_str(node));
 			node_info->type_enum = node->type;

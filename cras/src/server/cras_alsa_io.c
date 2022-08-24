@@ -38,6 +38,7 @@
 #include "cras_volume_curve.h"
 #include "sfh.h"
 #include "softvol_curve.h"
+#include "strlcpy.h"
 #include "utlist.h"
 
 #define HOTWORD_DEV "Wake on Voice"
@@ -1023,16 +1024,16 @@ int endswith(const char *s, const char *suffix)
 static void drop_node_name(struct cras_ionode *node)
 {
 	if (node->type == CRAS_NODE_TYPE_USB)
-		strcpy(node->name, USB);
+		strlcpy(node->name, USB, sizeof(node->name));
 	else if (node->type == CRAS_NODE_TYPE_HDMI)
-		strcpy(node->name, HDMI);
+		strlcpy(node->name, HDMI, sizeof(node->name));
 	else {
 		/* Only HDMI or USB node might have invalid name to drop */
 		syslog(LOG_ERR,
 		       "Unexpectedly drop node name for "
 		       "node: %s, type: %d",
 		       node->name, node->type);
-		strcpy(node->name, DEFAULT);
+		strlcpy(node->name, DEFAULT, sizeof(node->name));
 	}
 }
 

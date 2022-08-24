@@ -12,6 +12,7 @@
 #include "cras_iodev.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
+#include "strlcpy.h"
 #include "utlist.h"
 #include "cras_bt_device.h"
 
@@ -362,7 +363,7 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 
 	node = calloc(1, sizeof(*node));
 	node->dev = iodev;
-	strcpy(node->name, iodev->info.name);
+	strlcpy(node->name, iodev->info.name, sizeof(node->name));
 
 	node->plugged = 1;
 	/* If headset mic uses legacy narrow band, i.e CVSD codec, report a
