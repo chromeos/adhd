@@ -417,7 +417,10 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 	idev = (struct fl_pcm_io *)cras_floss_hfp_get_input_iodev(hfp);
 	odev = (struct fl_pcm_io *)cras_floss_hfp_get_output_iodev(hfp);
 
-	if (!idev->started && !odev->started)
+	const struct cras_audio_format *fmt =
+		idev->base.format ?: odev->base.format;
+
+	if (!fmt)
 		return 0;
 
 	/* Allow last read before handling error or hang-up events. */
@@ -439,9 +442,6 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 		}
 		return -1;
 	}
-
-	const struct cras_audio_format *fmt =
-		idev->base.format ?: odev->base.format;
 
 	nwrite_btyes = odev->write_block * cras_get_format_bytes(fmt);
 	rc = hfp_write(odev, idev->hfp_rw_offset > odev->hfp_rw_offset ?
