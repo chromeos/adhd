@@ -5,7 +5,8 @@
 #ifndef __EDID_UTILS_H__
 #define __EDID_UTILS_H__
 
-#include "stdio.h"
+#include <stdio.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -194,6 +195,18 @@ extern char *aspect_to_str[];
  */
 int edid_get_monitor_name(const unsigned char *edid_data, char *buf,
 			  unsigned int buf_size);
+
+struct edid_device_id {
+	uint8_t mfg_id[2];
+	uint16_t prod_code;
+	uint32_t serial;
+};
+
+/* Gets device identification from EDID
+ * Args:
+ *    edid_data - EDID data.
+ */
+struct edid_device_id edid_get_device_id(const unsigned char *edid_data);
 
 #ifdef __cplusplus
 } /* extern "C" */

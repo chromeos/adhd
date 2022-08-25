@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <string>
+
 #include "cras_util.h"
 
 namespace {
@@ -264,6 +266,57 @@ TEST_F(EDIDTestSuite, EDIDMonitorName) {
   EXPECT_STREQ("HDMI LLC ABCD", buf);
   EXPECT_EQ(0, edid_get_monitor_name(test_monitor_edid, buf, 11));
   EXPECT_STREQ("HDMI LLC A", buf);
+}
+
+std::string get_mfg_id(const edid_device_id& id) {
+  uint16_t mfg_id = (id.mfg_id[0] << 8) + id.mfg_id[1];
+  return std::string{
+      static_cast<char>((mfg_id >> 10 & 0x1f) + 'A' - 1),
+      static_cast<char>((mfg_id >> 5 & 0x1f) + 'A' - 1),
+      static_cast<char>((mfg_id & 0x1f) + 'A' - 1),
+  };
+}
+
+TEST_F(EDIDTestSuite, EDIDDeviceID) {
+  struct edid_device_id device_id = edid_get_device_id(test_no_aud_edid1);
+  EXPECT_EQ(get_mfg_id(device_id), "AUO");
+  EXPECT_EQ(device_id.prod_code, 8284);
+  EXPECT_EQ(device_id.serial, 0);
+
+  device_id = edid_get_device_id(test_no_aud_edid2);
+  EXPECT_EQ(get_mfg_id(device_id), "LGD");
+  EXPECT_EQ(device_id.prod_code, 0);
+  EXPECT_EQ(device_id.serial, 0);
+
+  device_id = edid_get_device_id(test_no_aud_edid3);
+  EXPECT_EQ(get_mfg_id(device_id), "DEL");
+  EXPECT_EQ(device_id.prod_code, 16483);
+  EXPECT_EQ(device_id.serial, 858862924);
+
+  device_id = edid_get_device_id(test_edid1);
+  EXPECT_EQ(get_mfg_id(device_id), "SNY");
+  EXPECT_EQ(device_id.prod_code, 2);
+  EXPECT_EQ(device_id.serial, 0);
+
+  device_id = edid_get_device_id(test_edid2);
+  EXPECT_EQ(get_mfg_id(device_id), "SAM");
+  EXPECT_EQ(device_id.prod_code, 528);
+  EXPECT_EQ(device_id.serial, 0);
+
+  device_id = edid_get_device_id(test_edid3);
+  EXPECT_EQ(get_mfg_id(device_id), "ONK");
+  EXPECT_EQ(device_id.prod_code, 1889);
+  EXPECT_EQ(device_id.serial, 0);
+
+  device_id = edid_get_device_id(test_edid4);
+  EXPECT_EQ(get_mfg_id(device_id), "ACR");
+  EXPECT_EQ(device_id.prod_code, 560);
+  EXPECT_EQ(device_id.serial, 1);
+
+  device_id = edid_get_device_id(test_monitor_edid);
+  EXPECT_EQ(get_mfg_id(device_id), "SNY");
+  EXPECT_EQ(device_id.prod_code, 2);
+  EXPECT_EQ(device_id.serial, 0);
 }
 
 }  //  namespace

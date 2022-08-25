@@ -692,3 +692,18 @@ int edid_get_monitor_name(const unsigned char *edid_data, char *buf,
 
 	return -1;
 }
+
+struct edid_device_id edid_get_device_id(const unsigned char *edid_data)
+{
+	struct edid_device_id id = {
+		.mfg_id = { edid_data[EDID_MFG_EID],
+			    edid_data[EDID_MFG_EID + 1] },
+		.prod_code = edid_data[EDID_MFG_PROD_LO] +
+			     (edid_data[EDID_MFG_PROD_HI] << 8),
+		.serial = (edid_data[EDID_MFG_SERIAL] +
+			   (edid_data[EDID_MFG_SERIAL + 1] << 8u) +
+			   (edid_data[EDID_MFG_SERIAL + 2] << 16u) +
+			   (edid_data[EDID_MFG_SERIAL + 3] << 24u)),
+	};
+	return id;
+}
