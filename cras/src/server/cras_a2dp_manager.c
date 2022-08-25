@@ -495,9 +495,8 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 	struct pollfd poll_fd;
 	int sample_rate, bits_per_sample, channel_mode;
 
-	/* Set active device, set audio config, start audio request
-	 * and then finally connect the socket. */
-	floss_media_a2dp_set_active_device(a2dp->fm, a2dp->addr);
+	/* Set audio config, start audio request and then finally connect the
+	 * socket. */
 	audio_format_to_floss(fmt, &sample_rate, &bits_per_sample,
 			      &channel_mode);
 	floss_media_a2dp_set_audio_config(a2dp->fm, sample_rate,
@@ -549,6 +548,14 @@ error:
 		unlink(addr.sun_path);
 	}
 	return rc;
+}
+
+void cras_floss_a2dp_set_active(struct cras_a2dp *a2dp)
+{
+	/* Set the connected a2dp device to be active. This is required for
+	 * other profiles (e.g., AVRCP) depending on the active a2dp status to
+	 * work. */
+	floss_media_a2dp_set_active_device(a2dp->fm, a2dp->addr);
 }
 
 int cras_floss_a2dp_get_fd(struct cras_a2dp *a2dp)

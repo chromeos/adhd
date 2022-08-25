@@ -56,6 +56,9 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp,
 /* Stops a2dp streaming. */
 int cras_floss_a2dp_stop(struct cras_a2dp *a2dp);
 
+/* Set the connected a2dp device to active. */
+void cras_floss_a2dp_set_active(struct cras_a2dp *a2dp);
+
 /* Gets the file descriptor to write to the given cras_a2dp.
  * Returns -1 if given cras_a2dp isn't started. */
 int cras_floss_a2dp_get_fd(struct cras_a2dp *a2dp);

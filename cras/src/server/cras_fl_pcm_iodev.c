@@ -820,8 +820,15 @@ static void hfp_set_volume(struct cras_iodev *iodev)
 	cras_floss_hfp_set_volume(hfpio->hfp, iodev->active_node->volume);
 }
 
-static void update_active_node(struct cras_iodev *iodev, unsigned node_idx,
-			       unsigned dev_enabled)
+static void a2dp_update_active_node(struct cras_iodev *iodev, unsigned node_idx,
+				    unsigned dev_enabled)
+{
+	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
+	cras_floss_a2dp_set_active(a2dpio->a2dp);
+}
+
+static void hfp_update_active_node(struct cras_iodev *iodev, unsigned node_idx,
+				   unsigned dev_enabled)
 {
 }
 
@@ -862,7 +869,6 @@ struct fl_pcm_io *pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 	iodev->frames_queued = frames_queued;
 	iodev->delay_frames = delay_frames;
 	iodev->get_buffer = get_buffer;
-	iodev->update_active_node = update_active_node;
 
 	/* A2DP specific fields */
 	iodev->start = NULL;
@@ -891,6 +897,7 @@ struct fl_pcm_io *pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 static void set_a2dp_callbacks(struct cras_iodev *a2dpio)
 {
 	a2dpio->configure_dev = a2dp_configure_dev;
+	a2dpio->update_active_node = a2dp_update_active_node;
 	a2dpio->update_supported_formats = a2dp_update_supported_formats;
 	a2dpio->put_buffer = a2dp_put_buffer;
 	a2dpio->flush_buffer = a2dp_flush_buffer;
@@ -995,6 +1002,7 @@ static void set_hfp_callbacks(struct cras_iodev *hfpio)
 {
 	hfpio->open_dev = hfp_open_dev;
 	hfpio->configure_dev = hfp_configure_dev;
+	hfpio->update_active_node = hfp_update_active_node;
 	hfpio->update_supported_formats = hfp_update_supported_formats;
 	hfpio->put_buffer = hfp_put_buffer;
 	hfpio->flush_buffer = hfp_flush_buffer;

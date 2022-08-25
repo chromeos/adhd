@@ -583,6 +583,10 @@ void cras_floss_a2dp_delay_sync(struct cras_a2dp* a2dp,
   return;
 }
 
+void cras_floss_a2dp_set_active(struct cras_a2dp* a2dp) {
+  return;
+}
+
 // HFP manager
 int cras_floss_hfp_start(struct cras_hfp* hfp,
                          thread_callback cb,

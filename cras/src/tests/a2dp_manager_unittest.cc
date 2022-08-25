@@ -128,7 +128,7 @@ TEST_F(A2dpManagerTestSuite, StartStop) {
   fmt.num_channels = 2;
   EXPECT_EQ(0, cras_floss_a2dp_start(a2dp, &fmt));
   EXPECT_EQ(fake_skt, cras_floss_a2dp_get_fd(a2dp));
-  EXPECT_EQ(floss_media_a2dp_set_active_device_called, 1);
+  EXPECT_EQ(floss_media_a2dp_set_active_device_called, 0);
   EXPECT_EQ(floss_media_a2dp_set_audio_config_called, 1);
   EXPECT_EQ(floss_media_a2dp_set_audio_config_rate, FL_RATE_44100);
   EXPECT_EQ(floss_media_a2dp_set_audio_config_bps, FL_SAMPLE_32);
