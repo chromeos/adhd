@@ -185,8 +185,6 @@ void show_edid(FILE *outfile, unsigned char *edid_data, int ext);
 int find_aspect(int h, int v);
 int find_aspect_fromisize(unsigned char *edid_data);
 extern char *aspect_to_str[];
-int get_test_edid(int n, unsigned char *dst);
-int show_test_edid(FILE *outfile, int n);
 
 /* Gets monitor name from EDID.
  * Args:
