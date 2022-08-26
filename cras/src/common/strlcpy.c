@@ -20,8 +20,6 @@
 
 #include <string.h>
 
-#include <cutils/memory.h>
-
 /* Implementation of strlcpy() for platforms that don't already have it. */
 
 /*
@@ -29,8 +27,7 @@
  * will be copied.  Always NUL terminates (unless siz == 0).
  * Returns strlen(src); if retval >= siz, truncation occurred.
  */
-size_t
-strlcpy(char *dst, const char *src, size_t siz)
+size_t strlcpy(char *dst, const char *src, size_t siz)
 {
 	char *d = dst;
 	const char *s = src;
@@ -42,17 +39,17 @@ strlcpy(char *dst, const char *src, size_t siz)
 			if ((*d++ = *s++) == '\0')
 				break;
 		}
-  }
+	}
 
 	/* Not enough room in dst, add NUL and traverse rest of src */
 	if (n == 0) {
 		if (siz != 0)
-			*d = '\0';		/* NUL-terminate dst */
+			*d = '\0'; /* NUL-terminate dst */
 		while (*s++)
 			;
 	}
 
-	return(s - src - 1);	/* count does not include NUL */
+	return (s - src - 1); /* count does not include NUL */
 }
 
 #endif

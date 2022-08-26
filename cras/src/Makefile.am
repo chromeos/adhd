@@ -77,6 +77,7 @@ DBUS_CFLAGS += -I$(top_builddir)/src/common
 CRAS_DBUS_SOURCES = \
 	common/cras_sbc_codec.c \
 	common/packet_status_logger.c \
+	common/strlcpy.c \
 	server/cras_bt_manager.c \
 	server/cras_bt_adapter.c \
 	server/cras_bt_device.c \
@@ -160,6 +161,7 @@ cras_server_SOURCES = \
 	common/dumper.c \
 	common/edid_utils.c \
 	common/sfh.c \
+	common/strlcpy.c \
 	dsp/biquad.c \
 	dsp/crossover.c \
 	dsp/crossover2.c \
@@ -350,6 +352,7 @@ libcras_la_SOURCES = \
 	common/cras_string.c \
 	common/cras_util.c \
 	common/edid_utils.c \
+	common/strlcpy.c \
 	libcras/cras_client.c \
 	libcras/cras_helpers.c
 
@@ -743,7 +746,7 @@ a2dp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
 a2dp_info_unittest_LDADD = -lgtest -lpthread
 
-a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc
+a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc common/strlcpy.c
 a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
@@ -758,7 +761,8 @@ endif
 
 fl_pcm_iodev_unittest_SOURCES = tests/fl_pcm_iodev_unittest.cc \
 	common/sfh.c \
-	common/cras_string.c
+	common/cras_string.c \
+	common/strlcpy.c
 fl_pcm_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common
 fl_pcm_iodev_unittest_LDADD = -lgtest -lpthread
@@ -766,7 +770,8 @@ fl_pcm_iodev_unittest_LDADD = -lgtest -lpthread
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
 	common/sfh.c \
 	server/cras_alsa_ucm_section.c \
-	server/cras_alsa_mixer_name.c
+	server/cras_alsa_mixer_name.c \
+	common/strlcpy.c
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server/config
@@ -793,7 +798,8 @@ alsa_mixer_unittest_LDADD = -lgtest -lpthread
 
 alsa_ucm_unittest_SOURCES = tests/alsa_ucm_unittest.cc \
 	server/cras_alsa_mixer_name.c \
-	server/cras_alsa_ucm_section.c
+	server/cras_alsa_ucm_section.c \
+	common/strlcpy.c
 alsa_ucm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
@@ -845,7 +851,7 @@ bt_device_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_device_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
-bt_io_unittest_SOURCES = tests/bt_io_unittest.cc common/sfh.c
+bt_io_unittest_SOURCES = tests/bt_io_unittest.cc common/sfh.c common/strlcpy.c
 bt_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
 bt_io_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
@@ -886,7 +892,8 @@ checksum_unittest_LDADD = -lgtest -lpthread
 
 cras_abi_unittest_SOURCES = tests/cras_abi_unittest.cc \
 	common/cras_config.c common/cras_shm.c common/cras_util.c \
-	common/cras_file_wait.c common/cras_audio_format.c common/cras_string.c
+	common/cras_file_wait.c common/cras_audio_format.c \
+	common/cras_string.c common/strlcpy.c
 cras_abi_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras
 cras_abi_unittest_LDADD = -lgtest -lpthread -lrt -lspeexdsp
@@ -1013,7 +1020,8 @@ sample_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
 sample_buffer_unittest_LDADD = -lgtest -lpthread
 
 empty_iodev_unittest_SOURCES = tests/empty_iodev_unittest.cc \
-	server/cras_empty_iodev.c
+	server/cras_empty_iodev.c \
+	common/strlcpy.c
 empty_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
 empty_iodev_unittest_LDADD = -lgtest -lpthread
@@ -1062,13 +1070,13 @@ endif
 
 if HAVE_DBUS
 hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \
-	server/cras_hfp_iodev.c tests/sr_bt_util_stub.cc
+	server/cras_hfp_iodev.c tests/sr_bt_util_stub.cc common/strlcpy.c
 hfp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_alsa_iodev_unittest_SOURCES = tests/hfp_alsa_iodev_unittest.cc \
-	server/cras_hfp_alsa_iodev.c
+	server/cras_hfp_alsa_iodev.c common/strlcpy.c
 hfp_alsa_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_alsa_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
@@ -1107,14 +1115,15 @@ ewma_power_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 ewma_power_unittest_LDADD = -lgtest -lpthread
 
-iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc
+iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc common/strlcpy.c
 iodev_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 iodev_list_unittest_LDADD = -lgtest -lpthread
 
 loopback_iodev_unittest_SOURCES = tests/loopback_iodev_unittest.cc \
 	server/cras_loopback_iodev.c common/cras_shm.c common/sfh.c \
-	common/cras_string.c
+	common/cras_string.c \
+	common/strlcpy.c
 loopback_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server

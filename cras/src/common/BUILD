@@ -76,13 +76,16 @@ cc_library(
     name = "cras_string",
     srcs = [
         "cras_string.c",
+        "strlcpy.c",
     ],
     hdrs = [
         "cras_string.h",
+        "strlcpy.h",
     ],
     visibility = [
         "//src/common:__pkg__",
         "//src/libcras:__pkg__",
+        "//src/server:__pkg__",
     ],
 )
 
