@@ -272,7 +272,7 @@ int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc *state,
 		 * following samples.
 		 */
 		memmove(frame_head, state->zero_frame, MSBC_CODE_SIZE);
-		memset(frame_head + MSBC_CODE_SIZE, 0,
+		memset(&frame_head[MSBC_FS], 0,
 		       (PLC_SBCRL + PLC_OLAL) * MSBC_SAMPLE_SIZE);
 		state->handled_bad_frames = 0;
 	}
