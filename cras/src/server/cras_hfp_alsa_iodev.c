@@ -47,8 +47,35 @@ static int hfp_alsa_open_dev(struct cras_iodev *iodev)
 {
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
+	int rc;
 
-	return aio->open_dev(aio);
+	rc = aio->open_dev(aio);
+	if (rc) {
+		syslog(LOG_ERR, "Failed to open aio: %d\n", rc);
+		return rc;
+	}
+
+	/* Check the associated SCO object first. Because configuring
+	 * the shared SCO object can only be done once for the HFP
+	 * input and output devices pair.
+	 */
+	rc = cras_sco_get_fd(hfp_alsa_io->sco);
+	if (rc >= 0)
+		return 0;
+
+	hfp_slc_codec_connection_setup(hfp_alsa_io->slc);
+
+	rc = cras_bt_device_sco_connect(
+		hfp_alsa_io->device,
+		hfp_slc_get_selected_codec(hfp_alsa_io->slc), true);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Failed to get sco: %d\n", rc);
+		return rc;
+	}
+
+	cras_sco_set_fd(hfp_alsa_io->sco, rc);
+
+	return 0;
 }
 
 static int hfp_alsa_update_supported_formats(struct cras_iodev *iodev)
@@ -107,29 +134,8 @@ static int hfp_alsa_configure_dev(struct cras_iodev *iodev)
 		return rc;
 	}
 
-	/* Check the associated SCO object first. Because configuring
-	 * the shared SCO object can only be done once for the HFP
-	 * input and output devices pair.
-	 */
-	rc = cras_sco_get_fd(hfp_alsa_io->sco);
-	if (rc >= 0)
-		goto add_dev;
-
-	hfp_slc_codec_connection_setup(hfp_alsa_io->slc);
-
-	rc = cras_bt_device_sco_connect(
-		hfp_alsa_io->device,
-		hfp_slc_get_selected_codec(hfp_alsa_io->slc), true);
-	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to get sco: %d\n", rc);
-		return rc;
-	}
-
-	cras_sco_set_fd(hfp_alsa_io->sco, rc);
-	hfp_set_call_status(hfp_alsa_io->slc, 1);
-
-add_dev:
 	cras_sco_add_iodev(hfp_alsa_io->sco, iodev->direction, iodev->format);
+	hfp_set_call_status(hfp_alsa_io->slc, 1);
 	iodev->buffer_size = aio->buffer_size;
 
 	return 0;

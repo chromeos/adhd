@@ -194,7 +194,7 @@ static int open_dev(struct cras_iodev *iodev)
 sco_running:
 	return 0;
 error:
-	syslog(LOG_ERR, "Failed to open HPF iodev");
+	syslog(LOG_ERR, "Failed to open HFP iodev");
 	return -1;
 }
 
