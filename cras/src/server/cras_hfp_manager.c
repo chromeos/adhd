@@ -151,7 +151,8 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 	if (hfp->idev_started || hfp->odev_started)
 		goto start_dev;
 
-	rc = floss_media_hfp_start_sco_call(hfp->fm, hfp->addr);
+	rc = floss_media_hfp_start_sco_call(hfp->fm, hfp->addr,
+					    hfp->sco_pcm_used);
 	if (rc < 0)
 		return rc;
 

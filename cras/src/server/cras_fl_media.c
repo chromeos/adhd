@@ -161,15 +161,18 @@ int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr)
 }
 
 #if defined(HAVE_FUZZER)
-int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
+int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
+				   bool enable_offload)
 {
 	return 0;
 }
 #else
-int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
+int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
+				   bool enable_offload)
 {
 	DBusMessage *method_call, *reply;
 	DBusError dbus_error;
+	dbus_bool_t offload = enable_offload;
 
 	syslog(LOG_DEBUG, "floss_media_hfp_start_sco_call: %s", addr);
 
@@ -186,6 +189,7 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr)
 		return -ENOMEM;
 
 	if (!dbus_message_append_args(method_call, DBUS_TYPE_STRING, &addr,
+				      DBUS_TYPE_BOOLEAN, &offload,
 				      DBUS_TYPE_INVALID)) {
 		dbus_message_unref(method_call);
 		return -ENOMEM;
