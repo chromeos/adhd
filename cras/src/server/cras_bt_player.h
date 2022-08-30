@@ -10,14 +10,15 @@
 #include <stdbool.h>
 
 #include "cras_bt_adapter.h"
+#include "cras_bt_constants.h"
 
 /* Object to hold current metadata. This is not a full list of what BlueZ/MPRIS
  * supports but a subset because Chromium only provides the following.
  */
 struct cras_bt_player_metadata {
-	char *title;
-	char *artist;
-	char *album;
+	char title[CRAS_PLAYER_METADATA_SIZE_MAX];
+	char artist[CRAS_PLAYER_METADATA_SIZE_MAX];
+	char album[CRAS_PLAYER_METADATA_SIZE_MAX];
 	int64_t length;
 };
 

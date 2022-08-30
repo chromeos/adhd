@@ -191,22 +191,16 @@ static DBusHandlerResult cras_bt_player_handle_message(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static struct cras_bt_player_metadata *cras_bt_player_metadata_init()
+static int cras_bt_player_init()
 {
-	struct cras_bt_player_metadata *metadata =
-		malloc(sizeof(struct cras_bt_player_metadata));
-	metadata->title = calloc(1, CRAS_PLAYER_METADATA_SIZE_MAX);
-	metadata->album = calloc(1, CRAS_PLAYER_METADATA_SIZE_MAX);
-	metadata->artist = calloc(1, CRAS_PLAYER_METADATA_SIZE_MAX);
-	metadata->length = 0;
+	player.playback_status =
+		calloc(1, CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX);
+	if (!player.playback_status)
+		return -ENOMEM;
 
-	return metadata;
-}
-
-static void cras_bt_player_init()
-{
-	player.playback_status = malloc(CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX);
-	player.identity = malloc(CRAS_PLAYER_IDENTITY_SIZE_MAX);
+	player.identity = calloc(1, CRAS_PLAYER_IDENTITY_SIZE_MAX);
+	if (!player.identity)
+		goto nomem;
 
 	strlcpy(player.playback_status, CRAS_PLAYER_PLAYBACK_STATUS_DEFAULT,
 		CRAS_PLAYER_PLAYBACK_STATUS_SIZE_MAX);
@@ -214,7 +208,14 @@ static void cras_bt_player_init()
 		CRAS_PLAYER_IDENTITY_SIZE_MAX);
 	player.position = 0;
 
-	player.metadata = cras_bt_player_metadata_init();
+	player.metadata = calloc(1, sizeof(struct cras_bt_player_metadata));
+	if (!player.metadata)
+		goto nomem;
+	return 0;
+nomem:
+	free(player.playback_status);
+	free(player.identity);
+	return -ENOMEM;
 }
 
 static void cras_bt_player_append_metadata_artist(DBusMessageIter *iter,
@@ -319,10 +320,14 @@ int cras_bt_player_create(DBusConnection *conn)
 	DBusError dbus_error;
 	struct cras_bt_adapter **adapters;
 	size_t num_adapters, i;
+	int ret;
+
+	ret = cras_bt_player_init();
+	if (ret < 0)
+		return ret;
 
 	dbus_error_init(&dbus_error);
 
-	cras_bt_player_init();
 	if (!dbus_connection_register_object_path(
 		    conn, player.object_path, &player_vtable, &dbus_error)) {
 		syslog(LOG_ERR, "Cannot register player %s",
