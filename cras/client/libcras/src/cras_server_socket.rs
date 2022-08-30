@@ -7,13 +7,13 @@ use std::{io, mem};
 
 use super::Error;
 use cras_sys::gen::{cras_disconnect_stream_message, cras_server_message, CRAS_SERVER_MESSAGE_ID};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sys_util::{net::UnixSeqpacket, ScmSocket};
 
 use data_model::DataInit;
 
 /// Server socket type to connect.
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CrasSocketType {
     /// A server socket type supports only playback function.
