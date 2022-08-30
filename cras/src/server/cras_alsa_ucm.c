@@ -1052,20 +1052,32 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 	const char **list;
 	int i, num_entries;
 	int models_len = 0;
+	int ret = -ENOMEM;
 	char *models = NULL;
 	const char *model_name;
 	char *identifier;
 	size_t buf_size;
 
 	identifier = snd_use_case_identifier("_modifiers/%s", uc_verb(mgr));
+	if (!identifier)
+		goto err;
+
 	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	free(identifier);
+	if (num_entries < 0) {
+		ret = num_entries;
+		goto err;
+	}
 
-	if (num_entries <= 0)
-		return 0;
+	if (num_entries == 0)
+		return NULL;
 
 	buf_size = num_entries * (CRAS_MAX_HOTWORD_MODEL_NAME_SIZE + 1);
 	models = (char *)malloc(buf_size);
+	if (!models) {
+		snd_use_case_free_list(list, num_entries);
+		goto err;
+	}
 
 	for (i = 0; i < num_entries; i += 2) {
 		if (!list[i])
@@ -1097,6 +1109,9 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 	snd_use_case_free_list(list, num_entries);
 
 	return models;
+err:
+	syslog(LOG_ERR, "Failed to get hotword due to error: %d", ret);
+	return NULL;
 }
 
 void ucm_disable_all_hotword_models(struct cras_use_case_mgr *mgr)
