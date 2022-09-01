@@ -103,7 +103,7 @@ static int device_enabled(struct cras_use_case_mgr *mgr, const char *dev)
 
 	num_devs = snd_use_case_get_list(mgr->mgr, "_enadevs", &list);
 	if (num_devs <= 0)
-		return 0;
+		return num_devs;
 
 	for (i = 0; i < (unsigned int)num_devs; i++)
 		if (!strcmp(dev, list[i])) {
@@ -123,7 +123,7 @@ static int modifier_enabled(struct cras_use_case_mgr *mgr, const char *mod)
 
 	num_mods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
 	if (num_mods <= 0)
-		return 0;
+		return num_mods;
 
 	for (mod_idx = 0; mod_idx < (unsigned int)num_mods; mod_idx++)
 		if (!strcmp(mod, list[mod_idx]))
@@ -200,7 +200,7 @@ static int ucm_section_exists_with_name(struct cras_use_case_mgr *mgr,
 
 	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	if (num_entries <= 0)
-		return 0;
+		return num_entries;
 
 	for (i = 0; i < (unsigned int)num_entries; i += 2) {
 		if (!list[i])
@@ -226,7 +226,7 @@ static int ucm_section_exists_with_suffix(struct cras_use_case_mgr *mgr,
 
 	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	if (num_entries <= 0)
-		return 0;
+		return num_entries;
 
 	for (i = 0; i < (unsigned int)num_entries; i += 2) {
 		if (!list[i])
