@@ -2046,7 +2046,9 @@ class AlsaVolumeMuteSuite : public testing::Test {
 
     struct cras_ionode* node;
     int count = 0;
-    DL_FOREACH (aio_output_->base.nodes, node) { printf("node %d \n", count); }
+    DL_FOREACH (aio_output_->base.nodes, node) {
+      printf("node %d \n", count);
+    }
     aio_output_->base.direction = CRAS_STREAM_OUTPUT;
     fmt_.frame_rate = 44100;
     fmt_.num_channels = 2;
@@ -3146,6 +3148,12 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack* jack,
                                         unsigned int buf_size) {
   if (cras_alsa_jack_update_monitor_fake_name)
     strcpy(name_buf, cras_alsa_jack_update_monitor_fake_name);
+}
+
+uint32_t cras_alsa_jack_get_stable_id(const struct cras_alsa_jack* jack,
+                                      const char* monitor_name,
+                                      uint32_t salt) {
+  return 0;
 }
 
 void cras_alsa_jack_update_node_type(const struct cras_alsa_jack* jack,

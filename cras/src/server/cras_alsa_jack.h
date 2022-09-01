@@ -126,6 +126,14 @@ const char *cras_alsa_jack_get_ucm_device(const struct cras_alsa_jack *jack);
 void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
 					char *name_buf, unsigned int buf_size);
 
+/* Get the stable_id for the external monitor
+ * If the product code and serial number are available,
+ * use them to compute the stable ID.
+ * Otherwise the monitor name and the salt is used.
+ */
+uint32_t cras_alsa_jack_get_stable_id(const struct cras_alsa_jack *jack,
+				      const char *monitor_name, uint32_t salt);
+
 /* Updates the node type according to override_type_name in jack.
  * Currently this method only supports updating the node type to
  * CRAS_NODE_TYPE_INTERNAL_SPEAKER when override_type_name is

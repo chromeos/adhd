@@ -16,11 +16,13 @@
 
 extern "C" {
 #include "cras_alsa_jack.h"
+#include "cras_alsa_jack_private.h"
 #include "cras_alsa_ucm_section.h"
 #include "cras_gpio_jack.h"
 #include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "edid_utils.h"
 }
 
 namespace {
@@ -155,6 +157,31 @@ static void fake_jack_cb(const struct cras_alsa_jack* jack,
   EXPECT_EQ(ucm_get_dev_for_jack_return ? plugged : !plugged,
             ucm_set_enabled_value);
 }
+
+class FakeEDIDFile {
+ public:
+  FakeEDIDFile(uint16_t mfg_id, uint16_t prod_id, uint32_t serial) {
+    // We cannot ASSERT_* in the constructor so do those to a function.
+    init(mfg_id, prod_id, serial);
+  }
+  ~FakeEDIDFile() { unlink(filename()); }
+  const char* filename() { return filename_.c_str(); }
+
+ private:
+  void init(uint16_t mfg_id, uint16_t prod_id, uint32_t serial) {
+    int fd = mkstemp(filename_.data());
+    ASSERT_NE(0, fd);
+    ASSERT_EQ(0, ftruncate(fd, EEDID_SIZE));
+    uint8_t header[8] = {0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0};
+    ASSERT_EQ(8, write(fd, header, 8));
+    ASSERT_EQ(2, write(fd, &mfg_id, sizeof(mfg_id)));
+    ASSERT_EQ(2, write(fd, &prod_id, sizeof(prod_id)));
+    ASSERT_EQ(4, write(fd, &serial, sizeof(serial)));
+    close(fd);
+  }
+
+  std::string filename_ = "EDID.XXXXXX";
+};
 
 TEST(AlsaJacks, CreateNullHctl) {
   struct cras_alsa_jack_list* jack_list;
@@ -843,6 +870,70 @@ TEST(AlsaJacks, NoJackTypeFromUCM) {
   ucm_section_free_list(section);
 }
 
+TEST(AlsaJacks, StableId) {
+  {
+    FakeEDIDFile edid1(1, 2, 3);
+    FakeEDIDFile edid2(4, 5, 3);
+    cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
+    cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
+    // EDID indicates different product.
+    EXPECT_NE(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 0),
+              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 0));
+  }
+
+  {
+    FakeEDIDFile edid1(1, 2, 3);
+    FakeEDIDFile edid2(1, 2, 4);
+    cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
+    cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
+    // EDID indicates same product with different serial.
+    EXPECT_NE(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 0),
+              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 0));
+  }
+
+  {
+    FakeEDIDFile edid1(1, 2, 3);
+    FakeEDIDFile edid2(1, 2, 3);
+    cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
+    cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
+    // EDID indicates same serial, should be respected even if
+    // the monitor name or salt is different.
+    EXPECT_EQ(
+        cras_alsa_jack_get_stable_id(&jack1, "monitor name", 1),
+        cras_alsa_jack_get_stable_id(&jack2, "different monitor name", 2));
+  }
+
+  {
+    FakeEDIDFile edid1(1, 0, 3);
+    FakeEDIDFile edid2(1, 0, 3);
+    cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
+    cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
+    // EDID missing product code. Should use monitor name and salt.
+    EXPECT_EQ(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 0),
+              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 0));
+    EXPECT_NE(
+        cras_alsa_jack_get_stable_id(&jack1, "monitor name", 0),
+        cras_alsa_jack_get_stable_id(&jack2, "different monitor name", 0));
+    EXPECT_NE(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 1),
+              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 2));
+  }
+
+  {
+    FakeEDIDFile edid1(1, 2, 0);
+    FakeEDIDFile edid2(1, 2, 0);
+    cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
+    cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
+    // EDID missing serial number. Should use monitor name and salt.
+    EXPECT_EQ(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 0),
+              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 0));
+    EXPECT_NE(
+        cras_alsa_jack_get_stable_id(&jack1, "monitor name", 0),
+        cras_alsa_jack_get_stable_id(&jack2, "different monitor name", 0));
+    EXPECT_NE(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 1),
+              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 2));
+  }
+}
+
 /* Stubs */
 
 extern "C" {
@@ -1071,20 +1162,6 @@ void cras_tm_cancel_timer(cras_tm* tm, cras_timer* t) {}
 
 cras_tm* cras_system_state_get_tm() {
   return reinterpret_cast<cras_tm*>(0x66);
-}
-
-int edid_valid(const unsigned char* edid_data) {
-  return 0;
-}
-
-int edid_lpcm_support(const unsigned char* edid_data, int ext) {
-  return 0;
-}
-
-int edid_get_monitor_name(const unsigned char* edid_data,
-                          char* buf,
-                          unsigned int buf_size) {
-  return 0;
 }
 
 // Overwrite this function so unittest can run without 2 seconds of wait
