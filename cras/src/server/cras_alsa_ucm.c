@@ -278,6 +278,10 @@ ucm_get_sections_for_var(struct cras_use_case_mgr *mgr, const char *var,
 	int rc;
 
 	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
+	if (num_entries < 0)
+		syslog(LOG_ERR,
+		       "Failed to get section UCM list for %s, error: %d",
+		       identifier, num_entries);
 	if (num_entries <= 0)
 		return NULL;
 
@@ -1032,6 +1036,11 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr)
 	num_devs = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	free(identifier);
 
+	if (num_devs < 0) {
+		syslog(LOG_ERR, "Failed to get ucm sections: %d", num_devs);
+		return NULL;
+	}
+
 	/* snd_use_case_get_list fills list with pairs of device name and
 	 * comment, so device names are in even-indexed elements. */
 	for (i = 0; i < num_devs; i += 2) {
@@ -1124,6 +1133,9 @@ void ucm_disable_all_hotword_models(struct cras_use_case_mgr *mgr)
 
 	/* Disable all currently enabled hotword model modifiers. */
 	num_enmods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
+	if (num_enmods < 0)
+		syslog(LOG_ERR, "Failed to get hotword model list: %d",
+		       num_enmods);
 	if (num_enmods <= 0)
 		return;
 
