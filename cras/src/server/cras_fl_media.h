@@ -6,6 +6,7 @@
 #ifndef CRAS_FL_MEDIA_H_
 #define CRAS_FL_MEDIA_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -67,7 +68,7 @@ int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr);
 /* Calls StartScoCall to Floss media interface. */
 /* Returns codec inuse (CVSD=1, mSBC=2) on success. */
 int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
-				   bool enable_offload);
+				   bool enable_offload, bool force_cvsd);
 
 /* Calls StopScoCall method to Floss media interface. */
 int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr);

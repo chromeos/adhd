@@ -251,7 +251,9 @@ void hfp_alsa_iodev_destroy(struct cras_iodev* iodev) {
 }
 
 /* From cras_fl_media */
-int floss_media_hfp_start_sco_call(struct fl_media* fm, const char* addr) {
+int floss_media_hfp_start_sco_call(struct fl_media* fm,
+                                   const char* addr,
+                                   bool force_cvsd) {
   floss_media_hfp_start_sco_called++;
   return 0;
 }
@@ -266,9 +268,15 @@ struct cras_iodev* cras_iodev_list_get_sco_pcm_iodev(
   return cras_iodev_list_get_sco_pcm_iodev_ret;
 }
 
+/* From cras_system_state */
 bool cras_system_get_bt_hfp_offload_finch_applied() {
   return true;
 }
+
+bool cras_system_get_bt_wbs_enabled() {
+  return true;
+}
+
 }  // extern "C"
 
 int main(int argc, char** argv) {

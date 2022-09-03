@@ -22,6 +22,7 @@
 #include "cras_config.h"
 #include "cras_featured.h"
 #include "cras_hfp_manager.h"
+#include "cras_system_state.h"
 #include "cras_iodev_list.h"
 #include "cras_system_state.h"
 #include "cras_fl_media.h"
@@ -110,7 +111,7 @@ struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
 	hfp->addr = strdup(addr);
 	hfp->name = strdup(name);
 	hfp->fd = -1;
-	hfp->wbs_supported = wbs_supported;
+	hfp->wbs_supported = wbs_supported & cras_system_get_bt_wbs_enabled();
 	hfp->sco_pcm_used = is_sco_pcm_supported() && is_sco_pcm_used();
 
 	if (hfp->sco_pcm_used) {
@@ -158,8 +159,10 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 	if (hfp->idev_started || hfp->odev_started)
 		goto start_dev;
 
+	bool force_cvsd = !cras_system_get_bt_wbs_enabled();
 	rc = floss_media_hfp_start_sco_call(hfp->fm, hfp->addr,
-					    hfp->sco_pcm_used);
+					    hfp->sco_pcm_used, force_cvsd);
+
 	if (rc < 0)
 		return rc;
 
