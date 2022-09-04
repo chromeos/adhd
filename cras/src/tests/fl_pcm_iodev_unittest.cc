@@ -583,7 +583,7 @@ void cras_floss_a2dp_delay_sync(struct cras_a2dp* a2dp,
   return;
 }
 
-void cras_floss_a2dp_set_active(struct cras_a2dp* a2dp) {
+void cras_floss_a2dp_set_active(struct cras_a2dp* a2dp, unsigned enabled) {
   return;
 }
 

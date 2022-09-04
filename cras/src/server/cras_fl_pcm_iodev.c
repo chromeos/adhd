@@ -824,7 +824,7 @@ static void a2dp_update_active_node(struct cras_iodev *iodev, unsigned node_idx,
 				    unsigned dev_enabled)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
-	cras_floss_a2dp_set_active(a2dpio->a2dp);
+	cras_floss_a2dp_set_active(a2dpio->a2dp, dev_enabled);
 }
 
 static void hfp_update_active_node(struct cras_iodev *iodev, unsigned node_idx,

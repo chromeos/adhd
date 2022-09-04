@@ -11,6 +11,8 @@
 
 #include <dbus/dbus.h>
 
+#define FL_NULL_ADDRESS "00:00:00:00:00:00"
+
 #define FL_SAMPLE_RATES 8
 #define FL_SAMPLE_SIZES 3
 #define FL_NUM_CHANNELS 2

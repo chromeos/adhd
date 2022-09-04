@@ -560,12 +560,17 @@ error:
 	return rc;
 }
 
-void cras_floss_a2dp_set_active(struct cras_a2dp *a2dp)
+void cras_floss_a2dp_set_active(struct cras_a2dp *a2dp, unsigned enabled)
 {
-	/* Set the connected a2dp device to be active. This is required for
-	 * other profiles (e.g., AVRCP) depending on the active a2dp status to
-	 * work. */
-	floss_media_a2dp_set_active_device(a2dp->fm, a2dp->addr);
+	/* Clear session. */
+	/* TODO: Handle enable/disable logic in Floss */
+	floss_media_a2dp_set_active_device(a2dp->fm, FL_NULL_ADDRESS);
+	if (enabled) {
+		/* Set the connected a2dp device to be active. This is required for
+		 * other profiles (e.g., AVRCP) depending on the active a2dp status to
+		 * work. */
+		floss_media_a2dp_set_active_device(a2dp->fm, a2dp->addr);
+	}
 }
 
 int cras_floss_a2dp_get_fd(struct cras_a2dp *a2dp)
