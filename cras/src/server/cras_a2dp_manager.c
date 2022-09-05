@@ -268,29 +268,31 @@ int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
 				snd_pcm_format_t **formats,
 				size_t **channel_counts)
 {
-	int i;
 	*rates = (size_t *)calloc(FL_SAMPLE_RATES + 1, sizeof(**rates));
 	if (!*rates)
 		return -ENOMEM;
 
-	i = 0;
-	if (sample_rate & FL_RATE_44100)
-		(*rates)[i++] = 44100;
-	if (sample_rate & FL_RATE_48000)
-		(*rates)[i++] = 48000;
-	if (sample_rate & FL_RATE_88200)
-		(*rates)[i++] = 88200;
-	if (sample_rate & FL_RATE_96000)
-		(*rates)[i++] = 96000;
-	if (sample_rate & FL_RATE_176400)
-		(*rates)[i++] = 176400;
-	if (sample_rate & FL_RATE_192000)
-		(*rates)[i++] = 192000;
-	if (sample_rate & FL_RATE_16000)
-		(*rates)[i++] = 16000;
-	if (sample_rate & FL_RATE_24000)
-		(*rates)[i++] = 24000;
-	(*rates)[i] = 0;
+	if (sample_rate & FL_RATE_44100) {
+		(*rates)[0] = 44100;
+	} else if (sample_rate & FL_RATE_48000) {
+		(*rates)[0] = 48000;
+	} else if (sample_rate & FL_RATE_88200) {
+		(*rates)[0] = 88200;
+	} else if (sample_rate & FL_RATE_96000) {
+		(*rates)[0] = 96000;
+	} else if (sample_rate & FL_RATE_176400) {
+		(*rates)[0] = 176400;
+	} else if (sample_rate & FL_RATE_192000) {
+		(*rates)[0] = 192000;
+	} else if (sample_rate & FL_RATE_16000) {
+		(*rates)[0] = 16000;
+	} else if (sample_rate & FL_RATE_24000) {
+		(*rates)[0] = 24000;
+	} else {
+		syslog(LOG_ERR, "No supported sample rate");
+		return -EINVAL;
+	}
+	(*rates)[1] = 0;
 
 	*formats = (snd_pcm_format_t *)calloc(FL_SAMPLE_SIZES + 1,
 					      sizeof(**formats));
@@ -298,14 +300,18 @@ int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
 		free(*rates);
 		return -ENOMEM;
 	}
-	i = 0;
-	if (bits_per_sample & FL_SAMPLE_16)
-		(*formats)[i++] = SND_PCM_FORMAT_S16_LE;
-	if (bits_per_sample & FL_SAMPLE_24)
-		(*formats)[i++] = SND_PCM_FORMAT_S24_LE;
-	if (bits_per_sample & FL_SAMPLE_32)
-		(*formats)[i++] = SND_PCM_FORMAT_S32_LE;
-	(*formats)[i] = 0;
+
+	if (bits_per_sample & FL_SAMPLE_16) {
+		(*formats)[0] = SND_PCM_FORMAT_S16_LE;
+	} else if (bits_per_sample & FL_SAMPLE_24) {
+		(*formats)[0] = SND_PCM_FORMAT_S24_LE;
+	} else if (bits_per_sample & FL_SAMPLE_32) {
+		(*formats)[0] = SND_PCM_FORMAT_S32_LE;
+	} else {
+		syslog(LOG_ERR, "No supported bits per sample");
+		return -EINVAL;
+	}
+	(*formats)[1] = 0;
 
 	*channel_counts =
 		(size_t *)calloc(FL_NUM_CHANNELS + 1, sizeof(**channel_counts));
@@ -314,12 +320,16 @@ int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
 		free(*formats);
 		return -ENOMEM;
 	}
-	i = 0;
-	if (channel_mode & FL_MODE_MONO)
-		(*channel_counts)[i++] = 1;
-	if (channel_mode & FL_MODE_STEREO)
-		(*channel_counts)[i++] = 2;
-	(*channel_counts)[i] = 0;
+
+	if (channel_mode & FL_MODE_STEREO) {
+		(*channel_counts)[0] = 2;
+	} else if (channel_mode & FL_MODE_MONO) {
+		(*channel_counts)[0] = 1;
+	} else {
+		syslog(LOG_ERR, "No supported channel mode");
+		return -EINVAL;
+	}
+	(*channel_counts)[1] = 0;
 
 	return 0;
 }

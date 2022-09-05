@@ -173,17 +173,19 @@ TEST_F(A2dpManagerTestSuite, DelaySync) {
 TEST(A2dpManager, FillFormat) {
   size_t *supported_channel_counts, *supported_rates;
   snd_pcm_format_t* supported_formats;
-  int num_expected_rates = 3;
-  size_t expected_rates[] = {16000, 44100, 48000};
-  int num_unexpected_rates = 2;
-  size_t unexpected_rates[] = {96000, 192000};
-  int num_expected_formats = 2;
-  snd_pcm_format_t expected_formats[] = {SND_PCM_FORMAT_S16_LE,
-                                         SND_PCM_FORMAT_S24_LE};
-  int num_unexpected_formats = 1;
-  snd_pcm_format_t unexpected_formats[] = {SND_PCM_FORMAT_S32_LE};
-  int num_expected_channel_counts = 2;
-  size_t expected_channel_counts[] = {1, 2};
+  int num_expected_rates = 1;
+  size_t expected_rates[] = {44100};
+  int num_unexpected_rates = 3;
+  size_t unexpected_rates[] = {48000, 96000, 192000};
+  int num_expected_formats = 1;
+  snd_pcm_format_t expected_formats[] = {SND_PCM_FORMAT_S16_LE};
+  int num_unexpected_formats = 2;
+  snd_pcm_format_t unexpected_formats[] = {SND_PCM_FORMAT_S24_LE,
+                                           SND_PCM_FORMAT_S32_LE};
+  int num_expected_channel_counts = 1;
+  size_t expected_channel_counts[] = {2};
+  int num_unexpected_channel_counts = 1;
+  size_t unexpected_channel_counts[] = {1};
 
   /* Expect Floss defined bitmap converts to supported formats array. */
   cras_floss_a2dp_fill_format(FL_RATE_44100 | FL_RATE_48000 | FL_RATE_16000,
@@ -229,6 +231,14 @@ TEST(A2dpManager, FillFormat) {
         found = 1;
     }
     EXPECT_EQ(found, 1);
+  }
+  for (int n = 0; n < num_unexpected_channel_counts; n++) {
+    int found = 0;
+    for (int i = 0; supported_channel_counts[i]; i++) {
+      if (supported_channel_counts[i] == unexpected_channel_counts[n])
+        found = 1;
+    }
+    EXPECT_EQ(found, 0);
   }
   free(supported_channel_counts);
   free(supported_rates);
