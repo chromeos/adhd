@@ -103,6 +103,19 @@ int handle_on_absolute_volume_changed(struct fl_media *active_fm,
 int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
 				 uint8_t volume);
 
+/* Checks if it is the headset that issued disconnection.
+ * If true, restarts the iodev as an attempt of reconnection.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   addr - The address of the added bluetooth device.
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_hfp_audio_disconnected(struct fl_media *active_fm,
+				     const char *addr);
+
 /* Destroys struct fl_media and frees up relevant resources.
  *
  * Args:

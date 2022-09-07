@@ -220,6 +220,28 @@ int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
 	return 0;
 }
 
+int handle_on_hfp_audio_disconnected(struct fl_media *active_fm,
+				     const char *addr)
+{
+	assert(active_fm != NULL);
+	int rc = validate_bluetooth_device_address(addr);
+	if (rc) {
+		syslog(LOG_ERR, "Erroneous bluetooth device address match %d",
+		       rc);
+		return rc;
+	}
+	if (!active_fm->hfp || !active_fm->bt_io_mgr ||
+	    strcmp(cras_floss_hfp_get_addr(active_fm->hfp), addr) != 0) {
+		syslog(LOG_WARNING,
+		       "non-active hfp device(%s). Skip handling disconnection event",
+		       addr);
+		return -EINVAL;
+	}
+	BTLOG(btlog, BT_HFP_AUDIO_DISCONNECTED, 0, 0);
+	cras_floss_hfp_possibly_reconnect(active_fm->hfp);
+	return 0;
+}
+
 void fl_media_destroy(struct fl_media **active_fm)
 {
 	/* Clean up iodev when BT forced to stop. */

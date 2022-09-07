@@ -260,9 +260,13 @@ int cras_floss_hfp_stop(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir)
 	return floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
 }
 
-void cras_floss_hfp_reconnect(struct cras_hfp *hfp)
+void cras_floss_hfp_possibly_reconnect(struct cras_hfp *hfp)
 {
-	cras_bt_policy_switch_profile(hfp->fm->bt_io_mgr);
+	if (hfp->idev_started || hfp->odev_started) {
+		syslog(LOG_INFO,
+		       "HFP audio was disconnected by the headset, attempt to reconnect.");
+		cras_bt_policy_switch_profile(hfp->fm->bt_io_mgr);
+	}
 }
 
 int cras_floss_hfp_get_fd(struct cras_hfp *hfp)

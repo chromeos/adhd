@@ -48,8 +48,9 @@ const uint32_t cras_floss_hfp_get_stable_id(struct cras_hfp *hfp);
 /* Set the volume of the hfp device. */
 void cras_floss_hfp_set_volume(struct cras_hfp *hfp, unsigned int volume);
 
-/* Issue a switch-profile event as a means to restart HFP. */
-void cras_floss_hfp_reconnect(struct cras_hfp *hfp);
+/* Check if HFP audio was disconnected by the headset.
+ * If true, issue a switch-profile event as a means to reconnect. */
+void cras_floss_hfp_possibly_reconnect(struct cras_hfp *hfp);
 
 /* Fills the format property lists. */
 int cras_floss_hfp_fill_format(struct cras_hfp *hfp, size_t **rates,

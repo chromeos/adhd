@@ -119,6 +119,10 @@ void fuzzer_on_hfp_volume_changed(FuzzedDataProvider* data_provider) {
   handle_on_hfp_volume_changed(active_fm, addr.c_str(), volume);
 }
 
+void fuzzer_on_hfp_audio_disconnected(FuzzedDataProvider* data_provider) {
+  handle_on_hfp_audio_disconnected(active_fm, addr.c_str());
+}
+
 void fuzzer_rclient_buffer_on_client(FuzzedDataProvider* data_provider) {
   if (data_provider->remaining_bytes() < kMinRclientMsgSize) {
     return;

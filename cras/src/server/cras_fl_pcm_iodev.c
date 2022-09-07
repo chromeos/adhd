@@ -68,7 +68,7 @@ static const struct timespec throttle_event_threshold = {
 /* Child of cras_iodev to handle bluetooth A2DP streaming.
  * Members:
  *    base - The cras_iodev structure "base class"
- *    ncm_buf - Buffer to hold pcm samples before encode.
+ *    pcm_buf - Buffer to hold pcm samples before encode.
  *    next_flush_time - The time when it is okay for next flush call.
  *    flush_period - The time period between two a2dp packet writes.
  *    write_block - How many frames of audio samples we prefer to write in one
@@ -426,12 +426,12 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 		syslog(LOG_ERR, "Error polling SCO socket, revents %d",
 		       revents);
 		if (revents & POLLHUP) {
-			syslog(LOG_INFO, "Received POLLHUP, reconnecting HFP.");
+			syslog(LOG_INFO,
+			       "Received POLLHUP, remove callback and wait for reconnection.");
 			idev->started = 0;
 			odev->started = 0;
 			/* Leave hfp->fd for hfp_manager to cleanup. */
 			audio_thread_rm_callback(cras_floss_hfp_get_fd(hfp));
-			cras_floss_hfp_reconnect(hfp);
 		}
 		return -1;
 	}

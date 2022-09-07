@@ -1171,6 +1171,33 @@ handle_bt_media_callback(DBusConnection *conn, DBusMessage *message, void *arg)
 			       "Error occured in updating hfp volume %d", rc);
 		}
 		return DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_is_method_call(message,
+					       BT_MEDIA_CALLBACK_INTERFACE,
+					       "OnHfpAudioDisconnected")) {
+		dbus_error_init(&dbus_error);
+		if (!dbus_message_get_args(message, &dbus_error,
+					   DBUS_TYPE_STRING, &addr,
+					   DBUS_TYPE_INVALID)) {
+			syslog(LOG_ERR,
+			       "Failed to get address from OnHfpAudioDisconnected: %s",
+			       dbus_error.message);
+			dbus_error_free(&dbus_error);
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+
+		if (!active_fm) {
+			syslog(LOG_ERR, "fl_media hasn't started or stopped");
+			return DBUS_HANDLER_RESULT_HANDLED;
+		}
+		syslog(LOG_DEBUG, "OnHfpAudioDisconnected");
+
+		rc = handle_on_hfp_audio_disconnected(active_fm, addr);
+		if (rc) {
+			syslog(LOG_ERR,
+			       "Error occured in handling hfp audio disconnection %d",
+			       rc);
+		}
+		return DBUS_HANDLER_RESULT_HANDLED;
 	}
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }

@@ -1302,6 +1302,10 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 		printf("%-30s HF update speaker gain %u\n",
 		       "HFP_UPDATE_SPEAKER_GAIN", data1);
 		break;
+	case BT_HFP_AUDIO_DISCONNECTED:
+		printf("%-30s HF audio disconnected\n",
+		       "HFP_AUDIO_DISCONNECTED");
+		break;
 	case BT_HFP_NEW_CONNECTION:
 		printf("%-30s\n", "HFP_NEW_CONNECTION");
 		break;
