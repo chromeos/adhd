@@ -192,11 +192,9 @@ static int a2dp_output_underrun(struct cras_iodev *iodev)
 static int a2dp_enter_no_stream(struct cras_iodev *odev)
 {
 	int rc;
-	/*
-         * Setting target level to 3 times of min_buffer_level.
-         * We want hw_level to stay bewteen 1-2 times of min_buffer_level on
-	 * top of the underrun threshold(i.e one min_cb_level).
-         */
+	/* Setting target level to 3 times of min_buffer_level.
+	 * We want hw_level to stay bewteen 1-2 times of min_buffer_level on top
+	 * of the underrun threshold(i.e one min_cb_level). */
 	rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
 	if (rc)
 		syslog(LOG_ERR, "Error in A2DP enter_no_stream");
@@ -210,11 +208,9 @@ static int a2dp_enter_no_stream(struct cras_iodev *odev)
  */
 static int a2dp_leave_no_stream(struct cras_iodev *odev)
 {
-	/*
-	 * Since stream data is ready, just make sure hw_level doesn't underrun
+	/* Since stream data is ready, just make sure hw_level doesn't underrun
 	 * after one flush. Hence setting the target level to 2 times of
-	 * min_buffer_level.
-         */
+	 * min_buffer_level. */
 	return fill_zeros_to_target_level(odev, 2 * odev->min_buffer_level);
 }
 
@@ -322,11 +318,9 @@ static int a2dp_configure_dev(struct cras_iodev *iodev)
 	cras_frames_to_time(a2dpio->write_block, iodev->format->frame_rate,
 			    &a2dpio->flush_period);
 
-	/*
-	 * Buffer level less than one preferable write_block to be sent in one
+	/* Buffer level less than one preferable write_block to be sent in one
 	 * socket write. Configure min_buffer_level to this value so when stream
-	 * underruns, audio thread can take action to fill some zeros.
-	 */
+	 * underruns, audio thread can take action to fill some zeros. */
 	iodev->min_buffer_level = a2dpio->write_block;
 
 	fd = cras_floss_a2dp_get_fd(a2dpio->a2dp);
@@ -377,8 +371,7 @@ static int hfp_write(struct fl_pcm_io *odev, size_t target_len)
 
 	/* Without output stream's presence, we shall still send zero packets
 	 * to HF. This is required for some HF devices to start sending non-zero
-	 * data to AG.
-	 */
+	 * data to AG. */
 	if (!odev->started)
 		buf_increment_write(odev->pcm_buf, target_len);
 
@@ -526,11 +519,9 @@ static int a2dp_start(struct cras_iodev *iodev)
 		       "Failed to send all init buffer, left %d bytes",
 		       init_level);
 
-	/*
-	 * This is called when iodev in open state, at the moment when
+	/* This is called when iodev in open state, at the moment when
 	 * output sample is ready. Initialize the next_flush_time for
-	 * following flush calls.
-	 */
+	 * following flush calls. */
 	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->next_flush_time);
 	cras_floss_a2dp_delay_sync(a2dpio->a2dp, INIT_DELAY_SYNC_MSEC,
 				   DELAY_SYNC_PERIOD_MSEC);
