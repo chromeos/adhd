@@ -29,8 +29,10 @@ in_the_list() {
     return 1
 }
 
+TAG="audio_diagnostics"
+
 echo '=== cras_test_client --dump_server_info ==='
-cras_test_client --dump_server_info
+cras_test_client || echo "${TAG}: Unable to dump CRAS info"
 
 echo '=== cras_test_client --dump_audio_thread ==='
 cras_test_client --dump_audio_thread
