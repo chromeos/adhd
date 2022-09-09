@@ -48,9 +48,9 @@ cd "$DIR/$CARD_NAME"
 
 CONF="Comment \"$CARD_NAME\"
 
-SectionUseCase."HiFi" {
-        File "HiFi.conf"
-        Comment "Default"
+SectionUseCase.\"HiFi\" {
+        File \"HiFi.conf\"
+        Comment \"Default\"
 }"
 
 echo ""
@@ -65,7 +65,7 @@ EOF
 
 HIFI="SectionVerb {
         Value {
-                FullySpecifiedUCM "1"
+                FullySpecifiedUCM \"1\"
         }
 
         EnableSequence [
