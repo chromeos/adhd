@@ -54,9 +54,6 @@ static const unsigned int PROFILE_DROP_SUSPEND_DELAY_MS = 5000;
  */
 static const unsigned int SCO_SUSPEND_DELAY_MS = 5000;
 
-static const unsigned int CRAS_SUPPORTED_PROFILES =
-	CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
-
 static struct cras_bt_device *devices;
 
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid)

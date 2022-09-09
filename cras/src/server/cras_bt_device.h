@@ -67,6 +67,9 @@ enum cras_bt_device_profile {
 	CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY = (1 << 5)
 };
 
+static const unsigned int CRAS_SUPPORTED_PROFILES =
+	CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
+
 enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid);
 
 struct cras_bt_device *cras_bt_device_create(DBusConnection *conn,

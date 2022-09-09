@@ -183,8 +183,10 @@ static void cras_bt_interface_removed(DBusConnection *conn,
 
 		device = cras_bt_device_get(object_path);
 		if (device) {
-			syslog(LOG_WARNING, "Bluetooth Device: %s removed",
-			       cras_bt_device_address(device));
+			if (device->profiles & CRAS_SUPPORTED_PROFILES)
+				syslog(LOG_WARNING,
+				       "Bluetooth Device: %s removed",
+				       cras_bt_device_address(device));
 			cras_bt_device_remove(device);
 		}
 
