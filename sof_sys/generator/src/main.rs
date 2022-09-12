@@ -1,4 +1,4 @@
-// Copyright 2020 The Chromium OS Authors. All rights reserved.
+// Copyright 2020 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 extern crate bindgen;
@@ -17,7 +17,7 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    let header = b"// Copyright 2020 The Chromium OS Authors. All rights reserved.
+    let header = b"// Copyright 2020 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 /*

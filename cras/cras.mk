@@ -1,4 +1,4 @@
-# Copyright 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2012 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #include $(ADHD_DIR)/defs/definitions.mk
@@ -29,4 +29,3 @@ cras: $(ADHD_DIR)/cras/Makefile
 cras_install:
 	(cd $(ADHD_DIR)/cras		&&	\
 	$(MAKE) -f $(ADHD_DIR)/cras/Makefile install)
-
