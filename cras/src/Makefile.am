@@ -1032,7 +1032,7 @@ expr_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 expr_unittest_LDADD = -lgtest -lpthread
 
 file_wait_unittest_SOURCES = tests/file_wait_unittest.cc \
-	common/cras_file_wait.c common/cras_util.c
+	common/cras_file_wait.c common/cras_util.c common/strlcpy.c
 file_wait_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	$(CRAS_UT_TMPDIR_CFLAGS)
 file_wait_unittest_LDADD = -lgtest -lpthread

@@ -5,6 +5,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
@@ -16,6 +17,7 @@
 
 #include "cras_file_wait.h"
 #include "cras_config.h"
+#include "strlcpy.h"
 
 #define CRAS_FILE_WAIT_EVENT_MIN_SIZE sizeof(struct inotify_event)
 #define CRAS_FILE_WAIT_EVENT_SIZE (CRAS_FILE_WAIT_EVENT_MIN_SIZE + NAME_MAX + 1)
@@ -133,10 +135,7 @@ int cras_file_wait_process_event(struct cras_file_wait *file_wait,
 int cras_file_wait_dispatch(struct cras_file_wait *file_wait)
 {
 	struct inotify_event *event;
-	char *watch_dir_end;
-	size_t watch_dir_len;
-	char *watch_file_start;
-	size_t watch_path_len;
+	char watch_path[CRAS_MAX_SOCKET_PATH_SIZE];
 	int rc = 0;
 	int flags;
 	ssize_t read_rc;
@@ -192,41 +191,28 @@ int cras_file_wait_dispatch(struct cras_file_wait *file_wait)
 
 	/* Figure out what we need to watch next. */
 	rc = -ENOENT;
-	strcpy(file_wait->watch_dir, file_wait->file_path);
-	watch_dir_len = file_wait->file_path_len;
+	strlcpy(file_wait->watch_dir, file_wait->file_path,
+		CRAS_MAX_SOCKET_PATH_SIZE);
 
 	while (rc == -ENOENT || rc == -EACCES) {
-		strcpy(file_wait->watch_path, file_wait->watch_dir);
-		watch_path_len = watch_dir_len;
+		strlcpy(file_wait->watch_path, file_wait->watch_dir,
+			CRAS_MAX_SOCKET_PATH_SIZE);
 
-		/* Find the end of the parent directory. */
-		watch_dir_end = file_wait->watch_dir + watch_dir_len - 1;
-		while (watch_dir_end > file_wait->watch_dir &&
-		       *watch_dir_end != '/')
-			watch_dir_end--;
-		watch_file_start = watch_dir_end + 1;
-		/* Treat consecutive '/' characters as one. */
-		while (watch_dir_end > file_wait->watch_dir &&
-		       *(watch_dir_end - 1) == '/')
-			watch_dir_end--;
-		watch_dir_len = watch_dir_end - file_wait->watch_dir;
+		/* Copy file name we're looking for. */
+		/* basename may modify the string that is passed in. file_wait->watch_path
+       will be used for other checks, so pass in a copy.*/
+		strlcpy(watch_path, file_wait->watch_path,
+			CRAS_MAX_SOCKET_PATH_SIZE);
+		strlcpy(file_wait->watch_file_name, basename(watch_path),
+			CRAS_MAX_SOCKET_PATH_SIZE);
 
-		if (watch_dir_len == 0) {
-			/* We're looking for a file in the current directory. */
-			strcpy(file_wait->watch_file_name,
-			       file_wait->watch_path);
-			file_wait->watch_file_name_len = watch_path_len;
-			strcpy(file_wait->watch_dir, ".");
-			watch_dir_len = 1;
-		} else {
-			/* Copy out the file name that we're looking for, and
-			 * mark the end of the directory path. */
-			strcpy(file_wait->watch_file_name, watch_file_start);
-			file_wait->watch_file_name_len =
-				watch_path_len -
-				(watch_file_start - file_wait->watch_dir);
-			*watch_dir_end = 0;
-		}
+		/* Remove file name and set the directory. */
+		/* dirname may modify the string that is passed in. file_wait->watch_path
+       will be used for other checks, so pass in a copy.*/
+		strlcpy(watch_path, file_wait->watch_path,
+			CRAS_MAX_SOCKET_PATH_SIZE);
+		strlcpy(file_wait->watch_dir, dirname(watch_path),
+			CRAS_MAX_SOCKET_PATH_SIZE);
 
 		if (file_wait->flags & CRAS_FILE_WAIT_FLAG_MOCK_RACE) {
 			/* For testing only. */
@@ -267,8 +253,8 @@ int cras_file_wait_dispatch(struct cras_file_wait *file_wait)
 		if (rc < 0)
 			return rc;
 		rc = -ENOENT;
-		strcpy(file_wait->watch_dir, file_wait->file_path);
-		watch_dir_len = file_wait->file_path_len;
+		strlcpy(file_wait->watch_dir, file_wait->file_path,
+			CRAS_MAX_SOCKET_PATH_SIZE);
 	}
 
 	/* Get out for permissions problems for example. */
