@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "cras_file_wait.h"
+#include "cras_config.h"
 
 #define CRAS_FILE_WAIT_EVENT_MIN_SIZE sizeof(struct inotify_event)
 #define CRAS_FILE_WAIT_EVENT_SIZE (CRAS_FILE_WAIT_EVENT_MIN_SIZE + NAME_MAX + 1)
@@ -25,9 +26,9 @@ struct cras_file_wait {
 	void *callback_context;
 	const char *file_path;
 	size_t file_path_len;
-	char *watch_path;
-	char *watch_dir;
-	char *watch_file_name;
+	char watch_path[CRAS_MAX_SOCKET_PATH_SIZE];
+	char watch_dir[CRAS_MAX_SOCKET_PATH_SIZE];
+	char watch_file_name[CRAS_MAX_SOCKET_PATH_SIZE];
 	size_t watch_file_name_len;
 	int inotify_fd;
 	int watch_id;
@@ -58,6 +59,10 @@ void cras_file_wait_destroy(struct cras_file_wait *file_wait)
 		return;
 	if (file_wait->inotify_fd >= 0)
 		close(file_wait->inotify_fd);
+
+	/* Free the members first */
+	free((void *)file_wait->file_path);
+
 	free(file_wait);
 }
 
@@ -285,8 +290,7 @@ int cras_file_wait_create(const char *file_path, cras_file_wait_flag_t flags,
 
 	/* Create a struct cras_file_wait to track waiting for this file. */
 	file_path_len = strlen(file_path);
-	file_wait = (struct cras_file_wait *)calloc(
-		1, sizeof(*file_wait) + ((file_path_len + 1) * 5));
+	file_wait = (struct cras_file_wait *)calloc(1, sizeof(*file_wait));
 	if (!file_wait)
 		return -ENOMEM;
 	file_wait->callback = callback;
@@ -295,15 +299,11 @@ int cras_file_wait_create(const char *file_path, cras_file_wait_flag_t flags,
 	file_wait->watch_id = -1;
 	file_wait->file_path_len = file_path_len;
 	file_wait->flags = flags;
-
-	/* We've allocated memory such that the file_path, watch_path,
-	 * watch_dir, and watch_file_name data are appended to the end of
-	 * our cras_file_wait structure. */
-	file_wait->file_path = (const char *)file_wait + sizeof(*file_wait);
-	file_wait->watch_path =
-		(char *)file_wait->file_path + file_path_len + 1;
-	file_wait->watch_dir = file_wait->watch_path + file_path_len + 1;
-	file_wait->watch_file_name = file_wait->watch_dir + file_path_len + 1;
+	file_wait->file_path = calloc(file_path_len + 1, sizeof(char));
+	if (!file_wait->file_path) {
+		cras_file_wait_destroy(file_wait);
+		return -ENOMEM;
+	}
 	memcpy((void *)file_wait->file_path, file_path, file_path_len + 1);
 
 	/* Setup the first watch. If that fails unexpectedly, then we destroy

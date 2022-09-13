@@ -32,6 +32,10 @@ cc_library(
     visibility = [
         "//src/libcras:__pkg__",
     ],
+    deps = [
+        "//src/common:cras_config",
+        "//src/common:cras_string",
+    ],
 )
 
 cc_library(
