@@ -137,6 +137,7 @@ TEST(AlsaUcm, CheckEnabledEmptyList) {
   ResetStubData();
   fake_list["_enadevs"] = NULL;
   fake_list_size["_enadevs"] = 0;
+  snd_use_case_geti_value["_devstatus/Dev1"] = 0;
 
   EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 0));
   EXPECT_EQ(0, snd_use_case_set_called);
@@ -149,20 +150,17 @@ TEST(AlsaUcm, CheckEnabledEmptyList) {
 
 TEST(AlsaUcm, CheckEnabledAlready) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  const char* enabled[] = {"Dev2", "Dev1"};
 
   ResetStubData();
 
-  fake_list["_enadevs"] = enabled;
-  fake_list_size["_enadevs"] = 2;
+  snd_use_case_geti_value["_devstatus/Dev1"] = 1;
+  snd_use_case_geti_value["_devstatus/Dev2"] = 1;
 
   EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 1));
   EXPECT_EQ(0, snd_use_case_set_called);
 
   EXPECT_EQ(0, ucm_set_enabled(mgr, "Dev1", 0));
   EXPECT_EQ(1, snd_use_case_set_called);
-
-  EXPECT_EQ(2, snd_use_case_free_list_called);
 }
 
 TEST(AlsaUcm, GetEdidForDev) {
@@ -529,10 +527,12 @@ TEST(AlsaUcm, SetHotwordModel) {
                              "Hotword Model de", "Comment3"};
   const char* enabled_mods[] = {"Hotword Model jp"};
   int ret;
-  std::string id = "_modstatus/Hotword Model jp";
+  std::string id_jp = "_modstatus/Hotword Model jp";
+  std::string id_de = "_modstatus/Hotword Model de";
   ResetStubData();
 
-  snd_use_case_geti_value[id] = 1;
+  snd_use_case_geti_value[id_jp] = 1;
+  snd_use_case_geti_value[id_de] = 0;
   fake_list["_modifiers/HiFi"] = modifiers;
   fake_list_size["_modifiers/HiFi"] = 6;
 
@@ -583,17 +583,13 @@ TEST(AlsaUcm, DisableAllHotwordModels) {
 
 TEST(AlsaUcm, EnableHotwordModel) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  const char* modifiers[] = {"Hotword Model en", "Comment1",
-                             "Hotword Model jp", "Comment2",
-                             "Hotword Model de", "Comment3"};
-  const char* enabled_mods[] = {""};
   int ret;
+
   ResetStubData();
 
-  fake_list["_modifiers/HiFi"] = modifiers;
-  fake_list_size["_modifiers/HiFi"] = 6;
-  fake_list["_enamods"] = enabled_mods;
-  fake_list_size["_enamods"] = 0;
+  snd_use_case_geti_value["_modstatus/Hotword Model en"] = 0;
+  snd_use_case_geti_value["_modstatus/Hotword Model jp"] = 0;
+  snd_use_case_geti_value["_modstatus/Hotword Model de"] = 0;
 
   EXPECT_EQ(-EINVAL, ucm_enable_hotword_model(mgr));
 
@@ -634,63 +630,43 @@ TEST(AlsaUcm, SwapModeExists) {
 TEST(AlsaUcm, EnableSwapMode) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   int rc;
-  const char* modifiers[] = {
-      "Speaker Swap Mode", "Comment for Speaker Swap Mode",
-      "Microphone Swap Mode", "Comment for Microphone Swap Mode"};
-  const char* modifiers_enabled[] = {"Speaker Swap Mode"};
 
   ResetStubData();
 
-  fake_list["_modifiers/HiFi"] = modifiers;
-  fake_list_size["_modifiers/HiFi"] = 4;
-
-  fake_list["_enamods"] = modifiers_enabled;
-  fake_list_size["_enamods"] = 1;
-
-  snd_use_case_set_return = 0;
-
-  rc = ucm_enable_swap_mode(mgr, "Headphone", 1);
-  EXPECT_EQ(-EPERM, rc);
-  EXPECT_EQ(0, snd_use_case_set_called);
-
   rc = ucm_enable_swap_mode(mgr, "Speaker", 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, snd_use_case_set_called);
+  EXPECT_EQ(1, snd_use_case_set_called);
+  EXPECT_EQ(
+      snd_use_case_set_param[0],
+      std::make_pair(std::string("_enamod"), std::string("Speaker Swap Mode")));
 
   rc = ucm_enable_swap_mode(mgr, "Microphone", 1);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, snd_use_case_set_called);
+  EXPECT_EQ(2, snd_use_case_set_called);
+  EXPECT_EQ(snd_use_case_set_param[1],
+            std::make_pair(std::string("_enamod"),
+                           std::string("Microphone Swap Mode")));
 }
 
 TEST(AlsaUcm, DisableSwapMode) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   int rc;
-  const char* modifiers[] = {
-      "Speaker Swap Mode", "Comment for Speaker Swap Mode",
-      "Microphone Swap Mode", "Comment for Microphone Swap Mode"};
-  const char* modifiers_enabled[] = {"Speaker Swap Mode"};
 
   ResetStubData();
 
-  fake_list["_modifiers/HiFi"] = modifiers;
-  fake_list_size["_modifiers/HiFi"] = 4;
-
-  fake_list["_enamods"] = modifiers_enabled;
-  fake_list_size["_enamods"] = 1;
-
-  snd_use_case_set_return = 0;
-
-  rc = ucm_enable_swap_mode(mgr, "Headphone", 0);
-  EXPECT_EQ(-EPERM, rc);
-  EXPECT_EQ(0, snd_use_case_set_called);
-
   rc = ucm_enable_swap_mode(mgr, "Microphone", 0);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(0, snd_use_case_set_called);
+  EXPECT_EQ(1, snd_use_case_set_called);
+  EXPECT_EQ(snd_use_case_set_param[0],
+            std::make_pair(std::string("_dismod"),
+                           std::string("Microphone Swap Mode")));
 
   rc = ucm_enable_swap_mode(mgr, "Speaker", 0);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(1, snd_use_case_set_called);
+  EXPECT_EQ(2, snd_use_case_set_called);
+  EXPECT_EQ(
+      snd_use_case_set_param[1],
+      std::make_pair(std::string("_dismod"), std::string("Speaker Swap Mode")));
 }
 
 TEST(AlsaUcm, NoiseCancellationExists) {
@@ -728,6 +704,9 @@ TEST(AlsaUcm, EnableDisableNoiseCancellation) {
 
   ResetStubData();
 
+  snd_use_case_geti_value["_modstatus/Internal Mic Noise Cancellation"] = 1;
+  snd_use_case_geti_value["_modstatus/Microphone Noise Cancellation"] = 0;
+
   fake_list["_modifiers/HiFi"] = modifiers;
   fake_list_size["_modifiers/HiFi"] = 4;
 
@@ -751,6 +730,9 @@ TEST(AlsaUcm, EnableDisableNoiseCancellation) {
   rc = ucm_enable_node_noise_cancellation(mgr, "Microphone", 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, snd_use_case_set_called);
+  EXPECT_EQ(snd_use_case_set_param[0],
+            std::make_pair(std::string("_enamod"),
+                           std::string("Microphone Noise Cancellation")));
 
   snd_use_case_set_called = 0;
 
@@ -761,6 +743,9 @@ TEST(AlsaUcm, EnableDisableNoiseCancellation) {
   rc = ucm_enable_node_noise_cancellation(mgr, "Internal Mic", 0);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, snd_use_case_set_called);
+  EXPECT_EQ(snd_use_case_set_param[1],
+            std::make_pair(std::string("_dismod"),
+                           std::string("Internal Mic Noise Cancellation")));
 }
 
 TEST(AlsaFlag, GetFlag) {
@@ -784,19 +769,19 @@ TEST(AlsaFlag, GetFlag) {
 
 TEST(AlsaUcm, ModifierEnabled) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  int enabled;
+  long enabled;
 
   ResetStubData();
 
-  const char* mods[] = {"Mod1", "Mod2"};
-  fake_list["_enamods"] = mods;
-  fake_list_size["_enamods"] = 2;
+  snd_use_case_geti_value["_modstatus/Mod1"] = 1;
+  snd_use_case_geti_value["_modstatus/Mod2"] = 1;
+  snd_use_case_geti_value["_modstatus/Mod3"] = 0;
 
-  enabled = modifier_enabled(mgr, "Mod1");
+  modifier_enabled(mgr, "Mod1", &enabled);
   EXPECT_EQ(1, enabled);
-  enabled = modifier_enabled(mgr, "Mod2");
+  modifier_enabled(mgr, "Mod2", &enabled);
   EXPECT_EQ(1, enabled);
-  enabled = modifier_enabled(mgr, "Mod3");
+  modifier_enabled(mgr, "Mod3", &enabled);
   EXPECT_EQ(0, enabled);
 }
 
@@ -1546,10 +1531,10 @@ int snd_use_case_geti(snd_use_case_mgr_t* uc_mgr,
   snd_use_case_geti_called++;
   if (snd_use_case_geti_value.find(identifier) ==
       snd_use_case_geti_value.end()) {
-    *value = 0;
-    return -1;
+    return -ENOENT;
+  } else {
+    *value = snd_use_case_geti_value[identifier];
   }
-  *value = snd_use_case_geti_value[identifier];
   return 0;
 }
 

@@ -67,6 +67,12 @@ static const char default_node_gain[] = "DefaultNodeGain";
 static const char fully_specified_ucm_var[] = "FullySpecifiedUCM";
 static const char main_volume_names[] = "MainVolumeNames";
 
+/*
+ * Names of lists for snd_use_case_geti to use when looking up values
+ */
+static const char enabled_devices_list[] = "_devstatus";
+static const char enabled_modifiers_list[] = "_modstatus";
+
 /* Use case verbs corresponding to CRAS_STREAM_TYPE. */
 static const char *use_case_verbs[] = {
 	"HiFi",	  "Multimedia", "Voice Call",
@@ -94,43 +100,25 @@ static inline const char *uc_verb(struct cras_use_case_mgr *mgr)
 	return use_case_verbs[mgr->use_case];
 }
 
-static int device_enabled(struct cras_use_case_mgr *mgr, const char *dev)
+static int get_status(struct cras_use_case_mgr *mgr, const char *list,
+		      const char *target, long *value)
 {
-	const char **list;
-	unsigned int i;
-	int num_devs;
-	int enabled = 0;
+	char identifier[max_section_name_len];
 
-	num_devs = snd_use_case_get_list(mgr->mgr, "_enadevs", &list);
-	if (num_devs <= 0)
-		return num_devs;
-
-	for (i = 0; i < (unsigned int)num_devs; i++)
-		if (!strcmp(dev, list[i])) {
-			enabled = 1;
-			break;
-		}
-
-	snd_use_case_free_list(list, num_devs);
-	return enabled;
+	snprintf(identifier, sizeof(identifier), "%s/%s", list, target);
+	return snd_use_case_geti(mgr->mgr, identifier, value);
 }
 
-static int modifier_enabled(struct cras_use_case_mgr *mgr, const char *mod)
+static inline int modifier_enabled(struct cras_use_case_mgr *mgr,
+				   const char *modifier, long *value)
 {
-	const char **list;
-	unsigned int mod_idx;
-	int num_mods;
+	return get_status(mgr, enabled_modifiers_list, modifier, value);
+}
 
-	num_mods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
-	if (num_mods <= 0)
-		return num_mods;
-
-	for (mod_idx = 0; mod_idx < (unsigned int)num_mods; mod_idx++)
-		if (!strcmp(mod, list[mod_idx]))
-			break;
-
-	snd_use_case_free_list(list, num_mods);
-	return (mod_idx < (unsigned int)num_mods);
+static inline int device_enabled(struct cras_use_case_mgr *mgr, const char *dev,
+				 long *value)
+{
+	return get_status(mgr, enabled_devices_list, dev, value);
 }
 
 static int get_var(struct cras_use_case_mgr *mgr, const char *var,
@@ -506,39 +494,24 @@ int ucm_swap_mode_exists(struct cras_use_case_mgr *mgr)
 	return ucm_mod_exists_with_suffix(mgr, swap_mode_suffix);
 }
 
-int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
-			 int enable)
-{
-	char *swap_mod = NULL;
-	int rc;
-	size_t len = strlen(node_name) + 1 + strlen(swap_mode_suffix) + 1;
-	swap_mod = (char *)malloc(len);
-	if (!swap_mod)
-		return -ENOMEM;
-	snprintf(swap_mod, len, "%s %s", node_name, swap_mode_suffix);
-	if (!ucm_mod_exists_with_name(mgr, swap_mod)) {
-		syslog(LOG_ERR, "Can not find swap mode modifier %s.",
-		       swap_mod);
-		free((void *)swap_mod);
-		return -EPERM;
-	}
-	if (modifier_enabled(mgr, swap_mod) == !!enable) {
-		free((void *)swap_mod);
-		return 0;
-	}
-	rc = ucm_set_modifier_enabled(mgr, swap_mod, enable);
-	free((void *)swap_mod);
-	return rc;
-}
-
 static int ucm_modifier_try_enable(struct cras_use_case_mgr *mgr, int enable,
 				   const char *name)
 {
+	long value;
+	int ret;
+
 	if (!ucm_mod_exists_with_name(mgr, name)) {
 		syslog(LOG_ERR, "Can not find modifier %s.", name);
 		return -ENOTSUP;
 	}
-	if (modifier_enabled(mgr, name) == !!enable) {
+
+	ret = modifier_enabled(mgr, name, &value);
+	if (ret < 0) {
+		syslog(LOG_WARNING, "Failed to check modifier: %d", ret);
+		return ret;
+	}
+
+	if (value == !!enable) {
 		syslog(LOG_DEBUG, "Modifier %s is already %s.", name,
 		       enable ? "enabled" : "disabled");
 		return 0;
@@ -547,6 +520,16 @@ static int ucm_modifier_try_enable(struct cras_use_case_mgr *mgr, int enable,
 	syslog(LOG_DEBUG, "UCM %s Modifier %s", enable ? "enable" : "disable",
 	       name);
 	return ucm_set_modifier_enabled(mgr, name, enable);
+}
+
+int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
+			 int enable)
+{
+	char swap_mod[max_section_name_len];
+
+	snprintf(swap_mod, sizeof(swap_mod), "%s %s", node_name,
+		 swap_mode_suffix);
+	return ucm_set_modifier_enabled(mgr, swap_mod, enable);
 }
 
 int inline ucm_node_echo_cancellation_exists(struct cras_use_case_mgr *mgr)
@@ -608,7 +591,14 @@ int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr *mgr,
 int ucm_set_enabled(struct cras_use_case_mgr *mgr, const char *dev, int enable)
 {
 	int rc;
-	if (device_enabled(mgr, dev) == !!enable)
+	long value;
+
+	rc = device_enabled(mgr, dev, &value);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Failed to check device status in enable");
+		return rc;
+	}
+	if (value == !!enable)
 		return 0;
 	syslog(LOG_DEBUG, "UCM %s %s", enable ? "enable" : "disable", dev);
 	rc = snd_use_case_set(mgr->mgr, enable ? "_enadev" : "_disdev", dev);
@@ -1147,32 +1137,17 @@ void ucm_disable_all_hotword_models(struct cras_use_case_mgr *mgr)
 	snd_use_case_free_list(list, num_enmods);
 }
 
-static int ucm_is_modifier_enabled(struct cras_use_case_mgr *mgr,
-				   char *modifier, long *value)
-{
-	int rc;
-	char *id;
-	size_t len = strlen(modifier) + 11 + 1;
-
-	id = (char *)malloc(len);
-
-	if (!id)
-		return -ENOMEM;
-
-	snprintf(id, len, "_modstatus/%s", modifier);
-	rc = snd_use_case_geti(mgr->mgr, id, value);
-	free(id);
-	return rc;
-}
-
 int ucm_enable_hotword_model(struct cras_use_case_mgr *mgr)
 {
 	long mod_status;
+	int ret;
 
 	if (!mgr->hotword_modifier)
 		return -EINVAL;
 
-	ucm_is_modifier_enabled(mgr, mgr->hotword_modifier, &mod_status);
+	ret = modifier_enabled(mgr, mgr->hotword_modifier, &mod_status);
+	if (ret < 0)
+		return ret;
 
 	if (!mod_status)
 		return ucm_set_modifier_enabled(mgr, mgr->hotword_modifier, 1);
@@ -1206,8 +1181,7 @@ int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model)
 
 	/* If check failed, just move on, dont fail incoming model */
 	if (mgr->hotword_modifier)
-		ucm_is_modifier_enabled(mgr, mgr->hotword_modifier,
-					&mod_status);
+		modifier_enabled(mgr, mgr->hotword_modifier, &mod_status);
 
 	ucm_disable_all_hotword_models(mgr);
 	free(mgr->hotword_modifier);
