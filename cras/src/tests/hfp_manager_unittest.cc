@@ -75,15 +75,14 @@ TEST_F(HfpManagerTestSuite, PCMCreateFailed) {
             (struct cras_hfp*)NULL);
 }
 
-// TODO(jrwu) add this test when is_sco_pcm_used is ready
-// TEST_F(HfpManagerTestSuite, AlsaCreateFailed) {
-//   cras_iodev_list_get_sco_pcm_iodev_ret =
-//       reinterpret_cast<struct cras_iodev*>(0xabc);
+TEST_F(HfpManagerTestSuite, AlsaCreateFailed) {
+  cras_iodev_list_get_sco_pcm_iodev_ret =
+      reinterpret_cast<struct cras_iodev*>(0xabc);
 
-//   hfp_alsa_iodev_create_ret = NULL;
-//   ASSERT_EQ(cras_floss_hfp_create(NULL, "addr", "name", false),
-//             (struct cras_hfp*)NULL);
-// }
+  hfp_alsa_iodev_create_ret = NULL;
+  ASSERT_EQ(cras_floss_hfp_create(NULL, "addr", "name", false),
+            (struct cras_hfp*)NULL);
+}
 
 TEST_F(HfpManagerTestSuite, PCMCreateDestroy) {
   struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name", false);
@@ -96,20 +95,19 @@ TEST_F(HfpManagerTestSuite, PCMCreateDestroy) {
   EXPECT_EQ(hfp_pcm_iodev_destroy_called, 2);
 }
 
-// TODO(jrwu) add this test when is_sco_pcm_used is ready
-// TEST_F(HfpManagerTestSuite, AlsaCreateDestroy) {
-//   cras_iodev_list_get_sco_pcm_iodev_ret =
-//       reinterpret_cast<struct cras_iodev*>(0xabc);
+TEST_F(HfpManagerTestSuite, AlsaCreateDestroy) {
+  cras_iodev_list_get_sco_pcm_iodev_ret =
+      reinterpret_cast<struct cras_iodev*>(0xabc);
 
-//   struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name", false);
-//   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
-//   EXPECT_EQ(hfp, hfp_alsa_iodev_create_hfp_val);
-//   EXPECT_EQ(hfp_alsa_iodev_create_called, 2);
-//   EXPECT_EQ(strncmp("name", cras_floss_hfp_get_display_name(hfp), 4), 0);
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name", false);
+  ASSERT_NE(hfp, (struct cras_hfp*)NULL);
+  EXPECT_EQ(hfp, hfp_alsa_iodev_create_hfp_val);
+  EXPECT_EQ(hfp_alsa_iodev_create_called, 2);
+  EXPECT_EQ(strncmp("name", cras_floss_hfp_get_display_name(hfp), 4), 0);
 
-//   cras_floss_hfp_destroy(hfp);
-//   EXPECT_EQ(hfp_alsa_iodev_destroy_called, 2);
-// }
+  cras_floss_hfp_destroy(hfp);
+  EXPECT_EQ(hfp_alsa_iodev_destroy_called, 2);
+}
 
 TEST_F(HfpManagerTestSuite, StartWithSocketFail) {
   struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name", false);
@@ -268,6 +266,9 @@ struct cras_iodev* cras_iodev_list_get_sco_pcm_iodev(
   return cras_iodev_list_get_sco_pcm_iodev_ret;
 }
 
+bool cras_system_get_bt_hfp_offload_finch_applied() {
+  return true;
+}
 }  // extern "C"
 
 int main(int argc, char** argv) {

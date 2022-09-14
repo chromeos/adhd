@@ -20,8 +20,10 @@
 #include "cras_bt_log.h"
 #include "cras_bt_policy.h"
 #include "cras_config.h"
+#include "cras_featured.h"
 #include "cras_hfp_manager.h"
 #include "cras_iodev_list.h"
+#include "cras_system_state.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 #include "cras_fl_pcm_iodev.h"
@@ -75,12 +77,17 @@ void set_dev_started(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir,
 		hfp->odev_started = started;
 }
 
-/* TODO(jrwu): enable this as it is in BlueZ when ready to use.
- * And do not forget to read board config and Finch flag the same way.
- */
 static bool is_sco_pcm_used()
 {
-	return false;
+	/* If board config "bluetooth:hfp_offload_finch_applied" is specified,
+	 * check the feature state from Chrome Feature Service to determine
+	 * whether to use HFP offload path; otherwise, always choose HFP offload
+	 * path.
+	 */
+	if (cras_system_get_bt_hfp_offload_finch_applied())
+		return get_hfp_offload_feature_enabled();
+
+	return true;
 }
 
 static bool is_sco_pcm_supported()
