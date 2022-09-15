@@ -29,11 +29,7 @@
 
 #define CRAS_BT_MEDIA_OBJECT_PATH "/org/chromium/cras/bluetooth/media"
 
-// When A2DP audio starts polling, it could take as long as 6s (b/239370946).
-// Blocking CRAS main thread for 6 seconds is horrible and we accept that
-// when Floss is under development with some unsolved issues.
-// TODO(jrwu): shorten the max timeout before Floss launches.
-#define GET_A2DP_AUDIO_STARTED_RETRIES 1200
+#define GET_A2DP_AUDIO_STARTED_RETRIES 400
 #define GET_A2DP_AUDIO_STARTED_SLEEP_US 5000
 
 #define GET_HFP_AUDIO_STARTED_RETRIES 200
