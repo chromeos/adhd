@@ -163,10 +163,11 @@ static void ResetStubData() {
 struct cras_alsa_mixer* create_mixer_and_add_controls_by_name_matching(
     const char* card_name,
     struct mixer_name* extra_controls,
-    struct mixer_name* coupled_controls) {
+    struct mixer_name* coupled_controls,
+    enum CRAS_ALSA_CARD_TYPE card_type) {
   struct cras_alsa_mixer* cmix = cras_alsa_mixer_create(card_name);
   cras_alsa_mixer_add_controls_by_name_matching(cmix, extra_controls,
-                                                coupled_controls);
+                                                coupled_controls, card_type);
   return cmix;
 }
 
@@ -228,9 +229,10 @@ TEST(AlsaMixer, CreateFailLoad) {
 
 TEST(AlsaMixer, CreateNoElements) {
   struct cras_alsa_mixer* c;
-
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_INTERNAL;
   ResetStubData();
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
+  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL,
+                                                     card_type);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -252,6 +254,7 @@ TEST(AlsaMixer, CreateNoElements) {
 
 TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
   struct cras_alsa_mixer* c;
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_INTERNAL;
   int element_playback_volume[] = {
       0,
   };
@@ -277,7 +280,8 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
   snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
   snd_mixer_selem_get_playback_volume_range_values_length =
       ARRAY_SIZE(min_steps);
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
+  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL,
+                                                     card_type);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -326,6 +330,7 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
 
 TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   struct cras_alsa_mixer* c;
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_INTERNAL;
   static const long min_volumes[] = {-500};
   static const long max_volumes[] = {40};
   static const long min_steps[] = {0};
@@ -359,7 +364,8 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
   snd_mixer_selem_get_playback_volume_range_values_length =
       ARRAY_SIZE(min_steps);
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
+  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL,
+                                                     card_type);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -413,6 +419,7 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
 
 TEST(AlsaMixer, CreateOneMainElement) {
   struct cras_alsa_mixer* c;
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_INTERNAL;
   int element_playback_volume[] = {
       1,
       1,
@@ -443,7 +450,8 @@ TEST(AlsaMixer, CreateOneMainElement) {
   snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
   snd_mixer_selem_get_playback_volume_range_values_length =
       ARRAY_SIZE(min_steps);
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
+  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL,
+                                                     card_type);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -498,6 +506,7 @@ TEST(AlsaMixer, CreateOneMainElement) {
 
 TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   struct cras_alsa_mixer* c;
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_INTERNAL;
   snd_mixer_elem_t* elements[] = {
       reinterpret_cast<snd_mixer_elem_t*>(2),
   };
@@ -547,7 +556,8 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
       ARRAY_SIZE(min_steps);
   snd_mixer_selem_set_playback_dB_all_values = set_dB_values;
   snd_mixer_selem_set_playback_dB_all_values_length = ARRAY_SIZE(set_dB_values);
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
+  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL,
+                                                     card_type);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_range_called);
   EXPECT_EQ(1, snd_mixer_open_called);
@@ -643,6 +653,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
 
 TEST(AlsaMixer, CreateTwoMainCaptureElements) {
   struct cras_alsa_mixer* c;
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_INTERNAL;
   snd_mixer_elem_t* elements[] = {
       reinterpret_cast<snd_mixer_elem_t*>(2),
   };
@@ -676,7 +687,8 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
       ARRAY_SIZE(element_capture_switches);
   snd_mixer_selem_get_name_return_values = element_names;
   snd_mixer_selem_get_name_return_values_length = ARRAY_SIZE(element_names);
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL);
+  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL, NULL,
+                                                     card_type);
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
   EXPECT_EQ(1, snd_mixer_attach_called);
@@ -794,6 +806,7 @@ class AlsaMixerOutputs : public testing::Test {
         reinterpret_cast<snd_mixer_elem_t*>(7),  // Mic Boost
         reinterpret_cast<snd_mixer_elem_t*>(8),  // Capture
     };
+    static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_USB;
     static int element_playback_volume[] = {
         1, 1, 1, 0, 0, 1, 1,
     };
@@ -854,7 +867,7 @@ class AlsaMixerOutputs : public testing::Test {
     iniparser_getstring_returns = iniparser_returns;
     iniparser_getstring_return_length = ARRAY_SIZE(iniparser_returns);
     cras_mixer_ = create_mixer_and_add_controls_by_name_matching(
-        "hw:0", extra_controls, NULL);
+        "hw:0", extra_controls, NULL, card_type);
     ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), cras_mixer_);
     EXPECT_EQ(1, snd_mixer_open_called);
     EXPECT_EQ(1, snd_mixer_attach_called);
@@ -863,8 +876,8 @@ class AlsaMixerOutputs : public testing::Test {
     EXPECT_EQ(1, snd_mixer_load_called);
     EXPECT_EQ(0, snd_mixer_close_called);
     EXPECT_EQ(ARRAY_SIZE(elements) + 1, snd_mixer_elem_next_called);
-    EXPECT_EQ(8, snd_mixer_selem_has_playback_volume_called);
-    EXPECT_EQ(7, snd_mixer_selem_has_playback_switch_called);
+    EXPECT_EQ(6, snd_mixer_selem_has_playback_volume_called);
+    EXPECT_EQ(6, snd_mixer_selem_has_playback_switch_called);
     EXPECT_EQ(4, snd_mixer_selem_has_capture_volume_called);
     EXPECT_EQ(3, snd_mixer_selem_has_capture_switch_called);
     mixer_name_free(extra_controls);
@@ -891,7 +904,7 @@ std::vector<struct mixer_control*> AlsaMixerOutputs::output_called_values_;
 TEST_F(AlsaMixerOutputs, CheckFourOutputs) {
   cras_alsa_mixer_list_outputs(cras_mixer_, AlsaMixerOutputs::OutputCallback,
                                reinterpret_cast<void*>(555));
-  EXPECT_EQ(4, output_callback_called_);
+  EXPECT_EQ(6, output_callback_called_);
 }
 
 TEST_F(AlsaMixerOutputs, CheckFindOutputByNameNoMatch) {
@@ -951,8 +964,8 @@ TEST_F(AlsaMixerOutputs, ActivateDeactivate) {
 
   cras_alsa_mixer_list_outputs(cras_mixer_, AlsaMixerOutputs::OutputCallback,
                                reinterpret_cast<void*>(555));
-  EXPECT_EQ(4, output_callback_called_);
-  EXPECT_EQ(4, output_called_values_.size());
+  EXPECT_EQ(6, output_callback_called_);
+  EXPECT_EQ(6, output_called_values_.size());
 
   rc = cras_alsa_mixer_set_output_active_state(output_called_values_[0], 0);
   ASSERT_EQ(0, rc);
@@ -1026,6 +1039,7 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   struct mixer_control* output_control;
   struct mixer_control_element *c1, *c2, *c3, *c4;
 
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_USB;
   static const long min_volumes[] = {-70, -70};
   static const long max_volumes[] = {30, 30};
   static const long min_steps[] = {0};
@@ -1069,8 +1083,8 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
   snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
   snd_mixer_selem_get_playback_volume_range_values_length =
       ARRAY_SIZE(min_steps);
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL,
-                                                     coupled_controls);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, coupled_controls, card_type);
 
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
@@ -1132,6 +1146,7 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
 
 TEST(AlsaMixer, CoupledOutputHasMuteNoVolume) {
   struct cras_alsa_mixer* c;
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_INTERNAL;
   struct mixer_control* output_control;
   struct mixer_control_element *c1, *c2, *c3, *c4;
 
@@ -1172,8 +1187,8 @@ TEST(AlsaMixer, CoupledOutputHasMuteNoVolume) {
   snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
   snd_mixer_selem_get_playback_volume_range_values_length =
       ARRAY_SIZE(min_steps);
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL,
-                                                     coupled_controls);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, coupled_controls, card_type);
 
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);
@@ -1216,6 +1231,7 @@ TEST(AlsaMixer, CoupledOutputHasVolumeNoMute) {
   struct mixer_control* output_control;
   struct mixer_control_element *c1, *c2, *c3, *c4;
 
+  static const enum CRAS_ALSA_CARD_TYPE card_type = ALSA_CARD_TYPE_USB;
   static const long min_volumes[] = {-70, -70};
   static const long max_volumes[] = {30, 30};
   static const long min_steps[] = {0};
@@ -1253,8 +1269,8 @@ TEST(AlsaMixer, CoupledOutputHasVolumeNoMute) {
   snd_mixer_selem_get_playback_volume_range_max_values = max_steps;
   snd_mixer_selem_get_playback_volume_range_values_length =
       ARRAY_SIZE(min_steps);
-  c = create_mixer_and_add_controls_by_name_matching("hw:0", NULL,
-                                                     coupled_controls);
+  c = create_mixer_and_add_controls_by_name_matching(
+      "hw:0", NULL, coupled_controls, card_type);
 
   ASSERT_NE(static_cast<struct cras_alsa_mixer*>(NULL), c);
   EXPECT_EQ(1, snd_mixer_open_called);

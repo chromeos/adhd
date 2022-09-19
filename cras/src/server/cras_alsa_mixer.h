@@ -57,12 +57,14 @@ int cras_alsa_mixer_add_main_volume_control_by_name(
  *    cmix - A pointer to cras_alsa_mixer.
  *    extra_controls - A list array of extra mixer control names, always added.
  *    coupled_controls - A list of coupled mixer control names.
+ *    card_type - alsa card type when adding controls
  * Returns:
  *    0 on success. Other error code if error happens.
  */
 int cras_alsa_mixer_add_controls_by_name_matching(
 	struct cras_alsa_mixer *cmix, struct mixer_name *extra_controls,
-	struct mixer_name *coupled_controls);
+	struct mixer_name *coupled_controls,
+	enum CRAS_ALSA_CARD_TYPE card_type);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:

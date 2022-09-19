@@ -235,8 +235,10 @@ add_controls_and_iodevs_by_matching(struct cras_alsa_card_info *info,
 	}
 
 	/* Add controls to mixer by name matching. */
-	rc = cras_alsa_mixer_add_controls_by_name_matching(
-		alsa_card->mixer, extra_controls, coupled_controls);
+	rc = cras_alsa_mixer_add_controls_by_name_matching(alsa_card->mixer,
+							   extra_controls,
+							   coupled_controls,
+							   info->card_type);
 	if (rc) {
 		syslog(LOG_ERR, "Fail adding controls to mixer for %s.",
 		       alsa_card->name);

@@ -773,7 +773,7 @@ struct cras_alsa_mixer *cras_alsa_mixer_create(const char *card_name)
 
 int cras_alsa_mixer_add_controls_by_name_matching(
 	struct cras_alsa_mixer *cmix, struct mixer_name *extra_controls,
-	struct mixer_name *coupled_controls)
+	struct mixer_name *coupled_controls, enum CRAS_ALSA_CARD_TYPE card_type)
 {
 	/* Names of controls for main system volume. */
 	static const char *const main_volume_names[] = {
@@ -817,11 +817,11 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 		mixer_name_add_array(default_controls, input_names,
 				     ARRAY_SIZE(input_names), CRAS_STREAM_INPUT,
 				     MIXER_NAME_VOLUME);
-	default_controls =
-		mixer_name_add_array(default_controls, main_volume_names,
-				     ARRAY_SIZE(main_volume_names),
-				     CRAS_STREAM_OUTPUT,
-				     MIXER_NAME_MAIN_VOLUME);
+	default_controls = mixer_name_add_array(
+		default_controls, main_volume_names,
+		ARRAY_SIZE(main_volume_names), CRAS_STREAM_OUTPUT,
+		card_type == ALSA_CARD_TYPE_USB ? MIXER_NAME_VOLUME :
+						  MIXER_NAME_MAIN_VOLUME);
 	default_controls =
 		mixer_name_add_array(default_controls, main_capture_names,
 				     ARRAY_SIZE(main_capture_names),

@@ -1007,7 +1007,8 @@ struct cras_alsa_mixer* cras_alsa_mixer_create(const char* card_name) {
 int cras_alsa_mixer_add_controls_by_name_matching(
     struct cras_alsa_mixer* cmix,
     struct mixer_name* extra_controls,
-    struct mixer_name* coupled_controls) {
+    struct mixer_name* coupled_controls,
+    enum CRAS_ALSA_CARD_TYPE card_type) {
   /* Duplicate coupled_output_names to verify in the end of unittest
    * because names will get freed later in cras_alsa_card_create. */
   struct mixer_name* control;
