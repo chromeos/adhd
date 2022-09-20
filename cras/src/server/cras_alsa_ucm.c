@@ -1187,7 +1187,7 @@ int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model)
 	free(mgr->hotword_modifier);
 	mgr->hotword_modifier = model_mod;
 	if (mod_status)
-		return ucm_enable_hotword_model(mgr);
+		return ucm_set_modifier_enabled(mgr, mgr->hotword_modifier, 1);
 	return 0;
 }
 
