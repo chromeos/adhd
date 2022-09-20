@@ -121,7 +121,8 @@ int cras_file_wait_process_event(struct cras_file_wait *file_wait,
 		return 0;
 
 	/* Found the file! */
-	if (strcmp(file_wait->watch_path, file_wait->file_path) == 0) {
+	if (strncmp(file_wait->watch_path, file_wait->file_path,
+		    CRAS_MAX_SOCKET_PATH_SIZE) == 0) {
 		/* Tell the caller about this creation or deletion. */
 		file_wait->callback(file_wait->callback_context,
 				    file_wait_event, event->name);
@@ -241,7 +242,8 @@ int cras_file_wait_dispatch(struct cras_file_wait *file_wait)
 		}
 
 		/* The file we're looking for exists. */
-		if (strcmp(file_wait->watch_path, file_wait->file_path) == 0) {
+		if (strncmp(file_wait->watch_path, file_wait->file_path,
+			    CRAS_MAX_SOCKET_PATH_SIZE) == 0) {
 			file_wait->callback(file_wait->callback_context,
 					    CRAS_FILE_WAIT_EVENT_CREATED,
 					    file_wait->watch_file_name);
@@ -275,7 +277,7 @@ int cras_file_wait_create(const char *file_path, cras_file_wait_flag_t flags,
 	*file_wait_out = NULL;
 
 	/* Create a struct cras_file_wait to track waiting for this file. */
-	file_path_len = strlen(file_path);
+	file_path_len = strnlen(file_path, CRAS_MAX_SOCKET_PATH_SIZE);
 	file_wait = (struct cras_file_wait *)calloc(1, sizeof(*file_wait));
 	if (!file_wait)
 		return -ENOMEM;
