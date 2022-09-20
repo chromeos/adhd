@@ -188,33 +188,6 @@ static int ucm_str_ends_with_suffix(const char* str, const char* suffix) {
   return strncmp(str + len_str - len_suffix, suffix, len_suffix) == 0;
 }
 
-static int ucm_section_exists_with_name(struct cras_use_case_mgr* mgr,
-                                        const char* name,
-                                        const char* identifier) {
-  const char** list;
-  unsigned int i;
-  int num_entries;
-  int exist = 0;
-
-  num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
-  if (num_entries <= 0) {
-    return num_entries;
-  }
-
-  for (i = 0; i < (unsigned int)num_entries; i += 2) {
-    if (!list[i]) {
-      continue;
-    }
-
-    if (strcmp(list[i], name) == 0) {
-      exist = 1;
-      break;
-    }
-  }
-  snd_use_case_free_list(list, num_entries);
-  return exist;
-}
-
 static int ucm_section_exists_with_suffix(struct cras_use_case_mgr* mgr,
                                           const char* suffix,
                                           const char* identifier) {
@@ -255,13 +228,13 @@ static int ucm_mod_exists_with_suffix(struct cras_use_case_mgr* mgr,
 
 static int ucm_mod_exists_with_name(struct cras_use_case_mgr* mgr,
                                     const char* name) {
-  char* identifier;
-  int rc;
-
-  identifier = snd_use_case_identifier("_modifiers/%s", uc_verb(mgr));
-  rc = ucm_section_exists_with_name(mgr, name, identifier);
-  free(identifier);
-  return rc;
+  long value;
+  int ret;
+  ret = modifier_enabled(mgr, name, &value);
+  if (ret == -ENOENT) {
+    return 0;
+  }
+  return ret < 0 ? ret : 1;
 }
 
 // Get a list of section names whose variable is the matched value.

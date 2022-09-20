@@ -521,35 +521,35 @@ TEST(AlsaUcm, GetHotwordModels) {
 
 TEST(AlsaUcm, SetHotwordModel) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  const char* modifiers[] = {"Hotword Model en", "Comment1",
-                             "Hotword Model jp", "Comment2",
-                             "Hotword Model de", "Comment3"};
   const char* enabled_mods[] = {"Hotword Model jp"};
   int ret;
-  std::string id_jp = "_modstatus/Hotword Model jp";
-  std::string id_de = "_modstatus/Hotword Model de";
+
   ResetStubData();
 
-  snd_use_case_geti_value[id_jp] = 1;
-  snd_use_case_geti_value[id_de] = 0;
-  fake_list["_modifiers/HiFi"] = modifiers;
-  fake_list_size["_modifiers/HiFi"] = 6;
+  fake_list["_enamods"] = enabled_mods;
+
+  snd_use_case_geti_value["_modstatus/Hotword Model jp"] = 0;
+  snd_use_case_geti_value["_modstatus/Hotword Model de"] = 0;
+  snd_use_case_geti_value["_modstatus/Hotword Model en"] = 0;
 
   EXPECT_EQ(-EINVAL, ucm_set_hotword_model(mgr, "zh"));
   EXPECT_EQ(0, snd_use_case_set_called);
+  EXPECT_EQ(1, snd_use_case_geti_called);
 
   ret = ucm_set_hotword_model(mgr, "jp");
 
   EXPECT_EQ(0, ret);
   EXPECT_EQ(0, snd_use_case_set_called);
+  EXPECT_EQ(2, snd_use_case_geti_called);
   EXPECT_EQ(0, strcmp(mgr->hotword_modifier, "Hotword Model jp"));
 
-  fake_list["_enamods"] = enabled_mods;
   fake_list_size["_enamods"] = 1;
+  snd_use_case_geti_value["_modstatus/Hotword Model jp"] = 1;
+
   ret = ucm_set_hotword_model(mgr, "de");
   EXPECT_EQ(0, ret);
   EXPECT_EQ(2, snd_use_case_set_called);
-  EXPECT_EQ(1, snd_use_case_geti_called);
+  EXPECT_EQ(4, snd_use_case_geti_called);
   EXPECT_EQ(
       snd_use_case_set_param[0],
       std::make_pair(std::string("_dismod"), std::string("Hotword Model jp")));
@@ -672,24 +672,21 @@ TEST(AlsaUcm, NoiseCancellationExists) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   int rc;
   const char* node = "Internal Mic";
-  const char* modifiers_1[] = {"Internal Mic Noise Cancellation", "Comment"};
-  const char* modifiers_2[] = {"Internal Mic Noise Augmentation", "Comment"};
-  const char* modifiers_3[] = {"Microphone Noise Cancellation", "Comment"};
 
   ResetStubData();
 
-  fake_list["_modifiers/HiFi"] = modifiers_1;
-  fake_list_size["_modifiers/HiFi"] = 2;
+  ResetStubData();
+  snd_use_case_geti_value["_modstatus/Internal Mic Noise Cancellation"] = 0;
   rc = ucm_node_noise_cancellation_exists(mgr, node);
   EXPECT_EQ(1, rc);
 
-  fake_list["_modifiers/HiFi"] = modifiers_2;
-  fake_list_size["_modifiers/HiFi"] = 2;
+  ResetStubData();
+  snd_use_case_geti_value["_modstatus/Internal Mic Noise Augmentation"] = 0;
   rc = ucm_node_noise_cancellation_exists(mgr, node);
   EXPECT_EQ(0, rc);
 
-  fake_list["_modifiers/HiFi"] = modifiers_3;
-  fake_list_size["_modifiers/HiFi"] = 2;
+  ResetStubData();
+  snd_use_case_geti_value["_modstatus/Microphone Noise Cancellation"] = 0;
   rc = ucm_node_noise_cancellation_exists(mgr, node);
   EXPECT_EQ(0, rc);
 }
@@ -803,20 +800,6 @@ TEST(AlsaUcm, EndWithSuffix) {
   EXPECT_EQ(1, ucm_str_ends_with_suffix("Foo bar", "bar"));
   EXPECT_EQ(1, ucm_str_ends_with_suffix("bar", "bar"));
   EXPECT_EQ(0, ucm_str_ends_with_suffix("Foo car", "bar"));
-}
-
-TEST(AlsaUcm, SectionExistsWithName) {
-  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  const char* sections[] = {"Sec1", "Comment for Sec1", "Sec2",
-                            "Comment for Sec2"};
-
-  ResetStubData();
-
-  fake_list["Identifier"] = sections;
-  fake_list_size["Identifier"] = 4;
-  EXPECT_EQ(1, ucm_section_exists_with_name(mgr, "Sec1", "Identifier"));
-  EXPECT_EQ(1, ucm_section_exists_with_name(mgr, "Sec2", "Identifier"));
-  EXPECT_EQ(0, ucm_section_exists_with_name(mgr, "Sec3", "Identifier"));
 }
 
 TEST(AlsaUcm, SectionExistsWithSuffix) {
