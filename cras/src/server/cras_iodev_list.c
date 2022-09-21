@@ -1526,7 +1526,7 @@ cras_iodev_list_get_sco_pcm_iodev(enum CRAS_STREAM_DIRECTION direction)
 
 	DL_FOREACH (devs[direction].iodevs, dev) {
 		DL_FOREACH (dev->nodes, node) {
-			if (node->btflags & CRAS_BT_FLAG_SCO_OFFLOAD)
+			if (node->btflags == CRAS_BT_FLAG_SCO_OFFLOAD)
 				return dev;
 		}
 	}
