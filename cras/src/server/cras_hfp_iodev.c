@@ -162,7 +162,8 @@ static int open_dev(struct cras_iodev *iodev)
 	mtu = cras_bt_device_sco_packet_size(
 		hfpio->device, sk, hfp_slc_get_selected_codec(hfpio->slc));
 
-	if (cras_sr_bt_can_be_enabled()) {
+	if (iodev->direction == CRAS_STREAM_INPUT &&
+	    cras_sr_bt_can_be_enabled()) {
 		err = cras_sco_enable_cras_sr_bt(
 			hfpio->sco, hfp_slc_get_selected_codec(hfpio->slc) ==
 						    HFP_CODEC_ID_MSBC ?

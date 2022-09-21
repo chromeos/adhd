@@ -38,7 +38,9 @@ static size_t cras_sco_start_called;
 static size_t cras_sco_stop_called;
 static size_t cras_sco_acquire_called;
 static unsigned cras_sco_acquire_return_val;
+static int cras_sco_enable_cras_sr_bt_called;
 static int cras_sco_enable_cras_sr_bt_return_val;
+static int cras_sco_disable_cras_sr_bt_called;
 static size_t cras_sco_buf_release_called;
 static unsigned cras_sco_buf_release_nwritten_val;
 static size_t cras_sco_fill_output_with_zeros_called;
@@ -69,7 +71,9 @@ void ResetStubData() {
   cras_sco_stop_called = 0;
   cras_sco_acquire_called = 0;
   cras_sco_acquire_return_val = 0;
+  cras_sco_enable_cras_sr_bt_called = 0;
   cras_sco_enable_cras_sr_bt_return_val = 0;
+  cras_sco_disable_cras_sr_bt_called = 0;
   cras_sco_buf_release_called = 0;
   cras_sco_buf_release_nwritten_val = 0;
   cras_sco_fill_output_with_zeros_called = 0;
@@ -184,6 +188,13 @@ TEST_P(OpenHfpIodevTest, TestOpenHfpIodev) {
   cras_sco_running_return_val = 0;
   iodev->open_dev(iodev);
 
+  if (param.direction == CRAS_STREAM_INPUT && param.is_cras_sr_enabled) {
+    ASSERT_EQ(1, cras_sco_enable_cras_sr_bt_called);
+    ASSERT_EQ(0, cras_sco_disable_cras_sr_bt_called);
+  } else {
+    ASSERT_EQ(0, cras_sco_enable_cras_sr_bt_called);
+    ASSERT_EQ(1, cras_sco_disable_cras_sr_bt_called);
+  }
   ASSERT_EQ(1, cras_bt_device_sco_connect_called);
   ASSERT_EQ(1, cras_sco_start_called);
   ASSERT_EQ(0, cras_sco_add_iodev_called);
@@ -457,11 +468,12 @@ int cras_sco_stop(struct cras_sco* sco) {
 
 int cras_sco_enable_cras_sr_bt(struct cras_sco* sco,
                                enum cras_sr_bt_model model) {
+  cras_sco_enable_cras_sr_bt_called++;
   return cras_sco_enable_cras_sr_bt_return_val;
 }
 
 void cras_sco_disable_cras_sr_bt(struct cras_sco* sco) {
-  ;
+  cras_sco_disable_cras_sr_bt_called++;
 }
 
 int cras_sco_set_fd(struct cras_sco* sco, int fd) {
