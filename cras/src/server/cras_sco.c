@@ -335,6 +335,8 @@ int sco_write_msbc(struct cras_sco *sco)
 		       cras_strerror(pcm_encoded));
 		return pcm_encoded;
 	}
+	/* The HFP spec specifies a zero padding byte in the end. */
+	wp[MSBC_FRAME_SIZE] = 0;
 	buf_increment_read(sco->playback_buf, pcm_encoded);
 	pcm_avail -= pcm_encoded;
 	sco->write_wp += MSBC_PKT_SIZE;
@@ -921,8 +923,10 @@ int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 		packet_size = wbs_get_supported_packet_size(sco->packet_size,
 							    &buffer_size);
 		sco->packet_size = packet_size;
-		sco->write_buf = (uint8_t *)malloc(buffer_size);
-		sco->read_buf = (uint8_t *)malloc(buffer_size);
+		sco->write_buf =
+			(uint8_t *)calloc(buffer_size, sizeof(*sco->write_buf));
+		sco->read_buf =
+			(uint8_t *)calloc(buffer_size, sizeof(*sco->read_buf));
 
 		sco->write_cb = sco_write_msbc;
 		sco->read_cb = sco_read_msbc;
