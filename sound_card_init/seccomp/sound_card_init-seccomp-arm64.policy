@@ -8,6 +8,7 @@ rseq: 1
 access: 1
 ARM_set_tls: 1
 brk: 1
+clock_nanosleep: 1
 close: 1
 connect: 1
 epoll_create1: 1
@@ -39,6 +40,7 @@ rt_sigaction: 1
 rt_sigprocmask: 1
 rt_sigreturn: 1
 sched_getaffinity: 1
+sched_yield: 1
 set_robust_list: 1
 set_tid_address: 1
 sigaltstack: 1

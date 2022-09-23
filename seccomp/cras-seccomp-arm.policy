@@ -114,3 +114,5 @@ mremap: 1
 dup: 1
 _newselect: 1
 sched_yield: 1
+recvfrom: 1
+sched_getaffinity: 1

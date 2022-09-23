@@ -103,3 +103,4 @@ dup: 1
 gettimeofday: 1
 fstatfs: 1
 sched_yield: 1
+sched_getaffinity: 1
