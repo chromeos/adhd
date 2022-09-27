@@ -56,7 +56,8 @@ static size_t cras_alsa_mixer_get_playback_dBFS_range_called;
 static long cras_alsa_mixer_get_playback_dBFS_range_max;
 static long cras_alsa_mixer_get_playback_dBFS_range_min;
 static size_t cras_alsa_mixer_get_playback_step_called;
-static int32_t cras_alsa_mixer_get_playback_step_step;
+typedef std::map<const struct mixer_control*, int> PlaybackStepMap;
+static PlaybackStepMap cras_alsa_mixer_get_playback_step_values;
 static const struct mixer_control* alsa_mixer_set_mute_output;
 static size_t alsa_mixer_set_capture_mute_called;
 static int alsa_mixer_set_capture_mute_value;
@@ -185,7 +186,7 @@ void ResetStubData() {
   cras_alsa_mixer_get_playback_dBFS_range_max = 0;
   cras_alsa_mixer_get_playback_dBFS_range_min = -2000;
   cras_alsa_mixer_get_playback_step_called = 0;
-  cras_alsa_mixer_get_playback_step_step = 15;
+  cras_alsa_mixer_get_playback_step_values.clear();
   alsa_mixer_set_capture_mute_called = 0;
   cras_alsa_mixer_get_control_for_section_called = 0;
   cras_alsa_mixer_get_control_for_section_return_value = NULL;
@@ -393,8 +394,6 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
-  EXPECT_EQ(cras_alsa_mixer_get_playback_step_step,
-            aio->base.active_node->number_of_volume_steps);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 
   aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -2522,6 +2521,55 @@ TEST(AlsaGetValidFrames, GetValidFramesFreeRunning) {
   alsa_iodev_destroy(iodev);
 }
 
+class NodeUSBCardSuite : public testing::Test {
+ protected:
+  void CheckExpectBehaviorWithDifferentNumberOfVolumeStep(
+      int control_volume_steps,
+      int expect_output_node_volume_steps,
+      int expect_enable_software_volume) {
+    struct alsa_io* aio;
+    struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
+    struct mixer_control* outputs;
+
+    ResetStubData();
+    outputs = reinterpret_cast<struct mixer_control*>(0);
+    cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
+    cras_alsa_mixer_get_playback_step_values[outputs] = control_volume_steps;
+    aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
+        0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
+        CRAS_STREAM_OUTPUT);
+    ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
+    EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
+    EXPECT_EQ(expect_output_node_volume_steps,
+              aio->base.active_node->number_of_volume_steps);
+    EXPECT_EQ(expect_enable_software_volume,
+              aio->base.active_node->software_volume_needed);
+    alsa_iodev_destroy((struct cras_iodev*)aio);
+  }
+};
+
+TEST_F(NodeUSBCardSuite, NodeUSBCardNumberOfVolumeStep) {
+  /* For number_of_volume_steps < 10, set number_of_volume_steps = 25 and enable
+   * software_volume
+   */
+  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(0, 25, 1);
+  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
+   * ionode same as number_of_volume_steps mixer_control reported
+   */
+  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(10, 10, 0);
+  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
+   * ionode same as number_of_volume_steps mixer_control reported
+   */
+  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(15, 15, 0);
+  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
+   * ionode same as number_of_volume_steps mixer_control reported
+   */
+  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(25, 25, 0);
+  /* For number_of_volume_steps >= 25 set set number_of_volume_steps = 25
+   */
+  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(50, 25, 0);
+}
+
 }  //  namespace
 
 int main(int argc, char** argv) {
@@ -2777,7 +2825,7 @@ void cras_alsa_mixer_get_playback_dBFS_range(struct cras_alsa_mixer* cras_mixer,
 
 int cras_alsa_mixer_get_playback_step(struct mixer_control* mixer_output) {
   cras_alsa_mixer_get_playback_step_called++;
-  return cras_alsa_mixer_get_playback_step_step;
+  return cras_alsa_mixer_get_playback_step_values[mixer_output];
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer* m,

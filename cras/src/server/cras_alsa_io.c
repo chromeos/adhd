@@ -1184,10 +1184,15 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 		number_of_volume_steps =
 			cras_alsa_mixer_get_playback_step(output->mixer_output);
 		if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
+			output->base.software_volume_needed = 1;
+			output->base.number_of_volume_steps =
+				NUMBER_OF_VOLUME_STEPS_DEFAULT;
 			syslog(LOG_WARNING,
 			       "%s output number_of_volume_steps [%" PRId32
-			       "is abnormally small",
-			       output->base.name, number_of_volume_steps);
+			       "] is abnormally small."
+			       "Fallback to software volume and set number_of_volume_steps to %d",
+			       output->base.name, number_of_volume_steps,
+			       NUMBER_OF_VOLUME_STEPS_DEFAULT);
 		}
 	}
 	if (output->base.software_volume_needed)
