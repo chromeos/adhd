@@ -8,6 +8,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* The context of an audio model, am in brief. */
 struct am_context;
 
@@ -31,5 +35,9 @@ void am_free(struct am_context *am_context);
 int am_process(struct am_context *am_context, const float *inputs,
 	       const size_t num_inputs, float *outputs,
 	       const size_t num_outputs);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif /* AM_H_ */

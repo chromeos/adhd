@@ -131,7 +131,7 @@ endif
 
 if HAVE_ML
 CRAS_DSP_AM_SOURCES = \
-	dsp/am.c
+	dsp/am.cc
 CRAS_SR_SOURCES = \
 	server/cras_sr.c \
 	server/cras_sr_bt_util.c
@@ -247,6 +247,9 @@ SERVER_RUST_SRCDIR = $(top_srcdir)/src/server/rust
 
 libcrasserver_la_SOURCES = \
 	$(cras_server_SOURCES)
+# Fake C++ source to cause C++ linking.
+# https://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html
+nodist_EXTRA_libcrasserver_la_SOURCES = fake.cxx
 libcrasserver_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
@@ -268,6 +271,9 @@ libcrasserver_la_LIBADD = \
 cras_SOURCES = \
 	server/cras.c \
 	server/cras_server.c
+# Fake C++ source to cause C++ linking.
+# https://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html
+nodist_EXTRA_cras_SOURCES = fake.cxx
 
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
@@ -684,7 +690,7 @@ eq2_test_LDADD = -lrt -lm
 eq2_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 if HAVE_ML
-am_test_SOURCES = dsp/am.c dsp/tests/am_test.c server/cras_fmt_conv_ops.c
+am_test_SOURCES = dsp/am.cc dsp/tests/am_test.c server/cras_fmt_conv_ops.c
 am_test_LDADD = -lrt -lm $(TENSORFLOW_LIBS)
 am_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS) \
 	$(TENSORFLOW_CFLAGS) -I$(top_srcdir)/src/server

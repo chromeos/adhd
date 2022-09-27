@@ -227,7 +227,7 @@ AM_CONDITIONAL(HAVE_ML, test "$have_ml" = "yes")
 if test "$have_ml" = "yes"; then
 	PKG_CHECK_MODULES([TENSORFLOW], [ tensorflow >= 2.8.0 ])
 	AS_VAR_APPEND([TENSORFLOW_CFLAGS], [" -DHAVE_ML"])
-	TENSORFLOW_LIBS=-ltensorflowlite_c
+	TENSORFLOW_LIBS="-ltensorflowlite"
 else
 	TENSORFLOW_LIBS=
 	TENSORFLOW_CFLAGS=
