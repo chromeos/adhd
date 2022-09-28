@@ -3,6 +3,7 @@
  * found in the LICENSE file.
  */
 
+#include <assert.h>
 #include <stdbool.h>
 #include <sys/param.h>
 #include <sys/socket.h>
@@ -15,6 +16,7 @@
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_sco.h"
+#include "cras_server_metrics.h"
 #include "cras_sr.h"
 #include "cras_sr_bt_util.h"
 #include "cras_system_state.h"
@@ -139,6 +141,95 @@ static int output_underrun(struct cras_iodev *iodev)
 	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
 }
 
+/* Handles cras sr bt enabling and disabling cases.
+ *
+ * Note that the device can be used, whether cras sr bt is enabled or not.
+ * The result will be stored in the member variable `is_cras_sr_bt_enabled`
+ *
+ * Args:
+ *    iodev: the hfp iodev.
+ *    status: the result of cras_sr_bt_can_be_enabled().
+ */
+static void handle_cras_sr_bt_enable_disable(
+	struct cras_iodev *iodev,
+	const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status)
+{
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+
+	if (iodev->direction == CRAS_STREAM_INPUT &&
+	    status == CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK) {
+		int err = cras_sco_enable_cras_sr_bt(
+			hfpio->sco, hfp_slc_get_selected_codec(hfpio->slc) ==
+						    HFP_CODEC_ID_MSBC ?
+					    SR_BT_WBS :
+					    SR_BT_NBS);
+		if (err < 0) {
+			syslog(LOG_ERR, "cras_sr is disabled due to "
+					"cras_sco_enable_cras_sr_bt failed");
+			hfpio->is_cras_sr_bt_enabled = false;
+		} else {
+			hfpio->is_cras_sr_bt_enabled = true;
+		}
+	} else {
+		cras_sco_disable_cras_sr_bt(hfpio->sco);
+		hfpio->is_cras_sr_bt_enabled = false;
+	}
+}
+
+/* Handles cras sr bt uma logs.
+ *
+ * It handles the following cases:
+ * 1. CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK and enabled successfully.
+ * 2. CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK but enabled failed.
+ * 3. CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED.
+ * 4. CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE.
+ *
+ * Args:
+ *    iodev: the hfp iodev.
+ *    status: the result of cras_sr_bt_can_be_enabled().
+ */
+static void
+handle_cras_sr_bt_uma_log(struct cras_iodev *iodev,
+			  const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status)
+{
+	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+
+	enum CRAS_METRICS_HFP_MIC_SR_STATUS log_status =
+		CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS;
+	switch (status) {
+	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK: {
+		log_status = hfpio->is_cras_sr_bt_enabled ?
+				     CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS :
+				     CRAS_METRICS_HFP_MIC_SR_ENABLE_FAILED;
+		break;
+	}
+	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED: {
+		log_status = CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED;
+		break;
+	}
+	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE: {
+		log_status = CRAS_METRICS_HFP_MIC_SR_DLC_UNAVAILABLE;
+		break;
+	}
+	default:
+		assert(0 && "unknown status.");
+	}
+	cras_server_metrics_hfp_mic_sr_status(iodev, log_status);
+}
+
+/* Handles cras sr bt enabling and disabling cases and also uma logs.
+ *
+ * Args:
+ *    iodev: the hfp iodev.
+ */
+static void handle_cras_sr_bt(struct cras_iodev *iodev)
+{
+	const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status =
+		cras_sr_bt_can_be_enabled();
+	handle_cras_sr_bt_enable_disable(iodev, status);
+	handle_cras_sr_bt_uma_log(iodev, status);
+}
+
 static int open_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
@@ -162,25 +253,7 @@ static int open_dev(struct cras_iodev *iodev)
 	mtu = cras_bt_device_sco_packet_size(
 		hfpio->device, sk, hfp_slc_get_selected_codec(hfpio->slc));
 
-	if (iodev->direction == CRAS_STREAM_INPUT &&
-	    cras_sr_bt_can_be_enabled() ==
-		    CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK) {
-		err = cras_sco_enable_cras_sr_bt(
-			hfpio->sco, hfp_slc_get_selected_codec(hfpio->slc) ==
-						    HFP_CODEC_ID_MSBC ?
-					    SR_BT_WBS :
-					    SR_BT_NBS);
-		if (err < 0) {
-			syslog(LOG_ERR, "cras_sr is disabled due to "
-					"cras_sco_enable_cras_sr_bt failed");
-			hfpio->is_cras_sr_bt_enabled = false;
-		} else {
-			hfpio->is_cras_sr_bt_enabled = true;
-		}
-	} else {
-		cras_sco_disable_cras_sr_bt(hfpio->sco);
-		hfpio->is_cras_sr_bt_enabled = false;
-	}
+	handle_cras_sr_bt(iodev);
 
 	/* Start cras_sco */
 	err = cras_sco_start(mtu, hfp_slc_get_selected_codec(hfpio->slc),

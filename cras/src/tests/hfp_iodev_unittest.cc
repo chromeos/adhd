@@ -11,6 +11,7 @@ extern "C" {
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_sco.h"
+#include "cras_server_metrics.h"
 #include "sr_bt_util_stub.h"
 }
 
@@ -556,6 +557,12 @@ bool hfp_slc_get_wideband_speech_supported(struct hfp_slc_handle* handle) {
 }
 
 int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle) {
+  return 0;
+}
+
+int cras_server_metrics_hfp_mic_sr_status(
+    struct cras_iodev* iodev,
+    enum CRAS_METRICS_HFP_MIC_SR_STATUS status) {
   return 0;
 }
 
