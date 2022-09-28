@@ -389,6 +389,52 @@ TEST(ServerMetricsTestSuite, SetMetricsBusyloopLength) {
   EXPECT_EQ(sent_msgs[0].data.value, 5);
 }
 
+struct HfpSrStatusTestParam {
+  enum CRAS_NODE_TYPE node_type;
+  enum CRAS_METRICS_DEVICE_TYPE device_type;
+  enum CRAS_METRICS_HFP_MIC_SR_STATUS status;
+};
+
+class ServerMetricsHfpSrStatusTest
+    : public testing::TestWithParam<HfpSrStatusTestParam> {
+ protected:
+  virtual void SetUp() { ResetStubData(); }
+  virtual void TearDown() { sent_msgs.clear(); }
+};
+
+TEST_P(ServerMetricsHfpSrStatusTest, TestCrasServerMetricsHfpMicSrStatus) {
+  const auto& param = ServerMetricsHfpSrStatusTest::GetParam();
+  struct cras_iodev iodev;
+  struct cras_ionode active_node;
+
+  iodev.direction = CRAS_STREAM_INPUT;
+  iodev.active_node = &active_node;
+  active_node.type = GetParam().node_type;
+  active_node.btflags = CRAS_BT_FLAG_HFP;
+
+  cras_server_metrics_hfp_mic_sr_status(&iodev, GetParam().status);
+
+  EXPECT_EQ(sent_msgs.size(), 1);
+  EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[0].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[0].metrics_type, BT_MIC_SUPER_RESOLUTION_STATUS);
+  EXPECT_EQ(sent_msgs[0].data.device_data.type, GetParam().device_type);
+  EXPECT_EQ(sent_msgs[0].data.device_data.value, param.status);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    ServerMetricsHfpSrStatusTest,
+    testing::Values(HfpSrStatusTestParam(
+                        {.node_type = CRAS_NODE_TYPE_BLUETOOTH,
+                         .device_type = CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC,
+                         .status = CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS}),
+                    HfpSrStatusTestParam(
+                        {.node_type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC,
+                         .device_type = CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC,
+                         .status = CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED})));
+
 extern "C" {
 
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,

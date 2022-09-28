@@ -73,6 +73,7 @@ const char kHfpWidebandSpeechSupported[] = "Cras.HfpWidebandSpeechSupported";
 const char kHfpWidebandSpeechPacketLoss[] = "Cras.HfpWidebandSpeechPacketLoss";
 const char kHfpWidebandSpeechSelectedCodec[] =
 	"Cras.kHfpWidebandSpeechSelectedCodec";
+const char kHfpMicSuperResolutionStatus[] = "Cras.HfpMicSuperResolutionStatus";
 
 /*
  * Records missed callback frequency only when the runtime of stream is larger
@@ -103,6 +104,7 @@ enum CRAS_SERVER_METRICS_TYPE {
 	BT_WIDEBAND_PACKET_LOSS,
 	BT_WIDEBAND_SUPPORTED,
 	BT_WIDEBAND_SELECTED_CODEC,
+	BT_MIC_SUPER_RESOLUTION_STATUS,
 	BUSYLOOP,
 	BUSYLOOP_LENGTH,
 	DEVICE_CONFIGURE_TIME,
@@ -368,27 +370,22 @@ metrics_stream_type_str(enum CRAS_STREAM_TYPE stream_type)
 	}
 }
 
+/*
+ * Gets the device type from node type and skip the checking of special devices.
+ * This is useful because checking of special devices relies on iodev->info.idx.
+ * info.idx of some iodevs remains 0 while the true info.idx is recorded in its
+ * parent iodev. For example, hfp_iodev has info.idx equal to 0 and the true idx
+ * is in its related bt_io_manager->bt_iodevs.
+ *
+ * Args:
+ *    iodev: the iodev instance.
+ *
+ * Returns:
+ *    The corresponding device type inferred from iodev->active_node->type.
+ */
 static enum CRAS_METRICS_DEVICE_TYPE
-get_metrics_device_type(const struct cras_iodev *iodev)
+get_metrics_device_type_from_active_node_type(const struct cras_iodev *iodev)
 {
-	/* Check whether it is a special device. */
-	if (iodev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
-		switch (iodev->info.idx) {
-		case NO_DEVICE:
-			syslog(LOG_ERR, "The invalid device has been used.");
-			return CRAS_METRICS_DEVICE_NO_DEVICE;
-		case SILENT_RECORD_DEVICE:
-		case SILENT_PLAYBACK_DEVICE:
-			if (iodev->active_node->type ==
-			    CRAS_NODE_TYPE_FALLBACK_NORMAL)
-				return CRAS_METRICS_DEVICE_NORMAL_FALLBACK;
-			else
-				return CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK;
-		case SILENT_HOTWORD_DEVICE:
-			return CRAS_METRICS_DEVICE_SILENT_HOTWORD;
-		}
-	}
-
 	switch (iodev->active_node->type) {
 	case CRAS_NODE_TYPE_INTERNAL_SPEAKER:
 		return CRAS_METRICS_DEVICE_INTERNAL_SPEAKER;
@@ -446,6 +443,30 @@ get_metrics_device_type(const struct cras_iodev *iodev)
 	default:
 		return CRAS_METRICS_DEVICE_UNKNOWN;
 	}
+}
+
+static enum CRAS_METRICS_DEVICE_TYPE
+get_metrics_device_type(const struct cras_iodev *iodev)
+{
+	/* Check whether it is a special device. */
+	if (iodev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
+		switch (iodev->info.idx) {
+		case NO_DEVICE:
+			syslog(LOG_ERR, "The invalid device has been used.");
+			return CRAS_METRICS_DEVICE_NO_DEVICE;
+		case SILENT_RECORD_DEVICE:
+		case SILENT_PLAYBACK_DEVICE:
+			if (iodev->active_node->type ==
+			    CRAS_NODE_TYPE_FALLBACK_NORMAL)
+				return CRAS_METRICS_DEVICE_NORMAL_FALLBACK;
+			else
+				return CRAS_METRICS_DEVICE_ABNORMAL_FALLBACK;
+		case SILENT_HOTWORD_DEVICE:
+			return CRAS_METRICS_DEVICE_SILENT_HOTWORD;
+		}
+	}
+
+	return get_metrics_device_type_from_active_node_type(iodev);
 }
 
 /*
@@ -625,6 +646,30 @@ int cras_server_metrics_hfp_wideband_selected_codec(int codec)
 				"BT_WIDEBAND_SELECTED_CODEC");
 		return err;
 	}
+	return 0;
+}
+
+int cras_server_metrics_hfp_mic_sr_status(
+	struct cras_iodev *iodev, enum CRAS_METRICS_HFP_MIC_SR_STATUS status)
+{
+	struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+	union cras_server_metrics_data data;
+	int err;
+
+	data.device_data.type =
+		get_metrics_device_type_from_active_node_type(iodev);
+	data.device_data.value = status;
+
+	init_server_metrics_msg(&msg, BT_MIC_SUPER_RESOLUTION_STATUS, data);
+
+	err = cras_server_metrics_message_send(
+		(struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send metrics message: "
+				"BT_MIC_SUPER_RESOLUTION_STATUS");
+		return err;
+	}
+
 	return 0;
 }
 
@@ -1406,6 +1451,17 @@ static void metrics_device_noise_cancellation_status(
 }
 
 static void
+metrics_hfp_mic_sr_status(struct cras_server_metrics_device_data data)
+{
+	char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+	snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s",
+		 kHfpMicSuperResolutionStatus,
+		 metrics_device_type_str(data.type));
+	cras_metrics_log_sparse_histogram(metrics_name, data.value);
+}
+
+static void
 metrics_longest_fetch_delay(struct cras_server_metrics_stream_data data)
 {
 	int fetch_delay_msec =
@@ -1528,6 +1584,9 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 		cras_metrics_log_sparse_histogram(
 			kHfpWidebandSpeechSelectedCodec,
 			metrics_msg->data.value);
+		break;
+	case BT_MIC_SUPER_RESOLUTION_STATUS:
+		metrics_hfp_mic_sr_status(metrics_msg->data.device_data);
 		break;
 	case DEVICE_CONFIGURE_TIME:
 		metrics_device_configure_time(metrics_msg->data.device_data);

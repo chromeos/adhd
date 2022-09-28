@@ -60,6 +60,13 @@ enum CRAS_STREAM_CREATE_ERROR {
 	CRAS_STREAM_CREATE_ERROR_SHM_SETUP_FAILURE,
 };
 
+enum CRAS_METRICS_HFP_MIC_SR_STATUS {
+	CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS,
+	CRAS_METRICS_HFP_MIC_SR_ENABLE_FAILED,
+	CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED,
+	CRAS_METRICS_HFP_MIC_SR_DLC_UNAVAILABLE,
+};
+
 /* Logs the error type happens when setting up SCO connection. This is mainly
  * used to track whether the setup of SCO connection succeeds and the frequency
  * of different errors. This will also be used to track if our fixes for these
@@ -163,6 +170,10 @@ int cras_server_metrics_stream_connect_failure(
 /* Logs failures when CRAS creates dev stream. */
 int cras_server_metrics_stream_create_failure(
 	enum CRAS_STREAM_CREATE_ERROR code);
+
+/* Logs the status of Hfp Mic Super Resolution status. */
+int cras_server_metrics_hfp_mic_sr_status(
+	struct cras_iodev *iodev, enum CRAS_METRICS_HFP_MIC_SR_STATUS status);
 
 /* Initialize metrics logging stuff. */
 int cras_server_metrics_init();
