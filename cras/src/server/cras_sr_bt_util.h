@@ -8,13 +8,20 @@
 
 #include "cras_sr.h"
 
+enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS {
+	CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK,
+	CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED,
+	CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE
+};
+
 /* Checks if cras_sr_bt can be enabled. It will check the dependencies is
  * fulfilled, i.e. featured flag is turned on and the dlc is ready.
  *
  * Returns:
- *    1 if True. Otherwise, 0.
+ *    CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK if all checks pass.
+ *    Otherwise, a status that tells the first failed check.
  */
-int cras_sr_bt_can_be_enabled();
+enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled();
 
 enum cras_sr_bt_model { SR_BT_NBS, SR_BT_WBS };
 

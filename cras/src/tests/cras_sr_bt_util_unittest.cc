@@ -12,7 +12,7 @@ extern "C" {
 namespace {
 
 TEST(CrasSrBtUtilTest, TestCrasSrBtCanBeEnabled) {
-  EXPECT_EQ(cras_sr_bt_can_be_enabled(), 0);
+  EXPECT_NE(cras_sr_bt_can_be_enabled(), CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK);
 }
 
 }  // namespace

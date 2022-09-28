@@ -11,10 +11,13 @@
 #include "cras_featured.h"
 #include "cras_sr_bt_util.h"
 
-int cras_sr_bt_can_be_enabled()
+enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled()
 {
-	return get_hfp_mic_sr_feature_enabled() &&
-	       cras_dlc_sr_bt_is_available();
+	if (!get_hfp_mic_sr_feature_enabled())
+		return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
+	if (!cras_dlc_sr_bt_is_available())
+		return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE;
+	return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK;
 }
 
 struct cras_sr_model_spec cras_sr_bt_get_model_spec(enum cras_sr_bt_model model)

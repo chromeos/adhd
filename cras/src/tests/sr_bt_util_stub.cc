@@ -11,23 +11,24 @@ extern "C" {
 
 namespace {
 
-static int cras_sr_bt_is_enabled = 0;
+static enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_is_enabled =
+    CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
 
 }  // namespace
 
 /* Helper functions for testing */
 
 void enable_cras_sr_bt() {
-  cras_sr_bt_is_enabled = 1;
+  cras_sr_bt_is_enabled = CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK;
 }
 
 void disable_cras_sr_bt() {
-  cras_sr_bt_is_enabled = 0;
+  cras_sr_bt_is_enabled = CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
 }
 
 /* Fake implementation of cras_bt_sr */
 
-int cras_sr_bt_can_be_enabled() {
+enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
   return cras_sr_bt_is_enabled;
 }
 
