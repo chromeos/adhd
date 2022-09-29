@@ -157,7 +157,6 @@ TEST_F(PcmIodev, OpenCloseA2dpPcmIodev) {
 
   iodev_set_format(iodev, &format);
   iodev->configure_dev(iodev);
-  iodev->start(iodev);
   iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
   EXPECT_EQ(1, cras_floss_a2dp_start_called);

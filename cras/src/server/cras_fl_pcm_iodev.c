@@ -283,8 +283,10 @@ static int a2dp_socket_write_cb(void *arg, int revent)
 static int a2dp_configure_dev(struct cras_iodev *iodev)
 {
 	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
-	int rc, fd;
+	int rc, fd, init_level;
 	size_t format_bytes;
+	uint8_t *buf;
+	unsigned int to_send;
 
 	rc = cras_floss_a2dp_start(a2dpio->a2dp, iodev->format);
 	if (rc < 0) {
@@ -327,6 +329,31 @@ static int a2dp_configure_dev(struct cras_iodev *iodev)
 	audio_thread_add_events_callback(fd, a2dp_socket_write_cb, iodev,
 					 POLLOUT | POLLERR | POLLHUP);
 	audio_thread_config_events_callback(fd, TRIGGER_NONE);
+
+	/* Send one block of silence to Floss as jitter buffer to handle the
+	 * variation in packet scheduling caused by clock drift and state-polling. */
+	cras_iodev_fill_odev_zeros(iodev, a2dpio->write_block);
+	init_level = a2dpio->write_block * cras_get_format_bytes(iodev->format);
+
+	buf = buf_read_pointer_size(a2dpio->pcm_buf, &to_send);
+	while (to_send && init_level > 0) {
+		if (to_send > init_level)
+			to_send = init_level;
+		rc = send(fd, buf, to_send, MSG_DONTWAIT);
+		if (rc <= 0)
+			break;
+		buf_increment_read(a2dpio->pcm_buf, rc);
+		init_level -= rc;
+		buf = buf_read_pointer_size(a2dpio->pcm_buf, &to_send);
+	}
+	if (init_level)
+		syslog(LOG_WARNING,
+		       "Failed to send all init buffer, left %d bytes, to_send = %u, rc = %d",
+		       init_level, to_send, rc);
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->next_flush_time);
+	cras_floss_a2dp_delay_sync(a2dpio->a2dp, INIT_DELAY_SYNC_MSEC,
+				   DELAY_SYNC_PERIOD_MSEC);
 	return 0;
 }
 
@@ -486,45 +513,6 @@ static int hfp_configure_dev(struct cras_iodev *iodev)
 	iodev->min_buffer_level = 0;
 
 	hfpio->started = 1;
-
-	return 0;
-}
-
-static int a2dp_start(struct cras_iodev *iodev)
-{
-	struct fl_pcm_io *a2dpio = (struct fl_pcm_io *)iodev;
-	uint8_t *buf;
-	unsigned int to_send;
-	int rc, init_level;
-	int fd = cras_floss_a2dp_get_fd(a2dpio->a2dp);
-
-	/* Send one block of silence to Floss as jitter buffer to handle
-	 * the variation in packet scheduling. */
-	cras_iodev_fill_odev_zeros(iodev, a2dpio->write_block);
-	init_level = a2dpio->write_block * cras_get_format_bytes(iodev->format);
-
-	buf = buf_read_pointer_size(a2dpio->pcm_buf, &to_send);
-	while (to_send && init_level) {
-		if (to_send > init_level)
-			to_send = init_level;
-		rc = send(fd, buf, to_send, MSG_DONTWAIT);
-		if (rc <= 0)
-			break;
-		buf_increment_read(a2dpio->pcm_buf, rc);
-		init_level -= rc;
-		buf = buf_read_pointer_size(a2dpio->pcm_buf, &to_send);
-	}
-	if (init_level)
-		syslog(LOG_WARNING,
-		       "Failed to send all init buffer, left %d bytes",
-		       init_level);
-
-	/* This is called when iodev in open state, at the moment when
-	 * output sample is ready. Initialize the next_flush_time for
-	 * following flush calls. */
-	clock_gettime(CLOCK_MONOTONIC_RAW, &a2dpio->next_flush_time);
-	cras_floss_a2dp_delay_sync(a2dpio->a2dp, INIT_DELAY_SYNC_MSEC,
-				   DELAY_SYNC_PERIOD_MSEC);
 
 	return 0;
 }
@@ -896,7 +884,6 @@ static void set_a2dp_callbacks(struct cras_iodev *a2dpio)
 	a2dpio->close_dev = a2dp_close_dev;
 	a2dpio->set_volume = a2dp_set_volume;
 
-	a2dpio->start = a2dp_start;
 	a2dpio->frames_to_play_in_sleep = a2dp_frames_to_play_in_sleep;
 	a2dpio->output_underrun = a2dp_output_underrun;
 }
