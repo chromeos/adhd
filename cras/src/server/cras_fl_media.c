@@ -615,13 +615,6 @@ static bool get_presentation_position_result(DBusMessage *message,
 				return FALSE;
 
 			dbus_message_iter_get_basic(&var, &delay_ns);
-		} else if (strcasecmp(key, "remote_delay_report_ns") == 0) {
-			if (dbus_message_iter_get_arg_type(&var) !=
-			    DBUS_TYPE_UINT64)
-				return FALSE;
-
-			dbus_message_iter_get_basic(&var,
-						    &remote_delay_report_ns);
 		} else if (strcasecmp(key, "data_position_sec") == 0) {
 			if (dbus_message_iter_get_arg_type(&var) !=
 			    DBUS_TYPE_INT64)
