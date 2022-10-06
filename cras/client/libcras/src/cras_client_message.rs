@@ -12,7 +12,7 @@ use cras_sys::gen::{
     CRAS_CLIENT_MESSAGE_ID::{self, *},
 };
 use data_model::DataInit;
-use sys_util::ScmSocket;
+use libchromeos::sys::unix::ScmSocket;
 
 use crate::cras_server_socket::CrasServerSocket;
 use crate::cras_shm::*;
@@ -22,7 +22,7 @@ use crate::cras_stream;
 #[derive(Debug)]
 pub enum Error {
     IoError(io::Error),
-    SysUtilError(sys_util::Error),
+    SysUtilError(libchromeos::sys::Error),
     CrasStreamError(cras_stream::Error),
     ArrayTryFromSliceError(TryFromSliceError),
     InvalidSize,
@@ -60,8 +60,8 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<sys_util::Error> for Error {
-    fn from(sys_util_err: sys_util::Error) -> Self {
+impl From<libchromeos::sys::Error> for Error {
+    fn from(sys_util_err: libchromeos::sys::Error) -> Self {
         Error::SysUtilError(sys_util_err)
     }
 }

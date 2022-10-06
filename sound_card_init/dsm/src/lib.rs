@@ -15,7 +15,7 @@ use std::{
 };
 
 use libcras::{CrasClient, CrasNodeType};
-use sys_util::{error, info};
+use log::{error, info};
 
 use crate::datastore::Datastore;
 pub use crate::error::{Error, Result};

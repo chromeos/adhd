@@ -19,7 +19,7 @@ use std::{
 
 use cros_alsa::{Card, IntControl};
 use dsm::{CalibData, SpeakerStatus, ZeroPlayer, DSM};
-use sys_util::info;
+use log::info;
 
 use crate::{Amp, Result};
 use dsm_param::*;
@@ -325,7 +325,10 @@ mod tests {
 
     #[test]
     fn rdc_to_ohm() {
-        assert_eq!(CalibData::rdc_to_ohm(0x05cea0c7), 2.656767);
+        assert_eq!(
+            <Max98373CalibData as CalibData>::rdc_to_ohm(0x05cea0c7),
+            2.656767
+        );
     }
 
     #[test]

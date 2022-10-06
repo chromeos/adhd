@@ -18,7 +18,7 @@ use std::{
 
 use cros_alsa::{Card, IntControl, SwitchControl};
 use dsm::{CalibData, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
-use sys_util::info;
+use log::info;
 
 use crate::{Amp, Result};
 pub use error::Error;

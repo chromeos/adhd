@@ -15,7 +15,7 @@ use {
         elem::Elem, Card, Control, ControlOps, Ctl, ElemId, SimpleEnumControl, SwitchControl,
     },
     dsm::{CalibData, ZeroPlayer, DSM},
-    sys_util::info,
+    log::info,
 };
 
 pub use error::Error;

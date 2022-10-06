@@ -14,22 +14,25 @@ members = [
 [dependencies]
 amp = { path = "amp" }
 audio_streams = "*"
-cros_alsa = "*"
+cros_alsa = { path = "../cros_alsa" } # provided by ebuild
 dsm = { path = "dsm" }
 getopts = "0.2"
-libcras = "*"
+libchromeos = { path = "../../../platform2/libchromeos-rs/" } # provided by ebuild
+libcras = { path = "../cras/client/libcras" } # provided by ebuild
 remain = "0.2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "*"
 serde_yaml = "0.8.11"
-sof_sys = "*"
-sys_util = "*"
+sof_sys = { path = "../sof_sys" } # provided by ebuild
 thiserror = "*"
 
 [patch.crates-io]
-audio_streams = { path = "../../../platform/crosvm/common/audio_streams" }  # ignored by ebuild
-cros_alsa = { path = "../cros_alsa" } # ignored by ebuild
-cros_alsa_derive = { path = "../cros_alsa/cros_alsa_derive" } # ignored by ebuild
-libcras = { path = "../cras/client/libcras" }  # ignored by ebuild
-sof_sys = { path = "../sof_sys" }  # ignored by ebuild
-sys_util = { path = "../../../platform/crosvm/common/sys_util" } # ignored by ebuild
+audio_streams = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
+base_event_token_derive = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/base_event_token_derive-0.1.0/" } # ignored by ebuild
+crosvm-base = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/crosvm-base-0.1.0/" } # ignored by ebuild
+cros_async = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/cros_async-0.1.0/" } # ignored by ebuild
+data_model = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.0/" } # ignored by ebuild
+io_uring = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/io_uring-0.1.0/" } # ignored by ebuild
+sys_util = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/sys_util-0.1.0/" } # ignored by ebuild
+sys_util_core = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/sys_util_core-0.1.0/" } # ignored by ebuild
+sync = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/sync-0.1.149/" } # ignored by ebuild

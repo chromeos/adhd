@@ -8,15 +8,26 @@ edition = "2018"
 path = "src/libcras.rs"
 
 [dependencies]
-async-trait = "0.1.36"
-audio_streams = { path = "../../../../../platform/crosvm/common/audio_streams" } # provided by ebuild
-libc = "*"
-cros_async = { path = "../../../../../platform/crosvm/common/cros_async" } # provided by ebuild
-cras-sys = { path = "../cras-sys" } # provided by ebuild
-data_model = { path = "../../../../../platform/crosvm/common/data_model" } # provided by ebuild
-sys_util = { path = "../../../../../platform/crosvm/common/sys_util" } # provided by ebuild
 anyhow = "1.0"
+async-trait = "0.1.36"
+audio_streams = "*"
+cros_async = "*"
+cras-sys = { path = "../cras-sys" } # provided by ebuild
+data_model = "*"
+libc = "*"
+libchromeos = { path = "../../../../../platform2/libchromeos-rs/" } # provided by ebuild
 serde = "1.0.125"
 
 [dependencies.futures]
 version = "*"
+
+[patch.crates-io] # ignored by ebuild
+audio_streams = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
+base_event_token_derive = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/base_event_token_derive-0.1.0/" } # ignored by ebuild
+crosvm-base = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/crosvm-base-0.1.0/" } # ignored by ebuild
+cros_async = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/cros_async-0.1.0/" } # ignored by ebuild
+data_model = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.0/" } # ignored by ebuild
+io_uring = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/io_uring-0.1.0/" } # ignored by ebuild
+sys_util = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/sys_util-0.1.0/" } # ignored by ebuild
+sys_util_core = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/sys_util_core-0.1.0/" } # ignored by ebuild
+sync = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/sync-0.1.149/" } # ignored by ebuild

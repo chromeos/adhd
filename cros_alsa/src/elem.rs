@@ -20,8 +20,8 @@ use std::error;
 use std::fmt::{self, Debug};
 
 use libc::{c_long, c_uchar, c_uint};
+use log::debug;
 use remain::sorted;
-use sys_util::debug;
 
 use crate::control_primitive::{self, snd_strerror, Ctl, ElemId, ElemInfo, ElemType, ElemValue};
 

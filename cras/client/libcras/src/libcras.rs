@@ -147,7 +147,7 @@ pub use cras_sys::{
     Error as CrasSysError,
 };
 
-use sys_util::{PollContext, PollToken};
+use libchromeos::deprecated::{PollContext, PollToken};
 
 mod async_;
 mod audio_socket;
@@ -171,7 +171,7 @@ pub enum Error {
     CrasSysError(cras_sys::Error),
     InvalidCrasSocket,
     IoError(io::Error),
-    SysUtilError(sys_util::Error),
+    SysUtilError(libchromeos::sys::Error),
     MessageTypeError,
     UnexpectedExit,
 }
@@ -201,8 +201,8 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<sys_util::Error> for Error {
-    fn from(sys_util_err: sys_util::Error) -> Self {
+impl From<libchromeos::sys::Error> for Error {
+    fn from(sys_util_err: libchromeos::sys::Error) -> Self {
         Error::SysUtilError(sys_util_err)
     }
 }

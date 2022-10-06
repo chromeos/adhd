@@ -11,7 +11,7 @@ use audio_streams::{
     BoxError, BufferCommit, PlaybackBuffer, PlaybackBufferStream,
 };
 use cras_sys::gen::{snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_STREAM_DIRECTION};
-use sys_util::error;
+use libchromeos::sys::error;
 
 use crate::audio_socket::{AudioMessage, AudioSocket};
 use crate::cras_server_socket::CrasServerSocket;

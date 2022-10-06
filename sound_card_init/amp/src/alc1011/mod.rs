@@ -13,7 +13,7 @@ use std::path::Path;
 
 use cros_alsa::{Card, IntControl};
 use dsm::{CalibData, Error, DSM};
-use sys_util::info;
+use log::info;
 
 use crate::{Amp, Result};
 use settings::{AmpCalibSettings, DeviceSettings};

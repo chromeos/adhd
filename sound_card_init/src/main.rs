@@ -18,12 +18,15 @@ use std::process;
 use std::string::String;
 
 use getopts::Options;
+use libchromeos::sys::{error, info};
+use libchromeos::syslog;
 use remain::sorted;
 use serde::Serialize;
-use sys_util::{error, info, syslog};
 
 use amp::AmpBuilder;
 use dsm::utils::run_time;
+
+const IDENT: &str = "sound_card_init";
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -168,7 +171,7 @@ fn sound_card_init(args: &Args) -> std::result::Result<(), Box<dyn error::Error>
 }
 
 fn main() {
-    if let Err(e) = syslog::init() {
+    if let Err(e) = syslog::init(IDENT.to_string(), false /* log_to_stderr */) {
         // syslog macros will fail silently if syslog was not initialized.
         // Print error msg to stderr and continue the sound_card_init operations.
         eprintln!("failed to initialize syslog: {}", e);

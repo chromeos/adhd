@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use audio_streams::SampleFormat;
 use libcras::{CrasClient, CrasClientType, CrasNodeType};
-use sys_util::error;
+use log::error;
 
 use crate::error::{Error, Result};
 

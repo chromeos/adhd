@@ -7,8 +7,8 @@ use std::{io, mem};
 
 use super::Error;
 use cras_sys::gen::{cras_disconnect_stream_message, cras_server_message, CRAS_SERVER_MESSAGE_ID};
+use libchromeos::sys::unix::{net::UnixSeqpacket, ScmSocket};
 use serde::{Deserialize, Serialize};
-use sys_util::{net::UnixSeqpacket, ScmSocket};
 
 use data_model::DataInit;
 

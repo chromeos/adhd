@@ -7,6 +7,11 @@ exclude = ["*"]
 include = ["Cargo.toml", "build.rs", "src/lib.rs", "src/gen.rs"]
 
 [dependencies]
-audio_streams = { path = "../../../../../platform/crosvm/common/audio_streams" } # provided by ebuild
-data_model = { path = "../../../../../platform/crosvm/common/data_model" } # provided by ebuild
+audio_streams = "*"
+data_model = "*"
 serde = "1.0.125"
+
+[patch.crates-io] # ignored by ebuild
+audio_streams = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
+data_model = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.0/" } # ignored by ebuild
+

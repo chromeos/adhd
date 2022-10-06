@@ -12,8 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::{SampleFormat, StreamSource};
 use hound::{WavReader, WavSpec, WavWriter};
+use libchromeos::sys::unix::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 use libcras::{BoxError, CrasClient, CrasNodeType};
-use sys_util::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 
 use crate::arguments::{AudioOptions, FileType, LoopbackType, SampleFormatArg};
 
@@ -28,7 +28,7 @@ pub enum Error {
     NoLoopbackNode(CrasNodeType),
     OpenFile(hound::Error),
     SampleBits(u16),
-    SysUtil(sys_util::Error),
+    SysUtil(libchromeos::sys::Error),
     ParseArgs(crate::arguments::Error),
 }
 

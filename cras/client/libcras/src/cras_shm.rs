@@ -20,7 +20,7 @@ use cras_sys::{
     AudioDebugInfo, AudioDevDebugInfo, AudioStreamDebugInfo, CrasIodevInfo, CrasIonodeInfo,
 };
 use data_model::{VolatileRef, VolatileSlice};
-use sys_util::warn;
+use libchromeos::sys::warn;
 
 /// A structure wrapping a fd which contains a shared `cras_audio_shm_header`.
 /// * `shm_fd` - A shared memory fd contains a `cras_audio_shm_header`
@@ -915,11 +915,12 @@ impl CrasServerStateShmFd {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use libchromeos::sys::unix::{kernel_has_memfd, SharedMemory};
+    use std::ffi::CString;
     use std::fs::File;
     use std::os::unix::io::IntoRawFd;
     use std::sync::{Arc, Mutex};
     use std::thread;
-    use sys_util::{kernel_has_memfd, SharedMemory};
 
     #[test]
     fn cras_audio_header_switch_test() {
@@ -1169,9 +1170,9 @@ mod tests {
     }
 
     fn create_shm(size: usize) -> File {
-        let mut shm = SharedMemory::new(None).expect("failed to create shm");
-        shm.set_size(size as u64).expect("failed to set shm size");
-        shm.into()
+        SharedMemory::new(&CString::new("cras").unwrap(), size as u64)
+            .expect("failed to create shm")
+            .into()
     }
 
     fn create_cras_audio_header<'a>(samples_len: usize) -> CrasAudioHeader<'a> {

@@ -5,8 +5,8 @@ use std::fs::File;
 use std::io::{prelude::*, BufReader, BufWriter};
 use std::path::PathBuf;
 
+use log::info;
 use serde::{Deserialize, Serialize};
-use sys_util::info;
 
 use crate::error::{Error, Result};
 
