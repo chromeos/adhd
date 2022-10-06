@@ -20,6 +20,7 @@ pub enum VolumeMode {
     High = 0x20000000,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone)]
 /// Calibration mode enumeration.
 pub enum CalibMode {
@@ -27,6 +28,7 @@ pub enum CalibMode {
     OFF = 0x1,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone)]
 /// Smart pilot signal mode mode enumeration.
 pub enum SPTMode {
@@ -163,9 +165,9 @@ impl DSMParam {
     }
 }
 
-impl Into<TLV> for DSMParam {
-    fn into(self) -> TLV {
-        self.tlv
+impl From<DSMParam> for TLV {
+    fn from(param: DSMParam) -> Self {
+        param.tlv
     }
 }
 

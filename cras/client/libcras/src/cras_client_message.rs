@@ -18,6 +18,7 @@ use crate::cras_server_socket::CrasServerSocket;
 use crate::cras_shm::*;
 use crate::cras_stream;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug)]
 pub enum Error {
     IoError(io::Error),
@@ -93,7 +94,7 @@ impl ServerResult {
     /// # Arguments
     /// * `server_socket`: A reference to `CrasServerSocket`.
     pub fn handle_server_message(server_socket: &CrasServerSocket) -> Result<ServerResult> {
-        let message = CrasClientMessage::try_new(&server_socket)?;
+        let message = CrasClientMessage::try_new(server_socket)?;
         match message.get_id()? {
             CRAS_CLIENT_MESSAGE_ID::CRAS_CLIENT_CONNECTED => {
                 let cmsg: &cras_client_connected = message.get_message()?;

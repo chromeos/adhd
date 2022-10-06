@@ -82,10 +82,10 @@ impl<V: CtlElemValue, const N: usize> Elem for [V; N] {
             return Err(Error::ElemReadFailed(rc));
         }
         let mut ret = [Default::default(); N];
-        for i in 0..N {
+        for (i, val) in ret.iter_mut().enumerate().take(N) {
             // Safe because elem.as_ptr() is a valid snd_ctl_elem_value_t* and i is guaranteed to be
             // within a valid range.
-            ret[i] = unsafe { V::elem_value_get(&elem, i) };
+            *val = unsafe { V::elem_value_get(&elem, i) };
         }
         Ok(ret)
     }
@@ -178,7 +178,7 @@ impl CtlElemValue for u32 {
 
     /// Validate the u32 ElemValue.
     fn elem_value_validate(handle: &mut Ctl, id: &ElemId, val: u32) -> Result<()> {
-        let info = ElemInfo::new(handle, &id)?;
+        let info = ElemInfo::new(handle, id)?;
         if val >= info.items() {
             return Err(Error::InvalidEnumValue(
                 id.name()?.to_owned(),
@@ -216,8 +216,10 @@ pub trait CtlElemValue {
     /// The primitive type of a control element.
     type T: Default + Clone + Copy + Debug;
     /// Gets the value from the ElemValue.
+    #[allow(clippy::missing_safety_doc)]
     unsafe fn elem_value_get(value: &ElemValue, idx: usize) -> Self::T;
     /// Sets the value to the ElemValue.
+    #[allow(clippy::missing_safety_doc)]
     unsafe fn elem_value_set(value: &mut ElemValue, id: usize, val: Self::T);
     /// Validate the input value.
     fn elem_value_validate(_handle: &mut Ctl, _id: &ElemId, _val: Self::T) -> Result<()> {

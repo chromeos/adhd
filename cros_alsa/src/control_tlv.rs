@@ -185,10 +185,10 @@ impl TryFrom<Vec<u32>> for TLV {
     }
 }
 
-impl Into<Vec<u32>> for TLV {
+impl From<TLV> for Vec<u32> {
     /// Returns the raw tlv data buffer (including the tlv header).
-    fn into(self) -> Vec<u32> {
-        self.data
+    fn from(t: TLV) -> Self {
+        t.data
     }
 }
 
@@ -241,7 +241,7 @@ impl<'a> ControlTLV<'a> {
         if rc < 0 {
             return Err(Error::TLVReadFailed(rc));
         }
-        Ok(TLV::try_from(tlv_buf)?)
+        TLV::try_from(tlv_buf)
     }
 
     /// Writes to the byte control by `snd_ctl_elem_tlv_write`

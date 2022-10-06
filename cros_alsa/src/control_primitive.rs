@@ -32,6 +32,7 @@ impl fmt::Display for FFIError {
     }
 }
 
+#[allow(clippy::enum_variant_names)]
 #[sorted]
 #[derive(Debug, PartialEq)]
 /// Possible errors that can occur in cros-alsa::control_primitive.
@@ -118,6 +119,7 @@ impl From<NulError> for Error {
 }
 
 /// [snd_ctl_elem_iface_t](https://www.alsa-project.org/alsa-doc/alsa-lib/group___control.html#ga14baa0febb91cc4c5d72dcc825acf518) wrapper.
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ElemIface {
     Card = SND_CTL_ELEM_IFACE_CARD as isize,

@@ -404,6 +404,7 @@ impl<'a> CrasClient<'a> {
     }
 
     // Creates general stream with given parameters
+    #[allow(clippy::too_many_arguments)]
     fn create_stream<'b, T: BufferCommit + CrasStreamData<'b>>(
         &mut self,
         device_index: Option<u32>,
@@ -472,6 +473,7 @@ impl<'a> CrasClient<'a> {
     }
 
     // Creates general stream with given parameters
+    #[allow(clippy::too_many_arguments)]
     fn create_async_stream<'b, T: async_::CrasStreamData<'b> + AsyncBufferCommit>(
         &mut self,
         device_index: Option<u32>,

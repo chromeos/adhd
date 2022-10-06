@@ -151,7 +151,7 @@ impl Amp for CS35L41 {
         }
         let num_channels = self.setting.num_channels();
         let dsm = DSM::new(
-            &self.card.name(),
+            self.card.name(),
             num_channels,
             Self::TEMP_UPPER_LIMIT_CELSIUS,
             Self::TEMP_LOWER_LIMIT_CELSIUS,

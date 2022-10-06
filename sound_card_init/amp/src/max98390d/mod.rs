@@ -105,7 +105,7 @@ impl Amp for Max98390 {
         }
 
         let mut dsm = DSM::new(
-            &self.card.name(),
+            self.card.name(),
             self.setting.num_channels(),
             Self::TEMP_UPPER_LIMIT_CELSIUS,
             Self::TEMP_LOWER_LIMIT_CELSIUS,

@@ -89,7 +89,7 @@ impl Amp for Max98373 {
 
         let num_channels = self.setting.num_channels();
         let dsm = DSM::new(
-            &self.card.name(),
+            self.card.name(),
             num_channels,
             Self::TEMP_UPPER_LIMIT_CELSIUS,
             Self::TEMP_LOWER_LIMIT_CELSIUS,
@@ -226,9 +226,9 @@ impl Max98373 {
             self.setting.num_channels(),
             &self.setting.dsm_param_read_ctrl,
         )?;
-        for ch in 0..self.setting.num_channels() {
-            dsm_param.set_rdc(ch, calib[ch].rdc);
-            dsm_param.set_ambient_temp(ch, Max98373CalibData::celsius_to_dsm_unit(calib[ch].temp));
+        for (ch, chan_calib) in calib.iter().enumerate().take(self.setting.num_channels()) {
+            dsm_param.set_rdc(ch, chan_calib.rdc);
+            dsm_param.set_ambient_temp(ch, Max98373CalibData::celsius_to_dsm_unit(chan_calib.temp));
         }
         self.card
             .control_tlv_by_name(&self.setting.dsm_param_write_ctrl)?
