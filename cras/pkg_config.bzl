@@ -67,12 +67,10 @@ def _pkg_config_library(repository_ctx, library, library_root, defines = []):
         library_root + path
         for path in result.includes
     ]
-
-    hdrs_globs = []
-    if result.includes:
-        hdrs_globs = [
-            "{}/**/*.h".format(library),
-        ]
+    hdrs_globs = [
+        "{}{}/**/*.h".format(library_root, path)
+        for path in result.includes
+    ]
 
     return _pkg_config_library_entry(
         name = library,
