@@ -349,6 +349,12 @@ int floss_media_hfp_suspend(struct fl_media *fm)
 	return 0;
 }
 
+#if defined(HAVE_FUZZER)
+int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
+{
+	return 0;
+}
+#else
 int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
 {
 	DBusMessage *method_call, *reply;
@@ -394,6 +400,7 @@ int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
 
 	return 0;
 }
+#endif
 
 int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
 				      unsigned int bps, unsigned int channels)
