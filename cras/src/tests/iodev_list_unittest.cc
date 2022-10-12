@@ -112,6 +112,7 @@ static int cras_system_get_max_internal_mic_gain_return;
 static int cras_stream_apm_set_aec_ref_called;
 static int cras_stream_apm_remove_called;
 static int cras_stream_apm_add_called;
+static struct cras_floop_pair* cras_floop_pair_create_return;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
@@ -264,6 +265,7 @@ class IoDevTestSuite : public testing::Test {
     mock_hotword_iodev.update_active_node = update_active_node;
     server_state_hotword_pause_at_suspend = 0;
     cras_system_get_max_internal_mic_gain_return = DEFAULT_MAX_INPUT_NODE_GAIN;
+    cras_floop_pair_create_return = NULL;
   }
 
   virtual void TearDown() { cras_iodev_list_reset(); }
@@ -3021,6 +3023,21 @@ TEST(SoftvolCurveTest, InternalMicGainToDBFS) {
   }
 }
 
+TEST_F(IoDevTestSuite, RequestFloop) {
+  struct cras_floop_pair cfps[NUM_FLOOP_PAIRS_MAX];
+  // cras_floop_pair_create fails and returns NULL
+  EXPECT_EQ(-ENOMEM, cras_iodev_list_request_floop(nullptr));
+
+  for (int i = 0; i < NUM_FLOOP_PAIRS_MAX; i++) {
+    cfps[i].input.info.idx = i;
+    cras_floop_pair_create_return = &cfps[i];
+    EXPECT_EQ(i, cras_iodev_list_request_floop(nullptr));
+  }
+
+  // Should fail with EAGAIN when we already have maximum number of floop pairs
+  EXPECT_EQ(-EAGAIN, cras_iodev_list_request_floop(nullptr));
+}
+
 }  //  namespace
 
 int main(int argc, char** argv) {
@@ -3406,6 +3423,11 @@ int cras_system_get_max_internal_mic_gain() {
 void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
                                       enum CRAS_CLIENT_TYPE client_type,
                                       const char* node_type_pair) {}
+
+struct cras_floop_pair* cras_floop_pair_create(
+    const struct cras_floop_params* params) {
+  return cras_floop_pair_create_return;
+}
 
 bool cras_floop_pair_match_output_stream(const struct cras_floop_pair* pair,
                                          const struct cras_rstream* stream) {

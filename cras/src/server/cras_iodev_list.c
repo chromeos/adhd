@@ -29,6 +29,7 @@
 #include "utlist.h"
 
 #define NUM_OPEN_DEVS_MAX 10
+#define NUM_FLOOP_PAIRS_MAX 20
 
 const struct timespec idle_timeout_interval = { .tv_sec = 10, .tv_nsec = 0 };
 
@@ -2260,7 +2261,16 @@ long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic)
 
 int cras_iodev_list_request_floop(const struct cras_floop_params *params)
 {
-	struct cras_floop_pair *fpair = cras_floop_pair_create(params);
+	struct cras_floop_pair *fpair;
+	int count = 0;
+	DL_FOREACH (floop_pair_list, fpair) {
+		count++;
+	}
+
+	if (count >= NUM_FLOOP_PAIRS_MAX)
+		return -EAGAIN;
+
+	fpair = cras_floop_pair_create(params);
 	if (!fpair)
 		return -ENOMEM;
 
