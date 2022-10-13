@@ -115,7 +115,7 @@ class BM_Alsa : public benchmark::Fixture {
     brillo::CrosConfig cros_config;
     struct cras_use_case_mgr* ucm_mgr;
     std::string ucm_suffix;
-    cros_config.GetString("/audio", "/main/ucm-suffix", &ucm_suffix);
+    cros_config.GetString("/audio", "main/ucm-suffix", &ucm_suffix);
 
     auto card_info = get_card_info(device);
     std::string card_name = std::get<0>(card_info);
