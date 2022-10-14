@@ -369,7 +369,6 @@ include_HEADERS = \
 	common/cras_audio_format.h \
 	common/cras_config.h \
 	common/cras_iodev_info.h \
-	common/cras_hats.h \
 	common/cras_messages.h \
 	common/cras_shm.h \
 	common/cras_types.h \
