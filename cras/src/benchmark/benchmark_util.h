@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifndef BENCHMARK_UTIL_H_
+#define BENCHMARK_UTIL_H_
+
 #include <vector>
 
 /*
@@ -15,3 +18,5 @@ std::vector<float> gen_float_samples(size_t size, std::mt19937& engine);
  * |engine|.
  */
 std::vector<int16_t> gen_s16_le_samples(size_t size, std::mt19937& engine);
+
+#endif

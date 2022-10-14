@@ -3,6 +3,9 @@
  * found in the LICENSE file.
  */
 
+#ifndef CRAS_PLC_H_
+#define CRAS_PLC_H_
+
 #include <stdint.h>
 
 #include "cras_audio_codec.h"
@@ -52,3 +55,5 @@ int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc *plc,
  */
 int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc *plc,
 				     const uint8_t *input, uint8_t *output);
+
+#endif

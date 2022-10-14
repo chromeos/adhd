@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef _CRAS_ALERT_H
-#define _CRAS_ALERT_H
+#ifndef CRAS_ALERT_H_
+#define CRAS_ALERT_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -126,4 +126,4 @@ void cras_alert_destroy_all();
 } /* extern "C" */
 #endif
 
-#endif /* _CRAS_ALERT_H */
+#endif /* CRAS_ALERT_H_ */

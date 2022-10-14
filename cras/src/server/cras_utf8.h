@@ -3,6 +3,9 @@
  * found in the LICENSE file.
  */
 
+#ifndef CRAS_UTF8_H_
+#define CRAS_UTF8_H_
+
 #include <sys/types.h>
 
 /* Checks if a string is valid UTF-8.
@@ -34,3 +37,5 @@ int valid_utf8_string(const char *string, size_t *bad_pos);
  *    1 if it is a valid utf-8 string. 0 otherwise.
  */
 int is_utf8_string(const char *string);
+
+#endif

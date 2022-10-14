@@ -3,6 +3,9 @@
  * found in the LICENSE file.
  */
 
+#ifndef CRAS_DBUS_UTIL_H_
+#define CRAS_DBUS_UTIL_H_
+
 #include <dbus/dbus.h>
 
 /* Appends a key-value pair to the dbus message.
@@ -16,3 +19,5 @@
 */
 dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key, int type,
 			     const char *type_string, void *value);
+
+#endif

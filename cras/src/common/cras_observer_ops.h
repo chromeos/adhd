@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_OBSERVER_OPS_H
-#define CRAS_OBSERVER_OPS_H
+#ifndef CRAS_OBSERVER_OPS_H_
+#define CRAS_OBSERVER_OPS_H_
 
 #include "cras_types.h"
 
@@ -70,4 +70,4 @@ struct cras_observer_ops {
 			       const char *node_type_pair);
 };
 
-#endif /* CRAS_OBSERVER_OPS_H */
+#endif /* CRAS_OBSERVER_OPS_H_ */

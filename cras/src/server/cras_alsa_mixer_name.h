@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef _CRAS_ALSA_MIXER_NAME_H
-#define _CRAS_ALSA_MIXER_NAME_H
+#ifndef CRAS_ALSA_MIXER_NAME_H_
+#define CRAS_ALSA_MIXER_NAME_H_
 
 #include "cras_types.h"
 
@@ -100,4 +100,4 @@ void mixer_name_dump(struct mixer_name *names, const char *message);
 }
 #endif
 
-#endif /* _CRAS_ALSA_MIXER_NAME_H */
+#endif /* CRAS_ALSA_MIXER_NAME_H_ */

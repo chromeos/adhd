@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_IODEV_H_
-#define CRAS_BT_IODEV_H_
+#ifndef CRAS_BT_IO_H_
+#define CRAS_BT_IO_H_
 
 #include "cras_bt_device.h"
 #include "cras_types.h"
@@ -78,4 +78,4 @@ void bt_io_manager_set_use_hardware_volume(struct bt_io_manager *mgr,
 void bt_io_manager_update_hardware_volume(struct bt_io_manager *mgr,
 					  int volume);
 
-#endif /* CRAS_BT_IODEV_H_ */
+#endif /* CRAS_BT_IO_H_ */

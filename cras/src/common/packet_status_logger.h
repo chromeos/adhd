@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef PACKET_STATUS_LOGGER_
-#define PACKET_STATUS_LOGGER_
+#ifndef PACKET_STATUS_LOGGER_H_
+#define PACKET_STATUS_LOGGER_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -124,4 +124,4 @@ packet_status_logger_dump_binary(const struct packet_status_logger *logger)
 	}
 }
 
-#endif /* PACKET_STATUS_LOGGER_ */
+#endif /* PACKET_STATUS_LOGGER_H_ */

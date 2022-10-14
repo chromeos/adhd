@@ -4,10 +4,13 @@
  */
 
 /* Definitions from Linux bluetooth directory that are useful for
- * bluetotoh audio.
+ * bluetooth audio.
  * TODO(hychao): Remove this file when there is bluetooth user
  * space header provided.
  */
+
+#ifndef BLUETOOTH_H_
+#define BLUETOOTH_H_
 
 #include <unistd.h>
 
@@ -123,3 +126,5 @@ struct bt_codecs {
 #define HCI_CONFIG_CODEC_ID_FORMAT_MSBC 0x05
 
 #define BT_SCM_PKT_STATUS 0x03
+
+#endif

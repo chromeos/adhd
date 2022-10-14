@@ -5,6 +5,9 @@
 #include "cras_rstream.h"
 #include "cras_iodev.h"
 
+#ifndef CRAS_RTC_H_
+#define CRAS_RTC_H_
+
 /*
  * Adds a stream into the RTC detector. This function will detect whether
  * there are RTC streams.
@@ -24,3 +27,5 @@ void cras_rtc_remove_stream(struct cras_rstream *stream, unsigned int dev_id);
 
 /* Returns whether there are running RTC streams. */
 bool cras_rtc_is_running();
+
+#endif

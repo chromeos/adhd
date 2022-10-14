@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_LOOPBACK_IO_H_
-#define CRAS_LOOPBACK_IO_H_
+#ifndef CRAS_LOOPBACK_IODEV_H_
+#define CRAS_LOOPBACK_IODEV_H_
 
 #include "cras_types.h"
 

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef _CRAS_ALSA_CARD_H
-#define _CRAS_ALSA_CARD_H
+#ifndef CRAS_ALSA_CARD_H_
+#define CRAS_ALSA_CARD_H_
 
 #include "cras_types.h"
 
@@ -48,4 +48,4 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card);
  */
 size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card);
 
-#endif /* _CRAS_ALSA_CARD_H */
+#endif /* CRAS_ALSA_CARD_H_ */

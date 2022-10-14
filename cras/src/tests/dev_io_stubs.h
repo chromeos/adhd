@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifndef DEV_IO_STUBS_H_
+#define DEV_IO_STUBS_H_
+
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
@@ -79,3 +82,5 @@ DevicePtr create_device(CRAS_STREAM_DIRECTION direction,
                         CRAS_NODE_TYPE active_node_type);
 void add_stream_to_dev(IodevPtr& dev, const StreamPtr& stream);
 void fill_audio_format(cras_audio_format* format, unsigned int rate);
+
+#endif

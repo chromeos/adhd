@@ -21,6 +21,9 @@
  *
  */
 
+#ifndef RTP_H_
+#define RTP_H_
+
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
 struct rtp_header {
@@ -73,4 +76,6 @@ struct rtp_payload {
 
 #else
 #error "Unknown byte order"
+#endif
+
 #endif

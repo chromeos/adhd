@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef _CRAS_ALSA_UCM_H
-#define _CRAS_ALSA_UCM_H
+#ifndef CRAS_ALSA_UCM_H_
+#define CRAS_ALSA_UCM_H_
 
 #include <alsa/asoundlib.h>
 
@@ -571,4 +571,4 @@ unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr *mgr,
  */
 unsigned int ucm_get_optimize_no_stream_flag(struct cras_use_case_mgr *mgr);
 
-#endif /* _CRAS_ALSA_UCM_H */
+#endif /* CRAS_ALSA_UCM_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FL_MEDIA_ADAPTOR_H_
-#define CRAS_FL_MEDIA_ADAPTOR_H_
+#ifndef CRAS_FL_MEDIA_ADAPTER_H_
+#define CRAS_FL_MEDIA_ADAPTER_H_
 
 #include <stdint.h>
 

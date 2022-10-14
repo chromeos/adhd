@@ -22,6 +22,9 @@
  *
  */
 
+#ifndef A2DP_CODECS_H_
+#define A2DP_CODECS_H_
+
 #define A2DP_CODEC_SBC 0x00
 #define A2DP_CODEC_MPEG12 0x01
 #define A2DP_CODEC_MPEG24 0x02
@@ -137,3 +140,5 @@ typedef struct {
 	uint8_t vendor_id[4];
 	uint8_t codec_id[2];
 } __attribute__((packed)) a2dp_vendor_codec_t;
+
+#endif

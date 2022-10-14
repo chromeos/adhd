@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef POLLED_ACTIVITY_CHECKER_H_
-#define POLLED_ACTIVITY_CHECKER_H_
+#ifndef POLLED_INTERVAL_CHECKER_H_
+#define POLLED_INTERVAL_CHECKER_H_
 
 #include <time.h>
 

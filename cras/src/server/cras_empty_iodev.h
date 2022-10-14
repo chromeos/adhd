@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_EMPTY_IO_H_
-#define CRAS_EMPTY_IO_H_
+#ifndef CRAS_EMPTY_IODEV_H_
+#define CRAS_EMPTY_IODEV_H_
 
 #include "cras_types.h"
 

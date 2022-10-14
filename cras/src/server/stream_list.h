@@ -3,6 +3,9 @@
  * found in the LICENSE file.
  */
 
+#ifndef STREAM_LIST_H_
+#define STREAM_LIST_H_
+
 #include <stdbool.h>
 
 #include "cras_tm.h"
@@ -61,3 +64,5 @@ int stream_list_rm_all_client_streams(struct stream_list *list,
  */
 bool stream_list_has_pinned_stream(struct stream_list *list,
 				   unsigned int dev_idx);
+
+#endif

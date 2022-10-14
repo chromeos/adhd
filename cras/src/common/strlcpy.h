@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#pragma once
+#ifndef STRLCPY_H_
+#define STRLCPY_H_
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -30,4 +31,6 @@ size_t strlcpy(char *dst, const char *src, size_t size);
 
 #ifdef __cplusplus
 } // extern "C"
+#endif
+
 #endif

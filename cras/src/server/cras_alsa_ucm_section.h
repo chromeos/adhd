@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef _CRAS_ALSA_UCM_SECTION_H
-#define _CRAS_ALSA_UCM_SECTION_H
+#ifndef CRAS_ALSA_UCM_SECTION_H_
+#define CRAS_ALSA_UCM_SECTION_H_
 
 #include "cras_types.h"
 #include "cras_alsa_mixer_name.h"

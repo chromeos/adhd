@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_OBSERVER_H
-#define CRAS_OBSERVER_H
+#ifndef CRAS_OBSERVER_H_
+#define CRAS_OBSERVER_H_
 
 #include "cras_observer_ops.h"
 
@@ -117,4 +117,4 @@ void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
 					 enum CRAS_CLIENT_TYPE client_type,
 					 const char *node_pair_type);
 
-#endif /* CRAS_OBSERVER_H */
+#endif /* CRAS_OBSERVER_H_ */

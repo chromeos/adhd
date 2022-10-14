@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#ifndef TEST_UTIL_H_
+#define TEST_UTIL_H_
+
 #include <functional>
 
 #include <gtest/gtest.h>
@@ -29,3 +32,5 @@ struct DeferHelper {
 // run func(val1, val2) when leaving the local scope
 #define EVENTUALLY(func, val1, val2) \
   EVENTUALLY_PRIVATE(func(val1, val2), __LINE__)
+
+#endif
