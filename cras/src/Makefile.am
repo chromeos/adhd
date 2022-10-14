@@ -362,6 +362,9 @@ libcras_la_SOURCES = \
 	libcras/cras_client.c \
 	libcras/cras_helpers.c
 
+# This is only for public headers that get installed to $prefix/usr/include:
+# https://www.gnu.org/software/automake/manual/html_node/Libtool-Libraries.html
+# DO NOT ADD PRIVATE HEADERS here.
 include_HEADERS = \
 	common/cras_audio_format.h \
 	common/cras_config.h \
@@ -373,7 +376,6 @@ include_HEADERS = \
 	common/cras_util.h \
 	common/edid_utils.h \
 	common/packet_status_logger.h \
-	common/utlist.h \
 	libcras/cras_client.h \
 	libcras/cras_helpers.h
 
