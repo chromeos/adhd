@@ -61,9 +61,7 @@ def check_arg_direction(root, filename):
     """
 
     for arg in root.xpath('//method/arg[not(@direction)]'):
-        yield Error(
-            filename, arg.sourceline, 'method <arg> should set direction attribute'
-        )
+        yield Error(filename, arg.sourceline, 'method <arg> should set direction attribute')
 
     for attr in root.xpath('//signal/arg/@direction'):
         arg = attr.getparent()

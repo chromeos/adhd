@@ -13,7 +13,8 @@ import logging
 import string
 import time
 
-page_content = string.Template("""
+page_content = string.Template(
+    """
 <html meta charset="UTF8">
 <head>
   <!-- Load c3.css -->
@@ -148,7 +149,8 @@ page_content = string.Template("""
   <textarea class="event_log_box", id="text", style="float:right;"></textarea>
 </body>
 </html>
-""")
+"""
+)
 
 
 def StrToTimestamp(s):
@@ -174,8 +176,10 @@ text is the tag to show, position is the tag position, which is one of
 and 'wake' which will be their CSS class name.
 """
 
+
 class EventData(object):
     """The base class of an event."""
+
     def __init__(self, time, name):
         """Initializes an EventData.
 
@@ -197,13 +201,17 @@ class EventData(object):
         """
         if self._text:
             return Tag(
-                    time=self.time, text=self._text, position=self._position,
-                    class_name=self._class_name)
+                time=self.time,
+                text=self._text,
+                position=self._position,
+                class_name=self._class_name,
+            )
         return None
 
 
 class DeviceEvent(EventData):
     """Class for device event."""
+
     def __init__(self, time, name, device):
         """Initializes a DeviceEvent.
 
@@ -220,6 +228,7 @@ class DeviceEvent(EventData):
 
 class DeviceRemovedEvent(DeviceEvent):
     """Class for device removed event."""
+
     def __init__(self, time, name, device):
         """Initializes a DeviceRemovedEvent.
 
@@ -234,6 +243,7 @@ class DeviceRemovedEvent(DeviceEvent):
 
 class DeviceAddedEvent(DeviceEvent):
     """Class for device added event."""
+
     def __init__(self, time, name, device):
         """Initializes a DeviceAddedEvent.
 
@@ -248,6 +258,7 @@ class DeviceAddedEvent(DeviceEvent):
 
 class LevelEvent(DeviceEvent):
     """Class for device event with buffer level."""
+
     def __init__(self, time, name, device, level):
         """Initializes a LevelEvent.
 
@@ -263,6 +274,7 @@ class LevelEvent(DeviceEvent):
 
 class StreamEvent(EventData):
     """Class for event with stream."""
+
     def __init__(self, time, name, stream):
         """Initializes a StreamEvent.
 
@@ -278,6 +290,7 @@ class StreamEvent(EventData):
 
 class FetchStreamEvent(StreamEvent):
     """Class for stream fetch event."""
+
     def __init__(self, time, name, stream):
         """Initializes a FetchStreamEvent.
 
@@ -294,6 +307,7 @@ class FetchStreamEvent(StreamEvent):
 
 class StreamAddedEvent(StreamEvent):
     """Class for stream added event."""
+
     def __init__(self, time, name, stream):
         """Initializes a StreamAddedEvent.
 
@@ -309,6 +323,7 @@ class StreamAddedEvent(StreamEvent):
 
 class StreamRemovedEvent(StreamEvent):
     """Class for stream removed event."""
+
     def __init__(self, time, name, stream):
         """Initializes a StreamRemovedEvent.
 
@@ -324,6 +339,7 @@ class StreamRemovedEvent(StreamEvent):
 
 class WakeEvent(EventData):
     """Class for wake event."""
+
     def __init__(self, time, name, num_fds):
         """Initializes a WakeEvent.
 
@@ -341,6 +357,7 @@ class WakeEvent(EventData):
 
 class C3LogWriter(object):
     """Class to handle event data and fill an HTML page using c3.js library"""
+
     def __init__(self):
         """Initializes a C3LogWriter."""
         self.times = []
@@ -367,11 +384,9 @@ class C3LogWriter(object):
             self.buffer_levels.append(str(event.level))
             if event.level > self.max_y:
                 self.max_y = event.level
-            logging.debug('add data for a level event %s: %s',
-                          event.time, event.level)
+            logging.debug('add data for a level event %s: %s', event.time, event.level)
 
-        if (isinstance(event, DeviceAddedEvent) or
-            isinstance(event, DeviceRemovedEvent)):
+        if isinstance(event, DeviceAddedEvent) or isinstance(event, DeviceRemovedEvent):
             self.times.append(event.time)
             self.buffer_levels.append('null')
 
@@ -385,9 +400,12 @@ class C3LogWriter(object):
         """
         grids = []
         for tag in self.tags:
-            content = ('{value: %s, text: "%s", position: "%s", '
-                       'class: "%s"}') % (
-                              tag.time, tag.text, tag.position, tag.class_name)
+            content = ('{value: %s, text: "%s", position: "%s", ' 'class: "%s"}') % (
+                tag.time,
+                tag.text,
+                tag.position,
+                tag.class_name,
+            )
             grids.append(content)
         grids_joined = ', '.join(grids)
         return grids_joined
@@ -405,15 +423,14 @@ class C3LogWriter(object):
         buffer_levels = ', '.join(self.buffer_levels)
         grids = self._GetGrids()
         filled = page_template.safe_substitute(
-                times=times,
-                buffer_levels=buffer_levels,
-                grids=grids,
-                max_y=str(self.max_y))
+            times=times, buffer_levels=buffer_levels, grids=grids, max_y=str(self.max_y)
+        )
         return filled
 
 
 class EventLogParser(object):
     """Class for event log parser."""
+
     def __init__(self):
         """Initializes an EventLogParse."""
         self.parsed_events = []
@@ -482,9 +499,7 @@ class EventLogParser(object):
         if name == 'STREAM_REMOVED':
             return StreamRemovedEvent(time, name, stream=props['id'])
         if name in ['FILL_AUDIO', 'SET_DEV_WAKE']:
-            return LevelEvent(
-                    time, name, device=props['dev'],
-                    level=int(props['hw_level']))
+            return LevelEvent(time, name, device=props['dev'], level=int(props['hw_level']))
         if name == 'DEV_ADDED':
             return DeviceAddedEvent(time, name, device=props['dev'])
         if name == 'DEV_REMOVED':
@@ -496,6 +511,7 @@ class EventLogParser(object):
 
 class AudioThreadLogParser(object):
     """Class for audio thread log parser."""
+
     def __init__(self, path):
         """Initializes an AudioThreadLogParser.
 
@@ -522,8 +538,7 @@ class AudioThreadLogParser(object):
         try:
             index_end = self.content.index('=== aplay -l ===')
         except ValueError:
-            logging.debug(
-                    'Can not find aplay line. This is not from diagnostic')
+            logging.debug('Can not find aplay line. This is not from diagnostic')
             index_end = len(self.content)
         event_logs = self.content[index_start:index_end]
         logging.info('Parsed %s log events', len(event_logs))
@@ -557,13 +572,16 @@ def ParseArgs():
 
     """
     parser = argparse.ArgumentParser(
-            description='Draw time chart from audio thread log',
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description='Draw time chart from audio thread log',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument('FILE', type=str, help='The audio thread log file')
-    parser.add_argument('-o', type=str, dest='output',
-                        default='view.html', help='The output HTML file')
-    parser.add_argument('-d', dest='debug', action='store_true',
-                        default=False, help='Show debug message')
+    parser.add_argument(
+        '-o', type=str, dest='output', default='view.html', help='The output HTML file'
+    )
+    parser.add_argument(
+        '-d', dest='debug', action='store_true', default=False, help='Show debug message'
+    )
     return parser.parse_args()
 
 
@@ -571,8 +589,9 @@ def Main():
     """The Main program."""
     options = ParseArgs()
     logging.basicConfig(
-            format='%(asctime)s:%(levelname)s:%(message)s',
-            level=logging.DEBUG if options.debug else logging.INFO)
+        format='%(asctime)s:%(levelname)s:%(message)s',
+        level=logging.DEBUG if options.debug else logging.INFO,
+    )
 
     # Gets lines of event logs.
     audio_thread_log_parser = AudioThreadLogParser(options.FILE)
@@ -594,7 +613,8 @@ def Main():
 
     # Fills in audio thread log into text box.
     page_content_with_chart_and_logs = audio_thread_log_parser.FillLogs(
-            string.Template(page_content_with_chart))
+        string.Template(page_content_with_chart)
+    )
 
     with open(options.output, 'w') as f:
         f.write(page_content_with_chart_and_logs)

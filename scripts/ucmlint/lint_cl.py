@@ -50,9 +50,7 @@ def gerrit_request(url: Union[str, urllib.request.Request], want_status=200) -> 
 
 
 def main(change_id: int, work_dir: Optional[str]):
-    response = gerrit_request(
-        f'/changes/{change_id}?o=CURRENT_REVISION&o=CURRENT_FILES'
-    )
+    response = gerrit_request(f'/changes/{change_id}?o=CURRENT_REVISION&o=CURRENT_FILES')
     revision_sha1 = response['current_revision']
     revision = response['revisions'][revision_sha1]
     http_url = revision['fetch']['http']['url']
@@ -63,9 +61,7 @@ def main(change_id: int, work_dir: Optional[str]):
     with contextlib.ExitStack() as stack:
         need_clone = False
         if work_dir is None:
-            work_dir = stack.push(
-                tempfile.TemporaryDirectory(prefix=f'CL-{change_id}-')
-            ).name
+            work_dir = stack.push(tempfile.TemporaryDirectory(prefix=f'CL-{change_id}-')).name
             need_clone = True
         elif not os.path.exists(work_dir):
             need_clone = True
@@ -107,7 +103,9 @@ def main(change_id: int, work_dir: Optional[str]):
 
         logging.info('-' * 40)
         logging.info(f'Diagnostics saved to {diags_json}.')
-        logging.info(f'Run ./draft_comments.py {diags_json} to upload comments to gerrit as drafts.')
+        logging.info(
+            f'Run ./draft_comments.py {diags_json} to upload comments to gerrit as drafts.'
+        )
 
 
 def main0():

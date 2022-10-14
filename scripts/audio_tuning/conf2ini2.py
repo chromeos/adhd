@@ -14,20 +14,24 @@ import sys
 
 import conf2ini
 
+
 def main():
-  if len(sys.argv) < 2:
-    print('Error: audio.conf file is not specified')
-    print('       usage: conf2ini2.py [audio.conf file]')
-    return -1
+    if len(sys.argv) < 2:
+        print('Error: audio.conf file is not specified')
+        print('       usage: conf2ini2.py [audio.conf file]')
+        return -1
 
-  if len(sys.argv) > 2:
-    print('Error: only one audio.conf file is accepted; use conf2ini.py for '
-          'multiple file cases')
-    print('       usage: conf2ini.py [audio.conf file]...')
-    return -1
+    if len(sys.argv) > 2:
+        print(
+            'Error: only one audio.conf file is accepted; use conf2ini.py for '
+            'multiple file cases'
+        )
+        print('       usage: conf2ini.py [audio.conf file]...')
+        return -1
 
-  conf2ini.conf2ini(sys.argv[1:])
-  return 0
+    conf2ini.conf2ini(sys.argv[1:])
+    return 0
+
 
 if __name__ == "__main__":
-  main()
+    main()

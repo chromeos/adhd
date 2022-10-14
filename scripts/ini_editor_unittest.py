@@ -15,7 +15,7 @@ import unittest
 
 from ini_editor import Ini
 
-SAMPLE_INI="""\
+SAMPLE_INI = """\
 [output_source]
 library=builtin
 label=source
@@ -65,7 +65,7 @@ input_10=3       ; Q
 input_11=-12     ; gain
 """
 
-SAMPLE_INI_DRC="""\
+SAMPLE_INI_DRC = """\
 [drc]
 library=builtin
 label=drc
@@ -84,7 +84,7 @@ input_11=-7      ; boost
 
 """
 
-SAMPLE_INI_DRC_INSERTED="""\
+SAMPLE_INI_DRC_INSERTED = """\
 [drc]
 library=builtin
 label=drc
@@ -106,40 +106,41 @@ input_12=-7      ; boost
 
 
 class IniTest(unittest.TestCase):
-  """Unittest for Ini class."""
-  def setUp(self):
-    self.ini_file = tempfile.NamedTemporaryFile(prefix='ini_editor_unittest')
-    with open(self.ini_file.name, 'w') as f:
-      f.write(SAMPLE_INI)
-    self.ini = Ini(self.ini_file.name)
+    """Unittest for Ini class."""
 
-  def tearDown(self):
-    self.ini_file.close()
+    def setUp(self):
+        self.ini_file = tempfile.NamedTemporaryFile(prefix='ini_editor_unittest')
+        with open(self.ini_file.name, 'w') as f:
+            f.write(SAMPLE_INI)
+        self.ini = Ini(self.ini_file.name)
 
-  def testPrint(self):
-    """Unittest for Print method of Ini class."""
-    output = self.ini.Print()
-    self.assertEqual(output.getvalue(), SAMPLE_INI)
+    def tearDown(self):
+        self.ini_file.close()
 
-  def testHasSection(self):
-    """Unittest for HasSection method of Ini class."""
-    self.assertTrue(self.ini.HasSection('drc'))
-    self.assertFalse(self.ini.HasSection('eq1'))
+    def testPrint(self):
+        """Unittest for Print method of Ini class."""
+        output = self.ini.Print()
+        self.assertEqual(output.getvalue(), SAMPLE_INI)
 
-  def testPrintSection(self):
-    """Unittest for PrintSection method of Ini class."""
-    output = self.ini.PrintSection('drc')
-    self.assertEqual(output.getvalue(), SAMPLE_INI_DRC)
+    def testHasSection(self):
+        """Unittest for HasSection method of Ini class."""
+        self.assertTrue(self.ini.HasSection('drc'))
+        self.assertFalse(self.ini.HasSection('eq1'))
 
-  def testInsertLineToSection(self):
-    """Unittest for InsertLineToSection method of Ini class."""
-    self.ini.InsertLineToSection('drc', 'input_4=1       ; new_parameter')
-    output = self.ini.PrintSection('drc')
-    self.assertEqual(output.getvalue(), SAMPLE_INI_DRC_INSERTED)
+    def testPrintSection(self):
+        """Unittest for PrintSection method of Ini class."""
+        output = self.ini.PrintSection('drc')
+        self.assertEqual(output.getvalue(), SAMPLE_INI_DRC)
+
+    def testInsertLineToSection(self):
+        """Unittest for InsertLineToSection method of Ini class."""
+        self.ini.InsertLineToSection('drc', 'input_4=1       ; new_parameter')
+        output = self.ini.PrintSection('drc')
+        self.assertEqual(output.getvalue(), SAMPLE_INI_DRC_INSERTED)
 
 
 if __name__ == '__main__':
-  logging.basicConfig(
-     format='%(asctime)s:%(levelname)s:%(filename)s:%(lineno)d:%(message)s',
-     level=logging.DEBUG)
-  unittest.main()
+    logging.basicConfig(
+        format='%(asctime)s:%(levelname)s:%(filename)s:%(lineno)d:%(message)s', level=logging.DEBUG
+    )
+    unittest.main()

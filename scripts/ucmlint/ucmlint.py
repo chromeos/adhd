@@ -103,9 +103,7 @@ SectionUseCase."HiFi" {{
 }}
 '''
     if actual_content != expected_content:
-        diff = '\n'.join(
-            difflib.ndiff(actual_content.splitlines(), expected_content.splitlines())
-        )
+        diff = '\n'.join(difflib.ndiff(actual_content.splitlines(), expected_content.splitlines()))
         diags.add(relpath, 0, f'Expected {relpath} content:\n```{diff}\n```')
 
 
@@ -187,8 +185,9 @@ class HiFiParser:
     def __init__(self, lines, path):
         self.path = path
         self.lines = collections.deque(
-            (i, l) for (i, l) in enumerate(lines, 1) if l.strip()
-
+            (i, l)
+            for (i, l) in enumerate(lines, 1)
+            if l.strip()
             # drop comments
             if not l.lstrip().startswith('#')
         )
@@ -279,9 +278,7 @@ class HiFiParser:
 
 
 def lint_hifi_conf(path: pathlib.Path, relpath: str, card_name: str):
-    hifi = HiFiParser(
-        path.read_text(encoding='ascii').splitlines(), path=relpath
-    ).parse()
+    hifi = HiFiParser(path.read_text(encoding='ascii').splitlines(), path=relpath).parse()
     if hifi is None:
         return
 
@@ -356,9 +353,7 @@ def lint_device(card_name: str, dev: Section):
     if t in {DeviceType.Headphone, DeviceType.Mic, DeviceType.HDMI}:
         if jack_dev := dev.value.get('JackDev'):
             if not jack_dev.rhs.startswith(card_name + ' '):
-                jack_dev.warning(
-                    f'`JackDev` should start with `{card_name}`. Check with `evtest`.'
-                )
+                jack_dev.warning(f'`JackDev` should start with `{card_name}`. Check with `evtest`.')
         else:
             dev.warning(
                 f'Value `JackDev` is required for `{dev.name}`. Run `evtest` to check the name.'
@@ -411,9 +406,7 @@ def lint_sequences(card_name: str, seq: Block):
 
     kv = seq.items[0]
     if kv.lhs != 'cdev' or kv.rhs != hwarg:
-        diags.add(
-            seq.path, seq.lineinfo[0] + 1, f'first item should be `{expected_cdev}`'
-        )
+        diags.add(seq.path, seq.lineinfo[0] + 1, f'first item should be `{expected_cdev}`')
 
 
 def ucmlint(directory_str):
