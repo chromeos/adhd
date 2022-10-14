@@ -373,7 +373,6 @@ include_HEADERS = \
 	common/cras_shm.h \
 	common/cras_types.h \
 	common/cras_util.h \
-	common/edid_utils.h \
 	common/packet_status_logger.h \
 	libcras/cras_client.h \
 	libcras/cras_helpers.h
