@@ -493,8 +493,11 @@ bool cras_system_get_bypass_block_noise_cancellation()
 
 bool cras_system_check_ignore_ucm_suffix(const char *card_name)
 {
-	/* Check the general case: ALSA Loopback card "Loopback". */
-	if (!strcmp("Loopback", card_name))
+	/* Check the general case:
+	 *   ALSA Loopback card "Loopback"
+	 *   ALSA Dummy card "Dummy"
+	 */
+	if (!strcmp("Loopback", card_name) || !strcmp("Dummy", card_name))
 		return true;
 
 	/* Check board-specific ignore ucm suffix cards. */

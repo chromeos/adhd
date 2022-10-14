@@ -107,8 +107,16 @@ static unsigned is_external_bus(const char *bus)
 	return (bus != NULL && (strcmp(bus, "usb") == 0));
 }
 
+static bool is_dummy_device(struct udev_device *dev)
+{
+	return strstr(udev_device_get_devpath(dev), "snd_dummy") != NULL;
+}
+
 static unsigned is_internal_device(struct udev_device *dev)
 {
+	// treat snd_dummy as external USB device
+	if (is_dummy_device(dev))
+		return 0;
 	struct udev_device *parent = udev_device_get_parent(dev);
 	while (parent != NULL) {
 		const char *name = udev_device_get_subsystem(parent);
