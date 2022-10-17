@@ -231,6 +231,14 @@ TEST_F(BtSrTestSuite, OutputBufReachEnd) {
   }
 }
 
+TEST_F(BtSrTestSuite, FramesRatio) {
+  EXPECT_EQ(cras_sr_get_frames_ratio(sr), 3.);
+}
+
+TEST_F(BtSrTestSuite, NumFramesPerRun) {
+  EXPECT_EQ(cras_sr_get_num_frames_per_run(sr), 480);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {

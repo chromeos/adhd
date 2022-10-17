@@ -136,11 +136,13 @@ CRAS_DSP_AM_SOURCES = \
 	dsp/am.cc
 CRAS_SR_SOURCES = \
 	server/cras_sr.c \
+	server/cras_sr_bt_adapters.c \
 	server/cras_sr_bt_util.c
 else
 CRAS_DSP_AM_SOURCES =
 CRAS_SR_SOURCES = \
 	server/cras_sr_stub.c \
+	server/cras_sr_bt_adapters_stub.c \
 	server/cras_sr_bt_util_stub.c
 endif
 
@@ -509,7 +511,8 @@ DBUS_TESTS = \
 	hfp_ag_profile_unittest \
 	hfp_manager_unittest \
 	hfp_slc_unittest \
-	cras_sco_unittest
+	cras_sco_unittest \
+	sr_bt_adapters_unittest
 else
 DBUS_TESTS =
 endif
@@ -1110,6 +1113,13 @@ hfp_slc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_slc_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 endif
+
+sr_bt_adapters_unittest_SOURCES = tests/sr_bt_adapters_unittest.cc \
+	tests/sr_stub.cc tests/sr_bt_util_stub.cc server/cras_sr_bt_adapters.c \
+	server/cras_audio_area.c
+sr_bt_adapters_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+sr_bt_adapters_unittest_LDADD = -lgtest -lpthread
 
 buffer_share_unittest_SOURCES = tests/buffer_share_unittest.cc \
 	server/buffer_share.c

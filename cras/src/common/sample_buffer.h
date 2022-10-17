@@ -19,8 +19,10 @@
 #ifndef SAMPLE_BUFFER_H_
 #define SAMPLE_BUFFER_H_
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
 
 #include "byte_buffer.h"
@@ -51,8 +53,9 @@ struct sample_buffer {
  * Returns:
  *    0 on success, otherwise a negative error code.
  */
-int sample_buffer_init(const size_t num_samples, const size_t sample_size,
-		       struct sample_buffer *buf)
+static inline int sample_buffer_init(const size_t num_samples,
+				     const size_t sample_size,
+				     struct sample_buffer *buf)
 {
 	struct byte_buffer *internal_buf =
 		byte_buffer_create(num_samples * sample_size);
@@ -71,7 +74,7 @@ int sample_buffer_init(const size_t num_samples, const size_t sample_size,
  * Args:
  *    buf - the sample_buffer to be cleaned up.
  */
-void sample_buffer_cleanup(struct sample_buffer *buf)
+static inline void sample_buffer_cleanup(struct sample_buffer *buf)
 {
 	if (buf && buf->buf)
 		byte_buffer_destroy(&buf->buf);
@@ -85,8 +88,8 @@ void sample_buffer_cleanup(struct sample_buffer *buf)
  * Returns:
  *    1 on success, otherwise 0.
  */
-static int sample_buffer_validate_byte_buffer(struct byte_buffer *buf,
-					      const size_t sample_size)
+static inline int sample_buffer_validate_byte_buffer(struct byte_buffer *buf,
+						     const size_t sample_size)
 {
 	return buf && (sample_size != 0) &&
 	       (buf->used_size % sample_size == 0) &&
@@ -105,8 +108,8 @@ static int sample_buffer_validate_byte_buffer(struct byte_buffer *buf,
  * Returns:
  *    A sample_buffer that uses the given ref_buf as its internal buffer.
  */
-struct sample_buffer sample_buffer_weak_ref(struct byte_buffer *ref_buf,
-					    const size_t sample_size)
+static inline struct sample_buffer
+sample_buffer_weak_ref(struct byte_buffer *ref_buf, const size_t sample_size)
 {
 	assert(sample_buffer_validate_byte_buffer(ref_buf, sample_size) &&
 	       "sample_buffer_validate_byte_buffer failed.");
@@ -268,6 +271,23 @@ sample_buf_full_with_zero_read_index(struct sample_buffer *buf)
 {
 	return sample_buf_readable(buf) ==
 	       buf->buf->used_size / buf->sample_size;
+}
+
+/* Returns the size of each sample in the buffer. */
+static inline size_t sample_buf_get_sample_size(const struct sample_buffer *buf)
+{
+	return buf->sample_size;
+}
+
+/* Returns the underlying byte_buffer.
+ * It's useful for interacting with functions who take byte_buffers as inputs.
+ * However, this function must be used carefully since the sample buffer may
+ * become invalid due to being inconsistent with the byte buffer.
+ * Use `sample_buffer_validate_byte_buffer` to check the state.
+ */
+static inline struct byte_buffer *sample_buf_get_buf(struct sample_buffer *buf)
+{
+	return buf->buf;
 }
 
 #endif /* SAMPLE_BUFFER_H_ */

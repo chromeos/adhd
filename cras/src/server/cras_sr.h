@@ -55,9 +55,25 @@ void cras_sr_destroy(struct cras_sr *sr);
  *     input_buf - the buffer that stores the input data to be processed.
  *     output_buf - the buffer that is used to store the processed data.
  * Returns:
- *     number of frames taken from input_buf.
+ *     number of bytes taken from input_buf.
  */
 int cras_sr_process(struct cras_sr *sr, struct byte_buffer *input_buf,
 		    struct byte_buffer *output_buf);
+
+/* Gets the frames ratio between output and input.
+ * Args:
+ *    sr - The sr object.
+ * Returns:
+ *    the ratio between output and input.
+ */
+double cras_sr_get_frames_ratio(struct cras_sr *sr);
+
+/* Get the number of frames needed to invoke the model.
+ * Args:
+ *    sr - The sr object.
+ * Returns:
+ *    the number of frames needed to invoke the model.
+ */
+size_t cras_sr_get_num_frames_per_run(struct cras_sr *sr);
 
 #endif /* CRAS_SR_H_ */

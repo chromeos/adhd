@@ -18,3 +18,13 @@ int cras_sr_process(struct cras_sr *sr, struct byte_buffer *input_buf,
 {
 	return 0;
 }
+
+double cras_sr_get_frames_ratio(struct cras_sr *sr)
+{
+	return 0;
+}
+
+size_t cras_sr_get_num_frames_per_run(struct cras_sr *sr)
+{
+	return 0;
+}

@@ -46,12 +46,16 @@
  *    (cras_sr_unprocessed_to_processed)
  *    |rw|       unprocessed         |
  *    |rw|        processed          |
+ *  frames_ratio - The ratio of output sample rate to input sample rate.
+ *  num_frames_per_run - The number of frames needed to invoke the tflite model.
  */
 struct cras_sr {
 	SpeexResamplerState *speex_state;
 	struct am_context *am;
 	struct sample_buffer resampled;
 	struct sample_buffer internal;
+	double frames_ratio;
+	size_t num_frames_per_run;
 };
 
 struct cras_sr *cras_sr_create(const struct cras_sr_model_spec spec,
@@ -99,6 +103,10 @@ struct cras_sr *cras_sr_create(const struct cras_sr_model_spec spec,
 	}
 	// Fills in the padded zeros.
 	sample_buf_increment_write(&sr->internal, spec.num_frames_per_run);
+
+	sr->frames_ratio =
+		(double)spec.output_sample_rate / spec.input_sample_rate;
+	sr->num_frames_per_run = spec.num_frames_per_run;
 
 	return sr;
 
@@ -269,4 +277,14 @@ int cras_sr_process(struct cras_sr *sr, struct byte_buffer *input_buf,
 	cras_sr_propagate(sr, &output_sample_buf);
 
 	return (int)(num_read_inputs * sizeof(int16_t));
+}
+
+double cras_sr_get_frames_ratio(struct cras_sr *sr)
+{
+	return sr->frames_ratio;
+}
+
+size_t cras_sr_get_num_frames_per_run(struct cras_sr *sr)
+{
+	return sr->num_frames_per_run;
 }

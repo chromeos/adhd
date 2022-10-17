@@ -3,10 +3,8 @@
  * found in the LICENSE file.
  */
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <string.h>
 
 extern "C" {
 #include "sample_buffer.h"
@@ -19,6 +17,7 @@ extern "C" {
 struct cras_sr {
   int16_t fake_output_value;
   float sample_rate_scale;
+  size_t num_frames_per_run;
 };
 
 struct cras_sr* cras_sr_create(const struct cras_sr_model_spec spec,
@@ -27,6 +26,7 @@ struct cras_sr* cras_sr_create(const struct cras_sr_model_spec spec,
   sr->fake_output_value = 1;
   sr->sample_rate_scale =
       (float)spec.output_sample_rate / (float)spec.input_sample_rate;
+  sr->num_frames_per_run = 480;
   return sr;
 }
 
@@ -49,6 +49,8 @@ int cras_sr_process(struct cras_sr* sr,
     unsigned int num_written =
         MIN(num_read * sr->sample_rate_scale, sample_buf_writable(&out_buf));
     num_read = num_written / sr->sample_rate_scale;
+    if (!num_read || !num_written)
+      break;
 
     sample_buf_increment_read(&in_buf, num_read);
     num_read_bytes += num_read * sizeof(int16_t);
@@ -58,5 +60,22 @@ int cras_sr_process(struct cras_sr* sr,
     num_avail -= num_written;
   }
   return num_read_bytes;
+}
+
+double cras_sr_get_frames_ratio(struct cras_sr* sr) {
+  return sr->sample_rate_scale;
+}
+
+void cras_sr_set_frames_ratio(struct cras_sr* sr, double frames_ratio) {
+  sr->sample_rate_scale = frames_ratio;
+}
+
+size_t cras_sr_get_num_frames_per_run(struct cras_sr* sr) {
+  return sr->num_frames_per_run;
+}
+
+void cras_sr_set_num_frames_per_run(struct cras_sr* sr,
+                                    size_t num_frames_per_run) {
+  sr->num_frames_per_run = num_frames_per_run;
 }
 }
