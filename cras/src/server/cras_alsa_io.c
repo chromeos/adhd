@@ -1109,11 +1109,11 @@ static int get_ucm_flag_integer(struct alsa_io *aio, const char *flag_name,
 	int i;
 
 	if (!aio->ucm)
-		return -1;
+		return -ENOENT;
 
 	value = ucm_get_flag(aio->ucm, flag_name);
 	if (!value)
-		return -1;
+		return -EINVAL;
 
 	i = atoi(value);
 	free(value);
