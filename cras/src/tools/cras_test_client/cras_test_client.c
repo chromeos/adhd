@@ -446,7 +446,8 @@ static void print_node_info(struct cras_client *client,
 				&max_channels);
 			if (rc)
 				max_channels = 0;
-			sprintf(max_channels_str, "%6u", max_channels);
+			snprintf(max_channels_str, sizeof(max_channels_str),
+				 "%6u", max_channels);
 		}
 		printf("\t(%08x)\t%u:%u\t%5g %f %7s\t%14s\t%10ld %-7s\t%-16s%-6s%c%s\n",
 		       nodes[i].stable_id, nodes[i].iodev_idx,

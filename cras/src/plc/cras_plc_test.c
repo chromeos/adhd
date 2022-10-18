@@ -98,9 +98,11 @@ void plc_experiment(const char *input_filename, bool *pl_seq, bool with_plc)
 	}
 
 	if (with_plc)
-		sprintf(output_filename, "output_with_plc.raw");
+		snprintf(output_filename, sizeof(output_filename),
+			 "output_with_plc.raw");
 	else
-		sprintf(output_filename, "output_with_zero.raw");
+		snprintf(output_filename, sizeof(output_filename),
+			 "output_with_zero.raw");
 
 	output_fd = open(output_filename, O_CREAT | O_RDWR | O_TRUNC, 0644);
 	if (output_fd == -1) {

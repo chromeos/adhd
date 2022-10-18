@@ -45,10 +45,12 @@ static void replace_colon_with_underscore(char *str)
  */
 static char *address_to_battery_path(const char *address)
 {
-	char *object_path = malloc(strlen(CRAS_DEFAULT_BATTERY_PROVIDER) +
-				   strlen(address) + 2);
+	size_t battery_address_path =
+		strlen(CRAS_DEFAULT_BATTERY_PROVIDER) + strlen(address) + 2;
+	char *object_path = malloc(battery_address_path);
 
-	sprintf(object_path, "%s/%s", CRAS_DEFAULT_BATTERY_PROVIDER, address);
+	snprintf(object_path, battery_address_path, "%s/%s",
+		 CRAS_DEFAULT_BATTERY_PROVIDER, address);
 	replace_colon_with_underscore(object_path);
 
 	return object_path;
@@ -59,10 +61,12 @@ static char *address_to_battery_path(const char *address)
  */
 static char *address_to_device_path(const char *address)
 {
-	char *object_path = malloc(strlen(CRAS_DEFAULT_BATTERY_PREFIX) +
-				   strlen(address) + 1);
+	size_t path_size =
+		strlen(CRAS_DEFAULT_BATTERY_PREFIX) + strlen(address) + 1;
+	char *object_path = malloc(path_size);
 
-	sprintf(object_path, "%s%s", CRAS_DEFAULT_BATTERY_PREFIX, address);
+	snprintf(object_path, path_size, "%s%s", CRAS_DEFAULT_BATTERY_PREFIX,
+		 address);
 	replace_colon_with_underscore(object_path);
 
 	return object_path;
