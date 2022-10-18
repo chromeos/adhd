@@ -77,6 +77,8 @@ static struct cras_bt_battery *battery_new(const char *address, uint32_t level)
 	struct cras_bt_battery *battery;
 
 	battery = calloc(1, sizeof(struct cras_bt_battery));
+	if (!battery)
+		return NULL;
 	battery->address = strdup(address);
 	battery->object_path = address_to_battery_path(address);
 	battery->device_path = address_to_device_path(address);
@@ -148,6 +150,8 @@ get_or_create_battery(struct cras_bt_battery_provider *provider,
 	syslog(LOG_DEBUG, "Creating new battery for %s", address);
 
 	battery = battery_new(address, level);
+	if (!battery)
+		return NULL;
 	LL_APPEND(provider->batteries, battery);
 
 	msg = dbus_message_new_signal(CRAS_DEFAULT_BATTERY_PROVIDER,
@@ -224,6 +228,10 @@ static void on_bt_battery_changed(void *context, const char *address,
 
 	struct cras_bt_battery *battery =
 		get_or_create_battery(provider, address, level);
+	if (!battery) {
+		syslog(LOG_ERR, "Unable to allocate battery");
+		return;
+	}
 
 	update_battery_level(provider, battery, level);
 }
