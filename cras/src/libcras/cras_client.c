@@ -1824,7 +1824,7 @@ static void request_floop_ready(struct cras_client *client, int32_t dev_idx,
 	pthread_mutex_lock(&client->floop_request_list_mu);
 
 	DL_FOREACH (client->floop_request_list, req) {
-		if (req == (struct floop_request *)tag)
+		if (req == (struct floop_request *)(uintptr_t)tag)
 			break;
 	}
 
@@ -4191,7 +4191,7 @@ static int32_t request_floop(struct cras_client *client,
 	// The request is tagged with the address of req which is unique
 	// The server will return the result along with the unique tag
 	struct cras_request_floop msg;
-	cras_fill_request_floop(&msg, params, (uint64_t)&req);
+	cras_fill_request_floop(&msg, params, (uint64_t)(uintptr_t)&req);
 	rc = write_message_to_server(client, &msg.header);
 	if (rc < 0) {
 		goto cleanup;
