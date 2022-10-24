@@ -1173,8 +1173,9 @@ fallback_jack_name:
 	return;
 }
 
-uint32_t cras_alsa_jack_get_stable_id(const struct cras_alsa_jack *jack,
-				      const char *monitor_name, uint32_t salt)
+uint32_t cras_alsa_jack_get_monitor_stable_id(const struct cras_alsa_jack *jack,
+					      const char *monitor_name,
+					      uint32_t salt)
 {
 	struct edid_device_id device_id;
 	if (!get_jack_edid_device_id(jack, &device_id) && device_id.prod_code &&

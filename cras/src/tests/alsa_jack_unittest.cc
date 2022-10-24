@@ -877,8 +877,9 @@ TEST(AlsaJacks, StableId) {
     cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
     cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
     // EDID indicates different product.
-    EXPECT_NE(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 0),
-              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 0));
+    EXPECT_NE(
+        cras_alsa_jack_get_monitor_stable_id(&jack1, "same monitor name", 0),
+        cras_alsa_jack_get_monitor_stable_id(&jack2, "same monitor name", 0));
   }
 
   {
@@ -887,8 +888,9 @@ TEST(AlsaJacks, StableId) {
     cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
     cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
     // EDID indicates same product with different serial.
-    EXPECT_NE(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 0),
-              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 0));
+    EXPECT_NE(
+        cras_alsa_jack_get_monitor_stable_id(&jack1, "same monitor name", 0),
+        cras_alsa_jack_get_monitor_stable_id(&jack2, "same monitor name", 0));
   }
 
   {
@@ -898,9 +900,9 @@ TEST(AlsaJacks, StableId) {
     cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
     // EDID indicates same serial, should be respected even if
     // the monitor name or salt is different.
-    EXPECT_EQ(
-        cras_alsa_jack_get_stable_id(&jack1, "monitor name", 1),
-        cras_alsa_jack_get_stable_id(&jack2, "different monitor name", 2));
+    EXPECT_EQ(cras_alsa_jack_get_monitor_stable_id(&jack1, "monitor name", 1),
+              cras_alsa_jack_get_monitor_stable_id(
+                  &jack2, "different monitor name", 2));
   }
 
   {
@@ -909,13 +911,15 @@ TEST(AlsaJacks, StableId) {
     cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
     cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
     // EDID missing product code. Should use monitor name and salt.
-    EXPECT_EQ(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 0),
-              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 0));
+    EXPECT_EQ(
+        cras_alsa_jack_get_monitor_stable_id(&jack1, "same monitor name", 0),
+        cras_alsa_jack_get_monitor_stable_id(&jack2, "same monitor name", 0));
+    EXPECT_NE(cras_alsa_jack_get_monitor_stable_id(&jack1, "monitor name", 0),
+              cras_alsa_jack_get_monitor_stable_id(
+                  &jack2, "different monitor name", 0));
     EXPECT_NE(
-        cras_alsa_jack_get_stable_id(&jack1, "monitor name", 0),
-        cras_alsa_jack_get_stable_id(&jack2, "different monitor name", 0));
-    EXPECT_NE(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 1),
-              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 2));
+        cras_alsa_jack_get_monitor_stable_id(&jack1, "same monitor name", 1),
+        cras_alsa_jack_get_monitor_stable_id(&jack2, "same monitor name", 2));
   }
 
   {
@@ -924,13 +928,15 @@ TEST(AlsaJacks, StableId) {
     cras_alsa_jack jack1 = {.edid_file = edid1.filename()};
     cras_alsa_jack jack2 = {.edid_file = edid2.filename()};
     // EDID missing serial number. Should use monitor name and salt.
-    EXPECT_EQ(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 0),
-              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 0));
+    EXPECT_EQ(
+        cras_alsa_jack_get_monitor_stable_id(&jack1, "same monitor name", 0),
+        cras_alsa_jack_get_monitor_stable_id(&jack2, "same monitor name", 0));
+    EXPECT_NE(cras_alsa_jack_get_monitor_stable_id(&jack1, "monitor name", 0),
+              cras_alsa_jack_get_monitor_stable_id(
+                  &jack2, "different monitor name", 0));
     EXPECT_NE(
-        cras_alsa_jack_get_stable_id(&jack1, "monitor name", 0),
-        cras_alsa_jack_get_stable_id(&jack2, "different monitor name", 0));
-    EXPECT_NE(cras_alsa_jack_get_stable_id(&jack1, "same monitor name", 1),
-              cras_alsa_jack_get_stable_id(&jack2, "same monitor name", 2));
+        cras_alsa_jack_get_monitor_stable_id(&jack1, "same monitor name", 1),
+        cras_alsa_jack_get_monitor_stable_id(&jack2, "same monitor name", 2));
   }
 }
 

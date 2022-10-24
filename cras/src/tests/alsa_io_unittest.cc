@@ -3150,9 +3150,9 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack* jack,
     strcpy(name_buf, cras_alsa_jack_update_monitor_fake_name);
 }
 
-uint32_t cras_alsa_jack_get_stable_id(const struct cras_alsa_jack* jack,
-                                      const char* monitor_name,
-                                      uint32_t salt) {
+uint32_t cras_alsa_jack_get_monitor_stable_id(const struct cras_alsa_jack* jack,
+                                              const char* monitor_name,
+                                              uint32_t salt) {
   return 0;
 }
 

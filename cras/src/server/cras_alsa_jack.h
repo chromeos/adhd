@@ -131,8 +131,9 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack *jack,
  * use them to compute the stable ID.
  * Otherwise the monitor name and the salt is used.
  */
-uint32_t cras_alsa_jack_get_stable_id(const struct cras_alsa_jack *jack,
-				      const char *monitor_name, uint32_t salt);
+uint32_t cras_alsa_jack_get_monitor_stable_id(const struct cras_alsa_jack *jack,
+					      const char *monitor_name,
+					      uint32_t salt);
 
 /* Updates the node type according to override_type_name in jack.
  * Currently this method only supports updating the node type to
