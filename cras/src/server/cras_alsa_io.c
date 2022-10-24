@@ -1700,7 +1700,7 @@ static void jack_output_plug_event(const struct cras_alsa_jack *jack,
 					   sizeof(node->base.name));
 	if (node->base.type == CRAS_NODE_TYPE_HDMI && plugged) {
 		node->base.stable_id = cras_alsa_jack_get_monitor_stable_id(
-			jack, node->base.name, node->base.idx);
+			jack, node->base.name, aio->base.info.stable_id);
 	}
 	/* The name got from jack might be an invalid UTF8 string. */
 	if (!is_utf8_string(node->base.name))
