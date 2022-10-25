@@ -1,7 +1,7 @@
 // Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::io;
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
@@ -490,21 +490,14 @@ unsafe fn cras_mmap_offset(
     fd: libc::c_int,
     offset: usize,
 ) -> io::Result<*mut libc::c_void> {
-    if offset > libc::off_t::max_value() as usize {
-        return Err(io::Error::new(
+    let offset: libc::off64_t = offset.try_into().map_err(|_| {
+        io::Error::new(
             io::ErrorKind::InvalidInput,
-            "Requested offset is out of range of `libc::off_t`.",
-        ));
-    }
+            "Requested offset is out of range of `libc::off64_t`.",
+        )
+    })?;
     // It's safe because we handle its returned results.
-    match libc::mmap(
-        ptr::null_mut(),
-        len,
-        prot,
-        libc::MAP_SHARED,
-        fd,
-        offset as libc::off_t,
-    ) {
+    match libc::mmap64(ptr::null_mut(), len, prot, libc::MAP_SHARED, fd, offset) {
         libc::MAP_FAILED => Err(io::Error::last_os_error()),
         shm_ptr => Ok(shm_ptr),
     }
