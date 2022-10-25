@@ -4,3 +4,6 @@
 
 build --conlyopt=-std=gnu11
 build --cxxopt=-std=gnu++17
+
+# b/201531268: LFS support
+build --cxxopt="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
