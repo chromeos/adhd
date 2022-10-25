@@ -1471,10 +1471,10 @@ TEST(FormatConverterTest, ConvertS16LE5_1ToQuadInternalSpeaker) {
       c, (uint8_t*)in_buff, (uint8_t*)out_buff, &in_buf_size, buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++) {
-    EXPECT_EQ(40, out_buff[4 * i]);
-    EXPECT_EQ(80, out_buff[4 * i + 1]);
-    EXPECT_EQ(80, out_buff[4 * i + 2]);
-    EXPECT_EQ(40, out_buff[4 * i + 3]);
+    EXPECT_EQ(130, out_buff[4 * i]);
+    EXPECT_EQ(154, out_buff[4 * i + 1]);
+    EXPECT_EQ(154, out_buff[4 * i + 2]);
+    EXPECT_EQ(130, out_buff[4 * i + 3]);
   }
   cras_fmt_conv_destroy(&c);
 
@@ -1529,10 +1529,10 @@ TEST(FormatConverterTest, ConvertS16LE5_1Map2ToQuadInternalSpeaker) {
       c, (uint8_t*)in_buff, (uint8_t*)out_buff, &in_buf_size, buf_size);
   EXPECT_EQ(buf_size, out_frames);
   for (unsigned int i = 0; i < buf_size; i++) {
-    EXPECT_EQ(40, out_buff[4 * i]);
-    EXPECT_EQ(80, out_buff[4 * i + 1]);
-    EXPECT_EQ(40, out_buff[4 * i + 2]);
-    EXPECT_EQ(80, out_buff[4 * i + 3]);
+    EXPECT_EQ(124, out_buff[4 * i]);
+    EXPECT_EQ(148, out_buff[4 * i + 1]);
+    EXPECT_EQ(124, out_buff[4 * i + 2]);
+    EXPECT_EQ(148, out_buff[4 * i + 3]);
   }
   cras_fmt_conv_destroy(&c);
 

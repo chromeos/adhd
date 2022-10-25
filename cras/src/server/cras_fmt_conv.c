@@ -31,16 +31,16 @@
  * device. Maps the L/R channel to left/right side speakers and drops content
  * in other channels.
  */
-static const int internal_spk_channel_mapping[CRAS_CH_MAX][CRAS_CH_MAX] = {
+static const float internal_spk_channel_mapping[CRAS_CH_MAX][CRAS_CH_MAX] = {
 	/*FL FR RL RR FC LFE SL SR RC FLC FRC */
-	{ 1, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FL */
-	{ 0, 1, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FR */
-	{ 1, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* RL */
-	{ 0, 1, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* RR */
+	{ 1, 0, 1, 0, 0.707, +0.5, 1, 0, 0.707, 1, 0 }, /* FL */
+	{ 0, 1, 0, 1, 0.707, +0.5, 0, 1, 0.707, 0, 1 }, /* FR */
+	{ 1, 0, 1, 0, 0.707, +0.5, 1, 0, 0.707, 1, 0 }, /* RL */
+	{ 0, 1, 0, 1, 0.707, +0.5, 0, 1, 0.707, 0, 1 }, /* RR */
 	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FC */
 	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* LFE */
-	{ 1, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* SL */
-	{ 0, 1, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* SR */
+	{ 1, 0, 1, 0, 0.707, +0.5, 1, 0, 0.707, 1, 0 }, /* SL */
+	{ 0, 1, 0, 1, 0.707, +0.5, 0, 1, 0.707, 0, 1 }, /* SR */
 	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* RC */
 	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FLC */
 	{ 0, 0, 0, 0, 0, +0, 0, 0, 0, 0, 0 }, /* FRC */
@@ -406,10 +406,13 @@ static float **cras_internal_spk_channel_conv_matrix_create(
 			    out->channel_layout[i] != -1 &&
 			    in->channel_layout[j] != -1)
 				mtx[out->channel_layout[i]]
-				   [in->channel_layout[j]] = 1;
+				   [in->channel_layout[j]] +=
+					internal_spk_channel_mapping[i][j];
 		}
 	}
-
+	normalize(mtx, out->num_channels, in->num_channels,
+		  normalize_factor(mtx[out->channel_layout[STEREO_L]],
+				   in->num_channels));
 	return mtx;
 }
 
