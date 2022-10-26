@@ -12,8 +12,8 @@ fn main() {
         .header("wrapper.h")
         .derive_debug(false)
         .clang_arg("-I../../../sound-open-firmware-private/src/include")
-        .whitelist_type("sof_abi_hdr")
-        .whitelist_type("sof_ipc_ctrl_cmd")
+        .allowlist_type("sof_abi_hdr")
+        .allowlist_type("sof_ipc_ctrl_cmd")
         .generate()
         .expect("Unable to generate bindings");
 

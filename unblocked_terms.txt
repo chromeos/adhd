@@ -7,5 +7,4 @@
 
 master
 \bnative
-white.?list
 dummy
