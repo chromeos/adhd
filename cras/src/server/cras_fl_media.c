@@ -29,10 +29,11 @@
 
 #define CRAS_BT_MEDIA_OBJECT_PATH "/org/chromium/cras/bluetooth/media"
 
-#define GET_A2DP_AUDIO_STARTED_RETRIES 400
+// TODO(jrwu): monitor stats for cases that take > 2s
+#define GET_A2DP_AUDIO_STARTED_RETRIES 1000
 #define GET_A2DP_AUDIO_STARTED_SLEEP_US 5000
 
-#define GET_HFP_AUDIO_STARTED_RETRIES 200
+#define GET_HFP_AUDIO_STARTED_RETRIES 1000
 #define GET_HFP_AUDIO_STARTED_SLEEP_US 5000
 
 static struct fl_media *active_fm = NULL;
