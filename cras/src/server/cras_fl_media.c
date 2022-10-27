@@ -81,7 +81,7 @@ static int floss_media_block_until_started(struct fl_media *fm,
 					   const char *addr, int num_retries,
 					   int sleep_time_us)
 {
-	int rc = 0;
+	int rc;
 	DBusMessage *method_call = NULL, *reply = NULL;
 	DBusError dbus_error;
 	uint8_t started; /* started iff non-zero */
@@ -140,6 +140,7 @@ static int floss_media_block_until_started(struct fl_media *fm,
 		usleep(sleep_time_us);
 	}
 
+	rc = -EAGAIN;
 	syslog(LOG_ERR, "%s: polling failed after %d us", method_name,
 	       num_retries * sleep_time_us);
 
