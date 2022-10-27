@@ -168,6 +168,7 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 				   bool enable_offload, bool force_cvsd)
 {
+	int rc;
 	DBusMessage *method_call, *reply;
 	DBusError dbus_error;
 	dbus_bool_t offload = enable_offload;
@@ -217,9 +218,17 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 
 	dbus_message_unref(reply);
 
-	return floss_media_block_until_started(fm, "GetHfpAudioStarted", addr,
-					       GET_HFP_AUDIO_STARTED_RETRIES,
-					       GET_HFP_AUDIO_STARTED_SLEEP_US);
+	rc = floss_media_block_until_started(fm, "GetHfpAudioStarted", addr,
+					     GET_HFP_AUDIO_STARTED_RETRIES,
+					     GET_HFP_AUDIO_STARTED_SLEEP_US);
+
+	/* Did not receive response after timeout. */
+	if (rc == -EAGAIN) {
+		/* Stop sco call in case it does resolve later. */
+		floss_media_hfp_stop_sco_call(fm, addr);
+	}
+
+	return rc;
 }
 #endif
 
