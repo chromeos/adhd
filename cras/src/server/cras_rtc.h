@@ -9,6 +9,13 @@
 #define CRAS_RTC_H_
 
 /*
+ * Returns true if the stream is possibly a RTC stream.
+ * true indicates it may be a RTC stream.
+ * false indicates it's definitely not a RTC stream.
+ */
+bool cras_rtc_check_stream_config(struct cras_rstream *stream);
+
+/*
  * Adds a stream into the RTC detector. This function will detect whether
  * there are RTC streams.
  * Args:

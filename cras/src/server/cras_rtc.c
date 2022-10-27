@@ -27,9 +27,7 @@ struct rtc_data *output_list = NULL;
 
 static bool check_rtc_stream(struct cras_rstream *stream, unsigned int dev_id)
 {
-	return stream->cb_threshold == 480 &&
-	       (stream->client_type == CRAS_CLIENT_TYPE_CHROME ||
-		stream->client_type == CRAS_CLIENT_TYPE_LACROS) &&
+	return cras_rtc_check_stream_config(stream) &&
 	       dev_id >= MAX_SPECIAL_DEVICE_IDX;
 }
 
@@ -66,6 +64,13 @@ static void notify_rtc_active_now(bool was_active)
 #endif
 }
 
+bool cras_rtc_check_stream_config(struct cras_rstream *stream)
+{
+	return stream->cb_threshold == 480 &&
+	       (stream->client_type == CRAS_CLIENT_TYPE_CHROME ||
+		stream->client_type == CRAS_CLIENT_TYPE_LACROS ||
+		stream->client_type == CRAS_CLIENT_TYPE_TEST);
+}
 /*
  * Detects whether there is a RTC stream pair based on these rules:
  * 1. The cb_threshold is 480.

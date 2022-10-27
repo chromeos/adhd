@@ -370,10 +370,8 @@ static int wait_done_timeout(int timeout_sec)
 
 /* Run from callback thread. */
 static int got_samples(struct cras_client *client, cras_stream_id_t stream_id,
-		       uint8_t *captured_samples, uint8_t *playback_samples,
-		       unsigned int frames,
-		       const struct timespec *captured_time,
-		       const struct timespec *playback_time, void *user_arg)
+		       uint8_t *captured_samples, size_t frames,
+		       const struct timespec *captured_time, void *user_arg)
 {
 	int *fd = (int *)user_arg;
 	int ret;
@@ -1701,17 +1699,6 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 	total_rms_sqr_sum = 0;
 	total_rms_size = 0;
 
-	if (direction == CRAS_STREAM_INPUT)
-		aud_cb = got_samples;
-	else
-		aud_cb = put_samples;
-
-	if (fd == 0) {
-		if (direction != CRAS_STREAM_OUTPUT)
-			return -EINVAL;
-		aud_cb = put_stdin_samples;
-	}
-
 	aud_format = cras_audio_format_create(format, rate, num_channels);
 	if (aud_format == NULL)
 		return -ENOMEM;
@@ -1722,10 +1709,20 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 		cras_audio_format_set_channel_layout(aud_format, layout);
 	}
 
-	params = cras_client_unified_params_create(direction, block_size,
-						   stream_type, flags, pfd,
-						   aud_cb, stream_error,
-						   aud_format);
+	if (direction == CRAS_STREAM_OUTPUT) {
+		aud_cb = put_samples;
+		if (fd == 0)
+			aud_cb = put_stdin_samples;
+
+		params = cras_client_unified_params_create(
+			direction, block_size, stream_type, flags, pfd, aud_cb,
+			stream_error, aud_format);
+	} else {
+		params = cras_client_stream_params_create(
+			direction, block_size, block_size, /*unused=*/0,
+			stream_type, flags, pfd, got_samples, stream_error,
+			aud_format);
+	}
 	if (params == NULL)
 		return -ENOMEM;
 
