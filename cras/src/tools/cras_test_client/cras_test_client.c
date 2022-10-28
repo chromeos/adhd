@@ -71,6 +71,10 @@ static int effect_vad = 0;
 static char *aecdump_file = NULL;
 static char time_str[128];
 
+static int effect_aec_on_dsp = 0;
+static int effect_ns_on_dsp = 0;
+static int effect_agc_on_dsp = 0;
+
 /* ionode flags used in --print_nodes_inlined */
 enum {
 	IONODE_FLAG_DIRECTION,
@@ -205,6 +209,62 @@ int update_rms(const uint8_t *samples, int size)
 	total_rms_size += last_rms_size;
 
 	return 0;
+}
+
+static int parse_effect_bits(const char *s)
+{
+	int val;
+	errno = 0;
+	val = (int)strtol(s, NULL, 16);
+	if (errno)
+		return errno;
+
+	effect_aec = (val & APM_ECHO_CANCELLATION) ? 1 : 0;
+	effect_ns = (val & APM_NOISE_SUPRESSION) ? 1 : 0;
+	effect_agc = (val & APM_GAIN_CONTROL) ? 1 : 0;
+	effect_vad = (val & APM_VOICE_DETECTION) ? 1 : 0;
+	effect_aec_on_dsp = (val & DSP_ECHO_CANCELLATION_ALLOWED) ? 1 : 0;
+	effect_ns_on_dsp = (val & DSP_NOISE_SUPPRESSION_ALLOWED) ? 1 : 0;
+	effect_agc_on_dsp = (val & DSP_GAIN_CONTROL_ALLOWED) ? 1 : 0;
+	return 0;
+}
+
+/*
+ * Parses "--effects" argument string for stream effects. Two formats are given:
+ *     <name>[,<name>...]: Effects specified by names. Use comma(,) as delimiter
+ *                         for multiple effects.
+ *                         Available effect names: aec, ns, agc, vad
+ *                         Examples: "aec", "aec,agc"
+ *     0x<value>: Effects specified by hex value, in accordance with
+ *                CRAS_STREAM_EFFECT bitmasks. Prefix "0x" is required.
+ *                Examples: "0x11", "0x3"
+ */
+static void parse_stream_effects(char *input)
+{
+	char *s;
+
+	/* Parse if effects specified by hex value. */
+	if (strncmp("0x", input, 2) == 0) {
+		if (parse_effect_bits(optarg) != 0)
+			printf("Invalid effect hex value %s\n", optarg);
+		return;
+	}
+
+	/* Parse effects by names. */
+	s = strtok(input, ",");
+	while (s) {
+		if (strcmp("aec", s) == 0)
+			effect_aec = 1;
+		else if (strcmp("ns", s) == 0)
+			effect_ns = 1;
+		else if (strcmp("agc", s) == 0)
+			effect_agc = 1;
+		else if (strcmp("vad", s) == 0)
+			effect_vad = 1;
+		else
+			printf("Unknown effect %s\n", s);
+		s = strtok(NULL, ",");
+	}
 }
 
 /* Parses a string with format <N>:<M> into a node id*/
@@ -1672,12 +1732,21 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 	cras_client_stream_params_set_client_type(params,
 						  CRAS_CLIENT_TYPE_TEST);
 
-	if (effect_aec)
+	if (effect_aec) {
 		cras_client_stream_params_enable_aec(params);
-	if (effect_ns)
+		if (effect_aec_on_dsp)
+			cras_client_stream_params_allow_aec_on_dsp(params);
+	}
+	if (effect_ns) {
 		cras_client_stream_params_enable_ns(params);
-	if (effect_agc)
+		if (effect_ns_on_dsp)
+			cras_client_stream_params_allow_ns_on_dsp(params);
+	}
+	if (effect_agc) {
 		cras_client_stream_params_enable_agc(params);
+		if (effect_agc_on_dsp)
+			cras_client_stream_params_allow_agc_on_dsp(params);
+	}
 	if (effect_vad)
 		cras_client_stream_params_enable_vad(params);
 
@@ -2145,6 +2214,22 @@ static void show_usage()
 	       "Print status of the server.\n");
 	printf("--duration_seconds <N> - "
 	       "Seconds to record or playback.\n");
+	printf("--effects <aec|ns|agc|vad|0xhh> - "
+	       "Set specific effect(s) on stream parameters by names or hex.\n"
+	       "                                "
+	       "Argument: <aec|ns|agc|vad> - Use comma(,) as delimiter for "
+	       "multiple effects, e.g. \"aec,agc\"\n"
+	       "                                "
+	       "          0xhh - Set hex value directly, e.g. 0x11. Available "
+	       "effect bistmasks:\n"
+	       "                                "
+	       "                 0x01=AEC, 0x02=NS, 0x04=AGC, 0x08=VAD,\n"
+	       "                                "
+	       "                 0x10=AEC on DSP allowed,\n"
+	       "                                "
+	       "                 0x20=NS on DSP allowed,\n"
+	       "                                "
+	       "                 0x40=AGC on DSP allowed\n");
 	printf("--follow_atlog - "
 	       "Continuously dumps audio thread event log.\n");
 	printf("--format <name> - "
@@ -2571,25 +2656,9 @@ int main(int argc, char **argv)
 		case 'D':
 			cras_client_reload_aec_config(client);
 			break;
-		case 'E': {
-			char *s;
-
-			s = strtok(optarg, ",");
-			while (s) {
-				if (strcmp("aec", s) == 0)
-					effect_aec = 1;
-				else if (strcmp("ns", s) == 0)
-					effect_ns = 1;
-				else if (strcmp("agc", s) == 0)
-					effect_agc = 1;
-				else if (strcmp("vad", s) == 0)
-					effect_vad = 1;
-				else
-					printf("Unknown effect %s\n", s);
-				s = strtok(NULL, ",");
-			}
+		case 'E':
+			parse_stream_effects(optarg);
 			break;
-		}
 		case 'F':
 			printf("AEC supported %d\n",
 			       !!cras_client_get_aec_supported(client));
