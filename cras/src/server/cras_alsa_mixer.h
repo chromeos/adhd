@@ -154,16 +154,6 @@ long cras_alsa_mixer_get_maximum_capture_gain(
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer *cras_mixer, int muted,
 			      struct mixer_control *mixer_output);
 
-/* Sets the capture switch for the device.
- * Args:
- *    cras_mixer - Mixer to set the volume in.
- *    muted - 1 if muted, 0 if not.
- *    mixer_input - The mixer input to mute if no card mute.
- */
-void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer *cras_mixer,
-				      int muted,
-				      struct mixer_control *mixer_input);
-
 /* Invokes the provided callback once for each output (input).
  * The callback will be provided with a reference to the control
  * that can be queried to see what the control supports.

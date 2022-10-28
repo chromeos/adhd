@@ -59,13 +59,8 @@ static size_t cras_alsa_mixer_get_playback_step_called;
 typedef std::map<const struct mixer_control*, int> PlaybackStepMap;
 static PlaybackStepMap cras_alsa_mixer_get_playback_step_values;
 static const struct mixer_control* alsa_mixer_set_mute_output;
-static size_t alsa_mixer_set_capture_mute_called;
-static int alsa_mixer_set_capture_mute_value;
-static const struct mixer_control* alsa_mixer_set_capture_mute_input;
 static size_t sys_get_mute_called;
 static int sys_get_mute_return_value;
-static size_t sys_get_capture_mute_called;
-static int sys_get_capture_mute_return_value;
 static struct cras_alsa_mixer* fake_mixer = (struct cras_alsa_mixer*)1;
 static struct cras_card_config* fake_config = (struct cras_card_config*)2;
 static struct mixer_control** cras_alsa_mixer_list_outputs_outputs;
@@ -180,14 +175,12 @@ void ResetStubData() {
   alsa_mixer_set_dBFS_called = 0;
   alsa_mixer_set_capture_dBFS_called = 0;
   sys_get_mute_called = 0;
-  sys_get_capture_mute_called = 0;
   alsa_mixer_set_mute_called = 0;
   cras_alsa_mixer_get_playback_dBFS_range_called = 0;
   cras_alsa_mixer_get_playback_dBFS_range_max = 0;
   cras_alsa_mixer_get_playback_dBFS_range_min = -2000;
   cras_alsa_mixer_get_playback_step_called = 0;
   cras_alsa_mixer_get_playback_step_values.clear();
-  alsa_mixer_set_capture_mute_called = 0;
   cras_alsa_mixer_get_control_for_section_called = 0;
   cras_alsa_mixer_get_control_for_section_return_value = NULL;
   cras_alsa_mixer_list_outputs_called = 0;
@@ -625,8 +618,6 @@ TEST(AlsaIoInit, OpenCapture) {
   EXPECT_EQ(1, cras_alsa_mixer_get_minimum_capture_gain_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_maximum_capture_gain_called);
   EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
-  EXPECT_EQ(1, sys_get_capture_mute_called);
-  EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
   EXPECT_EQ(1, cras_alsa_start_called);
   EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
             aio->severe_underrun_frames);
@@ -737,9 +728,6 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
   ResetStubData();
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
-
-  EXPECT_EQ(1, sys_get_capture_mute_called);
-  EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
 
   /* Not change mixer controls for USB devices without UCM config. */
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_called);
@@ -1431,7 +1419,6 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
   EXPECT_EQ(1, ucm_set_enabled_called);
-  EXPECT_EQ(1, alsa_mixer_set_capture_mute_called);
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS - intrinsic_sensitivity,
             iodev->active_node->capture_gain);
 
@@ -2823,11 +2810,6 @@ int cras_system_get_mute() {
   return sys_get_mute_return_value;
 }
 
-int cras_system_get_capture_mute() {
-  sys_get_capture_mute_called++;
-  return sys_get_capture_mute_return_value;
-}
-
 void cras_system_set_volume_limits(long min, long max) {
   sys_set_volume_limits_called++;
 }
@@ -2890,14 +2872,6 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer* m,
   alsa_mixer_set_capture_dBFS_called++;
   alsa_mixer_set_capture_dBFS_value = dB_level;
   alsa_mixer_set_capture_dBFS_input = mixer_input;
-}
-
-void cras_alsa_mixer_set_capture_mute(struct cras_alsa_mixer* m,
-                                      int mute,
-                                      struct mixer_control* mixer_input) {
-  alsa_mixer_set_capture_mute_called++;
-  alsa_mixer_set_capture_mute_value = mute;
-  alsa_mixer_set_capture_mute_input = mixer_input;
 }
 
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer* cras_mixer,

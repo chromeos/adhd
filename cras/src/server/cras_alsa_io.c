@@ -904,10 +904,6 @@ static void set_alsa_capture_gain(struct cras_iodev *iodev)
 
 	ain = get_active_input(aio);
 
-	cras_alsa_mixer_set_capture_mute(aio->mixer,
-					 cras_system_get_capture_mute(),
-					 ain ? ain->mixer_input : NULL);
-
 	/* For USB device without UCM config, not change a gain control. */
 	if (ain && ain->base.type == CRAS_NODE_TYPE_USB && !aio->ucm)
 		return;

@@ -700,9 +700,6 @@ TEST(AlsaMixer, CreateTwoMainCaptureElements) {
   EXPECT_EQ(5, snd_mixer_selem_get_name_called);
   EXPECT_EQ(3, snd_mixer_selem_has_capture_switch_called);
 
-  /* Set mute should be called for Main only. */
-  cras_alsa_mixer_set_capture_mute(c, 0, NULL);
-  EXPECT_EQ(1, snd_mixer_selem_set_capture_switch_all_called);
   /* Set volume should be called for Capture and Digital Capture. If Capture
    * doesn't set to anything but zero then the entire volume should be passed to
    * the Digital Capture control. */
