@@ -192,6 +192,9 @@ static void
 handle_cras_sr_bt_uma_log(struct cras_iodev *iodev,
 			  const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status)
 {
+	if (iodev->direction != CRAS_STREAM_INPUT)
+		return;
+
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
 	enum CRAS_METRICS_HFP_MIC_SR_STATUS log_status =
