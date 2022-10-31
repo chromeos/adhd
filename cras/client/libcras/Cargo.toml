@@ -25,9 +25,9 @@ version = "*"
 audio_streams = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
 base_event_token_derive = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/base_event_token_derive-0.1.0/" } # ignored by ebuild
 crosvm-base = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/crosvm-base-0.1.0/" } # ignored by ebuild
-cros_async = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/cros_async-0.1.0/" } # ignored by ebuild
-data_model = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.0/" } # ignored by ebuild
-io_uring = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/io_uring-0.1.0/" } # ignored by ebuild
-sys_util = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/sys_util-0.1.0/" } # ignored by ebuild
-sys_util_core = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/sys_util_core-0.1.0/" } # ignored by ebuild
+cros_async = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/cros_async-0.1.51/" } # ignored by ebuild
+data_model = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
+io_uring = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/io_uring-0.1.51/" } # ignored by ebuild
+serde_keyvalue = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue-0.1.50/" } # ignored by ebuild
+serde_keyvalue_derive = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue_derive-0.1.50/" } # ignored by ebuild
 sync = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/sync-0.1.149/" } # ignored by ebuild
