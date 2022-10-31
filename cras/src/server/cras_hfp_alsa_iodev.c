@@ -8,8 +8,11 @@
 #include <syslog.h>
 
 #include "cras_audio_area.h"
+#include "cras_audio_format.h"
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
+#include "cras_sr.h"
+#include "cras_sr_bt_adapters.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "strlcpy.h"
@@ -30,6 +33,9 @@
  *    sco - The cras_sco instance for configuring audio path.
  *  Floss (null if not applicable):
  *    hfp - The corresponding cras_hfp manager object
+ *  SR (null if not applicable):
+ *    sr_bt - The adapter to enable and invoke cras sr.
+ *    sr - The sr instance.
  */
 struct hfp_alsa_io {
 	struct cras_iodev base;
@@ -38,6 +44,8 @@ struct hfp_alsa_io {
 	struct hfp_slc_handle *slc;
 	struct cras_sco *sco;
 	struct cras_hfp *hfp;
+	struct cras_iodev_sr_bt_adapter *sr_bt;
+	struct cras_sr *sr;
 };
 
 static int hfp_alsa_get_valid_frames(struct cras_iodev *iodev,
@@ -47,6 +55,76 @@ static int hfp_alsa_get_valid_frames(struct cras_iodev *iodev,
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 
 	return aio->get_valid_frames(aio, hw_tstamp);
+}
+
+/* Tries to enable cras sr bt
+ * If success, the hfp_alsa_io->sr_bt field will be set.
+ * Otherwise, it will be NULL.
+ * Args:
+ *    iodev: the hfp alsa iodev.
+ *    status: the result of cras_sr_bt_can_be_enabled().
+ */
+static void hfp_alsa_enable_sr_bt(struct cras_iodev *iodev)
+{
+	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
+	struct cras_iodev *aio = hfp_alsa_io->aio;
+
+	struct cras_sr *sr = NULL;
+	sr = cras_sr_create(
+		cras_sr_bt_get_model_spec(
+			hfp_slc_get_selected_codec(hfp_alsa_io->slc) ==
+					HFP_CODEC_ID_MSBC ?
+				SR_BT_WBS :
+				SR_BT_NBS),
+		28800);
+	if (!sr) {
+		syslog(LOG_ERR, "cras_sr_create failed.");
+		goto hfp_alsa_enable_sr_bt_failed;
+	}
+
+	hfp_alsa_io->sr_bt = cras_iodev_sr_bt_adapter_create(aio, sr);
+	if (!hfp_alsa_io->sr_bt) {
+		syslog(LOG_ERR, "cras_sr_bt_adapter_create failed.");
+		goto hfp_alsa_enable_sr_bt_failed;
+	}
+	hfp_alsa_io->sr = sr;
+
+	return;
+
+hfp_alsa_enable_sr_bt_failed:
+	cras_sr_destroy(sr);
+	hfp_alsa_io->sr = NULL;
+	hfp_alsa_io->sr_bt = NULL;
+}
+
+static void hfp_alsa_disable_sr_bt(struct cras_iodev *iodev)
+{
+	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
+	if (hfp_alsa_io->sr) {
+		cras_sr_destroy(hfp_alsa_io->sr);
+		hfp_alsa_io->sr = NULL;
+	}
+	if (hfp_alsa_io->sr_bt) {
+		cras_iodev_sr_bt_adapter_destroy(hfp_alsa_io->sr_bt);
+		hfp_alsa_io->sr_bt = NULL;
+	}
+}
+
+/* Handles cras sr bt enabling and disabling cases.
+ * Args:
+ *    iodev: the hfp iodev.
+ */
+static void hfp_alsa_handle_cras_sr_bt(struct cras_iodev *iodev)
+{
+	if (iodev->direction != CRAS_STREAM_INPUT)
+		return;
+
+	const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status =
+		cras_sr_bt_can_be_enabled();
+	if (status == CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK)
+		hfp_alsa_enable_sr_bt(iodev);
+	else
+		hfp_alsa_disable_sr_bt(iodev);
 }
 
 static int hfp_alsa_open_dev(struct cras_iodev *iodev)
@@ -81,6 +159,8 @@ static int hfp_alsa_open_dev(struct cras_iodev *iodev)
 		}
 
 		cras_sco_set_fd(hfp_alsa_io->sco, rc);
+
+		hfp_alsa_handle_cras_sr_bt(iodev);
 	} else {
 		thread_callback empty_cb = NULL;
 		cras_floss_hfp_start(hfp_alsa_io->hfp, empty_cb,
@@ -90,29 +170,44 @@ static int hfp_alsa_open_dev(struct cras_iodev *iodev)
 	return 0;
 }
 
-static int hfp_alsa_update_supported_formats(struct cras_iodev *iodev)
+/* Gets sample rate from the underlying device and codec. */
+static inline size_t hfp_alsa_get_device_sample_rate(struct cras_iodev *iodev)
 {
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
+	if (hfp_alsa_io->device) {
+		return hfp_slc_get_selected_codec(hfp_alsa_io->slc) ==
+				       HFP_CODEC_ID_MSBC ?
+			       16000 :
+			       8000;
+	}
+	return cras_floss_hfp_get_wbs_supported(hfp_alsa_io->hfp) ? 16000 :
+								    8000;
+}
 
+/* Gets supported sample rate.
+ * If field `sr_bt` is not NULL, its output sample rate is returned.
+ * Otherwise, this function returns the device sample rate.
+ */
+static inline size_t
+hfp_alsa_get_supported_sample_rate(struct cras_iodev *iodev)
+{
+	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
+	if (hfp_alsa_io->sr_bt) {
+		syslog(LOG_INFO, "Supported rate is 24k due to sr_bt enabled.");
+		return 24000;
+	}
+	return hfp_alsa_get_device_sample_rate(iodev);
+}
+
+static int hfp_alsa_update_supported_formats(struct cras_iodev *iodev)
+{
 	/* 16 bit, mono, 8kHz (narrow band speech); */
 	free(iodev->supported_rates);
 	iodev->supported_rates = malloc(2 * sizeof(*iodev->supported_rates));
 	if (!iodev->supported_rates)
 		return -ENOMEM;
 
-	if (hfp_alsa_io->device) {
-		iodev->supported_rates[0] =
-			hfp_slc_get_selected_codec(hfp_alsa_io->slc) ==
-					HFP_CODEC_ID_MSBC ?
-				16000 :
-				8000;
-	} else {
-		iodev->supported_rates[0] =
-			cras_floss_hfp_get_wbs_supported(hfp_alsa_io->hfp) ?
-				16000 :
-				8000;
-	}
-
+	iodev->supported_rates[0] = hfp_alsa_get_supported_sample_rate(iodev);
 	iodev->supported_rates[1] = 0;
 
 	free(iodev->supported_channel_counts);
@@ -147,6 +242,13 @@ static int hfp_alsa_configure_dev(struct cras_iodev *iodev)
 		if (!aio->format)
 			return -ENOMEM;
 		*aio->format = *iodev->format;
+		/* The sample rate will be 24k if sr_bt is enabled. */
+		/* However, the aio should see 8k/16k according to the codec. */
+		/* Therefore, the rate is corrected here. */
+		if (hfp_alsa_io->sr_bt) {
+			aio->format->frame_rate =
+				hfp_alsa_get_device_sample_rate(iodev);
+		}
 	}
 
 	rc = aio->configure_dev(aio);
@@ -187,6 +289,12 @@ static int hfp_alsa_close_dev(struct cras_iodev *iodev)
 	}
 
 	cras_iodev_free_format(iodev);
+
+	cras_sr_destroy(hfp_alsa_io->sr);
+	hfp_alsa_io->sr = NULL;
+
+	hfp_alsa_disable_sr_bt(iodev);
+
 	return aio->close_dev(aio);
 }
 
@@ -196,7 +304,12 @@ static int hfp_alsa_frames_queued(const struct cras_iodev *iodev,
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 
-	return aio->frames_queued(aio, tstamp);
+	if (hfp_alsa_io->sr_bt) {
+		return cras_iodev_sr_bt_adapter_frames_queued(
+			hfp_alsa_io->sr_bt, tstamp);
+	} else {
+		return aio->frames_queued(aio, tstamp);
+	}
 }
 
 static int hfp_alsa_delay_frames(const struct cras_iodev *iodev)
@@ -204,7 +317,12 @@ static int hfp_alsa_delay_frames(const struct cras_iodev *iodev)
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 
-	return aio->delay_frames(aio);
+	if (hfp_alsa_io->sr_bt) {
+		return cras_iodev_sr_bt_adapter_delay_frames(
+			hfp_alsa_io->sr_bt);
+	} else {
+		return aio->delay_frames(aio);
+	}
 }
 
 static int hfp_alsa_get_buffer(struct cras_iodev *iodev,
@@ -213,7 +331,12 @@ static int hfp_alsa_get_buffer(struct cras_iodev *iodev,
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 
-	return aio->get_buffer(aio, area, frames);
+	if (hfp_alsa_io->sr_bt) {
+		return cras_iodev_sr_bt_adapter_get_buffer(hfp_alsa_io->sr_bt,
+							   area, frames);
+	} else {
+		return aio->get_buffer(aio, area, frames);
+	}
 }
 
 static int hfp_alsa_put_buffer(struct cras_iodev *iodev, unsigned nwritten)
@@ -221,7 +344,12 @@ static int hfp_alsa_put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 
-	return aio->put_buffer(aio, nwritten);
+	if (hfp_alsa_io->sr_bt) {
+		return cras_iodev_sr_bt_adapter_put_buffer(hfp_alsa_io->sr_bt,
+							   nwritten);
+	} else {
+		return aio->put_buffer(aio, nwritten);
+	}
 }
 
 static int hfp_alsa_flush_buffer(struct cras_iodev *iodev)
@@ -229,7 +357,12 @@ static int hfp_alsa_flush_buffer(struct cras_iodev *iodev)
 	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
 	struct cras_iodev *aio = hfp_alsa_io->aio;
 
-	return aio->flush_buffer(aio);
+	if (hfp_alsa_io->sr_bt) {
+		return cras_iodev_sr_bt_adapter_flush_buffer(
+			hfp_alsa_io->sr_bt);
+	} else {
+		return aio->flush_buffer(aio);
+	}
 }
 
 static void hfp_alsa_update_active_node(struct cras_iodev *iodev,
@@ -421,6 +554,8 @@ void hfp_alsa_iodev_destroy(struct cras_iodev *iodev)
 	free(iodev->supported_rates);
 	free(iodev->supported_formats);
 	cras_iodev_free_resources(iodev);
+
+	hfp_alsa_disable_sr_bt(iodev);
 
 	free(hfp_alsa_io);
 }

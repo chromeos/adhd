@@ -11,6 +11,7 @@ extern "C" {
 #include "cras_hfp_alsa_iodev.h"
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
+#include "sr_bt_util_stub.h"
 }
 
 struct hfp_alsa_io {
@@ -37,6 +38,14 @@ static size_t cras_iodev_free_resources_called;
 static size_t cras_iodev_set_format_called;
 static size_t hfp_set_call_status_called;
 static size_t hfp_event_speaker_gain_called;
+static int hfp_slc_get_selected_codec_return_val;
+static int cras_iodev_sr_bt_adapter_create_called;
+static int cras_iodev_sr_bt_adapter_destroy_called;
+static int cras_iodev_sr_bt_adapter_frames_queued_called;
+static int cras_iodev_sr_bt_adapter_delay_frames_called;
+static int cras_iodev_sr_bt_adapter_get_buffer_called;
+static int cras_iodev_sr_bt_adapter_put_buffer_called;
+static int cras_iodev_sr_bt_adapter_flush_buffer_called;
 
 #define _FAKE_CALL1(name)             \
   static size_t fake_##name##_called; \
@@ -84,6 +93,14 @@ static void ResetStubData() {
   cras_iodev_set_format_called = 0;
   hfp_set_call_status_called = 0;
   hfp_event_speaker_gain_called = 0;
+  hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_CVSD;
+  cras_iodev_sr_bt_adapter_create_called = 0;
+  cras_iodev_sr_bt_adapter_destroy_called = 0;
+  cras_iodev_sr_bt_adapter_frames_queued_called = 0;
+  cras_iodev_sr_bt_adapter_delay_frames_called = 0;
+  cras_iodev_sr_bt_adapter_get_buffer_called = 0;
+  cras_iodev_sr_bt_adapter_put_buffer_called = 0;
+  cras_iodev_sr_bt_adapter_flush_buffer_called = 0;
 
   fake_sco = reinterpret_cast<struct cras_sco*>(0x123);
   fake_device = reinterpret_cast<struct cras_bt_device*>(0x234);
@@ -464,6 +481,110 @@ TEST_F(HfpAlsaIodev, GetValidFrames) {
 
   hfp_alsa_iodev_destroy(iodev);
 }
+
+struct HfpAlsaIodevSrTestParam {
+  bool is_cras_sr_enabled;
+  bool is_wbs_enabled;
+  enum CRAS_STREAM_DIRECTION direction;
+  size_t expected_sample_rate;
+};
+
+class HfpAlsaIodevSrTest
+    : public testing::TestWithParam<HfpAlsaIodevSrTestParam> {
+ protected:
+  virtual void SetUp() {
+    ResetStubData();
+
+    if (GetParam().is_cras_sr_enabled) {
+      enable_cras_sr_bt();
+    } else {
+      disable_cras_sr_bt();
+    }
+
+    if (GetParam().is_wbs_enabled) {
+      hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_MSBC;
+    } else {
+      hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_CVSD;
+    }
+  }
+
+  virtual void TearDown() { disable_cras_sr_bt(); }
+};
+
+TEST_P(HfpAlsaIodevSrTest, TestSampleRate) {
+  const ParamType& param = GetParam();
+  struct cras_iodev* iodev;
+
+  fake_sco_in.direction = param.direction;
+  iodev = hfp_alsa_iodev_create(&fake_sco_in, fake_device, fake_slc, fake_sco,
+                                NULL);
+
+  iodev->open_dev(iodev);
+  EXPECT_EQ(
+      param.is_cras_sr_enabled && param.direction == CRAS_STREAM_INPUT ? 1 : 0,
+      cras_iodev_sr_bt_adapter_create_called);
+
+  iodev->update_supported_formats(iodev);
+  EXPECT_EQ(param.expected_sample_rate, iodev->supported_rates[0]);
+  EXPECT_EQ(NULL, iodev->supported_rates[1]);
+
+  hfp_alsa_iodev_destroy(iodev);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    HfpAlsaIodevSrTest,
+    testing::Values(HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
+                                             .is_wbs_enabled = false,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 8000}),
+                    HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = false,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 24000}),
+                    HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = true,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 24000}),
+                    HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = true,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 24000}),
+                    HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = true,
+                                             .direction = CRAS_STREAM_OUTPUT,
+                                             .expected_sample_rate = 16000})));
+
+TEST_F(HfpAlsaIodev, TestWithSrBtAdapter) {
+  enable_cras_sr_bt();
+
+  struct cras_iodev* iodev;
+
+  fake_sco_in.direction = CRAS_STREAM_INPUT;
+  iodev = hfp_alsa_iodev_create(&fake_sco_in, fake_device, fake_slc, fake_sco,
+                                NULL);
+
+  iodev->open_dev(iodev);
+
+  iodev->frames_queued(iodev, NULL);
+  EXPECT_EQ(1, cras_iodev_sr_bt_adapter_frames_queued_called);
+
+  iodev->delay_frames(iodev);
+  EXPECT_EQ(1, cras_iodev_sr_bt_adapter_delay_frames_called);
+
+  iodev->get_buffer(iodev, NULL, NULL);
+  EXPECT_EQ(1, cras_iodev_sr_bt_adapter_get_buffer_called);
+
+  iodev->put_buffer(iodev, 1);
+  EXPECT_EQ(1, cras_iodev_sr_bt_adapter_put_buffer_called);
+
+  iodev->flush_buffer(iodev);
+  EXPECT_EQ(1, cras_iodev_sr_bt_adapter_flush_buffer_called);
+
+  hfp_alsa_iodev_destroy(iodev);
+
+  disable_cras_sr_bt();
+}
 }  // namespace
 
 extern "C" {
@@ -583,7 +704,7 @@ void cras_sco_close_fd(struct cras_sco* sco) {
 }
 
 int hfp_slc_get_selected_codec(struct hfp_slc_handle* handle) {
-  return HFP_CODEC_ID_CVSD;
+  return hfp_slc_get_selected_codec_return_val;
 }
 
 const uint32_t cras_floss_hfp_get_stable_id(struct cras_hfp* hfp) {
@@ -609,6 +730,40 @@ bool cras_floss_hfp_get_wbs_supported(struct cras_hfp* hfp) {
 const char* cras_floss_hfp_get_display_name(struct cras_hfp* hfp) {
   return "Floss device fake name";
 }
+
+void* cras_iodev_sr_bt_adapter_create(void*, void*) {
+  ++cras_iodev_sr_bt_adapter_create_called;
+  return (void*)0x123;
+}
+
+void cras_iodev_sr_bt_adapter_destroy(void*) {
+  ++cras_iodev_sr_bt_adapter_destroy_called;
+}
+
+int cras_iodev_sr_bt_adapter_frames_queued(void*, void*) {
+  ++cras_iodev_sr_bt_adapter_frames_queued_called;
+  return 0;
+};
+
+int cras_iodev_sr_bt_adapter_delay_frames(void*) {
+  ++cras_iodev_sr_bt_adapter_delay_frames_called;
+  return 0;
+};
+
+int cras_iodev_sr_bt_adapter_get_buffer(void*, void**, void*) {
+  ++cras_iodev_sr_bt_adapter_get_buffer_called;
+  return 0;
+};
+
+int cras_iodev_sr_bt_adapter_put_buffer(void*, const unsigned) {
+  ++cras_iodev_sr_bt_adapter_put_buffer_called;
+  return 0;
+};
+
+int cras_iodev_sr_bt_adapter_flush_buffer(void*) {
+  ++cras_iodev_sr_bt_adapter_flush_buffer_called;
+  return 0;
+};
 
 }  // extern "C"
 

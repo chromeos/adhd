@@ -1089,7 +1089,8 @@ hfp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 hfp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
 
 hfp_alsa_iodev_unittest_SOURCES = tests/hfp_alsa_iodev_unittest.cc \
-	server/cras_hfp_alsa_iodev.c common/strlcpy.c
+	server/cras_hfp_alsa_iodev.c common/strlcpy.c tests/sr_bt_util_stub.cc \
+	tests/sr_stub.cc
 hfp_alsa_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 hfp_alsa_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
