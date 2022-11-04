@@ -5,7 +5,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
-AM_CFLAGS = -std=gnu11
+AM_CFLAGS = -std=gnu11 -Werror=implicit-function-declaration
 AM_CXXFLAGS = -std=gnu++17
 
 if HAVE_SSE42
@@ -44,7 +44,6 @@ endif
 CRAS_UT_TMPDIR_CFLAGS=-DCRAS_UT_TMPDIR=\"/tmp\"
 COMMON_CPPFLAGS = -O2 -Wall -Werror -Wno-error=cpp
 COMMON_CPPFLAGS += -ffunction-sections -fdata-sections
-COMMON_CPPFLAGS += -Werror=implicit-function-declaration
 # b/201531268: LFS support
 COMMON_CPPFLAGS += \
 	-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
