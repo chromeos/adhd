@@ -80,6 +80,18 @@
 /* minium 10 step, volume change 10% once a time */
 #define NUMBER_OF_VOLUME_STEPS_MIN 10
 
+/*
+* For USB, some of them report invalid volume ranges.
+* Therefore, we need to check the USB volume range is reasonable.
+* Otherwise we fall back to software volume and use the default volume curve.
+* The volume range reported by USB within the range will be valid.
+*/
+
+// 5dB
+#define VOLUME_RANGE_DB_MIN 5
+// 200dB
+#define VOLUME_RANGE_DB_MAX 200
+
 /* Enumeration for logging to CRAS server metrics. */
 enum CRAS_NOISE_CANCELLATION_STATUS {
 	CRAS_NOISE_CANCELLATION_BLOCKED,
@@ -1179,8 +1191,15 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 	if (output->base.type == CRAS_NODE_TYPE_USB) {
 		cras_alsa_mixer_get_playback_dBFS_range(
 			mixer, output->mixer_output, &max, &min);
-		if (max == min)
+		long volume_range_db = max - min;
+		if (volume_range_db < db_to_alsa_db(VOLUME_RANGE_DB_MIN) ||
+		    volume_range_db > db_to_alsa_db(VOLUME_RANGE_DB_MAX)) {
 			output->base.software_volume_needed = 1;
+			syslog(LOG_WARNING,
+			       "%s' output volume range [%ld %ld] is abnormal."
+			       "Fallback to software volume",
+			       output->base.name, min, max);
+		}
 		number_of_volume_steps =
 			cras_alsa_mixer_get_playback_step(output->mixer_output);
 		if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
@@ -1315,14 +1334,13 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 			aio->mixer, cras_control, &max_volume, &min_volume);
 		syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", name,
 		       min_volume, max_volume);
-		if (max_volume - min_volume)
+		long volume_range_db = max_volume - min_volume;
+		// if you headset volume range is reasonable range, create volume curve.
+		if (volume_range_db >= db_to_alsa_db(VOLUME_RANGE_DB_MIN) &&
+		    volume_range_db <= db_to_alsa_db(VOLUME_RANGE_DB_MAX)) {
 			curve = cras_volume_curve_create_simple_step(
 				0, (max_volume - min_volume) / 100);
-
-		if (max_volume - min_volume <= 500)
-			syslog(LOG_WARNING,
-			       "%s' output volume range [%ld %ld] is abnormally narrow",
-			       name, min_volume, max_volume);
+		}
 		number_of_volume_steps =
 			cras_alsa_mixer_get_playback_step(cras_control);
 		output->base.number_of_volume_steps =

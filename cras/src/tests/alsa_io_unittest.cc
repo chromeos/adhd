@@ -2525,16 +2525,15 @@ TEST(AlsaGetValidFrames, GetValidFramesFreeRunning) {
 
 class NodeUSBCardSuite : public testing::Test {
  protected:
+  virtual void SetUp() {
+    fake_mixer = (struct cras_alsa_mixer*)2;
+    outputs = reinterpret_cast<struct mixer_control*>(0);
+  }
   void CheckExpectBehaviorWithDifferentNumberOfVolumeStep(
       int control_volume_steps,
       int expect_output_node_volume_steps,
       int expect_enable_software_volume) {
-    struct alsa_io* aio;
-    struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
-    struct mixer_control* outputs;
-
     ResetStubData();
-    outputs = reinterpret_cast<struct mixer_control*>(0);
     cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
     cras_alsa_mixer_get_playback_step_values[outputs] = control_volume_steps;
     aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -2548,9 +2547,42 @@ class NodeUSBCardSuite : public testing::Test {
               aio->base.active_node->software_volume_needed);
     alsa_iodev_destroy((struct cras_iodev*)aio);
   }
+  void CheckVolumeCurveWithDifferentVolumeRange(
+      long dBFS_range_max,
+      long dBFS_range_min,
+      int expect_enable_software_volume) {
+    ResetStubData();
+    cras_alsa_mixer_get_playback_dBFS_range_max = dBFS_range_max;
+    cras_alsa_mixer_get_playback_dBFS_range_min = dBFS_range_min;
+    cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
+    aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
+        0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
+        CRAS_STREAM_OUTPUT);
+    ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
+    EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
+    EXPECT_EQ(2, cras_alsa_mixer_get_playback_dBFS_range_called);
+    EXPECT_EQ(expect_enable_software_volume,
+              aio->base.active_node->software_volume_needed);
+    EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
+    if (!expect_enable_software_volume) {
+      EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,
+                cras_volume_curve_create_simple_step_max_volume);
+      EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
+                 cras_alsa_mixer_get_playback_dBFS_range_min) /
+                    100,
+                cras_volume_curve_create_simple_step_volume_step);
+      EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
+    } else {
+      EXPECT_EQ(0, cras_volume_curve_create_simple_step_called);
+    }
+    alsa_iodev_destroy((struct cras_iodev*)aio);
+  }
+  struct alsa_io* aio;
+  struct cras_alsa_mixer* fake_mixer;
+  struct mixer_control* outputs;
 };
 
-TEST_F(NodeUSBCardSuite, NodeUSBCardNumberOfVolumeStep) {
+TEST_F(NodeUSBCardSuite, NumberOfVolumeStep) {
   /* For number_of_volume_steps < 10, set number_of_volume_steps = 25 and enable
    * software_volume
    */
@@ -2570,6 +2602,24 @@ TEST_F(NodeUSBCardSuite, NodeUSBCardNumberOfVolumeStep) {
   /* For number_of_volume_steps >= 25 set set number_of_volume_steps = 25
    */
   CheckExpectBehaviorWithDifferentNumberOfVolumeStep(50, 25, 0);
+}
+
+TEST_F(NodeUSBCardSuite, VolumeRange) {
+  /* For USB devices 5.00 dB - 200.00 dB will be considered the normal volume
+   * range. If the range reported by the USB device is outside this range,
+   * fallback to software volume and use default volume curve.
+   */
+
+  // lower that 5.00 dBFS, use software volume and default volume curve
+  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-2), 1);
+  // 5.00 dBFS, use hardware volume and custom volume curve
+  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-5), 0);
+  // 20.00 dBFS, use hardware volume and custom volume curve
+  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-20), 0);
+  // 200.00 dBFS, use hardware volume and custom volume curve
+  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-200), 0);
+  // 999999.00 dBFS, use software volume and default volume curve
+  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-999999), 1);
 }
 
 }  //  namespace
@@ -2827,7 +2877,11 @@ void cras_alsa_mixer_get_playback_dBFS_range(struct cras_alsa_mixer* cras_mixer,
 
 int cras_alsa_mixer_get_playback_step(struct mixer_control* mixer_output) {
   cras_alsa_mixer_get_playback_step_called++;
-  return cras_alsa_mixer_get_playback_step_values[mixer_output];
+  auto it = cras_alsa_mixer_get_playback_step_values.find(mixer_output);
+  if (it == cras_alsa_mixer_get_playback_step_values.end()) {
+    return 25;
+  }
+  return it->second;
 }
 
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer* m,

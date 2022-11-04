@@ -247,6 +247,18 @@ int cras_poll(struct pollfd *fds, nfds_t nfds, struct timespec *timeout,
  */
 int wait_for_dev_input_access();
 
+/*
+* 100 = 1.00db in ALSA interface
+* Args:
+*     dB - volume unit
+* Returns:
+*     dB - repersented in ALSA interface.
+*/
+static inline long db_to_alsa_db(long dB)
+{
+	return dB * 100;
+}
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
