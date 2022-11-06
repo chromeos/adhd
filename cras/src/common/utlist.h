@@ -107,7 +107,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}                                                              \
 	} while (0)
 
-#define LL_FOREACH(head, el) for (el = head; el; el = el->next)
+#define LL_FOREACH(head, el)                                                   \
+	LL_FOREACH_INTERNAL(head, el, MAKE_NAME(_ll_foreach_))
+
+#define LL_FOREACH_INTERNAL(head, el, tmp)                                     \
+	__typeof__(el) tmp;                                                    \
+	for ((el) = (head); (el) && (tmp = (el)->next, 1); (el) = tmp)
 
 #define LL_FOREACH_SAFE(head, el, tmp)                                         \
 	for ((el) = (head); (el) && (tmp = (el)->next, 1); (el) = tmp)
