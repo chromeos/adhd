@@ -2588,6 +2588,16 @@ void cras_client_stream_params_disallow_agc_on_dsp(
   params->effects &= ~DSP_GAIN_CONTROL_ALLOWED;
 }
 
+void cras_client_stream_params_enable_ignore_ui_gains(
+    struct cras_stream_params* params) {
+  params->effects |= IGNORE_UI_GAINS;
+}
+
+void cras_client_stream_params_disable_ignore_ui_gains(
+    struct cras_stream_params* params) {
+  params->effects &= ~IGNORE_UI_GAINS;
+}
+
 struct cras_stream_params* cras_client_unified_params_create(
     enum CRAS_STREAM_DIRECTION direction,
     unsigned int block_size,
@@ -4451,6 +4461,8 @@ struct libcras_stream_params* libcras_stream_params_create() {
   params->allow_aec_on_dsp = cras_client_stream_params_allow_aec_on_dsp;
   params->allow_ns_on_dsp = cras_client_stream_params_allow_ns_on_dsp;
   params->allow_agc_on_dsp = cras_client_stream_params_allow_agc_on_dsp;
+  params->enable_ignore_ui_gains =
+      cras_client_stream_params_enable_ignore_ui_gains;
   return params;
 }
 

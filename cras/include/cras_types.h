@@ -228,6 +228,7 @@ enum CRAS_STREAM_EFFECT {
   DSP_ECHO_CANCELLATION_ALLOWED = (1 << 4),
   DSP_NOISE_SUPPRESSION_ALLOWED = (1 << 5),
   DSP_GAIN_CONTROL_ALLOWED = (1 << 6),
+  IGNORE_UI_GAINS = (1 << 7),
 };
 
 //
@@ -366,6 +367,8 @@ enum MAIN_THREAD_LOG_EVENTS {
   MAIN_THREAD_NOISE_CANCELLATION,
   // When VAD target for speak on mute changed.
   MAIN_THREAD_VAD_TARGET_CHANGED,
+  // When force respect UI gains is enabled/disabled.
+  MAIN_THREAD_FORCE_RESPECT_UI_GAINS,
 };
 
 // There are 8 bits of space for events.
@@ -683,6 +686,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   int32_t ns_on_dsp_supported;
   // if system agc on dsp is supported.
   int32_t agc_on_dsp_supported;
+  int32_t force_respect_ui_gains;
   // Add 3 byte paddings to prevent rust bindgen structure layout
   // mismatch in cras-sys.
   char active_node_type_pair[2 * CRAS_NODE_TYPE_BUFFER_SIZE + 4];

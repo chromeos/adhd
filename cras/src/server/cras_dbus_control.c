@@ -1296,6 +1296,25 @@ static inline DBusHandlerResult handle_get_number_of_non_chrome_output_streams(
                           cras_system_state_num_non_chrome_output_streams());
 }
 
+static DBusHandlerResult handle_set_force_respect_ui_gains_enabled(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  int rc;
+  dbus_bool_t enabled;
+
+  rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+  if (rc) {
+    return rc;
+  }
+
+  cras_system_set_force_respect_ui_gains_enabled(enabled);
+
+  send_empty_reply(conn, message);
+
+  return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 // Handle incoming messages.
 static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                                 DBusMessage* message,
@@ -1469,6 +1488,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetNumberOfNonChromeOutputStreams")) {
     return handle_get_number_of_non_chrome_output_streams(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "SetForceRespectUiGains")) {
+    return handle_set_force_respect_ui_gains_enabled(conn, message, arg);
   }
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

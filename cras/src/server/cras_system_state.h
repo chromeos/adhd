@@ -445,4 +445,10 @@ int cras_system_state_num_non_chrome_output_streams();
 // Returns true for Noise Cancellation standalone mode; false otherwise.
 bool cras_system_get_noise_cancellation_standalone_mode();
 
+// Sets the flag to enable or disable Force Respect UI Gains.
+void cras_system_set_force_respect_ui_gains_enabled(bool enabled);
+
+// Gets the flag of Force Respect UI Gains.
+bool cras_system_get_force_respect_ui_gains_enabled();
+
 #endif  // CRAS_SRC_SERVER_CRAS_SYSTEM_STATE_H_

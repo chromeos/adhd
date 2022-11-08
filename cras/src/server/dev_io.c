@@ -591,14 +591,26 @@ static int capture_to_streams(struct open_dev* adev,
     DL_FOREACH (adev->dev->streams, stream) {
       unsigned int this_read;
       unsigned int area_offset;
+      float ui_gain_scaler;
 
       if ((stream->stream->flags & TRIGGER_ONLY) && stream->stream->triggered) {
         continue;
       }
 
+      // The UI gain scaler will be ignored if ignore ui gains
+      // is set while force respect ui gains is not.
+      if (!cras_system_get_force_respect_ui_gains_enabled() &&
+          (cras_stream_apm_get_effects(stream->stream->stream_apm) &
+           IGNORE_UI_GAINS)) {
+        ui_gain_scaler = 1;
+      } else {
+        ui_gain_scaler = cras_iodev_get_ui_gain_scaler(idev);
+      }
+
       struct input_data_gain gains = input_data_get_software_gain_scaler(
-          idev->input_data, cras_iodev_get_ui_gain_scaler(idev),
-          idev->software_gain_scaler, stream->stream);
+          idev->input_data, ui_gain_scaler, idev->software_gain_scaler,
+          stream->stream);
+
       input_data_get_for_stream(idev->input_data, stream->stream,
                                 idev->buf_state, gains.preprocessing_scalar,
                                 &area, &area_offset);

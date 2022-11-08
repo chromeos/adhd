@@ -864,3 +864,14 @@ int cras_system_state_num_non_chrome_output_streams() {
 bool cras_system_get_noise_cancellation_standalone_mode() {
   return !!state.exp_state->nc_standalone_mode;
 }
+
+void cras_system_set_force_respect_ui_gains_enabled(bool enabled) {
+  if (cras_system_get_force_respect_ui_gains_enabled() != enabled) {
+    MAINLOG(main_log, MAIN_THREAD_FORCE_RESPECT_UI_GAINS, enabled, 0, 0);
+    state.exp_state->force_respect_ui_gains = enabled;
+  }
+}
+
+bool cras_system_get_force_respect_ui_gains_enabled() {
+  return !!state.exp_state->force_respect_ui_gains;
+}

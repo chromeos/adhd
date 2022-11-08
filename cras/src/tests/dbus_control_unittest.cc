@@ -253,4 +253,7 @@ struct cras_observer_client* cras_observer_add(
 void cras_observer_remove(struct cras_observer_client* client) {
   return;
 }
+void cras_system_set_force_respect_ui_gains_enabled(bool enabled) {
+  return;
+}
 }  // extern "C"

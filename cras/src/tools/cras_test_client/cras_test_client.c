@@ -1310,6 +1310,10 @@ static void show_mainlog_tag(const struct main_thread_event_log* log,
           "VAD_TARGET_CHANGED", data1, data2, data3);
       break;
     }
+    case MAIN_THREAD_FORCE_RESPECT_UI_GAINS:
+      printf("%-30s %s\n", "FORCE_RESPECT_UI_GAINS",
+             data1 ? "enabled" : "disabled");
+      break;
     default:
       printf("%-30s\n", "UNKNOWN");
       break;

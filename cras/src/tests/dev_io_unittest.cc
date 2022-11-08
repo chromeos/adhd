@@ -28,8 +28,11 @@ struct audio_thread_event_log* atlog;
 #include "cras/src/tests/rstream_stub.h"
 
 static float dev_stream_capture_software_gain_scaler_val;
+static float dev_stream_capture_ui_gain_scaler_val;
 static struct input_data_gain input_data_get_software_gain_scaler_ret;
 static unsigned int dev_stream_capture_avail_ret = 480;
+static bool cras_system_get_force_respect_ui_gains_enabled_ret = false;
+static uint64_t cras_stream_apm_get_effects_ret = 0;
 static int cras_audio_thread_event_severe_underrun_called;
 struct set_dev_rate_data {
   unsigned int dev_rate;
@@ -102,6 +105,58 @@ TEST_F(DevIoSuite, CaptureGain) {
   dev_io_capture(&dev_list, &odev_list);
   EXPECT_EQ(0.5f, dev_stream_capture_software_gain_scaler_val);
 }
+
+TEST_F(DevIoSuite, CaptureGainIgnoreUiGainsWhenIgnoreUiGainsSet) {
+  struct open_dev* dev_list = NULL;
+  struct open_dev* odev_list = NULL;
+  DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
+                                CRAS_NODE_TYPE_MIC);
+
+  dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+  dev->node->ui_gain_scaler = 0.3;
+  iodev_stub_frames_queued(dev->dev.get(), 20, ts);
+  DL_APPEND(dev_list, dev->odev.get());
+  add_stream_to_dev(dev->dev, stream);
+
+  input_data_get_software_gain_scaler_ret = {.preprocessing_scalar = 1.0f,
+                                             .postprocessing_scalar = 1.0f};
+  cras_system_get_force_respect_ui_gains_enabled_ret = false;
+  cras_stream_apm_get_effects_ret = IGNORE_UI_GAINS;
+  dev_io_capture(&dev_list, &odev_list);
+  EXPECT_EQ(1.0f, dev_stream_capture_ui_gain_scaler_val);
+}
+
+class DevIoSuiteRespectUiGains
+    : public DevIoSuite,
+      public testing::WithParamInterface<testing::tuple<bool, uint64_t>> {};
+
+TEST_P(DevIoSuiteRespectUiGains, CaptureGainRespectUiGains) {
+  struct open_dev* dev_list = NULL;
+  struct open_dev* odev_list = NULL;
+  DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
+                                CRAS_NODE_TYPE_MIC);
+
+  dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+  dev->node->ui_gain_scaler = 0.3;
+  iodev_stub_frames_queued(dev->dev.get(), 20, ts);
+  DL_APPEND(dev_list, dev->odev.get());
+  add_stream_to_dev(dev->dev, stream);
+
+  input_data_get_software_gain_scaler_ret = {.preprocessing_scalar = 1.0f,
+                                             .postprocessing_scalar = 1.0f};
+  cras_system_get_force_respect_ui_gains_enabled_ret = std::get<0>(GetParam());
+  cras_stream_apm_get_effects_ret = std::get<1>(GetParam());
+  dev_io_capture(&dev_list, &odev_list);
+  EXPECT_EQ(0.3f, dev_stream_capture_ui_gain_scaler_val);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    CaptureGainRespectUiGainsTest,
+    DevIoSuiteRespectUiGains,
+    ::testing::ValuesIn(
+        {std::make_tuple(false, static_cast<uint64_t>(0)),
+         std::make_tuple(true, static_cast<uint64_t>(0)),
+         std::make_tuple(true, static_cast<uint64_t>(IGNORE_UI_GAINS))}));
 
 /*
  * When input and output devices are on the internal sound card,
@@ -388,8 +443,10 @@ int input_data_put_for_stream(struct input_data* data,
 
 struct input_data_gain input_data_get_software_gain_scaler(
     struct input_data* data,
+    float ui_gain_scaler,
     float idev_sw_gain_scaler,
     struct cras_rstream* stream) {
+  dev_stream_capture_ui_gain_scaler_val = ui_gain_scaler;
   return input_data_get_software_gain_scaler_ret;
 }
 
@@ -480,6 +537,15 @@ int cras_device_monitor_error_close(unsigned int dev_idx) {
 int cras_system_get_capture_mute() {
   return 0;
 }
+
+bool cras_system_get_force_respect_ui_gains_enabled() {
+  return cras_system_get_force_respect_ui_gains_enabled_ret;
+}
+
+uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
+  return cras_stream_apm_get_effects_ret;
+}
+
 }  // extern "C"
 
 }  //  namespace
