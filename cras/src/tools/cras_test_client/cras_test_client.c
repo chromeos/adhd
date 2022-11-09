@@ -958,10 +958,10 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	}
 }
 
-static void print_audio_debug_info(const struct audio_debug_info *info)
+static void print_aligned_audio_debug_info(const struct audio_debug_info *info,
+					   time_t sec_offset,
+					   int32_t nsec_offset)
 {
-	time_t sec_offset;
-	int32_t nsec_offset;
 	int i, j;
 
 	printf("Audio Debug Stats:\n");
@@ -1086,7 +1086,6 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 
 	printf("Audio Thread Event Log:\n");
 
-	fill_time_offset(&sec_offset, &nsec_offset);
 	j = info->log.write_pos % info->log.len;
 	i = 0;
 	printf("start at %d\n", j);
@@ -1095,6 +1094,16 @@ static void print_audio_debug_info(const struct audio_debug_info *info)
 		j++;
 		j %= info->log.len;
 	}
+}
+
+static void print_audio_debug_info(const struct audio_debug_info *info)
+{
+	time_t sec_offset;
+	int32_t nsec_offset;
+
+	fill_time_offset(&sec_offset, &nsec_offset);
+
+	print_aligned_audio_debug_info(info, sec_offset, nsec_offset);
 }
 
 static void audio_debug_info(struct cras_client *client)
@@ -1432,13 +1441,15 @@ static void main_thread_debug_info(struct cras_client *client)
 }
 
 static void print_cras_audio_thread_snapshot(
-	const struct cras_audio_thread_snapshot *snapshot)
+	const struct cras_audio_thread_snapshot *snapshot, time_t sec_offset,
+	int32_t nsec_offset)
 {
-	printf("-------------snapshot------------\n");
-	printf("Event time: %" PRId64 ".%ld\n",
-	       (int64_t)snapshot->timestamp.tv_sec,
-	       snapshot->timestamp.tv_nsec);
+	struct timespec ts;
+	ts = snapshot->timestamp;
+	convert_to_time_str(&ts, sec_offset, nsec_offset);
 
+	printf("-------------snapshot------------\n");
+	printf("Event time: %s\n", time_str);
 	printf("Event type: ");
 	switch (snapshot->event_type) {
 	case AUDIO_THREAD_EVENT_A2DP_THROTTLE:
@@ -1465,7 +1476,8 @@ static void print_cras_audio_thread_snapshot(
 	default:
 		printf("no such type\n");
 	}
-	print_audio_debug_info(&snapshot->audio_debug_info);
+	print_aligned_audio_debug_info(&snapshot->audio_debug_info, sec_offset,
+				       nsec_offset);
 }
 
 static void audio_thread_snapshots(struct cras_client *client)
@@ -1474,14 +1486,18 @@ static void audio_thread_snapshots(struct cras_client *client)
 	uint32_t i;
 	int j;
 	int count = 0;
+	time_t sec_offset;
+	int32_t nsec_offset;
 
 	snapshot_buffer = cras_client_get_audio_thread_snapshot_buffer(client);
+	fill_time_offset(&sec_offset, &nsec_offset);
 	i = snapshot_buffer->pos;
 	for (j = 0; j < CRAS_MAX_AUDIO_THREAD_SNAPSHOTS; j++) {
 		if (snapshot_buffer->snapshots[i].timestamp.tv_sec ||
 		    snapshot_buffer->snapshots[i].timestamp.tv_nsec) {
 			print_cras_audio_thread_snapshot(
-				&snapshot_buffer->snapshots[i]);
+				&snapshot_buffer->snapshots[i], sec_offset,
+				nsec_offset);
 			count++;
 		}
 		i++;
