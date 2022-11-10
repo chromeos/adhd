@@ -1013,8 +1013,16 @@ static int stream_added_cb(struct cras_rstream *rstream)
 				/* Error log but don't return error here, because
 				 * stopping audio could block video playback.
 				 */
-				syslog(LOG_ERR, "Init %s failed, rc = %d",
-				       edev->dev->info.name, rc);
+				if (rc == -EAGAIN) {
+					/* EAGAIN almost only occurs in bt_io::open_dev as of now. */
+					syslog(LOG_WARNING,
+					       "Init %s failed, possibly due to profile-switch.",
+					       edev->dev->info.name);
+				} else {
+					syslog(LOG_ERR,
+					       "Init %s failed, rc = %d",
+					       edev->dev->info.name, rc);
+				}
 				schedule_init_device_retry(edev->dev);
 				continue;
 			}
