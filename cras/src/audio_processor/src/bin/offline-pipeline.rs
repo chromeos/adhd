@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::{num::ParseFloatError, time::Duration};
+
 use clap::Parser;
 
 use audio_processor::{
@@ -16,6 +18,16 @@ struct Command {
     input: String,
 
     output: String,
+
+    /// Time in seconds to sleep between each processing block iteration.
+    /// A value of 0 causes the running thread to yield instead of sleeping.
+    #[clap(long = "sleep-sec", value_parser = parse_duration)]
+    sleep_duration: Option<Duration>,
+}
+
+fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
+    let seconds: f64 = arg.parse()?;
+    Ok(std::time::Duration::from_secs_f64(seconds))
 }
 
 pub fn main() {
@@ -48,6 +60,15 @@ pub fn main() {
     let mut buf = MultiBuffer::new(0, 0);
     loop {
         let mut slices = buf.as_multi_slice();
+
+        if let Some(dur) = command.sleep_duration {
+            if dur.is_zero() {
+                std::thread::yield_now();
+            } else {
+                std::thread::sleep(dur);
+            }
+        }
+
         for processor in pipeline.iter_mut() {
             slices = match processor.process_bytes(slices) {
                 Ok(output) => output,
