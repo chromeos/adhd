@@ -169,6 +169,12 @@ void cras_system_set_bypass_block_noise_cancellation(bool bypass);
 /* Gets the flag of bypass block/unblock Noise Cancellation mechanism. */
 bool cras_system_get_bypass_block_noise_cancellation();
 
+/* Sets the force sr bt enable flag to enable or disable for testing purpose. */
+void cras_system_set_force_sr_bt_enabled(bool enabled);
+
+/* Returns if sr_bt should be force enabled or not. */
+bool cras_system_get_force_sr_bt_enabled();
+
 /* Checks if the card ignores the ucm suffix. */
 bool cras_system_check_ignore_ucm_suffix(const char *card_name);
 

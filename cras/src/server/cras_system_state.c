@@ -38,6 +38,15 @@ struct name_list {
 	struct name_list *prev, *next;
 };
 
+/* A struct holding the states of the features.
+ * Args:
+ *    force_sr_bt_enabled - Whether the feature is force enabled. It's for
+ *      testing purpose.
+ */
+struct feature_state {
+	bool force_sr_bt_enabled;
+};
+
 /* The system state.
  * Members:
  *    exp_state - The exported system state shared with clients.
@@ -59,6 +68,7 @@ struct name_list {
  *    main_thread_tid - The thread id of the main thread.
  *    bt_fix_a2dp_packet_size - The flag to override A2DP packet size set by
  *      Blueetoh peer devices to a smaller default value.
+ *    feature_state - The feature state. See struct feature_state.
  */
 static struct {
 	struct cras_server_state *exp_state;
@@ -84,6 +94,7 @@ static struct {
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 	pthread_t main_thread_tid;
 	bool bt_fix_a2dp_packet_size;
+	struct feature_state feature_state;
 } state;
 
 /* The string format is CARD1,CARD2,CARD3. Divide it into a list. */
@@ -489,6 +500,16 @@ void cras_system_set_bypass_block_noise_cancellation(bool bypass)
 bool cras_system_get_bypass_block_noise_cancellation()
 {
 	return !!state.exp_state->bypass_block_noise_cancellation;
+}
+
+void cras_system_set_force_sr_bt_enabled(bool enabled)
+{
+	state.feature_state.force_sr_bt_enabled = enabled;
+}
+
+bool cras_system_get_force_sr_bt_enabled()
+{
+	return state.feature_state.force_sr_bt_enabled;
 }
 
 bool cras_system_check_ignore_ucm_suffix(const char *card_name)

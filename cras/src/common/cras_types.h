@@ -567,7 +567,10 @@ static inline bool cras_floop_params_eq(const struct cras_floop_params *a,
 	return a->client_types_mask == b->client_types_mask;
 }
 
-/* The server state that is shared with clients.
+/* The server state that is shared with clients. Note that any new members must
+ * be appended at the tail of the struct. Otherwise, it will be incompatible
+ * with the one in other environments where files can't be updated atomically,
+ * like ARC++.
  *    state_version - Version of this structure.
  *    volume - index from 0-100.
  *    min_volume_dBFS - volume in dB * 100 when volume = 1.

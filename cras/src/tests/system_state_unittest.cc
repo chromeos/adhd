@@ -464,6 +464,17 @@ TEST(SystemStateSuite, SetNoiseCancellationEnabled) {
   cras_system_state_deinit();
 }
 
+TEST(SystemSettingsStreamCount, ForceSrBtEnabled) {
+  do_sys_init();
+
+  EXPECT_EQ(cras_system_get_force_sr_bt_enabled(), false);
+  cras_system_set_force_sr_bt_enabled(true);
+  EXPECT_EQ(cras_system_get_force_sr_bt_enabled(), true);
+  cras_system_set_force_sr_bt_enabled(false);
+  EXPECT_EQ(cras_system_get_force_sr_bt_enabled(), false);
+
+  cras_system_state_deinit();
+}
 extern "C" {
 
 // Stubs
