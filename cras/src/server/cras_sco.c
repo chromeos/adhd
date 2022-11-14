@@ -973,10 +973,14 @@ int cras_sco_stop(struct cras_sco *sco)
 	sco->write_cb = NULL;
 	sco->read_cb = NULL;
 
-	if (sco->write_buf)
+	if (sco->write_buf) {
 		free(sco->write_buf);
-	if (sco->read_buf)
+		sco->write_buf = NULL;
+	}
+	if (sco->read_buf) {
 		free(sco->read_buf);
+		sco->read_buf = NULL;
+	}
 
 	if (sco->msbc_read) {
 		cras_sbc_codec_destroy(sco->msbc_read);
