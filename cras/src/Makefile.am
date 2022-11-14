@@ -938,8 +938,6 @@ cras_sr_unittest_LDADD = -lgtest -lpthread -lspeexdsp
 endif
 
 cras_sr_bt_util_unittest_SOURCES = tests/cras_sr_bt_util_unittest.cc \
-	server/cras_dlc_stub.c \
-	server/cras_featured_stub.c \
 	server/cras_sr_bt_util.c
 cras_sr_bt_util_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \

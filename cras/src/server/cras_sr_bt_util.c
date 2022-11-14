@@ -10,11 +10,16 @@
 #include "cras_dlc.h"
 #include "cras_featured.h"
 #include "cras_sr_bt_util.h"
+#include "cras_system_state.h"
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled()
 {
-	if (!get_hfp_mic_sr_feature_enabled())
-		return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
+	if (!cras_system_get_force_sr_bt_enabled()) {
+		if (!get_hfp_mic_sr_feature_enabled())
+			return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
+	}
+	// else: feature is force enabled.
+
 	if (!cras_dlc_sr_bt_is_available())
 		return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE;
 	return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK;

@@ -15,7 +15,8 @@ enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS {
 };
 
 /* Checks if cras_sr_bt can be enabled. It will check the dependencies is
- * fulfilled, i.e. featured flag is turned on and the dlc is ready.
+ * fulfilled, like whether featured flag is turned on, whether the feature is
+ * forced enabled, or whether dlc is ready.
  *
  * Returns:
  *    CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK if all checks pass.
