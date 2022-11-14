@@ -226,12 +226,11 @@ AC_SUBST(FMA_CFLAGS)
 AC_ARG_ENABLE([ml], AS_HELP_STRING([--enable-ml], [Enable all ML modules]), have_ml=$enableval, have_ml=no)
 AM_CONDITIONAL(HAVE_ML, test "$have_ml" = "yes")
 if test "$have_ml" = "yes"; then
-	PKG_CHECK_MODULES([TENSORFLOW], [ tensorflow >= 2.8.0 ])
-	AS_VAR_APPEND([TENSORFLOW_CFLAGS], [" -DHAVE_ML"])
-	TENSORFLOW_LIBS="-ltensorflowlite"
+	PKG_CHECK_MODULES([TENSORFLOWLITE], [ tensorflowlite >= 2.8.0 ])
+	AS_VAR_APPEND([TENSORFLOWLITE_CFLAGS], [" -DHAVE_ML"])
 else
-	TENSORFLOW_LIBS=
-	TENSORFLOW_CFLAGS=
+	TENSORFLOWLITE_CFLAGS=
+	TENSORFLOWLITE_LIBS=
 fi
 AC_SUBST(TENSORFLOW_LIBS)
 AC_SUBST(TENSORFLOW_CFLAGS)

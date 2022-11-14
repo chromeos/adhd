@@ -258,7 +258,7 @@ libcrasserver_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
 	-I$(SERVER_RUST_SRCDIR)/include \
-	$(DBUS_CFLAGS) $(SBC_CFLAGS) $(SELINUX_CFLAGS) $(TENSORFLOW_CFLAGS)
+	$(DBUS_CFLAGS) $(SBC_CFLAGS) $(SELINUX_CFLAGS) $(TENSORFLOWLITE_CFLAGS)
 libcrasserver_la_LIBADD = \
 	$(CRAS_RUST) \
 	libcrasmix.la \
@@ -270,7 +270,7 @@ libcrasserver_la_LIBADD = \
 	$(SBC_LIBS) \
 	$(DBUS_LIBS) \
 	$(SELINUX_LIBS) \
-	$(TENSORFLOW_LIBS)
+	$(TENSORFLOWLITE_LIBS)
 
 cras_SOURCES = \
 	server/cras.c \
@@ -696,9 +696,9 @@ eq2_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS)
 
 if HAVE_ML
 am_test_SOURCES = dsp/am.cc dsp/tests/am_test.c server/cras_fmt_conv_ops.c
-am_test_LDADD = -lrt -lm $(TENSORFLOW_LIBS)
+am_test_LDADD = -lrt -lm $(TENSORFLOWLITE_LIBS)
 am_test_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS) \
-	$(TENSORFLOW_CFLAGS) -I$(top_srcdir)/src/server
+	$(TENSORFLOWLITE_CFLAGS) -I$(top_srcdir)/src/server
 endif
 
 cmpraw_SOURCES = dsp/tests/cmpraw.c dsp/tests/raw.c
