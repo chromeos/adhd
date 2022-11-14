@@ -164,8 +164,9 @@ static void handle_cras_sr_bt_enable_disable(
 					    SR_BT_WBS :
 					    SR_BT_NBS);
 		if (err < 0) {
-			syslog(LOG_ERR, "cras_sr is disabled due to "
-					"cras_sco_enable_cras_sr_bt failed");
+			syslog(LOG_WARNING,
+			       "cras_sr is disabled due to "
+			       "cras_sco_enable_cras_sr_bt failed");
 			hfpio->is_cras_sr_bt_enabled = false;
 		} else {
 			hfpio->is_cras_sr_bt_enabled = true;
@@ -240,7 +241,7 @@ static int open_dev(struct cras_iodev *iodev)
 sco_running:
 	return 0;
 error:
-	syslog(LOG_ERR, "Failed to open HFP iodev");
+	syslog(LOG_WARNING, "Failed to open HFP iodev");
 	return -1;
 }
 

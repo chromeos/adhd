@@ -112,7 +112,7 @@ static void on_connect_profile_reply(DBusPendingCall *pending_call, void *data)
 	dbus_pending_call_unref(pending_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR)
-		syslog(LOG_ERR, "Connect profile message replied error: %s",
+		syslog(LOG_WARNING, "Connect profile message replied error: %s",
 		       dbus_message_get_error_name(reply));
 
 	dbus_message_unref(reply);
@@ -126,7 +126,7 @@ static void on_disconnect_reply(DBusPendingCall *pending_call, void *data)
 	dbus_pending_call_unref(pending_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR)
-		syslog(LOG_ERR, "Disconnect message replied error");
+		syslog(LOG_WARNING, "Disconnect message replied error");
 
 	dbus_message_unref(reply);
 }
@@ -158,7 +158,7 @@ int cras_bt_device_connect_profile(DBusConnection *conn,
 	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
 					     DBUS_TIMEOUT_USE_DEFAULT)) {
 		dbus_message_unref(method_call);
-		syslog(LOG_ERR, "Failed to send Disconnect message");
+		syslog(LOG_WARNING, "Failed to send Disconnect message");
 		return -EIO;
 	}
 
@@ -192,7 +192,7 @@ int cras_bt_device_disconnect(DBusConnection *conn,
 	if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
 					     DBUS_TIMEOUT_USE_DEFAULT)) {
 		dbus_message_unref(method_call);
-		syslog(LOG_ERR, "Failed to send Disconnect message");
+		syslog(LOG_WARNING, "Failed to send Disconnect message");
 		return -EIO;
 	}
 
@@ -228,7 +228,7 @@ void cras_bt_device_remove(struct cras_bt_device *device)
 	 * log whenever this happens.
 	 */
 	if (device->connected)
-		syslog(LOG_ERR, "Removing dev with connected profiles %u",
+		syslog(LOG_WARNING, "Removing dev with connected profiles %u",
 		       device->connected_profiles);
 	/*
 	 * Possibly clean up the associated A2DP and HFP AG iodevs that are
@@ -686,7 +686,7 @@ static int apply_hfp_offload_codec_settings(int fd, uint8_t codec)
 			       "Offload is not enabled in BT kernel; fallback to normal setting");
 			return -EOPNOTSUPP;
 		}
-		syslog(LOG_ERR, "Failed to set codec: %s (%d)",
+		syslog(LOG_WARNING, "Failed to set codec: %s (%d)",
 		       cras_strerror(errno), err);
 		return err;
 	}
@@ -709,7 +709,7 @@ static int apply_codec_settings(int fd, uint8_t codec)
 		return 0;
 
 	if (codec != HFP_CODEC_ID_MSBC) {
-		syslog(LOG_ERR, "Unsupported codec %d", codec);
+		syslog(LOG_WARNING, "Unsupported codec %d", codec);
 		return -1;
 	}
 
@@ -717,14 +717,14 @@ static int apply_codec_settings(int fd, uint8_t codec)
 
 	if (setsockopt(fd, SOL_BLUETOOTH, BT_VOICE, &voice, sizeof(voice)) <
 	    0) {
-		syslog(LOG_ERR, "Failed to apply voice setting");
+		syslog(LOG_WARNING, "Failed to apply voice setting");
 		return -1;
 	}
 
 	pkt_status = 1;
 	if (setsockopt(fd, SOL_BLUETOOTH, BT_PKT_STATUS, &pkt_status,
 		       sizeof(pkt_status))) {
-		syslog(LOG_ERR, "Failed to enable BT_PKT_STATUS");
+		syslog(LOG_WARNING, "Failed to enable BT_PKT_STATUS");
 	}
 	return 0;
 }
@@ -740,7 +740,8 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 
 	adapter = cras_bt_device_adapter(device);
 	if (!adapter) {
-		syslog(LOG_ERR, "No adapter found for device %s at SCO connect",
+		syslog(LOG_WARNING,
+		       "No adapter found for device %s at SCO connect",
 		       cras_bt_device_object_path(device));
 		goto error;
 	}
@@ -779,7 +780,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 
 	err = connect(sk, (struct sockaddr *)&addr, sizeof(addr));
 	if (err && errno != EINPROGRESS) {
-		syslog(LOG_ERR, "Failed to connect: %s (%d)",
+		syslog(LOG_WARNING, "Failed to connect: %s (%d)",
 		       cras_strerror(errno), errno);
 		cras_server_metrics_hfp_sco_connection_error(
 			CRAS_METRICS_SCO_SKT_CONNECT_ERROR);
@@ -791,7 +792,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 
 	err = ppoll(&pollfd, 1, &timeout, NULL);
 	if (err <= 0) {
-		syslog(LOG_ERR, "Connect SCO: poll for writable timeout");
+		syslog(LOG_WARNING, "Connect SCO: poll for writable timeout");
 		cras_server_metrics_hfp_sco_connection_error(
 			CRAS_METRICS_SCO_SKT_POLL_TIMEOUT);
 		goto error;
@@ -848,7 +849,7 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
 			/* BT_SNDMTU and BT_RCVMTU return the same value. */
 			if (getsockopt(sco_socket, SOL_BLUETOOTH, BT_SNDMTU,
 				       &wbs_pkt_len, &optlen))
-				syslog(LOG_ERR, "Failed to get BT_SNDMTU");
+				syslog(LOG_WARNING, "Failed to get BT_SNDMTU");
 
 			return (wbs_pkt_len > 0) ? wbs_pkt_len :
 						   USB_MSBC_PKT_SIZE;
@@ -859,7 +860,7 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
 
 	/* For non-USB cases, query the SCO MTU from driver. */
 	if (getsockopt(sco_socket, SOL_SCO, SCO_OPTIONS, &so, &len) < 0) {
-		syslog(LOG_ERR, "Get SCO options error: %s",
+		syslog(LOG_WARNING, "Get SCO options error: %s",
 		       cras_strerror(errno));
 		return DEFAULT_SCO_PKT_SIZE;
 	}
@@ -898,7 +899,7 @@ int cras_bt_device_sco_handle(int sco_socket)
 
 	/* Query the SCO handle from kernel. */
 	if (getsockopt(sco_socket, SOL_SCO, SCO_CONNINFO, &info, &len) < 0) {
-		syslog(LOG_ERR, "Get SCO handle error: %s",
+		syslog(LOG_WARNING, "Get SCO handle error: %s",
 		       cras_strerror(errno));
 		return -1;
 	}

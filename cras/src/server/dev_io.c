@@ -259,7 +259,7 @@ static int fetch_streams(struct open_dev *adev)
 
 		rc = dev_stream_request_playback_samples(dev_stream, &now);
 		if (rc < 0) {
-			syslog(LOG_ERR, "fetch err: %d for %x", rc,
+			syslog(LOG_WARNING, "fetch err: %d for %x", rc,
 			       cras_rstream_id(rstream));
 			cras_rstream_set_is_draining(rstream, 1);
 		}
@@ -494,7 +494,7 @@ static int set_input_dev_wake_ts(struct open_dev *adev, bool *need_to_drop)
 	    cap_limit) {
 		rc = get_input_dev_max_wake_ts(adev, curr_level, &dev_wake_ts);
 		if (rc < 0) {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Failed to call get_input_dev_max_wake_ts."
 			       "rc = %d",
 			       rc);
@@ -787,7 +787,7 @@ int write_output_samples(struct open_dev **odevs, struct open_dev *adev,
 	 */
 	rc = cras_iodev_prepare_output_before_write_samples(odev);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to prepare output dev for write");
+		syslog(LOG_WARNING, "Failed to prepare output dev for write");
 		return rc;
 	}
 
@@ -902,7 +902,8 @@ static void get_input_devices_drop_time(struct open_dev *idev_list,
 
 		rc = cras_iodev_frames_queued(iodev, &hw_tstamp);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Get frames from device %d, rc = %d",
+			syslog(LOG_WARNING,
+			       "Get frames from device %d, rc = %d",
 			       iodev->info.idx, rc);
 			continue;
 		}
@@ -946,7 +947,7 @@ static void dev_io_drop_samples(struct open_dev *idev_list)
 
 		rc = cras_iodev_drop_frames_by_time(adev->dev, drop_time);
 		if (rc < 0) {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Failed to drop frames from device %d, rc = %d",
 			       adev->dev->info.idx, rc);
 			continue;
@@ -1018,7 +1019,8 @@ static void handle_dev_err(int err_rc, struct open_dev **odevs,
 
 		last_io_err_time = now;
 	} else {
-		syslog(LOG_ERR, "Dev %s err %d", adev->dev->info.name, err_rc);
+		syslog(LOG_WARNING, "Dev %s err %d", adev->dev->info.name,
+		       err_rc);
 	}
 	/* Device error, remove it. */
 	dev_io_rm_open_dev(odevs, adev);
@@ -1480,7 +1482,7 @@ int dev_io_append_stream(struct open_dev **odevs, struct open_dev **idevs,
 					level = cras_iodev_get_valid_frames(
 						dev, &init_cb_ts);
 					if (level < 0) {
-						syslog(LOG_ERR,
+						syslog(LOG_WARNING,
 						       "Failed to set output init_cb_ts, rc = %d",
 						       level);
 						rc = -EIO;

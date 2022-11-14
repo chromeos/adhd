@@ -228,7 +228,7 @@ cras_floss_a2dp_create(struct fl_media *fm, const char *addr, const char *name,
 
 	LL_SEARCH_SCALAR(codecs, codec, codec_type, FL_A2DP_CODEC_SRC_SBC);
 	if (!codec) {
-		syslog(LOG_ERR, "No supported A2dp codec");
+		syslog(LOG_WARNING, "No supported A2dp codec");
 		return NULL;
 	}
 
@@ -244,7 +244,8 @@ cras_floss_a2dp_create(struct fl_media *fm, const char *addr, const char *name,
 					    codec->channel_mode);
 
 	if (!a2dp->iodev) {
-		syslog(LOG_ERR, "Failed to create a2dp pcm_iodev for %s", name);
+		syslog(LOG_WARNING, "Failed to create a2dp pcm_iodev for %s",
+		       name);
 		free(a2dp->addr);
 		free(a2dp->name);
 		free(a2dp);
@@ -321,7 +322,7 @@ int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
 	} else if (sample_rate & FL_RATE_24000) {
 		(*rates)[0] = 24000;
 	} else {
-		syslog(LOG_ERR, "No supported sample rate");
+		syslog(LOG_WARNING, "No supported sample rate");
 		return -EINVAL;
 	}
 	(*rates)[1] = 0;
@@ -340,7 +341,7 @@ int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
 	} else if (bits_per_sample & FL_SAMPLE_32) {
 		(*formats)[0] = SND_PCM_FORMAT_S32_LE;
 	} else {
-		syslog(LOG_ERR, "No supported bits per sample");
+		syslog(LOG_WARNING, "No supported bits per sample");
 		return -EINVAL;
 	}
 	(*formats)[1] = 0;
@@ -358,7 +359,7 @@ int cras_floss_a2dp_fill_format(int sample_rate, int bits_per_sample,
 	} else if (channel_mode & FL_MODE_MONO) {
 		(*channel_counts)[0] = 1;
 	} else {
-		syslog(LOG_ERR, "No supported channel mode");
+		syslog(LOG_WARNING, "No supported channel mode");
 		return -EINVAL;
 	}
 	(*channel_counts)[1] = 0;
@@ -503,7 +504,7 @@ static void send_a2dp_message(struct cras_a2dp *a2dp, enum A2DP_COMMAND cmd,
 	init_a2dp_msg(&msg, cmd, a2dp->iodev, arg1, arg2);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	if (rc)
-		syslog(LOG_ERR, "Failed to send a2dp message %d", cmd);
+		syslog(LOG_WARNING, "Failed to send a2dp message %d", cmd);
 }
 
 static void audio_format_to_floss(const struct cras_audio_format *fmt,
@@ -536,7 +537,7 @@ static void audio_format_to_floss(const struct cras_audio_format *fmt,
 		*sample_rate = FL_RATE_24000;
 		break;
 	default:
-		syslog(LOG_ERR, "Unsupported rate %zu in Floss",
+		syslog(LOG_WARNING, "Unsupported rate %zu in Floss",
 		       fmt->frame_rate);
 		*sample_rate = FL_RATE_NONE;
 	}
@@ -584,7 +585,7 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 
 	skt_fd = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (skt_fd < 0) {
-		syslog(LOG_ERR, "A2DP socket failed");
+		syslog(LOG_WARNING, "A2DP socket failed");
 		rc = skt_fd;
 		goto error;
 	}
@@ -593,7 +594,7 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 
 	rc = connect(skt_fd, (struct sockaddr *)&addr, sizeof(addr));
 	if (rc < 0) {
-		syslog(LOG_ERR, "Connect to A2DP socket failed");
+		syslog(LOG_WARNING, "Connect to A2DP socket failed");
 		goto error;
 	}
 
@@ -602,12 +603,12 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 
 	rc = ppoll(&poll_fd, 1, &timeout, NULL);
 	if (rc <= 0) {
-		syslog(LOG_ERR, "Poll for A2DP socket failed");
+		syslog(LOG_WARNING, "Poll for A2DP socket failed");
 		goto error;
 	}
 
 	if (poll_fd.revents & (POLLERR | POLLHUP)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "A2DP socket error, revents: %u. Suspend in %u seconds",
 		       poll_fd.revents, CRAS_A2DP_SUSPEND_DELAY_MS);
 		send_a2dp_message(a2dp, A2DP_SCHEDULE_SUSPEND,

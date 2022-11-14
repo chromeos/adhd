@@ -50,7 +50,7 @@ static struct rtc_data *find_rtc_stream(struct rtc_data *list,
 		if (data->stream == stream && data->iodev->info.idx == dev_id)
 			return data;
 	}
-	syslog(LOG_ERR, "Could not find rtc stream %x", stream->stream_id);
+	syslog(LOG_WARNING, "Could not find rtc stream %x", stream->stream_id);
 	return NULL;
 }
 

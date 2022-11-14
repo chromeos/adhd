@@ -148,7 +148,7 @@ static size_t wbs_get_supported_packet_size(size_t packet_size,
 	/* In case of unsupported value, error log and fallback to
 	 * MSBC_PKT_SIZE(60). */
 	if (wbs_supported_packet_size[i] == 0) {
-		syslog(LOG_ERR, "Unsupported packet size %zu", packet_size);
+		syslog(LOG_WARNING, "Unsupported packet size %zu", packet_size);
 		i = 0;
 	}
 
@@ -331,7 +331,7 @@ int sco_write_msbc(struct cras_sco *sco)
 		sco->msbc_write, samples, pcm_avail, wp + MSBC_H2_HEADER_LEN,
 		MSBC_PKT_SIZE - MSBC_H2_HEADER_LEN, &encoded);
 	if (pcm_encoded < 0) {
-		syslog(LOG_ERR, "msbc encoding err: %s",
+		syslog(LOG_WARNING, "msbc encoding err: %s",
 		       cras_strerror(pcm_encoded));
 		return pcm_encoded;
 	}
@@ -354,7 +354,7 @@ msbc_send_again:
 		return err;
 	}
 	if (err != (int)sco->packet_size) {
-		syslog(LOG_ERR, "Partially write %d bytes for mSBC", err);
+		syslog(LOG_WARNING, "Partially write %d bytes for mSBC", err);
 		return -1;
 	}
 	sco->write_rp += sco->packet_size;
@@ -388,7 +388,7 @@ send_sample:
 	}
 
 	if (err != (int)sco->packet_size) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Partially write %d bytes for SCO packet size %u", err,
 		       sco->packet_size);
 		return -1;
@@ -530,7 +530,7 @@ recv_msbc_bytes:
 
 	err = recvmsg(sco->fd, &msg, 0);
 	if (err < 0) {
-		syslog(LOG_ERR, "HCI SCO packet read err %s",
+		syslog(LOG_WARNING, "HCI SCO packet read err %s",
 		       cras_strerror(errno));
 		if (errno == EINTR)
 			goto recv_msbc_bytes;
@@ -554,7 +554,7 @@ recv_msbc_bytes:
 			       err, sco->packet_size);
 			sco->packet_size = err;
 		} else {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Partially read %d bytes for mSBC packet", err);
 			return -1;
 		}
@@ -648,7 +648,7 @@ extract:
 		 * If mSBC frame cannot be decoded, consider this packet is
 		 * corrupted and lost.
 		 */
-		syslog(LOG_ERR, "mSBC decode failed");
+		syslog(LOG_WARNING, "mSBC decode failed");
 		err = handle_packet_loss(sco);
 		if (err < 0)
 			return err;
@@ -680,7 +680,7 @@ int sco_read(struct cras_sco *sco)
 recv_sample:
 	err = recv(sco->fd, capture_buf, to_read, 0);
 	if (err < 0) {
-		syslog(LOG_ERR, "Read error %s", cras_strerror(errno));
+		syslog(LOG_WARNING, "Read error %s", cras_strerror(errno));
 		if (errno == EINTR)
 			goto recv_sample;
 
@@ -699,7 +699,7 @@ recv_sample:
 			       err, sco->packet_size);
 			sco->packet_size = err;
 		} else {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Partially read %d bytes for %u size SCO packet",
 			       err, sco->packet_size);
 			return -1;
@@ -745,7 +745,7 @@ static int cras_sco_callback(void *arg, int revents)
 			err = sco->read_cb(sco);
 		}
 		if (err < 0) {
-			syslog(LOG_ERR, "Read error");
+			syslog(LOG_WARNING, "Read error");
 			goto read_write_error;
 		}
 		if (sco->is_cras_sr_bt_enabled) {
@@ -763,7 +763,8 @@ static int cras_sco_callback(void *arg, int revents)
 		buf_increment_read(sco->capture_buf, err);
 
 	if (revents & (POLLERR | POLLHUP)) {
-		syslog(LOG_ERR, "Error polling SCO socket, revent %d", revents);
+		syslog(LOG_WARNING, "Error polling SCO socket, revent %d",
+		       revents);
 		if (revents & POLLHUP) {
 			syslog(LOG_INFO, "Received POLLHUP, reconnecting HFP.");
 			audio_thread_rm_callback(sco->fd);
@@ -783,7 +784,7 @@ static int cras_sco_callback(void *arg, int revents)
 
 	err = sco->write_cb(sco);
 	if (err < 0) {
-		syslog(LOG_ERR, "Write error");
+		syslog(LOG_WARNING, "Write error");
 		goto read_write_error;
 	}
 
@@ -847,7 +848,7 @@ int cras_sco_enable_cras_sr_bt(struct cras_sco *sco,
 	sco->sr = cras_sr_create(cras_sr_bt_get_model_spec(model),
 				 buf_available(sco->sr_buf));
 	if (!sco->sr) {
-		syslog(LOG_ERR, "cras_sr_create failed.");
+		syslog(LOG_WARNING, "cras_sr_create failed.");
 		rc = -ENOENT;
 		goto cras_sco_enable_cras_sr_bt_failed;
 	}

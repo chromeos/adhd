@@ -18,7 +18,7 @@
 static int validate_bluetooth_device_address(const char *addr)
 {
 	if (!addr) {
-		syslog(LOG_ERR, "Empty bluetooth device address");
+		syslog(LOG_WARNING, "Empty bluetooth device address");
 		return -ENOMEM;
 	}
 	/* An example of addr looks like A0:1A:7D:DA:71:11
@@ -37,7 +37,8 @@ static int validate_bluetooth_device_address(const char *addr)
 	rc = regexec(&regex, addr, 0, NULL, 0);
 	regfree(&regex);
 	if (rc) {
-		syslog(LOG_ERR, "Invalid bluetooth device address %s", addr);
+		syslog(LOG_WARNING, "Invalid bluetooth device address %s",
+		       addr);
 		return -EINVAL;
 	}
 	return 0;
@@ -58,14 +59,14 @@ int handle_on_bluetooth_device_added(struct fl_media *active_fm,
 {
 	int rc = validate_bluetooth_device_address(addr);
 	if (rc) {
-		syslog(LOG_ERR, "Erroneous bluetooth device address match %d",
-		       rc);
+		syslog(LOG_WARNING,
+		       "Erroneous bluetooth device address match %d", rc);
 		return rc;
 	}
 
 	rc = validate_hfp_codec_capability(hfp_cap);
 	if (rc) {
-		syslog(LOG_ERR, "Invalid hfp_cap: %d", hfp_cap);
+		syslog(LOG_WARNING, "Invalid hfp_cap: %d", hfp_cap);
 		return rc;
 	}
 
@@ -145,7 +146,7 @@ int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
 {
 	assert(active_fm != NULL);
 	if (!active_fm->bt_io_mgr) {
-		syslog(LOG_ERR, "No device has been added.");
+		syslog(LOG_WARNING, "No device has been added.");
 		return -EINVAL;
 	}
 
@@ -212,8 +213,8 @@ int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
 	assert(active_fm != NULL);
 	int rc = validate_bluetooth_device_address(addr);
 	if (rc) {
-		syslog(LOG_ERR, "Erroneous bluetooth device address match %d",
-		       rc);
+		syslog(LOG_WARNING,
+		       "Erroneous bluetooth device address match %d", rc);
 		return rc;
 	}
 	if (!active_fm->hfp || !active_fm->bt_io_mgr ||
@@ -235,8 +236,8 @@ int handle_on_hfp_audio_disconnected(struct fl_media *active_fm,
 	assert(active_fm != NULL);
 	int rc = validate_bluetooth_device_address(addr);
 	if (rc) {
-		syslog(LOG_ERR, "Erroneous bluetooth device address match %d",
-		       rc);
+		syslog(LOG_WARNING,
+		       "Erroneous bluetooth device address match %d", rc);
 		return rc;
 	}
 	if (!active_fm->hfp || !active_fm->bt_io_mgr ||

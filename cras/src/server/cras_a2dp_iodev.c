@@ -201,7 +201,7 @@ static int enter_no_stream(struct a2dp_io *a2dpio)
          */
 	rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
 	if (rc)
-		syslog(LOG_ERR, "Error in A2DP enter_no_stream");
+		syslog(LOG_WARNING, "Error in A2DP enter_no_stream");
 	return encode_and_flush(odev);
 }
 
@@ -282,7 +282,7 @@ static int configure_dev(struct cras_iodev *iodev)
 
 	err = cras_bt_transport_acquire(a2dpio->transport);
 	if (err < 0) {
-		syslog(LOG_ERR, "transport_acquire failed");
+		syslog(LOG_WARNING, "transport_acquire failed");
 		return err;
 	}
 
@@ -421,7 +421,7 @@ static int close_dev(struct cras_iodev *iodev)
 
 	err = cras_bt_transport_release(a2dpio->transport, !a2dpio->destroyed);
 	if (err < 0)
-		syslog(LOG_ERR, "transport_release failed");
+		syslog(LOG_WARNING, "transport_release failed");
 
 	device = cras_bt_transport_device(a2dpio->transport);
 	if (device)
@@ -585,8 +585,8 @@ do_flush:
 				a2dpio->exit_code = A2DP_EXIT_CONN_RESET;
 			} else {
 				a2dpio->exit_code = A2DP_EXIT_TX_FATAL_ERROR;
-				syslog(LOG_ERR, "A2DP socket write error %d",
-				       written);
+				syslog(LOG_WARNING,
+				       "A2DP socket write error %d", written);
 			}
 		}
 

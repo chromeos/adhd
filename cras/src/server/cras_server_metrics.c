@@ -545,8 +545,8 @@ int cras_server_metrics_hfp_sco_connection_error(
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"BT_SCO_CONNECTION_ERROR");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "BT_SCO_CONNECTION_ERROR");
 		return err;
 	}
 	return 0;
@@ -564,8 +564,8 @@ int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"BT_BATTERY_INDICATOR_SUPPORTED");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "BT_BATTERY_INDICATOR_SUPPORTED");
 		return err;
 	}
 	return 0;
@@ -583,8 +583,8 @@ int cras_server_metrics_hfp_battery_report(int battery_report)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"BT_BATTERY_REPORT");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "BT_BATTERY_REPORT");
 		return err;
 	}
 	return 0;
@@ -604,7 +604,7 @@ int cras_server_metrics_hfp_packet_loss(float packet_loss_ratio)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: BT_WIDEBAND_PACKET_LOSS");
 		return err;
 	}
@@ -623,7 +623,7 @@ int cras_server_metrics_hfp_wideband_support(bool supported)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: BT_WIDEBAND_SUPPORTED");
 		return err;
 	}
@@ -642,8 +642,8 @@ int cras_server_metrics_hfp_wideband_selected_codec(int codec)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"BT_WIDEBAND_SELECTED_CODEC");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "BT_WIDEBAND_SELECTED_CODEC");
 		return err;
 	}
 	return 0;
@@ -665,8 +665,8 @@ int cras_server_metrics_hfp_mic_sr_status(
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"BT_MIC_SUPER_RESOLUTION_STATUS");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "BT_MIC_SUPER_RESOLUTION_STATUS");
 		return err;
 	}
 
@@ -696,7 +696,8 @@ int cras_server_metrics_webrtc_devs_runtime(const struct cras_iodev *in_dev,
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: RTC_RUNTIME");
+		syslog(LOG_WARNING,
+		       "Failed to send metrics message: RTC_RUNTIME");
 		return err;
 	}
 
@@ -722,7 +723,7 @@ int cras_server_metrics_device_runtime(struct cras_iodev *iodev)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: DEVICE_RUNTIME");
 		return err;
 	}
@@ -749,7 +750,7 @@ int cras_server_metrics_device_configure_time(struct cras_iodev *iodev,
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: DEVICE_CONFIGURE_TIME");
 		return err;
 	}
@@ -775,7 +776,8 @@ int cras_server_metrics_device_gain(struct cras_iodev *iodev)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: DEVICE_GAIN");
+		syslog(LOG_WARNING,
+		       "Failed to send metrics message: DEVICE_GAIN");
 		return err;
 	}
 
@@ -799,7 +801,7 @@ int cras_server_metrics_device_volume(struct cras_iodev *iodev)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: DEVICE_VOLUME");
 		return err;
 	}
@@ -822,8 +824,8 @@ int cras_server_metrics_device_noise_cancellation_status(
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"DEVICE_NOISE_CANCELLATION_STATUS");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "DEVICE_NOISE_CANCELLATION_STATUS");
 		return err;
 	}
 
@@ -848,8 +850,8 @@ int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev *iodev)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"SET_AEC_REF_DEVICE_TYPE");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "SET_AEC_REF_DEVICE_TYPE");
 		return err;
 	}
 	return 0;
@@ -864,7 +866,7 @@ int cras_server_metrics_highest_device_delay(
 	int err;
 
 	if (largest_cb_level == 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to record device delay: divided by zero");
 		return -1;
 	}
@@ -895,7 +897,7 @@ int cras_server_metrics_highest_device_delay(
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: HIGHEST_DEVICE_DELAY");
 		return err;
 	}
@@ -926,7 +928,7 @@ int cras_server_metrics_highest_hw_level(unsigned hw_level,
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: HIGHEST_HW_LEVEL");
 		return err;
 	}
@@ -963,7 +965,7 @@ int cras_server_metrics_longest_fetch_delay(const struct cras_rstream *stream)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: LONGEST_FETCH_DELAY");
 		return err;
 	}
@@ -982,7 +984,7 @@ int cras_server_metrics_num_underruns(unsigned num_underruns)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: NUM_UNDERRUNS");
 		return err;
 	}
@@ -1020,7 +1022,7 @@ cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: MISSED_CB_FREQUENCY");
 		return err;
 	}
@@ -1052,7 +1054,7 @@ cras_server_metrics_missed_cb_frequency(const struct cras_rstream *stream)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: MISSED_CB_FREQUENCY");
 		return err;
 	}
@@ -1085,8 +1087,8 @@ cras_server_metrics_missed_cb_first_time(const struct cras_rstream *stream)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"MISSED_CB_FIRST_TIME");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "MISSED_CB_FIRST_TIME");
 		return err;
 	}
 
@@ -1116,8 +1118,8 @@ cras_server_metrics_missed_cb_second_time(const struct cras_rstream *stream)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: "
-				"MISSED_CB_SECOND_TIME");
+		syslog(LOG_WARNING, "Failed to send metrics message: "
+				    "MISSED_CB_SECOND_TIME");
 		return err;
 	}
 
@@ -1165,7 +1167,7 @@ cras_server_metrics_stream_config(const struct cras_rstream_config *config)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: STREAM_CONFIG");
 		return err;
 	}
@@ -1192,7 +1194,7 @@ int cras_server_metrics_stream_runtime(const struct cras_rstream *stream)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: STREAM_RUNTIME");
 		return err;
 	}
@@ -1231,7 +1233,7 @@ int cras_server_metrics_busyloop(struct timespec *ts, unsigned count)
 	err = cras_server_metrics_message_send(
 		(struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send metrics message: BUSYLOOP");
+		syslog(LOG_WARNING, "Failed to send metrics message: BUSYLOOP");
 		return err;
 	}
 	return 0;
@@ -1256,7 +1258,7 @@ int cras_server_metrics_busyloop_length(unsigned length)
 	int err;
 	err = send_unsigned_metrics(BUSYLOOP_LENGTH, length);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: BUSYLOOP_LENGTH");
 		return err;
 	}
@@ -1268,7 +1270,7 @@ int cras_server_metrics_a2dp_exit(enum A2DP_EXIT_CODE code)
 	int err;
 	err = send_unsigned_metrics(A2DP_EXIT_CODE, code);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: A2DP_EXIT_CODE");
 		return err;
 	}
@@ -1280,7 +1282,7 @@ int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num)
 	int err;
 	err = send_unsigned_metrics(A2DP_20MS_FAILURE_OVER_STREAM, num);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: A2DP_20MS_FAILURE_OVER_STREAM");
 		return err;
 	}
@@ -1292,7 +1294,7 @@ int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num)
 	int err;
 	err = send_unsigned_metrics(A2DP_100MS_FAILURE_OVER_STREAM, num);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message: A2DP_100MS_FAILURE_OVER_STREAM");
 		return err;
 	}
@@ -1304,7 +1306,7 @@ int cras_server_metrics_stream_add_failure(enum CRAS_STREAM_ADD_ERROR code)
 	int err;
 	err = send_unsigned_metrics(STREAM_ADD_ERROR, code);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message:  STREAM_ADD_ERROR");
 		return err;
 	}
@@ -1317,7 +1319,7 @@ int cras_server_metrics_stream_connect_failure(
 	int err;
 	err = send_unsigned_metrics(STREAM_CONNECT_ERROR, code);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message:  STREAM_CONNECT_ERROR");
 		return err;
 	}
@@ -1329,7 +1331,7 @@ int cras_server_metrics_stream_create_failure(enum CRAS_STREAM_CREATE_ERROR code
 	int err;
 	err = send_unsigned_metrics(STREAM_CREATE_ERROR, code);
 	if (err < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send metrics message:  STREAM_CREATE_ERROR");
 		return err;
 	}

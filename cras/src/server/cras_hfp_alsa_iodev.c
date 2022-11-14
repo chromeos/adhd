@@ -139,7 +139,7 @@ static int hfp_alsa_open_dev(struct cras_iodev *iodev)
 
 	rc = aio->open_dev(aio);
 	if (rc) {
-		syslog(LOG_ERR, "Failed to open aio: %d\n", rc);
+		syslog(LOG_WARNING, "Failed to open aio: %d\n", rc);
 		return rc;
 	}
 
@@ -158,7 +158,7 @@ static int hfp_alsa_open_dev(struct cras_iodev *iodev)
 			hfp_alsa_io->device,
 			hfp_slc_get_selected_codec(hfp_alsa_io->slc), true);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Failed to get sco: %d\n", rc);
+			syslog(LOG_WARNING, "Failed to get sco: %d\n", rc);
 			return rc;
 		}
 
@@ -257,7 +257,7 @@ static int hfp_alsa_configure_dev(struct cras_iodev *iodev)
 
 	rc = aio->configure_dev(aio);
 	if (rc) {
-		syslog(LOG_ERR, "Failed to configure aio: %d\n", rc);
+		syslog(LOG_WARNING, "Failed to configure aio: %d\n", rc);
 		return rc;
 	}
 

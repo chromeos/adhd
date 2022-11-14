@@ -191,7 +191,8 @@ static int call_waiting_notify(struct hfp_slc_handle *handle, const char *buf)
 static int cli_notification(struct hfp_slc_handle *handle, const char *cmd)
 {
 	if (strlen(cmd) < 9) {
-		syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+		syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__,
+		       cmd);
 		return hfp_send(handle, AT_CMD("ERROR"));
 	}
 	handle->cli_active = (cmd[8] == '1');
@@ -231,7 +232,7 @@ static int dial_number(struct hfp_slc_handle *handle, const char *cmd)
 	return hfp_send_ind_event_report(handle, CALLSETUP_IND_INDEX, 2);
 
 error_out:
-	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
 	return hfp_send(handle, AT_CMD("ERROR"));
 }
 
@@ -292,7 +293,8 @@ static int bluetooth_codec_selection(struct hfp_slc_handle *handle,
 		goto bcs_cmd_cleanup;
 	id = atoi(codec);
 	if ((id <= HFP_CODEC_UNUSED) || (id >= HFP_MAX_CODECS)) {
-		syslog(LOG_ERR, "%s: invalid codec id: '%s'", __func__, cmd);
+		syslog(LOG_WARNING, "%s: invalid codec id: '%s'", __func__,
+		       cmd);
 		free(tokens);
 		return hfp_send(handle, AT_CMD("ERROR"));
 	}
@@ -362,7 +364,7 @@ static int apple_accessory_state_change(struct hfp_slc_handle *handle,
 						(uint32_t)(level));
 				}
 			} else {
-				syslog(LOG_ERR,
+				syslog(LOG_WARNING,
 				       "Get invalid battery status from cmd:%s",
 				       cmd);
 			}
@@ -411,7 +413,7 @@ static int apple_supported_features(struct hfp_slc_handle *handle,
 	return err;
 
 error_out:
-	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
 	free(tokens);
 	return hfp_send(handle, AT_CMD("ERROR"));
 }
@@ -473,7 +475,7 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 	 * events reporting status.
 	 */
 	if (!mode || !tmp) {
-		syslog(LOG_ERR, "Invalid event reporting” cmd %s", cmd);
+		syslog(LOG_WARNING, "Invalid event reporting” cmd %s", cmd);
 		err = -EINVAL;
 		goto event_reporting_done;
 	}
@@ -483,7 +485,8 @@ static int event_reporting(struct hfp_slc_handle *handle, const char *cmd)
 
 	err = hfp_send(handle, AT_CMD("OK"));
 	if (err) {
-		syslog(LOG_ERR, "Error sending response for command %s", cmd);
+		syslog(LOG_WARNING, "Error sending response for command %s",
+		       cmd);
 		goto event_reporting_done;
 	}
 
@@ -633,7 +636,8 @@ static int report_indicators(struct hfp_slc_handle *handle, const char *cmd)
 	char buf[64];
 
 	if (strlen(cmd) < 8) {
-		syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+		syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__,
+		       cmd);
 		return hfp_send(handle, AT_CMD("ERROR"));
 	}
 
@@ -791,7 +795,7 @@ static int indicator_support(struct hfp_slc_handle *handle, const char *cmd)
 	return hfp_send(handle, AT_CMD("OK"));
 
 error_out:
-	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
 	return hfp_send(handle, AT_CMD("ERROR"));
 }
 
@@ -827,7 +831,7 @@ static int indicator_state_change(struct hfp_slc_handle *handle,
 					(uint32_t)(level));
 			}
 		} else {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Get invalid battery status from cmd:%s", cmd);
 		}
 	} else {
@@ -851,7 +855,8 @@ static int signal_gain_setting(struct hfp_slc_handle *handle, const char *cmd)
 	int gain;
 
 	if (strlen(cmd) < 8) {
-		syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+		syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__,
+		       cmd);
 		return hfp_send(handle, AT_CMD("ERROR"));
 	}
 
@@ -860,7 +865,7 @@ static int signal_gain_setting(struct hfp_slc_handle *handle, const char *cmd)
 	if (cmd[5] == 'S') {
 		gain = atoi(&cmd[7]);
 		if (gain < 0 || gain > 15) {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "signal_gain_setting: gain %d is not between 0 and 15",
 			       gain);
 			return hfp_send(handle, AT_CMD("ERROR"));
@@ -892,7 +897,8 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 	char *tokens, *features;
 
 	if (strlen(cmd) < 9) {
-		syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+		syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__,
+		       cmd);
 		return hfp_send(handle, AT_CMD("ERROR"));
 	}
 
@@ -923,7 +929,7 @@ static int supported_features(struct hfp_slc_handle *handle, const char *cmd)
 
 error_out:
 	free(tokens);
-	syslog(LOG_ERR, "%s: malformed command: '%s'", __func__, cmd);
+	syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
 	return hfp_send(handle, AT_CMD("ERROR"));
 }
 
@@ -1010,8 +1016,8 @@ static int vendor_specific_features(struct hfp_slc_handle *handle,
 	return hfp_send(handle, AT_CMD("OK"));
 
 error_out:
-	syslog(LOG_ERR, "%s: malformed vendor specific command: '%s'", __func__,
-	       cmd);
+	syslog(LOG_WARNING, "%s: malformed vendor specific command: '%s'",
+	       __func__, cmd);
 	free(tokens);
 	return hfp_send(handle, AT_CMD("ERROR"));
 }
@@ -1142,7 +1148,7 @@ static int process_at_commands(struct hfp_slc_handle *handle)
 			handle->buf_write_idx -= handle->buf_read_idx;
 			handle->buf_read_idx = 0;
 		} else {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Parse SLC command error, clean up buffer");
 			handle->buf_write_idx = 0;
 		}
@@ -1157,7 +1163,7 @@ static void slc_watch_callback(void *arg, int revents)
 
 	err = process_at_commands(handle);
 	if (err < 0) {
-		syslog(LOG_ERR, "Error reading slc command %s",
+		syslog(LOG_WARNING, "Error reading slc command %s",
 		       cras_strerror(errno));
 		cras_system_rm_select_fd(handle->rfcomm_fd);
 		handle->disconnect_cb(handle);

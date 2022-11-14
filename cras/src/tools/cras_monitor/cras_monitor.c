@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 
 	rc = cras_client_create(&client);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Couldn't create client.");
+		syslog(LOG_WARNING, "Couldn't create client.");
 		return rc;
 	}
 
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
 	if (synchronous) {
 		rc = cras_client_connect(client);
 		if (rc != 0) {
-			syslog(LOG_ERR, "Could not connect to server.");
+			syslog(LOG_WARNING, "Could not connect to server.");
 			return -rc;
 		}
 	}
@@ -284,14 +284,14 @@ int main(int argc, char **argv)
 
 	rc = cras_client_run_thread(client);
 	if (rc != 0) {
-		syslog(LOG_ERR, "Could not start thread.");
+		syslog(LOG_WARNING, "Could not start thread.");
 		return -rc;
 	}
 
 	if (!synchronous) {
 		rc = cras_client_connect_async(client);
 		if (rc) {
-			syslog(LOG_ERR, "Couldn't connect to server.\n");
+			syslog(LOG_WARNING, "Couldn't connect to server.\n");
 			goto destroy_exit;
 		}
 	}

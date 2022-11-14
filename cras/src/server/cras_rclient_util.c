@@ -65,7 +65,7 @@ rclient_validate_stream_connect_message(const struct cras_rclient *client,
 					const struct cras_connect_message *msg)
 {
 	if (!cras_valid_stream_id(msg->stream_id, client->id)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "stream_connect: invalid stream_id: %x for "
 		       "client: %zx.\n",
 		       msg->stream_id, client->id);
@@ -74,7 +74,7 @@ rclient_validate_stream_connect_message(const struct cras_rclient *client,
 
 	int direction = cras_stream_direction_mask(msg->direction);
 	if (direction < 0 || !(client->supported_directions & direction)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "stream_connect: invalid stream direction: %x for "
 		       "client: %zx.\n",
 		       msg->direction, client->id);
@@ -82,7 +82,7 @@ rclient_validate_stream_connect_message(const struct cras_rclient *client,
 	}
 
 	if (!cras_validate_client_type(msg->client_type)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "stream_connect: invalid stream client_type: %x for "
 		       "client: %zx.\n",
 		       msg->client_type, client->id);
@@ -95,17 +95,17 @@ static int rclient_validate_stream_connect_fds(int audio_fd, int client_shm_fd,
 {
 	/* check audio_fd is valid. */
 	if (audio_fd < 0) {
-		syslog(LOG_ERR, "Invalid audio fd in stream connect.\n");
+		syslog(LOG_WARNING, "Invalid audio fd in stream connect.\n");
 		return -EBADF;
 	}
 
 	/* check client_shm_fd is valid if client wants to use client shm. */
 	if (client_shm_size > 0 && client_shm_fd < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "client_shm_fd must be valid if client_shm_size > 0.\n");
 		return -EBADF;
 	} else if (client_shm_size == 0 && client_shm_fd >= 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "client_shm_fd can be valid only if client_shm_size > 0.\n");
 		return -EINVAL;
 	}
@@ -173,7 +173,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 		/* Error log info in stream config so we can analyze if
 		 * certain property value could cause this stream error.
 		 */
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "stream connection add fail: dir %u type %u client %u"
 		       "flags %u effects %u buffer %zu cb_thresh %zu"
 		       "fmt %d rate %zu ch %zu",
@@ -193,7 +193,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 	// Check that shm size is at most UINT32_MAX for non-shm streams.
 	samples_size = cras_rstream_get_samples_shm_size(stream);
 	if (samples_size > UINT32_MAX && stream_config.client_shm_fd < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Non client-provided shm stream has samples shm larger "
 		       "than uint32_t: %zu",
 		       samples_size);
@@ -224,7 +224,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
 
 	rc = client->ops->send_message_to_client(client, reply, stream_fds, 2);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to send connected messaged\n");
+		syslog(LOG_WARNING, "Failed to send connected messaged\n");
 		stream_list_rm(cras_iodev_list_get_stream_list(),
 			       stream->stream_id);
 		cras_server_metrics_stream_connect_failure(
@@ -256,7 +256,7 @@ int rclient_handle_client_stream_disconnect(
 	const struct cras_disconnect_stream_message *msg)
 {
 	if (!cras_valid_stream_id(msg->stream_id, client->id)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "stream_disconnect: invalid stream_id: %x for "
 		       "client: %zx.\n",
 		       msg->stream_id, client->id);

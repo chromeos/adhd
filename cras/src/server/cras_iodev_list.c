@@ -921,7 +921,7 @@ static int init_and_attach_streams(struct cras_iodev *dev)
 		 */
 		rc = init_device(dev, stream);
 		if (rc) {
-			syslog(LOG_ERR, "Enable %s failed, rc = %d",
+			syslog(LOG_WARNING, "Enable %s failed, rc = %d",
 			       dev->info.name, rc);
 			return rc;
 		}
@@ -948,7 +948,7 @@ static void init_device_cb(struct cras_timer *timer, void *arg)
 
 	rc = init_and_attach_streams(dev);
 	if (rc < 0)
-		syslog(LOG_ERR, "Init device retry failed");
+		syslog(LOG_WARNING, "Init device retry failed");
 	else
 		possibly_disable_fallback(dev->direction);
 }
@@ -1015,7 +1015,7 @@ static struct cras_iodev *find_pinned_device(struct cras_rstream *rstream)
 
 	/* Double check node type for hotword stream */
 	if (dev && dev->active_node->type != CRAS_NODE_TYPE_HOTWORD) {
-		syslog(LOG_ERR, "Hotword stream pinned to invalid dev %u",
+		syslog(LOG_WARNING, "Hotword stream pinned to invalid dev %u",
 		       dev->info.idx);
 		return NULL;
 	}
@@ -1138,7 +1138,7 @@ static int stream_added_cb(struct cras_rstream *rstream)
 					       "Init %s failed, possibly due to profile-switch.",
 					       edev->dev->info.name);
 				} else {
-					syslog(LOG_ERR,
+					syslog(LOG_WARNING,
 					       "Init %s failed, rc = %d",
 					       edev->dev->info.name, rc);
 				}
@@ -2258,7 +2258,7 @@ static int remove_then_reconnect_stream(struct cras_rstream *rstream)
 	if (rstream->is_pinned) {
 		iodevs[0] = find_pinned_device(rstream);
 		if (!iodevs[0]) {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Pinned dev %u not found at reconnect stream",
 			       rstream->pinned_dev_idx);
 			return 0;
@@ -2269,7 +2269,7 @@ static int remove_then_reconnect_stream(struct cras_rstream *rstream)
 		 */
 		rc = init_pinned_device(iodevs[0], rstream);
 		if (rc)
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Failed to open pinned device at reconnect stream");
 		else
 			num_iodevs = 1;
@@ -2329,7 +2329,7 @@ int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx)
 
 	rc = cras_stream_apm_set_aec_ref(rstream->stream_apm, echo_ref);
 	if (rc)
-		syslog(LOG_ERR, "Error setting dev %u as AEC ref", dev_idx);
+		syslog(LOG_WARNING, "Error setting dev %u as AEC ref", dev_idx);
 
 	/* Remove then reconnect so the stream apm can be reconfigured to
 	 * reflect the change in echo reference. For example, if the echo ref

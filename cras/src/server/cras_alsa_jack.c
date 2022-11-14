@@ -277,7 +277,7 @@ static inline void jack_state_change_cb(struct cras_alsa_jack *jack, int retry)
 		if (jack->is_gpio)
 			jack->gpio.current_state = 0;
 		if (jack->edid_file)
-			syslog(LOG_ERR, "Timeout to read EDID from %s",
+			syslog(LOG_WARNING, "Timeout to read EDID from %s",
 			       jack->edid_file);
 		goto report_jack_state;
 	}
@@ -755,7 +755,7 @@ static int hctl_jack_cb(snd_hctl_elem_t *elem, unsigned int mask)
 
 	jack = snd_hctl_elem_get_callback_private(elem);
 	if (jack == NULL) {
-		syslog(LOG_ERR, "Invalid jack from control event.");
+		syslog(LOG_WARNING, "Invalid jack from control event.");
 		return -EINVAL;
 	}
 

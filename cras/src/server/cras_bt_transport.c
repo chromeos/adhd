@@ -309,7 +309,7 @@ void cras_bt_transport_update_properties(struct cras_bt_transport *transport,
 				transport->device =
 					cras_bt_device_get(obj_path);
 				if (!transport->device) {
-					syslog(LOG_ERR,
+					syslog(LOG_WARNING,
 					       "Device %s not found at update "
 					       "transport properties",
 					       obj_path);
@@ -385,7 +385,7 @@ static void on_transport_volume_set(DBusPendingCall *pending_call, void *data)
 	dbus_pending_call_unref(pending_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "Set absolute volume returned error: %s",
+		syslog(LOG_WARNING, "Set absolute volume returned error: %s",
 		       dbus_message_get_error_name(reply));
 	} else {
 		clock_gettime(CLOCK_MONOTONIC_RAW,
@@ -465,7 +465,7 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		transport->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT,
 		&dbus_error);
 	if (!reply) {
-		syslog(LOG_ERR, "Failed to acquire transport %s: %s",
+		syslog(LOG_WARNING, "Failed to acquire transport %s: %s",
 		       transport->object_path, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(method_call);
@@ -476,7 +476,7 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 	dbus_message_unref(method_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "Acquire returned error: %s",
+		syslog(LOG_WARNING, "Acquire returned error: %s",
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 		rc = -EIO;
@@ -487,7 +487,7 @@ int cras_bt_transport_acquire(struct cras_bt_transport *transport)
 		    reply, &dbus_error, DBUS_TYPE_UNIX_FD, &(transport->fd),
 		    DBUS_TYPE_UINT16, &(transport->read_mtu), DBUS_TYPE_UINT16,
 		    &(transport->write_mtu), DBUS_TYPE_INVALID)) {
-		syslog(LOG_ERR, "Bad Acquire reply received: %s",
+		syslog(LOG_WARNING, "Bad Acquire reply received: %s",
 		       dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(reply);
@@ -532,7 +532,7 @@ int cras_bt_transport_try_acquire(struct cras_bt_transport *transport)
 		transport->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT,
 		&dbus_error);
 	if (!reply) {
-		syslog(LOG_ERR, "Failed to try acquire transport %s: %s",
+		syslog(LOG_WARNING, "Failed to try acquire transport %s: %s",
 		       transport->object_path, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(method_call);
@@ -542,7 +542,7 @@ int cras_bt_transport_try_acquire(struct cras_bt_transport *transport)
 	dbus_message_unref(method_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "TryAcquire returned error: %s",
+		syslog(LOG_WARNING, "TryAcquire returned error: %s",
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 		return -EIO;
@@ -552,7 +552,7 @@ int cras_bt_transport_try_acquire(struct cras_bt_transport *transport)
 				   DBUS_TYPE_UINT16, &read_mtu,
 				   DBUS_TYPE_UINT16, &write_mtu,
 				   DBUS_TYPE_INVALID)) {
-		syslog(LOG_ERR, "Bad TryAcquire reply received: %s",
+		syslog(LOG_WARNING, "Bad TryAcquire reply received: %s",
 		       dbus_error.message);
 		dbus_error_free(&dbus_error);
 		dbus_message_unref(reply);
@@ -618,7 +618,8 @@ int cras_bt_transport_release(struct cras_bt_transport *transport,
 			transport->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT,
 			&dbus_error);
 		if (!reply) {
-			syslog(LOG_ERR, "Failed to release transport %s: %s",
+			syslog(LOG_WARNING,
+			       "Failed to release transport %s: %s",
 			       transport->object_path, dbus_error.message);
 			dbus_error_free(&dbus_error);
 			dbus_message_unref(method_call);
@@ -628,7 +629,7 @@ int cras_bt_transport_release(struct cras_bt_transport *transport,
 		dbus_message_unref(method_call);
 
 		if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-			syslog(LOG_ERR, "Release returned error: %s",
+			syslog(LOG_WARNING, "Release returned error: %s",
 			       dbus_message_get_error_name(reply));
 			dbus_message_unref(reply);
 			return -EIO;

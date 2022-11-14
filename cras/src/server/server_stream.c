@@ -41,7 +41,7 @@ void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx,
 	uint64_t buffer_offsets[2] = { 0, 0 };
 
 	if (stream_config) {
-		syslog(LOG_ERR, "server stream already exists, dev %u",
+		syslog(LOG_WARNING, "server stream already exists, dev %u",
 		       stream_config->dev_idx);
 		return;
 	}
@@ -73,7 +73,7 @@ static void server_stream_rm_cb(void *data)
 	 * here to prevent recursion.
 	 */
 	if (stream_list_direct_rm(stream_list, stream_config->stream_id))
-		syslog(LOG_ERR, "Server stream %x no longer exist",
+		syslog(LOG_WARNING, "Server stream %x no longer exist",
 		       stream_config->stream_id);
 
 	free(stream_config);
@@ -84,7 +84,7 @@ void server_stream_destroy(struct stream_list *stream_list,
 			   unsigned int dev_idx)
 {
 	if (!stream_config || stream_config->dev_idx != dev_idx) {
-		syslog(LOG_ERR, "No server stream to destroy");
+		syslog(LOG_WARNING, "No server stream to destroy");
 		return;
 	}
 	server_stream_rm_cb(stream_list);

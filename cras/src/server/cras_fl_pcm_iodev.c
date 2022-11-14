@@ -197,7 +197,7 @@ static int a2dp_enter_no_stream(struct cras_iodev *odev)
 	 * of the underrun threshold(i.e one min_cb_level). */
 	rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
 	if (rc)
-		syslog(LOG_ERR, "Error in A2DP enter_no_stream");
+		syslog(LOG_WARNING, "Error in A2DP enter_no_stream");
 	return flush(odev);
 }
 
@@ -290,7 +290,7 @@ static int a2dp_configure_dev(struct cras_iodev *iodev)
 
 	rc = cras_floss_a2dp_start(a2dpio->a2dp, iodev->format);
 	if (rc < 0) {
-		syslog(LOG_ERR, "A2dp start failed");
+		syslog(LOG_WARNING, "A2dp start failed");
 		return rc;
 	}
 
@@ -370,7 +370,7 @@ static int hfp_read(struct fl_pcm_io *idev)
 		rc = recv(fd, buf, to_read, MSG_DONTWAIT);
 		if (rc <= 0) {
 			if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
-				syslog(LOG_ERR, "Recv error %s",
+				syslog(LOG_WARNING, "Recv error %s",
 				       cras_strerror(errno));
 				return -1;
 			}
@@ -412,7 +412,7 @@ static int hfp_write(struct fl_pcm_io *odev, size_t target_len)
 		rc = send(fd, buf, to_send, MSG_DONTWAIT);
 		if (rc <= 0) {
 			if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
-				syslog(LOG_ERR, "Send error %s",
+				syslog(LOG_WARNING, "Send error %s",
 				       cras_strerror(errno));
 				return -1;
 			}
@@ -450,7 +450,7 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 			return rc;
 	}
 	if (revents & (POLLERR | POLLHUP)) {
-		syslog(LOG_ERR, "Error polling SCO socket, revents %d",
+		syslog(LOG_WARNING, "Error polling SCO socket, revents %d",
 		       revents);
 		if (revents & POLLHUP) {
 			syslog(LOG_INFO,
@@ -481,7 +481,7 @@ static int hfp_open_dev(struct cras_iodev *iodev)
 	rc = cras_floss_hfp_start(hfpio->hfp, hfp_socket_read_write_cb,
 				  iodev->direction);
 	if (rc < 0) {
-		syslog(LOG_ERR, "HFP failed to start");
+		syslog(LOG_WARNING, "HFP failed to start");
 		return rc;
 	}
 

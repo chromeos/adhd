@@ -185,7 +185,7 @@ static void alsa_control_event_pending(void *arg, int revent)
 
 	card = (struct cras_alsa_card *)arg;
 	if (card == NULL) {
-		syslog(LOG_ERR, "Invalid card from control event.");
+		syslog(LOG_WARNING, "Invalid card from control event.");
 		return;
 	}
 
@@ -369,7 +369,7 @@ static int add_controls_and_iodevs_with_ucm(struct cras_alsa_card_info *info,
 		}
 
 		if (snd_ctl_pcm_info(handle, dev_info)) {
-			syslog(LOG_ERR, "Could not get info for device: %s",
+			syslog(LOG_WARNING, "Could not get info for device: %s",
 			       section->name);
 			continue;
 		}
@@ -484,13 +484,13 @@ struct cras_alsa_card *cras_alsa_card_create(
 
 	rc = snd_ctl_card_info(handle, card_info);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Error getting card info.");
+		syslog(LOG_WARNING, "Error getting card info.");
 		goto error_bail;
 	}
 
 	card_name = snd_ctl_card_info_get_name(card_info);
 	if (card_name == NULL) {
-		syslog(LOG_ERR, "Error getting card name.");
+		syslog(LOG_WARNING, "Error getting card name.");
 		goto error_bail;
 	}
 
@@ -522,7 +522,8 @@ struct cras_alsa_card *cras_alsa_card_create(
 	}
 
 	if (info->card_type != ALSA_CARD_TYPE_USB && !alsa_card->ucm)
-		syslog(LOG_ERR, "No ucm config on internal card %s", card_name);
+		syslog(LOG_WARNING, "No ucm config on internal card %s",
+		       card_name);
 
 	rc = snd_hctl_open(&alsa_card->hctl, alsa_card->name, SND_CTL_NONBLOCK);
 	if (rc < 0) {
@@ -531,14 +532,14 @@ struct cras_alsa_card *cras_alsa_card_create(
 	} else {
 		rc = snd_hctl_nonblock(alsa_card->hctl, 1);
 		if (rc < 0) {
-			syslog(LOG_ERR, "failed to nonblock hctl for %s",
+			syslog(LOG_WARNING, "failed to nonblock hctl for %s",
 			       alsa_card->name);
 			goto error_bail;
 		}
 
 		rc = snd_hctl_load(alsa_card->hctl);
 		if (rc < 0) {
-			syslog(LOG_ERR, "failed to load hctl for %s",
+			syslog(LOG_WARNING, "failed to load hctl for %s",
 			       alsa_card->name);
 			goto error_bail;
 		}
@@ -548,7 +549,8 @@ struct cras_alsa_card *cras_alsa_card_create(
 	alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name);
 
 	if (alsa_card->mixer == NULL) {
-		syslog(LOG_ERR, "Fail opening mixer for %s.", alsa_card->name);
+		syslog(LOG_WARNING, "Fail opening mixer for %s.",
+		       alsa_card->name);
 		goto error_bail;
 	}
 

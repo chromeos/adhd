@@ -155,7 +155,7 @@ void cras_dsp_init(const char *filename)
 {
 	dsp_enable_flush_denormal_to_zero();
 	ini_filename = strdup(filename);
-	syslog_dumper = syslog_dumper_create(LOG_ERR);
+	syslog_dumper = syslog_dumper_create(LOG_WARNING);
 	cmd_reload_ini();
 }
 

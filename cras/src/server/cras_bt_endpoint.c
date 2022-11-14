@@ -107,7 +107,7 @@ cras_bt_endpoint_set_configuration(DBusConnection *conn, DBusMessage *message,
 	}
 
 	if (!cras_bt_transport_device(transport)) {
-		syslog(LOG_ERR, "Do device found for transport %s",
+		syslog(LOG_WARNING, "Do device found for transport %s",
 		       cras_bt_transport_object_path(transport));
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}

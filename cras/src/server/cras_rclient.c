@@ -94,6 +94,6 @@ struct cras_rclient *cras_rclient_create(int fd, size_t id,
 	}
 
 error:
-	syslog(LOG_ERR, "unsupported connection type");
+	syslog(LOG_WARNING, "unsupported connection type");
 	return NULL;
 }

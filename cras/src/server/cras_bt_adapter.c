@@ -61,7 +61,7 @@ static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter *adapter)
 
 	ctl = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
 	if (ctl < 0) {
-		syslog(LOG_ERR, "Error creating HCI ctl socket");
+		syslog(LOG_WARNING, "Error creating HCI ctl socket");
 		return -1;
 	}
 
@@ -70,7 +70,7 @@ static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter *adapter)
 	dev_info.dev_id = atoi(pos + 3);
 	err = ioctl(ctl, HCIGETDEVINFO, (void *)&dev_info);
 	if (err) {
-		syslog(LOG_ERR, "HCI get dev info error %s",
+		syslog(LOG_WARNING, "HCI get dev info error %s",
 		       cras_strerror(errno));
 		close(ctl);
 		return -1;
@@ -299,7 +299,7 @@ static void on_get_supported_capabilities_reply(DBusPendingCall *pending_call,
 	dbus_pending_call_unref(pending_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "GetSupportedCapabilities message replied error: %s",
 		       dbus_message_get_error_name(reply));
 		goto get_supported_capabilities_err;
@@ -368,7 +368,7 @@ int cras_bt_adapter_get_supported_capabilities(struct cras_bt_adapter *adapter)
 					     &pending_call,
 					     DBUS_TIMEOUT_USE_DEFAULT)) {
 		dbus_message_unref(method_call);
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to send GetSupportedCapabilities message");
 		return -EIO;
 	}

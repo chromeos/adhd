@@ -133,7 +133,8 @@ struct cras_hfp *cras_floss_hfp_create(struct fl_media *fm, const char *addr,
 	      hfp->sco_pcm_used);
 
 	if (!hfp->idev || !hfp->odev) {
-		syslog(LOG_ERR, "Failed to create hfp pcm_iodev for %s", name);
+		syslog(LOG_WARNING, "Failed to create hfp pcm_iodev for %s",
+		       name);
 		cras_floss_hfp_destroy(hfp);
 		return NULL;
 	}
@@ -189,7 +190,7 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 
 	skt_fd = socket(PF_UNIX, SOCK_STREAM | O_NONBLOCK, 0);
 	if (skt_fd < 0) {
-		syslog(LOG_ERR, "Create HFP socket failed with error %d",
+		syslog(LOG_WARNING, "Create HFP socket failed with error %d",
 		       errno);
 		rc = skt_fd;
 		goto error;
@@ -200,8 +201,8 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 	syslog(LOG_DEBUG, "Connect to HFP socket at %s ", addr.sun_path);
 	rc = connect(skt_fd, (struct sockaddr *)&addr, sizeof(addr));
 	if (rc < 0) {
-		syslog(LOG_ERR, "Connect to HFP socket failed with error %d",
-		       errno);
+		syslog(LOG_WARNING,
+		       "Connect to HFP socket failed with error %d", errno);
 		goto error;
 	}
 
@@ -210,13 +211,13 @@ int cras_floss_hfp_start(struct cras_hfp *hfp, thread_callback cb,
 
 	rc = ppoll(&poll_fd, 1, &timeout, NULL);
 	if (rc <= 0) {
-		syslog(LOG_ERR, "Poll for HFP socket failed with error %d",
+		syslog(LOG_WARNING, "Poll for HFP socket failed with error %d",
 		       errno);
 		goto error;
 	}
 
 	if (poll_fd.revents & (POLLERR | POLLHUP)) {
-		syslog(LOG_ERR, "HFP socket error, revents: %u.",
+		syslog(LOG_WARNING, "HFP socket error, revents: %u.",
 		       poll_fd.revents);
 		rc = -1;
 		goto error;

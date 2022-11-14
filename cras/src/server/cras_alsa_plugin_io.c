@@ -127,18 +127,18 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
 
 	rc = snd_hctl_open(&plugin->hctl, ctl_name, SND_CTL_NONBLOCK);
 	if (rc < 0) {
-		syslog(LOG_ERR, "open hctl fail for plugin %s", ctl_name);
+		syslog(LOG_WARNING, "open hctl fail for plugin %s", ctl_name);
 		goto cleanup;
 	}
 
 	rc = snd_hctl_nonblock(plugin->hctl, 1);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to nonblock hctl for %s", ctl_name);
+		syslog(LOG_WARNING, "Failed to nonblock hctl for %s", ctl_name);
 		goto cleanup;
 	}
 	rc = snd_hctl_load(plugin->hctl);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to load hctl for %s", ctl_name);
+		syslog(LOG_WARNING, "Failed to load hctl for %s", ctl_name);
 		goto cleanup;
 	}
 	collect_poll_descriptors(plugin);
@@ -154,7 +154,7 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
 		rc = cras_alsa_mixer_add_controls_in_section(plugin->mixer,
 							     section);
 		if (rc)
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Failed adding control to plugin,"
 			       "section %s mixer_name %s",
 			       section->name, section->mixer_name);

@@ -180,7 +180,7 @@ mixer_control_element_create(snd_mixer_elem_t *elem,
 
 			if (c->number_of_volume_steps ==
 			    MIXER_CONTROL_STEP_INVALID) {
-				syslog(LOG_ERR,
+				syslog(LOG_WARNING,
 				       "Name: [%s] Get invaild volume range [%ld:%ld]",
 				       snd_mixer_selem_get_name(elem), min_step,
 				       max_step);
@@ -299,7 +299,7 @@ static int mixer_control_create(struct mixer_control **control,
 	if (!name && elem)
 		name = snd_mixer_selem_get_name(elem);
 	if (!name) {
-		syslog(LOG_ERR, "Control does not have a name.");
+		syslog(LOG_WARNING, "Control does not have a name.");
 		rc = -EINVAL;
 		goto error;
 	}
@@ -373,7 +373,8 @@ static int mixer_control_create_by_name(struct mixer_control **control,
 		if (!elem) {
 			mixer_control_destroy(c);
 			snd_mixer_selem_id_free(sid);
-			syslog(LOG_ERR, "Unable to find simple control %s, %d",
+			syslog(LOG_WARNING,
+			       "Unable to find simple control %s, %d",
 			       m_name->name, m_name->index);
 			return -ENOENT;
 		}
@@ -413,7 +414,7 @@ static int mixer_control_set_dBFS(const struct mixer_control *control,
 		}
 	}
 	if (rc && elem) {
-		syslog(LOG_ERR, "Failed to set volume of '%s:%s': %d",
+		syslog(LOG_WARNING, "Failed to set volume of '%s:%s': %d",
 		       control->name, snd_mixer_selem_get_name(elem->elem), rc);
 	}
 	return rc;
@@ -442,7 +443,7 @@ static int mixer_control_get_dBFS(const struct mixer_control *control,
 		}
 	}
 	if (rc && elem) {
-		syslog(LOG_ERR, "Failed to get volume of '%s:%s': %d",
+		syslog(LOG_WARNING, "Failed to get volume of '%s:%s': %d",
 		       control->name, snd_mixer_selem_get_name(elem->elem), rc);
 	}
 	return rc;
@@ -468,7 +469,7 @@ static int mixer_control_set_mute(const struct mixer_control *control,
 		}
 	}
 	if (rc && elem) {
-		syslog(LOG_ERR, "Failed to mute '%s:%s': %d", control->name,
+		syslog(LOG_WARNING, "Failed to mute '%s:%s': %d", control->name,
 		       snd_mixer_selem_get_name(elem->elem), rc);
 	}
 	return rc;
@@ -876,7 +877,7 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 				break;
 			}
 			if (rc) {
-				syslog(LOG_ERR,
+				syslog(LOG_WARNING,
 				       "Failed to add mixer control '%s'"
 				       " with type '%d'",
 				       control->name, control->type);
@@ -911,7 +912,7 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 				break;
 			}
 			if (rc) {
-				syslog(LOG_ERR,
+				syslog(LOG_WARNING,
 				       "Failed to add mixer control '%s'"
 				       " with type '%d'",
 				       control->name, control->type);
@@ -944,7 +945,7 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 		rc = add_control_with_coupled_mixers(
 			cmix, CRAS_STREAM_OUTPUT, "Speaker", coupled_controls);
 		if (rc) {
-			syslog(LOG_ERR, "Could not add coupled output");
+			syslog(LOG_WARNING, "Could not add coupled output");
 			goto out;
 		}
 	}
@@ -956,7 +957,8 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 	    other_elem) {
 		rc = add_main_volume_control(cmix, other_elem);
 		if (rc) {
-			syslog(LOG_ERR, "Could not add other volume control");
+			syslog(LOG_WARNING,
+			       "Could not add other volume control");
 			goto out;
 		}
 	}
@@ -985,7 +987,8 @@ int cras_alsa_mixer_add_main_volume_control_by_name(
 		elem = snd_mixer_find_selem(cmix->mixer, sid);
 		if (!elem) {
 			rc = -ENOENT;
-			syslog(LOG_ERR, "Unable to find simple control %s, 0",
+			syslog(LOG_WARNING,
+			       "Unable to find simple control %s, 0",
 			       m_name->name);
 			break;
 		}
@@ -1020,7 +1023,8 @@ int cras_alsa_mixer_add_controls_in_section(struct cras_alsa_mixer *cmix,
 		rc = add_control_by_name(cmix, section->dir,
 					 section->mixer_name);
 		if (rc) {
-			syslog(LOG_ERR, "Could not add mixer control '%s': %s",
+			syslog(LOG_WARNING,
+			       "Could not add mixer control '%s': %s",
 			       section->mixer_name, cras_strerror(-rc));
 			return rc;
 		}
@@ -1030,7 +1034,7 @@ int cras_alsa_mixer_add_controls_in_section(struct cras_alsa_mixer *cmix,
 		rc = add_control_with_coupled_mixers(
 			cmix, section->dir, section->name, section->coupled);
 		if (rc) {
-			syslog(LOG_ERR, "Could not add coupled control: %s",
+			syslog(LOG_WARNING, "Could not add coupled control: %s",
 			       cras_strerror(-rc));
 			return rc;
 		}

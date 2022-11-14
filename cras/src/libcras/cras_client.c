@@ -603,7 +603,8 @@ static int wait_for_writable_next_action(struct cras_client *client,
 		client->server_fd = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 		if (client->server_fd < 0) {
 			rc = -errno;
-			syslog(LOG_ERR, "cras_client: server socket failed: %s",
+			syslog(LOG_WARNING,
+			       "cras_client: server socket failed: %s",
 			       cras_strerror(-rc));
 			return rc;
 		}
@@ -633,7 +634,7 @@ static int wait_for_writable_next_action(struct cras_client *client,
 			close(client->server_fd);
 			client->server_fd = -1;
 		} else if (rc != -EINPROGRESS) {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "cras_client: server connect failed: %s",
 			       cras_strerror(-rc));
 			return rc;
@@ -689,11 +690,12 @@ static int first_message_next_action(struct cras_client *client,
 
 	rc = handle_message_from_server(client);
 	if (rc < 0) {
-		syslog(LOG_ERR, "handle first message: %s", cras_strerror(-rc));
+		syslog(LOG_WARNING, "handle first message: %s",
+		       cras_strerror(-rc));
 	} else if (client->id >= 0) {
 		rc = connect_transition_action(client);
 	} else {
-		syslog(LOG_ERR, "did not get ID after first message!");
+		syslog(LOG_WARNING, "did not get ID after first message!");
 		rc = -EINVAL;
 	}
 	return rc;
@@ -936,7 +938,7 @@ static int sock_file_wait_dispatch(struct cras_client *client, int poll_revents)
 	if (rc == -EAGAIN || rc == -EWOULDBLOCK)
 		rc = 0;
 	else if (rc != 0)
-		syslog(LOG_ERR, "cras_file_wait_dispatch: %s",
+		syslog(LOG_WARNING, "cras_file_wait_dispatch: %s",
 		       cras_strerror(-rc));
 	return rc;
 }
@@ -1035,7 +1037,7 @@ static int connect_to_server(struct cras_client *client,
 	}
 
 	if (rc != 0)
-		syslog(LOG_ERR, "cras_client: Connect server failed: %s",
+		syslog(LOG_WARNING, "cras_client: Connect server failed: %s",
 		       cras_strerror(-rc));
 
 	return rc;
@@ -1208,7 +1210,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	config = stream->config;
 	/* If this message is for an output stream, log error and drop it. */
 	if (!cras_stream_has_input(stream->direction)) {
-		syslog(LOG_ERR, "cras_client: Play data to input\n");
+		syslog(LOG_WARNING, "cras_client: Play data to input\n");
 		return 0;
 	}
 
@@ -1288,7 +1290,7 @@ static int handle_playback_request(struct client_stream *stream,
 
 	/* If this message is for an input stream, log error and drop it. */
 	if (stream->direction != CRAS_STREAM_OUTPUT) {
-		syslog(LOG_ERR, "cras_client: Record data from output\n");
+		syslog(LOG_WARNING, "cras_client: Record data from output\n");
 		return 0;
 	}
 
@@ -1446,7 +1448,8 @@ static int start_aud_thread(struct client_stream *stream)
 	rc = pipe(stream->wake_fds);
 	if (rc < 0) {
 		rc = -errno;
-		syslog(LOG_ERR, "cras_client: pipe: %s", cras_strerror(-rc));
+		syslog(LOG_WARNING, "cras_client: pipe: %s",
+		       cras_strerror(-rc));
 		return rc;
 	}
 
@@ -1456,7 +1459,8 @@ static int start_aud_thread(struct client_stream *stream)
 	rc = pthread_create(&stream->thread.tid, NULL, audio_thread, stream);
 	if (rc) {
 		pthread_mutex_unlock(&stream->client->stream_start_lock);
-		syslog(LOG_ERR, "cras_client: Couldn't create audio stream: %s",
+		syslog(LOG_WARNING,
+		       "cras_client: Couldn't create audio stream: %s",
 		       cras_strerror(rc));
 		stream->thread.state = CRAS_THREAD_STOP;
 		stop_aud_thread(stream, 0);
@@ -1472,7 +1476,8 @@ static int start_aud_thread(struct client_stream *stream)
 	if (rc != 0) {
 		/* Something is very wrong: try to cancel the thread and don't
 		 * wait for it. */
-		syslog(LOG_ERR, "cras_client: Client thread not responding: %s",
+		syslog(LOG_WARNING,
+		       "cras_client: Client thread not responding: %s",
 		       cras_strerror(rc));
 		stop_aud_thread(stream, 0);
 		return -rc;
@@ -1528,7 +1533,7 @@ static int stream_connected(struct client_stream *stream,
 	struct cras_shm_info header_info, samples_info;
 
 	if (msg->err || num_fds != 2) {
-		syslog(LOG_ERR, "cras_client: Error setting up stream %d\n",
+		syslog(LOG_WARNING, "cras_client: Error setting up stream %d\n",
 		       msg->err);
 		rc = msg->err;
 		goto err_ret;
@@ -1554,7 +1559,7 @@ static int stream_connected(struct client_stream *stream,
 	rc = cras_audio_shm_create(&header_info, &samples_info, samples_prot,
 				   &stream->shm);
 	if (rc < 0) {
-		syslog(LOG_ERR, "cras_client: Error configuring shm");
+		syslog(LOG_WARNING, "cras_client: Error configuring shm");
 		goto err_ret;
 	}
 	cras_shm_copy_shared_config(stream->shm);
@@ -1585,7 +1590,7 @@ static int send_connect_message(struct cras_client *client,
 	rc = socketpair(AF_UNIX, SOCK_STREAM, 0, sock);
 	if (rc != 0) {
 		rc = -errno;
-		syslog(LOG_ERR, "cras_client: socketpair: %s",
+		syslog(LOG_WARNING, "cras_client: socketpair: %s",
 		       cras_strerror(-rc));
 		goto fail;
 	}
@@ -1602,7 +1607,7 @@ static int send_connect_message(struct cras_client *client,
 				&sock[1], 1);
 	if (rc != sizeof(serv_msg)) {
 		rc = EIO;
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "cras_client: add_stream: Send server message failed.");
 		goto fail;
 	}
@@ -1639,7 +1644,7 @@ static int client_thread_add_stream(struct cras_client *client,
 		/* Find the hotword device index. */
 		if (dev_idx == NO_DEVICE) {
 			if (hotword_idx < 0) {
-				syslog(LOG_ERR,
+				syslog(LOG_WARNING,
 				       "cras_client: add_stream: No hotword dev");
 				return hotword_idx;
 			} else {
@@ -1704,7 +1709,7 @@ static int client_thread_rm_stream(struct cras_client *client,
 		cras_fill_disconnect_stream_message(&msg, stream_id);
 		rc = write(client->server_fd, &msg, sizeof(msg));
 		if (rc < 0)
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "cras_client: error removing stream from server\n");
 	}
 
@@ -1738,7 +1743,8 @@ static int client_thread_set_aec_ref(struct cras_client *client,
 		cras_fill_set_aec_ref_message(&msg, stream_id, dev_idx);
 		rc = write(client->server_fd, &msg, sizeof(msg));
 		if (rc < 0)
-			syslog(LOG_ERR, "cras_client: error setting aec ref\n");
+			syslog(LOG_WARNING,
+			       "cras_client: error setting aec ref\n");
 	}
 	return 0;
 }
@@ -1787,7 +1793,7 @@ static int client_attach_shm(struct cras_client *client, int shm_fd)
 	rc = -errno;
 	close(shm_fd);
 	if (client->server_state == (struct cras_server_state *)-1) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "cras_client: mmap failed to map shm for client: %s",
 		       cras_strerror(-rc));
 		goto error;
@@ -1798,7 +1804,8 @@ static int client_attach_shm(struct cras_client *client, int shm_fd)
 		       sizeof(*client->server_state));
 		client->server_state = NULL;
 		rc = -EINVAL;
-		syslog(LOG_ERR, "cras_client: Unknown server_state version.");
+		syslog(LOG_WARNING,
+		       "cras_client: Unknown server_state version.");
 	} else {
 		rc = 0;
 	}
@@ -1878,7 +1885,7 @@ static int handle_message_from_server(struct cras_client *client)
 			stream_from_id(client, cmsg->stream_id);
 		if (stream == NULL) {
 			if (num_fds != 2) {
-				syslog(LOG_ERR,
+				syslog(LOG_WARNING,
 				       "cras_client: Error receiving "
 				       "stream 0x%x connected message",
 				       cmsg->stream_id);
@@ -2033,7 +2040,8 @@ static int handle_stream_message(struct cras_client *client, int poll_revents)
 
 	rc = read(client->stream_fds[0], &msg, sizeof(msg));
 	if (rc < 0)
-		syslog(LOG_ERR, "cras_client: Stream read failed %d\n", errno);
+		syslog(LOG_WARNING, "cras_client: Stream read failed %d\n",
+		       errno);
 	/* The only reason a stream sends a message is if it needs to be
 	 * removed. An error on read would mean the same thing so regardless of
 	 * what gets us here, just remove the stream */
@@ -2146,7 +2154,7 @@ static void *client_thread(void *arg)
 			pollfds[num_pollfds].revents = 0;
 			num_pollfds++;
 		} else
-			syslog(LOG_ERR, "file wait fd: %d", rc);
+			syslog(LOG_WARNING, "file wait fd: %d", rc);
 		if (client->server_fd >= 0) {
 			cbs[num_pollfds] = server_fd_dispatch;
 			server_fill_pollfd(client, &(pollfds[num_pollfds]));
@@ -2306,7 +2314,8 @@ int cras_client_create_with_type(struct cras_client **client,
 	pthread_condattr_t cond_attr;
 
 	if (!cras_validate_connection_type(conn_type)) {
-		syslog(LOG_ERR, "Input connection type is not supported.\n");
+		syslog(LOG_WARNING,
+		       "Input connection type is not supported.\n");
 		return -EINVAL;
 	}
 
@@ -2322,14 +2331,15 @@ int cras_client_create_with_type(struct cras_client **client,
 
 	rc = pthread_rwlock_init(&client_int->server_state_rwlock, NULL);
 	if (rc != 0) {
-		syslog(LOG_ERR, "cras_client: Could not init state rwlock.");
+		syslog(LOG_WARNING,
+		       "cras_client: Could not init state rwlock.");
 		rc = -rc;
 		goto free_client;
 	}
 
 	rc = pthread_mutex_init(&(*client)->stream_start_lock, NULL);
 	if (rc != 0) {
-		syslog(LOG_ERR, "cras_client: Could not init start lock.");
+		syslog(LOG_WARNING, "cras_client: Could not init start lock.");
 		rc = -rc;
 		goto free_rwlock;
 	}
@@ -2339,14 +2349,15 @@ int cras_client_create_with_type(struct cras_client **client,
 	rc = pthread_cond_init(&(*client)->stream_start_cond, &cond_attr);
 	pthread_condattr_destroy(&cond_attr);
 	if (rc != 0) {
-		syslog(LOG_ERR, "cras_client: Could not init start cond.");
+		syslog(LOG_WARNING, "cras_client: Could not init start cond.");
 		rc = -rc;
 		goto free_lock;
 	}
 
 	(*client)->server_event_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
 	if ((*client)->server_event_fd < 0) {
-		syslog(LOG_ERR, "cras_client: Could not setup server eventfd.");
+		syslog(LOG_WARNING,
+		       "cras_client: Could not setup server eventfd.");
 		rc = -errno;
 		goto free_cond;
 	}
@@ -2361,7 +2372,7 @@ int cras_client_create_with_type(struct cras_client **client,
 				   sock_file_wait_callback, *client,
 				   &(*client)->sock_file_wait);
 	if (rc < 0 && rc != -ENOENT) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "cras_client: Could not setup watch for '%s': %s",
 		       (*client)->sock_file, cras_strerror(-rc));
 		goto free_error;
@@ -2639,7 +2650,7 @@ static inline int cras_client_send_add_stream_command_message(
 	cmd_msg.dev_idx = dev_idx;
 	rc = send_command_message(client, &cmd_msg.header);
 	if (rc < 0) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "cras_client: adding stream failed in thread %d", rc);
 		goto add_failed;
 	}
@@ -4065,7 +4076,7 @@ int get_nodes(struct cras_client *client, enum CRAS_STREAM_DIRECTION direction,
 	}
 
 	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to get devices: %d", rc);
+		syslog(LOG_WARNING, "Failed to get devices: %d", rc);
 		return rc;
 	}
 
@@ -4240,7 +4251,7 @@ struct libcras_client *libcras_client_create()
 	struct libcras_client *client = (struct libcras_client *)calloc(
 		1, sizeof(struct libcras_client));
 	if (!client) {
-		syslog(LOG_ERR, "cras_client: calloc failed");
+		syslog(LOG_WARNING, "cras_client: calloc failed");
 		return NULL;
 	}
 	if (cras_client_create(&client->client_)) {
@@ -4315,13 +4326,13 @@ struct libcras_stream_params *libcras_stream_params_create()
 		(struct libcras_stream_params *)calloc(
 			1, sizeof(struct libcras_stream_params));
 	if (!params) {
-		syslog(LOG_ERR, "cras_client: calloc failed");
+		syslog(LOG_WARNING, "cras_client: calloc failed");
 		return NULL;
 	}
 	params->params_ = (struct cras_stream_params *)calloc(
 		1, sizeof(struct cras_stream_params));
 	if (params->params_ == NULL) {
-		syslog(LOG_ERR, "cras_client: calloc failed");
+		syslog(LOG_WARNING, "cras_client: calloc failed");
 		free(params->params_);
 		return NULL;
 	}
@@ -4417,13 +4428,13 @@ libcras_node_info_create(struct cras_iodev_info *iodev,
 	struct libcras_node_info *node = (struct libcras_node_info *)calloc(
 		1, sizeof(struct libcras_node_info));
 	if (!node) {
-		syslog(LOG_ERR, "cras_client: calloc failed");
+		syslog(LOG_WARNING, "cras_client: calloc failed");
 		return NULL;
 	}
 	node->node_ = (struct cras_node_info *)calloc(
 		1, sizeof(struct cras_node_info));
 	if (node->node_ == NULL) {
-		syslog(LOG_ERR, "cras_client: calloc failed");
+		syslog(LOG_WARNING, "cras_client: calloc failed");
 		free(node);
 		return NULL;
 	}

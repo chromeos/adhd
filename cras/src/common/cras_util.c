@@ -253,7 +253,7 @@ int wait_for_dev_input_access()
 			break;
 		}
 		if (readable != -1 || errno != EACCES) {
-			syslog(LOG_ERR, "Bad access for input devs.");
+			syslog(LOG_WARNING, "Bad access for input devs.");
 			return errno;
 		}
 		select(1, NULL, NULL, NULL, &timeout);

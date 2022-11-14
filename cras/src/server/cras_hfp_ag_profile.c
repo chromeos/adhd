@@ -216,7 +216,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 	BTLOG(btlog, BT_HFP_NEW_CONNECTION, 0, 0);
 
 	if (has_audio_gateway(device)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Audio gateway exists when %s connects for profile %s",
 		       cras_bt_device_name(device), profile->name);
 		close(rfcomm_fd);

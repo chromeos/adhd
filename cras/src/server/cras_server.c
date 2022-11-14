@@ -231,7 +231,7 @@ static void handle_new_connection(struct server_socket *server_socket)
 			       (struct sockaddr *)&server_socket->addr,
 			       &address_length);
 	if (connection_fd < 0) {
-		syslog(LOG_ERR, "connecting");
+		syslog(LOG_WARNING, "connecting");
 		free(poll_client);
 		return;
 	}
@@ -258,7 +258,7 @@ static void handle_new_connection(struct server_socket *server_socket)
 	poll_client->client = cras_rclient_create(
 		connection_fd, poll_client->id, server_socket->type);
 	if (poll_client->client == NULL) {
-		syslog(LOG_ERR, "failed to create client");
+		syslog(LOG_WARNING, "failed to create client");
 		goto error;
 	}
 

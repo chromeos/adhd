@@ -172,7 +172,7 @@ get_or_create_battery(struct cras_bt_battery_provider *provider,
 	dbus_message_iter_close_container(&iter, &dict);
 
 	if (!dbus_connection_send(provider->conn, msg, NULL)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Error sending " DBUS_SIGNAL_INTERFACES_ADDED " signal");
 	}
 
@@ -204,8 +204,9 @@ update_battery_level(const struct cras_bt_battery_provider *provider,
 	populate_battery_properties(&iter, battery);
 
 	if (!dbus_connection_send(provider->conn, msg, NULL)) {
-		syslog(LOG_ERR, "Error sending " DBUS_SIGNAL_PROPERTIES_CHANGED
-				" signal");
+		syslog(LOG_WARNING,
+		       "Error sending " DBUS_SIGNAL_PROPERTIES_CHANGED
+		       " signal");
 	}
 
 	dbus_message_unref(msg);
@@ -251,7 +252,8 @@ cras_bt_on_battery_provider_registered(DBusPendingCall *pending_call,
 	dbus_pending_call_unref(pending_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "RegisterBatteryProvider returned error: %s",
+		syslog(LOG_WARNING,
+		       "RegisterBatteryProvider returned error: %s",
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 		return;
@@ -277,7 +279,7 @@ int cras_bt_register_battery_provider(DBusConnection *conn,
 	DBusPendingCall *pending_call;
 
 	if (battery_provider.is_registered) {
-		syslog(LOG_ERR, "Battery Provider already registered");
+		syslog(LOG_WARNING, "Battery Provider already registered");
 		return -EBUSY;
 	}
 
@@ -330,7 +332,8 @@ static void on_battery_provider_unregistered(DBusPendingCall *pending_call,
 	dbus_pending_call_unref(pending_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR)
-		syslog(LOG_ERR, "UnregisterBatteryProvider returned error: %s",
+		syslog(LOG_WARNING,
+		       "UnregisterBatteryProvider returned error: %s",
 		       dbus_message_get_error_name(reply));
 
 	dbus_message_unref(reply);
@@ -420,8 +423,9 @@ static void cleanup_battery(struct cras_bt_battery_provider *provider,
 	dbus_message_iter_close_container(&iter, &entry);
 
 	if (!dbus_connection_send(provider->conn, msg, NULL)) {
-		syslog(LOG_ERR, "Error sending " DBUS_SIGNAL_INTERFACES_REMOVED
-				" signal");
+		syslog(LOG_WARNING,
+		       "Error sending " DBUS_SIGNAL_INTERFACES_REMOVED
+		       " signal");
 	}
 
 	dbus_message_unref(msg);

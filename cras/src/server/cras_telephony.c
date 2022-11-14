@@ -232,7 +232,7 @@ static DBusHandlerResult handle_set_call(DBusConnection *conn,
 static DBusHandlerResult
 handle_telephony_message(DBusConnection *conn, DBusMessage *message, void *arg)
 {
-	syslog(LOG_ERR, "Telephony message: %s %s %s",
+	syslog(LOG_WARNING, "Telephony message: %s %s %s",
 	       dbus_message_get_path(message),
 	       dbus_message_get_interface(message),
 	       dbus_message_get_member(message));
@@ -310,7 +310,8 @@ void cras_telephony_start(DBusConnection *conn)
 	if (!dbus_connection_register_object_path(
 		    conn, CRAS_TELEPHONY_OBJECT_PATH, &control_vtable,
 		    &dbus_error)) {
-		syslog(LOG_ERR, "Couldn't register telephony control: %s: %s",
+		syslog(LOG_WARNING,
+		       "Couldn't register telephony control: %s: %s",
 		       CRAS_TELEPHONY_OBJECT_PATH, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		return;
@@ -413,6 +414,6 @@ void cras_telephony_store_dial_number(int len, const char *number)
 		(char *)calloc(len + 1, sizeof(*telephony_handle.dial_number));
 	strncpy(telephony_handle.dial_number, number, len);
 
-	syslog(LOG_ERR, "store dial_number: \"%s\"",
+	syslog(LOG_WARNING, "store dial_number: \"%s\"",
 	       telephony_handle.dial_number);
 }

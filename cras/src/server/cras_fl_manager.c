@@ -341,7 +341,7 @@ static DBusHandlerResult floss_handle_interfaces_added(DBusConnection *conn,
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
 	if (!dbus_message_has_signature(message, "oa{sa{sv}}")) {
-		syslog(LOG_ERR, "Bad InterfacesAdded signal received");
+		syslog(LOG_WARNING, "Bad InterfacesAdded signal received");
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 
@@ -446,7 +446,8 @@ static void floss_start(struct bt_stack *s)
 	if (!dbus_connection_register_object_path(s->conn, CRAS_BT_OBJECT_PATH,
 						  &control_vtable,
 						  &dbus_error)) {
-		syslog(LOG_ERR, "Couldn't register HCI device callback: %s: %s",
+		syslog(LOG_WARNING,
+		       "Couldn't register HCI device callback: %s: %s",
 		       CRAS_BT_OBJECT_PATH, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		return;

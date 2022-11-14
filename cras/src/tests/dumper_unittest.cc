@@ -10,7 +10,7 @@
 namespace {
 
 TEST(DumperTest, SyslogDumper) {
-  struct dumper* dumper = syslog_dumper_create(LOG_ERR);
+  struct dumper* dumper = syslog_dumper_create(LOG_WARNING);
   dumpf(dumper, "hello %d", 1);
   dumpf(dumper, "world %d\n123", 2);
   dumpf(dumper, "456\n");

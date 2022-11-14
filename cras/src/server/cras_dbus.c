@@ -149,11 +149,12 @@ DBusConnection *cras_dbus_connect_system_bus()
 	/* Request a name on the bus. */
 	rc = dbus_bus_request_name(conn, "org.chromium.cras", 0, &dbus_error);
 	if (dbus_error_is_set(&dbus_error)) {
-		syslog(LOG_ERR, "Requesting dbus name %s", dbus_error.message);
+		syslog(LOG_WARNING, "Requesting dbus name %s",
+		       dbus_error.message);
 		dbus_error_free(&dbus_error);
 	}
 	if (rc != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER)
-		syslog(LOG_ERR, "Not primary owner of dbus name.");
+		syslog(LOG_WARNING, "Not primary owner of dbus name.");
 
 	if (!dbus_connection_set_watch_functions(
 		    conn, dbus_watch_add, dbus_watch_remove, dbus_watch_toggled,

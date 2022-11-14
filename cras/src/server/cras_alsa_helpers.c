@@ -252,7 +252,7 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
 		cras_alsa_attempt_resume(handle);
 		avail_frames = 0;
 	} else if (rc < 0) {
-		syslog(LOG_ERR, "Fail to get avail frames: %s",
+		syslog(LOG_WARNING, "Fail to get avail frames: %s",
 		       snd_strerror(rc));
 		return rc;
 	} else {
@@ -261,7 +261,7 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
 
 	rc = snd_pcm_get_params(handle, &buffer_frames, &period_frames);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Fail to get buffer size: %s",
+		syslog(LOG_WARNING, "Fail to get buffer size: %s",
 		       snd_strerror(rc));
 		return rc;
 	}
@@ -276,7 +276,7 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
 	}
 
 	if (rc < 0) {
-		syslog(LOG_ERR, "Fail to resume appl_ptr: %s",
+		syslog(LOG_WARNING, "Fail to resume appl_ptr: %s",
 		       snd_strerror(rc));
 		return rc;
 	}
@@ -300,7 +300,7 @@ int cras_alsa_set_channel_map(snd_pcm_t *handle, struct cras_audio_format *fmt)
 
 	match = cras_chmap_caps_best(handle, chmaps, fmt);
 	if (!match) {
-		syslog(LOG_ERR, "Unable to find the best channel map");
+		syslog(LOG_WARNING, "Unable to find the best channel map");
 		goto done;
 	}
 
@@ -316,7 +316,7 @@ int cras_alsa_set_channel_map(snd_pcm_t *handle, struct cras_audio_format *fmt)
 			match->map.pos[i] = CH_TO_ALSA(ch);
 	}
 	if (snd_pcm_set_chmap(handle, &match->map) != 0)
-		syslog(LOG_ERR, "Unable to set channel map");
+		syslog(LOG_WARNING, "Unable to set channel map");
 
 done:
 	snd_pcm_free_chmaps(chmaps);
@@ -338,7 +338,7 @@ int cras_alsa_get_channel_map(snd_pcm_t *handle, struct cras_audio_format *fmt)
 
 	match = cras_chmap_caps_best(handle, chmaps, fmt);
 	if (!match) {
-		syslog(LOG_ERR, "Unable to find the best channel map");
+		syslog(LOG_WARNING, "Unable to find the best channel map");
 		rc = -1;
 		goto done;
 	}
@@ -374,7 +374,8 @@ int cras_alsa_fill_properties(snd_pcm_t *handle, size_t **rates,
 
 	rc = snd_pcm_hw_params_any(handle, params);
 	if (rc < 0) {
-		syslog(LOG_ERR, "snd_pcm_hw_params_any: %s", snd_strerror(rc));
+		syslog(LOG_WARNING, "snd_pcm_hw_params_any: %s",
+		       snd_strerror(rc));
 		return rc;
 	}
 
@@ -459,20 +460,23 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 
 	err = snd_pcm_hw_params_any(handle, hwparams);
 	if (err < 0) {
-		syslog(LOG_ERR, "hw_params_any failed %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "hw_params_any failed %s\n",
+		       snd_strerror(err));
 		return err;
 	}
 	/* Disable hardware resampling. */
 	err = snd_pcm_hw_params_set_rate_resample(handle, hwparams, 0);
 	if (err < 0) {
-		syslog(LOG_ERR, "Disabling resampling %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "Disabling resampling %s\n",
+		       snd_strerror(err));
 		return err;
 	}
 	/* Always interleaved. */
 	err = snd_pcm_hw_params_set_access(handle, hwparams,
 					   SND_PCM_ACCESS_MMAP_INTERLEAVED);
 	if (err < 0) {
-		syslog(LOG_ERR, "Setting interleaved %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "Setting interleaved %s\n",
+		       snd_strerror(err));
 		return err;
 	}
 	/* If period_wakeup flag is not set, try to disable ALSA wakeups,
@@ -493,7 +497,7 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 		err = snd_pcm_hw_params_set_period_time_near(
 			handle, hwparams, &dma_period_time, &dir);
 		if (err < 0) {
-			syslog(LOG_ERR, "could not set period time: %s",
+			syslog(LOG_WARNING, "could not set period time: %s",
 			       snd_strerror(err));
 			return err;
 		} else if (original != dma_period_time) {
@@ -504,19 +508,19 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 	/* Set the sample format. */
 	err = snd_pcm_hw_params_set_format(handle, hwparams, format->format);
 	if (err < 0) {
-		syslog(LOG_ERR, "set format %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "set format %s\n", snd_strerror(err));
 		return err;
 	}
 	/* Set the stream rate. */
 	ret_rate = rate;
 	err = snd_pcm_hw_params_set_rate_near(handle, hwparams, &ret_rate, 0);
 	if (err < 0) {
-		syslog(LOG_ERR, "set_rate_near %iHz %s\n", rate,
+		syslog(LOG_WARNING, "set_rate_near %iHz %s\n", rate,
 		       snd_strerror(err));
 		return err;
 	}
 	if (ret_rate != rate) {
-		syslog(LOG_ERR, "tried for %iHz, settled for %iHz)\n", rate,
+		syslog(LOG_WARNING, "tried for %iHz, settled for %iHz)\n", rate,
 		       ret_rate);
 		return -EINVAL;
 	}
@@ -524,7 +528,7 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 	err = snd_pcm_hw_params_set_channels(handle, hwparams,
 					     format->num_channels);
 	if (err < 0) {
-		syslog(LOG_ERR, "set_channels %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "set_channels %s\n", snd_strerror(err));
 		return err;
 	}
 
@@ -538,7 +542,8 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
 	err = snd_pcm_hw_params_set_buffer_size_max(handle, hwparams,
 						    buffer_frames);
 	if (err < 0) {
-		syslog(LOG_ERR, "set_buffer_size_max %s", snd_strerror(err));
+		syslog(LOG_WARNING, "set_buffer_size_max %s",
+		       snd_strerror(err));
 		return err;
 	}
 
@@ -568,37 +573,41 @@ int cras_alsa_set_swparams(snd_pcm_t *handle)
 
 	err = snd_pcm_sw_params_current(handle, swparams);
 	if (err < 0) {
-		syslog(LOG_ERR, "sw_params_current: %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "sw_params_current: %s\n",
+		       snd_strerror(err));
 		return err;
 	}
 	err = snd_pcm_sw_params_get_boundary(swparams, &boundary);
 	if (err < 0) {
-		syslog(LOG_ERR, "get_boundary: %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "get_boundary: %s\n", snd_strerror(err));
 		return err;
 	}
 	err = snd_pcm_sw_params_set_stop_threshold(handle, swparams, boundary);
 	if (err < 0) {
-		syslog(LOG_ERR, "set_stop_threshold: %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "set_stop_threshold: %s\n",
+		       snd_strerror(err));
 		return err;
 	}
 	/* Don't auto start. */
 	err = snd_pcm_sw_params_set_start_threshold(handle, swparams, LONG_MAX);
 	if (err < 0) {
-		syslog(LOG_ERR, "set_stop_threshold: %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "set_stop_threshold: %s\n",
+		       snd_strerror(err));
 		return err;
 	}
 
 	/* Disable period events. */
 	err = snd_pcm_sw_params_set_period_event(handle, swparams, 0);
 	if (err < 0) {
-		syslog(LOG_ERR, "set_period_event: %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "set_period_event: %s\n",
+		       snd_strerror(err));
 		return err;
 	}
 
 	err = snd_pcm_sw_params(handle, swparams);
 
 	if (err < 0) {
-		syslog(LOG_ERR, "sw_params: %s\n", snd_strerror(err));
+		syslog(LOG_WARNING, "sw_params: %s\n", snd_strerror(err));
 		return err;
 	}
 	return 0;
@@ -628,7 +637,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		rc = 0;
 		goto error;
 	} else if (rc < 0) {
-		syslog(LOG_ERR, "pcm_avail error %s, %s\n", dev_name,
+		syslog(LOG_WARNING, "pcm_avail error %s, %s\n", dev_name,
 		       snd_strerror(rc));
 		goto error;
 	} else if (frames > (snd_pcm_sframes_t)buf_size) {
@@ -647,7 +656,7 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
 		if ((frames - (snd_pcm_sframes_t)buf_size) >
 		    (snd_pcm_sframes_t)severe_underrun_frames) {
 			rc = -EPIPE;
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Severe underrun: pcm_avail %ld exceeds "
 			       "buf_size %lu by %lu",
 			       frames, buf_size, severe_underrun_frames);
@@ -704,7 +713,7 @@ int cras_alsa_attempt_resume(snd_pcm_t *handle)
 		       snd_strerror(rc));
 		rc = snd_pcm_prepare(handle);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Suspended, failed to prepare: %s.",
+			syslog(LOG_WARNING, "Suspended, failed to prepare: %s.",
 			       snd_strerror(rc));
 		}
 		/*
@@ -713,7 +722,7 @@ int cras_alsa_attempt_resume(snd_pcm_t *handle)
 		 */
 		rc = snd_pcm_start(handle);
 		if (rc < 0) {
-			syslog(LOG_ERR, "Suspended, failed to start: %s.",
+			syslog(LOG_WARNING, "Suspended, failed to start: %s.",
 			       snd_strerror(rc));
 		}
 	}
@@ -794,7 +803,7 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
 			/* If we can recover, continue and try again. */
 			rc = snd_pcm_recover(handle, res, 0);
 			if (rc < 0) {
-				syslog(LOG_ERR,
+				syslog(LOG_WARNING,
 				       "mmap_commit: pcm_recover failed: %s\n",
 				       snd_strerror(rc));
 				return rc;
@@ -823,7 +832,7 @@ static void cras_alsa_lib_error_handler(const char *file, int line,
 		return;
 	}
 
-	syslog(LOG_ERR, "[alsa-lib] %s() -> %s", function, msg);
+	syslog(LOG_WARNING, "[alsa-lib] %s() -> %s", function, msg);
 }
 
 void cras_alsa_lib_error_handler_init()

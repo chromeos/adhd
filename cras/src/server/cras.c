@@ -21,6 +21,8 @@
 #include "cras_dsp.h"
 #include "cras_speak_on_mute_detector.h"
 
+#define DEFAULT_LOG_MASK LOG_WARNING
+
 static struct option long_options[] = {
 	{ "dsp_config", required_argument, 0, 'd' },
 	{ "syslog_mask", required_argument, 0, 'l' },
@@ -43,7 +45,7 @@ static void set_signals()
 int main(int argc, char **argv)
 {
 	int c, option_index;
-	int log_mask = LOG_WARNING;
+	int log_mask = DEFAULT_LOG_MASK;
 	const char default_dsp_config[] = CRAS_CONFIG_FILE_DIR "/dsp.ini";
 	const char *dsp_config = default_dsp_config;
 	const char *device_config_dir = CRAS_CONFIG_FILE_DIR;
@@ -124,9 +126,9 @@ int main(int argc, char **argv)
 		break;
 	default:
 		fprintf(stderr,
-			"Unsupported syslog priority value: %d; using LOG_ERR=%d\n",
-			log_mask, LOG_ERR);
-		log_mask = LOG_ERR;
+			"Unsupported syslog priority value: %d; using %d\n",
+			log_mask, DEFAULT_LOG_MASK);
+		log_mask = DEFAULT_LOG_MASK;
 		break;
 	}
 	setlogmask(LOG_UPTO(log_mask));

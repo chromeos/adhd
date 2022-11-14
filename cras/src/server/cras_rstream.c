@@ -115,15 +115,15 @@ static int verify_rstream_parameters(const struct cras_rstream_config *config,
 	const struct cras_audio_format *format = config->format;
 
 	if (stream_out == NULL) {
-		syslog(LOG_ERR, "rstream: stream_out can't be NULL\n");
+		syslog(LOG_WARNING, "rstream: stream_out can't be NULL\n");
 		return -EINVAL;
 	}
 	if (format == NULL) {
-		syslog(LOG_ERR, "rstream: format can't be NULL\n");
+		syslog(LOG_WARNING, "rstream: format can't be NULL\n");
 		return -EINVAL;
 	}
 	if (format->frame_rate < 4000 || format->frame_rate > 192000) {
-		syslog(LOG_ERR, "rstream: invalid frame_rate %zu\n",
+		syslog(LOG_WARNING, "rstream: invalid frame_rate %zu\n",
 		       format->frame_rate);
 		return -EINVAL;
 	}
@@ -133,19 +133,19 @@ static int verify_rstream_parameters(const struct cras_rstream_config *config,
 	 */
 	if (!buffer_meets_size_limit(config->buffer_frames,
 				     format->frame_rate)) {
-		syslog(LOG_ERR, "rstream: invalid buffer_frames %zu\n",
+		syslog(LOG_WARNING, "rstream: invalid buffer_frames %zu\n",
 		       config->buffer_frames);
 		return -EINVAL;
 	}
 	if (!buffer_meets_size_limit(config->cb_threshold,
 				     format->frame_rate) ||
 	    config->cb_threshold > config->buffer_frames) {
-		syslog(LOG_ERR, "rstream: invalid cb_threshold %zu\n",
+		syslog(LOG_WARNING, "rstream: invalid cb_threshold %zu\n",
 		       config->cb_threshold);
 		return -EINVAL;
 	}
 	if (format->num_channels < 0 || format->num_channels > CRAS_CH_MAX) {
-		syslog(LOG_ERR, "rstream: invalid num_channels %zu\n",
+		syslog(LOG_WARNING, "rstream: invalid num_channels %zu\n",
 		       format->num_channels);
 		return -EINVAL;
 	}
@@ -153,34 +153,35 @@ static int verify_rstream_parameters(const struct cras_rstream_config *config,
 	    (format->format != SND_PCM_FORMAT_S32_LE) &&
 	    (format->format != SND_PCM_FORMAT_U8) &&
 	    (format->format != SND_PCM_FORMAT_S24_LE)) {
-		syslog(LOG_ERR, "rstream: format %d not supported\n",
+		syslog(LOG_WARNING, "rstream: format %d not supported\n",
 		       format->format);
 		return -EINVAL;
 	}
 	if (config->direction != CRAS_STREAM_OUTPUT &&
 	    config->direction != CRAS_STREAM_INPUT) {
-		syslog(LOG_ERR, "rstream: Invalid direction.\n");
+		syslog(LOG_WARNING, "rstream: Invalid direction.\n");
 		return -EINVAL;
 	}
 	if (config->stream_type < CRAS_STREAM_TYPE_DEFAULT ||
 	    config->stream_type >= CRAS_STREAM_NUM_TYPES) {
-		syslog(LOG_ERR, "rstream: Invalid stream type.\n");
+		syslog(LOG_WARNING, "rstream: Invalid stream type.\n");
 		return -EINVAL;
 	}
 	if (config->client_type < CRAS_CLIENT_TYPE_UNKNOWN ||
 	    config->client_type >= CRAS_NUM_CLIENT_TYPE) {
-		syslog(LOG_ERR, "rstream: Invalid client type.\n");
+		syslog(LOG_WARNING, "rstream: Invalid client type.\n");
 		return -EINVAL;
 	}
 	if ((config->client_shm_size > 0 && config->client_shm_fd < 0) ||
 	    (config->client_shm_size == 0 && config->client_shm_fd >= 0)) {
-		syslog(LOG_ERR, "rstream: invalid client-provided shm info\n");
+		syslog(LOG_WARNING,
+		       "rstream: invalid client-provided shm info\n");
 		return -EINVAL;
 	}
 	if (cras_rstream_config_is_client_shm_stream(config) &&
 	    (config->buffer_offsets[0] > config->client_shm_size ||
 	     config->buffer_offsets[1] > config->client_shm_size)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "rstream: initial buffer offsets are outside shm area\n");
 		return -EINVAL;
 	}
@@ -329,7 +330,7 @@ int cras_rstream_create(struct cras_rstream_config *config,
 	if (rc < 0) {
 		cras_server_metrics_stream_create_failure(
 			CRAS_STREAM_CREATE_ERROR_SHM_SETUP_FAILURE);
-		syslog(LOG_ERR, "failed to setup shm %d\n", rc);
+		syslog(LOG_WARNING, "failed to setup shm %d\n", rc);
 		free(stream);
 		return rc;
 	}
@@ -596,7 +597,8 @@ int cras_rstream_flush_old_audio_messages(struct cras_rstream *stream)
 	} while (err > 0);
 
 	if (err < 0)
-		syslog(LOG_ERR, "Error reading msg from client: rc: %d", err);
+		syslog(LOG_WARNING, "Error reading msg from client: rc: %d",
+		       err);
 
 	return 0;
 }

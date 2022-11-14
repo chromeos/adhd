@@ -161,7 +161,7 @@ static int ucm_set_modifier_enabled(struct cras_use_case_mgr *mgr,
 
 	rc = snd_use_case_set(mgr->mgr, enable ? "_enamod" : "_dismod", mod);
 	if (rc)
-		syslog(LOG_ERR, "Can not %s UCM modifier %s, rc = %d",
+		syslog(LOG_WARNING, "Can not %s UCM modifier %s, rc = %d",
 		       enable ? "enable" : "disable", mod, rc);
 	return rc;
 }
@@ -267,7 +267,7 @@ ucm_get_sections_for_var(struct cras_use_case_mgr *mgr, const char *var,
 
 	num_entries = snd_use_case_get_list(mgr->mgr, identifier, &list);
 	if (num_entries < 0)
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to get section UCM list for %s, error: %d",
 		       identifier, num_entries);
 	if (num_entries <= 0)
@@ -501,7 +501,7 @@ static int ucm_modifier_try_enable(struct cras_use_case_mgr *mgr, int enable,
 	int ret;
 
 	if (!ucm_mod_exists_with_name(mgr, name)) {
-		syslog(LOG_ERR, "Can not find modifier %s.", name);
+		syslog(LOG_WARNING, "Can not find modifier %s.", name);
 		return -ENOTSUP;
 	}
 
@@ -595,7 +595,7 @@ int ucm_set_enabled(struct cras_use_case_mgr *mgr, const char *dev, int enable)
 
 	rc = device_enabled(mgr, dev, &value);
 	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to check device status in enable");
+		syslog(LOG_WARNING, "Failed to check device status in enable");
 		return rc;
 	}
 	if (value == !!enable)
@@ -603,7 +603,7 @@ int ucm_set_enabled(struct cras_use_case_mgr *mgr, const char *dev, int enable)
 	syslog(LOG_DEBUG, "UCM %s %s", enable ? "enable" : "disable", dev);
 	rc = snd_use_case_set(mgr->mgr, enable ? "_enadev" : "_disdev", dev);
 	if (rc && (rc != -ENOENT || ucm_has_fully_specified_ucm_flag(mgr))) {
-		syslog(LOG_ERR, "Can not %s UCM for device %s, rc = %d",
+		syslog(LOG_WARNING, "Can not %s UCM for device %s, rc = %d",
 		       enable ? "enable" : "disable", dev, rc);
 	}
 	return rc;
@@ -1109,7 +1109,7 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr)
 
 	return models;
 err:
-	syslog(LOG_ERR, "Failed to get hotword due to error: %d", ret);
+	syslog(LOG_WARNING, "Failed to get hotword due to error: %d", ret);
 	return NULL;
 }
 
@@ -1124,7 +1124,7 @@ void ucm_disable_all_hotword_models(struct cras_use_case_mgr *mgr)
 	/* Disable all currently enabled hotword model modifiers. */
 	num_enmods = snd_use_case_get_list(mgr->mgr, "_enamods", &list);
 	if (num_enmods < 0)
-		syslog(LOG_ERR, "Failed to get hotword model list: %d",
+		syslog(LOG_WARNING, "Failed to get hotword model list: %d",
 		       num_enmods);
 	if (num_enmods <= 0)
 		return;

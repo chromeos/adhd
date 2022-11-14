@@ -227,7 +227,7 @@ static void cras_sr_unprocessed_to_processed(struct cras_sr *sr)
 	// should be still usable.
 	if (am_process(sr->am, (const float *)buf, num_readable, buf,
 		       num_readable))
-		syslog(LOG_ERR, "am_process failed.");
+		syslog(LOG_WARNING, "am_process failed.");
 
 	sample_buf_increment_read(&sr->internal, num_readable);
 	sample_buf_increment_write(&sr->internal, num_readable);

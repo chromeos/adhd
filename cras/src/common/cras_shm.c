@@ -214,8 +214,8 @@ int cras_shm_open_rw(const char *name, size_t size)
 	fd = ashmem_create_region(name, size);
 	if (fd < 0) {
 		fd = -errno;
-		syslog(LOG_ERR, "failed to ashmem_create_region %s: %s\n", name,
-		       cras_strerror(-fd));
+		syslog(LOG_WARNING, "failed to ashmem_create_region %s: %s\n",
+		       name, cras_strerror(-fd));
 	}
 	return fd;
 }
@@ -226,7 +226,7 @@ int cras_shm_reopen_ro(const char *name, int fd)
 	   bits to disallow further write access. */
 	if (ashmem_set_prot_region(fd, PROT_READ) != 0) {
 		fd = -errno;
-		syslog(LOG_ERR, "failed to ashmem_set_prot_region %s: %s\n",
+		syslog(LOG_WARNING, "failed to ashmem_set_prot_region %s: %s\n",
 		       name, cras_strerror(-fd));
 	}
 	return fd;
@@ -247,14 +247,14 @@ int cras_shm_open_rw(const char *name, size_t size)
 	fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, 0600);
 	if (fd < 0) {
 		fd = -errno;
-		syslog(LOG_ERR, "failed to shm_open %s: %s\n", name,
+		syslog(LOG_WARNING, "failed to shm_open %s: %s\n", name,
 		       cras_strerror(-fd));
 		return fd;
 	}
 	rc = posix_fallocate(fd, 0, size);
 	if (rc) {
 		rc = -errno;
-		syslog(LOG_ERR, "failed to set size of shm %s: %s\n", name,
+		syslog(LOG_WARNING, "failed to set size of shm %s: %s\n", name,
 		       cras_strerror(-rc));
 		return rc;
 	}
@@ -270,7 +270,7 @@ int cras_shm_reopen_ro(const char *name, int fd)
 	fd = shm_open(name, O_RDONLY, 0);
 	if (fd < 0) {
 		fd = -errno;
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Failed to re-open shared memory '%s' read-only: %s",
 		       name, cras_strerror(-fd));
 	}

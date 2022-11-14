@@ -119,7 +119,7 @@ cras_iodev_sr_bt_adapter_propagate(struct cras_iodev_sr_bt_adapter *adapter,
 
 	rc = iodev->get_buffer(iodev, &area, &frames);
 	if (rc != 0) {
-		syslog(LOG_ERR, "iodev->get_buffer return non-zero code %d",
+		syslog(LOG_WARNING, "iodev->get_buffer return non-zero code %d",
 		       rc);
 		return rc;
 	}
@@ -129,7 +129,8 @@ cras_iodev_sr_bt_adapter_propagate(struct cras_iodev_sr_bt_adapter *adapter,
 
 	rc = iodev->put_buffer(iodev, used_frames);
 	if (rc != 0) {
-		syslog(LOG_ERR, "aio->put_buffer return non-zero code %d", rc);
+		syslog(LOG_WARNING, "aio->put_buffer return non-zero code %d",
+		       rc);
 		return rc;
 	}
 
@@ -215,7 +216,7 @@ int cras_iodev_sr_bt_adapter_put_buffer(
 {
 	const unsigned readable = sample_buf_readable(&adapter->output_buf);
 	if (nread > readable) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "put_buffer nread (%u) must be <= readable (%u).", nread,
 		       readable);
 		return -EINVAL;

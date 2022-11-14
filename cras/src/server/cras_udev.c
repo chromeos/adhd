@@ -172,7 +172,7 @@ static void set_factory_default(unsigned card_number)
 		cmd_buf[ARRAY_SIZE(cmd_buf) - 1] = '\0';
 		r = system(cmd_buf);
 		if (r != 0)
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "%s: failed to init card '%d' "
 			       "to factory default.  Failure: %d.  Command: %s",
 			       __FUNCTION__, card_number, r, cmd_buf);
@@ -213,14 +213,14 @@ static uint32_t calculate_desc_checksum(struct udev_device *dev)
 	}
 
 	if (stat(path, &stat_buf) < 0) {
-		syslog(LOG_ERR, "failed to stat file %s: %s", path,
+		syslog(LOG_WARNING, "failed to stat file %s: %s", path,
 		       cras_strerror(errno));
 		return 0;
 	}
 
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
-		syslog(LOG_ERR, "failed to open file %s: %s", path,
+		syslog(LOG_WARNING, "failed to open file %s: %s", path,
 		       cras_strerror(errno));
 		return 0;
 	}
@@ -244,7 +244,7 @@ static uint32_t calculate_desc_checksum(struct udev_device *dev)
 		if (n == 0)
 			break;
 		if (n < 0) {
-			syslog(LOG_ERR, "failed to read file %s", path);
+			syslog(LOG_WARNING, "failed to read file %s", path);
 			goto bail;
 		}
 		read_size += n;

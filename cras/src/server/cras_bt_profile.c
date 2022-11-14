@@ -56,7 +56,7 @@ static DBusHandlerResult cras_bt_profile_handle_release(DBusConnection *conn,
 	if (!profile)
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-	syslog(LOG_ERR, "Profile %s released by bluetoothd", profile->name);
+	syslog(LOG_WARNING, "Profile %s released by bluetoothd", profile->name);
 	profile->release(profile);
 
 	reply = dbus_message_new_method_return(message);
@@ -107,7 +107,7 @@ cras_bt_profile_handle_new_connection(DBusConnection *conn,
 
 	device = cras_bt_device_get(object_path);
 	if (!device) {
-		syslog(LOG_ERR, "Device %s not found at %s new connection",
+		syslog(LOG_WARNING, "Device %s not found at %s new connection",
 		       object_path, profile_path);
 		device = cras_bt_device_create(conn, object_path);
 	}
@@ -255,7 +255,7 @@ static DBusHandlerResult cras_bt_handle_profile_messages(DBusConnection *conn,
 					       "Cancel")) {
 		return cras_bt_profile_handle_cancel(conn, message, arg);
 	} else {
-		syslog(LOG_ERR, "Unknown Profile message");
+		syslog(LOG_WARNING, "Unknown Profile message");
 	}
 
 	return DBUS_HANDLER_RESULT_HANDLED;
@@ -270,7 +270,7 @@ static void cras_bt_on_register_profile(DBusPendingCall *pending_call,
 	dbus_pending_call_unref(pending_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR)
-		syslog(LOG_ERR, "RegisterProfile returned error: %s",
+		syslog(LOG_WARNING, "RegisterProfile returned error: %s",
 		       dbus_message_get_error_name(reply));
 	dbus_message_unref(reply);
 }
@@ -357,7 +357,7 @@ int cras_bt_register_profile(DBusConnection *conn,
 		    pending_call, cras_bt_on_register_profile, NULL, NULL)) {
 		dbus_pending_call_cancel(pending_call);
 		dbus_pending_call_unref(pending_call);
-		syslog(LOG_ERR, "register profile fail on set notify");
+		syslog(LOG_WARNING, "register profile fail on set notify");
 		return -ENOMEM;
 	}
 
@@ -395,7 +395,7 @@ int cras_bt_unregister_profile(DBusConnection *conn,
 	dbus_message_unref(method_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "Unregister profile returned error: %s",
+		syslog(LOG_WARNING, "Unregister profile returned error: %s",
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 		return -EIO;
@@ -430,7 +430,7 @@ int cras_bt_add_profile(DBusConnection *conn, struct cras_bt_profile *profile)
 
 	if (!dbus_connection_register_object_path(
 		    conn, profile->object_path, &profile_vtable, &dbus_error)) {
-		syslog(LOG_ERR, "Could not register BT profile %s: %s",
+		syslog(LOG_WARNING, "Could not register BT profile %s: %s",
 		       profile->object_path, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		return -ENOMEM;
@@ -461,7 +461,7 @@ int cras_bt_rm_profile(DBusConnection *conn, struct cras_bt_profile *profile)
 
 	if (!dbus_connection_unregister_object_path(conn,
 						    profile->object_path)) {
-		syslog(LOG_ERR, "Could not unregister BT profile %s",
+		syslog(LOG_WARNING, "Could not unregister BT profile %s",
 		       profile->object_path);
 		return -ENOMEM;
 	}

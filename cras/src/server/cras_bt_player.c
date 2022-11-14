@@ -26,7 +26,7 @@ static void cras_bt_on_player_registered(DBusPendingCall *pending_call,
 	dbus_pending_call_unref(pending_call);
 
 	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "RegisterPlayer returned error: %s",
+		syslog(LOG_WARNING, "RegisterPlayer returned error: %s",
 		       dbus_message_get_error_name(reply));
 		dbus_message_unref(reply);
 		return;
@@ -330,7 +330,7 @@ int cras_bt_player_create(DBusConnection *conn)
 
 	if (!dbus_connection_register_object_path(
 		    conn, player.object_path, &player_vtable, &dbus_error)) {
-		syslog(LOG_ERR, "Cannot register player %s",
+		syslog(LOG_WARNING, "Cannot register player %s",
 		       player.object_path);
 		dbus_error_free(&dbus_error);
 		return -ENOMEM;
@@ -426,7 +426,7 @@ int cras_bt_player_update_identity(DBusConnection *conn, const char *identity)
 
 	if (strnlen(identity, CRAS_PLAYER_IDENTITY_SIZE_MAX - 1) ==
 	    CRAS_PLAYER_IDENTITY_SIZE_MAX - 1) {
-		syslog(LOG_ERR, "Identity is too long, using default");
+		syslog(LOG_WARNING, "Identity is too long, using default");
 		identity = CRAS_PLAYER_IDENTITY_DEFAULT;
 	}
 

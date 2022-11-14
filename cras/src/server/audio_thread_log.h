@@ -43,7 +43,7 @@ audio_thread_event_log_init(char *name)
 	 * cras_shm_setup fails.
 	 */
 	if (log == NULL) {
-		syslog(LOG_ERR, "Failed to create atlog by cras_shm_setup");
+		syslog(LOG_WARNING, "Failed to create atlog by cras_shm_setup");
 		log = (struct audio_thread_event_log *)calloc(
 			1, sizeof(struct audio_thread_event_log));
 	}

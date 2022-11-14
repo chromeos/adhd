@@ -576,7 +576,7 @@ static int configure_dev(struct cras_iodev *iodev)
 
 		count = snd_pcm_poll_descriptors_count(aio->handle);
 		if (count <= 0) {
-			syslog(LOG_ERR, "Invalid poll descriptors count\n");
+			syslog(LOG_WARNING, "Invalid poll descriptors count\n");
 			return count;
 		}
 
@@ -586,7 +586,7 @@ static int configure_dev(struct cras_iodev *iodev)
 
 		rc = snd_pcm_poll_descriptors(aio->handle, ufds, count);
 		if (rc < 0) {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Getting hotword poll descriptors: %s\n",
 			       snd_strerror(rc));
 			free(ufds);
@@ -1961,7 +1961,7 @@ static int fill_whole_buffer_with_zeros(struct cras_iodev *iodev)
 	rc = cras_alsa_mmap_get_whole_buffer(aio->handle, &dst);
 
 	if (rc < 0) {
-		syslog(LOG_ERR, "Failed to get whole buffer: %s",
+		syslog(LOG_WARNING, "Failed to get whole buffer: %s",
 		       snd_strerror(rc));
 		return rc;
 	}
@@ -2115,7 +2115,8 @@ static int leave_free_run(struct cras_iodev *odev)
 	else
 		rc = adjust_appl_ptr_samples_remaining(odev);
 	if (rc) {
-		syslog(LOG_ERR, "device %s failed to leave free run, rc = %d",
+		syslog(LOG_WARNING,
+		       "device %s failed to leave free run, rc = %d",
 		       odev->info.name, rc);
 		return rc;
 	}
@@ -2621,7 +2622,8 @@ void alsa_iodev_destroy(struct cras_iodev *iodev)
 		rc = cras_iodev_list_rm_output(iodev);
 
 	if (rc == -EBUSY) {
-		syslog(LOG_ERR, "Failed to remove iodev %s", iodev->info.name);
+		syslog(LOG_WARNING, "Failed to remove iodev %s",
+		       iodev->info.name);
 		return;
 	}
 

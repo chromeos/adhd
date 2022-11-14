@@ -163,7 +163,7 @@ int a2dp_encode(struct a2dp_info *a2dp, const void *pcm_buf, int pcm_buf_size,
 					link_mtu - a2dp->a2dp_buf_used,
 					&out_encoded);
 	if (processed < 0) {
-		syslog(LOG_ERR, "a2dp encode error %d", processed);
+		syslog(LOG_WARNING, "a2dp encode error %d", processed);
 		return processed;
 	}
 

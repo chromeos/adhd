@@ -188,22 +188,22 @@ static void suspend_cb(struct cras_timer *timer, void *arg)
 	/* Error log the reason so we can track them in user reports. */
 	switch (policy->suspend_reason) {
 	case A2DP_LONG_TX_FAILURE:
-		syslog(LOG_ERR, "Suspend dev: A2DP long Tx failure");
+		syslog(LOG_WARNING, "Suspend dev: A2DP long Tx failure");
 		break;
 	case A2DP_TX_FATAL_ERROR:
-		syslog(LOG_ERR, "Suspend dev: A2DP Tx fatal error");
+		syslog(LOG_WARNING, "Suspend dev: A2DP Tx fatal error");
 		break;
 	case CONN_WATCH_TIME_OUT:
-		syslog(LOG_ERR, "Suspend dev: Conn watch times out");
+		syslog(LOG_WARNING, "Suspend dev: Conn watch times out");
 		break;
 	case HFP_SCO_SOCKET_ERROR:
-		syslog(LOG_ERR, "Suspend dev: SCO socket error");
+		syslog(LOG_WARNING, "Suspend dev: SCO socket error");
 		break;
 	case HFP_AG_START_FAILURE:
-		syslog(LOG_ERR, "Suspend dev: HFP AG start failure");
+		syslog(LOG_WARNING, "Suspend dev: HFP AG start failure");
 		break;
 	case UNEXPECTED_PROFILE_DROP:
-		syslog(LOG_ERR, "Suspend dev: Unexpected profile drop");
+		syslog(LOG_WARNING, "Suspend dev: Unexpected profile drop");
 		break;
 	}
 
@@ -382,7 +382,7 @@ static void conn_watch_cb(struct cras_timer *timer, void *arg)
 						     conn_watch_cb, policy);
 			return;
 		} else {
-			syslog(LOG_ERR, "Connection watch timeout.");
+			syslog(LOG_WARNING, "Connection watch timeout.");
 			schedule_suspend(device, 0, CONN_WATCH_TIME_OUT);
 			goto done_with_policy;
 		}
@@ -404,7 +404,7 @@ static void conn_watch_cb(struct cras_timer *timer, void *arg)
 		    device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE)) {
 		rc = cras_hfp_ag_start(device);
 		if (rc) {
-			syslog(LOG_ERR, "Start audio gateway failed, rc %d",
+			syslog(LOG_WARNING, "Start audio gateway failed, rc %d",
 			       rc);
 			schedule_suspend(device, 0, HFP_AG_START_FAILURE);
 		}

@@ -117,7 +117,7 @@ static int cras_iodev_start(struct cras_iodev *iodev)
 	if (!cras_iodev_is_open(iodev))
 		return -EPERM;
 	if (!iodev->start) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "start called on device %s not supporting start ops",
 		       iodev->info.name);
 		return -EINVAL;
@@ -291,7 +291,7 @@ static int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 		 * state and transit to normal run state.*/
 		return cras_iodev_no_stream_playback_transition(odev, 0);
 	} else {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Device %s in state %d received sample ready event",
 		       odev->info.name, odev->state);
 		return -EINVAL;
@@ -462,7 +462,7 @@ int cras_iodev_set_format(struct cras_iodev *iodev,
 	if (iodev->update_supported_formats) {
 		rc = iodev->update_supported_formats(iodev);
 		if (rc) {
-			syslog(LOG_ERR, "Failed to update formats");
+			syslog(LOG_WARNING, "Failed to update formats");
 			return rc;
 		}
 	}
@@ -1103,8 +1103,8 @@ int cras_iodev_close(struct cras_iodev *iodev)
 
 	rc = iodev->close_dev(iodev);
 	if (rc)
-		syslog(LOG_ERR, "Error closing dev %s, rc %d", iodev->info.name,
-		       rc);
+		syslog(LOG_WARNING, "Error closing dev %s, rc %d",
+		       iodev->info.name, rc);
 	iodev->state = CRAS_IODEV_STATE_CLOSE;
 	if (iodev->ramp)
 		cras_ramp_reset(iodev->ramp);
@@ -1260,7 +1260,7 @@ int cras_iodev_get_input_buffer(struct cras_iodev *iodev, unsigned int *frames)
 		return rc;
 
 	if (*frames > frame_requested) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "frames returned from get_buffer is greater than "
 		       "requested: %u > %u",
 		       *frames, frame_requested);
@@ -1307,7 +1307,7 @@ int cras_iodev_get_output_buffer(struct cras_iodev *iodev,
 
 	rc = iodev->get_buffer(iodev, area, frames);
 	if (*frames > frame_requested) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "frames returned from get_buffer is greater than "
 		       "requested: %u > %u",
 		       *frames, frame_requested);
@@ -1408,7 +1408,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
 		frames_written = frames;
 		rc = cras_iodev_get_output_buffer(odev, &area, &frames_written);
 		if (rc < 0) {
-			syslog(LOG_ERR, "fill zeros fail: %d", rc);
+			syslog(LOG_WARNING, "fill zeros fail: %d", rc);
 			return rc;
 		}
 

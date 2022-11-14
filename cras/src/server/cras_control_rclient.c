@@ -261,8 +261,8 @@ static void register_for_notification(struct cras_rclient *client,
 			do_register ? send_num_active_streams_changed : NULL;
 		break;
 	default:
-		syslog(LOG_ERR, "Invalid client notification message ID: %u",
-		       msg_id);
+		syslog(LOG_WARNING,
+		       "Invalid client notification message ID: %u", msg_id);
 		break;
 	}
 

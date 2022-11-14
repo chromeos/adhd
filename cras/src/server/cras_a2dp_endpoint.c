@@ -196,7 +196,7 @@ void cras_a2dp_start(struct cras_bt_device *device)
 	BTLOG(btlog, BT_A2DP_START, 0, 0);
 
 	if (!transport || device != cras_bt_transport_device(transport)) {
-		syslog(LOG_ERR, "Device and active transport not match.");
+		syslog(LOG_WARNING, "Device and active transport not match.");
 		return;
 	}
 

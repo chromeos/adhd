@@ -158,7 +158,7 @@ void cras_dbus_notify_rtc_active(bool active)
 	int active_val = !!active;
 
 	if (!dbus_control.conn) {
-		syslog(LOG_ERR, "%s: cras dbus connection not ready yet.",
+		syslog(LOG_WARNING, "%s: cras dbus connection not ready yet.",
 		       __func__);
 		return;
 	}
@@ -169,19 +169,21 @@ void cras_dbus_notify_rtc_active(bool active)
 		"org.chromium.ResourceManager", // interface
 		"SetRTCAudioActive"); // method
 	if (!msg) {
-		syslog(LOG_ERR, "%s: Unable to create dbus message.", __func__);
+		syslog(LOG_WARNING, "%s: Unable to create dbus message.",
+		       __func__);
 		return;
 	}
 
 	if (!dbus_message_append_args(msg, DBUS_TYPE_BYTE, &active_val,
 				      DBUS_TYPE_INVALID)) {
-		syslog(LOG_ERR, "%s: Unable to append bool to dbus message.",
-		       __func__);
+		syslog(LOG_WARNING,
+		       "%s: Unable to append bool to dbus message.", __func__);
 		return;
 	}
 
 	if (!dbus_connection_send(dbus_control.conn, msg, NULL))
-		syslog(LOG_ERR, "%s: Error sending dbus message.", __func__);
+		syslog(LOG_WARNING, "%s: Error sending dbus message.",
+		       __func__);
 }
 
 /* Helper to send an bool reply. */
@@ -492,7 +494,7 @@ static dbus_bool_t append_node_dict(DBusMessageIter *iter,
 
 	// If dev_name is not utf8, libdbus may abort cras.
 	if (!is_utf8_string(dev_name)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Non-utf8 device name '%s' cannot be sent via dbus",
 		       dev_name);
 		dev_name = "";
@@ -886,7 +888,7 @@ static bool append_num_input_streams_with_permission(
 	for (type = 0; type < CRAS_NUM_CLIENT_TYPE; ++type) {
 		const char *client_type_str = cras_client_type_str(type);
 		if (!is_utf8_string(client_type_str)) {
-			syslog(LOG_ERR,
+			syslog(LOG_WARNING,
 			       "Non-utf8 clinet_type_str '%s' cannot be sent "
 			       "via dbus",
 			       client_type_str);
@@ -1467,7 +1469,7 @@ static DBusMessage *create_dbus_message(const char *name)
 	msg = dbus_message_new_signal(CRAS_ROOT_OBJECT_PATH,
 				      CRAS_CONTROL_INTERFACE, name);
 	if (!msg)
-		syslog(LOG_ERR, "Failed to create signal");
+		syslog(LOG_WARNING, "Failed to create signal");
 
 	return msg;
 }

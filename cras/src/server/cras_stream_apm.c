@@ -323,7 +323,7 @@ static bool toggle_dsp_effect(struct cras_iodev *const idev, uint64_t effect,
 	}
 
 	if (dsp_effect_activated != should_be_activated)
-		syslog(LOG_ERR, "Failed to %s DSP effect 0x%lx",
+		syslog(LOG_WARNING, "Failed to %s DSP effect 0x%lx",
 		       should_be_activated ? "enable" : "disable",
 		       (unsigned long)effect);
 
@@ -1252,7 +1252,7 @@ void cras_stream_apm_set_aec_dump(struct cras_stream_apm *stream,
 	if (start) {
 		handle = fdopen(fd, "w");
 		if (handle == NULL) {
-			syslog(LOG_ERR, "Create dump handle fail, errno %d",
+			syslog(LOG_WARNING, "Create dump handle fail, errno %d",
 			       errno);
 			return;
 		}
@@ -1260,13 +1260,14 @@ void cras_stream_apm_set_aec_dump(struct cras_stream_apm *stream,
 		rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, start,
 					 handle);
 		if (rc)
-			syslog(LOG_ERR, "Fail to dump debug file %s, rc %d",
+			syslog(LOG_WARNING, "Fail to dump debug file %s, rc %d",
 			       file_name, rc);
 	} else {
 		rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, 0,
 					 NULL);
 		if (rc)
-			syslog(LOG_ERR, "Failed to stop apm debug, rc %d", rc);
+			syslog(LOG_WARNING, "Failed to stop apm debug, rc %d",
+			       rc);
 	}
 }
 

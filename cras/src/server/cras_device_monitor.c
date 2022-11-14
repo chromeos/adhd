@@ -41,7 +41,7 @@ int cras_device_monitor_reset_device(unsigned int dev_idx)
 	init_device_msg(&msg, RESET_DEVICE, dev_idx);
 	err = cras_main_message_send((struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send device message %d",
+		syslog(LOG_WARNING, "Failed to send device message %d",
 		       RESET_DEVICE);
 		return err;
 	}
@@ -56,7 +56,7 @@ int cras_device_monitor_set_device_mute_state(unsigned int dev_idx)
 	init_device_msg(&msg, SET_MUTE_STATE, dev_idx);
 	err = cras_main_message_send((struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send device message %d",
+		syslog(LOG_WARNING, "Failed to send device message %d",
 		       SET_MUTE_STATE);
 		return err;
 	}
@@ -71,7 +71,7 @@ int cras_device_monitor_error_close(unsigned int dev_idx)
 	init_device_msg(&msg, ERROR_CLOSE, dev_idx);
 	err = cras_main_message_send((struct cras_main_message *)&msg);
 	if (err < 0) {
-		syslog(LOG_ERR, "Failed to send device message %d",
+		syslog(LOG_WARNING, "Failed to send device message %d",
 		       ERROR_CLOSE);
 		return err;
 	}
@@ -92,7 +92,8 @@ static void handle_device_message(struct cras_main_message *msg, void *arg)
 
 	switch (device_msg->message_type) {
 	case RESET_DEVICE:
-		syslog(LOG_ERR, "trying to recover device 0x%x by resetting it",
+		syslog(LOG_WARNING,
+		       "trying to recover device 0x%x by resetting it",
 		       device_msg->dev_idx);
 		cras_iodev_list_suspend_dev(device_msg->dev_idx);
 		cras_iodev_list_resume_dev(device_msg->dev_idx);
@@ -101,11 +102,11 @@ static void handle_device_message(struct cras_main_message *msg, void *arg)
 		cras_iodev_list_set_dev_mute(device_msg->dev_idx);
 		break;
 	case ERROR_CLOSE:
-		syslog(LOG_ERR, "Close erroneous device in main thread");
+		syslog(LOG_WARNING, "Close erroneous device in main thread");
 		cras_iodev_list_suspend_dev(device_msg->dev_idx);
 		break;
 	default:
-		syslog(LOG_ERR, "Unknown device message type %u",
+		syslog(LOG_WARNING, "Unknown device message type %u",
 		       device_msg->message_type);
 		break;
 	}

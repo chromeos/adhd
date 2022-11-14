@@ -149,7 +149,7 @@ static void cras_bt_interface_added(DBusConnection *conn,
 			       cras_bt_adapter_address(adapter));
 			ret = cras_bt_register_battery_provider(conn, adapter);
 			if (ret != 0) {
-				syslog(LOG_ERR,
+				syslog(LOG_WARNING,
 				       "Error registering Battery Provider "
 				       "for adapter %s: %s",
 				       cras_bt_adapter_address(adapter),

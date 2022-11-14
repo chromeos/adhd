@@ -422,7 +422,7 @@ leave:
 	 */
 	rc = update_supported_formats(iodev);
 	if (rc) {
-		syslog(LOG_ERR, "Failed to update supported formats, rc=%d",
+		syslog(LOG_WARNING, "Failed to update supported formats, rc=%d",
 		       rc);
 	}
 }
@@ -707,7 +707,7 @@ static int bt_io_append(struct cras_iodev *bt_iodev, struct cras_iodev *dev)
 		// TODO(hychao): remove below after BT stop sending asynchronous
 		// A2DP and HFP connection to CRAS.
 		cras_bt_policy_switch_profile(btio->mgr);
-		syslog(LOG_ERR, "Switch to A2DP on append");
+		syslog(LOG_WARNING, "Switch to A2DP on append");
 	}
 	return 0;
 }
@@ -805,7 +805,7 @@ void bt_io_manager_append_iodev(struct bt_io_manager *mgr,
 	bt_iodev = mgr->bt_iodevs[iodev->direction];
 
 	if (!(iodev->active_node->btflags & pflag)) {
-		syslog(LOG_ERR,
+		syslog(LOG_WARNING,
 		       "Incorrect btflags %.4x for dev %s as profile %.4x",
 		       iodev->active_node->btflags, iodev->info.name, pflag);
 		return;
@@ -879,7 +879,7 @@ void bt_io_manager_remove_iodev(struct bt_io_manager *mgr,
 	}
 	rc = bt_io_remove(bt_iodev, iodev);
 	if (rc) {
-		syslog(LOG_ERR, "Fail to fallback to profile %u", new_flag);
+		syslog(LOG_WARNING, "Fail to fallback to profile %u", new_flag);
 		goto destroy_bt_io;
 	}
 
