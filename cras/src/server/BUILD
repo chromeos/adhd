@@ -43,8 +43,8 @@ cc_library(
     copts = ["-Isrc/common"],
     visibility = ["//src/benchmark:__pkg__"],
     deps = [
-        "//src/common:cras_util",
         "//src/common:cras_string",
+        "//src/common:cras_util",
         "//src/common:utlist",
     ],
 )
