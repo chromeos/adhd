@@ -9,7 +9,6 @@ cc_library(
         "cras_system_state.h",
     ],
     hdrs = ["cras_mix_ops.h"],
-    copts = ["-Isrc/common"],
     visibility = ["//src/benchmark:__pkg__"],
     deps = ["//src/common:cras_types"],
 )
@@ -20,7 +19,6 @@ cc_library(
         "cras_alsa_helpers.c",
     ],
     hdrs = ["cras_alsa_helpers.h"],
-    copts = ["-Isrc/common"],
     visibility = ["//src/benchmark:__pkg__"],
     deps = [
         "//src/common:cras_types",
@@ -40,7 +38,6 @@ cc_library(
         "cras_alsa_ucm.h",
         "cras_alsa_ucm_section.h",
     ],
-    copts = ["-Isrc/common"],
     visibility = ["//src/benchmark:__pkg__"],
     deps = [
         "//src/common:cras_string",

@@ -14,10 +14,6 @@ cc_binary(
         "//:apm_build": ["apm_benchmark.cc"],
         "//conditions:default": [],
     }),
-    copts = [
-        "-Isrc/common",
-        "-Isrc/libcras",
-    ],
     linkopts = [
         "-lm",
     ] + select({

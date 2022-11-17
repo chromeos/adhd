@@ -8,9 +8,6 @@ cc_library(
         "cras_client.c",
     ],
     hdrs = ["cras_client.h"],
-    copts = [
-        "-Isrc/common",
-    ],
     linkopts = select({
         "//conditions:default": [
             "-lm",

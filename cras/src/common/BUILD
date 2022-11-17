@@ -104,6 +104,7 @@ cc_library(
         "cras_audio_format.h",
         "cras_types.h",
     ],
+    includes = ["."],
     visibility = [
         "//src/benchmark:__pkg__",
         "//src/dsp:__pkg__",
@@ -116,9 +117,6 @@ cc_library(
     name = "cras_util",
     srcs = ["cras_util.c"],
     hdrs = ["cras_util.h"],
-    copts = [
-        "-Isrc/common",
-    ],
     visibility = [
         "//src/benchmark:__pkg__",
         "//src/libcras:__pkg__",
@@ -130,9 +128,6 @@ cc_library(
 cc_library(
     name = "utlist",
     hdrs = ["utlist.h"],
-    copts = [
-        "-Isrc/common",
-    ],
     visibility = [
         "//src/libcras:__pkg__",
         "//src/server:__pkg__",
