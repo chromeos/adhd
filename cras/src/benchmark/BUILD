@@ -4,46 +4,70 @@
 
 cc_binary(
     name = "cras_bench",
+    deps = [
+        ":benchmark_util",
+        ":default_benchmarks",
+        "@com_github_google_benchmark//:benchmark_main",
+    ] + select({
+        "//:apm_build": [":apm_benchmark"],
+        "//conditions:default": [],
+    }) + select({
+        "//:hw_dependent_build": ["alsa_benchmark"],
+        "//conditions:default": [],
+    }),
+)
+
+cc_library(
+    name = "default_benchmarks",
     srcs = [
         "dsp_benchmark.cc",
         "mixer_ops_benchmark.cc",
-    ] + select({
-        "//:hw_dependent_build": ["alsa_benchmark.cc"],
-        "//conditions:default": [],
-    }) + select({
-        "//:apm_build": ["apm_benchmark.cc"],
-        "//conditions:default": [],
-    }),
-    linkopts = [
-        "-lm",
-    ] + select({
-        "//:hw_dependent_build": [
-            "-lasound",
-            "-lcros_config",
-        ],
-        "//conditions:default": [
-        ],
-    }) + select({
-        "//:apm_build": ["-lwebrtc_apm"],
-        "//conditions:default": [],
-    }),
+    ],
     deps = [
         ":benchmark_util",
         "//src/dsp:drc",
         "//src/dsp:dsp_util",
         "//src/dsp:eq2",
         "//src/server:cras_mix_ops",
-        "@com_github_google_benchmark//:benchmark_main",
-    ] + select({
-        "//:hw_dependent_build": [
-            "//src/libcras:cras_client",
-            "//src/server:cras_alsa_helpers",
-            "//src/server:cras_alsa_ucm",
-            "@pkg_config//:libcros_config",
-            "@pkg_config//:libchrome",
-        ],
-        "//conditions:default": [],
-    }),
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_library(
+    name = "apm_benchmark",
+    srcs = [
+        "apm_benchmark.cc",
+    ],
+    linkopts = [
+        "-lwebrtc_apm",
+    ],
+    deps = [
+        ":benchmark_util",
+        "//src/dsp:dsp_util",
+        "//src/server:cras_mix_ops",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+)
+
+cc_library(
+    name = "alsa_benchmark",
+    srcs = [
+        "alsa_benchmark.cc",
+    ],
+    linkopts = [
+        "-lasound",
+        "-lcros_config",
+    ],
+    deps = [
+        ":benchmark_util",
+        "//src/libcras:cras_client",
+        "//src/server:cras_alsa_helpers",
+        "//src/server:cras_alsa_ucm",
+        "//src/server:cras_mix_ops",
+        "@com_github_google_benchmark//:benchmark",
+        "@pkg_config//:libchrome",
+        "@pkg_config//:libcros_config",
+    ],
 )
 
 cc_library(
