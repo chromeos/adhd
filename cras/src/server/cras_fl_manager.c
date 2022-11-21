@@ -498,6 +498,8 @@ static void floss_stop(struct bt_stack *s)
 	dbus_connection_remove_filter(s->conn, floss_handle_interfaces_removed,
 				      NULL);
 	dbus_connection_unregister_object_path(s->conn, CRAS_BT_OBJECT_PATH);
+
+	floss_media_stop(s->conn);
 }
 
 static bool floss_enabled;
