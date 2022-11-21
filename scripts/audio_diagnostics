@@ -29,6 +29,20 @@ in_the_list() {
     return 1
 }
 
+
+dump_amp() {
+    AMP=$(cros_config /audio/main speaker-amp)
+    CONFIG=$(cros_config /audio/main sound-card-init-conf)
+    if [ ! -z "${AMP}" ] && [ ! -z "${CONFIG}" ]; then
+      echo "Note: the current RDC of MAX98373 needs to be measured while an non-zero output stream is playing."
+      for card in ${@}
+      do
+          echo "=== sound_card_init debug --id ${card} --amp ${AMP} --conf ${CONFIG} ==="
+          sound_card_init debug --id ${card} --amp ${AMP} --conf ${CONFIG}
+      done
+    fi
+}
+
 TAG="audio_diagnostics"
 
 echo '=== cras_test_client --dump_server_info ==='
@@ -120,3 +134,5 @@ do
 
     cat "${file_path}/registers"
 done
+
+dump_amp "${output_cards}"
