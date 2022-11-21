@@ -201,8 +201,8 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-/* Things to do when bluetooth Manager interface is added. */
-static void floss_on_bt_manager_addedd(DBusConnection *conn)
+/* Things to do when bluetooth manager interface is added. */
+static void floss_on_bt_manager_added(DBusConnection *conn)
 {
 	BTLOG(btlog, BT_MANAGER_ADDED, 0, 0);
 	floss_manager_register_callback(conn);
@@ -255,7 +255,7 @@ static void floss_on_get_managed_objects(DBusPendingCall *pending_call,
 		dbus_message_iter_get_basic(&object_dict_iter, &object_path);
 
 		if (strcmp(object_path, BT_MANAGER_OBJECT) == 0)
-			floss_on_bt_manager_addedd(conn);
+			floss_on_bt_manager_added(conn);
 
 		dbus_message_iter_next(&object_array_iter);
 	}
@@ -349,7 +349,7 @@ static DBusHandlerResult floss_handle_interfaces_added(DBusConnection *conn,
 	dbus_message_iter_get_basic(&message_iter, &object_path);
 
 	if (strcmp(object_path, BT_MANAGER_OBJECT) == 0)
-		floss_on_bt_manager_addedd(conn);
+		floss_on_bt_manager_added(conn);
 
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
