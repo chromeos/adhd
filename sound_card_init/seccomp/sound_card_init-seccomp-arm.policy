@@ -24,7 +24,6 @@ fcntl64: 1
 fstatat64: 1
 fstatfs64: 1
 fstatfs: 1
-fstatfs64: 1
 futex: 1
 futex_time64: 1
 getpid: 1
