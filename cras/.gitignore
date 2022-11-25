@@ -50,5 +50,4 @@ tags
 bazel-*
 
 # clangd
-compile_commands.json
 /.cache/
