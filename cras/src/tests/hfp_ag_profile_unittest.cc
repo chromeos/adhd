@@ -297,8 +297,3 @@ int cras_server_metrics_hfp_wideband_selected_codec(int codec) {
 }
 
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

@@ -133,8 +133,3 @@ float cras_rstream_get_volume_scaler(struct cras_rstream* rstream) {
 }
 }  // extern "C"
 }  // namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

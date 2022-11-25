@@ -567,8 +567,3 @@ int cras_server_metrics_hfp_mic_sr_status(
 }
 
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

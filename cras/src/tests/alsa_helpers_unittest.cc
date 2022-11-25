@@ -286,8 +286,3 @@ int snd_pcm_htimestamp(snd_pcm_t* pcm,
   return 0;
 }
 }
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

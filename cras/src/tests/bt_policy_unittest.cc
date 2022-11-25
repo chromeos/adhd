@@ -460,8 +460,3 @@ void bt_io_manager_set_nodes_plugged(struct bt_io_manager* mgr, int plugged) {
 }
 
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

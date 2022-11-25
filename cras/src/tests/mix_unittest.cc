@@ -1264,8 +1264,3 @@ TEST_F(MixTestSuiteS24_3LE, StrideCopy) {
 extern "C" {}  // extern "C"
 
 }  //  namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

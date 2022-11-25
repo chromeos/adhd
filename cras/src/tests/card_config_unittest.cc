@@ -311,8 +311,3 @@ struct cras_volume_curve* cras_volume_curve_create_explicit(long dB_vals[101]) {
 }
 
 }  //  namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

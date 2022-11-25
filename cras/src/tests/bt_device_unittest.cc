@@ -527,8 +527,3 @@ void dbus_message_iter_get_basic(DBusMessageIter* iter, void* value) {
 
 }  // extern "C"
 }  // namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

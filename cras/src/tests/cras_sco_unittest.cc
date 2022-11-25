@@ -780,8 +780,3 @@ void packet_status_logger_init(struct packet_status_logger* logger) {
 void packet_status_logger_update(struct packet_status_logger* logger,
                                  bool val) {}
 }
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

@@ -424,11 +424,6 @@ TEST_F(PcmIodev, TestHfpCb) {
 }
 }  // namespace
 
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
-
 extern "C" {
 // Cras iodev
 void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {

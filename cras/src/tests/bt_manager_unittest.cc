@@ -261,8 +261,3 @@ void cras_bt_transport_update_properties(
     DBusMessageIter* properties_array_iter,
     DBusMessageIter* invalidated_array_iter) {}
 }
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

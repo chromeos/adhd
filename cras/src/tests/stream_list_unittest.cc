@@ -147,8 +147,3 @@ void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {}
 }
 
 }  // namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

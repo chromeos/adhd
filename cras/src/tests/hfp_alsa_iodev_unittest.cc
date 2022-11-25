@@ -766,8 +766,3 @@ int cras_iodev_sr_bt_adapter_flush_buffer(void*) {
 };
 
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

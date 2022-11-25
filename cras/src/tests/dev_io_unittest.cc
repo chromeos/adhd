@@ -486,8 +486,3 @@ int cras_system_get_capture_mute() {
 }  // extern "C"
 
 }  //  namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

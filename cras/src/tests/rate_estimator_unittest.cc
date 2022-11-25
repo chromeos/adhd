@@ -175,8 +175,3 @@ TEST(RateEstimatorTest, EstimateInputLinear2) {
 
   rate_estimator_destroy(re);
 }
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

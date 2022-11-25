@@ -2184,8 +2184,3 @@ size_t cras_fmt_conv_out_frames_to_in(struct cras_fmt_conv* conv,
 }
 
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

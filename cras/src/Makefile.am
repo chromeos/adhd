@@ -719,7 +719,7 @@ alert_unittest_SOURCES = tests/alert_unittest.cc \
 alert_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-alert_unittest_LDADD = -lgtest -lpthread
+alert_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 alsa_card_unittest_SOURCES = tests/alsa_card_unittest.cc \
 	server/cras_alsa_card.c server/cras_alsa_mixer_name.c \
@@ -728,25 +728,25 @@ alsa_card_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
-alsa_card_unittest_LDADD = -lgtest -lpthread
+alsa_card_unittest_LDADD = $(GTEST_LIBS) -lpthread
 
 alsa_helpers_unittest_SOURCES = tests/alsa_helpers_unittest.cc \
 	common/cras_audio_format.c
 alsa_helpers_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-alsa_helpers_unittest_LDADD = -lgtest -lpthread
+alsa_helpers_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 audio_area_unittest_SOURCES = tests/audio_area_unittest.cc \
 	server/cras_audio_area.c
 audio_area_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
-audio_area_unittest_LDADD = -lgtest -lpthread
+audio_area_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 audio_format_unittest_SOURCES = tests/audio_format_unittest.cc
 audio_format_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
-audio_format_unittest_LDADD = -lgtest -lpthread
+audio_format_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 if HAVE_DBUS
 a2dp_info_unittest_SOURCES =  \
@@ -755,18 +755,18 @@ a2dp_info_unittest_SOURCES =  \
 	tests/sbc_codec_stub.cc
 a2dp_info_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common
-a2dp_info_unittest_LDADD = -lgtest -lpthread
+a2dp_info_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 a2dp_iodev_unittest_SOURCES = tests/a2dp_iodev_unittest.cc common/strlcpy.c
 a2dp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
-a2dp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+a2dp_iodev_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 a2dp_manager_unittest_SOURCES = tests/a2dp_manager_unittest.cc \
 	server/cras_a2dp_manager.c
 a2dp_manager_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common $(DBUS_CFLAGS)
-a2dp_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+a2dp_manager_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 endif
 
@@ -776,7 +776,7 @@ fl_pcm_iodev_unittest_SOURCES = tests/fl_pcm_iodev_unittest.cc \
 	common/strlcpy.c
 fl_pcm_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common
-fl_pcm_iodev_unittest_LDADD = -lgtest -lpthread
+fl_pcm_iodev_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
 	common/sfh.c \
@@ -786,7 +786,7 @@ alsa_io_unittest_SOURCES = tests/alsa_io_unittest.cc server/softvol_curve.c \
 alsa_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server/config
-alsa_io_unittest_LDADD = -lgtest -lpthread
+alsa_io_unittest_LDADD = $(GTEST_LIBS) -lpthread
 
 alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \
 	server/cras_alsa_jack.c \
@@ -797,7 +797,7 @@ alsa_jack_unittest_SOURCES = tests/alsa_jack_unittest.cc \
 	common/edid_utils.c
 alsa_jack_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-alsa_jack_unittest_LDADD = -lgtest -lpthread
+alsa_jack_unittest_LDADD = $(GTEST_LIBS) -lpthread
 
 alsa_mixer_unittest_SOURCES = tests/alsa_mixer_unittest.cc \
 	server/cras_alsa_mixer_name.c \
@@ -807,7 +807,7 @@ alsa_mixer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
-alsa_mixer_unittest_LDADD = -lgtest -lpthread
+alsa_mixer_unittest_LDADD = $(GTEST_LIBS) -lpthread
 
 alsa_ucm_unittest_SOURCES = tests/alsa_ucm_unittest.cc \
 	server/cras_alsa_mixer_name.c \
@@ -817,7 +817,7 @@ alsa_ucm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config
-alsa_ucm_unittest_LDADD = -lgtest -lpthread
+alsa_ucm_unittest_LDADD = $(GTEST_LIBS) -lpthread
 
 if HAVE_WEBRTC_APM
 stream_apm_unittest_SOURCES = tests/stream_apm_unittest.cc \
@@ -827,7 +827,7 @@ stream_apm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
 	$(WEBRTC_APM_CFLAGS)
-stream_apm_unittest_LDADD = -lgtest -liniparser
+stream_apm_unittest_LDADD = $(GTEST_MAIN_LIBS) -liniparser
 
 apm_reverse_unittest_SOURCES = tests/apm_reverse_unittest.cc \
 	server/cras_apm_reverse.c
@@ -836,12 +836,12 @@ apm_reverse_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config \
 	$(WEBRTC_APM_CFLAGS)
-apm_reverse_unittest_LDADD = -lgtest
+apm_reverse_unittest_LDADD = $(GTEST_MAIN_LIBS)
 endif
 
 array_unittest_SOURCES = tests/array_unittest.cc
 array_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-array_unittest_LDADD = -lgtest -lpthread
+array_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 	server/dev_io.c tests/empty_audio_stub.cc tests/metrics_stub.cc \
@@ -849,12 +849,12 @@ audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(SERVER_RUST_SRCDIR)/include
-audio_thread_unittest_LDADD = -lgtest -lpthread -lrt
+audio_thread_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread -lrt
 
 audio_thread_monitor_unittest_SOURCES = tests/audio_thread_monitor_unittest.cc
 audio_thread_monitor_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-audio_thread_monitor_unittest_LDADD = -lgtest -lpthread -lrt
+audio_thread_monitor_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread -lrt
 
 if HAVE_DBUS
 bt_device_unittest_SOURCES = tests/bt_device_unittest.cc \
@@ -862,23 +862,23 @@ bt_device_unittest_SOURCES = tests/bt_device_unittest.cc \
 	tests/metrics_stub.cc common/sfh.c
 bt_device_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
-bt_device_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+bt_device_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 bt_io_unittest_SOURCES = tests/bt_io_unittest.cc common/sfh.c common/strlcpy.c
 bt_io_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
-bt_io_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+bt_io_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 bt_manager_unittest_SOURCES = tests/bt_manager_unittest.cc \
 	server/cras_bt_manager.c server/cras_bt_log.c common/cras_string.c
 bt_manager_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
-bt_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+bt_manager_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 bt_policy_unittest_SOURCES = tests/bt_policy_unittest.cc
 bt_policy_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/common $(DBUS_CFLAGS)
-bt_policy_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+bt_policy_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 endif
 
@@ -886,22 +886,22 @@ biquad_unittest_SOURCES = tests/biquad_unittest.cc \
 	dsp/biquad.c
 biquad_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS) \
 	-I$(top_srcdir)/src/server
-biquad_unittest_LDADD = -lgtest -lpthread -lm
+biquad_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread -lm
 
 byte_buffer_unittest_SOURCES = tests/byte_buffer_unittest.cc
 byte_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-byte_buffer_unittest_LDADD = -lgtest -lpthread
+byte_buffer_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 card_config_unittest_SOURCES = tests/card_config_unittest.cc \
 	server/config/cras_card_config.c
 card_config_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config $(CRAS_UT_TMPDIR_CFLAGS)
-card_config_unittest_LDADD = -lgtest -liniparser -lpthread
+card_config_unittest_LDADD = $(GTEST_MAIN_LIBS) -liniparser -lpthread
 
 checksum_unittest_SOURCES = tests/checksum_unittest.cc common/cras_checksum.c
 checksum_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-checksum_unittest_LDADD = -lgtest -lpthread
+checksum_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 cras_abi_unittest_SOURCES = tests/cras_abi_unittest.cc \
 	common/cras_config.c common/cras_shm.c common/cras_util.c \
@@ -909,32 +909,32 @@ cras_abi_unittest_SOURCES = tests/cras_abi_unittest.cc \
 	common/cras_string.c common/strlcpy.c
 cras_abi_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras
-cras_abi_unittest_LDADD = -lgtest -lpthread -lrt -lspeexdsp
+cras_abi_unittest_LDADD = $(GTEST_LIBS) -lpthread -lrt -lspeexdsp
 
 cras_client_unittest_SOURCES = tests/cras_client_unittest.cc \
 	common/cras_config.c common/cras_shm.c common/cras_util.c \
 	common/cras_file_wait.c common/cras_string.c
 cras_client_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras
-cras_client_unittest_LDADD = -lgtest -lpthread -lrt -lspeexdsp
+cras_client_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread -lrt -lspeexdsp
 
 cras_rtc_unittest_SOURCES = tests/cras_rtc_unittest.cc server/cras_rtc.c \
 	common/cras_string.c
 cras_rtc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-cras_rtc_unittest_LDADD = -lgtest -lpthread
+cras_rtc_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
 cras_tm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-cras_tm_unittest_LDADD = -lgtest -lpthread
+cras_tm_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 if HAVE_ML
 cras_sr_unittest_SOURCES = tests/cras_sr_unittest.cc server/cras_sr.c \
 	server/cras_fmt_conv_ops.c tests/am_mock.c
 cras_sr_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-cras_sr_unittest_LDADD = -lgtest -lpthread -lspeexdsp
+cras_sr_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread -lspeexdsp
 endif
 
 cras_sr_bt_util_unittest_SOURCES = tests/cras_sr_bt_util_unittest.cc \
@@ -942,7 +942,7 @@ cras_sr_bt_util_unittest_SOURCES = tests/cras_sr_bt_util_unittest.cc \
 cras_sr_bt_util_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(SERVER_RUST_SRCDIR)/include
-cras_sr_bt_util_unittest_LDADD = -lgtest -lpthread
+cras_sr_bt_util_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 dev_io_unittest_SOURCES = \
 	$(CRAS_SELINUX_UNITTEST_SOURCES) \
@@ -969,46 +969,46 @@ dev_io_unittest_LDADD = \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
 	$(SELINUX_LIBS) \
-	-lgtest -lrt -lpthread -ldl -lm -lspeexdsp
+	$(GTEST_MAIN_LIBS) -lrt -lpthread -ldl -lm -lspeexdsp
 
 dev_stream_unittest_SOURCES = tests/dev_stream_unittest.cc \
 	server/dev_stream.c common/cras_shm.c tests/dev_io_stubs.cc \
 	common/cras_string.c
 dev_stream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-dev_stream_unittest_LDADD = -lgtest -liniparser -lpthread -lrt
+dev_stream_unittest_LDADD = $(GTEST_MAIN_LIBS) -liniparser -lpthread -lrt
 
 device_blocklist_unittest_SOURCES = tests/device_blocklist_unittest.cc \
 	server/config/cras_device_blocklist.c
 device_blocklist_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config $(CRAS_UT_TMPDIR_CFLAGS)
-device_blocklist_unittest_LDADD = -lgtest -liniparser -lpthread
+device_blocklist_unittest_LDADD = $(GTEST_MAIN_LIBS) -liniparser -lpthread
 
 device_monitor_unittest_SOURCES = tests/device_monitor_unittest.cc
 device_monitor_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-device_monitor_unittest_LDADD = -lgtest -lpthread
+device_monitor_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 dsp_core_unittest_SOURCES = tests/dsp_core_unittest.cc dsp/eq.c dsp/eq2.c \
 	dsp/biquad.c dsp/dsp_util.c dsp/crossover.c dsp/crossover2.c dsp/drc.c \
 	dsp/drc_kernel.c dsp/drc_math.c dsp/quad_rotation.c
 dsp_core_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) $(DSP_INCLUDE_PATHS) \
   -I$(top_srcdir)/src/server
-dsp_core_unittest_LDADD = -lgtest -lpthread
+dsp_core_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 dsp_ini_unittest_SOURCES = tests/dsp_ini_unittest.cc \
 	server/cras_dsp_ini.c server/cras_expr.c common/dumper.c
 dsp_ini_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-dsp_ini_unittest_LDADD = -lgtest -liniparser -lpthread
+dsp_ini_unittest_LDADD = $(GTEST_MAIN_LIBS) -liniparser -lpthread
 
 dsp_pipeline_unittest_SOURCES = tests/cras_dsp_pipeline_unittest.cc \
 	server/cras_dsp_ini.c server/cras_expr.c server/cras_dsp_pipeline.c \
 	common/dumper.c common/cras_string.c dsp/dsp_util.c
 dsp_pipeline_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server $(DSP_INCLUDE_PATHS)
-dsp_pipeline_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
+dsp_pipeline_unittest_LDADD = $(GTEST_MAIN_LIBS) -lrt -liniparser -lpthread
 
 dsp_unittest_SOURCES = tests/dsp_unittest.cc \
 	server/cras_dsp.c server/cras_dsp_ini.c server/cras_dsp_pipeline.c \
@@ -1016,59 +1016,59 @@ dsp_unittest_SOURCES = tests/dsp_unittest.cc \
 	dsp/tests/dsp_test_util.c
 dsp_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server $(DSP_INCLUDE_PATHS)
-dsp_unittest_LDADD = -lgtest -lrt -liniparser -lpthread
+dsp_unittest_LDADD = $(GTEST_MAIN_LIBS) -lrt -liniparser -lpthread
 
 dumper_unittest_SOURCES = tests/dumper_unittest.cc common/dumper.c
 dumper_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-dumper_unittest_LDADD = -lgtest -lpthread
+dumper_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 edid_utils_unittest_SOURCES = tests/edid_utils_unittest.cc common/edid_utils.c
 edid_utils_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-edid_utils_unittest_LDADD = -lgtest -lpthread
+edid_utils_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 sample_buffer_unittest_SOURCES = tests/sample_buffer_unittest.cc
 sample_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-sample_buffer_unittest_LDADD = -lgtest -lpthread
+sample_buffer_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 empty_iodev_unittest_SOURCES = tests/empty_iodev_unittest.cc \
 	server/cras_empty_iodev.c \
 	common/strlcpy.c
 empty_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-empty_iodev_unittest_LDADD = -lgtest -lpthread
+empty_iodev_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 expr_unittest_SOURCES = tests/expr_unittest.cc server/cras_expr.c common/dumper.c
 expr_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-expr_unittest_LDADD = -lgtest -lpthread
+expr_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 file_wait_unittest_SOURCES = tests/file_wait_unittest.cc \
 	common/cras_file_wait.c common/cras_util.c common/strlcpy.c
 file_wait_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	$(CRAS_UT_TMPDIR_CFLAGS)
-file_wait_unittest_LDADD = -lgtest -lpthread
+file_wait_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 floop_iodev_unittest_SOURCES = tests/floop_iodev_unittest.cc
 floop_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-floop_iodev_unittest_LDADD = -lgtest_main -lgtest -lpthread
+floop_iodev_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 float_buffer_unittest_SOURCES = tests/float_buffer_unittest.cc
 float_buffer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-float_buffer_unittest_LDADD = -lgtest -lpthread
+float_buffer_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 fmt_conv_unittest_SOURCES = tests/fmt_conv_unittest.cc server/cras_fmt_conv.c \
 	server/cras_fmt_conv_ops.c
 fmt_conv_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-fmt_conv_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
+fmt_conv_unittest_LDADD = -lasound -lspeexdsp $(GTEST_MAIN_LIBS) -lpthread
 
 fmt_conv_ops_unittest_SOURCES = tests/fmt_conv_ops_unittest.cc \
 	server/cras_fmt_conv_ops.c
 fmt_conv_ops_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-fmt_conv_ops_unittest_LDADD = -lasound -lspeexdsp -lgtest -lpthread
+fmt_conv_ops_unittest_LDADD = -lasound -lspeexdsp $(GTEST_MAIN_LIBS) -lpthread
 
 if HAVE_DBUS
 cras_sco_unittest_SOURCES = tests/cras_sco_unittest.cc \
@@ -1076,7 +1076,7 @@ cras_sco_unittest_SOURCES = tests/cras_sco_unittest.cc \
 	tests/sr_stub.cc tests/sr_bt_util_stub.cc
 cras_sco_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/plc $(DBUS_CFLAGS)
-cras_sco_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+cras_sco_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 endif
 
 if HAVE_DBUS
@@ -1084,33 +1084,33 @@ hfp_iodev_unittest_SOURCES = tests/hfp_iodev_unittest.cc \
 	server/cras_hfp_iodev.c tests/sr_bt_util_stub.cc common/strlcpy.c
 hfp_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
-hfp_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+hfp_iodev_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 hfp_alsa_iodev_unittest_SOURCES = tests/hfp_alsa_iodev_unittest.cc \
 	server/cras_hfp_alsa_iodev.c common/strlcpy.c tests/sr_bt_util_stub.cc \
 	tests/sr_stub.cc
 hfp_alsa_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
-hfp_alsa_iodev_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+hfp_alsa_iodev_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 hfp_ag_profile_unittest_SOURCES = tests/hfp_ag_profile_unittest.cc \
 	server/cras_hfp_ag_profile.c common/sfh.c tests/metrics_stub.cc \
 	server/cras_featured_stub.c
 hfp_ag_profile_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
-hfp_ag_profile_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+hfp_ag_profile_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 hfp_manager_unittest_SOURCES = tests/hfp_manager_unittest.cc \
 	server/cras_hfp_manager.c server/cras_featured_stub.c
 hfp_manager_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/common $(DBUS_CFLAGS)
-hfp_manager_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+hfp_manager_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 hfp_slc_unittest_SOURCES = tests/hfp_slc_unittest.cc \
 	server/cras_hfp_slc.c tests/metrics_stub.cc common/cras_string.c
 hfp_slc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
-hfp_slc_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+hfp_slc_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 endif
 
 sr_bt_adapters_unittest_SOURCES = tests/sr_bt_adapters_unittest.cc \
@@ -1118,13 +1118,13 @@ sr_bt_adapters_unittest_SOURCES = tests/sr_bt_adapters_unittest.cc \
 	server/cras_audio_area.c
 sr_bt_adapters_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
-sr_bt_adapters_unittest_LDADD = -lgtest -lpthread
+sr_bt_adapters_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 buffer_share_unittest_SOURCES = tests/buffer_share_unittest.cc \
 	server/buffer_share.c
 buffer_share_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-buffer_share_unittest_LDADD = -lgtest -liniparser -lpthread
+buffer_share_unittest_LDADD = $(GTEST_MAIN_LIBS) -liniparser -lpthread
 
 ewma_power_unittest_SOURCES = tests/ewma_power_unittest.cc \
 	common/cras_audio_format.c server/cras_audio_area.c \
@@ -1132,12 +1132,12 @@ ewma_power_unittest_SOURCES = tests/ewma_power_unittest.cc \
 
 ewma_power_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-ewma_power_unittest_LDADD = -lgtest -lpthread
+ewma_power_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc common/strlcpy.c
 iodev_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-iodev_list_unittest_LDADD = -lgtest -lpthread
+iodev_list_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 loopback_iodev_unittest_SOURCES = tests/loopback_iodev_unittest.cc \
 	server/cras_loopback_iodev.c common/cras_shm.c common/sfh.c \
@@ -1146,20 +1146,20 @@ loopback_iodev_unittest_SOURCES = tests/loopback_iodev_unittest.cc \
 loopback_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-loopback_iodev_unittest_LDADD = -lgtest -lpthread -lrt
+loopback_iodev_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread -lrt
 
 input_data_unittest_SOURCES = tests/input_data_unittest.cc \
 	server/input_data.c
 input_data_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server
-input_data_unittest_LDADD = -lgtest -lpthread
+input_data_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 iodev_unittest_SOURCES = tests/iodev_unittest.cc \
 	server/cras_iodev.c common/cras_shm.c common/cras_string.c
 iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
 	-I$(SERVER_RUST_SRCDIR)/include
-iodev_unittest_LDADD = -lgtest -lpthread -lrt
+iodev_unittest_LDADD = $(GTEST_LIBS) -lpthread -lrt
 
 mix_unittest_SOURCES = tests/mix_unittest.cc server/cras_mix.c
 mix_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
@@ -1169,36 +1169,36 @@ mix_unittest_LDADD = libcrasmix.la \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
-	-lgtest \
+	$(GTEST_MAIN_LIBS) \
 	-lpthread
 
 linear_resampler_unittest_SOURCES = tests/linear_resampler_unittest.cc \
 	server/linear_resampler.c server/cras_audio_area.c
 linear_resampler_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-linear_resampler_unittest_LDADD = -lgtest -lpthread
+linear_resampler_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 observer_unittest_SOURCES = tests/observer_unittest.cc
 observer_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-observer_unittest_LDADD = -lgtest -lpthread
+observer_unittest_LDADD = $(GTEST_LIBS) -lpthread
 
 polled_interval_checker_unittest_SOURCES = tests/polled_interval_checker_unittest.cc \
     server/polled_interval_checker.c
 polled_interval_checker_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-polled_interval_checker_unittest_LDADD = -lgtest -lpthread
+polled_interval_checker_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 ramp_unittest_SOURCES = tests/ramp_unittest.cc
 ramp_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-ramp_unittest_LDADD = -lgtest -lpthread
+ramp_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 rate_estimator_unittest_SOURCES = tests/rate_estimator_unittest.cc
 rate_estimator_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server \
 	 -I$(SERVER_RUST_SRCDIR)/include
-rate_estimator_unittest_LDADD = $(CRAS_RUST) -lgtest -ldl -lpthread
+rate_estimator_unittest_LDADD = $(CRAS_RUST) $(GTEST_MAIN_LIBS) -ldl -lpthread
 
 control_rclient_unittest_SOURCES = tests/control_rclient_unittest.cc \
 				   server/cras_rstream_config.c common/cras_string.c
@@ -1206,21 +1206,21 @@ control_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS) \
 	$(DBUS_CFLAGS)
-control_rclient_unittest_LDADD = -lgtest -lpthread $(DBUS_LIBS)
+control_rclient_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 
 playback_rclient_unittest_SOURCES = tests/playback_rclient_unittest.cc \
 				    server/cras_rstream_config.c
 playback_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS)
-playback_rclient_unittest_LDADD = -lgtest -lpthread
+playback_rclient_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 capture_rclient_unittest_SOURCES = tests/capture_rclient_unittest.cc \
 				   server/cras_rstream_config.c
 capture_rclient_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server $(CRAS_UT_TMPDIR_CFLAGS)
-capture_rclient_unittest_LDADD = -lgtest -lpthread
+capture_rclient_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \
 	common/cras_shm.c tests/metrics_stub.cc common/cras_string.c \
@@ -1228,31 +1228,31 @@ rstream_unittest_SOURCES = tests/rstream_unittest.cc server/cras_rstream.c \
 rstream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server $(SELINUX_CFLAGS)
 rstream_unittest_LDADD = $(SELINUX_LIBS) \
-	-lasound -lgtest -lpthread -lrt
+	-lasound $(GTEST_MAIN_LIBS) -lpthread -lrt
 
 server_metrics_unittest_SOURCES = tests/server_metrics_unittest.cc
 server_metrics_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-server_metrics_unittest_LDADD = -lgtest -lpthread
+server_metrics_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 shm_unittest_SOURCES = tests/shm_unittest.cc
 shm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-shm_unittest_LDADD = -lgtest -lpthread
+shm_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 softvol_curve_unittest_SOURCES = tests/softvol_curve_unittest.cc server/softvol_curve.c
 softvol_curve_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-softvol_curve_unittest_LDADD = -lgtest -lpthread
+softvol_curve_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 stream_list_unittest_SOURCES = tests/stream_list_unittest.cc \
 	server/stream_list.c
 stream_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
-stream_list_unittest_LDADD = -lgtest -lpthread
+stream_list_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 string_unittest_SOURCES = tests/string_unittest.cc common/cras_string.c
 string_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-string_unittest_LDADD = -lgtest -lpthread
+string_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 system_state_unittest_SOURCES = tests/system_state_unittest.cc \
 	server/cras_system_state.c common/cras_shm.c common/cras_string.c \
@@ -1261,7 +1261,7 @@ system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config $(SELINUX_CFLAGS)
 system_state_unittest_LDADD = $(SELINUX_LIBS) \
-	-lgtest -liniparser -lpthread -lrt
+	$(GTEST_MAIN_LIBS) -liniparser -lpthread -lrt
 
 timing_unittest_SOURCES = \
 	$(CRAS_SELINUX_UNITTEST_SOURCES) \
@@ -1296,25 +1296,25 @@ timing_unittest_LDADD = \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
 	$(SELINUX_LIBS) \
-	-lgtest -lrt -lpthread -ldl -lm -lspeexdsp
+	$(GTEST_LIBS) -lrt -lpthread -ldl -lm -lspeexdsp
 
 utf8_unittest_SOURCES = tests/utf8_unittest.cc server/cras_utf8.c
 utf8_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
-utf8_unittest_LDADD = -lgtest -lpthread
+utf8_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 util_unittest_SOURCES = tests/util_unittest.cc common/cras_util.c \
 	common/cras_config.c
 util_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common
-util_unittest_LDADD = -lgtest -lpthread
+util_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 volume_curve_unittest_SOURCES = tests/volume_curve_unittest.cc \
 	server/cras_volume_curve.c
 volume_curve_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
-volume_curve_unittest_LDADD = -lgtest -lpthread
+volume_curve_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 messages_unittest_SOURCES = tests/messages_unittest.cc
 messages_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common
-messages_unittest_LDADD = -lgtest_main -lgtest -lpthread
+messages_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread

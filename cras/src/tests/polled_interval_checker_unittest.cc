@@ -148,8 +148,3 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
 }
 
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

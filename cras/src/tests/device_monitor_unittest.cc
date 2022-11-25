@@ -141,10 +141,3 @@ void cras_iodev_list_set_dev_mute(unsigned int dev_idx) {
 
 }  // extern "C"
 }  // namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  int rc = RUN_ALL_TESTS();
-
-  return rc;
-}

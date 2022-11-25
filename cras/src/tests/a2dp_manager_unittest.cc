@@ -470,8 +470,3 @@ int floss_media_a2dp_suspend(struct fl_media* fm) {
 }
 
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

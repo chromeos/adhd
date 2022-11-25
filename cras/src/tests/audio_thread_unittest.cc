@@ -1460,8 +1460,3 @@ float input_data_get_software_gain_scaler(struct input_data* data,
   return 1.0;
 }
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

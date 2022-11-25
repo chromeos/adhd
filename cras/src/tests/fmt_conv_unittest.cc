@@ -1974,11 +1974,6 @@ TEST(ChannelRemixTest, ChannelRemixAppliedOrNot) {
   free(res);
 }
 
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
-
 extern "C" {
 float** cras_channel_conv_matrix_alloc(size_t in_ch, size_t out_ch) {
   int i;

@@ -81,8 +81,3 @@ INSTANTIATE_TEST_SUITE_P(
              .expected_status = CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK})));
 
 }  // namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

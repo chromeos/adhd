@@ -584,8 +584,3 @@ void cras_iodev_list_reset_for_noise_cancellation() {
 
 }  // extern "C"
 }  // namespace
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

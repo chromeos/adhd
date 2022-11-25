@@ -715,11 +715,6 @@ TEST_F(A2dpIodev, EnterNoStreamStateAtHighBufferLevelDoesntFillMore) {
 }
 }  // namespace
 
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
-
 extern "C" {
 
 int cras_bt_transport_configuration(const struct cras_bt_transport* transport,

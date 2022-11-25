@@ -175,8 +175,3 @@ struct cras_bt_transport* cras_bt_transport_create(DBusConnection* conn,
 }
 
 }  // extern "C"
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
