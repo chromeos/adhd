@@ -583,40 +583,33 @@ static int capture_to_streams(struct open_dev *adev, struct open_dev *odev_list)
 		DL_FOREACH (adev->dev->streams, stream) {
 			unsigned int this_read;
 			unsigned int area_offset;
-			float software_gain_scaler;
 
 			if ((stream->stream->flags & TRIGGER_ONLY) &&
 			    stream->stream->triggered)
 				continue;
 
-			input_data_get_for_stream(idev->input_data,
-						  stream->stream,
-						  idev->buf_state, &area,
-						  &area_offset);
-
-			/*
-			 * The UI gain scaler should always take effect.
-			 * input_data will decide if stream and iodev internal
-			 * software gains should be used or not, based on use
-			 * case.
-			 */
-			software_gain_scaler =
-				cras_iodev_get_ui_gain_scaler(idev) *
+			struct input_data_gain gains =
 				input_data_get_software_gain_scaler(
 					idev->input_data,
+					cras_iodev_get_ui_gain_scaler(idev),
 					idev->software_gain_scaler,
 					stream->stream);
+			input_data_get_for_stream(idev->input_data,
+						  stream->stream,
+						  idev->buf_state,
+						  gains.preprocessing_scalar,
+						  &area, &area_offset);
 
 			/* Although the input hw buffer is zeroed out, it's
 			 * possible to have processing blocks generate data
 			 * into the buffer area, so do the second round of
 			 * mute here. */
 			if (cras_system_get_capture_mute())
-				software_gain_scaler = 0.0f;
+				gains.postprocessing_scalar = 0.0f;
 
 			this_read =
 				dev_stream_capture(stream, area, area_offset,
-						   software_gain_scaler);
+						   gains.postprocessing_scalar);
 
 			input_data_put_for_stream(idev->input_data,
 						  stream->stream,

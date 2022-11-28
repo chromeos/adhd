@@ -258,7 +258,7 @@ TEST(StreamApm, ApmProcessForwardBuffer) {
   buf = float_buffer_create(500, 2);
   float_buffer_written(buf, 300);
   webrtc_apm_process_stream_f_called = 0;
-  cras_stream_apm_process(apm, buf, 0);
+  cras_stream_apm_process(apm, buf, 0, 1);
   EXPECT_EQ(0, webrtc_apm_process_stream_f_called);
 
   area = cras_stream_apm_get_processed(apm);
@@ -266,7 +266,7 @@ TEST(StreamApm, ApmProcessForwardBuffer) {
 
   float_buffer_reset(buf);
   float_buffer_written(buf, 200);
-  cras_stream_apm_process(apm, buf, 0);
+  cras_stream_apm_process(apm, buf, 0, 1);
   area = cras_stream_apm_get_processed(apm);
   EXPECT_EQ(1, webrtc_apm_process_stream_f_called);
   EXPECT_EQ(480, dsp_util_interleave_frames);
@@ -278,14 +278,14 @@ TEST(StreamApm, ApmProcessForwardBuffer) {
   cras_stream_apm_put_processed(apm, 200);
   float_buffer_reset(buf);
   float_buffer_written(buf, 500);
-  cras_stream_apm_process(apm, buf, 0);
+  cras_stream_apm_process(apm, buf, 0, 1);
   EXPECT_EQ(1, webrtc_apm_process_stream_f_called);
 
   /* Put another 280 processed frames, so it's now ready for webrtc_apm
    * to process another chunk of 480 frames (10ms) data.
    */
   cras_stream_apm_put_processed(apm, 280);
-  cras_stream_apm_process(apm, buf, 0);
+  cras_stream_apm_process(apm, buf, 0, 1);
   EXPECT_EQ(2, webrtc_apm_process_stream_f_called);
 
   float_buffer_destroy(&buf);

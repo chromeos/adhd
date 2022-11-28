@@ -6,6 +6,7 @@ extern "C" {
 #include "audio_thread.c"
 
 #include "cras_audio_area.h"
+#include "input_data.h"
 #include "metrics_stub.h"
 }
 
@@ -1396,6 +1397,7 @@ int cras_iodev_start_ramp(struct cras_iodev* odev,
 int input_data_get_for_stream(struct input_data* data,
                               struct cras_rstream* stream,
                               struct buffer_share* offsets,
+                              float preprocessing_gain_scalar,
                               struct cras_audio_area** area,
                               unsigned int* offset) {
   return 0;
@@ -1454,9 +1456,14 @@ int cras_audio_thread_event_severe_underrun() {
   return 0;
 }
 
-float input_data_get_software_gain_scaler(struct input_data* data,
-                                          float idev_sw_gain_scaler,
-                                          struct cras_rstream* stream) {
-  return 1.0;
+struct input_data_gain input_data_get_software_gain_scaler(
+    struct input_data* data,
+    float ui_gain_scalar,
+    float idev_sw_gain_scaler,
+    struct cras_rstream* stream) {
+  return input_data_gain{
+      .preprocessing_scalar = 1,
+      .postprocessing_scalar = 1,
+  };
 }
 }  // extern "C"

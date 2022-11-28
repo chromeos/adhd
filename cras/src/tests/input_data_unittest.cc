@@ -48,17 +48,18 @@ TEST(InputData, GetForInputStream) {
   data->area = &dev_area;
 
   stream.stream_apm = NULL;
-  input_data_get_for_stream(data, &stream, offsets, &area, &offset);
+  input_data_get_for_stream(data, &stream, offsets, 1.0f, &area, &offset);
 
   // Assert offset is clipped by area->frames
   EXPECT_EQ(600, area->frames);
   EXPECT_EQ(600, offset);
+
 #ifdef HAVE_WEBRTC_APM
   EXPECT_EQ(0, cras_stream_apm_process_called);
   cras_stream_apm_get_active_ret = FAKE_CRAS_APM_PTR;
 #endif  // HAVE_WEBRTC_APM
 
-  input_data_get_for_stream(data, &stream, offsets, &area, &offset);
+  input_data_get_for_stream(data, &stream, offsets, 1.0f, &area, &offset);
 
 #ifdef HAVE_WEBRTC_APM
   // Assert APM process uses correct stream offset not the clipped one
@@ -75,32 +76,44 @@ TEST(InputData, GetForInputStream) {
   buffer_share_destroy(offsets);
 }
 
-TEST(InputData, GetSWCaptureGain) {
+TEST(InputData, Gains) {
   struct cras_iodev* idev = reinterpret_cast<struct cras_iodev*>(0x123);
-  struct input_data* data = NULL;
+  struct input_data* data = input_data_create(idev);
   struct cras_rstream stream;
-  float gain;
 
-  cras_rstream_get_volume_scaler_val = 0.8f;
-  stream.stream_id = 123;
+  float ui_gain_scalar = 0.5;
+  float idev_sw_gain_scaler = 0.6;
+  cras_rstream_get_volume_scaler_val = 0.7;
 
-  data = input_data_create(idev);
+  {
+    // No APM. All gains applied in postprocessing.
+    cras_stream_apm_get_active_ret = nullptr;
+    struct input_data_gain gains = input_data_get_software_gain_scaler(
+        data, ui_gain_scalar, idev_sw_gain_scaler, &stream);
+    EXPECT_FLOAT_EQ(gains.preprocessing_scalar, 1);
+    EXPECT_FLOAT_EQ(gains.postprocessing_scalar, 0.21);
+  }
 
-  cras_stream_apm_get_use_tuned_settings_val = 1;
-  gain = input_data_get_software_gain_scaler(data, 0.7f, &stream);
-  EXPECT_FLOAT_EQ(1.0f, gain);
+  {
+    // APM active. Intrinsic gain applied before APM.
+    cras_stream_apm_get_active_ret = FAKE_CRAS_APM_PTR;
+    cras_stream_apm_get_use_tuned_settings_val = false;
+    struct input_data_gain gains = input_data_get_software_gain_scaler(
+        data, ui_gain_scalar, idev_sw_gain_scaler, &stream);
+    EXPECT_FLOAT_EQ(gains.preprocessing_scalar, 0.6);
+    EXPECT_FLOAT_EQ(gains.postprocessing_scalar, 0.35);
+  }
 
-  cras_stream_apm_get_use_tuned_settings_val = 0;
-  gain = input_data_get_software_gain_scaler(data, 0.7f, &stream);
-  EXPECT_FLOAT_EQ(0.56f, gain);
+  {
+    // Tuned APM. Intrinsic gain and stream gain ignored.
+    cras_stream_apm_get_active_ret = FAKE_CRAS_APM_PTR;
+    cras_stream_apm_get_use_tuned_settings_val = true;
+    struct input_data_gain gains = input_data_get_software_gain_scaler(
+        data, ui_gain_scalar, idev_sw_gain_scaler, &stream);
+    EXPECT_FLOAT_EQ(gains.preprocessing_scalar, 1);
+    EXPECT_FLOAT_EQ(gains.postprocessing_scalar, 0.5);
+  }
 
-  gain = input_data_get_software_gain_scaler(data, 0.6f, &stream);
-  EXPECT_FLOAT_EQ(0.48f, gain);
-  input_data_destroy(&data);
-
-  data = input_data_create(idev);
-  gain = input_data_get_software_gain_scaler(data, 0.6f, &stream);
-  EXPECT_FLOAT_EQ(0.48f, gain);
   input_data_destroy(&data);
 }
 
@@ -111,7 +124,8 @@ struct cras_apm* cras_stream_apm_get_active(struct cras_stream_apm* stream,
 }
 int cras_stream_apm_process(struct cras_apm* apm,
                             struct float_buffer* input,
-                            unsigned int offset) {
+                            unsigned int offset,
+                            float preprocessing_gain_scalar) {
   cras_stream_apm_process_called++;
   cras_stream_apm_process_offset_val = offset;
   return 0;

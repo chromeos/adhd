@@ -52,6 +52,7 @@ void input_data_set_all_streams_read(struct input_data *data,
  *    stream - The stream that reads data.
  *    offsets - Structure holding the mapping from stream to the offset value
  *        of how many frames each stream has read into input buffer.
+ *    preprocessing_gain_scalar - Gain to apply before APM processing.
  *    area - To be filled with a pointer to an audio area struct for stream to
  *        read data.
  *    offset - To be filled with the samples offset in |area| that |stream|
@@ -60,6 +61,7 @@ void input_data_set_all_streams_read(struct input_data *data,
 int input_data_get_for_stream(struct input_data *data,
 			      struct cras_rstream *stream,
 			      struct buffer_share *offsets,
+			      float preprocessing_gain_scalar,
 			      struct cras_audio_area **area,
 			      unsigned int *offset);
 
@@ -77,6 +79,13 @@ int input_data_put_for_stream(struct input_data *data,
 			      struct buffer_share *offsets,
 			      unsigned int frames);
 
+struct input_data_gain {
+	// Software gain scalar that should be applied before WebRTC-APM processing.
+	float preprocessing_scalar;
+	// Software gain scalar that should be applied after WebRTC-APM processing.
+	float postprocessing_scalar;
+};
+
 /*
  * The software gain scaler of input path consist of two parts:
  * (1) The device gain scaler used when lack of hardware gain control.
@@ -88,10 +97,11 @@ int input_data_put_for_stream(struct input_data *data,
  *    idev_sw_agin_scaler - The gain scaler configured on input iodev.
  *    stream - To provide stream layer software gain.
  * Returns:
- *    1.0 if tuned APM in use, otherwise |iodev gain| * |cras_rstream gain|
+ *    The preprocessing and postprocessing gain.
+ *    The preprocessing gain should be passed to input_data_get_for_stream().
  */
-float input_data_get_software_gain_scaler(struct input_data *data,
-					  float idev_sw_gain_scaler,
-					  struct cras_rstream *stream);
+struct input_data_gain input_data_get_software_gain_scaler(
+	struct input_data *data, float ui_gain_scalar,
+	float idev_sw_gain_scaler, struct cras_rstream *stream);
 
 #endif /* INPUT_DATA_H_ */

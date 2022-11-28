@@ -954,7 +954,7 @@ dev_io_unittest_SOURCES = \
 	tests/metrics_stub.cc \
 	tests/rstream_stub.cc \
 	tests/dev_io_unittest.cc
-dev_io_unittest_CXXFLAGS = -Wno-noexcept-type
+dev_io_unittest_CXXFLAGS = -Wno-noexcept-type -std=c++17
 dev_io_unittest_CPPFLAGS = \
 	$(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
@@ -1281,7 +1281,7 @@ timing_unittest_SOURCES = \
 	tests/metrics_stub.cc \
 	tests/rstream_stub.cc \
 	tests/timing_unittest.cc
-timing_unittest_CXXFLAGS = -Wno-noexcept-type
+timing_unittest_CXXFLAGS = -Wno-noexcept-type -std=c++17
 timing_unittest_CPPFLAGS = \
 	$(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \

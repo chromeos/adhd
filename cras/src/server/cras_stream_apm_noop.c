@@ -64,7 +64,8 @@ void cras_stream_apm_remove(struct cras_stream_apm *stream,
 }
 
 int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
-			    unsigned int offset)
+			    unsigned int offset,
+			    float preprocessing_gain_scalar)
 {
 	return 0;
 }

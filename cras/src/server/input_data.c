@@ -144,6 +144,7 @@ void input_data_set_all_streams_read(struct input_data *data,
 int input_data_get_for_stream(struct input_data *data,
 			      struct cras_rstream *stream,
 			      struct buffer_share *offsets,
+			      float preprocessing_gain_scalar,
 			      struct cras_audio_area **area,
 			      unsigned int *offset)
 {
@@ -162,8 +163,10 @@ int input_data_get_for_stream(struct input_data *data,
 		/*
 		 * Case 3 from above example.
 		 */
-		apm_processed = cras_stream_apm_process(apm, data->fbuffer,
-							stream_offset);
+		apm_processed =
+			cras_stream_apm_process(apm, data->fbuffer,
+						stream_offset,
+						preprocessing_gain_scalar);
 		if (apm_processed < 0) {
 			cras_stream_apm_remove(stream->stream_apm, data->idev);
 			return 0;
@@ -192,18 +195,35 @@ int input_data_put_for_stream(struct input_data *data,
 	return 0;
 }
 
-float input_data_get_software_gain_scaler(struct input_data *data,
-					  float idev_sw_gain_scaler,
-					  struct cras_rstream *stream)
+struct input_data_gain input_data_get_software_gain_scaler(
+	struct input_data *data, float ui_gain_scalar,
+	float idev_sw_gain_scaler, struct cras_rstream *stream)
 {
-	/*
-	 * APM has more advanced gain control mechanism. If it is using tuned
-	 * settings, give APM total control of the captured samples without
-	 * additional gain scaler at all.
-	 */
+	float rstream_gain_scalar = cras_rstream_get_volume_scaler(stream);
 	if (cras_stream_apm_get_use_tuned_settings(stream->stream_apm,
-						   data->idev))
-		return 1.0f;
-
-	return idev_sw_gain_scaler * cras_rstream_get_volume_scaler(stream);
+						   data->idev)) {
+		// APM has more advanced gain control mechanism. If it is using tuned
+		// settings, give APM total control of the captured samples without
+		// additional gain scaler at all.
+		struct input_data_gain gain = { .preprocessing_scalar = 1,
+						.postprocessing_scalar =
+							ui_gain_scalar };
+		return gain;
+	}
+	if (cras_stream_apm_get_active(stream->stream_apm, data->idev)) {
+		// Apply node gain compensation for intrinsic sensitivity before APM.
+		struct input_data_gain gain = {
+			.preprocessing_scalar = idev_sw_gain_scaler,
+			.postprocessing_scalar =
+				ui_gain_scalar * rstream_gain_scalar
+		};
+		return gain;
+	}
+	// No APM. Apply all gain post APM.
+	struct input_data_gain gain = { .preprocessing_scalar = 1,
+					.postprocessing_scalar =
+						ui_gain_scalar *
+						idev_sw_gain_scaler *
+						rstream_gain_scalar };
+	return gain;
 }

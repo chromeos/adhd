@@ -23,12 +23,13 @@ struct audio_thread_event_log* atlog;
 }
 
 #include "dev_io_stubs.h"
+#include "input_data.h"
 #include "iodev_stub.h"
 #include "metrics_stub.h"
 #include "rstream_stub.h"
 
 static float dev_stream_capture_software_gain_scaler_val;
-static float input_data_get_software_gain_scaler_val;
+static struct input_data_gain input_data_get_software_gain_scaler_ret;
 static unsigned int dev_stream_capture_avail_ret = 480;
 static int cras_audio_thread_event_severe_underrun_called;
 struct set_dev_rate_data {
@@ -92,20 +93,15 @@ TEST_F(DevIoSuite, CaptureGain) {
   DL_APPEND(dev_list, dev->odev.get());
   add_stream_to_dev(dev->dev, stream);
 
-  /* The applied scaler gain should match what is reported by input_data. */
-  dev->dev->active_node->ui_gain_scaler = 1.0f;
-  input_data_get_software_gain_scaler_val = 1.0f;
+  input_data_get_software_gain_scaler_ret = {.preprocessing_scalar = 1.0f,
+                                             .postprocessing_scalar = 1.0f};
   dev_io_capture(&dev_list, &odev_list);
   EXPECT_EQ(1.0f, dev_stream_capture_software_gain_scaler_val);
 
-  input_data_get_software_gain_scaler_val = 0.99f;
+  input_data_get_software_gain_scaler_ret = {.preprocessing_scalar = 1.0f,
+                                             .postprocessing_scalar = 0.5f};
   dev_io_capture(&dev_list, &odev_list);
-  EXPECT_EQ(0.99f, dev_stream_capture_software_gain_scaler_val);
-
-  dev->dev->active_node->ui_gain_scaler = 0.6f;
-  input_data_get_software_gain_scaler_val = 0.7f;
-  dev_io_capture(&dev_list, &odev_list);
-  EXPECT_FLOAT_EQ(0.42f, dev_stream_capture_software_gain_scaler_val);
+  EXPECT_EQ(0.5f, dev_stream_capture_software_gain_scaler_val);
 }
 
 /*
@@ -378,6 +374,7 @@ extern "C" {
 int input_data_get_for_stream(struct input_data* data,
                               struct cras_rstream* stream,
                               struct buffer_share* offsets,
+                              float preprocessing_gain_scalar,
                               struct cras_audio_area** area,
                               unsigned int* offset) {
   return 0;
@@ -390,10 +387,11 @@ int input_data_put_for_stream(struct input_data* data,
   return 0;
 }
 
-float input_data_get_software_gain_scaler(struct input_data* data,
-                                          float idev_sw_gain_scaler,
-                                          struct cras_rstream* stream) {
-  return input_data_get_software_gain_scaler_val;
+struct input_data_gain input_data_get_software_gain_scaler(
+    struct input_data* data,
+    float idev_sw_gain_scaler,
+    struct cras_rstream* stream) {
+  return input_data_get_software_gain_scaler_ret;
 }
 
 int cras_audio_thread_event_drop_samples() {

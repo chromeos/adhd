@@ -130,9 +130,11 @@ void cras_stream_apm_remove(struct cras_stream_apm *stream,
  *    input - Float buffer from device for apm to process.
  *    offset - Offset in |input| to note the data position to start
  *        reading.
+ *    preprocessing_gain_scalar - Gain to apply before processing.
  */
 int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
-			    unsigned int offset);
+			    unsigned int offset,
+			    float preprocessing_gain_scalar);
 
 /* Gets the APM processed data in the form of audio area.
  * Args:

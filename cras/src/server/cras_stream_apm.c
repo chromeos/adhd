@@ -920,8 +920,15 @@ int cras_stream_apm_deinit()
 	return 0;
 }
 
+// Clamp the value between -1 and +1.
+static inline float clamp1(float value)
+{
+	return value < -1 ? -1 : (value > 1 ? 1 : value);
+}
+
 int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
-			    unsigned int offset)
+			    unsigned int offset,
+			    float preprocessing_gain_scalar)
 {
 	unsigned int writable, nframes, nread;
 	int ch, i, j, ret;
@@ -937,6 +944,7 @@ int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
 	writable = float_buffer_writable(apm->fbuffer);
 	writable = MIN(nread - offset, writable);
 
+	/* Read from shared fbuffer and apply gain */
 	nframes = writable;
 	while (nframes) {
 		nread = nframes;
@@ -957,7 +965,10 @@ int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
 			if (j == -1)
 				continue;
 
-			memcpy(wp[i], rp[j], nread * sizeof(float));
+			for (int f = 0; f < nread; f++) {
+				wp[i][f] = clamp1(rp[j][f] *
+						  preprocessing_gain_scalar);
+			}
 		}
 
 		nframes -= nread;
