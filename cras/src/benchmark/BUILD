@@ -41,6 +41,10 @@ cc_library(
     linkopts = [
         "-lwebrtc_apm",
     ],
+    target_compatible_with = select({
+        "//:apm_build": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
     deps = [
         ":benchmark_util",
         "//src/dsp:dsp_util",
@@ -58,6 +62,10 @@ cc_library(
         "-lasound",
         "-lcros_config",
     ],
+    target_compatible_with = select({
+        "//:hw_dependent_build": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
     deps = [
         ":benchmark_util",
         "//src/libcras:cras_client",
@@ -65,9 +73,16 @@ cc_library(
         "//src/server:cras_alsa_ucm",
         "//src/server:cras_mix_ops",
         "@com_github_google_benchmark//:benchmark",
-        "@pkg_config//:libchrome",
-        "@pkg_config//:libcros_config",
-    ],
+    ] + select({
+        # Guard pkg_config behind hw_dependent_build so bazel does not attempt
+        # to run pkg-config in the analysis phase for platforms missing the
+        # dependencies.
+        "//:hw_dependent_build": [
+            "@pkg_config//:libchrome",
+            "@pkg_config//:libcros_config",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
