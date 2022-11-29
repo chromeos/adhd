@@ -31,6 +31,7 @@ cc_library(
         "//src/server:cras_mix_ops",
         "@com_github_google_benchmark//:benchmark",
     ],
+    alwayslink = True,
 )
 
 cc_library(
@@ -51,6 +52,7 @@ cc_library(
         "//src/server:cras_mix_ops",
         "@com_github_google_benchmark//:benchmark",
     ],
+    alwayslink = True,
 )
 
 cc_library(
@@ -83,6 +85,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    alwayslink = True,
 )
 
 cc_library(
