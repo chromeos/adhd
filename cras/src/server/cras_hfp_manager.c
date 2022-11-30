@@ -266,7 +266,7 @@ int cras_floss_hfp_stop(struct cras_hfp *hfp, enum CRAS_STREAM_DIRECTION dir)
 void cras_floss_hfp_possibly_reconnect(struct cras_hfp *hfp)
 {
 	if (hfp->idev_started || hfp->odev_started) {
-		syslog(LOG_INFO,
+		syslog(LOG_WARNING,
 		       "HFP audio was disconnected by the headset, attempt to reconnect.");
 		cras_bt_policy_switch_profile(hfp->fm->bt_io_mgr);
 	}
