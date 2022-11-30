@@ -43,3 +43,9 @@ pkg_config_repository(
         "libchrome",
     ],
 )
+
+# tensorflowlite
+pkg_config_repository(
+    name = "tensorflowlite",
+    libs = ["tensorflowlite"],
+)

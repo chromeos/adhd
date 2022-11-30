@@ -24,3 +24,14 @@ config_setting(
     flag_values = {":hw_dependency": "true"},
     visibility = [":__subpackages__"],
 )
+
+bool_flag(
+    name = "ml",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "ml_build",
+    flag_values = {":ml": "true"},
+    visibility = [":__subpackages__"],
+)

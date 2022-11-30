@@ -14,6 +14,9 @@ cc_binary(
     }) + select({
         "//:hw_dependent_build": ["alsa_benchmark"],
         "//conditions:default": [],
+    }) + select({
+        "//:ml_build": ["am_benchmark"],
+        "//conditions:default": [],
     }),
 )
 
@@ -29,6 +32,21 @@ cc_library(
         "//src/dsp:dsp_util",
         "//src/dsp:eq2",
         "//src/server:cras_mix_ops",
+        "@com_github_google_benchmark//:benchmark",
+    ],
+    alwayslink = True,
+)
+
+cc_library(
+    name = "am_benchmark",
+    srcs = ["am_benchmark.cc"],
+    target_compatible_with = select({
+        "//:ml_build": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    deps = [
+        ":benchmark_util",
+        "//src/dsp:am",
         "@com_github_google_benchmark//:benchmark",
     ],
     alwayslink = True,

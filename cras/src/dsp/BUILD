@@ -3,6 +3,22 @@
 # found in the LICENSE file.
 
 cc_library(
+    name = "am",
+    srcs = ["am.cc"],
+    hdrs = ["am.h"],
+    includes = ["."],
+    target_compatible_with = select({
+        "//:ml_build": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    }),
+    visibility = ["//src/benchmark:__pkg__"],
+    deps = select({
+        "//:ml_build": ["@tensorflowlite"],
+        "//conditions:default": [],
+    }),
+)
+
+cc_library(
     name = "eq2",
     srcs = ["eq2.c"],
     hdrs = ["eq2.h"],
