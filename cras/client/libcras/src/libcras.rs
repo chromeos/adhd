@@ -129,6 +129,7 @@ use std::os::unix::{
 };
 use std::{error, fmt};
 
+use async_trait::async_trait;
 pub use audio_streams::BoxError;
 use audio_streams::{
     capture::{AsyncCaptureBufferStream, CaptureBufferStream, NoopCaptureStream},
@@ -550,6 +551,56 @@ impl<'a> CrasClient<'a> {
         }
     }
 
+    // Creates general stream asynchronously with given parameters
+    #[allow(clippy::too_many_arguments)]
+    async fn async_create_async_stream<'b, T: async_::CrasStreamData<'b> + AsyncBufferCommit>(
+        &mut self,
+        device_index: Option<u32>,
+        block_size: u32,
+        direction: CRAS_STREAM_DIRECTION,
+        rate: u32,
+        channel_num: usize,
+        format: SampleFormat,
+        effects: &[StreamEffect],
+        ex: &dyn AudioStreamsExecutor,
+    ) -> Result<async_::CrasStream<'b, T>> {
+        assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
+
+        let (sock1, sock2) = UnixStream::pair()?;
+        let stream_id = self.prepare_and_send_connect_stream(
+            device_index,
+            block_size,
+            direction,
+            rate,
+            channel_num,
+            format,
+            effects,
+            0,
+            [0, 0],
+            &[sock2.as_raw_fd()],
+        )?;
+
+        let audio_socket = async_::AudioSocket::new(sock1, ex)?;
+        loop {
+            let result = CrasClient::async_wait_for_message(&mut self.server_socket, ex).await?;
+            if let ServerResult::StreamConnected(_stream_id, header_fd, samples_fd) = result {
+                return async_::CrasStream::try_new(
+                    stream_id,
+                    self.server_socket.try_clone()?,
+                    block_size,
+                    direction,
+                    rate,
+                    channel_num,
+                    format.into(),
+                    audio_socket,
+                    header_fd,
+                    samples_fd,
+                )
+                .map_err(Error::CrasStreamError);
+            }
+        }
+    }
+
     /// Creates a new playback stream pinned to the device at `device_index`.
     ///
     /// # Arguments
@@ -645,6 +696,14 @@ impl<'a> CrasClient<'a> {
             })
     }
 
+    async fn async_wait_for_message(
+        socket: &mut CrasServerSocket,
+        ex: &dyn AudioStreamsExecutor,
+    ) -> Result<ServerResult> {
+        ex.wait_fd_readable(socket.try_clone()?.as_raw_fd()).await?;
+        Self::wait_for_message(socket)
+    }
+
     /// Returns any open file descriptors needed by CrasClient.
     /// This function is shared between StreamSource and ShmStreamSource.
     fn keep_fds(&self) -> Vec<RawFd> {
@@ -652,6 +711,7 @@ impl<'a> CrasClient<'a> {
     }
 }
 
+#[async_trait(?Send)]
 impl<'a> StreamSource for CrasClient<'a> {
     #[allow(clippy::type_complexity)]
     fn new_playback_stream(
@@ -698,6 +758,34 @@ impl<'a> StreamSource for CrasClient<'a> {
                 &[],
                 ex,
             )?),
+        ))
+    }
+
+    #[allow(clippy::type_complexity)]
+    async fn async_new_async_playback_stream(
+        &mut self,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: u32,
+        buffer_size: usize,
+        ex: &dyn AudioStreamsExecutor,
+    ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn AsyncPlaybackBufferStream>), BoxError>
+    {
+        Ok((
+            Box::new(NoopStreamControl::new()),
+            Box::new(
+                self.async_create_async_stream::<async_::CrasPlaybackData>(
+                    None,
+                    buffer_size as u32,
+                    CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT,
+                    frame_rate,
+                    num_channels,
+                    format,
+                    &[],
+                    ex,
+                )
+                .await?,
+            ),
         ))
     }
 
@@ -760,6 +848,47 @@ impl<'a> StreamSource for CrasClient<'a> {
                     effects,
                     ex,
                 )?),
+            ))
+        } else {
+            Ok((
+                Box::new(NoopStreamControl::new()),
+                Box::new(NoopCaptureStream::new(
+                    num_channels,
+                    format,
+                    frame_rate,
+                    buffer_size,
+                )),
+            ))
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    async fn async_new_async_capture_stream(
+        &mut self,
+        num_channels: usize,
+        format: SampleFormat,
+        frame_rate: u32,
+        buffer_size: usize,
+        effects: &[StreamEffect],
+        ex: &dyn AudioStreamsExecutor,
+    ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn AsyncCaptureBufferStream>), BoxError>
+    {
+        if self.cras_capture {
+            Ok((
+                Box::new(NoopStreamControl::new()),
+                Box::new(
+                    self.async_create_async_stream::<async_::CrasCaptureData>(
+                        None,
+                        buffer_size as u32,
+                        CRAS_STREAM_DIRECTION::CRAS_STREAM_INPUT,
+                        frame_rate,
+                        num_channels,
+                        format,
+                        effects,
+                        ex,
+                    )
+                    .await?,
+                ),
             ))
         } else {
             Ok((
