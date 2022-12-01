@@ -3,6 +3,8 @@
 # found in the LICENSE file.
 load("@com_github_bazel_skylib//rules:common_settings.bzl", "bool_flag")
 
+package(default_visibility = [":__subpackages__"])
+
 bool_flag(
     name = "apm",
     build_setting_default = False,
@@ -11,7 +13,6 @@ bool_flag(
 config_setting(
     name = "apm_build",
     flag_values = {":apm": "true"},
-    visibility = [":__subpackages__"],
 )
 
 bool_flag(
@@ -22,7 +23,6 @@ bool_flag(
 config_setting(
     name = "hw_dependent_build",
     flag_values = {":hw_dependency": "true"},
-    visibility = [":__subpackages__"],
 )
 
 bool_flag(
@@ -33,5 +33,11 @@ bool_flag(
 config_setting(
     name = "ml_build",
     flag_values = {":ml": "true"},
-    visibility = [":__subpackages__"],
+)
+
+config_setting(
+    name = "x86_64_build",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+    ],
 )

@@ -31,7 +31,7 @@ cc_library(
         "//src/dsp:drc",
         "//src/dsp:dsp_util",
         "//src/dsp:eq2",
-        "//src/server:cras_mix_ops",
+        "//src/server:cras_mix",
         "@com_github_google_benchmark//:benchmark",
     ],
     alwayslink = True,
@@ -67,7 +67,6 @@ cc_library(
     deps = [
         ":benchmark_util",
         "//src/dsp:dsp_util",
-        "//src/server:cras_mix_ops",
         "@com_github_google_benchmark//:benchmark",
     ],
     alwayslink = True,
@@ -91,7 +90,7 @@ cc_library(
         "//src/libcras:cras_client",
         "//src/server:cras_alsa_helpers",
         "//src/server:cras_alsa_ucm",
-        "//src/server:cras_mix_ops",
+        "//src/server:cras_mix",
         "@com_github_google_benchmark//:benchmark",
     ] + select({
         # Guard pkg_config behind hw_dependent_build so bazel does not attempt

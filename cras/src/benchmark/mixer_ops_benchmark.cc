@@ -13,18 +13,20 @@
 
 namespace {
 extern "C" {
-#include "src/server/cras_mix_ops.h"
+#include "src/server/cras_mix.h"
 }
 
 static void BM_CrasMixerOpsScaleBuffer(benchmark::State& state) {
+  cras_mix_init();
+
   std::random_device rnd_device;
   std::mt19937 engine{rnd_device()};
   std::vector<int16_t> samples = gen_s16_le_samples(state.range(0), engine);
   std::uniform_real_distribution<double> distribution(0.0000001, 0.9999999);
   for (auto _ : state) {
     double scale = distribution(engine);
-    mixer_ops.scale_buffer(SND_PCM_FORMAT_S16_LE, (uint8_t*)(samples.data()),
-                           state.range(0), scale);
+    cras_scale_buffer(SND_PCM_FORMAT_S16_LE, (uint8_t*)(samples.data()),
+                      state.range(0), scale);
   }
   state.SetBytesProcessed(int64_t(state.iterations()) *
                           int64_t(state.range(0)) * /*bytes per sample=*/2);
@@ -33,6 +35,8 @@ static void BM_CrasMixerOpsScaleBuffer(benchmark::State& state) {
 BENCHMARK(BM_CrasMixerOpsScaleBuffer)->RangeMultiplier(2)->Range(256, 8 << 10);
 
 static void BM_CrasMixerOpsMixAdd(benchmark::State& state) {
+  cras_mix_init();
+
   std::random_device rnd_device;
   std::mt19937 engine{rnd_device()};
   std::vector<int16_t> src = gen_s16_le_samples(state.range(0), engine);
@@ -40,8 +44,8 @@ static void BM_CrasMixerOpsMixAdd(benchmark::State& state) {
   std::uniform_real_distribution<double> distribution(0.5, 2);
   for (auto _ : state) {
     double scale = distribution(engine);
-    mixer_ops.add(SND_PCM_FORMAT_S16_LE, (uint8_t*)dst.data(),
-                  (uint8_t*)src.data(), state.range(0), 0, 0, scale);
+    cras_mix_add(SND_PCM_FORMAT_S16_LE, (uint8_t*)dst.data(),
+                 (uint8_t*)src.data(), state.range(0), 0, 0, scale);
   }
   state.SetBytesProcessed(int64_t(state.iterations()) *
                           int64_t(state.range(0) * /*bytes per sample=*/2));
