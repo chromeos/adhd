@@ -56,7 +56,7 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
                          sizeof(*exp_state));
   free(shm_name);
   cras_observer_server_init();
-  cras_mix_init(0);
+  cras_mix_init();
   cras_iodev_list_init();
   btlog = cras_bt_event_log_init();
   return 0;

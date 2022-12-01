@@ -17,7 +17,7 @@ struct cras_audio_shm;
 #define CPU_X86_FMA 8
 #define CPU_X86_FMA_CRASH 16
 
-void cras_mix_init(unsigned int flags);
+void cras_mix_init();
 
 /* Scale the given buffer with the provided scaler and increment.
  * Args:

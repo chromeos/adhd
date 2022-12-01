@@ -178,7 +178,7 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   cras_observer_server_init();
   btlog = cras_bt_event_log_init();
 
-  cras_mix_init(0);
+  cras_mix_init();
   cras_stream_apm_init("/etc/cras");
   cras_iodev_list_init();
   /* For cros fuzz, emerge adhd with USE=fuzzer will copy dsp.ini.sample to
