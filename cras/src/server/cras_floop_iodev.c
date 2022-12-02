@@ -244,6 +244,19 @@ static void common_update_active_node(struct cras_iodev *iodev,
 }
 
 /*
+ * Loopback devices are forced to be stereo. However, the channel
+ * layout is not created to match the force assigment. This
+ * function should set the channel layout as default, that is
+ * FL, FR in this case.
+ */
+static int floop_update_channel_layout(struct cras_iodev *iodev)
+{
+	cras_audio_format_set_default_channel_layout(iodev->format);
+
+	return 0;
+}
+
+/*
  * iodev creation
  */
 
@@ -256,6 +269,7 @@ static void common_init_iodev(const struct cras_floop_params *params,
 	iodev->supported_formats = loopback_supported_formats;
 	iodev->buffer_size = LOOPBACK_BUFFER_SIZE;
 	iodev->update_active_node = common_update_active_node;
+	iodev->update_channel_layout = floop_update_channel_layout;
 
 	int namelen = snprintf(iodev->info.name, sizeof(iodev->info.name), "%s",
 			       name);
