@@ -165,9 +165,9 @@ static int cras_hfp_ag_slc_disconnected(struct hfp_slc_handle *handle)
 	if (!ag)
 		return -EINVAL;
 
-	destroy_audio_gateway(ag);
 	cras_bt_device_notify_profile_dropped(
 		ag->device, CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
+	destroy_audio_gateway(ag);
 	return 0;
 }
 
