@@ -403,9 +403,9 @@ impl<'a> CrasClient<'a> {
         (self.client_id << 16) | stream_id
     }
 
-    // Creates general stream with given parameters
+    // Prepares and sends connect stream message to server
     #[allow(clippy::too_many_arguments)]
-    fn create_stream<'b, T: BufferCommit + CrasStreamData<'b>>(
+    fn prepare_and_send_connect_stream(
         &mut self,
         device_index: Option<u32>,
         block_size: u32,
@@ -414,9 +414,10 @@ impl<'a> CrasClient<'a> {
         channel_num: usize,
         format: SampleFormat,
         effects: &[StreamEffect],
-    ) -> Result<CrasStream<'b, T>> {
-        assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
-
+        client_shm_size: u64,
+        buffer_offsets: [u64; 2],
+        fds: &[RawFd],
+    ) -> Result<u32> {
         let stream_id = self.next_server_stream_id();
 
         // Prepares server message
@@ -439,17 +440,44 @@ impl<'a> CrasClient<'a> {
             dev_idx: device_index.unwrap_or(CRAS_SPECIAL_DEVICE::NO_DEVICE as u32),
             effects: effects.iter().collect::<CrasStreamEffect>().into(),
             client_type: self.client_type,
-            client_shm_size: 0,
-            buffer_offsets: [0, 0],
+            client_shm_size,
+            buffer_offsets,
         };
 
-        // Creates AudioSocket pair
-        let (sock1, sock2) = UnixStream::pair()?;
-
         // Sends `CRAS_SERVER_CONNECT_STREAM` message
-        let socks = [sock2.as_raw_fd()];
         self.server_socket
-            .send_server_message_with_fds(&server_cmsg, &socks)?;
+            .send_server_message_with_fds(&server_cmsg, fds)?;
+
+        Ok(stream_id)
+    }
+
+    // Creates general stream with given parameters
+    #[allow(clippy::too_many_arguments)]
+    fn create_stream<'b, T: BufferCommit + CrasStreamData<'b>>(
+        &mut self,
+        device_index: Option<u32>,
+        block_size: u32,
+        direction: CRAS_STREAM_DIRECTION,
+        rate: u32,
+        channel_num: usize,
+        format: SampleFormat,
+        effects: &[StreamEffect],
+    ) -> Result<CrasStream<'b, T>> {
+        assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
+
+        let (sock1, sock2) = UnixStream::pair()?;
+        let stream_id = self.prepare_and_send_connect_stream(
+            device_index,
+            block_size,
+            direction,
+            rate,
+            channel_num,
+            format,
+            effects,
+            0,
+            [0, 0],
+            &[sock2.as_raw_fd()],
+        )?;
 
         let audio_socket = AudioSocket::new(sock1);
         loop {
@@ -487,39 +515,19 @@ impl<'a> CrasClient<'a> {
     ) -> Result<async_::CrasStream<'b, T>> {
         assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
 
-        let stream_id = self.next_server_stream_id();
-
-        // Prepares server message
-        let audio_format =
-            cras_audio_format_packed::new(format.into(), rate, channel_num, direction);
-        let msg_header = cras_server_message {
-            length: mem::size_of::<cras_connect_message>() as u32,
-            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
-        };
-        let server_cmsg = cras_connect_message {
-            header: msg_header,
-            proto_version: CRAS_PROTO_VER,
-            direction,
-            stream_id,
-            stream_type: CRAS_STREAM_TYPE::CRAS_STREAM_TYPE_DEFAULT,
-            buffer_frames: block_size,
-            cb_threshold: block_size,
-            flags: 0,
-            format: audio_format,
-            dev_idx: device_index.unwrap_or(CRAS_SPECIAL_DEVICE::NO_DEVICE as u32),
-            effects: effects.iter().collect::<CrasStreamEffect>().into(),
-            client_type: self.client_type,
-            client_shm_size: 0,
-            buffer_offsets: [0, 0],
-        };
-
-        // Creates AudioSocket pair
         let (sock1, sock2) = UnixStream::pair()?;
-
-        // Sends `CRAS_SERVER_CONNECT_STREAM` message
-        let socks = [sock2.as_raw_fd()];
-        self.server_socket
-            .send_server_message_with_fds(&server_cmsg, &socks)?;
+        let stream_id = self.prepare_and_send_connect_stream(
+            device_index,
+            block_size,
+            direction,
+            rate,
+            channel_num,
+            format,
+            effects,
+            0,
+            [0, 0],
+            &[sock2.as_raw_fd()],
+        )?;
 
         let audio_socket = async_::AudioSocket::new(sock1, ex)?;
         loop {
@@ -792,45 +800,19 @@ impl<'a, E: std::error::Error> ShmStreamSource<E> for CrasClient<'a> {
             )));
         }
 
-        let buffer_size = buffer_size as u32;
-
-        // Prepares server message
-        let stream_id = self.next_server_stream_id();
-        let audio_format = cras_audio_format_packed::new(
-            format.into(),
+        let (sock1, sock2) = UnixStream::pair()?;
+        let stream_id = self.prepare_and_send_connect_stream(
+            None,
+            buffer_size as u32,
+            direction.into(),
             frame_rate,
             num_channels,
-            direction.into(),
-        );
-        let msg_header = cras_server_message {
-            length: mem::size_of::<cras_connect_message>() as u32,
-            id: CRAS_SERVER_MESSAGE_ID::CRAS_SERVER_CONNECT_STREAM,
-        };
-
-        let server_cmsg = cras_connect_message {
-            header: msg_header,
-            proto_version: CRAS_PROTO_VER,
-            direction: direction.into(),
-            stream_id,
-            stream_type: CRAS_STREAM_TYPE::CRAS_STREAM_TYPE_DEFAULT,
-            buffer_frames: buffer_size,
-            cb_threshold: buffer_size,
-            flags: 0,
-            format: audio_format,
-            dev_idx: CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
-            effects: effects.iter().collect::<CrasStreamEffect>().into(),
-            client_type: self.client_type,
-            client_shm_size: client_shm.size(),
+            format,
+            effects,
+            client_shm.size(),
             buffer_offsets,
-        };
-
-        // Creates AudioSocket pair
-        let (sock1, sock2) = UnixStream::pair()?;
-
-        // Sends `CRAS_SERVER_CONNECT_STREAM` message
-        let fds = [sock2.as_raw_fd(), client_shm.as_raw_fd()];
-        self.server_socket
-            .send_server_message_with_fds(&server_cmsg, &fds)?;
+            &[sock2.as_raw_fd(), client_shm.as_raw_fd()],
+        )?;
 
         loop {
             let result = CrasClient::wait_for_message(&mut self.server_socket)?;
