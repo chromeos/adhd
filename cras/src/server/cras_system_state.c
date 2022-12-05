@@ -881,6 +881,19 @@ int cras_system_state_in_main_thread()
 	return pthread_self() == state.main_thread_tid;
 }
 
+bool cras_system_state_internal_cards_detected()
+{
+	struct card_list *card;
+
+	DL_FOREACH (state.cards, card) {
+		if (cras_alsa_card_get_type(card->card) ==
+		    ALSA_CARD_TYPE_INTERNAL) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void cras_system_state_set_speak_on_mute_detection(bool enabled)
 {
 	state.speak_on_mute_detection_enabled = enabled;

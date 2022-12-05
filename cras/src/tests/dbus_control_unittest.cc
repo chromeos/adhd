@@ -227,6 +227,9 @@ int cras_system_state_get_input_devs(const struct cras_iodev_info** devs) {
 int cras_system_state_get_input_nodes(const struct cras_ionode_info** nodes) {
   return 0;
 }
+bool cras_system_state_internal_cards_detected() {
+  return false;
+}
 int audio_thread_dump_thread_info(struct audio_thread* thread,
                                   struct audio_debug_info* info) {
   return 0;

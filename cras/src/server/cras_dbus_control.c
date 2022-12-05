@@ -1257,6 +1257,18 @@ handle_speak_on_mute_detection_enabled(DBusConnection *conn,
 		cras_system_state_get_speak_on_mute_detection_enabled());
 }
 
+static DBusHandlerResult handle_is_internal_card_detected(DBusConnection *conn,
+							  DBusMessage *message,
+							  void *arg)
+{
+	dbus_bool_t internal_cards_detected =
+		cras_system_state_internal_cards_detected();
+
+	send_bool_reply(conn, message, internal_cards_detected);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message, void *arg)
@@ -1433,6 +1445,9 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetPlayerMetadata")) {
 		return handle_set_player_metadata(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "IsInternalCardDetected")) {
+		return handle_is_internal_card_detected(conn, message, arg);
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetSpeakOnMuteDetection")) {
 		return handle_set_speak_on_mute_detection(conn, message, arg);

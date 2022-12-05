@@ -416,6 +416,14 @@
       <arg name="enable" type="b" direction="out"/>
     </method>
 
+    <method name="IsInternalCardDetected">
+      <tp:docstring>
+        Returns 1 if at least 1 internal audio card that is not HDMI audio
+        card is detected. Returns 0 if no internal audio cards are detected.
+      </tp:docstring>
+      <arg name="detected" type="b" direction="out"/>
+    </method>
+
     <signal name="OutputVolumeChanged">
       <tp:docstring>
         Indicates that the output volume level has changed.

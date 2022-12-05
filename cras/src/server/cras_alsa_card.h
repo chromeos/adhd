@@ -48,4 +48,12 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card);
  */
 size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card);
 
+/* Returns the alsa card type for the given card.
+ * Args:
+ *    alsa_card - The cras_alsa_card pointer returned from
+ *        cras_alsa_card_create.
+ */
+enum CRAS_ALSA_CARD_TYPE
+cras_alsa_card_get_type(const struct cras_alsa_card *alsa_card);
+
 #endif /* CRAS_ALSA_CARD_H_ */

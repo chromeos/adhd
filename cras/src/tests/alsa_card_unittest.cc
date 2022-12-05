@@ -373,6 +373,7 @@ TEST(AlsaCard, CreateNoDevices) {
   EXPECT_EQ(0, cras_alsa_iodev_create_called);
   EXPECT_EQ(0, cras_alsa_iodev_legacy_complete_init_called);
   EXPECT_EQ(1, cras_alsa_card_get_index(c));
+  EXPECT_EQ(ALSA_CARD_TYPE_INTERNAL, cras_alsa_card_get_type(c));
   EXPECT_EQ(0, ucm_get_sections_called);
   EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
 

@@ -61,6 +61,7 @@ struct cras_alsa_card {
 	snd_hctl_t *hctl;
 	struct hctl_poll_fd *hctl_poll_fds;
 	struct cras_card_config *config;
+	enum CRAS_ALSA_CARD_TYPE card_type;
 };
 
 /* Creates an iodev for the given device.
@@ -470,6 +471,7 @@ struct cras_alsa_card *cras_alsa_card_create(
 	if (alsa_card == NULL)
 		return NULL;
 	alsa_card->card_index = info->card_index;
+	alsa_card->card_type = info->card_type;
 
 	snprintf(alsa_card->name, MAX_ALSA_CARD_NAME_LENGTH, "hw:%u",
 		 info->card_index);
@@ -640,4 +642,11 @@ size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card)
 {
 	assert(alsa_card);
 	return alsa_card->card_index;
+}
+
+enum CRAS_ALSA_CARD_TYPE
+cras_alsa_card_get_type(const struct cras_alsa_card *alsa_card)
+{
+	assert(alsa_card);
+	return alsa_card->card_type;
 }
