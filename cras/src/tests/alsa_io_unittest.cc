@@ -403,6 +403,57 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
 
+TEST(AlsaIoInit, DefaultNodeHDMICard) {
+  struct alsa_io* aio;
+  struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
+
+  ResetStubData();
+  aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_HDMI, 0, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_OUTPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
+  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
+  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
+  ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  alsa_iodev_destroy((struct cras_iodev*)aio);
+
+  aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_HDMI, 1, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_OUTPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
+  EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
+  ASSERT_STREQ(INTERNAL_SPEAKER, aio->base.active_node->name);
+  ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  alsa_iodev_destroy((struct cras_iodev*)aio);
+
+  aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_HDMI, 0, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_INPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
+  /* No more call to get volume curve for input device. */
+  EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
+  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
+  ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  alsa_iodev_destroy((struct cras_iodev*)aio);
+
+  aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_HDMI, 1, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_INPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
+  EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
+  ASSERT_STREQ(INTERNAL_MICROPHONE, aio->base.active_node->name);
+  ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  alsa_iodev_destroy((struct cras_iodev*)aio);
+}
+
 TEST(AlsaIoInit, OpenPlayback) {
   struct cras_iodev* iodev;
   struct cras_audio_format format;

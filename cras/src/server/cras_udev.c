@@ -2,6 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "cras_alsa_card.h"
 #include <assert.h>
 #include <libudev.h>
 #include <stdio.h>
@@ -96,15 +97,16 @@ static unsigned is_action_remove(const char *action)
 	return is_action("remove", action);
 }
 
+// If the internal card supports headset, speaker or dmic,
+// there should be platform subsystem.
 static unsigned is_internal_bus(const char *bus)
 {
-	return (bus != NULL &&
-		(strcmp(bus, "pci") == 0 || strcmp(bus, "platform") == 0));
+	return (bus != NULL && strncmp(bus, "platform", 8) == 0);
 }
 
 static unsigned is_external_bus(const char *bus)
 {
-	return (bus != NULL && (strcmp(bus, "usb") == 0));
+	return (bus != NULL && (strncmp(bus, "usb", 3) == 0));
 }
 
 static bool is_dummy_device(struct udev_device *dev)
@@ -112,27 +114,31 @@ static bool is_dummy_device(struct udev_device *dev)
 	return strstr(udev_device_get_devpath(dev), "snd_dummy") != NULL;
 }
 
-static unsigned is_internal_device(struct udev_device *dev)
+static enum CRAS_ALSA_CARD_TYPE check_device_type(struct udev_device *dev)
 {
 	// treat snd_dummy as external USB device
 	if (is_dummy_device(dev))
-		return 0;
+		return ALSA_CARD_TYPE_USB;
 	struct udev_device *parent = udev_device_get_parent(dev);
+
 	while (parent != NULL) {
 		const char *name = udev_device_get_subsystem(parent);
 
 		if (name != NULL) {
 			if (is_external_bus(name))
-				return 0;
+				return ALSA_CARD_TYPE_USB;
 			else if (is_internal_bus(name))
-				return 1;
+				return ALSA_CARD_TYPE_INTERNAL;
+			else
+				return ALSA_CARD_TYPE_HDMI;
 		}
 		parent = udev_device_get_parent(parent);
 	}
-	return 0;
+	return ALSA_CARD_TYPE_USB;
 }
 
-static unsigned is_card_device(struct udev_device *dev, unsigned *internal,
+static unsigned is_card_device(struct udev_device *dev,
+			       enum CRAS_ALSA_CARD_TYPE *card_type,
 			       unsigned *card_number, const char **sysname)
 {
 	regmatch_t m[2];
@@ -141,7 +147,7 @@ static unsigned is_card_device(struct udev_device *dev, unsigned *internal,
 	if (devpath != NULL &&
 	    regexec(&card_regex, devpath, ARRAY_SIZE(m), m, 0) == 0) {
 		*sysname = udev_device_get_sysname(dev);
-		*internal = is_internal_device(dev);
+		*card_type = check_device_type(dev);
 		*card_number = (unsigned)atoi(&devpath[m[1].rm_so]);
 		return 1;
 	}
@@ -288,17 +294,15 @@ static void fill_usb_card_info(struct cras_alsa_card_info *card_info,
 }
 
 static void device_add_alsa(struct udev_device *dev, const char *sysname,
-			    unsigned card, unsigned internal)
+			    unsigned card, enum CRAS_ALSA_CARD_TYPE card_type)
 {
 	struct cras_alsa_card_info card_info;
 	memset(&card_info, 0, sizeof(card_info));
 
 	udev_delay_for_alsa();
 	card_info.card_index = card;
-	if (internal) {
-		card_info.card_type = ALSA_CARD_TYPE_INTERNAL;
-	} else {
-		card_info.card_type = ALSA_CARD_TYPE_USB;
+	card_info.card_type = card_type;
+	if (card_type == ALSA_CARD_TYPE_USB) {
 		fill_usb_card_info(&card_info, dev);
 	}
 
@@ -331,26 +335,26 @@ static void change_udev_device_if_alsa_device(struct udev_device *dev)
 	/* If the device, 'dev' is an alsa device, add it to the set of
 	 * devices available for I/O.  Mark it as the active device.
 	 */
-	unsigned internal;
+	enum CRAS_ALSA_CARD_TYPE card_type;
 	unsigned card_number;
 	const char *sysname;
 
-	if (is_card_device(dev, &internal, &card_number, &sysname) &&
+	if (is_card_device(dev, &card_type, &card_number, &sysname) &&
 	    udev_sound_initialized(dev) &&
 	    !cras_system_alsa_card_exists(card_number)) {
-		if (internal)
+		if (card_type == ALSA_CARD_TYPE_USB)
 			set_factory_default(card_number);
-		device_add_alsa(dev, sysname, card_number, internal);
+		device_add_alsa(dev, sysname, card_number, card_type);
 	}
 }
 
 static void remove_device_if_card(struct udev_device *dev)
 {
-	unsigned internal;
+	enum CRAS_ALSA_CARD_TYPE card_type;
 	unsigned card_number;
 	const char *sysname;
 
-	if (is_card_device(dev, &internal, &card_number, &sysname))
+	if (is_card_device(dev, &card_type, &card_number, &sysname))
 		device_remove_alsa(sysname, card_number);
 }
 

@@ -1000,7 +1000,7 @@ static void free_alsa_iodev_resources(struct alsa_io *aio)
  */
 static int first_internal_device(struct alsa_io *aio)
 {
-	return aio->is_first && aio->card_type == ALSA_CARD_TYPE_INTERNAL;
+	return aio->is_first && aio->card_type != ALSA_CARD_TYPE_USB;
 }
 
 /*
@@ -1796,6 +1796,7 @@ static void set_iodev_name(struct cras_iodev *dev, const char *card_name,
 
 	switch (card_type) {
 	case ALSA_CARD_TYPE_INTERNAL:
+	case ALSA_CARD_TYPE_HDMI:
 		dev->info.stable_id = SuperFastHash((const char *)&device_index,
 						    sizeof(device_index),
 						    dev->info.stable_id);

@@ -713,7 +713,8 @@ enum cras_notify_device_action {
 };
 
 /* Information about an ALSA card to be added to the system.
- *    card_type - Either internal card or a USB sound card.
+ *    card_type - Either internal card that supports headset, speaker or dmic,
+        a USB sound card, or internal card that supports only HDMI.
  *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
  *    priority - Base priority to give devices found on this card. Zero is the
  *      lowest priority.  Non-primary devices on the card will be given a
@@ -727,6 +728,7 @@ enum cras_notify_device_action {
 enum CRAS_ALSA_CARD_TYPE {
 	ALSA_CARD_TYPE_INTERNAL,
 	ALSA_CARD_TYPE_USB,
+	ALSA_CARD_TYPE_HDMI
 };
 #define USB_SERIAL_NUMBER_BUFFER_SIZE 64
 struct __attribute__((__packed__)) cras_alsa_card_info {

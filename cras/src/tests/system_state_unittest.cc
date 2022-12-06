@@ -528,6 +528,22 @@ TEST(SystemStateSuite, InternalCardDetectdInternalCardOnly) {
   cras_system_state_deinit();
 }
 
+TEST(SystemStateSuite, InternalCardDetectdHDMICardOnly) {
+  ResetStubData();
+  cras_alsa_card_info info;
+
+  info.card_type = ALSA_CARD_TYPE_HDMI;
+  info.card_index = 0;
+  do_sys_init();
+  cras_system_add_alsa_card(&info);
+
+  EXPECT_EQ(0, cras_system_state_internal_cards_detected());
+
+  // Remove the card, or the card stays in the state
+  cras_system_remove_alsa_card(0);
+  cras_system_state_deinit();
+}
+
 TEST(SystemFeatureTier, CrasFeatureTierInitCalled) {
   ResetStubData();
   do_sys_init();
