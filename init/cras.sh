@@ -6,6 +6,14 @@
 device_config_dir="$(cros_config /audio/main cras-config-dir)"
 internal_ucm_suffix="$(cros_config /audio/main ucm-suffix)"
 
+# Hardware information
+# TODO(b/259385071): use cros_config /audio/main board
+board_name="$(cros_config /arc/build-properties product)"
+cpu_model_name="$( \
+  cat /proc/cpuinfo \
+  | grep -i 'model name' -m 1 \
+  | sed 's/model name[ \t]*:[ \t]*//')"
+
 # Handle legacy config.
 if [ -z "${device_config_dir}" ]; then
   # For boards that need a different device config, check which config
@@ -27,6 +35,12 @@ if [ -n "${device_config_dir}" ]; then
 fi
 if [ -n "${internal_ucm_suffix}" ]; then
   INTERNAL_UCM_SUFFIX="--internal_ucm_suffix=${internal_ucm_suffix}"
+fi
+if [ -n "${board_name}" ]; then
+  BOARD_NAME_CONFIG="--board_name=${board_name}"
+fi
+if [ -n "${cpu_model_name}" ]; then
+  CPU_MODEL_NAME_CONFIG="--cpu_model_name=${cpu_model_name}"
 fi
 
 # Leave cras in the init pid namespace as it uses its PID as an IPC identifier.
@@ -52,4 +66,5 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -- \
         /usr/bin/cras \
         ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} \
-        ${INTERNAL_UCM_SUFFIX} ${CRAS_ARGS}
+        ${INTERNAL_UCM_SUFFIX} ${BOARD_NAME_CONFIG} ${CPU_MODEL_NAME_CONFIG} \
+        ${CRAS_ARGS}
