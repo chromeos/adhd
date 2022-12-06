@@ -283,7 +283,7 @@ nodist_EXTRA_cras_SOURCES = fake.cxx
 cras_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dsp -I$(top_srcdir)/src/server \
 	-I$(top_srcdir)/src/server/config -I$(top_srcdir)/src/plc \
-	$(DBUS_CFLAGS) $(SBC_CFLAGS)
+	-I$(SERVER_RUST_SRCDIR)/include $(DBUS_CFLAGS) $(SBC_CFLAGS)
 
 
 cras_LDADD = \
@@ -1267,7 +1267,8 @@ system_state_unittest_SOURCES = tests/system_state_unittest.cc \
        	$(CRAS_SELINUX_UNITTEST_SOURCES)
 system_state_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
-	-I$(top_srcdir)/src/server/config $(SELINUX_CFLAGS)
+	-I$(top_srcdir)/src/server/config $(SELINUX_CFLAGS) \
+	-I$(SERVER_RUST_SRCDIR)/include
 system_state_unittest_LDADD = $(SELINUX_LIBS) \
 	$(GTEST_MAIN_LIBS) -liniparser -lpthread -lrt
 
