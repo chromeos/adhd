@@ -571,6 +571,7 @@ TESTS = \
 	empty_iodev_unittest \
 	expr_unittest \
 	ewma_power_unittest \
+	feature_tier_unittest \
 	file_wait_unittest \
 	floop_iodev_unittest \
 	float_buffer_unittest \
@@ -1133,6 +1134,12 @@ ewma_power_unittest_SOURCES = tests/ewma_power_unittest.cc \
 ewma_power_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 ewma_power_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
+
+feature_tier_unittest_SOURCES = tests/feature_tier_unittest.cc
+feature_tier_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
+	-I$(SERVER_RUST_SRCDIR)/include
+feature_tier_unittest_LDADD = $(CRAS_RUST) $(GTEST_MAIN_LIBS)
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc common/strlcpy.c
 iodev_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
