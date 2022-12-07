@@ -13,6 +13,7 @@
 #include "cras_a2dp_manager.h"
 #include "cras_bt_io.h"
 #include "cras_bt_policy.h"
+#include "cras_dbus_util.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 #include "cras_hfp_manager.h"
@@ -58,99 +59,17 @@ int fl_media_init(int hci)
 	return 0;
 }
 
-/* helper to extract a single argument from a DBus message. */
-static int get_single_arg(DBusMessage *message, int dbus_type, void *arg)
+/* Common predicate for blocking calls to Floss. */
+static bool dbus_uint8_is_nonzero(int dbus_type, void *dbus_value_ptr)
 {
-	DBusError dbus_error;
-
-	dbus_error_init(&dbus_error);
-
-	if (!dbus_message_get_args(message, &dbus_error, dbus_type, arg,
-				   DBUS_TYPE_INVALID)) {
-		syslog(LOG_WARNING, "Bad method received: %s",
-		       dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	if (dbus_type != DBUS_TYPE_BYTE) {
+		syslog(LOG_ERR,
+		       "Mismatched return type, "
+		       "expected type id: %d, received type id: %d",
+		       DBUS_TYPE_BYTE, dbus_type);
+		return false;
 	}
-
-	return 0;
-}
-
-static int floss_media_block_until_started(struct fl_media *fm,
-					   const char *method_name,
-					   const char *addr, int num_retries,
-					   int sleep_time_us)
-{
-	int rc;
-	DBusMessage *method_call = NULL, *reply = NULL;
-	DBusError dbus_error;
-	uint8_t started; /* started iff non-zero */
-
-	syslog(LOG_DEBUG, "%s: polling until started", method_name);
-
-	if (!fm) {
-		syslog(LOG_WARNING, "%s: Floss media not started", __func__);
-		return -EINVAL;
-	}
-
-	method_call = dbus_message_new_method_call(
-		BT_SERVICE_NAME, fm->obj_path, BT_MEDIA_INTERFACE, method_name);
-	if (!method_call)
-		return -ENOMEM;
-
-	if (!dbus_message_append_args(method_call, DBUS_TYPE_STRING, &addr,
-				      DBUS_TYPE_INVALID)) {
-		dbus_message_unref(method_call);
-		return -ENOMEM;
-	}
-
-	for (int retry = 0; retry < num_retries; ++retry) {
-		dbus_error_init(&dbus_error);
-		reply = dbus_connection_send_with_reply_and_block(
-			fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT,
-			&dbus_error);
-		if (!reply) {
-			syslog(LOG_ERR, "Failed to send %s : %s", method_name,
-			       dbus_error.message);
-			dbus_error_free(&dbus_error);
-			rc = -EIO;
-			goto cleanup;
-		}
-
-		if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-			syslog(LOG_ERR, "%s returned error: %s", method_name,
-			       dbus_message_get_error_name(reply));
-			rc = -EIO;
-			goto cleanup;
-		}
-
-		if (get_single_arg(reply, DBUS_TYPE_BYTE, &started) != 0) {
-			rc = -EIO;
-			goto cleanup;
-		}
-
-		dbus_message_unref(reply);
-		reply = NULL;
-
-		if (started) {
-			rc = started;
-			goto cleanup;
-		}
-
-		usleep(sleep_time_us);
-	}
-
-	rc = -EAGAIN;
-	syslog(LOG_ERR, "%s: polling failed after %d us", method_name,
-	       num_retries * sleep_time_us);
-
-cleanup:
-	if (method_call)
-		dbus_message_unref(method_call);
-	if (reply)
-		dbus_message_unref(reply);
-
-	return rc;
+	return *(uint8_t *)dbus_value_ptr != 0;
 }
 
 int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr)
@@ -168,67 +87,78 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 				   bool enable_offload, bool force_cvsd)
 {
-	int rc;
-	DBusMessage *method_call, *reply;
-	DBusError dbus_error;
-	dbus_bool_t offload = enable_offload;
-	dbus_bool_t hfp_force_cvsd = force_cvsd;
+	int rc = 0;
 
-	syslog(LOG_DEBUG, "floss_media_hfp_start_sco_call: %s", addr);
+	syslog(LOG_DEBUG, "%s: %s", __func__, addr);
 
 	if (!fm) {
 		syslog(LOG_WARNING, "%s: Floss media not started", __func__);
 		return -EINVAL;
 	}
 
-	method_call =
-		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
-					     BT_MEDIA_INTERFACE,
-					     "StartScoCall");
-	if (!method_call)
-		return -ENOMEM;
+	dbus_bool_t dbus_enable_offload = enable_offload;
+	dbus_bool_t dbus_force_cvsd = force_cvsd;
 
-	if (!dbus_message_append_args(method_call, DBUS_TYPE_STRING, &addr,
-				      DBUS_TYPE_BOOLEAN, &offload,
-				      DBUS_TYPE_BOOLEAN, &hfp_force_cvsd,
-				      DBUS_TYPE_INVALID)) {
-		dbus_message_unref(method_call);
-		return -ENOMEM;
-	}
+	DBusMessage *start_sco_call;
+	rc = create_dbus_method_call(&start_sco_call,
+				     /* dest= */ BT_SERVICE_NAME,
+				     /* path= */ fm->obj_path,
+				     /* iface= */ BT_MEDIA_INTERFACE,
+				     /* method_name= */ "StartScoCall",
+				     /* num_args= */ 3,
+				     /* arg1= */ DBUS_TYPE_STRING, &addr,
+				     /* arg2= */ DBUS_TYPE_BOOLEAN,
+				     &dbus_enable_offload,
+				     /* arg3= */ DBUS_TYPE_BOOLEAN,
+				     &dbus_force_cvsd);
 
-	dbus_error_init(&dbus_error);
-	reply = dbus_connection_send_with_reply_and_block(
-		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
-	if (!reply) {
-		syslog(LOG_ERR, "Failed to send StartScoCall: %s",
-		       dbus_error.message);
-		dbus_error_free(&dbus_error);
-		dbus_message_unref(method_call);
-		return -EIO;
-	}
+	if (rc < 0)
+		return rc;
 
-	dbus_message_unref(method_call);
+	rc = call_method_and_parse_reply(
+		/* conn= */ fm->conn,
+		/* method_call= */ start_sco_call,
+		/* dbus_ret_type= */ DBUS_TYPE_INVALID,
+		/* dbus_ret_value_ptr= */ NULL);
 
-	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "StartScoCall returned error: %s",
-		       dbus_message_get_error_name(reply));
-		dbus_message_unref(reply);
-		return -EIO;
-	}
+	dbus_message_unref(start_sco_call);
 
-	dbus_message_unref(reply);
+	if (rc < 0)
+		return rc;
 
-	rc = floss_media_block_until_started(fm, "GetHfpAudioStarted", addr,
-					     GET_HFP_AUDIO_STARTED_RETRIES,
-					     GET_HFP_AUDIO_STARTED_SLEEP_US);
+	DBusMessage *get_hfp_audio_started;
+	rc = create_dbus_method_call(&get_hfp_audio_started,
+				     /* dest= */ BT_SERVICE_NAME,
+				     /* path= */ fm->obj_path,
+				     /* iface= */ BT_MEDIA_INTERFACE,
+				     /* method_name= */ "GetHfpAudioStarted",
+				     /* num_args= */ 1,
+				     /* arg1= */ DBUS_TYPE_STRING, &addr);
+	if (rc < 0)
+		return rc;
+
+	uint8_t dbus_ret_value;
+	rc = retry_until_predicate_satisfied(
+		/* conn=*/fm->conn,
+		/* num_retries= */ GET_HFP_AUDIO_STARTED_RETRIES,
+		/* sleep_time_us= */ GET_HFP_AUDIO_STARTED_SLEEP_US,
+		/* method_call= */ get_hfp_audio_started,
+		/* dbus_ret_type= */ DBUS_TYPE_BYTE,
+		/* dbus_ret_value_ptr= */ &dbus_ret_value,
+		/* predicate= */ dbus_uint8_is_nonzero);
+
+	dbus_message_unref(get_hfp_audio_started);
 
 	/* Did not receive response after timeout. */
-	if (rc == -EAGAIN) {
+	if (rc == -EBUSY) {
 		/* Stop sco call in case it does resolve later. */
 		floss_media_hfp_stop_sco_call(fm, addr);
 	}
 
-	return rc;
+	if (rc < 0)
+		return rc;
+
+	return dbus_ret_value;
 }
 #endif
 
@@ -474,48 +404,65 @@ int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
 
 int floss_media_a2dp_start_audio_request(struct fl_media *fm, const char *addr)
 {
-	DBusMessage *method_call = NULL, *reply = NULL;
-	DBusError dbus_error;
+	int rc = 0;
 
-	syslog(LOG_DEBUG, "floss_media_a2dp_start_audio_request");
+	syslog(LOG_DEBUG, "%s: %s", __func__, addr);
 
 	if (!fm) {
 		syslog(LOG_WARNING, "%s: Floss media not started", __func__);
 		return -EINVAL;
 	}
 
-	method_call =
-		dbus_message_new_method_call(BT_SERVICE_NAME, fm->obj_path,
-					     BT_MEDIA_INTERFACE,
-					     "StartAudioRequest");
-	if (!method_call)
-		return -ENOMEM;
+	DBusMessage *start_audio_request;
+	rc = create_dbus_method_call(&start_audio_request,
+				     /* dest= */ BT_SERVICE_NAME,
+				     /* path= */ fm->obj_path,
+				     /* iface= */ BT_MEDIA_INTERFACE,
+				     /* method_name= */ "StartAudioRequest",
+				     /* num_args= */ 0);
 
-	dbus_error_init(&dbus_error);
-	reply = dbus_connection_send_with_reply_and_block(
-		fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
-	if (!reply) {
-		syslog(LOG_ERR, "Failed to send StartAudioRequest: %s",
-		       dbus_error.message);
-		dbus_error_free(&dbus_error);
-		dbus_message_unref(method_call);
-		return -EIO;
-	}
+	if (rc < 0)
+		return rc;
 
-	dbus_message_unref(method_call);
+	rc = call_method_and_parse_reply(
+		/* conn= */ fm->conn,
+		/* method_call= */ start_audio_request,
+		/* dbus_ret_type= */ DBUS_TYPE_INVALID,
+		/* dbus_ret_value_ptr= */ NULL);
 
-	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-		syslog(LOG_ERR, "StartAudioRequest returned error: %s",
-		       dbus_message_get_error_name(reply));
-		dbus_message_unref(reply);
-		return -EIO;
-	}
+	dbus_message_unref(start_audio_request);
 
-	dbus_message_unref(reply);
+	if (rc < 0)
+		return rc;
 
-	return floss_media_block_until_started(fm, "GetA2dpAudioStarted", addr,
-					       GET_A2DP_AUDIO_STARTED_RETRIES,
-					       GET_A2DP_AUDIO_STARTED_SLEEP_US);
+	DBusMessage *get_a2dp_audio_started;
+	rc = create_dbus_method_call(&get_a2dp_audio_started,
+				     /* dest= */ BT_SERVICE_NAME,
+				     /* path= */ fm->obj_path,
+				     /* iface= */ BT_MEDIA_INTERFACE,
+				     /* method_name= */ "GetA2dpAudioStarted",
+				     /* num_args= */ 1,
+				     /* arg1= */ DBUS_TYPE_STRING, &addr);
+
+	if (rc < 0)
+		return rc;
+
+	uint8_t dbus_ret_value;
+	rc = retry_until_predicate_satisfied(
+		/* conn=*/fm->conn,
+		/* num_retries= */ GET_A2DP_AUDIO_STARTED_RETRIES,
+		/* sleep_time_us= */ GET_A2DP_AUDIO_STARTED_SLEEP_US,
+		/* method_call= */ get_a2dp_audio_started,
+		/* dbus_ret_type= */ DBUS_TYPE_BYTE,
+		/* dbus_ret_value_ptr= */ &dbus_ret_value,
+		/* predicate= */ dbus_uint8_is_nonzero);
+
+	dbus_message_unref(get_a2dp_audio_started);
+
+	if (rc < 0)
+		return rc;
+
+	return dbus_ret_value;
 }
 
 int floss_media_a2dp_stop_audio_request(struct fl_media *fm)

@@ -38,24 +38,6 @@ struct cras_dbus_control {
 };
 static struct cras_dbus_control dbus_control;
 
-/* helper to extract a single argument from a DBus message. */
-static int get_single_arg(DBusMessage *message, int dbus_type, void *arg)
-{
-	DBusError dbus_error;
-
-	dbus_error_init(&dbus_error);
-
-	if (!dbus_message_get_args(message, &dbus_error, dbus_type, arg,
-				   DBUS_TYPE_INVALID)) {
-		syslog(LOG_WARNING, "Bad method received: %s",
-		       dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-	}
-
-	return 0;
-}
-
 static bool get_string_metadata(DBusMessageIter *iter, const char **dst)
 {
 	if (dbus_message_iter_get_arg_type(iter) != DBUS_TYPE_STRING)
