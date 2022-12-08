@@ -412,4 +412,10 @@ void cras_system_state_dump_snapshots();
  */
 int cras_system_state_in_main_thread();
 
+/* Enable/disable speak on mute detection */
+void cras_system_state_set_speak_on_mute_detection(bool enabled);
+
+/* Get whether speak on mute detection is enabled */
+bool cras_system_state_get_speak_on_mute_detection_enabled();
+
 #endif /* CRAS_SYSTEM_STATE_H_ */

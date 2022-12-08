@@ -40,6 +40,7 @@ struct cras_observer_alerts {
 	struct cras_alert *severe_underrun;
 	struct cras_alert *underrun;
 	struct cras_alert *general_survey;
+	struct cras_alert *speak_on_mute_detected;
 };
 
 struct cras_observer_server {
@@ -360,6 +361,16 @@ static void general_survey_alert(void *arg, void *data)
 	}
 }
 
+static void speak_on_mute_detected_alert(void *arg, void *data)
+{
+	struct cras_observer_client *client;
+
+	DL_FOREACH (g_observer->clients, client) {
+		if (client->ops.speak_on_mute_detected)
+			client->ops.speak_on_mute_detected(client->context);
+	}
+}
+
 static int cras_observer_server_set_alert(struct cras_alert **alert,
 					  cras_alert_cb cb,
 					  cras_alert_prepare prepare,
@@ -421,6 +432,7 @@ int cras_observer_server_init()
 	CRAS_OBSERVER_SET_ALERT(severe_underrun, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(underrun, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(general_survey, NULL, 0);
+	CRAS_OBSERVER_SET_ALERT(speak_on_mute_detected, NULL, 0);
 
 	CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(num_active_streams,
 					       CRAS_STREAM_OUTPUT);
@@ -465,6 +477,7 @@ void cras_observer_server_free()
 		g_observer->alerts
 			.num_active_streams[CRAS_STREAM_POST_MIX_PRE_DSP]);
 	cras_alert_destroy(g_observer->alerts.general_survey);
+	cras_alert_destroy(g_observer->alerts.speak_on_mute_detected);
 	free(g_observer);
 	g_observer = NULL;
 }
@@ -704,4 +717,9 @@ void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
 	data.node_type_pair = node_type_pair;
 	cras_alert_pending_data(g_observer->alerts.general_survey, &data,
 				sizeof(data));
+}
+
+void cras_observer_notify_speak_on_mute_detected()
+{
+	cras_alert_pending(g_observer->alerts.speak_on_mute_detected);
 }

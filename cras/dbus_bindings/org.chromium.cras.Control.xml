@@ -396,6 +396,21 @@
     <method name="SetPlayerMetadata">
       <arg name="metadata" type="a{sv}" direction="in"/>
     </method>
+
+    <method name="SetSpeakOnMuteDetection">
+      <tp:docstring>
+        Enable or disable speak-on-mute detection.
+      </tp:docstring>
+      <arg name="enable" type="b" direction="in"/>
+    </method>
+
+    <method name="SpeakOnMuteDetectionEnabled">
+      <tp:docstring>
+        Get whether speak-on-mute detection is enabled.
+      </tp:docstring>
+      <arg name="enable" type="b" direction="out"/>
+    </method>
+
     <signal name="OutputVolumeChanged">
       <tp:docstring>
         Indicates that the output volume level has changed.
@@ -513,6 +528,20 @@
     <signal name="SurveyTrigger">
       <tp:docstring>Indicates an audio survey should be triggered.</tp:docstring>
       <arg name="properties" type="a{sv}"></arg>
+    </signal>
+
+    <signal name="SpeakOnMuteDetected">
+      <tp:docstring>
+        TODO(b/255935803): The current implementation is fake, and sends out the
+        signal every 10 seconds if SetSpeakOnMuteDetection is on.
+
+        Signal that indicates voice activity is detected. This signal is only sent when all the following are true:
+        (1) the system microphone is muted
+        (2) voice activity detected
+        (3) speak-on-mute detection is turned on with SetSpeakOnMuteDetection
+        (4) there is an ongoing WebRTC usage.
+        (5) this signal was not sent in the past 1 second
+      </tp:docstring>
     </signal>
   </interface>
 

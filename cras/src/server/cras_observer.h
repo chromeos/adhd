@@ -117,4 +117,7 @@ void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
 					 enum CRAS_CLIENT_TYPE client_type,
 					 const char *node_pair_type);
 
+/* Notify observers of a speak on mute event */
+void cras_observer_notify_speak_on_mute_detected();
+
 #endif /* CRAS_OBSERVER_H_ */

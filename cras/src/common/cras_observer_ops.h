@@ -68,6 +68,8 @@ struct cras_observer_ops {
 	void (*general_survey)(void *context, enum CRAS_STREAM_TYPE stream_type,
 			       enum CRAS_CLIENT_TYPE client_type,
 			       const char *node_type_pair);
+	/* Speech detected while on mute */
+	void (*speak_on_mute_detected)(void *context);
 };
 
 #endif /* CRAS_OBSERVER_OPS_H_ */

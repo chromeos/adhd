@@ -217,6 +217,7 @@ cras_server_SOURCES = \
 	server/cras_main_message.c \
 	server/cras_mix.c \
 	server/cras_non_empty_audio_handler.c \
+	server/cras_speak_on_mute_detector.c \
 	server/cras_observer.c \
 	server/cras_ramp.c \
 	server/cras_rclient.c \

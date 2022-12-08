@@ -22,6 +22,7 @@
 #include "cras_main_thread_log.h"
 #include "cras_observer.h"
 #include "cras_shm.h"
+#include "cras_speak_on_mute_detector.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_types.h"
@@ -69,6 +70,7 @@ struct feature_state {
  *    bt_fix_a2dp_packet_size - The flag to override A2DP packet size set by
  *      Blueetoh peer devices to a smaller default value.
  *    feature_state - The feature state. See struct feature_state.
+ *    speak_on_mute_detection_enabled - Whether speak on mute detection is enabled.
  */
 static struct {
 	struct cras_server_state *exp_state;
@@ -95,6 +97,7 @@ static struct {
 	pthread_t main_thread_tid;
 	bool bt_fix_a2dp_packet_size;
 	struct feature_state feature_state;
+	bool speak_on_mute_detection_enabled;
 } state;
 
 /* The string format is CARD1,CARD2,CARD3. Divide it into a list. */
@@ -848,4 +851,19 @@ void cras_system_state_add_snapshot(struct cras_audio_thread_snapshot *snapshot)
 int cras_system_state_in_main_thread()
 {
 	return pthread_self() == state.main_thread_tid;
+}
+
+void cras_system_state_set_speak_on_mute_detection(bool enabled)
+{
+	state.speak_on_mute_detection_enabled = enabled;
+	if (enabled) {
+		cras_speak_on_mute_detector_start();
+	} else {
+		cras_speak_on_mute_detector_stop();
+	}
+}
+
+bool cras_system_state_get_speak_on_mute_detection_enabled()
+{
+	return state.speak_on_mute_detection_enabled;
 }

@@ -17,7 +17,7 @@ extern "C" {
 
 namespace {
 
-static const size_t kNumAlert = 20;
+static const size_t kNumAlert = 21;
 
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;
@@ -65,6 +65,7 @@ static std::vector<std::vector<uint32_t>>
     cb_num_input_streams_with_permission_array;
 static size_t cb_severe_underrun_called;
 static size_t cb_underrun_called;
+static size_t cb_speak_on_mute_detected_called;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -112,6 +113,7 @@ static void ResetStubData() {
   cb_num_input_streams_with_permission_array.clear();
   cb_severe_underrun_called = 0;
   cb_underrun_called = 0;
+  cb_speak_on_mute_detected_called = 0;
 }
 
 /* System output volume changed. */
@@ -219,6 +221,11 @@ void cb_severe_underrun(void* context) {
 
 void cb_underrun(void* context) {
   cb_underrun_called++;
+  cb_context.push_back(context);
+}
+
+void cb_speak_on_mute_detected(void* context) {
+  cb_speak_on_mute_detected_called++;
   cb_context.push_back(context);
 }
 
@@ -711,6 +718,19 @@ TEST_F(ObserverTest, Underrun) {
   ASSERT_EQ(2, cb_underrun_called);
 
   DoObserverRemoveClear(underrun_alert, NULL);
+}
+
+TEST_F(ObserverTest, SpeakOnMuteDetected) {
+  cras_observer_notify_speak_on_mute_detected();
+  EXPECT_EQ(cras_alert_pending_alert_value,
+            g_observer->alerts.speak_on_mute_detected);
+
+  ops1_.speak_on_mute_detected = cb_speak_on_mute_detected;
+  ops2_.speak_on_mute_detected = cb_speak_on_mute_detected;
+  DoObserverAlert(speak_on_mute_detected_alert, NULL);
+  ASSERT_EQ(cb_speak_on_mute_detected_called, 2);
+
+  DoObserverRemoveClear(speak_on_mute_detected_alert, NULL);
 }
 
 // Stubs

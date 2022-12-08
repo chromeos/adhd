@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include <time.h>
+
 #ifndef CRAS_TM_H_
 #define CRAS_TM_H_
 

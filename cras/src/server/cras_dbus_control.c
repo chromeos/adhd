@@ -1234,6 +1234,33 @@ static DBusHandlerResult handle_set_player_metadata(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult
+handle_set_speak_on_mute_detection(DBusConnection *conn, DBusMessage *message,
+				   void *arg)
+{
+	DBusError dbus_error;
+	dbus_error_init(&dbus_error);
+
+	dbus_bool_t enabled;
+	int rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+	if (rc)
+		return rc;
+
+	cras_system_state_set_speak_on_mute_detection(enabled);
+
+	send_empty_reply(conn, message);
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult
+handle_speak_on_mute_detection_enabled(DBusConnection *conn,
+				       DBusMessage *message, void *arg)
+{
+	return send_bool_reply(
+		conn, message,
+		cras_system_state_get_speak_on_mute_detection_enabled());
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message, void *arg)
@@ -1410,6 +1437,13 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
 					       "SetPlayerMetadata")) {
 		return handle_set_player_metadata(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "SetSpeakOnMuteDetection")) {
+		return handle_set_speak_on_mute_detection(conn, message, arg);
+	} else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+					       "SpeakOnMuteDetectionEnabled")) {
+		return handle_speak_on_mute_detection_enabled(conn, message,
+							      arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -1746,6 +1780,19 @@ error:
 	dbus_message_unref(msg);
 }
 
+static void signal_speak_on_mute_detected(void *context)
+{
+	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
+	dbus_uint32_t serial = 0;
+
+	DBusMessage *msg = create_dbus_message("SpeakOnMuteDetected");
+	if (!msg)
+		return;
+
+	dbus_connection_send(control->conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 /* Exported Interface */
 
 void cras_dbus_control_start(DBusConnection *conn)
@@ -1791,6 +1838,7 @@ void cras_dbus_control_start(DBusConnection *conn)
 	observer_ops.severe_underrun = signal_severe_underrun;
 	observer_ops.underrun = signal_underrun;
 	observer_ops.general_survey = signal_general_survey;
+	observer_ops.speak_on_mute_detected = signal_speak_on_mute_detected;
 
 	dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }
