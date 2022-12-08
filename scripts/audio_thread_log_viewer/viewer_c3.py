@@ -467,6 +467,13 @@ class EventLogParser(object):
             'delay': 1136
         }
 
+        Format of the property string for most events is ( [^ :]+:[^ :]+)+
+        There are some exceptions. Ignore them for now since they are not drawn
+        by the viewer. For example:
+        DEV_SLEEP_TIME    dev:8 wake: 11:04:14.239339685
+        FILL_AUDIO_DONE   hw_level:4147 total_written:441 power:-inf dBFS
+        SLEEP             sleep:000000000.007284702 non_empty 0
+
         @param line: A line of event log.
 
         @returns: A EventData object.
@@ -476,8 +483,11 @@ class EventLogParser(object):
         time, name = StrToTimestamp(line_split[0]), line_split[3]
         logging.debug('time: %s, name: %s', time, name)
         props = {}
-        for index in xrange(4, len(line_split)):
-            key, value = line_split[index].split(':')[:2]
+        for index in range(4, len(line_split)):
+            tokens = line_split[index].split(':')
+            if len(tokens) != 2:
+                continue
+            key, value = tokens[:2]
             props[key] = value
         logging.debug('props: %s', props)
         return self._CreateEventData(time, name, props)
