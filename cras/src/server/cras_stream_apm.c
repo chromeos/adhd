@@ -19,6 +19,7 @@
 #include "cras_speak_on_mute_detector.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_main_message.h"
 #include "dsp_util.h"
 #include "dumper.h"
 #include "float_buffer.h"
@@ -126,6 +127,36 @@ struct active_apm {
 	struct cras_stream_apm *stream;
 	struct active_apm *prev, *next;
 } * active_apms;
+
+/* Commands sent to be handled in main thread. */
+enum CRAS_STREAM_APM_MSG_TYPE {
+	APM_DISALLOW_AEC_ON_DSP,
+};
+
+struct cras_stream_apm_message {
+	struct cras_main_message header;
+	enum CRAS_STREAM_APM_MSG_TYPE message_type;
+	uint32_t arg1;
+	uint32_t arg2;
+};
+
+/*
+ * Initializes message sent to main thread with type APM_DISALLOW_AEC_ON_DSP.
+ * Arguments:
+ *   dev_idx - the index of input device APM takes effect on.
+ *   is_disallowed - 1 to disallow, 0 otherwise.
+ */
+static void init_disallow_aec_on_dsp_msg(struct cras_stream_apm_message *msg,
+					 uint32_t dev_idx,
+					 uint32_t is_disallowed)
+{
+	memset(msg, 0, sizeof(*msg));
+	msg->header.type = CRAS_MAIN_STREAM_APM;
+	msg->header.length = sizeof(*msg);
+	msg->message_type = APM_DISALLOW_AEC_ON_DSP;
+	msg->arg1 = dev_idx;
+	msg->arg2 = is_disallowed;
+}
 
 /* Commands from main thread to be handled in audio thread. */
 enum APM_THREAD_CMD {
@@ -280,6 +311,9 @@ static bool toggle_dsp_effect(struct cras_iodev *const idev, uint64_t effect,
 	/* Toggle the DSP effect if it is not activated according to what is
 	 * specified. */
 	if (dsp_effect_activated != should_be_activated) {
+		syslog(LOG_ERR,
+		       "cras_iodev_set_rtc_proc_enabled DSP effect %u=%d",
+		       (uint32_t)effect, should_be_activated ? 1 : 0);
 		cras_iodev_set_rtc_proc_enabled(idev, effect,
 						should_be_activated ? 1 : 0);
 
@@ -294,6 +328,57 @@ static bool toggle_dsp_effect(struct cras_iodev *const idev, uint64_t effect,
 		       (unsigned long)effect);
 
 	return dsp_effect_activated;
+}
+
+/*
+ * Adds the info of APM_DISALLOW_AEC_ON_DSP messages to a list. The list is used
+ * for reducing repeated and conflicted infos, minimizing the number of messgaes
+ * to be sent to the main thread.
+ */
+static void add_disallow_aec_on_dsp_info_to_list(uint32_t *info_list,
+						 size_t *info_list_size,
+						 uint32_t dev_idx,
+						 uint32_t is_disallowed)
+{
+	size_t i;
+	/* info: [31:16] for dev_idx, [15:0] for is_disallowed */
+	uint32_t info = (dev_idx << 16) + (is_disallowed & 0xFFFF);
+
+	for (i = 0; i < *info_list_size; i++) {
+		uint32_t list_info = *(info_list + i);
+		/* repeated info */
+		if (list_info == info)
+			return;
+		/* conflicted info for the same device, replace with the latter */
+		if (list_info >> 16 == info >> 16) {
+			*(info_list + i) = info;
+			syslog(LOG_ERR,
+			       "disallow_aec_on_dsp conflicted on dev:%u, %u",
+			       dev_idx, is_disallowed);
+			return;
+		}
+	}
+
+	*(info_list + *info_list_size) = info;
+	(*info_list_size)++;
+}
+
+/* Sends APM_DISALLOW_AEC_ON_DSP message to the main thread. */
+static void send_disallow_aec_on_dsp_msg_from_info(uint32_t info)
+{
+	struct cras_stream_apm_message msg = CRAS_MAIN_MESSAGE_INIT;
+	int err;
+
+	/* info: [31:16] for dev_idx, [15:0] for is_disallowed */
+	syslog(LOG_DEBUG,
+	       "Send APM_DISALLOW_AEC_ON_DSP(%u, %u) message to main",
+	       info >> 16, info & 0xFFFF);
+	init_disallow_aec_on_dsp_msg(&msg, info >> 16, info & 0xFFFF);
+	err = cras_main_message_send((struct cras_main_message *)&msg);
+	if (err < 0) {
+		syslog(LOG_ERR, "Failed to send stream apm message %d: %d",
+		       APM_DISALLOW_AEC_ON_DSP, err);
+	}
 }
 
 /*
@@ -321,6 +406,9 @@ static void update_supported_dsp_effects_activation()
 	/* Toggle between having effects applied on DSP and in CRAS for each APM */
 	struct active_apm *active;
 	struct cras_apm *apm;
+	uint32_t disallow_aec_on_dsp_infos[CRAS_MAX_IODEVS];
+	size_t disallow_aec_on_dsp_info_size = 0;
+	size_t i;
 	LL_FOREACH (active_apms, active) {
 		apm = active->apm;
 		struct cras_iodev *const idev = apm->idev;
@@ -369,7 +457,21 @@ static void update_supported_dsp_effects_activation()
 				!ns_on_dsp,
 			(active->stream->effects & APM_GAIN_CONTROL) &&
 				!agc_on_dsp);
+
+		if (!cras_iodev_support_rtc_proc_on_dsp(idev, RTC_PROC_AEC))
+			continue;
+
+		/* Collect APM_DISALLOW_AEC_ON_DSP infos to be sent. */
+		add_disallow_aec_on_dsp_info_to_list(
+			disallow_aec_on_dsp_infos,
+			&disallow_aec_on_dsp_info_size, idev->info.idx,
+			!aec_on_dsp);
 	}
+
+	/* Send APM_DISALLOW_AEC_ON_DSP messages to the main thread. */
+	for (i = 0; i < disallow_aec_on_dsp_info_size; i++)
+		send_disallow_aec_on_dsp_msg_from_info(
+			disallow_aec_on_dsp_infos[i]);
 }
 
 /* Reconfigure APMs to update their VAD enabled status. */
@@ -684,6 +786,16 @@ void cras_stream_apm_stop(struct cras_stream_apm *stream,
 	toggle_dsp_effect(idev, RTC_PROC_AEC, 0);
 	toggle_dsp_effect(idev, RTC_PROC_NS, 0);
 	toggle_dsp_effect(idev, RTC_PROC_AGC, 0);
+
+	/* If the APM which causes AEC on DSP disallowed is the last active_apm
+	 * on |idev| to stop, update_supported_dsp_effects_activation cannot
+	 * detect the condition is released because there is no active_apm
+	 * applied on |idev| at that moment.
+	 * To solve such cases, send message to clear the disallowed state when
+	 * |idev| is no longer being used by APMs.
+	 */
+	if (cras_iodev_support_rtc_proc_on_dsp(idev, RTC_PROC_AEC))
+		send_disallow_aec_on_dsp_msg_from_info(idev->info.idx << 16);
 }
 
 int cras_stream_apm_destroy(struct cras_stream_apm *stream)
@@ -1190,4 +1302,29 @@ void cras_stream_apm_notify_vad_target_changed(
 	if (rc < 0) {
 		syslog(LOG_ERR, "Error sending vad target changed message");
 	}
+}
+
+static void handle_stream_apm_message(struct cras_main_message *msg, void *arg)
+{
+	struct cras_stream_apm_message *stream_apm_msg =
+		(struct cras_stream_apm_message *)msg;
+
+	switch (stream_apm_msg->message_type) {
+	case APM_DISALLOW_AEC_ON_DSP:
+		cras_iodev_list_set_aec_on_dsp_is_disallowed(
+			stream_apm_msg->arg1, /* dev_idx */
+			stream_apm_msg->arg2); /* is_disallowed */
+		break;
+	default:
+		syslog(LOG_ERR, "Unknown stream apm message type %u",
+		       stream_apm_msg->message_type);
+		break;
+	}
+}
+
+int cras_stream_apm_message_handler_init()
+{
+	cras_main_message_add_handler(CRAS_MAIN_STREAM_APM,
+				      handle_stream_apm_message, NULL);
+	return 0;
 }

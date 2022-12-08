@@ -907,6 +907,16 @@ int cras_iodev_drop_frames_by_time(struct cras_iodev *iodev,
 bool cras_iodev_support_noise_cancellation(const struct cras_iodev *iodev,
 					   unsigned node_idx);
 
+/* Checks if an input device supports RTC Proc on DSP.
+ * Args:
+ *    iodev - The device.
+ *    rtc_proc - The RTC Proc effect type.
+ * Returns:
+ *    True if the device supports the specific effect on DSP. False otherwise.
+ */
+bool cras_iodev_support_rtc_proc_on_dsp(const struct cras_iodev *iodev,
+					enum RTC_PROC_ON_DSP rtc_proc);
+
 /* */
 bool cras_iodev_set_rtc_proc_enabled(struct cras_iodev *iodev,
 				     enum RTC_PROC_ON_DSP rtc_proc,

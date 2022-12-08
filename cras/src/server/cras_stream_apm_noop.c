@@ -106,3 +106,8 @@ void cras_stream_apm_notify_vad_target_changed(
 	struct cras_stream_apm *vad_target)
 {
 }
+
+int cras_stream_apm_message_handler_init()
+{
+	return 0;
+}

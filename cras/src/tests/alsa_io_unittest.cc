@@ -150,7 +150,6 @@ static unsigned display_rotation;
 static bool sys_get_noise_cancellation_supported_return_value;
 static int sys_aec_on_dsp_supported_return_value;
 static int ucm_node_echo_cancellation_exists_ret_value;
-static bool sys_bypass_block_noise_cancellation_value;
 static int sys_get_max_internal_speaker_channels_called;
 static int sys_get_max_internal_speaker_channels_return_value;
 static int sys_get_max_headphone_channels_called = 0;
@@ -246,7 +245,6 @@ void ResetStubData() {
   sys_get_noise_cancellation_supported_return_value = 0;
   sys_aec_on_dsp_supported_return_value = 0;
   ucm_node_echo_cancellation_exists_ret_value = 0;
-  sys_bypass_block_noise_cancellation_value = false;
   sys_get_max_internal_speaker_channels_called = 0;
   sys_get_max_internal_speaker_channels_return_value = 2;
   sys_get_max_headphone_channels_called = 0;
@@ -1510,12 +1508,6 @@ TEST(AlsaOutputNode, InputBypassBlockNoiseCancellation) {
 
     // NC flag in node.audio_effect should be unrelated to AEC on DSP states.
     ASSERT_TRUE(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION);
-    // Bypass Block NC state should be true only if both
-    // cras_system_aec_on_dsp_supported and ucm_node_echo_cancellation_exists
-    // return true.
-    ASSERT_EQ(sys_bypass_block_noise_cancellation_value,
-              cras_system_aec_on_dsp_supported() &&
-                  ucm_node_echo_cancellation_exists(fake_ucm));
 
     ucm_section_free_list(section);
     alsa_iodev_destroy(iodev);
@@ -2824,10 +2816,6 @@ bool cras_system_get_noise_cancellation_enabled() {
 
 int cras_system_aec_on_dsp_supported() {
   return sys_aec_on_dsp_supported_return_value;
-}
-
-void cras_system_set_bypass_block_noise_cancellation(bool bypass) {
-  sys_bypass_block_noise_cancellation_value = bypass;
 }
 
 //  From cras_alsa_mixer.

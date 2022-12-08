@@ -15,3 +15,8 @@ bool get_hfp_mic_sr_feature_enabled()
 {
 	return false;
 }
+
+int cras_feature_tier_init()
+{
+	return 0;
+}

@@ -43,6 +43,7 @@
 #include "cras_rclient.h"
 #include "cras_server.h"
 #include "cras_server_metrics.h"
+#include "cras_stream_apm.h"
 #include "cras_string.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
@@ -519,6 +520,8 @@ int cras_server_run(unsigned int profile_disable_mask)
 	cras_non_empty_audio_handler_init();
 
 	cras_audio_thread_monitor_init();
+
+	cras_stream_apm_message_handler_init();
 
 #ifdef CRAS_DBUS
 	dbus_threads_init_default();

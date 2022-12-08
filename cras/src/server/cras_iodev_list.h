@@ -309,4 +309,13 @@ int cras_iodev_list_request_floop(const struct cras_floop_params *params);
 void cras_iodev_list_enable_floop_pair(struct cras_floop_pair *pair);
 void cras_iodev_list_disable_floop_pair(struct cras_floop_pair *pair);
 
+/*
+ * Sets |aec_on_dsp_is_disallowed| state for noise cancellation blockage.
+ * Args:
+ *    dev_idx - Index of the target device
+ *    is_disallowed - Boolean to set |aec_on_dsp_is_disallowed| state
+ */
+void cras_iodev_list_set_aec_on_dsp_is_disallowed(unsigned int dev_idx,
+						  bool is_disallowed);
+
 #endif /* CRAS_IODEV_LIST_H_ */

@@ -1803,6 +1803,33 @@ bool cras_iodev_support_noise_cancellation(const struct cras_iodev *iodev,
 	return false;
 }
 
+bool cras_iodev_support_rtc_proc_on_dsp(const struct cras_iodev *iodev,
+					enum RTC_PROC_ON_DSP rtc_proc)
+{
+	struct cras_ionode *node;
+
+	if (iodev->direction != CRAS_STREAM_INPUT)
+		return false;
+
+	/* TODO: The name of UCM SectionModifier for RTC procs should have
+	 *       the node name as prefix to identify the audio path RTC proc
+	 *       takes effect on. For workaround now we only consider AEC on
+	 *       DSP is supported via Internal Mic.
+	 */
+	if (rtc_proc != RTC_PROC_AEC)
+		return false;
+
+	node = iodev->active_node;
+	if (node == NULL)
+		return false;
+
+	if (node->type == CRAS_NODE_TYPE_MIC)
+		return (node->position == NODE_POSITION_INTERNAL) ||
+		       (node->position == NODE_POSITION_FRONT);
+
+	return false;
+}
+
 bool cras_iodev_set_rtc_proc_enabled(struct cras_iodev *iodev,
 				     enum RTC_PROC_ON_DSP rtc_proc,
 				     bool enabled)

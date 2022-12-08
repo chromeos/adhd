@@ -196,4 +196,7 @@ int cras_stream_apm_set_aec_ref(struct cras_stream_apm *stream,
 void cras_stream_apm_notify_vad_target_changed(
 	struct cras_stream_apm *vad_target);
 
+/* Initializes the handler of cras_stream_apm_message in the main thread. */
+int cras_stream_apm_message_handler_init();
+
 #endif /* CRAS_STREAM_APM_H_ */

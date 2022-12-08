@@ -106,8 +106,89 @@ static int hotword_suspended = 0;
 /* Flag to indicate that suspended hotword streams should be auto-resumed at
  * system resume. */
 static int hotword_auto_resume = 0;
-/* Flag to indicate that Noise Cancellation is blocked. */
-static bool noise_cancellation_blocked = false;
+
+/*
+ * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
+ * scenario and will be updated in respective timing.
+ *
+ * 1. non_dsp_aec_echo_ref_dev_enabled
+ *     scenario:
+ *         detect if there exists an enabled or opened output device which can't
+ *         be applied as echo reference for AEC on DSP.
+ *     timing for updating state:
+ *         check rising edge on enable_dev() & open_dev() of output devices.
+ *         check falling edge on disable_dev() & close_dev() of output devices.
+ *
+ * 2. aec_on_dsp_is_disallowed
+ *     scenario:
+ *         detect if there exists an input stream requesting AEC on DSP
+ *         disallowed while it is supported.
+ *     timing for updating state:
+ *         check accompanied with dsp_effect_check_conflict(RTC_PROC_AEC) under
+ *         update_supported_dsp_effects_activation() in cras_stream_apm.
+ *
+ * The final NC blocking state is determined by:
+ *     nc_blocked_state = (non_dsp_aec_echo_ref_dev_enabled ||
+ *                         aec_on_dsp_is_disallowed)
+ *
+ * CRAS will notify Chrome promptly when nc_blocked_state is altered.
+ */
+static bool non_dsp_aec_echo_ref_dev_enabled = false;
+static bool aec_on_dsp_is_disallowed = false;
+
+/* Returns true for blocking Noise Cancellation; false for unblocking. */
+static bool get_nc_blocked_state()
+{
+	return non_dsp_aec_echo_ref_dev_enabled || aec_on_dsp_is_disallowed;
+}
+
+static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_enabled,
+				    bool new_aec_on_dsp_is_disallowed)
+{
+	bool prev_state = get_nc_blocked_state();
+
+	/* 0: set to false, 1: set to true, 2: no edge */
+	uint32_t nc_block_state_edge_type = 2;
+
+	non_dsp_aec_echo_ref_dev_enabled = new_non_dsp_aec_echo_ref_dev_enabled;
+	aec_on_dsp_is_disallowed = new_aec_on_dsp_is_disallowed;
+
+	if (prev_state != get_nc_blocked_state()) {
+		if (!cras_system_get_noise_cancellation_supported() ||
+		    cras_system_get_bypass_block_noise_cancellation())
+			return;
+
+		nc_block_state_edge_type = get_nc_blocked_state();
+		syslog(LOG_DEBUG, "NC blocked state sets to %s",
+		       get_nc_blocked_state() ? "true" : "false");
+		/* notify Chrome for NC blocking state change */
+		cras_iodev_list_update_device_list();
+		cras_iodev_list_notify_nodes_changed();
+	}
+
+	MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE, nc_block_state_edge_type,
+		non_dsp_aec_echo_ref_dev_enabled, aec_on_dsp_is_disallowed);
+}
+
+static void set_non_dsp_aec_echo_ref_dev_enabled(bool state)
+{
+	update_nc_blocked_state(state, aec_on_dsp_is_disallowed);
+}
+
+static void set_aec_on_dsp_is_disallowed(bool state)
+{
+	update_nc_blocked_state(non_dsp_aec_echo_ref_dev_enabled, state);
+}
+
+/* |dev_idx| is unused by now. */
+void cras_iodev_list_set_aec_on_dsp_is_disallowed(unsigned int dev_idx,
+						  bool is_disallowed)
+{
+	if (aec_on_dsp_is_disallowed == is_disallowed)
+		return;
+
+	set_aec_on_dsp_is_disallowed(is_disallowed);
+}
 
 static void idle_dev_check(struct cras_timer *timer, void *data);
 
@@ -304,7 +385,7 @@ static int fill_node_list(struct iodev_list *list,
 				 node_type_to_str(node));
 			node_info->type_enum = node->type;
 			node_info->audio_effect = node->audio_effect;
-			if (noise_cancellation_blocked &&
+			if (get_nc_blocked_state() &&
 			    !cras_system_get_bypass_block_noise_cancellation())
 				node_info->audio_effect &=
 					~EFFECT_TYPE_NOISE_CANCELLATION;
@@ -419,58 +500,88 @@ static void possibly_disable_echo_reference(struct cras_iodev *dev)
 }
 
 /*
- * Blocks Noise Cancellation when any of following conditions is met:
- *    1. Internal Speaker is the active output node and the device is enabled.
- *    2. Internal Speaker is opened.
+ * Sets |non_dsp_aec_echo_ref_dev_enabled| true for NC blocking state decision
+ * if |dev| is enabled output and can't be applied as echo reference for AEC on
+ * DSP.
  */
-static void possibly_block_noise_cancellation(const struct cras_iodev *dev)
+static void
+possibly_set_non_dsp_aec_echo_ref_dev_enabled(const struct cras_iodev *dev)
 {
-	if (noise_cancellation_blocked)
+	if (non_dsp_aec_echo_ref_dev_enabled)
 		return;
 
+	/* skip silent devices */
+	if (dev->info.idx < MAX_SPECIAL_DEVICE_IDX)
+		return;
+
+	/* skip input devices */
 	if (dev->direction == CRAS_STREAM_INPUT)
 		return;
 
-	if (!dev->active_node ||
-	    dev->active_node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER)
-		return;
-
-	if (cras_iodev_list_dev_is_enabled(dev) || cras_iodev_is_open(dev)) {
-		noise_cancellation_blocked = true;
-		if (cras_system_get_bypass_block_noise_cancellation())
-			return;
-
-		cras_iodev_list_update_device_list();
-		cras_iodev_list_notify_nodes_changed();
+	if (cras_iodev_list_dev_is_enabled(dev) && dev->active_node &&
+	    !cras_iodev_is_dsp_aec_use_case(dev->active_node)) {
+		syslog(LOG_DEBUG,
+		       "non_dsp_aec_echo_ref_dev_enabled=1 by output dev: %u",
+		       dev->info.idx);
+		set_non_dsp_aec_echo_ref_dev_enabled(true);
 	}
 }
 
 /*
- * Unblocks Noise Cancellation when all of following conditions are met:
- *    1. Internal Speaker is the active output node and the device is disabled.
- *    2. Internal Speaker is closed.
+ * Sets |non_dsp_aec_echo_ref_dev_enabled| false for NC blocking state decision
+ * when there is no enabled or opened output which can't be applied as echo
+ * reference.
  */
-static void possibly_unblock_noise_cancellation(const struct cras_iodev *dev)
+static void possibly_clear_non_dsp_aec_echo_ref_dev_enabled()
 {
-	if (!noise_cancellation_blocked)
+	struct enabled_dev *edev;
+	struct cras_rstream *stream;
+	struct cras_iodev *dev;
+
+	if (!non_dsp_aec_echo_ref_dev_enabled)
 		return;
 
-	if (dev->direction == CRAS_STREAM_INPUT)
-		return;
+	DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
+		/* neglect silent devices */
+		if (edev->dev->info.idx < MAX_SPECIAL_DEVICE_IDX)
+			continue;
 
-	if (!dev->active_node ||
-	    dev->active_node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER)
-		return;
-
-	if (!cras_iodev_list_dev_is_enabled(dev) && !cras_iodev_is_open(dev)) {
-		noise_cancellation_blocked = false;
-		if (cras_system_get_bypass_block_noise_cancellation())
+		if (edev->dev->active_node &&
+		    !cras_iodev_is_dsp_aec_use_case(edev->dev->active_node))
 			return;
-
-		cras_iodev_list_update_device_list();
-		cras_iodev_list_notify_nodes_changed();
 	}
+
+	/*
+	 * if a device has pinned stream attached, it would be removed from
+	 * |enabled_devs| during disable_device() but still keeps opened for
+	 * the pinned stream.
+	 */
+	DL_FOREACH (stream_list_get(stream_list), stream) {
+		/*
+		 * check if there exists a output device opened with pinned
+		 * stream attached, and can't be applied as echo reference.
+		 */
+		if (stream->direction == CRAS_STREAM_INPUT)
+			continue;
+
+		if (!stream->is_pinned)
+			continue;
+
+		dev = find_dev(stream->pinned_dev_idx);
+
+		/* neglect silent devices */
+		if (dev->info.idx < MAX_SPECIAL_DEVICE_IDX)
+			continue;
+
+		if (dev->active_node &&
+		    !cras_iodev_is_dsp_aec_use_case(dev->active_node))
+			return;
+	}
+
+	syslog(LOG_DEBUG, "non_dsp_aec_echo_ref_dev_enabled=0");
+	set_non_dsp_aec_echo_ref_dev_enabled(false);
 }
+
 /*
  * Removes all attached streams and close dev if it's opened.
  */
@@ -485,8 +596,8 @@ static void close_dev(struct cras_iodev *dev)
 	/* close echo ref first to avoid underrun in hardware */
 	possibly_disable_echo_reference(dev);
 	cras_iodev_close(dev);
-	/* Unblock Noise Cancellation when speaker node device is closed. */
-	possibly_unblock_noise_cancellation(dev);
+
+	possibly_clear_non_dsp_aec_echo_ref_dev_enabled();
 }
 
 static void idle_dev_check(struct cras_timer *timer, void *data)
@@ -573,8 +684,7 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *rstream)
 
 	possibly_enable_echo_reference(dev);
 
-	/* Block Noise Cancellation when speaker node device is opened. */
-	possibly_block_noise_cancellation(dev);
+	possibly_set_non_dsp_aec_echo_ref_dev_enabled(dev);
 
 	return rc;
 }
@@ -1197,13 +1307,12 @@ static int enable_device(struct cras_iodev *dev)
 	DL_FOREACH (device_enable_cbs, callback)
 		callback->enabled_cb(dev, callback->cb_data);
 
-	/* Block Noise Cancellation when speaker node device is enabled. */
-	possibly_block_noise_cancellation(dev);
+	possibly_set_non_dsp_aec_echo_ref_dev_enabled(dev);
 
 	return 0;
 }
 
-/* Set `force to true to flush any pinned streams before closing the device. */
+/* Set force to true to flush any pinned streams before closing the device. */
 static int disable_device(struct enabled_dev *edev, bool force)
 {
 	struct cras_iodev *dev = edev->dev;
@@ -1241,8 +1350,7 @@ static int disable_device(struct enabled_dev *edev, bool force)
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 
-	/* Unblock Noise Cancellation when speaker node device is disabled. */
-	possibly_unblock_noise_cancellation(dev);
+	possibly_clear_non_dsp_aec_echo_ref_dev_enabled();
 
 	return 0;
 }
@@ -1262,7 +1370,8 @@ void cras_iodev_list_init()
 	observer_ops.suspend_changed = sys_suspend_change;
 	list_observer = cras_observer_add(&observer_ops, NULL);
 	idle_timer = NULL;
-	noise_cancellation_blocked = false;
+	non_dsp_aec_echo_ref_dev_enabled = false;
+	aec_on_dsp_is_disallowed = false;
 
 	main_log = main_thread_event_log_init();
 
