@@ -56,3 +56,13 @@ start cras
 ```
 
 NOTE: Migration of existing code is tracked by b/255656013.
+
+## Local Variable Declaration
+
+Declare the local variable as close as the first use.
+
+Avoid declaring a variable without giving it an initial value.
+
+Please refer to https://google.github.io/styleguide/cppguide.html#Local_Variables.
+
+NOTE: Migration of existing code is tracked by b/261929984.
