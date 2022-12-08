@@ -674,13 +674,17 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *rstream)
 
 	if (cras_iodev_is_open(dev))
 		return 0;
+
+	dev->info.last_open_result = SUCCESS;
 	cancel_pending_init_retries(dev->info.idx);
 	MAINLOG(main_log, MAIN_THREAD_DEV_INIT, dev->info.idx,
 		rstream->format.num_channels, rstream->format.frame_rate);
 
 	rc = cras_iodev_open(dev, rstream->cb_threshold, &rstream->format);
-	if (rc)
+	if (rc) {
+		dev->info.last_open_result = FAILURE;
 		return rc;
+	}
 
 	rc = audio_thread_add_open_dev(audio_thread, dev);
 	if (rc)
@@ -1059,7 +1063,7 @@ static void restart_dev(unsigned int dev_idx)
 	dev->update_active_node(dev, dev->active_node->idx, 1);
 	rc = init_and_attach_streams(dev);
 	if (rc) {
-		syslog(LOG_INFO, "Enable dev fail at restart, rc %d", rc);
+		syslog(LOG_ERR, "Enable dev fail at restart, rc %d", rc);
 		schedule_init_device_retry(dev);
 	}
 }
@@ -1303,7 +1307,7 @@ static int enable_device(struct cras_iodev *dev)
 
 	rc = init_and_attach_streams(dev);
 	if (rc < 0) {
-		syslog(LOG_INFO, "Enable device fail, rc %d", rc);
+		syslog(LOG_ERR, "Enable device fail, rc %d", rc);
 		schedule_init_device_retry(dev);
 		return rc;
 	}
@@ -1543,7 +1547,7 @@ void cras_iodev_list_resume_dev(unsigned int dev_idx)
 		if (!stream_list_has_pinned_stream(stream_list, dev_idx))
 			possibly_disable_fallback(dev->direction);
 	} else {
-		syslog(LOG_INFO, "Enable dev fail at resume, rc %d", rc);
+		syslog(LOG_ERR, "Enable dev fail at resume, rc %d", rc);
 		schedule_init_device_retry(dev);
 	}
 }

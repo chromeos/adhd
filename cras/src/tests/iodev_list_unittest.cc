@@ -3019,6 +3019,144 @@ TEST(SoftvolCurveTest, InternalMicGainToDBFS) {
   }
 }
 
+TEST_F(IoDevTestSuite, LastOpenResultSuccess) {
+  struct cras_rstream rstream;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.format = fmt_;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(rc, 0);
+  EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
+
+  d1_.format = &fmt_;
+
+  { /* d1_ is not opened since there is no stream */
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, UNKNOWN);
+
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
+  }
+
+  { /* Open d1_ */
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, SUCCESS);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = 0;
+
+    stream_add_cb(&rstream);
+  }
+
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, LastOpenResultFailure) {
+  struct cras_rstream rstream;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.format = fmt_;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(rc, 0);
+  EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
+
+  d1_.format = &fmt_;
+
+  { /* d1_ is not opened since there is no stream */
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, UNKNOWN);
+
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
+  }
+
+  { /* Trigger stream_add_cb while d1_ is closed, and fail init_device */
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, FAILURE);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = -5;
+
+    DL_APPEND(stream_list_get_ret, &rstream);
+    stream_add_cb(&rstream);
+  }
+
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, LastOpenResultMultipleDevices) {
+  struct cras_rstream rstream;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+  rstream.format = fmt_;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(rc, 0);
+  EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
+
+  d1_.format = &fmt_;
+
+  d2_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d2_);
+  ASSERT_EQ(rc, 0);
+  EXPECT_EQ(d2_.info.last_open_result, UNKNOWN);
+
+  d2_.format = &fmt_;
+
+  { /* d1_ is not opened since there is no stream */
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, UNKNOWN);
+    EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, UNKNOWN);
+
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
+  }
+
+  { /* Trigger stream_add_cb while d1_ is closed, and fail init_device */
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, FAILURE);
+    EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, UNKNOWN);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = -5;
+
+    DL_APPEND(stream_list_get_ret, &rstream);
+    stream_add_cb(&rstream);
+  }
+
+  { /* d2_ successfully opens */
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, FAILURE);
+    EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, SUCCESS);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = 0;
+
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d2_.info.idx, 0));
+
+    DL_APPEND(stream_list_get_ret, &rstream);
+    stream_add_cb(&rstream);
+  }
+
+  { /* Swap selected device, closing device doesn't affect status */
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, SUCCESS);
+    EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, SUCCESS);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = 0;
+
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
+  }
+
+  cras_iodev_list_deinit();
+}
+
+// TODO(b/263845276): Add proper handling for floop devices
+// Don't put any tests that access floop_pair_list after this until TODO is done
 TEST_F(IoDevTestSuite, RequestFloop) {
   struct cras_floop_pair cfps[NUM_FLOOP_PAIRS_MAX];
   // cras_floop_pair_create fails and returns NULL
