@@ -66,3 +66,16 @@ Avoid declaring a variable without giving it an initial value.
 Please refer to https://google.github.io/styleguide/cppguide.html#Local_Variables.
 
 NOTE: Migration of existing code is tracked by b/261929984.
+
+## String Manipulation
+
+For string manipulation, prefer to use Rust for new modules. If not possible,
+prefer to use "safe" string functions that are bounded.
+
+The following is an incomprehensive list of the "bad" functions and their
+suggested alternatives.
+
+*   `sprintf` -> `snprintf` or `scnprintf` if using the return value
+*   `strcmp` -> `strncmp`
+*   `strcpy` `strncpy` -> `strlcpy`
+*   `strlen` -> `strnlen`
