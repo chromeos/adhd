@@ -643,6 +643,11 @@ void cras_floss_a2dp_schedule_suspend(struct cras_a2dp* a2dp,
   cras_floss_a2dp_schedule_suspend_called++;
 }
 
+void cras_floss_a2dp_update_write_status(struct cras_a2dp* a2dp,
+                                         bool write_success) {
+  return;
+}
+
 int cras_audio_thread_event_a2dp_overrun() {
   return 0;
 }

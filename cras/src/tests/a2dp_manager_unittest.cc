@@ -469,4 +469,13 @@ int floss_media_a2dp_suspend(struct fl_media* fm) {
   return 0;
 }
 
+// From server metrics
+int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num) {
+  return 0;
+}
+
+int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num) {
+  return 0;
+}
+
 }  // extern "C"

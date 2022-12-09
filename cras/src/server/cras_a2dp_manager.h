@@ -102,4 +102,8 @@ void cras_floss_a2dp_schedule_suspend(struct cras_a2dp *a2dp,
 /* Cancel a pending suspend request if exist of the given a2dp device. */
 void cras_floss_a2dp_cancel_suspend(struct cras_a2dp *a2dp);
 
+/* Update the write stats used for audio metrics. */
+void cras_floss_a2dp_update_write_status(struct cras_a2dp *a2dp,
+					 bool write_success);
+
 #endif /* CRAS_A2DP_MANAGER_H_ */

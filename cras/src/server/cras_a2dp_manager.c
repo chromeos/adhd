@@ -21,8 +21,10 @@
 #include "cras_fl_media.h"
 #include "cras_fl_pcm_iodev.h"
 #include "cras_main_message.h"
+#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
+#include "cras_util.h"
 #include "utlist.h"
 
 #define CRAS_A2DP_SOCKET_FILE ".a2dp"
@@ -50,6 +52,14 @@ struct delay_sync_policy {
  *    name - The name of the connected a2dp device.
  *    support_absolute_volume - If the connected a2dp device supports absolute
  *    volume.
+ *    in_write_fail - Flag indicate if a2dp iodev is in a consecutive packet
+ *        write fail state or not.
+ *    write_fail_begin_ts - If in_write_fail is set to true, tracks the
+ *        timestamp of the beginning of consecutive packet write failure.
+ *    write_20ms_fail_time - Accumulated period of time when packet write
+ *        failure period exceeds 20ms.
+ *    write_100ms_fail_time - Accumulated period of time when packet write
+ *        failure period exceeds 100ms.
  */
 struct cras_a2dp {
 	struct fl_media *fm;
@@ -60,6 +70,10 @@ struct cras_a2dp {
 	char *addr;
 	char *name;
 	bool support_absolute_volume;
+	bool in_write_fail;
+	struct timespec write_fail_begin_ts;
+	struct timespec write_20ms_fail_time;
+	struct timespec write_100ms_fail_time;
 };
 
 enum A2DP_COMMAND {
@@ -401,6 +415,39 @@ const char *cras_floss_a2dp_get_addr(struct cras_a2dp *a2dp)
 	return a2dp->addr;
 }
 
+static void collect_write_fail_stats(struct cras_a2dp *a2dp)
+{
+	/* Ref idle_timeout_interval in cras_iodev_list.c */
+	static const unsigned drop_threshold_sec = 10;
+	struct timespec now, ts;
+	float stream_time, data1, data2;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	subtract_timespecs(&now, &a2dp->iodev->open_ts, &ts);
+
+	/* CRAS may idle for sending silence for a while. So ignore the
+	 * cases with short length. */
+	if (ts.tv_sec < drop_threshold_sec)
+		return;
+	stream_time = ts.tv_sec + ts.tv_nsec / 1000000000.0;
+
+	/*
+	 * Calculate the ratio of write failure and total stream time.
+	 * Multiply ratio value by 10^9 to fill into a count histogram.
+	 */
+	data1 = 1000000000.0 *
+		(a2dp->write_20ms_fail_time.tv_sec +
+		 a2dp->write_20ms_fail_time.tv_nsec / 1000000000.0) /
+		stream_time;
+	data2 = 1000000000.0 *
+		(a2dp->write_100ms_fail_time.tv_sec +
+		 a2dp->write_100ms_fail_time.tv_nsec / 1000000000.0) /
+		stream_time;
+
+	cras_server_metrics_a2dp_20ms_failure_over_stream((unsigned int)data1);
+	cras_server_metrics_a2dp_100ms_failure_over_stream((unsigned int)data2);
+}
+
 int cras_floss_a2dp_stop(struct cras_a2dp *a2dp)
 {
 	if (a2dp->fd < 0)
@@ -408,6 +455,8 @@ int cras_floss_a2dp_stop(struct cras_a2dp *a2dp)
 
 	close(a2dp->fd);
 	a2dp->fd = -1;
+
+	collect_write_fail_stats(a2dp);
 
 	cancel_a2dp_delay_sync(a2dp);
 	floss_media_a2dp_stop_audio_request(a2dp->fm);
@@ -549,6 +598,12 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 
 	a2dp->fd = skt_fd;
 	BTLOG(btlog, BT_A2DP_REQUEST_START, 1, 0);
+
+	a2dp->in_write_fail = 0;
+	a2dp->write_20ms_fail_time.tv_sec = 0;
+	a2dp->write_20ms_fail_time.tv_sec = 0;
+	a2dp->write_100ms_fail_time.tv_nsec = 0;
+	a2dp->write_100ms_fail_time.tv_nsec = 0;
 	return 0;
 error:
 	BTLOG(btlog, BT_A2DP_REQUEST_START, 0, 0);
@@ -586,4 +641,25 @@ void cras_floss_a2dp_schedule_suspend(struct cras_a2dp *a2dp, unsigned int msec)
 void cras_floss_a2dp_cancel_suspend(struct cras_a2dp *a2dp)
 {
 	send_a2dp_message(a2dp, A2DP_CANCEL_SUSPEND, 0);
+}
+
+void cras_floss_a2dp_update_write_status(struct cras_a2dp *a2dp,
+					 bool write_success)
+{
+	static const struct timespec fail_threshold1 = { 0, 20000000 };
+	static const struct timespec fail_threshold2 = { 0, 100000000 };
+	struct timespec now, ts;
+
+	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+	if (write_success && a2dp->in_write_fail) {
+		a2dp->in_write_fail = false;
+		subtract_timespecs(&now, &a2dp->write_fail_begin_ts, &ts);
+		if (timespec_after(&ts, &fail_threshold1))
+			add_timespecs(&a2dp->write_20ms_fail_time, &ts);
+		if (timespec_after(&ts, &fail_threshold2))
+			add_timespecs(&a2dp->write_100ms_fail_time, &ts);
+	} else if (!write_success && !a2dp->in_write_fail) {
+		a2dp->in_write_fail = true;
+		a2dp->write_fail_begin_ts = now;
+	}
 }

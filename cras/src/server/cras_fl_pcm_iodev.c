@@ -639,6 +639,8 @@ do_flush:
 	      buf_readable(a2dpio->pcm_buf), 0);
 
 	if (written < 0) {
+		/* Track one failure because of EAGAIN error. */
+		cras_floss_a2dp_update_write_status(a2dpio->a2dp, false);
 		if (errno == EAGAIN) {
 			/* If EAGAIN error lasts longer than 5 seconds, suspend
 			 * the a2dp connection. */
@@ -664,6 +666,8 @@ do_flush:
 		buf_increment_read(a2dpio->pcm_buf, written);
 		a2dpio->total_written_bytes += written;
 		a2dpio->last_write_ts = now;
+		/* Track success because frames got written. */
+		cras_floss_a2dp_update_write_status(a2dpio->a2dp, true);
 	}
 
 	/* a2dp_write no longer return -EAGAIN when reaches here, disable
