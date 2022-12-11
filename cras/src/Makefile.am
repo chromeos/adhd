@@ -603,7 +603,8 @@ TESTS = \
 	utf8_unittest \
 	util_unittest \
 	volume_curve_unittest \
-	messages_unittest
+	messages_unittest \
+	speak_on_mute_detector_unittest
 
 check_PROGRAMS = $(TESTS)
 
@@ -1327,3 +1328,10 @@ messages_unittest_SOURCES = tests/messages_unittest.cc
 messages_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common
 messages_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
+
+speak_on_mute_detector_unittest_SOURCES = \
+	tests/speak_on_mute_detector_unittest.cc \
+	server/speak_on_mute_detector.c
+speak_on_mute_detector_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
+	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
+speak_on_mute_detector_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
