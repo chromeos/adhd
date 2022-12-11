@@ -53,11 +53,18 @@ static void destroy_rstream_cb(struct cras_rstream* rstream) {
   free(rstream);
 }
 
+static int change_called;
+static int list_changed_cb(struct cras_rstream* rstream) {
+  change_called++;
+  return 0;
+}
+
 static void reset_test_data() {
   add_called = 0;
   rm_called = 0;
   create_called = 0;
   destroy_called = 0;
+  change_called = 0;
 }
 
 TEST(StreamList, AddRemove) {
@@ -71,15 +78,17 @@ TEST(StreamList, AddRemove) {
 
   reset_test_data();
   l = stream_list_create(added_cb, removed_cb, create_rstream_cb,
-                         destroy_rstream_cb, NULL);
+                         destroy_rstream_cb, list_changed_cb, NULL);
   stream_list_add(l, &s1_config, &s1);
   EXPECT_EQ(1, add_called);
   EXPECT_EQ(1, create_called);
+  EXPECT_EQ(1, change_called);
   EXPECT_EQ(&s1_config, create_config);
   EXPECT_EQ(0, stream_list_rm(l, 0x3003));
   EXPECT_EQ(1, rm_called);
   EXPECT_EQ(s1, rmed_stream);
   EXPECT_EQ(1, destroy_called);
+  EXPECT_EQ(2, change_called);
   EXPECT_EQ(s1, destroyed_stream);
   stream_list_destroy(l);
 }
@@ -109,21 +118,24 @@ TEST(StreamList, AddInDescendingOrderByChannels) {
 
   reset_test_data();
   l = stream_list_create(added_cb, removed_cb, create_rstream_cb,
-                         destroy_rstream_cb, NULL);
+                         destroy_rstream_cb, list_changed_cb, NULL);
   stream_list_add(l, &s1_config, &s1);
   EXPECT_EQ(1, add_called);
   EXPECT_EQ(1, create_called);
+  EXPECT_EQ(1, change_called);
   EXPECT_EQ(6, stream_list_get(l)->format.num_channels);
 
   stream_list_add(l, &s2_config, &s2);
   EXPECT_EQ(2, add_called);
   EXPECT_EQ(2, create_called);
+  EXPECT_EQ(2, change_called);
   EXPECT_EQ(8, stream_list_get(l)->format.num_channels);
   EXPECT_EQ(6, stream_list_get(l)->next->format.num_channels);
 
   stream_list_add(l, &s3_config, &s3);
   EXPECT_EQ(3, add_called);
   EXPECT_EQ(3, create_called);
+  EXPECT_EQ(3, change_called);
   EXPECT_EQ(8, stream_list_get(l)->format.num_channels);
   EXPECT_EQ(6, stream_list_get(l)->next->format.num_channels);
   EXPECT_EQ(2, stream_list_get(l)->next->next->format.num_channels);

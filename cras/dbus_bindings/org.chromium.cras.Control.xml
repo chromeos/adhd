@@ -532,9 +532,6 @@
 
     <signal name="SpeakOnMuteDetected">
       <tp:docstring>
-        TODO(b/255935803): The current implementation is fake, and sends out the
-        signal every 10 seconds if SetSpeakOnMuteDetection is on.
-
         Signal that indicates voice activity is detected. This signal is only sent when all the following are true:
         (1) the system microphone is muted
         (2) voice activity detected

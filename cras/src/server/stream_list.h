@@ -28,6 +28,7 @@ struct stream_list *stream_list_create(stream_callback *add_cb,
 				       stream_callback *rm_cb,
 				       stream_create_func *create_cb,
 				       stream_destroy_func *destroy_cb,
+				       stream_callback *list_changed_cb,
 				       struct cras_tm *timer_manager);
 
 void stream_list_destroy(struct stream_list *list);

@@ -867,11 +867,7 @@ int cras_system_state_in_main_thread()
 void cras_system_state_set_speak_on_mute_detection(bool enabled)
 {
 	state.speak_on_mute_detection_enabled = enabled;
-	if (enabled) {
-		cras_speak_on_mute_detector_start();
-	} else {
-		cras_speak_on_mute_detector_stop();
-	}
+	cras_speak_on_mute_detector_enable(enabled);
 }
 
 bool cras_system_state_get_speak_on_mute_detection_enabled()

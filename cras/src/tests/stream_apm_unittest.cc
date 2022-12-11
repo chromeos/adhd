@@ -773,6 +773,12 @@ void webrtc_apm_enable_effects(webrtc_apm ptr,
                                bool enable_ns,
                                bool enable_agc) {}
 
+void webrtc_apm_enable_vad(webrtc_apm ptr, bool enable_vad) {}
+
+int webrtc_apm_get_voice_detected(webrtc_apm ptr) {
+  return false;
+}
+
 int cras_apm_reverse_init(process_reverse_t process_cb,
                           process_reverse_needed_t process_needed_cb,
                           output_devices_changed_t output_devices_changed_cb) {

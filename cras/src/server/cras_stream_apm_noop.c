@@ -101,3 +101,8 @@ int cras_stream_apm_set_aec_ref(struct cras_stream_apm *stream,
 {
 	return 0;
 }
+
+void cras_stream_apm_notify_vad_target_changed(
+	struct cras_stream_apm *vad_target)
+{
+}

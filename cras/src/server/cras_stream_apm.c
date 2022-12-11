@@ -11,10 +11,12 @@
 
 #include "audio_thread.h"
 #include "byte_buffer.h"
+#include "cras_string.h"
 #include "cras_stream_apm.h"
 #include "cras_apm_reverse.h"
 #include "cras_audio_area.h"
 #include "cras_audio_format.h"
+#include "cras_speak_on_mute_detector.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "dsp_util.h"
@@ -129,11 +131,13 @@ struct active_apm {
 enum APM_THREAD_CMD {
 	APM_REVERSE_DEV_CHANGED,
 	APM_SET_AEC_REF,
+	APM_VAD_TARGET_CHANGED,
 };
 
 /* Message to send command to audio thread. */
 struct apm_message {
 	enum APM_THREAD_CMD cmd;
+	void *data1;
 };
 
 /* Socket pair to send message from main thread to audio thread. */
@@ -143,6 +147,12 @@ static const char *aec_config_dir = NULL;
 static char ini_name[MAX_INI_NAME_LENGTH + 1];
 static dictionary *aec_ini = NULL;
 static dictionary *apm_ini = NULL;
+
+/* VAD target selected by the cras_speak_on_mute_detector module.
+ * This is a cached value for use in the audio thread.
+ * Should be only updated through update_vad_target().
+ */
+static struct cras_stream_apm *cached_vad_target = NULL;
 
 /* Mono front center format used to configure the process output end of
  * APM to work around an issue that APM might pick the 1st channel of
@@ -179,6 +189,14 @@ static inline bool should_enable_dsp_agc(uint64_t effects)
 {
 	return (effects & DSP_GAIN_CONTROL_ALLOWED) &&
 	       (effects & APM_GAIN_CONTROL);
+}
+
+static bool stream_apm_should_enable_vad(struct cras_stream_apm *stream_apm)
+{
+	/* There is no stream_apm->effects bit allocated for client VAD
+	 * usage. Determine whether VAD should be enabled solely by the
+	 * requirements of speak-on-mute detection. */
+	return cached_vad_target == stream_apm;
 }
 
 /*
@@ -351,6 +369,24 @@ static void update_supported_dsp_effects_activation()
 			(active->stream->effects & APM_GAIN_CONTROL) &&
 				!agc_on_dsp);
 	}
+}
+
+/* Reconfigure APMs to update their VAD enabled status. */
+static void reconfigure_apm_vad()
+{
+	struct active_apm *active;
+	LL_FOREACH (active_apms, active) {
+		webrtc_apm_enable_vad(
+			active->apm->apm_ptr,
+			stream_apm_should_enable_vad(active->stream));
+	}
+}
+
+/* Set the VAD target to new_vad_target and propagate the changes to APMs. */
+static void update_vad_target(struct cras_stream_apm *new_vad_target)
+{
+	cached_vad_target = new_vad_target;
+	reconfigure_apm_vad();
 }
 
 static void apm_destroy(struct cras_apm **apm)
@@ -613,6 +649,7 @@ void cras_stream_apm_start(struct cras_stream_apm *stream,
 
 	cras_apm_reverse_state_update();
 	update_supported_dsp_effects_activation();
+	reconfigure_apm_vad();
 }
 
 void cras_stream_apm_stop(struct cras_stream_apm *stream,
@@ -813,11 +850,17 @@ static void get_apm_ini(const char *config_dir)
 	}
 }
 
-static int send_apm_message(enum APM_THREAD_CMD cmd)
+static int send_apm_message_explicit(enum APM_THREAD_CMD cmd, void *data1)
 {
 	struct apm_message msg;
 	msg.cmd = cmd;
+	msg.data1 = data1;
 	return write(to_thread_fds[1], &msg, sizeof(msg));
+}
+
+static int send_apm_message(enum APM_THREAD_CMD cmd)
+{
+	return send_apm_message_explicit(cmd, NULL);
 }
 
 /* Triggered in main thread when devices state has changed in APM
@@ -863,6 +906,9 @@ static int apm_thread_callback(void *arg, int revents)
 		cras_apm_reverse_state_update();
 		update_supported_dsp_effects_activation();
 		break;
+	case APM_VAD_TARGET_CHANGED:
+		update_vad_target(msg.data1);
+		break;
 	default:
 		break;
 	}
@@ -871,6 +917,34 @@ static int apm_thread_callback(void *arg, int revents)
 read_write_err:
 	audio_thread_rm_callback(to_thread_fds[0]);
 	return 0;
+}
+
+static void possibly_track_voice_activity(struct cras_apm *apm)
+{
+	if (!cached_vad_target) {
+		return;
+	}
+
+	struct active_apm *active;
+	DL_FOREACH (active_apms, active) {
+		/* Match only the first apm. We don't care mutiple inputs. */
+		if (active->stream->apms != apm) {
+			continue;
+		}
+
+		if (active->stream != cached_vad_target) {
+			continue;
+		}
+
+		int rc = cras_speak_on_mute_detector_add_voice_activity(
+			webrtc_apm_get_voice_detected(apm->apm_ptr));
+		if (rc < 0) {
+			syslog(LOG_ERR,
+			       "failed to send speak on mute message: %s",
+			       cras_strerror(-rc));
+		}
+		return;
+	}
 }
 
 int cras_stream_apm_init(const char *device_config_dir)
@@ -990,6 +1064,8 @@ int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
 			return ret;
 		}
 
+		possibly_track_voice_activity(apm);
+
 		/* We configure APM for N-ch input to 1-ch output processing
 		 * and that has the side effect that the rest of channels are
 		 * filled with the unprocessed content from hardware mic.
@@ -1104,4 +1180,13 @@ int cras_stream_apm_set_aec_ref(struct cras_stream_apm *stream,
 		return rc;
 	}
 	return 0;
+}
+
+void cras_stream_apm_notify_vad_target_changed(
+	struct cras_stream_apm *vad_target)
+{
+	int rc = send_apm_message_explicit(APM_VAD_TARGET_CHANGED, vad_target);
+	if (rc < 0) {
+		syslog(LOG_ERR, "Error sending vad target changed message");
+	}
 }

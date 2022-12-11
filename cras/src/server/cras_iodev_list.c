@@ -17,6 +17,7 @@
 #include "cras_observer.h"
 #include "cras_rstream.h"
 #include "cras_server.h"
+#include "cras_speak_on_mute_detector.h"
 #include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_server_metrics.h"
@@ -1162,6 +1163,13 @@ static int stream_removed_cb(struct cras_rstream *rstream)
 	return 0;
 }
 
+static int stream_list_changed_cb(struct cras_rstream *all_streams)
+{
+	cras_speak_on_mute_detector_streams_changed(all_streams);
+
+	return 0;
+}
+
 static int enable_device(struct cras_iodev *dev)
 {
 	int rc;
@@ -1262,6 +1270,7 @@ void cras_iodev_list_init()
 	stream_list =
 		stream_list_create(stream_added_cb, stream_removed_cb,
 				   cras_rstream_create, cras_rstream_destroy,
+				   stream_list_changed_cb,
 				   cras_system_state_get_tm());
 
 	/* Add an empty device so there is always something to play to or

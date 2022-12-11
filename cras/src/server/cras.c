@@ -19,6 +19,7 @@
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_dsp.h"
+#include "cras_speak_on_mute_detector.h"
 
 static struct option long_options[] = {
 	{ "dsp_config", required_argument, 0, 'd' },
@@ -150,6 +151,7 @@ int main(int argc, char **argv)
 		cras_system_state_set_internal_ucm_suffix(internal_ucm_suffix);
 	cras_dsp_init(dsp_config);
 	cras_stream_apm_init(device_config_dir);
+	cras_speak_on_mute_detector_init();
 	cras_iodev_list_init();
 	cras_alsa_plugin_io_init(device_config_dir);
 

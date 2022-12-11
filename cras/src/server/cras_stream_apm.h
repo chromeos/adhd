@@ -187,5 +187,13 @@ void cras_stream_apm_set_aec_dump(struct cras_stream_apm *stream,
 int cras_stream_apm_set_aec_ref(struct cras_stream_apm *stream,
 				struct cras_iodev *echo_ref);
 
+/* Called from main thread to notify audio thread the target stream for
+ * voice activity detection has changed.
+  * Args:
+ *    vad_target - The new voice activity detection target. NULL disables VAD
+ *                 on all APMs.
+ */
+void cras_stream_apm_notify_vad_target_changed(
+	struct cras_stream_apm *vad_target);
 
 #endif /* CRAS_STREAM_APM_H_ */

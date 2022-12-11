@@ -15,6 +15,13 @@ struct stream_list {
 	stream_callback *stream_removed_cb;
 	stream_create_func *stream_create_cb;
 	stream_destroy_func *stream_destroy_cb;
+
+	// Callback for list changes.
+	// On add, called after the stream is constructed.
+	// On delete, called after the stream is removed from the list, but before
+	// the stream is destructed.
+	stream_callback *list_changed_cb;
+
 	struct cras_tm *timer_manager;
 	struct cras_timer *drain_timer;
 };
@@ -53,6 +60,7 @@ struct stream_list *stream_list_create(stream_callback *add_cb,
 				       stream_callback *rm_cb,
 				       stream_create_func *create_cb,
 				       stream_destroy_func *destroy_cb,
+				       stream_callback *list_changed_cb,
 				       struct cras_tm *timer_manager)
 {
 	struct stream_list *list = calloc(1, sizeof(struct stream_list));
@@ -61,6 +69,7 @@ struct stream_list *stream_list_create(stream_callback *add_cb,
 	list->stream_removed_cb = rm_cb;
 	list->stream_create_cb = create_cb;
 	list->stream_destroy_cb = destroy_cb;
+	list->list_changed_cb = list_changed_cb,
 	list->timer_manager = timer_manager;
 	return list;
 }
@@ -99,6 +108,8 @@ int stream_list_add(struct stream_list *list,
 		list->stream_destroy_cb(*stream);
 	}
 
+	list->list_changed_cb(list->streams);
+
 	return rc;
 }
 
@@ -110,6 +121,8 @@ int stream_list_rm(struct stream_list *list, cras_stream_id_t id)
 	if (!to_remove)
 		return -EINVAL;
 	DL_DELETE(list->streams, to_remove);
+	list->list_changed_cb(list->streams);
+
 	DL_APPEND(list->streams_to_delete, to_remove);
 	if (list->drain_timer) {
 		cras_tm_cancel_timer(list->timer_manager, list->drain_timer);
@@ -128,6 +141,8 @@ int stream_list_direct_rm(struct stream_list *list, cras_stream_id_t id)
 	if (!to_remove || to_remove->direction != CRAS_STREAM_INPUT)
 		return -EINVAL;
 	DL_DELETE(list->streams, to_remove);
+	list->list_changed_cb(list->streams);
+
 	list->stream_removed_cb(to_remove);
 	list->stream_destroy_cb(to_remove);
 	return 0;
@@ -145,6 +160,8 @@ int stream_list_rm_all_client_streams(struct stream_list *list,
 			DL_APPEND(list->streams_to_delete, to_remove);
 		}
 	}
+	list->list_changed_cb(list->streams);
+
 	if (list->drain_timer) {
 		cras_tm_cancel_timer(list->timer_manager, list->drain_timer);
 		list->drain_timer = NULL;

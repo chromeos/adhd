@@ -242,6 +242,7 @@ cras_server_SOURCES = \
 	server/polled_interval_checker.c \
 	server/server_stream.c \
 	server/stream_list.c \
+	server/speak_on_mute_detector.c \
 	server/test_iodev.c \
 	server/softvol_curve.c \
 	server/cras_rtc.c
@@ -824,7 +825,8 @@ alsa_ucm_unittest_LDADD = $(GTEST_LIBS) -lpthread
 
 if HAVE_WEBRTC_APM
 stream_apm_unittest_SOURCES = tests/stream_apm_unittest.cc \
-	server/cras_stream_apm.c
+	server/cras_stream_apm.c server/cras_speak_on_mute_detector_stub.c \
+	common/cras_string.c
 stream_apm_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	$(DSP_INCLUDE_PATHS) \
 	-I$(top_srcdir)/src/server \
