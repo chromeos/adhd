@@ -1131,16 +1131,23 @@ void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer *cras_mixer,
 				      long dBFS,
 				      struct mixer_control *mixer_input)
 {
-	struct mixer_control *c;
-	long to_set;
-
 	assert(cras_mixer);
-	to_set = dBFS;
+
+	/* Ensure the mixer is _not_ muted. */
+	if (cras_mixer->capture_switch) {
+		snd_mixer_selem_set_capture_switch_all(
+			cras_mixer->capture_switch, true);
+	} else if (mixer_input && mixer_input->has_mute) {
+		mixer_control_set_mute(mixer_input, false);
+	}
+
 	/* Go through all the controls, set the gain for each, taking the value
 	 * closest but greater than the desired gain.  If the entire gain can't
 	 * be set on the current control, move on to the next one until we have
 	 * the exact gain, or gotten as close as we can. Once all of the gain is
 	 * set the rest of the controls should be set to 0dB. */
+	long to_set = dBFS;
+	struct mixer_control *c;
 	DL_FOREACH (cras_mixer->main_capture_controls, c) {
 		long actual_dB;
 
