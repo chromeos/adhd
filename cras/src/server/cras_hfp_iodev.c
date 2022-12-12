@@ -176,19 +176,7 @@ static void handle_cras_sr_bt_enable_disable(
 	}
 }
 
-/* Handles cras sr bt uma logs.
- *
- * It handles the following cases:
- * 1. CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK and enabled successfully.
- * 2. CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK but enabled failed.
- * 3. CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED.
- * 4. CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE.
- *
- * Args:
- *    iodev: the hfp iodev.
- *    status: the result of cras_sr_bt_can_be_enabled().
- */
-static void
+static inline void
 handle_cras_sr_bt_uma_log(struct cras_iodev *iodev,
 			  const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status)
 {
@@ -196,28 +184,7 @@ handle_cras_sr_bt_uma_log(struct cras_iodev *iodev,
 		return;
 
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-
-	enum CRAS_METRICS_HFP_MIC_SR_STATUS log_status =
-		CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS;
-	switch (status) {
-	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK: {
-		log_status = hfpio->is_cras_sr_bt_enabled ?
-				     CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS :
-				     CRAS_METRICS_HFP_MIC_SR_ENABLE_FAILED;
-		break;
-	}
-	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED: {
-		log_status = CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED;
-		break;
-	}
-	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE: {
-		log_status = CRAS_METRICS_HFP_MIC_SR_DLC_UNAVAILABLE;
-		break;
-	}
-	default:
-		assert(0 && "unknown status.");
-	}
-	cras_server_metrics_hfp_mic_sr_status(iodev, log_status);
+	cras_sr_bt_send_uma_log(iodev, status, hfpio->is_cras_sr_bt_enabled);
 }
 
 /* Handles cras sr bt enabling and disabling cases and also uma logs.

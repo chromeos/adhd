@@ -6,6 +6,7 @@
 #ifndef CRAS_SR_BT_UTIL_H_
 #define CRAS_SR_BT_UTIL_H_
 
+#include "cras_iodev.h"
 #include "cras_sr.h"
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS {
@@ -35,5 +36,17 @@ enum cras_sr_bt_model { SR_BT_NBS, SR_BT_WBS };
  *    The spec of the specified model.
  */
 struct cras_sr_model_spec cras_sr_bt_get_model_spec(enum cras_sr_bt_model);
+
+/* Sends UMA logs.
+ *
+ * Args:
+ *    iodev - The iodev that tries to enable sr_bt.
+ *    status - The result of cras_sr_bt_can_be_enabled.
+ *    is_enabled - A bool indicating whether sr_bt is enabled successfully or
+ *      not.
+ */
+void cras_sr_bt_send_uma_log(struct cras_iodev *iodev,
+			     const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status,
+			     bool is_enabled);
 
 #endif /* CRAS_SR_BT_UTIL_H_ */
