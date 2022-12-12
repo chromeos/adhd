@@ -13,6 +13,7 @@
 #include "cras_iodev.h"
 #include "cras_sr.h"
 #include "cras_sr_bt_adapters.h"
+#include "cras_sr_bt_util.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "strlcpy.h"
@@ -125,6 +126,9 @@ static void hfp_alsa_handle_cras_sr_bt(struct cras_iodev *iodev)
 		hfp_alsa_enable_sr_bt(iodev);
 	else
 		hfp_alsa_disable_sr_bt(iodev);
+
+	struct hfp_alsa_io *hfp_alsa_io = (struct hfp_alsa_io *)iodev;
+	cras_sr_bt_send_uma_log(iodev, status, hfp_alsa_io->sr_bt != NULL);
 }
 
 static int hfp_alsa_open_dev(struct cras_iodev *iodev)
