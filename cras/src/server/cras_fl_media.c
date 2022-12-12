@@ -59,7 +59,6 @@ int fl_media_init(int hci)
 	return 0;
 }
 
-/* Common predicate for blocking calls to Floss. */
 static bool dbus_uint8_is_nonzero(int dbus_type, void *dbus_value_ptr)
 {
 	if (dbus_type != DBUS_TYPE_BYTE) {
@@ -70,6 +69,18 @@ static bool dbus_uint8_is_nonzero(int dbus_type, void *dbus_value_ptr)
 		return false;
 	}
 	return *(uint8_t *)dbus_value_ptr != 0;
+}
+
+static bool dbus_bool_is_true(int dbus_type, void *dbus_value_ptr)
+{
+	if (dbus_type != DBUS_TYPE_BOOLEAN) {
+		syslog(LOG_ERR,
+		       "Mismatched return type, "
+		       "expected type id: %d, received type id: %d",
+		       DBUS_TYPE_BOOLEAN, dbus_type);
+		return false;
+	}
+	return *(dbus_bool_t *)dbus_value_ptr == TRUE;
 }
 
 int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr)
@@ -115,39 +126,46 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 	if (rc < 0)
 		return rc;
 
+	dbus_bool_t response = FALSE;
 	rc = call_method_and_parse_reply(
 		/* conn= */ fm->conn,
 		/* method_call= */ start_sco_call,
-		/* dbus_ret_type= */ DBUS_TYPE_INVALID,
-		/* dbus_ret_value_ptr= */ NULL);
+		/* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+		/* dbus_ret_value_ptr= */ &response);
 
 	dbus_message_unref(start_sco_call);
 
 	if (rc < 0)
 		return rc;
 
-	DBusMessage *get_hfp_audio_started;
-	rc = create_dbus_method_call(&get_hfp_audio_started,
-				     /* dest= */ BT_SERVICE_NAME,
-				     /* path= */ fm->obj_path,
-				     /* iface= */ BT_MEDIA_INTERFACE,
-				     /* method_name= */ "GetHfpAudioStarted",
-				     /* num_args= */ 1,
-				     /* arg1= */ DBUS_TYPE_STRING, &addr);
+	if (response == FALSE) {
+		syslog(LOG_WARNING, "Failed to make request to StartScoCall.");
+		return -EBUSY;
+	}
+
+	DBusMessage *get_hfp_audio_final_codecs;
+	rc = create_dbus_method_call(
+		&get_hfp_audio_final_codecs,
+		/* dest= */ BT_SERVICE_NAME,
+		/* path= */ fm->obj_path,
+		/* iface= */ BT_MEDIA_INTERFACE,
+		/* method_name= */ "GetHfpAudioFinalCodecs",
+		/* num_args= */ 1,
+		/* arg1= */ DBUS_TYPE_STRING, &addr);
 	if (rc < 0)
 		return rc;
 
-	uint8_t dbus_ret_value;
+	uint8_t final_codecs = 0;
 	rc = retry_until_predicate_satisfied(
 		/* conn=*/fm->conn,
 		/* num_retries= */ GET_HFP_AUDIO_STARTED_RETRIES,
 		/* sleep_time_us= */ GET_HFP_AUDIO_STARTED_SLEEP_US,
-		/* method_call= */ get_hfp_audio_started,
+		/* method_call= */ get_hfp_audio_final_codecs,
 		/* dbus_ret_type= */ DBUS_TYPE_BYTE,
-		/* dbus_ret_value_ptr= */ &dbus_ret_value,
+		/* dbus_ret_value_ptr= */ &final_codecs,
 		/* predicate= */ dbus_uint8_is_nonzero);
 
-	dbus_message_unref(get_hfp_audio_started);
+	dbus_message_unref(get_hfp_audio_final_codecs);
 
 	/* Did not receive response after timeout. */
 	if (rc == -EBUSY) {
@@ -158,7 +176,7 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 	if (rc < 0)
 		return rc;
 
-	return dbus_ret_value;
+	return final_codecs;
 }
 #endif
 
@@ -424,16 +442,23 @@ int floss_media_a2dp_start_audio_request(struct fl_media *fm, const char *addr)
 	if (rc < 0)
 		return rc;
 
+	dbus_bool_t response = FALSE;
 	rc = call_method_and_parse_reply(
 		/* conn= */ fm->conn,
 		/* method_call= */ start_audio_request,
-		/* dbus_ret_type= */ DBUS_TYPE_INVALID,
-		/* dbus_ret_value_ptr= */ NULL);
+		/* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+		/* dbus_ret_value_ptr= */ &response);
 
 	dbus_message_unref(start_audio_request);
 
 	if (rc < 0)
 		return rc;
+
+	if (response == FALSE) {
+		syslog(LOG_WARNING,
+		       "Failed to make request to StartAudioRequest.");
+		return -EBUSY;
+	}
 
 	DBusMessage *get_a2dp_audio_started;
 	rc = create_dbus_method_call(&get_a2dp_audio_started,
@@ -447,22 +472,22 @@ int floss_media_a2dp_start_audio_request(struct fl_media *fm, const char *addr)
 	if (rc < 0)
 		return rc;
 
-	uint8_t dbus_ret_value;
+	dbus_bool_t started = FALSE;
 	rc = retry_until_predicate_satisfied(
 		/* conn=*/fm->conn,
 		/* num_retries= */ GET_A2DP_AUDIO_STARTED_RETRIES,
 		/* sleep_time_us= */ GET_A2DP_AUDIO_STARTED_SLEEP_US,
 		/* method_call= */ get_a2dp_audio_started,
-		/* dbus_ret_type= */ DBUS_TYPE_BYTE,
-		/* dbus_ret_value_ptr= */ &dbus_ret_value,
-		/* predicate= */ dbus_uint8_is_nonzero);
+		/* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+		/* dbus_ret_value_ptr= */ &started,
+		/* predicate= */ dbus_bool_is_true);
 
 	dbus_message_unref(get_a2dp_audio_started);
 
 	if (rc < 0)
 		return rc;
 
-	return dbus_ret_value;
+	return started;
 }
 
 int floss_media_a2dp_stop_audio_request(struct fl_media *fm)
