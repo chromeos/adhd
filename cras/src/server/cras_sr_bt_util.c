@@ -69,6 +69,10 @@ void cras_sr_bt_send_uma_log(struct cras_iodev *iodev,
 				     CRAS_METRICS_HFP_MIC_SR_ENABLE_FAILED;
 		break;
 	}
+	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_UNSUPPORTED: {
+		log_status = CRAS_METRICS_HFP_MIC_SR_FEATURE_UNSUPPORTED;
+		break;
+	}
 	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED: {
 		log_status = CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED;
 		break;

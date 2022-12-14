@@ -122,6 +122,9 @@ INSTANTIATE_TEST_SUITE_P(
              .is_enabled = true,
              .expected_status = CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS}),
         SendUMALogTestParam(
+            {.status = CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_UNSUPPORTED,
+             .expected_status = CRAS_METRICS_HFP_MIC_SR_FEATURE_UNSUPPORTED}),
+        SendUMALogTestParam(
             {.status = CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED,
              .expected_status = CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED}),
         SendUMALogTestParam(
