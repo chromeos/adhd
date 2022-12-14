@@ -327,7 +327,7 @@ TEST_F(A2dpManagerTestSuite, SuspendCallback) {
   {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_tm_create_timer_called, 1);
 
-    cras_floss_a2dp_schedule_suspend(a2dp, 100);
+    cras_floss_a2dp_schedule_suspend(a2dp, 100, (enum A2DP_EXIT_CODE)0);
     cras_main_message_add_handler_callback(cras_main_message_send_msg,
                                            (void*)a2dp);
   }
@@ -475,6 +475,10 @@ int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num) {
 }
 
 int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num) {
+  return 0;
+}
+
+int cras_server_metrics_a2dp_exit(enum A2DP_EXIT_CODE code) {
   return 0;
 }
 

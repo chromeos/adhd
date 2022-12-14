@@ -639,7 +639,8 @@ void cras_floss_a2dp_cancel_suspend(struct cras_a2dp* a2dp) {
 }
 
 void cras_floss_a2dp_schedule_suspend(struct cras_a2dp* a2dp,
-                                      unsigned int msec) {
+                                      unsigned int msec,
+                                      enum A2DP_EXIT_CODE) {
   cras_floss_a2dp_schedule_suspend_called++;
 }
 

@@ -644,12 +644,22 @@ do_flush:
 		if (errno == EAGAIN) {
 			/* If EAGAIN error lasts longer than 5 seconds, suspend
 			 * the a2dp connection. */
-			cras_floss_a2dp_schedule_suspend(a2dpio->a2dp, 5000);
+			cras_floss_a2dp_schedule_suspend(
+				a2dpio->a2dp, 5000, A2DP_EXIT_LONG_TX_FAILURE);
 			audio_thread_config_events_callback(fd, TRIGGER_WAKEUP);
 			return 0;
 		} else {
 			cras_floss_a2dp_cancel_suspend(a2dpio->a2dp);
-			cras_floss_a2dp_schedule_suspend(a2dpio->a2dp, 0);
+			/* ECONNRESET is a common error when the remote headset
+			 * initiates disconnection so separate it from other
+			 * rarely happened errors. */
+			cras_floss_a2dp_schedule_suspend(
+				a2dpio->a2dp, 0,
+				written == -ECONNRESET ?
+					A2DP_EXIT_CONN_RESET :
+					A2DP_EXIT_TX_FATAL_ERROR);
+
+			syslog(LOG_ERR, "A2DP socket write error %d", written);
 
 			audio_thread_config_events_callback(fd, TRIGGER_NONE);
 			return written;

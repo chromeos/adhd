@@ -21,7 +21,6 @@
 #include "cras_fl_media.h"
 #include "cras_fl_pcm_iodev.h"
 #include "cras_main_message.h"
-#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_util.h"
@@ -60,6 +59,7 @@ struct delay_sync_policy {
  *        failure period exceeds 20ms.
  *    write_100ms_fail_time - Accumulated period of time when packet write
  *        failure period exceeds 100ms.
+ *    exit_code - To indicate the reason why a2dp iodev got suspended.
  */
 struct cras_a2dp {
 	struct fl_media *fm;
@@ -74,6 +74,7 @@ struct cras_a2dp {
 	struct timespec write_fail_begin_ts;
 	struct timespec write_20ms_fail_time;
 	struct timespec write_100ms_fail_time;
+	enum A2DP_EXIT_CODE exit_code;
 };
 
 enum A2DP_COMMAND {
@@ -86,6 +87,7 @@ struct a2dp_msg {
 	enum A2DP_COMMAND cmd;
 	struct cras_iodev *dev;
 	unsigned int arg1;
+	unsigned int arg2;
 };
 
 struct cras_fl_a2dp_codec_config *
@@ -113,13 +115,15 @@ void fill_floss_a2dp_skt_addr(struct sockaddr_un *addr)
 
 static void a2dp_suspend_cb(struct cras_timer *timer, void *arg);
 
-static void a2dp_schedule_suspend(struct cras_a2dp *a2dp, unsigned int msec)
+static void a2dp_schedule_suspend(struct cras_a2dp *a2dp, unsigned int msec,
+				  enum A2DP_EXIT_CODE exit_code)
 {
 	struct cras_tm *tm;
 
 	if (a2dp->suspend_timer)
 		return;
 
+	a2dp->exit_code = exit_code;
 	tm = cras_system_state_get_tm();
 	a2dp->suspend_timer =
 		cras_tm_create_timer(tm, msec, a2dp_suspend_cb, a2dp);
@@ -132,6 +136,7 @@ static void a2dp_cancel_suspend(struct cras_a2dp *a2dp)
 	if (a2dp->suspend_timer == NULL)
 		return;
 
+	a2dp->exit_code = A2DP_EXIT_IDLE;
 	tm = cras_system_state_get_tm();
 	cras_tm_cancel_timer(tm, a2dp->suspend_timer);
 	a2dp->suspend_timer = NULL;
@@ -206,7 +211,8 @@ static void a2dp_process_msg(struct cras_main_message *msg, void *arg)
 		a2dp_cancel_suspend(a2dp);
 		break;
 	case A2DP_SCHEDULE_SUSPEND:
-		a2dp_schedule_suspend(a2dp, a2dp_msg->arg1);
+		a2dp_schedule_suspend(a2dp, a2dp_msg->arg1,
+				      (enum A2DP_EXIT_CODE)a2dp_msg->arg2);
 		break;
 	default:
 		break;
@@ -246,6 +252,7 @@ cras_floss_a2dp_create(struct fl_media *fm, const char *addr, const char *name,
 	}
 
 	a2dp->fd = -1;
+	a2dp->exit_code = A2DP_EXIT_IDLE;
 
 	cras_main_message_add_handler(CRAS_MAIN_A2DP, a2dp_process_msg, a2dp);
 
@@ -260,13 +267,24 @@ struct cras_iodev *cras_floss_a2dp_get_iodev(struct cras_a2dp *a2dp)
 void cras_floss_a2dp_destroy(struct cras_a2dp *a2dp)
 {
 	/* Iodev could be NULL if there was a suspend. */
-	if (a2dp->iodev)
+	if (a2dp->iodev) {
+		/* Unexpected A2DP exit in Floss. This only known valid when
+		 * there are multiple A2DP devices added. Mark it as
+		 * EXIT_WHILE_STREAMING. */
+		if (a2dp->iodev->state != CRAS_IODEV_STATE_CLOSE &&
+		    a2dp->exit_code == A2DP_EXIT_IDLE) {
+			a2dp->exit_code = A2DP_EXIT_WHILE_STREAMING;
+		}
 		a2dp_pcm_iodev_destroy(a2dp->iodev);
+	} else {
+		syslog(LOG_INFO, "Unexpected race that set a2dp iodev NULL");
+	}
 	if (a2dp->addr)
 		free(a2dp->addr);
 	if (a2dp->name)
 		free(a2dp->name);
 
+	cras_server_metrics_a2dp_exit(a2dp->exit_code);
 	/* Iodev has been destroyed. This is called in main thread so it's
 	 * safe to suspend timer if there's any. */
 	cras_main_message_rm_handler(CRAS_MAIN_A2DP);
@@ -464,7 +482,8 @@ int cras_floss_a2dp_stop(struct cras_a2dp *a2dp)
 }
 
 static void init_a2dp_msg(struct a2dp_msg *msg, enum A2DP_COMMAND cmd,
-			  struct cras_iodev *dev, unsigned int arg1)
+			  struct cras_iodev *dev, unsigned int arg1,
+			  unsigned int arg2)
 {
 	memset(msg, 0, sizeof(*msg));
 	msg->header.type = CRAS_MAIN_A2DP;
@@ -472,15 +491,16 @@ static void init_a2dp_msg(struct a2dp_msg *msg, enum A2DP_COMMAND cmd,
 	msg->cmd = cmd;
 	msg->dev = dev;
 	msg->arg1 = arg1;
+	msg->arg2 = arg2;
 }
 
 static void send_a2dp_message(struct cras_a2dp *a2dp, enum A2DP_COMMAND cmd,
-			      unsigned int arg1)
+			      unsigned int arg1, unsigned int arg2)
 {
 	struct a2dp_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
-	init_a2dp_msg(&msg, cmd, a2dp->iodev, arg1);
+	init_a2dp_msg(&msg, cmd, a2dp->iodev, arg1, arg2);
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	if (rc)
 		syslog(LOG_ERR, "Failed to send a2dp message %d", cmd);
@@ -591,7 +611,8 @@ int cras_floss_a2dp_start(struct cras_a2dp *a2dp, struct cras_audio_format *fmt)
 		       "A2DP socket error, revents: %u. Suspend in %u seconds",
 		       poll_fd.revents, CRAS_A2DP_SUSPEND_DELAY_MS);
 		send_a2dp_message(a2dp, A2DP_SCHEDULE_SUSPEND,
-				  CRAS_A2DP_SUSPEND_DELAY_MS);
+				  CRAS_A2DP_SUSPEND_DELAY_MS,
+				  A2DP_EXIT_LONG_TX_FAILURE);
 		rc = -1;
 		goto error;
 	}
@@ -633,14 +654,15 @@ int cras_floss_a2dp_get_fd(struct cras_a2dp *a2dp)
 	return a2dp->fd;
 }
 
-void cras_floss_a2dp_schedule_suspend(struct cras_a2dp *a2dp, unsigned int msec)
+void cras_floss_a2dp_schedule_suspend(struct cras_a2dp *a2dp, unsigned int msec,
+				      enum A2DP_EXIT_CODE exit_code)
 {
-	send_a2dp_message(a2dp, A2DP_SCHEDULE_SUSPEND, msec);
+	send_a2dp_message(a2dp, A2DP_SCHEDULE_SUSPEND, msec, exit_code);
 }
 
 void cras_floss_a2dp_cancel_suspend(struct cras_a2dp *a2dp)
 {
-	send_a2dp_message(a2dp, A2DP_CANCEL_SUSPEND, 0);
+	send_a2dp_message(a2dp, A2DP_CANCEL_SUSPEND, 0, 0);
 }
 
 void cras_floss_a2dp_update_write_status(struct cras_a2dp *a2dp,

@@ -8,6 +8,7 @@
 
 #include "cras_audio_format.h"
 #include "cras_iodev.h"
+#include "cras_server_metrics.h"
 
 struct cras_a2dp;
 struct fl_media;
@@ -96,8 +97,8 @@ void cras_floss_a2dp_set_volume(struct cras_a2dp *a2dp, unsigned int volume);
 
 /* Schedule a suspend request of the a2dp device. Should be called in
  * the context of audio threead. */
-void cras_floss_a2dp_schedule_suspend(struct cras_a2dp *a2dp,
-				      unsigned int msec);
+void cras_floss_a2dp_schedule_suspend(struct cras_a2dp *a2dp, unsigned int msec,
+				      enum A2DP_EXIT_CODE);
 
 /* Cancel a pending suspend request if exist of the given a2dp device. */
 void cras_floss_a2dp_cancel_suspend(struct cras_a2dp *a2dp);
