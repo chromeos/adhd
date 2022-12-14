@@ -9,6 +9,7 @@
 extern "C" {
 #include "cras_alert.h"
 #include "cras_board_config.h"
+#include "cras_feature_tier.h"
 #include "cras_main_thread_log.h"
 #include "cras_shm.h"
 #include "cras_system_state.h"
@@ -44,6 +45,7 @@ static size_t cras_iodev_list_reset_for_noise_cancellation_called;
 static size_t cras_feature_tier_init_called;
 static struct cras_board_config fake_board_config;
 static size_t cras_alert_process_all_pending_alerts_called;
+static cras_feature_tier fake_tier = {};
 
 static void ResetStubData() {
   cras_alsa_card_create_called = 0;
@@ -68,6 +70,7 @@ static void ResetStubData() {
   cras_iodev_list_reset_for_noise_cancellation_called = 0;
   cras_feature_tier_init_called = 0;
   memset(&fake_board_config, 0, sizeof(fake_board_config));
+  fake_tier = {};
 }
 
 static int add_stub(int fd,
@@ -478,11 +481,30 @@ TEST(SystemSettingsStreamCount, ForceSrBtEnabled) {
   cras_system_state_deinit();
 }
 
-TEST(SystemSettingsStreamCount, CrasFeatureTierInitCalled) {
+TEST(SystemFeatureTier, CrasFeatureTierInitCalled) {
   ResetStubData();
   do_sys_init();
 
   EXPECT_EQ(cras_feature_tier_init_called, 1);
+
+  cras_system_state_deinit();
+}
+
+TEST(SystemFeatureTier, GetSrBtUnSupported) {
+  ResetStubData();
+  do_sys_init();
+
+  EXPECT_EQ(cras_system_get_sr_bt_supported(), false);
+
+  cras_system_state_deinit();
+}
+
+TEST(SystemFeatureTier, GetSrBtSupported) {
+  ResetStubData();
+  fake_tier.sr_bt_supported = true;
+  do_sys_init();
+
+  EXPECT_EQ(cras_system_get_sr_bt_supported(), true);
 
   cras_system_state_deinit();
 }
@@ -594,10 +616,10 @@ void cras_iodev_list_reset_for_noise_cancellation() {
   cras_iodev_list_reset_for_noise_cancellation_called++;
 }
 
-void cras_feature_tier_init(struct cras_feature_tier* tier,
-                            const char*,
-                            const char*) {
+int cras_feature_tier_init(cras_feature_tier* tier, const char*, const char*) {
   cras_feature_tier_init_called++;
+  *tier = fake_tier;
+  return 0;
 }
 
 }  // extern "C"
