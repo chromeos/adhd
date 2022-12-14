@@ -68,6 +68,7 @@ static unsigned int cras_dsp_load_mock_pipeline_called;
 static unsigned int rate_estimator_add_frames_num_frames;
 static unsigned int rate_estimator_add_frames_called;
 static int cras_system_get_mute_return;
+static int cras_system_aec_on_dsp_supported_return;
 static snd_pcm_format_t cras_scale_buffer_fmt;
 static float cras_scale_buffer_scaler;
 static int cras_scale_buffer_called;
@@ -159,6 +160,7 @@ void ResetStubData() {
   rate_estimator_add_frames_called = 0;
   cras_system_get_mute_return = 0;
   cras_system_get_volume_return = 100;
+  cras_system_aec_on_dsp_supported_return = 0;
   cras_mix_mute_count = 0;
   pre_dsp_hook_called = 0;
   pre_dsp_hook_frames = NULL;
@@ -2388,26 +2390,66 @@ TEST(IoDev, AecUseCaseCheck) {
 
   /* test output types */
   node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
-  EXPECT_EQ(1, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(1, cras_iodev_is_tuned_aec_use_case(&node));
   node.type = CRAS_NODE_TYPE_HEADPHONE;
-  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(0, cras_iodev_is_tuned_aec_use_case(&node));
   node.type = CRAS_NODE_TYPE_HDMI;
-  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(0, cras_iodev_is_tuned_aec_use_case(&node));
   node.type = CRAS_NODE_TYPE_USB;
-  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(0, cras_iodev_is_tuned_aec_use_case(&node));
   node.type = CRAS_NODE_TYPE_BLUETOOTH;
-  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(0, cras_iodev_is_tuned_aec_use_case(&node));
 
   /* test mic positions */
   node.type = CRAS_NODE_TYPE_MIC;
   node.position = NODE_POSITION_INTERNAL;
-  EXPECT_EQ(1, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(1, cras_iodev_is_tuned_aec_use_case(&node));
   node.position = NODE_POSITION_FRONT;
-  EXPECT_EQ(1, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(1, cras_iodev_is_tuned_aec_use_case(&node));
   node.position = NODE_POSITION_EXTERNAL;
-  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(0, cras_iodev_is_tuned_aec_use_case(&node));
   node.position = NODE_POSITION_REAR;
-  EXPECT_EQ(0, cras_iodev_is_aec_use_case(&node));
+  EXPECT_EQ(0, cras_iodev_is_tuned_aec_use_case(&node));
+}
+
+TEST(IoDev, AecOnDspUseCaseCheck) {
+  struct cras_ionode node;
+  cras_system_aec_on_dsp_supported_return = 1;
+
+  /* test output types */
+  node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  EXPECT_EQ(1, cras_iodev_is_dsp_aec_use_case(&node));
+  node.type = CRAS_NODE_TYPE_HEADPHONE;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
+  node.type = CRAS_NODE_TYPE_HDMI;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
+  node.type = CRAS_NODE_TYPE_USB;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
+  node.type = CRAS_NODE_TYPE_BLUETOOTH;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
+
+  /* test mic positions */
+  node.type = CRAS_NODE_TYPE_MIC;
+  node.position = NODE_POSITION_INTERNAL;
+  EXPECT_EQ(1, cras_iodev_is_dsp_aec_use_case(&node));
+  node.position = NODE_POSITION_FRONT;
+  EXPECT_EQ(1, cras_iodev_is_dsp_aec_use_case(&node));
+  node.position = NODE_POSITION_EXTERNAL;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
+  node.position = NODE_POSITION_REAR;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
+
+  /* test cases when AEC on DSP is not supported */
+  cras_system_aec_on_dsp_supported_return = 0;
+
+  node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
+
+  node.type = CRAS_NODE_TYPE_MIC;
+  node.position = NODE_POSITION_INTERNAL;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
+  node.position = NODE_POSITION_FRONT;
+  EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
 }
 
 TEST(IoDev, DeviceOverrun) {
@@ -2692,6 +2734,9 @@ int cras_system_get_mute() {
 
 int cras_system_get_capture_mute() {
   return 0;
+}
+int cras_system_aec_on_dsp_supported() {
+  return cras_system_aec_on_dsp_supported_return;
 }
 
 void cras_scale_buffer(snd_pcm_format_t fmt,

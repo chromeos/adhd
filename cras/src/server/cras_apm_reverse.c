@@ -532,14 +532,15 @@ bool cras_apm_reverse_is_aec_use_case(struct cras_iodev *echo_ref)
 
 	DL_FOREACH (echo_ref_requests, request) {
 		if (request->rmod.odev == echo_ref)
-			return cras_iodev_is_aec_use_case(
+			return cras_iodev_is_tuned_aec_use_case(
 				echo_ref->active_node);
 	}
 	/* Invalid usage if caller didn't call init first. And we don't care
 	 * what is returned in that case, so let's give it a false. */
 	if (!default_rmod)
 		return 0;
-	return cras_iodev_is_aec_use_case(default_rmod->odev->active_node);
+	return cras_iodev_is_tuned_aec_use_case(
+		default_rmod->odev->active_node);
 }
 
 void cras_apm_reverse_deinit()

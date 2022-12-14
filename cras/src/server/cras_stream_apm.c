@@ -219,11 +219,12 @@ static bool dsp_effect_check_conflict(struct cras_iodev *const idev,
 			 * The AEC effect can only be applied if the audio
 			 * output devices configuration meets our AEC usecase.
 			 */
-			bool is_aec_use_case =
-				cras_iodev_is_aec_use_case(idev->active_node) &&
+			bool is_dsp_aec_use_case =
+				cras_iodev_is_dsp_aec_use_case(
+					idev->active_node) &&
 				cras_apm_reverse_is_aec_use_case(
 					active->stream->echo_ref);
-			if (!(is_aec_use_case &&
+			if (!(is_dsp_aec_use_case &&
 			      should_enable_dsp_aec(active->stream->effects)))
 				return true;
 			break;
@@ -579,7 +580,7 @@ struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 	 * the default generic settings are used.
 	 */
 	const bool is_aec_use_case =
-		cras_iodev_is_aec_use_case(idev->active_node) &&
+		cras_iodev_is_tuned_aec_use_case(idev->active_node) &&
 		cras_apm_reverse_is_aec_use_case(stream->echo_ref);
 
 	dictionary *aec_ini_use = is_aec_use_case ? aec_ini : NULL;
@@ -1118,7 +1119,7 @@ bool cras_stream_apm_get_use_tuned_settings(struct cras_stream_apm *stream,
 
 	/* If input and output devices in AEC use case, plus that a
 	 * tuned setting is provided. */
-	return cras_iodev_is_aec_use_case(idev->active_node) &&
+	return cras_iodev_is_tuned_aec_use_case(idev->active_node) &&
 	       cras_apm_reverse_is_aec_use_case(stream->echo_ref) &&
 	       (aec_ini || apm_ini);
 }

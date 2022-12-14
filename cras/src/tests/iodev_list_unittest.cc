@@ -3250,7 +3250,10 @@ int cras_iodev_start_volume_ramp(struct cras_iodev* odev,
   cras_iodev_start_volume_ramp_called++;
   return 0;
 }
-bool cras_iodev_is_aec_use_case(const struct cras_ionode* node) {
+bool cras_iodev_is_tuned_aec_use_case(const struct cras_ionode* node) {
+  return 1;
+}
+bool cras_iodev_is_dsp_aec_use_case(const struct cras_ionode* node) {
   return 1;
 }
 bool stream_list_has_pinned_stream(struct stream_list* list,

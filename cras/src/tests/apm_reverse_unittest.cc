@@ -18,7 +18,7 @@ static device_removed_callback_t device_removed_callback_val;
 static struct cras_iodev* iodev_list_get_first_enabled_iodev_ret;
 static int cras_iodev_set_ext_dsp_module_called;
 static struct ext_dsp_module* ext_dsp_module_value[8];
-static bool cras_iodev_is_aec_use_case_ret;
+static bool cras_iodev_is_tuned_aec_use_case_ret;
 static int process_reverse_mock_called;
 static int output_devices_changed_mock_called;
 static int default_process_reverse_needed_ret;
@@ -405,8 +405,8 @@ void cras_iodev_set_ext_dsp_module(struct cras_iodev* iodev,
                                    struct ext_dsp_module* ext) {
   ext_dsp_module_value[cras_iodev_set_ext_dsp_module_called++] = ext;
 }
-bool cras_iodev_is_aec_use_case(const struct cras_ionode* node) {
-  return cras_iodev_is_aec_use_case_ret;
+bool cras_iodev_is_tuned_aec_use_case(const struct cras_ionode* node) {
+  return cras_iodev_is_tuned_aec_use_case_ret;
 }
 
 int cras_system_get_hw_echo_ref_disabled() {

@@ -40,7 +40,8 @@ static process_reverse_needed_t process_needed_cb_value;
 static thread_callback thread_cb;
 static void* cb_data;
 static output_devices_changed_t output_devices_changed_callback = NULL;
-static bool cras_iodev_is_aec_use_case_value;
+static bool cras_iodev_is_tuned_aec_use_case_value;
+static bool cras_iodev_is_dsp_aec_use_case_value;
 static int cras_iodev_get_rtc_proc_enabled_called;
 static int cras_iodev_set_rtc_proc_enabled_called;
 static std::unordered_map<cras_iodev*, bool> iodev_rtc_proc_enabled_maps[3];
@@ -113,7 +114,8 @@ TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
 
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 1;
 
   cras_stream_apm_init("");
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
@@ -158,7 +160,8 @@ TEST(StreamApm, AddRemoveApm) {
   cras_stream_apm_init(dir);
   cras_apm_reverse_is_aec_use_case_ret = 1;
   cras_apm_reverse_state_update_called = 0;
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 1;
 
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, stream);
@@ -176,7 +179,7 @@ TEST(StreamApm, AddRemoveApm) {
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
 
   /* Input dev is not of aec use case. */
-  cras_iodev_is_aec_use_case_value = 0;
+  cras_iodev_is_tuned_aec_use_case_value = 0;
   EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev2, &fmt));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_EQ((void*)NULL, webrtc_apm_create_apm_ini_val);
@@ -206,7 +209,8 @@ TEST(StreamApm, OutputTypeNotAecUseCase) {
   fmt.num_channels = 2;
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 1;
 
   dir = prepare_tempdir();
   cras_stream_apm_init(dir);
@@ -246,7 +250,8 @@ TEST(StreamApm, ApmProcessForwardBuffer) {
   init_channel_layout(&fmt);
   fmt.channel_layout[CRAS_CH_FL] = 0;
   fmt.channel_layout[CRAS_CH_FR] = 1;
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 1;
 
   cras_stream_apm_init("");
 
@@ -300,8 +305,8 @@ TEST(StreamApm, StreamAddToAlreadyOpenedDev) {
   fmt.num_channels = 2;
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
-  cras_iodev_is_aec_use_case_value = 1;
-
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 1;
   cras_stream_apm_init("");
 
   webrtc_apm_create_called = 0;
@@ -349,7 +354,8 @@ TEST(StreamApm, GetUseTunedSettings) {
   cras_stream_apm_add(stream, idev, &fmt);
   cras_stream_apm_start(stream, idev);
 
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 0;
   cras_apm_reverse_is_aec_use_case_ret = 1;
   EXPECT_EQ(false, cras_stream_apm_get_use_tuned_settings(stream, idev));
 
@@ -366,14 +372,14 @@ TEST(StreamApm, GetUseTunedSettings) {
   cras_stream_apm_add(stream, idev, &fmt);
   cras_stream_apm_start(stream, idev);
 
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
   cras_apm_reverse_is_aec_use_case_ret = 1;
   EXPECT_EQ(true, cras_stream_apm_get_use_tuned_settings(stream, idev));
 
-  cras_iodev_is_aec_use_case_value = 0;
+  cras_iodev_is_tuned_aec_use_case_value = 0;
   EXPECT_EQ(false, cras_stream_apm_get_use_tuned_settings(stream, idev));
 
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
   cras_apm_reverse_is_aec_use_case_ret = 0;
   EXPECT_EQ(false, cras_stream_apm_get_use_tuned_settings(stream, idev));
 
@@ -396,7 +402,8 @@ TEST(ApmList, NeedsReverseProcessing) {
 
   cras_apm_reverse_link_echo_ref_called = 0;
   cras_apm_reverse_state_update_called = 0;
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 1;
   cras_stream_apm_init("");
 
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
@@ -463,6 +470,8 @@ TEST(StreamApm, DSPEffectsNotSupportedShouldNotCallIodevOps) {
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 0;
   cras_iodev_get_rtc_proc_enabled_called = 0;
   cras_iodev_set_rtc_proc_enabled_called = 0;
   iodev_rtc_proc_enabled_maps[RTC_PROC_AEC].clear();
@@ -495,7 +504,8 @@ TEST(StreamApm, UpdateEffect) {
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 1;
   cras_apm_reverse_is_aec_use_case_ret = 1;
   cras_iodev_get_rtc_proc_enabled_called = 0;
   cras_iodev_set_rtc_proc_enabled_called = 0;
@@ -560,14 +570,37 @@ TEST(StreamApm, UpdateEffect) {
   cras_stream_apm_remove(stream, idev);
   cras_stream_apm_destroy(stream);
 
-  /* Add apm with aec use case set to 'false' blocks DSP effects. */
+  /* Add apm with tuned aec use case set to 'false' blocks DSP effects. */
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_ECHO_CANCELLATION_ALLOWED | DSP_NOISE_SUPPRESSION_ALLOWED |
       DSP_GAIN_CONTROL_ALLOWED);
   EXPECT_NE((void*)NULL, stream);
 
-  cras_iodev_is_aec_use_case_value = 0;
+  cras_iodev_is_tuned_aec_use_case_value = 0;
+  cras_iodev_is_dsp_aec_use_case_value = 0;
+  apm1 = cras_stream_apm_add(stream, idev, &fmt);
+  EXPECT_NE((void*)NULL, apm1);
+  cras_stream_apm_start(stream, idev);
+  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_AEC][idev]);
+  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_NS][idev]);
+  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_AGC][idev]);
+  cras_stream_apm_stop(stream, idev);
+  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_AEC][idev]);
+  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_NS][idev]);
+  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_AGC][idev]);
+  cras_stream_apm_remove(stream, idev);
+  cras_stream_apm_destroy(stream);
+
+  /* Add apm with dsp aec use case set to 'false' blocks DSP effects. */
+  stream = cras_stream_apm_create(
+      APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
+      DSP_ECHO_CANCELLATION_ALLOWED | DSP_NOISE_SUPPRESSION_ALLOWED |
+      DSP_GAIN_CONTROL_ALLOWED);
+  EXPECT_NE((void*)NULL, stream);
+
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 0;
   apm1 = cras_stream_apm_add(stream, idev, &fmt);
   EXPECT_NE((void*)NULL, apm1);
   cras_stream_apm_start(stream, idev);
@@ -593,7 +626,8 @@ TEST(StreamApm, UpdateEffectMultipleStreamApms) {
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
-  cras_iodev_is_aec_use_case_value = 1;
+  cras_iodev_is_tuned_aec_use_case_value = 1;
+  cras_iodev_is_dsp_aec_use_case_value = 1;
   cras_apm_reverse_is_aec_use_case_ret = 1;
   cras_iodev_get_rtc_proc_enabled_called = 0;
   cras_iodev_set_rtc_proc_enabled_called = 0;
@@ -683,8 +717,11 @@ struct audio_thread* cras_iodev_list_get_audio_thread() {
 }
 void cras_iodev_list_reconnect_streams_with_apm() {}
 
-bool cras_iodev_is_aec_use_case(const struct cras_ionode* node) {
-  return cras_iodev_is_aec_use_case_value;
+bool cras_iodev_is_tuned_aec_use_case(const struct cras_ionode* node) {
+  return cras_iodev_is_tuned_aec_use_case_value;
+}
+bool cras_iodev_is_dsp_aec_use_case(const struct cras_ionode* node) {
+  return cras_iodev_is_dsp_aec_use_case_value;
 }
 bool cras_iodev_set_rtc_proc_enabled(struct cras_iodev* iodev,
                                      enum RTC_PROC_ON_DSP rtc_proc,

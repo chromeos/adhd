@@ -509,7 +509,10 @@ void cras_iodev_set_active_node(struct cras_iodev *iodev,
 				struct cras_ionode *node);
 
 /* Checks if the node is the typical playback or capture option for AEC usage. */
-bool cras_iodev_is_aec_use_case(const struct cras_ionode *node);
+bool cras_iodev_is_tuned_aec_use_case(const struct cras_ionode *node);
+
+/* Checks if the node is the playback or capture option for AEC on DSP usage. */
+bool cras_iodev_is_dsp_aec_use_case(const struct cras_ionode *node);
 
 /* Checks if the node is a playback or capture node on internal card. */
 bool cras_iodev_is_on_internal_card(const struct cras_ionode *node);
