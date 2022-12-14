@@ -18,7 +18,6 @@
 #include "cras_board_config.h"
 #include "cras_config.h"
 #include "cras_device_blocklist.h"
-#include "cras_feature_tier.h"
 #include "cras_iodev_list.h"
 #include "cras_main_thread_log.h"
 #include "cras_observer.h"
@@ -70,7 +69,6 @@ struct feature_state {
  *    main_thread_tid - The thread id of the main thread.
  *    bt_fix_a2dp_packet_size - The flag to override A2DP packet size set by
  *      Blueetoh peer devices to a smaller default value.
- *    feature_tier - The feature tier. See cras_feature_tier.
  *    feature_state - The feature state. See struct feature_state.
  *    speak_on_mute_detection_enabled - Whether speak on mute detection is enabled.
  */
@@ -98,7 +96,6 @@ static struct {
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 	pthread_t main_thread_tid;
 	bool bt_fix_a2dp_packet_size;
-	cras_feature_tier feature_tier;
 	struct feature_state feature_state;
 	bool speak_on_mute_detection_enabled;
 } state;
@@ -143,8 +140,7 @@ void deinit_ignore_suffix_cards()
 void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 			    int rw_shm_fd, int ro_shm_fd,
 			    struct cras_server_state *exp_state,
-			    size_t exp_state_size, const char *board_name,
-			    const char *cpu_model_name)
+			    size_t exp_state_size)
 {
 	struct cras_board_config board_config;
 	int rc;
@@ -233,8 +229,11 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	state.main_thread_tid = pthread_self();
 
 	state.bt_fix_a2dp_packet_size = false;
+}
 
-	cras_feature_tier_init(&state.feature_tier, board_name, cpu_model_name);
+void cras_system_state_set_internal_ucm_suffix(const char *internal_ucm_suffix)
+{
+	state.internal_ucm_suffix = internal_ucm_suffix;
 }
 
 void cras_system_state_deinit()
@@ -254,11 +253,6 @@ void cras_system_state_deinit()
 
 	deinit_ignore_suffix_cards();
 	pthread_mutex_destroy(&state.update_lock);
-}
-
-void cras_system_state_set_internal_ucm_suffix(const char *internal_ucm_suffix)
-{
-	state.internal_ucm_suffix = internal_ucm_suffix;
 }
 
 void cras_system_set_volume(size_t volume)

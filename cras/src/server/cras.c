@@ -13,7 +13,6 @@
 #include "cras_stream_apm.h"
 #include "cras_bt_manager.h"
 #include "cras_config.h"
-#include "cras_feature_tier.h"
 #include "cras_iodev_list.h"
 #include "cras_server.h"
 #include "cras_shm.h"
@@ -26,8 +25,6 @@ static struct option long_options[] = {
 	{ "device_config_dir", required_argument, 0, 'c' },
 	{ "disable_profile", required_argument, 0, 'D' },
 	{ "internal_ucm_suffix", required_argument, 0, 'u' },
-	{ "board_name", required_argument, 0, 'b' },
-	{ "cpu_model_name", required_argument, 0, 'p' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -47,8 +44,6 @@ int main(int argc, char **argv)
 	const char *dsp_config = default_dsp_config;
 	const char *device_config_dir = CRAS_CONFIG_FILE_DIR;
 	const char *internal_ucm_suffix = NULL;
-	const char *board_name = NULL;
-	const char *cpu_model_name = NULL;
 	unsigned int profile_disable_mask = 0;
 
 	set_signals();
@@ -97,15 +92,6 @@ int main(int argc, char **argv)
 			if (*optarg != 0)
 				internal_ucm_suffix = optarg;
 			break;
-
-		case 'b':
-			board_name = optarg;
-			break;
-
-		case 'p':
-			cpu_model_name = optarg;
-			break;
-
 		default:
 			break;
 		}
@@ -143,8 +129,7 @@ int main(int argc, char **argv)
 	if (!exp_state)
 		exit(-1);
 	cras_system_state_init(device_config_dir, shm_name, rw_shm_fd,
-			       ro_shm_fd, exp_state, sizeof(*exp_state),
-			       board_name, cpu_model_name);
+			       ro_shm_fd, exp_state, sizeof(*exp_state));
 	free(shm_name);
 	if (internal_ucm_suffix)
 		cras_system_state_set_internal_ucm_suffix(internal_ucm_suffix);

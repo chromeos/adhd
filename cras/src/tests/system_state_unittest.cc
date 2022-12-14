@@ -41,7 +41,6 @@ static size_t cras_observer_notify_suspend_changed_called;
 static size_t cras_observer_notify_num_active_streams_called;
 static size_t cras_observer_notify_input_streams_with_permission_called;
 static size_t cras_iodev_list_reset_for_noise_cancellation_called;
-static size_t cras_feature_tier_init_called;
 static struct cras_board_config fake_board_config;
 static size_t cras_alert_process_all_pending_alerts_called;
 
@@ -66,7 +65,6 @@ static void ResetStubData() {
   cras_observer_notify_input_streams_with_permission_called = 0;
   cras_alert_process_all_pending_alerts_called = 0;
   cras_iodev_list_reset_for_noise_cancellation_called = 0;
-  cras_feature_tier_init_called = 0;
   memset(&fake_board_config, 0, sizeof(fake_board_config));
 }
 
@@ -112,7 +110,7 @@ static void do_sys_init() {
   if (!exp_state)
     exit(-1);
   cras_system_state_init(device_config_dir, shm_name, rw_shm_fd, ro_shm_fd,
-                         exp_state, sizeof(*exp_state), nullptr, nullptr);
+                         exp_state, sizeof(*exp_state));
   free(shm_name);
 }
 
@@ -477,16 +475,6 @@ TEST(SystemSettingsStreamCount, ForceSrBtEnabled) {
 
   cras_system_state_deinit();
 }
-
-TEST(SystemSettingsStreamCount, CrasFeatureTierInitCalled) {
-  ResetStubData();
-  do_sys_init();
-
-  EXPECT_EQ(cras_feature_tier_init_called, 1);
-
-  cras_system_state_deinit();
-}
-
 extern "C" {
 
 // Stubs
@@ -592,12 +580,6 @@ void cras_alert_process_all_pending_alerts() {
 
 void cras_iodev_list_reset_for_noise_cancellation() {
   cras_iodev_list_reset_for_noise_cancellation_called++;
-}
-
-void cras_feature_tier_init(struct cras_feature_tier* tier,
-                            const char*,
-                            const char*) {
-  cras_feature_tier_init_called++;
 }
 
 }  // extern "C"
