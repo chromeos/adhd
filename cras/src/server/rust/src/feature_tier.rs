@@ -14,11 +14,8 @@ impl CrasFeatureTier {
     pub fn new(board_name: &str, cpu_name: &str) -> Self {
         Self {
             sr_bt_supported: match board_name {
-                "eve" | "soraka" | "nautilus" | "nami" | "atlas" | "nocturne" | "rammus"
-                | "fizz" => {
-                    let cpu_name_lowercase = cpu_name.to_lowercase();
-                    !cpu_name_lowercase.contains("celeron")
-                        && !cpu_name_lowercase.contains("pentium")
+                "eve" | "soraka" | "nautilus" | "nami" | "atlas" | "nocturne" | "rammus" => {
+                    !cpu_name.to_lowercase().contains("celeron")
                 }
                 _ => false,
             },
@@ -37,20 +34,8 @@ mod tests {
     }
 
     #[test]
-    fn random_board() {
-        let tier = CrasFeatureTier::new("random-board", "random");
-        assert_eq!(tier.sr_bt_supported, false);
-    }
-
-    #[test]
-    fn fizz_celeron() {
-        let tier = CrasFeatureTier::new("fizz", "Celeron-3865U");
-        assert_eq!(tier.sr_bt_supported, false);
-    }
-
-    #[test]
-    fn nami_pentium() {
-        let tier = CrasFeatureTier::new("nami", "PENTIUM-4417U");
+    fn random_celeron() {
+        let tier = CrasFeatureTier::new("random-board", "celeron");
         assert_eq!(tier.sr_bt_supported, false);
     }
 }
