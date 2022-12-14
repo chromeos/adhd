@@ -352,6 +352,7 @@ enum AUDIO_THREAD_LOG_EVENTS {
  * MAIN_THREAD_STREAM_ADDED - When an audio stream is added.
  * MAIN_THREAD_STREAM_REMOVED - When an audio stream is removed.
  * MAIN_THREAD_NOISE_CANCELLATION - When Noise Cancellation is enabled/disabled.
+ * MAIN_THREAD_VAD_TARGET_CHANGED - When VAD target for speak on mute changed.
  */
 enum MAIN_THREAD_LOG_EVENTS {
 	/* iodev related */
@@ -373,6 +374,7 @@ enum MAIN_THREAD_LOG_EVENTS {
 	MAIN_THREAD_STREAM_REMOVED,
 	/* server state related */
 	MAIN_THREAD_NOISE_CANCELLATION,
+	MAIN_THREAD_VAD_TARGET_CHANGED,
 };
 
 /* There are 8 bits of space for events. */

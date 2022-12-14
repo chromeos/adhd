@@ -11,6 +11,8 @@
 #include "cras_string.h"
 #include "cras_system_state.h"
 #include "speak_on_mute_detector.h"
+#include "cras_types.h"
+#include "cras_main_thread_log.h"
 #include "cras_observer.h"
 #include "cras_main_message.h"
 #include "cras_stream_apm.h"
@@ -26,8 +28,8 @@ static struct {
 	//
 	// Whether speak on mute detection is enabled from the UI.
 	bool enabled;
-	// The target stream apm determined by the list of streams.
-	struct cras_stream_apm *target_stream_apm;
+	// The target stream for VAD determined by the list of streams.
+	struct cras_rstream *target_stream;
 
 	// The effective target stream apm.
 	// This should only be set by maybe_update_vad_target.
@@ -70,13 +72,19 @@ static void maybe_update_vad_target()
 {
 	struct cras_stream_apm *new_vad_target = NULL;
 	// new_vad_target NULL means to disable VAD.
-	if (detector.enabled && cras_system_get_capture_mute()) {
-		new_vad_target = detector.target_stream_apm;
+	if (detector.enabled && cras_system_get_capture_mute() &&
+	    detector.target_stream) {
+		new_vad_target = detector.target_stream->stream_apm;
 	}
 
 	if (new_vad_target == detector.effective_target) {
 		return;
 	}
+
+	uint32_t target_stream_id =
+		new_vad_target ? detector.target_stream->stream_id : 0;
+	MAINLOG(main_log, MAIN_THREAD_VAD_TARGET_CHANGED, target_stream_id, 0,
+		0);
 
 	detector.effective_target = new_vad_target;
 	speak_on_mute_detector_reset(&detector.impl);
@@ -108,7 +116,7 @@ void cras_speak_on_mute_detector_init()
 	assert(speak_on_mute_detector_init(&detector.impl, &cfg) == 0);
 
 	detector.enabled = false;
-	detector.target_stream_apm = NULL;
+	detector.target_stream = NULL;
 	detector.effective_target = NULL;
 
 	int rc = cras_main_message_add_handler(
@@ -153,10 +161,7 @@ static struct cras_rstream *find_target_stream(struct cras_rstream *all_streams)
 void cras_speak_on_mute_detector_streams_changed(
 	struct cras_rstream *all_streams)
 {
-	struct cras_rstream *target_stream = find_target_stream(all_streams);
-
-	detector.target_stream_apm =
-		target_stream ? target_stream->stream_apm : NULL;
+	detector.target_stream = find_target_stream(all_streams);
 	maybe_update_vad_target();
 }
 
