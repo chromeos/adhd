@@ -9,8 +9,6 @@
 
 #include "cras_dlc.h"
 #include "cras_featured.h"
-#include "cras_iodev.h"
-#include "cras_server_metrics.h"
 #include "cras_sr_bt_util.h"
 #include "cras_system_state.h"
 
@@ -54,31 +52,4 @@ struct cras_sr_model_spec cras_sr_bt_get_model_spec(enum cras_sr_bt_model model)
 		assert(0 && "unknown model type.");
 	}
 	return spec;
-}
-
-void cras_sr_bt_send_uma_log(struct cras_iodev *iodev,
-			     const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status,
-			     bool is_enabled)
-{
-	enum CRAS_METRICS_HFP_MIC_SR_STATUS log_status =
-		CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS;
-	switch (status) {
-	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK: {
-		log_status = is_enabled ?
-				     CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS :
-				     CRAS_METRICS_HFP_MIC_SR_ENABLE_FAILED;
-		break;
-	}
-	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED: {
-		log_status = CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED;
-		break;
-	}
-	case CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE: {
-		log_status = CRAS_METRICS_HFP_MIC_SR_DLC_UNAVAILABLE;
-		break;
-	}
-	default:
-		assert(0 && "unknown status.");
-	}
-	cras_server_metrics_hfp_mic_sr_status(iodev, log_status);
 }

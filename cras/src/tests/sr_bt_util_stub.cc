@@ -55,7 +55,3 @@ struct cras_sr_model_spec cras_sr_bt_get_model_spec(
   }
   return spec;
 }
-
-void cras_sr_bt_send_uma_log(struct cras_iodev* iodev,
-                             const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status,
-                             bool is_enabled) {}
