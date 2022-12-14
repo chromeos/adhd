@@ -511,11 +511,6 @@ bool cras_system_get_bypass_block_noise_cancellation()
 	return !!state.exp_state->bypass_block_noise_cancellation;
 }
 
-bool cras_system_get_sr_bt_supported()
-{
-	return state.feature_tier.sr_bt_supported;
-}
-
 void cras_system_set_force_sr_bt_enabled(bool enabled)
 {
 	state.feature_state.force_sr_bt_enabled = enabled;

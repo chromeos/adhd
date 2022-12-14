@@ -172,9 +172,6 @@ void cras_system_set_bypass_block_noise_cancellation(bool bypass);
 /* Gets the flag of bypass block/unblock Noise Cancellation mechanism. */
 bool cras_system_get_bypass_block_noise_cancellation();
 
-/* Returns if sr_bt is supported or not. See feature_tier.rs. */
-bool cras_system_get_sr_bt_supported();
-
 /* Sets the force sr bt enable flag to enable or disable for testing purpose. */
 void cras_system_set_force_sr_bt_enabled(bool enabled);
 

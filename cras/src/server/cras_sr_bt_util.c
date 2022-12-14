@@ -17,8 +17,6 @@
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled()
 {
 	if (!cras_system_get_force_sr_bt_enabled()) {
-		if (!cras_system_get_sr_bt_supported())
-			return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_UNSUPPORTED;
 		if (!get_hfp_mic_sr_feature_enabled())
 			return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
 	}
