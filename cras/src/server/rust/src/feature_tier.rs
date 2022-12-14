@@ -41,7 +41,7 @@ mod tests {
 }
 
 pub mod bindings {
-    use std::ffi::CStr;
+    use std::ffi::{CStr, CString};
 
     pub use super::CrasFeatureTier;
 
@@ -53,12 +53,21 @@ pub mod bindings {
         board_name: *const libc::c_char,
         cpu_name: *const libc::c_char,
     ) -> libc::c_int {
-        let board_name = CStr::from_ptr(board_name);
+        let empty = CString::new("").unwrap();
+        let board_name = if board_name.is_null() {
+            &empty
+        } else {
+            CStr::from_ptr(board_name)
+        };
         let board_name = match board_name.to_str() {
             Ok(name) => name,
             Err(_) => return -libc::EINVAL,
         };
-        let cpu_name = CStr::from_ptr(cpu_name);
+        let cpu_name = if cpu_name.is_null() {
+            &empty
+        } else {
+            CStr::from_ptr(cpu_name)
+        };
         let cpu_name = match cpu_name.to_str() {
             Ok(name) => name,
             Err(_) => return -libc::EINVAL,
@@ -67,5 +76,19 @@ pub mod bindings {
         *out = CrasFeatureTier::new(board_name, cpu_name);
 
         0
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn null_safety() {
+            let mut tier = std::mem::MaybeUninit::<CrasFeatureTier>::zeroed();
+            let rc = unsafe {
+                cras_feature_tier_init(tier.as_mut_ptr(), std::ptr::null(), std::ptr::null())
+            };
+            assert_eq!(0, rc);
+        }
     }
 }
