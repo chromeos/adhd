@@ -158,7 +158,7 @@ int cras_audio_thread_monitor_init()
 {
 	memset(last_event_snapshot_time, 0,
 	       sizeof(struct timespec) * AUDIO_THREAD_EVENT_TYPE_COUNT);
-	cras_main_message_add_handler(CRAS_MAIN_AUDIO_THREAD_EVENT,
-				      handle_audio_thread_event_message, NULL);
-	return 0;
+	return cras_main_message_add_handler(CRAS_MAIN_AUDIO_THREAD_EVENT,
+					     handle_audio_thread_event_message,
+					     NULL);
 }

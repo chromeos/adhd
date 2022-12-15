@@ -1728,7 +1728,6 @@ static void handle_metrics_message(struct cras_main_message *msg, void *arg)
 
 int cras_server_metrics_init()
 {
-	cras_main_message_add_handler(CRAS_MAIN_METRICS, handle_metrics_message,
-				      NULL);
-	return 0;
+	return cras_main_message_add_handler(CRAS_MAIN_METRICS,
+					     handle_metrics_message, NULL);
 }

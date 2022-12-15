@@ -1324,7 +1324,6 @@ static void handle_stream_apm_message(struct cras_main_message *msg, void *arg)
 
 int cras_stream_apm_message_handler_init()
 {
-	cras_main_message_add_handler(CRAS_MAIN_STREAM_APM,
-				      handle_stream_apm_message, NULL);
-	return 0;
+	return cras_main_message_add_handler(CRAS_MAIN_STREAM_APM,
+					     handle_stream_apm_message, NULL);
 }

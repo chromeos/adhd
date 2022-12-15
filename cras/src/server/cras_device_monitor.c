@@ -113,7 +113,6 @@ static void handle_device_message(struct cras_main_message *msg, void *arg)
 
 int cras_device_monitor_init()
 {
-	cras_main_message_add_handler(CRAS_MAIN_MONITOR_DEVICE,
-				      handle_device_message, NULL);
-	return 0;
+	return cras_main_message_add_handler(CRAS_MAIN_MONITOR_DEVICE,
+					     handle_device_message, NULL);
 }

@@ -511,20 +511,27 @@ int cras_server_run(unsigned int profile_disable_mask)
 
 	cras_udev_start_sound_subsystem_monitor();
 
-	cras_server_metrics_init();
+	if (cras_server_metrics_init() < 0)
+		goto bail;
 
-	cras_device_monitor_init();
+	if (cras_device_monitor_init() < 0)
+		goto bail;
 
-	cras_hotword_handler_init();
+	if (cras_hotword_handler_init() < 0)
+		goto bail;
 
-	cras_non_empty_audio_handler_init();
+	if (cras_non_empty_audio_handler_init() < 0)
+		goto bail;
 
-	cras_audio_thread_monitor_init();
+	if (cras_audio_thread_monitor_init() < 0)
+		goto bail;
 
-	cras_stream_apm_message_handler_init();
+	if (cras_stream_apm_message_handler_init() < 0)
+		goto bail;
 
 #ifdef CRAS_DBUS
-	dbus_threads_init_default();
+	if (!dbus_threads_init_default())
+		goto bail;
 	dbus_conn = cras_dbus_connect_system_bus();
 	if (dbus_conn) {
 		cras_bt_start(dbus_conn, profile_disable_mask);

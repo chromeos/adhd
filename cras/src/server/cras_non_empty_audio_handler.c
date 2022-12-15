@@ -55,7 +55,7 @@ static void handle_non_empty_audio_message(struct cras_main_message *msg,
 
 int cras_non_empty_audio_handler_init()
 {
-	cras_main_message_add_handler(CRAS_MAIN_NON_EMPTY_AUDIO_STATE,
-				      handle_non_empty_audio_message, NULL);
-	return 0;
+	return cras_main_message_add_handler(CRAS_MAIN_NON_EMPTY_AUDIO_STATE,
+					     handle_non_empty_audio_message,
+					     NULL);
 }
