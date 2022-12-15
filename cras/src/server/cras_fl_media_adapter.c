@@ -149,6 +149,15 @@ int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
 		return -EINVAL;
 	}
 
+	if ((active_fm->hfp &&
+	     strcmp(cras_floss_hfp_get_addr(active_fm->hfp), addr) != 0) ||
+	    (active_fm->a2dp &&
+	     strcmp(cras_floss_a2dp_get_addr(active_fm->a2dp), addr) != 0)) {
+		syslog(LOG_WARNING,
+		       "Non-active device(%s). Ignore the device remove", addr);
+		return -EINVAL;
+	}
+
 	BTLOG(btlog, BT_DEV_REMOVED, 0, 0);
 	bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 0);
 	if (active_fm->a2dp) {
