@@ -56,7 +56,7 @@ mod tests {
 }
 
 pub mod bindings {
-    use std::ffi::{CStr, CString};
+    use std::ffi::CStr;
 
     pub use super::CrasFeatureTier;
 
@@ -68,24 +68,22 @@ pub mod bindings {
         board_name: *const libc::c_char,
         cpu_name: *const libc::c_char,
     ) -> libc::c_int {
-        let empty = CString::new("").unwrap();
         let board_name = if board_name.is_null() {
-            &empty
+            ""
         } else {
-            CStr::from_ptr(board_name)
+            match CStr::from_ptr(board_name).to_str() {
+                Ok(name) => name,
+                Err(_) => return -libc::EINVAL,
+            }
         };
-        let board_name = match board_name.to_str() {
-            Ok(name) => name,
-            Err(_) => return -libc::EINVAL,
-        };
+
         let cpu_name = if cpu_name.is_null() {
-            &empty
+            ""
         } else {
-            CStr::from_ptr(cpu_name)
-        };
-        let cpu_name = match cpu_name.to_str() {
-            Ok(name) => name,
-            Err(_) => return -libc::EINVAL,
+            match CStr::from_ptr(cpu_name).to_str() {
+                Ok(name) => name,
+                Err(_) => return -libc::EINVAL,
+            }
         };
 
         *out = CrasFeatureTier::new(board_name, cpu_name);

@@ -23,4 +23,10 @@ TEST(FeatureTierTest, RandomCeleron) {
   EXPECT_EQ(tier.sr_bt_supported, false);
 }
 
+TEST(FeatureTierTest, NullString) {
+  cras_feature_tier tier;
+  cras_feature_tier_init(&tier, nullptr, nullptr);
+  EXPECT_EQ(tier.sr_bt_supported, false);
+}
+
 }  // namespace
