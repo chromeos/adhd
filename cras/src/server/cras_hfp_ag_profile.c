@@ -293,7 +293,6 @@ int cras_hfp_ag_profile_create(DBusConnection *conn)
 int cras_hfp_ag_profile_destroy(DBusConnection *conn)
 {
 	cras_bt_unregister_profile(conn, &cras_hfp_ag_profile);
-	cras_hfp_ag_release(&cras_hfp_ag_profile);
 	return cras_bt_rm_profile(conn, &cras_hfp_ag_profile);
 }
 
