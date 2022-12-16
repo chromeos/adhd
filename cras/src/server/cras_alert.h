@@ -6,6 +6,8 @@
 #ifndef CRAS_ALERT_H_
 #define CRAS_ALERT_H_
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

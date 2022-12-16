@@ -17,7 +17,7 @@ extern "C" {
 
 namespace {
 
-static const size_t kNumAlert = 21;
+static const size_t kNumAlert = 22;
 
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;
@@ -66,6 +66,8 @@ static std::vector<std::vector<uint32_t>>
 static size_t cb_severe_underrun_called;
 static size_t cb_underrun_called;
 static size_t cb_speak_on_mute_detected_called;
+static size_t cb_num_non_chrome_output_streams_called;
+static std::vector<uint32_t> cb_num_non_chrome_output_streams_values;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -114,6 +116,8 @@ static void ResetStubData() {
   cb_severe_underrun_called = 0;
   cb_underrun_called = 0;
   cb_speak_on_mute_detected_called = 0;
+  cb_num_non_chrome_output_streams_called = 0;
+  cb_num_non_chrome_output_streams_values.clear();
 }
 
 /* System output volume changed. */
@@ -226,6 +230,14 @@ void cb_underrun(void* context) {
 
 void cb_speak_on_mute_detected(void* context) {
   cb_speak_on_mute_detected_called++;
+  cb_context.push_back(context);
+}
+
+void cb_num_non_chrome_output_streams(void* context,
+                                      uint32_t num_non_chrome_output_streams) {
+  cb_num_non_chrome_output_streams_called++;
+  cb_num_non_chrome_output_streams_values.push_back(
+      num_non_chrome_output_streams);
   cb_context.push_back(context);
 }
 
@@ -731,6 +743,27 @@ TEST_F(ObserverTest, SpeakOnMuteDetected) {
   ASSERT_EQ(cb_speak_on_mute_detected_called, 2);
 
   DoObserverRemoveClear(speak_on_mute_detected_alert, NULL);
+}
+
+TEST_F(ObserverTest, NumNonChromeOutputStreamsChanged) {
+  cras_observer_notify_num_non_chrome_output_streams(99);
+  EXPECT_EQ(cras_alert_pending_alert_value,
+            g_observer->alerts.num_non_chrome_output_streams);
+  auto* data = reinterpret_cast<
+      struct cras_observer_alert_data_num_non_chrome_output_streams*>(
+      cras_alert_pending_data_value);
+  EXPECT_EQ(data->num_non_chrome_output_streams, 99);
+
+  ops1_.num_non_chrome_output_streams_changed =
+      cb_num_non_chrome_output_streams;
+  ops2_.num_non_chrome_output_streams_changed =
+      cb_num_non_chrome_output_streams;
+  DoObserverAlert(num_non_chrome_output_streams_alert, data);
+  ASSERT_EQ(cb_num_non_chrome_output_streams_called, 2);
+  EXPECT_EQ(cb_num_non_chrome_output_streams_values,
+            (std::vector<uint32_t>{99, 99}));
+
+  DoObserverRemoveClear(num_non_chrome_output_streams_alert, data);
 }
 
 // Stubs

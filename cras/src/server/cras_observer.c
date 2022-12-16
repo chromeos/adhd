@@ -34,6 +34,7 @@ struct cras_observer_alerts {
          * number of active streams per direction, make the alerts
          * per-direciton. */
 	struct cras_alert *num_active_streams[CRAS_NUM_DIRECTIONS];
+	struct cras_alert *num_non_chrome_output_streams;
 	struct cras_alert *non_empty_audio_state_changed;
 	struct cras_alert *bt_battery_changed;
 	struct cras_alert *num_input_streams_with_permission;
@@ -80,6 +81,10 @@ struct cras_observer_alert_data_suspend {
 struct cras_observer_alert_data_streams {
 	enum CRAS_STREAM_DIRECTION direction;
 	uint32_t num_active_streams;
+};
+
+struct cras_observer_alert_data_num_non_chrome_output_streams {
+	uint32_t num_non_chrome_output_streams;
 };
 
 struct cras_observer_alert_data_input_streams {
@@ -269,6 +274,22 @@ static void num_active_streams_alert(void *arg, void *data)
 	}
 }
 
+static void num_non_chrome_output_streams_alert(void *arg, void *data)
+{
+	struct cras_observer_client *client;
+	struct cras_observer_alert_data_num_non_chrome_output_streams *streams_data =
+		(struct cras_observer_alert_data_num_non_chrome_output_streams *)
+			data;
+
+	DL_FOREACH (g_observer->clients, client) {
+		if (client->ops.num_non_chrome_output_streams_changed) {
+			client->ops.num_non_chrome_output_streams_changed(
+				client->context,
+				streams_data->num_non_chrome_output_streams);
+		}
+	}
+}
+
 static void num_input_streams_with_permission_alert(void *arg, void *data)
 {
 	struct cras_observer_client *client;
@@ -433,6 +454,7 @@ int cras_observer_server_init()
 	CRAS_OBSERVER_SET_ALERT(underrun, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(general_survey, NULL, 0);
 	CRAS_OBSERVER_SET_ALERT(speak_on_mute_detected, NULL, 0);
+	CRAS_OBSERVER_SET_ALERT(num_non_chrome_output_streams, NULL, 0);
 
 	CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(num_active_streams,
 					       CRAS_STREAM_OUTPUT);
@@ -476,6 +498,7 @@ void cras_observer_server_free()
 	cras_alert_destroy(
 		g_observer->alerts
 			.num_active_streams[CRAS_STREAM_POST_MIX_PRE_DSP]);
+	cras_alert_destroy(g_observer->alerts.num_non_chrome_output_streams);
 	cras_alert_destroy(g_observer->alerts.general_survey);
 	cras_alert_destroy(g_observer->alerts.speak_on_mute_detected);
 	free(g_observer);
@@ -722,4 +745,15 @@ void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
 void cras_observer_notify_speak_on_mute_detected()
 {
 	cras_alert_pending(g_observer->alerts.speak_on_mute_detected);
+}
+
+void cras_observer_notify_num_non_chrome_output_streams(
+	uint32_t num_non_chrome_output_streams)
+{
+	struct cras_observer_alert_data_num_non_chrome_output_streams data = {
+		.num_non_chrome_output_streams = num_non_chrome_output_streams
+	};
+	cras_alert_pending_data(
+		g_observer->alerts.num_non_chrome_output_streams, &data,
+		sizeof(data));
 }

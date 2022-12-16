@@ -47,6 +47,9 @@ struct cras_observer_ops {
 	void (*num_active_streams_changed)(void *context,
 					   enum CRAS_STREAM_DIRECTION dir,
 					   uint32_t num_active_streams);
+	/* Number of non-chrome output streams changed. */
+	void (*num_non_chrome_output_streams_changed)(
+		void *context, uint32_t num_non_chrome_output_streams);
 	/* Number of input streams with permission changed. */
 	void (*num_input_streams_with_permission_changed)(
 		void *context,

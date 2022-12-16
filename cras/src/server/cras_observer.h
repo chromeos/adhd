@@ -92,6 +92,10 @@ void cras_observer_notify_suspend_changed(int suspended);
 void cras_observer_notify_num_active_streams(enum CRAS_STREAM_DIRECTION dir,
 					     uint32_t num_active_streams);
 
+/* Notify observers of the number of non chrome input streams changed. */
+void cras_observer_notify_num_non_chrome_output_streams(
+	uint32_t num_active_non_chrome_output_streams);
+
 /* Notify observers of the number of input streams with permission. */
 void cras_observer_notify_input_streams_with_permission(
 	uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE]);

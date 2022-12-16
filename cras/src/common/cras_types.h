@@ -643,6 +643,8 @@ static inline bool cras_floop_params_eq(const struct cras_floop_params *a,
  *        speaker.
  *    max_headphone_channels - The max_supported_channels of headphone
  *        and lineout.
+ *    num_non_chrome_output_streams - Number of streams that are not from
+ *        CLIENT_TYPE_CHROME or CLIENT_TYPE_LACROS
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__((packed, aligned(4))) cras_server_state {
@@ -699,6 +701,7 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
 	char active_node_type_pair[2 * CRAS_NODE_TYPE_BUFFER_SIZE + 4];
 	int32_t max_internal_speaker_channels;
 	int32_t max_headphone_channels;
+	int32_t num_non_chrome_output_streams;
 };
 
 /* Actions for card add/remove/change. */

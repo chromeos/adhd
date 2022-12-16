@@ -198,6 +198,7 @@ void cras_system_state_init(const char *device_config_dir, const char *shm_name,
 	exp_state->max_internal_speaker_channels =
 		board_config.max_internal_speaker_channels;
 	exp_state->max_headphone_channels = board_config.max_headphone_channels;
+	exp_state->num_non_chrome_output_streams = 0;
 
 	if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
 		syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -695,6 +696,14 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
 			s->num_input_streams_with_permission);
 	}
 
+	if (direction == CRAS_STREAM_OUTPUT &&
+	    client_type != CRAS_CLIENT_TYPE_CHROME &&
+	    client_type != CRAS_CLIENT_TYPE_LACROS) {
+		s->num_non_chrome_output_streams++;
+		cras_observer_notify_num_non_chrome_output_streams(
+			s->num_non_chrome_output_streams);
+	}
+
 	cras_system_state_update_complete();
 	cras_observer_notify_num_active_streams(
 		direction, s->num_active_streams[direction]);
@@ -723,6 +732,14 @@ void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
 		s->num_input_streams_with_permission[client_type]--;
 		cras_observer_notify_input_streams_with_permission(
 			s->num_input_streams_with_permission);
+	}
+
+	if (direction == CRAS_STREAM_OUTPUT &&
+	    client_type != CRAS_CLIENT_TYPE_CHROME &&
+	    client_type != CRAS_CLIENT_TYPE_LACROS) {
+		s->num_non_chrome_output_streams--;
+		cras_observer_notify_num_non_chrome_output_streams(
+			s->num_non_chrome_output_streams);
 	}
 
 	cras_system_state_update_complete();

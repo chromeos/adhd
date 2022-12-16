@@ -1624,6 +1624,23 @@ signal_number_of_active_streams_changed(void *context,
 	dbus_message_unref(msg);
 }
 
+static void signal_number_of_non_chrome_output_stream_changed(
+	void *context, uint32_t num_non_chrome_output_streams)
+{
+	struct cras_dbus_control *control = (struct cras_dbus_control *)context;
+	dbus_uint32_t serial = 0;
+	dbus_int32_t num = num_non_chrome_output_streams;
+
+	DBusMessage *msg =
+		create_dbus_message("NumberOfNonChromeOutputStreamsChanged");
+	if (!msg)
+		return;
+
+	dbus_message_append_args(msg, DBUS_TYPE_INT32, &num, DBUS_TYPE_INVALID);
+	dbus_connection_send(control->conn, msg, &serial);
+	dbus_message_unref(msg);
+}
+
 static void signal_number_of_input_streams_with_permission_changed(
 	void *context, uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE])
 {
@@ -1805,6 +1822,8 @@ void cras_dbus_control_start(DBusConnection *conn)
 	observer_ops.capture_mute_changed = signal_input_mute_changed;
 	observer_ops.num_active_streams_changed =
 		signal_number_of_active_streams_changed;
+	observer_ops.num_non_chrome_output_streams_changed =
+		signal_number_of_non_chrome_output_stream_changed;
 	observer_ops.num_input_streams_with_permission_changed =
 		signal_number_of_input_streams_with_permission_changed;
 	observer_ops.nodes_changed = signal_nodes_changed;
