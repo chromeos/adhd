@@ -75,6 +75,8 @@ static int effect_aec_on_dsp = 0;
 static int effect_ns_on_dsp = 0;
 static int effect_agc_on_dsp = 0;
 
+static enum CRAS_CLIENT_TYPE client_type = CRAS_CLIENT_TYPE_TEST;
+
 /* ionode flags used in --print_nodes_inlined */
 enum {
 	IONODE_FLAG_DIRECTION,
@@ -1743,8 +1745,11 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 	if (params == NULL)
 		return -ENOMEM;
 
-	cras_client_stream_params_set_client_type(params,
-						  CRAS_CLIENT_TYPE_TEST);
+	if (client_type != CRAS_CLIENT_TYPE_TEST) {
+		fprintf(stderr, "overriding client type to %s\n",
+			cras_client_type_str(client_type));
+	}
+	cras_client_stream_params_set_client_type(params, client_type);
 
 	if (effect_aec) {
 		cras_client_stream_params_enable_aec(params);
@@ -2174,6 +2179,7 @@ static struct option long_options[] = {
 	{"print_nodes_inlined", no_argument,            0, 'U'},
 	{"request_floop_mask",  required_argument,      0, 'V'},
 	{"thread_priority",     required_argument,      0, 'W'},
+	{"client_type",         required_argument,      0, 'X'},
 	{0, 0, 0, 0}
 };
 // clang-format on
@@ -2347,6 +2353,8 @@ static void show_usage()
 	       "    The policy is set to SCHED_RR.\n"
 	       "  * --thread_priority=nice:N\n"
 	       "    audio thread sets the nice value to the integer value N.\n");
+	printf("--client_type <int> - "
+	       "Override the client type.\n");
 }
 
 static int cras_client_create_and_connect(struct cras_client **client,
@@ -2754,6 +2762,9 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
+		case 'X':
+			client_type = atoi(optarg) ?: CRAS_CLIENT_TYPE_TEST;
+			break;
 		default:
 			break;
 		}
