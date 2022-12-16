@@ -9,6 +9,9 @@
 #include <stdbool.h>
 #include <dbus/dbus.h>
 
+#define CRAS_CONTROL_INTERFACE "org.chromium.cras.Control"
+#define CRAS_ROOT_OBJECT_PATH "/org/chromium/cras"
+
 /* Starts the dbus control interface, begins listening for incoming messages. */
 void cras_dbus_control_start(DBusConnection *conn);
 

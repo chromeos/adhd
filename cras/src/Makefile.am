@@ -514,7 +514,8 @@ DBUS_TESTS = \
 	hfp_manager_unittest \
 	hfp_slc_unittest \
 	cras_sco_unittest \
-	sr_bt_adapters_unittest
+	sr_bt_adapters_unittest \
+	dbus_control_unittest
 else
 DBUS_TESTS =
 endif
@@ -1082,6 +1083,14 @@ cras_sco_unittest_SOURCES = tests/cras_sco_unittest.cc \
 cras_sco_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server -I$(top_srcdir)/src/plc $(DBUS_CFLAGS)
 cras_sco_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
+endif
+
+if HAVE_DBUS
+dbus_control_unittest_SOURCES = tests/dbus_control_unittest.cc \
+    tests/dbus_test.cc server/cras_dbus_control.c server/cras_dbus_util.c
+dbus_control_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
+dbus_control_unittest_LDADD =  $(GTEST_MAIN_LIBS) -lpthread $(DBUS_LIBS)
 endif
 
 if HAVE_DBUS

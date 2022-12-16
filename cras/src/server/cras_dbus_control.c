@@ -29,9 +29,6 @@
 #include "softvol_curve.h"
 #include "utlist.h"
 
-#define CRAS_CONTROL_INTERFACE "org.chromium.cras.Control"
-#define CRAS_ROOT_OBJECT_PATH "/org/chromium/cras"
-
 struct cras_dbus_control {
 	DBusConnection *conn;
 	struct cras_observer_client *observer;
@@ -952,6 +949,19 @@ handle_set_global_output_channel_remix(DBusConnection *conn,
 		syslog(LOG_WARNING, "Set global output channel remix error: %s",
 		       dbus_error.message);
 		dbus_error_free(&dbus_error);
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+	if (num_channels > CRAS_CH_MAX) {
+		syslog(LOG_WARNING,
+		       "Set global output channel remix error: num_channels[%d] exceeds %d",
+		       num_channels, CRAS_CH_MAX);
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	if (num_channels * num_channels != count) {
+		syslog(LOG_WARNING,
+		       "Set global output channel remix error: Invalid argument, coeff_array size[%d] != num_channels[%d]*num_channels[%d]",
+		       count, num_channels, num_channels);
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 

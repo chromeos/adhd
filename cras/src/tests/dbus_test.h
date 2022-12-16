@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DBUS_TEST_H_
-#define CRAS_DBUS_TEST_H_
+#ifndef DBUS_TEST_H_
+#define DBUS_TEST_H_
 
 #include <dbus/dbus.h>
 #include <gtest/gtest.h>
@@ -150,16 +150,19 @@ class DBusMatch {
     int type;
     bool array;
     std::string string_value;
-    int int_value;
+    int32_t int32_value;
     std::vector<std::string> string_values;
+    std::vector<double> double_values;
   };
 
   // Append arguments to a match.
+  DBusMatch& WithInt32(int32_t value);
   DBusMatch& WithString(std::string value);
-  DBusMatch& WithUnixFd(int value);
+  DBusMatch& WithUnixFd(int32_t value);
   DBusMatch& WithObjectPath(std::string value);
   DBusMatch& WithArrayOfStrings(std::vector<std::string> values);
   DBusMatch& WithArrayOfObjectPaths(std::vector<std::string> values);
+  DBusMatch& WithArrayOfDouble(std::vector<double> values);
   DBusMatch& WithNoMoreArgs();
 
   // Indicates that all arguments in either the method call or reply
@@ -322,4 +325,4 @@ class DBusTest : public ::testing::Test {
   void DispatchOnce();
 };
 
-#endif /* CRAS_DBUS_TEST_H_ */
+#endif /* DBUS_TEST_H_ */

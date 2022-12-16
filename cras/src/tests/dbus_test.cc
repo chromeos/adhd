@@ -24,6 +24,19 @@ DBusMatch::DBusMatch()
       expect_serial_(false),
       matched_(false) {}
 
+DBusMatch& DBusMatch::WithInt32(int32_t value) {
+  Arg arg;
+  arg.type = DBUS_TYPE_INT32;
+  arg.array = false;
+  arg.int32_value = value;
+
+  if (send_reply_)
+    reply_args_.push_back(arg);
+  else
+    args_.push_back(arg);
+  return *this;
+}
+
 DBusMatch& DBusMatch::WithString(std::string value) {
   Arg arg;
   arg.type = DBUS_TYPE_STRING;
@@ -37,11 +50,11 @@ DBusMatch& DBusMatch::WithString(std::string value) {
   return *this;
 }
 
-DBusMatch& DBusMatch::WithUnixFd(int value) {
+DBusMatch& DBusMatch::WithUnixFd(int32_t value) {
   Arg arg;
   arg.type = DBUS_TYPE_UNIX_FD;
   arg.array = false;
-  arg.int_value = value;
+  arg.int32_value = value;
 
   if (send_reply_)
     reply_args_.push_back(arg);
@@ -81,6 +94,18 @@ DBusMatch& DBusMatch::WithArrayOfObjectPaths(std::vector<std::string> values) {
   arg.type = DBUS_TYPE_OBJECT_PATH;
   arg.array = true;
   arg.string_values = values;
+
+  if (send_reply_)
+    reply_args_.push_back(arg);
+  else
+    args_.push_back(arg);
+  return *this;
+}
+DBusMatch& DBusMatch::WithArrayOfDouble(std::vector<double> values) {
+  Arg arg;
+  arg.type = DBUS_TYPE_DOUBLE;
+  arg.array = true;
+  arg.double_values = values;
 
   if (send_reply_)
     reply_args_.push_back(arg);
@@ -245,6 +270,14 @@ void DBusMatch::AppendArgsToMessage(DBusMessage* message,
         array_type = DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_UNIX_FD_AS_STRING;
         element_type = DBUS_TYPE_UNIX_FD_AS_STRING;
         break;
+      case DBUS_TYPE_INT32:
+        array_type = DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_INT32_AS_STRING;
+        element_type = DBUS_TYPE_INT32_AS_STRING;
+        break;
+      case DBUS_TYPE_DOUBLE:
+        array_type = DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_DOUBLE_AS_STRING;
+        element_type = DBUS_TYPE_DOUBLE_AS_STRING;
+        break;
       default:
         abort();
         // TODO(keybuk): additional argument types
@@ -268,6 +301,10 @@ void DBusMatch::AppendArgsToMessage(DBusMessage* message,
           const char* str_value = vit->c_str();
           dbus_message_iter_append_basic(&array_iter, arg.type, &str_value);
         }
+      } else if (arg.type == DBUS_TYPE_DOUBLE) {
+        for (double val : arg.double_values) {
+          dbus_message_iter_append_basic(&array_iter, arg.type, &val);
+        }
       }
       // TODO(keybuk): additional element types
 
@@ -276,8 +313,8 @@ void DBusMatch::AppendArgsToMessage(DBusMessage* message,
       if (arg.type == DBUS_TYPE_STRING || arg.type == DBUS_TYPE_OBJECT_PATH) {
         const char* str_value = arg.string_value.c_str();
         dbus_message_iter_append_basic(&iter, arg.type, &str_value);
-      } else if (arg.type == DBUS_TYPE_UNIX_FD) {
-        dbus_message_iter_append_basic(&iter, arg.type, &arg.int_value);
+      } else if (arg.type == DBUS_TYPE_UNIX_FD || arg.type == DBUS_TYPE_INT32) {
+        dbus_message_iter_append_basic(&iter, arg.type, &arg.int32_value);
       }
       // TODO(keybuk): additional argument types
     }
