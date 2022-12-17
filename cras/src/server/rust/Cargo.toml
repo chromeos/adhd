@@ -11,6 +11,12 @@ crate-type = ["staticlib"]
 libc = "0.2.44"
 cras_dlc = { version = "*", optional = true }
 
+[workspace]
+members = [
+    "binding_generator",
+    "cras_dlc",
+]
+
 [profile.release]
 lto = true
 panic = "abort"
@@ -18,6 +24,10 @@ overflow-checks = true
 
 [patch.crates-io]
 cras_dlc = { path = "cras_dlc" }
-# Switch to path = "../../../../../../platform2/system_api" for in chroot
-# `mkdir build && cd build && ../configure --enable-dlc && make -j$(nproc)`
-system_api = { path = "system_api_stub" } # ignored by ebuild
+
+# If your `protoc --version` is less than 3.13, you need to add
+# `--experimental_allow_proto3_optional` to protoc so system_api builds.
+# A helper is provided in hacks/bin.
+system_api = { git = "https://chromium.googlesource.com/chromiumos/platform2", version = ">=0.24.53" } # ignored by ebuild
+# Replace the above with the below when making testing in-repo changes in chroot.
+# system_api = { path = "../../../../../../platform2/system_api" } # ignored by ebuild
