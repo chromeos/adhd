@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 extern crate cbindgen;
 
+use std::path::Path;
+
 use cbindgen::Builder;
 
 const HEADER_HEAD: &str = "// Copyright";
@@ -10,41 +12,56 @@ const HEADER_TAIL: &str = "The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Generated from files in cras/src/server/rust in adhd.";
+// Generated from files in cras/src/server/rust in adhd.
+// clang-format off
+
+#ifdef __cplusplus
+extern \"C\" {
+#endif";
+
+const TRAILER: &str = "#ifdef __cplusplus
+}
+#endif
+";
+
+fn builder(copyright_year: u32) -> Builder {
+    Builder::new()
+        .rename_item("timespec", "struct timespec")
+        .with_language(cbindgen::Language::C)
+        .with_style(cbindgen::Style::Tag)
+        .with_header(format!(
+            "{} {} {}",
+            HEADER_HEAD, copyright_year, HEADER_TAIL
+        ))
+        .with_trailer(TRAILER)
+}
+
+fn generate(b: Builder, filename: &str) {
+    b.with_include_guard(format!("{}_", filename.to_uppercase().replace('.', "_")))
+        .generate()
+        .unwrap_or_else(|_| panic!("cannot generate {}", filename))
+        .write_to_file(Path::new("../include").join(filename));
+}
 
 fn main() {
-    Builder::new()
-        .with_src("../src/rate_estimator.rs")
-        .with_src("../src/rate_estimator_bindings.rs")
-        .rename_item("RateEstimator", "rate_estimator")
-        .rename_item("timespec", "struct timespec")
-        .with_no_includes()
-        .with_sys_include("time.h")
-        .with_include_guard("RATE_ESTIMATOR_H_")
-        .with_language(cbindgen::Language::C)
-        .with_header(format!("{} {} {}", HEADER_HEAD, 2019, HEADER_TAIL))
-        .generate()
-        .expect("Unable to generate bindings")
-        .write_to_file("../include/rate_estimator.h");
+    generate(
+        builder(2019)
+            .with_src("../src/rate_estimator.rs")
+            .with_src("../src/rate_estimator_bindings.rs")
+            .rename_item("RateEstimator", "rate_estimator")
+            .with_sys_include("time.h"),
+        "rate_estimator.h",
+    );
 
-    Builder::new()
-        .with_src("../src/feature_tier.rs")
-        .rename_item("CrasFeatureTier", "cras_feature_tier")
-        .with_no_includes()
-        .with_include_guard("CRAS_FEATURE_TIER_H_")
-        .with_language(cbindgen::Language::C)
-        .with_header(format!("{} {} {}", HEADER_HEAD, 2022, HEADER_TAIL))
-        .generate()
-        .expect("Unable to generate bindings")
-        .write_to_file("../include/cras_feature_tier.h");
+    generate(
+        builder(2022)
+            .with_src("../src/feature_tier.rs")
+            .rename_item("CrasFeatureTier", "cras_feature_tier"),
+        "cras_feature_tier.h",
+    );
 
-    Builder::new()
-        .with_src("../cras_dlc/src/lib.rs")
-        .with_no_includes()
-        .with_include_guard("CRAS_DLC_H_")
-        .with_language(cbindgen::Language::C)
-        .with_header(format!("{} {} {}", HEADER_HEAD, 2022, HEADER_TAIL))
-        .generate()
-        .expect("Unable to generate bindings")
-        .write_to_file("../include/cras_dlc.h");
+    generate(
+        builder(2022).with_src("../cras_dlc/src/lib.rs"),
+        "cras_dlc.h",
+    );
 }

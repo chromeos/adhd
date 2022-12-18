@@ -98,7 +98,7 @@ static struct {
 	struct cras_audio_thread_snapshot_buffer snapshot_buffer;
 	pthread_t main_thread_tid;
 	bool bt_fix_a2dp_packet_size;
-	cras_feature_tier feature_tier;
+	struct cras_feature_tier feature_tier;
 	struct feature_state feature_state;
 	bool speak_on_mute_detection_enabled;
 } state;

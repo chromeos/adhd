@@ -3,10 +3,19 @@
 // found in the LICENSE file.
 
 // Generated from files in cras/src/server/rust in adhd.
+// clang-format off
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef RATE_ESTIMATOR_H_
 #define RATE_ESTIMATOR_H_
 
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <time.h>
 
 /**
@@ -28,7 +37,17 @@
  *                        too quickly.
  *    * `estimated_rate` - The estimated rate at which samples are consumed.
  */
-typedef struct rate_estimator rate_estimator;
+struct rate_estimator;
+
+/**
+ * # Safety
+ *
+ * To use this function safely, `window_size` must be a valid pointer to a
+ * timespec.
+ */
+struct rate_estimator *rate_estimator_create(unsigned int rate,
+                                             const struct timespec *window_size,
+                                             double smooth_factor);
 
 /**
  * # Safety
@@ -36,7 +55,15 @@ typedef struct rate_estimator rate_estimator;
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null.
  */
-void rate_estimator_add_frames(rate_estimator *re, int frames);
+void rate_estimator_destroy(struct rate_estimator *re);
+
+/**
+ * # Safety
+ *
+ * To use this function safely, `re` must be a pointer returned from
+ * rate_estimator_create, or null.
+ */
+void rate_estimator_add_frames(struct rate_estimator *re, int frames);
 
 /**
  * # Safety
@@ -45,18 +72,7 @@ void rate_estimator_add_frames(rate_estimator *re, int frames);
  * rate_estimator_create, or null, and `now` must be a valid pointer to a
  * timespec.
  */
-int32_t rate_estimator_check(rate_estimator *re, int level,
-			     const struct timespec *now);
-
-/**
- * # Safety
- *
- * To use this function safely, `window_size` must be a valid pointer to a
- * timespec.
- */
-rate_estimator *rate_estimator_create(unsigned int rate,
-				      const struct timespec *window_size,
-				      double smooth_factor);
+int32_t rate_estimator_check(struct rate_estimator *re, int level, const struct timespec *now);
 
 /**
  * # Safety
@@ -64,7 +80,7 @@ rate_estimator *rate_estimator_create(unsigned int rate,
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null.
  */
-void rate_estimator_destroy(rate_estimator *re);
+double rate_estimator_get_rate(const struct rate_estimator *re);
 
 /**
  * # Safety
@@ -72,14 +88,10 @@ void rate_estimator_destroy(rate_estimator *re);
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null.
  */
-double rate_estimator_get_rate(const rate_estimator *re);
-
-/**
- * # Safety
- *
- * To use this function safely, `re` must be a pointer returned from
- * rate_estimator_create, or null.
- */
-void rate_estimator_reset_rate(rate_estimator *re, unsigned int rate);
+void rate_estimator_reset_rate(struct rate_estimator *re, unsigned int rate);
 
 #endif /* RATE_ESTIMATOR_H_ */
+
+#ifdef __cplusplus
+}
+#endif

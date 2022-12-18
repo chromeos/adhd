@@ -3,14 +3,19 @@
 // found in the LICENSE file.
 
 // Generated from files in cras/src/server/rust in adhd.
+// clang-format off
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef CRAS_DLC_H_
 #define CRAS_DLC_H_
 
-/**
- * Returns Dlc root_path for the "sr-bt-dlc" package.
- */
-const char *cras_dlc_sr_bt_get_root(void);
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 /**
  * Returns `true` if the "sr-bt-dlc" packge is ready for use, otherwise
@@ -18,4 +23,13 @@ const char *cras_dlc_sr_bt_get_root(void);
  */
 bool cras_dlc_sr_bt_is_available(void);
 
+/**
+ * Returns Dlc root_path for the "sr-bt-dlc" package.
+ */
+const char *cras_dlc_sr_bt_get_root(void);
+
 #endif /* CRAS_DLC_H_ */
+
+#ifdef __cplusplus
+}
+#endif

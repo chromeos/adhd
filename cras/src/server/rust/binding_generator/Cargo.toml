@@ -5,4 +5,4 @@ authors = ["The ChromiumOS Authors"]
 edition = "2018"
 
 [dependencies]
-cbindgen = "0.12.0"
+cbindgen = "0.20.0"
