@@ -53,16 +53,13 @@ func (p *parser) done() bool {
 }
 
 // try to consume a flag that is uninteresting for dependency analysis
-func (p *parser) consumeUninteresting() (flags []string, found bool) {
+func (p *parser) consumeExtra() (flags []string, found bool) {
 	consumeOne := func() ([]string, bool) {
 		return []string{p.consume()}, true
 	}
 
 	// Consume exact matches
-	switch p.get() {
-	case "-MD", "-MP", "-c":
-		return consumeOne()
-	case "-MF", "-MT", "-L":
+	if p.get() == "-L" {
 		// Consume the flag and the argument following it
 		return []string{p.consume(), p.consume()}, true
 	}
@@ -87,6 +84,21 @@ func (p *parser) consumeUninteresting() (flags []string, found bool) {
 		return consumeOne()
 	}
 	return nil, false
+}
+
+// Remove dependency flags
+func (p *parser) consumeDependency() bool {
+	switch p.get() {
+	case "-MD", "-MP", "-c":
+		p.consume()
+		return true
+	case "-MT", "-MF":
+		p.consume()
+		p.consume()
+		return true
+	default:
+		return false
+	}
 }
 
 // Something like:
@@ -143,8 +155,10 @@ func parseCompilation(e Execution) *compilation {
 			c.output = output
 		} else if lib, found := p.consumeShortFlag("-l"); found {
 			c.libraries = append(c.libraries, lib)
-		} else if flags, found := p.consumeUninteresting(); found {
+		} else if flags, found := p.consumeExtra(); found {
 			c.extraFlags = append(c.extraFlags, flags...)
+		} else if p.consumeDependency() {
+			// Do nothing.
 		} else if strings.HasPrefix(p.get(), "-Wl,") {
 			c.linkArgs = append(c.linkArgs, p.consume())
 		} else {
@@ -152,4 +166,15 @@ func parseCompilation(e Execution) *compilation {
 		}
 	}
 	return c
+}
+
+func (c *compilation) flags() []string {
+	var result []string
+	for _, include := range c.includeDirs {
+		result = append(result, "-I"+include)
+	}
+	for _, define := range c.defines {
+		result = append(result, "-D"+define)
+	}
+	return append(result, c.extraFlags...)
 }

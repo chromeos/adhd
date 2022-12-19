@@ -130,6 +130,10 @@ func main() {
 			// Only handle unit tests for now
 			continue
 		}
+
+		var sources []string
+		var headers []string
+
 		// Find the .c/.cc source for the .o objects
 		for _, input := range link.inputs {
 			if strings.HasSuffix(input, ".a") {
@@ -140,8 +144,22 @@ func main() {
 			if !ok {
 				log.Panic(input, link)
 			}
-			log.Println(comp.output, comp.inputs)
+			if len(comp.inputs) != 1 {
+				log.Fatal(comp.execution.Arguments)
+			}
+			sources = append(sources, canonPath(comp.inputs[0]))
+			for _, hdr := range comp.findHeaders() {
+				headers = append(headers, canonPath(hdr))
+			}
 		}
-		fmt.Println(link.inputs)
+
+		fmt.Println(link.output, append(sources, slices.Compact(headers)...))
 	}
+}
+
+func canonPath(p string) string {
+	if strings.HasPrefix(p, "/") {
+		return p
+	}
+	return path.Clean(path.Join("src", p))
 }
