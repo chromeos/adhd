@@ -94,3 +94,113 @@ and cannot prevent typos.
 
 Exception: platform _detection_ (`#ifdef __ANDROID__`) and language _detection_
 (`#ifdef __cplusplus`) is allowed.
+
+## Comments
+
+### Struct Members Comments
+
+Use your best judgement on whether your struct members need comments. When they
+do, comment your struct members right above or next to their declaration,
+instead of commenting all together above the struct declaration as a huge
+comment block.
+
+The benefits are:
+1.  Harder for those comments to be outdated.
+2.  Editor plugins like `clangd` recognize this comment style.
+
+
+Good: right above declaration.
+
+```
+/*
+ * Struct to hold current ramping action for user.
+ */
+struct cras_ramp_action {
+  // See CRAS_RAMP_ACTION_TYPE.
+  enum CRAS_RAMP_ACTION_TYPE type;
+  // The initial scaler to be applied.
+  float scaler;
+  // The scaler increment that should be added to scaler for every frame.
+  float increment;
+  float target;
+};
+```
+
+Good: next to declaration.
+
+```
+/*
+ * Struct to hold current ramping action for user.
+ */
+struct cras_ramp_action {
+  enum CRAS_RAMP_ACTION_TYPE type; // See CRAS_RAMP_ACTION_TYPE.
+  float scaler; // The initial scaler to be applied.
+  float increment; // The scaler increment that should be added to scaler for every frame.
+  float target;
+};
+```
+
+Bad: huge comment block.
+
+```
+/*
+ * Struct to hold current ramping action for user.
+ * Members:
+ *   type: See CRAS_RAMP_ACTION_TYPE.
+ *   scaler: The initial scaler to be applied.
+ *   increment: The scaler increment that should be added to scaler for every
+ *              frame.
+ */
+struct cras_ramp_action {
+  enum CRAS_RAMP_ACTION_TYPE type;
+  float scaler;
+  float increment;
+  float target;
+};
+```
+
+### Enum Item Comments
+
+Use your best judgement on whether your enum items need comments. When they
+do, for the same reason as struct member comments,
+comment your enum members right above or next to their declaration.
+
+Good: next to declaration.
+
+```
+enum CRAS_CONNECTION_TYPE {
+  CRAS_CONTROL, // For legacy client.
+  CRAS_PLAYBACK, // For playback client.
+  CRAS_CAPTURE, // For capture client.
+  CRAS_NUM_CONN_TYPE,
+};
+```
+
+Good: right above declaration.
+
+```
+enum CRAS_CONNECTION_TYPE {
+  // For legacy client.
+  CRAS_CONTROL,
+  // For playback client.
+  CRAS_PLAYBACK,
+  // For capture client.
+  CRAS_CAPTURE,
+  CRAS_NUM_CONN_TYPE,
+};
+```
+
+Bad: huge comment block.
+
+```
+/* CRAS_CONTROL - For legacy client.
+ * CRAS_PLAYBACK - For playback client.
+ * CRAS_CAPTURE - For capture client.
+ */
+enum CRAS_CONNECTION_TYPE {
+  CRAS_CONTROL,
+  CRAS_PLAYBACK,
+  CRAS_CAPTURE,
+  CRAS_NUM_CONN_TYPE,
+};
+```
