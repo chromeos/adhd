@@ -30,6 +30,7 @@ cc_library(
     name = "drc",
     srcs = ["drc.c"],
     hdrs = ["drc.h"],
+    linkopts = ["-lm"],
     visibility = ["//src/benchmark:__pkg__"],
     deps = [
         ":crossover2",
@@ -55,6 +56,7 @@ cc_library(
     name = "drc_kernel",
     srcs = ["drc_kernel.c"],
     hdrs = ["drc_kernel.h"],
+    linkopts = ["-lm"],
     deps = [":drc_math"],
 )
 
@@ -70,4 +72,26 @@ cc_library(
     hdrs = ["dsp_util.h"],
     visibility = ["//src/benchmark:__pkg__"],
     deps = ["//src/common:cras_types"],
+)
+
+# Allow tests to not specify all headers.
+cc_library(
+    name = "all_headers",
+    testonly = True,
+    hdrs = glob(include = ["*.h"]),
+    includes = ["."],
+    textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
+    visibility = [
+        "//src/tests:__pkg__",
+    ],
+)
+
+# Allow tests to use sources directly
+exports_files(
+    glob(include = [
+        "*.c",
+    ]),
+    visibility = [
+        "//src/tests:__pkg__",
+    ],
 )

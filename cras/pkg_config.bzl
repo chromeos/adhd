@@ -4,6 +4,8 @@
 
 """Provide repository rules for pkg-config libraries."""
 
+load("@com_github_bazel_skylib//lib:paths.bzl", "paths")
+
 _PKG_CONFIG_LIBRARY = """
 cc_library(
     name = "{name}",
@@ -68,7 +70,10 @@ def _pkg_config_library(repository_ctx, library, library_root, defines = []):
         for path in result.includes
     ]
     hdrs_globs = [
-        "{}{}/**/*.h".format(library_root, path)
+        # Bazel rejects .. in glob patterns so we normalize them.
+        # Note that normalize() is logical, so if /a/b/c is a symlink
+        # to another directory then /a/b/c/.. would resolve incorrectly.
+        "{}{}/**/*.h".format(library_root, paths.normalize(path))
         for path in result.includes
     ]
 

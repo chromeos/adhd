@@ -22,7 +22,10 @@ cc_library(
             "HAVE_FMA=0",
         ],
     }),
-    visibility = ["//src/benchmark:__pkg__"],
+    visibility = [
+        "//src/benchmark:__pkg__",
+        "//src/tests:__pkg__",
+    ],
     deps = ["cras_mix_ops"] + select({
         "//:x86_64_build": [
             ":cras_mix_ops_avx",
@@ -139,5 +142,27 @@ cc_library(
         "//src/common:cras_string",
         "//src/common:cras_util",
         "//src/common:utlist",
+    ],
+)
+
+# Allow tests to not specify all headers.
+cc_library(
+    name = "all_headers",
+    testonly = True,
+    hdrs = glob(include = ["*.h"]),
+    includes = ["."],
+    textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
+    visibility = [
+        "//src/tests:__pkg__",
+    ],
+)
+
+# Allow tests to use sources directly
+exports_files(
+    glob(include = [
+        "*.c",
+    ]),
+    visibility = [
+        "//src/tests:__pkg__",
     ],
 )

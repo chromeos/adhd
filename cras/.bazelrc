@@ -5,6 +5,9 @@
 build --conlyopt=-std=gnu11
 build --cxxopt=-std=gnu++17
 
+# Ensure assert() is executed.
+build --copt=-UNDEBUG
+
 # b/201531268: LFS support
 build --copt=-D_FILE_OFFSET_BITS=64
 build --copt=-D_LARGEFILE_SOURCE

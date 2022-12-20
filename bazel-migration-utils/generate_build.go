@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -96,6 +97,77 @@ func (p *profile) handle(e Execution) {
 	}
 }
 
+func (p *profile) analyzeBuild(link *compilation) [2]string {
+	var nothing = [2]string{"", ""}
+
+	if !strings.HasSuffix(link.output, "_unittest") {
+		// Only handle unit tests for now
+		return nothing
+	}
+
+	var sources []string
+	var includeDirs []string
+	var headers []string
+	var defines []string
+	var unsupported error
+
+	// Find the .c/.cc source for the .o objects
+	for _, input := range link.inputs {
+		if strings.HasSuffix(input, ".a") {
+			// TODO: handle library archives
+			unsupported = errors.New(input)
+			continue
+		}
+		comp, ok := p.compilations[input]
+		if !ok {
+			log.Panic(input, link)
+		}
+		if len(comp.inputs) != 1 {
+			log.Fatal(comp.execution.Arguments)
+		}
+		sources = append(sources, canonPath(comp.inputs[0]))
+		for _, hdr := range comp.findHeaders() {
+			headers = append(headers, canonPath(hdr))
+		}
+		for _, inc := range comp.includeDirs {
+			if strings.HasPrefix(inc, "/") {
+				continue
+			}
+			includeDirs = append(includeDirs, canonPath(inc))
+		}
+		defines = append(defines, comp.defines...)
+	}
+
+	slices.Sort(includeDirs)
+	includeDirs = slices.Compact(includeDirs)
+	slices.Sort(headers)
+	headers = slices.Compact(headers)
+	slices.Sort(defines)
+	defines = slices.Compact(defines)
+
+	for _, hdr := range headers {
+		if path.Base(hdr) == "iniparser.h" {
+			unsupported = errors.New("iniparser.h")
+		}
+		if path.Dir(hdr) == "src/tests" {
+			sources = append(sources, hdr)
+		}
+	}
+
+	if unsupported != nil {
+		log.Printf("%s is unsupported: %s", link.output, unsupported)
+		return nothing
+	}
+
+	// fmt.Println(link.output, append(sources, slices.Compact(headers)...))
+
+	if slices.Contains(includeDirs, "src/server/rust/include") {
+		return nothing
+	}
+
+	return [2]string{link.output, ccTestRule(link.output, sources, includeDirs, link.libraries, link.linkArgs, defines)}
+}
+
 func main() {
 	log.SetFlags(log.Lshortfile)
 
@@ -125,35 +197,44 @@ func main() {
 		p.handle(execution)
 	}
 
+	fmt.Print(`# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+`)
+
+	(&call{
+		label: "cc_library",
+		args: map[string]node{
+			"name": stringLiteral("test_support"),
+			"defines": stringLiterals([]string{
+				`CRAS_UT_TMPDIR=\"/tmp\"`,
+				`CRAS_SOCKET_FILE_DIR=\"/run/cras\"`,
+			}),
+			"linkopts": stringLiterals([]string{
+				"-Wl,--gc-sections",
+				"-lm",
+			}),
+			"deps": stringLiterals([]string{
+				"//:build_config",
+			}),
+		},
+	}).render(os.Stdout, 0)
+	fmt.Println()
+
+	var links []*compilation
 	for _, link := range p.links {
-		if !strings.HasSuffix(link.output, "_unittest") {
-			// Only handle unit tests for now
-			continue
+		links = append(links, link)
+	}
+	var results [][2]string
+	for result := range parallelMap(p.analyzeBuild, links) {
+		if result[0] != "" {
+			results = append(results, result)
 		}
-
-		var sources []string
-		var headers []string
-
-		// Find the .c/.cc source for the .o objects
-		for _, input := range link.inputs {
-			if strings.HasSuffix(input, ".a") {
-				// TODO: handle library archives
-				continue
-			}
-			comp, ok := p.compilations[input]
-			if !ok {
-				log.Panic(input, link)
-			}
-			if len(comp.inputs) != 1 {
-				log.Fatal(comp.execution.Arguments)
-			}
-			sources = append(sources, canonPath(comp.inputs[0]))
-			for _, hdr := range comp.findHeaders() {
-				headers = append(headers, canonPath(hdr))
-			}
-		}
-
-		fmt.Println(link.output, append(sources, slices.Compact(headers)...))
+	}
+	slices.SortFunc(results, func(a, b [2]string) bool { return a[0] < b[0] })
+	for _, result := range results {
+		fmt.Println(result[1])
 	}
 }
 

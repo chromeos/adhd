@@ -8,7 +8,7 @@ cd ~/path/to/adhd/cras
 ./configure CC=clang CXX=clang++
 intercept -- make check TESTS= -j128  # this generates events.json
 cd ~/path/to/adhd/bazel-migration-utils
-go run .
+go run . | buildifier -type build > ../cras/src/tests/BUILD
 ```
 
 `intercept` is a tool from [bear](https://github.com/rizsotto/Bear).

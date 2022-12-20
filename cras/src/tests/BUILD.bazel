@@ -1,0 +1,616 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+cc_library(
+    name = "test_support",
+    defines = [
+        "CRAS_UT_TMPDIR=\\\"/tmp\\\"",
+        "CRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
+    ],
+    linkopts = [
+        "-Wl,--gc-sections",
+        "-lm",
+    ],
+    deps = [
+        "//:build_config",
+    ],
+)
+
+cc_test(
+    name = "a2dp_info_unittest",
+    srcs = [
+        ":a2dp_info_unittest.cc",
+        ":sbc_codec_stub.cc",
+        ":sbc_codec_stub.h",
+        "//src/server:cras_a2dp_info.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "alert_unittest",
+    srcs = [
+        ":alert_unittest.cc",
+        "//src/server:cras_alert.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "alsa_helpers_unittest",
+    srcs = [
+        ":alsa_helpers_unittest.cc",
+        "//src/common:cras_audio_format.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "alsa_jack_unittest",
+    srcs = [
+        ":alsa_jack_unittest.cc",
+        "//src/common:cras_string.c",
+        "//src/common:edid_utils.c",
+        "//src/common:sfh.c",
+        "//src/server:cras_alsa_jack.c",
+        "//src/server:cras_alsa_mixer_name.c",
+        "//src/server:cras_alsa_ucm_section.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+    ],
+)
+
+cc_test(
+    name = "alsa_mixer_unittest",
+    srcs = [
+        ":alsa_mixer_unittest.cc",
+        "//src/common:cras_string.c",
+        "//src/server:cras_alsa_mixer_name.c",
+        "//src/server:cras_alsa_ucm_section.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server/config:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+    ],
+)
+
+cc_test(
+    name = "alsa_ucm_unittest",
+    srcs = [
+        ":alsa_ucm_unittest.cc",
+        "//src/common:strlcpy.c",
+        "//src/server:cras_alsa_mixer_name.c",
+        "//src/server:cras_alsa_ucm_section.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server/config:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+    ],
+)
+
+cc_test(
+    name = "array_unittest",
+    srcs = [
+        ":array_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "audio_area_unittest",
+    srcs = [
+        ":audio_area_unittest.cc",
+        "//src/server:cras_audio_area.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "audio_format_unittest",
+    srcs = [
+        ":audio_format_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "biquad_unittest",
+    srcs = [
+        ":biquad_unittest.cc",
+        "//src/dsp:biquad.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/dsp:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "buffer_share_unittest",
+    srcs = [
+        ":buffer_share_unittest.cc",
+        "//src/server:buffer_share.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "byte_buffer_unittest",
+    srcs = [
+        ":byte_buffer_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "checksum_unittest",
+    srcs = [
+        ":checksum_unittest.cc",
+        "//src/common:cras_checksum.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cras_abi_unittest",
+    srcs = [
+        ":cras_abi_unittest.cc",
+        "//src/common:cras_audio_format.c",
+        "//src/common:cras_config.c",
+        "//src/common:cras_file_wait.c",
+        "//src/common:cras_shm.c",
+        "//src/common:cras_string.c",
+        "//src/common:cras_util.c",
+        "//src/common:strlcpy.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/libcras:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:speexdsp",
+    ],
+)
+
+cc_test(
+    name = "cras_client_unittest",
+    srcs = [
+        ":cras_client_unittest.cc",
+        "//src/common:cras_config.c",
+        "//src/common:cras_file_wait.c",
+        "//src/common:cras_shm.c",
+        "//src/common:cras_string.c",
+        "//src/common:cras_util.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/libcras:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+        "@pkg_config//:speexdsp",
+    ],
+)
+
+cc_test(
+    name = "cras_tm_unittest",
+    srcs = [
+        ":cras_tm_unittest.cc",
+        "//src/server:cras_tm.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "dumper_unittest",
+    srcs = [
+        ":dumper_unittest.cc",
+        "//src/common:dumper.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "edid_utils_unittest",
+    srcs = [
+        ":edid_utils_unittest.cc",
+        "//src/common:edid_utils.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "ewma_power_unittest",
+    srcs = [
+        ":ewma_power_unittest.cc",
+        "//src/common:cras_audio_format.c",
+        "//src/server:cras_audio_area.c",
+        "//src/server:ewma_power.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "expr_unittest",
+    srcs = [
+        ":expr_unittest.cc",
+        "//src/common:dumper.c",
+        "//src/server:cras_expr.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "file_wait_unittest",
+    srcs = [
+        ":file_wait_unittest.cc",
+        "//src/common:cras_file_wait.c",
+        "//src/common:cras_util.c",
+        "//src/common:strlcpy.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "float_buffer_unittest",
+    srcs = [
+        ":float_buffer_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "fmt_conv_ops_unittest",
+    srcs = [
+        ":fmt_conv_ops_unittest.cc",
+        "//src/server:cras_fmt_conv_ops.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+        "@pkg_config//:speexdsp",
+    ],
+)
+
+cc_test(
+    name = "fmt_conv_unittest",
+    srcs = [
+        ":fmt_conv_unittest.cc",
+        "//src/server:cras_fmt_conv.c",
+        "//src/server:cras_fmt_conv_ops.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+        "@pkg_config//:speexdsp",
+    ],
+)
+
+cc_test(
+    name = "linear_resampler_unittest",
+    srcs = [
+        ":linear_resampler_unittest.cc",
+        "//src/server:cras_audio_area.c",
+        "//src/server:linear_resampler.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "messages_unittest",
+    srcs = [
+        ":messages_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "polled_interval_checker_unittest",
+    srcs = [
+        ":polled_interval_checker_unittest.cc",
+        "//src/server:polled_interval_checker.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "sample_buffer_unittest",
+    srcs = [
+        ":sample_buffer_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "shm_unittest",
+    srcs = [
+        ":shm_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "softvol_curve_unittest",
+    srcs = [
+        ":softvol_curve_unittest.cc",
+        "//src/server:softvol_curve.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "speak_on_mute_detector_unittest",
+    srcs = [
+        ":speak_on_mute_detector_unittest.cc",
+        "//src/server:speak_on_mute_detector.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "stream_list_unittest",
+    srcs = [
+        ":stream_list_unittest.cc",
+        "//src/server:stream_list.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "string_unittest",
+    srcs = [
+        ":string_unittest.cc",
+        "//src/common:cras_string.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "utf8_unittest",
+    srcs = [
+        ":utf8_unittest.cc",
+        "//src/server:cras_utf8.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "util_unittest",
+    srcs = [
+        ":util_unittest.cc",
+        "//src/common:cras_config.c",
+        "//src/common:cras_util.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "volume_curve_unittest",
+    srcs = [
+        ":volume_curve_unittest.cc",
+        "//src/server:cras_volume_curve.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)

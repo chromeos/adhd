@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/frankban/quicktest v1.14.4
+	go.starlark.net v0.0.0-20221205180719-3fd0dac74452
 	golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15
 )
 

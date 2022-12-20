@@ -16,7 +16,7 @@ func (c *compilation) findHeaders() []string {
 		"-fsyntax-only",
 		c.inputs[0],
 		"-MF", "/dev/stdout",
-		"-MMD",
+		"-MD",
 		"-MT", "out",
 	)
 	cmd.Args = append(cmd.Args, c.flags()...)
@@ -31,10 +31,16 @@ func (c *compilation) findHeaders() []string {
 	if !ok {
 		log.Fatal(output)
 	}
-	return strings.FieldsFunc(
+	var result []string
+	for _, h := range strings.FieldsFunc(
 		deps,
 		func(r rune) bool {
 			return strings.ContainsRune(" \n\\", r)
 		},
-	)
+	) {
+		if h != c.inputs[0] {
+			result = append(result, h)
+		}
+	}
+	return result
 }

@@ -51,3 +51,6 @@ bazel-*
 
 # clangd
 /.cache/
+
+# build interception
+events.json
