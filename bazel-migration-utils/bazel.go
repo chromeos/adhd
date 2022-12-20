@@ -67,14 +67,19 @@ func stringLiterals(l []string) list {
 }
 
 var needsSectionsHack = map[string]bool{
-	"ewma_power_unittest":     true,
-	"cras_client_unittest":    true,
-	"floop_iodev_unittest":    true,
-	"sr_bt_adapters_unittest": true,
-	"bt_policy_unittest":      true,
-	"bt_device_unittest":      true,
-	"bt_io_unittest":          true,
-	"hfp_manager_unittest":    true,
+	"ewma_power_unittest":      true,
+	"cras_client_unittest":     true,
+	"floop_iodev_unittest":     true,
+	"sr_bt_adapters_unittest":  true,
+	"bt_policy_unittest":       true,
+	"bt_device_unittest":       true,
+	"bt_io_unittest":           true,
+	"hfp_manager_unittest":     true,
+	"audio_thread_unittest":    true,
+	"cras_sr_bt_util_unittest": true,
+	"iodev_unittest":           true,
+	"system_state_unittest":    true,
+	"timing_unittest":          true,
 }
 
 var brokenTests = map[string]bool{}
@@ -87,12 +92,15 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 	var bazelSrcs list
 	var wantIniparser bool
 	var wantDbus bool
+	var wantCrasRust bool
 	for _, inc := range includeDirs {
 		switch inc {
 		case "src":
 			// There is no source here, ignore
 		case "src/common", "src/server", "src/dsp", "src/server/config", "src/libcras", "src/plc":
 			deps = append(deps, stringLiteral(bazelDir(inc)+":all_headers"))
+		case "src/server/rust/include":
+			deps = append(deps, stringLiteral(bazelDir("src/server/rust")+":headers"))
 		default:
 			log.Panic(inc)
 		}
@@ -103,7 +111,7 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 			deps = append(deps, stringLiteral("@pkg_config//:"+lib))
 		case "asound":
 			deps = append(deps, stringLiteral("@pkg_config//:alsa"))
-		case "pthread", "m", "rt":
+		case "pthread", "m", "rt", "dl":
 			// Do nothing
 		case "iniparser":
 			wantIniparser = true
@@ -126,6 +134,9 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 	}
 	if wantDbus {
 		deps = append(deps, stringLiteral("@pkg_config//:dbus-1"))
+	}
+	if wantCrasRust {
+		deps = append(deps, stringLiteral("//src/server/rust"))
 	}
 	for _, src := range srcs {
 		if path.Dir(src) == "src/tests" {

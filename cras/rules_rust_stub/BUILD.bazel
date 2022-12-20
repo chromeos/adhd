@@ -1,0 +1,7 @@
+"""
+This package stubs rules_rust
+
+To apply the stub, pass
+    --override_repository=rules_rust=/absolute/path/to/cras/rules_rust_stub
+To bazel.
+"""

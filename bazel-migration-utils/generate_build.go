@@ -103,6 +103,8 @@ var archiveMap = map[string]string{
 	"./.libs/libcrasmix_avx.a":   "//src/server:cras_mix",
 	"./.libs/libcrasmix_sse42.a": "//src/server:cras_mix",
 	"./.libs/libcrasmix.a":       "//src/server:cras_mix",
+
+	"../src/server/rust/target//release/libcras_rust.a": "//src/server/rust",
 }
 
 func (p *profile) analyzeBuild(link *compilation) [2]string {
@@ -173,10 +175,6 @@ func (p *profile) analyzeBuild(link *compilation) [2]string {
 
 	// log.Println(link.output, sources, dependencies)
 
-	if slices.Contains(includeDirs, "src/server/rust/include") {
-		return nothing
-	}
-
 	return [2]string{link.output, ccTestRule(link.output, sources, includeDirs, link.libraries, link.linkArgs, defines, headers, dependencies)}
 }
 
@@ -222,6 +220,7 @@ func main() {
 			"defines": stringLiterals([]string{
 				`CRAS_UT_TMPDIR=\"/tmp\"`,
 				`CRAS_SOCKET_FILE_DIR=\"/run/cras\"`,
+				`CRAS_CONFIG_FILE_DIR=\"/etc\"`,
 			}),
 			"linkopts": stringLiterals([]string{
 				"-Wl,--gc-sections",

@@ -46,6 +46,16 @@ config_setting(
     flag_values = {":selinux": "true"},
 )
 
+bool_flag(
+    name = "system_cras_rust",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "system_cras_rust_build",
+    flag_values = {":system_cras_rust": "true"},
+)
+
 config_setting(
     name = "x86_64_build",
     constraint_values = [

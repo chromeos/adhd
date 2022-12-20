@@ -1,0 +1,50 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@rules_rust//rust:defs.bzl", "rust_static_library", "rust_test")
+
+cc_library(
+    name = "rust",
+    linkopts = select({
+        "//:system_cras_rust_build": ["-lcras_rust"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+    deps = select({
+        "//:system_cras_rust_build": [":headers"],
+        "//conditions:default": [
+            ":headers",
+            ":lib",
+        ],
+    }),
+)
+
+cc_library(
+    name = "headers",
+    hdrs = glob(include = ["include/*.h"]),
+    includes = ["include"],
+    visibility = ["//visibility:public"],
+)
+
+# Figure out if we can build without static
+rust_static_library(
+    name = "lib",
+    srcs = glob(include = ["src/*.rs"]),
+    target_compatible_with = select({
+        "//:system_cras_rust_build": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    deps = [
+        "@crate_index//:libc",
+    ],
+)
+
+rust_test(
+    name = "test",
+    crate = ":lib",
+    target_compatible_with = select({
+        "//:system_cras_rust_build": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+)

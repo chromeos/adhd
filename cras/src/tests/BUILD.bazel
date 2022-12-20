@@ -7,6 +7,7 @@ cc_library(
     defines = [
         "CRAS_UT_TMPDIR=\\\"/tmp\\\"",
         "CRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
+        "CRAS_CONFIG_FILE_DIR=\\\"/etc\\\"",
     ],
     linkopts = [
         "-Wl,--gc-sections",
@@ -254,6 +255,34 @@ cc_test(
         ":test_support",
         "//src/common:all_headers",
         "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "audio_thread_unittest",
+    srcs = [
+        ":audio_thread_unittest.cc",
+        ":empty_audio_stub.cc",
+        ":metrics_stub.cc",
+        ":metrics_stub.h",
+        "//src/common:cras_selinux_helper_stub.c",
+        "//src/common:cras_shm.c",
+        "//src/common:cras_string.c",
+        "//src/server:dev_io.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server/rust:headers",
         "@iniparser",
         "@pkg_config//:alsa",
         "@pkg_config//:gtest",
@@ -559,6 +588,28 @@ cc_test(
 )
 
 cc_test(
+    name = "cras_sr_bt_util_unittest",
+    srcs = [
+        ":cras_sr_bt_util_unittest.cc",
+        "//src/server:cras_sr_bt_util.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server/rust:headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "cras_tm_unittest",
     srcs = [
         ":cras_tm_unittest.cc",
@@ -593,6 +644,37 @@ cc_test(
         "@pkg_config//:dbus-1",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "dev_io_unittest",
+    srcs = [
+        ":dev_io_stubs.cc",
+        ":dev_io_stubs.h",
+        ":dev_io_unittest.cc",
+        ":empty_audio_stub.cc",
+        ":iodev_stub.cc",
+        ":iodev_stub.h",
+        ":metrics_stub.cc",
+        ":metrics_stub.h",
+        ":rstream_stub.cc",
+        ":rstream_stub.h",
+        "//src/common:cras_audio_format.c",
+        "//src/server:dev_io.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server:cras_mix",
+        "//src/server/config:all_headers",
+        "//src/server/rust:headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+        "@pkg_config//:speexdsp",
     ],
 )
 
@@ -829,6 +911,23 @@ cc_test(
         ":test_support",
         "//src/common:all_headers",
         "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "feature_tier_unittest",
+    srcs = [
+        ":feature_tier_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server/rust",
+        "//src/server/rust:headers",
         "@pkg_config//:alsa",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
@@ -1087,6 +1186,30 @@ cc_test(
 )
 
 cc_test(
+    name = "iodev_unittest",
+    srcs = [
+        ":iodev_unittest.cc",
+        "//src/common:cras_selinux_helper_stub.c",
+        "//src/common:cras_shm.c",
+        "//src/common:cras_string.c",
+        "//src/server:cras_iodev.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server/rust:headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+    ],
+)
+
+cc_test(
     name = "linear_resampler_unittest",
     srcs = [
         ":linear_resampler_unittest.cc",
@@ -1213,6 +1336,23 @@ cc_test(
         "//src/common:all_headers",
         "//src/server:all_headers",
         "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "rate_estimator_unittest",
+    srcs = [
+        ":rate_estimator_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server/rust",
+        "//src/server/rust:headers",
         "@pkg_config//:alsa",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
@@ -1371,6 +1511,71 @@ cc_test(
         "@pkg_config//:alsa",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "system_state_unittest",
+    srcs = [
+        ":system_state_unittest.cc",
+        "//src/common:cras_shm.c",
+        "//src/common:cras_string.c",
+        "//src/server:cras_system_state.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server/config:all_headers",
+        "//src/server/rust:headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "timing_unittest",
+    srcs = [
+        ":dev_io_stubs.cc",
+        ":dev_io_stubs.h",
+        ":empty_audio_stub.cc",
+        ":iodev_stub.cc",
+        ":iodev_stub.h",
+        ":metrics_stub.cc",
+        ":metrics_stub.h",
+        ":rstream_stub.cc",
+        ":rstream_stub.h",
+        ":timing_unittest.cc",
+        "//src/common:cras_audio_format.c",
+        "//src/common:cras_shm.c",
+        "//src/server:cras_audio_area.c",
+        "//src/server:cras_fmt_conv.c",
+        "//src/server:cras_fmt_conv_ops.c",
+        "//src/server:dev_io.c",
+        "//src/server:dev_stream.c",
+        "//src/server:linear_resampler.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server:cras_mix",
+        "//src/server/config:all_headers",
+        "//src/server/rust:headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:speexdsp",
     ],
 )
 
