@@ -71,6 +71,10 @@ var needsSectionsHack = map[string]bool{
 	"cras_client_unittest":    true,
 	"floop_iodev_unittest":    true,
 	"sr_bt_adapters_unittest": true,
+	"bt_policy_unittest":      true,
+	"bt_device_unittest":      true,
+	"bt_io_unittest":          true,
+	"hfp_manager_unittest":    true,
 }
 
 var brokenTests = map[string]bool{}
@@ -81,6 +85,7 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 	}
 	var bazelSrcs list
 	var wantIniparser bool
+	var wantDbus bool
 	for _, inc := range includeDirs {
 		switch inc {
 		case "src":
@@ -101,23 +106,34 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 			// Do nothing
 		case "iniparser":
 			wantIniparser = true
+		case "dbus-1":
+			wantDbus = true
 		default:
 			log.Panic(lib)
 		}
 	}
 	for _, hdr := range headers {
-		if path.Base(hdr) == "iniparser.h" {
+		switch path.Base(hdr) {
+		case "iniparser.h":
 			wantIniparser = true
+		case "dbus.h":
+			wantDbus = true
 		}
 	}
 	if wantIniparser {
 		deps = append(deps, stringLiteral("@iniparser"))
+	}
+	if wantDbus {
+		deps = append(deps, stringLiteral("@pkg_config//:dbus-1"))
 	}
 	for _, src := range srcs {
 		if path.Dir(src) == "src/tests" {
 			bazelSrcs = append(bazelSrcs, stringLiteral(":"+path.Base(src)))
 		} else {
 			bazelSrcs = append(bazelSrcs, stringLiteral(bazelFile(src)))
+			if src == "src/server/cras_dbus_control.c" {
+				bazelSrcs = append(bazelSrcs, stringLiteral("//src/common:cras_dbus_bindings.h"))
+			}
 		}
 	}
 

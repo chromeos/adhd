@@ -36,6 +36,43 @@ cc_test(
 )
 
 cc_test(
+    name = "a2dp_iodev_unittest",
+    srcs = [
+        ":a2dp_iodev_unittest.cc",
+        "//src/common:strlcpy.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "a2dp_manager_unittest",
+    srcs = [
+        ":a2dp_manager_unittest.cc",
+        ":test_util.h",
+        "//src/server:cras_a2dp_manager.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "alert_unittest",
     srcs = [
         ":alert_unittest.cc",
@@ -242,6 +279,94 @@ cc_test(
 )
 
 cc_test(
+    name = "bt_device_unittest",
+    srcs = [
+        ":bt_device_unittest.cc",
+        ":metrics_stub.cc",
+        "//src/common:sfh.c",
+        "//src/server:cras_bt_device.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "bt_io_unittest",
+    srcs = [
+        ":bt_io_unittest.cc",
+        "//src/common:sfh.c",
+        "//src/common:strlcpy.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "bt_manager_unittest",
+    srcs = [
+        ":bt_manager_unittest.cc",
+        "//src/common:cras_string.c",
+        "//src/server:cras_bt_log.c",
+        "//src/server:cras_bt_manager.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "bt_policy_unittest",
+    srcs = [
+        ":bt_policy_unittest.cc",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "buffer_share_unittest",
     srcs = [
         ":buffer_share_unittest.cc",
@@ -323,6 +448,25 @@ cc_test(
 )
 
 cc_test(
+    name = "control_rclient_unittest",
+    srcs = [
+        ":control_rclient_unittest.cc",
+        "//src/common:cras_string.c",
+        "//src/server:cras_rstream_config.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "cras_abi_unittest",
     srcs = [
         ":cras_abi_unittest.cc",
@@ -370,6 +514,51 @@ cc_test(
 )
 
 cc_test(
+    name = "cras_rtc_unittest",
+    srcs = [
+        ":cras_rtc_unittest.cc",
+        "//src/common:cras_string.c",
+        "//src/server:cras_rtc.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cras_sco_unittest",
+    srcs = [
+        ":cras_sco_unittest.cc",
+        ":metrics_stub.cc",
+        ":sbc_codec_stub.cc",
+        ":sbc_codec_stub.h",
+        ":sr_bt_util_stub.cc",
+        ":sr_bt_util_stub.h",
+        ":sr_stub.cc",
+        ":sr_stub.h",
+        "//src/common:cras_string.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/plc:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "cras_tm_unittest",
     srcs = [
         ":cras_tm_unittest.cc",
@@ -380,6 +569,28 @@ cc_test(
         "//src/common:all_headers",
         "//src/server:all_headers",
         "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "dbus_control_unittest",
+    srcs = [
+        ":dbus_control_unittest.cc",
+        ":dbus_test.cc",
+        ":dbus_test.h",
+        "//src/common:cras_dbus_bindings.h",
+        "//src/server:cras_dbus_control.c",
+        "//src/server:cras_dbus_util.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
     ],
@@ -731,6 +942,114 @@ cc_test(
 )
 
 cc_test(
+    name = "hfp_ag_profile_unittest",
+    srcs = [
+        ":hfp_ag_profile_unittest.cc",
+        ":metrics_stub.cc",
+        "//src/common:sfh.c",
+        "//src/server:cras_featured_stub.c",
+        "//src/server:cras_hfp_ag_profile.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hfp_alsa_iodev_unittest",
+    srcs = [
+        ":hfp_alsa_iodev_unittest.cc",
+        ":sr_bt_util_stub.cc",
+        ":sr_bt_util_stub.h",
+        ":sr_stub.cc",
+        ":sr_stub.h",
+        "//src/common:strlcpy.c",
+        "//src/server:cras_hfp_alsa_iodev.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hfp_iodev_unittest",
+    srcs = [
+        ":hfp_iodev_unittest.cc",
+        ":sr_bt_util_stub.cc",
+        ":sr_bt_util_stub.h",
+        "//src/common:strlcpy.c",
+        "//src/server:cras_hfp_iodev.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hfp_manager_unittest",
+    srcs = [
+        ":hfp_manager_unittest.cc",
+        "//src/server:cras_featured_stub.c",
+        "//src/server:cras_hfp_manager.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hfp_slc_unittest",
+    srcs = [
+        ":hfp_slc_unittest.cc",
+        ":metrics_stub.cc",
+        "//src/common:cras_string.c",
+        "//src/server:cras_hfp_slc.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "input_data_unittest",
     srcs = [
         ":input_data_unittest.cc",
@@ -1034,6 +1353,23 @@ cc_test(
         ":test_support",
         "//src/common:all_headers",
         "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "utf8_unittest",
+    srcs = [
+        ":utf8_unittest.cc",
+        "//src/server:cras_utf8.c",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:alsa",
+        "@pkg_config//:dbus-1",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
     ],

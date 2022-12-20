@@ -135,6 +135,22 @@ cc_library(
     ],
 )
 
+genrule(
+    name = "cras_dbus_bindings_h",
+    srcs = [
+        "//dbus_bindings:xml",
+    ],
+    outs = [
+        "cras_dbus_bindings.h",
+    ],
+    cmd = "$(location //tools:generate_dbus_bindings_h) " +
+          "$(locations //dbus_bindings:xml) > $@",
+    tools = ["//tools:generate_dbus_bindings_h"],
+    visibility = [
+        "//src/tests:__pkg__",
+    ],
+)
+
 # Allow tests to not specify all headers.
 cc_library(
     name = "all_headers",

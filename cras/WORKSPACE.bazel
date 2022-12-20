@@ -69,5 +69,6 @@ pkg_config_repository(
         "gtest_main",
         "alsa",
         "speexdsp",
+        "dbus-1",
     ],
 )

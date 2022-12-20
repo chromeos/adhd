@@ -146,9 +146,6 @@ func (p *profile) analyzeBuild(link *compilation) [2]string {
 	defines = slices.Compact(defines)
 
 	for _, hdr := range headers {
-		if path.Base(hdr) == "dbus.h" {
-			unsupported = errors.New("dbus.h")
-		}
 		if path.Dir(hdr) == "src/tests" {
 			sources = append(sources, hdr)
 		}
