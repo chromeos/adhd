@@ -10,8 +10,8 @@ cc_library(
     hdrs = [
         "cras_config.h",
     ],
-    copts = [
-        "-DCRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
+    defines = [
+        "CRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
     ],
     visibility = [
         "//src/libcras:__pkg__",
@@ -148,6 +148,53 @@ genrule(
     tools = ["//tools:generate_dbus_bindings_h"],
     visibility = [
         "//src/tests:__pkg__",
+    ],
+)
+
+cc_library(
+    name = "common",
+    srcs = [
+        "array.h",
+        "byte_buffer.h",
+        "cras_checksum.c",
+        "cras_hats.c",
+        "cras_messages.h",
+        "cras_metrics.c",
+        "cras_observer_ops.h",
+        "cras_sbc_codec.c",
+        "cras_sbc_codec.h",
+        "dumper.c",
+        "edid_utils.c",
+        "edid_utils.h",
+        "packet_status_logger.c",
+        "sample_buffer.h",
+        "sfh.c",
+    ],
+    hdrs = [
+        "a2dp-codecs.h",
+        "bluetooth.h",
+        "cras_audio_codec.h",
+        "cras_checksum.h",
+        "cras_dbus_bindings.h",
+        "cras_hats.h",
+        "cras_metrics.h",
+        "dumper.h",
+        "rtp.h",
+        "sfh.h",
+    ],
+    includes = ["."],
+    visibility = [
+        "//src:__subpackages__",
+    ],
+    deps = [
+        ":cras_config",
+        ":cras_file_wait",
+        ":cras_shm",
+        ":cras_string",
+        ":cras_types",
+        ":cras_util",
+        ":utlist",
+        "@pkg_config//:sbc",
     ],
 )
 

@@ -19,6 +19,42 @@ cc_library(
 )
 
 cc_library(
+    name = "dsp",
+    srcs = [
+        "biquad.c",
+        "crossover.c",
+        "crossover2.c",
+        "dcblock.c",
+        "drc_kernel.c",
+        "eq.c",
+        "eq2.c",
+        "quad_rotation.c",
+    ],
+    hdrs = [
+        "crossover.h",
+        "dcblock.h",
+        "eq.h",
+        "quad_rotation.h",
+    ],
+    includes = ["."],
+    visibility = ["//src/server:__pkg__"],
+    deps = [
+        ":drc",
+        ":drc_math",
+        ":dsp_util",
+        "//src/common",
+        "//src/server:dsp_types",
+    ],
+)
+
+cc_library(
+    name = "eq",
+    srcs = ["eq.c"],
+    hdrs = ["eq.h"],
+    deps = [":biquad"],
+)
+
+cc_library(
     name = "eq2",
     srcs = ["eq2.c"],
     hdrs = ["eq2.h"],

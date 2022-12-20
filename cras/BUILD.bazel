@@ -47,6 +47,26 @@ config_setting(
 )
 
 bool_flag(
+    name = "metrics",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "metrics_build",
+    flag_values = {":metrics": "true"},
+)
+
+bool_flag(
+    name = "hats",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "hats_build",
+    flag_values = {":hats": "true"},
+)
+
+bool_flag(
     name = "system_cras_rust",
     build_setting_default = False,
 )
@@ -70,5 +90,7 @@ cc_library(
             "CRAS_DBUS=1",
             "HAVE_FUZZER=0",
         ] + define_feature("//:selinux_build", "CRAS_SELINUX") +
-        define_feature("//:apm_build", "HAVE_WEBRTC_APM"),
+        define_feature("//:apm_build", "HAVE_WEBRTC_APM") +
+        define_feature("//:metrics_build", "HAVE_LIB_METRICS") +
+        define_feature("//:hats_build", "HAVE_HATS"),
 )
