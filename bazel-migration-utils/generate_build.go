@@ -97,6 +97,14 @@ func (p *profile) handle(e Execution) {
 	}
 }
 
+var archiveMap = map[string]string{
+	"./.libs/libcrasmix_fma.a":   "//src/server:cras_mix",
+	"./.libs/libcrasmix_avx2.a":  "//src/server:cras_mix",
+	"./.libs/libcrasmix_avx.a":   "//src/server:cras_mix",
+	"./.libs/libcrasmix_sse42.a": "//src/server:cras_mix",
+	"./.libs/libcrasmix.a":       "//src/server:cras_mix",
+}
+
 func (p *profile) analyzeBuild(link *compilation) [2]string {
 	var nothing = [2]string{"", ""}
 
@@ -109,13 +117,18 @@ func (p *profile) analyzeBuild(link *compilation) [2]string {
 	var includeDirs []string
 	var headers []string
 	var defines []string
+	var dependencies []string
 	var unsupported error
 
 	// Find the .c/.cc source for the .o objects
 	for _, input := range link.inputs {
 		if strings.HasSuffix(input, ".a") {
-			// TODO: handle library archives
-			unsupported = errors.New(input)
+			if dep, ok := archiveMap[input]; !ok {
+				unsupported = errors.New(input)
+			} else {
+				dependencies = append(dependencies, dep)
+			}
+
 			continue
 		}
 		comp, ok := p.compilations[input]
@@ -144,6 +157,8 @@ func (p *profile) analyzeBuild(link *compilation) [2]string {
 	headers = slices.Compact(headers)
 	slices.Sort(defines)
 	defines = slices.Compact(defines)
+	slices.Sort(dependencies)
+	dependencies = slices.Compact(dependencies)
 
 	for _, hdr := range headers {
 		if path.Dir(hdr) == "src/tests" {
@@ -156,13 +171,13 @@ func (p *profile) analyzeBuild(link *compilation) [2]string {
 		return nothing
 	}
 
-	// fmt.Println(link.output, append(sources, slices.Compact(headers)...))
+	// log.Println(link.output, sources, dependencies)
 
 	if slices.Contains(includeDirs, "src/server/rust/include") {
 		return nothing
 	}
 
-	return [2]string{link.output, ccTestRule(link.output, sources, includeDirs, link.libraries, link.linkArgs, defines, headers)}
+	return [2]string{link.output, ccTestRule(link.output, sources, includeDirs, link.libraries, link.linkArgs, defines, headers, dependencies)}
 }
 
 func main() {

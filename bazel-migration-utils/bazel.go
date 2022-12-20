@@ -79,10 +79,11 @@ var needsSectionsHack = map[string]bool{
 
 var brokenTests = map[string]bool{}
 
-func ccTestRule(name string, srcs []string, includeDirs []string, libs []string, linkFlags []string, defines []string, headers []string) string {
+func ccTestRule(name string, srcs []string, includeDirs []string, libs []string, linkFlags []string, defines []string, headers []string, dependencies []string) string {
 	deps := list{
 		stringLiteral(":test_support"),
 	}
+	deps = append(deps, stringLiterals(dependencies)...)
 	var bazelSrcs list
 	var wantIniparser bool
 	var wantDbus bool
@@ -130,6 +131,10 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 		if path.Dir(src) == "src/tests" {
 			bazelSrcs = append(bazelSrcs, stringLiteral(":"+path.Base(src)))
 		} else {
+			if src == "src/server/cras_mix.c" || src == "src/server/cras_mix_ops.c" {
+				// Should not be referenced directly
+				continue
+			}
 			bazelSrcs = append(bazelSrcs, stringLiteral(bazelFile(src)))
 			if src == "src/server/cras_dbus_control.c" {
 				bazelSrcs = append(bazelSrcs, stringLiteral("//src/common:cras_dbus_bindings.h"))

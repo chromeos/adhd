@@ -151,7 +151,12 @@ cc_library(
     testonly = True,
     hdrs = glob(include = ["*.h"]),
     includes = ["."],
-    textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
+    textual_hdrs = glob(
+        # Allow including sources
+        include = ["*.c"],
+        # Disallow using cras_mix sources directly, should use the :cras_mix cc_library
+        exclude = ["cras_mix*.c"],
+    ),
     visibility = [
         "//src/tests:__pkg__",
     ],
@@ -159,9 +164,11 @@ cc_library(
 
 # Allow tests to use sources directly
 exports_files(
-    glob(include = [
-        "*.c",
-    ]),
+    glob(
+        include = ["*.c"],
+        # Disallow using cras_mix sources directly, should use the :cras_mix cc_library
+        exclude = ["cras_mix*.c"],
+    ),
     visibility = [
         "//src/tests:__pkg__",
     ],

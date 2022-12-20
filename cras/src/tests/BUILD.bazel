@@ -1140,6 +1140,22 @@ cc_test(
 )
 
 cc_test(
+    name = "mix_unittest",
+    srcs = [
+        ":mix_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/server:all_headers",
+        "//src/server:cras_mix",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "observer_unittest",
     srcs = [
         ":observer_unittest.cc",
