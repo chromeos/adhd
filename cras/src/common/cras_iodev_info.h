@@ -37,6 +37,22 @@ enum CRAS_IODEV_LAST_OPEN_RESULT {
 	FAILURE,
 };
 
+/* Abbreviated open result for display in cras_test_client */
+static inline const char *cras_iodev_last_open_result_abb_str(
+	enum CRAS_IODEV_LAST_OPEN_RESULT last_open_result)
+{
+	switch (last_open_result) {
+	case UNKNOWN:
+		return "UNK";
+	case SUCCESS:
+		return "OK";
+	case FAILURE:
+		return "FAIL";
+	default:
+		return "ERR";
+	}
+}
+
 /* Identifying information about an IO device.
  *    idx - iodev index.
  *    name - Name displayed to the user.

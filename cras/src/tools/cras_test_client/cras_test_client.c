@@ -503,10 +503,13 @@ static void print_dev_info(const struct cras_iodev_info *devs, int num_devs)
 {
 	unsigned i;
 
-	printf("\tID\tMaxCha\tName\n");
+	printf("\tID\tMaxCha\tLastOpen\tName\n");
 	for (i = 0; i < num_devs; i++)
-		printf("\t%u\t%u\t%s\n", devs[i].idx,
-		       devs[i].max_supported_channels, devs[i].name);
+		printf("\t%u\t%u\t%s\t\t%s\n", devs[i].idx,
+		       devs[i].max_supported_channels,
+		       cras_iodev_last_open_result_abb_str(
+			       devs[i].last_open_result),
+		       devs[i].name);
 }
 
 static void print_node_info(struct cras_client *client,
