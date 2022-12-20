@@ -66,22 +66,21 @@ func stringLiterals(l []string) list {
 	return result
 }
 
-func needsSectionsHack(name string) bool {
-	switch name {
-	case "ewma_power_unittest", "cras_client_unittest":
-		return true
-	default:
-		return false
-	}
+var needsSectionsHack = map[string]bool{
+	"ewma_power_unittest":     true,
+	"cras_client_unittest":    true,
+	"floop_iodev_unittest":    true,
+	"sr_bt_adapters_unittest": true,
 }
 
 var brokenTests = map[string]bool{}
 
-func ccTestRule(name string, srcs []string, includeDirs []string, libs []string, linkFlags []string, defines []string) string {
+func ccTestRule(name string, srcs []string, includeDirs []string, libs []string, linkFlags []string, defines []string, headers []string) string {
 	deps := list{
 		stringLiteral(":test_support"),
 	}
 	var bazelSrcs list
+	var wantIniparser bool
 	for _, inc := range includeDirs {
 		switch inc {
 		case "src":
@@ -101,10 +100,18 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 		case "pthread", "m", "rt":
 			// Do nothing
 		case "iniparser":
-			// This should be superfluous
+			wantIniparser = true
 		default:
 			log.Panic(lib)
 		}
+	}
+	for _, hdr := range headers {
+		if path.Base(hdr) == "iniparser.h" {
+			wantIniparser = true
+		}
+	}
+	if wantIniparser {
+		deps = append(deps, stringLiteral("@iniparser"))
 	}
 	for _, src := range srcs {
 		if path.Dir(src) == "src/tests" {
@@ -112,6 +119,12 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 		} else {
 			bazelSrcs = append(bazelSrcs, stringLiteral(bazelFile(src)))
 		}
+	}
+
+	// More hacks
+	switch name {
+	case "dsp_unittest":
+		deps = append(deps, stringLiteral("//src/dsp/tests:all_headers"))
 	}
 
 	rule := call{
@@ -123,7 +136,7 @@ func ccTestRule(name string, srcs []string, includeDirs []string, libs []string,
 			// "linkopts": stringLiterals(linkFlags),
 		},
 	}
-	if needsSectionsHack(name) {
+	if needsSectionsHack[name] {
 		rule.args["copts"] = stringLiterals([]string{"-fdata-sections", "-ffunction-sections"})
 	}
 	if brokenTests[name] {

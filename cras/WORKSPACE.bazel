@@ -37,6 +37,15 @@ load(
 )
 
 # pkg_config libraries
+http_archive(
+    name = "iniparser",
+    build_file = "BUILD.iniparser",
+    sha256 = "aedf23881b834519aea5e861b2400606d211da049cd59d3cfb4568e0d9eff5c5",
+    strip_prefix = "iniparser/src",
+    urls = ["http://ndevilla.free.fr/iniparser/iniparser-3.1.tar.gz"],
+)
+
+# optional pkg_config libraries
 pkg_config_repository(
     name = "libcros_config",
     libs = ["libcros_config"],

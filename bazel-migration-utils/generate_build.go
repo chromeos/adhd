@@ -146,8 +146,8 @@ func (p *profile) analyzeBuild(link *compilation) [2]string {
 	defines = slices.Compact(defines)
 
 	for _, hdr := range headers {
-		if path.Base(hdr) == "iniparser.h" {
-			unsupported = errors.New("iniparser.h")
+		if path.Base(hdr) == "dbus.h" {
+			unsupported = errors.New("dbus.h")
 		}
 		if path.Dir(hdr) == "src/tests" {
 			sources = append(sources, hdr)
@@ -165,7 +165,7 @@ func (p *profile) analyzeBuild(link *compilation) [2]string {
 		return nothing
 	}
 
-	return [2]string{link.output, ccTestRule(link.output, sources, includeDirs, link.libraries, link.linkArgs, defines)}
+	return [2]string{link.output, ccTestRule(link.output, sources, includeDirs, link.libraries, link.linkArgs, defines, headers)}
 }
 
 func main() {

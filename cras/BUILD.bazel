@@ -59,5 +59,6 @@ cc_library(
         [
             "CRAS_DBUS=0",
             "HAVE_FUZZER=0",
-        ] + define_feature("//:selinux_build", "CRAS_SELINUX"),
+        ] + define_feature("//:selinux_build", "CRAS_SELINUX") +
+        define_feature("//:apm_build", "HAVE_WEBRTC_APM"),
 )
