@@ -315,9 +315,14 @@ static void reverse_data_run(struct ext_dsp_module *ext, unsigned int nframes)
 		writable = float_buffer_writable(rmod->fbuf);
 		writable = MIN(nframes, writable);
 		wp = float_buffer_write_pointer(rmod->fbuf);
-		for (i = 0; i < rmod->fbuf->num_channels; i++)
+
+		/* Discard higher channels beyond the limit. */
+		unsigned int channels =
+			MIN(rmod->fbuf->num_channels, MAX_EXT_DSP_PORTS);
+		for (i = 0; i < channels; i++) {
 			memcpy(wp[i], ext->ports[i] + offset,
 			       writable * sizeof(float));
+		}
 
 		offset += writable;
 		float_buffer_written(rmod->fbuf, writable);

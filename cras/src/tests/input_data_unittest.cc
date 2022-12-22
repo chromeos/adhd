@@ -117,6 +117,41 @@ TEST(InputData, Gains) {
   input_data_destroy(&data);
 }
 
+TEST(InputData, RunWithChannelsExceedingLimit) {
+  struct cras_iodev* idev = reinterpret_cast<struct cras_iodev*>(0x123);
+
+  struct input_data* data = input_data_create(idev);
+
+  const int nframes = 8192;
+  const int claimed_channels = MAX_EXT_DSP_PORTS * 2;
+
+  data->ext.configure(&data->ext, nframes, claimed_channels, 48000);
+
+  for (int c = 0; c < MAX_EXT_DSP_PORTS; ++c) {
+    data->ext.ports[c] = (float*)calloc(nframes, sizeof(float));
+    for (int f = 0; f < nframes; ++f) {
+      int x = c * nframes + f;
+      *(data->ext.ports[c] + f) = *reinterpret_cast<float*>(&x);
+    }
+  }
+
+  data->ext.run(&data->ext, nframes);
+
+  unsigned int readable = nframes;
+  float* const* buff = float_buffer_read_pointer(data->fbuffer, 0, &readable);
+  ASSERT_EQ(readable, nframes);
+
+  for (int c = 0; c < MAX_EXT_DSP_PORTS; ++c) {
+    ASSERT_EQ(memcmp(data->ext.ports[c], buff[c], nframes), 0);
+  }
+
+  for (int c = 0; c < MAX_EXT_DSP_PORTS; ++c) {
+    free(data->ext.ports[c]);
+  }
+
+  input_data_destroy(&data);
+}
+
 extern "C" {
 struct cras_apm* cras_stream_apm_get_active(struct cras_stream_apm* stream,
                                             const struct cras_iodev* idev) {

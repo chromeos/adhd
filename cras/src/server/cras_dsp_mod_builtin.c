@@ -816,6 +816,12 @@ static void sink_deinstantiate(struct dsp_module *module)
 static void sink_connect_port(struct dsp_module *module, unsigned long port,
 			      float *data_location)
 {
+	if (port >= MAX_EXT_DSP_PORTS) {
+		syslog(LOG_ERR, "Sink connecting port out of range: %lu.",
+		       port);
+		return;
+	}
+
 	struct sink_data *data = module->data;
 	data->ports[port] = data_location;
 }

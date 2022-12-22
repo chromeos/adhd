@@ -387,6 +387,28 @@ TEST_F(EchoRefTestSuite, SetAecRefThenRemoveDev) {
   EXPECT_EQ((void*)NULL, ext_dsp_module_value[1]);
 }
 
+TEST_F(EchoRefTestSuite, ApmProcessReverseDataWithChannelsExceedingLimit) {
+  const int nframes = 500;
+  const int claimed_channels = MAX_EXT_DSP_PORTS * 2;
+
+  default_ext_->configure(default_ext_, nframes, claimed_channels, 48000);
+
+  for (int c = 0; c < MAX_EXT_DSP_PORTS; ++c) {
+    default_ext_->ports[c] = (float*)calloc(nframes, sizeof(float));
+  }
+
+  default_process_reverse_needed_ret = 1;
+  cras_apm_reverse_state_update();
+
+  default_ext_->run(default_ext_, nframes);
+
+  for (int c = 0; c < MAX_EXT_DSP_PORTS; ++c) {
+    free(default_ext_->ports[c]);
+  }
+
+  EXPECT_EQ(1, process_reverse_mock_called);
+}
+
 extern "C" {
 int cras_iodev_list_set_device_enabled_callback(
     device_enabled_callback_t enabled_cb,
@@ -409,8 +431,8 @@ bool cras_iodev_is_tuned_aec_use_case(const struct cras_ionode* node) {
   return cras_iodev_is_tuned_aec_use_case_ret;
 }
 
-int cras_system_get_hw_echo_ref_disabled() {
-  return 0;
+bool cras_system_get_hw_echo_ref_disabled() {
+  return false;
 }
 }  // extern "C"
 }  // namespace

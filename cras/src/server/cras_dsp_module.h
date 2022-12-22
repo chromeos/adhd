@@ -12,6 +12,7 @@ extern "C" {
 
 #include "cras_dsp_ini.h"
 
+/* TODO: Study feasibility of increasing this limit. */
 #define MAX_EXT_DSP_PORTS 8
 
 /* Holds the functions we can use on a dsp module. */

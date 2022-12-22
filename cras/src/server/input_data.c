@@ -32,9 +32,14 @@ void input_data_run(struct ext_dsp_module *ext, unsigned int nframes)
 			break;
 		}
 		wp = float_buffer_write_pointer(data->fbuffer);
-		for (i = 0; i < data->fbuffer->num_channels; i++)
+
+		/* Discard higher channels beyond the limit. */
+		unsigned int channels =
+			MIN(data->fbuffer->num_channels, MAX_EXT_DSP_PORTS);
+		for (i = 0; i < channels; i++) {
 			memcpy(wp[i], ext->ports[i] + offset,
 			       writable * sizeof(float));
+		}
 
 		float_buffer_written(data->fbuffer, writable);
 		nframes -= writable;
