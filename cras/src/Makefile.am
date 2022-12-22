@@ -47,6 +47,11 @@ COMMON_CPPFLAGS += -ffunction-sections -fdata-sections
 # b/201531268: LFS support
 COMMON_CPPFLAGS += \
 	-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+
+if HAVE_FUZZER
+COMMON_CPPFLAGS += -Wno-unused-function
+endif
+
 COMMON_SIMD_CPPFLAGS = -O3 -Wall -Werror -Wno-error=cpp
 
 bin_PROGRAMS = cras cras_test_client cras_monitor cras_router
