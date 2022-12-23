@@ -1981,7 +1981,7 @@ static int set_node_capture_gain(struct cras_iodev *iodev,
 
 	if (iodev->set_capture_gain)
 		iodev->set_capture_gain(iodev);
-	cras_iodev_list_notify_node_capture_gain(node);
+	cras_iodev_list_notify_node_capture_gain(node, value);
 	MAINLOG(main_log, MAIN_THREAD_INPUT_NODE_GAIN, iodev->info.idx, value,
 		0);
 	return 0;
@@ -2087,11 +2087,12 @@ void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node)
 						     node->left_right_swapped);
 }
 
-void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node)
+void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node,
+					      int gain)
 {
 	cras_node_id_t id = cras_make_node_id(node->dev->info.idx, node->idx);
 	cras_iodev_list_update_device_list();
-	cras_observer_notify_input_node_gain(id, node->capture_gain);
+	cras_observer_notify_input_node_gain(id, gain);
 }
 
 void cras_iodev_list_add_test_dev(enum TEST_IODEV_TYPE type)

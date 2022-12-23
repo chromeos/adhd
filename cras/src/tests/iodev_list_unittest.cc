@@ -90,6 +90,7 @@ static size_t cras_observer_notify_active_node_called;
 static size_t cras_observer_notify_output_node_volume_called;
 static size_t cras_observer_notify_node_left_right_swapped_called;
 static size_t cras_observer_notify_input_node_gain_called;
+static int cras_observer_notify_input_node_gain_value;
 /* Do no reset cras_iodev_open_called unless it is certain that it is fine to
  * overwrite the format of previously opened iodev */
 static int cras_iodev_open_called;
@@ -241,6 +242,7 @@ class IoDevTestSuite : public testing::Test {
     cras_observer_notify_output_node_volume_called = 0;
     cras_observer_notify_node_left_right_swapped_called = 0;
     cras_observer_notify_input_node_gain_called = 0;
+    cras_observer_notify_input_node_gain_value = 0;
     cras_iodev_open_called = 0;
     memset(cras_iodev_open_ret, 0, sizeof(cras_iodev_open_ret));
     set_mute_called = 0;
@@ -1571,9 +1573,11 @@ TEST_F(IoDevTestSuite, VolumeGainCallback) {
   memset(&ionode, 0, sizeof(ionode));
   ionode.dev = &iodev;
   cras_iodev_list_notify_node_volume(&ionode);
-  cras_iodev_list_notify_node_capture_gain(&ionode);
+  int capture_gain = 50;
+  cras_iodev_list_notify_node_capture_gain(&ionode, capture_gain);
   EXPECT_EQ(cras_observer_notify_output_node_volume_called, 1);
   EXPECT_EQ(cras_observer_notify_input_node_gain_called, 1);
+  EXPECT_EQ(cras_observer_notify_input_node_gain_value, 50);
 }
 
 TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
@@ -3500,6 +3504,7 @@ void cras_observer_notify_node_left_right_swapped(cras_node_id_t node_id,
 void cras_observer_notify_input_node_gain(cras_node_id_t node_id,
                                           int32_t gain) {
   cras_observer_notify_input_node_gain_called++;
+  cras_observer_notify_input_node_gain_value = gain;
 }
 
 int audio_thread_dev_start_ramp(struct audio_thread* thread,

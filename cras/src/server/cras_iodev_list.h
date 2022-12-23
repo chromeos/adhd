@@ -213,8 +213,13 @@ int cras_iodev_list_node_selected(struct cras_ionode *node);
 /* Notify the current volume of the given node. */
 void cras_iodev_list_notify_node_volume(struct cras_ionode *node);
 
-/* Notify the current capture gain of the given node. */
-void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node);
+/* Notify the current capture gain of the given node.
+ * Args:
+ *    node - The ionode whose gain shall be notified.
+ *    gain - The gain of the ionode from [0, 100]
+ */
+void cras_iodev_list_notify_node_capture_gain(struct cras_ionode *node,
+					      int gain);
 
 /* Notify the current left right channel swapping state of the given node. */
 void cras_iodev_list_notify_node_left_right_swapped(struct cras_ionode *node);

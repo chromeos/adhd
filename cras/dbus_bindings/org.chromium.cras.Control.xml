@@ -487,9 +487,7 @@
         Indicates that the capture gain for the node is now.
       </tp:docstring>
       <arg name="node_id" type="t"></arg>
-      <arg name="gain" type="i">
-        <tp:docstring>gain expressed in dBFS*100</tp:docstring>
-      </arg>
+      <arg name="gain" type="i"></arg>
     </signal>
 
     <signal name="NodeLeftRightSwappedChanged">
