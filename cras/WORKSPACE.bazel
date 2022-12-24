@@ -37,14 +37,15 @@ http_archive(
 
 # pkg_config libraries
 pkg_config_repository(
-    name = "pkg_config",
-    libs = [
-        "libcros_config",
-        "libchrome",
-    ],
+    name = "libcros_config",
+    libs = ["libcros_config"],
 )
 
-# tensorflowlite
+pkg_config_repository(
+    name = "libchrome",
+    libs = ["libchrome"],
+)
+
 pkg_config_repository(
     name = "tensorflowlite",
     libs = ["tensorflowlite"],
