@@ -102,9 +102,9 @@ TEST_F(AudioThreadMonitorTestSuite, EventHandlerSevereUnderrun) {
   EXPECT_EQ(cras_observer_notify_severe_underrun_called, 1);
   EXPECT_EQ(cras_observer_notify_underrun_called, 0);
 
-  // every severe underrun event is reported
+  // the second severe underrun event should be rate limited
   handle_audio_thread_event_message((struct cras_main_message*)&msg, NULL);
-  EXPECT_EQ(cras_observer_notify_severe_underrun_called, 2);
+  EXPECT_EQ(cras_observer_notify_severe_underrun_called, 1);
   EXPECT_EQ(cras_observer_notify_underrun_called, 0);
 }
 

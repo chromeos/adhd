@@ -15,6 +15,7 @@
 
 #define MIN_WAIT_SECOND 30
 #define UNDERRUN_EVENT_RATE_LIMIT_SECONDS 10
+#define SEVERE_UNDERRUN_EVENT_RATE_LIMIT_SECONDS 5
 
 struct cras_audio_thread_event_message {
 	struct cras_main_message header;
@@ -94,6 +95,7 @@ int cras_audio_thread_event_dev_overrun()
 
 static struct timespec last_event_snapshot_time[AUDIO_THREAD_EVENT_TYPE_COUNT];
 static struct timespec last_underrun_time = { 0, 0 };
+static struct timespec last_severe_underrun_time = { 0, 0 };
 
 /*
  * Callback function for handling audio thread events in main thread:
@@ -104,10 +106,10 @@ static struct timespec last_underrun_time = { 0, 0 };
  * will be ignored by the handle function.
  *
  * Severe underrun:
- *   Send D-Bus notification SevereUnderrun
+ *   Send D-Bus notification SevereUnderrun, at a max rate of 1 per 5 seconds
  *
  * Underrun:
- *   Send D-Bus notification Underrun, at a max rate of 1 out of 10 seconds
+ *   Send D-Bus notification Underrun, at a max rate of 1 per 10 seconds
  */
 static void handle_audio_thread_event_message(struct cras_main_message *msg,
 					      void *arg)
@@ -142,7 +144,14 @@ static void handle_audio_thread_event_message(struct cras_main_message *msg,
 	 */
 	if (audio_thread_msg->event_type ==
 	    AUDIO_THREAD_EVENT_SEVERE_UNDERRUN) {
-		cras_observer_notify_severe_underrun();
+		subtract_timespecs(&now_time, &last_severe_underrun_time,
+				   &diff_time);
+		if (timespec_is_zero(&last_severe_underrun_time) ||
+		    diff_time.tv_sec >=
+			    SEVERE_UNDERRUN_EVENT_RATE_LIMIT_SECONDS) {
+			cras_observer_notify_severe_underrun();
+			last_severe_underrun_time = now_time;
+		}
 	} else if (audio_thread_msg->event_type ==
 		   AUDIO_THREAD_EVENT_UNDERRUN) {
 		subtract_timespecs(&now_time, &last_underrun_time, &diff_time);

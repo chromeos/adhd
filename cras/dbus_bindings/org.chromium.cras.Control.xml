@@ -522,7 +522,7 @@
     <signal name="SevereUnderrun">
       <tp:docstring>
         Indicates severe underrun.
-        Not rate limited.
+        Rate limited to 1 per 5 seconds.
       </tp:docstring>
     </signal>
 
