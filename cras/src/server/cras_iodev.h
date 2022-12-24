@@ -238,9 +238,9 @@ struct cras_ionode {
  *                    device. The difference with max_cb_level is it takes all
  *                    streams into account even if they have been removed.
  * num_underruns - Number of times we have run out of data (playback only).
- * last_reset - The timestamp of the last time we resetted the audio device.
- * num_reset - Number of reset done in this time window of
- *             MAX_IODEV_RESET_TIMEWINDOW_SEC seconds (Token bucket).
+ * last_reset_timeref - Timestamp of the last update to the reset quota.
+ * num_reset - Describes the used quota for resets in this time window of
+ *             MAX_IODEV_RESET_TIMEWINDOW_SEC seconds (token bucket).
  * buf_state - If multiple streams are writing to this device, then this
  *     keeps track of how much each stream has written.
  * idle_timeout - The timestamp when to close the dev after being idle.
@@ -334,8 +334,8 @@ struct cras_iodev {
 	unsigned int highest_hw_level;
 	unsigned int largest_cb_level;
 	unsigned int num_underruns;
-	struct timespec last_reset;
-	float num_reset;
+	struct timespec last_reset_timeref;
+	double num_reset;
 	struct buffer_share *buf_state;
 	struct timespec idle_timeout;
 	struct timespec open_ts;

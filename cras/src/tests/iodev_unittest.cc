@@ -32,6 +32,7 @@ static const float RAMP_MUTE_DURATION_SECS = 0.1;
 static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.1;
 
 static const unsigned MAX_IODEV_RESET_TRIES = 5;
+static const double IODEV_RESET_TIMEWINDOW_SECS = 5.0;
 
 static int cras_iodev_list_disable_dev_called;
 static int select_node_called;
@@ -121,6 +122,7 @@ static double rate_estimator_get_rate_ret;
 static int cras_audio_thread_event_dev_overrun_called;
 
 static char* atlog_name;
+static struct timespec time_now;
 
 // Iodev callback
 int update_channel_layout(struct cras_iodev* iodev) {
@@ -218,6 +220,8 @@ void ResetStubData() {
   ext_mod_configure_called = 0;
   rate_estimator_get_rate_ret = 0;
   cras_audio_thread_event_dev_overrun_called = 0;
+  time_now.tv_sec = 0;
+  time_now.tv_nsec = 0;
 }
 
 namespace {
@@ -2184,6 +2188,52 @@ TEST(IoDev, RequestReset) {
   EXPECT_EQ(MAX_IODEV_RESET_TRIES, device_monitor_reset_device_called);
 }
 
+TEST(IoDev, RequestResetUnderHighVolume) {
+  struct cras_iodev iodev;
+  memset(&iodev, 0, sizeof(iodev));
+
+  ResetStubData();
+
+  iodev.configure_dev = configure_dev;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.format = &audio_fmt;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  iodev_buffer_size = 1024;
+
+  /* Use up all quota as quickly as possible. */
+  for (int i = 0; i < MAX_IODEV_RESET_TRIES; ++i) {
+    cras_iodev_open(&iodev, 240, &audio_fmt);
+    EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
+    ASSERT_EQ(i + 1, device_monitor_reset_device_called);
+  }
+
+  const double regen_rate = MAX_IODEV_RESET_TRIES / IODEV_RESET_TIMEWINDOW_SECS;
+  const struct timespec one_ms = {.tv_sec = 0, .tv_nsec = 1000000};
+
+  /* Reject requests in [t0, t0 + NEXT_REGEN_MS). */
+  const int NEXT_REGEN_MS = ceil(regen_rate * 1000);
+
+  for (int ms = 0; ms < NEXT_REGEN_MS; ++ms) {
+    cras_iodev_open(&iodev, 240, &audio_fmt);
+    EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
+    ASSERT_EQ(MAX_IODEV_RESET_TRIES, device_monitor_reset_device_called);
+    add_timespecs(&time_now, &one_ms);
+  }
+
+  /* Accept the next request in t0 + NEXT_REGEN_MS. */
+  cras_iodev_open(&iodev, 240, &audio_fmt);
+  EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
+  ASSERT_EQ(MAX_IODEV_RESET_TRIES + 1, device_monitor_reset_device_called);
+
+  /* Reject the next immediate request. */
+  cras_iodev_open(&iodev, 240, &audio_fmt);
+  EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
+  ASSERT_EQ(MAX_IODEV_RESET_TRIES + 1, device_monitor_reset_device_called);
+}
+
 static int output_underrun(struct cras_iodev* iodev) {
   output_underrun_called++;
   return 0;
@@ -2912,6 +2962,10 @@ void ewma_power_calculate_area(struct ewma_power* ewma,
                                struct cras_audio_area* area,
                                unsigned int size){};
 
+int clock_gettime(clockid_t clk_id, struct timespec* tp) {
+  *tp = time_now;
+  return 0;
+}
 }  // extern "C"
 }  //  namespace
 
