@@ -79,3 +79,18 @@ suggested alternatives.
 *   `strcmp` -> `strncmp`
 *   `strcpy` `strncpy` -> `strlcpy`
 *   `strlen` -> `strnlen`
+
+## Build Time Feature Switches
+
+In the build system, `-DHAVE_COOL_FEATURE=1` when COOL_FEATURE is enabled,
+`-DHAVE_COOL_FEATURE=0` when it is disabled.
+
+In C code, use `#if HAVE_COOL_FEATURE` to conditionally compile code for
+COOL_FEATURE.
+
+Do not use `#ifdef` or `#ifndef` for feature control. `#ifdef` is error prone
+because it cannot let the compiler ensure feature flags are properly passed
+and cannot prevent typos.
+
+Exception: platform _detection_ (`#ifdef __ANDROID__`) and language _detection_
+(`#ifdef __cplusplus`) is allowed.
