@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 #include <dbus/dbus.h>
 #endif
 
@@ -163,7 +163,7 @@ error:
 	return ret;
 }
 
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 /* Use the DBus implementation if available to ensure that the UTF-8
  * sequences match those expected by the DBus implementation. */
 

@@ -54,14 +54,14 @@ TEST(InputData, GetForInputStream) {
   EXPECT_EQ(600, area->frames);
   EXPECT_EQ(600, offset);
 
-#ifdef HAVE_WEBRTC_APM
+#if HAVE_WEBRTC_APM
   EXPECT_EQ(0, cras_stream_apm_process_called);
   cras_stream_apm_get_active_ret = FAKE_CRAS_APM_PTR;
 #endif  // HAVE_WEBRTC_APM
 
   input_data_get_for_stream(data, &stream, offsets, 1.0f, &area, &offset);
 
-#ifdef HAVE_WEBRTC_APM
+#if HAVE_WEBRTC_APM
   // Assert APM process uses correct stream offset not the clipped one
   // used for audio area.
   EXPECT_EQ(1, cras_stream_apm_process_called);

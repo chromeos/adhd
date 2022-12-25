@@ -5,7 +5,7 @@
 
 #define _GNU_SOURCE /* Needed for Linux socket credential passing. */
 
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 #include <dbus/dbus.h>
 #endif
 #include <errno.h>
@@ -23,7 +23,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 #include "cras_bt_manager.h"
 #include "cras_dbus.h"
 #include "cras_dbus_control.h"
@@ -492,7 +492,7 @@ static void cleanup_server_sockets()
 int cras_server_run(unsigned int profile_disable_mask)
 {
 	static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 	DBusConnection *dbus_conn;
 #endif
 	int rc = 0;
@@ -529,7 +529,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 	if (cras_stream_apm_message_handler_init() < 0)
 		goto bail;
 
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 	if (!dbus_threads_init_default())
 		goto bail;
 	dbus_conn = cras_dbus_connect_system_bus();
@@ -637,7 +637,7 @@ int cras_server_run(unsigned int profile_disable_mask)
 
 		cleanup_select_fds(&server_instance);
 
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 		if (dbus_conn)
 			cras_dbus_dispatch(dbus_conn);
 #endif

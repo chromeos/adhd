@@ -10,12 +10,17 @@ cc_library(
     ],
     local_defines = select({
         "//:x86_64_build": [
-            "HAVE_SSE42",
-            "HAVE_AVX",
-            "HAVE_AVX2",
-            "HAVE_FMA",
+            "HAVE_SSE42=1",
+            "HAVE_AVX=1",
+            "HAVE_AVX2=1",
+            "HAVE_FMA=1",
         ],
-        "//conditions:default": [],
+        "//conditions:default": [
+            "HAVE_SSE42=0",
+            "HAVE_AVX=0",
+            "HAVE_AVX2=0",
+            "HAVE_FMA=0",
+        ],
     }),
     visibility = ["//src/benchmark:__pkg__"],
     deps = ["cras_mix_ops"] + select({

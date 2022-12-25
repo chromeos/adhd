@@ -14,11 +14,11 @@
 /* function suffixes for SIMD ops */
 #ifdef OPS_SSE42
 #define OPS(a) a##_sse42
-#elif OPS_AVX
+#elif defined(OPS_AVX)
 #define OPS(a) a##_avx
-#elif OPS_AVX2
+#elif defined(OPS_AVX2)
 #define OPS(a) a##_avx2
-#elif OPS_FMA
+#elif defined(OPS_FMA)
 #define OPS(a) a##_fma
 #else
 #define OPS(a) a

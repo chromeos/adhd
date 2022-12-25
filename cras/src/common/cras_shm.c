@@ -175,7 +175,7 @@ void cras_audio_shm_destroy(struct cras_audio_shm *shm)
 /* Set the correct SELinux label for SHM fds. */
 static void cras_shm_restorecon(int fd)
 {
-#ifdef CRAS_SELINUX
+#if CRAS_SELINUX
 	char fd_proc_path[64];
 
 	if (snprintf(fd_proc_path, sizeof(fd_proc_path), "/proc/self/fd/%d",

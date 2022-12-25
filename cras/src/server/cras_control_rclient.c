@@ -17,7 +17,7 @@
 #include "cras_fl_manager.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 #include "cras_hfp_ag_profile.h"
 #endif
 #include "cras_main_thread_log.h"
@@ -431,7 +431,7 @@ static int ccr_handle_message_from_client(struct cras_rclient *client,
 		struct cras_server_state *state;
 
 		state = cras_system_state_get_no_lock();
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 		memcpy(&state->bt_debug_info.bt_log, btlog,
 		       sizeof(struct cras_bt_event_log));
 		memcpy(&state->bt_debug_info.wbs_logger,

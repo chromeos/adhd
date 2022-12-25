@@ -77,7 +77,7 @@ int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr)
 	return 0;
 }
 
-#if defined(HAVE_FUZZER)
+#if HAVE_FUZZER
 int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 				   bool enable_offload, bool force_cvsd)
 {
@@ -162,7 +162,7 @@ int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
 }
 #endif
 
-#if defined(HAVE_FUZZER)
+#if HAVE_FUZZER
 int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr)
 {
 	return 0;
@@ -214,7 +214,7 @@ int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr)
 }
 #endif
 
-#if defined(HAVE_FUZZER)
+#if HAVE_FUZZER
 int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
 			       const char *addr)
 {
@@ -290,7 +290,7 @@ int floss_media_hfp_suspend(struct fl_media *fm)
 	return 0;
 }
 
-#if defined(HAVE_FUZZER)
+#if HAVE_FUZZER
 int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr)
 {
 	return 0;
@@ -654,7 +654,7 @@ int floss_media_a2dp_get_presentation_position(
 	return 0;
 }
 
-#if defined(HAVE_FUZZER)
+#if HAVE_FUZZER
 int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume)
 {
 	return 0;

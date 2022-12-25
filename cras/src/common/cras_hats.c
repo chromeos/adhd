@@ -5,7 +5,7 @@
 
 #include "cras_hats.h"
 
-#ifdef HAVE_HATS
+#if HAVE_HATS
 
 #include "cras_observer.h"
 

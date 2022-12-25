@@ -27,12 +27,12 @@ union ieee754_float {
 };
 #endif
 
-/* Uncomment to use the slow but accurate functions. */
-/* #define SLOW_DB_TO_LINEAR */
-/* #define SLOW_LINEAR_TO_DB */
-/* #define SLOW_WARP_SIN */
-/* #define SLOW_KNEE_EXP */
-/* #define SLOW_FREXPF */
+/* Set to 1 to use the slow but accurate functions. */
+#define SLOW_DB_TO_LINEAR 0
+#define SLOW_LINEAR_TO_DB 0
+#define SLOW_WARP_SIN 0
+#define SLOW_KNEE_EXP 0
+#define SLOW_FREXPF 0
 
 #define PI_FLOAT 3.141592653589793f
 #define PI_OVER_TWO_FLOAT 1.57079632679489661923f
@@ -84,7 +84,7 @@ static inline float round_int(float x)
 
 static inline float decibels_to_linear(float decibels)
 {
-#ifdef SLOW_DB_TO_LINEAR
+#if SLOW_DB_TO_LINEAR
 	/* 10^(x/20) = e^(x * log(10^(1/20))) */
 	return expf(0.1151292546497022f * decibels);
 #else
@@ -113,7 +113,7 @@ static inline float decibels_to_linear(float decibels)
 
 static inline float frexpf_fast(float x, int *e)
 {
-#ifdef SLOW_FREXPF
+#if SLOW_FREXPF
 	return frexpf(x, e);
 #else
 	union ieee754_float u;
@@ -133,7 +133,7 @@ static inline float linear_to_decibels(float linear)
 	if (linear <= 0)
 		return -1000;
 
-#ifdef SLOW_LINEAR_TO_DB
+#if SLOW_LINEAR_TO_DB
 	/* 20 * log10(x) = 20 / log(10) * log(x) */
 	return 8.6858896380650366f * logf(linear);
 #else
@@ -167,7 +167,7 @@ static inline float linear_to_decibels(float linear)
 
 static inline float warp_sinf(float x)
 {
-#ifdef SLOW_WARP_SIN
+#if SLOW_WARP_SIN
 	return sinf(PI_OVER_TWO_FLOAT * x);
 #else
 	/* Coefficients obtained from:
@@ -192,7 +192,7 @@ static inline float warp_asinf(float x)
 
 static inline float knee_expf(float input)
 {
-#ifdef SLOW_KNEE_EXP
+#if SLOW_KNEE_EXP
 	return expf(input);
 #else
 	/* exp(x) = decibels_to_linear(20*log10(e)*x) */

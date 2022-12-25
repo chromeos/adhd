@@ -643,7 +643,6 @@ void cras_shm_close_unlink(const char *name, int fd);
 void *cras_shm_setup(const char *name, size_t mmap_size, int *rw_fd_out,
 		     int *ro_fd_out);
 
-#ifdef CRAS_SELINUX
 /*
  * Wrapper around selinux_restorecon(). This is helpful in unit tests because
  * we can mock out the selinux_restorecon() behaviour there. That is required
@@ -654,6 +653,5 @@ void *cras_shm_setup(const char *name, size_t mmap_size, int *rw_fd_out,
  * Returns 0 on success, otherwise -1 and errno is set appropriately.
  */
 int cras_selinux_restorecon(const char *pathname);
-#endif
 
 #endif /* CRAS_SHM_H_ */

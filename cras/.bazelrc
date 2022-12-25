@@ -9,3 +9,6 @@ build --cxxopt=-std=gnu++17
 build --copt=-D_FILE_OFFSET_BITS=64
 build --copt=-D_LARGEFILE_SOURCE
 build --copt=-D_LARGEFILE64_SOURCE
+
+build --copt=-Werror=undef-prefix
+build --copt=-Wundef-prefix=HAVE_,CRAS_

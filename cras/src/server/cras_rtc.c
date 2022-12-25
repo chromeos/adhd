@@ -4,7 +4,7 @@
  */
 #include <syslog.h>
 
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 #include "cras_dbus_control.h"
 #endif
 
@@ -56,7 +56,7 @@ static struct rtc_data *find_rtc_stream(struct rtc_data *list,
 
 static void notify_rtc_active_now(bool was_active)
 {
-#ifdef CRAS_DBUS
+#if CRAS_DBUS
 	bool now_active = cras_rtc_is_running();
 
 	if (now_active != was_active)

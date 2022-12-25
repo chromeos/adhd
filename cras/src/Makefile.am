@@ -47,6 +47,7 @@ COMMON_CPPFLAGS += -ffunction-sections -fdata-sections
 # b/201531268: LFS support
 COMMON_CPPFLAGS += \
 	-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+COMMON_CPPFLAGS += -Werror=undef-prefix -Wundef-prefix=HAVE_,CRAS_
 
 if HAVE_FUZZER
 COMMON_CPPFLAGS += -Wno-unused-function
@@ -370,6 +371,7 @@ libcras_la_SOURCES = \
 	common/cras_util.c \
 	common/edid_utils.c \
 	common/strlcpy.c \
+	$(CRAS_SELINUX_SOURCES) \
 	libcras/cras_client.c \
 	libcras/cras_helpers.c
 
@@ -390,7 +392,7 @@ include_HEADERS = \
 
 libcras_la_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/libcras
-libcras_la_LIBADD = -lpthread -lasound -lrt
+libcras_la_LIBADD = -lpthread -lasound -lrt $(SELINUX_LIBS)
 libcras_la_LDFLAGS = -version-info 0:0:0
 
 asound_module_pcm_cras_LTLIBRARIES = libasound_module_pcm_cras.la
@@ -856,7 +858,7 @@ array_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 audio_thread_unittest_SOURCES = tests/audio_thread_unittest.cc \
 	server/dev_io.c tests/empty_audio_stub.cc tests/metrics_stub.cc \
-	common/cras_shm.c common/cras_string.c
+	common/cras_shm.c common/cras_string.c common/cras_selinux_helper_stub.c
 audio_thread_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server \
 	-I$(SERVER_RUST_SRCDIR)/include
@@ -932,7 +934,7 @@ cras_client_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread -lrt -lspeexdsp
 cras_rtc_unittest_SOURCES = tests/cras_rtc_unittest.cc server/cras_rtc.c \
 	common/cras_string.c
 cras_rtc_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	 -I$(top_srcdir)/src/server
+	 -I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 cras_rtc_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 cras_tm_unittest_SOURCES = tests/cras_tm_unittest.cc server/cras_tm.c
@@ -979,12 +981,11 @@ dev_io_unittest_LDADD = \
 	$(CRAS_AVX) \
 	$(CRAS_AVX2) \
 	$(CRAS_FMA) \
-	$(SELINUX_LIBS) \
 	$(GTEST_MAIN_LIBS) -lrt -lpthread -ldl -lm -lspeexdsp
 
 dev_stream_unittest_SOURCES = tests/dev_stream_unittest.cc \
 	server/dev_stream.c common/cras_shm.c tests/dev_io_stubs.cc \
-	common/cras_string.c
+	common/cras_string.c common/cras_selinux_helper_stub.c
 dev_stream_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 dev_stream_unittest_LDADD = $(GTEST_MAIN_LIBS) -liniparser -lpthread -lrt
@@ -1167,7 +1168,7 @@ iodev_list_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 loopback_iodev_unittest_SOURCES = tests/loopback_iodev_unittest.cc \
 	server/cras_loopback_iodev.c common/cras_shm.c common/sfh.c \
 	common/cras_string.c \
-	common/strlcpy.c
+	common/strlcpy.c common/cras_selinux_helper_stub.c
 loopback_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server
@@ -1180,7 +1181,8 @@ input_data_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 input_data_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 iodev_unittest_SOURCES = tests/iodev_unittest.cc \
-	server/cras_iodev.c common/cras_shm.c common/cras_string.c
+	server/cras_iodev.c common/cras_shm.c common/cras_string.c \
+	 common/cras_selinux_helper_stub.c
 iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/server \
 	-I$(SERVER_RUST_SRCDIR)/include
@@ -1326,7 +1328,7 @@ timing_unittest_LDADD = \
 
 utf8_unittest_SOURCES = tests/utf8_unittest.cc server/cras_utf8.c
 utf8_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/server
+	-I$(top_srcdir)/src/server $(DBUS_CFLAGS)
 utf8_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
 util_unittest_SOURCES = tests/util_unittest.cc common/cras_util.c \

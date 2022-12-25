@@ -37,10 +37,11 @@ AC_ARG_ENABLE([dbus], AS_HELP_STRING([--disable-dbus], [Disable all DBUS uses]),
 AM_CONDITIONAL(HAVE_DBUS, test "$have_dbus" = "yes")
 if test "$have_dbus" = "yes"; then
     PKG_CHECK_MODULES([DBUS], [ dbus-1 >= 1.4.12 ])
-    AS_VAR_APPEND([DBUS_CFLAGS], [" -DCRAS_DBUS"])
+    AC_DEFINE(CRAS_DBUS, 1)
 else
     DBUS_CFLAGS=
     DBUS_LIBS=
+    AC_DEFINE(CRAS_DBUS, 0)
 fi
 AC_SUBST(DBUS_LIBS)
 AC_SUBST(DBUS_CFLAGS)
@@ -52,6 +53,7 @@ if test "$have_featured" = "yes"; then
     AC_DEFINE(HAVE_FEATURED, 1, [Define to build with featured.])
 else
     FEATURED_LIBS=
+    AC_DEFINE(HAVE_FEATURED, 0, [Define to not build with featured.])
 fi
 AC_SUBST(FEATURED_LIBS)
 
@@ -59,10 +61,11 @@ AC_ARG_ENABLE([selinux], AS_HELP_STRING([--enable-selinux], [Enable SELinux call
 AM_CONDITIONAL(HAVE_SELINUX, test "$have_selinux" = "yes")
 if test "$have_selinux" = "yes"; then
     PKG_CHECK_MODULES([SELINUX], [ libselinux ])
-    AS_VAR_APPEND([SELINUX_CFLAGS], [" -DCRAS_SELINUX"])
+    AC_DEFINE(CRAS_SELINUX, 1)
 else
     SELINUX_CFLAGS=
     SELINUX_LIBS=
+    AC_DEFINE(CRAS_SELINUX, 0)
 fi
 AC_SUBST(SELINUX_CFLAGS)
 AC_SUBST(SELINUX_LIBS)
@@ -75,6 +78,7 @@ if test "$have_webrtc_apm" = "yes"; then
     AC_DEFINE(HAVE_WEBRTC_APM, 1, [Define to use webrtc-apm.])
 else
     WEBRTC_APM_LIBS=
+    AC_DEFINE(HAVE_WEBRTC_APM, 0, [Define to not use webrtc-apm.])
 fi
 AC_SUBST(WEBRTC_APM_LIBS)
 
@@ -83,6 +87,8 @@ AC_ARG_ENABLE([fuzzer], AS_HELP_STRING([--enable-fuzzer], [Enable fuzzer build])
 AM_CONDITIONAL(HAVE_FUZZER, test "$have_fuzzer" = "yes")
 if test "$have_fuzzer" = "yes"; then
     AC_DEFINE(HAVE_FUZZER, 1, [Define to build fuzzers.])
+else
+    AC_DEFINE(HAVE_FUZZER, 0, [Define to not build fuzzers.])
 fi
 
 # HaTS support
@@ -90,6 +96,8 @@ AC_ARG_ENABLE([hats], AS_HELP_STRING([--enable-hats], [Enable Happiness Tracking
 AM_CONDITIONAL(HAVE_HATS, test "$have_hats" = "yes")
 if test "$have_hats" = "yes"; then
     AC_DEFINE(HAVE_HATS, 1, [Define to enable Happiness Tracking Surveys])
+else
+    AC_DEFINE(HAVE_HATS, 0, [Define to disable Happiness Tracking Surveys])
 fi
 
 # DLC support
@@ -97,6 +105,8 @@ AC_ARG_ENABLE([dlc], AS_HELP_STRING([--enable-dlc], [Enable dlc service integrat
 AM_CONDITIONAL(HAVE_DLC, test "$have_dlc" = "yes")
 if test "$have_dlc" = "yes"; then
     AC_DEFINE(HAVE_DLC, 1, [Define to enable dlc integration.])
+else
+    AC_DEFINE(HAVE_DLC, 0, [Define to disable dlc integration.])
 fi
 
 PKG_CHECK_MODULES([SBC], [ sbc >= 1.0 ])
@@ -119,6 +129,7 @@ if test "$have_metrics" = "yes"; then
     AC_DEFINE(HAVE_LIB_METRICS, 1, [Define to use libmetrics])
     METRICS_LIBS=-lmetrics
 else
+    AC_DEFINE(HAVE_LIB_METRICS, 0, [Define to not use libmetrics])
     METRICS_LIBS=
 fi
 AC_SUBST(METRICS_LIBS)
@@ -182,7 +193,9 @@ if  test "x$host_cpu" != xx86_64; then
 fi
 if test "$have_sse42" = "yes"; then
         AC_DEFINE(HAVE_SSE42,1,[Define to enable SSE42 optimizations.])
-	SSE42_CFLAGS="-DOPS_SSE42 -msse4.2 -ffast-math"
+        SSE42_CFLAGS="-DOPS_SSE42 -msse4.2 -ffast-math"
+else
+        AC_DEFINE(HAVE_SSE42,0)
 fi
 AM_CONDITIONAL(HAVE_SSE42, test "$have_sse42" = "yes")
 AC_SUBST(SSE42_CFLAGS)
@@ -194,7 +207,9 @@ if  test "x$host_cpu" != xx86_64; then
 fi
 if test "$have_avx" = "yes"; then
         AC_DEFINE(HAVE_AVX,1,[Define to enable AVX optimizations.])
-	AVX_CFLAGS="-DOPS_AVX -mavx -ffast-math"
+        AVX_CFLAGS="-DOPS_AVX -mavx -ffast-math"
+else
+        AC_DEFINE(HAVE_AVX,0)
 fi
 AM_CONDITIONAL(HAVE_AVX, test "$have_avx" = "yes")
 AC_SUBST(AVX_CFLAGS)
@@ -206,7 +221,9 @@ if  test "x$host_cpu" != xx86_64; then
 fi
 if test "$have_avx2" = "yes"; then
         AC_DEFINE(HAVE_AVX2,1,[Define to enable AVX2 optimizations.])
-	AVX2_CFLAGS="-DOPS_AVX2 -mavx2 -ffast-math"
+        AVX2_CFLAGS="-DOPS_AVX2 -mavx2 -ffast-math"
+else
+        AC_DEFINE(HAVE_AVX2,0)
 fi
 AM_CONDITIONAL(HAVE_AVX2, test "$have_avx2" = "yes")
 AC_SUBST(AVX2_CFLAGS)
@@ -218,7 +235,9 @@ if  test "x$host_cpu" != xx86_64; then
 fi
 if test "$have_fma" = "yes"; then
         AC_DEFINE(HAVE_FMA,1,[Define to enable FMA optimizations.])
-	FMA_CFLAGS="-DOPS_FMA -mavx2 -mfma -ffast-math"
+        FMA_CFLAGS="-DOPS_FMA -mavx2 -mfma -ffast-math"
+else
+        AC_DEFINE(HAVE_FMA,0)
 fi
 AM_CONDITIONAL(HAVE_FMA, test "$have_fma" = "yes")
 AC_SUBST(FMA_CFLAGS)
@@ -227,8 +246,9 @@ AC_ARG_ENABLE([ml], AS_HELP_STRING([--enable-ml], [Enable all ML modules]), have
 AM_CONDITIONAL(HAVE_ML, test "$have_ml" = "yes")
 if test "$have_ml" = "yes"; then
 	PKG_CHECK_MODULES([TENSORFLOWLITE], [ tensorflowlite >= 2.8.0 ])
-	AS_VAR_APPEND([TENSORFLOWLITE_CFLAGS], [" -DHAVE_ML"])
+	AC_DEFINE(HAVE_ML, 1)
 else
+	AC_DEFINE(HAVE_ML, 0)
 	TENSORFLOWLITE_CFLAGS=
 	TENSORFLOWLITE_LIBS=
 fi

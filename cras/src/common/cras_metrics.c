@@ -7,7 +7,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#ifdef HAVE_LIB_METRICS
+#if HAVE_LIB_METRICS
 #include <metrics/c_metrics_library.h>
 
 void cras_metrics_log_event(const char *event)

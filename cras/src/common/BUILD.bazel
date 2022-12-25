@@ -70,6 +70,7 @@ cc_library(
         "//src/libcras:__pkg__",
     ],
     deps = [
+        "//:build_config",
         "//src/common:cras_string",
         "//src/common:cras_types",
         "//src/common:cras_util",
