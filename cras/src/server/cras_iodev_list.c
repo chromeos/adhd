@@ -111,7 +111,7 @@ static int hotword_auto_resume = 0;
  * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
  * scenario and will be updated in respective timing.
  *
- * 1. non_dsp_aec_echo_ref_dev_enabled
+ * 1. non_dsp_aec_echo_ref_dev_alive
  *     scenario:
  *         detect if there exists an enabled or opened output device which can't
  *         be applied as echo reference for AEC on DSP.
@@ -128,21 +128,21 @@ static int hotword_auto_resume = 0;
  *         update_supported_dsp_effects_activation() in cras_stream_apm.
  *
  * The final NC blocking state is determined by:
- *     nc_blocked_state = (non_dsp_aec_echo_ref_dev_enabled ||
+ *     nc_blocked_state = (non_dsp_aec_echo_ref_dev_alive ||
  *                         aec_on_dsp_is_disallowed)
  *
  * CRAS will notify Chrome promptly when nc_blocked_state is altered.
  */
-static bool non_dsp_aec_echo_ref_dev_enabled = false;
+static bool non_dsp_aec_echo_ref_dev_alive = false;
 static bool aec_on_dsp_is_disallowed = false;
 
 /* Returns true for blocking Noise Cancellation; false for unblocking. */
 static bool get_nc_blocked_state()
 {
-	return non_dsp_aec_echo_ref_dev_enabled || aec_on_dsp_is_disallowed;
+	return non_dsp_aec_echo_ref_dev_alive || aec_on_dsp_is_disallowed;
 }
 
-static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_enabled,
+static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_alive,
 				    bool new_aec_on_dsp_is_disallowed)
 {
 	bool prev_state = get_nc_blocked_state();
@@ -150,7 +150,7 @@ static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_enabled,
 	/* 0: set to false, 1: set to true, 2: no edge */
 	uint32_t nc_block_state_edge_type = 2;
 
-	non_dsp_aec_echo_ref_dev_enabled = new_non_dsp_aec_echo_ref_dev_enabled;
+	non_dsp_aec_echo_ref_dev_alive = new_non_dsp_aec_echo_ref_dev_alive;
 	aec_on_dsp_is_disallowed = new_aec_on_dsp_is_disallowed;
 
 	if (prev_state != get_nc_blocked_state()) {
@@ -167,17 +167,17 @@ static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_enabled,
 	}
 
 	MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE, nc_block_state_edge_type,
-		non_dsp_aec_echo_ref_dev_enabled, aec_on_dsp_is_disallowed);
+		non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
 }
 
-static void set_non_dsp_aec_echo_ref_dev_enabled(bool state)
+static void set_non_dsp_aec_echo_ref_dev_alive(bool state)
 {
 	update_nc_blocked_state(state, aec_on_dsp_is_disallowed);
 }
 
 static void set_aec_on_dsp_is_disallowed(bool state)
 {
-	update_nc_blocked_state(non_dsp_aec_echo_ref_dev_enabled, state);
+	update_nc_blocked_state(non_dsp_aec_echo_ref_dev_alive, state);
 }
 
 /* |dev_idx| is unused by now. */
@@ -500,14 +500,14 @@ static void possibly_disable_echo_reference(struct cras_iodev *dev)
 }
 
 /*
- * Sets |non_dsp_aec_echo_ref_dev_enabled| true for NC blocking state decision
- * if |dev| is enabled output and can't be applied as echo reference for AEC on
- * DSP.
+ * Sets |non_dsp_aec_echo_ref_dev_alive| true for NC blocking state decision
+ * if the output device |dev| is enabled or opened while it can't be applied
+ * as echo reference for AEC on DSP.
  */
 static void
-possibly_set_non_dsp_aec_echo_ref_dev_enabled(const struct cras_iodev *dev)
+possibly_set_non_dsp_aec_echo_ref_dev_alive(const struct cras_iodev *dev)
 {
-	if (non_dsp_aec_echo_ref_dev_enabled)
+	if (non_dsp_aec_echo_ref_dev_alive)
 		return;
 
 	/* skip silent devices */
@@ -518,27 +518,31 @@ possibly_set_non_dsp_aec_echo_ref_dev_enabled(const struct cras_iodev *dev)
 	if (dev->direction == CRAS_STREAM_INPUT)
 		return;
 
-	if (cras_iodev_list_dev_is_enabled(dev) && dev->active_node &&
+	/* skip if the device is not alive (neither enabled nor opened) */
+	if (!cras_iodev_list_dev_is_enabled(dev) && !cras_iodev_is_open(dev))
+		return;
+
+	if (dev->active_node &&
 	    !cras_iodev_is_dsp_aec_use_case(dev->active_node)) {
 		syslog(LOG_DEBUG,
-		       "non_dsp_aec_echo_ref_dev_enabled=1 by output dev: %u",
+		       "non_dsp_aec_echo_ref_dev_alive=1 by output dev: %u",
 		       dev->info.idx);
-		set_non_dsp_aec_echo_ref_dev_enabled(true);
+		set_non_dsp_aec_echo_ref_dev_alive(true);
 	}
 }
 
 /*
- * Sets |non_dsp_aec_echo_ref_dev_enabled| false for NC blocking state decision
+ * Sets |non_dsp_aec_echo_ref_dev_alive| false for NC blocking state decision
  * when there is no enabled or opened output which can't be applied as echo
  * reference.
  */
-static void possibly_clear_non_dsp_aec_echo_ref_dev_enabled()
+static void possibly_clear_non_dsp_aec_echo_ref_dev_alive()
 {
 	struct enabled_dev *edev;
 	struct cras_rstream *stream;
 	struct cras_iodev *dev;
 
-	if (!non_dsp_aec_echo_ref_dev_enabled)
+	if (!non_dsp_aec_echo_ref_dev_alive)
 		return;
 
 	DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
@@ -578,8 +582,8 @@ static void possibly_clear_non_dsp_aec_echo_ref_dev_enabled()
 			return;
 	}
 
-	syslog(LOG_DEBUG, "non_dsp_aec_echo_ref_dev_enabled=0");
-	set_non_dsp_aec_echo_ref_dev_enabled(false);
+	syslog(LOG_DEBUG, "non_dsp_aec_echo_ref_dev_alive=0");
+	set_non_dsp_aec_echo_ref_dev_alive(false);
 }
 
 /*
@@ -597,7 +601,7 @@ static void close_dev(struct cras_iodev *dev)
 	possibly_disable_echo_reference(dev);
 	cras_iodev_close(dev);
 
-	possibly_clear_non_dsp_aec_echo_ref_dev_enabled();
+	possibly_clear_non_dsp_aec_echo_ref_dev_alive();
 }
 
 static void idle_dev_check(struct cras_timer *timer, void *data)
@@ -684,7 +688,7 @@ static int init_device(struct cras_iodev *dev, struct cras_rstream *rstream)
 
 	possibly_enable_echo_reference(dev);
 
-	possibly_set_non_dsp_aec_echo_ref_dev_enabled(dev);
+	possibly_set_non_dsp_aec_echo_ref_dev_alive(dev);
 
 	return rc;
 }
@@ -1307,7 +1311,7 @@ static int enable_device(struct cras_iodev *dev)
 	DL_FOREACH (device_enable_cbs, callback)
 		callback->enabled_cb(dev, callback->cb_data);
 
-	possibly_set_non_dsp_aec_echo_ref_dev_enabled(dev);
+	possibly_set_non_dsp_aec_echo_ref_dev_alive(dev);
 
 	return 0;
 }
@@ -1350,7 +1354,7 @@ static int disable_device(struct enabled_dev *edev, bool force)
 	close_dev(dev);
 	dev->update_active_node(dev, dev->active_node->idx, 0);
 
-	possibly_clear_non_dsp_aec_echo_ref_dev_enabled();
+	possibly_clear_non_dsp_aec_echo_ref_dev_alive();
 
 	return 0;
 }
@@ -1370,7 +1374,7 @@ void cras_iodev_list_init()
 	observer_ops.suspend_changed = sys_suspend_change;
 	list_observer = cras_observer_add(&observer_ops, NULL);
 	idle_timer = NULL;
-	non_dsp_aec_echo_ref_dev_enabled = false;
+	non_dsp_aec_echo_ref_dev_alive = false;
 	aec_on_dsp_is_disallowed = false;
 
 	main_log = main_thread_event_log_init();

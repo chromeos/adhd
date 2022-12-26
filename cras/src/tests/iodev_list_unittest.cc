@@ -2605,6 +2605,15 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
             server_state_stub.input_nodes[0].audio_effect);
   EXPECT_EQ(cras_observer_notify_nodes_called, 1);
 
+  // Select internal speaker as the active node.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d2_.info.idx, node2.idx));
+
+  // Unblock Noise Cancellation because usb player is disabled.
+  ASSERT_EQ(server_state_stub.num_input_nodes, 1);
+  EXPECT_EQ(node3.audio_effect, server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(cras_observer_notify_nodes_called, 2);
+
   d1_.format = &fmt_;
   d2_.format = &fmt_;
 
@@ -2622,9 +2631,9 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
     EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d1_);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
 
-    // Noise Cancellation is still blocked.
+    // Noise Cancellation is blocked by pinned stream via usb player.
     EVENTUALLY(EXPECT_EQ, server_state_stub.num_input_nodes, 1);
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
                default_audio_effect);
@@ -2669,19 +2678,6 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
 
     DL_DELETE(stream_list_get_ret, &rstream2);
     rc = stream_rm_cb(&rstream2);
-  }
-
-  {  // Select internal speaker as the active node.
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
-
-    // Noise Cancellation is still blocked because pinned stream is still
-    // attached to d1 (usb).
-    EVENTUALLY(EXPECT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
-
-    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
-                                cras_make_node_id(d2_.info.idx, node2.idx));
   }
 
   stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
