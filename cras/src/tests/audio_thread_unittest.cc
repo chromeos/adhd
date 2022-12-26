@@ -1232,7 +1232,11 @@ struct dev_stream* dev_stream_create(struct cras_rstream* stream,
   struct dev_stream* out = static_cast<dev_stream*>(calloc(1, sizeof(*out)));
   out->stream = stream;
   init_cb_ts_ = *cb_ts;
-  sleep_interval_ts_ = *sleep_interval_ts;
+  if (sleep_interval_ts) {
+    sleep_interval_ts_ = *sleep_interval_ts;
+  } else {
+    sleep_interval_ts_ = {.tv_sec = -1, .tv_nsec = -1};
+  }
   return out;
 }
 
