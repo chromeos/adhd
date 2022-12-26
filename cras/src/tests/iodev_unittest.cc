@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <math.h>
 #include <stdio.h>
 
 extern "C" {
