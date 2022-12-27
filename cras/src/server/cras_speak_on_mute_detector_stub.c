@@ -12,7 +12,7 @@ void cras_speak_on_mute_detector_enable(bool enabled)
 {
 }
 
-void cras_speak_on_mute_detector_on_streams_changed(
+void cras_speak_on_mute_detector_streams_changed(
 	struct cras_rstream *all_streams)
 {
 }
