@@ -2215,7 +2215,10 @@ TEST(IoDev, RequestResetUnderHighVolume) {
   const struct timespec one_ms = {.tv_sec = 0, .tv_nsec = 1000000};
 
   /* Reject requests in [t0, t0 + NEXT_REGEN_MS). */
-  const int NEXT_REGEN_MS = ceil(regen_rate * 1000);
+  const int NEXT_REGEN_MS = ceil(1000 / regen_rate);
+
+  /* Rewrite this test if this ever needs to be sub-ms. */
+  ASSERT_GT(NEXT_REGEN_MS, 1);
 
   for (int ms = 0; ms < NEXT_REGEN_MS; ++ms) {
     cras_iodev_open(&iodev, 240, &audio_fmt);
