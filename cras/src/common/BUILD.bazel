@@ -151,6 +151,19 @@ genrule(
     ],
 )
 
+genrule(
+    name = "cras_version_h",
+    outs = ["cras_version.h"],
+    cmd = "echo '#define VCSID \"$(VCSID)\"' > '$@'",
+)
+
+cc_library(
+    name = "cras_version",
+    hdrs = ["cras_version.h"],
+    includes = ["."],
+    visibility = ["//src/libcras:__pkg__"],
+)
+
 cc_library(
     name = "common",
     srcs = [
@@ -198,6 +211,21 @@ cc_library(
     ],
 )
 
+filegroup(
+    name = "public_headers",
+    srcs = [
+        "cras_audio_format.h",
+        "cras_config.h",
+        "cras_iodev_info.h",
+        "cras_messages.h",
+        "cras_shm.h",
+        "cras_types.h",
+        "cras_util.h",
+        "packet_status_logger.h",
+    ],
+    visibility = ["//dist:__pkg__"],
+)
+
 # Allow tests to not specify all headers.
 cc_library(
     name = "all_headers",
@@ -218,4 +246,16 @@ exports_files(
     visibility = [
         "//src/tests:__pkg__",
     ],
+)
+
+# For distribution
+exports_files(
+    glob(
+        include = ["*.h"],
+        exclude = [
+            "cras_dbus_bindings.h",
+            "cras_version.h",
+        ],
+    ),
+    visibility = ["//dist:__pkg__"],
 )

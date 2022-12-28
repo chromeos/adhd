@@ -4,6 +4,7 @@
 
 cc_binary(
     name = "cras_bench",
+    visibility = ["//dist:__pkg__"],
     deps = [
         ":benchmark_util",
         ":default_benchmarks",

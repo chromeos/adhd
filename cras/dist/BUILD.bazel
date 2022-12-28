@@ -1,0 +1,48 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Binary targets.
+filegroup(
+    name = "bin",
+    srcs = [
+        "//src/server:cras",
+        "//src/tools:cras_monitor",
+        "//src/tools:cras_router",
+        "//src/tools:cras_test_client",
+    ],
+)
+
+# Extra binary targets.
+# These are installed to /usr/local/bin by ebuild, hence only appear on test images.
+filegroup(
+    name = "extra_bin",
+    srcs = [
+        "//src/benchmark:cras_bench",
+    ],
+)
+
+# Public header targets.
+filegroup(
+    name = "include",
+    srcs = [
+        "//src/common:public_headers",
+        "//src/libcras:public_headers",
+    ],
+)
+
+py_binary(
+    name = "dist",
+    srcs = ["dist.py"],
+    args = [
+        "--_bin_files $(locations :bin)",
+        "--_extra_bin_files $(locations :extra_bin)",
+        "--_include_files $(locations :include)",
+        "--",
+    ],
+    data = [
+        ":bin",
+        ":extra_bin",
+        ":include",
+    ],
+)

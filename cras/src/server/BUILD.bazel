@@ -394,6 +394,7 @@ cc_library(
 cc_binary(
     name = "cras",
     srcs = ["cras.c"],
+    visibility = ["//dist:__pkg__"],
     deps = [":libcrasserver"],
 )
 

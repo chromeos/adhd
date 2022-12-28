@@ -7,11 +7,21 @@ include $(ADHD_DIR)/defs/definitions.mk
 
 all:	cras
 
+ifeq ($(strip $(BAZEL)), yes)
+
+# Do nothing. Handled by bazel.
+cras:
+cras-scripts:
+
+else
+
 cras:
 	@$(call remake,Building,$@,cras.mk,$@)
 
 cras_install:
 	@$(call remake,Building,cras,cras.mk,$@)
+
+endif
 
 cras-scripts:
 	$(ECHO) "Installing cras scripts"

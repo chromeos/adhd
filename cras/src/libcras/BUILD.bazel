@@ -6,15 +6,18 @@ cc_library(
     name = "cras_client",
     srcs = [
         "cras_client.c",
+        "cras_helpers.c",
     ],
     hdrs = ["cras_client.h"],
-    linkopts = select({
-        "//conditions:default": [
-            "-lm",
-            "-lrt",
-        ],
-    }),
-    visibility = ["//src/benchmark:__pkg__"],
+    includes = ["."],
+    linkopts = [
+        "-lm",
+        "-lrt",
+    ],
+    visibility = [
+        "//src/benchmark:__pkg__",
+        "//src/tools:__pkg__",
+    ],
     deps = [
         "//src/common:cras_config",
         "//src/common:cras_file_wait",
@@ -24,8 +27,19 @@ cc_library(
         "//src/common:cras_string",
         "//src/common:cras_types",
         "//src/common:cras_util",
+        "//src/common:cras_version",
         "//src/common:utlist",
+        "@pkg_config//:alsa",
     ],
+)
+
+filegroup(
+    name = "public_headers",
+    srcs = [
+        "cras_client.h",
+        "cras_helpers.h",
+    ],
+    visibility = ["//dist:__pkg__"],
 )
 
 # Allow tests to not specify all headers.
