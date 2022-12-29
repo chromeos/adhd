@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("//dist:cras_rules_cc.bzl", "cras_shared_library")
+
 cc_library(
     name = "cras_client",
     srcs = [
@@ -15,6 +17,7 @@ cc_library(
         "-lrt",
     ],
     visibility = [
+        "//src/alsa_plugin:__pkg__",
         "//src/benchmark:__pkg__",
         "//src/tools:__pkg__",
     ],
@@ -30,6 +33,21 @@ cc_library(
         "//src/common:cras_version",
         "//src/common:utlist",
         "@pkg_config//:alsa",
+    ],
+)
+
+cras_shared_library(
+    name = "cras",  # libcras.so
+    roots = [":cras_client"],
+    static_deps = [
+        "@//:__subpackages__",
+        # Despite that we list alsa in static_deps, alsa would be linked
+        # dynamically because pkg_config does not provide object files.
+        "@pkg_config//:alsa",
+    ],
+    visibility = [
+        "//dist:__pkg__",
+        "//src/alsa_plugin:__pkg__",
     ],
 )
 

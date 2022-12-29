@@ -31,6 +31,22 @@ filegroup(
     ],
 )
 
+# Library targets
+filegroup(
+    name = "lib",
+    srcs = [
+        "//src/libcras:cras",
+    ],
+)
+
+filegroup(
+    name = "alsa_lib",
+    srcs = [
+        "//src/alsa_plugin:asound_module_ctl_cras",
+        "//src/alsa_plugin:asound_module_pcm_cras",
+    ],
+)
+
 py_binary(
     name = "dist",
     srcs = ["dist.py"],
@@ -38,11 +54,15 @@ py_binary(
         "--_bin_files $(locations :bin)",
         "--_extra_bin_files $(locations :extra_bin)",
         "--_include_files $(locations :include)",
+        "--_lib_files $(locations :lib)",
+        "--_alsa_lib_files $(locations :alsa_lib)",
         "--",
     ],
     data = [
+        ":alsa_lib",
         ":bin",
         ":extra_bin",
         ":include",
+        ":lib",
     ],
 )

@@ -1,0 +1,39 @@
+# Copyright 2022 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("//dist:cras_rules_cc.bzl", "cras_shared_library")
+
+cc_library(
+    name = "asound_module_pcm_cras_library",
+    srcs = ["pcm_cras.c"],
+    local_defines = ["PIC"],  # https://github.com/alsa-project/alsa-lib/issues/289
+    visibility = ["//dist:__pkg__"],
+    deps = [
+        "//src/libcras:cras_client",
+    ],
+)
+
+cras_shared_library(
+    name = "asound_module_pcm_cras",
+    dynamic_deps = ["//src/libcras:cras"],
+    roots = [":asound_module_pcm_cras_library"],
+    visibility = ["//dist:__pkg__"],
+)
+
+cc_library(
+    name = "asound_module_ctl_cras_library",
+    srcs = ["ctl_cras.c"],
+    local_defines = ["PIC"],  # https://github.com/alsa-project/alsa-lib/issues/289
+    visibility = ["//dist:__pkg__"],
+    deps = [
+        "//src/libcras:cras_client",
+    ],
+)
+
+cras_shared_library(
+    name = "asound_module_ctl_cras",
+    dynamic_deps = ["//src/libcras:cras"],
+    roots = [":asound_module_ctl_cras_library"],
+    visibility = ["//dist:__pkg__"],
+)
