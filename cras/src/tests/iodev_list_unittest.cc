@@ -124,11 +124,10 @@ int device_in_vector(std::vector<struct cras_iodev*> v,
   return std::find(v.begin(), v.end(), dev) != v.end();
 }
 
-class IoDevTestSuite : public testing::Test {
+template <class TestBase>
+class IodevTests : public TestBase {
  protected:
-  virtual void SetUp() {
-    cras_iodev_list_reset();
-
+  void ResetStubData() {
     audio_thread_add_open_dev_fallback_called = 0;
     audio_thread_rm_open_dev_fallback_called = 0;
     audio_thread_add_stream_fallback_called = 0;
@@ -269,18 +268,12 @@ class IoDevTestSuite : public testing::Test {
     cras_system_get_max_internal_mic_gain_return = DEFAULT_MAX_INPUT_NODE_GAIN;
     cras_floop_pair_create_return = NULL;
   }
-
-  virtual void TearDown() { cras_iodev_list_reset(); }
-
-  static void set_volume_1(struct cras_iodev* iodev) { set_volume_1_called_++; }
-
-  static void set_capture_gain_1(struct cras_iodev* iodev) {
-    set_capture_gain_1_called_++;
+  void SetUp() override {
+    cras_iodev_list_reset();
+    ResetStubData();
   }
 
-  static void set_capture_mute_1(struct cras_iodev* iodev) {
-    set_capture_mute_1_called_++;
-  }
+  void TearDown() override { cras_iodev_list_reset(); }
 
   static void update_active_node(struct cras_iodev* iodev,
                                  unsigned node_idx,
@@ -328,15 +321,13 @@ class IoDevTestSuite : public testing::Test {
   struct cras_audio_format fmt_;
   size_t sample_rates_[3];
   size_t channel_counts_[2];
-  static int set_volume_1_called_;
-  static int set_capture_gain_1_called_;
-  static int set_capture_mute_1_called_;
+
   struct cras_ionode node1, node2, node3;
 };
 
-int IoDevTestSuite::set_volume_1_called_;
-int IoDevTestSuite::set_capture_gain_1_called_;
-int IoDevTestSuite::set_capture_mute_1_called_;
+class IoDevTestSuite : public IodevTests<testing::Test> {
+ protected:
+};
 
 // Check that Init registers observer client. */
 TEST_F(IoDevTestSuite, InitSetup) {
@@ -3023,7 +3014,18 @@ TEST(SoftvolCurveTest, InternalMicGainToDBFS) {
   }
 }
 
-TEST_F(IoDevTestSuite, LastOpenResultSuccess) {
+struct OpenIodevTestParam {
+  enum CRAS_STREAM_DIRECTION first_iodev_direction;
+  enum CRAS_STREAM_DIRECTION second_iodev_direction;
+  enum CRAS_IODEV_LAST_OPEN_RESULT expected_result;
+  int open_ret;
+};
+
+class OpenIodevTestSuite
+    : public IodevTests<testing::TestWithParam<OpenIodevTestParam>> {};
+
+TEST_P(OpenIodevTestSuite, IodevLastOpenResult) {
+  const auto& param = GetParam();
   struct cras_rstream rstream;
   int rc;
 
@@ -3032,32 +3034,40 @@ TEST_F(IoDevTestSuite, LastOpenResultSuccess) {
 
   cras_iodev_list_init();
 
-  d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  d1_.direction = param.first_iodev_direction;
+  if (d1_.direction == CRAS_STREAM_INPUT) {
+    rc = cras_iodev_list_add_input(&d1_);
+  } else {
+    rc = cras_iodev_list_add_output(&d1_);
+  }
   ASSERT_EQ(rc, 0);
   EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
 
   d1_.format = &fmt_;
+  rstream.direction = param.first_iodev_direction;
 
-  { /* d1_ is not opened since there is no stream */
-    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, UNKNOWN);
+  cras_iodev_list_select_node(param.first_iodev_direction,
+                              cras_make_node_id(d1_.info.idx, 0));
 
-    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+  {
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, param.expected_result);
+
+    cras_iodev_list_select_node(param.first_iodev_direction,
                                 cras_make_node_id(d1_.info.idx, 0));
-  }
 
-  { /* Open d1_ */
-    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, SUCCESS);
+    cras_iodev_open_ret[cras_iodev_open_called] = param.open_ret;
 
-    cras_iodev_open_ret[cras_iodev_open_called] = 0;
-
-    stream_add_cb(&rstream);
+    if (param.expected_result != UNKNOWN) {
+      DL_APPEND(stream_list_get_ret, &rstream);
+      stream_add_cb(&rstream);
+    }
   }
 
   cras_iodev_list_deinit();
 }
 
-TEST_F(IoDevTestSuite, LastOpenResultFailure) {
+TEST_P(OpenIodevTestSuite, IodevCloseSameLastOpenResult) {
+  const auto& param = GetParam();
   struct cras_rstream rstream;
   int rc;
 
@@ -3066,101 +3076,148 @@ TEST_F(IoDevTestSuite, LastOpenResultFailure) {
 
   cras_iodev_list_init();
 
-  d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  d1_.direction = param.first_iodev_direction;
+  if (d1_.direction == CRAS_STREAM_INPUT) {
+    rc = cras_iodev_list_add_input(&d1_);
+  } else {
+    rc = cras_iodev_list_add_output(&d1_);
+  }
   ASSERT_EQ(rc, 0);
   EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
 
   d1_.format = &fmt_;
+  rstream.direction = param.first_iodev_direction;
 
-  { /* d1_ is not opened since there is no stream */
-    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, UNKNOWN);
+  cras_iodev_list_select_node(param.first_iodev_direction,
+                              cras_make_node_id(d1_.info.idx, 0));
 
-    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+  {
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, param.expected_result);
+
+    cras_iodev_list_select_node(param.first_iodev_direction,
                                 cras_make_node_id(d1_.info.idx, 0));
+
+    cras_iodev_open_ret[cras_iodev_open_called] = param.open_ret;
+
+    if (param.expected_result != UNKNOWN) {
+      DL_APPEND(stream_list_get_ret, &rstream);
+      stream_add_cb(&rstream);
+    }
   }
 
-  { /* Trigger stream_add_cb while d1_ is closed, and fail init_device */
-    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, FAILURE);
+  { /* Suspend Device. Device is closed, but last open result is same*/
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, param.expected_result);
 
-    cras_iodev_open_ret[cras_iodev_open_called] = -5;
-
-    DL_APPEND(stream_list_get_ret, &rstream);
-    stream_add_cb(&rstream);
+    cras_iodev_list_suspend_dev(d1_.info.idx);
   }
 
   cras_iodev_list_deinit();
 }
 
-TEST_F(IoDevTestSuite, LastOpenResultMultipleDevices) {
-  struct cras_rstream rstream;
+TEST_P(OpenIodevTestSuite, IodevLastOpenResultWithOtherDevice) {
+  const auto& param = GetParam();
+  struct cras_rstream rstream1, rstream2;
   int rc;
 
-  memset(&rstream, 0, sizeof(rstream));
-  rstream.format = fmt_;
+  memset(&rstream1, 0, sizeof(rstream1));
+  memset(&rstream2, 0, sizeof(rstream2));
+  rstream1.format = fmt_;
+  rstream2.format = fmt_;
 
   cras_iodev_list_init();
 
-  d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  d1_.direction = param.first_iodev_direction;
+  if (d1_.direction == CRAS_STREAM_INPUT) {
+    rc = cras_iodev_list_add_input(&d1_);
+  } else {
+    rc = cras_iodev_list_add_output(&d1_);
+  }
   ASSERT_EQ(rc, 0);
   EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
 
   d1_.format = &fmt_;
 
-  d2_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d2_);
+  d2_.direction = param.second_iodev_direction;
+  if (d2_.direction == CRAS_STREAM_INPUT) {
+    rc = cras_iodev_list_add_input(&d2_);
+  } else {
+    rc = cras_iodev_list_add_output(&d2_);
+  }
   ASSERT_EQ(rc, 0);
   EXPECT_EQ(d2_.info.last_open_result, UNKNOWN);
 
   d2_.format = &fmt_;
 
-  { /* d1_ is not opened since there is no stream */
-    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, UNKNOWN);
-    EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, UNKNOWN);
+  rstream1.direction = param.first_iodev_direction;
+  rstream2.direction = param.second_iodev_direction;
 
-    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+  cras_iodev_list_select_node(param.first_iodev_direction,
+                              cras_make_node_id(d1_.info.idx, 0));
+
+  {
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, param.expected_result);
+
+    cras_iodev_list_select_node(param.first_iodev_direction,
                                 cras_make_node_id(d1_.info.idx, 0));
-  }
 
-  { /* Trigger stream_add_cb while d1_ is closed, and fail init_device */
-    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, FAILURE);
-    EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, UNKNOWN);
+    cras_iodev_open_ret[cras_iodev_open_called] = param.open_ret;
 
-    cras_iodev_open_ret[cras_iodev_open_called] = -5;
-
-    DL_APPEND(stream_list_get_ret, &rstream);
-    stream_add_cb(&rstream);
+    if (param.expected_result != UNKNOWN) {
+      DL_APPEND(stream_list_get_ret, &rstream1);
+      stream_add_cb(&rstream1);
+    }
   }
 
   { /* d2_ successfully opens */
-    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, FAILURE);
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, param.expected_result);
     EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, SUCCESS);
 
     cras_iodev_open_ret[cras_iodev_open_called] = 0;
 
-    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+    cras_iodev_list_select_node(param.second_iodev_direction,
                                 cras_make_node_id(d2_.info.idx, 0));
 
-    DL_APPEND(stream_list_get_ret, &rstream);
-    stream_add_cb(&rstream);
+    DL_APPEND(stream_list_get_ret, &rstream2);
+    stream_add_cb(&rstream2);
   }
 
-  { /* Swap selected device, closing device doesn't affect status */
-    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, SUCCESS);
+  { /* Suspend device. Device is closed, but last open result is same*/
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, param.expected_result);
     EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, SUCCESS);
 
-    cras_iodev_open_ret[cras_iodev_open_called] = 0;
+    cras_iodev_list_suspend_dev(d2_.info.idx);
+  }
 
-    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
-                                cras_make_node_id(d1_.info.idx, 0));
+  { /* Resume device. d2_ fails to open.*/
+    EVENTUALLY(EXPECT_EQ, d1_.info.last_open_result, param.expected_result);
+    EVENTUALLY(EXPECT_EQ, d2_.info.last_open_result, FAILURE);
+
+    cras_iodev_open_ret[cras_iodev_open_called] = -5;
+
+    cras_iodev_list_resume_dev(d2_.info.idx);
   }
 
   cras_iodev_list_deinit();
 }
 
-// TODO(b/263845276): Add proper handling for floop devices
-// Don't put any tests that access floop_pair_list after this until TODO is done
+INSTANTIATE_TEST_SUITE_P(
+    DeviceDirection,
+    OpenIodevTestSuite,
+    testing::Values(
+        OpenIodevTestParam{CRAS_STREAM_INPUT, CRAS_STREAM_INPUT, UNKNOWN, 0},
+        OpenIodevTestParam{CRAS_STREAM_INPUT, CRAS_STREAM_INPUT, SUCCESS, 0},
+        OpenIodevTestParam{CRAS_STREAM_INPUT, CRAS_STREAM_INPUT, FAILURE, -5},
+        OpenIodevTestParam{CRAS_STREAM_INPUT, CRAS_STREAM_OUTPUT, UNKNOWN, 0},
+        OpenIodevTestParam{CRAS_STREAM_INPUT, CRAS_STREAM_OUTPUT, SUCCESS, 0},
+        OpenIodevTestParam{CRAS_STREAM_INPUT, CRAS_STREAM_OUTPUT, FAILURE, -5},
+        OpenIodevTestParam{CRAS_STREAM_OUTPUT, CRAS_STREAM_INPUT, UNKNOWN, 0},
+        OpenIodevTestParam{CRAS_STREAM_OUTPUT, CRAS_STREAM_INPUT, SUCCESS, 0},
+        OpenIodevTestParam{CRAS_STREAM_OUTPUT, CRAS_STREAM_INPUT, FAILURE, -5},
+        OpenIodevTestParam{CRAS_STREAM_OUTPUT, CRAS_STREAM_OUTPUT, UNKNOWN, 0},
+        OpenIodevTestParam{CRAS_STREAM_OUTPUT, CRAS_STREAM_OUTPUT, SUCCESS, 0},
+        OpenIodevTestParam{CRAS_STREAM_OUTPUT, CRAS_STREAM_OUTPUT, FAILURE,
+                           -5}));
+
 TEST_F(IoDevTestSuite, RequestFloop) {
   struct cras_floop_pair cfps[NUM_FLOOP_PAIRS_MAX];
   // cras_floop_pair_create fails and returns NULL
