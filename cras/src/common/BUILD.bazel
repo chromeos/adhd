@@ -11,7 +11,7 @@ cc_library(
         "cras_config.h",
     ],
     copts = [
-        "-DCRAS_SOCKET_FILE_DIR=\\\"/var/run/cras\\\"",
+        "-DCRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
     ],
     visibility = [
         "//src/libcras:__pkg__",
