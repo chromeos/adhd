@@ -2354,6 +2354,7 @@ void cras_iodev_list_reconnect_streams_with_apm()
 void cras_iodev_list_reset()
 {
 	struct enabled_dev *edev;
+	struct cras_floop_pair *fpair;
 
 	DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
 		DL_DELETE(enabled_devs[CRAS_STREAM_OUTPUT], edev);
@@ -2363,6 +2364,10 @@ void cras_iodev_list_reset()
 	DL_FOREACH (enabled_devs[CRAS_STREAM_INPUT], edev) {
 		DL_DELETE(enabled_devs[CRAS_STREAM_INPUT], edev);
 		free(edev);
+	}
+	DL_FOREACH (floop_pair_list, fpair) {
+		DL_DELETE(floop_pair_list, fpair);
+		cras_iodev_list_disable_floop_pair(fpair);
 	}
 	enabled_devs[CRAS_STREAM_INPUT] = NULL;
 	devs[CRAS_STREAM_OUTPUT].iodevs = NULL;
