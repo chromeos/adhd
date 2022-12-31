@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("//:utils.bzl", "require_no_config")
 load("@rules_rust//rust:defs.bzl", "rust_static_library", "rust_test")
 
 cc_library(
@@ -31,10 +32,7 @@ cc_library(
 rust_static_library(
     name = "lib",
     srcs = glob(include = ["src/*.rs"]),
-    target_compatible_with = select({
-        "//:system_cras_rust_build": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
     deps = [
         "@crate_index//:libc",
     ],
@@ -43,8 +41,5 @@ rust_static_library(
 rust_test(
     name = "test",
     crate = ":lib",
-    target_compatible_with = select({
-        "//:system_cras_rust_build": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
 )

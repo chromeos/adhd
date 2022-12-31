@@ -25,3 +25,17 @@ def define_feature(condition, define):
         condition: ["{}=1".format(define)],
         "//conditions:default": ["{}=0".format(define)],
     })
+
+def require_config(label):
+    """Returns a select() to require a config_setting for a target."""
+    return select({
+        label: [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    })
+
+def require_no_config(label):
+    """Returns a select() to require a config_setting to be not set for a target."""
+    return select({
+        label: ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    })

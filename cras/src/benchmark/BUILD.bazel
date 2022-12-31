@@ -1,6 +1,7 @@
 # Copyright 2021 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+load("//:utils.bzl", "require_config")
 
 cc_binary(
     name = "cras_bench",
@@ -41,10 +42,7 @@ cc_library(
 cc_library(
     name = "am_benchmark",
     srcs = ["am_benchmark.cc"],
-    target_compatible_with = select({
-        "//:ml_build": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
+    target_compatible_with = require_config("//:ml_build"),
     deps = [
         ":benchmark_util",
         "//src/dsp:am",
@@ -61,10 +59,7 @@ cc_library(
     linkopts = [
         "-lwebrtc_apm",
     ],
-    target_compatible_with = select({
-        "//:apm_build": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
+    target_compatible_with = require_config("//:apm_build"),
     deps = [
         ":benchmark_util",
         "//src/dsp:dsp_util",
@@ -82,10 +77,7 @@ cc_library(
         "-lasound",
         "-lcros_config",
     ],
-    target_compatible_with = select({
-        "//:hw_dependency_build": [],
-        "//conditions:default": ["@platforms//:incompatible"],
-    }),
+    target_compatible_with = require_config("//:hw_dependency_build"),
     deps = [
         ":benchmark_util",
         "//src/libcras:cras_client",
