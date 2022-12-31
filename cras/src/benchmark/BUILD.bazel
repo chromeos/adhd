@@ -13,7 +13,7 @@ cc_binary(
         "//:apm_build": [":apm_benchmark"],
         "//conditions:default": [],
     }) + select({
-        "//:hw_dependent_build": ["alsa_benchmark"],
+        "//:hw_dependency_build": ["alsa_benchmark"],
         "//conditions:default": [],
     }) + select({
         "//:ml_build": ["am_benchmark"],
@@ -83,7 +83,7 @@ cc_library(
         "-lcros_config",
     ],
     target_compatible_with = select({
-        "//:hw_dependent_build": [],
+        "//:hw_dependency_build": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
     deps = [
@@ -94,10 +94,10 @@ cc_library(
         "//src/server:cras_mix",
         "@com_github_google_benchmark//:benchmark",
     ] + select({
-        # Guard pkg_config behind hw_dependent_build so bazel does not attempt
+        # Guard pkg_config behind hw_dependency_build so bazel does not attempt
         # to run pkg-config in the analysis phase for platforms missing the
         # dependencies.
-        "//:hw_dependent_build": [
+        "//:hw_dependency_build": [
             "@libchrome",
             "@libcros_config",
         ],
