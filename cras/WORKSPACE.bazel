@@ -60,6 +60,11 @@ pkg_config_repository(
     libs = ["tensorflowlite"],
 )
 
+pkg_config_repository(
+    name = "libwebrtc_apm",
+    libs = ["libwebrtc_apm"],
+)
+
 # mandatory pkg_config libraries
 pkg_config_repository(
     name = "pkg_config",

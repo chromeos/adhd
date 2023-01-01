@@ -166,6 +166,27 @@ cc_library(
 )
 
 cc_library(
+    name = "ewma_power",
+    srcs = ["ewma_power.c"],
+    hdrs = ["ewma_power.h"],
+    includes = ["."],
+    deps = [
+        ":cras_audio_area",
+    ],
+)
+
+cc_library(
+    name = "cras_audio_area",
+    srcs = ["cras_audio_area.c"],
+    hdrs = ["cras_audio_area.h"],
+    includes = ["."],
+    deps = [
+        ":cras_mix",
+        "//src/common",
+    ],
+)
+
+cc_library(
     name = "dsp_types",
     hdrs = [
         "cras_dsp_ini.h",
@@ -210,8 +231,6 @@ cc_library(
         "cras_alsa_mixer.c",
         "cras_alsa_mixer.h",
         "cras_alsa_plugin_io.c",
-        "cras_audio_area.c",
-        "cras_audio_area.h",
         "cras_audio_thread_monitor.c",
         "cras_audio_thread_monitor.h",
         "cras_bt_adapter.c",
@@ -333,8 +352,6 @@ cc_library(
         "cras_sr_bt_util.c",
         "cras_sr_bt_util.h",
         "cras_sr_stub.c",
-        "cras_stream_apm.h",
-        "cras_stream_apm_noop.c",
         "cras_system_state.c",
         "cras_system_state.h",
         "cras_telephony.c",
@@ -351,8 +368,6 @@ cc_library(
         "dev_io.h",
         "dev_stream.c",
         "dev_stream.h",
-        "ewma_power.c",
-        "ewma_power.h",
         "float_buffer.h",
         "input_data.c",
         "input_data.h",
@@ -377,8 +392,11 @@ cc_library(
     ],
     deps = [
         ":cras_alsa_ucm",
+        ":cras_apm",
+        ":cras_audio_area",
         ":cras_mix",
         ":dsp_types",
+        ":ewma_power",
         "//src/common",
         "//src/dsp",
         "//src/plc",
@@ -389,6 +407,34 @@ cc_library(
         "@pkg_config//:libudev",
         "@pkg_config//:speexdsp",
     ],
+)
+
+cc_library(
+    name = "cras_apm",
+    srcs = select({
+        "//:apm_build": [
+            "cras_stream_apm.c",
+            "cras_apm_reverse.c",
+        ],
+        "//conditions:default": ["cras_stream_apm_noop.c"],
+    }) + [
+        "cras_iodev.h",
+        "cras_dsp.h",
+    ],
+    hdrs = [
+        "cras_stream_apm.h",
+        "float_buffer.h",
+    ],
+    deps = [
+        ":cras_audio_area",
+        ":dsp_types",
+        ":ewma_power",
+        "//src/common",
+        "//src/dsp",
+    ] + select({
+        "//conditions:default": [],
+        "//:apm_build": ["@libwebrtc_apm"],
+    }),
 )
 
 cc_binary(

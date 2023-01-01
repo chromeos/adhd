@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("//:utils.bzl", "require_config")
+
 cc_library(
     name = "test_support",
     defines = [
@@ -1625,6 +1627,45 @@ cc_test(
         "//src/common:all_headers",
         "//src/server:all_headers",
         "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "stream_apm_unittest",
+    srcs = [
+        "stream_apm_unittest.cc",
+        "//src/common:cras_string.c",
+        "//src/server:cras_speak_on_mute_detector_stub.c",
+        "//src/server:cras_stream_apm.c",
+    ],
+    target_compatible_with = require_config("//:apm_build"),
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/dsp:all_headers",
+        "//src/server:all_headers",
+        "@iniparser",
+        "@libwebrtc_apm",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "apm_reverse_unittest",
+    srcs = [
+        "apm_reverse_unittest.cc",
+        "//src/server:cras_apm_reverse.c",
+    ],
+    target_compatible_with = require_config("//:apm_build"),
+    deps = [
+        ":test_support",
+        "//src/common:all_headers",
+        "//src/dsp:all_headers",
+        "//src/server:all_headers",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
     ],
