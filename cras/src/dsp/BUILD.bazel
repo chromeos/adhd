@@ -11,6 +11,7 @@ cc_library(
     includes = ["."],
     target_compatible_with = require_config("//:ml_build"),
     visibility = [
+        ":__subpackages__",
         "//src/benchmark:__pkg__",
         "//src/server:__pkg__",
     ],
@@ -39,7 +40,10 @@ cc_library(
         "quad_rotation.h",
     ],
     includes = ["."],
-    visibility = ["//src/server:__pkg__"],
+    visibility = [
+        ":__subpackages__",
+        "//src/server:__pkg__",
+    ],
     deps = [
         ":drc",
         ":drc_math",

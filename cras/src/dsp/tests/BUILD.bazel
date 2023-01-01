@@ -2,6 +2,108 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("//:utils.bzl", "require_config")
+
+cc_library(
+    name = "dsp_test_util",
+    srcs = ["dsp_test_util.c"],
+    hdrs = ["dsp_test_util.h"],
+)
+
+cc_library(
+    name = "raw",
+    srcs = ["raw.c"],
+    hdrs = ["raw.h"],
+)
+
+cc_binary(
+    name = "crossover_test",
+    srcs = ["crossover_test.c"],
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//src/dsp",
+    ],
+)
+
+cc_binary(
+    name = "crossover2_test",
+    srcs = ["crossover2_test.c"],
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//src/dsp",
+    ],
+)
+
+cc_binary(
+    name = "dcblock_test",
+    srcs = ["dcblock_test.c"],
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//src/dsp",
+    ],
+)
+
+cc_binary(
+    name = "drc_test",
+    srcs = ["drc_test.c"],
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//src/dsp",
+    ],
+)
+
+cc_binary(
+    name = "dsp_util_test",
+    srcs = ["dsp_util_test.c"],
+    deps = [
+        "//src/dsp",
+    ],
+)
+
+cc_binary(
+    name = "eq_test",
+    srcs = ["eq_test.c"],
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//src/dsp",
+    ],
+)
+
+cc_binary(
+    name = "eq2_test",
+    srcs = ["eq2_test.c"],
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//src/dsp",
+    ],
+)
+
+cc_binary(
+    name = "cmpraw",
+    srcs = ["cmpraw.c"],
+    deps = [
+        ":raw",
+    ],
+)
+
+cc_binary(
+    name = "am_test",
+    srcs = ["am_test.c"],
+    target_compatible_with = require_config("//:ml_build"),
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//src/dsp:am",
+        "//src/server:cras_fmt_conv_ops",
+    ],
+)
+
 # Allow tests to not specify all headers.
 cc_library(
     name = "all_headers",
