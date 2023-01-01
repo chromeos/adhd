@@ -55,6 +55,7 @@ cc_library(
     ],
     visibility = [
         "//src/libcras:__pkg__",
+        "//src/server:__pkg__",
     ],
 )
 
@@ -225,8 +226,12 @@ cc_library(
         ":cras_types",
         ":cras_util",
         ":utlist",
+        "//src/server:cras_observer_types",
         "@pkg_config//:sbc",
-    ],
+    ] + select({
+        "//:metrics_build": ["@libmetrics"],
+        "//conditions:default": [],
+    }),
 )
 
 filegroup(

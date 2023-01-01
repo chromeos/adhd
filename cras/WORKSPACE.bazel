@@ -75,6 +75,11 @@ pkg_config_repository(
     libs = ["libselinux"],
 )
 
+pkg_config_repository(
+    name = "libmetrics",
+    libs = ["libmetrics"],
+)
+
 # mandatory pkg_config libraries
 pkg_config_repository(
     name = "pkg_config",

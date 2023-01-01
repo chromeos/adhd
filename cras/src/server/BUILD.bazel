@@ -258,6 +258,18 @@ cc_library(
 )
 
 cc_library(
+    name = "cras_observer_types",
+    hdrs = [
+        "cras_observer.h",
+    ],
+    includes = ["."],
+    visibility = ["//src/common:__pkg__"],
+    deps = [
+        "//src/common:cras_observer_ops",
+    ],
+)
+
+cc_library(
     name = "libcrasserver",
     srcs = [
         "audio_thread.c",
