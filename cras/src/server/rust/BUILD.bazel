@@ -19,6 +19,7 @@ cc_library(
             ":lib",
         ],
     }),
+    # TODO: Enable "cras_dlc" crate based on //:dlc_build
 )
 
 cc_library(

@@ -187,6 +187,15 @@ cc_library(
 )
 
 cc_library(
+    name = "cras_dlc",
+    srcs = select({
+        "//:dlc_build": [],
+        "//conditions:default": ["cras_dlc_stub.c"],
+    }),
+    deps = ["//src/server/rust"],
+)
+
+cc_library(
     name = "dsp_types",
     hdrs = [
         "cras_dsp_ini.h",
@@ -267,7 +276,6 @@ cc_library(
         "cras_dbus_util.h",
         "cras_device_monitor.c",
         "cras_device_monitor.h",
-        "cras_dlc_stub.c",
         "cras_dsp.c",
         "cras_dsp.h",
         "cras_dsp_ini.c",
@@ -394,6 +402,7 @@ cc_library(
         ":cras_alsa_ucm",
         ":cras_apm",
         ":cras_audio_area",
+        ":cras_dlc",
         ":cras_mix",
         ":dsp_types",
         ":ewma_power",
