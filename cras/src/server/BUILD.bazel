@@ -196,6 +196,19 @@ cc_library(
 )
 
 cc_library(
+    name = "cras_featured",
+    srcs = select({
+        "//:featured_build": ["cras_featured.c"],
+        "//conditions:default": ["cras_featured_stub.c"],
+    }),
+    hdrs = ["cras_featured.h"],
+    deps = select({
+        "//:featured_build": ["@libfeatures_c"],
+        "//conditions:default": [],
+    }),
+)
+
+cc_library(
     name = "dsp_types",
     hdrs = [
         "cras_dsp_ini.h",
@@ -289,8 +302,6 @@ cc_library(
         "cras_empty_iodev.h",
         "cras_expr.c",
         "cras_expr.h",
-        "cras_featured.h",
-        "cras_featured_stub.c",
         "cras_fl_manager.c",
         "cras_fl_manager.h",
         "cras_fl_media.c",
@@ -403,6 +414,7 @@ cc_library(
         ":cras_apm",
         ":cras_audio_area",
         ":cras_dlc",
+        ":cras_featured",
         ":cras_mix",
         ":dsp_types",
         ":ewma_power",

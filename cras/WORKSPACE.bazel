@@ -65,6 +65,11 @@ pkg_config_repository(
     libs = ["libwebrtc_apm"],
 )
 
+pkg_config_repository(
+    name = "libfeatures_c",
+    libs = ["libfeatures_c"],
+)
+
 # mandatory pkg_config libraries
 pkg_config_repository(
     name = "pkg_config",

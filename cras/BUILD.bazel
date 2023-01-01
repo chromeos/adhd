@@ -41,6 +41,11 @@ bool_flag_config(
 )
 
 bool_flag_config(
+    name = "featured",
+    build_setting_default = False,
+)
+
+bool_flag_config(
     name = "system_cras_rust",
     build_setting_default = False,
 )
