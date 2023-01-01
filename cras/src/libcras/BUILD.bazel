@@ -26,6 +26,7 @@ cc_library(
         "//src/common:cras_file_wait",
         "//src/common:cras_messages",
         "//src/common:cras_observer_ops",
+        "//src/common:cras_selinux_helper",
         "//src/common:cras_shm",
         "//src/common:cras_string",
         "//src/common:cras_types",
@@ -41,10 +42,13 @@ cras_shared_library(
     roots = [":cras_client"],
     static_deps = [
         "@//:__subpackages__",
-        # Despite that we list alsa in static_deps, alsa would be linked
+        # Despite that we list external deps in static_deps, they are linked
         # dynamically because pkg_config does not provide object files.
         "@pkg_config//:alsa",
-    ],
+    ] + select({
+        "//:selinux_build": ["@libselinux//:libselinux"],
+        "//conditions:default": [],
+    }),
     visibility = [
         "//dist:__pkg__",
         "//src/alsa_plugin:__pkg__",

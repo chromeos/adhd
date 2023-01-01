@@ -1369,6 +1369,7 @@ cc_test(
         ":metrics_stub.cc",
         ":metrics_stub.h",
         ":rstream_unittest.cc",
+        "//src/common:cras_selinux_helper_stub.c",
         "//src/common:cras_shm.c",
         "//src/common:cras_string.c",
         "//src/server:cras_rstream.c",
@@ -1522,6 +1523,7 @@ cc_test(
     name = "system_state_unittest",
     srcs = [
         ":system_state_unittest.cc",
+        "//src/common:cras_selinux_helper_stub.c",
         "//src/common:cras_shm.c",
         "//src/common:cras_string.c",
         "//src/server:cras_system_state.c",

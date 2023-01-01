@@ -70,6 +70,11 @@ pkg_config_repository(
     libs = ["libfeatures_c"],
 )
 
+pkg_config_repository(
+    name = "libselinux",
+    libs = ["libselinux"],
+)
+
 # mandatory pkg_config libraries
 pkg_config_repository(
     name = "pkg_config",

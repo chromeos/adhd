@@ -77,6 +77,23 @@ cc_library(
     ],
 )
 
+# Leave this one out of :cras_shm to allow unit tests to depend on cras_shm
+# but stub the selinux helper.
+cc_library(
+    name = "cras_selinux_helper",
+    srcs = select({
+        "//:selinux_build": ["cras_selinux_helper.c"],
+        "//conditions:default": ["cras_selinux_helper_stub.c"],
+    }),
+    visibility = [
+        "//src/libcras:__pkg__",
+    ],
+    deps = [":cras_shm"] + select({
+        "//:selinux_build": ["@libselinux"],
+        "//conditions:default": [],
+    }),
+)
+
 cc_library(
     name = "cras_string",
     srcs = [
@@ -202,6 +219,7 @@ cc_library(
     deps = [
         ":cras_config",
         ":cras_file_wait",
+        ":cras_selinux_helper",
         ":cras_shm",
         ":cras_string",
         ":cras_types",
