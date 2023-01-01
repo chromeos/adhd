@@ -1670,3 +1670,24 @@ cc_test(
         "@pkg_config//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "cras_sr_unittest",
+    srcs = [
+        "am_mock.c",
+        "cras_sr_unittest.cc",
+        "//src/server:cras_fmt_conv_ops.c",
+        "//src/server:cras_sr.c",
+    ],
+    target_compatible_with = require_config("//:ml_build"),
+    deps = [
+        ":test_support",
+        "//src:include_here_hack",
+        "//src/common:all_headers",
+        "//src/dsp:all_headers",
+        "//src/server:all_headers",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
+        "@pkg_config//:speexdsp",
+    ],
+)

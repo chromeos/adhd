@@ -10,7 +10,10 @@ cc_library(
     hdrs = ["am.h"],
     includes = ["."],
     target_compatible_with = require_config("//:ml_build"),
-    visibility = ["//src/benchmark:__pkg__"],
+    visibility = [
+        "//src/benchmark:__pkg__",
+        "//src/server:__pkg__",
+    ],
     deps = select({
         "//:ml_build": ["@tensorflowlite"],
         "//conditions:default": [],

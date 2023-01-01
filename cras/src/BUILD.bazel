@@ -1,0 +1,13 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# TODO: Remove #include "dsp/am.h" then remove this.
+cc_library(
+    name = "include_here_hack",
+    includes = ["."],
+    visibility = [
+        "//src/server:__pkg__",
+        "//src/tests:__pkg__",
+    ],
+)

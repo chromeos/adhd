@@ -209,6 +209,40 @@ cc_library(
 )
 
 cc_library(
+    name = "cras_sr",
+    srcs = select({
+        "//:ml_build": [
+            "cras_sr.c",
+            "cras_sr_bt_adapters.c",
+            "cras_sr_bt_util.c",
+        ],
+        "//conditions:default": [
+            "cras_sr_stub.c",
+            "cras_sr_bt_adapters_stub.c",
+            "cras_sr_bt_util_stub.c",
+        ],
+    }),
+    hdrs = [
+        "cras_dsp.h",
+        "cras_iodev.h",
+        "cras_sr.h",
+        "cras_sr_bt_adapters.h",
+        "cras_sr_bt_util.h",
+    ],
+    deps = [
+        ":cras_dlc",
+        ":cras_audio_area",
+        ":dsp_types",
+        ":ewma_power",
+        "//src:include_here_hack",
+        "//src/common",
+    ] + select({
+        "//:ml_build": ["//src/dsp:am"],
+        "//conditions:default": [],
+    }),
+)
+
+cc_library(
     name = "dsp_types",
     hdrs = [
         "cras_dsp_ini.h",
@@ -365,12 +399,6 @@ cc_library(
         "cras_server_metrics.h",
         "cras_speak_on_mute_detector.c",
         "cras_speak_on_mute_detector.h",
-        "cras_sr.h",
-        "cras_sr_bt_adapters.c",
-        "cras_sr_bt_adapters.h",
-        "cras_sr_bt_util.c",
-        "cras_sr_bt_util.h",
-        "cras_sr_stub.c",
         "cras_system_state.c",
         "cras_system_state.h",
         "cras_telephony.c",
@@ -416,6 +444,7 @@ cc_library(
         ":cras_dlc",
         ":cras_featured",
         ":cras_mix",
+        ":cras_sr",
         ":dsp_types",
         ":ewma_power",
         "//src/common",
