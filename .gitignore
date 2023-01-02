@@ -2,3 +2,5 @@ build
 cscope.*
 __pycache__/
 compile_commands.json
+.vscode
+*.code-workspace
