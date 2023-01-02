@@ -11,23 +11,29 @@ package(
 cc_binary(
     name = "cras_rclient_message_fuzzer",
     srcs = ["rclient_message.cc"],
-    linkopts = ["-fsanitize=fuzzer"],
     target_compatible_with = require_config("//:fuzzer_build"),
-    deps = ["//src/server:libcrasserver"],
+    deps = [
+        "//src/server:libcrasserver",
+        "@fuzz_engine",
+    ],
 )
 
 cc_binary(
     name = "cras_hfp_slc_fuzzer",
     srcs = ["cras_hfp_slc.cc"],
-    linkopts = ["-fsanitize=fuzzer"],
     target_compatible_with = require_config("//:fuzzer_build"),
-    deps = ["//src/server:libcrasserver"],
+    deps = [
+        "//src/server:libcrasserver",
+        "@fuzz_engine",
+    ],
 )
 
 cc_binary(
     name = "cras_fl_media_fuzzer",
     srcs = ["cras_fl_media_fuzzer.cc"],
-    linkopts = ["-fsanitize=fuzzer"],
     target_compatible_with = require_config("//:fuzzer_build"),
-    deps = ["//src/server:libcrasserver"],
+    deps = [
+        "//src/server:libcrasserver",
+        "@fuzz_engine",
+    ],
 )

@@ -67,6 +67,7 @@ cc_library(
     hdrs = [
         "cras_shm.h",
     ],
+    linkopts = ["-lrt"],
     visibility = [
         "//src/libcras:__pkg__",
     ],

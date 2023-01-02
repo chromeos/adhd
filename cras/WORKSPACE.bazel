@@ -94,6 +94,10 @@ pkg_config_repository(
     ],
 )
 
+load(":fuzz_engine.bzl", "fuzz_engine_repository")
+
+fuzz_engine_repository(name = "fuzz_engine")
+
 #
 # Rust dependencies
 #

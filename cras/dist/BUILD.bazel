@@ -66,26 +66,26 @@ filegroup(
 py_binary(
     name = "dist",
     srcs = ["dist.py"],
-    args = [
-        "--_bin_files $(locations :bin)",
-        "--_extra_bin_files $(locations :extra_bin)",
-        "--_include_files $(locations :include)",
-        "--_lib_files $(locations :lib)",
-        "--_alsa_lib_files $(locations :alsa_lib)",
-        "--_pkgconfig_files $(locations :pkgconfig)",
-    ] + select({
+    args = select({
         "//:fuzzer_build": ["--_fuzzer_files $(locations :fuzzer)"],
-        "//conditions:default": [],
+        "//conditions:default": [
+            "--_bin_files $(locations :bin)",
+            "--_extra_bin_files $(locations :extra_bin)",
+            "--_include_files $(locations :include)",
+            "--_lib_files $(locations :lib)",
+            "--_alsa_lib_files $(locations :alsa_lib)",
+            "--_pkgconfig_files $(locations :pkgconfig)",
+        ],
     }) + ["--"],
-    data = [
-        ":alsa_lib",
-        ":bin",
-        ":extra_bin",
-        ":include",
-        ":lib",
-        ":pkgconfig",
-    ] + select({
+    data = select({
         "//:fuzzer_build": [":fuzzer"],
-        "//conditions:default": [],
+        "//conditions:default": [
+            ":alsa_lib",
+            ":bin",
+            ":extra_bin",
+            ":include",
+            ":lib",
+            ":pkgconfig",
+        ],
     }),
 )

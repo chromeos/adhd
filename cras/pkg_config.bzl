@@ -33,6 +33,17 @@ def _pkg_config_library_entry(name, hdrs_globs, defines, includes, linkopts):
         linkopts = "\n".join(["        \"{}\",".format(opt) for opt in linkopts]),
     )
 
+def _maybe_fixup_lib_for_oss_fuzz(linkopt, oss_fuzz_static):
+    """Try to use static libs for oss-fuzz."""
+    if not oss_fuzz_static:
+        return linkopt
+    if not linkopt.startswith("-l"):
+        return linkopt
+    if linkopt == "-ludev":
+        # static udev is not available
+        return linkopt
+    return "-l:lib{}.a".format(linkopt[2:])
+
 def _pkg_config(repository_ctx, library):
     pkg_config = repository_ctx.os.environ.get("PKG_CONFIG", default = "pkg-config").split(" ")
     cmd = pkg_config + ["--cflags", "--libs", library]
@@ -43,6 +54,8 @@ def _pkg_config(repository_ctx, library):
         fail("""{cmd} failure (code {return_code});
 {stderr}""".format(cmd = " ".join([str(s) for s in cmd]), return_code = result.return_code, stderr = result.stderr))
 
+    oss_fuzz_static = repository_ctx.os.environ.get("OSS_FUZZ_STATIC_PKG_CONFIG_DEPS")
+
     defines = []
     includes = []
     linkopts = []
@@ -51,8 +64,8 @@ def _pkg_config(repository_ctx, library):
             defines.append(flag[2:])
         elif flag.startswith("-I"):
             includes.append(flag[2:])
-        elif flag:
-            linkopts.append(flag)
+        else:
+            linkopts.append(_maybe_fixup_lib_for_oss_fuzz(flag, oss_fuzz_static))
 
     return struct(
         defines = defines,
@@ -127,7 +140,7 @@ def _pkg_config_repository_impl(repository_ctx):
 pkg_config_repository = repository_rule(
     implementation = _pkg_config_repository_impl,
     attrs = _pkg_config_repository_attrs,
-    environ = ["PKG_CONFIG"],
+    environ = ["PKG_CONFIG", "OSS_FUZZ_STATIC_PKG_CONFIG_DEPS"],
     doc =
         """Makes pkg-config-enabled libraries available for binding.
 
