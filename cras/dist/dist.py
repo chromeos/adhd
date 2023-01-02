@@ -7,13 +7,23 @@ import os
 import shutil
 
 
-def run(*, prefix, _bin_files, _extra_bin_files, _include_files, _lib_files, _alsa_lib_files):
+def run(
+    *,
+    prefix,
+    _bin_files,
+    _extra_bin_files,
+    _include_files,
+    _lib_files,
+    _alsa_lib_files,
+    _pkgconfig_files,
+):
     for name, paths in [
         ('bin', _bin_files),
         ('extra_bin', _extra_bin_files),
         ('include', _include_files),
         ('lib', _lib_files),
         ('alsa-lib', _alsa_lib_files),
+        ('pkgconfig', _pkgconfig_files),
     ]:
         dir = os.path.join(prefix, name)
         print(f'Destination: {dir!r}')
@@ -42,6 +52,7 @@ def main():
     parser.add_argument('--_include_files', nargs='+', default=())
     parser.add_argument('--_lib_files', nargs='+', default=())
     parser.add_argument('--_alsa_lib_files', nargs='+', default=())
+    parser.add_argument('--_pkgconfig_files', nargs='+', default=())
     parser.add_argument('prefix', help='absolute path to copy files to', type=abspath)
 
     run(**vars(parser.parse_args()))

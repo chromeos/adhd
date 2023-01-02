@@ -47,6 +47,13 @@ filegroup(
     ],
 )
 
+filegroup(
+    name = "pkgconfig",
+    srcs = [
+        "//:libcras.pc",
+    ],
+)
+
 py_binary(
     name = "dist",
     srcs = ["dist.py"],
@@ -56,6 +63,7 @@ py_binary(
         "--_include_files $(locations :include)",
         "--_lib_files $(locations :lib)",
         "--_alsa_lib_files $(locations :alsa_lib)",
+        "--_pkgconfig_files $(locations :pkgconfig)",
         "--",
     ],
     data = [
@@ -64,5 +72,6 @@ py_binary(
         ":extra_bin",
         ":include",
         ":lib",
+        ":pkgconfig",
     ],
 )

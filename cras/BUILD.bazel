@@ -2,8 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 load("//:utils.bzl", "bool_flag_config", "define_feature")
+load("//:pkg_config.bzl", "generate_pc")
 
 package(default_visibility = [":__subpackages__"])
+
+generate_pc(
+    name = "libcras.pc",
+    src = "libcras.pc.in",
+)
 
 bool_flag_config(
     name = "apm",
