@@ -1,0 +1,33 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("//:utils.bzl", "require_config")
+
+package(
+    default_visibility = ["//dist:__pkg__"],
+)
+
+cc_binary(
+    name = "cras_rclient_message_fuzzer",
+    srcs = ["rclient_message.cc"],
+    linkopts = ["-fsanitize=fuzzer"],
+    target_compatible_with = require_config("//:fuzzer_build"),
+    deps = ["//src/server:libcrasserver"],
+)
+
+cc_binary(
+    name = "cras_hfp_slc_fuzzer",
+    srcs = ["cras_hfp_slc.cc"],
+    linkopts = ["-fsanitize=fuzzer"],
+    target_compatible_with = require_config("//:fuzzer_build"),
+    deps = ["//src/server:libcrasserver"],
+)
+
+cc_binary(
+    name = "cras_fl_media_fuzzer",
+    srcs = ["cras_fl_media_fuzzer.cc"],
+    linkopts = ["-fsanitize=fuzzer"],
+    target_compatible_with = require_config("//:fuzzer_build"),
+    deps = ["//src/server:libcrasserver"],
+)

@@ -15,6 +15,7 @@ def run(
     _include_files,
     _lib_files,
     _alsa_lib_files,
+    _fuzzer_files,
     _pkgconfig_files,
 ):
     for name, paths in [
@@ -23,6 +24,7 @@ def run(
         ('include', _include_files),
         ('lib', _lib_files),
         ('alsa-lib', _alsa_lib_files),
+        ('fuzzer', _fuzzer_files),
         ('pkgconfig', _pkgconfig_files),
     ]:
         dir = os.path.join(prefix, name)
@@ -52,6 +54,7 @@ def main():
     parser.add_argument('--_include_files', nargs='+', default=())
     parser.add_argument('--_lib_files', nargs='+', default=())
     parser.add_argument('--_alsa_lib_files', nargs='+', default=())
+    parser.add_argument('--_fuzzer_files', nargs='+', default=())
     parser.add_argument('--_pkgconfig_files', nargs='+', default=())
     parser.add_argument('prefix', help='absolute path to copy files to', type=abspath)
 

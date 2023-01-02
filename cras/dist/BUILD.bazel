@@ -54,6 +54,15 @@ filegroup(
     ],
 )
 
+filegroup(
+    name = "fuzzer",
+    srcs = [
+        "//src/fuzz:cras_fl_media_fuzzer",
+        "//src/fuzz:cras_hfp_slc_fuzzer",
+        "//src/fuzz:cras_rclient_message_fuzzer",
+    ],
+)
+
 py_binary(
     name = "dist",
     srcs = ["dist.py"],
@@ -64,8 +73,10 @@ py_binary(
         "--_lib_files $(locations :lib)",
         "--_alsa_lib_files $(locations :alsa_lib)",
         "--_pkgconfig_files $(locations :pkgconfig)",
-        "--",
-    ],
+    ] + select({
+        "//:fuzzer_build": ["--_fuzzer_files $(locations :fuzzer)"],
+        "//conditions:default": [],
+    }) + ["--"],
     data = [
         ":alsa_lib",
         ":bin",
@@ -73,5 +84,8 @@ py_binary(
         ":include",
         ":lib",
         ":pkgconfig",
-    ],
+    ] + select({
+        "//:fuzzer_build": [":fuzzer"],
+        "//conditions:default": [],
+    }),
 )

@@ -456,6 +456,7 @@ cc_library(
         "cras_alsa_plugin_io.h",
         "cras_bt_manager.h",
     ],
+    visibility = ["//src/fuzz:__pkg__"],
     deps = [
         ":cras_alsa_ucm",
         ":cras_apm",
