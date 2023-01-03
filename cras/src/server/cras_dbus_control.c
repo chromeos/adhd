@@ -1271,6 +1271,15 @@ static DBusHandlerResult handle_is_internal_card_detected(DBusConnection *conn,
 	return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static inline DBusHandlerResult
+handle_get_number_of_non_chrome_output_streams(DBusConnection *conn,
+					       DBusMessage *message, void *arg)
+{
+	return send_int32_reply(
+		conn, message,
+		cras_system_state_num_non_chrome_output_streams());
+}
+
 /* Handle incoming messages. */
 static DBusHandlerResult handle_control_message(DBusConnection *conn,
 						DBusMessage *message, void *arg)
@@ -1457,6 +1466,11 @@ static DBusHandlerResult handle_control_message(DBusConnection *conn,
 					       "SpeakOnMuteDetectionEnabled")) {
 		return handle_speak_on_mute_detection_enabled(conn, message,
 							      arg);
+	} else if (dbus_message_is_method_call(
+			   message, CRAS_CONTROL_INTERFACE,
+			   "GetNumberOfNonChromeOutputStreams")) {
+		return handle_get_number_of_non_chrome_output_streams(
+			conn, message, arg);
 	}
 
 	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

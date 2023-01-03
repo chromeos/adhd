@@ -430,4 +430,7 @@ void cras_system_state_set_speak_on_mute_detection(bool enabled);
 /* Get whether speak on mute detection is enabled */
 bool cras_system_state_get_speak_on_mute_detection_enabled();
 
+/* Get number of non-Chrome output streams */
+int cras_system_state_num_non_chrome_output_streams();
+
 #endif /* CRAS_SYSTEM_STATE_H_ */

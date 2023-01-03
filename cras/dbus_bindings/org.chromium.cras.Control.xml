@@ -424,6 +424,14 @@
       <arg name="detected" type="b" direction="out"/>
     </method>
 
+    <method name="GetNumberOfNonChromeOutputStreams">
+      <tp:docstring>
+        Returns the number of active output streams,
+        excluding those from Chrome and LaCrOS.
+      </tp:docstring>
+      <arg name="num_non_chrome_output_streams" type="i" direction="out"></arg>
+    </method>
+
     <signal name="OutputVolumeChanged">
       <tp:docstring>
         Indicates that the output volume level has changed.

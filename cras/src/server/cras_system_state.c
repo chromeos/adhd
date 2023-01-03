@@ -904,3 +904,8 @@ bool cras_system_state_get_speak_on_mute_detection_enabled()
 {
 	return state.speak_on_mute_detection_enabled;
 }
+
+int cras_system_state_num_non_chrome_output_streams()
+{
+	return state.exp_state->num_non_chrome_output_streams;
+}
