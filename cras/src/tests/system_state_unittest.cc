@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <unordered_map>
+
 extern "C" {
 #include "cras_alert.h"
 #include "cras_board_config.h"
@@ -16,8 +18,10 @@ extern "C" {
 #include "cras_types.h"
 }
 
+#define SND_MAX_CARDS 32
+
 namespace {
-static struct cras_alsa_card* kFakeAlsaCard;
+static struct cras_alsa_card* kFakeAlsaCards[SND_MAX_CARDS];
 size_t cras_alsa_card_create_called;
 size_t cras_alsa_card_destroy_called;
 static size_t add_stub_called;
@@ -46,13 +50,18 @@ static size_t cras_iodev_list_reset_for_noise_cancellation_called;
 static size_t cras_feature_tier_init_called;
 static struct cras_board_config fake_board_config;
 static size_t cras_alert_process_all_pending_alerts_called;
-static CRAS_ALSA_CARD_TYPE cras_alsa_card_type;
+static size_t cras_alsa_card_get_type_called;
+std::unordered_map<const cras_alsa_card*, enum CRAS_ALSA_CARD_TYPE>
+    card_type_map;
+std::unordered_map<const cras_alsa_card*, int> card_index_map;
 static cras_feature_tier fake_tier = {};
 
 static void ResetStubData() {
   cras_alsa_card_create_called = 0;
   cras_alsa_card_destroy_called = 0;
-  kFakeAlsaCard = reinterpret_cast<struct cras_alsa_card*>(0x33);
+  for (int i = 0; i < SND_MAX_CARDS; i++) {
+    kFakeAlsaCards[i] = reinterpret_cast<struct cras_alsa_card*>(0x33 + i);
+  }
   add_stub_called = 0;
   rm_stub_called = 0;
   add_task_stub_called = 0;
@@ -71,7 +80,9 @@ static void ResetStubData() {
   cras_observer_notify_input_streams_with_permission_called = 0;
   cras_alert_process_all_pending_alerts_called = 0;
   cras_iodev_list_reset_for_noise_cancellation_called = 0;
-  cras_alsa_card_type = ALSA_CARD_TYPE_USB;
+  cras_alsa_card_get_type_called = 0;
+  card_type_map.clear();
+  card_index_map.clear();
   cras_feature_tier_init_called = 0;
   memset(&fake_board_config, 0, sizeof(fake_board_config));
   fake_tier = {};
@@ -301,7 +312,7 @@ TEST(SystemStateSuite, Suspend) {
 
 TEST(SystemStateSuite, AddCardFailCreate) {
   ResetStubData();
-  kFakeAlsaCard = NULL;
+  kFakeAlsaCards[0] = NULL;
   cras_alsa_card_info info;
 
   info.card_type = ALSA_CARD_TYPE_INTERNAL;
@@ -497,7 +508,6 @@ TEST(SystemStateSuite, InternalCardDetectdNoCard) {
 
 TEST(SystemStateSuite, InternalCardDetectdUSBCardOnly) {
   ResetStubData();
-  kFakeAlsaCard = NULL;
   cras_alsa_card_info info;
 
   info.card_type = ALSA_CARD_TYPE_USB;
@@ -544,6 +554,30 @@ TEST(SystemStateSuite, InternalCardDetectdHDMICardOnly) {
   cras_system_state_deinit();
 }
 
+TEST(SystemStateSuite, InternalCardDetectedMultipleCards) {
+  ResetStubData();
+  cras_alsa_card_info info;
+
+  info.card_type = ALSA_CARD_TYPE_INTERNAL;
+  info.card_index = 0;
+  do_sys_init();
+  EXPECT_EQ(0, cras_system_add_alsa_card(&info));
+  info.card_type = ALSA_CARD_TYPE_HDMI;
+  info.card_index = 1;
+  EXPECT_EQ(0, cras_system_add_alsa_card(&info));
+  info.card_type = ALSA_CARD_TYPE_USB;
+  info.card_index = 2;
+  EXPECT_EQ(0, cras_system_add_alsa_card(&info));
+
+  EXPECT_EQ(1, cras_system_state_internal_cards_detected());
+
+  // Remove the card, or the card stays in the state
+  cras_system_remove_alsa_card(0);
+  cras_system_remove_alsa_card(1);
+  cras_system_remove_alsa_card(2);
+  cras_system_state_deinit();
+}
+
 TEST(SystemFeatureTier, CrasFeatureTierInitCalled) {
   ResetStubData();
   do_sys_init();
@@ -581,11 +615,16 @@ struct cras_alsa_card* cras_alsa_card_create(
     struct cras_alsa_card_info* info,
     const char* device_config_dir,
     struct cras_device_blocklist* blocklist) {
-  cras_alsa_card_create_called++;
-  cras_alsa_card_config_dir = device_config_dir;
-  cras_alsa_card_type = info->card_type;
+  if (kFakeAlsaCards[cras_alsa_card_create_called]) {
+    card_type_map[kFakeAlsaCards[cras_alsa_card_create_called]] =
+        info->card_type;
+    card_index_map[kFakeAlsaCards[cras_alsa_card_create_called]] =
+        cras_alsa_card_create_called;
+  }
 
-  return kFakeAlsaCard;
+  cras_alsa_card_config_dir = device_config_dir;
+
+  return kFakeAlsaCards[cras_alsa_card_create_called++];
 }
 
 void cras_alsa_card_destroy(struct cras_alsa_card* alsa_card) {
@@ -593,11 +632,11 @@ void cras_alsa_card_destroy(struct cras_alsa_card* alsa_card) {
 }
 
 size_t cras_alsa_card_get_index(const struct cras_alsa_card* alsa_card) {
-  return 0;
+  return card_index_map[alsa_card];
 }
 enum CRAS_ALSA_CARD_TYPE cras_alsa_card_get_type(
     const struct cras_alsa_card* alsa_card) {
-  return cras_alsa_card_type;
+  return card_type_map[alsa_card];
 }
 
 struct cras_device_blocklist* cras_device_blocklist_create(
