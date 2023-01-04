@@ -39,3 +39,13 @@ bool get_hfp_mic_sr_feature_enabled()
 {
 	return get_feature_enabled(&AUDIO_HFP_MIC_SR);
 }
+
+const struct VariationsFeature FLEXIBLE_LOOPBACK = {
+	.name = "CrOSLateBootAudioFlexibleLoopback",
+	.default_state = FEATURE_DISABLED_BY_DEFAULT,
+};
+
+bool get_flexible_loopback_feature_enabled()
+{
+	return get_feature_enabled(&FLEXIBLE_LOOPBACK);
+}

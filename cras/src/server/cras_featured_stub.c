@@ -15,3 +15,8 @@ bool get_hfp_mic_sr_feature_enabled()
 {
 	return false;
 }
+
+bool get_flexible_loopback_feature_enabled()
+{
+	return false;
+}

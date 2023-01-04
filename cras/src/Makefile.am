@@ -1162,7 +1162,7 @@ feature_tier_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 feature_tier_unittest_LDADD = $(CRAS_RUST) $(GTEST_MAIN_LIBS)
 
 iodev_list_unittest_SOURCES = tests/iodev_list_unittest.cc common/strlcpy.c \
-	server/cras_speak_on_mute_detector_stub.c
+	server/cras_speak_on_mute_detector_stub.c server/cras_featured_stub.c
 iodev_list_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	 -I$(top_srcdir)/src/server
 iodev_list_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread

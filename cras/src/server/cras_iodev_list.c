@@ -6,6 +6,7 @@
 #include <syslog.h>
 
 #include "audio_thread.h"
+#include "cras_featured.h"
 #include "cras_empty_iodev.h"
 #include "cras_floop_iodev.h"
 #include "cras_iodev.h"
@@ -2401,6 +2402,10 @@ long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic)
 
 int cras_iodev_list_request_floop(const struct cras_floop_params *params)
 {
+	if (!get_flexible_loopback_feature_enabled()) {
+		return -ENOTSUP;
+	}
+
 	struct cras_floop_pair *fpair;
 	int count = 0;
 	DL_FOREACH (floop_pair_list, fpair) {
