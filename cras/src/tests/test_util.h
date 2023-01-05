@@ -5,18 +5,23 @@
 #ifndef TEST_UTIL_H_
 #define TEST_UTIL_H_
 
-#include <functional>
-
 #include <gtest/gtest.h>
 
-struct DeferHelper {
-  std::function<void()> dtor;
-  DeferHelper(std::function<void()> ctor, std::function<void()> dtor)
-      : dtor(dtor) {
+template <typename T>
+class DeferHelper {
+ public:
+  template <typename Ctor, typename Dtor>
+  DeferHelper(Ctor ctor, Dtor dtor) : dtor_(dtor) {
     ctor();
   }
-  ~DeferHelper() { dtor(); }
+  ~DeferHelper() { dtor_(); }
+
+ private:
+  T dtor_;
 };
+
+template <typename Ctor, typename Dtor>
+DeferHelper(Ctor, Dtor) -> DeferHelper<Dtor>;
 
 // Clear `val1` immediately
 // and run func(val1, val2) when leaving the local scope.
