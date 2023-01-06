@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include <stdio.h>
+#include "cras_types.h"
 
 extern "C" {
 #include "audio_thread_log.h"
@@ -2174,7 +2175,7 @@ TEST(IoDev, RequestReset) {
   EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
   EXPECT_EQ(2, device_monitor_reset_device_called);
 
-  int expected_call_cnt = 2;
+  unsigned int expected_call_cnt = 2;
 
   while (expected_call_cnt < MAX_IODEV_RESET_TRIES) {
     cras_iodev_open(&iodev, 240, &audio_fmt);
@@ -2205,7 +2206,7 @@ TEST(IoDev, RequestResetUnderHighVolume) {
   iodev_buffer_size = 1024;
 
   /* Use up all quota as quickly as possible. */
-  for (int i = 0; i < MAX_IODEV_RESET_TRIES; ++i) {
+  for (unsigned int i = 0; i < MAX_IODEV_RESET_TRIES; ++i) {
     cras_iodev_open(&iodev, 240, &audio_fmt);
     EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
     ASSERT_EQ(i + 1, device_monitor_reset_device_called);
@@ -2437,6 +2438,29 @@ TEST(IoDev, DropDeviceFramesByTime) {
   EXPECT_EQ(360, put_buffer_nframes);
   EXPECT_EQ(3, rate_estimator_add_frames_called);
   EXPECT_EQ(-360, rate_estimator_add_frames_num_frames);
+}
+
+TEST(IoDev, GetRateEstRatioUnderrun) {
+  struct cras_iodev iodev;
+  struct cras_audio_format fmt;
+
+  ResetStubData();
+
+  memset(&iodev, 0, sizeof(iodev));
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.configure_dev = configure_dev;
+  iodev.format = &fmt;
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.buffer_size = 480;
+  EXPECT_EQ(0, cras_iodev_open(&iodev, 240, &fmt));
+
+  rate_estimator_get_rate_ret = 24000.0;
+  EXPECT_EQ(0, cras_iodev_update_rate(&iodev, 0, nullptr));
+  EXPECT_EQ(cras_iodev_get_rate_est_underrun_ratio(&iodev), 0.5);
+  EXPECT_EQ(cras_iodev_get_est_rate_ratio(&iodev), 1.0);
 }
 
 TEST(IoDev, AecUseCaseCheck) {
@@ -2842,7 +2866,9 @@ int rate_estimator_check(struct rate_estimator* re,
   return 0;
 }
 
-void rate_estimator_reset_rate(struct rate_estimator* re, unsigned int rate) {}
+void rate_estimator_reset_rate(struct rate_estimator* re, unsigned int rate) {
+  rate_estimator_get_rate_ret = rate;
+}
 
 double rate_estimator_get_rate(struct rate_estimator* re) {
   return rate_estimator_get_rate_ret;

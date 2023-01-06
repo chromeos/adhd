@@ -370,6 +370,7 @@ impl Default for audio_dev_debug_info {
             frame_rate: 0,
             num_channels: 0,
             est_rate_ratio: 0.0,
+            est_rate_ratio_when_underrun: 0.0,
             direction: 0,
             num_underruns: 0,
             num_severe_underruns: 0,
@@ -396,6 +397,7 @@ pub struct AudioDevDebugInfo {
     pub frame_rate: u32,
     pub num_channels: u32,
     pub est_rate_ratio: f64,
+    pub est_rate_ratio_when_underrun: f64,
     pub direction: CRAS_STREAM_DIRECTION,
     pub num_underruns: u32,
     pub num_severe_underruns: u32,
@@ -421,6 +423,7 @@ impl From<audio_dev_debug_info> for AudioDevDebugInfo {
             frame_rate: info.frame_rate,
             num_channels: info.num_channels,
             est_rate_ratio: info.est_rate_ratio,
+            est_rate_ratio_when_underrun: info.est_rate_ratio_when_underrun,
             direction: CRAS_STREAM_DIRECTION::from(u32::from(info.direction)),
             num_underruns: info.num_underruns,
             num_severe_underruns: info.num_severe_underruns,
@@ -443,6 +446,7 @@ impl fmt::Display for AudioDevDebugInfo {
         writeln!(f, "  Frame rate: {}", self.frame_rate)?;
         writeln!(f, "  Number of channels: {}", self.num_channels)?;
         writeln!(f, "  Estimated rate ratio: {:.2}", self.est_rate_ratio)?;
+        writeln!(f, "  Estimated rate ratio: {:.2}", self.est_rate_ratio_when_underrun)?;
         writeln!(f, "  Underrun count: {}", self.num_underruns)?;
         writeln!(f, "  Severe underrun count: {}", self.num_severe_underruns)?;
         writeln!(f, "  Highest hardware level: {}", self.highest_hw_level)?;

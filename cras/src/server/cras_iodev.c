@@ -1320,10 +1320,12 @@ int cras_iodev_update_rate(struct cras_iodev *iodev, unsigned int level,
 			   struct timespec *level_tstamp)
 {
 	/* If output underruns, reset to avoid incorrect estimated rate. */
-	if ((iodev->direction == CRAS_STREAM_OUTPUT) && !level)
+	if ((iodev->direction == CRAS_STREAM_OUTPUT) && !level) {
+		iodev->rate_est_underrun =
+			rate_estimator_get_rate(iodev->rate_est);
 		rate_estimator_reset_rate(iodev->rate_est,
 					  iodev->format->frame_rate);
-
+	}
 	return rate_estimator_check(iodev->rate_est, level, level_tstamp);
 }
 
@@ -1337,6 +1339,11 @@ double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev)
 {
 	return rate_estimator_get_rate(iodev->rate_est) /
 	       iodev->format->frame_rate;
+}
+
+double cras_iodev_get_rate_est_underrun_ratio(const struct cras_iodev *iodev)
+{
+	return iodev->rate_est_underrun / iodev->format->frame_rate;
 }
 
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev)

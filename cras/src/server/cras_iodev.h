@@ -334,6 +334,7 @@ struct cras_iodev {
 	unsigned int highest_hw_level;
 	unsigned int largest_cb_level;
 	unsigned int num_underruns;
+	double rate_est_underrun;
 	struct timespec last_reset_timeref;
 	double num_reset;
 	struct buffer_share *buf_state;
@@ -667,6 +668,15 @@ int cras_iodev_reset_rate_estimator(const struct cras_iodev *iodev);
 /* Returns the rate of estimated frame rate and the claimed frame rate of
  * the device. */
 double cras_iodev_get_est_rate_ratio(const struct cras_iodev *iodev);
+
+/* Get number of underruns recorded so far.
+ * Args:
+ *    iodev[in] - The device.
+ * Returns:
+ *    A double for Returns the rate of estimated frame rate and the claimed frame rate of
+ *    the device when underrun.
+ */
+double cras_iodev_get_rate_est_underrun_ratio(const struct cras_iodev *iodev);
 
 /* Get the delay from DSP processing in frames. */
 int cras_iodev_get_dsp_delay(const struct cras_iodev *iodev);

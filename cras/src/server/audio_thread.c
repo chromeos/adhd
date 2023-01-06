@@ -513,6 +513,8 @@ static void append_dev_dump_info(struct audio_dev_debug_info *di,
 	if (fmt) {
 		di->frame_rate = fmt->frame_rate;
 		di->num_channels = fmt->num_channels;
+		di->est_rate_ratio_when_underrun =
+			cras_iodev_get_rate_est_underrun_ratio(adev->dev);
 		di->est_rate_ratio = cras_iodev_get_est_rate_ratio(adev->dev);
 	} else {
 		di->frame_rate = 0;

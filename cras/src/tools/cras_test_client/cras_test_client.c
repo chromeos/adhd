@@ -1082,6 +1082,7 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info *info,
 		       "frame_rate: %u\n"
 		       "num_channels: %u\n"
 		       "est_rate_ratio: %lf\n"
+		       "est_rate_ratio_when_underrun: %lf\n"
 		       "num_underruns: %u\n"
 		       "num_severe_underruns: %u\n"
 		       "highest_hw_level: %u\n"
@@ -1096,6 +1097,7 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info *info,
 		       (unsigned int)info->devs[i].frame_rate,
 		       (unsigned int)info->devs[i].num_channels,
 		       info->devs[i].est_rate_ratio,
+		       info->devs[i].est_rate_ratio_when_underrun,
 		       (unsigned int)info->devs[i].num_underruns,
 		       (unsigned int)info->devs[i].num_severe_underruns,
 		       (unsigned int)info->devs[i].highest_hw_level,

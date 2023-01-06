@@ -441,6 +441,7 @@ struct __attribute__((__packed__)) audio_dev_debug_info {
 	uint32_t frame_rate;
 	uint32_t num_channels;
 	double est_rate_ratio;
+	double est_rate_ratio_when_underrun;
 	uint8_t direction;
 	uint32_t num_underruns;
 	uint32_t num_severe_underruns;
