@@ -3219,7 +3219,7 @@ INSTANTIATE_TEST_SUITE_P(
                            -5}));
 
 TEST_F(IoDevTestSuite, RequestFloop) {
-  struct cras_floop_pair cfps[NUM_FLOOP_PAIRS_MAX];
+  struct cras_floop_pair cfps[NUM_FLOOP_PAIRS_MAX] = {};
   // cras_floop_pair_create fails and returns NULL
   EXPECT_EQ(-ENOMEM, cras_iodev_list_request_floop(nullptr));
 
