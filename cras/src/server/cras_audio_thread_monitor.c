@@ -24,17 +24,15 @@ struct cras_audio_thread_event_message {
 
 static void take_snapshot(enum CRAS_AUDIO_THREAD_EVENT_TYPE event_type)
 {
-	struct cras_audio_thread_snapshot *snapshot;
+	struct cras_audio_thread_snapshot snapshot = {};
 
-	snapshot = (struct cras_audio_thread_snapshot *)calloc(
-		1, sizeof(struct cras_audio_thread_snapshot));
 	struct timespec now_time;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now_time);
-	snapshot->timestamp = now_time;
-	snapshot->event_type = event_type;
+	snapshot.timestamp = now_time;
+	snapshot.event_type = event_type;
 	audio_thread_dump_thread_info(cras_iodev_list_get_audio_thread(),
-				      &snapshot->audio_debug_info);
-	cras_system_state_add_snapshot(snapshot);
+				      &snapshot.audio_debug_info);
+	cras_system_state_add_snapshot(&snapshot);
 }
 
 static void cras_audio_thread_event_message_init(
