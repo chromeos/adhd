@@ -1795,7 +1795,8 @@ inline int libcras_client_get_loopback_dev_idx(struct libcras_client *client,
  *    client_types_mask - Bitmask of CRAS_CLIENT_TYPE to loopback from.
  *    idx - The pointer to save the result.
  * Returns:
- *    0 on success negative error code on failure (from errno.h).
+ *    The loopback device id on success;
+ *    negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
 inline int
