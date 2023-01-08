@@ -339,8 +339,11 @@ static void dk_update_envelope(struct drc_kernel *dk)
 
 	/* compression_diff_db is the difference between current compression
 	 * level and the desired level. */
-	float compression_diff_db =
-		linear_to_decibels(dk->compressor_gain / scaled_desired_gain);
+	float compression_diff_db = is_releasing ? -1 : 1;
+	if (scaled_desired_gain != 0) {
+		compression_diff_db = linear_to_decibels(dk->compressor_gain /
+							 scaled_desired_gain);
+	}
 
 	if (is_releasing) {
 		/* Release mode - compression_diff_db should be negative dB */
