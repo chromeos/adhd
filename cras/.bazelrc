@@ -6,6 +6,7 @@ build --experimental_cc_shared_library
 
 build --define VCSID=vcsid-unspecified
 
+build --action_env=CC=clang --action_env=CXX=clang++
 build --conlyopt=-std=gnu11
 build --cxxopt=-std=gnu++17
 
@@ -20,5 +21,11 @@ build --copt=-D_FILE_OFFSET_BITS=64
 build --copt=-D_LARGEFILE_SOURCE
 build --copt=-D_LARGEFILE64_SOURCE
 
-build --copt=-Werror=undef-prefix
-build --copt=-Wundef-prefix=HAVE_,CRAS_
+# go/cras-style#build-time-feature-switches
+build --copt=-Werror=undef-prefix --copt=-Wundef-prefix=HAVE_,CRAS_
+
+# Sanitizer configs
+build:asan --copt=-fsanitize=address --linkopt=-fsanitize=address
+
+build:ubsan --copt=-fsanitize=undefined --linkopt=-fsanitize=undefined
+build:ubsan --linkopt=-fsanitize-link-c++-runtime
