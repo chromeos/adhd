@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 load("//:utils.bzl", "bool_flag_config", "define_feature")
 load("//:pkg_config.bzl", "generate_pc")
+load("@hedron_compile_commands//:refresh_compile_commands.bzl", "refresh_compile_commands")
 
 package(default_visibility = [":__subpackages__"])
 
@@ -90,4 +91,8 @@ config_setting(
         ":selinux": "true",
         ":fuzzer": "true",
     },
+)
+
+refresh_compile_commands(
+    name = "compdb",
 )

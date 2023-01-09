@@ -47,10 +47,13 @@ tags
 /src/common/cras_dbus_bindings.h
 /src/common/cras_version.h
 
-bazel-*
+/bazel-*
 
 # clangd
 /.cache/
 
 # build interception
 events.json
+
+/external
+/compile_commands.json
