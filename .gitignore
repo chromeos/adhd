@@ -1,6 +1,9 @@
 build
 cscope.*
 __pycache__/
+# clangd
 compile_commands.json
+.cache
+# vscode
 .vscode
 *.code-workspace
