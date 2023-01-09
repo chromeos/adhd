@@ -1060,7 +1060,8 @@ file_wait_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) -I$(top_srcdir)/src/common \
 	$(CRAS_UT_TMPDIR_CFLAGS)
 file_wait_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread
 
-floop_iodev_unittest_SOURCES = tests/floop_iodev_unittest.cc
+floop_iodev_unittest_SOURCES = tests/floop_iodev_unittest.cc \
+	common/sfh.c
 floop_iodev_unittest_CPPFLAGS = $(COMMON_CPPFLAGS) \
 	-I$(top_srcdir)/src/common -I$(top_srcdir)/src/server
 floop_iodev_unittest_LDADD = $(GTEST_MAIN_LIBS) -lpthread

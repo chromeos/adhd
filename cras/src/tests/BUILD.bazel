@@ -996,6 +996,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//src/common",
         "//src/common:all_headers",
         "//src/server:all_headers",
         "@iniparser",

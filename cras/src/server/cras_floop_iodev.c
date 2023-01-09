@@ -357,6 +357,8 @@ void cras_floop_pair_destroy(struct cras_floop_pair *fpair)
 	free(fpair->output.nodes);
 
 	byte_buffer_destroy(&floop->buffer);
+
+	free(fpair);
 }
 
 bool cras_floop_pair_match_output_stream(const struct cras_floop_pair *pair,
