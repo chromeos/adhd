@@ -840,7 +840,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	/* Convert from monotonic raw clock to realtime clock. */
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
-	localtime_r(&lt, &t);
+	gmtime_r(&lt, &t);
 	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", &t);
 
 	printf("%s.%09u cras atlog  ", time_str, nsec);
