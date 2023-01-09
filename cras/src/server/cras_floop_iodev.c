@@ -368,3 +368,10 @@ bool cras_floop_pair_match_output_stream(const struct cras_floop_pair *pair,
 	return stream->direction == CRAS_STREAM_OUTPUT && floop->input_active &&
 	       (floop->params.client_types_mask & (1 << stream->client_type));
 }
+
+bool cras_floop_pair_match_params(const struct cras_floop_pair *pair,
+				  const struct cras_floop_params *params)
+{
+	const struct flexible_loopback *floop = const_pair_to_floop(pair);
+	return floop->params.client_types_mask == params->client_types_mask;
+}

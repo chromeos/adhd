@@ -2404,6 +2404,9 @@ int cras_iodev_list_request_floop(const struct cras_floop_params *params)
 	struct cras_floop_pair *fpair;
 	int count = 0;
 	DL_FOREACH (floop_pair_list, fpair) {
+		if (cras_floop_pair_match_params(fpair, params)) {
+			return fpair->input.info.idx;
+		}
 		count++;
 	}
 

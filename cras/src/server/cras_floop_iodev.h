@@ -54,4 +54,8 @@ void cras_floop_pair_destroy(struct cras_floop_pair *loopdev);
 bool cras_floop_pair_match_output_stream(const struct cras_floop_pair *pair,
 					 const struct cras_rstream *stream);
 
+/* Tells whether the floop pair matches the params */
+bool cras_floop_pair_match_params(const struct cras_floop_pair *pair,
+				  const struct cras_floop_params *params);
+
 #endif /* CRAS_FLOOP_IODEV_H_ */
