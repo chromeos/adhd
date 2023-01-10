@@ -860,7 +860,7 @@ static void show_alog_tag(const struct audio_thread_event_log *log,
 	}
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
-	localtime_r(&lt, &t);
+	gmtime_r(&lt, &t);
 	strftime(time_str, 128, " %H:%M:%S", &t);
 
 	switch (tag) {
@@ -1229,7 +1229,7 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 	/* Convert from monotomic raw clock to realtime clock. */
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
-	localtime_r(&lt, &t);
+	gmtime_r(&lt, &t);
 	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", &t);
 
 	printf("%s.%09u cras mainlog  ", time_str, nsec);
@@ -1335,7 +1335,7 @@ static void show_btlog_tag(const struct cras_bt_event_log *log,
 	/* Convert from monotonic raw clock to realtime clock. */
 	convert_time(&sec, &nsec, sec_offset, nsec_offset);
 	lt = sec;
-	localtime_r(&lt, &t);
+	gmtime_r(&lt, &t);
 	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", &t);
 
 	printf("%s.%09u cras btlog  ", time_str, nsec);
@@ -1476,7 +1476,7 @@ static void convert_to_time_str(const struct timespec *ts, time_t sec_offset,
 	/* Assuming tv_nsec doesn't exceed 10^9 */
 	time_nsec = ts->tv_nsec;
 	convert_time((unsigned int *)&lt, &time_nsec, sec_offset, nsec_offset);
-	localtime_r(&lt, &t);
+	gmtime_r(&lt, &t);
 	strftime(time_str, 128, "%Y-%m-%dT%H:%M:%S", &t);
 	snprintf(time_str + strlen(time_str), 128 - strlen(time_str), ".%09u",
 		 time_nsec);
