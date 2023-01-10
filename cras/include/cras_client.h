@@ -644,6 +644,10 @@ void cras_client_stream_params_enable_agc(struct cras_stream_params* params);
 void cras_client_stream_params_disable_agc(struct cras_stream_params* params);
 void cras_client_stream_params_enable_vad(struct cras_stream_params* params);
 void cras_client_stream_params_disable_vad(struct cras_stream_params* params);
+void cras_client_stream_params_enable_voice_isolation(
+    struct cras_stream_params* params);
+void cras_client_stream_params_disable_voice_isolation(
+    struct cras_stream_params* params);
 void cras_client_stream_params_allow_aec_on_dsp(
     struct cras_stream_params* params);
 void cras_client_stream_params_disallow_aec_on_dsp(
@@ -1225,6 +1229,11 @@ int cras_client_get_aec_supported(struct cras_client* client);
 int cras_client_get_aec_group_id(struct cras_client* client);
 
 /*
+ * Returns if Voice isolation is supported.
+ */
+int cras_client_get_voice_isolation_supported(struct cras_client* client);
+
+/*
  * Sets the flag to enable bluetooth wideband speech in server.
  */
 int cras_client_set_bt_wbs_enabled(struct cras_client* client, bool enabled);
@@ -1428,7 +1437,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 10
+#define CRAS_API_VERSION 11
 #define CHECK_VERSION(object, version) \
   if (object->api_version < version) { \
     return -ENOSYS;                    \
@@ -1499,6 +1508,8 @@ struct libcras_client {
   int (*get_ns_supported)(struct cras_client* client, int* supported);
   int (*set_client_type)(struct cras_client* client,
                          enum CRAS_CLIENT_TYPE client_type);
+  int (*get_voice_isolation_supported)(struct cras_client* client,
+                                       int* supported);
 };
 
 struct cras_stream_cb_data;
@@ -1546,6 +1557,8 @@ struct libcras_stream_params {
   void (*allow_ns_on_dsp)(struct cras_stream_params* params);
   void (*allow_agc_on_dsp)(struct cras_stream_params* params);
   void (*enable_ignore_ui_gains)(struct cras_stream_params* params);
+  void (*enable_voice_isolation)(struct cras_stream_params* params);
+  void (*disable_voice_isolation)(struct cras_stream_params* params);
 };
 
 /*
@@ -1819,6 +1832,22 @@ inline int libcras_client_get_aec_supported(struct libcras_client* client,
 }
 
 /*
+ * Gets whether Voice Isolation is supported.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    supported - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int libcras_client_get_voice_isolation_supported(
+    struct libcras_client* client,
+    int* supported) {
+  CHECK_VERSION(client, 11);
+  return client->get_voice_isolation_supported(client->client_, supported);
+}
+
+/*
  * Gets whether the system is muted.
  * Args:
  *    client - Pointer returned from "libcras_client_create".
@@ -2083,6 +2112,36 @@ inline int libcras_stream_params_ignore_ui_gains(
     struct libcras_stream_params* params) {
   CHECK_VERSION(params, 2);
   params->enable_ignore_ui_gains(params->params_);
+  return 0;
+}
+
+/*
+ * Enables voice isolation on given stream parameter.
+ * Args:
+ *    params - The pointer returned from libcras_stream_params_create.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int libcras_stream_params_enable_voice_isolation(
+    struct libcras_stream_params* params) {
+  CHECK_VERSION(params, 11);
+  params->enable_voice_isolation(params->params_);
+  return 0;
+}
+
+/*
+ * Disables voice isolation on given stream parameter.
+ * Args:
+ *    params - The pointer returned from libcras_stream_params_create.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int libcras_stream_params_disable_voice_isolation(
+    struct libcras_stream_params* params) {
+  CHECK_VERSION(params, 11);
+  params->disable_voice_isolation(params->params_);
   return 0;
 }
 

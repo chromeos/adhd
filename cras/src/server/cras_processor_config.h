@@ -15,7 +15,10 @@ extern "C" {
 #include "cras/src/server/rust/include/cras_processor.h"
 
 // Get the processor effect.
-enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap);
+// `nc_provided_by_ap` indicates the availability of NC on AP.
+// `effects` indicates the stream effects.
+enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
+                                                   uint64_t effects);
 
 #ifdef __cplusplus
 }

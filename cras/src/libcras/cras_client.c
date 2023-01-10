@@ -2563,6 +2563,18 @@ void cras_client_stream_params_disable_agc(struct cras_stream_params* params) {
   params->effects &= ~APM_GAIN_CONTROL;
 }
 
+void cras_client_stream_params_enable_voice_isolation(
+    struct cras_stream_params* params) {
+  params->effects |= CLIENT_CONTROLLED_VOICE_ISOLATION;
+  params->effects |= VOICE_ISOLATION;
+}
+
+void cras_client_stream_params_disable_voice_isolation(
+    struct cras_stream_params* params) {
+  params->effects |= CLIENT_CONTROLLED_VOICE_ISOLATION;
+  params->effects &= ~VOICE_ISOLATION;
+}
+
 void cras_client_stream_params_enable_vad(struct cras_stream_params* params) {
   params->effects |= APM_VOICE_DETECTION;
 }
@@ -3840,6 +3852,20 @@ int cras_client_get_ns_supported(struct cras_client* client) {
   return ns_supported;
 }
 
+int cras_client_get_voice_isolation_supported(struct cras_client* client) {
+  int voice_isolation_supported;
+  int lock_rc;
+
+  lock_rc = server_state_rdlock(client);
+  if (lock_rc) {
+    return 0;
+  }
+
+  voice_isolation_supported = client->server_state->voice_isolation_supported;
+  server_state_unlock(client, lock_rc);
+  return voice_isolation_supported;
+}
+
 int cras_client_get_aec_group_id(struct cras_client* client) {
   int aec_group_id;
   int lock_rc;
@@ -4258,6 +4284,11 @@ int get_ns_supported(struct cras_client* client, int* supported) {
   return 0;
 }
 
+int get_voice_isolation_supported(struct cras_client* client, int* supported) {
+  *supported = cras_client_get_voice_isolation_supported(client);
+  return 0;
+}
+
 int get_system_muted(struct cras_client* client, int* muted) {
   *muted = cras_client_get_system_muted(client);
   return 0;
@@ -4408,6 +4439,7 @@ struct libcras_client* libcras_client_create() {
   client->set_aec_dump = cras_client_set_aec_dump;
   client->get_agc_supported = get_agc_supported;
   client->get_ns_supported = get_ns_supported;
+  client->get_voice_isolation_supported = get_voice_isolation_supported;
   client->set_client_type = cras_client_set_client_type;
   return client;
 }
@@ -4479,6 +4511,10 @@ struct libcras_stream_params* libcras_stream_params_create() {
   params->allow_agc_on_dsp = cras_client_stream_params_allow_agc_on_dsp;
   params->enable_ignore_ui_gains =
       cras_client_stream_params_enable_ignore_ui_gains;
+  params->enable_voice_isolation =
+      cras_client_stream_params_enable_voice_isolation;
+  params->disable_voice_isolation =
+      cras_client_stream_params_disable_voice_isolation;
   return params;
 }
 

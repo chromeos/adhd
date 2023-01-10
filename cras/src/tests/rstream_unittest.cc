@@ -510,6 +510,10 @@ int cras_system_agc_on_dsp_supported() {
   return 0;
 }
 
+bool cras_system_get_noise_cancellation_supported() {
+  return false;
+}
+
 int cras_server_metrics_stream_create(
     const struct cras_rstream_config* config) {
   return 0;

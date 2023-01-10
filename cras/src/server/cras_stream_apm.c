@@ -709,7 +709,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       .channels = 1,
       .block_size = frame_length,
       .frame_rate = apm->fmt.frame_rate,
-      .effect = cras_processor_get_effect(nc_provided_by_ap),
+      .effect = cras_processor_get_effect(nc_provided_by_ap, stream->effects),
   };
   apm->pp = cras_processor_create(&cfg);
   if (apm->pp == NULL) {

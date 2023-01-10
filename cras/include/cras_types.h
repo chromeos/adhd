@@ -229,6 +229,11 @@ enum CRAS_STREAM_EFFECT {
   DSP_NOISE_SUPPRESSION_ALLOWED = (1 << 5),
   DSP_GAIN_CONTROL_ALLOWED = (1 << 6),
   IGNORE_UI_GAINS = (1 << 7),
+  // Set CLIENT_CONTROLLED_VOICE_ISOLATION indicates the client forces to
+  // enable/disable the platform voice isolation based on the state of
+  // VOICE_ISOLATION.
+  CLIENT_CONTROLLED_VOICE_ISOLATION = (1 << 8),
+  VOICE_ISOLATION = (1 << 9),
 };
 
 //
@@ -703,6 +708,9 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // 1 - Noise Cancellation standalone mode, which implies that NC is
   // integrated without AEC on DSP. 0 - otherwise.
   int32_t nc_standalone_mode;
+  // Whether or not Voice Isolation is supported by at least one input node by
+  // either AP or DSP.
+  int32_t voice_isolation_supported;
 };
 
 // Actions for card add/remove/change.

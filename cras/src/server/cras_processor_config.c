@@ -10,8 +10,13 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_processor.h"
 
-enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap) {
-  if (nc_provided_by_ap && cras_system_get_noise_cancellation_enabled() &&
+enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
+                                                   uint64_t effects) {
+  bool voice_isolation_enabled =
+      (effects & CLIENT_CONTROLLED_VOICE_ISOLATION)
+          ? (effects & VOICE_ISOLATION)
+          : cras_system_get_noise_cancellation_enabled();
+  if (nc_provided_by_ap && voice_isolation_enabled &&
       cras_system_get_ap_noise_cancellation_supported() &&
       cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation)) {
     return NoiseCancellation;

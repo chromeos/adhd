@@ -204,6 +204,9 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->num_non_chrome_output_streams = 0;
   exp_state->nc_standalone_mode = board_config.nc_standalone_mode;
 
+  // TODO(b/271383461): update AP NC availability through libsegmentation.
+  exp_state->voice_isolation_supported = board_config.nc_supported | 1;
+
   if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
     syslog(LOG_ERR, "Fatal: system state mutex init");
     exit(rc);
