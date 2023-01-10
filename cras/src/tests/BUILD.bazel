@@ -1173,6 +1173,7 @@ cc_test(
         ":iodev_list_unittest.cc",
         ":test_util.h",
         "//src/common:strlcpy.c",
+        "//src/server:cras_featured_stub.c",
         "//src/server:cras_speak_on_mute_detector_stub.c",
     ],
     deps = [
