@@ -5,29 +5,30 @@
 import argparse
 import os
 import shutil
+import typing
 
 
-def run(
-    *,
-    prefix,
-    _bin_files,
-    _extra_bin_files,
-    _include_files,
-    _lib_files,
-    _alsa_lib_files,
-    _fuzzer_files,
-    _pkgconfig_files,
-):
-    for name, paths in [
-        ('bin', _bin_files),
-        ('extra_bin', _extra_bin_files),
-        ('include', _include_files),
-        ('lib', _lib_files),
-        ('alsa-lib', _alsa_lib_files),
-        ('fuzzer', _fuzzer_files),
-        ('pkgconfig', _pkgconfig_files),
-    ]:
+class Target(typing.NamedTuple):
+    name: str  # The name of the target directory.
+    flag: str  # The name of the corresponding flag.
+
+
+TARGETS = [
+    Target('bin', '_bin_files'),
+    Target('extra_bin', '_extra_bin_files'),
+    Target('include', '_include_files'),
+    Target('lib', '_lib_files'),
+    Target('alsa_lib', '_alsa_lib_files'),
+    Target('fuzzer', '_fuzzer_files'),
+    Target('pkgconfig', '_pkgconfig_files'),
+]
+
+
+def run(opts):
+    prefix = opts.prefix
+    for name, flag in TARGETS:
         dir = os.path.join(prefix, name)
+        paths = getattr(opts, flag)
         print(f'Destination: {dir!r}')
         os.makedirs(dir, exist_ok=True)
         for path in paths:
@@ -49,16 +50,11 @@ def abspath(s: str) -> str:
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False)
 
-    parser.add_argument('--_bin_files', nargs='+', default=())
-    parser.add_argument('--_extra_bin_files', nargs='+', default=())
-    parser.add_argument('--_include_files', nargs='+', default=())
-    parser.add_argument('--_lib_files', nargs='+', default=())
-    parser.add_argument('--_alsa_lib_files', nargs='+', default=())
-    parser.add_argument('--_fuzzer_files', nargs='+', default=())
-    parser.add_argument('--_pkgconfig_files', nargs='+', default=())
     parser.add_argument('prefix', help='absolute path to copy files to', type=abspath)
+    for _, flag in TARGETS:
+        parser.add_argument(f'--{flag}', nargs='+', default=())
 
-    run(**vars(parser.parse_args()))
+    run(parser.parse_args())
 
 
 if __name__ == '__main__':
