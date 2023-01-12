@@ -16,7 +16,7 @@
 
 namespace {
 
-class BM_AM : public benchmark::Fixture {
+class BM_Am : public benchmark::Fixture {
  public:
   void SetUp(const ::benchmark::State& state) {
     frames = 480;
@@ -42,7 +42,7 @@ class BM_AM : public benchmark::Fixture {
   std::vector<float> output_buf;
 };
 
-BENCHMARK_DEFINE_F(BM_AM, SR)(benchmark::State& state) {
+BENCHMARK_DEFINE_F(BM_Am, SR)(benchmark::State& state) {
   const char model_path[] =
       "/run/imageloader/sr-bt-dlc/package/root/btnb.tflite";
   struct am_context* ctx = am_new(model_path);
@@ -73,7 +73,7 @@ BENCHMARK_DEFINE_F(BM_AM, SR)(benchmark::State& state) {
   am_free(ctx);
 }
 
-BENCHMARK_REGISTER_F(BM_AM, SR)
+BENCHMARK_REGISTER_F(BM_Am, SR)
     ->Arg(5000)
     ->Arg(10000)
     ->Arg(20000)
