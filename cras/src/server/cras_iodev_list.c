@@ -484,8 +484,12 @@ static void possibly_enable_echo_reference(struct cras_iodev *dev)
 	if (dev->echo_reference_dev == NULL)
 		return;
 
-	server_stream_create(stream_list, dev->echo_reference_dev->info.idx,
-			     dev->format);
+	int rc = server_stream_create(stream_list, SERVER_STREAM_ECHO_REF,
+				      dev->echo_reference_dev->info.idx,
+				      dev->format, 0);
+	if (rc) {
+		syslog(LOG_ERR, "Failed to create echo ref server stream");
+	}
 }
 
 /*
@@ -497,7 +501,8 @@ static void possibly_disable_echo_reference(struct cras_iodev *dev)
 	if (dev->echo_reference_dev == NULL)
 		return;
 
-	server_stream_destroy(stream_list, dev->echo_reference_dev->info.idx);
+	server_stream_destroy(stream_list, SERVER_STREAM_ECHO_REF,
+			      dev->echo_reference_dev->info.idx);
 }
 
 /*

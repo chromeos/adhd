@@ -3478,12 +3478,16 @@ void stream_list_destroy(struct stream_list* list) {}
 struct cras_rstream* stream_list_get(struct stream_list* list) {
   return stream_list_get_ret;
 }
-void server_stream_create(struct stream_list* stream_list,
-                          unsigned int dev_idx,
-                          struct cras_audio_format* format) {
+int server_stream_create(struct stream_list* stream_list,
+                         enum server_stream_type type,
+                         unsigned int dev_idx,
+                         struct cras_audio_format* format,
+                         unsigned int effects) {
   server_stream_create_called++;
+  return 0;
 }
 void server_stream_destroy(struct stream_list* stream_list,
+                           enum server_stream_type type,
                            unsigned int dev_idx) {
   server_stream_destroy_called++;
 }

@@ -11,7 +11,7 @@
 
 /* Reserver client id 0-15 for internal server usage. */
 #define RESERVED_CLIENT_IDS 16
-#define SERVER_STREAM_CLIENT_ID 0
+#define SERVER_STREAM_CLIENT_ID 1
 
 struct cras_client_message;
 

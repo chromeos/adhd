@@ -17,75 +17,96 @@ static unsigned int server_stream_block_size = 480;
 
 /*
  * Information of a stream created by server. Currently only
- * one server stream is allowed, for echo reference use.
+ * one server stream is allowed, for each type of server stream.
  */
-static struct cras_rstream_config *stream_config;
+struct server_stream {
+	struct cras_rstream_config config;
+	struct stream_list *list;
+	cras_stream_id_t stream_id;
+};
+
+/*
+ * All server streams.
+ * Each server stream type is stored in g_server_streams[type].
+ */
+static struct server_stream *g_server_streams[NUM_SERVER_STREAM_TYPES] = {};
 
 /* Actually create the server stream and add to stream list. */
 static void server_stream_add_cb(void *data)
 {
-	struct stream_list *stream_list = (struct stream_list *)data;
-	struct cras_rstream *stream;
+	struct server_stream *ss = (struct server_stream *)data;
+	struct cras_rstream *stream = NULL;
 
-	if (!stream_config)
-		return;
-
-	stream_list_add(stream_list, stream_config, &stream);
+	stream_list_add(ss->list, &ss->config, &stream);
 }
 
-void server_stream_create(struct stream_list *stream_list, unsigned int dev_idx,
-			  struct cras_audio_format *format)
+int server_stream_create(struct stream_list *stream_list,
+			 enum server_stream_type type, unsigned int dev_idx,
+			 struct cras_audio_format *format, unsigned int effects)
 {
 	int audio_fd = -1;
 	int client_shm_fd = -1;
 	uint64_t buffer_offsets[2] = { 0, 0 };
 
-	if (stream_config) {
-		syslog(LOG_WARNING, "server stream already exists, dev %u",
-		       stream_config->dev_idx);
-		return;
+	if (g_server_streams[type]) {
+		syslog(LOG_ERR, "Server stream of type %d already exists",
+		       type);
+		return -EEXIST;
 	}
 
-	stream_config =
-		(struct cras_rstream_config *)calloc(1, sizeof(*stream_config));
+	struct server_stream *ss =
+		(struct server_stream *)calloc(1, sizeof(*ss));
+	if (!ss) {
+		syslog(LOG_ERR, "OOM creating server stream");
+		return -ENOMEM;
+	}
+
 	cras_rstream_config_init(
-		/*client=*/NULL, cras_get_stream_id(SERVER_STREAM_CLIENT_ID, 0),
+		/*client=*/NULL,
+		cras_get_stream_id(SERVER_STREAM_CLIENT_ID, type),
 		CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_SERVER_STREAM,
 		CRAS_STREAM_INPUT, dev_idx,
-		/*flags=*/SERVER_ONLY,
-		/*effects=*/0, format, server_stream_block_size,
-		server_stream_block_size, &audio_fd, &client_shm_fd,
-		/*client_shm_size=*/0, buffer_offsets, stream_config);
+		/*flags=*/SERVER_ONLY, effects, format,
+		server_stream_block_size, server_stream_block_size, &audio_fd,
+		&client_shm_fd,
+		/*client_shm_size=*/0, buffer_offsets, &ss->config);
+	ss->list = stream_list;
+	ss->stream_id = ss->config.stream_id;
 
 	/* Schedule add stream in next main thread loop. */
-	cras_system_add_task(server_stream_add_cb, stream_list);
+	cras_system_add_task(server_stream_add_cb, ss);
+	g_server_streams[type] = ss;
+
+	return 0;
 }
 
 static void server_stream_rm_cb(void *data)
 {
-	struct stream_list *stream_list = (struct stream_list *)data;
+	struct server_stream *ss = (struct server_stream *)data;
 
-	if (stream_config == NULL)
+	if (ss == NULL)
 		return;
 
 	/*
 	 * Server stream needs no 'draining' state. Uses stream_list_direct_rm
 	 * here to prevent recursion.
 	 */
-	if (stream_list_direct_rm(stream_list, stream_config->stream_id))
+	if (stream_list_direct_rm(ss->list, ss->config.stream_id))
 		syslog(LOG_WARNING, "Server stream %x no longer exist",
-		       stream_config->stream_id);
+		       ss->config.stream_id);
 
-	free(stream_config);
-	stream_config = NULL;
+	free(ss);
 }
 
 void server_stream_destroy(struct stream_list *stream_list,
-			   unsigned int dev_idx)
+			   enum server_stream_type type, unsigned int dev_idx)
 {
-	if (!stream_config || stream_config->dev_idx != dev_idx) {
+	struct server_stream *ss = g_server_streams[type];
+	if (!ss || ss->config.dev_idx != dev_idx) {
 		syslog(LOG_WARNING, "No server stream to destroy");
 		return;
 	}
-	server_stream_rm_cb(stream_list);
+
+	server_stream_rm_cb(ss);
+	g_server_streams[type] = NULL;
 }
