@@ -6,6 +6,7 @@
 #include <syslog.h>
 
 #include "cras_speak_on_mute_detector.h"
+#include "cras_iodev_list.h"
 #include "cras_observer.h"
 #include "cras_tm.h"
 #include "cras_string.h"
@@ -17,6 +18,7 @@
 #include "cras_main_message.h"
 #include "cras_stream_apm.h"
 #include "cras_rtc.h"
+#include "server_stream.h"
 
 // Singleton.
 static struct {
@@ -29,11 +31,17 @@ static struct {
 	// Whether speak on mute detection is enabled from the UI.
 	bool enabled;
 	// The target stream for VAD determined by the list of streams.
-	struct cras_rstream *target_stream;
+	// May not have a APM.
+	struct cras_rstream *target_client_stream;
+	// The currently active server VAD stream.
+	struct cras_rstream *server_vad_stream;
 
 	// The effective target stream apm.
 	// This should only be set by maybe_update_vad_target.
 	struct cras_stream_apm *effective_target;
+
+	bool server_vad_stream_used;
+	unsigned int server_vad_stream_pinned_dev_idx;
 
 	struct cras_observer_client *observer_client;
 } detector;
@@ -68,33 +76,119 @@ static void handle_speak_on_mute_message(struct cras_main_message *mmsg,
 	handle_voice_activity(msg->detected, &msg->when);
 }
 
+// Destroy the server VAD stream if it is running.
+static void maybe_destroy_server_vad_stream()
+{
+	if (!detector.server_vad_stream_used) {
+		return;
+	}
+	syslog(LOG_INFO,
+	       "destroying server vad stream with pinned_dev_idx = %d",
+	       detector.server_vad_stream_pinned_dev_idx);
+
+	cras_iodev_list_destroy_server_vad_stream(
+		detector.server_vad_stream_pinned_dev_idx);
+	detector.server_vad_stream_used = false;
+	detector.server_vad_stream_pinned_dev_idx = NO_DEVICE;
+}
+
+// Given the target client stream, enable or disable the server vad stream.
+// Pass NULL to disable.
+static void
+maybe_configure_server_vad_stream(struct cras_rstream *target_client_stream)
+{
+	if (!target_client_stream) {
+		// No target client.
+		maybe_destroy_server_vad_stream();
+		return;
+	}
+	if (target_client_stream->stream_apm) {
+		// Client has APM. Use the client stream's APM.
+		maybe_destroy_server_vad_stream();
+		return;
+	}
+	// Client has no APM, otherwise.
+
+	if (detector.server_vad_stream_used &&
+	    detector.server_vad_stream_pinned_dev_idx ==
+		    target_client_stream->pinned_dev_idx) {
+		// The server vad stream matches the client configuration.
+		return;
+	}
+
+	// Reconfigure server VAD stream.
+	maybe_destroy_server_vad_stream();
+	detector.server_vad_stream_used = true;
+	detector.server_vad_stream_pinned_dev_idx =
+		target_client_stream->pinned_dev_idx;
+	syslog(LOG_INFO, "creating server vad stream with pinned_dev_idx = %d",
+	       detector.server_vad_stream_pinned_dev_idx);
+	cras_iodev_list_create_server_vad_stream(
+		detector.server_vad_stream_pinned_dev_idx);
+}
+
+bool should_run_vad()
+{
+	return detector.enabled && cras_system_get_capture_mute();
+}
+
 static void maybe_update_vad_target()
 {
-	struct cras_stream_apm *new_vad_target = NULL;
-	// new_vad_target NULL means to disable VAD.
-	if (detector.enabled && cras_system_get_capture_mute() &&
-	    detector.target_stream) {
-		new_vad_target = detector.target_stream->stream_apm;
+	// target_stream == NULL means to disable VAD.
+	struct cras_rstream *target_stream = NULL;
+
+	if (should_run_vad()) {
+		if (detector.server_vad_stream) {
+			// The existence of a server_vad_stream indicates that
+			// the selected target_client_stream does not have a APM.
+			target_stream = detector.server_vad_stream;
+		} else if (detector.target_client_stream &&
+			   detector.target_client_stream->stream_apm) {
+			target_stream = detector.target_client_stream;
+		}
 	}
+
+	struct cras_stream_apm *new_vad_target =
+		target_stream ? target_stream->stream_apm : NULL;
 
 	if (new_vad_target == detector.effective_target) {
 		return;
 	}
 
-	uint32_t target_stream_id =
-		new_vad_target ? detector.target_stream->stream_id : 0;
-	MAINLOG(main_log, MAIN_THREAD_VAD_TARGET_CHANGED, target_stream_id, 0,
-		0);
+	MAINLOG(main_log, MAIN_THREAD_VAD_TARGET_CHANGED,
+		target_stream ? target_stream->stream_id : 0,
+		detector.target_client_stream ?
+			detector.target_client_stream->stream_id :
+			0,
+		detector.server_vad_stream ?
+			detector.server_vad_stream->stream_id :
+			0);
 
 	detector.effective_target = new_vad_target;
 	speak_on_mute_detector_reset(&detector.impl);
 	cras_stream_apm_notify_vad_target_changed(new_vad_target);
 }
 
+// Callback to reflect external state changes:
+// 1. The target client stream changes.
+// 2. The enabled status of speak on mute detection changes.
+// 3. The server vad stream becomes ready / removed.
+static void handle_state_change()
+{
+	maybe_update_vad_target();
+
+	// Trigger the update of the server VAD stream to match
+	// the target client + enabled status.
+	// The updated is asynchronous and will generate an extra callback to
+	// handle_state_change() again.
+	maybe_configure_server_vad_stream(
+		should_run_vad() ? detector.target_client_stream : NULL);
+}
+
 static void handle_capture_mute_changed(void *context, int muted,
 					int mute_locked)
 {
-	maybe_update_vad_target();
+	handle_state_change();
 }
 
 static const struct cras_observer_ops speak_on_mute_observer_ops = {
@@ -116,7 +210,10 @@ void cras_speak_on_mute_detector_init()
 	assert(speak_on_mute_detector_init(&detector.impl, &cfg) == 0);
 
 	detector.enabled = false;
-	detector.target_stream = NULL;
+	detector.target_client_stream = NULL;
+	detector.server_vad_stream = NULL;
+	detector.server_vad_stream_used = false;
+	detector.server_vad_stream_pinned_dev_idx = NO_DEVICE;
 	detector.effective_target = NULL;
 
 	int rc = cras_main_message_add_handler(
@@ -137,32 +234,52 @@ void cras_speak_on_mute_detector_init()
 void cras_speak_on_mute_detector_enable(bool enabled)
 {
 	detector.enabled = enabled;
-	maybe_update_vad_target();
+	handle_state_change();
 }
 
-static struct cras_rstream *find_target_stream(struct cras_rstream *all_streams)
+// Return the client stream we should detect speak on mute behavior on.
+static struct cras_rstream *
+find_target_client_stream(struct cras_rstream *all_streams)
 {
-	// Pick the first RTC stream using APM.
-	// TODO(b/255935803): Implement VAD target selection.
-	struct cras_rstream *stream;
+	// TODO(b/262518361): Select VAD target based on real RTC detector result.
+	// cras_rtc_check_stream_config only checks for the client type and block size.
+
+	struct cras_rstream *stream = NULL;
+	struct cras_rstream *first_rtc_stream = NULL;
 	DL_FOREACH (all_streams, stream) {
-		// TODO(b/255935803): Select VAD target based on real RTC detector result.
-		// cras_rtc_check_stream_config only checks for the client type and block size.
 		if (!cras_rtc_check_stream_config(stream)) {
 			continue;
 		}
+		if (!first_rtc_stream) {
+			first_rtc_stream = stream;
+		}
 		if (stream->stream_apm) {
+			// Prefer RTC streams with a APM.
 			return stream;
 		}
 	}
-	return NULL;
+
+	// If no RTC streams have an APM, return the first RTC stream.
+	return first_rtc_stream;
 }
 
 void cras_speak_on_mute_detector_streams_changed(
 	struct cras_rstream *all_streams)
 {
-	detector.target_stream = find_target_stream(all_streams);
-	maybe_update_vad_target();
+	detector.target_client_stream = find_target_client_stream(all_streams);
+	detector.server_vad_stream =
+		server_stream_find_by_type(all_streams, SERVER_STREAM_VAD);
+
+	syslog(LOG_DEBUG,
+	       "cras_speak_on_mute_detector_streams_changed: target_client_stream = 0x%x; server_vad_stream = 0x%x",
+	       detector.target_client_stream ?
+		       detector.target_client_stream->stream_id :
+		       0,
+	       detector.server_vad_stream ?
+		       detector.server_vad_stream->stream_id :
+		       0);
+
+	handle_state_change();
 }
 
 int cras_speak_on_mute_detector_add_voice_activity(bool detected)

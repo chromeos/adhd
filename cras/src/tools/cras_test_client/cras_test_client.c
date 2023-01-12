@@ -1301,13 +1301,8 @@ static void show_mainlog_tag(const struct main_thread_event_log *log,
 		       data1 ? "enabled" : "disabled");
 		break;
 	case MAIN_THREAD_VAD_TARGET_CHANGED: {
-		char target[11] = {};
-		if (data1) {
-			snprintf(target, sizeof(target), "0x%x", data1);
-		} else {
-			strlcpy(target, "none", sizeof(target));
-		}
-		printf("%-30s stream %s\n", "VAD_TARGET_CHANGED", target);
+		printf("%-30s target_stream 0x%x target_client_stream 0x%x server_vad_stream 0x%x\n",
+		       "VAD_TARGET_CHANGED", data1, data2, data3);
 		break;
 	}
 	default:

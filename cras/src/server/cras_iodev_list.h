@@ -323,4 +323,17 @@ void cras_iodev_list_disable_floop_pair(struct cras_floop_pair *pair);
 void cras_iodev_list_set_aec_on_dsp_is_disallowed(unsigned int dev_idx,
 						  bool is_disallowed);
 
+/* Starts server stream for voice activity detection.
+ * Args:
+ *    dev_idx - Index of the input device to pin. Or NO_DEVICE to use the
+ *              default device.
+ */
+void cras_iodev_list_create_server_vad_stream(int dev_idx);
+
+/* Stops server stream for voice activity detection.
+ * Args:
+ *    dev_idx - Index of the input device.
+ */
+void cras_iodev_list_destroy_server_vad_stream(int dev_idx);
+
 #endif /* CRAS_IODEV_LIST_H_ */

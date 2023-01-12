@@ -2451,3 +2451,22 @@ void cras_iodev_list_disable_floop_pair(struct cras_floop_pair *pair)
 {
 	remove_all_streams_from_dev(&pair->output);
 }
+
+void cras_iodev_list_create_server_vad_stream(int dev_idx)
+{
+	static struct cras_audio_format srv_stream_fmt = {
+		SND_PCM_FORMAT_S16_LE,
+		48000,
+		2,
+		{ 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
+	};
+	int rc = server_stream_create(stream_list, SERVER_STREAM_VAD, dev_idx,
+				      &srv_stream_fmt, APM_ECHO_CANCELLATION);
+	if (rc)
+		syslog(LOG_ERR, "Fail to create VAD server stream");
+}
+
+void cras_iodev_list_destroy_server_vad_stream(int dev_idx)
+{
+	server_stream_destroy(stream_list, SERVER_STREAM_VAD, dev_idx);
+}

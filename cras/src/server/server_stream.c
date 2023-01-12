@@ -110,3 +110,21 @@ void server_stream_destroy(struct stream_list *stream_list,
 	server_stream_rm_cb(ss);
 	g_server_streams[type] = NULL;
 }
+
+struct cras_rstream *
+server_stream_find_by_type(struct cras_rstream *all_streams,
+			   enum server_stream_type type)
+{
+	struct server_stream *ss = g_server_streams[type];
+	if (!ss) {
+		return NULL;
+	}
+
+	struct cras_rstream *rstream;
+	DL_FOREACH (all_streams, rstream) {
+		if (rstream->stream_id == ss->stream_id) {
+			return rstream;
+		}
+	}
+	return NULL;
+}

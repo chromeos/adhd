@@ -9,6 +9,7 @@
 #include "cras_audio_format.h"
 
 struct stream_list;
+struct cras_rstream;
 
 enum server_stream_type {
 	SERVER_STREAM_ECHO_REF,
@@ -43,5 +44,12 @@ int server_stream_create(struct stream_list *stream_list,
  **/
 void server_stream_destroy(struct stream_list *stream_list,
 			   enum server_stream_type type, unsigned int dev_idx);
+
+/*
+ * Find the cras_rstream of the given type in the stream list.
+ */
+struct cras_rstream *
+server_stream_find_by_type(struct cras_rstream *all_streams,
+			   enum server_stream_type type);
 
 #endif /* SERVER_STREAM_H_ */
