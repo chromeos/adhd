@@ -18,7 +18,7 @@ TARGETS = [
     Target('extra_bin', '_extra_bin_files'),
     Target('include', '_include_files'),
     Target('lib', '_lib_files'),
-    Target('alsa_lib', '_alsa_lib_files'),
+    Target('alsa-lib', '_alsa_lib_files'),
     Target('fuzzer', '_fuzzer_files'),
     Target('pkgconfig', '_pkgconfig_files'),
 ]
