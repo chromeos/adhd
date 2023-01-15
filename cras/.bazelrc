@@ -6,7 +6,6 @@ build --experimental_cc_shared_library
 
 build --define VCSID=vcsid-unspecified
 
-build --action_env=CC=clang --action_env=CXX=clang++
 build --conlyopt=-std=gnu11
 build --cxxopt=-std=gnu++17
 
@@ -22,7 +21,8 @@ build --copt=-D_LARGEFILE_SOURCE
 build --copt=-D_LARGEFILE64_SOURCE
 
 # go/cras-style#build-time-feature-switches
-build --copt=-Werror=undef-prefix --copt=-Wundef-prefix=HAVE_,CRAS_
+# NOTE: These flags don't work with gcc. So put them behind a config.
+build:clang-strict --copt=-Werror=undef-prefix --copt=-Wundef-prefix=HAVE_,CRAS_
 
 # Sanitizer configs
 build:asan --copt=-fsanitize=address --linkopt=-fsanitize=address
