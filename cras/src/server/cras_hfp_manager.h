@@ -29,6 +29,9 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
 // Stops hfp streaming for the specified direction.
 int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir);
 
+// Set the connected hfp device as active.
+void cras_floss_hfp_set_active(struct cras_hfp* hfp);
+
 /* Gets the file descriptor to read/write to given cras_hfp.
  * Returns -1 if given cras_hfp isn't started. */
 int cras_floss_hfp_get_fd(struct cras_hfp* hfp);

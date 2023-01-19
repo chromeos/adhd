@@ -435,6 +435,11 @@ int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr) {
   floss_media_a2dp_set_active_device_called++;
   return 0;
 }
+
+int floss_media_a2dp_reset_active_device(struct fl_media* fm) {
+  return 0;
+}
+
 int floss_media_a2dp_set_audio_config(struct fl_media* fm,
                                       unsigned int rate,
                                       unsigned int bps,

@@ -275,6 +275,10 @@ void cras_floss_hfp_possibly_reconnect(struct cras_hfp* hfp) {
   }
 }
 
+void cras_floss_hfp_set_active(struct cras_hfp* hfp) {
+  floss_media_hfp_set_active_device(hfp->fm, hfp->addr);
+}
+
 int cras_floss_hfp_get_fd(struct cras_hfp* hfp) {
   return hfp->fd;
 }

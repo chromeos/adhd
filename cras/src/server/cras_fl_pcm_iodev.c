@@ -816,7 +816,10 @@ static void a2dp_update_active_node(struct cras_iodev* iodev,
 
 static void hfp_update_active_node(struct cras_iodev* iodev,
                                    unsigned node_idx,
-                                   unsigned dev_enabled) {}
+                                   unsigned dev_enabled) {
+  struct fl_pcm_io* hfpio = (struct fl_pcm_io*)iodev;
+  cras_floss_hfp_set_active(hfpio->hfp);
+}
 
 void pcm_free_base_resources(struct fl_pcm_io* pcmio) {
   struct cras_ionode* node;

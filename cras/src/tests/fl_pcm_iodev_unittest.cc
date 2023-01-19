@@ -592,6 +592,10 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
   return 0;
 }
 
+void cras_floss_hfp_set_active(struct cras_hfp* hfp) {
+  return;
+}
+
 int cras_floss_hfp_get_fd(struct cras_hfp* hfp) {
   return cras_floss_hfp_get_fd_ret;
 }

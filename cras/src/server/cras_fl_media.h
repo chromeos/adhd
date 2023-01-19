@@ -61,7 +61,7 @@ int floss_media_start(DBusConnection* conn, unsigned int hci);
 
 int floss_media_stop(DBusConnection* conn);
 
-// Calls SetActiveDevice method to Floss media interface.
+// Calls SetHfpActiveDevice method to Floss media interface.
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr);
 
 // Calls StartScoCall to Floss media interface.
@@ -84,6 +84,9 @@ int floss_media_hfp_suspend(struct fl_media* fm);
 
 // Calls SetActiveDevice method to Floss media interface.
 int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr);
+
+// Calls ResetActiveDevice method to Floss media interface.
+int floss_media_a2dp_reset_active_device(struct fl_media* fm);
 
 // Calls SetAudioConfig method to Floss media interface.
 int floss_media_a2dp_set_audio_config(struct fl_media* fm,
