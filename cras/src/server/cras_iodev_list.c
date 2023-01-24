@@ -579,6 +579,10 @@ static void possibly_clear_non_dsp_aec_echo_ref_dev_alive()
 
 		dev = find_dev(stream->pinned_dev_idx);
 
+		/* device is missing for pinned stream? a bug? */
+		if (!dev)
+			continue;
+
 		/* neglect silent devices */
 		if (dev->info.idx < MAX_SPECIAL_DEVICE_IDX)
 			continue;
