@@ -504,10 +504,14 @@ int cras_server_run(unsigned int profile_disable_mask)
 	struct timespec ts, *poll_timeout;
 	int timers_active;
 	struct pollfd *pollfds;
+	struct pollfd *pollfds_tmp;
 	unsigned int pollfds_size = 32;
 	unsigned int num_pollfds, poll_size_needed;
 
 	pollfds = malloc(sizeof(*pollfds) * pollfds_size);
+
+	if (!pollfds)
+		return -ENOMEM;
 
 	cras_udev_start_sound_subsystem_monitor();
 
@@ -563,8 +567,11 @@ int cras_server_run(unsigned int profile_disable_mask)
 				   server_instance.num_client_callbacks;
 		if (poll_size_needed > pollfds_size) {
 			pollfds_size = 2 * poll_size_needed;
-			pollfds = realloc(pollfds,
-					  sizeof(*pollfds) * pollfds_size);
+			pollfds_tmp = realloc(pollfds,
+					      sizeof(*pollfds) * pollfds_size);
+			if (!pollfds_tmp)
+				goto bail;
+			pollfds = pollfds_tmp;
 		}
 
 		for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE;
