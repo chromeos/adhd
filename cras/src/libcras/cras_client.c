@@ -4333,7 +4333,7 @@ struct libcras_stream_params *libcras_stream_params_create()
 		1, sizeof(struct cras_stream_params));
 	if (params->params_ == NULL) {
 		syslog(LOG_WARNING, "cras_client: calloc failed");
-		free(params->params_);
+		free(params);
 		return NULL;
 	}
 	params->api_version = CRAS_API_VERSION;
