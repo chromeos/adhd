@@ -7,8 +7,6 @@ filegroup(
     name = "bin",
     srcs = [
         "//src/server:cras",
-        "//src/tools:cras_monitor",
-        "//src/tools:cras_router",
         "//src/tools:cras_test_client",
     ],
 )
@@ -19,6 +17,8 @@ filegroup(
     name = "extra_bin",
     srcs = [
         "//src/benchmark:cras_bench",
+        "//src/tools:cras_monitor",
+        "//src/tools:cras_router",
     ],
 )
 
