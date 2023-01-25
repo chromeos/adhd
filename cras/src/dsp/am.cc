@@ -46,6 +46,7 @@ static inline const char *get_tflite_error_string(const TfLiteStatus status)
 	case kTfLiteUnresolvedOps:
 		return "kTfLiteUnresolvedOps";
 	}
+	return "Unknown";
 }
 
 static inline struct am_context *am_new_failed(struct am_context *am_context)
