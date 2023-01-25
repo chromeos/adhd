@@ -1709,6 +1709,7 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 	rc = pipe(pipefd);
 	if (rc == -1) {
 		perror("failed to open pipe");
+		free(pfd);
 		return -errno;
 	}
 
@@ -1717,8 +1718,11 @@ static int run_file_io_stream(struct cras_client *client, int fd,
 	total_rms_size = 0;
 
 	aud_format = cras_audio_format_create(format, rate, num_channels);
-	if (aud_format == NULL)
+	if (aud_format == NULL) {
+		close(pipefd);
+		free(pfd);
 		return -ENOMEM;
+	}
 
 	if (channel_layout) {
 		/* Set channel layout to format */
