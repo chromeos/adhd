@@ -1011,20 +1011,20 @@ static int apm_thread_callback(void *arg, int revents)
 			syslog(LOG_ERR, "Read APM message error");
 			goto read_write_err;
 		}
+		switch (msg.cmd) {
+		case APM_REVERSE_DEV_CHANGED:
+		case APM_SET_AEC_REF:
+			cras_apm_reverse_state_update();
+			update_supported_dsp_effects_activation();
+			break;
+		case APM_VAD_TARGET_CHANGED:
+			update_vad_target(msg.data1);
+			break;
+		default:
+			break;
+		}
 	}
 
-	switch (msg.cmd) {
-	case APM_REVERSE_DEV_CHANGED:
-	case APM_SET_AEC_REF:
-		cras_apm_reverse_state_update();
-		update_supported_dsp_effects_activation();
-		break;
-	case APM_VAD_TARGET_CHANGED:
-		update_vad_target(msg.data1);
-		break;
-	default:
-		break;
-	}
 	return 0;
 
 read_write_err:
