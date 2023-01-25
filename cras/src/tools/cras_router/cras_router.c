@@ -118,12 +118,16 @@ static int run_file_io_stream(struct cras_client *client, int fd, int loop_fd,
 
 	if (pipe(pipefd) == -1) {
 		perror("failed to open pipe");
+		free(pfd);
 		return -errno;
 	}
 	aud_format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, rate,
 					      num_channels);
-	if (aud_format == NULL)
+	if (aud_format == NULL) {
+		close(pipefd);
+		free(pfd);
 		return -ENOMEM;
+	}
 
 	params = cras_client_unified_params_create(direction, block_size, 0, 0,
 						   pfd, got_samples,
