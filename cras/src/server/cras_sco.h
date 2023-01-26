@@ -70,14 +70,14 @@ void cras_sco_close_fd(struct cras_sco *sco);
 /* Checks if given cras_sco is running. */
 int cras_sco_running(struct cras_sco *sco);
 
-/* Starts the cras_sco to transmit and reveice samples to and from the file
+/* Starts the cras_sco to transmit and receive samples to and from the file
  * descriptor of a SCO socket. This should be called from main thread.
  * Args:
  *    mtu - The packet size of HCI SCO packet.
  *    codec - 1 for CVSD, 2 for mSBC per HFP 1.7 specification.
  *    sco - The cras_sco instance.
  */
-int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco);
+void cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco);
 
 /* Stops given cras_sco. This implies sample transmission will
  * stop and socket be closed. This should be called from main thread.

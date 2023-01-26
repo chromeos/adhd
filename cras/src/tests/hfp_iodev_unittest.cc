@@ -457,9 +457,8 @@ int cras_sco_running(struct cras_sco* sco) {
   return cras_sco_running_return_val;
 }
 
-int cras_sco_start(unsigned int mtu, int codec, struct cras_sco* sco) {
+void cras_sco_start(unsigned int mtu, int codec, struct cras_sco* sco) {
   cras_sco_start_called++;
-  return 0;
 }
 
 int cras_sco_stop(struct cras_sco* sco) {

@@ -163,6 +163,12 @@ static void possibly_switch_to_a2dp(struct bt_io_manager *mgr)
 	cras_bt_policy_switch_profile(mgr);
 }
 
+static void switch_to_hfp(struct bt_io_manager *mgr)
+{
+	mgr->active_btflag = CRAS_BT_FLAG_HFP;
+	cras_bt_policy_switch_profile(mgr);
+}
+
 /* Checks if the condition is met to switch to a different profile based
  * on two rules:
  * (1) Prefer to use A2DP for output since the audio quality is better.
@@ -180,8 +186,7 @@ static int open_dev(struct cras_iodev *iodev)
 	/* Force to use HFP if opening input dev. */
 	if (btio->mgr->active_btflag == CRAS_BT_FLAG_A2DP &&
 	    iodev->direction == CRAS_STREAM_INPUT) {
-		btio->mgr->active_btflag = CRAS_BT_FLAG_HFP;
-		cras_bt_policy_switch_profile(btio->mgr);
+		switch_to_hfp(btio->mgr);
 		return -EAGAIN;
 	}
 
@@ -700,14 +705,11 @@ static int bt_io_append(struct cras_iodev *bt_iodev, struct cras_iodev *dev)
 	if (!node)
 		return -ENOMEM;
 
+	// TODO(hychao): refine below after BT stop sending asynchronous
+	// A2DP and HFP connection to CRAS.
 	if ((node->btflags & CRAS_BT_FLAG_A2DP) &&
 	    can_switch_to_a2dp_when_connected(btio->mgr)) {
-		btio->mgr->active_btflag = CRAS_BT_FLAG_A2DP;
-
-		// TODO(hychao): remove below after BT stop sending asynchronous
-		// A2DP and HFP connection to CRAS.
-		cras_bt_policy_switch_profile(btio->mgr);
-		syslog(LOG_WARNING, "Switch to A2DP on append");
+		possibly_switch_to_a2dp(btio->mgr);
 	}
 	return 0;
 }

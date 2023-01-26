@@ -69,7 +69,8 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
  * represent two directions of the same HFP headset
  * Members:
  *     fd - The file descriptor for SCO socket.
- *     started - If the cras_sco has started to read/write SCO data.
+ *     started - If the cras_sco has started to read/write SCO data. This is
+ *         only meaningful for non-offload case.
  *     mtu - The max transmit unit reported from BT adapter.
  *     packet_size - The size of SCO packet to read/write preferred by
  *         adapter, could be different than mtu.
@@ -792,8 +793,6 @@ read_write_error:
 	audio_thread_rm_callback(sco->fd);
 	close(sco->fd);
 	sco->fd = -1;
-	sco->started = 0;
-
 	return 0;
 }
 
@@ -898,10 +897,14 @@ int cras_sco_running(struct cras_sco *sco)
 	return sco->started;
 }
 
-int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
+void cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 {
-	if (sco->fd == 0)
-		return -EINVAL;
+	if (sco->fd < 0) {
+		syslog(LOG_WARNING, "Start SCO without valid fd(%d) set",
+		       sco->fd);
+		return;
+	}
+
 	sco->mtu = mtu;
 
 	/* Initialize to MTU, it may change when actually read the socket. */
@@ -951,18 +954,19 @@ int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 	sco->read_align_cb =
 		(sco->packet_size == MSBC_PKT_SIZE) ? NULL : msbc_frame_align;
 	sco->msbc_read_current_corrupted = 0;
-
-	return 0;
 }
 
 int cras_sco_stop(struct cras_sco *sco)
 {
-	if (!sco->started)
+	if (!sco->started) {
+		syslog(LOG_WARNING, "stop sco that hasn't been started");
 		return 0;
+	}
 
 	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
 				      sco->fd);
 	sco->started = 0;
+	cras_sco_close_fd(sco);
 
 	/* Unset the write/read callbacks. */
 	sco->write_cb = NULL;

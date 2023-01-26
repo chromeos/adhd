@@ -220,17 +220,17 @@ static int open_dev(struct cras_iodev *iodev)
 	if (sk < 0)
 		goto error;
 
-	cras_sco_set_fd(hfpio->sco, sk);
+	err = cras_sco_set_fd(hfpio->sco, sk);
+	if (err)
+		syslog(LOG_WARNING, "Failed to set SCO fd(%d)", sk);
+
 	mtu = cras_bt_device_sco_packet_size(
 		hfpio->device, sk, hfp_slc_get_selected_codec(hfpio->slc));
 
 	handle_cras_sr_bt(iodev);
 
 	/* Start cras_sco */
-	err = cras_sco_start(mtu, hfp_slc_get_selected_codec(hfpio->slc),
-			     hfpio->sco);
-	if (err)
-		goto error;
+	cras_sco_start(mtu, hfp_slc_get_selected_codec(hfpio->slc), hfpio->sco);
 
 	sco_handle = cras_bt_device_sco_handle(sk);
 	cras_bt_device_report_hfp_start_stop_status(hfpio->device, true,
