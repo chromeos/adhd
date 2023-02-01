@@ -28,6 +28,7 @@
 
 #define AEC_CONFIG_NAME "aec.ini"
 #define APM_CONFIG_NAME "apm.ini"
+#define WEBRTC_CHANNELS_SUPPORTED_MAX 2
 
 /*
  * Structure holding a WebRTC audio processing module and necessary
@@ -688,9 +689,12 @@ struct cras_apm *cras_stream_apm_add(struct cras_stream_apm *stream,
 	dictionary *aec_ini_use = is_aec_use_case ? aec_ini : NULL;
 	dictionary *apm_ini_use = is_aec_use_case ? apm_ini : NULL;
 
+	const size_t num_channels =
+		MIN(apm->fmt.num_channels, WEBRTC_CHANNELS_SUPPORTED_MAX);
+
 	apm->apm_ptr = webrtc_apm_create_with_enforced_effects(
-		apm->fmt.num_channels, apm->fmt.frame_rate, aec_ini_use,
-		apm_ini_use, enforce_aec_on, enforce_ns_on, enforce_agc_on);
+		num_channels, apm->fmt.frame_rate, aec_ini_use, apm_ini_use,
+		enforce_aec_on, enforce_ns_on, enforce_agc_on);
 	if (apm->apm_ptr == NULL) {
 		syslog(LOG_ERR,
 		       "Fail to create webrtc apm for ch %zu"
@@ -1119,6 +1123,7 @@ int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
 {
 	unsigned int writable, nframes, nread;
 	int ch, i, j, ret;
+	size_t num_channels;
 	float *const *wp;
 	float *const *rp;
 
@@ -1169,8 +1174,9 @@ int cras_stream_apm_process(struct cras_apm *apm, struct float_buffer *input,
 	    (buf_queued(apm->buffer) == 0)) {
 		nread = float_buffer_level(apm->fbuffer);
 		rp = float_buffer_read_pointer(apm->fbuffer, 0, &nread);
-		ret = webrtc_apm_process_stream_f(apm->apm_ptr,
-						  apm->fmt.num_channels,
+		num_channels = MIN(apm->fmt.num_channels,
+				   WEBRTC_CHANNELS_SUPPORTED_MAX);
+		ret = webrtc_apm_process_stream_f(apm->apm_ptr, num_channels,
 						  apm->fmt.frame_rate, rp);
 		if (ret) {
 			syslog(LOG_ERR, "APM process stream f err");
