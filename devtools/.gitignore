@@ -1,0 +1,7 @@
+# bazel
+/external
+/bazel-*
+
+# clangd
+/compile_commands.json
+/.cache/

@@ -1,0 +1,12 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import %workspace%/llvm.bazelrc
+
+build -c opt
+build --config=generic_clang
+
+build:asan --copt=-fsanitize=address --linkopt=-fsanitize=address
+
+test --test_output=errors

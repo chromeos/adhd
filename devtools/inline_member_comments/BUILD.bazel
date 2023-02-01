@@ -1,0 +1,32 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+cc_library(
+    name = "extract_member_comments",
+    srcs = ["extract_member_comments.cc"],
+    hdrs = ["extract_member_comments.h"],
+    deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@re2",
+    ],
+)
+
+cc_test(
+    name = "extract_member_comments_test",
+    srcs = ["extract_member_comments_test.cc"],
+    deps = [
+        ":extract_member_comments",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "inline_member_comments",
+    srcs = ["inline_member_comments.cc"],
+    deps = [
+        "extract_member_comments",
+        "@llvm-project//clang:tooling",
+    ],
+)
