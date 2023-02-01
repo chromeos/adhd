@@ -6,6 +6,8 @@
 filegroup(
     name = "bin",
     srcs = [
+        "//scripts:asoc_dapm_graph",
+        "//scripts:audio_diagnostics",
         "//src/server:cras",
         "//src/tools:cras_test_client",
     ],

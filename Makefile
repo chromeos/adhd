@@ -11,7 +11,6 @@ ifeq ($(strip $(BAZEL)), yes)
 
 # Do nothing. Handled by bazel.
 cras:
-cras-scripts:
 
 else
 
@@ -22,14 +21,6 @@ cras_install:
 	@$(call remake,Building,cras,cras.mk,$@)
 
 endif
-
-cras-scripts:
-	$(ECHO) "Installing cras scripts"
-	$(INSTALL) --mode 755 -d $(DESTDIR)/usr/bin/
-	$(INSTALL) --mode 755 -D $(ADHD_DIR)/scripts/audio_diagnostics \
-		$(DESTDIR)/usr/bin/
-	$(INSTALL) --mode 755 -D $(ADHD_DIR)/scripts/asoc_dapm_graph \
-		$(DESTDIR)/usr/bin/
 
 cras_init_tmpfile:	$(ADHD_DIR)/tmpfiles.d/cras.conf
 	$(ECHO) "Installing tmpfile.d file"
@@ -93,11 +84,10 @@ install:	$(DESTDIR)/lib/firmware/$(BOARD)_alsa.fw
 endif
 
 install:	$(DESTDIR)/etc/cras/device_blocklist \
-		cras-scripts \
 		cras_install \
 		cras_init
 
 clean:
 	@rm -rf $(ADHD_BUILD_DIR)
 
-.PHONY:	clean cras cras_install cras-script
+.PHONY:	clean cras cras_install
