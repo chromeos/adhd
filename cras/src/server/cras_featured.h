@@ -7,10 +7,13 @@
 
 #include <stdbool.h>
 
+// Deprecated. Use cras_feature_enabled(CrOSLateBootAudioHFPOffload) instead.
 bool get_hfp_offload_feature_enabled();
 
+// Deprecated. Use cras_feature_enabled(CrOSLateBootAudioHFPMicSR) instead.
 bool get_hfp_mic_sr_feature_enabled();
 
+// Deprecated. Use cras_feature_enabled(CrOSLateBootAudioFlexibleLoopback) instead.
 bool get_flexible_loopback_feature_enabled();
 
 #endif /* CRAS_FEATURED_H_ */

@@ -206,11 +206,21 @@ cc_library(
 
 cc_library(
     name = "cras_featured",
-    srcs = select({
-        "//:featured_build": ["cras_featured.c"],
-        "//conditions:default": ["cras_featured_stub.c"],
-    }),
+    srcs = ["cras_featured.c"],
     hdrs = ["cras_featured.h"],
+    deps = [":cras_features"],
+)
+
+cc_library(
+    name = "cras_features",
+    srcs = [
+        "cras_features_impl.c",
+        "cras_features_impl.h",
+    ] + select({
+        "//:featured_build": ["cras_features_backend_featured.c"],
+        "//conditions:default": ["cras_features_backend_stub.c"],
+    }),
+    hdrs = ["cras_features.h"],
     deps = select({
         "//:featured_build": ["@libfeatures_c"],
         "//conditions:default": [],
