@@ -3739,6 +3739,34 @@ int cras_client_get_aec_supported(struct cras_client *client)
 	return aec_supported;
 }
 
+int cras_client_get_agc_supported(struct cras_client *client)
+{
+	int agc_supported;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return 0;
+
+	agc_supported = client->server_state->agc_supported;
+	server_state_unlock(client, lock_rc);
+	return agc_supported;
+}
+
+int cras_client_get_ns_supported(struct cras_client *client)
+{
+	int ns_supported;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return 0;
+
+	ns_supported = client->server_state->ns_supported;
+	server_state_unlock(client, lock_rc);
+	return ns_supported;
+}
+
 int cras_client_get_aec_group_id(struct cras_client *client)
 {
 	int aec_group_id;
@@ -4130,6 +4158,18 @@ int get_aec_supported(struct cras_client *client, int *supported)
 	return 0;
 }
 
+int get_agc_supported(struct cras_client *client, int *supported)
+{
+	*supported = cras_client_get_agc_supported(client);
+	return 0;
+}
+
+int get_ns_supported(struct cras_client *client, int *supported)
+{
+	*supported = cras_client_get_ns_supported(client);
+	return 0;
+}
+
 int get_system_muted(struct cras_client *client, int *muted)
 {
 	*muted = cras_client_get_system_muted(client);
@@ -4279,6 +4319,8 @@ struct libcras_client *libcras_client_create()
 	client->get_floop_dev_idx_by_client_types =
 		cras_client_get_floop_dev_idx_by_client_types;
 	client->set_aec_dump = cras_client_set_aec_dump;
+	client->get_agc_supported = get_agc_supported;
+	client->get_ns_supported = get_ns_supported;
 	return client;
 }
 

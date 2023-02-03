@@ -1353,7 +1353,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 6
+#define CRAS_API_VERSION 7
 #define CHECK_VERSION(object, version)                                         \
 	if (object->api_version < version) {                                   \
 		return -ENOSYS;                                                \
@@ -1418,6 +1418,8 @@ struct libcras_client {
 	int (*get_system_capture_muted)(struct cras_client *client, int *muted);
 	int (*set_aec_dump)(struct cras_client *client,
 			    cras_stream_id_t stream_id, int start, int fd);
+	int (*get_agc_supported)(struct cras_client *client, int *supported);
+	int (*get_ns_supported)(struct cras_client *client, int *supported);
 };
 
 struct cras_stream_cb_data;
@@ -1690,6 +1692,38 @@ inline int libcras_client_get_aec_group_id(struct libcras_client *client,
 					   int *id)
 {
 	return client->get_aec_group_id(client->client_, id);
+}
+
+/*
+ * Gets whether AGC is supported.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    supported - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int libcras_client_get_agc_supported(struct libcras_client *client,
+					    int *supported)
+{
+	CHECK_VERSION(client, 7);
+	return client->get_agc_supported(client->client_, supported);
+}
+
+/*
+ * Gets whether NS is supported.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create".
+ *    supported - The pointer to save the result.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int libcras_client_get_ns_supported(struct libcras_client *client,
+					   int *supported)
+{
+	CHECK_VERSION(client, 7);
+	return client->get_ns_supported(client->client_, supported);
 }
 
 /*
