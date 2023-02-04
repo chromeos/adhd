@@ -172,6 +172,24 @@ static int hfp_alsa_open_dev(struct cras_iodev* iodev) {
   return 0;
 }
 
+static int convert_hfp_codec_to_rate(enum HFP_CODEC codec) {
+  switch (codec) {
+    case HFP_CODEC_NONE:
+      return 0;
+    case HFP_CODEC_CVSD:
+      return 8000;
+    case HFP_CODEC_MSBC:
+      return 16000;
+    case HFP_CODEC_LC3:
+      syslog(LOG_ERR, "Unexpected LC3 codec in hfp_alsa_iodev");
+      break;
+    default:
+      syslog(LOG_ERR, "Unknown codec %d in hfp_alsa_iodev", codec);
+      break;
+  }
+  return 0;
+}
+
 // Gets sample rate from the underlying device and codec.
 static inline size_t hfp_alsa_get_device_sample_rate(struct cras_iodev* iodev) {
   struct hfp_alsa_io* hfp_alsa_io = (struct hfp_alsa_io*)iodev;
@@ -180,7 +198,8 @@ static inline size_t hfp_alsa_get_device_sample_rate(struct cras_iodev* iodev) {
                ? 16000
                : 8000;
   }
-  return cras_floss_hfp_get_wbs_supported(hfp_alsa_io->hfp) ? 16000 : 8000;
+  return convert_hfp_codec_to_rate(
+      cras_floss_hfp_get_active_codec(hfp_alsa_io->hfp));
 }
 
 /* Gets supported sample rate.
@@ -490,8 +509,9 @@ struct cras_iodev* hfp_alsa_iodev_create(struct cras_iodev* aio,
       node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
     }
   } else {
-    if (!cras_floss_hfp_get_wbs_supported(hfp) &&
-        (iodev->direction == CRAS_STREAM_INPUT)) {
+    if (iodev->direction == CRAS_STREAM_INPUT &&
+        !cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_MSBC) &&
+        !cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3)) {
       node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
     }
   }

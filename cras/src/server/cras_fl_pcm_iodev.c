@@ -501,9 +501,31 @@ static void fl_pcm_io_disable_cras_sr_bt(struct fl_pcm_io* fl_pcm_io) {
   fl_pcm_io->sr = NULL;
 }
 
-static int fl_pcm_io_enable_cras_sr_bt(struct fl_pcm_io* fl_pcm_io,
-                                       enum cras_sr_bt_model model) {
+static int fl_pcm_io_get_sr_bt_model(struct fl_pcm_io* fl_pcm_io,
+                                     enum cras_sr_bt_model* model) {
+  const int active_codec = cras_floss_hfp_get_active_codec(fl_pcm_io->hfp);
+  switch (active_codec) {
+    case HFP_CODEC_CVSD:
+      *model = SR_BT_NBS;
+      break;
+    case HFP_CODEC_MSBC:
+      *model = SR_BT_WBS;
+      break;
+    default:
+      syslog(LOG_INFO, "cras_sr_bt is not supported in codec %d", active_codec);
+      return -EINVAL;
+  }
+  return 0;
+}
+
+static int fl_pcm_io_enable_cras_sr_bt(struct fl_pcm_io* fl_pcm_io) {
   int rc = 0;
+  enum cras_sr_bt_model model;
+
+  rc = fl_pcm_io_get_sr_bt_model(fl_pcm_io, &model);
+  if (rc) {
+    return rc;
+  }
 
   fl_pcm_io->sr_buf = byte_buffer_create(FLOSS_HFP_MAX_BUF_SIZE_BYTES);
   if (!fl_pcm_io->sr_buf) {
@@ -542,11 +564,8 @@ static void handle_cras_sr_bt_enable_disable(
 
   if (iodev->direction == CRAS_STREAM_INPUT &&
       status == CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK) {
-    // wbs_supported is set in cras_floss_hfp_start.
-    int err = fl_pcm_io_enable_cras_sr_bt(
-        fl_pcm_io, cras_floss_hfp_get_wbs_supported(fl_pcm_io->hfp)
-                       ? SR_BT_WBS
-                       : SR_BT_NBS);
+    // active_codec is set in cras_floss_hfp_start.
+    int err = fl_pcm_io_enable_cras_sr_bt(fl_pcm_io);
     if (err < 0) {
       syslog(LOG_WARNING,
              "cras_sr is disabled due to fl_pcm_io_enable_cras_sr_bt failed");
@@ -574,8 +593,15 @@ static inline void handle_cras_sr_bt_uma_log(
  *    iodev: the hfp iodev.
  */
 static void handle_cras_sr_bt(struct cras_iodev* iodev) {
+  struct fl_pcm_io* hfpio = (struct fl_pcm_io*)iodev;
+  if (cras_floss_hfp_get_active_codec(hfpio->hfp) != HFP_CODEC_CVSD &&
+      cras_floss_hfp_get_active_codec(hfpio->hfp) != HFP_CODEC_MSBC) {
+    return;
+  }
+
   const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status =
       cras_sr_bt_can_be_enabled();
+
   handle_cras_sr_bt_enable_disable(iodev, status);
   handle_cras_sr_bt_uma_log(iodev, status);
 }
@@ -593,8 +619,10 @@ static int hfp_open_dev(struct cras_iodev* iodev) {
 
   handle_cras_sr_bt(iodev);
 
+  // TODO: add a type for SWB
   if (iodev->direction == CRAS_STREAM_INPUT &&
-      !cras_floss_hfp_get_wbs_supported(hfpio->hfp)) {
+      !cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_MSBC) &&
+      !cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_LC3)) {
     iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
   }
 
@@ -608,6 +636,7 @@ static int hfp_configure_dev(struct cras_iodev* iodev) {
   if (iodev->format == NULL) {
     return -EINVAL;
   }
+
   iodev->format->format = SND_PCM_FORMAT_S16_LE;
   cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
@@ -1142,8 +1171,10 @@ struct cras_iodev* hfp_pcm_iodev_create(struct cras_hfp* hfp,
     goto error;
   }
 
+  // TODO: add a type for SWB
   if (iodev->direction == CRAS_STREAM_INPUT &&
-      !cras_floss_hfp_get_wbs_supported(hfp)) {
+      !cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_MSBC) &&
+      !cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_LC3)) {
     iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
   }
 

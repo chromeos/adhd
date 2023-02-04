@@ -44,7 +44,7 @@ static int validate_bluetooth_device_address(const char* addr) {
 }
 
 static int validate_hfp_codec_capability(int32_t hfp_cap) {
-  if (0 <= hfp_cap && hfp_cap <= (FL_CODEC_CVSD | FL_CODEC_MSBC)) {
+  if (FL_HFP_CODEC_NONE <= hfp_cap && hfp_cap < FL_HFP_CODEC_UNKNOWN) {
     return 0;
   }
   return -EINVAL;
@@ -109,8 +109,7 @@ int handle_on_bluetooth_device_added(struct fl_media* active_fm,
       syslog(LOG_WARNING, "Multiple HFP devices added, remove the older");
       floss_media_hfp_suspend(active_fm);
     }
-    active_fm->hfp =
-        cras_floss_hfp_create(active_fm, addr, name, hfp_cap & FL_CODEC_MSBC);
+    active_fm->hfp = cras_floss_hfp_create(active_fm, addr, name, hfp_cap);
 
     if (active_fm->hfp) {
       bt_io_manager_append_iodev(active_fm->bt_io_mgr,

@@ -47,9 +47,13 @@
 #define FL_A2DP_CODEC_MAX 8
 
 // Bitmask form of enum defined on floss to expose HF's HFP codec capability.
-#define FL_CODEC_NONE 0x00
-#define FL_CODEC_CVSD 0x01
-#define FL_CODEC_MSBC 0x02
+enum FL_HFP_CODEC {
+  FL_HFP_CODEC_NONE = 0,
+  FL_HFP_CODEC_CVSD = (1 << 0),
+  FL_HFP_CODEC_MSBC = (1 << 1),
+  FL_HFP_CODEC_LC3 = (1 << 2),
+  FL_HFP_CODEC_UNKNOWN = (1 << 3),
+};
 
 struct fl_media;
 
@@ -65,7 +69,7 @@ int floss_media_stop(DBusConnection* conn);
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr);
 
 // Calls StartScoCall to Floss media interface.
-// Returns codec inuse (CVSD=1, mSBC=2) on success.
+// Returns codec inuse (CVSD=1, mSBC=2, LC3=4) on success.
 int floss_media_hfp_start_sco_call(struct fl_media* fm,
                                    const char* addr,
                                    bool enable_offload,

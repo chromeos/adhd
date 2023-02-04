@@ -14,11 +14,20 @@
 struct cras_hfp;
 struct fl_media;
 
-// Creates cras_hfp object representing a connected hfp device.
+// Isomorphic to FL_HFP_CODEC
+enum HFP_CODEC {
+  HFP_CODEC_NONE = 0,
+  HFP_CODEC_CVSD = (1 << 0),
+  HFP_CODEC_MSBC = (1 << 1),
+  HFP_CODEC_LC3 = (1 << 2),
+  HFP_CODEC_UNKNOWN = (1 << 3),
+};
+
+/* Creates cras_hfp object representing a connected hfp device. */
 struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
                                        const char* addr,
                                        const char* name,
-                                       bool wbs_supported);
+                                       int hfp_caps);
 
 /* Starts hfp streaming on given cras_hfp for the specified direction.
  * Returns 0 for success, otherwise error code. */
@@ -68,10 +77,14 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
  * event to CRAS's system volume. */
 int cras_floss_hfp_convert_volume(unsigned int vgs_volume);
 
-// Get if HFP wideband speech is supported.
-bool cras_floss_hfp_get_wbs_supported(struct cras_hfp* hfp);
+// Gets whether a codec is supported.
+bool cras_floss_hfp_get_codec_supported(struct cras_hfp* hfp,
+                                        enum HFP_CODEC codec);
 
-// Destroys given cras_hfp object.
+/* Get the active codec after SCO is created. */
+enum HFP_CODEC cras_floss_hfp_get_active_codec(struct cras_hfp* hfp);
+
+/* Destroys given cras_hfp object. */
 void cras_floss_hfp_destroy(struct cras_hfp* hfp);
 
 #endif  // CRAS_SRC_SERVER_CRAS_HFP_MANAGER_H_

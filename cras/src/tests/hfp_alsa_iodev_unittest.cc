@@ -40,7 +40,8 @@ static size_t cras_iodev_set_format_called;
 static size_t hfp_set_call_status_called;
 static size_t hfp_event_speaker_gain_called;
 static int hfp_slc_get_selected_codec_return_val;
-static bool cras_floss_hfp_get_wbs_supported_return_val;
+static bool cras_floss_hfp_get_codec_supported_ret;
+static enum HFP_CODEC cras_floss_hfp_get_active_codec_ret;
 static int cras_iodev_sr_bt_adapter_create_called;
 static int cras_iodev_sr_bt_adapter_destroy_called;
 static int cras_iodev_sr_bt_adapter_frames_queued_called;
@@ -96,7 +97,8 @@ static void ResetStubData() {
   hfp_set_call_status_called = 0;
   hfp_event_speaker_gain_called = 0;
   hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_CVSD;
-  cras_floss_hfp_get_wbs_supported_return_val = false;
+  cras_floss_hfp_get_codec_supported_ret = false;
+  cras_floss_hfp_get_active_codec_ret = HFP_CODEC_NONE;
   cras_iodev_sr_bt_adapter_create_called = 0;
   cras_iodev_sr_bt_adapter_destroy_called = 0;
   cras_iodev_sr_bt_adapter_frames_queued_called = 0;
@@ -285,6 +287,9 @@ TEST_F(HfpAlsaIodev, ConfigureDev) {
                                 NULL);
   hfp_alsa_io = (struct hfp_alsa_io*)iodev;
   iodev->format = &fake_format;
+  iodev->supported_rates = (size_t*)calloc(2, sizeof(size_t));
+  iodev->supported_rates[0] = 8000;
+
   iodev->configure_dev(iodev);
 
   EXPECT_EQ(fake_format.num_channels, hfp_alsa_io->aio->format->num_channels);
@@ -489,7 +494,7 @@ TEST_F(HfpAlsaIodev, GetValidFrames) {
 
 struct HfpAlsaIodevSrTestParam {
   bool is_cras_sr_enabled;
-  bool is_wbs_enabled;
+  enum HFP_CODEC active_codec;
   bool is_offload;
   enum CRAS_STREAM_DIRECTION direction;
   size_t expected_sample_rate;
@@ -507,12 +512,12 @@ class HfpAlsaIodevSrTest
       disable_cras_sr_bt();
     }
 
-    if (GetParam().is_wbs_enabled) {
+    if (GetParam().active_codec == HFP_CODEC_MSBC) {
       hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_MSBC;
-      cras_floss_hfp_get_wbs_supported_return_val = true;
+      cras_floss_hfp_get_active_codec_ret = HFP_CODEC_MSBC;
     } else {
       hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_CVSD;
-      cras_floss_hfp_get_wbs_supported_return_val = false;
+      cras_floss_hfp_get_active_codec_ret = HFP_CODEC_CVSD;
     }
 
     if (GetParam().is_offload) {
@@ -551,49 +556,49 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     HfpAlsaIodevSrTest,
     testing::Values(HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
-                                             .is_wbs_enabled = false,
+                                             .active_codec = HFP_CODEC_CVSD,
                                              .is_offload = false,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 8000}),
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
-                                             .is_wbs_enabled = true,
+                                             .active_codec = HFP_CODEC_MSBC,
                                              .is_offload = false,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 16000}),
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
-                                             .is_wbs_enabled = false,
+                                             .active_codec = HFP_CODEC_CVSD,
                                              .is_offload = true,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 8000}),
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
-                                             .is_wbs_enabled = true,
+                                             .active_codec = HFP_CODEC_MSBC,
                                              .is_offload = true,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 16000}),
                     // sr enabled
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
-                                             .is_wbs_enabled = false,
+                                             .active_codec = HFP_CODEC_CVSD,
                                              .is_offload = false,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 24000}),
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
-                                             .is_wbs_enabled = true,
+                                             .active_codec = HFP_CODEC_MSBC,
                                              .is_offload = false,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 24000}),
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
-                                             .is_wbs_enabled = false,
+                                             .active_codec = HFP_CODEC_CVSD,
                                              .is_offload = true,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 24000}),
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
-                                             .is_wbs_enabled = true,
+                                             .active_codec = HFP_CODEC_MSBC,
                                              .is_offload = true,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 24000}),
                     // output
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
-                                             .is_wbs_enabled = true,
+                                             .active_codec = HFP_CODEC_MSBC,
                                              .direction = CRAS_STREAM_OUTPUT,
                                              .expected_sample_rate = 16000})));
 
@@ -765,8 +770,13 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
 
 void cras_floss_hfp_set_volume(struct cras_hfp* hfp, unsigned int volume) {}
 
-bool cras_floss_hfp_get_wbs_supported(struct cras_hfp* hfp) {
-  return cras_floss_hfp_get_wbs_supported_return_val;
+bool cras_floss_hfp_get_codec_supported(struct cras_hfp* hfp,
+                                        enum HFP_CODEC codec) {
+  return cras_floss_hfp_get_codec_supported_ret;
+}
+
+enum HFP_CODEC cras_floss_hfp_get_active_codec(struct cras_hfp* hfp) {
+  return cras_floss_hfp_get_active_codec_ret;
 }
 
 const char* cras_floss_hfp_get_display_name(struct cras_hfp* hfp) {

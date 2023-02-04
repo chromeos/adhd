@@ -57,7 +57,8 @@ struct cras_hfp {
   // If an output device started. This is used to determine if
   // a sco start or stop is required.
   int odev_started;
-  bool wbs_supported;
+  int hfp_caps;
+  enum HFP_CODEC active_codec;
   bool sco_pcm_used;
 };
 
@@ -95,11 +96,11 @@ static bool is_sco_pcm_supported() {
           cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT));
 }
 
-// Creates cras_hfp object representing a connected hfp device.
+/* Creates cras_hfp object representing a connected hfp device. */
 struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
                                        const char* addr,
                                        const char* name,
-                                       bool wbs_supported) {
+                                       int hfp_caps) {
   struct cras_hfp* hfp;
   hfp = (struct cras_hfp*)calloc(1, sizeof(*hfp));
 
@@ -111,8 +112,24 @@ struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
   hfp->addr = strdup(addr);
   hfp->name = strdup(name);
   hfp->fd = -1;
-  hfp->wbs_supported = wbs_supported & cras_system_get_bt_wbs_enabled();
+  hfp->hfp_caps = hfp_caps;
   hfp->sco_pcm_used = is_sco_pcm_supported() && is_sco_pcm_used();
+
+  if (!cras_system_get_bt_wbs_enabled()) {
+    hfp->hfp_caps &= ~FL_HFP_CODEC_MSBC;
+    hfp->hfp_caps &= ~FL_HFP_CODEC_LC3;
+  }
+
+  if (!cras_feature_enabled(CrOSLateBootAudioHFPSwb)) {
+    hfp->hfp_caps &= ~FL_HFP_CODEC_LC3;
+  }
+
+  if (cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3) &&
+      hfp->sco_pcm_used) {
+    hfp->sco_pcm_used = false;
+    syslog(LOG_INFO, "Bypassed offloading to allow LC3");
+    // TODO: add UMA for this case
+  }
 
   if (hfp->sco_pcm_used) {
     struct cras_iodev *in_aio, *out_aio;
@@ -167,18 +184,15 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
     return rc;
   }
 
-  if ((rc != FL_CODEC_CVSD) && (rc != FL_CODEC_MSBC)) {
-    syslog(LOG_WARNING, "Unexpected SCO codec %d, fallback to CVSD", rc);
-    rc = FL_CODEC_CVSD;
+  if (!(HFP_CODEC_NONE < rc && rc < HFP_CODEC_UNKNOWN) ||
+      __builtin_popcount(rc) != 1) {
+    syslog(LOG_ERR, "Invalid active codec %d", rc);
+    return -EINVAL;
   }
 
-  int updated_wbs_supported = rc - 1;
+  hfp->active_codec = rc;
 
-  if (hfp->wbs_supported != updated_wbs_supported) {
-    syslog(LOG_DEBUG, "Negotiated codec has changed from %cBS to %cBS",
-           "NW"[hfp->wbs_supported], "NW"[updated_wbs_supported]);
-    hfp->wbs_supported = updated_wbs_supported;
-  }
+  syslog(LOG_INFO, "Negotiated active codec is %d", hfp->active_codec);
 
   if (hfp->sco_pcm_used) {
     // When sco is offloaded, we do not need to connect to the fd in Floss.
@@ -311,6 +325,23 @@ const uint32_t cras_floss_hfp_get_stable_id(struct cras_hfp* hfp) {
   return SuperFastHash(addr, strlen(addr), strlen(addr));
 }
 
+static int convert_hfp_codec_to_rate(enum HFP_CODEC codec) {
+  switch (codec) {
+    case HFP_CODEC_NONE:
+      return 0;
+    case HFP_CODEC_CVSD:
+      return 8000;
+    case HFP_CODEC_MSBC:
+      return 16000;
+    case HFP_CODEC_LC3:
+      return 32000;
+    default:
+      syslog(LOG_ERR, "%s: unknown codec %d", __func__, codec);
+      break;
+  }
+  return 0;
+}
+
 int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
                                size_t** rates,
                                snd_pcm_format_t** formats,
@@ -319,7 +350,7 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
   if (!*rates) {
     return -ENOMEM;
   }
-  (*rates)[0] = hfp->wbs_supported ? 16000 : 8000;
+  (*rates)[0] = convert_hfp_codec_to_rate(hfp->active_codec);
   (*rates)[1] = 0;
 
   *formats = (snd_pcm_format_t*)malloc(2 * sizeof(snd_pcm_format_t));
@@ -356,8 +387,13 @@ int cras_floss_hfp_convert_volume(unsigned int vgs_volume) {
   return (vgs_volume + 1) * 100 / 16;
 }
 
-bool cras_floss_hfp_get_wbs_supported(struct cras_hfp* hfp) {
-  return hfp->wbs_supported;
+bool cras_floss_hfp_get_codec_supported(struct cras_hfp* hfp,
+                                        enum HFP_CODEC codec) {
+  return hfp->hfp_caps & codec;
+}
+
+enum HFP_CODEC cras_floss_hfp_get_active_codec(struct cras_hfp* hfp) {
+  return hfp->active_codec;
 }
 
 // Destroys given cras_hfp object.

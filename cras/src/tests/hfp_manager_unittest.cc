@@ -67,12 +67,14 @@ class HfpManagerTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
     cras_features_set_override(CrOSLateBootAudioHFPOffload, true);
+    cras_features_set_override(CrOSLateBootAudioHFPSwb, false);
     ResetStubData();
   }
 
   virtual void TearDown() {
     cras_bt_event_log_deinit(btlog);
     cras_features_unset_override(CrOSLateBootAudioHFPOffload);
+    cras_features_unset_override(CrOSLateBootAudioHFPSwb);
   }
 };
 
@@ -263,7 +265,7 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
                                    const char* addr,
                                    bool force_cvsd) {
   floss_media_hfp_start_sco_called++;
-  return 0;
+  return force_cvsd ? 1 : 2;
 }
 
 int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
