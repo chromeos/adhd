@@ -1,0 +1,73 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Maintainer: Li-Yu Yu <aaronyu@google.com>
+pkgname=cras-git
+pkgver=VERSION
+pkgrel=1
+pkgdesc='ChromiumOS Audio Server'
+arch=('x86_64')
+url="https://chromium.googlesource.com/chromiumos/third_party/adhd/+/refs/heads/main/cras/"
+license=('BSD')
+groups=()
+depends=(
+	'alsa-lib'
+	'sbc'
+	'speexdsp'
+	'ladspa'
+)
+makedepends=(
+	'git'
+	'bazel'
+	'clang'
+	'gtest'
+	'rust'
+	'python'
+)
+source=('git+https://chromium.googlesource.com/chromiumos/third_party/adhd')
+noextract=()
+md5sums=('SKIP')
+
+_bazel_opts=(
+	'--compilation_mode=opt'
+	'--action_env=CC=clang'
+	'--action_env=CXX=clang'
+	'--curses=no'
+	'--test_output=errors'
+	'--config=clang-strict'
+	# Workarounds
+	'--copt=-Wno-error=int-conversion'
+)
+
+pkgver() {
+	cd "$srcdir/adhd/cras"
+	printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+	cd "$srcdir/adhd/cras"
+}
+
+build() {
+	cd "$srcdir/adhd/cras"
+	rm -rf "$srcdir/cras-out"
+	bazel run "${_bazel_opts[@]}" //dist -- "$srcdir/cras-dist"
+}
+
+check() {
+	cd "$srcdir/adhd/cras"
+	bazel test "${_bazel_opts[@]}" //...
+}
+
+package() {
+	cd "$srcdir/adhd/cras"
+	install -dm755 "$pkgdir/usr/bin"
+	install "$srcdir/cras-dist/bin/"* "$pkgdir/usr/bin"
+
+	install -dm755 "$pkgdir/usr/lib"
+	install "$srcdir/cras-dist/lib/"* "$pkgdir/usr/lib"
+
+	install -dm755 "$pkgdir/usr/lib/alsa-lib"
+	install "$srcdir/cras-dist/alsa-lib/"* "$pkgdir/usr/lib/alsa-lib"
+}
