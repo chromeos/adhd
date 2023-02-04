@@ -124,7 +124,8 @@ static int run_file_io_stream(struct cras_client *client, int fd, int loop_fd,
 	aud_format = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, rate,
 					      num_channels);
 	if (aud_format == NULL) {
-		close(pipefd);
+		close(pipefd[0]);
+		close(pipefd[1]);
 		free(pfd);
 		return -ENOMEM;
 	}
