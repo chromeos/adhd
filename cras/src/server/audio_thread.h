@@ -21,39 +21,39 @@ struct dev_stream;
 
 /* Hold communication pipes and pthread info for the thread used to play or
  * record audio.
- *    to_thread_fds - Send a message from main to running thread.
- *    to_main_fds - Send a synchronous response to main from running thread.
- *    tid - Thread ID of the running playback/capture thread.
- *    started - Non-zero if the thread has started successfully.
- *    suspended - Non-zero if the thread is suspended.
- *    open_devs - Lists of open input and output devices.
- *    pollfds - What FDs wake up this thread.
- *    pollfds_size - Number of available poll fds.
- *    num_pollfds - Number of currently registered poll fds.
- *    remix_converter - Format converter used to remix output channels.
  */
 struct audio_thread {
+	// Send a message from main to running thread.
 	int to_thread_fds[2];
+	// Send a synchronous response to main from running thread.
 	int to_main_fds[2];
+	// Thread ID of the running playback/capture thread.
 	pthread_t tid;
+	// Non-zero if the thread has started successfully.
 	int started;
+	// Non-zero if the thread is suspended.
 	int suspended;
+	// Lists of open input and output devices.
 	struct open_dev *open_devs[CRAS_NUM_DIRECTIONS];
+	// What FDs wake up this thread.
 	struct pollfd *pollfds;
+	// Number of available poll fds.
 	size_t pollfds_size;
+	// Number of currently registered poll fds.
 	size_t num_pollfds;
+	// Format converter used to remix output channels.
 	struct cras_fmt_conv *remix_converter;
 };
 
 /*
  * Enum to specify how a registered event callback be triggered.
- * TRIGGER_NONE - Callback will not be triggered.
- * TRIGGER_POLL - Triggered by poll given fd and revent.
- * TRIGGER_WAKEUP - Triggered everytime when audio thread wakes up.
  */
 enum AUDIO_THREAD_EVENTS_CB_TRIGGER {
+	// Callback will not be triggered.
 	TRIGGER_NONE,
+	// Triggered by poll given fd and revent.
 	TRIGGER_POLL,
+	// Triggered everytime when audio thread wakes up.
 	TRIGGER_WAKEUP,
 };
 

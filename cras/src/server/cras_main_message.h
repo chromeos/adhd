@@ -44,13 +44,11 @@ enum CRAS_MAIN_MESSAGE_TYPE {
  * ------------------------------
  *
  * See also CRAS_MAIN_MESSAGE_INIT.
- *
- * Args:
- *    length - Size of the whole message.
- *    type - Type of the message.
  */
 struct cras_main_message {
+	// Size of the whole message.
 	size_t length;
+	// Type of the message.
 	enum CRAS_MAIN_MESSAGE_TYPE type;
 };
 

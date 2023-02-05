@@ -25,15 +25,14 @@ enum CRAS_RAMP_ACTION_TYPE {
 
 /*
  * Struct to hold current ramping action for user.
- * Members:
- *   type: See CRAS_RAMP_ACTION_TYPE.
- *   scaler: The initial scaler to be applied.
- *   increment: The scaler increment that should be added to scaler for every
- *              frame.
  */
 struct cras_ramp_action {
+	// See CRAS_RAMP_ACTION_TYPE.
 	enum CRAS_RAMP_ACTION_TYPE type;
+	// The initial scaler to be applied.
 	float scaler;
+	// The scaler increment that should be added to scaler for every
+	// frame.
 	float increment;
 	float target;
 };

@@ -45,13 +45,13 @@ static const float rcos[PLC_OLAL] = { 0.99148655f, 0.96623611f, 0.92510857f,
 
 /* This structure tracks the packet loss information for last PLC_WINDOW_SIZE
  * of packets:
- *    loss_hist - The packet loss history of receiving packets. 1 means lost.
- *    ptr - The index of the to be updated packet loss status.
- *    count - The count of lost packets in the window.
  */
 struct packet_window {
+	// The packet loss history of receiving packets. 1 means lost.
 	uint8_t loss_hist[PLC_WINDOW_SIZE];
+	// The index of the to be updated packet loss status.
 	unsigned int ptr;
+	// The count of lost packets in the window.
 	unsigned int count;
 };
 

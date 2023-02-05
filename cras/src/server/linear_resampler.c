@@ -7,23 +7,21 @@
 #include "cras_util.h"
 #include "linear_resampler.h"
 
-/* A linear resampler.
- * Members:
- *    num_channels - The number of channles in once frames.
- *    format_bytes - The size of one frame in bytes.
- *    src_offset - The accumulated offset for resampled src data.
- *    dst_offset - The accumulated offset for resampled dst data.
- *    to_times_100 - The numerator of the rate factor used for SRC.
- *    from_times_100 - The denominator of the rate factor used for SRC.
- *    f - The rate factor used for linear resample.
- */
+/* A linear resampler. */
 struct linear_resampler {
+	// The number of channles in once frames.
 	unsigned int num_channels;
+	// The size of one frame in bytes.
 	unsigned int format_bytes;
+	// The accumulated offset for resampled src data.
 	unsigned int src_offset;
+	// The accumulated offset for resampled dst data.
 	unsigned int dst_offset;
+	// The numerator of the rate factor used for SRC.
 	unsigned int to_times_100;
+	// The denominator of the rate factor used for SRC.
 	unsigned int from_times_100;
+	// The rate factor used for linear resample.
 	float f;
 };
 

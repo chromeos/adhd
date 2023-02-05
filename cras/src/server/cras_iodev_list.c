@@ -41,11 +41,9 @@ struct iodev_list {
 	size_t size;
 };
 
-/* List of enabled input/output devices.
- *    dev - The device.
- *    init_timer - Timer for a delayed call to init this iodev.
- */
+/* List of enabled input/output devices. */
 struct enabled_dev {
+	// The device.
 	struct cras_iodev *dev;
 	struct enabled_dev *prev, *next;
 };

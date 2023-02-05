@@ -17,17 +17,16 @@
 
 /*
  * Represents a Bluetooth stack interface that CRAS can run with.
- * Members:
- *    profile_disable_mask - Bitmap to configure if certain profiles should
- *        be disabled.
- *    conn - The dBus connection handle.
- *    start - Callback to start the BT stack.
- *    stop - Callback to stop the BT stack.
  */
 struct bt_stack {
+	// Bitmap to configure if certain profiles should
+	// be disabled.
 	unsigned profile_disable_mask;
+	// The dBus connection handle.
 	DBusConnection *conn;
+	// Callback to start the BT stack.
 	void (*start)(struct bt_stack *s);
+	// Callback to stop the BT stack.
 	void (*stop)(struct bt_stack *s);
 };
 

@@ -18,18 +18,17 @@
 
 /*
  * Object to log consecutive packets' status.
- * Members:
- *    data - Bytes to store packets' status.
- *    size - Total number of bits in |data|.
- *    wp - Position of the next bit to log packet status.
- *    num_wraps - Number of times the ring buffer has wrapped.
- *    ts - The timestamp of the last time when the first bit of |data| updated.
  */
 struct packet_status_logger {
+	// Bytes to store packets' status.
 	uint8_t data[PACKET_STATUS_LEN_BYTES];
+	// Total number of bits in |data|.
 	int size;
+	// Position of the next bit to log packet status.
 	int wp;
+	// Number of times the ring buffer has wrapped.
 	int num_wraps;
+	// The timestamp of the last time when the first bit of |data| updated.
 	struct timespec ts;
 };
 

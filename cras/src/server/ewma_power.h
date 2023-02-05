@@ -14,19 +14,18 @@
 /*
  * The exponentially weighted moving average power module used to
  * calculate the energe level in audio stream.
- * Members:
- *    power_set - Flag to note if the first power value has set.
- *    enabled - Flag to enable ewma calculation. Set to false to
- *        make all calculations no-ops.
- *    power - The power value.
- *    step_fr - How many frames to sample one for EWMA calculation.
- *    fmt - The sample format of audio data.
  */
 struct ewma_power {
+	// Flag to note if the first power value has set.
 	bool power_set;
+	// Flag to enable ewma calculation. Set to false to
+	// make all calculations no-ops.
 	bool enabled;
+	// The power value.
 	float power;
+	// How many frames to sample one for EWMA calculation.
 	unsigned int step_fr;
+	// The sample format of audio data.
 	snd_pcm_format_t fmt;
 };
 

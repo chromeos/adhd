@@ -19,18 +19,17 @@
 
 struct cras_sr;
 
-/* Cras SR model specification.
- *  model_path - The path to the tflite model.
- *  num_frames_per_run - number of frames needed by each invocation.
- *  num_channels - number of channels needed by each invocation.
- *  input_sample_rate - the input sample rate of the audio data.
- *  output_sample_rate - the output sample rate of the audio data.
- */
+/* Cras SR model specification. */
 struct cras_sr_model_spec {
+	// The path to the tflite model.
 	char model_path[CRAS_SR_MODEL_PATH_CAPACITY + 1];
+	// number of frames needed by each invocation.
 	size_t num_frames_per_run;
+	// number of channels needed by each invocation.
 	size_t num_channels;
+	// the input sample rate of the audio data.
 	size_t input_sample_rate;
+	// the output sample rate of the audio data.
 	size_t output_sample_rate;
 };
 

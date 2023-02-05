@@ -20,39 +20,38 @@ struct cras_timer;
 
 /* Object to represent a general bluetooth device, and used to
  * associate with some CRAS modules if it supports audio.
- * Members:
- *    conn - The dbus connection object used to send message to bluetoothd.
- *    object_path - Object path of the bluetooth device.
- *    adapter - The object path of the adapter associates with this device.
- *    address - The BT address of this device.
- *    name - The readable name of this device.
- *    bluetooth_class - The bluetooth class of this device.
- *    paired - If this device is paired.
- *    trusted - If this device is trusted.
- *    connected - If this devices is connected.
- *    connected_profiles - OR'ed all connected audio profiles.
- *    profiles - OR'ed by all audio profiles this device supports.
- *    hidden_profiles - OR'ed by all audio profiles this device actually
- *        supports but is not scanned by BlueZ.
- *    stable_id - The unique and persistent id of this bt_device.
- *    bt_io_mgr - The bt_io_manager in charge of managing iodevs of
- *        different profiles and the switching in between.
  */
 struct cras_bt_device {
+	// The dbus connection object used to send message to bluetoothd.
 	DBusConnection *conn;
+	// Object path of the bluetooth device.
 	char *object_path;
+	// The object path of the adapter associates with this device.
 	char *adapter_obj_path;
+	// The BT address of this device.
 	char *address;
+	// The readable name of this device.
 	char *name;
+	// The bluetooth class of this device.
 	uint32_t bluetooth_class;
+	// If this device is paired.
 	int paired;
+	// If this device is trusted.
 	int trusted;
+	// If this devices is connected.
 	int connected;
+	// OR'ed all connected audio profiles.
 	unsigned int connected_profiles;
+	// OR'ed by all audio profiles this device supports.
 	unsigned int profiles;
+	// OR'ed by all audio profiles this device actually
+	// supports but is not scanned by BlueZ.
 	unsigned int hidden_profiles;
 	int use_hardware_volume;
+	// The unique and persistent id of this bt_device.
 	unsigned int stable_id;
+	// The bt_io_manager in charge of managing iodevs of
+	// different profiles and the switching in between.
 	struct bt_io_manager *bt_io_mgr;
 
 	struct cras_bt_device *prev, *next;

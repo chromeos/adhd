@@ -10,27 +10,25 @@
 
 #define A2DP_BUF_SIZE_BYTES 2048
 
-/* Represents the codec and encoded state of a2dp iodev.
- * Members:
- *    codec - The codec used to encode PCM buffer to a2dp buffer.
- *    a2dp_buf - The buffer to hold encoded frames.
- *    codesize - Size of a SBC frame in bytes.
- *    frame_length - Size of an encoded SBC frame in bytes.
- *    frame_count - Queued SBC frame count currently in a2dp buffer.
- *    seq_num - Sequence number in rtp header.
- *    samples - Queued PCM frame count currently in a2dp buffer.
- *    nsamples - Cumulative number of encoded PCM frames.
- *    a2dp_buf_used - Used a2dp buffer counter in bytes.
- */
+/* Represents the codec and encoded state of a2dp iodev. */
 struct a2dp_info {
+	// The codec used to encode PCM buffer to a2dp buffer.
 	struct cras_audio_codec *codec;
+	// The buffer to hold encoded frames.
 	uint8_t a2dp_buf[A2DP_BUF_SIZE_BYTES];
+	// Size of a SBC frame in bytes.
 	int codesize;
+	// Size of an encoded SBC frame in bytes.
 	int frame_length;
+	// Queued SBC frame count currently in a2dp buffer.
 	int frame_count;
+	// Sequence number in rtp header.
 	uint16_t seq_num;
+	// Queued PCM frame count currently in a2dp buffer.
 	int samples;
+	// Cumulative number of encoded PCM frames.
 	int nsamples;
+	// Used a2dp buffer counter in bytes.
 	size_t a2dp_buf_used;
 };
 

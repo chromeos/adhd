@@ -12,19 +12,19 @@
 struct cras_iodev;
 
 /*
- *    bt_iodevs - The input and output iodevs this |bt_io_manager| manages.
- *        These are actually wrappers to BT profile(A2DP and HFP) specific
- *        iodevs of the same direction. This allows |bt_io_manager| to control
- *        which BT profile to use at any scenario.
- *    active_btflag - The flag to indicate the active BT profile, A2DP or HFP
- *        the underlying BT device is currently using. It can also be set to
- *        none.
- *    is_profile_switching - The flag to indicate that there is a pending
- *        profile-switch event, and make sure no btio be opened in between.
  */
 struct bt_io_manager {
+	// The input and output iodevs this |bt_io_manager| manages.
+	// These are actually wrappers to BT profile(A2DP and HFP) specific
+	// iodevs of the same direction. This allows |bt_io_manager| to control
+	// which BT profile to use at any scenario.
 	struct cras_iodev *bt_iodevs[CRAS_NUM_DIRECTIONS];
+	// The flag to indicate the active BT profile, A2DP or HFP
+	// the underlying BT device is currently using. It can also be set to
+	// none.
 	enum CRAS_BT_FLAGS active_btflag;
+	// The flag to indicate that there is a pending
+	// profile-switch event, and make sure no btio be opened in between.
 	bool is_profile_switching;
 	struct bt_io_manager *prev, *next;
 };

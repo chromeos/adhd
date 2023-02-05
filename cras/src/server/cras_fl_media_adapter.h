@@ -18,19 +18,18 @@
 /* Hold information and focus on logic related to communicate with the
  * Bluetooth stack through DBus. Information and logic regarding A2DP and
  * AVRCP should be kept in the cras_a2dp for responsibility division.
- * Members:
- *    hci - The id of HCI interface to use.
- *    obj_path - Object path of the Bluetooth media.
- *    conn - The DBus connection object used to send message to Floss Media
- *    interface.
- *    a2dp - Object representing the connected A2DP headset.
- *    hfp - Object representing the connected HFP headset.
  */
 struct fl_media {
+	// The id of HCI interface to use.
 	unsigned int hci;
+	// Object path of the Bluetooth media.
 	char obj_path[BT_MEDIA_OBJECT_PATH_SIZE_MAX];
+	// The DBus connection object used to send message to Floss Media
+	// interface.
 	DBusConnection *conn;
+	// Object representing the connected A2DP headset.
 	struct cras_a2dp *a2dp;
+	// Object representing the connected HFP headset.
 	struct cras_hfp *hfp;
 	struct bt_io_manager *bt_io_mgr;
 };

@@ -62,18 +62,17 @@ typedef int (*iodev_hook_t)();
  * Holds the information of a receiver of loopback audio, used to register
  * with the sender of loopback audio. A sender keeps a list of cras_loopback
  * objects representing all the receivers.
- * Members:
- *    type - Pre-dsp loopback can be used for system loopback. Post-dsp
- *        loopback can be used for echo reference.
- *    hook_data - Callback used for playback samples after mixing, before or
- *        after applying DSP depends on the value of |type|.
- *    hook_control - Callback to notify receiver that loopback starts or stops.
- *    cb_data - Pointer to the loopback receiver, will be passing to hook functions.
  */
 struct cras_loopback {
+	// Pre-dsp loopback can be used for system loopback. Post-dsp
+	// loopback can be used for echo reference.
 	enum CRAS_LOOPBACK_TYPE type;
+	// Callback used for playback samples after mixing, before or
+	// after applying DSP depends on the value of |type|.
 	loopback_hook_data_t hook_data;
+	// Callback to notify receiver that loopback starts or stops.
 	loopback_hook_control_t hook_control;
+	// Pointer to the loopback receiver, will be passing to hook functions.
 	void *cb_data;
 	struct cras_loopback *prev, *next;
 };
@@ -91,217 +90,157 @@ enum CRAS_IODEV_STATE {
 
 /* Holds an output/input node for this device.  An ionode is a control that
  * can be switched on and off such as headphones or speakers.
- * Members:
- *    dev - iodev which this node belongs to.
- *    idx - ionode index.
- *    plugged - true if the device is plugged.
- *    plugged_time - If plugged is true, this is the time it was attached.
- *    volume - per-node volume (0-100)
- *    capture_gain - Internal per-node capture gain/attenuation (in 100*dBFS)
- *        This is only used for CRAS internal tuning, no way to change by
- *        client.
- *    ui_gain_scaler - The adjustable gain scaler set by client.
- *    left_right_swapped - If left and right output channels are swapped.
- *    display_rotation - The currect display rotation status.
- *    type - Type displayed to the user.
- *    position - Specify where on the system this node locates.
- *    name - Name displayed to the user.
- *    ucm_name - Name for the ucm device section.
- *    dsp_name - The "DspName" variable specified in the ucm config.
- *    active_hotword_model - name of the currently selected hotword model.
- *    softvol_scalers - pointer to software volume scalers.
- *    software_volume_needed - For output: True if the volume range of the node
- *      is smaller than desired. For input: True if this node needs software
- *      gain.
- *    intrinsic_sensitivity - The "IntrinsicSensitivity" in 0.01 dBFS/Pa
- *    specified in the ucm config.
- *    stable_id - id for node that doesn't change after unplug/plug.
- *    audio_effect - Bit-wise audio effect support information. See enum
- *                   audio_effect_type in cras_iodev_info.h.
- *    btflags - Bit-wise information to indicate the BT profile and attributes
- *              that apply.
- *              See enum CRAS_BT_FLAGS in ../common/cras_types.h.
- *    number_of_volume_steps - The total volume step of the node
- *                         suggested by the system.
- *                         Mainly used to calculate
- *                         the percentage of volume change.
- *                         This value for input node is invalid (0).
- *                         Output nodes have valid values ​​(> 0).
  */
 struct cras_ionode {
+	// iodev which this node belongs to.
 	struct cras_iodev *dev;
+	// ionode index.
 	uint32_t idx;
+	// true if the device is plugged.
 	int plugged;
+	// If plugged is true, this is the time it was attached.
 	struct timeval plugged_time;
+	// per-node volume (0-100)
 	unsigned int volume;
+	// Internal per-node capture gain/attenuation (in 100*dBFS)
+	// This is only used for CRAS internal tuning, no way to change by
+	// client.
 	long capture_gain;
+	// The adjustable gain scaler set by client.
 	float ui_gain_scaler;
+	// If left and right output channels are swapped.
 	int left_right_swapped;
+	// The currect display rotation status.
 	enum CRAS_SCREEN_ROTATION display_rotation;
+	// Type displayed to the user.
 	enum CRAS_NODE_TYPE type;
+	// Specify where on the system this node locates.
 	enum CRAS_NODE_POSITION position;
+	// Name displayed to the user.
 	char name[CRAS_NODE_NAME_BUFFER_SIZE];
+	// Name for the ucm device section.
 	char ucm_name[CRAS_NODE_NAME_BUFFER_SIZE];
+	// The "DspName" variable specified in the ucm config.
 	const char *dsp_name;
+	// name of the currently selected hotword model.
 	char active_hotword_model[CRAS_NODE_HOTWORD_MODEL_BUFFER_SIZE];
+	// pointer to software volume scalers.
 	float *softvol_scalers;
 	// Note: avoid accessing software_volume_needed from ionode in the future.
+	// For output: True if the volume range of the node
+	// is smaller than desired. For input: True if this node needs software
+	// gain.
 	int software_volume_needed;
+	// The "IntrinsicSensitivity" in 0.01 dBFS/Pa
+	// specified in the ucm config.
 	long intrinsic_sensitivity;
+	// id for node that doesn't change after unplug/plug.
 	unsigned int stable_id;
+	// Bit-wise information to indicate the BT profile and attributes
+	// that apply.
+	// See enum CRAS_BT_FLAGS in ../common/cras_types.h.
 	uint32_t btflags;
+	// Bit-wise audio effect support information. See enum
+	// audio_effect_type in cras_iodev_info.h.
 	uint32_t audio_effect;
+	// The total volume step of the node
+	// suggested by the system.
+	// Mainly used to calculate
+	// the percentage of volume change.
+	// This value for input node is invalid (0).
+	// Output nodes have valid values ​​(> 0).
 	int32_t number_of_volume_steps;
 	struct cras_ionode *prev, *next;
 };
 
-/* An input or output device, that can have audio routed to/from it.
- * set_volume - Function to call if the system volume changes.
- * set_capture_gain - Function to call if active node's capture_gain changes.
- * set_mute - Function to call if the system mute state changes.
- * set_capture_mute - Function to call if the system capture mute state changes.
- * set_swap_mode_for_node - Function to call to set swap mode for the node.
- * set_display_rotation_for_node - Function to call to update the display
- *                                 rotaion for the node.
- * open_dev - Opens the device.
- * configure_dev - Configures the device.
- * close_dev - Closes the device if it is open.
- * update_supported_formats - Refresh supported frame rates and channel counts.
- * frames_queued - The number of frames in the audio buffer, and fills tstamp
- *                 with the associated timestamp. The timestamp is {0, 0} when
- *                 the device hasn't started processing data (and on error).
- * delay_frames - The delay of the next sample in frames.
- * get_buffer - Returns a buffer to read/write to/from.
- * put_buffer - Marks a buffer from get_buffer as read/written.
- * flush_buffer - Flushes the buffer and return the number of frames flushed.
- * start - Starts running device. This is optionally supported on output device.
- *         If device supports this ops, device can be in CRAS_IODEV_STATE_OPEN
- *         state after being opened.
- *         If device does not support this ops, then device will be in
- *         CRAS_IODEV_STATE_NO_STREAM_RUN.
- * no_stream - When there is no stream, we let device keep running
- *             for some time to save the time to open device for the next
- *             stream. This is the no stream state of an output device.
- *             Set no_stream to cras_iodev_default_no_stream_playback
- *             to fill zeros periodically.
- *             Device can implement this function to define
- *             its own optimization of entering/exiting no stream state.
- * is_free_running - (Optional) Checks if the device is in free running state.
- * output_underrun - (Optional) Handle output device underrun.
- * update_active_node - Update the active node when the selected device/node has
- *     changed.
- * update_channel_layout - Update the channel layout base on set iodev->format,
- *     expect the best available layout be filled to iodev->format.
- * set_hotword_model - Sets the hotword model to this iodev.
- * get_hotword_models - Gets a comma separated string of the list of supported
- *     hotword models of this iodev.
- * get_num_severe_underruns - Gets number of severe underrun recorded since
- *                            iodev was created.
- * get_valid_frames - Gets number of valid frames in device which have not
- *                    played yet. Valid frames does not include zero samples
- *                    we filled under no streams state.
- * frames_to_play_in_sleep - Returns the non-negative number of frames that
- *        audio thread can sleep before serving this playback dev the next time.
- *        Not implementing this ops means fall back to default behavior in
- *        cras_iodev_default_frames_to_play_in_sleep().
- * support_noise_cancellation - (Optional) Checks if the node supports noise
- *                              cancellation.
- * format - The audio format being rendered or captured to hardware.
- * rate_est - Rate estimator to estimate the actual device rate.
- * area - Information about how the samples are stored.
- * info - Unique identifier for this device (index and name).
- * nodes - The output or input nodes available for this device.
- * active_node - The current node being used for playback or capture.
- * direction - Input or Output.
- * supported_rates - Array of sample rates supported by device 0-terminated.
- * supported_channel_counts - List of number of channels supported by device.
- * supported_formats - List of audio formats (s16le, s32le) supported by device.
- * buffer_size - Size of the audio buffer in frames.
- * min_buffer_level - Extra frames to keep queued in addition to requested.
- * dsp_context - The context used for dsp processing on the audio data.
- * dsp_name - The "dsp_name" dsp variable specified in the ucm config.
- * echo_reference_dev - Used only for playback iodev. Pointer to the input
- *        iodev, which can be used to record what is playing out from this
- *        iodev. This will be used as the echo reference for echo cancellation.
- * is_enabled - True if this iodev is enabled, false otherwise.
- * software_volume_needed - True if volume control is not supported by hardware.
- * software_gain_scaler - Scaler value to apply to captured data. This can
- *     be different when active node changes. Configured when there's no
- *     hardware gain control.
- * streams - List of audio streams serviced by dev.
- * state - Device is in one of close, open, normal, or no_stream state defined
- *         in enum CRAS_IODEV_STATE.
- * min_cb_level - min callback level of any stream attached.
- * max_cb_level - max callback level of any stream attached.
- * highest_hw_level - The highest hardware level of the device.
- * largest_cb_level - The largest callback level of streams attached to this
- *                    device. The difference with max_cb_level is it takes all
- *                    streams into account even if they have been removed.
- * num_underruns - Number of times we have run out of data (playback only).
- * last_reset_timeref - Timestamp of the last update to the reset quota.
- * num_reset - Describes the used quota for resets in this time window of
- *             MAX_IODEV_RESET_TIMEWINDOW_SEC seconds (token bucket).
- * buf_state - If multiple streams are writing to this device, then this
- *     keeps track of how much each stream has written.
- * idle_timeout - The timestamp when to close the dev after being idle.
- * open_ts - The time when the device opened.
- * loopbacks - List of registered cras_loopback objects representing the
- *    receivers who wants a copy of the audio sending through this iodev.
- * pre_open_iodev_hook - Optional callback to call before iodev open.
- * post_close_iodev_hook - Optional callback to call after iodev close.
- * ext_dsp_module - External dsp module to process audio data in stream level
- *        after dsp_context.
- * reset_request_pending - The flag for pending reset request.
- * ramp - The cras_ramp struct to control ramping up/down at mute/unmute and
- *        start of playback.
- * input_streaming - For capture only. Indicate if input has started.
- * input_frames_read - The number of frames read from the device, but that
- *                     haven't been "put" yet.
- * input_dsp_offset - The number of frames in the HW buffer that have already
- *                    been processed by the input DSP.
- * input_data - Used to pass audio input data to streams with or without
- *              stream side processing.
- * initial_ramp_request - The value indicates which type of ramp the device
- * should perform when some samples are ready for playback.
- * ewma - The ewma instance to calculate iodev volume.
- */
+/* An input or output device, that can have audio routed to/from it. */
 struct cras_iodev {
+	// Function to call if the system volume changes.
 	void (*set_volume)(struct cras_iodev *iodev);
+	// Function to call if the system mute state changes.
 	void (*set_mute)(struct cras_iodev *iodev);
+	// Function to call if active node's capture_gain changes.
 	void (*set_capture_gain)(struct cras_iodev *iodev);
+	// Function to call if the system capture mute state changes.
 	void (*set_capture_mute)(struct cras_iodev *iodev);
+	// Function to call to set swap mode for the node.
 	int (*set_swap_mode_for_node)(struct cras_iodev *iodev,
 				      struct cras_ionode *node, int enable);
+	// Function to call to update the display
+	// rotaion for the node.
 	int (*set_display_rotation_for_node)(struct cras_iodev *iodev,
 					     struct cras_ionode *node,
 					     enum CRAS_SCREEN_ROTATION);
+	// Opens the device.
 	int (*open_dev)(struct cras_iodev *iodev);
+	// Configures the device.
 	int (*configure_dev)(struct cras_iodev *iodev);
+	// Closes the device if it is open.
 	int (*close_dev)(struct cras_iodev *iodev);
+	// Refresh supported frame rates and channel counts.
 	int (*update_supported_formats)(struct cras_iodev *iodev);
+	// The number of frames in the audio buffer, and fills tstamp
+	// with the associated timestamp. The timestamp is {0, 0} when
+	// the device hasn't started processing data (and on error).
 	int (*frames_queued)(const struct cras_iodev *iodev,
 			     struct timespec *tstamp);
+	// The delay of the next sample in frames.
 	int (*delay_frames)(const struct cras_iodev *iodev);
+	// Returns a buffer to read/write to/from.
 	int (*get_buffer)(struct cras_iodev *iodev,
 			  struct cras_audio_area **area, unsigned *frames);
+	// Marks a buffer from get_buffer as read/written.
 	int (*put_buffer)(struct cras_iodev *iodev, unsigned nwritten);
+	// Flushes the buffer and return the number of frames flushed.
 	int (*flush_buffer)(struct cras_iodev *iodev);
+	// Starts running device. This is optionally supported on output device.
+	// If device supports this ops, device can be in CRAS_IODEV_STATE_OPEN
+	// state after being opened.
+	// If device does not support this ops, then device will be in
+	// CRAS_IODEV_STATE_NO_STREAM_RUN.
 	int (*start)(struct cras_iodev *iodev);
+	// (Optional) Checks if the device is in free running state.
 	int (*is_free_running)(const struct cras_iodev *iodev);
+	// (Optional) Handle output device underrun.
 	int (*output_underrun)(struct cras_iodev *iodev);
+	// When there is no stream, we let device keep running
+	// for some time to save the time to open device for the next
+	// stream. This is the no stream state of an output device.
+	// Set no_stream to cras_iodev_default_no_stream_playback
+	// to fill zeros periodically.
+	// Device can implement this function to define
+	// its own optimization of entering/exiting no stream state.
 	int (*no_stream)(struct cras_iodev *iodev, int enable);
+	// Update the active node when the selected device/node has
+	// changed.
 	void (*update_active_node)(struct cras_iodev *iodev, unsigned node_idx,
 				   unsigned dev_enabled);
+	// Update the channel layout base on set iodev->format,
+	// expect the best available layout be filled to iodev->format.
 	int (*update_channel_layout)(struct cras_iodev *iodev);
+	// Sets the hotword model to this iodev.
 	int (*set_hotword_model)(struct cras_iodev *iodev,
 				 const char *model_name);
+	// Gets a comma separated string of the list of supported
+	// hotword models of this iodev.
 	char *(*get_hotword_models)(struct cras_iodev *iodev);
+	// Gets number of severe underrun recorded since
+	// iodev was created.
 	unsigned int (*get_num_severe_underruns)(const struct cras_iodev *iodev);
+	// Gets number of valid frames in device which have not
+	// played yet. Valid frames does not include zero samples
+	// we filled under no streams state.
 	int (*get_valid_frames)(struct cras_iodev *odev,
 				struct timespec *tstamp);
+	// Returns the non-negative number of frames that
+	// audio thread can sleep before serving this playback dev the next time.
+	// Not implementing this ops means fall back to default behavior in
+	// cras_iodev_default_frames_to_play_in_sleep().
 	unsigned int (*frames_to_play_in_sleep)(struct cras_iodev *iodev,
 						unsigned int *hw_level,
 						struct timespec *hw_tstamp);
+	// (Optional) Checks if the node supports noise
+	// cancellation.
 	int (*support_noise_cancellation)(const struct cras_iodev *iodev,
 					  unsigned node_idx);
 	bool (*set_rtc_proc_enabled)(struct cras_iodev *iodev,
@@ -309,48 +248,106 @@ struct cras_iodev {
 				     bool enabled);
 	bool (*get_rtc_proc_enabled)(struct cras_iodev *iodev,
 				     enum RTC_PROC_ON_DSP rtc_proc);
+	// The audio format being rendered or captured to hardware.
 	struct cras_audio_format *format;
+	// Rate estimator to estimate the actual device rate.
 	struct rate_estimator *rate_est;
+	// Information about how the samples are stored.
 	struct cras_audio_area *area;
+	// Unique identifier for this device (index and name).
 	struct cras_iodev_info info;
+	// The output or input nodes available for this device.
 	struct cras_ionode *nodes;
+	// The current node being used for playback or capture.
 	struct cras_ionode *active_node;
+	// Input or Output.
 	enum CRAS_STREAM_DIRECTION direction;
+	// Array of sample rates supported by device 0-terminated.
 	size_t *supported_rates;
+	// List of number of channels supported by device.
 	size_t *supported_channel_counts;
+	// List of audio formats (s16le, s32le) supported by device.
 	snd_pcm_format_t *supported_formats;
+	// Size of the audio buffer in frames.
 	snd_pcm_uframes_t buffer_size;
+	// Extra frames to keep queued in addition to requested.
 	unsigned int min_buffer_level;
+	// The context used for dsp processing on the audio data.
 	struct cras_dsp_context *dsp_context;
+	// The "dsp_name" dsp variable specified in the ucm config.
 	const char *dsp_name;
+	// Used only for playback iodev. Pointer to the input
+	// iodev, which can be used to record what is playing out from this
+	// iodev. This will be used as the echo reference for echo cancellation.
 	struct cras_iodev *echo_reference_dev;
+	// True if this iodev is enabled, false otherwise.
 	int is_enabled;
+	// True if volume control is not supported by hardware.
 	int software_volume_needed;
+	// Scaler value to apply to captured data. This can
+	// be different when active node changes. Configured when there's no
+	// hardware gain control.
 	float software_gain_scaler;
+	// List of audio streams serviced by dev.
 	struct dev_stream *streams;
+	// Device is in one of close, open, normal, or no_stream state defined
+	// in enum CRAS_IODEV_STATE.
 	enum CRAS_IODEV_STATE state;
+	// min callback level of any stream attached.
 	unsigned int min_cb_level;
+	// max callback level of any stream attached.
 	unsigned int max_cb_level;
+	// The highest hardware level of the device.
 	unsigned int highest_hw_level;
+	// The largest callback level of streams attached to this
+	// device. The difference with max_cb_level is it takes all
+	// streams into account even if they have been removed.
 	unsigned int largest_cb_level;
+	// Number of times we have run out of data (playback only).
 	unsigned int num_underruns;
 	double rate_est_underrun;
+	// Timestamp of the last update to the reset quota.
 	struct timespec last_reset_timeref;
+	// Describes the used quota for resets in this time window of
+	// MAX_IODEV_RESET_TIMEWINDOW_SEC seconds (token bucket).
 	double num_reset;
+	// If multiple streams are writing to this device, then this
+	// keeps track of how much each stream has written.
 	struct buffer_share *buf_state;
+	// The timestamp when to close the dev after being idle.
 	struct timespec idle_timeout;
+	// The time when the device opened.
 	struct timespec open_ts;
+	// List of registered cras_loopback objects representing the
+	// receivers who wants a copy of the audio sending through this iodev.
 	struct cras_loopback *loopbacks;
+	// Optional callback to call before iodev open.
 	iodev_hook_t pre_open_iodev_hook;
+	// Optional callback to call after iodev close.
 	iodev_hook_t post_close_iodev_hook;
+	// External dsp module to process audio data in stream level
+	// after dsp_context.
 	struct ext_dsp_module *ext_dsp_module;
+	// The flag for pending reset request.
 	int reset_request_pending;
+	// The cras_ramp struct to control ramping up/down at mute/unmute and
+	// start of playback.
 	struct cras_ramp *ramp;
+	// For capture only. Indicate if input has started.
 	int input_streaming;
+	// The number of frames read from the device, but that
+	// haven't been "put" yet.
 	unsigned int input_frames_read;
+	// The number of frames in the HW buffer that have already
+	// been processed by the input DSP.
 	unsigned int input_dsp_offset;
+	// The value indicates which type of ramp the device
+	// should perform when some samples are ready for playback.
 	unsigned int initial_ramp_request;
+	// Used to pass audio input data to streams with or without
+	// stream side processing.
 	struct input_data *input_data;
+	// The ewma instance to calculate iodev volume.
 	struct ewma_power ewma;
 	struct cras_iodev *prev, *next;
 };

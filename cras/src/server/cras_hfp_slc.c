@@ -59,56 +59,55 @@
 
 /* Handle object to hold required info to initialize and maintain
  * an HFP service level connection.
- * Args:
- *    buf - Buffer hold received commands.
- *    buf_read_idx - Read index for buf.
- *    buf_write_idx - Write index for buf.
- *    rfcomm_fd - File descriptor for the established RFCOMM connection.
- *    init_cb - Callback to be triggered when an SLC is initialized.
- *    cli_active - Calling line identification notification is enabled or not.
- *    battery - Current battery level of AG stored in SLC.
- *    signal - Current signal strength of AG stored in SLC.
- *    service - Current service availability of AG stored in SLC.
- *    callheld - Current callheld status of AG stored in SLC.
- *    ind_event_reports - Activate statuses of indicator events reporting.
- *    ag_supported_features - Supported AG features bitmap.
- *    hf_supported_features - Bit map of HF supported features.
- *    hf_supports_battery_indicator - Bit map of battery indicator support of
- *        connected HF.
- *    hf_battery - Current battery level of HF reported by the HF. The data
- *    range should be 0 ~ 100. Use -1 for no battery level reported.
- *    preferred_codec - CVSD or mSBC based on the situation and strategy. This
- *        needs not to be equal to selected_codec because codec negotiation
- *        process may fail.
- *    selected_codec - The codec id defaults to HFP_CODEC_UNUSED and changes
- *        only if codec negotiation is supported and the negotiation flow
- *        has completed.
- *    telephony - A reference of current telephony handle.
- *    device - The associated bt device.
  */
 struct hfp_slc_handle {
+	// Buffer hold received commands.
 	char buf[SLC_BUF_SIZE_BYTES];
+	// Read index for buf.
 	int buf_read_idx;
+	// Write index for buf.
 	int buf_write_idx;
+	// File descriptor for the established RFCOMM connection.
 	int rfcomm_fd;
+	// Callback to be triggered when an SLC is initialized.
 	hfp_slc_init_cb init_cb;
 	hfp_slc_disconnect_cb disconnect_cb;
+	// Calling line identification notification is enabled or not.
 	int cli_active;
+	// Current battery level of AG stored in SLC.
 	int battery;
+	// Current signal strength of AG stored in SLC.
 	int signal;
+	// Current service availability of AG stored in SLC.
 	int service;
+	// Current callheld status of AG stored in SLC.
 	int callheld;
+	// Activate statuses of indicator events reporting.
 	int ind_event_reports[INDICATOR_IND_MAX];
+	// Supported AG features bitmap.
 	int ag_supported_features;
 	bool hf_codec_supported[HFP_MAX_CODECS];
+	// Bit map of HF supported features.
 	int hf_supported_features;
+	// Bit map of battery indicator support of
+	// connected HF.
 	int hf_supports_battery_indicator;
+	// Current battery level of HF reported by the HF. The data
+	// range should be 0 ~ 100. Use -1 for no battery level reported.
 	int hf_battery;
+	// CVSD or mSBC based on the situation and strategy. This
+	// needs not to be equal to selected_codec because codec negotiation
+	// process may fail.
 	int preferred_codec;
+	// The codec id defaults to HFP_CODEC_UNUSED and changes
+	// only if codec negotiation is supported and the negotiation flow
+	// has completed.
 	int selected_codec;
+	// The associated bt device.
 	struct cras_bt_device *device;
 	struct cras_timer *timer;
 
+	// A reference of current telephony handle.
 	struct cras_telephony_handle *telephony;
 };
 

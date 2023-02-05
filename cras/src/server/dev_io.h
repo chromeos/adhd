@@ -15,23 +15,21 @@
 
 /*
  * Open input/output devices.
- *    dev - The device.
- *    last_wake - The last timestamp audio thread woke up and there is stream
- *        on this open device.
- *    longest_wake - The longest time between consecutive audio thread wakes
- *        in this open_dev's life cycle.
- *    wake_ts - When callback is needed to avoid xrun.
- *    last_non_empty_ts - The last time we know the device played/captured
- *        non-empty (zero) audio.
- *    coarse_rate_adjust - Hack for when the sample rate needs heavy correction.
  */
 struct open_dev {
+	// The device.
 	struct cras_iodev *dev;
+	// The last timestamp audio thread woke up and there is stream
+	// on this open device.
 	struct timespec last_wake;
+	// The longest time between consecutive audio thread wakes
+	// in this open_dev's life cycle.
 	struct timespec longest_wake;
+	// When callback is needed to avoid xrun.
 	struct timespec wake_ts;
 	struct polled_interval *non_empty_check_pi;
 	struct polled_interval *empty_pi;
+	// Hack for when the sample rate needs heavy correction.
 	int coarse_rate_adjust;
 	struct open_dev *prev, *next;
 };

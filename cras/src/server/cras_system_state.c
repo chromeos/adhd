@@ -40,12 +40,10 @@ struct name_list {
 	struct name_list *prev, *next;
 };
 
-/* A struct holding the states of the features.
- * Args:
- *    force_sr_bt_enabled - Whether the feature is force enabled. It's for
- *      testing purpose.
- */
+/* A struct holding the states of the features. */
 struct feature_state {
+	// Whether the feature is force enabled. It's for
+	// testing purpose.
 	bool force_sr_bt_enabled;
 };
 

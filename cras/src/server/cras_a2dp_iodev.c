@@ -43,42 +43,40 @@ static const struct timespec throttle_event_threshold = {
 	2, 0 /* 2s */
 };
 
-/* Child of cras_iodev to handle bluetooth A2DP streaming.
- * Members:
- *    base - The cras_iodev structure "base class"
- *    a2dp - The codec and encoded state of a2dp_io.
- *    transport - The transport object for bluez media API.
- *    sock_depth_frames - Socket depth in frames of the a2dp socket.
- *    pcm_buf - Buffer to hold pcm samples before encode.
- *    destroyed - Flag to note if this a2dp_io is about to destroy.
- *    next_flush_time - The time when it is okay for next flush call.
- *    flush_period - The time period between two a2dp packet writes.
- *    write_block - How many frames of audio samples are transferred in one
- *        a2dp packet write.
- *    in_write_fail - Flag indicate if a2dp iodev is in a consecutive packet
- *        write fail state or not.
- *    write_fail_begin_ts - If in_write_fail is set to true, tracks the
- *        timestamp of the beginning of consecutive packet write failure.
- *    write_20ms_fail_time - Accumulated period of time when packet write
- *        failure period exceeds 20ms.
- *    write_100ms_fail_time - Accumulated period of time when packet write
- *        failure period exceeds 100ms.
- *    exit_code - To indicate the reason why A2DP iodev got destroyed.
- */
+/* Child of cras_iodev to handle bluetooth A2DP streaming. */
 struct a2dp_io {
+	// The cras_iodev structure "base class"
 	struct cras_iodev base;
+	// The codec and encoded state of a2dp_io.
 	struct a2dp_info a2dp;
+	// The transport object for bluez media API.
 	struct cras_bt_transport *transport;
+	// Socket depth in frames of the a2dp socket.
 	unsigned sock_depth_frames;
+	// Buffer to hold pcm samples before encode.
 	struct byte_buffer *pcm_buf;
+	// Flag to note if this a2dp_io is about to destroy.
 	int destroyed;
+	// The time when it is okay for next flush call.
 	struct timespec next_flush_time;
+	// The time period between two a2dp packet writes.
 	struct timespec flush_period;
+	// How many frames of audio samples are transferred in one
+	// a2dp packet write.
 	unsigned int write_block;
+	// Flag indicate if a2dp iodev is in a consecutive packet
+	// write fail state or not.
 	bool in_write_fail;
+	// If in_write_fail is set to true, tracks the
+	// timestamp of the beginning of consecutive packet write failure.
 	struct timespec write_fail_begin_ts;
+	// Accumulated period of time when packet write
+	// failure period exceeds 20ms.
 	struct timespec write_20ms_fail_time;
+	// Accumulated period of time when packet write
+	// failure period exceeds 100ms.
 	struct timespec write_100ms_fail_time;
+	// To indicate the reason why A2DP iodev got destroyed.
 	enum A2DP_EXIT_CODE exit_code;
 };
 

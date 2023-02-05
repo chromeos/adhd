@@ -8,36 +8,35 @@
 #include <cras_client.h>
 #include <sys/socket.h>
 
-/* Holds configuration for the alsa plugin.
- *  io - ALSA ioplug object.
- *  fd - Wakes users with polled io.
- *  stream_playing - Indicates if the stream is playing/capturing.
- *  hw_ptr - Current read or write position.
- *  channels - Number of channels.
- *  stream_id - CRAS ID of the playing/capturing stream.
- *  bytes_per_frame - number of bytes in an audio frame.
- *  direction - input or output.
- *  areas - ALSA areas used to read from/write to.
- *  client - CRAS client object.
- *  capture_sample_index - The sample tracked for capture latency calculation.
- *  playback_sample_index - The sample tracked for playback latency calculation.
- *  capture_sample_time - The time when capture_sample_index was captured.
- *  playback_sample_time - The time when playback_sample_index was captured.
- */
+/* Holds configuration for the alsa plugin. */
 struct snd_pcm_cras {
+	// ALSA ioplug object.
 	snd_pcm_ioplug_t io;
+	// Wakes users with polled io.
 	int fd;
+	// Indicates if the stream is playing/capturing.
 	int stream_playing;
+	// Current read or write position.
 	unsigned int hw_ptr;
+	// Number of channels.
 	unsigned int channels;
+	// CRAS ID of the playing/capturing stream.
 	cras_stream_id_t stream_id;
+	// number of bytes in an audio frame.
 	size_t bytes_per_frame;
+	// input or output.
 	enum CRAS_STREAM_DIRECTION direction;
+	// ALSA areas used to read from/write to.
 	snd_pcm_channel_area_t *areas;
+	// CRAS client object.
 	struct cras_client *client;
+	// The sample tracked for capture latency calculation.
 	int capture_sample_index;
+	// The sample tracked for playback latency calculation.
 	int playback_sample_index;
+	// The time when capture_sample_index was captured.
 	struct timespec capture_sample_time;
+	// The time when playback_sample_index was captured.
 	struct timespec playback_sample_time;
 };
 

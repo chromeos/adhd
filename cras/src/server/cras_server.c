@@ -53,19 +53,17 @@
 #include "cras_mix.h"
 #include "utlist.h"
 
-/* Store a list of clients that are attached to the server.
- * Members:
- *    id - Unique identifier for this client.
- *    fd - socket file descriptor used to communicate with client.
- *    ucred - Process, user, and group ID of the client.
- *    client - rclient to handle messages from this client.
- *    pollfd - Pointer to struct pollfd for this callback.
- */
+/* Store a list of clients that are attached to the server. */
 struct attached_client {
+	// Unique identifier for this client.
 	size_t id;
+	// socket file descriptor used to communicate with client.
 	int fd;
+	// Process, user, and group ID of the client.
 	struct ucred ucred;
+	// rclient to handle messages from this client.
 	struct cras_rclient *client;
+	// Pointer to struct pollfd for this callback.
 	struct pollfd *pollfd;
 	struct attached_client *next, *prev;
 };
@@ -75,19 +73,18 @@ struct attached_client {
  * called on the main server thread and the callback data will be passed back to
  * it.  This allows the use of the main server loop instead of spawning a thread
  * to watch file descriptors.  The client can then read or write the fd.
- * Members:
- *    fd - The file descriptor passed to select.
- *    callback - The funciton to call when fd is ready.
- *    callback_data - Pointer passed to the callback.
- *    pollfd - Pointer to struct pollfd for this callback.
- *    events - The events to poll for.
  */
 struct client_callback {
+	// The file descriptor passed to select.
 	int select_fd;
+	// The funciton to call when fd is ready.
 	void (*callback)(void *data, int revents);
+	// Pointer passed to the callback.
 	void *callback_data;
+	// Pointer to struct pollfd for this callback.
 	struct pollfd *pollfd;
 	int deleted;
+	// The events to poll for.
 	int events;
 	struct client_callback *prev, *next;
 };

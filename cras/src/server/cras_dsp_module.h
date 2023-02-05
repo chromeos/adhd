@@ -97,17 +97,15 @@ struct dsp_module {
  * multiple output pipeline that stream can read processed buffer from.
  * This is useful for a stream to apply special processing effects while
  * sharing the common dsp with the other streams.
- *
- * Members:
- *    ports - A list of ports can connect to existing dsp ports in a pipeline.
- *    run - Processes |nframes| of data.
- *    configure - Configures given external dsp module by the device buffer
- *        size, rate, and number of channels of the format of the device that
- *        the associated pipeline runs for.
  */
 struct ext_dsp_module {
+	// A list of ports can connect to existing dsp ports in a pipeline.
 	float *ports[MAX_EXT_DSP_PORTS];
+	// Processes |nframes| of data.
 	void (*run)(struct ext_dsp_module *ext, unsigned int nframes);
+	// Configures given external dsp module by the device buffer
+	// size, rate, and number of channels of the format of the device that
+	// the associated pipeline runs for.
 	void (*configure)(struct ext_dsp_module *ext, unsigned int buffer_size,
 			  unsigned int num_channels, unsigned int rate);
 };

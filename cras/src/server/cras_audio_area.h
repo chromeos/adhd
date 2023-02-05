@@ -12,27 +12,25 @@
 
 /*
  * Descriptor of the memory area holding a channel of audio.
- * Members:
- *    ch_set - Bit set of channels this channel area could map to.
- *    step_bytes - The number of bytes between adjacent samples.
- *    buf - A pointer to the start address of this area.
  */
 struct cras_channel_area {
+	// Bit set of channels this channel area could map to.
 	unsigned int ch_set;
+	// The number of bytes between adjacent samples.
 	unsigned int step_bytes;
+	// A pointer to the start address of this area.
 	uint8_t *buf;
 };
 
 /*
  * Descriptor of the memory area that provides various access to audio channels.
- * Members:
- *    frames - The size of the audio buffer in frames.
- *    num_channels - The number of channels in the audio area.
- *    channels - array of channel areas.
  */
 struct cras_audio_area {
+	// The size of the audio buffer in frames.
 	unsigned int frames;
+	// The number of channels in the audio area.
 	unsigned int num_channels;
+	// array of channel areas.
 	struct cras_channel_area channels[];
 };
 

@@ -11,14 +11,13 @@
 
 /* SBC library encodes one PCM input block to one SBC output block. This
  * structure holds related info about the SBC codec.
- * Members:
- *    sbc - The main structure for SBC codec.
- *    codesize - The size of one PCM input block in bytes.
- *    frame_length - The size of one SBC output block in bytes.
  */
 struct cras_sbc_data {
+	// The main structure for SBC codec.
 	sbc_t sbc;
+	// The size of one PCM input block in bytes.
 	unsigned int codesize;
+	// The size of one SBC output block in bytes.
 	unsigned int frame_length;
 };
 

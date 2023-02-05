@@ -20,85 +20,82 @@ struct cras_connect_message;
 struct cras_rclient;
 struct dev_mix;
 
-/* Holds informations about the main active device.
- * Members:
- *    dev_id - id of the main device.
- *    dev_ptr - pointer to the main device.
- */
+/* Holds informations about the main active device. */
 struct main_dev_info {
+	// id of the main device.
 	int dev_id;
+	// pointer to the main device.
 	void *dev_ptr;
 };
 
 /* cras_rstream is used to manage an active audio stream from
  * a client.  Each client can have any number of open streams for
  * playing or recording.
- * Members:
- *    stream_id - identifier for this stream.
- *    stream_type - not used.
- *    client_type - The client type of this stream, like Chrome, ARC++.
- *    direction - input or output.
- *    flags - Indicative of what special handling is needed.
- *    fd - Socket for requesting and sending audio buffer events.
- *    buffer_frames - Buffer size in frames.
- *    cb_threshold - Callback client when this much is left.
- *    main_dev_info - The info of the main device this stream attaches to.
- *    is_draining - The stream is draining and waiting to be removed.
- *    client - The client who uses this stream.
- *    shm - shared memory
- *    audio_area - space for playback/capture audio
- *    format - format of the stream
- *    next_cb_ts - Next callback time for this stream.
- *    sleep_interval_ts - Time between audio callbacks.
- *    last_fetch_ts - The time of the last stream fetch.
- *    longest_fetch_interval_ts - Longest interval between two fetches.
- *    num_delayed_fetches - Number of fetch_interval >
-                            acceptable_fetch_interval.
- *    start_ts - The time when the stream started.
- *    first_missed_cb_ts - The time when the first missed callback happens.
- *    buf_state - State of the buffer from all devices for this stream.
- *    stream_apm - Object holding a handful of audio processing module
- *                 instances.
- *    ewma - The ewma instance to calculate stream volume.
- *    num_attached_devs - Number of iodevs this stream has attached to.
- *    num_missed_cb - Number of callback schedules have been missed.
- *    queued_frames - Cached value of the number of queued frames in shm.
- *    is_pinned - True if the stream is a pinned stream, false otherwise.
- *    pinned_dev_idx - device the stream is pinned, 0 if none.
- *    triggered - True if already notified TRIGGER_ONLY stream, false otherwise.
- *    acceptable_fetch_interval - cb_threshold / sample_rate.
  */
 struct cras_rstream {
+	// identifier for this stream.
 	cras_stream_id_t stream_id;
+	// not used.
 	enum CRAS_STREAM_TYPE stream_type;
+	// The client type of this stream, like Chrome, ARC++.
 	enum CRAS_CLIENT_TYPE client_type;
+	// input or output.
 	enum CRAS_STREAM_DIRECTION direction;
+	// Indicative of what special handling is needed.
 	uint32_t flags;
+	// Socket for requesting and sending audio buffer events.
 	int fd;
+	// Buffer size in frames.
 	size_t buffer_frames;
+	// Callback client when this much is left.
 	size_t cb_threshold;
+	// The stream is draining and waiting to be removed.
 	int is_draining;
+	// The info of the main device this stream attaches to.
 	struct main_dev_info main_dev;
+	// The client who uses this stream.
 	struct cras_rclient *client;
+	// shared memory
 	struct cras_audio_shm *shm;
+	// space for playback/capture audio
 	struct cras_audio_area *audio_area;
+	// format of the stream
 	struct cras_audio_format format;
+	// Next callback time for this stream.
 	struct timespec next_cb_ts;
+	// Time between audio callbacks.
 	struct timespec sleep_interval_ts;
+	// The time of the last stream fetch.
 	struct timespec last_fetch_ts;
+	// Longest interval between two fetches.
 	struct timespec longest_fetch_interval;
+	// Number of fetch_interval >
+	// acceptable_fetch_interval.
 	int num_delayed_fetches;
+	// The time when the stream started.
 	struct timespec start_ts;
+	// The time when the first missed callback happens.
 	struct timespec first_missed_cb_ts;
+	// State of the buffer from all devices for this stream.
 	struct buffer_share *buf_state;
+	// Object holding a handful of audio processing module
+	// instances.
 	struct cras_stream_apm *stream_apm;
+	// The ewma instance to calculate stream volume.
 	struct ewma_power ewma;
+	// Number of iodevs this stream has attached to.
 	int num_attached_devs;
+	// Number of callback schedules have been missed.
 	int num_missed_cb;
+	// Cached value of the number of queued frames in shm.
 	int queued_frames;
+	// True if the stream is a pinned stream, false otherwise.
 	int is_pinned;
+	// device the stream is pinned, 0 if none.
 	uint32_t pinned_dev_idx;
+	// True if already notified TRIGGER_ONLY stream, false otherwise.
 	int triggered;
+	// cb_threshold / sample_rate.
 	struct timespec acceptable_fetch_interval;
 	struct cras_rstream *prev, *next;
 };

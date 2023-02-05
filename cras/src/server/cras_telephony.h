@@ -10,29 +10,28 @@
 
 /* Handle object to hold required info to handle telephony status which
  * is required for responsing HFP query commands.
- * Args:
- *    call - standard call status indicator, where
- *        0: no call active
- *        1: call is active
- *    callsetup - call set up status indicator.
- *        0: not currently in call set up
- *        1: an incoming call prcess ongoing
- *        2: an outgoing call set up is ongoing
- *    callhold - call hold status indicator.
- *        0: no call hold
- *        1: call is placed on hold or active/held calls swapped
- *           (The AG has both and active AND a held call)
- *        2: call on hold, no active call
- *    dial_number - phone number, used on fake memory storage and last phone
- *    number storage.
- *    dbus_conn - dus connetion which is used in whole telephony module.
  */
 struct cras_telephony_handle {
+	// standard call status indicator, where
+	// 0: no call active
+	// 1: call is active
 	int call;
+	// call set up status indicator.
+	// 0: not currently in call set up
+	// 1: an incoming call prcess ongoing
+	// 2: an outgoing call set up is ongoing
 	int callsetup;
+	// call hold status indicator.
+	// 0: no call hold
+	// 1: call is placed on hold or active/held calls swapped
+	// (The AG has both and active AND a held call)
+	// 2: call on hold, no active call
 	int callheld;
+	// phone number, used on fake memory storage and last phone
+	// number storage.
 	char *dial_number;
 
+	// dus connetion which is used in whole telephony module.
 	DBusConnection *dbus_conn;
 };
 

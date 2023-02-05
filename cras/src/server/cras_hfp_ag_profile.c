@@ -34,27 +34,25 @@
 /* The "SupportedFeatures" attribute value of HFP AG service record in CRAS. */
 #define SDP_SUPPORTED_FEATURES FEATURES_AG_WIDE_BAND_SPEECH
 
-/* Object representing the audio gateway role for HFP.
- * Members:
- *    idev - The input iodev for HFP.
- *    odev - The output iodev for HFP.
- *    sco - The cras_sco object for SCO audio.
- *    slc_handle - The service level connection.
- *    device - The bt device associated with this audio gateway.
- *    a2dp_delay_retries - The number of retries left to delay starting
- *        the hfp audio gateway to wait for a2dp connection.
- *    conn - The dbus connection used to send message to bluetoothd.
- *    sco_pcm_used - The flag for recording if device is initialized with
- *        SCO PCM.
- */
+/* Object representing the audio gateway role for HFP. */
 struct audio_gateway {
+	// The input iodev for HFP.
 	struct cras_iodev *idev;
+	// The output iodev for HFP.
 	struct cras_iodev *odev;
+	// The cras_sco object for SCO audio.
 	struct cras_sco *sco;
+	// The service level connection.
 	struct hfp_slc_handle *slc_handle;
+	// The bt device associated with this audio gateway.
 	struct cras_bt_device *device;
+	// The number of retries left to delay starting
+	// the hfp audio gateway to wait for a2dp connection.
 	int a2dp_delay_retries;
+	// The dbus connection used to send message to bluetoothd.
 	DBusConnection *conn;
+	// The flag for recording if device is initialized with
+	// SCO PCM.
 	bool sco_pcm_used;
 	struct audio_gateway *prev, *next;
 };

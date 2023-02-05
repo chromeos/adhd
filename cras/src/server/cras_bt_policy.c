@@ -49,9 +49,10 @@ struct profile_switch_policy {
 
 struct profile_switch_policy *profile_switch_policies;
 
-/*    suspend_reason - The reason code for why suspend is scheduled. */
+
 struct suspend_policy {
 	struct cras_bt_device *device;
+	// The reason code for why suspend is scheduled.
 	enum cras_bt_policy_suspend_reason suspend_reason;
 	struct cras_timer *timer;
 	struct suspend_policy *prev, *next;

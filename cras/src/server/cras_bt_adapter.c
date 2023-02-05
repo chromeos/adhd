@@ -22,24 +22,23 @@
 /*
  * Object to represent a bluetooth adapter on the system. Used to query the
  * capabilities regarding certain bluetooth audio.
- * Members:
- *    conn - The dbus connection used to send message to bluetoothd.
- *    object_path - Object path of the bluetooth adapter.
- *    address - The BT address of this adapter.
- *    name - The readable name of this adapter.
- *    bluetooth_class - The bluetooth class of device.
- *    powered - Powered on or off.
- *    bus_type - Type of bus this adapter runs on.
- *    wide_band_speech - If this adapter supports wide band speech.
  */
 struct cras_bt_adapter {
+	// The dbus connection used to send message to bluetoothd.
 	DBusConnection *conn;
+	// Object path of the bluetooth adapter.
 	char *object_path;
+	// The BT address of this adapter.
 	char *address;
+	// The readable name of this adapter.
 	char *name;
+	// The bluetooth class of device.
 	uint32_t bluetooth_class;
+	// Powered on or off.
 	int powered;
+	// Type of bus this adapter runs on.
 	int bus_type;
+	// If this adapter supports wide band speech.
 	int wide_band_speech;
 
 	struct cras_bt_adapter *prev, *next;

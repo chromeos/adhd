@@ -15,16 +15,15 @@ struct cras_iodev;
  * Structure holding the information used when a chunk of input buffer
  * is accessed by multiple streams with different properties and
  * processing requirements.
- * Member:
- *    ext - Provides interface to read and process buffer in dsp pipeline.
- *    idev - Pointer to the associated input iodev.
- *    area - The audio area used for deinterleaved data copy.
- *    fbuffer - Floating point buffer from input device.
  */
 struct input_data {
+	// Provides interface to read and process buffer in dsp pipeline.
 	struct ext_dsp_module ext;
+	// Pointer to the associated input iodev.
 	const struct cras_iodev *idev;
+	// The audio area used for deinterleaved data copy.
 	struct cras_audio_area *area;
+	// Floating point buffer from input device.
 	struct float_buffer *fbuffer;
 };
 

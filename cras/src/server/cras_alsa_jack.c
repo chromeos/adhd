@@ -37,44 +37,42 @@ struct jack_poll_fd {
 	struct jack_poll_fd *prev, *next;
 };
 
-/* Contains all Jacks for a given device.
- *    hctl - alsa hcontrol for this device's card
- *         - not opened by the jack list.
- *    mixer - cras mixer for the card providing this device.
- *    ucm - CRAS use case manager if available.
- *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
- *    card_name - The name of the card.
- *    device_index - Index ALSA uses to refer to the device.  The Y in "hw:X,Y".
- *    is_first_device - whether this device is the first device on the card.
- *    direction - Input or output.
- *    change_callback - function to call when the state of a jack changes.
- *    callback_data - data to pass back to the callback.
- *    jacks - list of jacks for this device.
- */
+/* Contains all Jacks for a given device. */
 struct cras_alsa_jack_list {
+	// alsa hcontrol for this device's card
+	// - not opened by the jack list.
 	snd_hctl_t *hctl;
+	// cras mixer for the card providing this device.
 	struct cras_alsa_mixer *mixer;
+	// CRAS use case manager if available.
 	struct cras_use_case_mgr *ucm;
+	// Index ALSA uses to refer to the card.  The X in "hw:X".
 	unsigned int card_index;
+	// The name of the card.
 	const char *card_name;
+	// Index ALSA uses to refer to the device.  The Y in "hw:X,Y".
 	size_t device_index;
+	// whether this device is the first device on the card.
 	int is_first_device;
+	// Input or output.
 	enum CRAS_STREAM_DIRECTION direction;
+	// function to call when the state of a jack changes.
 	jack_state_change_callback *change_callback;
+	// data to pass back to the callback.
 	void *callback_data;
+	// list of jacks for this device.
 	struct cras_alsa_jack *jacks;
 };
 
-/* Used to contain information needed while looking through GPIO jacks.
- *    jack_list - The current jack_list.
- *    section - An associated UCM section.
- *    result_jack - The resulting jack.
- *    rc - The return code for the operation.
- */
+/* Used to contain information needed while looking through GPIO jacks. */
 struct gpio_switch_list_data {
+	// The current jack_list.
 	struct cras_alsa_jack_list *jack_list;
+	// An associated UCM section.
 	struct ucm_section *section;
+	// The resulting jack.
 	struct cras_alsa_jack *result_jack;
+	// The return code for the operation.
 	int rc;
 };
 

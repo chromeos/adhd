@@ -20,22 +20,22 @@
 
 /* Represents an ALSA control element. Each device can have several of these,
  * each potentially having independent volume and mute controls.
- * elem - ALSA mixer element.
- * has_volume - non-zero indicates there is a volume control.
- * has_mute - non-zero indicates there is a mute switch.
- * max_volume_dB - the maximum volume for this control, or
- *                 MIXER_CONTROL_VOLUME_DB_INVALID.
- * min_volume_dB - the minimum volume for this control, or
- *                 MIXER_CONTROL_VOLUME_DB_INVALID.
- * number_of_volume_steps - number of volume steps for this control, or
- *                 MIXER_CONTROL_STEP_INVALID.
  */
 struct mixer_control_element {
+	// ALSA mixer element.
 	snd_mixer_elem_t *elem;
+	// non-zero indicates there is a volume control.
 	int has_volume;
+	// non-zero indicates there is a mute switch.
 	int has_mute;
+	// the maximum volume for this control, or
+	// MIXER_CONTROL_VOLUME_DB_INVALID.
 	long max_volume_dB;
+	// the minimum volume for this control, or
+	// MIXER_CONTROL_VOLUME_DB_INVALID.
 	long min_volume_dB;
+	// number of volume steps for this control, or
+	// MIXER_CONTROL_STEP_INVALID.
 	int number_of_volume_steps;
 	struct mixer_control_element *prev, *next;
 };
@@ -75,25 +75,24 @@ struct mixer_control {
 	struct mixer_control *prev, *next;
 };
 
-/* Holds a reference to the opened mixer and the volume controls.
- * mixer - Pointer to the opened alsa mixer.
- * main_volume_controls - List of volume controls (normally 'Master' and 'PCM').
- * playback_switch - Switch used to mute the device.
- * main_capture_controls - List of capture gain controls (normally 'Capture').
- * capture_switch - Switch used to mute the capture stream.
- * max_volume_dB - Maximum volume available in main volume controls.  The dBFS
- *   value setting will be applied relative to this.
- * min_volume_dB - Minimum volume available in main volume controls.
- */
+/* Holds a reference to the opened mixer and the volume controls. */
 struct cras_alsa_mixer {
+	// Pointer to the opened alsa mixer.
 	snd_mixer_t *mixer;
+	// List of volume controls (normally 'Master' and 'PCM').
 	struct mixer_control *main_volume_controls;
 	struct mixer_control *output_controls;
+	// Switch used to mute the device.
 	snd_mixer_elem_t *playback_switch;
+	// List of capture gain controls (normally 'Capture').
 	struct mixer_control *main_capture_controls;
 	struct mixer_control *input_controls;
+	// Switch used to mute the capture stream.
 	snd_mixer_elem_t *capture_switch;
+	// Maximum volume available in main volume controls.  The dBFS
+	// value setting will be applied relative to this.
 	long max_volume_dB;
+	// Minimum volume available in main volume controls.
 	long min_volume_dB;
 };
 

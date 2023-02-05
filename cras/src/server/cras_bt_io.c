@@ -21,12 +21,11 @@
 /* Extends cras_ionode to hold bluetooth profile information
  * so that iodevs of different profile(A2DP or HFP) can be
  * associated with the same bt_io.
- * Members:
- *    base - The base class cras_ionode.
- *    profile_dev - Pointer to the profile specific iodev.
  */
 struct bt_node {
+	// The base class cras_ionode.
 	struct cras_ionode base;
+	// Pointer to the profile specific iodev.
 	struct cras_iodev *profile_dev;
 };
 
@@ -34,15 +33,14 @@ struct bt_node {
  * bluetooth audio device, speaker or headset for example. A node
  * will be added to this virtual iodev for each profile supported
  * by the bluetooth audio device.
- * Member:
- *    base - The base class cras_iodev
-      next_node_id - The index will give to the next node
- *    mgr - Pointer to the bt_io_manager that is responsible for
- *        profile switching when |bt_io| opens or closes.
  */
 struct bt_io {
+	// The base class cras_iodev
 	struct cras_iodev base;
+	// The index will give to the next node
 	unsigned int next_node_id;
+	// Pointer to the bt_io_manager that is responsible for
+	// profile switching when |bt_io| opens or closes.
 	struct bt_io_manager *mgr;
 };
 

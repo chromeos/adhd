@@ -16,40 +16,39 @@
 struct cras_connect_message;
 struct dev_mix;
 
-/* Config for creating an rstream.
- *    stream_type - CRAS_STREAM_TYPE.
- *    client_type - CRAS_CLIENT_TYPE.
- *    direction - CRAS_STREAM_OUTPUT or CRAS_STREAM_INPUT.
- *    dev_idx - Pin to this device if != NO_DEVICE.
- *    flags - Any special handling for this stream.
- *    effects - Bit map of effects to be enabled on this stream.
- *    format - The audio format the stream wishes to use.
- *    buffer_frames - Total number of audio frames to buffer.
- *    cb_threshold - # of frames when to request more from the client.
- *    audio_fd - The fd to read/write audio signals to. May be -1 for server
- *               stream. Some functions may mutably borrow the config and move
- *               the fd ownership.
- *    client_shm_fd - The shm fd to use to back the samples area. May be -1.
- *                    Some functions may dup this fd while borrowing the config.
- *    client_shm_size - The size of shm area backed by client_shm_fd.
- *    buffer_offsets - Initial values for buffer_offset for a client shm stream.
- *    client - The client that owns this stream.
- */
+/* Config for creating an rstream. */
 struct cras_rstream_config {
 	cras_stream_id_t stream_id;
+	// CRAS_STREAM_TYPE.
 	enum CRAS_STREAM_TYPE stream_type;
+	// CRAS_CLIENT_TYPE.
 	enum CRAS_CLIENT_TYPE client_type;
+	// CRAS_STREAM_OUTPUT or CRAS_STREAM_INPUT.
 	enum CRAS_STREAM_DIRECTION direction;
+	// Pin to this device if != NO_DEVICE.
 	uint32_t dev_idx;
+	// Any special handling for this stream.
 	uint32_t flags;
+	// Bit map of effects to be enabled on this stream.
 	uint32_t effects;
+	// The audio format the stream wishes to use.
 	const struct cras_audio_format *format;
+	// Total number of audio frames to buffer.
 	size_t buffer_frames;
+	// # of frames when to request more from the client.
 	size_t cb_threshold;
+	// The fd to read/write audio signals to. May be -1 for server
+	// stream. Some functions may mutably borrow the config and move
+	// the fd ownership.
 	int audio_fd;
+	// The shm fd to use to back the samples area. May be -1.
+	// Some functions may dup this fd while borrowing the config.
 	int client_shm_fd;
+	// The size of shm area backed by client_shm_fd.
 	size_t client_shm_size;
+	// Initial values for buffer_offset for a client shm stream.
 	uint32_t buffer_offsets[2];
+	// The client that owns this stream.
 	struct cras_rclient *client;
 };
 

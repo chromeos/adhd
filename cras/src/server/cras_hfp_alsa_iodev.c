@@ -25,27 +25,29 @@
 
 /* Object to represent a special HFP iodev which would be managed by bt_io but
  * playback/capture via an inner ALSA iodev.
- * Members:
- *    base - The base class cras_iodev.
- *    aio - The effective iodev for playback/capture.
- *  BlueZ (null if not applicable):
- *    device - The corresponding remote BT device.
- *    slc - The service level connection.
- *    sco - The cras_sco instance for configuring audio path.
- *  Floss (null if not applicable):
- *    hfp - The corresponding cras_hfp manager object
- *  SR (null if not applicable):
- *    sr_bt - The adapter to enable and invoke cras sr.
- *    sr - The sr instance.
  */
 struct hfp_alsa_io {
+	// The base class cras_iodev.
 	struct cras_iodev base;
+	// The effective iodev for playback/capture.
 	struct cras_iodev *aio;
+
+	/// BlueZ (null if not applicable):
+	// The corresponding remote BT device.
 	struct cras_bt_device *device;
+	// The service level connection.
 	struct hfp_slc_handle *slc;
+	// The cras_sco instance for configuring audio path.
 	struct cras_sco *sco;
+
+	/// Floss (null if not applicable):
+	// The corresponding cras_hfp manager object
 	struct cras_hfp *hfp;
+
+	/// SR (null if not applicable):
+	// The adapter to enable and invoke cras sr.
 	struct cras_iodev_sr_bt_adapter *sr_bt;
+	// The sr instance.
 	struct cras_sr *sr;
 };
 

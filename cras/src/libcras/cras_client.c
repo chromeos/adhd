@@ -88,16 +88,15 @@ struct set_aec_ref_command_message {
 	uint32_t dev_idx;
 };
 
-/* Adds a stream to the client.
- *  stream - The stream to add.
- *  stream_id_out - Filled with the stream id of the new stream.
- *  dev_idx - Index of the device to attach the newly created stream.
- *      NO_DEVICE means not to pin the stream to a device.
- */
+/* Adds a stream to the client. */
 struct add_stream_command_message {
 	struct command_msg header;
+	// The stream to add.
 	struct client_stream *stream;
+	// Filled with the stream id of the new stream.
 	cras_stream_id_t *stream_id_out;
+	// Index of the device to attach the newly created stream.
+	// NO_DEVICE means not to pin the stream to a device.
 	uint32_t dev_idx;
 };
 
@@ -145,33 +144,30 @@ struct cras_stream_params {
 	libcras_stream_cb_t stream_cb;
 };
 
-/* Represents an attached audio stream.
- * id - Unique stream identifier.
- * aud_fd - After server connects audio messages come in here.
- * direction - playback, capture, or loopback (see CRAS_STREAM_DIRECTION).
- * flags - Currently only used for CRAS_INPUT_STREAM_FLAG.
- * volume_scaler - Amount to scale the stream by, 0.0 to 1.0. Client could
- *    change this scaler value before stream actually connected, so we need
- *    to cache it until shm is prepared and apply it.
- * tid - Thread id of the audio thread spawned for this stream.
- * running - Audio thread runs while this is non-zero.
- * wake_fds - Pipe to wake the audio thread.
- * client - The client this stream is attached to.
- * config - Audio stream configuration.
- * shm - Shared memory used to exchange audio samples with the server.
- * prev, next - Form a linked list of streams attached to a client.
- */
+/* Represents an attached audio stream. */
 struct client_stream {
+	// Unique stream identifier.
 	cras_stream_id_t id;
+	// After server connects audio messages come in here.
 	int aud_fd; /* audio messages from server come in here. */
+	// playback, capture, or loopback (see CRAS_STREAM_DIRECTION).
 	enum CRAS_STREAM_DIRECTION direction;
+	// Currently only used for CRAS_INPUT_STREAM_FLAG.
 	uint32_t flags;
+	// Amount to scale the stream by, 0.0 to 1.0. Client could
+	// change this scaler value before stream actually connected, so we need
+	// to cache it until shm is prepared and apply it.
 	float volume_scaler;
 	struct thread_state thread;
+	// Pipe to wake the audio thread.
 	int wake_fds[2]; /* Pipe to wake the thread */
+	// The client this stream is attached to.
 	struct cras_client *client;
+	// Audio stream configuration.
 	struct cras_stream_params *config;
+	// Shared memory used to exchange audio samples with the server.
 	struct cras_audio_shm *shm;
+	// Form a linked list of streams attached to a client.
 	struct client_stream *prev, *next;
 };
 
@@ -211,61 +207,58 @@ struct floop_request {
 	struct floop_request *prev, *next;
 };
 
-/* Represents a client used to communicate with the audio server.
- * id - Unique identifier for this client, negative until connected.
- * server_fd - Incoming messages from server.
- * server_fd_state - State of the server's socket.
- * server_event_fd - Eventfd to wait on until a connection is established.
- * stream_fds - Pipe for attached streams.
- * command_fds - Pipe for user commands to thread.
- * command_reply_fds - Pipe for acking/nacking command messages from thread.
- * sock_file - Server communication socket file.
- * sock_file_wait - Structure used to monitor existence of the socket file.
- * sock_file_exists - Set to true when the socket file exists.
- * running - The client thread will run while this is non zero.
- * next_stream_id - ID to give the next stream.
- * stream_start_cond - Condition used during stream startup.
- * stream_start_lock - Lock used during stream startup.
- * tid - Thread ID of the client thread started by "cras_client_run_thread".
- * last_command_result - Passes back the result of the last user command.
- * streams - Linked list of streams attached to this client.
- * server_state - RO shared memory region holding server state.
- * atlog_ro - RO shared memory region holding audio thread log.
- * debug_info_callback - Function to call when debug info is received.
- * atlog_access_callback - Function to call when atlog RO fd is received.
- * get_hotword_models_cb_t - Function to call when hotword models info is ready.
- * server_connection_cb - Function to called when a connection state changes.
- * server_connection_user_arg - User argument for server_connection_cb.
- * thread_priority_cb - Function to call for setting audio thread priority.
- * observer_ops - Functions to call when system state changes.
- * observer_context - Context passed to client in state change callbacks.
- */
+/* Represents a client used to communicate with the audio server. */
 struct cras_client {
+	// Unique identifier for this client, negative until connected.
 	int id;
+	// Incoming messages from server.
 	int server_fd;
+	// State of the server's socket.
 	cras_socket_state_t server_fd_state;
+	// Eventfd to wait on until a connection is established.
 	int server_event_fd;
+	// Pipe for attached streams.
 	int stream_fds[2];
+	// Pipe for user commands to thread.
 	int command_fds[2];
+	// Pipe for acking/nacking command messages from thread.
 	int command_reply_fds[2];
+	// Server communication socket file.
 	const char *sock_file;
+	// Structure used to monitor existence of the socket file.
 	struct cras_file_wait *sock_file_wait;
+	// Set to true when the socket file exists.
 	bool sock_file_exists;
 	struct thread_state thread;
+	// ID to give the next stream.
 	cras_stream_id_t next_stream_id;
+	// Condition used during stream startup.
 	pthread_cond_t stream_start_cond;
+	// Lock used during stream startup.
 	pthread_mutex_t stream_start_lock;
+	// Passes back the result of the last user command.
 	int last_command_result;
+	// Linked list of streams attached to this client.
 	struct client_stream *streams;
+	// RO shared memory region holding server state.
 	const struct cras_server_state *server_state;
+	// RO shared memory region holding audio thread log.
 	struct audio_thread_event_log *atlog_ro;
+	// Function to call when debug info is received.
 	void (*debug_info_callback)(struct cras_client *);
+	// Function to call when atlog RO fd is received.
 	void (*atlog_access_callback)(struct cras_client *);
+	// Function to call when hotword models info is ready.
 	get_hotword_models_cb_t get_hotword_models_cb;
+	// Function to called when a connection state changes.
 	cras_connection_status_cb_t server_connection_cb;
+	// User argument for server_connection_cb.
 	void *server_connection_user_arg;
+	// Function to call for setting audio thread priority.
 	cras_thread_priority_cb_t thread_priority_cb;
+	// Functions to call when system state changes.
 	struct cras_observer_ops observer_ops;
+	// Context passed to client in state change callbacks.
 	void *observer_context;
 	struct floop_request *floop_request_list;
 	pthread_mutex_t floop_request_list_mu;
@@ -273,12 +266,11 @@ struct cras_client {
 
 /*
  * Holds the client pointer plus internal book keeping.
- *
- * client - The client
- * server_state_rwlock - lock to make the client's server_state thread-safe.
  */
 struct client_int {
+	// The client
 	struct cras_client client;
+	// lock to make the client's server_state thread-safe.
 	pthread_rwlock_t server_state_rwlock;
 };
 

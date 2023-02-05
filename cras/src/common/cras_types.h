@@ -98,22 +98,22 @@ cras_stream_direction_mask(const enum CRAS_STREAM_DIRECTION dir)
 
 /*
  * Flags for stream types.
- *  BULK_AUDIO_OK - This stream is OK with receiving up to a full shm of samples
- *      in a single callback.
- *  USE_DEV_TIMING - Don't wake up based on stream timing.  Only wake when the
- *      device is ready. Input streams only.
- *  HOTWORD_STREAM - This stream is used only to listen for hotwords such as "OK
- *      Google".  Hardware will wake the device when this phrase is heard.
- *  TRIGGER_ONLY - This stream only wants to receive when the data is available
- *      and does not want to receive data. Used with HOTWORD_STREAM.
- *  SERVER_ONLY - This stream doesn't associate to a client. It's used mainly
- *      for audio data to flow from hardware through iodev's dsp pipeline.
  */
 enum CRAS_INPUT_STREAM_FLAG {
+	// This stream is OK with receiving up to a full shm of samples
+	// in a single callback.
 	BULK_AUDIO_OK = 0x01,
+	// Don't wake up based on stream timing.  Only wake when the
+	// device is ready. Input streams only.
 	USE_DEV_TIMING = 0x02,
+	// This stream is used only to listen for hotwords such as "OK
+	// Google".  Hardware will wake the device when this phrase is heard.
 	HOTWORD_STREAM = BULK_AUDIO_OK | USE_DEV_TIMING,
+	// This stream only wants to receive when the data is available
+	// and does not want to receive data. Used with HOTWORD_STREAM.
 	TRIGGER_ONLY = 0x04,
+	// This stream doesn't associate to a client. It's used mainly
+	// for audio data to flow from hardware through iodev's dsp pipeline.
 	SERVER_ONLY = 0x08,
 };
 
@@ -334,48 +334,47 @@ enum AUDIO_THREAD_LOG_EVENTS {
 	AUDIO_THREAD_DEV_OVERRUN,
 };
 
-/* Important events in main thread.
- * MAIN_THREAD_DEV_CLOSE - When an iodev closes at stream removal.
- * MAIN_THREAD_DEV_DISABLE - When an iodev is removed from active dev list.
- * MAIN_THREAD_DEV_INIT - When an iodev opens when stream attachs.
- * MAIN_THREAD_DEV_REOPEN - When an iodev reopens for format change.
- * MAIN_THREAD_ADD_ACTIVE_NODE - When an iodev is set as an additional
- *    active device.
- * MAIN_THREAD_SELECT_NODE - When UI selects an iodev as active.
- * MAIN_THREAD_NODE_PLUGGED - When a jack of iodev is plugged/unplugged.
- * MAIN_THREAD_ADD_TO_DEV_LIST - When iodev is added to list.
- * MAIN_THREAD_INPUT_NODE_GAIN - When input node gain changes.
- * MAIN_THREAD_OUTPUT_NODE_VOLUME - When output node volume changes.
- * MAIN_THREAD_SET_OUTPUT_USER_MUTE - When output mute state is set.
- * MAIN_THREAD_RESUME_DEVS - When system resumes and notifies CRAS.
- * MAIN_THREAD_SUSPEND_DEVS - When system suspends and notifies CRAS.
- * MAIN_THREAD_NC_BLOCK_STATE - When NC-blockage related flags are toggled.
- * MAIN_THREAD_STREAM_ADDED - When an audio stream is added.
- * MAIN_THREAD_STREAM_REMOVED - When an audio stream is removed.
- * MAIN_THREAD_NOISE_CANCELLATION - When Noise Cancellation is enabled/disabled.
- * MAIN_THREAD_VAD_TARGET_CHANGED - When VAD target for speak on mute changed.
- */
+/* Important events in main thread. */
 enum MAIN_THREAD_LOG_EVENTS {
 	/* iodev related */
+	// When an iodev closes at stream removal.
 	MAIN_THREAD_DEV_CLOSE,
+	// When an iodev is removed from active dev list.
 	MAIN_THREAD_DEV_DISABLE,
+	// When an iodev opens when stream attachs.
 	MAIN_THREAD_DEV_INIT,
+	// When an iodev reopens for format change.
 	MAIN_THREAD_DEV_REOPEN,
+	// When an iodev is set as an additional
+	// active device.
 	MAIN_THREAD_ADD_ACTIVE_NODE,
+	// When UI selects an iodev as active.
 	MAIN_THREAD_SELECT_NODE,
+	// When a jack of iodev is plugged/unplugged.
 	MAIN_THREAD_NODE_PLUGGED,
+	// When iodev is added to list.
 	MAIN_THREAD_ADD_TO_DEV_LIST,
+	// When input node gain changes.
 	MAIN_THREAD_INPUT_NODE_GAIN,
+	// When output node volume changes.
 	MAIN_THREAD_OUTPUT_NODE_VOLUME,
+	// When output mute state is set.
 	MAIN_THREAD_SET_OUTPUT_USER_MUTE,
+	// When system resumes and notifies CRAS.
 	MAIN_THREAD_RESUME_DEVS,
+	// When system suspends and notifies CRAS.
 	MAIN_THREAD_SUSPEND_DEVS,
+	// When NC-blockage related flags are toggled.
 	MAIN_THREAD_NC_BLOCK_STATE,
 	/* stream related */
+	// When an audio stream is added.
 	MAIN_THREAD_STREAM_ADDED,
+	// When an audio stream is removed.
 	MAIN_THREAD_STREAM_REMOVED,
 	/* server state related */
+	// When Noise Cancellation is enabled/disabled.
 	MAIN_THREAD_NOISE_CANCELLATION,
+	// When VAD target for speak on mute changed.
 	MAIN_THREAD_VAD_TARGET_CHANGED,
 };
 
@@ -788,37 +787,36 @@ enum CRAS_NODE_TYPE {
 	CRAS_NODE_TYPE_FLOOP_INTERNAL,
 };
 
-/* Position values to described where a node locates on the system.
- * NODE_POSITION_EXTERNAL - The node works only when peripheral
- *     is plugged.
- * NODE_POSITION_INTERNAL - The node lives on the system and doesn't
- *     have specific direction.
- * NODE_POSITION_FRONT - The node locates on the side of system that
- *     faces user.
- * NODE_POSITION_REAR - The node locates on the opposite side of
- *     the system that faces user.
- * NODE_POSITION_KEYBOARD - The node locates under the keyboard.
- */
+/* Position values to described where a node locates on the system. */
 enum CRAS_NODE_POSITION {
+	// The node works only when peripheral
+	// is plugged.
 	NODE_POSITION_EXTERNAL,
+	// The node lives on the system and doesn't
+	// have specific direction.
 	NODE_POSITION_INTERNAL,
+	// The node locates on the side of system that
+	// faces user.
 	NODE_POSITION_FRONT,
+	// The node locates on the opposite side of
+	// the system that faces user.
 	NODE_POSITION_REAR,
+	// The node locates under the keyboard.
 	NODE_POSITION_KEYBOARD,
 };
 
 /* The bitmask enum of btflags.
  * Bit is toggled on for each attribute that applies.
- *    CRAS_BT_FLAG_FLOSS - FLOSS is the running Bluetooth stack
- *    CRAS_BT_FLAG_SCO_OFFLOAD - For SCO over PCM
- *    CRAS_BT_FLAG_A2DP - A2DP is the current profile
- *    CRAS_BT_FLAG_HFP - HFP is the current profile
  */
 enum CRAS_BT_FLAGS {
 	CRAS_BT_FLAG_NONE = 0,
+	// FLOSS is the running Bluetooth stack
 	CRAS_BT_FLAG_FLOSS = (1 << 0),
+	// For SCO over PCM
 	CRAS_BT_FLAG_SCO_OFFLOAD = (1 << 1),
+	// A2DP is the current profile
 	CRAS_BT_FLAG_A2DP = (1 << 2),
+	// HFP is the current profile
 	CRAS_BT_FLAG_HFP = (1 << 3)
 };
 

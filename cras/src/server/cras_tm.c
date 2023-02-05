@@ -9,15 +9,13 @@
 
 #include <time.h>
 
-/* Represents an armed timer.
- * Members:
- *    ts - timespec at which the timer should fire.
- *    cb - Callback to call when the timer expires.
- *    cb_data - Data passed to the callback.
- */
+/* Represents an armed timer. */
 struct cras_timer {
+	// timespec at which the timer should fire.
 	struct timespec ts;
+	// Callback to call when the timer expires.
 	void (*cb)(struct cras_timer *t, void *data);
+	// Data passed to the callback.
 	void *cb_data;
 	struct cras_timer *next, *prev;
 };

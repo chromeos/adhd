@@ -9,24 +9,22 @@
 
 /*
  * Struct to hold ramping information.
- * Members:
- *   state: Current state. One of CRAS_RAMP_STATE.
- *   ramped_frames: Number of frames that have passed after starting ramping.
- *   duration_frames: The targeted number of frames for whole ramping duration.
- *   increment: The scaler increment that should be added to scaler for
- *              every frame.
- *   start_scaler: The initial scaler.
- *   cb: Callback function to call after ramping is done.
- *   cb_data: Data passed to cb.
  */
 struct cras_ramp {
 	int active;
+	// Number of frames that have passed after starting ramping.
 	int ramped_frames;
+	// The targeted number of frames for whole ramping duration.
 	int duration_frames;
+	// The scaler increment that should be added to scaler for
+	// every frame.
 	float increment;
+	// The initial scaler.
 	float start_scaler;
 	float target;
+	// Callback function to call after ramping is done.
 	void (*cb)(void *data);
+	// Data passed to cb.
 	void *cb_data;
 };
 

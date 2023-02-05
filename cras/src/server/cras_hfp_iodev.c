@@ -24,25 +24,23 @@
 #include "strlcpy.h"
 #include "utlist.h"
 
-/* Implementation of bluetooth hands-free profile iodev.
- * Members:
- *    base - The cras_iodev structure base class.
- *    device - The assciated bt_device.
- *    slc - Handle to the HFP service level connection.
- *    sco - cras_sco taking care of SCO data read/write.
- *    drain_complete - Flag to indicate if valid samples are drained
- *        in no stream state. Only used for output.
- *    filled_zeros - Number of zero data in frames have been filled
- *        to buffer of cras_sco in no stream state. Only used for output
- *    is_cras_sr_bt_enabled - Indicates whether the cras_sr bt model is enabled.
- */
+/* Implementation of bluetooth hands-free profile iodev. */
 struct hfp_io {
+	// The cras_iodev structure base class.
 	struct cras_iodev base;
+	// The assciated bt_device.
 	struct cras_bt_device *device;
+	// Handle to the HFP service level connection.
 	struct hfp_slc_handle *slc;
+	// cras_sco taking care of SCO data read/write.
 	struct cras_sco *sco;
+	// Flag to indicate if valid samples are drained
+	// in no stream state. Only used for output.
 	bool drain_complete;
+	// Number of zero data in frames have been filled
+	// to buffer of cras_sco in no stream state. Only used for output
 	unsigned int filled_zeros;
+	// Indicates whether the cras_sr bt model is enabled.
 	bool is_cras_sr_bt_enabled;
 };
 

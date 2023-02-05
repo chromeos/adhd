@@ -41,39 +41,38 @@ struct delay_sync_policy {
 
 /*
  * Object holding information and resources of a connected A2DP headset.
- * Members:
- *    fm - Object representing the media interface of BT adapter.
- *    iodev - The iodev of the connected a2dp.
- *    fd - The socket fd to send pcm audio to the a2dp device.
- *    suspend_timer - Timer to schedule suspending iodev at failures.
- *    delay_sync - The object representing scheduled delay sync task.
- *    addr - The address of the connected a2dp device.
- *    name - The name of the connected a2dp device.
- *    support_absolute_volume - If the connected a2dp device supports absolute
- *    volume.
- *    in_write_fail - Flag indicate if a2dp iodev is in a consecutive packet
- *        write fail state or not.
- *    write_fail_begin_ts - If in_write_fail is set to true, tracks the
- *        timestamp of the beginning of consecutive packet write failure.
- *    write_20ms_fail_time - Accumulated period of time when packet write
- *        failure period exceeds 20ms.
- *    write_100ms_fail_time - Accumulated period of time when packet write
- *        failure period exceeds 100ms.
- *    exit_code - To indicate the reason why a2dp iodev got suspended.
  */
 struct cras_a2dp {
+	// Object representing the media interface of BT adapter.
 	struct fl_media *fm;
+	// The iodev of the connected a2dp.
 	struct cras_iodev *iodev;
+	// The socket fd to send pcm audio to the a2dp device.
 	int fd;
+	// Timer to schedule suspending iodev at failures.
 	struct cras_timer *suspend_timer;
+	// The object representing scheduled delay sync task.
 	struct delay_sync_policy *delay_sync;
+	// The address of the connected a2dp device.
 	char *addr;
+	// The name of the connected a2dp device.
 	char *name;
+	// If the connected a2dp device supports absolute
+	// volume.
 	bool support_absolute_volume;
+	// Flag indicate if a2dp iodev is in a consecutive packet
+	// write fail state or not.
 	bool in_write_fail;
+	// If in_write_fail is set to true, tracks the
+	// timestamp of the beginning of consecutive packet write failure.
 	struct timespec write_fail_begin_ts;
+	// Accumulated period of time when packet write
+	// failure period exceeds 20ms.
 	struct timespec write_20ms_fail_time;
+	// Accumulated period of time when packet write
+	// failure period exceeds 100ms.
 	struct timespec write_100ms_fail_time;
+	// To indicate the reason why a2dp iodev got suspended.
 	enum A2DP_EXIT_CODE exit_code;
 };
 

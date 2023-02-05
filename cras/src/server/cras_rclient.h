@@ -15,38 +15,36 @@ struct cras_client_message;
 struct cras_message;
 struct cras_server_message;
 
-/* An attached client.
- *  id - The id of the client.
- *  fd - Connection for client communication.
- *  ops - cras_rclient_ops for the cras_rclient.
- *  supported_directions - Bit mask for supported stream directions.
- *  client_type - Client type of this rclient. If this is set to value other
- *                than CRAS_CLIENT_TYPE_UNKNOWN, rclient will overwrite incoming
- *                messages' client type.
- */
+/* An attached client. */
 struct cras_rclient {
 	struct cras_observer_client *observer;
+	// The id of the client.
 	size_t id;
+	// Connection for client communication.
 	int fd;
+	// cras_rclient_ops for the cras_rclient.
 	const struct cras_rclient_ops *ops;
+	// Bit mask for supported stream directions.
 	int supported_directions;
+	// Client type of this rclient. If this is set to value other
+	// than CRAS_CLIENT_TYPE_UNKNOWN, rclient will overwrite incoming
+	// messages' client type.
 	enum CRAS_CLIENT_TYPE client_type;
 };
 
-/* Operations for cras_rclient.
- * handle_message_from_client - Entry point for handling a message from the
- * corresponded client.
- * send_message_to_client - Method for sending message to the corresponded
- * client.
- * destroy - Method to destroy and free the cras_rclient.
- */
+/* Operations for cras_rclient. */
 struct cras_rclient_ops {
+	// Entry point for handling a message from the
+	// corresponded client.
 	int (*handle_message_from_client)(struct cras_rclient *,
 					  const struct cras_server_message *,
 					  int *fds, unsigned int num_fds);
+	// Method for sending message to the corresponded
+	// client.
 	int (*send_message_to_client)(const struct cras_rclient *,
 				      const struct cras_client_message *,
 				      int *fds, unsigned int num_fds);
+	// Method to destroy and free the cras_rclient.
 	void (*destroy)(struct cras_rclient *);
 };
 

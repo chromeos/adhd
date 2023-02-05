@@ -10,13 +10,12 @@
 
 /*
  * Circular buffer storing deinterleaved floating point data.
- * Members:
- *    fp - Pointer to be filled wtih read/write position of the buffer.
- *    num_channels - Number of channels.
  */
 struct float_buffer {
 	struct byte_buffer *buf;
+	// Pointer to be filled wtih read/write position of the buffer.
 	float **fp;
+	// Number of channels.
 	unsigned int num_channels;
 };
 

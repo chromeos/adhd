@@ -36,21 +36,20 @@ static snd_pcm_format_t loopback_supported_formats[] = {
 	0,
 };
 
-/* loopack iodev.  Keep state of a loopback device.
- *    loopback_type - Pre-dsp or post-dsp.
- *    read_frames - Frames of audio data read since last dev start.
- *    started - True to indicate the target device is running, otherwise false.
- *    dev_start_time - The timestamp of the last call to configure_dev.
- *    sample_buffer - Pointer to sample buffer.
- *    sender_idx - Index of the output device to read loopback audio.
- */
+/* loopack iodev.  Keep state of a loopback device. */
 struct loopback_iodev {
 	struct cras_iodev base;
+	// Pre-dsp or post-dsp.
 	enum CRAS_LOOPBACK_TYPE loopback_type;
+	// Frames of audio data read since last dev start.
 	uint64_t read_frames;
+	// True to indicate the target device is running, otherwise false.
 	bool started;
+	// The timestamp of the last call to configure_dev.
 	struct timespec dev_start_time;
+	// Pointer to sample buffer.
 	struct byte_buffer *sample_buffer;
+	// Index of the output device to read loopback audio.
 	unsigned int sender_idx;
 };
 

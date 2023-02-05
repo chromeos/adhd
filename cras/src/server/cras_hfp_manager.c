@@ -36,26 +36,25 @@
 
 /*
  * Object holding information and resources of a connected HFP headset.
- * Members:
- *    fm - Object representing the media interface of BT adapter.
- *    idev - The input iodev for HFP.
- *    odev - The output iodev for HFP.
- *    addr - The address of connected HFP device.
- *    name - The name of connected hfp device.
- *    fd - The file descriptor for SCO socket.
- *    idev_started - If an input device started. This is used to determine if
- *    	a sco start or stop is required.
- *    odev_started - If an output device started. This is used to determine if
- *    	a sco start or stop is required.
  */
 struct cras_hfp {
+	// Object representing the media interface of BT adapter.
 	struct fl_media *fm;
+	// The input iodev for HFP.
 	struct cras_iodev *idev;
+	// The output iodev for HFP.
 	struct cras_iodev *odev;
+	// The address of connected HFP device.
 	char *addr;
+	// The name of connected hfp device.
 	char *name;
+	// The file descriptor for SCO socket.
 	int fd;
+	// If an input device started. This is used to determine if
+	// a sco start or stop is required.
 	int idev_started;
+	// If an output device started. This is used to determine if
+	// a sco start or stop is required.
 	int odev_started;
 	bool wbs_supported;
 	bool sco_pcm_used;

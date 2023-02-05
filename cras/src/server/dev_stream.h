@@ -21,30 +21,29 @@ struct cras_iodev;
 
 /*
  * Linked list of streams of audio from/to a client.
- * Args:
- *    dev_id - Index of the hw device.
- *    iodev - The iodev |stream| is attaching to.
- *    stream - The rstream attached to a device.
- *    conv - Sample rate or format converter.
- *    conv_buffer - The buffer for converter if needed.
- *    conv_buffer_size_frames - Size of conv_buffer in frames.
- *    dev_rate - Sampling rate of device. This is set when dev_stream is
- *               created.
- *    is_running - For input stream, it should be set to true after it is added
- *                 into device. For output stream, it should be set to true
- *                 just before its first fetch to avoid affecting other existing
- *                 streams.
  */
 struct dev_stream {
+	// Index of the hw device.
 	unsigned int dev_id;
+	// The iodev |stream| is attaching to.
 	struct cras_iodev *iodev;
+	// The rstream attached to a device.
 	struct cras_rstream *stream;
+	// Sample rate or format converter.
 	struct cras_fmt_conv *conv;
+	// The buffer for converter if needed.
 	struct byte_buffer *conv_buffer;
 	struct cras_audio_area *conv_area;
+	// Size of conv_buffer in frames.
 	unsigned int conv_buffer_size_frames;
+	// Sampling rate of device. This is set when dev_stream is
+	// created.
 	size_t dev_rate;
 	struct dev_stream *prev, *next;
+	// For input stream, it should be set to true after it is added
+	// into device. For output stream, it should be set to true
+	// just before its first fetch to avoid affecting other existing
+	// streams.
 	int is_running;
 };
 

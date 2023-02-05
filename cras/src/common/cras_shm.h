@@ -17,48 +17,44 @@
 #define CRAS_NUM_SHM_BUFFERS 2U /* double buffer */
 #define CRAS_SHM_BUFFERS_MASK (CRAS_NUM_SHM_BUFFERS - 1)
 
-/* Configuration of the shm area.
- *
- *  used_size - The size in bytes of the sample area being actively used.
- *  frame_bytes - The size of each frame in bytes.
- */
+/* Configuration of the shm area. */
 struct __attribute__((__packed__)) cras_audio_shm_config {
+	// The size in bytes of the sample area being actively used.
 	uint32_t used_size;
+	// The size of each frame in bytes.
 	uint32_t frame_bytes;
 };
 
-/* Structure containing stream metadata shared between client and server.
- *
- *  config - Size config data.  A copy of the config shared with clients.
- *  read_buf_idx - index of the current buffer to read from (0 or 1 if double
- *    buffered).
- *  write_buf_idx - index of the current buffer to write to (0 or 1 if double
- *    buffered).
- *  read_offset - offset of the next sample to read (one per buffer).
- *  write_offset - offset of the next sample to write (one per buffer).
- *  write_in_progress - non-zero when a write is in progress.
- *  volume_scaler - volume scaling factor (0.0-1.0).
- *  muted - bool, true if stream should be muted.
- *  num_overruns - Starting at 0 this is incremented very time data is over
- *    written because too much accumulated before a read.
- *  ts - For capture, the time stamp of the next sample at read_index.  For
- *    playback, this is the time that the next sample written will be played.
- *    This is only valid in audio callbacks.
- *  buffer_offset - Offset of each buffer from start of samples area.
- *                  Valid range: 0 <= buffer_offset <= shm->samples_info.length
- */
+/* Structure containing stream metadata shared between client and server. */
 struct __attribute__((__packed__)) cras_audio_shm_header {
+	// Size config data.  A copy of the config shared with clients.
 	struct cras_audio_shm_config config;
+	// index of the current buffer to read from (0 or 1 if double
+	// buffered).
 	uint32_t read_buf_idx; /* use buffer A or B */
+	// index of the current buffer to write to (0 or 1 if double
+	// buffered).
 	uint32_t write_buf_idx;
+	// offset of the next sample to read (one per buffer).
 	uint32_t read_offset[CRAS_NUM_SHM_BUFFERS];
+	// offset of the next sample to write (one per buffer).
 	uint32_t write_offset[CRAS_NUM_SHM_BUFFERS];
+	// non-zero when a write is in progress.
 	int32_t write_in_progress[CRAS_NUM_SHM_BUFFERS];
+	// volume scaling factor (0.0-1.0).
 	float volume_scaler;
+	// bool, non-zero if stream should be muted.
 	int32_t mute;
 	int32_t callback_pending;
+	// Starting at 0 this is incremented very time data is over
+	// written because too much accumulated before a read.
 	uint32_t num_overruns;
+	// For capture, the time stamp of the next sample at read_index.  For
+	// playback, this is the time that the next sample written will be played.
+	// This is only valid in audio callbacks.
 	struct cras_timespec ts;
+	// Offset of each buffer from start of samples area.
+	// Valid range: 0 <= buffer_offset <= shm->samples_info.length
 	uint64_t buffer_offset[CRAS_NUM_SHM_BUFFERS];
 };
 
@@ -77,14 +73,13 @@ static inline uint32_t cras_shm_calculate_samples_size(uint32_t used_size)
 
 /* Holds identifiers for a shm segment. All valid cras_shm_info objects will
  * have an fd and a length, and they may have the name of the shm file as well.
- *
- *  fd - File descriptor to access shm (shared between client/server).
- *  name - Name of the shm area. May be empty.
- *  length - Size of the shm region.
  */
 struct cras_shm_info {
+	// File descriptor to access shm (shared between client/server).
 	int fd;
+	// Name of the shm area. May be empty.
 	char name[NAME_MAX];
+	// Size of the shm region.
 	size_t length;
 };
 
@@ -117,18 +112,17 @@ void cras_shm_info_cleanup(struct cras_shm_info *info);
 
 /* Structure that holds the config for and a pointer to the audio shm header and
  * samples area.
- *
- *  config - Size config data, kept separate so it can be checked.
- *  header_info - fd, name, and length of shm containing header.
- *  header - Shm region containing audio metadata
- *  samples_info - fd, name, and length of shm containing samples.
- *  samples - Shm region containing audio data.
  */
 struct cras_audio_shm {
+	// Size config data, kept separate so it can be checked.
 	struct cras_audio_shm_config config;
+	// fd, name, and length of shm containing header.
 	struct cras_shm_info header_info;
+	// Shm region containing audio metadata
 	struct cras_audio_shm_header *header;
+	// fd, name, and length of shm containing samples.
 	struct cras_shm_info samples_info;
+	// Shm region containing audio data.
 	uint8_t *samples;
 };
 

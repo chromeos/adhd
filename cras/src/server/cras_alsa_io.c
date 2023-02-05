@@ -110,17 +110,16 @@ static const struct timespec no_stream_fill_zeros_duration = {
 
 /*
  * This extends cras_ionode to include alsa-specific information.
- * Members:
- *    mixer_output - From cras_alsa_mixer.
- *    pcm_name - PCM name for snd_pcm_open.
- *    volume_curve - Volume curve for this node.
- *    jack - The jack associated with the node.
  */
 struct alsa_output_node {
 	struct cras_ionode base;
+	// From cras_alsa_mixer.
 	struct mixer_control *mixer_output;
+	// PCM name for snd_pcm_open.
 	const char *pcm_name;
+	// Volume curve for this node.
 	struct cras_volume_curve *volume_curve;
+	// The jack associated with the node.
 	const struct cras_alsa_jack *jack;
 };
 
@@ -134,72 +133,72 @@ struct alsa_input_node {
 
 /*
  * Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
- * base - The cras_iodev structure "base class".
- * pcm_name - The PCM name passed to snd_pcm_open() (e.g. "hw:0,0").
- * dev_name - value from snd_pcm_info_get_name
- * dev_id - value from snd_pcm_info_get_id
- * device_index - ALSA index of device, Y in "hw:X:Y".
- * next_ionode_index - The index we will give to the next ionode. Each ionode
- *     have a unique index within the iodev.
- * card_type - the type of the card this iodev belongs.
- * is_first - true if this is the first iodev on the card.
- * fully_specified - true if this device and it's nodes were fully specified.
- *     That is, don't automatically create nodes for it.
- * handle - Handle to the opened ALSA device.
- * num_severe_underruns - Number of times we have run out of data badly.
-                          Unlike num_underruns which records for the duration
-                          where device is opened, num_severe_underruns records
-                          since device is created. When severe underrun occurs
-                          a possible action is to close/open device.
- * alsa_stream - Playback or capture type.
- * mixer - Alsa mixer used to control volume and mute of the device.
- * config - Card config for this alsa device.
- * jack_list - List of alsa jack controls for this device.
- * ucm - CRAS use case manager, if configuration is found.
- * mmap_offset - offset returned from mmap_begin.
- * poll_fd - Descriptor used to block until data is ready.
- * dma_period_set_microsecs - If non-zero, the value to apply to the dma_period.
- * free_running - true if device is playing zeros in the buffer without
- *                user filling meaningful data. The device buffer is filled
- *                with zeros. In this state, appl_ptr remains the same
- *                while hw_ptr keeps running ahead.
- * filled_zeros_for_draining - The number of zeros filled for draining.
- * severe_underrun_frames - The threshold for severe underrun.
- * default_volume_curve - Default volume curve that converts from an index
- *                        to dBFS.
- * has_dependent_dev - true if this iodev has dependent
- * dsp_echo_cancellation_enabled - If echo cancellation is enabled in DSP
- * dsp_noise_suppression_enabled - If noise suppression is enabled in DSP
- * dsp_gain_control_enabled - If gain control is enabled in DSP
  */
 struct alsa_io {
+	// The cras_iodev structure "base class".
 	struct cras_iodev base;
+	// The PCM name passed to snd_pcm_open() (e.g. "hw:0,0").
 	char *pcm_name;
+	// value from snd_pcm_info_get_name
 	char *dev_name;
+	// value from snd_pcm_info_get_id
 	char *dev_id;
+	// ALSA index of device, Y in "hw:X:Y".
 	uint32_t device_index;
+	// The index we will give to the next ionode. Each ionode
+	// have a unique index within the iodev.
 	uint32_t next_ionode_index;
+	// the type of the card this iodev belongs.
 	enum CRAS_ALSA_CARD_TYPE card_type;
+	// true if this is the first iodev on the card.
 	int is_first;
+	// true if this device and it's nodes were fully specified.
+	// That is, don't automatically create nodes for it.
 	int fully_specified;
+	// Handle to the opened ALSA device.
 	snd_pcm_t *handle;
+	// Number of times we have run out of data badly.
+	// Unlike num_underruns which records for the duration
+	// where device is opened, num_severe_underruns records
+	// since device is created. When severe underrun occurs
+	// a possible action is to close/open device.
 	unsigned int num_severe_underruns;
+	// Playback or capture type.
 	snd_pcm_stream_t alsa_stream;
+	// Alsa mixer used to control volume and mute of the device.
 	struct cras_alsa_mixer *mixer;
+	// Card config for this alsa device.
 	const struct cras_card_config *config;
+	// List of alsa jack controls for this device.
 	struct cras_alsa_jack_list *jack_list;
+	// CRAS use case manager, if configuration is found.
 	struct cras_use_case_mgr *ucm;
+	// offset returned from mmap_begin.
 	snd_pcm_uframes_t mmap_offset;
+	// Descriptor used to block until data is ready.
 	int poll_fd;
+	// If non-zero, the value to apply to the dma_period.
 	unsigned int dma_period_set_microsecs;
+	// true if device is playing zeros in the buffer without
+	// user filling meaningful data. The device buffer is filled
+	// with zeros. In this state, appl_ptr remains the same
+	// while hw_ptr keeps running ahead.
 	int free_running;
+	// The number of zeros filled for draining.
 	unsigned int filled_zeros_for_draining;
+	// The threshold for severe underrun.
 	snd_pcm_uframes_t severe_underrun_frames;
+	// Default volume curve that converts from an index
+	// to dBFS.
 	struct cras_volume_curve *default_volume_curve;
 	int hwparams_set;
+	// true if this iodev has dependent
 	int has_dependent_dev;
+	// If echo cancellation is enabled in DSP
 	bool dsp_echo_cancellation_enabled;
+	// If noise suppression is enabled in DSP
 	bool dsp_noise_suppression_enabled;
+	// If gain control is enabled in DSP
 	bool dsp_gain_control_enabled;
 };
 

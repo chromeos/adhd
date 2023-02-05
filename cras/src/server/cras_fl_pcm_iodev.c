@@ -65,37 +65,35 @@ static const struct timespec throttle_event_threshold = {
  */
 #define FLOSS_HFP_MAX_BUF_SIZE_BYTES 28800
 
-/* Child of cras_iodev to handle bluetooth A2DP streaming.
- * Members:
- *    base - The cras_iodev structure "base class"
- *    pcm_buf - Buffer to hold pcm samples before encode.
- *    next_flush_time - The time when it is okay for next flush call.
- *    flush_period - The time period between two a2dp packet writes.
- *    write_block - How many frames of audio samples we prefer to write in one
- *        socket write.
- *    total_written_bytes - Stores the total audio data in bytes written
- *        to BT.
- *    hfp_rw_offset - Stores the offset of audio data read/write to the BT. This
- *        is used to synchronize the read and write data to the BT.
- *    last_write_ts - The timestamp of when last audio data was written to BT.
- *    bt_stack_delay - The calculated delay in frames from
- *        a2dp_pcm_update_bt_stack_delay.
- *    a2dp - The associated cras_a2dp object.
- *    hfp - The associated cras_hfp object.
- *    started - If the device has been configured and attached with any stream.
- */
+/* Child of cras_iodev to handle bluetooth A2DP streaming. */
 struct fl_pcm_io {
+	// The cras_iodev structure "base class"
 	struct cras_iodev base;
+	// Buffer to hold pcm samples before encode.
 	struct byte_buffer *pcm_buf;
+	// The time when it is okay for next flush call.
 	struct timespec next_flush_time;
+	// The time period between two a2dp packet writes.
 	struct timespec flush_period;
+	// How many frames of audio samples we prefer to write in one
+	// socket write.
 	unsigned int write_block;
+	// Stores the total audio data in bytes written
+	// to BT.
 	unsigned long total_written_bytes;
+	// Stores the offset of audio data read/write to the BT. This
+	// is used to synchronize the read and write data to the BT.
 	unsigned long hfp_rw_offset;
+	// The timestamp of when last audio data was written to BT.
 	struct timespec last_write_ts;
+	// The calculated delay in frames from
+	// a2dp_pcm_update_bt_stack_delay.
 	unsigned int bt_stack_delay;
+	// The associated cras_a2dp object.
 	struct cras_a2dp *a2dp;
+	// The associated cras_hfp object.
 	struct cras_hfp *hfp;
+	// If the device has been configured and attached with any stream.
 	int started;
 };
 
