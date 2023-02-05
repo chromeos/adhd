@@ -9,6 +9,8 @@ build --define VCSID=vcsid-unspecified
 build --conlyopt=-std=gnu11
 build --cxxopt=-std=gnu++17
 
+build --copt=-Wall --copt=-Werror
+
 # Ensure assert() is executed.
 build --copt=-UNDEBUG
 
@@ -29,3 +31,5 @@ build:asan --copt=-fsanitize=address --linkopt=-fsanitize=address
 
 build:ubsan --copt=-fsanitize=undefined --linkopt=-fsanitize=undefined
 build:ubsan --linkopt=-fsanitize-link-c++-runtime
+
+build:fuzzer --//:fuzzer --copt=-Wno-error=unused-function
