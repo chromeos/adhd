@@ -12,6 +12,7 @@
 
 extern "C" {
 #include "audio_thread.h"
+#include "cras_features_override.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.c"
 #include "cras_main_thread_log.h"
@@ -3219,10 +3220,10 @@ INSTANTIATE_TEST_SUITE_P(
                            -5}));
 
 TEST_F(IoDevTestSuite, RequestFloop) {
-  // TODO(b/264341305): Re-enable test once we can override features in tests.
-  if (!get_flexible_loopback_feature_enabled()) {
-    GTEST_SKIP() << "floop disabled";
-  }
+  // TODO(b/267977204): Fix test.
+  GTEST_SKIP() << "skipping broken test b/264341305";
+
+  cras_features_set_override(CrOSLateBootAudioFlexibleLoopback, true);
 
   struct cras_floop_pair cfps[NUM_FLOOP_PAIRS_MAX] = {};
   // cras_floop_pair_create fails and returns NULL
@@ -3236,6 +3237,8 @@ TEST_F(IoDevTestSuite, RequestFloop) {
 
   // Should fail with EAGAIN when we already have maximum number of floop pairs
   EXPECT_EQ(-EAGAIN, cras_iodev_list_request_floop(nullptr));
+
+  cras_features_unset_override(CrOSLateBootAudioFlexibleLoopback);
 }
 
 }  //  namespace

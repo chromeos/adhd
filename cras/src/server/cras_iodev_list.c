@@ -6,7 +6,7 @@
 #include <syslog.h>
 
 #include "audio_thread.h"
-#include "cras_featured.h"
+#include "cras_features.h"
 #include "cras_empty_iodev.h"
 #include "cras_floop_iodev.h"
 #include "cras_iodev.h"
@@ -2409,7 +2409,7 @@ long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic)
 
 int cras_iodev_list_request_floop(const struct cras_floop_params *params)
 {
-	if (!get_flexible_loopback_feature_enabled()) {
+	if (!cras_feature_enabled(CrOSLateBootAudioFlexibleLoopback)) {
 		return -ENOTSUP;
 	}
 

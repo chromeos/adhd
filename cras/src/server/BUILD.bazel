@@ -205,14 +205,6 @@ cc_library(
 )
 
 cc_library(
-    name = "cras_featured",
-    srcs = ["cras_featured.c"],
-    hdrs = ["cras_featured.h"],
-    visibility = ["//src/tests:__pkg__"],
-    deps = [":cras_features"],
-)
-
-cc_library(
     name = "cras_features",
     srcs = [
         "cras_features_impl.c",
@@ -483,7 +475,7 @@ cc_library(
         ":cras_apm",
         ":cras_audio_area",
         ":cras_dlc",
-        ":cras_featured",
+        ":cras_features",
         ":cras_fmt_conv_ops",
         ":cras_mix",
         ":cras_sr",

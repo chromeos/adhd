@@ -20,7 +20,7 @@
 #include "cras_bt_log.h"
 #include "cras_bt_policy.h"
 #include "cras_config.h"
-#include "cras_featured.h"
+#include "cras_features.h"
 #include "cras_hfp_manager.h"
 #include "cras_system_state.h"
 #include "cras_iodev_list.h"
@@ -85,7 +85,7 @@ static bool is_sco_pcm_used()
 	 * path.
 	 */
 	if (cras_system_get_bt_hfp_offload_finch_applied())
-		return get_hfp_offload_feature_enabled();
+		return cras_feature_enabled(CrOSLateBootAudioHFPOffload);
 
 	return true;
 }

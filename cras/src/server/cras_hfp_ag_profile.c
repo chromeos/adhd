@@ -13,7 +13,7 @@
 #include "cras_bt_constants.h"
 #include "cras_bt_log.h"
 #include "cras_bt_profile.h"
-#include "cras_featured.h"
+#include "cras_features.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_sco.h"
 #include "cras_hfp_iodev.h"
@@ -74,7 +74,7 @@ static bool is_sco_pcm_used()
 	 * path.
 	 */
 	if (cras_system_get_bt_hfp_offload_finch_applied())
-		return get_hfp_offload_feature_enabled();
+		return cras_feature_enabled(CrOSLateBootAudioHFPOffload);
 
 	return true;
 }
