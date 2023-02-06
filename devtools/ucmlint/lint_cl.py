@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
-#
 # Copyright 2022 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 import contextlib
-import logging
-import subprocess
 import http.client
-import tempfile
-import re
-from typing import Optional, Union
-import urllib.request
-import urllib.parse
 import json
+import logging
 import os
+import re
+import subprocess
+import tempfile
+from typing import Optional, Union
+import urllib.parse
+import urllib.request
 
 import ucmlint
 

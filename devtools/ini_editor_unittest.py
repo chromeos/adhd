@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Unittest for ini_editor.py."""
 
 
@@ -14,6 +13,7 @@ import tempfile
 import unittest
 
 from ini_editor import Ini
+
 
 SAMPLE_INI = """\
 [output_source]

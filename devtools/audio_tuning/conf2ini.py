@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-#
 # Copyright 2021 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -17,6 +16,7 @@ import fnmatch
 import json
 import sys
 from typing import List
+
 
 biquad_type_name = [
     "none",

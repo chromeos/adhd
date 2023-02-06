@@ -1,9 +1,7 @@
 #!/usr/bin/python
-#
 # Copyright 2016 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-#
 
 """Generates an HTML file with plot of buffer level in the audio thread log."""
 
@@ -12,6 +10,7 @@ import collections
 import logging
 import string
 import time
+
 
 page_content = string.Template(
     """

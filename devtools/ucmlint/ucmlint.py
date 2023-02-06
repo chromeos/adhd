@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#
 # Copyright 2022 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,14 +9,14 @@ Strict linter for device specific UCM files
 
 from __future__ import annotations
 
+import argparse
 import collections
+import dataclasses
 import difflib
+import enum
+import logging
 import os
 import pathlib
-import argparse
-import logging
-import enum
-import dataclasses
 from typing import List, Optional
 
 

@@ -1,5 +1,4 @@
 #!/usr/bin/python
-#
 # Copyright 2014 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -12,12 +11,13 @@ Each Section has a name, a list of Ports, and a list of NonPorts.
 """
 
 import argparse
+from collections import namedtuple
+import io
 import logging
 import os
 import re
-import io
 import sys
-from collections import namedtuple
+
 
 Parameter = namedtuple('Parameter', ['value', 'comment'])
 

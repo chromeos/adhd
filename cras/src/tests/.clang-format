@@ -11,4 +11,3 @@ ForEachMacros:
   - 'DL_FOREACH_INTERNAL'
   - 'LL_FOREACH'
   - 'LL_FOREACH_SAFE'
-

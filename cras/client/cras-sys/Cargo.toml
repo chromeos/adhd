@@ -14,4 +14,3 @@ serde = "1.0.125"
 [patch.crates-io] # ignored by ebuild
 audio_streams = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
 data_model = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
-

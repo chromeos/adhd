@@ -2,6 +2,7 @@
 # Copyright 2020 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
 """
 A script to extract raw SCO RX packets from btsnoop.
 Use 'btmon -S' to dump SCO traffic from btsnoop file.

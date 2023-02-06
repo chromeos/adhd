@@ -446,7 +446,11 @@ impl fmt::Display for AudioDevDebugInfo {
         writeln!(f, "  Frame rate: {}", self.frame_rate)?;
         writeln!(f, "  Number of channels: {}", self.num_channels)?;
         writeln!(f, "  Estimated rate ratio: {:.2}", self.est_rate_ratio)?;
-        writeln!(f, "  Estimated rate ratio: {:.2}", self.est_rate_ratio_when_underrun)?;
+        writeln!(
+            f,
+            "  Estimated rate ratio: {:.2}",
+            self.est_rate_ratio_when_underrun
+        )?;
         writeln!(f, "  Underrun count: {}", self.num_underruns)?;
         writeln!(f, "  Severe underrun count: {}", self.num_severe_underruns)?;
         writeln!(f, "  Highest hardware level: {}", self.highest_hw_level)?;

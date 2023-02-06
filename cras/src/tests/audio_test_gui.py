@@ -1,13 +1,15 @@
 #!/usr/bin/env python
-#
 # Copyright 2016 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
 """Script functions as a web app and wrapper for the cras_router program."""
 
 import re
 import subprocess
+
 import cherrypy
+
 
 # Node Format: [Stable_Id, ID, Vol/Gain, UI, Plugged, L/R_swapped, Time,
 #               Hotword, Type, MaxCha, Name]
