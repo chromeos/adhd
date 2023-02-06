@@ -86,10 +86,10 @@ static void maybe_destroy_server_vad_stream()
 	       "destroying server vad stream with pinned_dev_idx = %d",
 	       detector.server_vad_stream_pinned_dev_idx);
 
-	cras_iodev_list_destroy_server_vad_stream(
-		detector.server_vad_stream_pinned_dev_idx);
 	detector.server_vad_stream_used = false;
 	detector.server_vad_stream_pinned_dev_idx = NO_DEVICE;
+	cras_iodev_list_destroy_server_vad_stream(
+		detector.server_vad_stream_pinned_dev_idx);
 }
 
 // Given the target client stream, enable or disable the server vad stream.

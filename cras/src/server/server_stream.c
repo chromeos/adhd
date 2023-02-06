@@ -107,8 +107,8 @@ void server_stream_destroy(struct stream_list *stream_list,
 		return;
 	}
 
-	server_stream_rm_cb(ss);
 	g_server_streams[type] = NULL;
+	server_stream_rm_cb(ss);
 }
 
 struct cras_rstream *

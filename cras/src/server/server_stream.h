@@ -36,7 +36,7 @@ int server_stream_create(struct stream_list *stream_list,
 			 unsigned int effects);
 
 /*
- * Asynchronously destroys existing server stream pinned to device of given idx.
+ * Synchronously destroys existing server stream pinned to device of given idx.
  * Args:
  *    stream_list - List of stream to look up server stream.
  *    type - The type of the server stream to destroy.
