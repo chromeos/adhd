@@ -3220,9 +3220,6 @@ INSTANTIATE_TEST_SUITE_P(
                            -5}));
 
 TEST_F(IoDevTestSuite, RequestFloop) {
-  // TODO(b/267977204): Fix test.
-  GTEST_SKIP() << "skipping broken test b/264341305";
-
   cras_features_set_override(CrOSLateBootAudioFlexibleLoopback, true);
 
   struct cras_floop_pair cfps[NUM_FLOOP_PAIRS_MAX] = {};
@@ -3237,6 +3234,9 @@ TEST_F(IoDevTestSuite, RequestFloop) {
 
   // Should fail with EAGAIN when we already have maximum number of floop pairs
   EXPECT_EQ(-EAGAIN, cras_iodev_list_request_floop(nullptr));
+
+  // Reset the iodev list here to avoid stack-use-after-return of `cfps`.
+  cras_iodev_list_reset();
 
   cras_features_unset_override(CrOSLateBootAudioFlexibleLoopback);
 }
