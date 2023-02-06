@@ -9,7 +9,7 @@ extern "C" {
 #include <gtest/gtest.h>
 
 TEST(FlexibleLoopback, PointerArithmetic) {
-  struct flexible_loopback floop;
+  struct flexible_loopback floop = {};
   EXPECT_EQ(&floop, const_pair_to_floop(&floop.pair));
   EXPECT_EQ(&floop, input_to_floop(&floop.pair.input));
   EXPECT_EQ(&floop, output_to_floop(&floop.pair.output));
