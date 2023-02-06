@@ -14,8 +14,14 @@ struct cras_feature {
 	const char *const name;
 	// Whether to enable the feature by default.
 	const bool default_enabled;
+
+	// Overrides set in cras_features_override.h
+	bool overridden;
+	bool overridden_enabled; // Is the feature overridden to be enabled?
 };
 
 bool cras_features_backend_get_enabled(const struct cras_feature *feature);
+
+enum cras_feature_id cras_feature_get_id(const struct cras_feature *feature);
 
 #endif

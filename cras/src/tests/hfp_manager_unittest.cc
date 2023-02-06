@@ -7,6 +7,7 @@
 
 extern "C" {
 #include "cras_bt_log.h"
+#include "cras_features_override.h"
 #include "cras_hfp_alsa_iodev.h"
 #include "cras_hfp_manager.h"
 #include "cras_iodev.h"
@@ -63,9 +64,15 @@ namespace {
 
 class HfpManagerTestSuite : public testing::Test {
  protected:
-  virtual void SetUp() { ResetStubData(); }
+  virtual void SetUp() {
+    cras_features_set_override(CrOSLateBootAudioHFPOffload, true);
+    ResetStubData();
+  }
 
-  virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
+  virtual void TearDown() {
+    cras_bt_event_log_deinit(btlog);
+    cras_features_unset_override(CrOSLateBootAudioHFPOffload);
+  }
 };
 
 TEST_F(HfpManagerTestSuite, PCMCreateFailed) {

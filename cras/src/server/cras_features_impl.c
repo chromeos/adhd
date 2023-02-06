@@ -6,6 +6,7 @@
 
 #include "cras_features.h"
 #include "cras_features_impl.h"
+#include "cras_features_override.h"
 
 #include <syslog.h>
 
@@ -34,8 +35,25 @@ bool cras_feature_enabled(enum cras_feature_id id)
 		syslog(LOG_ERR, "invalid feature ID: %d", id);
 		return false;
 	}
+	if (features[id].overridden) {
+		bool enabled = features[id].overridden_enabled;
+		syslog(LOG_DEBUG, "feature %s overriden enabled = %d",
+		       features[id].name, enabled);
+		return enabled;
+	}
 	bool enabled = cras_features_backend_get_enabled(&features[id]);
 	syslog(LOG_DEBUG, "feature %s enabled = %d", features[id].name,
 	       enabled);
 	return enabled;
+}
+
+void cras_features_set_override(enum cras_feature_id id, bool enabled)
+{
+	features[id].overridden = true;
+	features[id].overridden_enabled = enabled;
+}
+
+void cras_features_unset_override(enum cras_feature_id id)
+{
+	features[id].overridden = false;
 }

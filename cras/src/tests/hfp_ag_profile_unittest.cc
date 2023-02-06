@@ -8,6 +8,7 @@
 extern "C" {
 #include "cras_bt_log.h"
 #include "cras_bt_profile.h"
+#include "cras_features_override.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_iodev.h"
 }
@@ -41,9 +42,13 @@ class HfpAgProfile : public testing::Test {
   virtual void SetUp() {
     btlog = cras_bt_event_log_init();
     ResetStubData();
+    cras_features_set_override(CrOSLateBootAudioHFPOffload, true);
   }
 
-  virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
+  virtual void TearDown() {
+    cras_bt_event_log_deinit(btlog);
+    cras_features_unset_override(CrOSLateBootAudioHFPOffload);
+  }
 };
 
 TEST_F(HfpAgProfile, StartWithoutScoPCM) {

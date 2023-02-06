@@ -208,6 +208,7 @@ cc_library(
     name = "cras_featured",
     srcs = ["cras_featured.c"],
     hdrs = ["cras_featured.h"],
+    visibility = ["//src/tests:__pkg__"],
     deps = [":cras_features"],
 )
 
@@ -216,15 +217,25 @@ cc_library(
     srcs = [
         "cras_features_impl.c",
         "cras_features_impl.h",
+        "cras_features_override.h",
     ] + select({
         "//:featured_build": ["cras_features_backend_featured.c"],
         "//conditions:default": ["cras_features_backend_stub.c"],
     }),
     hdrs = ["cras_features.h"],
+    visibility = ["//src/tests:__pkg__"],
     deps = select({
         "//:featured_build": ["@libfeatures_c"],
         "//conditions:default": [],
     }),
+)
+
+cc_library(
+    name = "cras_features_override",
+    testonly = True,
+    hdrs = ["cras_features_override.h"],
+    visibility = ["//src/tests:__pkg__"],
+    deps = [":cras_features"],
 )
 
 cc_library(
