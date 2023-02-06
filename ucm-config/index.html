@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <div id="all">
+      <h1>UCM debug page</h1>
+      <h2>IP</h2>
+      <input v-model="dut_ip" placeholder="dut ip" />
+      <button @click="GetUSBDeive">connect</button>
+      <h2>Playback</h2>
+      <h3>Sound Card</h3>
+      <p>{{playback.sound_card_name}}</p>
+      <h3>Mixer Controls</h3>
+      <select v-model="playback.mixer_selected">
+        <option disabled value="">Please select one</option>
+        <option v-for="mixer in playback.mixers">{{ mixer }}</option>
+      </select>
+      <h2>Capture</h2>
+      <h3>Sound Card</h3>
+      <p>{{capture.sound_card_name}}</p>
+      <h3> Mixer Controls </h2>
+        <select v-model="capture.mixer_selected">
+          <option disabled value="">Please select one</option>
+          <option v-for="mixer in capture.mixers">{{ mixer }}</option>
+        </select>
+        <h2>Software Volume</h2>
+        <input type="checkbox" id="checkbox" v-model="disable_software_volume" />
+        <label for="checkbox">disable software volume: {{ disable_software_volume }}</label>
+        <br>
+        <button @click="DeployUCM">deploy ucm to dut</button>
+        <br>
+        <p v-show="waiting">processing...</p>
+    </div>
+    <script>
+      window.onload = function() {
+        var vm = new Vue({
+          el: '#all',
+          data() {
+            return {
+              dut_ip: '',
+              playback: {
+                card_index: 0,
+                pcm_name: '',
+                sound_card_name: '',
+                device_index: '',
+                mixer_selected: '',
+                mixers: []
+              },
+              capture: {
+                card_index: 0,
+                pcm_name: '',
+                sound_card_name: '',
+                device_index: '',
+                mixer_selected: '',
+                mixers: []
+              },
+              disable_software_volume: false,
+              waiting: false
+            }
+          },
+          methods: {
+            GetUSBDeive: function() {
+              let self = this
+              this.waiting = true
+              axios.post('/GetUSBDeive', {
+                "dut_ip": this.dut_ip
+              }).then(function(res) {
+                playback = res.data.data["playback"]
+                if (playback) {
+                  self.playback.card_index = playback["card_index"]
+                  self.playback.pcm_name = playback["pcm_name"]
+                  self.playback.sound_card_name = playback["sound_card_name"]
+                  self.playback.device_index = playback["device_index"]
+                  self.playback.mixers = playback["mixers"]
+                }
+                capture = res.data.data["capture"]
+                if (capture) {
+                  self.capture.card_index = capture["card_index"]
+                  self.capture.pcm_name = capture["pcm_name"]
+                  self.capture.sound_card_name = capture["sound_card_name"]
+                  self.capture.device_index = capture["device_index"]
+                  self.capture.mixers = capture["mixers"]
+                }
+                self.waiting = false
+                alert("OK");
+              }, function(res) {
+                console.log(res.response.data)
+                self.waiting = false
+                alert("ERROR:" + JSON.stringify(res.response.data));
+              });
+            },
+            DeployUCM: function() {
+              let self = this
+              this.waiting = true
+              axios.post('/DeployUCM', this.$data).then(function(res) {
+                self.waiting = false
+                alert("OK");
+              }, function(res) {
+                self.waiting = false
+                alert("ERROR:" + JSON.stringify(res.response.data));
+              });
+            }
+          }
+        });
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  </body>
+</html>
