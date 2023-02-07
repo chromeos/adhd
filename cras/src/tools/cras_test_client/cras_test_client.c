@@ -1149,7 +1149,7 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info *info,
 		       "num_delayed_fetches: %u\n"
 		       "num_overruns: %u\n"
 		       "is_pinned: %x\n"
-		       "pinned_dev_idx: %x\n"
+		       "pinned_dev_idx: %u\n"
 		       "num_missed_cb: %u\n"
 		       "%s: %lf\n"
 		       "runtime: %u.%09u\n",
