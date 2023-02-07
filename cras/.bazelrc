@@ -22,6 +22,9 @@ build --copt=-D_FILE_OFFSET_BITS=64
 build --copt=-D_LARGEFILE_SOURCE
 build --copt=-D_LARGEFILE64_SOURCE
 
+# b/267242424: Keep null checks
+build --copt=-fno-delete-null-pointer-checks
+
 # go/cras-style#build-time-feature-switches
 # NOTE: These flags don't work with gcc. So put them behind a config.
 build:clang-strict --copt=-Werror=undef-prefix --copt=-Wundef-prefix=HAVE_,CRAS_
