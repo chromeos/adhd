@@ -7,3 +7,11 @@ compile_commands.json
 # vscode
 .vscode
 *.code-workspace
+
+# bazel
+/external
+/bazel-*
+# hedron_compile_commands insists in inserting these.
+# https://github.com/hedronvision/bazel-compile-commands-extractor/issues/59
+/compile_commands.json
+/.cache/

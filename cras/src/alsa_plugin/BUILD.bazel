@@ -10,13 +10,13 @@ cc_library(
     local_defines = ["PIC"],  # https://github.com/alsa-project/alsa-lib/issues/289
     visibility = ["//dist:__pkg__"],
     deps = [
-        "//src/libcras:cras_client",
+        "//cras/src/libcras:cras_client",
     ],
 )
 
 cras_shared_library(
     name = "asound_module_pcm_cras",
-    dynamic_deps = ["//src/libcras:cras"],
+    dynamic_deps = ["//cras/src/libcras:cras"],
     roots = [":asound_module_pcm_cras_library"],
     visibility = ["//dist:__pkg__"],
 )
@@ -27,13 +27,13 @@ cc_library(
     local_defines = ["PIC"],  # https://github.com/alsa-project/alsa-lib/issues/289
     visibility = ["//dist:__pkg__"],
     deps = [
-        "//src/libcras:cras_client",
+        "//cras/src/libcras:cras_client",
     ],
 )
 
 cras_shared_library(
     name = "asound_module_ctl_cras",
-    dynamic_deps = ["//src/libcras:cras"],
+    dynamic_deps = ["//cras/src/libcras:cras"],
     roots = [":asound_module_ctl_cras_library"],
     visibility = ["//dist:__pkg__"],
 )

@@ -14,10 +14,10 @@ cc_library(
         "CRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
     ],
     visibility = [
-        "//src/libcras:__pkg__",
+        "//cras/src/libcras:__pkg__",
     ],
     deps = [
-        "//src/common:cras_types",
+        "//cras/src/common:cras_types",
     ],
 )
 
@@ -30,11 +30,11 @@ cc_library(
         "cras_file_wait.h",
     ],
     visibility = [
-        "//src/libcras:__pkg__",
+        "//cras/src/libcras:__pkg__",
     ],
     deps = [
-        "//src/common:cras_config",
-        "//src/common:cras_string",
+        "//cras/src/common:cras_config",
+        "//cras/src/common:cras_string",
     ],
 )
 
@@ -44,7 +44,7 @@ cc_library(
         "cras_messages.h",
     ],
     visibility = [
-        "//src/libcras:__pkg__",
+        "//cras/src/libcras:__pkg__",
     ],
 )
 
@@ -54,8 +54,8 @@ cc_library(
         "cras_observer_ops.h",
     ],
     visibility = [
-        "//src/libcras:__pkg__",
-        "//src/server:__pkg__",
+        "//cras/src/libcras:__pkg__",
+        "//cras/src/server:__pkg__",
     ],
 )
 
@@ -69,13 +69,13 @@ cc_library(
     ],
     linkopts = ["-lrt"],
     visibility = [
-        "//src/libcras:__pkg__",
+        "//cras/src/libcras:__pkg__",
     ],
     deps = [
         "//:build_config",
-        "//src/common:cras_string",
-        "//src/common:cras_types",
-        "//src/common:cras_util",
+        "//cras/src/common:cras_string",
+        "//cras/src/common:cras_types",
+        "//cras/src/common:cras_util",
     ],
 )
 
@@ -88,7 +88,7 @@ cc_library(
         "//conditions:default": ["cras_selinux_helper_stub.c"],
     }),
     visibility = [
-        "//src/libcras:__pkg__",
+        "//cras/src/libcras:__pkg__",
     ],
     deps = [":cras_shm"] + select({
         "//:selinux_build": ["@libselinux"],
@@ -107,9 +107,9 @@ cc_library(
         "strlcpy.h",
     ],
     visibility = [
-        "//src/common:__pkg__",
-        "//src/libcras:__pkg__",
-        "//src/server:__pkg__",
+        "//cras/src/common:__pkg__",
+        "//cras/src/libcras:__pkg__",
+        "//cras/src/server:__pkg__",
     ],
 )
 
@@ -126,10 +126,10 @@ cc_library(
     ],
     includes = ["."],
     visibility = [
-        "//src/benchmark:__pkg__",
-        "//src/dsp:__pkg__",
-        "//src/libcras:__pkg__",
-        "//src/server:__pkg__",
+        "//cras/src/benchmark:__pkg__",
+        "//cras/src/dsp:__pkg__",
+        "//cras/src/libcras:__pkg__",
+        "//cras/src/server:__pkg__",
     ],
 )
 
@@ -138,35 +138,35 @@ cc_library(
     srcs = ["cras_util.c"],
     hdrs = ["cras_util.h"],
     visibility = [
-        "//src/benchmark:__pkg__",
-        "//src/libcras:__pkg__",
-        "//src/server:__pkg__",
+        "//cras/src/benchmark:__pkg__",
+        "//cras/src/libcras:__pkg__",
+        "//cras/src/server:__pkg__",
     ],
-    deps = ["//src/common:cras_types"],
+    deps = ["//cras/src/common:cras_types"],
 )
 
 cc_library(
     name = "utlist",
     hdrs = ["utlist.h"],
     visibility = [
-        "//src/libcras:__pkg__",
-        "//src/server:__pkg__",
+        "//cras/src/libcras:__pkg__",
+        "//cras/src/server:__pkg__",
     ],
 )
 
 genrule(
     name = "cras_dbus_bindings_h",
     srcs = [
-        "//dbus_bindings:xml",
+        "//cras/dbus_bindings:xml",
     ],
     outs = [
         "cras_dbus_bindings.h",
     ],
-    cmd = "$(location //tools:generate_dbus_bindings_h) " +
-          "$(locations //dbus_bindings:xml) > $@",
-    tools = ["//tools:generate_dbus_bindings_h"],
+    cmd = "$(location //cras/tools:generate_dbus_bindings_h) " +
+          "$(locations //cras/dbus_bindings:xml) > $@",
+    tools = ["//cras/tools:generate_dbus_bindings_h"],
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 
@@ -180,7 +180,7 @@ cc_library(
     name = "cras_version",
     hdrs = ["cras_version.h"],
     includes = ["."],
-    visibility = ["//src/libcras:__pkg__"],
+    visibility = ["//cras/src/libcras:__pkg__"],
 )
 
 cc_library(
@@ -216,7 +216,7 @@ cc_library(
     ],
     includes = ["."],
     visibility = [
-        "//src:__subpackages__",
+        "//cras:__subpackages__",
     ],
     deps = [
         ":cras_config",
@@ -227,7 +227,7 @@ cc_library(
         ":cras_types",
         ":cras_util",
         ":utlist",
-        "//src/server:cras_observer_types",
+        "//cras/src/server:cras_observer_types",
         "@pkg_config//:sbc",
     ] + select({
         "//:metrics_build": ["@libmetrics"],
@@ -258,7 +258,7 @@ cc_library(
     includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 
@@ -268,7 +268,7 @@ exports_files(
         "*.c",
     ]),
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 

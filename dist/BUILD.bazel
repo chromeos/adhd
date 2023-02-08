@@ -6,10 +6,10 @@
 filegroup(
     name = "bin",
     srcs = [
-        "//scripts:asoc_dapm_graph",
-        "//scripts:audio_diagnostics",
-        "//src/server:cras",
-        "//src/tools:cras_test_client",
+        "//cras/scripts:asoc_dapm_graph",
+        "//cras/scripts:audio_diagnostics",
+        "//cras/src/server:cras",
+        "//cras/src/tools:cras_test_client",
     ],
 )
 
@@ -18,9 +18,9 @@ filegroup(
 filegroup(
     name = "extra_bin",
     srcs = [
-        "//src/benchmark:cras_bench",
-        "//src/tools:cras_monitor",
-        "//src/tools:cras_router",
+        "//cras/src/benchmark:cras_bench",
+        "//cras/src/tools:cras_monitor",
+        "//cras/src/tools:cras_router",
     ],
 )
 
@@ -28,8 +28,8 @@ filegroup(
 filegroup(
     name = "include",
     srcs = [
-        "//src/common:public_headers",
-        "//src/libcras:public_headers",
+        "//cras/src/common:public_headers",
+        "//cras/src/libcras:public_headers",
     ],
 )
 
@@ -37,31 +37,31 @@ filegroup(
 filegroup(
     name = "lib",
     srcs = [
-        "//src/libcras:cras",
+        "//cras/src/libcras:cras",
     ],
 )
 
 filegroup(
     name = "alsa_lib",
     srcs = [
-        "//src/alsa_plugin:asound_module_ctl_cras",
-        "//src/alsa_plugin:asound_module_pcm_cras",
+        "//cras/src/alsa_plugin:asound_module_ctl_cras",
+        "//cras/src/alsa_plugin:asound_module_pcm_cras",
     ],
 )
 
 filegroup(
     name = "pkgconfig",
     srcs = [
-        "//:libcras.pc",
+        "//cras:libcras.pc",
     ],
 )
 
 filegroup(
     name = "fuzzer",
     srcs = [
-        "//src/fuzz:cras_fl_media_fuzzer",
-        "//src/fuzz:cras_hfp_slc_fuzzer",
-        "//src/fuzz:cras_rclient_message_fuzzer",
+        "//cras/src/fuzz:cras_fl_media_fuzzer",
+        "//cras/src/fuzz:cras_hfp_slc_fuzzer",
+        "//cras/src/fuzz:cras_rclient_message_fuzzer",
     ],
 )
 

@@ -19,12 +19,12 @@
 
 namespace {
 extern "C" {
-#include "src/common/cras_iodev_info.h"
-#include "src/common/cras_types.h"
-#include "src/libcras/cras_client.h"
-#include "src/server/cras_alsa_helpers.h"
-#include "src/server/cras_alsa_ucm.h"
-#include "src/server/cras_mix_ops.h"
+#include "cras/src/common/cras_iodev_info.h"
+#include "cras/src/common/cras_types.h"
+#include "cras/src/libcras/cras_client.h"
+#include "cras/src/server/cras_alsa_helpers.h"
+#include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_mix_ops.h"
 }
 
 class BM_Alsa : public benchmark::Fixture {

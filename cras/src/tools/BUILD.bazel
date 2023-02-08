@@ -10,7 +10,7 @@ cc_binary(
     name = "cras_test_client",
     srcs = ["cras_test_client/cras_test_client.c"],
     deps = [
-        "//src/libcras:cras_client",
+        "//cras/src/libcras:cras_client",
     ],
 )
 
@@ -18,7 +18,7 @@ cc_binary(
     name = "cras_monitor",
     srcs = ["cras_monitor/cras_monitor.c"],
     deps = [
-        "//src/libcras:cras_client",
+        "//cras/src/libcras:cras_client",
     ],
 )
 
@@ -26,6 +26,6 @@ cc_binary(
     name = "cras_router",
     srcs = ["cras_router/cras_router.c"],
     deps = [
-        "//src/libcras:cras_client",
+        "//cras/src/libcras:cras_client",
     ],
 )

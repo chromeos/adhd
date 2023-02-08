@@ -1,100 +1,12 @@
-# Copyright 2022 The ChromiumOS Authors
+# Copyright 2023 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-load("//:utils.bzl", "bool_flag_config", "define_feature")
-load("//:pkg_config.bzl", "generate_pc", "pkg_config_test_suite")
-load("@hedron_compile_commands//:refresh_compile_commands.bzl", "refresh_compile_commands")
 
-package(default_visibility = [":__subpackages__"])
+load("//:pkg_config.bzl", "generate_pc")
+
+package(default_visibility = ["//dist:__pkg__"])
 
 generate_pc(
     name = "libcras.pc",
     src = "libcras.pc.in",
 )
-
-bool_flag_config(
-    name = "apm",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "hw_dependency",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "ml",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "selinux",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "metrics",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "hats",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "dlc",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "featured",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "fuzzer",
-    build_setting_default = False,
-)
-
-bool_flag_config(
-    name = "system_cras_rust",
-    build_setting_default = False,
-)
-
-config_setting(
-    name = "x86_64_build",
-    constraint_values = [
-        "@platforms//cpu:x86_64",
-    ],
-)
-
-cc_library(
-    name = "build_config",
-    defines =
-        [
-            "CRAS_DBUS=1",
-        ] + define_feature("//:selinux_build", "CRAS_SELINUX") +
-        define_feature("//:apm_build", "HAVE_WEBRTC_APM") +
-        define_feature("//:metrics_build", "HAVE_LIB_METRICS") +
-        define_feature("//:hats_build", "HAVE_HATS") +
-        define_feature("//:fuzzer_build", "HAVE_FUZZER"),
-    target_compatible_with = select({
-        ":incompatible_selinux_fuzzer_build": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
-)
-
-config_setting(
-    name = "incompatible_selinux_fuzzer_build",
-    flag_values = {
-        ":selinux": "true",
-        ":fuzzer": "true",
-    },
-)
-
-refresh_compile_commands(
-    name = "compdb",
-)
-
-pkg_config_test_suite()

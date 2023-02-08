@@ -12,8 +12,8 @@ cc_library(
     target_compatible_with = require_config("//:ml_build"),
     visibility = [
         ":__subpackages__",
-        "//src/benchmark:__pkg__",
-        "//src/server:__pkg__",
+        "//cras/src/benchmark:__pkg__",
+        "//cras/src/server:__pkg__",
     ],
     deps = select({
         "//:ml_build": ["@tensorflowlite"],
@@ -42,14 +42,14 @@ cc_library(
     includes = ["."],
     visibility = [
         ":__subpackages__",
-        "//src/server:__pkg__",
+        "//cras/src/server:__pkg__",
     ],
     deps = [
         ":drc",
         ":drc_math",
         ":dsp_util",
-        "//src/common",
-        "//src/server:dsp_types",
+        "//cras/src/common",
+        "//cras/src/server:dsp_types",
     ],
 )
 
@@ -64,7 +64,7 @@ cc_library(
     name = "eq2",
     srcs = ["eq2.c"],
     hdrs = ["eq2.h"],
-    visibility = ["//src/benchmark:__pkg__"],
+    visibility = ["//cras/src/benchmark:__pkg__"],
     deps = [":biquad"],
 )
 
@@ -73,7 +73,7 @@ cc_library(
     srcs = ["drc.c"],
     hdrs = ["drc.h"],
     linkopts = ["-lm"],
-    visibility = ["//src/benchmark:__pkg__"],
+    visibility = ["//cras/src/benchmark:__pkg__"],
     deps = [
         ":crossover2",
         ":drc_kernel",
@@ -112,8 +112,8 @@ cc_library(
     name = "dsp_util",
     srcs = ["dsp_util.c"],
     hdrs = ["dsp_util.h"],
-    visibility = ["//src/benchmark:__pkg__"],
-    deps = ["//src/common:cras_types"],
+    visibility = ["//cras/src/benchmark:__pkg__"],
+    deps = ["//cras/src/common:cras_types"],
 )
 
 # Allow tests to not specify all headers.
@@ -124,7 +124,7 @@ cc_library(
     includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 
@@ -134,6 +134,6 @@ exports_files(
         "*.c",
     ]),
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )

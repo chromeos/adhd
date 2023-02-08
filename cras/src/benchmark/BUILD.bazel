@@ -30,10 +30,10 @@ cc_library(
     ],
     deps = [
         ":benchmark_util",
-        "//src/dsp:drc",
-        "//src/dsp:dsp_util",
-        "//src/dsp:eq2",
-        "//src/server:cras_mix",
+        "//cras/src/dsp:drc",
+        "//cras/src/dsp:dsp_util",
+        "//cras/src/dsp:eq2",
+        "//cras/src/server:cras_mix",
         "@com_github_google_benchmark//:benchmark",
     ],
     alwayslink = True,
@@ -45,7 +45,7 @@ cc_library(
     target_compatible_with = require_config("//:ml_build"),
     deps = [
         ":benchmark_util",
-        "//src/dsp:am",
+        "//cras/src/dsp:am",
         "@com_github_google_benchmark//:benchmark",
     ],
     alwayslink = True,
@@ -62,7 +62,7 @@ cc_library(
     target_compatible_with = require_config("//:apm_build"),
     deps = [
         ":benchmark_util",
-        "//src/dsp:dsp_util",
+        "//cras/src/dsp:dsp_util",
         "@com_github_google_benchmark//:benchmark",
     ],
     alwayslink = True,
@@ -80,10 +80,10 @@ cc_library(
     target_compatible_with = require_config("//:hw_dependency_build"),
     deps = [
         ":benchmark_util",
-        "//src/libcras:cras_client",
-        "//src/server:cras_alsa_helpers",
-        "//src/server:cras_alsa_ucm",
-        "//src/server:cras_mix",
+        "//cras/src/libcras:cras_client",
+        "//cras/src/server:cras_alsa_helpers",
+        "//cras/src/server:cras_alsa_ucm",
+        "//cras/src/server:cras_mix",
         "@com_github_google_benchmark//:benchmark",
     ] + select({
         # Guard pkg_config behind hw_dependency_build so bazel does not attempt

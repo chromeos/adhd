@@ -12,8 +12,8 @@
 
 namespace {
 extern "C" {
-#include "src/dsp/drc.h"
-#include "src/dsp/eq2.h"
+#include "cras/src/dsp/drc.h"
+#include "cras/src/dsp/eq2.h"
 }
 
 constexpr int NUM_CHANNELS = 2;

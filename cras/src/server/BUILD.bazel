@@ -23,8 +23,8 @@ cc_library(
         ],
     }),
     visibility = [
-        "//src/benchmark:__pkg__",
-        "//src/tests:__pkg__",
+        "//cras/src/benchmark:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
     deps = ["cras_mix_ops"] + select({
         "//:x86_64_build": [
@@ -44,7 +44,7 @@ cc_library(
         "cras_system_state.h",
     ],
     hdrs = ["cras_mix_ops.h"],
-    deps = ["//src/common:cras_types"],
+    deps = ["//cras/src/common:cras_types"],
 )
 
 cc_library(
@@ -60,7 +60,7 @@ cc_library(
     ],
     local_defines = ["OPS_SSE42"],
     target_compatible_with = ["@platforms//cpu:x86_64"],
-    deps = ["//src/common:cras_types"],
+    deps = ["//cras/src/common:cras_types"],
 )
 
 cc_library(
@@ -76,7 +76,7 @@ cc_library(
     ],
     local_defines = ["OPS_AVX"],
     target_compatible_with = ["@platforms//cpu:x86_64"],
-    deps = ["//src/common:cras_types"],
+    deps = ["//cras/src/common:cras_types"],
 )
 
 cc_library(
@@ -92,7 +92,7 @@ cc_library(
     ],
     local_defines = ["OPS_AVX2"],
     target_compatible_with = ["@platforms//cpu:x86_64"],
-    deps = ["//src/common:cras_types"],
+    deps = ["//cras/src/common:cras_types"],
 )
 
 cc_library(
@@ -109,7 +109,7 @@ cc_library(
     ],
     local_defines = ["OPS_FMA"],
     target_compatible_with = ["@platforms//cpu:x86_64"],
-    deps = ["//src/common:cras_types"],
+    deps = ["//cras/src/common:cras_types"],
 )
 
 cc_library(
@@ -118,10 +118,10 @@ cc_library(
         "cras_alsa_helpers.c",
     ],
     hdrs = ["cras_alsa_helpers.h"],
-    visibility = ["//src/benchmark:__pkg__"],
+    visibility = ["//cras/src/benchmark:__pkg__"],
     deps = [
-        "//src/common:cras_types",
-        "//src/common:cras_util",
+        "//cras/src/common:cras_types",
+        "//cras/src/common:cras_util",
     ],
 )
 
@@ -137,11 +137,11 @@ cc_library(
         "cras_alsa_ucm.h",
         "cras_alsa_ucm_section.h",
     ],
-    visibility = ["//src/benchmark:__pkg__"],
+    visibility = ["//cras/src/benchmark:__pkg__"],
     deps = [
-        "//src/common:cras_string",
-        "//src/common:cras_util",
-        "//src/common:utlist",
+        "//cras/src/common:cras_string",
+        "//cras/src/common:cras_util",
+        "//cras/src/common:utlist",
     ],
 )
 
@@ -151,7 +151,7 @@ cc_library(
         "iniparser_wrapper.h",
     ],
     includes = ["."],
-    visibility = ["//src/server/config:__pkg__"],
+    visibility = ["//cras/src/server/config:__pkg__"],
     deps = ["@iniparser"],
 )
 
@@ -161,8 +161,8 @@ cc_library(
         "cras_volume_curve.c",
         "cras_volume_curve.h",
     ],
-    visibility = ["//src/server/config:__pkg__"],
-    deps = ["//src/common"],
+    visibility = ["//cras/src/server/config:__pkg__"],
+    deps = ["//cras/src/common"],
 )
 
 cc_library(
@@ -182,7 +182,7 @@ cc_library(
     includes = ["."],
     deps = [
         ":cras_mix",
-        "//src/common",
+        "//cras/src/common",
     ],
 )
 
@@ -191,8 +191,8 @@ cc_library(
     srcs = ["cras_fmt_conv_ops.c"],
     hdrs = ["cras_fmt_conv_ops.h"],
     includes = ["."],
-    visibility = ["//src/dsp/tests:__pkg__"],
-    deps = ["//src/common"],
+    visibility = ["//cras/src/dsp/tests:__pkg__"],
+    deps = ["//cras/src/common"],
 )
 
 cc_library(
@@ -201,7 +201,7 @@ cc_library(
         "//:dlc_build": [],
         "//conditions:default": ["cras_dlc_stub.c"],
     }),
-    deps = ["//src/server/rust"],
+    deps = ["//cras/src/server/rust"],
 )
 
 cc_library(
@@ -215,7 +215,7 @@ cc_library(
         "//conditions:default": ["cras_features_backend_stub.c"],
     }),
     hdrs = ["cras_features.h"],
-    visibility = ["//src/tests:__pkg__"],
+    visibility = ["//cras/src/tests:__pkg__"],
     deps = select({
         "//:featured_build": ["@libfeatures_c"],
         "//conditions:default": [],
@@ -226,7 +226,7 @@ cc_library(
     name = "cras_features_override",
     testonly = True,
     hdrs = ["cras_features_override.h"],
-    visibility = ["//src/tests:__pkg__"],
+    visibility = ["//cras/src/tests:__pkg__"],
     deps = [":cras_features"],
 )
 
@@ -256,10 +256,10 @@ cc_library(
         ":cras_audio_area",
         ":dsp_types",
         ":ewma_power",
-        "//src:include_here_hack",
-        "//src/common",
+        "//cras/src:include_here_hack",
+        "//cras/src/common",
     ] + select({
-        "//:ml_build": ["//src/dsp:am"],
+        "//:ml_build": ["//cras/src/dsp:am"],
         "//conditions:default": [],
     }),
 )
@@ -273,7 +273,7 @@ cc_library(
         "cras_expr.h",
     ],
     includes = ["."],
-    visibility = ["//src/dsp:__pkg__"],
+    visibility = ["//cras/src/dsp:__pkg__"],
     deps = [
         ":iniparser_wrapper",
     ],
@@ -285,9 +285,9 @@ cc_library(
         "cras_observer.h",
     ],
     includes = ["."],
-    visibility = ["//src/common:__pkg__"],
+    visibility = ["//cras/src/common:__pkg__"],
     deps = [
-        "//src/common:cras_observer_ops",
+        "//cras/src/common:cras_observer_ops",
     ],
 )
 
@@ -469,7 +469,7 @@ cc_library(
         "cras_alsa_plugin_io.h",
         "cras_bt_manager.h",
     ],
-    visibility = ["//src/fuzz:__pkg__"],
+    visibility = ["//cras/src/fuzz:__pkg__"],
     deps = [
         ":cras_alsa_ucm",
         ":cras_apm",
@@ -481,11 +481,11 @@ cc_library(
         ":cras_sr",
         ":dsp_types",
         ":ewma_power",
-        "//src/common",
-        "//src/dsp",
-        "//src/plc",
-        "//src/server/config",
-        "//src/server/rust",
+        "//cras/src/common",
+        "//cras/src/dsp",
+        "//cras/src/plc",
+        "//cras/src/server/config",
+        "//cras/src/server/rust",
         "@pkg_config//:alsa",
         "@pkg_config//:dbus-1",
         "@pkg_config//:libudev",
@@ -513,8 +513,8 @@ cc_library(
         ":cras_audio_area",
         ":dsp_types",
         ":ewma_power",
-        "//src/common",
-        "//src/dsp",
+        "//cras/src/common",
+        "//cras/src/dsp",
     ] + select({
         "//conditions:default": [],
         "//:apm_build": ["@libwebrtc_apm"],
@@ -541,7 +541,7 @@ cc_library(
         exclude = ["cras_mix*.c"],
     ),
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 
@@ -553,6 +553,6 @@ exports_files(
         exclude = ["cras_mix*.c"],
     ),
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )

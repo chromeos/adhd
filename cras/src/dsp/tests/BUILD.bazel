@@ -22,7 +22,7 @@ cc_binary(
     deps = [
         ":dsp_test_util",
         ":raw",
-        "//src/dsp",
+        "//cras/src/dsp",
     ],
 )
 
@@ -32,7 +32,7 @@ cc_binary(
     deps = [
         ":dsp_test_util",
         ":raw",
-        "//src/dsp",
+        "//cras/src/dsp",
     ],
 )
 
@@ -42,7 +42,7 @@ cc_binary(
     deps = [
         ":dsp_test_util",
         ":raw",
-        "//src/dsp",
+        "//cras/src/dsp",
     ],
 )
 
@@ -52,7 +52,7 @@ cc_binary(
     deps = [
         ":dsp_test_util",
         ":raw",
-        "//src/dsp",
+        "//cras/src/dsp",
     ],
 )
 
@@ -60,7 +60,7 @@ cc_binary(
     name = "dsp_util_test",
     srcs = ["dsp_util_test.c"],
     deps = [
-        "//src/dsp",
+        "//cras/src/dsp",
     ],
 )
 
@@ -70,7 +70,7 @@ cc_binary(
     deps = [
         ":dsp_test_util",
         ":raw",
-        "//src/dsp",
+        "//cras/src/dsp",
     ],
 )
 
@@ -80,7 +80,7 @@ cc_binary(
     deps = [
         ":dsp_test_util",
         ":raw",
-        "//src/dsp",
+        "//cras/src/dsp",
     ],
 )
 
@@ -99,8 +99,8 @@ cc_binary(
     deps = [
         ":dsp_test_util",
         ":raw",
-        "//src/dsp:am",
-        "//src/server:cras_fmt_conv_ops",
+        "//cras/src/dsp:am",
+        "//cras/src/server:cras_fmt_conv_ops",
     ],
 )
 
@@ -112,7 +112,7 @@ cc_library(
     includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 
@@ -122,6 +122,6 @@ exports_files(
         "*.c",
     ]),
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )

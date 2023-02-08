@@ -13,7 +13,7 @@ cc_binary(
     srcs = ["rclient_message.cc"],
     target_compatible_with = require_config("//:fuzzer_build"),
     deps = [
-        "//src/server:libcrasserver",
+        "//cras/src/server:libcrasserver",
         "@fuzz_engine",
     ],
 )
@@ -23,7 +23,7 @@ cc_binary(
     srcs = ["cras_hfp_slc.cc"],
     target_compatible_with = require_config("//:fuzzer_build"),
     deps = [
-        "//src/server:libcrasserver",
+        "//cras/src/server:libcrasserver",
         "@fuzz_engine",
     ],
 )
@@ -33,7 +33,7 @@ cc_binary(
     srcs = ["cras_fl_media_fuzzer.cc"],
     target_compatible_with = require_config("//:fuzzer_build"),
     deps = [
-        "//src/server:libcrasserver",
+        "//cras/src/server:libcrasserver",
         "@fuzz_engine",
     ],
 )

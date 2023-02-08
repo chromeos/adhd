@@ -7,7 +7,7 @@ cc_library(
     name = "include_here_hack",
     includes = ["."],
     visibility = [
-        "//src/server:__pkg__",
-        "//src/tests:__pkg__",
+        "//cras/src/server:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )

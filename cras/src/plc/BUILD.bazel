@@ -11,8 +11,8 @@ cc_library(
         "cras_plc.h",
     ],
     includes = ["."],
-    visibility = ["//src/server:__pkg__"],
-    deps = ["//src/common"],
+    visibility = ["//cras/src/server:__pkg__"],
+    deps = ["//cras/src/common"],
 )
 
 # Allow tests to not specify all headers.
@@ -23,7 +23,7 @@ cc_library(
     includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 
@@ -33,6 +33,6 @@ exports_files(
         "*.c",
     ]),
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )

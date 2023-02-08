@@ -17,22 +17,22 @@ cc_library(
         "-lrt",
     ],
     visibility = [
-        "//src/alsa_plugin:__pkg__",
-        "//src/benchmark:__pkg__",
-        "//src/tools:__pkg__",
+        "//cras/src/alsa_plugin:__pkg__",
+        "//cras/src/benchmark:__pkg__",
+        "//cras/src/tools:__pkg__",
     ],
     deps = [
-        "//src/common:cras_config",
-        "//src/common:cras_file_wait",
-        "//src/common:cras_messages",
-        "//src/common:cras_observer_ops",
-        "//src/common:cras_selinux_helper",
-        "//src/common:cras_shm",
-        "//src/common:cras_string",
-        "//src/common:cras_types",
-        "//src/common:cras_util",
-        "//src/common:cras_version",
-        "//src/common:utlist",
+        "//cras/src/common:cras_config",
+        "//cras/src/common:cras_file_wait",
+        "//cras/src/common:cras_messages",
+        "//cras/src/common:cras_observer_ops",
+        "//cras/src/common:cras_selinux_helper",
+        "//cras/src/common:cras_shm",
+        "//cras/src/common:cras_string",
+        "//cras/src/common:cras_types",
+        "//cras/src/common:cras_util",
+        "//cras/src/common:cras_version",
+        "//cras/src/common:utlist",
         "@pkg_config//:alsa",
     ],
 )
@@ -50,8 +50,8 @@ cras_shared_library(
         "//conditions:default": [],
     }),
     visibility = [
+        "//cras/src/alsa_plugin:__pkg__",
         "//dist:__pkg__",
-        "//src/alsa_plugin:__pkg__",
     ],
 )
 
@@ -72,7 +72,7 @@ cc_library(
     includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 
@@ -82,6 +82,6 @@ exports_files(
         "*.c",
     ]),
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )

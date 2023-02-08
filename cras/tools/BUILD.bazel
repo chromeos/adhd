@@ -5,5 +5,5 @@
 py_binary(
     name = "generate_dbus_bindings_h",
     srcs = ["generate_dbus_bindings_h.py"],
-    visibility = ["//src:__subpackages__"],
+    visibility = ["//cras:__subpackages__"],
 )

@@ -13,7 +13,7 @@
 
 namespace {
 extern "C" {
-#include "src/server/cras_mix.h"
+#include "cras/src/server/cras_mix.h"
 }
 
 static void BM_CrasMixerOpsScaleBuffer(benchmark::State& state) {

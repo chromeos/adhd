@@ -18,11 +18,11 @@ cc_library(
         "CRAS_CONFIG_FILE_DIR=\\\"/etc/cras\\\"",
     ],
     includes = ["."],
-    visibility = ["//src/server:__pkg__"],
+    visibility = ["//cras/src/server:__pkg__"],
     deps = [
-        "//src/common",
-        "//src/server:cras_volume_curve",
-        "//src/server:iniparser_wrapper",
+        "//cras/src/common",
+        "//cras/src/server:cras_volume_curve",
+        "//cras/src/server:iniparser_wrapper",
     ],
 )
 
@@ -34,7 +34,7 @@ cc_library(
     includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
 
@@ -44,6 +44,6 @@ exports_files(
         "*.c",
     ]),
     visibility = [
-        "//src/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
 )
