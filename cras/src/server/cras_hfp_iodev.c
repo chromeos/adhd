@@ -203,7 +203,7 @@ static void handle_cras_sr_bt(struct cras_iodev *iodev)
 static int open_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
-	int sk, err, mtu;
+	int sk, mtu, ret;
 	int sco_handle;
 
 	if (cras_sco_running(hfpio->sco))
@@ -214,22 +214,31 @@ static int open_dev(struct cras_iodev *iodev)
 	 */
 	hfp_slc_codec_connection_setup(hfpio->slc);
 
-	sk = cras_bt_device_sco_connect(
+	ret = cras_bt_device_sco_connect(
 		hfpio->device, hfp_slc_get_selected_codec(hfpio->slc), false);
-	if (sk < 0)
+	if (ret < 0)
 		goto error;
 
-	err = cras_sco_set_fd(hfpio->sco, sk);
-	if (err)
-		syslog(LOG_WARNING, "Failed to set SCO fd(%d)", sk);
+	sk = ret;
+	ret = cras_sco_set_fd(hfpio->sco, ret);
+	if (ret < 0)
+		syslog(LOG_WARNING, "Failed to set SCO fd(%d): %d", sk, ret);
 
 	mtu = cras_bt_device_sco_packet_size(
 		hfpio->device, sk, hfp_slc_get_selected_codec(hfpio->slc));
 
+	if (mtu < 0) {
+		ret = mtu;
+		goto error;
+	}
+
 	handle_cras_sr_bt(iodev);
 
 	/* Start cras_sco */
-	cras_sco_start(mtu, hfp_slc_get_selected_codec(hfpio->slc), hfpio->sco);
+	ret = cras_sco_start(mtu, hfp_slc_get_selected_codec(hfpio->slc),
+			     hfpio->sco);
+	if (ret < 0)
+		goto error;
 
 	sco_handle = cras_bt_device_sco_handle(sk);
 	cras_bt_device_report_hfp_start_stop_status(hfpio->device, true,
@@ -240,13 +249,14 @@ static int open_dev(struct cras_iodev *iodev)
 sco_running:
 	return 0;
 error:
-	syslog(LOG_WARNING, "Failed to open HFP iodev");
-	return sk;
+	syslog(LOG_WARNING, "Failed to open HFP iodev: %d", ret);
+	return ret;
 }
 
 static int configure_dev(struct cras_iodev *iodev)
 {
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
+	int ret;
 
 	/* Assert format is set before opening device. */
 	if (iodev->format == NULL)
@@ -255,8 +265,12 @@ static int configure_dev(struct cras_iodev *iodev)
 	iodev->format->format = SND_PCM_FORMAT_S16_LE;
 	cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
-	cras_sco_add_iodev(hfpio->sco, iodev->direction, iodev->format);
-	hfp_set_call_status(hfpio->slc, 1);
+	ret = cras_sco_add_iodev(hfpio->sco, iodev->direction, iodev->format);
+	if (ret < 0)
+		return ret;
+	ret = hfp_set_call_status(hfpio->slc, 1);
+	if (ret < 0)
+		return ret;
 	iodev->buffer_size = cras_sco_buf_size(hfpio->sco, iodev->direction);
 
 	return 0;
