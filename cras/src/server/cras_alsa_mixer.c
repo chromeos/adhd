@@ -954,7 +954,9 @@ int cras_alsa_mixer_add_controls_by_name_matching(
 	 * in the mixer as a main volume control. */
 	if (!cmix->main_volume_controls && !cmix->output_controls &&
 	    other_elem) {
-		rc = add_main_volume_control(cmix, other_elem);
+		rc = card_type == ALSA_CARD_TYPE_USB ?
+			     add_control(cmix, CRAS_STREAM_OUTPUT, other_elem) :
+			     add_main_volume_control(cmix, other_elem);
 		if (rc) {
 			syslog(LOG_WARNING,
 			       "Could not add other volume control");
