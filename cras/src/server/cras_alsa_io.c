@@ -374,7 +374,9 @@ static int frames_queued(const struct cras_iodev *iodev,
 			aio->num_severe_underruns++;
 		return rc;
 	}
-	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
+	rc = clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
+	if (rc < 0)
+		return rc;
 	if (iodev->direction == CRAS_STREAM_INPUT)
 		return (int)frames;
 

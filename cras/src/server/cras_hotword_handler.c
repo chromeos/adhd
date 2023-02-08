@@ -18,17 +18,21 @@ struct hotword_triggered_msg {
 
 /* The following functions are called from audio thread. */
 
-static void init_hotword_triggered_msg(struct hotword_triggered_msg *msg)
+static int init_hotword_triggered_msg(struct hotword_triggered_msg *msg)
 {
 	struct timespec now;
+	int ret;
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
+	ret = clock_gettime(CLOCK_MONOTONIC, &now);
+	if (ret < 0)
+		return -errno;
 
 	memset(msg, 0, sizeof(*msg));
 	msg->header.type = CRAS_MAIN_HOTWORD_TRIGGERED;
 	msg->header.length = sizeof(*msg);
 	msg->tv_sec = now.tv_sec;
 	msg->tv_nsec = now.tv_nsec;
+	return 0;
 }
 
 int cras_hotword_send_triggered_msg()
@@ -36,7 +40,9 @@ int cras_hotword_send_triggered_msg()
 	struct hotword_triggered_msg msg = CRAS_MAIN_MESSAGE_INIT;
 	int rc;
 
-	init_hotword_triggered_msg(&msg);
+	rc = init_hotword_triggered_msg(&msg);
+	if (rc < 0)
+		return rc;
 
 	rc = cras_main_message_send((struct cras_main_message *)&msg);
 	if (rc < 0)
