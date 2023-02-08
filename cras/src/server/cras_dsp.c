@@ -76,24 +76,27 @@ static struct pipeline *prepare_pipeline(struct cras_dsp_context *ctx,
 {
 	struct pipeline *pipeline;
 	const char *purpose = ctx->purpose;
+	int ret;
 
 	pipeline = cras_dsp_pipeline_create(target_ini, &ctx->env, purpose);
 
 	if (pipeline) {
 		syslog(LOG_DEBUG, "pipeline created");
 	} else {
-		syslog(LOG_DEBUG, "cannot create pipeline");
+		syslog(LOG_ERR, "cannot create pipeline");
 		goto bail;
 	}
 
-	if (cras_dsp_pipeline_load(pipeline) != 0) {
-		syslog(LOG_ERR, "cannot load pipeline");
+	ret = cras_dsp_pipeline_load(pipeline);
+	if (ret < 0) {
+		syslog(LOG_ERR, "cannot load pipeline: %d", ret);
 		goto bail;
 	}
 
-	if (cras_dsp_pipeline_instantiate(pipeline, ctx->sample_rate,
-					  &ctx->env) != 0) {
-		syslog(LOG_ERR, "cannot instantiate pipeline");
+	ret = cras_dsp_pipeline_instantiate(pipeline, ctx->sample_rate,
+					    &ctx->env);
+	if (ret < 0) {
+		syslog(LOG_ERR, "cannot instantiate pipeline: %d", ret);
 		goto bail;
 	}
 
