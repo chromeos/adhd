@@ -417,9 +417,7 @@ static int empty_hotword_cb(void *arg, int revents)
 	aio->base.input_streaming = 1;
 
 	/* Send hotword triggered signal. */
-	cras_hotword_send_triggered_msg();
-
-	return 0;
+	return cras_hotword_send_triggered_msg();
 }
 
 /* Returns true if the corresponding node_info of the specified input node has
