@@ -843,6 +843,9 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
 
 	adapter = cras_bt_adapter_get(device->adapter_obj_path);
 
+	if (!adapter)
+		return -ENODEV;
+
 	if (cras_bt_adapter_on_usb(adapter)) {
 		if (codec == HFP_CODEC_ID_MSBC) {
 			/* BT_SNDMTU and BT_RCVMTU return the same value. */
