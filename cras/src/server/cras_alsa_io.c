@@ -401,14 +401,21 @@ static int delay_frames(const struct cras_iodev *iodev)
 static int close_dev(struct cras_iodev *iodev)
 {
 	struct alsa_io *aio = (struct alsa_io *)iodev;
+	int ret;
 
 	/* Removes audio thread callback from main thread. */
-	if (aio->poll_fd >= 0)
-		audio_thread_rm_callback_sync(
+	if (aio->poll_fd >= 0) {
+		ret = audio_thread_rm_callback_sync(
 			cras_iodev_list_get_audio_thread(), aio->poll_fd);
+		if (ret < 0)
+			syslog(LOG_WARNING,
+			       "ALSA: failed to rm callback sync: %d", ret);
+	}
 	if (!aio->handle)
 		return 0;
-	cras_alsa_pcm_close(aio->handle);
+	ret = cras_alsa_pcm_close(aio->handle);
+	if (ret < 0)
+		syslog(LOG_WARNING, "ALSA: failed to close pcm: %d", ret);
 	aio->handle = NULL;
 	aio->free_running = 0;
 	aio->filled_zeros_for_draining = 0;
