@@ -891,12 +891,14 @@ int cras_sco_get_fd(struct cras_sco *sco)
 	return sco->fd;
 }
 
-void cras_sco_close_fd(struct cras_sco *sco)
+int cras_sco_close_fd(struct cras_sco *sco)
 {
+	int ret;
 	if (sco->fd < 0)
-		return;
-	close(sco->fd);
+		return -EINVAL;
+	ret = close(sco->fd);
 	sco->fd = -1;
+	return ret < 0 ? -errno : 0;
 }
 
 int cras_sco_running(struct cras_sco *sco)
@@ -904,12 +906,14 @@ int cras_sco_running(struct cras_sco *sco)
 	return sco->started;
 }
 
-void cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
+int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 {
+	int ret;
+
 	if (sco->fd < 0) {
 		syslog(LOG_WARNING, "Start SCO without valid fd(%d) set",
 		       sco->fd);
-		return;
+		return -EINVAL;
 	}
 
 	sco->mtu = mtu;
@@ -932,6 +936,10 @@ void cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 			(uint8_t *)calloc(buffer_size, sizeof(*sco->write_buf));
 		sco->read_buf =
 			(uint8_t *)calloc(buffer_size, sizeof(*sco->read_buf));
+		if (!sco->write_buf || !sco->read_buf) {
+			ret = -ENOMEM;
+			goto mem_err;
+		}
 
 		sco->write_cb = sco_write_msbc;
 		sco->read_cb = sco_read_msbc;
@@ -961,19 +969,30 @@ void cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco)
 	sco->read_align_cb =
 		(sco->packet_size == MSBC_PKT_SIZE) ? NULL : msbc_frame_align;
 	sco->msbc_read_current_corrupted = 0;
+	return 0;
+mem_err:
+	free(sco->write_buf);
+	free(sco->read_buf);
+	return ret;
 }
 
 int cras_sco_stop(struct cras_sco *sco)
 {
+	int ret;
+
 	if (!sco->started) {
 		syslog(LOG_WARNING, "stop sco that hasn't been started");
 		return 0;
 	}
 
-	audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
-				      sco->fd);
+	ret = audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
+					    sco->fd);
+	if (ret < 0)
+		syslog(LOG_WARNING, "rm callback sync error %d", ret);
 	sco->started = 0;
-	cras_sco_close_fd(sco);
+	ret = cras_sco_close_fd(sco);
+	if (ret < 0)
+		syslog(LOG_WARNING, "failed to close sco fd: %d", ret);
 
 	/* Unset the write/read callbacks. */
 	sco->write_cb = NULL;

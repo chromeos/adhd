@@ -457,8 +457,9 @@ int cras_sco_running(struct cras_sco* sco) {
   return cras_sco_running_return_val;
 }
 
-void cras_sco_start(unsigned int mtu, int codec, struct cras_sco* sco) {
+int cras_sco_start(unsigned int mtu, int codec, struct cras_sco* sco) {
   cras_sco_start_called++;
+  return 0;
 }
 
 int cras_sco_stop(struct cras_sco* sco) {
@@ -479,8 +480,8 @@ void cras_sco_disable_cras_sr_bt(struct cras_sco* sco) {
 int cras_sco_set_fd(struct cras_sco* sco, int fd) {
   return 0;
 }
-void cras_sco_close_fd(struct cras_sco* sco) {
-  return;
+int cras_sco_close_fd(struct cras_sco* sco) {
+  return 0;
 }
 
 int cras_sco_buf_queued(struct cras_sco* sco,

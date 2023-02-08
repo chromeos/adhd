@@ -699,8 +699,8 @@ int cras_sco_set_fd(struct cras_sco* sco, int fd) {
 int cras_sco_get_fd(struct cras_sco* sco) {
   return -1;
 }
-void cras_sco_close_fd(struct cras_sco* sco) {
-  return;
+int cras_sco_close_fd(struct cras_sco* sco) {
+  return 0;
 }
 
 int hfp_slc_get_selected_codec(struct hfp_slc_handle* handle) {

@@ -65,7 +65,7 @@ int cras_sco_set_fd(struct cras_sco *sco, int fd);
 int cras_sco_get_fd(struct cras_sco *sco);
 
 /* Closes the file descriptor of cras_sco. */
-void cras_sco_close_fd(struct cras_sco *sco);
+int cras_sco_close_fd(struct cras_sco *sco);
 
 /* Checks if given cras_sco is running. */
 int cras_sco_running(struct cras_sco *sco);
@@ -77,7 +77,7 @@ int cras_sco_running(struct cras_sco *sco);
  *    codec - 1 for CVSD, 2 for mSBC per HFP 1.7 specification.
  *    sco - The cras_sco instance.
  */
-void cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco);
+int cras_sco_start(unsigned int mtu, int codec, struct cras_sco *sco);
 
 /* Stops given cras_sco. This implies sample transmission will
  * stop and socket be closed. This should be called from main thread.
