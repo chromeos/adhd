@@ -871,7 +871,7 @@ int cras_server_metrics_highest_device_delay(
 	if (largest_cb_level == 0) {
 		syslog(LOG_WARNING,
 		       "Failed to record device delay: divided by zero");
-		return -1;
+		return -EINVAL;
 	}
 
 	/*

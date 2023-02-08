@@ -177,7 +177,7 @@ static int find_origin_port(struct ini *ini, const instance_array *instances,
 	type = port->type;
 	flow_id = port->flow_id;
 	if (flow_id == INVALID_FLOW_ID)
-		return -1;
+		return -EINVAL;
 	flow = ARRAY_ELEMENT(&ini->flows, flow_id);
 
 	/* move to the previous plugin */
@@ -207,7 +207,7 @@ static int find_origin_port(struct ini *ini, const instance_array *instances,
 			k++;
 	}
 	if (!found)
-		return -1;
+		return -ENOENT;
 
 	found = 0;
 	ARRAY_ELEMENT_FOREACH (&plugin->ports, i, port) {
@@ -220,7 +220,7 @@ static int find_origin_port(struct ini *ini, const instance_array *instances,
 		}
 	}
 	if (!found)
-		return -1;
+		return -ENOENT;
 
 	return find_origin_port(ini, instances, plugin, index, origin,
 				origin_index);
@@ -282,9 +282,7 @@ static int topological_sort(struct pipeline *pipeline,
 {
 	struct port *port;
 	struct flow *flow;
-	int index;
-	int i;
-	int flow_id;
+	int index, i, flow_id, ret;
 	struct instance *instance;
 	struct ini *ini = pipeline->ini;
 
@@ -301,10 +299,11 @@ static int topological_sort(struct pipeline *pipeline,
 		if (!flow->from) {
 			syslog(LOG_ERR, "no plugin flows to %s:%d",
 			       plugin->title, i);
-			return -1;
+			return -EINVAL;
 		}
-		if (topological_sort(pipeline, env, flow->from, visited) < 0)
-			return -1;
+		ret = topological_sort(pipeline, env, flow->from, visited);
+		if (ret < 0)
+			return ret;
 	}
 
 	/* if the plugin is disabled, we don't construct an instance for it */
@@ -322,9 +321,11 @@ static int topological_sort(struct pipeline *pipeline,
 		int origin_index = 0;
 
 		if (need_connect) {
-			if (find_origin_port(ini, &pipeline->instances, plugin,
-					     i, &origin, &origin_index) < 0)
-				return -1;
+			ret = find_origin_port(ini, &pipeline->instances,
+					       plugin, i, &origin,
+					       &origin_index);
+			if (ret < 0)
+				return ret;
 		}
 
 		if (port->type == PORT_AUDIO) {
@@ -342,7 +343,7 @@ static int topological_sort(struct pipeline *pipeline,
 					&pipeline->instances, origin,
 					origin_index);
 				if (!from)
-					return -1;
+					return -ENOENT;
 				from->peer = audio_port;
 				audio_port->peer = from;
 			}
@@ -362,7 +363,7 @@ static int topological_sort(struct pipeline *pipeline,
 					&pipeline->instances, origin,
 					origin_index);
 				if (!from)
-					return -1;
+					return -ENOENT;
 				from->peer = control_port;
 				control_port->peer = from;
 			}
@@ -473,7 +474,7 @@ static int load_module(struct plugin *plugin, struct instance *instance)
 	if (!module)
 		module = cras_dsp_module_load_ladspa(plugin);
 	if (!module)
-		return -1;
+		return -ENOENT;
 	instance->module = module;
 	instance->properties = module->get_properties(module);
 	return 0;
@@ -535,7 +536,7 @@ static int allocate_buffers(struct pipeline *pipeline)
 	if (peak_buf <= 0) {
 		syslog(LOG_ERR, "peak_buf = %d, which must be greater than 0.",
 		       peak_buf);
-		return -1;
+		return -EINVAL;
 	}
 
 	/* then allocate the buffers */
@@ -544,7 +545,7 @@ static int allocate_buffers(struct pipeline *pipeline)
 
 	if (!pipeline->buffers) {
 		syslog(LOG_ERR, "failed to allocate buffers");
-		return -1;
+		return -ENOMEM;
 	}
 
 	for (i = 0; i < peak_buf; i++) {
@@ -552,7 +553,7 @@ static int allocate_buffers(struct pipeline *pipeline)
 		float *buf = calloc(1, size);
 		if (!buf) {
 			syslog(LOG_ERR, "failed to allocate buf");
-			return -1;
+			return -ENOMEM;
 		}
 		pipeline->buffers[i] = buf;
 	}
@@ -610,19 +611,17 @@ static int allocate_buffers(struct pipeline *pipeline)
 
 int cras_dsp_pipeline_load(struct pipeline *pipeline)
 {
-	int i;
+	int i, ret;
 	struct instance *instance;
 
 	ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
 		struct plugin *plugin = instance->plugin;
-		if (load_module(plugin, instance) != 0)
-			return -1;
+		ret = load_module(plugin, instance);
+		if (ret != 0)
+			return ret;
 	}
 
-	if (allocate_buffers(pipeline) != 0)
-		return -1;
-
-	return 0;
+	return allocate_buffers(pipeline);
 }
 
 /* Calculates the total buffering delay of each instance from the source */
@@ -653,18 +652,19 @@ static void calculate_audio_delay(struct pipeline *pipeline)
 int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate,
 				  struct cras_expr_env *env)
 {
-	int i;
+	int i, ret;
 	struct instance *instance;
 
 	if (!env) {
 		syslog(LOG_ERR, "invalid cras_expr_env");
-		return -1;
+		return -EINVAL;
 	}
 
 	ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
 		struct dsp_module *module = instance->module;
-		if (module->instantiate(module, sample_rate, env) != 0)
-			return -1;
+		ret = module->instantiate(module, sample_rate, env);
+		if (ret < 0)
+			return ret;
 		instance->instantiated = 1;
 		syslog(LOG_DEBUG, "instantiate %s", instance->plugin->label);
 	}

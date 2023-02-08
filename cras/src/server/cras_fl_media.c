@@ -1204,7 +1204,7 @@ int floss_media_start(DBusConnection *conn, unsigned int hci)
 		syslog(LOG_ERR, "Couldn't register CRAS control: %s: %s",
 		       CRAS_BT_MEDIA_OBJECT_PATH, dbus_error.message);
 		dbus_error_free(&dbus_error);
-		return -1;
+		return -EIO;
 	}
 
 	/* Try to be cautious if Floss media gets the state wrong. */

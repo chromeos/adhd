@@ -462,7 +462,7 @@ put_stdin_samples(struct cras_client *client, cras_stream_id_t stream_id,
 	rc = read(0, playback_samples, (size_t)frames * (size_t)frame_bytes);
 	if (rc <= 0) {
 		terminate_stream_loop();
-		return -1;
+		return rc;
 	}
 
 	return rc / frame_bytes;

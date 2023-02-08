@@ -12,6 +12,8 @@
 #include "cras/src/server/cras_alsa_ucm_section.h"
 #include "cras_types.h"
 
+#define JACK_SWITCH_AUTO_DETECT -1
+
 struct cras_use_case_mgr;
 
 /* Helpers to access UCM configuration for a card if any is provided.

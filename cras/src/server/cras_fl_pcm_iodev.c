@@ -370,7 +370,7 @@ static int hfp_read(struct fl_pcm_io *idev)
 			if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
 				syslog(LOG_WARNING, "Recv error %s",
 				       cras_strerror(errno));
-				return -1;
+				return rc;
 			}
 			return 0;
 		}
@@ -412,7 +412,7 @@ static int hfp_write(struct fl_pcm_io *odev, size_t target_len)
 			if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
 				syslog(LOG_WARNING, "Send error %s",
 				       cras_strerror(errno));
-				return -1;
+				return rc;
 			}
 			return 0;
 		}
@@ -458,7 +458,7 @@ static int hfp_socket_read_write_cb(void *arg, int revents)
 			/* Leave hfp->fd for hfp_manager to cleanup. */
 			audio_thread_rm_callback(cras_floss_hfp_get_fd(hfp));
 		}
-		return -1;
+		return -EPIPE;
 	}
 
 	nwrite_btyes = odev->write_block * cras_get_format_bytes(fmt);

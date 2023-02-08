@@ -56,12 +56,12 @@ static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter *adapter)
 	/* Object path [variable prefix]/{hci0,hci1,...} */
 	pos = strstr(adapter->object_path, hci_str);
 	if (!pos)
-		return -1;
+		return -EINVAL;
 
 	ctl = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
 	if (ctl < 0) {
 		syslog(LOG_WARNING, "Error creating HCI ctl socket");
-		return -1;
+		return -errno;
 	}
 
 	/* dev_id = 0 for hci0 */
@@ -72,7 +72,7 @@ static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter *adapter)
 		syslog(LOG_WARNING, "HCI get dev info error %s",
 		       cras_strerror(errno));
 		close(ctl);
-		return -1;
+		return -errno;
 	}
 	if ((dev_info.type & 0x0f) < HCI_BUS_MAX)
 		adapter->bus_type = (dev_info.type & 0x0f);

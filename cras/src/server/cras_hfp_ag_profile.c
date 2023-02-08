@@ -177,14 +177,14 @@ static int check_for_conflict_ag(struct cras_bt_device *new_connected)
 	/* Check if there's already an A2DP/HFP device. */
 	DL_FOREACH (connected_ags, ag) {
 		if (cras_bt_device_has_a2dp(ag->device))
-			return -1;
+			return -EBUSY;
 	}
 
 	/* Check if there's already an A2DP-only device. */
 	if (cras_a2dp_connected_device() &&
 	    cras_bt_device_supports_profile(new_connected,
 					    CRAS_BT_DEVICE_PROFILE_A2DP_SINK))
-		return -1;
+		return -EBUSY;
 
 	return 0;
 }
@@ -210,7 +210,7 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 {
 	struct cras_bt_adapter *adapter;
 	struct audio_gateway *ag;
-	int ag_features;
+	int ag_features, ret;
 
 	BTLOG(btlog, BT_HFP_NEW_CONNECTION, 0, 0);
 
@@ -222,8 +222,9 @@ static int cras_hfp_ag_new_connection(DBusConnection *conn,
 		return 0;
 	}
 
-	if (check_for_conflict_ag(device))
-		return -1;
+	ret = check_for_conflict_ag(device);
+	if (ret < 0)
+		return ret;
 
 	ag = (struct audio_gateway *)calloc(1, sizeof(*ag));
 	ag->device = device;

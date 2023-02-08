@@ -4,6 +4,7 @@
  */
 
 #include <dlfcn.h>
+#include <errno.h>
 #include <ladspa.h>
 #include <syslog.h>
 
@@ -49,7 +50,7 @@ static int instantiate(struct dsp_module *module, unsigned long sample_rate,
 	if (!data->handle) {
 		syslog(LOG_ERR, "instantiate failed for %s, rate %ld",
 		       desc->Label, sample_rate);
-		return -1;
+		return -ENOMEM;
 	}
 	return 0;
 }
@@ -132,7 +133,7 @@ static int verify_plugin_descriptor(struct plugin *plugin,
 
 	if (desc->PortCount != ARRAY_COUNT(&plugin->ports)) {
 		syslog(LOG_ERR, "port count mismatch: %s", plugin->title);
-		return -1;
+		return -EINVAL;
 	}
 
 	ARRAY_ELEMENT_FOREACH (&plugin->ports, i, port) {
@@ -141,14 +142,14 @@ static int verify_plugin_descriptor(struct plugin *plugin,
 		    !!(port_desc & LADSPA_PORT_INPUT)) {
 			syslog(LOG_ERR, "port direction mismatch: %s:%d!",
 			       plugin->title, i);
-			return -1;
+			return -EINVAL;
 		}
 
 		if ((port->type == PORT_CONTROL) !=
 		    !!(port_desc & LADSPA_PORT_CONTROL)) {
 			syslog(LOG_ERR, "port type mismatch: %s:%d!",
 			       plugin->title, i);
-			return -1;
+			return -EINVAL;
 		}
 	}
 

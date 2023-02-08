@@ -796,7 +796,7 @@ TEST_F(TimingSuite, HotwordStreamBulkDataIsNotPending) {
 
   // Does not need to wait for stream fd in the next ppoll.
   poll_fd = dev_stream_poll_stream_fd(streams[0]->dstream.get());
-  EXPECT_EQ(-1, poll_fd);
+  EXPECT_EQ(-EINVAL, poll_fd);
 
   struct timespec delta;
   subtract_timespecs(&dev_time, &start, &delta);

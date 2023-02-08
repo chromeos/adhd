@@ -11,6 +11,7 @@
 
 #include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alsa_mixer_name.h"
+#include "cras/src/server/cras_alsa_ucm.h"
 
 static void ucm_section_free(struct ucm_section *section)
 {
@@ -69,8 +70,8 @@ struct ucm_section *ucm_section_create(const char *name, const char *pcm_name,
 		if (!section->jack_type)
 			goto error;
 	}
-	/* Default to -1 which means auto-detect. */
-	section->jack_switch = -1;
+	/* Default to auto-detect. */
+	section->jack_switch = JACK_SWITCH_AUTO_DETECT;
 
 	/* Make sure to initialize this item as a list. */
 	DL_APPEND(section_list, section);

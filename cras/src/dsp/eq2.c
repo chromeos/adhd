@@ -5,6 +5,7 @@
 
 #include "cras/src/dsp/eq2.h"
 
+#include <errno.h>
 #include <stdlib.h>
 
 struct eq2 {
@@ -37,7 +38,7 @@ int eq2_append_biquad(struct eq2 *eq2, int channel, enum biquad_type type,
 		      float freq, float Q, float gain)
 {
 	if (eq2->n[channel] >= MAX_BIQUADS_PER_EQ2)
-		return -1;
+		return -EINVAL;
 	biquad_set(&eq2->biquad[eq2->n[channel]++][channel], type, freq, Q,
 		   gain);
 	return 0;
@@ -47,7 +48,7 @@ int eq2_append_biquad_direct(struct eq2 *eq2, int channel,
 			     const struct biquad *biquad)
 {
 	if (eq2->n[channel] >= MAX_BIQUADS_PER_EQ2)
-		return -1;
+		return -EINVAL;
 	eq2->biquad[eq2->n[channel]++][channel] = *biquad;
 	return 0;
 }

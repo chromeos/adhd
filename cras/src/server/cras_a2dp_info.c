@@ -70,7 +70,7 @@ int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)
 	a2dp->codec = cras_sbc_codec_create(frequency, mode, subbands,
 					    allocation, blocks, bitpool);
 	if (!a2dp->codec)
-		return -1;
+		return -ENOMEM;
 
 	/* SBC info */
 	a2dp->codesize = cras_sbc_get_codesize(a2dp->codec);

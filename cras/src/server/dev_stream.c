@@ -663,7 +663,7 @@ int dev_stream_poll_stream_fd(const struct dev_stream *dev_stream)
 	if (!stream_uses_output(stream) ||
 	    !cras_rstream_is_pending_reply(stream) ||
 	    cras_rstream_get_is_draining(stream))
-		return -1;
+		return -EINVAL;
 
 	return stream->fd;
 }

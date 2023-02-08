@@ -126,7 +126,7 @@ static int frames_queued(const struct cras_iodev *iodev,
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
 	if (!cras_sco_running(hfpio->sco))
-		return -1;
+		return -EINVAL;
 
 	/* Do not enable timestamp mechanism on HFP device because last time
 	 * stamp might be a long time ago and it is not really useful. */
@@ -241,7 +241,7 @@ sco_running:
 	return 0;
 error:
 	syslog(LOG_WARNING, "Failed to open HFP iodev");
-	return -1;
+	return sk;
 }
 
 static int configure_dev(struct cras_iodev *iodev)
@@ -308,7 +308,7 @@ static int get_buffer(struct cras_iodev *iodev, struct cras_audio_area **area,
 	uint8_t *dst = NULL;
 
 	if (!cras_sco_running(hfpio->sco))
-		return -1;
+		return -EINVAL;
 
 	cras_sco_buf_acquire(hfpio->sco, iodev->direction, &dst, frames);
 
@@ -327,7 +327,7 @@ static int put_buffer(struct cras_iodev *iodev, unsigned nwritten)
 	struct hfp_io *hfpio = (struct hfp_io *)iodev;
 
 	if (!cras_sco_running(hfpio->sco))
-		return -1;
+		return -EINVAL;
 
 	cras_sco_buf_release(hfpio->sco, iodev->direction, nwritten);
 	return 0;

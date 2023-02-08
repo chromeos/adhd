@@ -403,7 +403,7 @@ TEST_F(PcmIodev, TestHfpCb) {
 
   pcm_odev->started = pcm_idev->started = 1;
 
-  EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLERR));
+  EXPECT_EQ(-EPIPE, hfp_socket_read_write_cb((void*)NULL, POLLERR));
 
   /* Output device should try to write the same number of bytes as input device
    * read. */
@@ -418,7 +418,7 @@ TEST_F(PcmIodev, TestHfpCb) {
   EXPECT_EQ(100, rc);
 
   /* After POLLHUP the cb should be removed. */
-  EXPECT_EQ(-1, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
+  EXPECT_EQ(-EPIPE, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
   EXPECT_EQ(NULL, write_callback);
   EXPECT_EQ(NULL, write_callback_data);
 }

@@ -357,7 +357,7 @@ msbc_send_again:
 	}
 	if (err != (int)sco->packet_size) {
 		syslog(LOG_WARNING, "Partially write %d bytes for mSBC", err);
-		return -1;
+		return -EIO;
 	}
 	sco->write_rp += sco->packet_size;
 	if (sco->write_rp == sco->write_wp) {
@@ -393,7 +393,7 @@ send_sample:
 		syslog(LOG_WARNING,
 		       "Partially write %d bytes for SCO packet size %u", err,
 		       sco->packet_size);
-		return -1;
+		return -EIO;
 	}
 
 	buf_increment_read(sco->playback_buf, to_send);
@@ -408,7 +408,7 @@ static int h2_header_get_seq(const uint8_t *p)
 		if (*p == h2_header_frames_count[i])
 			return i;
 	}
-	return -1;
+	return -ENOENT;
 }
 
 /*
@@ -558,7 +558,7 @@ recv_msbc_bytes:
 		} else {
 			syslog(LOG_WARNING,
 			       "Partially read %d bytes for mSBC packet", err);
-			return -1;
+			return -EIO;
 		}
 	}
 
@@ -704,7 +704,7 @@ recv_sample:
 			syslog(LOG_WARNING,
 			       "Partially read %d bytes for %u size SCO packet",
 			       err, sco->packet_size);
-			return -1;
+			return -EIO;
 		}
 	}
 

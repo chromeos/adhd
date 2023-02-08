@@ -20,6 +20,7 @@
 #define SAMPLE_BUFFER_H_
 
 #include <assert.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,7 +61,7 @@ static inline int sample_buffer_init(const size_t num_samples,
 	struct byte_buffer *internal_buf =
 		byte_buffer_create(num_samples * sample_size);
 	if (!internal_buf)
-		return -1;
+		return -ENOMEM;
 
 	struct sample_buffer temp_buf = { .sample_size = sample_size,
 					  .buf = internal_buf };

@@ -105,7 +105,7 @@ static int sys_input_get_switch_state(int fd, unsigned sw, unsigned *state)
 			return 0;
 		}
 
-	return -1;
+	return -EINVAL;
 }
 
 static inline struct cras_alsa_jack *cras_alloc_jack(int is_gpio)
@@ -168,22 +168,23 @@ static int read_jack_edid(const struct cras_alsa_jack *jack, uint8_t *edid)
 
 	fd = open(jack->edid_file, O_RDONLY);
 	if (fd < 0)
-		return -1;
+		return -errno;
 
 	nread = read(fd, edid, EEDID_SIZE);
 	close(fd);
 
 	if (nread < EDID_SIZE || !edid_valid(edid))
-		return -1;
+		return -EINVAL;
 	return 0;
 }
 
 static int check_jack_edid(struct cras_alsa_jack *jack)
 {
 	uint8_t edid[EEDID_SIZE];
+	int ret = read_jack_edid(jack, edid);
 
-	if (read_jack_edid(jack, edid))
-		return -1;
+	if (ret < 0)
+		return ret;
 
 	/* If the jack supports EDID, check that it supports audio, clearing
 	 * the plugged state if it doesn't.
@@ -197,9 +198,10 @@ static int get_jack_edid_monitor_name(const struct cras_alsa_jack *jack,
 				      char *buf, unsigned int buf_size)
 {
 	uint8_t edid[EEDID_SIZE];
+	int ret = read_jack_edid(jack, edid);
 
-	if (read_jack_edid(jack, edid))
-		return -1;
+	if (ret < 0)
+		return ret;
 
 	return edid_get_monitor_name(edid, buf, buf_size);
 }
@@ -208,9 +210,10 @@ static int get_jack_edid_device_id(const struct cras_alsa_jack *jack,
 				   struct edid_device_id *device_id)
 {
 	uint8_t edid[EEDID_SIZE];
+	int ret = read_jack_edid(jack, edid);
 
-	if (read_jack_edid(jack, edid))
-		return -1;
+	if (ret < 0)
+		return ret;
 
 	*device_id = edid_get_device_id(edid);
 	return 0;
@@ -222,15 +225,18 @@ static int get_jack_edid_device_id(const struct cras_alsa_jack *jack,
 static int check_jack_eld(struct cras_alsa_jack *jack)
 {
 	snd_ctl_elem_info_t *elem_info;
+	int ret;
+
 	snd_ctl_elem_info_alloca(&elem_info);
 
 	/* Poll ELD control by getting the count of ELD buffer.
 	 * When seeing zero buffer count, retry after a delay until
 	 * it's ready or reached the max number of retries. */
-	if (snd_hctl_elem_info(jack->eld_control, elem_info) != 0)
-		return -1;
+	ret = snd_hctl_elem_info(jack->eld_control, elem_info);
+	if (ret < 0)
+		return ret;
 	if (snd_ctl_elem_info_get_count(elem_info) == 0)
-		return -1;
+		return -ENODEV;
 	return 0;
 }
 

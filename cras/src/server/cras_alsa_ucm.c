@@ -15,6 +15,8 @@
 #include "cras/src/common/utlist.h"
 #include "cras_util.h"
 
+#define INVALID_JACK_SWITCH -1
+
 static const char jack_control_var[] = "JackControl";
 static const char jack_dev_var[] = "JackDev";
 static const char jack_switch_var[] = "JackSwitch";
@@ -477,7 +479,7 @@ int ucm_set_use_case(struct cras_use_case_mgr *mgr,
 	} else {
 		syslog(LOG_ERR, "Unavailable use case %d for card %s", use_case,
 		       mgr->name);
-		return -1;
+		return -EINVAL;
 	}
 
 	rc = snd_use_case_set(mgr->mgr, "_verb", uc_verb(mgr));
@@ -846,7 +848,7 @@ int ucm_get_channels_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
 	if (rc)
 		return rc;
 	if (value < 0)
-		return -1;
+		return -EINVAL;
 
 	*channels = (size_t)value;
 	return 0;
@@ -887,14 +889,14 @@ static int get_device_index_from_target(const char *target_device_name)
 	/* Expects a string in the form: hw:card-name,<num> */
 	const char *pos = target_device_name;
 	if (!pos)
-		return -1;
+		return -EINVAL;
 	while (*pos && *pos != ',')
 		++pos;
 	if (*pos == ',') {
 		++pos;
 		return atoi(pos);
 	}
-	return -1;
+	return -EINVAL;
 }
 
 static const char *ucm_get_dir_for_device(struct cras_use_case_mgr *mgr,
@@ -1279,7 +1281,7 @@ int ucm_get_jack_switch_for_dev(struct cras_use_case_mgr *mgr, const char *dev)
 
 	int rc = get_int(mgr, jack_switch_var, dev, uc_verb(mgr), &value);
 	if (rc || value < 0)
-		return -1;
+		return JACK_SWITCH_AUTO_DETECT;
 	return value;
 }
 

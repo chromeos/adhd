@@ -4,6 +4,7 @@
 
 #include "cras/src/common/edid_utils.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -650,7 +651,7 @@ int find_aspect(int h, int v)
 	if (CLOSE_ENOUGH((h * 10), (v * 16)))
 		return ASPECT_16_10;
 
-	return -1;
+	return -EINVAL;
 }
 
 int find_aspect_fromisize(unsigned char *edid_data)
@@ -690,7 +691,7 @@ int edid_get_monitor_name(const unsigned char *edid_data, char *buf,
 		}
 	}
 
-	return -1;
+	return -EINVAL;
 }
 
 struct edid_device_id edid_get_device_id(const unsigned char *edid_data)

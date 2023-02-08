@@ -79,7 +79,7 @@ static int lookup_flow(struct ini *ini, const char *name)
 			return i;
 	}
 
-	return -1;
+	return INVALID_FLOW_ID;
 }
 
 static int lookup_or_add_flow(struct ini *ini, const char *name)
@@ -117,7 +117,7 @@ static int parse_ports(struct ini *ini, const char *sec_name,
 
 		if (*str == '\0') {
 			syslog(LOG_ERR, "empty value for %s:%s", sec_name, key);
-			return -1;
+			return -EINVAL;
 		}
 
 		if (str[0] == '<' || str[0] == '{') {
@@ -156,12 +156,12 @@ static int parse_plugin_section(struct ini *ini, const char *sec_name,
 	if (p->library == NULL || p->label == NULL) {
 		syslog(LOG_ERR, "A plugin must have library and label: %s",
 		       sec_name);
-		return -1;
+		return -EINVAL;
 	}
 
 	if (parse_ports(ini, sec_name, p) < 0) {
 		syslog(LOG_ERR, "Failed to parse ports: %s", sec_name);
-		return -1;
+		return -EINVAL;
 	}
 
 	return 0;

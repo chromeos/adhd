@@ -626,7 +626,7 @@ static int bt_address(const char *str, struct sockaddr *addr)
 
 	if (strlen(str) != 17) {
 		syslog(LOG_ERR, "Invalid bluetooth address %s", str);
-		return -1;
+		return -EINVAL;
 	}
 
 	memset(addr, 0, sizeof(*addr));
@@ -709,7 +709,7 @@ static int apply_codec_settings(int fd, uint8_t codec)
 
 	if (codec != HFP_CODEC_ID_MSBC) {
 		syslog(LOG_WARNING, "Unsupported codec %d", codec);
-		return -1;
+		return -EOPNOTSUPP;
 	}
 
 	voice.setting = BT_VOICE_TRANSPARENT;
@@ -717,7 +717,7 @@ static int apply_codec_settings(int fd, uint8_t codec)
 	if (setsockopt(fd, SOL_BLUETOOTH, BT_VOICE, &voice, sizeof(voice)) <
 	    0) {
 		syslog(LOG_WARNING, "Failed to apply voice setting");
-		return -1;
+		return -errno;
 	}
 
 	pkt_status = 1;
@@ -756,18 +756,20 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 	}
 
 	/* Bind to local address */
-	if (bt_address(cras_bt_adapter_address(adapter), &addr))
+	err = bt_address(cras_bt_adapter_address(adapter), &addr);
+	if (err < 0)
 		goto error;
 	if (bind(sk, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		syslog(LOG_ERR, "Failed to bind socket: %s (%d)",
 		       cras_strerror(errno), errno);
+		err = -errno;
 		goto error;
 	}
 
 	/* Connect to remote in nonblocking mode */
 	fcntl(sk, F_SETFL, O_NONBLOCK);
-
-	if (bt_address(cras_bt_device_address(device), &addr))
+	err = bt_address(cras_bt_device_address(device), &addr);
+	if (err < 0)
 		goto error;
 
 	if (use_offload)
@@ -783,6 +785,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 		       cras_strerror(errno), errno);
 		cras_server_metrics_hfp_sco_connection_error(
 			CRAS_METRICS_SCO_SKT_CONNECT_ERROR);
+		err = -errno;
 		goto error;
 	}
 
@@ -794,6 +797,7 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
 		syslog(LOG_WARNING, "Connect SCO: poll for writable timeout");
 		cras_server_metrics_hfp_sco_connection_error(
 			CRAS_METRICS_SCO_SKT_POLL_TIMEOUT);
+		err = -errno;
 		goto error;
 	}
 
@@ -829,7 +833,7 @@ error:
 	BTLOG(btlog, BT_SCO_CONNECT, 0, sk);
 	if (sk)
 		close(sk);
-	return -1;
+	return err;
 }
 
 int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
@@ -903,7 +907,7 @@ int cras_bt_device_sco_handle(int sco_socket)
 	if (getsockopt(sco_socket, SOL_SCO, SCO_CONNINFO, &info, &len) < 0) {
 		syslog(LOG_WARNING, "Get SCO handle error: %s",
 		       cras_strerror(errno));
-		return -1;
+		return -errno;
 	}
 	return info.hci_handle;
 }

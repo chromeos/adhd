@@ -1312,6 +1312,6 @@ int cras_alsa_mixer_set_output_active_state(struct mixer_control *output,
 {
 	assert(output);
 	if (!output->has_mute)
-		return -1;
+		return -EINVAL;
 	return mixer_control_set_mute(output, !active);
 }

@@ -225,7 +225,7 @@ TEST(EqTest, All) {
   for (int i = 0; i < MAX_BIQUADS_PER_EQ; i++) {
     EXPECT_EQ(0, eq_append_biquad(eq, BQ_PEAKING, f_high, 5, 6));
   }
-  EXPECT_EQ(-1, eq_append_biquad(eq, BQ_PEAKING, f_high, 5, 6));
+  EXPECT_EQ(-EINVAL, eq_append_biquad(eq, BQ_PEAKING, f_high, 5, 6));
   eq_free(eq);
 }
 
@@ -293,8 +293,8 @@ TEST(Eq2Test, All) {
     EXPECT_EQ(0, eq2_append_biquad(eq2, 0, BQ_PEAKING, f_high, 5, 6));
     EXPECT_EQ(0, eq2_append_biquad(eq2, 1, BQ_PEAKING, f_high, 5, 6));
   }
-  EXPECT_EQ(-1, eq2_append_biquad(eq2, 0, BQ_PEAKING, f_high, 5, 6));
-  EXPECT_EQ(-1, eq2_append_biquad(eq2, 1, BQ_PEAKING, f_high, 5, 6));
+  EXPECT_EQ(-EINVAL, eq2_append_biquad(eq2, 0, BQ_PEAKING, f_high, 5, 6));
+  EXPECT_EQ(-EINVAL, eq2_append_biquad(eq2, 1, BQ_PEAKING, f_high, 5, 6));
   eq2_free(eq2);
 }
 

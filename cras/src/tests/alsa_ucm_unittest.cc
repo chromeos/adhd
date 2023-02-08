@@ -1467,7 +1467,7 @@ TEST(AlsaUcm, SetUseCase) {
 
   /* Request unavailable use case will fail. */
   rc = ucm_set_use_case(mgr, CRAS_STREAM_TYPE_PRO_AUDIO);
-  EXPECT_EQ(-1, rc);
+  EXPECT_EQ(-EINVAL, rc);
   /* cras_use_case_mgr's use case should not be changed. */
   EXPECT_EQ(mgr->use_case, CRAS_STREAM_TYPE_VOICE_COMMUNICATION);
   /* And snd_use_case_set not being called. */
