@@ -14,6 +14,7 @@ enum cras_feature_id {
 	CrOSLateBootAudioHFPOffload,
 	CrOSLateBootAudioHFPMicSR,
 	CrOSLateBootAudioFlexibleLoopback,
+	CrOSLateBootAudioAPNoiseCancellation,
 	NUM_FEATURES,
 };
 

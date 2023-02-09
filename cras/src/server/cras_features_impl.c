@@ -28,6 +28,10 @@ static struct cras_feature features[NUM_FEATURES] = {
 		.name = "CrOSLateBootAudioFlexibleLoopback",
 		.default_enabled = false,
 	},
+	[CrOSLateBootAudioAPNoiseCancellation] = {
+		.name = "CrOSLateBootAudioAPNoiseCancellation",
+		.default_enabled = false,
+	},
 };
 
 bool cras_feature_enabled(enum cras_feature_id id)
