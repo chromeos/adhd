@@ -64,6 +64,7 @@ const char kStreamEffects[] = "Cras.StreamEffects";
 const char kStreamRuntime[] = "Cras.StreamRuntime";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
+const char kStreamChannelCount[] = "Cras.StreamChannelCount";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
 const char kHfpScoConnectionError[] = "Cras.HfpScoConnectionError";
 const char kHfpBatteryIndicatorSupported[] =
@@ -178,6 +179,7 @@ struct cras_server_metrics_stream_config {
 	unsigned effects;
 	int format;
 	unsigned rate;
+	unsigned num_channels;
 	enum CRAS_CLIENT_TYPE client_type;
 };
 
@@ -1161,6 +1163,8 @@ cras_server_metrics_stream_config(const struct cras_rstream_config *config)
 	data.stream_config.effects = (unsigned)config->effects;
 	data.stream_config.format = (int)config->format->format;
 	data.stream_config.rate = (unsigned)config->format->frame_rate;
+	data.stream_config.num_channels =
+		(unsigned)config->format->num_channels;
 	data.stream_config.client_type = config->client_type;
 
 	init_server_metrics_msg(&msg, STREAM_CONFIG, data);
@@ -1545,6 +1549,11 @@ metrics_stream_config(struct cras_server_metrics_stream_config config)
 	/* Logs stream sampling rate. */
 	log_sparse_histogram_each_level(
 		3, config.rate, kStreamSamplingRate, direction,
+		metrics_client_type_str(config.client_type));
+
+	/* Logs stream channel count. */
+	log_sparse_histogram_each_level(
+		3, config.num_channels, kStreamChannelCount, direction,
 		metrics_client_type_str(config.client_type));
 
 	/* Logs stream client type. */

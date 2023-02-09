@@ -271,6 +271,7 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamCreate) {
   config.flags = BULK_AUDIO_OK;
   format.format = SND_PCM_FORMAT_S16_LE;
   format.frame_rate = 48000;
+  format.num_channels = 2;
   config.client_type = CRAS_CLIENT_TYPE_TEST;
   config.format = &format;
   cras_server_metrics_stream_create(&config);
@@ -286,6 +287,7 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamCreate) {
   EXPECT_EQ(sent_msgs[0].data.stream_config.flags, BULK_AUDIO_OK);
   EXPECT_EQ(sent_msgs[0].data.stream_config.format, SND_PCM_FORMAT_S16_LE);
   EXPECT_EQ(sent_msgs[0].data.stream_config.rate, 48000);
+  EXPECT_EQ(sent_msgs[0].data.stream_config.num_channels, 2);
   EXPECT_EQ(sent_msgs[0].data.stream_config.client_type, CRAS_CLIENT_TYPE_TEST);
 }
 
