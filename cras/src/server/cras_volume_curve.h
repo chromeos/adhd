@@ -28,13 +28,13 @@ struct cras_volume_curve {
  */
 struct cras_volume_curve *cras_volume_curve_create_default();
 
-/* Creates a volume curve with a specified max volume and step.
+/* Creates a volume curve with a specified max volume and range.
  * Args:
- *    max_volume - Maximum volume allowed in dBFS. This value must be <= 0.
- *    volume_step - Number of dB to change for one volume tick.
+ *    max_volume - Maximum volume allowed in dB * 100. This value must be <= 0.
+ *    range - Volume range in dB * 100.
  */
-struct cras_volume_curve *
-cras_volume_curve_create_simple_step(long max_volume, long volume_step);
+struct cras_volume_curve *cras_volume_curve_create_simple_step(long max_volume,
+							       long range);
 
 /* Creates a volume curve with each step's dB value called out.
  * Args:

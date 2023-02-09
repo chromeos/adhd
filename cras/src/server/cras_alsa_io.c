@@ -1166,13 +1166,6 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 	long max, min;
 	int32_t number_of_volume_steps;
 
-	if (aio->ucm && ucm_get_disable_software_volume(aio->ucm)) {
-		output->base.software_volume_needed = 0;
-		syslog(LOG_DEBUG, "Disable software volume for %s from ucm.",
-		       output->base.name);
-		return;
-	}
-
 	/* Use software volume for HDMI output and nodes without volume mixer
 	 * control. */
 	if ((output->base.type == CRAS_NODE_TYPE_HDMI) ||
@@ -1180,7 +1173,7 @@ set_output_node_software_volume_needed(struct alsa_output_node *output,
 	     !cras_alsa_mixer_has_volume(output->mixer_output)))
 		output->base.software_volume_needed = 1;
 
-	/* Use software volume if the usb device's volume range is 0*/
+	/* Use software volume if the usb device's volume range is 0 */
 	if (output->base.type == CRAS_NODE_TYPE_USB) {
 		cras_alsa_mixer_get_playback_dBFS_range(
 			mixer, output->mixer_output, &max, &min);
@@ -1293,6 +1286,7 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 	struct cras_volume_curve *curve;
 	long max_volume, min_volume;
 	int32_t number_of_volume_steps;
+	unsigned int disable_software_volume = 0;
 
 	syslog(LOG_DEBUG, "New output node for '%s'", name);
 	if (aio == NULL) {
@@ -1310,9 +1304,12 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 		SuperFastHash(name, strlen(name), aio->base.info.stable_id);
 
 	output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-	if (aio->ucm)
+	if (aio->ucm) {
 		output->base.dsp_name =
 			ucm_get_dsp_name_for_dev(aio->ucm, name);
+		disable_software_volume =
+			ucm_get_disable_software_volume(aio->ucm);
+	}
 
 	if (strcmp(name, "SCO Line Out") == 0)
 		output->base.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
@@ -1327,12 +1324,14 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 			aio->mixer, cras_control, &max_volume, &min_volume);
 		syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", name,
 		       min_volume, max_volume);
-		long volume_range_db = max_volume - min_volume;
-		// if you headset volume range is reasonable range, create volume curve.
-		if (volume_range_db >= db_to_alsa_db(VOLUME_RANGE_DB_MIN) &&
-		    volume_range_db <= db_to_alsa_db(VOLUME_RANGE_DB_MAX)) {
+		long long volume_range_db = max_volume - min_volume;
+		/* if we specified to disable sw volume or your headset volume
+		 * range is with a reasonable range, create volume curve. */
+		if (disable_software_volume ||
+		    (volume_range_db >= db_to_alsa_db(VOLUME_RANGE_DB_MIN) &&
+		     volume_range_db <= db_to_alsa_db(VOLUME_RANGE_DB_MAX))) {
 			curve = cras_volume_curve_create_simple_step(
-				0, (max_volume - min_volume) / 100);
+				0, volume_range_db);
 		}
 		number_of_volume_steps =
 			cras_alsa_mixer_get_playback_step(cras_control);
@@ -1344,8 +1343,12 @@ static struct alsa_output_node *new_output(struct alsa_io *aio,
 	strncpy(output->base.name, name, sizeof(output->base.name) - 1);
 	strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
 	set_node_initial_state(&output->base, aio->card_type);
-	set_output_node_software_volume_needed(output, aio);
-
+	if (disable_software_volume) {
+		syslog(LOG_DEBUG, "Disable software volume for %s from ucm.",
+		       output->base.name);
+	} else {
+		set_output_node_software_volume_needed(output, aio);
+	}
 	cras_iodev_add_node(&aio->base, &output->base);
 
 	check_auto_unplug_output_node(aio, &output->base, output->base.plugged);

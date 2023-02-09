@@ -10,17 +10,17 @@
 #include "cras_util.h"
 #include "cras_volume_curve.h"
 
-/* Simple curve with configurable max volume and volume step. */
+/* Simple curve with configurable max volume and range. */
 struct stepped_curve {
 	struct cras_volume_curve curve;
 	long max_vol;
-	long step;
+	long range;
 };
 
 static long get_dBFS_step(const struct cras_volume_curve *curve, size_t volume)
 {
 	const struct stepped_curve *c = (const struct stepped_curve *)curve;
-	return c->max_vol - (c->step * (MAX_VOLUME - volume));
+	return c->max_vol - (c->range - c->range * volume / MAX_VOLUME);
 }
 
 /* Curve that has each step explicitly called out by value. */
@@ -46,11 +46,11 @@ static long get_dBFS_explicit(const struct cras_volume_curve *curve,
 struct cras_volume_curve *cras_volume_curve_create_default()
 {
 	/* Default to max volume of 0dBFS, and a step of 0.5dBFS. */
-	return cras_volume_curve_create_simple_step(0, 50);
+	return cras_volume_curve_create_simple_step(0, 5000);
 }
 
 struct cras_volume_curve *cras_volume_curve_create_simple_step(long max_volume,
-							       long volume_step)
+							       long range)
 {
 	struct stepped_curve *curve;
 	curve = (struct stepped_curve *)calloc(1, sizeof(*curve));
@@ -58,7 +58,7 @@ struct cras_volume_curve *cras_volume_curve_create_simple_step(long max_volume,
 		return NULL;
 	curve->curve.get_dBFS = get_dBFS_step;
 	curve->max_vol = max_volume;
-	curve->step = volume_step;
+	curve->range = range;
 	return &curve->curve;
 }
 

@@ -16,7 +16,7 @@ static unsigned int cras_volume_curve_create_default_called;
 static struct cras_volume_curve* cras_volume_curve_create_default_return;
 static unsigned int cras_volume_curve_create_simple_step_called;
 static long cras_volume_curve_create_simple_step_max_volume;
-static long cras_volume_curve_create_simple_step_volume_step;
+static long cras_volume_curve_create_simple_step_range;
 static struct cras_volume_curve* cras_volume_curve_create_simple_step_return;
 static unsigned int cras_volume_curve_create_explicit_called;
 static long cras_explicit_curve[101];
@@ -93,7 +93,7 @@ max_volume = -200
   EXPECT_NE(nullptr, curve);
   EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
   EXPECT_EQ(-200, cras_volume_curve_create_simple_step_max_volume);
-  EXPECT_EQ(200, cras_volume_curve_create_simple_step_volume_step);
+  EXPECT_EQ(20000, cras_volume_curve_create_simple_step_range);
 
   cras_card_config_destroy(config);
 }
@@ -153,7 +153,7 @@ TEST_F(CardConfigTestSuite, SimpleStepConfig) {
   EXPECT_EQ(0, cras_volume_curve_create_default_called);
   EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
   EXPECT_EQ(-600, cras_volume_curve_create_simple_step_max_volume);
-  EXPECT_EQ(75, cras_volume_curve_create_simple_step_volume_step);
+  EXPECT_EQ(7500, cras_volume_curve_create_simple_step_range);
 
   cras_card_config_destroy(config);
 }
@@ -294,12 +294,11 @@ struct cras_volume_curve* cras_volume_curve_create_default() {
   return cras_volume_curve_create_default_return;
 }
 
-struct cras_volume_curve* cras_volume_curve_create_simple_step(
-    long max_volume,
-    long volume_step) {
+struct cras_volume_curve* cras_volume_curve_create_simple_step(long max_volume,
+                                                               long range) {
   cras_volume_curve_create_simple_step_called++;
   cras_volume_curve_create_simple_step_max_volume = max_volume;
-  cras_volume_curve_create_simple_step_volume_step = volume_step;
+  cras_volume_curve_create_simple_step_range = range;
   return cras_volume_curve_create_simple_step_return;
 }
 

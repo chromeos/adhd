@@ -126,7 +126,7 @@ static size_t ucm_get_dma_period_for_dev_called;
 static unsigned int ucm_get_dma_period_for_dev_ret;
 static unsigned int cras_volume_curve_create_simple_step_called;
 static long cras_volume_curve_create_simple_step_max_volume;
-static long cras_volume_curve_create_simple_step_volume_step;
+static long cras_volume_curve_create_simple_step_range;
 static int cras_card_config_get_volume_curve_for_control_called;
 typedef std::map<std::string, struct cras_volume_curve*> VolCurveMap;
 static VolCurveMap cras_card_config_get_volume_curve_vals;
@@ -378,9 +378,8 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,
             cras_volume_curve_create_simple_step_max_volume);
   EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
-             cras_alsa_mixer_get_playback_dBFS_range_min) /
-                100,
-            cras_volume_curve_create_simple_step_volume_step);
+             cras_alsa_mixer_get_playback_dBFS_range_min),
+            cras_volume_curve_create_simple_step_range);
   ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
@@ -2598,9 +2597,8 @@ class NodeUSBCardSuite : public testing::Test {
       EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,
                 cras_volume_curve_create_simple_step_max_volume);
       EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
-                 cras_alsa_mixer_get_playback_dBFS_range_min) /
-                    100,
-                cras_volume_curve_create_simple_step_volume_step);
+                 cras_alsa_mixer_get_playback_dBFS_range_min),
+                cras_volume_curve_create_simple_step_range);
       EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
     } else {
       EXPECT_EQ(0, cras_volume_curve_create_simple_step_called);
@@ -3136,12 +3134,11 @@ int ucm_node_echo_cancellation_exists(struct cras_use_case_mgr* mgr) {
   return ucm_node_echo_cancellation_exists_ret_value;
 }
 
-struct cras_volume_curve* cras_volume_curve_create_simple_step(
-    long max_volume,
-    long volume_step) {
+struct cras_volume_curve* cras_volume_curve_create_simple_step(long max_volume,
+                                                               long range) {
   cras_volume_curve_create_simple_step_called++;
   cras_volume_curve_create_simple_step_max_volume = max_volume;
-  cras_volume_curve_create_simple_step_volume_step = volume_step;
+  cras_volume_curve_create_simple_step_range = range;
   return &default_curve;
 }
 

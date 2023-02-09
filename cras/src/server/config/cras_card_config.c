@@ -29,7 +29,8 @@ create_simple_step_curve(const struct cras_card_config *card_config,
 	ini_key[MAX_INI_KEY_LENGTH] = 0;
 	volume_step = iniparser_getint(card_config->ini, ini_key, 300);
 	syslog(LOG_INFO, "Configure curve found for %s.", control_name);
-	return cras_volume_curve_create_simple_step(max_volume, volume_step);
+	return cras_volume_curve_create_simple_step(max_volume,
+						    volume_step * 100);
 }
 
 static struct cras_volume_curve *
