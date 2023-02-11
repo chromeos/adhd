@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 load("//:utils.bzl", "require_no_config")
-load("@rules_rust//rust:defs.bzl", "rust_static_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 cc_library(
     name = "rust",
@@ -29,8 +29,7 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
-# Figure out if we can build without static
-rust_static_library(
+rust_library(
     name = "lib",
     srcs = glob(include = ["src/*.rs"]),
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
