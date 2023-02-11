@@ -10,7 +10,6 @@ cc_library(
         "cras_client.c",
         "cras_helpers.c",
     ],
-    hdrs = ["cras_client.h"],
     includes = ["."],
     linkopts = [
         "-lm",
@@ -22,6 +21,7 @@ cc_library(
         "//cras/src/tools:__pkg__",
     ],
     deps = [
+        "//cras/include",
         "//cras/src/common:cras_config",
         "//cras/src/common:cras_file_wait",
         "//cras/src/common:cras_messages",
@@ -53,15 +53,6 @@ cras_shared_library(
         "//cras/src/alsa_plugin:__pkg__",
         "//dist:__pkg__",
     ],
-)
-
-filegroup(
-    name = "public_headers",
-    srcs = [
-        "cras_client.h",
-        "cras_helpers.h",
-    ],
-    visibility = ["//dist:__pkg__"],
 )
 
 # Allow tests to not specify all headers.

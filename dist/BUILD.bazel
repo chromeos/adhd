@@ -27,10 +27,7 @@ filegroup(
 # Public header targets.
 filegroup(
     name = "include",
-    srcs = [
-        "//cras/src/common:public_headers",
-        "//cras/src/libcras:public_headers",
-    ],
+    srcs = ["//cras/include:public_headers"],
 )
 
 # Library targets

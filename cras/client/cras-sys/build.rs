@@ -14,7 +14,7 @@ fn main() {
         }
         remove_file(gen_file).expect("Failed to remove generated file.");
     }
-    let header_dir = Path::new("../../src/common");
+    let header_dir = Path::new("../../include");
     let header_path = header_dir.join("cras_bindgen.h");
     println!("cargo:rerun-if-changed={}", header_path.display());
     println!("cargo:rerun-if-changed=src/gen.rs");

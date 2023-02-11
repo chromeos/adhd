@@ -7,9 +7,6 @@ cc_library(
     srcs = [
         "cras_config.c",
     ],
-    hdrs = [
-        "cras_config.h",
-    ],
     defines = [
         "CRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
     ],
@@ -17,6 +14,7 @@ cc_library(
         "//cras/src/libcras:__pkg__",
     ],
     deps = [
+        "//cras/include",
         "//cras/src/common:cras_types",
     ],
 )
@@ -40,12 +38,10 @@ cc_library(
 
 cc_library(
     name = "cras_messages",
-    hdrs = [
-        "cras_messages.h",
-    ],
     visibility = [
         "//cras/src/libcras:__pkg__",
     ],
+    deps = ["//cras/include"],
 )
 
 cc_library(
@@ -64,15 +60,13 @@ cc_library(
     srcs = [
         "cras_shm.c",
     ],
-    hdrs = [
-        "cras_shm.h",
-    ],
     linkopts = ["-lrt"],
     visibility = [
         "//cras/src/libcras:__pkg__",
     ],
     deps = [
         "//:build_config",
+        "//cras/include",
         "//cras/src/common:cras_string",
         "//cras/src/common:cras_types",
         "//cras/src/common:cras_util",
@@ -117,12 +111,6 @@ cc_library(
     name = "cras_types",
     srcs = [
         "cras_audio_format.c",
-        "cras_iodev_info.h",
-        "packet_status_logger.h",
-    ],
-    hdrs = [
-        "cras_audio_format.h",
-        "cras_types.h",
     ],
     includes = ["."],
     visibility = [
@@ -131,12 +119,14 @@ cc_library(
         "//cras/src/libcras:__pkg__",
         "//cras/src/server:__pkg__",
     ],
+    deps = [
+        "//cras/include",
+    ],
 )
 
 cc_library(
     name = "cras_util",
     srcs = ["cras_util.c"],
-    hdrs = ["cras_util.h"],
     visibility = [
         "//cras/src/benchmark:__pkg__",
         "//cras/src/libcras:__pkg__",
@@ -190,7 +180,6 @@ cc_library(
         "byte_buffer.h",
         "cras_checksum.c",
         "cras_hats.c",
-        "cras_messages.h",
         "cras_metrics.c",
         "cras_observer_ops.h",
         "cras_sbc_codec.c",
@@ -227,27 +216,13 @@ cc_library(
         ":cras_types",
         ":cras_util",
         ":utlist",
+        "//cras/include",
         "//cras/src/server:cras_observer_types",
         "@pkg_config//:sbc",
     ] + select({
         "//:metrics_build": ["@libmetrics"],
         "//conditions:default": [],
     }),
-)
-
-filegroup(
-    name = "public_headers",
-    srcs = [
-        "cras_audio_format.h",
-        "cras_config.h",
-        "cras_iodev_info.h",
-        "cras_messages.h",
-        "cras_shm.h",
-        "cras_types.h",
-        "cras_util.h",
-        "packet_status_logger.h",
-    ],
-    visibility = ["//dist:__pkg__"],
 )
 
 # Allow tests to not specify all headers.
