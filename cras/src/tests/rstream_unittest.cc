@@ -486,7 +486,7 @@ void ewma_power_calculate(struct ewma_power* ewma,
                           unsigned int channels,
                           unsigned int size) {
   unsigned val = 0;
-  for (int i = 0; i < size * channels; i += channels) {
+  for (unsigned int i = 0; i < size * channels; i += channels) {
     val += buf[i];
   }
   (void)val;

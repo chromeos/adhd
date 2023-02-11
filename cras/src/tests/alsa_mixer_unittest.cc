@@ -1007,8 +1007,8 @@ TEST(AlsaMixer, GetPlayBackStep) {
       ARRAY_SIZE(min_steps);
 
   std::vector<mixer_control*> control_list;
-  for (int i = 1; i <= snd_mixer_selem_get_playback_volume_range_values_length;
-       i++) {
+  for (size_t i = 1;
+       i <= snd_mixer_selem_get_playback_volume_range_values_length; i++) {
     mixer_control* control;
     rc = mixer_control_create(&control, "Headset",
                               reinterpret_cast<snd_mixer_elem_t*>(i),
@@ -1016,8 +1016,8 @@ TEST(AlsaMixer, GetPlayBackStep) {
     EXPECT_EQ(0, rc);
     control_list.push_back(control);
   }
-  for (int i = 1; i <= snd_mixer_selem_get_playback_volume_range_values_length;
-       i++) {
+  for (size_t i = 1;
+       i <= snd_mixer_selem_get_playback_volume_range_values_length; i++) {
     number_of_volume_steps =
         cras_alsa_mixer_get_playback_step(control_list[i - 1]);
     EXPECT_EQ(number_of_volume_steps,
