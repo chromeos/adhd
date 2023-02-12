@@ -3,23 +3,23 @@
  * found in the LICENSE file.
  */
 
+#include "cras_stream_apm.h"
+
 #include <inttypes.h>
 #include <string.h>
 #include <syslog.h>
-
 #include <webrtc-apm/webrtc_apm.h>
 
 #include "audio_thread.h"
 #include "byte_buffer.h"
-#include "cras_string.h"
-#include "cras_stream_apm.h"
 #include "cras_apm_reverse.h"
 #include "cras_audio_area.h"
 #include "cras_audio_format.h"
-#include "cras_speak_on_mute_detector.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
+#include "cras_speak_on_mute_detector.h"
+#include "cras_string.h"
 #include "dsp_util.h"
 #include "dumper.h"
 #include "float_buffer.h"
@@ -127,7 +127,7 @@ struct active_apm {
 	struct cras_apm *apm;
 	struct cras_stream_apm *stream;
 	struct active_apm *prev, *next;
-} * active_apms;
+} *active_apms;
 
 /* Commands sent to be handled in main thread. */
 enum CRAS_STREAM_APM_MSG_TYPE {

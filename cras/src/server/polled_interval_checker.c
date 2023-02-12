@@ -3,8 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include "cras_util.h"
 #include "polled_interval_checker.h"
+
+#include "cras_util.h"
 
 struct polled_interval {
 	struct timespec last_interval_start_ts;

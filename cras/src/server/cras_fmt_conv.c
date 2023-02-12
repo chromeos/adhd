@@ -4,16 +4,17 @@
  */
 
 /* For now just use speex, can add more resamplers later. */
-#include <speex/speex_resampler.h>
-#include <sys/param.h>
-#include <syslog.h>
+#include "cras_fmt_conv.h"
+
 #include <endian.h>
 #include <limits.h>
 #include <math.h>
+#include <speex/speex_resampler.h>
+#include <sys/param.h>
+#include <syslog.h>
 
-#include "cras_fmt_conv.h"
-#include "cras_fmt_conv_ops.h"
 #include "cras_audio_format.h"
+#include "cras_fmt_conv_ops.h"
 #include "cras_util.h"
 #include "linear_resampler.h"
 
@@ -353,8 +354,7 @@ static size_t default_all_to_all(struct cras_fmt_conv *conv, const uint8_t *in,
 
 // Fill min(in channels, out_channels), leave the rest 0s.
 static size_t default_some_to_some(struct cras_fmt_conv *conv,
-				   const uint8_t *in,
-				   size_t in_frames,
+				   const uint8_t *in, size_t in_frames,
 				   uint8_t *out)
 {
 	size_t num_in_ch, num_out_ch;

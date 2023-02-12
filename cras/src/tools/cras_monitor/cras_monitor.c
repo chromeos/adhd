@@ -7,11 +7,11 @@
 #include <getopt.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
-#include <syslog.h>
 #include <sys/select.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #include "cras_client.h"

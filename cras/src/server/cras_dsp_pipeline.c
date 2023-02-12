@@ -3,13 +3,14 @@
  * found in the LICENSE file.
  */
 
+#include "cras_dsp_pipeline.h"
+
 #include <inttypes.h>
 #include <sys/param.h>
 #include <syslog.h>
 
-#include "cras_util.h"
 #include "cras_dsp_module.h"
-#include "cras_dsp_pipeline.h"
+#include "cras_util.h"
 #include "dsp_util.h"
 
 /* We have a static representation of the dsp graph in a "struct ini",
@@ -245,9 +246,9 @@ static struct audio_port *find_output_audio_port(instance_array *instances,
 	return NULL;
 }
 
-static struct control_port *find_output_control_port(instance_array *instances,
-						     const struct plugin *plugin,
-						     int index)
+static struct control_port *
+find_output_control_port(instance_array *instances, const struct plugin *plugin,
+			 int index)
 {
 	int i;
 	struct instance *instance;

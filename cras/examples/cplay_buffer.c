@@ -9,9 +9,9 @@
 
 #include <cras_client.h>
 #include <cras_helpers.h>
-#include <sys/param.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <sys/param.h>
 
 int main(int argc, char **argv)
 {

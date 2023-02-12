@@ -7,8 +7,10 @@
 #define _GNU_SOURCE /* for ppoll and asprintf*/
 #endif
 
-#include <pthread.h>
+#include "audio_thread.h"
+
 #include <poll.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/param.h>
@@ -26,7 +28,6 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "dev_stream.h"
-#include "audio_thread.h"
 #include "utlist.h"
 
 #define MIN_PROCESS_TIME_US 500 /* 0.5ms - min amount of time to mix/src. */

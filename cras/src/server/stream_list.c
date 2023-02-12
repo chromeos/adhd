@@ -3,9 +3,11 @@
  * found in the LICENSE file.
  */
 
-#include <syslog.h>
-#include "cras_rstream.h"
 #include "stream_list.h"
+
+#include <syslog.h>
+
+#include "cras_rstream.h"
 #include "utlist.h"
 
 struct stream_list {

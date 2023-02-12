@@ -3,8 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include <stdlib.h>
 #include "eq.h"
+
+#include <stdlib.h>
 
 struct eq {
 	int n;

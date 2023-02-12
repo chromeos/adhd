@@ -3,12 +3,13 @@
  * found in the LICENSE file.
  */
 
+#include "cras_main_message.h"
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "cras_main_message.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 

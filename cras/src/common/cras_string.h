@@ -8,6 +8,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+
 #include "strlcpy.h"
 
 #ifdef __cplusplus

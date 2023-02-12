@@ -3,11 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "packet_status_logger.h"
+
 #include <string.h>
 #include <time.h>
 
 #include "cras_util.h"
-#include "packet_status_logger.h"
 
 void packet_status_logger_init(struct packet_status_logger *logger)
 {

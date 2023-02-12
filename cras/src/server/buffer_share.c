@@ -3,11 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "buffer_share.h"
+
 #include <stdlib.h>
 #include <sys/param.h>
 
 #include "cras_types.h"
-#include "buffer_share.h"
 
 static inline struct id_offset *find_unused(const struct buffer_share *mix)
 {

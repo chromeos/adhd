@@ -3,10 +3,11 @@
  * found in the LICENSE file.
  */
 
+#include "cras_device_monitor.h"
+
 #include <stdbool.h>
 #include <syslog.h>
 
-#include "cras_device_monitor.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
 

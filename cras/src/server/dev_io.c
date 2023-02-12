@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "dev_io.h"
+
 #include <poll.h>
 #include <stdbool.h>
 #include <syslog.h>
@@ -21,8 +23,6 @@
 #include "polled_interval_checker.h"
 #include "rate_estimator.h"
 #include "utlist.h"
-
-#include "dev_io.h"
 
 static const struct timespec playback_wake_fuzz_ts = {
 	0, 500 * 1000 /* 500 usec. */

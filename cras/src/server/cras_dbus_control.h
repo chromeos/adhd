@@ -6,8 +6,8 @@
 #ifndef CRAS_DBUS_CONTROL_H_
 #define CRAS_DBUS_CONTROL_H_
 
-#include <stdbool.h>
 #include <dbus/dbus.h>
+#include <stdbool.h>
 
 #define CRAS_CONTROL_INTERFACE "org.chromium.cras.Control"
 #define CRAS_ROOT_OBJECT_PATH "/org/chromium/cras"

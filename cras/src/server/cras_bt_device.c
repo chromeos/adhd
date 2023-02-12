@@ -7,8 +7,9 @@
 #define _GNU_SOURCE /* for ppoll */
 #endif
 
-#include <dbus/dbus.h>
+#include "cras_bt_device.h"
 
+#include <dbus/dbus.h>
 #include <errno.h>
 #include <poll.h>
 #include <stdbool.h>
@@ -19,13 +20,11 @@
 #include <syslog.h>
 
 #include "bluetooth.h"
-#include "cras_bt_io.h"
 #include "cras_a2dp_endpoint.h"
 #include "cras_bt_adapter.h"
-#include "cras_bt_device.h"
 #include "cras_bt_constants.h"
-#include "cras_bt_log.h"
 #include "cras_bt_io.h"
+#include "cras_bt_log.h"
 #include "cras_bt_policy.h"
 #include "cras_bt_profile.h"
 #include "cras_hfp_ag_profile.h"

@@ -7,6 +7,7 @@
 #define CRAS_DBUS_UTIL_H_
 
 #include <dbus/dbus.h>
+#include <stdbool.h>
 
 /* Appends a key-value pair to the dbus message.
  * Args:

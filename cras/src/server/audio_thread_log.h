@@ -8,13 +8,13 @@
 #ifndef AUDIO_THREAD_LOG_H_
 #define AUDIO_THREAD_LOG_H_
 
-#include <sys/mman.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <sys/mman.h>
 #include <syslog.h>
 
-#include "cras_types.h"
 #include "cras_shm.h"
+#include "cras_types.h"
 
 #define AUDIO_THREAD_LOGGING 1
 

@@ -3,8 +3,10 @@
  * found in the LICENSE file.
  */
 
-#include <sys/ioctl.h>
+#include "test_iodev.h"
+
 #include <pthread.h>
+#include <sys/ioctl.h>
 #include <sys/param.h>
 #include <syslog.h>
 
@@ -16,7 +18,6 @@
 #include "cras_iodev_list.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "test_iodev.h"
 #include "strlcpy.h"
 #include "utlist.h"
 

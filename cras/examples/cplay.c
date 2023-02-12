@@ -9,8 +9,8 @@
 
 #include <cras_client.h>
 #include <cras_helpers.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 /* Used as a cookie for the playing stream. */
 struct stream_data {

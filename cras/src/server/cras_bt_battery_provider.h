@@ -8,6 +8,7 @@
 
 #include <dbus/dbus.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "cras_bt_adapter.h"
 

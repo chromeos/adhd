@@ -2,21 +2,22 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "cras_control_rclient.h"
+
 #include <assert.h>
 #include <stdlib.h>
 #include <syslog.h>
 
 #include "audio_thread.h"
 #include "audio_thread_log.h"
-#include "cras_stream_apm.h"
 #include "cras_bt_log.h"
 #include "cras_config.h"
-#include "cras_control_rclient.h"
 #include "cras_dsp.h"
-#include "cras_floop_iodev.h"
 #include "cras_fl_manager.h"
+#include "cras_floop_iodev.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
+#include "cras_stream_apm.h"
 #if CRAS_DBUS
 #include "cras_hfp_ag_profile.h"
 #endif

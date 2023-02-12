@@ -3,8 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include <stdlib.h>
 #include "dcblock.h"
+
+#include <stdlib.h>
 
 #define RAMP_TIME_MS 20
 

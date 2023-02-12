@@ -6,9 +6,9 @@
 #ifndef CRAS_BINDGEN_H_
 #define CRAS_BINDGEN_H_
 
-#include "cras_messages.h"
-#include "cras_types.h"
 #include "cras_audio_format.h"
+#include "cras_messages.h"
 #include "cras_shm.h"
+#include "cras_types.h"
 
 #endif /* CRAS_BINDGEN_H_ */

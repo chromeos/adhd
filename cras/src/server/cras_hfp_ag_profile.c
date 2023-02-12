@@ -3,9 +3,11 @@
  * found in the LICENSE file.
  */
 
+#include "cras_hfp_ag_profile.h"
+
 #include <stdint.h>
-#include <syslog.h>
 #include <sys/socket.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #include "cras_a2dp_endpoint.h"
@@ -14,15 +16,14 @@
 #include "cras_bt_log.h"
 #include "cras_bt_profile.h"
 #include "cras_features.h"
-#include "cras_hfp_ag_profile.h"
-#include "cras_sco.h"
-#include "cras_hfp_iodev.h"
 #include "cras_hfp_alsa_iodev.h"
+#include "cras_hfp_iodev.h"
+#include "cras_iodev_list.h"
+#include "cras_sco.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"
-#include "cras_iodev_list.h"
-#include "utlist.h"
 #include "packet_status_logger.h"
+#include "utlist.h"
 
 #define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"

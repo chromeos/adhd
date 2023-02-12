@@ -3,19 +3,20 @@
  * found in the LICENSE file.
  */
 
+#include "cras_gpio_jack.h"
+
 #include <fcntl.h>
+#include <libudev.h>
 #include <linux/input.h>
 #include <stdio.h>
 #include <string.h>
-#include <syslog.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <syslog.h>
 #include <unistd.h>
-#include <libudev.h>
 
 #include "cras_string.h"
 #include "cras_util.h"
-#include "cras_gpio_jack.h"
 
 int gpio_switch_open(const char *pathname)
 {

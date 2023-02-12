@@ -2,24 +2,24 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "cras_alsa_card.h"
 #include <assert.h>
+#include <errno.h>
 #include <libudev.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <regex.h>
 #include <syslog.h>
+#include <unistd.h>
 
-#include "cras_system_state.h"
+#include "cras_alsa_card.h"
+#include "cras_checksum.h"
 #include "cras_string.h"
+#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "cras_checksum.h"
 
 struct udev_callback_data {
 	struct udev_monitor *mon;

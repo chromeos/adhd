@@ -3,12 +3,13 @@
  * found in the LICENSE file.
  */
 
+#include "cras_bt_policy.h"
+
 #include <syslog.h>
 
 #include "cras_a2dp_endpoint.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_log.h"
-#include "cras_bt_policy.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"
@@ -48,7 +49,6 @@ struct profile_switch_policy {
 };
 
 struct profile_switch_policy *profile_switch_policies;
-
 
 struct suspend_policy {
 	struct cras_bt_device *device;

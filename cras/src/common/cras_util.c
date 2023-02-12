@@ -5,22 +5,22 @@
 
 #define _GNU_SOURCE /* For ppoll() */
 
+#include "cras_util.h"
+
 #include <errno.h>
 #include <fcntl.h>
-#include <pthread.h>
 #include <poll.h>
+#include <pthread.h>
 #include <sched.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <sys/param.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <syslog.h>
 #include <unistd.h>
-
-#include "cras_util.h"
 
 int cras_set_rt_scheduling(int rt_lim)
 {

@@ -8,8 +8,9 @@
  * found in the LICENSE.WEBKIT file.
  */
 
-#include <math.h>
 #include "biquad.h"
+
+#include <math.h>
 
 #ifndef max
 #define max(a, b)                                                              \

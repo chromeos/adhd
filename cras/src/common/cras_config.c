@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "cras_config.h"
+
 #include <pwd.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include "cras_config.h"
 
 const char *cras_config_get_system_socket_file_dir()
 {

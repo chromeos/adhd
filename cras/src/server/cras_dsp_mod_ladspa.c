@@ -4,8 +4,8 @@
  */
 
 #include <dlfcn.h>
-#include <syslog.h>
 #include <ladspa.h>
+#include <syslog.h>
 
 #include "cras_dsp_module.h"
 

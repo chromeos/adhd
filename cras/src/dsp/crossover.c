@@ -4,6 +4,7 @@
  */
 
 #include "crossover.h"
+
 #include "biquad.h"
 
 static void lr4_set(struct lr4 *lr4, enum biquad_type type, float freq)

@@ -6,6 +6,9 @@
 #ifndef CRAS_A2DP_INFO_H_
 #define CRAS_A2DP_INFO_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "a2dp-codecs.h"
 
 #define A2DP_BUF_SIZE_BYTES 2048

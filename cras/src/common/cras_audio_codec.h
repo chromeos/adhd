@@ -3,8 +3,10 @@
  * found in the LICENSE file.
  */
 
-#ifndef COMMON_CRAS_AUDIO_CODEC_H_
-#define COMMON_CRAS_AUDIO_CODEC_H_
+#ifndef CRAS_AUDIO_CODEC_H_
+#define CRAS_AUDIO_CODEC_H_
+
+#include <stddef.h>
 
 /* A audio codec that transforms audio between different formats. */
 struct cras_audio_codec {

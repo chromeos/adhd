@@ -8,12 +8,13 @@
  * found in the LICENSE.WEBKIT file.
  */
 
+#include "drc_kernel.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "drc_math.h"
-#include "drc_kernel.h"
 
 #define MAX_PRE_DELAY_FRAMES 1024
 #define MAX_PRE_DELAY_FRAMES_MASK (MAX_PRE_DELAY_FRAMES - 1)

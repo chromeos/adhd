@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "dumper.h"
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-
-#include "dumper.h"
 
 void dumpf(struct dumper *dumper, const char *format, ...)
 {

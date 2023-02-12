@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef __EDID_UTILS_H__
-#define __EDID_UTILS_H__
+#ifndef EDID_UTILS_H_
+#define EDID_UTILS_H_
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {

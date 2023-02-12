@@ -4,10 +4,11 @@
  */
 
 #include "cras_tm.h"
-#include "cras_util.h"
-#include "utlist.h"
 
 #include <time.h>
+
+#include "cras_util.h"
+#include "utlist.h"
 
 /* Represents an armed timer. */
 struct cras_timer {

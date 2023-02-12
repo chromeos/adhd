@@ -3,22 +3,23 @@
  * found in the LICENSE file.
  */
 
+#include "cras_alsa_jack.h"
+
 #include <alsa/asoundlib.h>
 #include <linux/input.h>
 #include <regex.h>
 #include <syslog.h>
 
-#include "cras_alsa_jack.h"
 #include "cras_alsa_jack_private.h"
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_ucm.h"
-#include "cras_system_state.h"
 #include "cras_gpio_jack.h"
 #include "cras_string.h"
+#include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_util.h"
-#include "sfh.h"
 #include "edid_utils.h"
+#include "sfh.h"
 #include "utlist.h"
 
 static const unsigned int DISPLAY_INFO_RETRY_DELAY_MS = 200;

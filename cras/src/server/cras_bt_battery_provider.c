@@ -2,6 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "cras_bt_battery_provider.h"
+
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdint.h>
@@ -10,7 +12,6 @@
 #include <syslog.h>
 
 #include "cras_bt_adapter.h"
-#include "cras_bt_battery_provider.h"
 #include "cras_bt_constants.h"
 #include "cras_dbus_util.h"
 #include "cras_observer.h"

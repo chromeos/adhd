@@ -3,11 +3,11 @@
  * found in the LICENSE file.
  */
 
+#include <assert.h>
+#include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <time.h>
-#include <memory.h>
 
 #include "crossover2.h"
 #include "dsp_test_util.h"

@@ -6,9 +6,9 @@
 #ifndef CRAS_FL_PCM_IODEV_H_
 #define CRAS_FL_PCM_IODEV_H_
 
-#include "cras_types.h"
-
 #include <stdint.h>
+
+#include "cras_types.h"
 
 struct cras_a2dp;
 struct cras_hfp;

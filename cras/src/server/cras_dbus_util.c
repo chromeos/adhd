@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "cras_dbus_util.h"
+
 #include <errno.h>
 #include <stdbool.h>
 #include <syslog.h>
 #include <unistd.h>
-
-#include "cras_dbus_util.h"
 
 dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key, int type,
 			     const char *type_string, void *value)

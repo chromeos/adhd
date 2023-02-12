@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_alsa_helpers.h"
+
 #include <alsa/asoundlib.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -10,7 +12,6 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "cras_alsa_helpers.h"
 #include "cras_audio_format.h"
 #include "cras_util.h"
 

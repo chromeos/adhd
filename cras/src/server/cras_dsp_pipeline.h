@@ -12,10 +12,10 @@ extern "C" {
 
 #include <stdint.h>
 
-#include "dumper.h"
 #include "cras_audio_format.h"
 #include "cras_dsp_ini.h"
 #include "cras_dsp_module.h"
+#include "dumper.h"
 
 /* These are the functions to create and use dsp pipelines. A dsp
  * pipeline is a collection of dsp plugins that process audio

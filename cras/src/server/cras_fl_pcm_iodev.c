@@ -8,8 +8,8 @@
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <sys/time.h>
+#include <sys/un.h>
 #include <syslog.h>
 #include <time.h>
 
@@ -22,8 +22,8 @@
 #include "cras_hfp_manager.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
-#include "cras_types.h"
 #include "cras_string.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "sfh.h"
 #include "utlist.h"

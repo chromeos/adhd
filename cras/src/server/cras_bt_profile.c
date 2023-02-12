@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_bt_profile.h"
+
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -12,7 +14,6 @@
 
 #include "cras_bt_constants.h"
 #include "cras_bt_device.h"
-#include "cras_bt_profile.h"
 #include "cras_dbus_util.h"
 #include "utlist.h"
 

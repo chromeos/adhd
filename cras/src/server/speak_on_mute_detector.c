@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "speak_on_mute_detector.h"
+
 #include <errno.h>
 #include <stdint.h>
 #include <time.h>
 
-#include "speak_on_mute_detector.h"
 #include "cras_util.h"
 
 int speak_on_mute_detector_init(struct speak_on_mute_detector *d,

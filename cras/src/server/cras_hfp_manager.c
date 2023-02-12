@@ -7,12 +7,14 @@
 #define _GNU_SOURCE /* for ppoll */
 #endif
 
+#include "cras_hfp_manager.h"
+
 #include <errno.h>
 #include <poll.h>
 #include <stdlib.h>
-#include <syslog.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #include "audio_thread.h"
@@ -21,14 +23,12 @@
 #include "cras_bt_policy.h"
 #include "cras_config.h"
 #include "cras_features.h"
-#include "cras_hfp_manager.h"
-#include "cras_system_state.h"
-#include "cras_iodev_list.h"
-#include "cras_system_state.h"
 #include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 #include "cras_fl_pcm_iodev.h"
 #include "cras_hfp_alsa_iodev.h"
+#include "cras_iodev_list.h"
+#include "cras_system_state.h"
 #include "sfh.h"
 
 #define CRAS_HFP_SOCKET_FILE ".hfp"

@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
 #include "edid_utils.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* Dump out an EDID block in a simple format */
 void show_edid_data(FILE *outfile, unsigned char *edid_data, int items,

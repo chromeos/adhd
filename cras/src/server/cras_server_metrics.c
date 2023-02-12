@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_server_metrics.h"
+
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
@@ -10,10 +12,9 @@
 #include <syslog.h>
 
 #include "cras_iodev.h"
-#include "cras_metrics.h"
 #include "cras_main_message.h"
+#include "cras_metrics.h"
 #include "cras_rstream.h"
-#include "cras_server_metrics.h"
 #include "cras_system_state.h"
 
 #define METRICS_NAME_BUFFER_SIZE 100

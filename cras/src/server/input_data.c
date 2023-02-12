@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "input_data.h"
+
 #include <syslog.h>
 
 #include "buffer_share.h"
@@ -12,7 +14,6 @@
 #include "cras_rstream.h"
 #include "cras_system_state.h"
 #include "dsp_util.h"
-#include "input_data.h"
 #include "utlist.h"
 
 void input_data_run(struct ext_dsp_module *ext, unsigned int nframes)

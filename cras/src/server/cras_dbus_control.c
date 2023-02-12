@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_dbus_control.h"
+
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdint.h>
@@ -14,7 +16,6 @@
 #include "cras_bt_player.h"
 #include "cras_dbus.h"
 #include "cras_dbus_bindings.h" /* Generated from Makefile */
-#include "cras_dbus_control.h"
 #include "cras_dbus_util.h"
 #include "cras_fl_manager.h"
 #include "cras_hfp_ag_profile.h"

@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_bt_manager.h"
+
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdint.h>
@@ -11,9 +13,9 @@
 #include <syslog.h>
 
 #include "cras_a2dp_endpoint.h"
-#include "cras_bt_constants.h"
-#include "cras_bt_manager.h"
 #include "cras_bt_adapter.h"
+#include "cras_bt_battery_provider.h"
+#include "cras_bt_constants.h"
 #include "cras_bt_device.h"
 #include "cras_bt_endpoint.h"
 #include "cras_bt_log.h"
@@ -21,10 +23,9 @@
 #include "cras_bt_policy.h"
 #include "cras_bt_profile.h"
 #include "cras_bt_transport.h"
-#include "cras_bt_battery_provider.h"
 #include "cras_hfp_ag_profile.h"
-#include "cras_telephony.h"
 #include "cras_string.h"
+#include "cras_telephony.h"
 #include "utlist.h"
 
 static void cras_bt_start_bluez(struct bt_stack *s);

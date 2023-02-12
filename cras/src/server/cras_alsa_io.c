@@ -3,10 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "cras_alsa_io.h"
+
 #include <alsa/asoundlib.h>
 #include <errno.h>
-#include <limits.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/select.h>
@@ -17,13 +19,11 @@
 
 #include "audio_thread.h"
 #include "cras_alsa_helpers.h"
-#include "cras_alsa_io.h"
 #include "cras_alsa_jack.h"
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_ucm.h"
 #include "cras_audio_area.h"
 #include "cras_config.h"
-#include "cras_utf8.h"
 #include "cras_hotword_handler.h"
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
@@ -35,6 +35,7 @@
 #include "cras_shm.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
+#include "cras_utf8.h"
 #include "cras_util.h"
 #include "cras_volume_curve.h"
 #include "sfh.h"

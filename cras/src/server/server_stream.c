@@ -3,13 +3,14 @@
  * found in the LICENSE file.
  */
 
+#include "server_stream.h"
+
 #include <syslog.h>
 
 #include "cras_rstream.h"
 #include "cras_server.h"
 #include "cras_system_state.h"
 #include "cras_types.h"
-#include "server_stream.h"
 #include "stream_list.h"
 
 /* Parameters used for server stream. */

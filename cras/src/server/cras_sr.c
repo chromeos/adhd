@@ -4,14 +4,15 @@
  */
 
 #include "cras_sr.h"
-#include "cras_fmt_conv_ops.h"
-#include "cras_util.h"
-#include "dsp/am.h"
-#include "sample_buffer.h"
 
 #include <speex/speex_resampler.h>
 #include <stdlib.h>
 #include <syslog.h>
+
+#include "cras_fmt_conv_ops.h"
+#include "cras_util.h"
+#include "dsp/am.h"
+#include "sample_buffer.h"
 
 /* Cras SR.
  *  speex_state - the state of the speex resampler.

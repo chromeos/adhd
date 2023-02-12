@@ -6,8 +6,9 @@
 #ifndef PACKET_STATUS_LOGGER_H_
 #define PACKET_STATUS_LOGGER_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
 
 #define PACKET_STATUS_LEN_BYTES 64
 #define WBS_FRAME_NS 7500000

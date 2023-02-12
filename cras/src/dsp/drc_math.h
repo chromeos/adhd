@@ -10,8 +10,8 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
 #include <math.h>
+#include <stddef.h>
 
 #ifndef __BIONIC__
 #include <ieee754.h>

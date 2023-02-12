@@ -3,11 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "softvol_curve.h"
+
 #include <stddef.h>
 #include <stdlib.h>
 
 #include "cras_volume_curve.h"
-#include "softvol_curve.h"
 
 /* This is a ramp that increases 0.5dB per step, for a total range of 50dB. */
 const float softvol_scalers[101] = {

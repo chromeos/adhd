@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_sco.h"
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,12 +19,11 @@
 #include "cras_iodev_list.h"
 #include "cras_plc.h"
 #include "cras_sbc_codec.h"
-#include "cras_sco.h"
 #include "cras_server_metrics.h"
 #include "cras_sr.h"
 #include "cras_string.h"
-#include "utlist.h"
 #include "packet_status_logger.h"
+#include "utlist.h"
 
 /* The max buffer size. Note that the actual used size must set to multiple
  * of SCO packet size, and the packet size does not necessarily be equal to

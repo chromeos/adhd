@@ -6,11 +6,10 @@
 #ifndef CRAS_FL_MEDIA_H_
 #define CRAS_FL_MEDIA_H_
 
+#include <dbus/dbus.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-
-#include <dbus/dbus.h>
 
 #define FL_NULL_ADDRESS "00:00:00:00:00:00"
 

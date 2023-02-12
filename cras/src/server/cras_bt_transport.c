@@ -3,8 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include <dbus/dbus.h>
+#include "cras_bt_transport.h"
 
+#include <dbus/dbus.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -12,11 +13,10 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras_bt_constants.h"
 #include "cras_bt_device.h"
 #include "cras_bt_endpoint.h"
 #include "cras_bt_log.h"
-#include "cras_bt_transport.h"
-#include "cras_bt_constants.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 #include "utlist.h"

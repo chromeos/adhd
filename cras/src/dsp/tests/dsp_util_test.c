@@ -4,10 +4,10 @@
  */
 
 #include <math.h> /* for abs() */
-#include <stdio.h> /* for printf() */
-#include <string.h> /* for memset() */
 #include <stdint.h> /* for uint64 definition */
+#include <stdio.h> /* for printf() */
 #include <stdlib.h> /* for exit() definition */
+#include <string.h> /* for memset() */
 #include <time.h> /* for clock_gettime */
 
 #include "../drc_math.h"

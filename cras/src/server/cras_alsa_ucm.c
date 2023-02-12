@@ -3,13 +3,14 @@
  * found in the LICENSE file.
  */
 
+#include "cras_alsa_ucm.h"
+
 #include <alsa/asoundlib.h>
 #include <alsa/use-case.h>
 #include <ctype.h>
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_alsa_ucm.h"
 #include "cras_util.h"
 #include "strlcpy.h"
 #include "utlist.h"

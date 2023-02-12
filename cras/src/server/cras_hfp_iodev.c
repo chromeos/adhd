@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_hfp_iodev.h"
+
 #include <assert.h>
 #include <stdbool.h>
 #include <sys/param.h>
@@ -12,7 +14,6 @@
 
 #include "cras_audio_area.h"
 #include "cras_hfp_ag_profile.h"
-#include "cras_hfp_iodev.h"
 #include "cras_hfp_slc.h"
 #include "cras_iodev.h"
 #include "cras_sco.h"

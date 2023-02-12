@@ -3,9 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include <syslog.h>
-
 #include "cras_ramp.h"
+
+#include <syslog.h>
 
 /*
  * Struct to hold ramping information.

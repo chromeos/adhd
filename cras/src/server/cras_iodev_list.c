@@ -3,31 +3,32 @@
  * found in the LICENSE file.
  */
 
+#include "cras_iodev_list.h"
+
 #include <syslog.h>
 
 #include "audio_thread.h"
-#include "cras_features.h"
 #include "cras_empty_iodev.h"
+#include "cras_features.h"
 #include "cras_floop_iodev.h"
+#include "cras_hats.h"
 #include "cras_iodev.h"
 #include "cras_iodev_info.h"
-#include "cras_iodev_list.h"
-#include "cras_hats.h"
 #include "cras_loopback_iodev.h"
 #include "cras_main_thread_log.h"
 #include "cras_observer.h"
 #include "cras_rstream.h"
 #include "cras_server.h"
+#include "cras_server_metrics.h"
 #include "cras_speak_on_mute_detector.h"
+#include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_types.h"
-#include "cras_server_metrics.h"
-#include "cras_system_state.h"
 #include "server_stream.h"
 #include "softvol_curve.h"
 #include "stream_list.h"
-#include "test_iodev.h"
 #include "strlcpy.h"
+#include "test_iodev.h"
 #include "utlist.h"
 
 #define NUM_OPEN_DEVS_MAX 10

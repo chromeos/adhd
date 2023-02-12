@@ -7,16 +7,17 @@
 #define _GNU_SOURCE /* For asprintf */
 #endif
 
+#include "cras_alsa_card.h"
+
 #include <alsa/asoundlib.h>
 #include <syslog.h>
 
-#include "cras_alsa_card.h"
 #include "cras_alsa_io.h"
 #include "cras_alsa_mixer.h"
 #include "cras_alsa_ucm.h"
-#include "cras_device_blocklist.h"
 #include "cras_card_config.h"
 #include "cras_config.h"
+#include "cras_device_blocklist.h"
 #include "cras_iodev.h"
 #include "cras_iodev_list.h"
 #include "cras_system_state.h"

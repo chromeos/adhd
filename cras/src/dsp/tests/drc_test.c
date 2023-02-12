@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "drc.h"
 #include "dsp_test_util.h"
 #include "dsp_util.h"
-#include "drc.h"
 #include "raw.h"
 
 #ifndef min

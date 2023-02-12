@@ -12,16 +12,16 @@
 #include <limits.h>
 #include <math.h>
 #include <pthread.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #include "cras_client.h"

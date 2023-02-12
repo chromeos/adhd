@@ -3,12 +3,13 @@
  * found in the LICENSE file.
  */
 
+#include "cras_alert.h"
+
 #include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "cras_alert.h"
 #include "utlist.h"
 
 /* A list of callbacks for an alert */

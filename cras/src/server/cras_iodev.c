@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_iodev.h"
+
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -20,9 +22,8 @@
 #include "cras_dsp.h"
 #include "cras_dsp_pipeline.h"
 #include "cras_fmt_conv.h"
-#include "cras_iodev.h"
-#include "cras_main_thread_log.h"
 #include "cras_iodev_list.h"
+#include "cras_main_thread_log.h"
 #include "cras_mix.h"
 #include "cras_ramp.h"
 #include "cras_rstream.h"
@@ -31,9 +32,9 @@
 #include "cras_util.h"
 #include "dev_stream.h"
 #include "input_data.h"
-#include "utlist.h"
 #include "rate_estimator.h"
 #include "softvol_curve.h"
+#include "utlist.h"
 
 static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
 static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;

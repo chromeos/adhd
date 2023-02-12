@@ -3,21 +3,21 @@
  * found in the LICENSE file.
  */
 
+#include "cras_hfp_slc.h"
+
 #include <sys/socket.h>
 #include <syslog.h>
-
-#include "stdbool.h"
 
 #include "cras_bt_device.h"
 #include "cras_bt_log.h"
 #include "cras_observer.h"
-#include "cras_telephony.h"
-#include "cras_hfp_slc.h"
 #include "cras_server_metrics.h"
-#include "cras_system_state.h"
 #include "cras_string.h"
+#include "cras_system_state.h"
+#include "cras_telephony.h"
 #include "cras_tm.h"
 #include "cras_util.h"
+#include "stdbool.h"
 
 /* Message start and end with "\r\n". refer to spec 4.33. */
 #define AT_CMD(cmd) "\r\n" cmd "\r\n"

@@ -6,10 +6,12 @@
 #ifndef INPUT_DATA_H_
 #define INPUT_DATA_H_
 
+#include "buffer_share.h"
 #include "cras_dsp_pipeline.h"
 #include "float_buffer.h"
 
 struct cras_iodev;
+struct cras_rstream;
 
 /*
  * Structure holding the information used when a chunk of input buffer

@@ -3,19 +3,20 @@
  * found in the LICENSE file.
  */
 
+#include "cras_file_wait.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <sys/inotify.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <syslog.h>
 #include <unistd.h>
 
-#include "cras_file_wait.h"
 #include "cras_config.h"
 #include "strlcpy.h"
 

@@ -4,6 +4,7 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <math.h>
 #include <stdbool.h>
@@ -11,13 +12,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <sys/types.h>
 #include <unistd.h>
 
-#include "cras_sbc_codec.h"
 #include "cras_plc.h"
+#include "cras_sbc_codec.h"
 
 #define MSBC_CODE_SIZE 240
 #define MSBC_PKT_FRAME_LEN 57

@@ -6,6 +6,8 @@
 #ifndef LINEAR_RESAMPLER_H_
 #define LINEAR_RESAMPLER_H_
 
+#include <stdint.h>
+
 struct linear_resampler;
 
 /* Creates a linear resampler.

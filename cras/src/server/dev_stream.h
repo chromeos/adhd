@@ -12,8 +12,8 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-#include "cras_types.h"
 #include "cras_rstream.h"
+#include "cras_types.h"
 
 struct cras_audio_area;
 struct cras_fmt_conv;

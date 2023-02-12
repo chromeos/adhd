@@ -25,6 +25,8 @@
 #define _GNU_SOURCE /* For ppoll() */
 #endif
 
+#include "cras_client.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -44,7 +46,6 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_client.h"
 #include "cras_config.h"
 #include "cras_file_wait.h"
 #include "cras_messages.h"
@@ -62,13 +63,14 @@ static const size_t HOTWORD_FRAME_RATE = 16000;
 static const size_t HOTWORD_BLOCK_SIZE = 320;
 
 /* Commands sent from the user to the running client. */
-enum { CLIENT_STOP,
-       CLIENT_ADD_STREAM,
-       CLIENT_REMOVE_STREAM,
-       CLIENT_SET_AEC_REF,
-       CLIENT_SET_STREAM_VOLUME_SCALER,
-       CLIENT_SERVER_CONNECT,
-       CLIENT_SERVER_CONNECT_ASYNC,
+enum {
+	CLIENT_STOP,
+	CLIENT_ADD_STREAM,
+	CLIENT_REMOVE_STREAM,
+	CLIENT_SET_AEC_REF,
+	CLIENT_SET_STREAM_VOLUME_SCALER,
+	CLIENT_SERVER_CONNECT,
+	CLIENT_SERVER_CONNECT_ASYNC,
 };
 
 struct command_msg {
@@ -101,7 +103,8 @@ struct add_stream_command_message {
 };
 
 /* Commands send from a running stream to the client. */
-enum { CLIENT_STREAM_EOF,
+enum {
+	CLIENT_STREAM_EOF,
 };
 
 struct stream_msg {
@@ -2128,7 +2131,7 @@ static void *client_thread(void *arg)
 {
 	struct cras_client *client = (struct cras_client *)arg;
 	struct pollfd pollfds[4];
-	int (*cbs[4])(struct cras_client * client, int poll_revents);
+	int (*cbs[4])(struct cras_client *client, int poll_revents);
 	unsigned int num_pollfds, i;
 	int rc;
 

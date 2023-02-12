@@ -6,6 +6,8 @@
 #ifndef CRAS_VOLUME_CURVE_H_
 #define CRAS_VOLUME_CURVE_H_
 
+#include <stddef.h>
+
 #define MAX_VOLUME 100
 #define NUM_VOLUME_STEPS (MAX_VOLUME + 1) /* 0-100 inclusive. */
 

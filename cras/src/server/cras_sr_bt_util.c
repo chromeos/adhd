@@ -3,15 +3,16 @@
  * found in the LICENSE file.
  */
 
+#include "cras_sr_bt_util.h"
+
 #include <assert.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "cras_dlc.h"
 #include "cras_features.h"
 #include "cras_iodev.h"
 #include "cras_server_metrics.h"
-#include "cras_sr_bt_util.h"
 #include "cras_system_state.h"
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled()

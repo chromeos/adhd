@@ -75,8 +75,10 @@ ForEachMacros:
   - 'LL_FOREACH'
   - 'LL_FOREACH_SAFE'
 
-#IncludeBlocks: Preserve # Unknown to clang-format-5.0
+IncludeBlocks: Regroup
 IncludeCategories:
+  - Regex: '^".+"$'
+    Priority: 2
   - Regex: '.*'
     Priority: 1
 IncludeIsMainRegex: '(Test)?$'
@@ -107,7 +109,7 @@ PenaltyReturnTypeOnItsOwnLine: 60
 
 PointerAlignment: Right
 ReflowComments: false
-SortIncludes: false
+SortIncludes: true
 #SortUsingDeclarations: false # Unknown to clang-format-4.0
 SpaceAfterCStyleCast: false
 SpaceAfterTemplateKeyword: true

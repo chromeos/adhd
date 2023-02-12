@@ -5,9 +5,9 @@
 
 #define _GNU_SOURCE
 
-#include <string.h>
-
 #include "cras_string.h"
+
+#include <string.h>
 
 const char *cras_strerror(int errnum)
 {

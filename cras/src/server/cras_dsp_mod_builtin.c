@@ -5,11 +5,12 @@
 
 #include <stdlib.h>
 #include <syslog.h>
+
 #include "cras_dsp_module.h"
 #include "cras_types.h"
+#include "dcblock.h"
 #include "drc.h"
 #include "dsp_util.h"
-#include "dcblock.h"
 #include "eq.h"
 #include "eq2.h"
 #include "quad_rotation.h"

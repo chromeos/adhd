@@ -5,12 +5,13 @@
 
 #include <pthread.h>
 #include <syslog.h>
-#include "dumper.h"
-#include "cras_expr.h"
-#include "cras_iodev_info.h"
+
 #include "cras_dsp_ini.h"
 #include "cras_dsp_pipeline.h"
+#include "cras_expr.h"
+#include "cras_iodev_info.h"
 #include "dsp_util.h"
+#include "dumper.h"
 #include "utlist.h"
 
 /* We have a dsp_context for each pipeline. The context records the

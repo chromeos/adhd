@@ -3,13 +3,14 @@
  * found in the LICENSE file.
  */
 
+#include "cras_rclient_util.h"
+
 #include <syslog.h>
 
 #include "cras_iodev_list.h"
 #include "cras_messages.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
-#include "cras_rclient_util.h"
 #include "cras_rstream.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"

@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 #include <syslog.h>
+
 #include "audio_thread.h"
 #include "cras_iodev_list.h"
 #include "cras_main_message.h"

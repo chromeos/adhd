@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 #include "array.h"
-#include "dumper.h"
 #include "cras_expr.h"
+#include "dumper.h"
 
 enum port_direction {
 	PORT_INPUT,

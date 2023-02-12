@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_rclient.h"
+
 #include <assert.h>
 #include <stdlib.h>
 #include <syslog.h>
@@ -18,7 +20,6 @@
 #include "cras_messages.h"
 #include "cras_observer.h"
 #include "cras_playback_rclient.h"
-#include "cras_rclient.h"
 #include "cras_rstream.h"
 #include "cras_server_metrics.h"
 #include "cras_system_state.h"

@@ -3,11 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "cras_a2dp_info.h"
+
 #include <netinet/in.h>
 #include <sbc/sbc.h>
 #include <syslog.h>
 
-#include "cras_a2dp_info.h"
 #include "cras_sbc_codec.h"
 #include "cras_types.h"
 #include "rtp.h"

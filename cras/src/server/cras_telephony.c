@@ -3,14 +3,14 @@
  * found in the LICENSE file.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <syslog.h>
+#include "cras_telephony.h"
 
 #include <dbus/dbus.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
 
 #include "cras_dbus_bindings.h"
-#include "cras_telephony.h"
 #include "cras_hfp_ag_profile.h"
 #include "cras_hfp_slc.h"
 

@@ -3,18 +3,18 @@
  * found in the LICENSE file.
  */
 
-#include <dbus/dbus.h>
+#include "cras_bt_adapter.h"
 
+#include <dbus/dbus.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <syslog.h>
 
 #include "bluetooth.h"
-#include "cras_bt_adapter.h"
 #include "cras_bt_constants.h"
 #include "cras_string.h"
 #include "utlist.h"

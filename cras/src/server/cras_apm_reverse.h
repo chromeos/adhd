@@ -9,6 +9,7 @@
 #include "cras_types.h"
 
 struct cras_iodev;
+struct cras_stream_apm;
 struct float_buffer;
 
 /* Interface for audio processing function called in the context of an

@@ -3,12 +3,13 @@
  * found in the LICENSE file.
  */
 
+#include "cras_volume_curve.h"
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <sys/param.h>
 
 #include "cras_util.h"
-#include "cras_volume_curve.h"
 
 /* Simple curve with configurable max volume and range. */
 struct stepped_curve {

@@ -3,11 +3,11 @@
  * found in the LICENSE file.
  */
 
+#include "cras_sbc_codec.h"
+
 #include <errno.h>
 #include <sbc/sbc.h>
 #include <stdlib.h>
-
-#include "cras_sbc_codec.h"
 
 /* SBC library encodes one PCM input block to one SBC output block. This
  * structure holds related info about the SBC codec.

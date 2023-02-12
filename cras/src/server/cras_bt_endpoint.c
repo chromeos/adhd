@@ -3,15 +3,16 @@
  * found in the LICENSE file.
  */
 
+#include "cras_bt_endpoint.h"
+
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_bt_constants.h"
 #include "cras_bt_adapter.h"
-#include "cras_bt_endpoint.h"
+#include "cras_bt_constants.h"
 #include "cras_bt_transport.h"
 #include "utlist.h"
 

@@ -3,18 +3,20 @@
  * found in the LICENSE file.
  */
 
+#include "cras_system_state.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <syslog.h>
 
-#include "cras_alsa_card.h"
 #include "cras_alert.h"
+#include "cras_alsa_card.h"
 #include "cras_board_config.h"
 #include "cras_config.h"
 #include "cras_device_blocklist.h"
@@ -24,7 +26,6 @@
 #include "cras_observer.h"
 #include "cras_shm.h"
 #include "cras_speak_on_mute_detector.h"
-#include "cras_system_state.h"
 #include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"

@@ -3,10 +3,11 @@
  * found in the LICENSE file.
  */
 
+#include "dsp_test_util.h"
+
 #include <fenv.h>
 #include <float.h>
 #include <stdio.h>
-#include "dsp_test_util.h"
 
 int dsp_util_has_denormal()
 {

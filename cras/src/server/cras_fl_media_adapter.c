@@ -2,18 +2,19 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "cras_fl_media_adapter.h"
+
 #include <assert.h>
 #include <errno.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <regex.h>
 
 #include "cras_bt_log.h"
 #include "cras_bt_policy.h"
 #include "cras_fl_media.h"
-#include "cras_fl_media_adapter.h"
 
 static int validate_bluetooth_device_address(const char *addr)
 {

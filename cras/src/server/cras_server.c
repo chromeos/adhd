@@ -38,6 +38,7 @@
 #include "cras_main_message.h"
 #include "cras_messages.h"
 #include "cras_metrics.h"
+#include "cras_mix.h"
 #include "cras_non_empty_audio_handler.h"
 #include "cras_observer.h"
 #include "cras_rclient.h"
@@ -50,7 +51,6 @@
 #include "cras_types.h"
 #include "cras_udev.h"
 #include "cras_util.h"
-#include "cras_mix.h"
 #include "utlist.h"
 
 /* Store a list of clients that are attached to the server. */

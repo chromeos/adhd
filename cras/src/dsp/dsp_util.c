@@ -3,10 +3,10 @@
  * found in the LICENSE file.
  */
 
+#include "dsp_util.h"
+
 #include <limits.h>
 #include <syslog.h>
-
-#include "dsp_util.h"
 
 #ifndef max
 #define max(a, b)                                                              \

@@ -6,6 +6,8 @@
 #ifndef CRAS_CONTROL_RCLIENT_H_
 #define CRAS_CONTROL_RCLIENT_H_
 
+#include <stddef.h>
+
 struct cras_rclient;
 
 /* Creates a control rclient structure.

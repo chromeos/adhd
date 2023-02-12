@@ -2,11 +2,11 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include <stdint.h>
-#include <limits.h>
-#include <string.h>
-
 #include "cras_fmt_conv_ops.h"
+
+#include <limits.h>
+#include <stdint.h>
+#include <string.h>
 
 #define MAX(a, b)                                                              \
 	({                                                                     \

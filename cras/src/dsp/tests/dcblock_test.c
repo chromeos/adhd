@@ -7,9 +7,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "dcblock.h"
 #include "dsp_test_util.h"
 #include "dsp_util.h"
-#include "dcblock.h"
 #include "raw.h"
 
 #ifndef min

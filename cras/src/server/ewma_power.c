@@ -4,6 +4,7 @@
  */
 
 #include "ewma_power.h"
+
 #include "math.h"
 
 /* One sample per 1ms. */

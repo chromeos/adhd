@@ -7,6 +7,8 @@
 #define _GNU_SOURCE /* for ppoll */
 #endif
 
+#include "cras_a2dp_manager.h"
+
 #include <errno.h>
 #include <poll.h>
 #include <stdio.h>
@@ -15,7 +17,6 @@
 #include <sys/un.h>
 #include <syslog.h>
 
-#include "cras_a2dp_manager.h"
 #include "cras_bt_log.h"
 #include "cras_config.h"
 #include "cras_fl_media.h"

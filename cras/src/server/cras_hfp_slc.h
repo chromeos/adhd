@@ -6,6 +6,8 @@
 #ifndef CRAS_HFP_SLC_H_
 #define CRAS_HFP_SLC_H_
 
+#include <stdbool.h>
+
 struct hfp_slc_handle;
 struct cras_bt_device;
 

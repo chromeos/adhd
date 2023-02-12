@@ -9,10 +9,10 @@
 #endif
 
 #include "cras_iodev.h"
-#include "cras_rtc.h"
 #include "cras_rstream.h"
-#include "cras_string.h"
+#include "cras_rtc.h"
 #include "cras_server_metrics.h"
+#include "cras_string.h"
 #include "cras_util.h"
 #include "utlist.h"
 

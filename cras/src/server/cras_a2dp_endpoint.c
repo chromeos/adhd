@@ -3,17 +3,18 @@
  * found in the LICENSE file.
  */
 
+#include "cras_a2dp_endpoint.h"
+
 #include <errno.h>
 #include <stdint.h>
 #include <syslog.h>
 
 #include "a2dp-codecs.h"
-#include "cras_a2dp_endpoint.h"
 #include "cras_a2dp_iodev.h"
-#include "cras_iodev.h"
 #include "cras_bt_constants.h"
 #include "cras_bt_endpoint.h"
 #include "cras_bt_log.h"
+#include "cras_iodev.h"
 #include "cras_system_state.h"
 #include "cras_util.h"
 

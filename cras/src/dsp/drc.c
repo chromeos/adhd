@@ -8,10 +8,11 @@
  * found in the LICENSE.WEBKIT file.
  */
 
+#include "drc.h"
+
 #include <assert.h>
 #include <stdlib.h>
 
-#include "drc.h"
 #include "drc_math.h"
 
 static void set_default_parameters(struct drc *drc);

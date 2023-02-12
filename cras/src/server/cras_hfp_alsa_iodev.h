@@ -7,9 +7,9 @@
 #define CRAS_HFP_ALSA_IODEV_H_
 
 #include "cras_bt_device.h"
+#include "cras_hfp_manager.h"
 #include "cras_sco.h"
 #include "cras_types.h"
-#include "cras_hfp_manager.h"
 
 struct hfp_slc_handle;
 

@@ -2,6 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "cras_bt_player.h"
+
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdio.h>
@@ -11,7 +13,6 @@
 
 #include "cras_bt_adapter.h"
 #include "cras_bt_constants.h"
-#include "cras_bt_player.h"
 #include "cras_dbus_util.h"
 #include "cras_utf8.h"
 #include "strlcpy.h"

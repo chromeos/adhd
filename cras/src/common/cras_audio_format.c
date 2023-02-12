@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "cras_audio_format.h"
+
 #include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <syslog.h>
-
-#include "cras_audio_format.h"
 
 /* Table for allowed alternatives when doing channel re-mapping.
  * When channel_alt[X][Y] is non-zero, it's allowed to map channel

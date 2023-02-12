@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras_fl_media.h"
+
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdio.h>
@@ -14,7 +16,6 @@
 #include "cras_bt_io.h"
 #include "cras_bt_policy.h"
 #include "cras_dbus_util.h"
-#include "cras_fl_media.h"
 #include "cras_fl_media_adapter.h"
 #include "cras_hfp_manager.h"
 #include "utlist.h"

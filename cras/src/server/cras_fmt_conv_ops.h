@@ -7,6 +7,7 @@
 #define CRAS_FMT_CONV_OPS_H_
 
 #include <sys/types.h>
+
 #include "cras_audio_format.h"
 
 /*

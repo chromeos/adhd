@@ -8,8 +8,8 @@
 #include <poll.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <syslog.h>
 #include <sys/select.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #include "cras_system_state.h"

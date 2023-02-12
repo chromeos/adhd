@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <sys/types.h>
 
 #if CRAS_DBUS

@@ -3,13 +3,13 @@
  * found in the LICENSE file.
  */
 
+#include "cras_plc.h"
+
 #include <float.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-
-#include "cras_plc.h"
 
 #define MSBC_SAMPLE_SIZE 2 /* 2 bytes*/
 #define MSBC_PKT_LEN 57 /* Packet length without the header */
@@ -101,9 +101,9 @@ void cras_msbc_plc_destroy(struct cras_msbc_plc *plc)
 
 static int16_t f_to_s16(float input)
 {
-	return input > INT16_MAX ?
-		       INT16_MAX :
-		       input < INT16_MIN ? INT16_MIN : (int16_t)input;
+	return input > INT16_MAX ? INT16_MAX :
+	       input < INT16_MIN ? INT16_MIN :
+				   (int16_t)input;
 }
 
 void overlap_add(int16_t *output, float scaler_d, const int16_t *desc,
