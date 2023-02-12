@@ -3,27 +3,27 @@
  * found in the LICENSE file.
  */
 
-#include "cras_hfp_ag_profile.h"
+#include "cras/src/server/cras_hfp_ag_profile.h"
 
 #include <stdint.h>
 #include <sys/socket.h>
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_a2dp_endpoint.h"
-#include "cras_bt_adapter.h"
-#include "cras_bt_constants.h"
-#include "cras_bt_log.h"
-#include "cras_bt_profile.h"
-#include "cras_features.h"
-#include "cras_hfp_alsa_iodev.h"
-#include "cras_hfp_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_sco.h"
-#include "cras_server_metrics.h"
-#include "cras_system_state.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_a2dp_endpoint.h"
+#include "cras/src/server/cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_bt_profile.h"
+#include "cras/src/server/cras_features.h"
+#include "cras/src/server/cras_hfp_alsa_iodev.h"
+#include "cras/src/server/cras_hfp_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_sco.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
 #include "packet_status_logger.h"
-#include "utlist.h"
 
 #define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"

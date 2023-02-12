@@ -3,17 +3,16 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/dsp/am.h"
+
 #include <errno.h>
+#include <memory>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
-#include <memory>
-
 #include <tensorflow/lite/interpreter.h>
 #include <tensorflow/lite/kernels/register.h>
 #include <tensorflow/lite/model.h>
-
-#include "am.h"
 
 extern "C" {
 

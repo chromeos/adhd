@@ -6,8 +6,8 @@
 #ifndef CRAS_SR_BT_ADAPTERS_H_
 #define CRAS_SR_BT_ADAPTERS_H_
 
-#include "cras_sr.h"
-#include "cras_sr_bt_util.h"
+#include "cras/src/server/cras_sr.h"
+#include "cras/src/server/cras_sr_bt_util.h"
 
 struct cras_iodev_sr_bt_adapter;
 

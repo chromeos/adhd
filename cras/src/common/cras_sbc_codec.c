@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_sbc_codec.h"
+#include "cras/src/common/cras_sbc_codec.h"
 
 #include <errno.h>
 #include <sbc/sbc.h>

@@ -3,26 +3,26 @@
  * found in the LICENSE file.
  */
 
-#include "dev_io.h"
+#include "cras/src/server/dev_io.h"
 
 #include <poll.h>
 #include <stdbool.h>
 #include <syslog.h>
 
-#include "audio_thread_log.h"
-#include "cras_audio_area.h"
-#include "cras_audio_thread_monitor.h"
-#include "cras_device_monitor.h"
-#include "cras_iodev.h"
-#include "cras_non_empty_audio_handler.h"
-#include "cras_rstream.h"
-#include "cras_server_metrics.h"
-#include "cras_system_state.h"
-#include "dev_stream.h"
-#include "input_data.h"
-#include "polled_interval_checker.h"
-#include "rate_estimator.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_audio_thread_monitor.h"
+#include "cras/src/server/cras_device_monitor.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_non_empty_audio_handler.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/dev_stream.h"
+#include "cras/src/server/input_data.h"
+#include "cras/src/server/polled_interval_checker.h"
+#include "cras/src/server/rust/include/rate_estimator.h"
 
 static const struct timespec playback_wake_fuzz_ts = {
 	0, 500 * 1000 /* 500 usec. */

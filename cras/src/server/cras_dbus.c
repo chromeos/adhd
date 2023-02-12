@@ -12,8 +12,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_system_state.h"
-#include "cras_tm.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_tm.h"
 
 static void dbus_watch_callback(void *arg, int revents)
 {

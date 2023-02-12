@@ -6,9 +6,9 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_device_monitor.c"
-#include "cras_iodev.h"
-#include "cras_main_message.h"
+#include "cras/src/server/cras_device_monitor.c"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_main_message.h"
 }
 
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;

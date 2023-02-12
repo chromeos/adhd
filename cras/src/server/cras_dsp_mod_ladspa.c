@@ -7,7 +7,7 @@
 #include <ladspa.h>
 #include <syslog.h>
 
-#include "cras_dsp_module.h"
+#include "cras/src/server/cras_dsp_module.h"
 
 #define PLUGIN_PATH_PREFIX "/usr/lib/ladspa"
 #define PLUGIN_PATH_MAX 256

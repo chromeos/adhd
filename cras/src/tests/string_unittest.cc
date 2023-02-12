@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <gtest/gtest.h>
 
-#include "cras_string.h"
+#include "cras/src/common/cras_string.h"
 
 namespace {
 

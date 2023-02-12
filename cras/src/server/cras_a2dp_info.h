@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "a2dp-codecs.h"
+#include "cras/src/common/a2dp-codecs.h"
 
 #define A2DP_BUF_SIZE_BYTES 2048
 

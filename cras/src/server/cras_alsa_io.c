@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_alsa_io.h"
+#include "cras/src/server/cras_alsa_io.h"
 
 #include <alsa/asoundlib.h>
 #include <errno.h>
@@ -17,31 +17,31 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "audio_thread.h"
-#include "cras_alsa_helpers.h"
-#include "cras_alsa_jack.h"
-#include "cras_alsa_mixer.h"
-#include "cras_alsa_ucm.h"
-#include "cras_audio_area.h"
+#include "cras/src/common/sfh.h"
+#include "cras/src/common/strlcpy.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/cras_alsa_helpers.h"
+#include "cras/src/server/cras_alsa_jack.h"
+#include "cras/src/server/cras_alsa_mixer.h"
+#include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_hotword_handler.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_ramp.h"
+#include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_utf8.h"
+#include "cras/src/server/cras_volume_curve.h"
+#include "cras/src/server/softvol_curve.h"
 #include "cras_config.h"
-#include "cras_hotword_handler.h"
-#include "cras_iodev.h"
 #include "cras_iodev_info.h"
-#include "cras_iodev_list.h"
 #include "cras_messages.h"
-#include "cras_ramp.h"
-#include "cras_rclient.h"
-#include "cras_server_metrics.h"
 #include "cras_shm.h"
-#include "cras_system_state.h"
 #include "cras_types.h"
-#include "cras_utf8.h"
 #include "cras_util.h"
-#include "cras_volume_curve.h"
-#include "sfh.h"
-#include "softvol_curve.h"
-#include "strlcpy.h"
-#include "utlist.h"
 
 #define HOTWORD_DEV "Wake on Voice"
 #define DEFAULT "(default)"

@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras_dsp_pipeline.h"
+#include "cras/src/server/cras_dsp_pipeline.h"
 
 #include <gtest/gtest.h>
 
+#include "cras/src/server/cras_dsp_module.h"
 #include "cras_config.h"
-#include "cras_dsp_module.h"
 
 #define MAX_MODULES 10
 #define MAX_MOCK_PORTS 30

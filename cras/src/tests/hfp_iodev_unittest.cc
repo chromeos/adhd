@@ -6,13 +6,13 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_audio_area.h"
-#include "cras_hfp_iodev.h"
-#include "cras_hfp_slc.h"
-#include "cras_iodev.h"
-#include "cras_sco.h"
-#include "cras_server_metrics.h"
-#include "sr_bt_util_stub.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_hfp_iodev.h"
+#include "cras/src/server/cras_hfp_slc.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_sco.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/tests/sr_bt_util_stub.h"
 }
 
 static struct cras_iodev* iodev;

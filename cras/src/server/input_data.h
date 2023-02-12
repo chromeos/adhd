@@ -6,9 +6,9 @@
 #ifndef INPUT_DATA_H_
 #define INPUT_DATA_H_
 
-#include "buffer_share.h"
-#include "cras_dsp_pipeline.h"
-#include "float_buffer.h"
+#include "cras/src/server/buffer_share.h"
+#include "cras/src/server/cras_dsp_pipeline.h"
+#include "cras/src/server/float_buffer.h"
 
 struct cras_iodev;
 struct cras_rstream;

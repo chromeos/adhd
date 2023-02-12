@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_adapter.h"
 
 /* Object to represent a battery that is exposed to BlueZ. */
 struct cras_bt_battery {

@@ -3,15 +3,15 @@
  * found in the LICENSE file.
  */
 
-#include "cras_dsp_pipeline.h"
+#include "cras/src/server/cras_dsp_pipeline.h"
 
 #include <inttypes.h>
 #include <sys/param.h>
 #include <syslog.h>
 
-#include "cras_dsp_module.h"
+#include "cras/src/dsp/dsp_util.h"
+#include "cras/src/server/cras_dsp_module.h"
 #include "cras_util.h"
-#include "dsp_util.h"
 
 /* We have a static representation of the dsp graph in a "struct ini",
  * and here we will construct a dynamic representation of it in a

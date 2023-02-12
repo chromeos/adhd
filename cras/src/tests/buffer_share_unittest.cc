@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "buffer_share.h"
+#include "cras/src/server/buffer_share.h"
 #include "cras_types.h"
 }
 

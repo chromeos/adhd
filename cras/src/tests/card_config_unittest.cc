@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_card_config.h"
+#include "cras/src/server/config/cras_card_config.h"
 #include "cras_types.h"
 }
 

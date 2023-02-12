@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "quad_rotation.h"
+#include "cras/src/dsp/quad_rotation.h"
 
 void quad_rotation_swap(struct quad_rotation *data, enum SPEAKER_POSITION x,
 			enum SPEAKER_POSITION y, unsigned long samples)

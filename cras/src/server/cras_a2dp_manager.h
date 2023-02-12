@@ -6,9 +6,9 @@
 #ifndef CRAS_A2DP_MANAGER_H_
 #define CRAS_A2DP_MANAGER_H_
 
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras_audio_format.h"
-#include "cras_iodev.h"
-#include "cras_server_metrics.h"
 
 struct cras_a2dp;
 struct fl_media;

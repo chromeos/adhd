@@ -13,10 +13,10 @@
 #include <sys/param.h>
 #include <unistd.h>
 
+#include "cras/src/common/cras_version.h"
 #include "cras_client.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "cras_version.h"
 
 #define PLAYBACK_BUFFERED_TIME_IN_NS (5000000)
 

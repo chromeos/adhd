@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "ewma_power.h"
+#include "cras/src/server/ewma_power.h"
 
 #include "math.h"
 

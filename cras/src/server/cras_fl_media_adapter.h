@@ -8,10 +8,10 @@
 
 #include <stdint.h>
 
-#include "cras_a2dp_manager.h"
-#include "cras_bt_io.h"
-#include "cras_fl_manager.h"
-#include "cras_hfp_manager.h"
+#include "cras/src/server/cras_a2dp_manager.h"
+#include "cras/src/server/cras_bt_io.h"
+#include "cras/src/server/cras_fl_manager.h"
+#include "cras/src/server/cras_hfp_manager.h"
 
 #define BT_MEDIA_OBJECT_PATH_SIZE_MAX 128
 

@@ -7,7 +7,7 @@
 #define SR_BT_UTIL_STUB_H_
 
 extern "C" {
-#include "cras_sr_bt_util.h"
+#include "cras/src/server/cras_sr_bt_util.h"
 }
 
 // The original cras_bt_sr_util.h is included.

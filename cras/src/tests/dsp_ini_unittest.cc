@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cras_dsp_ini.h"
+#include "cras/src/server/cras_dsp_ini.h"
 
 #define FILENAME_TEMPLATE "DspIniTest.XXXXXX"
 

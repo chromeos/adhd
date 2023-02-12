@@ -6,7 +6,7 @@
 #ifndef FLOAT_BUFFER_H_
 #define FLOAT_BUFFER_H_
 
-#include "byte_buffer.h"
+#include "cras/src/common/byte_buffer.h"
 
 /*
  * Circular buffer storing deinterleaved floating point data.

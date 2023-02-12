@@ -3,11 +3,11 @@
 // found in the LICENSE file.
 
 extern "C" {
-#include "audio_thread.c"
+#include "cras/src/server/audio_thread.c"
 
-#include "cras_audio_area.h"
-#include "input_data.h"
-#include "metrics_stub.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/input_data.h"
+#include "cras/src/tests/metrics_stub.h"
 }
 
 #include <gtest/gtest.h>

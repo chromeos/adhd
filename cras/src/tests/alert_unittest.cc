@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "cras_alert.h"
+#include "cras/src/server/cras_alert.h"
 
 namespace {
 

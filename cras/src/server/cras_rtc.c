@@ -5,16 +5,16 @@
 #include <syslog.h>
 
 #if CRAS_DBUS
-#include "cras_dbus_control.h"
+#include "cras/src/server/cras_dbus_control.h"
 #endif
 
-#include "cras_iodev.h"
-#include "cras_rstream.h"
-#include "cras_rtc.h"
-#include "cras_server_metrics.h"
-#include "cras_string.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_rtc.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras_util.h"
-#include "utlist.h"
 
 struct rtc_data {
 	struct cras_rstream *stream;

@@ -11,7 +11,7 @@
 #include <dbus/dbus.h>
 #endif
 
-#include "cras_utf8.h"
+#include "cras/src/server/cras_utf8.h"
 #include "cras_util.h"
 
 static const uint8_t kUTF8ByteOrderMask[3] = { 0xef, 0xbb, 0xbf };

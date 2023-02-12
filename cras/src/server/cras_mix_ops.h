@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#include "cras_system_state.h"
+#include "cras/src/server/cras_system_state.h"
 
 extern const struct cras_mix_ops mixer_ops;
 extern const struct cras_mix_ops mixer_ops_sse42;

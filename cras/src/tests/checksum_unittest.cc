@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include "cras_checksum.h"
+#include "cras/src/common/cras_checksum.h"
 #include "cras_util.h"
 
 namespace {

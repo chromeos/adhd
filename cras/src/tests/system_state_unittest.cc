@@ -9,12 +9,12 @@
 #include <unordered_map>
 
 extern "C" {
-#include "cras_alert.h"
-#include "cras_board_config.h"
-#include "cras_feature_tier.h"
-#include "cras_main_thread_log.h"
+#include "cras/src/server/config/cras_board_config.h"
+#include "cras/src/server/cras_alert.h"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/rust/include/cras_feature_tier.h"
 #include "cras_shm.h"
-#include "cras_system_state.h"
 #include "cras_types.h"
 }
 

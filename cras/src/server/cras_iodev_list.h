@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "cras_iodev.h"
+#include "cras/src/server/cras_iodev.h"
 #include "cras_types.h"
 
 struct cras_rclient;

@@ -10,8 +10,8 @@
 #include <vector>
 
 extern "C" {
-#include "cras_observer.c"
-#include "cras_observer.h"
+#include "cras/src/server/cras_observer.c"
+#include "cras/src/server/cras_observer.h"
 #include "cras_types.h"
 }
 

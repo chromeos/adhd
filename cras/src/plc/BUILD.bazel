@@ -10,7 +10,6 @@ cc_library(
     hdrs = [
         "cras_plc.h",
     ],
-    includes = ["."],
     visibility = ["//cras/src/server:__pkg__"],
     deps = ["//cras/src/common"],
 )
@@ -20,7 +19,6 @@ cc_library(
     name = "all_headers",
     testonly = True,
     hdrs = glob(include = ["*.h"]),
-    includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
         "//cras/src/tests:__pkg__",

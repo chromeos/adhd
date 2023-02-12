@@ -3,9 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include "linear_resampler.h"
+#include "cras/src/server/linear_resampler.h"
 
-#include "cras_audio_area.h"
+#include "cras/src/server/cras_audio_area.h"
 #include "cras_util.h"
 
 /* A linear resampler. */

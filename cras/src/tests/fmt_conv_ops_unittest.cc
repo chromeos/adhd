@@ -11,7 +11,7 @@
 #include <memory>
 
 extern "C" {
-#include "cras_fmt_conv_ops.h"
+#include "cras/src/server/cras_fmt_conv_ops.h"
 #include "cras_types.h"
 }
 

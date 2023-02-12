@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_ramp.h"
+#include "cras/src/server/cras_ramp.h"
 
 #include <syslog.h>
 

@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_plc.h"
+#include "cras/src/plc/cras_plc.h"
 
 #include <float.h>
 #include <math.h>

@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_bt_manager.h"
+#include "cras/src/server/cras_bt_manager.h"
 
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -12,21 +12,21 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_a2dp_endpoint.h"
-#include "cras_bt_adapter.h"
-#include "cras_bt_battery_provider.h"
-#include "cras_bt_constants.h"
-#include "cras_bt_device.h"
-#include "cras_bt_endpoint.h"
-#include "cras_bt_log.h"
-#include "cras_bt_player.h"
-#include "cras_bt_policy.h"
-#include "cras_bt_profile.h"
-#include "cras_bt_transport.h"
-#include "cras_hfp_ag_profile.h"
-#include "cras_string.h"
-#include "cras_telephony.h"
-#include "utlist.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_a2dp_endpoint.h"
+#include "cras/src/server/cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_battery_provider.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_bt_endpoint.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_bt_player.h"
+#include "cras/src/server/cras_bt_policy.h"
+#include "cras/src/server/cras_bt_profile.h"
+#include "cras/src/server/cras_bt_transport.h"
+#include "cras/src/server/cras_hfp_ag_profile.h"
+#include "cras/src/server/cras_telephony.h"
 
 static void cras_bt_start_bluez(struct bt_stack *s);
 static void cras_bt_stop_bluez(struct bt_stack *s);

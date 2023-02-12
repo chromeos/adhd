@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
-#include "cras_observer.h"
+#include "cras/src/server/cras_observer.h"
 
-#include "cras_alert.h"
-#include "cras_iodev_list.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_alert.h"
+#include "cras/src/server/cras_iodev_list.h"
 #include "cras_types.h"
-#include "utlist.h"
 
 struct cras_observer_client {
 	struct cras_observer_ops ops;

@@ -14,10 +14,10 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_alsa_card.h"
-#include "cras_checksum.h"
-#include "cras_string.h"
-#include "cras_system_state.h"
+#include "cras/src/common/cras_checksum.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/server/cras_alsa_card.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
 

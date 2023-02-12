@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_file_wait.h"
+#include "cras/src/common/cras_file_wait.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -17,8 +17,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/src/common/strlcpy.h"
 #include "cras_config.h"
-#include "strlcpy.h"
 
 #define CRAS_FILE_WAIT_EVENT_MIN_SIZE sizeof(struct inotify_event)
 #define CRAS_FILE_WAIT_EVENT_SIZE (CRAS_FILE_WAIT_EVENT_MIN_SIZE + NAME_MAX + 1)

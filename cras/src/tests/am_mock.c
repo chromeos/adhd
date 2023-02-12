@@ -6,7 +6,7 @@
 #include "stddef.h"
 #include "stdlib.h"
 
-#include "dsp/am.h"
+#include "cras/src/dsp/am.h"
 
 struct am_context {
   int16_t fake_output_value;

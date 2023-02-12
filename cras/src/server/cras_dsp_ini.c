@@ -3,13 +3,13 @@
  * found in the LICENSE file.
  */
 
-#include "cras_dsp_ini.h"
+#include "cras/src/server/cras_dsp_ini.h"
 
 #include <errno.h>
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "iniparser_wrapper.h"
+#include "cras/src/server/iniparser_wrapper.h"
 
 #define MAX_NR_PORT 128 /* the max number of ports for a plugin */
 #define MAX_PORT_NAME_LENGTH 20 /* names like "output_32" */

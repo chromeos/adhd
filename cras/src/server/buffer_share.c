@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "buffer_share.h"
+#include "cras/src/server/buffer_share.h"
 
 #include <stdlib.h>
 #include <sys/param.h>

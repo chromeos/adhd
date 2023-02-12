@@ -4,12 +4,12 @@
  * found in the LICENSE file.
  */
 
-#include "cras_features_impl.h"
+#include "cras/src/server/cras_features_impl.h"
 
 #include <syslog.h>
 
-#include "cras_features.h"
-#include "cras_features_override.h"
+#include "cras/src/server/cras_features.h"
+#include "cras/src/server/cras_features_override.h"
 
 static struct cras_feature features[NUM_FEATURES] = {
 	[CrosLateBootAudioTestFeatureFlag] = {

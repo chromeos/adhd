@@ -4,7 +4,7 @@
  */
 
 extern "C" {
-#include "polled_interval_checker.h"
+#include "cras/src/server/polled_interval_checker.h"
 
 struct polled_interval* pic_polled_interval_create(int interval_sec) {
   return NULL;

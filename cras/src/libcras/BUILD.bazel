@@ -10,7 +10,6 @@ cc_library(
         "cras_client.c",
         "cras_helpers.c",
     ],
-    includes = ["."],
     linkopts = [
         "-lm",
         "-lrt",
@@ -60,7 +59,6 @@ cc_library(
     name = "all_headers",
     testonly = True,
     hdrs = glob(include = ["*.h"]),
-    includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
         "//cras/src/tests:__pkg__",

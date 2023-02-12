@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 extern "C" {
-#include "cras_floop_iodev.c"
+#include "cras/src/server/cras_floop_iodev.c"
 }
 
 #include <gtest/gtest.h>

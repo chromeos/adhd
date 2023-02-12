@@ -8,7 +8,7 @@
 
 #include <dbus/dbus.h>
 
-#include "cras_bt_device.h"
+#include "cras/src/server/cras_bt_device.h"
 
 #define PROFILE_MANAGER_OBJ_PATH "/org/bluez"
 

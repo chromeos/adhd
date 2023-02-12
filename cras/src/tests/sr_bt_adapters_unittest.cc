@@ -5,12 +5,12 @@
 
 #include <gtest/gtest.h>
 
-#include "sr_stub.h"
+#include "cras/src/tests/sr_stub.h"
 
 extern "C" {
-#include "cras_audio_area.h"
-#include "cras_iodev.h"
-#include "cras_sr_bt_adapters.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_sr_bt_adapters.h"
 }
 
 extern "C" {

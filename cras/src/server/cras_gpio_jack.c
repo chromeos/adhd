@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_gpio_jack.h"
+#include "cras/src/server/cras_gpio_jack.h"
 
 #include <fcntl.h>
 #include <libudev.h>
@@ -15,7 +15,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_string.h"
+#include "cras/src/common/cras_string.h"
 #include "cras_util.h"
 
 int gpio_switch_open(const char *pathname)

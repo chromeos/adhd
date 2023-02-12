@@ -11,21 +11,21 @@
 #include <memory>
 
 extern "C" {
-#include "cras_iodev.h"    // stubbed
-#include "cras_rstream.h"  // stubbed
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_iodev.h"    // stubbed
+#include "cras/src/server/cras_rstream.h"  // stubbed
+#include "cras/src/server/dev_io.h"        // tested
+#include "cras/src/server/dev_stream.h"    // tested
 #include "cras_shm.h"
 #include "cras_types.h"
-#include "dev_io.h"      // tested
-#include "dev_stream.h"  // tested
-#include "utlist.h"
 
 struct audio_thread_event_log* atlog;
 }
 
-#include "dev_io_stubs.h"
-#include "iodev_stub.h"
-#include "metrics_stub.h"
-#include "rstream_stub.h"
+#include "cras/src/tests/dev_io_stubs.h"
+#include "cras/src/tests/iodev_stub.h"
+#include "cras/src/tests/metrics_stub.h"
+#include "cras/src/tests/rstream_stub.h"
 
 #define FAKE_POLL_FD 33
 

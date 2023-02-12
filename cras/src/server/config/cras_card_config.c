@@ -5,10 +5,10 @@
 
 #include <syslog.h>
 
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_volume_curve.h"
+#include "cras/src/server/iniparser_wrapper.h"
 #include "cras_util.h"
-#include "cras_volume_curve.h"
-#include "iniparser_wrapper.h"
-#include "utlist.h"
 
 struct cras_card_config {
 	dictionary *ini;

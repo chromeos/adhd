@@ -7,11 +7,11 @@
 #include <string.h>
 
 extern "C" {
+#include "cras/src/server/cras_hfp_alsa_iodev.h"
+#include "cras/src/server/cras_hfp_slc.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/tests/sr_bt_util_stub.h"
 #include "cras_audio_format.h"
-#include "cras_hfp_alsa_iodev.h"
-#include "cras_hfp_slc.h"
-#include "cras_iodev.h"
-#include "sr_bt_util_stub.h"
 }
 
 struct hfp_alsa_io {

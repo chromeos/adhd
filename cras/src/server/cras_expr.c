@@ -3,13 +3,13 @@
  * found in the LICENSE file.
  */
 
-#include "cras_expr.h"
+#include "cras/src/server/cras_expr.h"
 
 #include <ctype.h>
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "array.h"
+#include "cras/src/common/array.h"
 
 static const char *copy_str(const char *begin, const char *end)
 {

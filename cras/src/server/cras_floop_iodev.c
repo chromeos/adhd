@@ -3,22 +3,22 @@
  * found in the LICENSE file.
  */
 
-#include "cras_floop_iodev.h"
+#include "cras/src/server/cras_floop_iodev.h"
 
 #include <stdio.h>
 #include <sys/syslog.h>
 #include <time.h>
 
-#include "audio_thread_log.h"
-#include "byte_buffer.h"
-#include "cras_audio_area.h"
+#include "cras/src/common/byte_buffer.h"
+#include "cras/src/common/sfh.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_rstream_config.h"
 #include "cras_audio_format.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_rstream.h"
-#include "cras_rstream_config.h"
 #include "cras_types.h"
-#include "sfh.h"
 
 /*
  * Flexible loopback stream lifecycle:

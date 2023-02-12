@@ -6,7 +6,7 @@
 #ifndef CRAS_OBSERVER_H_
 #define CRAS_OBSERVER_H_
 
-#include "cras_observer_ops.h"
+#include "cras/src/common/cras_observer_ops.h"
 
 struct cras_observer_client;
 

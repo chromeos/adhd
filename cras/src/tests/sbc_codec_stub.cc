@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 extern "C" {
-#include "cras_audio_codec.h"
-#include "sbc_codec_stub.h"
+#include "cras/src/common/cras_audio_codec.h"
+#include "cras/src/tests/sbc_codec_stub.h"
 }
 
 namespace {

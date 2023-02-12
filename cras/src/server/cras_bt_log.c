@@ -3,6 +3,6 @@
  * found in the LICENSE file.
  */
 
-#include "cras_bt_log.h"
+#include "cras/src/server/cras_bt_log.h"
 
 struct cras_bt_event_log *btlog;

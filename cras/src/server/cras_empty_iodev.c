@@ -7,14 +7,14 @@
 #include <sys/param.h>
 #include <syslog.h>
 
-#include "cras_audio_area.h"
+#include "cras/src/common/strlcpy.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_rstream.h"
 #include "cras_config.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_rstream.h"
 #include "cras_types.h"
-#include "strlcpy.h"
-#include "utlist.h"
 
 #define EMPTY_BUFFER_SIZE (32 * 1024)
 #define MAX_EMPTY_FRAME_SIZE 8

@@ -5,7 +5,7 @@
 
 #define _GNU_SOURCE
 
-#include "cras_string.h"
+#include "cras/src/common/cras_string.h"
 
 #include <string.h>
 

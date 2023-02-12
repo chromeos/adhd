@@ -3,20 +3,20 @@
  * found in the LICENSE file.
  */
 
-#include "cras_bt_policy.h"
+#include "cras/src/server/cras_bt_policy.h"
 
 #include <syslog.h>
 
-#include "cras_a2dp_endpoint.h"
-#include "cras_bt_constants.h"
-#include "cras_bt_log.h"
-#include "cras_hfp_ag_profile.h"
-#include "cras_iodev_list.h"
-#include "cras_main_message.h"
-#include "cras_server_metrics.h"
-#include "cras_system_state.h"
-#include "cras_tm.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_a2dp_endpoint.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_hfp_ag_profile.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_main_message.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_tm.h"
 
 /* Check profile connections every 2 seconds and rerty 30 times maximum.
  * Attemp to connect profiles which haven't been ready every 3 retries_left.

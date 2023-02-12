@@ -7,23 +7,23 @@
 
 #include <algorithm>
 #include <map>
+#include "cras/src/tests/test_util.h"
 #include "cras_iodev_info.h"
-#include "test_util.h"
 
 extern "C" {
-#include "audio_thread.h"
-#include "cras_features_override.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.c"
-#include "cras_main_thread_log.h"
-#include "cras_observer_ops.h"
-#include "cras_ramp.h"
-#include "cras_rstream.h"
-#include "cras_server_metrics.h"
-#include "cras_system_state.h"
-#include "cras_tm.h"
-#include "stream_list.h"
-#include "utlist.h"
+#include "cras/src/common/cras_observer_ops.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/cras_features_override.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.c"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_ramp.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_tm.h"
+#include "cras/src/server/stream_list.h"
 }
 
 namespace {

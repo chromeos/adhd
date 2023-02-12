@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#include "cras_audio_codec.h"
+#include "cras/src/common/cras_audio_codec.h"
 
 /* PLC library provides helper functions to mask the effects of lost or
  * disrupted packets. It currentyl only supports the mSBC codec.

@@ -6,7 +6,7 @@
 #ifndef CRAS_BT_IO_H_
 #define CRAS_BT_IO_H_
 
-#include "cras_bt_device.h"
+#include "cras/src/server/cras_bt_device.h"
 #include "cras_types.h"
 
 struct cras_iodev;

@@ -3,11 +3,11 @@
  * found in the LICENSE file.
  */
 
-#include "cras_hats.h"
+#include "cras/src/common/cras_hats.h"
 
 #if HAVE_HATS
 
-#include "cras_observer.h"
+#include "cras/src/server/cras_observer.h"
 
 void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
 				      enum CRAS_CLIENT_TYPE client_type,

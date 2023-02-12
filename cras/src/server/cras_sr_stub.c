@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_sr.h"
+#include "cras/src/server/cras_sr.h"
 
 struct cras_sr *cras_sr_create(struct cras_sr_model_spec spec,
 			       size_t input_nbytes)

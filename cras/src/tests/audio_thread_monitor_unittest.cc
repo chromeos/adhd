@@ -6,8 +6,8 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_audio_thread_monitor.c"
-#include "cras_main_message.h"
+#include "cras/src/server/cras_audio_thread_monitor.c"
+#include "cras/src/server/cras_main_message.h"
 }
 
 // Function call counters

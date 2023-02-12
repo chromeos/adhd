@@ -13,7 +13,7 @@ extern "C" {
 /* An EQ is a chain of biquad filters. See Web Audio API spec for details of the
  * biquad filters and their parameters. */
 
-#include "biquad.h"
+#include "cras/src/dsp/biquad.h"
 
 /* Maximum number of biquad filters an EQ can have */
 #define MAX_BIQUADS_PER_EQ 10

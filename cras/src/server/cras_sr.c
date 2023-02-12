@@ -3,16 +3,16 @@
  * found in the LICENSE file.
  */
 
-#include "cras_sr.h"
+#include "cras/src/server/cras_sr.h"
 
 #include <speex/speex_resampler.h>
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "cras_fmt_conv_ops.h"
+#include "cras/src/common/sample_buffer.h"
+#include "cras/src/dsp/am.h"
+#include "cras/src/server/cras_fmt_conv_ops.h"
 #include "cras_util.h"
-#include "dsp/am.h"
-#include "sample_buffer.h"
 
 /* Cras SR.
  *  speex_state - the state of the speex resampler.

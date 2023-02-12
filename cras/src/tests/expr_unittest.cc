@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include "cras_expr.h"
+#include "cras/src/server/cras_expr.h"
 
 namespace {
 

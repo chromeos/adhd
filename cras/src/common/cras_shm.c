@@ -16,8 +16,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/src/common/cras_string.h"
 #include "cras_shm.h"
-#include "cras_string.h"
 
 int cras_shm_info_init(const char *stream_name, uint32_t length,
 		       struct cras_shm_info *info_out)

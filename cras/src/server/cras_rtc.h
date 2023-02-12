@@ -2,8 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "cras_iodev.h"
-#include "cras_rstream.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_rstream.h"
 
 #ifndef CRAS_RTC_H_
 #define CRAS_RTC_H_

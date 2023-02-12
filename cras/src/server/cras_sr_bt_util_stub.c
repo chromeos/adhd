@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#include "cras_sr.h"
-#include "cras_sr_bt_util.h"
+#include "cras/src/server/cras_sr.h"
+#include "cras/src/server/cras_sr_bt_util.h"
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled()
 {

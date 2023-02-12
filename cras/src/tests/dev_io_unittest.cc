@@ -11,22 +11,22 @@
 #include <unordered_map>
 
 extern "C" {
-#include "cras_iodev.h"    // stubbed
-#include "cras_rstream.h"  // stubbed
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_iodev.h"    // stubbed
+#include "cras/src/server/cras_rstream.h"  // stubbed
+#include "cras/src/server/dev_io.h"        // tested
+#include "cras/src/server/dev_stream.h"    // stubbed
 #include "cras_shm.h"
 #include "cras_types.h"
-#include "dev_io.h"      // tested
-#include "dev_stream.h"  // stubbed
-#include "utlist.h"
 
 struct audio_thread_event_log* atlog;
 }
 
-#include "dev_io_stubs.h"
-#include "input_data.h"
-#include "iodev_stub.h"
-#include "metrics_stub.h"
-#include "rstream_stub.h"
+#include "cras/src/server/input_data.h"
+#include "cras/src/tests/dev_io_stubs.h"
+#include "cras/src/tests/iodev_stub.h"
+#include "cras/src/tests/metrics_stub.h"
+#include "cras/src/tests/rstream_stub.h"
 
 static float dev_stream_capture_software_gain_scaler_val;
 static struct input_data_gain input_data_get_software_gain_scaler_ret;

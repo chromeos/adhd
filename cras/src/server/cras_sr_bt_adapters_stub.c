@@ -3,11 +3,11 @@
  * found in the LICENSE file.
  */
 
-#include "cras_audio_area.h"
-#include "cras_iodev.h"
-#include "cras_sr.h"
-#include "cras_sr_bt_adapters.h"
-#include "cras_sr_bt_util.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_sr.h"
+#include "cras/src/server/cras_sr_bt_adapters.h"
+#include "cras/src/server/cras_sr_bt_util.h"
 
 struct cras_iodev_sr_bt_adapter {};
 

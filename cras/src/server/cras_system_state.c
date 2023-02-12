@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_system_state.h"
+#include "cras/src/server/cras_system_state.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -15,21 +15,21 @@
 #include <sys/stat.h>
 #include <syslog.h>
 
-#include "cras_alert.h"
-#include "cras_alsa_card.h"
-#include "cras_board_config.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/config/cras_board_config.h"
+#include "cras/src/server/config/cras_device_blocklist.h"
+#include "cras/src/server/cras_alert.h"
+#include "cras/src/server/cras_alsa_card.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_speak_on_mute_detector.h"
+#include "cras/src/server/cras_tm.h"
+#include "cras/src/server/rust/include/cras_feature_tier.h"
 #include "cras_config.h"
-#include "cras_device_blocklist.h"
-#include "cras_feature_tier.h"
-#include "cras_iodev_list.h"
-#include "cras_main_thread_log.h"
-#include "cras_observer.h"
 #include "cras_shm.h"
-#include "cras_speak_on_mute_detector.h"
-#include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "utlist.h"
 
 struct card_list {
 	struct cras_alsa_card *card;

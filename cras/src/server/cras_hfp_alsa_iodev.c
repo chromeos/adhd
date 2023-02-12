@@ -3,25 +3,25 @@
  * found in the LICENSE file.
  */
 
-#include "cras_hfp_alsa_iodev.h"
+#include "cras/src/server/cras_hfp_alsa_iodev.h"
 
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <syslog.h>
 
-#include "cras_audio_area.h"
+#include "cras/src/common/strlcpy.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_hfp_manager.h"
+#include "cras/src/server/cras_hfp_slc.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_sr.h"
+#include "cras/src/server/cras_sr_bt_adapters.h"
+#include "cras/src/server/cras_sr_bt_util.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_audio_format.h"
-#include "cras_bt_device.h"
-#include "cras_hfp_manager.h"
-#include "cras_hfp_slc.h"
-#include "cras_iodev.h"
-#include "cras_sr.h"
-#include "cras_sr_bt_adapters.h"
-#include "cras_sr_bt_util.h"
-#include "cras_system_state.h"
 #include "cras_util.h"
-#include "strlcpy.h"
-#include "utlist.h"
 
 /* Object to represent a special HFP iodev which would be managed by bt_io but
  * playback/capture via an inner ALSA iodev.

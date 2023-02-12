@@ -4,8 +4,8 @@
 
 #include <gtest/gtest.h>
 
-#include "cras_dsp.h"
-#include "cras_dsp_module.h"
+#include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_dsp_module.h"
 
 #define FILENAME_TEMPLATE "DspTest.XXXXXX"
 

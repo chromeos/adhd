@@ -6,7 +6,7 @@
 #ifndef CRAS_A2DP_IODEV_H_
 #define CRAS_A2DP_IODEV_H_
 
-#include "cras_bt_transport.h"
+#include "cras/src/server/cras_bt_transport.h"
 
 struct cras_iodev;
 

@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_dbus_control.h"
+#include "cras/src/server/cras_dbus_control.h"
 
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -12,23 +12,23 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "audio_thread.h"
-#include "cras_bt_player.h"
-#include "cras_dbus.h"
-#include "cras_dbus_bindings.h" /* Generated from Makefile */
-#include "cras_dbus_util.h"
-#include "cras_fl_manager.h"
-#include "cras_hfp_ag_profile.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_main_thread_log.h"
-#include "cras_observer.h"
-#include "cras_rtc.h"
-#include "cras_system_state.h"
-#include "cras_utf8.h"
+#include "cras/src/common/cras_dbus_bindings.h" /* Generated from Makefile */
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/cras_bt_player.h"
+#include "cras/src/server/cras_dbus.h"
+#include "cras/src/server/cras_dbus_util.h"
+#include "cras/src/server/cras_fl_manager.h"
+#include "cras/src/server/cras_hfp_ag_profile.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_rtc.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_utf8.h"
+#include "cras/src/server/softvol_curve.h"
 #include "cras_util.h"
-#include "softvol_curve.h"
-#include "utlist.h"
 
 struct cras_dbus_control {
 	DBusConnection *conn;

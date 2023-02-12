@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "polled_interval_checker.h"
+#include "cras/src/server/polled_interval_checker.h"
 }
 
 static const int INTERVAL_DURATION = 5;

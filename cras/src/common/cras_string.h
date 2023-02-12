@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "strlcpy.h"
+#include "cras/src/common/strlcpy.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -8,9 +8,9 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_features_override.h"
-#include "cras_server_metrics.h"
-#include "cras_sr_bt_util.h"
+#include "cras/src/server/cras_features_override.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_sr_bt_util.h"
 }
 
 extern "C" {

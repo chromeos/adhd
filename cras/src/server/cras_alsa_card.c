@@ -7,23 +7,23 @@
 #define _GNU_SOURCE /* For asprintf */
 #endif
 
-#include "cras_alsa_card.h"
+#include "cras/src/server/cras_alsa_card.h"
 
 #include <alsa/asoundlib.h>
 #include <syslog.h>
 
-#include "cras_alsa_io.h"
-#include "cras_alsa_mixer.h"
-#include "cras_alsa_ucm.h"
-#include "cras_card_config.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/config/cras_card_config.h"
+#include "cras/src/server/config/cras_device_blocklist.h"
+#include "cras/src/server/cras_alsa_io.h"
+#include "cras/src/server/cras_alsa_mixer.h"
+#include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_config.h"
-#include "cras_device_blocklist.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "utlist.h"
 
 #define MAX_ALSA_CARDS 32 /* Alsa limit on number of cards. */
 #define MAX_ALSA_CARD_NAME_LENGTH 6 /* Alsa card name "hw:XX" + 1 for null. */

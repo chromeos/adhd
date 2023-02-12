@@ -16,8 +16,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "cras_plc.h"
-#include "cras_sbc_codec.h"
+#include "cras/src/common/cras_sbc_codec.h"
+#include "cras/src/plc/cras_plc.h"
 
 #define MSBC_CODE_SIZE 240
 #define MSBC_PKT_FRAME_LEN 57

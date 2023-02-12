@@ -9,13 +9,13 @@
 #include <map>
 
 extern "C" {
-#include "cras_alsa_ucm.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_alsa_ucm.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "utlist.h"
 
 //  Include C file to test static functions.
-#include "cras_alsa_ucm.c"
+#include "cras/src/server/cras_alsa_ucm.c"
 }
 
 namespace {

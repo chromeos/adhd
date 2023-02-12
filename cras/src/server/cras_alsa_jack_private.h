@@ -7,7 +7,7 @@
 
 #include <alsa/asoundlib.h>
 
-#include "cras_alsa_jack.h"
+#include "cras/src/server/cras_alsa_jack.h"
 
 /* cras_gpio_jack:  Describes headphone & microphone jack connected to GPIO
  *

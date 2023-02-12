@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_adapter.h"
 
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -14,10 +14,10 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
-#include "bluetooth.h"
-#include "cras_bt_constants.h"
-#include "cras_string.h"
-#include "utlist.h"
+#include "cras/src/common/bluetooth.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_bt_constants.h"
 
 /*
  * Object to represent a bluetooth adapter on the system. Used to query the

@@ -6,8 +6,8 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_rstream.h"
-#include "stream_list.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/stream_list.h"
 }
 
 namespace {

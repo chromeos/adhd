@@ -3,15 +3,15 @@
  * found in the LICENSE file.
  */
 
-#include "cras_a2dp_info.h"
+#include "cras/src/server/cras_a2dp_info.h"
 
 #include <netinet/in.h>
 #include <sbc/sbc.h>
 #include <syslog.h>
 
-#include "cras_sbc_codec.h"
+#include "cras/src/common/cras_sbc_codec.h"
+#include "cras/src/common/rtp.h"
 #include "cras_types.h"
-#include "rtp.h"
 
 int init_a2dp(struct a2dp_info *a2dp, a2dp_sbc_t *sbc)
 {

@@ -6,15 +6,15 @@
 #ifndef CRAS_DSP_INI_H_
 #define CRAS_DSP_INI_H_
 
-#include "iniparser_wrapper.h"
+#include "cras/src/server/iniparser_wrapper.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "array.h"
-#include "cras_expr.h"
-#include "dumper.h"
+#include "cras/src/common/array.h"
+#include "cras/src/common/dumper.h"
+#include "cras/src/server/cras_expr.h"
 
 enum port_direction {
 	PORT_INPUT,

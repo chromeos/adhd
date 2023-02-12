@@ -3,11 +3,11 @@
  * found in the LICENSE file.
  */
 
-#include "crossover2.h"
+#include "cras/src/dsp/crossover2.h"
 
 #include <string.h>
 
-#include "biquad.h"
+#include "cras/src/dsp/biquad.h"
 
 static void lr42_set(struct lr42 *lr42, enum biquad_type type, float freq)
 {

@@ -7,17 +7,17 @@
 #include <unistd.h>
 
 extern "C" {
-#include "audio_thread.h"
-#include "cras_bt_log.h"
-#include "cras_main_thread_log.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_messages.h"
-#include "cras_rclient.h"
-#include "cras_rstream.h"
-#include "cras_system_state.h"
 
 // Access to data structures and static functions.
-#include "cras_control_rclient.c"
-#include "cras_rclient_util.c"
+#include "cras/src/server/cras_control_rclient.c"
+#include "cras/src/server/cras_rclient_util.c"
 }
 
 //  Stub data.

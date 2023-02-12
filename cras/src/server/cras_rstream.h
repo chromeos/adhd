@@ -9,12 +9,12 @@
 #ifndef CRAS_RSTREAM_H_
 #define CRAS_RSTREAM_H_
 
-#include "buffer_share.h"
-#include "cras_rstream_config.h"
+#include "cras/src/server/buffer_share.h"
+#include "cras/src/server/cras_rstream_config.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/ewma_power.h"
 #include "cras_shm.h"
-#include "cras_stream_apm.h"
 #include "cras_types.h"
-#include "ewma_power.h"
 
 struct cras_connect_message;
 struct cras_rclient;

@@ -4,8 +4,8 @@
 
 #include <gtest/gtest.h>
 
-#include "byte_buffer.h"
-#include "sample_buffer.h"
+#include "cras/src/common/byte_buffer.h"
+#include "cras/src/common/sample_buffer.h"
 
 namespace {
 

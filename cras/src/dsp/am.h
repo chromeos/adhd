@@ -6,6 +6,7 @@
 #ifndef AM_H_
 #define AM_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus

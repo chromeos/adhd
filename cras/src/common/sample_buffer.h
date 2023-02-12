@@ -25,14 +25,14 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "byte_buffer.h"
+#include "cras/src/common/byte_buffer.h"
 
 /* A sample buffer.
  *  sample_size - the number of bytes of each sample in the buffer.
  *  buf - the byte_buffer that stores the data.
  */
 struct sample_buffer {
-	const size_t sample_size;
+	size_t sample_size;
 	struct byte_buffer *buf;
 };
 

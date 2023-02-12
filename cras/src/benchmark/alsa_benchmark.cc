@@ -15,7 +15,7 @@
 #undef DISABLE_CFI_ICALL
 #endif
 
-#include "benchmark_util.h"
+#include "cras/src/benchmark/benchmark_util.h"
 
 namespace {
 extern "C" {

@@ -9,10 +9,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "crossover2.h"
-#include "dsp_test_util.h"
-#include "dsp_util.h"
-#include "raw.h"
+#include "cras/src/dsp/crossover2.h"
+#include "cras/src/dsp/dsp_util.h"
+#include "cras/src/dsp/tests/dsp_test_util.h"
+#include "cras/src/dsp/tests/raw.h"
 
 #ifndef min
 #define min(a, b)                                                              \

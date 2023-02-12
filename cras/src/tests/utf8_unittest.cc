@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_utf8.h"
+#include "cras/src/server/cras_utf8.h"
 }
 
 namespace {

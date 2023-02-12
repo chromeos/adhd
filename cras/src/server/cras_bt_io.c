@@ -3,19 +3,19 @@
  * found in the LICENSE file.
  */
 
-#include "cras_bt_io.h"
+#include "cras/src/server/cras_bt_io.h"
 
 #include <sys/time.h>
 #include <syslog.h>
 
-#include "cras_bt_device.h"
-#include "cras_bt_policy.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_utf8.h"
-#include "sfh.h"
-#include "strlcpy.h"
-#include "utlist.h"
+#include "cras/src/common/sfh.h"
+#include "cras/src/common/strlcpy.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_bt_policy.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_utf8.h"
 
 #define DEFAULT_BT_DEVICE_NAME "BLUETOOTH"
 

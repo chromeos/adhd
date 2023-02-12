@@ -36,3 +36,5 @@ build:ubsan --copt=-fsanitize=undefined --linkopt=-fsanitize=undefined
 build:ubsan --linkopt=-fsanitize-link-c++-runtime
 
 build:fuzzer --//:fuzzer --copt=-Wno-error=unused-function
+
+build --copt=-Wno-error=sign-compare

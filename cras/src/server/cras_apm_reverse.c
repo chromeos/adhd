@@ -2,16 +2,16 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "cras_apm_reverse.h"
+#include "cras/src/server/cras_apm_reverse.h"
 
 #include <pthread.h>
 
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_stream_apm.h"
-#include "cras_system_state.h"
-#include "float_buffer.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/float_buffer.h"
 
 /*
  * Object used to analyze playback audio from output iodev. It is responsible

@@ -3,21 +3,21 @@
  * found in the LICENSE file.
  */
 
-#include "cras_rclient_util.h"
+#include "cras/src/server/cras_rclient_util.h"
 
 #include <syslog.h>
 
-#include "cras_iodev_list.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_tm.h"
+#include "cras/src/server/stream_list.h"
 #include "cras_messages.h"
-#include "cras_observer.h"
-#include "cras_rclient.h"
-#include "cras_rstream.h"
-#include "cras_server_metrics.h"
-#include "cras_system_state.h"
-#include "cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "stream_list.h"
 
 int rclient_send_message_to_client(const struct cras_rclient *client,
 				   const struct cras_client_message *msg,

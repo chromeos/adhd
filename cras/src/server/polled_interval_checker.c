@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "polled_interval_checker.h"
+#include "cras/src/server/polled_interval_checker.h"
 
 #include "cras_util.h"
 

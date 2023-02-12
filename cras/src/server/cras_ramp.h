@@ -6,7 +6,7 @@
 #ifndef CRAS_RAMP_H_
 #define CRAS_RAMP_H_
 
-#include "cras_iodev.h"
+#include "cras/src/server/cras_iodev.h"
 
 struct cras_ramp;
 

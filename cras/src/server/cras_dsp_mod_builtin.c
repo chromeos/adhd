@@ -6,14 +6,14 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "cras_dsp_module.h"
+#include "cras/src/dsp/dcblock.h"
+#include "cras/src/dsp/drc.h"
+#include "cras/src/dsp/dsp_util.h"
+#include "cras/src/dsp/eq.h"
+#include "cras/src/dsp/eq2.h"
+#include "cras/src/dsp/quad_rotation.h"
+#include "cras/src/server/cras_dsp_module.h"
 #include "cras_types.h"
-#include "dcblock.h"
-#include "drc.h"
-#include "dsp_util.h"
-#include "eq.h"
-#include "eq2.h"
-#include "quad_rotation.h"
 
 /*
  *  empty module functions (for source and sink)

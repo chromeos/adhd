@@ -16,10 +16,10 @@
 
 #include <stdbool.h>
 
-#include "cras_dsp.h"
+#include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/ewma_power.h"
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
-#include "ewma_power.h"
 
 struct buffer_share;
 struct cras_fmt_conv;

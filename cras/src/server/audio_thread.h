@@ -9,9 +9,9 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#include "cras_iodev.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/dev_io.h"
 #include "cras_types.h"
-#include "dev_io.h"
 
 struct buffer_share;
 struct cras_fmt_conv;

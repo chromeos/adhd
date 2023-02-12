@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_device_blocklist.h"
+#include "cras/src/server/config/cras_device_blocklist.h"
 }
 
 namespace {

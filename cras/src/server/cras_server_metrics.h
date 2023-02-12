@@ -8,8 +8,8 @@
 
 #include <stdbool.h>
 
-#include "cras_iodev.h"
-#include "cras_rstream.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_rstream.h"
 
 extern const char kNoCodecsFoundMetric[];
 

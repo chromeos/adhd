@@ -9,9 +9,9 @@
 #include <vector>
 
 extern "C" {
-#include "cras_main_message.h"
-#include "cras_rstream.h"
-#include "cras_server_metrics.c"
+#include "cras/src/server/cras_main_message.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.c"
 }
 
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;

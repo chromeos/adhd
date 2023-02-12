@@ -6,7 +6,7 @@
 #ifndef CRAS_FLOOP_IODEV_H_
 #define CRAS_FLOOP_IODEV_H_
 
-#include "cras_iodev.h"
+#include "cras/src/server/cras_iodev.h"
 #include "cras_types.h"
 
 /*

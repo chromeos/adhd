@@ -13,7 +13,7 @@ extern "C" {
 /* "eq2" is a two channel version of the "eq" filter. It processes two channels
  * of data at once to increase performance. */
 
-#include "biquad.h"
+#include "cras/src/dsp/biquad.h"
 
 /* Maximum number of biquad filters an EQ2 can have per channel */
 #define MAX_BIQUADS_PER_EQ2 10

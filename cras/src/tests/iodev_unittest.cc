@@ -8,15 +8,15 @@
 #include "cras_types.h"
 
 extern "C" {
-#include "audio_thread_log.h"
-#include "cras_audio_area.h"
-#include "cras_iodev.h"
-#include "cras_main_thread_log.h"
-#include "cras_ramp.h"
-#include "cras_rstream.h"
-#include "dev_stream.h"
-#include "input_data.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_ramp.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/dev_stream.h"
+#include "cras/src/server/input_data.h"
 
 // Mock software volume scalers.
 float softvol_scalers[101];

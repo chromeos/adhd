@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "dumper.h"
+#include "cras/src/common/dumper.h"
 
 #include <stdarg.h>
 #include <stdlib.h>

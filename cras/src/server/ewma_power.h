@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "cras_audio_area.h"
+#include "cras/src/server/cras_audio_area.h"
 
 /*
  * The exponentially weighted moving average power module used to

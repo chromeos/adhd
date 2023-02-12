@@ -8,7 +8,6 @@ cc_library(
     name = "am",
     srcs = ["am.cc"],
     hdrs = ["am.h"],
-    includes = ["."],
     target_compatible_with = require_config("//:ml_build"),
     visibility = [
         ":__subpackages__",
@@ -39,7 +38,6 @@ cc_library(
         "eq.h",
         "quad_rotation.h",
     ],
-    includes = ["."],
     visibility = [
         ":__subpackages__",
         "//cras/src/server:__pkg__",
@@ -121,7 +119,6 @@ cc_library(
     name = "all_headers",
     testonly = True,
     hdrs = glob(include = ["*.h"]),
-    includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
         "//cras/src/tests:__pkg__",

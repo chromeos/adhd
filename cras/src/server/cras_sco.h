@@ -6,9 +6,9 @@
 #ifndef CRAS_SCO_H_
 #define CRAS_SCO_H_
 
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_sr_bt_util.h"
 #include "cras_audio_format.h"
-#include "cras_bt_device.h"
-#include "cras_sr_bt_util.h"
 #include "cras_types.h"
 
 /* Linked list to hold the information of callbacks to trigger

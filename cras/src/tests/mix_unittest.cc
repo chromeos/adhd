@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_mix.h"
+#include "cras/src/server/cras_mix.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 }

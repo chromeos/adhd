@@ -5,7 +5,7 @@
 #include <featured/c_feature_library.h>
 #include <stdbool.h>
 
-#include "cras_features_impl.h"
+#include "cras/src/server/cras_features_impl.h"
 
 bool cras_features_backend_get_enabled(const struct cras_feature *feature)
 {

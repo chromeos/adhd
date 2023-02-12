@@ -10,8 +10,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "cras_bt_adapter.h"
-#include "cras_bt_constants.h"
+#include "cras/src/server/cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_constants.h"
 
 /* Object to hold current metadata. This is not a full list of what BlueZ/MPRIS
  * supports but a subset because Chromium only provides the following.

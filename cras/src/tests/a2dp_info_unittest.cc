@@ -11,9 +11,9 @@
 extern "C" {
 #include <sbc/sbc.h>
 
-#include "cras_a2dp_info.h"
-#include "cras_sbc_codec.h"
-#include "sbc_codec_stub.h"
+#include "cras/src/common/cras_sbc_codec.h"
+#include "cras/src/server/cras_a2dp_info.h"
+#include "cras/src/tests/sbc_codec_stub.h"
 }
 
 static size_t a2dp_write_link_mtu_val;

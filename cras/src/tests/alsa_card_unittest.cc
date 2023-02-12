@@ -10,14 +10,14 @@
 #include <map>
 
 extern "C" {
-#include "cras_alsa_card.h"
-#include "cras_alsa_io.h"
-#include "cras_alsa_mixer.h"
-#include "cras_alsa_ucm.h"
-#include "cras_iodev.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_alsa_card.h"
+#include "cras/src/server/cras_alsa_io.h"
+#include "cras/src/server/cras_alsa_mixer.h"
+#include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_iodev.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "utlist.h"
 }
 
 namespace {

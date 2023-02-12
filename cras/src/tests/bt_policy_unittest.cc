@@ -5,9 +5,9 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_bt_device.h"
-#include "cras_bt_policy.c" /* */
-#include "cras_iodev.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_bt_policy.c" /* */
+#include "cras/src/server/cras_iodev.h"
 }
 static int cras_iodev_list_suspend_dev_called;
 static int cras_iodev_list_resume_dev_called;

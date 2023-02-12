@@ -9,14 +9,14 @@
 #include <stdint.h>
 
 extern "C" {
-#include "cras_bt_device.h"
-#include "cras_bt_log.h"
-#include "cras_hfp_slc.h"
-#include "cras_iodev_list.h"
-#include "cras_mix.h"
-#include "cras_observer.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_hfp_slc.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_mix.h"
+#include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
-#include "cras_system_state.h"
 }
 
 int disconnect_cb(struct hfp_slc_handle*) {

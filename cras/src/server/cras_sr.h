@@ -15,7 +15,7 @@
 
 #include <stddef.h>
 
-#include "byte_buffer.h"
+#include "cras/src/common/byte_buffer.h"
 
 struct cras_sr;
 

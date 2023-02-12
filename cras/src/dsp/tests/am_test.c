@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "am.h"
-#include "cras_fmt_conv_ops.h"
+#include "cras/src/dsp/am.h"
+#include "cras/src/server/cras_fmt_conv_ops.h"
 
 #define NUM_FRAMES_PER_RUN (480)
 

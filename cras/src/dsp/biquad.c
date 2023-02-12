@@ -8,7 +8,7 @@
  * found in the LICENSE.WEBKIT file.
  */
 
-#include "biquad.h"
+#include "cras/src/dsp/biquad.h"
 
 #include <math.h>
 

@@ -7,9 +7,9 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_main_message.h"
-#include "cras_observer.h"
-#include "cras_system_state.h"
+#include "cras/src/server/cras_main_message.h"
+#include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_system_state.h"
 
 struct non_empty_audio_msg {
 	struct cras_main_message header;

@@ -4,7 +4,7 @@
  */
 
 /* For now just use speex, can add more resamplers later. */
-#include "cras_fmt_conv.h"
+#include "cras/src/server/cras_fmt_conv.h"
 
 #include <endian.h>
 #include <limits.h>
@@ -13,10 +13,10 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras/src/server/cras_fmt_conv_ops.h"
+#include "cras/src/server/linear_resampler.h"
 #include "cras_audio_format.h"
-#include "cras_fmt_conv_ops.h"
 #include "cras_util.h"
-#include "linear_resampler.h"
 
 /* The quality level is a value between 0 and 10. This is a tradeoff between
  * performance, latency, and quality. */

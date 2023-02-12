@@ -9,7 +9,7 @@
 #include <dbus/dbus.h>
 #include <stdint.h>
 
-#include "cras_bt_device.h"
+#include "cras/src/server/cras_bt_device.h"
 
 struct cras_bt_endpoint;
 struct cras_bt_transport;

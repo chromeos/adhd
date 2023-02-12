@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "eq2.h"
+#include "cras/src/dsp/eq2.h"
 
 #include <stdlib.h>
 

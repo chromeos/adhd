@@ -8,7 +8,7 @@
 
 #include <string>
 
-#include "cras_file_wait.h"
+#include "cras/src/common/cras_file_wait.h"
 #include "cras_util.h"
 
 extern "C" {

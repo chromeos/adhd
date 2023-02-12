@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_alsa_helpers.h"
+#include "cras/src/server/cras_alsa_helpers.h"
 
 #include <alsa/asoundlib.h>
 #include <limits.h>

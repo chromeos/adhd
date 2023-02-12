@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_rtc.h"
+#include "cras/src/server/cras_rtc.h"
 }
 
 namespace {

@@ -150,7 +150,6 @@ cc_library(
     srcs = [
         "iniparser_wrapper.h",
     ],
-    includes = ["."],
     visibility = ["//cras/src/server/config:__pkg__"],
     deps = ["@iniparser"],
 )
@@ -169,7 +168,6 @@ cc_library(
     name = "ewma_power",
     srcs = ["ewma_power.c"],
     hdrs = ["ewma_power.h"],
-    includes = ["."],
     deps = [
         ":cras_audio_area",
     ],
@@ -179,7 +177,6 @@ cc_library(
     name = "cras_audio_area",
     srcs = ["cras_audio_area.c"],
     hdrs = ["cras_audio_area.h"],
-    includes = ["."],
     deps = [
         ":cras_mix",
         "//cras/src/common",
@@ -190,7 +187,6 @@ cc_library(
     name = "cras_fmt_conv_ops",
     srcs = ["cras_fmt_conv_ops.c"],
     hdrs = ["cras_fmt_conv_ops.h"],
-    includes = ["."],
     visibility = ["//cras/src/dsp/tests:__pkg__"],
     deps = ["//cras/src/common"],
 )
@@ -245,15 +241,22 @@ cc_library(
         ],
     }),
     hdrs = [
+        "buffer_share.h",
         "cras_dsp.h",
         "cras_iodev.h",
+        "cras_rstream.h",
+        "cras_rstream_config.h",
+        "cras_server_metrics.h",
         "cras_sr.h",
         "cras_sr_bt_adapters.h",
         "cras_sr_bt_util.h",
+        "cras_stream_apm.h",
     ],
     deps = [
-        ":cras_dlc",
         ":cras_audio_area",
+        ":cras_dlc",
+        ":cras_features",
+        ":cras_fmt_conv_ops",
         ":dsp_types",
         ":ewma_power",
         "//cras/src:include_here_hack",
@@ -272,7 +275,6 @@ cc_library(
         "cras_dsp_pipeline.h",
         "cras_expr.h",
     ],
-    includes = ["."],
     visibility = ["//cras/src/dsp:__pkg__"],
     deps = [
         ":iniparser_wrapper",
@@ -284,7 +286,6 @@ cc_library(
     hdrs = [
         "cras_observer.h",
     ],
-    includes = ["."],
     visibility = ["//cras/src/common:__pkg__"],
     deps = [
         "//cras/src/common:cras_observer_ops",
@@ -502,10 +503,21 @@ cc_library(
         ],
         "//conditions:default": ["cras_stream_apm_noop.c"],
     }) + [
-        "cras_iodev.h",
+        "audio_thread.h",
+        "buffer_share.h",
         "cras_dsp.h",
+        "cras_iodev_list.h",
+        "cras_iodev.h",
+        "cras_main_message.h",
+        "cras_rstream_config.h",
+        "cras_rstream.h",
+        "cras_speak_on_mute_detector.h",
+        "dev_io.h",
+        "polled_interval_checker.h",
+        "speak_on_mute_detector.h",
     ],
     hdrs = [
+        "cras_apm_reverse.h",
         "cras_stream_apm.h",
         "float_buffer.h",
     ],
@@ -533,7 +545,6 @@ cc_library(
     name = "all_headers",
     testonly = True,
     hdrs = glob(include = ["*.h"]),
-    includes = ["."],
     textual_hdrs = glob(
         # Allow including sources
         include = ["*.c"],

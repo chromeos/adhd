@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
 
 /* The types of message main thread can handle. */
 enum CRAS_MAIN_MESSAGE_TYPE {

@@ -3,13 +3,13 @@
  * found in the LICENSE file.
  */
 
-#include "cras_audio_area.h"
+#include "cras/src/server/cras_audio_area.h"
 
 #include <stdlib.h>
 #include <sys/param.h>
 
+#include "cras/src/server/cras_mix.h"
 #include "cras_audio_format.h"
-#include "cras_mix.h"
 
 struct cras_audio_area *cras_audio_area_create(int num_channels)
 {

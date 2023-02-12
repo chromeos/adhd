@@ -2,7 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "cras_bt_battery_provider.h"
+#include "cras/src/server/cras_bt_battery_provider.h"
 
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -11,11 +11,11 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_bt_adapter.h"
-#include "cras_bt_constants.h"
-#include "cras_dbus_util.h"
-#include "cras_observer.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_dbus_util.h"
+#include "cras/src/server/cras_observer.h"
 
 /* CRAS registers one battery provider to BlueZ, so we use a singleton. */
 static struct cras_bt_battery_provider battery_provider = {

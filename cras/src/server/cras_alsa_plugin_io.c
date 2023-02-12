@@ -9,14 +9,14 @@
 #include <sys/select.h>
 #include <syslog.h>
 
-#include "cras_alsa_io.h"
-#include "cras_alsa_jack.h"
-#include "cras_alsa_mixer.h"
-#include "cras_alsa_ucm.h"
-#include "cras_iodev.h"
-#include "cras_system_state.h"
-#include "iniparser_wrapper.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_alsa_io.h"
+#include "cras/src/server/cras_alsa_jack.h"
+#include "cras/src/server/cras_alsa_mixer.h"
+#include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/iniparser_wrapper.h"
 
 #define PLUGINS_INI "plugins.ini"
 #define PLUGIN_KEY_CTL "ctl"

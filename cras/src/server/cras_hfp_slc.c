@@ -3,19 +3,19 @@
  * found in the LICENSE file.
  */
 
-#include "cras_hfp_slc.h"
+#include "cras/src/server/cras_hfp_slc.h"
 
 #include <sys/socket.h>
 #include <syslog.h>
 
-#include "cras_bt_device.h"
-#include "cras_bt_log.h"
-#include "cras_observer.h"
-#include "cras_server_metrics.h"
-#include "cras_string.h"
-#include "cras_system_state.h"
-#include "cras_telephony.h"
-#include "cras_tm.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_telephony.h"
+#include "cras/src/server/cras_tm.h"
 #include "cras_util.h"
 #include "stdbool.h"
 

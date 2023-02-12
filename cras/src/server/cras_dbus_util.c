@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_dbus_util.h"
+#include "cras/src/server/cras_dbus_util.h"
 
 #include <errno.h>
 #include <stdbool.h>

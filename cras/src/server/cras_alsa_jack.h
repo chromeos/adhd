@@ -9,7 +9,7 @@
 #ifndef CRAS_ALSA_JACK_H_
 #define CRAS_ALSA_JACK_H_
 
-#include "cras_alsa_ucm.h"
+#include "cras/src/server/cras_alsa_ucm.h"
 #include "cras_types.h"
 
 struct cras_alsa_jack;

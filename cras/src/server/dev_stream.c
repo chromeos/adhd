@@ -3,18 +3,18 @@
  * found in the LICENSE file.
  */
 
-#include "dev_stream.h"
+#include "cras/src/server/dev_stream.h"
 
 #include <syslog.h>
 
-#include "audio_thread_log.h"
-#include "byte_buffer.h"
-#include "cras_audio_area.h"
-#include "cras_fmt_conv.h"
-#include "cras_iodev.h"
-#include "cras_mix.h"
-#include "cras_rtc.h"
-#include "cras_server_metrics.h"
+#include "cras/src/common/byte_buffer.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_fmt_conv.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_mix.h"
+#include "cras/src/server/cras_rtc.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras_shm.h"
 
 /* Adjust device's sample rate by this step faster or slower. Used

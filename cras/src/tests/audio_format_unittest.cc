@@ -6,7 +6,7 @@
 
 extern "C" {
 // Test static functions
-#include "cras_audio_format.c"
+#include "cras/src/common/cras_audio_format.c"
 }
 
 namespace {

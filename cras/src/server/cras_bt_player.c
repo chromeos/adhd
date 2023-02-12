@@ -2,7 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "cras_bt_player.h"
+#include "cras/src/server/cras_bt_player.h"
 
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -11,12 +11,12 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_bt_adapter.h"
-#include "cras_bt_constants.h"
-#include "cras_dbus_util.h"
-#include "cras_utf8.h"
-#include "strlcpy.h"
-#include "utlist.h"
+#include "cras/src/common/strlcpy.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_dbus_util.h"
+#include "cras/src/server/cras_utf8.h"
 
 static void cras_bt_on_player_registered(DBusPendingCall *pending_call,
 					 void *data)

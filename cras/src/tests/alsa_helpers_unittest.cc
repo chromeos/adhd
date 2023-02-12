@@ -8,7 +8,7 @@
 
 extern "C" {
 // For static function test.
-#include "cras_alsa_helpers.c"
+#include "cras/src/server/cras_alsa_helpers.c"
 }
 
 static int snd_pcm_sw_params_set_tstamp_type_called;

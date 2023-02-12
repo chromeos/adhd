@@ -13,20 +13,20 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "audio_thread.h"
-#include "audio_thread_log.h"
-#include "byte_buffer.h"
-#include "cras_a2dp_manager.h"
-#include "cras_audio_area.h"
-#include "cras_audio_thread_monitor.h"
-#include "cras_hfp_manager.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_string.h"
+#include "cras/src/common/byte_buffer.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/common/sfh.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_a2dp_manager.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_audio_thread_monitor.h"
+#include "cras/src/server/cras_hfp_manager.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "sfh.h"
-#include "utlist.h"
 
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 

@@ -9,7 +9,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include "benchmark_util.h"
+#include "cras/src/benchmark/benchmark_util.h"
 
 namespace {
 extern "C" {

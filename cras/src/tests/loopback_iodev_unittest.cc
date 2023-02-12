@@ -11,15 +11,15 @@ extern "C" {
 struct audio_thread_event_log* atlog;
 int atlog_rw_shm_fd;
 int atlog_ro_shm_fd;
-#include "audio_thread_log.h"
-#include "cras_audio_area.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_loopback_iodev.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_loopback_iodev.h"
+#include "cras/src/server/dev_stream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
-#include "dev_stream.h"
-#include "utlist.h"
 }
 
 namespace {

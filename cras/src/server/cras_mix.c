@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
-#include "cras_mix.h"
+#include "cras/src/server/cras_mix.h"
 
 #include <stdint.h>
 
-#include "cras_mix_ops.h"
-#include "cras_system_state.h"
+#include "cras/src/server/cras_mix_ops.h"
+#include "cras/src/server/cras_system_state.h"
 
 static const struct cras_mix_ops *ops = &mixer_ops;
 

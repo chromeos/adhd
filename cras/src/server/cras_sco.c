@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_sco.h"
+#include "cras/src/server/cras_sco.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -11,19 +11,19 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
-#include "audio_thread.h"
-#include "bluetooth.h"
-#include "byte_buffer.h"
-#include "cras_bt_device.h"
-#include "cras_hfp_slc.h"
-#include "cras_iodev_list.h"
-#include "cras_plc.h"
-#include "cras_sbc_codec.h"
-#include "cras_server_metrics.h"
-#include "cras_sr.h"
-#include "cras_string.h"
+#include "cras/src/common/bluetooth.h"
+#include "cras/src/common/byte_buffer.h"
+#include "cras/src/common/cras_sbc_codec.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/plc/cras_plc.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_hfp_slc.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_sr.h"
 #include "packet_status_logger.h"
-#include "utlist.h"
 
 /* The max buffer size. Note that the actual used size must set to multiple
  * of SCO packet size, and the packet size does not necessarily be equal to

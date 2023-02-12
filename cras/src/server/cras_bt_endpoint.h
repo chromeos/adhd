@@ -9,7 +9,7 @@
 #include <dbus/dbus.h>
 #include <stdint.h>
 
-#include "cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_adapter.h"
 
 struct cras_bt_transport;
 

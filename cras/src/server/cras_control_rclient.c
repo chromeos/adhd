@@ -2,35 +2,35 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "cras_control_rclient.h"
+#include "cras/src/server/cras_control_rclient.h"
 
 #include <assert.h>
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "audio_thread.h"
-#include "audio_thread_log.h"
-#include "cras_bt_log.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_fl_manager.h"
+#include "cras/src/server/cras_floop_iodev.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_stream_apm.h"
 #include "cras_config.h"
-#include "cras_dsp.h"
-#include "cras_fl_manager.h"
-#include "cras_floop_iodev.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_stream_apm.h"
 #if CRAS_DBUS
-#include "cras_hfp_ag_profile.h"
+#include "cras/src/server/cras_hfp_ag_profile.h"
 #endif
-#include "cras_main_thread_log.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_rclient_util.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_messages.h"
-#include "cras_observer.h"
-#include "cras_rclient.h"
-#include "cras_rclient_util.h"
-#include "cras_rstream.h"
-#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "utlist.h"
 
 /* Handles dumping audio thread debug info back to the client. */
 static void dump_audio_thread_info(struct cras_rclient *client)

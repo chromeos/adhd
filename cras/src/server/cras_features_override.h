@@ -9,7 +9,7 @@
 
 #include <stdbool.h>
 
-#include "cras_features.h"
+#include "cras/src/server/cras_features.h"
 
 // Override feature id enabled status.
 void cras_features_set_override(enum cras_feature_id id, bool enabled);

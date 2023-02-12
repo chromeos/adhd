@@ -8,7 +8,7 @@
 
 #include <stdbool.h>
 
-#include "audio_thread.h"
+#include "cras/src/server/audio_thread.h"
 #include "cras_types.h"
 
 struct cras_hfp;

@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "dsp_test_util.h"
+#include "cras/src/dsp/tests/dsp_test_util.h"
 
 #include <fenv.h>
 #include <float.h>

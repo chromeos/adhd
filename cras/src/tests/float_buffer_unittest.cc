@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "float_buffer.h"
+#include "cras/src/server/float_buffer.h"
 
 #include <gtest/gtest.h>
 

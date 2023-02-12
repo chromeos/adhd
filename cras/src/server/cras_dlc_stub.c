@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "cras_dlc.h"
+#include "cras/src/server/rust/include/cras_dlc.h"
 
 const char *cras_dlc_sr_bt_get_root(void)
 {

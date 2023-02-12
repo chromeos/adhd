@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <random>
 
-#include "benchmark_util.h"
+#include "cras/src/benchmark/benchmark_util.h"
 
 std::vector<float> gen_float_samples(size_t size, std::mt19937& engine) {
   std::uniform_real_distribution<float> dist(-1.0, 1.0);

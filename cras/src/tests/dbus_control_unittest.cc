@@ -4,10 +4,10 @@
 
 #include <gtest/gtest.h>
 
-#include "dbus_test.h"
+#include "cras/src/tests/dbus_test.h"
 
 extern "C" {
-#include "cras_dbus_control.h"
+#include "cras/src/server/cras_dbus_control.h"
 #include "cras_types.h"
 }
 static unsigned int num_channels_val;

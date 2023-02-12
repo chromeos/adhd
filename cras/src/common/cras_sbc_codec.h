@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
-#ifndef COMMON_CRAS_SBC_CODEC_H_
-#define COMMON_CRAS_SBC_CODEC_H_
+#ifndef CRAS_SBC_CODEC_H_
+#define CRAS_SBC_CODEC_H_
 
 #include <sbc/sbc.h>
 
-#include "cras_audio_codec.h"
+#include "cras/src/common/cras_audio_codec.h"
 
 /* Creates an sbc codec.
  * Args:

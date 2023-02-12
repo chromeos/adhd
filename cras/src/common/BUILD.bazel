@@ -112,7 +112,6 @@ cc_library(
     srcs = [
         "cras_audio_format.c",
     ],
-    includes = ["."],
     visibility = [
         "//cras/src/benchmark:__pkg__",
         "//cras/src/dsp:__pkg__",
@@ -169,7 +168,6 @@ genrule(
 cc_library(
     name = "cras_version",
     hdrs = ["cras_version.h"],
-    includes = ["."],
     visibility = ["//cras/src/libcras:__pkg__"],
 )
 
@@ -203,7 +201,6 @@ cc_library(
         "rtp.h",
         "sfh.h",
     ],
-    includes = ["."],
     visibility = [
         "//cras:__subpackages__",
     ],
@@ -230,7 +227,6 @@ cc_library(
     name = "all_headers",
     testonly = True,
     hdrs = glob(include = ["*.h"]),
-    includes = ["."],
     textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
     visibility = [
         "//cras/src/tests:__pkg__",

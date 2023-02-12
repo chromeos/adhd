@@ -7,8 +7,8 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_main_message.h"
-#include "cras_observer.h"
+#include "cras/src/server/cras_main_message.h"
+#include "cras/src/server/cras_observer.h"
 
 struct hotword_triggered_msg {
 	struct cras_main_message header;

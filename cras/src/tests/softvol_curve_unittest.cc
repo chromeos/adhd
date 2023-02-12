@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "softvol_curve.h"
+#include "cras/src/server/softvol_curve.h"
 }
 
 namespace {

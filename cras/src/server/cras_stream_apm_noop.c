@@ -5,9 +5,9 @@
 
 #include <stdlib.h>
 
-#include "cras_iodev.h"
-#include "cras_stream_apm.h"
-#include "float_buffer.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/float_buffer.h"
 
 /*
  * If webrtc audio processing library is not available then define all

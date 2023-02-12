@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_rstream_config.h"
+#include "cras/src/server/cras_rstream_config.h"
 
 #include <fcntl.h>
 #include <stdint.h>
@@ -11,14 +11,14 @@
 #include <sys/types.h>
 #include <syslog.h>
 
-#include "cras_audio_area.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_config.h"
 #include "cras_messages.h"
-#include "cras_rclient.h"
-#include "cras_rstream.h"
-#include "cras_server_metrics.h"
 #include "cras_shm.h"
-#include "cras_system_state.h"
 #include "cras_types.h"
 
 void cras_rstream_config_init(

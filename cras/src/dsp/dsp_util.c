@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "dsp_util.h"
+#include "cras/src/dsp/dsp_util.h"
 
 #include <limits.h>
 #include <syslog.h>

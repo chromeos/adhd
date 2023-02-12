@@ -12,17 +12,17 @@
 #include <memory>
 
 extern "C" {
-#include "cras_iodev.h"
-#include "cras_rstream.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/dev_io.h"
+#include "cras/src/server/dev_stream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
-#include "dev_io.h"
-#include "dev_stream.h"
-#include "utlist.h"
 }
 
-#include "iodev_stub.h"
-#include "rstream_stub.h"
+#include "cras/src/tests/iodev_stub.h"
+#include "cras/src/tests/rstream_stub.h"
 
 #define RSTREAM_FAKE_POLL_FD 33
 

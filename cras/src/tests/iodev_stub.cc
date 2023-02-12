@@ -8,9 +8,9 @@
 #include <unordered_map>
 
 extern "C" {
-#include "cras_iodev.h"
-#include "dev_stream.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/dev_stream.h"
 }
 
 namespace {

@@ -3,10 +3,10 @@
  * found in the LICENSE file.
  */
 
-#include "cras_device_blocklist.h"
+#include "cras/src/server/config/cras_device_blocklist.h"
 
-#include "iniparser_wrapper.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/iniparser_wrapper.h"
 
 struct cras_device_blocklist {
 	dictionary *ini;

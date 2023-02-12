@@ -8,11 +8,11 @@
 #include <stdio.h>
 #include <sys/socket.h>
 
-#include "dbus_test.h"
+#include "cras/src/tests/dbus_test.h"
 
 extern "C" {
-#include "cras_bt_constants.h"
-#include "cras_bt_profile.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_profile.h"
 }
 
 namespace {

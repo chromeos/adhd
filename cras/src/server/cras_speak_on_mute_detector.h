@@ -7,8 +7,8 @@
 
 #include <stdbool.h>
 
-#include "cras_rstream.h"
-#include "cras_stream_apm.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_stream_apm.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -9,7 +9,7 @@ extern "C" {
 #include "cras_messages.h"
 
 //  Include C file to test static functions.
-#include "cras_client.c"
+#include "cras/src/libcras/cras_client.c"
 }
 
 static const cras_stream_id_t FIRST_STREAM_ID = 1;

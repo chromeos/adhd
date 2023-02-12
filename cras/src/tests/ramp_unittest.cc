@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_ramp.c"
+#include "cras/src/server/cras_ramp.c"
 }
 
 static int callback_called;

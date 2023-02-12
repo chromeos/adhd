@@ -15,14 +15,14 @@
 #include <vector>
 
 extern "C" {
-#include "cras_alsa_jack.h"
-#include "cras_alsa_jack_private.h"
-#include "cras_alsa_ucm_section.h"
-#include "cras_gpio_jack.h"
-#include "cras_tm.h"
+#include "cras/src/common/edid_utils.h"
+#include "cras/src/server/cras_alsa_jack.h"
+#include "cras/src/server/cras_alsa_jack_private.h"
+#include "cras/src/server/cras_alsa_ucm_section.h"
+#include "cras/src/server/cras_gpio_jack.h"
+#include "cras/src/server/cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "edid_utils.h"
 }
 
 namespace {

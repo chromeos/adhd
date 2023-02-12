@@ -5,12 +5,12 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_bt_constants.h"
-#include "cras_bt_device.h"
-#include "cras_bt_io.h"
-#include "cras_bt_log.h"
-#include "cras_bt_policy.h"
-#include "cras_iodev.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_bt_io.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_bt_policy.h"
+#include "cras/src/server/cras_iodev.h"
 
 #define FAKE_OBJ_PATH "/obj/path"
 }

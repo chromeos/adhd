@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras_audio_area.h"
+#include "cras/src/server/cras_audio_area.h"
 #include "cras_audio_format.h"
 }
 

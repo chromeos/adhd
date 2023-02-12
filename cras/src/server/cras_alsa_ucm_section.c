@@ -3,14 +3,14 @@
  * found in the LICENSE file.
  */
 
-#include "cras_alsa_ucm_section.h"
+#include "cras/src/server/cras_alsa_ucm_section.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_alsa_mixer_name.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_alsa_mixer_name.h"
 
 static void ucm_section_free(struct ucm_section *section)
 {

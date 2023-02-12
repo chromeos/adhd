@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_fl_media.h"
+#include "cras/src/server/cras_fl_media.h"
 
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -12,13 +12,13 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_a2dp_manager.h"
-#include "cras_bt_io.h"
-#include "cras_bt_policy.h"
-#include "cras_dbus_util.h"
-#include "cras_fl_media_adapter.h"
-#include "cras_hfp_manager.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_a2dp_manager.h"
+#include "cras/src/server/cras_bt_io.h"
+#include "cras/src/server/cras_bt_policy.h"
+#include "cras/src/server/cras_dbus_util.h"
+#include "cras/src/server/cras_fl_media_adapter.h"
+#include "cras/src/server/cras_hfp_manager.h"
 
 #define BT_SERVICE_NAME "org.chromium.bluetooth"
 /* Object path is of the form BT_OBJECT_BASE + hci + BT_OBJECT_MEDIA */

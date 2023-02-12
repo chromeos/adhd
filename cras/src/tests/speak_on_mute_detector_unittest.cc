@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-#include "speak_on_mute_detector.h"
+#include "cras/src/server/speak_on_mute_detector.h"
 
 namespace {
 

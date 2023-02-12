@@ -8,12 +8,12 @@
  * found in the LICENSE.WEBKIT file.
  */
 
-#include "drc.h"
+#include "cras/src/dsp/drc.h"
 
 #include <assert.h>
 #include <stdlib.h>
 
-#include "drc_math.h"
+#include "cras/src/dsp/drc_math.h"
 
 static void set_default_parameters(struct drc *drc);
 static void init_data_buffer(struct drc *drc);

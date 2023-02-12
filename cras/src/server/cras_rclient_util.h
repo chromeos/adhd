@@ -11,8 +11,8 @@
 
 #include <stddef.h>
 
+#include "cras/src/server/cras_rclient.h"
 #include "cras_messages.h"
-#include "cras_rclient.h"
 
 #define MSG_LEN_VALID(msg, type) ((msg)->length >= sizeof(type))
 

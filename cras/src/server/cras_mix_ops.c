@@ -3,11 +3,11 @@
  * found in the LICENSE file.
  */
 
-#include "cras_mix_ops.h"
+#include "cras/src/server/cras_mix_ops.h"
 
 #include <stdint.h>
 
-#include "cras_system_state.h"
+#include "cras/src/server/cras_system_state.h"
 
 #define MAX_VOLUME_TO_SCALE 0.9999999
 #define MIN_VOLUME_TO_SCALE 0.0000001

@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_bt_transport.h"
+#include "cras/src/server/cras_bt_transport.h"
 
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -13,13 +13,13 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras_bt_constants.h"
-#include "cras_bt_device.h"
-#include "cras_bt_endpoint.h"
-#include "cras_bt_log.h"
-#include "cras_system_state.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_bt_endpoint.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_util.h"
-#include "utlist.h"
 
 /*
  * We are seeing a case of MTU=65535 which is trivially unreasonable.

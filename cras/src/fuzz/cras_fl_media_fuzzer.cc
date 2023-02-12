@@ -12,19 +12,19 @@
 #include <cstring>
 
 extern "C" {
-#include "cras_a2dp_manager.h"
-#include "cras_alert.h"
-#include "cras_bt_log.h"
-#include "cras_dsp.h"
-#include "cras_fl_media.h"
-#include "cras_fl_media_adapter.h"
-#include "cras_iodev_list.h"
-#include "cras_mix.h"
-#include "cras_observer.h"
-#include "cras_rclient.h"
+#include "cras/src/server/cras_a2dp_manager.h"
+#include "cras/src/server/cras_alert.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_fl_media.h"
+#include "cras/src/server/cras_fl_media_adapter.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_mix.h"
+#include "cras/src/server/cras_observer.h"
+#include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
-#include "cras_stream_apm.h"
-#include "cras_system_state.h"
 }
 
 #define BT_OBJECT_BASE "/org/chromium/bluetooth/hci"

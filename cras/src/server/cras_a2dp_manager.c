@@ -7,7 +7,7 @@
 #define _GNU_SOURCE /* for ppoll */
 #endif
 
-#include "cras_a2dp_manager.h"
+#include "cras/src/server/cras_a2dp_manager.h"
 
 #include <errno.h>
 #include <poll.h>
@@ -17,15 +17,15 @@
 #include <sys/un.h>
 #include <syslog.h>
 
-#include "cras_bt_log.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_fl_media.h"
+#include "cras/src/server/cras_fl_pcm_iodev.h"
+#include "cras/src/server/cras_main_message.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_tm.h"
 #include "cras_config.h"
-#include "cras_fl_media.h"
-#include "cras_fl_pcm_iodev.h"
-#include "cras_main_message.h"
-#include "cras_system_state.h"
-#include "cras_tm.h"
 #include "cras_util.h"
-#include "utlist.h"
 
 #define CRAS_A2DP_SOCKET_FILE ".a2dp"
 #define CRAS_A2DP_SUSPEND_DELAY_MS (5000)

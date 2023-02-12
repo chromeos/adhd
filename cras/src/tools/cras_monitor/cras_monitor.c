@@ -14,11 +14,11 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/src/common/cras_string.h"
+#include "cras/src/common/cras_version.h"
 #include "cras_client.h"
-#include "cras_string.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "cras_version.h"
 
 static void output_volume_changed(void *context, int32_t volume)
 {

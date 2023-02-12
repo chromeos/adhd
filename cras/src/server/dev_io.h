@@ -9,9 +9,9 @@
 #ifndef DEV_IO_H_
 #define DEV_IO_H_
 
-#include "cras_iodev.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/polled_interval_checker.h"
 #include "cras_types.h"
-#include "polled_interval_checker.h"
 
 /*
  * Open input/output devices.

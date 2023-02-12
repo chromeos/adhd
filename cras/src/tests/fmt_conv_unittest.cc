@@ -7,7 +7,7 @@
 #include <sys/param.h>
 
 extern "C" {
-#include "cras_fmt_conv.h"
+#include "cras/src/server/cras_fmt_conv.h"
 #include "cras_types.h"
 }
 

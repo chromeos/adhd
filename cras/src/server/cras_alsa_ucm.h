@@ -8,8 +8,8 @@
 
 #include <alsa/asoundlib.h>
 
-#include "cras_alsa_mixer_name.h"
-#include "cras_alsa_ucm_section.h"
+#include "cras/src/server/cras_alsa_mixer_name.h"
+#include "cras/src/server/cras_alsa_ucm_section.h"
 #include "cras_types.h"
 
 struct cras_use_case_mgr;

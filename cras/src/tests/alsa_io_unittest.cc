@@ -11,14 +11,14 @@
 
 extern "C" {
 
-#include "cras_alsa_mixer.h"
-#include "cras_iodev.h"
+#include "cras/src/server/cras_alsa_mixer.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
-#include "cras_system_state.h"
 #include "cras_types.h"
 
 //  Include C file to test static functions.
-#include "cras_alsa_io.c"
+#include "cras/src/server/cras_alsa_io.c"
 }
 
 #define BUFFER_SIZE 8192

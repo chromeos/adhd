@@ -7,8 +7,8 @@
 #include <stdlib.h>
 
 extern "C" {
-#include "sample_buffer.h"
-#include "sr_stub.h"
+#include "cras/src/common/sample_buffer.h"
+#include "cras/src/tests/sr_stub.h"
 }
 
 /* Fake implementation of cras_sr */

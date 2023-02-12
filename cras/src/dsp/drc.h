@@ -15,9 +15,9 @@
 extern "C" {
 #endif
 
-#include "crossover2.h"
-#include "drc_kernel.h"
-#include "eq2.h"
+#include "cras/src/dsp/crossover2.h"
+#include "cras/src/dsp/drc_kernel.h"
+#include "cras/src/dsp/eq2.h"
 
 /* DRC implements a flexible audio dynamics compression effect such as is
  * commonly used in musical production and game audio. It lowers the volume of

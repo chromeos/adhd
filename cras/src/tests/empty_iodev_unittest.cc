@@ -6,9 +6,9 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_audio_area.h"
-#include "cras_empty_iodev.h"
-#include "cras_iodev.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_empty_iodev.h"
+#include "cras/src/server/cras_iodev.h"
 }
 
 static struct timespec clock_gettime_retspec;

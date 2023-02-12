@@ -9,17 +9,17 @@
 #include <stdio.h>
 #include <syslog.h>
 
-#include "cras_alsa_plugin_io.h"
-#include "cras_bt_manager.h"
+#include "cras/src/server/cras_alsa_plugin_io.h"
+#include "cras/src/server/cras_bt_manager.h"
+#include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_server.h"
+#include "cras/src/server/cras_speak_on_mute_detector.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/rust/include/cras_feature_tier.h"
 #include "cras_config.h"
-#include "cras_dsp.h"
-#include "cras_feature_tier.h"
-#include "cras_iodev_list.h"
-#include "cras_server.h"
 #include "cras_shm.h"
-#include "cras_speak_on_mute_detector.h"
-#include "cras_stream_apm.h"
-#include "cras_system_state.h"
 
 #define DEFAULT_LOG_MASK LOG_WARNING
 

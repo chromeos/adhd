@@ -10,15 +10,15 @@
 #include <sys/types.h>
 
 extern "C" {
-#include "cras_audio_area.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras_messages.h"
-#include "cras_rstream.h"
-#include "cras_server_metrics.h"
 #include "cras_shm.h"
 #include "cras_util.h"
 }
 
-#include "metrics_stub.h"
+#include "cras/src/tests/metrics_stub.h"
 
 namespace {
 static int buffer_share_get_new_write_point_ret;

@@ -10,15 +10,15 @@
 #include <memory>
 
 extern "C" {
-#include "cras_iodev.h"
-#include "cras_rstream.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/dev_stream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
-#include "dev_stream.h"
-#include "utlist.h"
 }
 
-#include "dev_io_stubs.h"
+#include "cras/src/tests/dev_io_stubs.h"
 
 ShmPtr create_shm(size_t cb_threshold) {
   uint32_t frame_bytes = 4;

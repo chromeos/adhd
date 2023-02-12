@@ -4,7 +4,7 @@
  */
 
 extern "C" {
-#include "cras_server_metrics.h"
+#include "cras/src/server/cras_server_metrics.h"
 
 int cras_server_metrics_device_runtime(struct cras_iodev* iodev) {
   return 0;

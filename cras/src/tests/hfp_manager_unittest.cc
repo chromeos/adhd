@@ -6,12 +6,12 @@
 #include "cras_types.h"
 
 extern "C" {
-#include "cras_bt_log.h"
-#include "cras_features_override.h"
-#include "cras_hfp_alsa_iodev.h"
-#include "cras_hfp_manager.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_features_override.h"
+#include "cras/src/server/cras_hfp_alsa_iodev.h"
+#include "cras/src/server/cras_hfp_manager.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
 }
 
 static cras_iodev* cras_iodev_list_get_sco_pcm_iodev_ret;

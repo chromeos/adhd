@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras_speak_on_mute_detector.h"
+#include "cras/src/server/cras_speak_on_mute_detector.h"
 
 void cras_speak_on_mute_detector_init()
 {

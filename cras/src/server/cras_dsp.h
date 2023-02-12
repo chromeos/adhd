@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#include "cras_dsp_pipeline.h"
+#include "cras/src/server/cras_dsp_pipeline.h"
 
 struct cras_dsp_context;
 

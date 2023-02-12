@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_feature_tier.h"
+#include "cras/src/server/rust/include/cras_feature_tier.h"
 }
 
 namespace {

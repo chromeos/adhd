@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_iodev.h"
+#include "cras/src/server/cras_iodev.h"
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -13,28 +13,28 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "audio_thread.h"
-#include "audio_thread_log.h"
-#include "buffer_share.h"
-#include "cras_audio_area.h"
-#include "cras_audio_thread_monitor.h"
-#include "cras_device_monitor.h"
-#include "cras_dsp.h"
-#include "cras_dsp_pipeline.h"
-#include "cras_fmt_conv.h"
-#include "cras_iodev_list.h"
-#include "cras_main_thread_log.h"
-#include "cras_mix.h"
-#include "cras_ramp.h"
-#include "cras_rstream.h"
-#include "cras_server_metrics.h"
-#include "cras_system_state.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/buffer_share.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_audio_thread_monitor.h"
+#include "cras/src/server/cras_device_monitor.h"
+#include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_dsp_pipeline.h"
+#include "cras/src/server/cras_fmt_conv.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_mix.h"
+#include "cras/src/server/cras_ramp.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/dev_stream.h"
+#include "cras/src/server/input_data.h"
+#include "cras/src/server/rust/include/rate_estimator.h"
+#include "cras/src/server/softvol_curve.h"
 #include "cras_util.h"
-#include "dev_stream.h"
-#include "input_data.h"
-#include "rate_estimator.h"
-#include "softvol_curve.h"
-#include "utlist.h"
 
 static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
 static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;

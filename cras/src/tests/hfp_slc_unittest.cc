@@ -9,9 +9,9 @@
 #include <sys/socket.h>
 
 extern "C" {
-#include "cras_bt_log.h"
-#include "cras_hfp_slc.h"
-#include "cras_telephony.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_hfp_slc.h"
+#include "cras/src/server/cras_telephony.h"
 }
 
 static struct hfp_slc_handle* handle;

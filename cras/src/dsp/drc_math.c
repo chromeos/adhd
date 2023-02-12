@@ -2,7 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "drc_math.h"
+#include "cras/src/dsp/drc_math.h"
 
 float db_to_linear[201]; /* from -100dB to 100dB */
 

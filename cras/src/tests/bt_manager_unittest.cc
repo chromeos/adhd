@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_bt_manager.h"
+#include "cras/src/server/cras_bt_manager.h"
 }
 
 static int cras_hfp_ag_profile_create_called;

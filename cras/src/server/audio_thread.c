@@ -7,7 +7,7 @@
 #define _GNU_SOURCE /* for ppoll and asprintf*/
 #endif
 
-#include "audio_thread.h"
+#include "cras/src/server/audio_thread.h"
 
 #include <poll.h>
 #include <pthread.h>
@@ -16,19 +16,19 @@
 #include <sys/param.h>
 #include <syslog.h>
 
-#include "audio_thread_log.h"
-#include "cras_audio_thread_monitor.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_audio_thread_monitor.h"
+#include "cras/src/server/cras_device_monitor.h"
+#include "cras/src/server/cras_fmt_conv.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/dev_stream.h"
 #include "cras_config.h"
-#include "cras_device_monitor.h"
-#include "cras_fmt_conv.h"
-#include "cras_iodev.h"
-#include "cras_rstream.h"
-#include "cras_server_metrics.h"
-#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
-#include "dev_stream.h"
-#include "utlist.h"
 
 #define MIN_PROCESS_TIME_US 500 /* 0.5ms - min amount of time to mix/src. */
 #define SLEEP_FUZZ_FRAMES 10 /* # to consider "close enough" to sleep frames. */

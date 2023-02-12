@@ -9,7 +9,7 @@
 #ifndef CRAS_RSTREAM_CONFIG_H_
 #define CRAS_RSTREAM_CONFIG_H_
 
-#include "buffer_share.h"
+#include "cras/src/server/buffer_share.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 

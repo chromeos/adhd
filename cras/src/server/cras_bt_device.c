@@ -7,7 +7,7 @@
 #define _GNU_SOURCE /* for ppoll */
 #endif
 
-#include "cras_bt_device.h"
+#include "cras/src/server/cras_bt_device.h"
 
 #include <dbus/dbus.h>
 #include <errno.h>
@@ -19,22 +19,22 @@
 #include <sys/socket.h>
 #include <syslog.h>
 
-#include "bluetooth.h"
-#include "cras_a2dp_endpoint.h"
-#include "cras_bt_adapter.h"
-#include "cras_bt_constants.h"
-#include "cras_bt_io.h"
-#include "cras_bt_log.h"
-#include "cras_bt_policy.h"
-#include "cras_bt_profile.h"
-#include "cras_hfp_ag_profile.h"
-#include "cras_hfp_slc.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_server_metrics.h"
-#include "cras_string.h"
-#include "sfh.h"
-#include "utlist.h"
+#include "cras/src/common/bluetooth.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/common/sfh.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_a2dp_endpoint.h"
+#include "cras/src/server/cras_bt_adapter.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_io.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_bt_policy.h"
+#include "cras/src/server/cras_bt_profile.h"
+#include "cras/src/server/cras_hfp_ag_profile.h"
+#include "cras/src/server/cras_hfp_slc.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_server_metrics.h"
 
 /*
  * Bluetooth Core 5.0 spec, vol 4, part B, section 2 describes

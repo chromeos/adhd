@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
-#include "cras_board_config.h"
+#include "cras/src/server/config/cras_board_config.h"
 
 #include <errno.h>
 #include <syslog.h>
 
-#include "iniparser_wrapper.h"
+#include "cras/src/server/iniparser_wrapper.h"
 
 static const int32_t DEFAULT_OUTPUT_BUFFER_SIZE = 512;
 static const int32_t AEC_SUPPORTED_DEFAULT = 0;

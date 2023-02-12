@@ -7,7 +7,7 @@
 #define SR_STUB_H_
 
 extern "C" {
-#include "cras_sr.h"
+#include "cras/src/server/cras_sr.h"
 
 // The original cras_sr.h is included.
 // The following functions are added for testing.

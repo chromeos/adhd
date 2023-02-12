@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_hfp_iodev.h"
+#include "cras/src/server/cras_hfp_iodev.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -12,18 +12,18 @@
 #include <sys/time.h>
 #include <syslog.h>
 
-#include "cras_audio_area.h"
-#include "cras_hfp_ag_profile.h"
-#include "cras_hfp_slc.h"
-#include "cras_iodev.h"
-#include "cras_sco.h"
-#include "cras_server_metrics.h"
-#include "cras_sr.h"
-#include "cras_sr_bt_util.h"
-#include "cras_system_state.h"
+#include "cras/src/common/strlcpy.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_hfp_ag_profile.h"
+#include "cras/src/server/cras_hfp_slc.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_sco.h"
+#include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_sr.h"
+#include "cras/src/server/cras_sr_bt_util.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_util.h"
-#include "strlcpy.h"
-#include "utlist.h"
 
 /* Implementation of bluetooth hands-free profile iodev. */
 struct hfp_io {

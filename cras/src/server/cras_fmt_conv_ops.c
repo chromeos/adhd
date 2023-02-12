@@ -2,7 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "cras_fmt_conv_ops.h"
+#include "cras/src/server/cras_fmt_conv_ops.h"
 
 #include <limits.h>
 #include <stdint.h>

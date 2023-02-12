@@ -7,11 +7,11 @@
 #include <cstdio>
 #include <vector>
 
-#include "sample_buffer.h"
+#include "cras/src/common/sample_buffer.h"
 
 extern "C" {
-#include "cras_sr.h"
-#include "dsp/am.h"
+#include "cras/src/dsp/am.h"
+#include "cras/src/server/cras_sr.h"
 }
 
 namespace {

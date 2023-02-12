@@ -3,15 +3,15 @@
  * found in the LICENSE file.
  */
 
-#include "server_stream.h"
+#include "cras/src/server/server_stream.h"
 
 #include <syslog.h>
 
-#include "cras_rstream.h"
-#include "cras_server.h"
-#include "cras_system_state.h"
+#include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server.h"
+#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/stream_list.h"
 #include "cras_types.h"
-#include "stream_list.h"
 
 /* Parameters used for server stream. */
 static unsigned int server_stream_block_size = 480;

@@ -6,7 +6,7 @@
 #include <assert.h>
 
 extern "C" {
-#include "sr_bt_util_stub.h"
+#include "cras/src/tests/sr_bt_util_stub.h"
 }
 
 namespace {

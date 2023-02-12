@@ -8,7 +8,7 @@
 
 #include <alsa/asoundlib.h>
 
-#include "cras_card_config.h"
+#include "cras/src/server/config/cras_card_config.h"
 #include "cras_types.h"
 
 struct cras_alsa_mixer;

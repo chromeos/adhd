@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
-#include "stream_list.h"
+#include "cras/src/server/stream_list.h"
 
 #include <syslog.h>
 
-#include "cras_rstream.h"
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
+#include "cras/src/server/cras_rstream.h"
 
 struct stream_list {
 	struct cras_rstream *streams;

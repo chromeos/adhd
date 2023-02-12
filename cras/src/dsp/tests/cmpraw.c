@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "raw.h"
+#include "cras/src/dsp/tests/raw.h"
 
 /* Compare the difference between two raw files */
 

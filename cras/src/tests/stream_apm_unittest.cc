@@ -7,15 +7,15 @@
 #include <unordered_map>
 
 extern "C" {
-#include "audio_thread.h"
-#include "cras_apm_reverse.h"
-#include "cras_audio_area.h"
-#include "cras_iodev.h"
-#include "cras_iodev_list.h"
-#include "cras_main_message.h"
-#include "cras_stream_apm.h"
+#include "cras/src/server/audio_thread.h"
+#include "cras/src/server/cras_apm_reverse.h"
+#include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_main_message.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/float_buffer.h"
 #include "cras_types.h"
-#include "float_buffer.h"
 #include "webrtc_apm.h"
 }
 

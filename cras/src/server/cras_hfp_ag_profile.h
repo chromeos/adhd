@@ -9,8 +9,8 @@
 #include <dbus/dbus.h>
 #include <stdbool.h>
 
-#include "cras_bt_device.h"
-#include "cras_hfp_slc.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_hfp_slc.h"
 
 /*
  * For service record profile, 'SupportedFearues' attribute bit mapping

@@ -7,10 +7,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "dsp_test_util.h"
-#include "dsp_util.h"
-#include "eq.h"
-#include "raw.h"
+#include "cras/src/dsp/dsp_util.h"
+#include "cras/src/dsp/eq.h"
+#include "cras/src/dsp/tests/dsp_test_util.h"
+#include "cras/src/dsp/tests/raw.h"
 
 #ifndef min
 #define min(a, b)                                                              \

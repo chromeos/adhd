@@ -9,12 +9,12 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras_bt_constants.h"
-#include "cras_bt_log.h"
-#include "cras_bt_manager.h"
-#include "cras_bt_policy.h"
-#include "cras_fl_media.h"
-#include "cras_string.h"
+#include "cras/src/common/cras_string.h"
+#include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_bt_manager.h"
+#include "cras/src/server/cras_bt_policy.h"
+#include "cras/src/server/cras_fl_media.h"
 
 #define BT_MANAGER_SERVICE_NAME "org.chromium.bluetooth.Manager"
 #define BT_MANAGER_INTERFACE "org.chromium.bluetooth.Manager"

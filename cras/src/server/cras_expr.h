@@ -10,8 +10,8 @@
 extern "C" {
 #endif
 
-#include "array.h"
-#include "dumper.h"
+#include "cras/src/common/array.h"
+#include "cras/src/common/dumper.h"
 
 /* Value */
 

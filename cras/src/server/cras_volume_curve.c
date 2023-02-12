@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras_volume_curve.h"
+#include "cras/src/server/cras_volume_curve.h"
 
 #include <stddef.h>
 #include <stdlib.h>

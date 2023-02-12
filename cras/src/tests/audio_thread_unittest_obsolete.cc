@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 extern "C" {
-#include "audio_thread.c"
+#include "cras/src/server/audio_thread.c"
 }
 
 #include <gtest/gtest.h>

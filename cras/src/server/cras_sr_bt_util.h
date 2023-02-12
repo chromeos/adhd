@@ -6,8 +6,8 @@
 #ifndef CRAS_SR_BT_UTIL_H_
 #define CRAS_SR_BT_UTIL_H_
 
-#include "cras_iodev.h"
-#include "cras_sr.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_sr.h"
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS {
 	CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK,

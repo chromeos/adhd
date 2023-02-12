@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "edid_utils.h"
+#include "cras/src/common/edid_utils.h"
 
 #include <gtest/gtest.h>
 #include <stdint.h>

@@ -10,8 +10,8 @@
 #include <string.h> /* for memset() */
 #include <time.h> /* for clock_gettime */
 
-#include "../drc_math.h"
-#include "../dsp_util.h"
+#include "cras/src/dsp/drc_math.h"
+#include "cras/src/dsp/dsp_util.h"
 
 /* Constant for converting time to milliseconds. */
 #define BILLION 1000000000LL

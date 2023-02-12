@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "cras_client.c"
+#include "cras/src/libcras/cras_client.c"
 #include "cras_client.h"
 
 inline int libcras_unsupported_func(struct libcras_client* client) {

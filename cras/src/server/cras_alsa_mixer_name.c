@@ -3,13 +3,13 @@
  * found in the LICENSE file.
  */
 
-#include "cras_alsa_mixer_name.h"
+#include "cras/src/server/cras_alsa_mixer_name.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include "utlist.h"
+#include "cras/src/common/utlist.h"
 
 static void mixer_control_get_name_and_index(const char *name,
 					     char *mixer_control_name,
