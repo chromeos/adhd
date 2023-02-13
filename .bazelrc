@@ -38,3 +38,6 @@ build:ubsan --linkopt=-fsanitize-link-c++-runtime
 build:fuzzer --//:fuzzer --copt=-Wno-error=unused-function
 
 build --copt=-Wno-error=sign-compare
+
+# Always enable debug symbols.
+build --copt=-g --linkopt=-g --strip=never
