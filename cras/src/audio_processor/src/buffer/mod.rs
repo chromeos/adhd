@@ -165,6 +165,14 @@ impl<'a, T> MultiSlice<'a, T> {
     }
 }
 
+impl<'a, T: Clone> MultiSlice<'a, T> {
+    pub fn clone_from_multi_slice(&mut self, src: &MultiSlice<T>) {
+        for (to, from) in self.iter_mut().zip(src.iter()) {
+            to.clone_from_slice(from)
+        }
+    }
+}
+
 impl<'a> MultiSlice<'a, u8> {
     /// Convert the `MultiSlice<u8>` to `MultiSlice<T>`.
     /// This is a "view" conversion, the underlying memory is unchanged.

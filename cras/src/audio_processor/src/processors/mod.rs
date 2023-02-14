@@ -5,6 +5,9 @@
 mod check_shape;
 pub use check_shape::*;
 
+mod chunk_wrapper;
+pub use chunk_wrapper::*;
+
 mod negate;
 pub use negate::*;
 
