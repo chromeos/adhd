@@ -4140,10 +4140,14 @@ int get_default_output_buffer_size(struct cras_client *client, int *size)
 
 int get_aec_group_id(struct cras_client *client, int *id)
 {
-	int rc = cras_client_get_aec_group_id(client);
-	if (rc < 0)
-		return rc;
-	*id = rc;
+	int lock_rc;
+
+	lock_rc = server_state_rdlock(client);
+	if (lock_rc)
+		return -EINVAL;
+
+	*id = client->server_state->aec_group_id;
+	server_state_unlock(client, lock_rc);
 	return 0;
 }
 
