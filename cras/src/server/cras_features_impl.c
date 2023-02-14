@@ -39,7 +39,7 @@ static struct cras_feature features[NUM_FEATURES] = {
         },
     [CrOSLateBootCrasSplitAlsaUSBInternal] = {
         .name = "CrOSLateBootCrasSplitAlsaUSBInternal",
-        .default_enabled = false,
+        .default_enabled = true,
     }};
 
 bool cras_feature_enabled(enum cras_feature_id id) {
