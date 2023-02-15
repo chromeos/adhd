@@ -11,9 +11,12 @@
 
 #include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alsa_io.h"
+#include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_jack.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_alsa_usb_io.h"
+#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/iniparser_wrapper.h"
@@ -39,7 +42,22 @@ struct alsa_plugin {
 	struct hctl_poll_fd *hctl_poll_fds;
 	struct cras_use_case_mgr *ucm;
 	struct cras_iodev *iodev;
+	struct cras_alsa_iodev_ops *ops;
 	struct alsa_plugin *next, *prev;
+};
+
+static struct cras_alsa_iodev_ops cras_alsa_iodev_ops_internal_ops = {
+	.create = alsa_iodev_create,
+	.ucm_add_nodes_and_jacks = alsa_iodev_ucm_add_nodes_and_jacks,
+	.ucm_complete_init = alsa_iodev_ucm_complete_init,
+	.destroy = alsa_iodev_destroy,
+};
+
+static struct cras_alsa_iodev_ops cras_alsa_iodev_ops_usb_ops = {
+	.create = cras_alsa_usb_iodev_create,
+	.ucm_add_nodes_and_jacks = cras_alsa_usb_iodev_ucm_add_nodes_and_jacks,
+	.ucm_complete_init = cras_alsa_usb_iodev_ucm_complete_init,
+	.destroy = cras_alsa_usb_iodev_destroy,
 };
 
 static struct alsa_plugin *plugins;
@@ -159,20 +177,28 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
 			       "section %s mixer_name %s",
 			       section->name, section->mixer_name);
 	}
-	plugin->iodev = alsa_iodev_create(0, card_name, 0, pcm_name, "", "",
-					  ALSA_CARD_TYPE_USB, 1, /* is first */
-					  plugin->mixer, NULL, plugin->ucm,
-					  plugin->hctl, direction, NULL_USB_VID,
-					  NULL_USB_PID, NULL_USB_SERIAL_NUMBER);
+
+	if (cras_feature_enabled(CrOSLateBootCrasSplitAlsaUSBInternal)) {
+		plugin->ops = &cras_alsa_iodev_ops_usb_ops;
+	} else {
+		plugin->ops = &cras_alsa_iodev_ops_internal_ops;
+	}
+
+	plugin->iodev = cras_alsa_iodev_ops_create(
+		plugin->ops, 0, card_name, 0, pcm_name, "", "",
+		ALSA_CARD_TYPE_USB, 1, /* is first */
+		plugin->mixer, NULL, plugin->ucm, plugin->hctl, direction,
+		NULL_USB_VID, NULL_USB_PID, NULL_USB_SERIAL_NUMBER);
 
 	DL_FOREACH (ucm_sections, section) {
 		if (section->dir != plugin->iodev->direction)
 			continue;
 		section->dev_idx = 0;
-		alsa_iodev_ucm_add_nodes_and_jacks(plugin->iodev, section);
+		cras_alsa_iodev_ops_ucm_add_nodes_and_jacks(
+			plugin->ops, plugin->iodev, section);
 	}
 
-	alsa_iodev_ucm_complete_init(plugin->iodev);
+	cras_alsa_iodev_ops_ucm_complete_init(plugin->ops, plugin->iodev);
 
 	return;
 cleanup:
@@ -186,7 +212,7 @@ static void destroy_plugin(struct alsa_plugin *plugin)
 	if (plugin->hctl)
 		snd_hctl_close(plugin->hctl);
 	if (plugin->iodev)
-		alsa_iodev_destroy(plugin->iodev);
+		cras_alsa_iodev_ops_destroy(plugin->ops, plugin->iodev);
 	if (plugin->mixer)
 		cras_alsa_mixer_destroy(plugin->mixer);
 

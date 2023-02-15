@@ -32,6 +32,10 @@ static struct cras_feature features[NUM_FEATURES] = {
 		.name = "CrOSLateBootAudioAPNoiseCancellation",
 		.default_enabled = false,
 	},
+	[CrOSLateBootCrasSplitAlsaUSBInternal] = {
+		.name = "CrOSLateBootCrasSplitAlsaUSBInternal",
+		.default_enabled = false,
+	}
 };
 
 bool cras_feature_enabled(enum cras_feature_id id)

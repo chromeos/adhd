@@ -15,7 +15,11 @@ extern "C" {
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_alsa_usb_io.h"
+#include "cras/src/server/cras_features.h"
+#include "cras/src/server/cras_features_override.h"
 #include "cras/src/server/cras_iodev.h"
+
 #include "cras_types.h"
 #include "cras_util.h"
 }
@@ -26,7 +30,9 @@ static size_t cras_alsa_mixer_create_called;
 static struct cras_alsa_mixer* cras_alsa_mixer_create_return;
 static size_t cras_alsa_mixer_destroy_called;
 static size_t cras_alsa_iodev_create_called;
+static size_t cras_alsa_usb_iodev_create_called;
 static struct cras_iodev** cras_alsa_iodev_create_return;
+static struct cras_iodev** cras_alsa_usb_iodev_create_return;
 static struct cras_iodev fake_dev1, fake_dev2, fake_dev3, fake_dev4;
 static struct cras_iodev* cras_alsa_iodev_create_default_return[] = {
     &fake_dev1,
@@ -34,15 +40,31 @@ static struct cras_iodev* cras_alsa_iodev_create_default_return[] = {
     &fake_dev3,
     &fake_dev4,
 };
+static struct cras_iodev* cras_alsa_usb_iodev_create_default_return[] = {
+    &fake_dev1,
+    &fake_dev2,
+    &fake_dev3,
+    &fake_dev4,
+};
 static size_t cras_alsa_iodev_create_return_size;
+static size_t cras_alsa_usb_iodev_create_return_size;
 static size_t cras_alsa_iodev_legacy_complete_init_called;
+static size_t cras_alsa_usb_iodev_legacy_complete_init_called;
 static size_t cras_alsa_iodev_ucm_add_nodes_and_jacks_called;
+static size_t cras_alsa_usb_iodev_ucm_add_nodes_and_jacks_called;
 static size_t cras_alsa_iodev_ucm_complete_init_called;
+static size_t cras_alsa_usb_iodev_ucm_complete_init_called;
 static size_t cras_alsa_iodev_destroy_called;
+static size_t cras_alsa_usb_iodev_destroy_called;
 static struct cras_iodev* cras_alsa_iodev_destroy_arg;
+static struct cras_iodev* cras_alsa_usb_iodev_destroy_arg;
 static size_t cras_alsa_iodev_index_called;
+static size_t cras_alsa_usb_iodev_index_called;
 static std::map<struct cras_iodev*, unsigned int> cras_alsa_iodev_index_return;
+static std::map<struct cras_iodev*, unsigned int>
+    cras_alsa_usb_iodev_index_return;
 static int alsa_iodev_has_hctl_jacks_return;
+static int cras_alsa_usb_iodev_has_hctl_jacks_return;
 static size_t snd_ctl_open_called;
 static size_t snd_ctl_open_return;
 static size_t snd_ctl_close_called;
@@ -105,17 +127,29 @@ static void ResetStubData() {
   cras_alsa_mixer_create_return = reinterpret_cast<struct cras_alsa_mixer*>(1);
   cras_alsa_mixer_destroy_called = 0;
   cras_alsa_iodev_destroy_arg = NULL;
+  cras_alsa_usb_iodev_destroy_arg = NULL;
   cras_alsa_iodev_create_called = 0;
+  cras_alsa_usb_iodev_create_called = 0;
   cras_alsa_iodev_create_return = cras_alsa_iodev_create_default_return;
   cras_alsa_iodev_create_return_size =
       ARRAY_SIZE(cras_alsa_iodev_create_default_return);
+  cras_alsa_usb_iodev_create_return = cras_alsa_usb_iodev_create_default_return;
+  cras_alsa_usb_iodev_create_return_size =
+      ARRAY_SIZE(cras_alsa_usb_iodev_create_default_return);
   cras_alsa_iodev_legacy_complete_init_called = 0;
+  cras_alsa_usb_iodev_legacy_complete_init_called = 0;
   cras_alsa_iodev_ucm_add_nodes_and_jacks_called = 0;
+  cras_alsa_usb_iodev_ucm_add_nodes_and_jacks_called = 0;
   cras_alsa_iodev_ucm_complete_init_called = 0;
+  cras_alsa_usb_iodev_ucm_complete_init_called = 0;
   cras_alsa_iodev_destroy_called = 0;
+  cras_alsa_usb_iodev_destroy_called = 0;
   cras_alsa_iodev_index_called = 0;
+  cras_alsa_usb_iodev_index_called = 0;
   cras_alsa_iodev_index_return.clear();
+  cras_alsa_usb_iodev_index_return.clear();
   alsa_iodev_has_hctl_jacks_return = 1;
+  cras_alsa_usb_iodev_has_hctl_jacks_return = 1;
   snd_ctl_open_called = 0;
   snd_ctl_open_return = 0;
   snd_ctl_close_called = 0;
@@ -175,6 +209,7 @@ static void ResetStubData() {
   fake_dev2.nodes = NULL;
   fake_dev3.nodes = NULL;
   fake_dev4.nodes = NULL;
+  cras_features_set_override(CrOSLateBootCrasSplitAlsaUSBInternal, true);
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -383,6 +418,62 @@ TEST(AlsaCard, CreateNoDevices) {
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
 
+TEST(AlsaCard, CrOSLateBootCrasSplitAlsaUSBInternalOpen) {
+  struct cras_alsa_card* c;
+  int dev_nums[] = {0};
+  int info_rets[] = {0, -1};
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  cras_features_set_override(CrOSLateBootCrasSplitAlsaUSBInternal, true);
+  snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
+  snd_ctl_pcm_next_device_set_devs = dev_nums;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  card_info.card_type = ALSA_CARD_TYPE_USB;
+  card_info.card_index = 0;
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blocklist,
+                            NULL);
+  EXPECT_NE(static_cast<struct cras_alsa_card*>(NULL), c);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_legacy_complete_init_called);
+  EXPECT_EQ(0, cras_alsa_iodev_legacy_complete_init_called);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_destroy_called);
+  EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(cras_alsa_usb_iodev_create_return[0],
+            cras_alsa_usb_iodev_destroy_arg);
+}
+
+TEST(AlsaCard, CrOSLateBootCrasSplitAlsaUSBInternalClose) {
+  struct cras_alsa_card* c;
+  int dev_nums[] = {0};
+  int info_rets[] = {0, -1};
+  cras_alsa_card_info card_info;
+  ResetStubData();
+  cras_features_set_override(CrOSLateBootCrasSplitAlsaUSBInternal, false);
+  snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
+  snd_ctl_pcm_next_device_set_devs = dev_nums;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  card_info.card_type = ALSA_CARD_TYPE_USB;
+  card_info.card_index = 0;
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blocklist,
+                            NULL);
+  EXPECT_NE(static_cast<struct cras_alsa_card*>(NULL), c);
+  EXPECT_EQ(0, cras_alsa_usb_iodev_create_called);
+  EXPECT_EQ(1, cras_alsa_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init_called);
+  EXPECT_EQ(1, cras_alsa_iodev_legacy_complete_init_called);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(0, cras_alsa_usb_iodev_destroy_called);
+  EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(cras_alsa_iodev_create_return[0], cras_alsa_iodev_destroy_arg);
+}
+
 TEST(AlsaCard, CreateOneOutputNextDevError) {
   struct cras_alsa_card* c;
   cras_alsa_card_info card_info;
@@ -417,9 +508,9 @@ TEST(AlsaCard, CreateOneOutput) {
   EXPECT_NE(static_cast<struct cras_alsa_card*>(NULL), c);
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
-  EXPECT_EQ(1, cras_alsa_iodev_create_called);
-  EXPECT_EQ(1, cras_alsa_iodev_legacy_complete_init_called);
-  EXPECT_EQ(0, cras_alsa_iodev_index_called);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_create_called);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_legacy_complete_init_called);
+  EXPECT_EQ(0, cras_alsa_usb_iodev_index_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
   EXPECT_EQ(1, ucm_create_called);
   EXPECT_EQ(1, ucm_get_dev_for_mixer_called);
@@ -431,8 +522,9 @@ TEST(AlsaCard, CreateOneOutput) {
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, ucm_destroy_called);
-  EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return[0], cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_destroy_called);
+  EXPECT_EQ(cras_alsa_usb_iodev_create_return[0],
+            cras_alsa_usb_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -458,13 +550,13 @@ TEST(AlsaCard, CreateOneOutputBlocklisted) {
   EXPECT_EQ(snd_ctl_close_called, snd_ctl_open_called);
   EXPECT_EQ(2, snd_ctl_pcm_next_device_called);
   EXPECT_EQ(1, snd_ctl_card_info_called);
-  EXPECT_EQ(0, cras_alsa_iodev_create_called);
-  EXPECT_EQ(0, cras_alsa_iodev_legacy_complete_init_called);
+  EXPECT_EQ(0, cras_alsa_usb_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init_called);
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
 
   cras_alsa_card_destroy(c);
-  EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(NULL, cras_alsa_iodev_destroy_arg);
+  EXPECT_EQ(0, cras_alsa_usb_iodev_destroy_called);
+  EXPECT_EQ(NULL, cras_alsa_usb_iodev_destroy_arg);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
 }
@@ -1073,6 +1165,65 @@ unsigned alsa_iodev_index(struct cras_iodev* iodev) {
 }
 int alsa_iodev_has_hctl_jacks(struct cras_iodev* iodev) {
   return alsa_iodev_has_hctl_jacks_return;
+}
+
+struct cras_iodev* cras_alsa_usb_iodev_create(
+    size_t card_index,
+    const char* card_name,
+    size_t device_index,
+    const char* pcm_name,
+    const char* dev_name,
+    const char* dev_id,
+    enum CRAS_ALSA_CARD_TYPE card_type,
+    int is_first,
+    struct cras_alsa_mixer* mixer,
+    const struct cras_card_config* config,
+    struct cras_use_case_mgr* ucm,
+    snd_hctl_t* hctl,
+    enum CRAS_STREAM_DIRECTION direction,
+    size_t usb_vid,
+    size_t usb_pid,
+    char* usb_serial_number) {
+  struct cras_iodev* result = NULL;
+  if (cras_alsa_usb_iodev_create_called <
+      cras_alsa_usb_iodev_create_return_size)
+    result =
+        cras_alsa_usb_iodev_create_return[cras_alsa_usb_iodev_create_called];
+  cras_alsa_usb_iodev_create_called++;
+  return result;
+}
+
+int cras_alsa_usb_iodev_legacy_complete_init(struct cras_iodev* iodev) {
+  cras_alsa_usb_iodev_legacy_complete_init_called++;
+  return 0;
+}
+
+int cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(struct cras_iodev* iodev,
+                                                struct ucm_section* section) {
+  cras_alsa_usb_iodev_ucm_add_nodes_and_jacks_called++;
+  return 0;
+}
+
+void cras_alsa_usb_iodev_ucm_complete_init(struct cras_iodev* iodev) {
+  cras_alsa_usb_iodev_ucm_complete_init_called++;
+}
+
+void cras_alsa_usb_iodev_destroy(struct cras_iodev* iodev) {
+  cras_alsa_usb_iodev_destroy_called++;
+  cras_alsa_usb_iodev_destroy_arg = iodev;
+}
+
+unsigned cras_alsa_usb_iodev_index(struct cras_iodev* iodev) {
+  std::map<struct cras_iodev*, unsigned int>::iterator i;
+  cras_alsa_usb_iodev_index_called++;
+  i = cras_alsa_usb_iodev_index_return.find(iodev);
+  if (i != cras_alsa_usb_iodev_index_return.end())
+    return i->second;
+  return 0;
+}
+
+int cras_alsa_usb_iodev_has_hctl_jacks(struct cras_iodev* iodev) {
+  return cras_alsa_usb_iodev_has_hctl_jacks_return;
 }
 
 size_t snd_pcm_info_sizeof() {

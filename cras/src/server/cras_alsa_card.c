@@ -16,8 +16,11 @@
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alsa_io.h"
+#include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_alsa_usb_io.h"
+#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_system_state.h"
@@ -63,6 +66,27 @@ struct cras_alsa_card {
 	struct hctl_poll_fd *hctl_poll_fds;
 	struct cras_card_config *config;
 	enum CRAS_ALSA_CARD_TYPE card_type;
+	struct cras_alsa_iodev_ops *ops;
+};
+
+static struct cras_alsa_iodev_ops cras_alsa_iodev_ops_internal_ops = {
+	.create = alsa_iodev_create,
+	.legacy_complete_init = alsa_iodev_legacy_complete_init,
+	.ucm_add_nodes_and_jacks = alsa_iodev_ucm_add_nodes_and_jacks,
+	.ucm_complete_init = alsa_iodev_ucm_complete_init,
+	.destroy = alsa_iodev_destroy,
+	.index = alsa_iodev_index,
+	.has_hctl_jacks = alsa_iodev_has_hctl_jacks
+};
+
+static struct cras_alsa_iodev_ops cras_alsa_iodev_ops_usb_ops = {
+	.create = cras_alsa_usb_iodev_create,
+	.legacy_complete_init = cras_alsa_usb_iodev_legacy_complete_init,
+	.ucm_add_nodes_and_jacks = cras_alsa_usb_iodev_ucm_add_nodes_and_jacks,
+	.ucm_complete_init = cras_alsa_usb_iodev_ucm_complete_init,
+	.destroy = cras_alsa_usb_iodev_destroy,
+	.index = cras_alsa_usb_iodev_index,
+	.has_hctl_jacks = cras_alsa_usb_iodev_has_hctl_jacks
 };
 
 /* Creates an iodev for the given device.
@@ -94,7 +118,8 @@ struct cras_iodev *create_iodev_for_device(
 		if (node->direction != direction)
 			continue;
 		first = 0;
-		if (alsa_iodev_index(node->iodev) == device_index) {
+		if (cras_alsa_iodev_ops_index(alsa_card->ops, node->iodev) ==
+		    device_index) {
 			syslog(LOG_DEBUG,
 			       "Skipping duplicate device for %s:%s:%s [%u]",
 			       card_name, dev_name, dev_id, device_index);
@@ -112,13 +137,12 @@ struct cras_iodev *create_iodev_for_device(
 		 device_index);
 
 	new_dev->direction = direction;
-	new_dev->iodev =
-		alsa_iodev_create(info->card_index, card_name, device_index,
-				  pcm_name, dev_name, dev_id, info->card_type,
-				  first, alsa_card->mixer, alsa_card->config,
-				  alsa_card->ucm, alsa_card->hctl, direction,
-				  info->usb_vendor_id, info->usb_product_id,
-				  info->usb_serial_number);
+	new_dev->iodev = cras_alsa_iodev_ops_create(
+		alsa_card->ops, info->card_index, card_name, device_index,
+		pcm_name, dev_name, dev_id, info->card_type, first,
+		alsa_card->mixer, alsa_card->config, alsa_card->ucm,
+		alsa_card->hctl, direction, info->usb_vendor_id,
+		info->usb_product_id, info->usb_serial_number);
 	if (new_dev->iodev == NULL) {
 		syslog(LOG_ERR, "Couldn't create alsa_iodev for %s", pcm_name);
 		free(new_dev);
@@ -141,7 +165,8 @@ static int card_has_hctl_jack(struct cras_alsa_card *alsa_card)
 
 	/* Find the first device that has an hctl jack. */
 	DL_FOREACH (alsa_card->iodevs, node) {
-		if (alsa_iodev_has_hctl_jacks(node->iodev))
+		if (cras_alsa_iodev_ops_has_hctl_jacks(alsa_card->ops,
+						       node->iodev))
 			return 1;
 	}
 	return 0;
@@ -269,7 +294,8 @@ add_controls_and_iodevs_by_matching(struct cras_alsa_card_info *info,
 				snd_pcm_info_get_id(dev_info), dev_idx,
 				CRAS_STREAM_OUTPUT);
 			if (iodev) {
-				rc = alsa_iodev_legacy_complete_init(iodev);
+				rc = cras_alsa_iodev_ops_legacy_complete_init(
+					alsa_card->ops, iodev);
 				if (rc < 0)
 					goto error;
 			}
@@ -284,7 +310,8 @@ add_controls_and_iodevs_by_matching(struct cras_alsa_card_info *info,
 				snd_pcm_info_get_id(dev_info), dev_idx,
 				CRAS_STREAM_INPUT);
 			if (iodev) {
-				rc = alsa_iodev_legacy_complete_init(iodev);
+				rc = cras_alsa_iodev_ops_legacy_complete_init(
+					alsa_card->ops, iodev);
 				if (rc < 0)
 					goto error;
 			}
@@ -388,22 +415,26 @@ static int add_controls_and_iodevs_with_ucm(struct cras_alsa_card_info *info,
 		DL_FOREACH (alsa_card->iodevs, node) {
 			if (node->direction != section->dir)
 				continue;
-			if (alsa_iodev_index(node->iodev) == section->dev_idx)
+			if (cras_alsa_iodev_ops_index(alsa_card->ops,
+						      node->iodev) ==
+			    section->dev_idx)
 				break;
-			if (alsa_iodev_index(node->iodev) ==
+			if (cras_alsa_iodev_ops_index(alsa_card->ops,
+						      node->iodev) ==
 			    section->dependent_dev_idx)
 				break;
 		}
 		if (node) {
-			rc = alsa_iodev_ucm_add_nodes_and_jacks(node->iodev,
-								section);
+			rc = cras_alsa_iodev_ops_ucm_add_nodes_and_jacks(
+				alsa_card->ops, node->iodev, section);
 			if (rc < 0)
 				goto cleanup;
 		}
 	}
 
 	DL_FOREACH (alsa_card->iodevs, node) {
-		alsa_iodev_ucm_complete_init(node->iodev);
+		cras_alsa_iodev_ops_ucm_complete_init(alsa_card->ops,
+						      node->iodev);
 	}
 
 cleanup:
@@ -476,6 +507,11 @@ struct cras_alsa_card *cras_alsa_card_create(
 
 	snprintf(alsa_card->name, MAX_ALSA_CARD_NAME_LENGTH, "hw:%u",
 		 info->card_index);
+	alsa_card->ops = &cras_alsa_iodev_ops_internal_ops;
+	if (cras_feature_enabled(CrOSLateBootCrasSplitAlsaUSBInternal) &&
+	    alsa_card->card_type == ALSA_CARD_TYPE_USB) {
+		alsa_card->ops = &cras_alsa_iodev_ops_usb_ops;
+	}
 
 	rc = snd_ctl_open(&handle, alsa_card->name, 0);
 	if (rc < 0) {
@@ -621,7 +657,7 @@ void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card)
 		return;
 
 	DL_FOREACH (alsa_card->iodevs, curr) {
-		alsa_iodev_destroy(curr->iodev);
+		cras_alsa_iodev_ops_destroy(alsa_card->ops, curr->iodev);
 		DL_DELETE(alsa_card->iodevs, curr);
 		free(curr);
 	}

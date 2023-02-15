@@ -97,6 +97,7 @@ cc_test(
     srcs = [
         ":alsa_card_unittest.cc",
         "//cras/src/server:cras_alsa_card.c",
+        "//cras/src/server:cras_alsa_io_ops.c",
         "//cras/src/server:cras_alsa_mixer_name.c",
         "//cras/src/server:cras_alsa_ucm_section.c",
     ],
@@ -104,6 +105,7 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
+        "//cras/src/server:cras_features_override",
         "//cras/src/server/config:all_headers",
         "@iniparser",
         "@pkg_config//:alsa",
@@ -137,6 +139,23 @@ cc_test(
         "//cras/src/server:cras_alsa_mixer_name.c",
         "//cras/src/server:cras_alsa_ucm_section.c",
         "//cras/src/server:softvol_curve.c",
+    ],
+    deps = [
+        ":test_support",
+        "//cras/src/common:all_headers",
+        "//cras/src/server:all_headers",
+        "//cras/src/server/config:all_headers",
+        "@iniparser",
+        "@pkg_config//:alsa",
+        "@pkg_config//:gtest",
+    ],
+)
+
+cc_test(
+    name = "cras_alsa_io_ops_unittest",
+    srcs = [
+        ":cras_alsa_io_ops_unittest.cc",
+        "//cras/src/server:cras_alsa_io_ops.c",
     ],
     deps = [
         ":test_support",
