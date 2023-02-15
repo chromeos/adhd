@@ -20,7 +20,11 @@ for fn in sys.argv[1:]:
     if not fn.endswith('.h'):
         continue
 
-    with open(fn) as file:
+    try:
+        file = open(fn)
+    except FileNotFoundError:
+        continue
+    with file:
         guard_name = (
             ''.join(
                 c if c in string.ascii_uppercase + string.digits else '_'
