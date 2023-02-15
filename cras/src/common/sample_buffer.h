@@ -16,8 +16,8 @@
  *     In this way, sample_buffer creates a weak reference of a byte_buffer,
  *     and won't free it.
  */
-#ifndef SAMPLE_BUFFER_H_
-#define SAMPLE_BUFFER_H_
+#ifndef CRAS_SRC_COMMON_SAMPLE_BUFFER_H_
+#define CRAS_SRC_COMMON_SAMPLE_BUFFER_H_
 
 #include <assert.h>
 #include <errno.h>
@@ -291,4 +291,4 @@ static inline struct byte_buffer *sample_buf_get_buf(struct sample_buffer *buf)
 	return buf->buf;
 }
 
-#endif /* SAMPLE_BUFFER_H_ */
+#endif /* CRAS_SRC_COMMON_SAMPLE_BUFFER_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef SOFTVOL_CURVE_H_
-#define SOFTVOL_CURVE_H_
+#ifndef CRAS_SRC_SERVER_SOFTVOL_CURVE_H_
+#define CRAS_SRC_SERVER_SOFTVOL_CURVE_H_
 
 #include <math.h>
 
@@ -39,4 +39,4 @@ static inline long convert_dBFS_from_softvol_scaler(float scaler)
 /* Builds software volume scalers from volume curve. */
 float *softvol_build_from_curve(const struct cras_volume_curve *curve);
 
-#endif /* SOFTVOL_CURVE_H_ */
+#endif /* CRAS_SRC_SERVER_SOFTVOL_CURVE_H_ */

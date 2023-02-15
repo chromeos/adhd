@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_ENDPOINT_H_
-#define CRAS_BT_ENDPOINT_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_ENDPOINT_H_
+#define CRAS_SRC_SERVER_CRAS_BT_ENDPOINT_H_
 
 #include <dbus/dbus.h>
 #include <stdint.h>
@@ -56,4 +56,4 @@ void cras_bt_endpoint_reset();
 
 struct cras_bt_endpoint *cras_bt_endpoint_get(const char *object_path);
 
-#endif /* CRAS_BT_ENDPOINT_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_ENDPOINT_H_ */

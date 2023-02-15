@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_ARRAY_H_
-#define CRAS_ARRAY_H_
+#ifndef CRAS_SRC_COMMON_ARRAY_H_
+#define CRAS_SRC_COMMON_ARRAY_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -114,4 +114,4 @@ void f()
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_ARRAY_H_ */
+#endif /* CRAS_SRC_COMMON_ARRAY_H_ */

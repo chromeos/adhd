@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef STREAM_LIST_H_
-#define STREAM_LIST_H_
+#ifndef CRAS_SRC_SERVER_STREAM_LIST_H_
+#define CRAS_SRC_SERVER_STREAM_LIST_H_
 
 #include <stdbool.h>
 

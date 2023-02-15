@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_AUDIO_CODEC_H_
-#define CRAS_AUDIO_CODEC_H_
+#ifndef CRAS_SRC_COMMON_CRAS_AUDIO_CODEC_H_
+#define CRAS_SRC_COMMON_CRAS_AUDIO_CODEC_H_
 
 #include <stddef.h>
 
@@ -26,4 +26,4 @@ struct cras_audio_codec {
 	void *priv_data;
 };
 
-#endif /* COMMON_CRAS_AUDIO_CODEC_H_ */
+#endif /* COMMON_CRAS_SRC_COMMON_CRAS_AUDIO_CODEC_H_ */

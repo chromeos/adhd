@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SBC_CODEC_H_
-#define CRAS_SBC_CODEC_H_
+#ifndef CRAS_SRC_COMMON_CRAS_SBC_CODEC_H_
+#define CRAS_SRC_COMMON_CRAS_SBC_CODEC_H_
 
 #include <sbc/sbc.h>
 
@@ -41,4 +41,4 @@ int cras_sbc_get_codesize(struct cras_audio_codec *codec);
  */
 int cras_sbc_get_frame_length(struct cras_audio_codec *codec);
 
-#endif /* COMMON_CRAS_SBC_CODEC_H_ */
+#endif /* COMMON_CRAS_SRC_COMMON_CRAS_SBC_CODEC_H_ */

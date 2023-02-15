@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FMT_CONV_OPS_H_
-#define CRAS_FMT_CONV_OPS_H_
+#ifndef CRAS_SRC_SERVER_CRAS_FMT_CONV_OPS_H_
+#define CRAS_SRC_SERVER_CRAS_FMT_CONV_OPS_H_
 
 #include <sys/types.h>
 
@@ -134,4 +134,4 @@ size_t s16_convert_channels(float **ch_conv_mtx, size_t num_in_ch,
 			    size_t num_out_ch, const uint8_t *in,
 			    size_t in_frames, uint8_t *out);
 
-#endif /* CRAS_FMT_CONV_OPS_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_FMT_CONV_OPS_H_ */

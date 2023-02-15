@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef AM_H_
-#define AM_H_
+#ifndef CRAS_SRC_DSP_AM_H_
+#define CRAS_SRC_DSP_AM_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -41,4 +41,4 @@ int am_process(struct am_context *am_context, const float *inputs,
 } // extern "C"
 #endif
 
-#endif /* AM_H_ */
+#endif /* CRAS_SRC_DSP_AM_H_ */

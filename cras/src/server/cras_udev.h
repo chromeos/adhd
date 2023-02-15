@@ -3,10 +3,10 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_UDEV_H_
-#define CRAS_UDEV_H_
+#ifndef CRAS_SRC_SERVER_CRAS_UDEV_H_
+#define CRAS_SRC_SERVER_CRAS_UDEV_H_
 
 void cras_udev_start_sound_subsystem_monitor();
 void cras_udev_stop_sound_subsystem_monitor();
 
-#endif /* CRAS_UDEV_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_UDEV_H_ */

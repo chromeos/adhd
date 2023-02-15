@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DBUS_CONTROL_H_
-#define CRAS_DBUS_CONTROL_H_
+#ifndef CRAS_SRC_SERVER_CRAS_DBUS_CONTROL_H_
+#define CRAS_SRC_SERVER_CRAS_DBUS_CONTROL_H_
 
 #include <dbus/dbus.h>
 #include <stdbool.h>
@@ -21,4 +21,4 @@ void cras_dbus_control_stop();
 /* Notify resourced that RTC is active. */
 void cras_dbus_notify_rtc_active(bool active);
 
-#endif /* CRAS_DBUS_CONTROL_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_DBUS_CONTROL_H_ */

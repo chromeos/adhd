@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef RAW_H_
-#define RAW_H_
+#ifndef CRAS_SRC_DSP_TESTS_RAW_H_
+#define CRAS_SRC_DSP_TESTS_RAW_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,4 +43,4 @@ void write_raw(const char *filename, float *buf, size_t frames);
 } /* extern "C" */
 #endif
 
-#endif /* RAW_H_ */
+#endif /* CRAS_SRC_DSP_TESTS_RAW_H_ */

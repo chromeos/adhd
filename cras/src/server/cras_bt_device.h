@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_DEVICE_H_
-#define CRAS_BT_DEVICE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_DEVICE_H_
+#define CRAS_SRC_SERVER_CRAS_BT_DEVICE_H_
 
 #include <dbus/dbus.h>
 #include <stdbool.h>
@@ -268,4 +268,4 @@ int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device *device,
  *   device - The bluetooth device.
  */
 void cras_bt_device_hfp_reconnect(struct cras_bt_device *device);
-#endif /* CRAS_BT_DEVICE_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_DEVICE_H_ */

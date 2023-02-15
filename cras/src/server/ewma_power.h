@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef EWMA_POWER_H_
-#define EWMA_POWER_H_
+#ifndef CRAS_SRC_SERVER_EWMA_POWER_H_
+#define CRAS_SRC_SERVER_EWMA_POWER_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -65,4 +65,4 @@ void ewma_power_calculate(struct ewma_power *ewma, const int16_t *buf,
 void ewma_power_calculate_area(struct ewma_power *ewma, const int16_t *buf,
 			       struct cras_audio_area *area, unsigned int size);
 
-#endif /* EWMA_POWER_H_ */
+#endif /* CRAS_SRC_SERVER_EWMA_POWER_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_VOLUME_CURVE_H_
-#define CRAS_VOLUME_CURVE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_VOLUME_CURVE_H_
+#define CRAS_SRC_SERVER_CRAS_VOLUME_CURVE_H_
 
 #include <stddef.h>
 
@@ -56,4 +56,4 @@ cras_volume_curve_create_explicit(long dB_values[101]);
  */
 void cras_volume_curve_destroy(struct cras_volume_curve *curve);
 
-#endif /* CRAS_VOLUME_CURVE_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_VOLUME_CURVE_H_ */

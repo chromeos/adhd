@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef TEST_IODEV_H_
-#define TEST_IODEV_H_
+#ifndef CRAS_SRC_SERVER_TEST_IODEV_H_
+#define CRAS_SRC_SERVER_TEST_IODEV_H_
 
 #include "cras_types.h"
 
@@ -29,4 +29,4 @@ void test_iodev_command(struct cras_iodev *iodev,
 			enum CRAS_TEST_IODEV_CMD command, unsigned int data_len,
 			const uint8_t *data);
 
-#endif /* TEST_IODEV_H_ */
+#endif /* CRAS_SRC_SERVER_TEST_IODEV_H_ */

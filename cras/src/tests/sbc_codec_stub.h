@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef SBC_CODEC_STUB_H_
-#define SBC_CODEC_STUB_H_
+#ifndef CRAS_SRC_TESTS_SBC_CODEC_STUB_H_
+#define CRAS_SRC_TESTS_SBC_CODEC_STUB_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -36,4 +36,4 @@ void cras_sbc_codec_destroy(struct cras_audio_codec* codec);
 int cras_sbc_get_codesize(struct cras_audio_codec* codec);
 int cras_sbc_get_frame_length(struct cras_audio_codec* codec);
 
-#endif  // SBC_CODEC_STUB_H_
+#endif  // CRAS_SRC_TESTS_SBC_CODEC_STUB_H_

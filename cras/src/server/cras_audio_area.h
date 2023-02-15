@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_AUDIO_AREA_H_
-#define CRAS_AUDIO_AREA_H_
+#ifndef CRAS_SRC_SERVER_CRAS_AUDIO_AREA_H_
+#define CRAS_SRC_SERVER_CRAS_AUDIO_AREA_H_
 
 #include <stdint.h>
 
@@ -94,4 +94,4 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area *area,
 					 const struct cras_audio_format *fmt,
 					 uint8_t *base_buffer);
 
-#endif /* CRAS_AUDIO_AREA_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_AUDIO_AREA_H_ */

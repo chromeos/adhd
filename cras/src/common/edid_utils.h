@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef EDID_UTILS_H_
-#define EDID_UTILS_H_
+#ifndef CRAS_SRC_COMMON_EDID_UTILS_H_
+#define CRAS_SRC_COMMON_EDID_UTILS_H_
 
 #include <stdint.h>
 #include <stdio.h>

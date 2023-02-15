@@ -8,7 +8,8 @@
 # in https://chromium.googlesource.com/chromiumos/repohooks/+/refs/heads/main/pre-upload.py
 # instead.
 
-import os
+import argparse
+import re
 import string
 import sys
 
@@ -16,7 +17,13 @@ import sys
 fail = False
 
 
-for fn in sys.argv[1:]:
+parser = argparse.ArgumentParser()
+parser.add_argument('--fix', action='store_true')
+parser.add_argument('files', nargs='*')
+args = parser.parse_args()
+
+
+for fn in args.files:
     if not fn.endswith('.h'):
         continue
 
@@ -26,14 +33,17 @@ for fn in sys.argv[1:]:
         continue
     with file:
         guard_name = (
-            ''.join(
-                c if c in string.ascii_uppercase + string.digits else '_'
-                for c in os.path.basename(fn).upper()
-            )
+            ''.join(c if c in string.ascii_uppercase + string.digits else '_' for c in fn.upper())
             + '_'
         )
         guard = f'#ifndef {guard_name}\n#define {guard_name}\n'
-        if guard not in file.read():
+        content = file.read()
+        if guard not in content:
+            if args.fix:
+                if m := re.search(r'#ifndef ([\w_]+_H_)\n#define \1\n', content):
+                    with open(fn, 'w') as file:
+                        file.write(content.replace(m.group(1), guard_name))
+                        continue
             print(fn, 'is lacking the include guards:')
             print(guard)
             fail = True

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_A2DP_IODEV_H_
-#define CRAS_A2DP_IODEV_H_
+#ifndef CRAS_SRC_SERVER_CRAS_A2DP_IODEV_H_
+#define CRAS_SRC_SERVER_CRAS_A2DP_IODEV_H_
 
 #include "cras/src/server/cras_bt_transport.h"
 

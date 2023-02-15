@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_UTIL_H_
-#define CRAS_UTIL_H_
+#ifndef CRAS_INCLUDE_CRAS_UTIL_H_
+#define CRAS_INCLUDE_CRAS_UTIL_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -263,4 +263,4 @@ static inline long db_to_alsa_db(long dB)
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_UTIL_H_ */
+#endif /* CRAS_INCLUDE_CRAS_UTIL_H_ */

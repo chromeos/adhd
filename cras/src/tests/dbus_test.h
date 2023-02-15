@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef DBUS_TEST_H_
-#define DBUS_TEST_H_
+#ifndef CRAS_SRC_TESTS_DBUS_TEST_H_
+#define CRAS_SRC_TESTS_DBUS_TEST_H_
 
 #include <dbus/dbus.h>
 #include <gtest/gtest.h>
@@ -325,4 +325,4 @@ class DBusTest : public ::testing::Test {
   void DispatchOnce();
 };
 
-#endif /* DBUS_TEST_H_ */
+#endif /* CRAS_SRC_TESTS_DBUS_TEST_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_RAMP_H_
-#define CRAS_RAMP_H_
+#ifndef CRAS_SRC_SERVER_CRAS_RAMP_H_
+#define CRAS_SRC_SERVER_CRAS_RAMP_H_
 
 #include "cras/src/server/cras_iodev.h"
 
@@ -87,4 +87,4 @@ cras_ramp_get_current_action(const struct cras_ramp *ramp);
 /* Updates number of samples that went through ramping. */
 int cras_ramp_update_ramped_frames(struct cras_ramp *ramp, int num_frames);
 
-#endif /* CRAS_RAMP_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_RAMP_H_ */

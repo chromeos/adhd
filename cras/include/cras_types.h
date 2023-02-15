@@ -6,8 +6,8 @@
 /*
  * Types commonly used in the client and server are defined here.
  */
-#ifndef CRAS_TYPES_H_
-#define CRAS_TYPES_H_
+#ifndef CRAS_INCLUDE_CRAS_TYPES_H_
+#define CRAS_INCLUDE_CRAS_TYPES_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -820,4 +820,4 @@ enum CRAS_BT_FLAGS {
 	CRAS_BT_FLAG_HFP = (1 << 3)
 };
 
-#endif /* CRAS_TYPES_H_ */
+#endif /* CRAS_INCLUDE_CRAS_TYPES_H_ */

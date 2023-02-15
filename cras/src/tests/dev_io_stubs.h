@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef DEV_IO_STUBS_H_
-#define DEV_IO_STUBS_H_
+#ifndef CRAS_SRC_TESTS_DEV_IO_STUBS_H_
+#define CRAS_SRC_TESTS_DEV_IO_STUBS_H_
 
 #include <stdint.h>
 #include <stdio.h>

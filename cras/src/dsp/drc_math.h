@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef DRC_MATH_H_
-#define DRC_MATH_H_
+#ifndef CRAS_SRC_DSP_DRC_MATH_H_
+#define CRAS_SRC_DSP_DRC_MATH_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -214,4 +214,4 @@ static inline int isbadf(float x)
 } /* extern "C" */
 #endif
 
-#endif /* DRC_MATH_H_ */
+#endif /* CRAS_SRC_DSP_DRC_MATH_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_CONTROL_RCLIENT_H_
-#define CRAS_CONTROL_RCLIENT_H_
+#ifndef CRAS_SRC_SERVER_CRAS_CONTROL_RCLIENT_H_
+#define CRAS_SRC_SERVER_CRAS_CONTROL_RCLIENT_H_
 
 #include <stddef.h>
 
@@ -19,4 +19,4 @@ struct cras_rclient;
  */
 struct cras_rclient *cras_control_rclient_create(int fd, size_t id);
 
-#endif /* CRAS_CONTROL_RCLIENT_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_CONTROL_RCLIENT_H_ */

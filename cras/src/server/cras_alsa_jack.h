@@ -6,8 +6,8 @@
  * external jacks and report back when the plugged state of teh hack changes.
  */
 
-#ifndef CRAS_ALSA_JACK_H_
-#define CRAS_ALSA_JACK_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_JACK_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_JACK_H_
 
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras_types.h"
@@ -161,4 +161,4 @@ void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack *jack, int enable);
  */
 int cras_alsa_jack_exists(unsigned int card_index, const char *jack_name);
 
-#endif /* CRAS_ALSA_JACK_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_ALSA_JACK_H_ */

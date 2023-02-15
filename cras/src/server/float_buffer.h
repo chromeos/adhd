@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef FLOAT_BUFFER_H_
-#define FLOAT_BUFFER_H_
+#ifndef CRAS_SRC_SERVER_FLOAT_BUFFER_H_
+#define CRAS_SRC_SERVER_FLOAT_BUFFER_H_
 
 #include "cras/src/common/byte_buffer.h"
 
@@ -122,4 +122,4 @@ static inline void float_buffer_read(struct float_buffer *b, unsigned int nread)
 	buf_increment_read(b->buf, nread);
 }
 
-#endif /* FLOAT_BUFFER_H_ */
+#endif /* CRAS_SRC_SERVER_FLOAT_BUFFER_H_ */

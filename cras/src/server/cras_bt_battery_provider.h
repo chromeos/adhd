@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_BATTERY_PROVIDER_H_
-#define CRAS_BT_BATTERY_PROVIDER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_BATTERY_PROVIDER_H_
+#define CRAS_SRC_SERVER_CRAS_BT_BATTERY_PROVIDER_H_
 
 #include <dbus/dbus.h>
 #include <stdbool.h>
@@ -50,4 +50,4 @@ void cras_bt_unregister_battery_provider(DBusConnection *conn);
 /* Resets internal state of battery provider. */
 void cras_bt_battery_provider_reset();
 
-#endif /* CRAS_BT_BATTERY_PROVIDER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_BATTERY_PROVIDER_H_ */

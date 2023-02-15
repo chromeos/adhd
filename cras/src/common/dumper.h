@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DUMPER_H_
-#define CRAS_DUMPER_H_
+#ifndef CRAS_SRC_COMMON_DUMPER_H_
+#define CRAS_SRC_COMMON_DUMPER_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,4 +46,4 @@ void mem_dumper_consume(struct dumper *dumper, int n);
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_DUMPER_H_ */
+#endif /* CRAS_SRC_COMMON_DUMPER_H_ */

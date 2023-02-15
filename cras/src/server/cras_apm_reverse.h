@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_APM_REVERSE_H_
-#define CRAS_APM_REVERSE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_APM_REVERSE_H_
+#define CRAS_SRC_SERVER_CRAS_APM_REVERSE_H_
 
 #include "cras_types.h"
 

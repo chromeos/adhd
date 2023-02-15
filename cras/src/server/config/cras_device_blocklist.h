@@ -8,8 +8,8 @@
  * useful for devices that present non-functional alsa devices.  For instance
  * some mics show a phantom playback device.
  */
-#ifndef CRAS_DEVICE_BLOCKLIST_H_
-#define CRAS_DEVICE_BLOCKLIST_H_
+#ifndef CRAS_SRC_SERVER_CONFIG_CRAS_DEVICE_BLOCKLIST_H_
+#define CRAS_SRC_SERVER_CONFIG_CRAS_DEVICE_BLOCKLIST_H_
 
 #include <stdint.h>
 

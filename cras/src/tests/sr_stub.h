@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef SR_STUB_H_
-#define SR_STUB_H_
+#ifndef CRAS_SRC_TESTS_SR_STUB_H_
+#define CRAS_SRC_TESTS_SR_STUB_H_
 
 extern "C" {
 #include "cras/src/server/cras_sr.h"
@@ -20,4 +20,4 @@ void cras_sr_set_num_frames_per_run(struct cras_sr* sr,
                                     size_t num_frames_per_run);
 }
 
-#endif /* SR_STUB_H_ */
+#endif /* CRAS_SRC_TESTS_SR_STUB_H_ */

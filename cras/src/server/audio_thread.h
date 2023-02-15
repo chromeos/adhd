@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef AUDIO_THREAD_H_
-#define AUDIO_THREAD_H_
+#ifndef CRAS_SRC_SERVER_AUDIO_THREAD_H_
+#define CRAS_SRC_SERVER_AUDIO_THREAD_H_
 
 #include <pthread.h>
 #include <stdint.h>
@@ -219,4 +219,4 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
 int audio_thread_dev_start_ramp(struct audio_thread *thread,
 				unsigned int dev_idx,
 				enum CRAS_IODEV_RAMP_REQUEST request);
-#endif /* AUDIO_THREAD_H_ */
+#endif /* CRAS_SRC_SERVER_AUDIO_THREAD_H_ */

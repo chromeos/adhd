@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef BIQUAD_H_
-#define BIQUAD_H_
+#ifndef CRAS_SRC_DSP_BIQUAD_H_
+#define CRAS_SRC_DSP_BIQUAD_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,4 +54,4 @@ void biquad_set(struct biquad *bq, enum biquad_type type, double freq, double Q,
 } /* extern "C" */
 #endif
 
-#endif /* BIQUAD_H_ */
+#endif /* CRAS_SRC_DSP_BIQUAD_H_ */

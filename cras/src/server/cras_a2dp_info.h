@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_A2DP_INFO_H_
-#define CRAS_A2DP_INFO_H_
+#ifndef CRAS_SRC_SERVER_CRAS_A2DP_INFO_H_
+#define CRAS_SRC_SERVER_CRAS_A2DP_INFO_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -87,4 +87,4 @@ int a2dp_encode(struct a2dp_info *a2dp, const void *pcm_buf, int pcm_buf_size,
  */
 int a2dp_write(struct a2dp_info *a2dp, int stream_fd, size_t link_mtu);
 
-#endif /* CRAS_A2DP_INFO_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_A2DP_INFO_H_ */

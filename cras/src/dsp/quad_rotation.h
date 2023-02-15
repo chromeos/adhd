@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef QUAD_ROTATION_H_
-#define QUAD_ROTATION_H_
+#ifndef CRAS_SRC_DSP_QUAD_ROTATION_H_
+#define CRAS_SRC_DSP_QUAD_ROTATION_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,4 +59,4 @@ void quad_rotation_rotate_90(struct quad_rotation *data,
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-#endif /* QUAD_ROTATION_H_ */
+#endif /* CRAS_SRC_DSP_QUAD_ROTATION_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FL_MANAGER_H_
-#define CRAS_FL_MANAGER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_FL_MANAGER_H_
+#define CRAS_SRC_SERVER_CRAS_FL_MANAGER_H_
 
 #include <stdbool.h>
 
@@ -16,4 +16,4 @@ int cras_floss_get_hfp_enabled();
 
 int cras_floss_get_a2dp_enabled();
 
-#endif /* CRAS_FL_MANAGER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_FL_MANAGER_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_MAIN_MESSAGE_H_
-#define CRAS_MAIN_MESSAGE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_
+#define CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_
 
 #include <stdio.h>
 
@@ -78,4 +78,4 @@ void cras_main_message_rm_handler(enum CRAS_MAIN_MESSAGE_TYPE type);
 /* Initialize the message handling mechanism in main thread. */
 void cras_main_message_init();
 
-#endif /* CRAS_MAIN_MESSAGE_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_ */

@@ -6,8 +6,8 @@
 /*
  * A remote client to the server.
  */
-#ifndef CRAS_RCLIENT_H_
-#define CRAS_RCLIENT_H_
+#ifndef CRAS_SRC_SERVER_CRAS_RCLIENT_H_
+#define CRAS_SRC_SERVER_CRAS_RCLIENT_H_
 
 #include "cras_types.h"
 
@@ -93,4 +93,4 @@ int cras_rclient_send_message(const struct cras_rclient *client,
 			      const struct cras_client_message *msg, int *fds,
 			      unsigned int num_fds);
 
-#endif /* CRAS_RCLIENT_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_RCLIENT_H_ */

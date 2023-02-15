@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SHM_H_
-#define CRAS_SHM_H_
+#ifndef CRAS_INCLUDE_CRAS_SHM_H_
+#define CRAS_INCLUDE_CRAS_SHM_H_
 
 #include <assert.h>
 #include <stdint.h>
@@ -648,4 +648,4 @@ void *cras_shm_setup(const char *name, size_t mmap_size, int *rw_fd_out,
  */
 int cras_selinux_restorecon(const char *pathname);
 
-#endif /* CRAS_SHM_H_ */
+#endif /* CRAS_INCLUDE_CRAS_SHM_H_ */

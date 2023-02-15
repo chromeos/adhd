@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CRAS_ALSA_JACK_PRIVATE_H_
-#define CRAS_ALSA_JACK_PRIVATE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_JACK_PRIVATE_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_JACK_PRIVATE_H_
 
 #include <alsa/asoundlib.h>
 

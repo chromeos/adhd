@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_ADAPTER_H_
-#define CRAS_BT_ADAPTER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_ADAPTER_H_
+#define CRAS_SRC_SERVER_CRAS_BT_ADAPTER_H_
 
 #include <dbus/dbus.h>
 
@@ -47,4 +47,4 @@ int cras_bt_adapter_on_usb(struct cras_bt_adapter *adapter);
  */
 int cras_bt_adapter_get_supported_capabilities(struct cras_bt_adapter *adapter);
 
-#endif /* CRAS_BT_ADAPTER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_ADAPTER_H_ */

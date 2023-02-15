@@ -8,8 +8,8 @@
  * found in the LICENSE.WEBKIT file.
  */
 
-#ifndef DRC_H_
-#define DRC_H_
+#ifndef CRAS_SRC_DSP_DRC_H_
+#define CRAS_SRC_DSP_DRC_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -182,4 +182,4 @@ void drc_set_param(struct drc *drc, int index, unsigned paramID, float value);
 } /* extern "C" */
 #endif
 
-#endif /* DRC_H_ */
+#endif /* CRAS_SRC_DSP_DRC_H_ */

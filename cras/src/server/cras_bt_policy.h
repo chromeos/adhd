@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_POLICY_H_
-#define CRAS_BT_POLICY_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_POLICY_H_
+#define CRAS_SRC_SERVER_CRAS_BT_POLICY_H_
 
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_io.h"
@@ -76,4 +76,4 @@ int cras_bt_policy_start_connection_watch(struct cras_bt_device *device);
 /* Stops the connection watch flow in main thread. */
 int cras_bt_policy_stop_connection_watch(struct cras_bt_device *device);
 
-#endif /* CRAS_BT_POLICY_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_POLICY_H_ */

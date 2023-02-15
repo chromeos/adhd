@@ -4,8 +4,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FEATURES_IMPL_H_
-#define CRAS_FEATURES_IMPL_H_
+#ifndef CRAS_SRC_SERVER_CRAS_FEATURES_IMPL_H_
+#define CRAS_SRC_SERVER_CRAS_FEATURES_IMPL_H_
 
 #include <stdbool.h>
 

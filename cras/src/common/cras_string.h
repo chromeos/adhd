@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_STRING_H_
-#define CRAS_STRING_H_
+#ifndef CRAS_SRC_COMMON_CRAS_STRING_H_
+#define CRAS_SRC_COMMON_CRAS_STRING_H_
 
 #include <stdbool.h>
 #include <string.h>
@@ -27,4 +27,4 @@ static inline bool str_has_prefix(const char *str, const char *prefix)
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_STRING_H_ */
+#endif /* CRAS_SRC_COMMON_CRAS_STRING_H_ */

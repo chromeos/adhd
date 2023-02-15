@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DSP_INI_H_
-#define CRAS_DSP_INI_H_
+#ifndef CRAS_SRC_SERVER_CRAS_DSP_INI_H_
+#define CRAS_SRC_SERVER_CRAS_DSP_INI_H_
 
 #include "cras/src/server/iniparser_wrapper.h"
 
@@ -99,4 +99,4 @@ void cras_dsp_ini_dump(struct dumper *d, struct ini *ini);
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_DSP_INI_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_DSP_INI_H_ */

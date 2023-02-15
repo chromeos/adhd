@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef BUFFER_SHARE_H_
-#define BUFFER_SHARE_H_
+#ifndef CRAS_SRC_SERVER_BUFFER_SHARE_H_
+#define CRAS_SRC_SERVER_BUFFER_SHARE_H_
 
 #define INITIAL_ID_SIZE 3
 
@@ -58,4 +58,4 @@ unsigned int buffer_share_id_offset(const struct buffer_share *mix,
  */
 void *buffer_share_get_data(const struct buffer_share *mix, unsigned int id);
 
-#endif /* BUFFER_SHARE_H_ */
+#endif /* CRAS_SRC_SERVER_BUFFER_SHARE_H_ */

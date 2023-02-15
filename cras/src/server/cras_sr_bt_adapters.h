@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SR_BT_ADAPTERS_H_
-#define CRAS_SR_BT_ADAPTERS_H_
+#ifndef CRAS_SRC_SERVER_CRAS_SR_BT_ADAPTERS_H_
+#define CRAS_SRC_SERVER_CRAS_SR_BT_ADAPTERS_H_
 
 #include "cras/src/server/cras_sr.h"
 #include "cras/src/server/cras_sr_bt_util.h"

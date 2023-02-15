@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SCO_H_
-#define CRAS_SCO_H_
+#ifndef CRAS_SRC_SERVER_CRAS_SCO_H_
+#define CRAS_SRC_SERVER_CRAS_SCO_H_
 
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_sr_bt_util.h"
@@ -161,4 +161,4 @@ int cras_sco_rm_iodev(struct cras_sco *sco,
 /* Checks if there's any iodev added to the given cras_sco. */
 int cras_sco_has_iodev(struct cras_sco *sco);
 
-#endif /* CRAS_SCO_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_SCO_H_ */

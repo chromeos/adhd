@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#ifndef CRAS_FEATURE_TIER_H_
-#define CRAS_FEATURE_TIER_H_
+#ifndef CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_FEATURE_TIER_H_
+#define CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_FEATURE_TIER_H_
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -32,7 +32,7 @@ int cras_feature_tier_init(struct cras_feature_tier *out,
                            const char *board_name,
                            const char *cpu_name);
 
-#endif /* CRAS_FEATURE_TIER_H_ */
+#endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_FEATURE_TIER_H_ */
 
 #ifdef __cplusplus
 }

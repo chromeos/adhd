@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_TRANSPORT_H_
-#define CRAS_BT_TRANSPORT_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_TRANSPORT_H_
+#define CRAS_SRC_SERVER_CRAS_BT_TRANSPORT_H_
 
 #include <dbus/dbus.h>
 #include <stdint.h>
@@ -82,4 +82,4 @@ int cras_bt_transport_release(struct cras_bt_transport *transport,
 int cras_bt_transport_set_volume(struct cras_bt_transport *transport,
 				 uint16_t volume);
 
-#endif /* CRAS_BT_TRANSPORT_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_TRANSPORT_H_ */

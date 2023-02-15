@@ -7,8 +7,8 @@
  * Alsa Helpers - Keeps the interface to alsa localized to this file.
  */
 
-#ifndef CRAS_ALSA_HELPERS_H_
-#define CRAS_ALSA_HELPERS_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_HELPERS_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_HELPERS_H_
 
 #include <alsa/asoundlib.h>
 #include <stdint.h>

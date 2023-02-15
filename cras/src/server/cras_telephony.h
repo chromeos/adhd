@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_TELEPHONY_H_
-#define CRAS_TELEPHONY_H_
+#ifndef CRAS_SRC_SERVER_CRAS_TELEPHONY_H_
+#define CRAS_SRC_SERVER_CRAS_TELEPHONY_H_
 
 #include <dbus/dbus.h>
 
@@ -50,4 +50,4 @@ int cras_telephony_event_answer_call();
 /* Handles answer call event from dbus or HF */
 int cras_telephony_event_terminate_call();
 
-#endif /* CRAS_TELEPHONY_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_TELEPHONY_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef POLLED_INTERVAL_CHECKER_H_
-#define POLLED_INTERVAL_CHECKER_H_
+#ifndef CRAS_SRC_SERVER_POLLED_INTERVAL_CHECKER_H_
+#define CRAS_SRC_SERVER_POLLED_INTERVAL_CHECKER_H_
 
 #include <time.h>
 

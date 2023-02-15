@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_PLAYER_H_
-#define CRAS_BT_PLAYER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_PLAYER_H_
+#define CRAS_SRC_SERVER_CRAS_BT_PLAYER_H_
 
 #include <dbus/dbus.h>
 #include <stdbool.h>
@@ -103,4 +103,4 @@ int cras_bt_player_update_position(DBusConnection *conn,
 int cras_bt_player_update_metadata(DBusConnection *conn, const char *title,
 				   const char *artist, const char *album,
 				   const dbus_int64_t length);
-#endif /* CRAS_BT_PLAYER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_PLAYER_H_ */

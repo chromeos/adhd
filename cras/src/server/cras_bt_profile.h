@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_PROFILE_H_
-#define CRAS_BT_PROFILE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_PROFILE_H_
+#define CRAS_SRC_SERVER_CRAS_BT_PROFILE_H_
 
 #include <dbus/dbus.h>
 
@@ -94,4 +94,4 @@ int cras_bt_register_profiles(DBusConnection *conn);
  */
 int cras_bt_unregister_profiles(DBusConnection *conn);
 
-#endif /* CRAS_BT_PROFILE_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_PROFILE_H_ */

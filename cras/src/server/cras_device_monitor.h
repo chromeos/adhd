@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DEVICE_MONITOR_H_
-#define CRAS_DEVICE_MONITOR_H_
+#ifndef CRAS_SRC_SERVER_CRAS_DEVICE_MONITOR_H_
+#define CRAS_SRC_SERVER_CRAS_DEVICE_MONITOR_H_
 
 /* Asks main thread to reset a device */
 int cras_device_monitor_reset_device(unsigned int dev_idx);
@@ -19,4 +19,4 @@ int cras_device_monitor_init();
  * thread. */
 int cras_device_monitor_error_close(unsigned int dev_idx);
 
-#endif /* CRAS_DEVICE_MONITOR_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_DEVICE_MONITOR_H_ */

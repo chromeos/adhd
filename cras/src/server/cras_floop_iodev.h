@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FLOOP_IODEV_H_
-#define CRAS_FLOOP_IODEV_H_
+#ifndef CRAS_SRC_SERVER_CRAS_FLOOP_IODEV_H_
+#define CRAS_SRC_SERVER_CRAS_FLOOP_IODEV_H_
 
 #include "cras/src/server/cras_iodev.h"
 #include "cras_types.h"
@@ -58,4 +58,4 @@ bool cras_floop_pair_match_output_stream(const struct cras_floop_pair *pair,
 bool cras_floop_pair_match_params(const struct cras_floop_pair *pair,
 				  const struct cras_floop_params *params);
 
-#endif /* CRAS_FLOOP_IODEV_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_FLOOP_IODEV_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FILE_WAIT_H_
-#define CRAS_FILE_WAIT_H_
+#ifndef CRAS_SRC_COMMON_CRAS_FILE_WAIT_H_
+#define CRAS_SRC_COMMON_CRAS_FILE_WAIT_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -125,4 +125,4 @@ void cras_file_wait_destroy(struct cras_file_wait *file_wait);
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_FILE_WAIT_H_ */
+#endif /* CRAS_SRC_COMMON_CRAS_FILE_WAIT_H_ */

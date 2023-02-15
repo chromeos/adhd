@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_HFP_IODEV_H_
-#define CRAS_HFP_IODEV_H_
+#ifndef CRAS_SRC_SERVER_CRAS_HFP_IODEV_H_
+#define CRAS_SRC_SERVER_CRAS_HFP_IODEV_H_
 
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_sco.h"
@@ -22,4 +22,4 @@ struct cras_iodev *hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 
 void hfp_iodev_destroy(struct cras_iodev *iodev);
 
-#endif /* CRAS_HFP_IODEV_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_HFP_IODEV_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_ALSA_MIXER_H_
-#define CRAS_ALSA_MIXER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_MIXER_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_MIXER_H_
 
 #include "cras_types.h"
 
@@ -233,4 +233,4 @@ cras_alsa_mixer_get_input_matching_name(struct cras_alsa_mixer *cras_mixer,
 int cras_alsa_mixer_set_output_active_state(struct mixer_control *output,
 					    int active);
 
-#endif /* CRAS_ALSA_MIXER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_ALSA_MIXER_H_ */

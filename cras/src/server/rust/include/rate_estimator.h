@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#ifndef RATE_ESTIMATOR_H_
-#define RATE_ESTIMATOR_H_
+#ifndef CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_
+#define CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -90,7 +90,7 @@ double rate_estimator_get_rate(const struct rate_estimator *re);
  */
 void rate_estimator_reset_rate(struct rate_estimator *re, unsigned int rate);
 
-#endif /* RATE_ESTIMATOR_H_ */
+#endif /* CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_ */
 
 #ifdef __cplusplus
 }

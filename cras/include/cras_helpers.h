@@ -2,8 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#ifndef CRAS_HELPERS_H_
-#define CRAS_HELPERS_H_
+#ifndef CRAS_INCLUDE_CRAS_HELPERS_H_
+#define CRAS_INCLUDE_CRAS_HELPERS_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,4 +92,4 @@ int cras_helper_play_buffer(struct cras_client *client, const void *buffer,
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_HELPERS_H_ */
+#endif /* CRAS_INCLUDE_CRAS_HELPERS_H_ */

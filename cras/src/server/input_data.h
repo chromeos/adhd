@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef INPUT_DATA_H_
-#define INPUT_DATA_H_
+#ifndef CRAS_SRC_SERVER_INPUT_DATA_H_
+#define CRAS_SRC_SERVER_INPUT_DATA_H_
 
 #include "cras/src/server/buffer_share.h"
 #include "cras/src/server/cras_dsp_pipeline.h"
@@ -105,4 +105,4 @@ struct input_data_gain input_data_get_software_gain_scaler(
 	struct input_data *data, float ui_gain_scalar,
 	float idev_sw_gain_scaler, struct cras_rstream *stream);
 
-#endif /* INPUT_DATA_H_ */
+#endif /* CRAS_SRC_SERVER_INPUT_DATA_H_ */

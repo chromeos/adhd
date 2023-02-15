@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef LINEAR_RESAMPLER_H_
-#define LINEAR_RESAMPLER_H_
+#ifndef CRAS_SRC_SERVER_LINEAR_RESAMPLER_H_
+#define CRAS_SRC_SERVER_LINEAR_RESAMPLER_H_
 
 #include <stdint.h>
 
@@ -56,4 +56,4 @@ unsigned int linear_resampler_resample(struct linear_resampler *lr,
 /* Destroy a linear resampler. */
 void linear_resampler_destroy(struct linear_resampler *lr);
 
-#endif /* LINEAR_RESAMPLER_H_ */
+#endif /* CRAS_SRC_SERVER_LINEAR_RESAMPLER_H_ */

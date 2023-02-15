@@ -10,8 +10,8 @@
  * the best.
  */
 
-#ifndef CRAS_SYSTEM_STATE_H_
-#define CRAS_SYSTEM_STATE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_SYSTEM_STATE_H_
+#define CRAS_SRC_SERVER_CRAS_SYSTEM_STATE_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -433,4 +433,4 @@ bool cras_system_state_get_speak_on_mute_detection_enabled();
 /* Get number of non-Chrome output streams */
 int cras_system_state_num_non_chrome_output_streams();
 
-#endif /* CRAS_SYSTEM_STATE_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_SYSTEM_STATE_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_HATS_H_
-#define CRAS_HATS_H_
+#ifndef CRAS_SRC_COMMON_CRAS_HATS_H_
+#define CRAS_SRC_COMMON_CRAS_HATS_H_
 
 #include "cras_types.h"
 
@@ -20,4 +20,4 @@ void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
 				      enum CRAS_CLIENT_TYPE client_type,
 				      const char *node_type_pair);
 
-#endif /* CRAS_HATS_H_ */
+#endif /* CRAS_SRC_COMMON_CRAS_HATS_H_ */

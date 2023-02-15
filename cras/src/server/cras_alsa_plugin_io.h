@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_ALSA_PLUGIN_IO_H_
-#define CRAS_ALSA_PLUGIN_IO_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_PLUGIN_IO_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_PLUGIN_IO_H_
 
 /*
  * Disclaimer:
@@ -17,4 +17,4 @@ void alsa_pluigin_io_destroy_all();
 
 void cras_alsa_plugin_io_init(const char *device_config_dir);
 
-#endif /* CRAS_ALSA_PLUGIN_IO_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_ALSA_PLUGIN_IO_H_ */

@@ -5,8 +5,8 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 
-#ifndef CRAS_RTC_H_
-#define CRAS_RTC_H_
+#ifndef CRAS_SRC_SERVER_CRAS_RTC_H_
+#define CRAS_SRC_SERVER_CRAS_RTC_H_
 
 /*
  * Returns true if the stream is possibly a RTC stream.

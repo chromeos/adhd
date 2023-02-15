@@ -6,8 +6,8 @@
 /*
  * Messages sent between the server and clients.
  */
-#ifndef CRAS_MESSAGES_H_
-#define CRAS_MESSAGES_H_
+#ifndef CRAS_INCLUDE_CRAS_MESSAGES_H_
+#define CRAS_INCLUDE_CRAS_MESSAGES_H_
 
 #include <stdint.h>
 
@@ -783,4 +783,4 @@ struct __attribute__((__packed__)) audio_message {
 	uint32_t frames; /* number of samples per channel */
 };
 
-#endif /* CRAS_MESSAGES_H_ */
+#endif /* CRAS_INCLUDE_CRAS_MESSAGES_H_ */

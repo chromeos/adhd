@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_STREAM_APM_H_
-#define CRAS_STREAM_APM_H_
+#ifndef CRAS_SRC_SERVER_CRAS_STREAM_APM_H_
+#define CRAS_SRC_SERVER_CRAS_STREAM_APM_H_
 
 #include "cras_types.h"
 
@@ -199,4 +199,4 @@ void cras_stream_apm_notify_vad_target_changed(
 /* Initializes the handler of cras_stream_apm_message in the main thread. */
 int cras_stream_apm_message_handler_init();
 
-#endif /* CRAS_STREAM_APM_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_STREAM_APM_H_ */

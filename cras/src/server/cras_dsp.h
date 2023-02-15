@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DSP_H_
-#define CRAS_DSP_H_
+#ifndef CRAS_SRC_SERVER_CRAS_DSP_H_
+#define CRAS_SRC_SERVER_CRAS_DSP_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,4 +90,4 @@ unsigned int cras_dsp_num_input_channels(const struct cras_dsp_context *ctx);
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_DSP_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_DSP_H_ */

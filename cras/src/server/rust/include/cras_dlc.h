@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#ifndef CRAS_DLC_H_
-#define CRAS_DLC_H_
+#ifndef CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_DLC_H_
+#define CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_DLC_H_
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -28,7 +28,7 @@ bool cras_dlc_sr_bt_is_available(void);
  */
 const char *cras_dlc_sr_bt_get_root(void);
 
-#endif /* CRAS_DLC_H_ */
+#endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_DLC_H_ */
 
 #ifdef __cplusplus
 }

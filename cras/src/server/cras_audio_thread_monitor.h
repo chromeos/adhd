@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_AUDIO_THREAD_MONITOR_H_
-#define CRAS_AUDIO_THREAD_MONITOR_H_
+#ifndef CRAS_SRC_SERVER_CRAS_AUDIO_THREAD_MONITOR_H_
+#define CRAS_SRC_SERVER_CRAS_AUDIO_THREAD_MONITOR_H_
 
 /*
  * Notifies the main thread when A2DP buffer overruns.
@@ -51,4 +51,4 @@ int cras_audio_thread_event_dev_overrun();
  */
 int cras_audio_thread_monitor_init();
 
-#endif /* CRAS_AUDIO_THREAD_MONITOR_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_AUDIO_THREAD_MONITOR_H_ */

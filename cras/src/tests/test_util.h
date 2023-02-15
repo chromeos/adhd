@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef TEST_UTIL_H_
-#define TEST_UTIL_H_
+#ifndef CRAS_SRC_TESTS_TEST_UTIL_H_
+#define CRAS_SRC_TESTS_TEST_UTIL_H_
 
 #include <gtest/gtest.h>
 

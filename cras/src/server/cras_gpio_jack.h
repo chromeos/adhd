@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_GPIO_JACK_H_
-#define CRAS_GPIO_JACK_H_
+#ifndef CRAS_SRC_SERVER_CRAS_GPIO_JACK_H_
+#define CRAS_SRC_SERVER_CRAS_GPIO_JACK_H_
 
 #include "cras_types.h"
 

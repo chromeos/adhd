@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_ALERT_H_
-#define CRAS_ALERT_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALERT_H_
+#define CRAS_SRC_SERVER_CRAS_ALERT_H_
 
 #include <stddef.h>
 
@@ -128,4 +128,4 @@ void cras_alert_destroy_all();
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_ALERT_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_ALERT_H_ */

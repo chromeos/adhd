@@ -6,8 +6,8 @@
 /*
  * Common utility functions for rclients.
  */
-#ifndef CRAS_RCLIENT_UTIL_H_
-#define CRAS_RCLIENT_UTIL_H_
+#ifndef CRAS_SRC_SERVER_CRAS_RCLIENT_UTIL_H_
+#define CRAS_SRC_SERVER_CRAS_RCLIENT_UTIL_H_
 
 #include <stddef.h>
 
@@ -139,4 +139,4 @@ int rclient_handle_message_from_client(struct cras_rclient *client,
 				       const struct cras_server_message *msg,
 				       int *fds, unsigned int num_fds);
 
-#endif /* CRAS_RCLIENT_UTIL_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_RCLIENT_UTIL_H_ */

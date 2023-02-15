@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_HFP_AG_PROFILE_H_
-#define CRAS_HFP_AG_PROFILE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_HFP_AG_PROFILE_H_
+#define CRAS_SRC_SERVER_CRAS_HFP_AG_PROFILE_H_
 
 #include <dbus/dbus.h>
 #include <stdbool.h>
@@ -56,4 +56,4 @@ struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device);
 /* Gets the logger for WBS packet status. */
 struct packet_status_logger *cras_hfp_ag_get_wbs_logger();
 
-#endif /* CRAS_HFP_AG_PROFILE_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_HFP_AG_PROFILE_H_ */

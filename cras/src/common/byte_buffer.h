@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef BYTE_BUFFER_H_
-#define BYTE_BUFFER_H_
+#ifndef CRAS_SRC_COMMON_BYTE_BUFFER_H_
+#define CRAS_SRC_COMMON_BYTE_BUFFER_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -134,4 +134,4 @@ static inline void buf_reset(struct byte_buffer *buf)
 	buf->level = 0;
 }
 
-#endif /* BYTE_BUFFER_H_ */
+#endif /* CRAS_SRC_COMMON_BYTE_BUFFER_H_ */

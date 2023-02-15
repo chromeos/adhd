@@ -7,8 +7,8 @@
  * Used to convert from one audio format to another.  Currently only supports
  * sample rate conversion with the speex backend.
  */
-#ifndef CRAS_FMT_CONV_H_
-#define CRAS_FMT_CONV_H_
+#ifndef CRAS_SRC_SERVER_CRAS_FMT_CONV_H_
+#define CRAS_SRC_SERVER_CRAS_FMT_CONV_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -104,4 +104,4 @@ int config_format_converter(struct cras_fmt_conv **conv,
 			    const struct cras_audio_format *to,
 			    enum CRAS_NODE_TYPE node_type, unsigned int frames);
 
-#endif /* CRAS_FMT_CONV_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_FMT_CONV_H_ */

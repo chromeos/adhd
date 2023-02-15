@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SPEAK_ON_MUTE_DETECTOR_H_
-#define SPEAK_ON_MUTE_DETECTOR_H_
+#ifndef CRAS_SRC_SERVER_SPEAK_ON_MUTE_DETECTOR_H_
+#define CRAS_SRC_SERVER_SPEAK_ON_MUTE_DETECTOR_H_
 
 #include <stdbool.h>
 #include <stdint.h>

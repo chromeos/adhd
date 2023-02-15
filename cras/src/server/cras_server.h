@@ -6,8 +6,8 @@
 /*
  * The CRAS server instance.
  */
-#ifndef CRAS_SERVER_H_
-#define CRAS_SERVER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_SERVER_H_
+#define CRAS_SRC_SERVER_CRAS_SERVER_H_
 
 /* Reserver client id 0-15 for internal server usage. */
 #define RESERVED_CLIENT_IDS 16
@@ -28,4 +28,4 @@ int cras_server_run(unsigned int profile_disable_mask);
 /* Send a message to all attached clients. */
 void cras_server_send_to_all_clients(const struct cras_client_message *msg);
 
-#endif /* CRAS_SERVER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_SERVER_H_ */

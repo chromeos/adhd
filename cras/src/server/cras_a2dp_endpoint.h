@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_A2DP_ENDPOINT_H_
-#define CRAS_A2DP_ENDPOINT_H_
+#ifndef CRAS_SRC_SERVER_CRAS_A2DP_ENDPOINT_H_
+#define CRAS_SRC_SERVER_CRAS_A2DP_ENDPOINT_H_
 
 #include <dbus/dbus.h>
 
@@ -26,4 +26,4 @@ void cras_a2dp_suspend_connected_device(struct cras_bt_device *device);
 /* Starts A2DP output by creating the cras_iodev. */
 void cras_a2dp_start(struct cras_bt_device *device);
 
-#endif /* CRAS_A2DP_ENDPOINT_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_A2DP_ENDPOINT_H_ */

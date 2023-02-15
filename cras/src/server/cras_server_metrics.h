@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SERVER_METRICS_H_
-#define CRAS_SERVER_METRICS_H_
+#ifndef CRAS_SRC_SERVER_CRAS_SERVER_METRICS_H_
+#define CRAS_SRC_SERVER_CRAS_SERVER_METRICS_H_
 
 #include <stdbool.h>
 
@@ -179,4 +179,4 @@ int cras_server_metrics_hfp_mic_sr_status(
 /* Initialize metrics logging stuff. */
 int cras_server_metrics_init();
 
-#endif /* CRAS_SERVER_METRICS_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_SERVER_METRICS_H_ */

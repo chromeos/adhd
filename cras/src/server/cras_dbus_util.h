@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DBUS_UTIL_H_
-#define CRAS_DBUS_UTIL_H_
+#ifndef CRAS_SRC_SERVER_CRAS_DBUS_UTIL_H_
+#define CRAS_SRC_SERVER_CRAS_DBUS_UTIL_H_
 
 #include <dbus/dbus.h>
 #include <stdbool.h>

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_HFP_ALSA_IODEV_H_
-#define CRAS_HFP_ALSA_IODEV_H_
+#ifndef CRAS_SRC_SERVER_CRAS_HFP_ALSA_IODEV_H_
+#define CRAS_SRC_SERVER_CRAS_HFP_ALSA_IODEV_H_
 
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_hfp_manager.h"
@@ -29,4 +29,4 @@ struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
 
 void hfp_alsa_iodev_destroy(struct cras_iodev *iodev);
 
-#endif /* CRAS_HFP_ALSA_IODEV_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_HFP_ALSA_IODEV_H_ */

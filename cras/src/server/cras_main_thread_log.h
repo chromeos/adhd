@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_MAIN_THREAD_LOG_H_
-#define CRAS_MAIN_THREAD_LOG_H_
+#ifndef CRAS_SRC_SERVER_CRAS_MAIN_THREAD_LOG_H_
+#define CRAS_SRC_SERVER_CRAS_MAIN_THREAD_LOG_H_
 
 #include <stdint.h>
 
@@ -61,4 +61,4 @@ static inline void main_thread_event_log_data(struct main_thread_event_log *log,
 	log->write_pos %= MAIN_THREAD_EVENT_LOG_SIZE;
 }
 
-#endif /* CRAS_MAIN_THREAD_LOG_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_MAIN_THREAD_LOG_H_ */

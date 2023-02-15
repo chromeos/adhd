@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CROSSOVER_H_
-#define CROSSOVER_H_
+#ifndef CRAS_SRC_DSP_CROSSOVER_H_
+#define CRAS_SRC_DSP_CROSSOVER_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,4 +67,4 @@ void crossover_process(struct crossover *xo, int count, float *data0,
 } /* extern "C" */
 #endif
 
-#endif /* CROSSOVER_H_ */
+#endif /* CRAS_SRC_DSP_CROSSOVER_H_ */

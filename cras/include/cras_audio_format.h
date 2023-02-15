@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_AUDIO_FORMAT_H_
-#define CRAS_AUDIO_FORMAT_H_
+#ifndef CRAS_INCLUDE_CRAS_AUDIO_FORMAT_H_
+#define CRAS_INCLUDE_CRAS_AUDIO_FORMAT_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -173,4 +173,4 @@ float **cras_channel_conv_matrix_create(const struct cras_audio_format *in,
 }
 #endif
 
-#endif /* CRAS_AUDIO_FORMAT_H_ */
+#endif /* CRAS_INCLUDE_CRAS_AUDIO_FORMAT_H_ */

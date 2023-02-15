@@ -6,8 +6,8 @@
 /*
  * Remote Stream - An audio steam from/to a client.
  */
-#ifndef CRAS_RSTREAM_H_
-#define CRAS_RSTREAM_H_
+#ifndef CRAS_SRC_SERVER_CRAS_RSTREAM_H_
+#define CRAS_SRC_SERVER_CRAS_RSTREAM_H_
 
 #include "cras/src/server/buffer_share.h"
 #include "cras/src/server/cras_rstream_config.h"
@@ -319,4 +319,4 @@ int cras_rstream_is_pending_reply(const struct cras_rstream *stream);
  */
 int cras_rstream_flush_old_audio_messages(struct cras_rstream *stream);
 
-#endif /* CRAS_RSTREAM_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_RSTREAM_H_ */

@@ -9,8 +9,8 @@
  * space header provided.
  */
 
-#ifndef BLUETOOTH_H_
-#define BLUETOOTH_H_
+#ifndef CRAS_SRC_COMMON_BLUETOOTH_H_
+#define CRAS_SRC_COMMON_BLUETOOTH_H_
 
 #include <unistd.h>
 

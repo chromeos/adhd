@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef A2DP_CODECS_H_
-#define A2DP_CODECS_H_
+#ifndef CRAS_SRC_COMMON_A2DP_CODECS_H_
+#define CRAS_SRC_COMMON_A2DP_CODECS_H_
 
 #define A2DP_CODEC_SBC 0x00
 #define A2DP_CODEC_MPEG12 0x01

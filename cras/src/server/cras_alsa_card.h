@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_ALSA_CARD_H_
-#define CRAS_ALSA_CARD_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_
 
 #include "cras_types.h"
 
@@ -56,4 +56,4 @@ size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card);
 enum CRAS_ALSA_CARD_TYPE
 cras_alsa_card_get_type(const struct cras_alsa_card *alsa_card);
 
-#endif /* CRAS_ALSA_CARD_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_ */

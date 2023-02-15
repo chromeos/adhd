@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_CHECKSUM_H_
-#define CRAS_CHECKSUM_H_
+#ifndef CRAS_SRC_COMMON_CRAS_CHECKSUM_H_
+#define CRAS_SRC_COMMON_CRAS_CHECKSUM_H_
 
 #include "cras_types.h"
 
@@ -18,4 +18,4 @@ uint32_t crc32_checksum(const unsigned char *input, size_t n);
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_CHECKSUM_H_ */
+#endif /* CRAS_SRC_COMMON_CRAS_CHECKSUM_H_ */

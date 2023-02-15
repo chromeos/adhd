@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_EXPR_H_
-#define CRAS_EXPR_H_
+#ifndef CRAS_SRC_SERVER_CRAS_EXPR_H_
+#define CRAS_SRC_SERVER_CRAS_EXPR_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -105,4 +105,4 @@ void cras_expr_value_dump(struct dumper *d,
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_EXPR_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_EXPR_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_OBSERVER_H_
-#define CRAS_OBSERVER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_OBSERVER_H_
+#define CRAS_SRC_SERVER_CRAS_OBSERVER_H_
 
 #include "cras/src/common/cras_observer_ops.h"
 
@@ -124,4 +124,4 @@ void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
 /* Notify observers of a speak on mute event */
 void cras_observer_notify_speak_on_mute_detected();
 
-#endif /* CRAS_OBSERVER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_OBSERVER_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FL_PCM_IODEV_H_
-#define CRAS_FL_PCM_IODEV_H_
+#ifndef CRAS_SRC_SERVER_CRAS_FL_PCM_IODEV_H_
+#define CRAS_SRC_SERVER_CRAS_FL_PCM_IODEV_H_
 
 #include <stdint.h>
 
@@ -51,4 +51,4 @@ struct cras_iodev *hfp_pcm_iodev_create(struct cras_hfp *hfp,
 /* Destroys an hfp pcm iodev. */
 void hfp_pcm_iodev_destroy(struct cras_iodev *iodev);
 
-#endif /* CRAS_FL_PCM_IODEV_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_FL_PCM_IODEV_H_ */

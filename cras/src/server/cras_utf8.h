@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_UTF8_H_
-#define CRAS_UTF8_H_
+#ifndef CRAS_SRC_SERVER_CRAS_UTF8_H_
+#define CRAS_SRC_SERVER_CRAS_UTF8_H_
 
 #include <sys/types.h>
 

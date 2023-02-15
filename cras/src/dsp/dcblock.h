@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef DCBLOCK_H_
-#define DCBLOCK_H_
+#ifndef CRAS_SRC_DSP_DCBLOCK_H_
+#define CRAS_SRC_DSP_DCBLOCK_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,4 +43,4 @@ void dcblock_process(struct dcblock *dcblock, float *data, int count);
 } /* extern "C" */
 #endif
 
-#endif /* DCBLOCK_H_ */
+#endif /* CRAS_SRC_DSP_DCBLOCK_H_ */

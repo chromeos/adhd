@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DBUS_H_
-#define CRAS_DBUS_H_
+#ifndef CRAS_SRC_SERVER_CRAS_DBUS_H_
+#define CRAS_SRC_SERVER_CRAS_DBUS_H_
 
 #include <dbus/dbus.h>
 
@@ -25,4 +25,4 @@ void cras_dbus_dispatch(DBusConnection *conn);
 /* Disconnect from the D-Bus System Bus. */
 void cras_dbus_disconnect_system_bus(DBusConnection *conn);
 
-#endif /* CRAS_DBUS_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_DBUS_H_ */

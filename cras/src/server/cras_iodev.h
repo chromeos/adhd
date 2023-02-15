@@ -11,8 +11,8 @@
  * reversed, the samples are pulled from the device and passed on to the
  * attached streams.
  */
-#ifndef CRAS_IODEV_H_
-#define CRAS_IODEV_H_
+#ifndef CRAS_SRC_SERVER_CRAS_IODEV_H_
+#define CRAS_SRC_SERVER_CRAS_IODEV_H_
 
 #include <stdbool.h>
 
@@ -933,4 +933,4 @@ bool cras_iodev_set_rtc_proc_enabled(struct cras_iodev *iodev,
 bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev *iodev,
 				     enum RTC_PROC_ON_DSP rtc_proc);
 
-#endif /* CRAS_IODEV_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_IODEV_H_ */

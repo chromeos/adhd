@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DSP_PIPELINE_H_
-#define CRAS_DSP_PIPELINE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_DSP_PIPELINE_H_
+#define CRAS_SRC_SERVER_CRAS_DSP_PIPELINE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -158,4 +158,4 @@ void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline);
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_DSP_PIPELINE_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_DSP_PIPELINE_H_ */

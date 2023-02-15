@@ -2,8 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#ifndef INIPARSER_WRAPPER_H_
-#define INIPARSER_WRAPPER_H_
+#ifndef CRAS_SRC_SERVER_INIPARSER_WRAPPER_H_
+#define CRAS_SRC_SERVER_INIPARSER_WRAPPER_H_
 
 #ifdef HAVE_INIPARSER_INIPARSER_H
 #include <iniparser/iniparser.h>
@@ -26,4 +26,4 @@ static inline dictionary *iniparser_load_wrapper(const char *ini_name)
 	return iniparser_load(ini_name);
 }
 
-#endif /* INIPARSER_WRAPPER_H_ */
+#endif /* CRAS_SRC_SERVER_INIPARSER_WRAPPER_H_ */

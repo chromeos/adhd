@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BOARD_CONFIG_H_
-#define CRAS_BOARD_CONFIG_H_
+#ifndef CRAS_SRC_SERVER_CONFIG_CRAS_BOARD_CONFIG_H_
+#define CRAS_SRC_SERVER_CONFIG_CRAS_BOARD_CONFIG_H_
 
 #include <stdint.h>
 
@@ -37,4 +37,4 @@ struct cras_board_config {
 void cras_board_config_get(const char *config_path,
 			   struct cras_board_config *board_config);
 
-#endif /* CRAS_BOARD_CONFIG_H_ */
+#endif /* CRAS_SRC_SERVER_CONFIG_CRAS_BOARD_CONFIG_H_ */

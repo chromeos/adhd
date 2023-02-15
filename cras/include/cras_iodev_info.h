@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_IODEV_INFO_H_
-#define CRAS_IODEV_INFO_H_
+#ifndef CRAS_INCLUDE_CRAS_IODEV_INFO_H_
+#define CRAS_INCLUDE_CRAS_IODEV_INFO_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -134,4 +134,4 @@ enum audio_effect_type {
 	EFFECT_TYPE_NOISE_CANCELLATION = 1 << 0
 };
 
-#endif /* CRAS_IODEV_INFO_H_ */
+#endif /* CRAS_INCLUDE_CRAS_IODEV_INFO_H_ */

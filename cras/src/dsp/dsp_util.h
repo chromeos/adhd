@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef DSP_UTIL_H_
-#define DSP_UTIL_H_
+#ifndef CRAS_SRC_DSP_DSP_UTIL_H_
+#define CRAS_SRC_DSP_DSP_UTIL_H_
 
 #ifdef __cplusplus
 extern "C" {

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_FL_MEDIA_H_
-#define CRAS_FL_MEDIA_H_
+#ifndef CRAS_SRC_SERVER_CRAS_FL_MEDIA_H_
+#define CRAS_SRC_SERVER_CRAS_FL_MEDIA_H_
 
 #include <dbus/dbus.h>
 #include <stdbool.h>
@@ -103,4 +103,4 @@ int floss_media_a2dp_stop_audio_request(struct fl_media *fm);
 /* Unlink a2dp with bt_io_manager and destroy related resources. */
 int floss_media_a2dp_suspend(struct fl_media *fm);
 
-#endif /* CRAS_FL_MEDIA_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_FL_MEDIA_H_ */

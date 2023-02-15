@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_LOG_H_
-#define CRAS_BT_LOG_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_LOG_H_
+#define CRAS_SRC_SERVER_CRAS_BT_LOG_H_
 
 #include <stdint.h>
 
@@ -53,4 +53,4 @@ static inline void cras_bt_event_log_data(struct cras_bt_event_log *log,
 	log->write_pos %= CRAS_BT_EVENT_LOG_SIZE;
 }
 
-#endif /* CRAS_BT_LOG_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_LOG_H_ */

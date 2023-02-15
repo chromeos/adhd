@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_MANAGER_H_
-#define CRAS_BT_MANAGER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_MANAGER_H_
+#define CRAS_SRC_SERVER_CRAS_BT_MANAGER_H_
 
 #include <dbus/dbus.h>
 
@@ -42,4 +42,4 @@ void cras_bt_switch_stack(struct bt_stack *target);
 /* Switches the current running stack to default. */
 void cras_bt_switch_default_stack();
 
-#endif /* CRAS_BT_MANAGER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_MANAGER_H_ */

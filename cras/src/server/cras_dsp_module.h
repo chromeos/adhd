@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_DSP_MODULE_H_
-#define CRAS_DSP_MODULE_H_
+#ifndef CRAS_SRC_SERVER_CRAS_DSP_MODULE_H_
+#define CRAS_SRC_SERVER_CRAS_DSP_MODULE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,4 +123,4 @@ struct dsp_module *cras_dsp_module_load_builtin(struct plugin *plugin);
 } /* extern "C" */
 #endif
 
-#endif /* CRAS_DSP_MODULE_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_DSP_MODULE_H_ */

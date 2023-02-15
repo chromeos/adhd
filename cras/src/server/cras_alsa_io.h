@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_ALSA_IO_H_
-#define CRAS_ALSA_IO_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_IO_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_IO_H_
 
 #include <alsa/asoundlib.h>
 
@@ -85,4 +85,4 @@ unsigned alsa_iodev_index(struct cras_iodev *iodev);
 /* Returns whether this IODEV has ALSA hctl jacks. */
 int alsa_iodev_has_hctl_jacks(struct cras_iodev *iodev);
 
-#endif /* CRAS_ALSA_IO_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_ALSA_IO_H_ */

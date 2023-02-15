@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef SR_BT_UTIL_STUB_H_
-#define SR_BT_UTIL_STUB_H_
+#ifndef CRAS_SRC_TESTS_SR_BT_UTIL_STUB_H_
+#define CRAS_SRC_TESTS_SR_BT_UTIL_STUB_H_
 
 extern "C" {
 #include "cras/src/server/cras_sr_bt_util.h"
@@ -17,4 +17,4 @@ void enable_cras_sr_bt();
 
 void disable_cras_sr_bt();
 
-#endif /* SR_BT_UTIL_STUB_H_ */
+#endif /* CRAS_SRC_TESTS_SR_BT_UTIL_STUB_H_ */

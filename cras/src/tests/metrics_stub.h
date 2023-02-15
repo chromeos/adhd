@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#ifndef METRICS_STUB_H_
-#define METRICS_STUB_H_
+#ifndef CRAS_SRC_TESTS_METRICS_STUB_H_
+#define CRAS_SRC_TESTS_METRICS_STUB_H_
 
-#endif  // METRICS_STUB_H_
+#endif  // CRAS_SRC_TESTS_METRICS_STUB_H_

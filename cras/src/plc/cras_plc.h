@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_PLC_H_
-#define CRAS_PLC_H_
+#ifndef CRAS_SRC_PLC_CRAS_PLC_H_
+#define CRAS_SRC_PLC_CRAS_PLC_H_
 
 #include <stdint.h>
 

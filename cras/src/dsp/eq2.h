@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef EQ2_H_
-#define EQ2_H_
+#ifndef CRAS_SRC_DSP_EQ2_H_
+#define CRAS_SRC_DSP_EQ2_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,4 +68,4 @@ void eq2_process(struct eq2 *eq2, float *data0, float *data1, int count);
 } /* extern "C" */
 #endif
 
-#endif /* EQ2_H_ */
+#endif /* CRAS_SRC_DSP_EQ2_H_ */

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef BENCHMARK_UTIL_H_
-#define BENCHMARK_UTIL_H_
+#ifndef CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_H_
+#define CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_H_
 
 #include <vector>
 

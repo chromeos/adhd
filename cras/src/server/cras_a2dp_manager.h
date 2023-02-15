@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_A2DP_MANAGER_H_
-#define CRAS_A2DP_MANAGER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_A2DP_MANAGER_H_
+#define CRAS_SRC_SERVER_CRAS_A2DP_MANAGER_H_
 
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_server_metrics.h"
@@ -107,4 +107,4 @@ void cras_floss_a2dp_cancel_suspend(struct cras_a2dp *a2dp);
 void cras_floss_a2dp_update_write_status(struct cras_a2dp *a2dp,
 					 bool write_success);
 
-#endif /* CRAS_A2DP_MANAGER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_A2DP_MANAGER_H_ */

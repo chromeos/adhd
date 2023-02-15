@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef SERVER_STREAM_H_
-#define SERVER_STREAM_H_
+#ifndef CRAS_SRC_SERVER_SERVER_STREAM_H_
+#define CRAS_SRC_SERVER_SERVER_STREAM_H_
 
 #include "cras_audio_format.h"
 
@@ -52,4 +52,4 @@ struct cras_rstream *
 server_stream_find_by_type(struct cras_rstream *all_streams,
 			   enum server_stream_type type);
 
-#endif /* SERVER_STREAM_H_ */
+#endif /* CRAS_SRC_SERVER_SERVER_STREAM_H_ */

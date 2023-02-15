@@ -5,8 +5,8 @@
  * The blow logging funcitons must only be called from the audio thread.
  */
 
-#ifndef AUDIO_THREAD_LOG_H_
-#define AUDIO_THREAD_LOG_H_
+#ifndef CRAS_SRC_SERVER_AUDIO_THREAD_LOG_H_
+#define CRAS_SRC_SERVER_AUDIO_THREAD_LOG_H_
 
 #include <pthread.h>
 #include <stdint.h>
@@ -90,4 +90,4 @@ audio_thread_event_log_data(struct audio_thread_event_log *log,
 	log->write_pos++;
 }
 
-#endif /* AUDIO_THREAD_LOG_H_ */
+#endif /* CRAS_SRC_SERVER_AUDIO_THREAD_LOG_H_ */

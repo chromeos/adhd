@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef DSP_TEST_UTIL_H_
-#define DSP_TEST_UTIL_H_
+#ifndef CRAS_SRC_DSP_TESTS_DSP_TEST_UTIL_H_
+#define CRAS_SRC_DSP_TESTS_DSP_TEST_UTIL_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,4 +24,4 @@ void dsp_util_print_fp_exceptions();
 } /* extern "C" */
 #endif
 
-#endif /* DSP_TEST_UTIL_H_ */
+#endif /* CRAS_SRC_DSP_TESTS_DSP_TEST_UTIL_H_ */

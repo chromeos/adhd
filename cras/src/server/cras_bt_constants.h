@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_BT_CONSTANTS_H_
-#define CRAS_BT_CONSTANTS_H_
+#ifndef CRAS_SRC_SERVER_CRAS_BT_CONSTANTS_H_
+#define CRAS_SRC_SERVER_CRAS_BT_CONSTANTS_H_
 
 #define BLUEZ_SERVICE "org.bluez"
 
@@ -68,4 +68,4 @@
  */
 #define A2DP_FIX_PACKET_SIZE 672
 
-#endif /* CRAS_BT_CONSTANTS_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_BT_CONSTANTS_H_ */

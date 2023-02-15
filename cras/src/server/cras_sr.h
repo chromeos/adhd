@@ -9,8 +9,8 @@
  * This struct contains information needed for applying the SR algorithm.
  */
 
-#ifndef CRAS_SR_H_
-#define CRAS_SR_H_
+#ifndef CRAS_SRC_SERVER_CRAS_SR_H_
+#define CRAS_SRC_SERVER_CRAS_SR_H_
 #define CRAS_SR_MODEL_PATH_CAPACITY (256)
 
 #include <stddef.h>
@@ -75,4 +75,4 @@ double cras_sr_get_frames_ratio(struct cras_sr *sr);
  */
 size_t cras_sr_get_num_frames_per_run(struct cras_sr *sr);
 
-#endif /* CRAS_SR_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_SR_H_ */

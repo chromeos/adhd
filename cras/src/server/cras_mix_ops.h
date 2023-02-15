@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_MIX_OPS_H_
-#define CRAS_MIX_OPS_H_
+#ifndef CRAS_SRC_SERVER_CRAS_MIX_OPS_H_
+#define CRAS_SRC_SERVER_CRAS_MIX_OPS_H_
 
 #include <stdint.h>
 

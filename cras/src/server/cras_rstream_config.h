@@ -6,8 +6,8 @@
 /*
  * Remote Stream Configuration
  */
-#ifndef CRAS_RSTREAM_CONFIG_H_
-#define CRAS_RSTREAM_CONFIG_H_
+#ifndef CRAS_SRC_SERVER_CRAS_RSTREAM_CONFIG_H_
+#define CRAS_SRC_SERVER_CRAS_RSTREAM_CONFIG_H_
 
 #include "cras/src/server/buffer_share.h"
 #include "cras_shm.h"
@@ -97,4 +97,4 @@ struct cras_rstream_config cras_rstream_config_init_with_message(
  */
 void cras_rstream_config_cleanup(struct cras_rstream_config *stream_config);
 
-#endif /* CRAS_RSTREAM_CONFIG_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_RSTREAM_CONFIG_H_ */

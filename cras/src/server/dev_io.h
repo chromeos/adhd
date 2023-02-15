@@ -6,8 +6,8 @@
  * the audio thread.
  */
 
-#ifndef DEV_IO_H_
-#define DEV_IO_H_
+#ifndef CRAS_SRC_SERVER_DEV_IO_H_
+#define CRAS_SRC_SERVER_DEV_IO_H_
 
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/polled_interval_checker.h"
@@ -108,4 +108,4 @@ int dev_io_append_stream(struct open_dev **odevs, struct open_dev **idevs,
 int dev_io_remove_stream(struct open_dev **dev_list,
 			 struct cras_rstream *stream, struct cras_iodev *dev);
 
-#endif /* DEV_IO_H_ */
+#endif /* CRAS_SRC_SERVER_DEV_IO_H_ */

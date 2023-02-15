@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_HFP_MANAGER_H_
-#define CRAS_HFP_MANAGER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_HFP_MANAGER_H_
+#define CRAS_SRC_SERVER_CRAS_HFP_MANAGER_H_
 
 #include <stdbool.h>
 
@@ -67,4 +67,4 @@ bool cras_floss_hfp_get_wbs_supported(struct cras_hfp *hfp);
 /* Destroys given cras_hfp object. */
 void cras_floss_hfp_destroy(struct cras_hfp *hfp);
 
-#endif /* CRAS_HFP_MANAGER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_HFP_MANAGER_H_ */

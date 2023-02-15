@@ -6,8 +6,8 @@
  * addition to the rstream, other mixing information is stored here.
  */
 
-#ifndef DEV_STREAM_H_
-#define DEV_STREAM_H_
+#ifndef CRAS_SRC_SERVER_DEV_STREAM_H_
+#define CRAS_SRC_SERVER_DEV_STREAM_H_
 
 #include <stdint.h>
 #include <sys/time.h>
@@ -233,4 +233,4 @@ int dev_stream_is_pending_reply(const struct dev_stream *dev_stream);
  */
 int dev_stream_flush_old_audio_messages(struct dev_stream *dev_stream);
 
-#endif /* DEV_STREAM_H_ */
+#endif /* CRAS_SRC_SERVER_DEV_STREAM_H_ */

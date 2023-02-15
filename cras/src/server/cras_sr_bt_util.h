@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SR_BT_UTIL_H_
-#define CRAS_SR_BT_UTIL_H_
+#ifndef CRAS_SRC_SERVER_CRAS_SR_BT_UTIL_H_
+#define CRAS_SRC_SERVER_CRAS_SR_BT_UTIL_H_
 
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_sr.h"
@@ -50,4 +50,4 @@ void cras_sr_bt_send_uma_log(struct cras_iodev *iodev,
 			     const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status,
 			     bool is_enabled);
 
-#endif /* CRAS_SR_BT_UTIL_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_SR_BT_UTIL_H_ */

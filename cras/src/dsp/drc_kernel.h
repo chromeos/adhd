@@ -8,8 +8,8 @@
  * found in the LICENSE.WEBKIT file.
  */
 
-#ifndef DRC_KERNEL_H_
-#define DRC_KERNEL_H_
+#ifndef CRAS_SRC_DSP_DRC_KERNEL_H_
+#define CRAS_SRC_DSP_DRC_KERNEL_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,4 +106,4 @@ void dk_process(struct drc_kernel *dk, float *data_channels[], unsigned count);
 } /* extern "C" */
 #endif
 
-#endif /* DRC_KERNEL_H_ */
+#endif /* CRAS_SRC_DSP_DRC_KERNEL_H_ */

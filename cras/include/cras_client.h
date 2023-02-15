@@ -43,8 +43,8 @@
  * cras_helper_create_connect().
  */
 
-#ifndef CRAS_CLIENT_H_
-#define CRAS_CLIENT_H_
+#ifndef CRAS_INCLUDE_CRAS_CLIENT_H_
+#define CRAS_INCLUDE_CRAS_CLIENT_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -2221,4 +2221,4 @@ inline int libcras_node_info_get_dev_name(struct libcras_node_info *node,
 }
 #endif
 
-#endif /* CRAS_CLIENT_H_ */
+#endif /* CRAS_INCLUDE_CRAS_CLIENT_H_ */

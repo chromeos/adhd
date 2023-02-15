@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef IODEV_STUB_H_
-#define IODEV_STUB_H_
+#ifndef CRAS_SRC_TESTS_IODEV_STUB_H_
+#define CRAS_SRC_TESTS_IODEV_STUB_H_
 
 #include <time.h>
 
@@ -22,4 +22,4 @@ void iodev_stub_valid_frames(cras_iodev* iodev, int ret, timespec ts);
 
 bool iodev_stub_get_drop_time(cras_iodev* iodev, timespec* ts);
 
-#endif  // IODEV_STUB_H_
+#endif  // CRAS_SRC_TESTS_IODEV_STUB_H_

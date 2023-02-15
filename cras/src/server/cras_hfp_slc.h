@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_HFP_SLC_H_
-#define CRAS_HFP_SLC_H_
+#ifndef CRAS_SRC_SERVER_CRAS_HFP_SLC_H_
+#define CRAS_SRC_SERVER_CRAS_HFP_SLC_H_
 
 #include <stdbool.h>
 
@@ -148,4 +148,4 @@ int hfp_slc_codec_connection_setup(struct hfp_slc_handle *handle);
 int handle_at_command_for_test(struct hfp_slc_handle *slc_handle,
 			       const char *cmd);
 
-#endif /* CRAS_HFP_SLC_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_HFP_SLC_H_ */

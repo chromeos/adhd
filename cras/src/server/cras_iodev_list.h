@@ -6,8 +6,8 @@
 /*
  * IO list manages the list of inputs and outputs available.
  */
-#ifndef CRAS_IODEV_LIST_H_
-#define CRAS_IODEV_LIST_H_
+#ifndef CRAS_SRC_SERVER_CRAS_IODEV_LIST_H_
+#define CRAS_SRC_SERVER_CRAS_IODEV_LIST_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -336,4 +336,4 @@ void cras_iodev_list_create_server_vad_stream(int dev_idx);
  */
 void cras_iodev_list_destroy_server_vad_stream(int dev_idx);
 
-#endif /* CRAS_IODEV_LIST_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_IODEV_LIST_H_ */

@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_MIX_H_
-#define CRAS_MIX_H_
+#ifndef CRAS_SRC_SERVER_CRAS_MIX_H_
+#define CRAS_SRC_SERVER_CRAS_MIX_H_
 
 #include "cras_types.h"
 
@@ -81,4 +81,4 @@ void cras_mix_add_scale_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
  */
 size_t cras_mix_mute_buffer(uint8_t *dst, size_t frame_bytes, size_t count);
 
-#endif /* CRAS_MIX_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_MIX_H_ */

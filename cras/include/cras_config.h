@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_CONFIG_H_
-#define CRAS_CONFIG_H_
+#ifndef CRAS_INCLUDE_CRAS_CONFIG_H_
+#define CRAS_INCLUDE_CRAS_CONFIG_H_
 
 #include "cras_types.h"
 
@@ -46,4 +46,4 @@ const char *cras_config_get_system_socket_file_dir();
  */
 int cras_fill_socket_path(enum CRAS_CONNECTION_TYPE conn_type, char *sock_path);
 
-#endif /* CRAS_CONFIG_H_ */
+#endif /* CRAS_INCLUDE_CRAS_CONFIG_H_ */

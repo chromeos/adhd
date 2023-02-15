@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_PLAYBACK_RCLIENT_H_
-#define CRAS_PLAYBACK_RCLIENT_H_
+#ifndef CRAS_SRC_SERVER_CRAS_PLAYBACK_RCLIENT_H_
+#define CRAS_SRC_SERVER_CRAS_PLAYBACK_RCLIENT_H_
 
 struct cras_rclient;
 
@@ -17,4 +17,4 @@ struct cras_rclient;
  */
 struct cras_rclient *cras_playback_rclient_create(int fd, size_t id);
 
-#endif /* CRAS_PLAYBACK_RCLIENT_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_PLAYBACK_RCLIENT_H_ */

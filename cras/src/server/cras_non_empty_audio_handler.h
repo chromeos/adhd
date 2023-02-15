@@ -13,8 +13,8 @@
  * in the main thread to handle the non-empty audiomessage from audio thread.
  */
 
-#ifndef CRAS_NON_EMPTY_AUDIO_HANDLER_H_
-#define CRAS_NON_EMPTY_AUDIO_HANDLER_H_
+#ifndef CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_
+#define CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_
 
 /* Send non-empty audio state message. */
 int cras_non_empty_audio_send_msg(int32_t non_empty);
@@ -22,4 +22,4 @@ int cras_non_empty_audio_send_msg(int32_t non_empty);
 /* Initialize non-empty audio handler. */
 int cras_non_empty_audio_handler_init();
 
-#endif /* CRAS_NON_EMPTY_AUDIO_HANDLER_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_ */
