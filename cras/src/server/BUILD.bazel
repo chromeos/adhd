@@ -316,6 +316,8 @@ cc_library(
         "cras_alsa_helpers.h",
         "cras_alsa_io.c",
         "cras_alsa_io.h",
+        "cras_alsa_io_common.c",
+        "cras_alsa_io_common.h",
         "cras_alsa_io_ops.c",
         "cras_alsa_io_ops.h",
         "cras_alsa_jack.c",

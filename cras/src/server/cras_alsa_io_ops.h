@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_ALSA_IO_OPS_H_
-#define CRAS_ALSA_IO_OPS_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_IO_OPS_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_IO_OPS_H_
 
 #include <alsa/asoundlib.h>
 
@@ -58,4 +58,4 @@ unsigned cras_alsa_iodev_ops_index(struct cras_alsa_iodev_ops *ops,
 int cras_alsa_iodev_ops_has_hctl_jacks(struct cras_alsa_iodev_ops *ops,
 				       struct cras_iodev *iodev);
 
-#endif /* CRAS_ALSA_IO_OPS_H_ */
+#endif /* CRAS_SRC_SERVER_CRAS_ALSA_IO_OPS_H_ */
