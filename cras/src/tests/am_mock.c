@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#include "stddef.h"
-#include "stdlib.h"
+#include <stddef.h>
+#include <stdlib.h>
 
 #include "cras/src/dsp/am.h"
 

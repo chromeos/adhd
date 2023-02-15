@@ -5,7 +5,7 @@
 
 #include "cras/src/server/ewma_power.h"
 
-#include "math.h"
+#include <math.h>
 
 /* One sample per 1ms. */
 #define EWMA_SAMPLE_RATE 1000

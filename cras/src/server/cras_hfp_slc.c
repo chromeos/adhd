@@ -5,6 +5,7 @@
 
 #include "cras/src/server/cras_hfp_slc.h"
 
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <syslog.h>
 
@@ -17,7 +18,6 @@
 #include "cras/src/server/cras_telephony.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras_util.h"
-#include "stdbool.h"
 
 /* Message start and end with "\r\n". refer to spec 4.33. */
 #define AT_CMD(cmd) "\r\n" cmd "\r\n"

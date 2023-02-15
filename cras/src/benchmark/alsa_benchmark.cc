@@ -7,8 +7,8 @@
 #include <random>
 #include <vector>
 
-#include <benchmark/benchmark.h>
 #include <chromeos-config/libcros_config/cros_config.h>
+#include "benchmark/benchmark.h"
 // Both "/usr/include/libchrome/base/compiler_specific.h" and "libcras.h"
 // have definitions for DISABLE_CFI_ICALL. Undefine the libchrome one.
 #ifdef DISABLE_CFI_ICALL
