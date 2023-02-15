@@ -14,7 +14,6 @@ extern "C" {
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
-#include "cras/src/server/cras_features_override.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.c"
 #include "cras/src/server/cras_main_thread_log.h"
@@ -24,6 +23,7 @@ extern "C" {
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/stream_list.h"
+#include "cras/src/tests/scoped_features_override.h"
 }
 
 namespace {
@@ -3220,7 +3220,7 @@ INSTANTIATE_TEST_SUITE_P(
                            -5}));
 
 TEST_F(IoDevTestSuite, RequestFloop) {
-  cras_features_set_override(CrOSLateBootAudioFlexibleLoopback, true);
+  ScopedFeaturesOverride feature_override({CrOSLateBootAudioFlexibleLoopback});
 
   struct cras_floop_pair cfps[NUM_FLOOP_PAIRS_MAX] = {};
   // cras_floop_pair_create fails and returns NULL
@@ -3237,8 +3237,6 @@ TEST_F(IoDevTestSuite, RequestFloop) {
 
   // Reset the iodev list here to avoid stack-use-after-return of `cfps`.
   cras_iodev_list_reset();
-
-  cras_features_unset_override(CrOSLateBootAudioFlexibleLoopback);
 }
 
 }  //  namespace

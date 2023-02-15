@@ -1180,10 +1180,10 @@ cc_test(
         "//cras/src/server:cras_speak_on_mute_detector_stub.c",
     ],
     deps = [
+        ":scoped_features_override",
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "//cras/src/server:cras_features_override",
         "@iniparser",
         "@pkg_config//:alsa",
         "@pkg_config//:gtest",
@@ -1693,5 +1693,26 @@ cc_test(
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
         "@pkg_config//:speexdsp",
+    ],
+)
+
+cc_library(
+    name = "scoped_features_override",
+    testonly = True,
+    srcs = ["scoped_features_override.cc"],
+    hdrs = ["scoped_features_override.h"],
+    deps = [
+        "//cras/src/server:cras_features",
+        "//cras/src/server:cras_features_override",
+    ],
+)
+
+cc_test(
+    name = "scoped_features_override_unittest",
+    srcs = ["scoped_features_override_unittest.cc"],
+    deps = [
+        "scoped_features_override",
+        "@pkg_config//:gtest",
+        "@pkg_config//:gtest_main",
     ],
 )

@@ -9,6 +9,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum cras_feature_id {
 	CrosLateBootAudioTestFeatureFlag,
 	CrOSLateBootAudioHFPOffload,
@@ -20,5 +24,9 @@ enum cras_feature_id {
 
 // Get whether the feature is enabled.
 bool cras_feature_enabled(enum cras_feature_id id);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

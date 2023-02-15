@@ -11,10 +11,18 @@
 
 #include "cras/src/server/cras_features.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Override feature id enabled status.
 void cras_features_set_override(enum cras_feature_id id, bool enabled);
 
 // Unset feature id override.
 void cras_features_unset_override(enum cras_feature_id id);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

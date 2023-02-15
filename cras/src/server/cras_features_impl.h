@@ -9,6 +9,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_feature {
 	// The name of the feature, used when consulting featured.
 	const char *const name;
@@ -23,5 +27,9 @@ struct cras_feature {
 bool cras_features_backend_get_enabled(const struct cras_feature *feature);
 
 enum cras_feature_id cras_feature_get_id(const struct cras_feature *feature);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
