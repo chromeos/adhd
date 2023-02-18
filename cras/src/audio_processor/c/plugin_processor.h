@@ -19,6 +19,7 @@ enum status {
   ErrOutOfMemory,
   ErrInvalidProcessor,
   ErrInvalidConfig,
+  ErrInvalidArgument,
   ErrOther,
 };
 

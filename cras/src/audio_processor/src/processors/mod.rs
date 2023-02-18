@@ -8,6 +8,9 @@ pub use check_shape::*;
 mod chunk_wrapper;
 pub use chunk_wrapper::*;
 
+mod plugin;
+pub use plugin::*;
+
 mod negate;
 pub use negate::*;
 
