@@ -9,6 +9,12 @@ pub enum PluginError {
     #[error("binding: {0}")]
     /// Error returned from the C binding.
     Binding(binding::status),
+
+    #[error("unexpected null: {0}")]
+    UnexpectedNull(String),
+
+    #[error("too many channels {0}")]
+    TooManyChannels(usize),
 }
 
 #[cfg(test)]

@@ -5,3 +5,5 @@
 pub mod binding;
 mod error;
 pub use error::*;
+mod processor;
+pub use processor::*;

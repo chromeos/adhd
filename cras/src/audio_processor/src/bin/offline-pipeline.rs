@@ -104,7 +104,7 @@ pub fn main() {
                         }
                         break 'outer;
                     }
-                    Error::Wav(_) => panic!("{}", error),
+                    _ => panic!("{}", error),
                 },
             }
         }

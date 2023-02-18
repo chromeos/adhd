@@ -13,6 +13,8 @@ fn main() {
 
     bindgen::Builder::default()
         .header("c/plugin_processor.h")
+        .header("c/bad_plugin.h")
+        .header("c/negate_plugin.h")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .newtype_enum("status")
         .size_t_is_usize(true)
@@ -20,4 +22,14 @@ fn main() {
         .expect("Cannot generate bindings")
         .write_to_file(out_path.join("plugin_processor_binding.rs"))
         .expect("Cannot write bindings");
+
+    if cfg!(feature = "host_cc") {
+        let mut cc = cc::Build::new();
+        cc.flag("-fPIC")
+            .file("c/bad_plugin.c")
+            .file("c/negate_plugin.c")
+            .include("c");
+
+        cc.compile("test_plugins");
+    }
 }

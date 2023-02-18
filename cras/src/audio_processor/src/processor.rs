@@ -18,6 +18,8 @@ pub enum Error {
     },
     #[error("error in hound: {0:?}")]
     Wav(hound::Error),
+    #[error("error in plugin: {0}")]
+    Plugin(#[from] crate::processors::PluginError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
