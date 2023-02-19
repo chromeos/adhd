@@ -15,10 +15,6 @@
 #include "cras_util.h"
 
 /* Cras SR.
- *  speex_state - the state of the speex resampler.
- *  am - the audio model context.
- *  resampled - the buffer that stores the resampled samples.
- *  internal - the buffer that stores the unprocessed and processed samples.
  *    The buffer is always full of
  *      1. unprocessed samples from resampled samples, and
  *      2. processed samples from unprocessed samples.
@@ -47,15 +43,19 @@
  *    (cras_sr_unprocessed_to_processed)
  *    |rw|       unprocessed         |
  *    |rw|        processed          |
- *  frames_ratio - The ratio of output sample rate to input sample rate.
- *  num_frames_per_run - The number of frames needed to invoke the tflite model.
  */
 struct cras_sr {
+	// the state of the speex resampler.
 	SpeexResamplerState *speex_state;
+	// the audio model context.
 	struct am_context *am;
+	// the buffer that stores the resampled samples.
 	struct sample_buffer resampled;
+	// the buffer that stores the unprocessed and processed samples.
 	struct sample_buffer internal;
+	// The ratio of output sample rate to input sample rate.
 	double frames_ratio;
+	// The number of frames needed to invoke the tflite model.
 	size_t num_frames_per_run;
 };
 

@@ -16,12 +16,11 @@
 
 extern "C" {
 
-/* An audio model context.
- *  model - the audio model.
- *  interpreter - the tflite interpreter.
- */
+/* An audio model context. */
 struct am_context {
+	// the audio model.
 	std::unique_ptr<tflite::FlatBufferModel> model;
+	// the tflite interpreter.
 	std::unique_ptr<tflite::Interpreter> interpreter;
 };
 
