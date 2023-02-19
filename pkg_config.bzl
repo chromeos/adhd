@@ -4,8 +4,8 @@
 
 """Provide repository rules for pkg-config libraries."""
 
-load("@com_github_bazel_skylib//lib:paths.bzl", "paths")
-load("@com_github_bazel_skylib//lib:unittest.bzl", "asserts", "unittest")
+load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@bazel_skylib//lib:unittest.bzl", "asserts", "unittest")
 
 _PKG_CONFIG_LIBRARY = """
 cc_library(

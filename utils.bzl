@@ -1,7 +1,7 @@
 # Copyright 2022 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-load("@com_github_bazel_skylib//rules:common_settings.bzl", "bool_flag")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 
 def bool_flag_config(name, build_setting_default):
     """Creates a bool_flag and a config_setting associated with it.
