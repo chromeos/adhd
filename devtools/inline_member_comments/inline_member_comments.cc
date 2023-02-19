@@ -29,6 +29,11 @@ class CommentInliner : public MatchFinder::MatchCallback {
   virtual void run(const MatchFinder::MatchResult& result) {
     const TypeDecl* decl = nullptr;
     if (const auto* record = result.Nodes.getNodeAs<RecordDecl>("struct")) {
+      if (!record->isThisDeclarationADefinition()) {
+        // Skip forward declarations.
+        return;
+      }
+
       decl = record;
     } else if (const auto* enum_decl =
                    result.Nodes.getNodeAs<EnumDecl>("enum")) {
