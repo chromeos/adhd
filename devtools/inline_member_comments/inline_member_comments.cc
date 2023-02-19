@@ -118,7 +118,7 @@ class CommentInliner : public MatchFinder::MatchCallback {
  private:
   void addReplacement(Replacement replacement, FileManager& fm) {
     SmallString<128> path(replacement.getFilePath());
-    if (!fm.makeAbsolutePath(path)) {
+    if (!path.startswith("/") && !fm.makeAbsolutePath(path)) {
       llvm::errs() << "!! cannot makeAbsolutePath(\"" << path << "\"\n";
       return;
     }

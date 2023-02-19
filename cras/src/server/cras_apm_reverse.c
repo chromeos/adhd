@@ -52,30 +52,28 @@
  *
  * See start_reverse_process_on_dev and stop_reverse_process_on_dev for
  * how it interacts with a cras_iodev.
- *
- * Member:
- *    ext - The interface for a processing block to add to cras_iodev's DSP
- *        pipeline. Here it is implemented to serve output data from |odev|
- *        for active apms to decide whether they need and to really use this
- *        data for AEC reverse processing.
- *    mutex - The mutex to protect |fbuf| from main thread reconfigure it
- *        while audio thread is processing the content data.
- *    fbuf - Middle buffer holding reverse data for APMs to analyze.
- *    odev - Pointer to the output iodev playing audio as the reverse
- *        stream. NULL if there's no playback stream.
- *    dev_rate - The sample rate odev is opened for.
- *    needs_to_process - Flag to indicate if this reverse module needs to
- *        process. The logic could be complex to determine if the overall
- *        APM states requires this reverse module to process. Given that
- *        ext->run() is called rather frequently from DSP pipeline, we use
- *        this flag to save the computation every time.
  */
 struct cras_apm_reverse_module {
+	// The interface for a processing block to add to cras_iodev's DSP
+	// pipeline. Here it is implemented to serve output data from |odev|
+	// for active apms to decide whether they need and to really use this
+	// data for AEC reverse processing.
 	struct ext_dsp_module ext;
+	// The mutex to protect |fbuf| from main thread reconfigure it
+	// while audio thread is processing the content data.
 	pthread_mutex_t mutex;
+	// Middle buffer holding reverse data for APMs to analyze.
 	struct float_buffer *fbuf;
+	// Pointer to the output iodev playing audio as the reverse
+	// stream. NULL if there's no playback stream.
 	struct cras_iodev *odev;
+	// The sample rate odev is opened for.
 	unsigned int dev_rate;
+	// Flag to indicate if this reverse module needs to
+	// process. The logic could be complex to determine if the overall
+	// APM states requires this reverse module to process. Given that
+	// ext->run() is called rather frequently from DSP pipeline, we use
+	// this flag to save the computation every time.
 	unsigned needs_to_process;
 };
 
@@ -90,14 +88,13 @@ struct stream_apm_request {
 /* Structure to represent request to use certain output device as echo
  * ref for a handful of stream_apm. The purpose is to easily track
  * whether an output device is being used as echo reference.
- * Members:
- *    rmod - the reverse module whose odev member is the echo ref.
- *    stream_apm_reqs - A list of stream_apm_requests where each
- *        stream_apm_request holds a cras_apm_stream that wants to use
- *        rmod->odev as echo ref.
  */
 struct echo_ref_request {
+	// the reverse module whose odev member is the echo ref.
 	struct cras_apm_reverse_module rmod;
+	// A list of stream_apm_requests where each
+	// stream_apm_request holds a cras_apm_stream that wants to use
+	// rmod->odev as echo ref.
 	struct stream_apm_request *stream_apm_reqs;
 	struct echo_ref_request *prev, *next;
 };

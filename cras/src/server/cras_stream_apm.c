@@ -53,39 +53,37 @@
  *                     |                                       ...
  *                     |
  *                     |------------------------------------> stream N
- *
- * Members:
- *    apm_ptr - An APM instance from libwebrtc_audio_processing
- *    idev - Pointer to the input device this APM is associated with.
- *    buffer - Stores the processed/interleaved data ready for stream to read.
- *    fbuffer - Stores the floating pointer buffer from input device waiting
- *        for APM to process.
- *    dev_fmt - The format used by the iodev this APM attaches to.
- *    fmt - The audio data format configured for this APM.
- *    area - The cras_audio_area used for copying processed data to client
- *        stream.
- *    work_queue - A task queue instance created and destroyed by
- *        libwebrtc_apm.
- *    only_symmetric_content_in_render - Flag to indicate whether content has
- *        beenobserved in the left or right channel which is not identical.
- *    blocks_with_nonsymmetric_content_in_render - Counter for the number of
- *        consecutive frames where nonsymmetric content in render has been
- *        observed. Used to avoid triggering on short stereo content.
- *    blocks_with_symmetric_content_in_render - Counter for the number of
- *        consecutive frames where symmetric content in render has been
- *        observed. Used for falling-back to mono processing.
  */
 struct cras_apm {
+	// An APM instance from libwebrtc_audio_processing
 	webrtc_apm apm_ptr;
+	// Pointer to the input device this APM is associated with.
 	struct cras_iodev *idev;
+	// Stores the processed/interleaved data ready for stream to read.
 	struct byte_buffer *buffer;
+	// Stores the floating pointer buffer from input device waiting
+	// for APM to process.
 	struct float_buffer *fbuffer;
+	// The format used by the iodev this APM attaches to.
 	struct cras_audio_format dev_fmt;
+	// The audio data format configured for this APM.
 	struct cras_audio_format fmt;
+	// The cras_audio_area used for copying processed data to client
+	// stream.
 	struct cras_audio_area *area;
+	// A task queue instance created and destroyed by
+	// libwebrtc_apm.
 	void *work_queue;
+	// Flag to indicate whether content has
+	// beenobserved in the left or right channel which is not identical.
 	bool only_symmetric_content_in_render;
+	// Counter for the number of
+	// consecutive frames where nonsymmetric content in render has been
+	// observed. Used to avoid triggering on short stereo content.
 	int blocks_with_nonsymmetric_content_in_render;
+	// Counter for the number of
+	// consecutive frames where symmetric content in render has been
+	// observed. Used for falling-back to mono processing.
 	int blocks_with_symmetric_content_in_render;
 	struct cras_apm *prev, *next;
 };
@@ -98,17 +96,16 @@ struct cras_apm {
  *
  * Note that cras_stream_apm is owned and modified in main thread.
  * Access with cautious from audio thread.
- * Members:
- *    effects - The effecets bit map of APM.
- *    apms - List of APMs for stream processing. It is a list because
- *        multiple input devices could be configured by user.
- *    echo_ref - If specified, the pointer to an output iodev which shall be
- *        used as echo ref for this apm. When set to NULL it means to
- *        follow what the default_rmod provides as echo ref.
  */
 struct cras_stream_apm {
+	// The effecets bit map of APM.
 	uint64_t effects;
+	// List of APMs for stream processing. It is a list because
+	// multiple input devices could be configured by user.
 	struct cras_apm *apms;
+	// If specified, the pointer to an output iodev which shall be
+	// used as echo ref for this apm. When set to NULL it means to
+	// follow what the default_rmod provides as echo ref.
 	struct cras_iodev *echo_ref;
 };
 
@@ -117,14 +114,13 @@ struct cras_stream_apm {
  * to a dev/stream pair in audio thread and ready for processing.
  * The existance of an |active_apm| is the key to treat a |cras_apm| is alive
  * and can be used for processing.
- * Members:
- *    apm - The APM for audio data processing.
- *    stream - The associated |cras_stream_apm| instance. It is ensured by
- *        the objects life cycle that whenever an |active_apm| is valid
- *        in audio thread, it's safe to access its |stream| member.
  */
 struct active_apm {
+	// The APM for audio data processing.
 	struct cras_apm *apm;
+	// The associated |cras_stream_apm| instance. It is ensured by
+	// the objects life cycle that whenever an |active_apm| is valid
+	// in audio thread, it's safe to access its |stream| member.
 	struct cras_stream_apm *stream;
 	struct active_apm *prev, *next;
 } *active_apms;
