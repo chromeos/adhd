@@ -55,16 +55,20 @@ impl AudioProcessor for DynamicPluginProcessor {
     }
 }
 
-#[cfg(feature = "host_cc")]
+#[cfg(feature = "bazel")]
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use crate::{
         processors::{DynamicPluginProcessor, PluginError},
         AudioProcessor, MultiBuffer,
     };
     use assert_matches::assert_matches;
 
-    const DL_LIB_PATH: &str = concat!(env!("OUT_DIR"), "/libtest_plugins.so");
+    fn dl_lib_path() -> String {
+        env::var("LIBTEST_PLUGINS_SO").unwrap()
+    }
 
     #[test]
     fn dlopen_error() {
@@ -74,7 +78,8 @@ mod tests {
 
     #[test]
     fn dlsym_error() {
-        let err = DynamicPluginProcessor::new(DL_LIB_PATH, "does_not_exist", 1, 1, 1).unwrap_err();
+        let err =
+            DynamicPluginProcessor::new(&dl_lib_path(), "does_not_exist", 1, 1, 1).unwrap_err();
         assert_matches!(err, crate::Error::Plugin(PluginError::Dl { .. }));
     }
 
@@ -83,7 +88,7 @@ mod tests {
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
         let mut ap =
-            DynamicPluginProcessor::new(DL_LIB_PATH, "negate_processor_create", 4, 2, 48000)
+            DynamicPluginProcessor::new(&dl_lib_path(), "negate_processor_create", 4, 2, 48000)
                 .unwrap();
 
         let output = ap.process(input.as_multi_slice()).unwrap();

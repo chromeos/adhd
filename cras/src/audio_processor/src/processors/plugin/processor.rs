@@ -124,7 +124,7 @@ impl AudioProcessor for PluginProcessor {
     }
 }
 
-#[cfg(feature = "host_cc")]
+#[cfg(feature = "bazel")]
 #[cfg(test)]
 mod plugin_tests {
     use super::{binding, PluginError, PluginProcessor};

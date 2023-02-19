@@ -156,11 +156,11 @@ fn run(command: Command) {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature = "host_cc")]
+    #[cfg(feature = "bazel")]
     #[test]
     fn simple_negate() {
         use assert_matches::assert_matches;
-        use std::{env, path::PathBuf};
+        use std::env;
         use tempdir::TempDir;
 
         let dir = TempDir::new("pipeline_smoke").unwrap();
@@ -188,11 +188,7 @@ mod tests {
         drop(writer);
 
         super::run(crate::Command {
-            plugin: PathBuf::from(env::var("OUT_DIR").unwrap())
-                .join("libtest_plugins.so")
-                .to_str()
-                .unwrap()
-                .to_string(),
+            plugin: env::var("LIBTEST_PLUGINS_SO").unwrap(),
             input: in_wav_path,
             output: out_wav_path.clone(),
             sleep_duration: None,

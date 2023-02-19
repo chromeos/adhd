@@ -9,7 +9,8 @@ def cras_shared_library(
         roots,
         visibility,
         static_deps = [],
-        dynamic_deps = []):
+        dynamic_deps = [],
+        testonly = False):
     """Export a shared library for external build systems.
 
     Light wrapper around cc_shared_library to:
@@ -22,6 +23,7 @@ def cras_shared_library(
         visibility: Visibility of the libraries and the filegroup.
         static_deps: List of dependencies that should be linked statically.
         dynamic_deps: List of cc_shared_libraries that provide dynamically linked dependencies.
+        testonly: Test only library.
 
     Each transitive cc_library dependency of roots must be either listed in
     static_deps, or be provided by one of the dynamic_deps.
@@ -37,4 +39,5 @@ def cras_shared_library(
         static_deps = static_deps,
         dynamic_deps = dynamic_deps,
         user_link_flags = ["-Wl,-soname=lib{}.so".format(name)],
+        testonly = testonly,
     )

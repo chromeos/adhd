@@ -152,26 +152,14 @@ load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencie
 
 crate_universe_dependencies()
 
-load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
+load("@rules_rust//crate_universe:defs.bzl", "crates_repository")
+load("//:crate_deps.bzl", "cargo_io_deps")
 
 crates_repository(
     name = "crate_index",
     cargo_lockfile = "//:Cargo.lock",
     lockfile = "//:Cargo.Bazel.lock",
-    packages = {
-        "libc": crate.spec(
-            version = "0.2.44",
-        ),
-        "anyhow": crate.spec(
-            version = "1.0.68",
-        ),
-        "log": crate.spec(
-            version = "0.4.17",
-        ),
-        "syslog": crate.spec(
-            version = "6.0.1",
-        ),
-    },
+    packages = cargo_io_deps(),
 )
 
 load("@crate_index//:defs.bzl", "crate_repositories")

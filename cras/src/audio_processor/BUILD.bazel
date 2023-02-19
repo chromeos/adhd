@@ -1,0 +1,82 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("//:utils.bzl", "require_no_config")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test", "rust_test_suite")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+
+rust_library(
+    name = "audio_processor",
+    srcs = glob(
+        include = ["src/**/*.rs"],
+        exclude = ["src/bin/*.rs"],
+    ),
+    edition = "2021",
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
+    deps = [
+        ":build_script",
+        "@crate_index//:assert_matches",
+        "@crate_index//:clap",
+        "@crate_index//:dasp_sample",
+        "@crate_index//:hound",
+        "@crate_index//:libc",
+        "@crate_index//:thiserror",
+    ],
+)
+
+rust_test(
+    name = "audio_processor_test",
+    crate = ":audio_processor",
+    crate_features = ["bazel"],
+    data = [
+        "//cras/src/audio_processor/c:test_plugins_so",
+    ],
+    env = {
+        "LIBTEST_PLUGINS_SO": "$(rootpath //cras/src/audio_processor/c:test_plugins_so)",
+    },
+    deps = [
+        "//cras/src/audio_processor/c:test_plugins",
+        "@crate_index//:tempdir",
+    ],
+)
+
+rust_test_suite(
+    name = "audio_processor_test_suite",
+    srcs = glob(["src/bin/*.rs"]),
+    crate_features = ["bazel"],
+    data = [
+        "//cras/src/audio_processor/c:test_plugins_so",
+    ],
+    env = {
+        "LIBTEST_PLUGINS_SO": "$(rootpath //cras/src/audio_processor/c:test_plugins_so)",
+    },
+    deps = [
+        ":audio_processor",
+        "//cras/src/audio_processor/c:test_plugins",
+        "@crate_index//:assert_matches",
+        "@crate_index//:clap",
+        "@crate_index//:dasp_sample",
+        "@crate_index//:hound",
+        "@crate_index//:libc",
+        "@crate_index//:tempdir",
+        "@crate_index//:thiserror",
+    ],
+)
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    data = ["//cras/src/audio_processor/c:headers"],
+    deps = ["@crate_index//:bindgen"],
+)
+
+rust_binary(
+    name = "offline-pipeline",
+    srcs = ["src/bin/offline-pipeline.rs"],
+    deps = [
+        ":audio_processor",
+        "@crate_index//:clap",
+        "@crate_index//:hound",
+    ],
+)
