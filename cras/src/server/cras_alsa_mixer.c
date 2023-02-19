@@ -51,27 +51,26 @@ struct mixer_control_element {
  *
  * For controls with volume it is assumed that all elements have the same
  * range.
- *
- * name - Name of the control (typicially this is the same as the name of the
- *        mixer_control_element when there is one, or the name of the UCM
- *        parent when there are multiple).
- * dir - Control direction, OUTPUT or INPUT only.
- * elements - The mixer_control_elements that are driven by this control.
- * has_volume - non-zero indicates there is a volume control.
- * has_mute - non-zero indicates there is a mute switch.
- * max_volume_dB - Maximum volume available in the volume control.
- * min_volume_dB - Minimum volume available in the volume control.
- * number_of_volume_steps - number of volume steps in the volume control, or
- *                 MIXER_CONTROL_STEP_INVALID.
  */
 struct mixer_control {
+	// Name of the control (typicially this is the same as the name of the
+	// mixer_control_element when there is one, or the name of the UCM
+	// parent when there are multiple).
 	const char *name;
+	// Control direction, OUTPUT or INPUT only.
 	enum CRAS_STREAM_DIRECTION dir;
+	// The mixer_control_elements that are driven by this control.
 	struct mixer_control_element *elements;
+	// non-zero indicates there is a volume control.
 	int has_volume;
+	// non-zero indicates there is a mute switch.
 	int has_mute;
+	// Maximum volume available in the volume control.
 	long max_volume_dB;
+	// Minimum volume available in the volume control.
 	long min_volume_dB;
+	// number of volume steps in the volume control, or
+	// MIXER_CONTROL_STEP_INVALID.
 	int number_of_volume_steps;
 	struct mixer_control *prev, *next;
 };

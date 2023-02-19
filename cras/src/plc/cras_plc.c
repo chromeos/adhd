@@ -64,23 +64,22 @@ struct packet_window {
  * distortion.
  *
  * This structure holds related info needed to conduct the PLC algorithm.
- * Members:
- *    hist - The history buffer for receiving samples, we also use it to
- *           buffer the processed replacement samples.
- *    best_lag - The index of the best substitution samples in sample history.
- *    handled_bad_frames - Number of bad frames handled since the last good
- *                         frame.
- *    zero_frame - A buffer used for storing the samples from decoding the
- *                 mSBC zero frame packet.
- *    pl_window - A window monitoring how many packets are bad within the recent
- *                PLC_WINDOW_SIZE of packets. This is used to determine if we
- *                want to disable the PLC temporarily.
  */
 struct cras_msbc_plc {
+	// The history buffer for receiving samples, we also use it to
+	// buffer the processed replacement samples.
 	int16_t hist[PLC_HL + MSBC_FS + PLC_SBCRL + PLC_OLAL];
+	// The index of the best substitution samples in sample history.
 	unsigned int best_lag;
+	// Number of bad frames handled since the last good
+	// frame.
 	int handled_bad_frames;
+	// A buffer used for storing the samples from decoding the
+	// mSBC zero frame packet.
 	int16_t zero_frame[MSBC_FS];
+	// A window monitoring how many packets are bad within the recent
+	// PLC_WINDOW_SIZE of packets. This is used to determine if we
+	// want to disable the PLC temporarily.
 	struct packet_window *pl_window;
 };
 

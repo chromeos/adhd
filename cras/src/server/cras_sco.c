@@ -68,73 +68,72 @@ static const uint8_t h2_header_frames_count[] = { 0x08, 0x38, 0xc8, 0xf8 };
 /* Structure to hold variables for a HFP connection. Since HFP supports
  * bi-direction audio, two iodevs should share one cras_sco if they
  * represent two directions of the same HFP headset
- * Members:
- *     fd - The file descriptor for SCO socket.
- *     started - If the cras_sco has started to read/write SCO data. This is
- *         only meaningful for non-offload case.
- *     mtu - The max transmit unit reported from BT adapter.
- *     packet_size - The size of SCO packet to read/write preferred by
- *         adapter, could be different than mtu.
- *     capture_buf - The buffer to hold samples read from SCO socket.
- *     playback_buf - The buffer to hold samples about to write to SCO socket.
- *     msbc_read - mSBC codec to decode input audio in wideband speech mode.
- *     msbc_write - mSBC codec to encode output audio in wideband speech mode.
- *     msbc_plc - PLC component to handle the packet loss of input audio in
- *         wideband speech mode.
- *     msbc_num_out_frames - Number of total written mSBC frames.
- *     msbc_num_in_frames - Number of total read mSBC frames.
- *     msbc_num_lost_frames - Number of total lost mSBC frames.
- *     read_cb - Callback to call when SCO socket can read. It returns the
- *         number of PCM bytes read.
- *     write_cb - Callback to call when SCO socket can write.
- *     write_buf - Temp buffer for writeing HCI SCO packet in wideband.
- *     read_buf - Temp buffer for reading HCI SCO packet in wideband.
- *     input_format_bytes - The audio format bytes for input device. 0 means
- *         there is no input device for the cras_sco.
- *     output_format_bytes - The audio format bytes for output device. 0 means
- *         there is no output device for the cras_sco.
- *     write_wp - Write pointer of write_buf.
- *     write_rp - Read pointer of write_buf.
- *     read_wp - Write pointer of read_buf.
- *     read_rp - Read pointer of read_buf.
- *     read_align_cb - Callback used to align mSBC frame reading with read buf.
- *     msbc_read_current_corrupted - Flag to mark if the current mSBC frame
- *         read is corrupted.
- *     wbs_logger - The logger for packet status in WBS.
- *     sr_buf - The buffer for saving the input to the sr.
- *     sr - The sr instance.
- *     is_cras_sr_bt_enabled - Indicates whether cras_sr is enabled.
- *     device - The associated bt device.
  */
 struct cras_sco {
+	// The file descriptor for SCO socket.
 	int fd;
+	// If the cras_sco has started to read/write SCO data. This is
+	// only meaningful for non-offload case.
 	int started;
+	// The max transmit unit reported from BT adapter.
 	unsigned int mtu;
+	// The size of SCO packet to read/write preferred by
+	// adapter, could be different than mtu.
 	unsigned int packet_size;
+	// The buffer to hold samples read from SCO socket.
 	struct byte_buffer *capture_buf;
+	// The buffer to hold samples about to write to SCO socket.
 	struct byte_buffer *playback_buf;
+	// mSBC codec to decode input audio in wideband speech mode.
 	struct cras_audio_codec *msbc_read;
+	// mSBC codec to encode output audio in wideband speech mode.
 	struct cras_audio_codec *msbc_write;
+	// PLC component to handle the packet loss of input audio in
+	// wideband speech mode.
 	struct cras_msbc_plc *msbc_plc;
+	// Number of total written mSBC frames.
 	unsigned int msbc_num_out_frames;
+	// Number of total read mSBC frames.
 	unsigned int msbc_num_in_frames;
+	// Number of total lost mSBC frames.
 	unsigned int msbc_num_lost_frames;
+	// Callback to call when SCO socket can read. It returns the
+	// number of PCM bytes read.
 	int (*read_cb)(struct cras_sco *sco);
+	// Callback to call when SCO socket can write.
 	int (*write_cb)(struct cras_sco *sco);
+	// Temp buffer for writeing HCI SCO packet in wideband.
 	uint8_t *write_buf;
+	// Temp buffer for reading HCI SCO packet in wideband.
 	uint8_t *read_buf;
+	// The audio format bytes for input device. 0 means
+	// there is no input device for the cras_sco.
 	size_t input_format_bytes;
+	// The audio format bytes for output device. 0 means
+	// there is no output device for the cras_sco.
 	size_t output_format_bytes;
+	// Write pointer of write_buf.
 	size_t write_wp;
+	// Read pointer of write_buf.
 	size_t write_rp;
+	// Write pointer of read_buf.
 	size_t read_wp;
+	// Read pointer of read_buf.
 	size_t read_rp;
+	// Callback used to align mSBC frame reading with read buf.
 	int (*read_align_cb)(uint8_t *buf);
+	// Flag to mark if the current mSBC frame
+	// read is corrupted.
 	bool msbc_read_current_corrupted;
+	// The logger for packet status in WBS.
 	struct packet_status_logger *wbs_logger;
+	// The buffer for saving the input to the sr.
 	struct byte_buffer *sr_buf;
+	// The sr instance.
 	struct cras_sr *sr;
+	// Indicates whether cras_sr is enabled.
 	bool is_cras_sr_bt_enabled;
+	// The associated bt device.
 	struct cras_bt_device *device;
 };
 

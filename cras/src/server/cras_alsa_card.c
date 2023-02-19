@@ -46,24 +46,23 @@ struct hctl_poll_fd {
 	struct hctl_poll_fd *prev, *next;
 };
 
-/* Holds information about each sound card on the system.
- * name - of the form hw:XX.
- * card_index - 0 based index, value of "XX" in the name.
- * iodevs - Input and output devices for this card.
- * mixer - Controls the mixer controls for this card.
- * ucm - CRAS use case manager if available.
- * hctl - ALSA high-level control interface.
- * hctl_poll_fds - List of fds registered with cras_system_state.
- * config - Config info for this card, can be NULL if none found.
- */
+/* Holds information about each sound card on the system. */
 struct cras_alsa_card {
+	// of the form hw:XX.
 	char name[MAX_ALSA_CARD_NAME_LENGTH];
+	// 0 based index, value of "XX" in the name.
 	size_t card_index;
+	// Input and output devices for this card.
 	struct iodev_list_node *iodevs;
+	// Controls the mixer controls for this card.
 	struct cras_alsa_mixer *mixer;
+	// CRAS use case manager if available.
 	struct cras_use_case_mgr *ucm;
+	// ALSA high-level control interface.
 	snd_hctl_t *hctl;
+	// List of fds registered with cras_system_state.
 	struct hctl_poll_fd *hctl_poll_fds;
+	// Config info for this card, can be NULL if none found.
 	struct cras_card_config *config;
 	enum CRAS_ALSA_CARD_TYPE card_type;
 	struct cras_alsa_iodev_ops *ops;

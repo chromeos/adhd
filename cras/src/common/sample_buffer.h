@@ -28,12 +28,11 @@
 
 #include "cras/src/common/byte_buffer.h"
 
-/* A sample buffer.
- *  sample_size - the number of bytes of each sample in the buffer.
- *  buf - the byte_buffer that stores the data.
- */
+/* A sample buffer. */
 struct sample_buffer {
+	// the number of bytes of each sample in the buffer.
 	size_t sample_size;
+	// the byte_buffer that stores the data.
 	struct byte_buffer *buf;
 };
 
