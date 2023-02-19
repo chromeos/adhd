@@ -55,8 +55,6 @@ stop cras
 start cras
 ```
 
-NOTE: Migration of existing code is tracked by b/255656013.
-
 ## Local Variable Declaration
 
 Declare the local variable as close as the first use.
