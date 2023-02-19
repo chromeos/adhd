@@ -15,6 +15,10 @@ pub enum PluginError {
 
     #[error("too many channels {0}")]
     TooManyChannels(usize),
+
+    #[error("{func}: {error}")]
+    /// Error from dl*() C functions.
+    Dl { func: String, error: String },
 }
 
 #[cfg(test)]

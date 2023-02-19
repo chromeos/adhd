@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 pub mod binding;
+mod dl;
 mod error;
 pub use error::*;
 mod processor;
