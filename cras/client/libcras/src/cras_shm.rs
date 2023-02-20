@@ -10,6 +10,7 @@ use std::ptr::NonNull;
 use std::slice;
 use std::sync::atomic::{self, Ordering};
 use std::thread;
+use std::time::Duration;
 
 use cras_sys::gen::{
     audio_dev_debug_info, audio_stream_debug_info, cras_audio_shm_header, cras_iodev_info,
@@ -63,6 +64,8 @@ pub struct CrasAudioHeader<'a> {
     read_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
     write_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
     buffer_offset: [VolatileRef<'a, u64>; CRAS_NUM_SHM_BUFFERS as usize],
+    ts_sec: VolatileRef<'a, i64>,
+    ts_nsec: VolatileRef<'a, i64>,
 }
 
 // It is safe to send audio buffers between threads as this struct has exclusive ownership of the
@@ -133,6 +136,8 @@ impl<'a> CrasAudioHeader<'a> {
                     vref_from_addr!(addr, buffer_offset[0]),
                     vref_from_addr!(addr, buffer_offset[1]),
                 ],
+                ts_sec: vref_from_addr!(addr, ts.tv_sec),
+                ts_nsec: vref_from_addr!(addr, ts.tv_nsec),
             })
         }
     }
@@ -256,14 +261,12 @@ impl<'a> CrasAudioHeader<'a> {
 
     /// Switches the written buffer.
     fn switch_write_buf_idx(&mut self) {
-        self.write_buf_idx
-            .store(self.get_write_buf_idx() as u32 ^ 1u32)
+        self.write_buf_idx.store(self.get_write_buf_idx() ^ 1u32)
     }
 
     /// Switches the buffer to read.
     fn switch_read_buf_idx(&mut self) {
-        self.read_buf_idx
-            .store(self.get_read_buf_idx() as u32 ^ 1u32)
+        self.read_buf_idx.store(self.get_read_buf_idx() ^ 1u32)
     }
 
     /// Checks if the offset value for setting write_offset or read_offset is
@@ -337,7 +340,7 @@ impl<'a> CrasAudioHeader<'a> {
         let start = offset;
         let end = start + self.buffer_len_from_offset(start)?;
 
-        let other_idx = (idx ^ 1) as usize;
+        let other_idx = idx ^ 1;
         let other_start = self
             .buffer_offset
             .get(other_idx)
@@ -470,6 +473,18 @@ impl<'a> CrasAudioHeader<'a> {
             self.switch_read_buf_idx();
         }
         Ok(())
+    }
+
+    /// Returns the timestamp the first byte of buffer will be played or was recorded.
+    /// - For capture, it returns the time of the next sample at read_index was recorded.
+    /// - For playback, it returns the time that the next sample written will be played.
+    ///
+    /// # Returns
+    ///
+    /// * `Duration` - the timestamp the first byte of buffer will be played or was recorded.
+    ///
+    pub fn get_timestamp(&self) -> Duration {
+        Duration::new(self.ts_sec.load() as u64, self.ts_nsec.load() as u32)
     }
 }
 

@@ -7,6 +7,7 @@ use std::io;
 use std::marker::PhantomData;
 use std::mem;
 use std::os::unix::net::UnixStream;
+use std::time::Duration;
 
 use audio_streams::{
     capture::{AsyncCaptureBuffer, AsyncCaptureBufferStream},
@@ -131,7 +132,7 @@ impl AudioSocket {
 /// interacts with server's audio thread through `AudioSocket`.
 pub trait CrasStreamData<'a>: Send {
     // Creates `CrasStreamData` with only `AudioSocket`.
-    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>) -> Self;
+    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>, rate: u32) -> Self;
     fn header_mut(&mut self) -> &mut CrasAudioHeader<'a>;
     fn audio_sock_mut(&mut self) -> &mut AudioSocket;
 }
@@ -140,11 +141,16 @@ pub trait CrasStreamData<'a>: Send {
 pub struct CrasPlaybackData<'a> {
     audio_sock: AudioSocket,
     header: CrasAudioHeader<'a>,
+    rate: u32,
 }
 
 impl<'a> CrasStreamData<'a> for CrasPlaybackData<'a> {
-    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>) -> Self {
-        Self { audio_sock, header }
+    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>, rate: u32) -> Self {
+        Self {
+            audio_sock,
+            header,
+            rate,
+        }
     }
 
     fn header_mut(&mut self) -> &mut CrasAudioHeader<'a> {
@@ -167,17 +173,47 @@ impl<'a> AsyncBufferCommit for CrasPlaybackData<'a> {
             log_err(e);
         }
     }
+
+    fn latency_bytes(&self) -> u32 {
+        let mut ts = libc::timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        };
+        // clock_gettime is safe when passed a valid address and a valid enum.
+        let result = unsafe {
+            libc::clock_gettime(libc::CLOCK_MONOTONIC_RAW, &mut ts as *mut libc::timespec)
+        };
+
+        if result != 0 {
+            error!("clock_gettime() failed!");
+            return 0;
+        }
+        let now = Duration::new(ts.tv_sec as u64, ts.tv_nsec as u32);
+
+        match self.header.get_timestamp().checked_sub(now) {
+            None => 0,
+            Some(diff) => {
+                (diff.as_nanos() * self.header.get_frame_size() as u128 * self.rate as u128
+                    / 1_000_000_000) as u32
+            }
+        }
+    }
 }
 
 /// `CrasStreamData` implementation for `CaptureBufferStream`.
 pub struct CrasCaptureData<'a> {
     audio_sock: AudioSocket,
     header: CrasAudioHeader<'a>,
+    rate: u32,
 }
 
 impl<'a> CrasStreamData<'a> for CrasCaptureData<'a> {
-    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>) -> Self {
-        Self { audio_sock, header }
+    fn new(audio_sock: AudioSocket, header: CrasAudioHeader<'a>, rate: u32) -> Self {
+        Self {
+            audio_sock,
+            header,
+            rate,
+        }
     }
 
     fn header_mut(&mut self) -> &mut CrasAudioHeader<'a> {
@@ -198,6 +234,30 @@ impl<'a> AsyncBufferCommit for CrasCaptureData<'a> {
         }
         if let Err(e) = self.audio_sock.capture_ready(nframes as u32).await {
             log_err(e);
+        }
+    }
+
+    fn latency_bytes(&self) -> u32 {
+        let mut ts = libc::timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        };
+        // clock_gettime is safe when passed a valid address and a valid enum.
+        let result = unsafe {
+            libc::clock_gettime(libc::CLOCK_MONOTONIC_RAW, &mut ts as *mut libc::timespec)
+        };
+
+        if result != 0 {
+            error!("clock_gettime() failed!");
+            return 0;
+        }
+        let now = Duration::new(ts.tv_sec as u64, ts.tv_nsec as u32);
+        match now.checked_sub(self.header.get_timestamp()) {
+            None => 0,
+            Some(diff) => {
+                (diff.as_nanos() * self.header.get_frame_size() as u128 * self.rate as u128
+                    / 1_000_000_000) as u32
+            }
         }
     }
 }
@@ -246,7 +306,7 @@ impl<'a, T: CrasStreamData<'a> + AsyncBufferCommit> CrasStream<'a, T> {
             rate,
             num_channels,
             format,
-            controls: T::new(audio_sock, header),
+            controls: T::new(audio_sock, header, rate),
             phantom: PhantomData,
             audio_buffer,
         })
