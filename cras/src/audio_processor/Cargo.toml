@@ -21,3 +21,6 @@ thiserror = "1.0.30"
 [build-dependencies]
 bindgen = "0.63.0"
 cc = "1.0.73"
+
+[dev-dependencies]
+tempdir = "0.3.7"

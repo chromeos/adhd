@@ -2,27 +2,34 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::{num::ParseFloatError, time::Duration};
+use std::{num::ParseFloatError, path::PathBuf, time::Duration};
 
 use clap::Parser;
 
 use audio_processor::{
-    processors::{profile, CheckShape, InPlaceNegateAudioProcessor, WavSink, WavSource},
+    processors::{profile, CheckShape, DynamicPluginProcessor, WavSink, WavSource},
     ByteProcessor, Error, MultiBuffer, Shape,
 };
 
 #[derive(Parser, Debug)]
 #[clap(global_setting(clap::AppSettings::DeriveDisplayOrder))]
 struct Command {
-    #[clap(short = 'i', long)]
-    input: String,
+    /// Path to the plugin library (.so)
+    plugin: String,
 
-    output: String,
+    /// Path of input WAVE file
+    input: PathBuf,
+    /// Path of output WAVE file
+    output: PathBuf,
 
     /// Time in seconds to sleep between each processing block iteration.
     /// A value of 0 causes the running thread to yield instead of sleeping.
     #[clap(long = "sleep-sec", value_parser = parse_duration)]
     sleep_duration: Option<Duration>,
+
+    /// Symbol name of the function that creates the plugin processor in `plugin`.
+    #[clap(long, default_value = "plugin_processor_create")]
+    plugin_name: String,
 }
 
 fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
@@ -39,9 +46,11 @@ fn print_real_time_factor(stats: &profile::Measurement, name: &str, clip_duratio
 }
 
 pub fn main() {
-    let command = Command::parse();
-    eprintln!("{:?}", command);
+    run(Command::parse());
+}
 
+fn run(command: Command) {
+    eprintln!("{:?}", command);
     let reader = hound::WavReader::open(command.input).expect("cannot open input file");
     let spec = reader.spec();
     let writer = hound::WavWriter::create(
@@ -59,7 +68,14 @@ pub fn main() {
     eprintln!("block size: {}", block_size);
     let mut source = WavSource::new(reader, block_size);
     let mut check_shape = CheckShape::<f32>::new(spec.channels as usize, block_size);
-    let ext = InPlaceNegateAudioProcessor::<f32>::new();
+    let ext = DynamicPluginProcessor::new(
+        &command.plugin,
+        &command.plugin_name,
+        block_size,
+        spec.channels as usize,
+        spec.sample_rate as usize,
+    )
+    .expect("Cannot load plugin");
     let mut profile = profile::Profile::new(ext);
     let mut sink = WavSink::new(writer);
 
@@ -118,4 +134,71 @@ pub fn main() {
     eprintln!("wall time: {}", profile.wall_time);
     print_real_time_factor(&profile.cpu_time, "cpu", clip_duration);
     print_real_time_factor(&profile.wall_time, "wall", clip_duration);
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "host_cc")]
+    #[test]
+    fn simple_negate() {
+        use assert_matches::assert_matches;
+        use std::{env, path::PathBuf};
+        use tempdir::TempDir;
+
+        let dir = TempDir::new("pipeline_smoke").unwrap();
+        let in_wav_path = dir.path().join("input.wav");
+        let out_wav_path = dir.path().join("output.wav");
+
+        let mut writer = hound::WavWriter::create(
+            &in_wav_path,
+            hound::WavSpec {
+                channels: 2,
+                sample_rate: 48000,
+                bits_per_sample: 16,
+                sample_format: hound::SampleFormat::Int,
+            },
+        )
+        .unwrap();
+
+        // Write 1 second of audio samples.
+        for _ in 0..48000 {
+            // Write positive for L.
+            writer.write_sample(i16::MAX).unwrap();
+            // Write negative for R.
+            writer.write_sample(i16::MIN).unwrap();
+        }
+        drop(writer);
+
+        super::run(crate::Command {
+            plugin: PathBuf::from(env::var("OUT_DIR").unwrap())
+                .join("libtest_plugins.so")
+                .to_str()
+                .unwrap()
+                .to_string(),
+            input: in_wav_path,
+            output: out_wav_path.clone(),
+            sleep_duration: None,
+            plugin_name: "negate_processor_create".to_string(),
+        });
+
+        // Verify the output.
+        let mut reader = hound::WavReader::open(out_wav_path).unwrap();
+        assert_eq!(
+            reader.spec(),
+            hound::WavSpec {
+                channels: 2,
+                sample_rate: 48000,
+                bits_per_sample: 32,
+                sample_format: hound::SampleFormat::Float,
+            }
+        );
+        let mut samples = reader.samples::<f32>();
+        for _ in 0..48000 {
+            // A -(i16::MAX) sample is around -1f32.
+            assert!(samples.next().unwrap().unwrap() < -0.9);
+            // A -(i16::MIN) sample is around 1f32.
+            assert!(samples.next().unwrap().unwrap() > 0.9);
+        }
+        assert_matches!(samples.next(), None);
+    }
 }
