@@ -8,5 +8,7 @@ mod dynamic;
 pub use dynamic::*;
 mod error;
 pub use error::*;
+mod export;
+pub use export::export_plugin;
 mod processor;
 pub use processor::*;
