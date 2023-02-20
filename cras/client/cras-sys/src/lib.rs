@@ -68,6 +68,7 @@ pub enum Error {
     InvalidCrasIodevNodeId,
     InvalidScreenRotation,
     InvalidStreamType(u32),
+    InvalidStreamTypeStr,
 }
 
 impl error::Error for Error {}
@@ -97,6 +98,7 @@ impl fmt::Display for Error {
                 t,
                 CRAS_STREAM_TYPE::CRAS_STREAM_NUM_TYPES as u32
             ),
+            InvalidStreamTypeStr => write!(f, "Invalid stream type string"),
         }
     }
 }
@@ -477,6 +479,29 @@ impl TryFrom<u32> for CRAS_STREAM_TYPE {
     }
 }
 
+impl FromStr for CRAS_STREAM_TYPE {
+    type Err = Error;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        use CRAS_STREAM_TYPE::*;
+        match s {
+            "default" => Ok(CRAS_STREAM_TYPE_DEFAULT),
+            "multimedia" => Ok(CRAS_STREAM_TYPE_MULTIMEDIA),
+            "voice_communication" => Ok(CRAS_STREAM_TYPE_VOICE_COMMUNICATION),
+            "speech_recognition" => Ok(CRAS_STREAM_TYPE_SPEECH_RECOGNITION),
+            "pro_audio" => Ok(CRAS_STREAM_TYPE_PRO_AUDIO),
+            "accessibility" => Ok(CRAS_STREAM_TYPE_ACCESSIBILITY),
+            _ => Err(Error::InvalidStreamTypeStr),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for CRAS_STREAM_TYPE {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        CRAS_STREAM_TYPE::from_str(&s).map_err(|e| serde::de::Error::custom(e.to_string()))
+    }
+}
+
 impl TryFrom<u32> for CRAS_CLIENT_TYPE {
     type Error = Error;
     fn try_from(client_type: u32) -> Result<Self, Self::Error> {
@@ -518,6 +543,12 @@ pub fn deserialize_cras_client_type<'de, D: Deserializer<'de>>(
     match s.parse() {
         Ok(client_type) => Ok(client_type),
         Err(e) => Err(serde::de::Error::custom(e.to_string())),
+    }
+}
+
+impl<'de> Deserialize<'de> for CRAS_CLIENT_TYPE {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserialize_cras_client_type(deserializer)
     }
 }
 
