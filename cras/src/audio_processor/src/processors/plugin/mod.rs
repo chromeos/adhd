@@ -4,6 +4,8 @@
 
 pub mod binding;
 mod dl;
+mod dynamic;
+pub use dynamic::*;
 mod error;
 pub use error::*;
 mod processor;

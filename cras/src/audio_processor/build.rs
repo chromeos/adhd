@@ -2,7 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 extern crate bindgen;
 
@@ -31,5 +35,18 @@ fn main() {
             .include("c");
 
         cc.compile("test_plugins");
+        let status = Command::new(cc.get_compiler().path())
+            .arg("-o")
+            .arg(out_path.join("libtest_plugins.so").into_os_string())
+            .arg("-shared")
+            .arg("-Wl,--whole-archive")
+            .arg(out_path.join("libtest_plugins.a").into_os_string())
+            .arg("-Wl,--no-whole-archive")
+            .stdin(Stdio::null())
+            .status()
+            .expect("failed to build shared library");
+        if !status.success() {
+            panic!("libtest_plugins.so build failed with {}", status);
+        }
     }
 }
