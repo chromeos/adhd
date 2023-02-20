@@ -142,6 +142,7 @@ use cras_sys::gen::*;
 pub use cras_sys::gen::{
     CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType,
     CRAS_SCREEN_ROTATION as CrasScreenRotation, CRAS_STREAM_EFFECT as CrasStreamEffect,
+    CRAS_STREAM_TYPE as CrasStreamType,
 };
 pub use cras_sys::{
     deserialize_cras_client_type, AudioDebugInfo, CrasIodevInfo, CrasIodevNodeId, CrasIonodeInfo,
@@ -229,6 +230,7 @@ pub struct CrasClient<'a> {
     next_stream_id: u32,
     cras_capture: bool,
     client_type: CRAS_CLIENT_TYPE,
+    stream_type: CRAS_STREAM_TYPE,
 }
 
 impl<'a> CrasClient<'a> {
@@ -266,6 +268,7 @@ impl<'a> CrasClient<'a> {
                 next_stream_id: 0,
                 cras_capture: false,
                 client_type: CRAS_CLIENT_TYPE::CRAS_CLIENT_TYPE_UNKNOWN,
+                stream_type: CRAS_STREAM_TYPE::CRAS_STREAM_TYPE_DEFAULT,
             })
         } else {
             Err(Error::MessageTypeError)
@@ -280,6 +283,13 @@ impl<'a> CrasClient<'a> {
     /// Set the type of this client to report to CRAS when connecting streams.
     pub fn set_client_type(&mut self, client_type: CRAS_CLIENT_TYPE) {
         self.client_type = client_type;
+    }
+
+    /// Set the stream type to report to CRAS when connecting streams.
+    ///
+    /// All streams created under this client will use this stream type.
+    pub fn set_stream_type(&mut self, stream_type: CRAS_STREAM_TYPE) {
+        self.stream_type = stream_type;
     }
 
     /// Sets the system volume to `volume`.
@@ -433,7 +443,7 @@ impl<'a> CrasClient<'a> {
             proto_version: CRAS_PROTO_VER,
             direction,
             stream_id,
-            stream_type: CRAS_STREAM_TYPE::CRAS_STREAM_TYPE_DEFAULT,
+            stream_type: self.stream_type,
             buffer_frames: block_size,
             cb_threshold: block_size,
             flags: 0,
@@ -974,10 +984,13 @@ pub struct CrasStreamSourceGenerator {
     capture: bool,
     client_type: CrasClientType,
     socket_type: CrasSocketType,
+    stream_type: CrasStreamType,
 }
 
 impl CrasStreamSourceGenerator {
-    /// Blocks creating a new `CrasStreamSourceGenerator`.
+    /// Blocks creating a new `CrasStreamSourceGenerator`. Streams from this stream source always
+    /// use stream type `CrasStreamType::CRAS_STREAM_TYPE_DEFAULT` when connecting to CRAS.
+    /// If you want to use different stream type, use `with_stream_type`.
     ///
     /// # Arguments
     ///
@@ -985,10 +998,33 @@ impl CrasStreamSourceGenerator {
     /// * `client_type` - Type of the CRAS Client that we want to create.
     /// * `socket_type` - Type of the socket for the CRAS Client to connect.
     pub fn new(capture: bool, client_type: CrasClientType, socket_type: CrasSocketType) -> Self {
+        Self::with_stream_type(
+            capture,
+            client_type,
+            socket_type,
+            CrasStreamType::CRAS_STREAM_TYPE_DEFAULT,
+        )
+    }
+
+    /// Blocks creating a new `CrasStreamSourceGenerator` with stream_type.
+    ///
+    /// # Arguments
+    ///
+    /// * `capture` - Indicator to enable/disable audio capture through CRAS server.
+    /// * `client_type` - Type of the CRAS Client that we want to create.
+    /// * `socket_type` - Type of the socket for the CRAS Client to connect.
+    /// * `stream_type` - Type of stream to send to CRAS when connecting streams.
+    pub fn with_stream_type(
+        capture: bool,
+        client_type: CrasClientType,
+        socket_type: CrasSocketType,
+        stream_type: CrasStreamType,
+    ) -> Self {
         CrasStreamSourceGenerator {
             capture,
             client_type,
             socket_type,
+            stream_type,
         }
     }
 }
@@ -1000,6 +1036,7 @@ impl StreamSourceGenerator for CrasStreamSourceGenerator {
             client.enable_cras_capture();
         }
         client.set_client_type(self.client_type);
+        client.set_stream_type(self.stream_type);
         Ok(Box::new(client))
     }
 }
