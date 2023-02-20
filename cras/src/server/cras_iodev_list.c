@@ -2452,7 +2452,7 @@ void cras_iodev_list_enable_floop_pair(struct cras_floop_pair *pair)
 
 void cras_iodev_list_disable_floop_pair(struct cras_floop_pair *pair)
 {
-	remove_all_streams_from_dev(&pair->output);
+	close_dev(&pair->output);
 }
 
 void cras_iodev_list_create_server_vad_stream(int dev_idx)
