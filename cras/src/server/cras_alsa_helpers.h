@@ -95,10 +95,13 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle);
  * Args:
  *    handle - Filled with a pointer to the opened pcm.
  *    ahead - Number of frames appl_ptr should be ahead of hw_ptr.
+ *    actual_appl_ptr_displacement - The number of frames of the actual
+ *                                   appl_ptr displacement.
  * Returns:
  *    0 on success. A negative error code on failure.
  */
-int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead);
+int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead,
+			      int *actual_appl_ptr_displacement);
 
 /* Probes properties of the alsa device.
  * Args:

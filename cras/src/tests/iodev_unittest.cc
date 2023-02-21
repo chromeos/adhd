@@ -132,6 +132,22 @@ int update_channel_layout(struct cras_iodev* iodev) {
   return update_channel_layout_return_val;
 }
 
+void SetupShm(struct cras_audio_shm** shm_out) {
+  struct cras_audio_shm* shm;
+
+  shm = static_cast<struct cras_audio_shm*>(
+      calloc(1, sizeof(struct cras_audio_shm)));
+
+  shm->header = static_cast<struct cras_audio_shm_header*>(
+      calloc(1, sizeof(struct cras_audio_shm_header)));
+  cras_shm_set_frame_bytes(shm, 4);
+
+  cras_shm_set_mute(shm, 0);
+  cras_shm_set_volume_scaler(shm, 1.0);
+
+  *shm_out = shm;
+}
+
 void ResetStubData() {
   cras_iodev_list_disable_dev_called = 0;
   select_node_called = 0;
@@ -1568,11 +1584,11 @@ TEST(IoDev, FillZeros) {
   iodev.put_buffer = put_buffer;
 
   iodev.direction = CRAS_STREAM_INPUT;
-  rc = cras_iodev_fill_odev_zeros(&iodev, frames);
+  rc = cras_iodev_fill_odev_zeros(&iodev, frames, false);
   EXPECT_EQ(-EINVAL, rc);
 
   iodev.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_fill_odev_zeros(&iodev, frames);
+  rc = cras_iodev_fill_odev_zeros(&iodev, frames, false);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(frames, put_buffer_nframes);
@@ -1652,6 +1668,8 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   ResetStubData();
 
   rstream1.cb_threshold = min_cb_level;
+  SetupShm(&rstream1.shm);
+
   stream1.stream = &rstream1;
   stream1.is_running = 1;
 
@@ -1822,6 +1840,9 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   // Device should not start ramping up because system is muted.
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_ramp_start_is_called);
+
+  free(rstream1.shm->header);
+  free(rstream1.shm);
 }
 
 TEST(IoDev, StartRampUp) {
@@ -2262,6 +2283,7 @@ TEST(IoDev, HandleOutputUnderrun) {
   iodev.put_buffer = put_buffer;
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.min_cb_level = frames;
+  rate_estimator_get_rate_ret = 48000.0;
 
   // Default case, fill one block of zeros.
   EXPECT_EQ(0, cras_iodev_output_underrun(&iodev, 0, 0));

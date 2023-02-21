@@ -260,7 +260,7 @@ static int audio_thread_read_command(struct audio_thread *thread, uint8_t *buf,
 /* Builds an initial buffer to avoid an underrun. Adds min_level of latency. */
 static void fill_odevs_zeros_min_level(struct cras_iodev *odev)
 {
-	cras_iodev_fill_odev_zeros(odev, odev->min_buffer_level);
+	cras_iodev_fill_odev_zeros(odev, odev->min_buffer_level, false);
 }
 
 /* Handles messages from main thread to add a new active device. */
@@ -560,6 +560,10 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 		cras_shm_dropped_samples_duration(stream->stream->shm).tv_sec;
 	si->dropped_samples_duration_nsec =
 		cras_shm_dropped_samples_duration(stream->stream->shm).tv_nsec;
+	si->underrun_duration_sec =
+		cras_shm_underrun_duration(stream->stream->shm).tv_sec;
+	si->underrun_duration_nsec =
+		cras_shm_underrun_duration(stream->stream->shm).tv_nsec;
 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	subtract_timespecs(&now, &stream->stream->start_ts, &time_since);

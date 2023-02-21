@@ -726,8 +726,15 @@ static inline void cras_iodev_exit_idle(struct cras_iodev *iodev)
 void cras_iodev_set_ext_dsp_module(struct cras_iodev *iodev,
 				   struct ext_dsp_module *ext);
 
-/* Put 'frames' worth of zero samples into odev. */
-int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames);
+/*
+ * Put 'frames' worth of zero samples into odev.
+ * Args:
+ *    odev - The device.
+ *    frames - The number of frames of zero samples to put into the device.
+ *    underrun - True if this function is triggered due to underrun.
+ */
+int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames,
+			       bool underrun);
 
 /*
  * The default implementation of frames_to_play_in_sleep ops, used when an
@@ -932,5 +939,12 @@ bool cras_iodev_set_rtc_proc_enabled(struct cras_iodev *iodev,
 /* */
 bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev *iodev,
 				     enum RTC_PROC_ON_DSP rtc_proc);
+
+/* Update underrun duration for the streams currently handled by this device.
+ * Args:
+ *    iodev - The device.
+ *    frames - The amount of zero frames filled, a.k.a the underrun frames.
+ */
+void cras_iodev_update_underrun_duration(struct cras_iodev *iodev, int frames);
 
 #endif /* CRAS_SRC_SERVER_CRAS_IODEV_H_ */

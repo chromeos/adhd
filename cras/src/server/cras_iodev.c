@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/param.h>
+#include <sys/syslog.h>
 #include <sys/time.h>
 #include <syslog.h>
 #include <time.h>
@@ -107,7 +108,7 @@ static int default_no_stream_playback(struct cras_iodev *odev)
 	fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
 	if (hw_level <= target_hw_level) {
 		fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
-		return cras_iodev_fill_odev_zeros(odev, fr_to_write);
+		return cras_iodev_fill_odev_zeros(odev, fr_to_write, false);
 	}
 	return 0;
 }
@@ -282,7 +283,7 @@ static int cras_iodev_output_event_sample_ready(struct cras_iodev *odev)
 		 * stream, fill 1 min_cb_level of zeros first and fill sample
 		 * from stream later.
 		 * Starts the device here to finish state transition. */
-		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+		cras_iodev_fill_odev_zeros(odev, odev->min_cb_level, false);
 		ATLOG(atlog, AUDIO_THREAD_ODEV_START, odev->info.idx,
 		      odev->min_cb_level, 0);
 		return cras_iodev_start(odev);
@@ -1044,7 +1045,8 @@ int cras_iodev_open(struct cras_iodev *iodev, unsigned int cb_level,
 			iodev->state = CRAS_IODEV_STATE_OPEN;
 		} else {
 			iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
-			cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+			cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level,
+						   false);
 		}
 	} else {
 		iodev->input_data = input_data_create(iodev);
@@ -1399,17 +1401,21 @@ int cras_iodev_buffer_avail(struct cras_iodev *iodev, unsigned hw_level)
 	return iodev->buffer_size - iodev->min_buffer_level - hw_level;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames)
+int cras_iodev_fill_odev_zeros(struct cras_iodev *odev, unsigned int frames,
+			       bool underrun)
 {
 	struct cras_audio_area *area = NULL;
 	unsigned int frame_bytes, frames_written;
-	int rc;
+	int rc = 0;
 	uint8_t *buf;
 
 	if (odev->direction != CRAS_STREAM_OUTPUT)
 		return -EINVAL;
 
 	ATLOG(atlog, AUDIO_THREAD_FILL_ODEV_ZEROS, odev->info.idx, frames, 0);
+	if (underrun) {
+		cras_iodev_update_underrun_duration(odev, frames);
+	}
 
 	frame_bytes = cras_get_format_bytes(odev->format);
 	while (frames > 0) {
@@ -1441,7 +1447,8 @@ int cras_iodev_output_underrun(struct cras_iodev *odev, unsigned int hw_level,
 	if (odev->output_underrun)
 		return odev->output_underrun(odev);
 	else
-		return cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+		return cras_iodev_fill_odev_zeros(odev, odev->min_cb_level,
+						  true);
 }
 
 int cras_iodev_odev_should_wake(const struct cras_iodev *odev)
@@ -1861,4 +1868,22 @@ bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev *iodev,
 	if (iodev->get_rtc_proc_enabled)
 		return iodev->get_rtc_proc_enabled(iodev, rtc_proc);
 	return false;
+}
+
+void cras_iodev_update_underrun_duration(struct cras_iodev *iodev, int frames)
+{
+	struct dev_stream *curr;
+	struct cras_audio_shm *shm;
+	struct cras_rstream *rstream;
+	double est_rate;
+	struct timespec duration;
+
+	est_rate = iodev->format->frame_rate *
+		   cras_iodev_get_est_rate_ratio(iodev);
+	cras_frames_to_time(frames, est_rate, &duration);
+	DL_FOREACH (iodev->streams, curr) {
+		rstream = curr->stream;
+		shm = cras_rstream_shm(rstream);
+		cras_shm_update_underrun_duration(shm, duration);
+	}
 }

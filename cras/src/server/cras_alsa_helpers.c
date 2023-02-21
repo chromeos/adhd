@@ -243,7 +243,8 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle)
 	return snd_pcm_drain(handle);
 }
 
-int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
+int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead,
+			      int *actual_appl_ptr_displacement)
 {
 	int rc;
 	snd_pcm_uframes_t period_frames, buffer_frames;
@@ -280,6 +281,9 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead)
 		syslog(LOG_WARNING, "Fail to resume appl_ptr: %s",
 		       snd_strerror(rc));
 		return rc;
+	}
+	if (actual_appl_ptr_displacement) {
+		*actual_appl_ptr_displacement = rc;
 	}
 	return 0;
 }

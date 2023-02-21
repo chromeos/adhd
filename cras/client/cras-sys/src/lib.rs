@@ -580,6 +580,8 @@ impl Default for audio_stream_debug_info {
             overrun_frames: 0,
             dropped_samples_duration_sec: 0,
             dropped_samples_duration_nsec: 0,
+            underrun_duration_sec: 0,
+            underrun_duration_nsec: 0,
         }
     }
 }

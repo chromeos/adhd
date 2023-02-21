@@ -36,6 +36,7 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_utf8.h"
 #include "cras/src/server/cras_volume_curve.h"
+#include "cras/src/server/dev_stream.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras_config.h"
 #include "cras_iodev_info.h"
@@ -1529,7 +1530,7 @@ static int usb_adjust_appl_ptr_for_leaving_free_run(struct cras_iodev *odev)
 	snd_pcm_uframes_t ahead;
 
 	ahead = odev->min_buffer_level + odev->min_cb_level;
-	return cras_alsa_resume_appl_ptr(aio->handle, ahead);
+	return cras_alsa_resume_appl_ptr(aio->handle, ahead, NULL);
 }
 
 /*
@@ -1540,10 +1541,22 @@ static int usb_adjust_appl_ptr_for_underrun(struct cras_iodev *odev)
 {
 	struct alsa_usb_io *aio = (struct alsa_usb_io *)odev;
 	snd_pcm_uframes_t ahead;
+	int actual_appl_ptr_displacement = 0;
+	int rc;
 
 	ahead = odev->min_buffer_level + odev->min_cb_level +
 		odev->min_cb_level / 2;
-	return cras_alsa_resume_appl_ptr(aio->handle, ahead);
+	rc = cras_alsa_resume_appl_ptr(aio->handle, ahead,
+				       &actual_appl_ptr_displacement);
+	/* If appl_ptr is actually adjusted, report the glitch.
+	 * The duration of the glitch is calculated using the number of frames that
+	 * the appl_ptr is actually adjusted by*/
+	if (actual_appl_ptr_displacement > 0) {
+		cras_iodev_update_underrun_duration(
+			odev, actual_appl_ptr_displacement);
+	}
+
+	return rc;
 }
 
 /* This function is for leaving no-stream state but still not in free run yet.
@@ -1580,11 +1593,12 @@ static int usb_adjust_appl_ptr_samples_remaining(struct cras_iodev *odev)
 
 	/* Fill zeros to make sure there are enough zero samples in device buffer.*/
 	if (offset > real_hw_level) {
-		rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level);
+		rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level,
+						false);
 		if (rc)
 			return rc;
 	}
-	return cras_alsa_resume_appl_ptr(aio->handle, offset);
+	return cras_alsa_resume_appl_ptr(aio->handle, offset, NULL);
 }
 
 static int usb_alsa_output_underrun(struct cras_iodev *odev)
@@ -1640,7 +1654,7 @@ static int usb_possibly_enter_free_run(struct cras_iodev *odev)
 	fr_to_write = MIN(cras_time_to_frames(&no_stream_fill_zeros_duration,
 					      odev->format->frame_rate),
 			  odev->buffer_size - real_hw_level);
-	rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
+	rc = cras_iodev_fill_odev_zeros(odev, fr_to_write, false);
 	if (rc)
 		return rc;
 	aio->filled_zeros_for_draining += fr_to_write;

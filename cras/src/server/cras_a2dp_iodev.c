@@ -150,7 +150,7 @@ static int fill_zeros_to_target_level(struct cras_iodev *iodev,
 
 	if (local_queued_frames < target_level)
 		return cras_iodev_fill_odev_zeros(
-			iodev, target_level - local_queued_frames);
+			iodev, target_level - local_queued_frames, false);
 	return 0;
 }
 
@@ -182,7 +182,7 @@ static int output_underrun(struct cras_iodev *iodev)
 	if (local_queued_frames > iodev->min_buffer_level)
 		return 0;
 
-	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level, true);
 }
 
 /*

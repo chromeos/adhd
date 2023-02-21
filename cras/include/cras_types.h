@@ -479,6 +479,8 @@ struct __attribute__((__packed__)) audio_stream_debug_info {
 	uint32_t overrun_frames;
 	uint32_t dropped_samples_duration_sec;
 	uint32_t dropped_samples_duration_nsec;
+	uint32_t underrun_duration_sec;
+	uint32_t underrun_duration_nsec;
 };
 
 /* Debug info shared from server to client. */

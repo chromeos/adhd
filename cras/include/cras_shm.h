@@ -67,6 +67,11 @@ struct __attribute__((__packed__)) cras_audio_shm_header {
 	// The value is cumulative.
 	// Use cras_timespec to prevent misalignment
 	struct cras_timespec dropped_samples_duration;
+	// The duration of zero frames filled due to the buffer not being filled by
+	// client.
+	// Only applies to output streams, always 0 for input streams.
+	// The value is cumulative.
+	struct cras_timespec underrun_duration;
 };
 
 /* Returns the number of bytes needed to hold a cras_audio_shm_header. */
@@ -636,6 +641,26 @@ static inline struct cras_timespec
 cras_shm_dropped_samples_duration(const struct cras_audio_shm *shm)
 {
 	return shm->header->dropped_samples_duration;
+}
+
+/* Update the duration of filled silent frames due to there being not enough
+ * data in the buffer */
+static inline void cras_shm_update_underrun_duration(struct cras_audio_shm *shm,
+						     struct timespec duration)
+{
+	struct timespec current;
+	cras_timespec_to_timespec(&current, &shm->header->underrun_duration);
+	add_timespecs(&current, &duration);
+	shm->header->underrun_duration.tv_nsec = current.tv_nsec;
+	shm->header->underrun_duration.tv_sec = current.tv_sec;
+}
+
+/* Gets the duration of filled silent frames due to there being not enough
+ * data in the buffer */
+static inline struct cras_timespec
+cras_shm_underrun_duration(const struct cras_audio_shm *shm)
+{
+	return shm->header->underrun_duration;
 }
 
 /* Open a read/write shared memory area with the given name.

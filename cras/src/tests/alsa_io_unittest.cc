@@ -153,6 +153,7 @@ static int sys_get_max_internal_speaker_channels_called;
 static int sys_get_max_internal_speaker_channels_return_value;
 static int sys_get_max_headphone_channels_called = 0;
 static int sys_get_max_headphone_channels_return_value = 2;
+static int cras_iodev_update_underrun_duration_called = 0;
 
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
@@ -248,6 +249,7 @@ void ResetStubData() {
   sys_get_max_internal_speaker_channels_return_value = 2;
   sys_get_max_headphone_channels_called = 0;
   sys_get_max_headphone_channels_return_value = 2;
+  cras_iodev_update_underrun_duration_called = 0;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -2457,6 +2459,7 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
   // Ask alsa_io to handle output underrun.
   rc = alsa_output_underrun(&aio.base);
   EXPECT_EQ(0, rc);
+  EXPECT_EQ(1, cras_iodev_update_underrun_duration_called);
 
   // mmap buffer should be filled with zeros.
   zeros = (int16_t*)calloc(BUFFER_SIZE * 2, sizeof(*zeros));
@@ -3293,7 +3296,9 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
   return cras_iodev_buffer_avail_ret;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
+                               unsigned int frames,
+                               bool underrun) {
   cras_iodev_fill_odev_zeros_called++;
   cras_iodev_fill_odev_zeros_frames = frames;
   return 0;
@@ -3347,9 +3352,14 @@ int cras_alsa_mmap_get_whole_buffer(snd_pcm_t* handle, uint8_t** dst) {
   return cras_alsa_mmap_begin(handle, 0, dst, &offset, &frames);
 }
 
-int cras_alsa_resume_appl_ptr(snd_pcm_t* handle, snd_pcm_uframes_t ahead) {
+int cras_alsa_resume_appl_ptr(snd_pcm_t* handle,
+                              snd_pcm_uframes_t ahead,
+                              int* actual_appl_ptr_displacement) {
   cras_alsa_resume_appl_ptr_called++;
   cras_alsa_resume_appl_ptr_ahead = ahead;
+  if (actual_appl_ptr_displacement) {
+    *actual_appl_ptr_displacement = ahead;
+  }
   return 0;
 }
 
@@ -3379,6 +3389,10 @@ int cras_iodev_dsp_set_display_rotation_for_node(
     struct cras_ionode* node,
     enum CRAS_SCREEN_ROTATION rotation) {
   return 0;
+}
+
+void cras_iodev_update_underrun_duration(struct cras_iodev* iodev, int frames) {
+  cras_iodev_update_underrun_duration_called++;
 }
 
 struct cras_ramp* cras_ramp_create() {

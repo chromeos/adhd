@@ -1353,7 +1353,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 8
+#define CRAS_API_VERSION 9
 #define CHECK_VERSION(object, version)                                         \
 	if (object->api_version < version) {                                   \
 		return -ENOSYS;                                                \
@@ -1438,6 +1438,8 @@ struct libcras_stream_cb_data {
 				  unsigned int *frames);
 	int (*get_dropped_samples_duration)(struct cras_stream_cb_data *data,
 					    struct timespec *duration);
+	int (*get_underrun_duration)(struct cras_stream_cb_data *data,
+				     struct timespec *duration);
 };
 typedef int (*libcras_stream_cb_t)(struct libcras_stream_cb_data *data);
 
@@ -2099,6 +2101,22 @@ inline int libcras_stream_cb_data_get_dropped_samples_duration(
 {
 	CHECK_VERSION(data, 8);
 	return data->get_dropped_samples_duration(data->data_, duration);
+}
+
+/*
+ * Gets the duration of the filled zero audio samples due to missing samples.
+ * Args:
+ *    data - The pointer passed to the callback function.
+ *    frames - The pointer to save the number of frames.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int libcras_stream_cb_data_get_underrun_duration(
+	struct libcras_stream_cb_data *data, struct timespec *duration)
+{
+	CHECK_VERSION(data, 9);
+	return data->get_underrun_duration(data->data_, duration);
 }
 
 /*

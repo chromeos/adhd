@@ -141,13 +141,13 @@ static int frames_queued(const struct cras_iodev *iodev,
  * to controller, while not introducing extra latency.
  */
 static int fill_zeros_to_target_level(struct cras_iodev *iodev,
-				      unsigned int target_level)
+				      unsigned int target_level, bool underrun)
 {
 	unsigned int local_queued_frames = bt_local_queued_frames(iodev);
 
 	if (local_queued_frames < target_level)
 		return cras_iodev_fill_odev_zeros(
-			iodev, target_level - local_queued_frames);
+			iodev, target_level - local_queued_frames, underrun);
 	return 0;
 }
 
@@ -180,7 +180,8 @@ static int a2dp_output_underrun(struct cras_iodev *iodev)
 		return 0;
 
 	/* Make sure the hw_level doesn't underrun after one flush. */
-	return fill_zeros_to_target_level(iodev, 2 * iodev->min_buffer_level);
+	return fill_zeros_to_target_level(iodev, 2 * iodev->min_buffer_level,
+					  true);
 }
 
 /*
@@ -193,7 +194,8 @@ static int a2dp_enter_no_stream(struct cras_iodev *odev)
 	/* Setting target level to 3 times of min_buffer_level.
 	 * We want hw_level to stay bewteen 1-2 times of min_buffer_level on top
 	 * of the underrun threshold(i.e one min_cb_level). */
-	rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
+	rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level,
+					false);
 	if (rc)
 		syslog(LOG_WARNING, "Error in A2DP enter_no_stream");
 	return flush(odev);
@@ -209,7 +211,8 @@ static int a2dp_leave_no_stream(struct cras_iodev *odev)
 	/* Since stream data is ready, just make sure hw_level doesn't underrun
 	 * after one flush. Hence setting the target level to 2 times of
 	 * min_buffer_level. */
-	return fill_zeros_to_target_level(odev, 2 * odev->min_buffer_level);
+	return fill_zeros_to_target_level(odev, 2 * odev->min_buffer_level,
+					  false);
 }
 
 /*
@@ -237,7 +240,7 @@ static int hfp_output_underrun(struct cras_iodev *iodev)
 		return 0;
 
 	/* Handle it the same way as cras_iodev_output_underrun(). */
-	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+	return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level, true);
 }
 
 static int hfp_no_stream(struct cras_iodev *iodev, int enable)
@@ -330,7 +333,7 @@ static int a2dp_configure_dev(struct cras_iodev *iodev)
 
 	/* Send one block of silence to Floss as jitter buffer to handle the
 	 * variation in packet scheduling caused by clock drift and state-polling. */
-	cras_iodev_fill_odev_zeros(iodev, a2dpio->write_block);
+	cras_iodev_fill_odev_zeros(iodev, a2dpio->write_block, false);
 	init_level = a2dpio->write_block * cras_get_format_bytes(iodev->format);
 
 	buf = buf_read_pointer_size(a2dpio->pcm_buf, &to_send);
