@@ -14,6 +14,7 @@ rust_library(
     ),
     edition = "2021",
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
+    visibility = ["//visibility:public"],
     deps = [
         ":build_script",
         "@crate_index//:assert_matches",

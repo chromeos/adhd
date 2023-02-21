@@ -27,6 +27,7 @@ const TRAILER: &str = "#ifdef __cplusplus
 fn builder(copyright_year: u32) -> Builder {
     Builder::new()
         .rename_item("timespec", "struct timespec")
+        .rename_item("plugin_processor", "struct plugin_processor")
         .with_language(cbindgen::Language::C)
         .with_style(cbindgen::Style::Tag)
         .with_header(format!(
@@ -71,5 +72,10 @@ fn main() {
     generate(
         builder(2023).with_src("../src/logging.rs"),
         "cras_rust_logging.h",
+    );
+
+    generate(
+        builder(2023).with_src("../src/cras_processor.rs"),
+        "cras_processor.h",
     );
 }
