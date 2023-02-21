@@ -36,12 +36,12 @@
  * +--------------+---------------+----------------------+
  *
  * [B->D]
- * input_configure_dev calls cras_iodev_list_enable_floop_dev,
+ * input_configure_dev calls cras_iodev_list_enable_floop_pair,
  * where streams matched with cras_floop_pair_match_output_stream
  * are added to the floop odev.
  *
  * [D->B]
- * input_close_dev calls cras_iodev_list_disable_floop_dev,
+ * input_close_dev calls cras_iodev_list_disable_floop_pair,
  * where all streams are removed from the floop odev.
  *
  * [C->D]
