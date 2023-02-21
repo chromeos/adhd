@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include <sys/mman.h>
 #include <sys/param.h>
+#include <sys/syslog.h>
+#include <syslog.h>
 
 #include "cras_types.h"
 #include "cras_util.h"
@@ -56,6 +58,15 @@ struct __attribute__((__packed__)) cras_audio_shm_header {
 	// Offset of each buffer from start of samples area.
 	// Valid range: 0 <= buffer_offset <= shm->samples_info.length
 	uint64_t buffer_offset[CRAS_NUM_SHM_BUFFERS];
+	// The number of overwritten frames in the buffer.
+	// Only applies to input streams, always 0 for output streams.
+	// The value is cumulative.
+	uint32_t overrun_frames;
+	// When the device handling the stream drops samples, the duration is updated.
+	// Only applies to input streams, always 0 for output streams.
+	// The value is cumulative.
+	// Use cras_timespec to prevent misalignment
+	struct cras_timespec dropped_samples_duration;
 };
 
 /* Returns the number of bytes needed to hold a cras_audio_shm_header. */
@@ -379,6 +390,8 @@ static inline int cras_shm_check_write_overrun(struct cras_audio_shm *shm)
 
 		if (shm->header->write_offset[write_buf_idx]) {
 			shm->header->num_overruns++; /* Will over-write unread */
+			shm->header->overrun_frames +=
+				cras_shm_get_curr_read_frames(shm);
 			ret = 1;
 		}
 
@@ -590,12 +603,39 @@ static inline unsigned cras_shm_num_overruns(const struct cras_audio_shm *shm)
 	return shm->header->num_overruns;
 }
 
+/* Gets the frame count of overruns. */
+static inline unsigned cras_shm_overrun_frames(const struct cras_audio_shm *shm)
+{
+	return shm->header->overrun_frames;
+}
+
 /* Copy the config from the shm region to the local config.  Used by clients
  * when initially setting up the region.
  */
 static inline void cras_shm_copy_shared_config(struct cras_audio_shm *shm)
 {
 	memcpy(&shm->config, &shm->header->config, sizeof(shm->config));
+}
+
+/* Update the duration of dropped data due to too many samples in the
+ * hardware buffer. */
+static inline void
+cras_shm_update_dropped_samples_duration(struct cras_audio_shm *shm,
+					 struct timespec duration)
+{
+	struct timespec current;
+	cras_timespec_to_timespec(&current,
+				  &shm->header->dropped_samples_duration);
+	add_timespecs(&current, &duration);
+	shm->header->dropped_samples_duration.tv_nsec = current.tv_nsec;
+	shm->header->dropped_samples_duration.tv_sec = current.tv_sec;
+}
+
+/* Gets the duration of the samples dropped from the hardware buffer. */
+static inline struct cras_timespec
+cras_shm_dropped_samples_duration(const struct cras_audio_shm *shm)
+{
+	return shm->header->dropped_samples_duration;
 }
 
 /* Open a read/write shared memory area with the given name.

@@ -1344,7 +1344,7 @@ int cras_client_set_num_active_streams_changed_callback(
  * Here are some rules about how to add a new function:
  * 1. Increase the CRAS_API_VERSION by 1.
  * 2. Write a new function in cras_client.c.
- * 3. Append the corresponding pointer to the structure. Remeber DO NOT change
+ * 3. Append the corresponding pointer to the structure. Remember DO NOT change
  *    the order of functions in the structs.
  * 4. Assign the pointer to the new function in cras_client.c.
  * 5. Create the inline function in cras_client.h, which is used by clients.
@@ -1353,7 +1353,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 7
+#define CRAS_API_VERSION 8
 #define CHECK_VERSION(object, version)                                         \
 	if (object->api_version < version) {                                   \
 		return -ENOSYS;                                                \
@@ -1434,6 +1434,10 @@ struct libcras_stream_cb_data {
 	int (*get_latency)(struct cras_stream_cb_data *data,
 			   struct timespec *latency);
 	int (*get_user_arg)(struct cras_stream_cb_data *data, void **user_arg);
+	int (*get_overrun_frames)(struct cras_stream_cb_data *data,
+				  unsigned int *frames);
+	int (*get_dropped_samples_duration)(struct cras_stream_cb_data *data,
+					    struct timespec *duration);
 };
 typedef int (*libcras_stream_cb_t)(struct libcras_stream_cb_data *data);
 
@@ -2062,6 +2066,39 @@ libcras_stream_cb_data_get_usr_arg(struct libcras_stream_cb_data *data,
 				   void **user_arg)
 {
 	return data->get_user_arg(data->data_, user_arg);
+}
+
+/*
+ * Gets the number of audio frames overwritten in the shared memory.
+ * Args:
+ *    data - The pointer passed to the callback function.
+ *    frames - The pointer to save the number of frames.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int
+libcras_stream_cb_data_get_overrun_frames(struct libcras_stream_cb_data *data,
+					  unsigned int *frames)
+{
+	CHECK_VERSION(data, 8);
+	return data->get_overrun_frames(data->data_, frames);
+}
+
+/*
+ * Gets the duration of the dropped audio samples from hardware buffer.
+ * Args:
+ *    data - The pointer passed to the callback function.
+ *    duration - The pointer to save the duration.
+ * Returns:
+ *    0 on success negative error code on failure (from errno.h).
+ */
+DISABLE_CFI_ICALL
+inline int libcras_stream_cb_data_get_dropped_samples_duration(
+	struct libcras_stream_cb_data *data, struct timespec *duration)
+{
+	CHECK_VERSION(data, 8);
+	return data->get_dropped_samples_duration(data->data_, duration);
 }
 
 /*

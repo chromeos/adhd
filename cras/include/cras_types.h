@@ -476,6 +476,9 @@ struct __attribute__((__packed__)) audio_stream_debug_info {
 	uint32_t runtime_nsec;
 	double stream_volume;
 	int8_t channel_layout[CRAS_CH_MAX];
+	uint32_t overrun_frames;
+	uint32_t dropped_samples_duration_sec;
+	uint32_t dropped_samples_duration_nsec;
 };
 
 /* Debug info shared from server to client. */

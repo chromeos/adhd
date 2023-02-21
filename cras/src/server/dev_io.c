@@ -933,6 +933,9 @@ static void dev_io_drop_samples(struct open_dev *idev_list)
 {
 	struct open_dev *adev;
 	struct timespec drop_time = {};
+	struct dev_stream *dev_stream;
+	struct cras_audio_shm *shm;
+	struct cras_rstream *rstream;
 	int rc;
 
 	get_input_devices_drop_time(idev_list, &drop_time);
@@ -952,6 +955,12 @@ static void dev_io_drop_samples(struct open_dev *idev_list)
 			       "Failed to drop frames from device %d, rc = %d",
 			       adev->dev->info.idx, rc);
 			continue;
+		}
+		DL_FOREACH (adev->dev->streams, dev_stream) {
+			rstream = dev_stream->stream;
+			shm = cras_rstream_shm(rstream);
+			cras_shm_update_dropped_samples_duration(shm,
+								 drop_time);
 		}
 	}
 

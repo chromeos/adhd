@@ -577,6 +577,9 @@ impl Default for audio_stream_debug_info {
             runtime_nsec: 0,
             stream_volume: 0.0,
             channel_layout: [0; 11],
+            overrun_frames: 0,
+            dropped_samples_duration_sec: 0,
+            dropped_samples_duration_nsec: 0,
         }
     }
 }

@@ -262,6 +262,7 @@ TEST_F(ShmTestSuite, InputBufferOverrun) {
   rc = cras_shm_check_write_overrun(&shm_);
   EXPECT_EQ(1, rc);
   EXPECT_EQ(1, cras_shm_num_overruns(&shm_));
+  EXPECT_EQ(100, shm_.header->overrun_frames);
 }
 
 TEST_F(ShmTestSuite, GetWritableFramesNeedToWrite) {

@@ -27,6 +27,7 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/dev_stream.h"
 #include "cras_config.h"
+#include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_util.h"
 
@@ -554,6 +555,11 @@ static void append_stream_dump_info(struct audio_debug_info *info,
 	si->is_pinned = stream->stream->is_pinned;
 	si->num_missed_cb = stream->stream->num_missed_cb;
 	si->stream_volume = cras_rstream_get_volume_scaler(stream->stream);
+	si->overrun_frames = cras_shm_overrun_frames(stream->stream->shm);
+	si->dropped_samples_duration_sec =
+		cras_shm_dropped_samples_duration(stream->stream->shm).tv_sec;
+	si->dropped_samples_duration_nsec =
+		cras_shm_dropped_samples_duration(stream->stream->shm).tv_nsec;
 
 	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
 	subtract_timespecs(&now, &stream->stream->start_ts, &time_since);

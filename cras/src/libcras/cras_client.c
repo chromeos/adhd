@@ -300,6 +300,8 @@ struct cras_stream_cb_data {
 	enum CRAS_STREAM_DIRECTION direction;
 	uint8_t *buf;
 	unsigned int frames;
+	uint32_t overrun_frames;
+	struct timespec dropped_samples_duration;
 	struct timespec sample_ts;
 	void *user_arg;
 };
@@ -323,6 +325,20 @@ int stream_cb_get_frames(struct cras_stream_cb_data *data, unsigned int *frames)
 	return 0;
 }
 
+int stream_cb_get_overrun_frames(struct cras_stream_cb_data *data,
+				 unsigned int *frames)
+{
+	*frames = data->overrun_frames;
+	return 0;
+}
+
+int stream_cb_get_dropped_samples_duration(struct cras_stream_cb_data *data,
+					   struct timespec *duration)
+{
+	*duration = data->dropped_samples_duration;
+	return 0;
+}
+
 int stream_cb_get_latency(struct cras_stream_cb_data *data,
 			  struct timespec *latency)
 {
@@ -339,11 +355,11 @@ int stream_cb_get_user_arg(struct cras_stream_cb_data *data, void **user_arg)
 	return 0;
 }
 
-struct libcras_stream_cb_data *
-libcras_stream_cb_data_create(cras_stream_id_t stream_id,
-			      enum CRAS_STREAM_DIRECTION direction,
-			      uint8_t *buf, unsigned int frames,
-			      struct timespec sample_ts, void *user_arg)
+struct libcras_stream_cb_data *libcras_stream_cb_data_create(
+	cras_stream_id_t stream_id, enum CRAS_STREAM_DIRECTION direction,
+	uint8_t *buf, unsigned int frames, unsigned int overrun_frames,
+	struct timespec dropped_samples_duration, struct timespec sample_ts,
+	void *user_arg)
 {
 	struct libcras_stream_cb_data *data =
 		(struct libcras_stream_cb_data *)calloc(
@@ -365,12 +381,17 @@ libcras_stream_cb_data_create(cras_stream_id_t stream_id,
 	data->get_stream_id = stream_cb_get_stream_id;
 	data->get_buf = stream_cb_get_buf;
 	data->get_frames = stream_cb_get_frames;
+	data->get_overrun_frames = stream_cb_get_overrun_frames;
+	data->get_dropped_samples_duration =
+		stream_cb_get_dropped_samples_duration;
 	data->get_latency = stream_cb_get_latency;
 	data->get_user_arg = stream_cb_get_user_arg;
 	data->data_->stream_id = stream_id;
 	data->data_->direction = direction;
 	data->data_->buf = buf;
 	data->data_->frames = frames;
+	data->data_->overrun_frames = overrun_frames;
+	data->data_->dropped_samples_duration = dropped_samples_duration;
 	data->data_->sample_ts = sample_ts;
 	data->data_->user_arg = user_arg;
 	return data;
@@ -1199,6 +1220,7 @@ static int handle_capture_data_ready(struct client_stream *stream,
 	struct cras_stream_params *config;
 	uint8_t *captured_frames;
 	struct timespec ts;
+	struct timespec dropped_samples_duration;
 	int rc = 0;
 	struct libcras_stream_cb_data *data;
 
@@ -1214,11 +1236,15 @@ static int handle_capture_data_ready(struct client_stream *stream,
 		return 0;
 
 	cras_timespec_to_timespec(&ts, &stream->shm->header->ts);
+	cras_timespec_to_timespec(
+		&dropped_samples_duration,
+		&stream->shm->header->dropped_samples_duration);
 
 	if (config->stream_cb) {
 		data = libcras_stream_cb_data_create(
 			stream->id, stream->direction, captured_frames,
-			num_frames, ts, config->user_data);
+			num_frames, stream->shm->header->overrun_frames,
+			dropped_samples_duration, ts, config->user_data);
 		if (!data)
 			return -errno;
 		frames = config->stream_cb(data);
@@ -1279,6 +1305,7 @@ static int handle_playback_request(struct client_stream *stream,
 	struct cras_stream_params *config;
 	struct cras_audio_shm *shm = stream->shm;
 	struct timespec ts;
+	struct timespec dropped_samples_duration;
 	struct libcras_stream_cb_data *data;
 
 	config = stream->config;
@@ -1295,13 +1322,15 @@ static int handle_playback_request(struct client_stream *stream,
 	num_frames = MIN(num_frames, config->cb_threshold);
 
 	cras_timespec_to_timespec(&ts, &shm->header->ts);
+	cras_timespec_to_timespec(&dropped_samples_duration,
+				  &shm->header->dropped_samples_duration);
 
 	/* Get samples from the user */
 	if (config->stream_cb) {
-		data = libcras_stream_cb_data_create(stream->id,
-						     stream->direction, buf,
-						     num_frames, ts,
-						     config->user_data);
+		data = libcras_stream_cb_data_create(
+			stream->id, stream->direction, buf, num_frames,
+			stream->shm->header->overrun_frames,
+			dropped_samples_duration, ts, config->user_data);
 		if (!data)
 			return -errno;
 		frames = config->stream_cb(data);

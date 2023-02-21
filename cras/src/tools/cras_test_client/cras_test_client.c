@@ -1148,6 +1148,8 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info *info,
 		       "longest_fetch_sec: %u.%09u\n"
 		       "num_delayed_fetches: %u\n"
 		       "num_overruns: %u\n"
+		       "overrun_frames: %u\n"
+		       "dropped_samples_duration: %u.%09u\n"
 		       "is_pinned: %x\n"
 		       "pinned_dev_idx: %u\n"
 		       "num_missed_cb: %u\n"
@@ -1162,6 +1164,11 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info *info,
 		       (unsigned int)info->streams[i].longest_fetch_nsec,
 		       (unsigned int)info->streams[i].num_delayed_fetches,
 		       (unsigned int)info->streams[i].num_overruns,
+		       (unsigned int)info->streams[i].overrun_frames,
+		       (unsigned int)info->streams[i]
+			       .dropped_samples_duration_sec,
+		       (unsigned int)info->streams[i]
+			       .dropped_samples_duration_nsec,
 		       (unsigned int)info->streams[i].is_pinned,
 		       (unsigned int)info->streams[i].pinned_dev_idx,
 		       (unsigned int)info->streams[i].num_missed_cb,
