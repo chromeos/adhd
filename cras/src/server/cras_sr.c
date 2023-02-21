@@ -14,35 +14,37 @@
 #include "cras/src/server/cras_fmt_conv_ops.h"
 #include "cras_util.h"
 
-/* Cras SR.
- *    The buffer is always full of
- *      1. unprocessed samples from resampled samples, and
- *      2. processed samples from unprocessed samples.
+/* The context for running the SR.
  *
- *    In the beginning, we fill in zeros as processed samples:
- *    |rw|        processed          |
+ * Example workflow:
+ *   The `internal` buffer is always full of
+ *     1. unprocessed samples from resampled samples, and
+ *     2. processed samples from unprocessed samples.
  *
- *    When moving some samples to output buf
- *    (cras_sr_processed_to_output):
- *    |w|  empty     |r|  processed  | -> | output |
+ *   In the beginning, we fill in zeros as processed samples:
+ *   |rw|        processed          |
  *
- *    The same number of samples will be propagated from resampled to internal.
- *    (cras_sr_resampled_to_unprocessed)
- *    | unprocessed  |rw| processed  | <- | resampled |
+ *   When moving some samples to output buf
+ *   (cras_sr_processed_to_output):
+ *   |w|  empty     |r|  processed  | -> | output |
  *
- *    When moving some samples to output buf again
- *    (cras_sr_processed_to_output):
- *    |r| unprocessed  |w|  empty    | -> | output |
+ *   The same number of samples will be propagated from `resampled` to `internal`.
+ *   (cras_sr_resampled_to_unprocessed)
+ *   | unprocessed  |rw| processed  | <- | resampled |
  *
- *    Again, the samples in resampled are propagated to internal buf.
- *    (cras_sr_resampled_to_unprocessed)
- *    |rw|       unprocessed         | <- | resampled |
+ *   When moving some samples to output buf again
+ *   (cras_sr_processed_to_output):
+ *   |r| unprocessed  |w|  empty    | -> | output |
  *
- *    Once the internal buf is full of unprocessed samples, the model will be
- *    invoked to process the samples:
- *    (cras_sr_unprocessed_to_processed)
- *    |rw|       unprocessed         |
- *    |rw|        processed          |
+ *   Again, the samples in `resampled` are propagated to `internal`.
+ *   (cras_sr_resampled_to_unprocessed)
+ *   |rw|       unprocessed         | <- | resampled |
+ *
+ *   Once the `internal` is full of unprocessed samples, the model will be
+ *   invoked to process the samples:
+ *   (cras_sr_unprocessed_to_processed)
+ *   |rw|       unprocessed         |
+ *   |rw|        processed          |
  */
 struct cras_sr {
 	// the state of the speex resampler.
