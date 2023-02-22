@@ -28,7 +28,6 @@
  * +--------------+---------------+----------------------+
  * | no playback  | A: do nothing | C: feed zero samples |
  * | streams      |               | to capture streams   |
- * |              |               | TODO(b/214164364)    |
  * +--------------+---------------+----------------------+
  * | has playback | B: do nothing | D: playback streams  |
  * | streams      |               | are attached to the  |
@@ -66,6 +65,7 @@ struct flexible_loopback {
 	struct timespec dev_start_time;
 	struct byte_buffer *buffer;
 	bool input_active;
+	unsigned int read_frames;
 };
 
 static const struct flexible_loopback *
@@ -110,6 +110,29 @@ static int input_frames_queued(const struct cras_iodev *iodev,
 	clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
 	const struct flexible_loopback *floop = const_input_to_floop(iodev);
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
+
+	/*
+	 *	When there is no output stream, fill the buffer with frames until it
+	 *	reaches the number of frames that is expected according to frame rate.
+	 */
+	if (floop->input_active && !floop->pair.output.streams) {
+		unsigned int frames_since_start = cras_frames_since_time(
+			&floop->dev_start_time, iodev->format->frame_rate);
+		unsigned int frames_to_fill =
+			frames_since_start > floop->read_frames ?
+				frames_since_start - floop->read_frames :
+				0;
+		frames_to_fill = MIN(buf_writable(floop->buffer) / frame_bytes,
+				     frames_to_fill);
+		if (frames_to_fill > 0) {
+			unsigned int bytes_to_fill =
+				frames_to_fill * frame_bytes;
+			memset(buf_write_pointer(floop->buffer), 0,
+			       bytes_to_fill);
+			buf_increment_write(floop->buffer, bytes_to_fill);
+		}
+	}
+
 	return buf_queued(floop->buffer) / frame_bytes;
 }
 
@@ -165,6 +188,7 @@ static int input_put_buffer(struct cras_iodev *iodev, unsigned nframes)
 	struct byte_buffer *buf = floop->buffer;
 	unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 
+	floop->read_frames += nframes;
 	buf_increment_read(buf, (size_t)nframes * (size_t)frame_bytes);
 	return 0;
 }
