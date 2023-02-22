@@ -106,7 +106,7 @@ fi
 
 # Blocklist regmap name of dumping registers (tracked by b/154177454)
 # Use the blank space as delimiter, e.g. 'name_a name_b name_c'
-name_blocklist='snd_hda_codec_hdmi rockchip-spdif'
+name_blocklist='snd_hda_codec_hdmi rockchip-spdif sc7280-lpass-cpu'
 
 for file_path in /sys/kernel/debug/regmap/*
 do
