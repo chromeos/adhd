@@ -821,7 +821,7 @@ static int is_jack_uac2(const char *jack_name,
 }
 
 /* Looks for any JACK controls.  Monitors any found controls for changes and
- * decides to route based on plug/unlpug events. */
+ * decides to route based on plug/unplug events. */
 static int find_jack_controls(struct cras_alsa_jack_list *jack_list)
 {
 	snd_hctl_elem_t *elem;
