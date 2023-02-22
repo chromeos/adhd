@@ -1,7 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env vpython3
 # Copyright 2022 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
+"""
+Check for include guards.
+
+[VPYTHON:BEGIN]
+python_version: "3.8"
+[VPYTHON:END]
+"""
 
 # TODO: This script checks for the files on the live file system, instead
 # of the version recorded by git. Ideally we should follow _get_file_content
