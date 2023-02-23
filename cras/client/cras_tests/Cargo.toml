@@ -32,3 +32,4 @@ io_uring = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registr
 serde_keyvalue = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue-0.1.50/" } # ignored by ebuild
 serde_keyvalue_derive = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue_derive-0.1.50/" } # ignored by ebuild
 sync = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/sync-0.1.149/" } # ignored by ebuild
+minijail = { path = "../../../../../platform/minijail/rust/minijail" } # ignored by ebuild
