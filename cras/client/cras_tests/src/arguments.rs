@@ -102,6 +102,10 @@ pub struct AudioOptions {
     /// Type of the file. Defaults to file extension.
     #[clap(long = "file_type", arg_enum)]
     pub file_type_option: Option<FileType>,
+
+    /// Duration of playing/recording action in seconds.
+    #[clap(short = 'd', long = "duration")]
+    pub duration_sec: Option<usize>,
 }
 
 impl AudioOptions {
@@ -215,6 +219,7 @@ mod tests {
                 num_channels: None,
                 format: None,
                 buffer_size: None,
+                duration_sec: None,
             })
         );
 
@@ -229,6 +234,7 @@ mod tests {
                 num_channels: None,
                 format: None,
                 buffer_size: None,
+                duration_sec: None,
             })
         );
 
@@ -251,11 +257,21 @@ mod tests {
                 num_channels: Some(2),
                 format: None,
                 buffer_size: None,
+                duration_sec: None,
             })
         );
 
-        let command =
-            Command::parse_from(&["cras_tests", "playback", "-r", "44100", "output", "-c", "2"]);
+        let command = Command::parse_from(&[
+            "cras_tests",
+            "playback",
+            "-r",
+            "44100",
+            "output",
+            "-c",
+            "2",
+            "-d",
+            "5",
+        ]);
         assert_eq!(
             command,
             Command::Playback(AudioOptions {
@@ -266,6 +282,30 @@ mod tests {
                 num_channels: Some(2),
                 format: None,
                 buffer_size: None,
+                duration_sec: Some(5),
+            })
+        );
+
+        let command = Command::parse_from(&[
+            "cras_tests",
+            "capture",
+            "rec.raw",
+            "--duration",
+            "10",
+            "--rate",
+            "48000",
+        ]);
+        assert_eq!(
+            command,
+            Command::Capture(AudioOptions {
+                file_name: PathBuf::from("rec.raw"),
+                loopback_type: None,
+                file_type_option: None,
+                frame_rate: Some(48000),
+                num_channels: None,
+                format: None,
+                buffer_size: None,
+                duration_sec: Some(10),
             })
         );
 

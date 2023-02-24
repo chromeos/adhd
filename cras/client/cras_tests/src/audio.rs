@@ -209,13 +209,17 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
         }
     };
 
+    let mut duration_frames = opts
+        .duration_sec
+        .map(|duration_sec| duration_sec * (frame_rate as usize));
+
     println!(
         "Playing {} '{}' : {}, Rate {} Hz, {}",
         file_type,
         opts.file_name.display(),
         format,
         frame_rate,
-        channel_string(num_channels)
+        channel_string(num_channels),
     );
 
     let mut cras_client = CrasClient::new().map_err(Error::Libcras)?;
@@ -238,7 +242,19 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
 
         let mut chunk = (&mut sample_source).take((frames * frame_size) as u64);
         let transferred = io::copy(&mut chunk, &mut buffer).map_err(Error::Io)?;
+        let transferred_frames = (transferred / frame_size as u64) as usize;
+
         buffer.commit();
+
+        // if duration is specified
+        if let Some(frames) = duration_frames {
+            let remaining_frames = frames.checked_sub(transferred_frames).unwrap_or(0);
+            if remaining_frames == 0 {
+                break;
+            }
+            duration_frames = Some(remaining_frames);
+        }
+
         if transferred == 0 {
             break;
         }
@@ -381,6 +397,10 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
         )?),
     };
 
+    let mut duration_frames = opts
+        .duration_sec
+        .map(|duration_sec| duration_sec * (frame_rate as usize));
+
     println!(
         "Recording {} '{}' : {}, Rate {} Hz, {}",
         file_type,
@@ -423,8 +443,18 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
     add_sigint_handler()?;
     while !INTERRUPTED.load(Ordering::Acquire) {
         let mut buf = stream.next_capture_buffer().map_err(Error::FetchStream)?;
-        io::copy(&mut buf, &mut sample_sink).map_err(Error::Io)?;
+        let transferred = io::copy(&mut buf, &mut sample_sink).map_err(Error::Io)?;
+        let transferred_frames = (transferred / frame_rate as u64) as usize;
         buf.commit();
+
+        // if duration is specified
+        if let Some(frames) = duration_frames {
+            let remaining_frames = frames.checked_sub(transferred_frames).unwrap_or(0);
+            if remaining_frames == 0 {
+                break;
+            }
+            duration_frames = Some(remaining_frames);
+        }
     }
     Ok(())
 }
