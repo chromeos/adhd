@@ -673,6 +673,11 @@ void cras_bt_switch_stack(struct bt_stack* target) {
 
   current->stop(current);
 
+  if (btlog) {
+    cras_bt_event_log_deinit(btlog);
+    btlog = cras_bt_event_log_init();
+  }
+
   // Inherit the same configuration, swap current then start.
   target->profile_disable_mask = current->profile_disable_mask;
   target->conn = current->conn;
