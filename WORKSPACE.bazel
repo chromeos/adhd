@@ -14,7 +14,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
     name = "bazel_skylib",
     sha256 = "1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz"],
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
+    ],
 )
 
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
@@ -25,14 +28,20 @@ http_archive(
     name = "com_github_google_benchmark",
     sha256 = "3bff5f237c317ddfd8d5a9b96b3eede7c0802e799db520d38ce756a2a46a18a0",
     strip_prefix = "benchmark-1.5.5",
-    urls = ["https://github.com/google/benchmark/archive/refs/tags/v1.5.5.tar.gz"],
+    urls = [
+        "https://github.com/google/benchmark/archive/refs/tags/v1.5.5.tar.gz",
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/google-benchmark-1.5.5.tar.gz",
+    ],
 )
 
 http_archive(
     name = "rules_cc",
     sha256 = "cf3b76a90c86c0554c5b10f4b160f05af71d252026b71362c4674e2fb9936cf9",
     strip_prefix = "rules_cc-01d4a48911d5e7591ecb1c06d3b8af47fe872371",
-    urls = ["https://github.com/bazelbuild/rules_cc/archive/01d4a48911d5e7591ecb1c06d3b8af47fe872371.zip"],
+    urls = [
+        "https://github.com/bazelbuild/rules_cc/archive/01d4a48911d5e7591ecb1c06d3b8af47fe872371.zip",
+        "https://storage.googleapis.com/chromeos-mirror/gentoo/distfiles/bazelbuild-rules_cc-01d4a48911d5e7591ecb1c06d3b8af47fe872371.zip",
+    ],
 )
 
 load(
@@ -45,7 +54,10 @@ http_archive(
     build_file = "//:BUILD.iniparser",
     sha256 = "aedf23881b834519aea5e861b2400606d211da049cd59d3cfb4568e0d9eff5c5",
     strip_prefix = "iniparser/src",
-    urls = ["http://ndevilla.free.fr/iniparser/iniparser-3.1.tar.gz"],
+    urls = [
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/iniparser-3.1.tar.gz",
+        "http://ndevilla.free.fr/iniparser/iniparser-3.1.tar.gz",
+    ],
 )
 
 # optional pkg_config libraries
@@ -111,14 +123,20 @@ RULES_RUST_VERSION = "0.17.0"
 http_archive(
     name = "rules_rust",
     sha256 = "d125fb75432dc3b20e9b5a19347b45ec607fabe75f98c6c4ba9badaab9c193ce",
-    urls = ["https://github.com/bazelbuild/rules_rust/releases/download/{0}/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION)],
+    urls = [
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
+        "https://github.com/bazelbuild/rules_rust/releases/download/{0}/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
+    ],
 )
 
 http_archive(
     name = "rust_cc_common_link",
     sha256 = "d125fb75432dc3b20e9b5a19347b45ec607fabe75f98c6c4ba9badaab9c193ce",
     strip_prefix = "test/cc_common_link",
-    urls = ["https://github.com/bazelbuild/rules_rust/releases/download/{0}/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION)],
+    urls = [
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
+        "https://github.com/bazelbuild/rules_rust/releases/download/{0}/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
+    ],
 )
 
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
@@ -158,7 +176,10 @@ http_archive(
     name = "hedron_compile_commands",
     sha256 = "632cf245a06f38a02eefe9764ae5ca581b74bfa106a44067665fcd99fb6babb0",
     strip_prefix = "bazel-compile-commands-extractor-{}".format(HEDRON_COMPILE_COMMANDS_REF),
-    url = "https://github.com/hedronvision/bazel-compile-commands-extractor/archive/{}.tar.gz".format(HEDRON_COMPILE_COMMANDS_REF),
+    urls = [
+        "https://github.com/hedronvision/bazel-compile-commands-extractor/archive/{}.tar.gz".format(HEDRON_COMPILE_COMMANDS_REF),
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/hedron_compile_commands-{}.tar.gz".format(HEDRON_COMPILE_COMMANDS_REF),
+    ],
 )
 
 load("@hedron_compile_commands//:workspace_setup.bzl", "hedron_compile_commands_setup")
