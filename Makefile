@@ -25,12 +25,23 @@ endif
 cras_init_tmpfile:	$(ADHD_DIR)/tmpfiles.d/cras.conf
 	$(ECHO) "Installing tmpfile.d file"
 	$(INSTALL) --mode 644 -D $< $(DESTDIR)/usr/lib/tmpfiles.d/cras.conf
-cras_init_upstart:	$(ADHD_DIR)/init/cras.conf
+cras_init_upstart:	$(ADHD_DIR)/init/cras.conf $(ADHD_DIR)/init/cras-dev.conf
 	$(ECHO) "Installing upstart file"
-	$(INSTALL) --mode 644 -D $< $(DESTDIR)/etc/init/cras.conf
+	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras.conf \
+		$(DESTDIR)/etc/init/cras.conf
+	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras-dev.conf \
+		$(DESTDIR)/etc/init/cras-dev.conf
 
-cras_init_scripts:	$(ADHD_DIR)/init/cras.sh
-	$(INSTALL) --mode 644 -D $< $(DESTDIR)/usr/share/cros/init/cras.sh
+cras_init_scripts:	$(ADHD_DIR)/init/cras-env.sh \
+					$(ADHD_DIR)/init/cras.sh \
+					$(ADHD_DIR)/init/cras-dev.sh
+	$(ECHO) "Installing init scripts"
+	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras-env.sh \
+		$(DESTDIR)/usr/share/cros/init/cras-env.sh
+	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras.sh \
+		$(DESTDIR)/usr/share/cros/init/cras.sh
+	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras-dev.sh \
+		$(DESTDIR)/usr/local/share/cros/init/cras-dev.sh
 
 SYSTEMD_UNIT_DIR := /usr/lib/systemd/system/
 
