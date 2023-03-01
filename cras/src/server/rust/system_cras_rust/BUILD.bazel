@@ -1,0 +1,46 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""This package holds the magic to find libcras_rust.a as the way
+the compiler does and list it explicitly in the dependency.
+
+The benefit of this over `linkopts = ["-lcras_rust"]` is we can invalidate
+the cache whenever libcras_rust.a is updated.
+
+This is a workaround until we build everything in Bazel.
+"""
+
+load("//:utils.bzl", "require_config")
+load(":default_link_flags.bzl", "default_link_flags")
+
+cc_import(
+    name = "system_cras_rust",
+    static_library = ":libcras_rust_a",
+    target_compatible_with = require_config("//:system_cras_rust_build"),
+    visibility = ["//cras/src/server/rust:__pkg__"],
+)
+
+py_binary(
+    name = "find_static_library",
+    srcs = ["find_static_library.py"],
+)
+
+default_link_flags(
+    name = "default_link_flags",
+)
+
+genrule(
+    name = "libcras_rust_a",
+    srcs = [":default_link_flags"],
+    outs = ["libcras_rust.a"],
+    cmd = "$(location :find_static_library) $(@) $(CC) $(location :default_link_flags) cras_rust",
+    tags = [
+        # This rule generates a symlink. Prevent Bazel from dereferencing
+        # the symlink and storing a copy in the cache.
+        "no-cache",
+    ],
+    target_compatible_with = require_config("//:system_cras_rust_build"),
+    toolchains = ["@bazel_tools//tools/cpp:current_cc_toolchain"],
+    tools = [":find_static_library"],
+)

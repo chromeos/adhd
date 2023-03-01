@@ -7,13 +7,12 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 cc_library(
     name = "rust",
-    linkopts = select({
-        "//:system_cras_rust_build": ["-lcras_rust"],
-        "//conditions:default": [],
-    }),
     visibility = ["//visibility:public"],
     deps = select({
-        "//:system_cras_rust_build": [":headers"],
+        "//:system_cras_rust_build": [
+            ":headers",
+            "//cras/src/server/rust/system_cras_rust",
+        ],
         "//conditions:default": [
             ":headers",
             ":lib",
