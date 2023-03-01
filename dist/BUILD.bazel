@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("//:utils.bzl", "require_no_config")
+
 # Binary targets.
 filegroup(
     name = "bin",
@@ -87,4 +89,22 @@ py_binary(
             ":pkgconfig",
         ],
     }),
+)
+
+py_binary(
+    name = "dist_client_only",
+    srcs = ["dist.py"],
+    args = [
+        "--_bin_files $(location //cras/src/tools:cras_test_client)",
+        "--_lib_files $(locations :lib)",
+        "--_alsa_lib_files $(locations :alsa_lib)",
+        "--",
+    ],
+    data = [
+        ":alsa_lib",
+        ":lib",
+        "//cras/src/tools:cras_test_client",
+    ],
+    main = "dist.py",
+    target_compatible_with = require_no_config("//:fuzzer_build"),
 )
