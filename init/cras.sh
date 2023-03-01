@@ -14,25 +14,10 @@ cpu_model_name="$( \
   | grep -i 'model name' -m 1 \
   | sed 's/model name[ \t]*:[ \t]*//')"
 
-# Handle legacy config.
-if [ -z "${device_config_dir}" ]; then
-  # For boards that need a different device config, check which config
-  # directory to use. Use that directory for both volume curves
-  # and DSP config.
-  if [ -f /etc/cras/get_device_config_dir ]; then
-    device_config_dir="$(sh /etc/cras/get_device_config_dir)"
-  fi
-  if [ -f /etc/cras/get_internal_ucm_suffix ]; then
-    internal_ucm_suffix="$(sh /etc/cras/get_internal_ucm_suffix)"
-  fi
-else
-  device_config_dir="/etc/cras/${device_config_dir}"
-fi
+device_config_dir="/etc/cras/${device_config_dir}"
+DEVICE_CONFIG_DIR="--device_config_dir=${device_config_dir}"
+DSP_CONFIG="--dsp_config=${device_config_dir}/dsp.ini"
 
-if [ -n "${device_config_dir}" ]; then
-  DEVICE_CONFIG_DIR="--device_config_dir=${device_config_dir}"
-  DSP_CONFIG="--dsp_config=${device_config_dir}/dsp.ini"
-fi
 if [ -n "${internal_ucm_suffix}" ]; then
   INTERNAL_UCM_SUFFIX="--internal_ucm_suffix=${internal_ucm_suffix}"
 fi
