@@ -5,6 +5,9 @@
 #ifndef CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_H_
 #define CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <random>
 #include <vector>
 
 /*
