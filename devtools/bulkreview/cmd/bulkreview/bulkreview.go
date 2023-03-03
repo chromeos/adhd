@@ -46,12 +46,19 @@ func main() {
 
 	removeReviewer := pflag.String("remove-reviewer", "", "remove the user from the list of reviewers")
 
+	abandon := pflag.Bool("abandon", false, "abandon the specified CL")
+	abandonReason := pflag.String("abandon-reason", "", "The reason provided when --abandon is specified. Defaults to empty string.")
+
 	printTryjobCommand := pflag.Bool("print-tryjob-command", false, "Print cros tryjob command including the CLs")
 	print := pflag.Bool("print", false, "Print the CLs to stdout")
 
 	stalk := pflag.Bool("stalk", false, "perform actions on even ABANDONED or MERGED CLs")
 
 	pflag.Parse()
+
+	if *abandon && ((*cq != ignoreLabel) || (*cr != ignoreLabel) || (*v != ignoreLabel) || *removeAttention) {
+		logrus.Fatal("You won't want to vote on a CL that are going to abandoned.")
+	}
 
 	c, err := bulkreview.NewClient()
 	if err != nil {
@@ -171,6 +178,23 @@ func main() {
 					cg.Changes.DeleteReviewer(cl.ID, account.Email)
 				}
 			}
+		}
+
+		if *abandon {
+			msg := "bulkreview abandon"
+			if *abandonReason != "" {
+				msg = fmt.Sprintf("%s, reason: %s", msg, *abandonReason)
+			}
+			changeInfo, _, err := cg.Changes.AbandonChange(
+				cl.ID,
+				&gerrit.AbandonInput{
+					Message: msg,
+				},
+			)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			logrus.Infof("Abandon CL %s, current status: %s", cl.ID, changeInfo.Status)
 		}
 	}
 

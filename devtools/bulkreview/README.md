@@ -15,5 +15,6 @@ go install chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/bu
 ```
 bulkreview chromium:12345 [--cq=#] [--cr=#] [--v=#] \
     [--follow-relation] [--follow-cq-depend] [--stalk]
+	[--abandon] [--abandon-reason="reason"] \
 	[--limit=#]
 ```
