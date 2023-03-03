@@ -10,7 +10,7 @@ extern "C" {
 #include "cras/src/server/cras_dbus_control.h"
 #include "cras_types.h"
 }
-static unsigned int num_channels_val;
+static int num_channels_val;
 static int audio_thread_config_global_remix_called;
 
 namespace {
@@ -33,7 +33,7 @@ class DBusControlTestSuite : public DBusTest {
 
 TEST_F(DBusControlTestSuite, SetGlobalOutputChannelRemixBasic) {
   // num_channels*num_channels == channels_map size
-  unsigned int num_channels_val_sended = 2;
+  int num_channels_val_sended = 2;
   std::vector<double> channels_map_val_sended = {0.1, 0.9, 0.9, 0.1};
   CreateMessageCall(CRAS_ROOT_OBJECT_PATH, CRAS_CONTROL_INTERFACE,
                     "SetGlobalOutputChannelRemix")
@@ -46,30 +46,25 @@ TEST_F(DBusControlTestSuite, SetGlobalOutputChannelRemixBasic) {
 }
 
 TEST_F(DBusControlTestSuite, SetGlobalOutputChannelRemixInvalid) {
-  // num_channels*num_channels != channels_map size
-  unsigned int num_channels_val_sended = 6;
-  std::vector<double> channels_map_val_sended = {0.1, 0.9, 0.9, 0.1};
-  CreateMessageCall(CRAS_ROOT_OBJECT_PATH, CRAS_CONTROL_INTERFACE,
-                    "SetGlobalOutputChannelRemix")
-      .WithInt32(num_channels_val_sended)
-      .WithArrayOfDouble(channels_map_val_sended)
-      .Send();
-  WaitForMatches();
-  EXPECT_EQ(audio_thread_config_global_remix_called, 0);
-}
-
-TEST_F(DBusControlTestSuite, SetGlobalOutputChannelRemixOverMaxChannels) {
-  // num_channels > CRAS_CH_MAX
-  unsigned int num_channels_val_sended = CRAS_CH_MAX + 1;
-  std::vector<double> channels_map_val_sended(
-      num_channels_val_sended * num_channels_val_sended, 0.5);
-  CreateMessageCall(CRAS_ROOT_OBJECT_PATH, CRAS_CONTROL_INTERFACE,
-                    "SetGlobalOutputChannelRemix")
-      .WithInt32(num_channels_val_sended)
-      .WithArrayOfDouble(channels_map_val_sended)
-      .Send();
-  WaitForMatches();
-  EXPECT_EQ(audio_thread_config_global_remix_called, 0);
+  std::vector<std::pair<int, std::vector<double>>> num_channels_val_sendeds = {
+      // num_channels*num_channels != channels_map size
+      {6, {0.1, 0.9, 0.9, 0.1}},
+      // num_channels > CRAS_CH_MAX
+      {CRAS_CH_MAX + 1,
+       std::vector<double>((CRAS_CH_MAX + 1) * (CRAS_CH_MAX + 1), 0.5)},
+      // num_channels == 0
+      {0, {}},
+      // num_channels < 0
+      {-2, {0.1, 0.9, 0.9, 0.1}}};
+  for (auto& [num_channels, channels_map] : num_channels_val_sendeds) {
+    CreateMessageCall(CRAS_ROOT_OBJECT_PATH, CRAS_CONTROL_INTERFACE,
+                      "SetGlobalOutputChannelRemix")
+        .WithInt32(num_channels)
+        .WithArrayOfDouble(channels_map)
+        .Send();
+    WaitForMatches();
+    EXPECT_EQ(audio_thread_config_global_remix_called, 0);
+  }
 }
 
 }  // namespace

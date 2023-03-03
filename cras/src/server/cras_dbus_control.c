@@ -958,10 +958,10 @@ handle_set_global_output_channel_remix(DBusConnection *conn,
 		dbus_error_free(&dbus_error);
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
-	if (num_channels > CRAS_CH_MAX) {
+	if (num_channels <= 0 || num_channels > CRAS_CH_MAX) {
 		syslog(LOG_WARNING,
-		       "Set global output channel remix error: num_channels[%d] exceeds %d",
-		       num_channels, CRAS_CH_MAX);
+		       "Set global output channel remix error: Invalid argument, num_channels[%d]",
+		       num_channels);
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 
