@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
-
 #include <vector>
 
 extern "C" {
@@ -53,7 +52,7 @@ TEST(AlsaHelper, MatchChannelMapCapabilityStereo) {
   fmt = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, 44100, 2);
   cras_audio_format_set_channel_layout(fmt, channel_layout);
 
-  /* Create a list of capabilities */
+  // Create a list of capabilities
   c = create_chmap_cap(SND_CHMAP_TYPE_FIXED, 3);
   c->map.pos[0] = 3;
   c->map.pos[1] = 4;
@@ -72,7 +71,7 @@ TEST(AlsaHelper, MatchChannelMapCapabilityStereo) {
 
   caps[3] = NULL;
 
-  /* Test if there's a cap matches fmt */
+  // Test if there's a cap matches fmt
   c = cras_chmap_caps_match(caps, fmt);
   ASSERT_NE((void*)NULL, c);
 
@@ -105,7 +104,7 @@ TEST(AlsaHelper, MatchChannelMapCapability51) {
   fmt = cras_audio_format_create(SND_PCM_FORMAT_S16_LE, 44100, 6);
   cras_audio_format_set_channel_layout(fmt, channel_layout);
 
-  /* Create a list of capabilities */
+  // Create a list of capabilities
   c = create_chmap_cap(SND_CHMAP_TYPE_FIXED, 6);
   c->map.pos[0] = 3;
   c->map.pos[1] = 4;
@@ -130,7 +129,7 @@ TEST(AlsaHelper, MatchChannelMapCapability51) {
   caps[2] = c;
   caps[3] = NULL;
 
-  /* Test if there's a cap matches fmt */
+  // Test if there's a cap matches fmt
   c = cras_chmap_caps_match(caps, fmt);
   ASSERT_NE((void*)NULL, c);
 
@@ -267,8 +266,9 @@ int snd_pcm_sw_params_set_tstamp_type(snd_pcm_t* pcm,
 int snd_pcm_sw_params(snd_pcm_t* pcm, snd_pcm_sw_params_t* params) {
   int rc;
 
-  if (snd_pcm_sw_params_ret_vals.size() == 0)
+  if (snd_pcm_sw_params_ret_vals.size() == 0) {
     return 0;
+  }
   rc = snd_pcm_sw_params_ret_vals.back();
   snd_pcm_sw_params_ret_vals.pop_back();
   return rc;

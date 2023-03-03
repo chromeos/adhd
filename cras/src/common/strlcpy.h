@@ -25,12 +25,12 @@ extern "C" {
 #endif
 
 #if defined(__GLIBC__) || defined(_WIN32)
-/* Declaration of strlcpy() for platforms that don't already have it. */
-size_t strlcpy(char *dst, const char *src, size_t size);
+// Declaration of strlcpy() for platforms that don't already have it.
+size_t strlcpy(char* dst, const char* src, size_t size);
 #endif
 
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
 
 #endif

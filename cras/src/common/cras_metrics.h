@@ -6,14 +6,17 @@
 #ifndef CRAS_SRC_COMMON_CRAS_METRICS_H_
 #define CRAS_SRC_COMMON_CRAS_METRICS_H_
 
-/* Logs the specified event. */
-void cras_metrics_log_event(const char *event);
+// Logs the specified event.
+void cras_metrics_log_event(const char* event);
 
-/* Sends histogram data. */
-void cras_metrics_log_histogram(const char *name, int sample, int min, int max,
-				int nbuckets);
+// Sends histogram data.
+void cras_metrics_log_histogram(const char* name,
+                                int sample,
+                                int min,
+                                int max,
+                                int nbuckets);
 
-/* Sends sparse histogram data. */
-void cras_metrics_log_sparse_histogram(const char *name, int sample);
+// Sends sparse histogram data.
+void cras_metrics_log_sparse_histogram(const char* name, int sample);
 
-#endif /* CRAS_SRC_COMMON_CRAS_METRICS_H_ */
+#endif  // CRAS_SRC_COMMON_CRAS_METRICS_H_

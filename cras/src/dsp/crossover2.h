@@ -21,11 +21,11 @@ extern "C" {
  * The variable [xyz][12][LR] keep the history values.
  */
 struct lr42 {
-	float b0, b1, b2;
-	float a1, a2;
-	float x1L, x1R, x2L, x2R;
-	float y1L, y1R, y2L, y2R;
-	float z1L, z1R, z2L, z2R;
+  float b0, b1, b2;
+  float a1, a2;
+  float x1L, x1R, x2L, x2R;
+  float y1L, y1R, y2L, y2R;
+  float z1L, z1R, z2L, z2R;
 };
 
 /* Three bands crossover filter:
@@ -44,7 +44,7 @@ struct lr42 {
  * lowpass or highpass butterworth filters.
  */
 struct crossover2 {
-	struct lr42 lp[3], hp[3];
+  struct lr42 lp[3], hp[3];
 };
 
 /* Initializes a crossover2 filter
@@ -53,7 +53,7 @@ struct crossover2 {
  *    freq1 - The normalized frequency splits low and mid band.
  *    freq2 - The normalized frequency splits mid and high band.
  */
-void crossover2_init(struct crossover2 *xo2, float freq1, float freq2);
+void crossover2_init(struct crossover2* xo2, float freq1, float freq2);
 
 /* Splits input samples to three bands.
  * Args:
@@ -64,12 +64,17 @@ void crossover2_init(struct crossover2 *xo2, float freq1, float freq2);
  *    data1L, data1R - The place to store mid band output.
  *    data2L, data2R - The place to store high band output.
  */
-void crossover2_process(struct crossover2 *xo2, int count, float *data0L,
-			float *data0R, float *data1L, float *data1R,
-			float *data2L, float *data2R);
+void crossover2_process(struct crossover2* xo2,
+                        int count,
+                        float* data0L,
+                        float* data0R,
+                        float* data1L,
+                        float* data1R,
+                        float* data2L,
+                        float* data2R);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_DSP_CROSSOVER2_H_ */
+#endif  // CRAS_SRC_DSP_CROSSOVER2_H_

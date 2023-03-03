@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras/src/common/array.h"
-
 #include <gtest/gtest.h>
+
+#include "cras/src/common/array.h"
 
 namespace {
 
@@ -18,7 +18,7 @@ DECLARE_ARRAY_TYPE(struct point, point_array);
 TEST(ArrayTest, Basic) {
   double_array a = ARRAY_INIT;
 
-  /* create an array {1.0, 2.0} */
+  // create an array {1.0, 2.0}
   ARRAY_APPEND(&a, 1.0);
   double* p = ARRAY_APPEND_ZERO(&a);
   EXPECT_EQ(0.0, *p);

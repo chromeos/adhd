@@ -10,15 +10,15 @@
 extern "C" {
 #endif
 
-/* A DC blocking filter. */
+// A DC blocking filter.
 
 struct dcblock;
 
-/* Create a DC blocking filter. */
-struct dcblock *dcblock_new();
+// Create a DC blocking filter.
+struct dcblock* dcblock_new();
 
-/* Free a DC blocking filter. */
-void dcblock_free(struct dcblock *dcblock);
+// Free a DC blocking filter.
+void dcblock_free(struct dcblock* dcblock);
 
 /*
  * Configure a DC blocking filter.
@@ -28,8 +28,9 @@ void dcblock_free(struct dcblock *dcblock);
  *    R - DC block filter coefficient.
  *    sample_rate - The sample rate, in Hz.
  */
-void dcblock_set_config(struct dcblock *dcblock, float R,
-			unsigned long sample_rate);
+void dcblock_set_config(struct dcblock* dcblock,
+                        float R,
+                        unsigned long sample_rate);
 
 /* Process a buffer of audio data through the filter.
  * Args:
@@ -37,10 +38,10 @@ void dcblock_set_config(struct dcblock *dcblock, float R,
  *    data - The array of audio samples.
  *    count - The number of elements in the data array to process.
  */
-void dcblock_process(struct dcblock *dcblock, float *data, int count);
+void dcblock_process(struct dcblock* dcblock, float* data, int count);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_DSP_DCBLOCK_H_ */
+#endif  // CRAS_SRC_DSP_DCBLOCK_H_

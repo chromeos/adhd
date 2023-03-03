@@ -3,11 +3,11 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <map>
 #include <stdio.h>
 #include <syslog.h>
-
-#include <map>
 #include <vector>
+
 #include "cras_util.h"
 
 extern "C" {

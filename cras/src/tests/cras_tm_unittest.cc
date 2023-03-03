@@ -125,7 +125,7 @@ TEST_F(TimerTestSuite, AddTwoTimers) {
   t2 = cras_tm_create_timer(tm_, t2_to, test_cb2, this);
   ASSERT_TRUE(t2);
 
-  /* Check That the right calls are made at the right times. */
+  // Check That the right calls are made at the right times.
   test_cb_called = 0;
   test_cb2_called = 0;
   time_now.tv_sec = 0;
@@ -161,7 +161,7 @@ TEST_F(TimerTestSuite, AddTwoTimers) {
   t2 = cras_tm_create_timer(tm_, t2_to, test_cb2, this);
   ASSERT_TRUE(t2);
 
-  /* Timeout values returned are correct. */
+  // Timeout values returned are correct.
   time_now.tv_sec = 0;
   time_now.tv_nsec = 50;
   timers_active = cras_tm_get_next_timeout(tm_, &ts);
@@ -180,7 +180,7 @@ TEST_F(TimerTestSuite, AddTwoTimers) {
   cras_tm_cancel_timer(tm_, t1);
 }
 
-/* Stubs */
+// Stubs
 extern "C" {
 
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {

@@ -23,7 +23,7 @@ struct cras_audio_format;
  * Returns:
  *    0 if a matched channel map is set to HW, -1 otherwise.
  */
-int cras_alsa_set_channel_map(snd_pcm_t *handle, struct cras_audio_format *fmt);
+int cras_alsa_set_channel_map(snd_pcm_t* handle, struct cras_audio_format* fmt);
 
 /*  Gets the supported channel mapping of the pcm handle which matches
  *  the channel layout in the format.
@@ -33,7 +33,7 @@ int cras_alsa_set_channel_map(snd_pcm_t *handle, struct cras_audio_format *fmt);
  *  Returns:
  *     0 if an exactly matched channel map is found, -1 otherwise.
  */
-int cras_alsa_get_channel_map(snd_pcm_t *handle, struct cras_audio_format *fmt);
+int cras_alsa_get_channel_map(snd_pcm_t* handle, struct cras_audio_format* fmt);
 
 /* Opens an alsa device, thin wrapper to snd_pcm_open.
  * Args:
@@ -43,8 +43,9 @@ int cras_alsa_get_channel_map(snd_pcm_t *handle, struct cras_audio_format *fmt);
  * Returns:
  *    See docs for snd_pcm_open.
  */
-int cras_alsa_pcm_open(snd_pcm_t **handle, const char *dev,
-		       snd_pcm_stream_t stream);
+int cras_alsa_pcm_open(snd_pcm_t** handle,
+                       const char* dev,
+                       snd_pcm_stream_t stream);
 
 /* Closes an alsa device, thin wrapper to snd_pcm_close.
  * Args:
@@ -52,7 +53,7 @@ int cras_alsa_pcm_open(snd_pcm_t **handle, const char *dev,
  * Returns:
  *    See docs for snd_pcm_close.
  */
-int cras_alsa_pcm_close(snd_pcm_t *handle);
+int cras_alsa_pcm_close(snd_pcm_t* handle);
 
 /* Starts an alsa device, thin wrapper to snd_pcm_start.
  * Args:
@@ -60,7 +61,7 @@ int cras_alsa_pcm_close(snd_pcm_t *handle);
  * Returns:
  *    See docs for snd_pcm_start.
  */
-int cras_alsa_pcm_start(snd_pcm_t *handle);
+int cras_alsa_pcm_start(snd_pcm_t* handle);
 
 /* Drains an alsa device, thin wrapper to snd_pcm_drain.
  * Args:
@@ -68,7 +69,7 @@ int cras_alsa_pcm_start(snd_pcm_t *handle);
  * Returns:
  *    See docs for snd_pcm_drain.
  */
-int cras_alsa_pcm_drain(snd_pcm_t *handle);
+int cras_alsa_pcm_drain(snd_pcm_t* handle);
 
 /* Forward/rewind appl_ptr so it becomes ahead of hw_ptr by fuzz samples.
  * After moving appl_ptr, device can play the new samples as quick as possible.
@@ -100,8 +101,9 @@ int cras_alsa_pcm_drain(snd_pcm_t *handle);
  * Returns:
  *    0 on success. A negative error code on failure.
  */
-int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead,
-			      int *actual_appl_ptr_displacement);
+int cras_alsa_resume_appl_ptr(snd_pcm_t* handle,
+                              snd_pcm_uframes_t ahead,
+                              int* actual_appl_ptr_displacement);
 
 /* Probes properties of the alsa device.
  * Args:
@@ -115,9 +117,10 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t *handle, snd_pcm_uframes_t ahead,
  * Returns:
  *   0 on success.  On failure an error code from alsa or -ENOMEM.
  */
-int cras_alsa_fill_properties(snd_pcm_t *handle, size_t **rates,
-			      size_t **channel_counts,
-			      snd_pcm_format_t **formats);
+int cras_alsa_fill_properties(snd_pcm_t* handle,
+                              size_t** rates,
+                              size_t** channel_counts,
+                              snd_pcm_format_t** formats);
 
 /* Sets up the hwparams to alsa.
  * Args:
@@ -131,9 +134,11 @@ int cras_alsa_fill_properties(snd_pcm_t *handle, size_t **rates,
  * Returns:
  *    0 on success, negative error on failure.
  */
-int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
-			   snd_pcm_uframes_t *buffer_frames, int period_wakeup,
-			   unsigned int dma_period_time);
+int cras_alsa_set_hwparams(snd_pcm_t* handle,
+                           struct cras_audio_format* format,
+                           snd_pcm_uframes_t* buffer_frames,
+                           int period_wakeup,
+                           unsigned int dma_period_time);
 
 /* Sets up the swparams to alsa.
  * Args:
@@ -141,7 +146,7 @@ int cras_alsa_set_hwparams(snd_pcm_t *handle, struct cras_audio_format *format,
  * Returns:
  *    0 on success, negative error on failure.
  */
-int cras_alsa_set_swparams(snd_pcm_t *handle);
+int cras_alsa_set_swparams(snd_pcm_t* handle);
 
 /* Get the number of used frames in the alsa buffer.
  *
@@ -162,10 +167,12 @@ int cras_alsa_set_swparams(snd_pcm_t *handle);
  *    0 on success, negative error on failure. -EPIPE if severe underrun
  *    happens.
  */
-int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
-			       snd_pcm_uframes_t severe_underrun_frames,
-			       const char *dev_name, snd_pcm_uframes_t *avail,
-			       struct timespec *tstamp);
+int cras_alsa_get_avail_frames(snd_pcm_t* handle,
+                               snd_pcm_uframes_t buf_size,
+                               snd_pcm_uframes_t severe_underrun_frames,
+                               const char* dev_name,
+                               snd_pcm_uframes_t* avail,
+                               struct timespec* tstamp);
 
 /* Get the current alsa delay, make sure it's no bigger than the buffer size.
  * Args:
@@ -175,8 +182,9 @@ int cras_alsa_get_avail_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
  * Returns:
  *    0 on success, negative error on failure.
  */
-int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
-			       snd_pcm_sframes_t *delay);
+int cras_alsa_get_delay_frames(snd_pcm_t* handle,
+                               snd_pcm_uframes_t buf_size,
+                               snd_pcm_sframes_t* delay);
 
 /* Wrapper for snd_pcm_mmap_begin where only buffer is concerned.
  * Offset and frames from cras_alsa_mmap_begin are neglected.
@@ -186,7 +194,7 @@ int cras_alsa_get_delay_frames(snd_pcm_t *handle, snd_pcm_uframes_t buf_size,
  * Returns:
  *    zero on success, negative error code for fatal errors.
  */
-int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst);
+int cras_alsa_mmap_get_whole_buffer(snd_pcm_t* handle, uint8_t** dst);
 
 /* Wrapper for snd_pcm_mmap_begin
  * Args:
@@ -200,9 +208,11 @@ int cras_alsa_mmap_get_whole_buffer(snd_pcm_t *handle, uint8_t **dst);
  *    zero on success, negative error code for fatal
  *    errors.
  */
-int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
-			 uint8_t **dst, snd_pcm_uframes_t *offset,
-			 snd_pcm_uframes_t *frames);
+int cras_alsa_mmap_begin(snd_pcm_t* handle,
+                         unsigned int format_bytes,
+                         uint8_t** dst,
+                         snd_pcm_uframes_t* offset,
+                         snd_pcm_uframes_t* frames);
 
 /* Wrapper for snd_pcm_mmap_commit
  * Args:
@@ -213,8 +223,9 @@ int cras_alsa_mmap_begin(snd_pcm_t *handle, unsigned int format_bytes,
  *    zero on success, negative error code for fatal
  *    errors.
  */
-int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
-			  snd_pcm_uframes_t frames);
+int cras_alsa_mmap_commit(snd_pcm_t* handle,
+                          snd_pcm_uframes_t offset,
+                          snd_pcm_uframes_t frames);
 
 /* When the stream is suspended, due to a system suspend, loop until we can
  * resume it. Won't actually loop very much because the system will be
@@ -225,9 +236,9 @@ int cras_alsa_mmap_commit(snd_pcm_t *handle, snd_pcm_uframes_t offset,
  *    zero on success, negative error code for fatal
  *    errors.
  */
-int cras_alsa_attempt_resume(snd_pcm_t *handle);
+int cras_alsa_attempt_resume(snd_pcm_t* handle);
 
-/* Register the error handling callback to log errors to syslog */
+// Register the error handling callback to log errors to syslog
 void cras_alsa_lib_error_handler_init();
 
-#endif /* _CRAS_ALSA_HELPERS_H */
+#endif  // _CRAS_ALSA_HELPERS_H

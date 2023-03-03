@@ -16,4 +16,4 @@ int cras_floss_get_hfp_enabled();
 
 int cras_floss_get_a2dp_enabled();
 
-#endif /* CRAS_SRC_SERVER_CRAS_FL_MANAGER_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_FL_MANAGER_H_

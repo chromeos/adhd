@@ -13,7 +13,7 @@
  * true indicates it may be a RTC stream.
  * false indicates it's definitely not a RTC stream.
  */
-bool cras_rtc_check_stream_config(struct cras_rstream *stream);
+bool cras_rtc_check_stream_config(struct cras_rstream* stream);
 
 /*
  * Adds a stream into the RTC detector. This function will detect whether
@@ -22,7 +22,7 @@ bool cras_rtc_check_stream_config(struct cras_rstream *stream);
  * 	stream - A stream added.
  * 	dev_ptr - A cras_iodev instance which the stream is attached to.
  */
-void cras_rtc_add_stream(struct cras_rstream *stream, struct cras_iodev *iodev);
+void cras_rtc_add_stream(struct cras_rstream* stream, struct cras_iodev* iodev);
 
 /*
  * Removes a stream from the RTC detector.
@@ -30,9 +30,9 @@ void cras_rtc_add_stream(struct cras_rstream *stream, struct cras_iodev *iodev);
  * 	stream - A stream removed.
  * 	dev_id - A device id which the stream is attached to.
  */
-void cras_rtc_remove_stream(struct cras_rstream *stream, unsigned int dev_id);
+void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id);
 
-/* Returns whether there are running RTC streams. */
+// Returns whether there are running RTC streams.
 bool cras_rtc_is_running();
 
 #endif

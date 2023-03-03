@@ -8,16 +8,16 @@
 
 #include "cras/src/common/utlist.h"
 
-struct cras_ionode *first_plugged_node(struct cras_iodev *iodev)
-{
-	struct cras_ionode *n;
+struct cras_ionode* first_plugged_node(struct cras_iodev* iodev) {
+  struct cras_ionode* n;
 
-	/* When this is called at iodev creation, none of the nodes
-	 * are selected. Just pick the first plugged one and let Chrome
-	 * choose it later. */
-	DL_FOREACH (iodev->nodes, n) {
-		if (n->plugged)
-			return n;
-	}
-	return iodev->nodes;
+  /* When this is called at iodev creation, none of the nodes
+   * are selected. Just pick the first plugged one and let Chrome
+   * choose it later. */
+  DL_FOREACH (iodev->nodes, n) {
+    if (n->plugged) {
+      return n;
+    }
+  }
+  return iodev->nodes;
 }

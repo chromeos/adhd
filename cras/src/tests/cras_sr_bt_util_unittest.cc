@@ -3,9 +3,8 @@
  * found in the LICENSE file.
  */
 
-#include <syslog.h>
-
 #include <gtest/gtest.h>
+#include <syslog.h>
 
 extern "C" {
 #include "cras/src/server/cras_features_override.h"

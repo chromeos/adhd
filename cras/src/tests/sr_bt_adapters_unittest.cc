@@ -15,7 +15,7 @@ extern "C" {
 
 extern "C" {
 
-/* fake iodev */
+// fake iodev
 
 static struct cras_iodev fake_iodev;
 static int fake_frames_queued_return_val = 0;

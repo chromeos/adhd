@@ -4,7 +4,7 @@
 
 #include "cras_shm.h"
 
-/* Define a stub cras_selinux_restorecon() which doesn't do anything */
+// Define a stub cras_selinux_restorecon() which doesn't do anything
 int cras_selinux_restorecon(const char* pathname) {
   return 0;
 }

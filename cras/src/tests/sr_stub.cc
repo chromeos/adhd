@@ -11,7 +11,7 @@ extern "C" {
 #include "cras/src/tests/sr_stub.h"
 }
 
-/* Fake implementation of cras_sr */
+// Fake implementation of cras_sr
 
 extern "C" {
 struct cras_sr {
@@ -49,8 +49,9 @@ int cras_sr_process(struct cras_sr* sr,
     unsigned int num_written =
         MIN(num_read * sr->sample_rate_scale, sample_buf_writable(&out_buf));
     num_read = num_written / sr->sample_rate_scale;
-    if (!num_read || !num_written)
+    if (!num_read || !num_written) {
       break;
+    }
 
     sample_buf_increment_read(&in_buf, num_read);
     num_read_bytes += num_read * sizeof(int16_t);

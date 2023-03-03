@@ -2,12 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <algorithm>
+#include <memory>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
-
-#include <algorithm>
-#include <memory>
 
 extern "C" {
 #include "cras/src/common/utlist.h"
@@ -164,6 +163,7 @@ void fill_audio_format(cras_audio_format* format, unsigned int rate) {
   format->num_channels = 2;
   format->channel_layout[0] = 0;
   format->channel_layout[1] = 1;
-  for (int i = 2; i < CRAS_CH_MAX; i++)
+  for (int i = 2; i < CRAS_CH_MAX; i++) {
     format->channel_layout[i] = -1;
+  }
 }

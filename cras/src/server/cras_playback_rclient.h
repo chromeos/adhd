@@ -15,6 +15,6 @@ struct cras_rclient;
  * Returns:
  *    A pointer to the newly created rclient on success, NULL on failure.
  */
-struct cras_rclient *cras_playback_rclient_create(int fd, size_t id);
+struct cras_rclient* cras_playback_rclient_create(int fd, size_t id);
 
-#endif /* CRAS_SRC_SERVER_CRAS_PLAYBACK_RCLIENT_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_PLAYBACK_RCLIENT_H_

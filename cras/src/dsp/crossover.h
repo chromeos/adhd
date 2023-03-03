@@ -18,11 +18,11 @@ extern "C" {
  * The variable [xyz][12] keep the history values.
  */
 struct lr4 {
-	float b0, b1, b2;
-	float a1, a2;
-	float x1, x2;
-	float y1, y2;
-	float z1, z2;
+  float b0, b1, b2;
+  float a1, a2;
+  float x1, x2;
+  float y1, y2;
+  float z1, z2;
 };
 
 /* Three bands crossover filter:
@@ -41,7 +41,7 @@ struct lr4 {
  * lowpass or highpass butterworth filters.
  */
 struct crossover {
-	struct lr4 lp[3], hp[3];
+  struct lr4 lp[3], hp[3];
 };
 
 /* Initializes a crossover filter
@@ -50,7 +50,7 @@ struct crossover {
  *    freq1 - The normalized frequency splits low and mid band.
  *    freq2 - The normalized frequency splits mid and high band.
  */
-void crossover_init(struct crossover *xo, float freq1, float freq2);
+void crossover_init(struct crossover* xo, float freq1, float freq2);
 
 /* Splits input samples to three bands.
  * Args:
@@ -60,11 +60,14 @@ void crossover_init(struct crossover *xo, float freq1, float freq2);
  *    data1 - The place to store mid band output.
  *    data2 - The place to store high band output.
  */
-void crossover_process(struct crossover *xo, int count, float *data0,
-		       float *data1, float *data2);
+void crossover_process(struct crossover* xo,
+                       int count,
+                       float* data0,
+                       float* data1,
+                       float* data2);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_DSP_CROSSOVER_H_ */
+#endif  // CRAS_SRC_DSP_CROSSOVER_H_

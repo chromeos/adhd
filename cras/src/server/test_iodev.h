@@ -18,15 +18,16 @@ struct cras_iodev;
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
  */
-struct cras_iodev *test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
-				     enum TEST_IODEV_TYPE type);
+struct cras_iodev* test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
+                                     enum TEST_IODEV_TYPE type);
 
-/* Destroys an test_iodev created with test_iodev_create. */
-void test_iodev_destroy(struct cras_iodev *iodev);
+// Destroys an test_iodev created with test_iodev_create.
+void test_iodev_destroy(struct cras_iodev* iodev);
 
-/* Handle a test commdn to the given iodev. */
-void test_iodev_command(struct cras_iodev *iodev,
-			enum CRAS_TEST_IODEV_CMD command, unsigned int data_len,
-			const uint8_t *data);
+// Handle a test commdn to the given iodev.
+void test_iodev_command(struct cras_iodev* iodev,
+                        enum CRAS_TEST_IODEV_CMD command,
+                        unsigned int data_len,
+                        const uint8_t* data);
 
-#endif /* CRAS_SRC_SERVER_TEST_IODEV_H_ */
+#endif  // CRAS_SRC_SERVER_TEST_IODEV_H_

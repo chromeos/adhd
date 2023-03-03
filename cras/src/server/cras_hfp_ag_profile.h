@@ -26,14 +26,14 @@
 
 struct hfp_slc_handle;
 
-/* Adds a profile instance for HFP AG (Hands-Free Profile Audio Gateway). */
-int cras_hfp_ag_profile_create(DBusConnection *conn);
+// Adds a profile instance for HFP AG (Hands-Free Profile Audio Gateway).
+int cras_hfp_ag_profile_create(DBusConnection* conn);
 
-/* Removes the HFP AG registration. */
-int cras_hfp_ag_profile_destroy(DBusConnection *conn);
+// Removes the HFP AG registration.
+int cras_hfp_ag_profile_destroy(DBusConnection* conn);
 
-/* Starts the HFP audio gateway for audio input/output. */
-int cras_hfp_ag_start(struct cras_bt_device *device);
+// Starts the HFP audio gateway for audio input/output.
+int cras_hfp_ag_start(struct cras_bt_device* device);
 
 /*
  * Suspends all connected audio gateways except the one associated to device.
@@ -42,18 +42,18 @@ int cras_hfp_ag_start(struct cras_bt_device *device);
  *    device - The device that we want to keep connection while others should
  *        be removed.
  */
-int cras_hfp_ag_remove_conflict(struct cras_bt_device *device);
+int cras_hfp_ag_remove_conflict(struct cras_bt_device* device);
 
-/* Suspends audio gateway associated with given bt device. */
-void cras_hfp_ag_suspend_connected_device(struct cras_bt_device *device);
+// Suspends audio gateway associated with given bt device.
+void cras_hfp_ag_suspend_connected_device(struct cras_bt_device* device);
 
-/* Gets the active SLC handle. Used for HFP qualification. */
-struct hfp_slc_handle *cras_hfp_ag_get_active_handle();
+// Gets the active SLC handle. Used for HFP qualification.
+struct hfp_slc_handle* cras_hfp_ag_get_active_handle();
 
-/* Gets the SLC handle for given cras_bt_device. */
-struct hfp_slc_handle *cras_hfp_ag_get_slc(struct cras_bt_device *device);
+// Gets the SLC handle for given cras_bt_device.
+struct hfp_slc_handle* cras_hfp_ag_get_slc(struct cras_bt_device* device);
 
-/* Gets the logger for WBS packet status. */
-struct packet_status_logger *cras_hfp_ag_get_wbs_logger();
+// Gets the logger for WBS packet status.
+struct packet_status_logger* cras_hfp_ag_get_wbs_logger();
 
-#endif /* CRAS_SRC_SERVER_CRAS_HFP_AG_PROFILE_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_HFP_AG_PROFILE_H_

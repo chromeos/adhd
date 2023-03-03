@@ -12,14 +12,14 @@
 extern "C" {
 #endif
 
-/* These match the EDID encoding for Standard Timing block */
+// These match the EDID encoding for Standard Timing block
 #define ASPECT_16_10 0
 #define ASPECT_4_3 1
 #define ASPECT_5_4 2
 #define ASPECT_16_9 3
 #define N_ASPECTS 4
 
-/* Defines based on EDID and CEA-861D descriptions */
+// Defines based on EDID and CEA-861D descriptions
 #define EDID_HDR 0
 #define EDID_MFG_EID 0x8
 #define EDID_MFG_PROD_LO 0x0A
@@ -38,12 +38,12 @@ extern "C" {
 #define EDID_ESTTIME1 0x23
 #define EDID_ESTTIME2 0x24
 #define EDID_MFGTIME 0x25
-/* Next two repeat 8 times for standard timings 1-8 */
+// Next two repeat 8 times for standard timings 1-8
 #define EDID_STDTIMEH 0x26
 #define EDID_STDTIMEV 0x27
 #define EDID_N_STDTIME 8
 
-/* There are 4 DTD blocks in the EDID */
+// There are 4 DTD blocks in the EDID
 #define EDID_DTD_BASE 0x36
 #define EDID_N_DTDS 4
 
@@ -57,14 +57,14 @@ extern "C" {
 
 #define EEDID_SIZE (EDID_SIZE + EEXT_SIZE)
 
-/* 2 byte standard timing structure */
+// 2 byte standard timing structure
 #define STDTIME_HBASE 248
 #define STDTIME_HMULT 8
 #define STDTIME_VASPECT_SHIFT 6
 #define STDTIME_VREFMINUS60_MASK 0x3f
 #define STDTIME_SIZE 2
 
-/* 18 byte DTD structure */
+// 18 byte DTD structure
 #define DTD_PCLK_LO 0
 #define DTD_PCLK_HI 1
 #define DTD_HA_LO 2
@@ -85,7 +85,7 @@ extern "C" {
 #define DTD_FLAGS 17
 #define DTD_SIZE 18
 
-/* These apply when PCLK is zero */
+// These apply when PCLK is zero
 #define DTD_TYPETAG 3
 #define DTD_STRING 5
 #define DTD_MINV_HZ 5
@@ -94,7 +94,7 @@ extern "C" {
 #define DTD_MAXH_kHZ 8
 #define DTD_MAXCLK_100kHZ 9
 
-/* Types in the TYPETAG field */
+// Types in the TYPETAG field
 #define DTDTYPE_MANUF 0x0f
 #define DTDTYPE_STDTIME 0xfa
 #define DTDTYPE_COLPOINT 0xfb
@@ -103,22 +103,22 @@ extern "C" {
 #define DTDTYPE_STRING 0xfe
 #define DTDTYPE_SERIAL 0xff
 
-/* This is the CEA extension version 3 */
+// This is the CEA extension version 3
 #define CEA_TAG 0
 #define CEA_REV 1
 #define CEA_DTD_OFFSET 2
-/* Next two are low nibble, high nibble of same byte */
+// Next two are low nibble, high nibble of same byte
 #define CEA_NATIVE_DTDS 3
 #define CEA_SUPPORT 3
 #define CEA_DBC_START 4
-/* Last DBC is at [CEA_DTD_OFFSET]-1, first DTD is at [CEA_DTD_OFFSET] */
-/* Padding needs min of two (gives PCLK=00 in DTD) */
+// Last DBC is at [CEA_DTD_OFFSET]-1, first DTD is at [CEA_DTD_OFFSET]
+// Padding needs min of two (gives PCLK=00 in DTD)
 #define CEA_LAST_PAD 125
 #define CEA_END_PAD 126
 #define CEA_CHECKSUM 127
 
-/* Data Block Collections */
-/* Same byte: upper 3 bits tag, low five length */
+// Data Block Collections
+// Same byte: upper 3 bits tag, low five length
 #define DBC_TAG_LENGTH 0
 #define DBC_LEN_MASK 0x1f
 #define DBC_TAG_SHIFT 5
@@ -174,18 +174,20 @@ extern "C" {
 #define COL_FLAGS 2
 #define COL_META 3
 
-/* Number of test EDID arrays available to get/show_test_edid */
+// Number of test EDID arrays available to get/show_test_edid
 #define N_TEST_EDIDS 6
 
-int edid_valid(const unsigned char *edid_data);
-int edid_has_hdmi_info(const unsigned char *edid_data, int ext);
-int edid_lpcm_support(const unsigned char *edid_data, int ext);
-void show_edid_data(FILE *outfile, unsigned char *edid_data, int items,
-		    int base);
-void show_edid(FILE *outfile, unsigned char *edid_data, int ext);
+int edid_valid(const unsigned char* edid_data);
+int edid_has_hdmi_info(const unsigned char* edid_data, int ext);
+int edid_lpcm_support(const unsigned char* edid_data, int ext);
+void show_edid_data(FILE* outfile,
+                    unsigned char* edid_data,
+                    int items,
+                    int base);
+void show_edid(FILE* outfile, unsigned char* edid_data, int ext);
 int find_aspect(int h, int v);
-int find_aspect_fromisize(unsigned char *edid_data);
-extern char *aspect_to_str[];
+int find_aspect_fromisize(unsigned char* edid_data);
+extern char* aspect_to_str[];
 
 /* Gets monitor name from EDID.
  * Args:
@@ -193,23 +195,24 @@ extern char *aspect_to_str[];
  *    buf - buffer to store monitor name.
  *    buf_size - buffer size.
  */
-int edid_get_monitor_name(const unsigned char *edid_data, char *buf,
-			  unsigned int buf_size);
+int edid_get_monitor_name(const unsigned char* edid_data,
+                          char* buf,
+                          unsigned int buf_size);
 
 struct edid_device_id {
-	uint8_t mfg_id[2];
-	uint16_t prod_code;
-	uint32_t serial;
+  uint8_t mfg_id[2];
+  uint16_t prod_code;
+  uint32_t serial;
 };
 
 /* Gets device identification from EDID
  * Args:
  *    edid_data - EDID data.
  */
-struct edid_device_id edid_get_device_id(const unsigned char *edid_data);
+struct edid_device_id edid_get_device_id(const unsigned char* edid_data);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
 #endif

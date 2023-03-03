@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-
 #include "cras/src/benchmark/benchmark_util.h"
 
 namespace {

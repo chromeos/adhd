@@ -3,12 +3,11 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <memory>
 #include <stdint.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <time.h>
-
-#include <memory>
 
 extern "C" {
 #include "cras/src/common/utlist.h"
@@ -1192,7 +1191,7 @@ TEST_F(TimingSuite, OutputStreamsUpdateAfterFetching) {
 // 1. Device's wake_ts update: cras_iodev_frames_to_play_in_sleep.
 // 2. wake_ts update when removing stream: cras_iodev_rm_stream.
 
-/* Stubs */
+// Stubs
 extern "C" {
 
 int input_data_get_for_stream(struct input_data* data,

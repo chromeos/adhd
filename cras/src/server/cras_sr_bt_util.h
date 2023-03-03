@@ -10,10 +10,10 @@
 #include "cras/src/server/cras_sr.h"
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS {
-	CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK,
-	CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_UNSUPPORTED,
-	CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED,
-	CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE
+  CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK,
+  CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_UNSUPPORTED,
+  CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED,
+  CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE
 };
 
 /* Checks if cras_sr_bt can be enabled. It will check the dependencies is
@@ -46,8 +46,8 @@ struct cras_sr_model_spec cras_sr_bt_get_model_spec(enum cras_sr_bt_model);
  *    is_enabled - A bool indicating whether sr_bt is enabled successfully or
  *      not.
  */
-void cras_sr_bt_send_uma_log(struct cras_iodev *iodev,
-			     const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status,
-			     bool is_enabled);
+void cras_sr_bt_send_uma_log(struct cras_iodev* iodev,
+                             const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status,
+                             bool is_enabled);
 
-#endif /* CRAS_SRC_SERVER_CRAS_SR_BT_UTIL_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_SR_BT_UTIL_H_

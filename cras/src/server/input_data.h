@@ -19,14 +19,14 @@ struct cras_rstream;
  * processing requirements.
  */
 struct input_data {
-	// Provides interface to read and process buffer in dsp pipeline.
-	struct ext_dsp_module ext;
-	// Pointer to the associated input iodev.
-	const struct cras_iodev *idev;
-	// The audio area used for deinterleaved data copy.
-	struct cras_audio_area *area;
-	// Floating point buffer from input device.
-	struct float_buffer *fbuffer;
+  // Provides interface to read and process buffer in dsp pipeline.
+  struct ext_dsp_module ext;
+  // Pointer to the associated input iodev.
+  const struct cras_iodev* idev;
+  // The audio area used for deinterleaved data copy.
+  struct cras_audio_area* area;
+  // Floating point buffer from input device.
+  struct float_buffer* fbuffer;
 };
 
 /*
@@ -34,14 +34,14 @@ struct input_data {
  * Args:
  *    idev - Pointer to the associated input device.
  */
-struct input_data *input_data_create(const struct cras_iodev *idev);
+struct input_data* input_data_create(const struct cras_iodev* idev);
 
-/* Destroys an input_data instance. */
-void input_data_destroy(struct input_data **data);
+// Destroys an input_data instance.
+void input_data_destroy(struct input_data** data);
 
-/* Sets how many frames in buffer has been read by all input streams. */
-void input_data_set_all_streams_read(struct input_data *data,
-				     unsigned int nframes);
+// Sets how many frames in buffer has been read by all input streams.
+void input_data_set_all_streams_read(struct input_data* data,
+                                     unsigned int nframes);
 
 /*
  * Gets an audio area for |stream| to read data from. An input_data may be
@@ -59,12 +59,12 @@ void input_data_set_all_streams_read(struct input_data *data,
  *    offset - To be filled with the samples offset in |area| that |stream|
  *        should start reading.
  */
-int input_data_get_for_stream(struct input_data *data,
-			      struct cras_rstream *stream,
-			      struct buffer_share *offsets,
-			      float preprocessing_gain_scalar,
-			      struct cras_audio_area **area,
-			      unsigned int *offset);
+int input_data_get_for_stream(struct input_data* data,
+                              struct cras_rstream* stream,
+                              struct buffer_share* offsets,
+                              float preprocessing_gain_scalar,
+                              struct cras_audio_area** area,
+                              unsigned int* offset);
 
 /*
  * Marks |frames| of audio data as read by |stream|.
@@ -75,16 +75,16 @@ int input_data_get_for_stream(struct input_data *data,
  *        of how many frames each stream has read into input buffer.
  *    frames - Number of frames |stream| has read.
  */
-int input_data_put_for_stream(struct input_data *data,
-			      struct cras_rstream *stream,
-			      struct buffer_share *offsets,
-			      unsigned int frames);
+int input_data_put_for_stream(struct input_data* data,
+                              struct cras_rstream* stream,
+                              struct buffer_share* offsets,
+                              unsigned int frames);
 
 struct input_data_gain {
-	// Software gain scalar that should be applied before WebRTC-APM processing.
-	float preprocessing_scalar;
-	// Software gain scalar that should be applied after WebRTC-APM processing.
-	float postprocessing_scalar;
+  // Software gain scalar that should be applied before WebRTC-APM processing.
+  float preprocessing_scalar;
+  // Software gain scalar that should be applied after WebRTC-APM processing.
+  float postprocessing_scalar;
 };
 
 /*
@@ -102,7 +102,9 @@ struct input_data_gain {
  *    The preprocessing gain should be passed to input_data_get_for_stream().
  */
 struct input_data_gain input_data_get_software_gain_scaler(
-	struct input_data *data, float ui_gain_scalar,
-	float idev_sw_gain_scaler, struct cras_rstream *stream);
+    struct input_data* data,
+    float ui_gain_scalar,
+    float idev_sw_gain_scaler,
+    struct cras_rstream* stream);
 
-#endif /* CRAS_SRC_SERVER_INPUT_DATA_H_ */
+#endif  // CRAS_SRC_SERVER_INPUT_DATA_H_

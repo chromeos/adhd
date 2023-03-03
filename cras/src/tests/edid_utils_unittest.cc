@@ -2,14 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras/src/common/edid_utils.h"
-
 #include <gtest/gtest.h>
 #include <stdint.h>
 #include <stdio.h>
-
 #include <string>
 
+#include "cras/src/common/edid_utils.h"
 #include "cras_util.h"
 
 namespace {
@@ -28,8 +26,9 @@ class EDIDTestSuite : public testing::Test {
   void SetChecksum() {
     uint8_t sum = 0;
 
-    for (unsigned int i = 0; i < 127; i++)
+    for (unsigned int i = 0; i < 127; i++) {
       sum += edid_[i];
+    }
 
     edid_[127] = 256 - sum;
   }
@@ -80,7 +79,7 @@ static const uint8_t test_no_aud_edid2[256] = {
     0x00, 0x00, 0x00, 0xfc, 0x00, 0x4c, 0x50, 0x31, 0x31, 0x36, 0x57, 0x48,
     0x31, 0x2d, 0x54, 0x4c, 0x4e, 0x31, 0x00, 0x4e};
 
-/* Has DTD that is too wide */
+// Has DTD that is too wide
 static const uint8_t test_no_aud_edid3[256] = {
     0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x10, 0xac, 0x63, 0x40,
     0x4c, 0x35, 0x31, 0x33, 0x0c, 0x15, 0x01, 0x03, 0x80, 0x40, 0x28, 0x78,

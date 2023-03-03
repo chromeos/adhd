@@ -393,17 +393,17 @@ TEST_F(RstreamTestSuite, UpdateOutputReadPtr) {
   rc = cras_rstream_create(&config_, &s);
   EXPECT_EQ(0, rc);
 
-  /* Test the scenario when data sits across double buffer in shm. */
+  // Test the scenario when data sits across double buffer in shm.
   buf = cras_shm_get_write_buffer_base(s->shm);
   cras_shm_buffer_written_start(s->shm, config_.cb_threshold);
   buf = cras_shm_get_write_buffer_base(s->shm);
   cras_shm_buffer_written_start(s->shm, tmp);
 
-  /* Device buffer share object says this amount can be marked as read. */
+  // Device buffer share object says this amount can be marked as read.
   buffer_share_get_new_write_point_ret = config_.cb_threshold + tmp;
   cras_rstream_update_output_read_pointer(s);
 
-  /* Data sits across double buffer. */
+  // Data sits across double buffer.
   buf = cras_shm_get_write_buffer_base(s->shm);
   cras_shm_buffer_written_start(s->shm, config_.cb_threshold - tmp);
   buf = cras_shm_get_write_buffer_base(s->shm);
@@ -437,7 +437,7 @@ TEST_F(RstreamTestSuite, EffectPostProcessingFormat) {
 
 }  //  namespace
 
-/* stubs */
+// stubs
 extern "C" {
 
 struct cras_audio_area* cras_audio_area_create(int num_channels) {

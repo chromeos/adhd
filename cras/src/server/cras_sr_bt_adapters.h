@@ -20,14 +20,15 @@ struct cras_iodev_sr_bt_adapter;
  * Returns:
  *    The created adapter instance.
  */
-struct cras_iodev_sr_bt_adapter *
-cras_iodev_sr_bt_adapter_create(struct cras_iodev *iodev, struct cras_sr *sr);
+struct cras_iodev_sr_bt_adapter* cras_iodev_sr_bt_adapter_create(
+    struct cras_iodev* iodev,
+    struct cras_sr* sr);
 
 /* Destroys the adapter instance.
  * Args:
  *    adapter - the adapter to be destroyed.
  */
-void cras_iodev_sr_bt_adapter_destroy(struct cras_iodev_sr_bt_adapter *adapter);
+void cras_iodev_sr_bt_adapter_destroy(struct cras_iodev_sr_bt_adapter* adapter);
 
 /* Gets the number of frames queued in the buffer.
  * Args:
@@ -37,11 +38,12 @@ void cras_iodev_sr_bt_adapter_destroy(struct cras_iodev_sr_bt_adapter *adapter);
  *    Number of frames queued.
  */
 int cras_iodev_sr_bt_adapter_frames_queued(
-	struct cras_iodev_sr_bt_adapter *adapter, struct timespec *tstamp);
+    struct cras_iodev_sr_bt_adapter* adapter,
+    struct timespec* tstamp);
 
-/* Get the delay for input in frames. */
+// Get the delay for input in frames.
 int cras_iodev_sr_bt_adapter_delay_frames(
-	struct cras_iodev_sr_bt_adapter *adapter);
+    struct cras_iodev_sr_bt_adapter* adapter);
 
 /* Gets a buffer to read from.
  * Args:
@@ -53,9 +55,10 @@ int cras_iodev_sr_bt_adapter_delay_frames(
  * Returns:
  *    0 on success. It always returns 0 currently.
  */
-int cras_iodev_sr_bt_adapter_get_buffer(struct cras_iodev_sr_bt_adapter *adapter,
-					struct cras_audio_area **area,
-					unsigned *frames);
+int cras_iodev_sr_bt_adapter_get_buffer(
+    struct cras_iodev_sr_bt_adapter* adapter,
+    struct cras_audio_area** area,
+    unsigned* frames);
 
 /* Marks the number of read frames in the buffer from get_buffer.
  * Args:
@@ -65,10 +68,11 @@ int cras_iodev_sr_bt_adapter_get_buffer(struct cras_iodev_sr_bt_adapter *adapter
  *    0 on success. Negative error code on failure.
  */
 int cras_iodev_sr_bt_adapter_put_buffer(
-	struct cras_iodev_sr_bt_adapter *adapter, unsigned nread);
+    struct cras_iodev_sr_bt_adapter* adapter,
+    unsigned nread);
 
-/* Flushes all the buffers. */
+// Flushes all the buffers.
 int cras_iodev_sr_bt_adapter_flush_buffer(
-	struct cras_iodev_sr_bt_adapter *adapter);
+    struct cras_iodev_sr_bt_adapter* adapter);
 
 #endif

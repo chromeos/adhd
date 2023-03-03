@@ -10,7 +10,6 @@
 #include <gtest/gtest.h>
 #include <pthread.h>
 #include <stdint.h>
-
 #include <string>
 #include <vector>
 
@@ -325,4 +324,4 @@ class DBusTest : public ::testing::Test {
   void DispatchOnce();
 };
 
-#endif /* CRAS_SRC_TESTS_DBUS_TEST_H_ */
+#endif  // CRAS_SRC_TESTS_DBUS_TEST_H_

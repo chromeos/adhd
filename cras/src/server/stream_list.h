@@ -18,22 +18,22 @@ struct cras_rstream_config;
 struct cras_audio_format;
 struct stream_list;
 
-typedef int(stream_callback)(struct cras_rstream *rstream);
-/* This function will mutably borrow stream_config. */
-typedef int(stream_create_func)(struct cras_rstream_config *stream_config,
-				struct cras_rstream **rstream);
-typedef void(stream_destroy_func)(struct cras_rstream *rstream);
+typedef int(stream_callback)(struct cras_rstream* rstream);
+// This function will mutably borrow stream_config.
+typedef int(stream_create_func)(struct cras_rstream_config* stream_config,
+                                struct cras_rstream** rstream);
+typedef void(stream_destroy_func)(struct cras_rstream* rstream);
 
-struct stream_list *stream_list_create(stream_callback *add_cb,
-				       stream_callback *rm_cb,
-				       stream_create_func *create_cb,
-				       stream_destroy_func *destroy_cb,
-				       stream_callback *list_changed_cb,
-				       struct cras_tm *timer_manager);
+struct stream_list* stream_list_create(stream_callback* add_cb,
+                                       stream_callback* rm_cb,
+                                       stream_create_func* create_cb,
+                                       stream_destroy_func* destroy_cb,
+                                       stream_callback* list_changed_cb,
+                                       struct cras_tm* timer_manager);
 
-void stream_list_destroy(struct stream_list *list);
+void stream_list_destroy(struct stream_list* list);
 
-struct cras_rstream *stream_list_get(struct stream_list *list);
+struct cras_rstream* stream_list_get(struct stream_list* list);
 
 /* Creates a cras_rstream from cras_rstream_config and inserts the cras_rstream
  * to stream_list in descending order by channel count.
@@ -46,24 +46,24 @@ struct cras_rstream *stream_list_get(struct stream_list *list);
  * Returns:
  *   0 on success. Negative error code on failure.
  */
-int stream_list_add(struct stream_list *list,
-		    struct cras_rstream_config *stream_config,
-		    struct cras_rstream **stream);
+int stream_list_add(struct stream_list* list,
+                    struct cras_rstream_config* stream_config,
+                    struct cras_rstream** stream);
 
-int stream_list_rm(struct stream_list *list, cras_stream_id_t id);
+int stream_list_rm(struct stream_list* list, cras_stream_id_t id);
 
 /* Removes the stream with the given id directly from stream_list without
  * draining. Only supports streams with direction = CRAS_STREAM_INPUT.
  */
-int stream_list_direct_rm(struct stream_list *list, cras_stream_id_t id);
+int stream_list_direct_rm(struct stream_list* list, cras_stream_id_t id);
 
-int stream_list_rm_all_client_streams(struct stream_list *list,
-				      struct cras_rclient *rclient);
+int stream_list_rm_all_client_streams(struct stream_list* list,
+                                      struct cras_rclient* rclient);
 
 /*
  * Checks if there is a stream pinned to the given device.
  */
-bool stream_list_has_pinned_stream(struct stream_list *list,
-				   unsigned int dev_idx);
+bool stream_list_has_pinned_stream(struct stream_list* list,
+                                   unsigned int dev_idx);
 
 #endif

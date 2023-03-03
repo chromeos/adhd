@@ -10,20 +10,20 @@
 extern "C" {
 #endif
 
-/* Structure used to track the current progress of a file wait. */
+// Structure used to track the current progress of a file wait.
 struct cras_file_wait;
 
-/* Flags type for file wait. */
+// Flags type for file wait.
 typedef unsigned int cras_file_wait_flag_t;
 
-/* No flags. */
+// No flags.
 #define CRAS_FILE_WAIT_FLAG_NONE ((cras_file_wait_flag_t)0)
 
-/* File wait events. */
+// File wait events.
 typedef enum cras_file_wait_event {
-	CRAS_FILE_WAIT_EVENT_NONE,
-	CRAS_FILE_WAIT_EVENT_CREATED,
-	CRAS_FILE_WAIT_EVENT_DELETED,
+  CRAS_FILE_WAIT_EVENT_NONE,
+  CRAS_FILE_WAIT_EVENT_CREATED,
+  CRAS_FILE_WAIT_EVENT_DELETED,
 } cras_file_wait_event_t;
 
 /*
@@ -37,9 +37,9 @@ typedef enum cras_file_wait_event {
  *    event - Event that has occurred related to this file wait.
  *    filename - Filename associated with the event.
  */
-typedef void (*cras_file_wait_callback_t)(void *context,
-					  cras_file_wait_event_t event,
-					  const char *filename);
+typedef void (*cras_file_wait_callback_t)(void* context,
+                                          cras_file_wait_event_t event,
+                                          const char* filename);
 
 /*
  * Wait for the existence of a file.
@@ -73,10 +73,11 @@ typedef void (*cras_file_wait_callback_t)(void *context,
  *    - 0 for success, or negative on error.
  *    - On error cras_file_wait_destroy() need not be called.
  */
-int cras_file_wait_create(const char *file_path, cras_file_wait_flag_t flags,
-			  cras_file_wait_callback_t callback,
-			  void *callback_context,
-			  struct cras_file_wait **file_wait_out);
+int cras_file_wait_create(const char* file_path,
+                          cras_file_wait_flag_t flags,
+                          cras_file_wait_callback_t callback,
+                          void* callback_context,
+                          struct cras_file_wait** file_wait_out);
 
 /* Returns the file-descriptor to poll for a file wait.
  *
@@ -91,7 +92,7 @@ int cras_file_wait_create(const char *file_path, cras_file_wait_flag_t flags,
  *    Non-negative file descriptor number, or -EINVAL if the file_wait
  *    structure is NULL or otherwise invalid.
  */
-int cras_file_wait_get_fd(struct cras_file_wait *file_wait);
+int cras_file_wait_get_fd(struct cras_file_wait* file_wait);
 
 /* Dispatch a file wait event.
  *
@@ -107,7 +108,7 @@ int cras_file_wait_get_fd(struct cras_file_wait *file_wait);
  *    - 0 for success, negative on error.
  *    - -EAGAIN or -EWOULDBLOCK when this function would have blocked.
  */
-int cras_file_wait_dispatch(struct cras_file_wait *file_wait);
+int cras_file_wait_dispatch(struct cras_file_wait* file_wait);
 
 /* Destroy a file wait structure.
  *
@@ -119,10 +120,10 @@ int cras_file_wait_dispatch(struct cras_file_wait *file_wait);
  *    file_wait - The cras_file_wait structure initialized by
  *                cras_file_wait_start();
  */
-void cras_file_wait_destroy(struct cras_file_wait *file_wait);
+void cras_file_wait_destroy(struct cras_file_wait* file_wait);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_COMMON_CRAS_FILE_WAIT_H_ */
+#endif  // CRAS_SRC_COMMON_CRAS_FILE_WAIT_H_

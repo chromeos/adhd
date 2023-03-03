@@ -26,7 +26,7 @@ extern "C" {
  * The raw file can be played by:
  *    play -r 44100 -s -b 16 -c 2 test.raw
  */
-float *read_raw(const char *filename, size_t *frames);
+float* read_raw(const char* filename, size_t* frames);
 
 /* Writes a float buffer to a raw file.
  * Args:
@@ -37,10 +37,10 @@ float *read_raw(const char *filename, size_t *frames);
  *    0 if success. -1 if writing fails.
  * The format of the float buffer is the same as described in read_raw().
  */
-void write_raw(const char *filename, float *buf, size_t frames);
+void write_raw(const char* filename, float* buf, size_t frames);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_DSP_TESTS_RAW_H_ */
+#endif  // CRAS_SRC_DSP_TESTS_RAW_H_

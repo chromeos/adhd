@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <string.h>
-
 #include <unordered_map>
 
 extern "C" {
@@ -127,8 +126,9 @@ static void do_sys_init() {
   struct cras_server_state* exp_state =
       (struct cras_server_state*)cras_shm_setup(shm_name, sizeof(*exp_state),
                                                 &rw_shm_fd, &ro_shm_fd);
-  if (!exp_state)
+  if (!exp_state) {
     exit(-1);
+  }
   cras_system_state_init(device_config_dir, shm_name, rw_shm_fd, ro_shm_fd,
                          exp_state, sizeof(*exp_state), nullptr, nullptr);
   free(shm_name);

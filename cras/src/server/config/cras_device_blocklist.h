@@ -23,14 +23,14 @@ struct cras_device_blocklist;
  * Returns:
  *    A pointer to the created blocklist on success, NULL on failure.
  */
-struct cras_device_blocklist *
-cras_device_blocklist_create(const char *config_path);
+struct cras_device_blocklist* cras_device_blocklist_create(
+    const char* config_path);
 
 /* Destroys a blocklist returned by cras_device_blocklist_create().
  * Args:
  *    blocklist - Blocklist returned by cras_device_blocklist_create()
  */
-void cras_device_blocklist_destroy(struct cras_device_blocklist *blocklist);
+void cras_device_blocklist_destroy(struct cras_device_blocklist* blocklist);
 
 /* Checks if a playback device on a USB card is blocklisted.
  * Args:
@@ -41,8 +41,10 @@ void cras_device_blocklist_destroy(struct cras_device_blocklist *blocklist);
  * Returns:
  *  1 if the device is blocklisted, 0 otherwise.
  */
-int cras_device_blocklist_check(struct cras_device_blocklist *blocklist,
-				unsigned vendor_id, unsigned product_id,
-				unsigned desc_checksum, unsigned device_index);
+int cras_device_blocklist_check(struct cras_device_blocklist* blocklist,
+                                unsigned vendor_id,
+                                unsigned product_id,
+                                unsigned desc_checksum,
+                                unsigned device_index);
 
-#endif /* CRAS_CARD_DEVICE_BLOCKLIST_H_ */
+#endif  // CRAS_CARD_DEVICE_BLOCKLIST_H_

@@ -93,8 +93,9 @@ static void delete_tempdir(char* dir) {
 
 static void init_channel_layout(struct cras_audio_format* fmt) {
   int i;
-  for (i = 0; i < CRAS_CH_MAX; i++)
+  for (i = 0; i < CRAS_CH_MAX; i++) {
     fmt->channel_layout[i] = -1;
+  }
 }
 
 TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
@@ -127,10 +128,11 @@ TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
   for (int i = 0; i < num_test_casts; i++) {
     fmt.num_channels = test_num_channels[i];
     init_channel_layout(&fmt);
-    for (ch = 0; ch < CRAS_CH_MAX; ch++)
+    for (ch = 0; ch < CRAS_CH_MAX; ch++) {
       fmt.channel_layout[ch] = test_layouts[i][ch];
+    }
 
-    /* Input dev is of aec use case. */
+    // Input dev is of aec use case.
     apm = cras_stream_apm_add(stream, idev, &fmt);
     EXPECT_NE((void*)NULL, apm);
 
@@ -138,9 +140,11 @@ TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
      * first channel in the layout. */
     bool first_channel_found_in_layout = 0;
     val = cras_stream_apm_get_format(apm);
-    for (ch = 0; ch < CRAS_CH_MAX; ch++)
-      if (0 == val->channel_layout[ch])
+    for (ch = 0; ch < CRAS_CH_MAX; ch++) {
+      if (0 == val->channel_layout[ch]) {
         first_channel_found_in_layout = 1;
+      }
+    }
 
     EXPECT_EQ(1, first_channel_found_in_layout);
 
@@ -169,7 +173,7 @@ TEST(StreamApm, AddRemoveApm) {
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, stream);
 
-  /* Input dev is of aec use case. */
+  // Input dev is of aec use case.
   EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
@@ -181,7 +185,7 @@ TEST(StreamApm, AddRemoveApm) {
   EXPECT_EQ((void*)NULL, cras_stream_apm_get_active(stream, idev2));
   EXPECT_EQ(1, cras_apm_reverse_state_update_called);
 
-  /* Input dev is not of aec use case. */
+  // Input dev is not of aec use case.
   cras_iodev_is_tuned_aec_use_case_value = 0;
   EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev2, &fmt));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
@@ -221,14 +225,14 @@ TEST(StreamApm, OutputTypeNotAecUseCase) {
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
   EXPECT_NE((void*)NULL, stream);
 
-  /* Output device is of aec use case. */
+  // Output device is of aec use case.
   cras_apm_reverse_is_aec_use_case_ret = 1;
   EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt));
   EXPECT_NE((void*)NULL, webrtc_apm_create_aec_ini_val);
   EXPECT_NE((void*)NULL, webrtc_apm_create_apm_ini_val);
   cras_stream_apm_remove(stream, idev);
 
-  /* Output device is not of aec use case. */
+  // Output device is not of aec use case.
   cras_apm_reverse_is_aec_use_case_ret = 0;
   EXPECT_NE((void*)NULL, cras_stream_apm_add(stream, idev, &fmt));
   EXPECT_EQ((void*)NULL, webrtc_apm_create_aec_ini_val);
@@ -350,7 +354,7 @@ TEST(StreamApm, GetUseTunedSettings) {
   fmt.frame_rate = 48000;
   fmt.format = SND_PCM_FORMAT_S16_LE;
 
-  /* No tuned aec/apm ini provided. */
+  // No tuned aec/apm ini provided.
   cras_stream_apm_init("");
 
   stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
@@ -367,7 +371,7 @@ TEST(StreamApm, GetUseTunedSettings) {
   cras_stream_apm_destroy(stream);
   cras_stream_apm_deinit();
 
-  /* Fake the existence of tuned apm/aec ini. */
+  // Fake the existence of tuned apm/aec ini.
   dir = prepare_tempdir();
   cras_stream_apm_init(dir);
 
@@ -534,7 +538,7 @@ TEST(StreamApm, UpdateEffect) {
   cras_stream_apm_remove(stream, idev);
   cras_stream_apm_destroy(stream);
 
-  /* No DSP aec allowed should block DSP ns/agc being enabled. */
+  // No DSP aec allowed should block DSP ns/agc being enabled.
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_NOISE_SUPPRESSION_ALLOWED | DSP_GAIN_CONTROL_ALLOWED);
@@ -553,7 +557,7 @@ TEST(StreamApm, UpdateEffect) {
   cras_stream_apm_remove(stream, idev);
   cras_stream_apm_destroy(stream);
 
-  /* Allowing DSP aec means DSP ns/agc can be enalbed. */
+  // Allowing DSP aec means DSP ns/agc can be enalbed.
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_ECHO_CANCELLATION_ALLOWED | DSP_NOISE_SUPPRESSION_ALLOWED |
@@ -573,7 +577,7 @@ TEST(StreamApm, UpdateEffect) {
   cras_stream_apm_remove(stream, idev);
   cras_stream_apm_destroy(stream);
 
-  /* Add apm with tuned aec use case set to 'false' blocks DSP effects. */
+  // Add apm with tuned aec use case set to 'false' blocks DSP effects.
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_ECHO_CANCELLATION_ALLOWED | DSP_NOISE_SUPPRESSION_ALLOWED |
@@ -595,7 +599,7 @@ TEST(StreamApm, UpdateEffect) {
   cras_stream_apm_remove(stream, idev);
   cras_stream_apm_destroy(stream);
 
-  /* Add apm with dsp aec use case set to 'false' blocks DSP effects. */
+  // Add apm with dsp aec use case set to 'false' blocks DSP effects.
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_ECHO_CANCELLATION_ALLOWED | DSP_NOISE_SUPPRESSION_ALLOWED |
@@ -639,7 +643,7 @@ TEST(StreamApm, UpdateEffectMultipleStreamApms) {
   iodev_rtc_proc_enabled_maps[RTC_PROC_AGC].clear();
   cras_stream_apm_init("");
 
-  /* Allowing DSP aec means DSP ns/agc can be enalbed. */
+  // Allowing DSP aec means DSP ns/agc can be enalbed.
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_ECHO_CANCELLATION_ALLOWED | DSP_NOISE_SUPPRESSION_ALLOWED |
@@ -738,8 +742,9 @@ bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev* iodev,
   cras_iodev_get_rtc_proc_enabled_called++;
 
   auto elem = iodev_rtc_proc_enabled_maps[rtc_proc].find(iodev);
-  if (elem != iodev_rtc_proc_enabled_maps[rtc_proc].end())
+  if (elem != iodev_rtc_proc_enabled_maps[rtc_proc].end()) {
     return iodev_rtc_proc_enabled_maps[rtc_proc][iodev];
+  }
 
   return 0;
 }

@@ -8,15 +8,13 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-
 #include "cras/src/benchmark/benchmark_util.h"
 
 namespace {
 extern "C" {
-#include "webrtc-apm/webrtc_apm.h"
-
 #include "cras/src/dsp/dsp_util.h"
 #include "cras_audio_format.h"
+#include "webrtc-apm/webrtc_apm.h"
 }
 
 class BM_Apm : public benchmark::Fixture {

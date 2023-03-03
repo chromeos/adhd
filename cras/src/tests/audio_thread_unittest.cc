@@ -4,14 +4,12 @@
 
 extern "C" {
 #include "cras/src/server/audio_thread.c"
-
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/input_data.h"
 #include "cras/src/tests/metrics_stub.h"
 }
 
 #include <gtest/gtest.h>
-
 #include <map>
 
 #define MAX_CALLS 10
@@ -209,8 +207,9 @@ class StreamDeviceSuite : public testing::Test {
                         unsigned int* num) {
     size_t sz = sizeof(*area_) + sizeof(struct cras_channel_area) * 2;
 
-    if (audio_buffer_size_ < *num)
+    if (audio_buffer_size_ < *num) {
       *num = audio_buffer_size_;
+    }
 
     area_ = (cras_audio_area*)calloc(1, sz);
     area_->frames = *num;
@@ -513,10 +512,10 @@ TEST_F(StreamDeviceSuite, AddOutputStream) {
   shm_header->write_buf_idx = 0;
   shm_header->write_offset[0] = 0;
 
-  /* Assume device is started. */
+  // Assume device is started.
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
 
-  /* Fetch stream. */
+  // Fetch stream.
   cras_rstream_is_pending_reply_ret = 0;
   dev_io_playback_fetch(adev);
   EXPECT_EQ(dev_stream_request_playback_samples_called, 1);
@@ -539,7 +538,7 @@ TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
 
   thread_add_open_dev(thread_, &iodev);
 
-  /* Add a new stream. init_cb_ts should be the time right now. */
+  // Add a new stream. init_cb_ts should be the time right now.
   clock_gettime_retspec.tv_sec = 1;
   clock_gettime_retspec.tv_nsec = 500;
   cras_iodev_get_valid_frames_ret = 0;
@@ -671,13 +670,13 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
 
   shm_header->write_buf_idx = 0;
 
-  /* Add the device and add the stream. */
+  // Add the device and add the stream.
   thread_add_open_dev(thread_, &iodev);
   thread_add_stream(thread_, &rstream, &piodev, 1);
 
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
-  /* Assume device is started. */
+  // Assume device is started.
   iodev.state = CRAS_IODEV_STATE_NORMAL_RUN;
 
   /*
@@ -701,7 +700,7 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   EXPECT_EQ(dev_stream_request_playback_samples_called, 0);
   EXPECT_EQ(dev_stream_update_next_wake_time_called, 1);
 
-  /* If the stream can be fetched, fetch it. */
+  // If the stream can be fetched, fetch it.
   cras_rstream_is_pending_reply_ret = 0;
   shm_header->write_offset[0] = 0;
   dev_io_playback_fetch(adev);

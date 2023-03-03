@@ -5,7 +5,6 @@
 #include <fcntl.h>
 #include <gtest/gtest.h>
 #include <stdlib.h>
-
 #include <string>
 
 #include "cras/src/common/cras_file_wait.h"
@@ -23,12 +22,14 @@ static int RmRF(const std::string& path) {
   std::string cmd("rm -rf \"");
   cmd += path + "\"";
 
-  if (path == "/")
+  if (path == "/") {
     return -EINVAL;
+  }
 
   int rc = system(cmd.c_str());
-  if (rc < 0)
+  if (rc < 0) {
     return -errno;
+  }
   return WEXITSTATUS(rc);
 }
 
@@ -57,8 +58,9 @@ static void SimpleFileWait(const char* file_path) {
   int stat_rc;
 
   stat_rc = stat(file_path, &stat_buf);
-  if (stat_rc < 0)
+  if (stat_rc < 0) {
     stat_rc = -errno;
+  }
 
   file_wait_result.called = 0;
   EXPECT_EQ(0, cras_file_wait_create(file_path, CRAS_FILE_WAIT_FLAG_NONE,
@@ -75,17 +77,19 @@ static void SimpleFileWait(const char* file_path) {
   poll_fd.fd = cras_file_wait_get_fd(file_wait);
 
   file_wait_result.called = 0;
-  if (stat_rc == 0)
+  if (stat_rc == 0) {
     EXPECT_EQ(0, RmRF(file_path));
-  else
+  } else {
     EXPECT_EQ(0, mknod(file_path, S_IFREG | 0600, 0));
+  }
   EXPECT_EQ(1, cras_poll(&poll_fd, 1, &timeout, NULL));
   EXPECT_EQ(0, cras_file_wait_dispatch(file_wait));
   EXPECT_EQ(1, file_wait_result.called);
-  if (stat_rc == 0)
+  if (stat_rc == 0) {
     EXPECT_EQ(CRAS_FILE_WAIT_EVENT_DELETED, file_wait_result.event);
-  else
+  } else {
     EXPECT_EQ(CRAS_FILE_WAIT_EVENT_CREATED, file_wait_result.event);
+  }
   EXPECT_EQ(-EAGAIN, cras_file_wait_dispatch(file_wait));
   cras_file_wait_destroy(file_wait);
 }

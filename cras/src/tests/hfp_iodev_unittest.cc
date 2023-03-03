@@ -128,7 +128,7 @@ TEST_F(HfpIodev, CreateHfpInputIodev) {
   ASSERT_EQ(1, cras_bt_device_append_iodev_called);
   ASSERT_EQ(1, cras_iodev_add_node_called);
   ASSERT_EQ(1, cras_iodev_set_active_node_called);
-  /* Input device does not use software gain. */
+  // Input device does not use software gain.
   ASSERT_EQ(0, iodev->software_volume_needed);
 
   ASSERT_EQ(0, CRAS_BT_FLAG_FLOSS & iodev->active_node->btflags);
@@ -185,7 +185,7 @@ TEST_P(OpenHfpIodevTest, TestOpenHfpIodev) {
   iodev = hfp_iodev_create(param.direction, fake_device, fake_slc, fake_sco);
   iodev->format = &fake_format;
 
-  /* cras_sco* not start yet */
+  // cras_sco* not start yet
   cras_sco_running_return_val = 0;
   iodev->open_dev(iodev);
 
@@ -210,7 +210,7 @@ TEST_P(OpenHfpIodevTest, TestOpenHfpIodev) {
   ASSERT_EQ(SND_PCM_FORMAT_S16_LE, iodev->supported_formats[0]);
   ASSERT_EQ(0, iodev->supported_formats[1]);
 
-  /* cras_sco* is running now */
+  // cras_sco* is running now
   cras_sco_running_return_val = 1;
 
   iodev->close_dev(iodev);
@@ -287,7 +287,7 @@ TEST_F(HfpIodev, OpenIodevWithHfpInfoAlreadyRunning) {
 
   iodev->format = &fake_format;
 
-  /* cras_sco* already started by another device */
+  // cras_sco* already started by another device
   cras_sco_running_return_val = 1;
   iodev->configure_dev(iodev);
 

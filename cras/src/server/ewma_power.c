@@ -7,7 +7,7 @@
 
 #include <math.h>
 
-/* One sample per 1ms. */
+// One sample per 1ms.
 #define EWMA_SAMPLE_RATE 1000
 
 /* Smooth factor for EWMA, 1 - expf(-1.0/(rate * 0.01))
@@ -19,66 +19,68 @@
  */
 const static float smooth_factor = 0.095;
 
-void ewma_power_disable(struct ewma_power *ewma)
-{
-	ewma->enabled = 0;
+void ewma_power_disable(struct ewma_power* ewma) {
+  ewma->enabled = 0;
 }
 
-void ewma_power_init(struct ewma_power *ewma, snd_pcm_format_t fmt,
-		     unsigned int rate)
-{
-	ewma->enabled = 1;
-	ewma->fmt = fmt;
-	ewma->power_set = 0;
-	ewma->step_fr = rate / EWMA_SAMPLE_RATE;
+void ewma_power_init(struct ewma_power* ewma,
+                     snd_pcm_format_t fmt,
+                     unsigned int rate) {
+  ewma->enabled = 1;
+  ewma->fmt = fmt;
+  ewma->power_set = 0;
+  ewma->step_fr = rate / EWMA_SAMPLE_RATE;
 }
 
-void ewma_power_calculate(struct ewma_power *ewma, const int16_t *buf,
-			  unsigned int channels, unsigned int size)
-{
-	int i, ch;
-	float power, f;
+void ewma_power_calculate(struct ewma_power* ewma,
+                          const int16_t* buf,
+                          unsigned int channels,
+                          unsigned int size) {
+  int i, ch;
+  float power, f;
 
-	if (!ewma->enabled || (ewma->fmt != SND_PCM_FORMAT_S16_LE))
-		return;
-	for (i = 0; i < size; i += ewma->step_fr * channels) {
-		power = 0.0f;
-		for (ch = 0; ch < channels; ch++) {
-			f = buf[i + ch] / 32768.0f;
-			power += f * f / channels;
-		}
-		if (!ewma->power_set) {
-			ewma->power = power;
-			ewma->power_set = 1;
-		} else {
-			ewma->power = smooth_factor * power +
-				      (1 - smooth_factor) * ewma->power;
-		}
-	}
+  if (!ewma->enabled || (ewma->fmt != SND_PCM_FORMAT_S16_LE)) {
+    return;
+  }
+  for (i = 0; i < size; i += ewma->step_fr * channels) {
+    power = 0.0f;
+    for (ch = 0; ch < channels; ch++) {
+      f = buf[i + ch] / 32768.0f;
+      power += f * f / channels;
+    }
+    if (!ewma->power_set) {
+      ewma->power = power;
+      ewma->power_set = 1;
+    } else {
+      ewma->power = smooth_factor * power + (1 - smooth_factor) * ewma->power;
+    }
+  }
 }
 
-void ewma_power_calculate_area(struct ewma_power *ewma, const int16_t *buf,
-			       struct cras_audio_area *area, unsigned int size)
-{
-	int i, ch;
-	float power, f;
+void ewma_power_calculate_area(struct ewma_power* ewma,
+                               const int16_t* buf,
+                               struct cras_audio_area* area,
+                               unsigned int size) {
+  int i, ch;
+  float power, f;
 
-	if (!ewma->enabled)
-		return;
-	for (i = 0; i < size; i += ewma->step_fr * area->num_channels) {
-		power = 0.0f;
-		for (ch = 0; ch < area->num_channels; ch++) {
-			if (area->channels[ch].ch_set == 0)
-				continue;
-			f = buf[i + ch] / 32768.0f;
-			power += f * f / area->num_channels;
-		}
-		if (!ewma->power_set) {
-			ewma->power = power;
-			ewma->power_set = 1;
-		} else {
-			ewma->power = smooth_factor * power +
-				      (1 - smooth_factor) * ewma->power;
-		}
-	}
+  if (!ewma->enabled) {
+    return;
+  }
+  for (i = 0; i < size; i += ewma->step_fr * area->num_channels) {
+    power = 0.0f;
+    for (ch = 0; ch < area->num_channels; ch++) {
+      if (area->channels[ch].ch_set == 0) {
+        continue;
+      }
+      f = buf[i + ch] / 32768.0f;
+      power += f * f / area->num_channels;
+    }
+    if (!ewma->power_set) {
+      ewma->power = power;
+      ewma->power_set = 1;
+    } else {
+      ewma->power = smooth_factor * power + (1 - smooth_factor) * ewma->power;
+    }
+  }
 }

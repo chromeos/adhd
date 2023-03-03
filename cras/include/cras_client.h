@@ -75,11 +75,12 @@ struct cras_stream_params;
  *    number if there is a stream-fatal error. Returns EOF when the end of the
  *    stream is reached.
  */
-typedef int (*cras_playback_cb_t)(struct cras_client *client,
-				  cras_stream_id_t stream_id, uint8_t *samples,
-				  size_t frames,
-				  const struct timespec *sample_time,
-				  void *user_arg);
+typedef int (*cras_playback_cb_t)(struct cras_client* client,
+                                  cras_stream_id_t stream_id,
+                                  uint8_t* samples,
+                                  size_t frames,
+                                  const struct timespec* sample_time,
+                                  void* user_arg);
 
 /* Callback for audio received and/or transmitted.
  * Args (All pointer will be valid - except user_arg, that's up to the user):
@@ -96,13 +97,14 @@ typedef int (*cras_playback_cb_t)(struct cras_client *client,
  *    number if there is a stream-fatal error. Returns EOF when the end of the
  *    stream is reached.
  */
-typedef int (*cras_unified_cb_t)(struct cras_client *client,
-				 cras_stream_id_t stream_id,
-				 uint8_t *captured_samples,
-				 uint8_t *playback_samples, unsigned int frames,
-				 const struct timespec *captured_time,
-				 const struct timespec *playback_time,
-				 void *user_arg);
+typedef int (*cras_unified_cb_t)(struct cras_client* client,
+                                 cras_stream_id_t stream_id,
+                                 uint8_t* captured_samples,
+                                 uint8_t* playback_samples,
+                                 unsigned int frames,
+                                 const struct timespec* captured_time,
+                                 const struct timespec* playback_time,
+                                 void* user_arg);
 
 /* Callback for handling stream errors.
  * Args:
@@ -111,27 +113,28 @@ typedef int (*cras_unified_cb_t)(struct cras_client *client,
  *    error - The error code,
  *    user_arg - The argument defined in cras_client_*_params_create().
  */
-typedef int (*cras_error_cb_t)(struct cras_client *client,
-			       cras_stream_id_t stream_id, int error,
-			       void *user_arg);
+typedef int (*cras_error_cb_t)(struct cras_client* client,
+                               cras_stream_id_t stream_id,
+                               int error,
+                               void* user_arg);
 
-/* Server connection status. */
+// Server connection status.
 typedef enum cras_connection_status {
-	CRAS_CONN_STATUS_FAILED,
-	/* Resource allocation problem. Free resources, and retry the
-	 * connection with cras_client_connect_async(), or (blocking)
-	 * cras_client_connect(). Do not call cras_client_connect(),
-	 * cras_client_connect_timeout(), or cras_client_destroy()
-	 * from the callback. */
-	CRAS_CONN_STATUS_DISCONNECTED,
-	/* The control thread is attempting to reconnect to the
-	 * server in the background. Any attempt to access the
-	 * server will fail or block (see
-	 * cras_client_set_server_message_blocking(). */
-	CRAS_CONN_STATUS_CONNECTED,
-	/* Connection is established. All state change callbacks
-	 * have been re-registered, but audio streams must be
-	 * restarted, and node state data must be updated. */
+  CRAS_CONN_STATUS_FAILED,
+  /* Resource allocation problem. Free resources, and retry the
+   * connection with cras_client_connect_async(), or (blocking)
+   * cras_client_connect(). Do not call cras_client_connect(),
+   * cras_client_connect_timeout(), or cras_client_destroy()
+   * from the callback. */
+  CRAS_CONN_STATUS_DISCONNECTED,
+  /* The control thread is attempting to reconnect to the
+   * server in the background. Any attempt to access the
+   * server will fail or block (see
+   * cras_client_set_server_message_blocking(). */
+  CRAS_CONN_STATUS_CONNECTED,
+  /* Connection is established. All state change callbacks
+   * have been re-registered, but audio streams must be
+   * restarted, and node state data must be updated. */
 } cras_connection_status_t;
 
 /* Callback for handling server connection status.
@@ -146,26 +149,27 @@ typedef enum cras_connection_status {
  *    user_arg - The argument defined in
  *               cras_client_set_connection_status_cb().
  */
-typedef void (*cras_connection_status_cb_t)(struct cras_client *client,
-					    cras_connection_status_t status,
-					    void *user_arg);
+typedef void (*cras_connection_status_cb_t)(struct cras_client* client,
+                                            cras_connection_status_t status,
+                                            void* user_arg);
 
-/* Callback for setting thread priority. */
-typedef void (*cras_thread_priority_cb_t)(struct cras_client *client);
+// Callback for setting thread priority.
+typedef void (*cras_thread_priority_cb_t)(struct cras_client* client);
 
-/* Callback for handling get hotword models reply. */
-typedef void (*get_hotword_models_cb_t)(struct cras_client *client,
-					const char *hotword_models);
+// Callback for handling get hotword models reply.
+typedef void (*get_hotword_models_cb_t)(struct cras_client* client,
+                                        const char* hotword_models);
 
-/* Callback to wait for a hotword trigger. */
-typedef void (*cras_hotword_trigger_cb_t)(struct cras_client *client,
-					  struct cras_hotword_handle *handle,
-					  void *user_data);
+// Callback to wait for a hotword trigger.
+typedef void (*cras_hotword_trigger_cb_t)(struct cras_client* client,
+                                          struct cras_hotword_handle* handle,
+                                          void* user_data);
 
-/* Callback for handling hotword errors. */
-typedef int (*cras_hotword_error_cb_t)(struct cras_client *client,
-				       struct cras_hotword_handle *handle,
-				       int error, void *user_data);
+// Callback for handling hotword errors.
+typedef int (*cras_hotword_error_cb_t)(struct cras_client* client,
+                                       struct cras_hotword_handle* handle,
+                                       int error,
+                                       void* user_data);
 
 /*
  * Client handling.
@@ -178,7 +182,7 @@ typedef int (*cras_hotword_error_cb_t)(struct cras_client *client,
  *    0 on success (*client is filled with a valid cras_client pointer).
  *    Negative error code on failure(*client will be NULL).
  */
-int cras_client_create(struct cras_client **client);
+int cras_client_create(struct cras_client** client);
 
 /* Creates a new client with given connection type.
  * Args:
@@ -189,14 +193,14 @@ int cras_client_create(struct cras_client **client);
  *     0 on success (*client is filled with a valid cras_client pointer).
  *     Negative error code on failure(*client will be NULL).
  */
-int cras_client_create_with_type(struct cras_client **client,
-				 enum CRAS_CONNECTION_TYPE conn_type);
+int cras_client_create_with_type(struct cras_client** client,
+                                 enum CRAS_CONNECTION_TYPE conn_type);
 
 /* Destroys a client.
  * Args:
  *    client - returned from "cras_client_create".
  */
-void cras_client_destroy(struct cras_client *client);
+void cras_client_destroy(struct cras_client* client);
 
 /* Connects a client to the running server.
  * Waits forever (until interrupted or connected).
@@ -205,7 +209,7 @@ void cras_client_destroy(struct cras_client *client);
  * Returns:
  *    0 on success, or a negative error code on failure (from errno.h).
  */
-int cras_client_connect(struct cras_client *client);
+int cras_client_connect(struct cras_client* client);
 
 /* Connects a client to the running server, retries until timeout.
  * Args:
@@ -214,8 +218,8 @@ int cras_client_connect(struct cras_client *client);
  * Returns:
  *    0 on success, or a negative error code on failure (from errno.h).
  */
-int cras_client_connect_timeout(struct cras_client *client,
-				unsigned int timeout_ms);
+int cras_client_connect_timeout(struct cras_client* client,
+                                unsigned int timeout_ms);
 
 /* Begins running the client control thread.
  *
@@ -227,7 +231,7 @@ int cras_client_connect_timeout(struct cras_client *client,
  *    0 on success or if the thread is already running, -EINVAL if the client
  *    pointer is NULL, or the negative result of pthread_create().
  */
-int cras_client_run_thread(struct cras_client *client);
+int cras_client_run_thread(struct cras_client* client);
 
 /* Stops running a client.
  * This function is executed automatically by cras_client_destroy().
@@ -237,7 +241,7 @@ int cras_client_run_thread(struct cras_client *client);
  *    0 on success or if the thread was already stopped, -EINVAL if the client
  *    isn't valid.
  */
-int cras_client_stop(struct cras_client *client);
+int cras_client_stop(struct cras_client* client);
 
 /* Wait up to 1 second for the client thread to complete the server connection.
  *
@@ -252,7 +256,7 @@ int cras_client_stop(struct cras_client *client);
  * Returns:
  *    0 on success, or a negative error code on failure (from errno.h).
  */
-int cras_client_connected_wait(struct cras_client *client);
+int cras_client_connected_wait(struct cras_client* client);
 
 /* Ask the client control thread to connect to the audio server.
  *
@@ -268,7 +272,7 @@ int cras_client_connected_wait(struct cras_client *client);
  *    -EINVAL if the client pointer is invalid or the control thread is
  *    not running.
  */
-int cras_client_connect_async(struct cras_client *client);
+int cras_client_connect_async(struct cras_client* client);
 
 /* Sets server connection status callback.
  *
@@ -281,16 +285,17 @@ int cras_client_connect_async(struct cras_client *client);
  *    user_arg - Pointer that will be passed to the callback.
  */
 void cras_client_set_connection_status_cb(
-	struct cras_client *client, cras_connection_status_cb_t connection_cb,
-	void *user_arg);
+    struct cras_client* client,
+    cras_connection_status_cb_t connection_cb,
+    void* user_arg);
 
 /* Sets callback for setting thread priority.
  * Args:
  *    client - The client from cras_client_create.
  *    cb - The thread priority callback.
  */
-void cras_client_set_thread_priority_cb(struct cras_client *client,
-					cras_thread_priority_cb_t cb);
+void cras_client_set_thread_priority_cb(struct cras_client* client,
+                                        cras_thread_priority_cb_t cb);
 
 /* Returns the current list of output devices.
  *
@@ -310,10 +315,11 @@ void cras_client_set_thread_priority_cb(struct cras_client *client,
  *    *num_devs is set to the actual number of devices info filled.
  *    *num_nodes is set to the actual number of nodes info filled.
  */
-int cras_client_get_output_devices(const struct cras_client *client,
-				   struct cras_iodev_info *devs,
-				   struct cras_ionode_info *nodes,
-				   size_t *num_devs, size_t *num_nodes);
+int cras_client_get_output_devices(const struct cras_client* client,
+                                   struct cras_iodev_info* devs,
+                                   struct cras_ionode_info* nodes,
+                                   size_t* num_devs,
+                                   size_t* num_nodes);
 
 /* Returns the current list of input devices.
  *
@@ -333,10 +339,11 @@ int cras_client_get_output_devices(const struct cras_client *client,
  *    *num_devs is set to the actual number of devices info filled.
  *    *num_nodes is set to the actual number of nodes info filled.
  */
-int cras_client_get_input_devices(const struct cras_client *client,
-				  struct cras_iodev_info *devs,
-				  struct cras_ionode_info *nodes,
-				  size_t *num_devs, size_t *num_nodes);
+int cras_client_get_input_devices(const struct cras_client* client,
+                                  struct cras_iodev_info* devs,
+                                  struct cras_ionode_info* nodes,
+                                  size_t* num_devs,
+                                  size_t* num_nodes);
 
 /* Returns the current list of clients attached to the server.
  *
@@ -354,9 +361,9 @@ int cras_client_get_input_devices(const struct cras_client *client,
  *    in, this indicates that all of the clients wouldn't fit in the provided
  *    array.
  */
-int cras_client_get_attached_clients(const struct cras_client *client,
-				     struct cras_attached_client_info *clients,
-				     size_t max_clients);
+int cras_client_get_attached_clients(const struct cras_client* client,
+                                     struct cras_attached_client_info* clients,
+                                     size_t max_clients);
 
 /* Find a node info with the matching node id.
  *
@@ -373,9 +380,10 @@ int cras_client_get_attached_clients(const struct cras_client *client,
  * Returns:
  *    0 if successful, negative on error; -ENOENT if the node cannot be found.
  */
-int cras_client_get_node_by_id(const struct cras_client *client, int input,
-			       const cras_node_id_t node_id,
-			       struct cras_ionode_info *node_info);
+int cras_client_get_node_by_id(const struct cras_client* client,
+                               int input,
+                               const cras_node_id_t node_id,
+                               struct cras_ionode_info* node_info);
 
 /* Checks if the output device with the given name is currently plugged in.
  *
@@ -395,8 +403,8 @@ int cras_client_get_node_by_id(const struct cras_client *client, int input,
  * Returns:
  *    1 if the device exists and is plugged, 0 otherwise.
  */
-int cras_client_output_dev_plugged(const struct cras_client *client,
-				   const char *name);
+int cras_client_output_dev_plugged(const struct cras_client* client,
+                                   const char* name);
 
 /* Set the value of an attribute of an ionode.
  *
@@ -408,9 +416,10 @@ int cras_client_output_dev_plugged(const struct cras_client *client,
  * Returns:
  *    Returns 0 for success, negative on error (from errno.h).
  */
-int cras_client_set_node_attr(struct cras_client *client,
-			      cras_node_id_t node_id, enum ionode_attr attr,
-			      int value);
+int cras_client_set_node_attr(struct cras_client* client,
+                              cras_node_id_t node_id,
+                              enum ionode_attr attr,
+                              int value);
 
 /* Select the preferred node for playback/capture.
  *
@@ -420,9 +429,9 @@ int cras_client_set_node_attr(struct cras_client *client,
  *    node_id - The id of the ionode. If node_id is the special value 0, then
  *        the preference is cleared and cras will choose automatically.
  */
-int cras_client_select_node(struct cras_client *client,
-			    enum CRAS_STREAM_DIRECTION direction,
-			    cras_node_id_t node_id);
+int cras_client_select_node(struct cras_client* client,
+                            enum CRAS_STREAM_DIRECTION direction,
+                            cras_node_id_t node_id);
 
 /* Adds an active node for playback/capture.
  *
@@ -432,9 +441,9 @@ int cras_client_select_node(struct cras_client *client,
  *    node_id - The id of the ionode. If there's no node matching given
  *        id, nothing will happen in CRAS.
  */
-int cras_client_add_active_node(struct cras_client *client,
-				enum CRAS_STREAM_DIRECTION direction,
-				cras_node_id_t node_id);
+int cras_client_add_active_node(struct cras_client* client,
+                                enum CRAS_STREAM_DIRECTION direction,
+                                cras_node_id_t node_id);
 
 /* Removes an active node for playback/capture.
  *
@@ -444,9 +453,9 @@ int cras_client_add_active_node(struct cras_client *client,
  *    node_id - The id of the ionode. If there's no node matching given
  *        id, nothing will happen in CRAS.
  */
-int cras_client_rm_active_node(struct cras_client *client,
-			       enum CRAS_STREAM_DIRECTION direction,
-			       cras_node_id_t node_id);
+int cras_client_rm_active_node(struct cras_client* client,
+                               enum CRAS_STREAM_DIRECTION direction,
+                               cras_node_id_t node_id);
 
 /* Asks the server to reload dsp plugin configuration from the ini file.
  *
@@ -455,7 +464,7 @@ int cras_client_rm_active_node(struct cras_client *client,
  * Returns:
  *    0 on success, -EINVAL if the client isn't valid or isn't running.
  */
-int cras_client_reload_dsp(struct cras_client *client);
+int cras_client_reload_dsp(struct cras_client* client);
 
 /* Asks the server to dump current dsp information to syslog.
  *
@@ -464,7 +473,7 @@ int cras_client_reload_dsp(struct cras_client *client);
  * Returns:
  *    0 on success, -EINVAL if the client isn't valid or isn't running.
  */
-int cras_client_dump_dsp_info(struct cras_client *client);
+int cras_client_dump_dsp_info(struct cras_client* client);
 
 /* Asks the server to dump current audio thread information.
  *
@@ -474,8 +483,8 @@ int cras_client_dump_dsp_info(struct cras_client *client);
  * Returns:
  *    0 on success, -EINVAL if the client isn't valid or isn't running.
  */
-int cras_client_update_audio_debug_info(struct cras_client *client,
-					void (*cb)(struct cras_client *));
+int cras_client_update_audio_debug_info(struct cras_client* client,
+                                        void (*cb)(struct cras_client*));
 
 /* Asks the server to dump current main thread information.
  * Args:
@@ -484,8 +493,8 @@ int cras_client_update_audio_debug_info(struct cras_client *client,
  * Returns:
  *    0 on success, -EINVAL if the client isn't valid or isn't running.
  */
-int cras_client_update_main_thread_debug_info(struct cras_client *client,
-					      void (*cb)(struct cras_client *));
+int cras_client_update_main_thread_debug_info(struct cras_client* client,
+                                              void (*cb)(struct cras_client*));
 
 /* Asks the server to dump bluetooth debug information.
  * Args:
@@ -494,8 +503,8 @@ int cras_client_update_main_thread_debug_info(struct cras_client *client,
  * Returns:
  *    0 on success, -EINVAL if the client isn't valid or isn't running.
  */
-int cras_client_update_bt_debug_info(struct cras_client *client,
-				     void (*cb)(struct cras_client *));
+int cras_client_update_bt_debug_info(struct cras_client* client,
+                                     void (*cb)(struct cras_client*));
 
 /* Gets read-only access to audio thread log. Should be called once before
    calling cras_client_read_atlog.
@@ -505,8 +514,8 @@ int cras_client_update_bt_debug_info(struct cras_client *client,
  * Returns:
  *    0 on success, -EINVAL if the client or atlog_access_cb isn't valid.
  */
-int cras_client_get_atlog_access(struct cras_client *client,
-				 void (*atlog_access_cb)(struct cras_client *));
+int cras_client_get_atlog_access(struct cras_client* client,
+                                 void (*atlog_access_cb)(struct cras_client*));
 
 /* Reads continuous audio thread log into 'buf', starting from 'read_idx'-th log
  * till the latest. The number of missing logs within the range will be stored
@@ -520,9 +529,10 @@ int cras_client_get_atlog_access(struct cras_client *client,
  * Returns:
  *    The number of logs copied. < 0 if failed to read audio thread log.
  */
-int cras_client_read_atlog(struct cras_client *client, uint64_t *read_idx,
-			   uint64_t *missing,
-			   struct audio_thread_event_log *buf);
+int cras_client_read_atlog(struct cras_client* client,
+                           uint64_t* read_idx,
+                           uint64_t* missing,
+                           struct audio_thread_event_log* buf);
 
 /* Asks the server to dump current audio thread snapshots.
  *
@@ -532,8 +542,8 @@ int cras_client_read_atlog(struct cras_client *client, uint64_t *read_idx,
  * Returns:
  *    0 on success, -EINVAL if the client isn't valid or isn't running.
  */
-int cras_client_update_audio_thread_snapshots(struct cras_client *client,
-					      void (*cb)(struct cras_client *));
+int cras_client_update_audio_thread_snapshots(struct cras_client* client,
+                                              void (*cb)(struct cras_client*));
 
 /* Gets the max supported channel count of the output device from node_id.
  * Args:
@@ -544,9 +554,9 @@ int cras_client_update_audio_thread_snapshots(struct cras_client *client,
  * Returns:
  *    0 on success, or negative error code on failure.
  */
-int cras_client_get_max_supported_channels(const struct cras_client *client,
-					   cras_node_id_t node_id,
-					   uint32_t *max_channels);
+int cras_client_get_max_supported_channels(const struct cras_client* client,
+                                           cras_node_id_t node_id,
+                                           uint32_t* max_channels);
 
 /*
  * Stream handling.
@@ -569,11 +579,17 @@ int cras_client_get_max_supported_channels(const struct cras_client *client,
  *    format - The format of the audio stream.  Specifies bits per sample,
  *        number of channels, and sample rate.
  */
-struct cras_stream_params *cras_client_stream_params_create(
-	enum CRAS_STREAM_DIRECTION direction, size_t buffer_frames,
-	size_t cb_threshold, size_t unused, enum CRAS_STREAM_TYPE stream_type,
-	uint32_t flags, void *user_data, cras_playback_cb_t aud_cb,
-	cras_error_cb_t err_cb, struct cras_audio_format *format);
+struct cras_stream_params* cras_client_stream_params_create(
+    enum CRAS_STREAM_DIRECTION direction,
+    size_t buffer_frames,
+    size_t cb_threshold,
+    size_t unused,
+    enum CRAS_STREAM_TYPE stream_type,
+    uint32_t flags,
+    void* user_data,
+    cras_playback_cb_t aud_cb,
+    cras_error_cb_t err_cb,
+    struct cras_audio_format* format);
 
 /* Functions to set the client type on given stream parameter.
  * Args:
@@ -581,32 +597,33 @@ struct cras_stream_params *cras_client_stream_params_create(
  *    client_type - A client type.
  */
 void cras_client_stream_params_set_client_type(
-	struct cras_stream_params *params, enum CRAS_CLIENT_TYPE client_type);
+    struct cras_stream_params* params,
+    enum CRAS_CLIENT_TYPE client_type);
 
 /* Functions to enable or disable specific effect on given stream parameter.
  * Args:
  *    params - Stream configuration parameters.
  */
-void cras_client_stream_params_enable_aec(struct cras_stream_params *params);
-void cras_client_stream_params_disable_aec(struct cras_stream_params *params);
-void cras_client_stream_params_enable_ns(struct cras_stream_params *params);
-void cras_client_stream_params_disable_ns(struct cras_stream_params *params);
-void cras_client_stream_params_enable_agc(struct cras_stream_params *params);
-void cras_client_stream_params_disable_agc(struct cras_stream_params *params);
-void cras_client_stream_params_enable_vad(struct cras_stream_params *params);
-void cras_client_stream_params_disable_vad(struct cras_stream_params *params);
+void cras_client_stream_params_enable_aec(struct cras_stream_params* params);
+void cras_client_stream_params_disable_aec(struct cras_stream_params* params);
+void cras_client_stream_params_enable_ns(struct cras_stream_params* params);
+void cras_client_stream_params_disable_ns(struct cras_stream_params* params);
+void cras_client_stream_params_enable_agc(struct cras_stream_params* params);
+void cras_client_stream_params_disable_agc(struct cras_stream_params* params);
+void cras_client_stream_params_enable_vad(struct cras_stream_params* params);
+void cras_client_stream_params_disable_vad(struct cras_stream_params* params);
 void cras_client_stream_params_allow_aec_on_dsp(
-	struct cras_stream_params *params);
+    struct cras_stream_params* params);
 void cras_client_stream_params_disallow_aec_on_dsp(
-	struct cras_stream_params *params);
+    struct cras_stream_params* params);
 void cras_client_stream_params_allow_ns_on_dsp(
-	struct cras_stream_params *params);
+    struct cras_stream_params* params);
 void cras_client_stream_params_disallow_ns_on_dsp(
-	struct cras_stream_params *params);
+    struct cras_stream_params* params);
 void cras_client_stream_params_allow_agc_on_dsp(
-	struct cras_stream_params *params);
+    struct cras_stream_params* params);
 void cras_client_stream_params_disallow_agc_on_dsp(
-	struct cras_stream_params *params);
+    struct cras_stream_params* params);
 
 /* Setup stream configuration parameters. DEPRECATED.
  * TODO(crbug.com/972928): remove this
@@ -626,14 +643,18 @@ void cras_client_stream_params_disallow_agc_on_dsp(
  *    format - The format of the audio stream.  Specifies bits per sample,
  *        number of channels, and sample rate.
  */
-struct cras_stream_params *cras_client_unified_params_create(
-	enum CRAS_STREAM_DIRECTION direction, unsigned int block_size,
-	enum CRAS_STREAM_TYPE stream_type, uint32_t flags, void *user_data,
-	cras_unified_cb_t unified_cb, cras_error_cb_t err_cb,
-	struct cras_audio_format *format);
+struct cras_stream_params* cras_client_unified_params_create(
+    enum CRAS_STREAM_DIRECTION direction,
+    unsigned int block_size,
+    enum CRAS_STREAM_TYPE stream_type,
+    uint32_t flags,
+    void* user_data,
+    cras_unified_cb_t unified_cb,
+    cras_error_cb_t err_cb,
+    struct cras_audio_format* format);
 
-/* Destroy stream params created with cras_client_stream_params_create. */
-void cras_client_stream_params_destroy(struct cras_stream_params *params);
+// Destroy stream params created with cras_client_stream_params_create.
+void cras_client_stream_params_destroy(struct cras_stream_params* params);
 
 /* Creates a new stream and return the stream id or < 0 on error.
  *
@@ -649,9 +670,9 @@ void cras_client_stream_params_destroy(struct cras_stream_params *params);
  * Returns:
  *    0 on success, negative error code on failure (from errno.h).
  */
-int cras_client_add_stream(struct cras_client *client,
-			   cras_stream_id_t *stream_id_out,
-			   struct cras_stream_params *config);
+int cras_client_add_stream(struct cras_client* client,
+                           cras_stream_id_t* stream_id_out,
+                           struct cras_stream_params* config);
 
 /* Creates a pinned stream and return the stream id or < 0 on error.
  *
@@ -668,9 +689,10 @@ int cras_client_add_stream(struct cras_client *client,
  * Returns:
  *    0 on success, negative error code on failure (from errno.h).
  */
-int cras_client_add_pinned_stream(struct cras_client *client, uint32_t dev_idx,
-				  cras_stream_id_t *stream_id_out,
-				  struct cras_stream_params *config);
+int cras_client_add_pinned_stream(struct cras_client* client,
+                                  uint32_t dev_idx,
+                                  cras_stream_id_t* stream_id_out,
+                                  struct cras_stream_params* config);
 
 /* Removes a currently playing/capturing stream.
  *
@@ -683,8 +705,8 @@ int cras_client_add_pinned_stream(struct cras_client *client, uint32_t dev_idx,
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
-int cras_client_rm_stream(struct cras_client *client,
-			  cras_stream_id_t stream_id);
+int cras_client_rm_stream(struct cras_client* client,
+                          cras_stream_id_t stream_id);
 
 /* Sets the volume scaling factor for the given stream.
  *
@@ -695,9 +717,9 @@ int cras_client_rm_stream(struct cras_client *client,
  *    stream_id - ID returned from cras_client_add_stream.
  *    volume_scaler - 0.0-1.0 the new value to scale this stream by.
  */
-int cras_client_set_stream_volume(struct cras_client *client,
-				  cras_stream_id_t stream_id,
-				  float volume_scaler);
+int cras_client_set_stream_volume(struct cras_client* client,
+                                  cras_stream_id_t stream_id,
+                                  float volume_scaler);
 
 /* Sets an output device to be the echo reference of an input stream.
  * The output device is specified by the index. Before this call,
@@ -726,8 +748,9 @@ int cras_client_set_stream_volume(struct cras_client *client,
  * Returns:
  *    0 on success, negative error code on failure.
  */
-int cras_client_set_aec_ref(struct cras_client *client,
-			    cras_stream_id_t stream_id, uint32_t dev_idx);
+int cras_client_set_aec_ref(struct cras_client* client,
+                            cras_stream_id_t stream_id,
+                            uint32_t dev_idx);
 /*
  * System level functions.
  */
@@ -744,7 +767,7 @@ int cras_client_set_aec_ref(struct cras_client *client,
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
  *    -EINVAL if 'client' is invalid.
  */
-int cras_client_set_system_volume(struct cras_client *client, size_t volume);
+int cras_client_set_system_volume(struct cras_client* client, size_t volume);
 
 /* Sets the mute state of the system.
  *
@@ -755,7 +778,7 @@ int cras_client_set_system_volume(struct cras_client *client, size_t volume);
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
  *    -EINVAL if 'client' is invalid.
  */
-int cras_client_set_system_mute(struct cras_client *client, int mute);
+int cras_client_set_system_mute(struct cras_client* client, int mute);
 
 /* Sets the user mute state of the system.
  *
@@ -768,7 +791,7 @@ int cras_client_set_system_mute(struct cras_client *client, int mute);
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
  *    -EINVAL if 'client' is invalid.
  */
-int cras_client_set_user_mute(struct cras_client *client, int mute);
+int cras_client_set_user_mute(struct cras_client* client, int mute);
 
 /* Sets the mute locked state of the system.
  *
@@ -781,7 +804,7 @@ int cras_client_set_user_mute(struct cras_client *client, int mute);
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
  *    -EINVAL if 'client' is invalid.
  */
-int cras_client_set_system_mute_locked(struct cras_client *client, int locked);
+int cras_client_set_system_mute_locked(struct cras_client* client, int locked);
 
 /* Sets the capture mute state of the system.
  *
@@ -794,7 +817,7 @@ int cras_client_set_system_mute_locked(struct cras_client *client, int locked);
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
  *    -EINVAL if 'client' is invalid.
  */
-int cras_client_set_system_capture_mute(struct cras_client *client, int mute);
+int cras_client_set_system_capture_mute(struct cras_client* client, int mute);
 
 /* Sets the capture mute locked state of the system.
  *
@@ -807,8 +830,8 @@ int cras_client_set_system_capture_mute(struct cras_client *client, int mute);
  *    0 for success, -EPIPE if there is an I/O error talking to the server, or
  *    -EINVAL if 'client' is invalid.
  */
-int cras_client_set_system_capture_mute_locked(struct cras_client *client,
-					       int locked);
+int cras_client_set_system_capture_mute_locked(struct cras_client* client,
+                                               int locked);
 
 /* Gets the current system volume.
  *
@@ -819,7 +842,7 @@ int cras_client_set_system_capture_mute_locked(struct cras_client *client,
  * Returns:
  *    The current system volume between 0 and 100.
  */
-size_t cras_client_get_system_volume(const struct cras_client *client);
+size_t cras_client_get_system_volume(const struct cras_client* client);
 
 /* Gets the current system mute state.
  *
@@ -830,7 +853,7 @@ size_t cras_client_get_system_volume(const struct cras_client *client);
  * Returns:
  *    0 if not muted, 1 if it is.
  */
-int cras_client_get_system_muted(const struct cras_client *client);
+int cras_client_get_system_muted(const struct cras_client* client);
 
 /* Gets the current user mute state.
  *
@@ -841,7 +864,7 @@ int cras_client_get_system_muted(const struct cras_client *client);
  * Returns:
  *    0 if not muted, 1 if it is.
  */
-int cras_client_get_user_muted(const struct cras_client *client);
+int cras_client_get_user_muted(const struct cras_client* client);
 
 /* Gets the current system capture mute state.
  *
@@ -852,7 +875,7 @@ int cras_client_get_user_muted(const struct cras_client *client);
  * Returns:
  *    0 if capture is not muted, 1 if it is.
  */
-int cras_client_get_system_capture_muted(const struct cras_client *client);
+int cras_client_get_system_capture_muted(const struct cras_client* client);
 
 /* Gets the current minimum system volume.
  * Args:
@@ -861,7 +884,7 @@ int cras_client_get_system_capture_muted(const struct cras_client *client);
  *    The minimum value for the current output device in dBFS * 100.  This is
  *    the level of attenuation at volume == 1.
  */
-long cras_client_get_system_min_volume(const struct cras_client *client);
+long cras_client_get_system_min_volume(const struct cras_client* client);
 
 /* Gets the current maximum system volume.
  * Args:
@@ -870,7 +893,7 @@ long cras_client_get_system_min_volume(const struct cras_client *client);
  *    The maximum value for the current output device in dBFS * 100.  This is
  *    the level of attenuation at volume == 100.
  */
-long cras_client_get_system_max_volume(const struct cras_client *client);
+long cras_client_get_system_max_volume(const struct cras_client* client);
 
 /* Gets the default output buffer size.
  * Args:
@@ -878,7 +901,7 @@ long cras_client_get_system_max_volume(const struct cras_client *client);
  * Returns:
  *    Default output buffer size in frames. A negative error on failure.
  */
-int cras_client_get_default_output_buffer_size(struct cras_client *client);
+int cras_client_get_default_output_buffer_size(struct cras_client* client);
 
 /* Gets audio debug info.
  *
@@ -891,8 +914,8 @@ int cras_client_get_default_output_buffer_size(struct cras_client *client);
  *    A pointer to the debug info.  This info is only updated when requested by
  *    calling cras_client_update_audio_debug_info.
  */
-const struct audio_debug_info *
-cras_client_get_audio_debug_info(const struct cras_client *client);
+const struct audio_debug_info* cras_client_get_audio_debug_info(
+    const struct cras_client* client);
 
 /* Gets bluetooth debug info.
  *
@@ -904,8 +927,8 @@ cras_client_get_audio_debug_info(const struct cras_client *client);
  *    A pointer to the debug info. This info is updated and requested by
  *    calling cras_client_update_bt_debug_info.
  */
-const struct cras_bt_debug_info *
-cras_client_get_bt_debug_info(const struct cras_client *client);
+const struct cras_bt_debug_info* cras_client_get_bt_debug_info(
+    const struct cras_client* client);
 
 /* Gets main thread debug info.
  * Args:
@@ -914,8 +937,8 @@ cras_client_get_bt_debug_info(const struct cras_client *client);
  *    A pointer to the debug info. This info is updated and requested by
  *    calling cras_client_update_main_thread_debug_info.
  */
-const struct main_thread_debug_info *
-cras_client_get_main_thread_debug_info(const struct cras_client *client);
+const struct main_thread_debug_info* cras_client_get_main_thread_debug_info(
+    const struct cras_client* client);
 
 /* Gets audio thread snapshot buffer.
  *
@@ -928,8 +951,8 @@ cras_client_get_main_thread_debug_info(const struct cras_client *client);
  *    A pointer to the snapshot buffer.  This info is only updated when
  *    requested by calling cras_client_update_audio_thread_snapshots.
  */
-const struct cras_audio_thread_snapshot_buffer *
-cras_client_get_audio_thread_snapshot_buffer(const struct cras_client *client);
+const struct cras_audio_thread_snapshot_buffer*
+cras_client_get_audio_thread_snapshot_buffer(const struct cras_client* client);
 
 /* Gets the number of streams currently attached to the server.
  *
@@ -946,8 +969,8 @@ cras_client_get_audio_thread_snapshot_buffer(const struct cras_client *client);
  * Returns:
  *    The number of active streams.
  */
-unsigned cras_client_get_num_active_streams(const struct cras_client *client,
-					    struct timespec *ts);
+unsigned cras_client_get_num_active_streams(const struct cras_client* client,
+                                            struct timespec* ts);
 
 /*
  * Utility functions.
@@ -961,7 +984,7 @@ unsigned cras_client_get_num_active_streams(const struct cras_client *client,
  *   Positive number of bytes in a frame, or a negative error code if fmt is
  *   NULL.
  */
-int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt);
+int cras_client_format_bytes_per_frame(struct cras_audio_format* fmt);
 
 /* For playback streams, calculates the latency of the next sample written.
  * Only valid when called from the audio callback function for the stream
@@ -972,8 +995,8 @@ int cras_client_format_bytes_per_frame(struct cras_audio_format *fmt);
  * Returns:
  *    0 on success, -EINVAL if delay is NULL.
  */
-int cras_client_calc_playback_latency(const struct timespec *sample_time,
-				      struct timespec *delay);
+int cras_client_calc_playback_latency(const struct timespec* sample_time,
+                                      struct timespec* delay);
 
 /* For capture returns the latency of the next frame to be read from the buffer
  * (based on when it was captured).  Only valid when called from the audio
@@ -984,8 +1007,8 @@ int cras_client_calc_playback_latency(const struct timespec *sample_time,
  * Returns:
  *    0 on success, -EINVAL if delay is NULL.
  */
-int cras_client_calc_capture_latency(const struct timespec *sample_time,
-				     struct timespec *delay);
+int cras_client_calc_capture_latency(const struct timespec* sample_time,
+                                     struct timespec* delay);
 
 /* Set the volume of the given output node. Only for output nodes.
  *
@@ -994,8 +1017,9 @@ int cras_client_calc_capture_latency(const struct timespec *sample_time,
  *    node_id - ID of the node.
  *    volume - New value for node volume.
  */
-int cras_client_set_node_volume(struct cras_client *client,
-				cras_node_id_t node_id, uint8_t volume);
+int cras_client_set_node_volume(struct cras_client* client,
+                                cras_node_id_t node_id,
+                                uint8_t volume);
 
 /* Swap the left and right channel of the given node.
  *
@@ -1004,8 +1028,9 @@ int cras_client_set_node_volume(struct cras_client *client,
  *    node_id - ID of the node.
  *    enable - 1 to enable swap mode, 0 to disable.
  */
-int cras_client_swap_node_left_right(struct cras_client *client,
-				     cras_node_id_t node_id, int enable);
+int cras_client_swap_node_left_right(struct cras_client* client,
+                                     cras_node_id_t node_id,
+                                     int enable);
 
 /* Set the capture gain of the given input node.  Only for input nodes.
  *
@@ -1018,8 +1043,9 @@ int cras_client_swap_node_left_right(struct cras_client *client,
  *        max_internal_mic_gain from board.ini instead of using the default
  *        value 2000.
  */
-int cras_client_set_node_capture_gain(struct cras_client *client,
-				      cras_node_id_t node_id, long gain);
+int cras_client_set_node_capture_gain(struct cras_client* client,
+                                      cras_node_id_t node_id,
+                                      long gain);
 
 /* Add a test iodev to the iodev list.
  *
@@ -1027,8 +1053,8 @@ int cras_client_set_node_capture_gain(struct cras_client *client,
  *    client - The client from cras_client_create.
  *    type - The type of test iodev, see cras_types.h
  */
-int cras_client_add_test_iodev(struct cras_client *client,
-			       enum TEST_IODEV_TYPE type);
+int cras_client_add_test_iodev(struct cras_client* client,
+                               enum TEST_IODEV_TYPE type);
 
 /* Finds the first node of the given type.
  *
@@ -1044,10 +1070,10 @@ int cras_client_add_test_iodev(struct cras_client *client,
  * Returns:
  *    0 on success, a negative error on failure.
  */
-int cras_client_get_first_node_type_idx(const struct cras_client *client,
-					enum CRAS_NODE_TYPE type,
-					enum CRAS_STREAM_DIRECTION direction,
-					cras_node_id_t *node_id);
+int cras_client_get_first_node_type_idx(const struct cras_client* client,
+                                        enum CRAS_NODE_TYPE type,
+                                        enum CRAS_STREAM_DIRECTION direction,
+                                        cras_node_id_t* node_id);
 
 /* Finds the first device that contains a node of the given type.
  *
@@ -1061,9 +1087,9 @@ int cras_client_get_first_node_type_idx(const struct cras_client *client,
  *    direction - Search input or output devices.
  * Returns the device index of a negative error on failure.
  */
-int cras_client_get_first_dev_type_idx(const struct cras_client *client,
-				       enum CRAS_NODE_TYPE type,
-				       enum CRAS_STREAM_DIRECTION direction);
+int cras_client_get_first_dev_type_idx(const struct cras_client* client,
+                                       enum CRAS_NODE_TYPE type,
+                                       enum CRAS_STREAM_DIRECTION direction);
 
 /* Sets the suspend state of audio playback and capture.
  *
@@ -1073,7 +1099,7 @@ int cras_client_get_first_dev_type_idx(const struct cras_client *client,
  *    client - The client from cras_client_create.
  *    suspend - Suspend the system if non-zero, otherwise resume.
  */
-int cras_client_set_suspend(struct cras_client *client, int suspend);
+int cras_client_set_suspend(struct cras_client* client, int suspend);
 
 /* Gets the set of supported hotword language models on a node. The supported
  * models may differ on different nodes.
@@ -1085,9 +1111,9 @@ int cras_client_set_suspend(struct cras_client *client, int suspend);
  * Returns:
  *    0 on success.
  */
-int cras_client_get_hotword_models(struct cras_client *client,
-				   cras_node_id_t node_id,
-				   get_hotword_models_cb_t cb);
+int cras_client_get_hotword_models(struct cras_client* client,
+                                   cras_node_id_t node_id,
+                                   get_hotword_models_cb_t cb);
 
 /* Sets the hotword language model on a node. If there are existing streams on
  * the hotword input node when this function is called, they need to be closed
@@ -1101,9 +1127,9 @@ int cras_client_get_hotword_models(struct cras_client *client,
  *    -EINVAL if client or node_id is invalid.
  *    -ENOENT if the specified model is not found.
  */
-int cras_client_set_hotword_model(struct cras_client *client,
-				  cras_node_id_t node_id,
-				  const char *model_name);
+int cras_client_set_hotword_model(struct cras_client* client,
+                                  cras_node_id_t node_id,
+                                  const char* model_name);
 
 /*
  * Creates a hotword stream and waits for the hotword to trigger.
@@ -1118,9 +1144,11 @@ int cras_client_set_hotword_model(struct cras_client *client,
  *    0 on success, negative error code on failure (from errno.h).
  */
 int cras_client_enable_hotword_callback(
-	struct cras_client *client, void *user_data,
-	cras_hotword_trigger_cb_t trigger_cb, cras_hotword_error_cb_t err_cb,
-	struct cras_hotword_handle **handle_out);
+    struct cras_client* client,
+    void* user_data,
+    cras_hotword_trigger_cb_t trigger_cb,
+    cras_hotword_error_cb_t err_cb,
+    struct cras_hotword_handle** handle_out);
 
 /*
  * Closes a hotword stream that was created by cras_client_wait_for_hotword.
@@ -1131,8 +1159,8 @@ int cras_client_enable_hotword_callback(
  * Returns:
  *    0 on success negative error code on failure (from errno.h).
  */
-int cras_client_disable_hotword_callback(struct cras_client *client,
-					 struct cras_hotword_handle *handle);
+int cras_client_disable_hotword_callback(struct cras_client* client,
+                                         struct cras_hotword_handle* handle);
 
 /* Starts or stops the aec dump task on server side.
  * Args:
@@ -1141,35 +1169,37 @@ int cras_client_disable_hotword_callback(struct cras_client *client,
  *    start - True to start APM debugging, otherwise to stop it.
  *    fd - File descriptor of the file to store aec dump result.
  */
-int cras_client_set_aec_dump(struct cras_client *client,
-			     cras_stream_id_t stream_id, int start, int fd);
+int cras_client_set_aec_dump(struct cras_client* client,
+                             cras_stream_id_t stream_id,
+                             int start,
+                             int fd);
 /*
  * Reloads the aec.ini config file on server side.
  */
-int cras_client_reload_aec_config(struct cras_client *client);
+int cras_client_reload_aec_config(struct cras_client* client);
 
 /*
  * Returns if AEC is supported.
  */
-int cras_client_get_aec_supported(struct cras_client *client);
+int cras_client_get_aec_supported(struct cras_client* client);
 
 /*
  * Returns the AEC group ID if available.
  */
-int cras_client_get_aec_group_id(struct cras_client *client);
+int cras_client_get_aec_group_id(struct cras_client* client);
 
 /*
  * Sets the flag to enable bluetooth wideband speech in server.
  */
-int cras_client_set_bt_wbs_enabled(struct cras_client *client, bool enabled);
+int cras_client_set_bt_wbs_enabled(struct cras_client* client, bool enabled);
 
 /* Set the context pointer for system state change callbacks.
  * Args:
  *    client - The client from cras_client_create.
  *    context - The context pointer passed to all callbacks.
  */
-void cras_client_set_state_change_callback_context(struct cras_client *client,
-						   void *context);
+void cras_client_set_state_change_callback_context(struct cras_client* client,
+                                                   void* context);
 
 /* Requests the device ID of the flexible loopback of the given client types
  * mask. A floop will be created if it does not already exist, otherwise an
@@ -1177,9 +1207,9 @@ void cras_client_set_state_change_callback_context(struct cras_client *client,
  *
  * See struct cras_floop_params for the meaning of client_types_mask.
  */
-int32_t
-cras_client_get_floop_dev_idx_by_client_types(struct cras_client *client,
-					      int64_t client_types_mask);
+int32_t cras_client_get_floop_dev_idx_by_client_types(
+    struct cras_client* client,
+    int64_t client_types_mask);
 
 /* Output volume change callback.
  *
@@ -1188,8 +1218,8 @@ cras_client_get_floop_dev_idx_by_client_types(struct cras_client *client,
  *              cras_client_set_state_change_callback_context().
  *    volume - The system output volume, ranging from 0 to 100.
  */
-typedef void (*cras_client_output_volume_changed_callback)(void *context,
-							   int32_t volume);
+typedef void (*cras_client_output_volume_changed_callback)(void* context,
+                                                           int32_t volume);
 
 /* Output mute change callback.
  *
@@ -1202,10 +1232,10 @@ typedef void (*cras_client_output_volume_changed_callback)(void *context,
  *    mute_locked - Non-zero when the mute funcion is locked,
  *                  zero otherwise.
  */
-typedef void (*cras_client_output_mute_changed_callback)(void *context,
-							 int muted,
-							 int user_muted,
-							 int mute_locked);
+typedef void (*cras_client_output_mute_changed_callback)(void* context,
+                                                         int muted,
+                                                         int user_muted,
+                                                         int mute_locked);
 
 /* Capture gain change callback.
  *
@@ -1214,8 +1244,8 @@ typedef void (*cras_client_output_mute_changed_callback)(void *context,
  *              cras_client_set_state_change_callback_context().
  *    gain - The system capture gain, in centi-decibels.
  */
-typedef void (*cras_client_capture_gain_changed_callback)(void *context,
-							  int32_t gain);
+typedef void (*cras_client_capture_gain_changed_callback)(void* context,
+                                                          int32_t gain);
 
 /* Capture mute change callback.
  *
@@ -1226,9 +1256,9 @@ typedef void (*cras_client_capture_gain_changed_callback)(void *context,
  *    mute_locked - Non-zero when the mute funcion is locked,
  *                  zero otherwise.
  */
-typedef void (*cras_client_capture_mute_changed_callback)(void *context,
-							  int muted,
-							  int mute_locked);
+typedef void (*cras_client_capture_mute_changed_callback)(void* context,
+                                                          int muted,
+                                                          int mute_locked);
 
 /* Nodes change callback.
  *
@@ -1236,7 +1266,7 @@ typedef void (*cras_client_capture_mute_changed_callback)(void *context,
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
  */
-typedef void (*cras_client_nodes_changed_callback)(void *context);
+typedef void (*cras_client_nodes_changed_callback)(void* context);
 
 /* Active node change callback.
  *
@@ -1249,8 +1279,9 @@ typedef void (*cras_client_nodes_changed_callback)(void *context);
  *              device or node is selected or between selections.
  */
 typedef void (*cras_client_active_node_changed_callback)(
-	void *context, enum CRAS_STREAM_DIRECTION direction,
-	cras_node_id_t node_id);
+    void* context,
+    enum CRAS_STREAM_DIRECTION direction,
+    cras_node_id_t node_id);
 
 /* Output node volume change callback.
  *
@@ -1261,7 +1292,9 @@ typedef void (*cras_client_active_node_changed_callback)(
  *    volume - The volume for this node with range 0 to 100.
  */
 typedef void (*cras_client_output_node_volume_changed_callback)(
-	void *context, cras_node_id_t node_id, int32_t volume);
+    void* context,
+    cras_node_id_t node_id,
+    int32_t volume);
 
 /* Node left right swapped change callback.
  *
@@ -1272,7 +1305,9 @@ typedef void (*cras_client_output_node_volume_changed_callback)(
  *    swapped - Non-zero if the node is left-right swapped, zero otherwise.
  */
 typedef void (*cras_client_node_left_right_swapped_changed_callback)(
-	void *context, cras_node_id_t node_id, int swapped);
+    void* context,
+    cras_node_id_t node_id,
+    int swapped);
 
 /* Input node gain change callback.
  * Args:
@@ -1282,7 +1317,9 @@ typedef void (*cras_client_node_left_right_swapped_changed_callback)(
  *    gain - The gain for this node in centi-decibels.
  */
 typedef void (*cras_client_input_node_gain_changed_callback)(
-	void *context, cras_node_id_t node_id, int32_t gain);
+    void* context,
+    cras_node_id_t node_id,
+    int32_t gain);
 
 /* Number of active streams change callback.
  *
@@ -1293,8 +1330,9 @@ typedef void (*cras_client_input_node_gain_changed_callback)(
  *    num_active_streams - The number of active streams.
  */
 typedef void (*cras_client_num_active_streams_changed_callback)(
-	void *context, enum CRAS_STREAM_DIRECTION direction,
-	uint32_t num_active_streams);
+    void* context,
+    enum CRAS_STREAM_DIRECTION direction,
+    uint32_t num_active_streams);
 
 /* Set system state information callbacks.
  * NOTE: These callbacks are executed from the client control thread.
@@ -1308,34 +1346,35 @@ typedef void (*cras_client_num_active_streams_changed_callback)(
  *    0 for success or negative errno error code on error.
  */
 int cras_client_set_output_volume_changed_callback(
-	struct cras_client *client,
-	cras_client_output_volume_changed_callback cb);
+    struct cras_client* client,
+    cras_client_output_volume_changed_callback cb);
 int cras_client_set_output_mute_changed_callback(
-	struct cras_client *client,
-	cras_client_output_mute_changed_callback cb);
+    struct cras_client* client,
+    cras_client_output_mute_changed_callback cb);
 int cras_client_set_capture_gain_changed_callback(
-	struct cras_client *client,
-	cras_client_capture_gain_changed_callback cb);
+    struct cras_client* client,
+    cras_client_capture_gain_changed_callback cb);
 int cras_client_set_capture_mute_changed_callback(
-	struct cras_client *client,
-	cras_client_capture_mute_changed_callback cb);
+    struct cras_client* client,
+    cras_client_capture_mute_changed_callback cb);
 int cras_client_set_nodes_changed_callback(
-	struct cras_client *client, cras_client_nodes_changed_callback cb);
+    struct cras_client* client,
+    cras_client_nodes_changed_callback cb);
 int cras_client_set_active_node_changed_callback(
-	struct cras_client *client,
-	cras_client_active_node_changed_callback cb);
+    struct cras_client* client,
+    cras_client_active_node_changed_callback cb);
 int cras_client_set_output_node_volume_changed_callback(
-	struct cras_client *client,
-	cras_client_output_node_volume_changed_callback cb);
+    struct cras_client* client,
+    cras_client_output_node_volume_changed_callback cb);
 int cras_client_set_node_left_right_swapped_changed_callback(
-	struct cras_client *client,
-	cras_client_node_left_right_swapped_changed_callback cb);
+    struct cras_client* client,
+    cras_client_node_left_right_swapped_changed_callback cb);
 int cras_client_set_input_node_gain_changed_callback(
-	struct cras_client *client,
-	cras_client_input_node_gain_changed_callback cb);
+    struct cras_client* client,
+    cras_client_input_node_gain_changed_callback cb);
 int cras_client_set_num_active_streams_changed_callback(
-	struct cras_client *client,
-	cras_client_num_active_streams_changed_callback cb);
+    struct cras_client* client,
+    cras_client_num_active_streams_changed_callback cb);
 
 /*
  * The functions below prefixed with libcras wrap the original CRAS library
@@ -1354,10 +1393,10 @@ int cras_client_set_num_active_streams_changed_callback(
  */
 
 #define CRAS_API_VERSION 9
-#define CHECK_VERSION(object, version)                                         \
-	if (object->api_version < version) {                                   \
-		return -ENOSYS;                                                \
-	}
+#define CHECK_VERSION(object, version) \
+  if (object->api_version < version) { \
+    return -ENOSYS;                    \
+  }
 
 /*
  * The inline functions use the indirect function call. Therefore, they are
@@ -1370,97 +1409,104 @@ int cras_client_set_num_active_streams_changed_callback(
 #endif
 
 struct libcras_node_info {
-	int api_version;
-	struct cras_node_info *node_;
-	int (*get_id)(struct cras_node_info *node, uint64_t *id);
-	int (*get_dev_idx)(struct cras_node_info *node, uint32_t *dev_idx);
-	int (*get_node_idx)(struct cras_node_info *node, uint32_t *node_idx);
-	int (*get_max_supported_channels)(struct cras_node_info *node,
-					  uint32_t *max_supported_channels);
-	int (*is_plugged)(struct cras_node_info *node, bool *plugged);
-	int (*is_active)(struct cras_node_info *node, bool *active);
-	int (*get_type)(struct cras_node_info *node, char **name);
-	int (*get_node_name)(struct cras_node_info *node, char **name);
-	int (*get_dev_name)(struct cras_node_info *node, char **name);
+  int api_version;
+  struct cras_node_info* node_;
+  int (*get_id)(struct cras_node_info* node, uint64_t* id);
+  int (*get_dev_idx)(struct cras_node_info* node, uint32_t* dev_idx);
+  int (*get_node_idx)(struct cras_node_info* node, uint32_t* node_idx);
+  int (*get_max_supported_channels)(struct cras_node_info* node,
+                                    uint32_t* max_supported_channels);
+  int (*is_plugged)(struct cras_node_info* node, bool* plugged);
+  int (*is_active)(struct cras_node_info* node, bool* active);
+  int (*get_type)(struct cras_node_info* node, char** name);
+  int (*get_node_name)(struct cras_node_info* node, char** name);
+  int (*get_dev_name)(struct cras_node_info* node, char** name);
 };
 
 struct libcras_client {
-	int api_version;
-	struct cras_client *client_;
-	int (*connect)(struct cras_client *client);
-	int (*connect_timeout)(struct cras_client *client,
-			       unsigned int timeout_ms);
-	int (*connected_wait)(struct cras_client *client);
-	int (*run_thread)(struct cras_client *client);
-	int (*stop)(struct cras_client *client);
-	int (*add_pinned_stream)(struct cras_client *client, uint32_t dev_idx,
-				 cras_stream_id_t *stream_id_out,
-				 struct cras_stream_params *config);
-	int (*rm_stream)(struct cras_client *client,
-			 cras_stream_id_t stream_id);
-	int (*set_stream_volume)(struct cras_client *client,
-				 cras_stream_id_t stream_id,
-				 float volume_scaler);
-	int (*get_nodes)(struct cras_client *client,
-			 enum CRAS_STREAM_DIRECTION direction,
-			 struct libcras_node_info ***nodes, size_t *num);
-	int (*get_default_output_buffer_size)(struct cras_client *client,
-					      int *size);
-	int (*get_aec_group_id)(struct cras_client *client, int *id);
-	int (*get_aec_supported)(struct cras_client *client, int *supported);
-	int (*get_system_muted)(struct cras_client *client, int *muted);
-	int (*set_system_mute)(struct cras_client *client, int mute);
-	int (*get_loopback_dev_idx)(struct cras_client *client, int *idx);
-	int (*set_aec_ref)(struct cras_client *client,
-			   cras_stream_id_t stream_id, uint32_t dev_idx);
-	int (*get_floop_dev_idx_by_client_types)(struct cras_client *client,
-						 int64_t client_types_mask);
-	int (*get_system_capture_muted)(struct cras_client *client, int *muted);
-	int (*set_aec_dump)(struct cras_client *client,
-			    cras_stream_id_t stream_id, int start, int fd);
-	int (*get_agc_supported)(struct cras_client *client, int *supported);
-	int (*get_ns_supported)(struct cras_client *client, int *supported);
+  int api_version;
+  struct cras_client* client_;
+  int (*connect)(struct cras_client* client);
+  int (*connect_timeout)(struct cras_client* client, unsigned int timeout_ms);
+  int (*connected_wait)(struct cras_client* client);
+  int (*run_thread)(struct cras_client* client);
+  int (*stop)(struct cras_client* client);
+  int (*add_pinned_stream)(struct cras_client* client,
+                           uint32_t dev_idx,
+                           cras_stream_id_t* stream_id_out,
+                           struct cras_stream_params* config);
+  int (*rm_stream)(struct cras_client* client, cras_stream_id_t stream_id);
+  int (*set_stream_volume)(struct cras_client* client,
+                           cras_stream_id_t stream_id,
+                           float volume_scaler);
+  int (*get_nodes)(struct cras_client* client,
+                   enum CRAS_STREAM_DIRECTION direction,
+                   struct libcras_node_info*** nodes,
+                   size_t* num);
+  int (*get_default_output_buffer_size)(struct cras_client* client, int* size);
+  int (*get_aec_group_id)(struct cras_client* client, int* id);
+  int (*get_aec_supported)(struct cras_client* client, int* supported);
+  int (*get_system_muted)(struct cras_client* client, int* muted);
+  int (*set_system_mute)(struct cras_client* client, int mute);
+  int (*get_loopback_dev_idx)(struct cras_client* client, int* idx);
+  int (*set_aec_ref)(struct cras_client* client,
+                     cras_stream_id_t stream_id,
+                     uint32_t dev_idx);
+  int (*get_floop_dev_idx_by_client_types)(struct cras_client* client,
+                                           int64_t client_types_mask);
+  int (*get_system_capture_muted)(struct cras_client* client, int* muted);
+  int (*set_aec_dump)(struct cras_client* client,
+                      cras_stream_id_t stream_id,
+                      int start,
+                      int fd);
+  int (*get_agc_supported)(struct cras_client* client, int* supported);
+  int (*get_ns_supported)(struct cras_client* client, int* supported);
 };
 
 struct cras_stream_cb_data;
 struct libcras_stream_cb_data {
-	int api_version;
-	struct cras_stream_cb_data *data_;
-	int (*get_stream_id)(struct cras_stream_cb_data *data,
-			     cras_stream_id_t *id);
-	int (*get_buf)(struct cras_stream_cb_data *data, uint8_t **buf);
-	int (*get_frames)(struct cras_stream_cb_data *data,
-			  unsigned int *frames);
-	int (*get_latency)(struct cras_stream_cb_data *data,
-			   struct timespec *latency);
-	int (*get_user_arg)(struct cras_stream_cb_data *data, void **user_arg);
-	int (*get_overrun_frames)(struct cras_stream_cb_data *data,
-				  unsigned int *frames);
-	int (*get_dropped_samples_duration)(struct cras_stream_cb_data *data,
-					    struct timespec *duration);
-	int (*get_underrun_duration)(struct cras_stream_cb_data *data,
-				     struct timespec *duration);
+  int api_version;
+  struct cras_stream_cb_data* data_;
+  int (*get_stream_id)(struct cras_stream_cb_data* data, cras_stream_id_t* id);
+  int (*get_buf)(struct cras_stream_cb_data* data, uint8_t** buf);
+  int (*get_frames)(struct cras_stream_cb_data* data, unsigned int* frames);
+  int (*get_latency)(struct cras_stream_cb_data* data,
+                     struct timespec* latency);
+  int (*get_user_arg)(struct cras_stream_cb_data* data, void** user_arg);
+  int (*get_overrun_frames)(struct cras_stream_cb_data* data,
+                            unsigned int* frames);
+  int (*get_dropped_samples_duration)(struct cras_stream_cb_data* data,
+                                      struct timespec* duration);
+  int (*get_underrun_duration)(struct cras_stream_cb_data* data,
+                               struct timespec* duration);
 };
-typedef int (*libcras_stream_cb_t)(struct libcras_stream_cb_data *data);
+typedef int (*libcras_stream_cb_t)(struct libcras_stream_cb_data* data);
 
 struct libcras_stream_params {
-	int api_version;
-	struct cras_stream_params *params_;
-	int (*set)(struct cras_stream_params *params,
-		   enum CRAS_STREAM_DIRECTION direction, size_t buffer_frames,
-		   size_t cb_threshold, enum CRAS_STREAM_TYPE stream_type,
-		   enum CRAS_CLIENT_TYPE client_type, uint32_t flags,
-		   void *user_data, libcras_stream_cb_t stream_cb,
-		   cras_error_cb_t err_cb, size_t rate, snd_pcm_format_t format,
-		   size_t num_channels);
-	int (*set_channel_layout)(struct cras_stream_params *params, int length,
-				  const int8_t *layout);
-	void (*enable_aec)(struct cras_stream_params *params);
-	void (*enable_ns)(struct cras_stream_params *params);
-	void (*enable_agc)(struct cras_stream_params *params);
-	void (*allow_aec_on_dsp)(struct cras_stream_params *params);
-	void (*allow_ns_on_dsp)(struct cras_stream_params *params);
-	void (*allow_agc_on_dsp)(struct cras_stream_params *params);
+  int api_version;
+  struct cras_stream_params* params_;
+  int (*set)(struct cras_stream_params* params,
+             enum CRAS_STREAM_DIRECTION direction,
+             size_t buffer_frames,
+             size_t cb_threshold,
+             enum CRAS_STREAM_TYPE stream_type,
+             enum CRAS_CLIENT_TYPE client_type,
+             uint32_t flags,
+             void* user_data,
+             libcras_stream_cb_t stream_cb,
+             cras_error_cb_t err_cb,
+             size_t rate,
+             snd_pcm_format_t format,
+             size_t num_channels);
+  int (*set_channel_layout)(struct cras_stream_params* params,
+                            int length,
+                            const int8_t* layout);
+  void (*enable_aec)(struct cras_stream_params* params);
+  void (*enable_ns)(struct cras_stream_params* params);
+  void (*enable_agc)(struct cras_stream_params* params);
+  void (*allow_aec_on_dsp)(struct cras_stream_params* params);
+  void (*allow_ns_on_dsp)(struct cras_stream_params* params);
+  void (*allow_agc_on_dsp)(struct cras_stream_params* params);
 };
 
 /*
@@ -1469,14 +1515,14 @@ struct libcras_stream_params {
  *    If success, return a valid libcras_client pointer. Otherwise, return
  *    NULL.
  */
-struct libcras_client *libcras_client_create();
+struct libcras_client* libcras_client_create();
 
 /*
  * Destroys a client.
  * Args:
  *    client - pointer returned from "libcras_client_create".
  */
-void libcras_client_destroy(struct libcras_client *client);
+void libcras_client_destroy(struct libcras_client* client);
 
 /*
  * Connects a client to the running server.
@@ -1487,9 +1533,8 @@ void libcras_client_destroy(struct libcras_client *client);
  *    0 on success, or a negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_connect(struct libcras_client *client)
-{
-	return client->connect(client->client_);
+inline int libcras_client_connect(struct libcras_client* client) {
+  return client->connect(client->client_);
 }
 
 /*
@@ -1501,10 +1546,9 @@ inline int libcras_client_connect(struct libcras_client *client)
  *    0 on success, or a negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_connect_timeout(struct libcras_client *client,
-					  unsigned int timeout_ms)
-{
-	return client->connect_timeout(client->client_, timeout_ms);
+inline int libcras_client_connect_timeout(struct libcras_client* client,
+                                          unsigned int timeout_ms) {
+  return client->connect_timeout(client->client_, timeout_ms);
 }
 
 /*
@@ -1523,9 +1567,8 @@ inline int libcras_client_connect_timeout(struct libcras_client *client,
  *    0 on success, or a negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_connected_wait(struct libcras_client *client)
-{
-	return client->connected_wait(client->client_);
+inline int libcras_client_connected_wait(struct libcras_client* client) {
+  return client->connected_wait(client->client_);
 }
 
 /*
@@ -1539,9 +1582,8 @@ inline int libcras_client_connected_wait(struct libcras_client *client)
  *    0 on success, or a negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_run_thread(struct libcras_client *client)
-{
-	return client->run_thread(client->client_);
+inline int libcras_client_run_thread(struct libcras_client* client) {
+  return client->run_thread(client->client_);
 }
 
 /*
@@ -1554,9 +1596,8 @@ inline int libcras_client_run_thread(struct libcras_client *client)
  *    isn't valid.
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_stop(struct libcras_client *client)
-{
-	return client->stop(client->client_);
+inline int libcras_client_stop(struct libcras_client* client) {
+  return client->stop(client->client_);
 }
 
 /*
@@ -1577,11 +1618,12 @@ inline int libcras_client_stop(struct libcras_client *client)
  */
 DISABLE_CFI_ICALL
 inline int libcras_client_add_pinned_stream(
-	struct libcras_client *client, uint32_t dev_idx,
-	cras_stream_id_t *stream_id_out, struct libcras_stream_params *params)
-{
-	return client->add_pinned_stream(client->client_, dev_idx,
-					 stream_id_out, params->params_);
+    struct libcras_client* client,
+    uint32_t dev_idx,
+    cras_stream_id_t* stream_id_out,
+    struct libcras_stream_params* params) {
+  return client->add_pinned_stream(client->client_, dev_idx, stream_id_out,
+                                   params->params_);
 }
 
 /*
@@ -1597,10 +1639,9 @@ inline int libcras_client_add_pinned_stream(
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_rm_stream(struct libcras_client *client,
-				    cras_stream_id_t stream_id)
-{
-	return client->rm_stream(client->client_, stream_id);
+inline int libcras_client_rm_stream(struct libcras_client* client,
+                                    cras_stream_id_t stream_id) {
+  return client->rm_stream(client->client_, stream_id);
 }
 
 /* Sets an output device to be the echo reference of an input stream.
@@ -1619,12 +1660,11 @@ inline int libcras_client_rm_stream(struct libcras_client *client,
  *    0 on success, negative error code on failure.
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_set_aec_ref(struct libcras_client *client,
-				      cras_stream_id_t stream_id,
-				      uint32_t dev_idx)
-{
-	CHECK_VERSION(client, 3);
-	return client->set_aec_ref(client->client_, stream_id, dev_idx);
+inline int libcras_client_set_aec_ref(struct libcras_client* client,
+                                      cras_stream_id_t stream_id,
+                                      uint32_t dev_idx) {
+  CHECK_VERSION(client, 3);
+  return client->set_aec_ref(client->client_, stream_id, dev_idx);
 }
 
 /*
@@ -1640,12 +1680,10 @@ inline int libcras_client_set_aec_ref(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_set_stream_volume(struct libcras_client *client,
-					    cras_stream_id_t stream_id,
-					    float volume_scaler)
-{
-	return client->set_stream_volume(client->client_, stream_id,
-					 volume_scaler);
+inline int libcras_client_set_stream_volume(struct libcras_client* client,
+                                            cras_stream_id_t stream_id,
+                                            float volume_scaler) {
+  return client->set_stream_volume(client->client_, stream_id, volume_scaler);
 }
 
 /*
@@ -1661,12 +1699,11 @@ inline int libcras_client_set_stream_volume(struct libcras_client *client,
  *    Remember to call libcras_node_info_array_destroy to free the array.
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_get_nodes(struct libcras_client *client,
-				    enum CRAS_STREAM_DIRECTION direction,
-				    struct libcras_node_info ***nodes,
-				    size_t *num)
-{
-	return client->get_nodes(client->client_, direction, nodes, num);
+inline int libcras_client_get_nodes(struct libcras_client* client,
+                                    enum CRAS_STREAM_DIRECTION direction,
+                                    struct libcras_node_info*** nodes,
+                                    size_t* num) {
+  return client->get_nodes(client->client_, direction, nodes, num);
 }
 
 /*
@@ -1678,11 +1715,10 @@ inline int libcras_client_get_nodes(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_client_get_default_output_buffer_size(struct libcras_client *client,
-					      int *size)
-{
-	return client->get_default_output_buffer_size(client->client_, size);
+inline int libcras_client_get_default_output_buffer_size(
+    struct libcras_client* client,
+    int* size) {
+  return client->get_default_output_buffer_size(client->client_, size);
 }
 
 /*
@@ -1694,10 +1730,9 @@ libcras_client_get_default_output_buffer_size(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_get_aec_group_id(struct libcras_client *client,
-					   int *id)
-{
-	return client->get_aec_group_id(client->client_, id);
+inline int libcras_client_get_aec_group_id(struct libcras_client* client,
+                                           int* id) {
+  return client->get_aec_group_id(client->client_, id);
 }
 
 /*
@@ -1709,11 +1744,10 @@ inline int libcras_client_get_aec_group_id(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_get_agc_supported(struct libcras_client *client,
-					    int *supported)
-{
-	CHECK_VERSION(client, 7);
-	return client->get_agc_supported(client->client_, supported);
+inline int libcras_client_get_agc_supported(struct libcras_client* client,
+                                            int* supported) {
+  CHECK_VERSION(client, 7);
+  return client->get_agc_supported(client->client_, supported);
 }
 
 /*
@@ -1725,11 +1759,10 @@ inline int libcras_client_get_agc_supported(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_get_ns_supported(struct libcras_client *client,
-					   int *supported)
-{
-	CHECK_VERSION(client, 7);
-	return client->get_ns_supported(client->client_, supported);
+inline int libcras_client_get_ns_supported(struct libcras_client* client,
+                                           int* supported) {
+  CHECK_VERSION(client, 7);
+  return client->get_ns_supported(client->client_, supported);
 }
 
 /*
@@ -1741,10 +1774,9 @@ inline int libcras_client_get_ns_supported(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_get_aec_supported(struct libcras_client *client,
-					    int *supported)
-{
-	return client->get_aec_supported(client->client_, supported);
+inline int libcras_client_get_aec_supported(struct libcras_client* client,
+                                            int* supported) {
+  return client->get_aec_supported(client->client_, supported);
 }
 
 /*
@@ -1756,10 +1788,9 @@ inline int libcras_client_get_aec_supported(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_get_system_muted(struct libcras_client *client,
-					   int *muted)
-{
-	return client->get_system_muted(client->client_, muted);
+inline int libcras_client_get_system_muted(struct libcras_client* client,
+                                           int* muted) {
+  return client->get_system_muted(client->client_, muted);
 }
 
 /*
@@ -1771,12 +1802,11 @@ inline int libcras_client_get_system_muted(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_client_get_system_capture_muted(struct libcras_client *client,
-					int *muted)
-{
-	CHECK_VERSION(client, 5);
-	return client->get_system_capture_muted(client->client_, muted);
+inline int libcras_client_get_system_capture_muted(
+    struct libcras_client* client,
+    int* muted) {
+  CHECK_VERSION(client, 5);
+  return client->get_system_capture_muted(client->client_, muted);
 }
 
 /*
@@ -1790,12 +1820,12 @@ libcras_client_get_system_capture_muted(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_set_aec_dump(struct libcras_client *client,
-				       cras_stream_id_t stream_id, int start,
-				       int fd)
-{
-	CHECK_VERSION(client, 6);
-	return client->set_aec_dump(client->client_, stream_id, start, fd);
+inline int libcras_client_set_aec_dump(struct libcras_client* client,
+                                       cras_stream_id_t stream_id,
+                                       int start,
+                                       int fd) {
+  CHECK_VERSION(client, 6);
+  return client->set_aec_dump(client->client_, stream_id, start, fd);
 }
 
 /*
@@ -1807,10 +1837,9 @@ inline int libcras_client_set_aec_dump(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_set_system_mute(struct libcras_client *client,
-					  int mute)
-{
-	return client->set_system_mute(client->client_, mute);
+inline int libcras_client_set_system_mute(struct libcras_client* client,
+                                          int mute) {
+  return client->set_system_mute(client->client_, mute);
 }
 
 /*
@@ -1822,10 +1851,9 @@ inline int libcras_client_set_system_mute(struct libcras_client *client,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_client_get_loopback_dev_idx(struct libcras_client *client,
-					       int *idx)
-{
-	return client->get_loopback_dev_idx(client->client_, idx);
+inline int libcras_client_get_loopback_dev_idx(struct libcras_client* client,
+                                               int* idx) {
+  return client->get_loopback_dev_idx(client->client_, idx);
 }
 
 /*
@@ -1839,13 +1867,12 @@ inline int libcras_client_get_loopback_dev_idx(struct libcras_client *client,
  *    negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_client_get_floop_dev_idx_by_client_types(struct libcras_client *client,
-						 int64_t client_types_mask)
-{
-	CHECK_VERSION(client, 4);
-	return client->get_floop_dev_idx_by_client_types(client->client_,
-							 client_types_mask);
+inline int libcras_client_get_floop_dev_idx_by_client_types(
+    struct libcras_client* client,
+    int64_t client_types_mask) {
+  CHECK_VERSION(client, 4);
+  return client->get_floop_dev_idx_by_client_types(client->client_,
+                                                   client_types_mask);
 }
 
 /*
@@ -1854,14 +1881,14 @@ libcras_client_get_floop_dev_idx_by_client_types(struct libcras_client *client,
  *    If success, return a valid libcras_stream_params pointer. Otherwise,
  *    return NULL.
  */
-struct libcras_stream_params *libcras_stream_params_create();
+struct libcras_stream_params* libcras_stream_params_create();
 
 /*
  * Destroys a stream params instance.
  * Args:
  *    params - The pointer returned from libcras_stream_params_create.
  */
-void libcras_stream_params_destroy(struct libcras_stream_params *params);
+void libcras_stream_params_destroy(struct libcras_stream_params* params);
 
 /*
  * Setup stream configuration parameters.
@@ -1886,18 +1913,22 @@ void libcras_stream_params_destroy(struct libcras_stream_params *params);
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_stream_params_set(
-	struct libcras_stream_params *params,
-	enum CRAS_STREAM_DIRECTION direction, size_t buffer_frames,
-	size_t cb_threshold, enum CRAS_STREAM_TYPE stream_type,
-	enum CRAS_CLIENT_TYPE client_type, uint32_t flags, void *user_data,
-	libcras_stream_cb_t stream_cb, cras_error_cb_t err_cb, size_t rate,
-	snd_pcm_format_t format, size_t num_channels)
-{
-	return params->set(params->params_, direction, buffer_frames,
-			   cb_threshold, stream_type, client_type, flags,
-			   user_data, stream_cb, err_cb, rate, format,
-			   num_channels);
+inline int libcras_stream_params_set(struct libcras_stream_params* params,
+                                     enum CRAS_STREAM_DIRECTION direction,
+                                     size_t buffer_frames,
+                                     size_t cb_threshold,
+                                     enum CRAS_STREAM_TYPE stream_type,
+                                     enum CRAS_CLIENT_TYPE client_type,
+                                     uint32_t flags,
+                                     void* user_data,
+                                     libcras_stream_cb_t stream_cb,
+                                     cras_error_cb_t err_cb,
+                                     size_t rate,
+                                     snd_pcm_format_t format,
+                                     size_t num_channels) {
+  return params->set(params->params_, direction, buffer_frames, cb_threshold,
+                     stream_type, client_type, flags, user_data, stream_cb,
+                     err_cb, rate, format, num_channels);
 }
 
 /*
@@ -1911,38 +1942,35 @@ inline int libcras_stream_params_set(
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_params_set_channel_layout(struct libcras_stream_params *params,
-					 int length, const int8_t *layout)
-{
-	return params->set_channel_layout(params->params_, length, layout);
+inline int libcras_stream_params_set_channel_layout(
+    struct libcras_stream_params* params,
+    int length,
+    const int8_t* layout) {
+  return params->set_channel_layout(params->params_, length, layout);
 }
 
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_params_allow_aec_on_dsp(struct libcras_stream_params *params)
-{
-	CHECK_VERSION(params, 4);
-	params->allow_aec_on_dsp(params->params_);
-	return 0;
+inline int libcras_stream_params_allow_aec_on_dsp(
+    struct libcras_stream_params* params) {
+  CHECK_VERSION(params, 4);
+  params->allow_aec_on_dsp(params->params_);
+  return 0;
 }
 
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_params_allow_ns_on_dsp(struct libcras_stream_params *params)
-{
-	CHECK_VERSION(params, 4);
-	params->allow_ns_on_dsp(params->params_);
-	return 0;
+inline int libcras_stream_params_allow_ns_on_dsp(
+    struct libcras_stream_params* params) {
+  CHECK_VERSION(params, 4);
+  params->allow_ns_on_dsp(params->params_);
+  return 0;
 }
 
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_params_allow_agc_on_dsp(struct libcras_stream_params *params)
-{
-	CHECK_VERSION(params, 4);
-	params->allow_agc_on_dsp(params->params_);
-	return 0;
+inline int libcras_stream_params_allow_agc_on_dsp(
+    struct libcras_stream_params* params) {
+  CHECK_VERSION(params, 4);
+  params->allow_agc_on_dsp(params->params_);
+  return 0;
 }
 
 /*
@@ -1953,11 +1981,10 @@ libcras_stream_params_allow_agc_on_dsp(struct libcras_stream_params *params)
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_params_enable_aec(struct libcras_stream_params *params)
-{
-	params->enable_aec(params->params_);
-	return 0;
+inline int libcras_stream_params_enable_aec(
+    struct libcras_stream_params* params) {
+  params->enable_aec(params->params_);
+  return 0;
 }
 
 /*
@@ -1968,11 +1995,11 @@ libcras_stream_params_enable_aec(struct libcras_stream_params *params)
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_stream_params_enable_ns(struct libcras_stream_params *params)
-{
-	CHECK_VERSION(params, 2);
-	params->enable_ns(params->params_);
-	return 0;
+inline int libcras_stream_params_enable_ns(
+    struct libcras_stream_params* params) {
+  CHECK_VERSION(params, 2);
+  params->enable_ns(params->params_);
+  return 0;
 }
 
 /*
@@ -1983,12 +2010,11 @@ inline int libcras_stream_params_enable_ns(struct libcras_stream_params *params)
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_params_enable_agc(struct libcras_stream_params *params)
-{
-	CHECK_VERSION(params, 2);
-	params->enable_agc(params->params_);
-	return 0;
+inline int libcras_stream_params_enable_agc(
+    struct libcras_stream_params* params) {
+  CHECK_VERSION(params, 2);
+  params->enable_agc(params->params_);
+  return 0;
 }
 
 /*
@@ -2000,11 +2026,10 @@ libcras_stream_params_enable_agc(struct libcras_stream_params *params)
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_cb_data_get_stream_id(struct libcras_stream_cb_data *data,
-				     cras_stream_id_t *id)
-{
-	return data->get_stream_id(data->data_, id);
+inline int libcras_stream_cb_data_get_stream_id(
+    struct libcras_stream_cb_data* data,
+    cras_stream_id_t* id) {
+  return data->get_stream_id(data->data_, id);
 }
 
 /*
@@ -2016,10 +2041,9 @@ libcras_stream_cb_data_get_stream_id(struct libcras_stream_cb_data *data,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_stream_cb_data_get_buf(struct libcras_stream_cb_data *data,
-					  uint8_t **buf)
-{
-	return data->get_buf(data->data_, buf);
+inline int libcras_stream_cb_data_get_buf(struct libcras_stream_cb_data* data,
+                                          uint8_t** buf) {
+  return data->get_buf(data->data_, buf);
 }
 
 /*
@@ -2031,11 +2055,10 @@ inline int libcras_stream_cb_data_get_buf(struct libcras_stream_cb_data *data,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_cb_data_get_frames(struct libcras_stream_cb_data *data,
-				  unsigned int *frames)
-{
-	return data->get_frames(data->data_, frames);
+inline int libcras_stream_cb_data_get_frames(
+    struct libcras_stream_cb_data* data,
+    unsigned int* frames) {
+  return data->get_frames(data->data_, frames);
 }
 
 /*
@@ -2047,11 +2070,10 @@ libcras_stream_cb_data_get_frames(struct libcras_stream_cb_data *data,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_cb_data_get_latency(struct libcras_stream_cb_data *data,
-				   struct timespec *latency)
-{
-	return data->get_latency(data->data_, latency);
+inline int libcras_stream_cb_data_get_latency(
+    struct libcras_stream_cb_data* data,
+    struct timespec* latency) {
+  return data->get_latency(data->data_, latency);
 }
 
 /*
@@ -2063,11 +2085,10 @@ libcras_stream_cb_data_get_latency(struct libcras_stream_cb_data *data,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_cb_data_get_usr_arg(struct libcras_stream_cb_data *data,
-				   void **user_arg)
-{
-	return data->get_user_arg(data->data_, user_arg);
+inline int libcras_stream_cb_data_get_usr_arg(
+    struct libcras_stream_cb_data* data,
+    void** user_arg) {
+  return data->get_user_arg(data->data_, user_arg);
 }
 
 /*
@@ -2079,12 +2100,11 @@ libcras_stream_cb_data_get_usr_arg(struct libcras_stream_cb_data *data,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_stream_cb_data_get_overrun_frames(struct libcras_stream_cb_data *data,
-					  unsigned int *frames)
-{
-	CHECK_VERSION(data, 8);
-	return data->get_overrun_frames(data->data_, frames);
+inline int libcras_stream_cb_data_get_overrun_frames(
+    struct libcras_stream_cb_data* data,
+    unsigned int* frames) {
+  CHECK_VERSION(data, 8);
+  return data->get_overrun_frames(data->data_, frames);
 }
 
 /*
@@ -2097,10 +2117,10 @@ libcras_stream_cb_data_get_overrun_frames(struct libcras_stream_cb_data *data,
  */
 DISABLE_CFI_ICALL
 inline int libcras_stream_cb_data_get_dropped_samples_duration(
-	struct libcras_stream_cb_data *data, struct timespec *duration)
-{
-	CHECK_VERSION(data, 8);
-	return data->get_dropped_samples_duration(data->data_, duration);
+    struct libcras_stream_cb_data* data,
+    struct timespec* duration) {
+  CHECK_VERSION(data, 8);
+  return data->get_dropped_samples_duration(data->data_, duration);
 }
 
 /*
@@ -2113,10 +2133,10 @@ inline int libcras_stream_cb_data_get_dropped_samples_duration(
  */
 DISABLE_CFI_ICALL
 inline int libcras_stream_cb_data_get_underrun_duration(
-	struct libcras_stream_cb_data *data, struct timespec *duration)
-{
-	CHECK_VERSION(data, 9);
-	return data->get_underrun_duration(data->data_, duration);
+    struct libcras_stream_cb_data* data,
+    struct timespec* duration) {
+  CHECK_VERSION(data, 9);
+  return data->get_underrun_duration(data->data_, duration);
 }
 
 /*
@@ -2124,7 +2144,7 @@ inline int libcras_stream_cb_data_get_underrun_duration(
  * Args:
  *    node - The libcras_node_info pointer to destroy.
  */
-void libcras_node_info_destroy(struct libcras_node_info *node);
+void libcras_node_info_destroy(struct libcras_node_info* node);
 
 /*
  * Destroys a node info array.
@@ -2132,8 +2152,8 @@ void libcras_node_info_destroy(struct libcras_node_info *node);
  *    nodes - The libcras_node_info pointer array to destroy.
  *    num - The size of the array.
  */
-void libcras_node_info_array_destroy(struct libcras_node_info **nodes,
-				     size_t num);
+void libcras_node_info_array_destroy(struct libcras_node_info** nodes,
+                                     size_t num);
 
 /*
  * Gets ID from the node info pointer.
@@ -2144,10 +2164,9 @@ void libcras_node_info_array_destroy(struct libcras_node_info **nodes,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_node_info_get_id(struct libcras_node_info *node,
-				    uint64_t *id)
-{
-	return node->get_id(node->node_, id);
+inline int libcras_node_info_get_id(struct libcras_node_info* node,
+                                    uint64_t* id) {
+  return node->get_id(node->node_, id);
 }
 
 /*
@@ -2159,10 +2178,9 @@ inline int libcras_node_info_get_id(struct libcras_node_info *node,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_node_info_get_dev_idx(struct libcras_node_info *node,
-					 uint32_t *dev_idx)
-{
-	return node->get_dev_idx(node->node_, dev_idx);
+inline int libcras_node_info_get_dev_idx(struct libcras_node_info* node,
+                                         uint32_t* dev_idx) {
+  return node->get_dev_idx(node->node_, dev_idx);
 }
 
 /*
@@ -2174,10 +2192,9 @@ inline int libcras_node_info_get_dev_idx(struct libcras_node_info *node,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_node_info_get_node_idx(struct libcras_node_info *node,
-					  uint32_t *node_idx)
-{
-	return node->get_node_idx(node->node_, node_idx);
+inline int libcras_node_info_get_node_idx(struct libcras_node_info* node,
+                                          uint32_t* node_idx) {
+  return node->get_node_idx(node->node_, node_idx);
 }
 
 /*
@@ -2189,12 +2206,10 @@ inline int libcras_node_info_get_node_idx(struct libcras_node_info *node,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int
-libcras_node_info_get_max_supported_channels(struct libcras_node_info *node,
-					     uint32_t *max_supported_channels)
-{
-	return node->get_max_supported_channels(node->node_,
-						max_supported_channels);
+inline int libcras_node_info_get_max_supported_channels(
+    struct libcras_node_info* node,
+    uint32_t* max_supported_channels) {
+  return node->get_max_supported_channels(node->node_, max_supported_channels);
 }
 
 /*
@@ -2206,10 +2221,9 @@ libcras_node_info_get_max_supported_channels(struct libcras_node_info *node,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_node_info_is_plugged(struct libcras_node_info *node,
-					bool *plugged)
-{
-	return node->is_plugged(node->node_, plugged);
+inline int libcras_node_info_is_plugged(struct libcras_node_info* node,
+                                        bool* plugged) {
+  return node->is_plugged(node->node_, plugged);
 }
 
 /*
@@ -2221,10 +2235,9 @@ inline int libcras_node_info_is_plugged(struct libcras_node_info *node,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_node_info_is_active(struct libcras_node_info *node,
-				       bool *active)
-{
-	return node->is_active(node->node_, active);
+inline int libcras_node_info_is_active(struct libcras_node_info* node,
+                                       bool* active) {
+  return node->is_active(node->node_, active);
 }
 
 /*
@@ -2236,10 +2249,9 @@ inline int libcras_node_info_is_active(struct libcras_node_info *node,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_node_info_get_type(struct libcras_node_info *node,
-				      char **type)
-{
-	return node->get_type(node->node_, type);
+inline int libcras_node_info_get_type(struct libcras_node_info* node,
+                                      char** type) {
+  return node->get_type(node->node_, type);
 }
 
 /*
@@ -2251,10 +2263,9 @@ inline int libcras_node_info_get_type(struct libcras_node_info *node,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_node_info_get_node_name(struct libcras_node_info *node,
-					   char **name)
-{
-	return node->get_node_name(node->node_, name);
+inline int libcras_node_info_get_node_name(struct libcras_node_info* node,
+                                           char** name) {
+  return node->get_node_name(node->node_, name);
 }
 
 /*
@@ -2266,14 +2277,13 @@ inline int libcras_node_info_get_node_name(struct libcras_node_info *node,
  *    0 on success negative error code on failure (from errno.h).
  */
 DISABLE_CFI_ICALL
-inline int libcras_node_info_get_dev_name(struct libcras_node_info *node,
-					  char **name)
-{
-	return node->get_dev_name(node->node_, name);
+inline int libcras_node_info_get_dev_name(struct libcras_node_info* node,
+                                          char** name) {
+  return node->get_dev_name(node->node_, name);
 }
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CRAS_INCLUDE_CRAS_CLIENT_H_ */
+#endif  // CRAS_INCLUDE_CRAS_CLIENT_H_

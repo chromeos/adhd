@@ -15,10 +15,10 @@
 #ifndef CRAS_SRC_SERVER_CRAS_HOTWORD_HANDLER_H_
 #define CRAS_SRC_SERVER_CRAS_HOTWORD_HANDLER_H_
 
-/* Send hotword triggered message. */
+// Send hotword triggered message.
 int cras_hotword_send_triggered_msg();
 
-/* Initialize hotword handler. */
+// Initialize hotword handler.
 int cras_hotword_handler_init();
 
-#endif /* CRAS_SRC_SERVER_CRAS_HOTWORD_HANDLER_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_HOTWORD_HANDLER_H_

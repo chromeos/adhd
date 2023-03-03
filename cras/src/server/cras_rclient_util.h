@@ -22,13 +22,14 @@ struct cras_rclient_message;
 struct cras_rstream_config;
 struct cras_server_message;
 
-/* Sends a message to the client. */
-int rclient_send_message_to_client(const struct cras_rclient *client,
-				   const struct cras_client_message *msg,
-				   int *fds, unsigned int num_fds);
+// Sends a message to the client.
+int rclient_send_message_to_client(const struct cras_rclient* client,
+                                   const struct cras_client_message* msg,
+                                   int* fds,
+                                   unsigned int num_fds);
 
-/* Removes all streams that the client owns and destroys it. */
-void rclient_destroy(struct cras_rclient *client);
+// Removes all streams that the client owns and destroys it.
+void rclient_destroy(struct cras_rclient* client);
 
 /* Checks if the number of incoming fds matches the needs of the message from
  * client.
@@ -41,8 +42,9 @@ void rclient_destroy(struct cras_rclient *client);
  * Returns:
  *   0 on success. Or negative value if the number of fds is invalid.
  */
-int rclient_validate_message_fds(const struct cras_server_message *msg,
-				 int *fds, unsigned int num_fds);
+int rclient_validate_message_fds(const struct cras_server_message* msg,
+                                 int* fds,
+                                 unsigned int num_fds);
 
 /* Checks if the incoming stream connect message contains
  * - stream_id matches client->id.
@@ -58,9 +60,10 @@ int rclient_validate_message_fds(const struct cras_server_message *msg,
  *   0 on success, negative error on failure.
  */
 int rclient_validate_stream_connect_params(
-	const struct cras_rclient *client,
-	const struct cras_connect_message *msg, int audio_fd,
-	int client_shm_fd);
+    const struct cras_rclient* client,
+    const struct cras_connect_message* msg,
+    int audio_fd,
+    int client_shm_fd);
 
 /* Handles a message from the client to connect a new stream
  *
@@ -73,9 +76,10 @@ int rclient_validate_stream_connect_params(
  * Returns:
  *   0 on success, negative error on failure.
  */
-int rclient_handle_client_stream_connect(struct cras_rclient *client,
-					 const struct cras_connect_message *msg,
-					 int aud_fd, int client_shm_fd);
+int rclient_handle_client_stream_connect(struct cras_rclient* client,
+                                         const struct cras_connect_message* msg,
+                                         int aud_fd,
+                                         int client_shm_fd);
 
 /* Handles messages from the client requesting that a stream be removed from the
  * server.
@@ -88,8 +92,8 @@ int rclient_handle_client_stream_connect(struct cras_rclient *client,
  *   0 on success, negative error on failure.
  */
 int rclient_handle_client_stream_disconnect(
-	struct cras_rclient *client,
-	const struct cras_disconnect_stream_message *msg);
+    struct cras_rclient* client,
+    const struct cras_disconnect_stream_message* msg);
 
 /* Handles message from the client requesting to set aec ref for a stream.
  * Args:
@@ -100,8 +104,8 @@ int rclient_handle_client_stream_disconnect(
  *   0 on success, negative error on failure.
  */
 int rclient_handle_client_set_aec_ref(
-	struct cras_rclient *client,
-	const struct cras_set_aec_ref_message *msg);
+    struct cras_rclient* client,
+    const struct cras_set_aec_ref_message* msg);
 
 /* Generic rclient create function for different types of rclients.
  * Creates a client structure and sends a message back informing the client
@@ -115,9 +119,10 @@ int rclient_handle_client_set_aec_ref(
  * Returns:
  *    A pointer to the newly created rclient on success, NULL on failure.
  */
-struct cras_rclient *rclient_generic_create(int fd, size_t id,
-					    const struct cras_rclient_ops *ops,
-					    int supported_directions);
+struct cras_rclient* rclient_generic_create(int fd,
+                                            size_t id,
+                                            const struct cras_rclient_ops* ops,
+                                            int supported_directions);
 
 /* Generic handle_message_from_client function for different types of rlicnets.
  * Supports only stream connect and stream disconnect messages.
@@ -135,8 +140,9 @@ struct cras_rclient *rclient_generic_create(int fd, size_t id,
  * Returns:
  *   0 on success, negative error on failure.
  */
-int rclient_handle_message_from_client(struct cras_rclient *client,
-				       const struct cras_server_message *msg,
-				       int *fds, unsigned int num_fds);
+int rclient_handle_message_from_client(struct cras_rclient* client,
+                                       const struct cras_server_message* msg,
+                                       int* fds,
+                                       unsigned int num_fds);
 
-#endif /* CRAS_SRC_SERVER_CRAS_RCLIENT_UTIL_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_RCLIENT_UTIL_H_

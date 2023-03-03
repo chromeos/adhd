@@ -19,18 +19,18 @@
 #include "cras_types.h"
 
 #define CRAS_MAX_SYSTEM_VOLUME 100
-#define DEFAULT_CAPTURE_GAIN 2000 /* 20dB of gain. */
+#define DEFAULT_CAPTURE_GAIN 2000  // 20dB of gain.
 /* Default to -6 dBFS as 90% of CrOS boards use microphone with -26dBFS
  * sensitivity under 94dB SPL @ 1kHz and we generally added 20dB gain to it.
  * This is a temporary value that should be refined when the standard process
  * measuring intrinsic sensitivity is built. */
 #define DEFAULT_CAPTURE_VOLUME_DBFS -600
-/* Default to 1--dB of range for playback and capture. */
+// Default to 1--dB of range for playback and capture.
 #define DEFAULT_MIN_VOLUME_DBFS -10000
 #define DEFAULT_MAX_VOLUME_DBFS 0
 #define DEFAULT_MIN_CAPTURE_GAIN -5000
 #define DEFAULT_MAX_CAPTURE_GAIN 5000
-/* The default maximum input node gain that users can set by UI. */
+// The default maximum input node gain that users can set by UI.
 #define DEFAULT_MAX_INPUT_NODE_GAIN 2000
 
 struct cras_tm;
@@ -47,41 +47,44 @@ struct cras_tm;
  *    board_name - The board name of the device that cras is running on.
  *    cpu_model_name - The cpu model name of the device that cras is running on.
  */
-void cras_system_state_init(const char *device_config_dir, const char *shm_name,
-			    int rw_shm_fd, int ro_shm_fd,
-			    struct cras_server_state *exp_state,
-			    size_t exp_state_size, const char *board_name,
-			    const char *cpu_model_name);
+void cras_system_state_init(const char* device_config_dir,
+                            const char* shm_name,
+                            int rw_shm_fd,
+                            int ro_shm_fd,
+                            struct cras_server_state* exp_state,
+                            size_t exp_state_size,
+                            const char* board_name,
+                            const char* cpu_model_name);
 void cras_system_state_deinit();
 
-/* Sets the suffix string to control which UCM config fo load. */
-void cras_system_state_set_internal_ucm_suffix(const char *internal_ucm_suffix);
+// Sets the suffix string to control which UCM config fo load.
+void cras_system_state_set_internal_ucm_suffix(const char* internal_ucm_suffix);
 
-/* Sets the system volume.  Will be applied by the active device. */
+// Sets the system volume.  Will be applied by the active device.
 void cras_system_set_volume(size_t volume);
-/* Gets the current system volume. */
+// Gets the current system volume.
 size_t cras_system_get_volume();
 
 /* Gets the current system capture volume. As we remove the support of setting
  * system capture gain, it should always be DEFAULT_CAPTURE_GAIN now. */
 long cras_system_get_capture_gain();
 
-/* Sets if the system is muted by the user. */
+// Sets if the system is muted by the user.
 void cras_system_set_user_mute(int muted);
-/* Sets if the system is muted for . */
+// Sets if the system is muted for .
 void cras_system_set_mute(int muted);
-/* Sets if the system muting is locked or not. */
+// Sets if the system muting is locked or not.
 void cras_system_set_mute_locked(int locked);
-/* Gets the current mute state of the system. */
+// Gets the current mute state of the system.
 int cras_system_get_mute();
-/* Gets the current user mute state. */
+// Gets the current user mute state.
 int cras_system_get_user_mute();
-/* Gets the current system mute state. */
+// Gets the current system mute state.
 int cras_system_get_system_mute();
-/* Gets if the system muting is locked or not. */
+// Gets if the system muting is locked or not.
 int cras_system_get_mute_locked();
 
-/* Gets the suspend state of audio. */
+// Gets the suspend state of audio.
 int cras_system_get_suspended();
 
 /* Sets the suspend state of audio.
@@ -90,13 +93,13 @@ int cras_system_get_suspended();
  */
 void cras_system_set_suspended(int suspend);
 
-/* Sets if the system capture path is muted or not. */
+// Sets if the system capture path is muted or not.
 void cras_system_set_capture_mute(int muted);
-/* Sets if the system capture path muting is locked or not. */
+// Sets if the system capture path muting is locked or not.
 void cras_system_set_capture_mute_locked(int locked);
-/* Gets the current mute state of the system capture path. */
+// Gets the current mute state of the system capture path.
 int cras_system_get_capture_mute();
-/* Gets if the system capture path muting is locked or not. */
+// Gets if the system capture path muting is locked or not.
 int cras_system_get_capture_mute_locked();
 
 /* Sets the value in dB of the MAX and MIN volume settings.  This will allow
@@ -107,42 +110,42 @@ int cras_system_get_capture_mute_locked();
  *     max - dB value when volume = CRAS_MAX_SYSTEM_VOLUME
  */
 void cras_system_set_volume_limits(long min, long max);
-/* Returns the dB value when volume = 1, in dB * 100. */
+// Returns the dB value when volume = 1, in dB * 100.
 long cras_system_get_min_volume();
-/* Returns the dB value when volume = CRAS_MAX_SYSTEM_VOLUME, in dB * 100. */
+// Returns the dB value when volume = CRAS_MAX_SYSTEM_VOLUME, in dB * 100.
 long cras_system_get_max_volume();
 
-/* Returns the default value of output buffer size in frames. */
+// Returns the default value of output buffer size in frames.
 int cras_system_get_default_output_buffer_size();
 
-/* Returns if system aec is supported. */
+// Returns if system aec is supported.
 int cras_system_get_aec_supported();
 
-/* Returns the system aec group id is available. */
+// Returns the system aec group id is available.
 int cras_system_get_aec_group_id();
 
-/* Returns if system ns is supported. */
+// Returns if system ns is supported.
 int cras_system_get_ns_supported();
 
-/* Returns if system agc is supported. */
+// Returns if system agc is supported.
 int cras_system_get_agc_supported();
 
-/* Returns if system aec on dsp is supported */
+// Returns if system aec on dsp is supported
 int cras_system_aec_on_dsp_supported();
 
-/* Returns if system ns on dsp is supported */
+// Returns if system ns on dsp is supported
 int cras_system_ns_on_dsp_supported();
 
-/* Returns if system agc on dsp is supported */
+// Returns if system agc on dsp is supported
 int cras_system_agc_on_dsp_supported();
 
-/* Sets the flag to enable or disable bluetooth wideband speech feature. */
+// Sets the flag to enable or disable bluetooth wideband speech feature.
 void cras_system_set_bt_wbs_enabled(bool enabled);
 
-/* Gets the elable flag of bluetooth wideband speech feature. */
+// Gets the elable flag of bluetooth wideband speech feature.
 bool cras_system_get_bt_wbs_enabled();
 
-/* Gets the flag of whether to determine BT HFP offload enabling by Finch. */
+// Gets the flag of whether to determine BT HFP offload enabling by Finch.
 bool cras_system_get_bt_hfp_offload_finch_applied();
 
 /*
@@ -151,55 +154,55 @@ bool cras_system_get_bt_hfp_offload_finch_applied();
  */
 bool cras_system_get_deprioritize_bt_wbs_mic();
 
-/* Sets the flag to enable or disable Bluetooth fixed A2DP packet size. */
+// Sets the flag to enable or disable Bluetooth fixed A2DP packet size.
 void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled);
 
-/* Gets the flag of Bluetooth fixed A2DP packet size. */
+// Gets the flag of Bluetooth fixed A2DP packet size.
 bool cras_system_get_bt_fix_a2dp_packet_size_enabled();
 
-/* Sets the flag to enable or disable Noise Cancellation. */
+// Sets the flag to enable or disable Noise Cancellation.
 void cras_system_set_noise_cancellation_enabled(bool enabled);
 
-/* Gets the flag of Noise Cancellation. */
+// Gets the flag of Noise Cancellation.
 bool cras_system_get_noise_cancellation_enabled();
 
-/* Returns if Noise Cancellation is supported. */
+// Returns if Noise Cancellation is supported.
 bool cras_system_get_noise_cancellation_supported();
 
-/* Sets the flag to bypass block/unblock Noise Cancellation mechanism. */
+// Sets the flag to bypass block/unblock Noise Cancellation mechanism.
 void cras_system_set_bypass_block_noise_cancellation(bool bypass);
 
-/* Gets the flag of bypass block/unblock Noise Cancellation mechanism. */
+// Gets the flag of bypass block/unblock Noise Cancellation mechanism.
 bool cras_system_get_bypass_block_noise_cancellation();
 
-/* Returns if sr_bt is supported or not. See feature_tier.rs. */
+// Returns if sr_bt is supported or not. See feature_tier.rs.
 bool cras_system_get_sr_bt_supported();
 
-/* Sets the force sr bt enable flag to enable or disable for testing purpose. */
+// Sets the force sr bt enable flag to enable or disable for testing purpose.
 void cras_system_set_force_sr_bt_enabled(bool enabled);
 
-/* Returns if sr_bt should be force enabled or not. */
+// Returns if sr_bt should be force enabled or not.
 bool cras_system_get_force_sr_bt_enabled();
 
-/* Checks if the card ignores the ucm suffix. */
-bool cras_system_check_ignore_ucm_suffix(const char *card_name);
+// Checks if the card ignores the ucm suffix.
+bool cras_system_check_ignore_ucm_suffix(const char* card_name);
 
-/* Returns true if hotword detection is paused at system suspend. */
+// Returns true if hotword detection is paused at system suspend.
 bool cras_system_get_hotword_pause_at_suspend();
 
-/* Sets whether to pause hotword detection at system suspend. */
+// Sets whether to pause hotword detection at system suspend.
 void cras_system_set_hotword_pause_at_suspend(bool pause);
 
-/* Returns if HW echo ref should be disabled. */
+// Returns if HW echo ref should be disabled.
 bool cras_system_get_hw_echo_ref_disabled();
 
-/* Returns the maximum internal mic gain. */
+// Returns the maximum internal mic gain.
 int cras_system_get_max_internal_mic_gain();
 
-/* Returns the maximum internal speaker channels. */
+// Returns the maximum internal speaker channels.
 int cras_system_get_max_internal_speaker_channels();
 
-/* Returns the maximum headphone channels. */
+// Returns the maximum headphone channels.
 int cras_system_get_max_headphone_channels();
 
 /* Adds a card at the given index to the system.  When a new card is found
@@ -211,7 +214,7 @@ int cras_system_get_max_headphone_channels();
  *    0 on success, negative error on failure (Can't create or card already
  *    exists).
  */
-int cras_system_add_alsa_card(struct cras_alsa_card_info *alsa_card_info);
+int cras_system_add_alsa_card(struct cras_alsa_card_info* alsa_card_info);
 
 /* Removes a card.  When a device is removed this will do the cleanup.  Device
  * at index must have been added using cras_system_add_alsa_card().
@@ -244,10 +247,14 @@ int cras_system_alsa_card_exists(unsigned alsa_card_index);
  * Returns:
  *    0 on success, or -EBUSY if there is already a registered handler.
  */
-int cras_system_set_select_handler(
-	int (*add)(int fd, void (*callback)(void *data, int revents),
-		   void *callback_data, int events, void *select_data),
-	void (*rm)(int fd, void *select_data), void *select_data);
+int cras_system_set_select_handler(int (*add)(int fd,
+                                              void (*callback)(void* data,
+                                                               int revents),
+                                              void* callback_data,
+                                              int events,
+                                              void* select_data),
+                                   void (*rm)(int fd, void* select_data),
+                                   void* select_data);
 
 /* Adds the fd and callback pair.  When select indicates that fd is readable,
  * the callback will be called.
@@ -259,8 +266,10 @@ int cras_system_set_select_handler(
  * Returns:
  *    0 on success or a negative error code on failure.
  */
-int cras_system_add_select_fd(int fd, void (*callback)(void *data, int revents),
-			      void *callback_data, int events);
+int cras_system_add_select_fd(int fd,
+                              void (*callback)(void* data, int revents),
+                              void* callback_data,
+                              int events);
 
 /* Removes the fd from the list of fds that are passed to select.
  * Args:
@@ -276,10 +285,10 @@ void cras_system_rm_select_fd(int fd);
  * Returns:
  *    0 on success, or -EEXIST if there's already a registered handler.
  */
-int cras_system_set_add_task_handler(int (*add_task)(void (*cb)(void *data),
-						     void *callback_data,
-						     void *task_data),
-				     void *task_data);
+int cras_system_set_add_task_handler(int (*add_task)(void (*cb)(void* data),
+                                                     void* callback_data,
+                                                     void* task_data),
+                                     void* task_data);
 
 /*
  * Adds a task callback and data pair, to be executed in the next main thread
@@ -290,7 +299,7 @@ int cras_system_set_add_task_handler(int (*add_task)(void (*cb)(void *data),
  * Returns:
  *    0 on success, or -EINVAL if there's no handler for adding task.
  */
-int cras_system_add_task(void (*callback)(void *data), void *callback_data);
+int cras_system_add_task(void (*callback)(void* data), void* callback_data);
 
 /* Signals that an audio input or output stream has been added to the system.
  * This allows the count of active streams can be used to notice when the audio
@@ -300,7 +309,7 @@ int cras_system_add_task(void (*callback)(void *data), void *callback_data);
  *   client_type - CRAS_CLIENT_TYPE of the audio stream.
  */
 void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
-				    enum CRAS_CLIENT_TYPE client_type);
+                                    enum CRAS_CLIENT_TYPE client_type);
 
 /* Signals that an audio input or output stream has been removed from the
  * system.  This allows the count of active streams can be used to notice when
@@ -310,9 +319,9 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
  *   client_type - CRAS_CLIENT_TYPE of the audio stream.
  */
 void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
-				      enum CRAS_CLIENT_TYPE client_type);
+                                      enum CRAS_CLIENT_TYPE client_type);
 
-/* Returns the number of active playback and capture streams. */
+// Returns the number of active playback and capture streams.
 unsigned cras_system_state_get_active_streams();
 
 /* Returns the number of active streams with given direction.
@@ -320,7 +329,7 @@ unsigned cras_system_state_get_active_streams();
  *   direction - Directions of audio stream.
  */
 unsigned cras_system_state_get_active_streams_by_direction(
-	enum CRAS_STREAM_DIRECTION direction);
+    enum CRAS_STREAM_DIRECTION direction);
 
 /* Returns the number of input streams with permission per CRAS_CLIENT_TYPE.
  *
@@ -330,12 +339,12 @@ unsigned cras_system_state_get_active_streams_by_direction(
  *                        streams with permission in each client type.
  */
 void cras_system_state_get_input_streams_with_permission(
-	uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE]);
+    uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE]);
 
 /* Fills ts with the time the last stream was removed from the system, the time
  * the stream count went to zero.
  */
-void cras_system_state_get_last_stream_active_time(struct cras_timespec *ts);
+void cras_system_state_get_last_stream_active_time(struct cras_timespec* ts);
 
 /* Returns output devices information.
  * Args:
@@ -343,7 +352,7 @@ void cras_system_state_get_last_stream_active_time(struct cras_timespec *ts);
  * Returns:
  *    number of output devices.
  */
-int cras_system_state_get_output_devs(const struct cras_iodev_info **devs);
+int cras_system_state_get_output_devs(const struct cras_iodev_info** devs);
 
 /* Returns input devices information.
  * Args:
@@ -351,7 +360,7 @@ int cras_system_state_get_output_devs(const struct cras_iodev_info **devs);
  * Returns:
  *    number of input devices.
  */
-int cras_system_state_get_input_devs(const struct cras_iodev_info **devs);
+int cras_system_state_get_input_devs(const struct cras_iodev_info** devs);
 
 /* Returns output nodes information.
  * Args:
@@ -359,7 +368,7 @@ int cras_system_state_get_input_devs(const struct cras_iodev_info **devs);
  * Returns:
  *    number of output nodes.
  */
-int cras_system_state_get_output_nodes(const struct cras_ionode_info **nodes);
+int cras_system_state_get_output_nodes(const struct cras_ionode_info** nodes);
 
 /* Returns input nodes information.
  * Args:
@@ -367,10 +376,10 @@ int cras_system_state_get_output_nodes(const struct cras_ionode_info **nodes);
  * Returns:
  *    number of input nodes.
  */
-int cras_system_state_get_input_nodes(const struct cras_ionode_info **nodes);
+int cras_system_state_get_input_nodes(const struct cras_ionode_info** nodes);
 
-/* Return the active input and output nodes' types as a string. */
-const char *cras_system_state_get_active_node_types();
+// Return the active input and output nodes' types as a string.
+const char* cras_system_state_get_active_node_types();
 
 /*
  * Sets the non-empty audio status.
@@ -386,7 +395,7 @@ int cras_system_state_get_non_empty_status();
  * This also 'locks' the structure by incrementing the update count to an odd
  * value.
  */
-struct cras_server_state *cras_system_state_update_begin();
+struct cras_server_state* cras_system_state_update_begin();
 
 /* Unlocks the system state structure that was updated after calling
  * cras_system_state_update_begin by again incrementing the update count.
@@ -395,18 +404,18 @@ void cras_system_state_update_complete();
 
 /* Gets a pointer to the system state without locking it.  Only used for debug
  * log.  Don't add calls to this function. */
-struct cras_server_state *cras_system_state_get_no_lock();
+struct cras_server_state* cras_system_state_get_no_lock();
 
-/* Returns the shm fd for the server_state structure. */
+// Returns the shm fd for the server_state structure.
 key_t cras_sys_state_shm_fd();
 
-/* Returns the timer manager. */
-struct cras_tm *cras_system_state_get_tm();
+// Returns the timer manager.
+struct cras_tm* cras_system_state_get_tm();
 
 /*
  * Add snapshot to snapshot buffer in system state
  */
-void cras_system_state_add_snapshot(struct cras_audio_thread_snapshot *);
+void cras_system_state_add_snapshot(struct cras_audio_thread_snapshot*);
 
 /*
  * Dump snapshots from system state to shared memory with client
@@ -424,13 +433,13 @@ int cras_system_state_in_main_thread();
  */
 bool cras_system_state_internal_cards_detected();
 
-/* Enable/disable speak on mute detection */
+// Enable/disable speak on mute detection
 void cras_system_state_set_speak_on_mute_detection(bool enabled);
 
-/* Get whether speak on mute detection is enabled */
+// Get whether speak on mute detection is enabled
 bool cras_system_state_get_speak_on_mute_detection_enabled();
 
-/* Get number of non-Chrome output streams */
+// Get number of non-Chrome output streams
 int cras_system_state_num_non_chrome_output_streams();
 
-#endif /* CRAS_SRC_SERVER_CRAS_SYSTEM_STATE_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_SYSTEM_STATE_H_

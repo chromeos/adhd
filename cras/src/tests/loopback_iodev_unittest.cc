@@ -67,7 +67,7 @@ class LoopBackTestSuite : public testing::Test {
     cras_iodev_list_unregister_loopback_called = 0;
 
     ASSERT_FALSE(asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0);
-    /* To avoid un-used variable warning. */
+    // To avoid un-used variable warning.
     atlog_rw_shm_fd = atlog_ro_shm_fd = -1;
     atlog = audio_thread_event_log_init(atlog_name);
   }
@@ -139,7 +139,7 @@ TEST_F(LoopBackTestSuite, SelectDevFromAToB) {
   EXPECT_EQ(1, cras_iodev_list_set_device_enabled_callback_called);
   EXPECT_EQ(1, cras_iodev_list_register_loopback_called);
 
-  /* Not the current sender being disabled, assert unregister not called. */
+  // Not the current sender being disabled, assert unregister not called.
   iodev2.info.idx = 222;
   device_disabled_callback_cb(&iodev2, device_enabled_callback_cb_data);
   EXPECT_EQ(0, cras_iodev_list_unregister_loopback_called);
@@ -227,7 +227,7 @@ TEST_F(LoopBackTestSuite, SimpleLoopback) {
 
 // TODO(chinyue): Test closing last iodev while streaming loopback data.
 
-/* Stubs */
+// Stubs
 extern "C" {
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,

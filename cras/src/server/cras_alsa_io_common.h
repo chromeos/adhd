@@ -38,32 +38,32 @@
  */
 #define SEVERE_UNDERRUN_MS 5000
 
-/* Default 25 step, volume change 4% once a time */
+// Default 25 step, volume change 4% once a time
 #define NUMBER_OF_VOLUME_STEPS_DEFAULT 25
 
-/* maxium 25 step, volume change 4% once a time */
+// maxium 25 step, volume change 4% once a time
 #define NUMBER_OF_VOLUME_STEPS_MAX 25
 
-/* minium 10 step, volume change 10% once a time */
+// minium 10 step, volume change 10% once a time
 #define NUMBER_OF_VOLUME_STEPS_MIN 10
 
 /*
-* For USB, some of them report invalid volume ranges.
-* Therefore, we need to check the USB volume range is reasonable.
-* Otherwise we fall back to software volume and use the default volume curve.
-* The volume range reported by USB within the range will be valid.
-*/
+ * For USB, some of them report invalid volume ranges.
+ * Therefore, we need to check the USB volume range is reasonable.
+ * Otherwise we fall back to software volume and use the default volume curve.
+ * The volume range reported by USB within the range will be valid.
+ */
 
 // 5dB
 #define VOLUME_RANGE_DB_MIN 5
 // 200dB
 #define VOLUME_RANGE_DB_MAX 200
 
-/* Enumeration for logging to CRAS server metrics. */
+// Enumeration for logging to CRAS server metrics.
 enum CRAS_NOISE_CANCELLATION_STATUS {
-	CRAS_NOISE_CANCELLATION_BLOCKED,
-	CRAS_NOISE_CANCELLATION_DISABLED,
-	CRAS_NOISE_CANCELLATION_ENABLED,
+  CRAS_NOISE_CANCELLATION_BLOCKED,
+  CRAS_NOISE_CANCELLATION_DISABLED,
+  CRAS_NOISE_CANCELLATION_ENABLED,
 };
 
 /*
@@ -72,9 +72,9 @@ enum CRAS_NOISE_CANCELLATION_STATUS {
  * time will be filled.
  */
 static const struct timespec no_stream_fill_zeros_duration = {
-	0, 50 * 1000 * 1000 /* 50 msec. */
+    0, 50 * 1000 * 1000  // 50 msec.
 };
 
-struct cras_ionode *first_plugged_node(struct cras_iodev *iodev);
+struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);
 
-#endif /* CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_

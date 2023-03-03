@@ -3,9 +3,8 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
-#include <stdio.h>
-
 #include <map>
+#include <stdio.h>
 #include <vector>
 
 extern "C" {

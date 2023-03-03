@@ -5,11 +5,10 @@
 #ifndef CRAS_SRC_TESTS_DEV_IO_STUBS_H_
 #define CRAS_SRC_TESTS_DEV_IO_STUBS_H_
 
+#include <memory>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
-
-#include <memory>
 
 extern "C" {
 #include "cras/src/common/utlist.h"

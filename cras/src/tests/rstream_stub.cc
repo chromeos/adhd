@@ -62,8 +62,9 @@ void cras_rstream_dev_detach(struct cras_rstream* rstream,
 unsigned int cras_rstream_dev_offset(const struct cras_rstream* rstream,
                                      unsigned int dev_id) {
   auto elem = data_map.find(rstream);
-  if (elem != data_map.end())
+  if (elem != data_map.end()) {
     return elem->second.dev_offset[dev_id];
+  }
   return 0;
 }
 
@@ -108,8 +109,9 @@ void cras_rstream_update_queued_frames(struct cras_rstream* rstream) {}
 
 int cras_rstream_is_pending_reply(const struct cras_rstream* rstream) {
   auto elem = data_map.find(rstream);
-  if (elem != data_map.end())
+  if (elem != data_map.end()) {
     return elem->second.pending_reply;
+  }
   return 0;
 }
 

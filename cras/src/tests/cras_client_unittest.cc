@@ -102,8 +102,9 @@ void set_audio_format(struct cras_audio_format* format,
   format->format = pcm_format;
   format->frame_rate = frame_rate;
   format->num_channels = num_channels;
-  for (size_t i = 0; i < CRAS_CH_MAX; ++i)
+  for (size_t i = 0; i < CRAS_CH_MAX; ++i) {
     format->channel_layout[i] = i < num_channels ? i : -1;
+  }
 }
 
 int capture_samples_ready(cras_client* client,
@@ -308,12 +309,12 @@ TEST_F(CrasClientTestSuite, SetOutputStreamVolume) {
   client_thread_add_stream(&client_, &stream_, &stream_id, NO_DEVICE);
   EXPECT_EQ(&stream_, stream_from_id(&client_, stream_id));
 
-  /* Set volume before stream connected. */
+  // Set volume before stream connected.
   client_thread_set_stream_volume(&client_, stream_id, 0.3f);
   StreamConnected(CRAS_STREAM_OUTPUT);
   EXPECT_EQ(0.3f, cras_shm_get_volume_scaler(stream_.shm));
 
-  /* Set volume after stream connected. */
+  // Set volume after stream connected.
   client_thread_set_stream_volume(&client_, stream_id, 0.6f);
   EXPECT_EQ(0.6f, cras_shm_get_volume_scaler(stream_.shm));
 }
@@ -324,12 +325,12 @@ TEST_F(CrasClientTestSuite, SetInputStreamVolume) {
   client_thread_add_stream(&client_, &stream_, &stream_id, NO_DEVICE);
   EXPECT_EQ(&stream_, stream_from_id(&client_, stream_id));
 
-  /* Set volume before stream connected. */
+  // Set volume before stream connected.
   client_thread_set_stream_volume(&client_, stream_id, 0.3f);
   StreamConnected(CRAS_STREAM_INPUT);
   EXPECT_EQ(0.3f, cras_shm_get_volume_scaler(stream_.shm));
 
-  /* Set volume after stream connected. */
+  // Set volume after stream connected.
   client_thread_set_stream_volume(&client_, stream_id, 0.6f);
   EXPECT_EQ(0.6f, cras_shm_get_volume_scaler(stream_.shm));
 }
@@ -362,14 +363,15 @@ TEST(CrasClientTest, InitStreamVolume) {
 
   EXPECT_EQ(1.0f, cmd_msg.stream->volume_scaler);
 
-  if (cmd_msg.stream->config)
+  if (cmd_msg.stream->config) {
     free(cmd_msg.stream->config);
+  }
   free(cmd_msg.stream);
 }
 
 }  // namespace
 
-/* stubs */
+// stubs
 extern "C" {
 
 ssize_t sendmsg(int sockfd, const struct msghdr* msg, int flags) {

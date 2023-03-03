@@ -20,18 +20,18 @@
  * AVRCP should be kept in the cras_a2dp for responsibility division.
  */
 struct fl_media {
-	// The id of HCI interface to use.
-	unsigned int hci;
-	// Object path of the Bluetooth media.
-	char obj_path[BT_MEDIA_OBJECT_PATH_SIZE_MAX];
-	// The DBus connection object used to send message to Floss Media
-	// interface.
-	DBusConnection *conn;
-	// Object representing the connected A2DP headset.
-	struct cras_a2dp *a2dp;
-	// Object representing the connected HFP headset.
-	struct cras_hfp *hfp;
-	struct bt_io_manager *bt_io_mgr;
+  // The id of HCI interface to use.
+  unsigned int hci;
+  // Object path of the Bluetooth media.
+  char obj_path[BT_MEDIA_OBJECT_PATH_SIZE_MAX];
+  // The DBus connection object used to send message to Floss Media
+  // interface.
+  DBusConnection* conn;
+  // Object representing the connected A2DP headset.
+  struct cras_a2dp* a2dp;
+  // Object representing the connected HFP headset.
+  struct cras_hfp* hfp;
+  struct bt_io_manager* bt_io_mgr;
 };
 
 /* Sets up new a2dp and hfp and feeds them into active_fm when bluetooth
@@ -48,10 +48,12 @@ struct fl_media {
  * Returns:
  *   int - Returns a negative errno if an error occurs, 0 otherwise.
  */
-int handle_on_bluetooth_device_added(struct fl_media *active_fm,
-				     const char *addr, const char *name,
-				     struct cras_fl_a2dp_codec_config *codecs,
-				     int32_t hfp_cap, bool abs_vol_supported);
+int handle_on_bluetooth_device_added(struct fl_media* active_fm,
+                                     const char* addr,
+                                     const char* name,
+                                     struct cras_fl_a2dp_codec_config* codecs,
+                                     int32_t hfp_cap,
+                                     bool abs_vol_supported);
 
 /* Suspends a2dp and hfp if existed when bluetooth device is removed.
  *
@@ -62,8 +64,8 @@ int handle_on_bluetooth_device_added(struct fl_media *active_fm,
  * Returns:
  *   int - Returns a negative errno if an error occurs, 0 otherwise.
  */
-int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
-				       const char *addr);
+int handle_on_bluetooth_device_removed(struct fl_media* active_fm,
+                                       const char* addr);
 
 /* Sets supported absolute volume on floss a2dp.
  *
@@ -74,8 +76,8 @@ int handle_on_bluetooth_device_removed(struct fl_media *active_fm,
  * Returns:
  *   int - Returns a negative errno if an error occurs, 0 otherwise.
  */
-int handle_on_absolute_volume_supported_changed(struct fl_media *active_fm,
-						bool abs_vol_supported);
+int handle_on_absolute_volume_supported_changed(struct fl_media* active_fm,
+                                                bool abs_vol_supported);
 
 /* Updates a2dp volume to bt_io_manager.
  *
@@ -86,8 +88,8 @@ int handle_on_absolute_volume_supported_changed(struct fl_media *active_fm,
  * Returns:
  *   int - Returns a negative errno if an error occurs, 0 otherwise.
  */
-int handle_on_absolute_volume_changed(struct fl_media *active_fm,
-				      uint8_t volume);
+int handle_on_absolute_volume_changed(struct fl_media* active_fm,
+                                      uint8_t volume);
 
 /* Updates hfp volume to bt_io_manager.
  *
@@ -99,8 +101,9 @@ int handle_on_absolute_volume_changed(struct fl_media *active_fm,
  * Returns:
  *   int - Returns a negative errno if an error occurs, 0 otherwise.
  */
-int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
-				 uint8_t volume);
+int handle_on_hfp_volume_changed(struct fl_media* active_fm,
+                                 const char* addr,
+                                 uint8_t volume);
 
 /* Checks if it is the headset that issued disconnection.
  * If true, restarts the iodev as an attempt of reconnection.
@@ -112,13 +115,13 @@ int handle_on_hfp_volume_changed(struct fl_media *active_fm, const char *addr,
  * Returns:
  *   int - Returns a negative errno if an error occurs, 0 otherwise.
  */
-int handle_on_hfp_audio_disconnected(struct fl_media *active_fm,
-				     const char *addr);
+int handle_on_hfp_audio_disconnected(struct fl_media* active_fm,
+                                     const char* addr);
 
 /* Destroys struct fl_media and frees up relevant resources.
  *
  * Args:
  *   active_fm - The fl_media struct to be destroyed.
  */
-void fl_media_destroy(struct fl_media **active_fm);
-#endif /* CRAS_FL_MEDIA_ADAPTOR_H_ */
+void fl_media_destroy(struct fl_media** active_fm);
+#endif  // CRAS_FL_MEDIA_ADAPTOR_H_

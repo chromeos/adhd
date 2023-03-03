@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#include <gtest/gtest.h>
 #include <cstdio>
+#include <gtest/gtest.h>
 #include <vector>
 
 #include "cras/src/common/sample_buffer.h"
@@ -16,7 +16,7 @@ extern "C" {
 
 namespace {
 
-/* Helper functions for testing. */
+// Helper functions for testing.
 
 template <typename T>
 inline void Fill(struct byte_buffer* buf, T value, size_t num_samples) {
@@ -74,7 +74,7 @@ void BufValEQ(struct byte_buffer* buf,
   BufVecEQ(buf, expected_values);
 }
 
-/* Tests */
+// Tests
 
 class BtSrTestSuite : public testing::Test {
  protected:

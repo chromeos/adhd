@@ -16,8 +16,9 @@ TEST(EWMAPower, RelativePowerValue) {
   float f;
   int i;
 
-  for (i = 0; i < 480; i++)
+  for (i = 0; i < 480; i++) {
     buf[i] = 0x00fe;
+  }
 
   ewma_power_init(&ewma, SND_PCM_FORMAT_S16_LE, 48000);
   EXPECT_EQ(48, ewma.step_fr);
@@ -27,14 +28,16 @@ TEST(EWMAPower, RelativePowerValue) {
 
   // After 10ms of silence the power value decreases.
   f = ewma.power;
-  for (i = 0; i < 480; i++)
+  for (i = 0; i < 480; i++) {
     buf[i] = 0x00;
+  }
   ewma_power_calculate(&ewma, buf, 1, 480);
   EXPECT_LT(ewma.power, f);
 
   // After 300ms of silence the power value decreases to insignificant low.
-  for (i = 0; i < 30; i++)
+  for (i = 0; i < 30; i++) {
     ewma_power_calculate(&ewma, buf, 1, 480);
+  }
   EXPECT_LT(ewma.power, 1.0e-10);
 }
 
@@ -55,14 +58,16 @@ TEST(EWMAPower, PowerInStereoData) {
 
   // After 10ms of silence the power value decreases.
   f = ewma.power;
-  for (i = 0; i < 960; i++)
+  for (i = 0; i < 960; i++) {
     buf[i] = 0x0;
+  }
   ewma_power_calculate(&ewma, buf, 2, 480);
   EXPECT_LT(ewma.power, f);
 
   // After 300ms of silence the power value decreases to insignificant low.
-  for (i = 0; i < 30; i++)
+  for (i = 0; i < 30; i++) {
     ewma_power_calculate(&ewma, buf, 2, 480);
+  }
   EXPECT_LT(ewma.power, 1.0e-10);
 
   // Assume the data is silent in the other channel.
@@ -109,7 +114,7 @@ TEST(EWMAPower, PowerInAudioArea) {
   ewma_power_calculate_area(&ewma, buf, area, 480);
   EXPECT_GT(f, ewma.power);
 
-  /* Change layout to the two silent channels. Expect power is 0.0f. */
+  // Change layout to the two silent channels. Expect power is 0.0f.
   layout[CRAS_CH_FL] = 1;
   cras_audio_format_set_channel_layout(fmt, layout);
   cras_audio_area_config_channels(area, fmt);

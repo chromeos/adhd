@@ -3,13 +3,13 @@
  * found in the LICENSE file.
  */
 #include <assert.h>
+#include <cstdio>
+#include <cstring>
 #include <fuzzer/FuzzedDataProvider.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <cstdio>
-#include <cstring>
 
 extern "C" {
 #include "cras/src/server/cras_a2dp_manager.h"
@@ -163,8 +163,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
 extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   char* shm_name;
-  if (asprintf(&shm_name, "/cras-%d", getpid()) < 0)
+  if (asprintf(&shm_name, "/cras-%d", getpid()) < 0) {
     exit(-ENOMEM);
+  }
   struct cras_server_state* exp_state =
       (struct cras_server_state*)calloc(1, sizeof(*exp_state));
 

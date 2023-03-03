@@ -51,10 +51,11 @@ int am_process(struct am_context* am,
     outputs[i] = am->fake_output_value / 32768.f;
   }
 
-  if (am->fake_output_value < INT16_MAX)
+  if (am->fake_output_value < INT16_MAX) {
     am->fake_output_value += 1;
-  else
+  } else {
     am->fake_output_value = 1;
+  }
 
   return 0;
 }

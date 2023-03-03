@@ -78,59 +78,59 @@ extern "C" {
  * PARAM_ENABLED - 1 to enable the compressor, 0 to disable it.
  */
 enum {
-	PARAM_THRESHOLD,
-	PARAM_KNEE,
-	PARAM_RATIO,
-	PARAM_ATTACK,
-	PARAM_RELEASE,
-	PARAM_PRE_DELAY,
-	PARAM_RELEASE_ZONE1,
-	PARAM_RELEASE_ZONE2,
-	PARAM_RELEASE_ZONE3,
-	PARAM_RELEASE_ZONE4,
-	PARAM_POST_GAIN,
-	PARAM_FILTER_STAGE_GAIN,
-	PARAM_FILTER_STAGE_RATIO,
-	PARAM_FILTER_ANCHOR,
-	PARAM_CROSSOVER_LOWER_FREQ,
-	PARAM_ENABLED,
-	PARAM_LAST
+  PARAM_THRESHOLD,
+  PARAM_KNEE,
+  PARAM_RATIO,
+  PARAM_ATTACK,
+  PARAM_RELEASE,
+  PARAM_PRE_DELAY,
+  PARAM_RELEASE_ZONE1,
+  PARAM_RELEASE_ZONE2,
+  PARAM_RELEASE_ZONE3,
+  PARAM_RELEASE_ZONE4,
+  PARAM_POST_GAIN,
+  PARAM_FILTER_STAGE_GAIN,
+  PARAM_FILTER_STAGE_RATIO,
+  PARAM_FILTER_ANCHOR,
+  PARAM_CROSSOVER_LOWER_FREQ,
+  PARAM_ENABLED,
+  PARAM_LAST
 };
 
-/* The number of compressor kernels (also the number of bands). */
+// The number of compressor kernels (also the number of bands).
 #define DRC_NUM_KERNELS 3
 
-/* The maximum number of frames can be passed to drc_process() call. */
+// The maximum number of frames can be passed to drc_process() call.
 #define DRC_PROCESS_MAX_FRAMES 2048
 
-/* The default value of PARAM_PRE_DELAY in seconds. */
+// The default value of PARAM_PRE_DELAY in seconds.
 #define DRC_DEFAULT_PRE_DELAY 0.006f
 
 struct drc {
-	/* sample rate in Hz */
-	float sample_rate;
+  // sample rate in Hz
+  float sample_rate;
 
-	/* 1 to disable the emphasis and deemphasis, 0 to enable it. */
-	int emphasis_disabled;
+  // 1 to disable the emphasis and deemphasis, 0 to enable it.
+  int emphasis_disabled;
 
-	/* parameters holds the tweakable compressor parameters. */
-	float parameters[DRC_NUM_KERNELS][PARAM_LAST];
+  // parameters holds the tweakable compressor parameters.
+  float parameters[DRC_NUM_KERNELS][PARAM_LAST];
 
-	/* The emphasis filter and deemphasis filter */
-	struct eq2 *emphasis_eq;
-	struct eq2 *deemphasis_eq;
+  // The emphasis filter and deemphasis filter
+  struct eq2* emphasis_eq;
+  struct eq2* deemphasis_eq;
 
-	/* The crossover filter */
-	struct crossover2 xo2;
+  // The crossover filter
+  struct crossover2 xo2;
 
-	/* The compressor kernels */
-	struct drc_kernel kernel[DRC_NUM_KERNELS];
+  // The compressor kernels
+  struct drc_kernel kernel[DRC_NUM_KERNELS];
 
-	/* Temporary buffer used during drc_process(). The mid and high band
-	 * signal is stored in these buffers (the low band is stored in the
-	 * original input buffer). */
-	float *data1[DRC_NUM_CHANNELS];
-	float *data2[DRC_NUM_CHANNELS];
+  /* Temporary buffer used during drc_process(). The mid and high band
+   * signal is stored in these buffers (the low band is stored in the
+   * original input buffer). */
+  float* data1[DRC_NUM_CHANNELS];
+  float* data2[DRC_NUM_CHANNELS];
 };
 
 /* DRC needs the parameters to be set before initialization. So drc_new() should
@@ -150,14 +150,14 @@ struct drc {
  *  drc_free();
  */
 
-/* Allocates a DRC. */
-struct drc *drc_new(float sample_rate);
+// Allocates a DRC.
+struct drc* drc_new(float sample_rate);
 
-/* Initializes a DRC. */
-void drc_init(struct drc *drc);
+// Initializes a DRC.
+void drc_init(struct drc* drc);
 
-/* Frees a DRC.*/
-void drc_free(struct drc *drc);
+// Frees a DRC.
+void drc_free(struct drc* drc);
 
 /* Processes input data using a DRC.
  * Args:
@@ -167,7 +167,7 @@ void drc_free(struct drc *drc);
  *        output data is stored in the same place.
  *    frames - The number of frames to process.
  */
-void drc_process(struct drc *drc, float **data, int frames);
+void drc_process(struct drc* drc, float** data, int frames);
 
 /* Sets a parameter for the DRC.
  * Args:
@@ -176,10 +176,10 @@ void drc_process(struct drc *drc, float **data, int frames);
  *    paramID - One of the PARAM_* enum constant.
  *    value - The parameter value
  */
-void drc_set_param(struct drc *drc, int index, unsigned paramID, float value);
+void drc_set_param(struct drc* drc, int index, unsigned paramID, float value);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_DSP_DRC_H_ */
+#endif  // CRAS_SRC_DSP_DRC_H_

@@ -14,14 +14,14 @@ extern "C" {
  * otherwise.*/
 int dsp_util_has_denormal();
 
-/* Clears floating point exceptions. For debugging only. */
+// Clears floating point exceptions. For debugging only.
 void dsp_util_clear_fp_exceptions();
 
-/* Prints floating point exceptions to stdout. For debugging only. */
+// Prints floating point exceptions to stdout. For debugging only.
 void dsp_util_print_fp_exceptions();
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_DSP_TESTS_DSP_TEST_UTIL_H_ */
+#endif  // CRAS_SRC_DSP_TESTS_DSP_TEST_UTIL_H_

@@ -18,200 +18,194 @@ extern "C" {
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 #define assert_on_compile(e) ((void)sizeof(char[1 - 2 * !(e)]))
-#define assert_on_compile_is_power_of_2(n)                                     \
-	assert_on_compile((n) != 0 && (((n) & ((n)-1)) == 0))
+#define assert_on_compile_is_power_of_2(n) \
+  assert_on_compile((n) != 0 && (((n) & ((n)-1)) == 0))
 
-/* Enables real time scheduling. */
+// Enables real time scheduling.
 int cras_set_rt_scheduling(int rt_lim);
-/* Sets the priority. */
+// Sets the priority.
 int cras_set_thread_priority(int priority);
-/* Sets the niceness level of the current thread. */
+// Sets the niceness level of the current thread.
 int cras_set_nice_level(int nice);
 
-/* Converts a buffer level from one sample rate to another. */
-static inline size_t cras_frames_at_rate(size_t orig_rate, size_t orig_frames,
-					 size_t act_rate)
-{
-	return (orig_frames * act_rate + orig_rate - 1) / orig_rate;
+// Converts a buffer level from one sample rate to another.
+static inline size_t cras_frames_at_rate(size_t orig_rate,
+                                         size_t orig_frames,
+                                         size_t act_rate) {
+  return (orig_frames * act_rate + orig_rate - 1) / orig_rate;
 }
 
-/* Converts a number of frames to a time in a timespec. */
-static inline void cras_frames_to_time(unsigned int frames, unsigned int rate,
-				       struct timespec *t)
-{
-	t->tv_sec = frames / rate;
-	frames = frames % rate;
-	t->tv_nsec = (uint64_t)frames * 1000000000 / rate;
+// Converts a number of frames to a time in a timespec.
+static inline void cras_frames_to_time(unsigned int frames,
+                                       unsigned int rate,
+                                       struct timespec* t) {
+  t->tv_sec = frames / rate;
+  frames = frames % rate;
+  t->tv_nsec = (uint64_t)frames * 1000000000 / rate;
 }
 
-/* Converts a number of frames to a time in a timespec. */
-static inline void cras_frames_to_time_precise(unsigned int frames, double rate,
-					       struct timespec *t)
-{
-	double seconds = frames / rate;
-	t->tv_sec = (unsigned int)seconds;
-	seconds -= t->tv_sec;
-	t->tv_nsec = (unsigned int)(seconds * 1000000000);
+// Converts a number of frames to a time in a timespec.
+static inline void cras_frames_to_time_precise(unsigned int frames,
+                                               double rate,
+                                               struct timespec* t) {
+  double seconds = frames / rate;
+  t->tv_sec = (unsigned int)seconds;
+  seconds -= t->tv_sec;
+  t->tv_nsec = (unsigned int)(seconds * 1000000000);
 }
 
-/* Converts a timespec duration to a frame count. */
-static inline uint64_t cras_time_to_frames(const struct timespec *t,
-					   unsigned int rate)
-{
-	return t->tv_nsec * (uint64_t)rate / 1000000000 + rate * t->tv_sec;
+// Converts a timespec duration to a frame count.
+static inline uint64_t cras_time_to_frames(const struct timespec* t,
+                                           unsigned int rate) {
+  return t->tv_nsec * (uint64_t)rate / 1000000000 + rate * t->tv_sec;
 }
 
-/* Converts a number of frames to a duration in ms. */
+// Converts a number of frames to a duration in ms.
 static inline unsigned int cras_frames_to_ms(unsigned int frames,
-					     unsigned int rate)
-{
-	return 1000 * frames / rate;
+                                             unsigned int rate) {
+  return 1000 * frames / rate;
 }
 
-/* Makes a file descriptor non blocking. */
+// Makes a file descriptor non blocking.
 int cras_make_fd_nonblocking(int fd);
 
-/* Makes a file descriptor blocking. */
+// Makes a file descriptor blocking.
 int cras_make_fd_blocking(int fd);
 
-/* Send data in buf to the socket attach the fds. */
-int cras_send_with_fds(int sockfd, const void *buf, size_t len, int *fd,
-		       unsigned int num_fds);
+// Send data in buf to the socket attach the fds.
+int cras_send_with_fds(int sockfd,
+                       const void* buf,
+                       size_t len,
+                       int* fd,
+                       unsigned int num_fds);
 
 /* Receive data in buf from the socket. If file descriptors are received, put
  * them in *fd, otherwise set *fd to -1. */
-int cras_recv_with_fds(int sockfd, void *buf, size_t len, int *fd,
-		       unsigned int *num_fds);
+int cras_recv_with_fds(int sockfd,
+                       void* buf,
+                       size_t len,
+                       int* fd,
+                       unsigned int* num_fds);
 
-/* This must be written a million times... */
-static inline void subtract_timespecs(const struct timespec *end,
-				      const struct timespec *beg,
-				      struct timespec *diff)
-{
-	diff->tv_sec = end->tv_sec - beg->tv_sec;
-	diff->tv_nsec = end->tv_nsec - beg->tv_nsec;
+// This must be written a million times...
+static inline void subtract_timespecs(const struct timespec* end,
+                                      const struct timespec* beg,
+                                      struct timespec* diff) {
+  diff->tv_sec = end->tv_sec - beg->tv_sec;
+  diff->tv_nsec = end->tv_nsec - beg->tv_nsec;
 
-	/* Adjust tv_sec and tv_nsec to the same sign. */
-	if (diff->tv_sec > 0 && diff->tv_nsec < 0) {
-		diff->tv_sec--;
-		diff->tv_nsec += 1000000000L;
-	} else if (diff->tv_sec < 0 && diff->tv_nsec > 0) {
-		diff->tv_sec++;
-		diff->tv_nsec -= 1000000000L;
-	}
+  // Adjust tv_sec and tv_nsec to the same sign.
+  if (diff->tv_sec > 0 && diff->tv_nsec < 0) {
+    diff->tv_sec--;
+    diff->tv_nsec += 1000000000L;
+  } else if (diff->tv_sec < 0 && diff->tv_nsec > 0) {
+    diff->tv_sec++;
+    diff->tv_nsec -= 1000000000L;
+  }
 }
 
-static inline void add_timespecs(struct timespec *a, const struct timespec *b)
-{
-	a->tv_sec += b->tv_sec;
-	a->tv_nsec += b->tv_nsec;
+static inline void add_timespecs(struct timespec* a, const struct timespec* b) {
+  a->tv_sec += b->tv_sec;
+  a->tv_nsec += b->tv_nsec;
 
-	while (a->tv_nsec >= 1000000000L) {
-		a->tv_sec++;
-		a->tv_nsec -= 1000000000L;
-	}
+  while (a->tv_nsec >= 1000000000L) {
+    a->tv_sec++;
+    a->tv_nsec -= 1000000000L;
+  }
 }
 
-/* Converts a fixed-size cras_timespec to a time.h defined timespec */
-static inline void cras_timespec_to_timespec(struct timespec *dest,
-					     const struct cras_timespec *src)
-{
-	dest->tv_sec = src->tv_sec;
-	dest->tv_nsec = src->tv_nsec;
+// Converts a fixed-size cras_timespec to a time.h defined timespec
+static inline void cras_timespec_to_timespec(struct timespec* dest,
+                                             const struct cras_timespec* src) {
+  dest->tv_sec = src->tv_sec;
+  dest->tv_nsec = src->tv_nsec;
 }
 
-/* Fills a fixed-size cras_timespec with the current system time */
+// Fills a fixed-size cras_timespec with the current system time
 static inline int cras_clock_gettime(clockid_t clk_id,
-				     struct cras_timespec *ctp)
-{
-	struct timespec tp;
-	int ret = clock_gettime(clk_id, &tp);
-	ctp->tv_sec = tp.tv_sec;
-	ctp->tv_nsec = tp.tv_nsec;
-	return ret;
+                                     struct cras_timespec* ctp) {
+  struct timespec tp;
+  int ret = clock_gettime(clk_id, &tp);
+  ctp->tv_sec = tp.tv_sec;
+  ctp->tv_nsec = tp.tv_nsec;
+  return ret;
 }
 
-/* Returns true if timeval a is after timeval b */
-static inline int timeval_after(const struct timeval *a,
-				const struct timeval *b)
-{
-	return (a->tv_sec > b->tv_sec) ||
-	       (a->tv_sec == b->tv_sec && a->tv_usec > b->tv_usec);
+// Returns true if timeval a is after timeval b
+static inline int timeval_after(const struct timeval* a,
+                                const struct timeval* b) {
+  return (a->tv_sec > b->tv_sec) ||
+         (a->tv_sec == b->tv_sec && a->tv_usec > b->tv_usec);
 }
 
-/* Returns true if timespec a is after timespec b */
-static inline int timespec_after(const struct timespec *a,
-				 const struct timespec *b)
-{
-	return (a->tv_sec > b->tv_sec) ||
-	       (a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec);
+// Returns true if timespec a is after timespec b
+static inline int timespec_after(const struct timespec* a,
+                                 const struct timespec* b) {
+  return (a->tv_sec > b->tv_sec) ||
+         (a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec);
 }
 
 /* Retruns the equivalent number of milliseconds for a given timespec.
  * The result is rounded up to the next millisecond. */
-static inline unsigned int timespec_to_ms(const struct timespec *ts)
-{
-	return ts->tv_sec * 1000 + (ts->tv_nsec + 999999) / 1000000;
+static inline unsigned int timespec_to_ms(const struct timespec* ts) {
+  return ts->tv_sec * 1000 + (ts->tv_nsec + 999999) / 1000000;
 }
 
-/* Convert milliseconds to timespec. */
-static inline void ms_to_timespec(time_t milliseconds, struct timespec *ts)
-{
-	ts->tv_sec = milliseconds / 1000;
-	ts->tv_nsec = (milliseconds % 1000) * 1000000;
+// Convert milliseconds to timespec.
+static inline void ms_to_timespec(time_t milliseconds, struct timespec* ts) {
+  ts->tv_sec = milliseconds / 1000;
+  ts->tv_nsec = (milliseconds % 1000) * 1000000;
 }
 
-/* Returns true if the given timespec is zero. */
-static inline int timespec_is_zero(const struct timespec *ts)
-{
-	return ts && ts->tv_sec == 0 && ts->tv_nsec == 0;
+// Returns true if the given timespec is zero.
+static inline int timespec_is_zero(const struct timespec* ts) {
+  return ts && ts->tv_sec == 0 && ts->tv_nsec == 0;
 }
 
-/* Returns non-zero if the given timespec is non-zero. */
-static inline int timespec_is_nonzero(const struct timespec *ts)
-{
-	return ts && (ts->tv_sec != 0 || (ts->tv_sec == 0 && ts->tv_nsec != 0));
+// Returns non-zero if the given timespec is non-zero.
+static inline int timespec_is_nonzero(const struct timespec* ts) {
+  return ts && (ts->tv_sec != 0 || (ts->tv_sec == 0 && ts->tv_nsec != 0));
 }
 
-/* Calculates frames since time beg. */
-static inline uint64_t cras_frames_since_time(const struct timespec *beg,
-					      unsigned int rate)
-{
-	struct timespec now, time_since;
+// Calculates frames since time beg.
+static inline uint64_t cras_frames_since_time(const struct timespec* beg,
+                                              unsigned int rate) {
+  struct timespec now, time_since;
 
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-	if (!timespec_after(&now, beg))
-		return 0;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+  if (!timespec_after(&now, beg)) {
+    return 0;
+  }
 
-	subtract_timespecs(&now, beg, &time_since);
-	return cras_time_to_frames(&time_since, rate);
+  subtract_timespecs(&now, beg, &time_since);
+  return cras_time_to_frames(&time_since, rate);
 }
 
-/* Calculates frames until time end. */
-static inline uint64_t cras_frames_until_time(const struct timespec *end,
-					      unsigned int rate)
-{
-	struct timespec now, time_until;
+// Calculates frames until time end.
+static inline uint64_t cras_frames_until_time(const struct timespec* end,
+                                              unsigned int rate) {
+  struct timespec now, time_until;
 
-	clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-	if (!timespec_after(end, &now))
-		return 0;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+  if (!timespec_after(end, &now)) {
+    return 0;
+  }
 
-	subtract_timespecs(end, &now, &time_until);
-	return cras_time_to_frames(&time_until, rate);
+  subtract_timespecs(end, &now, &time_until);
+  return cras_time_to_frames(&time_until, rate);
 }
 
-/* Returns true if the difference between a and b is  shorter than t. */
-static inline bool timespec_diff_shorter_than(const struct timespec *a,
-					      const struct timespec *b,
-					      const struct timespec *t)
-{
-	struct timespec diff;
-	if (timespec_after(a, b))
-		subtract_timespecs(a, b, &diff);
-	else
-		subtract_timespecs(b, a, &diff);
-	return timespec_after(t, &diff);
+// Returns true if the difference between a and b is  shorter than t.
+static inline bool timespec_diff_shorter_than(const struct timespec* a,
+                                              const struct timespec* b,
+                                              const struct timespec* t) {
+  struct timespec diff;
+  if (timespec_after(a, b)) {
+    subtract_timespecs(a, b, &diff);
+  } else {
+    subtract_timespecs(b, a, &diff);
+  }
+  return timespec_after(t, &diff);
 }
 
 /* Poll on the given file descriptors.
@@ -237,8 +231,10 @@ static inline bool timespec_diff_shorter_than(const struct timespec *a,
  *    -ETIMEDOUT when no file descriptors are ready and a timeout specified.
  *    Other negative error codes specified in the ppoll() man page.
  */
-int cras_poll(struct pollfd *fds, nfds_t nfds, struct timespec *timeout,
-	      const sigset_t *sigmask);
+int cras_poll(struct pollfd* fds,
+              nfds_t nfds,
+              struct timespec* timeout,
+              const sigset_t* sigmask);
 
 /* Wait for /dev/input/event* files to become accessible.
  *
@@ -248,19 +244,18 @@ int cras_poll(struct pollfd *fds, nfds_t nfds, struct timespec *timeout,
 int wait_for_dev_input_access();
 
 /*
-* 100 = 1.00db in ALSA interface
-* Args:
-*     dB - volume unit
-* Returns:
-*     dB - repersented in ALSA interface.
-*/
-static inline long db_to_alsa_db(long dB)
-{
-	return dB * 100;
+ * 100 = 1.00db in ALSA interface
+ * Args:
+ *     dB - volume unit
+ * Returns:
+ *     dB - repersented in ALSA interface.
+ */
+static inline long db_to_alsa_db(long dB) {
+  return dB * 100;
 }
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_INCLUDE_CRAS_UTIL_H_ */
+#endif  // CRAS_INCLUDE_CRAS_UTIL_H_

@@ -4,9 +4,8 @@
 
 #include <map>
 
-#include "gtest/gtest.h"
-
 #include "extract_member_comments.h"
+#include "gtest/gtest.h"
 
 namespace devtools {
 

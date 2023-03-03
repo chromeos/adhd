@@ -32,8 +32,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   struct cras_bt_device* bt_dev = cras_bt_device_create(NULL, "");
   struct hfp_slc_handle* handle =
       hfp_slc_create(fd, ag_supported_features, bt_dev, NULL, &disconnect_cb);
-  if (!handle)
+  if (!handle) {
     return 0;
+  }
 
   handle_at_command_for_test(handle, command.c_str());
 
@@ -44,12 +45,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
 extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   char* shm_name;
-  if (asprintf(&shm_name, "/cras-%d", getpid()) < 0)
+  if (asprintf(&shm_name, "/cras-%d", getpid()) < 0) {
     exit(-ENOMEM);
+  }
   struct cras_server_state* exp_state =
       (struct cras_server_state*)calloc(1, sizeof(*exp_state));
-  if (!exp_state)
+  if (!exp_state) {
     exit(-1);
+  }
   int rw_shm_fd = open("/dev/null", O_RDWR);
   int ro_shm_fd = open("/dev/null", O_RDONLY);
   cras_system_state_init("/tmp", shm_name, rw_shm_fd, ro_shm_fd, exp_state,

@@ -8,7 +8,7 @@
 
 #include <time.h>
 
-/* Represents a time interval, in seconds, which can be checked periodically. */
+// Represents a time interval, in seconds, which can be checked periodically.
 struct polled_interval;
 
 /*
@@ -17,12 +17,12 @@ struct polled_interval;
  *
  * Call pic_update_current_time() shortly before this function.
  */
-struct polled_interval *pic_polled_interval_create(int interval_sec);
+struct polled_interval* pic_polled_interval_create(int interval_sec);
 
 /*
  * Destroys the specified polled_interval, and set's the pointer to it to NULL.
  */
-void pic_polled_interval_destroy(struct polled_interval **interval);
+void pic_polled_interval_destroy(struct polled_interval** interval);
 
 /*
  * Whether the interval's duration has elapsed (since the interval was created
@@ -30,14 +30,14 @@ void pic_polled_interval_destroy(struct polled_interval **interval);
  *
  * Call pic_update_current_time() shortly before this function.
  */
-int pic_interval_elapsed(const struct polled_interval *interval);
+int pic_interval_elapsed(const struct polled_interval* interval);
 
 /*
  * Resets the interval; it will elapse it's specified duration from now.
  *
  * Call pic_update_current_time() shortly before this function.
  */
-void pic_interval_reset(struct polled_interval *pi);
+void pic_interval_reset(struct polled_interval* pi);
 
 /*
  * Updates the current time, which is used in all other pic_* functions (which
@@ -46,4 +46,4 @@ void pic_interval_reset(struct polled_interval *pi);
  */
 void pic_update_current_time();
 
-#endif /* POLLED_ACTIVITY_CHECKER_H_ */
+#endif  // POLLED_ACTIVITY_CHECKER_H_

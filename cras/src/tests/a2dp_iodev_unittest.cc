@@ -7,10 +7,9 @@
 #include <stdio.h>
 
 extern "C" {
-#include "cras/src/server/cras_a2dp_iodev.c"
-
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
+#include "cras/src/server/cras_a2dp_iodev.c"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_bt_transport.h"
 #include "cras/src/server/cras_iodev.h"
@@ -21,7 +20,7 @@ extern "C" {
 #define MAX_A2DP_ENCODE_CALLS 8
 #define MAX_A2DP_WRITE_CALLS 4
 
-/* Fake the codec to encode (512/4) frames into 128 bytes. */
+// Fake the codec to encode (512/4) frames into 128 bytes.
 #define FAKE_A2DP_CODE_SIZE 512
 #define FAKE_A2DP_FRAME_LENGTH 128
 
@@ -73,7 +72,7 @@ void ResetStubData() {
   cras_iodev_free_resources_called = 0;
   a2dp_write_index = 0;
   a2dp_encode_called = 0;
-  /* Fake the MTU value. min_buffer_level will be derived from this value. */
+  // Fake the MTU value. min_buffer_level will be derived from this value.
   cras_bt_transport_write_mtu_ret = 950;
   cras_iodev_fill_odev_zeros_called = 0;
 
@@ -143,7 +142,7 @@ TEST_F(A2dpIodev, InitializeA2dpIodev) {
   ASSERT_EQ(1, cras_iodev_free_resources_called);
 
   cras_bt_device_name_ret = fake_device_name;
-  /* Assert iodev name matches the bt device's name */
+  // Assert iodev name matches the bt device's name
   iodev = a2dp_iodev_create(fake_transport);
   ASSERT_STREQ(fake_device_name, iodev->info.name);
 
@@ -203,7 +202,7 @@ TEST_F(A2dpIodev, GetPutBuffer) {
   iodev->start(iodev);
   iodev->state = CRAS_IODEV_STATE_NORMAL_RUN;
 
-  /* (950 - 13) / 128 * 512 / 4 */
+  // (950 - 13) / 128 * 512 / 4
   ASSERT_EQ(iodev->min_buffer_level, 896);
 
   frames = 1500;
@@ -222,7 +221,7 @@ TEST_F(A2dpIodev, GetPutBuffer) {
   EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
   EXPECT_GT(a2dpio->next_flush_time.tv_nsec, 0);
 
-  /* Assert buffer possition shifted 1000 * 4 bytes */
+  // Assert buffer possition shifted 1000 * 4 bytes
   frames = 1000;
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(1000, frames);
@@ -243,11 +242,11 @@ TEST_F(A2dpIodev, GetPutBuffer) {
   frames = 50;
   iodev->get_buffer(iodev, &area3, &frames);
   ASSERT_EQ(50, frames);
-  /* Assert buffer possition shifted 700 * 4 bytes */
+  // Assert buffer possition shifted 700 * 4 bytes
   EXPECT_EQ(2800, area3->channels[0].buf - last_buf_head);
 
   iodev->put_buffer(iodev, 50);
-  /* 804 + 50 = 854 queued, 768 of them are encoded. */
+  // 804 + 50 = 854 queued, 768 of them are encoded.
   EXPECT_EQ(854, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(768, a2dpio->a2dp.samples);
   /* Expect one a2dp encode call was executed for the left un-encoded frames.
@@ -288,20 +287,20 @@ TEST_F(A2dpIodev, FramesQueued) {
   ASSERT_EQ(256, frames);
   ASSERT_EQ(256, area->frames);
 
-  /* Data less than write_block hence not written. */
+  // Data less than write_block hence not written.
   iodev->put_buffer(iodev, 200);
   EXPECT_EQ(200, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
   EXPECT_EQ(tstamp.tv_nsec, time_now.tv_nsec);
 
-  /* 200 + 800 - 896 = 104 */
+  // 200 + 800 - 896 = 104
   a2dp_write_return_val[0] = 0;
   frames = 800;
   iodev->get_buffer(iodev, &area, &frames);
   iodev->put_buffer(iodev, 800);
   EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
 
-  /* Some time has passed, same amount of frames are queued. */
+  // Some time has passed, same amount of frames are queued.
   time_now.tv_nsec = 15000000;
   write_callback(write_callback_data, POLLOUT);
   EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
@@ -313,7 +312,7 @@ TEST_F(A2dpIodev, FramesQueued) {
   iodev->put_buffer(iodev, 900);
   EXPECT_EQ(1004, iodev->frames_queued(iodev, &tstamp));
 
-  /* Time passes next_flush_time, 1004 + 300 - 896 = 408 */
+  // Time passes next_flush_time, 1004 + 300 - 896 = 408
   time_now.tv_nsec = 25000000;
   frames = 300;
   iodev->get_buffer(iodev, &area, &frames);
@@ -358,17 +357,17 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   ASSERT_EQ(1000, frames);
   ASSERT_EQ(1000, area->frames);
 
-  /* Expect the first block be flushed at time 0. */
+  // Expect the first block be flushed at time 0.
   time_now.tv_nsec = 0;
   a2dp_write_return_val[0] = 0;
   EXPECT_EQ(0, iodev->put_buffer(iodev, 1000));
-  EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp)); /* 1000 - 896 */
+  EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));  // 1000 - 896
 
-  /* Same amount of frames are queued after some time has passed. */
+  // Same amount of frames are queued after some time has passed.
   time_now.tv_nsec = 10000000;
   EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
 
-  /* Expect to sleep the time between now(10ms) and next_flush_time(~20.3ms). */
+  // Expect to sleep the time between now(10ms) and next_flush_time(~20.3ms).
   frames = iodev->frames_to_play_in_sleep(iodev, &level, &tstamp);
   target =
       a2dpio->write_block - time_now.tv_nsec * format.frame_rate / 1000000000;
@@ -385,7 +384,7 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   frames = 1000;
   iodev->get_buffer(iodev, &area, &frames);
   EXPECT_EQ(0, iodev->put_buffer(iodev, 1000));
-  EXPECT_EQ(208, iodev->frames_queued(iodev, &tstamp)); /* 104 + 1000 - 896 */
+  EXPECT_EQ(208, iodev->frames_queued(iodev, &tstamp));  // 104 + 1000 - 896
 
   /* Flush another write_block of data, next_wake_time fast forward by
    * another flush_period. Expect to sleep the time between now(25ms)
@@ -396,7 +395,7 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   EXPECT_GE(frames + 1, target);
   EXPECT_GE(target + 1, frames);
 
-  /* Put 1000 more frames, and make a fake failure to this flush. */
+  // Put 1000 more frames, and make a fake failure to this flush.
   time_now.tv_nsec = 45000000;
   a2dp_write_return_val[2] = -EAGAIN;
   frames = 1000;
@@ -406,7 +405,7 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   /* Last a2dp write call failed with -EAGAIN, time now(45ms) is after
    * next_flush_time. Expect to return exact |write_block| equivalant
    * of time to sleep. */
-  EXPECT_EQ(1208, iodev->frames_queued(iodev, &tstamp)); /* 208 + 1000 */
+  EXPECT_EQ(1208, iodev->frames_queued(iodev, &tstamp));  // 208 + 1000
   EXPECT_EQ(a2dpio->write_block,
             iodev->frames_to_play_in_sleep(iodev, &level, &tstamp));
 
@@ -414,9 +413,9 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
    * next_flush_time fast forwards by another flush_period. */
   a2dp_write_return_val[3] = 0;
   write_callback(write_callback_data, POLLOUT);
-  EXPECT_EQ(312, iodev->frames_queued(iodev, &tstamp)); /* 1208 - 896 */
+  EXPECT_EQ(312, iodev->frames_queued(iodev, &tstamp));  // 1208 - 896
 
-  /* Expect to sleep the time between now and next_flush_time(~60.9ms). */
+  // Expect to sleep the time between now and next_flush_time(~60.9ms).
   frames = iodev->frames_to_play_in_sleep(iodev, &level, &tstamp);
   target = a2dpio->write_block * 3 -
            time_now.tv_nsec * format.frame_rate / 1000000000;
@@ -457,7 +456,7 @@ TEST_F(A2dpIodev, EnableThreadCallbackAtBufferFull) {
   EXPECT_EQ(1, audio_thread_config_events_callback_called);
   EXPECT_EQ(TRIGGER_NONE, audio_thread_config_events_callback_trigger);
 
-  /* Fastfoward time 1ms, not yet reaches the next flush time. */
+  // Fastfoward time 1ms, not yet reaches the next flush time.
   time_now.tv_nsec = 1000000;
 
   /* Cram into iodev as much data as possible. Expect its buffer to
@@ -491,7 +490,7 @@ TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
 
-  /* (950 - 13)/ 128 * 512 / 4 */
+  // (950 - 13)/ 128 * 512 / 4
   ASSERT_EQ(iodev->min_buffer_level, 896);
 
   iodev->start(iodev);
@@ -510,7 +509,7 @@ TEST_F(A2dpIodev, FlushAtLowBufferLevel) {
   EXPECT_EQ(0, iodev->put_buffer(iodev, 1500));
   EXPECT_EQ(1, a2dp_write_index);
 
-  /* 1500 - 896 */
+  // 1500 - 896
   time_now.tv_nsec = 25000000;
   EXPECT_EQ(604, iodev->frames_queued(iodev, &tstamp));
   EXPECT_EQ(tstamp.tv_sec, time_now.tv_sec);
@@ -531,7 +530,7 @@ TEST_F(A2dpIodev, HandleUnderrun) {
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
-  /* (950 - 13) / 128 * 512 / 4 */
+  // (950 - 13) / 128 * 512 / 4
   EXPECT_EQ(896, iodev->min_buffer_level);
 
   iodev->start(iodev);
@@ -575,7 +574,7 @@ TEST_F(A2dpIodev, LeavingNoStreamStateWithSmallStreamDoesntUnderrun) {
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
-  /* (950 - 13)/ 128 * 512 / 4 */
+  // (950 - 13)/ 128 * 512 / 4
   ASSERT_EQ(896, iodev->min_buffer_level);
 
   iodev->start(iodev);
@@ -619,7 +618,7 @@ TEST_F(A2dpIodev, NoStreamStateFillZerosToTargetLevel) {
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
-  /* (950 - 13)/ 128 * 512 / 4 */
+  // (950 - 13)/ 128 * 512 / 4
   ASSERT_EQ(896, iodev->min_buffer_level);
 
   iodev->start(iodev);
@@ -642,7 +641,7 @@ TEST_F(A2dpIodev, NoStreamStateFillZerosToTargetLevel) {
   frames = iodev->frames_queued(iodev, &tstamp);
   EXPECT_EQ(3 * iodev->min_buffer_level, frames);
 
-  /* Time has passed next flush time, expect one block is flushed.  */
+  // Time has passed next flush time, expect one block is flushed.
   a2dp_write_return_val[1] = 0;
   time_now.tv_nsec = 25000000;
   iodev->no_stream(iodev, 1);
@@ -678,7 +677,7 @@ TEST_F(A2dpIodev, EnterNoStreamStateAtHighBufferLevelDoesntFillMore) {
   time_now.tv_nsec = 0;
   iodev->configure_dev(iodev);
   ASSERT_NE(write_callback, (void*)NULL);
-  /* (950 - 13)/ 128 * 512 / 4 */
+  // (950 - 13)/ 128 * 512 / 4
   ASSERT_EQ(896, iodev->min_buffer_level);
 
   iodev->start(iodev);
@@ -690,7 +689,7 @@ TEST_F(A2dpIodev, EnterNoStreamStateAtHighBufferLevelDoesntFillMore) {
   iodev->get_buffer(iodev, &area, &frames);
   iodev->put_buffer(iodev, frames);
   frames = iodev->frames_queued(iodev, &tstamp);
-  /* Assert one block has fluxhed */
+  // Assert one block has fluxhed
   EXPECT_EQ(start_level - iodev->min_buffer_level, frames);
   EXPECT_EQ(1, a2dp_write_index);
   EXPECT_EQ(a2dpio->flush_period.tv_nsec, a2dpio->next_flush_time.tv_nsec);
@@ -699,7 +698,7 @@ TEST_F(A2dpIodev, EnterNoStreamStateAtHighBufferLevelDoesntFillMore) {
   time_now.tv_nsec = 25000000;
   iodev->no_stream(iodev, 1);
   frames = iodev->frames_queued(iodev, &tstamp);
-  /* Next flush time meets requirement so another block is flushed. */
+  // Next flush time meets requirement so another block is flushed.
   ASSERT_EQ(start_level - 2 * iodev->min_buffer_level, frames);
 
   a2dp_write_return_val[2] = 0;
@@ -863,10 +862,12 @@ int a2dp_encode(struct a2dp_info* a2dp,
   int processed = 0;
   a2dp_encode_called++;
 
-  if (a2dp->a2dp_buf_used + a2dp->frame_length > link_mtu)
+  if (a2dp->a2dp_buf_used + a2dp->frame_length > link_mtu) {
     return 0;
-  if (pcm_buf_size < a2dp->codesize)
+  }
+  if (pcm_buf_size < a2dp->codesize) {
     return 0;
+  }
 
   processed += a2dp->codesize;
   a2dp->a2dp_buf_used += a2dp->frame_length;
@@ -877,12 +878,14 @@ int a2dp_encode(struct a2dp_info* a2dp,
 
 int a2dp_write(struct a2dp_info* a2dp, int stream_fd, size_t link_mtu) {
   int ret, samples;
-  if (a2dp->frame_length + a2dp->a2dp_buf_used < link_mtu)
+  if (a2dp->frame_length + a2dp->a2dp_buf_used < link_mtu) {
     return 0;
+  }
 
   ret = a2dp_write_return_val[a2dp_write_index++];
-  if (ret < 0)
+  if (ret < 0) {
     return ret;
+  }
 
   samples = a2dp->samples;
   a2dp->samples = 0;

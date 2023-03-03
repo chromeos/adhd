@@ -10,7 +10,7 @@
 
 struct cras_audio_shm;
 
-/* SIMD optimisation flags */
+// SIMD optimisation flags
 #define CPU_X86_SSE4_2 1
 #define CPU_X86_AVX 2
 #define CPU_X86_AVX2 4
@@ -30,9 +30,13 @@ void cras_mix_init();
  *    target - The value at which to clip the scaler.
  *    channel - Number of samples in a frame.
  */
-void cras_scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
-				 unsigned int frame, float scaler,
-				 float increment, float target, int channel);
+void cras_scale_buffer_increment(snd_pcm_format_t fmt,
+                                 uint8_t* buff,
+                                 unsigned int frame,
+                                 float scaler,
+                                 float increment,
+                                 float target,
+                                 int channel);
 
 /* Scale the given buffer with the provided scaler.
  * Args:
@@ -42,8 +46,10 @@ void cras_scale_buffer_increment(snd_pcm_format_t fmt, uint8_t *buff,
  *    count - The number of samples to render, on return holds the number
  *        actually mixed.
  */
-void cras_scale_buffer(snd_pcm_format_t fmt, uint8_t *buff, unsigned int count,
-		       float scaler);
+void cras_scale_buffer(snd_pcm_format_t fmt,
+                       uint8_t* buff,
+                       unsigned int count,
+                       float scaler);
 
 /* Add src buffer to dst, scaling and setting mute.
  * Args:
@@ -55,9 +61,13 @@ void cras_scale_buffer(snd_pcm_format_t fmt, uint8_t *buff, unsigned int count,
  *    mute - Is the stream providing the buffer muted.
  *    mix_vol - Scaler for the buffer to be mixed.
  */
-void cras_mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
-		  unsigned int count, unsigned int index, int mute,
-		  float mix_vol);
+void cras_mix_add(snd_pcm_format_t fmt,
+                  uint8_t* dst,
+                  uint8_t* src,
+                  unsigned int count,
+                  unsigned int index,
+                  int mute,
+                  float mix_vol);
 
 /* Add src buffer to dst with independent channel strides.
  * Args:
@@ -69,9 +79,13 @@ void cras_mix_add(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
  *    src_stride - Stride between channel samples in src in bytes.
  *    scaler - Amount to scale samples.
  */
-void cras_mix_add_scale_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
-			       unsigned int count, unsigned int dst_stride,
-			       unsigned int src_stride, float scaler);
+void cras_mix_add_scale_stride(snd_pcm_format_t fmt,
+                               uint8_t* dst,
+                               uint8_t* src,
+                               unsigned int count,
+                               unsigned int dst_stride,
+                               unsigned int src_stride,
+                               float scaler);
 
 /* Mutes the given buffer.
  * Args:
@@ -79,6 +93,6 @@ void cras_mix_add_scale_stride(snd_pcm_format_t fmt, uint8_t *dst, uint8_t *src,
  *    frame_bytes - number of bytes in a frame.
  *    count - The number of frames to render.
  */
-size_t cras_mix_mute_buffer(uint8_t *dst, size_t frame_bytes, size_t count);
+size_t cras_mix_mute_buffer(uint8_t* dst, size_t frame_bytes, size_t count);
 
-#endif /* CRAS_SRC_SERVER_CRAS_MIX_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_MIX_H_

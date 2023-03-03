@@ -3,11 +3,10 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include <string>
 #include <vector>
 
 #include "cras_util.h"
@@ -307,7 +306,7 @@ TEST(Util, CrasPoll) {
   EXPECT_EQ(0, close(pipe_fds[1]));
 }
 
-/* Stubs */
+// Stubs
 extern "C" {
 
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {
@@ -315,8 +314,9 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   if (i != time_now.end()) {
     *tp = *i;
     time_now.erase(i);
-  } else
+  } else {
     memset(tp, 0, sizeof(*tp));
+  }
   return 0;
 }
 

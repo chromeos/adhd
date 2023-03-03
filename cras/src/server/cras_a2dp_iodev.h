@@ -15,11 +15,11 @@ struct cras_iodev;
  * Args:
  *    transport - The transport to create a2dp iodev for
  */
-struct cras_iodev *a2dp_iodev_create(struct cras_bt_transport *transport);
+struct cras_iodev* a2dp_iodev_create(struct cras_bt_transport* transport);
 
 /*
  * Destroys a2dp iodev.
  */
-void a2dp_iodev_destroy(struct cras_iodev *iodev);
+void a2dp_iodev_destroy(struct cras_iodev* iodev);
 
-#endif /* CRS_A2DP_IODEV_H_ */
+#endif  // CRS_A2DP_IODEV_H_

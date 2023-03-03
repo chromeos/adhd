@@ -202,8 +202,9 @@ TEST_F(Alert, TwoAlerts) {
 
 void callback1(void* arg, void* data) {
   cb1_called++;
-  if (data)
+  if (data) {
     cb1_data.data = ((struct cb_data_struct*)data)->data;
+  }
 }
 
 void callback2(void* arg, void* data) {

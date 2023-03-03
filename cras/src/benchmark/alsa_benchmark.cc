@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <chromeos-config/libcros_config/cros_config.h>
 #include <cstdint>
 #include <iostream>
 #include <random>
 #include <vector>
 
-#include <chromeos-config/libcros_config/cros_config.h>
 #include "benchmark/benchmark.h"
 // Both "/usr/include/libchrome/base/compiler_specific.h" and "libcras.h"
 // have definitions for DISABLE_CFI_ICALL. Undefine the libchrome one.
@@ -115,7 +115,7 @@ class BM_Alsa : public benchmark::Fixture {
     return std::make_tuple(card_name, card_idx);
   }
 
-  /* Returns the pcm device name, ex: hw:0,0 */
+  // Returns the pcm device name, ex: hw:0,0
   std::string get_pcm_name(BM_Alsa::PCM_DEVICE device) {
     brillo::CrosConfig cros_config;
     struct cras_use_case_mgr* ucm_mgr;
@@ -146,8 +146,9 @@ class BM_Alsa : public benchmark::Fixture {
     BM_Alsa::PCM_DEVICE device =
         static_cast<BM_Alsa::PCM_DEVICE>(state.range(0));
     pcm_name = get_pcm_name(device);
-    if (pcm_name == "")
+    if (pcm_name == "") {
       state.SkipWithError("Couldn't get pcm_name.");
+    }
 
     return;
   }
@@ -210,13 +211,12 @@ BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {
   double max_elapsed_seconds = 0.0;
   for (auto _ : state) {
     auto start = std::chrono::high_resolution_clock::now();
-    mixer_ops.scale_buffer(SND_PCM_FORMAT_S16_LE, buffer,
-                        frames * channels, scale);
+    mixer_ops.scale_buffer(SND_PCM_FORMAT_S16_LE, buffer, frames * channels,
+                           scale);
     auto end = std::chrono::high_resolution_clock::now();
 
     auto elapsed_seconds =
-      std::chrono::duration_cast<std::chrono::duration<double>>(
-        end - start);
+        std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
 
     state.SetIterationTime(elapsed_seconds.count());
     max_elapsed_seconds = fmax(max_elapsed_seconds, elapsed_seconds.count());
@@ -230,18 +230,18 @@ BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {
       int64_t(state.iterations()) * frames, benchmark::Counter::kIsRate);
 
   state.counters["time_per_4096_frames"] = benchmark::Counter(
-        int64_t(state.iterations()), benchmark::Counter::kIsRate |
-        benchmark::Counter::kInvert);
+      int64_t(state.iterations()),
+      benchmark::Counter::kIsRate | benchmark::Counter::kInvert);
 
   state.counters["max_time_per_4096_frames"] = max_elapsed_seconds;
 }
 
 BENCHMARK_REGISTER_F(BM_Alsa, MmapBufferAccess)
-  ->Name("BM_Alsa/MmapBufferAccess/Speaker")
-  ->UseManualTime()
-  ->Arg(0);
+    ->Name("BM_Alsa/MmapBufferAccess/Speaker")
+    ->UseManualTime()
+    ->Arg(0);
 BENCHMARK_REGISTER_F(BM_Alsa, MmapBufferAccess)
-  ->Name("BM_Alsa/MmapBufferAccess/Headphone")
-  ->UseManualTime()
-  ->Arg(1);
+    ->Name("BM_Alsa/MmapBufferAccess/Headphone")
+    ->UseManualTime()
+    ->Arg(1);
 }  // namespace

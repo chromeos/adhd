@@ -56,11 +56,11 @@ TEST(CrasSco, AddRmDev) {
   ASSERT_NE(sco, (void*)NULL);
   dev.direction = CRAS_STREAM_OUTPUT;
 
-  /* Test add dev */
+  // Test add dev
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
   ASSERT_TRUE(cras_sco_has_iodev(sco));
 
-  /* Test remove dev */
+  // Test remove dev
   ASSERT_EQ(0, cras_sco_rm_iodev(sco, dev.direction));
   ASSERT_FALSE(cras_sco_has_iodev(sco));
 
@@ -75,10 +75,10 @@ TEST(CrasSco, AddRmDevInvalid) {
 
   dev.direction = CRAS_STREAM_OUTPUT;
 
-  /* Remove an iodev which doesn't exist */
+  // Remove an iodev which doesn't exist
   ASSERT_NE(0, cras_sco_rm_iodev(sco, dev.direction));
 
-  /* Adding an iodev twice returns error code */
+  // Adding an iodev twice returns error code
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
   ASSERT_NE(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
@@ -117,13 +117,13 @@ TEST(CrasSco, AcquirePlaybackBuffer) {
   cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
   ASSERT_GE(sco->playback_buf->used_size / 2, buffer_frames + queued);
 
-  /* Consume all queued data from read buffer */
+  // Consume all queued data from read buffer
   buf_increment_read(sco->playback_buf, queued * 2);
 
   queued = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(0, queued);
 
-  /* Assert consecutive acquire buffer will acquire full used size of buffer */
+  // Assert consecutive acquire buffer will acquire full used size of buffer
   buffer_frames = 500;
   cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
   cras_sco_buf_release(sco, dev.direction, buffer_frames);
@@ -155,10 +155,10 @@ TEST(CrasSco, AcquireCaptureBuffer) {
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Put fake data 100 bytes(50 frames) in capture buf for test */
+  // Put fake data 100 bytes(50 frames) in capture buf for test
   buf_increment_write(sco->capture_buf, 100);
 
-  /* Assert successfully acquire and release 100 bytes of data */
+  // Assert successfully acquire and release 100 bytes of data
   buffer_frames = 50;
   cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
   ASSERT_EQ(50, buffer_frames);
@@ -166,11 +166,11 @@ TEST(CrasSco, AcquireCaptureBuffer) {
   cras_sco_buf_release(sco, dev.direction, buffer_frames);
   ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
-  /* Push fake data to capture buffer */
+  // Push fake data to capture buffer
   buf_increment_write(sco->capture_buf, sco->capture_buf->used_size - 100);
   buf_increment_write(sco->capture_buf, 100);
 
-  /* Assert consecutive acquire call will consume the whole buffer */
+  // Assert consecutive acquire call will consume the whole buffer
   buffer_frames = 1000;
   cras_sco_buf_acquire(sco, dev.direction, &samples, &buffer_frames);
   cras_sco_buf_release(sco, dev.direction, buffer_frames);
@@ -206,7 +206,7 @@ TEST(CrasSco, HfpReadWriteFD) {
   cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Mock the sco fd and send some fake data */
+  // Mock the sco fd and send some fake data
   send(sock[0], sample, 48, 0);
 
   rc = sco_read(sco);
@@ -215,7 +215,7 @@ TEST(CrasSco, HfpReadWriteFD) {
   rc = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(48 / 2, rc);
 
-  /* Fill the write buffer*/
+  // Fill the write buffer
   buffer_count = sco->capture_buf->used_size;
   buf = buf_write_pointer_size(sco->capture_buf, &buffer_count);
   buf_increment_write(sco->capture_buf, buffer_count);
@@ -228,7 +228,7 @@ TEST(CrasSco, HfpReadWriteFD) {
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Initial buffer is empty */
+  // Initial buffer is empty
   rc = sco_write(sco);
   ASSERT_EQ(0, rc);
 
@@ -279,23 +279,23 @@ TEST(CrasSco, StartCrasScoAndRead) {
   sco = cras_sco_create(fake_device);
   ASSERT_NE(sco, (void*)NULL);
 
-  /* Start and send two chunk of fake data */
+  // Start and send two chunk of fake data
   cras_sco_set_fd(sco, sock[1]);
   cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
-  /* Trigger thread callback */
+  // Trigger thread callback
   thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Expect no data read, since no idev present at previous thread callback */
+  // Expect no data read, since no idev present at previous thread callback
   rc = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(0, rc);
 
-  /* Trigger thread callback after idev added. */
+  // Trigger thread callback after idev added.
   ts.tv_sec = 0;
   ts.tv_nsec = 5000000;
   thread_cb((struct cras_sco*)cb_data, POLLIN);
@@ -303,7 +303,7 @@ TEST(CrasSco, StartCrasScoAndRead) {
   rc = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(48 / 2, rc);
 
-  /* Assert wait time is unchanged. */
+  // Assert wait time is unchanged.
   ASSERT_EQ(0, ts.tv_sec);
   ASSERT_EQ(5000000, ts.tv_nsec);
 
@@ -331,24 +331,24 @@ TEST(CrasSco, StartCrasScoAndWrite) {
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
-  /* Trigger thread callback */
+  // Trigger thread callback
   thread_cb((struct cras_sco*)cb_data, POLLIN);
 
-  /* Without odev in presence, zero packet should be sent. */
+  // Without odev in presence, zero packet should be sent.
   rc = recv(sock[0], sample, 48, 0);
   ASSERT_EQ(48, rc);
 
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Assert queued samples unchanged before output device added */
+  // Assert queued samples unchanged before output device added
   ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
-  /* Put some fake data and trigger thread callback again */
+  // Put some fake data and trigger thread callback again
   buf_increment_write(sco->playback_buf, 1008);
   thread_cb((struct cras_sco*)cb_data, POLLIN);
 
-  /* Assert some samples written */
+  // Assert some samples written
   rc = recv(sock[0], sample, 48, 0);
   ASSERT_EQ(48, rc);
   ASSERT_EQ(480, cras_sco_buf_queued(sco, dev.direction));
@@ -379,7 +379,7 @@ void send_mSBC_packet(int fd, unsigned seq, int broken_pkt) {
 
   hci_sco_buf[1] = headers[seq % 4];
 
-  /* Assume typical 60 bytes case. */
+  // Assume typical 60 bytes case.
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
   iov.iov_base = hci_sco_buf;
@@ -387,8 +387,9 @@ void send_mSBC_packet(int fd, unsigned seq, int broken_pkt) {
   msg.msg_control = control;
   msg.msg_controllen = control_size;
 
-  if (broken_pkt)
+  if (broken_pkt) {
     pkt_status = 0x11;
+  }
 
   cmsg = CMSG_FIRSTHDR(&msg);
   cmsg->cmsg_level = SOL_BLUETOOTH;
@@ -415,29 +416,29 @@ TEST(CrasSco, StartCrasScoAndReadMsbc) {
   ASSERT_EQ(0, get_msbc_codec_create_called());
   ASSERT_EQ(0, cras_msbc_plc_create_called);
 
-  /* Start and send an mSBC packets with all zero samples */
+  // Start and send an mSBC packets with all zero samples
   cras_sco_set_fd(sco, sock[1]);
   cras_sco_start(63, HFP_CODEC_ID_MSBC, sco);
   ASSERT_EQ(2, get_msbc_codec_create_called());
   ASSERT_EQ(1, cras_msbc_plc_create_called);
   send_mSBC_packet(sock[0], pkt_count++, 0);
 
-  /* Trigger thread callback */
+  // Trigger thread callback
   thread_cb((struct cras_sco*)cb_data, POLLIN);
 
-  /* Expect one empty mSBC packet is send, because no odev in presence. */
+  // Expect one empty mSBC packet is send, because no odev in presence.
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Expect no data read, since no idev present at previous thread callback */
+  // Expect no data read, since no idev present at previous thread callback
   ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
   send_mSBC_packet(sock[0], pkt_count, 0);
 
-  /* Trigger thread callback after idev added. */
+  // Trigger thread callback after idev added.
   thread_cb((struct cras_sco*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
@@ -455,7 +456,7 @@ TEST(CrasSco, StartCrasScoAndReadMsbc) {
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
-  /* Packet 1, 2, 4 are all good frames */
+  // Packet 1, 2, 4 are all good frames
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(1, cras_msbc_plc_handle_bad_frames_called);
   ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2,
@@ -520,23 +521,23 @@ TEST_F(CrasScoWithSrBtTestSuite, StartCrasScoAndRead) {
   ASSERT_NE(sco, (void*)NULL);
   ASSERT_EQ(cras_sco_enable_cras_sr_bt(sco, SR_BT_NBS), 0);
 
-  /* Start and send two chunk of fake data */
+  // Start and send two chunk of fake data
   cras_sco_set_fd(sco, sock[1]);
   cras_sco_start(48, HFP_CODEC_ID_CVSD, sco);
   send(sock[0], sample, 48, 0);
   send(sock[0], sample, 48, 0);
 
-  /* Trigger thread callback */
+  // Trigger thread callback
   thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Expect no data read, since no idev present at previous thread callback */
+  // Expect no data read, since no idev present at previous thread callback
   rc = cras_sco_buf_queued(sco, dev.direction);
   ASSERT_EQ(0, rc);
 
-  /* Trigger thread callback after idev added. */
+  // Trigger thread callback after idev added.
   ts.tv_sec = 0;
   ts.tv_nsec = 5000000;
   thread_cb((struct cras_sco*)cb_data, POLLIN);
@@ -544,7 +545,7 @@ TEST_F(CrasScoWithSrBtTestSuite, StartCrasScoAndRead) {
   rc = cras_sco_buf_queued(sco, dev.direction);
   EXPECT_EQ(48 * 3 / 2, rc);
 
-  /* Assert wait time is unchanged. */
+  // Assert wait time is unchanged.
   ASSERT_EQ(0, ts.tv_sec);
   ASSERT_EQ(5000000, ts.tv_nsec);
 
@@ -572,29 +573,29 @@ TEST_F(CrasScoWithSrBtTestSuite, StartCrasScoAndReadMsbc) {
   ASSERT_EQ(0, cras_msbc_plc_create_called);
   ASSERT_EQ(cras_sco_enable_cras_sr_bt(sco, SR_BT_WBS), 0);
 
-  /* Start and send an mSBC packets with all zero samples */
+  // Start and send an mSBC packets with all zero samples
   cras_sco_set_fd(sco, sock[1]);
   cras_sco_start(63, HFP_CODEC_ID_MSBC, sco);
   ASSERT_EQ(2, get_msbc_codec_create_called());
   ASSERT_EQ(1, cras_msbc_plc_create_called);
   send_mSBC_packet(sock[0], pkt_count++, 0);
 
-  /* Trigger thread callback */
+  // Trigger thread callback
   thread_cb((struct cras_sco*)cb_data, POLLIN);
 
-  /* Expect one empty mSBC packet is send, because no odev in presence. */
+  // Expect one empty mSBC packet is send, because no odev in presence.
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
   dev.direction = CRAS_STREAM_INPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Expect no data read, since no idev present at previous thread callback */
+  // Expect no data read, since no idev present at previous thread callback
   ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
   send_mSBC_packet(sock[0], pkt_count, 0);
 
-  /* Trigger thread callback after idev added. */
+  // Trigger thread callback after idev added.
   thread_cb((struct cras_sco*)cb_data, POLLIN);
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
@@ -612,7 +613,7 @@ TEST_F(CrasScoWithSrBtTestSuite, StartCrasScoAndReadMsbc) {
   rc = recv(sock[0], sample, MSBC_PKT_SIZE, 0);
   ASSERT_EQ(MSBC_PKT_SIZE, rc);
 
-  /* Packet 1, 2, 4 are all good frames */
+  // Packet 1, 2, 4 are all good frames
   ASSERT_EQ(3, cras_msbc_plc_handle_good_frames_called);
   ASSERT_EQ(1, cras_msbc_plc_handle_bad_frames_called);
   ASSERT_EQ(pkt_count * MSBC_CODE_SIZE / 2 * 1.5,
@@ -674,21 +675,21 @@ TEST(CrasSco, StartCrasScoAndWriteMsbc) {
   cras_sco_start(63, HFP_CODEC_ID_MSBC, sco);
   send(sock[0], sample, 63, 0);
 
-  /* Trigger thread callback */
+  // Trigger thread callback
   thread_cb((struct cras_sco*)cb_data, POLLIN);
 
   dev.direction = CRAS_STREAM_OUTPUT;
   ASSERT_EQ(0, cras_sco_add_iodev(sco, dev.direction, dev.format));
 
-  /* Assert queued samples unchanged before output device added */
+  // Assert queued samples unchanged before output device added
   ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
 
-  /* Put some fake data and trigger thread callback again */
+  // Put some fake data and trigger thread callback again
   send(sock[0], sample, 63, 0);
   buf_increment_write(sco->playback_buf, 240);
   thread_cb((struct cras_sco*)cb_data, POLLIN);
 
-  /* Assert some samples written */
+  // Assert some samples written
   rc = recv(sock[0], sample, 60, 0);
   ASSERT_EQ(60, rc);
   ASSERT_EQ(0, cras_sco_buf_queued(sco, dev.direction));
@@ -704,7 +705,7 @@ TEST(CrasSco, WBSLoggerPacketStatusDumpBinary) {
   int num_wraps[5] = {0, 0, 0, 1, 1};
   int wp[5] = {40, 150, 162, 100, 32};
 
-  /* Expect the log line wraps at correct length to avoid feedback redact. */
+  // Expect the log line wraps at correct length to avoid feedback redact.
   snprintf(log_regex, 64, "([01D]{%d}\n)*", PACKET_STATUS_LOG_LINE_WRAP);
 
   packet_status_logger_init(&logger);
@@ -767,8 +768,9 @@ int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc* plc,
 }
 
 void packet_status_logger_init(struct packet_status_logger* logger) {
-  if (logger == NULL)
+  if (logger == NULL) {
     return;
+  }
 
   memset(logger->data, 0, PACKET_STATUS_LEN_BYTES);
   logger->size = PACKET_STATUS_LEN_BYTES * 8;

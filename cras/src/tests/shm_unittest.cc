@@ -98,7 +98,7 @@ TEST_F(ShmTestSuite, WrapToNextBuffer) {
   buf_ = cras_shm_get_readable_frames(&shm_, frames_, &frames_);
   EXPECT_EQ(used_frames / 2, frames_);
   EXPECT_EQ(cras_shm_buff_for_idx(&shm_, 1), (uint8_t*)buf_);
-  /* Mark all but 10 frames as read */
+  // Mark all but 10 frames as read
   cras_shm_buffer_read(&shm_, (used_frames / 2) + (used_frames / 4) - 10);
   EXPECT_EQ(0, shm_.header->read_offset[0]);
   EXPECT_EQ(((used_frames / 2) - 10) * shm_.config.frame_bytes,
@@ -119,7 +119,7 @@ TEST_F(ShmTestSuite, WrapToNextBufferReadAll) {
   buf_ = cras_shm_get_readable_frames(&shm_, frames_, &frames_);
   EXPECT_EQ(used_frames / 2, frames_);
   EXPECT_EQ(cras_shm_buff_for_idx(&shm_, 1), (uint8_t*)buf_);
-  /* Mark all frames as read */
+  // Mark all frames as read
   cras_shm_buffer_read(&shm_, (used_frames / 2) + (used_frames / 4));
   EXPECT_EQ(0, shm_.header->read_offset[0]);
   EXPECT_EQ(0, shm_.header->read_offset[1]);
@@ -144,7 +144,7 @@ TEST_F(ShmTestSuite, WrapFromFinalBuffer) {
   buf_ = cras_shm_get_readable_frames(&shm_, frames_, &frames_);
   EXPECT_EQ(used_frames / 2, frames_);
   EXPECT_EQ(cras_shm_buff_for_idx(&shm_, 0), (uint8_t*)buf_);
-  /* Mark all but 10 frames as read */
+  // Mark all but 10 frames as read
   cras_shm_buffer_read(&shm_, (used_frames / 2) + (used_frames / 4) - 10);
   EXPECT_EQ(0, shm_.header->read_offset[buf_idx]);
   EXPECT_EQ(((used_frames / 2) - 10) * shm_.config.frame_bytes,
@@ -311,7 +311,7 @@ TEST_F(ShmTestSuite, WrapWithNonstandardBufferLocations) {
   buf_ = cras_shm_get_readable_frames(&shm_, frames_, &frames_);
   EXPECT_EQ(used_frames / 3, frames_);
   EXPECT_EQ(cras_shm_buff_for_idx(&shm_, 1), (uint8_t*)buf_);
-  /* Mark all but 5 frames as read */
+  // Mark all but 5 frames as read
   cras_shm_buffer_read(&shm_, (used_frames / 4) + (used_frames / 3) - 5);
   EXPECT_EQ(0, shm_.header->read_offset[0]);
   EXPECT_EQ(((used_frames / 3) - 5) * shm_.config.frame_bytes,

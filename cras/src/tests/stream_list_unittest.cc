@@ -35,8 +35,9 @@ static int create_rstream_cb(struct cras_rstream_config* stream_config,
   *stream = (struct cras_rstream*)malloc(sizeof(struct cras_rstream));
   (*stream)->stream_id = stream_config->stream_id;
   (*stream)->direction = stream_config->direction;
-  if (stream_config->format)
+  if (stream_config->format) {
     (*stream)->format = *(stream_config->format);
+  }
   (*stream)->cb_threshold = stream_config->cb_threshold;
   (*stream)->client_type = stream_config->client_type;
   (*stream)->stream_type = stream_config->stream_type;

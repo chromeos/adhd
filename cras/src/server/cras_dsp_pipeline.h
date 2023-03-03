@@ -42,12 +42,12 @@ struct pipeline;
  * Returns:
  *    A pointer to the pipeline, or NULL if the creation fails.
  */
-struct pipeline *cras_dsp_pipeline_create(struct ini *ini,
-					  struct cras_expr_env *env,
-					  const char *purpose);
+struct pipeline* cras_dsp_pipeline_create(struct ini* ini,
+                                          struct cras_expr_env* env,
+                                          const char* purpose);
 
-/* Frees the resources used by the pipeline. */
-void cras_dsp_pipeline_free(struct pipeline *pipeline);
+// Frees the resources used by the pipeline.
+void cras_dsp_pipeline_free(struct pipeline* pipeline);
 
 /* Loads the implementation of the plugins in the pipeline (from
  * shared libraries). Must be called before
@@ -55,7 +55,7 @@ void cras_dsp_pipeline_free(struct pipeline *pipeline);
  * Returns:
  *    0 if successful. -1 otherwise.
  */
-int cras_dsp_pipeline_load(struct pipeline *pipeline);
+int cras_dsp_pipeline_load(struct pipeline* pipeline);
 
 /* Instantiates the pipeline given the sampling rate.
  * Args:
@@ -64,24 +64,25 @@ int cras_dsp_pipeline_load(struct pipeline *pipeline);
  * Returns:
  *    0 if successful. -1 otherwise.
  */
-int cras_dsp_pipeline_instantiate(struct pipeline *pipeline, int sample_rate,
-				  struct cras_expr_env *env);
+int cras_dsp_pipeline_instantiate(struct pipeline* pipeline,
+                                  int sample_rate,
+                                  struct cras_expr_env* env);
 
 /* The counterpart of cras_dsp_pipeline_instantiate(). To change the
  * sampling rate, this must be called before another call to
  * cras_dsp_pipeline_instantiate(). */
-void cras_dsp_pipeline_deinstantiate(struct pipeline *pipeline);
+void cras_dsp_pipeline_deinstantiate(struct pipeline* pipeline);
 
 /* Returns the buffering delay of the pipeline. This should only be called
  * after a pipeline has been instantiated.
  * Returns:
  *    The buffering delay in frames.
  */
-int cras_dsp_pipeline_get_delay(struct pipeline *pipeline);
+int cras_dsp_pipeline_get_delay(struct pipeline* pipeline);
 
-/* Returns the number of input/output audio channels this pipeline expects */
-int cras_dsp_pipeline_get_num_input_channels(struct pipeline *pipeline);
-int cras_dsp_pipeline_get_num_output_channels(struct pipeline *pipeline);
+// Returns the number of input/output audio channels this pipeline expects
+int cras_dsp_pipeline_get_num_input_channels(struct pipeline* pipeline);
+int cras_dsp_pipeline_get_num_output_channels(struct pipeline* pipeline);
 
 /* Returns the pointer to the input buffer for a channel of this
  * pipeline. The size of the buffer is DSP_BUFFER_SIZE samples, and
@@ -92,8 +93,8 @@ int cras_dsp_pipeline_get_num_output_channels(struct pipeline *pipeline);
  *    index - The channel index. The valid value is 0 to
  *            cras_dsp_pipeline_get_num_channels() - 1.
  */
-float *cras_dsp_pipeline_get_source_buffer(struct pipeline *pipeline,
-					   int index);
+float* cras_dsp_pipeline_get_source_buffer(struct pipeline* pipeline,
+                                           int index);
 
 /* Returns the pointer to the output buffer for a channel of this
  * pipeline. The size of the buffer is DSP_BUFFER_SIZE samples.
@@ -102,7 +103,7 @@ float *cras_dsp_pipeline_get_source_buffer(struct pipeline *pipeline,
  *    index - The channel index. The valid value is 0 to
  *            cras_dsp_pipeline_get_num_channels() - 1.
  */
-float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index);
+float* cras_dsp_pipeline_get_sink_buffer(struct pipeline* pipeline, int index);
 
 /*
  * Connects |ext_module| to the sink of given dsp pipeline.
@@ -110,23 +111,23 @@ float *cras_dsp_pipeline_get_sink_buffer(struct pipeline *pipeline, int index);
  *    pipeline - The pipeline whose sink should connect to ext_module.
  *    ext_module - The external dsp module to connect to pipeline sink.
  */
-void cras_dsp_pipeline_set_sink_ext_module(struct pipeline *pipeline,
-					   struct ext_dsp_module *ext_module);
+void cras_dsp_pipeline_set_sink_ext_module(struct pipeline* pipeline,
+                                           struct ext_dsp_module* ext_module);
 
 /* Returns the number of internal audio buffers allocated by the
  * pipeline. This is used by the unit test only */
-int cras_dsp_pipeline_get_peak_audio_buffers(struct pipeline *pipeline);
+int cras_dsp_pipeline_get_peak_audio_buffers(struct pipeline* pipeline);
 
 /* Returns the sampling rate passed by cras_dsp_pipeline_instantiate(),
  * or 0 if is has not been called */
-int cras_dsp_pipeline_get_sample_rate(struct pipeline *pipeline);
+int cras_dsp_pipeline_get_sample_rate(struct pipeline* pipeline);
 
-/* Gets the dsp ini that corresponds to the pipeline. */
-struct ini *cras_dsp_pipeline_get_ini(struct pipeline *pipeline);
+// Gets the dsp ini that corresponds to the pipeline.
+struct ini* cras_dsp_pipeline_get_ini(struct pipeline* pipeline);
 
 /* Processes a block of audio samples. sample_count should be no more
  * than DSP_BUFFER_SIZE */
-void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count);
+void cras_dsp_pipeline_run(struct pipeline* pipeline, int sample_count);
 
 /* Add a statistic of running time for the pipeline.
  *
@@ -135,9 +136,9 @@ void cras_dsp_pipeline_run(struct pipeline *pipeline, int sample_count);
  *                 preprocessing and postprocessing.
  *    samples - The number of audio sample frames processed.
  */
-void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
-				     const struct timespec *time_delta,
-				     int samples);
+void cras_dsp_pipeline_add_statistic(struct pipeline* pipeline,
+                                     const struct timespec* time_delta,
+                                     int samples);
 
 /* Runs the specified pipeline across the given interleaved buffer in place.
  * Args:
@@ -148,14 +149,16 @@ void cras_dsp_pipeline_add_statistic(struct pipeline *pipeline,
  * Returns:
  *    Negative code if error, otherwise 0.
  */
-int cras_dsp_pipeline_apply(struct pipeline *pipeline, uint8_t *buf,
-			    snd_pcm_format_t format, unsigned int frames);
+int cras_dsp_pipeline_apply(struct pipeline* pipeline,
+                            uint8_t* buf,
+                            snd_pcm_format_t format,
+                            unsigned int frames);
 
-/* Dumps the current state of the pipeline. For debugging only */
-void cras_dsp_pipeline_dump(struct dumper *d, struct pipeline *pipeline);
+// Dumps the current state of the pipeline. For debugging only
+void cras_dsp_pipeline_dump(struct dumper* d, struct pipeline* pipeline);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_SERVER_CRAS_DSP_PIPELINE_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_DSP_PIPELINE_H_

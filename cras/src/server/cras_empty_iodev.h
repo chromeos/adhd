@@ -19,10 +19,10 @@ struct cras_iodev;
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
  */
-struct cras_iodev *empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
-				      enum CRAS_NODE_TYPE node_type);
+struct cras_iodev* empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
+                                      enum CRAS_NODE_TYPE node_type);
 
-/* Destroys an empty_iodev created with empty_iodev_create. */
-void empty_iodev_destroy(struct cras_iodev *iodev);
+// Destroys an empty_iodev created with empty_iodev_create.
+void empty_iodev_destroy(struct cras_iodev* iodev);
 
-#endif /* CRAS_EMPTY_IO_H_ */
+#endif  // CRAS_EMPTY_IO_H_

@@ -15,16 +15,16 @@ extern "C" {
 
 #include "cras/src/dsp/biquad.h"
 
-/* Maximum number of biquad filters an EQ2 can have per channel */
+// Maximum number of biquad filters an EQ2 can have per channel
 #define MAX_BIQUADS_PER_EQ2 10
 
 struct eq2;
 
-/* Create an EQ2. */
-struct eq2 *eq2_new();
+// Create an EQ2.
+struct eq2* eq2_new();
 
-/* Free an EQ2. */
-void eq2_free(struct eq2 *eq2);
+// Free an EQ2.
+void eq2_free(struct eq2* eq2);
 
 /* Append a biquad filter to an EQ2. An EQ2 can have at most MAX_BIQUADS_PER_EQ2
  * biquad filters per channel.
@@ -39,8 +39,12 @@ void eq2_free(struct eq2 *eq2);
  * Returns:
  *    0 if success. -1 if the eq has no room for more biquads.
  */
-int eq2_append_biquad(struct eq2 *eq2, int channel, enum biquad_type type,
-		      float freq, float Q, float gain);
+int eq2_append_biquad(struct eq2* eq2,
+                      int channel,
+                      enum biquad_type type,
+                      float freq,
+                      float Q,
+                      float gain);
 
 /* Append a biquad filter to an EQ2. An EQ2 can have at most MAX_BIQUADS_PER_EQ2
  * biquad filters. This is similar to eq2_append_biquad(), but it specifies the
@@ -52,8 +56,9 @@ int eq2_append_biquad(struct eq2 *eq2, int channel, enum biquad_type type,
  * Returns:
  *    0 if success. -1 if the eq has no room for more biquads.
  */
-int eq2_append_biquad_direct(struct eq2 *eq2, int channel,
-			     const struct biquad *biquad);
+int eq2_append_biquad_direct(struct eq2* eq2,
+                             int channel,
+                             const struct biquad* biquad);
 
 /* Process a buffer of audio data through the EQ2.
  * Args:
@@ -62,10 +67,10 @@ int eq2_append_biquad_direct(struct eq2 *eq2, int channel,
  *    data1 - The array of channel 1 audio samples.
  *    count - The number of elements in each of the data array to process.
  */
-void eq2_process(struct eq2 *eq2, float *data0, float *data1, int count);
+void eq2_process(struct eq2* eq2, float* data0, float* data1, int count);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_DSP_EQ2_H_ */
+#endif  // CRAS_SRC_DSP_EQ2_H_

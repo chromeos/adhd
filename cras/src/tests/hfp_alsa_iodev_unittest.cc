@@ -217,7 +217,7 @@ TEST_F(HfpAlsaIodev, CreateHfpAlsaInputIodev) {
   EXPECT_EQ(1, cras_iodev_add_node_called);
   EXPECT_EQ(1, cras_iodev_set_active_node_called);
   EXPECT_EQ(&fake_sco_in, hfp_alsa_io->aio);
-  /* Input device does not use software gain. */
+  // Input device does not use software gain.
   EXPECT_EQ(0, iodev->software_volume_needed);
 
   EXPECT_EQ(0, CRAS_BT_FLAG_FLOSS & iodev->active_node->btflags);
@@ -286,9 +286,10 @@ TEST_F(HfpAlsaIodev, ConfigureDev) {
   EXPECT_EQ(fake_format.num_channels, hfp_alsa_io->aio->format->num_channels);
   EXPECT_EQ(fake_format.frame_rate, hfp_alsa_io->aio->format->frame_rate);
   EXPECT_EQ(fake_format.format, hfp_alsa_io->aio->format->format);
-  for (int i = 0; i < CRAS_CH_MAX; i++)
+  for (int i = 0; i < CRAS_CH_MAX; i++) {
     EXPECT_EQ(fake_format.channel_layout[i],
               hfp_alsa_io->aio->format->channel_layout[i]);
+  }
 
   EXPECT_EQ(1, fake_configure_dev_called);
   EXPECT_EQ(1, hfp_set_call_status_called);

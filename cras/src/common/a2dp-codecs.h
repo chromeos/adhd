@@ -91,45 +91,45 @@
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 
 typedef struct {
-	uint8_t channel_mode : 4;
-	uint8_t frequency : 4;
-	uint8_t allocation_method : 2;
-	uint8_t subbands : 2;
-	uint8_t block_length : 4;
-	uint8_t min_bitpool;
-	uint8_t max_bitpool;
+  uint8_t channel_mode : 4;
+  uint8_t frequency : 4;
+  uint8_t allocation_method : 2;
+  uint8_t subbands : 2;
+  uint8_t block_length : 4;
+  uint8_t min_bitpool;
+  uint8_t max_bitpool;
 } __attribute__((packed)) a2dp_sbc_t;
 
 typedef struct {
-	uint8_t channel_mode : 4;
-	uint8_t crc : 1;
-	uint8_t layer : 3;
-	uint8_t frequency : 6;
-	uint8_t mpf : 1;
-	uint8_t rfa : 1;
-	uint16_t bitrate;
+  uint8_t channel_mode : 4;
+  uint8_t crc : 1;
+  uint8_t layer : 3;
+  uint8_t frequency : 6;
+  uint8_t mpf : 1;
+  uint8_t rfa : 1;
+  uint16_t bitrate;
 } __attribute__((packed)) a2dp_mpeg_t;
 
 #elif __BYTE_ORDER == __BIG_ENDIAN
 
 typedef struct {
-	uint8_t frequency : 4;
-	uint8_t channel_mode : 4;
-	uint8_t block_length : 4;
-	uint8_t subbands : 2;
-	uint8_t allocation_method : 2;
-	uint8_t min_bitpool;
-	uint8_t max_bitpool;
+  uint8_t frequency : 4;
+  uint8_t channel_mode : 4;
+  uint8_t block_length : 4;
+  uint8_t subbands : 2;
+  uint8_t allocation_method : 2;
+  uint8_t min_bitpool;
+  uint8_t max_bitpool;
 } __attribute__((packed)) a2dp_sbc_t;
 
 typedef struct {
-	uint8_t layer : 3;
-	uint8_t crc : 1;
-	uint8_t channel_mode : 4;
-	uint8_t rfa : 1;
-	uint8_t mpf : 1;
-	uint8_t frequency : 6;
-	uint16_t bitrate;
+  uint8_t layer : 3;
+  uint8_t crc : 1;
+  uint8_t channel_mode : 4;
+  uint8_t rfa : 1;
+  uint8_t mpf : 1;
+  uint8_t frequency : 6;
+  uint16_t bitrate;
 } __attribute__((packed)) a2dp_mpeg_t;
 
 #else
@@ -137,8 +137,8 @@ typedef struct {
 #endif
 
 typedef struct {
-	uint8_t vendor_id[4];
-	uint8_t codec_id[2];
+  uint8_t vendor_id[4];
+  uint8_t codec_id[2];
 } __attribute__((packed)) a2dp_vendor_codec_t;
 
 #endif

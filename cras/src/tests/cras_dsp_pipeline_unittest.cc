@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras/src/server/cras_dsp_pipeline.h"
-
 #include <gtest/gtest.h>
 
 #include "cras/src/server/cras_dsp_module.h"
+#include "cras/src/server/cras_dsp_pipeline.h"
 #include "cras_config.h"
 
 #define MAX_MODULES 10
@@ -14,8 +13,9 @@
 #define FILENAME_TEMPLATE "DspIniTest.XXXXXX"
 
 static void fill_test_data(int16_t* data, size_t size) {
-  for (size_t i = 0; i < size; i++)
+  for (size_t i = 0; i < size; i++) {
     data[i] = i;
+  }
 }
 
 static void verify_processed_data(int16_t* data, size_t size, int times) {
@@ -25,8 +25,9 @@ static void verify_processed_data(int16_t* data, size_t size, int times) {
   int multiples = (1 << times);
   for (size_t i = 0; i < size; i++) {
     EXPECT_EQ(i * multiples, data[i]);
-    if ((int16_t)i * multiples != data[i])
+    if ((int16_t)i * multiples != data[i]) {
       return;
+    }
   }
 }
 
@@ -90,7 +91,7 @@ static int get_delay(struct dsp_module* module) {
   struct data* data = (struct data*)module->data;
   data->get_delay_called++;
 
-  /* If the module title is "mN", then use N as the delay. */
+  // If the module title is "mN", then use N as the delay.
   int delay = 0;
   sscanf(data->title, "m%d", &delay);
   return delay;
@@ -102,11 +103,12 @@ static void run(struct dsp_module* module, unsigned long sample_count) {
   data->sample_count = sample_count;
 
   for (int i = 0; i < data->nr_ports; i++) {
-    if (data->port_dir[i] == PORT_INPUT)
+    if (data->port_dir[i] == PORT_INPUT) {
       data->input[i] = *data->data_location[i];
+    }
   }
 
-  /* copy the control port data */
+  // copy the control port data
   for (int i = 0; i < std::min(data->nr_in_control, data->nr_out_control);
        i++) {
     int from = data->in_control[i];
@@ -114,12 +116,13 @@ static void run(struct dsp_module* module, unsigned long sample_count) {
     data->data_location[to][0] = data->data_location[from][0];
   }
 
-  /* multiply the audio port data by 2 */
+  // multiply the audio port data by 2
   for (int i = 0; i < std::min(data->nr_in_audio, data->nr_out_audio); i++) {
     int from = data->in_audio[i];
     int to = data->out_audio[i];
-    for (unsigned int j = 0; j < sample_count; j++)
+    for (unsigned int j = 0; j < sample_count; j++) {
       data->data_location[to][j] = data->data_location[from][j] * 2;
+    }
   }
 }
 
@@ -158,15 +161,17 @@ static struct dsp_module* create_mock_module(struct plugin* plugin) {
     data->port_dir[i] = port->direction;
 
     if (port->direction == PORT_INPUT) {
-      if (port->type == PORT_AUDIO)
+      if (port->type == PORT_AUDIO) {
         data->in_audio[data->nr_in_audio++] = i;
-      else
+      } else {
         data->in_control[data->nr_in_control++] = i;
+      }
     } else {
-      if (port->type == PORT_AUDIO)
+      if (port->type == PORT_AUDIO) {
         data->out_audio[data->nr_out_audio++] = i;
-      else
+      } else {
         data->out_control[data->nr_out_control++] = i;
+      }
     }
   }
   if (strcmp(plugin->label, "inplace_broken") == 0) {
@@ -195,8 +200,9 @@ static int num_modules;
 static struct dsp_module* find_module(const char* name) {
   for (int i = 0; i < num_modules; i++) {
     struct data* data = (struct data*)modules[i]->data;
-    if (strcmp(name, data->title) == 0)
+    if (strcmp(name, data->title) == 0) {
       return modules[i];
+    }
   }
   return NULL;
 }
@@ -282,7 +288,7 @@ TEST_F(DspPipelineTestSuite, Simple) {
   struct data* d1 = (struct data*)m1->data;
   struct data* d2 = (struct data*)m2->data;
 
-  /* check m1 */
+  // check m1
   ASSERT_STREQ("m1", d1->title);
   ASSERT_EQ(3, d1->nr_ports);
   ASSERT_EQ(PORT_OUTPUT, d1->port_dir[0]);
@@ -303,7 +309,7 @@ TEST_F(DspPipelineTestSuite, Simple) {
   ASSERT_EQ(0, d1->free_module_called);
   ASSERT_EQ(1, d1->get_properties_called);
 
-  /* check m2 */
+  // check m2
   ASSERT_STREQ("m2", d2->title);
   ASSERT_EQ(2, d2->nr_ports);
   ASSERT_EQ(PORT_INPUT, d2->port_dir[0]);
@@ -321,7 +327,7 @@ TEST_F(DspPipelineTestSuite, Simple) {
   ASSERT_EQ(0, d2->free_module_called);
   ASSERT_EQ(1, d2->get_properties_called);
 
-  /* check the buffer is shared */
+  // check the buffer is shared
   ASSERT_EQ(d1->data_location[0], d2->data_location[1]);
   ASSERT_EQ(d1->data_location[1], d2->data_location[0]);
   ASSERT_EQ(1, cras_dsp_pipeline_get_peak_audio_buffers(p));
@@ -342,7 +348,7 @@ TEST_F(DspPipelineTestSuite, Simple) {
   ASSERT_EQ(3, d2->input[0]);
   ASSERT_EQ(1000, d2->input[1]);
 
-  /* Expect the sink module "m2" is set. */
+  // Expect the sink module "m2" is set.
   cras_dsp_pipeline_set_sink_ext_module(p, &ext_mod);
   struct data* d = (struct data*)cras_dsp_module_set_sink_ext_module_val->data;
   ASSERT_STREQ("m2", d->title);
@@ -431,7 +437,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
   ASSERT_TRUE(p);
   ASSERT_EQ(0, cras_dsp_pipeline_load(p));
 
-  ASSERT_EQ(5, num_modules); /* one not connected, one disabled */
+  ASSERT_EQ(5, num_modules);  // one not connected, one disabled
   struct dsp_module* m0 = find_module("m0");
   struct dsp_module* m1 = find_module("m1");
   struct dsp_module* m2 = find_module("m2");
@@ -468,33 +474,33 @@ TEST_F(DspPipelineTestSuite, Complex) {
   ASSERT_EQ(d0->data_location[1], d1->data_location[1]);
   ASSERT_EQ(d1->data_location[2], d2->data_location[0]);
   ASSERT_EQ(d1->data_location[3], d3->data_location[0]);
-  ASSERT_NE(d2->data_location[0], d2->data_location[1]); /* inplace-broken */
-  ASSERT_EQ(d2->data_location[1], d5->data_location[0]); /* m4 is disabled */
+  ASSERT_NE(d2->data_location[0], d2->data_location[1]);  // inplace-broken
+  ASSERT_EQ(d2->data_location[1], d5->data_location[0]);  // m4 is disabled
   ASSERT_EQ(d3->data_location[1], d5->data_location[1]);
 
-  /* need 3 buffers because m2 has inplace-broken flag */
+  // need 3 buffers because m2 has inplace-broken flag
   ASSERT_EQ(3, cras_dsp_pipeline_get_peak_audio_buffers(p));
 
   int16_t* samples = new int16_t[DSP_BUFFER_SIZE];
   fill_test_data(samples, DSP_BUFFER_SIZE);
   cras_dsp_pipeline_apply(p, (uint8_t*)samples, SND_PCM_FORMAT_S16_LE, 100);
-  /* the data flow through 2 plugins because m4 is disabled. */
+  // the data flow through 2 plugins because m4 is disabled.
   verify_processed_data(samples, 100, 2);
   delete[] samples;
 
   ASSERT_EQ(1, d1->run_called);
   ASSERT_EQ(1, d3->run_called);
 
-  /* check m5 */
+  // check m5
   ASSERT_EQ(1, d5->run_called);
   ASSERT_EQ(100, d5->sample_count);
 
-  /* Expect the sink module "m5" is set. */
+  // Expect the sink module "m5" is set.
   cras_dsp_pipeline_set_sink_ext_module(p, &ext_mod);
   struct data* d = (struct data*)cras_dsp_module_set_sink_ext_module_val->data;
   ASSERT_STREQ("m5", d->title);
 
-  /* re-instantiate */
+  // re-instantiate
   ASSERT_EQ(1, d5->instantiate_called);
   ASSERT_EQ(1, d5->configure_called);
   ASSERT_EQ(1, d5->get_delay_called);

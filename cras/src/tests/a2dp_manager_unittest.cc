@@ -69,8 +69,9 @@ class A2dpManagerTestSuite : public testing::Test {
   }
 
   virtual void TearDown() {
-    if (cras_main_message_send_msg)
+    if (cras_main_message_send_msg) {
       free(cras_main_message_send_msg);
+    }
     if (a2dp_pcm_iodev_create_ret) {
       free(a2dp_pcm_iodev_create_ret);
       a2dp_pcm_iodev_create_ret = NULL;
@@ -81,19 +82,19 @@ class A2dpManagerTestSuite : public testing::Test {
 
 TEST_F(A2dpManagerTestSuite, CreateFailed) {
   a2dp_pcm_iodev_create_ret = NULL;
-  /* Failing to create a2dp_pcm_iodev should fail the a2dp_create */
+  // Failing to create a2dp_pcm_iodev should fail the a2dp_create
   ASSERT_EQ(cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs),
             (struct cras_a2dp*)NULL);
 
   a2dp_pcm_iodev_create_ret =
       (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
 
-  /* NULL a2dp_codec_configs should fail the a2dp_create without a crash */
+  // NULL a2dp_codec_configs should fail the a2dp_create without a crash
   ASSERT_EQ(cras_floss_a2dp_create(NULL, "addr", "name",
                                    (struct cras_fl_a2dp_codec_config*)NULL),
             (struct cras_a2dp*)NULL);
 
-  /* Unsupported codecs should fail the a2dp_create without a crash */
+  // Unsupported codecs should fail the a2dp_create without a crash
   a2dp_codecs.codec_type = FL_A2DP_CODEC_SINK_AAC;
   ASSERT_EQ(cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs),
             (struct cras_a2dp*)NULL);
@@ -122,7 +123,7 @@ TEST_F(A2dpManagerTestSuite, StartStop) {
 
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
-  /* Assert the format converts to the correct bitmap as Floss defined */
+  // Assert the format converts to the correct bitmap as Floss defined
   fmt.frame_rate = 44100;
   fmt.format = SND_PCM_FORMAT_S32_LE;
   fmt.num_channels = 2;
@@ -149,7 +150,7 @@ TEST_F(A2dpManagerTestSuite, DelaySync) {
   a2dp = cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
   ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
 
-  /* Assert the format converts to the correct bitmap as Floss defined */
+  // Assert the format converts to the correct bitmap as Floss defined
   fmt.frame_rate = 44100;
   fmt.format = SND_PCM_FORMAT_S32_LE;
   fmt.num_channels = 2;
@@ -187,7 +188,7 @@ TEST(A2dpManager, FillFormat) {
   int num_unexpected_channel_counts = 1;
   size_t unexpected_channel_counts[] = {1};
 
-  /* Expect Floss defined bitmap converts to supported formats array. */
+  // Expect Floss defined bitmap converts to supported formats array.
   cras_floss_a2dp_fill_format(FL_RATE_44100 | FL_RATE_48000 | FL_RATE_16000,
                               FL_SAMPLE_16 | FL_SAMPLE_24,
                               FL_MODE_MONO | FL_MODE_STEREO, &supported_rates,
@@ -195,48 +196,54 @@ TEST(A2dpManager, FillFormat) {
   for (int n = 0; n < num_expected_rates; n++) {
     int found = 0;
     for (int i = 0; supported_rates[i]; i++) {
-      if (supported_rates[i] == expected_rates[n])
+      if (supported_rates[i] == expected_rates[n]) {
         found = 1;
+      }
     }
     EXPECT_EQ(found, 1);
   }
   for (int n = 0; n < num_unexpected_rates; n++) {
     int found = 0;
     for (int i = 0; supported_rates[i]; i++) {
-      if (supported_rates[i] == unexpected_rates[n])
+      if (supported_rates[i] == unexpected_rates[n]) {
         found = 1;
+      }
     }
     EXPECT_EQ(found, 0);
   }
   for (int n = 0; n < num_expected_formats; n++) {
     int found = 0;
     for (int i = 0; supported_formats[i]; i++) {
-      if (supported_formats[i] == expected_formats[n])
+      if (supported_formats[i] == expected_formats[n]) {
         found = 1;
+      }
     }
     EXPECT_EQ(found, 1);
   }
   for (int n = 0; n < num_unexpected_formats; n++) {
     int found = 0;
     for (int i = 0; supported_formats[i]; i++) {
-      if (supported_formats[i] == unexpected_formats[n])
+      if (supported_formats[i] == unexpected_formats[n]) {
         found = 1;
+      }
     }
     EXPECT_EQ(found, 0);
   }
   for (int n = 0; n < num_expected_channel_counts; n++) {
     int found = 0;
     for (int i = 0; supported_channel_counts[i]; i++) {
-      if (supported_channel_counts[i] == expected_channel_counts[n])
+      if (supported_channel_counts[i] == expected_channel_counts[n]) {
         found = 1;
+      }
     }
     EXPECT_EQ(found, 1);
   }
   for (int n = 0; n < num_unexpected_channel_counts; n++) {
     int found = 0;
     for (int i = 0; supported_channel_counts[i]; i++) {
-      if (supported_channel_counts[i] == unexpected_channel_counts[n])
+      if (supported_channel_counts[i] == unexpected_channel_counts[n]) {
         found = 1;
+      }
     }
     EXPECT_EQ(found, 0);
   }
@@ -349,7 +356,7 @@ TEST_F(A2dpManagerTestSuite, SuspendCallback) {
 extern "C" {
 struct cras_bt_event_log* btlog;
 
-/* From cras_fl_pcm_iodev */
+// From cras_fl_pcm_iodev
 struct cras_iodev* a2dp_pcm_iodev_create(struct cras_a2dp* a2dp,
                                          int sample_rates,
                                          int sample_sizes,
@@ -373,8 +380,9 @@ void a2dp_pcm_update_bt_stack_delay(struct cras_iodev* iodev,
 int cras_main_message_send(struct cras_main_message* msg) {
   // cras_main_message is a local variable from caller, we should allocate
   // memory from heap and copy its data
-  if (cras_main_message_send_msg)
+  if (cras_main_message_send_msg) {
     free(cras_main_message_send_msg);
+  }
   cras_main_message_send_msg =
       (struct cras_main_message*)calloc(1, msg->length);
   memcpy((void*)cras_main_message_send_msg, (void*)msg, msg->length);
@@ -391,12 +399,12 @@ int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
 
 void cras_main_message_rm_handler(enum CRAS_MAIN_MESSAGE_TYPE type) {}
 
-/* From cras_system_state */
+// From cras_system_state
 struct cras_tm* cras_system_state_get_tm() {
   return NULL;
 }
 
-/* socket and connect */
+// socket and connect
 int socket(int domain, int type, int protocol) {
   return fake_skt;
 }
@@ -405,7 +413,7 @@ int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
   return 0;
 }
 
-/* From cras_tm */
+// From cras_tm
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                         unsigned int ms,
                                         void (*cb)(struct cras_timer* t,
@@ -422,7 +430,7 @@ void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
   cras_tm_cancel_timer_arg = t;
 }
 
-/* From fl_media */
+// From fl_media
 int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr) {
   floss_media_a2dp_set_active_device_called++;
   return 0;

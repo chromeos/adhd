@@ -12,9 +12,9 @@ struct stream_list;
 struct cras_rstream;
 
 enum server_stream_type {
-	SERVER_STREAM_ECHO_REF,
-	SERVER_STREAM_VAD,
-	NUM_SERVER_STREAM_TYPES,
+  SERVER_STREAM_ECHO_REF,
+  SERVER_STREAM_VAD,
+  NUM_SERVER_STREAM_TYPES,
 };
 
 /*
@@ -30,10 +30,11 @@ enum server_stream_type {
  * Returns:
  *    0 for success otherwise negative error code.
  */
-int server_stream_create(struct stream_list *stream_list,
-			 enum server_stream_type type, unsigned int dev_idx,
-			 struct cras_audio_format *format,
-			 unsigned int effects);
+int server_stream_create(struct stream_list* stream_list,
+                         enum server_stream_type type,
+                         unsigned int dev_idx,
+                         struct cras_audio_format* format,
+                         unsigned int effects);
 
 /*
  * Synchronously destroys existing server stream pinned to device of given idx.
@@ -42,14 +43,15 @@ int server_stream_create(struct stream_list *stream_list,
  *    type - The type of the server stream to destroy.
  *    dev_idx - The dev_idx that was passed to server_stream_create.
  **/
-void server_stream_destroy(struct stream_list *stream_list,
-			   enum server_stream_type type, unsigned int dev_idx);
+void server_stream_destroy(struct stream_list* stream_list,
+                           enum server_stream_type type,
+                           unsigned int dev_idx);
 
 /*
  * Find the cras_rstream of the given type in the stream list.
  */
-struct cras_rstream *
-server_stream_find_by_type(struct cras_rstream *all_streams,
-			   enum server_stream_type type);
+struct cras_rstream* server_stream_find_by_type(
+    struct cras_rstream* all_streams,
+    enum server_stream_type type);
 
-#endif /* CRAS_SRC_SERVER_SERVER_STREAM_H_ */
+#endif  // CRAS_SRC_SERVER_SERVER_STREAM_H_

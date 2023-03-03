@@ -6,7 +6,6 @@
 
 #include "cras/src/server/cras_features_impl.h"
 
-bool cras_features_backend_get_enabled(const struct cras_feature *feature)
-{
-	return feature->default_enabled;
+bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
+  return feature->default_enabled;
 }

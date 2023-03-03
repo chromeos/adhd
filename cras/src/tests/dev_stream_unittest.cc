@@ -155,7 +155,7 @@ class CreateSuite : public testing::Test {
     memset(&conv_frames_call, 0xff, sizeof(conv_frames_call));
 
     ASSERT_FALSE(asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0);
-    /* To avoid un-used variable warning. */
+    // To avoid un-used variable warning.
     atlog_rw_shm_fd = atlog_ro_shm_fd = -1;
     atlog = audio_thread_event_log_init(atlog_name);
 
@@ -218,8 +218,9 @@ class CreateSuite : public testing::Test {
     shm->samples_info.length = cras_shm_calculate_samples_size(used_size);
 
     buf = (int16_t*)shm->samples;
-    for (size_t i = 0; i < kBufferFrames * 2; i++)
+    for (size_t i = 0; i < kBufferFrames * 2; i++) {
       buf[i] = i;
+    }
     cras_shm_set_mute(shm, 0);
     cras_shm_set_volume_scaler(shm, 1.0);
 
@@ -1130,7 +1131,7 @@ TEST(MaxFramesForConverter, 48to8) {
                                           8000));  // Device rate.
 }
 
-/* Stubs */
+// Stubs
 extern "C" {
 
 int cras_rstream_audio_ready(struct cras_rstream* stream, size_t count) {

@@ -3,10 +3,9 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <map>
 #include <stdio.h>
 #include <syslog.h>
-
-#include <map>
 
 extern "C" {
 #include "cras/src/common/utlist.h"
@@ -905,7 +904,7 @@ TEST(AlsaUcm, FreeMixerNames) {
   EXPECT_EQ(0, strcmp(mixer_names_1->next->next->name, "Mixer Name3"));
   EXPECT_EQ(NULL, mixer_names_1->next->next->next);
 
-  /* No way to actually check if memory is freed. */
+  // No way to actually check if memory is freed.
   mixer_name_free(mixer_names_1);
 }
 
@@ -918,7 +917,7 @@ TEST(AlsaUcm, DefaultNodeGain) {
 
   ResetStubData();
 
-  /* Value can be found in UCM. */
+  // Value can be found in UCM.
   snd_use_case_get_value[id] = value;
 
   ret = ucm_get_default_node_gain(mgr, "Internal Mic", &default_node_gain);
@@ -928,7 +927,7 @@ TEST(AlsaUcm, DefaultNodeGain) {
 
   ResetStubData();
 
-  /* Value can not be found in UCM. */
+  // Value can not be found in UCM.
   ret = ucm_get_default_node_gain(mgr, "Internal Mic", &default_node_gain);
 
   ASSERT_TRUE(ret);
@@ -943,7 +942,7 @@ TEST(AlsaUcm, IntrinsicSensitivity) {
 
   ResetStubData();
 
-  /* Value can be found in UCM. */
+  // Value can be found in UCM.
   snd_use_case_get_value[id] = value;
 
   ret = ucm_get_intrinsic_sensitivity(mgr, "Internal Mic", &intrinsic_vol);
@@ -953,7 +952,7 @@ TEST(AlsaUcm, IntrinsicSensitivity) {
 
   ResetStubData();
 
-  /* Value can not be found in UCM. */
+  // Value can not be found in UCM.
   ret = ucm_get_intrinsic_sensitivity(mgr, "Internal Mic", &intrinsic_vol);
 
   ASSERT_TRUE(ret);
@@ -966,16 +965,16 @@ TEST(AlsaUcm, UseFullySpecifiedUCMConfig) {
   std::string id = "=FullySpecifiedUCM//HiFi";
   ResetStubData();
 
-  /* Flag is not set */
+  // Flag is not set
   fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
   ASSERT_FALSE(fully_specified_flag);
 
-  /* Flag is set to "1". */
+  // Flag is set to "1".
   snd_use_case_get_value[id] = std::string("1");
   fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
   ASSERT_TRUE(fully_specified_flag);
 
-  /* Flag is set to "0". */
+  // Flag is set to "0".
   snd_use_case_get_value[id] = std::string("0");
   fully_specified_flag = ucm_has_fully_specified_ucm_flag(mgr);
   ASSERT_FALSE(fully_specified_flag);
@@ -1021,7 +1020,7 @@ TEST(AlsaUcm, GetMainVolumeMixerName) {
 
   ResetStubData();
 
-  /* Can not find MainVolumeNames */
+  // Can not find MainVolumeNames
   mixer_names_2 = ucm_get_main_volume_names(mgr);
 
   ASSERT_TRUE(mixer_names_1);
@@ -1216,7 +1215,7 @@ TEST(AlsaUcm, UcmSection) {
     controls = mixer_name_add(controls, coupled_names[i], CRAS_STREAM_OUTPUT,
                               MIXER_NAME_VOLUME);
   }
-  /* Add controls to the list of coupled controls for this section. */
+  // Add controls to the list of coupled controls for this section.
   EXPECT_EQ(0, ucm_section_concat_coupled(section, controls));
 
   i = 0;
@@ -1301,7 +1300,9 @@ TEST(AlsaUcm, GetSections) {
 
   sections = ucm_get_sections(mgr);
   ASSERT_NE(sections, (struct ucm_section*)NULL);
-  DL_FOREACH (sections, section) { section_count++; }
+  DL_FOREACH (sections, section) {
+    section_count++;
+  }
   EXPECT_EQ(section_count, ARRAY_SIZE(devices) / 2);
 
   // Headphone
@@ -1414,7 +1415,7 @@ TEST(AlsaUcm, GetSectionsMissingPCM) {
 TEST(AlsaUcm, CheckUseCaseVerbs) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
 
-  /* Verifies the mapping between stream types and verbs are correct. */
+  // Verifies the mapping between stream types and verbs are correct.
   mgr->use_case = CRAS_STREAM_TYPE_DEFAULT;
   EXPECT_EQ(0, strcmp("HiFi", uc_verb(mgr)));
   mgr->use_case = CRAS_STREAM_TYPE_MULTIMEDIA;
@@ -1465,18 +1466,18 @@ TEST(AlsaUcm, SetUseCase) {
   EXPECT_EQ(snd_use_case_set_param[1],
             std::make_pair(std::string("_verb"), std::string("Voice Call")));
 
-  /* Request unavailable use case will fail. */
+  // Request unavailable use case will fail.
   rc = ucm_set_use_case(mgr, CRAS_STREAM_TYPE_PRO_AUDIO);
   EXPECT_EQ(-EINVAL, rc);
-  /* cras_use_case_mgr's use case should not be changed. */
+  // cras_use_case_mgr's use case should not be changed.
   EXPECT_EQ(mgr->use_case, CRAS_STREAM_TYPE_VOICE_COMMUNICATION);
-  /* And snd_use_case_set not being called. */
+  // And snd_use_case_set not being called.
   EXPECT_EQ(2, snd_use_case_set_param.size());
 
   ucm_destroy(mgr);
 }
 
-/* Stubs */
+// Stubs
 
 extern "C" {
 
@@ -1538,7 +1539,7 @@ int snd_use_case_geti(snd_use_case_mgr_t* uc_mgr,
   return 0;
 }
 
-} /* extern "C" */
+}  // extern "C"
 
 }  //  namespace
 

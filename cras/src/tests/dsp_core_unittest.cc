@@ -15,14 +15,15 @@
 
 namespace {
 
-/* Adds amplitude * sin(pi*freq*i + offset) to the data array. */
+// Adds amplitude * sin(pi*freq*i + offset) to the data array.
 static void add_sine(float* data,
                      size_t len,
                      float freq,
                      float offset,
                      float amplitude) {
-  for (size_t i = 0; i < len; i++)
+  for (size_t i = 0; i < len; i++) {
     data[i] += amplitude * sinf((float)M_PI * freq * i + offset);
+  }
 }
 
 /* Calculates the magnitude at normalized frequency f. The output is
@@ -150,7 +151,7 @@ TEST(InterleaveTest, All) {
     EXPECT_EQ(answer[i], output[i]);
   }
 
-  /* dsp_util_interleave() should round to nearest number. */
+  // dsp_util_interleave() should round to nearest number.
   for (int i = 0; i < SAMPLES; i += 2) {
     output[i] += 0.499 / 32768.0f;
     output[i + 1] -= 0.499 / 32768.0f;
@@ -174,7 +175,7 @@ TEST(EqTest, All) {
   float* data = (float*)malloc(sizeof(float) * len);
 
   dsp_enable_flush_denormal_to_zero();
-  /* low pass */
+  // low pass
   memset(data, 0, sizeof(float) * len);
   add_sine(data, len, f_low, 0, 1);  // 10Hz sine, magnitude = 1
   EXPECT_FLOAT_EQ(1, magnitude_at(data, len, f_low));
@@ -188,12 +189,12 @@ TEST(EqTest, All) {
   EXPECT_NEAR(1, magnitude_at(data, len, f_low), 0.01);
   EXPECT_NEAR(0, magnitude_at(data, len, f_high), 0.01);
 
-  /* Test for empty input */
+  // Test for empty input
   eq_process(eq, NULL, 0);
 
   eq_free(eq);
 
-  /* high pass */
+  // high pass
   memset(data, 0, sizeof(float) * len);
   add_sine(data, len, f_low, 0, 1);
   add_sine(data, len, f_high, 0, 1);
@@ -205,7 +206,7 @@ TEST(EqTest, All) {
   EXPECT_NEAR(1, magnitude_at(data, len, f_high), 0.01);
   eq_free(eq);
 
-  /* peaking */
+  // peaking
   memset(data, 0, sizeof(float) * len);
   add_sine(data, len, f_low, 0, 1);
   add_sine(data, len, f_high, 0, 1);
@@ -220,7 +221,7 @@ TEST(EqTest, All) {
 
   free(data);
 
-  /* Too many biquads */
+  // Too many biquads
   eq = eq_new();
   for (int i = 0; i < MAX_BIQUADS_PER_EQ; i++) {
     EXPECT_EQ(0, eq_append_biquad(eq, BQ_PEAKING, f_high, 5, 6));
@@ -241,7 +242,7 @@ TEST(Eq2Test, All) {
 
   dsp_enable_flush_denormal_to_zero();
 
-  /* a mixture of 10Hz an 1000Hz sine */
+  // a mixture of 10Hz an 1000Hz sine
   memset(data0, 0, sizeof(float) * len);
   memset(data1, 0, sizeof(float) * len);
   add_sine(data0, len, f_low, 0, 1);   // 10Hz sine, magnitude = 1
@@ -249,7 +250,7 @@ TEST(Eq2Test, All) {
   add_sine(data1, len, f_low, 0, 1);   // 10Hz sine, magnitude = 1
   add_sine(data1, len, f_high, 0, 1);  // 1000Hz sine, magnitude = 1
 
-  /* low pass at left and high pass at right */
+  // low pass at left and high pass at right
   eq2 = eq2_new();
   EXPECT_EQ(0, eq2_append_biquad(eq2, 0, BQ_LOWPASS, f_mid, 0, 0));
   EXPECT_EQ(0, eq2_append_biquad(eq2, 1, BQ_HIGHPASS, f_mid, 0, 0));
@@ -259,11 +260,11 @@ TEST(Eq2Test, All) {
   EXPECT_NEAR(0, magnitude_at(data1, len, f_low), 0.01);
   EXPECT_NEAR(1, magnitude_at(data1, len, f_high), 0.01);
 
-  /* Test for empty input */
+  // Test for empty input
   eq2_process(eq2, NULL, NULL, 0);
   eq2_free(eq2);
 
-  /* a mixture of 10Hz and 1000Hz sine */
+  // a mixture of 10Hz and 1000Hz sine
   memset(data0, 0, sizeof(float) * len);
   memset(data1, 0, sizeof(float) * len);
   add_sine(data0, len, f_low, 0, 1);
@@ -271,7 +272,7 @@ TEST(Eq2Test, All) {
   add_sine(data1, len, f_low, 0, 1);
   add_sine(data1, len, f_high, 0, 1);
 
-  /* one high-shelving biquad at left and two low-shelving biquads at right */
+  // one high-shelving biquad at left and two low-shelving biquads at right
   eq2 = eq2_new();
   EXPECT_EQ(0, eq2_append_biquad(eq2, 0, BQ_HIGHSHELF, f_mid, 5, 6));
   EXPECT_EQ(0, eq2_append_biquad(eq2, 1, BQ_LOWSHELF, f_mid, 0, -6));
@@ -287,7 +288,7 @@ TEST(Eq2Test, All) {
   free(data0);
   free(data1);
 
-  /* Too many biquads */
+  // Too many biquads
   eq2 = eq2_new();
   for (int i = 0; i < MAX_BIQUADS_PER_EQ2; i++) {
     EXPECT_EQ(0, eq2_append_biquad(eq2, 0, BQ_PEAKING, f_high, 5, 6));
@@ -335,7 +336,7 @@ TEST(CrossoverTest, All) {
   EXPECT_NEAR(0, magnitude_at(data2, len, f2), 0.01);
   EXPECT_NEAR(1, magnitude_at(data2, len, f4), 0.01);
 
-  /* Test for empty input */
+  // Test for empty input
   crossover_process(&xo, 0, NULL, NULL, NULL);
 
   free(data);
@@ -404,7 +405,7 @@ TEST(Crossover2Test, All) {
   EXPECT_NEAR(0, magnitude_at(data2R, len, f2), 0.005);
   EXPECT_NEAR(0.5, magnitude_at(data2R, len, f4), 0.005);
 
-  /* Test for empty input */
+  // Test for empty input
   crossover2_process(&xo2, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 
   free(data0L);
@@ -477,16 +478,16 @@ TEST(DrcTest, All) {
     data[1] += chunk;
   }
 
-  /* This is -8dB because there is a 12dB makeup (20dB^0.6) inside the DRC */
+  // This is -8dB because there is a 12dB makeup (20dB^0.6) inside the DRC
   EXPECT_NEAR(0.4, magnitude_at(data_right, len, f0), 0.1);
 
-  /* This is 0dB because the DRC is disabled */
+  // This is 0dB because the DRC is disabled
   EXPECT_NEAR(1, magnitude_at(data_right, len, f2), 0.1);
 
-  /* This is 20dB because of the post gain */
+  // This is 20dB because of the post gain
   EXPECT_NEAR(10, magnitude_at(data_right, len, f4), 1);
 
-  /* Test for empty input */
+  // Test for empty input
   drc_process(drc, data_empty, 0);
 
   drc_free(drc);

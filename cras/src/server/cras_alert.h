@@ -37,17 +37,17 @@ struct cras_alert;
  * provided argument that will be passed back, data is extra info about the
  * signal if available.
  */
-typedef void (*cras_alert_cb)(void *arg, void *data);
-typedef void (*cras_alert_prepare)(struct cras_alert *alert);
+typedef void (*cras_alert_cb)(void* arg, void* data);
+typedef void (*cras_alert_prepare)(struct cras_alert* alert);
 
-/* Flags for alerts. */
+// Flags for alerts.
 enum CRAS_ALERT_FLAGS {
-	/* By default, alerts will only keep the last copy of the data
-	 * specified in cras_alert_pending_data as an optimization - then
-	 * the callback is executed once with the latest value, rather than
-	 * for every value. In some cases, it is important to send the data
-	 * with every change. Use this flag to enable that behavior. */
-	CRAS_ALERT_FLAG_KEEP_ALL_DATA = 1 << 0,
+  /* By default, alerts will only keep the last copy of the data
+   * specified in cras_alert_pending_data as an optimization - then
+   * the callback is executed once with the latest value, rather than
+   * for every value. In some cases, it is important to send the data
+   * with every change. Use this flag to enable that behavior. */
+  CRAS_ALERT_FLAG_KEEP_ALL_DATA = 1 << 0,
 };
 
 /* Creates an alert.
@@ -59,8 +59,8 @@ enum CRAS_ALERT_FLAGS {
  * Returns:
  *    A pointer to the alert, NULL if out of memory.
  */
-struct cras_alert *cras_alert_create(cras_alert_prepare prepare,
-				     unsigned int flags);
+struct cras_alert* cras_alert_create(cras_alert_prepare prepare,
+                                     unsigned int flags);
 
 /* Adds a callback to the alert.
  * Args:
@@ -70,8 +70,9 @@ struct cras_alert *cras_alert_create(cras_alert_prepare prepare,
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int cras_alert_add_callback(struct cras_alert *alert, cras_alert_cb cb,
-			    void *arg);
+int cras_alert_add_callback(struct cras_alert* alert,
+                            cras_alert_cb cb,
+                            void* arg);
 
 /* Removes a callback from the alert. It removes the callback if cb and arg
  * match a previously registered entry.
@@ -82,8 +83,9 @@ int cras_alert_add_callback(struct cras_alert *alert, cras_alert_cb cb,
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int cras_alert_rm_callback(struct cras_alert *alert, cras_alert_cb cb,
-			   void *arg);
+int cras_alert_rm_callback(struct cras_alert* alert,
+                           cras_alert_cb cb,
+                           void* arg);
 
 /* Marks an alert as pending. We don't call the callbacks immediately when an
  * alert becomes pending, but will do that when
@@ -91,7 +93,7 @@ int cras_alert_rm_callback(struct cras_alert *alert, cras_alert_cb cb,
  * Args:
  *    alert - A pointer to the alert.
  */
-void cras_alert_pending(struct cras_alert *alert);
+void cras_alert_pending(struct cras_alert* alert);
 
 /* Marks an alert as pending. We don't call the callbacks immediately when an
  * alert becomes pending, but will do that when
@@ -104,8 +106,9 @@ void cras_alert_pending(struct cras_alert *alert);
  *    data - A pointer to data that is copied and passed to the callback.
  *    data_size - Size of the data.
  */
-void cras_alert_pending_data(struct cras_alert *alert, void *data,
-			     size_t data_size);
+void cras_alert_pending_data(struct cras_alert* alert,
+                             void* data,
+                             size_t data_size);
 
 /* Processes all alerts that are pending.
  *
@@ -119,13 +122,13 @@ void cras_alert_process_all_pending_alerts();
  * Args:
  *    alert - A pointer to the alert.
  */
-void cras_alert_destroy(struct cras_alert *alert);
+void cras_alert_destroy(struct cras_alert* alert);
 
-/* Frees the resources used by all alerts in the system. */
+// Frees the resources used by all alerts in the system.
 void cras_alert_destroy_all();
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_SERVER_CRAS_ALERT_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_ALERT_H_

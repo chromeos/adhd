@@ -17,29 +17,30 @@ struct linear_resampler;
  *    src_rate - The source rate to resample from.
  *    dst_rate - The destination rate to resample to.
  */
-struct linear_resampler *linear_resampler_create(unsigned int num_channels,
-						 unsigned int format_bytes,
-						 float src_rate,
-						 float dst_rate);
+struct linear_resampler* linear_resampler_create(unsigned int num_channels,
+                                                 unsigned int format_bytes,
+                                                 float src_rate,
+                                                 float dst_rate);
 
 /* Sets the rates for the linear resampler.
  * Args:
  *    from - The rate to resample from.
  *    to - The rate to resample to.
  */
-void linear_resampler_set_rates(struct linear_resampler *lr, float from,
-				float to);
+void linear_resampler_set_rates(struct linear_resampler* lr,
+                                float from,
+                                float to);
 
-/* Converts the frames count from output rate to input rate. */
-unsigned int linear_resampler_out_frames_to_in(struct linear_resampler *lr,
-					       unsigned int frames);
+// Converts the frames count from output rate to input rate.
+unsigned int linear_resampler_out_frames_to_in(struct linear_resampler* lr,
+                                               unsigned int frames);
 
-/* Converts the frames count from input rate to output rate. */
-unsigned int linear_resampler_in_frames_to_out(struct linear_resampler *lr,
-					       unsigned int frames);
+// Converts the frames count from input rate to output rate.
+unsigned int linear_resampler_in_frames_to_out(struct linear_resampler* lr,
+                                               unsigned int frames);
 
-/* Returns true if SRC is needed, otherwise return false. */
-int linear_resampler_needed(struct linear_resampler *lr);
+// Returns true if SRC is needed, otherwise return false.
+int linear_resampler_needed(struct linear_resampler* lr);
 
 /* Run linear resample for audio samples.
  * Args:
@@ -49,11 +50,13 @@ int linear_resampler_needed(struct linear_resampler *lr);
  *    dst - The output buffer.
  *    dst_frames - The number of frames of output buffer.
  */
-unsigned int linear_resampler_resample(struct linear_resampler *lr,
-				       uint8_t *src, unsigned int *src_frames,
-				       uint8_t *dst, unsigned dst_frames);
+unsigned int linear_resampler_resample(struct linear_resampler* lr,
+                                       uint8_t* src,
+                                       unsigned int* src_frames,
+                                       uint8_t* dst,
+                                       unsigned dst_frames);
 
-/* Destroy a linear resampler. */
-void linear_resampler_destroy(struct linear_resampler *lr);
+// Destroy a linear resampler.
+void linear_resampler_destroy(struct linear_resampler* lr);
 
-#endif /* CRAS_SRC_SERVER_LINEAR_RESAMPLER_H_ */
+#endif  // CRAS_SRC_SERVER_LINEAR_RESAMPLER_H_

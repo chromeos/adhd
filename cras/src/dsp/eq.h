@@ -15,16 +15,16 @@ extern "C" {
 
 #include "cras/src/dsp/biquad.h"
 
-/* Maximum number of biquad filters an EQ can have */
+// Maximum number of biquad filters an EQ can have
 #define MAX_BIQUADS_PER_EQ 10
 
 struct eq;
 
-/* Create an EQ. */
-struct eq *eq_new();
+// Create an EQ.
+struct eq* eq_new();
 
-/* Free an EQ. */
-void eq_free(struct eq *eq);
+// Free an EQ.
+void eq_free(struct eq* eq);
 
 /* Append a biquad filter to an EQ. An EQ can have at most MAX_BIQUADS_PER_EQ
  * biquad filters.
@@ -38,8 +38,11 @@ void eq_free(struct eq *eq);
  * Returns:
  *    0 if success. -1 if the eq has no room for more biquads.
  */
-int eq_append_biquad(struct eq *eq, enum biquad_type type, float freq, float Q,
-		     float gain);
+int eq_append_biquad(struct eq* eq,
+                     enum biquad_type type,
+                     float freq,
+                     float Q,
+                     float gain);
 
 /* Append a biquad filter to an EQ. An EQ can have at most MAX_BIQUADS_PER_EQ
  * biquad filters. This is similar to eq_append_biquad(), but it specifies the
@@ -50,7 +53,7 @@ int eq_append_biquad(struct eq *eq, enum biquad_type type, float freq, float Q,
  * Returns:
  *    0 if success. -1 if the eq has no room for more biquads.
  */
-int eq_append_biquad_direct(struct eq *eq, const struct biquad *biquad);
+int eq_append_biquad_direct(struct eq* eq, const struct biquad* biquad);
 
 /* Process a buffer of audio data through the EQ.
  * Args:
@@ -58,10 +61,10 @@ int eq_append_biquad_direct(struct eq *eq, const struct biquad *biquad);
  *    data - The array of audio samples.
  *    count - The number of elements in the data array to process.
  */
-void eq_process(struct eq *eq, float *data, int count);
+void eq_process(struct eq* eq, float* data, int count);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_DSP_EQ_H_ */
+#endif  // CRAS_SRC_DSP_EQ_H_

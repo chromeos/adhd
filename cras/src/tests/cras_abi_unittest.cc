@@ -51,8 +51,9 @@ class CrasAbiTestSuite : public testing::Test {
   }
 
   void DestroyShm(struct cras_audio_shm* shm) {
-    if (shm)
+    if (shm) {
       free(shm->header);
+    }
     free(shm);
   }
 
@@ -71,7 +72,7 @@ TEST_F(CrasAbiTestSuite, BasicStream) {
   EXPECT_NE((void*)NULL, client);
   auto* stream = libcras_stream_params_create();
   EXPECT_NE((void*)NULL, stream);
-  /* Returns timeout because there is no real CRAS server in unittest. */
+  // Returns timeout because there is no real CRAS server in unittest.
   EXPECT_EQ(-ETIMEDOUT, libcras_client_connect_timeout(client, 0));
   EXPECT_EQ(0, libcras_client_run_thread(client));
   EXPECT_EQ(0, libcras_stream_params_set(stream, CRAS_STREAM_INPUT, 480, 480,
@@ -79,9 +80,9 @@ TEST_F(CrasAbiTestSuite, BasicStream) {
                                          CRAS_CLIENT_TYPE_TEST, 0, NULL, NULL,
                                          NULL, 48000, SND_PCM_FORMAT_S16, 2));
   cras_stream_id_t id;
-  /* Fails to add a stream because the stream callback is not set. */
+  // Fails to add a stream because the stream callback is not set.
   EXPECT_EQ(-EINVAL, libcras_client_add_pinned_stream(client, 0, &id, stream));
-  /* Fails to set a stream volume because the stream is not added. */
+  // Fails to set a stream volume because the stream is not added.
   EXPECT_EQ(-EINVAL, libcras_client_set_stream_volume(client, id, 1.0));
   EXPECT_EQ(0, libcras_client_rm_stream(client, id));
   EXPECT_EQ(0, libcras_client_stop(client));

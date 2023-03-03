@@ -6,7 +6,6 @@
 
 #include "cras_shm.h"
 
-int cras_selinux_restorecon(const char *pathname)
-{
-	return selinux_restorecon(pathname, 0);
+int cras_selinux_restorecon(const char* pathname) {
+  return selinux_restorecon(pathname, 0);
 }

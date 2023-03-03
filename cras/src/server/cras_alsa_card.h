@@ -30,30 +30,32 @@ struct cras_device_blocklist;
  *    A pointer to the newly created cras_alsa_card which must later be freed
  *    by calling cras_alsa_card_destroy or NULL on error.
  */
-struct cras_alsa_card *cras_alsa_card_create(
-	struct cras_alsa_card_info *info, const char *device_config_dir,
-	struct cras_device_blocklist *blocklist, const char *ucm_suffix);
+struct cras_alsa_card* cras_alsa_card_create(
+    struct cras_alsa_card_info* info,
+    const char* device_config_dir,
+    struct cras_device_blocklist* blocklist,
+    const char* ucm_suffix);
 
 /* Destroys a cras_alsa_card that was returned from cras_alsa_card_create.
  * Args:
  *    alsa_card - The cras_alsa_card pointer returned from
  *        cras_alsa_card_create.
  */
-void cras_alsa_card_destroy(struct cras_alsa_card *alsa_card);
+void cras_alsa_card_destroy(struct cras_alsa_card* alsa_card);
 
 /* Returns the alsa card index for the given card.
  * Args:
  *    alsa_card - The cras_alsa_card pointer returned from
  *        cras_alsa_card_create.
  */
-size_t cras_alsa_card_get_index(const struct cras_alsa_card *alsa_card);
+size_t cras_alsa_card_get_index(const struct cras_alsa_card* alsa_card);
 
 /* Returns the alsa card type for the given card.
  * Args:
  *    alsa_card - The cras_alsa_card pointer returned from
  *        cras_alsa_card_create.
  */
-enum CRAS_ALSA_CARD_TYPE
-cras_alsa_card_get_type(const struct cras_alsa_card *alsa_card);
+enum CRAS_ALSA_CARD_TYPE cras_alsa_card_get_type(
+    const struct cras_alsa_card* alsa_card);
 
-#endif /* CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_

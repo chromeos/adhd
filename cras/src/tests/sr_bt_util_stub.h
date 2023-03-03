@@ -17,4 +17,4 @@ void enable_cras_sr_bt();
 
 void disable_cras_sr_bt();
 
-#endif /* CRAS_SRC_TESTS_SR_BT_UTIL_STUB_H_ */
+#endif  // CRAS_SRC_TESTS_SR_BT_UTIL_STUB_H_

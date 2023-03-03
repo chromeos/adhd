@@ -25,8 +25,11 @@ extern "C" {
  * Returns:
  *    Negative error if format isn't supported, otherwise 0.
  */
-int dsp_util_deinterleave(uint8_t *input, float *const *output, int channels,
-			  snd_pcm_format_t format, int frames);
+int dsp_util_deinterleave(uint8_t* input,
+                          float* const* output,
+                          int channels,
+                          snd_pcm_format_t format,
+                          int frames);
 
 /* Converts from non-interleaved float samples to interleaved int16_t samples.
  * The int16_t samples have range [-32768, 32767], and the float samples have
@@ -40,8 +43,11 @@ int dsp_util_deinterleave(uint8_t *input, float *const *output, int channels,
  * Returns:
  *    Negative error if format isn't supported, otherwise 0.
  */
-int dsp_util_interleave(float *const *input, uint8_t *output, int channels,
-			snd_pcm_format_t format, int frames);
+int dsp_util_interleave(float* const* input,
+                        uint8_t* output,
+                        int channels,
+                        snd_pcm_format_t format,
+                        int frames);
 
 /* Disables denormal numbers in floating point calculation. Denormal numbers
  * happens often in IIR filters, and it can be very slow.
@@ -49,7 +55,7 @@ int dsp_util_interleave(float *const *input, uint8_t *output, int channels,
 void dsp_enable_flush_denormal_to_zero();
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* DSPUTIL_H_ */
+#endif  // DSPUTIL_H_

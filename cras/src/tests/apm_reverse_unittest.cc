@@ -33,12 +33,14 @@ static int process_reverse_mock(struct float_buffer* fbuf,
 }
 static int process_reverse_needed_mock(bool default_reverse,
                                        const struct cras_iodev* iodev) {
-  if (default_reverse && default_process_reverse_needed_ret)
+  if (default_reverse && default_process_reverse_needed_ret) {
     return 1;
+  }
 
   for (int i = 0; i < num_fake_requested_echo_refs; i++) {
-    if (iodev == fake_requested_echo_refs[i])
+    if (iodev == fake_requested_echo_refs[i]) {
       return 1;
+    }
   }
   return 0;
 }
@@ -49,7 +51,7 @@ static void output_devices_changed_mock() {
 class EchoRefTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
-    /* Set up |output1| to be chosen as the default echo ref. */
+    // Set up |output1| to be chosen as the default echo ref.
     output1.echo_reference_dev = NULL;
     iodev_list_get_first_enabled_iodev_ret = &output1;
     output2.echo_reference_dev = NULL;
@@ -69,15 +71,15 @@ class EchoRefTestSuite : public testing::Test {
     EXPECT_NE((void*)NULL, ext_dsp_module_value[0]);
     EXPECT_EQ(1, output_devices_changed_mock_called);
 
-    /* Save the default_rmod as ext dsp module. */
+    // Save the default_rmod as ext dsp module.
     default_ext_ = ext_dsp_module_value[0];
 
-    /* Restart counter for test cases. */
+    // Restart counter for test cases.
     cras_iodev_set_ext_dsp_module_called = 0;
     output_devices_changed_mock_called = 0;
   }
   virtual void TearDown() {
-    /* Pretend stream APM no longer needs reverse processing. */
+    // Pretend stream APM no longer needs reverse processing.
     num_fake_requested_echo_refs = 0;
     cras_apm_reverse_state_update();
 
@@ -85,8 +87,9 @@ class EchoRefTestSuite : public testing::Test {
   }
   void configure_ext_dsp_module(struct ext_dsp_module* ext) {
     ext->configure(ext, 800, 2, 48000);
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 2; i++) {
       ext->ports[i] = fbuf;
+    }
   }
 
   float fbuf[500];
@@ -146,7 +149,7 @@ TEST_F(EchoRefTestSuite, SetAecRefThenToDefault) {
   cras_apm_reverse_link_echo_ref(stream, &output1);
   fake_requested_echo_refs[num_fake_requested_echo_refs - 1] = &output1;
   cras_apm_reverse_state_update();
-  /* Unlink from echo_ref */
+  // Unlink from echo_ref
   EXPECT_EQ(2, cras_iodev_set_ext_dsp_module_called);
 
   /* Verify that when default_ext_ runs, it triggers APM process
@@ -159,12 +162,12 @@ TEST_F(EchoRefTestSuite, SetAecRefThenToDefault) {
    * logic. */
   iodev_list_get_first_enabled_iodev_ret = &echo_ref;
   device_enabled_callback_val(&unused_odev, NULL);
-  /* Two more calls. Unlink from output1 then link to echo_ref. */
+  // Two more calls. Unlink from output1 then link to echo_ref.
   EXPECT_EQ(4, cras_iodev_set_ext_dsp_module_called);
   EXPECT_EQ((void*)NULL, ext_dsp_module_value[1]);
   EXPECT_NE((void*)NULL, ext_dsp_module_value[2]);
 
-  /* Verify dev changed callback is triggered accordingly. */
+  // Verify dev changed callback is triggered accordingly.
   EXPECT_EQ(1, output_devices_changed_mock_called);
   cras_apm_reverse_state_update();
 
@@ -179,7 +182,7 @@ TEST_F(EchoRefTestSuite, SetAecRefThenToDefault) {
   default_process_reverse_needed_ret = 1;
   num_fake_requested_echo_refs = 0;
   cras_apm_reverse_state_update();
-  /* Unlink from output1 which was linked earlier. */
+  // Unlink from output1 which was linked earlier.
   EXPECT_EQ(5, cras_iodev_set_ext_dsp_module_called);
 
   /* Now the stream apm is tracking default, run it should trigger apm
@@ -212,12 +215,12 @@ TEST_F(EchoRefTestSuite, SetAecRefThenDefaultChangesBackAndForth) {
   ext_dsp_module_value[0]->run(ext_dsp_module_value[0], 500);
   EXPECT_EQ(1, process_reverse_mock_called);
 
-  /* Pretend user select system default to the echo ref just set. */
+  // Pretend user select system default to the echo ref just set.
   iodev_list_get_first_enabled_iodev_ret = &echo_ref;
   device_enabled_callback_val(&unused_odev, NULL);
   EXPECT_EQ(3, cras_iodev_set_ext_dsp_module_called);
 
-  /* Verify dev changed callback is triggered accordingly. */
+  // Verify dev changed callback is triggered accordingly.
   EXPECT_EQ(1, output_devices_changed_mock_called);
   cras_apm_reverse_state_update();
 
@@ -228,11 +231,11 @@ TEST_F(EchoRefTestSuite, SetAecRefThenDefaultChangesBackAndForth) {
   ext_dsp_module_value[1]->run(ext_dsp_module_value[1], 500);
   EXPECT_EQ(2, process_reverse_mock_called);
 
-  /* User selects system default back to the old value. */
+  // User selects system default back to the old value.
   iodev_list_get_first_enabled_iodev_ret = &output1;
   device_enabled_callback_val(&unused_odev, NULL);
   EXPECT_EQ(5, cras_iodev_set_ext_dsp_module_called);
-  /* Verify dev changed callback is triggered accordingly. */
+  // Verify dev changed callback is triggered accordingly.
   EXPECT_EQ(2, output_devices_changed_mock_called);
   cras_apm_reverse_state_update();
 
@@ -257,7 +260,7 @@ TEST_F(EchoRefTestSuite, SetAecRefBeforeStart) {
   default_ext_->run(default_ext_, 500);
   EXPECT_EQ(0, process_reverse_mock_called);
 
-  /* */
+  //
   cras_apm_reverse_link_echo_ref(stream, &echo_ref);
   fake_requested_echo_refs[num_fake_requested_echo_refs++] = &echo_ref;
   cras_apm_reverse_state_update();
@@ -277,12 +280,12 @@ TEST_F(EchoRefTestSuite, SetAecRefBeforeStart) {
   ext_dsp_module_value[0]->run(ext_dsp_module_value[0], 500);
   EXPECT_EQ(1, process_reverse_mock_called);
 
-  /* Pretend that user changes the default to output2. */
+  // Pretend that user changes the default to output2.
   iodev_list_get_first_enabled_iodev_ret = &output2;
   device_enabled_callback_val(&unused_odev, NULL);
   EXPECT_EQ(3, cras_iodev_set_ext_dsp_module_called);
   EXPECT_EQ(default_ext_, ext_dsp_module_value[1]);
-  /* Verify dev changed callback is triggered accordingly. */
+  // Verify dev changed callback is triggered accordingly.
   EXPECT_EQ(1, output_devices_changed_mock_called);
   cras_apm_reverse_state_update();
 
@@ -291,12 +294,12 @@ TEST_F(EchoRefTestSuite, SetAecRefBeforeStart) {
   default_ext_->run(default_ext_, 500);
   EXPECT_EQ(1, process_reverse_mock_called);
 
-  /* Pretend that user changes the default to the same echo ref. */
+  // Pretend that user changes the default to the same echo ref.
   iodev_list_get_first_enabled_iodev_ret = &echo_ref;
   device_enabled_callback_val(&unused_odev, NULL);
   EXPECT_EQ(5, cras_iodev_set_ext_dsp_module_called);
   EXPECT_EQ(default_ext_, ext_dsp_module_value[3]);
-  /* Verify dev changed callback is triggered accordingly. */
+  // Verify dev changed callback is triggered accordingly.
   EXPECT_EQ(2, output_devices_changed_mock_called);
   cras_apm_reverse_state_update();
 
@@ -323,21 +326,21 @@ TEST_F(EchoRefTestSuite, SetAecRefToDefaultChangeDefaultThenUnsetAecRef) {
   default_ext_->run(default_ext_, 500);
   EXPECT_EQ(1, process_reverse_mock_called);
 
-  /* Pretend that user changes the default output to another device. */
+  // Pretend that user changes the default output to another device.
   iodev_list_get_first_enabled_iodev_ret = &output2;
   device_enabled_callback_val(&unused_odev, NULL);
   EXPECT_EQ(2, cras_iodev_set_ext_dsp_module_called);
   EXPECT_NE((void*)NULL, ext_dsp_module_value[0]);
   EXPECT_EQ(default_ext_, ext_dsp_module_value[0]);
-  /* Verify dev changed callback is triggered accordingly. */
+  // Verify dev changed callback is triggered accordingly.
   EXPECT_EQ(1, output_devices_changed_mock_called);
   cras_apm_reverse_state_update();
 
-  /* should NOT trigger */
+  // should NOT trigger
   default_ext_->run(default_ext_, 500);
   EXPECT_EQ(1, process_reverse_mock_called);
 
-  /* Unset aec ref so it should go back to track system default. */
+  // Unset aec ref so it should go back to track system default.
   default_process_reverse_needed_ret = 1;
   cras_apm_reverse_link_echo_ref(stream, NULL);
   num_fake_requested_echo_refs = 0;
@@ -360,7 +363,7 @@ TEST_F(EchoRefTestSuite, SetAecRefForMultipleApms) {
   cras_apm_reverse_link_echo_ref(stream2, &output2);
   EXPECT_EQ(3, cras_iodev_set_ext_dsp_module_called);
   cras_apm_reverse_link_echo_ref(stream, NULL);
-  /* list2 is still using output2 as echo ref, expect no more call to unset. */
+  // list2 is still using output2 as echo ref, expect no more call to unset.
   EXPECT_EQ(3, cras_iodev_set_ext_dsp_module_called);
   cras_apm_reverse_link_echo_ref(stream2, NULL);
   EXPECT_EQ(4, cras_iodev_set_ext_dsp_module_called);

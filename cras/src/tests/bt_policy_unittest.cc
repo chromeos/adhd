@@ -6,7 +6,7 @@
 
 extern "C" {
 #include "cras/src/server/cras_bt_device.h"
-#include "cras/src/server/cras_bt_policy.c" /* */
+#include "cras/src/server/cras_bt_policy.c"  //
 #include "cras/src/server/cras_iodev.h"
 }
 static int cras_iodev_list_suspend_dev_called;
@@ -65,12 +65,13 @@ class BtPolicyTestSuite : public testing::Test {
     odev.update_active_node = update_active_node;
     odev.info.idx = 0x456;
 
-    device.profiles = 0;           /* Reset supported profiles */
-    device.connected_profiles = 0; /* Reset connected profiles */
+    device.profiles = 0;            // Reset supported profiles
+    device.connected_profiles = 0;  // Reset connected profiles
 
     device.bt_io_mgr = &bt_io_mgr;
-    for (int i = 0; i < CRAS_NUM_DIRECTIONS; i++)
+    for (int i = 0; i < CRAS_NUM_DIRECTIONS; i++) {
       bt_io_mgr.bt_iodevs[i] = NULL;
+    }
     bt_io_mgr.bt_iodevs[CRAS_STREAM_OUTPUT] = &odev;
     bt_io_mgr.bt_iodevs[CRAS_STREAM_INPUT] = &idev;
 
@@ -125,7 +126,7 @@ TEST_F(BtPolicyTestSuite, SwitchProfile) {
   EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
   EXPECT_EQ(1, cras_tm_create_timer_called);
 
-  /* The output iodev is resumed in a callback */
+  // The output iodev is resumed in a callback
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_iodev_list_resume_dev_called);
 }
@@ -209,7 +210,7 @@ TEST_F(BtPolicyTestSuite, ScheduleCancelSuspend) {
   process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(1, cras_tm_create_timer_called);
 
-  /* Schedule suspend does nothing if there's a ongoing one. */
+  // Schedule suspend does nothing if there's a ongoing one.
   init_bt_policy_msg(&msg, BT_POLICY_SCHEDULE_SUSPEND, &device, NULL, 100,
                      HFP_AG_START_FAILURE);
   process_bt_policy_msg(&msg.header, NULL);
@@ -259,7 +260,7 @@ TEST_F(BtPolicyTestSuite, ConnectionWatchNoAudioProfiles) {
   cras_bt_policy_start_connection_watch(&device);
   EXPECT_EQ(1, cras_tm_create_timer_called);
 
-  /* Device doesn't support any profile CRAS cares */
+  // Device doesn't support any profile CRAS cares
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(1, cras_tm_create_timer_called);
 
@@ -274,12 +275,12 @@ TEST_F(BtPolicyTestSuite, ConnectionWatchA2dpAndHfp) {
   cras_bt_policy_start_connection_watch(&device);
   EXPECT_EQ(1, cras_tm_create_timer_called);
 
-  /* Expect still waiting for the 1st profile of A2DP and HFP to be connected */
+  // Expect still waiting for the 1st profile of A2DP and HFP to be connected
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_tm_create_timer_called);
   EXPECT_EQ(0, cras_bt_device_connect_profile_called);
 
-  /* After A2DP is connected, expect a call is executed to connect HFP */
+  // After A2DP is connected, expect a call is executed to connect HFP
   device.connected_profiles |= CRAS_BT_DEVICE_PROFILE_A2DP_SINK;
   cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(3, cras_tm_create_timer_called);
@@ -356,11 +357,12 @@ TEST_F(BtPolicyTestSuite, ConnectionWatchTimeout) {
     /* Expect connection watch is armed repeatedly until in the last retry
      * a suspend policy is arranged instead. */
     EXPECT_EQ(i + 2, cras_tm_create_timer_called);
-    if (i < CONN_WATCH_MAX_RETRIES - 1)
+    if (i < CONN_WATCH_MAX_RETRIES - 1) {
       EXPECT_EQ((void*)conn_watch_policies,
                 (void*)cras_tm_create_timer_cb_data);
-    else
+    } else {
       EXPECT_EQ((void*)suspend_policies, (void*)cras_tm_create_timer_cb_data);
+    }
   }
   cras_bt_policy_stop_connection_watch(&device);
 }
@@ -371,17 +373,17 @@ extern "C" {
 
 struct cras_bt_event_log* btlog;
 
-/* From cras_main_message */
+// From cras_main_message
 int cras_main_message_send(struct cras_main_message* msg) {
   return 0;
 }
 
-/* From cras_system_state */
+// From cras_system_state
 struct cras_tm* cras_system_state_get_tm() {
   return NULL;
 }
 
-/* From cras_tm */
+// From cras_tm
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                         unsigned int ms,
                                         void (*cb)(struct cras_timer* t,
@@ -399,7 +401,7 @@ void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
   cras_tm_cancel_timer_arg = t;
 }
 
-/* From cras_iodev_list */
+// From cras_iodev_list
 void cras_iodev_list_suspend_dev(unsigned int dev_idx) {
   cras_iodev_list_suspend_dev_called++;
 }

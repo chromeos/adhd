@@ -26,7 +26,7 @@
  *    bad_pos contains the strlen() of the string if it is
  *    valid.
  */
-int valid_utf8_string(const char *string, size_t *bad_pos);
+int valid_utf8_string(const char* string, size_t* bad_pos);
 
 /* Checks if a string is a valid utf-8 string.
  *
@@ -36,6 +36,6 @@ int valid_utf8_string(const char *string, size_t *bad_pos);
  * Returns:
  *    1 if it is a valid utf-8 string. 0 otherwise.
  */
-int is_utf8_string(const char *string);
+int is_utf8_string(const char* string);
 
 #endif

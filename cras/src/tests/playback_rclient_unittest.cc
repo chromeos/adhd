@@ -70,13 +70,15 @@ class CPRMessageSuite : public testing::Test {
     struct cras_client_connected msg;
 
     rc = pipe(pipe_fds_);
-    if (rc < 0)
+    if (rc < 0) {
       return;
+    }
 
     rclient_ = cras_playback_rclient_create(pipe_fds_[1], 1);
     rc = read(pipe_fds_[0], &msg, sizeof(msg));
-    if (rc < 0)
+    if (rc < 0) {
       return;
+    }
 
     fmt = {
         .format = SND_PCM_FORMAT_S16_LE,
@@ -131,8 +133,9 @@ TEST_F(CPRMessageSuite, StreamConnectMessageInvalidDirection) {
 
   for (int i = 0; i < CRAS_NUM_DIRECTIONS; i++) {
     const auto dir = static_cast<CRAS_STREAM_DIRECTION>(i);
-    if (dir == CRAS_STREAM_OUTPUT)
+    if (dir == CRAS_STREAM_OUTPUT) {
       continue;
+    }
     cras_fill_connect_message(&msg, dir, stream_id, CRAS_STREAM_TYPE_DEFAULT,
                               CRAS_CLIENT_TYPE_UNKNOWN, 480, 240, /*flags=*/0,
                               /*effects=*/0, fmt, NO_DEVICE);
@@ -228,7 +231,7 @@ TEST_F(CPRMessageSuite, StreamDisconnectMessageInvalidClientId) {
 }
 }  // namespace
 
-/* stubs */
+// stubs
 extern "C" {
 
 struct stream_list* cras_iodev_list_get_stream_list() {
@@ -285,8 +288,9 @@ int stream_list_add(struct stream_list* list,
 
   stream_list_add_called++;
   ret = stream_list_add_return;
-  if (ret)
+  if (ret) {
     stream_list_add_return = -EINVAL;
+  }
 
   mock_rstream.shm = &mock_shm;
   mock_rstream.direction = config->direction;

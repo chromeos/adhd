@@ -130,12 +130,14 @@ class RClientMessagesSuite : public testing::Test {
     struct cras_client_connected msg;
 
     rc = pipe(pipe_fds_);
-    if (rc < 0)
+    if (rc < 0) {
       return;
+    }
     rclient_ = cras_control_rclient_create(pipe_fds_[1], 1);
     rc = read(pipe_fds_[0], &msg, sizeof(msg));
-    if (rc < 0)
+    if (rc < 0) {
       return;
+    }
 
     rstream_ = (struct cras_rstream*)calloc(1, sizeof(*rstream_));
 
@@ -224,8 +226,9 @@ TEST_F(RClientMessagesSuite, StreamConnectMessageValidDirection) {
 
   for (int i = 0; i < CRAS_NUM_DIRECTIONS; i++) {
     connect_msg_.direction = static_cast<CRAS_STREAM_DIRECTION>(i);
-    if (connect_msg_.direction == CRAS_STREAM_UNDEFINED)
+    if (connect_msg_.direction == CRAS_STREAM_UNDEFINED) {
       continue;
+    }
     called++;
     cras_rstream_create_stream_out = rstream_;
     cras_iodev_attach_stream_retval = 0;
@@ -435,8 +438,9 @@ void RClientMessagesSuite::RegisterNotification(
   EXPECT_EQ(cras_observer_register_notify_called, cras_observer_get_ops_called);
   EXPECT_EQ(cras_observer_register_notify_called,
             cras_observer_ops_are_empty_called);
-  if (msg.do_register)
+  if (msg.do_register) {
     cras_observer_num_ops_registered++;
+  }
   if (cras_observer_num_ops_registered == 1) {
     if (msg.do_register) {
       EXPECT_EQ(1, cras_observer_add_called);
@@ -450,29 +454,30 @@ void RClientMessagesSuite::RegisterNotification(
     EXPECT_EQ(cras_observer_register_notify_called - 1,
               cras_observer_set_ops_called);
   }
-  if (!msg.do_register)
+  if (!msg.do_register) {
     cras_observer_num_ops_registered--;
+  }
   if (cras_observer_num_ops_registered) {
     EXPECT_EQ(callback, *ops_address);
   }
 }
 
 TEST_F(RClientMessagesSuite, RegisterStatusNotification) {
-  /* First registration for this client. */
+  // First registration for this client.
   RegisterNotification(CRAS_CLIENT_OUTPUT_VOLUME_CHANGED,
                        (void*)send_output_volume_changed,
                        (void**)&cras_observer_ops_value.output_volume_changed);
 
-  /* Second registration for this client. */
+  // Second registration for this client.
   RegisterNotification(CRAS_CLIENT_CAPTURE_GAIN_CHANGED,
                        (void*)send_capture_gain_changed,
                        (void**)&cras_observer_ops_value.capture_gain_changed);
 
-  /* Deregister output_volume. */
+  // Deregister output_volume.
   RegisterNotification(CRAS_CLIENT_OUTPUT_VOLUME_CHANGED, NULL,
                        (void**)&cras_observer_ops_value.output_volume_changed);
 
-  /* Register/deregister all msg_ids. */
+  // Register/deregister all msg_ids.
 
   RegisterNotification(CRAS_CLIENT_OUTPUT_MUTE_CHANGED,
                        (void*)send_output_mute_changed,
@@ -528,7 +533,7 @@ TEST_F(RClientMessagesSuite, RegisterStatusNotification) {
       CRAS_CLIENT_NUM_ACTIVE_STREAMS_CHANGED, NULL,
       (void**)&cras_observer_ops_value.num_active_streams_changed);
 
-  /* Deregister last. */
+  // Deregister last.
   RegisterNotification(CRAS_CLIENT_CAPTURE_GAIN_CHANGED, NULL,
                        (void**)&cras_observer_ops_value.capture_gain_changed);
 }
@@ -682,7 +687,7 @@ TEST_F(RClientMessagesSuite, SendNumActiveStreamsChanged) {
 
 }  //  namespace
 
-/* stubs */
+// stubs
 extern "C" {
 
 struct cras_bt_event_log* btlog;
@@ -838,7 +843,7 @@ struct stream_list* cras_iodev_list_get_stream_list() {
   return NULL;
 }
 
-/* Handles sending a command to a test iodev. */
+// Handles sending a command to a test iodev.
 void cras_iodev_list_test_dev_command(unsigned int iodev_idx,
                                       enum CRAS_TEST_IODEV_CMD command,
                                       unsigned int data_len,
@@ -853,8 +858,9 @@ int stream_list_add(struct stream_list* list,
 
   stream_list_add_stream_called++;
   ret = stream_list_add_stream_return;
-  if (ret)
+  if (ret) {
     stream_list_add_stream_return = -EINVAL;
+  }
 
   mock_rstream.shm = &mock_shm;
   mock_rstream.direction = config->direction;

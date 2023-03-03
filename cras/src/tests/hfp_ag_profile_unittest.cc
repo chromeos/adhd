@@ -57,7 +57,7 @@ TEST_F(HfpAgProfile, StartWithoutScoPCM) {
 
   with_sco_pcm = 0;
   fake_device = (struct cras_bt_device*)0xdeadbeef;
-  /* to get the cras_hfp_ag_profile */
+  // to get the cras_hfp_ag_profile
   cras_hfp_ag_profile_create(NULL);
   bt_profile = internal_bt_profile;
   bt_profile->new_connection(NULL, bt_profile, fake_device, 0);
@@ -67,7 +67,7 @@ TEST_F(HfpAgProfile, StartWithoutScoPCM) {
   EXPECT_EQ(0, ret);
   EXPECT_EQ(2, hfp_iodev_create_called);
 
-  /* Start ag twice won't create more iodev. */
+  // Start ag twice won't create more iodev.
   ret = cras_hfp_ag_start(fake_device);
   EXPECT_EQ(0, ret);
   EXPECT_EQ(2, hfp_iodev_create_called);
@@ -83,7 +83,7 @@ TEST_F(HfpAgProfile, StartWithScoPCM) {
 
   with_sco_pcm = 1;
   fake_device = (struct cras_bt_device*)0xdeadbeef;
-  /* to get the cras_hfp_ag_profile */
+  // to get the cras_hfp_ag_profile
   cras_hfp_ag_profile_create(NULL);
   bt_profile = internal_bt_profile;
   bt_profile->new_connection(NULL, bt_profile, fake_device, 0);
@@ -106,7 +106,7 @@ TEST_F(HfpAgProfile, RemoveConflictAG) {
 
   with_sco_pcm = 0;
   fake_device = (struct cras_bt_device*)0xdeadbeef;
-  /* to get the cras_hfp_ag_profile */
+  // to get the cras_hfp_ag_profile
   cras_hfp_ag_profile_create(NULL);
   bt_profile = internal_bt_profile;
   bt_profile->new_connection(NULL, bt_profile, fake_device, 0);
@@ -133,10 +133,11 @@ struct cras_bt_event_log* btlog;
 struct cras_iodev* cras_iodev_list_get_sco_pcm_iodev(
     enum CRAS_STREAM_DIRECTION direction) {
   if (with_sco_pcm) {
-    if (direction == CRAS_STREAM_OUTPUT)
+    if (direction == CRAS_STREAM_OUTPUT) {
       return &fake_sco_out;
-    else
+    } else {
       return &fake_sco_in;
+    }
   }
 
   return NULL;

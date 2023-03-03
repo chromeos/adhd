@@ -46,7 +46,7 @@ TEST(LinearResampler, ReampleToSlightlyLargerRate) {
   EXPECT_EQ(15, rc);
   EXPECT_EQ(15, count);
 
-  /* Assert linear interpotation result. */
+  // Assert linear interpotation result.
   for (i = 0; i < 34; i++) {
     EXPECT_GE(*(int16_t*)(in_buf + 4 * i), *(int16_t*)(out_buf + 4 * i));
     EXPECT_LE(*(int16_t*)(in_buf + 4 * i), *(int16_t*)(out_buf + 4 * (i + 1)));
@@ -68,7 +68,7 @@ TEST(LinearResampler, ResampleIntegerFractionToLarger) {
     *((int16_t*)(in_buf + i * 4 + 2)) = SHRT_MAX - i * 10;
   }
 
-  /* Rate 10 -> 11 */
+  // Rate 10 -> 11
   lr = linear_resampler_create(2, 4, 10, 11);
 
   count = 5;
@@ -95,7 +95,7 @@ TEST(LinearResampler, ResampleIntegerFractionToLarger) {
   EXPECT_EQ(97, rc);
   EXPECT_EQ(89, count);
 
-  /* Assert linear interpotation result. */
+  // Assert linear interpotation result.
   for (i = 0; i < 90; i++) {
     EXPECT_LE(*(int16_t*)(in_buf + 4 * i), *(int16_t*)(out_buf + 4 * i));
     EXPECT_LE(*(int16_t*)(in_buf + 4 * i + 2),
@@ -118,7 +118,7 @@ TEST(LinearResampler, ResampleIntegerFractionToLess) {
     *((int16_t*)(in_buf + i * 4 + 2)) = SHRT_MIN + i * 20;
   }
 
-  /* Rate 10 -> 9 */
+  // Rate 10 -> 9
   lr = linear_resampler_create(2, 4, 10, 9);
 
   count = 6;
@@ -131,7 +131,7 @@ TEST(LinearResampler, ResampleIntegerFractionToLess) {
   out_offset += rc;
   count = 4;
 
-  /* Assert source rate frames resample to destination rate frames. */
+  // Assert source rate frames resample to destination rate frames.
   rc = linear_resampler_resample(lr, in_buf + 4 * in_offset, &count,
                                  out_buf + 4 * out_offset, 4);
   EXPECT_EQ(4, rc);
@@ -143,7 +143,7 @@ TEST(LinearResampler, ResampleIntegerFractionToLess) {
   rc = linear_resampler_resample(lr, in_buf + 4 * in_offset, &count,
                                  out_buf + 4 * out_offset, 90);
 
-  /* Assert linear interpotation result. */
+  // Assert linear interpotation result.
   for (i = 0; i < 90; i++) {
     EXPECT_LE(*(int16_t*)(in_buf + 4 * i), *(int16_t*)(out_buf + 4 * i));
     EXPECT_LE(*(int16_t*)(in_buf + 4 * i + 2),
@@ -160,7 +160,7 @@ TEST(LinearResampler, ResampleIntegerNoSrcBuffer) {
   memset(in_buf, 0, BUF_SIZE);
   memset(out_buf, 0, BUF_SIZE);
 
-  /* Rate 10 -> 9 */
+  // Rate 10 -> 9
   lr = linear_resampler_create(2, 4, 10, 9);
 
   count = 0;
@@ -178,7 +178,7 @@ TEST(LinearResampler, ResampleIntegerNoDstBuffer) {
   memset(in_buf, 0, BUF_SIZE);
   memset(out_buf, 0, BUF_SIZE);
 
-  /* Rate 10 -> 9 */
+  // Rate 10 -> 9
   lr = linear_resampler_create(2, 4, 10, 9);
 
   count = BUF_SIZE;
@@ -202,10 +202,11 @@ void cras_mix_add_scale_stride(int fmt,
   for (i = 0; i < count; i++) {
     int32_t sum;
     sum = *(int16_t*)dst + *(int16_t*)src * scaler;
-    if (sum > INT16_MAX)
+    if (sum > INT16_MAX) {
       sum = INT16_MAX;
-    else if (sum < INT16_MIN)
+    } else if (sum < INT16_MIN) {
       sum = INT16_MIN;
+    }
     *(int16_t*)dst = sum;
     dst += dst_stride;
     src += src_stride;

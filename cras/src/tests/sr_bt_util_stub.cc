@@ -16,7 +16,7 @@ static enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_is_enabled =
 
 }  // namespace
 
-/* Helper functions for testing */
+// Helper functions for testing
 
 void enable_cras_sr_bt() {
   cras_sr_bt_is_enabled = CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK;
@@ -26,7 +26,7 @@ void disable_cras_sr_bt() {
   cras_sr_bt_is_enabled = CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
 }
 
-/* Fake implementation of cras_bt_sr */
+// Fake implementation of cras_bt_sr
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
   return cras_sr_bt_is_enabled;

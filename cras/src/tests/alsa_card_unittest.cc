@@ -3,11 +3,10 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <map>
 #include <stdio.h>
 #include <sys/param.h>
 #include <syslog.h>
-
-#include <map>
 
 extern "C" {
 #include "cras/src/common/utlist.h"
@@ -19,7 +18,6 @@ extern "C" {
 #include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_features_override.h"
 #include "cras/src/server/cras_iodev.h"
-
 #include "cras_types.h"
 #include "cras_util.h"
 }
@@ -728,7 +726,7 @@ TEST(AlsaCard, CreateOneOutputWithCoupledMixers) {
   int dev_nums[] = {0};
   int info_rets[] = {0, -1};
   struct mixer_name *mixer_name_1, *mixer_name_2;
-  /* Use strdup because cras_alsa_card_create will delete it. */
+  // Use strdup because cras_alsa_card_create will delete it.
   const char *name1 = strdup("MixerName1"), *name2 = strdup("MixerName2");
 
   cras_alsa_card_info card_info;
@@ -777,8 +775,9 @@ TEST(AlsaCard, CreateOneOutputWithCoupledMixers) {
    * cras_alsa_mixer_create. */
   struct mixer_name* m_name = coupled_output_names_value;
   EXPECT_EQ(0, m_name ? strcmp(m_name->name, "MixerName1") : 1);
-  if (m_name)
+  if (m_name) {
     m_name = m_name->next;
+  }
   EXPECT_EQ(0, m_name ? strcmp(m_name->name, "MixerName2") : 1);
 
   cras_alsa_card_destroy(c);
@@ -870,7 +869,7 @@ TEST(AlsaCard, TwoUCMSecionsDependentPCM) {
   struct ucm_section* sections = NULL;
   struct ucm_section* section;
 
-  /* Create UCM so that MIC1 and MIC2 will be two nodes on the same iodev. */
+  // Create UCM so that MIC1 and MIC2 will be two nodes on the same iodev.
   section = ucm_section_create("MIC1", "hw:0,3", 0, -1, CRAS_STREAM_INPUT,
                                "my-sound-card Headset Jack", "gpio");
   DL_APPEND(sections, section);
@@ -1089,7 +1088,7 @@ TEST(AlsaCard, UCMIgnoreSuffix) {
   cras_alsa_card_destroy(c);
 }
 
-/* Stubs */
+// Stubs
 
 extern "C" {
 struct cras_alsa_mixer* cras_alsa_mixer_create(const char* card_name) {
@@ -1134,8 +1133,9 @@ struct cras_iodev* alsa_iodev_create(size_t card_index,
                                      size_t usb_pid,
                                      char* usb_serial_number) {
   struct cras_iodev* result = NULL;
-  if (cras_alsa_iodev_create_called < cras_alsa_iodev_create_return_size)
+  if (cras_alsa_iodev_create_called < cras_alsa_iodev_create_return_size) {
     result = cras_alsa_iodev_create_return[cras_alsa_iodev_create_called];
+  }
   cras_alsa_iodev_create_called++;
   return result;
 }
@@ -1159,8 +1159,9 @@ unsigned alsa_iodev_index(struct cras_iodev* iodev) {
   std::map<struct cras_iodev*, unsigned int>::iterator i;
   cras_alsa_iodev_index_called++;
   i = cras_alsa_iodev_index_return.find(iodev);
-  if (i != cras_alsa_iodev_index_return.end())
+  if (i != cras_alsa_iodev_index_return.end()) {
     return i->second;
+  }
   return 0;
 }
 int alsa_iodev_has_hctl_jacks(struct cras_iodev* iodev) {
@@ -1186,9 +1187,10 @@ struct cras_iodev* cras_alsa_usb_iodev_create(
     char* usb_serial_number) {
   struct cras_iodev* result = NULL;
   if (cras_alsa_usb_iodev_create_called <
-      cras_alsa_usb_iodev_create_return_size)
+      cras_alsa_usb_iodev_create_return_size) {
     result =
         cras_alsa_usb_iodev_create_return[cras_alsa_usb_iodev_create_called];
+  }
   cras_alsa_usb_iodev_create_called++;
   return result;
 }
@@ -1217,8 +1219,9 @@ unsigned cras_alsa_usb_iodev_index(struct cras_iodev* iodev) {
   std::map<struct cras_iodev*, unsigned int>::iterator i;
   cras_alsa_usb_iodev_index_called++;
   i = cras_alsa_usb_iodev_index_return.find(iodev);
-  if (i != cras_alsa_usb_iodev_index_return.end())
+  if (i != cras_alsa_usb_iodev_index_return.end()) {
     return i->second;
+  }
   return 0;
 }
 
@@ -1234,10 +1237,11 @@ size_t snd_ctl_card_info_sizeof() {
 }
 int snd_ctl_open(snd_ctl_t** handle, const char* name, int card) {
   snd_ctl_open_called++;
-  if (snd_ctl_open_return == 0)
+  if (snd_ctl_open_return == 0) {
     *handle = reinterpret_cast<snd_ctl_t*>(0xff);
-  else
+  } else {
     *handle = NULL;
+  }
   return snd_ctl_open_return;
 }
 int snd_ctl_close(snd_ctl_t* handle) {
@@ -1431,7 +1435,7 @@ void ucm_free_mixer_names(struct mixer_name* names) {
   }
 }
 
-} /* extern "C" */
+}  // extern "C"
 
 }  //  namespace
 

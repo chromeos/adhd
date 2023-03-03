@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include "cras/src/tests/scoped_features_override.h"
-
 #include "gtest/gtest.h"
 
 TEST(ScopedFeaturesOverrideTest, Override) {

@@ -19,27 +19,27 @@
  * Represents a Bluetooth stack interface that CRAS can run with.
  */
 struct bt_stack {
-	// Bitmap to configure if certain profiles should
-	// be disabled.
-	unsigned profile_disable_mask;
-	// The dBus connection handle.
-	DBusConnection *conn;
-	// Callback to start the BT stack.
-	void (*start)(struct bt_stack *s);
-	// Callback to stop the BT stack.
-	void (*stop)(struct bt_stack *s);
+  // Bitmap to configure if certain profiles should
+  // be disabled.
+  unsigned profile_disable_mask;
+  // The dBus connection handle.
+  DBusConnection* conn;
+  // Callback to start the BT stack.
+  void (*start)(struct bt_stack* s);
+  // Callback to stop the BT stack.
+  void (*stop)(struct bt_stack* s);
 };
 
-/* Starts the default bt_stack interface. */
-void cras_bt_start(DBusConnection *conn, unsigned profile_disable_mask);
+// Starts the default bt_stack interface.
+void cras_bt_start(DBusConnection* conn, unsigned profile_disable_mask);
 
-/* Stops the current bt_stack interface. */
-void cras_bt_stop(DBusConnection *conn);
+// Stops the current bt_stack interface.
+void cras_bt_stop(DBusConnection* conn);
 
-/* Switches the current running stack to target. */
-void cras_bt_switch_stack(struct bt_stack *target);
+// Switches the current running stack to target.
+void cras_bt_switch_stack(struct bt_stack* target);
 
-/* Switches the current running stack to default. */
+// Switches the current running stack to default.
 void cras_bt_switch_default_stack();
 
-#endif /* CRAS_SRC_SERVER_CRAS_BT_MANAGER_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_BT_MANAGER_H_

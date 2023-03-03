@@ -4,7 +4,6 @@
  */
 
 #include <time.h>
-
 #include <unordered_map>
 
 extern "C" {

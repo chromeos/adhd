@@ -13,29 +13,29 @@
 extern "C" {
 #endif
 
-/* Represents an ALSA UCM section. */
+// Represents an ALSA UCM section.
 struct ucm_section {
-	/* Section name. */
-	const char *name;
-	/* Value of PlaybackPCM or CapturePCM. */
-	const char *pcm_name;
-	/* Device PCM index. */
-	int dev_idx;
-	/* Device PCM index to associate this section to. */
-	int dependent_dev_idx;
-	/* Output or Input. */
-	enum CRAS_STREAM_DIRECTION dir;
-	/* Associated jack's name. */
-	const char *jack_name;
-	/* Associated jack's type. */
-	const char *jack_type;
-	/* Switch number for jack from linux/input.h, or -1. */
-	int jack_switch;
-	/* (Playback/Capture)MixerElem value. */
-	const char *mixer_name;
-	/* CoupledMixers value. */
-	struct mixer_name *coupled;
-	struct ucm_section *prev, *next;
+  // Section name.
+  const char* name;
+  // Value of PlaybackPCM or CapturePCM.
+  const char* pcm_name;
+  // Device PCM index.
+  int dev_idx;
+  // Device PCM index to associate this section to.
+  int dependent_dev_idx;
+  // Output or Input.
+  enum CRAS_STREAM_DIRECTION dir;
+  // Associated jack's name.
+  const char* jack_name;
+  // Associated jack's type.
+  const char* jack_type;
+  // Switch number for jack from linux/input.h, or -1.
+  int jack_switch;
+  // (Playback/Capture)MixerElem value.
+  const char* mixer_name;
+  // CoupledMixers value.
+  struct mixer_name* coupled;
+  struct ucm_section *prev, *next;
 };
 
 /* Create a single UCM section.
@@ -53,11 +53,13 @@ struct ucm_section {
  * Returns:
  *    A valid pointer on success, NULL for memory allocation error.
  */
-struct ucm_section *ucm_section_create(const char *name, const char *pcm_name,
-				       int dev_idx, int dependent_dev_idx,
-				       enum CRAS_STREAM_DIRECTION dir,
-				       const char *jack_name,
-				       const char *jack_type);
+struct ucm_section* ucm_section_create(const char* name,
+                                       const char* pcm_name,
+                                       int dev_idx,
+                                       int dependent_dev_idx,
+                                       enum CRAS_STREAM_DIRECTION dir,
+                                       const char* jack_name,
+                                       const char* jack_type);
 
 /* Sets the mixer_name value for the given section.
  *
@@ -68,7 +70,7 @@ struct ucm_section *ucm_section_create(const char *name, const char *pcm_name,
  * Returns:
  *    0 for success, -EINVAL for invalid arguments, or -ENOMEM.
  */
-int ucm_section_set_mixer_name(struct ucm_section *section, const char *name);
+int ucm_section_set_mixer_name(struct ucm_section* section, const char* name);
 
 /* Add a single coupled control to this section.
  * Control has the same direction as the section.
@@ -81,8 +83,9 @@ int ucm_section_set_mixer_name(struct ucm_section *section, const char *name);
  * Returns:
  *    0 for success, -EINVAL for invalid arguments, or -ENOMEM.
  */
-int ucm_section_add_coupled(struct ucm_section *section, const char *name,
-			    mixer_name_type type);
+int ucm_section_add_coupled(struct ucm_section* section,
+                            const char* name,
+                            mixer_name_type type);
 
 /* Concatenate a list of coupled controls to this section.
  *
@@ -93,25 +96,25 @@ int ucm_section_add_coupled(struct ucm_section *section, const char *name,
  * Returns:
  *    0 for success, -EINVAL for invalid arguments (NULL args).
  */
-int ucm_section_concat_coupled(struct ucm_section *section,
-			       struct mixer_name *coupled);
+int ucm_section_concat_coupled(struct ucm_section* section,
+                               struct mixer_name* coupled);
 
 /* Frees a list of sections.
  *
  * Args:
  *    sections - List of sections to free.
  */
-void ucm_section_free_list(struct ucm_section *sections);
+void ucm_section_free_list(struct ucm_section* sections);
 
 /* Dump details on this section to syslog(LOG_DEBUG).
  *
  * Args:
  *    section - Section to dump.
  */
-void ucm_section_dump(struct ucm_section *section);
+void ucm_section_dump(struct ucm_section* section);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _CRAS_ALSA_MIXER_NAME_H */
+#endif  // _CRAS_ALSA_MIXER_NAME_H

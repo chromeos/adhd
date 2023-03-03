@@ -3,10 +3,9 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <map>
 #include <stdio.h>
 #include <syslog.h>
-
-#include <map>
 #include <vector>
 
 extern "C" {
@@ -158,8 +157,9 @@ static int cras_iodev_update_underrun_duration_called = 0;
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
                                    int value) {
-  if (!strcmp(key, "display_rotation"))
+  if (!strcmp(key, "display_rotation")) {
     display_rotation = value;
+  }
 }
 
 void ResetStubData() {
@@ -296,7 +296,7 @@ TEST(AlsaIoInit, InitializePlayback) {
       0, test_dev_id, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, NULL,
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-  /* Get volume curve twice for iodev, and default node. */
+  // Get volume curve twice for iodev, and default node.
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
@@ -344,7 +344,7 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-  /* No more call to get volume curve for input device. */
+  // No more call to get volume curve for input device.
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
   ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
@@ -396,7 +396,7 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
 
-  /* No extra gain applied. */
+  // No extra gain applied.
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS,
             aio->base.active_node->intrinsic_sensitivity);
   ASSERT_EQ(0, aio->base.active_node->capture_gain);
@@ -434,7 +434,7 @@ TEST(AlsaIoInit, DefaultNodeHDMICard) {
       0, NULL, ALSA_CARD_TYPE_HDMI, 0, fake_mixer, fake_config, NULL,
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-  /* No more call to get volume curve for input device. */
+  // No more call to get volume curve for input device.
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
   ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
   ASSERT_EQ(1, aio->base.active_node->plugged);
@@ -464,7 +464,7 @@ TEST(AlsaIoInit, OpenPlayback) {
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  /* Call open_dev once on update_max_supported_channels. */
+  // Call open_dev once on update_max_supported_channels.
   EXPECT_EQ(1, cras_alsa_open_called);
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
@@ -638,7 +638,7 @@ TEST(AlsaIoInit, InitializeCapture) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
 
   EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+  // Call cras_alsa_fill_properties once on update_max_supported_channels.
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_inputs_called);
 
@@ -726,7 +726,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
   struct cras_audio_format format;
   struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
 
-  /* Meet the requirements of using software gain. */
+  // Meet the requirements of using software gain.
   ResetStubData();
 
   iodev = alsa_iodev_create_with_default_parameters(
@@ -742,17 +742,17 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
   iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
-  /* Hardware gain is set to 0dB when software gain is used. */
+  // Hardware gain is set to 0dB when software gain is used.
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_value);
 
-  /* Test the case where software gain is not needed. */
+  // Test the case where software gain is not needed.
   iodev->active_node->software_volume_needed = 0;
   iodev->active_node->capture_gain = 1000;
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
 
-  /* Hardware gain is set to 1000 * 0.01 dB as got from catpure_gain.*/
+  // Hardware gain is set to 1000 * 0.01 dB as got from catpure_gain.
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_value);
 
   alsa_iodev_destroy(iodev);
@@ -779,7 +779,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
 
-  /* Not change mixer controls for USB devices without UCM config. */
+  // Not change mixer controls for USB devices without UCM config.
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_called);
   iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
@@ -960,7 +960,7 @@ TEST(AlsaIoInit, SwapMode) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
 
   aio->base.set_swap_mode_for_node((cras_iodev*)aio, fake_node, 1);
-  /* Swap mode is implemented by dsp. */
+  // Swap mode is implemented by dsp.
   EXPECT_EQ(1, cras_iodev_dsp_set_swap_mode_for_node_called);
 
   // Stub replies that swap mode exists.
@@ -1025,7 +1025,7 @@ TEST(AlsaIoInit, MaxSupportedChannels) {
         0, test_dev_id, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
         CRAS_STREAM_OUTPUT);
     ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-    /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+    // Call cras_alsa_fill_properties once on update_max_supported_channels.
     EXPECT_EQ(1, cras_alsa_fill_properties_called);
     uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
     EXPECT_EQ(max_channels, aio->base.info.max_supported_channels);
@@ -1050,7 +1050,7 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, NULL,
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-  /* Two mixer controls calls get volume curve. */
+  // Two mixer controls calls get volume curve.
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
@@ -1204,7 +1204,7 @@ TEST(AlsaOutputNode, MaxSupportedChannelsInternalSpeaker) {
     /* No need to call cras_alsa_fill_properties_called for the internal
      * speaker. */
     EXPECT_EQ(0, cras_alsa_fill_properties_called);
-    /* Always expose internal speaker as a stereo device. */
+    // Always expose internal speaker as a stereo device.
     EXPECT_EQ(2, iodev->info.max_supported_channels);
     alsa_iodev_destroy(iodev);
   }
@@ -1301,7 +1301,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   cras_alsa_jack_get_name_ret_value = jack_name;
   jack_output_plug_event(reinterpret_cast<struct cras_alsa_jack*>(4), 0, aio);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
-  /* Headphone plug event shouldn't trigger update_max_supported_channels. */
+  // Headphone plug event shouldn't trigger update_max_supported_channels.
   EXPECT_EQ(0, cras_alsa_fill_properties_called);
   EXPECT_EQ(2, iodev->info.max_supported_channels);
 
@@ -2830,8 +2830,9 @@ const char* cras_alsa_mixer_get_control_name(
   ControlNameMap::iterator it;
   cras_alsa_mixer_get_control_name_called++;
   it = cras_alsa_mixer_get_control_name_values.find(control);
-  if (it == cras_alsa_mixer_get_control_name_values.end())
+  if (it == cras_alsa_mixer_get_control_name_values.end()) {
     return "";
+  }
   return it->second.c_str();
 }
 
@@ -2998,8 +2999,9 @@ int cras_alsa_jack_list_add_jack_for_section(
     struct ucm_section* ucm_section,
     struct cras_alsa_jack** result_jack) {
   cras_alsa_jack_list_add_jack_for_section_called++;
-  if (result_jack)
+  if (result_jack) {
     *result_jack = cras_alsa_jack_list_add_jack_for_section_result_jack;
+  }
   return 0;
 }
 
@@ -3026,11 +3028,13 @@ const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
                                      const char* dev) {
   DspNameMap::iterator it;
   ucm_get_dsp_name_for_dev_called++;
-  if (!dev)
+  if (!dev) {
     return NULL;
+  }
   it = ucm_get_dsp_name_for_dev_values.find(dev);
-  if (it == ucm_get_dsp_name_for_dev_values.end())
+  if (it == ucm_get_dsp_name_for_dev_values.end()) {
     return NULL;
+  }
   return strdup(it->second.c_str());
 }
 
@@ -3125,8 +3129,9 @@ int ucm_get_channels_for_dev(struct cras_use_case_mgr* mgr,
 int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr* mgr,
                                        const char* node_name) {
   // Assume that noise cancellation exists on internal microphone.
-  if (!strcmp(node_name, INTERNAL_MICROPHONE))
+  if (!strcmp(node_name, INTERNAL_MICROPHONE)) {
     return 1;
+  }
   return 0;
 }
 
@@ -3157,11 +3162,13 @@ struct cras_volume_curve* cras_card_config_get_volume_curve_for_control(
     const char* control_name) {
   VolCurveMap::iterator it;
   cras_card_config_get_volume_curve_for_control_called++;
-  if (!control_name)
+  if (!control_name) {
     return NULL;
+  }
   it = cras_card_config_get_volume_curve_vals.find(control_name);
-  if (it == cras_card_config_get_volume_curve_vals.end())
+  if (it == cras_card_config_get_volume_curve_vals.end()) {
     return NULL;
+  }
   return it->second;
 }
 
@@ -3191,8 +3198,9 @@ void cras_iodev_set_node_plugged(struct cras_ionode* ionode, int plugged) {
   cras_iodev_set_node_plugged_called++;
   cras_iodev_set_node_plugged_ionode = ionode;
   cras_iodev_set_node_plugged_value = plugged;
-  if (ionode)
+  if (ionode) {
     ionode->plugged = plugged;
+  }
 }
 
 void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {
@@ -3216,8 +3224,9 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
 void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack* jack,
                                         char* name_buf,
                                         unsigned int buf_size) {
-  if (cras_alsa_jack_update_monitor_fake_name)
+  if (cras_alsa_jack_update_monitor_fake_name) {
     strcpy(name_buf, cras_alsa_jack_update_monitor_fake_name);
+  }
 }
 
 uint32_t cras_alsa_jack_get_monitor_stable_id(const struct cras_alsa_jack* jack,
@@ -3245,8 +3254,9 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr* mgr,
                               const char* dev,
                               long* gain) {
   if (ucm_get_default_node_gain_values.find(dev) ==
-      ucm_get_default_node_gain_values.end())
+      ucm_get_default_node_gain_values.end()) {
     return 1;
+  }
 
   *gain = ucm_get_default_node_gain_values[dev];
   return 0;
@@ -3256,8 +3266,9 @@ int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr* mgr,
                                   const char* dev,
                                   long* vol) {
   if (ucm_get_intrinsic_sensitivity_values.find(dev) ==
-      ucm_get_intrinsic_sensitivity_values.end())
+      ucm_get_intrinsic_sensitivity_values.end()) {
     return 1;
+  }
 
   *vol = ucm_get_intrinsic_sensitivity_values[dev];
   return 0;

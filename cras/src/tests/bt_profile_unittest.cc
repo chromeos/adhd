@@ -97,7 +97,7 @@ TEST_F(BtProfileTestSuite, HandleMessage) {
 
   WaitForMatches();
 
-  /* Use stdin as mock fd */
+  // Use stdin as mock fd
   CreateMessageCall("/fake", "org.bluez.Profile1", "NewConnection")
       .WithString("device")
       .WithUnixFd(0)

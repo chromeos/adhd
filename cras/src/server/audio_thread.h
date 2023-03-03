@@ -23,38 +23,38 @@ struct dev_stream;
  * record audio.
  */
 struct audio_thread {
-	// Send a message from main to running thread.
-	int to_thread_fds[2];
-	// Send a synchronous response to main from running thread.
-	int to_main_fds[2];
-	// Thread ID of the running playback/capture thread.
-	pthread_t tid;
-	// Non-zero if the thread has started successfully.
-	int started;
-	// Non-zero if the thread is suspended.
-	int suspended;
-	// Lists of open input and output devices.
-	struct open_dev *open_devs[CRAS_NUM_DIRECTIONS];
-	// What FDs wake up this thread.
-	struct pollfd *pollfds;
-	// Number of available poll fds.
-	size_t pollfds_size;
-	// Number of currently registered poll fds.
-	size_t num_pollfds;
-	// Format converter used to remix output channels.
-	struct cras_fmt_conv *remix_converter;
+  // Send a message from main to running thread.
+  int to_thread_fds[2];
+  // Send a synchronous response to main from running thread.
+  int to_main_fds[2];
+  // Thread ID of the running playback/capture thread.
+  pthread_t tid;
+  // Non-zero if the thread has started successfully.
+  int started;
+  // Non-zero if the thread is suspended.
+  int suspended;
+  // Lists of open input and output devices.
+  struct open_dev* open_devs[CRAS_NUM_DIRECTIONS];
+  // What FDs wake up this thread.
+  struct pollfd* pollfds;
+  // Number of available poll fds.
+  size_t pollfds_size;
+  // Number of currently registered poll fds.
+  size_t num_pollfds;
+  // Format converter used to remix output channels.
+  struct cras_fmt_conv* remix_converter;
 };
 
 /*
  * Enum to specify how a registered event callback be triggered.
  */
 enum AUDIO_THREAD_EVENTS_CB_TRIGGER {
-	// Callback will not be triggered.
-	TRIGGER_NONE,
-	// Triggered by poll given fd and revent.
-	TRIGGER_POLL,
-	// Triggered everytime when audio thread wakes up.
-	TRIGGER_WAKEUP,
+  // Callback will not be triggered.
+  TRIGGER_NONE,
+  // Triggered by poll given fd and revent.
+  TRIGGER_POLL,
+  // Triggered everytime when audio thread wakes up.
+  TRIGGER_WAKEUP,
 };
 
 /* Callback function to be handled in main loop in audio thread.
@@ -62,39 +62,39 @@ enum AUDIO_THREAD_EVENTS_CB_TRIGGER {
  *    data - The data for callback function.
  *    revent - The returned event from ppoll().
  */
-typedef int (*thread_callback)(void *data, int revent);
+typedef int (*thread_callback)(void* data, int revent);
 
 /* Creates an audio thread.
  * Returns:
  *    A pointer to the newly created audio thread.  It must be freed by calling
  *    audio_thread_destroy().  Returns NULL on error.
  */
-struct audio_thread *audio_thread_create();
+struct audio_thread* audio_thread_create();
 
 /* Adds an open device.
  * Args:
  *    thread - The thread to add open device to.
  *    dev - The open device to add.
  */
-int audio_thread_add_open_dev(struct audio_thread *thread,
-			      struct cras_iodev *dev);
+int audio_thread_add_open_dev(struct audio_thread* thread,
+                              struct cras_iodev* dev);
 
 /* Removes an open device.
  * Args:
  *    thread - The thread to remove open device from.
  *    dev - The open device to remove.
  */
-int audio_thread_rm_open_dev(struct audio_thread *thread,
-			     enum CRAS_STREAM_DIRECTION dir,
-			     unsigned int dev_idx);
+int audio_thread_rm_open_dev(struct audio_thread* thread,
+                             enum CRAS_STREAM_DIRECTION dir,
+                             unsigned int dev_idx);
 
 /* Checks if dev is open and used by audio thread.
  * Args:
  *    thread - The thread accessing open devs.
  *    dev - The device to check if it has already been open.
  */
-int audio_thread_is_dev_open(struct audio_thread *thread,
-			     struct cras_iodev *dev);
+int audio_thread_is_dev_open(struct audio_thread* thread,
+                             struct cras_iodev* dev);
 
 /* Adds a thread_callback to audio thread for requested events. By default
  * the callback trigger is set to TRIGGER_POLL.
@@ -105,8 +105,10 @@ int audio_thread_is_dev_open(struct audio_thread *thread,
  *    data - The data for the callback function.
  *    events - The requested events to ppoll().
  */
-void audio_thread_add_events_callback(int fd, thread_callback cb, void *data,
-				      int events);
+void audio_thread_add_events_callback(int fd,
+                                      thread_callback cb,
+                                      void* data,
+                                      int events);
 
 /* Removes an thread_callback from audio thread.
  * Args:
@@ -119,7 +121,7 @@ void audio_thread_rm_callback(int fd);
  *     thread - The thread to remove callback from.
  *     fd - The file descriptor of the previous added callback.
  */
-int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd);
+int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd);
 
 /* Configures the callback associated with fd when it should be triggerred.
  * Args:
@@ -127,7 +129,8 @@ int audio_thread_rm_callback_sync(struct audio_thread *thread, int fd);
  *    trigger - Specifies how the callback should be triggered.
  */
 void audio_thread_config_events_callback(
-	int fd, enum AUDIO_THREAD_EVENTS_CB_TRIGGER trigger);
+    int fd,
+    enum AUDIO_THREAD_EVENTS_CB_TRIGGER trigger);
 
 /* Starts a thread created with audio_thread_create.
  * Args:
@@ -135,12 +138,12 @@ void audio_thread_config_events_callback(
  * Returns:
  *    0 on success, return code from pthread_crate on failure.
  */
-int audio_thread_start(struct audio_thread *thread);
+int audio_thread_start(struct audio_thread* thread);
 
-/* Frees an audio thread created with audio_thread_create(). */
-void audio_thread_destroy(struct audio_thread *thread);
+// Frees an audio thread created with audio_thread_create().
+void audio_thread_destroy(struct audio_thread* thread);
 
-/* Returns the shm fd for the ATlog. */
+// Returns the shm fd for the ATlog.
 int audio_thread_event_log_shm_fd();
 
 /* Add a stream to the thread. After this call, the ownership of the stream will
@@ -155,9 +158,10 @@ int audio_thread_event_log_shm_fd();
  *    zero on success, negative error from the AUDIO_THREAD enum above when an
  *    the thread can't be added.
  */
-int audio_thread_add_stream(struct audio_thread *thread,
-			    struct cras_rstream *stream,
-			    struct cras_iodev **devs, unsigned int num_devs);
+int audio_thread_add_stream(struct audio_thread* thread,
+                            struct cras_rstream* stream,
+                            struct cras_iodev** devs,
+                            unsigned int num_devs);
 
 /* Begin draining a stream and check the draining status.
  * Args:
@@ -168,8 +172,8 @@ int audio_thread_add_stream(struct audio_thread *thread,
  *    completely drained, then the number of milliseconds until is is drained
  *    are returned.
  */
-int audio_thread_drain_stream(struct audio_thread *thread,
-			      struct cras_rstream *stream);
+int audio_thread_drain_stream(struct audio_thread* thread,
+                              struct cras_rstream* stream);
 
 /* Disconnect a stream from the client.
  * Args:
@@ -179,13 +183,13 @@ int audio_thread_drain_stream(struct audio_thread *thread,
  * Returns:
  *    0 on success, negative if error.
  */
-int audio_thread_disconnect_stream(struct audio_thread *thread,
-				   struct cras_rstream *stream,
-				   struct cras_iodev *iodev);
+int audio_thread_disconnect_stream(struct audio_thread* thread,
+                                   struct cras_rstream* stream,
+                                   struct cras_iodev* iodev);
 
-/* Dumps information about all active streams to syslog. */
-int audio_thread_dump_thread_info(struct audio_thread *thread,
-				  struct audio_debug_info *info);
+// Dumps information about all active streams to syslog.
+int audio_thread_dump_thread_info(struct audio_thread* thread,
+                                  struct audio_debug_info* info);
 
 /* Starts or stops the aec dump task.
  * Args:
@@ -194,15 +198,16 @@ int audio_thread_dump_thread_info(struct audio_thread *thread,
  *    start - True to start the aec dump, false to stop.
  *    fd - File to store aec dump result.
  */
-int audio_thread_set_aec_dump(struct audio_thread *thread,
-			      cras_stream_id_t stream_id, unsigned int start,
-			      int fd);
+int audio_thread_set_aec_dump(struct audio_thread* thread,
+                              cras_stream_id_t stream_id,
+                              unsigned int start,
+                              int fd);
 
 /* Configures the global converter for output remixing. Called by main
  * thread. */
-int audio_thread_config_global_remix(struct audio_thread *thread,
-				     unsigned int num_channels,
-				     const float *coefficient);
+int audio_thread_config_global_remix(struct audio_thread* thread,
+                                     unsigned int num_channels,
+                                     const float* coefficient);
 
 /* Start ramping on a device.
  *
@@ -216,7 +221,7 @@ int audio_thread_config_global_remix(struct audio_thread *thread,
  * Returns:
  *    0 on success, negative if error.
  */
-int audio_thread_dev_start_ramp(struct audio_thread *thread,
-				unsigned int dev_idx,
-				enum CRAS_IODEV_RAMP_REQUEST request);
-#endif /* CRAS_SRC_SERVER_AUDIO_THREAD_H_ */
+int audio_thread_dev_start_ramp(struct audio_thread* thread,
+                                unsigned int dev_idx,
+                                enum CRAS_IODEV_RAMP_REQUEST request);
+#endif  // CRAS_SRC_SERVER_AUDIO_THREAD_H_

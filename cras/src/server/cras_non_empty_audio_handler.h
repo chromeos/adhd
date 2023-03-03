@@ -16,10 +16,10 @@
 #ifndef CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_
 #define CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_
 
-/* Send non-empty audio state message. */
+// Send non-empty audio state message.
 int cras_non_empty_audio_send_msg(int32_t non_empty);
 
-/* Initialize non-empty audio handler. */
+// Initialize non-empty audio handler.
 int cras_non_empty_audio_handler_init();
 
-#endif /* CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_

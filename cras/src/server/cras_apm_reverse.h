@@ -21,9 +21,9 @@ struct float_buffer;
  *        The implementation side can use this information to decide if
  *        an APM wants to do the processing.
  */
-typedef int (*process_reverse_t)(struct float_buffer *fbuf,
-				 unsigned int frame_rate,
-				 const struct cras_iodev *echo_ref);
+typedef int (*process_reverse_t)(struct float_buffer* fbuf,
+                                 unsigned int frame_rate,
+                                 const struct cras_iodev* echo_ref);
 
 /* Function to check the conditions and then determine if APM reverse
  * processing is needed. Called in audio thread.
@@ -35,7 +35,7 @@ typedef int (*process_reverse_t)(struct float_buffer *fbuf,
  *        wants to process reverse data on it.
  */
 typedef int (*process_reverse_needed_t)(bool default_reverse,
-					const struct cras_iodev *echo_ref);
+                                        const struct cras_iodev* echo_ref);
 
 /* Function to be triggered when the output devices has changed and
  * cause APM reverse modules state changes. Called in main thread.
@@ -62,8 +62,8 @@ typedef void (*output_devices_changed_t)();
  *        event when output devices has changed in reverse modules side.
  */
 int cras_apm_reverse_init(process_reverse_t process_cb,
-			  process_reverse_needed_t process_needed_cb,
-			  output_devices_changed_t output_devices_changed_cb);
+                          process_reverse_needed_t process_needed_cb,
+                          output_devices_changed_t output_devices_changed_cb);
 
 /* Notifies important state changes to APM reverse module so it handles
  * changes internally and synchronizes the states with stream APM. Called
@@ -81,8 +81,8 @@ void cras_apm_reverse_state_update();
  * Returns:
  *    0 if success, otherwise error code.
  */
-int cras_apm_reverse_link_echo_ref(struct cras_stream_apm *stream,
-				   struct cras_iodev *echo_ref);
+int cras_apm_reverse_link_echo_ref(struct cras_stream_apm* stream,
+                                   struct cras_iodev* echo_ref);
 
 /* Returns if the audio output devices configuration meets our AEC use
  * case.
@@ -92,9 +92,9 @@ int cras_apm_reverse_link_echo_ref(struct cras_stream_apm *stream,
  *        reference device so the check should be made on the default
  *        output device.
  * */
-bool cras_apm_reverse_is_aec_use_case(struct cras_iodev *echo_ref);
+bool cras_apm_reverse_is_aec_use_case(struct cras_iodev* echo_ref);
 
-/* Deinitializes APM reverse modules and all related resources. */
+// Deinitializes APM reverse modules and all related resources.
 void cras_apm_reverse_deinit();
 
-#endif /* CRAS_APM_LIST_H_ */
+#endif  // CRAS_APM_LIST_H_

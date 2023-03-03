@@ -14,13 +14,13 @@ extern "C" {
 #endif
 
 enum cras_feature_id {
-	CrosLateBootAudioTestFeatureFlag,
-	CrOSLateBootAudioHFPOffload,
-	CrOSLateBootAudioHFPMicSR,
-	CrOSLateBootAudioFlexibleLoopback,
-	CrOSLateBootAudioAPNoiseCancellation,
-	CrOSLateBootCrasSplitAlsaUSBInternal,
-	NUM_FEATURES,
+  CrosLateBootAudioTestFeatureFlag,
+  CrOSLateBootAudioHFPOffload,
+  CrOSLateBootAudioHFPMicSR,
+  CrOSLateBootAudioFlexibleLoopback,
+  CrOSLateBootAudioAPNoiseCancellation,
+  CrOSLateBootCrasSplitAlsaUSBInternal,
+  NUM_FEATURES,
 };
 
 // Get whether the feature is enabled.

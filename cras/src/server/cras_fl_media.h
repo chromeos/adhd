@@ -46,61 +46,68 @@
 #define FL_A2DP_CODEC_SINK_LDAC 7
 #define FL_A2DP_CODEC_MAX 8
 
-/* Bitmask form of enum defined on floss to expose HF's HFP codec capability. */
+// Bitmask form of enum defined on floss to expose HF's HFP codec capability.
 #define FL_CODEC_NONE 0x00
 #define FL_CODEC_CVSD 0x01
 #define FL_CODEC_MSBC 0x02
 
 struct fl_media;
 
-struct fl_media *floss_media_get_active_fm();
+struct fl_media* floss_media_get_active_fm();
 
 int fl_media_init(int hci);
 
-int floss_media_start(DBusConnection *conn, unsigned int hci);
+int floss_media_start(DBusConnection* conn, unsigned int hci);
 
-int floss_media_stop(DBusConnection *conn);
+int floss_media_stop(DBusConnection* conn);
 
-/* Calls SetActiveDevice method to Floss media interface. */
-int floss_media_hfp_set_active_device(struct fl_media *fm, const char *addr);
+// Calls SetActiveDevice method to Floss media interface.
+int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr);
 
-/* Calls StartScoCall to Floss media interface. */
-/* Returns codec inuse (CVSD=1, mSBC=2) on success. */
-int floss_media_hfp_start_sco_call(struct fl_media *fm, const char *addr,
-				   bool enable_offload, bool force_cvsd);
+// Calls StartScoCall to Floss media interface.
+// Returns codec inuse (CVSD=1, mSBC=2) on success.
+int floss_media_hfp_start_sco_call(struct fl_media* fm,
+                                   const char* addr,
+                                   bool enable_offload,
+                                   bool force_cvsd);
 
-/* Calls StopScoCall method to Floss media interface. */
-int floss_media_hfp_stop_sco_call(struct fl_media *fm, const char *addr);
+// Calls StopScoCall method to Floss media interface.
+int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr);
 
-/* Calls SetVolume method to Floss media interface. */
-int floss_media_hfp_set_volume(struct fl_media *fm, unsigned int volume,
-			       const char *addr);
+// Calls SetVolume method to Floss media interface.
+int floss_media_hfp_set_volume(struct fl_media* fm,
+                               unsigned int volume,
+                               const char* addr);
 
-/* Unlink hfp with bt_io_manager and destroy related resources. */
-int floss_media_hfp_suspend(struct fl_media *fm);
+// Unlink hfp with bt_io_manager and destroy related resources.
+int floss_media_hfp_suspend(struct fl_media* fm);
 
-/* Calls SetActiveDevice method to Floss media interface. */
-int floss_media_a2dp_set_active_device(struct fl_media *fm, const char *addr);
+// Calls SetActiveDevice method to Floss media interface.
+int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr);
 
-/* Calls SetAudioConfig method to Floss media interface. */
-int floss_media_a2dp_set_audio_config(struct fl_media *fm, unsigned int rate,
-				      unsigned int bps, unsigned int channels);
+// Calls SetAudioConfig method to Floss media interface.
+int floss_media_a2dp_set_audio_config(struct fl_media* fm,
+                                      unsigned int rate,
+                                      unsigned int bps,
+                                      unsigned int channels);
 
-/* Calls GetPresentationPosition method to Floss media interface. */
+// Calls GetPresentationPosition method to Floss media interface.
 int floss_media_a2dp_get_presentation_position(
-	struct fl_media *fm, uint64_t *remote_delay_report_ns,
-	uint64_t *total_bytes_read, struct timespec *data_position_ts);
+    struct fl_media* fm,
+    uint64_t* remote_delay_report_ns,
+    uint64_t* total_bytes_read,
+    struct timespec* data_position_ts);
 
-/* Calls SetVolume method to Floss media interface. */
-int floss_media_a2dp_set_volume(struct fl_media *fm, unsigned int volume);
+// Calls SetVolume method to Floss media interface.
+int floss_media_a2dp_set_volume(struct fl_media* fm, unsigned int volume);
 
-/* Calls StartAudioRequest method to Floss media interface. */
-int floss_media_a2dp_start_audio_request(struct fl_media *fm, const char *addr);
+// Calls StartAudioRequest method to Floss media interface.
+int floss_media_a2dp_start_audio_request(struct fl_media* fm, const char* addr);
 
-/* Calls StopAudioRequest method to Floss media interface. */
-int floss_media_a2dp_stop_audio_request(struct fl_media *fm);
+// Calls StopAudioRequest method to Floss media interface.
+int floss_media_a2dp_stop_audio_request(struct fl_media* fm);
 
-/* Unlink a2dp with bt_io_manager and destroy related resources. */
-int floss_media_a2dp_suspend(struct fl_media *fm);
+// Unlink a2dp with bt_io_manager and destroy related resources.
+int floss_media_a2dp_suspend(struct fl_media* fm);
 
-#endif /* CRAS_SRC_SERVER_CRAS_FL_MEDIA_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_FL_MEDIA_H_

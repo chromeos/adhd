@@ -31,13 +31,13 @@ struct cras_use_case_mgr;
  *    A pointer to the use case manager if found, otherwise NULL.  The pointer
  *    must later be freed with ucm_destroy().
  */
-struct cras_use_case_mgr *ucm_create(const char *name);
+struct cras_use_case_mgr* ucm_create(const char* name);
 
 /* Destroys a cras_use_case_mgr that was returned from ucm_create.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
  */
-void ucm_destroy(struct cras_use_case_mgr *mgr);
+void ucm_destroy(struct cras_use_case_mgr* mgr);
 
 /* Sets the new use case for the given cras_use_case_mgr.
  * Args:
@@ -46,8 +46,8 @@ void ucm_destroy(struct cras_use_case_mgr *mgr);
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_set_use_case(struct cras_use_case_mgr *mgr,
-		     enum CRAS_STREAM_TYPE use_case);
+int ucm_set_use_case(struct cras_use_case_mgr* mgr,
+                     enum CRAS_STREAM_TYPE use_case);
 
 /* Checks if modifier for left right swap mode exists in ucm.
  * Args:
@@ -55,7 +55,7 @@ int ucm_set_use_case(struct cras_use_case_mgr *mgr,
  * Returns:
  *    1 if it exists, 0 otherwise.
  */
-int ucm_swap_mode_exists(struct cras_use_case_mgr *mgr);
+int ucm_swap_mode_exists(struct cras_use_case_mgr* mgr);
 
 /* Enables or disables swap mode for the given node_name. First checks
  * if the modifier is already enabled or disabled.
@@ -66,8 +66,9 @@ int ucm_swap_mode_exists(struct cras_use_case_mgr *mgr);
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
-			 int enable);
+int ucm_enable_swap_mode(struct cras_use_case_mgr* mgr,
+                         const char* node_name,
+                         int enable);
 
 /* Checks if modifier of echo cancellation in ucm.
  * Args:
@@ -76,7 +77,7 @@ int ucm_enable_swap_mode(struct cras_use_case_mgr *mgr, const char *node_name,
  * Returns:
  *    1 if it exists, 0 otherwise.
  */
-int ucm_node_echo_cancellation_exists(struct cras_use_case_mgr *mgr);
+int ucm_node_echo_cancellation_exists(struct cras_use_case_mgr* mgr);
 
 /* Enables or disables echo cancellation. First checks if the modifier is
  * already enabled or disabled.
@@ -87,8 +88,8 @@ int ucm_node_echo_cancellation_exists(struct cras_use_case_mgr *mgr);
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_enable_node_echo_cancellation(struct cras_use_case_mgr *mgr,
-				      int enable);
+int ucm_enable_node_echo_cancellation(struct cras_use_case_mgr* mgr,
+                                      int enable);
 
 /* Checks if modifier of noise suppression in ucm.
  * Args:
@@ -97,7 +98,7 @@ int ucm_enable_node_echo_cancellation(struct cras_use_case_mgr *mgr,
  * Returns:
  *    1 if it exists, 0 otherwise.
  */
-int ucm_node_noise_suppression_exists(struct cras_use_case_mgr *mgr);
+int ucm_node_noise_suppression_exists(struct cras_use_case_mgr* mgr);
 
 /* Enables or disables noise suppression. First checks if the modifier is
  * already enabled or disabled.
@@ -108,8 +109,8 @@ int ucm_node_noise_suppression_exists(struct cras_use_case_mgr *mgr);
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_enable_node_noise_suppression(struct cras_use_case_mgr *mgr,
-				      int enable);
+int ucm_enable_node_noise_suppression(struct cras_use_case_mgr* mgr,
+                                      int enable);
 
 /* Checks if modifier of gain control in ucm.
  * Args:
@@ -118,7 +119,7 @@ int ucm_enable_node_noise_suppression(struct cras_use_case_mgr *mgr,
  * Returns:
  *    1 if it exists, 0 otherwise.
  */
-int ucm_node_gain_control_exists(struct cras_use_case_mgr *mgr);
+int ucm_node_gain_control_exists(struct cras_use_case_mgr* mgr);
 
 /* Enables or disables gain control. First checks if the modifier is
  * already enabled or disabled.
@@ -129,7 +130,7 @@ int ucm_node_gain_control_exists(struct cras_use_case_mgr *mgr);
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_enable_node_gain_control(struct cras_use_case_mgr *mgr, int enable);
+int ucm_enable_node_gain_control(struct cras_use_case_mgr* mgr, int enable);
 
 /* Checks if modifier of noise cancellation for given node_name exists in ucm.
  * Args:
@@ -138,8 +139,8 @@ int ucm_enable_node_gain_control(struct cras_use_case_mgr *mgr, int enable);
  * Returns:
  *    1 if it exists, 0 otherwise.
  */
-int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr *mgr,
-				       const char *node_name);
+int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr* mgr,
+                                       const char* node_name);
 
 /* Enables or disables noise cancellation for the given node_name. First checks
  * if the modifier is already enabled or disabled.
@@ -150,8 +151,9 @@ int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr *mgr,
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr *mgr,
-				       const char *node_name, int enable);
+int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr* mgr,
+                                       const char* node_name,
+                                       int enable);
 
 /* Enables or disables a UCM device.  First checks if the device is already
  * enabled or disabled.
@@ -162,7 +164,7 @@ int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr *mgr,
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_set_enabled(struct cras_use_case_mgr *mgr, const char *dev, int enable);
+int ucm_set_enabled(struct cras_use_case_mgr* mgr, const char* dev, int enable);
 
 /* Gets the value of given flag name.
  * Args:
@@ -172,7 +174,7 @@ int ucm_set_enabled(struct cras_use_case_mgr *mgr, const char *dev, int enable);
  *    A pointer to the allocated string containing the flag value, or
  *    NULL if the flag is not set.
  */
-char *ucm_get_flag(struct cras_use_case_mgr *mgr, const char *flag_name);
+char* ucm_get_flag(struct cras_use_case_mgr* mgr, const char* flag_name);
 
 /* Gets the capture control name which associated with given ucm device.
  * Args:
@@ -182,7 +184,7 @@ char *ucm_get_flag(struct cras_use_case_mgr *mgr, const char *flag_name);
  *    A pointer to the allocated string containing the name of the capture
  *    control, or NULL if no capture control is found.
  */
-char *ucm_get_cap_control(struct cras_use_case_mgr *mgr, const char *ucm_dev);
+char* ucm_get_cap_control(struct cras_use_case_mgr* mgr, const char* ucm_dev);
 
 /* Gets the new node type name which user wants to override the old one for
  * given ucm device.
@@ -193,8 +195,8 @@ char *ucm_get_cap_control(struct cras_use_case_mgr *mgr, const char *ucm_dev);
  *    A pointer to the allocated string containing the new type name,
  *    or NULL if no override_type_name is found.
  */
-const char *ucm_get_override_type_name(struct cras_use_case_mgr *mgr,
-				       const char *ucm_dev);
+const char* ucm_get_override_type_name(struct cras_use_case_mgr* mgr,
+                                       const char* ucm_dev);
 
 /* Gets the name of the ucm device for the given jack name.
  * Args:
@@ -205,8 +207,9 @@ const char *ucm_get_override_type_name(struct cras_use_case_mgr *mgr,
  *    A pointer to the allocated string containing the name of the device, or
  *    NULL if no device is found.
  */
-char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
-			   enum CRAS_STREAM_DIRECTION direction);
+char* ucm_get_dev_for_jack(struct cras_use_case_mgr* mgr,
+                           const char* jack,
+                           enum CRAS_STREAM_DIRECTION direction);
 
 /* Gets the name of the ucm device for the given mixer name.
  * Args:
@@ -217,8 +220,9 @@ char *ucm_get_dev_for_jack(struct cras_use_case_mgr *mgr, const char *jack,
  *    A pointer to the allocated string containing the name of the device, or
  *    NULL if no device is found.
  */
-char *ucm_get_dev_for_mixer(struct cras_use_case_mgr *mgr, const char *mixer,
-			    enum CRAS_STREAM_DIRECTION dir);
+char* ucm_get_dev_for_mixer(struct cras_use_case_mgr* mgr,
+                            const char* mixer,
+                            enum CRAS_STREAM_DIRECTION dir);
 
 /* If there is an EDID file variable specified for dev, return it.  The EDID
  * file will be used for HDMI devices so supported audio formats can be checked.
@@ -229,8 +233,8 @@ char *ucm_get_dev_for_mixer(struct cras_use_case_mgr *mgr, const char *mixer,
  *    A string containing the name of the edid file on Success (Must be freed
  *    later).  NULL if none found.
  */
-const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
-				      const char *dev);
+const char* ucm_get_edid_file_for_dev(struct cras_use_case_mgr* mgr,
+                                      const char* dev);
 
 /* Gets the dsp name which is associated with the given ucm device.
  * Args:
@@ -240,8 +244,8 @@ const char *ucm_get_edid_file_for_dev(struct cras_use_case_mgr *mgr,
  *    A pointer to the allocated string containing the dsp name, or NULL if no
  *    dsp name is found.
  */
-const char *ucm_get_dsp_name_for_dev(struct cras_use_case_mgr *mgr,
-				     const char *dev);
+const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
+                                     const char* dev);
 
 /* Gets the minimum buffer level for an output.  This level will add latency to
  * all streams playing on the output, but can be used to work around an
@@ -251,8 +255,8 @@ const char *ucm_get_dsp_name_for_dev(struct cras_use_case_mgr *mgr,
  *    level - The pointer to the returned value.
  *
  */
-int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr,
-			     unsigned int *level);
+int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
+                             unsigned int* level);
 
 /* Gets the flag for disabling software volume.
  * Args:
@@ -260,7 +264,7 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr *mgr,
  * Returns:
  *    0 on success, -ENOENT on failure.
  */
-unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr);
+unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr);
 
 /* Gets the value for default node gain.
  * Args:
@@ -270,8 +274,9 @@ unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr *mgr);
  * Returns:
  *    0 on success, other error codes on failure.
  */
-int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
-			      long *gain);
+int ucm_get_default_node_gain(struct cras_use_case_mgr* mgr,
+                              const char* dev,
+                              long* gain);
 
 /* Gets the value for intrinsic sensitivity.
  * Args:
@@ -281,8 +286,9 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr *mgr, const char *dev,
  * Returns:
  *    0 on success, other error codes on failure.
  */
-int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr *mgr,
-				  const char *dev, long *sensitivity);
+int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr* mgr,
+                                  const char* dev,
+                                  long* sensitivity);
 
 /* Gets the flag if an input device can preempt hotword recording.
  * Args:
@@ -292,7 +298,7 @@ int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr *mgr,
  *    Non-zero value means input can preempt hotword recording, otherwise
  *    return zero.
  */
-int ucm_get_preempt_hotword(struct cras_use_case_mgr *mgr, const char *dev);
+int ucm_get_preempt_hotword(struct cras_use_case_mgr* mgr, const char* dev);
 
 /* Gets the ALSA device index on the card for given UCM dev.
  *
@@ -305,8 +311,9 @@ int ucm_get_preempt_hotword(struct cras_use_case_mgr *mgr, const char *dev);
  *    found. The ALSA device index is parsed from the PCM name which is
  *    formatted as "hw:<some-name>,<idx>".
  */
-int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
-				 enum CRAS_STREAM_DIRECTION direction);
+int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr* mgr,
+                                 const char* dev,
+                                 enum CRAS_STREAM_DIRECTION direction);
 
 /* Gets the node name of the echo reference device on the card.
  * Args:
@@ -317,9 +324,9 @@ int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
  *    dev, caller is responsible to free it later. NULL if echo reference
  *    doesn't exist.
  */
-const char *
-ucm_get_echo_reference_dev_name_for_dev(struct cras_use_case_mgr *mgr,
-					const char *dev);
+const char* ucm_get_echo_reference_dev_name_for_dev(
+    struct cras_use_case_mgr* mgr,
+    const char* dev);
 
 /* Gets the sample rate at which to run this device.
  *
@@ -330,8 +337,9 @@ ucm_get_echo_reference_dev_name_for_dev(struct cras_use_case_mgr *mgr,
  * Returns:
  *    The sample rate if specified, or negative error if not.
  */
-int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
-				enum CRAS_STREAM_DIRECTION direction);
+int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr* mgr,
+                                const char* dev,
+                                enum CRAS_STREAM_DIRECTION direction);
 
 /* Gets the channel count at which to run this device.
  *
@@ -343,9 +351,10 @@ int ucm_get_sample_rate_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
  * Returns:
  *    0 on success, other error codes on failure.
  */
-int ucm_get_channels_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
-			     enum CRAS_STREAM_DIRECTION direction,
-			     size_t *channels);
+int ucm_get_channels_for_dev(struct cras_use_case_mgr* mgr,
+                             const char* dev,
+                             enum CRAS_STREAM_DIRECTION direction,
+                             size_t* channels);
 
 /* Gets the capture channel map for this device.
  * Args:
@@ -353,8 +362,9 @@ int ucm_get_channels_for_dev(struct cras_use_case_mgr *mgr, const char *dev,
  *    dev - The device to check for capture channel map.
  *    channel_layout - The channel layout to fill.
  */
-int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr *mgr,
-				  const char *dev, int8_t *channel_layout);
+int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr* mgr,
+                                  const char* dev,
+                                  int8_t* channel_layout);
 
 /* Gets the mixer names for the coupled mixer controls of this device
  * on the card.
@@ -365,8 +375,8 @@ int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr *mgr,
  * Returns:
  *    A list of cras_alsa_control.
  */
-struct mixer_name *ucm_get_coupled_mixer_names(struct cras_use_case_mgr *mgr,
-					       const char *dev);
+struct mixer_name* ucm_get_coupled_mixer_names(struct cras_use_case_mgr* mgr,
+                                               const char* dev);
 
 /* Gets a list of UCM sections
  *
@@ -378,7 +388,7 @@ struct mixer_name *ucm_get_coupled_mixer_names(struct cras_use_case_mgr *mgr,
  * Returns:
  *    A list of ucm_section or NULL. Free it with ucm_section_free_list().
  */
-struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr);
+struct ucm_section* ucm_get_sections(struct cras_use_case_mgr* mgr);
 
 /* Gets the list of supported hotword model names.
  * Args:
@@ -387,7 +397,7 @@ struct ucm_section *ucm_get_sections(struct cras_use_case_mgr *mgr);
  *    String containing comma separated model names, e.g 'en,fr,zh'. Needs
  *    to be freed by caller.
  */
-char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr);
+char* ucm_get_hotword_models(struct cras_use_case_mgr* mgr);
 
 /* Sets the desired hotword model.
  * Args:
@@ -396,7 +406,7 @@ char *ucm_get_hotword_models(struct cras_use_case_mgr *mgr);
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model);
+int ucm_set_hotword_model(struct cras_use_case_mgr* mgr, const char* model);
 
 /* Enable previously set hotword modifier
  * Args:
@@ -404,13 +414,13 @@ int ucm_set_hotword_model(struct cras_use_case_mgr *mgr, const char *model);
  * Returns:
  *    0 on success or negative error code on failure.
  */
-int ucm_enable_hotword_model(struct cras_use_case_mgr *mgr);
+int ucm_enable_hotword_model(struct cras_use_case_mgr* mgr);
 
 /* Disable all hotword model modifiers
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
  */
-void ucm_disable_all_hotword_models(struct cras_use_case_mgr *mgr);
+void ucm_disable_all_hotword_models(struct cras_use_case_mgr* mgr);
 
 /* Checks if this card has fully specified UCM config.
  *
@@ -419,7 +429,7 @@ void ucm_disable_all_hotword_models(struct cras_use_case_mgr *mgr);
  * Returns:
  *   1 if this UCM uses fully specified UCM config. 0 otherwise.
  */
-int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr *mgr);
+int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr* mgr);
 
 /* Gets the playback mixer name of this device on the card.
  *
@@ -430,8 +440,8 @@ int ucm_has_fully_specified_ucm_flag(struct cras_use_case_mgr *mgr);
  *    A pointer to the allocated string containing the mixer name, or NULL
  *    if no device name is found.
  */
-const char *ucm_get_playback_mixer_elem_for_dev(struct cras_use_case_mgr *mgr,
-						const char *dev);
+const char* ucm_get_playback_mixer_elem_for_dev(struct cras_use_case_mgr* mgr,
+                                                const char* dev);
 
 /* Gets the capture mixer name of this device on the card.
  *
@@ -442,8 +452,8 @@ const char *ucm_get_playback_mixer_elem_for_dev(struct cras_use_case_mgr *mgr,
  *    A pointer to the allocated string containing the mixer name, or NULL
  *    if no device name is found.
  */
-const char *ucm_get_capture_mixer_elem_for_dev(struct cras_use_case_mgr *mgr,
-					       const char *dev);
+const char* ucm_get_capture_mixer_elem_for_dev(struct cras_use_case_mgr* mgr,
+                                               const char* dev);
 
 /* Gets the mixer names for the main volume controls on the card.
  *
@@ -459,7 +469,7 @@ const char *ucm_get_capture_mixer_elem_for_dev(struct cras_use_case_mgr *mgr,
  * Returns:
  *    names - A list of mixer_name.
  */
-struct mixer_name *ucm_get_main_volume_names(struct cras_use_case_mgr *mgr);
+struct mixer_name* ucm_get_main_volume_names(struct cras_use_case_mgr* mgr);
 
 /* The callback to be provided with a reference to the section name.
  *
@@ -467,8 +477,8 @@ struct mixer_name *ucm_get_main_volume_names(struct cras_use_case_mgr *mgr);
  *    section_name: The name of a SectionDevice in UCM.
  *    arg - Argument to pass to this callback.
  */
-typedef void (*ucm_list_section_devices_callback)(const char *section_name,
-						  void *arg);
+typedef void (*ucm_list_section_devices_callback)(const char* section_name,
+                                                  void* arg);
 
 /* Invokes the provided callback once for each section with matched device name.
  *
@@ -485,9 +495,11 @@ typedef void (*ucm_list_section_devices_callback)(const char *section_name,
  *    Number of sections listed.
  */
 int ucm_list_section_devices_by_device_name(
-	struct cras_use_case_mgr *mgr, enum CRAS_STREAM_DIRECTION direction,
-	const char *device_name, ucm_list_section_devices_callback cb,
-	void *cb_arg);
+    struct cras_use_case_mgr* mgr,
+    enum CRAS_STREAM_DIRECTION direction,
+    const char* device_name,
+    ucm_list_section_devices_callback cb,
+    void* cb_arg);
 
 /* Gets the jack name of this device on the card.
  *
@@ -498,8 +510,8 @@ int ucm_list_section_devices_by_device_name(
  *    A pointer to the allocated string containing the jack name, or NULL
  *    if no jack name is found.
  */
-const char *ucm_get_jack_name_for_dev(struct cras_use_case_mgr *mgr,
-				      const char *dev);
+const char* ucm_get_jack_name_for_dev(struct cras_use_case_mgr* mgr,
+                                      const char* dev);
 
 /* Gets the jack type of this device on the card.
  *
@@ -511,8 +523,8 @@ const char *ucm_get_jack_name_for_dev(struct cras_use_case_mgr *mgr,
  *    if no jack type is found or the found jack type is invalid. The valid
  *    jack types are "hctl" or "gpio".
  */
-const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
-				      const char *dev);
+const char* ucm_get_jack_type_for_dev(struct cras_use_case_mgr* mgr,
+                                      const char* dev);
 
 /* Gets the jack dev of this device on the card.
  *
@@ -523,8 +535,8 @@ const char *ucm_get_jack_type_for_dev(struct cras_use_case_mgr *mgr,
  *    A pointer to the allocated string containing the input jack name, or NULL
  *    if no jack name is found.
  */
-const char *ucm_get_jack_dev_for_dev(struct cras_use_case_mgr *mgr,
-				     const char *dev);
+const char* ucm_get_jack_dev_for_dev(struct cras_use_case_mgr* mgr,
+                                     const char* dev);
 
 /* Gets the jack control of this device on the card.
  *
@@ -535,8 +547,8 @@ const char *ucm_get_jack_dev_for_dev(struct cras_use_case_mgr *mgr,
  *    A pointer to the allocated string containing the alsa jack name, or NULL
  *    if no jack type is found or the found jack type is invalid.
  */
-const char *ucm_get_jack_control_for_dev(struct cras_use_case_mgr *mgr,
-					 const char *dev);
+const char* ucm_get_jack_control_for_dev(struct cras_use_case_mgr* mgr,
+                                         const char* dev);
 
 /* Gets the jack switch number for this device.
  * Some sound cards can detect multiple types of connections into the
@@ -551,7 +563,7 @@ const char *ucm_get_jack_control_for_dev(struct cras_use_case_mgr *mgr,
  * Returns:
  *    A value >= 0 when the switch is defined, or -1 otherwise.
  */
-int ucm_get_jack_switch_for_dev(struct cras_use_case_mgr *mgr, const char *dev);
+int ucm_get_jack_switch_for_dev(struct cras_use_case_mgr* mgr, const char* dev);
 
 /* Gets the DMA period time in microseconds for the given device.
  *
@@ -561,8 +573,8 @@ int ucm_get_jack_switch_for_dev(struct cras_use_case_mgr *mgr, const char *dev);
  * Returns:
  *    A value > 0, or 0 if no period is defined.
  */
-unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr *mgr,
-					const char *dev);
+unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr* mgr,
+                                        const char* dev);
 
 /* Gets the flag of optimization for no stream state.
  * This flag enables no_stream ops in alsa_io.
@@ -571,6 +583,6 @@ unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr *mgr,
  * Returns:
  *    1 if the flag is enabled. 0 otherwise.
  */
-unsigned int ucm_get_optimize_no_stream_flag(struct cras_use_case_mgr *mgr);
+unsigned int ucm_get_optimize_no_stream_flag(struct cras_use_case_mgr* mgr);
 
-#endif /* CRAS_SRC_SERVER_CRAS_ALSA_UCM_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_ALSA_UCM_H_

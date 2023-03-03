@@ -15,16 +15,15 @@
 extern "C" {
 #endif
 
-/* Therad safe version of strerror(3) */
-const char *cras_strerror(int errnum);
+// Therad safe version of strerror(3)
+const char* cras_strerror(int errnum);
 
-static inline bool str_has_prefix(const char *str, const char *prefix)
-{
-	return 0 == strncmp(str, prefix, strlen(prefix));
+static inline bool str_has_prefix(const char* str, const char* prefix) {
+  return 0 == strncmp(str, prefix, strlen(prefix));
 }
 
 #ifdef __cplusplus
-} /* extern "C" */
+}  // extern "C"
 #endif
 
-#endif /* CRAS_SRC_COMMON_CRAS_STRING_H_ */
+#endif  // CRAS_SRC_COMMON_CRAS_STRING_H_

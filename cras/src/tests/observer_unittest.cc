@@ -3,10 +3,9 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <map>
 #include <stdio.h>
 #include <syslog.h>
-
-#include <map>
 #include <vector>
 
 extern "C" {
@@ -120,13 +119,13 @@ static void ResetStubData() {
   cb_num_non_chrome_output_streams_values.clear();
 }
 
-/* System output volume changed. */
+// System output volume changed.
 void cb_output_volume_changed(void* context, int32_t volume) {
   cb_output_volume_changed_called++;
   cb_context.push_back(context);
   cb_output_volume_changed_volume.push_back(volume);
 }
-/* System output mute changed. */
+// System output mute changed.
 void cb_output_mute_changed(void* context,
                             int muted,
                             int user_muted,
@@ -137,14 +136,14 @@ void cb_output_mute_changed(void* context,
   cb_output_mute_changed_user_muted.push_back(user_muted);
   cb_output_mute_changed_mute_locked.push_back(mute_locked);
 }
-/* System input/capture gain changed. */
+// System input/capture gain changed.
 void cb_capture_gain_changed(void* context, int32_t gain) {
   cb_capture_gain_changed_called++;
   cb_context.push_back(context);
   cb_capture_gain_changed_gain.push_back(gain);
 }
 
-/* System input/capture mute changed. */
+// System input/capture mute changed.
 void cb_capture_mute_changed(void* context, int muted, int mute_locked) {
   cb_capture_mute_changed_called++;
   cb_context.push_back(context);
@@ -152,7 +151,7 @@ void cb_capture_mute_changed(void* context, int muted, int mute_locked) {
   cb_capture_mute_changed_mute_locked.push_back(mute_locked);
 }
 
-/* Device or node topology changed. */
+// Device or node topology changed.
 void cb_nodes_changed(void* context) {
   cb_nodes_changed_called++;
   cb_context.push_back(context);
@@ -169,7 +168,7 @@ void cb_active_node_changed(void* context,
   cb_active_node_changed_node_id.push_back(node_id);
 }
 
-/* Output node volume changed. */
+// Output node volume changed.
 void cb_output_node_volume_changed(void* context,
                                    cras_node_id_t node_id,
                                    int32_t volume) {
@@ -179,7 +178,7 @@ void cb_output_node_volume_changed(void* context,
   cb_output_node_volume_changed_volume.push_back(volume);
 }
 
-/* Node left/right swapped state change. */
+// Node left/right swapped state change.
 void cb_node_left_right_swapped_changed(void* context,
                                         cras_node_id_t node_id,
                                         int swapped) {
@@ -189,7 +188,7 @@ void cb_node_left_right_swapped_changed(void* context,
   cb_node_left_right_swapped_changed_swapped.push_back(swapped);
 }
 
-/* Input gain changed. */
+// Input gain changed.
 void cb_input_node_gain_changed(void* context,
                                 cras_node_id_t node_id,
                                 int32_t gain) {
@@ -199,7 +198,7 @@ void cb_input_node_gain_changed(void* context,
   cb_input_node_gain_changed_gain.push_back(gain);
 }
 
-/* Number of active streams changed. */
+// Number of active streams changed.
 void cb_num_active_streams_changed(void* context,
                                    enum CRAS_STREAM_DIRECTION dir,
                                    uint32_t num_active_streams) {
@@ -801,13 +800,15 @@ void cras_alert_pending_data(struct cras_alert* alert,
                              size_t data_size) {
   cras_alert_pending_alert_value = alert;
   cras_alert_pending_data_size_value = data_size;
-  if (cras_alert_pending_data_value)
+  if (cras_alert_pending_data_value) {
     free(cras_alert_pending_data_value);
+  }
   if (data) {
     cras_alert_pending_data_value = malloc(data_size);
     memcpy(cras_alert_pending_data_value, data, data_size);
-  } else
+  } else {
     cras_alert_pending_data_value = NULL;
+  }
 }
 
 void cras_iodev_list_update_device_list() {

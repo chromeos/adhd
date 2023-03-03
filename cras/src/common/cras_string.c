@@ -9,8 +9,7 @@
 
 #include <string.h>
 
-const char *cras_strerror(int errnum)
-{
-	static __thread char buf[1024];
-	return strerror_r(errnum, buf, sizeof(buf));
+const char* cras_strerror(int errnum) {
+  static __thread char buf[1024];
+  return strerror_r(errnum, buf, sizeof(buf));
 }

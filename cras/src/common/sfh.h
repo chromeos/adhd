@@ -11,6 +11,6 @@
 #ifndef CRAS_SRC_COMMON_SFH_H_
 #define CRAS_SRC_COMMON_SFH_H_
 
-uint32_t SuperFastHash(const char *data, int len, uint32_t hash);
+uint32_t SuperFastHash(const char* data, int len, uint32_t hash);
 
-#endif /* CRAS_SRC_COMMON_SFH_H_ */
+#endif  // CRAS_SRC_COMMON_SFH_H_

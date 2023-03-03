@@ -5,10 +5,9 @@
 #include <gtest/gtest.h>
 #include <limits.h>
 #include <math.h>
+#include <memory>
 #include <stdint.h>
 #include <sys/param.h>
-
-#include <memory>
 
 extern "C" {
 #include "cras/src/server/cras_fmt_conv_ops.h"
@@ -17,8 +16,9 @@ extern "C" {
 
 static uint8_t* AllocateRandomBytes(size_t size) {
   uint8_t* buf = (uint8_t*)malloc(size);
-  while (size--)
+  while (size--) {
     buf[size] = rand() & 0xff;
+  }
   return buf;
 }
 
@@ -61,8 +61,9 @@ static S32LEPtr CreateS32LE(size_t size) {
 
 static FloatPtr CreateFloat(size_t size) {
   float* buf = (float*)malloc(size * sizeof(float));
-  while (size--)
+  while (size--) {
     buf[size] = (float)(rand() & 0xff) / 0xfff;
+  }
   FloatPtr ret(buf, free);
   return ret;
 }
@@ -357,10 +358,11 @@ TEST(FormatConverterOpsTest, MonoTo51S16LECenter) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 6; ++k) {
-      if (k == center)
+      if (k == center) {
         EXPECT_EQ(src[i], dst[i * 6 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 6 + k]);
+      }
     }
   }
 }
@@ -383,12 +385,13 @@ TEST(FormatConverterOpsTest, MonoTo51S16LELeftRight) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 6; ++k) {
-      if (k == left)
+      if (k == left) {
         EXPECT_EQ(src[i] / 2, dst[i * 6 + k]);
-      else if (k == right)
+      } else if (k == right) {
         EXPECT_EQ(src[i] / 2, dst[i * 6 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 6 + k]);
+      }
     }
   }
 }
@@ -411,10 +414,11 @@ TEST(FormatConverterOpsTest, MonoTo51S16LEUnknown) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 6; ++k) {
-      if (k == 0)
+      if (k == 0) {
         EXPECT_EQ(src[i], dst[i * 6 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[6 * i + k]);
+      }
     }
   }
 }
@@ -437,10 +441,11 @@ TEST(FormatConverterOpsTest, StereoTo51S16LECenter) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 6; ++k) {
-      if (k == center)
+      if (k == center) {
         EXPECT_EQ(S16AddAndClip(src[i * 2], src[i * 2 + 1]), dst[i * 6 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 6 + k]);
+      }
     }
   }
 }
@@ -496,12 +501,13 @@ TEST(FormatConverterOpsTest, StereoTo51S16LELeftRight) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 6; ++k) {
-      if (k == left)
+      if (k == left) {
         EXPECT_EQ(src[i * 2 + 0], dst[i * 6 + k]);
-      else if (k == right)
+      } else if (k == right) {
         EXPECT_EQ(src[i * 2 + 1], dst[i * 6 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 6 + k]);
+      }
     }
   }
 }
@@ -524,10 +530,11 @@ TEST(FormatConverterOpsTest, StereoTo51S16LEUnknown) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 6; ++k) {
-      if (k == 0 || k == 1)
+      if (k == 0 || k == 1) {
         EXPECT_EQ(src[i * 2 + k], dst[i * 6 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 6 + k]);
+      }
     }
   }
 }
@@ -723,10 +730,11 @@ TEST(FormatConverterOpsTest, MonoTo8chS16LECenter) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 8; ++k) {
-      if (k == center)
+      if (k == center) {
         EXPECT_EQ(src[i], dst[i * 8 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 8 + k]);
+      }
     }
   }
 }
@@ -749,10 +757,11 @@ TEST(FormatConverterOpsTest, MonoTo8chS16LELeftRight) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 8; ++k) {
-      if (k == left || k == right)
+      if (k == left || k == right) {
         EXPECT_EQ(src[i] / 2, dst[i * 8 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 8 + k]);
+      }
     }
   }
 }
@@ -775,10 +784,11 @@ TEST(FormatConverterOpsTest, MonoTo8chS16LEUnknown) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 8; ++k) {
-      if (k == 0)
+      if (k == 0) {
         EXPECT_EQ(src[i], dst[i * 8 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 8 + k]);
+      }
     }
   }
 }
@@ -801,12 +811,13 @@ TEST(FormatConverterOpsTest, StereoTo8chS16LELeftRight) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 8; ++k) {
-      if (k == left)
+      if (k == left) {
         EXPECT_EQ(src[i * 2], dst[i * 8 + k]);
-      else if (k == right)
+      } else if (k == right) {
         EXPECT_EQ(src[i * 2 + 1], dst[i * 8 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 8 + k]);
+      }
     }
   }
 }
@@ -829,10 +840,11 @@ TEST(FormatConverterOpsTest, StereoTo8chS16LECenter) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 8; ++k) {
-      if (k == center)
+      if (k == center) {
         EXPECT_EQ(S16AddAndClip(src[i * 2], src[i * 2 + 1]), dst[i * 8 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 8 + k]);
+      }
     }
   }
 }
@@ -855,10 +867,11 @@ TEST(FormatConverterOpsTest, StereoTo8chS16LEUnknown) {
 
   for (size_t i = 0; i < frames; ++i) {
     for (size_t k = 0; k < 8; ++k) {
-      if (k == 0 || k == 1)
+      if (k == 0 || k == 1) {
         EXPECT_EQ(src[i * 2 + k], dst[i * 8 + k]);
-      else
+      } else {
         EXPECT_EQ(0, dst[i * 8 + k]);
+      }
     }
   }
 }
@@ -1115,13 +1128,15 @@ TEST(FormatConverterOpsTest, StereoTo3chS16LE) {
 
   for (size_t i = 0; i < frames; ++i) {
     int32_t sum = 0;
-    for (size_t k = 0; k < in_ch; ++k)
+    for (size_t k = 0; k < in_ch; ++k) {
       sum += (int32_t)src[i * in_ch + k];
+    }
     src[i * in_ch + 0] = (int16_t)(sum / (int32_t)in_ch);
   }
   for (size_t i = 0; i < frames; ++i) {
-    for (size_t k = 0; k < out_ch; ++k)
+    for (size_t k = 0; k < out_ch; ++k) {
       EXPECT_EQ(src[i * in_ch + 0], dst[i * out_ch + k]);
+    }
   }
 }
 
@@ -1150,8 +1165,9 @@ TEST(FormatConverterOpsTest, 6chTo8chAllToAllS16LE) {
 
   for (size_t i = 0; i < frames; ++i) {
     src[i * in_ch + 0] /= (int16_t)in_ch;
-    for (size_t k = 0; k < out_ch; ++k)
+    for (size_t k = 0; k < out_ch; ++k) {
       EXPECT_EQ(src[i * in_ch + 0], dst[i * out_ch + k]);
+    }
   }
 }
 
@@ -1165,8 +1181,9 @@ TEST(FormatConverterOpsTest, MultiplyWithCoefS16LE) {
   int16_t ret = s16_multiply_buf_with_coef(coef.get(), buf.get(), buf_size);
 
   int32_t exp = 0;
-  for (size_t i = 0; i < buf_size; ++i)
+  for (size_t i = 0; i < buf_size; ++i) {
     exp += coef[i] * buf[i];
+  }
   exp = MIN(MAX(exp, SHRT_MIN), SHRT_MAX);
 
   EXPECT_EQ((int16_t)exp, ret);
@@ -1182,8 +1199,9 @@ TEST(FormatConverterOpsTest, ConvertChannelsS16LE) {
   S16LEPtr dst = CreateS16LE(frames * out_ch);
   FloatPtr ch_conv_mtx = CreateFloat(out_ch * in_ch);
   std::unique_ptr<float*[]> mtx(new float*[out_ch]);
-  for (size_t i = 0; i < out_ch; ++i)
+  for (size_t i = 0; i < out_ch; ++i) {
     mtx[i] = &ch_conv_mtx[i * in_ch];
+  }
 
   size_t ret =
       s16_convert_channels(mtx.get(), in_ch, out_ch, (uint8_t*)src.get(),
@@ -1193,8 +1211,9 @@ TEST(FormatConverterOpsTest, ConvertChannelsS16LE) {
   for (size_t fr = 0; fr < frames; ++fr) {
     for (size_t i = 0; i < out_ch; ++i) {
       int16_t exp = 0;
-      for (size_t k = 0; k < in_ch; ++k)
+      for (size_t k = 0; k < in_ch; ++k) {
         exp += mtx[i][k] * src[fr * in_ch + k];
+      }
       exp = MIN(MAX(exp, SHRT_MIN), SHRT_MAX);
       EXPECT_EQ(exp, dst[fr * out_ch + i]);
     }
@@ -1223,13 +1242,12 @@ TEST(FormatConverterOpsTest, TwoToTwentyS16LE) {
     size_t k;
     // Input channles should be directly copied over.
     for (k = 0; k < in_ch; ++k) {
-        EXPECT_EQ(src[i * in_ch + k], dst[i * out_ch + k]);
+      EXPECT_EQ(src[i * in_ch + k], dst[i * out_ch + k]);
     }
     // The rest should be zeroed.
     for (; k < out_ch; ++k) {
-        EXPECT_EQ(0, dst[i * out_ch + k]);
+      EXPECT_EQ(0, dst[i * out_ch + k]);
     }
-
   }
 }
 
@@ -1255,7 +1273,7 @@ TEST(FormatConverterOpsTest, TwentyToTwoS16LE) {
     size_t k;
     // Input channles should be directly copied over.
     for (k = 0; k < out_ch; ++k) {
-        EXPECT_EQ(src[i * in_ch + k], dst[i * out_ch + k]);
+      EXPECT_EQ(src[i * in_ch + k], dst[i * out_ch + k]);
     }
   }
 }

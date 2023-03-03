@@ -45,14 +45,16 @@ TEST_F(BufferShareTestSuite, AddRmDev) {
 TEST_F(BufferShareTestSuite, AddManyDevs) {
   buffer_share* dm = buffer_share_create(1024);
 
-  for (unsigned int i = 0; i < INITIAL_ID_SIZE; i++)
+  for (unsigned int i = 0; i < INITIAL_ID_SIZE; i++) {
     EXPECT_EQ(0, buffer_share_add_id(dm, 0xf00 + i, NULL));
+  }
 
   EXPECT_EQ(0, buffer_share_add_id(dm, 0xf00 + INITIAL_ID_SIZE, NULL));
   EXPECT_EQ(0, buffer_share_rm_id(dm, 0xf00 + INITIAL_ID_SIZE));
 
-  for (unsigned int i = 0; i < INITIAL_ID_SIZE; i++)
+  for (unsigned int i = 0; i < INITIAL_ID_SIZE; i++) {
     EXPECT_EQ(0, buffer_share_rm_id(dm, 0xf00 + i));
+  }
 
   buffer_share_destroy(dm);
 }

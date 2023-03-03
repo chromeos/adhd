@@ -25,7 +25,7 @@ void cras_speak_on_mute_detector_enable(bool enabled);
 // Callback to update the voice activity detection target.
 // Must be called from the main thread.
 void cras_speak_on_mute_detector_streams_changed(
-	struct cras_rstream *all_streams);
+    struct cras_rstream* all_streams);
 
 // Add a voice activity to the speak on mute detector.
 // Must be called from the audio thread.

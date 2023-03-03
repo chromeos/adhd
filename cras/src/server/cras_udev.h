@@ -9,4 +9,4 @@
 void cras_udev_start_sound_subsystem_monitor();
 void cras_udev_stop_sound_subsystem_monitor();
 
-#endif /* CRAS_SRC_SERVER_CRAS_UDEV_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_UDEV_H_

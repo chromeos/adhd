@@ -48,7 +48,7 @@ TEST_F(DspIniTestSuite, NoLibraryOrLabel) {
   CloseFile();
 
   struct ini* ini = cras_dsp_ini_create(filename);
-  /* NULL because a plugin doesn't have library or label */
+  // NULL because a plugin doesn't have library or label
   EXPECT_EQ(NULL, ini);
 }
 
@@ -208,7 +208,7 @@ input_3={a3}
 
   struct ini* ini = cras_dsp_ini_create(filename);
 
-  /* 2 plugins and 1 quad_rotation plugin. */
+  // 2 plugins and 1 quad_rotation plugin.
 
   EXPECT_EQ(3, ARRAY_COUNT(&ini->plugins));
 
@@ -350,7 +350,7 @@ TEST_F(DspIniTestSuite, TwoChannelWithSwap) {
 
   struct ini* ini = cras_dsp_ini_create(filename);
 
-  /* 3 plugins and 1 swap_lr plugin. */
+  // 3 plugins and 1 swap_lr plugin.
   EXPECT_EQ(4, ARRAY_COUNT(&ini->plugins));
 
   struct plugin* m0 = ARRAY_ELEMENT(&ini->plugins, 0);

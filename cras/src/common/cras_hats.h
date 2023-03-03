@@ -17,7 +17,7 @@
  *                      active node types when the stream is removed.
  */
 void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
-				      enum CRAS_CLIENT_TYPE client_type,
-				      const char *node_type_pair);
+                                      enum CRAS_CLIENT_TYPE client_type,
+                                      const char* node_type_pair);
 
-#endif /* CRAS_SRC_COMMON_CRAS_HATS_H_ */
+#endif  // CRAS_SRC_COMMON_CRAS_HATS_H_

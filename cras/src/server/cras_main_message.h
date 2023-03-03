@@ -10,19 +10,19 @@
 
 #include "cras/src/common/utlist.h"
 
-/* The types of message main thread can handle. */
+// The types of message main thread can handle.
 enum CRAS_MAIN_MESSAGE_TYPE {
-	/* Audio thread -> main thread */
-	CRAS_MAIN_A2DP,
-	CRAS_MAIN_AUDIO_THREAD_EVENT,
-	CRAS_MAIN_BT,
-	CRAS_MAIN_BT_POLICY,
-	CRAS_MAIN_METRICS,
-	CRAS_MAIN_MONITOR_DEVICE,
-	CRAS_MAIN_HOTWORD_TRIGGERED,
-	CRAS_MAIN_NON_EMPTY_AUDIO_STATE,
-	CRAS_MAIN_SPEAK_ON_MUTE,
-	CRAS_MAIN_STREAM_APM,
+  // Audio thread -> main thread
+  CRAS_MAIN_A2DP,
+  CRAS_MAIN_AUDIO_THREAD_EVENT,
+  CRAS_MAIN_BT,
+  CRAS_MAIN_BT_POLICY,
+  CRAS_MAIN_METRICS,
+  CRAS_MAIN_MONITOR_DEVICE,
+  CRAS_MAIN_HOTWORD_TRIGGERED,
+  CRAS_MAIN_NON_EMPTY_AUDIO_STATE,
+  CRAS_MAIN_SPEAK_ON_MUTE,
+  CRAS_MAIN_STREAM_APM,
 };
 
 /* Structure of the header of the message handled by main thread.
@@ -46,36 +46,36 @@ enum CRAS_MAIN_MESSAGE_TYPE {
  * See also CRAS_MAIN_MESSAGE_INIT.
  */
 struct cras_main_message {
-	// Size of the whole message.
-	size_t length;
-	// Type of the message.
-	enum CRAS_MAIN_MESSAGE_TYPE type;
+  // Size of the whole message.
+  size_t length;
+  // Type of the message.
+  enum CRAS_MAIN_MESSAGE_TYPE type;
 };
 
 /* This macro is for zero-initializing message structs.
  * It would help to avoid "use-of-uninitialized-value" errors.
  * See struct cras_main_message for details.
  */
-#define CRAS_MAIN_MESSAGE_INIT                                                 \
-	{                                                                      \
-		.header = { 0 }                                                \
-	}
+#define CRAS_MAIN_MESSAGE_INIT \
+  {                            \
+    .header = { 0 }            \
+  }
 
-/* Callback function to handle main thread message. */
-typedef void (*cras_message_callback)(struct cras_main_message *msg, void *arg);
+// Callback function to handle main thread message.
+typedef void (*cras_message_callback)(struct cras_main_message* msg, void* arg);
 
-/* Sends a message to main thread. */
-int cras_main_message_send(struct cras_main_message *msg);
+// Sends a message to main thread.
+int cras_main_message_send(struct cras_main_message* msg);
 
-/* Registers the handler function for specific type of message. */
+// Registers the handler function for specific type of message.
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
-				  cras_message_callback callback,
-				  void *callback_data);
+                                  cras_message_callback callback,
+                                  void* callback_data);
 
-/* Unregisters the handler for given type of message. */
+// Unregisters the handler for given type of message.
 void cras_main_message_rm_handler(enum CRAS_MAIN_MESSAGE_TYPE type);
 
-/* Initialize the message handling mechanism in main thread. */
+// Initialize the message handling mechanism in main thread.
 void cras_main_message_init();
 
-#endif /* CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_

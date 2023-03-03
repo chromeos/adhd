@@ -3,11 +3,10 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <memory>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
-
-#include <memory>
 #include <unordered_map>
 
 extern "C" {
@@ -359,7 +358,7 @@ TEST_F(DevIoSuite, PlaybackWriteSevereUnderrun) {
    * dev_io_playback_write */
   DL_APPEND(dev_list, dev1->odev.release());
 
-  /* verify that our test setup returns -EPIPE */
+  // verify that our test setup returns -EPIPE
   ASSERT_EQ(write_output_samples(nullptr, dev_list, nullptr), -EPIPE);
 
   dev_io_playback_write(&dev_list, nullptr);
@@ -368,7 +367,7 @@ TEST_F(DevIoSuite, PlaybackWriteSevereUnderrun) {
   EXPECT_EQ(cras_audio_thread_event_severe_underrun_called, 1);
 }
 
-/* Stubs */
+// Stubs
 extern "C" {
 
 int input_data_get_for_stream(struct input_data* data,

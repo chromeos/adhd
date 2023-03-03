@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include <stdio.h>
+
 #include "cras_types.h"
 
 extern "C" {
@@ -204,7 +205,7 @@ void ResetStubData() {
     if (asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0) {
       exit(-1);
     }
-    /* To avoid un-used variable warning. */
+    // To avoid un-used variable warning.
     atlog_rw_shm_fd = atlog_ro_shm_fd = -1;
     atlog = audio_thread_event_log_init(atlog_name);
   }
@@ -488,8 +489,9 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   EXPECT_EQ(48000, iodev_.format->frame_rate);
   EXPECT_EQ(2, iodev_.format->num_channels);
   EXPECT_EQ(0, dsp_context_free_called);
-  for (i = 0; i < CRAS_CH_MAX; i++)
+  for (i = 0; i < CRAS_CH_MAX; i++) {
     EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);
+  }
 }
 
 TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail6ch) {
@@ -514,8 +516,9 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail6ch) {
   EXPECT_EQ(48000, iodev_.format->frame_rate);
   EXPECT_EQ(6, iodev_.format->num_channels);
   EXPECT_EQ(0, dsp_context_free_called);
-  for (i = 0; i < CRAS_CH_MAX; i++)
+  for (i = 0; i < CRAS_CH_MAX; i++) {
     EXPECT_EQ(iodev_.format->channel_layout[i], default_6ch_layout[i]);
+  }
 }
 
 // Put buffer tests
@@ -1075,7 +1078,7 @@ TEST(IoDevQueuedBuffer, NonZeroMinBufferLevel) {
   rc = cras_iodev_buffer_avail(&iodev, rc);
   EXPECT_EQ(20, rc);
 
-  /* When fr_queued < min_buffer_level*/
+  // When fr_queued < min_buffer_level
   fr_queued = 80;
   rc = cras_iodev_frames_queued(&iodev, &hw_tstamp);
   EXPECT_EQ(0, rc);
@@ -1113,7 +1116,7 @@ TEST(IoNodePlug, PlugUnplugNode) {
   cras_iodev_set_node_plugged(&ionode, 0);
   EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
 
-  /* Unplug non-active node shouldn't disable iodev. */
+  // Unplug non-active node shouldn't disable iodev.
   cras_iodev_set_node_plugged(&ionode2, 1);
   EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
   cras_iodev_set_node_plugged(&ionode2, 0);
@@ -1429,7 +1432,7 @@ TEST(IoDev, AddRmStream) {
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(512, iodev.min_cb_level);
 
-  /* min_cb_level should not exceed half the buffer size. */
+  // min_cb_level should not exceed half the buffer size.
   cras_iodev_add_stream(&iodev, &stream1);
   cras_iodev_start_stream(&iodev, &stream1);
   EXPECT_EQ(800, iodev.max_cb_level);
@@ -1447,7 +1450,7 @@ TEST(IoDev, AddRmStream) {
   EXPECT_EQ(400, iodev.min_cb_level);
   EXPECT_EQ(0, simple_no_stream_called);
 
-  /* When all streams are removed, keep the last min_cb_level for draining. */
+  // When all streams are removed, keep the last min_cb_level for draining.
   cras_iodev_rm_stream(&iodev, &rstream2);
   EXPECT_EQ(0, iodev.max_cb_level);
   EXPECT_EQ(512, iodev.min_cb_level);
@@ -1528,7 +1531,7 @@ TEST(IoDev, StartStreams) {
   stream1.stream = &rstream1;
   stream2.stream = &rstream2;
 
-  /* An input stream starts running immediately. */
+  // An input stream starts running immediately.
   ResetStubData();
   iodev1.direction = CRAS_STREAM_INPUT;
   cras_iodev_open(&iodev1, 1024, &audio_fmt);
@@ -1536,7 +1539,7 @@ TEST(IoDev, StartStreams) {
   EXPECT_EQ(1, dev_stream_is_running(&stream1));
   EXPECT_EQ(1, buffer_share_add_id_called);
 
-  /* An output stream starts running after its first fetch. */
+  // An output stream starts running after its first fetch.
   ResetStubData();
   iodev2.direction = CRAS_STREAM_OUTPUT;
   cras_iodev_open(&iodev2, 1024, &audio_fmt);
@@ -1561,7 +1564,7 @@ TEST(IoDev, TriggerOnlyStreamNoBufferShare) {
   ResetStubData();
 
   cras_iodev_open(&iodev, rstream.cb_threshold, &audio_fmt);
-  /* TRIGGER_ONLY streams shall not be added to buffer_share. */
+  // TRIGGER_ONLY streams shall not be added to buffer_share.
   cras_iodev_add_stream(&iodev, &stream);
   EXPECT_EQ(0, buffer_share_add_id_called);
 }
@@ -2226,7 +2229,7 @@ TEST(IoDev, RequestResetUnderHighVolume) {
   iodev.state = CRAS_IODEV_STATE_CLOSE;
   iodev_buffer_size = 1024;
 
-  /* Use up all quota as quickly as possible. */
+  // Use up all quota as quickly as possible.
   for (unsigned int i = 0; i < MAX_IODEV_RESET_TRIES; ++i) {
     cras_iodev_open(&iodev, 240, &audio_fmt);
     EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
@@ -2236,10 +2239,10 @@ TEST(IoDev, RequestResetUnderHighVolume) {
   const double regen_rate = MAX_IODEV_RESET_TRIES / IODEV_RESET_TIMEWINDOW_SECS;
   const struct timespec one_ms = {.tv_sec = 0, .tv_nsec = 1000000};
 
-  /* Reject requests in [t0, t0 + NEXT_REGEN_MS). */
+  // Reject requests in [t0, t0 + NEXT_REGEN_MS).
   const int NEXT_REGEN_MS = ceil(1000 / regen_rate);
 
-  /* Rewrite this test if this ever needs to be sub-ms. */
+  // Rewrite this test if this ever needs to be sub-ms.
   ASSERT_GT(NEXT_REGEN_MS, 1);
 
   for (int ms = 0; ms < NEXT_REGEN_MS; ++ms) {
@@ -2249,12 +2252,12 @@ TEST(IoDev, RequestResetUnderHighVolume) {
     add_timespecs(&time_now, &one_ms);
   }
 
-  /* Accept the next request in t0 + NEXT_REGEN_MS. */
+  // Accept the next request in t0 + NEXT_REGEN_MS.
   cras_iodev_open(&iodev, 240, &audio_fmt);
   EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
   ASSERT_EQ(MAX_IODEV_RESET_TRIES + 1, device_monitor_reset_device_called);
 
-  /* Reject the next immediate request. */
+  // Reject the next immediate request.
   cras_iodev_open(&iodev, 240, &audio_fmt);
   EXPECT_EQ(0, cras_iodev_reset_request(&iodev));
   ASSERT_EQ(MAX_IODEV_RESET_TRIES + 1, device_monitor_reset_device_called);
@@ -2345,7 +2348,7 @@ TEST(IoDev, SetExtDspMod) {
   EXPECT_EQ(3, cras_dsp_get_pipeline_called);
   EXPECT_EQ(3, cras_dsp_pipeline_set_sink_ext_module_called);
 
-  /* If pipeline doesn't exist, mock pipeline should be loaded. */
+  // If pipeline doesn't exist, mock pipeline should be loaded.
   cras_dsp_get_pipeline_ret = 0x0;
   cras_iodev_set_ext_dsp_module(&iodev, &ext);
   EXPECT_EQ(3, ext_mod_configure_called);
@@ -2431,7 +2434,7 @@ TEST(IoDev, DropDeviceFramesByTime) {
   cras_iodev_open(&iodev, 240, &fmt);
   rate_estimator_get_rate_ret = 48000.0;
 
-  /* hw_level: 240, drop: 48(1ms). */
+  // hw_level: 240, drop: 48(1ms).
   fr_queued = 240;
   ts.tv_sec = 0;
   ts.tv_nsec = 1000000;
@@ -2441,7 +2444,7 @@ TEST(IoDev, DropDeviceFramesByTime) {
   EXPECT_EQ(1, rate_estimator_add_frames_called);
   EXPECT_EQ(-48, rate_estimator_add_frames_num_frames);
 
-  /* hw_level: 360, drop: 240(5ms). */
+  // hw_level: 360, drop: 240(5ms).
   fr_queued = 360;
   ts.tv_sec = 0;
   ts.tv_nsec = 5000000;
@@ -2451,7 +2454,7 @@ TEST(IoDev, DropDeviceFramesByTime) {
   EXPECT_EQ(2, rate_estimator_add_frames_called);
   EXPECT_EQ(-240, rate_estimator_add_frames_num_frames);
 
-  /* hw_level: 360, drop: 480(10ms). Only drop 360 because of lower hw_level. */
+  // hw_level: 360, drop: 480(10ms). Only drop 360 because of lower hw_level.
   fr_queued = 360;
   ts.tv_sec = 0;
   ts.tv_nsec = 10000000;
@@ -2488,7 +2491,7 @@ TEST(IoDev, GetRateEstRatioUnderrun) {
 TEST(IoDev, AecUseCaseCheck) {
   struct cras_ionode node;
 
-  /* test output types */
+  // test output types
   node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
   EXPECT_EQ(1, cras_iodev_is_tuned_aec_use_case(&node));
   node.type = CRAS_NODE_TYPE_HEADPHONE;
@@ -2500,7 +2503,7 @@ TEST(IoDev, AecUseCaseCheck) {
   node.type = CRAS_NODE_TYPE_BLUETOOTH;
   EXPECT_EQ(0, cras_iodev_is_tuned_aec_use_case(&node));
 
-  /* test mic positions */
+  // test mic positions
   node.type = CRAS_NODE_TYPE_MIC;
   node.position = NODE_POSITION_INTERNAL;
   EXPECT_EQ(1, cras_iodev_is_tuned_aec_use_case(&node));
@@ -2516,7 +2519,7 @@ TEST(IoDev, AecOnDspUseCaseCheck) {
   struct cras_ionode node;
   cras_system_aec_on_dsp_supported_return = 1;
 
-  /* test output types */
+  // test output types
   node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
   EXPECT_EQ(1, cras_iodev_is_dsp_aec_use_case(&node));
   node.type = CRAS_NODE_TYPE_HEADPHONE;
@@ -2528,7 +2531,7 @@ TEST(IoDev, AecOnDspUseCaseCheck) {
   node.type = CRAS_NODE_TYPE_BLUETOOTH;
   EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
 
-  /* test mic positions */
+  // test mic positions
   node.type = CRAS_NODE_TYPE_MIC;
   node.position = NODE_POSITION_INTERNAL;
   EXPECT_EQ(1, cras_iodev_is_dsp_aec_use_case(&node));
@@ -2539,7 +2542,7 @@ TEST(IoDev, AecOnDspUseCaseCheck) {
   node.position = NODE_POSITION_REAR;
   EXPECT_EQ(0, cras_iodev_is_dsp_aec_use_case(&node));
 
-  /* test cases when AEC on DSP is not supported */
+  // test cases when AEC on DSP is not supported
   cras_system_aec_on_dsp_supported_return = 0;
 
   node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
@@ -2714,8 +2717,9 @@ void cras_dsp_set_variable_boolean(struct cras_dsp_context* ctx,
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
                                    int value) {
-  if (!strcmp(key, "display_rotation"))
+  if (!strcmp(key, "display_rotation")) {
     display_rotation = value;
+  }
 }
 
 struct pipeline* cras_dsp_get_pipeline(struct cras_dsp_context* ctx) {
@@ -2815,8 +2819,9 @@ int cras_audio_format_set_channel_layout(struct cras_audio_format* format,
                                          const int8_t layout[CRAS_CH_MAX]) {
   int i;
   cras_audio_format_set_channel_layout_called++;
-  for (i = 0; i < CRAS_CH_MAX; i++)
+  for (i = 0; i < CRAS_CH_MAX; i++) {
     format->channel_layout[i] = layout[i];
+  }
   return 0;
 }
 
@@ -2897,8 +2902,9 @@ double rate_estimator_get_rate(struct rate_estimator* re) {
 }
 
 unsigned int dev_stream_cb_threshold(const struct dev_stream* dev_stream) {
-  if (dev_stream->stream)
+  if (dev_stream->stream) {
     return dev_stream->stream->cb_threshold;
+  }
   return 0;
 }
 

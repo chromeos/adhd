@@ -51,4 +51,4 @@ int cras_audio_thread_event_dev_overrun();
  */
 int cras_audio_thread_monitor_init();
 
-#endif /* CRAS_SRC_SERVER_CRAS_AUDIO_THREAD_MONITOR_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_AUDIO_THREAD_MONITOR_H_

@@ -16,14 +16,14 @@ struct cras_volume_curve;
  * Returns:
  *    A pointer to the created config on success, NULL on failure.
  */
-struct cras_card_config *cras_card_config_create(const char *config_path,
-						 const char *card_name);
+struct cras_card_config* cras_card_config_create(const char* config_path,
+                                                 const char* card_name);
 
 /* Destroys a configuration returned by cras_card_config_create().
  * Args:
  *    card_config - Card configuration returned by cras_card_config_create()
  */
-void cras_card_config_destroy(struct cras_card_config *card_config);
+void cras_card_config_destroy(struct cras_card_config* card_config);
 
 /* Returns the apporpriate volume curve to use for the control given by name.
  * Args:
@@ -31,7 +31,8 @@ void cras_card_config_destroy(struct cras_card_config *card_config);
  * Returns:
  *    The specialized curve for the control if there is one, otherwise NULL.
  */
-struct cras_volume_curve *cras_card_config_get_volume_curve_for_control(
-	const struct cras_card_config *card_config, const char *control_name);
+struct cras_volume_curve* cras_card_config_get_volume_curve_for_control(
+    const struct cras_card_config* card_config,
+    const char* control_name);
 
-#endif /* CRAS_SRC_SERVER_CONFIG_CRAS_CARD_CONFIG_H_ */
+#endif  // CRAS_SRC_SERVER_CONFIG_CRAS_CARD_CONFIG_H_

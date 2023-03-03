@@ -54,12 +54,15 @@ void ResetStubData() {
 }
 
 static void FreeMockDBusMessage(MockDBusMessage* head) {
-  if (head->next != NULL)
+  if (head->next != NULL) {
     FreeMockDBusMessage(head->next);
-  if (head->recurse != NULL)
+  }
+  if (head->recurse != NULL) {
     FreeMockDBusMessage(head->recurse);
-  if (head->type == DBUS_TYPE_STRING)
+  }
+  if (head->type == DBUS_TYPE_STRING) {
     free((char*)head->value);
+  }
   delete head;
 }
 
@@ -135,7 +138,7 @@ TEST(BtDeviceSuite, CreateBtDevice) {
   EXPECT_NE((void*)NULL, device);
   EXPECT_EQ(1, cras_bt_device_valid(device));
 
-  /* Pick an address that is not a valid device for sure. */
+  // Pick an address that is not a valid device for sure.
   inval_dev = reinterpret_cast<struct cras_bt_device*>(device + 0x1);
   EXPECT_EQ(0, cras_bt_device_valid(inval_dev));
 
@@ -211,12 +214,12 @@ TEST_F(BtDeviceTestSuite, DevRemoveConflict) {
       device,
       CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
 
-  /* Fake that a different device already connected with A2DP */
+  // Fake that a different device already connected with A2DP
   cras_a2dp_connected_device_ret =
       reinterpret_cast<struct cras_bt_device*>(0x99);
   cras_bt_device_remove_conflict(device);
 
-  /* Expect check conflict in HFP AG and A2DP. */
+  // Expect check conflict in HFP AG and A2DP.
   EXPECT_EQ(1, cras_hfp_ag_remove_conflict_called);
   EXPECT_EQ(1, cras_a2dp_suspend_connected_device_called);
   EXPECT_EQ(cras_a2dp_suspend_connected_device_dev,
@@ -270,12 +273,12 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   cras_bt_device_a2dp_configured(device);
   cras_bt_device_audio_gateway_initialized(device);
 
-  /* Expect suspend timer is scheduled. */
+  // Expect suspend timer is scheduled.
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_A2DP_SINK);
   EXPECT_EQ(1, cras_bt_policy_schedule_suspend_called);
 
-  /* Another profile drop should trigger call to policy schedule suspend. */
+  // Another profile drop should trigger call to policy schedule suspend.
   cras_bt_device_notify_profile_dropped(device,
                                         CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE);
   EXPECT_EQ(2, cras_bt_policy_schedule_suspend_called);
@@ -283,11 +286,11 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   cur = msg_root = NewMockDBusConnectedMessage(0);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
 
-  /* When BlueZ reports headset disconnection, cancel the pending timer.  */
+  // When BlueZ reports headset disconnection, cancel the pending timer.
   EXPECT_EQ(1, cras_bt_policy_cancel_suspend_called);
   FreeMockDBusMessage(msg_root);
 
-  /* Headset connects again. */
+  // Headset connects again.
   cur = msg_root = NewMockDBusConnectedMessage(1);
   cras_bt_device_update_properties(device, (DBusMessageIter*)&cur, NULL);
   EXPECT_EQ(2, cras_bt_policy_start_connection_watch_called);
@@ -311,12 +314,12 @@ TEST_F(BtDeviceTestSuite, DevConnectDisconnectBackToBack) {
   cras_bt_device_remove(device);
 }
 
-/* Stubs */
+// Stubs
 extern "C" {
 
 struct cras_bt_event_log* btlog;
 
-/* From bt_io */
+// From bt_io
 struct bt_io_manager* bt_io_manager_create() {
   return reinterpret_cast<struct bt_io_manager*>(0x123);
 }
@@ -337,7 +340,7 @@ void bt_io_manager_remove_iodev(struct bt_io_manager* mgr,
   bt_io_manager_remove_iodev_called++;
 }
 
-/* From bt_adapter */
+// From bt_adapter
 struct cras_bt_adapter* cras_bt_adapter_get(const char* object_path) {
   return NULL;
 }
@@ -349,10 +352,10 @@ int cras_bt_adapter_on_usb(struct cras_bt_adapter* adapter) {
   return 1;
 }
 
-/* From bt_profile */
+// From bt_profile
 void cras_bt_profile_on_device_disconnected(struct cras_bt_device* device) {}
 
-/* From hfp_ag_profile */
+// From hfp_ag_profile
 struct hfp_slc_handle* cras_hfp_ag_get_slc(struct cras_bt_device* device) {
   return NULL;
 }
@@ -386,12 +389,12 @@ int cras_hfp_ag_start(struct cras_bt_device* device) {
 
 void cras_hfp_ag_suspend() {}
 
-/* From hfp_slc */
+// From hfp_slc
 int hfp_event_speaker_gain(struct hfp_slc_handle* handle, int gain) {
   return 0;
 }
 
-/* From iodev_list */
+// From iodev_list
 
 int cras_iodev_open(struct cras_iodev* dev,
                     unsigned int cb_level,
@@ -425,7 +428,7 @@ int cras_bt_policy_schedule_suspend(
   return 0;
 }
 
-/* Cancels any scheduled suspension of device. */
+// Cancels any scheduled suspension of device.
 int cras_bt_policy_cancel_suspend(struct cras_bt_device* device) {
   cras_bt_policy_cancel_suspend_called++;
   return 0;
@@ -489,12 +492,14 @@ dbus_bool_t dbus_message_iter_next(DBusMessageIter* iter) {
 int dbus_message_iter_get_arg_type(DBusMessageIter* iter) {
   MockDBusMessage* msg;
 
-  if (iter == NULL)
+  if (iter == NULL) {
     return DBUS_TYPE_INVALID;
+  }
 
   msg = *(MockDBusMessage**)iter;
-  if (msg == NULL)
+  if (msg == NULL) {
     return DBUS_TYPE_INVALID;
+  }
 
   return msg->type;
 }
@@ -502,14 +507,17 @@ int dbus_message_iter_get_arg_type(DBusMessageIter* iter) {
 char* dbus_message_iter_get_signature(DBusMessageIter* iter) {
   MockDBusMessage* msg;
 
-  if (iter == NULL)
+  if (iter == NULL) {
     return (char*)"";
+  }
   msg = *(MockDBusMessage**)iter;
-  if (msg == NULL)
+  if (msg == NULL) {
     return (char*)"";
+  }
   if ((msg->type == DBUS_TYPE_ARRAY) && msg->recurse &&
-      (msg->recurse->type == DBUS_TYPE_STRING))
+      (msg->recurse->type == DBUS_TYPE_STRING)) {
     return (char*)"as";
+  }
   return (char*)"";
 }
 

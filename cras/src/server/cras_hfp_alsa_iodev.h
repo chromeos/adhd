@@ -21,12 +21,12 @@ struct hfp_slc_handle;
  *
  * The usage of hfp_alsa_iodev is only for SCO connection over PCM/I2S.
  */
-struct cras_iodev *hfp_alsa_iodev_create(struct cras_iodev *aio,
-					 struct cras_bt_device *device,
-					 struct hfp_slc_handle *slc,
-					 struct cras_sco *sco,
-					 struct cras_hfp *hfp);
+struct cras_iodev* hfp_alsa_iodev_create(struct cras_iodev* aio,
+                                         struct cras_bt_device* device,
+                                         struct hfp_slc_handle* slc,
+                                         struct cras_sco* sco,
+                                         struct cras_hfp* hfp);
 
-void hfp_alsa_iodev_destroy(struct cras_iodev *iodev);
+void hfp_alsa_iodev_destroy(struct cras_iodev* iodev);
 
-#endif /* CRAS_SRC_SERVER_CRAS_HFP_ALSA_IODEV_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_HFP_ALSA_IODEV_H_

@@ -37,12 +37,14 @@ TEST(VolumeCurve, ExplicitCurve) {
   struct cras_volume_curve* curve;
   long dB_vals[101];
 
-  for (unsigned int i = 0; i < 101; i++)
+  for (unsigned int i = 0; i < 101; i++) {
     dB_vals[i] = i * 2 + -400;
+  }
   curve = cras_volume_curve_create_explicit(dB_vals);
   ASSERT_NE(static_cast<struct cras_volume_curve*>(NULL), curve);
-  for (unsigned int i = 0; i < 101; i++)
+  for (unsigned int i = 0; i < 101; i++) {
     EXPECT_EQ(i * 2 - 400, curve->get_dBFS(curve, i));
+  }
   cras_volume_curve_destroy(curve);
 }
 

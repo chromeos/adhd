@@ -20,13 +20,13 @@ struct cras_msbc_plc;
 /* Creates a plc component for mSBC codec, which is used for wideband speech
  * mode of HFP
  */
-struct cras_msbc_plc *cras_msbc_plc_create();
+struct cras_msbc_plc* cras_msbc_plc_create();
 
 /* Destroys a mSBC PLC.
  * Args:
  *    plc - The PLC to destroy.
  */
-void cras_msbc_plc_destroy(struct cras_msbc_plc *plc);
+void cras_msbc_plc_destroy(struct cras_msbc_plc* plc);
 
 /* Conceals the packet loss by writing the substitution samples to the ouput
  * buffer provided by the caller. The samples will be generated based on the
@@ -38,9 +38,9 @@ void cras_msbc_plc_destroy(struct cras_msbc_plc *plc);
  * Returns:
  *    The number of bytes written to the output buffer.
  */
-int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc *plc,
-				    struct cras_audio_codec *codec,
-				    uint8_t *output);
+int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc* plc,
+                                    struct cras_audio_codec* codec,
+                                    uint8_t* output);
 
 /* Updates informations needed and potentially processes the input samples to
  * help it to reconverge after a frame loss.
@@ -53,7 +53,8 @@ int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc *plc,
  * Returns:
  *    The number of bytes written to the output buffer.
  */
-int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc *plc,
-				     const uint8_t *input, uint8_t *output);
+int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc* plc,
+                                     const uint8_t* input,
+                                     uint8_t* output);
 
 #endif

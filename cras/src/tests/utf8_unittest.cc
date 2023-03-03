@@ -29,7 +29,7 @@ TEST(UTF8, ValidStress) {
   EXPECT_EQ(1, valid_utf8_string("The Euro sign: \xe2\x82\xac", &pos));
   EXPECT_EQ(18, pos);
 
-  /* First possible sequence of a certain length. */
+  // First possible sequence of a certain length.
   EXPECT_EQ(1, valid_utf8_string("\x01", &pos));
   EXPECT_EQ(1, pos);
   EXPECT_EQ(1, valid_utf8_string("\xc2\x80", &pos));
@@ -43,7 +43,7 @@ TEST(UTF8, ValidStress) {
   EXPECT_EQ(1, valid_utf8_string("\xf1\x80\x80\x80", &pos));
   EXPECT_EQ(4, pos);
 
-  /* Last possible sequence of a certain length. */
+  // Last possible sequence of a certain length.
   EXPECT_EQ(1, valid_utf8_string("\x7f", &pos));
   EXPECT_EQ(1, pos);
   EXPECT_EQ(1, valid_utf8_string("\xdf\xbf", &pos));
@@ -53,7 +53,7 @@ TEST(UTF8, ValidStress) {
   EXPECT_EQ(1, valid_utf8_string("\xf4\x8f\xbf\xbf", &pos));
   EXPECT_EQ(4, pos);
 
-  /* Other boundary conditions. */
+  // Other boundary conditions.
   EXPECT_EQ(1, valid_utf8_string("\xed\x9f\xbf", &pos));
   EXPECT_EQ(3, pos);
   EXPECT_EQ(1, valid_utf8_string("\xee\x80\x80", &pos));
@@ -63,7 +63,7 @@ TEST(UTF8, ValidStress) {
   EXPECT_EQ(1, valid_utf8_string("\xf0\xbf\xbf\xbf", &pos));
   EXPECT_EQ(4, pos);
 
-  /* BOM sequence. */
+  // BOM sequence.
   EXPECT_EQ(1, valid_utf8_string("\xef\xbb\xbf", &pos));
   EXPECT_EQ(3, pos);
 
@@ -80,7 +80,7 @@ TEST(UTF8, ValidStress) {
 TEST(UTF8, InvalidStress) {
   size_t pos;
 
-  /* Malformed continuation bytes. */
+  // Malformed continuation bytes.
   EXPECT_EQ(0, valid_utf8_string("\x80", &pos));
   EXPECT_EQ(0, pos);
   EXPECT_EQ(0, valid_utf8_string("\xbf", &pos));
@@ -90,11 +90,11 @@ TEST(UTF8, InvalidStress) {
   EXPECT_EQ(0, valid_utf8_string("\xc2\x80\xbf", &pos));
   EXPECT_EQ(2, pos);
 
-  /* Lonely start characters. */
+  // Lonely start characters.
   EXPECT_EQ(0, valid_utf8_string("\xc2 \xc3 \xc4 ", &pos));
   EXPECT_EQ(1, pos);
 
-  /* Out of range cases. */
+  // Out of range cases.
   EXPECT_EQ(0, valid_utf8_string("\xf4\x90\xbf\xbf", &pos));
   EXPECT_EQ(1, pos);
   EXPECT_EQ(0, valid_utf8_string(" \xf5\x80", &pos));
@@ -104,17 +104,17 @@ TEST(UTF8, InvalidStress) {
   EXPECT_EQ(0, valid_utf8_string("\xf4\x80\x80\xcf", &pos));
   EXPECT_EQ(3, pos);
 
-  /* Stop in mid-sequence. */
+  // Stop in mid-sequence.
   EXPECT_EQ(0, valid_utf8_string("\xf4\x80", &pos));
   EXPECT_EQ(2, pos);
 
-  /* Bad characters. */
+  // Bad characters.
   EXPECT_EQ(0, valid_utf8_string("\xff", &pos));
   EXPECT_EQ(0, pos);
   EXPECT_EQ(0, valid_utf8_string("\xfe", &pos));
   EXPECT_EQ(0, pos);
 
-  /* Overlong representations of ASCII characters. */
+  // Overlong representations of ASCII characters.
   EXPECT_EQ(0, valid_utf8_string("This represents the / character with too"
                                  "many bytes: \xe0\x80\xaf",
                                  &pos));
@@ -124,7 +124,7 @@ TEST(UTF8, InvalidStress) {
                                  &pos));
   EXPECT_EQ(53, pos);
 
-  /* Should not be interpreted as the ASCII NUL character. */
+  // Should not be interpreted as the ASCII NUL character.
   EXPECT_EQ(0, valid_utf8_string("This represents the NUL character with too"
                                  "many bytes: \xe0\x80\x80",
                                  &pos));
@@ -134,7 +134,7 @@ TEST(UTF8, InvalidStress) {
                                  &pos));
   EXPECT_EQ(55, pos);
 
-  /* Single UTF-16 surrogates. */
+  // Single UTF-16 surrogates.
   EXPECT_EQ(0, valid_utf8_string("\xed\xa0\x80", &pos));
   EXPECT_EQ(1, pos);
   EXPECT_EQ(0, valid_utf8_string("\xed\xad\xbf", &pos));

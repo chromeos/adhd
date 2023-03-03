@@ -17,9 +17,12 @@
  *    value - A pointer to the value to be appended.
  * Returns:
  *    False if not enough memory.
-*/
-dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key, int type,
-			     const char *type_string, void *value);
+ */
+dbus_bool_t append_key_value(DBusMessageIter* iter,
+                             const char* key,
+                             int type,
+                             const char* type_string,
+                             void* value);
 
 /* Extract a single argument from a DBus message.
  * Args:
@@ -29,7 +32,7 @@ dbus_bool_t append_key_value(DBusMessageIter *iter, const char *key, int type,
  * Returns:
  *    0 on success, otherwise a negative errno.
  */
-int get_single_arg(DBusMessage *message, int dbus_type, void *arg);
+int get_single_arg(DBusMessage* message, int dbus_type, void* arg);
 
 /* Create a DBusMessage for a method call with basic type arguments.
  * Args:
@@ -43,9 +46,13 @@ int get_single_arg(DBusMessage *message, int dbus_type, void *arg);
  * Returns:
  *    0 on success, otherwise a negative errno.
  */
-int create_dbus_method_call(DBusMessage **method_call, const char *dest,
-			    const char *path, const char *iface,
-			    const char *method_name, int num_args, ...);
+int create_dbus_method_call(DBusMessage** method_call,
+                            const char* dest,
+                            const char* path,
+                            const char* iface,
+                            const char* method_name,
+                            int num_args,
+                            ...);
 
 /* Calls a method on the specificed DBus connection and parses the reply.
  * Args:
@@ -57,8 +64,10 @@ int create_dbus_method_call(DBusMessage **method_call, const char *dest,
  * Returns:
  *    0 on success, otherwise a negative errno.
  */
-int call_method_and_parse_reply(DBusConnection *conn, DBusMessage *method_call,
-				int dbus_ret_type, void *dbus_ret_value_ptr);
+int call_method_and_parse_reply(DBusConnection* conn,
+                                DBusMessage* method_call,
+                                int dbus_ret_type,
+                                void* dbus_ret_value_ptr);
 
 /* Repeatedly calls a method on a DBus connection until the specified predicate
  * is satisfied or a maximum number of retries is reached.
@@ -74,10 +83,12 @@ int call_method_and_parse_reply(DBusConnection *conn, DBusMessage *method_call,
  * Returns:
  *    0 on success, otherwise a negative errno.
  */
-int retry_until_predicate_satisfied(struct DBusConnection *conn,
-				    int num_retries, int sleep_time_us,
-				    DBusMessage *method_call, int dbus_ret_type,
-				    void *dbus_ret_value_ptr,
-				    bool (*predicate)(int, void *));
+int retry_until_predicate_satisfied(struct DBusConnection* conn,
+                                    int num_retries,
+                                    int sleep_time_us,
+                                    DBusMessage* method_call,
+                                    int dbus_ret_type,
+                                    void* dbus_ret_value_ptr,
+                                    bool (*predicate)(int, void*));
 
 #endif

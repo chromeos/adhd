@@ -20,11 +20,11 @@
  *                    this is the loopback device
  */
 struct cras_floop_pair {
-	struct cras_iodev input;
-	struct cras_iodev output;
+  struct cras_iodev input;
+  struct cras_iodev output;
 
-	/* for ulist.h */
-	struct cras_floop_pair *prev, *next;
+  // for ulist.h
+  struct cras_floop_pair *prev, *next;
 };
 
 /*
@@ -33,15 +33,15 @@ struct cras_floop_pair {
  *
  * Called when a client requests it.
  */
-struct cras_floop_pair *
-cras_floop_pair_create(const struct cras_floop_params *params);
+struct cras_floop_pair* cras_floop_pair_create(
+    const struct cras_floop_params* params);
 
 /*
  * Remove it from cras_iodev_list and frees the cras_floop_pair.
  *
  * TODO(b/214165288): Call it when a floop device is unused for a while.
  */
-void cras_floop_pair_destroy(struct cras_floop_pair *loopdev);
+void cras_floop_pair_destroy(struct cras_floop_pair* loopdev);
 
 /*
  * Tells whether the given stream should be attached to the floop pair
@@ -51,11 +51,11 @@ void cras_floop_pair_destroy(struct cras_floop_pair *loopdev);
  * 2. The floop is activated (the first input stream for the floop starts),
  *    to attach existing output streams to the floop.
  */
-bool cras_floop_pair_match_output_stream(const struct cras_floop_pair *pair,
-					 const struct cras_rstream *stream);
+bool cras_floop_pair_match_output_stream(const struct cras_floop_pair* pair,
+                                         const struct cras_rstream* stream);
 
-/* Tells whether the floop pair matches the params */
-bool cras_floop_pair_match_params(const struct cras_floop_pair *pair,
-				  const struct cras_floop_params *params);
+// Tells whether the floop pair matches the params
+bool cras_floop_pair_match_params(const struct cras_floop_pair* pair,
+                                  const struct cras_floop_params* params);
 
-#endif /* CRAS_SRC_SERVER_CRAS_FLOOP_IODEV_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_FLOOP_IODEV_H_

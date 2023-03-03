@@ -8,8 +8,8 @@
 
 #include <dbus/dbus.h>
 
-/* Establish connection to the D-Bus System Bus. */
-DBusConnection *cras_dbus_connect_system_bus();
+// Establish connection to the D-Bus System Bus.
+DBusConnection* cras_dbus_connect_system_bus();
 
 /* Dispatch pending incoming and outgoing messages.
  *
@@ -20,9 +20,9 @@ DBusConnection *cras_dbus_connect_system_bus();
  *
  * It does nothing if there are no pending messages.
  */
-void cras_dbus_dispatch(DBusConnection *conn);
+void cras_dbus_dispatch(DBusConnection* conn);
 
-/* Disconnect from the D-Bus System Bus. */
-void cras_dbus_disconnect_system_bus(DBusConnection *conn);
+// Disconnect from the D-Bus System Bus.
+void cras_dbus_disconnect_system_bus(DBusConnection* conn);
 
-#endif /* CRAS_SRC_SERVER_CRAS_DBUS_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_DBUS_H_

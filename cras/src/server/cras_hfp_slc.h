@@ -53,7 +53,7 @@ struct cras_bt_device;
 
 #define CRAS_APL_SUPPORTED_FEATURES (APL_BATTERY)
 
-/* Codec ids for codec negotiation, per HFP 1.7.1 spec appendix B. */
+// Codec ids for codec negotiation, per HFP 1.7.1 spec appendix B.
 #define HFP_CODEC_UNUSED 0
 #define HFP_CODEC_ID_CVSD 1
 #define HFP_CODEC_ID_MSBC 2
@@ -66,11 +66,11 @@ struct cras_bt_device;
 #define CRAS_HFP_BATTERY_INDICATOR_APPLE 0x2
 #define CRAS_HFP_BATTERY_INDICATOR_PLANTRONICS 0x4
 
-/* Callback to call when service level connection initialized. */
-typedef int (*hfp_slc_init_cb)(struct hfp_slc_handle *handle);
+// Callback to call when service level connection initialized.
+typedef int (*hfp_slc_init_cb)(struct hfp_slc_handle* handle);
 
-/* Callback to call when service level connection disconnected. */
-typedef int (*hfp_slc_disconnect_cb)(struct hfp_slc_handle *handle);
+// Callback to call when service level connection disconnected.
+typedef int (*hfp_slc_disconnect_cb)(struct hfp_slc_handle* handle);
 
 /* Creates an hfp_slc_handle to poll the RFCOMM file descriptor
  * to read and handle received AT commands.
@@ -83,69 +83,71 @@ typedef int (*hfp_slc_disconnect_cb)(struct hfp_slc_handle *handle);
  *    disconnect_cb - the callback function to be triggered when the service
  *        level connection is disconnected.
  */
-struct hfp_slc_handle *hfp_slc_create(int fd, int ag_supported_features,
-				      struct cras_bt_device *device,
-				      hfp_slc_init_cb init_cb,
-				      hfp_slc_disconnect_cb disconnect_cb);
+struct hfp_slc_handle* hfp_slc_create(int fd,
+                                      int ag_supported_features,
+                                      struct cras_bt_device* device,
+                                      hfp_slc_init_cb init_cb,
+                                      hfp_slc_disconnect_cb disconnect_cb);
 
-/* Destroys an hfp_slc_handle. */
-void hfp_slc_destroy(struct hfp_slc_handle *handle);
+// Destroys an hfp_slc_handle.
+void hfp_slc_destroy(struct hfp_slc_handle* handle);
 
-/* Sets the call status to notify handsfree device. */
-int hfp_set_call_status(struct hfp_slc_handle *handle, int call);
+// Sets the call status to notify handsfree device.
+int hfp_set_call_status(struct hfp_slc_handle* handle, int call);
 
-/* Fakes the incoming call event for qualification test. */
-int hfp_event_incoming_call(struct hfp_slc_handle *handle, const char *number,
-			    int type);
+// Fakes the incoming call event for qualification test.
+int hfp_event_incoming_call(struct hfp_slc_handle* handle,
+                            const char* number,
+                            int type);
 
 /* Handles the call status changed event.
  * AG will send notification to HF accordingly. */
-int hfp_event_update_call(struct hfp_slc_handle *handle);
+int hfp_event_update_call(struct hfp_slc_handle* handle);
 
 /* Handles the call setup status changed event.
  * AG will send notification to HF accordingly. */
-int hfp_event_update_callsetup(struct hfp_slc_handle *handle);
+int hfp_event_update_callsetup(struct hfp_slc_handle* handle);
 
 /* Handles the call held status changed event.
  * AG will send notification to HF accordingly. */
-int hfp_event_update_callheld(struct hfp_slc_handle *handle);
+int hfp_event_update_callheld(struct hfp_slc_handle* handle);
 
-/* Sets battery level which is required for qualification test. */
-int hfp_event_set_battery(struct hfp_slc_handle *handle, int value);
+// Sets battery level which is required for qualification test.
+int hfp_event_set_battery(struct hfp_slc_handle* handle, int value);
 
-/* Sets signal strength which is required for qualification test. */
-int hfp_event_set_signal(struct hfp_slc_handle *handle, int value);
+// Sets signal strength which is required for qualification test.
+int hfp_event_set_signal(struct hfp_slc_handle* handle, int value);
 
-/* Sets service availability which is required for qualification test. */
-int hfp_event_set_service(struct hfp_slc_handle *handle, int value);
+// Sets service availability which is required for qualification test.
+int hfp_event_set_service(struct hfp_slc_handle* handle, int value);
 
-/* Sets speaker gain value to headsfree device. */
-int hfp_event_speaker_gain(struct hfp_slc_handle *handle, int gain);
+// Sets speaker gain value to headsfree device.
+int hfp_event_speaker_gain(struct hfp_slc_handle* handle, int gain);
 
-/* Gets the selected codec for HFP, mSBC or CVSD. */
-int hfp_slc_get_selected_codec(struct hfp_slc_handle *handle);
+// Gets the selected codec for HFP, mSBC or CVSD.
+int hfp_slc_get_selected_codec(struct hfp_slc_handle* handle);
 
-/* Gets if the remote HF supports codec negotiation. */
-int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle *handle);
+// Gets if the remote HF supports codec negotiation.
+int hfp_slc_get_hf_codec_negotiation_supported(struct hfp_slc_handle* handle);
 
-/* Gets if the remote HF supports HF indicator. */
-int hfp_slc_get_hf_hf_indicators_supported(struct hfp_slc_handle *handle);
+// Gets if the remote HF supports HF indicator.
+int hfp_slc_get_hf_hf_indicators_supported(struct hfp_slc_handle* handle);
 
-/* Gets if the HF side supports wideband speech. */
-bool hfp_slc_get_wideband_speech_supported(struct hfp_slc_handle *handle);
+// Gets if the HF side supports wideband speech.
+bool hfp_slc_get_wideband_speech_supported(struct hfp_slc_handle* handle);
 
-/* Gets if the AG side supports codec negotiation. */
-int hfp_slc_get_ag_codec_negotiation_supported(struct hfp_slc_handle *handle);
+// Gets if the AG side supports codec negotiation.
+int hfp_slc_get_ag_codec_negotiation_supported(struct hfp_slc_handle* handle);
 
 /* Gets an enum representing which spec the HF supports battery indicator.
  * Apple, HFP, none, or both. */
-int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle *handle);
+int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle* handle);
 
-/* Init the codec negotiation process if needed. */
-int hfp_slc_codec_connection_setup(struct hfp_slc_handle *handle);
+// Init the codec negotiation process if needed.
+int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle);
 
 // Expose internal AT command handling for fuzzing.
-int handle_at_command_for_test(struct hfp_slc_handle *slc_handle,
-			       const char *cmd);
+int handle_at_command_for_test(struct hfp_slc_handle* slc_handle,
+                               const char* cmd);
 
-#endif /* CRAS_SRC_SERVER_CRAS_HFP_SLC_H_ */
+#endif  // CRAS_SRC_SERVER_CRAS_HFP_SLC_H_

@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <time.h>
-
 #include <gtest/gtest.h>
+#include <time.h>
 
 #include "cras/src/server/speak_on_mute_detector.h"
 

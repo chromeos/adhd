@@ -2,16 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <deque>
 #include <gtest/gtest.h>
 #include <linux/input.h>
+#include <map>
 #include <poll.h>
 #include <stdio.h>
+#include <string>
 #include <sys/param.h>
 #include <syslog.h>
-
-#include <deque>
-#include <map>
-#include <string>
 #include <vector>
 
 extern "C" {
@@ -231,15 +230,17 @@ static struct cras_alsa_jack_list* run_test_with_elem_list(
 
   snd_hctl_first_elem_return_val =
       reinterpret_cast<snd_hctl_elem_t*>(&elems[0]);
-  for (unsigned int i = 1; i < nelems; i++)
+  for (unsigned int i = 1; i < nelems; i++) {
     snd_hctl_elem_next_ret_vals.push_front(
         reinterpret_cast<snd_hctl_elem_t*>(&elems[i]));
+  }
 
   jack_list = cras_alsa_jack_list_create(0, "card_name", device_index, 1,
                                          fake_mixer, ucm, fake_hctl, direction,
                                          fake_jack_cb, fake_jack_cb_arg);
-  if (jack_list == NULL)
+  if (jack_list == NULL) {
     return jack_list;
+  }
   EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
   EXPECT_EQ(ucm ? njacks : 0, ucm_get_dev_for_jack_called);
   EXPECT_EQ(ucm ? njacks : 0, ucm_get_override_type_name_called);
@@ -284,8 +285,9 @@ static struct cras_alsa_jack_list* run_test_with_section(
   jack_list = cras_alsa_jack_list_create(0, "card_name", device_index, 1,
                                          fake_mixer, ucm, fake_hctl, direction,
                                          fake_jack_cb, fake_jack_cb_arg);
-  if (jack_list == NULL)
+  if (jack_list == NULL) {
     return jack_list;
+  }
   EXPECT_EQ(add_jack_rc, cras_alsa_jack_list_add_jack_for_section(
                              jack_list, ucm_section, &jack));
   if (add_jack_rc == 0) {
@@ -443,7 +445,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMMatched) {
 
   ResetStubData();
 
-  /* PlaybackPCM matched, so create jack even if this is not the first device.*/
+  // PlaybackPCM matched, so create jack even if this is not the first device.
   ucm_get_dev_for_jack_return = true;
   ucm_get_alsa_dev_idx_for_dev_value = 1;
 
@@ -459,7 +461,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMCapturePCMMatched) {
 
   ResetStubData();
 
-  /* CapturePCM matched, so create jack even if this is not the first device.*/
+  // CapturePCM matched, so create jack even if this is not the first device.
   ucm_get_dev_for_jack_return = true;
   ucm_get_alsa_dev_idx_for_dev_value = 1;
 
@@ -475,7 +477,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotMatched) {
 
   ResetStubData();
 
-  /* PlaybackPCM not matched, do not create jack. */
+  // PlaybackPCM not matched, do not create jack.
   ucm_get_dev_for_jack_return = true;
   ucm_get_alsa_dev_idx_for_dev_value = 2;
 
@@ -491,7 +493,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotSpecifiedFirstDevice) {
 
   ResetStubData();
 
-  /* PlaybackPCM not specified, create jack for the first device. */
+  // PlaybackPCM not specified, create jack for the first device.
   ucm_get_dev_for_jack_return = true;
   ucm_get_alsa_dev_idx_for_dev_value = -1;
 
@@ -507,7 +509,7 @@ TEST(AlsaJacks, CreateGPIOHpUCMPlaybackPCMNotSpecifiedSecondDevice) {
 
   ResetStubData();
 
-  /* PlaybackPCM not specified, do not create jack for the second device. */
+  // PlaybackPCM not specified, do not create jack for the second device.
   ucm_get_dev_for_jack_return = true;
   ucm_get_alsa_dev_idx_for_dev_value = -1;
 
@@ -523,7 +525,7 @@ TEST(AlsaJacks, CreateGPIOHpNoUCMFirstDevice) {
 
   ResetStubData();
 
-  /* No UCM for this jack, create jack for the first device. */
+  // No UCM for this jack, create jack for the first device.
   ucm_get_dev_for_jack_return = false;
   ucm_get_alsa_dev_idx_for_dev_value = -1;
 
@@ -539,7 +541,7 @@ TEST(AlsaJacks, CreateGPIOHpNoUCMSecondDevice) {
 
   ResetStubData();
 
-  /* No UCM for this jack, dot not create jack for the second device. */
+  // No UCM for this jack, dot not create jack for the second device.
   ucm_get_dev_for_jack_return = false;
   ucm_get_alsa_dev_idx_for_dev_value = -1;
 
@@ -705,7 +707,7 @@ TEST(AlsaJacks, CreateHDMIJacksWithELD) {
                                       ARRAY_SIZE(elem_names), 1, 1);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
 
-  /* Assert get device is called for the ELD control */
+  // Assert get device is called for the ELD control
   EXPECT_EQ(1, snd_hctl_find_elem_called);
   cras_alsa_jack_list_destroy(jack_list);
 }
@@ -940,7 +942,7 @@ TEST(AlsaJacks, StableId) {
   }
 }
 
-/* Stubs */
+// Stubs
 
 extern "C" {
 
@@ -965,7 +967,7 @@ unsigned int snd_hctl_elem_get_device(const snd_hctl_elem_t* obj) {
 snd_hctl_elem_t* snd_hctl_first_elem(snd_hctl_t* hctl) {
   snd_hctl_first_elem_called++;
 
-  /* When first elem is called, restored the poped ret values */
+  // When first elem is called, restored the poped ret values
   while (!snd_hctl_elem_next_ret_vals_poped.empty()) {
     snd_hctl_elem_t* tmp = snd_hctl_elem_next_ret_vals_poped.back();
     snd_hctl_elem_next_ret_vals_poped.pop_back();
@@ -975,8 +977,9 @@ snd_hctl_elem_t* snd_hctl_first_elem(snd_hctl_t* hctl) {
 }
 snd_hctl_elem_t* snd_hctl_elem_next(snd_hctl_elem_t* elem) {
   snd_hctl_elem_next_called++;
-  if (snd_hctl_elem_next_ret_vals.empty())
+  if (snd_hctl_elem_next_ret_vals.empty()) {
     return NULL;
+  }
   snd_hctl_elem_t* ret_elem = snd_hctl_elem_next_ret_vals.back();
   snd_hctl_elem_next_ret_vals.pop_back();
   snd_hctl_elem_next_ret_vals_poped.push_back(ret_elem);
@@ -1014,8 +1017,9 @@ snd_hctl_elem_t* snd_hctl_find_elem(snd_hctl_t* hctl,
                                     const snd_ctl_elem_id_t* id) {
   const size_t* index = reinterpret_cast<const size_t*>(id);
   snd_hctl_find_elem_called++;
-  if (*index < snd_hctl_find_elem_return_vals.size())
+  if (*index < snd_hctl_find_elem_return_vals.size()) {
     return snd_hctl_find_elem_return_vals[*index];
+  }
   return NULL;
 }
 void snd_ctl_elem_id_set_interface(snd_ctl_elem_id_t* obj,
@@ -1025,10 +1029,11 @@ void snd_ctl_elem_id_set_name(snd_ctl_elem_id_t* obj, const char* val) {
   size_t* obj_id = reinterpret_cast<size_t*>(obj);
   std::map<std::string, size_t>::iterator id_name_it =
       snd_ctl_elem_id_set_name_map.find(val);
-  if (id_name_it != snd_ctl_elem_id_set_name_map.end())
+  if (id_name_it != snd_ctl_elem_id_set_name_map.end()) {
     *obj_id = id_name_it->second;
-  else
+  } else {
     *obj_id = INT_MAX;
+  }
 }
 
 // From alsa-lib control.c
@@ -1069,10 +1074,11 @@ int gpio_switch_eviocgbit(int fd, void* buf, size_t n_bytes) {
    *  Set the bit corresponding to 'sw' in 'buf'.  'buf' must have
    *  been allocated by the caller to accommodate this.
    */
-  if (fd == gpio_switch_eviocgbit_fd)
+  if (fd == gpio_switch_eviocgbit_fd) {
     memcpy(p, eviocbit_ret, n_bytes);
-  else
+  } else {
     memset(p, 0, n_bytes);
+  }
 
   gpio_switch_eviocgbit_called++;
   return 1;
@@ -1098,10 +1104,12 @@ int gpio_switch_read(int fd, void* buf, size_t n_bytes) {
 
 int gpio_switch_open(const char* pathname) {
   ++gpio_switch_open_called;
-  if (strstr(pathname, "event2"))
+  if (strstr(pathname, "event2")) {
     return 2;
-  if (strstr(pathname, "event3"))
+  }
+  if (strstr(pathname, "event3")) {
     return 3;
+  }
   return 0;
 }
 
@@ -1134,9 +1142,10 @@ char* ucm_get_dev_for_jack(struct cras_use_case_mgr* mgr,
                            const char* jack,
                            CRAS_STREAM_DIRECTION direction) {
   ++ucm_get_dev_for_jack_called;
-  if (ucm_get_dev_for_jack_return)
+  if (ucm_get_dev_for_jack_return) {
     return static_cast<char*>(
         malloc(1));  // Will be freed in jack_list_destroy.
+  }
   return NULL;
 }
 
@@ -1176,7 +1185,7 @@ int wait_for_dev_input_access() {
   return 0;
 }
 
-} /* extern "C" */
+}  // extern "C"
 
 }  //  namespace
 

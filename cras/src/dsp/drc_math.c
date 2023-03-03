@@ -4,11 +4,11 @@
  */
 #include "cras/src/dsp/drc_math.h"
 
-float db_to_linear[201]; /* from -100dB to 100dB */
+float db_to_linear[201];  // from -100dB to 100dB
 
-void drc_math_init()
-{
-	int i;
-	for (i = -100; i <= 100; i++)
-		db_to_linear[i + 100] = pow(10, i / 20.0);
+void drc_math_init() {
+  int i;
+  for (i = -100; i <= 100; i++) {
+    db_to_linear[i + 100] = pow(10, i / 20.0);
+  }
 }

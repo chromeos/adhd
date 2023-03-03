@@ -139,7 +139,7 @@ TEST(PolledIntervalCheckerTest, Reset) {
   pic_polled_interval_destroy(&interval);
 }
 
-/* Stubs */
+// Stubs
 extern "C" {
 
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {

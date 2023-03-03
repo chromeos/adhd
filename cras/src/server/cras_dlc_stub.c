@@ -7,12 +7,10 @@
 
 #include "cras/src/server/rust/include/cras_dlc.h"
 
-const char *cras_dlc_sr_bt_get_root(void)
-{
-	return NULL;
+const char* cras_dlc_sr_bt_get_root(void) {
+  return NULL;
 }
 
-bool cras_dlc_sr_bt_is_available(void)
-{
-	return false;
+bool cras_dlc_sr_bt_is_available(void) {
+  return false;
 }

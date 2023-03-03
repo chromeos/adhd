@@ -8,13 +8,12 @@
 
 extern "C" {
 // To test static functions.
-#include "cras/src/server/cras_fl_pcm_iodev.c"
-
 #include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_fl_pcm_iodev.c"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 }
@@ -226,11 +225,11 @@ TEST_F(PcmIodev, TestHfpReadNotStarted) {
   cras_floss_hfp_get_fd_ret = sock[1];
 
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
-  /* Mock the pcm fd and send some fake data */
+  // Mock the pcm fd and send some fake data
   send(sock[0], sample, 48, 0);
   hfp_read((fl_pcm_io*)idev);
 
-  /* Ignore the data if !idev->started  */
+  // Ignore the data if !idev->started
   EXPECT_EQ(0, iodev_get_buffer(idev, 100));
   EXPECT_EQ(0, frames_queued(idev, &tstamp));
 
@@ -255,10 +254,10 @@ TEST_F(PcmIodev, TestHfpReadStarted) {
   idev->configure_dev(idev);
   pcm_buf_length = pcm_idev->pcm_buf->used_size;
 
-  /* Simple read */
+  // Simple read
   send(sock[0], sample, 20 * format_bytes, 0);
   hfp_read(pcm_idev);
-  /* Try to request number of frames larger than available ones */
+  // Try to request number of frames larger than available ones
   EXPECT_EQ(20, iodev_get_buffer(idev, 100));
   EXPECT_EQ(20, frames_queued(idev, &tstamp));
 
@@ -270,16 +269,16 @@ TEST_F(PcmIodev, TestHfpReadStarted) {
   send(sock[0], sample, pcm_buf_length - 10 * format_bytes, 0);
   hfp_read(pcm_idev);
 
-  /* Check that the data is correctly write into the buffer and queued. */
+  // Check that the data is correctly write into the buffer and queued.
   EXPECT_EQ(pcm_buf_length / format_bytes - 10, frames_queued(idev, &tstamp));
 
-  /* Should be able to read all data from 20 to the end of the ring buffer */
+  // Should be able to read all data from 20 to the end of the ring buffer
   EXPECT_EQ((pcm_buf_length - 20 * format_bytes) / format_bytes,
             iodev_get_buffer(idev, (pcm_buf_length / format_bytes)));
   EXPECT_EQ(0, idev->put_buffer(
                    idev, (pcm_buf_length - 20 * format_bytes) / format_bytes));
 
-  /* Check that the remaining 10 frames are there. */
+  // Check that the remaining 10 frames are there.
   EXPECT_EQ(10, iodev_get_buffer(idev, (pcm_buf_length / format_bytes)));
 
   /* TODO(b/226386060): Add tests to cover the partial read case, such that
@@ -301,12 +300,12 @@ TEST_F(PcmIodev, TestHfpWriteNotStarted) {
   pcm_odev = (fl_pcm_io*)odev;
 
   hfp_write((fl_pcm_io*)odev, 100);
-  /* Should still receive 100 bytes of data when odev is not started. */
+  // Should still receive 100 bytes of data when odev is not started.
   rc = recv(sock[0], buf, sizeof(buf), 0);
   EXPECT_EQ(100, rc);
   EXPECT_EQ(0, buf_readable(pcm_odev->pcm_buf));
 
-  /* Get 0 frames if not configured and started */
+  // Get 0 frames if not configured and started
   EXPECT_EQ(0, iodev_get_buffer(odev, 50));
 
   hfp_pcm_iodev_destroy(odev);
@@ -331,42 +330,42 @@ TEST_F(PcmIodev, TestHfpWriteStarted) {
   format_bytes = cras_get_format_bytes(odev->format);
   odev->configure_dev(odev);
 
-  /* Write offset: 150. */
+  // Write offset: 150.
   available = iodev_get_buffer(odev, 150);
   EXPECT_EQ(150, available);
   EXPECT_EQ(0, odev->put_buffer(odev, available));
 
   hfp_write(pcm_odev, 100 * format_bytes);
-  /* Read at max target_len of data. */
+  // Read at max target_len of data.
   rc = recv(sock[0], buf, pcm_buf_length, 0);
   EXPECT_EQ(100 * format_bytes, rc);
   EXPECT_EQ(50, frames_queued(odev, &tstamp));
 
   hfp_write(pcm_odev, 50 * format_bytes);
-  /* Read as much as data. */
+  // Read as much as data.
   rc = recv(sock[0], buf, pcm_buf_length, 0);
   EXPECT_EQ(50 * format_bytes, rc);
   EXPECT_EQ(0, frames_queued(odev, &tstamp));
   EXPECT_EQ(0, buf_readable(pcm_odev->pcm_buf));
 
-  /* Fill the buffer to its boundary. */
+  // Fill the buffer to its boundary.
   available = iodev_get_buffer(odev, pcm_buf_length / format_bytes);
   EXPECT_EQ(pcm_buf_length / format_bytes - 150, available);
   EXPECT_EQ(0, odev->put_buffer(odev, available));
 
   available = iodev_get_buffer(odev, pcm_buf_length / format_bytes);
   EXPECT_EQ(150, available);
-  /* Fill 50 more frames. */
+  // Fill 50 more frames.
   EXPECT_EQ(0, odev->put_buffer(odev, 50));
   EXPECT_EQ(pcm_buf_length / format_bytes - 150 + 50,
             frames_queued(odev, &tstamp));
 
-  /* Write all data in the ring buffer out. */
+  // Write all data in the ring buffer out.
   hfp_write(pcm_odev, pcm_buf_length - 100 * format_bytes);
-  /* Read as much as data. */
+  // Read as much as data.
   rc = recv(sock[0], buf, pcm_buf_length, 0);
 
-  /* All data in the buffer should be sent and digested. */
+  // All data in the buffer should be sent and digested.
   EXPECT_EQ(pcm_buf_length - 100 * format_bytes, rc);
   EXPECT_EQ(0, frames_queued(odev, &tstamp));
   /* The write offset is at 50 and the buffer should retrieve the space for
@@ -417,7 +416,7 @@ TEST_F(PcmIodev, TestHfpCb) {
   rc = recv(sock[0], buf, 200, 0);
   EXPECT_EQ(100, rc);
 
-  /* After POLLHUP the cb should be removed. */
+  // After POLLHUP the cb should be removed.
   EXPECT_EQ(-EPIPE, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
   EXPECT_EQ(NULL, write_callback);
   EXPECT_EQ(NULL, write_callback_data);

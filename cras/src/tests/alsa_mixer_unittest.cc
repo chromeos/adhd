@@ -3,11 +3,10 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
-#include <stdio.h>
-#include <syslog.h>
-
 #include <map>
+#include <stdio.h>
 #include <string>
+#include <syslog.h>
 #include <vector>
 
 extern "C" {
@@ -241,10 +240,10 @@ TEST(AlsaMixer, CreateNoElements) {
   EXPECT_EQ(1, snd_mixer_load_called);
   EXPECT_EQ(0, snd_mixer_close_called);
 
-  /* set mute shouldn't call anything. */
+  // set mute shouldn't call anything.
   cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_called);
-  /* set volume shouldn't call anything. */
+  // set volume shouldn't call anything.
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_dB_all_called);
 
@@ -293,7 +292,7 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
   EXPECT_EQ(1, snd_mixer_selem_get_name_called);
   EXPECT_EQ(0, snd_mixer_selem_get_playback_dB_range_called);
 
-  /* set mute shouldn't call anything. */
+  // set mute shouldn't call anything.
   cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_called);
 
@@ -316,10 +315,10 @@ TEST(AlsaMixer, CreateOneUnknownElementWithoutVolume) {
   EXPECT_EQ(1, snd_mixer_selem_has_playback_switch_called);
   EXPECT_EQ(1, snd_mixer_selem_get_playback_dB_range_called);
 
-  /* if passed a mixer output then it should mute that. */
+  // if passed a mixer output then it should mute that.
   cras_alsa_mixer_set_mute(c, 0, mixer_output);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
-  /* set volume shouldn't call anything. */
+  // set volume shouldn't call anything.
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_dB_all_called);
 
@@ -377,7 +376,7 @@ TEST(AlsaMixer, CreateOneUnknownElementWithVolume) {
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_range_called);
   EXPECT_EQ(3, snd_mixer_selem_get_name_called);
 
-  /* Should use "Playback" since it has playback switch. */
+  // Should use "Playback" since it has playback switch.
   cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
 
@@ -462,10 +461,10 @@ TEST(AlsaMixer, CreateOneMainElement) {
   EXPECT_EQ(3, snd_mixer_selem_get_name_called);
   EXPECT_EQ(1, snd_mixer_elem_next_called);
 
-  /* set mute should be called for Main. */
+  // set mute should be called for Main.
   cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
-  /* set volume should be called for Main. */
+  // set volume should be called for Main.
   cras_alsa_mixer_set_dBFS(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_dB_all_called);
 
@@ -493,7 +492,7 @@ TEST(AlsaMixer, CreateOneMainElement) {
   EXPECT_EQ(1, snd_mixer_selem_has_playback_switch_called);
   EXPECT_EQ(1, snd_mixer_selem_get_playback_dB_range_called);
 
-  /* if passed a mixer output then it should set the volume for that too. */
+  // if passed a mixer output then it should set the volume for that too.
   cras_alsa_mixer_set_dBFS(c, 0, mixer_output);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(950, set_dB_values[0]);
@@ -570,7 +569,7 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
   EXPECT_EQ(5, snd_mixer_selem_get_name_called);
   EXPECT_EQ(3, snd_mixer_selem_has_playback_switch_called);
 
-  /* Set mute should be called for Main only. */
+  // Set mute should be called for Main only.
   cras_alsa_mixer_set_mute(c, 0, NULL);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_called);
 
@@ -578,14 +577,14 @@ TEST(AlsaMixer, CreateTwoMainVolumeElements) {
    * anything but zero then the entire volume should be passed to the PCM
    * control.*/
 
-  /* Set volume should be called for Main and PCM. (without mixer_output) */
+  // Set volume should be called for Main and PCM. (without mixer_output)
   snd_mixer_selem_get_playback_dB_return_values = get_dB_returns;
   snd_mixer_selem_get_playback_dB_return_values_length =
       ARRAY_SIZE(get_dB_returns);
   cras_alsa_mixer_set_dBFS(c, -50, NULL);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(2, snd_mixer_selem_get_playback_dB_called);
-  /* volume should be set relative to max volume (40 + 40). */
+  // volume should be set relative to max volume (40 + 40).
   EXPECT_EQ(30, set_dB_values[0]);
   EXPECT_EQ(30, set_dB_values[1]);
 
@@ -940,8 +939,9 @@ TEST_F(AlsaMixerOutputs, CheckFindInputNameWorkaround) {
   size_t i;
 
   ResetStubData();
-  for (i = 0; i < ARRAY_SIZE(elements); i++)
+  for (i = 0; i < ARRAY_SIZE(elements); i++) {
     snd_mixer_find_elem_map[element_names[i]] = elements[i];
+  }
 
   snd_mixer_selem_get_name_called = 0;
   snd_mixer_selem_get_name_return_values = element_names;
@@ -1118,17 +1118,17 @@ TEST(AlsaMixer, CreateWithCoupledOutputControls) {
 
   cras_alsa_mixer_set_dBFS(c, target_dBFS, output_control);
 
-  /* Set volume should set playback dB on two of the coupled controls. */
+  // Set volume should set playback dB on two of the coupled controls.
   EXPECT_EQ(2, snd_mixer_selem_set_playback_dB_all_called);
   EXPECT_EQ(set_dB_values[0], expected_dB_value);
   EXPECT_EQ(set_dB_values[1], expected_dB_value);
 
-  /* Mute should set playback switch on two of the coupled controls. */
+  // Mute should set playback switch on two of the coupled controls.
   cras_alsa_mixer_set_mute(c, 1, output_control);
   EXPECT_EQ(2, snd_mixer_selem_set_playback_switch_all_called);
   EXPECT_EQ(0, snd_mixer_selem_set_playback_switch_all_value);
 
-  /* Unmute should set playback switch on two of the coupled controls. */
+  // Unmute should set playback switch on two of the coupled controls.
   cras_alsa_mixer_set_mute(c, 0, output_control);
   EXPECT_EQ(4, snd_mixer_selem_set_playback_switch_all_called);
   EXPECT_EQ(1, snd_mixer_selem_set_playback_switch_all_value);
@@ -1323,27 +1323,29 @@ TEST(AlsaMixer, MixerName) {
   names = mixer_name_add(names, "Capture", CRAS_STREAM_INPUT,
                          MIXER_NAME_MAIN_VOLUME);
 
-  /* Number of items (test mixer_name_add(_array)). */
+  // Number of items (test mixer_name_add(_array)).
   mixer_name_count = 0;
-  DL_FOREACH (names, control) { mixer_name_count++; }
+  DL_FOREACH (names, control) {
+    mixer_name_count++;
+  }
   EXPECT_EQ(10, mixer_name_count);
 
-  /* Item not in the list: mismatch direction. */
+  // Item not in the list: mismatch direction.
   control =
       mixer_name_find(names, "Main", CRAS_STREAM_INPUT, MIXER_NAME_UNDEFINED);
   EXPECT_EQ(1, control == NULL);
 
-  /* Item not in the list: mismatch type. */
+  // Item not in the list: mismatch type.
   control =
       mixer_name_find(names, "Main", CRAS_STREAM_OUTPUT, MIXER_NAME_VOLUME);
   EXPECT_EQ(1, control == NULL);
 
-  /* Find by name and direction. */
+  // Find by name and direction.
   control =
       mixer_name_find(names, "Main", CRAS_STREAM_OUTPUT, MIXER_NAME_UNDEFINED);
   EXPECT_EQ(0, strcmp("Main", control->name));
 
-  /* Find by type and direction. */
+  // Find by type and direction.
   control = mixer_name_find(names, NULL, CRAS_STREAM_INPUT, MIXER_NAME_VOLUME);
   EXPECT_EQ(0, strcmp("Mic", control->name));
 
@@ -1391,8 +1393,9 @@ class AlsaMixerFullySpeced : public testing::Test {
 
     ResetStubData();
 
-    for (i = 0; i < ARRAY_SIZE(elements); i++)
+    for (i = 0; i < ARRAY_SIZE(elements); i++) {
       snd_mixer_find_elem_map[element_names[i]] = elements[i];
+    }
 
     section = ucm_section_create("NullElement", "hw:0,1", 0, -1,
                                  CRAS_STREAM_OUTPUT, NULL, NULL);
@@ -1551,7 +1554,7 @@ TEST_F(AlsaMixerFullySpeced, CheckFindControlForSection) {
   EXPECT_EQ(0, strcmp(control->name, "CAPTURE"));
 }
 
-/* Stubs */
+// Stubs
 
 extern "C" {
 int snd_mixer_open(snd_mixer_t** mixer, int mode) {
@@ -1577,8 +1580,9 @@ int snd_mixer_load(snd_mixer_t* mixer) {
 const char* snd_mixer_selem_get_name(snd_mixer_elem_t* elem) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_get_name_called++;
-  if (index >= snd_mixer_selem_get_name_return_values_length)
+  if (index >= snd_mixer_selem_get_name_return_values_length) {
     return static_cast<char*>(NULL);
+  }
 
   return snd_mixer_selem_get_name_return_values[index];
 }
@@ -1588,32 +1592,36 @@ unsigned int snd_mixer_selem_get_index(snd_mixer_elem_t* elem) {
 int snd_mixer_selem_has_playback_volume(snd_mixer_elem_t* elem) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_has_playback_volume_called++;
-  if (index >= snd_mixer_selem_has_playback_volume_return_values_length)
+  if (index >= snd_mixer_selem_has_playback_volume_return_values_length) {
     return -1;
+  }
 
   return snd_mixer_selem_has_playback_volume_return_values[index];
 }
 int snd_mixer_selem_has_playback_switch(snd_mixer_elem_t* elem) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_has_playback_switch_called++;
-  if (index >= snd_mixer_selem_has_playback_switch_return_values_length)
+  if (index >= snd_mixer_selem_has_playback_switch_return_values_length) {
     return -1;
+  }
 
   return snd_mixer_selem_has_playback_switch_return_values[index];
 }
 int snd_mixer_selem_has_capture_volume(snd_mixer_elem_t* elem) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_has_capture_volume_called++;
-  if (index >= snd_mixer_selem_has_capture_volume_return_values_length)
+  if (index >= snd_mixer_selem_has_capture_volume_return_values_length) {
     return -1;
+  }
 
   return snd_mixer_selem_has_capture_volume_return_values[index];
 }
 int snd_mixer_selem_has_capture_switch(snd_mixer_elem_t* elem) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_has_capture_switch_called++;
-  if (index >= snd_mixer_selem_has_capture_switch_return_values_length)
+  if (index >= snd_mixer_selem_has_capture_switch_return_values_length) {
     return -1;
+  }
 
   return snd_mixer_selem_has_capture_switch_return_values[index];
 }
@@ -1624,8 +1632,9 @@ snd_mixer_elem_t* snd_mixer_first_elem(snd_mixer_t* mixer) {
 snd_mixer_elem_t* snd_mixer_elem_next(snd_mixer_elem_t* elem) {
   snd_mixer_elem_next_called++;
   if (snd_mixer_elem_next_return_values_index >=
-      snd_mixer_elem_next_return_values_length)
+      snd_mixer_elem_next_return_values_length) {
     return static_cast<snd_mixer_elem_t*>(NULL);
+  }
 
   return snd_mixer_elem_next_return_values
       [snd_mixer_elem_next_return_values_index++];
@@ -1639,8 +1648,9 @@ int snd_mixer_selem_set_playback_dB_all(snd_mixer_elem_t* elem,
                                         int dir) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_set_playback_dB_all_called++;
-  if (index < snd_mixer_selem_set_playback_dB_all_values_length)
+  if (index < snd_mixer_selem_set_playback_dB_all_values_length) {
     snd_mixer_selem_set_playback_dB_all_values[index] = value;
+  }
   return 0;
 }
 int snd_mixer_selem_get_playback_dB(snd_mixer_elem_t* elem,
@@ -1648,10 +1658,11 @@ int snd_mixer_selem_get_playback_dB(snd_mixer_elem_t* elem,
                                     long* value) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_get_playback_dB_called++;
-  if (index >= snd_mixer_selem_get_playback_dB_return_values_length)
+  if (index >= snd_mixer_selem_get_playback_dB_return_values_length) {
     *value = 0;
-  else
+  } else {
     *value = snd_mixer_selem_get_playback_dB_return_values[index];
+  }
   return 0;
 }
 int snd_mixer_selem_set_playback_switch_all(snd_mixer_elem_t* elem, int value) {
@@ -1664,8 +1675,9 @@ int snd_mixer_selem_set_capture_dB_all(snd_mixer_elem_t* elem,
                                        int dir) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_set_capture_dB_all_called++;
-  if (index < snd_mixer_selem_set_capture_dB_all_values_length)
+  if (index < snd_mixer_selem_set_capture_dB_all_values_length) {
     snd_mixer_selem_set_capture_dB_all_values[index] = value;
+  }
   return 0;
 }
 int snd_mixer_selem_get_capture_dB(snd_mixer_elem_t* elem,
@@ -1673,10 +1685,11 @@ int snd_mixer_selem_get_capture_dB(snd_mixer_elem_t* elem,
                                    long* value) {
   int index = reinterpret_cast<size_t>(elem) - 1;
   snd_mixer_selem_get_capture_dB_called++;
-  if (index >= snd_mixer_selem_get_capture_dB_return_values_length)
+  if (index >= snd_mixer_selem_get_capture_dB_return_values_length) {
     *value = 0;
-  else
+  } else {
     *value = snd_mixer_selem_get_capture_dB_return_values[index];
+  }
   return 0;
 }
 int snd_mixer_selem_set_capture_switch_all(snd_mixer_elem_t* elem, int value) {
@@ -1733,8 +1746,9 @@ snd_mixer_elem_t* snd_mixer_find_selem(snd_mixer_t* mixer,
   std::string name(snd_mixer_selem_id_get_name(id));
   unsigned int index = snd_mixer_selem_id_get_index(id);
   snd_mixer_find_selem_called++;
-  if (index != 0)
+  if (index != 0) {
     return NULL;
+  }
   if (snd_mixer_find_elem_map.find(name) == snd_mixer_find_elem_map.end()) {
     return NULL;
   }
@@ -1750,8 +1764,9 @@ static long get_dBFS_default(const struct cras_volume_curve* curve,
 struct cras_volume_curve* cras_volume_curve_create_default() {
   struct cras_volume_curve* curve;
   curve = (struct cras_volume_curve*)calloc(1, sizeof(*curve));
-  if (curve)
+  if (curve) {
     curve->get_dBFS = get_dBFS_default;
+  }
   return curve;
 }
 
@@ -1766,12 +1781,13 @@ struct cras_volume_curve* cras_card_config_get_volume_curve_for_control(
     const char* control_name) {
   struct cras_volume_curve* curve;
   curve = (struct cras_volume_curve*)calloc(1, sizeof(*curve));
-  if (curve != NULL)
+  if (curve != NULL) {
     curve->get_dBFS = get_dBFS_default;
+  }
   return curve;
 }
 
-} /* extern "C" */
+}  // extern "C"
 
 }  //  namespace
 

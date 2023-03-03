@@ -3,11 +3,11 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <map>
 #include <stdio.h>
 #include <syslog.h>
-
-#include <map>
 #include <vector>
+
 #include "cras_util.h"
 
 extern "C" {
@@ -161,8 +161,9 @@ static int cras_iodev_update_underrun_duration_called = 0;
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
                                    int value) {
-  if (!strcmp(key, "display_rotation"))
+  if (!strcmp(key, "display_rotation")) {
     display_rotation = value;
+  }
 }
 
 void ResetStubData() {
@@ -314,7 +315,7 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   ASSERT_EQ(1, aio->base.active_node->plugged);
   EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
 
-  /* No extra gain applied. */
+  // No extra gain applied.
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS,
             aio->base.active_node->intrinsic_sensitivity);
   ASSERT_EQ(0, aio->base.active_node->capture_gain);
@@ -341,7 +342,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
 
-  /* Not change mixer controls for USB devices without UCM config. */
+  // Not change mixer controls for USB devices without UCM config.
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_called);
 
   cras_alsa_usb_iodev_destroy(iodev);
@@ -365,7 +366,7 @@ TEST(AlsaIoInit, MaxSupportedChannels) {
             NULL, CRAS_STREAM_OUTPUT);
     ASSERT_EQ(
         0, cras_alsa_usb_iodev_legacy_complete_init((struct cras_iodev*)aio));
-    /* Call cras_alsa_fill_properties once on update_max_supported_channels. */
+    // Call cras_alsa_fill_properties once on update_max_supported_channels.
     EXPECT_EQ(1, cras_alsa_fill_properties_called);
     uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
     EXPECT_EQ(max_channels, aio->base.info.max_supported_channels);
@@ -741,8 +742,9 @@ const char* cras_alsa_mixer_get_control_name(
   ControlNameMap::iterator it;
   cras_alsa_mixer_get_control_name_called++;
   it = cras_alsa_mixer_get_control_name_values.find(control);
-  if (it == cras_alsa_mixer_get_control_name_values.end())
+  if (it == cras_alsa_mixer_get_control_name_values.end()) {
     return "";
+  }
   return it->second.c_str();
 }
 
@@ -909,8 +911,9 @@ int cras_alsa_jack_list_add_jack_for_section(
     struct ucm_section* ucm_section,
     struct cras_alsa_jack** result_jack) {
   cras_alsa_jack_list_add_jack_for_section_called++;
-  if (result_jack)
+  if (result_jack) {
     *result_jack = cras_alsa_jack_list_add_jack_for_section_result_jack;
+  }
   return 0;
 }
 
@@ -937,11 +940,13 @@ const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
                                      const char* dev) {
   DspNameMap::iterator it;
   ucm_get_dsp_name_for_dev_called++;
-  if (!dev)
+  if (!dev) {
     return NULL;
+  }
   it = ucm_get_dsp_name_for_dev_values.find(dev);
-  if (it == ucm_get_dsp_name_for_dev_values.end())
+  if (it == ucm_get_dsp_name_for_dev_values.end()) {
     return NULL;
+  }
   return strdup(it->second.c_str());
 }
 
@@ -1036,8 +1041,9 @@ int ucm_get_channels_for_dev(struct cras_use_case_mgr* mgr,
 int ucm_node_noise_cancellation_exists(struct cras_use_case_mgr* mgr,
                                        const char* node_name) {
   // Assume that noise cancellation exists on internal microphone.
-  if (!strcmp(node_name, INTERNAL_MICROPHONE))
+  if (!strcmp(node_name, INTERNAL_MICROPHONE)) {
     return 1;
+  }
   return 0;
 }
 
@@ -1068,11 +1074,13 @@ struct cras_volume_curve* cras_card_config_get_volume_curve_for_control(
     const char* control_name) {
   VolCurveMap::iterator it;
   cras_card_config_get_volume_curve_for_control_called++;
-  if (!control_name)
+  if (!control_name) {
     return NULL;
+  }
   it = cras_card_config_get_volume_curve_vals.find(control_name);
-  if (it == cras_card_config_get_volume_curve_vals.end())
+  if (it == cras_card_config_get_volume_curve_vals.end()) {
     return NULL;
+  }
   return it->second;
 }
 
@@ -1102,8 +1110,9 @@ void cras_iodev_set_node_plugged(struct cras_ionode* ionode, int plugged) {
   cras_iodev_set_node_plugged_called++;
   cras_iodev_set_node_plugged_ionode = ionode;
   cras_iodev_set_node_plugged_value = plugged;
-  if (ionode)
+  if (ionode) {
     ionode->plugged = plugged;
+  }
 }
 
 void cras_iodev_add_node(struct cras_iodev* iodev, struct cras_ionode* node) {
@@ -1127,8 +1136,9 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
 void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack* jack,
                                         char* name_buf,
                                         unsigned int buf_size) {
-  if (cras_alsa_jack_update_monitor_fake_name)
+  if (cras_alsa_jack_update_monitor_fake_name) {
     strcpy(name_buf, cras_alsa_jack_update_monitor_fake_name);
+  }
 }
 
 uint32_t cras_alsa_jack_get_monitor_stable_id(const struct cras_alsa_jack* jack,
@@ -1156,8 +1166,9 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr* mgr,
                               const char* dev,
                               long* gain) {
   if (ucm_get_default_node_gain_values.find(dev) ==
-      ucm_get_default_node_gain_values.end())
+      ucm_get_default_node_gain_values.end()) {
     return 1;
+  }
 
   *gain = ucm_get_default_node_gain_values[dev];
   return 0;
@@ -1167,8 +1178,9 @@ int ucm_get_intrinsic_sensitivity(struct cras_use_case_mgr* mgr,
                                   const char* dev,
                                   long* vol) {
   if (ucm_get_intrinsic_sensitivity_values.find(dev) ==
-      ucm_get_intrinsic_sensitivity_values.end())
+      ucm_get_intrinsic_sensitivity_values.end()) {
     return 1;
+  }
 
   *vol = ucm_get_intrinsic_sensitivity_values[dev];
   return 0;

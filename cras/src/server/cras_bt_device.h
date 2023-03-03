@@ -22,107 +22,105 @@ struct cras_timer;
  * associate with some CRAS modules if it supports audio.
  */
 struct cras_bt_device {
-	// The dbus connection object used to send message to bluetoothd.
-	DBusConnection *conn;
-	// Object path of the bluetooth device.
-	char *object_path;
-	// The object path of the adapter associates with this device.
-	char *adapter_obj_path;
-	// The BT address of this device.
-	char *address;
-	// The readable name of this device.
-	char *name;
-	// The bluetooth class of this device.
-	uint32_t bluetooth_class;
-	// If this device is paired.
-	int paired;
-	// If this device is trusted.
-	int trusted;
-	// If this devices is connected.
-	int connected;
-	// OR'ed all connected audio profiles.
-	unsigned int connected_profiles;
-	// OR'ed by all audio profiles this device supports.
-	unsigned int profiles;
-	// OR'ed by all audio profiles this device actually
-	// supports but is not scanned by BlueZ.
-	unsigned int hidden_profiles;
-	int use_hardware_volume;
-	// The unique and persistent id of this bt_device.
-	unsigned int stable_id;
-	// The bt_io_manager in charge of managing iodevs of
-	// different profiles and the switching in between.
-	struct bt_io_manager *bt_io_mgr;
+  // The dbus connection object used to send message to bluetoothd.
+  DBusConnection* conn;
+  // Object path of the bluetooth device.
+  char* object_path;
+  // The object path of the adapter associates with this device.
+  char* adapter_obj_path;
+  // The BT address of this device.
+  char* address;
+  // The readable name of this device.
+  char* name;
+  // The bluetooth class of this device.
+  uint32_t bluetooth_class;
+  // If this device is paired.
+  int paired;
+  // If this device is trusted.
+  int trusted;
+  // If this devices is connected.
+  int connected;
+  // OR'ed all connected audio profiles.
+  unsigned int connected_profiles;
+  // OR'ed by all audio profiles this device supports.
+  unsigned int profiles;
+  // OR'ed by all audio profiles this device actually
+  // supports but is not scanned by BlueZ.
+  unsigned int hidden_profiles;
+  int use_hardware_volume;
+  // The unique and persistent id of this bt_device.
+  unsigned int stable_id;
+  // The bt_io_manager in charge of managing iodevs of
+  // different profiles and the switching in between.
+  struct bt_io_manager* bt_io_mgr;
 
-	struct cras_bt_device *prev, *next;
+  struct cras_bt_device *prev, *next;
 };
 
 enum cras_bt_device_profile {
-	CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE = (1 << 0),
-	CRAS_BT_DEVICE_PROFILE_A2DP_SINK = (1 << 1),
-	CRAS_BT_DEVICE_PROFILE_AVRCP_REMOTE = (1 << 2),
-	CRAS_BT_DEVICE_PROFILE_AVRCP_TARGET = (1 << 3),
-	CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE = (1 << 4),
-	CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY = (1 << 5)
+  CRAS_BT_DEVICE_PROFILE_A2DP_SOURCE = (1 << 0),
+  CRAS_BT_DEVICE_PROFILE_A2DP_SINK = (1 << 1),
+  CRAS_BT_DEVICE_PROFILE_AVRCP_REMOTE = (1 << 2),
+  CRAS_BT_DEVICE_PROFILE_AVRCP_TARGET = (1 << 3),
+  CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE = (1 << 4),
+  CRAS_BT_DEVICE_PROFILE_HFP_AUDIOGATEWAY = (1 << 5)
 };
 
 static const unsigned int CRAS_SUPPORTED_PROFILES =
-	CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
+    CRAS_BT_DEVICE_PROFILE_A2DP_SINK | CRAS_BT_DEVICE_PROFILE_HFP_HANDSFREE;
 
-enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char *uuid);
+enum cras_bt_device_profile cras_bt_device_profile_from_uuid(const char* uuid);
 
-struct cras_bt_device *cras_bt_device_create(DBusConnection *conn,
-					     const char *object_path);
+struct cras_bt_device* cras_bt_device_create(DBusConnection* conn,
+                                             const char* object_path);
 
 /*
  * Removes a BT device from record. If this device is connected state,
  * ensure the associated A2DP and HFP AG be removed cleanly.
  */
-void cras_bt_device_remove(struct cras_bt_device *device);
+void cras_bt_device_remove(struct cras_bt_device* device);
 
 void cras_bt_device_reset();
 
-struct cras_bt_device *cras_bt_device_get(const char *object_path);
+struct cras_bt_device* cras_bt_device_get(const char* object_path);
 
 /* Checks if the target bt device is still valid. Used in async events
  * from audio thread to main thread where bt device could have already
  * been destroyed. */
-bool cras_bt_device_valid(const struct cras_bt_device *target);
+bool cras_bt_device_valid(const struct cras_bt_device* target);
 
-const char *cras_bt_device_object_path(const struct cras_bt_device *device);
+const char* cras_bt_device_object_path(const struct cras_bt_device* device);
 
-/* Gets the stable id of given cras_bt_device. */
-int cras_bt_device_get_stable_id(const struct cras_bt_device *device);
+// Gets the stable id of given cras_bt_device.
+int cras_bt_device_get_stable_id(const struct cras_bt_device* device);
 
-struct cras_bt_adapter *
-cras_bt_device_adapter(const struct cras_bt_device *device);
-const char *cras_bt_device_address(const struct cras_bt_device *device);
-const char *cras_bt_device_name(const struct cras_bt_device *device);
-int cras_bt_device_paired(const struct cras_bt_device *device);
-int cras_bt_device_trusted(const struct cras_bt_device *device);
-int cras_bt_device_connected(const struct cras_bt_device *device);
+struct cras_bt_adapter* cras_bt_device_adapter(
+    const struct cras_bt_device* device);
+const char* cras_bt_device_address(const struct cras_bt_device* device);
+const char* cras_bt_device_name(const struct cras_bt_device* device);
+int cras_bt_device_paired(const struct cras_bt_device* device);
+int cras_bt_device_trusted(const struct cras_bt_device* device);
+int cras_bt_device_connected(const struct cras_bt_device* device);
 
-void cras_bt_device_update_properties(struct cras_bt_device *device,
-				      DBusMessageIter *properties_array_iter,
-				      DBusMessageIter *invalidated_array_iter);
+void cras_bt_device_update_properties(struct cras_bt_device* device,
+                                      DBusMessageIter* properties_array_iter,
+                                      DBusMessageIter* invalidated_array_iter);
 
-static inline int
-cras_bt_device_is_profile_connected(const struct cras_bt_device *device,
-				    enum cras_bt_device_profile profile)
-{
-	return !!(device->connected_profiles & profile);
+static inline int cras_bt_device_is_profile_connected(
+    const struct cras_bt_device* device,
+    enum cras_bt_device_profile profile) {
+  return !!(device->connected_profiles & profile);
 }
 
-/* Updates the supported profiles on dev. Expose for unit test. */
-int cras_bt_device_set_supported_profiles(struct cras_bt_device *device,
-					  unsigned int profiles);
+// Updates the supported profiles on dev. Expose for unit test.
+int cras_bt_device_set_supported_profiles(struct cras_bt_device* device,
+                                          unsigned int profiles);
 
-/* Checks if profile is claimed supported by the device. */
-static inline int
-cras_bt_device_supports_profile(const struct cras_bt_device *device,
-				enum cras_bt_device_profile profile)
-{
-	return !!(device->profiles & profile);
+// Checks if profile is claimed supported by the device.
+static inline int cras_bt_device_supports_profile(
+    const struct cras_bt_device* device,
+    enum cras_bt_device_profile profile) {
+  return !!(device->profiles & profile);
 }
 
 /* Sets if the BT audio device should use hardware volume.
@@ -131,11 +129,11 @@ cras_bt_device_supports_profile(const struct cras_bt_device *device,
  *    use_hardware_volume - Set to true to indicate hardware volume
  *        is preferred over software volume.
  */
-void cras_bt_device_set_use_hardware_volume(struct cras_bt_device *device,
-					    int use_hardware_volume);
+void cras_bt_device_set_use_hardware_volume(struct cras_bt_device* device,
+                                            int use_hardware_volume);
 
-/* Gets if the BT audio device should use hardware volume. */
-int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device);
+// Gets if the BT audio device should use hardware volume.
+int cras_bt_device_get_use_hardware_volume(struct cras_bt_device* device);
 
 /* Forces disconnect the bt device. Used when handling audio error
  * that we want to make the device be completely disconnected from
@@ -144,8 +142,8 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device *device);
  *    conn - The dbus connection.
  *    device - The bt device to disconnect.
  */
-int cras_bt_device_disconnect(DBusConnection *conn,
-			      struct cras_bt_device *device);
+int cras_bt_device_disconnect(DBusConnection* conn,
+                              struct cras_bt_device* device);
 
 /* Gets the SCO socket for the device.
  * Args:
@@ -153,8 +151,9 @@ int cras_bt_device_disconnect(DBusConnection *conn,
  *     codec - 1 for CVSD, 2 for mSBC
  *     use_offload - True for using offloading path; false otherwise.
  */
-int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
-			       bool use_offload);
+int cras_bt_device_sco_connect(struct cras_bt_device* device,
+                               int codec,
+                               bool use_offload);
 
 /* Gets the SCO packet size in bytes, used by HFP iodev for audio I/O.
  * The logic is built base on experience: for USB bus, respect BT Core spec
@@ -165,8 +164,9 @@ int cras_bt_device_sco_connect(struct cras_bt_device *device, int codec,
  *    sco_socket - The SCO socket.
  *    codec - 1 for CVSD, 2 for mSBC per HFP 1.7 specification.
  */
-int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
-				   int sco_socket, int codec);
+int cras_bt_device_sco_packet_size(struct cras_bt_device* device,
+                                   int sco_socket,
+                                   int codec);
 
 /* Appends an iodev to bt device.
  * Args:
@@ -174,35 +174,35 @@ int cras_bt_device_sco_packet_size(struct cras_bt_device *device,
  *    iodev - The iodev to add.
  *    btflag - The profile of the iodev about to add.
  */
-void cras_bt_device_append_iodev(struct cras_bt_device *device,
-				 struct cras_iodev *iodev,
-				 enum CRAS_BT_FLAGS btflag);
+void cras_bt_device_append_iodev(struct cras_bt_device* device,
+                                 struct cras_iodev* iodev,
+                                 enum CRAS_BT_FLAGS btflag);
 
 /* Removes an iodev from bt device.
  * Args:
  *    device - The device to remove iodev from.
  *    iodev - The iodev to remove.
  */
-void cras_bt_device_rm_iodev(struct cras_bt_device *device,
-			     struct cras_iodev *iodev);
+void cras_bt_device_rm_iodev(struct cras_bt_device* device,
+                             struct cras_iodev* iodev);
 
-/* Checks if the device has an iodev for A2DP. */
-int cras_bt_device_has_a2dp(struct cras_bt_device *device);
+// Checks if the device has an iodev for A2DP.
+int cras_bt_device_has_a2dp(struct cras_bt_device* device);
 
-/* Updates the volume to bt_device when a volume change event is reported. */
-void cras_bt_device_update_hardware_volume(struct cras_bt_device *device,
-					   int volume);
+// Updates the volume to bt_device when a volume change event is reported.
+void cras_bt_device_update_hardware_volume(struct cras_bt_device* device,
+                                           int volume);
 
-/* Notifies bt_device that a2dp connection is configured. */
-void cras_bt_device_a2dp_configured(struct cras_bt_device *device);
+// Notifies bt_device that a2dp connection is configured.
+void cras_bt_device_a2dp_configured(struct cras_bt_device* device);
 
-/* */
-void cras_bt_device_remove_conflict(struct cras_bt_device *device);
+//
+void cras_bt_device_remove_conflict(struct cras_bt_device* device);
 
-/* */
-int cras_bt_device_connect_profile(DBusConnection *conn,
-				   struct cras_bt_device *device,
-				   const char *uuid);
+//
+int cras_bt_device_connect_profile(DBusConnection* conn,
+                                   struct cras_bt_device* device,
+                                   const char* uuid);
 
 /* Notifies bt device that audio gateway is initialized.
  * Args:
@@ -210,7 +210,7 @@ int cras_bt_device_connect_profile(DBusConnection *conn,
  * Returns:
  *   0 on success, error code otherwise.
  */
-int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device);
+int cras_bt_device_audio_gateway_initialized(struct cras_bt_device* device);
 
 /*
  * Notifies bt device about a profile no longer works. It could be caused
@@ -219,8 +219,8 @@ int cras_bt_device_audio_gateway_initialized(struct cras_bt_device *device);
  *    device - The bluetooth audio device.
  *    profile - The BT audio profile that has dropped.
  */
-void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
-					   enum cras_bt_device_profile profile);
+void cras_bt_device_notify_profile_dropped(struct cras_bt_device* device,
+                                           enum cras_bt_device_profile profile);
 
 /*
  * Establishes SCO connection if it has not been established on the BT device.
@@ -231,7 +231,7 @@ void cras_bt_device_notify_profile_dropped(struct cras_bt_device *device,
  * Returns:
  *   0 on success, error code otherwise.
  */
-int cras_bt_device_get_sco(struct cras_bt_device *device, int codec);
+int cras_bt_device_get_sco(struct cras_bt_device* device, int codec);
 
 /*
  * Closes SCO connection if the caller is the last user for the connection on
@@ -240,7 +240,7 @@ int cras_bt_device_get_sco(struct cras_bt_device *device, int codec);
  * Args:
  *   device - The bluetooth device.
  */
-void cras_bt_device_put_sco(struct cras_bt_device *device);
+void cras_bt_device_put_sco(struct cras_bt_device* device);
 
 /* Gets the SCO HCI handle, only used for KPI metrics.
  * Args:
@@ -259,13 +259,14 @@ int cras_bt_device_sco_handle(int sco_socket);
  * Returns:
  *   0 on success, error code otherwise.
  */
-int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device *device,
-						bool status, int sco_handle);
+int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device* device,
+                                                bool status,
+                                                int sco_handle);
 
 /*
  * Restart HFP, only used for handling POLLHUP in an existing connection.
  * Args:
  *   device - The bluetooth device.
  */
-void cras_bt_device_hfp_reconnect(struct cras_bt_device *device);
-#endif /* CRAS_SRC_SERVER_CRAS_BT_DEVICE_H_ */
+void cras_bt_device_hfp_reconnect(struct cras_bt_device* device);
+#endif  // CRAS_SRC_SERVER_CRAS_BT_DEVICE_H_
