@@ -1,0 +1,90 @@
+cc_library(
+    name = "protobuf_mutator",
+    srcs = [
+        "src/binary_format.cc",
+        "src/binary_format.h",
+        "src/field_instance.h",
+        "src/mutator.cc",
+        "src/mutator.h",
+        "src/random.h",
+        "src/text_format.cc",
+        "src/text_format.h",
+        "src/utf8_fix.cc",
+        "src/utf8_fix.h",
+        "src/weighted_reservoir_sampler.h",
+    ],
+    deps = [":port_protobuf"],
+)
+
+proto_library(
+    name = "mutator_test_proto",
+    srcs = [
+        "src/mutator_test_proto2.proto",
+        "src/mutator_test_proto3.proto",
+    ],
+)
+
+cc_proto_library(
+    name = "mutator_test_cc_proto",
+    deps = [":mutator_test_proto"],
+)
+
+cc_test(
+    name = "mutator_test",
+    srcs = [
+        "src/mutator_test.cc",
+        "src/utf8_fix_test.cc",
+        "src/weighted_reservoir_sampler_test.cc",
+    ],
+    shard_count = 25,
+    deps = [
+        ":mutator_test_cc_proto",
+        ":port_gtest",
+        ":protobuf_mutator",
+    ],
+)
+
+cc_library(
+    name = "protobuf_mutator_libfuzzer",
+    srcs = [
+        "src/libfuzzer/libfuzzer_macro.cc",
+        "src/libfuzzer/libfuzzer_macro.h",
+        "src/libfuzzer/libfuzzer_mutator.cc",
+        "src/libfuzzer/libfuzzer_mutator.h",
+    ],
+    deps = [
+        ":protobuf_mutator",
+    ],
+)
+
+cc_test(
+    name = "libfuzzer_test",
+    srcs = ["src/libfuzzer/libfuzzer_test.cc"],
+    deps = [
+        ":mutator_test_cc_proto",
+        ":port_gtest",
+        ":protobuf_mutator_libfuzzer",
+    ],
+)
+
+cc_library(
+    name = "port_gtest",
+    hdrs = [
+        "port/gtest.h",
+    ],
+    deps = [
+        "@pkg_config//gmock",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_library(
+    name = "port_protobuf",
+    hdrs = [
+        "port/protobuf.h",
+    ],
+    deps = [
+        "@pkg_config//protobuf",
+    ],
+)

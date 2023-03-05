@@ -9,7 +9,7 @@ build --define VCSID=vcsid-unspecified
 build --conlyopt=-std=gnu11
 build --cxxopt=-std=gnu++17
 
-build --copt=-Wall --copt=-Werror
+build --copt=-Wall
 
 # Ensure assert() is executed.
 build --copt=-UNDEBUG
@@ -24,6 +24,13 @@ build --copt=-D_LARGEFILE64_SOURCE
 
 # b/267242424: Keep null checks
 build --copt=-fno-delete-null-pointer-checks
+
+# Breaks protobuf.
+build --copt=-Wno-error=unused-function
+
+# Do not enable -Werror with GCC.
+# It's not scalable to support -Wall -Werror on both GCC and Clang.
+build:clang-strict --copt=-Werror
 
 # go/cras-style#build-time-feature-switches
 # NOTE: These flags don't work with gcc. So put them behind a config.

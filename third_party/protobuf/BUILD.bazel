@@ -1,6 +1,7 @@
-alias(
+py_binary(
     name = "system_protoc",
-    actual = "protoc_wrapper.sh",
+    srcs = ["protoc_wrapper.py"],
+    main = "protoc_wrapper.py",
 )
 
 proto_lang_toolchain(
