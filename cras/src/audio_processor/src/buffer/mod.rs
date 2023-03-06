@@ -19,15 +19,6 @@ impl<T> From<Vec<Vec<T>>> for MultiBuffer<T> {
     }
 }
 
-impl<T: Clone> MultiBuffer<T> {
-    /// Create `n` buffers, each with the specified `capacity`.
-    pub fn with_capacity(capacity: usize, n: usize) -> Self {
-        Self {
-            data: vec![Vec::with_capacity(capacity); n],
-        }
-    }
-}
-
 impl<'a, S: Sample> MultiBuffer<S> {
     /// Get a [`MultiSlice`] referencing the `MultiBuffer`
     pub fn as_multi_slice(&'a mut self) -> MultiSlice<'a, S> {
@@ -67,12 +58,6 @@ mod buffer_tests {
 
         let buf = MultiBuffer::<u8>::new_equilibrium(4, 2);
         assert_eq!(buf.data, [[128, 128, 128, 128], [128, 128, 128, 128]]);
-    }
-
-    #[test]
-    fn with_capacity() {
-        let buf = MultiBuffer::<f32>::with_capacity(4, 2);
-        assert_eq!(buf.data, [[], []]);
     }
 
     #[test]
