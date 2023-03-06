@@ -8,7 +8,7 @@ use clap::Parser;
 
 use audio_processor::{
     processors::{profile, CheckShape, InPlaceNegateAudioProcessor, WavSink, WavSource},
-    ByteProcessor, Error, MultiBuffer,
+    ByteProcessor, Error, MultiBuffer, Shape,
 };
 
 #[derive(Parser, Debug)]
@@ -66,7 +66,10 @@ pub fn main() {
     let mut pipeline: Vec<&mut dyn ByteProcessor> =
         vec![&mut source, &mut check_shape, &mut profile, &mut sink];
 
-    let mut buf = MultiBuffer::new(0, 0);
+    let mut buf = MultiBuffer::new(Shape {
+        channels: 0,
+        frames: 0,
+    });
     'outer: loop {
         let mut slices = buf.as_multi_slice();
 

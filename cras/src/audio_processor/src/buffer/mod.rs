@@ -25,10 +25,10 @@ impl<'a, S: Sample> MultiBuffer<S> {
         MultiSlice::from_vecs(&mut self.data)
     }
 
-    /// Create `n` buffers with each with the specified `length`.
+    /// Create `shape.channels` buffers with each with `shape.frames` samples.
     /// Contents are initialized to `S::default()`.
-    pub fn new(length: usize, n: usize) -> Self {
-        Self::from(vec![vec![S::default(); length]; n])
+    pub fn new(shape: Shape) -> Self {
+        Self::from(vec![vec![S::default(); shape.frames]; shape.channels])
     }
 
     /// Create `shape.channels` buffers with each with `shape.frames` samples.
@@ -44,10 +44,16 @@ mod buffer_tests {
 
     #[test]
     fn new() {
-        let buf = MultiBuffer::<f32>::new(4, 2);
+        let buf = MultiBuffer::<f32>::new(Shape {
+            channels: 2,
+            frames: 4,
+        });
         assert_eq!(buf.data, [[0., 0., 0., 0.], [0., 0., 0., 0.]]);
 
-        let buf = MultiBuffer::<u8>::new(4, 2);
+        let buf = MultiBuffer::<u8>::new(Shape {
+            channels: 2,
+            frames: 4,
+        });
         assert_eq!(buf.data, [[0, 0, 0, 0], [0, 0, 0, 0]]);
     }
 

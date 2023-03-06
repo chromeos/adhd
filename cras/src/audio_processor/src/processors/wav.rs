@@ -4,7 +4,7 @@
 
 use dasp_sample::ToSample;
 
-use crate::{AudioProcessor, Error, MultiBuffer, MultiSlice, Result, Sample};
+use crate::{AudioProcessor, Error, MultiBuffer, MultiSlice, Result, Sample, Shape};
 
 #[derive(Debug, PartialEq)]
 enum Type {
@@ -64,7 +64,10 @@ where
             spec,
             reader,
             block_size,
-            block: MultiBuffer::new(block_size, channels),
+            block: MultiBuffer::new(Shape {
+                channels,
+                frames: block_size,
+            }),
             storage_type: storage_type(spec),
         }
     }
@@ -167,7 +170,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{AudioProcessor, Error, MultiBuffer};
+    use crate::{AudioProcessor, Error, MultiBuffer, Shape};
 
     use super::{WavSink, WavSource};
 
@@ -238,7 +241,10 @@ mod tests {
             hound::WavReader::new(std::io::Cursor::new(&buf)).unwrap(),
             3,
         );
-        let mut empty = MultiBuffer::<f32>::new(0, 2);
+        let mut empty = MultiBuffer::<f32>::new(Shape {
+            channels: 2,
+            frames: 0,
+        });
 
         // Return a complete block as specified.
         assert_eq!(
@@ -308,7 +314,10 @@ mod tests {
         };
         let mut source = WavSource::new(hound::WavReader::new(&mut reader).unwrap(), 3);
 
-        let mut empty = MultiBuffer::<f32>::new(0, 2);
+        let mut empty = MultiBuffer::<f32>::new(Shape {
+            channels: 2,
+            frames: 0,
+        });
         trigger.set(true);
         source.process(empty.as_multi_slice()).unwrap();
     }

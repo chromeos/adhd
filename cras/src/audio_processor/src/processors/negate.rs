@@ -4,7 +4,7 @@
 
 use std::marker::PhantomData;
 
-use crate::{AudioProcessor, MultiBuffer, MultiSlice, Result, SignedSample};
+use crate::{AudioProcessor, MultiBuffer, MultiSlice, Result, Shape, SignedSample};
 
 /// `InPlaceNegateAudioProcessor` is an [`AudioProcessor`] that negates the audio samples.
 /// Audio samples are modified in-place.
@@ -56,7 +56,10 @@ impl<T: SignedSample> NegateAudioProcessor<T> {
     ///  `num_frames` long.
     pub fn new(num_channels: usize, num_frames: usize) -> Self {
         Self {
-            output: MultiBuffer::new(num_frames, num_channels),
+            output: MultiBuffer::new(Shape {
+                channels: num_channels,
+                frames: num_frames,
+            }),
         }
     }
 }
