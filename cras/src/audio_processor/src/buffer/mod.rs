@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::{slice_cast::SliceCast, Sample};
+use crate::{slice_cast::SliceCast, Sample, Shape};
 
 mod debug;
 
@@ -31,16 +31,16 @@ impl<'a, S: Sample> MultiBuffer<S> {
         Self::from(vec![vec![S::default(); length]; n])
     }
 
-    /// Create `n` buffers with each with the specified `length`.
+    /// Create `shape.channels` buffers with each with `shape.frames` samples.
     /// Contents are initialized to `S::EQUILIBRIUM`.
-    pub fn new_equilibrium(length: usize, n: usize) -> Self {
-        Self::from(vec![vec![S::EQUILIBRIUM; length]; n])
+    pub fn new_equilibrium(shape: Shape) -> Self {
+        Self::from(vec![vec![S::EQUILIBRIUM; shape.frames]; shape.channels])
     }
 }
 
 #[cfg(test)]
 mod buffer_tests {
-    use crate::MultiBuffer;
+    use crate::{MultiBuffer, Shape};
 
     #[test]
     fn new() {
@@ -53,10 +53,16 @@ mod buffer_tests {
 
     #[test]
     fn new_equilibrium() {
-        let buf = MultiBuffer::<f32>::new_equilibrium(4, 2);
+        let buf = MultiBuffer::<f32>::new_equilibrium(Shape {
+            channels: 2,
+            frames: 4,
+        });
         assert_eq!(buf.data, [[0., 0., 0., 0.], [0., 0., 0., 0.]]);
 
-        let buf = MultiBuffer::<u8>::new_equilibrium(4, 2);
+        let buf = MultiBuffer::<u8>::new_equilibrium(Shape {
+            channels: 2,
+            frames: 4,
+        });
         assert_eq!(buf.data, [[128, 128, 128, 128], [128, 128, 128, 128]]);
     }
 

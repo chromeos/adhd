@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::{AudioProcessor, MultiBuffer, Sample};
+use crate::{AudioProcessor, MultiBuffer, Sample, Shape};
 
 /// The `ChunkWrapper` struct is an audio processor that wraps another audio
 /// processor `T`. It processes audio data in chunks of a fixed size
@@ -75,8 +75,14 @@ impl<T: AudioProcessor<I = S, O = S>, S: Sample> ChunkWrapper<T, S> {
             block_size,
             inner,
             index: 0,
-            pending: MultiBuffer::new_equilibrium(block_size, input_channels),
-            processed: MultiBuffer::new_equilibrium(block_size, output_channels),
+            pending: MultiBuffer::new_equilibrium(Shape {
+                channels: input_channels,
+                frames: block_size,
+            }),
+            processed: MultiBuffer::new_equilibrium(Shape {
+                channels: output_channels,
+                frames: block_size,
+            }),
         }
     }
 }

@@ -11,3 +11,6 @@ pub mod slice_cast;
 pub use buffer::*;
 pub use processor::*;
 pub use sample::*;
+
+mod shape;
+pub use shape::Shape;
