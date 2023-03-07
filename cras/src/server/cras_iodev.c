@@ -1894,14 +1894,26 @@ bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev* iodev,
   return false;
 }
 
-void cras_iodev_update_underrun_duration(struct cras_iodev* iodev, int frames) {
+void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
+                                         unsigned frames) {
   struct dev_stream* curr;
   struct cras_audio_shm* shm;
   struct cras_rstream* rstream;
-  double est_rate;
+  double est_ratio, est_rate;
   struct timespec duration;
 
-  est_rate = iodev->format->frame_rate * cras_iodev_get_est_rate_ratio(iodev);
+  est_ratio = cras_iodev_get_est_rate_ratio(iodev);
+  est_rate = est_ratio != 0 ? iodev->format->frame_rate *
+                                  cras_iodev_get_est_rate_ratio(iodev)
+                            : iodev->format->frame_rate;
+
+  if (est_rate == 0) {
+    syslog(LOG_WARNING, "Abnormal est_rate:%f (frame_rate:%zu, est_ratio:%f)",
+           est_rate, iodev->format->frame_rate,
+           cras_iodev_get_est_rate_ratio(iodev));
+    return;
+  }
+
   cras_frames_to_time(frames, est_rate, &duration);
   DL_FOREACH (iodev->streams, curr) {
     rstream = curr->stream;

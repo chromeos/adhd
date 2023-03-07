@@ -953,6 +953,7 @@ bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev* iodev,
  *    iodev - The device.
  *    frames - The amount of zero frames filled, a.k.a the underrun frames.
  */
-void cras_iodev_update_underrun_duration(struct cras_iodev* iodev, int frames);
+void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
+                                         unsigned frames);
 
 #endif  // CRAS_SRC_SERVER_CRAS_IODEV_H_

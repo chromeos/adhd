@@ -3402,7 +3402,8 @@ int cras_iodev_dsp_set_display_rotation_for_node(
   return 0;
 }
 
-void cras_iodev_update_underrun_duration(struct cras_iodev* iodev, int frames) {
+void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
+                                         unsigned frames) {
   cras_iodev_update_underrun_duration_called++;
 }
 
