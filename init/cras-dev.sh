@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-source /usr/share/cros/init/cras-env.sh
+source /usr/share/cros/init/cras-env.sh || exit 1
 
 exec /usr/bin/cras \
         ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} \

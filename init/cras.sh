@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-source /usr/share/cros/init/cras-env.sh
+source /usr/share/cros/init/cras-env.sh || exit 1
 # Leave cras in the init pid namespace as it uses its PID as an IPC identifier.
 exec minijail0 -u cras -g cras -G --uts -v -l \
         -T static \
