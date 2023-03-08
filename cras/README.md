@@ -1,4 +1,4 @@
-CRAS = ChromeOS Audio Server
+CRAS = ChromiumOS Audio Server
 ===
 
 # Directories
@@ -9,34 +9,42 @@ CRAS = ChromeOS Audio Server
 - [src/fuzz](src/fuzz) - source code and build scripts for coverage-guided
   fuzzers for CRAS
 
-# Building from source:
+# Building from source
+
+## Run tests
+
+Using gcc:
+
 ```
-# Generate install-sh
-./git_prepare.sh
-
-# Configure
-CC=clang \
-CXX=clang++ \
-CXXFLAGS="-g -O2 -Wall" \
-CFLAGS="-g -O2 -Wall" \
-./configure
-
-# Compile
-make -j$(nproc)
-
-# Compile with unit tests
-make -j$(nproc) check
-
-# Install binaries to /usr/bin
-sudo make install
+bazel test //...
 ```
 
-## Code complete for for editors
-You need to install [bear] first and generate [compile commands] for
-[language server plugins in editors] by
+Or using clang:
+
 ```
-make clean && make compile_commands.json
+bazel test //... --config=local-clang
 ```
+
+Or with sanitizers:
+
+```
+bazel test //... --config=local-clang --config=asan
+```
+
+Refer to [.bazelrc](../.bazelrc) to see which `--config`s are available.
+
+## Build and package for distribution
+
+```
+bazel run //dist -- /path/to/dist
+```
+
+## Code completion for for editors
+
+```
+bazel run //:compdb
+```
+
 Then you'll get `compile_commands.json` for editor.
 Import the JSON file to your editor and you'll get useful code complete
 features for CRAS and its unit tests.
