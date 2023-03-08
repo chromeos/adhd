@@ -12,10 +12,10 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_dbus_util.h"
+#include "third_party/utlist/utlist.h"
 
 #define PROFILE_INTROSPECT_XML                                           \
   DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE                              \

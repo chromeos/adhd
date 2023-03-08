@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CRAS_SRC_COMMON_STRLCPY_H_
-#define CRAS_SRC_COMMON_STRLCPY_H_
+#ifndef THIRD_PARTY_STRLCPY_STRLCPY_H_
+#define THIRD_PARTY_STRLCPY_STRLCPY_H_
 
 #include <stdint.h>
 #include <sys/types.h>

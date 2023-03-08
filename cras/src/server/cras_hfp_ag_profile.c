@@ -10,7 +10,6 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_a2dp_endpoint.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"
@@ -24,6 +23,7 @@
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "packet_status_logger.h"
+#include "third_party/utlist/utlist.h"
 
 #define HFP_AG_PROFILE_NAME "Hands-Free Voice gateway"
 #define HFP_AG_PROFILE_PATH "/org/chromium/Cras/Bluetooth/HFPAG"

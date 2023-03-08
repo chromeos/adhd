@@ -11,9 +11,9 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/utlist/utlist.h"
 
 #define INVALID_JACK_SWITCH -1
 

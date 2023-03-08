@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <syslog.h>
 
-#include "cras/src/common/a2dp-codecs.h"
 #include "cras/src/server/cras_a2dp_iodev.h"
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_bt_endpoint.h"
@@ -17,6 +16,7 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_util.h"
+#include "third_party/bluez/a2dp-codecs.h"
 
 #define A2DP_SOURCE_ENDPOINT_PATH "/org/chromium/Cras/Bluetooth/A2DPSource"
 #define A2DP_SINK_ENDPOINT_PATH "/org/chromium/Cras/Bluetooth/A2DPSink"

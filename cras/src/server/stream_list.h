@@ -8,9 +8,9 @@
 
 #include <stdbool.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras_types.h"
+#include "third_party/utlist/utlist.h"
 
 struct cras_rclient;
 struct cras_rstream;

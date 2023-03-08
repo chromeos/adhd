@@ -12,8 +12,6 @@
 
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/edid_utils.h"
-#include "cras/src/common/sfh.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alsa_jack_private.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"
@@ -21,6 +19,8 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras_util.h"
+#include "third_party/superfasthash/sfh.h"
+#include "third_party/utlist/utlist.h"
 
 static const unsigned int DISPLAY_INFO_RETRY_DELAY_MS = 200;
 static const unsigned int DISPLAY_INFO_MAX_RETRIES = 10;

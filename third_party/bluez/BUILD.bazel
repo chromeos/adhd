@@ -1,0 +1,13 @@
+package(
+    default_visibility = ["//:__subpackages__"],
+)
+
+cc_library(
+    name = "a2dp_codecs",
+    hdrs = ["a2dp-codecs.h"],
+)
+
+cc_library(
+    name = "rtp",
+    hdrs = ["rtp.h"],
+)

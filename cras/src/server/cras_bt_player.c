@@ -11,12 +11,12 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_dbus_util.h"
 #include "cras/src/server/cras_utf8.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/utlist/utlist.h"
 
 static void cras_bt_on_player_registered(DBusPendingCall* pending_call,
                                          void* data) {

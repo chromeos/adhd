@@ -17,9 +17,6 @@
 #include <time.h>
 
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/sfh.h"
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_io_common.h"
@@ -44,6 +41,9 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/superfasthash/sfh.h"
+#include "third_party/utlist/utlist.h"
 
 /*
  * This extends cras_ionode to include alsa-specific information.

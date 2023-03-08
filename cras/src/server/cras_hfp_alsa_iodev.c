@@ -9,8 +9,6 @@
 #include <sys/time.h>
 #include <syslog.h>
 
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_hfp_manager.h"
@@ -22,6 +20,8 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras_audio_format.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/utlist/utlist.h"
 
 /* Object to represent a special HFP iodev which would be managed by bt_io but
  * playback/capture via an inner ALSA iodev.

@@ -9,7 +9,6 @@
 #include <stdbool.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
@@ -23,6 +22,7 @@
 #include "cras/src/server/input_data.h"
 #include "cras/src/server/polled_interval_checker.h"
 #include "cras/src/server/rust/include/rate_estimator.h"
+#include "third_party/utlist/utlist.h"
 
 static const struct timespec playback_wake_fuzz_ts = {
     0, 500 * 1000  // 500 usec.

@@ -21,8 +21,6 @@
 
 #include "cras/src/common/bluetooth.h"
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/sfh.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_a2dp_endpoint.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"
@@ -35,6 +33,8 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server_metrics.h"
+#include "third_party/superfasthash/sfh.h"
+#include "third_party/utlist/utlist.h"
 
 /*
  * Bluetooth Core 5.0 spec, vol 4, part B, section 2 describes

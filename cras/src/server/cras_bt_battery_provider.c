@@ -11,11 +11,11 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_dbus_util.h"
 #include "cras/src/server/cras_observer.h"
+#include "third_party/utlist/utlist.h"
 
 // CRAS registers one battery provider to BlueZ, so we use a singleton.
 static struct cras_bt_battery_provider battery_provider = {

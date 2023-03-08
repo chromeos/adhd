@@ -13,7 +13,6 @@
 #include <syslog.h>
 
 #include "cras/src/common/cras_dbus_bindings.h"  // Generated from Makefile
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_player.h"
 #include "cras/src/server/cras_dbus.h"
@@ -29,6 +28,7 @@
 #include "cras/src/server/cras_utf8.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 struct cras_dbus_control {
   DBusConnection* conn;

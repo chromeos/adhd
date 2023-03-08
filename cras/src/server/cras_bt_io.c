@@ -8,14 +8,14 @@
 #include <sys/time.h>
 #include <syslog.h>
 
-#include "cras/src/common/sfh.h"
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_utf8.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/superfasthash/sfh.h"
+#include "third_party/utlist/utlist.h"
 
 #define DEFAULT_BT_DEVICE_NAME "BLUETOOTH"
 

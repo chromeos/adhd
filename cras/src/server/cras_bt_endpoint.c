@@ -11,10 +11,10 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_bt_transport.h"
+#include "third_party/utlist/utlist.h"
 
 // Defined by doc/media-api.txt in the BlueZ source
 #define ENDPOINT_INTROSPECT_XML                                           \

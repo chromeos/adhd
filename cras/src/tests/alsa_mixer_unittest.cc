@@ -10,12 +10,12 @@
 #include <vector>
 
 extern "C" {
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_volume_curve.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 //  Include C file to test static functions and use the definition of some
 //  structure.

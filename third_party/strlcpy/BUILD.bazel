@@ -1,0 +1,6 @@
+cc_library(
+    name = "strlcpy",
+    srcs = ["strlcpy.c"],
+    hdrs = ["strlcpy.h"],
+    visibility = ["//:__subpackages__"],
+)

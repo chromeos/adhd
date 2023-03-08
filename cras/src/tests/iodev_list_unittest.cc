@@ -12,7 +12,6 @@
 
 extern "C" {
 #include "cras/src/common/cras_observer_ops.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.c"
@@ -24,6 +23,7 @@ extern "C" {
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/stream_list.h"
 #include "cras/src/tests/scoped_features_override.h"
+#include "third_party/utlist/utlist.h"
 }
 
 namespace {

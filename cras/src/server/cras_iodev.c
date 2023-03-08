@@ -14,7 +14,6 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/buffer_share.h"
@@ -36,6 +35,7 @@
 #include "cras/src/server/rust/include/rate_estimator.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 static const float RAMP_UNMUTE_DURATION_SECS = 0.5;
 static const float RAMP_NEW_STREAM_DURATION_SECS = 0.01;

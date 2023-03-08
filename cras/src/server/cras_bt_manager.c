@@ -13,7 +13,6 @@
 #include <syslog.h>
 
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_a2dp_endpoint.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_battery_provider.h"
@@ -27,6 +26,7 @@
 #include "cras/src/server/cras_bt_transport.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_telephony.h"
+#include "third_party/utlist/utlist.h"
 
 static void cras_bt_start_bluez(struct bt_stack* s);
 static void cras_bt_stop_bluez(struct bt_stack* s);

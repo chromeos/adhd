@@ -8,10 +8,10 @@
 #include <syslog.h>
 
 extern "C" {
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 //  Include C file to test static functions.
 #include "cras/src/server/cras_alsa_ucm.c"

@@ -15,9 +15,6 @@
 #include <time.h>
 
 #include "cras/src/common/byte_buffer.h"
-#include "cras/src/common/rtp.h"
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_a2dp_endpoint.h"
@@ -30,6 +27,9 @@
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras_util.h"
+#include "third_party/bluez/rtp.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/utlist/utlist.h"
 
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 #define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)

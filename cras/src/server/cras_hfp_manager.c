@@ -17,7 +17,6 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/src/common/sfh.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_policy.h"
@@ -30,6 +29,7 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras_audio_format.h"
 #include "cras_config.h"
+#include "third_party/superfasthash/sfh.h"
 
 #define CRAS_HFP_SOCKET_FILE ".hfp"
 #define FLOSS_HFP_DATA_PATH "/run/bluetooth/audio/.sco_data"

@@ -13,7 +13,6 @@
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/dsp/dsp_util.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_apm_reverse.h"
@@ -25,6 +24,7 @@
 #include "cras/src/server/float_buffer.h"
 #include "cras/src/server/iniparser_wrapper.h"
 #include "cras_audio_format.h"
+#include "third_party/utlist/utlist.h"
 
 #define AEC_CONFIG_NAME "aec.ini"
 #define APM_CONFIG_NAME "apm.ini"

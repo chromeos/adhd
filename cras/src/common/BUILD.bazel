@@ -94,16 +94,17 @@ cc_library(
     name = "cras_string",
     srcs = [
         "cras_string.c",
-        "strlcpy.c",
     ],
     hdrs = [
         "cras_string.h",
-        "strlcpy.h",
     ],
     visibility = [
         "//cras/src/common:__pkg__",
         "//cras/src/libcras:__pkg__",
         "//cras/src/server:__pkg__",
+    ],
+    deps = [
+        "//third_party/strlcpy",
     ],
 )
 
@@ -132,15 +133,6 @@ cc_library(
         "//cras/src/server:__pkg__",
     ],
     deps = ["//cras/src/common:cras_types"],
-)
-
-cc_library(
-    name = "utlist",
-    hdrs = ["utlist.h"],
-    visibility = [
-        "//cras/src/libcras:__pkg__",
-        "//cras/src/server:__pkg__",
-    ],
 )
 
 genrule(
@@ -187,10 +179,8 @@ cc_library(
         "edid_utils.h",
         "packet_status_logger.c",
         "sample_buffer.h",
-        "sfh.c",
     ],
     hdrs = [
-        "a2dp-codecs.h",
         "bluetooth.h",
         "cras_audio_codec.h",
         "cras_checksum.h",
@@ -198,8 +188,6 @@ cc_library(
         "cras_hats.h",
         "cras_metrics.h",
         "dumper.h",
-        "rtp.h",
-        "sfh.h",
     ],
     visibility = [
         "//cras:__subpackages__",
@@ -212,7 +200,10 @@ cc_library(
         ":cras_string",
         ":cras_types",
         ":cras_util",
-        ":utlist",
+        "//third_party/superfasthash",
+        "//third_party/utlist",
+        "//third_party/bluez:rtp",
+        "//third_party/bluez:a2dp_codecs",
         "//cras/include",
         "//cras/src/server:cras_observer_types",
         "@pkg_config//:sbc",

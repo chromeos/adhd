@@ -5,10 +5,10 @@
 
 #include "cras/src/server/cras_observer.h"
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras_types.h"
+#include "third_party/utlist/utlist.h"
 
 struct cras_observer_client {
   struct cras_observer_ops ops;

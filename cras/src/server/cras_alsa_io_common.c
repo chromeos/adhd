@@ -6,7 +6,7 @@
 
 #include <sys/time.h>
 
-#include "cras/src/common/utlist.h"
+#include "third_party/utlist/utlist.h"
 
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev) {
   struct cras_ionode* n;

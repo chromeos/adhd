@@ -11,13 +11,13 @@
 #include <time.h>
 
 extern "C" {
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/dev_io.h"
 #include "cras/src/server/dev_stream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
+#include "third_party/utlist/utlist.h"
 }
 
 #include "cras/src/tests/iodev_stub.h"

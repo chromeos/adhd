@@ -18,6 +18,9 @@ cc_library(
     deps = [
         "//:build_config",
         "//cras/include",
+        "//third_party/strlcpy",
+        "//third_party/superfasthash",
+        "//third_party/utlist",
     ],
 )
 
@@ -33,6 +36,8 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
+        "//third_party/bluez:a2dp_codecs",
+        "//third_party/bluez:rtp",
         "@pkg_config//:alsa",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
@@ -43,12 +48,13 @@ cc_test(
     name = "a2dp_iodev_unittest",
     srcs = [
         ":a2dp_iodev_unittest.cc",
-        "//cras/src/common:strlcpy.c",
     ],
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
+        "//third_party/bluez:a2dp_codecs",
+        "//third_party/bluez:rtp",
         "@iniparser",
         "@pkg_config//:alsa",
         "@pkg_config//:dbus-1",
@@ -134,8 +140,6 @@ cc_test(
     srcs = [
         ":alsa_io_unittest.cc",
         "//cras/src/common:cras_string.c",
-        "//cras/src/common:sfh.c",
-        "//cras/src/common:strlcpy.c",
         "//cras/src/server:cras_alsa_io_common.c",
         "//cras/src/server:cras_alsa_mixer_name.c",
         "//cras/src/server:cras_alsa_ucm_section.c",
@@ -173,8 +177,6 @@ cc_test(
     name = "cras_alsa_usb_io_unittest",
     srcs = [
         ":cras_alsa_usb_io_unittest.cc",
-        "//cras/src/common:sfh.c",
-        "//cras/src/common:strlcpy.c",
         "//cras/src/server:cras_alsa_io_common.c",
         "//cras/src/server:cras_alsa_mixer_name.c",
         "//cras/src/server:cras_alsa_ucm_section.c",
@@ -197,7 +199,6 @@ cc_test(
         ":alsa_jack_unittest.cc",
         "//cras/src/common:cras_string.c",
         "//cras/src/common:edid_utils.c",
-        "//cras/src/common:sfh.c",
         "//cras/src/server:cras_alsa_jack.c",
         "//cras/src/server:cras_alsa_mixer_name.c",
         "//cras/src/server:cras_alsa_ucm_section.c",
@@ -233,7 +234,6 @@ cc_test(
     name = "alsa_ucm_unittest",
     srcs = [
         ":alsa_ucm_unittest.cc",
-        "//cras/src/common:strlcpy.c",
         "//cras/src/server:cras_alsa_mixer_name.c",
         "//cras/src/server:cras_alsa_ucm_section.c",
     ],
@@ -358,7 +358,6 @@ cc_test(
     srcs = [
         ":bt_device_unittest.cc",
         ":metrics_stub.cc",
-        "//cras/src/common:sfh.c",
         "//cras/src/server:cras_bt_device.c",
     ],
     copts = [
@@ -381,8 +380,6 @@ cc_test(
     name = "bt_io_unittest",
     srcs = [
         ":bt_io_unittest.cc",
-        "//cras/src/common:sfh.c",
-        "//cras/src/common:strlcpy.c",
     ],
     copts = [
         "-fdata-sections",
@@ -551,7 +548,6 @@ cc_test(
         "//cras/src/common:cras_shm.c",
         "//cras/src/common:cras_string.c",
         "//cras/src/common:cras_util.c",
-        "//cras/src/common:strlcpy.c",
     ],
     deps = [
         ":test_support",
@@ -911,7 +907,6 @@ cc_test(
     name = "empty_iodev_unittest",
     srcs = [
         ":empty_iodev_unittest.cc",
-        "//cras/src/common:strlcpy.c",
         "//cras/src/server:cras_empty_iodev.c",
     ],
     deps = [
@@ -987,7 +982,6 @@ cc_test(
         ":file_wait_unittest.cc",
         "//cras/src/common:cras_file_wait.c",
         "//cras/src/common:cras_util.c",
-        "//cras/src/common:strlcpy.c",
     ],
     deps = [
         ":test_support",
@@ -1003,8 +997,6 @@ cc_test(
     srcs = [
         ":fl_pcm_iodev_unittest.cc",
         "//cras/src/common:cras_string.c",
-        "//cras/src/common:sfh.c",
-        "//cras/src/common:strlcpy.c",
     ],
     deps = [
         ":test_support",
@@ -1093,7 +1085,6 @@ cc_test(
     srcs = [
         ":hfp_ag_profile_unittest.cc",
         ":metrics_stub.cc",
-        "//cras/src/common:sfh.c",
         "//cras/src/server:cras_hfp_ag_profile.c",
     ],
     deps = [
@@ -1117,7 +1108,6 @@ cc_test(
         ":sr_bt_util_stub.h",
         ":sr_stub.cc",
         ":sr_stub.h",
-        "//cras/src/common:strlcpy.c",
         "//cras/src/server:cras_hfp_alsa_iodev.c",
     ],
     deps = [
@@ -1138,7 +1128,6 @@ cc_test(
         ":hfp_iodev_unittest.cc",
         ":sr_bt_util_stub.cc",
         ":sr_bt_util_stub.h",
-        "//cras/src/common:strlcpy.c",
         "//cras/src/server:cras_hfp_iodev.c",
     ],
     deps = [
@@ -1219,7 +1208,6 @@ cc_test(
     srcs = [
         ":iodev_list_unittest.cc",
         ":test_util.h",
-        "//cras/src/common:strlcpy.c",
         "//cras/src/server:cras_speak_on_mute_detector_stub.c",
     ],
     deps = [
@@ -1282,8 +1270,6 @@ cc_test(
         "//cras/src/common:cras_selinux_helper_stub.c",
         "//cras/src/common:cras_shm.c",
         "//cras/src/common:cras_string.c",
-        "//cras/src/common:sfh.c",
-        "//cras/src/common:strlcpy.c",
         "//cras/src/server:cras_loopback_iodev.c",
     ],
     deps = [

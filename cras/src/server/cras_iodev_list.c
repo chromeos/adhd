@@ -8,8 +8,6 @@
 #include <syslog.h>
 
 #include "cras/src/common/cras_hats.h"
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_empty_iodev.h"
 #include "cras/src/server/cras_features.h"
@@ -30,6 +28,8 @@
 #include "cras/src/server/test_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_types.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/utlist/utlist.h"
 
 #define NUM_OPEN_DEVS_MAX 10
 #define NUM_FLOOP_PAIRS_MAX 20

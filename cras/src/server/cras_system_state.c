@@ -15,7 +15,6 @@
 #include <sys/stat.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alert.h"
@@ -30,6 +29,7 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 struct card_list {
   struct cras_alsa_card* card;

@@ -26,10 +26,10 @@
 
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/cras_version.h"
-#include "cras/src/common/strlcpy.h"
 #include "cras_client.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
 
 #define NOT_ASSIGNED (0)
 #define PLAYBACK_BUFFERED_TIME_IN_US (5000)

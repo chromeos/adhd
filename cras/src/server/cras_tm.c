@@ -7,8 +7,8 @@
 
 #include <time.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 // Represents an armed timer.
 struct cras_timer {

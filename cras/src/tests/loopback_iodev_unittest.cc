@@ -11,7 +11,6 @@ extern "C" {
 struct audio_thread_event_log* atlog;
 int atlog_rw_shm_fd;
 int atlog_ro_shm_fd;
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -20,6 +19,7 @@ int atlog_ro_shm_fd;
 #include "cras/src/server/dev_stream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
+#include "third_party/utlist/utlist.h"
 }
 
 namespace {

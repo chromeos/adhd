@@ -11,10 +11,10 @@
 #include <syslog.h>
 
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 #define MIXER_CONTROL_VOLUME_DB_INVALID LONG_MAX
 #define MIXER_CONTROL_STEP_INVALID 0

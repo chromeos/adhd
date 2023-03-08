@@ -7,12 +7,12 @@
 #include <syslog.h>
 
 #include "cras/src/common/dumper.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/dsp/dsp_util.h"
 #include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_pipeline.h"
 #include "cras/src/server/cras_expr.h"
 #include "cras_iodev_info.h"
+#include "third_party/utlist/utlist.h"
 
 /* We have a dsp_context for each pipeline. The context records the
  * parameters used to create a pipeline, so the pipeline can be

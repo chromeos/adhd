@@ -10,13 +10,13 @@
 #include <time.h>
 
 extern "C" {
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_iodev.h"    // stubbed
 #include "cras/src/server/cras_rstream.h"  // stubbed
 #include "cras/src/server/dev_io.h"        // tested
 #include "cras/src/server/dev_stream.h"    // tested
 #include "cras_shm.h"
 #include "cras_types.h"
+#include "third_party/utlist/utlist.h"
 
 struct audio_thread_event_log* atlog;
 }

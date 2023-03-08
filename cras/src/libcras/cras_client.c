@@ -49,12 +49,12 @@
 #include "cras/src/common/cras_file_wait.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/utlist.h"
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 static const size_t MAX_CMD_MSG_LEN = 256;
 static const size_t SERVER_SHUTDOWN_TIMEOUT_US = 500000;

@@ -16,7 +16,6 @@
 #include <sys/param.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
 #include "cras/src/server/cras_device_monitor.h"
@@ -30,6 +29,7 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 #define MIN_PROCESS_TIME_US 500  // 0.5ms - min amount of time to mix/src.
 #define SLEEP_FUZZ_FRAMES 10   // # to consider "close enough" to sleep frames.

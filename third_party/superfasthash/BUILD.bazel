@@ -1,0 +1,6 @@
+cc_library(
+    name = "superfasthash",
+    srcs = ["sfh.c"],
+    hdrs = ["sfh.h"],
+    visibility = ["//:__subpackages__"],
+)

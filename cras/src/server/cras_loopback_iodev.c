@@ -8,9 +8,6 @@
 #include <syslog.h>
 
 #include "cras/src/common/byte_buffer.h"
-#include "cras/src/common/sfh.h"
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -18,6 +15,9 @@
 #include "cras_config.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/superfasthash/sfh.h"
+#include "third_party/utlist/utlist.h"
 
 #define LOOPBACK_BUFFER_SIZE 8192
 

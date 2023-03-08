@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_capture_rclient.h"
@@ -27,6 +26,7 @@
 #include "cras_messages.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 // Removes all streams that the client owns and destroys it.
 void cras_rclient_destroy(struct cras_rclient* client) {

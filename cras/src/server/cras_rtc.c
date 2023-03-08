@@ -9,12 +9,12 @@
 #endif
 
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 struct rtc_data {
   struct cras_rstream* stream;

@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef CRAS_SRC_COMMON_RTP_H_
-#define CRAS_SRC_COMMON_RTP_H_
+#ifndef THIRD_PARTY_BLUEZ_RTP_H_
+#define THIRD_PARTY_BLUEZ_RTP_H_
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 

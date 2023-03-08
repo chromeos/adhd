@@ -12,8 +12,6 @@
 #include <sys/time.h>
 #include <syslog.h>
 
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_hfp_slc.h"
@@ -24,6 +22,8 @@
 #include "cras/src/server/cras_sr_bt_util.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/utlist/utlist.h"
 
 // Implementation of bluetooth hands-free profile iodev.
 struct hfp_io {

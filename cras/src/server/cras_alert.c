@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cras/src/common/utlist.h"
+#include "third_party/utlist/utlist.h"
 
 // A list of callbacks for an alert
 struct cras_alert_cb_list {

@@ -16,8 +16,8 @@
 
 #include "cras/src/common/bluetooth.h"
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_bt_constants.h"
+#include "third_party/utlist/utlist.h"
 
 /*
  * Object to represent a bluetooth adapter on the system. Used to query the

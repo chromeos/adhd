@@ -30,7 +30,6 @@
 #endif
 #include "cras/src/common/cras_metrics.h"
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
@@ -52,6 +51,7 @@
 #include "cras_messages.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 // Store a list of clients that are attached to the server.
 struct attached_client {

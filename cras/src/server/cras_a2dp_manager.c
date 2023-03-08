@@ -17,7 +17,6 @@
 #include <sys/un.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_fl_pcm_iodev.h"
@@ -26,6 +25,7 @@
 #include "cras/src/server/cras_tm.h"
 #include "cras_config.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 #define CRAS_A2DP_SOCKET_FILE ".a2dp"
 #define CRAS_A2DP_SUSPEND_DELAY_MS (5000)

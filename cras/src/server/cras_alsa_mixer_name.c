@@ -9,7 +9,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
+#include "third_party/utlist/utlist.h"
 
 static void mixer_control_get_name_and_index(const char* name,
                                              char* mixer_control_name,

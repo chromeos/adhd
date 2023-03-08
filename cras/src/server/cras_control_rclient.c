@@ -21,7 +21,6 @@
 #if CRAS_DBUS
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #endif
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rclient.h"
@@ -31,6 +30,7 @@
 #include "cras_messages.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
 
 // Handles dumping audio thread debug info back to the client.
 static void dump_audio_thread_info(struct cras_rclient* client) {

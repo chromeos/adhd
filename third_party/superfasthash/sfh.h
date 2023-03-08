@@ -8,9 +8,11 @@
  * here.
  */
 
-#ifndef CRAS_SRC_COMMON_SFH_H_
-#define CRAS_SRC_COMMON_SFH_H_
+#ifndef THIRD_PARTY_SUPERFASTHASH_SFH_H_
+#define THIRD_PARTY_SUPERFASTHASH_SFH_H_
+
+#include <stdint.h>
 
 uint32_t SuperFastHash(const char* data, int len, uint32_t hash);
 
-#endif  // CRAS_SRC_COMMON_SFH_H_
+#endif  // THIRD_PARTY_SUPERFASTHASH_SFH_H_

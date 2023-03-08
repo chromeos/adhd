@@ -11,8 +11,6 @@
 #include <syslog.h>
 
 #include "cras/src/common/byte_buffer.h"
-#include "cras/src/common/strlcpy.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -20,6 +18,8 @@
 #include "cras_config.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
+#include "third_party/utlist/utlist.h"
 
 #define TEST_BUFFER_SIZE (16 * 1024)
 

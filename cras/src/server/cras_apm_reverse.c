@@ -6,12 +6,12 @@
 
 #include <pthread.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/float_buffer.h"
+#include "third_party/utlist/utlist.h"
 
 /*
  * Object used to analyze playback audio from output iodev. It is responsible

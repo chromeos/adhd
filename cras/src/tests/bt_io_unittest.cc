@@ -7,8 +7,8 @@
 extern "C" {
 
 // To test static functions.
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_bt_io.c"
+#include "third_party/utlist/utlist.h"
 }
 
 static unsigned int cras_iodev_add_node_called;

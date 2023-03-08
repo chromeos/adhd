@@ -1,0 +1,5 @@
+cc_library(
+    name = "utlist",
+    hdrs = ["utlist.h"],
+    visibility = ["//:__subpackages__"],
+)

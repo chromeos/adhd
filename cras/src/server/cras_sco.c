@@ -15,7 +15,6 @@
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/common/cras_sbc_codec.h"
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/utlist.h"
 #include "cras/src/plc/cras_plc.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_device.h"
@@ -24,6 +23,7 @@
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_sr.h"
 #include "packet_status_logger.h"
+#include "third_party/utlist/utlist.h"
 
 /* The max buffer size. Note that the actual used size must set to multiple
  * of SCO packet size, and the packet size does not necessarily be equal to

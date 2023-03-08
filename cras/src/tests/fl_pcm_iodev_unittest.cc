@@ -8,7 +8,6 @@
 
 extern "C" {
 // To test static functions.
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
@@ -16,6 +15,7 @@ extern "C" {
 #include "cras/src/server/cras_fl_pcm_iodev.c"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "third_party/utlist/utlist.h"
 }
 
 #define FAKE_SOCKET_FD 99;

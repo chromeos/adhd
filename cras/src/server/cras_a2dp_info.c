@@ -10,8 +10,8 @@
 #include <syslog.h>
 
 #include "cras/src/common/cras_sbc_codec.h"
-#include "cras/src/common/rtp.h"
 #include "cras_types.h"
+#include "third_party/bluez/rtp.h"
 
 int init_a2dp(struct a2dp_info* a2dp, a2dp_sbc_t* sbc) {
   uint8_t frequency = 0, mode = 0, subbands = 0, allocation, blocks = 0,

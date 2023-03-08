@@ -9,7 +9,6 @@
 #include <sys/select.h>
 #include <syslog.h>
 
-#include "cras/src/common/utlist.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_jack.h"
@@ -20,6 +19,7 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/iniparser_wrapper.h"
+#include "third_party/utlist/utlist.h"
 
 #define PLUGINS_INI "plugins.ini"
 #define PLUGIN_KEY_CTL "ctl"
