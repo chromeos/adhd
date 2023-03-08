@@ -29,11 +29,27 @@ build --copt=-fno-delete-null-pointer-checks
 # NOTE: These flags don't work with gcc. So put them behind a config.
 build:clang-strict --copt=-Werror=undef-prefix --copt=-Wundef-prefix=HAVE_,CRAS_
 
-# Sanitizer configs
+# --config=asan
+# Enable AddressSanitizer.
 build:asan --copt=-fsanitize=address --linkopt=-fsanitize=address
 
+# --config=ubsan
+# Enable UndefinedBehaviorSanitizer.
 build:ubsan --copt=-fsanitize=undefined --linkopt=-fsanitize=undefined
 build:ubsan --linkopt=-fsanitize-link-c++-runtime
+
+# --config=tsan
+# Enable ThreadSanitizer.
+build:tsan --copt=-fsanitize=thread --linkopt=-fsanitize=thread
+
+# --config=local-gcc
+# Use system gcc to build.
+build:local-gcc --action_env=CC=gcc --action_env=CXX=g++
+
+# --config=local-clang
+# Use system clang to build.
+build:local-clang --action_env=CC=clang --action_env=CXX=clang++
+build:local-clang --config=clang-strict
 
 build:fuzzer --//:fuzzer --copt=-Wno-error=unused-function
 
