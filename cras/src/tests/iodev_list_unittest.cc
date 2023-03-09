@@ -1659,6 +1659,36 @@ TEST_F(IoDevTestSuite, SetNodeVolumeCaptureGain) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, SetNodeVolumeInvalid) {
+  int rc;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_OUTPUT;
+  rc = cras_iodev_list_add_output(&d1_);
+  ASSERT_EQ(rc, 0);
+  node1.idx = 1;
+  node1.dev = &d1_;
+  const int wrong_id = -1;
+
+  d1_.software_volume_needed = 0;
+  rc = cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
+                                     IONODE_ATTR_VOLUME, -1);
+  EXPECT_EQ(rc, -EINVAL);
+  EXPECT_EQ(cras_observer_notify_output_node_volume_called, 0);
+
+  rc = cras_iodev_list_set_node_attr(cras_make_node_id(d1_.info.idx, 1),
+                                     IONODE_ATTR_VOLUME, 101);
+  EXPECT_EQ(rc, -EINVAL);
+  EXPECT_EQ(cras_observer_notify_output_node_volume_called, 0);
+
+  rc = cras_iodev_list_set_node_attr(wrong_id, IONODE_ATTR_VOLUME, 50);
+  EXPECT_EQ(rc, -EINVAL);
+  EXPECT_EQ(cras_observer_notify_output_node_volume_called, 0);
+
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, SetNodeSwapLeftRight) {
   int rc;
 

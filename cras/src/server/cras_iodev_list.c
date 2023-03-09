@@ -5,6 +5,7 @@
 
 #include "cras/src/server/cras_iodev_list.h"
 
+#include <sys/syslog.h>
 #include <syslog.h>
 
 #include "cras/src/common/cras_hats.h"
@@ -1959,7 +1960,9 @@ static int set_node_volume(struct cras_iodev* iodev,
   struct cras_ionode* node;
 
   node = find_node(iodev, node_idx);
-  if (!node) {
+  if (!node || volume < 0 || volume > 100) {
+    syslog(LOG_WARNING, "Invalid input: node == null: %d, volume: %d",
+           node == NULL, volume);
     return -EINVAL;
   }
 
