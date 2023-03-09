@@ -677,7 +677,6 @@ cc_test(
         "//cras/src/server:cras_dbus_control.c",
         "//cras/src/server:cras_dbus_util.c",
     ],
-    flaky = True,  # TODO(b/271618403): Fix the flake.
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
