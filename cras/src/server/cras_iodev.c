@@ -828,9 +828,9 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev* iodev) {
       cras_iodev_adjust_active_node_volume(iodev, cras_system_get_volume());
 
   if (iodev->active_node && iodev->active_node->softvol_scalers) {
-    return iodev->active_node->softvol_scalers[volume];
+    return softvol_get_scaler(iodev->active_node->softvol_scalers, volume);
   }
-  return softvol_get_scaler(volume);
+  return softvol_get_scaler_default(volume);
 }
 
 float cras_iodev_get_software_gain_scaler(const struct cras_iodev* iodev) {
@@ -1713,11 +1713,13 @@ int cras_iodev_start_volume_ramp(struct cras_iodev* odev,
     return -EINVAL;
   }
   if (odev->active_node && odev->active_node->softvol_scalers) {
-    old_scaler = odev->active_node->softvol_scalers[old_volume];
-    new_scaler = odev->active_node->softvol_scalers[new_volume];
+    old_scaler =
+        softvol_get_scaler(odev->active_node->softvol_scalers, old_volume);
+    new_scaler =
+        softvol_get_scaler(odev->active_node->softvol_scalers, new_volume);
   } else {
-    old_scaler = softvol_get_scaler(old_volume);
-    new_scaler = softvol_get_scaler(new_volume);
+    old_scaler = softvol_get_scaler_default(old_volume);
+    new_scaler = softvol_get_scaler_default(new_volume);
   }
   if (new_scaler == 0.0) {
     return -EINVAL;

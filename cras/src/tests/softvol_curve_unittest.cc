@@ -33,4 +33,41 @@ TEST(SoftvolCurveTest, InputNodeGainToScaler) {
   }
 }
 
+TEST(SoftvolCurveTest, SoftvolGetScalerDefault) {
+  unsigned int volume_index = 0;
+  for (; volume_index <= MAX_VOLUME; volume_index++) {
+    EXPECT_EQ(softvol_get_scaler_default(volume_index),
+              softvol_scalers[volume_index]);
+  }
+  volume_index = MAX_VOLUME + 1;
+  EXPECT_EQ(softvol_get_scaler_default(volume_index),
+            softvol_scalers[MAX_VOLUME]);
+}
+
+class SoftvolCurveTestSuite : public testing::Test {
+ protected:
+  virtual void SetUp() {
+    volume_index_ = 0;
+    curve_ = cras_volume_curve_create_default();
+    scalers_ = softvol_build_from_curve(curve_);
+  }
+
+  virtual void TearDown() {
+    cras_volume_curve_destroy(curve_);
+    free(scalers_);
+  }
+  unsigned int volume_index_;
+  struct cras_volume_curve* curve_;
+  float* scalers_;
+};
+
+TEST_F(SoftvolCurveTestSuite, SoftvolGetScaler) {
+  for (; volume_index_ <= MAX_VOLUME; volume_index_++) {
+    EXPECT_EQ(softvol_get_scaler(scalers_, volume_index_),
+              scalers_[volume_index_]);
+  }
+  volume_index_ = MAX_VOLUME + 1;
+  EXPECT_EQ(softvol_get_scaler(scalers_, volume_index_), scalers_[MAX_VOLUME]);
+}
+
 }  //  namespace

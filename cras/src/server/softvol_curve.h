@@ -6,17 +6,30 @@
 #ifndef CRAS_SRC_SERVER_SOFTVOL_CURVE_H_
 #define CRAS_SRC_SERVER_SOFTVOL_CURVE_H_
 
+#include <assert.h>
 #include <math.h>
+#include <sys/param.h>
+#include <syslog.h>
+
+#include "cras/src/server/cras_volume_curve.h"
 
 #define LOG_10 2.302585
 
 struct cras_volume_curve;
 
-extern const float softvol_scalers[101];
+extern const float softvol_scalers[NUM_VOLUME_STEPS];
 
-// Returns the volume scaler in the soft volume curve for the given index.
-static inline float softvol_get_scaler(unsigned int volume_index) {
+/* Returns the volume scaler in the soft volume curve for the given index. */
+static inline float softvol_get_scaler_default(unsigned int volume_index) {
+  volume_index = MIN(volume_index, MAX_VOLUME);
   return softvol_scalers[volume_index];
+}
+
+static inline float softvol_get_scaler(float* scalers,
+                                       unsigned int volume_index) {
+  assert(scalers);
+  volume_index = MIN(volume_index, MAX_VOLUME);
+  return scalers[volume_index];
 }
 
 // convert dBFS to softvol scaler

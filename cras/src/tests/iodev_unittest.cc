@@ -2825,7 +2825,7 @@ int cras_audio_format_set_channel_layout(struct cras_audio_format* format,
   return 0;
 }
 
-float softvol_get_scaler(unsigned int volume_index) {
+float softvol_get_scaler_default(unsigned int volume_index) {
   return softvol_scalers[volume_index];
 }
 

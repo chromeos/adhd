@@ -1468,6 +1468,7 @@ cc_test(
     name = "softvol_curve_unittest",
     srcs = [
         ":softvol_curve_unittest.cc",
+        "//cras/src/server:cras_volume_curve.c",
         "//cras/src/server:softvol_curve.c",
     ],
     deps = [
