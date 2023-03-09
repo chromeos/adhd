@@ -52,8 +52,12 @@ def _pkg_config(repository_ctx, library):
         cmd,
     )
     if result.return_code != 0:
-        fail("""{cmd} failure (code {return_code});
-{stderr}""".format(cmd = " ".join([str(s) for s in cmd]), return_code = result.return_code, stderr = result.stderr))
+        return struct(error = "{library} unavailable: {cmd} failure (code {return_code});\n{stderr}".format(
+            cmd = " ".join([str(s) for s in cmd]),
+            return_code = result.return_code,
+            stderr = result.stderr,
+            library = library,
+        ))
 
     oss_fuzz_static = repository_ctx.os.environ.get("OSS_FUZZ_STATIC_PKG_CONFIG_DEPS")
 
@@ -72,6 +76,7 @@ def _pkg_config(repository_ctx, library):
         defines = defines,
         includes = includes,
         linkopts = linkopts,
+        error = None,
     )
 
 def _common_roots(paths):
@@ -126,6 +131,22 @@ def _symlink_includes(repository_ctx, library, includes):
 
 def _pkg_config_library(repository_ctx, library, defines = []):
     result = _pkg_config(repository_ctx, library)
+    if result.error != None:
+        return """config_setting(
+    name = "never_set",
+    define_values = {{
+        "never_set": "never_set",
+    }},
+)
+
+cc_library(
+    name = {name},
+    deps = select({{":never_set": []}}, no_match_error = {error})
+)
+""".format(
+            name = repr(library),
+            error = repr("\n\n" + result.error.rstrip()),
+        )
 
     includes = _symlink_includes(repository_ctx, library, result.includes)
     hdrs_globs = [
