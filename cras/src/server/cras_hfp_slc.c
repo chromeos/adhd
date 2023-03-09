@@ -579,9 +579,15 @@ static int list_current_calls(struct hfp_slc_handle* handle, const char* cmd) {
 /* AT+COPS command to query currently selected operator or set name format.
  * Mandatory support per spec 4.8.
  */
-static int operator_selection(struct hfp_slc_handle* handle, const char* buf) {
+static int operator_selection(struct hfp_slc_handle* handle, const char* cmd) {
   int rc;
-  if (buf[7] == '?') {
+
+  if (strlen(cmd) < 8) {
+    syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
+    return hfp_send(handle, AT_CMD("ERROR"));
+  }
+
+  if (cmd[7] == '?') {
     /* HF sends AT+COPS? command to find current network operator.
      * AG responds with +COPS:<mode>,<format>,<operator>, where
      * the mode=0 means automatic for network selection. If no
@@ -592,19 +598,25 @@ static int operator_selection(struct hfp_slc_handle* handle, const char* buf) {
       return rc;
     }
   }
+
   return hfp_send(handle, AT_CMD("OK"));
 }
 
 /* The AT+CHLD command is used to control call hold, release, and multiparty
  * states.
  */
-static int call_hold(struct hfp_slc_handle* handle, const char* buf) {
+static int call_hold(struct hfp_slc_handle* handle, const char* cmd) {
   int rc;
+
+  if (strlen(cmd) < 9) {
+    syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
+    return hfp_send(handle, AT_CMD("ERROR"));
+  }
 
   // Chrome OS doesn't yet support CHLD features but we need to reply
   // the query with an empty feature list rather than "ERROR" to increase
   // interoperability with certain devices (b/172413440).
-  if (strlen(buf) > 8 && buf[7] == '=' && buf[8] == '?') {
+  if (cmd[7] == '=' && cmd[8] == '?') {
     rc = hfp_send(handle, AT_CMD("+CHLD:"));
     if (rc) {
       return rc;
