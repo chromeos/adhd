@@ -5,6 +5,7 @@
 #include "cras/src/tests/dbus_test.h"
 
 #include <algorithm>
+#include <mutex>
 #include <stdlib.h>
 #include <sys/select.h>
 #include <unistd.h>
@@ -422,52 +423,45 @@ DBusTest::~DBusTest() {}
 DBusMatch& DBusTest::ExpectMethodCall(std::string path,
                                       std::string interface,
                                       std::string method) {
+  std::lock_guard<std::mutex> lock(mutex_);
   DBusMatch match;
   match.ExpectMethodCall(path, interface, method);
-  pthread_mutex_lock(&mutex_);
   matches_.push_back(match);
   DBusMatch& ref = matches_.back();
-  pthread_mutex_unlock(&mutex_);
   return ref;
 }
 
 DBusMatch& DBusTest::CreateSignal(std::string path,
                                   std::string interface,
                                   std::string signal_name) {
+  std::lock_guard<std::mutex> lock(mutex_);
   DBusMatch match;
   match.CreateSignal(server_conn_, path, interface, signal_name);
-  pthread_mutex_lock(&mutex_);
   matches_.push_back(match);
   DBusMatch& ref = matches_.back();
-  pthread_mutex_unlock(&mutex_);
   return ref;
 }
 
 DBusMatch& DBusTest::CreateMessageCall(std::string path,
                                        std::string interface,
                                        std::string signal_name) {
+  std::lock_guard<std::mutex> lock(mutex_);
   DBusMatch match;
   match.CreateMessageCall(server_conn_, path, interface, signal_name);
-  pthread_mutex_lock(&mutex_);
   matches_.push_back(match);
   DBusMatch& ref = matches_.back();
-  pthread_mutex_unlock(&mutex_);
   return ref;
 }
 
 void DBusTest::WaitForMatches() {
   for (;;) {
-    pthread_mutex_lock(&mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     size_t incomplete_matches = 0;
-    for (std::vector<DBusMatch>::iterator it = matches_.begin();
-         it != matches_.end(); ++it) {
-      DBusMatch& match = *it;
+    for (auto& match : matches_) {
       if (!match.Complete()) {
         ++incomplete_matches;
       }
     }
-    pthread_mutex_unlock(&mutex_);
-
     if (!incomplete_matches) {
       break;
     }
@@ -477,27 +471,17 @@ void DBusTest::WaitForMatches() {
     while ((message = dbus_connection_borrow_message(conn_)) == NULL) {
       dbus_connection_read_write(conn_, -1);
     }
-
     // Allow matches to verify the serial of the message.
-    pthread_mutex_lock(&mutex_);
-    for (std::vector<DBusMatch>::iterator it = matches_.begin();
-         it != matches_.end(); ++it) {
-      DBusMatch& match = *it;
-
+    for (auto& match : matches_) {
       if (match.HandleClientMessage(conn_, message)) {
         break;
       }
     }
-    pthread_mutex_unlock(&mutex_);
-
     // Throw it back and dispatch.
     dbus_connection_return_message(conn_, message);
     dbus_connection_dispatch(conn_);
   }
-
-  pthread_mutex_lock(&mutex_);
-  matches_.erase(matches_.begin(), matches_.end());
-  pthread_mutex_unlock(&mutex_);
+  matches_.clear();
 }
 
 void DBusTest::SetUp() {
@@ -535,8 +519,6 @@ void DBusTest::SetUp() {
   // Now we set off "main loop" in the background to dispatch until the
   // client is disconnected by the TearDown method.
   int r;
-  r = pthread_mutex_init(&mutex_, NULL);
-  ASSERT_EQ(0, r);
 
   dispatch_ = true;
   r = pthread_create(&thread_id_, NULL, DispatchLoopThunk, this);
@@ -556,7 +538,6 @@ void DBusTest::TearDown() {
   }
 
   pthread_join(thread_id_, NULL);
-  pthread_mutex_destroy(&mutex_);
 
   // Clean up the server end of the connection and the server itself.
   if (server_conn_) {
@@ -669,23 +650,19 @@ DBusHandlerResult DBusTest::HandleMessageThunk(DBusConnection* conn,
 
 DBusHandlerResult DBusTest::HandleMessage(DBusConnection* conn,
                                           DBusMessage* message) {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (dbus_message_is_signal(message, DBUS_INTERFACE_LOCAL, "Disconnected")) {
     dispatch_ = false;
     return DBUS_HANDLER_RESULT_HANDLED;
   }
-
-  pthread_mutex_lock(&mutex_);
   for (std::vector<DBusMatch>::iterator it = matches_.begin();
        it != matches_.end(); ++it) {
     DBusMatch& match = *it;
 
     if (match.HandleServerMessage(conn, message)) {
-      pthread_mutex_unlock(&mutex_);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
   }
-  pthread_mutex_unlock(&mutex_);
-
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 

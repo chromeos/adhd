@@ -9,6 +9,7 @@
 #include <atomic>
 #include <dbus/dbus.h>
 #include <gtest/gtest.h>
+#include <mutex>
 #include <pthread.h>
 #include <stdint.h>
 #include <string>
@@ -287,7 +288,7 @@ class DBusTest : public ::testing::Test {
   std::vector<DBusTimeout*> timeouts_;
 
   pthread_t thread_id_;
-  pthread_mutex_t mutex_;
+  std::mutex mutex_;
   std::atomic<bool> dispatch_;
 
   std::vector<DBusMatch> matches_;
