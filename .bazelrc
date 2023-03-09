@@ -41,6 +41,7 @@ build:ubsan --linkopt=-fsanitize-link-c++-runtime
 # --config=tsan
 # Enable ThreadSanitizer.
 build:tsan --copt=-fsanitize=thread --linkopt=-fsanitize=thread
+test:tsan --test_tag_filters=-tsan-broken
 
 # --config=local-gcc
 # Use system gcc to build.

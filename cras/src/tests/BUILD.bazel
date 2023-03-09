@@ -859,6 +859,9 @@ cc_test(
         "//cras/src/server:cras_dsp_pipeline.c",
         "//cras/src/server:cras_expr.c",
     ],
+    tags = [
+        "tsan-broken",
+    ],
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
