@@ -7,21 +7,6 @@ include $(ADHD_DIR)/defs/definitions.mk
 
 all:	cras
 
-ifeq ($(strip $(BAZEL)), yes)
-
-# Do nothing. Handled by bazel.
-cras:
-
-else
-
-cras:
-	@$(call remake,Building,$@,cras.mk,$@)
-
-cras_install:
-	@$(call remake,Building,cras,cras.mk,$@)
-
-endif
-
 cras_init_tmpfile:	$(ADHD_DIR)/tmpfiles.d/cras.conf
 	$(ECHO) "Installing tmpfile.d file"
 	$(INSTALL) --mode 644 -D $< $(DESTDIR)/usr/lib/tmpfiles.d/cras.conf
