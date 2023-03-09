@@ -12,23 +12,9 @@ anyhow = "1.0"
 async-trait = "0.1.36"
 audio_streams = "*"
 cros_async = "*"
-cras-sys = { path = "../cras-sys" } # provided by ebuild
+cras-sys = { version = "*", path = "../cras-sys" }
 data_model = "*"
+futures = "*"
 libc = "*"
 libchromeos = { path = "../../../../../platform2/libchromeos-rs/" } # provided by ebuild
 serde = "1.0.125"
-
-[dependencies.futures]
-version = "*"
-
-[patch.crates-io] # ignored by ebuild
-audio_streams = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
-base_event_token_derive = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/base_event_token_derive-0.1.0/" } # ignored by ebuild
-cros_async = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/cros_async-0.1.51/" } # ignored by ebuild
-crosvm-base = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/crosvm-base-0.1.0/" } # ignored by ebuild
-data_model = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
-io_uring = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/io_uring-0.1.51/" } # ignored by ebuild
-minijail = { path = "../../../../../platform/minijail/rust/minijail" } # ignored by ebuild
-serde_keyvalue = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue-0.1.50/" } # ignored by ebuild
-serde_keyvalue_derive = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue_derive-0.1.50/" } # ignored by ebuild
-sync = { path = "../../../../../../chroot/usr/lib/cros_rust_registry/registry/sync-0.1.149/" } # ignored by ebuild
