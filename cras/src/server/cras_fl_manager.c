@@ -198,7 +198,7 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection* conn,
 static void floss_on_bt_manager_added(DBusConnection* conn) {
   BTLOG(btlog, BT_MANAGER_ADDED, 0, 0);
   floss_manager_register_callback(conn);
-  // TODO query the default adapter index once the API is ready.
+  // TODO(b/191906229) query the adapter index to support non-default one.
   floss_manager_get_adapter_enabled(conn, 0);
 }
 
