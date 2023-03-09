@@ -6,6 +6,7 @@
 #ifndef CRAS_SRC_TESTS_DBUS_TEST_H_
 #define CRAS_SRC_TESTS_DBUS_TEST_H_
 
+#include <atomic>
 #include <dbus/dbus.h>
 #include <gtest/gtest.h>
 #include <pthread.h>
@@ -287,7 +288,7 @@ class DBusTest : public ::testing::Test {
 
   pthread_t thread_id_;
   pthread_mutex_t mutex_;
-  bool dispatch_;
+  std::atomic<bool> dispatch_;
 
   std::vector<DBusMatch> matches_;
 

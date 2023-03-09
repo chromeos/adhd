@@ -555,10 +555,7 @@ void DBusTest::TearDown() {
     conn_ = NULL;
   }
 
-  // Join the thread and wait for it to finish dispatch.
-  if (dispatch_) {
-    pthread_join(thread_id_, NULL);
-  }
+  pthread_join(thread_id_, NULL);
   pthread_mutex_destroy(&mutex_);
 
   // Clean up the server end of the connection and the server itself.
@@ -698,7 +695,7 @@ void* DBusTest::DispatchLoopThunk(void* ptr) {
 }
 
 void* DBusTest::DispatchLoop() {
-  while (dispatch_) {
+  while (dispatch_.load()) {
     DispatchOnce();
   }
 
