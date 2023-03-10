@@ -25,6 +25,7 @@ func main() {
 	cq := pflag.Int("cq", ignoreLabel, "set Commit-Queue vote")
 	cr := pflag.Int("cr", ignoreLabel, "set Code-Review vote")
 	v := pflag.Int("v", ignoreLabel, "set Verified vote")
+	limit := pflag.Int("limit", -1, "max number of CLs to vote")
 
 	reviewMessage := pflag.String("review-message", "", "code review message")
 
@@ -79,7 +80,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	logrus.Println(len(changes), "changes to consider")
+	logrus.Println(len(changes), "changes in dependency chain")
 
 	if *checkKernelUpstream {
 		var checkedCLs []bulkreview.Change
@@ -111,6 +112,12 @@ func main() {
 	if *v != ignoreLabel {
 		votes[labels.Verified] = strconv.Itoa(*v)
 	}
+
+	if *limit != -1 && len(changes) > *limit {
+		changes = changes[:*limit]
+	}
+
+	logrus.Println(len(changes), "changes to consider")
 
 	for i, cl := range changes {
 		logrus.Printf("(%d/%d) %s", i+1, len(changes), cl)
