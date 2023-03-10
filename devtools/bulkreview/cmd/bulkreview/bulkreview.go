@@ -26,6 +26,8 @@ func main() {
 	cr := pflag.Int("cr", ignoreLabel, "set Code-Review vote")
 	v := pflag.Int("v", ignoreLabel, "set Verified vote")
 
+	reviewMessage := pflag.String("review-message", "", "code review message")
+
 	followCqDepend := pflag.BoolP("cq-depend", "d", false, "follow Cq-Depend recursively")
 	followRelationChain := pflag.BoolP("relation", "r", false, "follow relation chain")
 
@@ -43,6 +45,7 @@ func main() {
 	print := pflag.Bool("print", false, "Print the CLs to stdout")
 
 	stalk := pflag.Bool("stalk", false, "perform actions on even ABANDONED or MERGED CLs")
+
 	pflag.Parse()
 
 	c, err := bulkreview.NewClient()
@@ -89,9 +92,10 @@ func main() {
 
 		cg := c.Host(cl.GerritHost)
 
-		if len(votes) > 0 {
+		if len(votes) > 0 || *reviewMessage != "" {
 			review := &gerrit.ReviewInput{
-				Labels: votes,
+				Labels:  votes,
+				Message: *reviewMessage,
 			}
 			r, _, err := cg.Changes.SetReview(cl.ID, bulkreview.RevisionCurrent, review)
 			if err != nil {
