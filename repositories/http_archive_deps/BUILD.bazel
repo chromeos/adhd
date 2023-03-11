@@ -1,0 +1,31 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+alias(
+    name = "deps.json",
+    actual = "@deps_json//:deps.json",
+)
+
+py_binary(
+    name = "tool",
+    srcs = ["tool.py"],
+)
+
+genrule(
+    name = "bazel_external_uris",
+    srcs = ["deps.json"],
+    outs = [
+        "bazel_external_uris.txt",
+        "deps_sha256.json",
+    ],
+    cmd = "$(location :tool) $(<) $(OUTS)",
+    tools = [":tool"],
+)
+
+py_binary(
+    name = "check_mirror",
+    srcs = ["check_mirror.py"],
+    args = ["$(location :deps_sha256.json)"],
+    data = [":deps_sha256.json"],
+)

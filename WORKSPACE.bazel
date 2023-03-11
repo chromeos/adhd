@@ -185,3 +185,7 @@ http_archive(
 load("@hedron_compile_commands//:workspace_setup.bzl", "hedron_compile_commands_setup")
 
 hedron_compile_commands_setup()
+
+load("//repositories/http_archive_deps:repo.bzl", "http_archive_deps_setup")
+
+http_archive_deps_setup()
