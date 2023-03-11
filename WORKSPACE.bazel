@@ -13,10 +13,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c",
+    sha256 = "b8a1527901774180afc798aeb28c4634bdccf19c4d98e7bdd1ce79d1fe9aaad7",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
-        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
     ],
 )
 
@@ -26,21 +26,21 @@ bazel_skylib_workspace()
 
 http_archive(
     name = "com_github_google_benchmark",
-    sha256 = "3bff5f237c317ddfd8d5a9b96b3eede7c0802e799db520d38ce756a2a46a18a0",
-    strip_prefix = "benchmark-1.5.5",
+    sha256 = "6430e4092653380d9dc4ccb45a1e2dc9259d581f4866dc0759713126056bc1d7",
+    strip_prefix = "benchmark-1.7.1",
     urls = [
-        "https://github.com/google/benchmark/archive/refs/tags/v1.5.5.tar.gz",
-        "https://storage.googleapis.com/chromeos-localmirror/distfiles/google-benchmark-1.5.5.tar.gz",
+        "https://github.com/google/benchmark/archive/refs/tags/v1.7.1.tar.gz",
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/google-benchmark-v1.7.1.tar.gz",
     ],
 )
 
 http_archive(
     name = "rules_cc",
-    sha256 = "cf3b76a90c86c0554c5b10f4b160f05af71d252026b71362c4674e2fb9936cf9",
-    strip_prefix = "rules_cc-01d4a48911d5e7591ecb1c06d3b8af47fe872371",
+    sha256 = "3d9e271e2876ba42e114c9b9bc51454e379cbf0ec9ef9d40e2ae4cec61a31b40",
+    strip_prefix = "rules_cc-0.0.6",
     urls = [
-        "https://github.com/bazelbuild/rules_cc/archive/01d4a48911d5e7591ecb1c06d3b8af47fe872371.zip",
-        "https://storage.googleapis.com/chromeos-mirror/gentoo/distfiles/bazelbuild-rules_cc-01d4a48911d5e7591ecb1c06d3b8af47fe872371.zip",
+        "https://github.com/bazelbuild/rules_cc/releases/download/0.0.6/rules_cc-0.0.6.tar.gz",
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/bazelbuild-rules_cc-0.0.6.tar.gz",
     ],
 )
 
