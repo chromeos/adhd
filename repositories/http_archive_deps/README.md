@@ -54,3 +54,13 @@ To update the ebuild:
 
 [bazel.eclass]: https://source.chromium.org/chromiumos/chromiumos/codesearch/+/main:src/third_party/portage-stable/eclass/bazel.eclass
 [adhd-9999.ebuild]: https://source.chromium.org/chromiumos/chromiumos/codesearch/+/main:src/third_party/chromiumos-overlay/media-sound/adhd/adhd-9999.ebuild
+
+## Verify http_archive urls
+
+Use:
+
+```
+bazel run //repositories/http_archive_deps:verify_urls
+```
+
+to verify all urls in `http_archive` rules are valid.

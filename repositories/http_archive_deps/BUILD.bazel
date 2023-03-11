@@ -29,3 +29,10 @@ py_binary(
     args = ["$(location :deps_sha256.json)"],
     data = [":deps_sha256.json"],
 )
+
+py_binary(
+    name = "verify_urls",
+    srcs = ["verify_urls.py"],
+    args = ["$(location :deps_sha256.json)"],
+    data = [":deps_sha256.json"],
+)
