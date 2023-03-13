@@ -1,0 +1,25 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+cc_library(
+    name = "message_builder",
+    testonly = True,
+    hdrs = ["message_builder.hh"],
+    deps = [
+        "//cras/base",
+        "@pkg_config//dbus-1",
+        "@pkg_config//protobuf",
+    ],
+)
+
+cc_test(
+    name = "message_builder_test",
+    srcs = ["message_builder_test.cc"],
+    deps = [
+        ":message_builder",
+        "@com_google_absl//absl/types:span",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
