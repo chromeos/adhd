@@ -30,6 +30,15 @@ struct Command {
     /// Symbol name of the function that creates the plugin processor in `plugin`.
     #[clap(long, default_value = "plugin_processor_create")]
     plugin_name: String,
+
+    /// Block size of the processor, in milliseconds.
+    #[clap(long, default_value = "10")]
+    block_size_ms: usize,
+
+    /// Block size of the processor, in frames.
+    /// Takes precedence over --block-size-ms.
+    #[clap(long)]
+    block_size_frames: Option<usize>,
 }
 
 fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
@@ -45,16 +54,25 @@ fn print_real_time_factor(stats: &profile::Measurement, name: &str, clip_duratio
     );
 }
 
+impl Command {
+    fn compute_block_size(&self, frame_rate: usize) -> usize {
+        match self.block_size_frames {
+            Some(frames) => frames,
+            None => self.block_size_ms * frame_rate / 1000,
+        }
+    }
+}
+
 pub fn main() {
     run(Command::parse());
 }
 
 fn run(command: Command) {
     eprintln!("{:?}", command);
-    let reader = hound::WavReader::open(command.input).expect("cannot open input file");
+    let reader = hound::WavReader::open(command.input.clone()).expect("cannot open input file");
     let spec = reader.spec();
     let writer = hound::WavWriter::create(
-        command.output,
+        command.output.clone(),
         hound::WavSpec {
             channels: spec.channels,
             sample_rate: spec.sample_rate,
@@ -64,7 +82,7 @@ fn run(command: Command) {
     )
     .expect("cannot create output file");
 
-    let block_size = spec.sample_rate as usize / 100;
+    let block_size = command.compute_block_size(spec.sample_rate as usize);
     eprintln!("block size: {}", block_size);
     let mut source = WavSource::new(reader, block_size);
     let mut check_shape = CheckShape::<f32>::new(spec.channels as usize, block_size);
@@ -179,6 +197,8 @@ mod tests {
             output: out_wav_path.clone(),
             sleep_duration: None,
             plugin_name: "negate_processor_create".to_string(),
+            block_size_ms: 10,
+            block_size_frames: None,
         });
 
         // Verify the output.
