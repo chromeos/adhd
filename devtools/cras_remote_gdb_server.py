@@ -10,6 +10,7 @@ from pathlib import Path
 import sys
 import time
 
+from chromite.lib import cros_build_lib
 from chromite.lib import remote_access
 
 
@@ -43,24 +44,12 @@ class GDBServer:
                 f":{self.gdb_port}",
                 "$(ps -C cras -o pid=)",
             ]
-            # stop cras with minijail
-            stop_cras = ["stop", "cras"]
-            # stop cras-dev
-            stop_cras_dev = ["stop", "cras-dev"]
-            # start cras without minijail
-            start_cras_dev = ["start", "cras-dev"]
             # gdbserver clean up command
             CleanupCmd = ["kill", "$(ps -C gdbserver -o pid=)"]
 
             device.RegisterCleanupCmd(CleanupCmd)
             print("clean up gdbserver")
             device.run(CleanupCmd, check=False)
-            print("stop cras")
-            device.run(stop_cras, check=False)
-            print("stop cras-dev")
-            device.run(stop_cras_dev, check=False)
-            print("start cras-dev")
-            device.run(start_cras_dev)
             print("start runing gdbserver on dut cmd: ", gdbserver_cmds)
             device.run(gdbserver_cmds)
 
