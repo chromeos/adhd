@@ -31,6 +31,10 @@ func main() {
 	followCqDepend := pflag.BoolP("cq-depend", "d", false, "follow Cq-Depend recursively")
 	followRelationChain := pflag.BoolP("relation", "r", false, "follow relation chain")
 
+	checkKernelUpstream := pflag.Bool("check-kernel-upstream", false,
+		`Check for "No changes have been detected between this change and its upstream source!" by sean@poorly.run`,
+	)
+
 	removeAttention := pflag.Bool("remove-attention", false,
 		"remove the user from the attention set")
 	attentionUser := pflag.String("attention-user", bulkreview.UserSelf,
@@ -75,6 +79,28 @@ func main() {
 		logrus.Fatal(err)
 	}
 
+	logrus.Println(len(changes), "changes to consider")
+
+	if *checkKernelUpstream {
+		var checkedCLs []bulkreview.Change
+		allUpstream := true
+		logrus.Println("Checking kernel upstream...")
+		for i, cl := range changes {
+			ccl, ok := bulkreview.CheckKernelUpstream(c, cl)
+			checkedCLs = append(checkedCLs, ccl)
+			if ok {
+				logrus.Printf("%d/%d %s OK", i+1, len(changes), ccl)
+			} else {
+				logrus.Printf("%d/%d %s Missing", i+1, len(changes), ccl)
+				allUpstream = false
+			}
+		}
+		if !allUpstream {
+			logrus.Fatal("Not all CLs are upstream")
+		}
+		changes = checkedCLs
+	}
+
 	votes := map[string]string{}
 	if *cq != ignoreLabel {
 		votes[labels.CommitQueue] = strconv.Itoa(*cq)
@@ -86,7 +112,6 @@ func main() {
 		votes[labels.Verified] = strconv.Itoa(*v)
 	}
 
-	logrus.Println(len(changes), "changes to consider")
 	for i, cl := range changes {
 		logrus.Printf("(%d/%d) %s", i+1, len(changes), cl)
 
@@ -97,7 +122,11 @@ func main() {
 				Labels:  votes,
 				Message: *reviewMessage,
 			}
-			r, _, err := cg.Changes.SetReview(cl.ID, bulkreview.RevisionCurrent, review)
+			revision := bulkreview.RevisionCurrent
+			if cl.Revision != 0 {
+				revision = strconv.Itoa(cl.Revision)
+			}
+			r, _, err := cg.Changes.SetReview(cl.ID, revision, review)
 			if err != nil {
 				logrus.Fatal(err)
 			}

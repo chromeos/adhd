@@ -76,7 +76,7 @@ func (d *dependencyResolver) visitRelatedChanges(cl Change) error {
 			}
 
 			err = d.visit(
-				Change{cl.GerritHost, strconv.Itoa(child.ChangeNumber)},
+				Change{cl.GerritHost, strconv.Itoa(child.ChangeNumber), 0},
 				false, // already on relation chain, don't follow
 				false,
 			)

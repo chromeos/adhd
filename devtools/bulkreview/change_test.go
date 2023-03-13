@@ -15,12 +15,12 @@ func TestParseChange(t *testing.T) {
 		input  string
 		output Change
 	}{
-		{"12345", Change{"chromium", "12345"}},
-		{"*23456", Change{"chrome-internal", "23456"}},
-		{"chromium:9999", Change{"chromium", "9999"}},
-		{"chrome-internal:9999", Change{"chrome-internal", "9999"}},
-		{"https://crrev.com/c/1337", Change{"chromium", "1337"}},
-		{"https://crrev.com/i/1337", Change{"chrome-internal", "1337"}},
+		{"12345", Change{"chromium", "12345", 0}},
+		{"*23456", Change{"chrome-internal", "23456", 0}},
+		{"chromium:9999", Change{"chromium", "9999", 0}},
+		{"chrome-internal:9999", Change{"chrome-internal", "9999", 0}},
+		{"https://crrev.com/c/1337", Change{"chromium", "1337", 0}},
+		{"https://crrev.com/i/1337", Change{"chrome-internal", "1337", 0}},
 	}
 
 	for _, item := range table {

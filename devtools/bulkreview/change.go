@@ -14,6 +14,8 @@ import (
 type Change struct {
 	GerritHost GerritHost // e.g. chromium, chrome-internal
 	ID         string     // change ID or number
+
+	Revision int // The revision we should vote on
 }
 
 var _ fmt.Stringer = Change{}
@@ -54,7 +56,7 @@ func (cl Change) URL() string {
 // - https://crrev.com/i/12345
 func ParseChange(s string) (Change, error) {
 	if isDigit(s) {
-		return Change{gerritHostChromium, s}, nil
+		return Change{gerritHostChromium, s, 0}, nil
 	}
 
 	matchers := []struct {
