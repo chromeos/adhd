@@ -773,6 +773,9 @@ int cras_alsa_mmap_begin(snd_pcm_t* handle,
       }
       syslog(LOG_INFO, "recover failed begin: %s\n", snd_strerror(rc));
       return rc;
+    } else if (!my_areas || !my_areas[0].addr) {
+      syslog(LOG_ERR, "mmap_begin returned NULL areas.");
+      return -ENOMEM;
     }
     /* Available frames could be zero right after input pcm handle
      * resumed. As for output pcm handle, some error has occurred
