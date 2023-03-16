@@ -364,6 +364,7 @@ cc_library(
         "cras_dbus_util.h",
         "cras_device_monitor.c",
         "cras_device_monitor.h",
+        "cras_dlc_manager.c",
         "cras_dsp.c",
         "cras_dsp.h",
         "cras_dsp_ini.c",
@@ -475,6 +476,7 @@ cc_library(
     hdrs = [
         "cras_alsa_plugin_io.h",
         "cras_bt_manager.h",
+        "cras_dlc_manager.h",
     ],
     visibility = ["//cras/src/fuzz:__pkg__"],
     deps = [

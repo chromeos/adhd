@@ -27,6 +27,7 @@
 #include "cras/src/server/cras_bt_manager.h"
 #include "cras/src/server/cras_dbus.h"
 #include "cras/src/server/cras_dbus_control.h"
+#include "cras/src/server/cras_dlc_manager.h"
 #endif
 #include "cras/src/common/cras_metrics.h"
 #include "cras/src/common/cras_string.h"
@@ -579,6 +580,9 @@ int cras_server_run(unsigned int profile_disable_mask) {
 
   // After a delay, make sure there is at least one real output device.
   cras_tm_create_timer(tm, OUTPUT_CHECK_MS, check_output_exists, 0);
+
+  // Download DLC packages
+  cras_dlc_manager_init();
 
   // Main server loop - client callbacks are run from this context.
   while (1) {

@@ -28,6 +28,17 @@ bool cras_dlc_sr_bt_is_available(void);
  */
 const char *cras_dlc_sr_bt_get_root(void);
 
+/**
+ * Returns `true` if the "nc-ap-dlc" package is ready for use, otherwise
+ * returns `false`.
+ */
+bool cras_dlc_nc_ap_is_available(void);
+
+/**
+ * Returns DLC root_path for the "nc-ap-dlc" package.
+ */
+const char *cras_dlc_nc_ap_get_root(void);
+
 #endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_DLC_H_ */
 
 #ifdef __cplusplus
