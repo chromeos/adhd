@@ -265,6 +265,8 @@ struct cras_client {
   void* observer_context;
   struct floop_request* floop_request_list;
   pthread_mutex_t floop_request_list_mu;
+  // Client type set directly on the client by cras_client_set_client_type.
+  enum CRAS_CLIENT_TYPE client_type;
 };
 
 /*
@@ -2487,6 +2489,15 @@ int cras_client_connect_async(struct cras_client* client) {
   return send_simple_cmd_msg(client, 0, CLIENT_SERVER_CONNECT_ASYNC);
 }
 
+int cras_client_set_client_type(struct cras_client* client,
+                                enum CRAS_CLIENT_TYPE client_type) {
+  if (client == NULL) {
+    return -EINVAL;
+  }
+  client->client_type = client_type;
+  return 0;
+}
+
 struct cras_stream_params* cras_client_stream_params_create(
     enum CRAS_STREAM_DIRECTION direction,
     size_t buffer_frames,
@@ -2669,6 +2680,13 @@ static inline int cras_client_send_add_stream_command_message(
     goto add_failed;
   }
   memcpy(stream->config, config, sizeof(*config));
+
+  /* To be consistent with existing behavior, temporarily override the client
+   * type if one is specified in the stream params. */
+  if (stream->config->client_type == CRAS_CLIENT_TYPE_UNKNOWN) {
+    stream->config->client_type = client->client_type;
+  }
+
   stream->aud_fd = -1;
   stream->wake_fds[0] = -1;
   stream->wake_fds[1] = -1;
@@ -4393,6 +4411,7 @@ struct libcras_client* libcras_client_create() {
   client->set_aec_dump = cras_client_set_aec_dump;
   client->get_agc_supported = get_agc_supported;
   client->get_ns_supported = get_ns_supported;
+  client->set_client_type = cras_client_set_client_type;
   return client;
 }
 

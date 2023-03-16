@@ -558,6 +558,29 @@ int cras_client_get_max_supported_channels(const struct cras_client* client,
                                            cras_node_id_t node_id,
                                            uint32_t* max_channels);
 
+/* Set the client type on the given client.
+ *
+ * This API is added to allow setting the client type before adding any stream.
+ * When adding a new stream, if the client type in cras_stream_params is not set
+ * (default to CRAS_CLIENT_TYPE_UNKNOWN), the client type set beforehand by this
+ * function is used. Otherwise the client type in cras_stream_params temporarily
+ * overrides the one set by this function, for this new stream only.
+ *
+ * The client type affects the type of iodevs reported by
+ * cras_client_get_*_devices. CRAS_CLIENT_TYPE_TEST shows internal iodevs not
+ * intended to be visible to end users. A stream's client type is used for
+ * identifying streams for flexible loopback (floop), identifying RTC streams,
+ * and providing info for metrics and debug dumps.
+ *
+ * Args:
+ *    client - The client from cras_client_create.
+ *    client_type - A client type.
+ * Returns:
+ *    0 on success, or negative error code on failure.
+ */
+int cras_client_set_client_type(struct cras_client* client,
+                                enum CRAS_CLIENT_TYPE client_type);
+
 /*
  * Stream handling.
  */
@@ -591,7 +614,16 @@ struct cras_stream_params* cras_client_stream_params_create(
     cras_error_cb_t err_cb,
     struct cras_audio_format* format);
 
-/* Functions to set the client type on given stream parameter.
+/* Functions to set the client type on given stream parameter. DEPRECATED.
+ *
+ * If the argument is not CRAS_CLIENT_TYPE_UNKNOWN, it will temporarily override
+ * the current client type, for the new stream(s) created with this
+ * cras_stream_params only. See cras_client_set_client_type.
+ *
+ * The client type is not expected to change frequently during the lifetime of
+ * a client. Remove this function after all clients switch to use
+ * cras_client_set_client_type.
+ *
  * Args:
  *    params - Stream configuration parameters.
  *    client_type - A client type.
@@ -1396,7 +1428,7 @@ int cras_client_set_num_active_streams_changed_callback(
  *    than the supported version, this inline function will return -ENOSYS.
  */
 
-#define CRAS_API_VERSION 9
+#define CRAS_API_VERSION 10
 #define CHECK_VERSION(object, version) \
   if (object->api_version < version) { \
     return -ENOSYS;                    \
@@ -1465,6 +1497,8 @@ struct libcras_client {
                       int fd);
   int (*get_agc_supported)(struct cras_client* client, int* supported);
   int (*get_ns_supported)(struct cras_client* client, int* supported);
+  int (*set_client_type)(struct cras_client* client,
+                         enum CRAS_CLIENT_TYPE client_type);
 };
 
 struct cras_stream_cb_data;
@@ -1878,6 +1912,21 @@ inline int libcras_client_get_floop_dev_idx_by_client_types(
   CHECK_VERSION(client, 4);
   return client->get_floop_dev_idx_by_client_types(client->client_,
                                                    client_types_mask);
+}
+
+/*
+ * Sets the client type on the given client.
+ * Args:
+ *    client - Pointer returned from "libcras_client_create"
+ *    client_type - A client type.
+ * Returns:
+ *    0 on success, or negative error code on failure.
+ */
+DISABLE_CFI_ICALL
+inline int libcras_client_set_client_type(struct libcras_client* client,
+                                          enum CRAS_CLIENT_TYPE client_type) {
+  CHECK_VERSION(client, 10);
+  return client->set_client_type(client->client_, client_type);
 }
 
 /*

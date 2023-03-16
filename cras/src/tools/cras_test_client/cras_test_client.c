@@ -1751,12 +1751,6 @@ static int run_file_io_stream(struct cras_client* client,
     return -ENOMEM;
   }
 
-  if (client_type != CRAS_CLIENT_TYPE_TEST) {
-    fprintf(stderr, "overriding client type to %s\n",
-            cras_client_type_str(client_type));
-  }
-  cras_client_stream_params_set_client_type(params, client_type);
-
   if (effect_aec) {
     cras_client_stream_params_enable_aec(params);
     if (effect_aec_on_dsp) {
@@ -2122,6 +2116,51 @@ fail:
   printf("Failed to get audio thread log.\n");
 }
 
+static int parse_client_type(const char* arg, enum CRAS_CLIENT_TYPE* out) {
+  char* str_end;
+  long enum_value = strtol(arg, &str_end, 0);
+
+  // If arg is not a number, use it as a keyword to search the enum names.
+  if (str_end == arg || *str_end) {
+    int i, nmatch = 0;
+    for (i = 0; i < CRAS_NUM_CLIENT_TYPE; i++) {
+      if (!strcasestr(cras_client_type_str(i), arg)) {
+        continue;
+      }
+      nmatch++;
+      enum_value = i;
+    }
+
+    if (!nmatch) {
+      fprintf(stderr, "Invalid --client_type argument: not found\n");
+      return -EINVAL;
+    }
+    if (nmatch > 1) {
+      fprintf(stderr, "Ambiguous --client_type argument: %d matches\n", nmatch);
+      return -EINVAL;
+    }
+  }
+
+  *out = enum_value;
+  return 0;
+}
+
+static int override_client_type(struct cras_client* client,
+                                enum CRAS_CLIENT_TYPE new_type) {
+  if (new_type != CRAS_CLIENT_TYPE_TEST) {
+    fprintf(stderr, "Overriding client type to %s\n",
+            cras_client_type_str(new_type));
+  }
+
+  int rc = cras_client_set_client_type(client, new_type);
+  if (rc) {
+    fprintf(stderr, "Failed to set client type %d: rc = %d\n", new_type, rc);
+    return rc;
+  }
+
+  return 0;
+}
+
 // clang-format off
 static struct option long_options[] = {
 	{"show_latency",        no_argument,            &show_latency, 1},
@@ -2426,6 +2465,12 @@ static int cras_client_create_and_connect(struct cras_client** client,
   rc = cras_client_create_with_type(client, conn_type);
   if (rc < 0) {
     fprintf(stderr, "Couldn't create client.\n");
+    return rc;
+  }
+
+  rc = override_client_type(*client, client_type);
+  if (rc) {
+    cras_client_destroy(*client);
     return rc;
   }
 
@@ -2817,7 +2862,14 @@ int main(int argc, char** argv) {
         break;
       }
       case 'X':
-        client_type = atoi(optarg) ?: CRAS_CLIENT_TYPE_TEST;
+        rc = parse_client_type(optarg, &client_type);
+        if (rc) {
+          goto destroy_exit;
+        }
+        rc = override_client_type(client, client_type);
+        if (rc) {
+          goto destroy_exit;
+        }
         break;
       default:
         break;
