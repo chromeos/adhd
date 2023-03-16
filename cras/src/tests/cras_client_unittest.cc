@@ -369,6 +369,95 @@ TEST(CrasClientTest, InitStreamVolume) {
   free(cmd_msg.stream);
 }
 
+TEST(CrasClientTest, HideInternalDevices) {
+  struct client_int client_int;
+  struct cras_client* client = &client_int.client;
+  struct cras_server_state shm;
+  struct cras_iodev_info devs[CRAS_MAX_IODEVS];
+  struct cras_ionode_info nodes[CRAS_MAX_IONODES];
+  size_t num_devs, num_nodes;
+
+  memset(&client_int, 0, sizeof(client_int));
+  memset(&shm, 0, sizeof(shm));
+  client->server_state = &shm;
+  pthread_rwlock_init(&client_int.server_state_rwlock, NULL);
+
+  // Create 3 devices on each direction: hidden, visible (with 1 node), hidden.
+  // The server does not attach any node to hidden devices. The input/output
+  // fields are assigned directly because the shm is packed where reference to
+  // its fields cannot be taken due to possible misalignment.
+  for (num_devs = 0, num_nodes = 0; num_devs < 3; num_devs++) {
+    shm.output_devs[num_devs].idx = 0x1000 + num_devs;
+    shm.input_devs[num_devs].idx = 0x1000 + num_devs;
+    if (num_devs == 1) {
+      shm.output_devs_visibility[num_devs] = CRAS_IODEV_VISIBLE;
+      shm.input_devs_visibility[num_devs] = CRAS_IODEV_VISIBLE;
+
+      // Attach a node to the visible device.
+      shm.output_nodes[num_nodes].iodev_idx = shm.output_devs[num_devs].idx;
+      shm.output_nodes[num_nodes].stable_id = 0x2000 + num_nodes;
+      shm.input_nodes[num_nodes].iodev_idx = shm.input_devs[num_devs].idx;
+      shm.input_nodes[num_nodes].stable_id = 0x2000 + num_nodes;
+      num_nodes++;
+    } else {
+      shm.output_devs_visibility[num_devs] = CRAS_IODEV_HIDDEN;
+      shm.input_devs_visibility[num_devs] = CRAS_IODEV_HIDDEN;
+    }
+  }
+  shm.num_output_devs = num_devs;
+  shm.num_output_nodes = num_nodes;
+  shm.num_input_devs = num_devs;
+  shm.num_input_nodes = num_nodes;
+
+  // In Chrome the hidden devices should not be reported.
+  EXPECT_EQ(0, cras_client_set_client_type(client, CRAS_CLIENT_TYPE_CHROME));
+
+  num_devs = CRAS_MAX_IODEVS;
+  num_nodes = CRAS_MAX_IONODES;
+  EXPECT_EQ(0, cras_client_get_output_devices(client, devs, nodes, &num_devs,
+                                              &num_nodes));
+  EXPECT_EQ(1, num_devs);
+  EXPECT_EQ(0x1001, devs[0].idx);
+  EXPECT_EQ(1, num_nodes);
+  EXPECT_EQ(0x2000, nodes[0].stable_id);
+
+  num_devs = CRAS_MAX_IODEVS;
+  num_nodes = CRAS_MAX_IONODES;
+  EXPECT_EQ(0, cras_client_get_input_devices(client, devs, nodes, &num_devs,
+                                             &num_nodes));
+  EXPECT_EQ(1, num_devs);
+  EXPECT_EQ(0x1001, devs[0].idx);
+  EXPECT_EQ(1, num_nodes);
+  EXPECT_EQ(0x2000, nodes[0].stable_id);
+
+  // In the test client all devices should be visible.
+  EXPECT_EQ(0, cras_client_set_client_type(client, CRAS_CLIENT_TYPE_TEST));
+
+  num_devs = CRAS_MAX_IODEVS;
+  num_nodes = CRAS_MAX_IONODES;
+  EXPECT_EQ(0, cras_client_get_output_devices(client, devs, nodes, &num_devs,
+                                              &num_nodes));
+  EXPECT_EQ(3, num_devs);
+  for (uint32_t i = 0; i < 3; i++) {
+    EXPECT_EQ(0x1000 + i, devs[i].idx);
+  }
+  EXPECT_EQ(1, num_nodes);
+  EXPECT_EQ(0x2000, nodes[0].stable_id);
+
+  num_devs = CRAS_MAX_IODEVS;
+  num_nodes = CRAS_MAX_IONODES;
+  EXPECT_EQ(0, cras_client_get_input_devices(client, devs, nodes, &num_devs,
+                                             &num_nodes));
+  EXPECT_EQ(3, num_devs);
+  for (uint32_t i = 0; i < 3; i++) {
+    EXPECT_EQ(0x1000 + i, devs[i].idx);
+  }
+  EXPECT_EQ(1, num_nodes);
+  EXPECT_EQ(0x2000, nodes[0].stable_id);
+
+  pthread_rwlock_destroy(&client_int.server_state_rwlock);
+}
+
 }  // namespace
 
 // stubs
