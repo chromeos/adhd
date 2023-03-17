@@ -1148,6 +1148,7 @@ cc_test(
     name = "hfp_manager_unittest",
     srcs = [
         ":hfp_manager_unittest.cc",
+        ":metrics_stub.cc",
         "//cras/src/server:cras_hfp_manager.c",
     ],
     copts = [

@@ -26,6 +26,7 @@
 #include "cras/src/server/cras_fl_pcm_iodev.h"
 #include "cras/src/server/cras_hfp_alsa_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_audio_format.h"
 #include "cras_config.h"
@@ -188,6 +189,8 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
   skt_fd = socket(PF_UNIX, SOCK_STREAM | O_NONBLOCK, 0);
   if (skt_fd < 0) {
     syslog(LOG_WARNING, "Create HFP socket failed with error %d", errno);
+    cras_server_metrics_hfp_sco_connection_error(
+        CRAS_METRICS_SCO_SKT_OPEN_ERROR);
     rc = skt_fd;
     goto error;
   }
@@ -198,6 +201,8 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
   rc = connect(skt_fd, (struct sockaddr*)&addr, sizeof(addr));
   if (rc < 0) {
     syslog(LOG_WARNING, "Connect to HFP socket failed with error %d", errno);
+    cras_server_metrics_hfp_sco_connection_error(
+        CRAS_METRICS_SCO_SKT_CONNECT_ERROR);
     goto error;
   }
 
@@ -207,11 +212,15 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
   rc = ppoll(&poll_fd, 1, &timeout, NULL);
   if (rc <= 0) {
     syslog(LOG_WARNING, "Poll for HFP socket failed with error %d", errno);
+    cras_server_metrics_hfp_sco_connection_error(
+        CRAS_METRICS_SCO_SKT_POLL_TIMEOUT);
     goto error;
   }
 
   if (poll_fd.revents & (POLLERR | POLLHUP)) {
     syslog(LOG_WARNING, "HFP socket error, revents: %u.", poll_fd.revents);
+    cras_server_metrics_hfp_sco_connection_error(
+        CRAS_METRICS_SCO_SKT_POLL_ERR_HUP);
     rc = -1;
     goto error;
   }
@@ -220,6 +229,7 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
 
   audio_thread_add_events_callback(hfp->fd, cb, hfp,
                                    POLLIN | POLLERR | POLLHUP);
+  cras_server_metrics_hfp_sco_connection_error(CRAS_METRICS_SCO_SKT_SUCCESS);
   BTLOG(btlog, BT_SCO_CONNECT, 1, hfp->fd);
 
 start_dev:
