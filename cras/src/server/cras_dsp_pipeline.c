@@ -837,16 +837,16 @@ int cras_dsp_pipeline_apply(struct pipeline* pipeline,
   size_t remaining;
   size_t chunk;
   size_t i;
-  unsigned int input_channels = pipeline->input_channels;
-  unsigned int output_channels = pipeline->output_channels;
-  float* source[input_channels];
-  float* sink[output_channels];
   struct timespec begin, end, delta;
   int rc;
 
   if (!pipeline || frames == 0) {
     return 0;
   }
+  unsigned int input_channels = pipeline->input_channels;
+  unsigned int output_channels = pipeline->output_channels;
+  float* source[input_channels];
+  float* sink[output_channels];
 
   clock_gettime(CLOCK_THREAD_CPUTIME_ID, &begin);
 
