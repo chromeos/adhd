@@ -12,7 +12,8 @@ board_name="$(cros_config /arc/build-properties product)"
 cpu_model_name="$( \
   cat /proc/cpuinfo \
   | grep -i 'model name' -m 1 \
-  | sed 's/model name[ \t]*:[ \t]*//')"
+  | sed 's/model name[ \t]*:[ \t]*//' \
+  | sed 's/\ /_/g')"
 
 device_config_dir="/etc/cras/${device_config_dir}"
 DEVICE_CONFIG_DIR="--device_config_dir=${device_config_dir}"
