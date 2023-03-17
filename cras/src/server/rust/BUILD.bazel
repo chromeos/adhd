@@ -32,7 +32,10 @@ rust_library(
     srcs = glob(include = ["src/*.rs"]),
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     deps = [
+        "@crate_index//:anyhow",
         "@crate_index//:libc",
+        "@crate_index//:log",
+        "@crate_index//:syslog",
     ],
 )
 

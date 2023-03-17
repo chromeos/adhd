@@ -3,9 +3,11 @@
 // found in the LICENSE file.
 
 mod feature_tier;
-pub use feature_tier::bindings;
+pub use feature_tier::bindings as feature_tier_bindings;
+mod logging;
 mod rate_estimator;
 pub mod rate_estimator_bindings;
+pub use logging::bindings as logging_bindings;
 
 #[cfg(feature = "cras_dlc")]
 pub use cras_dlc::{cras_dlc_sr_bt_get_root, cras_dlc_sr_bt_is_available};

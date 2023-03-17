@@ -162,6 +162,15 @@ crates_repository(
         "libc": crate.spec(
             version = "0.2.44",
         ),
+        "anyhow": crate.spec(
+            version = "1.0.68",
+        ),
+        "log": crate.spec(
+            version = "0.4.17",
+        ),
+        "syslog": crate.spec(
+            version = "6.0.1",
+        ),
     },
 )
 

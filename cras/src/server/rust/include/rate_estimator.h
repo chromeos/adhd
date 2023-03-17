@@ -90,7 +90,7 @@ double rate_estimator_get_rate(const struct rate_estimator *re);
  */
 void rate_estimator_reset_rate(struct rate_estimator *re, unsigned int rate);
 
-#endif // CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_
+#endif /* CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_ */
 
 #ifdef __cplusplus
 }

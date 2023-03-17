@@ -63,6 +63,10 @@ pub mod bindings {
     #[no_mangle]
     /// Initialize the cras feature tier struct.
     /// On error, a negative error code is returned.
+    ///
+    /// # Safety
+    ///
+    /// out must be non-NULL.
     pub unsafe extern "C" fn cras_feature_tier_init(
         out: *mut CrasFeatureTier,
         board_name: *const libc::c_char,
@@ -87,6 +91,12 @@ pub mod bindings {
         };
 
         *out = CrasFeatureTier::new(board_name, cpu_name);
+
+        log::info!(
+            "cras_feature_tier initialized with board={:?} cpu={:?}",
+            board_name,
+            cpu_name
+        );
 
         0
     }

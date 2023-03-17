@@ -37,10 +37,13 @@ fn builder(copyright_year: u32) -> Builder {
 }
 
 fn generate(b: Builder, filename: &str) {
-    b.with_include_guard(format!("{}_", filename.to_uppercase().replace('.', "_")))
-        .generate()
-        .unwrap_or_else(|_| panic!("cannot generate {}", filename))
-        .write_to_file(Path::new("../include").join(filename));
+    b.with_include_guard(format!(
+        "CRAS_SRC_SERVER_RUST_INCLUDE_{}_",
+        filename.to_uppercase().replace('.', "_")
+    ))
+    .generate()
+    .unwrap_or_else(|_| panic!("cannot generate {}", filename))
+    .write_to_file(Path::new("../include").join(filename));
 }
 
 fn main() {
@@ -63,5 +66,10 @@ fn main() {
     generate(
         builder(2022).with_src("../cras_dlc/src/lib.rs"),
         "cras_dlc.h",
+    );
+
+    generate(
+        builder(2023).with_src("../src/logging.rs"),
+        "cras_rust_logging.h",
     );
 }
