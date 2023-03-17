@@ -358,7 +358,7 @@ static const char* node_type_to_str(struct cras_ionode* node) {
 
 // Fills an ionode_info array from the iodev_list.
 static int fill_node_list(struct iodev_list* list,
-                          struct cras_ionode_info* node_info,
+                          struct cras_ionode_info node_info[],
                           size_t out_size) {
   int i = 0;
   struct cras_iodev* dev;
