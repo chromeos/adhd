@@ -915,7 +915,7 @@ static int supported_features(struct hfp_slc_handle* handle, const char* cmd) {
    * features in AG(audio gateway).
    */
   BTLOG(btlog, BT_HFP_SUPPORTED_FEATURES, 1, handle->ag_supported_features);
-  snprintf(response, 128, AT_CMD("+BRSF: %u"), handle->ag_supported_features);
+  snprintf(response, 128, AT_CMD("+BRSF: %d"), handle->ag_supported_features);
   err = hfp_send(handle, response);
   if (err < 0) {
     return err;

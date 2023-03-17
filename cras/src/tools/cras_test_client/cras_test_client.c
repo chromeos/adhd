@@ -775,7 +775,7 @@ static void print_active_stream_info(struct cras_client* client) {
 
   num_streams = cras_client_get_num_active_streams(client, &ts);
   printf("Num active streams: %u\n", num_streams);
-  printf("Last audio active time: %llu, %llu\n", (long long)ts.tv_sec,
+  printf("Last audio active time: %lld, %lld\n", (long long)ts.tv_sec,
          (long long)ts.tv_nsec);
 }
 
@@ -883,7 +883,7 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
       printf("%-30s num_fds:%d\n", "WAKE", (int)data1);
       break;
     case AUDIO_THREAD_SLEEP:
-      printf("%-30s sleep:%09d.%09d non_empty %u\n", "SLEEP", (int)data1,
+      printf("%-30s sleep:%09d.%09d non_empty %d\n", "SLEEP", (int)data1,
              (int)data2, (int)data3);
       break;
     case AUDIO_THREAD_READ_AUDIO:
@@ -951,7 +951,7 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
              data1 * 1000 + data2 / 1000000, data3);
       break;
     case AUDIO_THREAD_A2DP_WRITE:
-      printf("%-30s written:%d queued:%u\n", "A2DP_WRITE", data1, data2);
+      printf("%-30s written:%u queued:%u\n", "A2DP_WRITE", data1, data2);
       break;
     case AUDIO_THREAD_DEV_STREAM_MIX:
       printf("%-30s written:%u read:%u\n", "DEV_STREAM_MIX", data1, data2);
@@ -1031,7 +1031,7 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
       printf("%-30s dev:%u\n", "SEVERE_UNDERRUN", data1);
       break;
     case AUDIO_THREAD_CAPTURE_DROP_TIME:
-      printf("%-30s time:%09u.%09d\n", "CAPTURE_DROP_TIME", data1, data2);
+      printf("%-30s time:%09u.%09u\n", "CAPTURE_DROP_TIME", data1, data2);
       break;
     case AUDIO_THREAD_DEV_DROP_FRAMES:
       printf("%-30s dev:%u frames:%u\n", "DEV_DROP_FRAMES", data1, data2);
