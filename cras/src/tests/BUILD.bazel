@@ -1680,9 +1680,11 @@ cc_test(
     target_compatible_with = require_config("//:apm_build"),
     deps = [
         ":test_support",
+        "//cras/src/audio_processor/c:plugin_processor",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
+        "//cras/src/server/rust",
         "@iniparser",
         "@libwebrtc_apm",
         "@pkg_config//:alsa",

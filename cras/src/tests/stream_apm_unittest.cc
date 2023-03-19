@@ -13,6 +13,7 @@ extern "C" {
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_message.h"
+#include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/float_buffer.h"
 #include "cras_types.h"
@@ -856,6 +857,10 @@ int cras_main_message_send(struct cras_main_message* msg) {
   cras_main_message_send_called++;
   sent_apm_message_vector.push_back((struct cras_stream_apm_message*)msg);
   return 0;
+}
+
+enum CrasProcessorEffect cras_processor_get_effect() {
+  return NoEffects;
 }
 
 }  // extern "C"

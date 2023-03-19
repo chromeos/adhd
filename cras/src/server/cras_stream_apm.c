@@ -10,6 +10,7 @@
 #include <syslog.h>
 #include <webrtc-apm/webrtc_apm.h>
 
+#include "cras/src/audio_processor/c/plugin_processor.h"
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
@@ -20,9 +21,11 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_message.h"
+#include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/float_buffer.h"
 #include "cras/src/server/iniparser_wrapper.h"
+#include "cras/src/server/rust/include/cras_processor.h"
 #include "cras_audio_format.h"
 #include "third_party/utlist/utlist.h"
 
@@ -85,6 +88,9 @@ struct cras_apm {
   // consecutive frames where symmetric content in render has been
   // observed. Used for falling-back to mono processing.
   int blocks_with_symmetric_content_in_render;
+  // The audio processor pipeline which is run after the APM.
+  // If the APM is created successfully, pp is always non-NULL.
+  struct plugin_processor* pp;
   struct cras_apm *prev, *next;
 };
 
@@ -468,6 +474,11 @@ static void apm_destroy(struct cras_apm** apm) {
   if (*apm == NULL) {
     return;
   }
+
+  if ((*apm)->pp) {
+    (*apm)->pp->ops->destroy((*apm)->pp);
+  }
+
   byte_buffer_destroy(&(*apm)->buffer);
   float_buffer_destroy(&(*apm)->fbuffer);
   cras_audio_area_destroy((*apm)->area);
@@ -688,6 +699,24 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       byte_buffer_create(frame_length * cras_get_format_bytes(&apm->fmt));
   apm->fbuffer = float_buffer_create(frame_length, apm->fmt.num_channels);
   apm->area = cras_audio_area_create(apm->fmt.num_channels);
+
+  struct CrasProcessorConfig cfg = {
+      // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
+      // AEC capture.
+      .channels = 1,
+      .block_size = frame_length,
+      .frame_rate = apm->fmt.frame_rate,
+      .effect = cras_processor_get_effect(),
+  };
+  apm->pp = cras_processor_create(&cfg);
+  if (apm->pp == NULL) {
+    // cras_processor_create should never fail.
+    // If it ever fails, give up using the APM.
+    // TODO: Add UMA about this failure.
+    syslog(LOG_ERR, "cras_processor_create returned NULL");
+    apm_destroy(&apm);
+    return NULL;
+  }
 
   /* TODO(hychao):remove mono_channel once we're ready for multi
    * channel capture process. */
@@ -1141,6 +1170,23 @@ int cras_stream_apm_process(struct cras_apm* apm,
 
     possibly_track_voice_activity(apm);
 
+    // Process audio with cras_processor.
+    struct multi_slice input = {
+        // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
+        // AEC capture.
+        .channels = 1,
+        .num_frames = nread,
+    };
+    struct multi_slice output = {};
+    for (int ch = 0; ch < input.channels; ch++) {
+      input.data[ch] = rp[ch];
+    }
+    enum status st = apm->pp->ops->run(apm->pp, &input, &output);
+    if (st != StatusOk) {
+      syslog(LOG_ERR, "cras_processor run failed");
+      return -ENOTRECOVERABLE;
+    }
+
     /* We configure APM for N-ch input to 1-ch output processing
      * and that has the side effect that the rest of channels are
      * filled with the unprocessed content from hardware mic.
@@ -1149,8 +1195,13 @@ int cras_stream_apm_process(struct cras_apm* apm,
      * TODO(hychao): remove this when we're ready for multi channel
      * capture process.
      */
-    for (ch = 1; ch < apm->fbuffer->num_channels; ch++) {
-      memcpy(rp[ch], rp[0], nread * sizeof(float));
+    assert(output.channels == 1);
+    assert(output.num_frames == nread);
+    for (ch = 0; ch < apm->fbuffer->num_channels; ch++) {
+      // TODO(aaronyu): audio_processor does not guarantee that the output and
+      // the input don't overlap. It's better to call dsp_util_interleave
+      // on `output.data`, instead of copying data back to `rp`.
+      memcpy(rp[ch], output.data[0], nread * sizeof(float));
     }
 
     dsp_util_interleave(rp, buf_write_pointer(apm->buffer),

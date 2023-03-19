@@ -520,6 +520,8 @@ cc_library(
         "cras_rstream_config.h",
         "cras_rstream.h",
         "cras_speak_on_mute_detector.h",
+        "cras_processor_config.h",
+        "cras_processor_config.c",
         "dev_io.h",
         "polled_interval_checker.h",
         "speak_on_mute_detector.h",
@@ -533,6 +535,9 @@ cc_library(
         ":cras_audio_area",
         ":dsp_types",
         ":ewma_power",
+        ":cras_features",
+        "//cras/src/audio_processor/c:plugin_processor",
+        "//cras/src/server/rust",
         "//cras/src/common",
         "//cras/src/dsp",
     ] + select({
