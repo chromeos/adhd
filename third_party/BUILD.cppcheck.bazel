@@ -1,0 +1,60 @@
+package(
+    # Mark testonly so we don't accidentally ship this.
+    default_testonly = True,
+)
+
+COPTS = [
+    "-Wno-multichar",
+    "-Wno-deprecated-declarations",
+    "-Wno-sign-compare",
+    "-Wno-bitwise-instead-of-logical",
+]
+
+cc_binary(
+    name = "cppcheck",
+    deps = [":cli"],
+)
+
+cc_library(
+    name = "cli",
+    srcs = glob([
+        "cli/*.cpp",
+        "cli/*.h",
+    ]),
+    copts = COPTS,
+    visibility = ["//visibility:public"],
+    deps = [":lib"],
+)
+
+cc_library(
+    name = "lib",
+    srcs = glob(["lib/*.cpp"]),
+    hdrs = glob(["lib/*.h"]),
+    copts = COPTS,
+    includes = ["lib"],
+    deps = [
+        ":picojson",
+        ":simplecpp",
+        ":tinyxml2",
+    ],
+)
+
+cc_library(
+    name = "picojson",
+    hdrs = ["externals/picojson/picojson.h"],
+    includes = ["externals/picojson"],
+)
+
+cc_library(
+    name = "simplecpp",
+    srcs = ["externals/simplecpp/simplecpp.cpp"],
+    hdrs = ["externals/simplecpp/simplecpp.h"],
+    includes = ["externals/simplecpp"],
+)
+
+cc_library(
+    name = "tinyxml2",
+    srcs = ["externals/tinyxml2/tinyxml2.cpp"],
+    hdrs = ["externals/tinyxml2/tinyxml2.h"],
+    includes = ["externals/tinyxml2"],
+)
