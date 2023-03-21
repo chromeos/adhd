@@ -15,6 +15,7 @@ struct cras_board_config {
   int32_t ns_supported;
   int32_t agc_supported;
   int32_t nc_supported;
+  int32_t nc_standalone_mode;
   int32_t bt_wbs_enabled;
   int32_t bt_hfp_offload_finch_applied;
   int32_t deprioritize_bt_wbs_mic;

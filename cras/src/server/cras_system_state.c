@@ -186,7 +186,6 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->aec_on_dsp_supported = board_config.aec_on_dsp_supported;
   exp_state->ns_on_dsp_supported = board_config.ns_on_dsp_supported;
   exp_state->agc_on_dsp_supported = board_config.agc_on_dsp_supported;
-
   exp_state->bt_wbs_enabled = board_config.bt_wbs_enabled;
   exp_state->bt_hfp_offload_finch_applied =
       board_config.bt_hfp_offload_finch_applied;
@@ -202,6 +201,7 @@ void cras_system_state_init(const char* device_config_dir,
       board_config.max_internal_speaker_channels;
   exp_state->max_headphone_channels = board_config.max_headphone_channels;
   exp_state->num_non_chrome_output_streams = 0;
+  exp_state->nc_standalone_mode = board_config.nc_standalone_mode;
 
   if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
     syslog(LOG_ERR, "Fatal: system state mutex init");
@@ -860,4 +860,8 @@ bool cras_system_state_get_speak_on_mute_detection_enabled() {
 
 int cras_system_state_num_non_chrome_output_streams() {
   return state.exp_state->num_non_chrome_output_streams;
+}
+
+bool cras_system_get_noise_cancellation_standalone_mode() {
+  return !!state.exp_state->nc_standalone_mode;
 }

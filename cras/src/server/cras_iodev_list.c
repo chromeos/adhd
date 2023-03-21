@@ -139,6 +139,11 @@ static bool aec_on_dsp_is_disallowed = false;
 
 // Returns true for blocking Noise Cancellation; false for unblocking.
 static bool get_nc_blocked_state() {
+  // TODO(b/272408566) remove this WA when the formal fix is landed
+  if (cras_system_get_noise_cancellation_standalone_mode()) {
+    return non_dsp_aec_echo_ref_dev_alive;
+  }
+
   return non_dsp_aec_echo_ref_dev_alive || aec_on_dsp_is_disallowed;
 }
 
@@ -505,6 +510,18 @@ static void possibly_disable_echo_reference(struct cras_iodev* dev) {
                         dev->echo_reference_dev->info.idx);
 }
 
+static bool is_dsp_aec_use_case(const struct cras_ionode* node) {
+  /* For NC standalone mode, this checker should be interpreted to
+   * old-fashioned use case, i.e. any node but Internal Speaker.
+   * TODO(b/272408566) remove this WA when the formal fix is landed
+   */
+  if (cras_system_get_noise_cancellation_standalone_mode()) {
+    return node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  }
+
+  return cras_iodev_is_dsp_aec_use_case(node);
+}
+
 /*
  * Sets |non_dsp_aec_echo_ref_dev_alive| true for NC blocking state decision
  * if the output device |dev| is enabled or opened while it can't be applied
@@ -531,7 +548,7 @@ static void possibly_set_non_dsp_aec_echo_ref_dev_alive(
     return;
   }
 
-  if (dev->active_node && !cras_iodev_is_dsp_aec_use_case(dev->active_node)) {
+  if (dev->active_node && !is_dsp_aec_use_case(dev->active_node)) {
     syslog(LOG_DEBUG, "non_dsp_aec_echo_ref_dev_alive=1 by output dev: %u",
            dev->info.idx);
     set_non_dsp_aec_echo_ref_dev_alive(true);
@@ -559,7 +576,7 @@ static void possibly_clear_non_dsp_aec_echo_ref_dev_alive() {
     }
 
     if (edev->dev->active_node &&
-        !cras_iodev_is_dsp_aec_use_case(edev->dev->active_node)) {
+        !is_dsp_aec_use_case(edev->dev->active_node)) {
       return;
     }
   }
@@ -594,7 +611,7 @@ static void possibly_clear_non_dsp_aec_echo_ref_dev_alive() {
       continue;
     }
 
-    if (dev->active_node && !cras_iodev_is_dsp_aec_use_case(dev->active_node)) {
+    if (dev->active_node && !is_dsp_aec_use_case(dev->active_node)) {
       return;
     }
   }

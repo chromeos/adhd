@@ -28,6 +28,7 @@ static const int32_t MAX_INTERNAL_MIC_GAIN_DEFAULT = 2000;
 static const int32_t MAX_INTERNAL_SPK_CHANNELS_DEFAULT = 2;
 // MAX_HEADPHONE_CHANNELS_DEFAULT applied to both headphone and lineout.
 static const int32_t MAX_HEADPHONE_CHANNELS_DEFAULT = 2;
+static const int32_t NC_STANDALONE_MODE_DEFAULT = 0;
 
 #define CONFIG_NAME "board.ini"
 #define DEFAULT_OUTPUT_BUF_SIZE_INI_KEY "output:default_output_buffer_size"
@@ -49,6 +50,7 @@ static const int32_t MAX_HEADPHONE_CHANNELS_DEFAULT = 2;
 #define MAX_INTERNAL_MIC_GAIN "input:max_internal_mic_gain"
 #define MAX_INTERNAL_SPK_CHANNELS_INI_KEY "output:max_internal_speaker_channels"
 #define MAX_HEADPHONE_CHANNELS_INI_KEY "output:max_headphone_channels"
+#define NC_STANDALONE_MODE_INI_KEY "processing:nc_standalone_mode"
 
 void cras_board_config_get(const char* config_path,
                            struct cras_board_config* board_config) {
@@ -77,6 +79,7 @@ void cras_board_config_get(const char* config_path,
   board_config->max_internal_speaker_channels =
       MAX_INTERNAL_SPK_CHANNELS_DEFAULT;
   board_config->max_headphone_channels = MAX_HEADPHONE_CHANNELS_DEFAULT;
+  board_config->nc_standalone_mode = NC_STANDALONE_MODE_DEFAULT;
   if (config_path == NULL) {
     return;
   }
@@ -184,6 +187,11 @@ void cras_board_config_get(const char* config_path,
   ini_key[MAX_INI_KEY_LENGTH] = 0;
   board_config->max_headphone_channels =
       iniparser_getint(ini, ini_key, MAX_HEADPHONE_CHANNELS_DEFAULT);
+
+  snprintf(ini_key, MAX_INI_KEY_LENGTH, NC_STANDALONE_MODE_INI_KEY);
+  ini_key[MAX_INI_KEY_LENGTH] = 0;
+  board_config->nc_standalone_mode =
+      iniparser_getint(ini, ini_key, NC_STANDALONE_MODE_DEFAULT);
 
   iniparser_freedict(ini);
   syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
