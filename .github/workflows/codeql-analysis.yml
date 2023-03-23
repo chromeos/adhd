@@ -15,13 +15,15 @@ on:
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [main]
-  schedule:
-    - cron: '0 11 * * 1'
 
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+
+    permissions:
+      # required for all workflows
+      security-events: write
 
     strategy:
       fail-fast: false
@@ -34,36 +36,36 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
-      with:
-        # We must fetch at least the immediate parents so that if this is
-        # a pull request then we can checkout the head.
-        fetch-depth: 2
-
-    # If this run was triggered by a pull request event, then checkout
-    # the head of the pull request instead of the merge commit.
-    - run: git checkout HEAD^2
-      if: ${{ github.event_name == 'pull_request' }}
+      uses: actions/checkout@v3
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
+
+    - uses: bazelbuild/setup-bazelisk@v2
 
     # Command-line programs to run using the OS shell.
     # https://git.io/JvXDl
 
     - name: Install cras deps
-      working-directory: ./cras
-      run: sudo ./install_deps.sh
+      run: |
+        sudo apt-get install -y \
+          build-essential \
+          ladspa-sdk \
+          libasound-dev \
+          libdbus-1-dev \
+          libgmock-dev \
+          libgtest-dev \
+          libsbc-dev \
+          libspeexdsp-dev \
+          libudev-dev \
+          python3
 
     - name: Build
-      working-directory: ./cras
-      run: |
-        ./git_prepare.sh
-        ./configure
-        make
+      # Build without the sandbox so the CodeQL library hooks work.
+      run: bazel build //... --action_env=LD_PRELOAD --spawn_strategy=standalone
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
