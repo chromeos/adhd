@@ -90,8 +90,8 @@ cc_library(
         # to run pkg-config in the analysis phase for platforms missing the
         # dependencies.
         "//:hw_dependency_build": [
-            "@libchrome",
-            "@libcros_config",
+            "@pkg_config//:libchrome",
+            "@pkg_config//:libcros_config",
         ],
         "//conditions:default": [],
     }),

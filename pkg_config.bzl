@@ -132,13 +132,7 @@ def _symlink_includes(repository_ctx, library, includes):
 def _pkg_config_library(repository_ctx, library, defines = []):
     result = _pkg_config(repository_ctx, library)
     if result.error != None:
-        return """config_setting(
-    name = "never_set",
-    define_values = {{
-        "never_set": "never_set",
-    }},
-)
-
+        return """
 cc_library(
     name = {name},
     deps = select({{":never_set": []}}, no_match_error = {error})
@@ -176,6 +170,13 @@ _pkg_config_repository_attrs = {
 def _pkg_config_repository(repository_ctx, libs, additional_build_file_contents):
     # Create BUILD with the cc_library section for each library.
     build_file_contents = """package(default_visibility = ["//visibility:public"])
+
+config_setting(
+    name = "never_set",
+    define_values = {
+        "never_set": "never_set",
+    },
+)
 """
 
     for library in libs:

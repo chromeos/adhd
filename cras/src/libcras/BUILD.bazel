@@ -45,7 +45,7 @@ cras_shared_library(
         # dynamically because pkg_config does not provide object files.
         "@pkg_config//:alsa",
     ] + select({
-        "//:selinux_build": ["@libselinux//:libselinux"],
+        "//:selinux_build": ["@pkg_config//:libselinux"],
         "//conditions:default": [],
     }),
     visibility = [

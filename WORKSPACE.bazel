@@ -60,43 +60,6 @@ http_archive(
     ],
 )
 
-# optional pkg_config libraries
-pkg_config_repository(
-    name = "libcros_config",
-    libs = ["libcros_config"],
-)
-
-pkg_config_repository(
-    name = "libchrome",
-    libs = ["libchrome"],
-)
-
-pkg_config_repository(
-    name = "tensorflowlite",
-    libs = ["tensorflowlite"],
-)
-
-pkg_config_repository(
-    name = "libwebrtc_apm",
-    libs = ["libwebrtc_apm"],
-)
-
-pkg_config_repository(
-    name = "libfeatures_c",
-    libs = ["libfeatures_c"],
-)
-
-pkg_config_repository(
-    name = "libselinux",
-    libs = ["libselinux"],
-)
-
-pkg_config_repository(
-    name = "libmetrics",
-    libs = ["libmetrics"],
-)
-
-# mandatory pkg_config libraries
 pkg_config_repository(
     name = "pkg_config",
     libs = [
@@ -107,6 +70,14 @@ pkg_config_repository(
         "dbus-1",
         "libudev",
         "sbc",
+        # optional deps
+        "libmetrics",
+        "libselinux",
+        "libfeatures_c",
+        "libwebrtc_apm",
+        "tensorflowlite",
+        "libchrome",
+        "libcros_config",
     ],
 )
 

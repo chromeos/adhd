@@ -213,7 +213,7 @@ cc_library(
     hdrs = ["cras_features.h"],
     visibility = ["//cras/src/tests:__pkg__"],
     deps = select({
-        "//:featured_build": ["@libfeatures_c"],
+        "//:featured_build": ["@pkg_config//:libfeatures_c"],
         "//conditions:default": [],
     }),
 )
@@ -542,7 +542,7 @@ cc_library(
         "//cras/src/dsp",
     ] + select({
         "//conditions:default": [],
-        "//:apm_build": ["@libwebrtc_apm"],
+        "//:apm_build": ["@pkg_config//:libwebrtc_apm"],
     }),
 )
 

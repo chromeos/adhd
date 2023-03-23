@@ -15,7 +15,7 @@ cc_library(
         "//cras/src/server:__pkg__",
     ],
     deps = select({
-        "//:ml_build": ["@tensorflowlite"],
+        "//:ml_build": ["@pkg_config//:tensorflowlite"],
         "//conditions:default": [],
     }),
 )

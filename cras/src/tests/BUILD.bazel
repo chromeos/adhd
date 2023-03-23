@@ -1686,10 +1686,10 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
         "@iniparser",
-        "@libwebrtc_apm",
         "@pkg_config//:alsa",
         "@pkg_config//:gtest",
         "@pkg_config//:gtest_main",
+        "@pkg_config//:libwebrtc_apm",
     ],
 )
 

@@ -85,7 +85,7 @@ cc_library(
         "//cras/src/libcras:__pkg__",
     ],
     deps = [":cras_shm"] + select({
-        "//:selinux_build": ["@libselinux"],
+        "//:selinux_build": ["@pkg_config//:libselinux"],
         "//conditions:default": [],
     }),
 )
@@ -208,7 +208,7 @@ cc_library(
         "//cras/src/server:cras_observer_types",
         "@pkg_config//:sbc",
     ] + select({
-        "//:metrics_build": ["@libmetrics"],
+        "//:metrics_build": ["@pkg_config//:libmetrics"],
         "//conditions:default": [],
     }),
 )
