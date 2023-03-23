@@ -1034,6 +1034,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
   }
   clock_gettime(CLOCK_MONOTONIC_RAW, &end);
   cras_server_metrics_device_configure_time(iodev, &beg, &end);
+  cras_server_metrics_device_sample_rate(iodev);
 
   /*
    * Convert cb_level from input format to device format

@@ -30,6 +30,7 @@ const char kDeviceGain[] = "Cras.DeviceGain";
 const char kDeviceVolume[] = "Cras.DeviceVolume";
 const char kDeviceNoiseCancellationStatus[] =
     "Cras.DeviceNoiseCancellationStatus";
+const char kDeviceSampleRate[] = "Cras.DeviceSampleRate";
 const char kFetchDelayMilliSeconds[] = "Cras.FetchDelayMilliSeconds";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
@@ -115,6 +116,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   DEVICE_RUNTIME,
   DEVICE_VOLUME,
   DEVICE_NOISE_CANCELLATION_STATUS,
+  DEVICE_SAMPLE_RATE,
   HIGHEST_DEVICE_DELAY_INPUT,
   HIGHEST_DEVICE_DELAY_OUTPUT,
   HIGHEST_INPUT_HW_LEVEL,
@@ -190,6 +192,7 @@ struct cras_server_metrics_device_data {
   enum CRAS_STREAM_DIRECTION direction;
   struct timespec runtime;
   unsigned value;
+  int sample_rate;
 };
 
 struct cras_server_metrics_stream_data {
@@ -808,6 +811,26 @@ int cras_server_metrics_device_noise_cancellation_status(
   return 0;
 }
 
+int cras_server_metrics_device_sample_rate(struct cras_iodev* iodev) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  int err;
+
+  data.device_data.type = get_metrics_device_type(iodev);
+  data.device_data.direction = iodev->direction;
+  data.device_data.sample_rate = iodev->format->frame_rate;
+
+  init_server_metrics_msg(&msg, DEVICE_SAMPLE_RATE, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING, "Failed to send metrics message: DEVICE_SAMPLE_RATE");
+    return err;
+  }
+
+  return 0;
+}
+
 int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev* iodev) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   union cras_server_metrics_data data;
@@ -1373,6 +1396,14 @@ static void metrics_device_noise_cancellation_status(
   cras_metrics_log_sparse_histogram(metrics_name, data.value);
 }
 
+static void metrics_device_sample_rate(
+    struct cras_server_metrics_device_data data) {
+  log_sparse_histogram_each_level(
+      3, data.sample_rate, kDeviceSampleRate,
+      data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
+      metrics_device_type_str(data.type));
+}
+
 static void metrics_hfp_mic_sr_status(
     struct cras_server_metrics_device_data data) {
   char metrics_name[METRICS_NAME_BUFFER_SIZE];
@@ -1521,6 +1552,9 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case DEVICE_NOISE_CANCELLATION_STATUS:
       metrics_device_noise_cancellation_status(metrics_msg->data.device_data);
+      break;
+    case DEVICE_SAMPLE_RATE:
+      metrics_device_sample_rate(metrics_msg->data.device_data);
       break;
     case HIGHEST_DEVICE_DELAY_INPUT:
       cras_metrics_log_histogram(kHighestDeviceDelayInput,
