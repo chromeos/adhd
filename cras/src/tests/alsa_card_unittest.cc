@@ -8,6 +8,8 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras/include/cras_types.h"
+
 extern "C" {
 #include "cras/src/server/cras_alsa_card.h"
 #include "cras/src/server/cras_alsa_io.h"
@@ -119,6 +121,8 @@ static int ucm_get_echo_reference_dev_name_for_dev_called;
 static size_t cras_system_check_ignore_ucm_suffix_called;
 static bool cras_system_check_ignore_ucm_suffix_value;
 static const char* ucm_get_echo_reference_dev_name_for_dev_return_value[4];
+static int cras_alsa_mixer_add_controls_by_name_matching_usb_called;
+static int cras_alsa_mixer_add_controls_by_name_matching_internal_called;
 
 static void ResetStubData() {
   cras_alsa_mixer_create_called = 0;
@@ -207,6 +211,8 @@ static void ResetStubData() {
   fake_dev2.nodes = NULL;
   fake_dev3.nodes = NULL;
   fake_dev4.nodes = NULL;
+  cras_alsa_mixer_add_controls_by_name_matching_usb_called = 0;
+  cras_alsa_mixer_add_controls_by_name_matching_internal_called = 0;
   cras_features_set_override(CrOSLateBootCrasSplitAlsaUSBInternal, true);
 }
 
@@ -414,6 +420,35 @@ TEST(AlsaCard, CreateNoDevices) {
   EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_mixer_create_called, cras_alsa_mixer_destroy_called);
   EXPECT_EQ(iniparser_load_called, iniparser_freedict_called);
+}
+
+TEST(AlsaCard, USBCardBasic) {
+  struct cras_alsa_card* c;
+  int dev_nums[] = {0};
+  int info_rets[] = {0, -1};
+  cras_alsa_card_info card_info;
+
+  ResetStubData();
+  snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
+  snd_ctl_pcm_next_device_set_devs = dev_nums;
+  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
+  snd_ctl_pcm_info_rets = info_rets;
+  card_info.card_type = ALSA_CARD_TYPE_USB;
+  card_info.card_index = 0;
+  c = cras_alsa_card_create(&card_info, device_config_dir, fake_blocklist,
+                            NULL);
+  EXPECT_NE(static_cast<struct cras_alsa_card*>(NULL), c);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_create_called);
+  EXPECT_EQ(0, cras_alsa_iodev_create_called);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_legacy_complete_init_called);
+  EXPECT_EQ(0, cras_alsa_iodev_legacy_complete_init_called);
+  EXPECT_EQ(1, cras_alsa_mixer_add_controls_by_name_matching_usb_called);
+
+  cras_alsa_card_destroy(c);
+  EXPECT_EQ(1, cras_alsa_usb_iodev_destroy_called);
+  EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
+  EXPECT_EQ(cras_alsa_usb_iodev_create_return[0],
+            cras_alsa_usb_iodev_destroy_arg);
 }
 
 TEST(AlsaCard, CrOSLateBootCrasSplitAlsaUSBInternalOpen) {
@@ -649,6 +684,7 @@ TEST(AlsaCard, CreateOneInput) {
   EXPECT_EQ(cras_card_config_dir, device_config_dir);
   EXPECT_EQ(0, ucm_get_sections_called);
   EXPECT_EQ(0, cras_alsa_mixer_add_controls_in_section_called);
+  EXPECT_EQ(1, cras_alsa_mixer_add_controls_by_name_matching_internal_called);
 
   cras_alsa_card_destroy(c);
   EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
@@ -1096,14 +1132,20 @@ struct cras_alsa_mixer* cras_alsa_mixer_create(const char* card_name) {
   return cras_alsa_mixer_create_return;
 }
 
-int cras_alsa_mixer_add_controls_by_name_matching(
+int cras_alsa_mixer_add_controls_by_name_matching_usb(
+    struct cras_alsa_mixer* cmix) {
+  cras_alsa_mixer_add_controls_by_name_matching_usb_called++;
+  return 0;
+}
+
+int cras_alsa_mixer_add_controls_by_name_matching_internal(
     struct cras_alsa_mixer* cmix,
     struct mixer_name* extra_controls,
-    struct mixer_name* coupled_controls,
-    enum CRAS_ALSA_CARD_TYPE card_type) {
+    struct mixer_name* coupled_controls) {
   /* Duplicate coupled_output_names to verify in the end of unittest
    * because names will get freed later in cras_alsa_card_create. */
   struct mixer_name* control;
+  cras_alsa_mixer_add_controls_by_name_matching_internal_called++;
   DL_FOREACH (coupled_controls, control) {
     coupled_output_names_value =
         mixer_name_add(coupled_output_names_value, control->name,

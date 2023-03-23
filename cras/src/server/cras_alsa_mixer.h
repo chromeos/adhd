@@ -53,20 +53,29 @@ int cras_alsa_mixer_add_main_volume_control_by_name(
     struct cras_alsa_mixer* cmix,
     struct mixer_name* mixer_names);
 
-/* Adds controls to a cras_alsa_mixer instance by name matching.
+/* Adds controls to a cras_alsa_mixer instance by name matching for usb
+ * soundcard.
+ * Args:
+ *    cmix - A pointer to cras_alsa_mixer.
+ * Returns:
+ *    0 on success. Other error code if error happens.
+ */
+int cras_alsa_mixer_add_controls_by_name_matching_usb(
+    struct cras_alsa_mixer* cmix);
+
+/* Adds controls to a cras_alsa_mixer instance by name matching for internal
+ * soundcard.
  * Args:
  *    cmix - A pointer to cras_alsa_mixer.
  *    extra_controls - A list array of extra mixer control names, always added.
  *    coupled_controls - A list of coupled mixer control names.
- *    card_type - alsa card type when adding controls
  * Returns:
  *    0 on success. Other error code if error happens.
  */
-int cras_alsa_mixer_add_controls_by_name_matching(
+int cras_alsa_mixer_add_controls_by_name_matching_internal(
     struct cras_alsa_mixer* cmix,
     struct mixer_name* extra_controls,
-    struct mixer_name* coupled_controls,
-    enum CRAS_ALSA_CARD_TYPE card_type);
+    struct mixer_name* coupled_controls);
 
 /* Destroys a cras_alsa_mixer that was returned from cras_alsa_mixer_create.
  * Args:

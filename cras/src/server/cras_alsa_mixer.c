@@ -6,6 +6,7 @@
 #include "cras/src/server/cras_alsa_mixer.h"
 
 #include <alsa/asoundlib.h>
+#include <alsa/mixer.h>
 #include <limits.h>
 #include <stdio.h>
 #include <syslog.h>
@@ -771,31 +772,146 @@ struct cras_alsa_mixer* cras_alsa_mixer_create(const char* card_name) {
   return cmix;
 }
 
-int cras_alsa_mixer_add_controls_by_name_matching(
+// Names of controls for main system volume.
+static const char* const main_volume_names[] = {
+    "Master",
+    "Digital",
+    "PCM",
+};
+// Names of controls for individual outputs.
+static const char* const output_names[] = {
+    "Headphone", "Headset", "Headset Earphone", "HDMI", "Speaker",
+};
+// Names of controls for capture gain/attenuation and mute.
+static const char* const main_capture_names[] = {
+    "Capture",
+    "Digital Capture",
+};
+// Names of controls for individual inputs.
+static const char* const input_names[] = {"Mic", "Microphone", "Headset"};
+
+int cras_alsa_mixer_add_controls_by_name_matching_usb(
+    struct cras_alsa_mixer* cmix) {
+  struct mixer_name* default_controls = NULL;
+  snd_mixer_elem_t* elem;
+  const char* name;
+  struct mixer_name* control;
+  int rc = 0;
+  bool output_control_found = false;
+
+  // Note that there is no mixer on some usb soundcards.
+  if (cmix->mixer == NULL) {
+    syslog(LOG_WARNING, "No mixer on this soundcard");
+    return 0;
+  }
+
+  default_controls = mixer_name_add_array(
+      default_controls, output_names, ARRAY_SIZE(output_names),
+      CRAS_STREAM_OUTPUT, MIXER_NAME_VOLUME);
+  default_controls = mixer_name_add_array(
+      default_controls, main_volume_names, ARRAY_SIZE(main_volume_names),
+      CRAS_STREAM_OUTPUT, MIXER_NAME_VOLUME);
+
+  // Find output volume control.
+  for (elem = snd_mixer_first_elem(cmix->mixer); elem != NULL;
+       elem = snd_mixer_elem_next(elem)) {
+    name = snd_mixer_selem_get_name(elem);
+    control = mixer_name_find(default_controls, name, CRAS_STREAM_OUTPUT,
+                              MIXER_NAME_UNDEFINED);
+    if (control && snd_mixer_selem_has_playback_volume(elem)) {
+      // TODO(dgreid) - determine device index.
+      rc = add_control(cmix, CRAS_STREAM_OUTPUT, elem);
+      if (rc) {
+        syslog(LOG_WARNING,
+               "Failed to add playback mixer control '%s'"
+               " with type '%d' rc '%d'",
+               control->name, control->type, rc);
+        goto out;
+      }
+      output_control_found = true;
+    }
+  }
+
+  default_controls = mixer_name_add_array(default_controls, input_names,
+                                          ARRAY_SIZE(input_names),
+                                          CRAS_STREAM_INPUT, MIXER_NAME_VOLUME);
+  default_controls = mixer_name_add_array(
+      default_controls, main_capture_names, ARRAY_SIZE(main_capture_names),
+      CRAS_STREAM_INPUT, MIXER_NAME_MAIN_VOLUME);
+
+  // Find input volume control.
+  for (elem = snd_mixer_first_elem(cmix->mixer); elem != NULL;
+       elem = snd_mixer_elem_next(elem)) {
+    name = snd_mixer_selem_get_name(elem);
+    control = mixer_name_find(default_controls, name, CRAS_STREAM_INPUT,
+                              MIXER_NAME_UNDEFINED);
+
+    if (control && snd_mixer_selem_has_capture_volume(elem)) {
+      switch (control->type) {
+        case MIXER_NAME_MAIN_VOLUME:
+          rc = add_main_capture_control(cmix, elem);
+          break;
+        case MIXER_NAME_VOLUME:
+          rc = add_control(cmix, CRAS_STREAM_INPUT, elem);
+          break;
+        case MIXER_NAME_UNDEFINED:
+          rc = -EINVAL;
+          break;
+      }
+      if (rc) {
+        syslog(LOG_WARNING,
+               "Failed to add capture mixer control '%s'"
+               " with type '%d' rc '%d'",
+               control->name, control->type, rc);
+        goto out;
+      }
+    }
+  }
+
+  /* If there is no volume control and output control found,
+   * use the volume control which has the largest volume range
+   * in the mixer as volume control. */
+  if (!output_control_found) {
+    snd_mixer_elem_t* max_range_elem = NULL;
+    long max_range = 0;
+
+    for (elem = snd_mixer_first_elem(cmix->mixer); elem != NULL;
+         elem = snd_mixer_elem_next(elem)) {
+      long min, max, range;
+
+      if (!snd_mixer_selem_has_playback_volume(elem) ||
+          snd_mixer_selem_get_playback_dB_range(elem, &min, &max) != 0) {
+        continue;
+      }
+
+      range = max - min;
+      if (max_range < range) {
+        max_range = range;
+        max_range_elem = elem;
+      }
+    }
+    if (max_range_elem) {
+      rc = add_control(cmix, CRAS_STREAM_OUTPUT, max_range_elem);
+      if (rc) {
+        syslog(LOG_WARNING,
+               "Failed to add largest volume range mixer control '%s'"
+               " rc '%d'",
+               snd_mixer_selem_get_name(max_range_elem), rc);
+        goto out;
+      }
+    }
+  }
+
+out:
+  mixer_name_free(default_controls);
+  return rc;
+}
+
+int cras_alsa_mixer_add_controls_by_name_matching_internal(
     struct cras_alsa_mixer* cmix,
     struct mixer_name* extra_controls,
-    struct mixer_name* coupled_controls,
-    enum CRAS_ALSA_CARD_TYPE card_type) {
+    struct mixer_name* coupled_controls) {
   // Names of controls for main system volume.
-  static const char* const main_volume_names[] = {
-      "Master",
-      "Digital",
-      "PCM",
-  };
-  // Names of controls for individual outputs.
-  static const char* const output_names[] = {
-      "Headphone", "Headset", "Headset Earphone", "HDMI", "Speaker",
-  };
-  // Names of controls for capture gain/attenuation and mute.
-  static const char* const main_capture_names[] = {
-      "Capture",
-      "Digital Capture",
-  };
-  // Names of controls for individual inputs.
-  static const char* const input_names[] = {
-      "Mic",
-      "Microphone",
-  };
 
   struct mixer_name* default_controls = NULL;
   snd_mixer_elem_t* elem;
@@ -818,9 +934,7 @@ int cras_alsa_mixer_add_controls_by_name_matching(
                                           CRAS_STREAM_INPUT, MIXER_NAME_VOLUME);
   default_controls = mixer_name_add_array(
       default_controls, main_volume_names, ARRAY_SIZE(main_volume_names),
-      CRAS_STREAM_OUTPUT,
-      card_type == ALSA_CARD_TYPE_USB ? MIXER_NAME_VOLUME
-                                      : MIXER_NAME_MAIN_VOLUME);
+      CRAS_STREAM_OUTPUT, MIXER_NAME_MAIN_VOLUME);
   default_controls = mixer_name_add_array(
       default_controls, main_capture_names, ARRAY_SIZE(main_capture_names),
       CRAS_STREAM_INPUT, MIXER_NAME_MAIN_VOLUME);
@@ -949,9 +1063,7 @@ int cras_alsa_mixer_add_controls_by_name_matching(
    * use the volume control which has the largest volume range
    * in the mixer as a main volume control. */
   if (!cmix->main_volume_controls && !cmix->output_controls && other_elem) {
-    rc = card_type == ALSA_CARD_TYPE_USB
-             ? add_control(cmix, CRAS_STREAM_OUTPUT, other_elem)
-             : add_main_volume_control(cmix, other_elem);
+    rc = add_main_volume_control(cmix, other_elem);
     if (rc) {
       syslog(LOG_WARNING, "Could not add other volume control");
       goto out;

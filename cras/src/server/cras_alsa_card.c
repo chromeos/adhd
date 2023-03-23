@@ -254,8 +254,13 @@ static int add_controls_and_iodevs_by_matching(
   }
 
   // Add controls to mixer by name matching.
-  rc = cras_alsa_mixer_add_controls_by_name_matching(
-      alsa_card->mixer, extra_controls, coupled_controls, info->card_type);
+  if (info->card_type == ALSA_CARD_TYPE_USB) {
+    rc = cras_alsa_mixer_add_controls_by_name_matching_usb(alsa_card->mixer);
+  } else {
+    rc = cras_alsa_mixer_add_controls_by_name_matching_internal(
+        alsa_card->mixer, extra_controls, coupled_controls);
+  }
+
   if (rc) {
     syslog(LOG_ERR, "Fail adding controls to mixer for %s.", alsa_card->name);
     goto error;
