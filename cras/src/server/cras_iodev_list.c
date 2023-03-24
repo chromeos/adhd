@@ -1112,6 +1112,10 @@ static int stream_added_cb(struct cras_rstream* rstream) {
   int rc;
   bool iodev_reopened;
 
+  // Should there be a fallback at the end of this function,
+  // check this variable to suppress unnecessary warnings.
+  bool expect_fallback = false;
+
   if (stream_list_suspended) {
     return 0;
   }
@@ -1167,10 +1171,18 @@ static int stream_added_cb(struct cras_rstream* rstream) {
         /* Error log but don't return error here, because
          * stopping audio could block video playback.
          */
-        if (rc == -EAGAIN) {
-          // EAGAIN almost only occurs in bt_io::open_dev as of now.
-          syslog(LOG_WARNING, "Init %s failed, possibly due to profile-switch.",
-                 edev->dev->info.name);
+        struct cras_ionode* node = edev->dev->active_node;
+        bool is_hfp_mic = node &&
+                          (node->type == CRAS_NODE_TYPE_BLUETOOTH ||
+                           node->type == CRAS_NODE_TYPE_BLUETOOTH_NB_MIC) &&
+                          edev->dev->direction == CRAS_STREAM_INPUT;
+        if (is_hfp_mic && rc == -EAGAIN) {
+          // Transitioning from A2DP to HFP is triggered when the mic is
+          // activated, in which case it will block all attempts to open
+          // the HFP device until cleanup is finished.
+          // Note this is not expected in the path from the other way around,
+          // since A2DP is never opened until HFP is completely closed.
+          expect_fallback = true;
         } else {
           syslog(LOG_WARNING, "Init %s failed, rc = %d", edev->dev->info.name,
                  rc);
@@ -1229,7 +1241,7 @@ static int stream_added_cb(struct cras_rstream* rstream) {
      * cras_iodev_list_select_node() is called to re-select the
      * active node.
      */
-    possibly_enable_fallback(rstream->direction, true);
+    possibly_enable_fallback(rstream->direction, !expect_fallback);
   }
 
   if (num_iodevs || iodev_reopened) {
