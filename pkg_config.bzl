@@ -22,6 +22,7 @@ cc_library(
     linkopts = [
 {linkopts}
     ],
+    visibility = ["//visibility:public"],
 )
 """
 
@@ -125,36 +126,39 @@ def _symlink_includes(repository_ctx, library, includes):
     local_includes = []
     for inc in _common_roots(includes):
         repository_ctx.symlink(inc, library + inc)
-        local_includes.append(library + inc)
+        local_includes.append(inc.lstrip("/"))
 
     return local_includes
 
 def _pkg_config_library(repository_ctx, library, defines = []):
     result = _pkg_config(repository_ctx, library)
     if result.error != None:
-        return """
+        build_file_contents = """
 cc_library(
     name = {name},
-    deps = select({{":never_set": []}}, no_match_error = {error})
+    deps = select({{"//:never_set": []}}, no_match_error = {error}),
+    visibility = ["//visibility:public"],
 )
 """.format(
             name = repr(library),
             error = repr("\n\n" + result.error.rstrip()),
         )
+    else:
+        includes = _symlink_includes(repository_ctx, library, result.includes)
+        hdrs_globs = [
+            "{}/**/*.h".format(inc)
+            for inc in includes
+        ]
 
-    includes = _symlink_includes(repository_ctx, library, result.includes)
-    hdrs_globs = [
-        "{}/**/*.h".format(inc)
-        for inc in includes
-    ]
+        build_file_contents = _pkg_config_library_entry(
+            name = library,
+            hdrs_globs = hdrs_globs,
+            defines = defines + result.defines,
+            includes = includes,
+            linkopts = result.linkopts,
+        )
 
-    return _pkg_config_library_entry(
-        name = library,
-        hdrs_globs = hdrs_globs,
-        defines = defines + result.defines,
-        includes = includes,
-        linkopts = result.linkopts,
-    )
+    repository_ctx.file(library + "/BUILD", build_file_contents)
 
 _pkg_config_repository_attrs = {
     "libs": attr.string_list(
@@ -169,20 +173,18 @@ _pkg_config_repository_attrs = {
 
 def _pkg_config_repository(repository_ctx, libs, additional_build_file_contents):
     # Create BUILD with the cc_library section for each library.
-    build_file_contents = """package(default_visibility = ["//visibility:public"])
-
-config_setting(
+    build_file_contents = """config_setting(
     name = "never_set",
     define_values = {
         "never_set": "never_set",
     },
+    visibility = ["//:__subpackages__"],
 )
-"""
+
+""" + additional_build_file_contents
 
     for library in libs:
-        build_file_contents += _pkg_config_library(repository_ctx, library)
-
-    build_file_contents += additional_build_file_contents
+        _pkg_config_library(repository_ctx, library)
 
     repository_ctx.file(
         "WORKSPACE",

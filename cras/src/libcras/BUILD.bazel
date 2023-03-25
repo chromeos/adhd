@@ -32,7 +32,7 @@ cc_library(
         "//cras/src/common:cras_util",
         "//cras/src/common:cras_version",
         "//third_party/utlist",
-        "@pkg_config//:alsa",
+        "@pkg_config//alsa",
     ],
 )
 
@@ -43,9 +43,9 @@ cras_shared_library(
         "@//:__subpackages__",
         # Despite that we list external deps in static_deps, they are linked
         # dynamically because pkg_config does not provide object files.
-        "@pkg_config//:alsa",
+        "@pkg_config//alsa",
     ] + select({
-        "//:selinux_build": ["@pkg_config//:libselinux"],
+        "//:selinux_build": ["@pkg_config//libselinux"],
         "//conditions:default": [],
     }),
     visibility = [

@@ -38,9 +38,9 @@ cc_test(
         "//cras/src/server:all_headers",
         "//third_party/bluez:a2dp_codecs",
         "//third_party/bluez:rtp",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -56,10 +56,10 @@ cc_test(
         "//third_party/bluez:a2dp_codecs",
         "//third_party/bluez:rtp",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -75,10 +75,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -92,9 +92,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -114,8 +114,8 @@ cc_test(
         "//cras/src/server:cras_features_override",
         "//cras/src/server/config:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -129,9 +129,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -151,8 +151,8 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -168,8 +168,8 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -188,8 +188,8 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -207,8 +207,8 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -225,8 +225,8 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -242,8 +242,8 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -255,9 +255,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -271,9 +271,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -286,9 +286,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -302,9 +302,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -330,9 +330,9 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -347,9 +347,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -369,10 +369,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -390,10 +390,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -410,10 +410,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -431,10 +431,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -449,9 +449,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -463,9 +463,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -480,9 +480,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -498,9 +498,9 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -513,9 +513,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -531,10 +531,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -553,9 +553,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/libcras:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:speexdsp",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//speexdsp",
     ],
 )
 
@@ -577,10 +577,10 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/libcras:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
-        "@pkg_config//:speexdsp",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+        "@pkg_config//speexdsp",
     ],
 )
 
@@ -596,10 +596,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -622,10 +622,10 @@ cc_test(
         "//cras/src/plc:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -646,8 +646,8 @@ cc_test(
         "//cras/src/server:cras_features_override",
         "//cras/src/server/rust:headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -661,9 +661,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -682,10 +682,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -713,10 +713,10 @@ cc_test(
         "//cras/src/server/config:all_headers",
         "//cras/src/server/rust:headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
-        "@pkg_config//:speexdsp",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+        "@pkg_config//speexdsp",
     ],
 )
 
@@ -738,9 +738,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -756,9 +756,9 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -772,9 +772,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -799,9 +799,9 @@ cc_test(
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -818,9 +818,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -841,9 +841,9 @@ cc_test(
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -869,9 +869,9 @@ cc_test(
         "//cras/src/dsp/tests:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -884,9 +884,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -899,9 +899,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -916,9 +916,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -938,9 +938,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -955,9 +955,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -972,9 +972,9 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
         "//cras/src/server/rust:headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -988,9 +988,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1005,9 +1005,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1020,9 +1020,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1041,9 +1041,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1057,10 +1057,10 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
-        "@pkg_config//:speexdsp",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+        "@pkg_config//speexdsp",
     ],
 )
 
@@ -1075,10 +1075,10 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
-        "@pkg_config//:speexdsp",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+        "@pkg_config//speexdsp",
     ],
 )
 
@@ -1095,10 +1095,10 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server:cras_features_override",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1117,10 +1117,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1137,10 +1137,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1161,10 +1161,10 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server:cras_features_override",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1181,10 +1181,10 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1200,9 +1200,9 @@ cc_test(
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1219,9 +1219,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1244,8 +1244,8 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -1260,9 +1260,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1280,9 +1280,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1294,9 +1294,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1310,9 +1310,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server:cras_mix",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1326,8 +1326,8 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
     ],
 )
 
@@ -1342,9 +1342,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1358,9 +1358,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1374,9 +1374,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1391,9 +1391,9 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
         "//cras/src/server/rust:headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1414,9 +1414,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1428,9 +1428,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1444,9 +1444,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1458,9 +1458,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1475,9 +1475,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1491,9 +1491,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1517,9 +1517,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1533,9 +1533,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1548,9 +1548,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1574,9 +1574,9 @@ cc_test(
         "//cras/src/server/config:all_headers",
         "//cras/src/server/rust:headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1614,9 +1614,9 @@ cc_test(
         "//cras/src/server/config:all_headers",
         "//cras/src/server/rust:headers",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:speexdsp",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//speexdsp",
     ],
 )
 
@@ -1630,10 +1630,10 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1647,9 +1647,9 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1663,9 +1663,9 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1686,10 +1686,10 @@ cc_test(
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
         "@iniparser",
-        "@pkg_config//:alsa",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
-        "@pkg_config//:libwebrtc_apm",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+        "@pkg_config//libwebrtc_apm",
     ],
 )
 
@@ -1705,8 +1705,8 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
@@ -1725,9 +1725,9 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
-        "@pkg_config//:speexdsp",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+        "@pkg_config//speexdsp",
     ],
 )
 
@@ -1747,7 +1747,7 @@ cc_test(
     srcs = ["scoped_features_override_unittest.cc"],
     deps = [
         "scoped_features_override",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )

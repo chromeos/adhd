@@ -55,7 +55,7 @@ cc_test(
     deps = [
         ":rust",
         "//cras/src/audio_processor/c:plugin_processor",
-        "@pkg_config//:gtest",
-        "@pkg_config//:gtest_main",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )

@@ -213,7 +213,7 @@ cc_library(
     hdrs = ["cras_features.h"],
     visibility = ["//cras/src/tests:__pkg__"],
     deps = select({
-        "//:featured_build": ["@pkg_config//:libfeatures_c"],
+        "//:featured_build": ["@pkg_config//libfeatures_c"],
         "//conditions:default": [],
     }),
 )
@@ -495,10 +495,10 @@ cc_library(
         "//cras/src/plc",
         "//cras/src/server/config",
         "//cras/src/server/rust",
-        "@pkg_config//:alsa",
-        "@pkg_config//:dbus-1",
-        "@pkg_config//:libudev",
-        "@pkg_config//:speexdsp",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//libudev",
+        "@pkg_config//speexdsp",
     ],
 )
 
@@ -542,7 +542,7 @@ cc_library(
         "//cras/src/dsp",
     ] + select({
         "//conditions:default": [],
-        "//:apm_build": ["@pkg_config//:libwebrtc_apm"],
+        "//:apm_build": ["@pkg_config//libwebrtc_apm"],
     }),
 )
 

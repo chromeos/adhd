@@ -85,7 +85,7 @@ cc_library(
         "//cras/src/libcras:__pkg__",
     ],
     deps = [":cras_shm"] + select({
-        "//:selinux_build": ["@pkg_config//:libselinux"],
+        "//:selinux_build": ["@pkg_config//libselinux"],
         "//conditions:default": [],
     }),
 )
@@ -206,9 +206,9 @@ cc_library(
         "//third_party/bluez:a2dp_codecs",
         "//cras/include",
         "//cras/src/server:cras_observer_types",
-        "@pkg_config//:sbc",
+        "@pkg_config//sbc",
     ] + select({
-        "//:metrics_build": ["@pkg_config//:libmetrics"],
+        "//:metrics_build": ["@pkg_config//libmetrics"],
         "//conditions:default": [],
     }),
 )
