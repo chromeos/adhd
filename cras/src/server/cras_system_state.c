@@ -2,7 +2,6 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-
 #include "cras/src/server/cras_system_state.h"
 
 #include <errno.h>
@@ -48,44 +47,33 @@ struct feature_state {
   bool force_sr_bt_enabled;
 };
 
-/* The system state.
- * Members:
- *    exp_state - The exported system state shared with clients.
- *    shm_name - Name of posix shm region for exported state.
- *    shm_fd - fd for shm area of system_state struct.
- *    shm_fd_ro - fd for shm area of system_state struct, opened read-only.
- *        This copy is to dup and pass to clients.
- *    shm_size - Size of the shm area.
- *    device_config_dir - Directory of device configs where volume curves live.
- *    internal_ucm_suffix - The suffix to append to internal card name to
- *        control which ucm config file to load.
- *    device_blocklist - Blocklist of device the server will ignore.
- *    cards - A list of active sound cards in the system.
- *    update_lock - Protects the update_count, as audio threads can update the
- *      stream count.
- *    tm - The system-wide timer manager.
- *    add_task - Function to handle adding a task for main thread to execute.
- *    task_data - Data to be passed to add_task handler function.
- *    main_thread_tid - The thread id of the main thread.
- *    bt_fix_a2dp_packet_size - The flag to override A2DP packet size set by
- *      Blueetoh peer devices to a smaller default value.
- *    feature_tier - The feature tier. See cras_feature_tier.
- *    feature_state - The feature state. See struct feature_state.
- *    speak_on_mute_detection_enabled - Whether speak on mute detection is
- * enabled.
- */
-static struct {
+/* The system state. */
+struct private_state {
+  // The exported system state shared with clients.
   struct cras_server_state* exp_state;
+  // Name of posix shm region for exported state.
   char shm_name[NAME_MAX];
+  // fd for shm area of system_state struct.
   int shm_fd;
+  // fd for shm area of system_state struct, opened read-only.
+  // This copy is to dup and pass to clients.
   int shm_fd_ro;
+  // Size of the shm area.
   size_t shm_size;
+  // Directory of device configs where volume curves live.
   const char* device_config_dir;
+  // The suffix to append to internal card name to
+  // control which ucm config file to load.
   const char* internal_ucm_suffix;
   struct name_list* ignore_suffix_cards;
+  // Blocklist of device the server will ignore.
   struct cras_device_blocklist* device_blocklist;
+  // A list of active sound cards in the system.
   struct card_list* cards;
+  // Protects the update_count, as audio threads can update the
+  // stream count.
   pthread_mutex_t update_lock;
+  // The system-wide timer manager.
   struct cras_tm* tm;
   // Select loop callback registration.
   int (*fd_add)(int fd,
@@ -95,17 +83,28 @@ static struct {
                 void* select_data);
   void (*fd_rm)(int fd, void* select_data);
   void* select_data;
+  // Function to handle adding a task for main thread to execute.
   int (*add_task)(void (*callback)(void* data),
                   void* callback_data,
                   void* task_data);
+  // Data to be passed to add_task handler function.
   void* task_data;
   struct cras_audio_thread_snapshot_buffer snapshot_buffer;
+  // The thread id of the main thread.
   pthread_t main_thread_tid;
+  // The flag to override A2DP packet size set by
+  // Blueetoh peer devices to a smaller default value.
   bool bt_fix_a2dp_packet_size;
+  // The feature tier. See cras_feature_tier.
   struct cras_feature_tier feature_tier;
+  // The feature state. See struct feature_state.
   struct feature_state feature_state;
+  // Whether speak on mute detection is
+  // enabled.
   bool speak_on_mute_detection_enabled;
-} state;
+};
+
+static struct private_state state;
 
 // The string format is CARD1,CARD2,CARD3. Divide it into a list.
 void init_ignore_suffix_cards(char* str) {

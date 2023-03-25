@@ -568,136 +568,136 @@ static inline bool cras_floop_params_eq(const struct cras_floop_params* a,
  * be appended at the tail of the struct. Otherwise, it will be incompatible
  * with the one in other environments where files can't be updated atomically,
  * like ARC++.
- *    state_version - Version of this structure.
- *    volume - index from 0-100.
- *    min_volume_dBFS - volume in dB * 100 when volume = 1.
- *    max_volume_dBFS - volume in dB * 100 when volume = max.
- *    mute - 0 = unmuted, 1 = muted by system (device switch, suspend, etc).
- *    user_mute - 0 = unmuted, 1 = muted by user.
- *    mute_locked - 0 = unlocked, 1 = locked.
- *    suspended - 1 = suspended, 0 = resumed.
- *    capture_gain - Capture gain in dBFS * 100.
- *    capture_mute - 0 = unmuted, 1 = muted.
- *    capture_mute_locked - 0 = unlocked, 1 = locked.
- *    num_streams_attached - Total number of streams since server started.
- *    num_output_devs - Number of available output devices.
- *    num_input_devs - Number of available input devices.
- *    output_devs - Output audio devices currently attached.
- *    input_devs - Input audio devices currently attached.
- *    num_output_nodes - Number of available output nodes.
- *    num_input_nodes - Number of available input nodes.
- *    output_nodes - Output nodes currently attached.
- *    input_nodes - Input nodes currently attached.
- *    num_attached_clients - Number of clients attached to server.
- *    client_info - List of first 20 attached clients.
- *    update_count - Incremented twice each time the struct is updated.  Odd
- *        during updates.
- *    num_active_streams - An array containing numbers or active
- *        streams of different directions.
- *    last_active_stream_time - Time the last stream was removed.  Can be used
- *        to determine how long audio has been idle.
- *    audio_debug_info - Debug data filled in when a client requests it. This
- *        isn't protected against concurrent updating, only one client should
- *        use it.
- *    default_output_buffer_size - Default output buffer size in frames.
- *    non_empty_status - Whether any non-empty audio is being
- *        played/captured.
- *    aec_supported - Flag to indicate if system aec is supported.
- *    aec_group_id  - Group ID for the system aec to use for separating aec
- *        tunings.
- *    ns_supported - if system ns is supported.
- *    agc_supported - if system agc is supported.
- *    snapshot_buffer - ring buffer for storing audio thread snapshots.
- *    bt_debug_info - ring buffer for storing bluetooth event logs.
- *    bt_wbs_enabled - Whether or not bluetooth wideband speech is enabled.
- *    bt_hfp_offload_finch_applied - Whether or not enabling Bluetooth HFP
- *        offload feature needs to be determined by Finch flag.
- *    deprioritize_bt_wbs_mic - Whether Bluetooth wideband speech mic
- *        should be deprioritized for selecting as default audio input.
- *    main_thread_debug_info - ring buffer for storing main thread event logs.
- *    num_input_streams_with_permission - An array containing numbers of input
- *        streams with permission in each client type.
- *    noise_cancellation_enabled - Whether or not Noise Cancellation is enabled.
- *    noise_cancellation_supported - Whether or not Noise Cancellation is
- *        supported by at least one input node.
- *    bypass_block_noise_cancellation - Flag to bypass block/unblock Noise
- *        Cancellation mechanism.
- *    hotword_pause_at_suspend - 1 = Pause hotword detection when the system
- *        suspends. Hotword detection is resumed after system resumes.
- *        0 - Hotword detection is allowed to continue running after system
- *        suspends, so a detected hotword can wake up the device.
- *    hw_echo_ref_disabled - Set to true to disable using HW provided echo
- *        reference in APM.
- *    max_internal_mic_gain - The maximum internal mic gain users can set.
- *    aec_on_dsp_supported - if system aec on dsp is supported.
- *    ns_on_dsp_supported - if system ns on dsp is supported.
- *    agc_on_dsp_supported - if system agc on dsp is supported.
- *    max_internal_speaker_channels - The max_supported_channels of internal
- *        speaker.
- *    max_headphone_channels - The max_supported_channels of headphone
- *        and lineout.
- *    num_non_chrome_output_streams - Number of streams that are not from
- *        CLIENT_TYPE_CHROME or CLIENT_TYPE_LACROS
- *    nc_standalone_mode - TODO(b/272408566) remove after formal fix lands.
- *        1 - Noise Cancellation standalone mode, which implies that NC is
- *        integrated without AEC on DSP. 0 - otherwise.
  */
 #define CRAS_SERVER_STATE_VERSION 2
 struct __attribute__((packed, aligned(4))) cras_server_state {
+  // Version of this structure.
   uint32_t state_version;
+  // index from 0-100.
   uint32_t volume;
+  // volume in dB * 100 when volume = 1.
   int32_t min_volume_dBFS;
+  // volume in dB * 100 when volume = max.
   int32_t max_volume_dBFS;
+  // 0 = unmuted, 1 = muted by system (device switch, suspend, etc).
   int32_t mute;
+  // 0 = unmuted, 1 = muted by user.
   int32_t user_mute;
+  // 0 = unlocked, 1 = locked.
   int32_t mute_locked;
+  // 1 = suspended, 0 = resumed.
   int32_t suspended;
+  // Capture gain in dBFS * 100.
   int32_t capture_gain;
+  // 0 = unmuted, 1 = muted.
   int32_t capture_mute;
+  // 0 = unlocked, 1 = locked.
   int32_t capture_mute_locked;
+  // Total number of streams since server started.
   uint32_t num_streams_attached;
+  // Number of available output devices.
   uint32_t num_output_devs;
+  // Number of available input devices.
   uint32_t num_input_devs;
+  // Output audio devices currently attached.
   struct cras_iodev_info output_devs[CRAS_MAX_IODEVS];
+  // Input audio devices currently attached.
   struct cras_iodev_info input_devs[CRAS_MAX_IODEVS];
+  // Number of available output nodes.
   uint32_t num_output_nodes;
+  // Number of available input nodes.
   uint32_t num_input_nodes;
+  // Output nodes currently attached.
   struct cras_ionode_info output_nodes[CRAS_MAX_IONODES];
+  // Input nodes currently attached.
   struct cras_ionode_info input_nodes[CRAS_MAX_IONODES];
+  // Number of clients attached to server.
   uint32_t num_attached_clients;
+  // List of first 20 attached clients.
   struct cras_attached_client_info client_info[CRAS_MAX_ATTACHED_CLIENTS];
+  // Incremented twice each time the struct is updated.  Odd
+  // during updates.
   uint32_t update_count;
+  // An array containing numbers or active
+  // streams of different directions.
   uint32_t num_active_streams[CRAS_NUM_DIRECTIONS];
+  // Time the last stream was removed.  Can be used
+  // to determine how long audio has been idle.
   struct cras_timespec last_active_stream_time;
+  // Debug data filled in when a client requests it. This
+  // isn't protected against concurrent updating, only one client should
+  // use it.
   struct audio_debug_info audio_debug_info;
+  // Default output buffer size in frames.
   int32_t default_output_buffer_size;
+  // Whether any non-empty audio is being
+  // played/captured.
   int32_t non_empty_status;
+  // Flag to indicate if system aec is supported.
   int32_t aec_supported;
+  // Group ID for the system aec to use for separating aec
+  // tunings.
   int32_t aec_group_id;
+  // ring buffer for storing audio thread snapshots.
   struct cras_audio_thread_snapshot_buffer snapshot_buffer;
+  // ring buffer for storing bluetooth event logs.
   struct cras_bt_debug_info bt_debug_info;
+  // Whether or not bluetooth wideband speech is enabled.
   int32_t bt_wbs_enabled;
+  // Whether or not enabling Bluetooth HFP
+  // offload feature needs to be determined by Finch flag.
   int32_t bt_hfp_offload_finch_applied;
+  // Whether Bluetooth wideband speech mic
+  // should be deprioritized for selecting as default audio input.
   int32_t deprioritize_bt_wbs_mic;
+  // ring buffer for storing main thread event logs.
   struct main_thread_debug_info main_thread_debug_info;
+  // An array containing numbers of input
+  // streams with permission in each client type.
   uint32_t num_input_streams_with_permission[CRAS_NUM_CLIENT_TYPE];
+  // Whether or not Noise Cancellation is enabled.
   int32_t noise_cancellation_enabled;
+  // Whether or not Noise Cancellation is
+  // supported by at least one input node.
   int32_t noise_cancellation_supported;
+  // Flag to bypass block/unblock Noise
+  // Cancellation mechanism.
   int32_t bypass_block_noise_cancellation;
+  // 1 = Pause hotword detection when the system
+  // suspends. Hotword detection is resumed after system resumes.
+  // 0 = Hotword detection is allowed to continue running after system
+  // suspends, so a detected hotword can wake up the device.
   int32_t hotword_pause_at_suspend;
+  // if system ns is supported.
   int32_t ns_supported;
+  // if system agc is supported.
   int32_t agc_supported;
+  // Set to true to disable using HW provided echo
+  // reference in APM.
   int32_t hw_echo_ref_disabled;
+  // The maximum internal mic gain users can set.
   int32_t max_internal_mic_gain;
+  // if system aec on dsp is supported.
   int32_t aec_on_dsp_supported;
+  // if system ns on dsp is supported.
   int32_t ns_on_dsp_supported;
+  // if system agc on dsp is supported.
   int32_t agc_on_dsp_supported;
   // Add 3 byte paddings to prevent rust bindgen structure layout
   // mismatch in cras-sys.
   char active_node_type_pair[2 * CRAS_NODE_TYPE_BUFFER_SIZE + 4];
+  // The max_supported_channels of internal
+  // speaker.
   int32_t max_internal_speaker_channels;
+  // The max_supported_channels of headphone
+  // and lineout.
   int32_t max_headphone_channels;
+  // Number of streams that are not from
+  // CLIENT_TYPE_CHROME or CLIENT_TYPE_LACROS
   int32_t num_non_chrome_output_streams;
+  // TODO(b/272408566) remove after formal fix lands.
+  // 1 - Noise Cancellation standalone mode, which implies that NC is
+  // integrated without AEC on DSP. 0 - otherwise.
   int32_t nc_standalone_mode;
 };
 
@@ -709,31 +709,29 @@ enum cras_notify_device_action {
   CRAS_DEVICE_ACTION_CHANGE = 2,
 };
 
-/* Information about an ALSA card to be added to the system.
- *    card_type - Either internal card that supports headset, speaker or dmic,
-        a USB sound card, or internal card that supports only HDMI.
- *    card_index - Index ALSA uses to refer to the card.  The X in "hw:X".
- *    priority - Base priority to give devices found on this card. Zero is the
- *      lowest priority.  Non-primary devices on the card will be given a
- *      lowered priority.
- *    usb_vendor_id - vendor ID if the device is on the USB bus.
- *    usb_product_id - product ID if the device is on the USB bus.
- *    usb_serial_number - serial number if the device is on the USB bus.
- *    usb_desc_checksum - the checksum of the USB descriptors if the device
- *      is on the USB bus.
- */
 enum CRAS_ALSA_CARD_TYPE {
+  // Internal card that supports headset, speaker or DMIC.
   ALSA_CARD_TYPE_INTERNAL,
+  // USB sound card.
   ALSA_CARD_TYPE_USB,
+  // Internal card that supports only HDMI.
   ALSA_CARD_TYPE_HDMI
 };
+
+/* Information about an ALSA card to be added to the system. */
 #define USB_SERIAL_NUMBER_BUFFER_SIZE 64
 struct __attribute__((__packed__)) cras_alsa_card_info {
   enum CRAS_ALSA_CARD_TYPE card_type;
+  // Index ALSA uses to refer to the card.  The X in "hw:X".
   uint32_t card_index;
+  // vendor ID if the device is on the USB bus.
   uint32_t usb_vendor_id;
+  // product ID if the device is on the USB bus.
   uint32_t usb_product_id;
+  // serial number if the device is on the USB bus.
   char usb_serial_number[USB_SERIAL_NUMBER_BUFFER_SIZE];
+  // the checksum of the USB descriptors if the device
+  // is on the USB bus.
   uint32_t usb_desc_checksum;
 };
 
