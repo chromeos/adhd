@@ -191,7 +191,6 @@ static inline void udev_delay_for_alsa() {
 static uint32_t calculate_desc_checksum(struct udev_device* dev) {
   char path[MAX_DESC_NAME_LEN];
   struct stat stat_buf;
-  int fd;
   unsigned char* buf = NULL;
   int buf_size = 0;
   int read_size;
@@ -204,15 +203,15 @@ static uint32_t calculate_desc_checksum(struct udev_device* dev) {
     return 0;
   }
 
-  if (stat(path, &stat_buf) < 0) {
-    syslog(LOG_WARNING, "failed to stat file %s: %s", path,
+  int fd = open(path, O_RDONLY);
+  if (fd < 0) {
+    syslog(LOG_WARNING, "failed to open file %s: %s", path,
            cras_strerror(errno));
     return 0;
   }
 
-  fd = open(path, O_RDONLY);
-  if (fd < 0) {
-    syslog(LOG_WARNING, "failed to open file %s: %s", path,
+  if (fstat(fd, &stat_buf) < 0) {
+    syslog(LOG_WARNING, "failed to stat file %s: %s", path,
            cras_strerror(errno));
     return 0;
   }
