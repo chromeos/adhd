@@ -45,8 +45,8 @@ def _pkg_config(repository_ctx, library):
         cmd,
     )
     if result.return_code != 0:
-        return struct(error = "{library} unavailable: {cmd} failure (code {return_code});\n{stderr}".format(
-            cmd = " ".join([str(s) for s in cmd]),
+        return struct(error = "{library} unavailable: command {cmd} failed with code {return_code}:\n{stderr}".format(
+            cmd = repr(" ".join([str(s) for s in cmd])),
             return_code = result.return_code,
             stderr = result.stderr,
             library = library,
