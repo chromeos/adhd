@@ -9,30 +9,22 @@ load("@bazel_skylib//lib:unittest.bzl", "asserts", "unittest")
 
 _PKG_CONFIG_LIBRARY = """
 cc_library(
-    name = "{name}",
-    hdrs = glob([
-{hdrs_spec}
-    ]),
-    defines = [
-{defines}
-    ],
-    includes = [
-{includes}
-    ],
-    linkopts = [
-{linkopts}
-    ],
+    name = {name},
+    hdrs = glob({hdrs_spec}),
+    defines = {defines},
+    includes = {includes},
+    linkopts = {linkopts},
     visibility = ["//visibility:public"],
 )
 """
 
 def _pkg_config_library_entry(name, hdrs_globs, defines, includes, linkopts):
     return _PKG_CONFIG_LIBRARY.format(
-        name = name,
-        hdrs_spec = "\n".join(["        \"{}\",".format(g) for g in hdrs_globs]),
-        defines = "\n".join(["        \"{}\",".format(d) for d in defines]),
-        includes = "\n".join(["        \"{}\",".format(d) for d in includes]),
-        linkopts = "\n".join(["        \"{}\",".format(opt) for opt in linkopts]),
+        name = repr(name),
+        hdrs_spec = repr(hdrs_globs),
+        defines = repr(defines),
+        includes = repr(includes),
+        linkopts = repr(linkopts),
     )
 
 def _maybe_fixup_lib_for_oss_fuzz(linkopt, oss_fuzz_static):
