@@ -1989,9 +1989,13 @@ static int set_node_volume(struct cras_iodev* iodev,
   struct cras_ionode* node;
 
   node = find_node(iodev, node_idx);
-  if (!node || volume < 0 || volume > 100) {
-    syslog(LOG_WARNING, "Invalid input: node == null: %d, volume: %d",
-           node == NULL, volume);
+  if (!node) {
+    syslog(LOG_WARNING, "Cannot find input: node == null:");
+    return -EINVAL;
+  }
+
+  if (volume < 0 || volume > 100) {
+    syslog(LOG_WARNING, "Invalid volume: %d", volume);
     return -EINVAL;
   }
 
