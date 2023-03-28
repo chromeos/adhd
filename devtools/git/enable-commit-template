@@ -7,7 +7,7 @@
 # ADHD's default commit message.
 # To customize the template, modify the .git/commit-msg-template.
 # To revert it, enter "git config --local --unset commit.template".
-ADHD_DIR="$(git rev-parse --show-toplevel)/scripts/git"
+ADHD_DIR="$(git rev-parse --show-toplevel)/devtools/git"
 ADHD_GIT_DIR="$(git rev-parse --git-dir)"
 
 cp "$ADHD_DIR/commit-msg-template" "$ADHD_GIT_DIR/"
