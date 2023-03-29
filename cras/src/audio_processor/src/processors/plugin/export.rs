@@ -71,7 +71,7 @@ unsafe extern "C" fn wrapper_run(
             binding::status::StatusOk
         }
         Err(error) => {
-            eprint!("wrapper_run: {}", error);
+            eprintln!("wrapper_run: {}", error);
             binding::status::ErrOther
         }
     }
