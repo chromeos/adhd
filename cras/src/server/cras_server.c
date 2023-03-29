@@ -395,7 +395,7 @@ void check_output_exists(struct cras_timer* t, void* data) {
 
 int cras_server_init() {
   // Log to syslog.
-  openlog("cras_server", LOG_PID, LOG_USER);
+  openlog("cras_server", LOG_PID | LOG_PERROR, LOG_USER);
   if (cras_rust_init_logging()) {
     syslog(LOG_ERR, "cannot initialize logging in cras_rust");
   }
