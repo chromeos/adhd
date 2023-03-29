@@ -12,6 +12,7 @@ anyhow = "1.0.68"
 libc = "0.2.44"
 log = "0.4.17"
 syslog = "6.0.1"
+nix = "0.26.2"
 
 cras_dlc = { version = "*", optional = true }
 audio_processor = { version = "*", path = "../../audio_processor" }

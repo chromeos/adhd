@@ -2,10 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::io::Write;
+use std::{convert::TryInto, io::Write};
 
 use anyhow::anyhow;
 use log::{Level, LevelFilter, Log};
+use nix::unistd::getpid;
 use syslog::{BasicLogger, Facility, Formatter3164, LogFormat, Severity};
 
 /// A struct that represents a logger that logs to stderr.
@@ -60,7 +61,7 @@ fn init_logging() -> anyhow::Result<()> {
         facility: Facility::LOG_USER,
         hostname: None,
         process: "cras_server".into(),
-        pid: 0,
+        pid: getpid().as_raw().try_into().unwrap_or(0),
     };
 
     let stderr_logger = StderrLogger {

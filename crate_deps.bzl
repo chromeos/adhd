@@ -43,6 +43,9 @@ def cargo_io_deps():
         "log": crate.spec(
             version = "0.4.17",
         ),
+        "nix": crate.spec(
+            version = "0.26.2",
+        ),
         "syslog": crate.spec(
             version = "6.0.1",
         ),
