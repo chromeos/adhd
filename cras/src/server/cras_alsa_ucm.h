@@ -7,6 +7,7 @@
 #define CRAS_SRC_SERVER_CRAS_ALSA_UCM_H_
 
 #include <alsa/asoundlib.h>
+#include <limits.h>
 
 #include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_alsa_ucm_section.h"
@@ -19,6 +20,34 @@ extern "C" {
 #define JACK_SWITCH_AUTO_DETECT -1
 
 struct cras_use_case_mgr;
+
+// Use cases corresponding to ALSA UCM verbs. Each iodev has one use case.
+enum CRAS_USE_CASE {
+  // Default case for regular streams.
+  CRAS_USE_CASE_HIFI,
+  // For streams with block size <= 480 frames (10ms at 48KHz).
+  CRAS_USE_CASE_LOW_LATENCY,
+  // For low latency streams requiring raw audio (no effect processing in DSP).
+  CRAS_USE_CASE_LOW_LATENCY_RAW,
+  CRAS_NUM_USE_CASES,
+};
+
+// A bit field of the CRAS_USE_CASE flags representing a set of use cases.
+typedef uint32_t cras_use_cases_t;
+static_assert(CRAS_NUM_USE_CASES <= sizeof(cras_use_cases_t) * CHAR_BIT,
+              "cras_use_cases_t bit field too small");
+
+static inline const char* cras_use_case_str(enum CRAS_USE_CASE use_case) {
+  // clang-format off
+    switch (use_case) {
+    ENUM_STR(CRAS_USE_CASE_HIFI)
+    ENUM_STR(CRAS_USE_CASE_LOW_LATENCY)
+    ENUM_STR(CRAS_USE_CASE_LOW_LATENCY_RAW)
+    default:
+        return "INVALID_USE_CASE";
+    }
+  // clang-format on
+}
 
 /* Helpers to access UCM configuration for a card if any is provided.
  * This configuration can specify how to enable or disable certain inputs and
@@ -52,7 +81,18 @@ struct cras_use_case_mgr* ucm_create(const char* name);
  */
 void ucm_destroy(struct cras_use_case_mgr* mgr);
 
-/* Sets the new use case for the given cras_use_case_mgr.
+/* Gets all available use cases for this sound card.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from ucm_create.
+ * Returns:
+ *    A bit field of CRAS_USE_CASE flags.
+ */
+cras_use_cases_t ucm_get_avail_use_cases(struct cras_use_case_mgr* mgr);
+
+/* Sets the new use case for the given cras_use_case_mgr. This does not enable
+ * the use case verb with snd_use_case_set(_verb). It sets the verb to use when
+ * querying with snd_use_case_get*. To enable it, call ucm_enable_use_case after
+ * ucm_set_use_case.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from ucm_create.
  *    use_case - The new use case to be set.
@@ -60,7 +100,15 @@ void ucm_destroy(struct cras_use_case_mgr* mgr);
  *    0 on success or negative error code on failure.
  */
 int ucm_set_use_case(struct cras_use_case_mgr* mgr,
-                     enum CRAS_STREAM_TYPE use_case);
+                     enum CRAS_USE_CASE use_case);
+
+/* Enables the use case by setting it current with snd_use_case_set(_verb).
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from ucm_create.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_enable_use_case(struct cras_use_case_mgr* mgr);
 
 /* Checks if modifier for left right swap mode exists in ucm.
  * Args:

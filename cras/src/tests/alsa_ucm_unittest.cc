@@ -59,7 +59,7 @@ static void ResetStubData() {
   list_devices_callback_names.clear();
   list_devices_callback_args.clear();
   snd_use_case_mgr_open_mgr_ptr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
-  cras_ucm_mgr.use_case = CRAS_STREAM_TYPE_DEFAULT;
+  cras_ucm_mgr.use_case = CRAS_USE_CASE_HIFI;
   cras_ucm_mgr.hotword_modifier = NULL;
 }
 
@@ -1399,63 +1399,90 @@ TEST(AlsaUcm, CheckUseCaseVerbs) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
 
   // Verifies the mapping between stream types and verbs are correct.
-  mgr->use_case = CRAS_STREAM_TYPE_DEFAULT;
+  mgr->use_case = CRAS_USE_CASE_HIFI;
   EXPECT_EQ(0, strcmp("HiFi", uc_verb(mgr)));
-  mgr->use_case = CRAS_STREAM_TYPE_MULTIMEDIA;
-  EXPECT_EQ(0, strcmp("Multimedia", uc_verb(mgr)));
-  mgr->use_case = CRAS_STREAM_TYPE_VOICE_COMMUNICATION;
-  EXPECT_EQ(0, strcmp("Voice Call", uc_verb(mgr)));
-  mgr->use_case = CRAS_STREAM_TYPE_SPEECH_RECOGNITION;
-  EXPECT_EQ(0, strcmp("Speech", uc_verb(mgr)));
-  mgr->use_case = CRAS_STREAM_TYPE_PRO_AUDIO;
-  EXPECT_EQ(0, strcmp("Pro Audio", uc_verb(mgr)));
+  mgr->use_case = CRAS_USE_CASE_LOW_LATENCY;
+  EXPECT_EQ(0, strcmp("CRAS Low Latency", uc_verb(mgr)));
+  mgr->use_case = CRAS_USE_CASE_LOW_LATENCY_RAW;
+  EXPECT_EQ(0, strcmp("CRAS Low Latency Raw", uc_verb(mgr)));
 }
 
 TEST(AlsaUcm, GetAvailUseCases) {
   struct cras_use_case_mgr* mgr;
-  const char* verbs[] = {"HiFi",       "Comment for Verb1",
-                         "Voice Call", "Comment for Verb2",
-                         "Speech",     "Comment for Verb3"};
+  const char* verbs[] = {
+      "HiFi",
+      "Comment for Verb1",
+      "CRAS Low Latency",
+      "Comment for Verb2",
+      "CRAS Low Latency Raw",
+      "Comment for Verb3",
+  };
+  const enum CRAS_USE_CASE use_cases[] = {
+      CRAS_USE_CASE_HIFI,
+      CRAS_USE_CASE_LOW_LATENCY,
+      CRAS_USE_CASE_LOW_LATENCY_RAW,
+  };
+  cras_use_cases_t avail = 0;
 
   ResetStubData();
 
   fake_list["_verbs"] = verbs;
-  fake_list_size["_verbs"] = 6;
+  fake_list_size["_verbs"] = ARRAY_SIZE(verbs);
+  for (auto& use_case : use_cases) {
+    avail |= 1 << use_case;
+  }
 
   mgr = ucm_create("foo");
-  EXPECT_EQ(0x0D, mgr->avail_use_cases);
+  EXPECT_EQ(avail, mgr->avail_use_cases);
   ucm_destroy(mgr);
 }
 
-TEST(AlsaUcm, SetUseCase) {
+TEST(AlsaUcm, SetAndEnableUseCase) {
   struct cras_use_case_mgr* mgr;
-  const char* verbs[] = {"HiFi",       "Comment for Verb1",
-                         "Voice Call", "Comment for Verb2",
-                         "Speech",     "Comment for Verb3"};
+  const char* verbs[] = {
+      "HiFi",
+      "Comment for Verb1",
+      "CRAS Low Latency",
+      "Comment for Verb2",
+  };
   int rc;
 
   ResetStubData();
 
   fake_list["_verbs"] = verbs;
-  fake_list_size["_verbs"] = 6;
+  fake_list_size["_verbs"] = ARRAY_SIZE(verbs);
 
+  // Verify the default verb enabled is HiFi.
   mgr = ucm_create("foo");
   EXPECT_EQ(snd_use_case_set_param[0],
             std::make_pair(std::string("_verb"), std::string("HiFi")));
 
-  rc = ucm_set_use_case(mgr, CRAS_STREAM_TYPE_VOICE_COMMUNICATION);
+  // Set without enable should not call snd_use_case_set.
+  rc = ucm_set_use_case(mgr, CRAS_USE_CASE_LOW_LATENCY);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ(mgr->use_case, CRAS_STREAM_TYPE_VOICE_COMMUNICATION);
+  EXPECT_EQ(mgr->use_case, CRAS_USE_CASE_LOW_LATENCY);
+  // Called only 1 time during create
+  EXPECT_EQ(1, snd_use_case_set_called);
+  rc = ucm_set_use_case(mgr, CRAS_USE_CASE_HIFI);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(mgr->use_case, CRAS_USE_CASE_HIFI);
+  // Called only 1 time during create
+  EXPECT_EQ(1, snd_use_case_set_called);
+
+  // Enable should enable the verb most recently set.
+  rc = ucm_enable_use_case(mgr);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(2, snd_use_case_set_called);
   EXPECT_EQ(snd_use_case_set_param[1],
-            std::make_pair(std::string("_verb"), std::string("Voice Call")));
+            std::make_pair(std::string("_verb"), std::string("HiFi")));
 
   // Request unavailable use case will fail.
-  rc = ucm_set_use_case(mgr, CRAS_STREAM_TYPE_PRO_AUDIO);
+  rc = ucm_set_use_case(mgr, CRAS_USE_CASE_LOW_LATENCY_RAW);
   EXPECT_EQ(-EINVAL, rc);
   // cras_use_case_mgr's use case should not be changed.
-  EXPECT_EQ(mgr->use_case, CRAS_STREAM_TYPE_VOICE_COMMUNICATION);
+  EXPECT_EQ(mgr->use_case, CRAS_USE_CASE_HIFI);
   // And snd_use_case_set not being called.
-  EXPECT_EQ(2, snd_use_case_set_param.size());
+  EXPECT_EQ(2, snd_use_case_set_called);
 
   ucm_destroy(mgr);
 }

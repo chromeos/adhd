@@ -77,10 +77,17 @@ static const char main_volume_names[] = "MainVolumeNames";
 static const char enabled_devices_list[] = "_devstatus";
 static const char enabled_modifiers_list[] = "_modstatus";
 
-// Use case verbs corresponding to CRAS_STREAM_TYPE.
+/*
+ * Use case verbs corresponding to CRAS_USE_CASE. CRAS-specific use cases not
+ * defined in alsa/use-case.h are prefixed with CRAS.
+ */
 static const char* use_case_verbs[] = {
-    "HiFi", "Multimedia", "Voice Call", "Speech", "Pro Audio", "Accessibility",
+    SND_USE_CASE_VERB_HIFI,
+    "CRAS Low Latency",
+    "CRAS Low Latency Raw",
 };
+static_assert(ARRAY_SIZE(use_case_verbs) == CRAS_NUM_USE_CASES,
+              "Use case verb string/enum mismatch");
 
 static const char ucm_path_prefix[] = "/usr/share/alsa/ucm";
 
@@ -95,8 +102,8 @@ struct section_name {
 struct cras_use_case_mgr {
   snd_use_case_mgr_t* mgr;
   char* name;
-  unsigned int avail_use_cases;
-  enum CRAS_STREAM_TYPE use_case;
+  cras_use_cases_t avail_use_cases;
+  enum CRAS_USE_CASE use_case;
   char* hotword_modifier;
 };
 
@@ -406,9 +413,6 @@ struct cras_use_case_mgr* ucm_create(const char* name) {
   const char** list;
   int num_verbs, i, j;
 
-  static_assert(ARRAY_SIZE(use_case_verbs) == CRAS_STREAM_NUM_TYPES,
-                "length mismatch");
-
   if (!name) {
     return NULL;
   }
@@ -433,20 +437,28 @@ struct cras_use_case_mgr* ucm_create(const char* name) {
   mgr->hotword_modifier = NULL;
   num_verbs = snd_use_case_get_list(mgr->mgr, "_verbs", &list);
   for (i = 0; i < num_verbs; i += 2) {
-    for (j = 0; j < CRAS_STREAM_NUM_TYPES; ++j) {
+    for (j = 0; j < CRAS_NUM_USE_CASES; ++j) {
       if (strcmp(list[i], use_case_verbs[j]) == 0) {
         break;
       }
     }
-    if (j < CRAS_STREAM_NUM_TYPES) {
+    if (j < CRAS_NUM_USE_CASES) {
       mgr->avail_use_cases |= (1 << j);
+      syslog(LOG_DEBUG, "UCM verb found: %s -> %s", list[i],
+             cras_use_case_str((enum CRAS_USE_CASE)j));
+    } else {
+      syslog(LOG_WARNING, "Unknown UCM verb ignored: %s", list[i]);
     }
   }
   if (num_verbs > 0) {
     snd_use_case_free_list(list, num_verbs);
   }
 
-  rc = ucm_set_use_case(mgr, CRAS_STREAM_TYPE_DEFAULT);
+  rc = ucm_set_use_case(mgr, CRAS_USE_CASE_HIFI);
+  if (rc) {
+    goto cleanup_mgr;
+  }
+  rc = ucm_enable_use_case(mgr);
   if (rc) {
     goto cleanup_mgr;
   }
@@ -468,16 +480,25 @@ void ucm_destroy(struct cras_use_case_mgr* mgr) {
   free(mgr);
 }
 
-int ucm_set_use_case(struct cras_use_case_mgr* mgr,
-                     enum CRAS_STREAM_TYPE use_case) {
-  int rc;
+cras_use_cases_t ucm_get_avail_use_cases(struct cras_use_case_mgr* mgr) {
+  return mgr->avail_use_cases;
+}
 
+int ucm_set_use_case(struct cras_use_case_mgr* mgr,
+                     enum CRAS_USE_CASE use_case) {
   if (mgr->avail_use_cases & (1 << use_case)) {
     mgr->use_case = use_case;
   } else {
-    syslog(LOG_ERR, "Unavailable use case %d for card %s", use_case, mgr->name);
+    syslog(LOG_ERR, "Unavailable use case %s for card %s",
+           cras_use_case_str(use_case), mgr->name);
     return -EINVAL;
   }
+
+  return 0;
+}
+
+int ucm_enable_use_case(struct cras_use_case_mgr* mgr) {
+  int rc;
 
   rc = snd_use_case_set(mgr->mgr, "_verb", uc_verb(mgr));
   if (rc) {
