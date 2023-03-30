@@ -146,6 +146,58 @@ TEST(StreamList, AddInDescendingOrderByChannels) {
   stream_list_destroy(l);
 }
 
+TEST(StreamList, GetStreamCount) {
+  struct stream_list* l;
+  struct cras_rstream* s1;
+  struct cras_rstream* s2;
+  struct cras_rstream* s3;
+  struct cras_rstream* s4;
+  struct cras_rstream_config s1_config;
+  struct cras_rstream_config s2_config;
+  struct cras_rstream_config s3_config;
+  struct cras_rstream_config s4_config;
+
+  s1_config.stream_id = 0x5001;
+  s1_config.direction = CRAS_STREAM_OUTPUT;
+  s1_config.format = NULL;
+
+  s2_config.stream_id = 0x5002;
+  s2_config.direction = CRAS_STREAM_INPUT;
+  s2_config.format = NULL;
+
+  s3_config.stream_id = 0x5003;
+  s3_config.direction = CRAS_STREAM_OUTPUT;
+  s3_config.format = NULL;
+
+  s4_config.stream_id = 0x5004;
+  s4_config.direction = CRAS_STREAM_UNDEFINED;
+  s4_config.format = NULL;
+
+  reset_test_data();
+  l = stream_list_create(added_cb, removed_cb, create_rstream_cb,
+                         destroy_rstream_cb, list_changed_cb, NULL);
+  EXPECT_EQ(0, stream_list_get_num_output(l));
+  stream_list_add(l, &s1_config, &s1);
+  EXPECT_EQ(1, stream_list_get_num_output(l));
+  stream_list_add(l, &s2_config, &s2);
+  EXPECT_EQ(1, stream_list_get_num_output(l));
+  stream_list_add(l, &s3_config, &s3);
+  EXPECT_EQ(2, stream_list_get_num_output(l));
+  stream_list_add(l, &s4_config, &s4);
+  EXPECT_EQ(2, stream_list_get_num_output(l));
+
+  stream_list_rm(l, 0x5001);
+  EXPECT_EQ(1, stream_list_get_num_output(l));
+  stream_list_rm(l, 0x5002);
+  EXPECT_EQ(1, stream_list_get_num_output(l));
+  stream_list_rm(l, 0x5003);
+  EXPECT_EQ(0, stream_list_get_num_output(l));
+  stream_list_rm(l, 0x5004);
+  EXPECT_EQ(0, stream_list_get_num_output(l));
+
+  stream_list_destroy(l);
+}
+
 extern "C" {
 
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,

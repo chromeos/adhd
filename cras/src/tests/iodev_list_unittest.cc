@@ -3515,6 +3515,20 @@ void stream_list_destroy(struct stream_list* list) {}
 struct cras_rstream* stream_list_get(struct stream_list* list) {
   return stream_list_get_ret;
 }
+
+int stream_list_get_num_output(struct stream_list* list) {
+  struct cras_rstream* rstream;
+  int num_output_stream = 0;
+
+  DL_FOREACH (stream_list_get(list), rstream) {
+    if (rstream->direction == CRAS_STREAM_OUTPUT) {
+      num_output_stream++;
+    }
+  }
+
+  return num_output_stream;
+}
+
 int server_stream_create(struct stream_list* stream_list,
                          enum server_stream_type type,
                          unsigned int dev_idx,

@@ -179,3 +179,16 @@ bool stream_list_has_pinned_stream(struct stream_list* list,
   }
   return false;
 }
+
+int stream_list_get_num_output(struct stream_list* list) {
+  struct cras_rstream* rstream;
+  int num_output_stream = 0;
+
+  DL_FOREACH (list->streams, rstream) {
+    if (rstream->direction == CRAS_STREAM_OUTPUT) {
+      num_output_stream++;
+    }
+  }
+
+  return num_output_stream;
+}

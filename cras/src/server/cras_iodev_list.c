@@ -786,7 +786,6 @@ static void resume_devs() {
   struct enabled_dev* edev;
   struct cras_rstream* rstream;
 
-  int has_output_stream = 0;
   stream_list_suspended = 0;
 
   MAINLOG(main_log, MAIN_THREAD_RESUME_DEVS, 0, 0, 0);
@@ -804,12 +803,7 @@ static void resume_devs() {
    * stop playback "right away" after resume, we mute all output devices
    * for a short time if there is any output stream.
    */
-  DL_FOREACH (stream_list_get(stream_list), rstream) {
-    if (rstream->direction == CRAS_STREAM_OUTPUT) {
-      has_output_stream++;
-    }
-  }
-  if (has_output_stream) {
+  if (stream_list_get_num_output(stream_list)) {
     DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
       edev->dev->initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE;
     }
@@ -1881,8 +1875,6 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
   struct cras_iodev* new_dev = NULL;
   struct enabled_dev* edev;
   int new_node_already_enabled = 0;
-  struct cras_rstream* rstream;
-  int has_output_stream = 0;
   int rc;
 
   // find the devices for the id.
@@ -1949,12 +1941,8 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
     /* To reduce the popped noise of active device change, mute
      * new_dev's for RAMP_SWITCH_MUTE_DURATION_SECS s.
      */
-    DL_FOREACH (stream_list_get(stream_list), rstream) {
-      if (rstream->direction == CRAS_STREAM_OUTPUT) {
-        has_output_stream++;
-      }
-    }
-    if (direction == CRAS_STREAM_OUTPUT && has_output_stream) {
+    if (direction == CRAS_STREAM_OUTPUT &&
+        stream_list_get_num_output(stream_list)) {
       new_dev->initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE;
     }
 
