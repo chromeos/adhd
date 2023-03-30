@@ -31,7 +31,9 @@ struct cras_alsa_iodev_ops {
                                const struct cras_card_config* config,
                                struct cras_use_case_mgr* ucm,
                                snd_hctl_t* hctl,
-                               enum CRAS_STREAM_DIRECTION direction);
+                               enum CRAS_STREAM_DIRECTION direction,
+                               enum CRAS_USE_CASE use_case,
+                               struct cras_iodev* group_ref);
 
   int (*legacy_complete_init)(struct cras_iodev* iodev);
   int (*ucm_add_nodes_and_jacks)(struct cras_iodev* iodev,
@@ -55,7 +57,9 @@ struct cras_iodev* cras_alsa_iodev_ops_create(
     const struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction);
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref);
 
 int cras_alsa_iodev_ops_legacy_complete_init(struct cras_alsa_iodev_ops* ops,
                                              struct cras_iodev* iodev);

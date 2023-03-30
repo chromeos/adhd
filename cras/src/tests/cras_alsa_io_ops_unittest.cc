@@ -45,7 +45,9 @@ static struct cras_iodev* mock_create(
     const struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction) {
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref) {
   mock_create_called++;
   return mock_iodev;
 }
@@ -91,7 +93,7 @@ TEST(AlsaIodevOps, Create) {
   // Call the function under test with the mock struct.
   struct cras_iodev* result = cras_alsa_iodev_ops_create(
       &mock_ops, &card_info, "card_name", 0, "pcm_name", "dev_name", "dev_id",
-      1, NULL, NULL, NULL, NULL, CRAS_STREAM_OUTPUT);
+      1, NULL, NULL, NULL, NULL, CRAS_STREAM_OUTPUT, CRAS_USE_CASE_HIFI, NULL);
 
   // Verify the result.
   EXPECT_EQ(result, mock_iodev);

@@ -96,6 +96,8 @@ static struct cras_alsa_iodev_ops cras_alsa_iodev_ops_usb_ops = {
  *    dev_id - The id string of the device.
  *    device_index - 0 based index, value of "YY" in "hw:XX,YY".
  *    direction - Input or output.
+ *    use_case - The intended use case of the device. e.g. HiFi, Low Latency.
+ *    group_ref - An existing iodev of the same iodev group for reference.
  * Returns:
  *    Pointer to the created iodev, or NULL on error.
  *    other negative error code otherwise.
@@ -107,7 +109,9 @@ struct cras_iodev* create_iodev_for_device(
     const char* dev_name,
     const char* dev_id,
     unsigned device_index,
-    enum CRAS_STREAM_DIRECTION direction) {
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref) {
   struct iodev_list_node* new_dev;
   struct iodev_list_node* node;
   int first = 1;
@@ -142,15 +146,16 @@ struct cras_iodev* create_iodev_for_device(
   new_dev->iodev = cras_alsa_iodev_ops_create(
       alsa_card->ops, info, card_name, device_index, pcm_name, dev_name, dev_id,
       first, alsa_card->mixer, alsa_card->config, alsa_card->ucm,
-      alsa_card->hctl, direction);
+      alsa_card->hctl, direction, use_case, group_ref);
   if (new_dev->iodev == NULL) {
     syslog(LOG_ERR, "Couldn't create alsa_iodev for %s", pcm_name);
     free(new_dev);
     return NULL;
   }
 
-  syslog(LOG_DEBUG, "New %s device %s",
-         direction == CRAS_STREAM_OUTPUT ? "playback" : "capture", pcm_name);
+  syslog(LOG_DEBUG, "New %s device %s for %s",
+         direction == CRAS_STREAM_OUTPUT ? "playback" : "capture", pcm_name,
+         cras_use_case_str(use_case));
 
   DL_APPEND(alsa_card->iodevs, new_dev);
   return new_dev->iodev;
@@ -288,7 +293,8 @@ static int add_controls_and_iodevs_by_matching(
         !should_ignore_dev(info, blocklist, dev_idx)) {
       struct cras_iodev* iodev = create_iodev_for_device(
           alsa_card, info, card_name, snd_pcm_info_get_name(dev_info),
-          snd_pcm_info_get_id(dev_info), dev_idx, CRAS_STREAM_OUTPUT);
+          snd_pcm_info_get_id(dev_info), dev_idx, CRAS_STREAM_OUTPUT,
+          CRAS_USE_CASE_HIFI, NULL);
       if (iodev) {
         rc = cras_alsa_iodev_ops_legacy_complete_init(alsa_card->ops, iodev);
         if (rc < 0) {
@@ -302,7 +308,8 @@ static int add_controls_and_iodevs_by_matching(
     if (snd_ctl_pcm_info(handle, dev_info) == 0) {
       struct cras_iodev* iodev = create_iodev_for_device(
           alsa_card, info, card_name, snd_pcm_info_get_name(dev_info),
-          snd_pcm_info_get_id(dev_info), dev_idx, CRAS_STREAM_INPUT);
+          snd_pcm_info_get_id(dev_info), dev_idx, CRAS_STREAM_INPUT,
+          CRAS_USE_CASE_HIFI, NULL);
       if (iodev) {
         rc = cras_alsa_iodev_ops_legacy_complete_init(alsa_card->ops, iodev);
         if (rc < 0) {
@@ -317,18 +324,151 @@ error:
   return rc;
 }
 
+static struct cras_iodev* find_first_iodev_with_ucm_section_name(
+    struct cras_alsa_card* alsa_card,
+    const char* ucm_section_name) {
+  struct iodev_list_node* dev;
+  struct cras_ionode* node;
+
+  if (!ucm_section_name) {
+    return NULL;
+  }
+
+  DL_FOREACH (alsa_card->iodevs, dev) {
+    DL_FOREACH (dev->iodev->nodes, node) {
+      if (!strncmp(node->ucm_name, ucm_section_name,
+                   ARRAY_SIZE(node->ucm_name))) {
+        return dev->iodev;
+      }
+    }
+  }
+  return NULL;
+}
+
+static int set_stream_direction_filter(snd_pcm_info_t* dev_info,
+                                       enum CRAS_STREAM_DIRECTION dir) {
+  switch (dir) {
+    case CRAS_STREAM_OUTPUT:
+      snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_PLAYBACK);
+      break;
+    case CRAS_STREAM_INPUT:
+      snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_CAPTURE);
+      break;
+    default:
+      syslog(LOG_ERR, "Unexpected direction: %d", dir);
+      return -EINVAL;
+  }
+  return 0;
+}
+
+static int create_iodevs_from_ucm_sections(
+    struct cras_alsa_card_info* info,
+    struct cras_alsa_card* alsa_card,
+    const char* card_name,
+    snd_ctl_t* handle,
+    struct ucm_section* ucm_sections,
+    enum CRAS_IODEV_VISIBILITY visibility,
+    enum CRAS_USE_CASE use_case) {
+  struct ucm_section* section;
+  snd_pcm_info_t* dev_info;
+  struct cras_iodev *iodev, *group_ref;
+  int rc;
+
+  snd_pcm_info_alloca(&dev_info);
+
+  // Create all of the devices.
+  DL_FOREACH (ucm_sections, section) {
+    syslog(LOG_DEBUG, "Create iodev for ucm section: %s", section->name);
+    /* If a UCM section specifies certain device as dependency
+     * then don't create an alsa iodev for it, just append it
+     * as node later. */
+    if (section->dependent_dev_idx != -1) {
+      continue;
+    }
+    snd_pcm_info_set_device(dev_info, section->dev_idx);
+    snd_pcm_info_set_subdevice(dev_info, 0);
+    rc = set_stream_direction_filter(dev_info, section->dir);
+    if (rc) {
+      return rc;
+    }
+
+    if (snd_ctl_pcm_info(handle, dev_info)) {
+      syslog(LOG_WARNING, "Could not get info for device: %s", section->name);
+      continue;
+    }
+
+    /* iodevs created from SectionDevices with the same name across UCM .conf
+     * files are grouped together. */
+    group_ref =
+        find_first_iodev_with_ucm_section_name(alsa_card, section->name);
+    iodev = create_iodev_for_device(
+        alsa_card, info, card_name, snd_pcm_info_get_name(dev_info),
+        snd_pcm_info_get_id(dev_info), section->dev_idx, section->dir, use_case,
+        group_ref);
+    if (iodev) {
+      iodev->visibility = visibility;
+    }
+  }
+
+  return 0;
+}
+
+static int create_iodevs_for_specialized_use_cases(
+    struct cras_alsa_card_info* info,
+    struct cras_alsa_card* alsa_card,
+    const char* card_name,
+    snd_ctl_t* handle) {
+  struct ucm_section* ucm_sections;
+  enum CRAS_USE_CASE use_case;
+  cras_use_cases_t avail_use_cases;
+  int rc;
+
+  avail_use_cases = ucm_get_avail_use_cases(alsa_card->ucm);
+  for (use_case = 0; use_case < CRAS_NUM_USE_CASES; use_case++) {
+    // Skip if the use case is HIFI or not available.
+    if ((avail_use_cases & (1 << use_case)) == 0) {
+      continue;
+    }
+    if (use_case == CRAS_USE_CASE_HIFI) {
+      continue;
+    }
+
+    syslog(LOG_DEBUG, "Scan iodevs for specialized use case: %s",
+           cras_use_case_str(use_case));
+
+    rc = ucm_set_use_case(alsa_card->ucm, use_case);
+    if (rc) {
+      return rc;
+    }
+    ucm_sections = ucm_get_sections(alsa_card->ucm);
+    if (!ucm_sections) {
+      syslog(LOG_ERR,
+             "Could not retrieve any UCM SectionDevice for %s, card '%s'.",
+             cras_use_case_str(use_case), card_name);
+      return -ENOENT;
+    }
+
+    // iodevs for specialized use cases are hidden from user.
+    rc = create_iodevs_from_ucm_sections(info, alsa_card, card_name, handle,
+                                         ucm_sections, CRAS_IODEV_HIDDEN,
+                                         use_case);
+    ucm_section_free_list(ucm_sections);
+    if (rc) {
+      return rc;
+    }
+  }
+  return 0;
+}
+
 static int add_controls_and_iodevs_with_ucm(struct cras_alsa_card_info* info,
                                             struct cras_alsa_card* alsa_card,
                                             const char* card_name,
                                             snd_ctl_t* handle) {
-  snd_pcm_info_t* dev_info;
   struct mixer_name* main_volume_control_names;
   struct iodev_list_node* node;
   int rc = 0;
   struct ucm_section* section;
   struct ucm_section* ucm_sections;
-
-  snd_pcm_info_alloca(&dev_info);
 
   main_volume_control_names = ucm_get_main_volume_names(alsa_card->ucm);
   if (main_volume_control_names) {
@@ -347,8 +487,8 @@ static int add_controls_and_iodevs_with_ucm(struct cras_alsa_card_info* info,
   ucm_sections = ucm_get_sections(alsa_card->ucm);
   if (!ucm_sections) {
     syslog(LOG_ERR,
-           "Could not retrieve any UCM SectionDevice"
-           " info for '%s'.",
+           "Could not retrieve any UCM SectionDevice for CRAS_USE_CASE_HIFI, "
+           "card '%s'.",
            card_name);
     rc = -ENOENT;
     goto cleanup_names;
@@ -366,34 +506,12 @@ static int add_controls_and_iodevs_with_ucm(struct cras_alsa_card_info* info,
     }
   }
 
-  // Create all of the devices.
-  DL_FOREACH (ucm_sections, section) {
-    /* If a UCM section specifies certain device as dependency
-     * then don't create an alsa iodev for it, just append it
-     * as node later. */
-    if (section->dependent_dev_idx != -1) {
-      continue;
-    }
-    snd_pcm_info_set_device(dev_info, section->dev_idx);
-    snd_pcm_info_set_subdevice(dev_info, 0);
-    if (section->dir == CRAS_STREAM_OUTPUT) {
-      snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_PLAYBACK);
-    } else if (section->dir == CRAS_STREAM_INPUT) {
-      snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_CAPTURE);
-    } else {
-      syslog(LOG_ERR, "Unexpected direction: %d", section->dir);
-      rc = -EINVAL;
-      goto cleanup;
-    }
-
-    if (snd_ctl_pcm_info(handle, dev_info)) {
-      syslog(LOG_WARNING, "Could not get info for device: %s", section->name);
-      continue;
-    }
-
-    create_iodev_for_device(
-        alsa_card, info, card_name, snd_pcm_info_get_name(dev_info),
-        snd_pcm_info_get_id(dev_info), section->dev_idx, section->dir);
+  // Create iodevs for the main (HiFi) use case.
+  rc = create_iodevs_from_ucm_sections(info, alsa_card, card_name, handle,
+                                       ucm_sections, CRAS_IODEV_VISIBLE,
+                                       CRAS_USE_CASE_HIFI);
+  if (rc) {
+    goto cleanup;
   }
 
   /* Setup jacks and controls for the devices. If a SectionDevice is
@@ -420,6 +538,17 @@ static int add_controls_and_iodevs_with_ucm(struct cras_alsa_card_info* info,
         goto cleanup;
       }
     }
+  }
+
+  rc = create_iodevs_for_specialized_use_cases(info, alsa_card, card_name,
+                                               handle);
+  if (rc) {
+    goto cleanup;
+  }
+  // Reset to HiFi since all UCM device sequences for ionodes are in HiFi.conf.
+  rc = ucm_set_use_case(alsa_card->ucm, CRAS_USE_CASE_HIFI);
+  if (rc) {
+    goto cleanup;
   }
 
   DL_FOREACH (alsa_card->iodevs, node) {

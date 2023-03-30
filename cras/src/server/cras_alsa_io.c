@@ -2056,7 +2056,9 @@ struct cras_iodev* alsa_iodev_create(
     const struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction) {
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref) {
   struct alsa_io* aio;
   struct cras_iodev* iodev;
   // TODO(b/247732405): remove all USB logic in this file after iodev refactor.
@@ -2397,9 +2399,15 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
     build_softvol_scalers(aio);
   }
 
-  // Set the active node as the best node we have now.
-  alsa_iodev_set_active_node(&aio->common.base,
-                             first_plugged_node(&aio->common.base), 0);
+  /* In an iodev group the ionodes are shared by all member iodevs conceptually.
+   * However the ionodes are attached to and owned by one iodev
+   * (CRAS_USE_CASE_HIFI) in the group, so the active node only needs to be set
+   * once per group during init. */
+  if (aio->common.base.nodes) {
+    // Set the active node as the best node we have now.
+    alsa_iodev_set_active_node(&aio->common.base,
+                               first_plugged_node(&aio->common.base), 0);
+  }
 
   /*
    * Set plugged for the USB device per card when it appears if

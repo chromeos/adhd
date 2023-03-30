@@ -1682,7 +1682,9 @@ struct cras_iodev* cras_alsa_usb_iodev_create(
     const struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction) {
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref) {
   struct alsa_usb_io* aio;
   struct cras_iodev* iodev;
   const struct cras_alsa_usb_card_info* usb_card_info;

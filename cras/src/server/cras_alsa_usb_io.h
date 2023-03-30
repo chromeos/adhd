@@ -10,6 +10,7 @@
 
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_card_config.h"
+#include "cras/src/server/cras_alsa_ucm.h"
 #include "cras_types.h"
 
 #ifdef __cplusplus
@@ -35,6 +36,8 @@ struct ucm_section;
  *    ucm - CRAS use case manager if available.
  *    hctl - high-level control manager if available.
  *    direction - input or output.
+ *    use_case - The intended use case of the device. e.g. HiFi, Low Latency.
+ *    group_ref - An existing iodev of the same iodev group for reference.
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
  */
@@ -50,7 +53,9 @@ struct cras_iodev* cras_alsa_usb_iodev_create(
     const struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction);
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref);
 
 /* Complete initializeation of this iodev with the legacy method.
  * Add IO nodes and find jacks for this iodev with magic sauce, then choose

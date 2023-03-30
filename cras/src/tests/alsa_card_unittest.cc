@@ -1095,7 +1095,7 @@ TEST(AlsaCard, GG) {
   struct cras_alsa_card* c;
   cras_alsa_card_info card_info;
   int info_rets[] = {0, 0, 0, 0, 0, -1};
-  struct cras_ionode nodes[4];
+  struct cras_ionode nodes[4] = {};
   const char* echo_ref = "echo ref";
 
   ResetStubData();
@@ -1256,7 +1256,9 @@ struct cras_iodev* alsa_iodev_create(
     const struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction) {
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref) {
   struct cras_iodev* result = NULL;
   if (cras_alsa_iodev_create_called < cras_alsa_iodev_create_return_size) {
     result = cras_alsa_iodev_create_return[cras_alsa_iodev_create_called];
@@ -1305,7 +1307,9 @@ struct cras_iodev* cras_alsa_usb_iodev_create(
     const struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction) {
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref) {
   struct cras_iodev* result = NULL;
   if (cras_alsa_usb_iodev_create_called <
       cras_alsa_usb_iodev_create_return_size) {
@@ -1526,11 +1530,21 @@ struct ucm_section* ucm_get_sections(struct cras_use_case_mgr* mgr) {
   ucm_get_sections_called++;
   return ucm_get_sections_return_value;
 }
+
 const char* ucm_get_echo_reference_dev_name_for_dev(
     struct cras_use_case_mgr* mgr,
     const char* dev) {
   int idx = ucm_get_echo_reference_dev_name_for_dev_called++;
   return ucm_get_echo_reference_dev_name_for_dev_return_value[idx];
+}
+
+cras_use_cases_t ucm_get_avail_use_cases(struct cras_use_case_mgr* mgr) {
+  return 0;
+}
+
+int ucm_set_use_case(struct cras_use_case_mgr* mgr,
+                     enum CRAS_USE_CASE use_case) {
+  return 0;
 }
 
 int cras_alsa_mixer_add_main_volume_control_by_name(

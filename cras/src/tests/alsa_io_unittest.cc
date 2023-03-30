@@ -289,13 +289,14 @@ static struct cras_iodev* alsa_iodev_create_with_default_parameters(
         .usb_desc_checksum = 0};
     return alsa_iodev_create(&usb_card_info.base, test_card_name, 0,
                              test_pcm_name, test_dev_name, dev_id, is_first,
-                             mixer, config, ucm, fake_hctl, direction);
+                             mixer, config, ucm, fake_hctl, direction,
+                             CRAS_USE_CASE_HIFI, NULL);
   }
   struct cras_alsa_card_info card_info = {.card_type = card_type,
                                           .card_index = (uint32_t)card_index};
   return alsa_iodev_create(&card_info, test_card_name, 0, test_pcm_name,
                            test_dev_name, dev_id, is_first, mixer, config, ucm,
-                           fake_hctl, direction);
+                           fake_hctl, direction, CRAS_USE_CASE_HIFI, NULL);
 }
 
 namespace {

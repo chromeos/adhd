@@ -198,7 +198,8 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
   plugin->iodev = cras_alsa_iodev_ops_create(
       plugin->ops, &usb_card_info.base, card_name, 0, pcm_name, "", "",
       1,  // is first
-      plugin->mixer, NULL, plugin->ucm, plugin->hctl, direction);
+      plugin->mixer, NULL, plugin->ucm, plugin->hctl, direction,
+      CRAS_USE_CASE_HIFI, NULL);
 
   DL_FOREACH (ucm_sections, section) {
     if (section->dir != plugin->iodev->direction) {

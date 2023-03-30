@@ -28,10 +28,13 @@ inline struct cras_iodev* cras_alsa_iodev_ops_create(
     const struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction) {
+    enum CRAS_STREAM_DIRECTION direction,
+    enum CRAS_USE_CASE use_case,
+    struct cras_iodev* group_ref) {
   CRAS_CHECK(ops->create);
   return ops->create(card_info, card_name, device_index, pcm_name, dev_name,
-                     dev_id, is_first, mixer, config, ucm, hctl, direction);
+                     dev_id, is_first, mixer, config, ucm, hctl, direction,
+                     use_case, group_ref);
 }
 
 inline int cras_alsa_iodev_ops_legacy_complete_init(

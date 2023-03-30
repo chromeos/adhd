@@ -288,7 +288,8 @@ static struct cras_iodev* cras_alsa_usb_iodev_create_with_default_parameters(
 
   return cras_alsa_usb_iodev_create(
       &usb_card_info.base, test_card_name, 0, test_pcm_name, test_dev_name,
-      dev_id, is_first, mixer, config, ucm, fake_hctl, direction);
+      dev_id, is_first, mixer, config, ucm, fake_hctl, direction,
+      CRAS_USE_CASE_HIFI, NULL);
 }
 
 TEST(AlsaIoInit, DefaultNodeUSBCard) {
