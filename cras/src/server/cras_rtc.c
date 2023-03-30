@@ -61,7 +61,7 @@ static void notify_rtc_active_now(bool was_active) {
 #endif
 }
 
-bool cras_rtc_check_stream_config(struct cras_rstream* stream) {
+bool cras_rtc_check_stream_config(const struct cras_rstream* stream) {
   return stream->cb_threshold == 480 &&
          (stream->client_type == CRAS_CLIENT_TYPE_CHROME ||
           stream->client_type == CRAS_CLIENT_TYPE_LACROS ||

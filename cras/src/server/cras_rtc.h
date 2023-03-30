@@ -13,7 +13,7 @@
  * true indicates it may be a RTC stream.
  * false indicates it's definitely not a RTC stream.
  */
-bool cras_rtc_check_stream_config(struct cras_rstream* stream);
+bool cras_rtc_check_stream_config(const struct cras_rstream* stream);
 
 /*
  * Adds a stream into the RTC detector. This function will detect whether
