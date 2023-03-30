@@ -267,6 +267,16 @@ struct cras_iodev {
                                bool enabled);
   bool (*get_rtc_proc_enabled)(struct cras_iodev* iodev,
                                enum RTC_PROC_ON_DSP rtc_proc);
+  // (Optional) Gets the current iodev's group.
+  struct cras_iodev* const* (*get_dev_group)(const struct cras_iodev* iodev,
+                                             size_t* out_group_size);
+  // (Optional) Gets an unique ID of the iodev's group. 0 if not in a group.
+  uintptr_t (*get_dev_group_id)(const struct cras_iodev* iodev);
+  // (Optional) Checks if the given stream should be attached to the iodev based
+  // on the iodev's use case and stream parameters.
+  int (*should_attach_stream)(const struct cras_iodev* iodev,
+                              const struct cras_rstream* stream);
+
   // The audio format being rendered or captured to hardware.
   struct cras_audio_format* format;
   // Rate estimator to estimate the actual device rate.
@@ -991,6 +1001,81 @@ void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
  */
 bool cras_iodev_is_channel_count_supported(struct cras_iodev* iodev,
                                            int channel);
+
+/* Gets the current iodev's group. The iodevs in a group are enabled/disabled
+ * together. The returned read-only array is freed when all iodevs in the group
+ * are destroyed. Caller should not modify or free the array.
+ * Args:
+ *    iodev - The device.
+ *    out_group_size - Caller receives the size of the returned array.
+ * Returns:
+ *    An array of pointers to the group members including the current iodev.
+ *    NULL if the current iodev is not in a group. *out_group_size is set to 0.
+ */
+static inline struct cras_iodev* const* cras_iodev_get_dev_group(
+    const struct cras_iodev* iodev,
+    size_t* out_group_size) {
+  if (iodev->get_dev_group) {
+    return iodev->get_dev_group(iodev, out_group_size);
+  }
+  if (out_group_size) {
+    *out_group_size = 0;
+  }
+  return NULL;
+}
+
+/* Gets an unique ID of the iodev's group.
+ * Args:
+ *    iodev - The device.
+ * Returns:
+ *    An unique ID of the iodev's group.
+ *    0 if the current iodev is not in a group.
+ */
+static inline uintptr_t cras_iodev_get_dev_group_id(
+    const struct cras_iodev* iodev) {
+  if (iodev->get_dev_group_id) {
+    return iodev->get_dev_group_id(iodev);
+  }
+  return 0;
+}
+
+/* Checks if the given stream should be attached to the iodev based on the
+ * iodev's use case and stream parameters.
+ * Args:
+ *    iodev - The device.
+ *    stream - The stream to check.
+ * Returns:
+ *    True if the stream should be attached. False otherwise.
+ */
+static inline int cras_iodev_should_attach_stream(
+    const struct cras_iodev* iodev,
+    const struct cras_rstream* stream) {
+  if (iodev->should_attach_stream) {
+    return iodev->should_attach_stream(iodev, stream);
+  }
+  /* A stream should attach to all enabled iodevs if iodev specific filter is
+   * not implemented in order to be consistent with existing CRAS behavior. */
+  return true;
+}
+
+/* Checks if the given iodevs are in the same group.
+ * Args:
+ *    a,b - The devices to check.
+ * Returns:
+ *    True if the given iodevs are in the same group. False otherwise.
+ */
+static inline int cras_iodev_in_same_group(const struct cras_iodev* a,
+                                           const struct cras_iodev* b) {
+  if (a == b) {
+    return true;
+  }
+
+  if (a && b && a->get_dev_group_id && b->get_dev_group_id) {
+    return a->get_dev_group_id(a) == b->get_dev_group_id(b) &&
+           a->get_dev_group_id(a);
+  }
+  return false;
+}
 
 #ifdef __cplusplus
 }  // extern "C"
