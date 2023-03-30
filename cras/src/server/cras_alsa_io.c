@@ -29,6 +29,7 @@
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_ramp.h"
 #include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_utf8.h"
@@ -69,6 +70,8 @@ struct alsa_input_node {
   int8_t* channel_layout;
 };
 
+struct alsa_io_group;
+
 /*
  * Child of cras_iodev, alsa_io handles ALSA interaction for sound devices.
  */
@@ -81,6 +84,16 @@ struct alsa_io {
   bool dsp_noise_suppression_enabled;
   // If gain control is enabled in DSP
   bool dsp_gain_control_enabled;
+  // Use case of this device according to UCM.
+  enum CRAS_USE_CASE use_case;
+  // Pointer to the shared group info. NULL if the device is not in a group.
+  // alsa_io_group is ref-counted and owned by its member devices.
+  struct alsa_io_group* group;
+};
+
+struct alsa_io_group {
+  struct alsa_io* devs[CRAS_NUM_USE_CASES];
+  size_t num_devs;
 };
 
 static void init_device_settings(struct alsa_io* aio);
@@ -2040,6 +2053,122 @@ static bool get_rtc_proc_enabled(struct cras_iodev* iodev,
   return false;
 }
 
+static struct cras_iodev* const* get_dev_group(const struct cras_iodev* iodev,
+                                               size_t* out_group_size) {
+  const struct alsa_io* aio = (const struct alsa_io*)iodev;
+
+  if (out_group_size) {
+    *out_group_size = aio->group ? aio->group->num_devs : 0;
+  }
+  return aio->group ? (struct cras_iodev* const*)aio->group->devs : NULL;
+}
+
+static uintptr_t get_dev_group_id(const struct cras_iodev* iodev) {
+  const struct alsa_io* aio = (const struct alsa_io*)iodev;
+
+  return (uintptr_t)aio->group;
+}
+
+static bool iodev_group_has_use_case(struct alsa_io_group* group,
+                                     enum CRAS_USE_CASE use_case) {
+  if (!group) {
+    return false;
+  }
+
+  for (size_t i = 0; i < group->num_devs; i++) {
+    if (group->devs[i] && group->devs[i]->use_case == use_case) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static int should_attach_stream(const struct cras_iodev* iodev,
+                                const struct cras_rstream* stream) {
+  const struct alsa_io* aio = (const struct alsa_io*)iodev;
+  enum CRAS_USE_CASE target_use_case = CRAS_USE_CASE_HIFI;
+  int attach;
+
+  // TODO(b/266790044): Add stream-iodev matching logic here based on stream
+  // parameters. All streams are assigned to HiFi devices currently.
+  attach = target_use_case == aio->use_case;
+
+  syslog(LOG_DEBUG,
+         "should_attach_stream: %d {stream=0x%x, target=%s} "
+         "{dev=%s, group=%p, use=%s}",
+         attach, stream->stream_id, cras_use_case_str(target_use_case),
+         aio->common.pcm_name, aio->group, cras_use_case_str(aio->use_case));
+  return attach;
+}
+
+static int add_to_iodev_group(struct alsa_io_group* group,
+                              struct alsa_io* aio) {
+  if (!group) {
+    return -EINVAL;
+  }
+
+  // Skip if the iodev is already in the group.
+  if (aio->group == group) {
+    return 0;
+  }
+
+  if (iodev_group_has_use_case(group, aio->use_case)) {
+    syslog(LOG_ERR, "Iodev group already has %s when adding %s",
+           cras_use_case_str(aio->use_case), aio->common.base.info.name);
+    return -EEXIST;
+  }
+
+  if (group->num_devs >= ARRAY_SIZE(group->devs)) {
+    return -E2BIG;
+  }
+
+  group->devs[group->num_devs++] = aio;
+  aio->group = group;
+  return 0;
+}
+
+static void remove_from_iodev_group(struct alsa_io* aio) {
+  size_t i;
+
+  if (!aio->group) {
+    return;
+  }
+
+  // The order of devs in the group array is changed after removal.
+  // The last dev in the array is moved to fill the hole.
+  for (i = 0; i < aio->group->num_devs; i++) {
+    if (aio->group->devs[i] == aio) {
+      aio->group->devs[i] = aio->group->devs[--aio->group->num_devs];
+      break;
+    }
+  }
+
+  // alsa_io_group is ref-counted and owned by its member devices.
+  if (!aio->group->num_devs) {
+    free(aio->group);
+  }
+  aio->group = NULL;
+}
+
+static struct alsa_io_group* create_iodev_group(struct cras_iodev* iodev) {
+  struct alsa_io* aio = (struct alsa_io*)iodev;
+  struct alsa_io_group* group;
+
+  if (aio->group) {
+    return aio->group;
+  }
+
+  group = (struct alsa_io_group*)calloc(1, sizeof(*group));
+  if (group == NULL) {
+    syslog(LOG_ERR, "Out of memory when creating alsa io group.");
+    return NULL;
+  }
+
+  // Add self.
+  add_to_iodev_group(group, aio);
+  return group;
+}
+
 /*
  * Exported Interface.
  */
@@ -2148,6 +2277,9 @@ struct cras_iodev* alsa_iodev_create(
   iodev->support_noise_cancellation = support_noise_cancellation;
   iodev->set_rtc_proc_enabled = set_rtc_proc_enabled;
   iodev->get_rtc_proc_enabled = get_rtc_proc_enabled;
+  iodev->get_dev_group = get_dev_group;
+  iodev->get_dev_group_id = get_dev_group_id;
+  iodev->should_attach_stream = should_attach_stream;
   if (card_info->card_type == ALSA_CARD_TYPE_USB) {
     iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
   }
@@ -2189,6 +2321,25 @@ struct cras_iodev* alsa_iodev_create(
                  device_index, card_info->card_type, usb_vid, usb_pid,
                  usb_serial_number);
 
+  aio->use_case = use_case;
+  if (group_ref) {
+    struct alsa_io_group* group;
+    int rc;
+
+    group = create_iodev_group(group_ref);
+    rc = add_to_iodev_group(group, aio);
+    if (rc) {
+      syslog(LOG_ERR, "Failed to add to iodev group: %d", rc);
+      /* Don't create the iodev if it can't be added to the group. An orphaned
+       * iodev can't be enabled by iodev_list because it has no ionode, so no
+       * stream can be added to it.
+       *
+       * group_ref may be in a group with only itself if all other iodevs of the
+       * group failed to be added. This is still OK. */
+      goto cleanup_iodev;
+    }
+  }
+
   aio->common.jack_list = cras_alsa_jack_list_create(
       card_info->card_index, card_name, device_index, is_first, mixer, ucm,
       hctl, direction,
@@ -2214,6 +2365,7 @@ struct cras_iodev* alsa_iodev_create(
   return &aio->common.base;
 
 cleanup_iodev:
+  remove_from_iodev_group(aio);
   free_alsa_iodev_resources(aio);
   free(aio);
   return NULL;
@@ -2454,6 +2606,7 @@ void alsa_iodev_destroy(struct cras_iodev* iodev) {
 
   // Free resources when device successfully removed.
   cras_alsa_jack_list_destroy(aio->common.jack_list);
+  remove_from_iodev_group(aio);
   free_alsa_iodev_resources(aio);
   cras_volume_curve_destroy(aio->common.default_volume_curve);
   free(iodev);
