@@ -16,7 +16,6 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "cras/src/common/cras_string.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_io_common.h"
@@ -110,12 +109,6 @@ struct alsa_io {
   struct cras_alsa_jack_list* jack_list;
   // CRAS use case manager, if configuration is found.
   struct cras_use_case_mgr* ucm;
-  // Pointer to mmap buffer. It's mmap-ed in get_buffer() and
-  // commited in put_buffer().
-  uint8_t* mmap_buf;
-  // Pointer to sample buffer. It's malloc in configure_dev() and
-  // free in close_dev().
-  uint8_t* sample_buf;
   // offset returned from mmap_begin.
   snd_pcm_uframes_t mmap_offset;
   // Descriptor used to block until data is ready.
@@ -357,8 +350,6 @@ static int close_dev(struct cras_iodev* iodev) {
   aio->free_running = 0;
   aio->filled_zeros_for_draining = 0;
   aio->hwparams_set = 0;
-  free(aio->sample_buf);
-  aio->sample_buf = NULL;
   cras_iodev_free_format(&aio->base);
   cras_iodev_free_audio_area(&aio->base);
   return 0;
@@ -474,7 +465,6 @@ static void init_quad_rotation_dsp_env_for_internal_speaker(
 
 static int configure_dev(struct cras_iodev* iodev) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
-  size_t fmt_bytes;
   int rc;
 
   /* This is called after the first stream added so configure for it.
@@ -488,7 +478,6 @@ static int configure_dev(struct cras_iodev* iodev) {
   aio->severe_underrun_frames =
       SEVERE_UNDERRUN_MS * iodev->format->frame_rate / 1000;
 
-  fmt_bytes = cras_get_format_bytes(iodev->format);
   cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
   syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
@@ -497,18 +486,6 @@ static int configure_dev(struct cras_iodev* iodev) {
   rc = set_hwparams(iodev);
   if (rc < 0) {
     return rc;
-  }
-
-  if (!aio->sample_buf) {
-    aio->sample_buf =
-        (uint8_t*)calloc(iodev->buffer_size * fmt_bytes, sizeof(uint8_t));
-    if (!aio->sample_buf) {
-      syslog(LOG_ERR, "cras_alsa_io: configure_dev: calloc: %s",
-             cras_strerror(errno));
-      return -ENOMEM;
-    }
-    cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
-                                        aio->sample_buf);
   }
 
   // Set channel map to device
@@ -623,19 +600,19 @@ static int get_buffer(struct cras_iodev* iodev,
                       struct cras_audio_area** area,
                       unsigned* frames) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
-  snd_pcm_uframes_t nframes = MIN(iodev->buffer_size, *frames);
+  snd_pcm_uframes_t nframes = *frames;
+  uint8_t* dst = NULL;
   size_t format_bytes;
   int rc;
+
   aio->mmap_offset = 0;
   format_bytes = cras_get_format_bytes(iodev->format);
-  rc = cras_alsa_mmap_begin(aio->handle, format_bytes, &aio->mmap_buf,
-                            &aio->mmap_offset, &nframes);
+
+  rc = cras_alsa_mmap_begin(aio->handle, format_bytes, &dst, &aio->mmap_offset,
+                            &nframes);
+
   iodev->area->frames = nframes;
-  if (iodev->direction == CRAS_STREAM_INPUT) {
-    memcpy(aio->sample_buf, aio->mmap_buf, iodev->area->frames * format_bytes);
-  }
-  cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
-                                      aio->sample_buf);
+  cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
 
   *area = iodev->area;
   *frames = nframes;
@@ -645,14 +622,7 @@ static int get_buffer(struct cras_iodev* iodev,
 
 static int put_buffer(struct cras_iodev* iodev, unsigned nwritten) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
-  size_t format_bytes;
-  int rc;
-  format_bytes = cras_get_format_bytes(iodev->format);
-  if (iodev->direction == CRAS_STREAM_OUTPUT) {
-    memcpy(aio->mmap_buf, aio->sample_buf, iodev->area->frames * format_bytes);
-  }
-  rc = cras_alsa_mmap_commit(aio->handle, aio->mmap_offset, nwritten);
-  return rc;
+  return cras_alsa_mmap_commit(aio->handle, aio->mmap_offset, nwritten);
 }
 
 static int flush_buffer(struct cras_iodev* iodev) {
