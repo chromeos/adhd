@@ -213,6 +213,7 @@ static uint32_t calculate_desc_checksum(struct udev_device* dev) {
   if (fstat(fd, &stat_buf) < 0) {
     syslog(LOG_WARNING, "failed to stat file %s: %s", path,
            cras_strerror(errno));
+    goto bail;
     return 0;
   }
 
