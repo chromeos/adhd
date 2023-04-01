@@ -1236,7 +1236,7 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
   aio = (struct alsa_usb_io*)arg;
   node = usb_get_output_node_from_jack(aio, jack);
   jack_name = cras_alsa_jack_get_name(jack);
-  if (!strcmp(jack_name, "Speaker Phantom Jack")) {
+  if (!jack_name || !strcmp(jack_name, "Speaker Phantom Jack")) {
     jack_name = INTERNAL_SPEAKER;
   }
 
