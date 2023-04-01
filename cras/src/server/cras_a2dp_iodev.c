@@ -773,6 +773,9 @@ struct cras_iodev* a2dp_iodev_create(struct cras_bt_transport* transport) {
 
   // Create an empty ionode
   node = (struct cras_ionode*)calloc(1, sizeof(*node));
+  if (!node) {
+    goto error;
+  }
   node->dev = iodev;
   strlcpy(node->name, iodev->info.name, sizeof(node->name));
   node->plugged = 1;
