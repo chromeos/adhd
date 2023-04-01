@@ -66,12 +66,18 @@ static int update_supported_formats(struct cras_iodev* iodev) {
 
   free(iodev->supported_channel_counts);
   iodev->supported_channel_counts = (size_t*)malloc(2 * sizeof(size_t));
+  if (!iodev->supported_channel_counts) {
+    return -ENOMEM;
+  }
   iodev->supported_channel_counts[0] = 1;
   iodev->supported_channel_counts[1] = 0;
 
   free(iodev->supported_formats);
   iodev->supported_formats =
       (snd_pcm_format_t*)malloc(2 * sizeof(snd_pcm_format_t));
+  if (!iodev->supported_formats) {
+    return -ENOMEM;
+  }
   iodev->supported_formats[0] = SND_PCM_FORMAT_S16_LE;
   iodev->supported_formats[1] = 0;
 
@@ -419,6 +425,9 @@ struct cras_iodev* hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
   }
 
   node = (struct cras_ionode*)calloc(1, sizeof(*node));
+  if (!node) {
+    goto error;
+  }
   node->dev = iodev;
   strlcpy(node->name, iodev->info.name, sizeof(node->name));
 
