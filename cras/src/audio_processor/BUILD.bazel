@@ -38,7 +38,7 @@ rust_test(
     },
     deps = [
         "//cras/src/audio_processor/c:test_plugins",
-        "@crate_index//:tempdir",
+        "@crate_index//:tempfile",
     ],
 )
 
@@ -60,7 +60,7 @@ rust_test_suite(
         "@crate_index//:dasp_sample",
         "@crate_index//:hound",
         "@crate_index//:libc",
-        "@crate_index//:tempdir",
+        "@crate_index//:tempfile",
         "@crate_index//:thiserror",
     ],
 )

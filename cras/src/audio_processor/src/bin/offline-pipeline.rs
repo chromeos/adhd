@@ -161,9 +161,9 @@ mod tests {
     fn simple_negate() {
         use assert_matches::assert_matches;
         use std::env;
-        use tempdir::TempDir;
+        use tempfile::TempDir;
 
-        let dir = TempDir::new("pipeline_smoke").unwrap();
+        let dir = TempDir::new().unwrap();
         let in_wav_path = dir.path().join("input.wav");
         let out_wav_path = dir.path().join("output.wav");
 

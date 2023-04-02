@@ -34,8 +34,8 @@ def cargo_io_deps():
         "bindgen": crate.spec(
             version = "0.63.0",
         ),
-        "tempdir": crate.spec(
-            version = "0.3.7",
+        "tempfile": crate.spec(
+            version = "3.4.0",
         ),
         "anyhow": crate.spec(
             version = "1.0.68",
