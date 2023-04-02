@@ -56,7 +56,7 @@ func (cl *gerritCL) builds() []*cloudbuildpb.Build {
 		cl.makeBuild("archlinux-ubasan", "--config=local-clang", "--config=ubsan"),
 		// cl.makeBuild("archlinux-tsan", "--config=local-clang", "--config=tsan"),
 		cl.makeBuild("archlinux-gcc", "--config=local-gcc"),
-		cl.makeSysteCrasRustBuild("archlinux-system_cras_rust"),
+		cl.makeSystemCrasRustBuild("archlinux-system_cras_rust"),
 		cl.makeKytheBuild("kythe"),
 
 		cl.makeOssFuzzBuild("oss-fuzz-address", "address", "libfuzzer"),
@@ -133,39 +133,37 @@ func (cl *gerritCL) makeKytheBuild(name string) *cloudbuildpb.Build {
 	}
 }
 
-func (cl *gerritCL) makeSysteCrasRustBuild(name string) *cloudbuildpb.Build {
+func (cl *gerritCL) makeSystemCrasRustBuild(name string) *cloudbuildpb.Build {
 	return &cloudbuildpb.Build{
 		Steps: append(cl.checkoutSteps(), []*cloudbuildpb.BuildStep{
 			{
 				Name:       archlinuxBuilder,
 				Entrypoint: "cargo",
-				Args:       []string{"build"},
-				Dir:        "adhd/cras/src/audio_processor",
+				Args:       []string{"install", "dbus-codegen"},
 			},
 			{
 				Name:       archlinuxBuilder,
 				Entrypoint: "cargo",
-				Args:       []string{"test"},
-				Dir:        "adhd/cras/src/audio_processor",
+				Args:       []string{"build", "--workspace"},
+				// TODO(b/274360274): Run in adhd.
+				Dir: "adhd/cras/src/server/rust",
 			},
 			{
 				Name:       archlinuxBuilder,
 				Entrypoint: "cargo",
-				Args:       []string{"build"},
-				Dir:        "adhd/cras/src/server/rust",
-			},
-			{
-				Name:       archlinuxBuilder,
-				Entrypoint: "cargo",
-				Args:       []string{"test"},
-				Dir:        "adhd/cras/src/server/rust",
+				Args:       []string{"test", "--workspace"},
+				// TODO(b/274360274): Run in adhd.
+				Dir: "adhd/cras/src/server/rust",
 			},
 			{
 				Name:       archlinuxBuilder,
 				Entrypoint: "bazel",
 				Args: []string{
 					"test", "//...", "-k", "-c", "dbg", "--test_output=errors",
+					"--//:system_cras_rust",
 					"--config=local-clang",
+					"--linkopt=-L/workspace/adhd/target/debug",
+					// TODO(b/274360274): Remove this --linkopt.
 					"--linkopt=-L/workspace/adhd/cras/src/server/rust/target/debug",
 				},
 				Dir: "adhd",

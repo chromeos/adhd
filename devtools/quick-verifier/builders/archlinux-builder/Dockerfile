@@ -19,6 +19,7 @@ RUN pacman -Sy archlinux-keyring --noconfirm --cachedir=/paccache \
   python \
   lld \
   llvm \
+  protobuf \
   && rm -rf /paccache
 
 FROM archlinux as kythe
@@ -34,4 +35,5 @@ FROM base as builder
 COPY build_kzip.bash compdb_fixup.py /
 COPY bazelrc /etc/bazel.bazelrc
 COPY --from=kythe /opt/kythe /opt/kythe
+RUN echo 'export PATH=/root/.cargo/bin:$PATH' >> /root/.bashrc
 COPY --from=bazel-cache /root/.cache/bazel /root/.cache/bazel
