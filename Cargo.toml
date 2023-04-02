@@ -1,0 +1,19 @@
+[workspace]
+members = [
+    "cras/src/audio_processor",
+    "cras/src/server/rust",
+    "cras/src/server/rust/binding_generator",
+    "cras/src/server/rust/cras_dlc",
+]
+
+[profile.release]
+lto = true
+panic = "abort"
+overflow-checks = true
+
+[patch.crates-io]
+cras_dlc = { path = "cras/src/server/rust/cras_dlc" }
+
+system_api = { git = "https://chromium.googlesource.com/chromiumos/platform2", version = ">=0.24.53" } # ignored by ebuild
+# Replace the above with the below when making testing in-repo changes in chroot.
+# system_api = { path = "../../../../../../platform2/system_api" } # ignored by ebuild
