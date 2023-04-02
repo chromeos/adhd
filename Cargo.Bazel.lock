@@ -1,6 +1,49 @@
 {
-  "checksum": "9f47d309ce1394f98ecf75f9da391d85be836af7e06bfb57e4461fb9a775f00b",
+  "checksum": "34d01455616d52d831151525bd1ee95f8eb5ce9817032a086a89d4761b0af029",
   "crates": {
+    "aho-corasick 0.7.20": {
+      "name": "aho-corasick",
+      "version": "0.7.20",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/aho-corasick/0.7.20/download",
+          "sha256": "cc936419f96fa211c1b9166887b38e5e40b19958e5b895be7c1f93adec7071ac"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "aho_corasick",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "aho_corasick",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": [
+          "default",
+          "std"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "memchr 2.5.0",
+              "target": "memchr"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.7.20"
+      },
+      "license": "Unlicense OR MIT"
+    },
     "anyhow 1.0.70": {
       "name": "anyhow",
       "version": "1.0.70",
@@ -1003,9 +1046,9 @@
       },
       "license": null
     },
-    "cras_rust 0.1.0": {
+    "cras_rust 0.1.1": {
       "name": "cras_rust",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "repository": null,
       "targets": [],
       "library_target_name": null,
@@ -1020,6 +1063,10 @@
               "target": "anyhow"
             },
             {
+              "id": "glob 0.3.1",
+              "target": "glob"
+            },
+            {
               "id": "libc 0.2.140",
               "target": "libc"
             },
@@ -1032,6 +1079,10 @@
               "target": "nix"
             },
             {
+              "id": "regex 1.7.3",
+              "target": "regex"
+            },
+            {
               "id": "syslog 6.0.1",
               "target": "syslog"
             }
@@ -1039,7 +1090,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.1.0"
+        "version": "0.1.1"
       },
       "license": null
     },
@@ -2264,6 +2315,7 @@
           "**"
         ],
         "crate_features": [
+          "default",
           "std"
         ],
         "deps": {
@@ -3260,6 +3312,14 @@
           "**"
         ],
         "crate_features": [
+          "aho-corasick",
+          "default",
+          "memchr",
+          "perf",
+          "perf-cache",
+          "perf-dfa",
+          "perf-inline",
+          "perf-literal",
           "std",
           "unicode",
           "unicode-age",
@@ -3272,6 +3332,14 @@
         ],
         "deps": {
           "common": [
+            {
+              "id": "aho-corasick 0.7.20",
+              "target": "aho_corasick"
+            },
+            {
+              "id": "memchr 2.5.0",
+              "target": "memchr"
+            },
             {
               "id": "regex-syntax 0.6.29",
               "target": "regex_syntax"
@@ -3310,6 +3378,7 @@
           "**"
         ],
         "crate_features": [
+          "default",
           "unicode",
           "unicode-age",
           "unicode-bool",
@@ -5367,7 +5436,7 @@
     "audio_processor 0.1.0": "cras/src/audio_processor",
     "binding_generator 0.1.0": "cras/src/server/rust/binding_generator",
     "cras_dlc 0.1.0": "cras/src/server/rust/cras_dlc",
-    "cras_rust 0.1.0": "cras/src/server/rust"
+    "cras_rust 0.1.1": "cras/src/server/rust"
   },
   "conditions": {
     "aarch64-pc-windows-gnullvm": [],

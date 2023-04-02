@@ -8,7 +8,6 @@ load("//:utils.bzl", "require_no_config")
 filegroup(
     name = "bin",
     srcs = [
-        "//cras/scripts:audio_diagnostics",
         "//cras/src/server:cras",
         "//cras/src/tools:cras_test_client",
     ],
@@ -20,6 +19,7 @@ filegroup(
     name = "extra_bin",
     srcs = [
         "//cras/scripts:asoc_dapm_graph",
+        "//cras/scripts:audio_diagnostics_legacy",
         "//cras/src/benchmark:cras_bench",
         "//cras/src/tools:cras_monitor",
         "//cras/src/tools:cras_router",
