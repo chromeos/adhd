@@ -819,7 +819,6 @@ int cras_alsa_mixer_add_controls_by_name_matching_usb(
     control = mixer_name_find(default_controls, name, CRAS_STREAM_OUTPUT,
                               MIXER_NAME_UNDEFINED);
     if (control && snd_mixer_selem_has_playback_volume(elem)) {
-      // TODO(dgreid) - determine device index.
       rc = add_control(cmix, CRAS_STREAM_OUTPUT, elem);
       if (rc) {
         syslog(LOG_WARNING,
@@ -979,7 +978,6 @@ int cras_alsa_mixer_add_controls_by_name_matching_internal(
           rc = add_main_volume_control(cmix, elem);
           break;
         case MIXER_NAME_VOLUME:
-          // TODO(dgreid) - determine device index.
           rc = add_control(cmix, CRAS_STREAM_OUTPUT, elem);
           break;
         case MIXER_NAME_UNDEFINED:
