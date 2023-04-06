@@ -25,7 +25,7 @@ enum Error {
     CStringError(#[from] std::ffi::NulError),
 }
 
-type Result<T> = anyhow::Result<T, Error>;
+type Result<T> = std::result::Result<T, Error>;
 
 fn install_and_get_dlc_state(id: &str) -> Result<DlcState> {
     let connection = Connection::new_system()?;
