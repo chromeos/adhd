@@ -4,7 +4,11 @@
 
 use std::{ffi::CString, os::raw::c_char, ptr, time::Duration};
 
-use {dbus::blocking::Connection, protobuf::Message, thiserror::Error};
+use {
+    dbus::blocking::{Connection, Proxy},
+    protobuf::Message,
+    thiserror::Error,
+};
 
 use system_api::{
     client::OrgChromiumDlcServiceInterface,
@@ -13,6 +17,7 @@ use system_api::{
 
 const DBUS_TIMEOUT: Duration = Duration::from_secs(3);
 
+const DLC_ID_SR_BT: &str = "sr-bt-dlc";
 const DLC_ID_NC_AP: &str = "nc-ap-dlc";
 
 #[derive(Error, Debug)]
@@ -27,17 +32,27 @@ enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-fn install_and_get_dlc_state(id: &str) -> Result<DlcState> {
-    let connection = Connection::new_system()?;
-    let conn_path = connection.with_proxy(
+fn get_dlcservice_connection_path<'a>(connection: &'a Connection) -> Proxy<'a, &'a Connection> {
+    connection.with_proxy(
         "org.chromium.DlcService",
         "/org/chromium/DlcService",
         DBUS_TIMEOUT,
-    );
+    )
+}
+
+fn install_dlc(id: &str) -> Result<()> {
+    let connection = Connection::new_system()?;
+    let conn_path = get_dlcservice_connection_path(&connection);
+
     let mut request = InstallRequest::new();
     request.set_id(id.to_string());
     request.set_reserve(true);
-    conn_path.install(request.write_to_bytes()?)?;
+    Ok(conn_path.install(request.write_to_bytes()?)?)
+}
+
+fn get_dlc_state(id: &str) -> Result<DlcState> {
+    let connection = Connection::new_system()?;
+    let conn_path = get_dlcservice_connection_path(&connection);
 
     let res = conn_path.get_dlc_state(id)?;
     let mut dlc_state = DlcState::new();
@@ -46,22 +61,24 @@ fn install_and_get_dlc_state(id: &str) -> Result<DlcState> {
 }
 
 fn sr_bt_is_available() -> Result<DlcState_State> {
-    let dlc_state = install_and_get_dlc_state("sr-bt-dlc")?;
+    install_dlc(DLC_ID_SR_BT)?;
+    let dlc_state = get_dlc_state(DLC_ID_SR_BT)?;
     Ok(dlc_state.state)
 }
 
 fn sr_bt_get_root() -> Result<CString> {
-    let dlc_state = install_and_get_dlc_state("sr-bt-dlc")?;
+    let dlc_state = get_dlc_state(DLC_ID_SR_BT)?;
     CString::new(dlc_state.root_path).map_err(|e| e.into())
 }
 
 fn nc_ap_is_available() -> Result<DlcState_State> {
-    let dlc_state = install_and_get_dlc_state(DLC_ID_NC_AP)?;
+    install_dlc(DLC_ID_NC_AP)?;
+    let dlc_state = get_dlc_state(DLC_ID_NC_AP)?;
     Ok(dlc_state.state)
 }
 
 fn nc_ap_get_root() -> Result<CString> {
-    let dlc_state = install_and_get_dlc_state(DLC_ID_NC_AP)?;
+    let dlc_state = get_dlc_state(DLC_ID_NC_AP)?;
     CString::new(dlc_state.root_path).map_err(|e| e.into())
 }
 
