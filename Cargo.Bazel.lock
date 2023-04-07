@@ -1,5 +1,5 @@
 {
-  "checksum": "6892fbc0e3b25dbad670b16d6eae5f98a1a7caacff120957031bc2aec736b8f3",
+  "checksum": "9f47d309ce1394f98ecf75f9da391d85be836af7e06bfb57e4461fb9a775f00b",
   "crates": {
     "anyhow 1.0.70": {
       "name": "anyhow",
@@ -140,6 +140,100 @@
         "version": "0.2.14"
       },
       "license": "MIT"
+    },
+    "audio_processor 0.1.0": {
+      "name": "audio_processor",
+      "version": "0.1.0",
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "audio_processor",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "audio_processor",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "assert_matches 1.5.0",
+              "target": "assert_matches"
+            },
+            {
+              "id": "audio_processor 0.1.0",
+              "target": "build_script_build"
+            },
+            {
+              "id": "clap 3.2.23",
+              "target": "clap"
+            },
+            {
+              "id": "dasp_sample 0.11.0",
+              "target": "dasp_sample"
+            },
+            {
+              "id": "hound 3.5.0",
+              "target": "hound"
+            },
+            {
+              "id": "libc 0.2.140",
+              "target": "libc"
+            },
+            {
+              "id": "thiserror 1.0.40",
+              "target": "thiserror"
+            }
+          ],
+          "selects": {}
+        },
+        "deps_dev": {
+          "common": [
+            {
+              "id": "tempfile 3.5.0",
+              "target": "tempfile"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "bindgen 0.63.0",
+              "target": "bindgen"
+            },
+            {
+              "id": "cc 1.0.79",
+              "target": "cc"
+            }
+          ],
+          "selects": {}
+        }
+      },
+      "license": null
     },
     "autocfg 1.1.0": {
       "name": "autocfg",
@@ -288,6 +382,30 @@
       },
       "license": "BSD-3-Clause"
     },
+    "binding_generator 0.1.0": {
+      "name": "binding_generator",
+      "version": "0.1.0",
+      "repository": null,
+      "targets": [],
+      "library_target_name": null,
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cbindgen 0.24.3",
+              "target": "cbindgen"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.1.0"
+      },
+      "license": null
+    },
     "bitflags 1.3.2": {
       "name": "bitflags",
       "version": "1.3.2",
@@ -320,6 +438,107 @@
         "version": "1.3.2"
       },
       "license": "MIT/Apache-2.0"
+    },
+    "cbindgen 0.24.3": {
+      "name": "cbindgen",
+      "version": "0.24.3",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/cbindgen/0.24.3/download",
+          "sha256": "a6358dedf60f4d9b8db43ad187391afe959746101346fe51bb978126bec61dfb"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cbindgen",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "cbindgen",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": [
+          "clap",
+          "default"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cbindgen 0.24.3",
+              "target": "build_script_build"
+            },
+            {
+              "id": "clap 3.2.23",
+              "target": "clap"
+            },
+            {
+              "id": "heck 0.4.1",
+              "target": "heck"
+            },
+            {
+              "id": "indexmap 1.9.3",
+              "target": "indexmap"
+            },
+            {
+              "id": "log 0.4.17",
+              "target": "log"
+            },
+            {
+              "id": "proc-macro2 1.0.55",
+              "target": "proc_macro2"
+            },
+            {
+              "id": "quote 1.0.26",
+              "target": "quote"
+            },
+            {
+              "id": "serde 1.0.159",
+              "target": "serde"
+            },
+            {
+              "id": "serde_json 1.0.95",
+              "target": "serde_json"
+            },
+            {
+              "id": "syn 1.0.109",
+              "target": "syn"
+            },
+            {
+              "id": "tempfile 3.5.0",
+              "target": "tempfile"
+            },
+            {
+              "id": "toml 0.5.11",
+              "target": "toml"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.24.3"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MPL-2.0"
     },
     "cc 1.0.79": {
       "name": "cc",
@@ -419,6 +638,48 @@
         "version": "1.0.0"
       },
       "license": "MIT/Apache-2.0"
+    },
+    "chromeos-dbus-bindings 0.25.52": {
+      "name": "chromeos-dbus-bindings",
+      "version": "0.25.52",
+      "repository": {
+        "Git": {
+          "remote": "https://chromium.googlesource.com/chromiumos/platform2",
+          "commitish": {
+            "Branch": "master"
+          },
+          "strip_prefix": "chromeos-dbus-bindings"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "chromeos_dbus_bindings",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "chromeos_dbus_bindings",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "which 4.4.0",
+              "target": "which"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.25.52"
+      },
+      "license": null
     },
     "clang-sys 1.6.1": {
       "name": "clang-sys",
@@ -692,6 +953,96 @@
       },
       "license": "MIT OR Apache-2.0"
     },
+    "cras_dlc 0.1.0": {
+      "name": "cras_dlc",
+      "version": "0.1.0",
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cras_dlc",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "cras_dlc",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.70",
+              "target": "anyhow"
+            },
+            {
+              "id": "dbus 0.9.7",
+              "target": "dbus"
+            },
+            {
+              "id": "protobuf 2.28.0",
+              "target": "protobuf"
+            },
+            {
+              "id": "system_api 0.24.53",
+              "target": "system_api"
+            },
+            {
+              "id": "thiserror 1.0.40",
+              "target": "thiserror"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
+      },
+      "license": null
+    },
+    "cras_rust 0.1.0": {
+      "name": "cras_rust",
+      "version": "0.1.0",
+      "repository": null,
+      "targets": [],
+      "library_target_name": null,
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.70",
+              "target": "anyhow"
+            },
+            {
+              "id": "libc 0.2.140",
+              "target": "libc"
+            },
+            {
+              "id": "log 0.4.17",
+              "target": "log"
+            },
+            {
+              "id": "nix 0.26.2",
+              "target": "nix"
+            },
+            {
+              "id": "syslog 6.0.1",
+              "target": "syslog"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.1.0"
+      },
+      "license": null
+    },
     "dasp_sample 0.11.0": {
       "name": "dasp_sample",
       "version": "0.11.0",
@@ -726,22 +1077,27 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "direct-cargo-bazel-deps 0.0.1": {
-      "name": "direct-cargo-bazel-deps",
-      "version": "0.0.1",
-      "repository": null,
+    "dbus 0.9.7": {
+      "name": "dbus",
+      "version": "0.9.7",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/dbus/0.9.7/download",
+          "sha256": "1bb21987b9fb1613058ba3843121dd18b163b254d8a6e797e144cbac14d96d1b"
+        }
+      },
       "targets": [
         {
           "Library": {
-            "crate_name": "direct_cargo_bazel_deps",
-            "crate_root": ".direct_cargo_bazel_deps.rs",
+            "crate_name": "dbus",
+            "crate_root": "src/lib.rs",
             "srcs": [
               "**/*.rs"
             ]
           }
         }
       ],
-      "library_target_name": "direct_cargo_bazel_deps",
+      "library_target_name": "dbus",
       "common_attrs": {
         "compile_data_glob": [
           "**"
@@ -749,60 +1105,27 @@
         "deps": {
           "common": [
             {
-              "id": "anyhow 1.0.70",
-              "target": "anyhow"
-            },
-            {
-              "id": "assert_matches 1.5.0",
-              "target": "assert_matches"
-            },
-            {
-              "id": "bindgen 0.63.0",
-              "target": "bindgen"
-            },
-            {
-              "id": "clap 3.2.23",
-              "target": "clap"
-            },
-            {
-              "id": "dasp_sample 0.11.0",
-              "target": "dasp_sample"
-            },
-            {
-              "id": "hound 3.5.0",
-              "target": "hound"
-            },
-            {
               "id": "libc 0.2.140",
               "target": "libc"
             },
             {
-              "id": "log 0.4.17",
-              "target": "log"
-            },
-            {
-              "id": "nix 0.26.2",
-              "target": "nix"
-            },
-            {
-              "id": "syslog 6.0.1",
-              "target": "syslog"
-            },
-            {
-              "id": "tempfile 3.5.0",
-              "target": "tempfile"
-            },
-            {
-              "id": "thiserror 1.0.40",
-              "target": "thiserror"
+              "id": "libdbus-sys 0.2.4",
+              "target": "libdbus_sys"
             }
           ],
-          "selects": {}
+          "selects": {
+            "cfg(windows)": [
+              {
+                "id": "winapi 0.3.9",
+                "target": "winapi"
+              }
+            ]
+          }
         },
         "edition": "2018",
-        "version": "0.0.1"
+        "version": "0.9.7"
       },
-      "license": null
+      "license": "Apache-2.0/MIT"
     },
     "either 1.8.1": {
       "name": "either",
@@ -1662,6 +1985,73 @@
       },
       "license": "MIT OR Apache-2.0"
     },
+    "libdbus-sys 0.2.4": {
+      "name": "libdbus-sys",
+      "version": "0.2.4",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/libdbus-sys/0.2.4/download",
+          "sha256": "9f8d7ae751e1cb825c840ae5e682f59b098cdfd213c350ac268b61449a5f58a0"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "libdbus_sys",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "libdbus_sys",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": [
+          "default",
+          "pkg-config"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "libdbus-sys 0.2.4",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2015",
+        "version": "0.2.4"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "pkg-config 0.3.26",
+              "target": "pkg_config"
+            }
+          ],
+          "selects": {}
+        },
+        "links": "dbus"
+      },
+      "license": "Apache-2.0/MIT"
+    },
     "libloading 0.7.4": {
       "name": "libloading",
       "version": "0.7.4",
@@ -2309,6 +2699,36 @@
       },
       "license": "MIT OR Apache-2.0"
     },
+    "pkg-config 0.3.26": {
+      "name": "pkg-config",
+      "version": "0.3.26",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/pkg-config/0.3.26/download",
+          "sha256": "6ac9a59f73473f1b8d852421e59e64809f025994837ef743615c6d0c5b305160"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "pkg_config",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "pkg_config",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2015",
+        "version": "0.3.26"
+      },
+      "license": "MIT OR Apache-2.0"
+    },
     "proc-macro-error 1.0.4": {
       "name": "proc-macro-error",
       "version": "1.0.4",
@@ -2527,6 +2947,192 @@
         ]
       },
       "license": "MIT OR Apache-2.0"
+    },
+    "protobuf 2.28.0": {
+      "name": "protobuf",
+      "version": "2.28.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/protobuf/2.28.0/download",
+          "sha256": "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "protobuf",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "protobuf",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "protobuf 2.28.0",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "2.28.0"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT"
+    },
+    "protobuf-codegen 2.28.0": {
+      "name": "protobuf-codegen",
+      "version": "2.28.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/protobuf-codegen/2.28.0/download",
+          "sha256": "033460afb75cf755fcfc16dfaed20b86468082a2ea24e05ac35ab4a099a017d6"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "protobuf_codegen",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "protobuf_codegen",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "protobuf 2.28.0",
+              "target": "protobuf"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2015",
+        "version": "2.28.0"
+      },
+      "license": "MIT"
+    },
+    "protoc 2.28.0": {
+      "name": "protoc",
+      "version": "2.28.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/protoc/2.28.0/download",
+          "sha256": "a0218039c514f9e14a5060742ecd50427f8ac4f85a6dc58f2ddb806e318c55ee"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "protoc",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "protoc",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "log 0.4.17",
+              "target": "log"
+            },
+            {
+              "id": "which 4.4.0",
+              "target": "which"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2015",
+        "version": "2.28.0"
+      },
+      "license": "MIT"
+    },
+    "protoc-rust 2.28.0": {
+      "name": "protoc-rust",
+      "version": "2.28.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/protoc-rust/2.28.0/download",
+          "sha256": "22f8a182bb17c485f20bdc4274a8c39000a61024cfe461c799b50fec77267838"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "protoc_rust",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "protoc_rust",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "protobuf 2.28.0",
+              "target": "protobuf"
+            },
+            {
+              "id": "protobuf-codegen 2.28.0",
+              "target": "protobuf_codegen"
+            },
+            {
+              "id": "protoc 2.28.0",
+              "target": "protoc"
+            },
+            {
+              "id": "tempfile 3.5.0",
+              "target": "tempfile"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2015",
+        "version": "2.28.0"
+      },
+      "license": "MIT"
     },
     "quote 1.0.26": {
       "name": "quote",
@@ -2855,6 +3461,36 @@
       },
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
     },
+    "ryu 1.0.13": {
+      "name": "ryu",
+      "version": "1.0.13",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/ryu/1.0.13/download",
+          "sha256": "f91339c0467de62360649f8d3e185ca8de4224ff281f66000de5eb2a77a79041"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "ryu",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "ryu",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2018",
+        "version": "1.0.13"
+      },
+      "license": "Apache-2.0 OR BSL-1.0"
+    },
     "serde 1.0.159": {
       "name": "serde",
       "version": "1.0.159",
@@ -2890,7 +3526,11 @@
           "**"
         ],
         "crate_features": [
-          "alloc"
+          "alloc",
+          "default",
+          "derive",
+          "serde_derive",
+          "std"
         ],
         "deps": {
           "common": [
@@ -2902,7 +3542,153 @@
           "selects": {}
         },
         "edition": "2015",
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "serde_derive 1.0.159",
+              "target": "serde_derive"
+            }
+          ],
+          "selects": {}
+        },
         "version": "1.0.159"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0"
+    },
+    "serde_derive 1.0.159": {
+      "name": "serde_derive",
+      "version": "1.0.159",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/serde_derive/1.0.159/download",
+          "sha256": "4c614d17805b093df4b147b51339e7e44bf05ef59fba1e45d83500bcfb4d8585"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {
+            "crate_name": "serde_derive",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "serde_derive",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": [
+          "default"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "proc-macro2 1.0.55",
+              "target": "proc_macro2"
+            },
+            {
+              "id": "quote 1.0.26",
+              "target": "quote"
+            },
+            {
+              "id": "serde_derive 1.0.159",
+              "target": "build_script_build"
+            },
+            {
+              "id": "syn 2.0.13",
+              "target": "syn"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2015",
+        "version": "1.0.159"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0"
+    },
+    "serde_json 1.0.95": {
+      "name": "serde_json",
+      "version": "1.0.95",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/serde_json/1.0.95/download",
+          "sha256": "d721eca97ac802aa7777b701877c8004d950fc142651367300d21c1cc0194744"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "serde_json",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "serde_json",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": [
+          "default",
+          "std"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "itoa 1.0.6",
+              "target": "itoa"
+            },
+            {
+              "id": "ryu 1.0.13",
+              "target": "ryu"
+            },
+            {
+              "id": "serde 1.0.159",
+              "target": "serde"
+            },
+            {
+              "id": "serde_json 1.0.95",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "1.0.95"
       },
       "build_script_attrs": {
         "data_glob": [
@@ -3192,6 +3978,83 @@
         "version": "6.0.1"
       },
       "license": "MIT"
+    },
+    "system_api 0.24.53": {
+      "name": "system_api",
+      "version": "0.24.53",
+      "repository": {
+        "Git": {
+          "remote": "https://chromium.googlesource.com/chromiumos/platform2",
+          "commitish": {
+            "Branch": "master"
+          },
+          "strip_prefix": "system_api"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "system_api",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "system_api",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "dbus 0.9.7",
+              "target": "dbus"
+            },
+            {
+              "id": "protobuf 2.28.0",
+              "target": "protobuf"
+            },
+            {
+              "id": "system_api 0.24.53",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.24.53"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "chromeos-dbus-bindings 0.25.52",
+              "target": "chromeos_dbus_bindings"
+            },
+            {
+              "id": "protoc-rust 2.28.0",
+              "target": "protoc_rust"
+            }
+          ],
+          "selects": {}
+        }
+      },
+      "license": null
     },
     "tempfile 3.5.0": {
       "name": "tempfile",
@@ -3581,6 +4444,48 @@
       },
       "license": "MIT OR Apache-2.0"
     },
+    "toml 0.5.11": {
+      "name": "toml",
+      "version": "0.5.11",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/toml/0.5.11/download",
+          "sha256": "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "toml",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "toml",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": [
+          "default"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "serde 1.0.159",
+              "target": "serde"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.5.11"
+      },
+      "license": "MIT/Apache-2.0"
+    },
     "unicode-ident 1.0.8": {
       "name": "unicode-ident",
       "version": "1.0.8",
@@ -3738,7 +4643,8 @@
           "winbase",
           "wincon",
           "winerror",
-          "winnt"
+          "winnt",
+          "winsock2"
         ],
         "deps": {
           "common": [
@@ -4458,7 +5364,10 @@
   },
   "binary_crates": [],
   "workspace_members": {
-    "direct-cargo-bazel-deps 0.0.1": ""
+    "audio_processor 0.1.0": "cras/src/audio_processor",
+    "binding_generator 0.1.0": "cras/src/server/rust/binding_generator",
+    "cras_dlc 0.1.0": "cras/src/server/rust/cras_dlc",
+    "cras_rust 0.1.0": "cras/src/server/rust"
   },
   "conditions": {
     "aarch64-pc-windows-gnullvm": [],

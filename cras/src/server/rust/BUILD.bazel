@@ -4,6 +4,7 @@
 
 load("//:utils.bzl", "require_no_config")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("@crate_index//:defs.bzl", "all_crate_deps")
 
 cc_library(
     name = "rust",
@@ -33,12 +34,7 @@ rust_library(
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     deps = [
         "//cras/src/audio_processor",
-        "@crate_index//:anyhow",
-        "@crate_index//:libc",
-        "@crate_index//:log",
-        "@crate_index//:nix",
-        "@crate_index//:syslog",
-    ],
+    ] + all_crate_deps(),
 )
 
 rust_test(

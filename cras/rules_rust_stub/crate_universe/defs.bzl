@@ -19,6 +19,9 @@ def _crates_repository_impl(repository_ctx):
     repository_ctx.file("BUILD", build_file_contents)
     repository_ctx.file("defs.bzl", """def crate_repositories():
     pass
+
+def all_crate_deps(**_kwargs):
+    return []
 """)
 
 crates_repository = repository_rule(
@@ -27,5 +30,6 @@ crates_repository = repository_rule(
         cargo_lockfile = attr.string(),
         lockfile = attr.string(),
         packages = attr.string_dict(),
+        manifests = attr.string_list(),
     ),
 )

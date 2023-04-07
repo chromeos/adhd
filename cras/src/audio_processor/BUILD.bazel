@@ -5,6 +5,7 @@
 load("//:utils.bzl", "require_no_config")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test", "rust_test_suite")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@crate_index//:defs.bzl", "all_crate_deps")
 
 rust_library(
     name = "audio_processor",
@@ -17,13 +18,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
-        "@crate_index//:assert_matches",
-        "@crate_index//:clap",
-        "@crate_index//:dasp_sample",
-        "@crate_index//:hound",
-        "@crate_index//:libc",
-        "@crate_index//:thiserror",
-    ],
+    ] + all_crate_deps(normal = True),
 )
 
 rust_test(
@@ -38,8 +33,10 @@ rust_test(
     },
     deps = [
         "//cras/src/audio_processor/c:test_plugins",
-        "@crate_index//:tempfile",
-    ],
+    ] + all_crate_deps(
+        normal = True,
+        normal_dev = True,
+    ),
 )
 
 rust_test_suite(
@@ -54,22 +51,17 @@ rust_test_suite(
     },
     deps = [
         ":audio_processor",
-        "//cras/src/audio_processor/c:test_plugins",
-        "@crate_index//:assert_matches",
-        "@crate_index//:clap",
-        "@crate_index//:dasp_sample",
-        "@crate_index//:hound",
-        "@crate_index//:libc",
-        "@crate_index//:tempfile",
-        "@crate_index//:thiserror",
-    ],
+    ] + all_crate_deps(
+        normal = True,
+        normal_dev = True,
+    ),
 )
 
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
     data = ["//cras/src/audio_processor/c:headers"],
-    deps = ["@crate_index//:bindgen"],
+    deps = all_crate_deps(build = True),
 )
 
 rust_binary(
@@ -77,7 +69,5 @@ rust_binary(
     srcs = ["src/bin/offline-pipeline.rs"],
     deps = [
         ":audio_processor",
-        "@crate_index//:clap",
-        "@crate_index//:hound",
-    ],
+    ] + all_crate_deps(normal = True),
 )

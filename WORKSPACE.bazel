@@ -124,13 +124,18 @@ load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencie
 crate_universe_dependencies()
 
 load("@rules_rust//crate_universe:defs.bzl", "crates_repository")
-load("//:crate_deps.bzl", "cargo_io_deps")
 
 crates_repository(
     name = "crate_index",
     cargo_lockfile = "//:Cargo.lock",
     lockfile = "//:Cargo.Bazel.lock",
-    packages = cargo_io_deps(),
+    manifests = [
+        "//:Cargo.toml",
+        "//cras/src/audio_processor:Cargo.toml",
+        "//cras/src/server/rust:Cargo.toml",
+        "//cras/src/server/rust:binding_generator/Cargo.toml",
+        "//cras/src/server/rust:cras_dlc/Cargo.toml",
+    ],
 )
 
 load("@crate_index//:defs.bzl", "crate_repositories")
