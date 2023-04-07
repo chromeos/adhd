@@ -2,6 +2,7 @@
 set -eux
 
 OUT="/out"
+SRC_DIR="${1:-/workspace/adhd}"
 REPO_ROOT=$(mktemp -d -t chromiumos.XXXXXXXXXX)
 THIRD_PARTY="$REPO_ROOT/src/third_party"
 ADHD_ROOT="$THIRD_PARTY/adhd"
@@ -9,7 +10,7 @@ ADHD_ROOT="$THIRD_PARTY/adhd"
 mkdir -p "$OUT"
 
 mkdir -p "$THIRD_PARTY"
-cp -r /workspace/adhd "$ADHD_ROOT"
+cp -r "$SRC_DIR" "$ADHD_ROOT"
 
 # Build
 cd "$ADHD_ROOT"

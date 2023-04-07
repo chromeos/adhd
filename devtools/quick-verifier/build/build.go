@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/quick-verifier/buildplan"
 	"chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/quick-verifier/wc"
 	cloudbuild "cloud.google.com/go/cloudbuild/apiv1"
 	"cloud.google.com/go/cloudbuild/apiv1/v2/cloudbuildpb"
@@ -51,91 +52,84 @@ func (cl *gerritCL) makeTags(name string) []string {
 
 func (cl *gerritCL) builds() []*cloudbuildpb.Build {
 	return []*cloudbuildpb.Build{
-		cl.makeBuild("archlinux", "--config=local-clang"),
-		cl.makeBuild("archlinux-asan", "--config=local-clang", "--config=asan"),
-		cl.makeBuild("archlinux-ubasan", "--config=local-clang", "--config=ubsan"),
-		// cl.makeBuild("archlinux-tsan", "--config=local-clang", "--config=tsan"),
-		cl.makeBuild("archlinux-gcc", "--config=local-gcc"),
-		cl.makeSystemCrasRustBuild("archlinux-system_cras_rust"),
-		cl.makeKytheBuild("kythe"),
-
-		cl.makeOssFuzzBuild("oss-fuzz-address", "address", "libfuzzer"),
-		cl.makeOssFuzzBuild("oss-fuzz-address-afl", "address", "afl"),
-		cl.makeOssFuzzBuild("oss-fuzz-memory", "memory", "libfuzzer"),
-		cl.makeOssFuzzBuild("oss-fuzz-undefined", "undefined", "libfuzzer"),
-		cl.makeOssFuzzBuild("oss-fuzz-coverage", "coverage", "libfuzzer"),
-
-		// cl.makeDevtoolsBuild("archlinux-devtools"),
+		cl.makeBuild("default"),
 	}
 }
 
-func (cl *gerritCL) checkoutSteps() []*cloudbuildpb.BuildStep {
-	return []*cloudbuildpb.BuildStep{
-		{
-			Name:       "gcr.io/cloud-builders/git",
-			Entrypoint: "git",
-			Args:       []string{"clone", gitURL},
-		},
-		{
-			Name:       "gcr.io/cloud-builders/git",
-			Entrypoint: "git",
-			Args:       []string{"fetch", gitURL, cl.ref},
-			Dir:        "adhd",
-		},
-		{
-			Name:       "gcr.io/cloud-builders/git",
-			Entrypoint: "git",
-			Args:       []string{"checkout", "FETCH_HEAD"},
-			Dir:        "adhd",
-		},
-	}
-}
+func (cl *gerritCL) makeBuild(name string) *cloudbuildpb.Build {
+	var b buildplan.Build
+	git := b.Add(cl.checkoutSteps())
 
-func (cl *gerritCL) makeBuild(name string, bazelArgs ...string) *cloudbuildpb.Build {
+	b.Add(archlinuxSteps("archlinux-clang", "--config=local-clang").WithDep(git))
+	b.Add(archlinuxSteps("archlinux-clang-asan", "--config=local-clang", "--config=asan").WithDep(git))
+	b.Add(archlinuxSteps("archlinux-clang-ubsan", "--config=local-clang", "--config=ubsan").WithDep(git))
+	b.Add(archlinuxSteps("archlinux-gcc", "--config=local-gcc").WithDep(git))
+	b.Add(systemCrasRustSteps().WithDep(git))
+	b.Add(kytheSteps().WithDep(git))
+
+	ossFuzzSetup := b.Add(ossFuzzSetupSteps().WithDep(git))
+	b.Add(ossFuzzSteps("oss-fuzz-address", "address", "libfuzzer").WithDep(ossFuzzSetup))
+	b.Add(ossFuzzSteps("oss-fuzz-address-afl", "address", "afl").WithDep(ossFuzzSetup))
+	b.Add(ossFuzzSteps("oss-fuzz-memory", "memory", "libfuzzer").WithDep(ossFuzzSetup))
+	b.Add(ossFuzzSteps("oss-fuzz-undefined", "undefined", "libfuzzer").WithDep(ossFuzzSetup))
+	b.Add(ossFuzzSteps("oss-fuzz-coverage", "coverage", "libfuzzer").WithDep(ossFuzzSetup))
+
 	return &cloudbuildpb.Build{
-		Steps: append(cl.checkoutSteps(), []*cloudbuildpb.BuildStep{
-			{
-				Name:       archlinuxBuilder,
-				Entrypoint: "bazel",
-				Args: append(
-					[]string{"test", "//...", "-k", "-c", "dbg", "--test_output=errors"},
-					bazelArgs...,
-				),
-				Dir: "adhd",
-			},
-		}...),
+		Steps: b.AsCloudBuild(),
 		Timeout: &durationpb.Duration{
 			Seconds: 1200,
 		},
 		Tags: cl.makeTags(name),
 		Options: &cloudbuildpb.BuildOptions{
-			MachineType: cloudbuildpb.BuildOptions_E2_HIGHCPU_8,
+			MachineType: cloudbuildpb.BuildOptions_E2_HIGHCPU_32,
 		},
 	}
 }
 
-func (cl *gerritCL) makeKytheBuild(name string) *cloudbuildpb.Build {
-	return &cloudbuildpb.Build{
-		Steps: append(cl.checkoutSteps(), []*cloudbuildpb.BuildStep{
+func (cl *gerritCL) checkoutSteps() *buildplan.Sequence {
+	return buildplan.Commands(
+		"git",
+		[]*buildplan.Step{
 			{
-				Name:       archlinuxBuilder,
-				Entrypoint: "bash",
-				Args:       []string{"/build_kzip.bash"},
+				Name:       "gcr.io/cloud-builders/git",
+				Entrypoint: "git",
+				Args:       []string{"clone", "--depth=1", gitURL, "."},
 			},
-		}...),
-		Timeout: &durationpb.Duration{
-			Seconds: 1200,
-		},
-		Tags: cl.makeTags(name),
-		Options: &cloudbuildpb.BuildOptions{
-			MachineType: cloudbuildpb.BuildOptions_E2_HIGHCPU_8,
-		},
-	}
+			{
+				Name:       "gcr.io/cloud-builders/git",
+				Entrypoint: "git",
+				Args:       []string{"fetch", gitURL, cl.ref},
+			},
+			{
+				Name:       "gcr.io/cloud-builders/git",
+				Entrypoint: "git",
+				Args:       []string{"checkout", "FETCH_HEAD"},
+			},
+		}...,
+	)
 }
 
-func (cl *gerritCL) makeSystemCrasRustBuild(name string) *cloudbuildpb.Build {
-	return &cloudbuildpb.Build{
-		Steps: append(cl.checkoutSteps(), []*cloudbuildpb.BuildStep{
+var prepareSourceStep = buildplan.Command(archlinuxBuilder, "rsync", "-ah", "/workspace/", "./")
+
+func archlinuxSteps(id string, bazelArgs ...string) *buildplan.Sequence {
+	return buildplan.Commands(
+		id,
+		prepareSourceStep,
+		&buildplan.Step{
+			Name:       archlinuxBuilder,
+			Entrypoint: "bazel",
+			Args: append(
+				[]string{"test", "//...", "-k", "-c", "dbg", "--test_output=errors"},
+				bazelArgs...,
+			),
+		},
+	).WithVolume()
+}
+
+func systemCrasRustSteps() *buildplan.Sequence {
+	return buildplan.Commands("archlinux-system-cras-rust",
+		[]*buildplan.Step{
+			prepareSourceStep,
 			{
 				Name:       archlinuxBuilder,
 				Entrypoint: "cargo",
@@ -146,14 +140,14 @@ func (cl *gerritCL) makeSystemCrasRustBuild(name string) *cloudbuildpb.Build {
 				Entrypoint: "cargo",
 				Args:       []string{"build", "--workspace"},
 				// TODO(b/274360274): Run in adhd.
-				Dir: "adhd/cras/src/server/rust",
+				Dir: "cras/src/server/rust",
 			},
 			{
 				Name:       archlinuxBuilder,
 				Entrypoint: "cargo",
 				Args:       []string{"test", "--workspace"},
 				// TODO(b/274360274): Run in adhd.
-				Dir: "adhd/cras/src/server/rust",
+				Dir: "cras/src/server/rust",
 			},
 			{
 				Name:       archlinuxBuilder,
@@ -162,86 +156,85 @@ func (cl *gerritCL) makeSystemCrasRustBuild(name string) *cloudbuildpb.Build {
 					"test", "//...", "-k", "-c", "dbg", "--test_output=errors",
 					"--//:system_cras_rust",
 					"--config=local-clang",
-					"--linkopt=-L/workspace/adhd/target/debug",
+					"--linkopt=-L/workspace-archlinux-system-cras-rust/target/debug",
 					// TODO(b/274360274): Remove this --linkopt.
-					"--linkopt=-L/workspace/adhd/cras/src/server/rust/target/debug",
+					"--linkopt=-L/workspace-archlinux-system-cras-rust/cras/src/server/rust/target/debug",
 				},
-				Dir: "adhd",
 			},
-		}...),
-		Timeout: &durationpb.Duration{
-			Seconds: 1200,
-		},
-		Tags: cl.makeTags(name),
-		Options: &cloudbuildpb.BuildOptions{
-			MachineType: cloudbuildpb.BuildOptions_E2_HIGHCPU_8,
-		},
-	}
+		}...,
+	).WithVolume()
 }
 
-func (cl *gerritCL) makeDevtoolsBuild(name string) *cloudbuildpb.Build {
-	return &cloudbuildpb.Build{
-		Steps: append(cl.checkoutSteps(), []*cloudbuildpb.BuildStep{
+func kytheSteps() *buildplan.Sequence {
+	return buildplan.Commands(
+		"kythe",
+		prepareSourceStep,
+		buildplan.Command(archlinuxBuilder, "bash", "/build_kzip.bash", "."),
+	).WithVolume()
+}
+
+func ossFuzzSetupSteps() *buildplan.Sequence {
+	return buildplan.Commands(
+		"oss-fuzz-setup",
+		[]*buildplan.Step{
 			{
 				Name:       archlinuxBuilder,
-				Entrypoint: "bazel",
-				Args:       []string{"test", "//...", "--test_output=errors"},
-				Dir:        "adhd/devtools",
+				Entrypoint: "mkdir",
+				Args:       []string{"oss-fuzz-setup"},
 			},
-		}...),
-		Tags: cl.makeTags(name),
-		Options: &cloudbuildpb.BuildOptions{
-			// TODO: Cache build artifacts so we don't need a beefy machine.
-			MachineType: cloudbuildpb.BuildOptions_E2_HIGHCPU_32,
-		},
-	}
+			{
+				Name:       archlinuxBuilder,
+				Entrypoint: "rsync",
+				Args:       []string{"-ah", "/workspace/", "adhd/"},
+				Dir:        "oss-fuzz-setup",
+			},
+			{
+				Name:       "gcr.io/cloud-builders/git",
+				Entrypoint: "git",
+				Args:       []string{"clone", "--depth=1", "https://github.com/google/oss-fuzz"},
+				Dir:        "oss-fuzz-setup",
+			},
+			{
+				Name:       "gcr.io/cloud-builders/docker",
+				Entrypoint: "python3",
+				Args:       []string{"oss-fuzz/infra/helper.py", "build_image", "--pull", "cras"},
+				Dir:        "oss-fuzz-setup",
+			},
+		}...,
+	)
 }
 
-func (cl *gerritCL) makeOssFuzzBuild(name, sanitizer, engine string) *cloudbuildpb.Build {
-	var checkStep *cloudbuildpb.BuildStep
+func ossFuzzSteps(id, sanitizer, engine string) *buildplan.Sequence {
+	var checkStep *buildplan.Step
 	if sanitizer == "coverage" {
-		checkStep = &cloudbuildpb.BuildStep{
+		checkStep = &buildplan.Step{
 			Name:       "gcr.io/google.com/cloudsdktool/cloud-sdk",
 			Entrypoint: "python3",
 			Args: []string{
 				"oss-fuzz/infra/helper.py", "coverage", "cras",
 				"--port=", // Pass empty port to not run an HTTP server.
 			},
+			Dir: id,
 		}
 	} else {
-		checkStep = &cloudbuildpb.BuildStep{
+		checkStep = &buildplan.Step{
 			Name:       "gcr.io/cloud-builders/docker",
 			Entrypoint: "python3",
 			Args:       []string{"oss-fuzz/infra/helper.py", "check_build", "--sanitizer", sanitizer, "--engine", engine, "cras"},
+			Dir:        id,
 		}
 	}
-	return &cloudbuildpb.Build{
-		Steps: append(cl.checkoutSteps(), []*cloudbuildpb.BuildStep{
-			{
-				Name:       "gcr.io/cloud-builders/git",
-				Entrypoint: "git",
-				Args:       []string{"clone", "https://github.com/google/oss-fuzz"},
-			},
-			{
-				Name:       "gcr.io/cloud-builders/docker",
-				Entrypoint: "python3",
-				Args:       []string{"oss-fuzz/infra/helper.py", "build_image", "--pull", "cras"},
-			},
-			{
-				Name:       "gcr.io/cloud-builders/docker",
-				Entrypoint: "python3",
-				Args:       []string{"oss-fuzz/infra/helper.py", "build_fuzzers", "--sanitizer", sanitizer, "--engine", engine, "cras", "/workspace/adhd"},
-			},
-			checkStep,
-		}...),
-		Timeout: &durationpb.Duration{
-			Seconds: 1200,
+	return buildplan.Commands(
+		id,
+		buildplan.Command(archlinuxBuilder, "rsync", "-ah", "oss-fuzz-setup/", id+"/"),
+		&buildplan.Step{
+			Name:       "gcr.io/cloud-builders/docker",
+			Entrypoint: "python3",
+			Args:       []string{"oss-fuzz/infra/helper.py", "build_fuzzers", "--sanitizer", sanitizer, "--engine", engine, "cras", "/workspace/" + id + "/adhd"},
+			Dir:        id,
 		},
-		Tags: cl.makeTags(name),
-		Options: &cloudbuildpb.BuildOptions{
-			MachineType: cloudbuildpb.BuildOptions_E2_HIGHCPU_8,
-		},
-	}
+		checkStep,
+	)
 }
 
 func submit(cl gerritCL, triggerID string) error {

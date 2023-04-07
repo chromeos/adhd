@@ -20,6 +20,7 @@ RUN pacman -Sy archlinux-keyring --noconfirm --cachedir=/paccache \
   lld \
   llvm \
   protobuf \
+  rsync \
   && rm -rf /paccache
 
 FROM archlinux as kythe
