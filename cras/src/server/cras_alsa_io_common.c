@@ -50,7 +50,7 @@ static bool noise_cancellation_support_is_exposed(uint32_t dev_idx,
 int cras_alsa_common_configure_noise_cancellation(
     struct cras_iodev* iodev,
     struct cras_use_case_mgr* ucm) {
-  if (iodev->active_node->audio_effect & EFFECT_TYPE_NOISE_CANCELLATION) {
+  if (iodev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_DSP) {
     bool enable_noise_cancellation =
         cras_system_get_noise_cancellation_enabled();
     int rc = ucm_enable_node_noise_cancellation(ucm, iodev->active_node->name,
@@ -73,4 +73,17 @@ int cras_alsa_common_configure_noise_cancellation(
   }
 
   return 0;
+}
+
+enum CRAS_IONODE_NC_PROVIDER cras_alsa_common_get_nc_provider(
+    struct cras_use_case_mgr* ucm,
+    const char* node_name) {
+  if (ucm && cras_system_get_dsp_noise_cancellation_supported() &&
+      ucm_node_noise_cancellation_exists(ucm, node_name)) {
+    return CRAS_IONODE_NC_PROVIDER_DSP;
+  }
+  if (cras_system_get_ap_noise_cancellation_supported()) {
+    return CRAS_IONODE_NC_PROVIDER_AP;
+  }
+  return CRAS_IONODE_NC_PROVIDER_NONE;
 }

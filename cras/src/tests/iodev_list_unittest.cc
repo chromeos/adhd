@@ -2539,13 +2539,11 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
 }
 
 TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
-  uint32_t default_audio_effect = 0x8000;
-
   cras_iodev_list_init();
 
   d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_INPUT;
-  node1.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
+  node1.nc_provider = CRAS_IONODE_NC_PROVIDER_DSP;
   d2_.info.idx = 2;
   d2_.direction = CRAS_STREAM_OUTPUT;
   node2.type = CRAS_NODE_TYPE_USB;
@@ -2566,22 +2564,23 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
   // Make sure shared state was updated.
   EXPECT_EQ(server_state_stub.num_input_devs, 1);
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
-  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node1.audio_effect);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
   EXPECT_EQ(cras_observer_notify_nodes_called, 0);
 
-  // Block Noise Cancallation in audio_effect.
+  // Block Noise Cancellation in audio_effect.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d2_.info.idx, 0));
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, 0);
   EXPECT_EQ(cras_observer_notify_nodes_called, 1);
 
-  // Unblock Noise Cancallation in audio_effect.
+  // Unblock Noise Cancellation in audio_effect.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                               cras_make_node_id(d3_.info.idx, 0));
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
-  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node1.audio_effect);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
   EXPECT_EQ(cras_observer_notify_nodes_called, 2);
 
   cras_iodev_list_deinit();
@@ -2590,8 +2589,6 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
 TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
   struct cras_rstream rstream1, rstream2;
   int rc;
-
-  uint32_t default_audio_effect = 0x8000;
 
   memset(&rstream1, 0, sizeof(rstream1));
   memset(&rstream2, 0, sizeof(rstream2));
@@ -2613,13 +2610,14 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
 
   // Add 1 input device for checking Noise Cancellation state.
   d3_.direction = CRAS_STREAM_INPUT;
-  node3.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
+  node3.nc_provider = CRAS_IONODE_NC_PROVIDER_DSP;
   EXPECT_EQ(cras_iodev_list_add_input(&d3_), 0);
 
   // Make sure shared state was updated.
   EXPECT_EQ(server_state_stub.num_input_devs, 1);
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
-  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node3.audio_effect);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
   EXPECT_EQ(cras_observer_notify_nodes_called, 0);
 
   // Select usb playback as the active node.
@@ -2628,8 +2626,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
 
   // Block Noise Cancellation because usb player is enabled.
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
-  EXPECT_EQ(default_audio_effect,
-            server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, 0);
   EXPECT_EQ(cras_observer_notify_nodes_called, 1);
 
   // Select internal speaker as the active node.
@@ -2638,7 +2635,8 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
 
   // Unblock Noise Cancellation because usb player is disabled.
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
-  EXPECT_EQ(node3.audio_effect, server_state_stub.input_nodes[0].audio_effect);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
   EXPECT_EQ(cras_observer_notify_nodes_called, 2);
 
   d1_.format = &fmt_;
@@ -2662,8 +2660,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
 
     // Noise Cancellation is blocked by pinned stream via usb player.
     EVENTUALLY(EXPECT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect, 0);
 
     EVENTUALLY(EXPECT_EQ, rc, 0);
 
@@ -2681,8 +2678,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
 
     // Nothing changed for adding pinned stream to d2.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect, 0);
 
     EVENTUALLY(EXPECT_EQ, rc, 0);
 
@@ -2698,8 +2694,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
 
     // Nothing changed for removing pinned stream from d2.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect, 0);
 
     EVENTUALLY(EXPECT_EQ, rc, 0);
 
@@ -2715,7 +2710,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     // Unblock Noise Cancellation because pinned stream is removed from d1.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               node3.audio_effect);
+               EFFECT_TYPE_NOISE_CANCELLATION);
 
     EVENTUALLY(EXPECT_EQ, rc, 0);
 
@@ -2807,8 +2802,6 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   struct cras_rstream rstream;
   int rc;
 
-  uint32_t default_audio_effect = 0x8000;
-
   memset(&rstream, 0, sizeof(rstream));
 
   cras_iodev_list_init();
@@ -2822,12 +2815,13 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   // Add input device for checking Noise Cancellation state.
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
-  node2.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
+  node2.nc_provider = CRAS_IONODE_NC_PROVIDER_DSP;
   EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
 
   // Make sure shared state was updated.
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
-  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node2.audio_effect);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
   EXPECT_EQ(cras_observer_notify_nodes_called, 0);
 
   {  // Select usb as the active node, which means usb device is enabled,
@@ -2837,8 +2831,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
 
     // Noise Cancellation is blocked.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect, 0);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, 0));
@@ -2862,8 +2855,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
 
     // Noise Cancellation is still blocked. notify_nodes shouldn't be called.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect, 0);
 
     EVENTUALLY(EXPECT_EQ, rc, 0);
 
@@ -2880,8 +2872,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     // Noise Cancellation is still blocked because usb device is still enabled.
     // notify_nodes shouldn't be called.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect, 0);
 
     EVENTUALLY(EXPECT_EQ, rc, 0);
 
@@ -2897,7 +2888,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     // disabled (and closed).
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               node2.audio_effect);
+               EFFECT_TYPE_NOISE_CANCELLATION);
 
     cras_iodev_list_disable_dev(&d1_, false);
   }
@@ -2910,8 +2901,6 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   int rc;
 
   struct cras_ionode node1_2;
-
-  uint32_t default_audio_effect = 0x8000;
 
   memset(&rstream, 0, sizeof(rstream));
   memset(&node1_2, 0, sizeof(node1_2));
@@ -2935,12 +2924,13 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
   node2.idx = 2;
-  node2.audio_effect = default_audio_effect | EFFECT_TYPE_NOISE_CANCELLATION;
+  node2.nc_provider = CRAS_IONODE_NC_PROVIDER_DSP;
   EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
 
   // Make sure shared state was updated.
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
-  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, node2.audio_effect);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
+            EFFECT_TYPE_NOISE_CANCELLATION);
   EXPECT_EQ(cras_observer_notify_nodes_called, 0);
 
   {  // Select headphone as the active node.
@@ -2949,8 +2939,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
 
     // Noise Cancellation is blocked.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect, 0);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1.idx));
@@ -2963,7 +2952,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
     // Noise Cancellation is unblocked.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               node2.audio_effect);
+               EFFECT_TYPE_NOISE_CANCELLATION);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1_2.idx));
@@ -2975,8 +2964,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
 
     // Noise Cancellation is blocked.
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
-    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               default_audio_effect);
+    EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect, 0);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1.idx));
@@ -3011,7 +2999,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
     EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
     EVENTUALLY(ASSERT_EQ, server_state_stub.num_input_nodes, 1);
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
-               node2.audio_effect);
+               EFFECT_TYPE_NOISE_CANCELLATION);
 
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1_2.idx));
@@ -3286,7 +3274,7 @@ int cras_system_get_mute() {
   return system_get_mute_return;
 }
 
-bool cras_system_get_noise_cancellation_supported() {
+bool cras_system_get_dsp_noise_cancellation_supported() {
   return true;
 }
 

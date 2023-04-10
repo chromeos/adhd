@@ -89,6 +89,13 @@ enum CRAS_IODEV_STATE {
   CRAS_IODEV_STATE_NO_STREAM_RUN = 3,
 };
 
+// Which NC module should provide support for this cras_ionode?
+enum CRAS_IONODE_NC_PROVIDER {
+  CRAS_IONODE_NC_PROVIDER_NONE,  // NC is disabled for this ionode.
+  CRAS_IONODE_NC_PROVIDER_DSP,   // NC is supported by DSP.
+  CRAS_IONODE_NC_PROVIDER_AP,    // NC is supported by AP.
+};
+
 /* Holds an output/input node for this device.  An ionode is a control that
  * can be switched on and off such as headphones or speakers.
  */
@@ -141,9 +148,6 @@ struct cras_ionode {
   // that apply.
   // See enum CRAS_BT_FLAGS in ../common/cras_types.h.
   uint32_t btflags;
-  // Bit-wise audio effect support information. See enum
-  // audio_effect_type in cras_iodev_info.h.
-  uint32_t audio_effect;
   // The total volume step of the node
   // suggested by the system.
   // Mainly used to calculate
@@ -151,6 +155,8 @@ struct cras_ionode {
   // This value for input node is invalid (0).
   // Output nodes have valid values ​​(> 0).
   int32_t number_of_volume_steps;
+  // NC support status of the ionode.
+  enum CRAS_IONODE_NC_PROVIDER nc_provider;
   struct cras_ionode *prev, *next;
 };
 

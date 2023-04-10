@@ -5,6 +5,7 @@
 #ifndef CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_
 #define CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_
 
+#include <stdbool.h>
 #include <sys/time.h>
 
 #include "cras/src/server/cras_alsa_ucm.h"
@@ -84,5 +85,10 @@ struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);
 int cras_alsa_common_configure_noise_cancellation(
     struct cras_iodev* iodev,
     struct cras_use_case_mgr* ucm);
+
+// Get the provider for noise cancellation on the node.
+enum CRAS_IONODE_NC_PROVIDER cras_alsa_common_get_nc_provider(
+    struct cras_use_case_mgr* ucm,
+    const char* node_name);
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_

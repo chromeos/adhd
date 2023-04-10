@@ -774,8 +774,12 @@ void cras_system_set_volume_limits(long min, long max) {
   sys_set_volume_limits_called++;
 }
 
-bool cras_system_get_noise_cancellation_supported() {
+bool cras_system_get_dsp_noise_cancellation_supported() {
   return sys_get_noise_cancellation_supported_return_value;
+}
+
+bool cras_system_get_ap_noise_cancellation_supported() {
+  return false;
 }
 
 bool cras_system_get_noise_cancellation_enabled() {

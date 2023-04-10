@@ -158,7 +158,7 @@ static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_alive,
   aec_on_dsp_is_disallowed = new_aec_on_dsp_is_disallowed;
 
   if (prev_state != get_nc_blocked_state()) {
-    if (!cras_system_get_noise_cancellation_supported() ||
+    if (!cras_system_get_dsp_noise_cancellation_supported() ||
         cras_system_get_bypass_block_noise_cancellation()) {
       return;
     }
@@ -368,6 +368,12 @@ static int fill_node_list(struct iodev_list* list,
   int i = 0;
   struct cras_iodev* dev;
   struct cras_ionode* node;
+
+  const bool dsp_nc_allowed = !get_nc_blocked_state() ||
+                              cras_system_get_bypass_block_noise_cancellation();
+  // TODO(b/274582718): Query from featured.
+  const bool ap_nc_allowed = false;
+
   DL_FOREACH (list->iodevs, dev) {
     DL_FOREACH (dev->nodes, node) {
       node_info->iodev_idx = dev->info.idx;
@@ -388,10 +394,11 @@ static int fill_node_list(struct iodev_list* list,
       snprintf(node_info->type, sizeof(node_info->type), "%s",
                node_type_to_str(node));
       node_info->type_enum = node->type;
-      node_info->audio_effect = node->audio_effect;
-      if (get_nc_blocked_state() &&
-          !cras_system_get_bypass_block_noise_cancellation()) {
-        node_info->audio_effect &= ~EFFECT_TYPE_NOISE_CANCELLATION;
+      node_info->audio_effect = 0;
+      if ((dsp_nc_allowed &&
+           node->nc_provider == CRAS_IONODE_NC_PROVIDER_DSP) ||
+          (ap_nc_allowed && node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP)) {
+        node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
       }
       node_info->number_of_volume_steps = node->number_of_volume_steps;
       node_info++;

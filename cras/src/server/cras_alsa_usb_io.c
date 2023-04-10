@@ -993,13 +993,10 @@ static struct alsa_usb_input_node* usb_new_input(
     }
 
     input->base.dsp_name = ucm_get_dsp_name_for_dev(aio->ucm, name);
-
-    // Check if noise cancellation is supported.
-    if (cras_system_get_noise_cancellation_supported() &&
-        ucm_node_noise_cancellation_exists(aio->ucm, name)) {
-      input->base.audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
-    }
   }
+
+  // Set NC provider.
+  input->base.nc_provider = cras_alsa_common_get_nc_provider(aio->ucm, name);
 
   cras_iodev_add_node(&aio->base, &input->base);
   usb_check_auto_unplug_input_node(aio, &input->base, input->base.plugged);

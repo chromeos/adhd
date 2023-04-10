@@ -145,7 +145,7 @@ static int hotword_send_triggered_msg_called;
 static struct timespec clock_gettime_retspec;
 static unsigned cras_iodev_reset_rate_estimator_called;
 static unsigned display_rotation;
-static bool sys_get_noise_cancellation_supported_return_value;
+static bool sys_get_dsp_noise_cancellation_supported_return_value;
 static int sys_aec_on_dsp_supported_return_value;
 static int ucm_node_echo_cancellation_exists_ret_value;
 static int sys_get_max_internal_speaker_channels_called;
@@ -242,7 +242,7 @@ void ResetStubData() {
   ucm_get_intrinsic_sensitivity_values.clear();
   cras_iodev_reset_rate_estimator_called = 0;
   display_rotation = 0;
-  sys_get_noise_cancellation_supported_return_value = 0;
+  sys_get_dsp_noise_cancellation_supported_return_value = 0;
   sys_aec_on_dsp_supported_return_value = 0;
   ucm_node_echo_cancellation_exists_ret_value = 0;
   sys_get_max_internal_speaker_channels_called = 0;
@@ -1485,7 +1485,7 @@ TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
   // i = 1: cras_system_get_noise_cancellation_supported is true
   for (i = 0; i < 2; i++) {
     ResetStubData();
-    sys_get_noise_cancellation_supported_return_value = (bool)i;
+    sys_get_dsp_noise_cancellation_supported_return_value = (bool)i;
 
     // Create the IO device for Internal Microphone.
     iodev = alsa_iodev_create_with_default_parameters(
@@ -1500,11 +1500,10 @@ TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
     ASSERT_NE(iodev->nodes, (void*)NULL);
 
     // ucm_node_noise_cancellation_exists is 1 for Internal Microphone.
-    // However NC flag in node.audio_effect will be on only if
-    // cras_system_get_noise_cancellatiobn_supported is true.
-    ASSERT_EQ(
-        sys_get_noise_cancellation_supported_return_value,
-        !!(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION));
+    // However node.nc_provider will be CRAS_IONODE_NC_PROVIDER_DSP on only if
+    // cras_system_get_noise_cancellation_supported is true.
+    ASSERT_EQ(sys_get_dsp_noise_cancellation_supported_return_value,
+              iodev->nodes[0].nc_provider == CRAS_IONODE_NC_PROVIDER_DSP);
 
     ucm_section_free_list(section);
     alsa_iodev_destroy(iodev);
@@ -1522,8 +1521,8 @@ TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
     ASSERT_NE(iodev->nodes, (void*)NULL);
 
     // ucm_node_noise_cancellation_exists is 0 for Keyboard Microphone.
-    // NC flag in node.audio_effect is off anyway.
-    ASSERT_FALSE(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION);
+    // NC flag in node.nc_provider should not be CRAS_IONODE_NC_PROVIDER_DSP
+    ASSERT_NE(iodev->nodes[0].nc_provider, CRAS_IONODE_NC_PROVIDER_DSP);
 
     ucm_section_free_list(section);
     alsa_iodev_destroy(iodev);
@@ -1542,7 +1541,7 @@ TEST(AlsaOutputNode, InputBypassBlockNoiseCancellation) {
   // i = 3: sys_aec_on_dsp_supported is 1, ucm_aec_exists is 1
   for (i = 0; i < 4; i++) {
     ResetStubData();
-    sys_get_noise_cancellation_supported_return_value = true;
+    sys_get_dsp_noise_cancellation_supported_return_value = true;
     sys_aec_on_dsp_supported_return_value = i / 2;
     ucm_node_echo_cancellation_exists_ret_value = i % 2;
 
@@ -1559,7 +1558,7 @@ TEST(AlsaOutputNode, InputBypassBlockNoiseCancellation) {
     ASSERT_NE(iodev->nodes, (void*)NULL);
 
     // NC flag in node.audio_effect should be unrelated to AEC on DSP states.
-    ASSERT_TRUE(iodev->nodes[0].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION);
+    ASSERT_EQ(iodev->nodes[0].nc_provider, CRAS_IONODE_NC_PROVIDER_DSP);
 
     ucm_section_free_list(section);
     alsa_iodev_destroy(iodev);
@@ -2862,8 +2861,12 @@ void cras_system_set_volume_limits(long min, long max) {
   sys_set_volume_limits_called++;
 }
 
-bool cras_system_get_noise_cancellation_supported() {
-  return sys_get_noise_cancellation_supported_return_value;
+bool cras_system_get_dsp_noise_cancellation_supported() {
+  return sys_get_dsp_noise_cancellation_supported_return_value;
+}
+
+bool cras_system_get_ap_noise_cancellation_supported() {
+  return false;
 }
 
 bool cras_system_get_noise_cancellation_enabled() {

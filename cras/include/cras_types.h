@@ -661,8 +661,8 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Whether or not Noise Cancellation is enabled.
   int32_t noise_cancellation_enabled;
   // Whether or not Noise Cancellation is
-  // supported by at least one input node.
-  int32_t noise_cancellation_supported;
+  // supported by at least one input node by the DSP.
+  int32_t dsp_noise_cancellation_supported;
   // Flag to bypass block/unblock Noise
   // Cancellation mechanism.
   int32_t bypass_block_noise_cancellation;

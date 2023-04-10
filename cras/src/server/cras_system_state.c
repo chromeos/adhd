@@ -191,7 +191,7 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->deprioritize_bt_wbs_mic = board_config.deprioritize_bt_wbs_mic;
   // Disable Noise Cancellation as default.
   exp_state->noise_cancellation_enabled = 0;
-  exp_state->noise_cancellation_supported = board_config.nc_supported;
+  exp_state->dsp_noise_cancellation_supported = board_config.nc_supported;
   exp_state->bypass_block_noise_cancellation = 0;
   exp_state->hotword_pause_at_suspend = board_config.hotword_pause_at_suspend;
   exp_state->hw_echo_ref_disabled = board_config.hw_echo_ref_disabled;
@@ -464,7 +464,17 @@ bool cras_system_get_noise_cancellation_enabled() {
 }
 
 bool cras_system_get_noise_cancellation_supported() {
-  return !!state.exp_state->noise_cancellation_supported;
+  return cras_system_get_dsp_noise_cancellation_supported() ||
+         cras_system_get_ap_noise_cancellation_supported();
+}
+
+bool cras_system_get_dsp_noise_cancellation_supported() {
+  return !!state.exp_state->dsp_noise_cancellation_supported;
+}
+
+bool cras_system_get_ap_noise_cancellation_supported() {
+  // TODO(b/271383461): Ask cras_feature_tier.
+  return false;
 }
 
 void cras_system_set_bypass_block_noise_cancellation(bool bypass) {
