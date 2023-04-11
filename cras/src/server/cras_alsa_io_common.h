@@ -7,6 +7,7 @@
 
 #include <sys/time.h>
 
+#include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_iodev.h"
 
 #define HOTWORD_DEV "Wake on Voice"
@@ -76,5 +77,12 @@ static const struct timespec no_stream_fill_zeros_duration = {
 };
 
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);
+
+// Enable or disable noise cancellation for the active node if supported.
+//
+// Returns nonzero on unrecoverable failures.
+int cras_alsa_common_configure_noise_cancellation(
+    struct cras_iodev* iodev,
+    struct cras_use_case_mgr* ucm);
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_
