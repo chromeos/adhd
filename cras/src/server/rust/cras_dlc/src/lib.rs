@@ -91,17 +91,6 @@ fn sr_bt_get_root() -> Result<CString> {
     CString::new(dlc_state.root_path).map_err(|e| e.into())
 }
 
-fn nc_ap_is_available() -> Result<DlcState_State> {
-    install_dlc(CrasDlcId::CrasDlcNcAp)?;
-    let dlc_state = get_dlc_state(CrasDlcId::CrasDlcNcAp)?;
-    Ok(dlc_state.state)
-}
-
-fn nc_ap_get_root() -> Result<CString> {
-    let dlc_state = get_dlc_state(CrasDlcId::CrasDlcNcAp)?;
-    CString::new(dlc_state.root_path).map_err(|e| e.into())
-}
-
 /// Returns `true` if the "sr-bt-dlc" packge is ready for use, otherwise
 /// retuns `false`.
 #[no_mangle]
@@ -116,25 +105,6 @@ pub unsafe extern "C" fn cras_dlc_sr_bt_is_available() -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn cras_dlc_sr_bt_get_root() -> *const c_char {
     match sr_bt_get_root() {
-        Ok(root_path) => root_path.into_raw(),
-        Err(_) => ptr::null_mut(),
-    }
-}
-
-/// Returns `true` if the "nc-ap-dlc" package is ready for use, otherwise
-/// returns `false`.
-#[no_mangle]
-pub unsafe extern "C" fn cras_dlc_nc_ap_is_available() -> bool {
-    match nc_ap_is_available() {
-        Ok(state) => state == DlcState_State::INSTALLED,
-        Err(_) => false,
-    }
-}
-
-/// Returns DLC root_path for the "nc-ap-dlc" package.
-#[no_mangle]
-pub unsafe extern "C" fn cras_dlc_nc_ap_get_root() -> *const c_char {
-    match nc_ap_get_root() {
         Ok(root_path) => root_path.into_raw(),
         Err(_) => ptr::null_mut(),
     }

@@ -15,10 +15,14 @@ bool cras_dlc_sr_bt_is_available(void) {
   return false;
 }
 
-const char* cras_dlc_nc_ap_get_root(void) {
-  return NULL;
+bool cras_dlc_install(enum CrasDlcId id) {
+  return false;
 }
 
-bool cras_dlc_nc_ap_is_available(void) {
+bool cras_dlc_is_available(enum CrasDlcId id) {
   return false;
+}
+
+const char* cras_dlc_get_root_path(enum CrasDlcId id) {
+  return NULL;
 }

@@ -22,6 +22,7 @@ struct dlc_manager {
 
 static struct dlc_manager* dlc_manager = NULL;
 
+// TODO(b/274547402): refine retry mechanism
 static void download_supported_dlc(struct cras_timer* timer, void* arg) {
   struct cras_tm* tm = cras_system_state_get_tm();
   if (!tm) {
@@ -29,7 +30,12 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
     return;
   }
 
-  if (!cras_dlc_nc_ap_is_available()) {
+  if (!cras_dlc_is_available(CrasDlcNcAp)) {
+    if (!cras_dlc_install(CrasDlcNcAp)) {
+      syslog(LOG_ERR,
+             "%s: unable to connect to dlcservice during `cras_dlc_install`.",
+             __func__);
+    }
     if (dlc_manager->retry_counter < MAX_RETRY_COUNT) {
       dlc_manager->retry_counter++;
       dlc_manager->retry_timer =
