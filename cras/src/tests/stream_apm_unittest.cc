@@ -859,7 +859,7 @@ int cras_main_message_send(struct cras_main_message* msg) {
   return 0;
 }
 
-enum CrasProcessorEffect cras_processor_get_effect() {
+enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap) {
   return NoEffects;
 }
 

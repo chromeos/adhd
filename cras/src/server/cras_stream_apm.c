@@ -700,13 +700,16 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   apm->fbuffer = float_buffer_create(frame_length, apm->fmt.num_channels);
   apm->area = cras_audio_area_create(apm->fmt.num_channels);
 
+  bool nc_provided_by_ap =
+      idev->active_node &&
+      idev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP;
   struct CrasProcessorConfig cfg = {
       // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
       // AEC capture.
       .channels = 1,
       .block_size = frame_length,
       .frame_rate = apm->fmt.frame_rate,
-      .effect = cras_processor_get_effect(),
+      .effect = cras_processor_get_effect(nc_provided_by_ap),
   };
   apm->pp = cras_processor_create(&cfg);
   if (apm->pp == NULL) {

@@ -474,7 +474,7 @@ bool cras_system_get_dsp_noise_cancellation_supported() {
 
 bool cras_system_get_ap_noise_cancellation_supported() {
   // TODO(b/271383461): Ask cras_feature_tier.
-  return false;
+  return true;
 }
 
 void cras_system_set_bypass_block_noise_cancellation(bool bypass) {

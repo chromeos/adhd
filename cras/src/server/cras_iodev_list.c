@@ -371,8 +371,8 @@ static int fill_node_list(struct iodev_list* list,
 
   const bool dsp_nc_allowed = !get_nc_blocked_state() ||
                               cras_system_get_bypass_block_noise_cancellation();
-  // TODO(b/274582718): Query from featured.
-  const bool ap_nc_allowed = false;
+  const bool ap_nc_allowed =
+      cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation);
 
   DL_FOREACH (list->iodevs, dev) {
     DL_FOREACH (dev->nodes, node) {
