@@ -23,7 +23,8 @@ pub enum PluginError {
 
 #[cfg(test)]
 mod tests {
-    use super::{binding, PluginError};
+    use super::binding;
+    use super::PluginError;
 
     #[test]
     fn plugin_processor_error() {

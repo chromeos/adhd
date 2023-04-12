@@ -67,9 +67,11 @@ impl Drop for DynLib {
 
 #[cfg(test)]
 mod tests {
-    use super::{dlerror, DynLib};
-    use crate::processors::PluginError;
     use assert_matches::assert_matches;
+
+    use super::dlerror;
+    use super::DynLib;
+    use crate::processors::PluginError;
 
     #[test]
     fn dl_libc_isdigit() {

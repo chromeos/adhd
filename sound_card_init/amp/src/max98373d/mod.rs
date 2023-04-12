@@ -9,22 +9,29 @@ mod dsm_param;
 mod error;
 mod settings;
 
+use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fs;
 use std::path::Path;
+use std::thread;
 use std::time::Duration;
-use std::{
-    fmt,
-    fmt::{Debug, Formatter},
-    fs, thread,
-};
 
-use cros_alsa::{Card, IntControl};
-use dsm::{CalibData, RDCRange, SpeakerStatus, ZeroPlayer, DSM};
-use log::info;
-
-use crate::{Amp, Result};
+use cros_alsa::Card;
+use cros_alsa::IntControl;
+use dsm::CalibData;
+use dsm::RDCRange;
+use dsm::SpeakerStatus;
+use dsm::ZeroPlayer;
+use dsm::DSM;
 use dsm_param::*;
 pub use error::Error;
-use settings::{AmpCalibSettings, DeviceSettings};
+use log::info;
+use settings::AmpCalibSettings;
+use settings::DeviceSettings;
+
+use crate::Amp;
+use crate::Result;
 
 /// It implements the amplifier boot time calibration flow.
 pub struct Max98373 {

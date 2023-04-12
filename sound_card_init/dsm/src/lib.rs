@@ -9,18 +9,24 @@ pub mod utils;
 mod vpd;
 mod zero_player;
 
-use std::{
-    fmt, thread,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::fmt;
+use std::thread;
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
-use libcras::{CrasClient, CrasNodeType};
-use log::{error, info};
-use serde::{Deserialize, Serialize};
+use libcras::CrasClient;
+use libcras::CrasNodeType;
+use log::error;
+use log::info;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::datastore::Datastore;
-pub use crate::error::{Error, Result};
-use crate::utils::{run_time, shutdown_time};
+pub use crate::error::Error;
+pub use crate::error::Result;
+use crate::utils::run_time;
+use crate::utils::shutdown_time;
 use crate::vpd::VPD;
 pub use crate::zero_player::ZeroPlayer;
 

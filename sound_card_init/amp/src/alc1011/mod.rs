@@ -7,16 +7,23 @@
 mod settings;
 
 use std::fmt;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
+use std::fmt::Formatter;
 use std::fs;
 use std::path::Path;
 
-use cros_alsa::{Card, IntControl};
-use dsm::{CalibData, Error, RDCRange, DSM};
+use cros_alsa::Card;
+use cros_alsa::IntControl;
+use dsm::CalibData;
+use dsm::Error;
+use dsm::RDCRange;
+use dsm::DSM;
 use log::info;
+use settings::AmpCalibSettings;
+use settings::DeviceSettings;
 
-use crate::{Amp, Result};
-use settings::{AmpCalibSettings, DeviceSettings};
+use crate::Amp;
+use crate::Result;
 
 /// It implements the amplifier boot time calibration flow.
 pub struct ALC1011 {

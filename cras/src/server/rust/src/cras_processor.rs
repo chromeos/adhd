@@ -2,13 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use audio_processor::{
-    processors::{
-        binding::plugin_processor, export_plugin, CheckShape, DynamicPluginProcessor,
-        NegateAudioProcessor,
-    },
-    AudioProcessor,
-};
+use audio_processor::processors::binding::plugin_processor;
+use audio_processor::processors::export_plugin;
+use audio_processor::processors::CheckShape;
+use audio_processor::processors::DynamicPluginProcessor;
+use audio_processor::processors::NegateAudioProcessor;
+use audio_processor::AudioProcessor;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]

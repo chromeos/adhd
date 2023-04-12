@@ -5,12 +5,15 @@
 #![deny(missing_docs)]
 
 use std::fs::File;
-use std::io::{prelude::*, BufReader, BufWriter};
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::io::BufWriter;
 use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::datastore::Datastore;
-use crate::error::{Error, Result};
+use crate::error::Error;
+use crate::error::Result;
 
 fn duration_from_file(path: &PathBuf) -> Result<Duration> {
     let reader =

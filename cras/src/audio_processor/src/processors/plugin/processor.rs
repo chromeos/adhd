@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use super::binding;
+use super::PluginError;
 use crate::AudioProcessor;
-
-use super::{binding, PluginError};
 
 pub type PluginProcessorCreate = unsafe extern "C" fn(
     out: *mut *mut binding::plugin_processor,
@@ -127,9 +127,14 @@ impl AudioProcessor for PluginProcessor {
 #[cfg(feature = "bazel")]
 #[cfg(test)]
 mod plugin_tests {
-    use super::{binding, PluginError, PluginProcessor};
-    use crate::{AudioProcessor, MultiBuffer, Shape};
     use assert_matches::assert_matches;
+
+    use super::binding;
+    use super::PluginError;
+    use super::PluginProcessor;
+    use crate::AudioProcessor;
+    use crate::MultiBuffer;
+    use crate::Shape;
 
     #[test]
     fn oom_create() {

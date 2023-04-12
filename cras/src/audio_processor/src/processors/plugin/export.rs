@@ -4,9 +4,9 @@
 
 use std::slice;
 
-use crate::{AudioProcessor, MultiSlice};
-
 use super::binding;
+use crate::AudioProcessor;
+use crate::MultiSlice;
 
 /// Export the [`AudioProcessor`] as a FFI plugin.
 pub fn export_plugin(p: impl AudioProcessor<I = f32, O = f32>) -> *mut binding::plugin_processor {
@@ -87,10 +87,11 @@ unsafe extern "C" fn wrapper_destroy(p: *mut binding::plugin_processor) -> bindi
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        processors::{export_plugin, NegateAudioProcessor, PluginProcessor},
-        AudioProcessor, MultiBuffer,
-    };
+    use crate::processors::export_plugin;
+    use crate::processors::NegateAudioProcessor;
+    use crate::processors::PluginProcessor;
+    use crate::AudioProcessor;
+    use crate::MultiBuffer;
 
     #[test]
     fn negate_process() {

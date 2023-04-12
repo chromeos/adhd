@@ -14,13 +14,13 @@
 use std::error;
 use std::string::String;
 
+use amp::AmpBuilder;
 use argh::FromArgs;
-use libchromeos::sys::{error, info};
+use dsm::utils::run_time;
+use libchromeos::sys::error;
+use libchromeos::sys::info;
 use libchromeos::syslog;
 use serde::Serialize;
-
-use amp::AmpBuilder;
-use dsm::utils::run_time;
 
 const IDENT: &str = "sound_card_init";
 

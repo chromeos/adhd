@@ -2,17 +2,23 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 use std::io::Write;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::sync::Condvar;
+use std::sync::Mutex;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
 use audio_streams::SampleFormat;
-use libcras::{CrasClient, CrasClientType, CrasNodeType};
+use libcras::CrasClient;
+use libcras::CrasClientType;
+use libcras::CrasNodeType;
 use log::error;
 
-use crate::error::{Error, Result};
+use crate::error::Error;
+use crate::error::Result;
 
 /// `ZeroPlayer` provides the functionality to play zeros sample in the background thread.
 #[derive(Default)]

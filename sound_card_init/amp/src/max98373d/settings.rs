@@ -3,9 +3,10 @@
 // found in the LICENSE file.
 use std::string::String;
 
-use crate::Result;
 use dsm::RDCRange;
 use serde::Deserialize;
+
+use crate::Result;
 /// `DeviceSettings` includes the settings of max98373. It currently includes:
 /// * the settings of amplifier calibration.
 /// * the path of dsm_param.

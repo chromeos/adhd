@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use super::dl;
+use super::PluginProcessor;
+use super::PluginProcessorCreate;
 use crate::AudioProcessor;
-
-use super::{dl, PluginProcessor, PluginProcessorCreate};
 
 /// `DynamicPluginProcessor` supports running [`PluginProcessor`]s in dynamic
 /// loaded libraries.
@@ -60,11 +61,12 @@ impl AudioProcessor for DynamicPluginProcessor {
 mod tests {
     use std::env;
 
-    use crate::{
-        processors::{DynamicPluginProcessor, PluginError},
-        AudioProcessor, MultiBuffer,
-    };
     use assert_matches::assert_matches;
+
+    use crate::processors::DynamicPluginProcessor;
+    use crate::processors::PluginError;
+    use crate::AudioProcessor;
+    use crate::MultiBuffer;
 
     fn dl_lib_path() -> String {
         env::var("LIBTEST_PLUGINS_SO").unwrap()

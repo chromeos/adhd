@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::{slice_cast::SliceCast, Sample, Shape};
+use crate::slice_cast::SliceCast;
+use crate::Sample;
+use crate::Shape;
 
 mod debug;
 
@@ -40,7 +42,8 @@ impl<'a, S: Sample> MultiBuffer<S> {
 
 #[cfg(test)]
 mod buffer_tests {
-    use crate::{MultiBuffer, Shape};
+    use crate::MultiBuffer;
+    use crate::Shape;
 
     #[test]
     fn new() {
@@ -186,7 +189,8 @@ impl<'a> MultiSlice<'a, u8> {
 
 #[cfg(test)]
 mod slice_tests {
-    use crate::{MultiBuffer, MultiSlice};
+    use crate::MultiBuffer;
+    use crate::MultiSlice;
 
     #[test]
     fn from_vecs() {

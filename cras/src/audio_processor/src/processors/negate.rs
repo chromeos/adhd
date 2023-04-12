@@ -4,7 +4,12 @@
 
 use std::marker::PhantomData;
 
-use crate::{AudioProcessor, MultiBuffer, MultiSlice, Result, Shape, SignedSample};
+use crate::AudioProcessor;
+use crate::MultiBuffer;
+use crate::MultiSlice;
+use crate::Result;
+use crate::Shape;
+use crate::SignedSample;
 
 /// `InPlaceNegateAudioProcessor` is an [`AudioProcessor`] that negates the audio samples.
 /// Audio samples are modified in-place.

@@ -4,7 +4,11 @@
 
 use std::marker::PhantomData;
 
-use crate::{AudioProcessor, Error, MultiSlice, Result, Sample};
+use crate::AudioProcessor;
+use crate::Error;
+use crate::MultiSlice;
+use crate::Result;
+use crate::Sample;
 
 /// `CheckShape` returns the input unmodified if the input matches the specified
 /// shape. Otherwise an error is returned.
@@ -51,7 +55,9 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::{processors::CheckShape, AudioProcessor, MultiBuffer};
+    use crate::processors::CheckShape;
+    use crate::AudioProcessor;
+    use crate::MultiBuffer;
 
     #[test]
     fn good_shape() {

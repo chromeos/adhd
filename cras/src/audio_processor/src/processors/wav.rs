@@ -4,7 +4,13 @@
 
 use dasp_sample::ToSample;
 
-use crate::{AudioProcessor, Error, MultiBuffer, MultiSlice, Result, Sample, Shape};
+use crate::AudioProcessor;
+use crate::Error;
+use crate::MultiBuffer;
+use crate::MultiSlice;
+use crate::Result;
+use crate::Sample;
+use crate::Shape;
 
 #[derive(Debug, PartialEq)]
 enum Type {
@@ -17,7 +23,8 @@ enum Type {
 
 /// Get the storage [Type] for the wav spec.
 fn storage_type(spec: hound::WavSpec) -> Type {
-    use hound::SampleFormat::{Float, Int};
+    use hound::SampleFormat::Float;
+    use hound::SampleFormat::Int;
     use Type::*;
 
     match (spec.sample_format, spec.bits_per_sample) {
@@ -170,9 +177,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{AudioProcessor, Error, MultiBuffer, Shape};
-
-    use super::{WavSink, WavSource};
+    use super::WavSink;
+    use super::WavSource;
+    use crate::AudioProcessor;
+    use crate::Error;
+    use crate::MultiBuffer;
+    use crate::Shape;
 
     fn spec(sample_format: hound::SampleFormat, bits_per_sample: u16) -> hound::WavSpec {
         hound::WavSpec {
@@ -185,8 +195,10 @@ mod tests {
 
     #[test]
     fn storage_type() {
-        use super::{storage_type, Type::*};
         use hound::SampleFormat::*;
+
+        use super::storage_type;
+        use super::Type::*;
 
         assert_eq!(storage_type(spec(Float, 32)), F32);
         assert_eq!(storage_type(spec(Int, 32)), I32);
@@ -198,16 +210,18 @@ mod tests {
     #[test]
     #[should_panic(expected = "invalid bits per sample 23 for Int")]
     fn storage_type_invalid_int23() {
-        use super::storage_type;
         use hound::SampleFormat::*;
+
+        use super::storage_type;
         storage_type(spec(Int, 23));
     }
 
     #[test]
     #[should_panic(expected = "invalid bits per sample 23 for Float")]
     fn storage_type_invalid_float23() {
-        use super::storage_type;
         use hound::SampleFormat::*;
+
+        use super::storage_type;
         storage_type(spec(Float, 23));
     }
 

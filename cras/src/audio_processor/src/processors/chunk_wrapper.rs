@@ -2,7 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::{AudioProcessor, MultiBuffer, Sample, Shape};
+use crate::AudioProcessor;
+use crate::MultiBuffer;
+use crate::Sample;
+use crate::Shape;
 
 /// The `ChunkWrapper` struct is an audio processor that wraps another audio
 /// processor `T`. It processes audio data in chunks of a fixed size
@@ -89,12 +92,11 @@ impl<T: AudioProcessor<I = S, O = S>, S: Sample> ChunkWrapper<T, S> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        processors::{InPlaceNegateAudioProcessor, NegateAudioProcessor},
-        AudioProcessor, MultiBuffer,
-    };
-
     use super::ChunkWrapper;
+    use crate::processors::InPlaceNegateAudioProcessor;
+    use crate::processors::NegateAudioProcessor;
+    use crate::AudioProcessor;
+    use crate::MultiBuffer;
 
     // Test that ChunkedWrapper generates the correct delay.
     fn delayed_neg<T: AudioProcessor<I = i32, O = i32>>(neg: T) {

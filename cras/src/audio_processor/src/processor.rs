@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::{MultiSlice, Sample};
+use crate::MultiSlice;
+use crate::Sample;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -70,7 +71,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{processors, ByteProcessor, MultiBuffer};
+    use crate::processors;
+    use crate::ByteProcessor;
+    use crate::MultiBuffer;
 
     #[test]
     fn simple_pipeline() {

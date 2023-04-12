@@ -2,13 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 use std::fs::File;
-use std::io::{prelude::*, BufReader, BufWriter};
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::io::BufWriter;
 use std::path::PathBuf;
 
 use log::info;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::error::{Error, Result};
+use crate::error::Error;
+use crate::error::Result;
 
 /// `Datastore`, which stores and reads calibration values in yaml format.
 #[derive(Debug, Deserialize, Serialize, Copy, Clone)]

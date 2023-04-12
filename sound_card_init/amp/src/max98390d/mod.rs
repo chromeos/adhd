@@ -8,21 +8,29 @@
 mod error;
 mod settings;
 
+use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fs;
+use std::path::Path;
 use std::time::Duration;
-use std::{
-    fmt,
-    fmt::{Debug, Formatter},
-    fs,
-    path::Path,
-};
 
-use cros_alsa::{Card, IntControl, SwitchControl};
-use dsm::{CalibData, RDCRange, SpeakerStatus, TempConverter, ZeroPlayer, DSM};
-use log::info;
-
-use crate::{Amp, Result};
+use cros_alsa::Card;
+use cros_alsa::IntControl;
+use cros_alsa::SwitchControl;
+use dsm::CalibData;
+use dsm::RDCRange;
+use dsm::SpeakerStatus;
+use dsm::TempConverter;
+use dsm::ZeroPlayer;
+use dsm::DSM;
 pub use error::Error;
-use settings::{AmpCalibSettings, DeviceSettings};
+use log::info;
+use settings::AmpCalibSettings;
+use settings::DeviceSettings;
+
+use crate::Amp;
+use crate::Result;
 
 /// Amp volume mode emulation used by set_volume().
 #[derive(PartialEq, Clone, Copy)]

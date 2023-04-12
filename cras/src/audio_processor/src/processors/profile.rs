@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::{AudioProcessor, MultiSlice};
-use std::{
-    fmt::Display,
-    time::{Duration, Instant},
-};
+use std::fmt::Display;
+use std::time::Duration;
+use std::time::Instant;
+
+use crate::AudioProcessor;
+use crate::MultiSlice;
 
 pub struct Profile<T: AudioProcessor> {
     pub inner: T,
@@ -118,14 +119,15 @@ fn duration_from_timeval(value: libc::timeval) -> Result<Duration, <i64 as TryFr
 
 #[cfg(test)]
 mod tests {
-    use std::time::{Duration, Instant};
+    use std::time::Duration;
+    use std::time::Instant;
 
-    use crate::{
-        processors::{profile::cpu_time, InPlaceNegateAudioProcessor},
-        AudioProcessor, MultiBuffer,
-    };
-
-    use super::{Measurement, Profile};
+    use super::Measurement;
+    use super::Profile;
+    use crate::processors::profile::cpu_time;
+    use crate::processors::InPlaceNegateAudioProcessor;
+    use crate::AudioProcessor;
+    use crate::MultiBuffer;
 
     #[test]
     fn cpu_time_smoke() {

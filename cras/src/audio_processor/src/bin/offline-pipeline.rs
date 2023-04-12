@@ -2,14 +2,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::{num::ParseFloatError, path::PathBuf, time::Duration};
+use std::num::ParseFloatError;
+use std::path::PathBuf;
+use std::time::Duration;
 
+use audio_processor::processors::profile;
+use audio_processor::processors::CheckShape;
+use audio_processor::processors::DynamicPluginProcessor;
+use audio_processor::processors::WavSink;
+use audio_processor::processors::WavSource;
+use audio_processor::ByteProcessor;
+use audio_processor::Error;
+use audio_processor::MultiBuffer;
+use audio_processor::Shape;
 use clap::Parser;
-
-use audio_processor::{
-    processors::{profile, CheckShape, DynamicPluginProcessor, WavSink, WavSource},
-    ByteProcessor, Error, MultiBuffer, Shape,
-};
 
 #[derive(Parser, Debug)]
 #[clap(global_setting(clap::AppSettings::DeriveDisplayOrder))]
@@ -159,8 +165,9 @@ mod tests {
     #[cfg(feature = "bazel")]
     #[test]
     fn simple_negate() {
-        use assert_matches::assert_matches;
         use std::env;
+
+        use assert_matches::assert_matches;
         use tempfile::TempDir;
 
         let dir = TempDir::new().unwrap();

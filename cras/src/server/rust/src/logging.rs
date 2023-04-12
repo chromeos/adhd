@@ -2,12 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::{convert::TryInto, io::Write};
+use std::convert::TryInto;
+use std::io::Write;
 
 use anyhow::anyhow;
-use log::{Level, LevelFilter, Log};
+use log::Level;
+use log::LevelFilter;
+use log::Log;
 use nix::unistd::getpid;
-use syslog::{BasicLogger, Facility, Formatter3164, LogFormat, Severity};
+use syslog::BasicLogger;
+use syslog::Facility;
+use syslog::Formatter3164;
+use syslog::LogFormat;
+use syslog::Severity;
 
 /// A struct that represents a logger that logs to stderr.
 struct StderrLogger {

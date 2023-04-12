@@ -6,7 +6,8 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-use crate::error::{Error, Result};
+use crate::error::Error;
+use crate::error::Result;
 
 const VPD_DIR: &str = "/sys/firmware/vpd/ro/vpdfile";
 

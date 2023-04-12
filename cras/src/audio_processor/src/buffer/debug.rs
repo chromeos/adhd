@@ -5,7 +5,8 @@
 use std::fmt::Debug;
 use std::iter::Iterator;
 
-use crate::{MultiBuffer, MultiSlice};
+use crate::MultiBuffer;
+use crate::MultiSlice;
 
 fn debug_format<T>(struct_: &str, element: &str, lengths: T) -> String
 where

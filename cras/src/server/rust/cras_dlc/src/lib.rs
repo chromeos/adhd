@@ -2,18 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::{ffi::CString, os::raw::c_char, ptr, time::Duration};
+use std::ffi::CString;
+use std::os::raw::c_char;
+use std::ptr;
+use std::time::Duration;
 
-use {
-    dbus::blocking::{Connection, Proxy},
-    protobuf::Message,
-    thiserror::Error,
-};
-
-use system_api::{
-    client::OrgChromiumDlcServiceInterface,
-    dlcservice::{DlcState, DlcState_State, InstallRequest},
-};
+use dbus::blocking::Connection;
+use dbus::blocking::Proxy;
+use protobuf::Message;
+use system_api::client::OrgChromiumDlcServiceInterface;
+use system_api::dlcservice::DlcState;
+use system_api::dlcservice::DlcState_State;
+use system_api::dlcservice::InstallRequest;
+use thiserror::Error;
 
 const DBUS_TIMEOUT: Duration = Duration::from_secs(3);
 

@@ -82,9 +82,11 @@ impl TryFrom<crate::MultiSlice<'_, f32>> for multi_slice {
 
 #[cfg(test)]
 mod tests {
-    use super::multi_slice;
-    use crate::{processors::PluginError, MultiBuffer};
     use assert_matches::assert_matches;
+
+    use super::multi_slice;
+    use crate::processors::PluginError;
+    use crate::MultiBuffer;
 
     #[test]
     fn as_slice_vec() {

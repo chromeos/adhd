@@ -2,7 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::{AudioProcessor, MultiBuffer, Sample, Shape};
+use crate::AudioProcessor;
+use crate::MultiBuffer;
+use crate::Sample;
+use crate::Shape;
 
 /// Naive audio resampler using the nearest neighbor algorithm.
 pub struct NearestNeighborResampler<T: Sample> {
@@ -67,9 +70,10 @@ fn build_index(inputs: usize, outputs: usize) -> Vec<usize> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{AudioProcessor, MultiBuffer};
-
-    use super::{build_index, NearestNeighborResampler};
+    use super::build_index;
+    use super::NearestNeighborResampler;
+    use crate::AudioProcessor;
+    use crate::MultiBuffer;
 
     #[test]
     fn three_to_one() {

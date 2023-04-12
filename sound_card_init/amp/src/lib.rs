@@ -12,15 +12,15 @@ mod max98373d;
 mod max98390d;
 use std::path::PathBuf;
 
-use serde::Serialize;
-
 use alc1011::ALC1011;
 use cs35l41::CS35L41;
 use dsm::RDCRange;
 use max98373d::Max98373;
 use max98390d::Max98390;
+use serde::Serialize;
 
-pub use crate::error::{Error, Result};
+pub use crate::error::Error;
+pub use crate::error::Result;
 
 const CONF_DIR: &str = "/etc/sound_card_init";
 

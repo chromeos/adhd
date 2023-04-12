@@ -8,21 +8,33 @@
 mod error;
 mod settings;
 
-use std::{convert::TryFrom, fmt, fs, path::Path, thread::sleep, time::Duration};
+use std::convert::TryFrom;
+use std::fmt;
+use std::fs;
+use std::path::Path;
+use std::thread::sleep;
+use std::time::Duration;
 
-use {
-    cros_alsa::{
-        elem::Elem, Card, Control, ControlOps, Ctl, ElemId, SimpleEnumControl, SwitchControl,
-    },
-    dsm::{CalibData, RDCRange, ZeroPlayer, DSM},
-    log::info,
-};
-
+use cros_alsa::elem::Elem;
+use cros_alsa::Card;
+use cros_alsa::Control;
+use cros_alsa::ControlOps;
+use cros_alsa::Ctl;
+use cros_alsa::ElemId;
+use cros_alsa::SimpleEnumControl;
+use cros_alsa::SwitchControl;
+use dsm::CalibData;
+use dsm::RDCRange;
+use dsm::ZeroPlayer;
+use dsm::DSM;
 pub use error::Error;
-use {
-    crate::{Amp, Result},
-    settings::{AmpCalibCtrl, AmpCalibSettings, DeviceSettings},
-};
+use log::info;
+use settings::AmpCalibCtrl;
+use settings::AmpCalibSettings;
+use settings::DeviceSettings;
+
+use crate::Amp;
+use crate::Result;
 
 const FIRMWARE_TYPE_PROTECTION: &str = "Protection";
 

@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 use std::mem;
 
-use cros_alsa::{Card, TLV};
+use cros_alsa::Card;
+use cros_alsa::TLV;
 use sof_sys::sof_abi_hdr;
 
 use crate::max98373d::error::Error;

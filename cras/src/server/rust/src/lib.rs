@@ -8,7 +8,8 @@ pub mod cras_processor;
 mod logging;
 mod rate_estimator;
 pub mod rate_estimator_bindings;
-pub use logging::bindings as logging_bindings;
-
 #[cfg(feature = "cras_dlc")]
-pub use cras_dlc::{cras_dlc_sr_bt_get_root, cras_dlc_sr_bt_is_available};
+pub use cras_dlc::cras_dlc_sr_bt_get_root;
+#[cfg(feature = "cras_dlc")]
+pub use cras_dlc::cras_dlc_sr_bt_is_available;
+pub use logging::bindings as logging_bindings;
