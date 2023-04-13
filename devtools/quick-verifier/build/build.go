@@ -139,15 +139,11 @@ func systemCrasRustSteps() *buildplan.Sequence {
 				Name:       archlinuxBuilder,
 				Entrypoint: "cargo",
 				Args:       []string{"build", "--workspace"},
-				// TODO(b/274360274): Run in adhd.
-				Dir: "cras/src/server/rust",
 			},
 			{
 				Name:       archlinuxBuilder,
 				Entrypoint: "cargo",
 				Args:       []string{"test", "--workspace"},
-				// TODO(b/274360274): Run in adhd.
-				Dir: "cras/src/server/rust",
 			},
 			{
 				Name:       archlinuxBuilder,
@@ -157,8 +153,6 @@ func systemCrasRustSteps() *buildplan.Sequence {
 					"--//:system_cras_rust",
 					"--config=local-clang",
 					"--linkopt=-L/workspace-archlinux-system-cras-rust/target/debug",
-					// TODO(b/274360274): Remove this --linkopt.
-					"--linkopt=-L/workspace-archlinux-system-cras-rust/cras/src/server/rust/target/debug",
 				},
 			},
 		}...,
