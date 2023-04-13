@@ -194,6 +194,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dbus",
+ "log",
  "protobuf",
  "system_api",
  "thiserror",

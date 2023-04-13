@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 use std::ffi::CString;
+use std::fmt::Display;
 use std::os::raw::c_char;
 use std::ptr;
 use std::time::Duration;
@@ -30,6 +31,7 @@ enum Error {
 
 /// All supported DLCs in CRAS.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum CrasDlcId {
     CrasDlcSrBt,
     CrasDlcNcAp,
@@ -43,6 +45,12 @@ impl CrasDlcId {
             CrasDlcId::CrasDlcNcAp => "nc-ap-dlc",
             CrasDlcId::NumCrasDlc => "num",
         }
+    }
+}
+
+impl Display for CrasDlcId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -61,7 +69,7 @@ fn install_dlc(id: CrasDlcId) -> Result<()> {
     let conn_path = get_dlcservice_connection_path(&connection);
 
     let mut request = InstallRequest::new();
-    request.set_id(id.as_str().to_string());
+    request.set_id(id.to_string());
     request.set_reserve(true);
     Ok(conn_path.install(request.write_to_bytes()?)?)
 }
@@ -122,8 +130,11 @@ pub unsafe extern "C" fn cras_dlc_sr_bt_get_root() -> *const c_char {
 #[no_mangle]
 pub extern "C" fn cras_dlc_install(id: CrasDlcId) -> bool {
     match install_dlc(id) {
-        Ok(_) => true,
-        Err(_) => false,
+        Ok(()) => true,
+        Err(err) => {
+            log::warn!("cras_dlc_install({}) failed: {}", id, err);
+            false
+        }
     }
 }
 
