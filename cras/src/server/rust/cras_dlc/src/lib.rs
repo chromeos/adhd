@@ -21,11 +21,11 @@ const DBUS_TIMEOUT: Duration = Duration::from_secs(3);
 #[derive(Error, Debug)]
 enum Error {
     #[error("D-Bus failure: {0:#}")]
-    DBusError(#[from] dbus::Error),
+    DBus(#[from] dbus::Error),
     #[error("protocol buffers failure: {0:#}")]
-    ProtobufError(#[from] protobuf::ProtobufError),
+    Protobuf(#[from] protobuf::ProtobufError),
     #[error("CString failure: {0:#}")]
-    CStringError(#[from] std::ffi::NulError),
+    CString(#[from] std::ffi::NulError),
 }
 
 /// All supported DLCs in CRAS.
