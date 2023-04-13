@@ -164,7 +164,7 @@ impl RateEstimator {
             Some(d) => d,
             None => return false,
         };
-        self.window_frames += (self.last_level - level + self.level_diff).abs() as u32;
+        self.window_frames += (self.last_level - level + self.level_diff).unsigned_abs();
         self.level_diff = 0;
         self.last_level = level;
 
