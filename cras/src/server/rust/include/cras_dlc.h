@@ -34,6 +34,12 @@ bool cras_dlc_sr_bt_is_available(void);
 
 /**
  * Returns Dlc root_path for the "sr-bt-dlc" package.
+ *
+ * # Safety
+ *
+ * This function leaks memory if called from C.
+ * There is no valid way to free the returned string in C.
+ * TODO(b/277566731): Fix it.
  */
 const char *cras_dlc_sr_bt_get_root(void);
 
@@ -51,6 +57,12 @@ bool cras_dlc_is_available(enum CrasDlcId id);
 
 /**
  * Returns the root path of the DLC package.
+ *
+ * # Safety
+ *
+ * This function leaks memory if called from C.
+ * There is no valid way to free the returned string in C.
+ * TODO(b/277566731): Fix it.
  */
 const char *cras_dlc_get_root_path(enum CrasDlcId id);
 

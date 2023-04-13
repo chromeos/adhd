@@ -95,7 +95,7 @@ fn sr_bt_get_root() -> Result<CString> {
 /// Returns `true` if the "sr-bt-dlc" packge is ready for use, otherwise
 /// retuns `false`.
 #[no_mangle]
-pub unsafe extern "C" fn cras_dlc_sr_bt_is_available() -> bool {
+pub extern "C" fn cras_dlc_sr_bt_is_available() -> bool {
     match sr_bt_is_available() {
         Ok(state) => state == DlcState_State::INSTALLED,
         Err(_) => false,
@@ -103,6 +103,12 @@ pub unsafe extern "C" fn cras_dlc_sr_bt_is_available() -> bool {
 }
 
 /// Returns Dlc root_path for the "sr-bt-dlc" package.
+///
+/// # Safety
+///
+/// This function leaks memory if called from C.
+/// There is no valid way to free the returned string in C.
+/// TODO(b/277566731): Fix it.
 #[no_mangle]
 pub unsafe extern "C" fn cras_dlc_sr_bt_get_root() -> *const c_char {
     match sr_bt_get_root() {
@@ -114,7 +120,7 @@ pub unsafe extern "C" fn cras_dlc_sr_bt_get_root() -> *const c_char {
 /// Returns `true` if the installation request is successfully sent,
 /// otherwise returns `false`.
 #[no_mangle]
-pub unsafe extern "C" fn cras_dlc_install(id: CrasDlcId) -> bool {
+pub extern "C" fn cras_dlc_install(id: CrasDlcId) -> bool {
     match install_dlc(id) {
         Ok(_) => true,
         Err(_) => false,
@@ -124,7 +130,7 @@ pub unsafe extern "C" fn cras_dlc_install(id: CrasDlcId) -> bool {
 /// Returns `true` if the DLC package is ready for use, otherwise
 /// returns `false`.
 #[no_mangle]
-pub unsafe extern "C" fn cras_dlc_is_available(id: CrasDlcId) -> bool {
+pub extern "C" fn cras_dlc_is_available(id: CrasDlcId) -> bool {
     match get_dlc_state(id) {
         Ok(dlc_state) => dlc_state.state == DlcState_State::INSTALLED,
         Err(_) => false,
@@ -132,6 +138,12 @@ pub unsafe extern "C" fn cras_dlc_is_available(id: CrasDlcId) -> bool {
 }
 
 /// Returns the root path of the DLC package.
+///
+/// # Safety
+///
+/// This function leaks memory if called from C.
+/// There is no valid way to free the returned string in C.
+/// TODO(b/277566731): Fix it.
 #[no_mangle]
 pub unsafe extern "C" fn cras_dlc_get_root_path(id: CrasDlcId) -> *const c_char {
     match get_dlc_root_path(id) {
