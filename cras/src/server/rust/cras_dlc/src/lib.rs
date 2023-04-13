@@ -56,7 +56,7 @@ impl Display for CrasDlcId {
 
 type Result<T> = std::result::Result<T, Error>;
 
-fn get_dlcservice_connection_path<'a>(connection: &'a Connection) -> Proxy<'a, &'a Connection> {
+fn get_dlcservice_connection_path(connection: &Connection) -> Proxy<&Connection> {
     connection.with_proxy(
         "org.chromium.DlcService",
         "/org/chromium/DlcService",
