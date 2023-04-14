@@ -2258,8 +2258,13 @@ void cras_iodev_list_reset_for_noise_cancellation() {
   bool enabled = cras_system_get_noise_cancellation_enabled();
 
   DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
-    if (!cras_iodev_is_open(dev) || dev->active_node == NULL ||
-        !cras_iodev_support_noise_cancellation(dev, dev->active_node->idx)) {
+    if (!(cras_iodev_is_open(dev) && dev->active_node &&
+          (
+              // Restart needed for DSP NC.
+              cras_iodev_support_noise_cancellation(dev,
+                                                    dev->active_node->idx) ||
+              // Restart needed for AP NC.
+              dev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP))) {
       continue;
     }
     syslog(LOG_INFO, "Re-open %s for %s noise cancellation", dev->info.name,
