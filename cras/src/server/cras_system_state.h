@@ -65,10 +65,6 @@ void cras_system_set_volume(size_t volume);
 // Gets the current system volume.
 size_t cras_system_get_volume();
 
-/* Gets the current system capture volume. As we remove the support of setting
- * system capture gain, it should always be DEFAULT_CAPTURE_GAIN now. */
-long cras_system_get_capture_gain();
-
 // Sets if the system is muted by the user.
 void cras_system_set_user_mute(int muted);
 // Sets if the system is muted for .
