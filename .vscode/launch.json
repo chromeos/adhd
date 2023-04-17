@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "cwd": "${workspaceRoot}",
+      "name": "gdb unit test",
+      "preLaunchTask": "C/C++: bazel build active unit test",
+      "request": "launch",
+      "target": "./bazel-bin/${relativeFileDirname}/${fileBasenameNoExtension}",
+      "type": "gdb",
+      "valuesFormatting": "parseText"
+    }
+  ],
+  "version": "0.2.0"
+}

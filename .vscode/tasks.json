@@ -1,0 +1,57 @@
+{
+  "tasks": [
+    {
+      "args": [
+        "test",
+        "--test_output=errors",
+        "//${relativeFileDirname}:${fileBasenameNoExtension}"
+      ],
+      "command": "/usr/bin/bazel",
+      "detail": "Open the current unit test file in VSCode and run it using Bazel. Only work for unit test file in adhd. All other kind of file will fail.",
+      "group": {
+        "isDefault": true,
+        "kind": "test"
+      },
+      "label": "C/C++: bazel test active file",
+      "options": {
+        "cwd": "${workspaceRoot}"
+      },
+      "type": "shell"
+    },
+    {
+      "args": [
+        "test",
+        "--test_output=errors",
+        "//..."
+      ],
+      "command": "/usr/bin/bazel",
+      "detail": "bazel test all unit test.",
+      "group": {
+        "kind": "test"
+      },
+      "label": "C/C++: bazel test all unit test",
+      "options": {
+        "cwd": "${workspaceRoot}"
+      },
+      "problemMatcher": [],
+      "type": "shell"
+    },
+    {
+      "args": [
+        "build",
+        "--copt=-g",
+        "--copt=-O0",
+        "//${relativeFileDirname}:${fileBasenameNoExtension}",
+        "--strip=never"
+      ],
+      "command": "/usr/bin/bazel",
+      "detail": "build cras unit test with bazel.",
+      "label": "C/C++: bazel build active unit test",
+      "options": {
+        "cwd": "${workspaceRoot}"
+      },
+      "type": "shell"
+    }
+  ],
+  "version": "2.0.0"
+}
