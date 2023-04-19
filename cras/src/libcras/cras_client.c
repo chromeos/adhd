@@ -1665,12 +1665,15 @@ static int client_thread_add_stream(struct cras_client* client,
     int hotword_idx;
     hotword_idx = cras_client_get_first_dev_type_idx(
         client, CRAS_NODE_TYPE_HOTWORD, CRAS_STREAM_INPUT);
-
     // Find the hotword device index.
     if (dev_idx == NO_DEVICE) {
       if (hotword_idx < 0) {
-        syslog(LOG_WARNING, "cras_client: add_stream: No hotword dev");
-        return hotword_idx;
+        syslog(LOG_WARNING,
+               "cras_client: add_stream: Attempted to enable hotword stream on "
+               "non-hotword device. Fallback to regular stream");
+        /* Unmask the flag to fallback to normal stream
+         * on specified device. */
+        stream->flags &= ~HOTWORD_STREAM;
       } else {
         dev_idx = (uint32_t)hotword_idx;
       }
