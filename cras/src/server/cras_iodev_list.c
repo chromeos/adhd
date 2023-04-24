@@ -510,57 +510,26 @@ static void possibly_set_non_dsp_aec_echo_ref_dev_alive(
  * reference.
  */
 static void possibly_clear_non_dsp_aec_echo_ref_dev_alive() {
-  struct enabled_dev* edev;
-  struct cras_rstream* stream;
   struct cras_iodev* dev;
 
   if (!non_dsp_aec_echo_ref_dev_alive) {
     return;
   }
 
-  DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
-    // neglect silent devices
-    if (edev->dev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
-      continue;
-    }
-
-    if (edev->dev->active_node &&
-        !is_dsp_aec_use_case(edev->dev->active_node)) {
-      return;
-    }
-  }
-
-  /*
-   * if a device has pinned stream attached, it would be removed from
-   * |enabled_devs| during disable_device() but still keeps opened for
-   * the pinned stream.
-   */
-  DL_FOREACH (stream_list_get(stream_list), stream) {
-    /*
-     * check if there exists a output device opened with pinned
-     * stream attached, and can't be applied as echo reference.
-     */
-    if (stream->direction == CRAS_STREAM_INPUT) {
-      continue;
-    }
-
-    if (!stream->is_pinned) {
-      continue;
-    }
-
-    dev = find_dev(stream->pinned_dev_idx);
-
-    // TODO(b/266722145) device is missing for pinned stream?
-    if (!dev) {
-      continue;
-    }
-
+  DL_FOREACH (devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
     // neglect silent devices
     if (dev->info.idx < MAX_SPECIAL_DEVICE_IDX) {
       continue;
     }
 
+    // neglect devices which are neither enabled nor opened
+    if (!(dev->is_enabled || cras_iodev_is_open(dev))) {
+      continue;
+    }
+
     if (dev->active_node && !is_dsp_aec_use_case(dev->active_node)) {
+      /* find one active device which is not applicable for DSP AEC echo
+       * reference, do not clear the state then. */
       return;
     }
   }
