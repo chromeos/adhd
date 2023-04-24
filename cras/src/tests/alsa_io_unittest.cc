@@ -298,16 +298,16 @@ TEST(AlsaIoInit, InitializePlayback) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   // Get volume curve twice for iodev, and default node.
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
-  EXPECT_EQ(
-      0, strncmp(test_card_name, aio->base.info.name, strlen(test_card_name)));
+  EXPECT_EQ(0, strncmp(test_card_name, aio->common.base.info.name,
+                       strlen(test_card_name)));
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ("", cras_iodev_update_dsp_name);
-  ASSERT_NE(reinterpret_cast<const char*>(NULL), aio->dev_name);
-  EXPECT_EQ(0, strcmp(test_dev_name, aio->dev_name));
-  ASSERT_NE(reinterpret_cast<const char*>(NULL), aio->dev_id);
-  EXPECT_EQ(0, strcmp(test_dev_id, aio->dev_id));
+  ASSERT_NE(reinterpret_cast<const char*>(NULL), aio->common.dev_name);
+  EXPECT_EQ(0, strcmp(test_dev_name, aio->common.dev_name));
+  ASSERT_NE(reinterpret_cast<const char*>(NULL), aio->common.dev_id);
+  EXPECT_EQ(0, strcmp(test_dev_id, aio->common.dev_id));
 
   alsa_iodev_destroy((struct cras_iodev*)aio);
   EXPECT_EQ(1, cras_iodev_free_resources_called);
@@ -323,10 +323,10 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
-  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 
   aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -334,10 +334,10 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(INTERNAL_SPEAKER, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
-  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  ASSERT_STREQ(INTERNAL_SPEAKER, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 
   aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -346,10 +346,10 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   // No more call to get volume curve for input device.
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
-  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 
   aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -357,10 +357,10 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(INTERNAL_MICROPHONE, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
-  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  ASSERT_STREQ(INTERNAL_MICROPHONE, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
 
@@ -381,8 +381,8 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
              cras_alsa_mixer_get_playback_dBFS_range_min),
             cras_volume_curve_create_simple_step_range);
-  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
   alsa_iodev_destroy((struct cras_iodev*)aio);
@@ -392,14 +392,14 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
   EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
 
   // No extra gain applied.
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS,
-            aio->base.active_node->intrinsic_sensitivity);
-  ASSERT_EQ(0, aio->base.active_node->capture_gain);
+            aio->common.base.active_node->intrinsic_sensitivity);
+  ASSERT_EQ(0, aio->common.base.active_node->capture_gain);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
 
@@ -413,10 +413,10 @@ TEST(AlsaIoInit, DefaultNodeHDMICard) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
-  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 
   aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -424,10 +424,10 @@ TEST(AlsaIoInit, DefaultNodeHDMICard) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(INTERNAL_SPEAKER, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
-  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  ASSERT_STREQ(INTERNAL_SPEAKER, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 
   aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -436,10 +436,10 @@ TEST(AlsaIoInit, DefaultNodeHDMICard) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   // No more call to get volume curve for input device.
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
-  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 
   aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
@@ -447,10 +447,10 @@ TEST(AlsaIoInit, DefaultNodeHDMICard) {
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(INTERNAL_MICROPHONE, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
-  ASSERT_EQ((void*)no_stream, (void*)aio->base.no_stream);
-  ASSERT_EQ((void*)is_free_running, (void*)aio->base.is_free_running);
+  ASSERT_STREQ(INTERNAL_MICROPHONE, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
+  ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
+  ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
 
@@ -474,8 +474,8 @@ TEST(AlsaIoInit, OpenPlayback) {
   cras_iodev_set_format(iodev, &format);
 
   // Test that these flags are cleared after open_dev.
-  aio->free_running = 1;
-  aio->filled_zeros_for_draining = 512;
+  aio->common.free_running = 1;
+  aio->common.filled_zeros_for_draining = 512;
   iodev->open_dev(iodev);
   EXPECT_EQ(2, cras_alsa_open_called);
   iodev->configure_dev(iodev);
@@ -484,10 +484,10 @@ TEST(AlsaIoInit, OpenPlayback) {
   EXPECT_EQ(2, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(0, cras_alsa_start_called);
   EXPECT_EQ(0, cras_iodev_set_node_plugged_called);
-  EXPECT_EQ(0, aio->free_running);
-  EXPECT_EQ(0, aio->filled_zeros_for_draining);
+  EXPECT_EQ(0, aio->common.free_running);
+  EXPECT_EQ(0, aio->common.filled_zeros_for_draining);
   EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
-            aio->severe_underrun_frames);
+            aio->common.severe_underrun_frames);
   iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -583,7 +583,7 @@ TEST(AlsaIoInit, RouteBasedOnJackCallback) {
   ASSERT_NE(aio, (void*)NULL);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
@@ -611,7 +611,7 @@ TEST(AlsaIoInit, RouteBasedOnInputJackCallback) {
   ASSERT_NE(aio, (void*)NULL);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
 
-  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->common.alsa_stream);
   EXPECT_EQ(1, cras_alsa_jack_list_create_called);
   EXPECT_EQ(1, cras_alsa_jack_list_find_jacks_by_name_matching_called);
   EXPECT_EQ(0, cras_alsa_jack_list_add_jack_for_section_called);
@@ -637,7 +637,7 @@ TEST(AlsaIoInit, InitializeCapture) {
   ASSERT_NE(aio, (void*)NULL);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
 
-  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->common.alsa_stream);
   // Call cras_alsa_fill_properties once on update_max_supported_channels.
   EXPECT_EQ(1, cras_alsa_fill_properties_called);
   EXPECT_EQ(1, cras_alsa_mixer_list_inputs_called);
@@ -670,7 +670,7 @@ TEST(AlsaIoInit, OpenCapture) {
   EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
   EXPECT_EQ(1, cras_alsa_start_called);
   EXPECT_EQ(SEVERE_UNDERRUN_MS * format.frame_rate / 1000,
-            aio->severe_underrun_frames);
+            aio->common.severe_underrun_frames);
   iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -859,7 +859,7 @@ TEST(AlsaIoInit, DspNameDefault) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(1, ucm_get_dsp_name_for_dev_called);
   EXPECT_STREQ("", cras_iodev_update_dsp_name);
 
@@ -878,7 +878,7 @@ TEST(AlsaIoInit, DspName) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(1, ucm_get_dsp_name_for_dev_called);
   EXPECT_STREQ("hello", cras_iodev_update_dsp_name);
 
@@ -897,7 +897,7 @@ TEST(AlsaIoInit, DspNameJackOverride) {
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, fake_ucm,
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(1, ucm_get_dsp_name_for_dev_called);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_STREQ("", cras_iodev_update_dsp_name);
@@ -910,13 +910,14 @@ TEST(AlsaIoInit, DspNameJackOverride) {
   EXPECT_EQ(2, ucm_get_dsp_name_for_dev_called);
 
   // Mark the jack node as active.
-  alsa_iodev_set_active_node(&aio->base, aio->base.nodes->next, 1);
+  alsa_iodev_set_active_node(&aio->common.base, aio->common.base.nodes->next,
+                             1);
   EXPECT_EQ(2, ucm_get_dsp_name_for_dev_called);
   EXPECT_EQ(2, cras_iodev_update_dsp_called);
   EXPECT_STREQ("override_dsp", cras_iodev_update_dsp_name);
 
   // Mark the default node as active.
-  alsa_iodev_set_active_node(&aio->base, aio->base.nodes, 1);
+  alsa_iodev_set_active_node(&aio->common.base, aio->common.base.nodes, 1);
   EXPECT_EQ(2, ucm_get_dsp_name_for_dev_called);
   EXPECT_EQ(3, cras_iodev_update_dsp_called);
   EXPECT_STREQ("", cras_iodev_update_dsp_name);
@@ -959,7 +960,7 @@ TEST(AlsaIoInit, SwapMode) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
 
-  aio->base.set_swap_mode_for_node((cras_iodev*)aio, fake_node, 1);
+  aio->common.base.set_swap_mode_for_node((cras_iodev*)aio, fake_node, 1);
   // Swap mode is implemented by dsp.
   EXPECT_EQ(1, cras_iodev_dsp_set_swap_mode_for_node_called);
 
@@ -972,7 +973,7 @@ TEST(AlsaIoInit, SwapMode) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   // Enable swap mode.
-  aio->base.set_swap_mode_for_node((cras_iodev*)aio, fake_node, 1);
+  aio->common.base.set_swap_mode_for_node((cras_iodev*)aio, fake_node, 1);
 
   // Verify that ucm_enable_swap_mode is called when callback to enable
   // swap mode is called.
@@ -1004,7 +1005,7 @@ TEST(AlsaIoInit, MaxSupportedChannelsInternalSpeaker) {
     EXPECT_EQ(1, sys_get_max_internal_speaker_channels_called);
     EXPECT_EQ(i * 2, sys_get_max_internal_speaker_channels_return_value);
     EXPECT_EQ(sys_get_max_internal_speaker_channels_return_value,
-              aio->base.info.max_supported_channels);
+              aio->common.base.info.max_supported_channels);
     alsa_iodev_destroy((struct cras_iodev*)aio);
     EXPECT_EQ(1, cras_iodev_free_resources_called);
   }
@@ -1028,7 +1029,7 @@ TEST(AlsaIoInit, MaxSupportedChannels) {
     // Call cras_alsa_fill_properties once on update_max_supported_channels.
     EXPECT_EQ(1, cras_alsa_fill_properties_called);
     uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
-    EXPECT_EQ(max_channels, aio->base.info.max_supported_channels);
+    EXPECT_EQ(max_channels, aio->common.base.info.max_supported_channels);
     alsa_iodev_destroy((struct cras_iodev*)aio);
     EXPECT_EQ(1, cras_iodev_free_resources_called);
   }
@@ -1052,12 +1053,12 @@ TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   // Two mixer controls calls get volume curve.
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
 
   ResetStubData();
   rc = alsa_iodev_set_active_node((struct cras_iodev*)aio,
-                                  aio->base.nodes->next, 1);
+                                  aio->common.base.nodes->next, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, alsa_mixer_set_mute_called);
   // Do set the volume even if no stream
@@ -1092,14 +1093,14 @@ TEST(AlsaOutputNode, TwoOutputs) {
       CRAS_STREAM_OUTPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(1, cras_alsa_mixer_list_outputs_called);
 
-  aio->handle = (snd_pcm_t*)0x24;
+  aio->common.handle = (snd_pcm_t*)0x24;
 
   ResetStubData();
   rc = alsa_iodev_set_active_node((struct cras_iodev*)aio,
-                                  aio->base.nodes->next, 1);
+                                  aio->common.base.nodes->next, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(outputs[1], alsa_mixer_set_mute_output);
@@ -1270,17 +1271,18 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   // Complete initialization, and make first node active.
   cras_alsa_support_8_channels = false;  // Support 2 channels only.
   alsa_iodev_ucm_complete_init(iodev);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(2, cras_alsa_jack_list_add_jack_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, ucm_get_dma_period_for_dev_called);
-  EXPECT_EQ(ucm_get_dma_period_for_dev_ret, aio->dma_period_set_microsecs);
+  EXPECT_EQ(ucm_get_dma_period_for_dev_ret,
+            aio->common.dma_period_set_microsecs);
   EXPECT_EQ(2, iodev->info.max_supported_channels);
 
-  aio->handle = (snd_pcm_t*)0x24;
+  aio->common.handle = (snd_pcm_t*)0x24;
 
   ResetStubData();
-  rc = alsa_iodev_set_active_node(iodev, aio->base.nodes->next, 1);
+  rc = alsa_iodev_set_active_node(iodev, aio->common.base.nodes->next, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
   EXPECT_EQ(outputs[1], alsa_mixer_set_mute_output);
@@ -1338,7 +1340,7 @@ TEST(AlsaOutputNode, OutputNoControlsUCM) {
 
   // Complete initialization, and make first node active.
   alsa_iodev_ucm_complete_init(iodev);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(0, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ(0, cras_alsa_jack_enable_ucm_called);
@@ -1378,7 +1380,7 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
 
   // Complete initialization, and make first node active.
   alsa_iodev_ucm_complete_init(iodev);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
   EXPECT_EQ(0, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
@@ -1450,18 +1452,18 @@ TEST(AlsaOutputNode, InputsFromUCM) {
 
   // Complete initialization, and make first node active.
   alsa_iodev_ucm_complete_init(iodev);
-  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->common.alsa_stream);
   EXPECT_EQ(2, cras_alsa_jack_list_add_jack_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(2, cras_iodev_add_node_called);
   EXPECT_EQ(2, ucm_get_dma_period_for_dev_called);
-  EXPECT_EQ(0, aio->dma_period_set_microsecs);
+  EXPECT_EQ(0, aio->common.dma_period_set_microsecs);
 
-  aio->handle = (snd_pcm_t*)0x24;
+  aio->common.handle = (snd_pcm_t*)0x24;
 
   ResetStubData();
-  rc = alsa_iodev_set_active_node(iodev, aio->base.nodes->next, 1);
+  rc = alsa_iodev_set_active_node(iodev, aio->common.base.nodes->next, 1);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, alsa_mixer_set_capture_dBFS_called);
   EXPECT_EQ(inputs[1], alsa_mixer_set_capture_dBFS_input);
@@ -1595,7 +1597,7 @@ TEST(AlsaOutputNode, InputNoControlsUCM) {
 
   // Complete initialization, and make first node active.
   alsa_iodev_ucm_complete_init(iodev);
-  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->common.alsa_stream);
   EXPECT_EQ(0, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ(0, cras_alsa_jack_enable_ucm_called);
@@ -1633,7 +1635,7 @@ TEST(AlsaOutputNode, InputFromJackUCM) {
 
   // Complete initialization, and make first node active.
   alsa_iodev_ucm_complete_init(iodev);
-  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
+  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->common.alsa_stream);
   EXPECT_EQ(0, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
@@ -1670,10 +1672,10 @@ TEST(AlsaOutputNode, AutoUnplugOutputNode) {
   EXPECT_EQ(2, cras_alsa_mixer_get_control_name_called);
 
   // Assert that the the internal speaker is plugged and other nodes aren't.
-  ASSERT_NE(aio->base.nodes, (void*)NULL);
-  EXPECT_EQ(aio->base.nodes->plugged, 1);
-  ASSERT_NE(aio->base.nodes->next, (void*)NULL);
-  EXPECT_EQ(aio->base.nodes->next->plugged, 0);
+  ASSERT_NE(aio->common.base.nodes, (void*)NULL);
+  EXPECT_EQ(aio->common.base.nodes->plugged, 1);
+  ASSERT_NE(aio->common.base.nodes->next, (void*)NULL);
+  EXPECT_EQ(aio->common.base.nodes->next->plugged, 0);
 
   // Plug headphone jack
   cras_alsa_jack_get_name_ret_value = "Headphone Jack";
@@ -1682,8 +1684,8 @@ TEST(AlsaOutputNode, AutoUnplugOutputNode) {
   cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
 
   // Assert internal speaker is auto unplugged
-  EXPECT_EQ(aio->base.nodes->plugged, 0);
-  EXPECT_EQ(aio->base.nodes->next->plugged, 1);
+  EXPECT_EQ(aio->common.base.nodes->plugged, 0);
+  EXPECT_EQ(aio->common.base.nodes->next->plugged, 1);
 
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
@@ -1714,10 +1716,10 @@ TEST(AlsaOutputNode, AutoUnplugInputNode) {
   EXPECT_EQ(2, cras_alsa_mixer_get_control_name_called);
 
   // Assert that the the internal speaker is plugged and other nodes aren't.
-  ASSERT_NE(aio->base.nodes, (void*)NULL);
-  EXPECT_EQ(aio->base.nodes->plugged, 1);
-  ASSERT_NE(aio->base.nodes->next, (void*)NULL);
-  EXPECT_EQ(aio->base.nodes->next->plugged, 0);
+  ASSERT_NE(aio->common.base.nodes, (void*)NULL);
+  EXPECT_EQ(aio->common.base.nodes->plugged, 1);
+  ASSERT_NE(aio->common.base.nodes->next, (void*)NULL);
+  EXPECT_EQ(aio->common.base.nodes->next->plugged, 0);
 
   // Plug headphone jack
   cras_alsa_jack_get_name_ret_value = "Mic Jack";
@@ -1726,8 +1728,8 @@ TEST(AlsaOutputNode, AutoUnplugInputNode) {
   cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
 
   // Assert internal speaker is auto unplugged
-  EXPECT_EQ(aio->base.nodes->plugged, 0);
-  EXPECT_EQ(aio->base.nodes->next->plugged, 1);
+  EXPECT_EQ(aio->common.base.nodes->plugged, 0);
+  EXPECT_EQ(aio->common.base.nodes->next->plugged, 1);
 
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
@@ -1766,10 +1768,10 @@ TEST(AlsaLoopback, InitializePlayback) {
   // Complete initialization, and check the loopback playback node is plugged as
   // the active node.
   alsa_iodev_ucm_complete_init(iodev);
-  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->alsa_stream);
-  ASSERT_NE(aio->base.active_node, (void*)NULL);
-  EXPECT_STREQ(LOOPBACK_PLAYBACK, aio->base.active_node->name);
-  EXPECT_EQ(1, aio->base.active_node->plugged);
+  EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
+  ASSERT_NE(aio->common.base.active_node, (void*)NULL);
+  EXPECT_STREQ(LOOPBACK_PLAYBACK, aio->common.base.active_node->name);
+  EXPECT_EQ(1, aio->common.base.active_node->plugged);
 
   alsa_iodev_destroy(iodev);
 }
@@ -1801,10 +1803,10 @@ TEST(AlsaLoopback, InitializeCapture) {
   // Complete initialization, and check the loopback capture node is plugged as
   // the active node.
   alsa_iodev_ucm_complete_init(iodev);
-  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->alsa_stream);
-  ASSERT_NE(aio->base.active_node, (void*)NULL);
-  EXPECT_STREQ(LOOPBACK_CAPTURE, aio->base.active_node->name);
-  EXPECT_EQ(1, aio->base.active_node->plugged);
+  EXPECT_EQ(SND_PCM_STREAM_CAPTURE, aio->common.alsa_stream);
+  ASSERT_NE(aio->common.base.active_node, (void*)NULL);
+  EXPECT_STREQ(LOOPBACK_CAPTURE, aio->common.base.active_node->name);
+  EXPECT_EQ(1, aio->common.base.active_node->plugged);
 
   alsa_iodev_destroy(iodev);
 }
@@ -2051,9 +2053,9 @@ TEST(AlsaIoInit, HDMIJackUpdateInvalidUTF8MonitorName) {
   cras_alsa_jack_list_create_cb(jack, 1, cras_alsa_jack_list_create_cb_data);
 
   EXPECT_EQ(2, cras_alsa_jack_get_name_called);
-  ASSERT_EQ(CRAS_NODE_TYPE_HDMI, aio->base.nodes->next->type);
+  ASSERT_EQ(CRAS_NODE_TYPE_HDMI, aio->common.base.nodes->next->type);
   // The node name should be "HDMI".
-  ASSERT_STREQ(HDMI, aio->base.nodes->next->name);
+  ASSERT_STREQ(HDMI, aio->common.base.nodes->next->name);
 
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
@@ -2076,14 +2078,14 @@ class AlsaVolumeMuteSuite : public testing::Test {
 
     struct cras_ionode* node;
     int count = 0;
-    DL_FOREACH (aio_output_->base.nodes, node) {
+    DL_FOREACH (aio_output_->common.base.nodes, node) {
       printf("node %d \n", count);
     }
-    aio_output_->base.direction = CRAS_STREAM_OUTPUT;
+    aio_output_->common.base.direction = CRAS_STREAM_OUTPUT;
     fmt_.frame_rate = 44100;
     fmt_.num_channels = 2;
     fmt_.format = SND_PCM_FORMAT_S16_LE;
-    aio_output_->base.format = &fmt_;
+    aio_output_->common.base.format = &fmt_;
     cras_alsa_get_avail_frames_ret = -1;
   }
 
@@ -2103,16 +2105,16 @@ TEST_F(AlsaVolumeMuteSuite, GetDefaultVolumeCurve) {
 
   fmt = (struct cras_audio_format*)malloc(sizeof(*fmt));
   memcpy(fmt, &fmt_, sizeof(fmt_));
-  aio_output_->base.format = fmt;
-  aio_output_->handle = (snd_pcm_t*)0x24;
+  aio_output_->common.base.format = fmt;
+  aio_output_->common.handle = (snd_pcm_t*)0x24;
 
-  rc = aio_output_->base.configure_dev(&aio_output_->base);
+  rc = aio_output_->common.base.configure_dev(&aio_output_->common.base);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
 
-  aio_output_->base.set_volume(&aio_output_->base);
+  aio_output_->common.base.set_volume(&aio_output_->common.base);
   EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
-  aio_output_->base.close_dev(&aio_output_->base);
+  aio_output_->common.base.close_dev(&aio_output_->common.base);
   free(fmt);
 }
 
@@ -2140,20 +2142,20 @@ TEST_F(AlsaVolumeMuteSuite, GetVolumeCurveFromNode) {
   // Headphone jack won't trigger, but we still place here due to coherence.
   fmt = (struct cras_audio_format*)malloc(sizeof(*fmt));
   memcpy(fmt, &fmt_, sizeof(fmt_));
-  aio_output_->base.format = fmt;
-  aio_output_->handle = (snd_pcm_t*)0x24;
+  aio_output_->common.base.format = fmt;
+  aio_output_->common.handle = (snd_pcm_t*)0x24;
 
   // Switch to node 'Headphone'.
-  node = aio_output_->base.nodes->next;
-  aio_output_->base.active_node = node;
+  node = aio_output_->common.base.nodes->next;
+  aio_output_->common.base.active_node = node;
 
-  rc = aio_output_->base.configure_dev(&aio_output_->base);
+  rc = aio_output_->common.base.configure_dev(&aio_output_->common.base);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(&hp_curve, fake_get_dBFS_volume_curve_val);
 
-  aio_output_->base.set_volume(&aio_output_->base);
+  aio_output_->common.base.set_volume(&aio_output_->common.base);
   EXPECT_EQ(&hp_curve, fake_get_dBFS_volume_curve_val);
-  aio_output_->base.close_dev(&aio_output_->base);
+  aio_output_->common.base.close_dev(&aio_output_->common.base);
   free(fmt);
 }
 
@@ -2167,11 +2169,11 @@ TEST_F(AlsaVolumeMuteSuite, SetVolume) {
 
   fmt = (struct cras_audio_format*)malloc(sizeof(*fmt));
   memcpy(fmt, &fmt_, sizeof(fmt_));
-  aio_output_->base.format = fmt;
-  aio_output_->handle = (snd_pcm_t*)0x24;
+  aio_output_->common.base.format = fmt;
+  aio_output_->common.handle = (snd_pcm_t*)0x24;
 
   sys_get_volume_return_value = fake_system_volume;
-  rc = aio_output_->base.configure_dev(&aio_output_->base);
+  rc = aio_output_->common.base.configure_dev(&aio_output_->common.base);
   ASSERT_EQ(0, rc);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(fake_system_volume_dB, alsa_mixer_set_dBFS_value);
@@ -2180,7 +2182,7 @@ TEST_F(AlsaVolumeMuteSuite, SetVolume) {
   alsa_mixer_set_dBFS_value = 0;
   sys_get_volume_return_value = 50;
   sys_get_volume_called = 0;
-  aio_output_->base.set_volume(&aio_output_->base);
+  aio_output_->common.base.set_volume(&aio_output_->common.base);
   EXPECT_EQ(1, sys_get_volume_called);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-5000, alsa_mixer_set_dBFS_value);
@@ -2190,20 +2192,20 @@ TEST_F(AlsaVolumeMuteSuite, SetVolume) {
   alsa_mixer_set_dBFS_value = 0;
   sys_get_volume_return_value = 0;
   sys_get_volume_called = 0;
-  aio_output_->base.set_volume(&aio_output_->base);
+  aio_output_->common.base.set_volume(&aio_output_->common.base);
   EXPECT_EQ(1, sys_get_volume_called);
   EXPECT_EQ(1, alsa_mixer_set_dBFS_called);
   EXPECT_EQ(-10000, alsa_mixer_set_dBFS_value);
 
   sys_get_volume_return_value = 80;
-  aio_output_->base.active_node->volume = 90;
-  aio_output_->base.set_volume(&aio_output_->base);
+  aio_output_->common.base.active_node->volume = 90;
+  aio_output_->common.base.set_volume(&aio_output_->common.base);
   EXPECT_EQ(-3000, alsa_mixer_set_dBFS_value);
 
   // close the dev.
-  rc = aio_output_->base.close_dev(&aio_output_->base);
+  rc = aio_output_->common.base.close_dev(&aio_output_->common.base);
   EXPECT_EQ(0, rc);
-  EXPECT_EQ((void*)NULL, aio_output_->handle);
+  EXPECT_EQ((void*)NULL, aio_output_->common.handle);
 
   free(fmt);
 }
@@ -2211,7 +2213,7 @@ TEST_F(AlsaVolumeMuteSuite, SetVolume) {
 TEST_F(AlsaVolumeMuteSuite, SetMute) {
   int muted;
 
-  aio_output_->handle = (snd_pcm_t*)0x24;
+  aio_output_->common.handle = (snd_pcm_t*)0x24;
 
   // Test mute.
   ResetStubData();
@@ -2219,7 +2221,7 @@ TEST_F(AlsaVolumeMuteSuite, SetMute) {
 
   sys_get_mute_return_value = muted;
 
-  aio_output_->base.set_mute(&aio_output_->base);
+  aio_output_->common.base.set_mute(&aio_output_->common.base);
 
   EXPECT_EQ(1, sys_get_mute_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
@@ -2232,7 +2234,7 @@ TEST_F(AlsaVolumeMuteSuite, SetMute) {
 
   sys_get_mute_return_value = muted;
 
-  aio_output_->base.set_mute(&aio_output_->base);
+  aio_output_->common.base.set_mute(&aio_output_->common.base);
 
   EXPECT_EQ(1, sys_get_mute_called);
   EXPECT_EQ(1, alsa_mixer_set_mute_called);
@@ -2249,14 +2251,14 @@ class AlsaFreeRunTestSuite : public testing::Test {
     fmt_.format = SND_PCM_FORMAT_S16_LE;
     fmt_.frame_rate = 48000;
     fmt_.num_channels = 2;
-    aio.base.frames_queued = frames_queued;
-    aio.base.output_underrun = alsa_output_underrun;
-    aio.base.direction = CRAS_STREAM_OUTPUT;
-    aio.base.format = &fmt_;
-    aio.base.buffer_size = BUFFER_SIZE;
-    aio.base.min_cb_level = 240;
-    aio.base.min_buffer_level = 0;
-    aio.filled_zeros_for_draining = 0;
+    aio.common.base.frames_queued = frames_queued;
+    aio.common.base.output_underrun = alsa_output_underrun;
+    aio.common.base.direction = CRAS_STREAM_OUTPUT;
+    aio.common.base.format = &fmt_;
+    aio.common.base.buffer_size = BUFFER_SIZE;
+    aio.common.base.min_cb_level = 240;
+    aio.common.base.min_buffer_level = 0;
+    aio.common.filled_zeros_for_draining = 0;
     cras_alsa_mmap_begin_buffer = (uint8_t*)calloc(
         BUFFER_SIZE * 2 * 2, sizeof(*cras_alsa_mmap_begin_buffer));
     memset(cras_alsa_mmap_begin_buffer, 0xff,
@@ -2273,7 +2275,7 @@ TEST_F(AlsaFreeRunTestSuite, FillWholeBufferWithZeros) {
   int rc;
   int16_t* zeros;
 
-  rc = fill_whole_buffer_with_zeros(&aio.base);
+  rc = fill_whole_buffer_with_zeros(&aio.common.base);
 
   EXPECT_EQ(0, rc);
   zeros = (int16_t*)calloc(BUFFER_SIZE * 2, sizeof(*zeros));
@@ -2286,9 +2288,9 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunAlreadyFreeRunning) {
   int rc;
 
   // Device is in free run state, no need to fill zeros or fill whole buffer.
-  aio.free_running = 1;
+  aio.common.free_running = 1;
 
-  rc = no_stream(&aio.base, 1);
+  rc = no_stream(&aio.common.base, 1);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_alsa_mmap_get_whole_buffer_called);
@@ -2305,10 +2307,10 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNeedToFillZeros) {
   real_hw_level = 200;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
-  rc = aio.base.frames_queued(&aio.base, &hw_tstamp);
+  rc = aio.common.base.frames_queued(&aio.common.base, &hw_tstamp);
   EXPECT_EQ(200, rc);
 
-  rc = no_stream(&aio.base, 1);
+  rc = no_stream(&aio.common.base, 1);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_alsa_mmap_get_whole_buffer_called);
@@ -2316,8 +2318,8 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetNeedToFillZeros) {
   EXPECT_EQ(fmt_.frame_rate / 1000 * fill_zeros_duration,
             cras_iodev_fill_odev_zeros_frames);
   EXPECT_EQ(fmt_.frame_rate / 1000 * fill_zeros_duration,
-            aio.filled_zeros_for_draining);
-  EXPECT_EQ(0, aio.free_running);
+            aio.common.filled_zeros_for_draining);
+  EXPECT_EQ(0, aio.common.free_running);
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetFillZerosExceedBuffer) {
@@ -2329,15 +2331,16 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNotDrainedYetFillZerosExceedBuffer) {
   real_hw_level = 7000;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
-  rc = no_stream(&aio.base, 1);
+  rc = no_stream(&aio.common.base, 1);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_alsa_mmap_get_whole_buffer_called);
   EXPECT_EQ(1, cras_iodev_fill_odev_zeros_called);
   EXPECT_EQ(cras_alsa_get_avail_frames_avail,
             cras_iodev_fill_odev_zeros_frames);
-  EXPECT_EQ(cras_alsa_get_avail_frames_avail, aio.filled_zeros_for_draining);
-  EXPECT_EQ(0, aio.free_running);
+  EXPECT_EQ(cras_alsa_get_avail_frames_avail,
+            aio.common.filled_zeros_for_draining);
+  EXPECT_EQ(0, aio.common.free_running);
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunDrained) {
@@ -2348,14 +2351,14 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunDrained) {
   // Should enter free run state and fill whole buffer with zeros.
   real_hw_level = 40;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
-  aio.filled_zeros_for_draining = 100;
+  aio.common.filled_zeros_for_draining = 100;
 
-  rc = no_stream(&aio.base, 1);
+  rc = no_stream(&aio.common.base, 1);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_mmap_get_whole_buffer_called);
   EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
-  EXPECT_EQ(1, aio.free_running);
+  EXPECT_EQ(1, aio.common.free_running);
 }
 
 TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNoSamples) {
@@ -2366,20 +2369,20 @@ TEST_F(AlsaFreeRunTestSuite, EnterFreeRunNoSamples) {
   real_hw_level = 0;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
-  rc = no_stream(&aio.base, 1);
+  rc = no_stream(&aio.common.base, 1);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_mmap_get_whole_buffer_called);
   EXPECT_EQ(0, cras_iodev_fill_odev_zeros_called);
-  EXPECT_EQ(1, aio.free_running);
+  EXPECT_EQ(1, aio.common.free_running);
 }
 
 TEST_F(AlsaFreeRunTestSuite, IsFreeRunning) {
-  aio.free_running = 1;
-  EXPECT_EQ(1, is_free_running(&aio.base));
+  aio.common.free_running = 1;
+  EXPECT_EQ(1, is_free_running(&aio.common.base));
 
-  aio.free_running = 0;
-  EXPECT_EQ(0, is_free_running(&aio.base));
+  aio.common.free_running = 0;
+  EXPECT_EQ(0, is_free_running(&aio.common.base));
 }
 
 TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunMoreRemain) {
@@ -2388,20 +2391,20 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunMoreRemain) {
   // Compare min_buffer_level + min_cb_level with valid samples left.
   // 240 + 512 < 900 - 100, so we will get 900 - 100 in appl_ptr_ahead.
 
-  aio.free_running = 0;
-  aio.filled_zeros_for_draining = 100;
-  aio.base.min_buffer_level = 512;
+  aio.common.free_running = 0;
+  aio.common.filled_zeros_for_draining = 100;
+  aio.common.base.min_buffer_level = 512;
   real_hw_level = 900;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
-  rc = no_stream(&aio.base, 0);
+  rc = no_stream(&aio.common.base, 0);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
   EXPECT_EQ(800, cras_alsa_resume_appl_ptr_ahead);
   EXPECT_EQ(0, cras_iodev_fill_odev_zeros_frames);
-  EXPECT_EQ(0, aio.free_running);
-  EXPECT_EQ(0, aio.filled_zeros_for_draining);
+  EXPECT_EQ(0, aio.common.free_running);
+  EXPECT_EQ(0, aio.common.filled_zeros_for_draining);
   EXPECT_EQ(1, cras_iodev_reset_rate_estimator_called);
 }
 
@@ -2412,39 +2415,39 @@ TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunNotInFreeRunLessRemain) {
   // 240 + 256 > 400 - 500, so we will get 240 + 256 in appl_ptr_ahead.
   // And it will fill 240 + 256 - 400 = 96 zeros frames into device.
 
-  aio.free_running = 0;
-  aio.filled_zeros_for_draining = 500;
-  aio.base.min_buffer_level = 256;
+  aio.common.free_running = 0;
+  aio.common.filled_zeros_for_draining = 500;
+  aio.common.base.min_buffer_level = 256;
   real_hw_level = 400;
   cras_alsa_get_avail_frames_avail = BUFFER_SIZE - real_hw_level;
 
-  rc = no_stream(&aio.base, 0);
+  rc = no_stream(&aio.common.base, 0);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
-  EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
+  EXPECT_EQ(aio.common.base.min_buffer_level + aio.common.base.min_cb_level,
             cras_alsa_resume_appl_ptr_ahead);
   EXPECT_EQ(96, cras_iodev_fill_odev_zeros_frames);
-  EXPECT_EQ(0, aio.free_running);
-  EXPECT_EQ(0, aio.filled_zeros_for_draining);
+  EXPECT_EQ(0, aio.common.free_running);
+  EXPECT_EQ(0, aio.common.filled_zeros_for_draining);
   EXPECT_EQ(1, cras_iodev_reset_rate_estimator_called);
 }
 
 TEST_F(AlsaFreeRunTestSuite, LeaveFreeRunInFreeRun) {
   int rc;
 
-  aio.free_running = 1;
-  aio.filled_zeros_for_draining = 100;
-  aio.base.min_buffer_level = 512;
+  aio.common.free_running = 1;
+  aio.common.filled_zeros_for_draining = 100;
+  aio.common.base.min_buffer_level = 512;
 
-  rc = no_stream(&aio.base, 0);
+  rc = no_stream(&aio.common.base, 0);
 
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
-  EXPECT_EQ(aio.base.min_buffer_level + aio.base.min_cb_level,
+  EXPECT_EQ(aio.common.base.min_buffer_level + aio.common.base.min_cb_level,
             cras_alsa_resume_appl_ptr_ahead);
-  EXPECT_EQ(0, aio.free_running);
-  EXPECT_EQ(0, aio.filled_zeros_for_draining);
+  EXPECT_EQ(0, aio.common.free_running);
+  EXPECT_EQ(0, aio.common.filled_zeros_for_draining);
   EXPECT_EQ(1, cras_iodev_reset_rate_estimator_called);
 }
 
@@ -2456,7 +2459,7 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
   snd_pcm_uframes_t offset;
 
   // Ask alsa_io to handle output underrun.
-  rc = alsa_output_underrun(&aio.base);
+  rc = alsa_output_underrun(&aio.common.base);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_iodev_update_underrun_duration_called);
 
@@ -2466,8 +2469,8 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
 
   // appl_ptr should be moved to min_buffer_level + 1.5 * min_cb_level ahead of
   // hw_ptr.
-  offset = aio.base.min_buffer_level + aio.base.min_cb_level +
-           aio.base.min_cb_level / 2;
+  offset = aio.common.base.min_buffer_level + aio.common.base.min_cb_level +
+           aio.common.base.min_cb_level / 2;
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
   EXPECT_EQ(offset, cras_alsa_resume_appl_ptr_ahead);
 
@@ -2520,8 +2523,8 @@ TEST(AlsaGetValidFrames, GetValidFramesNormalState) {
       CRAS_STREAM_OUTPUT);
   aio = (struct alsa_io*)iodev;
 
-  aio->free_running = 0;
-  aio->filled_zeros_for_draining = 200;
+  aio->common.free_running = 0;
+  aio->common.filled_zeros_for_draining = 200;
   cras_alsa_get_avail_frames_avail = iodev->buffer_size - 500;
   cras_alsa_get_avail_frames_ret = 0;
   clock_gettime_retspec.tv_sec = 123;
@@ -2546,7 +2549,7 @@ TEST(AlsaGetValidFrames, GetValidFramesFreeRunning) {
       CRAS_STREAM_OUTPUT);
   aio = (struct alsa_io*)iodev;
 
-  aio->free_running = 1;
+  aio->common.free_running = 1;
   clock_gettime_retspec.tv_sec = 123;
   clock_gettime_retspec.tv_nsec = 321;
   rc = iodev->get_valid_frames(iodev, &tstamp);
@@ -2576,9 +2579,9 @@ class NodeUSBCardSuite : public testing::Test {
     ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
     EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
     EXPECT_EQ(expect_output_node_volume_steps,
-              aio->base.active_node->number_of_volume_steps);
+              aio->common.base.active_node->number_of_volume_steps);
     EXPECT_EQ(expect_enable_software_volume,
-              aio->base.active_node->software_volume_needed);
+              aio->common.base.active_node->software_volume_needed);
     alsa_iodev_destroy((struct cras_iodev*)aio);
   }
   void CheckVolumeCurveWithDifferentVolumeRange(
@@ -2596,7 +2599,7 @@ class NodeUSBCardSuite : public testing::Test {
     EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
     EXPECT_EQ(2, cras_alsa_mixer_get_playback_dBFS_range_called);
     EXPECT_EQ(expect_enable_software_volume,
-              aio->base.active_node->software_volume_needed);
+              aio->common.base.active_node->software_volume_needed);
     EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
     if (!expect_enable_software_volume) {
       EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,

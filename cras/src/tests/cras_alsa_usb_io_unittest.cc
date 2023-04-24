@@ -299,8 +299,8 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
              cras_alsa_mixer_get_playback_dBFS_range_min),
             cras_volume_curve_create_simple_step_range);
-  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
   cras_alsa_usb_iodev_destroy((struct cras_iodev*)aio);
@@ -311,14 +311,14 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   ASSERT_EQ(0,
             cras_alsa_usb_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(DEFAULT, aio->base.active_node->name);
-  ASSERT_EQ(1, aio->base.active_node->plugged);
+  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
+  ASSERT_EQ(1, aio->common.base.active_node->plugged);
   EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
 
   // No extra gain applied.
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS,
-            aio->base.active_node->intrinsic_sensitivity);
-  ASSERT_EQ(0, aio->base.active_node->capture_gain);
+            aio->common.base.active_node->intrinsic_sensitivity);
+  ASSERT_EQ(0, aio->common.base.active_node->capture_gain);
   cras_alsa_usb_iodev_destroy((struct cras_iodev*)aio);
 }
 
@@ -369,7 +369,7 @@ TEST(AlsaIoInit, MaxSupportedChannels) {
     // Call cras_alsa_fill_properties once on update_max_supported_channels.
     EXPECT_EQ(1, cras_alsa_fill_properties_called);
     uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
-    EXPECT_EQ(max_channels, aio->base.info.max_supported_channels);
+    EXPECT_EQ(max_channels, aio->common.base.info.max_supported_channels);
     cras_alsa_usb_iodev_destroy((struct cras_iodev*)aio);
     EXPECT_EQ(1, cras_iodev_free_resources_called);
   }
@@ -438,9 +438,9 @@ class NodeUSBCardSuite : public testing::Test {
         0, cras_alsa_usb_iodev_legacy_complete_init((struct cras_iodev*)aio));
     EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
     EXPECT_EQ(expect_output_node_volume_steps,
-              aio->base.active_node->number_of_volume_steps);
+              aio->common.base.active_node->number_of_volume_steps);
     EXPECT_EQ(expect_enable_software_volume,
-              aio->base.active_node->software_volume_needed);
+              aio->common.base.active_node->software_volume_needed);
     cras_alsa_usb_iodev_destroy((struct cras_iodev*)aio);
   }
   void CheckVolumeCurveWithDifferentVolumeRange(
@@ -460,7 +460,7 @@ class NodeUSBCardSuite : public testing::Test {
     EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
     EXPECT_EQ(2, cras_alsa_mixer_get_playback_dBFS_range_called);
     EXPECT_EQ(expect_enable_software_volume,
-              aio->base.active_node->software_volume_needed);
+              aio->common.base.active_node->software_volume_needed);
     EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
     if (!expect_enable_software_volume) {
       EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,
@@ -528,14 +528,14 @@ class USBFreeRunTestSuite : public testing::Test {
     fmt_.format = SND_PCM_FORMAT_S16_LE;
     fmt_.frame_rate = 48000;
     fmt_.num_channels = 2;
-    aio.base.frames_queued = usb_frames_queued;
-    aio.base.output_underrun = usb_alsa_output_underrun;
-    aio.base.direction = CRAS_STREAM_OUTPUT;
-    aio.base.format = &fmt_;
-    aio.base.buffer_size = BUFFER_SIZE;
-    aio.base.min_cb_level = 240;
-    aio.base.min_buffer_level = 0;
-    aio.filled_zeros_for_draining = 0;
+    aio.common.base.frames_queued = usb_frames_queued;
+    aio.common.base.output_underrun = usb_alsa_output_underrun;
+    aio.common.base.direction = CRAS_STREAM_OUTPUT;
+    aio.common.base.format = &fmt_;
+    aio.common.base.buffer_size = BUFFER_SIZE;
+    aio.common.base.min_cb_level = 240;
+    aio.common.base.min_buffer_level = 0;
+    aio.common.filled_zeros_for_draining = 0;
     cras_alsa_mmap_begin_buffer = (uint8_t*)calloc(
         BUFFER_SIZE * 2 * 2, sizeof(*cras_alsa_mmap_begin_buffer));
     memset(cras_alsa_mmap_begin_buffer, 0xff,
@@ -554,7 +554,7 @@ TEST_F(USBFreeRunTestSuite, OutputUnderrun) {
   snd_pcm_uframes_t offset;
 
   // Ask alsa_io to handle output underrun.
-  rc = usb_alsa_output_underrun(&aio.base);
+  rc = usb_alsa_output_underrun(&aio.common.base);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, cras_iodev_update_underrun_duration_called);
 
@@ -564,8 +564,8 @@ TEST_F(USBFreeRunTestSuite, OutputUnderrun) {
 
   // appl_ptr should be moved to min_buffer_level + 1.5 * min_cb_level ahead of
   // hw_ptr.
-  offset = aio.base.min_buffer_level + aio.base.min_cb_level +
-           aio.base.min_cb_level / 2;
+  offset = aio.common.base.min_buffer_level + aio.common.base.min_cb_level +
+           aio.common.base.min_cb_level / 2;
   EXPECT_EQ(1, cras_alsa_resume_appl_ptr_called);
   EXPECT_EQ(offset, cras_alsa_resume_appl_ptr_ahead);
 

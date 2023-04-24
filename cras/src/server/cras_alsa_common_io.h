@@ -2,8 +2,8 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#ifndef CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_
-#define CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_
+#ifndef CRAS_SRC_SERVER_CRAS_ALSA_COMMON_IO_H_
+#define CRAS_SRC_SERVER_CRAS_ALSA_COMMON_IO_H_
 
 #include <stdbool.h>
 #include <sys/time.h>
@@ -77,6 +77,68 @@ static const struct timespec no_stream_fill_zeros_duration = {
     0, 50 * 1000 * 1000  // 50 msec.
 };
 
+struct alsa_common_io {
+  // The cras_iodev structure "base class".
+  struct cras_iodev base;
+  // The PCM name passed to snd_pcm_open() (e.g. "hw:0,0").
+  char* pcm_name;
+  // value from snd_pcm_info_get_name
+  char* dev_name;
+  // value from snd_pcm_info_get_id
+  char* dev_id;
+  // ALSA index of device, Y in "hw:X:Y".
+  uint32_t device_index;
+  // The index we will give to the next ionode. Each ionode
+  // have a unique index within the iodev.
+  uint32_t next_ionode_index;
+  // the type of the card this iodev belongs.
+  enum CRAS_ALSA_CARD_TYPE card_type;
+  // true if this is the first iodev on the card.
+  int is_first;
+  // true if this device and it's nodes were fully specified.
+  // That is, don't automatically create nodes for it.
+  int fully_specified;
+  // Handle to the opened ALSA device.
+  snd_pcm_t* handle;
+  // Number of times we have run out of data badly.
+  // Unlike num_underruns which records for the duration
+  // where device is opened, num_severe_underruns records
+  // since device is created. When severe underrun occurs
+  // a possible action is to close/open device.
+  unsigned int num_severe_underruns;
+  // Playback or capture type.
+  snd_pcm_stream_t alsa_stream;
+  // Alsa mixer used to control volume and mute of the device.
+  struct cras_alsa_mixer* mixer;
+  // Card config for this alsa device.
+  const struct cras_card_config* config;
+  // List of alsa jack controls for this device.
+  struct cras_alsa_jack_list* jack_list;
+  // CRAS use case manager, if configuration is found.
+  struct cras_use_case_mgr* ucm;
+  // offset returned from mmap_begin.
+  snd_pcm_uframes_t mmap_offset;
+  // Descriptor used to block until data is ready.
+  int poll_fd;
+  // If non-zero, the value to apply to the dma_period.
+  unsigned int dma_period_set_microsecs;
+  // true if device is playing zeros in the buffer without
+  // user filling meaningful data. The device buffer is filled
+  // with zeros. In this state, appl_ptr remains the same
+  // while hw_ptr keeps running ahead.
+  int free_running;
+  // The number of zeros filled for draining.
+  unsigned int filled_zeros_for_draining;
+  // The threshold for severe underrun.
+  snd_pcm_uframes_t severe_underrun_frames;
+  // Default volume curve that converts from an index
+  // to dBFS.
+  struct cras_volume_curve* default_volume_curve;
+  int hwparams_set;
+  // true if this iodev has dependent
+  int has_dependent_dev;
+};
+
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);
 
 // Enable or disable noise cancellation for the active node if supported.
@@ -91,4 +153,4 @@ enum CRAS_IONODE_NC_PROVIDER cras_alsa_common_get_nc_provider(
     struct cras_use_case_mgr* ucm,
     const char* node_name);
 
-#endif  // CRAS_SRC_SERVER_CRAS_ALSA_IO_COMMON_H_
+#endif  // CRAS_SRC_SERVER_CRAS_ALSA_COMMON_IO_H_

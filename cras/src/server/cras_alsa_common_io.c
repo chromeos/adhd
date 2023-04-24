@@ -2,7 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "cras/src/server/cras_alsa_io_common.h"
+#include "cras/src/server/cras_alsa_common_io.h"
 
 #include <sys/time.h>
 #include <syslog.h>
