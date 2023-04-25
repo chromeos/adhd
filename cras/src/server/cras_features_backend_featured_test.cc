@@ -26,6 +26,9 @@ int clock_gettime(clockid_t clockid, struct timespec* tp) {
 }
 
 TEST(FeaturesBackendFeatured, Caching) {
+  // Necessary to test cras_feature_enabled properly.
+  EXPECT_TRUE(CFeatureLibraryInitialize());
+
   clock_gettime_result = {0, 0};
   CFeatureLibraryIsEnabledBlockingWithTimeout_result = true;
   EXPECT_EQ(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag), true);

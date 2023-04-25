@@ -35,6 +35,7 @@
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
 #include "cras/src/server/cras_device_monitor.h"
+#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_hotword_handler.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_message.h"
@@ -419,6 +420,11 @@ int cras_server_init() {
   // Initializes all server_sockets
   for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE; conn_type++) {
     server_instance.server_sockets[conn_type].fd = -1;
+  }
+
+  // Initialize CFeatureLibrary to query experiment state.
+  if (!feature_library_initialize()) {
+    syslog(LOG_ERR, "failed to initialize CFeatureLibrary");
   }
 
   return 0;

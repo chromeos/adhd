@@ -6,6 +6,10 @@
 
 #include "cras/src/server/cras_features_impl.h"
 
+bool feature_library_initialize() {
+  return true;
+}
+
 bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
   return feature->default_enabled;
 }

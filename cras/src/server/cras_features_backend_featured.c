@@ -33,6 +33,10 @@ static const struct VariationsFeature variations_features[NUM_FEATURES] = {
 };
 #undef DEFINE_FEATURE
 
+bool feature_library_initialize() {
+  return CFeatureLibraryInitialize();
+}
+
 bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
   const enum cras_feature_id id = cras_feature_get_id(feature);
 
@@ -46,10 +50,13 @@ bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
   }
 
   // Query the feature status.
-  CFeatureLibrary lib = CFeatureLibraryNew();
+  CFeatureLibrary lib = CFeatureLibraryGet();
+  if (lib == NULL) {
+    return variations_features[id].default_state;
+  }
+
   int enabled = CFeatureLibraryIsEnabledBlockingWithTimeout(
       lib, &variations_features[id], FEATURE_LIBRARY_TIMEOUT_MS);
-  CFeatureLibraryDelete(lib);
 
   // Set the cache value.
   cached_features[id].cache_value = enabled;
