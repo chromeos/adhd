@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.32"
 dbus = "0.9"
-protobuf = "2.16"
+protobuf = "3.2"
 system_api = "*"
 thiserror = "1.0.20"
 log = "0.4.17"

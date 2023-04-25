@@ -1,5 +1,5 @@
 {
-  "checksum": "04a226a4b491a726fa253cfebbbd8c185b6e27845a9e52e40d9f3c385aba78fa",
+  "checksum": "a50d28d9fec66ccf3161886b06ec29f002441106ab458de56420bf8d1e5d55e8",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -1031,7 +1031,7 @@
               "target": "log"
             },
             {
-              "id": "protobuf 2.28.0",
+              "id": "protobuf 3.2.0",
               "target": "protobuf"
             },
             {
@@ -3057,6 +3057,74 @@
       },
       "license": "MIT"
     },
+    "protobuf 3.2.0": {
+      "name": "protobuf",
+      "version": "3.2.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/protobuf/3.2.0/download",
+          "sha256": "b55bad9126f378a853655831eb7363b7b01b81d19f8cb1218861086ca4a1a61e"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "protobuf",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "protobuf",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": [
+          "default"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "once_cell 1.17.1",
+              "target": "once_cell"
+            },
+            {
+              "id": "protobuf 3.2.0",
+              "target": "build_script_build"
+            },
+            {
+              "id": "protobuf-support 3.2.0",
+              "target": "protobuf_support"
+            },
+            {
+              "id": "thiserror 1.0.40",
+              "target": "thiserror"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "3.2.0"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT"
+    },
     "protobuf-codegen 2.28.0": {
       "name": "protobuf-codegen",
       "version": "2.28.0",
@@ -3093,6 +3161,45 @@
         },
         "edition": "2015",
         "version": "2.28.0"
+      },
+      "license": "MIT"
+    },
+    "protobuf-support 3.2.0": {
+      "name": "protobuf-support",
+      "version": "3.2.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/protobuf-support/3.2.0/download",
+          "sha256": "a5d4d7b8601c814cfb36bcebb79f0e61e45e1e93640cf778837833bbed05c372"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "protobuf_support",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "protobuf_support",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "thiserror 1.0.40",
+              "target": "thiserror"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "3.2.0"
       },
       "license": "MIT"
     },

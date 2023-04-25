@@ -12,8 +12,8 @@ use dbus::blocking::Connection;
 use dbus::blocking::Proxy;
 use protobuf::Message;
 use system_api::client::OrgChromiumDlcServiceInterface;
+use system_api::dlcservice::dlc_state::State;
 use system_api::dlcservice::DlcState;
-use system_api::dlcservice::DlcState_State;
 use system_api::dlcservice::InstallRequest;
 use thiserror::Error;
 
@@ -24,9 +24,11 @@ enum Error {
     #[error("D-Bus failure: {0:#}")]
     DBus(#[from] dbus::Error),
     #[error("protocol buffers failure: {0:#}")]
-    Protobuf(#[from] protobuf::ProtobufError),
+    Protobuf(#[from] protobuf::Error),
     #[error("CString failure: {0:#}")]
     CString(#[from] std::ffi::NulError),
+    #[error("unknown DLC state: {0}")]
+    UnknownDlcState(i32),
 }
 
 /// All supported DLCs in CRAS.
@@ -69,8 +71,8 @@ fn install_dlc(id: CrasDlcId) -> Result<()> {
     let conn_path = get_dlcservice_connection_path(&connection);
 
     let mut request = InstallRequest::new();
-    request.set_id(id.to_string());
-    request.set_reserve(true);
+    request.id = id.to_string();
+    request.reserve = true;
     Ok(conn_path.install(request.write_to_bytes()?)?)
 }
 
@@ -107,7 +109,7 @@ pub extern "C" fn cras_dlc_install(id: CrasDlcId) -> bool {
 #[no_mangle]
 pub extern "C" fn cras_dlc_is_available(id: CrasDlcId) -> bool {
     match get_dlc_state(id) {
-        Ok(dlc_state) => dlc_state.state == DlcState_State::INSTALLED,
+        Ok(dlc_state) => dlc_state.state.enum_value() == Ok(State::INSTALLED),
         Err(_) => false,
     }
 }
