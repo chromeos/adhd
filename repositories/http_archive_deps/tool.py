@@ -28,8 +28,8 @@ RE_GITHUB_RELEASE = re.compile(
 )
 
 
-def canonical_name(name, url):
-    """Given the package name and canonical URL determine the name of the archive"""
+def canonical_name(url):
+    """Given the canonical URL determine the name of the archive"""
     m = RE_GITHUB_ARCHIVE.match(url)
     if m:
         user, repo, remaining = m.groups()
@@ -62,7 +62,7 @@ def main(json_deps, bazel_external_uris_out, deps_sha256_json_out):
             continue
         bazel_external_uri_set.add(url)
 
-        cname = canonical_name(name, url)
+        cname = canonical_name(url)
         bazel_external_uris.append(f'{url} -> {cname}')
         deps_sha256.append(
             {

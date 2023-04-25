@@ -12,6 +12,14 @@ py_binary(
     srcs = ["tool.py"],
 )
 
+py_test(
+    name = "tool_test",
+    srcs = [
+        "tool_test.py",
+    ],
+    deps = [":tool"],
+)
+
 genrule(
     name = "bazel_external_uris",
     srcs = ["deps.json"],
