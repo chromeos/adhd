@@ -86,27 +86,8 @@ static int usb_get_fixed_rate(struct alsa_usb_io* aio);
 
 static int usb_update_supported_formats(struct cras_iodev* iodev);
 
-static int usb_set_hwparams(struct cras_iodev* iodev) {
-  struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
-  int rc;
-
-  // Only need to set hardware params once.
-  if (aio->common.hwparams_set) {
-    return 0;
-  }
-
-  /* Sets frame rate and channel count to alsa device before
-   * we test channel mapping. */
-  // USB is not a wake on voice device, period_wakeups should be 0
-  rc = cras_alsa_set_hwparams(aio->common.handle, iodev->format,
-                              &iodev->buffer_size, 0,
-                              aio->common.dma_period_set_microsecs);
-  if (rc < 0) {
-    return rc;
-  }
-
-  aio->common.hwparams_set = 1;
-  return 0;
+static inline int usb_set_hwparams(struct cras_iodev* iodev) {
+  return cras_alsa_common_set_hwparams(iodev, 0);
 }
 
 /*

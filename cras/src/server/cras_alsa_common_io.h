@@ -153,4 +153,6 @@ enum CRAS_IONODE_NC_PROVIDER cras_alsa_common_get_nc_provider(
     struct cras_use_case_mgr* ucm,
     const char* node_name);
 
+int cras_alsa_common_set_hwparams(struct cras_iodev* iodev, int period_wakeup);
+
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_COMMON_IO_H_

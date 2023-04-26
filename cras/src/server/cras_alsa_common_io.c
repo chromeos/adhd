@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <syslog.h>
 
+#include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
@@ -86,4 +87,25 @@ enum CRAS_IONODE_NC_PROVIDER cras_alsa_common_get_nc_provider(
     return CRAS_IONODE_NC_PROVIDER_AP;
   }
   return CRAS_IONODE_NC_PROVIDER_NONE;
+}
+
+int cras_alsa_common_set_hwparams(struct cras_iodev* iodev, int period_wakeup) {
+  struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
+  int rc;
+
+  // Only need to set hardware params once.
+  if (aio->hwparams_set) {
+    return 0;
+  }
+
+  /* Sets frame rate and channel count to alsa device before
+   * we test channel mapping. */
+  rc = cras_alsa_set_hwparams(aio->handle, iodev->format, &iodev->buffer_size,
+                              period_wakeup, aio->dma_period_set_microsecs);
+  if (rc < 0) {
+    return rc;
+  }
+
+  aio->hwparams_set = 1;
+  return 0;
 }

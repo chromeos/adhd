@@ -201,30 +201,10 @@ static const struct {
     },
 };
 
-static int set_hwparams(struct cras_iodev* iodev) {
-  struct alsa_io* aio = (struct alsa_io*)iodev;
-  int period_wakeup;
-  int rc;
-
-  // Only need to set hardware params once.
-  if (aio->common.hwparams_set) {
-    return 0;
-  }
-
+static inline int set_hwparams(struct cras_iodev* iodev) {
   // If it's a wake on voice device, period_wakeups are required.
-  period_wakeup = (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD);
-
-  /* Sets frame rate and channel count to alsa device before
-   * we test channel mapping. */
-  rc = cras_alsa_set_hwparams(aio->common.handle, iodev->format,
-                              &iodev->buffer_size, period_wakeup,
-                              aio->common.dma_period_set_microsecs);
-  if (rc < 0) {
-    return rc;
-  }
-
-  aio->common.hwparams_set = 1;
-  return 0;
+  int period_wakeup = (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD);
+  return cras_alsa_common_set_hwparams(iodev, period_wakeup);
 }
 
 /*
