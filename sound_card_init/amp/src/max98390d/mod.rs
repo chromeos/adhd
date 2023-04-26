@@ -77,6 +77,12 @@ impl CalibData for Max98390CalibData {
     fn rdc_to_ohm(x: i32) -> f32 {
         3.66 * (1 << 20) as f32 / x as f32
     }
+
+    /// Converts the value from ohm unit to the DSM unit (VPD format).
+    #[inline]
+    fn ohm_to_rdc(x: f32) -> i32 {
+        (3.66 * (1 << 20) as f32 / x).round() as i32
+    }
 }
 
 impl Max98390CalibData {
@@ -194,6 +200,15 @@ impl Amp for Max98390 {
 
     fn rdc_ranges(&mut self) -> Vec<RDCRange> {
         self.setting.rdc_ranges.clone()
+    }
+
+    fn get_fake_r0(&mut self, ch: usize) -> i32 {
+        let range = (self.setting.rdc_ranges[ch].lower + self.setting.rdc_ranges[ch].upper) / 2.0;
+        Max98390CalibData::ohm_to_rdc(range)
+    }
+
+    fn get_fake_temp(&mut self, ch: usize) -> i32 {
+        Max98390CalibData::celsius_to_dsm_unit(DSM::DEFAULT_FAKE_TEMP)
     }
 }
 
@@ -350,6 +365,10 @@ mod tests {
     fn rdc_to_ohm() {
         assert_eq!(Max98390CalibData::rdc_to_ohm(1123160), 3.416956);
         assert_eq!(Max98390CalibData::rdc_to_ohm(1157049), 3.3168762);
+    }
+
+    fn ohm_to_rdc() {
+        assert_eq!(Max98390CalibData::ohm_to_rdc(3.3168762), 1157049);
     }
 
     #[test]

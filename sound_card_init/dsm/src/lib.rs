@@ -48,6 +48,10 @@ pub trait CalibData: Send + fmt::Debug {
     fn rdc_to_ohm(rdc: i32) -> f32
     where
         Self: Sized;
+    /// The function to convert rdc from ohm unit to raw data.
+    fn ohm_to_rdc(rdc: f32) -> i32
+    where
+        Self: Sized;
     /// The function to return the rdc in raw data.
     fn rdc(&self) -> i32;
     /// The function to return the rdc in ohm unit.
@@ -133,6 +137,7 @@ pub struct DSM {
 }
 
 impl DSM {
+    pub const DEFAULT_FAKE_TEMP: f32 = 28.0;
     const SPEAKER_COOL_DOWN_TIME: Duration = Duration::from_secs(180);
     const CALI_ERROR_UPPER_LIMIT: f32 = 0.3;
     const CALI_ERROR_LOWER_LIMIT: f32 = 0.03;

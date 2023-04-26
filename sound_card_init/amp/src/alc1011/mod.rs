@@ -57,6 +57,12 @@ impl CalibData for ALC1011CalibData {
     fn rdc_to_ohm(x: i32) -> f32 {
         (1 << 24) as f32 / x as f32
     }
+
+    /// Converts the value from ohm unit to the DSM unit (VPD format).
+    #[inline]
+    fn ohm_to_rdc(x: f32) -> i32 {
+        ((1 << 24) as f32 / x).round() as i32
+    }
 }
 
 impl ALC1011CalibData {
@@ -117,6 +123,12 @@ impl Amp for ALC1011 {
     fn rdc_ranges(&mut self) -> Vec<RDCRange> {
         self.setting.rdc_ranges.clone()
     }
+
+    /// Get the fake dsm_calib_r0 value by channel index.
+    fn get_fake_r0(&mut self, ch: usize) -> i32 {
+        let range = (self.setting.rdc_ranges[ch].lower + self.setting.rdc_ranges[ch].upper) / 2.0;
+        ALC1011CalibData::ohm_to_rdc(range)
+    }
 }
 
 impl ALC1011 {
@@ -172,5 +184,9 @@ mod tests {
     #[test]
     fn rdc_to_ohm() {
         assert_eq!(ALC1011CalibData::rdc_to_ohm(2081255), 8.061106);
+    }
+
+    fn ohm_to_rdc() {
+        assert_eq!(ALC1011CalibData::ohm_to_rdc(8.061106), 2081255);
     }
 }

@@ -66,6 +66,12 @@ impl CalibData for Max98373CalibData {
     fn rdc_to_ohm(x: i32) -> f32 {
         (3.66 * x as f32) / (1 << 27) as f32
     }
+
+    /// Converts the value from ohm unit to the DSM unit (VPD format).
+    #[inline]
+    fn ohm_to_rdc(x: f32) -> i32 {
+        ((1 << 27) as f32 * x / 3.66).round() as i32
+    }
 }
 
 impl Max98373CalibData {
@@ -160,6 +166,12 @@ impl Amp for Max98373 {
 
     fn rdc_ranges(&mut self) -> Vec<RDCRange> {
         self.setting.rdc_ranges.clone()
+    }
+
+    /// Get the fake dsm_calib_r0 value by channel index.
+    fn get_fake_r0(&mut self, ch: usize) -> i32 {
+        let range = (self.setting.rdc_ranges[ch].lower + self.setting.rdc_ranges[ch].upper) / 2.0;
+        Max98373CalibData::ohm_to_rdc(range)
     }
 }
 
@@ -352,6 +364,10 @@ mod tests {
             <Max98373CalibData as CalibData>::rdc_to_ohm(0x05cea0c7),
             2.656767
         );
+    }
+
+    fn ohm_to_rdc() {
+        assert_eq!(Max98373CalibData::ohm_to_rdc(2.656767), 0x05cea0c7);
     }
 
     #[test]

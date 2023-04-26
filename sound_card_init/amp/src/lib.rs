@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use alc1011::ALC1011;
 use cs35l41::CS35L41;
 use dsm::RDCRange;
+use dsm::DSM;
 use max98373d::Max98373;
 use max98390d::Max98390;
 use serde::Serialize;
@@ -69,6 +70,15 @@ impl<'a> AmpBuilder<'a> {
 
 /// The Amp debug information.
 #[derive(Serialize, Default)]
+pub struct FakeVPD {
+    /// The fake dsm_calib_r0 value.
+    pub r0: Vec<i32>,
+    /// The fake dsm_calib_temp value.
+    pub temp: Vec<i32>,
+}
+
+/// The Amp debug information.
+#[derive(Serialize, Default)]
 pub struct DebugInfo {
     /// The rdc acceptant range (ohm).
     pub rdc_acceptant_range: Vec<RDCRange>,
@@ -88,6 +98,13 @@ pub trait Amp {
     fn get_current_rdc(&mut self, _ch: usize) -> Result<Option<f32>> {
         Ok(None)
     }
+    /// Get the fake dsm_calib_r0 value by channel index.
+    fn get_fake_r0(&mut self, ch: usize) -> i32;
+    /// Get the fake dsm_calib_temp value by channel index.
+    fn get_fake_temp(&mut self, ch: usize) -> i32 {
+        DSM::DEFAULT_FAKE_TEMP as i32
+    }
+
     /// Get the number of channels.
     fn num_channels(&mut self) -> usize;
     /// Get the rdc acceptant range.
@@ -104,6 +121,18 @@ pub trait Amp {
                 .collect::<Result<Vec<Option<f32>>>>()?
                 .into_iter()
                 .collect::<Option<Vec<f32>>>(),
+        })
+    }
+    /// Get an example vpd value by channel index.
+    /// It is used for auto-repair job in lab testing.
+    fn get_fake_vpd(&mut self) -> Result<FakeVPD> {
+        Ok(FakeVPD {
+            r0: (0..self.num_channels())
+                .map(|ch| self.get_fake_r0(ch))
+                .collect(),
+            temp: (0..self.num_channels())
+                .map(|ch| self.get_fake_temp(ch))
+                .collect(),
         })
     }
 }

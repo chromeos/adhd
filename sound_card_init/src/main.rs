@@ -36,6 +36,7 @@ struct TopLevelCommand {
 enum Command {
     BootTimeCalibration(BootTimeCalibrationArgs),
     Debug(DebugArgs),
+    FakeVPD(FakeVPDArgs),
     ReadAppliedRdc(ReadAppliedRdcArgs),
     ReadCurrentRdc(ReadCurrentRdcArgs),
 }
@@ -109,6 +110,24 @@ struct DebugArgs {
     pub json: bool,
 }
 
+/// print the Amp fake VPD information.
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "fake_vpd")]
+struct FakeVPDArgs {
+    /// the sound card id.
+    #[argh(option)]
+    pub id: String,
+    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf).
+    #[argh(option)]
+    pub amp: String,
+    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf).
+    #[argh(option)]
+    pub conf: String,
+    /// show the vpd in json.
+    #[argh(switch)]
+    pub json: bool,
+}
+
 /// The speaker rdc calibration result applied to the amp.
 #[derive(Serialize)]
 pub struct AppliedRDC {
@@ -158,6 +177,16 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
             info!("sound_card_id: {}, conf:{}", param.id, param.conf);
             let info = amp.get_debug_info()?;
+            if param.json {
+                println!("{}", serde_json::to_string(&info)?);
+            } else {
+                println!("{}", serde_yaml::to_string(&info)?);
+            }
+        }
+        Command::FakeVPD(param) => {
+            let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            info!("sound_card_id: {}, conf:{}", param.id, param.conf);
+            let info = amp.get_fake_vpd()?;
             if param.json {
                 println!("{}", serde_json::to_string(&info)?);
             } else {

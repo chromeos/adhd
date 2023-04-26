@@ -130,6 +130,12 @@ impl CalibData for CS35L41CalibData {
     fn rdc_to_ohm(x: i32) -> f32 {
         x as f32 * 5.857_143_4 / 8192.0
     }
+
+    /// Converts the value from ohm unit to the DSM unit (VPD format).
+    #[inline]
+    fn ohm_to_rdc(x: f32) -> i32 {
+        (x * 8192.0 / 5.857_143_4).round() as i32
+    }
 }
 
 impl fmt::Debug for CS35L41CalibData {
@@ -196,6 +202,12 @@ impl Amp for CS35L41 {
 
     fn rdc_ranges(&mut self) -> Vec<RDCRange> {
         self.setting.rdc_ranges.clone()
+    }
+
+    /// Get the fake dsm_calib_r0 value by channel index.
+    fn get_fake_r0(&mut self, ch: usize) -> i32 {
+        let range = (self.setting.rdc_ranges[ch].lower + self.setting.rdc_ranges[ch].upper) / 2.0;
+        CS35L41CalibData::ohm_to_rdc(range)
     }
 }
 
@@ -300,5 +312,9 @@ mod tests {
     #[test]
     fn rdc_to_ohm() {
         assert_eq!(CS35L41CalibData::rdc_to_ohm(4779), 3.4169054);
+    }
+
+    fn ohm_to_rdc() {
+        assert_eq!(ALC1011CalibData::ohm_to_rdc(3.4169054), 4779);
     }
 }
