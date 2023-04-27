@@ -4,7 +4,7 @@
 
 source /usr/share/cros/init/cras-env.sh || exit 1
 
-exec minijail0 -u cras -g cras -G \
+exec runuser -u cras \
         -- \
         /usr/bin/cras \
         ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} \
