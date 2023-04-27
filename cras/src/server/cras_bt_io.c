@@ -116,8 +116,8 @@ void bt_io_manager_set_use_hardware_volume(struct bt_io_manager* mgr,
   iodev = mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
   if (iodev) {
     /*
-     * TODO(b/229031342): For BlueZ case, whether HFP uses software
-     * volume is tied to AVRCP supported or not. We should fix this.
+     * For BlueZ, whether HFP uses software volume depends on the support of
+     * AVRCP.
      */
     iodev->software_volume_needed = !use_hardware_volume;
   }
