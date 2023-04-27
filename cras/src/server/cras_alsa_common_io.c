@@ -109,3 +109,29 @@ int cras_alsa_common_set_hwparams(struct cras_iodev* iodev, int period_wakeup) {
   aio->hwparams_set = 1;
   return 0;
 }
+int cras_alsa_common_frames_queued(const struct cras_iodev* iodev,
+                                   struct timespec* tstamp) {
+  struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
+  int rc;
+  snd_pcm_uframes_t frames;
+
+  rc = cras_alsa_get_avail_frames(aio->handle, aio->base.buffer_size,
+                                  aio->severe_underrun_frames, iodev->info.name,
+                                  &frames, tstamp);
+  if (rc < 0) {
+    if (rc == -EPIPE) {
+      aio->num_severe_underruns++;
+    }
+    return rc;
+  }
+  rc = clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
+  if (rc < 0) {
+    return rc;
+  }
+  if (iodev->direction == CRAS_STREAM_INPUT) {
+    return (int)frames;
+  }
+
+  // For output, return number of frames that are used.
+  return iodev->buffer_size - frames;
+}

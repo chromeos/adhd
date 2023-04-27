@@ -94,28 +94,9 @@ static inline int usb_set_hwparams(struct cras_iodev* iodev) {
  * iodev callbacks.
  */
 
-static int usb_frames_queued(const struct cras_iodev* iodev,
-                             struct timespec* tstamp) {
-  struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
-  int rc;
-  snd_pcm_uframes_t frames;
-
-  rc = cras_alsa_get_avail_frames(
-      aio->common.handle, aio->common.base.buffer_size,
-      aio->common.severe_underrun_frames, iodev->info.name, &frames, tstamp);
-  if (rc < 0) {
-    if (rc == -EPIPE) {
-      aio->common.num_severe_underruns++;
-    }
-    return rc;
-  }
-  clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
-  if (iodev->direction == CRAS_STREAM_INPUT) {
-    return (int)frames;
-  }
-
-  // For output, return number of frames that are used.
-  return iodev->buffer_size - frames;
+static inline int usb_frames_queued(const struct cras_iodev* iodev,
+                                    struct timespec* tstamp) {
+  return cras_alsa_common_frames_queued(iodev, tstamp);
 }
 
 static int usb_delay_frames(const struct cras_iodev* iodev) {
