@@ -6,7 +6,7 @@ FROM alpine:latest as go
 
 RUN apk add go
 COPY . /workspace
-RUN cd /workspace && CGO_ENABLED=0 go build -o bot ./build
+RUN cd /workspace && CGO_ENABLED=0 go build -o bot ./cmd/quick-verifier
 
 FROM alpine:latest
 RUN apk add git python3

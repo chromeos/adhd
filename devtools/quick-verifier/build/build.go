@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-package main
+package build
 
 import (
 	"context"
@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/quick-verifier/buildplan"
-	"chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/quick-verifier/wc"
 	cloudbuild "cloud.google.com/go/cloudbuild/apiv1"
 	"cloud.google.com/go/cloudbuild/apiv1/v2/cloudbuildpb"
 	"github.com/andygrunwald/go-gerrit"
@@ -380,14 +379,6 @@ func queryBuilds(triggerID string) (*buildResult, error) {
 }
 
 const (
-	query = ("project:chromiumos/third_party/adhd" +
-		" branch:main" +
-		" is:open" +
-		" after:2023-02-08" + // Ignore old CLs.
-		" -hashtag:audio-qv-ignore" + // User request to ignore.
-		" (uploaderin:chromeos-gerrit-sandbox-access OR label:Code-Owners=ok)" + // Only handle "trusted" CLs.
-		" ((-is:wip -label:Verified=ANY,user=1571002) OR hashtag:audio-qv-trigger)" + // Only handle open CLs that are not voted.
-		"")
 	audioQVTrigger = "audio-qv-trigger"
 	botID          = 1571002
 )
@@ -399,28 +390,3 @@ const (
 	triggeredState        // The CL has a trigger ID associated.
 	completedState        // The CL is completed.
 )
-
-func main() {
-	log.SetFlags(log.Ltime | log.Lshortfile)
-
-	gerritClient, err := wc.NewGerritClient("https://chromium-review.googlesource.com")
-	if err != nil {
-		log.Fatal("Cannot create gerrit client: ", err)
-	}
-
-	changesPtr, _, err := gerritClient.Changes.QueryChanges(&gerrit.QueryChangeOptions{
-		QueryOptions: gerrit.QueryOptions{
-			Query: []string{query},
-		},
-		ChangeOptions: gerrit.ChangeOptions{
-			AdditionalFields: []string{"CURRENT_REVISION", "MESSAGES"},
-		},
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, change := range *changesPtr {
-		processChange(gerritClient, change)
-	}
-}

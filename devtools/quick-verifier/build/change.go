@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-package main
+package build
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func processChange(gerritClient *gerrit.Client, change gerrit.ChangeInfo) {
+func ProcessChange(gerritClient *gerrit.Client, change gerrit.ChangeInfo) {
 	cl := gerritCL{changeID: change.Number, revisionID: change.Revisions[change.CurrentRevision].Number}
 
 	log.Println("processing", cl.url())
