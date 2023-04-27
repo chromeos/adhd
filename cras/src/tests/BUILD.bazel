@@ -998,6 +998,10 @@ cc_test(
     name = "fl_pcm_iodev_unittest",
     srcs = [
         ":fl_pcm_iodev_unittest.cc",
+        ":sr_bt_util_stub.cc",
+        ":sr_bt_util_stub.h",
+        ":sr_stub.cc",
+        ":sr_stub.h",
         "//cras/src/common:cras_string.c",
     ],
     deps = [

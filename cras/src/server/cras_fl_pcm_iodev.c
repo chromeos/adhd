@@ -23,6 +23,8 @@
 #include "cras/src/server/cras_hfp_manager.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_sr.h"
+#include "cras/src/server/cras_sr_bt_util.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/superfasthash/sfh.h"
@@ -95,6 +97,10 @@ struct fl_pcm_io {
   struct cras_hfp* hfp;
   // If the device has been configured and attached with any stream.
   int started;
+  // The sr object.
+  struct cras_sr* sr;
+  // Buffer to hold the sr input pcm samples.
+  struct byte_buffer* sr_buf;
 };
 
 static int flush(const struct cras_iodev* iodev);
@@ -112,9 +118,13 @@ static int hfp_update_supported_formats(struct cras_iodev* iodev) {
   iodev->supported_rates = NULL;
   free(iodev->supported_formats);
   iodev->supported_formats = NULL;
-  return cras_floss_hfp_fill_format(hfpio->hfp, &iodev->supported_rates,
-                                    &iodev->supported_formats,
-                                    &iodev->supported_channel_counts);
+  int err = cras_floss_hfp_fill_format(hfpio->hfp, &iodev->supported_rates,
+                                       &iodev->supported_formats,
+                                       &iodev->supported_channel_counts);
+  if (!err && hfpio->sr) {
+    iodev->supported_rates[0] = 24000;  // 24k is the target sample rate of sr.
+  }
+  return err;
 }
 
 static unsigned int bt_local_queued_frames(const struct cras_iodev* iodev) {
@@ -424,6 +434,12 @@ static int hfp_write(struct fl_pcm_io* odev, size_t target_len) {
   return 0;
 }
 
+static void swap_pcm_buf_and_sr_buf(struct fl_pcm_io* fl_pcm_io) {
+  struct byte_buffer* tmp = fl_pcm_io->sr_buf;
+  fl_pcm_io->sr_buf = fl_pcm_io->pcm_buf;
+  fl_pcm_io->pcm_buf = tmp;
+}
+
 static int hfp_socket_read_write_cb(void* arg, int revents) {
   int rc;
   struct cras_hfp* hfp = (struct cras_hfp*)arg;
@@ -441,9 +457,18 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
 
   // Allow last read before handling error or hang-up events.
   if (revents & POLLIN) {
-    rc = hfp_read(idev);
+    if (idev->sr) {
+      swap_pcm_buf_and_sr_buf(idev);
+      rc = hfp_read(idev);
+      swap_pcm_buf_and_sr_buf(idev);
+    } else {
+      rc = hfp_read(idev);
+    }
     if (rc) {
       return rc;
+    }
+    if (idev->sr) {
+      cras_sr_process(idev->sr, idev->sr_buf, idev->pcm_buf);
     }
   }
   if (revents & (POLLERR | POLLHUP)) {
@@ -470,6 +495,91 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
   return rc;
 }
 
+static void fl_pcm_io_disable_cras_sr_bt(struct fl_pcm_io* fl_pcm_io) {
+  byte_buffer_destroy(&fl_pcm_io->sr_buf);
+  cras_sr_destroy(fl_pcm_io->sr);
+  fl_pcm_io->sr = NULL;
+}
+
+static int fl_pcm_io_enable_cras_sr_bt(struct fl_pcm_io* fl_pcm_io,
+                                       enum cras_sr_bt_model model) {
+  int rc = 0;
+
+  fl_pcm_io->sr_buf = byte_buffer_create(FLOSS_HFP_MAX_BUF_SIZE_BYTES);
+  if (!fl_pcm_io->sr_buf) {
+    syslog(LOG_ERR, "byte_buffer_create failed.");
+    rc = -ENOMEM;
+    goto fl_pcm_io_enable_cras_sr_bt_failed;
+  }
+
+  fl_pcm_io->sr = cras_sr_create(cras_sr_bt_get_model_spec(model),
+                                 buf_available(fl_pcm_io->sr_buf));
+  if (!fl_pcm_io->sr) {
+    syslog(LOG_WARNING, "cras_sr_create failed.");
+    rc = -ENOENT;
+    goto fl_pcm_io_enable_cras_sr_bt_failed;
+  }
+
+  return 0;
+
+fl_pcm_io_enable_cras_sr_bt_failed:
+  fl_pcm_io_disable_cras_sr_bt(fl_pcm_io);
+  return rc;
+}
+
+/* Handles cras sr bt enabling and disabling cases.
+ *
+ * Note that the device can be used, whether cras sr bt is enabled or not.
+ *
+ * Args:
+ *    iodev: the hfp iodev.
+ *    status: the result of cras_sr_bt_can_be_enabled().
+ */
+static void handle_cras_sr_bt_enable_disable(
+    struct cras_iodev* iodev,
+    const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status) {
+  struct fl_pcm_io* fl_pcm_io = (struct fl_pcm_io*)iodev;
+
+  if (iodev->direction == CRAS_STREAM_INPUT &&
+      status == CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK) {
+    // wbs_supported is set in cras_floss_hfp_start.
+    int err = fl_pcm_io_enable_cras_sr_bt(
+        fl_pcm_io, cras_floss_hfp_get_wbs_supported(fl_pcm_io->hfp)
+                       ? SR_BT_WBS
+                       : SR_BT_NBS);
+    if (err < 0) {
+      syslog(LOG_WARNING,
+             "cras_sr is disabled due to fl_pcm_io_enable_cras_sr_bt failed");
+      fl_pcm_io_disable_cras_sr_bt(fl_pcm_io);
+    }
+  } else {
+    fl_pcm_io_disable_cras_sr_bt(fl_pcm_io);
+  }
+}
+
+static inline void handle_cras_sr_bt_uma_log(
+    struct cras_iodev* iodev,
+    const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status) {
+  if (iodev->direction != CRAS_STREAM_INPUT) {
+    return;
+  }
+
+  struct fl_pcm_io* fl_pcm_io = (struct fl_pcm_io*)iodev;
+  cras_sr_bt_send_uma_log(iodev, status, fl_pcm_io->sr != NULL);
+}
+
+/* Handles cras sr bt enabling and disabling cases and also uma logs.
+ *
+ * Args:
+ *    iodev: the hfp iodev.
+ */
+static void handle_cras_sr_bt(struct cras_iodev* iodev) {
+  const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status =
+      cras_sr_bt_can_be_enabled();
+  handle_cras_sr_bt_enable_disable(iodev, status);
+  handle_cras_sr_bt_uma_log(iodev, status);
+}
+
 static int hfp_open_dev(struct cras_iodev* iodev) {
   struct fl_pcm_io* hfpio = (struct fl_pcm_io*)iodev;
   int rc;
@@ -480,6 +590,8 @@ static int hfp_open_dev(struct cras_iodev* iodev) {
     syslog(LOG_WARNING, "HFP failed to start");
     return rc;
   }
+
+  handle_cras_sr_bt(iodev);
 
   if (iodev->direction == CRAS_STREAM_INPUT &&
       !cras_floss_hfp_get_wbs_supported(hfpio->hfp)) {
@@ -545,6 +657,7 @@ static int hfp_close_dev(struct cras_iodev* iodev) {
 
   cras_iodev_free_format(iodev);
   cras_iodev_free_audio_area(iodev);
+  fl_pcm_io_disable_cras_sr_bt(hfpio);
   return 0;
 }
 

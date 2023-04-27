@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "cras/include/cras_types.h"
+
 extern "C" {
 // To test static functions.
 #include "cras/src/server/audio_thread.h"
@@ -15,6 +17,8 @@ extern "C" {
 #include "cras/src/server/cras_fl_pcm_iodev.c"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "sr_bt_util_stub.h"
+#include "sr_stub.h"
 #include "third_party/utlist/utlist.h"
 }
 
@@ -81,11 +85,6 @@ void ResetStubData() {
   audio_thread_config_events_callback_trigger = TRIGGER_NONE;
   cras_floss_a2dp_fill_format_called = 0;
   cras_floss_hfp_fill_format_called = 0;
-  if (!mock_audio_area) {
-    mock_audio_area = (cras_audio_area*)calloc(
-        1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
-  }
-  btlog = cras_bt_event_log_init();
 }
 
 int iodev_set_format(struct cras_iodev* iodev, struct cras_audio_format* fmt) {
@@ -117,10 +116,14 @@ class PcmIodev : public testing::Test {
  protected:
   virtual void SetUp() {
     ResetStubData();
+    mock_audio_area = (cras_audio_area*)calloc(
+        1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
     atlog = (audio_thread_event_log*)calloc(1, sizeof(audio_thread_event_log));
+    btlog = cras_bt_event_log_init();
   }
 
   virtual void TearDown() {
+    free(mock_audio_area);
     free(atlog);
     cras_bt_event_log_deinit(btlog);
   }
@@ -420,7 +423,135 @@ TEST_F(PcmIodev, TestHfpCb) {
   EXPECT_EQ(-EPIPE, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
   EXPECT_EQ(NULL, write_callback);
   EXPECT_EQ(NULL, write_callback_data);
+
+  hfp_pcm_iodev_destroy(cras_floss_hfp_get_output_iodev_ret);
+  hfp_pcm_iodev_destroy(cras_floss_hfp_get_input_iodev_ret);
 }
+
+TEST_F(PcmIodev, TestHfpCbWithSr) {
+  int rc;
+  int sock[2];
+  uint8_t sample[200], buf[200];
+  struct cras_iodev* odev;
+  struct fl_pcm_io *pcm_odev, *pcm_idev;
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  cras_floss_hfp_get_fd_ret = sock[1];
+  cras_floss_hfp_get_output_iodev_ret =
+      hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
+  cras_floss_hfp_get_input_iodev_ret =
+      hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
+
+  odev = cras_floss_hfp_get_output_iodev_ret;
+  iodev_set_hfp_format(odev, &format);
+  odev->configure_dev(odev);
+
+  pcm_odev = (fl_pcm_io*)odev;
+  pcm_idev = (fl_pcm_io*)cras_floss_hfp_get_input_iodev_ret;
+  pcm_idev->sr_buf = byte_buffer_create(100);
+  pcm_idev->sr = cras_sr_create(
+      {.input_sample_rate = 8000, .output_sample_rate = 24000}, 100);
+
+  pcm_odev->started = pcm_idev->started = 1;
+
+  EXPECT_EQ(-EPIPE, hfp_socket_read_write_cb((void*)NULL, POLLERR));
+
+  /* Output device should try to write the same number of bytes as input device
+   * read. */
+  send(sock[0], sample, 100, 0);
+  buf_increment_write(pcm_odev->pcm_buf, 150);
+  rc = hfp_socket_read_write_cb((void*)NULL, POLLIN);
+  EXPECT_EQ(0, rc);
+
+  EXPECT_EQ(300, buf_readable(pcm_idev->pcm_buf));
+  EXPECT_EQ(50, buf_readable(pcm_odev->pcm_buf));
+  rc = recv(sock[0], buf, 200, 0);
+  EXPECT_EQ(100, rc);
+
+  // After POLLHUP the cb should be removed.
+  EXPECT_EQ(-EPIPE, hfp_socket_read_write_cb((void*)NULL, POLLHUP));
+  EXPECT_EQ(NULL, write_callback);
+  EXPECT_EQ(NULL, write_callback_data);
+
+  byte_buffer_destroy(&pcm_idev->sr_buf);
+  cras_sr_destroy(pcm_idev->sr);
+  hfp_pcm_iodev_destroy(cras_floss_hfp_get_output_iodev_ret);
+  hfp_pcm_iodev_destroy(cras_floss_hfp_get_input_iodev_ret);
+}
+
+struct PcmIodevWithSrTestParam {
+  bool is_cras_sr_enabled;
+  bool is_wbs_enabled;
+  enum CRAS_STREAM_DIRECTION direction;
+  size_t expected_sample_rate;
+};
+
+class PcmIodevWithSrTest
+    : public testing::TestWithParam<PcmIodevWithSrTestParam> {
+ protected:
+  virtual void SetUp() {
+    ResetStubData();
+
+    if (GetParam().is_cras_sr_enabled) {
+      enable_cras_sr_bt();
+    } else {
+      disable_cras_sr_bt();
+    }
+    cras_floss_hfp_get_wbs_supported_ret = GetParam().is_wbs_enabled;
+  }
+
+  virtual void TearDown() { disable_cras_sr_bt(); }
+};
+
+TEST_P(PcmIodevWithSrTest, CreateDestroyHfpPcmIodev) {
+  struct cras_iodev* iodev = hfp_pcm_iodev_create(NULL, GetParam().direction);
+  ASSERT_NE(iodev, (void*)NULL);
+
+  iodev->open_dev(iodev);
+  iodev->update_supported_formats(iodev);
+
+  EXPECT_EQ(GetParam().expected_sample_rate, iodev->supported_rates[0]);
+  iodev->close_dev(iodev);
+
+  hfp_pcm_iodev_destroy(iodev);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    PcmIodevWithSrTest,
+    testing::Values(PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
+                                             .is_wbs_enabled = false,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 8000}),
+                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
+                                             .is_wbs_enabled = false,
+                                             .direction = CRAS_STREAM_OUTPUT,
+                                             .expected_sample_rate = 8000}),
+                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
+                                             .is_wbs_enabled = true,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 16000}),
+                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
+                                             .is_wbs_enabled = true,
+                                             .direction = CRAS_STREAM_OUTPUT,
+                                             .expected_sample_rate = 16000}),
+                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = false,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 24000}),
+                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = false,
+                                             .direction = CRAS_STREAM_OUTPUT,
+                                             .expected_sample_rate = 8000}),
+                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = true,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 24000}),
+                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = true,
+                                             .direction = CRAS_STREAM_OUTPUT,
+                                             .expected_sample_rate = 16000})));
+
 }  // namespace
 
 extern "C" {
@@ -626,6 +757,8 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
                                size_t** channel_counts) {
   cras_floss_hfp_fill_format_called++;
   *rates = (size_t*)malloc(sizeof(**rates));
+  **rates = cras_floss_hfp_get_wbs_supported(hfp) ? 16000 : 8000;
+
   *formats = (snd_pcm_format_t*)malloc(sizeof(**formats));
   *channel_counts = (size_t*)malloc(sizeof(**channel_counts));
   return 0;
