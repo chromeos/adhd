@@ -2068,6 +2068,15 @@ static int usb_alsa_iodev_set_active_node(struct cras_iodev* iodev,
   }
 
   cras_iodev_set_active_node(iodev, ionode);
+  syslog(LOG_INFO,
+         "card type: %s, Set active node. name: %s, id: %d, direction: %s, "
+         "enable software volume: %d, intrinsic_sensitivity: %ld, volume: %d, "
+         "number_of_volume_steps: %d",
+         cras_card_type_to_string(aio->common.card_type), ionode->name,
+         ionode->idx,
+         iodev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
+         ionode->software_volume_needed, ionode->intrinsic_sensitivity,
+         ionode->volume, ionode->number_of_volume_steps);
   cras_iodev_update_dsp(iodev);
 skip:
   usb_enable_active_ucm(aio, dev_enabled);
