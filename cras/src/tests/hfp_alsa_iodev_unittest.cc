@@ -25,6 +25,7 @@ struct hfp_alsa_io {
 static struct cras_sco* fake_sco;
 static struct cras_iodev fake_sco_out, fake_sco_in;
 static struct cras_bt_device* fake_device;
+static struct cras_hfp* fake_hfp;
 static struct hfp_slc_handle* fake_slc;
 static struct cras_audio_format fake_format;
 
@@ -39,6 +40,7 @@ static size_t cras_iodev_set_format_called;
 static size_t hfp_set_call_status_called;
 static size_t hfp_event_speaker_gain_called;
 static int hfp_slc_get_selected_codec_return_val;
+static bool cras_floss_hfp_get_wbs_supported_return_val;
 static int cras_iodev_sr_bt_adapter_create_called;
 static int cras_iodev_sr_bt_adapter_destroy_called;
 static int cras_iodev_sr_bt_adapter_frames_queued_called;
@@ -94,6 +96,7 @@ static void ResetStubData() {
   hfp_set_call_status_called = 0;
   hfp_event_speaker_gain_called = 0;
   hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_CVSD;
+  cras_floss_hfp_get_wbs_supported_return_val = false;
   cras_iodev_sr_bt_adapter_create_called = 0;
   cras_iodev_sr_bt_adapter_destroy_called = 0;
   cras_iodev_sr_bt_adapter_frames_queued_called = 0;
@@ -105,6 +108,7 @@ static void ResetStubData() {
   fake_sco = reinterpret_cast<struct cras_sco*>(0x123);
   fake_device = reinterpret_cast<struct cras_bt_device*>(0x234);
   fake_slc = reinterpret_cast<struct hfp_slc_handle*>(0x345);
+  fake_hfp = NULL;
 
   memset(&fake_sco_out, 0x00, sizeof(fake_sco_out));
 
@@ -486,6 +490,7 @@ TEST_F(HfpAlsaIodev, GetValidFrames) {
 struct HfpAlsaIodevSrTestParam {
   bool is_cras_sr_enabled;
   bool is_wbs_enabled;
+  bool is_offload;
   enum CRAS_STREAM_DIRECTION direction;
   size_t expected_sample_rate;
 };
@@ -504,8 +509,18 @@ class HfpAlsaIodevSrTest
 
     if (GetParam().is_wbs_enabled) {
       hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_MSBC;
+      cras_floss_hfp_get_wbs_supported_return_val = true;
     } else {
       hfp_slc_get_selected_codec_return_val = HFP_CODEC_ID_CVSD;
+      cras_floss_hfp_get_wbs_supported_return_val = false;
+    }
+
+    if (GetParam().is_offload) {
+      fake_device = NULL;
+      fake_hfp = reinterpret_cast<struct cras_hfp*>(0x234);
+    } else {
+      fake_device = reinterpret_cast<struct cras_bt_device*>(0x234);
+      fake_hfp = NULL;
     }
   }
 
@@ -518,7 +533,7 @@ TEST_P(HfpAlsaIodevSrTest, TestSampleRate) {
 
   fake_sco_in.direction = param.direction;
   iodev = hfp_alsa_iodev_create(&fake_sco_in, fake_device, fake_slc, fake_sco,
-                                NULL);
+                                fake_hfp);
 
   iodev->open_dev(iodev);
   EXPECT_EQ(
@@ -537,20 +552,46 @@ INSTANTIATE_TEST_SUITE_P(
     HfpAlsaIodevSrTest,
     testing::Values(HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
                                              .is_wbs_enabled = false,
+                                             .is_offload = false,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 8000}),
+                    HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
+                                             .is_wbs_enabled = true,
+                                             .is_offload = false,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 16000}),
+                    HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
+                                             .is_wbs_enabled = false,
+                                             .is_offload = true,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 8000}),
+                    HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = false,
+                                             .is_wbs_enabled = true,
+                                             .is_offload = true,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 16000}),
+                    // sr enabled
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
                                              .is_wbs_enabled = false,
+                                             .is_offload = false,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 24000}),
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
                                              .is_wbs_enabled = true,
+                                             .is_offload = false,
+                                             .direction = CRAS_STREAM_INPUT,
+                                             .expected_sample_rate = 24000}),
+                    HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
+                                             .is_wbs_enabled = false,
+                                             .is_offload = true,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 24000}),
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
                                              .is_wbs_enabled = true,
+                                             .is_offload = true,
                                              .direction = CRAS_STREAM_INPUT,
                                              .expected_sample_rate = 24000}),
+                    // output
                     HfpAlsaIodevSrTestParam({.is_cras_sr_enabled = true,
                                              .is_wbs_enabled = true,
                                              .direction = CRAS_STREAM_OUTPUT,
@@ -725,7 +766,7 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
 void cras_floss_hfp_set_volume(struct cras_hfp* hfp, unsigned int volume) {}
 
 bool cras_floss_hfp_get_wbs_supported(struct cras_hfp* hfp) {
-  return true;
+  return cras_floss_hfp_get_wbs_supported_return_val;
 }
 
 const char* cras_floss_hfp_get_display_name(struct cras_hfp* hfp) {

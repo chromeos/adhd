@@ -59,6 +59,7 @@ static int hfp_alsa_get_valid_frames(struct cras_iodev* iodev,
   return aio->get_valid_frames(aio, hw_tstamp);
 }
 
+static inline size_t hfp_alsa_get_device_sample_rate(struct cras_iodev* iodev);
 /* Tries to enable cras sr bt
  * If success, the hfp_alsa_io->sr_bt field will be set.
  * Otherwise, it will be NULL.
@@ -72,8 +73,7 @@ static void hfp_alsa_enable_sr_bt(struct cras_iodev* iodev) {
 
   struct cras_sr* sr = NULL;
   sr = cras_sr_create(
-      cras_sr_bt_get_model_spec(hfp_slc_get_selected_codec(hfp_alsa_io->slc) ==
-                                        HFP_CODEC_ID_MSBC
+      cras_sr_bt_get_model_spec(hfp_alsa_get_device_sample_rate(iodev) == 16000
                                     ? SR_BT_WBS
                                     : SR_BT_NBS),
       28800);
@@ -162,12 +162,12 @@ static int hfp_alsa_open_dev(struct cras_iodev* iodev) {
     }
 
     cras_sco_set_fd(hfp_alsa_io->sco, rc);
-
-    hfp_alsa_handle_cras_sr_bt(iodev);
   } else {
     thread_callback empty_cb = NULL;
     cras_floss_hfp_start(hfp_alsa_io->hfp, empty_cb, iodev->direction);
   }
+
+  hfp_alsa_handle_cras_sr_bt(iodev);
 
   return 0;
 }
