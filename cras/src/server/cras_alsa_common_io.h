@@ -156,5 +156,6 @@ enum CRAS_IONODE_NC_PROVIDER cras_alsa_common_get_nc_provider(
 int cras_alsa_common_set_hwparams(struct cras_iodev* iodev, int period_wakeup);
 int cras_alsa_common_frames_queued(const struct cras_iodev* iodev,
                                    struct timespec* tstamp);
-
+int cras_alsa_common_set_active_node(struct cras_iodev* iodev,
+                                     struct cras_ionode* ionode);
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_COMMON_IO_H_

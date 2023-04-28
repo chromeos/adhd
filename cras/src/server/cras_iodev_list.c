@@ -303,64 +303,6 @@ static void fill_dev_list(struct iodev_list* list,
   }
 }
 
-static const char* node_type_to_str(struct cras_ionode* node) {
-  switch (node->type) {
-    case CRAS_NODE_TYPE_INTERNAL_SPEAKER:
-      return "INTERNAL_SPEAKER";
-    case CRAS_NODE_TYPE_HEADPHONE:
-      return "HEADPHONE";
-    case CRAS_NODE_TYPE_HDMI:
-      return "HDMI";
-    case CRAS_NODE_TYPE_HAPTIC:
-      return "HAPTIC";
-    case CRAS_NODE_TYPE_MIC:
-      switch (node->position) {
-        case NODE_POSITION_INTERNAL:
-          return "INTERNAL_MIC";
-        case NODE_POSITION_FRONT:
-          return "FRONT_MIC";
-        case NODE_POSITION_REAR:
-          return "REAR_MIC";
-        case NODE_POSITION_KEYBOARD:
-          return "KEYBOARD_MIC";
-        case NODE_POSITION_EXTERNAL:
-        default:
-          return "MIC";
-      }
-    case CRAS_NODE_TYPE_HOTWORD:
-      return "HOTWORD";
-    case CRAS_NODE_TYPE_LINEOUT:
-      return "LINEOUT";
-    case CRAS_NODE_TYPE_POST_MIX_PRE_DSP:
-      return "POST_MIX_LOOPBACK";
-    case CRAS_NODE_TYPE_POST_DSP:
-      return "POST_DSP_LOOPBACK";
-    case CRAS_NODE_TYPE_POST_DSP_DELAYED:
-      return "POST_DSP_DELAYED_LOOPBACK";
-    case CRAS_NODE_TYPE_USB:
-      return "USB";
-    case CRAS_NODE_TYPE_BLUETOOTH:
-      return "BLUETOOTH";
-    case CRAS_NODE_TYPE_BLUETOOTH_NB_MIC:
-      return "BLUETOOTH_NB_MIC";
-    case CRAS_NODE_TYPE_FALLBACK_NORMAL:
-      return "FALLBACK_NORMAL";
-    case CRAS_NODE_TYPE_FALLBACK_ABNORMAL:
-      return "FALLBACK_ABNORMAL";
-    case CRAS_NODE_TYPE_ECHO_REFERENCE:
-      return "ECHO_REFERENCE";
-    case CRAS_NODE_TYPE_ALSA_LOOPBACK:
-      return "ALSA_LOOPBACK";
-    case CRAS_NODE_TYPE_FLOOP:
-      return "FLEXIBLE_LOOPBACK";
-    case CRAS_NODE_TYPE_FLOOP_INTERNAL:
-      return "FLEXIBLE_LOOPBACK_INTERNAL";
-    case CRAS_NODE_TYPE_UNKNOWN:
-    default:
-      return "UNKNOWN";
-  }
-}
-
 // Fills an ionode_info array from the iodev_list.
 static int fill_node_list(struct iodev_list* list,
                           struct cras_ionode_info node_info[],
@@ -392,7 +334,7 @@ static int fill_node_list(struct iodev_list* list,
       strlcpy(node_info->active_hotword_model, node->active_hotword_model,
               sizeof(node_info->active_hotword_model));
       snprintf(node_info->type, sizeof(node_info->type), "%s",
-               node_type_to_str(node));
+               cras_node_type_to_str(node->type, node->position));
       node_info->type_enum = node->type;
       node_info->audio_effect = 0;
       if ((dsp_nc_allowed &&

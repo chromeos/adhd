@@ -2522,7 +2522,7 @@ static int alsa_iodev_set_active_node(struct cras_iodev* iodev,
     alsa_iodev_unmute_node(aio, ionode);
   }
 
-  cras_iodev_set_active_node(iodev, ionode);
+  cras_alsa_common_set_active_node(iodev, ionode);
   aio->common.base.dsp_name = get_active_dsp_name(aio);
   cras_iodev_update_dsp(iodev);
 skip:
