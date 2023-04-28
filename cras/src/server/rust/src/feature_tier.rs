@@ -15,19 +15,25 @@ impl CrasFeatureTier {
         Self {
             sr_bt_supported: match board_name {
                 "eve" | "soraka" | "nautilus" | "nami" | "atlas" | "nocturne" | "rammus"
-                | "fizz" => {
-                    let cpu_name_lowercase = cpu_name.to_lowercase();
-                    !cpu_name_lowercase.contains("celeron")
-                        && !cpu_name_lowercase.contains("pentium")
-                }
+                | "fizz" => !has_substr(cpu_name, &["celeron", "pentium"]),
                 _ => false,
             },
         }
     }
 }
 
+// Returns true only if `string` contains any substring in `substrings`.
+// Note that it's case-insensitive.
+fn has_substr(string: &str, substrings: &[&str]) -> bool {
+    let string_lowercase = string.to_lowercase();
+    substrings
+        .iter()
+        .any(|&substr| string_lowercase.contains(&substr.to_lowercase()))
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::feature_tier::has_substr;
     use crate::feature_tier::CrasFeatureTier;
 
     #[test]
@@ -52,6 +58,12 @@ mod tests {
     fn nami_pentium() {
         let tier = CrasFeatureTier::new("nami", "PENTIUM-4417U");
         assert_eq!(tier.sr_bt_supported, false);
+    }
+
+    #[test]
+    fn check_has_substr() {
+        assert_eq!(has_substr("DisalLoWed", &["abc", "Dis"]), true);
+        assert_eq!(has_substr("DisalLoWed", &["abc"]), false);
     }
 }
 
