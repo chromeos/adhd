@@ -206,9 +206,10 @@ static int usb_configure_dev(struct cras_iodev* iodev) {
 
   cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 
-  syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
-         aio->common.pcm_name, iodev->format->frame_rate,
-         iodev->format->num_channels);
+  syslog(LOG_DEBUG,
+         "card type: %s, Configure alsa device %s rate %zuHz, %zu channels",
+         cras_card_type_to_string(aio->common.card_type), aio->common.pcm_name,
+         iodev->format->frame_rate, iodev->format->num_channels);
 
   rc = usb_set_hwparams(iodev);
   if (rc < 0) {
@@ -236,8 +237,9 @@ static int usb_configure_dev(struct cras_iodev* iodev) {
   if (aio->common.alsa_stream == SND_PCM_STREAM_CAPTURE) {
     rc = cras_alsa_pcm_start(aio->common.handle);
     if (rc < 0) {
-      syslog(LOG_ERR, "PCM %s Failed to start, ret: %s\n", aio->common.pcm_name,
-             snd_strerror(rc));
+      syslog(LOG_ERR, "card type: %s, PCM %s Failed to start, ret: %s\n",
+             cras_card_type_to_string(aio->common.card_type),
+             aio->common.pcm_name, snd_strerror(rc));
     }
   }
 
@@ -269,14 +271,16 @@ static int usb_start(struct cras_iodev* iodev) {
   if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
     rc = cras_alsa_attempt_resume(handle);
     if (rc < 0) {
-      syslog(LOG_ERR, "Resume error: %s", snd_strerror(rc));
+      syslog(LOG_ERR, "card type: %s, Resume error: %s",
+             cras_card_type_to_string(aio->common.card_type), snd_strerror(rc));
       return rc;
     }
     cras_iodev_reset_rate_estimator(iodev);
   } else {
     rc = cras_alsa_pcm_start(handle);
     if (rc < 0) {
-      syslog(LOG_ERR, "Start error: %s", snd_strerror(rc));
+      syslog(LOG_ERR, "card type: %s, Start error: %s",
+             cras_card_type_to_string(aio->common.card_type), snd_strerror(rc));
       return rc;
     }
   }
@@ -677,9 +681,10 @@ static void usb_set_output_node_software_volume_needed(
       volume_range_db > db_to_alsa_db(VOLUME_RANGE_DB_MAX)) {
     output->base.software_volume_needed = 1;
     syslog(LOG_WARNING,
-           "%s' output volume range [%ld %ld] is abnormal."
+           "card type: %s, %s output volume range [%ld %ld] is abnormal."
            "Fallback to software volume",
-           output->base.name, min, max);
+           cras_card_type_to_string(aio->common.card_type), output->base.name,
+           min, max);
   }
   number_of_volume_steps =
       cras_alsa_mixer_get_playback_step(output->mixer_output);
@@ -687,14 +692,15 @@ static void usb_set_output_node_software_volume_needed(
     output->base.software_volume_needed = 1;
     output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
     syslog(LOG_WARNING,
-           "%s output number_of_volume_steps [%" PRId32
+           "card type: %s, %s output number_of_volume_steps [%" PRId32
            "] is abnormally small."
            "Fallback to software volume and set number_of_volume_steps to %d",
-           output->base.name, number_of_volume_steps,
-           NUMBER_OF_VOLUME_STEPS_DEFAULT);
+           cras_card_type_to_string(aio->common.card_type), output->base.name,
+           number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_DEFAULT);
   }
   if (output->base.software_volume_needed) {
-    syslog(LOG_DEBUG, "Use software volume for node: %s", output->base.name);
+    syslog(LOG_DEBUG, "card type: %s, Use software volume for node: %s",
+           cras_card_type_to_string(aio->common.card_type), output->base.name);
   }
 }
 
@@ -739,8 +745,10 @@ static void usb_set_input_node_intrinsic_sensitivity(
   input->base.intrinsic_sensitivity = sensitivity;
   input->base.capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
   syslog(LOG_INFO,
-         "Use software gain %ld for %s because IntrinsicSensitivity %ld is"
+         "card type: %s, Use software gain %ld for %s because "
+         "IntrinsicSensitivity %ld is"
          " specified in UCM",
+         cras_card_type_to_string(aio->common.card_type),
          input->base.capture_gain, input->base.name, sensitivity);
 }
 
@@ -784,14 +792,17 @@ static struct alsa_usb_output_node* usb_new_output(
   int32_t number_of_volume_steps;
   unsigned int disable_software_volume = 0;
 
-  syslog(LOG_DEBUG, "New output node for '%s'", name);
+  syslog(LOG_DEBUG, "card type: %s, New output node for '%s'",
+         cras_card_type_to_string(aio->common.card_type), name);
   if (aio == NULL) {
-    syslog(LOG_ERR, "Invalid aio when listing outputs.");
+    syslog(LOG_ERR, "card type: %s, Invalid aio when listing outputs.",
+           cras_card_type_to_string(aio->common.card_type));
     return NULL;
   }
   output = (struct alsa_usb_output_node*)calloc(1, sizeof(*output));
   if (output == NULL) {
-    syslog(LOG_ERR, "Out of memory when listing outputs.");
+    syslog(LOG_ERR, "card type: %s, Out of memory when listing outputs.",
+           cras_card_type_to_string(aio->common.card_type));
     return NULL;
   }
   output->base.dev = &aio->common.base;
@@ -812,7 +823,8 @@ static struct alsa_usb_output_node* usb_new_output(
   if (!curve) {
     cras_alsa_mixer_get_playback_dBFS_range(aio->common.mixer, cras_control,
                                             &max_volume, &min_volume);
-    syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", name, min_volume,
+    syslog(LOG_DEBUG, "card type: %s, %s's output volume range: [%ld %ld]",
+           cras_card_type_to_string(aio->common.card_type), name, min_volume,
            max_volume);
     long long volume_range_db = max_volume - min_volume;
     /* if we specified to disable sw volume or your headset volume
@@ -832,8 +844,8 @@ static struct alsa_usb_output_node* usb_new_output(
   strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
   usb_set_node_initial_state(&output->base);
   if (disable_software_volume) {
-    syslog(LOG_DEBUG, "Disable software volume for %s from ucm.",
-           output->base.name);
+    syslog(LOG_DEBUG, "card type: %s, Disable software volume for %s from ucm.",
+           cras_card_type_to_string(aio->common.card_type), output->base.name);
   } else {
     usb_set_output_node_software_volume_needed(output, aio);
   }
@@ -893,7 +905,8 @@ static struct alsa_usb_input_node* usb_new_input(
 
   input = (struct alsa_usb_input_node*)calloc(1, sizeof(*input));
   if (input == NULL) {
-    syslog(LOG_ERR, "Out of memory when listing inputs.");
+    syslog(LOG_ERR, "card type: %s, Out of memory when listing inputs.",
+           cras_card_type_to_string(aio->common.card_type));
     return NULL;
   }
   input->base.dev = &aio->common.base;
@@ -1058,9 +1071,11 @@ static void usb_update_max_supported_channels(struct cras_iodev* iodev) {
   }
 
   if (aio->common.handle) {
-    syslog(LOG_ERR,
-           "usb_update_max_supported_channels should not be called "
-           "while device is opened.");
+    syslog(
+        LOG_ERR,
+        "card type: %s, usb_update_max_supported_channels should not be called "
+        "while device is opened.",
+        cras_card_type_to_string(aio->common.card_type));
     return;
   }
 
@@ -1075,7 +1090,9 @@ static void usb_update_max_supported_channels(struct cras_iodev* iodev) {
       goto update_info;
     }
     iodev->active_node = iodev->nodes;
-    syslog(LOG_DEBUG, "Predict ionode %s as active node temporarily.",
+    syslog(LOG_DEBUG,
+           "card type: %s, Predict ionode %s as active node temporarily.",
+           cras_card_type_to_string(aio->common.card_type),
            iodev->active_node->name);
     active_node_predicted = true;
   }
@@ -1131,7 +1148,8 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
   if (node == NULL) {
     if (aio->common.fully_specified) {
       // When fully specified, can't have new nodes.
-      syslog(LOG_ERR, "No matching output node for jack %s!", jack_name);
+      syslog(LOG_ERR, "card type: %s, No matching output node for jack %s!",
+             cras_card_type_to_string(aio->common.card_type), jack_name);
       return;
     }
     node = usb_new_output(aio, NULL, jack_name);
@@ -1145,9 +1163,10 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
   if (!node->jack) {
     if (aio->common.fully_specified) {
       syslog(LOG_ERR,
-             "Jack '%s' was found to match output node '%s'."
+             "card type: %s, Jack '%s' was found to match output node '%s'."
              " Please fix your UCM configuration to match.",
-             jack_name, node->base.ucm_name);
+             cras_card_type_to_string(aio->common.card_type), jack_name,
+             node->base.ucm_name);
     }
 
     // If we already have the node, associate with the jack.
@@ -1158,7 +1177,8 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
     }
   }
 
-  syslog(LOG_DEBUG, "%s plugged: %d, %s", jack_name, plugged,
+  syslog(LOG_DEBUG, "card type: %s, %s plugged: %d, %s",
+         cras_card_type_to_string(aio->common.card_type), jack_name, plugged,
          cras_alsa_mixer_get_control_name(node->mixer_output));
 
   cras_alsa_jack_update_monitor_name(jack, node->base.name,
@@ -1195,7 +1215,8 @@ static void usb_jack_input_plug_event(const struct cras_alsa_jack* jack,
   if (node == NULL) {
     if (aio->common.fully_specified) {
       // When fully specified, can't have new nodes.
-      syslog(LOG_ERR, "No matching input node for jack %s!", jack_name);
+      syslog(LOG_ERR, "card type: %s, No matching input node for jack %s!",
+             cras_card_type_to_string(aio->common.card_type), jack_name);
       return;
     }
     cras_input = cras_alsa_jack_get_mixer_input(jack);
@@ -1205,16 +1226,18 @@ static void usb_jack_input_plug_event(const struct cras_alsa_jack* jack,
     }
   }
 
-  syslog(LOG_DEBUG, "%s plugged: %d, %s", jack_name, plugged,
+  syslog(LOG_DEBUG, "card type: %s, %s plugged: %d, %s",
+         cras_card_type_to_string(aio->common.card_type), jack_name, plugged,
          cras_alsa_mixer_get_control_name(node->mixer_input));
 
   // If we already have the node, associate with the jack.
   if (!node->jack) {
     if (aio->common.fully_specified) {
       syslog(LOG_ERR,
-             "Jack '%s' was found to match input node '%s'."
+             "card type: %s, Jack '%s' was found to match input node '%s'."
              " Please fix your UCM configuration to match.",
-             jack_name, node->base.ucm_name);
+             cras_card_type_to_string(aio->common.card_type), jack_name,
+             node->base.ucm_name);
     }
     node->jack = jack;
   }
@@ -1237,10 +1260,12 @@ static void usb_set_iodev_name(struct cras_iodev* dev,
                                size_t usb_vid,
                                size_t usb_pid,
                                char* usb_serial_number) {
+  struct alsa_usb_io* aio = (struct alsa_usb_io*)dev;
   snprintf(dev->info.name, sizeof(dev->info.name), "%s: %s:%zu,%zu", card_name,
            dev_name, card_index, device_index);
   dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
-  syslog(LOG_DEBUG, "Add device name=%s", dev->info.name);
+  syslog(LOG_DEBUG, "card type: %s, Add device name=%s",
+         cras_card_type_to_string(aio->common.card_type), dev->info.name);
 
   dev->info.stable_id =
       SuperFastHash(card_name, strlen(card_name), strlen(card_name));
@@ -1253,7 +1278,8 @@ static void usb_set_iodev_name(struct cras_iodev* dev,
                                       dev->info.stable_id);
   dev->info.stable_id = SuperFastHash(
       usb_serial_number, strlen(usb_serial_number), dev->info.stable_id);
-  syslog(LOG_DEBUG, "Stable ID=%08x", dev->info.stable_id);
+  syslog(LOG_DEBUG, "card type: %s, Stable ID=%08x",
+         cras_card_type_to_string(aio->common.card_type), dev->info.stable_id);
 }
 
 static int usb_get_fixed_rate(struct alsa_usb_io* aio) {
@@ -1402,7 +1428,8 @@ static int usb_fill_whole_buffer_with_zeros(struct cras_iodev* iodev) {
   rc = cras_alsa_mmap_get_whole_buffer(aio->common.handle, &dst);
 
   if (rc < 0) {
-    syslog(LOG_WARNING, "Failed to get whole buffer: %s", snd_strerror(rc));
+    syslog(LOG_WARNING, "card type: %s, Failed to get whole buffer: %s",
+           cras_card_type_to_string(aio->common.card_type), snd_strerror(rc));
     return rc;
   }
 
@@ -1570,8 +1597,10 @@ static int usb_leave_free_run(struct cras_iodev* odev) {
     rc = usb_adjust_appl_ptr_samples_remaining(odev);
   }
   if (rc) {
-    syslog(LOG_WARNING, "device %s failed to leave free run, rc = %d",
-           odev->info.name, rc);
+    syslog(LOG_WARNING,
+           "card type: %s, device %s failed to leave free run, rc = %d",
+           cras_card_type_to_string(aio->common.card_type), odev->info.name,
+           rc);
     return rc;
   }
   aio->common.free_running = 0;
@@ -1979,7 +2008,8 @@ void cras_alsa_usb_iodev_destroy(struct cras_iodev* iodev) {
   }
 
   if (rc == -EBUSY) {
-    syslog(LOG_WARNING, "Failed to remove iodev %s", iodev->info.name);
+    syslog(LOG_WARNING, "card type: %s, Failed to remove iodev %s",
+           cras_card_type_to_string(aio->common.card_type), iodev->info.name);
     return;
   }
 

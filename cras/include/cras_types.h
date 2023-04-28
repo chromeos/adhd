@@ -722,6 +722,19 @@ enum CRAS_ALSA_CARD_TYPE {
   ALSA_CARD_TYPE_HDMI
 };
 
+static inline const char* cras_card_type_to_string(
+    enum CRAS_ALSA_CARD_TYPE type) {
+  switch (type) {
+    case ALSA_CARD_TYPE_INTERNAL:
+      return "INTERNAL";
+    case ALSA_CARD_TYPE_USB:
+      return "USB";
+    case ALSA_CARD_TYPE_HDMI:
+      return "HDMI";
+  }
+  return NULL;
+}
+
 /* Information about an ALSA card to be added to the system. */
 #define USB_SERIAL_NUMBER_BUFFER_SIZE 64
 struct __attribute__((__packed__)) cras_alsa_card_info {
