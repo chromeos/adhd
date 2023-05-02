@@ -9,7 +9,9 @@ mod logging;
 mod rate_estimator;
 pub mod rate_estimator_bindings;
 #[cfg(feature = "cras_dlc")]
-pub use cras_dlc::cras_dlc_sr_bt_get_root;
+pub use cras_dlc::cras_dlc_get_root_path;
 #[cfg(feature = "cras_dlc")]
-pub use cras_dlc::cras_dlc_sr_bt_is_available;
+pub use cras_dlc::cras_dlc_install;
+#[cfg(feature = "cras_dlc")]
+pub use cras_dlc::cras_dlc_is_available;
 pub use logging::bindings as logging_bindings;

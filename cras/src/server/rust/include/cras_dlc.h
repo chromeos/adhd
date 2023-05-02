@@ -27,23 +27,6 @@ enum CrasDlcId {
 };
 
 /**
- * Returns `true` if the "sr-bt-dlc" packge is ready for use, otherwise
- * retuns `false`.
- */
-bool cras_dlc_sr_bt_is_available(void);
-
-/**
- * Returns Dlc root_path for the "sr-bt-dlc" package.
- *
- * # Safety
- *
- * This function leaks memory if called from C.
- * There is no valid way to free the returned string in C.
- * TODO(b/277566731): Fix it.
- */
-const char *cras_dlc_sr_bt_get_root(void);
-
-/**
  * Returns `true` if the installation request is successfully sent,
  * otherwise returns `false`.
  */

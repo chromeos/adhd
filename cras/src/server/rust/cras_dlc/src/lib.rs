@@ -89,42 +89,6 @@ fn get_dlc_root_path(id: CrasDlcId) -> Result<CString> {
     CString::new(dlc_state.root_path).map_err(|e| e.into())
 }
 
-fn sr_bt_is_available() -> Result<DlcState_State> {
-    install_dlc(CrasDlcId::CrasDlcSrBt)?;
-    let dlc_state = get_dlc_state(CrasDlcId::CrasDlcSrBt)?;
-    Ok(dlc_state.state)
-}
-
-fn sr_bt_get_root() -> Result<CString> {
-    let dlc_state = get_dlc_state(CrasDlcId::CrasDlcSrBt)?;
-    CString::new(dlc_state.root_path).map_err(|e| e.into())
-}
-
-/// Returns `true` if the "sr-bt-dlc" packge is ready for use, otherwise
-/// retuns `false`.
-#[no_mangle]
-pub extern "C" fn cras_dlc_sr_bt_is_available() -> bool {
-    match sr_bt_is_available() {
-        Ok(state) => state == DlcState_State::INSTALLED,
-        Err(_) => false,
-    }
-}
-
-/// Returns Dlc root_path for the "sr-bt-dlc" package.
-///
-/// # Safety
-///
-/// This function leaks memory if called from C.
-/// There is no valid way to free the returned string in C.
-/// TODO(b/277566731): Fix it.
-#[no_mangle]
-pub unsafe extern "C" fn cras_dlc_sr_bt_get_root() -> *const c_char {
-    match sr_bt_get_root() {
-        Ok(root_path) => root_path.into_raw(),
-        Err(_) => ptr::null_mut(),
-    }
-}
-
 /// Returns `true` if the installation request is successfully sent,
 /// otherwise returns `false`.
 #[no_mangle]
