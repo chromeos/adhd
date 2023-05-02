@@ -891,6 +891,21 @@ cc_test(
 )
 
 cc_test(
+    name = "dlc_manager_unittest",
+    srcs = [
+        ":dlc_manager_unittest.cc",
+        "//cras/src/server:cras_dlc_manager.c",
+    ],
+    deps = [
+        ":test_support",
+        "//cras/src/server:all_headers",
+        "//cras/src/server/rust:headers",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
     name = "edid_utils_unittest",
     srcs = [
         ":edid_utils_unittest.cc",

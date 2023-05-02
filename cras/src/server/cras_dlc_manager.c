@@ -15,33 +15,83 @@
 #define RETRY_MSEC 60000
 #define MAX_RETRY_COUNT 10
 
-struct dlc_manager {
+struct dlc_download_context {
+  enum CrasDlcId dlc_id;
   struct cras_timer* retry_timer;
   int retry_counter;
 };
 
+struct dlc_manager {
+  size_t num_finished;
+  struct dlc_download_context to_download[NumCrasDlc];
+};
+
 static struct dlc_manager* dlc_manager = NULL;
 
-// TODO(b/274547402): refine retry mechanism
-static void download_supported_dlc(struct cras_timer* timer, void* arg) {
+/**
+ * Cancels all the download tasks.
+ */
+static void dlc_cancel_download() {
+  if (!dlc_manager) {
+    return;
+  }
+
   struct cras_tm* tm = cras_system_state_get_tm();
   if (!tm) {
     syslog(LOG_ERR, "%s: failed to get cras timer", __func__);
     return;
   }
 
-  if (!cras_dlc_is_available(CrasDlcNcAp)) {
-    if (!cras_dlc_install(CrasDlcNcAp)) {
+  for (int i = 0; i < NumCrasDlc; ++i) {
+    if (!dlc_manager->to_download[i].retry_timer) {
+      continue;
+    }
+    cras_tm_cancel_timer(tm, dlc_manager->to_download[i].retry_timer);
+    dlc_manager->to_download[i].retry_timer = NULL;
+  }
+}
+
+void cras_dlc_manager_destroy() {
+  dlc_cancel_download();
+  free(dlc_manager);
+  dlc_manager = NULL;
+}
+
+/**
+ * Destroyes the cras_dlc_manager if all the tasks have been `finished`.
+ * `finished` means either successfully installed or MAX_RETRY_COUNT reached.
+ */
+static void cras_dlc_manager_destroy_if_all_finished() {
+  if (!dlc_manager) {
+    return;
+  }
+  if (dlc_manager->num_finished < (size_t)NumCrasDlc) {
+    return;
+  }
+  cras_dlc_manager_destroy();
+}
+
+// TODO(b/274547402): refine retry mechanism
+static void download_supported_dlc(struct cras_timer* timer, void* arg) {
+  struct dlc_download_context* context = (struct dlc_download_context*)arg;
+
+  struct cras_tm* tm = cras_system_state_get_tm();
+  if (!tm) {
+    syslog(LOG_ERR, "%s: failed to get cras timer", __func__);
+    return;
+  }
+
+  if (!cras_dlc_is_available(context->dlc_id)) {
+    if (!cras_dlc_install(context->dlc_id)) {
       syslog(LOG_ERR,
              "%s: unable to connect to dlcservice during `cras_dlc_install`.",
              __func__);
     }
-    if (dlc_manager->retry_counter < MAX_RETRY_COUNT) {
-      dlc_manager->retry_counter++;
-      dlc_manager->retry_timer =
-          cras_tm_create_timer(tm, RETRY_MSEC, download_supported_dlc, NULL);
-      syslog(LOG_ERR, "%s: retry %d times", __func__,
-             dlc_manager->retry_counter);
+    if (context->retry_counter < MAX_RETRY_COUNT) {
+      ++context->retry_counter;
+      context->retry_timer =
+          cras_tm_create_timer(tm, RETRY_MSEC, download_supported_dlc, context);
+      syslog(LOG_ERR, "%s: retry %d times", __func__, context->retry_counter);
       return;
     } else {
       syslog(LOG_ERR,
@@ -51,29 +101,21 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
     }
   } else {
     syslog(LOG_INFO, "%s: successfully installed! Tried %d times.", __func__,
-           dlc_manager->retry_counter);
+           context->retry_counter);
   }
 
-  // no more timer scheduled
-  dlc_manager->retry_timer = NULL;
-  cras_dlc_manager_destroy();
-}
+  // No more timer scheduled. This is important to prevent from double freeing.
+  context->retry_timer = NULL;
+  ++dlc_manager->num_finished;
 
-static void dlc_cancel_download() {
-  if (!dlc_manager || !dlc_manager->retry_timer) {
-    return;
-  }
-
-  struct cras_tm* tm = cras_system_state_get_tm();
-  if (tm) {
-    cras_tm_cancel_timer(tm, dlc_manager->retry_timer);
-  }
-  dlc_manager->retry_timer = NULL;
+  // This could be dangerous if we export the `cras_dlc_manager_destroy`
+  cras_dlc_manager_destroy_if_all_finished();
 }
 
 void cras_dlc_manager_init() {
   if (!dlc_manager) {
-    struct dlc_manager* dm = (struct dlc_manager*)calloc(1, sizeof(*dm));
+    struct dlc_manager* dm =
+        (struct dlc_manager*)calloc(1, sizeof(struct dlc_manager));
     if (!dm) {
       dlc_manager = NULL;
       return;
@@ -83,16 +125,20 @@ void cras_dlc_manager_init() {
 
   struct cras_tm* tm = cras_system_state_get_tm();
   if (tm) {
-    dlc_manager->retry_counter = 0;
-    dlc_manager->retry_timer =
-        cras_tm_create_timer(tm, FIRST_TRY_MSEC, download_supported_dlc, NULL);
+    for (int i = 0; i < NumCrasDlc; ++i) {
+      dlc_manager->to_download[i].dlc_id = (enum CrasDlcId)i;
+      dlc_manager->to_download[i].retry_counter = 0;
+      dlc_manager->to_download[i].retry_timer =
+          cras_tm_create_timer(tm, FIRST_TRY_MSEC, download_supported_dlc,
+                               &(dlc_manager->to_download[i]));
+    }
   } else {
     syslog(LOG_ERR, "%s: failed to get cras timer", __func__);
   }
 }
 
-void cras_dlc_manager_destroy() {
-  dlc_cancel_download();
-  free(dlc_manager);
-  dlc_manager = NULL;
+// cras_dlc_manager_test_only.h
+
+bool cras_dlc_manager_is_null() {
+  return dlc_manager == NULL;
 }

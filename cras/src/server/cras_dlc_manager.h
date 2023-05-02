@@ -6,6 +6,5 @@
 #define CRAS_SRC_SERVER_CRAS_DLC_MANAGER_H_
 
 void cras_dlc_manager_init();
-void cras_dlc_manager_destroy();
 
 #endif  // CRAS_SRC_SERVER_CRAS_DLC_MANAGER_H_
