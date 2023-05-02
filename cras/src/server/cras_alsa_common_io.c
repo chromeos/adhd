@@ -147,3 +147,16 @@ int cras_alsa_common_set_active_node(struct cras_iodev* iodev,
          ionode->volume, ionode->number_of_volume_steps);
   return 0;
 }
+
+int cras_alsa_common_delay_frames(const struct cras_iodev* iodev) {
+  struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
+  snd_pcm_sframes_t delay;
+  int rc;
+
+  rc = cras_alsa_get_delay_frames(aio->handle, iodev->buffer_size, &delay);
+  if (rc < 0) {
+    return rc;
+  }
+
+  return (int)delay;
+}

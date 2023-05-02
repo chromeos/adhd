@@ -216,18 +216,8 @@ static inline int frames_queued(const struct cras_iodev* iodev,
   return cras_alsa_common_frames_queued(iodev, tstamp);
 }
 
-static int delay_frames(const struct cras_iodev* iodev) {
-  struct alsa_io* aio = (struct alsa_io*)iodev;
-  snd_pcm_sframes_t delay;
-  int rc;
-
-  rc = cras_alsa_get_delay_frames(aio->common.handle, iodev->buffer_size,
-                                  &delay);
-  if (rc < 0) {
-    return rc;
-  }
-
-  return (int)delay;
+static inline int delay_frames(const struct cras_iodev* iodev) {
+  return cras_alsa_common_delay_frames(iodev);
 }
 
 static int close_dev(struct cras_iodev* iodev) {
