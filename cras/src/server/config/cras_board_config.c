@@ -55,7 +55,6 @@ static const int32_t NC_STANDALONE_MODE_DEFAULT = 0;
 void cras_board_config_get(const char* config_path,
                            struct cras_board_config* board_config) {
   char ini_name[MAX_INI_NAME_LENGTH + 1];
-  char ini_key[MAX_INI_KEY_LENGTH + 1];
   const char* ptr;
   dictionary* ini;
 
@@ -80,6 +79,7 @@ void cras_board_config_get(const char* config_path,
       MAX_INTERNAL_SPK_CHANNELS_DEFAULT;
   board_config->max_headphone_channels = MAX_HEADPHONE_CHANNELS_DEFAULT;
   board_config->nc_standalone_mode = NC_STANDALONE_MODE_DEFAULT;
+
   if (config_path == NULL) {
     return;
   }
@@ -92,75 +92,48 @@ void cras_board_config_get(const char* config_path,
     return;
   }
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, DEFAULT_OUTPUT_BUF_SIZE_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->default_output_buffer_size =
-      iniparser_getint(ini, ini_key, DEFAULT_OUTPUT_BUFFER_SIZE);
+  board_config->default_output_buffer_size = iniparser_getint(
+      ini, DEFAULT_OUTPUT_BUF_SIZE_INI_KEY, DEFAULT_OUTPUT_BUFFER_SIZE);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, AEC_SUPPORTED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
   board_config->aec_supported =
-      iniparser_getint(ini, ini_key, AEC_SUPPORTED_DEFAULT);
+      iniparser_getint(ini, AEC_SUPPORTED_INI_KEY, AEC_SUPPORTED_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, AEC_GROUP_ID_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
   board_config->aec_group_id =
-      iniparser_getint(ini, ini_key, AEC_GROUP_ID_DEFAULT);
+      iniparser_getint(ini, AEC_GROUP_ID_INI_KEY, AEC_GROUP_ID_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, NS_SUPPORTED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
   board_config->ns_supported =
-      iniparser_getint(ini, ini_key, NS_SUPPORTED_DEFAULT);
+      iniparser_getint(ini, NS_SUPPORTED_INI_KEY, NS_SUPPORTED_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, AGC_SUPPORTED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
   board_config->agc_supported =
-      iniparser_getint(ini, ini_key, AGC_SUPPORTED_DEFAULT);
+      iniparser_getint(ini, AGC_SUPPORTED_INI_KEY, AGC_SUPPORTED_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, NC_SUPPORTED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
   board_config->nc_supported =
-      iniparser_getint(ini, ini_key, NC_SUPPORTED_DEFAULT);
+      iniparser_getint(ini, NC_SUPPORTED_INI_KEY, NC_SUPPORTED_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, HW_ECHO_REF_DISABLED_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->hw_echo_ref_disabled =
-      iniparser_getint(ini, ini_key, HW_ECHO_REF_DISABLED_DEFAULT);
+  board_config->hw_echo_ref_disabled = iniparser_getint(
+      ini, HW_ECHO_REF_DISABLED_KEY, HW_ECHO_REF_DISABLED_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, AEC_ON_DSP_SUPPORTED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->aec_on_dsp_supported =
-      iniparser_getint(ini, ini_key, AEC_ON_DSP_SUPPORTED_DEFAULT);
+  board_config->aec_on_dsp_supported = iniparser_getint(
+      ini, AEC_ON_DSP_SUPPORTED_INI_KEY, AEC_ON_DSP_SUPPORTED_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, NS_ON_DSP_SUPPORTED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->ns_on_dsp_supported =
-      iniparser_getint(ini, ini_key, NS_ON_DSP_SUPPORTED_DEFAULT);
+  board_config->ns_on_dsp_supported = iniparser_getint(
+      ini, NS_ON_DSP_SUPPORTED_INI_KEY, NS_ON_DSP_SUPPORTED_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, AGC_ON_DSP_SUPPORTED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->agc_on_dsp_supported =
-      iniparser_getint(ini, ini_key, AGC_ON_DSP_SUPPORTED_DEFAULT);
+  board_config->agc_on_dsp_supported = iniparser_getint(
+      ini, AGC_ON_DSP_SUPPORTED_INI_KEY, AGC_ON_DSP_SUPPORTED_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, BLUETOOTH_WBS_ENABLED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->bt_wbs_enabled =
-      iniparser_getint(ini, ini_key, BLUETOOTH_WBS_ENABLED_INI_DEFAULT);
+  board_config->bt_wbs_enabled = iniparser_getint(
+      ini, BLUETOOTH_WBS_ENABLED_INI_KEY, BLUETOOTH_WBS_ENABLED_INI_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH,
-           BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->bt_hfp_offload_finch_applied = iniparser_getint(
-      ini, ini_key, BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_DEFAULT);
+  board_config->bt_hfp_offload_finch_applied =
+      iniparser_getint(ini, BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_KEY,
+                       BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->deprioritize_bt_wbs_mic = iniparser_getint(
-      ini, ini_key, BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT);
+  board_config->deprioritize_bt_wbs_mic =
+      iniparser_getint(ini, BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_KEY,
+                       BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, UCM_IGNORE_SUFFIX_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  ptr = iniparser_getstring(ini, ini_key, "");
+  ptr = iniparser_getstring(ini, UCM_IGNORE_SUFFIX_KEY, "");
   if (ptr) {
     board_config->ucm_ignore_suffix = strdup(ptr);
     if (!board_config->ucm_ignore_suffix) {
@@ -168,30 +141,21 @@ void cras_board_config_get(const char* config_path,
     }
   }
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, HOTWORD_PAUSE_AT_SUSPEND);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->hotword_pause_at_suspend =
-      iniparser_getint(ini, ini_key, HOTWORD_PAUSE_AT_SUSPEND_DEFAULT);
+  board_config->hotword_pause_at_suspend = iniparser_getint(
+      ini, HOTWORD_PAUSE_AT_SUSPEND, HOTWORD_PAUSE_AT_SUSPEND_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, MAX_INTERNAL_MIC_GAIN);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->max_internal_mic_gain =
-      iniparser_getint(ini, ini_key, MAX_INTERNAL_MIC_GAIN_DEFAULT);
+  board_config->max_internal_mic_gain = iniparser_getint(
+      ini, MAX_INTERNAL_MIC_GAIN, MAX_INTERNAL_MIC_GAIN_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, MAX_INTERNAL_SPK_CHANNELS_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
   board_config->max_internal_speaker_channels =
-      iniparser_getint(ini, ini_key, MAX_INTERNAL_SPK_CHANNELS_DEFAULT);
+      iniparser_getint(ini, MAX_INTERNAL_SPK_CHANNELS_INI_KEY,
+                       MAX_INTERNAL_SPK_CHANNELS_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, MAX_HEADPHONE_CHANNELS_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->max_headphone_channels =
-      iniparser_getint(ini, ini_key, MAX_HEADPHONE_CHANNELS_DEFAULT);
+  board_config->max_headphone_channels = iniparser_getint(
+      ini, MAX_HEADPHONE_CHANNELS_INI_KEY, MAX_HEADPHONE_CHANNELS_DEFAULT);
 
-  snprintf(ini_key, MAX_INI_KEY_LENGTH, NC_STANDALONE_MODE_INI_KEY);
-  ini_key[MAX_INI_KEY_LENGTH] = 0;
-  board_config->nc_standalone_mode =
-      iniparser_getint(ini, ini_key, NC_STANDALONE_MODE_DEFAULT);
+  board_config->nc_standalone_mode = iniparser_getint(
+      ini, NC_STANDALONE_MODE_INI_KEY, NC_STANDALONE_MODE_DEFAULT);
 
   iniparser_freedict(ini);
   syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
