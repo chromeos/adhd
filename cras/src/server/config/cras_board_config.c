@@ -58,30 +58,8 @@ void cras_board_config_get(const char* config_path,
   const char* ptr;
   dictionary* ini;
 
-  board_config->default_output_buffer_size = DEFAULT_OUTPUT_BUFFER_SIZE;
-  board_config->aec_supported = AEC_SUPPORTED_DEFAULT;
-  board_config->aec_group_id = AEC_GROUP_ID_DEFAULT;
-  board_config->ns_supported = NS_SUPPORTED_DEFAULT;
-  board_config->agc_supported = AGC_SUPPORTED_DEFAULT;
-  board_config->nc_supported = NC_SUPPORTED_DEFAULT;
-  board_config->hw_echo_ref_disabled = HW_ECHO_REF_DISABLED_DEFAULT;
-  board_config->aec_on_dsp_supported = AEC_ON_DSP_SUPPORTED_DEFAULT;
-  board_config->ns_on_dsp_supported = NS_ON_DSP_SUPPORTED_DEFAULT;
-  board_config->agc_on_dsp_supported = AGC_ON_DSP_SUPPORTED_DEFAULT;
-  board_config->ucm_ignore_suffix = NULL;
-  board_config->bt_wbs_enabled = BLUETOOTH_WBS_ENABLED_INI_DEFAULT;
-  board_config->bt_hfp_offload_finch_applied =
-      BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_DEFAULT;
-  board_config->deprioritize_bt_wbs_mic =
-      BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT;
-  board_config->max_internal_mic_gain = MAX_INTERNAL_MIC_GAIN_DEFAULT;
-  board_config->max_internal_speaker_channels =
-      MAX_INTERNAL_SPK_CHANNELS_DEFAULT;
-  board_config->max_headphone_channels = MAX_HEADPHONE_CHANNELS_DEFAULT;
-  board_config->nc_standalone_mode = NC_STANDALONE_MODE_DEFAULT;
-
   if (config_path == NULL) {
-    return;
+    goto set_default;
   }
 
   snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", config_path, CONFIG_NAME);
@@ -89,7 +67,7 @@ void cras_board_config_get(const char* config_path,
   ini = iniparser_load_wrapper(ini_name);
   if (ini == NULL) {
     syslog(LOG_DEBUG, "No ini file %s", ini_name);
-    return;
+    goto set_default;
   }
 
   board_config->default_output_buffer_size = iniparser_getint(
@@ -159,4 +137,28 @@ void cras_board_config_get(const char* config_path,
 
   iniparser_freedict(ini);
   syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
+  return;
+
+set_default:
+  board_config->default_output_buffer_size = DEFAULT_OUTPUT_BUFFER_SIZE;
+  board_config->aec_supported = AEC_SUPPORTED_DEFAULT;
+  board_config->aec_group_id = AEC_GROUP_ID_DEFAULT;
+  board_config->ns_supported = NS_SUPPORTED_DEFAULT;
+  board_config->agc_supported = AGC_SUPPORTED_DEFAULT;
+  board_config->nc_supported = NC_SUPPORTED_DEFAULT;
+  board_config->hw_echo_ref_disabled = HW_ECHO_REF_DISABLED_DEFAULT;
+  board_config->aec_on_dsp_supported = AEC_ON_DSP_SUPPORTED_DEFAULT;
+  board_config->ns_on_dsp_supported = NS_ON_DSP_SUPPORTED_DEFAULT;
+  board_config->agc_on_dsp_supported = AGC_ON_DSP_SUPPORTED_DEFAULT;
+  board_config->ucm_ignore_suffix = NULL;
+  board_config->bt_wbs_enabled = BLUETOOTH_WBS_ENABLED_INI_DEFAULT;
+  board_config->bt_hfp_offload_finch_applied =
+      BLUETOOTH_HFP_OFFLOAD_FINCH_APPLIED_INI_DEFAULT;
+  board_config->deprioritize_bt_wbs_mic =
+      BLUETOOTH_DEPRIORITIZE_WBS_MIC_INI_DEFAULT;
+  board_config->max_internal_mic_gain = MAX_INTERNAL_MIC_GAIN_DEFAULT;
+  board_config->max_internal_speaker_channels =
+      MAX_INTERNAL_SPK_CHANNELS_DEFAULT;
+  board_config->max_headphone_channels = MAX_HEADPHONE_CHANNELS_DEFAULT;
+  board_config->nc_standalone_mode = NC_STANDALONE_MODE_DEFAULT;
 }
