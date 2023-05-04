@@ -183,7 +183,7 @@ static inline unsigned cras_shm_get_checked_buffer_offset(
 // Get a pointer to the buffer at idx.
 static inline uint8_t* cras_shm_buff_for_idx(const struct cras_audio_shm* shm,
                                              size_t idx) {
-  assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
+  static_assert_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
   idx = idx & CRAS_SHM_BUFFERS_MASK;
 
   return shm->samples + cras_shm_get_checked_buffer_offset(shm, idx);
@@ -300,7 +300,7 @@ static inline uint8_t* cras_shm_get_readable_frames(
   final_offset = read_offset + offset * shm->config.frame_bytes;
   if (final_offset >= write_offset) {
     final_offset -= write_offset;
-    assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
+    static_assert_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
     buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
     write_offset = cras_shm_get_checked_write_offset(shm, buf_idx);
   }
@@ -430,7 +430,7 @@ static inline void cras_shm_buffer_write_complete(struct cras_audio_shm* shm) {
 
   shm->header->write_in_progress[buf_idx] = 0;
 
-  assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
+  static_assert_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
   buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
   shm->header->write_buf_idx = buf_idx;
 }
@@ -463,7 +463,7 @@ static inline void cras_shm_buffer_read(struct cras_audio_shm* shm,
     remainder = header->read_offset[buf_idx] - header->write_offset[buf_idx];
     header->read_offset[buf_idx] = 0;
     header->write_offset[buf_idx] = 0;
-    assert_on_compile_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
+    static_assert_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
     buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
     if (remainder < header->write_offset[buf_idx]) {
       header->read_offset[buf_idx] = remainder;

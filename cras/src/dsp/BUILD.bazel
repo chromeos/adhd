@@ -97,7 +97,10 @@ cc_library(
     srcs = ["drc_kernel.c"],
     hdrs = ["drc_kernel.h"],
     linkopts = ["-lm"],
-    deps = [":drc_math"],
+    deps = [
+        ":drc_math",
+        "//cras/include",
+    ],
 )
 
 cc_library(

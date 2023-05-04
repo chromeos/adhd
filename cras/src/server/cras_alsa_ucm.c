@@ -392,7 +392,8 @@ struct cras_use_case_mgr* ucm_create(const char* name) {
   const char** list;
   int num_verbs, i, j;
 
-  assert_on_compile(ARRAY_SIZE(use_case_verbs) == CRAS_STREAM_NUM_TYPES);
+  static_assert(ARRAY_SIZE(use_case_verbs) == CRAS_STREAM_NUM_TYPES,
+                "length mismatch");
 
   if (!name) {
     return NULL;

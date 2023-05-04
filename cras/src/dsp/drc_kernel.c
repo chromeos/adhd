@@ -15,16 +15,13 @@
 #include <string.h>
 
 #include "cras/src/dsp/drc_math.h"
+#include "cras_util.h"
 
 #define MAX_PRE_DELAY_FRAMES 1024
 #define MAX_PRE_DELAY_FRAMES_MASK (MAX_PRE_DELAY_FRAMES - 1)
 #define DEFAULT_PRE_DELAY_FRAMES 256
 #define DIVISION_FRAMES 32
 #define DIVISION_FRAMES_MASK (DIVISION_FRAMES - 1)
-
-#define assert_on_compile(e) ((void)sizeof(char[1 - 2 * !(e)]))
-#define assert_on_compile_is_power_of_2(n) \
-  assert_on_compile((n) != 0 && (((n) & ((n)-1)) == 0))
 
 const float uninitialized_value = -1;
 static int drc_math_initialized;
@@ -55,10 +52,10 @@ void dk_init(struct drc_kernel* dk, float sample_rate) {
   dk->ratio_base = uninitialized_value;
   dk->K = uninitialized_value;
 
-  assert_on_compile_is_power_of_2(DIVISION_FRAMES);
-  assert_on_compile(DIVISION_FRAMES % 4 == 0);
+  static_assert_is_power_of_2(DIVISION_FRAMES);
+  static_assert(DIVISION_FRAMES % 4 == 0, "not a multiple of 4");
   // Allocate predelay buffers
-  assert_on_compile_is_power_of_2(MAX_PRE_DELAY_FRAMES);
+  static_assert_is_power_of_2(MAX_PRE_DELAY_FRAMES);
   for (i = 0; i < DRC_NUM_CHANNELS; i++) {
     size_t size = sizeof(float) * MAX_PRE_DELAY_FRAMES;
     dk->pre_delay_buffers[i] = (float*)calloc(1, size);

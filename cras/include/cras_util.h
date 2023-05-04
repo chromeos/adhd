@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+#include <assert.h>
 #include <poll.h>
 #include <time.h>
 
@@ -17,9 +18,9 @@ extern "C" {
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
-#define assert_on_compile(e) ((void)sizeof(char[1 - 2 * !(e)]))
-#define assert_on_compile_is_power_of_2(n) \
-  assert_on_compile((n) != 0 && (((n) & ((n)-1)) == 0))
+#define static_assert_is_power_of_2(n)              \
+  static_assert((n) != 0 && (((n) & ((n)-1)) == 0), \
+                "expression is not a power of 2")
 
 // Enables real time scheduling.
 int cras_set_rt_scheduling(int rt_lim);
