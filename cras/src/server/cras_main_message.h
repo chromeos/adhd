@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include "third_party/utlist/utlist.h"
+#define CRAS_MAIN_MESSAGE_MAX_LENGTH 256
 
 // The types of message main thread can handle.
 enum CRAS_MAIN_MESSAGE_TYPE {
@@ -48,6 +48,7 @@ enum CRAS_MAIN_MESSAGE_TYPE {
  */
 struct cras_main_message {
   // Size of the whole message.
+  // Should be <= CRAS_MAIN_MESSAGE_MAX_LENGTH.
   size_t length;
   // Type of the message.
   enum CRAS_MAIN_MESSAGE_TYPE type;

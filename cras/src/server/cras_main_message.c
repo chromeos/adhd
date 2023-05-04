@@ -6,12 +6,18 @@
 #include "cras/src/server/cras_main_message.h"
 
 #include <errno.h>
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
 
 #include "cras/src/server/cras_system_state.h"
 #include "cras_util.h"
+#include "third_party/utlist/utlist.h"
+
+static_assert(CRAS_MAIN_MESSAGE_MAX_LENGTH <= PIPE_BUF,
+              "CRAS_MAIN_MESSAGE_MAX_LENGTH must not be longer than PIPE_BUF "
+              "to ensure atomic writes");
 
 // Callback to handle specific type of main thread message.
 struct cras_main_msg_callback {
@@ -58,9 +64,9 @@ void cras_main_message_rm_handler(enum CRAS_MAIN_MESSAGE_TYPE type) {
 }
 
 int cras_main_message_send(struct cras_main_message* msg) {
-  int err;
+  assert(msg->length <= CRAS_MAIN_MESSAGE_MAX_LENGTH && "message too long");
 
-  err = write(main_msg_fds[1], msg, msg->length);
+  int err = write(main_msg_fds[1], msg, msg->length);
   if (err < 0) {
     syslog(LOG_ERR, "Failed to send main message, type %u", msg->type);
     return err;
@@ -103,7 +109,7 @@ static int read_main_message(int msg_fd, uint8_t* buf, size_t max_len) {
 }
 
 static void handle_main_messages(void* arg, int revents) {
-  uint8_t buf[256];
+  uint8_t buf[CRAS_MAIN_MESSAGE_MAX_LENGTH];
   int rc;
   struct cras_main_msg_callback* main_msg_cb;
   struct cras_main_message* msg = (struct cras_main_message*)buf;

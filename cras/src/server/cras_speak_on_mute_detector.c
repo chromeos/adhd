@@ -19,6 +19,7 @@
 #include "cras/src/server/server_stream.h"
 #include "cras/src/server/speak_on_mute_detector.h"
 #include "cras_types.h"
+#include "third_party/utlist/utlist.h"
 
 // Singleton.
 static struct {
