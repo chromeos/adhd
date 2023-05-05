@@ -2,12 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::path::Path;
+
+use anyhow::anyhow;
+use anyhow::Context;
 use audio_processor::processors::binding::plugin_processor;
 use audio_processor::processors::export_plugin;
 use audio_processor::processors::CheckShape;
 use audio_processor::processors::DynamicPluginProcessor;
 use audio_processor::processors::NegateAudioProcessor;
 use audio_processor::AudioProcessor;
+use cras_dlc::get_dlc_state;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -51,58 +56,65 @@ impl AudioProcessor for CrasProcessor {
 }
 
 impl CrasProcessor {
-    fn new(config: CrasProcessorConfig) -> Self {
-        let effect = match config {
-            CrasProcessorConfig {
-                frame_rate: 48000,
-                channels: 1,
-                effect,
-                ..
-            } => effect,
-            _ => {
-                let err = audio_processor::Error::InvalidShape {
-                    want_channels: 1,
-                    want_frames: 48000,
-                    got_channels: config.channels,
-                    got_frames: config.frame_rate,
-                };
-                log::error!("Unexpected config in CrasProcessor::new: {:?}", err);
-                CrasProcessorEffect::NoEffects
-            }
-        };
-
-        let plugin: Option<Box<dyn AudioProcessor<I = f32, O = f32>>> = match effect {
+    fn new(config: CrasProcessorConfig) -> anyhow::Result<Self> {
+        let plugin: Option<Box<dyn AudioProcessor<I = f32, O = f32>>> = match config.effect {
             CrasProcessorEffect::NoEffects => None,
             CrasProcessorEffect::Negate => Some(Box::new(NegateAudioProcessor::new(
                 config.channels,
                 config.block_size,
             ))),
-            CrasProcessorEffect::NoiseCancellation => match DynamicPluginProcessor::new(
-                // TODO: Remove hard coded path once https://crrev.com/c/4344830 lands.
-                "/run/imageloader/nc-ap-dlc/package/root/libdenoiser.so",
-                "plugin_processor_create",
-                config.block_size,
-                config.channels,
-                config.frame_rate,
-            ) {
-                Ok(plugin) => Some(Box::new(plugin)),
-                Err(err) => {
-                    log::error!("Cannot load plugin: {}", err);
+            CrasProcessorEffect::NoiseCancellation => {
+                // Check shape is supported.
+                match config {
+                    CrasProcessorConfig {
+                        frame_rate: 48000,
+                        channels: 1,
+                        ..
+                    } => (),
+                    _ => {
+                        return Err(audio_processor::Error::InvalidShape {
+                            want_channels: 1,
+                            want_frames: 48000,
+                            got_channels: config.channels,
+                            got_frames: config.frame_rate,
+                        })
+                        .with_context(|| {
+                            "Unexpected config for NoiseCancellation in CrasProcessor::new"
+                        });
+                    }
+                };
 
-                    // Cannot load plugin.
-                    // Still proceed to create a no-op processor.
-                    None
+                let ap_nc_dlc = get_dlc_state(cras_dlc::CrasDlcId::CrasDlcNcAp)?;
+                if !ap_nc_dlc.installed {
+                    return Err(anyhow!(
+                        "{} not installed",
+                        cras_dlc::CrasDlcId::CrasDlcNcAp
+                    ));
                 }
-            },
+
+                let processor = DynamicPluginProcessor::new(
+                    Path::new(&ap_nc_dlc.root_path)
+                        .join("libdenoiser.so")
+                        .to_str()
+                        .unwrap(),
+                    "plugin_processor_create",
+                    config.block_size,
+                    config.channels,
+                    config.frame_rate,
+                )
+                .with_context(|| "DynamicPluginProcessor::new failed")?;
+
+                Some(Box::new(processor))
+            }
         };
 
         log::info!("CrasProcessor created with: {:?}", config);
 
-        CrasProcessor {
+        Ok(CrasProcessor {
             check_shape: CheckShape::new(config.channels, config.block_size),
             plugin,
             _config: config,
-        }
+        })
     }
 }
 
@@ -120,5 +132,23 @@ pub unsafe extern "C" fn cras_processor_create(
         None => return std::ptr::null_mut(),
     };
 
-    export_plugin(CrasProcessor::new(config.clone()))
+    let processor = match CrasProcessor::new(config.clone()) {
+        Ok(processor) => processor,
+        Err(err) => {
+            log::error!(
+                "CrasProcessor::new failed with {}, creating no-op processor",
+                err
+            );
+
+            let config = config.clone();
+            CrasProcessor::new(CrasProcessorConfig {
+                effect: CrasProcessorEffect::NoEffects,
+                channels: config.channels,
+                block_size: config.block_size,
+                frame_rate: config.frame_rate,
+            })
+            .expect("CrasProcessor::new with CrasProcessorEffect::NoEffects should never fail")
+        }
+    };
+    export_plugin(processor)
 }
