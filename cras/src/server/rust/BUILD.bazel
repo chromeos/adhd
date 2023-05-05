@@ -19,7 +19,6 @@ cc_library(
             ":lib",
         ],
     }),
-    # TODO: Enable "cras_dlc" crate based on //:dlc_build
 )
 
 cc_library(
@@ -34,6 +33,7 @@ rust_library(
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     deps = [
         "//cras/src/audio_processor",
+        "//cras/src/server/rust/cras_dlc",
     ] + all_crate_deps(),
 )
 
@@ -52,6 +52,7 @@ cc_test(
     deps = [
         ":rust",
         "//cras/src/audio_processor/c:plugin_processor",
+        "@pkg_config//dbus-1",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],

@@ -2,25 +2,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use std::ffi::CString;
-use std::fmt::Display;
-use std::os::raw::c_char;
-use std::ptr;
-use std::time::Duration;
+pub mod bindings;
+#[cfg(feature = "dlc")]
+mod chromiumos;
+mod stub;
 
-use dbus::blocking::Connection;
-use dbus::blocking::Proxy;
-use protobuf::Message;
-use system_api::client::OrgChromiumDlcServiceInterface;
-use system_api::dlcservice::dlc_state::State;
-use system_api::dlcservice::DlcState;
-use system_api::dlcservice::InstallRequest;
+use std::fmt::Display;
+
 use thiserror::Error;
 
-const DBUS_TIMEOUT: Duration = Duration::from_secs(3);
+pub struct State {
+    pub installed: bool,
+    pub root_path: String,
+}
 
 #[derive(Error, Debug)]
-enum Error {
+pub enum Error {
     #[error("D-Bus failure: {0:#}")]
     DBus(#[from] dbus::Error),
     #[error("protocol buffers failure: {0:#}")]
@@ -29,7 +26,11 @@ enum Error {
     CString(#[from] std::ffi::NulError),
     #[error("unknown DLC state: {0}")]
     UnknownDlcState(i32),
+    #[error("unsupported operation")]
+    Unsupported,
 }
+
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// All supported DLCs in CRAS.
 #[repr(C)]
@@ -56,75 +57,23 @@ impl Display for CrasDlcId {
     }
 }
 
-type Result<T> = std::result::Result<T, Error>;
-
-fn get_dlcservice_connection_path(connection: &Connection) -> Proxy<&Connection> {
-    connection.with_proxy(
-        "org.chromium.DlcService",
-        "/org/chromium/DlcService",
-        DBUS_TIMEOUT,
-    )
+trait ServiceTrait: Sized {
+    fn new() -> Result<Self>;
+    fn install(&mut self, id: CrasDlcId) -> Result<()>;
+    fn get_dlc_state(&mut self, id: CrasDlcId) -> Result<State>;
 }
 
-fn install_dlc(id: CrasDlcId) -> Result<()> {
-    let connection = Connection::new_system()?;
-    let conn_path = get_dlcservice_connection_path(&connection);
+#[cfg(feature = "dlc")]
+type Service = chromiumos::Service;
+#[cfg(not(feature = "dlc"))]
+type Service = stub::Service;
 
-    let mut request = InstallRequest::new();
-    request.id = id.to_string();
-    request.reserve = true;
-    Ok(conn_path.install(request.write_to_bytes()?)?)
+pub fn install_dlc(id: CrasDlcId) -> Result<()> {
+    let mut service = Service::new()?;
+    service.install(id)
 }
 
-fn get_dlc_state(id: CrasDlcId) -> Result<DlcState> {
-    let connection = Connection::new_system()?;
-    let conn_path = get_dlcservice_connection_path(&connection);
-
-    let res = conn_path.get_dlc_state(id.as_str())?;
-    let mut dlc_state = DlcState::new();
-    dlc_state.merge_from_bytes(&res)?;
-    Ok(dlc_state)
-}
-
-fn get_dlc_root_path(id: CrasDlcId) -> Result<CString> {
-    let dlc_state = get_dlc_state(id)?;
-    CString::new(dlc_state.root_path).map_err(|e| e.into())
-}
-
-/// Returns `true` if the installation request is successfully sent,
-/// otherwise returns `false`.
-#[no_mangle]
-pub extern "C" fn cras_dlc_install(id: CrasDlcId) -> bool {
-    match install_dlc(id) {
-        Ok(()) => true,
-        Err(err) => {
-            log::warn!("cras_dlc_install({}) failed: {}", id, err);
-            false
-        }
-    }
-}
-
-/// Returns `true` if the DLC package is ready for use, otherwise
-/// returns `false`.
-#[no_mangle]
-pub extern "C" fn cras_dlc_is_available(id: CrasDlcId) -> bool {
-    match get_dlc_state(id) {
-        Ok(dlc_state) => dlc_state.state.enum_value() == Ok(State::INSTALLED),
-        Err(_) => false,
-    }
-}
-
-/// Returns the root path of the DLC package.
-///
-/// # Safety
-///
-/// This function leaks memory if called from C.
-/// There is no valid way to free the returned string in C.
-/// TODO(b/277566731): Fix it.
-#[no_mangle]
-pub unsafe extern "C" fn cras_dlc_get_root_path(id: CrasDlcId) -> *const c_char {
-    match get_dlc_root_path(id) {
-        Ok(root_path) => root_path.into_raw(),
-        Err(_) => ptr::null_mut(),
-    }
+pub fn get_dlc_state(id: CrasDlcId) -> Result<State> {
+    let mut service = Service::new()?;
+    service.get_dlc_state(id)
 }

@@ -16,5 +16,5 @@ nix = "0.26.2"
 glob = "0.3.0"
 regex = "1.6.0"
 
-cras_dlc = { version = "*", optional = true }
+cras_dlc = { version = "*", path = "cras_dlc" }
 audio_processor = { version = "*", path = "../../audio_processor" }

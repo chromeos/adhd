@@ -133,6 +133,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "chromeos-dbus-bindings"
 version = "0.25.52"
+source = "git+https://chromium.googlesource.com/chromiumos/platform2#fcba98842d95d8e4a170c6d4bdbd08d0b4b71ccf"
 dependencies = [
  "which",
 ]
@@ -194,7 +195,7 @@ dependencies = [
  "anyhow",
  "dbus",
  "log",
- "protobuf",
+ "protobuf 3.2.0",
  "system_api",
  "thiserror",
 ]
@@ -539,6 +540,12 @@ dependencies = [
 
 [[package]]
 name = "protobuf"
+version = "2.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
+
+[[package]]
+name = "protobuf"
 version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b55bad9126f378a853655831eb7363b7b01b81d19f8cb1218861086ca4a1a61e"
@@ -550,33 +557,11 @@ dependencies = [
 
 [[package]]
 name = "protobuf-codegen"
-version = "3.2.0"
+version = "2.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dd418ac3c91caa4032d37cb80ff0d44e2ebe637b2fb243b6234bf89cdac4901"
+checksum = "033460afb75cf755fcfc16dfaed20b86468082a2ea24e05ac35ab4a099a017d6"
 dependencies = [
- "anyhow",
- "once_cell",
- "protobuf",
- "protobuf-parse",
- "regex",
- "tempfile",
- "thiserror",
-]
-
-[[package]]
-name = "protobuf-parse"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d39b14605eaa1f6a340aec7f320b34064feb26c93aec35d6a9a2272a8ddfa49"
-dependencies = [
- "anyhow",
- "indexmap",
- "log",
- "protobuf",
- "protobuf-support",
- "tempfile",
- "thiserror",
- "which",
+ "protobuf 2.28.0",
 ]
 
 [[package]]
@@ -586,6 +571,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5d4d7b8601c814cfb36bcebb79f0e61e45e1e93640cf778837833bbed05c372"
 dependencies = [
  "thiserror",
+]
+
+[[package]]
+name = "protoc"
+version = "2.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0218039c514f9e14a5060742ecd50427f8ac4f85a6dc58f2ddb806e318c55ee"
+dependencies = [
+ "log",
+ "which",
+]
+
+[[package]]
+name = "protoc-rust"
+version = "2.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22f8a182bb17c485f20bdc4274a8c39000a61024cfe461c799b50fec77267838"
+dependencies = [
+ "protobuf 2.28.0",
+ "protobuf-codegen",
+ "protoc",
+ "tempfile",
 ]
 
 [[package]]
@@ -736,11 +743,12 @@ dependencies = [
 [[package]]
 name = "system_api"
 version = "0.24.53"
+source = "git+https://chromium.googlesource.com/chromiumos/platform2#fcba98842d95d8e4a170c6d4bdbd08d0b4b71ccf"
 dependencies = [
  "chromeos-dbus-bindings",
  "dbus",
- "protobuf",
- "protobuf-codegen",
+ "protobuf 2.28.0",
+ "protoc-rust",
 ]
 
 [[package]]

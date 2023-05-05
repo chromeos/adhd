@@ -192,15 +192,6 @@ cc_library(
 )
 
 cc_library(
-    name = "cras_dlc",
-    srcs = select({
-        "//:dlc_build": [],
-        "//conditions:default": ["cras_dlc_stub.c"],
-    }),
-    deps = ["//cras/src/server/rust"],
-)
-
-cc_library(
     name = "cras_features",
     srcs = [
         "cras_features_impl.c",
@@ -254,11 +245,11 @@ cc_library(
     ],
     deps = [
         ":cras_audio_area",
-        ":cras_dlc",
         ":cras_features",
         ":cras_fmt_conv_ops",
         ":dsp_types",
         ":ewma_power",
+        "//cras/src/server/rust",
         "//cras/src:include_here_hack",
         "//cras/src/common",
     ] + select({
@@ -483,7 +474,6 @@ cc_library(
         ":cras_alsa_ucm",
         ":cras_apm",
         ":cras_audio_area",
-        ":cras_dlc",
         ":cras_features",
         ":cras_fmt_conv_ops",
         ":cras_mix",

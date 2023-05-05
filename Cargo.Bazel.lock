@@ -1,5 +1,5 @@
 {
-  "checksum": "a50d28d9fec66ccf3161886b06ec29f002441106ab458de56420bf8d1e5d55e8",
+  "checksum": "05f7a06149013c4fdc48f7c8eeebb273500c6310f40d037a7c435d2d77ccec5a",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -682,48 +682,6 @@
       },
       "license": "MIT/Apache-2.0"
     },
-    "chromeos-dbus-bindings 0.25.52": {
-      "name": "chromeos-dbus-bindings",
-      "version": "0.25.52",
-      "repository": {
-        "Git": {
-          "remote": "https://chromium.googlesource.com/chromiumos/platform2",
-          "commitish": {
-            "Branch": "master"
-          },
-          "strip_prefix": "chromeos-dbus-bindings"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "chromeos_dbus_bindings",
-            "crate_root": "src/lib.rs",
-            "srcs": [
-              "**/*.rs"
-            ]
-          }
-        }
-      ],
-      "library_target_name": "chromeos_dbus_bindings",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "which 4.4.0",
-              "target": "which"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.25.52"
-      },
-      "license": null
-    },
     "clang-sys 1.6.1": {
       "name": "clang-sys",
       "version": "1.6.1",
@@ -1033,10 +991,6 @@
             {
               "id": "protobuf 3.2.0",
               "target": "protobuf"
-            },
-            {
-              "id": "system_api 0.24.53",
-              "target": "system_api"
             },
             {
               "id": "thiserror 1.0.40",
@@ -3004,59 +2958,6 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "protobuf 2.28.0": {
-      "name": "protobuf",
-      "version": "2.28.0",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/protobuf/2.28.0/download",
-          "sha256": "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "protobuf",
-            "crate_root": "src/lib.rs",
-            "srcs": [
-              "**/*.rs"
-            ]
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
-            "srcs": [
-              "**/*.rs"
-            ]
-          }
-        }
-      ],
-      "library_target_name": "protobuf",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "protobuf 2.28.0",
-              "target": "build_script_build"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "2.28.0"
-      },
-      "build_script_attrs": {
-        "data_glob": [
-          "**"
-        ]
-      },
-      "license": "MIT"
-    },
     "protobuf 3.2.0": {
       "name": "protobuf",
       "version": "3.2.0",
@@ -3125,45 +3026,6 @@
       },
       "license": "MIT"
     },
-    "protobuf-codegen 2.28.0": {
-      "name": "protobuf-codegen",
-      "version": "2.28.0",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/protobuf-codegen/2.28.0/download",
-          "sha256": "033460afb75cf755fcfc16dfaed20b86468082a2ea24e05ac35ab4a099a017d6"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "protobuf_codegen",
-            "crate_root": "src/lib.rs",
-            "srcs": [
-              "**/*.rs"
-            ]
-          }
-        }
-      ],
-      "library_target_name": "protobuf_codegen",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "protobuf 2.28.0",
-              "target": "protobuf"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2015",
-        "version": "2.28.0"
-      },
-      "license": "MIT"
-    },
     "protobuf-support 3.2.0": {
       "name": "protobuf-support",
       "version": "3.2.0",
@@ -3200,100 +3062,6 @@
         },
         "edition": "2021",
         "version": "3.2.0"
-      },
-      "license": "MIT"
-    },
-    "protoc 2.28.0": {
-      "name": "protoc",
-      "version": "2.28.0",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/protoc/2.28.0/download",
-          "sha256": "a0218039c514f9e14a5060742ecd50427f8ac4f85a6dc58f2ddb806e318c55ee"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "protoc",
-            "crate_root": "src/lib.rs",
-            "srcs": [
-              "**/*.rs"
-            ]
-          }
-        }
-      ],
-      "library_target_name": "protoc",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "log 0.4.17",
-              "target": "log"
-            },
-            {
-              "id": "which 4.4.0",
-              "target": "which"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2015",
-        "version": "2.28.0"
-      },
-      "license": "MIT"
-    },
-    "protoc-rust 2.28.0": {
-      "name": "protoc-rust",
-      "version": "2.28.0",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/protoc-rust/2.28.0/download",
-          "sha256": "22f8a182bb17c485f20bdc4274a8c39000a61024cfe461c799b50fec77267838"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "protoc_rust",
-            "crate_root": "src/lib.rs",
-            "srcs": [
-              "**/*.rs"
-            ]
-          }
-        }
-      ],
-      "library_target_name": "protoc_rust",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "protobuf 2.28.0",
-              "target": "protobuf"
-            },
-            {
-              "id": "protobuf-codegen 2.28.0",
-              "target": "protobuf_codegen"
-            },
-            {
-              "id": "protoc 2.28.0",
-              "target": "protoc"
-            },
-            {
-              "id": "tempfile 3.5.0",
-              "target": "tempfile"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2015",
-        "version": "2.28.0"
       },
       "license": "MIT"
     },
@@ -4158,83 +3926,6 @@
         "version": "6.0.1"
       },
       "license": "MIT"
-    },
-    "system_api 0.24.53": {
-      "name": "system_api",
-      "version": "0.24.53",
-      "repository": {
-        "Git": {
-          "remote": "https://chromium.googlesource.com/chromiumos/platform2",
-          "commitish": {
-            "Branch": "master"
-          },
-          "strip_prefix": "system_api"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "system_api",
-            "crate_root": "src/lib.rs",
-            "srcs": [
-              "**/*.rs"
-            ]
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
-            "srcs": [
-              "**/*.rs"
-            ]
-          }
-        }
-      ],
-      "library_target_name": "system_api",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "dbus 0.9.7",
-              "target": "dbus"
-            },
-            {
-              "id": "protobuf 2.28.0",
-              "target": "protobuf"
-            },
-            {
-              "id": "system_api 0.24.53",
-              "target": "build_script_build"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.24.53"
-      },
-      "build_script_attrs": {
-        "data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "chromeos-dbus-bindings 0.25.52",
-              "target": "chromeos_dbus_bindings"
-            },
-            {
-              "id": "protoc-rust 2.28.0",
-              "target": "protoc_rust"
-            }
-          ],
-          "selects": {}
-        }
-      },
-      "license": null
     },
     "tempfile 3.5.0": {
       "name": "tempfile",

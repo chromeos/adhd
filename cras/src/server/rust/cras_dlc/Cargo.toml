@@ -8,6 +8,9 @@ edition = "2021"
 anyhow = "1.0.32"
 dbus = "0.9"
 protobuf = "3.2"
-system_api = "*"
+system_api = { version = "*", optional = true }
 thiserror = "1.0.20"
 log = "0.4.17"
+
+[features]
+dlc = ["system_api"]
