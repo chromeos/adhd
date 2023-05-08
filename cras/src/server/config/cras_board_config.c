@@ -50,21 +50,24 @@ static const struct ini_int_field INI_INT_KEYS[] = {
 
 void cras_board_config_get(const char* config_path,
                            struct cras_board_config* board_config) {
-  char ini_name[MAX_INI_NAME_LENGTH + 1];
-  const char* ptr;
-  dictionary* ini;
+  char ini_name[MAX_INI_NAME_LENGTH + 1] = {};
+  dictionary* ini = NULL;
   uint8_t* cfg_ptr = ((uint8_t*)board_config);
 
-  if (config_path == NULL) {
-    goto set_default;
+  if (config_path != NULL) {
+    // Load the config only if config_path is set.
+    snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", config_path, CONFIG_NAME);
+    ini = iniparser_load_wrapper(ini_name);
+    if (ini == NULL) {
+      syslog(LOG_DEBUG, "No ini file %s", ini_name);
+    }
   }
 
-  snprintf(ini_name, MAX_INI_NAME_LENGTH, "%s/%s", config_path, CONFIG_NAME);
-  ini_name[MAX_INI_NAME_LENGTH] = '\0';
-  ini = iniparser_load_wrapper(ini_name);
   if (ini == NULL) {
-    syslog(LOG_DEBUG, "No ini file %s", ini_name);
-    goto set_default;
+    // No valid ini. Create empty dictionary to set defaults.
+    ini = dictionary_new(0);
+    assert(ini != NULL);
+    snprintf(ini_name, sizeof(ini_name), "<none>");
   }
 
   for (int i = 0; i < ARRAY_SIZE(INI_INT_KEYS); i++) {
@@ -72,23 +75,16 @@ void cras_board_config_get(const char* config_path,
         ini, INI_INT_KEYS[i].key, INI_INT_KEYS[i].default_value);
   }
 
-  ptr = iniparser_getstring(ini, UCM_IGNORE_SUFFIX_KEY, "");
+  const char* ptr = iniparser_getstring(ini, UCM_IGNORE_SUFFIX_KEY, "");
   if (ptr) {
     board_config->ucm_ignore_suffix = strdup(ptr);
     if (!board_config->ucm_ignore_suffix) {
       syslog(LOG_ERR, "Failed to call strdup: %d", errno);
     }
   }
+
   iniparser_freedict(ini);
   syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
-  return;
-
-set_default:
-  board_config->ucm_ignore_suffix = NULL;
-  for (int i = 0; i < ARRAY_SIZE(INI_INT_KEYS); i++) {
-    *((int32_t*)(cfg_ptr + INI_INT_KEYS[i].offset)) =
-        INI_INT_KEYS[i].default_value;
-  }
 }
 
 void cras_board_config_clear(struct cras_board_config* board_config) {
