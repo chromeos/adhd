@@ -151,6 +151,10 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
     match &args.cmd {
         Command::ReadAppliedRdc(param) => {
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            info!(
+                "cmd: read_applied_rdc sound_card_id: {}, conf:{}",
+                param.id, param.conf
+            );
             let rdc = AppliedRDC {
                 channel: param.channel,
                 rdc_in_ohm: amp.get_applied_rdc(param.channel)?,
@@ -159,6 +163,10 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
         }
         Command::ReadCurrentRdc(param) => {
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            info!(
+                "cmd: read_current_rdc sound_card_id: {}, conf:{}",
+                param.id, param.conf
+            );
             let rdc = CurrentRDC {
                 channel: param.channel,
                 rdc_in_ohm: amp.get_current_rdc(param.channel)?,
@@ -167,7 +175,10 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
         }
         Command::BootTimeCalibration(param) => {
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
-            info!("sound_card_id: {}, conf:{}", param.id, param.conf);
+            info!(
+                "cmd: boot_time_calibration sound_card_id: {}, conf:{}",
+                param.id, param.conf
+            );
             amp.boot_time_calibration()?;
             if let Err(e) = run_time::now_to_file(&param.id) {
                 error!("failed to create sound_card_init run time file: {}", e);
@@ -175,7 +186,10 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
         }
         Command::Debug(param) => {
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
-            info!("sound_card_id: {}, conf:{}", param.id, param.conf);
+            info!(
+                "cmd: debug sound_card_id: {}, conf:{}",
+                param.id, param.conf
+            );
             let info = amp.get_debug_info()?;
             if param.json {
                 println!("{}", serde_json::to_string(&info)?);
@@ -185,7 +199,10 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
         }
         Command::FakeVPD(param) => {
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
-            info!("sound_card_id: {}, conf:{}", param.id, param.conf);
+            info!(
+                "cmd: fake_vpd sound_card_id: {}, conf:{}",
+                param.id, param.conf
+            );
             let info = amp.get_fake_vpd()?;
             if param.json {
                 println!("{}", serde_json::to_string(&info)?);
