@@ -75,11 +75,18 @@ pkg_config_repository(
         "libmetrics",
         "libselinux",
         "libfeatures_c",
-        "libwebrtc_apm",
         "tensorflowlite",
         "libchrome",
         "libcros_config",
+        # @webrtc_apm deps
+        "protobuf",
+        "libevent",
     ],
+)
+
+local_repository(
+    name = "webrtc_apm",
+    path = "../webrtc-apm",
 )
 
 load("//:repositories/fuzz_engine/fuzz_engine.bzl", "fuzz_engine_repository")

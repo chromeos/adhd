@@ -552,16 +552,16 @@ cc_library(
     ],
     deps = [
         ":cras_audio_area",
+        ":cras_features",
         ":dsp_types",
         ":ewma_power",
-        ":cras_features",
         "//cras/src/audio_processor/c:plugin_processor",
-        "//cras/src/server/rust",
         "//cras/src/common",
         "//cras/src/dsp",
+        "//cras/src/server/rust",
     ] + select({
+        "//:apm_build": ["@webrtc_apm"],
         "//conditions:default": [],
-        "//:apm_build": ["@pkg_config//libwebrtc_apm"],
     }),
 )
 

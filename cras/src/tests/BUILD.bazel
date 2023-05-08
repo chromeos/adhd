@@ -1773,6 +1773,7 @@ cc_test(
         "//cras/src/server:cras_speak_on_mute_detector_stub.c",
         "//cras/src/server:cras_stream_apm.c",
     ],
+    copts = ["-ffunction-sections"],
     target_compatible_with = require_config("//:apm_build"),
     deps = [
         ":test_support",
@@ -1786,7 +1787,7 @@ cc_test(
         "@pkg_config//alsa",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
-        "@pkg_config//libwebrtc_apm",
+        "@webrtc_apm",
     ],
 )
 
@@ -1803,6 +1804,7 @@ cc_test(
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
+        "@iniparser",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],

@@ -14,7 +14,7 @@ namespace {
 extern "C" {
 #include "cras/src/dsp/dsp_util.h"
 #include "cras_audio_format.h"
-#include "webrtc-apm/webrtc_apm.h"
+#include "webrtc_apm.h"
 }
 
 class BM_Apm : public benchmark::Fixture {

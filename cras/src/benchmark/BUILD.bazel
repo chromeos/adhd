@@ -56,14 +56,12 @@ cc_library(
     srcs = [
         "apm_benchmark.cc",
     ],
-    linkopts = [
-        "-lwebrtc_apm",
-    ],
     target_compatible_with = require_config("//:apm_build"),
     deps = [
         ":benchmark_util",
         "//cras/src/dsp:dsp_util",
         "@com_github_google_benchmark//:benchmark",
+        "@webrtc_apm",
     ],
     alwayslink = True,
 )
