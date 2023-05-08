@@ -6,12 +6,12 @@ cc_library(
     name = "config",
     srcs = [
         "cras_board_config.c",
-        "cras_board_config.h",
         "cras_card_config.c",
         "cras_device_blocklist.c",
         "cras_device_blocklist.h",
     ],
     hdrs = [
+        "cras_board_config.h",
         "cras_card_config.h",
     ],
     defines = [
@@ -22,6 +22,16 @@ cc_library(
         "//cras/src/common",
         "//cras/src/server:cras_volume_curve",
         "//cras/src/server:iniparser_wrapper",
+    ],
+)
+
+cc_test(
+    name = "config_test",
+    srcs = ["config_test.cc"],
+    data = ["testdata/board.ini"],
+    deps = [
+        ":config",
+        "@pkg_config//gtest",
     ],
 )
 

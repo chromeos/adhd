@@ -8,6 +8,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_board_config {
   int32_t default_output_buffer_size;
   int32_t aec_supported;
@@ -37,5 +41,12 @@ struct cras_board_config {
  */
 void cras_board_config_get(const char* config_path,
                            struct cras_board_config* board_config);
+
+/* Free the members in board config. */
+void cras_board_config_clear(struct cras_board_config* board_config);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // CRAS_SRC_SERVER_CONFIG_CRAS_BOARD_CONFIG_H_

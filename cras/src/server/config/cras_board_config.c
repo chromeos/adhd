@@ -90,3 +90,9 @@ set_default:
         INI_INT_KEYS[i].default_value;
   }
 }
+
+void cras_board_config_clear(struct cras_board_config* board_config) {
+  assert(board_config);
+  free(board_config->ucm_ignore_suffix);
+  memset(board_config, 0, sizeof(*board_config));
+}
