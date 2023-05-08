@@ -220,32 +220,8 @@ static inline int delay_frames(const struct cras_iodev* iodev) {
   return cras_alsa_common_delay_frames(iodev);
 }
 
-static int close_dev(struct cras_iodev* iodev) {
-  struct alsa_io* aio = (struct alsa_io*)iodev;
-  int ret;
-
-  // Removes audio thread callback from main thread.
-  if (aio->common.poll_fd >= 0) {
-    ret = audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
-                                        aio->common.poll_fd);
-    if (ret < 0) {
-      syslog(LOG_WARNING, "ALSA: failed to rm callback sync: %d", ret);
-    }
-  }
-  if (!aio->common.handle) {
-    return 0;
-  }
-  ret = cras_alsa_pcm_close(aio->common.handle);
-  if (ret < 0) {
-    syslog(LOG_WARNING, "ALSA: failed to close pcm: %d", ret);
-  }
-  aio->common.handle = NULL;
-  aio->common.free_running = 0;
-  aio->common.filled_zeros_for_draining = 0;
-  aio->common.hwparams_set = 0;
-  cras_iodev_free_format(&aio->common.base);
-  cras_iodev_free_audio_area(&aio->common.base);
-  return 0;
+static inline int close_dev(struct cras_iodev* iodev) {
+  return cras_alsa_common_close_dev(iodev);
 }
 
 static int empty_hotword_cb(void* arg, int revents) {

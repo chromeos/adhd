@@ -7,8 +7,10 @@
 #include <sys/time.h>
 #include <syslog.h>
 
+#include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "third_party/utlist/utlist.h"
@@ -159,4 +161,34 @@ int cras_alsa_common_delay_frames(const struct cras_iodev* iodev) {
   }
 
   return (int)delay;
+}
+
+int cras_alsa_common_close_dev(const struct cras_iodev* iodev) {
+  struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
+  int ret;
+
+  // Removes audio thread callback from main thread.
+  if (aio->poll_fd >= 0) {
+    ret = audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(),
+                                        aio->poll_fd);
+    if (ret < 0) {
+      syslog(LOG_WARNING, "card type: %s ALSA: failed to rm callback sync: %d",
+             cras_card_type_to_string(aio->card_type), ret);
+    }
+  }
+  if (!aio->handle) {
+    return 0;
+  }
+  ret = cras_alsa_pcm_close(aio->handle);
+  if (ret < 0) {
+    syslog(LOG_WARNING, "card type: %s ALSA: failed to close pcm: %d",
+           cras_card_type_to_string(aio->card_type), ret);
+  }
+  aio->handle = NULL;
+  aio->free_running = 0;
+  aio->filled_zeros_for_draining = 0;
+  aio->hwparams_set = 0;
+  cras_iodev_free_format(&aio->base);
+  cras_iodev_free_audio_area(&aio->base);
+  return 0;
 }

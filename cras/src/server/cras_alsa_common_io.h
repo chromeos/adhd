@@ -159,4 +159,5 @@ int cras_alsa_common_frames_queued(const struct cras_iodev* iodev,
 int cras_alsa_common_set_active_node(struct cras_iodev* iodev,
                                      struct cras_ionode* ionode);
 int cras_alsa_common_delay_frames(const struct cras_iodev* iodev);
+int cras_alsa_common_close_dev(const struct cras_iodev* iodev);
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_COMMON_IO_H_
