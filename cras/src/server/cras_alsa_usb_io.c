@@ -109,8 +109,6 @@ static inline int usb_close_dev(struct cras_iodev* iodev) {
 
 static int usb_open_dev(struct cras_iodev* iodev) {
   struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
-  snd_pcm_t* handle;
-  int rc;
   const char* pcm_name = NULL;
 
   if (aio->common.base.direction == CRAS_STREAM_OUTPUT) {
@@ -122,25 +120,7 @@ static int usb_open_dev(struct cras_iodev* iodev) {
         (struct alsa_usb_input_node*)aio->common.base.active_node;
     pcm_name = ain->pcm_name;
   }
-
-  // For legacy UCM path which doesn't have PlaybackPCM or CapturePCM.
-  if (pcm_name == NULL) {
-    pcm_name = aio->common.pcm_name;
-  }
-
-  rc = cras_alsa_pcm_open(&handle, pcm_name, aio->common.alsa_stream);
-  if (rc < 0) {
-    return rc;
-  }
-
-  aio->common.handle = handle;
-
-  rc = cras_alsa_common_configure_noise_cancellation(iodev, aio->common.ucm);
-  if (rc) {
-    return rc;
-  }
-
-  return 0;
+  return cras_alsa_common_open_dev(iodev, pcm_name);
 }
 
 static int usb_configure_dev(struct cras_iodev* iodev) {

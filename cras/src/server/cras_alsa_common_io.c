@@ -200,3 +200,27 @@ int cras_alsa_common_close_dev(const struct cras_iodev* iodev) {
   cras_iodev_free_audio_area(&aio->base);
   return 0;
 }
+int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name) {
+  struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
+  snd_pcm_t* handle;
+  int rc;
+
+  // For legacy UCM path which doesn't have PlaybackPCM or CapturePCM.
+  if (pcm_name == NULL) {
+    pcm_name = aio->pcm_name;
+  }
+
+  rc = cras_alsa_pcm_open(&handle, pcm_name, aio->alsa_stream);
+  if (rc < 0) {
+    return rc;
+  }
+
+  aio->handle = handle;
+
+  rc = cras_alsa_common_configure_noise_cancellation(iodev, aio->ucm);
+  if (rc) {
+    return rc;
+  }
+
+  return 0;
+}
