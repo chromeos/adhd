@@ -105,6 +105,14 @@ int cras_alsa_common_set_hwparams(struct cras_iodev* iodev, int period_wakeup) {
   rc = cras_alsa_set_hwparams(aio->handle, iodev->format, &iodev->buffer_size,
                               period_wakeup, aio->dma_period_set_microsecs);
   if (rc < 0) {
+    syslog(
+        LOG_ERR,
+        "card type: %s, pcm_name: %s, Fail to set hwparams format_rate: %zu, "
+        "num_channels: %zu, buffer_size: %ld, period_wakeup: %d, "
+        "dma_period_set_microsecs: %d",
+        cras_card_type_to_string(aio->card_type), aio->pcm_name,
+        iodev->format->frame_rate, iodev->format->num_channels,
+        iodev->buffer_size, period_wakeup, aio->dma_period_set_microsecs);
     return rc;
   }
 
