@@ -104,7 +104,7 @@ TEST(Util, FileWait) {
   int current_dir;
   struct timespec timeout = {0, 100000000};
   char pid_buf[32];
-  std::string tmp_dir(CRAS_UT_TMPDIR);
+  std::string tmp_dir("/tmp");
   std::string dir_path;
   std::string subdir_path;
   std::string file_path;
@@ -135,7 +135,7 @@ TEST(Util, FileWait) {
 
   // Make sure that /tmp exists.
   file_wait_result.called = 0;
-  EXPECT_EQ(0, cras_file_wait_create(CRAS_UT_TMPDIR, CRAS_FILE_WAIT_FLAG_NONE,
+  EXPECT_EQ(0, cras_file_wait_create("/tmp", CRAS_FILE_WAIT_FLAG_NONE,
                                      FileWaitCallback, &file_wait_result,
                                      &file_wait));
   EXPECT_NE(reinterpret_cast<struct cras_file_wait*>(NULL), file_wait);

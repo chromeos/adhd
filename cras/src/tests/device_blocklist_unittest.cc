@@ -3,22 +3,24 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <linux/limits.h>
 #include <stdio.h>
 
 extern "C" {
 #include "cras/src/server/config/cras_device_blocklist.h"
 }
+#include "cras/src/tests/test_util.h"
 
 namespace {
 
-static const char CONFIG_PATH[] = CRAS_UT_TMPDIR;
 static const char CONFIG_FILENAME[] = "device_blocklist";
 
 void CreateConfigFile(const char* config_text) {
   FILE* f;
-  char card_path[128];
+  char card_path[PATH_MAX];
 
-  snprintf(card_path, sizeof(card_path), "%s/%s", CONFIG_PATH, CONFIG_FILENAME);
+  snprintf(card_path, sizeof(card_path), "%s/%s", test_tmpdir(),
+           CONFIG_FILENAME);
   f = fopen(card_path, "w");
   if (f == NULL) {
     return;
@@ -35,7 +37,7 @@ TEST(Blocklist, EmptyBlocklist) {
 
   CreateConfigFile(empty_config_text);
 
-  blocklist = cras_device_blocklist_create(CONFIG_PATH);
+  blocklist = cras_device_blocklist_create(test_tmpdir());
   ASSERT_NE(static_cast<cras_device_blocklist*>(NULL), blocklist);
   EXPECT_EQ(0, cras_device_blocklist_check(blocklist, 0x0d8c, 0x0008, 0, 0));
 
@@ -50,7 +52,7 @@ TEST(Blocklist, BlockListOneUsbOutput) {
 
   CreateConfigFile(usb_output_config_text);
 
-  blocklist = cras_device_blocklist_create(CONFIG_PATH);
+  blocklist = cras_device_blocklist_create(test_tmpdir());
   ASSERT_NE(static_cast<cras_device_blocklist*>(NULL), blocklist);
 
   EXPECT_EQ(0, cras_device_blocklist_check(blocklist, 0x0d8d, 0x0008, 0x12, 0));
@@ -71,7 +73,7 @@ TEST(Blocklist, BlockListTwoUsbOutput) {
 
   CreateConfigFile(usb_output_config_text);
 
-  blocklist = cras_device_blocklist_create(CONFIG_PATH);
+  blocklist = cras_device_blocklist_create(test_tmpdir());
   ASSERT_NE(static_cast<cras_device_blocklist*>(NULL), blocklist);
 
   EXPECT_EQ(1, cras_device_blocklist_check(blocklist, 0x0d8c, 0x0009, 0, 0));

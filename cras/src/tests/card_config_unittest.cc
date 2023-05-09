@@ -3,12 +3,13 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <linux/limits.h>
 #include <stdio.h>
 
 extern "C" {
 #include "cras/src/server/config/cras_card_config.h"
-#include "cras_types.h"
 }
+#include "cras/src/tests/test_util.h"
 
 namespace {
 
@@ -22,13 +23,15 @@ static unsigned int cras_volume_curve_create_explicit_called;
 static long cras_explicit_curve[101];
 static struct cras_volume_curve* cras_volume_curve_create_explicit_return;
 
-static const char CONFIG_PATH[] = CRAS_UT_TMPDIR;
+const char* config_path() {
+  return test_tmpdir();
+}
 
 void CreateConfigFile(const char* name, const char* config_text) {
   FILE* f;
-  char card_path[128];
+  char card_path[PATH_MAX];
 
-  snprintf(card_path, sizeof(card_path), "%s/%s", CONFIG_PATH, name);
+  snprintf(card_path, sizeof(card_path), "%s/%s", config_path(), name);
   f = fopen(card_path, "w");
   ASSERT_NE(f, nullptr);
 
@@ -56,7 +59,7 @@ class CardConfigTestSuite : public testing::Test {
 TEST_F(CardConfigTestSuite, NoConfigFound) {
   struct cras_card_config* config;
 
-  config = cras_card_config_create(CONFIG_PATH, "no_effing_way_this_exists");
+  config = cras_card_config_create(config_path(), "no_effing_way_this_exists");
   EXPECT_EQ(NULL, config);
 }
 
@@ -64,7 +67,7 @@ TEST_F(CardConfigTestSuite, ConfigFileWithCardSettingsSuffix) {
   CreateConfigFile("ConfigFileWithCardConfigSuffix.card_settings", "");
 
   struct cras_card_config* config =
-      cras_card_config_create(CONFIG_PATH, "ConfigFileWithCardConfigSuffix");
+      cras_card_config_create(config_path(), "ConfigFileWithCardConfigSuffix");
   ASSERT_NE(nullptr, config);
 
   cras_card_config_destroy(config);
@@ -85,7 +88,7 @@ volume_step = 200
 max_volume = -200
 )");
   struct cras_card_config* config =
-      cras_card_config_create(CONFIG_PATH, "CardSettingsSuffixTakesPriority");
+      cras_card_config_create(config_path(), "CardSettingsSuffixTakesPriority");
   ASSERT_NE(nullptr, config);
 
   struct cras_volume_curve* curve =
@@ -107,7 +110,7 @@ TEST_F(CardConfigTestSuite, EmptyConfigFileReturnsNullVolumeCurve) {
 
   CreateConfigFile(empty_config_name, empty_config_text);
 
-  config = cras_card_config_create(CONFIG_PATH, empty_config_name);
+  config = cras_card_config_create(config_path(), empty_config_name);
   EXPECT_NE(static_cast<struct cras_card_config*>(NULL), config);
 
   curve = cras_card_config_get_volume_curve_for_control(config, "asdf");
@@ -139,7 +142,7 @@ TEST_F(CardConfigTestSuite, SimpleStepConfig) {
 
   CreateConfigFile(simple_config_name, simple_config_text);
 
-  config = cras_card_config_create(CONFIG_PATH, simple_config_name);
+  config = cras_card_config_create(config_path(), simple_config_name);
   EXPECT_NE(static_cast<struct cras_card_config*>(NULL), config);
 
   // Unknown config should return NULL.
@@ -270,7 +273,7 @@ TEST_F(CardConfigTestSuite, ExplicitCurveConfig) {
 
   CreateConfigFile(explicit_config_name, explicit_config_text);
 
-  config = cras_card_config_create(CONFIG_PATH, explicit_config_name);
+  config = cras_card_config_create(config_path(), explicit_config_name);
   EXPECT_NE(static_cast<struct cras_card_config*>(NULL), config);
 
   // Test a explicit curve config.

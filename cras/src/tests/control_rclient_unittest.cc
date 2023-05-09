@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "cras/src/tests/test_util.h"
 extern "C" {
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"
@@ -739,7 +740,7 @@ void cras_stream_apm_reload_aec_config() {}
 void cras_system_set_bt_wbs_enabled(bool enabled) {}
 
 const char* cras_config_get_socket_file_dir() {
-  return CRAS_UT_TMPDIR;
+  return test_tmpdir();
 }
 
 int cras_rstream_create(struct cras_rstream_config* stream_config,

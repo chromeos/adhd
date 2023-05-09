@@ -38,4 +38,6 @@ DeferHelper(Ctor, Dtor) -> DeferHelper<Dtor>;
 #define EVENTUALLY(func, val1, val2) \
   EVENTUALLY_PRIVATE(func(val1, val2), __LINE__)
 
+const char* test_tmpdir();
+
 #endif

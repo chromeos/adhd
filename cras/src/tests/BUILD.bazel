@@ -7,7 +7,6 @@ load("//:utils.bzl", "require_config")
 cc_library(
     name = "test_support",
     defines = [
-        "CRAS_UT_TMPDIR=\\\"/tmp\\\"",
         "CRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
         "CRAS_CONFIG_FILE_DIR=\\\"/etc\\\"",
     ],
@@ -22,6 +21,13 @@ cc_library(
         "//third_party/superfasthash",
         "//third_party/utlist",
     ],
+)
+
+cc_library(
+    name = "test_util",
+    testonly = True,
+    srcs = ["test_util.cc"],
+    hdrs = ["test_util.h"],
 )
 
 cc_test(
@@ -69,11 +75,11 @@ cc_test(
     name = "a2dp_manager_unittest",
     srcs = [
         ":a2dp_manager_unittest.cc",
-        ":test_util.h",
         "//cras/src/server:cras_a2dp_manager.c",
     ],
     deps = [
         ":test_support",
+        ":test_util",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -516,6 +522,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        ":test_util",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -551,6 +558,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        ":test_util",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -782,6 +790,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        ":test_util",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -1281,12 +1290,12 @@ cc_test(
     name = "iodev_list_unittest",
     srcs = [
         ":iodev_list_unittest.cc",
-        ":test_util.h",
         "//cras/src/server:cras_speak_on_mute_detector_stub.c",
     ],
     deps = [
         ":scoped_features_override",
         ":test_support",
+        ":test_util",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
