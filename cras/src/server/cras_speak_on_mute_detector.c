@@ -234,6 +234,9 @@ static struct cras_rstream* find_target_client_stream(
   struct cras_rstream* stream = NULL;
   struct cras_rstream* first_rtc_stream = NULL;
   DL_FOREACH (all_streams, stream) {
+    if (stream->direction != CRAS_STREAM_INPUT) {
+      continue;
+    }
     if (!cras_rtc_check_stream_config(stream)) {
       continue;
     }
