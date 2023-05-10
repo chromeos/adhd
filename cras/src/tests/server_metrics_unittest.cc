@@ -5,6 +5,8 @@
 #include <gtest/gtest.h>
 #include <map>
 #include <stdio.h>
+#include <string>
+#include <tuple>
 #include <vector>
 
 extern "C" {
@@ -15,10 +17,15 @@ extern "C" {
 
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;
 static struct timespec clock_gettime_retspec;
+static std::vector<std::tuple<std::string, int>>
+    cras_metrics_log_sparse_histogram_called_args;
+static int cras_system_state_in_main_thread_ret = 0;
 std::vector<struct cras_server_metrics_message> sent_msgs;
 
 void ResetStubData() {
   type_set = (enum CRAS_MAIN_MESSAGE_TYPE)0;
+  cras_metrics_log_sparse_histogram_called_args.clear();
+  cras_system_state_in_main_thread_ret = 0;
   sent_msgs.clear();
 }
 
@@ -436,6 +443,63 @@ INSTANTIATE_TEST_SUITE_P(
                          .device_type = CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC,
                          .status = CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED})));
 
+struct CrasDlcManagerTestParam {
+  enum CrasDlcId dlc_id;
+  std::string dlc_id_str;
+  int num_retry_times;
+  enum CRAS_METRICS_DLC_STATUS dlc_status;
+};
+
+class ServerMetricsCrasDlcManagerTest
+    : public testing::TestWithParam<CrasDlcManagerTestParam> {
+ protected:
+  virtual void SetUp() { ResetStubData(); }
+  virtual void TearDown() { sent_msgs.clear(); }
+};
+
+TEST_P(ServerMetricsCrasDlcManagerTest, TestCrasServerMetricsDlcManagerStatus) {
+  const auto& param = GetParam();
+  cras_system_state_in_main_thread_ret = 1;
+
+  cras_server_metrics_dlc_manager_status(param.dlc_id, param.num_retry_times,
+                                         param.dlc_status);
+
+  bool dlc_available = param.dlc_status == CRAS_METRICS_DLC_STATUS_AVAILABLE;
+  int args_size = dlc_available ? 2 : 1;
+  ASSERT_EQ(cras_metrics_log_sparse_histogram_called_args.size(), args_size);
+
+  std::string prefix = "Cras.DlcManagerStatus";
+  std::string num_retry_times_name =
+      prefix + "." + param.dlc_id_str + ".RetriedTimesOnSuccess";
+  std::string dlc_status_name = prefix + "." + param.dlc_id_str + ".DlcStatus";
+  if (dlc_available) {
+    EXPECT_EQ(
+        std::get<0>(cras_metrics_log_sparse_histogram_called_args.front()),
+        num_retry_times_name);
+    EXPECT_EQ(
+        std::get<1>(cras_metrics_log_sparse_histogram_called_args.front()),
+        param.num_retry_times);
+  }
+  EXPECT_EQ(std::get<0>(cras_metrics_log_sparse_histogram_called_args.back()),
+            dlc_status_name);
+  EXPECT_EQ(std::get<1>(cras_metrics_log_sparse_histogram_called_args.back()),
+            param.dlc_status);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    ServerMetricsCrasDlcManagerTest,
+    testing::Values(CrasDlcManagerTestParam(
+                        {.dlc_id = CrasDlcNcAp,
+                         .dlc_id_str = "NcAp",
+                         .num_retry_times = 0,
+                         .dlc_status = CRAS_METRICS_DLC_STATUS_AVAILABLE}),
+                    CrasDlcManagerTestParam(
+                        {.dlc_id = CrasDlcSrBt,
+                         .dlc_id_str = "SrBt",
+                         .num_retry_times = 10,
+                         .dlc_status = CRAS_METRICS_DLC_STATUS_UNAVAILABLE})));
+
 extern "C" {
 
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
@@ -451,7 +515,9 @@ void cras_metrics_log_histogram(const char* name,
                                 int max,
                                 int nbuckets) {}
 
-void cras_metrics_log_sparse_histogram(const char* name, int sample) {}
+void cras_metrics_log_sparse_histogram(const char* name, int sample) {
+  cras_metrics_log_sparse_histogram_called_args.emplace_back(name, sample);
+}
 
 int cras_main_message_send(struct cras_main_message* msg) {
   // Copy the sent message so we can examine it in the test later.
@@ -462,7 +528,7 @@ int cras_main_message_send(struct cras_main_message* msg) {
 }
 
 int cras_system_state_in_main_thread() {
-  return 0;
+  return cras_system_state_in_main_thread_ret;
 }
 
 //  From librt.

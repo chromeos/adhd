@@ -16,6 +16,7 @@
 #include "cras/src/server/cras_main_message.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/rust/include/cras_dlc.h"
 
 #define METRICS_NAME_BUFFER_SIZE 100
 
@@ -77,6 +78,7 @@ const char kHfpWidebandSpeechPacketLoss[] = "Cras.HfpWidebandSpeechPacketLoss";
 const char kHfpWidebandSpeechSelectedCodec[] =
     "Cras.kHfpWidebandSpeechSelectedCodec";
 const char kHfpMicSuperResolutionStatus[] = "Cras.HfpMicSuperResolutionStatus";
+const char kCrasDlcManagerStatus[] = "Cras.DlcManagerStatus";
 
 /*
  * Records missed callback frequency only when the runtime of stream is larger
@@ -117,6 +119,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   DEVICE_VOLUME,
   DEVICE_NOISE_CANCELLATION_STATUS,
   DEVICE_SAMPLE_RATE,
+  DLC_MANAGER_STATUS,
   HIGHEST_DEVICE_DELAY_INPUT,
   HIGHEST_DEVICE_DELAY_OUTPUT,
   HIGHEST_INPUT_HW_LEVEL,
@@ -213,6 +216,12 @@ struct cras_server_metrics_rtc_data {
   struct timespec runtime;
 };
 
+struct cras_server_metrics_dlc_manager_data {
+  enum CrasDlcId dlc_id;
+  int num_retry_times;
+  enum CRAS_METRICS_DLC_STATUS dlc_status;
+};
+
 union cras_server_metrics_data {
   unsigned value;
   struct cras_server_metrics_stream_config stream_config;
@@ -220,6 +229,7 @@ union cras_server_metrics_data {
   struct cras_server_metrics_stream_data stream_data;
   struct cras_server_metrics_timespec_data timespec_data;
   struct cras_server_metrics_rtc_data rtc_data;
+  struct cras_server_metrics_dlc_manager_data dlc_manager_data;
 };
 
 /*
@@ -349,6 +359,17 @@ static inline const char* metrics_client_type_str(
       return "SOUND_CARD_INIT";
     default:
       return "InvalidType";
+  }
+}
+
+static inline const char* metrics_dlc_id_str(enum CrasDlcId dlc_id) {
+  switch (dlc_id) {
+    case CrasDlcSrBt:
+      return "SrBt";
+    case CrasDlcNcAp:
+      return "NcAp";
+    default:
+      return "InvalidDlcId";
   }
 }
 
@@ -657,6 +678,31 @@ int cras_server_metrics_hfp_mic_sr_status(
     syslog(LOG_WARNING,
            "Failed to send metrics message: "
            "BT_MIC_SUPER_RESOLUTION_STATUS");
+    return err;
+  }
+
+  return 0;
+}
+
+int cras_server_metrics_dlc_manager_status(
+    enum CrasDlcId dlc_id,
+    int num_retry_times,
+    enum CRAS_METRICS_DLC_STATUS dlc_status) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  int err;
+
+  data.dlc_manager_data.dlc_id = dlc_id;
+  data.dlc_manager_data.num_retry_times = num_retry_times;
+  data.dlc_manager_data.dlc_status = dlc_status;
+
+  init_server_metrics_msg(&msg, DLC_MANAGER_STATUS, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: "
+           "DLC_MANAGER_STATUS");
     return err;
   }
 
@@ -1423,6 +1469,24 @@ static void metrics_longest_fetch_delay(
                            metrics_stream_type_str(data.stream_type));
 }
 
+static void metrics_dlc_manager_status(
+    struct cras_server_metrics_dlc_manager_data data) {
+  char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+  // Logs num_retry_times
+  if (data.dlc_status == CRAS_METRICS_DLC_STATUS_AVAILABLE) {
+    snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
+             "%s.%s.RetriedTimesOnSuccess", kCrasDlcManagerStatus,
+             metrics_dlc_id_str(data.dlc_id));
+    cras_metrics_log_sparse_histogram(metrics_name, data.num_retry_times);
+  }
+
+  // Logs dlc_status
+  snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s.DlcStatus",
+           kCrasDlcManagerStatus, metrics_dlc_id_str(data.dlc_id));
+  cras_metrics_log_sparse_histogram(metrics_name, (int)data.dlc_status);
+}
+
 static void metrics_rtc_runtime(struct cras_server_metrics_rtc_data data) {
   char metrics_name[METRICS_NAME_BUFFER_SIZE];
   int value;
@@ -1555,6 +1619,9 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case DEVICE_SAMPLE_RATE:
       metrics_device_sample_rate(metrics_msg->data.device_data);
+      break;
+    case DLC_MANAGER_STATUS:
+      metrics_dlc_manager_status(metrics_msg->data.dlc_manager_data);
       break;
     case HIGHEST_DEVICE_DELAY_INPUT:
       cras_metrics_log_histogram(kHighestDeviceDelayInput,

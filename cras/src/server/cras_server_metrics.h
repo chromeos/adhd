@@ -10,6 +10,7 @@
 
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/rust/include/cras_dlc.h"
 
 extern const char kNoCodecsFoundMetric[];
 
@@ -66,6 +67,11 @@ enum CRAS_METRICS_HFP_MIC_SR_STATUS {
   CRAS_METRICS_HFP_MIC_SR_FEATURE_DISABLED,
   CRAS_METRICS_HFP_MIC_SR_DLC_UNAVAILABLE,
   CRAS_METRICS_HFP_MIC_SR_FEATURE_UNSUPPORTED
+};
+
+enum CRAS_METRICS_DLC_STATUS {
+  CRAS_METRICS_DLC_STATUS_UNAVAILABLE,
+  CRAS_METRICS_DLC_STATUS_AVAILABLE
 };
 
 /* Logs the error type happens when setting up SCO connection. This is mainly
@@ -182,6 +188,12 @@ int cras_server_metrics_stream_create_failure(
 int cras_server_metrics_hfp_mic_sr_status(
     struct cras_iodev* iodev,
     enum CRAS_METRICS_HFP_MIC_SR_STATUS status);
+
+// Logs the dlc status from cras_dlc_manager.
+int cras_server_metrics_dlc_manager_status(
+    enum CrasDlcId dlc_id,
+    int num_retry_times,
+    enum CRAS_METRICS_DLC_STATUS dlc_status);
 
 // Initialize metrics logging stuff.
 int cras_server_metrics_init();
