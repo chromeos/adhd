@@ -23,7 +23,6 @@ enum CRAS_MAIN_MESSAGE_TYPE {
   CRAS_MAIN_NON_EMPTY_AUDIO_STATE,
   CRAS_MAIN_SPEAK_ON_MUTE,
   CRAS_MAIN_STREAM_APM,
-  CRAS_MAIN_SHUTDOWN,
 };
 
 /* Structure of the header of the message handled by main thread.
@@ -68,11 +67,6 @@ typedef void (*cras_message_callback)(struct cras_main_message* msg, void* arg);
 
 // Sends a message to main thread.
 int cras_main_message_send(struct cras_main_message* msg);
-
-// Sends a CRAS_MAIN_SHUTDOWN message to the main thread.
-// This function is safe to use in signal handlers.
-// See man 7 signal-safety.
-int cras_main_message_send_shutdown();
 
 // Registers the handler function for specific type of message.
 int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,

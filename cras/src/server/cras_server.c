@@ -10,7 +10,6 @@
 #endif
 #include <errno.h>
 #include <poll.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,13 +54,6 @@
 #include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
-
-// Flag for server shutdown.
-static bool shutdown_requested;
-
-static void handle_shutdown_message(struct cras_main_message* msg, void* arg) {
-  shutdown_requested = true;
-}
 
 // Store a list of clients that are attached to the server.
 struct attached_client {
@@ -423,8 +415,6 @@ int cras_server_init() {
   cras_system_set_select_handler(add_select_fd, rm_select_fd, &server_instance);
   cras_system_set_add_task_handler(add_task, &server_instance);
   cras_main_message_init();
-  cras_main_message_add_handler(CRAS_MAIN_SHUTDOWN, handle_shutdown_message,
-                                NULL);
 
   // Initializes all server_sockets
   for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE; conn_type++) {
@@ -595,7 +585,7 @@ int cras_server_run(unsigned int profile_disable_mask) {
   cras_dlc_manager_init();
 
   // Main server loop - client callbacks are run from this context.
-  while (!shutdown_requested) {
+  while (1) {
     poll_size_needed = CRAS_NUM_CONN_TYPE + server_instance.num_clients +
                        server_instance.num_client_callbacks;
     if (poll_size_needed > pollfds_size) {
@@ -687,11 +677,6 @@ int cras_server_run(unsigned int profile_disable_mask) {
 #endif
 
     cras_alert_process_all_pending_alerts();
-  }
-
-  if (shutdown_requested) {
-    syslog(LOG_INFO, "exiting due to shutdown_requested");
-    rc = 130;
   }
 
 bail:

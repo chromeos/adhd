@@ -13,12 +13,12 @@
 #include "cras/src/server/cras_bt_manager.h"
 #include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_main_message.h"
 #include "cras/src/server/cras_server.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_feature_tier.h"
+#include "cras_config.h"
 #include "cras_shm.h"
 
 #define DEFAULT_LOG_MASK LOG_WARNING
@@ -33,31 +33,10 @@ static struct option long_options[] = {
     {"cpu_model_name", required_argument, 0, 'p'},
     {0, 0, 0, 0}};
 
-static void request_shutdown(int signum) {
-  (void)signum;
-  if (cras_main_message_send_shutdown() < 0) {
-    const char msg[] = "cras_main_message_send_shutdown failed\n";
-    // Discard return value. We cannot do anything in signal handlers.
-    (void)write(2, msg, sizeof(msg));
-  } else {
-    const char msg[] = "cras_main_message_send_shutdown sent\n";
-    // Discard return value. We cannot do anything in signal handlers.
-    (void)write(2, msg, sizeof(msg));
-  }
-
-  // Restore the default handler.
-  // So the process can still be terminated on the second attempt,
-  // if our graceful handler did not work.
-  signal(SIGINT, SIG_DFL);
-  signal(SIGTERM, SIG_DFL);
-}
-
 // Ignores sigpipe, we'll notice when a read/write fails.
 static void set_signals() {
   signal(SIGPIPE, SIG_IGN);
   signal(SIGCHLD, SIG_IGN);
-  signal(SIGINT, request_shutdown);
-  signal(SIGTERM, request_shutdown);
 }
 
 // Entry point for the server.

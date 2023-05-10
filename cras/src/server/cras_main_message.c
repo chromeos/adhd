@@ -74,20 +74,6 @@ int cras_main_message_send(struct cras_main_message* msg) {
   return 0;
 }
 
-int cras_main_message_send_shutdown() {
-  struct cras_main_message msg = {
-      .type = CRAS_MAIN_SHUTDOWN,
-      .length = sizeof(msg),
-  };
-  int rc = write(main_msg_fds[1], &msg, msg.length);
-  if (rc < 0) {
-    // This function is called in signal handlers.
-    // Do not log and let the caller decide how to handle it.
-    return rc;
-  }
-  return rc;
-}
-
 static int read_main_message(int msg_fd, uint8_t* buf, size_t max_len) {
   int to_read, nread, rc;
   struct cras_main_message* msg = (struct cras_main_message*)buf;
