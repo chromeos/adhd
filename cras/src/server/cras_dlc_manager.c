@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <syslog.h>
 
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/rust/include/cras_dlc.h"
@@ -81,7 +82,8 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
     return;
   }
 
-  if (!cras_dlc_is_available(context->dlc_id)) {
+  bool dlc_available = cras_dlc_is_available(context->dlc_id);
+  if (!dlc_available) {
     if (!cras_dlc_install(context->dlc_id)) {
       syslog(LOG_ERR,
              "%s: unable to connect to dlcservice during `cras_dlc_install`.",
@@ -107,6 +109,10 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
   // No more timer scheduled. This is important to prevent from double freeing.
   context->retry_timer = NULL;
   ++dlc_manager->num_finished;
+  cras_server_metrics_dlc_manager_status(
+      context->dlc_id, context->retry_counter,
+      dlc_available ? CRAS_METRICS_DLC_STATUS_AVAILABLE
+                    : CRAS_METRICS_DLC_STATUS_UNAVAILABLE);
 
   // This could be dangerous if we export the `cras_dlc_manager_destroy`
   cras_dlc_manager_destroy_if_all_finished();

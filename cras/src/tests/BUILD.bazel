@@ -933,8 +933,10 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
+        "@iniparser",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],

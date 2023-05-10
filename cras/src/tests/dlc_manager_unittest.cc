@@ -9,6 +9,7 @@
 
 extern "C" {
 #include "cras/src/server/cras_dlc_manager_test_only.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/rust/include/cras_dlc.h"
 }
 
@@ -66,6 +67,18 @@ struct cras_tm* cras_system_state_get_tm() {
   return &fake_tm;
 }
 
+// Fake implementation of cras_server_metrics.
+
+static int cras_server_metrics_dlc_counter = 0;
+
+int cras_server_metrics_dlc_manager_status(
+    enum CrasDlcId dlc_id,
+    int num_retry_times,
+    enum CRAS_METRICS_DLC_STATUS dlc_status) {
+  ++cras_server_metrics_dlc_counter;
+  return 0;
+}
+
 // Fake implementation of cras_dlc.
 
 static bool cras_dlc_install_ret[NumCrasDlc] = {};
@@ -99,6 +112,7 @@ class DlcManagerTest : public testing::Test {
   virtual void SetUp() {
     tm_ = cras_tm_init();
     ResetCrasDlc();
+    cras_server_metrics_dlc_counter = 0;
   }
   virtual void TearDown() { cras_tm_deinit(tm_); }
 
@@ -122,6 +136,8 @@ TEST_F(DlcManagerTest, TestIfDlcIsAvailable) {
 
   // no new timer should be added.
   EXPECT_EQ(tm->timers.size(), NumCrasDlc);
+  // each DLC installation, either success or not, would send 1 UMA
+  EXPECT_EQ(cras_server_metrics_dlc_counter, NumCrasDlc);
   EXPECT_TRUE(cras_dlc_manager_is_null());
 }
 
@@ -151,6 +167,8 @@ TEST_F(DlcManagerTest, TestDlcIsUnAvailableAndReachesMaxRetry) {
 
   // no timer remains.
   EXPECT_EQ(tm->timers.size(), 0);
+  // each DLC installation, either success or not, would send 1 UMA
+  EXPECT_EQ(cras_server_metrics_dlc_counter, NumCrasDlc);
   EXPECT_TRUE(cras_dlc_manager_is_null());
 }
 
