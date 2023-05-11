@@ -69,6 +69,7 @@ pkg_config_repository(
         "speexdsp",
         "dbus-1",
         "libudev",
+        "openssl",
         "sbc",
         # optional deps
         "libmetrics",
