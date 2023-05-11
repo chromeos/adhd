@@ -80,7 +80,7 @@ static void maybe_destroy_server_vad_stream() {
   if (!detector.server_vad_stream_used) {
     return;
   }
-  syslog(LOG_INFO, "destroying server vad stream with pinned_dev_idx = %d",
+  syslog(LOG_DEBUG, "destroying server vad stream with pinned_dev_idx = %d",
          detector.server_vad_stream_pinned_dev_idx);
 
   detector.server_vad_stream_used = false;
@@ -117,7 +117,7 @@ static void maybe_configure_server_vad_stream(
   detector.server_vad_stream_used = true;
   detector.server_vad_stream_pinned_dev_idx =
       target_client_stream->pinned_dev_idx;
-  syslog(LOG_INFO, "creating server vad stream with pinned_dev_idx = %d",
+  syslog(LOG_DEBUG, "creating server vad stream with pinned_dev_idx = %d",
          detector.server_vad_stream_pinned_dev_idx);
   cras_iodev_list_create_server_vad_stream(
       detector.server_vad_stream_pinned_dev_idx);

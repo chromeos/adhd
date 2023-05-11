@@ -252,15 +252,15 @@ static void cras_bt_player_append_metadata(DBusMessageIter* iter,
           DBUS_TYPE_VARIANT_AS_STRING DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
       &array);
   if (!is_utf8_string(title)) {
-    syslog(LOG_INFO, "Non-utf8 title: %s", title);
+    syslog(LOG_DEBUG, "Non-utf8 title: %s", title);
     title = "";
   }
   if (!is_utf8_string(album)) {
-    syslog(LOG_INFO, "Non-utf8 album: %s", album);
+    syslog(LOG_DEBUG, "Non-utf8 album: %s", album);
     album = "";
   }
   if (!is_utf8_string(artist)) {
-    syslog(LOG_INFO, "Non-utf8 artist: %s", artist);
+    syslog(LOG_DEBUG, "Non-utf8 artist: %s", artist);
     artist = "";
   }
 
@@ -423,7 +423,7 @@ int cras_bt_player_update_identity(DBusConnection* conn, const char* identity) {
   }
 
   if (!is_utf8_string(identity)) {
-    syslog(LOG_INFO, "Non-utf8 identity: %s", identity);
+    syslog(LOG_DEBUG, "Non-utf8 identity: %s", identity);
     identity = "";
   }
 

@@ -118,7 +118,7 @@ static DBusHandlerResult cras_bt_profile_handle_new_connection(
 
   err = profile->new_connection(conn, profile, device, fd);
   if (err) {
-    syslog(LOG_INFO, "%s new connection rejected", profile->name);
+    syslog(LOG_DEBUG, "%s new connection rejected", profile->name);
     close(fd);
     reply = dbus_message_new_error(
         message, "org.chromium.Cras.Error.RejectNewConnection",

@@ -118,7 +118,7 @@ void cras_bt_adapter_destroy(struct cras_bt_adapter* adapter) {
 
 void cras_bt_adapter_reset() {
   while (adapters) {
-    syslog(LOG_INFO, "Bluetooth Adapter: %s removed", adapters->address);
+    syslog(LOG_DEBUG, "Bluetooth Adapter: %s removed", adapters->address);
     cras_bt_adapter_destroy(adapters);
   }
 }

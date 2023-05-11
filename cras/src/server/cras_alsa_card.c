@@ -541,12 +541,12 @@ struct cras_alsa_card* cras_alsa_card_create(
       goto error_bail;
     }
     alsa_card->ucm = ucm_create(ucm_name);
-    syslog(LOG_INFO, "Card %s (%s) has UCM: %s", alsa_card->name, ucm_name,
+    syslog(LOG_DEBUG, "Card %s (%s) has UCM: %s", alsa_card->name, ucm_name,
            alsa_card->ucm ? "yes" : "no");
     free(ucm_name);
   } else {
     alsa_card->ucm = ucm_create(card_name);
-    syslog(LOG_INFO, "Card %s (%s) has UCM: %s", alsa_card->name, card_name,
+    syslog(LOG_DEBUG, "Card %s (%s) has UCM: %s", alsa_card->name, card_name,
            alsa_card->ucm ? "yes" : "no");
   }
 

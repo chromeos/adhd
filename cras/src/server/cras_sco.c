@@ -767,7 +767,7 @@ static int cras_sco_callback(void* arg, int revents) {
   if (revents & (POLLERR | POLLHUP)) {
     syslog(LOG_WARNING, "Error polling SCO socket, revent %d", revents);
     if (revents & POLLHUP) {
-      syslog(LOG_INFO, "Received POLLHUP, reconnecting HFP.");
+      syslog(LOG_DEBUG, "Received POLLHUP, reconnecting HFP.");
       audio_thread_rm_callback(sco->fd);
       cras_bt_device_hfp_reconnect(sco->device);
       return 0;

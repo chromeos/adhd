@@ -994,7 +994,7 @@ static void set_input_node_intrinsic_sensitivity(struct alsa_input_node* input,
 
   input->base.intrinsic_sensitivity = sensitivity;
   input->base.capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
-  syslog(LOG_INFO,
+  syslog(LOG_DEBUG,
          "Use software gain %ld for %s because IntrinsicSensitivity %ld is"
          " specified in UCM",
          input->base.capture_gain, input->base.name, sensitivity);

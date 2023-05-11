@@ -719,7 +719,7 @@ int cras_alsa_get_delay_frames(snd_pcm_t* handle,
 int cras_alsa_attempt_resume(snd_pcm_t* handle) {
   int rc;
 
-  syslog(LOG_INFO, "System suspended.");
+  syslog(LOG_DEBUG, "System suspended.");
   while ((rc = snd_pcm_resume(handle)) == -EAGAIN) {
     usleep(ALSA_SUSPENDED_SLEEP_TIME_US);
   }
@@ -728,7 +728,7 @@ int cras_alsa_attempt_resume(snd_pcm_t* handle) {
      * Some devices do not support snd_pcm_resume, that is
      * acceptable.
      */
-    syslog(LOG_INFO, "System suspended, failed to resume %s.",
+    syslog(LOG_DEBUG, "System suspended, failed to resume %s.",
            snd_strerror(rc));
     rc = snd_pcm_prepare(handle);
     if (rc < 0) {
@@ -785,7 +785,7 @@ int cras_alsa_mmap_begin(snd_pcm_t* handle,
       if (snd_pcm_recover(handle, rc, 0) == 0) {
         continue;
       }
-      syslog(LOG_INFO, "recover failed begin: %s\n", snd_strerror(rc));
+      syslog(LOG_DEBUG, "recover failed begin: %s\n", snd_strerror(rc));
       return rc;
     } else if (!my_areas || !my_areas[0].addr) {
       syslog(LOG_ERR, "mmap_begin returned NULL areas.");
@@ -797,7 +797,7 @@ int cras_alsa_mmap_begin(snd_pcm_t* handle,
      * case.
      */
     if (snd_pcm_stream(handle) == SND_PCM_STREAM_PLAYBACK && *frames == 0) {
-      syslog(LOG_INFO, "mmap_begin set frames to 0.");
+      syslog(LOG_DEBUG, "mmap_begin set frames to 0.");
       return -EIO;
     }
     *dst = (uint8_t*)my_areas[0].addr + (*offset) * format_bytes;

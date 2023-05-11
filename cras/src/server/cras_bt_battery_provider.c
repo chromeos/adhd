@@ -250,7 +250,7 @@ static void cras_bt_on_battery_provider_registered(
     return;
   }
 
-  syslog(LOG_INFO, "RegisterBatteryProvider succeeded");
+  syslog(LOG_DEBUG, "RegisterBatteryProvider succeeded");
 
   provider->is_registered = true;
 
@@ -425,7 +425,7 @@ static void cleanup_battery(struct cras_bt_battery_provider* provider,
 void cras_bt_battery_provider_reset() {
   struct cras_bt_battery* battery;
 
-  syslog(LOG_INFO, "Resetting battery provider");
+  syslog(LOG_DEBUG, "Resetting battery provider");
 
   if (!battery_provider.is_registered) {
     return;

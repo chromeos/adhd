@@ -54,7 +54,7 @@ static void cras_bt_interface_added(DBusConnection* conn,
       if (adapter) {
         cras_bt_adapter_update_properties(adapter, properties_array_iter, NULL);
 
-        syslog(LOG_INFO, "Bluetooth Adapter: %s added",
+        syslog(LOG_DEBUG, "Bluetooth Adapter: %s added",
                cras_bt_adapter_address(adapter));
       } else {
         syslog(LOG_WARNING, "Failed to create Bluetooth Adapter: %s",
@@ -70,7 +70,7 @@ static void cras_bt_interface_added(DBusConnection* conn,
       cras_bt_register_endpoints(conn, adapter);
       cras_bt_register_player(conn, adapter);
 
-      syslog(LOG_INFO, "Bluetooth Endpoint and/or Player: %s added",
+      syslog(LOG_DEBUG, "Bluetooth Endpoint and/or Player: %s added",
              cras_bt_adapter_address(adapter));
     } else {
       syslog(LOG_WARNING,
@@ -81,7 +81,7 @@ static void cras_bt_interface_added(DBusConnection* conn,
   } else if (strcmp(interface_name, BLUEZ_PROFILE_MGMT_INTERFACE) == 0) {
     cras_bt_register_profiles(conn);
 
-    syslog(LOG_INFO, "Bluetooth Profile Manager added");
+    syslog(LOG_DEBUG, "Bluetooth Profile Manager added");
 
   } else if (strcmp(interface_name, BLUEZ_INTERFACE_DEVICE) == 0) {
     struct cras_bt_device* device;
@@ -94,7 +94,7 @@ static void cras_bt_interface_added(DBusConnection* conn,
       if (device) {
         cras_bt_device_update_properties(device, properties_array_iter, NULL);
 
-        syslog(LOG_INFO, "Bluetooth Device: %s added",
+        syslog(LOG_DEBUG, "Bluetooth Device: %s added",
                cras_bt_device_address(device));
       } else {
         syslog(LOG_WARNING, "Failed to create Bluetooth Device: %s",
@@ -115,7 +115,7 @@ static void cras_bt_interface_added(DBusConnection* conn,
         cras_bt_transport_update_properties(transport, properties_array_iter,
                                             NULL);
 
-        syslog(LOG_INFO, "Bluetooth Transport: %s added",
+        syslog(LOG_DEBUG, "Bluetooth Transport: %s added",
                cras_bt_transport_object_path(transport));
       } else {
         syslog(LOG_WARNING,
@@ -129,11 +129,11 @@ static void cras_bt_interface_added(DBusConnection* conn,
     struct cras_bt_adapter* adapter;
     int ret;
 
-    syslog(LOG_INFO, "Bluetooth Battery Provider Manager available");
+    syslog(LOG_DEBUG, "Bluetooth Battery Provider Manager available");
 
     adapter = cras_bt_adapter_get(object_path);
     if (adapter) {
-      syslog(LOG_INFO, "Registering Battery Provider for adapter %s",
+      syslog(LOG_DEBUG, "Registering Battery Provider for adapter %s",
              cras_bt_adapter_address(adapter));
       ret = cras_bt_register_battery_provider(conn, adapter);
       if (ret != 0) {
@@ -353,7 +353,7 @@ static DBusHandlerResult cras_bt_handle_name_owner_changed(DBusConnection* conn,
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
 
-  syslog(LOG_INFO, "Bluetooth daemon disconnected from the bus.");
+  syslog(LOG_DEBUG, "Bluetooth daemon disconnected from the bus.");
   cras_bt_reset();
 
   if (strlen(new_owner) > 0) {

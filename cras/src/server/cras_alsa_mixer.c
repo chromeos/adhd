@@ -735,7 +735,7 @@ static void combine_headphone_controls(struct cras_alsa_mixer* cmix) {
     }
 
     if (first_headphone_control) {
-      syslog(LOG_INFO, "Removing additional headphone control\n");
+      syslog(LOG_DEBUG, "Removing additional headphone control\n");
 
       /* Move the control elements from this control to the first
        * headphone control */

@@ -27,7 +27,7 @@ static struct cras_volume_curve* create_simple_step_curve(
   snprintf(ini_key, MAX_INI_KEY_LENGTH, "%s:volume_step", control_name);
   ini_key[MAX_INI_KEY_LENGTH] = 0;
   volume_step = iniparser_getint(card_config->ini, ini_key, 300);
-  syslog(LOG_INFO, "Configure curve found for %s.", control_name);
+  syslog(LOG_DEBUG, "Configure curve found for %s.", control_name);
   return cras_volume_curve_create_simple_step(max_volume, volume_step * 100);
 }
 
@@ -43,7 +43,7 @@ static struct cras_volume_curve* create_explicit_curve(
     ini_key[MAX_INI_KEY_LENGTH] = 0;
     dB_values[i] = iniparser_getint(card_config->ini, ini_key, 0);
   }
-  syslog(LOG_INFO, "Explicit volume curve found for %s.", control_name);
+  syslog(LOG_DEBUG, "Explicit volume curve found for %s.", control_name);
   return cras_volume_curve_create_explicit(dB_values);
 }
 

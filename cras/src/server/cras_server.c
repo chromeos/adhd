@@ -178,7 +178,7 @@ static void fill_client_info(struct attached_client* client) {
 
   if (getsockopt(client->fd, SOL_SOCKET, SO_PEERCRED, &client->ucred,
                  &ucred_length)) {
-    syslog(LOG_INFO, "Failed to get client socket info\n");
+    syslog(LOG_DEBUG, "Failed to get client socket info\n");
   }
 }
 

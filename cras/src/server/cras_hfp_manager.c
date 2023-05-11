@@ -175,7 +175,7 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
   int updated_wbs_supported = rc - 1;
 
   if (hfp->wbs_supported != updated_wbs_supported) {
-    syslog(LOG_INFO, "Negotiated codec has changed from %cBS to %cBS",
+    syslog(LOG_DEBUG, "Negotiated codec has changed from %cBS to %cBS",
            "NW"[hfp->wbs_supported], "NW"[updated_wbs_supported]);
     hfp->wbs_supported = updated_wbs_supported;
   }

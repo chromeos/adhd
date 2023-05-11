@@ -191,7 +191,7 @@ static inline size_t hfp_alsa_get_supported_sample_rate(
     struct cras_iodev* iodev) {
   struct hfp_alsa_io* hfp_alsa_io = (struct hfp_alsa_io*)iodev;
   if (hfp_alsa_io->sr_bt) {
-    syslog(LOG_INFO, "Supported rate is 24k due to sr_bt enabled.");
+    syslog(LOG_DEBUG, "Supported rate is 24k due to sr_bt enabled.");
     return 24000;
   }
   return hfp_alsa_get_device_sample_rate(iodev);

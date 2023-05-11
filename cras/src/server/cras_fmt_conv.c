@@ -819,7 +819,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv* conv,
   if (conv->speex_state == NULL) {
     fr_in = MIN(*in_frames, out_frames);
     if (out_frames < *in_frames && !logged_frames_dont_fit) {
-      syslog(LOG_INFO, "fmt_conv: %u to %zu no SRC.", *in_frames, out_frames);
+      syslog(LOG_DEBUG, "fmt_conv: %u to %zu no SRC.", *in_frames, out_frames);
       logged_frames_dont_fit = 1;
     }
   } else {
@@ -895,7 +895,7 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv* conv,
     fr_out = cras_frames_at_rate(conv->in_fmt.frame_rate, fr_in,
                                  conv->out_fmt.frame_rate);
     if (fr_out > out_frames + 1 && !logged_frames_dont_fit) {
-      syslog(LOG_INFO, "fmt_conv: put %u frames in %zu sized buffer", fr_out,
+      syslog(LOG_DEBUG, "fmt_conv: put %u frames in %zu sized buffer", fr_out,
              out_frames);
       logged_frames_dont_fit = 1;
     }

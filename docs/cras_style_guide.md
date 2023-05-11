@@ -44,7 +44,7 @@ The levels are:
 *   `LOG_INFO` - informational messages useful for debugging.
 *   `LOG_DEBUG` - lower level informational messages useful for debugging.
 
-By default, messages with level >= `LOG_WARNING` are recorded to `/var/log/messages`.
+By default, messages with level >= `LOG_INFO` are recorded to `/var/log/messages`.
 This can be overridden in `/etc/init/cras.override` with `--syslog_mask`.
 
 For example to enable logging of all levels:

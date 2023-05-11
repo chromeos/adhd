@@ -104,7 +104,7 @@ static DBusHandlerResult cras_bt_endpoint_set_configuration(
     if (transport) {
       cras_bt_transport_update_properties(transport, &properties_array_iter,
                                           NULL);
-      syslog(LOG_INFO, "Bluetooth Transport: %s added",
+      syslog(LOG_DEBUG, "Bluetooth Transport: %s added",
              cras_bt_transport_object_path(transport));
     }
   }

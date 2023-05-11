@@ -474,7 +474,7 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
   if (revents & (POLLERR | POLLHUP)) {
     syslog(LOG_WARNING, "Error polling SCO socket, revents %d", revents);
     if (revents & POLLHUP) {
-      syslog(LOG_INFO,
+      syslog(LOG_DEBUG,
              "Received POLLHUP, remove callback and wait for reconnection.");
       idev->started = 0;
       odev->started = 0;

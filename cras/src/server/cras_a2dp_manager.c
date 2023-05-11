@@ -275,7 +275,7 @@ void cras_floss_a2dp_destroy(struct cras_a2dp* a2dp) {
     }
     a2dp_pcm_iodev_destroy(a2dp->iodev);
   } else {
-    syslog(LOG_INFO, "Unexpected race that set a2dp iodev NULL");
+    syslog(LOG_DEBUG, "Unexpected race that set a2dp iodev NULL");
   }
   if (a2dp->addr) {
     free(a2dp->addr);

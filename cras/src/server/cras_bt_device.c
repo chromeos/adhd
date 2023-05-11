@@ -237,7 +237,7 @@ void cras_bt_device_remove(struct cras_bt_device* device) {
 
 void cras_bt_device_reset() {
   while (devices) {
-    syslog(LOG_INFO, "Bluetooth Device: %s removed", devices->address);
+    syslog(LOG_DEBUG, "Bluetooth Device: %s removed", devices->address);
     cras_bt_device_destroy(devices);
   }
 }
@@ -621,7 +621,7 @@ static int apply_hfp_offload_codec_settings(int fd, uint8_t codec) {
   uint8_t buffer[255];
   int err;
 
-  syslog(LOG_INFO, "apply hfp offload codec settings: codecid(%d)", codec);
+  syslog(LOG_DEBUG, "apply hfp offload codec settings: codecid(%d)", codec);
   memset(buffer, 0x00, sizeof(buffer));
 
   codecs = (void*)buffer;
@@ -665,7 +665,7 @@ static int apply_hfp_offload_codec_settings(int fd, uint8_t codec) {
     return err;
   }
 
-  syslog(LOG_INFO, "Successfully applied codec settings");
+  syslog(LOG_DEBUG, "Successfully applied codec settings");
 
   return err;
 }
@@ -675,7 +675,7 @@ static int apply_codec_settings(int fd, uint8_t codec) {
   struct bt_voice voice;
   uint32_t pkt_status;
 
-  syslog(LOG_INFO, "apply hfp HCI codec settings: codecid(%d)", codec);
+  syslog(LOG_DEBUG, "apply hfp HCI codec settings: codecid(%d)", codec);
 
   memset(&voice, 0, sizeof(voice));
   if (codec == HFP_CODEC_ID_CVSD) {

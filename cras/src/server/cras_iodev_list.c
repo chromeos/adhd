@@ -252,7 +252,7 @@ static int add_dev_to_list(struct cras_iodev* dev) {
   next_iodev_idx = new_idx + 1;
   list->size++;
 
-  syslog(LOG_INFO, "Adding %s dev at index %u.",
+  syslog(LOG_DEBUG, "Adding %s dev at index %u.",
          dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
          dev->info.idx);
   DL_PREPEND(list->iodevs, dev);
@@ -984,7 +984,7 @@ static int pinned_stream_added(struct cras_rstream* rstream) {
 
   rc = init_pinned_device(dev, rstream);
   if (rc) {
-    syslog(LOG_INFO, "init_pinned_device failed, rc %d", rc);
+    syslog(LOG_DEBUG, "init_pinned_device failed, rc %d", rc);
     return schedule_init_device_retry(dev);
   }
 
@@ -1072,7 +1072,7 @@ static int stream_added_cb(struct cras_rstream* rstream) {
        */
       MAINLOG(main_log, MAIN_THREAD_DEV_REOPEN, rstream->format.num_channels,
               edev->dev->format->num_channels, edev->dev->format->frame_rate);
-      syslog(LOG_INFO, "re-open %s for higher channel count",
+      syslog(LOG_DEBUG, "re-open %s for higher channel count",
              edev->dev->info.name);
       possibly_enable_fallback(rstream->direction, false);
       restart_dev(edev->dev->info.idx);
@@ -2178,7 +2178,7 @@ void cras_iodev_list_reset_for_noise_cancellation() {
               dev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP))) {
       continue;
     }
-    syslog(LOG_INFO, "Re-open %s for %s noise cancellation", dev->info.name,
+    syslog(LOG_DEBUG, "Re-open %s for %s noise cancellation", dev->info.name,
            enabled ? "enabling" : "disabling");
     possibly_enable_fallback(CRAS_STREAM_INPUT, false);
     restart_dev(dev->info.idx);

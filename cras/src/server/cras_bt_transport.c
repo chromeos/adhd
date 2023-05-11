@@ -118,7 +118,7 @@ void cras_bt_transport_destroy(struct cras_bt_transport* transport) {
 
 void cras_bt_transport_reset() {
   while (transports) {
-    syslog(LOG_INFO, "Bluetooth Transport: %s removed",
+    syslog(LOG_DEBUG, "Bluetooth Transport: %s removed",
            transports->object_path);
     cras_bt_transport_destroy(transports);
   }

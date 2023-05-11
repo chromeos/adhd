@@ -216,7 +216,7 @@ void cras_a2dp_suspend_connected_device(struct cras_bt_device* device) {
   }
 
   if (connected_a2dp.iodev) {
-    syslog(LOG_INFO, "Destroying iodev for A2DP device");
+    syslog(LOG_DEBUG, "Destroying iodev for A2DP device");
     a2dp_iodev_destroy(connected_a2dp.iodev);
     connected_a2dp.iodev = NULL;
     connected_a2dp.device = NULL;

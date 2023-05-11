@@ -100,7 +100,7 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
              __func__);
     }
   } else {
-    syslog(LOG_INFO, "%s: successfully installed! Tried %d times.", __func__,
+    syslog(LOG_DEBUG, "%s: successfully installed! Tried %d times.", __func__,
            context->retry_counter);
   }
 

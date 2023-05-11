@@ -21,7 +21,7 @@
 #include "cras_config.h"
 #include "cras_shm.h"
 
-#define DEFAULT_LOG_MASK LOG_WARNING
+#define DEFAULT_LOG_MASK LOG_INFO
 
 static struct option long_options[] = {
     {"dsp_config", required_argument, 0, 'd'},
