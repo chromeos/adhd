@@ -97,6 +97,10 @@ const char* cras_dlc_get_root_path(enum CrasDlcId id) {
   return cras_dlc_get_root_path_ret;
 }
 
+void cras_dlc_get_id_string(char* ret, uintptr_t ret_len, enum CrasDlcId id) {
+  ret[0] = '\0';
+}
+
 void ResetCrasDlc() {
   for (int i = 0; i < NumCrasDlc; ++i) {
     cras_dlc_install_ret[i] = false;

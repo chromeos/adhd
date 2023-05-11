@@ -59,7 +59,7 @@ void cras_dlc_manager_destroy() {
 }
 
 /**
- * Destroyes the cras_dlc_manager if all the tasks have been `finished`.
+ * Destroys the cras_dlc_manager if all the tasks have been `finished`.
  * `finished` means either successfully installed or MAX_RETRY_COUNT reached.
  */
 static void cras_dlc_manager_destroy_if_all_finished() {
@@ -82,6 +82,10 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
     return;
   }
 
+  char dlc_id_string[CRAS_DLC_ID_STRING_MAX_LENGTH];
+  cras_dlc_get_id_string(dlc_id_string, CRAS_DLC_ID_STRING_MAX_LENGTH,
+                         context->dlc_id);
+
   bool dlc_available = cras_dlc_is_available(context->dlc_id);
   if (!dlc_available) {
     if (!cras_dlc_install(context->dlc_id)) {
@@ -93,17 +97,18 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
       ++context->retry_counter;
       context->retry_timer =
           cras_tm_create_timer(tm, RETRY_MSEC, download_supported_dlc, context);
-      syslog(LOG_ERR, "%s: retry %d times", __func__, context->retry_counter);
+      syslog(LOG_WARNING, "%s: retry downloading `%s`, attempt #%d.", __func__,
+             dlc_id_string, context->retry_counter);
       return;
     } else {
       syslog(LOG_ERR,
-             "%s: failed to install the DLC. Please check the network "
+             "%s: failed to install the DLC of `%s`. Please check the network "
              "connection. Restart CRAS to retry.",
-             __func__);
+             __func__, dlc_id_string);
     }
   } else {
-    syslog(LOG_DEBUG, "%s: successfully installed! Tried %d times.", __func__,
-           context->retry_counter);
+    syslog(LOG_DEBUG, "%s: successfully installed DLC of `%s`! Tried %d times.",
+           __func__, dlc_id_string, context->retry_counter);
   }
 
   // No more timer scheduled. This is important to prevent from double freeing.

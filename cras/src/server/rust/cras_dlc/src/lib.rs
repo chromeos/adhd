@@ -41,9 +41,12 @@ pub enum CrasDlcId {
     NumCrasDlc,
 }
 
+pub const CRAS_DLC_ID_STRING_MAX_LENGTH: i32 = 50;
 impl CrasDlcId {
     fn as_str(&self) -> &'static str {
         match self {
+            // The length of these strings should be bounded by
+            // CRAS_DLC_ID_STRING_MAX_LENGTH
             CrasDlcId::CrasDlcSrBt => "sr-bt-dlc",
             CrasDlcId::CrasDlcNcAp => "nc-ap-dlc",
             CrasDlcId::NumCrasDlc => "num",

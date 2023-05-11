@@ -18,6 +18,8 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
+#define CRAS_DLC_ID_STRING_MAX_LENGTH 50
+
 /**
  * All supported DLCs in CRAS.
  */
@@ -49,6 +51,13 @@ bool cras_dlc_is_available(enum CrasDlcId id);
  * TODO(b/277566731): Fix it.
  */
 const char *cras_dlc_get_root_path(enum CrasDlcId id);
+
+/**
+ * Writes the DLC ID string corresponding to the enum id to `ret`.
+ * `ret` should have `ret_len` bytes writable.
+ * Suggested value of `ret_len` is `CRAS_DLC_ID_STRING_MAX_LENGTH`.
+ */
+void cras_dlc_get_id_string(char *ret, size_t ret_len, enum CrasDlcId id);
 
 #endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_DLC_H_ */
 
