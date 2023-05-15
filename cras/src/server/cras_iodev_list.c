@@ -303,17 +303,30 @@ static void fill_dev_list(struct iodev_list* list,
   }
 }
 
+// Auxiliary information for fill_node_list.
+struct fill_node_list_auxiliary {
+  bool dsp_nc_allowed;
+  bool ap_nc_allowed;
+};
+
+static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
+  struct fill_node_list_auxiliary aux = {
+      .dsp_nc_allowed = !get_nc_blocked_state() ||
+                        cras_system_get_bypass_block_noise_cancellation(),
+      .ap_nc_allowed = false,
+  };
+  return aux;
+}
+
 // Fills an ionode_info array from the iodev_list.
+// Must not block.
 static int fill_node_list(struct iodev_list* list,
                           struct cras_ionode_info node_info[],
-                          size_t out_size) {
+                          size_t out_size,
+                          const struct fill_node_list_auxiliary* aux) {
   int i = 0;
   struct cras_iodev* dev;
   struct cras_ionode* node;
-
-  const bool dsp_nc_allowed = !get_nc_blocked_state() ||
-                              cras_system_get_bypass_block_noise_cancellation();
-  const bool ap_nc_allowed = false;
 
   DL_FOREACH (list->iodevs, dev) {
     DL_FOREACH (dev->nodes, node) {
@@ -336,9 +349,10 @@ static int fill_node_list(struct iodev_list* list,
                cras_node_type_to_str(node->type, node->position));
       node_info->type_enum = node->type;
       node_info->audio_effect = 0;
-      if ((dsp_nc_allowed &&
+      if ((aux->dsp_nc_allowed &&
            node->nc_provider == CRAS_IONODE_NC_PROVIDER_DSP) ||
-          (ap_nc_allowed && node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP)) {
+          (aux->ap_nc_allowed &&
+           node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP)) {
         node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
       }
       node_info->number_of_volume_steps = node->number_of_volume_steps;
@@ -1634,9 +1648,9 @@ cras_node_id_t cras_iodev_list_get_active_node_id(
 }
 
 void cras_iodev_list_update_device_list() {
-  struct cras_server_state* state;
+  struct fill_node_list_auxiliary aux = get_fill_node_list_auxiliary();
 
-  state = cras_system_state_update_begin();
+  struct cras_server_state* state = cras_system_state_update_begin();
   if (!state) {
     return;
   }
@@ -1648,10 +1662,11 @@ void cras_iodev_list_update_device_list() {
   fill_dev_list(&devs[CRAS_STREAM_INPUT], &state->input_devs[0],
                 CRAS_MAX_IODEVS);
 
-  state->num_output_nodes = fill_node_list(
-      &devs[CRAS_STREAM_OUTPUT], &state->output_nodes[0], CRAS_MAX_IONODES);
+  state->num_output_nodes =
+      fill_node_list(&devs[CRAS_STREAM_OUTPUT], &state->output_nodes[0],
+                     CRAS_MAX_IONODES, &aux);
   state->num_input_nodes = fill_node_list(
-      &devs[CRAS_STREAM_INPUT], &state->input_nodes[0], CRAS_MAX_IONODES);
+      &devs[CRAS_STREAM_INPUT], &state->input_nodes[0], CRAS_MAX_IONODES, &aux);
 
   cras_system_state_update_complete();
 }
