@@ -253,6 +253,25 @@ bail:
   return 0;
 }
 
+static int get_usb_device_number(struct udev_device* dev) {
+  char* basename = NULL;
+
+  if (!dev) {
+    return -EINVAL;
+  }
+
+  const char* path = udev_device_get_devnode(dev);
+  if (!path) {
+    return -EINVAL;
+  }
+
+  basename = strrchr(path, '/') + 1;
+
+  int device_number = strtol(basename, NULL, 10);
+
+  return device_number;
+}
+
 static void fill_usb_card_info(struct cras_alsa_card_info* card_info,
                                struct udev_device* dev) {
   const char* sysattr;
@@ -279,11 +298,10 @@ static void fill_usb_card_info(struct cras_alsa_card_info* card_info,
 
   card_info->usb_desc_checksum = calculate_desc_checksum(parent_dev);
 
-  syslog(LOG_DEBUG,
-         "USB card: vendor:%04x, product:%04x, serial num:%s, "
-         "checksum:%08x",
-         card_info->usb_vendor_id, card_info->usb_product_id,
-         card_info->usb_serial_number, card_info->usb_desc_checksum);
+  syslog(LOG_INFO,
+         "USB card: device number:%d, vendor:%04x, product:%04x checksum:%08x",
+         get_usb_device_number(parent_dev), card_info->usb_vendor_id,
+         card_info->usb_product_id, card_info->usb_desc_checksum);
 }
 
 static void device_add_alsa(struct udev_device* dev,
