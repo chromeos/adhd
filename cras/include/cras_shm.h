@@ -174,6 +174,7 @@ void cras_audio_shm_destroy(struct cras_audio_shm* shm);
 static inline unsigned cras_shm_get_checked_buffer_offset(
     const struct cras_audio_shm* shm,
     uint32_t buf_idx) {
+  assert(buf_idx < CRAS_NUM_SHM_BUFFERS);
   unsigned buffer_offset = shm->header->buffer_offset[buf_idx];
 
   // Cap buffer_offset at the length of the samples area
@@ -186,13 +187,19 @@ static inline uint8_t* cras_shm_buff_for_idx(const struct cras_audio_shm* shm,
   static_assert_is_power_of_2(CRAS_NUM_SHM_BUFFERS);
   idx = idx & CRAS_SHM_BUFFERS_MASK;
 
-  return shm->samples + cras_shm_get_checked_buffer_offset(shm, idx);
+  unsigned buffer_offset = cras_shm_get_checked_buffer_offset(shm, idx);
+  if (buffer_offset + shm->config.used_size > shm->samples_info.length) {
+    buffer_offset = idx * shm->header->config.used_size;
+  }
+
+  return shm->samples + buffer_offset;
 }
 
 // Limit a read offset to within the buffer size.
 static inline unsigned cras_shm_get_checked_read_offset(
     const struct cras_audio_shm* shm,
     uint32_t buf_idx) {
+  assert(buf_idx < CRAS_NUM_SHM_BUFFERS);
   unsigned buffer_offset = cras_shm_get_checked_buffer_offset(shm, buf_idx);
   unsigned read_offset = shm->header->read_offset[buf_idx];
 
@@ -212,6 +219,7 @@ static inline unsigned cras_shm_get_checked_read_offset(
 static inline unsigned cras_shm_get_checked_write_offset(
     const struct cras_audio_shm* shm,
     uint32_t buf_idx) {
+  assert(buf_idx < CRAS_NUM_SHM_BUFFERS);
   unsigned write_offset = shm->header->write_offset[buf_idx];
   unsigned buffer_offset = cras_shm_get_checked_buffer_offset(shm, buf_idx);
 
