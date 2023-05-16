@@ -12,7 +12,8 @@
 
 enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap) {
   if (nc_provided_by_ap && cras_system_get_noise_cancellation_enabled() &&
-      cras_system_get_ap_noise_cancellation_supported() && false) {
+      cras_system_get_ap_noise_cancellation_supported() &&
+      cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation)) {
     return NoiseCancellation;
   }
   return NoEffects;

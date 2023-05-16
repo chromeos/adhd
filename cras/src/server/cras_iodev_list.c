@@ -313,7 +313,8 @@ static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
   struct fill_node_list_auxiliary aux = {
       .dsp_nc_allowed = !get_nc_blocked_state() ||
                         cras_system_get_bypass_block_noise_cancellation(),
-      .ap_nc_allowed = false,
+      .ap_nc_allowed =
+          cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation),
   };
   return aux;
 }
