@@ -25,7 +25,10 @@ const TRAILER: &str = "#ifdef __cplusplus
 ";
 
 fn builder(copyright_year: u32) -> Builder {
+    let mut config = cbindgen::Config::default();
+    config.usize_is_size_t = true;
     Builder::new()
+        .with_config(config)
         .rename_item("timespec", "struct timespec")
         .rename_item("plugin_processor", "struct plugin_processor")
         .with_language(cbindgen::Language::C)

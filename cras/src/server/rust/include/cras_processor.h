@@ -14,6 +14,7 @@ extern "C" {
 
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -24,9 +25,9 @@ enum CrasProcessorEffect {
 };
 
 struct CrasProcessorConfig {
-  uintptr_t channels;
-  uintptr_t block_size;
-  uintptr_t frame_rate;
+  size_t channels;
+  size_t block_size;
+  size_t frame_rate;
   enum CrasProcessorEffect effect;
 };
 
