@@ -7,6 +7,8 @@
 
 #include "cras/src/server/cras_features_impl.h"
 
+#define FEATURE_LIBRARY_TIMEOUT_MS 500
+
 bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
   const struct VariationsFeature featured_feature = {
       .name = feature->name,
@@ -14,7 +16,8 @@ bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
                                                 : FEATURE_DISABLED_BY_DEFAULT,
   };
   CFeatureLibrary lib = CFeatureLibraryNew();
-  int enabled = CFeatureLibraryIsEnabledBlocking(lib, &featured_feature);
+  int enabled = CFeatureLibraryIsEnabledBlockingWithTimeout(
+      lib, &featured_feature, FEATURE_LIBRARY_TIMEOUT_MS);
   CFeatureLibraryDelete(lib);
 
   return enabled;
