@@ -11,7 +11,7 @@
 #include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_features_override.h"
 
-static struct cras_feature features[NUM_FEATURES] = {
+struct cras_feature features[NUM_FEATURES] = {
     [CrosLateBootAudioTestFeatureFlag] =
         {
             .name = "CrosLateBootAudioTestFeatureFlag",
@@ -65,4 +65,8 @@ void cras_features_set_override(enum cras_feature_id id, bool enabled) {
 
 void cras_features_unset_override(enum cras_feature_id id) {
   features[id].overridden = false;
+}
+
+enum cras_feature_id cras_feature_get_id(const struct cras_feature* feature) {
+  return feature - features;
 }

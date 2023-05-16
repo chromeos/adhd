@@ -217,6 +217,19 @@ cc_library(
     deps = [":cras_features"],
 )
 
+cc_test(
+    name = "cras_features_test",
+    srcs = [
+        "cras_features_impl.h",
+        "cras_features_test.cc",
+    ],
+    deps = [
+        ":cras_features",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
 cc_library(
     name = "cras_sr",
     srcs = select({

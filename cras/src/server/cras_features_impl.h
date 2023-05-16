@@ -9,6 +9,8 @@
 
 #include <stdbool.h>
 
+#include "cras/src/server/cras_features.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +25,8 @@ struct cras_feature {
   bool overridden;
   bool overridden_enabled;  // Is the feature overridden to be enabled?
 };
+
+extern struct cras_feature features[NUM_FEATURES];
 
 bool cras_features_backend_get_enabled(const struct cras_feature* feature);
 
