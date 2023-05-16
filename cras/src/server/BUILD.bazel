@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("//:utils.bzl", "require_config")
+
 cc_library(
     name = "cras_mix",
     srcs = [
@@ -223,6 +225,19 @@ cc_test(
         "cras_features_impl.h",
         "cras_features_test.cc",
     ],
+    deps = [
+        ":cras_features",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cras_features_backend_featured_test",
+    srcs = [
+        "cras_features_backend_featured_test.cc",
+    ],
+    target_compatible_with = require_config("//:featured_build"),
     deps = [
         ":cras_features",
         "@pkg_config//gtest",
