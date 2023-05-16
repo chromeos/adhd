@@ -470,8 +470,8 @@ TEST_P(ServerMetricsCrasDlcManagerTest, TestCrasServerMetricsDlcManagerStatus) {
 
   std::string prefix = "Cras.DlcManagerStatus";
   std::string num_retry_times_name =
-      prefix + "." + param.dlc_id_str + ".RetriedTimesOnSuccess";
-  std::string dlc_status_name = prefix + "." + param.dlc_id_str + ".DlcStatus";
+      prefix + ".RetriedTimesOnSuccess." + param.dlc_id_str;
+  std::string dlc_status_name = prefix + ".DlcStatus." + param.dlc_id_str;
   if (dlc_available) {
     EXPECT_EQ(
         std::get<0>(cras_metrics_log_sparse_histogram_called_args.front()),

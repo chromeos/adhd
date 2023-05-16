@@ -1476,13 +1476,13 @@ static void metrics_dlc_manager_status(
   // Logs num_retry_times
   if (data.dlc_status == CRAS_METRICS_DLC_STATUS_AVAILABLE) {
     snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
-             "%s.%s.RetriedTimesOnSuccess", kCrasDlcManagerStatus,
+             "%s.RetriedTimesOnSuccess.%s", kCrasDlcManagerStatus,
              metrics_dlc_id_str(data.dlc_id));
     cras_metrics_log_sparse_histogram(metrics_name, data.num_retry_times);
   }
 
   // Logs dlc_status
-  snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.%s.DlcStatus",
+  snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE, "%s.DlcStatus.%s",
            kCrasDlcManagerStatus, metrics_dlc_id_str(data.dlc_id));
   cras_metrics_log_sparse_histogram(metrics_name, (int)data.dlc_status);
 }
