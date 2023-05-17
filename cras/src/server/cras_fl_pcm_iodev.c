@@ -311,8 +311,8 @@ static int a2dp_configure_dev(struct cras_iodev* iodev) {
    * And make buffer_size integer multiple of write_block so we
    * don't get cut easily in ring buffer. */
   a2dpio->write_block = iodev->format->frame_rate * PCM_BLOCK_MS / 1000;
-  iodev->buffer_size =
-      PCM_BUF_MAX_SIZE_FRAMES / a2dpio->write_block * a2dpio->write_block;
+  iodev->buffer_size = (unsigned long)PCM_BUF_MAX_SIZE_FRAMES /
+                       a2dpio->write_block * a2dpio->write_block;
 
   a2dpio->pcm_buf = byte_buffer_create(iodev->buffer_size * format_bytes);
   if (!a2dpio->pcm_buf) {
