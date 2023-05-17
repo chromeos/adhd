@@ -1,4 +1,5 @@
 [workspace]
+exclude = ["cros_alsa_derive"]
 
 [package]
 name = "cros_alsa"
