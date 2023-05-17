@@ -136,7 +136,7 @@ pub unsafe extern "C" fn cras_processor_create(
         Ok(processor) => processor,
         Err(err) => {
             log::error!(
-                "CrasProcessor::new failed with {}, creating no-op processor",
+                "CrasProcessor::new failed with {:#}, creating no-op processor",
                 err
             );
 
