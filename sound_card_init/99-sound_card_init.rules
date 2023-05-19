@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 SUBSYSTEM!="sound", GOTO="sci_end"
+SUBSYSTEMS=="usb", GOTO="sci_end"
 ACTION!="change", GOTO="sci_end"
 KERNEL!="card*", GOTO="sci_end"
 
