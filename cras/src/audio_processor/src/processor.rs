@@ -21,6 +21,14 @@ pub enum Error {
     Wav(hound::Error),
     #[error("error in plugin: {0}")]
     Plugin(#[from] crate::processors::PluginError),
+    #[error("unrecoverable error: {0:#}")]
+    Unrecoverable(anyhow::Error),
+}
+
+impl From<anyhow::Error> for Error {
+    fn from(value: anyhow::Error) -> Self {
+        Self::Unrecoverable(value)
+    }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

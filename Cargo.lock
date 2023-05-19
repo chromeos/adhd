@@ -38,6 +38,7 @@ dependencies = [
 name = "audio_processor"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "assert_matches",
  "bindgen",
  "cc",

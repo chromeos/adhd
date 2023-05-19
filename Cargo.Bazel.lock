@@ -1,5 +1,5 @@
 {
-  "checksum": "735cfc20de5ee52eb16065de0e1ebf94948b8d4383921040624b15dbe24646fd",
+  "checksum": "6edf6f21a240f37efb5408613f911ca8d782a01075f813deac77ee2d4d08d068",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -215,6 +215,10 @@
         ],
         "deps": {
           "common": [
+            {
+              "id": "anyhow 1.0.70",
+              "target": "anyhow"
+            },
             {
               "id": "assert_matches 1.5.0",
               "target": "assert_matches"
