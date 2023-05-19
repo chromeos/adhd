@@ -438,6 +438,14 @@ int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr) {
 }
 #endif
 
+#if HAVE_FUZZER
+int floss_media_a2dp_set_audio_config(struct fl_media* fm,
+                                      unsigned int rate,
+                                      unsigned int bps,
+                                      unsigned int channels) {
+  return 0;
+}
+#else
 int floss_media_a2dp_set_audio_config(struct fl_media* fm,
                                       unsigned int rate,
                                       unsigned int bps,
@@ -495,6 +503,7 @@ int floss_media_a2dp_set_audio_config(struct fl_media* fm,
 
   return 0;
 }
+#endif
 
 int floss_media_a2dp_start_audio_request(struct fl_media* fm,
                                          const char* addr) {
