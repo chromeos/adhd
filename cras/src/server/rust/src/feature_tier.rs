@@ -16,6 +16,7 @@ impl CrasFeatureTier {
             sr_bt_supported: match board_name {
                 "eve" | "soraka" | "nautilus" | "nami" | "atlas" | "nocturne" | "rammus"
                 | "fizz" => !has_substr(cpu_name, &["celeron", "pentium"]),
+                "brya" => has_substr(cpu_name, &["i3", "i5", "i7"]),
                 _ => false,
             },
         }
@@ -58,6 +59,12 @@ mod tests {
     fn nami_pentium() {
         let tier = CrasFeatureTier::new("nami", "PENTIUM-4417U");
         assert_eq!(tier.sr_bt_supported, false);
+    }
+
+    #[test]
+    fn brya_i7() {
+        let tier = CrasFeatureTier::new("nami", "intel Core i7-1260P");
+        assert_eq!(tier.sr_bt_supported, true);
     }
 
     #[test]
