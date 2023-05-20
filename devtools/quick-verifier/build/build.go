@@ -23,7 +23,7 @@ import (
 
 const (
 	projectID        = "chromeos-audio-qv"
-	archlinuxBuilder = "gcr.io/" + projectID + "/archlinux-builder"
+	archlinuxBuilder = "gcr.io/${PROJECT_ID}/adhd-archlinux-builder"
 	gitURL           = "https://chromium.googlesource.com/chromiumos/third_party/adhd"
 )
 
@@ -51,13 +51,18 @@ func (cl *gerritCL) makeTags(name string) []string {
 
 func (cl *gerritCL) builds() []*cloudbuildpb.Build {
 	return []*cloudbuildpb.Build{
-		cl.makeBuild("default"),
+		cl.makeQuickVerifierBuild("default"),
 	}
 }
 
-func (cl *gerritCL) makeBuild(name string) *cloudbuildpb.Build {
+func (cl *gerritCL) makeQuickVerifierBuild(name string) *cloudbuildpb.Build {
+	return makeBuild(cl.checkoutSteps(), cl.makeTags(name))
+}
+
+// makeBuild adds steps after sources have been checked out.
+func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build {
 	var b buildplan.Build
-	git := b.Add(cl.checkoutSteps())
+	git := b.Add(gitSteps)
 
 	b.Add(archlinuxSteps("archlinux-clang", "--config=local-clang").WithDep(git))
 	b.Add(archlinuxSteps("archlinux-clang-asan", "--config=local-clang", "--config=asan").WithDep(git))
@@ -78,7 +83,7 @@ func (cl *gerritCL) makeBuild(name string) *cloudbuildpb.Build {
 		Timeout: &durationpb.Duration{
 			Seconds: 1200,
 		},
-		Tags: cl.makeTags(name),
+		Tags: tags,
 		Options: &cloudbuildpb.BuildOptions{
 			MachineType: cloudbuildpb.BuildOptions_E2_HIGHCPU_32,
 		},
@@ -105,6 +110,21 @@ func (cl *gerritCL) checkoutSteps() *buildplan.Sequence {
 				Args:       []string{"checkout", "FETCH_HEAD"},
 			},
 		}...,
+	)
+}
+
+func copPlaceholderSteps() *buildplan.Sequence {
+	return buildplan.Commands(
+		"placeholder",
+		buildplan.Command("gcr.io/cloud-builders/git", "echo", "this is a placeholder step to play nicely with CoP config merging"),
+	)
+}
+
+// MakeCopBuild returns a go/cros-cop compatible build.
+func MakeCopBuild() *cloudbuildpb.Build {
+	return makeBuild(
+		copPlaceholderSteps(),
+		nil,
 	)
 }
 

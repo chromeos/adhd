@@ -1,7 +1,7 @@
 ## Submit the builder
 
 ```
-gcloud --project=chromeos-audio-qv builds submit builders/archlinux-builder --tag gcr.io/chromeos-audio-qv/archlinux-builder
+gcloud --project=chromeos-audio-qv builds submit builders/archlinux-builder --tag gcr.io/chromeos-audio-qv/adhd-archlinux-builder
 ```
 
 ### For kythe

@@ -1,0 +1,637 @@
+{
+  "steps": [
+    {
+      "name": "gcr.io/cloud-builders/git",
+      "args": [
+        "this is a placeholder step to play nicely with CoP config merging"
+      ],
+      "id": "placeholder:0",
+      "entrypoint": "echo"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/",
+        "./"
+      ],
+      "dir": "/workspace-archlinux-clang",
+      "id": "archlinux-clang:0",
+      "waitFor": [
+        "placeholder:0"
+      ],
+      "entrypoint": "rsync",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-clang",
+          "path": "/workspace-archlinux-clang"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "test",
+        "//...",
+        "-k",
+        "-c",
+        "dbg",
+        "--test_output=errors",
+        "--config=local-clang"
+      ],
+      "dir": "/workspace-archlinux-clang",
+      "id": "archlinux-clang:1",
+      "waitFor": [
+        "archlinux-clang:0"
+      ],
+      "entrypoint": "bazel",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-clang",
+          "path": "/workspace-archlinux-clang"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/",
+        "./"
+      ],
+      "dir": "/workspace-archlinux-clang-asan",
+      "id": "archlinux-clang-asan:0",
+      "waitFor": [
+        "placeholder:0"
+      ],
+      "entrypoint": "rsync",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-clang-asan",
+          "path": "/workspace-archlinux-clang-asan"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "test",
+        "//...",
+        "-k",
+        "-c",
+        "dbg",
+        "--test_output=errors",
+        "--config=local-clang",
+        "--config=asan"
+      ],
+      "dir": "/workspace-archlinux-clang-asan",
+      "id": "archlinux-clang-asan:1",
+      "waitFor": [
+        "archlinux-clang-asan:0"
+      ],
+      "entrypoint": "bazel",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-clang-asan",
+          "path": "/workspace-archlinux-clang-asan"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/",
+        "./"
+      ],
+      "dir": "/workspace-archlinux-clang-ubsan",
+      "id": "archlinux-clang-ubsan:0",
+      "waitFor": [
+        "placeholder:0"
+      ],
+      "entrypoint": "rsync",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-clang-ubsan",
+          "path": "/workspace-archlinux-clang-ubsan"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "test",
+        "//...",
+        "-k",
+        "-c",
+        "dbg",
+        "--test_output=errors",
+        "--config=local-clang",
+        "--config=ubsan"
+      ],
+      "dir": "/workspace-archlinux-clang-ubsan",
+      "id": "archlinux-clang-ubsan:1",
+      "waitFor": [
+        "archlinux-clang-ubsan:0"
+      ],
+      "entrypoint": "bazel",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-clang-ubsan",
+          "path": "/workspace-archlinux-clang-ubsan"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/",
+        "./"
+      ],
+      "dir": "/workspace-archlinux-gcc",
+      "id": "archlinux-gcc:0",
+      "waitFor": [
+        "placeholder:0"
+      ],
+      "entrypoint": "rsync",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-gcc",
+          "path": "/workspace-archlinux-gcc"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "test",
+        "//...",
+        "-k",
+        "-c",
+        "dbg",
+        "--test_output=errors",
+        "--config=local-gcc"
+      ],
+      "dir": "/workspace-archlinux-gcc",
+      "id": "archlinux-gcc:1",
+      "waitFor": [
+        "archlinux-gcc:0"
+      ],
+      "entrypoint": "bazel",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-gcc",
+          "path": "/workspace-archlinux-gcc"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/",
+        "./"
+      ],
+      "dir": "/workspace-archlinux-system-cras-rust",
+      "id": "archlinux-system-cras-rust:0",
+      "waitFor": [
+        "placeholder:0"
+      ],
+      "entrypoint": "rsync",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-system-cras-rust",
+          "path": "/workspace-archlinux-system-cras-rust"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "install",
+        "dbus-codegen"
+      ],
+      "dir": "/workspace-archlinux-system-cras-rust",
+      "id": "archlinux-system-cras-rust:1",
+      "waitFor": [
+        "archlinux-system-cras-rust:0"
+      ],
+      "entrypoint": "cargo",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-system-cras-rust",
+          "path": "/workspace-archlinux-system-cras-rust"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "build",
+        "--workspace"
+      ],
+      "dir": "/workspace-archlinux-system-cras-rust",
+      "id": "archlinux-system-cras-rust:2",
+      "waitFor": [
+        "archlinux-system-cras-rust:1"
+      ],
+      "entrypoint": "cargo",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-system-cras-rust",
+          "path": "/workspace-archlinux-system-cras-rust"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "test",
+        "--workspace"
+      ],
+      "dir": "/workspace-archlinux-system-cras-rust",
+      "id": "archlinux-system-cras-rust:3",
+      "waitFor": [
+        "archlinux-system-cras-rust:2"
+      ],
+      "entrypoint": "cargo",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-system-cras-rust",
+          "path": "/workspace-archlinux-system-cras-rust"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "test",
+        "//...",
+        "-k",
+        "-c",
+        "dbg",
+        "--test_output=errors",
+        "--//:system_cras_rust",
+        "--config=local-clang",
+        "--linkopt=-L/workspace-archlinux-system-cras-rust/target/debug"
+      ],
+      "dir": "/workspace-archlinux-system-cras-rust",
+      "id": "archlinux-system-cras-rust:4",
+      "waitFor": [
+        "archlinux-system-cras-rust:3"
+      ],
+      "entrypoint": "bazel",
+      "volumes": [
+        {
+          "name": "workspace-archlinux-system-cras-rust",
+          "path": "/workspace-archlinux-system-cras-rust"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/",
+        "./"
+      ],
+      "dir": "/workspace-kythe",
+      "id": "kythe:0",
+      "waitFor": [
+        "placeholder:0"
+      ],
+      "entrypoint": "rsync",
+      "volumes": [
+        {
+          "name": "workspace-kythe",
+          "path": "/workspace-kythe"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "devtools/kythe/build_kzip.bash",
+        "."
+      ],
+      "dir": "/workspace-kythe",
+      "id": "kythe:1",
+      "waitFor": [
+        "kythe:0"
+      ],
+      "entrypoint": "bash",
+      "volumes": [
+        {
+          "name": "workspace-kythe",
+          "path": "/workspace-kythe"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "oss-fuzz-setup"
+      ],
+      "id": "oss-fuzz-setup:0",
+      "waitFor": [
+        "placeholder:0"
+      ],
+      "entrypoint": "mkdir"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/",
+        "adhd/"
+      ],
+      "dir": "oss-fuzz-setup",
+      "id": "oss-fuzz-setup:1",
+      "waitFor": [
+        "oss-fuzz-setup:0"
+      ],
+      "entrypoint": "rsync"
+    },
+    {
+      "name": "gcr.io/cloud-builders/git",
+      "args": [
+        "clone",
+        "--depth=1",
+        "https://github.com/google/oss-fuzz"
+      ],
+      "dir": "oss-fuzz-setup",
+      "id": "oss-fuzz-setup:2",
+      "waitFor": [
+        "oss-fuzz-setup:1"
+      ],
+      "entrypoint": "git"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "build_image",
+        "--pull",
+        "cras"
+      ],
+      "dir": "oss-fuzz-setup",
+      "id": "oss-fuzz-setup:3",
+      "waitFor": [
+        "oss-fuzz-setup:2"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "oss-fuzz-setup/",
+        "oss-fuzz-address/"
+      ],
+      "id": "oss-fuzz-address:0",
+      "waitFor": [
+        "oss-fuzz-setup:3"
+      ],
+      "entrypoint": "rsync"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "build_fuzzers",
+        "--sanitizer",
+        "address",
+        "--engine",
+        "libfuzzer",
+        "cras",
+        "/workspace/oss-fuzz-address/adhd"
+      ],
+      "dir": "oss-fuzz-address",
+      "id": "oss-fuzz-address:1",
+      "waitFor": [
+        "oss-fuzz-address:0"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "check_build",
+        "--sanitizer",
+        "address",
+        "--engine",
+        "libfuzzer",
+        "cras"
+      ],
+      "dir": "oss-fuzz-address",
+      "id": "oss-fuzz-address:2",
+      "waitFor": [
+        "oss-fuzz-address:1"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "oss-fuzz-setup/",
+        "oss-fuzz-address-afl/"
+      ],
+      "id": "oss-fuzz-address-afl:0",
+      "waitFor": [
+        "oss-fuzz-setup:3"
+      ],
+      "entrypoint": "rsync"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "build_fuzzers",
+        "--sanitizer",
+        "address",
+        "--engine",
+        "afl",
+        "cras",
+        "/workspace/oss-fuzz-address-afl/adhd"
+      ],
+      "dir": "oss-fuzz-address-afl",
+      "id": "oss-fuzz-address-afl:1",
+      "waitFor": [
+        "oss-fuzz-address-afl:0"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "check_build",
+        "--sanitizer",
+        "address",
+        "--engine",
+        "afl",
+        "cras"
+      ],
+      "dir": "oss-fuzz-address-afl",
+      "id": "oss-fuzz-address-afl:2",
+      "waitFor": [
+        "oss-fuzz-address-afl:1"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "oss-fuzz-setup/",
+        "oss-fuzz-memory/"
+      ],
+      "id": "oss-fuzz-memory:0",
+      "waitFor": [
+        "oss-fuzz-setup:3"
+      ],
+      "entrypoint": "rsync"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "build_fuzzers",
+        "--sanitizer",
+        "memory",
+        "--engine",
+        "libfuzzer",
+        "cras",
+        "/workspace/oss-fuzz-memory/adhd"
+      ],
+      "dir": "oss-fuzz-memory",
+      "id": "oss-fuzz-memory:1",
+      "waitFor": [
+        "oss-fuzz-memory:0"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "check_build",
+        "--sanitizer",
+        "memory",
+        "--engine",
+        "libfuzzer",
+        "cras"
+      ],
+      "dir": "oss-fuzz-memory",
+      "id": "oss-fuzz-memory:2",
+      "waitFor": [
+        "oss-fuzz-memory:1"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "oss-fuzz-setup/",
+        "oss-fuzz-undefined/"
+      ],
+      "id": "oss-fuzz-undefined:0",
+      "waitFor": [
+        "oss-fuzz-setup:3"
+      ],
+      "entrypoint": "rsync"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "build_fuzzers",
+        "--sanitizer",
+        "undefined",
+        "--engine",
+        "libfuzzer",
+        "cras",
+        "/workspace/oss-fuzz-undefined/adhd"
+      ],
+      "dir": "oss-fuzz-undefined",
+      "id": "oss-fuzz-undefined:1",
+      "waitFor": [
+        "oss-fuzz-undefined:0"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "check_build",
+        "--sanitizer",
+        "undefined",
+        "--engine",
+        "libfuzzer",
+        "cras"
+      ],
+      "dir": "oss-fuzz-undefined",
+      "id": "oss-fuzz-undefined:2",
+      "waitFor": [
+        "oss-fuzz-undefined:1"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "oss-fuzz-setup/",
+        "oss-fuzz-coverage/"
+      ],
+      "id": "oss-fuzz-coverage:0",
+      "waitFor": [
+        "oss-fuzz-setup:3"
+      ],
+      "entrypoint": "rsync"
+    },
+    {
+      "name": "gcr.io/cloud-builders/docker",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "build_fuzzers",
+        "--sanitizer",
+        "coverage",
+        "--engine",
+        "libfuzzer",
+        "cras",
+        "/workspace/oss-fuzz-coverage/adhd"
+      ],
+      "dir": "oss-fuzz-coverage",
+      "id": "oss-fuzz-coverage:1",
+      "waitFor": [
+        "oss-fuzz-coverage:0"
+      ],
+      "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/google.com/cloudsdktool/cloud-sdk",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "coverage",
+        "cras",
+        "--port="
+      ],
+      "dir": "oss-fuzz-coverage",
+      "id": "oss-fuzz-coverage:2",
+      "waitFor": [
+        "oss-fuzz-coverage:1"
+      ],
+      "entrypoint": "python3"
+    }
+  ],
+  "timeout": "1200s",
+  "options": {
+    "machineType": "E2_HIGHCPU_32"
+  }
+}
