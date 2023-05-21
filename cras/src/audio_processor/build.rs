@@ -3,9 +3,28 @@
 // found in the LICENSE file.
 
 use std::env;
+use std::ffi::OsStr;
 use std::path::PathBuf;
+use std::process::Command;
 
 extern crate bindgen;
+
+fn pkg_config<I, S>(args: I) -> Vec<String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let output =
+        Command::new(env::var("PKG_CONFIG").unwrap_or_else(|_| String::from("pkg-config")))
+            .args(args)
+            .output()
+            .expect("pkg-config failed");
+    if !output.status.success() {
+        panic!("pkg-config failed");
+    }
+    let stdout = String::from_utf8(output.stdout).expect("pkg-config returned non-UTF-8");
+    stdout.split_ascii_whitespace().map(String::from).collect()
+}
 
 fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
@@ -23,4 +42,26 @@ fn main() {
         .expect("Cannot generate bindings")
         .write_to_file(out_path.join("plugin_processor_binding.rs"))
         .expect("Cannot write bindings");
+
+    let speex_cflags = pkg_config(["--cflags", "speexdsp"]);
+    eprintln!("speex cflags: {:?}", speex_cflags);
+    let mut builder = bindgen::Builder::default();
+    if let Ok(sysroot) = env::var("SYSROOT") {
+        // Set sysroot so includes in /build/${BOARD} can be found.
+        builder = builder.clang_arg("--sysroot").clang_arg(sysroot);
+    }
+    builder
+        .clang_args(speex_cflags)
+        .header("speex_bindgen.h")
+        .generate()
+        .expect("Cannot generate speex bindings")
+        .write_to_file(out_path.join("speex_sys.rs"))
+        .expect("Cannot write speex bindings");
+    for link_arg in pkg_config(["--libs", "speexdsp"]) {
+        if let Some(lib) = link_arg.strip_prefix("-l") {
+            println!("cargo:rustc-link-lib={}", lib);
+        } else {
+            println!("cargo:rustc-link-arg={}", link_arg);
+        }
+    }
 }

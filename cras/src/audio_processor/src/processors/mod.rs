@@ -21,3 +21,6 @@ pub mod profile;
 
 mod wav;
 pub use wav::*;
+
+mod speex;
+pub use speex::*;

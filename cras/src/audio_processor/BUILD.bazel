@@ -18,6 +18,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
+        "@pkg_config//speexdsp",
     ] + all_crate_deps(normal = True),
 )
 
@@ -60,7 +61,10 @@ rust_test_suite(
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
-    data = ["//cras/src/audio_processor/c:headers"],
+    data = [
+        "speex_bindgen.h",
+        "//cras/src/audio_processor/c:headers",
+    ],
     deps = all_crate_deps(build = True),
 )
 
