@@ -162,7 +162,7 @@ func kytheSteps() *buildplan.Sequence {
 	return buildplan.Commands(
 		"kythe",
 		prepareSourceStep,
-		buildplan.Command(archlinuxBuilder, "bash", "/build_kzip.bash", "."),
+		buildplan.Command(archlinuxBuilder, "bash", "devtools/kythe/build_kzip.bash", "."),
 	).WithVolume()
 }
 
