@@ -34,7 +34,7 @@ pub struct CrasProcessorConfig {
 
 pub struct CrasProcessor {
     check_shape: CheckShape<f32>,
-    plugin: Option<Box<dyn AudioProcessor<I = f32, O = f32>>>,
+    pipeline: Vec<Box<dyn AudioProcessor<I = f32, O = f32>>>,
     _config: CrasProcessorConfig,
 }
 
@@ -47,22 +47,22 @@ impl AudioProcessor for CrasProcessor {
         mut input: audio_processor::MultiSlice<'a, Self::I>,
     ) -> audio_processor::Result<audio_processor::MultiSlice<'a, Self::O>> {
         input = self.check_shape.process(input)?;
-        if let Some(plugin) = &mut self.plugin {
-            input = plugin.process(input)?
+        for processor in self.pipeline.iter_mut() {
+            input = processor.process(input)?
         }
-
         Ok(input)
     }
 }
 
 impl CrasProcessor {
     fn new(config: CrasProcessorConfig) -> anyhow::Result<Self> {
-        let plugin: Option<Box<dyn AudioProcessor<I = f32, O = f32>>> = match config.effect {
-            CrasProcessorEffect::NoEffects => None,
-            CrasProcessorEffect::Negate => Some(Box::new(NegateAudioProcessor::new(
+        let check_shape = CheckShape::new(config.channels, config.block_size);
+        let pipeline: Vec<Box<dyn AudioProcessor<I = f32, O = f32>>> = match config.effect {
+            CrasProcessorEffect::NoEffects => vec![],
+            CrasProcessorEffect::Negate => vec![Box::new(NegateAudioProcessor::new(
                 config.channels,
                 config.block_size,
-            ))),
+            ))],
             CrasProcessorEffect::NoiseCancellation => {
                 // Check shape is supported.
                 match config {
@@ -104,15 +104,14 @@ impl CrasProcessor {
                 )
                 .with_context(|| "DynamicPluginProcessor::new failed")?;
 
-                Some(Box::new(processor))
+                vec![Box::new(processor)]
             }
         };
 
         log::info!("CrasProcessor created with: {:?}", config);
-
         Ok(CrasProcessor {
-            check_shape: CheckShape::new(config.channels, config.block_size),
-            plugin,
+            check_shape,
+            pipeline,
             _config: config,
         })
     }
