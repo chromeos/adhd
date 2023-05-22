@@ -11,7 +11,9 @@ use audio_processor::processors::export_plugin;
 use audio_processor::processors::CheckShape;
 use audio_processor::processors::DynamicPluginProcessor;
 use audio_processor::processors::NegateAudioProcessor;
+use audio_processor::processors::SpeexResampler;
 use audio_processor::AudioProcessor;
+use audio_processor::Shape;
 use cras_dlc::get_dlc_state;
 
 #[repr(C)]
@@ -65,24 +67,15 @@ impl CrasProcessor {
             ))],
             CrasProcessorEffect::NoiseCancellation => {
                 // Check shape is supported.
-                match config {
-                    CrasProcessorConfig {
-                        frame_rate: 48000,
-                        channels: 1,
-                        ..
-                    } => (),
-                    _ => {
-                        return Err(audio_processor::Error::InvalidShape {
-                            want_channels: 1,
-                            want_frames: 48000,
-                            got_channels: config.channels,
-                            got_frames: config.frame_rate,
-                        })
-                        .with_context(|| {
-                            "Unexpected config for NoiseCancellation in CrasProcessor::new"
-                        });
-                    }
-                };
+                if config.channels != 1 {
+                    return Err(anyhow!("unsupported channel count {}", config.channels));
+                }
+                if config.block_size * 100 != config.frame_rate {
+                    return Err(anyhow!(
+                        "config is not using a block size of 10ms: {:?}",
+                        config
+                    ));
+                }
 
                 let ap_nc_dlc = get_dlc_state(cras_dlc::CrasDlcId::CrasDlcNcAp)?;
                 if !ap_nc_dlc.installed {
@@ -98,13 +91,41 @@ impl CrasProcessor {
                         .to_str()
                         .unwrap(),
                     "plugin_processor_create",
-                    config.block_size,
+                    480,
                     config.channels,
-                    config.frame_rate,
+                    48000,
                 )
                 .with_context(|| "DynamicPluginProcessor::new failed")?;
 
-                vec![Box::new(processor)]
+                if config.frame_rate == 48000 {
+                    vec![Box::new(processor)]
+                } else {
+                    vec![
+                        Box::new(
+                            SpeexResampler::new(
+                                Shape {
+                                    channels: config.channels,
+                                    frames: config.block_size,
+                                },
+                                config.frame_rate,
+                                48000,
+                            )
+                            .with_context(|| "failed to create 1st wrapping resampler")?,
+                        ),
+                        Box::new(processor),
+                        Box::new(
+                            SpeexResampler::new(
+                                Shape {
+                                    channels: config.channels,
+                                    frames: 480,
+                                },
+                                48000,
+                                config.frame_rate,
+                            )
+                            .with_context(|| "failed to create 2nd wrapping resampler")?,
+                        ),
+                    ]
+                }
             }
         };
 
