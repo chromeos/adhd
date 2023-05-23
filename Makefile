@@ -25,8 +25,10 @@ cras_init_scripts:	$(ADHD_DIR)/init/cras-env.sh \
 		$(DESTDIR)/usr/share/cros/init/cras-env.sh
 	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras.sh \
 		$(DESTDIR)/usr/share/cros/init/cras.sh
-	$(INSTALL) --mode 644 -D $(ADHD_DIR)/init/cras-dev.sh \
+	$(INSTALL) --mode 755 -D $(ADHD_DIR)/init/cras-dev.sh \
 		$(DESTDIR)/usr/local/share/cros/init/cras-dev.sh
+	$(INSTALL) --directory --mode 755 $(DESTDIR)/usr/local/bin
+	ln -sf ../share/cros/init/cras-dev.sh $(DESTDIR)/usr/local/bin/cras-dev.sh
 
 SYSTEMD_UNIT_DIR := /usr/lib/systemd/system/
 
