@@ -1226,9 +1226,8 @@ static void usb_set_iodev_name(struct cras_iodev* dev,
 
   syslog(LOG_INFO,
          "Add cardType=USB, deviceName=%s, idVendor=%zx, idProduct=%zx, "
-         "serialNumber=%s Stable ID=%08x direction=%s",
-         dev->info.name, usb_vid, usb_pid, usb_serial_number,
-         dev->info.stable_id,
+         "direction=%s",
+         dev->info.name, usb_vid, usb_pid,
          dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input");
 }
 
