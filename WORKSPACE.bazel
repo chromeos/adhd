@@ -45,7 +45,7 @@ http_archive(
 )
 
 load(
-    ":pkg_config.bzl",
+    ":repositories/pkg_config/pkg_config.bzl",
     "pkg_config_repository",
 )
 
@@ -82,7 +82,7 @@ pkg_config_repository(
     ],
 )
 
-load(":fuzz_engine.bzl", "fuzz_engine_repository")
+load("//:repositories/fuzz_engine/fuzz_engine.bzl", "fuzz_engine_repository")
 
 fuzz_engine_repository(name = "fuzz_engine")
 
