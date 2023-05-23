@@ -244,6 +244,9 @@ bool cras_system_state_internal_cards_detected() {
 int cras_system_state_num_non_chrome_output_streams() {
   return 0;
 }
+int cras_system_get_num_stream_ignore_ui_gains() {
+  return 0;
+}
 int audio_thread_dump_thread_info(struct audio_thread* thread,
                                   struct audio_debug_info* info) {
   return 0;

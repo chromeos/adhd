@@ -102,6 +102,8 @@ struct private_state {
   // Whether speak on mute detection is
   // enabled.
   bool speak_on_mute_detection_enabled;
+  // Numbers of active streams ignoring UI gains.
+  uint32_t num_stream_ignore_ui_gains;
 };
 
 static struct private_state state;
@@ -659,7 +661,8 @@ void cras_system_rm_select_fd(int fd) {
 }
 
 void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
-                                    enum CRAS_CLIENT_TYPE client_type) {
+                                    enum CRAS_CLIENT_TYPE client_type,
+                                    uint64_t effects) {
   struct cras_server_state* s;
 
   s = cras_system_state_update_begin();
@@ -673,6 +676,11 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
     s->num_input_streams_with_permission[client_type]++;
     cras_observer_notify_input_streams_with_permission(
         s->num_input_streams_with_permission);
+    if (effects & IGNORE_UI_GAINS) {
+      state.num_stream_ignore_ui_gains++;
+      cras_observer_notify_num_stream_ignore_ui_gains_changed(
+          state.num_stream_ignore_ui_gains);
+    }
   }
 
   if (direction == CRAS_STREAM_OUTPUT &&
@@ -689,7 +697,8 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
 }
 
 void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
-                                      enum CRAS_CLIENT_TYPE client_type) {
+                                      enum CRAS_CLIENT_TYPE client_type,
+                                      uint64_t effects) {
   struct cras_server_state* s;
   unsigned i, sum;
 
@@ -712,6 +721,11 @@ void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
     s->num_input_streams_with_permission[client_type]--;
     cras_observer_notify_input_streams_with_permission(
         s->num_input_streams_with_permission);
+    if (effects & IGNORE_UI_GAINS) {
+      state.num_stream_ignore_ui_gains--;
+      cras_observer_notify_num_stream_ignore_ui_gains_changed(
+          state.num_stream_ignore_ui_gains);
+    }
   }
 
   if (direction == CRAS_STREAM_OUTPUT &&
@@ -883,4 +897,8 @@ void cras_system_set_force_respect_ui_gains_enabled(bool enabled) {
 
 bool cras_system_get_force_respect_ui_gains_enabled() {
   return !!state.exp_state->force_respect_ui_gains;
+}
+
+int cras_system_get_num_stream_ignore_ui_gains() {
+  return state.num_stream_ignore_ui_gains;
 }

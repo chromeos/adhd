@@ -16,7 +16,7 @@ extern "C" {
 
 namespace {
 
-static const size_t kNumAlert = 22;
+static const size_t kNumAlert = 23;
 
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;
@@ -67,6 +67,7 @@ static size_t cb_underrun_called;
 static size_t cb_speak_on_mute_detected_called;
 static size_t cb_num_non_chrome_output_streams_called;
 static std::vector<uint32_t> cb_num_non_chrome_output_streams_values;
+static size_t cb_num_stream_ignore_ui_gains_changed_called;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -117,6 +118,7 @@ static void ResetStubData() {
   cb_speak_on_mute_detected_called = 0;
   cb_num_non_chrome_output_streams_called = 0;
   cb_num_non_chrome_output_streams_values.clear();
+  cb_num_stream_ignore_ui_gains_changed_called = 0;
 }
 
 // System output volume changed.
@@ -237,6 +239,11 @@ void cb_num_non_chrome_output_streams(void* context,
   cb_num_non_chrome_output_streams_called++;
   cb_num_non_chrome_output_streams_values.push_back(
       num_non_chrome_output_streams);
+  cb_context.push_back(context);
+}
+
+void cb_num_stream_ignore_ui_gains_changed(void* context, int num) {
+  cb_num_stream_ignore_ui_gains_changed_called++;
   cb_context.push_back(context);
 }
 
@@ -763,6 +770,25 @@ TEST_F(ObserverTest, NumNonChromeOutputStreamsChanged) {
             (std::vector<uint32_t>{99, 99}));
 
   DoObserverRemoveClear(num_non_chrome_output_streams_alert, data);
+}
+
+TEST_F(ObserverTest, NumStreamIgnoreUiGainsChanged) {
+  cras_observer_notify_num_stream_ignore_ui_gains_changed(1);
+  EXPECT_EQ(cras_alert_pending_alert_value,
+            g_observer->alerts.num_stream_ignore_ui_gains_changed);
+  auto* data =
+      reinterpret_cast<struct cras_observer_num_stream_ignore_ui_gains*>(
+          cras_alert_pending_data_value);
+
+  ops1_.num_stream_ignore_ui_gains_changed =
+      cb_num_stream_ignore_ui_gains_changed;
+  ops2_.num_stream_ignore_ui_gains_changed =
+      cb_num_stream_ignore_ui_gains_changed;
+
+  DoObserverAlert(num_stream_ignore_ui_gains_changed_alert, data);
+  ASSERT_EQ(cb_num_stream_ignore_ui_gains_changed_called, 2);
+
+  DoObserverRemoveClear(num_stream_ignore_ui_gains_changed_alert, data);
 }
 
 // Stubs

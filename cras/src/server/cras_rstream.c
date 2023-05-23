@@ -334,7 +334,9 @@ int cras_rstream_create(struct cras_rstream_config* config,
          config->buffer_frames, config->cb_threshold);
   *stream_out = stream;
 
-  cras_system_state_stream_added(stream->direction, stream->client_type);
+  cras_system_state_stream_added(
+      stream->direction, stream->client_type,
+      cras_stream_apm_get_effects(stream->stream_apm));
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &stream->start_ts);
 
@@ -345,7 +347,9 @@ int cras_rstream_create(struct cras_rstream_config* config,
 
 void cras_rstream_destroy(struct cras_rstream* stream) {
   cras_server_metrics_stream_destroy(stream);
-  cras_system_state_stream_removed(stream->direction, stream->client_type);
+  cras_system_state_stream_removed(
+      stream->direction, stream->client_type,
+      cras_stream_apm_get_effects(stream->stream_apm));
   close(stream->fd);
   cras_audio_shm_destroy(stream->shm);
   cras_audio_area_destroy(stream->audio_area);

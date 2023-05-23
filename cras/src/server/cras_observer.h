@@ -126,4 +126,7 @@ void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
 // Notify observers of a speak on mute event
 void cras_observer_notify_speak_on_mute_detected();
 
+// Notify observers of a num stream ignore UI gains changed event
+void cras_observer_notify_num_stream_ignore_ui_gains_changed(int num);
+
 #endif  // CRAS_SRC_SERVER_CRAS_OBSERVER_H_

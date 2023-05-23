@@ -1332,6 +1332,14 @@ static DBusHandlerResult handle_set_force_respect_ui_gains_enabled(
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static inline DBusHandlerResult handle_get_num_stream_ignore_ui_gains(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  return send_int32_reply(conn, message,
+                          cras_system_get_num_stream_ignore_ui_gains());
+}
+
 // Handle incoming messages.
 static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                                 DBusMessage* message,
@@ -1511,6 +1519,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetForceRespectUiGains")) {
     return handle_set_force_respect_ui_gains_enabled(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetNumStreamIgnoreUiGains")) {
+    return handle_get_num_stream_ignore_ui_gains(conn, message, arg);
   }
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -1884,6 +1895,23 @@ static void signal_speak_on_mute_detected(void* context) {
   dbus_message_unref(msg);
 }
 
+static void signal_num_stream_ignore_ui_gains_changed(void* context, int num) {
+  struct cras_dbus_control* control = (struct cras_dbus_control*)context;
+
+  dbus_uint32_t serial = 0;
+  DBusMessage* msg;
+
+  msg = create_dbus_message("NumStreamIgnoreUiGainsChanged");
+  if (!msg) {
+    return;
+  }
+
+  dbus_message_append_args(msg, DBUS_TYPE_BOOLEAN, &num, DBUS_TYPE_INVALID);
+
+  dbus_connection_send(control->conn, msg, &serial);
+  dbus_message_unref(msg);
+}
+
 // Exported Interface
 
 void cras_dbus_control_start(DBusConnection* conn) {
@@ -1929,6 +1957,8 @@ void cras_dbus_control_start(DBusConnection* conn) {
   observer_ops.underrun = signal_underrun;
   observer_ops.general_survey = signal_general_survey;
   observer_ops.speak_on_mute_detected = signal_speak_on_mute_detected;
+  observer_ops.num_stream_ignore_ui_gains_changed =
+      signal_num_stream_ignore_ui_gains_changed;
 
   dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }

@@ -309,9 +309,11 @@ int cras_system_add_task(void (*callback)(void* data), void* callback_data);
  * Args:
  *   direction - Directions of audio streams.
  *   client_type - CRAS_CLIENT_TYPE of the audio stream.
+ *   effects - effects applied on the audio stream.
  */
 void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
-                                    enum CRAS_CLIENT_TYPE client_type);
+                                    enum CRAS_CLIENT_TYPE client_type,
+                                    uint64_t effects);
 
 /* Signals that an audio input or output stream has been removed from the
  * system.  This allows the count of active streams can be used to notice when
@@ -319,9 +321,11 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
  * Args:
  *   direction - Directions of audio stream.
  *   client_type - CRAS_CLIENT_TYPE of the audio stream.
+ *   effects - effects applied on the audio stream.
  */
 void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
-                                      enum CRAS_CLIENT_TYPE client_type);
+                                      enum CRAS_CLIENT_TYPE client_type,
+                                      uint64_t effects);
 
 // Returns the number of active playback and capture streams.
 unsigned cras_system_state_get_active_streams();
@@ -452,5 +456,8 @@ void cras_system_set_force_respect_ui_gains_enabled(bool enabled);
 
 // Gets the flag of Force Respect UI Gains.
 bool cras_system_get_force_respect_ui_gains_enabled();
+
+// Gets the number of stream ignoring UI gains.
+int cras_system_get_num_stream_ignore_ui_gains();
 
 #endif  // CRAS_SRC_SERVER_CRAS_SYSTEM_STATE_H_

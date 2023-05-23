@@ -78,6 +78,9 @@ struct cras_observer_ops {
                          const char* node_type_pair);
   // Speech detected while on mute
   void (*speak_on_mute_detected)(void* context);
+
+  // Num stream ignoring UI gains changed event
+  void (*num_stream_ignore_ui_gains_changed)(void* context, int num);
 };
 
 #endif  // CRAS_SRC_COMMON_CRAS_OBSERVER_OPS_H_

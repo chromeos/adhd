@@ -399,11 +399,13 @@ TEST(SystemSettingsStreamCount, StreamCount) {
   do_sys_init();
 
   EXPECT_EQ(0, cras_system_state_get_active_streams());
-  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME);
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME,
+                                 0);
   EXPECT_EQ(1, cras_system_state_get_active_streams());
   struct cras_timespec ts1;
   cras_system_state_get_last_stream_active_time(&ts1);
-  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME);
+  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME,
+                                   0);
   EXPECT_EQ(0, cras_system_state_get_active_streams());
   struct cras_timespec ts2;
   cras_system_state_get_last_stream_active_time(&ts2);
@@ -416,11 +418,12 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
   do_sys_init();
 
   EXPECT_EQ(0, cras_system_state_get_active_streams());
-  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_TEST);
-  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME);
-  cras_system_state_stream_added(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_CHROME);
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_TEST, 0);
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME,
+                                 0);
+  cras_system_state_stream_added(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_CHROME, 0);
   cras_system_state_stream_added(CRAS_STREAM_POST_MIX_PRE_DSP,
-                                 CRAS_CLIENT_TYPE_CHROME);
+                                 CRAS_CLIENT_TYPE_CHROME, 0);
   EXPECT_EQ(1, cras_observer_notify_input_streams_with_permission_called);
   EXPECT_EQ(
       2, cras_system_state_get_active_streams_by_direction(CRAS_STREAM_OUTPUT));
@@ -431,11 +434,14 @@ TEST(SystemSettingsStreamCount, StreamCountByDirection) {
   EXPECT_EQ(4, cras_system_state_get_active_streams());
   EXPECT_EQ(4, cras_observer_notify_num_active_streams_called);
   EXPECT_EQ(1, cras_observer_notify_num_non_chrome_output_streams_called);
-  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_TEST);
-  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME);
-  cras_system_state_stream_removed(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_CHROME);
+  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_TEST,
+                                   0);
+  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME,
+                                   0);
+  cras_system_state_stream_removed(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_CHROME,
+                                   0);
   cras_system_state_stream_removed(CRAS_STREAM_POST_MIX_PRE_DSP,
-                                   CRAS_CLIENT_TYPE_CHROME);
+                                   CRAS_CLIENT_TYPE_CHROME, 0);
   EXPECT_EQ(2, cras_observer_notify_input_streams_with_permission_called);
   EXPECT_EQ(
       0, cras_system_state_get_active_streams_by_direction(CRAS_STREAM_OUTPUT));
@@ -715,6 +721,8 @@ void cras_observer_notify_input_streams_with_permission(
     uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE]) {
   cras_observer_notify_input_streams_with_permission_called++;
 }
+
+void cras_observer_notify_num_stream_ignore_ui_gains_changed(int num) {}
 
 void cras_board_config_get(const char* config_path,
                            struct cras_board_config* board_config) {
