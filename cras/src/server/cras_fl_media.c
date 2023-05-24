@@ -80,12 +80,8 @@ static bool dbus_bool_is_true(int dbus_type, void* dbus_value_ptr) {
   return *(dbus_bool_t*)dbus_value_ptr == TRUE;
 }
 
-#if HAVE_FUZZER
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr) {
-  return 0;
-}
-#else
-int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
 
@@ -127,20 +123,13 @@ int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr) {
 
   return 0;
 }
-#endif
 
-#if HAVE_FUZZER
 int floss_media_hfp_start_sco_call(struct fl_media* fm,
                                    const char* addr,
                                    bool enable_offload,
                                    bool force_cvsd) {
-  return 0;
-}
-#else
-int floss_media_hfp_start_sco_call(struct fl_media* fm,
-                                   const char* addr,
-                                   bool enable_offload,
-                                   bool force_cvsd) {
+  RET_IF_HAVE_FUZZER(0);
+
   int rc = 0;
 
   syslog(LOG_DEBUG, "%s: %s", __func__, addr);
@@ -223,14 +212,10 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
 
   return final_codecs;
 }
-#endif
 
-#if HAVE_FUZZER
 int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
-  return 0;
-}
-#else
-int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
 
@@ -272,18 +257,12 @@ int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
 
   return 0;
 }
-#endif
 
-#if HAVE_FUZZER
 int floss_media_hfp_set_volume(struct fl_media* fm,
                                unsigned int volume,
                                const char* addr) {
-  return 0;
-}
-#else
-int floss_media_hfp_set_volume(struct fl_media* fm,
-                               unsigned int volume,
-                               const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
   uint8_t vol = volume;
@@ -325,7 +304,6 @@ int floss_media_hfp_set_volume(struct fl_media* fm,
 
   return 0;
 }
-#endif
 
 int floss_media_hfp_suspend(struct fl_media* fm) {
   if (fm != active_fm) {
@@ -346,12 +324,9 @@ int floss_media_hfp_suspend(struct fl_media* fm) {
   return 0;
 }
 
-#if HAVE_FUZZER
 int floss_media_a2dp_reset_active_device(struct fl_media* fm) {
-  return 0;
-}
-#else
-int floss_media_a2dp_reset_active_device(struct fl_media* fm) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
 
@@ -387,14 +362,10 @@ int floss_media_a2dp_reset_active_device(struct fl_media* fm) {
 
   return 0;
 }
-#endif
 
-#if HAVE_FUZZER
 int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr) {
-  return 0;
-}
-#else
-int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
 
@@ -436,20 +407,13 @@ int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr) {
 
   return 0;
 }
-#endif
 
-#if HAVE_FUZZER
 int floss_media_a2dp_set_audio_config(struct fl_media* fm,
                                       unsigned int rate,
                                       unsigned int bps,
                                       unsigned int channels) {
-  return 0;
-}
-#else
-int floss_media_a2dp_set_audio_config(struct fl_media* fm,
-                                      unsigned int rate,
-                                      unsigned int bps,
-                                      unsigned int channels) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
   dbus_uint32_t sample_rate = rate;
@@ -503,7 +467,6 @@ int floss_media_a2dp_set_audio_config(struct fl_media* fm,
 
   return 0;
 }
-#endif
 
 int floss_media_a2dp_start_audio_request(struct fl_media* fm,
                                          const char* addr) {
@@ -761,12 +724,9 @@ int floss_media_a2dp_get_presentation_position(
   return 0;
 }
 
-#if HAVE_FUZZER
 int floss_media_a2dp_set_volume(struct fl_media* fm, unsigned int volume) {
-  return 0;
-}
-#else
-int floss_media_a2dp_set_volume(struct fl_media* fm, unsigned int volume) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
   uint8_t absolute_volume = volume;
@@ -808,7 +768,6 @@ int floss_media_a2dp_set_volume(struct fl_media* fm, unsigned int volume) {
 
   return 0;
 }
-#endif
 
 static void floss_on_register_callback(DBusPendingCall* pending_call,
                                        void* data) {

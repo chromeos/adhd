@@ -9,6 +9,12 @@
 #include <dbus/dbus.h>
 #include <stdbool.h>
 
+#if HAVE_FUZZER
+#define RET_IF_HAVE_FUZZER(ret) return ret;
+#else
+#define RET_IF_HAVE_FUZZER(ret)
+#endif
+
 /* Appends a key-value pair to the dbus message.
  * Args:
  *    key - The key (a string).
