@@ -52,6 +52,7 @@ static void ResetStubData() {
   snd_use_case_get_id.clear();
   snd_use_case_get_value.clear();
   snd_use_case_geti_value.clear();
+  snd_use_case_get_value["_alibpref"] = "_ucmXXXX";
   fake_list.clear();
   fake_list_size.clear();
   fake_list["_verbs"] = avail_verbs;
@@ -61,6 +62,7 @@ static void ResetStubData() {
   snd_use_case_mgr_open_mgr_ptr = reinterpret_cast<snd_use_case_mgr_t*>(0x55);
   cras_ucm_mgr.use_case = CRAS_USE_CASE_HIFI;
   cras_ucm_mgr.hotword_modifier = NULL;
+  cras_ucm_mgr.private_prefix = NULL;
 }
 
 static void list_devices_callback(const char* section_name, void* arg) {
@@ -124,6 +126,7 @@ TEST(AlsaUcm, CreateSuccess) {
   EXPECT_NE(static_cast<snd_use_case_mgr_t*>(NULL), mgr->mgr);
   EXPECT_EQ(1, snd_use_case_mgr_open_called);
   EXPECT_EQ(1, snd_use_case_set_called);
+  EXPECT_EQ(1, snd_use_case_get_called);
   EXPECT_EQ(0, snd_use_case_mgr_close_called);
 
   ucm_destroy(mgr);
@@ -371,26 +374,43 @@ TEST(AlsaUcm, GetDevForMixer) {
 
 TEST(AlsaUcm, GetAlsaDeviceIndexForDevice) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  const char* devices[] = {"Dev1", "Comment for Dev1", "Dev2",
-                           "Comment for Dev2"};
+  const char* devices[] = {
+      "Dev1", "Comment for Dev1", "Dev2", "Comment for Dev2",
+      "Dev3", "Comment for Dev3", "Dev4", "Comment for Dev4"};
 
   ResetStubData();
 
+  int rc = snd_use_case_get(mgr->mgr, "_alibpref", &mgr->private_prefix);
+  ASSERT_FALSE(rc);
+
   fake_list["_devices/HiFi"] = devices;
-  fake_list_size["_devices/HiFi"] = 4;
+  fake_list_size["_devices/HiFi"] = 8;
   std::string id_1 = "=CapturePCM/Dev1/HiFi";
   std::string id_2 = "=PlaybackPCM/Dev2/HiFi";
+  std::string id_3 = "=CapturePCM/Dev3/HiFi";
+  std::string id_4 = "=PlaybackPCM/Dev4/HiFi";
   std::string value_1 = "PCMName,1";
   std::string value_2 = "PCMName,2";
+  std::string value_3 = "_ucmXXXX.PCMName,3";
+  std::string value_4 = "_ucmXXXX.PCMName";
 
   snd_use_case_get_value[id_1] = value_1;
   snd_use_case_get_value[id_2] = value_2;
+  snd_use_case_get_value[id_3] = value_3;
+  snd_use_case_get_value[id_4] = value_4;
   EXPECT_EQ(1, ucm_get_alsa_dev_idx_for_dev(mgr, "Dev1", CRAS_STREAM_INPUT));
   EXPECT_EQ(2, ucm_get_alsa_dev_idx_for_dev(mgr, "Dev2", CRAS_STREAM_OUTPUT));
+  EXPECT_EQ(3, ucm_get_alsa_dev_idx_for_dev(mgr, "Dev3", CRAS_STREAM_INPUT));
+  EXPECT_EQ(0, ucm_get_alsa_dev_idx_for_dev(mgr, "Dev4", CRAS_STREAM_OUTPUT));
 
-  ASSERT_EQ(2, snd_use_case_get_called);
-  EXPECT_EQ(snd_use_case_get_id[0], id_1);
-  EXPECT_EQ(snd_use_case_get_id[1], id_2);
+  ASSERT_EQ(5, snd_use_case_get_called);
+  EXPECT_EQ(snd_use_case_get_id[0], "_alibpref");
+  EXPECT_EQ(snd_use_case_get_id[1], id_1);
+  EXPECT_EQ(snd_use_case_get_id[2], id_2);
+  EXPECT_EQ(snd_use_case_get_id[3], id_3);
+  EXPECT_EQ(snd_use_case_get_id[4], id_4);
+
+  free((void*)mgr->private_prefix);
 }
 
 TEST(AlsaUcm, GetDeviceRateForDevice) {

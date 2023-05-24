@@ -17,6 +17,8 @@
 #include "third_party/utlist/utlist.h"
 
 #define INVALID_JACK_SWITCH -1
+// Length for ucm private prefix, len(_ucmXXXX.) == 9
+#define UCM_PREFIX_LENGTH 9
 
 static const char jack_control_var[] = "JackControl";
 static const char jack_dev_var[] = "JackDev";
@@ -102,6 +104,7 @@ struct section_name {
 struct cras_use_case_mgr {
   snd_use_case_mgr_t* mgr;
   char* name;
+  const char* private_prefix;
   cras_use_cases_t avail_use_cases;
   enum CRAS_USE_CASE use_case;
   char* hotword_modifier;
@@ -463,6 +466,13 @@ struct cras_use_case_mgr* ucm_create(const char* name) {
     goto cleanup_mgr;
   }
 
+  rc = snd_use_case_get(mgr->mgr, "_alibpref", &mgr->private_prefix);
+  if (rc) {
+    syslog(LOG_WARNING, "Error occured when fetch ucm private prefix, rc = %d",
+           rc);
+    mgr->private_prefix = NULL;
+  }
+
   return mgr;
 
 cleanup_mgr:
@@ -475,6 +485,7 @@ cleanup:
 
 void ucm_destroy(struct cras_use_case_mgr* mgr) {
   snd_use_case_mgr_close(mgr->mgr);
+  free((void*)mgr->private_prefix);
   free(mgr->hotword_modifier);
   free(mgr->name);
   free(mgr);
@@ -788,7 +799,8 @@ int ucm_get_preempt_hotword(struct cras_use_case_mgr* mgr, const char* dev) {
   return value;
 }
 
-static int get_device_index_from_target(const char* target_device_name);
+static int get_device_index_from_target(struct cras_use_case_mgr* mgr,
+                                        const char* target_device_name);
 
 int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr* mgr,
                                  const char* dev,
@@ -803,7 +815,7 @@ int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr* mgr,
   }
 
   if (pcm_name) {
-    dev_idx = get_device_index_from_target(pcm_name);
+    dev_idx = get_device_index_from_target(mgr, pcm_name);
     free((void*)pcm_name);
   }
   return dev_idx;
@@ -896,12 +908,30 @@ struct mixer_name* ucm_get_coupled_mixer_names(struct cras_use_case_mgr* mgr,
                              MIXER_NAME_VOLUME);
 }
 
-static int get_device_index_from_target(const char* target_device_name) {
-  // Expects a string in the form: hw:card-name,<num>
+// Check if target_device_name is a private ALSA device name in form
+// _ucmXXXX.hw:card-name[,<num>], with XXXX matching the prefix for the current
+// card.
+static bool is_private_device_name(struct cras_use_case_mgr* mgr,
+                                   const char* target_device_name) {
+  return mgr->private_prefix != NULL &&
+         !strncmp(target_device_name, mgr->private_prefix,
+                  strnlen(mgr->private_prefix, UCM_PREFIX_LENGTH));
+}
+
+// Expects a string in the form: hw:card-name,<num> or
+// _ucmXXXX.hw:card-name[,<num>]
+static int get_device_index_from_target(struct cras_use_case_mgr* mgr,
+                                        const char* target_device_name) {
   const char* pos = target_device_name;
   if (!pos) {
     return -EINVAL;
   }
+
+  bool is_private = is_private_device_name(mgr, pos);
+  if (is_private) {
+    pos += strnlen(mgr->private_prefix, UCM_PREFIX_LENGTH);
+  }
+
   while (*pos && *pos != ',') {
     ++pos;
   }
@@ -909,7 +939,7 @@ static int get_device_index_from_target(const char* target_device_name) {
     ++pos;
     return atoi(pos);
   }
-  return -EINVAL;
+  return (is_private ? 0 : -EINVAL);
 }
 
 static const char* ucm_get_dir_for_device(struct cras_use_case_mgr* mgr,
@@ -960,7 +990,7 @@ static int ucm_parse_device_section(struct cras_use_case_mgr* mgr,
   pcm_name = ucm_get_dir_for_device(mgr, dev_name, &dir);
 
   if (pcm_name) {
-    dev_idx = get_device_index_from_target(pcm_name);
+    dev_idx = get_device_index_from_target(mgr, pcm_name);
   }
 
   if (dir == CRAS_STREAM_UNDEFINED) {
@@ -974,7 +1004,7 @@ static int ucm_parse_device_section(struct cras_use_case_mgr* mgr,
 
   dependent_dev_name = ucm_get_dependent_device_name_for_dev(mgr, dev_name);
   if (dependent_dev_name) {
-    dependent_dev_idx = get_device_index_from_target(dependent_dev_name);
+    dependent_dev_idx = get_device_index_from_target(mgr, dependent_dev_name);
   }
 
   jack_dev = ucm_get_jack_dev_for_dev(mgr, dev_name);
