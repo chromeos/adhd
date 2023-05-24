@@ -7,31 +7,31 @@
 
 TEST(ScopedFeaturesOverrideTest, Override) {
   bool initially_enabled =
-      cras_feature_enabled(CrosLateBootAudioTestFeatureFlag);
+      cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag);
 
   {
-    ScopedFeaturesOverride override1({CrosLateBootAudioTestFeatureFlag});
-    EXPECT_TRUE(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag));
+    ScopedFeaturesOverride override1({CrOSLateBootAudioTestFeatureFlag});
+    EXPECT_TRUE(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag));
     {
-      ScopedFeaturesOverride override2({}, {CrosLateBootAudioTestFeatureFlag});
-      EXPECT_FALSE(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag));
+      ScopedFeaturesOverride override2({}, {CrOSLateBootAudioTestFeatureFlag});
+      EXPECT_FALSE(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag));
     }
-    EXPECT_TRUE(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag));
+    EXPECT_TRUE(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag));
   }
 
-  EXPECT_EQ(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag),
+  EXPECT_EQ(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag),
             initially_enabled);
 }
 
 class ScopedFeaturesOverrideInFixture : public ::testing::Test {
  public:
   ScopedFeaturesOverrideInFixture()
-      : feature_overrides_({CrosLateBootAudioTestFeatureFlag}) {}
+      : feature_overrides_({CrOSLateBootAudioTestFeatureFlag}) {}
 
  private:
   ScopedFeaturesOverride feature_overrides_;
 };
 
 TEST_F(ScopedFeaturesOverrideInFixture, Override) {
-  EXPECT_TRUE(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag));
+  EXPECT_TRUE(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag));
 }

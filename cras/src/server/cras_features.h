@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 enum cras_feature_id {
-  CrosLateBootAudioTestFeatureFlag,
+  CrOSLateBootAudioTestFeatureFlag,
   CrOSLateBootAudioHFPOffload,
   CrOSLateBootAudioHFPMicSR,
   CrOSLateBootAudioFlexibleLoopback,

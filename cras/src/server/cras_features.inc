@@ -4,7 +4,7 @@
 
 // Syntax:
 // DEFINE_FEATURE(name, default_enabled)
-DEFINE_FEATURE(CrosLateBootAudioTestFeatureFlag, false)
+DEFINE_FEATURE(CrOSLateBootAudioTestFeatureFlag, false)
 DEFINE_FEATURE(CrOSLateBootAudioHFPOffload, false)
 DEFINE_FEATURE(CrOSLateBootAudioHFPMicSR, false)
 DEFINE_FEATURE(CrOSLateBootAudioFlexibleLoopback, false)

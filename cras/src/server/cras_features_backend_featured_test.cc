@@ -28,7 +28,7 @@ int clock_gettime(clockid_t clockid, struct timespec* tp) {
 TEST(FeaturesBackendFeatured, Caching) {
   clock_gettime_result = {0, 0};
   CFeatureLibraryIsEnabledBlockingWithTimeout_result = true;
-  EXPECT_EQ(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag), true);
+  EXPECT_EQ(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag), true);
 
   // Library result changed to false.
   CFeatureLibraryIsEnabledBlockingWithTimeout_result = false;
@@ -36,12 +36,12 @@ TEST(FeaturesBackendFeatured, Caching) {
   for (int i = 0; i < 5; i++) {
     clock_gettime_result = {i, 0};
     // cras_feature_enabled should continue to return true, due to caching
-    EXPECT_EQ(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag), true);
+    EXPECT_EQ(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag), true);
   }
 
   // Cache expired after 5 seconds, should return false
   clock_gettime_result = {5, 0};
-  EXPECT_EQ(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag), false);
+  EXPECT_EQ(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag), false);
   clock_gettime_result = {6, 0};
-  EXPECT_EQ(cras_feature_enabled(CrosLateBootAudioTestFeatureFlag), false);
+  EXPECT_EQ(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag), false);
 }
