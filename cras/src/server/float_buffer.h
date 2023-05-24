@@ -35,7 +35,7 @@ static inline struct float_buffer* float_buffer_create(
   b->num_channels = num_channels;
   b->fp = (float**)malloc(num_channels * sizeof(float*));
   b->buf = (struct byte_buffer*)calloc(
-      1, sizeof(struct byte_buffer) + sizeof(float) * max_size * num_channels);
+      1, sizeof(*(b->buf)) + sizeof(float) * max_size * num_channels);
   b->buf->max_size = max_size;
   b->buf->used_size = max_size;
   return b;

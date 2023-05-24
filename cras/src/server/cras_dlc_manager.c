@@ -125,8 +125,7 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
 
 void cras_dlc_manager_init() {
   if (!dlc_manager) {
-    struct dlc_manager* dm =
-        (struct dlc_manager*)calloc(1, sizeof(struct dlc_manager));
+    struct dlc_manager* dm = (struct dlc_manager*)calloc(1, sizeof(*dm));
     if (!dm) {
       dlc_manager = NULL;
       return;

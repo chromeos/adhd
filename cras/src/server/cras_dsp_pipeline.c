@@ -427,7 +427,7 @@ struct pipeline* cras_dsp_pipeline_create(struct ini* ini,
     return NULL;
   }
 
-  pipeline = calloc(1, sizeof(struct pipeline));
+  pipeline = calloc(1, sizeof(*pipeline));
   if (!pipeline) {
     syslog(LOG_ERR, "no memory for pipeline");
     return NULL;

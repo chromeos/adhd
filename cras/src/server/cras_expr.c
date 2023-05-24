@@ -330,7 +330,7 @@ void cras_expr_env_dump(struct dumper* d, const struct cras_expr_env* env) {
 
 static struct cras_expr_expression* new_boolean_literal(char boolean) {
   struct cras_expr_expression* expr;
-  expr = calloc(1, sizeof(struct cras_expr_expression));
+  expr = calloc(1, sizeof(*expr));
   expr->type = EXPR_TYPE_LITERAL;
   value_set_boolean(&expr->u.literal, boolean);
   return expr;
@@ -338,7 +338,7 @@ static struct cras_expr_expression* new_boolean_literal(char boolean) {
 
 static struct cras_expr_expression* new_integer_literal(int integer) {
   struct cras_expr_expression* expr;
-  expr = calloc(1, sizeof(struct cras_expr_expression));
+  expr = calloc(1, sizeof(*expr));
   expr->type = EXPR_TYPE_LITERAL;
   value_set_integer(&expr->u.literal, integer);
   return expr;
@@ -347,7 +347,7 @@ static struct cras_expr_expression* new_integer_literal(int integer) {
 static struct cras_expr_expression* new_string_literal(const char* begin,
                                                        const char* end) {
   struct cras_expr_expression* expr;
-  expr = calloc(1, sizeof(struct cras_expr_expression));
+  expr = calloc(1, sizeof(*expr));
   expr->type = EXPR_TYPE_LITERAL;
   value_set_string2(&expr->u.literal, begin, end);
   return expr;
@@ -356,7 +356,7 @@ static struct cras_expr_expression* new_string_literal(const char* begin,
 static struct cras_expr_expression* new_variable(const char* begin,
                                                  const char* end) {
   struct cras_expr_expression* expr;
-  expr = calloc(1, sizeof(struct cras_expr_expression));
+  expr = calloc(1, sizeof(*expr));
   expr->type = EXPR_TYPE_VARIABLE;
   expr->u.variable = copy_str(begin, end);
   return expr;
@@ -364,7 +364,7 @@ static struct cras_expr_expression* new_variable(const char* begin,
 
 static struct cras_expr_expression* new_compound_expression() {
   struct cras_expr_expression* expr;
-  expr = calloc(1, sizeof(struct cras_expr_expression));
+  expr = calloc(1, sizeof(*expr));
   expr->type = EXPR_TYPE_COMPOUND;
   return expr;
 }

@@ -45,7 +45,7 @@ struct ucm_section* ucm_section_create(const char* name,
     return NULL;
   }
 
-  section = (struct ucm_section*)calloc(1, sizeof(struct ucm_section));
+  section = (struct ucm_section*)calloc(1, sizeof(*section));
   if (!section) {
     return NULL;
   }

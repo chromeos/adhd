@@ -144,8 +144,7 @@ struct cras_audio_codec* cras_msbc_codec_create() {
     return NULL;
   }
 
-  codec->priv_data =
-      (struct cras_sbc_data*)calloc(1, sizeof(struct cras_sbc_data));
+  codec->priv_data = (struct cras_sbc_data*)calloc(1, sizeof(*data));
   if (!codec->priv_data) {
     free(codec);
     return NULL;
@@ -175,8 +174,7 @@ struct cras_audio_codec* cras_sbc_codec_create(uint8_t freq,
     return NULL;
   }
 
-  codec->priv_data =
-      (struct cras_sbc_data*)calloc(1, sizeof(struct cras_sbc_data));
+  codec->priv_data = (struct cras_sbc_data*)calloc(1, sizeof(*data));
   if (!codec->priv_data) {
     goto create_error;
   }

@@ -149,7 +149,7 @@ static inline void cras_fill_connect_message(
   m->buffer_offsets[0] = 0;
   m->buffer_offsets[1] = 0;
   m->header.id = CRAS_SERVER_CONNECT_STREAM;
-  m->header.length = sizeof(struct cras_connect_message);
+  m->header.length = sizeof(*m);
 }
 
 // Sent by a client to remove a stream from the server.
@@ -162,7 +162,7 @@ static inline void cras_fill_disconnect_stream_message(
     cras_stream_id_t stream_id) {
   m->stream_id = stream_id;
   m->header.id = CRAS_SERVER_DISCONNECT_STREAM;
-  m->header.length = sizeof(struct cras_disconnect_stream_message);
+  m->header.length = sizeof(*m);
 }
 
 struct __attribute__((__packed__)) cras_set_aec_ref_message {
@@ -528,7 +528,7 @@ static inline void cras_fill_client_connected(struct cras_client_connected* m,
                                               size_t client_id) {
   m->client_id = client_id;
   m->header.id = CRAS_CLIENT_CONNECTED;
-  m->header.length = sizeof(struct cras_client_connected);
+  m->header.length = sizeof(*m);
 }
 
 /*
@@ -563,7 +563,7 @@ static inline void cras_fill_client_stream_connected(
   m->samples_shm_size = samples_shm_size;
   m->effects = effects;
   m->header.id = CRAS_CLIENT_STREAM_CONNECTED;
-  m->header.length = sizeof(struct cras_client_stream_connected);
+  m->header.length = sizeof(*m);
 }
 
 // Sent from server to client when audio debug information is requested.

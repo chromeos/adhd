@@ -410,7 +410,7 @@ static int ccr_handle_message_from_client(struct cras_rclient* client,
 
       state = cras_system_state_get_no_lock();
       memcpy(&state->main_thread_debug_info.main_log, main_log,
-             sizeof(struct main_thread_event_log));
+             sizeof(state->main_thread_debug_info.main_log));
 
       cras_fill_client_audio_debug_info_ready(&msg);
       client->ops->send_message_to_client(client, &msg.header, NULL, 0);
@@ -423,14 +423,14 @@ static int ccr_handle_message_from_client(struct cras_rclient* client,
       state = cras_system_state_get_no_lock();
 #if CRAS_DBUS
       memcpy(&state->bt_debug_info.bt_log, btlog,
-             sizeof(struct cras_bt_event_log));
+             sizeof(state->bt_debug_info.bt_log));
       memcpy(&state->bt_debug_info.wbs_logger, cras_hfp_ag_get_wbs_logger(),
-             sizeof(struct packet_status_logger));
+             sizeof(state->bt_debug_info.wbs_logger));
 #else
       memset(&state->bt_debug_info.bt_log, 0,
-             sizeof(struct cras_bt_debug_info));
+             sizeof(state->bt_debug_info.bt_log));
       memset(&state->bt_debug_info.wbs_logger, 0,
-             sizeof(struct packet_status_logger));
+             sizeof(state->bt_debug_info.wbs_logger));
 #endif
       state->bt_debug_info.floss_enabled = cras_floss_get_enabled();
 

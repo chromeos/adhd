@@ -391,7 +391,7 @@ struct ini* create_mock_ini(const char* purpose, unsigned int num_channels) {
     return NULL;
   }
 
-  ini = calloc(1, sizeof(struct ini));
+  ini = calloc(1, sizeof(*ini));
   if (!ini) {
     syslog(LOG_ERR, "no memory for ini struct");
     return NULL;
@@ -434,7 +434,7 @@ struct ini* cras_dsp_ini_create(const char* ini_filename) {
   struct plugin* plugin;
   int rc;
 
-  ini = calloc(1, sizeof(struct ini));
+  ini = calloc(1, sizeof(*ini));
   if (!ini) {
     syslog(LOG_ERR, "no memory for ini struct");
     return NULL;

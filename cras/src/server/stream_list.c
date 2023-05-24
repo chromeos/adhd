@@ -62,7 +62,7 @@ struct stream_list* stream_list_create(stream_callback* add_cb,
                                        stream_destroy_func* destroy_cb,
                                        stream_callback* list_changed_cb,
                                        struct cras_tm* timer_manager) {
-  struct stream_list* list = calloc(1, sizeof(struct stream_list));
+  struct stream_list* list = calloc(1, sizeof(*list));
 
   list->stream_added_cb = add_cb;
   list->stream_removed_cb = rm_cb;

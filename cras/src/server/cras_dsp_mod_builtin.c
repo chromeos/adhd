@@ -88,7 +88,7 @@ static int quad_rotation_instantiate(struct dsp_module* module,
   const char* channel_str[] = {"FL", "RL", "RR", "FR"};
 
   // four port for input, four for output, and 1 parameters
-  module->data = calloc(1, sizeof(struct quad_rotation));
+  module->data = calloc(1, sizeof(*data));
   if (!module->data) {
     syslog(LOG_ERR, "quad_rotation calloc failed");
     rc = -ENOMEM;
@@ -833,7 +833,7 @@ struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
     return NULL;
   }
 
-  module = calloc(1, sizeof(struct dsp_module));
+  module = calloc(1, sizeof(*module));
 
   if (strcmp(plugin->label, "mix_stereo") == 0) {
     mix_stereo_init_module(module);

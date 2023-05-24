@@ -152,7 +152,7 @@ struct dsp_module* cras_dsp_module_load_ladspa(struct plugin* plugin) {
   char path[PLUGIN_PATH_MAX];
   int index;
   LADSPA_Descriptor_Function desc_func;
-  struct ladspa_data* data = calloc(1, sizeof(struct ladspa_data));
+  struct ladspa_data* data = calloc(1, sizeof(*data));
   struct dsp_module* module;
 
   snprintf(path, sizeof(path), "%s/%s", PLUGIN_PATH_PREFIX, plugin->library);
@@ -188,7 +188,7 @@ struct dsp_module* cras_dsp_module_load_ladspa(struct plugin* plugin) {
     }
   }
 
-  module = calloc(1, sizeof(struct dsp_module));
+  module = calloc(1, sizeof(*module));
   module->data = data;
   module->instantiate = &instantiate;
   module->connect_port = &connect_port;

@@ -83,7 +83,7 @@ void cras_rtc_add_stream(struct cras_rstream* stream,
     return;
   }
 
-  data = (struct rtc_data*)calloc(1, sizeof(struct rtc_data));
+  data = (struct rtc_data*)calloc(1, sizeof(*data));
   if (!data) {
     syslog(LOG_ERR, "Failed to calloc: %s", cras_strerror(errno));
     return;

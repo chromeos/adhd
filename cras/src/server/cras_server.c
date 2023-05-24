@@ -220,7 +220,7 @@ static void handle_new_connection(struct server_socket* server_socket) {
   struct attached_client* poll_client;
   socklen_t address_length;
 
-  poll_client = malloc(sizeof(struct attached_client));
+  poll_client = malloc(sizeof(*poll_client));
   if (poll_client == NULL) {
     syslog(LOG_ERR, "Allocating poll_client");
     return;
@@ -465,7 +465,7 @@ static int create_and_listen_server_socket(
     goto error;
   }
 
-  rc = bind(socket_fd, (struct sockaddr*)addr, sizeof(struct sockaddr_un));
+  rc = bind(socket_fd, (struct sockaddr*)addr, sizeof(*addr));
   if (rc < 0) {
     syslog(LOG_ERR, "Bind to server socket failed.");
     rc = -errno;

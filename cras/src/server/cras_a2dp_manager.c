@@ -107,7 +107,7 @@ struct cras_fl_a2dp_codec_config* cras_floss_a2dp_codec_create(int bps,
 }
 
 void fill_floss_a2dp_skt_addr(struct sockaddr_un* addr) {
-  memset(addr, 0, sizeof(struct sockaddr_un));
+  memset(addr, 0, sizeof(*addr));
   addr->sun_family = AF_UNIX;
   snprintf(addr->sun_path, CRAS_MAX_SOCKET_PATH_SIZE, FLOSS_A2DP_DATA_PATH);
 }

@@ -368,14 +368,13 @@ struct libcras_stream_cb_data* libcras_stream_cb_data_create(
     struct timespec underrun_duration,
     struct timespec sample_ts,
     void* user_arg) {
-  struct libcras_stream_cb_data* data = (struct libcras_stream_cb_data*)calloc(
-      1, sizeof(struct libcras_stream_cb_data));
+  struct libcras_stream_cb_data* data =
+      (struct libcras_stream_cb_data*)calloc(1, sizeof(*data));
   if (!data) {
     syslog(LOG_ERR, "cras_client: calloc: %s", cras_strerror(errno));
     return NULL;
   }
-  data->data_ = (struct cras_stream_cb_data*)calloc(
-      1, sizeof(struct cras_stream_cb_data));
+  data->data_ = (struct cras_stream_cb_data*)calloc(1, sizeof(*(data->data_)));
   if (!data->data_) {
     syslog(LOG_ERR, "cras_client: calloc: %s", cras_strerror(errno));
     free(data);
@@ -632,11 +631,10 @@ static int wait_for_writable_next_action(struct cras_client* client,
    * don't block indefinitely. */
   cras_make_fd_nonblocking(client->server_fd);
 
-  memset(&address, 0, sizeof(struct sockaddr_un));
+  memset(&address, 0, sizeof(address));
   address.sun_family = AF_UNIX;
   strlcpy(address.sun_path, client->sock_file, sizeof(address.sun_path));
-  rc = connect(client->server_fd, (struct sockaddr*)&address,
-               sizeof(struct sockaddr_un));
+  rc = connect(client->server_fd, (struct sockaddr*)&address, sizeof(address));
   if (rc != 0) {
     rc = -errno;
     /* For -EINPROGRESS, we wait for POLLOUT on the server_fd.
@@ -3512,16 +3510,13 @@ int cras_client_read_atlog(struct cras_client* client,
   // Copies the continuous part of log.
   if ((sync_write_pos - 1) % log.len < *read_idx % log.len) {
     len = log.len - *read_idx % log.len;
-    memcpy(buf->log, &log.log[*read_idx % log.len],
-           sizeof(struct audio_thread_event) * len);
+    memcpy(buf->log, &log.log[*read_idx % log.len], sizeof(log.log[0]) * len);
     memcpy(&buf->log[len], log.log,
-           sizeof(struct audio_thread_event) *
-               ((sync_write_pos - 1) % log.len + 1));
+           sizeof(log.log[0]) * ((sync_write_pos - 1) % log.len + 1));
     len = sync_write_pos - *read_idx;
   } else {
     len = sync_write_pos - *read_idx;
-    memcpy(buf->log, &log.log[*read_idx % log.len],
-           sizeof(struct audio_thread_event) * len);
+    memcpy(buf->log, &log.log[*read_idx % log.len], sizeof(log.log[0]) * len);
   }
 
   *read_idx = sync_write_pos;
@@ -4197,8 +4192,7 @@ int get_nodes(struct cras_client* client,
     return rc;
   }
 
-  *nodes = (struct libcras_node_info**)calloc(
-      num_nodes, sizeof(struct libcras_node_info*));
+  *nodes = (struct libcras_node_info**)calloc(num_nodes, sizeof(*nodes));
 
   for (i = 0; i < (int)num_devs; i++) {
     for (j = 0; j < (int)num_nodes; j++) {
@@ -4379,7 +4373,7 @@ int32_t cras_client_get_floop_dev_idx_by_client_types(
 
 struct libcras_client* libcras_client_create() {
   struct libcras_client* client =
-      (struct libcras_client*)calloc(1, sizeof(struct libcras_client));
+      (struct libcras_client*)calloc(1, sizeof(*client));
   if (!client) {
     syslog(LOG_WARNING, "cras_client: calloc failed");
     return NULL;
@@ -4458,14 +4452,14 @@ int stream_params_set_channel_layout(struct cras_stream_params* params,
 }
 
 struct libcras_stream_params* libcras_stream_params_create() {
-  struct libcras_stream_params* params = (struct libcras_stream_params*)calloc(
-      1, sizeof(struct libcras_stream_params));
+  struct libcras_stream_params* params =
+      (struct libcras_stream_params*)calloc(1, sizeof(*params));
   if (!params) {
     syslog(LOG_WARNING, "cras_client: calloc failed");
     return NULL;
   }
   params->params_ =
-      (struct cras_stream_params*)calloc(1, sizeof(struct cras_stream_params));
+      (struct cras_stream_params*)calloc(1, sizeof(*(params->params_)));
   if (params->params_ == NULL) {
     syslog(LOG_WARNING, "cras_client: calloc failed");
     free(params);
@@ -4555,13 +4549,12 @@ struct libcras_node_info* libcras_node_info_create(
     struct cras_iodev_info* iodev,
     struct cras_ionode_info* ionode) {
   struct libcras_node_info* node =
-      (struct libcras_node_info*)calloc(1, sizeof(struct libcras_node_info));
+      (struct libcras_node_info*)calloc(1, sizeof(*node));
   if (!node) {
     syslog(LOG_WARNING, "cras_client: calloc failed");
     return NULL;
   }
-  node->node_ =
-      (struct cras_node_info*)calloc(1, sizeof(struct cras_node_info));
+  node->node_ = (struct cras_node_info*)calloc(1, sizeof(*(node->node_)));
   if (node->node_ == NULL) {
     syslog(LOG_WARNING, "cras_client: calloc failed");
     free(node);

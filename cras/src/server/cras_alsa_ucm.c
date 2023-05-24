@@ -274,7 +274,7 @@ static struct section_name* ucm_get_sections_for_var(
     }
 
     if (!strcmp(value, this_value)) {
-      s_name = (struct section_name*)malloc(sizeof(struct section_name));
+      s_name = (struct section_name*)malloc(sizeof(*s_name));
 
       if (!s_name) {
         syslog(LOG_ERR, "Failed to allocate memory");

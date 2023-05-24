@@ -53,7 +53,7 @@ static inline struct am_context* am_new_failed(struct am_context* am_context) {
 
 struct am_context* am_new(const char* model_path) {
   struct am_context* am_context =
-      static_cast<struct am_context*>(calloc(1, sizeof(struct am_context)));
+      static_cast<struct am_context*>(calloc(1, sizeof(*am_context)));
   if (!am_context) {
     syslog(LOG_ERR, "calloc am_context got NULL.");
     return NULL;

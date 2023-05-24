@@ -23,8 +23,7 @@ extern struct main_thread_event_log* main_log;
 
 static inline struct main_thread_event_log* main_thread_event_log_init() {
   struct main_thread_event_log* log;
-  log = (struct main_thread_event_log*)calloc(
-      1, sizeof(struct main_thread_event_log));
+  log = (struct main_thread_event_log*)calloc(1, sizeof(*log));
   if (!log) {
     return NULL;
   }

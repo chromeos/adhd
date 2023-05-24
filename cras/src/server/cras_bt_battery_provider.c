@@ -73,7 +73,7 @@ static struct cras_bt_battery* battery_new(const char* address,
                                            uint32_t level) {
   struct cras_bt_battery* battery;
 
-  battery = calloc(1, sizeof(struct cras_bt_battery));
+  battery = calloc(1, sizeof(*battery));
   if (!battery) {
     return NULL;
   }

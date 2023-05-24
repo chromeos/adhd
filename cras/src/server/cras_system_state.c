@@ -228,8 +228,7 @@ void cras_system_state_init(const char* device_config_dir,
   state.device_blocklist = cras_device_blocklist_create(CRAS_CONFIG_FILE_DIR);
 
   // Initialize snapshot buffer memory
-  memset(&state.snapshot_buffer, 0,
-         sizeof(struct cras_audio_thread_snapshot_buffer));
+  memset(&state.snapshot_buffer, 0, sizeof(state.snapshot_buffer));
 
   // Save thread id of the main thread.
   state.main_thread_tid = pthread_self();
@@ -834,7 +833,7 @@ struct cras_tm* cras_system_state_get_tm() {
 
 void cras_system_state_dump_snapshots() {
   memcpy(&state.exp_state->snapshot_buffer, &state.snapshot_buffer,
-         sizeof(struct cras_audio_thread_snapshot_buffer));
+         sizeof(state.exp_state->snapshot_buffer));
 }
 
 void cras_system_state_add_snapshot(

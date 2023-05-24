@@ -43,8 +43,7 @@ static inline struct audio_thread_event_log* audio_thread_event_log_init(
    */
   if (log == NULL) {
     syslog(LOG_WARNING, "Failed to create atlog by cras_shm_setup");
-    log = (struct audio_thread_event_log*)calloc(
-        1, sizeof(struct audio_thread_event_log));
+    log = (struct audio_thread_event_log*)calloc(1, sizeof(*log));
   }
   log->len = AUDIO_THREAD_EVENT_LOG_SIZE;
 

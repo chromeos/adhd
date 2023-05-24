@@ -205,7 +205,7 @@ static int cras_bt_player_init() {
           CRAS_PLAYER_IDENTITY_SIZE_MAX);
   player.position = 0;
 
-  player.metadata = calloc(1, sizeof(struct cras_bt_player_metadata));
+  player.metadata = calloc(1, sizeof(*(player.metadata)));
   if (!player.metadata) {
     goto nomem;
   }

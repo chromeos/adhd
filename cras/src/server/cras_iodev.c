@@ -480,7 +480,7 @@ int cras_iodev_set_format(struct cras_iodev* iodev,
   /* If this device isn't already using a format, try to match the one
    * requested in "fmt". */
   if (iodev->format == NULL) {
-    iodev->format = malloc(sizeof(struct cras_audio_format));
+    iodev->format = malloc(sizeof(*(iodev->format)));
     if (!iodev->format) {
       return -ENOMEM;
     }

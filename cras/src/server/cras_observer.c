@@ -408,8 +408,7 @@ int cras_observer_server_init() {
   int rc;
 
   memset(&g_empty_ops, 0, sizeof(g_empty_ops));
-  g_observer = (struct cras_observer_server*)calloc(
-      1, sizeof(struct cras_observer_server));
+  g_observer = (struct cras_observer_server*)calloc(1, sizeof(*g_observer));
   if (!g_observer) {
     return -ENOMEM;
   }

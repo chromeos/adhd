@@ -50,8 +50,8 @@ again:
 }
 
 struct dumper* syslog_dumper_create(int priority) {
-  struct dumper* dumper = calloc(1, sizeof(struct dumper));
-  struct syslog_data* data = calloc(1, sizeof(struct syslog_data));
+  struct dumper* dumper = calloc(1, sizeof(*dumper));
+  struct syslog_data* data = calloc(1, sizeof(*data));
   data->priority = priority;
   data->mem_dumper = mem_dumper_create();
   dumper->data = data;
@@ -100,8 +100,8 @@ static void mem_vprintf(struct dumper* dumper, const char* format, va_list ap) {
 }
 
 struct dumper* mem_dumper_create() {
-  struct dumper* dumper = calloc(1, sizeof(struct dumper));
-  struct mem_data* data = calloc(1, sizeof(struct mem_data));
+  struct dumper* dumper = calloc(1, sizeof(*dumper));
+  struct mem_data* data = calloc(1, sizeof(*data));
   if (!dumper || !data) {
     goto error;
   }

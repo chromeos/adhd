@@ -23,7 +23,7 @@ extern struct cras_bt_event_log* btlog;
 
 static inline struct cras_bt_event_log* cras_bt_event_log_init() {
   struct cras_bt_event_log* log;
-  log = (struct cras_bt_event_log*)calloc(1, sizeof(struct cras_bt_event_log));
+  log = (struct cras_bt_event_log*)calloc(1, sizeof(*log));
   log->len = CRAS_BT_EVENT_LOG_SIZE;
 
   return log;

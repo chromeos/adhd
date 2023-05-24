@@ -286,7 +286,7 @@ struct cras_rclient* rclient_generic_create(int fd,
   struct cras_client_connected msg;
   int state_fd;
 
-  client = (struct cras_rclient*)calloc(1, sizeof(struct cras_rclient));
+  client = (struct cras_rclient*)calloc(1, sizeof(*client));
   if (!client) {
     return NULL;
   }

@@ -67,7 +67,7 @@ struct cras_sr* cras_sr_create(const struct cras_sr_model_spec spec,
          "input buffer size must be multiple of sizeof(int16_t).");
   struct cras_sr* sr = NULL;
 
-  sr = calloc(1, sizeof(struct cras_sr));
+  sr = calloc(1, sizeof(*sr));
   if (!sr) {
     goto sr_create_fail;
   }

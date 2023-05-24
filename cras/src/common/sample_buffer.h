@@ -64,7 +64,7 @@ static inline int sample_buffer_init(const size_t num_samples,
 
   struct sample_buffer temp_buf = {.sample_size = sample_size,
                                    .buf = internal_buf};
-  memcpy(buf, &temp_buf, sizeof(struct sample_buffer));
+  memcpy(buf, &temp_buf, sizeof(*buf));
 
   return 0;
 }

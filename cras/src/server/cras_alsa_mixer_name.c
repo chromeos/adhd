@@ -42,7 +42,7 @@ struct mixer_name* mixer_name_add(struct mixer_name* names,
     return names;
   }
 
-  m_name = (struct mixer_name*)calloc(1, sizeof(struct mixer_name));
+  m_name = (struct mixer_name*)calloc(1, sizeof(*m_name));
   if (!m_name) {
     return names;
   }

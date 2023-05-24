@@ -326,7 +326,7 @@ static int configure_dev(struct cras_iodev* iodev) {
       return count;
     }
 
-    ufds = (struct pollfd*)malloc(sizeof(struct pollfd) * count);
+    ufds = (struct pollfd*)malloc(sizeof(*ufds) * count);
     if (ufds == NULL) {
       return -ENOMEM;
     }
