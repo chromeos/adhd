@@ -198,6 +198,7 @@ cc_library(
     srcs = [
         "cras_features_impl.c",
         "cras_features_impl.h",
+        "cras_features.inc",
         "cras_features_override.h",
     ] + select({
         "//:featured_build": ["cras_features_backend_featured.c"],

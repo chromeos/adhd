@@ -21,6 +21,18 @@ static struct cached_feature {
   time_t expires_sec;
 } cached_features[NUM_FEATURES];
 
+// c_feature_library expects the same `struct VariationsFeature` instance
+// (same memory address) to be used to query a given feature.
+// So we statically initialize them here instead of constructing dynamically
+// inside cras_features_backend_get_enabled().
+#define DEFINE_FEATURE(name, default_enabled)                   \
+  [name] = {#name, default_enabled ? FEATURE_ENABLED_BY_DEFAULT \
+                                   : FEATURE_DISABLED_BY_DEFAULT},
+static const struct VariationsFeature variations_features[NUM_FEATURES] = {
+#include "cras/src/server/cras_features.inc"
+};
+#undef DEFINE_FEATURE
+
 bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
   const enum cras_feature_id id = cras_feature_get_id(feature);
 
@@ -34,14 +46,9 @@ bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
   }
 
   // Query the feature status.
-  const struct VariationsFeature featured_feature = {
-      .name = feature->name,
-      .default_state = feature->default_enabled ? FEATURE_ENABLED_BY_DEFAULT
-                                                : FEATURE_DISABLED_BY_DEFAULT,
-  };
   CFeatureLibrary lib = CFeatureLibraryNew();
   int enabled = CFeatureLibraryIsEnabledBlockingWithTimeout(
-      lib, &featured_feature, FEATURE_LIBRARY_TIMEOUT_MS);
+      lib, &variations_features[id], FEATURE_LIBRARY_TIMEOUT_MS);
   CFeatureLibraryDelete(lib);
 
   // Set the cache value.

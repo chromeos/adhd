@@ -11,36 +11,11 @@
 #include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_features_override.h"
 
+#define DEFINE_FEATURE(name, default_enabled) [name] = {#name, default_enabled},
 struct cras_feature features[NUM_FEATURES] = {
-    [CrosLateBootAudioTestFeatureFlag] =
-        {
-            .name = "CrosLateBootAudioTestFeatureFlag",
-            .default_enabled = false,
-        },
-    [CrOSLateBootAudioHFPOffload] =
-        {
-            .name = "CrOSLateBootAudioHFPOffload",
-            .default_enabled = false,
-        },
-    [CrOSLateBootAudioHFPMicSR] =
-        {
-            .name = "CrOSLateBootAudioHFPMicSR",
-            .default_enabled = false,
-        },
-    [CrOSLateBootAudioFlexibleLoopback] =
-        {
-            .name = "CrOSLateBootAudioFlexibleLoopback",
-            .default_enabled = false,
-        },
-    [CrOSLateBootAudioAPNoiseCancellation] =
-        {
-            .name = "CrOSLateBootAudioAPNoiseCancellation",
-            .default_enabled = false,
-        },
-    [CrOSLateBootCrasSplitAlsaUSBInternal] = {
-        .name = "CrOSLateBootCrasSplitAlsaUSBInternal",
-        .default_enabled = true,
-    }};
+#include "cras/src/server/cras_features.inc"
+};
+#undef DEFINE_FEATURE
 
 bool cras_feature_enabled(enum cras_feature_id id) {
   if (id >= NUM_FEATURES || id < 0) {
