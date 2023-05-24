@@ -99,6 +99,7 @@ static size_t iniparser_freedict_called;
 static size_t iniparser_load_called;
 static struct cras_device_blocklist* fake_blocklist;
 static int cras_device_blocklist_check_retval;
+static int ucm_conf_exists_retval;
 static unsigned ucm_create_called;
 static char ucm_create_name[100];
 static unsigned ucm_destroy_called;
@@ -185,6 +186,7 @@ static void ResetStubData() {
   iniparser_load_called = 0;
   fake_blocklist = reinterpret_cast<struct cras_device_blocklist*>(3);
   cras_device_blocklist_check_retval = 0;
+  ucm_conf_exists_retval = 1;
   ucm_create_called = 0;
   memset(ucm_create_name, 0, sizeof(ucm_get_flag_name));
   ucm_destroy_called = 0;
@@ -1124,6 +1126,52 @@ TEST(AlsaCard, UCMIgnoreSuffix) {
   cras_alsa_card_destroy(c);
 }
 
+struct SkipUsbUcmCreateIfNoConfTestsParam {
+  enum CRAS_ALSA_CARD_TYPE alsa_card_type;
+  int ucm_conf_exists_retval;
+  int expected_ucm_create_called;
+};
+
+class SkipUsbUcmCreateIfNoConfTests
+    : public testing::TestWithParam<SkipUsbUcmCreateIfNoConfTestsParam> {
+ protected:
+  virtual void SetUp() { ResetStubData(); }
+};
+
+TEST_P(SkipUsbUcmCreateIfNoConfTests, TestAlsaCardCreate) {
+  ResetStubData();
+
+  cras_alsa_card_info card_info;
+  card_info.card_type = GetParam().alsa_card_type;
+  card_info.card_index = 0;
+
+  ucm_conf_exists_retval = GetParam().ucm_conf_exists_retval;
+  struct cras_alsa_card* c = cras_alsa_card_create(
+      &card_info, device_config_dir, fake_blocklist, NULL);
+  EXPECT_EQ(ucm_create_called, GetParam().expected_ucm_create_called);
+  cras_alsa_card_destroy(c);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    SkipUsbUcmCreateIfNoConfTests,
+    testing::Values(SkipUsbUcmCreateIfNoConfTestsParam(
+                        {.alsa_card_type = ALSA_CARD_TYPE_INTERNAL,
+                         .ucm_conf_exists_retval = 1,
+                         .expected_ucm_create_called = 1}),
+                    SkipUsbUcmCreateIfNoConfTestsParam(
+                        {.alsa_card_type = ALSA_CARD_TYPE_INTERNAL,
+                         .ucm_conf_exists_retval = 0,
+                         .expected_ucm_create_called = 1}),
+                    SkipUsbUcmCreateIfNoConfTestsParam(
+                        {.alsa_card_type = ALSA_CARD_TYPE_USB,
+                         .ucm_conf_exists_retval = 1,
+                         .expected_ucm_create_called = 1}),
+                    SkipUsbUcmCreateIfNoConfTestsParam(
+                        {.alsa_card_type = ALSA_CARD_TYPE_USB,
+                         .ucm_conf_exists_retval = 0,
+                         .expected_ucm_create_called = 0})));
+
 // Stubs
 
 extern "C" {
@@ -1401,6 +1449,10 @@ int cras_device_blocklist_check(struct cras_device_blocklist* blocklist,
   EXPECT_EQ(fake_blocklist, blocklist);
 
   return cras_device_blocklist_check_retval;
+}
+
+int ucm_conf_exists(const char* name) {
+  return ucm_conf_exists_retval;
 }
 
 struct cras_use_case_mgr* ucm_create(const char* name) {

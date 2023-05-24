@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras_util.h"
 #include "third_party/strlcpy/strlcpy.h"
@@ -80,6 +81,8 @@ static const char enabled_modifiers_list[] = "_modstatus";
 static const char* use_case_verbs[] = {
     "HiFi", "Multimedia", "Voice Call", "Speech", "Pro Audio", "Accessibility",
 };
+
+static const char ucm_path_prefix[] = "/usr/share/alsa/ucm";
 
 static const size_t max_section_name_len = 100;
 
@@ -385,6 +388,23 @@ static void ucm_get_node_noise_cancellation_name(const char* node_name,
 }
 
 // Exported Interface
+
+int ucm_conf_exists(const char* name) {
+  const size_t buf_size = 256;
+  char file_path[buf_size];
+
+  snprintf(file_path, buf_size, "%s/%s/%s.conf", ucm_path_prefix, name, name);
+  if (access(file_path, F_OK) == 0) {
+    return 1;
+  }
+
+  snprintf(file_path, buf_size, "%s2/%s/%s.conf", ucm_path_prefix, name, name);
+  if (access(file_path, F_OK) == 0) {
+    return 1;
+  }
+
+  return 0;
+}
 
 struct cras_use_case_mgr* ucm_create(const char* name) {
   struct cras_use_case_mgr* mgr;

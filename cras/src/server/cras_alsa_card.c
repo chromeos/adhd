@@ -545,8 +545,17 @@ struct cras_alsa_card* cras_alsa_card_create(
            alsa_card->ucm ? "yes" : "no");
     free(ucm_name);
   } else {
-    alsa_card->ucm = ucm_create(card_name);
-    syslog(LOG_DEBUG, "Card %s (%s) has UCM: %s", alsa_card->name, card_name,
+    if (alsa_card->card_type == ALSA_CARD_TYPE_USB) {
+      if (ucm_conf_exists(card_name)) {
+        alsa_card->ucm = ucm_create(card_name);
+      } else {
+        alsa_card->ucm = NULL;
+      }
+    } else {
+      alsa_card->ucm = ucm_create(card_name);
+    }
+    syslog(LOG_DEBUG, "Card %s (%s), Type %s, has UCM: %s", alsa_card->name,
+           card_name, cras_card_type_to_string(alsa_card->card_type),
            alsa_card->ucm ? "yes" : "no");
   }
 

@@ -21,6 +21,15 @@ struct cras_use_case_mgr;
  * outputs on the card.
  */
 
+/* Checks if there is a matching ucm configuration for the given name.
+ *
+ * Args:
+ *    name - Name of the card to match against the UCM card list.
+ * Returns:
+ *    1 if it exists, 0 otherwise.
+ */
+int ucm_conf_exists(const char* name);
+
 /* Creates a cras_use_case_mgr instance for the given card name if there is a
  * matching ucm configuration.  It there is a matching UCM config, then it will
  * be configured to the default state.
