@@ -6,6 +6,7 @@ use std::convert::TryInto;
 
 // Follow Chrome to use a uint32_t salt.
 // https://source.chromium.org/chromium/chromium/src/+/main:content/common/pseudonymization_salt.h;l=29;drc=ff1e8456f8d816467989f28df302a3c85975352d
+#[repr(C)]
 struct Salt(u32);
 
 impl Salt {
@@ -41,5 +42,16 @@ mod tests {
             salt1.pseudonymize_stable_id(0),
             salt1.pseudonymize_stable_id(0)
         );
+    }
+}
+
+pub mod bindings {
+    use super::Salt;
+
+    #[no_mangle]
+    /// Pseudonymize the stable_id using the given salt.
+    /// Returns the salted stable_id.
+    pub extern "C" fn pseudonymize_stable_id(salt: u32, stable_id: u32) -> u32 {
+        Salt(salt).pseudonymize_stable_id(stable_id)
     }
 }

@@ -26,6 +26,7 @@
 
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/cras_version.h"
+#include "cras/src/server/rust/include/pseudonymization.h"
 #include "cras_client.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -76,6 +77,17 @@ static int effect_ns_on_dsp = 0;
 static int effect_agc_on_dsp = 0;
 
 static enum CRAS_CLIENT_TYPE client_type = CRAS_CLIENT_TYPE_TEST;
+
+// Salt for pseudonymization.
+// 0 to disable.
+static uint32_t salt;
+
+uint32_t salted_id(uint32_t stable_id) {
+  if (salt == 0) {
+    return stable_id;
+  }
+  return pseudonymize_stable_id(salt, stable_id);
+}
 
 // ionode flags used in --print_nodes_inlined
 enum {
@@ -553,7 +565,8 @@ static void print_node_info(struct cras_client* client,
       snprintf(max_channels_str, sizeof(max_channels_str), "%6u", max_channels);
     }
     printf("\t(%08x)\t%u:%u\t%5g %f %7s\t%14s\t%10ld %-7s\t%-16s%-6s%c%s\n",
-           nodes[i].stable_id, nodes[i].iodev_idx, nodes[i].ionode_idx,
+           salted_id(nodes[i].stable_id), nodes[i].iodev_idx,
+           nodes[i].ionode_idx,
            is_input ? nodes[i].capture_gain / 100.0 : (double)nodes[i].volume,
            nodes[i].ui_gain_scaler, nodes[i].plugged ? "yes" : "no",
            nodes[i].left_right_swapped ? "yes" : "no",
@@ -1394,11 +1407,11 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
       break;
     case BT_DEV_CONNECTED:
       printf("%-30s supported profiles 0x%.2x stable_id 0x%08x\n",
-             "DEV_CONNECTED", data1, data2);
+             "DEV_CONNECTED", data1, salted_id(data2));
       break;
     case BT_DEV_DISCONNECTED:
       printf("%-30s supported profiles 0x%.2x stable_id 0x%08x\n",
-             "DEV_DISCONNECTED", data1, data2);
+             "DEV_DISCONNECTED", data1, salted_id(data2));
       break;
     case BT_DEV_CONN_WATCH_CB:
       printf("%-30s %u retries left, supported profiles 0x%.2x\n",
@@ -2226,6 +2239,7 @@ static struct option long_options[] = {
 	{"request_floop_mask",  required_argument,      0, 'V'},
 	{"thread_priority",     required_argument,      0, 'W'},
 	{"client_type",         required_argument,      0, 'X'},
+	{"use_env_salt",        no_argument,            0, 'Y'},
 	{0, 0, 0, 0}
 };
 // clang-format on
@@ -2456,6 +2470,10 @@ static void show_usage() {
   printf(
       "--client_type <int> - "
       "Override the client type.\n");
+  printf(
+      "--use_env_salt - "
+      "Use the CRAS_PSEUDONYMIZATION_SALT environment variable "
+      "for pseudonymization.\n");
 }
 
 static int cras_client_create_and_connect(struct cras_client** client,
@@ -2871,6 +2889,17 @@ int main(int argc, char** argv) {
           goto destroy_exit;
         }
         break;
+      case 'Y': {
+        const char* salt_env = getenv("CRAS_PSEUDONYMIZATION_SALT");
+        if (!salt_env) {
+          fprintf(
+              stderr,
+              "--use_env_salt passed but CRAS_PSEUDONYMIZATION_SALT not set\n");
+          rc = 1;
+          goto destroy_exit;
+        }
+        salt = strtoul(salt_env, NULL, 10);
+      }
       default:
         break;
     }

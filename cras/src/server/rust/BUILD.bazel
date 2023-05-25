@@ -20,6 +20,7 @@ cc_library(
         ],
     }) + [
         "@pkg_config//dbus-1",
+        "@pkg_config//openssl",
     ],
 )
 

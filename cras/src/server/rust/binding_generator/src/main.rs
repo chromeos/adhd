@@ -81,4 +81,9 @@ fn main() {
         builder(2023).with_src("../src/cras_processor.rs"),
         "cras_processor.h",
     );
+
+    generate(
+        builder(2023).with_src("../src/pseudonymization.rs"),
+        "pseudonymization.h",
+    )
 }

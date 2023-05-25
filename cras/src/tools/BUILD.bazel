@@ -11,6 +11,7 @@ cc_binary(
     srcs = ["cras_test_client/cras_test_client.c"],
     deps = [
         "//cras/src/libcras:cras_client",
+        "//cras/src/server/rust",
     ],
 )
 
