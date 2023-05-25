@@ -10,6 +10,7 @@ alias(
 py_binary(
     name = "tool",
     srcs = ["tool.py"],
+    imports = ["."],
 )
 
 py_test(
