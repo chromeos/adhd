@@ -5,7 +5,7 @@
 
 source /usr/share/cros/init/cras-env.sh || exit 1
 
-exec runuser -u cras \
+exec sudo -u cras \
         -- \
         /usr/bin/cras \
         ${DSP_CONFIG} ${DEVICE_CONFIG_DIR} \
