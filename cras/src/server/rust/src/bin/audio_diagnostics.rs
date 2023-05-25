@@ -5,6 +5,7 @@
 // Collect information about the audio system from top to bottom.
 
 use std::collections::HashSet;
+use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::Read;
@@ -13,6 +14,7 @@ use std::process::Command;
 use std::process::Stdio;
 
 use anyhow::Context;
+use cras_rust::pseudonymization::Salt;
 use glob::glob;
 use regex::Regex;
 
@@ -114,11 +116,34 @@ fn dump_amp(output_cards: &[String]) -> Result<(), anyhow::Error> {
 }
 
 fn main() {
-    run_command(Command::new("cras_test_client").arg("--dump_server_info"));
-    run_command(Command::new("cras_test_client").arg("--dump_audio_thread"));
-    run_command(Command::new("cras_test_client").arg("--dump_main"));
-    run_command(Command::new("cras_test_client").arg("--dump_bt"));
-    run_command(Command::new("cras_test_client").arg("--dump_events"));
+    let salt = Salt::new().expect("cannot generate random salt");
+    env::set_var("CRAS_PSEUDONYMIZATION_SALT", u32::from(salt).to_string());
+
+    run_command(
+        Command::new("cras_test_client")
+            .arg("--use_env_salt")
+            .arg("--dump_server_info"),
+    );
+    run_command(
+        Command::new("cras_test_client")
+            .arg("--use_env_salt")
+            .arg("--dump_audio_thread"),
+    );
+    run_command(
+        Command::new("cras_test_client")
+            .arg("--use_env_salt")
+            .arg("--dump_main"),
+    );
+    run_command(
+        Command::new("cras_test_client")
+            .arg("--use_env_salt")
+            .arg("--dump_bt"),
+    );
+    run_command(
+        Command::new("cras_test_client")
+            .arg("--use_env_salt")
+            .arg("--dump_events"),
+    );
     run_command(Command::new("aplay").arg("-l"));
     run_command(Command::new("arecord").arg("-l"));
 

@@ -5,7 +5,10 @@ authors = ["The ChromiumOS Authors"]
 edition = "2018"
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = [
+    "lib",  # for audio_diagnostics
+    "staticlib",  # for cras_rust portage package
+]
 
 [dependencies]
 anyhow = "1.0.68"
