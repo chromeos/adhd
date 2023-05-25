@@ -18,9 +18,13 @@ where
         Command::new(env::var("PKG_CONFIG").unwrap_or_else(|_| String::from("pkg-config")))
             .args(args)
             .output()
-            .expect("pkg-config failed");
+            .expect("failed to run pkg-config");
     if !output.status.success() {
-        panic!("pkg-config failed");
+        panic!(
+            "pkg-config exited with status {}; stderr:\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
     let stdout = String::from_utf8(output.stdout).expect("pkg-config returned non-UTF-8");
     stdout.split_ascii_whitespace().map(String::from).collect()
