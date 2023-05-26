@@ -1,7 +1,9 @@
-CRAS = ChromiumOS Audio Server
-===
+# CRAS = ChromiumOS Audio Server
 
-# Directories
+[TOC]
+
+## Directories
+
 - [src/server](src/server) - the source for the sound server
 - [src/libcras](src/libcras) - client library for interacting with cras
 - [src/common](src/common) - files common to both the server and library
@@ -9,9 +11,54 @@ CRAS = ChromiumOS Audio Server
 - [src/fuzz](src/fuzz) - source code and build scripts for coverage-guided
   fuzzers for CRAS
 
-# Building from source
+## Building from source
 
-## Run tests
+The instruction below aims for CRAS development. For general guidance of
+ChromiumOS projects, please refer to
+https://chromium.googlesource.com/chromiumos/docs/+/HEAD/developer_guide.md
+
+### Build package (once a board)
+
+For CRAS development, `adhd` is the target package to build/deploy.
+
+```
+# In chroot
+# Recreate and set up /build/${BOARD}:
+setup_board --force --board=${BOARD}
+# Build adhd and its dependencies:
+build_packages --autosetgov --board=${BOARD} adhd
+```
+
+### Adapt local changes
+
+To build package with local changes when necessary, one needs to run the
+following command.
+
+```
+# In chroot
+# Workon project once a board
+cros-workon-${BOARD} start adhd
+# Build adhd with local changes
+emerge-${BOARD} adhd
+```
+
+### Deploy to DUT
+
+```
+# In chroot
+cros deploy ${DUT_IP} adhd
+```
+
+Kindly note that restarting CRAS is necessary after deploying.
+
+```
+# On DUT terminal
+restart cras
+```
+
+## Verification
+
+### Run tests
 
 Using gcc:
 
@@ -33,13 +80,13 @@ bazel test //... --config=local-clang --config=asan
 
 Refer to [.bazelrc](../.bazelrc) to see which `--config`s are available.
 
-## Build and package for distribution
+### Build and package for distribution
 
 ```
 bazel run //dist -- /path/to/dist
 ```
 
-## Code completion for for editors
+### Code completion for for editors
 
 ```
 bazel run //:compdb
@@ -49,9 +96,42 @@ Then you'll get `compile_commands.json` for editor.
 Import the JSON file to your editor and you'll get useful code complete
 features for CRAS and its unit tests.
 
-# Configuration:
+## Debugging
 
-## Device Blocklisting:
+### Set debug log verbosity
+
+Create `/etc/init/cras.override` containing the additional env variable on the
+device.
+
+```
+# On DUT terminal
+echo "env CRAS_ARGS='--syslog_mask 7'" >> /etc/init/cras.override
+```
+
+Then stop and start CRAS; check debug logs appear in `/var/log/messages`.
+
+```
+# On DUT terminal
+stop cras
+start cras
+```
+
+NOTE: Commands `stop` + `start` are used here instead of `restart`.
+
+### Record useful logs
+
+While encountering audio issues, one can promptly record following two logs
+prior to any other action:
+
+1. System log: as `/var/log/messages` file
+2. Audio diagnostic log: run `audio_diagnostics > /tmp/audio_diagnostics.log`
+
+Copy out these two log files for further checks, or provide them to ChromiumOS
+audio SoftEng along with the issue feedback.
+
+## Configuration
+
+### Device Blocklisting
 
 Blocklist of certain USB output device(s) is possible by modifying the config
 file `/etc/cras/device_blocklist`.
@@ -74,7 +154,7 @@ based CAD-u1 mic:
   0d8c_0008_00000000_0 = 1
 ```
 
-## Card Configuration:
+### Card Configuration
 
 There can be a config file for each sound alsa card on the system.  This file
 lives in `/etc/cras/`.  The file should be named with the card name returned by
@@ -229,6 +309,6 @@ given, which is a 1dBFS per step curve from max = +0.5dBFS to min = -99.5dBFS
 [compile commands]: https://clang.llvm.org/docs/JSONCompilationDatabase.html
 [language server plugins in editors]: https://clangd.llvm.org/installation.html#editor-plugins
 
-## DBus docs
+### DBus docs
 
 See [cras/dbus_bindings/org.chromium.cras.Control.xml](dbus_bindings/org.chromium.cras.Control.xml)
