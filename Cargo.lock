@@ -190,6 +190,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "cras"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "audio_processor",
+ "cras_dlc",
+ "getrandom",
+ "glob",
+ "libc",
+ "log",
+ "nix",
+ "openssl",
+ "regex",
+ "syslog",
+]
+
+[[package]]
 name = "cras_dlc"
 version = "0.1.0"
 dependencies = [
@@ -205,17 +222,7 @@ dependencies = [
 name = "cras_rust"
 version = "0.1.1"
 dependencies = [
- "anyhow",
- "audio_processor",
- "cras_dlc",
- "getrandom",
- "glob",
- "libc",
- "log",
- "nix",
- "openssl",
- "regex",
- "syslog",
+ "cras",
 ]
 
 [[package]]

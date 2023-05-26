@@ -1,0 +1,11 @@
+[package]
+name = "cras_rust"
+version = "0.1.1"
+authors = ["The ChromiumOS Authors"]
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+cras = { version = "*", path = ".." }

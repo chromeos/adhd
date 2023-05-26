@@ -2,6 +2,7 @@
 members = [
     "cras/src/audio_processor",
     "cras/src/server/rust",
+    "cras/src/server/rust/staticlib",
     "cras/src/server/rust/binding_generator",
     "cras/src/server/rust/cras_dlc",
 ]

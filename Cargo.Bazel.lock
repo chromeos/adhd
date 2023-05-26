@@ -1,5 +1,5 @@
 {
-  "checksum": "6edf6f21a240f37efb5408613f911ca8d782a01075f813deac77ee2d4d08d068",
+  "checksum": "4e073268a4abcaabe4e91cb01e3991ecdbcb2446964cf2f4c6dc8dbaf8dc35cb",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -958,6 +958,72 @@
       },
       "license": "MIT OR Apache-2.0"
     },
+    "cras 0.1.1": {
+      "name": "cras",
+      "version": "0.1.1",
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cras",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "cras",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.70",
+              "target": "anyhow"
+            },
+            {
+              "id": "getrandom 0.2.9",
+              "target": "getrandom"
+            },
+            {
+              "id": "glob 0.3.1",
+              "target": "glob"
+            },
+            {
+              "id": "libc 0.2.140",
+              "target": "libc"
+            },
+            {
+              "id": "log 0.4.17",
+              "target": "log"
+            },
+            {
+              "id": "nix 0.26.2",
+              "target": "nix"
+            },
+            {
+              "id": "openssl 0.10.52",
+              "target": "openssl"
+            },
+            {
+              "id": "regex 1.7.3",
+              "target": "regex"
+            },
+            {
+              "id": "syslog 6.0.1",
+              "target": "syslog"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.1.1"
+      },
+      "license": null
+    },
     "cras_dlc 0.1.0": {
       "name": "cras_dlc",
       "version": "0.1.0",
@@ -1018,48 +1084,7 @@
         "compile_data_glob": [
           "**"
         ],
-        "deps": {
-          "common": [
-            {
-              "id": "anyhow 1.0.70",
-              "target": "anyhow"
-            },
-            {
-              "id": "getrandom 0.2.9",
-              "target": "getrandom"
-            },
-            {
-              "id": "glob 0.3.1",
-              "target": "glob"
-            },
-            {
-              "id": "libc 0.2.140",
-              "target": "libc"
-            },
-            {
-              "id": "log 0.4.17",
-              "target": "log"
-            },
-            {
-              "id": "nix 0.26.2",
-              "target": "nix"
-            },
-            {
-              "id": "openssl 0.10.52",
-              "target": "openssl"
-            },
-            {
-              "id": "regex 1.7.3",
-              "target": "regex"
-            },
-            {
-              "id": "syslog 6.0.1",
-              "target": "syslog"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
+        "edition": "2021",
         "version": "0.1.1"
       },
       "license": null
@@ -5656,8 +5681,9 @@
   "workspace_members": {
     "audio_processor 0.1.0": "cras/src/audio_processor",
     "binding_generator 0.1.0": "cras/src/server/rust/binding_generator",
+    "cras 0.1.1": "cras/src/server/rust",
     "cras_dlc 0.1.0": "cras/src/server/rust/cras_dlc",
-    "cras_rust 0.1.1": "cras/src/server/rust"
+    "cras_rust 0.1.1": "cras/src/server/rust/staticlib"
   },
   "conditions": {
     "aarch64-pc-windows-gnullvm": [],

@@ -14,7 +14,7 @@ use std::process::Command;
 use std::process::Stdio;
 
 use anyhow::Context;
-use cras_rust::pseudonymization::Salt;
+use cras::pseudonymization::Salt;
 use glob::glob;
 use regex::Regex;
 
