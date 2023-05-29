@@ -5,4 +5,4 @@
 
 set -ex
 cd "$(dirname ${BASH_SOURCE[0]})/quick-verifier"
-go run ./cmd/copgen ../../.cop/build.yaml
+go run ./cmd/copgen ../../.cop/build.yaml "$@"

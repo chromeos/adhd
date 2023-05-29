@@ -18,6 +18,7 @@ import (
 
 func main() {
 	path := kingpin.Arg("path", "Path to build.yaml").Required().String()
+	check := kingpin.Flag("check", "Check the generated build instead of generating").Bool()
 	kingpin.Parse()
 
 	b := build.MakeCopBuild()
@@ -31,7 +32,17 @@ func main() {
 		log.Fatal("Failed to indent JSON: ", err)
 	}
 
-	if err := os.WriteFile(*path, buf.Bytes(), 0644); err != nil {
-		log.Fatal("Failed to write build: ", err)
+	if *check {
+		content, err := os.ReadFile(*path)
+		if err != nil {
+			log.Fatal("Failed to read build: ", err)
+		}
+		if !bytes.Equal(buf.Bytes(), content) {
+			log.Fatalf("%s and the build plan is out of sync! Run devtools/copgen.sh to regenerate.", *path)
+		}
+	} else {
+		if err := os.WriteFile(*path, buf.Bytes(), 0644); err != nil {
+			log.Fatal("Failed to write build: ", err)
+		}
 	}
 }
