@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn parse_command() {
-        let command = Command::parse_from(&["cras_tests", "playback", "output.wav"]);
+        let command = Command::parse_from(["cras_tests", "playback", "output.wav"]);
         assert_eq!(
             command,
             Command::Playback(AudioOptions {
@@ -223,7 +223,7 @@ mod tests {
             })
         );
 
-        let command = Command::parse_from(&["cras_tests", "capture", "input.raw"]);
+        let command = Command::parse_from(["cras_tests", "capture", "input.raw"]);
         assert_eq!(
             command,
             Command::Capture(AudioOptions {
@@ -238,7 +238,7 @@ mod tests {
             })
         );
 
-        let command = Command::parse_from(&[
+        let command = Command::parse_from([
             "cras_tests",
             "playback",
             "-r",
@@ -261,7 +261,7 @@ mod tests {
             })
         );
 
-        let command = Command::parse_from(&[
+        let command = Command::parse_from([
             "cras_tests",
             "playback",
             "-r",
@@ -286,7 +286,7 @@ mod tests {
             })
         );
 
-        let command = Command::parse_from(&[
+        let command = Command::parse_from([
             "cras_tests",
             "capture",
             "rec.raw",
@@ -309,20 +309,20 @@ mod tests {
             })
         );
 
-        assert!(Command::try_parse_from(&["cras_tests"]).is_err());
-        assert!(Command::try_parse_from(&["cras_tests", "capture"]).is_err());
-        assert!(Command::try_parse_from(&["cras_tests", "playback"]).is_err());
-        assert!(Command::try_parse_from(&["cras_tests", "loopback"]).is_err());
-        assert!(Command::try_parse_from(&["cras_tests", "loopback", "filename.wav"]).is_err());
-        assert!(Command::try_parse_from(&["cras_tests", "filename.wav"]).is_err());
-        assert!(Command::try_parse_from(&["cras_tests", "filename.wav", "capture"]).is_err());
+        assert!(Command::try_parse_from(["cras_tests"]).is_err());
+        assert!(Command::try_parse_from(["cras_tests", "capture"]).is_err());
+        assert!(Command::try_parse_from(["cras_tests", "playback"]).is_err());
+        assert!(Command::try_parse_from(["cras_tests", "loopback"]).is_err());
+        assert!(Command::try_parse_from(["cras_tests", "loopback", "filename.wav"]).is_err());
+        assert!(Command::try_parse_from(["cras_tests", "filename.wav"]).is_err());
+        assert!(Command::try_parse_from(["cras_tests", "filename.wav", "capture"]).is_err());
         assert_eq!(
-            Command::try_parse_from(&["cras_tests", "help"])
+            Command::try_parse_from(["cras_tests", "help"])
                 .unwrap_err()
                 .kind(),
             clap::ErrorKind::DisplayHelp
         );
-        assert!(Command::try_parse_from(&[
+        assert!(Command::try_parse_from([
             "cras_tests",
             "-c",
             "2",
