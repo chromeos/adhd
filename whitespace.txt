@@ -1,1 +1,1 @@
-This is a file to force bots to consider a CL interesting.
+This is a file to force bots to consider a CL or patch set interesting.

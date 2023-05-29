@@ -64,6 +64,8 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	var b buildplan.Build
 	git := b.Add(gitSteps)
 
+	b.Add(copgenCheckSteps().WithDep(git))
+
 	b.Add(archlinuxSteps("archlinux-clang", "--config=local-clang").WithDep(git))
 	b.Add(archlinuxSteps("archlinux-clang-asan", "--config=local-clang", "--config=asan").WithDep(git))
 	b.Add(archlinuxSteps("archlinux-clang-ubsan", "--config=local-clang", "--config=ubsan").WithDep(git))
@@ -258,6 +260,14 @@ func ossFuzzSteps(id, sanitizer, engine string) *buildplan.Sequence {
 		},
 		checkStep,
 	)
+}
+
+func copgenCheckSteps() *buildplan.Sequence {
+	return buildplan.Commands(
+		"copgen-check",
+		prepareSourceStep,
+		buildplan.Command(archlinuxBuilder, "devtools/copgen.sh", "--check"),
+	).WithVolume()
 }
 
 func submit(cl gerritCL, triggerID string) error {

@@ -38,6 +38,44 @@
         "/workspace/adhd/",
         "./"
       ],
+      "dir": "/workspace-copgen-check",
+      "id": "copgen-check:0",
+      "waitFor": [
+        "placeholder:0"
+      ],
+      "entrypoint": "rsync",
+      "volumes": [
+        {
+          "name": "workspace-copgen-check",
+          "path": "/workspace-copgen-check"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "--check"
+      ],
+      "dir": "/workspace-copgen-check",
+      "id": "copgen-check:1",
+      "waitFor": [
+        "copgen-check:0"
+      ],
+      "entrypoint": "devtools/copgen.sh",
+      "volumes": [
+        {
+          "name": "workspace-copgen-check",
+          "path": "/workspace-copgen-check"
+        }
+      ]
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/",
+        "./"
+      ],
       "dir": "/workspace-archlinux-clang",
       "id": "archlinux-clang:0",
       "waitFor": [

@@ -8,6 +8,7 @@ RUN pacman -Sy archlinux-keyring --noconfirm --cachedir=/paccache \
   base-devel \
   bazel \
   git \
+  go \
   vim \
   alsa-lib \
   sbc \
