@@ -81,14 +81,17 @@ unsafe impl<'a> Send for CrasAudioHeader<'a> {}
 /// - Make sure the pointer address is readable and writable for its structure.
 /// - Make sure all `VolatileRef`s generated from this macro have exclusive ownership for the same
 /// pointer.
+///
+/// TODO(b/239850356): Use self-implemented `VolatileRef` implemetation
+/// with [`ptr::read_unaligned`] and [`ptr::write_unaligned`].
 #[macro_export]
 macro_rules! vref_from_addr {
     ($addr:ident, $($field:ident).*) => {
-        VolatileRef::new(&mut $addr.as_mut().$($field).* as *mut _)
+        VolatileRef::new(ptr::addr_of_mut!($addr.as_mut().$($field).*))
     };
 
     ($addr:ident, $field:ident[$idx:tt]) => {
-        VolatileRef::new(&mut $addr.as_mut().$field[$idx] as *mut _)
+        VolatileRef::new(ptr::addr_of_mut!($addr.as_mut().$field[$idx]))
     };
 }
 

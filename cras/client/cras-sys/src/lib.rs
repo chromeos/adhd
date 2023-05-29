@@ -2,10 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// FIXME: See b/239850356.
-// This should be removed when that bug is fixed.
-#![warn(unaligned_references)]
-
 extern crate audio_streams;
 extern crate data_model;
 
