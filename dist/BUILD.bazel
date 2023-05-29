@@ -19,7 +19,6 @@ filegroup(
     name = "extra_bin",
     srcs = [
         "//cras/scripts:asoc_dapm_graph",
-        "//cras/scripts:audio_diagnostics_legacy",
         "//cras/src/benchmark:cras_bench",
         "//cras/src/tools:cras_monitor",
         "//cras/src/tools:cras_router",

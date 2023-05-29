@@ -5,7 +5,6 @@
 exports_files(
     [
         "asoc_dapm_graph",
-        "audio_diagnostics_legacy",
     ],
     visibility = ["//dist:__pkg__"],
 )
