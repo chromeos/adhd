@@ -113,6 +113,9 @@ struct private_state {
   // The flag to override A2DP packet size set by
   // Blueetoh peer devices to a smaller default value.
   bool bt_fix_a2dp_packet_size;
+  // Use default volume curve for a USB device instead
+  // of the range reported by the device.
+  int32_t using_default_volume_curve_for_usb_audio_device;
   // The feature tier. See cras_feature_tier.
   struct cras_feature_tier feature_tier;
   // The feature state. See struct feature_state.
@@ -286,6 +289,8 @@ void cras_system_state_init(const char* device_config_dir,
   state.main_thread_tid = pthread_self();
 
   state.bt_fix_a2dp_packet_size = false;
+  state.using_default_volume_curve_for_usb_audio_device =
+      board_config->using_default_volume_curve_for_usb_audio_device;
 
   cras_feature_tier_init(&state.feature_tier, board_name, cpu_model_name);
   cras_s2_set_ap_nc_feature_tier_allowed(state.feature_tier.ap_nc_supported);
@@ -834,6 +839,10 @@ void cras_system_rm_select_fd(int fd) {
   if (state.fd_rm != NULL) {
     state.fd_rm(fd, state.select_data);
   }
+}
+
+int cras_system_get_using_default_volume_curve_for_usb_audio_device() {
+  return state.using_default_volume_curve_for_usb_audio_device;
 }
 
 void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
