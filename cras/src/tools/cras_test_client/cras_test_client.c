@@ -89,6 +89,12 @@ uint32_t salted_id(uint32_t stable_id) {
   return pseudonymize_stable_id(salt, stable_id);
 }
 
+static void init_salt() {
+  int rc = pseudonymize_salt_get_from_env(&salt);
+  assert(rc != -EINVAL && "CRAS_PSEUDONYMIZATION_SALT set but invalid");
+  assert(rc == 0 && "Unknown error initializing CRAS_PSEUDONYMIZATION_SALT");
+}
+
 // ionode flags used in --print_nodes_inlined
 enum {
   IONODE_FLAG_DIRECTION,
@@ -2239,7 +2245,6 @@ static struct option long_options[] = {
 	{"request_floop_mask",  required_argument,      0, 'V'},
 	{"thread_priority",     required_argument,      0, 'W'},
 	{"client_type",         required_argument,      0, 'X'},
-	{"use_env_salt",        no_argument,            0, 'Y'},
 	{0, 0, 0, 0}
 };
 // clang-format on
@@ -2470,10 +2475,6 @@ static void show_usage() {
   printf(
       "--client_type <int> - "
       "Override the client type.\n");
-  printf(
-      "--use_env_salt - "
-      "Use the CRAS_PSEUDONYMIZATION_SALT environment variable "
-      "for pseudonymization.\n");
 }
 
 static int cras_client_create_and_connect(struct cras_client** client,
@@ -2524,6 +2525,10 @@ int main(int argc, char** argv) {
   option_index = 0;
   openlog("cras_test_client", LOG_PERROR, LOG_USER);
   setlogmask(LOG_UPTO(LOG_INFO));
+
+  // Initialize the pseudonymization salt very early so all things that
+  // may print out IDs are salted.
+  init_salt();
 
   rc = cras_client_create_and_connect(&client, conn_type);
   if (rc) {
@@ -2889,17 +2894,6 @@ int main(int argc, char** argv) {
           goto destroy_exit;
         }
         break;
-      case 'Y': {
-        const char* salt_env = getenv("CRAS_PSEUDONYMIZATION_SALT");
-        if (!salt_env) {
-          fprintf(
-              stderr,
-              "--use_env_salt passed but CRAS_PSEUDONYMIZATION_SALT not set\n");
-          rc = 1;
-          goto destroy_exit;
-        }
-        salt = strtoul(salt_env, NULL, 10);
-      }
       default:
         break;
     }

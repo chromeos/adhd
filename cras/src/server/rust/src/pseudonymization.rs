@@ -4,6 +4,8 @@
 
 use std::convert::TryInto;
 
+use nix::errno::Errno;
+
 // Follow Chrome to use a uint32_t salt.
 // https://source.chromium.org/chromium/chromium/src/+/main:content/common/pseudonymization_salt.h;l=29;drc=ff1e8456f8d816467989f28df302a3c85975352d
 #[repr(C)]
@@ -14,6 +16,20 @@ impl Salt {
         let mut buf = [0u8; 4];
         getrandom::getrandom(&mut buf)?;
         Ok(Self(u32::from_ne_bytes(buf)))
+    }
+
+    /// Create a new Salt from the environment variable CRAS_PSEUDONYMIZATION_SALT.
+    /// If the environment variable is not set, then a new salt is generated randomly.
+    /// If the environment variable is set, then it must be a valid number representing
+    /// the salt.
+    pub fn new_from_environment() -> Result<Self, Errno> {
+        match std::env::var("CRAS_PSEUDONYMIZATION_SALT") {
+            Ok(string) => match string.parse() {
+                Ok(number) => Ok(Salt(number)),
+                Err(_) => Err(Errno::EINVAL),
+            },
+            Err(_) => Self::new().map_err(|_| Errno::ENOSYS),
+        }
     }
 
     fn pseudonymize_stable_id(&self, stable_id: u32) -> u32 {
@@ -59,5 +75,24 @@ pub mod bindings {
     /// Returns the salted stable_id.
     pub extern "C" fn pseudonymize_stable_id(salt: u32, stable_id: u32) -> u32 {
         Salt(salt).pseudonymize_stable_id(stable_id)
+    }
+
+    #[no_mangle]
+    /// Gets the salt from the environment variable CRAS_PSEUDONYMIZATION_SALT.
+    /// See `Salt::new_from_environment`.
+    /// Returns negative errno on failure.
+    ///
+    /// # Safety
+    /// salt must point to a non-NULL u32.
+    pub unsafe extern "C" fn pseudonymize_salt_get_from_env(
+        mut salt: std::ptr::NonNull<u32>,
+    ) -> libc::c_int {
+        match Salt::new_from_environment() {
+            Ok(result) => {
+                *salt.as_mut() = result.into();
+                0
+            }
+            Err(err) => -(err as i32),
+        }
     }
 }
