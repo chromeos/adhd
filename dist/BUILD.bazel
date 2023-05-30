@@ -107,3 +107,19 @@ py_binary(
     main = "dist.py",
     target_compatible_with = require_no_config("//:fuzzer_build"),
 )
+
+py_binary(
+    name = "dist_client_libs_only",
+    srcs = ["dist.py"],
+    args = [
+        "--_lib_files $(locations :lib)",
+        "--_alsa_lib_files $(locations :alsa_lib)",
+        "--",
+    ],
+    data = [
+        ":alsa_lib",
+        ":lib",
+    ],
+    main = "dist.py",
+    target_compatible_with = require_no_config("//:fuzzer_build"),
+)
