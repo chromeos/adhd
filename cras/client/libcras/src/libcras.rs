@@ -161,6 +161,7 @@ mod cras_stream;
 use crate::cras_stream::{CrasCaptureData, CrasPlaybackData, CrasStream, CrasStreamData};
 mod cras_client_message;
 use crate::cras_client_message::*;
+mod unaligned_memory;
 
 #[derive(Debug)]
 pub enum Error {

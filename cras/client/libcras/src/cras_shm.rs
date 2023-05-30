@@ -20,8 +20,10 @@ use cras_sys::gen::{
 use cras_sys::{
     AudioDebugInfo, AudioDevDebugInfo, AudioStreamDebugInfo, CrasIodevInfo, CrasIonodeInfo,
 };
-use data_model::{VolatileRef, VolatileSlice};
+use data_model::VolatileSlice;
 use libchromeos::sys::warn;
+
+use crate::unaligned_memory::UnalignedRef;
 
 /// A structure wrapping a fd which contains a shared `cras_audio_shm_header`.
 /// * `shm_fd` - A shared memory fd contains a `cras_audio_shm_header`
@@ -52,46 +54,46 @@ impl CrasAudioShmHeaderFd {
 
 /// A wrapper for the raw structure `cras_audio_shm_header` with
 /// size information for the separate audio samples shm area and several
-/// `VolatileRef` to sub fields for safe access to the header.
+/// `UnalignedRef` to sub fields for safe access to the header.
 pub struct CrasAudioHeader<'a> {
     addr: *mut libc::c_void,
     /// Size of the buffer for samples in CrasAudioBuffer
     samples_len: usize,
-    used_size: VolatileRef<'a, u32>,
-    frame_size: VolatileRef<'a, u32>,
-    read_buf_idx: VolatileRef<'a, u32>,
-    write_buf_idx: VolatileRef<'a, u32>,
-    read_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
-    write_offset: [VolatileRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
-    buffer_offset: [VolatileRef<'a, u64>; CRAS_NUM_SHM_BUFFERS as usize],
-    ts_sec: VolatileRef<'a, i64>,
-    ts_nsec: VolatileRef<'a, i64>,
+    used_size: UnalignedRef<'a, u32>,
+    frame_size: UnalignedRef<'a, u32>,
+    read_buf_idx: UnalignedRef<'a, u32>,
+    write_buf_idx: UnalignedRef<'a, u32>,
+    read_offset: [UnalignedRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
+    write_offset: [UnalignedRef<'a, u32>; CRAS_NUM_SHM_BUFFERS as usize],
+    buffer_offset: [UnalignedRef<'a, u64>; CRAS_NUM_SHM_BUFFERS as usize],
+    ts_sec: UnalignedRef<'a, i64>,
+    ts_nsec: UnalignedRef<'a, i64>,
 }
 
 // It is safe to send audio buffers between threads as this struct has exclusive ownership of the
 // pointers contained in it.
 unsafe impl<'a> Send for CrasAudioHeader<'a> {}
 
-/// An unsafe macro for getting `VolatileRef` for a field from a given NonNull pointer.
+/// An unsafe macro for getting `UnalignedRef` for a field from a given NonNull pointer.
 /// It Supports
 /// - Nested sub-field
 /// - Element of an array field
 ///
 /// To use this macro safely, we need to
 /// - Make sure the pointer address is readable and writable for its structure.
-/// - Make sure all `VolatileRef`s generated from this macro have exclusive ownership for the same
+/// - Make sure all `UnalignedRef`s generated from this macro have exclusive ownership for the same
 /// pointer.
 ///
-/// TODO(b/239850356): Use self-implemented `VolatileRef` implemetation
+/// TODO(b/239850356): Use self-implemented `UnalignedRef` implemetation
 /// with [`ptr::read_unaligned`] and [`ptr::write_unaligned`].
 #[macro_export]
 macro_rules! vref_from_addr {
     ($addr:ident, $($field:ident).*) => {
-        VolatileRef::new(ptr::addr_of_mut!($addr.as_mut().$($field).*))
+        UnalignedRef::new(ptr::addr_of_mut!($addr.as_mut().$($field).*))
     };
 
     ($addr:ident, $field:ident[$idx:tt]) => {
-        VolatileRef::new(ptr::addr_of_mut!($addr.as_mut().$field[$idx]))
+        UnalignedRef::new(ptr::addr_of_mut!($addr.as_mut().$field[$idx]))
     };
 }
 
@@ -553,20 +555,20 @@ macro_rules! vslice_from_addr {
 #[derive(Debug)]
 pub struct CrasServerState<'a> {
     addr: *mut libc::c_void,
-    volume: VolatileRef<'a, u32>,
-    mute: VolatileRef<'a, i32>,
-    num_output_devs: VolatileRef<'a, u32>,
+    volume: UnalignedRef<'a, u32>,
+    mute: UnalignedRef<'a, i32>,
+    num_output_devs: UnalignedRef<'a, u32>,
     output_devs: VolatileSlice<'a>,
-    num_input_devs: VolatileRef<'a, u32>,
+    num_input_devs: UnalignedRef<'a, u32>,
     input_devs: VolatileSlice<'a>,
-    num_output_nodes: VolatileRef<'a, u32>,
-    num_input_nodes: VolatileRef<'a, u32>,
+    num_output_nodes: UnalignedRef<'a, u32>,
+    num_input_nodes: UnalignedRef<'a, u32>,
     output_nodes: VolatileSlice<'a>,
     input_nodes: VolatileSlice<'a>,
-    update_count: VolatileRef<'a, u32>,
-    debug_info_num_devs: VolatileRef<'a, u32>,
+    update_count: UnalignedRef<'a, u32>,
+    debug_info_num_devs: UnalignedRef<'a, u32>,
     debug_info_devs: VolatileSlice<'a>,
-    debug_info_num_streams: VolatileRef<'a, u32>,
+    debug_info_num_streams: UnalignedRef<'a, u32>,
     debug_info_streams: VolatileSlice<'a>,
 }
 
