@@ -176,9 +176,16 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
     goto start_dev;
   }
 
-  bool force_cvsd = !cras_system_get_bt_wbs_enabled();
+  int disabled_codecs = FL_HFP_CODEC_NONE;
+  if (!cras_system_get_bt_wbs_enabled()) {
+    disabled_codecs |= FL_HFP_CODEC_MSBC | FL_HFP_CODEC_LC3;
+  }
+  if (hfp->sco_pcm_used || !cras_feature_enabled(CrOSLateBootAudioHFPSwb)) {
+    disabled_codecs |= FL_HFP_CODEC_LC3;
+  }
+
   rc = floss_media_hfp_start_sco_call(hfp->fm, hfp->addr, hfp->sco_pcm_used,
-                                      force_cvsd);
+                                      disabled_codecs);
 
   if (rc < 0) {
     return rc;
