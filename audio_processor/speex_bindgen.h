@@ -4,8 +4,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SRC_AUDIO_PROCESSOR_SPEEX_BINDGEN_H_
-#define CRAS_SRC_AUDIO_PROCESSOR_SPEEX_BINDGEN_H_
+#ifndef AUDIO_PROCESSOR_SPEEX_BINDGEN_H_
+#define AUDIO_PROCESSOR_SPEEX_BINDGEN_H_
 
 #include <speex/speex_resampler.h>
 

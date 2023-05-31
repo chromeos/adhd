@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CRAS_SRC_AUDIO_PROCESSOR_C_PLUGIN_PROCESSOR_H_
-#define CRAS_SRC_AUDIO_PROCESSOR_C_PLUGIN_PROCESSOR_H_
+#ifndef AUDIO_PROCESSOR_C_PLUGIN_PROCESSOR_H_
+#define AUDIO_PROCESSOR_C_PLUGIN_PROCESSOR_H_
 
 #include <stdbool.h>
 #include <stddef.h>

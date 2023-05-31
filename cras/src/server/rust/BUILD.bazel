@@ -35,7 +35,7 @@ rust_library(
     srcs = glob(include = ["src/*.rs"]),
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     deps = [
-        "//cras/src/audio_processor",
+        "//audio_processor",
         "//cras/src/server/rust/cras_dlc",
     ] + all_crate_deps(),
 )
@@ -54,7 +54,7 @@ cc_test(
     srcs = ["cras_processor_test.cc"],
     deps = [
         ":rust",
-        "//cras/src/audio_processor/c:plugin_processor",
+        "//audio_processor/c:plugin_processor",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],

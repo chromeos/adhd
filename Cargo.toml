@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "cras/src/audio_processor",
+    "audio_processor",
     "cras/src/server/rust",
     "cras/src/server/rust/staticlib",
     "cras/src/server/rust/binding_generator",
@@ -13,7 +13,7 @@ panic = "abort"
 overflow-checks = true
 
 [patch.crates-io]
-audio_processor = { path = "cras/src/audio_processor" }
+audio_processor = { path = "audio_processor" }
 cras = { path = "cras/src/server/rust" }
 cras_dlc = { path = "cras/src/server/rust/cras_dlc" }
 

@@ -9,7 +9,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/src/audio_processor/c/plugin_processor.h"
+#include "audio_processor/c/plugin_processor.h"
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"

@@ -555,7 +555,7 @@ cc_library(
         ":cras_features",
         ":dsp_types",
         ":ewma_power",
-        "//cras/src/audio_processor/c:plugin_processor",
+        "//audio_processor/c:plugin_processor",
         "//cras/src/common",
         "//cras/src/dsp",
         "//cras/src/server/rust",

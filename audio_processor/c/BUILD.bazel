@@ -13,7 +13,7 @@ cc_library(
 filegroup(
     name = "headers",
     srcs = glob(["*.h"]),
-    visibility = ["//cras/src/audio_processor:__pkg__"],
+    visibility = ["//audio_processor:__pkg__"],
 )
 
 cc_library(
@@ -26,7 +26,7 @@ cc_library(
         "negate_plugin.h",
         "plugin_processor.h",
     ],
-    visibility = ["//cras/src/audio_processor:__pkg__"],
+    visibility = ["//audio_processor:__pkg__"],
 )
 
 cras_shared_library(
@@ -34,5 +34,5 @@ cras_shared_library(
     testonly = True,
     roots = [":test_plugins"],
     static_deps = [":test_plugins"],
-    visibility = ["//cras/src/audio_processor:__pkg__"],
+    visibility = ["//audio_processor:__pkg__"],
 )

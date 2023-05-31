@@ -1,5 +1,5 @@
 {
-  "checksum": "7daebdeb06df276b4cd0367386eda9e4c7c4f3f119853b1931ee05797a9ab11e",
+  "checksum": "a233ad0c1db4efe3a8cee86e3a498bbeb4db684816d763e7524a9808ddcdffec",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -5679,7 +5679,7 @@
   },
   "binary_crates": [],
   "workspace_members": {
-    "audio_processor 0.1.0": "cras/src/audio_processor",
+    "audio_processor 0.1.0": "audio_processor",
     "binding_generator 0.1.0": "cras/src/server/rust/binding_generator",
     "cras 0.1.1": "cras/src/server/rust",
     "cras_dlc 0.1.0": "cras/src/server/rust/cras_dlc",
