@@ -13,6 +13,8 @@ panic = "abort"
 overflow-checks = true
 
 [patch.crates-io]
+audio_processor = { path = "cras/src/audio_processor" }
+cras = { path = "cras/src/server/rust" }
 cras_dlc = { path = "cras/src/server/rust/cras_dlc" }
 
 system_api = { git = "https://chromium.googlesource.com/chromiumos/platform2", version = ">=0.24.53" } # ignored by ebuild

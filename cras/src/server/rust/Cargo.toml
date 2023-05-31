@@ -15,5 +15,5 @@ regex = "1.6.0"
 getrandom = "0.2.7"
 openssl = "0.10.48"
 
-cras_dlc = { version = "*", path = "cras_dlc" }
-audio_processor = { version = "*", path = "../../audio_processor" }
+cras_dlc = { version = "*" }
+audio_processor = { version = "*" }
