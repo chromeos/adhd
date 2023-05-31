@@ -55,8 +55,10 @@ pub unsafe extern "C" fn cras_dlc_get_root_path(id: CrasDlcId) -> *const c_char 
 }
 
 /// Writes the DLC ID string corresponding to the enum id to `ret`.
-/// `ret` should have `ret_len` bytes writable.
 /// Suggested value of `ret_len` is `CRAS_DLC_ID_STRING_MAX_LENGTH`.
+///
+/// # Safety
+/// `ret` should have `ret_len` bytes writable.
 #[no_mangle]
 pub unsafe extern "C" fn cras_dlc_get_id_string(ret: *mut c_char, ret_len: usize, id: CrasDlcId) {
     let len = std::cmp::min(id.as_str().as_bytes().len(), ret_len - 1);

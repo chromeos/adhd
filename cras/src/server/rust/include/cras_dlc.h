@@ -54,8 +54,10 @@ const char *cras_dlc_get_root_path(enum CrasDlcId id);
 
 /**
  * Writes the DLC ID string corresponding to the enum id to `ret`.
- * `ret` should have `ret_len` bytes writable.
  * Suggested value of `ret_len` is `CRAS_DLC_ID_STRING_MAX_LENGTH`.
+ *
+ * # Safety
+ * `ret` should have `ret_len` bytes writable.
  */
 void cras_dlc_get_id_string(char *ret, size_t ret_len, enum CrasDlcId id);
 
