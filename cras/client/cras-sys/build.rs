@@ -4,7 +4,8 @@
 use std::env;
 use std::fs::remove_file;
 use std::path::Path;
-use std::process::Command;
+
+use bindgen::builder;
 
 fn main() {
     let gen_file = Path::new("./src/gen.rs");
@@ -18,19 +19,20 @@ fn main() {
     let header_path = header_dir.join("cras_bindgen.h");
     println!("cargo:rerun-if-changed={}", header_path.display());
     println!("cargo:rerun-if-changed=src/gen.rs");
-    let status = Command::new("bindgen")
-        .arg(header_path.to_str().unwrap())
-        .args(["--allowlist-type", "cras_.*"])
-        .args(["--allowlist-var", "cras_.*"])
-        .args(["--allowlist-type", "CRAS_.*"])
-        .args(["--allowlist-var", "CRAS_.*"])
-        .args(["--allowlist-type", "audio_message"])
-        .args(["--allowlist-var", "MAX_DEBUG_.*"])
-        .args(["--rustified-enum", "CRAS_.*"])
-        .args(["--rustified-enum", "_snd_pcm_.*"])
-        .args(["--bitfield-enum", "CRAS_STREAM_EFFECT"])
-        .args(["--output", gen_file.to_str().unwrap()])
-        .status()
-        .expect("Failed in bindgen command.");
-    assert!(status.success(), "Got error from bindgen command");
+    let bindings = builder()
+        .header(header_path.to_str().unwrap())
+        .allowlist_type("cras_.*")
+        .allowlist_var("cras_.*")
+        .allowlist_type("CRAS_.*")
+        .allowlist_var("CRAS_.*")
+        .allowlist_type("audio_message")
+        .allowlist_var("MAX_DEBUG_.*")
+        .rustified_enum("CRAS_.*")
+        .rustified_enum("_snd_pcm_.*")
+        .bitfield_enum("CRAS_STREAM_EFFECT")
+        .generate()
+        .expect("Failed to generate bindings.");
+    bindings
+        .write_to_file(gen_file.to_str().unwrap())
+        .expect("Failed to write bindings to file");
 }
