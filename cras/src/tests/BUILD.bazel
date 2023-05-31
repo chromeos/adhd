@@ -717,6 +717,7 @@ cc_test(
         ":test_support",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
+        "//cras/src/server:cras_features",
         "//cras/src/server/rust:headers",
         "@iniparser",
         "@pkg_config//alsa",

@@ -17,6 +17,7 @@
 #include "cras/src/server/cras_bt_player.h"
 #include "cras/src/server/cras_dbus.h"
 #include "cras/src/server/cras_dbus_util.h"
+#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_fl_manager.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_iodev.h"
@@ -407,6 +408,14 @@ static DBusHandlerResult handle_set_input_mute(DBusConnection* conn,
   send_empty_reply(conn, message);
 
   return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult handle_get_audio_test_feature_flag(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  dbus_bool_t enabled = cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag);
+  return send_bool_reply(conn, message, enabled);
 }
 
 static DBusHandlerResult handle_get_volume_state(DBusConnection* conn,
@@ -1369,6 +1378,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetInputMute")) {
     return handle_set_input_mute(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetAudioTestFeatureFlag")) {
+    return handle_get_audio_test_feature_flag(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetVolumeState")) {
     return handle_get_volume_state(conn, message, arg);
