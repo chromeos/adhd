@@ -51,7 +51,7 @@ load(
 
 http_archive(
     name = "iniparser",
-    build_file = "//:BUILD.iniparser",
+    build_file = "//:third_party/BUILD.iniparser.bazel",
     sha256 = "aedf23881b834519aea5e861b2400606d211da049cd59d3cfb4568e0d9eff5c5",
     strip_prefix = "iniparser/src",
     urls = [
