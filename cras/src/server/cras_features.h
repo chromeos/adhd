@@ -13,13 +13,10 @@
 extern "C" {
 #endif
 
+#define DEFINE_FEATURE(name, default_enabled) name,
 enum cras_feature_id {
-  CrOSLateBootAudioTestFeatureFlag,
-  CrOSLateBootAudioHFPOffload,
-  CrOSLateBootAudioHFPMicSR,
-  CrOSLateBootAudioFlexibleLoopback,
-  CrOSLateBootAudioAPNoiseCancellation,
-  CrOSLateBootCrasSplitAlsaUSBInternal,
+#include "cras/src/server/cras_features.inc"
+#undef DEFINE_FEATURE
   NUM_FEATURES,
 };
 
