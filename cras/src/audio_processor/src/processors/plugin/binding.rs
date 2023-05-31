@@ -51,9 +51,9 @@ impl multi_slice {
     /// The caller must ensure that the first `self.channels` pointers
     /// in `self.data` point to `self.num_frames` slices.
     pub unsafe fn as_slice_vec<'a>(&mut self) -> Vec<&'a mut [f32]> {
-        self.data[..self.channels as usize]
+        self.data[..self.channels]
             .iter_mut()
-            .map(|&mut ptr| slice::from_raw_parts_mut(ptr, self.num_frames as usize))
+            .map(|&mut ptr| slice::from_raw_parts_mut(ptr, self.num_frames))
             .collect()
     }
 }

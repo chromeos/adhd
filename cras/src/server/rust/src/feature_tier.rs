@@ -46,31 +46,31 @@ mod tests {
     #[test]
     fn random_board() {
         let tier = CrasFeatureTier::new("random-board", "random");
-        assert_eq!(tier.sr_bt_supported, false);
+        assert!(!tier.sr_bt_supported);
     }
 
     #[test]
     fn fizz_celeron() {
         let tier = CrasFeatureTier::new("fizz", "Celeron-3865U");
-        assert_eq!(tier.sr_bt_supported, false);
+        assert!(!tier.sr_bt_supported);
     }
 
     #[test]
     fn nami_pentium() {
         let tier = CrasFeatureTier::new("nami", "PENTIUM-4417U");
-        assert_eq!(tier.sr_bt_supported, false);
+        assert!(!tier.sr_bt_supported);
     }
 
     #[test]
     fn brya_i7() {
         let tier = CrasFeatureTier::new("nami", "intel Core i7-1260P");
-        assert_eq!(tier.sr_bt_supported, true);
+        assert!(tier.sr_bt_supported);
     }
 
     #[test]
     fn check_has_substr() {
-        assert_eq!(has_substr("DisalLoWed", &["abc", "Dis"]), true);
-        assert_eq!(has_substr("DisalLoWed", &["abc"]), false);
+        assert!(has_substr("DisalLoWed", &["abc", "Dis"]));
+        assert!(!has_substr("DisalLoWed", &["abc"]));
     }
 }
 

@@ -108,7 +108,7 @@ fn dump_amp(output_cards: &[String]) -> Result<(), anyhow::Error> {
     for card in output_cards {
         run_command(
             Command::new("sound_card_init")
-                .args(&["debug", "--id", card, "--amp", &amp, "--conf", &config]),
+                .args(["debug", "--id", card, "--amp", &amp, "--conf", &config]),
         );
     }
 
@@ -151,8 +151,8 @@ fn main() {
     let input_cards = get_cards("arecord");
 
     for id in output_cards.iter().chain(input_cards.iter()) {
-        run_command(Command::new("amixer").args(&["-c", id, "scontents"]));
-        run_command(Command::new("amixer").args(&["-c", id, "contents"]));
+        run_command(Command::new("amixer").args(["-c", id, "scontents"]));
+        run_command(Command::new("amixer").args(["-c", id, "contents"]));
     }
 
     // HDA codec for codecs on x86.
@@ -173,7 +173,7 @@ fn main() {
     if let Ok(codecs) = fs::read_to_string("/sys/kernel/debug/asoc/codecs") {
         for m in re.captures_iter(&codecs) {
             let addr = format!("{} 0x{}", &m[2].to_string(), &m[3].to_string());
-            run_command(Command::new("i2cdump").args(&["-f", "-y", &addr]));
+            run_command(Command::new("i2cdump").args(["-f", "-y", &addr]));
         }
     }
 
@@ -202,7 +202,6 @@ fn main() {
 
         if !audio_comps
             .split_ascii_whitespace()
-            .into_iter()
             .any(|comp| comp == component)
         {
             continue;

@@ -49,9 +49,9 @@ unsafe extern "C" fn wrapper_run(
 
     let input: MultiSlice<f32> = match input.as_ref() {
         Some(raw) => MultiSlice::from_raw(
-            raw.data[..raw.channels as usize]
+            raw.data[..raw.channels]
                 .iter()
-                .map(|&ptr| slice::from_raw_parts_mut(ptr, raw.num_frames as usize))
+                .map(|&ptr| slice::from_raw_parts_mut(ptr, raw.num_frames))
                 .collect(),
         ),
         None => return binding::status::ErrInvalidArgument,
