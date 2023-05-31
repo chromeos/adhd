@@ -6,8 +6,8 @@
 
 #include "cras/src/server/cras_features_impl.h"
 
-bool feature_library_initialize() {
-  return true;
+int cras_features_init() {
+  return 0;
 }
 
 bool cras_features_backend_get_enabled(const struct cras_feature* feature) {

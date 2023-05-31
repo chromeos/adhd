@@ -422,9 +422,10 @@ int cras_server_init() {
     server_instance.server_sockets[conn_type].fd = -1;
   }
 
-  // Initialize CFeatureLibrary to query experiment state.
-  if (!feature_library_initialize()) {
-    syslog(LOG_ERR, "failed to initialize CFeatureLibrary");
+  // Initialize the cras_features backend.
+  int rc = cras_features_init();
+  if (rc != 0) {
+    syslog(LOG_ERR, "failed to initialize the cras_features backend: %d", rc);
   }
 
   return 0;

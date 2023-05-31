@@ -2,6 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include <errno.h>
 #include <featured/c_feature_library.h>
 #include <stdbool.h>
 #include <time.h>
@@ -33,8 +34,12 @@ static const struct VariationsFeature variations_features[NUM_FEATURES] = {
 };
 #undef DEFINE_FEATURE
 
-bool feature_library_initialize() {
-  return CFeatureLibraryInitialize();
+int cras_features_init() {
+  if (!CFeatureLibraryInitialize()) {
+    // We don't really know what's going on. Just return an arbitrary error.
+    return -ENODATA;
+  }
+  return 0;
 }
 
 bool cras_features_backend_get_enabled(const struct cras_feature* feature) {

@@ -20,8 +20,9 @@ enum cras_feature_id {
   NUM_FEATURES,
 };
 
-// Initializes CFeatureLibrary.
-bool feature_library_initialize();
+// Initialize the cras_features backend.
+// Returns a negative error code on failure, 0 on success.
+int cras_features_init();
 
 // Get whether the feature is enabled.
 bool cras_feature_enabled(enum cras_feature_id id);
