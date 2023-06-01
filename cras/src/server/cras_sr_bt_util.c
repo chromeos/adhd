@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "cras/src/server/cras_features.h"
+#include "cras/platform/features/features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"

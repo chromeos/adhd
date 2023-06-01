@@ -4,7 +4,7 @@
 
 #include <featured/c_feature_library.h>
 
-#include "cras/src/server/cras_features.h"
+#include "cras/platform/features/features.h"
 #include "gtest/gtest.h"
 
 // Mocks.

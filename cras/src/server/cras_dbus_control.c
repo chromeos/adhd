@@ -12,12 +12,12 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/platform/features/features.h"
 #include "cras/src/common/cras_dbus_bindings.h"  // Generated from Makefile
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_player.h"
 #include "cras/src/server/cras_dbus.h"
 #include "cras/src/server/cras_dbus_util.h"
-#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_fl_manager.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_iodev.h"

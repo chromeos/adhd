@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 
-#include "cras/src/server/cras_features_impl.h"
+#include "cras/platform/features/features_impl.h"
 
 int cras_features_init() {
   return 0;

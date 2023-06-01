@@ -8,10 +8,10 @@
 #include <sys/syslog.h>
 #include <syslog.h>
 
+#include "cras/platform/features/features.h"
 #include "cras/src/common/cras_hats.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_empty_iodev.h"
-#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_floop_iodev.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_loopback_iodev.h"

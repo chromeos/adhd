@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras/src/server/cras_features_impl.h"
+#include "cras/platform/features/features_impl.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 

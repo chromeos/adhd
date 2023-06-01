@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef SCOPED_FEATURES_OVERRIDE_H_
-#define SCOPED_FEATURES_OVERRIDE_H_
+#ifndef CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_H_
+#define CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_H_
 
 #include <utility>
 #include <vector>
 
-#include "cras/src/server/cras_features.h"
+#include "cras/platform/features/features.h"
 
 // ScopedFeaturesOverride overrides the enabled features upon construction.
 // Upon destruct the original feature configuration is restored.
@@ -29,4 +29,4 @@ class ScopedFeaturesOverride final {
   std::vector<std::pair<cras_feature_id, bool>> restore_enabled_;
 };
 
-#endif  // SCOPED_FEATURES_OVERRIDE_H_
+#endif  // CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_H_

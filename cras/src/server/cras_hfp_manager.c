@@ -17,10 +17,10 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/platform/features/features.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_policy.h"
-#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_fl_media_adapter.h"
 #include "cras/src/server/cras_fl_pcm_iodev.h"

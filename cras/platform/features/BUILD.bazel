@@ -1,0 +1,61 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("//:utils.bzl", "require_config")
+
+cc_library(
+    name = "features",
+    srcs = [
+        "features_impl.c",
+        "features_impl.h",
+        "features.inc",
+        "override.h",
+    ] + select({
+        "//:featured_build": ["backend_featured.c"],
+        "//conditions:default": ["backend_stub.c"],
+    }),
+    hdrs = ["features.h"],
+    visibility = [
+        "//cras/src/server:__pkg__",
+        "//cras/src/tests:__pkg__",
+    ],
+    deps = select({
+        "//:featured_build": ["@pkg_config//libfeatures_c"],
+        "//conditions:default": [],
+    }),
+)
+
+cc_library(
+    name = "override",
+    testonly = True,
+    hdrs = ["override.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = [":features"],
+)
+
+cc_test(
+    name = "features_test",
+    srcs = [
+        "features_impl.h",
+        "features_test.cc",
+    ],
+    deps = [
+        ":features",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
+    name = "backend_featured_test",
+    srcs = [
+        "backend_featured_test.cc",
+    ],
+    target_compatible_with = require_config("//:featured_build"),
+    deps = [
+        ":features",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)

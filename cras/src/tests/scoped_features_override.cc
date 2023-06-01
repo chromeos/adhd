@@ -4,8 +4,8 @@
 
 #include "cras/src/tests/scoped_features_override.h"
 
-#include "cras/src/server/cras_features.h"
-#include "cras/src/server/cras_features_override.h"
+#include "cras/platform/features/features.h"
+#include "cras/platform/features/override.h"
 
 ScopedFeaturesOverride::ScopedFeaturesOverride(
     const std::vector<cras_feature_id>& enabled_features,

@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("//:utils.bzl", "require_config")
-
 cc_library(
     name = "cras_mix",
     srcs = [
@@ -194,59 +192,6 @@ cc_library(
 )
 
 cc_library(
-    name = "cras_features",
-    srcs = [
-        "cras_features_impl.c",
-        "cras_features_impl.h",
-        "cras_features.inc",
-        "cras_features_override.h",
-    ] + select({
-        "//:featured_build": ["cras_features_backend_featured.c"],
-        "//conditions:default": ["cras_features_backend_stub.c"],
-    }),
-    hdrs = ["cras_features.h"],
-    visibility = ["//cras/src/tests:__pkg__"],
-    deps = select({
-        "//:featured_build": ["@pkg_config//libfeatures_c"],
-        "//conditions:default": [],
-    }),
-)
-
-cc_library(
-    name = "cras_features_override",
-    testonly = True,
-    hdrs = ["cras_features_override.h"],
-    visibility = ["//cras/src/tests:__pkg__"],
-    deps = [":cras_features"],
-)
-
-cc_test(
-    name = "cras_features_test",
-    srcs = [
-        "cras_features_impl.h",
-        "cras_features_test.cc",
-    ],
-    deps = [
-        ":cras_features",
-        "@pkg_config//gtest",
-        "@pkg_config//gtest_main",
-    ],
-)
-
-cc_test(
-    name = "cras_features_backend_featured_test",
-    srcs = [
-        "cras_features_backend_featured_test.cc",
-    ],
-    target_compatible_with = require_config("//:featured_build"),
-    deps = [
-        ":cras_features",
-        "@pkg_config//gtest",
-        "@pkg_config//gtest_main",
-    ],
-)
-
-cc_library(
     name = "cras_sr",
     srcs = select({
         "//:ml_build": [
@@ -274,7 +219,7 @@ cc_library(
     ],
     deps = [
         ":cras_audio_area",
-        ":cras_features",
+        "//cras/platform/features",
         ":cras_fmt_conv_ops",
         ":dsp_types",
         ":ewma_power",
@@ -503,12 +448,12 @@ cc_library(
         ":cras_alsa_ucm",
         ":cras_apm",
         ":cras_audio_area",
-        ":cras_features",
         ":cras_fmt_conv_ops",
         ":cras_mix",
         ":cras_sr",
         ":dsp_types",
         ":ewma_power",
+        "//cras/platform/features",
         "//cras/src/common",
         "//cras/src/dsp",
         "//cras/src/plc",
@@ -552,10 +497,10 @@ cc_library(
     ],
     deps = [
         ":cras_audio_area",
-        ":cras_features",
         ":dsp_types",
         ":ewma_power",
         "//audio_processor/c:plugin_processor",
+        "//cras/platform/features",
         "//cras/src/common",
         "//cras/src/dsp",
         "//cras/src/server/rust",

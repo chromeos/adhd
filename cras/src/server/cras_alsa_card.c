@@ -12,6 +12,7 @@
 #include <alsa/asoundlib.h>
 #include <syslog.h>
 
+#include "cras/platform/features/features.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alsa_io.h"
@@ -19,7 +20,6 @@
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_alsa_usb_io.h"
-#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_system_state.h"

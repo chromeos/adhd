@@ -119,9 +119,9 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "//cras/src/server:cras_features_override",
         "//cras/src/server/config:all_headers",
         "//cras/src/server/rust:headers",
         "@iniparser",
@@ -675,9 +675,9 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/platform/features",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "//cras/src/server:cras_features_override",
         "//cras/src/server/rust:headers",
         "@iniparser",
         "@pkg_config//alsa",
@@ -715,9 +715,9 @@ cc_test(
     flaky = True,  # TODO(b/271618403): Fix the flake.
     deps = [
         ":test_support",
+        "//cras/platform/features",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "//cras/src/server:cras_features",
         "//cras/src/server/rust:headers",
         "@iniparser",
         "@pkg_config//alsa",
@@ -1166,9 +1166,9 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "//cras/src/server:cras_features_override",
         "//cras/src/server/rust:headers",
         "@iniparser",
         "@pkg_config//alsa",
@@ -1235,9 +1235,9 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
-        "//cras/src/server:cras_features_override",
         "//cras/src/server/rust:headers",
         "@iniparser",
         "@pkg_config//alsa",
@@ -1839,8 +1839,8 @@ cc_library(
     srcs = ["scoped_features_override.cc"],
     hdrs = ["scoped_features_override.h"],
     deps = [
-        "//cras/src/server:cras_features",
-        "//cras/src/server:cras_features_override",
+        "//cras/platform/features",
+        "//cras/platform/features:override",
     ],
 )
 

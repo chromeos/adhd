@@ -6,9 +6,9 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include "cras/platform/features/override.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_profile.h"
-#include "cras/src/server/cras_features_override.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_iodev.h"
 }

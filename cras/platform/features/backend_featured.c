@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include "cras/src/server/cras_features_impl.h"
+#include "cras/platform/features/features_impl.h"
 
 #define FEATURE_LIBRARY_TIMEOUT_MS 500
 #define FEATURE_LIBRARY_CACHE_TTL_SEC 5
@@ -30,7 +30,7 @@ static struct cached_feature {
   [name] = {#name, default_enabled ? FEATURE_ENABLED_BY_DEFAULT \
                                    : FEATURE_DISABLED_BY_DEFAULT},
 static const struct VariationsFeature variations_features[NUM_FEATURES] = {
-#include "cras/src/server/cras_features.inc"
+#include "cras/platform/features/features.inc"
 };
 #undef DEFINE_FEATURE
 

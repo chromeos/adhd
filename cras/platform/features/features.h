@@ -4,8 +4,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SRC_SERVER_CRAS_FEATURES_H_
-#define CRAS_SRC_SERVER_CRAS_FEATURES_H_
+#ifndef CRAS_PLATFORM_FEATURES_FEATURES_H_
+#define CRAS_PLATFORM_FEATURES_FEATURES_H_
 
 #include <stdbool.h>
 
@@ -15,7 +15,7 @@ extern "C" {
 
 #define DEFINE_FEATURE(name, default_enabled) name,
 enum cras_feature_id {
-#include "cras/src/server/cras_features.inc"
+#include "cras/platform/features/features.inc"
 #undef DEFINE_FEATURE
   NUM_FEATURES,
 };

@@ -7,7 +7,7 @@
 #include <syslog.h>
 
 extern "C" {
-#include "cras/src/server/cras_features_override.h"
+#include "cras/platform/features/override.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_sr_bt_util.h"
 #include "cras/src/server/rust/include/cras_dlc.h"

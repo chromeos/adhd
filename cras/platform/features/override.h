@@ -4,12 +4,12 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SRC_SERVER_CRAS_FEATURES_OVERRIDE_H_
-#define CRAS_SRC_SERVER_CRAS_FEATURES_OVERRIDE_H_
+#ifndef CRAS_PLATFORM_FEATURES_OVERRIDE_H_
+#define CRAS_PLATFORM_FEATURES_OVERRIDE_H_
 
 #include <stdbool.h>
 
-#include "cras/src/server/cras_features.h"
+#include "cras/platform/features/features.h"
 
 #ifdef __cplusplus
 extern "C" {

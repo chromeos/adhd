@@ -9,13 +9,13 @@
 #include <sys/select.h>
 #include <syslog.h>
 
+#include "cras/platform/features/features.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_jack.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_alsa_usb_io.h"
-#include "cras/src/server/cras_features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/iniparser_wrapper.h"
