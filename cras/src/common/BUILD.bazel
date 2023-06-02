@@ -109,6 +109,20 @@ cc_library(
 )
 
 cc_library(
+    name = "cras_log",
+    hdrs = [
+        "cras_log.h",
+    ],
+    visibility = [
+        "//cras/src/common:__pkg__",
+        "//cras/src/libcras:__pkg__",
+        "//cras/src/server:__pkg__",
+    ],
+    deps = [
+    ],
+)
+
+cc_library(
     name = "cras_types",
     srcs = [
         "cras_audio_format.c",
@@ -198,6 +212,7 @@ cc_library(
         ":cras_selinux_helper",
         ":cras_shm",
         ":cras_string",
+        ":cras_log",
         ":cras_types",
         ":cras_util",
         "//third_party/superfasthash",

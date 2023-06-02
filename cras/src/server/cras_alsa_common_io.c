@@ -5,8 +5,8 @@
 #include "cras/src/server/cras_alsa_common_io.h"
 
 #include <sys/time.h>
-#include <syslog.h>
 
+#include "cras/src/common/cras_log.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_ucm.h"
@@ -145,16 +145,16 @@ int cras_alsa_common_set_active_node(struct cras_iodev* iodev,
                                      struct cras_ionode* ionode) {
   struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
   cras_iodev_set_active_node(iodev, ionode);
-  syslog(LOG_INFO,
-         "card type: %s, Set active node. name: %s, id: %d, direction: %s, "
-         "type: %s, "
-         "enable software volume: %d, intrinsic_sensitivity: %ld, volume: %d, "
-         "number_of_volume_steps: %d",
-         cras_card_type_to_string(aio->card_type), ionode->name, ionode->idx,
-         iodev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
-         cras_node_type_to_str(ionode->type, ionode->position),
-         ionode->software_volume_needed, ionode->intrinsic_sensitivity,
-         ionode->volume, ionode->number_of_volume_steps);
+  fra_log(LOG_INFO, USBAudioSelected,
+          "card type: %s, Set active node. name: %s, id: %d, direction: %s, "
+          "type: %s, "
+          "enable software volume: %d, intrinsic_sensitivity: %ld, volume: %d, "
+          "number_of_volume_steps: %d",
+          cras_card_type_to_string(aio->card_type), ionode->name, ionode->idx,
+          iodev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
+          cras_node_type_to_str(ionode->type, ionode->position),
+          ionode->software_volume_needed, ionode->intrinsic_sensitivity,
+          ionode->volume, ionode->number_of_volume_steps);
   return 0;
 }
 
