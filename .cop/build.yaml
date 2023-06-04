@@ -3,22 +3,45 @@
     {
       "name": "gcr.io/cloud-builders/git",
       "args": [
-        "this is a placeholder step to play nicely with CoP config merging"
+        "adhd"
       ],
-      "id": "placeholder:0",
-      "entrypoint": "echo"
+      "id": "prepare-source:0",
+      "entrypoint": "mkdir"
+    },
+    {
+      "name": "gcr.io/cloud-builders/git",
+      "args": [
+        ".",
+        "-mindepth",
+        "1",
+        "-maxdepth",
+        "1",
+        "-not",
+        "-name",
+        "adhd",
+        "-exec",
+        "mv",
+        "{}",
+        "adhd",
+        ";"
+      ],
+      "id": "prepare-source:1",
+      "waitFor": [
+        "prepare-source:0"
+      ],
+      "entrypoint": "find"
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "-ah",
-        "/workspace/",
+        "/workspace/adhd/",
         "./"
       ],
       "dir": "/workspace-archlinux-clang",
       "id": "archlinux-clang:0",
       "waitFor": [
-        "placeholder:0"
+        "prepare-source:1"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -56,13 +79,13 @@
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "-ah",
-        "/workspace/",
+        "/workspace/adhd/",
         "./"
       ],
       "dir": "/workspace-archlinux-clang-asan",
       "id": "archlinux-clang-asan:0",
       "waitFor": [
-        "placeholder:0"
+        "prepare-source:1"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -101,13 +124,13 @@
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "-ah",
-        "/workspace/",
+        "/workspace/adhd/",
         "./"
       ],
       "dir": "/workspace-archlinux-clang-ubsan",
       "id": "archlinux-clang-ubsan:0",
       "waitFor": [
-        "placeholder:0"
+        "prepare-source:1"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -146,13 +169,13 @@
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "-ah",
-        "/workspace/",
+        "/workspace/adhd/",
         "./"
       ],
       "dir": "/workspace-archlinux-gcc",
       "id": "archlinux-gcc:0",
       "waitFor": [
-        "placeholder:0"
+        "prepare-source:1"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -190,13 +213,13 @@
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "-ah",
-        "/workspace/",
+        "/workspace/adhd/",
         "./"
       ],
       "dir": "/workspace-archlinux-system-cras-rust",
       "id": "archlinux-system-cras-rust:0",
       "waitFor": [
-        "placeholder:0"
+        "prepare-source:1"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -293,13 +316,13 @@
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "-ah",
-        "/workspace/",
+        "/workspace/adhd/",
         "./"
       ],
       "dir": "/workspace-kythe",
       "id": "kythe:0",
       "waitFor": [
-        "placeholder:0"
+        "prepare-source:1"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -335,7 +358,7 @@
       ],
       "id": "oss-fuzz-setup:0",
       "waitFor": [
-        "placeholder:0"
+        "prepare-source:1"
       ],
       "entrypoint": "mkdir"
     },
@@ -343,7 +366,7 @@
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "-ah",
-        "/workspace/",
+        "/workspace/adhd/",
         "adhd/"
       ],
       "dir": "oss-fuzz-setup",

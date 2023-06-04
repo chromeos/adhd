@@ -90,6 +90,7 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	}
 }
 
+// checkoutSteps checks out the source to /workspace/adhd.
 func (cl *gerritCL) checkoutSteps() *buildplan.Sequence {
 	return buildplan.Commands(
 		"git",
@@ -97,38 +98,47 @@ func (cl *gerritCL) checkoutSteps() *buildplan.Sequence {
 			{
 				Name:       "gcr.io/cloud-builders/git",
 				Entrypoint: "git",
-				Args:       []string{"clone", "--depth=1", gitURL, "."},
+				Args:       []string{"clone", "--depth=1", gitURL, "adhd"},
 			},
 			{
 				Name:       "gcr.io/cloud-builders/git",
 				Entrypoint: "git",
 				Args:       []string{"fetch", gitURL, cl.ref},
+				Dir:        "adhd",
 			},
 			{
 				Name:       "gcr.io/cloud-builders/git",
 				Entrypoint: "git",
 				Args:       []string{"checkout", "FETCH_HEAD"},
+				Dir:        "adhd",
 			},
 		}...,
 	)
 }
 
-func copPlaceholderSteps() *buildplan.Sequence {
+func copMoveSourceSteps() *buildplan.Sequence {
+	// CoP places sources under /workspace.
+	// Move them to /workspace/adhd.
 	return buildplan.Commands(
-		"placeholder",
-		buildplan.Command("gcr.io/cloud-builders/git", "echo", "this is a placeholder step to play nicely with CoP config merging"),
+		"prepare-source",
+		buildplan.Command("gcr.io/cloud-builders/git",
+			"mkdir", "adhd"),
+		buildplan.Command("gcr.io/cloud-builders/git",
+			"find", ".", "-mindepth", "1", "-maxdepth", "1", "-not", "-name", "adhd",
+			"-exec", "mv", "{}", "adhd", ";",
+		),
 	)
 }
 
 // MakeCopBuild returns a go/cros-cop compatible build.
 func MakeCopBuild() *cloudbuildpb.Build {
 	return makeBuild(
-		copPlaceholderSteps(),
+		copMoveSourceSteps(),
 		nil,
 	)
 }
 
-var prepareSourceStep = buildplan.Command(archlinuxBuilder, "rsync", "-ah", "/workspace/", "./")
+var prepareSourceStep = buildplan.Command(archlinuxBuilder, "rsync", "-ah", "/workspace/adhd/", "./")
 
 func archlinuxSteps(id string, bazelArgs ...string) *buildplan.Sequence {
 	return buildplan.Commands(
@@ -198,7 +208,7 @@ func ossFuzzSetupSteps() *buildplan.Sequence {
 			{
 				Name:       archlinuxBuilder,
 				Entrypoint: "rsync",
-				Args:       []string{"-ah", "/workspace/", "adhd/"},
+				Args:       []string{"-ah", "/workspace/adhd/", "adhd/"},
 				Dir:        "oss-fuzz-setup",
 			},
 			{
