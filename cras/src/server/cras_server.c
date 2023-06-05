@@ -690,6 +690,7 @@ bail:
   cleanup_server_sockets();
   free(pollfds);
   cras_observer_server_free();
+  cras_features_deinit();
   return rc;
 }
 

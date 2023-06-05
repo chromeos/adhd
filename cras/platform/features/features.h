@@ -24,6 +24,9 @@ enum cras_feature_id {
 // Returns a negative error code on failure, 0 on success.
 int cras_features_init();
 
+// Clean up resources associated with the cras_features backend.
+void cras_features_deinit();
+
 // Get whether the feature is enabled.
 bool cras_feature_enabled(enum cras_feature_id id);
 

@@ -42,6 +42,10 @@ int cras_features_init() {
   return 0;
 }
 
+void cras_features_deinit() {
+  // Do nothing.
+}
+
 bool cras_features_backend_get_enabled(const struct cras_feature* feature) {
   const enum cras_feature_id id = cras_feature_get_id(feature);
 
