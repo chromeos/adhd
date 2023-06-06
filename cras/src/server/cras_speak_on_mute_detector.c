@@ -187,7 +187,6 @@ static const struct cras_observer_ops speak_on_mute_observer_ops = {
 };
 
 void cras_speak_on_mute_detector_init() {
-  // TODO(b:262404106): Fine tune speak on mute detection parameters.
   struct speak_on_mute_detector_config cfg = {.detection_threshold = 28,
                                               .detection_window_size = 30,
                                               .rate_limit_duration = {
