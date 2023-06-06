@@ -19,3 +19,10 @@ TEST(Features, Name) {
            "prefix check in Chrome and never be enabled.";
   }
 }
+
+TEST(Features, GetByName) {
+  EXPECT_EQ(CrOSLateBootAudioTestFeatureFlag,
+            cras_feature_get_by_name("CrOSLateBootAudioTestFeatureFlag"));
+  EXPECT_EQ(CrOSLateBootUnknown, cras_feature_get_by_name("???"));
+  EXPECT_EQ(CrOSLateBootUnknown, cras_feature_get_by_name(NULL));
+}

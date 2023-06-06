@@ -30,6 +30,10 @@ void cras_features_deinit();
 // Get whether the feature is enabled.
 bool cras_feature_enabled(enum cras_feature_id id);
 
+// Get the feature ID by name.
+// Returns CrOSLateBootUnknown if the name is not known.
+enum cras_feature_id cras_feature_get_by_name(const char* name);
+
 #ifdef __cplusplus
 }
 #endif

@@ -6,6 +6,8 @@
 
 #include "cras/platform/features/features_impl.h"
 
+#include <assert.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "cras/platform/features/features.h"
@@ -44,4 +46,20 @@ void cras_features_unset_override(enum cras_feature_id id) {
 
 enum cras_feature_id cras_feature_get_id(const struct cras_feature* feature) {
   return feature - features;
+}
+
+enum cras_feature_id cras_feature_get_by_name(const char* name) {
+  if (name == NULL) {
+    return CrOSLateBootUnknown;
+  }
+
+  static_assert(
+      CrOSLateBootUnknown == 0,
+      "CrOSLateBootUnknown should be 0 as we start loop iteration at 1");
+  for (int i = 1; i < NUM_FEATURES; i++) {
+    if (strcmp(name, features[i].name) == 0) {
+      return i;
+    }
+  }
+  return CrOSLateBootUnknown;
 }
