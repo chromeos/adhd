@@ -6,32 +6,41 @@
 #include "gtest/gtest.h"
 
 TEST(ScopedFeaturesOverrideTest, Override) {
-  bool initially_enabled =
-      cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag);
+  EXPECT_FALSE(cras_feature_enabled(CrOSLateBootDisabledByDefault));
+  EXPECT_TRUE(cras_feature_enabled(CrOSLateBootEnabledByDefault));
 
   {
-    ScopedFeaturesOverride override1({CrOSLateBootAudioTestFeatureFlag});
-    EXPECT_TRUE(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag));
+    // Override EnabledByDefault to disabled, DisabledByDefault to enabled.
+    ScopedFeaturesOverride override1({CrOSLateBootDisabledByDefault},
+                                     {CrOSLateBootEnabledByDefault});
+    EXPECT_TRUE(cras_feature_enabled(CrOSLateBootDisabledByDefault));
+    EXPECT_FALSE(cras_feature_enabled(CrOSLateBootEnabledByDefault));
     {
-      ScopedFeaturesOverride override2({}, {CrOSLateBootAudioTestFeatureFlag});
-      EXPECT_FALSE(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag));
+      // Override DisabledByDefault to disabled.
+      // EnabledByDefault should not be changed.
+      ScopedFeaturesOverride override2({}, {CrOSLateBootDisabledByDefault});
+      EXPECT_FALSE(cras_feature_enabled(CrOSLateBootDisabledByDefault));
+      EXPECT_FALSE(cras_feature_enabled(CrOSLateBootEnabledByDefault));
     }
-    EXPECT_TRUE(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag));
+    EXPECT_TRUE(cras_feature_enabled(CrOSLateBootDisabledByDefault));
+    EXPECT_FALSE(cras_feature_enabled(CrOSLateBootEnabledByDefault));
   }
 
-  EXPECT_EQ(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag),
-            initially_enabled);
+  EXPECT_FALSE(cras_feature_enabled(CrOSLateBootDisabledByDefault));
+  EXPECT_TRUE(cras_feature_enabled(CrOSLateBootEnabledByDefault));
 }
 
 class ScopedFeaturesOverrideInFixture : public ::testing::Test {
  public:
   ScopedFeaturesOverrideInFixture()
-      : feature_overrides_({CrOSLateBootAudioTestFeatureFlag}) {}
+      : feature_overrides_({CrOSLateBootDisabledByDefault},
+                           {CrOSLateBootEnabledByDefault}) {}
 
  private:
   ScopedFeaturesOverride feature_overrides_;
 };
 
 TEST_F(ScopedFeaturesOverrideInFixture, Override) {
-  EXPECT_TRUE(cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag));
+  EXPECT_TRUE(cras_feature_enabled(CrOSLateBootDisabledByDefault));
+  EXPECT_FALSE(cras_feature_enabled(CrOSLateBootEnabledByDefault));
 }

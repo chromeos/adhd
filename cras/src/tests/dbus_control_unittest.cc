@@ -67,6 +67,22 @@ TEST_F(DBusControlTestSuite, SetGlobalOutputChannelRemixInvalid) {
   }
 }
 
+TEST_F(DBusControlTestSuite, GetFeatureFlagForTestSmoke) {
+  CreateMessageCall(CRAS_ROOT_OBJECT_PATH, CRAS_CONTROL_INTERFACE,
+                    "GetFeatureFlagForTest")
+      .WithString("CrOSLateBootEnabledByDefault")
+      .Send();
+  WaitForMatches();
+}
+
+TEST_F(DBusControlTestSuite, GetFeatureFlagForTestBadArgs) {
+  CreateMessageCall(CRAS_ROOT_OBJECT_PATH, CRAS_CONTROL_INTERFACE,
+                    "GetFeatureFlagForTest")
+      .WithInt32(100)  // Bad argument should not crash the server.
+      .Send();
+  WaitForMatches();
+}
+
 }  // namespace
 
 extern "C" {

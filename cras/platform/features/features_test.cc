@@ -21,8 +21,8 @@ TEST(Features, Name) {
 }
 
 TEST(Features, GetByName) {
-  EXPECT_EQ(CrOSLateBootAudioTestFeatureFlag,
-            cras_feature_get_by_name("CrOSLateBootAudioTestFeatureFlag"));
+  EXPECT_EQ(CrOSLateBootDisabledByDefault,
+            cras_feature_get_by_name("CrOSLateBootDisabledByDefault"));
   EXPECT_EQ(CrOSLateBootUnknown, cras_feature_get_by_name("???"));
   EXPECT_EQ(CrOSLateBootUnknown, cras_feature_get_by_name(NULL));
 }

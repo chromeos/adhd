@@ -410,11 +410,19 @@ static DBusHandlerResult handle_set_input_mute(DBusConnection* conn,
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
-static DBusHandlerResult handle_get_audio_test_feature_flag(
-    DBusConnection* conn,
-    DBusMessage* message,
-    void* arg) {
-  dbus_bool_t enabled = cras_feature_enabled(CrOSLateBootAudioTestFeatureFlag);
+static DBusHandlerResult handle_get_feature_flag_for_test(DBusConnection* conn,
+                                                          DBusMessage* message,
+                                                          void* arg) {
+  const char* feature_name;
+  int rc = get_single_arg(message, DBUS_TYPE_STRING, &feature_name);
+  if (rc != 0) {
+    return rc;
+  }
+  enum cras_feature_id feature_id = cras_feature_get_by_name(feature_name);
+  if (feature_id == CrOSLateBootUnknown) {
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+  }
+  dbus_bool_t enabled = cras_feature_enabled(feature_id);
   return send_bool_reply(conn, message, enabled);
 }
 
@@ -1379,8 +1387,8 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                          "SetInputMute")) {
     return handle_set_input_mute(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
-                                         "GetAudioTestFeatureFlag")) {
-    return handle_get_audio_test_feature_flag(conn, message, arg);
+                                         "GetFeatureFlagForTest")) {
+    return handle_get_feature_flag_for_test(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetVolumeState")) {
     return handle_get_volume_state(conn, message, arg);

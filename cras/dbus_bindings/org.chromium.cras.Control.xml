@@ -233,10 +233,12 @@
       <arg name="supported" type="b" direction="out"/>
     </method>
 
-    <method name="GetAudioTestFeatureFlag">
+    <method name="GetFeatureFlagForTest">
       <tp:docstring>
-        Returns the value of CrOSLateBootAudioTestFeatureFlag as seen by CRAS.
+        Returns the enabled status of the given feature as seen by CRAS.
+        Test only.
       </tp:docstring>
+      <arg name="feature" type="s" direction="in"/>
       <arg name="enabled" type="b" direction="out"/>
     </method>
 
