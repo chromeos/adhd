@@ -41,7 +41,7 @@
       "dir": "/workspace-copgen-check",
       "id": "copgen-check:0",
       "waitFor": [
-        "placeholder:0"
+        "prepare-source:1"
       ],
       "entrypoint": "rsync",
       "volumes": [
@@ -73,7 +73,7 @@
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "-ah",
-        "/workspace/",
+        "/workspace/adhd/",
         "./"
       ],
       "dir": "/workspace-archlinux-clang",
