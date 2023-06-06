@@ -1343,4 +1343,9 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   return 0;
 }
 
+bool cras_iodev_is_channel_count_supported(struct cras_iodev* dev,
+                                           int channel) {
+  return true;
+}
+
 }  // extern "C"

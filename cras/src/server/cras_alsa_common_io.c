@@ -113,12 +113,36 @@ int cras_alsa_common_set_hwparams(struct cras_iodev* iodev, int period_wakeup) {
         cras_card_type_to_string(aio->card_type), aio->pcm_name,
         iodev->format->frame_rate, iodev->format->num_channels,
         iodev->buffer_size, period_wakeup, aio->dma_period_set_microsecs);
+
+    /* Some devices report incorrect channel capabilities and fail to
+       set_hwparams. Retry set_hwparams by using stereo channels to increase the
+       success rate of using these devices.
+    */
+    if (iodev->format->num_channels != 2 &&
+        cras_iodev_is_channel_count_supported(iodev, 2)) {
+      syslog(LOG_INFO,
+             "card type: %s, pcm_name: %s, retry set hwparams with stereo",
+             cras_card_type_to_string(aio->card_type), aio->pcm_name);
+      iodev->format->num_channels = 2;
+      rc = cras_alsa_set_hwparams(aio->handle, iodev->format,
+                                  &iodev->buffer_size, period_wakeup,
+                                  aio->dma_period_set_microsecs);
+      if (rc < 0) {
+        syslog(LOG_ERR,
+               "failed to retry set hwparams with stereo card type: %s, "
+               "pcm_name: %s",
+               cras_card_type_to_string(aio->card_type), aio->pcm_name);
+        return rc;
+      }
+      aio->hwparams_set = 1;
+    }
     return rc;
   }
 
   aio->hwparams_set = 1;
   return 0;
 }
+
 int cras_alsa_common_frames_queued(const struct cras_iodev* iodev,
                                    struct timespec* tstamp) {
   struct alsa_common_io* aio = (struct alsa_common_io*)iodev;

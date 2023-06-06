@@ -962,4 +962,13 @@ bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev* iodev,
 void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
                                          unsigned frames);
 
+/* Checks if an device supports the specific `channel` count.
+ * Args:
+ *    iodev - The device.
+ *    channel - The channel count.
+ * Returns:
+ *    True if the device supports the specific channel. False otherwise.
+ */
+bool cras_iodev_is_channel_count_supported(struct cras_iodev* iodev,
+                                           int channel);
 #endif  // CRAS_SRC_SERVER_CRAS_IODEV_H_

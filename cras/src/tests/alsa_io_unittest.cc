@@ -153,6 +153,7 @@ static int sys_get_max_internal_speaker_channels_return_value;
 static int sys_get_max_headphone_channels_called = 0;
 static int sys_get_max_headphone_channels_return_value = 2;
 static int cras_iodev_update_underrun_duration_called = 0;
+static bool testing_channel_retry = false;
 
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
@@ -250,6 +251,7 @@ void ResetStubData() {
   sys_get_max_headphone_channels_called = 0;
   sys_get_max_headphone_channels_return_value = 2;
   cras_iodev_update_underrun_duration_called = 0;
+  testing_channel_retry = false;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -511,6 +513,30 @@ TEST(AlsaIoInit, QuadChannelInternalSpeakerOpenPlayback) {
   iodev->configure_dev(iodev);
 
   EXPECT_EQ(3, display_rotation);
+  iodev->close_dev(iodev);
+  alsa_iodev_destroy(iodev);
+  free(fake_format);
+}
+
+TEST(AlsaIoInit, RetryHWParamWithStereo) {
+  struct cras_iodev* iodev;
+  struct cras_audio_format format;
+
+  ResetStubData();
+  testing_channel_retry = true;
+  iodev = alsa_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_INTERNAL, 0, fake_mixer, fake_config, NULL,
+      CRAS_STREAM_OUTPUT);
+  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+  format.frame_rate = 48000;
+  format.num_channels = 6;
+  cras_iodev_set_format(iodev, &format);
+  EXPECT_EQ(6, iodev->format->num_channels);
+  iodev->active_node->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  iodev->open_dev(iodev);
+  iodev->configure_dev(iodev);
+
+  EXPECT_EQ(2, iodev->format->num_channels);
   iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -2694,6 +2720,11 @@ int cras_iodev_list_set_hotword_model(cras_node_id_t node_id,
   return 0;
 }
 
+bool cras_iodev_is_channel_count_supported(struct cras_iodev* dev,
+                                           int channel) {
+  return true;
+}
+
 int cras_iodev_list_suspend_hotword_streams() {
   return 0;
 }
@@ -2767,6 +2798,9 @@ int cras_alsa_set_hwparams(snd_pcm_t* handle,
                            snd_pcm_uframes_t* buffer_size,
                            int period_wakeup,
                            unsigned int dma_period_time) {
+  if (testing_channel_retry && format->num_channels != 2) {
+    return -1;
+  }
   return 0;
 }
 int cras_alsa_set_swparams(snd_pcm_t* handle) {

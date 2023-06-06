@@ -1924,3 +1924,14 @@ void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
     cras_shm_update_underrun_duration(shm, duration);
   }
 }
+
+bool cras_iodev_is_channel_count_supported(struct cras_iodev* iodev,
+                                           int channel) {
+  int i;
+  for (i = 0; iodev->supported_channel_counts[i] != 0; i++) {
+    if (iodev->supported_channel_counts[i] == channel) {
+      return true;
+    }
+  }
+  return false;
+}
