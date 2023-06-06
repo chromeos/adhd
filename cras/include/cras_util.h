@@ -12,7 +12,6 @@ extern "C" {
 
 #include <assert.h>
 #include <poll.h>
-#include <syslog.h>
 #include <time.h>
 
 #include "cras_types.h"
@@ -22,26 +21,6 @@ extern "C" {
 #define static_assert_is_power_of_2(n)              \
   static_assert((n) != 0 && (((n) & ((n)-1)) == 0), \
                 "expression is not a power of 2")
-
-// FRA signal enum.
-enum FRA_SIGNAL {
-  PeripheralsUsbSoundCard,
-  USBAudioSelected,
-  USBAudioConfigureFailed,
-  USBAudioListOutputNodeFailed,
-  USBAudioStartFailed,
-  USBAudioSoftwareVolumeAbnormalRange,
-  USBAudioSoftwareVolumeAbnormalSteps,
-  USBAudioUCMNoJack,
-  USBAudioUCMWrongJack,
-  USBAudioResumeFailed,
-};
-
-// The log is monitoring by FRA. If the log format it changed, please also
-// update the signal regular expressions under
-// `google3/chromeos/feedback/analyzer/signals` as well.
-// The `signal` parameter should be the `enum FRA_SIGNAL` type.
-#define fra_log(__pri, signal, __fmt, ...) syslog(__pri, __fmt, __VA_ARGS__);
 
 // Enables real time scheduling.
 int cras_set_rt_scheduling(int rt_lim);

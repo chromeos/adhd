@@ -178,10 +178,9 @@ static int usb_configure_dev(struct cras_iodev* iodev) {
   return 0;
 
 error_out:
-  fra_log(LOG_ERR, USBAudioConfigureFailed,
-          "card type: %s, name: %s, Failed to configure_dev, ret: %s",
-          cras_card_type_to_string(aio->common.card_type), iodev->info.name,
-          snd_strerror(rc));
+  syslog(LOG_ERR, "card type: %s, name: %s, Failed to configure_dev, ret: %s",
+         cras_card_type_to_string(aio->common.card_type), iodev->info.name,
+         snd_strerror(rc));
   return rc;
 }
 
@@ -210,20 +209,18 @@ static int usb_start(struct cras_iodev* iodev) {
   if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
     rc = cras_alsa_attempt_resume(handle);
     if (rc < 0) {
-      fra_log(LOG_ERR, USBAudioResumeFailed,
-              "card type: %s, name: %s, Resume error: %s",
-              cras_card_type_to_string(aio->common.card_type), iodev->info.name,
-              snd_strerror(rc));
+      syslog(LOG_ERR, "card type: %s, name: %s, Resume error: %s",
+             cras_card_type_to_string(aio->common.card_type), iodev->info.name,
+             snd_strerror(rc));
       return rc;
     }
     cras_iodev_reset_rate_estimator(iodev);
   } else {
     rc = cras_alsa_pcm_start(handle);
     if (rc < 0) {
-      fra_log(LOG_ERR, USBAudioStartFailed,
-              "card type: %s, name: %s, Start error: %s",
-              cras_card_type_to_string(aio->common.card_type), iodev->info.name,
-              snd_strerror(rc));
+      syslog(LOG_ERR, "card type: %s, name: %s, Start error: %s",
+             cras_card_type_to_string(aio->common.card_type), iodev->info.name,
+             snd_strerror(rc));
       return rc;
     }
   }
@@ -623,24 +620,23 @@ static void usb_set_output_node_software_volume_needed(
   if (volume_range_db < db_to_alsa_db(VOLUME_RANGE_DB_MIN) ||
       volume_range_db > db_to_alsa_db(VOLUME_RANGE_DB_MAX)) {
     output->base.software_volume_needed = 1;
-    fra_log(
-        LOG_WARNING, USBAudioSoftwareVolumeAbnormalRange,
-        "card type: %s, name: %s, output volume range [%ld %ld] is abnormal."
-        "Fallback to software volume",
-        cras_card_type_to_string(aio->common.card_type), output->base.name, min,
-        max);
+    syslog(LOG_WARNING,
+           "card type: %s, name: %s, output volume range [%ld %ld] is abnormal."
+           "Fallback to software volume",
+           cras_card_type_to_string(aio->common.card_type), output->base.name,
+           min, max);
   }
   number_of_volume_steps =
       cras_alsa_mixer_get_playback_step(output->mixer_output);
   if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
     output->base.software_volume_needed = 1;
     output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-    fra_log(LOG_WARNING, USBAudioSoftwareVolumeAbnormalSteps,
-            "card type: %s, name: %s, output number_of_volume_steps [%" PRId32
-            "] is abnormally small."
-            "Fallback to software volume and set number_of_volume_steps to %d",
-            cras_card_type_to_string(aio->common.card_type), output->base.name,
-            number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_DEFAULT);
+    syslog(LOG_WARNING,
+           "card type: %s, name: %s, output number_of_volume_steps [%" PRId32
+           "] is abnormally small."
+           "Fallback to software volume and set number_of_volume_steps to %d",
+           cras_card_type_to_string(aio->common.card_type), output->base.name,
+           number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_DEFAULT);
   }
   if (output->base.software_volume_needed) {
     syslog(LOG_DEBUG, "card type: %s, Use software volume for node: %s",
@@ -739,10 +735,10 @@ static struct alsa_usb_output_node* usb_new_output(
   syslog(LOG_DEBUG, "card type: %s, New output node for '%s'",
          cras_card_type_to_string(aio->common.card_type), name);
   if (aio == NULL) {
-    fra_log(LOG_ERR, USBAudioListOutputNodeFailed,
-            "card type: %s, name: %s, Invalid aio when listing outputs.",
-            aio->common.base.info.name,
-            cras_card_type_to_string(aio->common.card_type));
+    syslog(LOG_ERR,
+           "card type: %s, name: %s, Invalid aio when listing outputs.",
+           aio->common.base.info.name,
+           cras_card_type_to_string(aio->common.card_type));
     return NULL;
   }
   output = (struct alsa_usb_output_node*)calloc(1, sizeof(*output));
@@ -1094,10 +1090,10 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
   if (node == NULL) {
     if (aio->common.fully_specified) {
       // When fully specified, can't have new nodes.
-      fra_log(LOG_ERR, USBAudioUCMNoJack,
-              "card type: %s, name: %s, No matching output node for jack %s!",
-              cras_card_type_to_string(aio->common.card_type),
-              aio->common.base.info.name, jack_name);
+      syslog(LOG_ERR,
+             "card type: %s, name: %s, No matching output node for jack %s!",
+             cras_card_type_to_string(aio->common.card_type),
+             aio->common.base.info.name, jack_name);
       return;
     }
     node = usb_new_output(aio, NULL, jack_name);
@@ -1110,12 +1106,12 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
 
   if (!node->jack) {
     if (aio->common.fully_specified) {
-      fra_log(LOG_ERR, USBAudioUCMWrongJack,
-              "card type: %s, name: %s, Jack '%s' was found to match output "
-              "node '%s'."
-              " Please fix your UCM configuration to match.",
-              cras_card_type_to_string(aio->common.card_type),
-              aio->common.base.info.name, jack_name, node->base.ucm_name);
+      syslog(LOG_ERR,
+             "card type: %s, name: %s, Jack '%s' was found to match output "
+             "node '%s'."
+             " Please fix your UCM configuration to match.",
+             cras_card_type_to_string(aio->common.card_type),
+             aio->common.base.info.name, jack_name, node->base.ucm_name);
     }
 
     // If we already have the node, associate with the jack.
@@ -1228,11 +1224,11 @@ static void usb_set_iodev_name(struct cras_iodev* dev,
   dev->info.stable_id = SuperFastHash(
       usb_serial_number, strlen(usb_serial_number), dev->info.stable_id);
 
-  fra_log(LOG_INFO, PeripheralsUsbSoundCard,
-          "Add cardType=USB, deviceName=%s, idVendor=%zx, idProduct=%zx, "
-          "direction=%s",
-          dev->info.name, usb_vid, usb_pid,
-          dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input");
+  syslog(LOG_INFO,
+         "Add cardType=USB, deviceName=%s, idVendor=%zx, idProduct=%zx, "
+         "direction=%s",
+         dev->info.name, usb_vid, usb_pid,
+         dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input");
 }
 
 static int usb_get_fixed_rate(struct alsa_usb_io* aio) {
