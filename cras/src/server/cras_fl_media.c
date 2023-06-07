@@ -345,7 +345,11 @@ int floss_media_hfp_suspend(struct fl_media* fm) {
                              cras_floss_hfp_get_input_iodev(fm->hfp));
   bt_io_manager_remove_iodev(fm->bt_io_mgr,
                              cras_floss_hfp_get_output_iodev(fm->hfp));
-  cras_floss_hfp_destroy(active_fm->hfp);
+
+  // TODO(b/286330209): ideally this should be covered by the BT stack
+  floss_media_disconnect_device(fm, cras_floss_hfp_get_addr(fm->hfp));
+
+  cras_floss_hfp_destroy(fm->hfp);
   fm->hfp = NULL;
   return 0;
 }
@@ -640,10 +644,14 @@ int floss_media_a2dp_suspend(struct fl_media* fm) {
     return 0;
   }
 
-  bt_io_manager_remove_iodev(active_fm->bt_io_mgr,
-                             cras_floss_a2dp_get_iodev(active_fm->a2dp));
-  cras_floss_a2dp_destroy(active_fm->a2dp);
-  active_fm->a2dp = NULL;
+  bt_io_manager_remove_iodev(fm->bt_io_mgr,
+                             cras_floss_a2dp_get_iodev(fm->a2dp));
+
+  // TODO(b/286330209): ideally this should be covered by the BT stack
+  floss_media_disconnect_device(fm, cras_floss_a2dp_get_addr(fm->a2dp));
+
+  cras_floss_a2dp_destroy(fm->a2dp);
+  fm->a2dp = NULL;
   return 0;
 }
 
@@ -1250,6 +1258,40 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     return DBUS_HANDLER_RESULT_HANDLED;
   }
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+int floss_media_disconnect_device(struct fl_media* fm, const char* addr) {
+  int rc = 0;
+
+  syslog(LOG_DEBUG, "%s: %s", __func__, addr);
+
+  if (!fm) {
+    syslog(LOG_WARNING, "%s: Floss media not started", __func__);
+    return -EINVAL;
+  }
+
+  DBusMessage* disconnect;
+  rc = create_dbus_method_call(&disconnect,
+                               /* dest= */ BT_SERVICE_NAME,
+                               /* path= */ fm->obj_path,
+                               /* iface= */ BT_MEDIA_INTERFACE,
+                               /* method_name= */ "Disconnect",
+                               /* num_args= */ 1,
+                               /* arg1= */ DBUS_TYPE_STRING, &addr);
+
+  if (rc < 0) {
+    return rc;
+  }
+
+  rc = call_method_and_parse_reply(
+      /* conn= */ fm->conn,
+      /* method_call= */ disconnect,
+      /* dbus_ret_type= */ DBUS_TYPE_INVALID,
+      /* dbus_ret_value_ptr= */ NULL);
+
+  dbus_message_unref(disconnect);
+
+  return rc;
 }
 
 // When we're notified about Floss media interface is ready.

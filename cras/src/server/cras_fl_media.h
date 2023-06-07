@@ -123,6 +123,9 @@ int floss_media_a2dp_stop_audio_request(struct fl_media* fm);
 // Unlink a2dp with bt_io_manager and destroy related resources.
 int floss_media_a2dp_suspend(struct fl_media* fm);
 
+// Disconnects the device.
+int floss_media_disconnect_device(struct fl_media* fm, const char* addr);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
