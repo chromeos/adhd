@@ -1113,13 +1113,12 @@ static DBusHandlerResult handle_set_noise_cancellation_enabled(
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+// TODO(b/281608407): Remove this function.
 static DBusHandlerResult handle_is_noise_cancellation_supported(
     DBusConnection* conn,
     DBusMessage* message,
     void* arg) {
-  dbus_bool_t supported = cras_system_get_noise_cancellation_supported();
-
-  send_bool_reply(conn, message, supported);
+  send_bool_reply(conn, message, true);
 
   return DBUS_HANDLER_RESULT_HANDLED;
 }

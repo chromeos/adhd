@@ -372,6 +372,12 @@
     </method>
 
     <method name="IsNoiseCancellationSupported">
+      <tp:docstring>
+        Tells whether the system can potentially support noise cancellation.
+        Always returns true.
+
+        TODO(b/281608407): Remove this function.
+      </tp:docstring>
       <arg name="supported" type="b" direction="out"/>
     </method>
 
