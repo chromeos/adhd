@@ -98,23 +98,17 @@ impl Display for Measurement {
 }
 
 fn cpu_time() -> Duration {
-    use std::mem::MaybeUninit;
+    let usage = nix::sys::resource::getrusage(nix::sys::resource::UsageWho::RUSAGE_SELF)
+        .expect("getrusage for SELF should never fail");
 
-    let mut usage = MaybeUninit::<libc::rusage>::zeroed();
-    let error = unsafe { libc::getrusage(libc::RUSAGE_SELF, usage.as_mut_ptr()) };
-
-    if error != 0 {
-        // getrusage returning non-zero is always a bug in the program
-        panic!("getrusage returned {}", error);
-    }
-
-    let usage = unsafe { usage.assume_init() };
-    duration_from_timeval(usage.ru_utime).expect("cannot convert timeval to Duration")
+    duration_from_timeval(usage.user_time()).expect("cannot convert timeval to Duration")
 }
 
-fn duration_from_timeval(value: libc::timeval) -> Result<Duration, <i64 as TryFrom<u64>>::Error> {
-    Ok(Duration::from_secs(value.tv_sec.try_into()?)
-        + Duration::from_micros(value.tv_usec.try_into()?))
+fn duration_from_timeval(
+    value: nix::sys::time::TimeVal,
+) -> Result<Duration, <i64 as TryFrom<u64>>::Error> {
+    Ok(Duration::from_secs(value.tv_sec().try_into()?)
+        + Duration::from_micros(value.tv_usec().try_into()?))
 }
 
 #[cfg(test)]
@@ -170,11 +164,7 @@ mod tests {
     #[test]
     fn duration_from_timeval() {
         assert_eq!(
-            super::duration_from_timeval(libc::timeval {
-                tv_sec: 1,
-                tv_usec: 500_000,
-            })
-            .unwrap(),
+            super::duration_from_timeval(nix::sys::time::TimeVal::new(1, 500_000)).unwrap(),
             Duration::from_millis(1500)
         );
     }

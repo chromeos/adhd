@@ -46,6 +46,7 @@ dependencies = [
  "dasp_sample",
  "hound",
  "libc",
+ "nix",
  "tempfile",
  "thiserror",
 ]
