@@ -11,7 +11,7 @@ dbus = "0.9"
 hound = "3.4.0"
 libchromeos = { path = "../../../../../platform2/libchromeos-rs/" } # provided by ebuild
 libcras = { version = "*", path = "../libcras" }
-serde_json = "1.0.64"
+serde_json = "1.0.96"
 thiserror = "1.0.20"
 
 [build-dependencies]

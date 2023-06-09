@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use audio_processor::processors::profile;
+use audio_processor::processors::profile::Measurements;
 use audio_processor::processors::CheckShape;
 use audio_processor::processors::DynamicPluginProcessor;
 use audio_processor::processors::WavSink;
@@ -16,6 +17,7 @@ use audio_processor::Error;
 use audio_processor::MultiBuffer;
 use audio_processor::Shape;
 use clap::Parser;
+use serde::Serialize;
 
 #[derive(Parser, Debug)]
 #[clap(global_setting(clap::AppSettings::DeriveDisplayOrder))]
@@ -45,6 +47,10 @@ struct Command {
     /// Takes precedence over --block-size-ms.
     #[clap(long)]
     block_size_frames: Option<usize>,
+
+    /// Also print JSON profile results in stdout.
+    #[clap(long)]
+    json: bool,
 }
 
 fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
@@ -52,12 +58,49 @@ fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
     Ok(std::time::Duration::from_secs_f64(seconds))
 }
 
-fn print_real_time_factor(stats: &profile::Measurement, name: &str, clip_duration: f64) {
-    eprintln!(
-        "real time factor ({}): {:.3}%",
-        name,
-        stats.sum.as_secs_f64() / clip_duration * 100.
-    );
+#[derive(Debug, Serialize)]
+struct PerfStats {
+    #[serde(rename = "min_ms", serialize_with = "duration_as_ms")]
+    min: Duration,
+    #[serde(rename = "max_ms", serialize_with = "duration_as_ms")]
+    max: Duration,
+    #[serde(rename = "mean_ms", serialize_with = "duration_as_ms")]
+    mean: Duration,
+    #[serde(skip_serializing)]
+    #[allow(dead_code)] // This is actually used by Debug.
+    count: usize,
+    real_time_factor: f64,
+}
+
+impl PerfStats {
+    fn new(m: &profile::Measurement, clip_duration: f64) -> Self {
+        Self {
+            min: m.min,
+            max: m.max,
+            mean: m.sum / m.count as u32,
+            count: m.count,
+            real_time_factor: m.sum.as_secs_f64() / clip_duration,
+        }
+    }
+}
+
+fn duration_as_ms<S: serde::Serializer>(v: &Duration, serializer: S) -> Result<S::Ok, S::Error> {
+    (v.as_secs_f64() * 1000.).serialize(serializer)
+}
+
+#[derive(Debug, Serialize)]
+struct ProfileResult {
+    cpu: PerfStats,
+    wall: PerfStats,
+}
+
+impl ProfileResult {
+    fn new(m: &Measurements, clip_duration: f64) -> Self {
+        Self {
+            cpu: PerfStats::new(&m.cpu_time, clip_duration),
+            wall: PerfStats::new(&m.wall_time, clip_duration),
+        }
+    }
 }
 
 impl Command {
@@ -154,10 +197,16 @@ fn run(command: Command) {
     }
 
     let clip_duration = profile.frames_processed as f64 / spec.sample_rate as f64;
-    eprintln!("cpu time: {}", profile.cpu_time);
-    eprintln!("wall time: {}", profile.wall_time);
-    print_real_time_factor(&profile.cpu_time, "cpu", clip_duration);
-    print_real_time_factor(&profile.wall_time, "wall", clip_duration);
+    let result = ProfileResult::new(&profile.measurements, clip_duration);
+    eprintln!("cpu: {:?}", result.cpu);
+    eprintln!("wall: {:?}", result.wall);
+
+    if command.json {
+        println!(
+            "{}",
+            serde_json::to_string(&result).expect("JSON serialization failed")
+        );
+    }
 }
 
 #[cfg(test)]
@@ -202,6 +251,7 @@ mod tests {
             plugin_name: "negate_processor_create".to_string(),
             block_size_ms: 10,
             block_size_frames: None,
+            json: false,
         });
 
         // Verify the output.

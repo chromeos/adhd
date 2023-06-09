@@ -12,8 +12,7 @@ use crate::MultiSlice;
 pub struct Profile<T: AudioProcessor> {
     pub inner: T,
     pub frames_processed: usize,
-    pub cpu_time: Measurement,
-    pub wall_time: Measurement,
+    pub measurements: Measurements,
 }
 
 impl<T: AudioProcessor> AudioProcessor for Profile<T> {
@@ -31,8 +30,8 @@ impl<T: AudioProcessor> AudioProcessor for Profile<T> {
 
         let cpu_time = cpu_time() - cpu;
         let wall_time = Instant::elapsed(&wall);
-        self.cpu_time.add(cpu_time);
-        self.wall_time.add(wall_time);
+        self.measurements.cpu_time.add(cpu_time);
+        self.measurements.wall_time.add(wall_time);
         self.frames_processed += output.min_len();
 
         Ok(output)
@@ -44,10 +43,15 @@ impl<T: AudioProcessor> Profile<T> {
         Self {
             inner: processor,
             frames_processed: 0,
-            cpu_time: Measurement::new(),
-            wall_time: Measurement::new(),
+            measurements: Measurements::default(),
         }
     }
+}
+
+#[derive(Default)]
+pub struct Measurements {
+    pub cpu_time: Measurement,
+    pub wall_time: Measurement,
 }
 
 pub struct Measurement {
@@ -61,8 +65,8 @@ pub struct Measurement {
     pub count: usize,
 }
 
-impl Measurement {
-    fn new() -> Measurement {
+impl Default for Measurement {
+    fn default() -> Self {
         Measurement {
             sum: Duration::ZERO,
             min: Duration::MAX,
@@ -70,7 +74,9 @@ impl Measurement {
             count: 0,
         }
     }
+}
 
+impl Measurement {
     /// Add one measurement to the `ProfileStats`.
     fn add(&mut self, time: Duration) {
         self.sum += time;
@@ -130,7 +136,7 @@ mod tests {
 
     #[test]
     fn measurement_add() {
-        let mut m = Measurement::new();
+        let mut m = Measurement::default();
         m.add(Duration::from_secs(3));
         assert_eq!(m.min, Duration::from_secs(3));
         assert_eq!(m.max, Duration::from_secs(3));
@@ -157,7 +163,7 @@ mod tests {
 
     #[test]
     fn measurement_display_empty() {
-        let m = Measurement::new();
+        let m = Measurement::default();
         format!("{}", m); // should not panic, e.g. division by zero
     }
 
@@ -191,12 +197,13 @@ mod tests {
 
         assert_eq!(p.frames_processed, 8);
 
-        assert!(p.cpu_time.min <= p.cpu_time.max);
-        assert!(p.cpu_time.max <= p.cpu_time.sum);
-        assert!(p.cpu_time.sum <= cpu_all);
+        let m = p.measurements;
+        assert!(m.cpu_time.min <= m.cpu_time.max);
+        assert!(m.cpu_time.max <= m.cpu_time.sum);
+        assert!(m.cpu_time.sum <= cpu_all);
 
-        assert!(p.wall_time.min <= p.wall_time.max);
-        assert!(p.wall_time.max <= p.wall_time.sum);
-        assert!(p.wall_time.sum <= wall_all);
+        assert!(m.wall_time.min <= m.wall_time.max);
+        assert!(m.wall_time.max <= m.wall_time.sum);
+        assert!(m.wall_time.sum <= wall_all);
     }
 }
