@@ -17,10 +17,10 @@
 #include <sys/un.h>
 #include <syslog.h>
 
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_fl_pcm_iodev.h"
-#include "cras/src/server/cras_main_message.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras_config.h"

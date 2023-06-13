@@ -373,11 +373,6 @@ extern "C" {
 
 struct cras_bt_event_log* btlog;
 
-// From cras_main_message
-int cras_main_message_send(struct cras_main_message* msg) {
-  return 0;
-}
-
 // From cras_system_state
 struct cras_tm* cras_system_state_get_tm() {
   return NULL;

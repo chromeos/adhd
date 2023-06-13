@@ -8,7 +8,7 @@
 extern "C" {
 #include "cras/src/server/cras_device_monitor.c"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/src/server/cras_main_message.h"
+#include "cras/server/main_message.h"
 }
 
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;

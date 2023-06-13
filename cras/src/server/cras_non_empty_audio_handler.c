@@ -7,7 +7,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/src/server/cras_main_message.h"
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_system_state.h"
 

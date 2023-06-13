@@ -11,9 +11,9 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/server/main_message.h"
 #include "cras/src/common/cras_metrics.h"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/src/server/cras_main_message.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_dlc.h"

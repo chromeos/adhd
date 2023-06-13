@@ -3,8 +3,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_
-#define CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_
+#ifndef CRAS_SERVER_MAIN_MESSAGE_H_
+#define CRAS_SERVER_MAIN_MESSAGE_H_
 
 #include <stdio.h>
 
@@ -84,4 +84,4 @@ void handle_main_messages(void* arg, int revents);
 // When the fd is ready handle_main_messages should be called.
 int cras_main_message_init();
 
-#endif  // CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_
+#endif  // CRAS_SERVER_MAIN_MESSAGE_H_

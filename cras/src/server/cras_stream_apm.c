@@ -19,7 +19,7 @@
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_main_message.h"
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/float_buffer.h"

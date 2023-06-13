@@ -7,7 +7,7 @@
 
 extern "C" {
 #include "cras/src/server/cras_audio_thread_monitor.c"
-#include "cras/src/server/cras_main_message.h"
+#include "cras/server/main_message.h"
 }
 
 // Function call counters

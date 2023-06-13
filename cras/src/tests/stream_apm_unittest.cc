@@ -12,7 +12,6 @@ extern "C" {
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_main_message.h"
 #include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/float_buffer.h"
@@ -47,8 +46,6 @@ static bool cras_iodev_is_dsp_aec_use_case_value;
 static int cras_iodev_get_rtc_proc_enabled_called;
 static int cras_iodev_set_rtc_proc_enabled_called;
 static std::unordered_map<cras_iodev*, bool> iodev_rtc_proc_enabled_maps[3];
-static unsigned int cras_main_message_send_called;
-static std::vector<struct cras_stream_apm_message*> sent_apm_message_vector;
 
 TEST(StreamApm, StreamApmCreate) {
   stream = cras_stream_apm_create(0);
@@ -851,12 +848,6 @@ void cras_apm_reverse_deinit() {}
 bool cras_iodev_support_rtc_proc_on_dsp(const struct cras_iodev* iodev,
                                         enum RTC_PROC_ON_DSP rtc_proc) {
   return false;
-}
-
-int cras_main_message_send(struct cras_main_message* msg) {
-  cras_main_message_send_called++;
-  sent_apm_message_vector.push_back((struct cras_stream_apm_message*)msg);
-  return 0;
 }
 
 enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap) {

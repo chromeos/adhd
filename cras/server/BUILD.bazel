@@ -1,0 +1,22 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+package(
+    # Allow leagcy packages to see //cras/server.
+    default_visibility = [
+        "//cras/src/server:__pkg__",
+        "//cras/src/tests:__pkg__",
+    ],
+)
+
+cc_library(
+    name = "main_message",
+    srcs = ["main_message.c"],
+    hdrs = ["main_message.h"],
+    deps = [
+        "//cras/include",
+        "//cras/src/common",
+        "//third_party/utlist",
+    ],
+)

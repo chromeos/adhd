@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras/src/server/cras_main_message.h"
+#include "cras/server/main_message.h"
 
 #include <errno.h>
 #include <linux/limits.h>

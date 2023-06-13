@@ -80,6 +80,7 @@ cc_test(
     deps = [
         ":test_support",
         ":test_util",
+        "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -319,6 +320,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -453,6 +455,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -810,6 +813,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1531,6 +1535,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1779,6 +1784,7 @@ cc_test(
     deps = [
         ":test_support",
         "//audio_processor/c:plugin_processor",
+        "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",

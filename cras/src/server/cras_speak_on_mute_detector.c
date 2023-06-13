@@ -9,7 +9,7 @@
 
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_main_message.h"
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rtc.h"

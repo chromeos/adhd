@@ -12,7 +12,7 @@
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_main_message.h"
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"

@@ -8,8 +8,8 @@
 #include <stdbool.h>
 #include <syslog.h>
 
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_main_message.h"
 
 enum CRAS_DEVICE_MONITOR_MSG_TYPE {
   RESET_DEVICE,

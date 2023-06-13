@@ -38,7 +38,7 @@
 #include "cras/src/server/cras_device_monitor.h"
 #include "cras/src/server/cras_hotword_handler.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_main_message.h"
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_mix.h"
 #include "cras/src/server/cras_non_empty_audio_handler.h"
 #include "cras/src/server/cras_observer.h"
