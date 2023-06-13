@@ -415,7 +415,10 @@ int cras_server_init() {
    * from the list that are passed to select in the main loop below. */
   cras_system_set_select_handler(add_select_fd, rm_select_fd, &server_instance);
   cras_system_set_add_task_handler(add_task, &server_instance);
-  cras_main_message_init();
+
+  int main_message_fd = cras_main_message_init();
+  cras_system_add_select_fd(main_message_fd, handle_main_messages, NULL,
+                            POLLIN);
 
   // Initializes all server_sockets
   for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE; conn_type++) {

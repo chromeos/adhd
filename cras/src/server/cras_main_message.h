@@ -76,7 +76,12 @@ int cras_main_message_add_handler(enum CRAS_MAIN_MESSAGE_TYPE type,
 // Unregisters the handler for given type of message.
 void cras_main_message_rm_handler(enum CRAS_MAIN_MESSAGE_TYPE type);
 
+// Callback for main messages.
+void handle_main_messages(void* arg, int revents);
+
 // Initialize the message handling mechanism in main thread.
-void cras_main_message_init();
+// Returns a fd to POLLIN on.
+// When the fd is ready handle_main_messages should be called.
+int cras_main_message_init();
 
 #endif  // CRAS_SRC_SERVER_CRAS_MAIN_MESSAGE_H_
