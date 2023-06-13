@@ -6,8 +6,6 @@
 #include "gtest/gtest.h"
 
 TEST(ScopedFeaturesOverrideTest, Override) {
-  cras_features_init();
-
   EXPECT_FALSE(cras_feature_enabled(CrOSLateBootDisabledByDefault));
   EXPECT_TRUE(cras_feature_enabled(CrOSLateBootEnabledByDefault));
 
@@ -30,8 +28,6 @@ TEST(ScopedFeaturesOverrideTest, Override) {
 
   EXPECT_FALSE(cras_feature_enabled(CrOSLateBootDisabledByDefault));
   EXPECT_TRUE(cras_feature_enabled(CrOSLateBootEnabledByDefault));
-
-  cras_features_deinit();
 }
 
 class ScopedFeaturesOverrideInFixture : public ::testing::Test {

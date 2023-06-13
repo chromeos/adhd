@@ -84,7 +84,7 @@ pkg_config_repository(
         # optional deps
         "libmetrics",
         "libselinux",
-        "libfeatures",
+        "libfeatures_c",
         "tensorflowlite",
         "libchrome",
         "libcros_config",
