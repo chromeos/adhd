@@ -361,6 +361,20 @@ cc_test(
 )
 
 cc_test(
+    name = "blob_wrapper_unittest",
+    srcs = [
+        ":blob_wrapper_unittest.cc",
+    ],
+    deps = [
+        ":test_support",
+        "//cras/src/common:blob_wrapper",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
     name = "biquad_unittest",
     srcs = [
         ":biquad_unittest.cc",

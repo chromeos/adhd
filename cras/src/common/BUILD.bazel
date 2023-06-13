@@ -191,6 +191,25 @@ cc_library(
 )
 
 cc_library(
+    name = "blob_wrapper",
+    srcs = [
+        "blob_wrapper.c",
+        "sof_blob_wrapper.c",
+        "tlv_blob_wrapper.c",
+    ],
+    hdrs = [
+        "blob_wrapper.h",
+    ],
+    visibility = [
+        "//cras/src/server:__pkg__",
+        "//cras/src/tests:__pkg__",
+    ],
+    deps = [
+        "//cras/include",
+    ],
+)
+
+cc_library(
     name = "common",
     srcs = [
         "array.h",
