@@ -6,18 +6,20 @@ use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
 use cras_sys::gen::{audio_message, CRAS_AUDIO_MESSAGE_ID};
-use cros_async::{Executor, TimerAsync};
-use futures::{future, future::Either, pin_mut, Future};
 
 #[cfg(test)]
 use data_model::DataInit;
 
 use crate::async_;
+use crate::tokio_async::TokioExecutor;
 
 /// A structure for interacting with the CRAS server audio thread through a `UnixStream::pair`.
+///
+/// This is implemented by delegating all functionality to the async_::AudioSocket and blocking
+/// each call until the async future completes.
 pub struct AudioSocket {
     socket: async_::AudioSocket,
-    ex: Executor,
+    ex: TokioExecutor,
 }
 
 /// Audio message results which are exchanged by `CrasStream` and CRAS audio server.
@@ -66,26 +68,13 @@ impl From<audio_message> for AudioMessage {
     }
 }
 
-/// Returns io::ErrorKind::TimedOut if the given future doesn't finish within the timeout
-async fn timeout<F, T>(t: Duration, f: F, ex: &Executor) -> io::Result<T>
-where
-    F: Future<Output = T>,
-{
-    let sleep_f = TimerAsync::sleep(ex, t);
-    pin_mut!(f, sleep_f);
-    match future::select(f, sleep_f).await {
-        Either::Left((ret, _)) => Ok(ret),
-        _ => Err(io::Error::new(io::ErrorKind::TimedOut, format!("{:?}", t))),
-    }
-}
-
 impl AudioSocket {
     /// Creates `AudioSocket` from a `UnixStream`.
     ///
     /// # Arguments
     /// `socket` - A `UnixStream`.
     pub fn new(s: UnixStream) -> Self {
-        let ex = Executor::new().expect("failed to create executor");
+        let ex = TokioExecutor::new().unwrap();
         AudioSocket {
             socket: async_::AudioSocket::new(s, &ex).unwrap(),
             ex,
@@ -97,7 +86,7 @@ impl AudioSocket {
     where
         T: Sized + DataInit + Default,
     {
-        self.ex.run_until(self.socket.read_from_socket())?
+        self.ex.run_until(self.socket.read_from_socket())
     }
 
     /// Blocks reading an `audio message`.
@@ -108,7 +97,7 @@ impl AudioSocket {
     /// # Errors
     /// Returns io::Error if error occurs.
     pub fn read_audio_message(&self) -> io::Result<AudioMessage> {
-        self.ex.run_until(self.socket.read_audio_message())?
+        self.ex.run_until(self.socket.read_audio_message())
     }
 
     /// Blocks waiting for an `audio message` until `timeout` occurs. If `timeout`
@@ -126,10 +115,9 @@ impl AudioSocket {
     ) -> io::Result<AudioMessage> {
         match t {
             None => self.read_audio_message(),
-            Some(t) => {
-                self.ex
-                    .run_until(timeout(t, self.socket.read_audio_message(), &self.ex))??
-            }
+            Some(t) => self
+                .ex
+                .run_until(tokio::time::timeout(t, self.socket.read_audio_message()))?,
         }
     }
 
@@ -143,7 +131,7 @@ impl AudioSocket {
     /// Returns error if `libc::write` fails.
     #[cfg(test)]
     fn send_audio_message(&self, msg: AudioMessage) -> io::Result<()> {
-        self.ex.run_until(self.socket.send_audio_message(msg))?
+        self.ex.run_until(self.socket.send_audio_message(msg))
     }
 
     /// Sends the data ready message with written frame count.
@@ -151,7 +139,7 @@ impl AudioSocket {
     /// # Arguments
     /// * `frames` - An `u32` indicating the written frame count.
     pub fn data_ready(&self, frames: u32) -> io::Result<()> {
-        self.ex.run_until(self.socket.data_ready(frames))?
+        self.ex.run_until(self.socket.data_ready(frames))
     }
 
     /// Sends the capture ready message with read frame count.
@@ -160,7 +148,7 @@ impl AudioSocket {
     ///
     /// * `frames` - An `u32` indicating the number of read frames.
     pub fn capture_ready(&self, frames: u32) -> io::Result<()> {
-        self.ex.run_until(self.socket.capture_ready(frames))?
+        self.ex.run_until(self.socket.capture_ready(frames))
     }
 }
 

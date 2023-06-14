@@ -149,6 +149,7 @@ use libchromeos::deprecated::{PollContext, PollToken};
 
 mod async_;
 mod audio_socket;
+mod tokio_async;
 use crate::audio_socket::AudioSocket;
 mod cras_server_socket;
 use crate::cras_server_socket::CrasServerSocket;

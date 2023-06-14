@@ -11,10 +11,10 @@ path = "src/libcras.rs"
 anyhow = "1.0"
 async-trait = "0.1.36"
 audio_streams = "*"
-cros_async = "*"
 cras-sys = { version = "*", path = "../cras-sys" }
 data_model = "*"
 futures = "*"
 libc = "*"
 libchromeos = { path = "../../../../../platform2/libchromeos-rs/" } # provided by ebuild
 serde = "1.0.125"
+tokio = { version = "1.19.2", features = ["rt", "net", "time"]}

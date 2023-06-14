@@ -30,8 +30,8 @@ getpid: 1
 getrandom: 1
 getuid32: 1
 io_uring_setup: 1
-#ioctl: arg1 == SNDRV_CTL_IOCTL_ELEM_READ || arg1 == SNDRV_CTL_IOCTL_ELEM_WRITE || arg1 == SNDRV_CTL_IOCTL_ELEM_INFO || arg1 == SNDRV_CTL_IOCTL_PVERSION || arg1 == SNDRV_CTL_IOCTL_CARD_INFO
-ioctl: arg1 == 0xc2c85512 || arg1 == 0xc2c85513 || arg1 == 0xc1105511 || arg1 == 0x80045500 || arg1 == 0x81785501
+#ioctl: arg1 == FIONBIO || arg1 == SNDRV_CTL_IOCTL_ELEM_READ || arg1 == SNDRV_CTL_IOCTL_ELEM_WRITE || arg1 == SNDRV_CTL_IOCTL_ELEM_INFO || arg1 == SNDRV_CTL_IOCTL_PVERSION || arg1 == SNDRV_CTL_IOCTL_CARD_INFO
+ioctl: arg1 == FIONBIO || arg1 == 0xc2c85512 || arg1 == 0xc2c85513 || arg1 == 0xc1105511 || arg1 == 0x80045500 || arg1 == 0x81785501
 _llseek: 1
 madvise: 1
 mmap2: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
@@ -41,6 +41,7 @@ openat: 1
 poll: 1
 read: 1
 recvmsg: 1
+recvfrom: 1
 restart_syscall: 1
 rt_sigaction: 1
 rt_sigprocmask: 1

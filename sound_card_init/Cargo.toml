@@ -33,7 +33,6 @@ base_event_token_derive = { path = "../../../../chroot/usr/lib/cros_rust_registr
 crosvm-base = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/crosvm-base-0.1.0/" } # ignored by ebuild
 minijail = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/minijail-0.2.3/" } # ignored by ebuild
 minijail-sys = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/minijail-sys-0.0.14/" } # ignored by ebuild
-cros_async = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/cros_async-0.1.51/" } # ignored by ebuild
 data_model = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
 io_uring = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/io_uring-0.1.51/" } # ignored by ebuild
 serde_keyvalue = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue-0.1.50/" } # ignored by ebuild

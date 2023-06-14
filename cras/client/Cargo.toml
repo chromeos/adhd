@@ -16,7 +16,6 @@ overflow-checks = true
 [patch.crates-io] # ignored by ebuild
 audio_streams = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
 base_event_token_derive = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/base_event_token_derive-0.1.0/" } # ignored by ebuild
-cros_async = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/cros_async-0.1.51/" } # ignored by ebuild
 crosvm-base = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/crosvm-base-0.1.0/" } # ignored by ebuild
 data_model = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
 io_uring = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/io_uring-0.1.51/" } # ignored by ebuild

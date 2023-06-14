@@ -45,7 +45,7 @@ getsid: 1
 getsockname: 1
 gettid: 1
 getuid: 1
-ioctl: arg1 == 0x5401 || arg1 == 0xc4c85512 || arg1 == 0x540f || arg1 == 0x80045500 || arg1 == 0xc4c85513 || arg1 == 0x81785501 || arg1 == 0x5413 || arg1 == 0xc1105511 || arg1 == 0x81785501 || arg1 == 0x80045500 || arg1 == 0xc008551a || arg1 == 0xc4c85512 || arg1 == 0xc008551b || arg1 == 0xc1105511
+ioctl: arg1 == 0x5401 || arg1 == FIONBIO || arg1 == 0xc4c85512 || arg1 == 0x540f || arg1 == 0x80045500 || arg1 == 0xc4c85513 || arg1 == 0x81785501 || arg1 == 0x5413 || arg1 == 0xc1105511 || arg1 == 0x81785501 || arg1 == 0x80045500 || arg1 == 0xc008551a || arg1 == 0xc4c85512 || arg1 == 0xc008551b || arg1 == 0xc1105511
 io_uring_setup: 1
 lseek: 1
 madvise: 1

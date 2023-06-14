@@ -395,7 +395,7 @@ impl<'a, T: CrasStreamData<'a> + AsyncBufferCommit> AsyncCaptureBufferStream for
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cros_async::Executor;
+    use crate::tokio_async::TokioExecutor;
 
     fn init_audio_socket_pair(ex: &dyn AudioStreamsExecutor) -> (AudioSocket, AudioSocket) {
         let (sock1, sock2) = UnixStream::pair().unwrap();
@@ -428,8 +428,8 @@ mod tests {
             assert_eq!(res, AudioMessage::Error(123));
         }
 
-        let ex = Executor::new().expect("failed to create executor");
-        ex.run_until(this_test(&ex)).unwrap();
+        let ex = TokioExecutor::new().expect("failed to create executor");
+        ex.run_until(this_test(&ex));
     }
 
     #[test]
@@ -453,8 +453,8 @@ mod tests {
             assert_eq!({ audio_msg.frames }, { ref_audio_msg.frames });
         }
 
-        let ex = Executor::new().expect("failed to create executor");
-        ex.run_until(this_test(&ex)).unwrap();
+        let ex = TokioExecutor::new().expect("failed to create executor");
+        ex.run_until(this_test(&ex));
     }
 
     #[test]
@@ -484,8 +484,8 @@ mod tests {
             assert_eq!({ audio_msg.frames }, { ref_audio_msg.frames });
         }
 
-        let ex = Executor::new().expect("failed to create executor");
-        ex.run_until(this_test(&ex)).unwrap();
+        let ex = TokioExecutor::new().expect("failed to create executor");
+        ex.run_until(this_test(&ex));
     }
 
     #[test]
@@ -502,7 +502,7 @@ mod tests {
             assert!(res.is_err(), "Result should be an error.",);
         }
 
-        let ex = Executor::new().expect("failed to create executor");
-        ex.run_until(this_test(&ex)).unwrap();
+        let ex = TokioExecutor::new().expect("failed to create executor");
+        ex.run_until(this_test(&ex));
     }
 }
