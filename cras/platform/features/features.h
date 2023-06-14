@@ -28,6 +28,7 @@ int cras_features_init();
 void cras_features_deinit();
 
 // Get whether the feature is enabled.
+// Must be called from the main thread.
 bool cras_feature_enabled(enum cras_feature_id id);
 
 // Get the feature ID by name.

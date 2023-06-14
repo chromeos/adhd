@@ -110,6 +110,7 @@ class Worker {
   // Tells whether feature id is enabled.
   // Thread safe.
   bool IsEnabled(enum cras_feature_id id) {
+    DCHECK_CALLED_ON_VALID_SEQUENCE(main_sequence_checker_);
     std::shared_lock lock(feature_status_mux_);
     return feature_status_[id];
   }
