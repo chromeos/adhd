@@ -30,15 +30,16 @@
 #include "cras/src/server/cras_dlc_manager.h"
 #endif
 #include "cras/platform/features/features.h"
+#include "cras/server/main_message.h"
 #include "cras/src/common/cras_metrics.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
 #include "cras/src/server/cras_device_monitor.h"
+#include "cras/src/server/cras_feature_monitor.h"
 #include "cras/src/server/cras_hotword_handler.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/server/main_message.h"
 #include "cras/src/server/cras_mix.h"
 #include "cras/src/server/cras_non_empty_audio_handler.h"
 #include "cras/src/server/cras_observer.h"
@@ -559,6 +560,10 @@ int cras_server_run(unsigned int profile_disable_mask) {
   }
 
   if (cras_stream_apm_message_handler_init() < 0) {
+    goto bail;
+  }
+
+  if (cras_feature_monitor_init() < 0) {
     goto bail;
   }
 

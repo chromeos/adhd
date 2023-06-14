@@ -29,6 +29,7 @@ cc_library(
         "//:featured_build": [
             "@pkg_config//libchrome",
             "@pkg_config//libfeatures",
+            "//cras/server:main_message",
         ],
         "//conditions:default": [],
     }),

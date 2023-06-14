@@ -6,6 +6,10 @@
 #ifndef CRAS_SERVER_MAIN_MESSAGE_H_
 #define CRAS_SERVER_MAIN_MESSAGE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 
 #define CRAS_MAIN_MESSAGE_MAX_LENGTH 256
@@ -23,6 +27,7 @@ enum CRAS_MAIN_MESSAGE_TYPE {
   CRAS_MAIN_NON_EMPTY_AUDIO_STATE,
   CRAS_MAIN_SPEAK_ON_MUTE,
   CRAS_MAIN_STREAM_APM,
+  CRAS_MAIN_FEATURE_CHANGED,
 };
 
 /* Structure of the header of the message handled by main thread.
@@ -83,5 +88,9 @@ void handle_main_messages(void* arg, int revents);
 // Returns a fd to POLLIN on.
 // When the fd is ready handle_main_messages should be called.
 int cras_main_message_init();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // CRAS_SERVER_MAIN_MESSAGE_H_

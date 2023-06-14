@@ -5,6 +5,7 @@
 package(
     # Allow leagcy packages to see //cras/server.
     default_visibility = [
+        "//cras/platform:__subpackages__",  # Allow platform dependencies to send notifications.
         "//cras/src/server:__pkg__",
         "//cras/src/tests:__pkg__",
     ],

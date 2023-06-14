@@ -343,6 +343,8 @@ cc_library(
         "cras_empty_iodev.h",
         "cras_expr.c",
         "cras_expr.h",
+        "cras_feature_monitor.c",
+        "cras_feature_monitor.h",
         "cras_fl_manager.c",
         "cras_fl_manager.h",
         "cras_fl_media.c",

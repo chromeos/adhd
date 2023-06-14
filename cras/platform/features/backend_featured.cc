@@ -26,6 +26,7 @@
 #include <time.h>
 
 #include "cras/platform/features/features_impl.h"
+#include "cras/server/main_message.h"
 
 namespace {
 
@@ -123,8 +124,19 @@ class Worker {
   // Thread safe.
   void Update(FeatureStatus& payload) {
     CHECK(thread_->task_runner()->BelongsToCurrentThread());
-    std::unique_lock lock(feature_status_mux_);
-    feature_status_ = payload;
+    bool notification_needed = false;
+    {
+      std::unique_lock lock(feature_status_mux_);
+      notification_needed = feature_status_ != payload;
+      feature_status_ = payload;
+    }
+    if (notification_needed) {
+      struct cras_main_message msg = {
+          .length = sizeof(msg),
+          .type = CRAS_MAIN_FEATURE_CHANGED,
+      };
+      cras_main_message_send(&msg);
+    }
   }
 
   // Returns the default states of the features.
