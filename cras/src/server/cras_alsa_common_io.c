@@ -158,6 +158,10 @@ int cras_alsa_common_frames_queued(const struct cras_iodev* iodev,
     }
     return rc;
   }
+  rc = clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
+  if (rc < 0) {
+    return rc;
+  }
   if (iodev->direction == CRAS_STREAM_INPUT) {
     return (int)frames;
   }
