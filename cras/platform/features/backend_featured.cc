@@ -76,9 +76,9 @@ class Worker {
   }
 
   // Start the worker thread and wait for it to be started.
-  // Must be called from the main thread.
   int Start(std::unique_ptr<FeatureLibraryAdapter> adapter) {
-    assert(!started_);
+    DCHECK_CALLED_ON_VALID_SEQUENCE(main_sequence_checker_);
+    CHECK(!started_);
     started_ = true;
 
     adapter_ = std::move(adapter);
@@ -120,11 +120,13 @@ class Worker {
   // Update the feature status.
   // Thread safe.
   void Update(FeatureStatus& payload) {
+    CHECK(thread_->task_runner()->BelongsToCurrentThread());
     std::unique_lock lock(feature_status_mux_);
     feature_status_ = payload;
   }
 
   // Returns the default states of the features.
+  // Called from both main and worker thread.
   static FeatureStatus DefaultState() {
     FeatureStatus status;
 #define DEFINE_FEATURE(name, default_enabled) status[name] = default_enabled;
@@ -135,6 +137,7 @@ class Worker {
 
   // Callback for GetParamsAndEnabled().
   void GetParamsCallback(feature::PlatformFeatures::ParamsResult result) {
+    CHECK(thread_->task_runner()->BelongsToCurrentThread());
     auto update = DefaultState();
     for (const auto& [name, entry] : result) {
       enum cras_feature_id id = cras_feature_get_by_name(name.c_str());
@@ -148,8 +151,8 @@ class Worker {
   }
 
   // Trigger fetching features.
-  // Must be called on the worker thread.
   void Fetch() {
+    CHECK(thread_->task_runner()->BelongsToCurrentThread());
     adapter_->Get()->GetParamsAndEnabled(
         feature_ptrs_,
         base::BindOnce(&Worker::GetParamsCallback, weak_factory_.GetWeakPtr()));
@@ -157,6 +160,7 @@ class Worker {
 
   // Callback when ListenForRefetchNeeded is attached.
   void Ready(std::promise<int> rc, bool attached) {
+    CHECK(thread_->task_runner()->BelongsToCurrentThread());
     if (!attached) {
       rc.set_value(-ECONNRESET);
       syslog(LOG_ERR, "Failed to attach ListenForRefetchNeeded");
@@ -170,10 +174,10 @@ class Worker {
 
   // The entry point of the worker thread.
   // Returns the status via the promise rc.
-  // Must be called on the worker thread.
   void SpawnTasks(std::promise<int> rc) {
+    CHECK(thread_->task_runner()->BelongsToCurrentThread());
     scoped_refptr<base::SingleThreadTaskRunner> task_runner =
-        base::SingleThreadTaskRunner::GetCurrentDefault();
+        thread_->task_runner();
 
     dbus::Bus::Options options;
     options.bus_type = dbus::Bus::SYSTEM;
@@ -206,6 +210,8 @@ class Worker {
   // shared by mutex.
   std::shared_mutex feature_status_mux_;
   FeatureStatus feature_status_;
+
+  SEQUENCE_CHECKER(main_sequence_checker_);
 
   // Chrome's compiler toolchain enforces that any `WeakPtrFactory`
   // fields are declared last, to avoid destruction ordering issues.
