@@ -224,7 +224,8 @@ int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name) {
   snd_pcm_t* handle;
   int rc;
 
-  // For legacy UCM path which doesn't have PlaybackPCM or CapturePCM.
+  /* aio->pcm_name is synthesized from the card name and the device index from
+   * PlaybackPCM or CapturePCM. */
   if (pcm_name == NULL) {
     pcm_name = aio->pcm_name;
   }

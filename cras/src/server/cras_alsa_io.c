@@ -262,14 +262,19 @@ static int open_dev(struct cras_iodev* iodev) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
   const char* pcm_name = NULL;
 
-  if (aio->common.base.direction == CRAS_STREAM_OUTPUT) {
-    struct alsa_output_node* aout =
-        (struct alsa_output_node*)aio->common.base.active_node;
-    pcm_name = aout->pcm_name;
-  } else {
-    struct alsa_input_node* ain =
-        (struct alsa_input_node*)aio->common.base.active_node;
-    pcm_name = ain->pcm_name;
+  /* For DependentPCM usage in HiFi.conf only.
+   * Normally the pcm name should come from the alsa_io device, not from nodes.
+   */
+  if (aio->common.base.nodes) {
+    if (aio->common.base.direction == CRAS_STREAM_OUTPUT) {
+      struct alsa_output_node* aout =
+          (struct alsa_output_node*)aio->common.base.active_node;
+      pcm_name = aout->pcm_name;
+    } else {
+      struct alsa_input_node* ain =
+          (struct alsa_input_node*)aio->common.base.active_node;
+      pcm_name = ain->pcm_name;
+    }
   }
   return cras_alsa_common_open_dev(iodev, pcm_name);
 }

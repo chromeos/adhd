@@ -303,6 +303,11 @@ struct cras_iodev {
   // Unique identifier for this device (index and name).
   struct cras_iodev_info info;
   // The output or input nodes available for this device.
+  // With multiple endpoints, the nodes are logically shared by all iodevs in a
+  // group. The iodev with CRAS_USE_CASE_HIFI is the owner of nodes and manages
+  // this linked list. The other iodevs in the group have their nodes = NULL.
+  // If the iodev isn't part of any group, it manages its own nodes and the
+  // nodes pointer should be valid.
   struct cras_ionode* nodes;
   // The current node being used for playback or capture.
   struct cras_ionode* active_node;
