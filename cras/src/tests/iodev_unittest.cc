@@ -36,7 +36,7 @@ static const float RAMP_VOLUME_CHANGE_DURATION_SECS = 0.1;
 static const unsigned MAX_IODEV_RESET_TRIES = 5;
 static const double IODEV_RESET_TIMEWINDOW_SECS = 5.0;
 
-static int cras_iodev_list_disable_dev_called;
+static int cras_iodev_list_disable_and_close_dev_group_called;
 static int select_node_called;
 static enum CRAS_STREAM_DIRECTION select_node_direction;
 static cras_node_id_t select_node_id;
@@ -151,7 +151,7 @@ void SetupShm(struct cras_audio_shm** shm_out) {
 }
 
 void ResetStubData() {
-  cras_iodev_list_disable_dev_called = 0;
+  cras_iodev_list_disable_and_close_dev_group_called = 0;
   select_node_called = 0;
   update_device_list_called = 0;
   notify_nodes_changed_called = 0;
@@ -1153,15 +1153,15 @@ TEST(IoNodePlug, PlugUnplugNode) {
   cras_iodev_set_active_node(&iodev, &ionode);
   ResetStubData();
   cras_iodev_set_node_plugged(&ionode, 1);
-  EXPECT_EQ(0, cras_iodev_list_disable_dev_called);
+  EXPECT_EQ(0, cras_iodev_list_disable_and_close_dev_group_called);
   cras_iodev_set_node_plugged(&ionode, 0);
-  EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
+  EXPECT_EQ(1, cras_iodev_list_disable_and_close_dev_group_called);
 
   // Unplug non-active node shouldn't disable iodev.
   cras_iodev_set_node_plugged(&ionode2, 1);
-  EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
+  EXPECT_EQ(1, cras_iodev_list_disable_and_close_dev_group_called);
   cras_iodev_set_node_plugged(&ionode2, 0);
-  EXPECT_EQ(1, cras_iodev_list_disable_dev_called);
+  EXPECT_EQ(1, cras_iodev_list_disable_and_close_dev_group_called);
   main_thread_event_log_deinit(main_log);
 }
 
@@ -2963,8 +2963,8 @@ int cras_iodev_list_node_selected(struct cras_ionode* node) {
   return node == node_selected;
 }
 
-void cras_iodev_list_disable_dev(struct cras_iodev* dev) {
-  cras_iodev_list_disable_dev_called++;
+void cras_iodev_list_disable_and_close_dev_group(struct cras_iodev* dev) {
+  cras_iodev_list_disable_and_close_dev_group_called++;
 }
 
 void cras_iodev_list_update_device_list() {

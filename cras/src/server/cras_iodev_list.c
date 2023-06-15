@@ -888,6 +888,12 @@ static int add_stream_to_open_devs(struct cras_rstream* stream,
   return audio_thread_add_stream(audio_thread, stream, iodevs, num_iodevs);
 }
 
+// Returns true if dev is one of the fallback devices.
+static inline bool is_fallback_dev(struct cras_iodev* dev) {
+  return (SILENT_PLAYBACK_DEVICE == dev->info.idx) ||
+         (SILENT_RECORD_DEVICE == dev->info.idx);
+}
+
 static int init_and_attach_streams(struct cras_iodev* dev) {
   int rc;
   enum CRAS_STREAM_DIRECTION dir = dev->direction;
@@ -900,36 +906,39 @@ static int init_and_attach_streams(struct cras_iodev* dev) {
     return 0;
   }
 
-  /* If there are active streams to attach to this device,
-   * open it. */
+  // If there are active streams to attach to this device, open it.
   DL_FOREACH (stream_list_get(stream_list), stream) {
-    bool can_attach = 0;
+    bool may_attach = false;
 
     if (stream->direction != dir) {
       continue;
     }
-    /*
-     * For normal stream, if device is enabled by UI then it can
-     * attach to this dev.
-     */
-    if (!stream->is_pinned) {
-      can_attach = dev_enabled;
+
+    // If this is an enabled fallback device, the stream may attach. Attaching
+    // to fallback device is temporary during active node switch, but may last
+    // longer if no device can be opened. possibly_disable_fallback ensures all
+    // streams are removed from the fallback devices.
+    if (is_fallback_dev(dev)) {
+      may_attach = dev_enabled;
     }
-    /*
-     * If this is a pinned stream, attach it if its pinned dev id
-     * matches this device or any fallback dev. Note that attaching
-     * a pinned stream to fallback device is temporary. When the
-     * fallback dev gets disabled in possibly_disable_fallback()
-     * the check stream_list_has_pinned_stream() is key to allow
-     * all streams to be removed from fallback and close it.
-     */
-    else if ((stream->pinned_dev_idx == dev->info.idx) ||
-             (SILENT_PLAYBACK_DEVICE == dev->info.idx) ||
-             (SILENT_RECORD_DEVICE == dev->info.idx)) {
-      can_attach = 1;
+    // For normal stream, if the device is enabled by UI via active node
+    // settings, the stream may attach.
+    else if (!stream->is_pinned) {
+      may_attach = dev_enabled;
+    }
+    // For pinned stream, if this device is in the stream's target iodev group,
+    // the stream may attach. stream->pinned_dev_idx indicates the group, not a
+    // particular device. It's equivalent for clients to specify the index of
+    // any device in the group, though only one is visible currently.
+    else if (cras_iodev_group_has_dev(dev, stream->pinned_dev_idx)) {
+      may_attach = true;
     }
 
-    if (!can_attach) {
+    if (!may_attach) {
+      continue;
+    }
+
+    if (!cras_iodev_should_attach_stream(dev, stream)) {
       continue;
     }
 
@@ -998,9 +1007,12 @@ static int init_pinned_device(struct cras_iodev* dev,
     return 0;
   }
 
-  /* Make sure the active node is configured properly, it could be
-   * disabled when last normal stream removed. */
-  dev->update_active_node(dev, dev->active_node->idx, 1);
+  // Don't disturb the active node if there is an open dev in the group.
+  if (!cras_iodev_group_has_open_dev(dev)) {
+    /* Make sure the active node is configured properly, it could be
+     * disabled when last normal stream removed. */
+    dev->update_active_node(dev, dev->active_node->idx, 1);
+  }
 
   // Negative EAGAIN code indicates dev will be opened later.
   rc = init_device(dev, rstream);
@@ -1022,7 +1034,11 @@ static int close_pinned_device(struct cras_iodev* dev) {
     idle_floop_check(NULL, NULL);
   }
   close_dev(dev);
-  dev->update_active_node(dev, dev->active_node->idx, 0);
+
+  // Update active node after the last iodev in the group is closed.
+  if (!cras_iodev_group_has_open_dev(dev)) {
+    dev->update_active_node(dev, dev->active_node->idx, 0);
+  }
   return 0;
 }
 
@@ -1050,7 +1066,6 @@ static struct cras_iodev* find_pinned_device(struct cras_rstream* rstream) {
 
 static int pinned_stream_added(struct cras_rstream* rstream) {
   struct cras_iodev* dev;
-  int rc;
 
   // Check that the target device is valid for pinned streams.
   dev = find_pinned_device(rstream);
@@ -1058,15 +1073,83 @@ static int pinned_stream_added(struct cras_rstream* rstream) {
     return -EINVAL;
   }
 
-  dev->num_pinned_streams++;
+  syslog(LOG_DEBUG, "pinned_stream_added(stream=0x%x, dev=%s)",
+         rstream->stream_id, dev->info.name);
 
-  rc = init_pinned_device(dev, rstream);
-  if (rc) {
-    syslog(LOG_DEBUG, "init_pinned_device failed, rc %d", rc);
-    return schedule_init_device_retry(dev);
+  // Init the matched device(s) in the target group. If any of the matched
+  // devices is already open, init_pinned_device exits early. The attach check
+  // is still needed to find the matched device(s) for the pinned stream.
+  size_t group_size;
+  struct cras_iodev* const* group = cras_iodev_get_dev_group(dev, &group_size);
+
+  if (!group) {
+    group = &dev;
+    group_size = 1;
   }
 
-  return add_stream_to_open_devs(rstream, &dev, 1);
+  size_t num_open_devs = 0, num_potentially_attached_devs = 0;
+  struct cras_iodev* open_devs[NUM_OPEN_DEVS_MAX];
+  int first_err = 0;
+
+  for (size_t i = 0; i < group_size; i++) {
+    if (!cras_iodev_should_attach_stream(group[i], rstream)) {
+      continue;
+    }
+
+    if (num_open_devs >= ARRAY_SIZE(open_devs)) {
+      syslog(LOG_ERR, "Too many pinned open devices");
+      break;
+    }
+
+    int rc = init_pinned_device(group[i], rstream);
+    if (rc) {
+      syslog(LOG_DEBUG, "init_pinned_device failed, rc %d", rc);
+      rc = schedule_init_device_retry(group[i]);
+      if (rc) {
+        syslog(LOG_ERR, "init_pinned_device retry schedule failed, rc %d", rc);
+        if (!first_err) {
+          first_err = rc;
+        }
+      } else {
+        // The stream may be attached to the retrying device later. It is
+        // considered pinned to the iodev at this point, even if the retry fails
+        // later. pinned_stream_removed will be called.
+        num_potentially_attached_devs++;
+        group[i]->num_pinned_streams++;
+      }
+      continue;
+    }
+    open_devs[num_open_devs++] = group[i];
+    // The pinned stream may attach to more than one devices in the target
+    // group. Loop to find all matched devices.
+  }
+
+  // Attach the stream to devices that are opened successfully on the first try.
+  if (num_open_devs) {
+    int rc = add_stream_to_open_devs(rstream, open_devs, num_open_devs);
+    if (rc) {
+      syslog(LOG_ERR, "Adding pinned stream to thread failed, rc %d", rc);
+      if (!first_err) {
+        first_err = rc;
+      }
+    } else {
+      num_potentially_attached_devs += num_open_devs;
+      for (size_t i = 0; i < num_open_devs; i++) {
+        open_devs[i]->num_pinned_streams++;
+      }
+    }
+  }
+
+  // Keep the stream if it's been or will be attached to at least one device,
+  // even when there are errors at opening and attaching. A failed device should
+  // not block the stream from running on the other matched device(s).
+  if (num_potentially_attached_devs) {
+    return 0;
+  }
+  // Otherwise destroy and free the stream. There is no chance to attach to any
+  // device at this point. Exit with an error code to avoid client stream
+  // blocking indefinitely.
+  return first_err ? first_err : -ENODEV;
 }
 
 /*
@@ -1076,22 +1159,36 @@ static int pinned_stream_added(struct cras_rstream* rstream) {
  - Caller should take care of enabling fallback_devs to avoid
    blocking client streaming.
 */
-static void restart_dev(unsigned int dev_idx) {
+static void restart_device_group(unsigned int dev_idx) {
   struct cras_iodev* dev = find_dev(dev_idx);
-  int rc;
 
   if (!dev) {
     return;
   }
 
-  close_dev(dev);
+  syslog(LOG_DEBUG, "restart_device_group(dev=%s)", dev->info.name);
+
+  size_t size;
+  struct cras_iodev* const* group = cras_iodev_get_dev_group(dev, &size);
+
+  if (!group) {
+    group = &dev;
+    size = 1;
+  }
+
+  for (size_t i = 0; i < size; i++) {
+    close_dev(group[i]);
+  }
   dev->update_active_node(dev, dev->active_node->idx, 0);
 
   dev->update_active_node(dev, dev->active_node->idx, 1);
-  rc = init_and_attach_streams(dev);
-  if (rc) {
-    syslog(LOG_ERR, "Enable dev fail at restart, rc %d", rc);
-    schedule_init_device_retry(dev);
+  for (size_t i = 0; i < size; i++) {
+    // init_and_attach_streams opens only the matched devices in the group.
+    int rc = init_and_attach_streams(group[i]);
+    if (rc) {
+      syslog(LOG_ERR, "Enable dev fail at restart, rc %d", rc);
+      schedule_init_device_retry(group[i]);
+    }
   }
 }
 
@@ -1132,6 +1229,10 @@ static int stream_added_cb(struct cras_rstream* rstream) {
       continue;
     }
 
+    if (!cras_iodev_should_attach_stream(edev->dev, rstream)) {
+      continue;
+    }
+
     if (num_iodevs >= ARRAY_SIZE(iodevs)) {
       syslog(LOG_ERR, "too many enabled devices");
       break;
@@ -1153,7 +1254,7 @@ static int stream_added_cb(struct cras_rstream* rstream) {
       syslog(LOG_DEBUG, "re-open %s for higher channel count",
              edev->dev->info.name);
       possibly_enable_fallback(rstream->direction, false);
-      restart_dev(edev->dev->info.idx);
+      restart_device_group(edev->dev->info.idx);
       iodev_reopened = true;
     } else {
       rc = init_device(edev->dev, rstream);
@@ -1245,6 +1346,8 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir) {
   struct enabled_dev* edev;
   const struct cras_rstream* s;
 
+  syslog(LOG_DEBUG, "possibly_close_enabled_devs(dir=%d)", dir);
+
   // Check if there are still default streams attached.
   DL_FOREACH (stream_list_get(stream_list), s) {
     if (s->direction == dir && !s->is_pinned) {
@@ -1292,12 +1395,35 @@ static void pinned_stream_removed(struct cras_rstream* rstream) {
     return;
   }
 
-  // The stream has already been drained at this point.
-  dev->num_pinned_streams--;
+  syslog(LOG_DEBUG, "pinned_stream_removed(stream=0x%x, dev=%s)",
+         rstream->stream_id, dev->info.name);
 
-  if (!cras_iodev_list_dev_is_enabled(dev) &&
-      !cras_iodev_has_pinned_stream(dev)) {
-    close_pinned_device(dev);
+  size_t group_size;
+  struct cras_iodev* const* group = cras_iodev_get_dev_group(dev, &group_size);
+
+  if (!group) {
+    group = &dev;
+    group_size = 1;
+  }
+
+  for (size_t i = 0; i < group_size; i++) {
+    if (!cras_iodev_should_attach_stream(group[i], rstream)) {
+      continue;
+    }
+
+    // The stream has already been drained at this point.
+    if (group[i]->num_pinned_streams) {
+      group[i]->num_pinned_streams--;
+    } else {
+      // This only happens if cras_iodev_should_attach_stream returned
+      // inconsistent result at pinned_stream_add.
+      syslog(LOG_ERR, "Device has no pinned stream: %s", group[i]->info.name);
+    }
+
+    if (!cras_iodev_list_dev_is_enabled(group[i]) &&
+        !cras_iodev_has_pinned_stream(group[i])) {
+      close_pinned_device(group[i]);
+    }
   }
 }
 
@@ -1376,6 +1502,8 @@ static int enable_device(struct cras_iodev* dev) {
   enum CRAS_STREAM_DIRECTION dir = dev->direction;
   struct device_enabled_cb* callback;
 
+  syslog(LOG_DEBUG, "enable_device(dev=%s)", dev->info.name);
+
   DL_FOREACH (enabled_devs[dir], edev) {
     if (edev->dev == dev) {
       return -EEXIST;
@@ -1403,6 +1531,34 @@ static int enable_device(struct cras_iodev* dev) {
   return 0;
 }
 
+// Enable the iodev group containing the given iodev.
+static int enable_device_group(struct cras_iodev* dev) {
+  size_t size;
+  struct cras_iodev* const* group = cras_iodev_get_dev_group(dev, &size);
+
+  syslog(LOG_DEBUG, "enable_device_group(dev=%s)", dev->info.name);
+
+  if (!group) {
+    return enable_device(dev);
+  }
+
+  int first_err = 0;
+  for (size_t i = 0; i < size; i++) {
+    int rc = enable_device(group[i]);
+    // Continue enabling other iodevs in the group even if an iodev failed.
+    // Failed iodevs are scheduled for init retry.
+    if (rc) {
+      syslog(LOG_ERR, "Enable device group failed for device %s, rc %d",
+             group[i]->info.name, rc);
+      if (!first_err) {
+        first_err = rc;
+      }
+    }
+  }
+
+  return first_err;
+}
+
 // Set force to true to flush any pinned streams before closing the device.
 static int disable_device(struct enabled_dev* edev, bool force) {
   struct cras_iodev* dev = edev->dev;
@@ -1411,6 +1567,8 @@ static int disable_device(struct enabled_dev* edev, bool force) {
   struct device_enabled_cb* callback;
 
   MAINLOG(main_log, MAIN_THREAD_DEV_DISABLE, dev->info.idx, force, 0);
+  syslog(LOG_DEBUG, "disable_device(edev=%s,force=%d)", dev->info.name, force);
+
   /*
    * Remove from enabled dev list. However this dev could have a stream
    * pinned to it, only cancel pending init timers when force flag is set.
@@ -1440,11 +1598,73 @@ static int disable_device(struct enabled_dev* edev, bool force) {
     callback->disabled_cb(dev, callback->cb_data);
   }
   close_dev(dev);
-  dev->update_active_node(dev, dev->active_node->idx, 0);
 
+  // Update active node after the last iodev in a group is closed.
+  if (!cras_iodev_group_has_open_dev(dev)) {
+    // dev may be any iodev in the group, not necessarily the HiFi iodev.
+    dev->update_active_node(dev, dev->active_node->idx, 0);
+  }
   possibly_clear_non_dsp_aec_echo_ref_dev_alive();
-
   return 0;
+}
+
+// Disable all enabled iodevs except the ones in the given selected dev group.
+// This is needed during node switch to maintain the expected CRAS behavior:
+// When user selects a new node, all other nodes (either previously selected by
+// user or added by cras_iodev_list_add_active_node) are turned off.
+static void disable_unselected_devices(enum CRAS_STREAM_DIRECTION direction,
+                                       struct cras_iodev* selected_dev_group) {
+  struct enabled_dev* edev;
+
+  syslog(LOG_DEBUG, "disable_unselected_devices(dir=%d,sel=%s)", direction,
+         selected_dev_group ? selected_dev_group->info.name : "None");
+
+  DL_FOREACH (enabled_devs[direction], edev) {
+    // Don't disable fallback iodevs.
+    if (is_fallback_dev(edev->dev)) {
+      continue;
+    }
+
+    // Don't disable iodevs in the user selected group.
+    if (cras_iodev_in_same_group(edev->dev, selected_dev_group)) {
+      continue;
+    }
+
+    // Disable all other iodev while keeping pinned streams.
+    disable_device(edev, false);
+  }
+}
+
+// Disable the iodev group containing the given iodev.
+static size_t disable_device_group(struct cras_iodev* dev, bool force) {
+  enum CRAS_STREAM_DIRECTION direction = dev->direction;
+  struct enabled_dev* edev;
+  bool has_other_enabled_device = false;
+
+  syslog(LOG_DEBUG, "disable_device_group(dev=%s,force=%d)", dev->info.name,
+         force);
+
+  // Enable fallback if there is no other enabled device.
+  DL_FOREACH (enabled_devs[direction], edev) {
+    if (!cras_iodev_in_same_group(edev->dev, dev)) {
+      has_other_enabled_device = true;
+      break;
+    }
+  }
+  if (!has_other_enabled_device) {
+    possibly_enable_fallback(dev->direction, false);
+  }
+
+  // no-op for already disabled iodevs running pinned streams.
+  size_t num_disabled_devs = 0;
+  DL_FOREACH (enabled_devs[direction], edev) {
+    if (cras_iodev_in_same_group(edev->dev, dev)) {
+      disable_device(edev, force);
+      num_disabled_devs++;
+    }
+  }
+
+  return num_disabled_devs;
 }
 
 /*
@@ -1517,88 +1737,74 @@ void cras_iodev_list_deinit() {
 }
 
 int cras_iodev_list_dev_is_enabled(const struct cras_iodev* dev) {
-  struct enabled_dev* edev;
-
-  DL_FOREACH (enabled_devs[dev->direction], edev) {
-    if (edev->dev == dev) {
-      return 1;
-    }
-  }
-
-  return 0;
+  return dev && dev->is_enabled;
 }
 
 void cras_iodev_list_add_active_node(enum CRAS_STREAM_DIRECTION dir,
                                      cras_node_id_t node_id) {
-  struct cras_iodev* new_dev;
-  new_dev = find_dev(dev_index_of(node_id));
+  struct cras_iodev* new_dev = find_dev(dev_index_of(node_id));
+
   if (!new_dev || new_dev->direction != dir) {
     return;
   }
 
   MAINLOG(main_log, MAIN_THREAD_ADD_ACTIVE_NODE, new_dev->info.idx, 0, 0);
+  syslog(LOG_DEBUG, "cras_iodev_list_add_active_node(new_dev=%s,node=%d)",
+         new_dev->info.name, node_index_of(node_id));
 
-  /* If the new dev is already enabled but its active node needs to be
-   * changed. Disable new dev first, update active node, and then
-   * re-enable it again.
-   */
-  if (cras_iodev_list_dev_is_enabled(new_dev)) {
-    if (node_index_of(node_id) == new_dev->active_node->idx) {
-      return;
-    } else {
-      cras_iodev_list_disable_dev(new_dev, true);
-    }
-  }
-
-  new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
-
-  possibly_disable_fallback(new_dev->direction);
-  // Enable ucm setting of active node.
-  new_dev->update_active_node(new_dev, new_dev->active_node->idx, 1);
-  enable_device(new_dev);
-  cras_iodev_list_notify_active_node_changed(new_dev->direction);
-}
-
-/*
- * Disables device which may or may not be in enabled_devs list.
- */
-void cras_iodev_list_disable_dev(struct cras_iodev* dev, bool force_close) {
-  struct enabled_dev *edev, *edev_to_disable = NULL;
-
-  int is_the_only_enabled_device = 1;
-
-  DL_FOREACH (enabled_devs[dev->direction], edev) {
-    if (edev->dev == dev) {
-      edev_to_disable = edev;
-    } else {
-      is_the_only_enabled_device = 0;
-    }
-  }
-
-  /*
-   * Disables the device for these two cases:
-   * 1. Disable a device in the enabled_devs list.
-   * 2. Force close a device that is not in the enabled_devs list,
-   *    but it is running a pinned stream.
-   */
-  if (!edev_to_disable) {
-    if (force_close) {
-      close_pinned_device(dev);
-    }
+  if (cras_iodev_list_dev_is_enabled(new_dev) &&
+      new_dev->active_node->idx == node_index_of(node_id)) {
     return;
   }
 
-  /* If the device to be closed is the only enabled device, we should
-   * enable the fallback device first then disable the target
-   * device. */
-  if (is_the_only_enabled_device && fallback_devs[dev->direction]) {
-    enable_device(fallback_devs[dev->direction]);
+  /* Possible states of the iodev group containing new_dev:
+   * 1. disabled, closed
+   * 2. disabled, running pinned streams
+   * 3. enabled, closed
+   * 4. enabled, running pinned streams
+   * 5. enabled, running normal streams
+   * 6. enabled, running normal + pinned streams
+   *
+   * If enabled, it's a node switch within group, so need to flush all streams.
+   */
+  cras_iodev_list_disable_and_close_dev_group(new_dev);
+
+  // Enable ucm setting of active node.
+  new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
+  if (enable_device_group(new_dev) == 0) {
+    possibly_disable_fallback(new_dev->direction);
+  }
+  cras_iodev_list_notify_active_node_changed(new_dev->direction);
+}
+
+void cras_iodev_list_disable_and_close_dev_group(struct cras_iodev* dev) {
+  syslog(LOG_DEBUG, "cras_iodev_list_disable_and_close_dev_group(dev=%s)",
+         dev->info.name);
+
+  size_t num_disabled_devs = disable_device_group(dev, true);
+  size_t num_closed_devs = 0;
+  size_t size;
+  struct cras_iodev* const* group = cras_iodev_get_dev_group(dev, &size);
+
+  // Close the dev group if it has pinned stream but is already disabled.
+  // TODO(b/297347634) Remove the close_dev after refactoring pinned stream.
+  if (!group) {
+    group = &dev;
+    size = 1;
+  }
+  for (size_t i = 0; i < size; i++) {
+    if (cras_iodev_is_open(group[i])) {
+      close_dev(group[i]);
+      num_closed_devs++;
+    }
+  }
+  if (num_closed_devs) {
+    dev->update_active_node(dev, dev->active_node->idx, 0);
   }
 
-  disable_device(edev_to_disable, force_close);
-
-  cras_iodev_list_notify_active_node_changed(dev->direction);
-  return;
+  if (num_disabled_devs) {
+    cras_iodev_list_notify_active_node_changed(dev->direction);
+  }
 }
 
 void cras_iodev_list_suspend_dev(unsigned int dev_idx) {
@@ -1650,14 +1856,18 @@ void cras_iodev_list_set_dev_mute(unsigned int dev_idx) {
 
 void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
                                     cras_node_id_t node_id) {
-  struct cras_iodev* dev;
+  struct cras_iodev* dev = find_dev(dev_index_of(node_id));
 
-  dev = find_dev(dev_index_of(node_id));
-  if (!dev) {
+  if (!dev || dev->direction != dir) {
     return;
   }
 
-  cras_iodev_list_disable_dev(dev, false);
+  syslog(LOG_DEBUG, "cras_iodev_list_rm_active_node(dev=%s,node=%d)",
+         dev->info.name, node_index_of(node_id));
+
+  // Disable the unselected iodev group but keep its pinned streams.
+  disable_device_group(dev, false);
+  cras_iodev_list_notify_active_node_changed(dev->direction);
 }
 
 int cras_iodev_list_add_output(struct cras_iodev* output) {
@@ -1697,10 +1907,13 @@ int cras_iodev_list_add_input(struct cras_iodev* input) {
 int cras_iodev_list_rm_output(struct cras_iodev* dev) {
   int res;
 
-  /* Retire the current active output device before removing it from
-   * list, otherwise it could be busy and remain in the list.
+  /* Disable and close the dev group if any device in it is about to be removed.
+   * The dev group is enabled/disabled as a whole to ensure:
+   * 1. Fallback device is enabled properly. A partially disabled dev group may
+   *    drop some streams and block clients.
+   * 2. No stream is running if the dev group's node owner is removed.
    */
-  cras_iodev_list_disable_dev(dev, true);
+  cras_iodev_list_disable_and_close_dev_group(dev);
   res = rm_dev_from_list(dev);
   if (res == 0) {
     cras_iodev_list_update_device_list();
@@ -1711,10 +1924,13 @@ int cras_iodev_list_rm_output(struct cras_iodev* dev) {
 int cras_iodev_list_rm_input(struct cras_iodev* dev) {
   int res;
 
-  /* Retire the current active input device before removing it from
-   * list, otherwise it could be busy and remain in the list.
+  /* Disable and close the dev group if any device in it is about to be removed.
+   * The dev group is enabled/disabled as a whole to ensure:
+   * 1. Fallback device is enabled properly. A partially disabled dev group may
+   *    drop some streams and block clients.
+   * 2. No stream is running if the dev group's node owner is removed.
    */
-  cras_iodev_list_disable_dev(dev, true);
+  cras_iodev_list_disable_and_close_dev_group(dev);
   res = rm_dev_from_list(dev);
   if (res == 0) {
     cras_iodev_list_update_device_list();
@@ -1915,6 +2131,8 @@ void cras_iodev_list_notify_nodes_changed() {
 
 void cras_iodev_list_notify_active_node_changed(
     enum CRAS_STREAM_DIRECTION direction) {
+  syslog(LOG_DEBUG, "cras_iodev_list_notify_active_node_changed(dir=%d)",
+         direction);
   cras_observer_notify_active_node(
       direction, cras_iodev_list_get_active_node_id(direction));
 }
@@ -1922,9 +2140,7 @@ void cras_iodev_list_notify_active_node_changed(
 void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
                                  cras_node_id_t node_id) {
   struct cras_iodev* new_dev = NULL;
-  struct enabled_dev* edev;
   int new_node_already_enabled = 0;
-  int rc;
 
   // find the devices for the id.
   new_dev = find_dev(dev_index_of(node_id));
@@ -1943,13 +2159,13 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
   /* Determine whether the new device and node are already enabled - if
    * they are, the selection algorithm should avoid disabling the new
    * device. */
-  DL_FOREACH (enabled_devs[direction], edev) {
-    if (edev->dev == new_dev &&
-        edev->dev->active_node->idx == node_index_of(node_id)) {
-      new_node_already_enabled = 1;
-      break;
-    }
-  }
+  new_node_already_enabled =
+      cras_iodev_list_dev_is_enabled(new_dev) &&
+      new_dev->active_node->idx == node_index_of(node_id);
+
+  syslog(LOG_DEBUG, "select_node: new_dev=%s, new_node=%d, already_enabled=%d",
+         new_dev ? new_dev->info.name : "None", node_index_of(node_id),
+         new_node_already_enabled);
 
   /* Enable fallback device during the transition so client will not be
    * blocked in this duration, which is as long as 300 ms on some boards
@@ -1960,31 +2176,18 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
     possibly_enable_fallback(direction, false);
   }
 
-  DL_FOREACH (enabled_devs[direction], edev) {
-    // Don't disable fallback devices.
-    if (edev->dev == fallback_devs[direction]) {
-      continue;
-    }
-    /*
-     * Disable enabled device if it's not the new one, use non-force
-     * disable call so we don't interrupt existing pinned streams on
-     * it.
-     */
-    if (edev->dev != new_dev) {
-      disable_device(edev, false);
-    }
-    /*
-     * Otherwise if this happens to be the new device but about to
-     * select to a different node (on the same dev). Force disable
-     * this device to avoid any pinned stream occupies it in audio
-     * thread and cause problem in later update_active_node call.
-     */
-    else if (!new_node_already_enabled) {
-      disable_device(edev, true);
-    }
-  }
+  /* All iodevs in a group are enabled/disabled together. All nodes on the
+   * iodevs in the group are shared and owned by the group. The group is
+   * enabled iff a node on one of the group's iodev is selected. */
+  disable_unselected_devices(direction, new_dev);
 
   if (new_dev && !new_node_already_enabled) {
+    /* Flush pinned streams when switching nodes on the same group.
+     * The new_dev group may not be enabled, so disable_device_group(dev, true)
+     * is not enough.
+     * TODO(b/266790044) fix double active node change notify. */
+    cras_iodev_list_disable_and_close_dev_group(new_dev);
+
     new_dev->update_active_node(new_dev, node_index_of(node_id), 1);
 
     /* To reduce the popped noise of active device change, mute
@@ -1995,10 +2198,9 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
       new_dev->initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE;
     }
 
-    rc = enable_device(new_dev);
-    if (rc == 0) {
-      /* Disable fallback device after new device is enabled.
-       * Leave the fallback device enabled if new_dev failed
+    if (enable_device_group(new_dev) == 0) {
+      /* Disable fallback device after new iodev group is enabled.
+       * Leave the fallback device enabled if any iodev in the group failed
        * to open, or the new_dev == NULL case. */
       possibly_disable_fallback(direction);
     }
@@ -2016,6 +2218,9 @@ static int set_node_plugged(struct cras_iodev* iodev,
   if (!node) {
     return -EINVAL;
   }
+  syslog(LOG_DEBUG, "set_node_plugged(dev=%s,node=%d,plugged=%d)",
+         iodev->info.name, node_index_of(node_idx), plugged);
+
   cras_iodev_set_node_plugged(node, plugged);
   return 0;
 }
@@ -2312,7 +2517,7 @@ void cras_iodev_list_reset_for_noise_cancellation() {
     syslog(LOG_INFO, "Re-open %s for noise cancellation: %d -> %d",
            dev->info.name, dev->active_nc_provider, want_provider);
     possibly_enable_fallback(CRAS_STREAM_INPUT, false);
-    restart_dev(dev->info.idx);
+    restart_device_group(dev->info.idx);
     possibly_disable_fallback(CRAS_STREAM_INPUT);
   }
 }
@@ -2336,21 +2541,37 @@ static int remove_then_reconnect_stream(struct cras_rstream* rstream) {
    * and add |rstream| back to them.
    */
   if (rstream->is_pinned) {
-    iodevs[0] = find_pinned_device(rstream);
-    if (!iodevs[0]) {
+    struct cras_iodev* pinned_dev = find_pinned_device(rstream);
+    if (!pinned_dev) {
       syslog(LOG_WARNING, "Pinned dev %u not found at reconnect stream",
              rstream->pinned_dev_idx);
       return 0;
     }
-    /* Although we know |rstream| is pinned on iodev[0] it could
-     * still be in close state due to prior IO errors. Always
-     * check and init this iodev before reconnecting |rstream|.
-     */
-    rc = init_pinned_device(iodevs[0], rstream);
-    if (rc) {
-      syslog(LOG_WARNING, "Failed to open pinned device at reconnect stream");
-    } else {
-      num_iodevs = 1;
+
+    // Init the matched device(s) in the target group.
+    size_t group_size;
+    struct cras_iodev* const* group =
+        cras_iodev_get_dev_group(pinned_dev, &group_size);
+    if (!group) {
+      group = &pinned_dev;
+      group_size = 1;
+    }
+
+    for (size_t i = 0; i < group_size; i++) {
+      if (!cras_iodev_should_attach_stream(group[i], rstream)) {
+        continue;
+      }
+
+      /* Although we know |rstream| is pinned on group[i] it could still be in
+       * close state due to prior IO errors. Always check and init this iodev
+       * before reconnecting |rstream|.
+       */
+      rc = init_pinned_device(group[i], rstream);
+      if (rc) {
+        syslog(LOG_WARNING, "Failed to open pinned device at reconnect stream");
+      } else {
+        iodevs[num_iodevs++] = group[i];
+      }
     }
   } else {
     DL_FOREACH (enabled_devs[rstream->direction], edev) {
@@ -2362,6 +2583,10 @@ static int remove_then_reconnect_stream(struct cras_rstream* rstream) {
   if (num_iodevs == 0) {
     return 0;
   }
+
+  syslog(LOG_DEBUG, "Reconnect stream 0x%x%s from %d devices",
+         rstream->stream_id, (rstream->is_pinned ? "(pinned)" : ""),
+         num_iodevs);
 
   /* If |rstream| has an stream_apm, remove from those already attached
    * iodevs. This resets the old APM settings used on these iodevs and

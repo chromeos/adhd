@@ -96,6 +96,8 @@ struct cras_rstream {
   // True if the stream is a pinned stream, false otherwise.
   int is_pinned;
   // device the stream is pinned, 0 if none.
+  // If the pinned device is in a group, the stream may be redirected and
+  // attached to other devices in the group based on stream parameters.
   uint32_t pinned_dev_idx;
   // True if already notified TRIGGER_ONLY stream, false otherwise.
   int triggered;

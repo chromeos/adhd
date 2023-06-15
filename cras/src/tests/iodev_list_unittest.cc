@@ -3,9 +3,12 @@
 // found in the LICENSE file.
 
 #include <algorithm>
+#include <array>
+#include <functional>
 #include <gtest/gtest.h>
 #include <map>
 #include <stdio.h>
+#include <vector>
 
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
@@ -97,6 +100,7 @@ static int cras_observer_notify_input_node_gain_value;
 static int cras_iodev_open_called;
 static int cras_iodev_open_fallback_called;
 static int cras_iodev_open_ret[8];
+static struct cras_iodev* cras_iodev_open_dev;
 static struct cras_audio_format cras_iodev_open_fmt[8];
 static struct cras_audio_format cras_iodev_open_fallback_fmt;
 static int set_mute_called;
@@ -117,13 +121,16 @@ static struct cras_floop_pair* cras_floop_pair_create_return;
 static bool cras_system_get_sr_bt_supported_return = false;
 static bool cras_system_get_noise_cancellation_enabled_ret = false;
 static int cras_rstream_get_effects_return = 0;
+static std::vector<std::vector<struct cras_iodev*>> iodev_groups;
+static std::function<int(const struct cras_iodev*, const struct cras_rstream*)>
+    should_attach_stream_cb;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
 }
 
 int device_in_vector(std::vector<struct cras_iodev*> v,
-                     struct cras_iodev* dev) {
+                     const struct cras_iodev* dev) {
   return std::find(v.begin(), v.end(), dev) != v.end();
 }
 
@@ -249,6 +256,7 @@ class IodevTests : public TestBase {
     cras_observer_notify_input_node_gain_value = 0;
     cras_iodev_open_called = 0;
     memset(cras_iodev_open_ret, 0, sizeof(cras_iodev_open_ret));
+    cras_iodev_open_dev = NULL;
     set_mute_called = 0;
     set_mute_dev_vector.clear();
     set_swap_mode_for_node_called = 0;
@@ -274,6 +282,7 @@ class IodevTests : public TestBase {
     cras_floop_pair_create_return = NULL;
     cras_system_get_sr_bt_supported_return = false;
     cras_rstream_get_effects_return = 0;
+    iodev_groups.clear();
   }
   void SetUp() override {
     cras_iodev_list_reset();
@@ -281,6 +290,15 @@ class IodevTests : public TestBase {
   }
 
   void TearDown() override { cras_iodev_list_reset(); }
+
+  void SetGroupOps() {
+    std::array devs{&d1_, &d2_, &d3_};
+    for (auto& dev : devs) {
+      dev->get_dev_group = get_dev_group;
+      dev->get_dev_group_id = get_dev_group_id;
+      dev->should_attach_stream = should_attach_stream;
+    }
+  }
 
   static void update_active_node(struct cras_iodev* iodev,
                                  unsigned node_idx,
@@ -320,6 +338,37 @@ class IodevTests : public TestBase {
     set_swap_mode_for_node_called++;
     set_swap_mode_for_node_enable = enable;
     return 0;
+  }
+
+  static struct cras_iodev* const* get_dev_group(const struct cras_iodev* iodev,
+                                                 size_t* out_group_size) {
+    for (auto& group : iodev_groups) {
+      if (device_in_vector(group, iodev)) {
+        if (out_group_size) {
+          *out_group_size = group.size();
+        }
+        return group.data();
+      }
+    }
+
+    if (out_group_size) {
+      *out_group_size = 0;
+    }
+    return NULL;
+  }
+
+  static uintptr_t get_dev_group_id(const struct cras_iodev* iodev) {
+    for (auto& group : iodev_groups) {
+      if (device_in_vector(group, iodev)) {
+        return (uintptr_t)group.data();
+      }
+    }
+    return 0;
+  }
+
+  static int should_attach_stream(const struct cras_iodev* iodev,
+                                  const struct cras_rstream* stream) {
+    return should_attach_stream_cb(iodev, stream);
   }
 
   struct cras_iodev d1_;
@@ -1043,7 +1092,7 @@ TEST_F(IoDevTestSuite, SelectNode) {
                                 cras_make_node_id(d2_.info.idx, 2));
   }
 
-  cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL, NULL);
+  cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL, (void*)0xABCD);
 
   cras_iodev_list_deinit();
 }
@@ -1128,7 +1177,7 @@ TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
                                 cras_make_node_id(d2_.info.idx, 2));
   }
 
-  cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL, NULL);
+  cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL, (void*)0xABCD);
 
   cras_iodev_list_deinit();
 }
@@ -1396,13 +1445,95 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
 
-    cras_iodev_list_disable_dev(&d1_, false);
+    cras_iodev_list_disable_and_close_dev_group(&d1_);
   }
 
-  cras_iodev_list_set_device_enabled_callback(
-      device_enabled_cb, device_disabled_cb, NULL, (void*)0xCDEF);
+  cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL, (void*)0xABCD);
 
-  cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL, NULL);
+  cras_iodev_list_deinit();
+}
+
+// Test enable/disable an iodev group.
+TEST_F(IoDevTestSuite, EnableDisableIodevGroup) {
+  struct cras_rstream rstream;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+
+  cras_iodev_list_init();
+
+  iodev_groups = {{&d1_, &d2_}, {&d3_}};
+  d2_.nodes = NULL;
+  d2_.active_node = d1_.active_node;
+
+  should_attach_stream_cb = [&](const struct cras_iodev* iodev,
+                                const struct cras_rstream* stream) {
+    return iodev == &d2_ || iodev == &d3_;
+  };
+  SetGroupOps();
+
+  d1_.info.idx = 1;
+  rc = cras_iodev_list_add_output(&d1_);
+  EXPECT_EQ(rc, 0);
+
+  d2_.info.idx = 2;
+  rc = cras_iodev_list_add_output(&d2_);
+  EXPECT_EQ(rc, 0);
+
+  d3_.info.idx = 3;
+  rc = cras_iodev_list_add_output(&d3_);
+  EXPECT_EQ(rc, 0);
+
+  cras_iodev_list_set_device_enabled_callback(
+      device_enabled_cb, device_disabled_cb, NULL, (void*)0xABCD);
+
+  // Enable the first iodev group containing d1_ and d2_.
+  {
+    // d1_ and d2_ are enabled.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_enabled_count, 2);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_enabled_dev, &d2_);
+    EVENTUALLY(EXPECT_EQ,
+               cras_iodev_list_get_first_enabled_iodev(CRAS_STREAM_OUTPUT),
+               &d1_);
+    // Output fallback is disabled.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_disabled_count, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_enabled_cb_data, (void*)0xABCD);
+    // The node for d1_ and d2_ is turned on. The fallback node is turned off.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 2);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
+    cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                                cras_make_node_id(d1_.info.idx, 0));
+  }
+
+  // Connect a normal stream. The stream is attached to d2_, not d1_.
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_dev, &d2_);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d2_);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
+
+    DL_APPEND(stream_list_get_ret, &rstream);
+    stream_add_cb(&rstream);
+  }
+
+  // Disable the first iodev group.
+  {
+    // d2_ is closed.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 1);
+    // d1_ and d2_ are disabled.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_disabled_count, 2);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_disabled_dev, &d2_);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, device_disabled_cb_data, (void*)0xABCD);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_dev, &d2_);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_active_node_called, 1);
+
+    cras_iodev_list_disable_and_close_dev_group(&d1_);
+  }
+
+  cras_iodev_list_set_device_enabled_callback(NULL, NULL, NULL, (void*)0xABCD);
 
   cras_iodev_list_deinit();
 }
@@ -2210,6 +2341,113 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, AddRemovePinnedStreamOnIodevGroup) {
+  struct cras_rstream rstream;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+
+  cras_iodev_list_init();
+
+  // Setup 2 iodev groups
+  iodev_groups = {{&d1_, &d2_}, {&d3_}};
+  d2_.nodes = NULL;
+  d2_.active_node = d1_.active_node;
+
+  should_attach_stream_cb = [&](const struct cras_iodev* iodev,
+                                const struct cras_rstream* stream) {
+    return iodev == &d2_ || iodev == &d3_;
+  };
+  SetGroupOps();
+
+  d1_.info.idx = 1;
+  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
+  d2_.info.idx = 2;
+  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
+  d3_.info.idx = 3;
+  EXPECT_EQ(cras_iodev_list_add_output(&d3_), 0);
+
+  // Select the node on the second group so that the first group is disabled.
+  cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
+                              cras_make_node_id(d3_.info.idx, 0));
+
+  // Setup pinned stream.
+  rstream.is_pinned = 1;
+  rstream.pinned_dev_idx = d1_.info.idx;
+
+  // Add pinned stream to the first iodev group via d1_.
+  {
+    // The pinned stream is added to d2_ according to should_attach_stream_cb.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_dev, &d2_);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_dev, &d2_);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_stream, &rstream);
+
+    // The node of the first iodev group is active because of the pinned stream.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d2_);
+    EVENTUALLY(EXPECT_EQ, update_active_node_dev_enabled_val[0], 1);
+
+    // Verify the pinned stream is reported on its assigned device d2_.
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d1_), false);
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d2_), true);
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d3_), false);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
+
+    DL_APPEND(stream_list_get_ret, &rstream);
+    rc = stream_add_cb(&rstream);
+  }
+
+  // Remove pinned stream from the first iodev group.
+  {
+    // The pinned stream is removed from d2_.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_dev, &d2_);
+
+    // The node of the first iodev group is disabled.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
+    EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d2_);
+    EVENTUALLY(EXPECT_EQ, update_active_node_dev_enabled_val[0], 0);
+
+    // The pinned stream is not reported on any device after removal.
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d1_), false);
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d2_), false);
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d3_), false);
+    EVENTUALLY(EXPECT_EQ, rc, 0);
+
+    DL_DELETE(stream_list_get_ret, &rstream);
+    rc = stream_rm_cb(&rstream);
+  }
+
+  // Drop the stream on the first iodev group.
+  should_attach_stream_cb = [&](const struct cras_iodev* iodev,
+                                const struct cras_rstream* stream) {
+    return iodev == &d3_;
+  };
+
+  // Add pinned stream to the first iodev group via d1_. The add should fail
+  // immediately because it does not match any iodev in the group.
+  {
+    // No device is opened.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 0);
+
+    // No node is updated.
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 0);
+
+    // The pinned stream is not reported on any device.
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d1_), false);
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d2_), false);
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d3_), false);
+    EVENTUALLY(EXPECT_EQ, rc, -ENODEV);
+
+    rc = stream_add_cb(&rstream);
+  }
+
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
   struct cras_rstream rstream;
   int rc;
@@ -2956,7 +3194,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     EVENTUALLY(EXPECT_EQ, server_state_stub.input_nodes[0].audio_effect,
                EFFECT_TYPE_NOISE_CANCELLATION);
 
-    cras_iodev_list_disable_dev(&d1_, false);
+    cras_iodev_list_disable_and_close_dev_group(&d1_);
   }
 
   cras_iodev_list_deinit();
@@ -3563,6 +3801,7 @@ void loopback_iodev_destroy(struct cras_iodev* iodev) {}
 int cras_iodev_open(struct cras_iodev* iodev,
                     unsigned int cb_level,
                     const struct cras_audio_format* fmt) {
+  cras_iodev_open_dev = iodev;
   if (iodev->info.idx == SILENT_RECORD_DEVICE ||
       iodev->info.idx == SILENT_PLAYBACK_DEVICE) {
     iodev->state = CRAS_IODEV_STATE_OPEN;

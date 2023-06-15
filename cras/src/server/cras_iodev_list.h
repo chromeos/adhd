@@ -189,12 +189,11 @@ void cras_iodev_list_resume_dev(unsigned int dev_idx);
 void cras_iodev_list_set_dev_mute(unsigned int dev_idx);
 
 /*
- * Disables an iodev. If this is the last device to disable, the
- * fallback devices will be enabled accordingly.
- * Set `foce_close` to true if the device must be closed regardless of having
- * pinned streams attached.
+ * Disables (if enabled) then closes the iodev group containing the given dev.
+ * If no other iodev is enabled except the ones in the group, the fallback
+ * device will be enabled before disabling the group.
  */
-void cras_iodev_list_disable_dev(struct cras_iodev* dev, bool force_close);
+void cras_iodev_list_disable_and_close_dev_group(struct cras_iodev* dev);
 
 /* Adds a node to the active devices list.
  * Args:
