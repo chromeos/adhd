@@ -13,6 +13,7 @@
 #include <base/task/thread_pool.h>
 #include <base/task/thread_pool/thread_pool_instance.h>
 #include <base/threading/thread.h>
+#include <bitset>
 #include <chrono>
 #include <dbus/bus.h>
 #include <errno.h>
@@ -116,7 +117,7 @@ class Worker {
   }
 
  private:
-  using FeatureStatus = std::array<bool, NUM_FEATURES>;
+  using FeatureStatus = std::bitset<NUM_FEATURES>;
 
   // Update the feature status.
   // Thread safe.
@@ -149,6 +150,11 @@ class Worker {
     }
 
     Update(update);
+    std::string bits = update.to_string();
+    // Reverse so the first feature defined in the enum is printed first.
+    std::reverse(bits.begin(), bits.end());
+    syslog(LOG_INFO, "features/backend_featured updated: %s (LSB first)",
+           bits.c_str());
   }
 
   // Trigger fetching features.
