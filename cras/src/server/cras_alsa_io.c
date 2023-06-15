@@ -94,6 +94,8 @@ struct alsa_io {
 struct alsa_io_group {
   struct alsa_io* devs[CRAS_NUM_USE_CASES];
   size_t num_devs;
+  // The device that owns and manages nodes in the group.
+  struct alsa_io* nodes_owner;
 };
 
 static void init_device_settings(struct alsa_io* aio);
@@ -466,6 +468,12 @@ static void update_active_node(struct cras_iodev* iodev,
                                unsigned node_idx,
                                unsigned dev_enabled) {
   struct cras_ionode* n;
+  struct alsa_io* aio = (struct alsa_io*)iodev;
+
+  // Find the iodev that manages nodes for the group.
+  if (aio->group && aio->group->nodes_owner) {
+    iodev = &aio->group->nodes_owner->common.base;
+  }
 
   // If a node exists for node_idx, set it as active.
   DL_FOREACH (iodev->nodes, n) {
@@ -2556,6 +2564,9 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
    * (CRAS_USE_CASE_HIFI) in the group, so the active node only needs to be set
    * once per group during init. */
   if (aio->common.base.nodes) {
+    if (aio->group) {
+      aio->group->nodes_owner = aio;
+    }
     // Set the active node as the best node we have now.
     alsa_iodev_set_active_node(&aio->common.base,
                                first_plugged_node(&aio->common.base), 0);
