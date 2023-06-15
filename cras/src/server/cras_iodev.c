@@ -768,7 +768,16 @@ void cras_iodev_rm_node(struct cras_iodev* iodev, struct cras_ionode* node) {
 
 void cras_iodev_set_active_node(struct cras_iodev* iodev,
                                 struct cras_ionode* node) {
-  iodev->active_node = node;
+  size_t size;
+  struct cras_iodev* const* group = cras_iodev_get_dev_group(iodev, &size);
+
+  if (!group || !size) {
+    iodev->active_node = node;
+  } else {
+    for (size_t i = 0; i < size; i++) {
+      group[i]->active_node = node;
+    }
+  }
   cras_iodev_list_notify_active_node_changed(iodev->direction);
 }
 
