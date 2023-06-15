@@ -1077,6 +1077,31 @@ static inline int cras_iodev_in_same_group(const struct cras_iodev* a,
   return false;
 }
 
+/* Checks if the given iodev's group has any open iodev.
+ * Args:
+ *    iodev - The device to check.
+ * Returns:
+ *    True if the given iodev's group has at least one open iodev.
+ *    False otherwise.
+ */
+static inline int cras_iodev_group_has_open_dev(
+    const struct cras_iodev* iodev) {
+  size_t size;
+  struct cras_iodev* const* group = cras_iodev_get_dev_group(iodev, &size);
+
+  if (!group) {
+    return cras_iodev_is_open(iodev);
+  }
+
+  for (size_t i = 0; i < size; i++) {
+    if (cras_iodev_is_open(group[i])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
