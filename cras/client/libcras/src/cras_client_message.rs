@@ -12,7 +12,7 @@ use cras_sys::gen::{
     CRAS_CLIENT_MESSAGE_ID::{self, *},
 };
 use data_model::DataInit;
-use libchromeos::sys::unix::ScmSocket;
+use libchromeos::sys::ScmSocket;
 
 use crate::cras_server_socket::CrasServerSocket;
 use crate::cras_shm::*;

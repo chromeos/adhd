@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::{SampleFormat, StreamSource};
 use hound::{WavReader, WavSpec, WavWriter};
-use libchromeos::sys::unix::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
+use libchromeos::sys::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
 use libcras::{BoxError, CrasClient, CrasNodeType};
 
 use crate::arguments::{AudioOptions, FileType, LoopbackType, SampleFormatArg};

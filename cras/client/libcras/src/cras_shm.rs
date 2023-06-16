@@ -928,7 +928,7 @@ impl CrasServerStateShmFd {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use libchromeos::sys::unix::SharedMemory;
+    use libchromeos::sys::SharedMemory;
     use std::ffi::CString;
     use std::fs::File;
     use std::os::unix::io::IntoRawFd;
