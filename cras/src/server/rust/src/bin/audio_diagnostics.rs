@@ -256,4 +256,12 @@ fn main() {
     if let Err(err) = dump_amp(&output_cards) {
         eprintln!("Cannot dump amp: {}", err)
     }
+
+    run_command(Command::new("dbus-send").args([
+        "--system",
+        "--print-reply",
+        "--dest=org.chromium.cras",
+        "/org/chromium/cras",
+        "org.chromium.cras.Control.SpeakOnMuteDetectionEnabled",
+    ]));
 }
