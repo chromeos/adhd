@@ -119,6 +119,9 @@ fn main() {
     let salt = Salt::new().expect("cannot generate random salt");
     env::set_var("CRAS_PSEUDONYMIZATION_SALT", u32::from(salt).to_string());
 
+    // Show CRAS process uptime
+    run_command(Command::new("ps").args(["-C", "cras", "-o", "comm,etime"]));
+
     run_command(
         Command::new("cras_test_client")
             .arg("--use_env_salt")
