@@ -550,7 +550,7 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
 
   dbus_bool_t started = FALSE;
   rc = retry_until_predicate_satisfied(
-      /* conn=*/fm->conn,
+      /* conn= */ fm->conn,
       /* num_retries= */ GET_A2DP_AUDIO_STARTED_RETRIES,
       /* sleep_time_us= */ GET_A2DP_AUDIO_STARTED_SLEEP_US,
       /* method_call= */ get_a2dp_audio_started,
@@ -1108,6 +1108,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     if (rc) {
       syslog(LOG_ERR, "Error occured in adding bluetooth device %d", rc);
     }
+
+    struct cras_fl_a2dp_codec_config* codec;
+    LL_FOREACH (codecs, codec) {
+      LL_DELETE(codecs, codec);
+      free(codec);
+    }
+
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnBluetoothAudioDeviceRemoved")) {
