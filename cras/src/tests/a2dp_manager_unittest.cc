@@ -441,13 +441,15 @@ int floss_media_a2dp_reset_active_device(struct fl_media* fm) {
 }
 
 int floss_media_a2dp_set_audio_config(struct fl_media* fm,
-                                      unsigned int rate,
-                                      unsigned int bps,
-                                      unsigned int channels) {
+                                      const char* addr,
+                                      int codec_type,
+                                      int sample_rate,
+                                      int bits_per_sample,
+                                      int channel_mode) {
   floss_media_a2dp_set_audio_config_called++;
-  floss_media_a2dp_set_audio_config_rate = rate;
-  floss_media_a2dp_set_audio_config_bps = bps;
-  floss_media_a2dp_set_audio_config_channels = channels;
+  floss_media_a2dp_set_audio_config_rate = sample_rate;
+  floss_media_a2dp_set_audio_config_bps = bits_per_sample;
+  floss_media_a2dp_set_audio_config_channels = channel_mode;
   return 0;
 }
 

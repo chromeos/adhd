@@ -94,9 +94,11 @@ int floss_media_a2dp_reset_active_device(struct fl_media* fm);
 
 // Calls SetAudioConfig method to Floss media interface.
 int floss_media_a2dp_set_audio_config(struct fl_media* fm,
-                                      unsigned int rate,
-                                      unsigned int bps,
-                                      unsigned int channels);
+                                      const char* addr,
+                                      int codec_type,
+                                      int sample_rate,
+                                      int bits_per_sample,
+                                      int channel_mode);
 
 // Calls GetPresentationPosition method to Floss media interface.
 int floss_media_a2dp_get_presentation_position(

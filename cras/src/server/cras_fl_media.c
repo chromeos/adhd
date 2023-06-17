@@ -435,61 +435,86 @@ int floss_media_a2dp_set_active_device(struct fl_media* fm, const char* addr) {
 }
 
 int floss_media_a2dp_set_audio_config(struct fl_media* fm,
-                                      unsigned int rate,
-                                      unsigned int bps,
-                                      unsigned int channels) {
+                                      const char* addr,
+                                      int codec_type,
+                                      int sample_rate,
+                                      int bits_per_sample,
+                                      int channel_mode) {
   RET_IF_HAVE_FUZZER(0);
 
-  DBusMessage *method_call, *reply;
-  DBusError dbus_error;
-  dbus_uint32_t sample_rate = rate;
-  dbus_uint32_t bits_per_sample = bps;
-  dbus_uint32_t channel_mode = channels;
+  int rc;
 
-  syslog(LOG_DEBUG, "floss_media_a2dp_set_audio_config");
+  dbus_int32_t dbus_codec_type = codec_type;
+  dbus_int32_t dbus_sample_rate = sample_rate;
+  dbus_int32_t dbus_bits_per_sample = bits_per_sample;
+  dbus_int32_t dbus_channel_mode = channel_mode;
 
-  method_call = dbus_message_new_method_call(
-      BT_SERVICE_NAME, fm->obj_path, BT_MEDIA_INTERFACE, "SetAudioConfig");
-  if (!method_call) {
-    return -ENOMEM;
+  syslog(LOG_DEBUG, "floss_media_a2dp_set_audio_config %d", codec_type);
+
+  if (!fm) {
+    syslog(LOG_WARNING, "%s: Floss media not started", __func__);
+    return -EINVAL;
   }
 
-  if (!dbus_message_append_args(method_call, DBUS_TYPE_INT32, &sample_rate,
-                                DBUS_TYPE_INVALID)) {
-    dbus_message_unref(method_call);
-    return -ENOMEM;
-  }
-  if (!dbus_message_append_args(method_call, DBUS_TYPE_INT32, &bits_per_sample,
-                                DBUS_TYPE_INVALID)) {
-    dbus_message_unref(method_call);
-    return -ENOMEM;
-  }
-  if (!dbus_message_append_args(method_call, DBUS_TYPE_INT32, &channel_mode,
-                                DBUS_TYPE_INVALID)) {
-    dbus_message_unref(method_call);
-    return -ENOMEM;
+  DBusMessage* set_audio_config;
+  rc = create_dbus_method_call(&set_audio_config,
+                               /* dest= */ BT_SERVICE_NAME,
+                               /* path= */ fm->obj_path,
+                               /* iface= */ BT_MEDIA_INTERFACE,
+                               /* method_name= */ "SetAudioConfig",
+                               /* num_args= */ 5,
+                               /* arg1= */ DBUS_TYPE_STRING, &addr,
+                               /* arg2= */ DBUS_TYPE_INT32, &dbus_codec_type,
+                               /* arg3= */ DBUS_TYPE_INT32, &dbus_sample_rate,
+                               /* arg4= */ DBUS_TYPE_INT32,
+                               &dbus_bits_per_sample,
+                               /* arg5= */ DBUS_TYPE_INT32, &dbus_channel_mode);
+
+  if (rc < 0) {
+    return rc;
   }
 
-  dbus_error_init(&dbus_error);
-  reply = dbus_connection_send_with_reply_and_block(
-      fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
-  if (!reply) {
-    syslog(LOG_ERR, "Failed to send SetAudioConfig: %s", dbus_error.message);
-    dbus_error_free(&dbus_error);
-    dbus_message_unref(method_call);
-    return -EIO;
+  dbus_bool_t response = FALSE;
+  rc = call_method_and_parse_reply(
+      /* conn= */ fm->conn,
+      /* method_call= */ set_audio_config,
+      /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+      /* dbus_ret_value_ptr= */ &response);
+
+  dbus_message_unref(set_audio_config);
+
+  if (rc < 0) {
+    // TODO: remove this fallback-to-legacy API once aosp/2627857 is merged
+    rc = create_dbus_method_call(
+        &set_audio_config,
+        /* dest= */ BT_SERVICE_NAME,
+        /* path= */ fm->obj_path,
+        /* iface= */ BT_MEDIA_INTERFACE,
+        /* method_name= */ "SetAudioConfig",
+        /* num_args= */ 3,
+        /* arg1= */ DBUS_TYPE_INT32, &dbus_sample_rate,
+        /* arg2= */ DBUS_TYPE_INT32, &dbus_bits_per_sample,
+        /* arg3= */ DBUS_TYPE_INT32, &dbus_channel_mode);
+    if (rc < 0) {
+      return rc;
+    }
+
+    rc = call_method_and_parse_reply(
+        /* conn= */ fm->conn,
+        /* method_call= */ set_audio_config,
+        /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+        /* dbus_ret_value_ptr= */ &response);
+
+    dbus_message_unref(set_audio_config);
+    if (rc < 0) {
+      return rc;
+    }
   }
 
-  dbus_message_unref(method_call);
-
-  if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-    syslog(LOG_ERR, "SetAudioConfig returned error: %s",
-           dbus_message_get_error_name(reply));
-    dbus_message_unref(reply);
-    return -EIO;
+  if (response == FALSE) {
+    syslog(LOG_WARNING, "Failed to make request to SetAudioConfig.");
+    return -EBUSY;
   }
-
-  dbus_message_unref(reply);
 
   return 0;
 }

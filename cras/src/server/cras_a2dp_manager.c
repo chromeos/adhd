@@ -577,8 +577,10 @@ int cras_floss_a2dp_start(struct cras_a2dp* a2dp,
   /* Set audio config, start audio request and then finally connect the
    * socket. */
   audio_format_to_floss(fmt, &sample_rate, &bits_per_sample, &channel_mode);
-  floss_media_a2dp_set_audio_config(a2dp->fm, sample_rate, bits_per_sample,
-                                    channel_mode);
+  floss_media_a2dp_set_audio_config(a2dp->fm, a2dp->addr,
+                                    FL_A2DP_CODEC_SRC_SBC, sample_rate,
+                                    bits_per_sample, channel_mode);
+
   floss_media_a2dp_start_audio_request(a2dp->fm, a2dp->addr);
 
   skt_fd = socket(PF_UNIX, SOCK_STREAM, 0);
