@@ -17,6 +17,7 @@
 #include <sys/un.h>
 #include <syslog.h>
 
+#include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
@@ -58,8 +59,9 @@ struct cras_a2dp {
   char* addr;
   // The name of the connected a2dp device.
   char* name;
-  // If the connected a2dp device supports absolute
-  // volume.
+  // The active codec type.
+  int active_codec_type;
+  // If the connected a2dp device supports absolute volume.
   bool support_absolute_volume;
   // Flag indicate if a2dp iodev is in a consecutive packet
   // write fail state or not.
@@ -218,21 +220,53 @@ static void a2dp_process_msg(struct cras_main_message* msg, void* arg) {
   }
 }
 
+static bool cras_floss_is_supported_codec_type(int codec_type) {
+  switch (codec_type) {
+    case FL_A2DP_CODEC_SRC_SBC:
+    case FL_A2DP_CODEC_SRC_AAC:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static struct cras_fl_a2dp_codec_config* cras_floss_a2dp_get_best_codec(
+    struct cras_fl_a2dp_codec_config* codecs) {
+  struct cras_fl_a2dp_codec_config* codec;
+  struct cras_fl_a2dp_codec_config* best_codec = NULL;
+
+  DL_FOREACH (codecs, codec) {
+    // TODO(b/279991957): Add UMA to record availability of codecs
+    if (!cras_feature_enabled(CrOSLateBootAudioA2DPAdvancedCodecs) &&
+        codec->codec_type != FL_A2DP_CODEC_SRC_SBC) {
+      continue;
+    }
+
+    if (!cras_floss_is_supported_codec_type(codec->codec_type)) {
+      continue;
+    }
+
+    if (!best_codec || codec->codec_priority > best_codec->codec_priority) {
+      best_codec = codec;
+    }
+  }
+
+  return best_codec;
+}
+
 struct cras_a2dp* cras_floss_a2dp_create(
     struct fl_media* fm,
     const char* addr,
     const char* name,
     struct cras_fl_a2dp_codec_config* codecs) {
-  struct cras_fl_a2dp_codec_config* codec;
-  struct cras_a2dp* a2dp;
-
-  LL_SEARCH_SCALAR(codecs, codec, codec_type, FL_A2DP_CODEC_SRC_SBC);
+  struct cras_fl_a2dp_codec_config* codec =
+      cras_floss_a2dp_get_best_codec(codecs);
   if (!codec) {
     syslog(LOG_WARNING, "No supported A2dp codec");
     return NULL;
   }
 
-  a2dp = (struct cras_a2dp*)calloc(1, sizeof(*a2dp));
+  struct cras_a2dp* a2dp = (struct cras_a2dp*)calloc(1, sizeof(*a2dp));
   if (!a2dp) {
     return NULL;
   }
@@ -240,6 +274,7 @@ struct cras_a2dp* cras_floss_a2dp_create(
   a2dp->fm = fm;
   a2dp->addr = strdup(addr);
   a2dp->name = strdup(name);
+  a2dp->active_codec_type = codec->codec_type;
   a2dp->iodev = a2dp_pcm_iodev_create(
       a2dp, codec->sample_rate, codec->bits_per_sample, codec->channel_mode);
 
@@ -578,7 +613,7 @@ int cras_floss_a2dp_start(struct cras_a2dp* a2dp,
    * socket. */
   audio_format_to_floss(fmt, &sample_rate, &bits_per_sample, &channel_mode);
   floss_media_a2dp_set_audio_config(a2dp->fm, a2dp->addr,
-                                    FL_A2DP_CODEC_SRC_SBC, sample_rate,
+                                    a2dp->active_codec_type, sample_rate,
                                     bits_per_sample, channel_mode);
 
   floss_media_a2dp_start_audio_request(a2dp->fm, a2dp->addr);
