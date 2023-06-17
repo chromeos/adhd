@@ -104,6 +104,13 @@ struct private_state {
   bool speak_on_mute_detection_enabled;
   // Numbers of active streams ignoring UI gains.
   uint32_t num_stream_ignore_ui_gains;
+  // The speaker output latency offset given in ms. This value will be directly
+  // added when calculating the playback timestamp.
+  // The value is read in board.ini, with 0 being the default if there is no
+  // data.
+  // Incorrect values will cause issues such as A/V sync. Only update the values
+  // based on actual measured latency data.
+  int32_t speaker_output_latency_offset_ms;
 };
 
 static struct private_state state;
@@ -241,6 +248,10 @@ void cras_system_state_init(const char* device_config_dir,
   state.bt_fix_a2dp_packet_size = false;
 
   cras_feature_tier_init(&state.feature_tier, board_name, cpu_model_name);
+
+  // Obtain latency offsets and clamp the values.
+  state.speaker_output_latency_offset_ms =
+      board_config.speaker_output_latency_offset_ms;
 }
 
 void cras_system_state_deinit() {
@@ -904,4 +915,8 @@ bool cras_system_get_force_respect_ui_gains_enabled() {
 
 int cras_system_get_num_stream_ignore_ui_gains() {
   return state.num_stream_ignore_ui_gains;
+}
+
+int cras_system_get_speaker_output_latency_offset_ms() {
+  return state.speaker_output_latency_offset_ms;
 }

@@ -154,6 +154,7 @@ static int sys_get_max_headphone_channels_called = 0;
 static int sys_get_max_headphone_channels_return_value = 2;
 static int cras_iodev_update_underrun_duration_called = 0;
 static bool testing_channel_retry = false;
+static struct cras_board_config fake_board_config;
 
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
@@ -252,6 +253,7 @@ void ResetStubData() {
   sys_get_max_headphone_channels_return_value = 2;
   cras_iodev_update_underrun_duration_called = 0;
   testing_channel_retry = false;
+  memset(&fake_board_config, 0, sizeof(fake_board_config));
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -3463,6 +3465,15 @@ int cras_system_state_get_input_nodes(const struct cras_ionode_info** nodes) {
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   tp->tv_sec = clock_gettime_retspec.tv_sec;
   tp->tv_nsec = clock_gettime_retspec.tv_nsec;
+  return 0;
+}
+
+void cras_board_config_get(const char* config_path,
+                           struct cras_board_config* board_config) {
+  *board_config = fake_board_config;
+}
+
+int cras_system_get_speaker_output_latency_offset_ms() {
   return 0;
 }
 

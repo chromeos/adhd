@@ -464,6 +464,9 @@ bool cras_system_get_force_respect_ui_gains_enabled();
 // Gets the number of stream ignoring UI gains.
 int cras_system_get_num_stream_ignore_ui_gains();
 
+// Returns the latency offset that should be added for speaker output.
+int cras_system_get_speaker_output_latency_offset_ms();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

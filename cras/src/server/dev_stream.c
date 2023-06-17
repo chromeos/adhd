@@ -15,6 +15,7 @@
 #include "cras/src/server/cras_mix.h"
 #include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
 
 /* Adjust device's sample rate by this step faster or slower. Used
@@ -546,12 +547,19 @@ int dev_stream_capture_update_rstream(struct dev_stream* dev_stream) {
 
 void cras_set_playback_timestamp(size_t frame_rate,
                                  size_t frames,
+                                 int32_t offset_ms,
                                  struct cras_timespec* ts) {
   cras_clock_gettime(CLOCK_MONOTONIC_RAW, ts);
 
   /* For playback, want now + samples left to be played.
    * ts = time next written sample will be played to DAC,
    */
+  struct timespec offset;
+  ms_to_timespec(offset_ms, &offset);
+
+  ts->tv_nsec += offset.tv_nsec;
+  ts->tv_sec += offset.tv_sec;
+
   ts->tv_nsec += frames * 1000000000ULL / frame_rate;
   while (ts->tv_nsec > 1000000000ULL) {
     ts->tv_sec++;
@@ -593,9 +601,10 @@ void dev_stream_set_delay(const struct dev_stream* dev_stream,
     shm = cras_rstream_shm(rstream);
     stream_frames =
         cras_fmt_conv_out_frames_to_in(dev_stream->conv, delay_frames);
-    cras_set_playback_timestamp(rstream->format.frame_rate,
-                                stream_frames + cras_shm_get_frames(shm),
-                                &shm->header->ts);
+    cras_set_playback_timestamp(
+        rstream->format.frame_rate, stream_frames + cras_shm_get_frames(shm),
+        dev_stream->iodev->active_node->latency_offset_ms,
+        &shm->header->ts);
   } else {
     shm = cras_rstream_shm(rstream);
     stream_frames =

@@ -17,6 +17,7 @@
 #include <time.h>
 
 #include "cras/src/server/audio_thread.h"
+#include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_jack.h"
@@ -38,6 +39,7 @@
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
 #include "cras_shm.h"
+#include "cras_system_state.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/strlcpy/strlcpy.h"
@@ -830,6 +832,15 @@ static void set_node_initial_state(struct cras_ionode* node,
 
   if (!is_utf8_string(node->name)) {
     drop_node_name(node);
+  }
+
+  // TODO(b/289173343): Remove when output latency offset is moved out of
+  // board.ini
+  // Set output latency offset.
+  if (node->dev->direction == CRAS_STREAM_OUTPUT &&
+      node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+    node->latency_offset_ms =
+        cras_system_get_speaker_output_latency_offset_ms();
   }
 }
 

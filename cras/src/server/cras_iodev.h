@@ -161,6 +161,13 @@ struct cras_ionode {
   int32_t number_of_volume_steps;
   // NC support status of the ionode.
   enum CRAS_IONODE_NC_PROVIDER nc_provider;
+  // The latency offset given in ms. This value will be directly added
+  // when calculating the playback/capture timestamp
+  // The value is read in board.ini, with 0 being the default if there is no
+  // data.
+  // Incorrect values will cause issues with functions as A/V sync. Only update
+  // the values based on actual measured latency data.
+  int32_t latency_offset_ms;
   struct cras_ionode *prev, *next;
 };
 
