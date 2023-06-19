@@ -79,7 +79,7 @@ StreamPtr create_stream(cras_stream_id_t id,
                         const cras_audio_format* format) {
   ShmPtr shm = create_shm(cb_threshold);
   RstreamPtr rstream =
-      create_rstream(1, CRAS_STREAM_INPUT, cb_threshold, format, shm.get());
+      create_rstream(1, direction, cb_threshold, format, shm.get());
   DevStreamPtr dstream = create_dev_stream(1, rstream.get());
   StreamPtr s(
       new Stream(std::move(shm), std::move(rstream), std::move(dstream)));
@@ -148,6 +148,7 @@ void add_stream_to_dev(IodevPtr& dev, const StreamPtr& stream) {
                                static_cast<size_t>(dev->max_cb_level));
   dev->largest_cb_level = std::max(stream->rstream->cb_threshold,
                                    static_cast<size_t>(dev->max_cb_level));
+  stream->dstream->iodev = dev.get();
 
   if (stream->rstream->main_dev.dev_id == NO_DEVICE) {
     stream->rstream->main_dev.dev_id = dev->info.idx;
