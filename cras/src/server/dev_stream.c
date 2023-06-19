@@ -554,41 +554,32 @@ void cras_set_playback_timestamp(size_t frame_rate,
   /* For playback, want now + samples left to be played.
    * ts = time next written sample will be played to DAC,
    */
-  struct timespec offset;
-  ms_to_timespec(offset_ms, &offset);
 
-  ts->tv_nsec += offset.tv_nsec;
-  ts->tv_sec += offset.tv_sec;
-
-  ts->tv_nsec += frames * 1000000000ULL / frame_rate;
-  while (ts->tv_nsec > 1000000000ULL) {
-    ts->tv_sec++;
-    ts->tv_nsec -= 1000000000ULL;
-  }
+  // Use timespec for cras_util.h functions
+  struct timespec samples_left_ts, offset_ts, playback_ts;
+  cras_timespec_to_timespec(&playback_ts, ts);
+  cras_frames_to_time(frames, frame_rate, &samples_left_ts);
+  ms_to_timespec(offset_ms, &offset_ts);
+  add_timespecs(&playback_ts, &samples_left_ts);
+  add_timespecs(&playback_ts, &offset_ts);
+  ts->tv_sec = playback_ts.tv_sec;
+  ts->tv_nsec = playback_ts.tv_nsec;
 }
 
 void cras_set_capture_timestamp(size_t frame_rate,
                                 size_t frames,
                                 struct cras_timespec* ts) {
-  long tmp;
-
   cras_clock_gettime(CLOCK_MONOTONIC_RAW, ts);
 
   /* For capture, now - samples left to be read.
    * ts = time next sample to be read was captured at ADC.
    */
-  tmp = frames * (1000000000L / frame_rate);
-  while (tmp > 1000000000L) {
-    tmp -= 1000000000L;
-    ts->tv_sec--;
-  }
-  if (ts->tv_nsec >= tmp) {
-    ts->tv_nsec -= tmp;
-  } else {
-    tmp -= ts->tv_nsec;
-    ts->tv_nsec = 1000000000L - tmp;
-    ts->tv_sec--;
-  }
+  struct timespec samples_left_ts, now_ts, capture_ts;
+  cras_timespec_to_timespec(&now_ts, ts);
+  cras_frames_to_time(frames, frame_rate, &samples_left_ts);
+  subtract_timespecs(&now_ts, &samples_left_ts, &capture_ts);
+  ts->tv_sec = capture_ts.tv_sec;
+  ts->tv_nsec = capture_ts.tv_nsec;
 }
 
 void dev_stream_set_delay(const struct dev_stream* dev_stream,

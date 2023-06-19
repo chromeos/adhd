@@ -1057,8 +1057,7 @@ TEST(DevStreamTimimg, SetPlaybackTimeStampSimple) {
   clock_gettime_retspec.tv_nsec = 0;
   cras_set_playback_timestamp(48000, 24000, 0, &ts);
   EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 499900000);
-  EXPECT_LE(ts.tv_nsec, 500100000);
+  EXPECT_EQ(ts.tv_nsec, 500000000);
 }
 
 TEST(DevStreamTimimg, SetPlaybackTimeStampWrap) {
@@ -1068,8 +1067,7 @@ TEST(DevStreamTimimg, SetPlaybackTimeStampWrap) {
   clock_gettime_retspec.tv_nsec = 750000000;
   cras_set_playback_timestamp(48000, 24000, 0, &ts);
   EXPECT_EQ(2, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
+  EXPECT_EQ(ts.tv_nsec, 250000000);
 }
 
 TEST(DevStreamTimimg, SetPlaybackTimeStampWrapTwice) {
@@ -1079,8 +1077,7 @@ TEST(DevStreamTimimg, SetPlaybackTimeStampWrapTwice) {
   clock_gettime_retspec.tv_nsec = 750000000;
   cras_set_playback_timestamp(48000, 72000, 0, &ts);
   EXPECT_EQ(3, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
+  EXPECT_GE(ts.tv_nsec, 250000000);
 }
 
 TEST(DevStreamTimimg, SetPlaybackTimeStampOffset) {
@@ -1090,8 +1087,7 @@ TEST(DevStreamTimimg, SetPlaybackTimeStampOffset) {
   clock_gettime_retspec.tv_nsec = 750000000;
   cras_set_playback_timestamp(48000, 72000, 30, &ts);
   EXPECT_EQ(3, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 279900000);
-  EXPECT_LE(ts.tv_nsec, 280100000);
+  EXPECT_EQ(ts.tv_nsec, 280000000);
 }
 
 //  Test set_capture_timestamp.
@@ -1102,8 +1098,7 @@ TEST(DevStreamTimimg, SetCaptureTimeStampSimple) {
   clock_gettime_retspec.tv_nsec = 750000000;
   cras_set_capture_timestamp(48000, 24000, &ts);
   EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
+  EXPECT_EQ(ts.tv_nsec, 250000000);
 }
 
 TEST(DevStreamTimimg, SetCaptureTimeStampWrap) {
@@ -1113,8 +1108,7 @@ TEST(DevStreamTimimg, SetCaptureTimeStampWrap) {
   clock_gettime_retspec.tv_nsec = 0;
   cras_set_capture_timestamp(48000, 24000, &ts);
   EXPECT_EQ(0, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 499900000);
-  EXPECT_LE(ts.tv_nsec, 500100000);
+  EXPECT_EQ(ts.tv_nsec, 500000000);
 }
 
 TEST(DevStreamTimimg, SetCaptureTimeStampWrapPartial) {
@@ -1124,8 +1118,7 @@ TEST(DevStreamTimimg, SetCaptureTimeStampWrapPartial) {
   clock_gettime_retspec.tv_nsec = 750000000;
   cras_set_capture_timestamp(48000, 72000, &ts);
   EXPECT_EQ(1, ts.tv_sec);
-  EXPECT_GE(ts.tv_nsec, 249900000);
-  EXPECT_LE(ts.tv_nsec, 250100000);
+  EXPECT_EQ(ts.tv_nsec, 250000000);
 }
 
 TEST(MaxFramesForConverter, 8to48) {
