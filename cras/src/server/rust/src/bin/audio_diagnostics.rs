@@ -121,6 +121,7 @@ fn main() {
 
     // Show CRAS process uptime
     run_command(Command::new("ps").args(["-C", "cras", "-o", "comm,etime"]));
+    do_analysis_uptime();
 
     run_command(
         Command::new("cras_test_client")
@@ -264,4 +265,42 @@ fn main() {
         "/org/chromium/cras",
         "org.chromium.cras.Control.SpeakOnMuteDetectionEnabled",
     ]));
+}
+
+fn print_analysis_result(results: Vec<cras::diagnostics::Analysis>) {
+    if results.len() == 0 {
+        return;
+    }
+
+    println!(); // Print empty line to make it easier to read
+    for res in results {
+        println!("{}", res);
+    }
+    println!();
+}
+
+fn do_analysis_uptime() {
+    // Use "etimes" to get the uptime in "second" format.
+    let ps_uptime_output = match Command::new("ps")
+        .args(["-C", "cras", "-o", "etimes="])
+        .output()
+    {
+        Ok(out) => String::from_utf8_lossy(&out.stdout).to_string(),
+        Err(err) => {
+            eprintln!("do_analysis_uptime failed to run ps: {}", err);
+            return;
+        }
+    };
+    let uptime_output = match fs::read_to_string("/proc/uptime") {
+        Ok(out) => out,
+        Err(err) => {
+            eprintln!("do_analysis_uptime failed to read /proc/uptime: {}", err);
+            return;
+        }
+    };
+
+    print_analysis_result(cras::diagnostics::uptime::analyze(
+        &ps_uptime_output,
+        &uptime_output,
+    ));
 }
