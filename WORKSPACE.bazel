@@ -135,6 +135,9 @@ rules_rust_dependencies()
 rust_register_toolchains(
     allocator_library = "@rust_cc_common_link//:allocator_library",
     edition = "2018",
+    versions = [
+        "1.69.0",
+    ],
 )
 
 load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencies")
