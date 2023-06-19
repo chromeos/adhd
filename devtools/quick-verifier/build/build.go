@@ -150,7 +150,7 @@ func archlinuxSteps(id string, bazelArgs ...string) *buildplan.Sequence {
 			Name:       archlinuxBuilder,
 			Entrypoint: "bazel",
 			Args: append(
-				[]string{"test", "//...", "-k", "-c", "dbg", "--test_output=errors"},
+				[]string{"test", "//...", "--config=ci", "-c", "dbg"},
 				bazelArgs...,
 			),
 		},
@@ -180,7 +180,7 @@ func systemCrasRustSteps() *buildplan.Sequence {
 				Name:       archlinuxBuilder,
 				Entrypoint: "bazel",
 				Args: []string{
-					"test", "//...", "-k", "-c", "dbg", "--test_output=errors",
+					"test", "//...", "--config=ci", "-c", "dbg",
 					"--//:system_cras_rust",
 					"--config=local-clang",
 					"--linkopt=-L/workspace-archlinux-system-cras-rust/target/debug",

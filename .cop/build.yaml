@@ -94,10 +94,9 @@
       "args": [
         "test",
         "//...",
-        "-k",
+        "--config=ci",
         "-c",
         "dbg",
-        "--test_output=errors",
         "--config=local-clang"
       ],
       "dir": "/workspace-archlinux-clang",
@@ -138,10 +137,9 @@
       "args": [
         "test",
         "//...",
-        "-k",
+        "--config=ci",
         "-c",
         "dbg",
-        "--test_output=errors",
         "--config=local-clang",
         "--config=asan"
       ],
@@ -183,10 +181,9 @@
       "args": [
         "test",
         "//...",
-        "-k",
+        "--config=ci",
         "-c",
         "dbg",
-        "--test_output=errors",
         "--config=local-clang",
         "--config=ubsan"
       ],
@@ -228,10 +225,9 @@
       "args": [
         "test",
         "//...",
-        "-k",
+        "--config=ci",
         "-c",
         "dbg",
-        "--test_output=errors",
         "--config=local-gcc"
       ],
       "dir": "/workspace-archlinux-gcc",
@@ -329,10 +325,9 @@
       "args": [
         "test",
         "//...",
-        "-k",
+        "--config=ci",
         "-c",
         "dbg",
-        "--test_output=errors",
         "--//:system_cras_rust",
         "--config=local-clang",
         "--linkopt=-L/workspace-archlinux-system-cras-rust/target/debug"

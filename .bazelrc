@@ -58,3 +58,8 @@ build --copt=-Wno-error=sign-compare
 
 # Always enable debug symbols.
 build --copt=-g --linkopt=-g --strip=never
+
+# CI flags
+build:ci --show_progress_rate_limit=10
+test:ci --test_output=errors
+test:ci --test_summary=terse

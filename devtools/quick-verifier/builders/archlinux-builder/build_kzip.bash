@@ -15,7 +15,7 @@ cp -r "$SRC_DIR" "$ADHD_ROOT"
 # Build
 cd "$ADHD_ROOT"
 bazel run //:compdb
-bazel build //... --config=local-clang
+bazel build //... --config=ci --config=local-clang
 python /compdb_fixup.py
 
 # Metadata
