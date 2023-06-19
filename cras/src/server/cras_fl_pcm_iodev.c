@@ -300,7 +300,7 @@ static int a2dp_configure_dev(struct cras_iodev* iodev) {
   if (iodev->format == NULL) {
     return -EINVAL;
   }
-  iodev->format->format = SND_PCM_FORMAT_S16_LE;
+
   format_bytes = cras_get_format_bytes(iodev->format);
   cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
 

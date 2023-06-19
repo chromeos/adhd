@@ -306,22 +306,22 @@ int cras_floss_a2dp_fill_format(int sample_rate,
     return -ENOMEM;
   }
 
-  if (sample_rate & FL_RATE_44100) {
-    (*rates)[0] = 44100;
-  } else if (sample_rate & FL_RATE_48000) {
-    (*rates)[0] = 48000;
-  } else if (sample_rate & FL_RATE_88200) {
-    (*rates)[0] = 88200;
-  } else if (sample_rate & FL_RATE_96000) {
-    (*rates)[0] = 96000;
+  if (sample_rate & FL_RATE_192000) {
+    (*rates)[0] = 192000;
   } else if (sample_rate & FL_RATE_176400) {
     (*rates)[0] = 176400;
-  } else if (sample_rate & FL_RATE_192000) {
-    (*rates)[0] = 192000;
-  } else if (sample_rate & FL_RATE_16000) {
-    (*rates)[0] = 16000;
+  } else if (sample_rate & FL_RATE_96000) {
+    (*rates)[0] = 96000;
+  } else if (sample_rate & FL_RATE_88200) {
+    (*rates)[0] = 88200;
+  } else if (sample_rate & FL_RATE_48000) {
+    (*rates)[0] = 48000;
+  } else if (sample_rate & FL_RATE_44100) {
+    (*rates)[0] = 44100;
   } else if (sample_rate & FL_RATE_24000) {
     (*rates)[0] = 24000;
+  } else if (sample_rate & FL_RATE_16000) {
+    (*rates)[0] = 16000;
   } else {
     syslog(LOG_WARNING, "No supported sample rate");
     return -EINVAL;
@@ -334,12 +334,12 @@ int cras_floss_a2dp_fill_format(int sample_rate,
     return -ENOMEM;
   }
 
-  if (bits_per_sample & FL_SAMPLE_16) {
-    (*formats)[0] = SND_PCM_FORMAT_S16_LE;
-  } else if (bits_per_sample & FL_SAMPLE_24) {
-    (*formats)[0] = SND_PCM_FORMAT_S24_LE;
-  } else if (bits_per_sample & FL_SAMPLE_32) {
+  if (bits_per_sample & FL_SAMPLE_32) {
     (*formats)[0] = SND_PCM_FORMAT_S32_LE;
+  } else if (bits_per_sample & FL_SAMPLE_24) {
+    (*formats)[0] = SND_PCM_FORMAT_S24_3LE;
+  } else if (bits_per_sample & FL_SAMPLE_16) {
+    (*formats)[0] = SND_PCM_FORMAT_S16_LE;
   } else {
     syslog(LOG_WARNING, "No supported bits per sample");
     return -EINVAL;
@@ -544,7 +544,7 @@ static void audio_format_to_floss(const struct cras_audio_format* fmt,
     case SND_PCM_FORMAT_S16_LE:
       *bits_per_sample = FL_SAMPLE_16;
       break;
-    case SND_PCM_FORMAT_S24_LE:
+    case SND_PCM_FORMAT_S24_3LE:
       *bits_per_sample = FL_SAMPLE_24;
       break;
     case SND_PCM_FORMAT_S32_LE:

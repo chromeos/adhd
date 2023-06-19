@@ -7,11 +7,11 @@
 #include "cras/src/tests/test_util.h"
 
 extern "C" {
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/server/main_message.h"
 #include "cras_audio_format.h"
 }
 static struct cras_a2dp* a2dp_pcm_iodev_create_a2dp_val;
@@ -175,13 +175,13 @@ TEST(A2dpManager, FillFormat) {
   size_t *supported_channel_counts, *supported_rates;
   snd_pcm_format_t* supported_formats;
   int num_expected_rates = 1;
-  size_t expected_rates[] = {44100};
+  size_t expected_rates[] = {48000};
   int num_unexpected_rates = 3;
-  size_t unexpected_rates[] = {48000, 96000, 192000};
+  size_t unexpected_rates[] = {44100, 96000, 192000};
   int num_expected_formats = 1;
-  snd_pcm_format_t expected_formats[] = {SND_PCM_FORMAT_S16_LE};
+  snd_pcm_format_t expected_formats[] = {SND_PCM_FORMAT_S24_3LE};
   int num_unexpected_formats = 2;
-  snd_pcm_format_t unexpected_formats[] = {SND_PCM_FORMAT_S24_LE,
+  snd_pcm_format_t unexpected_formats[] = {SND_PCM_FORMAT_S16_LE,
                                            SND_PCM_FORMAT_S32_LE};
   int num_expected_channel_counts = 1;
   size_t expected_channel_counts[] = {2};
