@@ -16,6 +16,7 @@
 #include <time.h>
 
 #include "cras/src/common/cras_log.h"
+#include "cras/src/common/cras_metrics.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_helpers.h"
@@ -104,6 +105,11 @@ static inline int usb_delay_frames(const struct cras_iodev* iodev) {
 }
 
 static inline int usb_close_dev(struct cras_iodev* iodev) {
+  struct timespec now, elapse;
+
+  clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+  subtract_timespecs(&now, &iodev->open_ts, &elapse);
+
   return cras_alsa_common_close_dev(iodev);
 }
 
@@ -120,6 +126,10 @@ static int usb_open_dev(struct cras_iodev* iodev) {
         (struct alsa_usb_input_node*)aio->common.base.active_node;
     pcm_name = ain->pcm_name;
   }
+
+  audio_peripheral_info(aio->common.vendor_id, aio->common.product_id,
+                        CRAS_NODE_TYPE_USB);
+
   return cras_alsa_common_open_dev(iodev, pcm_name);
 }
 
@@ -1222,6 +1232,7 @@ static void usb_set_iodev_name(struct cras_iodev* dev,
                                size_t usb_vid,
                                size_t usb_pid,
                                const char* usb_serial_number) {
+  struct alsa_usb_io* aio = (struct alsa_usb_io*)dev;
   snprintf(dev->info.name, sizeof(dev->info.name), "%s: %s:%zu,%zu", card_name,
            dev_name, card_index, device_index);
   dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
@@ -1237,6 +1248,9 @@ static void usb_set_iodev_name(struct cras_iodev* dev,
                                       dev->info.stable_id);
   dev->info.stable_id = SuperFastHash(
       usb_serial_number, strlen(usb_serial_number), dev->info.stable_id);
+
+  aio->common.vendor_id = usb_vid;
+  aio->common.product_id = usb_pid;
 
   FRALOG(PeripheralsUsbSoundCard, {"deviceName", dev->info.name},
          {"idVendor", tlsprintf("%zx", usb_vid)},

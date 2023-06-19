@@ -142,6 +142,10 @@ struct alsa_common_io {
   int hwparams_set;
   // true if this iodev has dependent
   int has_dependent_dev;
+  // Device vendor id.
+  size_t vendor_id;
+  // Device product id
+  size_t product_id;
 };
 
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);

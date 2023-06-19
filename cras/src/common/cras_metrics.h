@@ -5,6 +5,7 @@
 
 #ifndef CRAS_SRC_COMMON_CRAS_METRICS_H_
 #define CRAS_SRC_COMMON_CRAS_METRICS_H_
+#include "cras_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,6 +23,16 @@ void cras_metrics_log_histogram(const char* name,
 
 // Sends sparse histogram data.
 void cras_metrics_log_sparse_histogram(const char* name, int sample);
+
+void audio_peripheral_info(int vendor_id, int product_id, int type);
+
+void audio_peripheral_close(int vendor_id,
+                            int product_id,
+                            int type,
+                            int run_time,
+                            int rate,
+                            int channel,
+                            int format);
 
 #ifdef __cplusplus
 }  // extern "C"

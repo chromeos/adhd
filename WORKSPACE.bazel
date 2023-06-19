@@ -105,6 +105,7 @@ pkg_config(
         # optional deps
         "absl",
         "libmetrics",
+        "libstructuredmetrics",
         "libselinux",
         "libfeatures",
         "tensorflowlite",

@@ -119,3 +119,4 @@ sched_yield: 1
 recvfrom: 1
 sched_getaffinity: 1
 getcpu: 1
+lchown: 1

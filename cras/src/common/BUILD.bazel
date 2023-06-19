@@ -267,7 +267,10 @@ cc_library(
         "//cras/src/server:cras_observer_types",
         "@pkg_config//sbc",
     ] + select({
-        "//:metrics_build": ["@pkg_config//libmetrics"],
+        "//:metrics_build": [
+            "@pkg_config//libmetrics",
+            "@pkg_config//libstructuredmetrics",
+        ],
         "//conditions:default": [],
     }),
 )

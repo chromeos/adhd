@@ -22,6 +22,8 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -b /sys,/sys \
         -k 'tmpfs,/var,tmpfs,MS_NODEV|MS_NOEXEC|MS_NOSUID,mode=755,size=10M' \
         -b /var/lib/metrics/,/var/lib/metrics/,1 \
+        -b /var/lib/metrics/structured,,1 \
+        -b /var/lib/metrics/structured/events,,1 \
         -- \
         /sbin/minijail0 -n \
         -Y \
