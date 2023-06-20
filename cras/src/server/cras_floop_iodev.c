@@ -22,17 +22,19 @@
 
 /*
  * Flexible loopback stream lifecycle:
- * +--------------+---------------+----------------------+
- * |              | no capture    | has capture          |
- * |              | streams       | streams              |
- * +--------------+---------------+----------------------+
- * | no playback  | A: do nothing | C: feed zero samples |
- * | streams      |               | to capture streams   |
- * +--------------+---------------+----------------------+
- * | has playback | B: do nothing | D: playback streams  |
- * | streams      |               | are attached to the  |
- * |              |               | output iodev         |
- * +--------------+---------------+----------------------+
+ * +--------------+------------------+----------------------+
+ * |              | no capture       | has capture          |
+ * |              | streams          | streams              |
+ * +--------------+------------------+----------------------+
+ * | no playback  | A: do nothing    | C: feed zero samples |
+ * | streams      | destroy idle for | to capture streams   |
+ * |              | 10 sec           |                      |
+ * |              |                  |                      |
+ * +--------------+------------------+----------------------+
+ * | has playback | B: do nothing    | D: playback streams  |
+ * | streams      | destroy idle for | are attached to the  |
+ * |              | 10 sec           | output iodev         |
+ * +--------------+------------------+----------------------+
  *
  * [B->D]
  * input_configure_dev calls cras_iodev_list_enable_floop_pair,

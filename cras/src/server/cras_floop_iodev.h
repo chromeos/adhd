@@ -43,7 +43,6 @@ struct cras_floop_pair* cras_floop_pair_create(
 /*
  * Remove it from cras_iodev_list and frees the cras_floop_pair.
  *
- * TODO(b/214165288): Call it when a floop device is unused for a while.
  */
 void cras_floop_pair_destroy(struct cras_floop_pair* loopdev);
 

@@ -3682,6 +3682,9 @@ bool cras_floop_pair_match_params(const struct cras_floop_pair* pair,
                                   const struct cras_floop_params* params) {
   return false;
 }
+
+void cras_floop_pair_destroy(struct cras_floop_pair* pair) {}
+
 int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev* iodev) {
   return 0;
 }

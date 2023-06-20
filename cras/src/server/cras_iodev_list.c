@@ -5,6 +5,7 @@
 
 #include "cras/src/server/cras_iodev_list.h"
 
+#include <stdint.h>
 #include <sys/syslog.h>
 #include <syslog.h>
 
@@ -98,6 +99,8 @@ static struct audio_thread* audio_thread;
 static struct stream_list* stream_list;
 // Idle device timer.
 static struct cras_timer* idle_timer;
+// Floop clear timer.
+static struct cras_timer* floop_timer;
 // Flag to indicate that the stream list is disconnected from audio thread.
 static int stream_list_suspended = 0;
 // If init device failed, retry after 1 second.
@@ -562,7 +565,9 @@ static void close_dev(struct cras_iodev* dev) {
 
   MAINLOG(main_log, MAIN_THREAD_DEV_CLOSE, dev->info.idx, 0, 0);
   remove_all_streams_from_dev(dev);
-  dev->idle_timeout.tv_sec = 0;
+  if (dev->active_node->type != CRAS_NODE_TYPE_FLOOP) {
+    dev->idle_timeout.tv_sec = 0;
+  }
   // close echo ref first to avoid underrun in hardware
   possibly_disable_echo_reference(dev);
   cras_iodev_close(dev);
@@ -612,6 +617,48 @@ static void idle_dev_check(struct cras_timer* timer, void* data) {
   idle_timer =
       cras_tm_create_timer(cras_system_state_get_tm(),
                            MAX(min_idle_timeout_ms, 10), idle_dev_check, NULL);
+}
+
+static void idle_floop_check(struct cras_timer* timer, void* data) {
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+
+  struct timespec next_expiry_check = {.tv_sec = 0, .tv_nsec = 0};
+  struct cras_floop_pair* pair;
+  DL_FOREACH (floop_pair_list, pair) {
+    if (timespec_is_zero(&pair->input.idle_timeout)) {
+      continue;
+    }
+    if (timespec_after(&now, &pair->input.idle_timeout)) {
+      DL_DELETE(floop_pair_list, pair);
+      cras_floop_pair_destroy(pair);
+      continue;
+    }
+    if (timespec_is_zero(&next_expiry_check) ||
+        timespec_after(&next_expiry_check, &pair->input.idle_timeout)) {
+      next_expiry_check = pair->input.idle_timeout;
+    }
+  }
+
+  floop_timer = NULL;
+  if (timespec_is_zero(&next_expiry_check)) {
+    return;
+  }
+
+  unsigned int min_idle_timeout_ms;
+  if (timespec_after(&now, &next_expiry_check)) {
+    min_idle_timeout_ms = 0;
+  } else {
+    struct timespec timeout;
+    subtract_timespecs(&next_expiry_check, &now, &timeout);
+    min_idle_timeout_ms = timespec_to_ms(&timeout);
+  }
+
+  /* Wake up when it is time to close the next floop device.  Sleep for a
+   * minimum of 10 milliseconds. */
+  floop_timer = cras_tm_create_timer(cras_system_state_get_tm(),
+                                     MAX(min_idle_timeout_ms, 10),
+                                     idle_floop_check, NULL);
 }
 
 /*
@@ -959,6 +1006,11 @@ static int init_pinned_device(struct cras_iodev* dev,
  * configure the ALSA UCM or BT profile state.
  */
 static int close_pinned_device(struct cras_iodev* dev) {
+  if (dev->active_node->type == CRAS_NODE_TYPE_FLOOP) {
+    clock_gettime(CLOCK_MONOTONIC_RAW, &dev->idle_timeout);
+    add_timespecs(&dev->idle_timeout, &idle_timeout_interval);
+    idle_floop_check(NULL, NULL);
+  }
   close_dev(dev);
   dev->update_active_node(dev, dev->active_node->idx, 0);
   return 0;
@@ -1195,6 +1247,11 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir) {
       continue;
     }
     if (dir == CRAS_STREAM_INPUT) {
+      if (edev->dev->active_node->type == CRAS_NODE_TYPE_FLOOP) {
+        clock_gettime(CLOCK_MONOTONIC_RAW, &edev->dev->idle_timeout);
+        add_timespecs(&edev->dev->idle_timeout, &idle_timeout_interval);
+        idle_floop_check(NULL, NULL);
+      }
       close_dev(edev->dev);
       continue;
     }
@@ -1347,6 +1404,7 @@ void cras_iodev_list_init() {
   observer_ops.suspend_changed = sys_suspend_change;
   list_observer = cras_observer_add(&observer_ops, NULL);
   idle_timer = NULL;
+  floop_timer = NULL;
   non_dsp_aec_echo_ref_dev_alive = false;
   aec_on_dsp_is_disallowed = false;
 
@@ -2373,6 +2431,7 @@ int cras_iodev_list_request_floop(const struct cras_floop_params* params) {
   int count = 0;
   DL_FOREACH (floop_pair_list, fpair) {
     if (cras_floop_pair_match_params(fpair, params)) {
+      fpair->input.idle_timeout = (struct timespec){0, 0};
       return fpair->input.info.idx;
     }
     count++;
