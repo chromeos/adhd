@@ -6,6 +6,8 @@
 #ifndef CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_
 #define CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_
 
+#include <stdio.h>
+
 #include "cras/src/common/cras_alsa_card_info.h"
 
 #ifdef __cplusplus
@@ -20,6 +22,24 @@ extern "C" {
 
 struct cras_alsa_card;
 struct cras_device_blocklist;
+
+#define MAX_ALSA_CARD_NAME_LENGTH 6  // Alsa card name "hw:XX" + 1 for null.
+typedef struct alsa_card_name {
+  char str[MAX_ALSA_CARD_NAME_LENGTH];
+} alsa_card_name_t;
+
+/* Gets alsa card name as "hw:XX" format.
+ * Args:
+ *    index - The card index.
+ * Returns:
+ *    The alsa_card_name_t object which has the char array inside filled with
+ *    the card name.
+ */
+static inline alsa_card_name_t cras_alsa_card_get_name(unsigned int index) {
+  alsa_card_name_t card_name;
+  snprintf(card_name.str, MAX_ALSA_CARD_NAME_LENGTH, "hw:%u", index);
+  return card_name;
+}
 
 /* Creates a cras_alsa_card instance for the given alsa device.  Enumerates the
  * devices for the card and adds them to the system as possible playback or

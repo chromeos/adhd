@@ -16,6 +16,7 @@
 #include "cras/platform/features/features.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
+#include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_mixer.h"
@@ -29,9 +30,8 @@
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 
-#define MAX_ALSA_CARDS 32            // Alsa limit on number of cards.
-#define MAX_ALSA_CARD_NAME_LENGTH 6  // Alsa card name "hw:XX" + 1 for null.
-#define MAX_ALSA_PCM_NAME_LENGTH 9   // Alsa pcm name "hw:XX,YY" + 1 for null.
+#define MAX_ALSA_CARDS 32           // Alsa limit on number of cards.
+#define MAX_ALSA_PCM_NAME_LENGTH 9  // Alsa pcm name "hw:XX,YY" + 1 for null.
 #define MAX_COUPLED_OUTPUT_SIZE 4
 
 struct iodev_list_node {
@@ -49,8 +49,8 @@ struct hctl_poll_fd {
 
 // Holds information about each sound card on the system.
 struct cras_alsa_card {
-  // of the form hw:XX.
-  char name[MAX_ALSA_CARD_NAME_LENGTH];
+  // of the object containing the char array in form hw:XX.
+  alsa_card_name_t name;
   // 0 based index, value of "XX" in the name.
   size_t card_index;
   // Input and output devices for this card.
@@ -139,7 +139,7 @@ struct cras_iodev* create_iodev_for_device(
 
   /* Append device index to card namem, ex: 'hw:0', for the PCM name of
    * target iodev. */
-  snprintf(pcm_name, MAX_ALSA_PCM_NAME_LENGTH, "%s,%u", alsa_card->name,
+  snprintf(pcm_name, MAX_ALSA_PCM_NAME_LENGTH, "%s,%u", alsa_card->name.str,
            device_index);
 
   new_dev->direction = direction;
@@ -269,7 +269,8 @@ static int add_controls_and_iodevs_by_matching(
   }
 
   if (rc) {
-    syslog(LOG_ERR, "Fail adding controls to mixer for %s.", alsa_card->name);
+    syslog(LOG_ERR, "Fail adding controls to mixer for %s.",
+           alsa_card->name.str);
     goto error;
   }
 
@@ -592,7 +593,7 @@ static void configure_echo_reference_dev(struct cras_alsa_card* alsa_card) {
       dev_node->iodev->echo_reference_dev = echo_ref_node->iodev;
     } else {
       syslog(LOG_ERR, "Echo ref dev %s doesn't exist on card %s", echo_ref_name,
-             alsa_card->name);
+             alsa_card->name.str);
     }
     free((void*)echo_ref_name);
   }
@@ -627,17 +628,16 @@ struct cras_alsa_card* cras_alsa_card_create(
   alsa_card->card_index = info->card_index;
   alsa_card->card_type = info->card_type;
 
-  snprintf(alsa_card->name, MAX_ALSA_CARD_NAME_LENGTH, "hw:%u",
-           info->card_index);
+  alsa_card->name = cras_alsa_card_get_name(info->card_index);
   alsa_card->ops = &cras_alsa_iodev_ops_internal_ops;
   if (cras_feature_enabled(CrOSLateBootCrasSplitAlsaUSBInternal) &&
       alsa_card->card_type == ALSA_CARD_TYPE_USB) {
     alsa_card->ops = &cras_alsa_iodev_ops_usb_ops;
   }
 
-  rc = snd_ctl_open(&handle, alsa_card->name, 0);
+  rc = snd_ctl_open(&handle, alsa_card->name.str, 0);
   if (rc < 0) {
-    syslog(LOG_ERR, "Fail opening control %s.", alsa_card->name);
+    syslog(LOG_ERR, "Fail opening control %s.", alsa_card->name.str);
     goto error_bail;
   }
 
@@ -661,7 +661,7 @@ struct cras_alsa_card* cras_alsa_card_create(
   // Read config file for this card if it exists.
   alsa_card->config = cras_card_config_create(device_config_dir, card_name);
   if (alsa_card->config == NULL) {
-    syslog(LOG_DEBUG, "No config file for %s", alsa_card->name);
+    syslog(LOG_DEBUG, "No config file for %s", alsa_card->name.str);
   }
 
   // Create a use case manager if a configuration is available.
@@ -672,7 +672,7 @@ struct cras_alsa_card* cras_alsa_card_create(
       goto error_bail;
     }
     alsa_card->ucm = ucm_create(ucm_name);
-    syslog(LOG_DEBUG, "Card %s (%s) has UCM: %s", alsa_card->name, ucm_name,
+    syslog(LOG_DEBUG, "Card %s (%s) has UCM: %s", alsa_card->name.str, ucm_name,
            alsa_card->ucm ? "yes" : "no");
     free(ucm_name);
   } else {
@@ -685,7 +685,7 @@ struct cras_alsa_card* cras_alsa_card_create(
     } else {
       alsa_card->ucm = ucm_create(card_name);
     }
-    syslog(LOG_DEBUG, "Card %s (%s), Type %s, has UCM: %s", alsa_card->name,
+    syslog(LOG_DEBUG, "Card %s (%s), Type %s, has UCM: %s", alsa_card->name.str,
            card_name, cras_card_type_to_string(alsa_card->card_type),
            alsa_card->ucm ? "yes" : "no");
   }
@@ -694,29 +694,30 @@ struct cras_alsa_card* cras_alsa_card_create(
     syslog(LOG_WARNING, "No ucm config on internal card %s", card_name);
   }
 
-  rc = snd_hctl_open(&alsa_card->hctl, alsa_card->name, SND_CTL_NONBLOCK);
+  rc = snd_hctl_open(&alsa_card->hctl, alsa_card->name.str, SND_CTL_NONBLOCK);
   if (rc < 0) {
-    syslog(LOG_DEBUG, "failed to get hctl for %s", alsa_card->name);
+    syslog(LOG_DEBUG, "failed to get hctl for %s", alsa_card->name.str);
     alsa_card->hctl = NULL;
   } else {
     rc = snd_hctl_nonblock(alsa_card->hctl, 1);
     if (rc < 0) {
-      syslog(LOG_WARNING, "failed to nonblock hctl for %s", alsa_card->name);
+      syslog(LOG_WARNING, "failed to nonblock hctl for %s",
+             alsa_card->name.str);
       goto error_bail;
     }
 
     rc = snd_hctl_load(alsa_card->hctl);
     if (rc < 0) {
-      syslog(LOG_WARNING, "failed to load hctl for %s", alsa_card->name);
+      syslog(LOG_WARNING, "failed to load hctl for %s", alsa_card->name.str);
       goto error_bail;
     }
   }
 
   // Create one mixer per card.
-  alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name);
+  alsa_card->mixer = cras_alsa_mixer_create(alsa_card->name.str);
 
   if (alsa_card->mixer == NULL) {
-    syslog(LOG_WARNING, "Fail opening mixer for %s.", alsa_card->name);
+    syslog(LOG_WARNING, "Fail opening mixer for %s.", alsa_card->name.str);
     goto error_bail;
   }
 
@@ -806,6 +807,7 @@ void cras_alsa_card_destroy(struct cras_alsa_card* alsa_card) {
   if (alsa_card->config) {
     cras_card_config_destroy(alsa_card->config);
   }
+  cras_alsa_config_release_controls_on_card(alsa_card->card_index);
   free(alsa_card);
 }
 

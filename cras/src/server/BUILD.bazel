@@ -161,6 +161,24 @@ cc_library(
 )
 
 cc_library(
+    name = "cras_alsa_config",
+    srcs = [
+        "cras_alsa_card.h",
+        "cras_alsa_config.c",
+    ],
+    hdrs = [
+        "cras_alsa_config.h",
+    ],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = [
+        "//cras/src/common:blob_wrapper",
+        "//cras/src/common:cras_alsa_card_info",
+        "//third_party/utlist",
+        "@pkg_config//alsa",
+    ],
+)
+
+cc_library(
     name = "iniparser_wrapper",
     srcs = [
         "iniparser_wrapper.h",
@@ -459,6 +477,7 @@ cc_library(
     ],
     visibility = ["//cras/src/fuzz:__pkg__"],
     deps = [
+        ":cras_alsa_config",
         ":cras_alsa_ucm",
         ":cras_apm",
         ":cras_audio_area",

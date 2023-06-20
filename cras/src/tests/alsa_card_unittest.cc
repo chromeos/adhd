@@ -12,6 +12,7 @@
 #include "cras/platform/features/override.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_alsa_card.h"
+#include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"
@@ -1573,6 +1574,8 @@ void ucm_free_mixer_names(struct mixer_name* names) {
     free(m);
   }
 }
+
+void cras_alsa_config_release_controls_on_card(uint32_t card_index) {}
 
 }  // extern "C"
 
