@@ -107,11 +107,14 @@ fuzz_engine_repository(name = "fuzz_engine")
 # Rust dependencies
 #
 
-RULES_RUST_VERSION = "0.17.0"
+RULES_RUST_VERSION, RULES_RUST_SHA256 = (
+    "0.24.0",
+    "48e715be2368d79bc174efdb12f34acfc89abd7ebfcbffbc02568fcb9ad91536",
+)
 
 http_archive(
     name = "rules_rust",
-    sha256 = "d125fb75432dc3b20e9b5a19347b45ec607fabe75f98c6c4ba9badaab9c193ce",
+    sha256 = RULES_RUST_SHA256,
     urls = [
         "https://storage.googleapis.com/chromeos-localmirror/distfiles/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
         "https://github.com/bazelbuild/rules_rust/releases/download/{0}/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
@@ -120,7 +123,7 @@ http_archive(
 
 http_archive(
     name = "rust_cc_common_link",
-    sha256 = "d125fb75432dc3b20e9b5a19347b45ec607fabe75f98c6c4ba9badaab9c193ce",
+    sha256 = RULES_RUST_SHA256,
     strip_prefix = "test/cc_common_link",
     urls = [
         "https://storage.googleapis.com/chromeos-localmirror/distfiles/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
