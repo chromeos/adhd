@@ -581,9 +581,7 @@ static int capture_to_streams(struct open_dev* adev,
     struct cras_audio_area* area = NULL;
     unsigned int nread, total_read;
 
-    nread = remainder;
-
-    rc = cras_iodev_get_input_buffer(idev, &nread);
+    rc = cras_iodev_get_input_buffer(idev, remainder, &nread);
     if (rc < 0 || nread == 0) {
       return rc;
     }
@@ -848,8 +846,8 @@ int write_output_samples(struct open_dev** odevs,
    * only happens when the circular buffer is at the end and returns us a
    * partial area to write to from mmap_begin */
   while (total_written < fr_to_req) {
-    frames = fr_to_req - total_written;
-    rc = cras_iodev_get_output_buffer(odev, &area, &frames);
+    rc = cras_iodev_get_output_buffer(odev, fr_to_req - total_written, &area,
+                                      &frames);
     if (rc < 0) {
       return rc;
     }

@@ -1241,7 +1241,7 @@ static int bad_get_buffer(struct cras_iodev* iodev,
 TEST(IoDev, GetBufferInvalidFrames) {
   struct cras_iodev iodev;
   struct cras_audio_area** area = NULL;
-  unsigned int frames = 512;
+  unsigned int frames = 0;
   struct cras_audio_format fmt;
 
   // Format is used in cras_iodev_get_input_buffer;
@@ -1256,8 +1256,8 @@ TEST(IoDev, GetBufferInvalidFrames) {
   iodev.format = &fmt;
   iodev.get_buffer = bad_get_buffer;
 
-  EXPECT_EQ(-EINVAL, cras_iodev_get_output_buffer(&iodev, area, &frames));
-  EXPECT_EQ(-EINVAL, cras_iodev_get_input_buffer(&iodev, &frames));
+  EXPECT_EQ(-EINVAL, cras_iodev_get_output_buffer(&iodev, 512, area, &frames));
+  EXPECT_EQ(-EINVAL, cras_iodev_get_input_buffer(&iodev, 512, &frames));
 }
 
 static int configure_dev(struct cras_iodev* iodev) {
@@ -2363,7 +2363,7 @@ TEST(IoDev, InputDspOffset) {
   struct cras_rstream rstream1;
   struct dev_stream stream1;
   struct input_data data;
-  unsigned int frames = 240;
+  unsigned int frames = 0;
   int rc;
 
   ResetStubData();
@@ -2392,15 +2392,14 @@ TEST(IoDev, InputDspOffset) {
   cras_iodev_open(&iodev, 240, &fmt);
 
   cras_iodev_add_stream(&iodev, &stream1);
-  cras_iodev_get_input_buffer(&iodev, &frames);
+  cras_iodev_get_input_buffer(&iodev, 240, &frames);
 
   buffer_share_get_new_write_point_ret = 100;
   rc = cras_iodev_put_input_buffer(&iodev);
   EXPECT_EQ(140, iodev.input_dsp_offset);
   EXPECT_EQ(100, rc);
 
-  frames = 130;
-  cras_iodev_get_input_buffer(&iodev, &frames);
+  cras_iodev_get_input_buffer(&iodev, 130, &frames);
   EXPECT_EQ(130, iodev.input_frames_read);
 
   buffer_share_get_new_write_point_ret = 80;

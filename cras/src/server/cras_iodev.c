@@ -1270,27 +1270,28 @@ int cras_iodev_put_output_buffer(struct cras_iodev* iodev,
 }
 
 int cras_iodev_get_input_buffer(struct cras_iodev* iodev,
-                                unsigned int* frames) {
+                                unsigned int request_frames,
+                                unsigned int* ret_frames) {
   const unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
   struct input_data* data = iodev->input_data;
   int rc;
   uint8_t* hw_buffer;
-  unsigned frame_requested = *frames;
+  *ret_frames = request_frames;
 
-  rc = iodev->get_buffer(iodev, &data->area, frames);
-  if (rc < 0 || *frames == 0) {
+  rc = iodev->get_buffer(iodev, &data->area, ret_frames);
+  if (rc < 0 || *ret_frames == 0) {
     return rc;
   }
 
-  if (*frames > frame_requested) {
+  if (*ret_frames > request_frames) {
     syslog(LOG_WARNING,
            "frames returned from get_buffer is greater than "
            "requested: %u > %u",
-           *frames, frame_requested);
+           *ret_frames, request_frames);
     return -EINVAL;
   }
 
-  iodev->input_frames_read = *frames;
+  iodev->input_frames_read = *ret_frames;
 
   // TODO(hychao) - This assumes interleaved audio.
   hw_buffer = data->area->channels[0].buf;
@@ -1304,33 +1305,34 @@ int cras_iodev_get_input_buffer(struct cras_iodev* iodev,
    * Only apply input dsp to the part of read buffer beyond where we've
    * already applied dsp.
    */
-  if (*frames > iodev->input_dsp_offset) {
+  if (*ret_frames > iodev->input_dsp_offset) {
     rc = apply_dsp(iodev, hw_buffer + iodev->input_dsp_offset * frame_bytes,
-                   *frames - iodev->input_dsp_offset);
+                   *ret_frames - iodev->input_dsp_offset);
     if (rc) {
       return rc;
     }
     ewma_power_calculate_area(
         &iodev->ewma,
         (int16_t*)(hw_buffer + iodev->input_dsp_offset * frame_bytes),
-        data->area, *frames - iodev->input_dsp_offset);
+        data->area, *ret_frames - iodev->input_dsp_offset);
   }
 
   return rc;
 }
 
 int cras_iodev_get_output_buffer(struct cras_iodev* iodev,
+                                 unsigned int request_frames,
                                  struct cras_audio_area** area,
-                                 unsigned* frames) {
+                                 unsigned* ret_frames) {
   int rc;
-  unsigned frame_requested = *frames;
+  *ret_frames = request_frames;
 
-  rc = iodev->get_buffer(iodev, area, frames);
-  if (*frames > frame_requested) {
+  rc = iodev->get_buffer(iodev, area, ret_frames);
+  if (*ret_frames > request_frames) {
     syslog(LOG_WARNING,
            "frames returned from get_buffer is greater than "
            "requested: %u > %u",
-           *frames, frame_requested);
+           *ret_frames, request_frames);
     return -EINVAL;
   }
   return rc;
@@ -1420,7 +1422,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
                                unsigned int frames,
                                bool underrun) {
   struct cras_audio_area* area = NULL;
-  unsigned int frame_bytes, frames_written;
+  unsigned int frame_bytes, frames_writable;
   int rc = 0;
   uint8_t* buf;
 
@@ -1435,8 +1437,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
 
   frame_bytes = cras_get_format_bytes(odev->format);
   while (frames > 0) {
-    frames_written = frames;
-    rc = cras_iodev_get_output_buffer(odev, &area, &frames_written);
+    rc = cras_iodev_get_output_buffer(odev, frames, &area, &frames_writable);
     if (rc < 0) {
       syslog(LOG_WARNING, "fill zeros fail: %d", rc);
       return rc;
@@ -1444,9 +1445,9 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
 
     // This assumes consecutive channel areas.
     buf = area->channels[0].buf;
-    memset(buf, 0, (size_t)frames_written * (size_t)frame_bytes);
-    cras_iodev_put_output_buffer(odev, buf, frames_written, NULL, NULL);
-    frames -= frames_written;
+    memset(buf, 0, (size_t)frames_writable * (size_t)frame_bytes);
+    cras_iodev_put_output_buffer(odev, buf, frames_writable, NULL, NULL);
+    frames -= frames_writable;
   }
 
   return 0;

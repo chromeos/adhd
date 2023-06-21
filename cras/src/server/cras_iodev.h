@@ -655,19 +655,24 @@ int cras_iodev_put_output_buffer(struct cras_iodev* iodev,
 /* Returns a buffer to read from.
  * Args:
  *    iodev - The device.
- *    frames - Filled with the number of frames that can be read/written.
+ *    request_frames - The number of frames to request for.
+ *    ret_frames - Filled with the number of frames that can be read/written.
  */
-int cras_iodev_get_input_buffer(struct cras_iodev* iodev, unsigned* frames);
+int cras_iodev_get_input_buffer(struct cras_iodev* iodev,
+                                unsigned int request_frames,
+                                unsigned* ret_frames);
 
 /* Returns a buffer to read from.
  * Args:
  *    iodev - The device.
+ *    request_frames - The number of frames to request for.
  *    area - Filled with a pointer to the audio to read/write.
- *    frames - Filled with the number of frames that can be read/written.
+ *    ret_frames - Filled with the number of frames that can be read/written.
  */
 int cras_iodev_get_output_buffer(struct cras_iodev* iodev,
+                                 unsigned int request_frames,
                                  struct cras_audio_area** area,
-                                 unsigned* frames);
+                                 unsigned* ret_frames);
 
 // Update the estimated sample rate of the device.
 int cras_iodev_update_rate(struct cras_iodev* iodev,
