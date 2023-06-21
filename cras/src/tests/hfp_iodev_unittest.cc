@@ -530,10 +530,8 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
   cras_iodev_free_resources_called++;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames,
-                               bool underrun) {
-  return 0;
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+  return (int)frames;
 }
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,

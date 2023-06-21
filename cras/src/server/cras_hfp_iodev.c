@@ -143,7 +143,7 @@ static int frames_queued(const struct cras_iodev* iodev,
 
 static int output_underrun(struct cras_iodev* iodev) {
   // Handle it the same way as cras_iodev_output_underrun().
-  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level, true);
+  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
 }
 
 /* Handles cras sr bt enabling and disabling cases.

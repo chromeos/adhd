@@ -209,7 +209,8 @@ struct cras_iodev {
   int (*start)(struct cras_iodev* iodev);
   // (Optional) Checks if the device is in free running state.
   int (*is_free_running)(const struct cras_iodev* iodev);
-  // (Optional) Handle output device underrun.
+  // (Optional) Handle output device underrun and return the number of frames
+  // filled.
   int (*output_underrun)(struct cras_iodev* iodev);
   // When there is no stream, we let device keep running
   // for some time to save the time to open device for the next
@@ -748,11 +749,10 @@ void cras_iodev_set_ext_dsp_module(struct cras_iodev* iodev,
  * Args:
  *    odev - The device.
  *    frames - The number of frames of zero samples to put into the device.
- *    underrun - True if this function is triggered due to underrun.
+ * Returns:
+ *    Number of frames filled with zeros, negative errno if failed.
  */
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames,
-                               bool underrun);
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames);
 
 /*
  * The default implementation of frames_to_play_in_sleep ops, used when an

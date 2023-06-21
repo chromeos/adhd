@@ -110,7 +110,10 @@ static int default_no_stream_playback(struct cras_iodev* odev) {
   fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
   if (hw_level <= target_hw_level) {
     fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
-    return cras_iodev_fill_odev_zeros(odev, fr_to_write, false);
+    rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
+    if (rc < 0) {
+      return rc;
+    }
   }
   return 0;
 }
@@ -272,6 +275,7 @@ int cras_iodev_is_zero_volume(const struct cras_iodev* odev) {
  * S2.
  */
 static int cras_iodev_output_event_sample_ready(struct cras_iodev* odev) {
+  int rc;
   if (odev->state == CRAS_IODEV_STATE_OPEN ||
       odev->state == CRAS_IODEV_STATE_NO_STREAM_RUN) {
     /* Starts ramping up if device should not be muted.
@@ -288,7 +292,12 @@ static int cras_iodev_output_event_sample_ready(struct cras_iodev* odev) {
      * stream, fill 1 min_cb_level of zeros first and fill sample
      * from stream later.
      * Starts the device here to finish state transition. */
-    cras_iodev_fill_odev_zeros(odev, odev->min_cb_level, false);
+    rc = cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+    if (rc < 0) {
+      syslog(LOG_WARNING, "Failed to fill zeros to device %s before start",
+             odev->info.name);
+    }
+
     ATLOG(atlog, AUDIO_THREAD_ODEV_START, odev->info.idx, odev->min_cb_level,
           0);
     return cras_iodev_start(odev);
@@ -1062,7 +1071,12 @@ int cras_iodev_open(struct cras_iodev* iodev,
       iodev->state = CRAS_IODEV_STATE_OPEN;
     } else {
       iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
-      cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level, false);
+
+      rc = cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+      if (rc < 0) {
+        syslog(LOG_WARNING, "Failed to fill zeros to device %s while open",
+               iodev->info.name);
+      }
     }
   } else {
     iodev->input_data = input_data_create(iodev);
@@ -1418,22 +1432,22 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
   return iodev->buffer_size - iodev->min_buffer_level - hw_level;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames,
-                               bool underrun) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
   struct cras_audio_area* area = NULL;
   unsigned int frame_bytes, frames_writable;
-  int rc = 0;
+  int rc = 0, filled_frames = 0;
   uint8_t* buf;
 
   if (odev->direction != CRAS_STREAM_OUTPUT) {
     return -EINVAL;
   }
 
-  ATLOG(atlog, AUDIO_THREAD_FILL_ODEV_ZEROS, odev->info.idx, frames, 0);
-  if (underrun) {
-    cras_iodev_update_underrun_duration(odev, frames);
+  if (frames > INT_MAX) {
+    syslog(LOG_ERR, "Abnormally large frames to fill: %u", frames);
+    return -EINVAL;
   }
+
+  ATLOG(atlog, AUDIO_THREAD_FILL_ODEV_ZEROS, odev->info.idx, frames, 0);
 
   frame_bytes = cras_get_format_bytes(odev->format);
   while (frames > 0) {
@@ -1448,21 +1462,27 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
     memset(buf, 0, (size_t)frames_writable * (size_t)frame_bytes);
     cras_iodev_put_output_buffer(odev, buf, frames_writable, NULL, NULL);
     frames -= frames_writable;
+    filled_frames += frames_writable;
   }
 
-  return 0;
+  return filled_frames;
 }
 
 int cras_iodev_output_underrun(struct cras_iodev* odev,
                                unsigned int hw_level,
                                unsigned int frames_written) {
+  int rc;
   ATLOG(atlog, AUDIO_THREAD_UNDERRUN, odev->info.idx, hw_level, frames_written);
   odev->num_underruns++;
   cras_audio_thread_event_underrun();
   if (odev->output_underrun) {
     return odev->output_underrun(odev);
   } else {
-    return cras_iodev_fill_odev_zeros(odev, odev->min_cb_level, true);
+    rc = cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+    if (rc > 0) {
+      cras_iodev_update_underrun_duration(odev, rc);
+    }
+    return rc;
   }
 }
 

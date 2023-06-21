@@ -905,15 +905,14 @@ void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 
 int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames,
-                               bool underrun) {
+                               unsigned int frames) {
   struct cras_audio_area* area;
   cras_iodev_fill_odev_zeros_called++;
   cras_iodev_fill_odev_zeros_frames = frames;
 
   odev->get_buffer(odev, &area, &frames);
   odev->put_buffer(odev, frames);
-  return 0;
+  return (int)frames;
 }
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,

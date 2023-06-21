@@ -604,9 +604,8 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
 }
 
 int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames,
-                               bool underrun) {
-  return 0;
+                               unsigned int frames) {
+  return (int)frames;
 }
 
 // Cras iodev list

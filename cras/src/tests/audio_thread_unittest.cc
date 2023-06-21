@@ -1321,11 +1321,9 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
   return iodev->buffer_size - iodev->frames_queued(iodev, &tstamp);
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames,
-                               bool underrun) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
   cras_iodev_fill_odev_zeros_frames = frames;
-  return 0;
+  return (int)frames;
 }
 
 int cras_iodev_output_underrun(struct cras_iodev* odev,

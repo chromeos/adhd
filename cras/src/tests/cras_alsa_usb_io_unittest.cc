@@ -1224,11 +1224,10 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
 }
 
 int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames,
-                               bool underrun) {
+                               unsigned int frames) {
   cras_iodev_fill_odev_zeros_called++;
   cras_iodev_fill_odev_zeros_frames = frames;
-  return 0;
+  return (int)frames;
 }
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,

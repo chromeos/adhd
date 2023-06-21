@@ -1465,8 +1465,8 @@ static int usb_adjust_appl_ptr_samples_remaining(struct cras_iodev* odev) {
 
   // Fill zeros to make sure there are enough zero samples in device buffer.
   if (offset > real_hw_level) {
-    rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level, false);
-    if (rc) {
+    rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level);
+    if (rc < 0) {
       return rc;
     }
   }
@@ -1474,16 +1474,22 @@ static int usb_adjust_appl_ptr_samples_remaining(struct cras_iodev* odev) {
 }
 
 static int usb_alsa_output_underrun(struct cras_iodev* odev) {
-  int rc;
+  int rc, filled_frames;
 
   /* Fill whole buffer with zeros. This avoids samples left in buffer causing
    * noise when device plays them. */
-  rc = usb_fill_whole_buffer_with_zeros(odev);
-  if (rc) {
+  filled_frames = usb_fill_whole_buffer_with_zeros(odev);
+  if (filled_frames < 0) {
+    return filled_frames;
+  }
+
+  // Adjust appl_ptr to leave underrun.
+  rc = usb_adjust_appl_ptr_for_underrun(odev);
+  if (rc < 0) {
     return rc;
   }
-  // Adjust appl_ptr to leave underrun.
-  return usb_adjust_appl_ptr_for_underrun(odev);
+
+  return filled_frames;
 }
 
 static int usb_possibly_enter_free_run(struct cras_iodev* odev) {
@@ -1529,8 +1535,8 @@ static int usb_possibly_enter_free_run(struct cras_iodev* odev) {
   fr_to_write = MIN(cras_time_to_frames(&no_stream_fill_zeros_duration,
                                         odev->format->frame_rate),
                     odev->buffer_size - real_hw_level);
-  rc = cras_iodev_fill_odev_zeros(odev, fr_to_write, false);
-  if (rc) {
+  rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
+  if (rc < 0) {
     return rc;
   }
   aio->common.filled_zeros_for_draining += fr_to_write;
@@ -1551,7 +1557,7 @@ static int usb_leave_free_run(struct cras_iodev* odev) {
   } else {
     rc = usb_adjust_appl_ptr_samples_remaining(odev);
   }
-  if (rc) {
+  if (rc < 0) {
     syslog(LOG_WARNING,
            "card type: %s, device %s failed to leave free run, rc = %d",
            cras_card_type_to_string(aio->common.card_type), odev->info.name,

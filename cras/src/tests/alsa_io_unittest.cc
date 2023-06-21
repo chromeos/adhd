@@ -2303,7 +2303,7 @@ TEST_F(AlsaFreeRunTestSuite, FillWholeBufferWithZeros) {
 
   rc = fill_whole_buffer_with_zeros(&aio.common.base);
 
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(aio.common.base.buffer_size, rc);
   zeros = (int16_t*)calloc(BUFFER_SIZE * 2, sizeof(*zeros));
   EXPECT_EQ(0, memcmp(zeros, cras_alsa_mmap_begin_buffer, BUFFER_SIZE * 2 * 2));
 
@@ -2486,7 +2486,7 @@ TEST_F(AlsaFreeRunTestSuite, OutputUnderrun) {
 
   // Ask alsa_io to handle output underrun.
   rc = alsa_output_underrun(&aio.common.base);
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(aio.common.base.buffer_size, rc);
   EXPECT_EQ(1, cras_iodev_update_underrun_duration_called);
 
   // mmap buffer should be filled with zeros.
@@ -3347,12 +3347,10 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
   return cras_iodev_buffer_avail_ret;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames,
-                               bool underrun) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
   cras_iodev_fill_odev_zeros_called++;
   cras_iodev_fill_odev_zeros_frames = frames;
-  return 0;
+  return (int)frames;
 }
 
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,

@@ -480,6 +480,11 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
   cras_iodev_free_resources_called++;
 }
 
+void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
+                                         unsigned frames) {
+  return;
+}
+
 //  From iodev list.
 int cras_iodev_list_add_output(struct cras_iodev* output) {
   cras_iodev_list_add_output_called++;

@@ -1587,13 +1587,13 @@ TEST(IoDev, FillZeros) {
   iodev.put_buffer = put_buffer;
 
   iodev.direction = CRAS_STREAM_INPUT;
-  rc = cras_iodev_fill_odev_zeros(&iodev, frames, false);
+  rc = cras_iodev_fill_odev_zeros(&iodev, frames);
   EXPECT_EQ(-EINVAL, rc);
 
   iodev.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_fill_odev_zeros(&iodev, frames, false);
+  rc = cras_iodev_fill_odev_zeros(&iodev, frames);
 
-  EXPECT_EQ(0, rc);
+  EXPECT_EQ(frames, rc);
   EXPECT_EQ(frames, put_buffer_nframes);
   zeros = (int16_t*)calloc(frames * 2, sizeof(*zeros));
   rc = memcmp(audio_buffer, zeros, frames * 2 * 2);
@@ -2289,7 +2289,7 @@ TEST(IoDev, HandleOutputUnderrun) {
   rate_estimator_get_rate_ret = 48000.0;
 
   // Default case, fill one block of zeros.
-  EXPECT_EQ(0, cras_iodev_output_underrun(&iodev, 0, 0));
+  EXPECT_EQ(iodev.min_cb_level, cras_iodev_output_underrun(&iodev, 0, 0));
 
   EXPECT_EQ(frames, put_buffer_nframes);
   zeros = (int16_t*)calloc(frames * 2, sizeof(*zeros));

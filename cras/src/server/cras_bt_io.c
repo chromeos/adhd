@@ -443,18 +443,24 @@ leave:
 
 static int output_underrun(struct cras_iodev* iodev) {
   struct cras_iodev* dev = active_profile_dev(iodev);
+  int frames;
   if (!dev) {
     return -EINVAL;
   }
 
-  if (dev->output_underrun) {
-    dev->min_cb_level = iodev->min_cb_level;
-    dev->max_cb_level = iodev->max_cb_level;
-    dev->buffer_size = iodev->buffer_size;
-    return dev->output_underrun(dev);
+  if (!dev->output_underrun) {
+    syslog(LOG_WARNING, "No output_underrun handler for active profile");
+    return 0;
   }
 
-  return 0;
+  dev->min_cb_level = iodev->min_cb_level;
+  dev->max_cb_level = iodev->max_cb_level;
+  dev->buffer_size = iodev->buffer_size;
+  frames = dev->output_underrun(dev);
+  if (frames > 0) {
+     cras_iodev_update_underrun_duration(iodev, frames);
+  }
+  return frames;
 }
 
 static int no_stream(struct cras_iodev* iodev, int enable) {

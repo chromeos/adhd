@@ -1712,7 +1712,7 @@ static int fill_whole_buffer_with_zeros(struct cras_iodev* iodev) {
   format_bytes = cras_get_format_bytes(iodev->format);
   memset(dst, 0, iodev->buffer_size * format_bytes);
 
-  return 0;
+  return iodev->buffer_size;
 }
 
 /*
@@ -1786,8 +1786,8 @@ static int adjust_appl_ptr_samples_remaining(struct cras_iodev* odev) {
 
   // Fill zeros to make sure there are enough zero samples in device buffer.
   if (offset > real_hw_level) {
-    rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level, false);
-    if (rc) {
+    rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level);
+    if (rc < 0) {
       return rc;
     }
   }
@@ -1795,16 +1795,22 @@ static int adjust_appl_ptr_samples_remaining(struct cras_iodev* odev) {
 }
 
 static int alsa_output_underrun(struct cras_iodev* odev) {
-  int rc;
+  int rc, filled_frames;
 
   /* Fill whole buffer with zeros. This avoids samples left in buffer causing
    * noise when device plays them. */
-  rc = fill_whole_buffer_with_zeros(odev);
-  if (rc) {
+  filled_frames = fill_whole_buffer_with_zeros(odev);
+  if (filled_frames < 0) {
+    return filled_frames;
+  }
+
+  // Adjust appl_ptr to leave underrun.
+  rc = adjust_appl_ptr_for_underrun(odev);
+  if (rc < 0) {
     return rc;
   }
-  // Adjust appl_ptr to leave underrun.
-  return adjust_appl_ptr_for_underrun(odev);
+
+  return filled_frames;
 }
 
 static int possibly_enter_free_run(struct cras_iodev* odev) {
@@ -1850,8 +1856,8 @@ static int possibly_enter_free_run(struct cras_iodev* odev) {
   fr_to_write = MIN(cras_time_to_frames(&no_stream_fill_zeros_duration,
                                         odev->format->frame_rate),
                     odev->buffer_size - real_hw_level);
-  rc = cras_iodev_fill_odev_zeros(odev, fr_to_write, false);
-  if (rc) {
+  rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
+  if (rc < 0) {
     return rc;
   }
   aio->common.filled_zeros_for_draining += fr_to_write;
@@ -1872,7 +1878,7 @@ static int leave_free_run(struct cras_iodev* odev) {
   } else {
     rc = adjust_appl_ptr_samples_remaining(odev);
   }
-  if (rc) {
+  if (rc < 0) {
     syslog(LOG_WARNING, "device %s failed to leave free run, rc = %d",
            odev->info.name, rc);
     return rc;

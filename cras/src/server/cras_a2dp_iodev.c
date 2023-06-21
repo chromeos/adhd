@@ -145,8 +145,8 @@ static int fill_zeros_to_target_level(struct cras_iodev* iodev,
   unsigned int local_queued_frames = bt_local_queued_frames(iodev);
 
   if (local_queued_frames < target_level) {
-    return cras_iodev_fill_odev_zeros(iodev, target_level - local_queued_frames,
-                                      false);
+    return cras_iodev_fill_odev_zeros(iodev,
+                                      target_level - local_queued_frames);
   }
   return 0;
 }
@@ -179,7 +179,7 @@ static int output_underrun(struct cras_iodev* iodev) {
     return 0;
   }
 
-  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level, true);
+  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
 }
 
 /*
@@ -195,7 +195,7 @@ static int enter_no_stream(struct a2dp_io* a2dpio) {
    * top of the underrun threshold(i.e one min_cb_level).
    */
   rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
-  if (rc) {
+  if (rc < 0) {
     syslog(LOG_WARNING, "Error in A2DP enter_no_stream");
   }
   return encode_and_flush(odev);
