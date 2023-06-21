@@ -2,7 +2,7 @@
 name = "dsm"
 version = "0.1.0"
 authors = ["The ChromiumOS Authors"]
-edition = "2018"
+edition = "2021"
 description = "The boot time calibration logic for smart amp"
 
 [dependencies]

@@ -1,5 +1,5 @@
 {
-  "checksum": "94543ee1647ad50697832b07a6b3ec89bda67c736fa2d45100aa019e9fbb4487",
+  "checksum": "e2ae0df2a603e6426f3f2f92d78d06f88987982cc06e78342ef6411a4cc51c60",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -469,7 +469,7 @@
           ],
           "selects": {}
         },
-        "edition": "2018",
+        "edition": "2021",
         "version": "0.1.0"
       },
       "license": null
@@ -1055,7 +1055,7 @@
           ],
           "selects": {}
         },
-        "edition": "2018",
+        "edition": "2021",
         "version": "0.1.1"
       },
       "license": null

@@ -4,7 +4,7 @@
 name = "cros_alsa_derive"
 version = "0.1.0"
 authors = ["The ChromiumOS Authors"]
-edition = "2018"
+edition = "2021"
 description = "Derive macros of cors_alsa."
 
 [lib]
