@@ -179,7 +179,11 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                 "cmd: boot_time_calibration sound_card_id: {}, conf:{}",
                 param.id, param.conf
             );
-            amp.boot_time_calibration()?;
+            if let Err(e) = amp.boot_time_calibration() {
+                error!("sound_card_init: boot_time_calibration failed: {}", e);
+                return Err(Box::new(e));
+            }
+
             if let Err(e) = run_time::now_to_file(&param.id) {
                 error!("failed to create sound_card_init run time file: {}", e);
             }
