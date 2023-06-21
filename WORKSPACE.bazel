@@ -116,8 +116,8 @@ http_archive(
     name = "rules_rust",
     sha256 = RULES_RUST_SHA256,
     urls = [
-        "https://storage.googleapis.com/chromeos-localmirror/distfiles/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
         "https://github.com/bazelbuild/rules_rust/releases/download/{0}/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/bazelbuild-rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
     ],
 )
 
@@ -126,8 +126,8 @@ http_archive(
     sha256 = RULES_RUST_SHA256,
     strip_prefix = "test/cc_common_link",
     urls = [
-        "https://storage.googleapis.com/chromeos-localmirror/distfiles/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
         "https://github.com/bazelbuild/rules_rust/releases/download/{0}/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/bazelbuild-rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
     ],
 )
 
