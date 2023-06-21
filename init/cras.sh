@@ -24,6 +24,7 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -b /var/lib/metrics/,/var/lib/metrics/,1 \
         -- \
         /sbin/minijail0 -n \
+        -Y \
         -S /usr/share/policy/cras-seccomp.policy \
         -- \
         /usr/bin/cras \
