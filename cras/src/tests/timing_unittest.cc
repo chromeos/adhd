@@ -47,7 +47,7 @@ class TimingSuite : public testing::Test {
     struct open_dev* dev_list_ = NULL;
 
     DevicePtr dev = create_device(CRAS_STREAM_INPUT, dev_cb_threshold,
-                                  dev_format, active_node_type);
+                                  dev_format, active_node_type, 0);
     dev->dev->input_streaming = true;
     DL_APPEND(dev_list_, dev->odev.get());
 
@@ -77,7 +77,7 @@ class TimingSuite : public testing::Test {
     struct open_dev* dev_list_ = NULL;
 
     DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, dev_cb_threshold,
-                                  dev_format, active_node_type);
+                                  dev_format, active_node_type, 0);
     DL_APPEND(dev_list_, dev->odev.get());
 
     for (auto const& stream : streams) {
@@ -113,7 +113,7 @@ TEST_F(TimingSuite, NewInputStreamInit) {
   cras_audio_format format;
   fill_audio_format(&format, 48000);
   DevicePtr dev =
-      create_device(CRAS_STREAM_INPUT, 1024, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 1024, &format, CRAS_NODE_TYPE_MIC, 0);
   DL_APPEND(idev_list_, dev->odev.get());
   struct cras_iodev* iodev = dev->odev->dev;
 
@@ -821,12 +821,12 @@ TEST_F(TimingSuite, NewOutputStreamInitExistMatchedStream) {
   cras_audio_format format;
   fill_audio_format(&format, 48000);
   DevicePtr out_dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
-                                    CRAS_NODE_TYPE_HEADPHONE);
+                                    CRAS_NODE_TYPE_HEADPHONE, 0);
   DL_APPEND(odev_list_, out_dev->odev.get());
   struct cras_iodev* out_iodev = out_dev->odev->dev;
 
   DevicePtr in_dev =
-      create_device(CRAS_STREAM_INPUT, 1024, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 1024, &format, CRAS_NODE_TYPE_MIC, 0);
   DL_APPEND(idev_list_, in_dev->odev.get());
 
   StreamPtr in_stream = create_stream(1, 1, CRAS_STREAM_INPUT, 480, &format);
@@ -863,7 +863,7 @@ TEST_F(TimingSuite, NewOutputStreamInitStreamInDevice) {
   cras_audio_format format;
   fill_audio_format(&format, 48000);
   DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
-                                CRAS_NODE_TYPE_HEADPHONE);
+                                CRAS_NODE_TYPE_HEADPHONE, 0);
   DL_APPEND(odev_list_, dev->odev.get());
   struct cras_iodev* iodev = dev->odev->dev;
 
@@ -894,7 +894,7 @@ TEST_F(TimingSuite, NewOutputStreamInitNoStreamNoFramesInDevice) {
   cras_audio_format format;
   fill_audio_format(&format, 48000);
   DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
-                                CRAS_NODE_TYPE_HEADPHONE);
+                                CRAS_NODE_TYPE_HEADPHONE, 0);
   DL_APPEND(odev_list_, dev->odev.get());
   struct cras_iodev* iodev = dev->odev->dev;
 
@@ -924,7 +924,7 @@ TEST_F(TimingSuite, NewOutputStreamInitNoStreamSomeFramesInDevice) {
   cras_audio_format format;
   fill_audio_format(&format, 48000);
   DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
-                                CRAS_NODE_TYPE_HEADPHONE);
+                                CRAS_NODE_TYPE_HEADPHONE, 0);
   DL_APPEND(odev_list_, dev->odev.get());
   struct cras_iodev* iodev = dev->odev->dev;
 
@@ -1168,7 +1168,7 @@ TEST_F(TimingSuite, OutputStreamsUpdateAfterFetching) {
   struct open_dev* dev_list_ = NULL;
 
   DevicePtr dev = create_device(CRAS_STREAM_OUTPUT, 1024, &format,
-                                CRAS_NODE_TYPE_HEADPHONE);
+                                CRAS_NODE_TYPE_HEADPHONE, 0);
   DL_APPEND(dev_list_, dev->odev.get());
 
   add_stream_to_dev(dev->dev, stream);

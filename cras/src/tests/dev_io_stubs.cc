@@ -95,10 +95,11 @@ int delay_frames_stub(const struct cras_iodev* iodev) {
   return 0;
 }
 
-IonodePtr create_ionode(CRAS_NODE_TYPE type) {
+IonodePtr create_ionode(CRAS_NODE_TYPE type, int32_t latency_offset_ms) {
   IonodePtr ionode(
       reinterpret_cast<cras_ionode*>(calloc(1, sizeof(cras_ionode))), free);
   ionode->type = type;
+  ionode->latency_offset_ms = latency_offset_ms;
   return ionode;
 }
 
@@ -129,8 +130,9 @@ IodevPtr create_open_iodev(CRAS_STREAM_DIRECTION direction,
 DevicePtr create_device(CRAS_STREAM_DIRECTION direction,
                         size_t cb_threshold,
                         cras_audio_format* format,
-                        CRAS_NODE_TYPE active_node_type) {
-  IonodePtr node = create_ionode(active_node_type);
+                        CRAS_NODE_TYPE active_node_type,
+                        int32_t latency_offset_ms) {
+  IonodePtr node = create_ionode(active_node_type, latency_offset_ms);
   IodevPtr dev = create_open_iodev(direction, cb_threshold, format, node.get());
   OpendevPtr odev(reinterpret_cast<open_dev*>(calloc(1, sizeof(open_dev))),
                   free);

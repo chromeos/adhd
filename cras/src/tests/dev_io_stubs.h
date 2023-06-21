@@ -70,7 +70,7 @@ StreamPtr create_stream(cras_stream_id_t id,
                         const cras_audio_format* format);
 void AddFakeDataToStream(Stream* stream, unsigned int frames);
 int delay_frames_stub(const struct cras_iodev* iodev);
-IonodePtr create_ionode(CRAS_NODE_TYPE type);
+IonodePtr create_ionode(CRAS_NODE_TYPE type, int32_t latency_offset_ms);
 IodevPtr create_open_iodev(CRAS_STREAM_DIRECTION direction,
                            size_t cb_threshold,
                            cras_audio_format* format,
@@ -78,7 +78,8 @@ IodevPtr create_open_iodev(CRAS_STREAM_DIRECTION direction,
 DevicePtr create_device(CRAS_STREAM_DIRECTION direction,
                         size_t cb_threshold,
                         cras_audio_format* format,
-                        CRAS_NODE_TYPE active_node_type);
+                        CRAS_NODE_TYPE active_node_type,
+                        int32_t latency_offset_ms);
 void add_stream_to_dev(IodevPtr& dev, const StreamPtr& stream);
 void fill_audio_format(cras_audio_format* format, unsigned int rate);
 

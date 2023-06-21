@@ -71,7 +71,7 @@ TEST_F(DevIoSuite, SendCapturedFails) {
 
   struct open_dev* dev_list = NULL;
   DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
-                                CRAS_NODE_TYPE_MIC);
+                                CRAS_NODE_TYPE_MIC, 0);
   DL_APPEND(dev_list, dev->odev.get());
   add_stream_to_dev(dev->dev, stream);
 
@@ -85,7 +85,7 @@ TEST_F(DevIoSuite, CaptureGain) {
   struct open_dev* dev_list = NULL;
   struct open_dev* odev_list = NULL;
   DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
-                                CRAS_NODE_TYPE_MIC);
+                                CRAS_NODE_TYPE_MIC, 0);
 
   dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
   iodev_stub_frames_queued(dev->dev.get(), 20, ts);
@@ -107,7 +107,7 @@ TEST_F(DevIoSuite, CaptureGainIgnoreUiGainsWhenIgnoreUiGainsSet) {
   struct open_dev* dev_list = NULL;
   struct open_dev* odev_list = NULL;
   DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
-                                CRAS_NODE_TYPE_MIC);
+                                CRAS_NODE_TYPE_MIC, 0);
 
   dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
   dev->node->ui_gain_scaler = 0.3;
@@ -131,7 +131,7 @@ TEST_P(DevIoSuiteRespectUiGains, CaptureGainRespectUiGains) {
   struct open_dev* dev_list = NULL;
   struct open_dev* odev_list = NULL;
   DevicePtr dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
-                                CRAS_NODE_TYPE_MIC);
+                                CRAS_NODE_TYPE_MIC, 0);
 
   dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
   dev->node->ui_gain_scaler = 0.3;
@@ -164,9 +164,9 @@ TEST_F(DevIoSuite, CopyOutputEstimatedRate) {
   struct open_dev* idev_list = NULL;
   struct open_dev* odev_list = NULL;
   DevicePtr out_dev = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
-                                    CRAS_NODE_TYPE_INTERNAL_SPEAKER);
+                                    CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
   DevicePtr in_dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
-                                   CRAS_NODE_TYPE_MIC);
+                                   CRAS_NODE_TYPE_MIC, 0);
 
   in_dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
   iodev_stub_frames_queued(in_dev->dev.get(), 20, ts);
@@ -192,9 +192,9 @@ TEST_F(DevIoSuite, InputOutputIndependentEstimatedRate) {
   struct open_dev* idev_list = NULL;
   struct open_dev* odev_list = NULL;
   DevicePtr out_dev = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
-                                    CRAS_NODE_TYPE_INTERNAL_SPEAKER);
+                                    CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
   DevicePtr in_dev = create_device(CRAS_STREAM_INPUT, cb_threshold, &format,
-                                   CRAS_NODE_TYPE_USB);
+                                   CRAS_NODE_TYPE_USB, 0);
 
   in_dev->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
   iodev_stub_frames_queued(in_dev->dev.get(), 20, ts);
@@ -227,9 +227,9 @@ TEST_F(DevIoSuite, SendCapturedNeedToResetDevices) {
   AddFakeDataToStream(stream.get(), 0);
 
   DevicePtr dev1 =
-      create_device(CRAS_STREAM_INPUT, 1000, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 1000, &format, CRAS_NODE_TYPE_MIC, 0);
   DevicePtr dev2 =
-      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC, 0);
   DL_APPEND(dev_list, dev1->odev.get());
   DL_APPEND(dev_list, dev2->odev.get());
   add_stream_to_dev(dev1->dev, stream);
@@ -271,9 +271,9 @@ TEST_F(DevIoSuite, SendCapturedNeedToResetDevices2) {
   AddFakeDataToStream(stream.get(), 0);
 
   DevicePtr dev1 =
-      create_device(CRAS_STREAM_INPUT, 2048, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 2048, &format, CRAS_NODE_TYPE_MIC, 0);
   DevicePtr dev2 =
-      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC, 0);
   DL_APPEND(dev_list, dev1->odev.get());
   DL_APPEND(dev_list, dev2->odev.get());
   add_stream_to_dev(dev1->dev, stream);
@@ -311,7 +311,7 @@ TEST_F(DevIoSuite, SendCapturedLevelLessThanThreshold) {
   AddFakeDataToStream(stream.get(), 0);
 
   DevicePtr dev =
-      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_MIC, 0);
   DL_APPEND(dev_list, dev->odev.get());
   add_stream_to_dev(dev->dev, stream);
 
@@ -336,9 +336,9 @@ TEST_F(DevIoSuite, SendCapturedNoNeedToResetDevices) {
   AddFakeDataToStream(stream.get(), 0);
 
   DevicePtr dev1 =
-      create_device(CRAS_STREAM_INPUT, 1000, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 1000, &format, CRAS_NODE_TYPE_MIC, 0);
   DevicePtr dev2 =
-      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC);
+      create_device(CRAS_STREAM_INPUT, 10000, &format, CRAS_NODE_TYPE_MIC, 0);
   DL_APPEND(dev_list, dev1->odev.get());
   DL_APPEND(dev_list, dev2->odev.get());
   add_stream_to_dev(dev1->dev, stream);
@@ -369,11 +369,11 @@ TEST_F(DevIoSuite, SendCapturedNoNeedToDrop) {
   AddFakeDataToStream(stream.get(), 0);
 
   DevicePtr dev1 =
-      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_HOTWORD);
+      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_HOTWORD, 0);
   DevicePtr dev2 = create_device(CRAS_STREAM_INPUT, 480, &format,
-                                 CRAS_NODE_TYPE_POST_MIX_PRE_DSP);
+                                 CRAS_NODE_TYPE_POST_MIX_PRE_DSP, 0);
   DevicePtr dev3 =
-      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_POST_DSP);
+      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_POST_DSP, 0);
 
   DL_APPEND(dev_list, dev1->odev.get());
   DL_APPEND(dev_list, dev2->odev.get());
@@ -402,7 +402,7 @@ TEST_F(DevIoSuite, SendCapturedNoNeedToDrop) {
 TEST_F(DevIoSuite, PlaybackWriteSevereUnderrun) {
   struct open_dev* dev_list = nullptr;
   DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
-                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER);
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
   dev1->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
   iodev_stub_frames_queued(dev1->dev.get(), -EPIPE, ts);
 

@@ -184,7 +184,7 @@ class CreateSuite : public testing::Test {
     stream_area->channels[1].buf = (uint8_t*)(shm_samples + 1);
 
     dev = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
-                        CRAS_NODE_TYPE_INTERNAL_SPEAKER);
+                        CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
   }
 
   virtual void TearDown() {
@@ -1046,6 +1046,43 @@ TEST_F(CreateSuite, UpdateNextWakeTime) {
   add_timespecs(&expected_next_cb_ts, &rstream_.sleep_interval_ts);
   EXPECT_EQ(expected_next_cb_ts.tv_sec, rstream_.next_cb_ts.tv_sec);
   EXPECT_EQ(expected_next_cb_ts.tv_nsec, rstream_.next_cb_ts.tv_nsec);
+  dev_stream_destroy(dev_stream);
+}
+
+TEST_F(CreateSuite, SetDelay) {
+  DevicePtr delayed_speaker_dev =
+      create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                    CRAS_NODE_TYPE_INTERNAL_SPEAKER, 30);
+  struct dev_stream* dev_stream;
+  rstream_.format = fmt_s16le_44_1;
+  in_fmt.frame_rate = 44100;   // Input to converter is stream rate.
+  out_fmt.frame_rate = 48000;  // Output from converter is device rate.
+  rstream_.direction = CRAS_STREAM_OUTPUT;
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48,
+                                 delayed_speaker_dev->dev.get(), &cb_ts, NULL);
+  clock_gettime_retspec.tv_sec = 1;
+  clock_gettime_retspec.tv_nsec = 750000000;
+
+  dev_stream_set_delay(dev_stream, 72000);
+  EXPECT_EQ(3, rstream_.shm->header->ts.tv_sec);
+  EXPECT_EQ(280000000, rstream_.shm->header->ts.tv_nsec);
+  dev_stream_destroy(dev_stream);
+}
+
+TEST_F(CreateSuite, SetDelayInput) {
+  struct dev_stream* dev_stream;
+  rstream_.format = fmt_s16le_44_1;
+  in_fmt.frame_rate = 48000;   // Input to converter is stream rate.
+  out_fmt.frame_rate = 44100;  // Output from converter is device rate.
+  rstream_.direction = CRAS_STREAM_INPUT;
+  dev_stream = dev_stream_create(&rstream_, 0, &fmt_s16le_48, dev->dev.get(),
+                                 &cb_ts, NULL);
+  clock_gettime_retspec.tv_sec = 2;
+  clock_gettime_retspec.tv_nsec = 750000000;
+
+  dev_stream_set_delay(dev_stream, 72000);
+  EXPECT_EQ(1, rstream_.shm->header->ts.tv_sec);
+  EXPECT_EQ(250000000, rstream_.shm->header->ts.tv_nsec);
   dev_stream_destroy(dev_stream);
 }
 
