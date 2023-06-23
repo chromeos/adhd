@@ -17,6 +17,10 @@
 #include "cras_iodev_info.h"
 #include "packet_status_logger.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Architecture independent timespec
 struct __attribute__((__packed__)) cras_timespec {
   int64_t tv_sec;
@@ -897,5 +901,9 @@ enum CRAS_BT_FLAGS {
   // HFP is the current profile
   CRAS_BT_FLAG_HFP = (1 << 3)
 };
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_INCLUDE_CRAS_TYPES_H_

@@ -13,7 +13,6 @@
 #include <syslog.h>
 #include <vector>
 
-extern "C" {
 #include "cras/src/common/edid_utils.h"
 #include "cras/src/server/cras_alsa_jack.h"
 #include "cras/src/server/cras_alsa_jack_private.h"
@@ -22,7 +21,6 @@ extern "C" {
 #include "cras/src/server/cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
-}
 
 namespace {
 

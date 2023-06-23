@@ -8,6 +8,10 @@
 
 #include "cras/src/server/cras_bt_transport.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_iodev;
 
 /*
@@ -21,5 +25,9 @@ struct cras_iodev* a2dp_iodev_create(struct cras_bt_transport* transport);
  * Destroys a2dp iodev.
  */
 void a2dp_iodev_destroy(struct cras_iodev* iodev);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRS_A2DP_IODEV_H_

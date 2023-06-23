@@ -6,6 +6,10 @@
 #ifndef CRAS_SRC_SERVER_CRAS_AUDIO_THREAD_MONITOR_H_
 #define CRAS_SRC_SERVER_CRAS_AUDIO_THREAD_MONITOR_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Notifies the main thread when A2DP buffer overruns.
  */
@@ -50,5 +54,9 @@ int cras_audio_thread_event_dev_overrun();
  * Initializes audio thread monitor and sets main thread callback.
  */
 int cras_audio_thread_monitor_init();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_AUDIO_THREAD_MONITOR_H_

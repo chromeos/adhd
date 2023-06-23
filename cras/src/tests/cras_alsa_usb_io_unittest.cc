@@ -8,17 +8,15 @@
 #include <syslog.h>
 #include <vector>
 
-#include "cras_util.h"
-
-extern "C" {
-
 #include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
 #include "cras_types.h"
+#include "cras_util.h"
 
+extern "C" {
 //  Include C file to test static functions.
 #include "cras/src/server/cras_alsa_usb_io.c"
 }

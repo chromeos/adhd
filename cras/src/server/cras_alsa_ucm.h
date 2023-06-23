@@ -12,6 +12,10 @@
 #include "cras/src/server/cras_alsa_ucm_section.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define JACK_SWITCH_AUTO_DETECT -1
 
 struct cras_use_case_mgr;
@@ -593,5 +597,9 @@ unsigned int ucm_get_dma_period_for_dev(struct cras_use_case_mgr* mgr,
  *    1 if the flag is enabled. 0 otherwise.
  */
 unsigned int ucm_get_optimize_no_stream_flag(struct cras_use_case_mgr* mgr);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_UCM_H_

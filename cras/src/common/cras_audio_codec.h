@@ -8,6 +8,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // A audio codec that transforms audio between different formats.
 struct cras_audio_codec {
   // Function to decode audio samples. Returns the number of decoded
@@ -31,5 +35,9 @@ struct cras_audio_codec {
   // Private data for specific use.
   void* priv_data;
 };
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // COMMON_CRAS_SRC_COMMON_CRAS_AUDIO_CODEC_H_

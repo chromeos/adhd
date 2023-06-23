@@ -7,14 +7,9 @@
 #include <map>
 #include <stdio.h>
 
-#include "cras/src/tests/test_util.h"
-#include "cras_iodev_info.h"
-
-extern "C" {
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/src/server/cras_iodev_list.c"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_ramp.h"
 #include "cras/src/server/cras_rstream.h"
@@ -23,7 +18,12 @@ extern "C" {
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/stream_list.h"
 #include "cras/src/tests/scoped_features_override.h"
+#include "cras/src/tests/test_util.h"
+#include "cras_iodev_info.h"
 #include "third_party/utlist/utlist.h"
+
+extern "C" {
+#include "cras/src/server/cras_iodev_list.c"
 }
 
 namespace {

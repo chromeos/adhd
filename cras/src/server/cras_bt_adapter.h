@@ -8,6 +8,10 @@
 
 #include <dbus/dbus.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_bt_adapter;
 
 /* Creates an bt_adapter instance representing the bluetooth controller
@@ -46,5 +50,9 @@ int cras_bt_adapter_on_usb(struct cras_bt_adapter* adapter);
  * be called only after adapter powers on.
  */
 int cras_bt_adapter_get_supported_capabilities(struct cras_bt_adapter* adapter);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_ADAPTER_H_

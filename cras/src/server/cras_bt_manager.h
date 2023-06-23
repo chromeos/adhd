@@ -8,6 +8,10 @@
 
 #include <dbus/dbus.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Bitmask for CRAS supported BT profiles. Currently only used for disabling
  * selected profiles on cras_bt_start().
@@ -41,5 +45,9 @@ void cras_bt_switch_stack(struct bt_stack* target);
 
 // Switches the current running stack to default.
 void cras_bt_switch_default_stack();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_MANAGER_H_

@@ -28,6 +28,10 @@
 
 #include "cras/src/common/byte_buffer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // A sample buffer.
 struct sample_buffer {
   // the number of bytes of each sample in the buffer.
@@ -275,5 +279,9 @@ static inline struct byte_buffer* sample_buf_get_buf(
     struct sample_buffer* buf) {
   return buf->buf;
 }
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_COMMON_SAMPLE_BUFFER_H_

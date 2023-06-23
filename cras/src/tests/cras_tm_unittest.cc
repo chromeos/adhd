@@ -5,10 +5,8 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/cras_tm.h"
 #include "cras_types.h"
-}
 
 namespace {
 

@@ -8,6 +8,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_rclient;
 
 /* Creates a control rclient structure.
@@ -18,5 +22,9 @@ struct cras_rclient;
  *    A pointer to the newly created rclient on success, NULL on failure.
  */
 struct cras_rclient* cras_control_rclient_create(int fd, size_t id);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_CONTROL_RCLIENT_H_

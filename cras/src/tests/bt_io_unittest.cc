@@ -4,11 +4,11 @@
 
 #include <gtest/gtest.h>
 
-extern "C" {
+#include "third_party/utlist/utlist.h"
 
+extern "C" {
 // To test static functions.
 #include "cras/src/server/cras_bt_io.c"
-#include "third_party/utlist/utlist.h"
 }
 
 static unsigned int cras_iodev_add_node_called;

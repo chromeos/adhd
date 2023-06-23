@@ -8,10 +8,11 @@
 #include <syslog.h>
 #include <vector>
 
-extern "C" {
-#include "cras/src/server/cras_observer.c"
 #include "cras/src/server/cras_observer.h"
 #include "cras_types.h"
+
+extern "C" {
+#include "cras/src/server/cras_observer.c"
 }
 
 namespace {

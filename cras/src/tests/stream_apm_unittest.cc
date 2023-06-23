@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <unordered_map>
 
-extern "C" {
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_apm_reverse.h"
 #include "cras/src/server/cras_audio_area.h"
@@ -17,7 +16,6 @@ extern "C" {
 #include "cras/src/server/float_buffer.h"
 #include "cras_types.h"
 #include "webrtc_apm.h"
-}
 
 #define FILENAME_TEMPLATE "ApmTest.XXXXXX"
 

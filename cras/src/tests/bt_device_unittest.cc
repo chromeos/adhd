@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-extern "C" {
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_io.h"
@@ -13,7 +12,6 @@ extern "C" {
 #include "cras/src/server/cras_iodev.h"
 
 #define FAKE_OBJ_PATH "/obj/path"
-}
 
 static unsigned int bt_io_manager_append_iodev_called;
 static unsigned int bt_io_manager_remove_iodev_called;

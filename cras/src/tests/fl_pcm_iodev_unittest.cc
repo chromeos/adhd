@@ -7,19 +7,19 @@
 #include <stdio.h>
 
 #include "cras/include/cras_types.h"
-
-extern "C" {
-// To test static functions.
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_bt_log.h"
-#include "cras/src/server/cras_fl_pcm_iodev.c"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "sr_bt_util_stub.h"
 #include "sr_stub.h"
 #include "third_party/utlist/utlist.h"
+
+extern "C" {
+// To test static functions.
+#include "cras/src/server/cras_fl_pcm_iodev.c"
 }
 
 #define FAKE_SOCKET_FD 99;

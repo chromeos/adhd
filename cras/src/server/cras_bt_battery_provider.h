@@ -12,6 +12,10 @@
 
 #include "cras/src/server/cras_bt_adapter.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Object to represent a battery that is exposed to BlueZ.
 struct cras_bt_battery {
   char* address;
@@ -49,5 +53,9 @@ void cras_bt_unregister_battery_provider(DBusConnection* conn);
 
 // Resets internal state of battery provider.
 void cras_bt_battery_provider_reset();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_BATTERY_PROVIDER_H_

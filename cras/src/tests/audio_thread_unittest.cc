@@ -2,15 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-extern "C" {
-#include "cras/src/server/audio_thread.c"
+#include <gtest/gtest.h>
+#include <map>
+
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/input_data.h"
 #include "cras/src/tests/metrics_stub.h"
-}
 
-#include <gtest/gtest.h>
-#include <map>
+extern "C" {
+#include "cras/src/server/audio_thread.c"
+}
 
 #define MAX_CALLS 10
 #define BUFFER_SIZE 8192

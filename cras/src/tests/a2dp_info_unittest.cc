@@ -3,18 +3,15 @@
 // found in the LICENSE file.
 
 #include <gtest/gtest.h>
+#include <sbc/sbc.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-extern "C" {
-#include <sbc/sbc.h>
-
 #include "cras/src/common/cras_sbc_codec.h"
 #include "cras/src/server/cras_a2dp_info.h"
 #include "cras/src/tests/sbc_codec_stub.h"
-}
 
 static size_t a2dp_write_link_mtu_val;
 static struct a2dp_info a2dp;

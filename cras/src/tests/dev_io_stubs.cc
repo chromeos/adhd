@@ -2,22 +2,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "cras/src/tests/dev_io_stubs.h"
+
 #include <algorithm>
 #include <memory>
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
 
-extern "C" {
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/dev_stream.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
-}
-
-#include "cras/src/tests/dev_io_stubs.h"
 
 ShmPtr create_shm(size_t cb_threshold) {
   uint32_t frame_bytes = 4;

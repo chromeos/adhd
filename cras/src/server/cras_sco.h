@@ -11,6 +11,10 @@
 #include "cras_audio_format.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Linked list to hold the information of callbacks to trigger
  * when the size of SCO packet has changed.
  */
@@ -161,5 +165,9 @@ int cras_sco_rm_iodev(struct cras_sco* sco,
 
 // Checks if there's any iodev added to the given cras_sco.
 int cras_sco_has_iodev(struct cras_sco* sco);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_SCO_H_

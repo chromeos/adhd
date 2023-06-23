@@ -14,6 +14,10 @@
 
 #include <unistd.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define HCI_VIRTUAL 0
 #define HCI_USB 1
 #define HCI_PCCARD 2
@@ -126,5 +130,9 @@ struct bt_codecs {
 #define HCI_CONFIG_CODEC_ID_FORMAT_MSBC 0x05
 
 #define BT_SCM_PKT_STATUS 0x03
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

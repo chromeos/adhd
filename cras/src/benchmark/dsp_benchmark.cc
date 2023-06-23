@@ -8,12 +8,10 @@
 
 #include "benchmark/benchmark.h"
 #include "cras/src/benchmark/benchmark_util.h"
-
-namespace {
-extern "C" {
 #include "cras/src/dsp/drc.h"
 #include "cras/src/dsp/eq2.h"
-}
+
+namespace {
 
 constexpr int NUM_CHANNELS = 2;
 

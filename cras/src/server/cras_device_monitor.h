@@ -6,6 +6,10 @@
 #ifndef CRAS_SRC_SERVER_CRAS_DEVICE_MONITOR_H_
 #define CRAS_SRC_SERVER_CRAS_DEVICE_MONITOR_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Asks main thread to reset a device
 int cras_device_monitor_reset_device(unsigned int dev_idx);
 
@@ -18,5 +22,9 @@ int cras_device_monitor_init();
 /* Asks main thread to close device because error has occured in audio
  * thread. */
 int cras_device_monitor_error_close(unsigned int dev_idx);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_DEVICE_MONITOR_H_

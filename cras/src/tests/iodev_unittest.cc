@@ -6,9 +6,6 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "cras_types.h"
-
-extern "C" {
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -17,6 +14,7 @@ extern "C" {
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/dev_stream.h"
 #include "cras/src/server/input_data.h"
+#include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
 // Mock software volume scalers.
@@ -25,7 +23,6 @@ float softvol_scalers[101];
 // For audio_thread_log.h use.
 int atlog_rw_shm_fd;
 int atlog_ro_shm_fd;
-}
 
 #define BUFFER_SIZE 8192
 

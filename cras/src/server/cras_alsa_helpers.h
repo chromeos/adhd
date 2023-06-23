@@ -14,6 +14,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_audio_format;
 
 /* Sets the channel layout from given format to the pcm handle.
@@ -240,5 +244,9 @@ int cras_alsa_attempt_resume(snd_pcm_t* handle);
 
 // Register the error handling callback to log errors to syslog
 void cras_alsa_lib_error_handler_init();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // _CRAS_ALSA_HELPERS_H

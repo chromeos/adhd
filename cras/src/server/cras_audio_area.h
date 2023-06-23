@@ -10,6 +10,10 @@
 
 #include "cras_audio_format.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Descriptor of the memory area holding a channel of audio.
  */
@@ -92,5 +96,9 @@ void cras_audio_area_config_channels(struct cras_audio_area* area,
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
                                          uint8_t* base_buffer);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_AUDIO_AREA_H_

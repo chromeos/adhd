@@ -11,6 +11,10 @@
 #include <stdint.h>
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define FL_NULL_ADDRESS "00:00:00:00:00:00"
 
 #define FL_SAMPLE_RATES 8
@@ -118,5 +122,9 @@ int floss_media_a2dp_stop_audio_request(struct fl_media* fm);
 
 // Unlink a2dp with bt_io_manager and destroy related resources.
 int floss_media_a2dp_suspend(struct fl_media* fm);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_FL_MEDIA_H_

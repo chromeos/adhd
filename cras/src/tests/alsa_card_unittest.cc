@@ -9,8 +9,6 @@
 #include <syslog.h>
 
 #include "cras/include/cras_types.h"
-
-extern "C" {
 #include "cras/platform/features/override.h"
 #include "cras/src/server/cras_alsa_card.h"
 #include "cras/src/server/cras_alsa_io.h"
@@ -21,7 +19,6 @@ extern "C" {
 #include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
-}
 
 namespace {
 

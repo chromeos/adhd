@@ -12,6 +12,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct bt_io_manager;
 struct cras_bt_adapter;
 struct cras_bt_device;
@@ -269,4 +273,9 @@ int cras_bt_device_report_hfp_start_stop_status(struct cras_bt_device* device,
  *   device - The bluetooth device.
  */
 void cras_bt_device_hfp_reconnect(struct cras_bt_device* device);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
 #endif  // CRAS_SRC_SERVER_CRAS_BT_DEVICE_H_

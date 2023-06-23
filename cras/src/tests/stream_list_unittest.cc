@@ -5,10 +5,8 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/stream_list.h"
-}
 
 namespace {
 

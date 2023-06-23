@@ -14,6 +14,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_INI_NAME_LENGTH 256
 #define MAX_INI_KEY_LENGTH 63  // names like "output_source:output_0"
 
@@ -25,5 +29,9 @@ static inline dictionary* iniparser_load_wrapper(const char* ini_name) {
   }
   return iniparser_load(ini_name);
 }
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_INIPARSER_WRAPPER_H_

@@ -21,6 +21,10 @@
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct buffer_share;
 struct cras_fmt_conv;
 struct cras_ramp;
@@ -976,4 +980,9 @@ void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
  */
 bool cras_iodev_is_channel_count_supported(struct cras_iodev* iodev,
                                            int channel);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
 #endif  // CRAS_SRC_SERVER_CRAS_IODEV_H_

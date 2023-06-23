@@ -8,6 +8,10 @@
 #ifndef CRAS_SRC_SERVER_CRAS_TM_H_
 #define CRAS_SRC_SERVER_CRAS_TM_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* cras_timer provides an interface to register a function to be called at a
  * later time.  This interface should be used from the main thread only, it is
  * not thread safe.
@@ -53,5 +57,9 @@ int cras_tm_get_next_timeout(const struct cras_tm* tm, struct timespec* ts);
 
 // Calls any expired timers.
 void cras_tm_call_callbacks(struct cras_tm* tm);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_TM_H_

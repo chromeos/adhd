@@ -11,6 +11,10 @@
 #include "cras/src/server/audio_thread.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_hfp;
 struct fl_media;
 
@@ -86,5 +90,9 @@ enum HFP_CODEC cras_floss_hfp_get_active_codec(struct cras_hfp* hfp);
 
 /* Destroys given cras_hfp object. */
 void cras_floss_hfp_destroy(struct cras_hfp* hfp);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_HFP_MANAGER_H_

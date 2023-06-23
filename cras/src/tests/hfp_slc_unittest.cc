@@ -8,11 +8,9 @@
 #include <stdio.h>
 #include <sys/socket.h>
 
-extern "C" {
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_hfp_slc.h"
 #include "cras/src/server/cras_telephony.h"
-}
 
 static struct hfp_slc_handle* handle;
 static struct cras_telephony_handle fake_telephony;

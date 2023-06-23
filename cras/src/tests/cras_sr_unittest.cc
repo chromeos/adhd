@@ -8,11 +8,8 @@
 #include <vector>
 
 #include "cras/src/common/sample_buffer.h"
-
-extern "C" {
 #include "cras/src/dsp/am.h"
 #include "cras/src/server/cras_sr.h"
-}
 
 namespace {
 

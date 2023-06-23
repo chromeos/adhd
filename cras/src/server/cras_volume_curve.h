@@ -8,6 +8,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_VOLUME 100
 #define NUM_VOLUME_STEPS (MAX_VOLUME + 1)  // 0-100 inclusive.
 
@@ -55,5 +59,9 @@ struct cras_volume_curve* cras_volume_curve_create_explicit(
  *    curve - The curve to destroy.
  */
 void cras_volume_curve_destroy(struct cras_volume_curve* curve);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_VOLUME_CURVE_H_

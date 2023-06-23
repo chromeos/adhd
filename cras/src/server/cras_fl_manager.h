@@ -8,6 +8,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void cras_floss_set_enabled(bool enable);
 
 bool cras_floss_get_enabled();
@@ -15,5 +19,9 @@ bool cras_floss_get_enabled();
 int cras_floss_get_hfp_enabled();
 
 int cras_floss_get_a2dp_enabled();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_FL_MANAGER_H_

@@ -9,10 +9,8 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-extern "C" {
 #include "cras/src/server/cras_fmt_conv_ops.h"
 #include "cras_types.h"
-}
 
 static uint8_t* AllocateRandomBytes(size_t size) {
   uint8_t* buf = (uint8_t*)malloc(size);
@@ -1277,5 +1275,3 @@ TEST(FormatConverterOpsTest, TwentyToTwoS16LE) {
     }
   }
 }
-
-extern "C" {}  // extern "C"

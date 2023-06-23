@@ -14,6 +14,10 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_alsa_iodev_ops {
   struct cras_iodev* (*create)(size_t card_index,
                                const char* card_name,
@@ -73,5 +77,9 @@ unsigned cras_alsa_iodev_ops_index(struct cras_alsa_iodev_ops* ops,
                                    struct cras_iodev* iodev);
 int cras_alsa_iodev_ops_has_hctl_jacks(struct cras_alsa_iodev_ops* ops,
                                        struct cras_iodev* iodev);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_IO_OPS_H_

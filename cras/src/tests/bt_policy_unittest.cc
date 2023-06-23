@@ -4,11 +4,13 @@
 
 #include <gtest/gtest.h>
 
-extern "C" {
 #include "cras/src/server/cras_bt_device.h"
-#include "cras/src/server/cras_bt_policy.c"  //
 #include "cras/src/server/cras_iodev.h"
+
+extern "C" {
+#include "cras/src/server/cras_bt_policy.c"
 }
+
 static int cras_iodev_list_suspend_dev_called;
 static int cras_iodev_list_resume_dev_called;
 static int cras_iodev_list_resume_dev_idx;

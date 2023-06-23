@@ -7,11 +7,9 @@
 #include <syslog.h>
 #include <vector>
 
-extern "C" {
 #include "cras/src/server/cras_dlc_manager_test_only.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/rust/include/cras_dlc.h"
-}
 
 extern "C" {
 

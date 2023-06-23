@@ -10,6 +10,10 @@
 
 #include "cras/src/server/cras_bt_device.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PROFILE_MANAGER_OBJ_PATH "/org/bluez"
 
 /* Structure in cras to represent an external profile of bluez. All members
@@ -94,5 +98,9 @@ int cras_bt_register_profiles(DBusConnection* conn);
  *    conn - The dbus connection.
  */
 int cras_bt_unregister_profiles(DBusConnection* conn);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_PROFILE_H_

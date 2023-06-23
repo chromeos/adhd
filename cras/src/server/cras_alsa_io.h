@@ -11,6 +11,10 @@
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_alsa_mixer;
 struct cras_ionode;
 struct cras_use_case_mgr;
@@ -91,5 +95,9 @@ unsigned alsa_iodev_index(struct cras_iodev* iodev);
 
 // Returns whether this IODEV has ALSA hctl jacks.
 int alsa_iodev_has_hctl_jacks(struct cras_iodev* iodev);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_IO_H_

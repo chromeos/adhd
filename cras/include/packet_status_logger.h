@@ -10,6 +10,10 @@
 #include <stdint.h>
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PACKET_STATUS_LEN_BYTES 64
 #define WBS_FRAME_NS 7500000
 
@@ -124,5 +128,9 @@ static inline void packet_status_logger_dump_binary(
     printf("\n");
   }
 }
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_INCLUDE_PACKET_STATUS_LOGGER_H_

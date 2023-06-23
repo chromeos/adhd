@@ -6,7 +6,15 @@
 #ifndef CRAS_SRC_SERVER_CRAS_UDEV_H_
 #define CRAS_SRC_SERVER_CRAS_UDEV_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void cras_udev_start_sound_subsystem_monitor();
 void cras_udev_stop_sound_subsystem_monitor();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_UDEV_H_

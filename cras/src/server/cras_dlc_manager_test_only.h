@@ -7,10 +7,16 @@
 
 #include <stdbool.h>
 
-extern "C" {
 #include "cras/src/server/cras_dlc_manager.h"
-}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 bool cras_dlc_manager_is_null();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_DLC_MANAGER_TEST_ONLY_H_

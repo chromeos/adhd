@@ -8,6 +8,10 @@
 
 #include <dbus/dbus.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Establish connection to the D-Bus System Bus.
 DBusConnection* cras_dbus_connect_system_bus();
 
@@ -24,5 +28,9 @@ void cras_dbus_dispatch(DBusConnection* conn);
 
 // Disconnect from the D-Bus System Bus.
 void cras_dbus_disconnect_system_bus(DBusConnection* conn);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_DBUS_H_

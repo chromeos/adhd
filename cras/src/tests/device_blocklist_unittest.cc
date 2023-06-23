@@ -6,9 +6,7 @@
 #include <linux/limits.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/config/cras_device_blocklist.h"
-}
 #include "cras/src/tests/test_util.h"
 
 namespace {

@@ -10,6 +10,10 @@
 #include "cras/src/server/cras_sco.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct hfp_slc_handle;
 
 /*
@@ -21,5 +25,9 @@ struct cras_iodev* hfp_iodev_create(enum CRAS_STREAM_DIRECTION dir,
                                     struct cras_sco* sco);
 
 void hfp_iodev_destroy(struct cras_iodev* iodev);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_HFP_IODEV_H_

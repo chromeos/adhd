@@ -15,6 +15,10 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_rclient;
 struct stream_list;
 struct cras_floop_pair;
@@ -337,5 +341,9 @@ void cras_iodev_list_create_server_vad_stream(int dev_idx);
  *    dev_idx - Index of the input device.
  */
 void cras_iodev_list_destroy_server_vad_stream(int dev_idx);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_IODEV_LIST_H_

@@ -4,9 +4,7 @@
 
 #include <gtest/gtest.h>
 
-extern "C" {
 #include "cras/src/server/cras_bt_manager.h"
-}
 
 static int cras_hfp_ag_profile_create_called;
 static int cras_hfp_ag_profile_destroy_called;

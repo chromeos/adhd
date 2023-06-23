@@ -9,9 +9,10 @@
 #include <tuple>
 #include <vector>
 
-extern "C" {
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_rstream.h"
+
+extern "C" {
 #include "cras/src/server/cras_server_metrics.c"
 }
 

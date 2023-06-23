@@ -6,11 +6,9 @@
 #include <time.h>
 #include <unordered_map>
 
-extern "C" {
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/dev_stream.h"
 #include "third_party/utlist/utlist.h"
-}
 
 namespace {
 struct cb_data {

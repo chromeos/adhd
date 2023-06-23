@@ -8,6 +8,10 @@
 
 #include "cras/src/common/byte_buffer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Circular buffer storing deinterleaved floating point data.
  */
@@ -116,5 +120,9 @@ static inline void float_buffer_read(struct float_buffer* b,
                                      unsigned int nread) {
   buf_increment_read(b->buf, nread);
 }
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_FLOAT_BUFFER_H_

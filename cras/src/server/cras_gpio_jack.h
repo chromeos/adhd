@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct mixer_name;
 
 int gpio_switch_open(const char* pathname);
@@ -44,5 +48,9 @@ typedef int (*gpio_switch_list_callback)(const char* dev_path,
  *    arg - An argument to pass to the callback.
  */
 void gpio_switch_list_for_each(gpio_switch_list_callback callback, void* arg);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

@@ -8,17 +8,16 @@
 #include <stdint.h>
 #include <time.h>
 
-using testing::MatchesRegex;
-using testing::internal::CaptureStdout;
-using testing::internal::GetCapturedStdout;
-
-extern "C" {
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_sco.c"
 #include "cras/src/tests/sbc_codec_stub.h"
 #include "cras/src/tests/sr_bt_util_stub.h"
 #include "cras/src/tests/sr_stub.h"
-}
+
+using testing::MatchesRegex;
+using testing::internal::CaptureStdout;
+using testing::internal::GetCapturedStdout;
+
 static struct cras_sco* sco;
 static struct cras_iodev dev;
 static cras_audio_format format;

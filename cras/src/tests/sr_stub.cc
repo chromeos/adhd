@@ -3,13 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/tests/sr_stub.h"
+
 #include <stddef.h>
 #include <stdlib.h>
 
-extern "C" {
 #include "cras/src/common/sample_buffer.h"
-#include "cras/src/tests/sr_stub.h"
-}
 
 // Fake implementation of cras_sr
 

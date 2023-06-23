@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_audio_shm;
 
 // SIMD optimisation flags
@@ -94,5 +98,9 @@ void cras_mix_add_scale_stride(snd_pcm_format_t fmt,
  *    count - The number of frames to render.
  */
 size_t cras_mix_mute_buffer(uint8_t* dst, size_t frame_bytes, size_t count);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_MIX_H_

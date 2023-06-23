@@ -15,6 +15,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_device_blocklist;
 
 /* Creates a blocklist of devices that should never be added to the system.
@@ -46,5 +50,9 @@ int cras_device_blocklist_check(struct cras_device_blocklist* blocklist,
                                 unsigned product_id,
                                 unsigned desc_checksum,
                                 unsigned device_index);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_CARD_DEVICE_BLOCKLIST_H_

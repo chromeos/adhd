@@ -5,9 +5,7 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/cras_volume_curve.h"
-}
 
 namespace {
 

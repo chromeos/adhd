@@ -8,6 +8,10 @@
 
 #include <dbus/dbus.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Handle object to hold required info to handle telephony status which
  * is required for responsing HFP query commands.
  */
@@ -49,5 +53,9 @@ int cras_telephony_event_answer_call();
 
 // Handles answer call event from dbus or HF
 int cras_telephony_event_terminate_call();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_TELEPHONY_H_

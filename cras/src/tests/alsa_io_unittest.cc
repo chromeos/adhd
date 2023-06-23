@@ -8,13 +8,13 @@
 #include <syslog.h>
 #include <vector>
 
-extern "C" {
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 
+extern "C" {
 //  Include C file to test static functions.
 #include "cras/src/server/cras_alsa_io.c"
 }

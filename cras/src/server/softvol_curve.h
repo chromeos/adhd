@@ -13,6 +13,10 @@
 
 #include "cras/src/server/cras_volume_curve.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define LOG_10 2.302585
 
 struct cras_volume_curve;
@@ -48,5 +52,9 @@ static inline long convert_dBFS_from_softvol_scaler(float scaler) {
 
 // Builds software volume scalers from volume curve.
 float* softvol_build_from_curve(const struct cras_volume_curve* curve);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_SOFTVOL_CURVE_H_

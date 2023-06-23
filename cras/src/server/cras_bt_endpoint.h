@@ -11,6 +11,10 @@
 
 #include "cras/src/server/cras_bt_adapter.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_bt_transport;
 
 struct cras_bt_endpoint {
@@ -57,5 +61,9 @@ void cras_bt_endpoint_rm(DBusConnection* conn,
 void cras_bt_endpoint_reset();
 
 struct cras_bt_endpoint* cras_bt_endpoint_get(const char* object_path);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_ENDPOINT_H_

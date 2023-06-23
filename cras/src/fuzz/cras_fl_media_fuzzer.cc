@@ -11,7 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 
-extern "C" {
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_bt_log.h"
@@ -25,7 +24,6 @@ extern "C" {
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
-}
 
 #define BT_OBJECT_BASE "/org/chromium/bluetooth/hci"
 #define BT_OBJECT_MEDIA "/media"

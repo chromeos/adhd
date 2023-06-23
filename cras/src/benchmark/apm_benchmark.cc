@@ -9,13 +9,11 @@
 
 #include "benchmark/benchmark.h"
 #include "cras/src/benchmark/benchmark_util.h"
-
-namespace {
-extern "C" {
 #include "cras/src/dsp/dsp_util.h"
 #include "cras_audio_format.h"
 #include "webrtc_apm.h"
-}
+
+namespace {
 
 class BM_Apm : public benchmark::Fixture {
  public:

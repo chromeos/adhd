@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-extern "C" {
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_hfp_iodev.h"
 #include "cras/src/server/cras_hfp_slc.h"
@@ -13,7 +12,6 @@ extern "C" {
 #include "cras/src/server/cras_sco.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/tests/sr_bt_util_stub.h"
-}
 
 static struct cras_iodev* iodev;
 static struct cras_bt_device* fake_device;

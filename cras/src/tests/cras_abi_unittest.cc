@@ -5,9 +5,10 @@
 
 #include <gtest/gtest.h>
 
+#include "cras_client.h"
+
 extern "C" {
 #include "cras/src/libcras/cras_client.c"
-#include "cras_client.h"
 
 inline int libcras_unsupported_func(struct libcras_client* client) {
   CHECK_VERSION(client, INT_MAX);

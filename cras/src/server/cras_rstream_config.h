@@ -13,6 +13,10 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_connect_message;
 struct dev_mix;
 
@@ -105,5 +109,9 @@ struct cras_rstream_config cras_rstream_config_init_with_message(
  *   stream_config - The config to be cleaned up.
  */
 void cras_rstream_config_cleanup(struct cras_rstream_config* stream_config);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_RSTREAM_CONFIG_H_

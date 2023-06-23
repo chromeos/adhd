@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Observation of CRAS state.
  * Unless otherwise specified, all notifications only contain the data value
  * reflecting the current state: it is possible that multiple notifications
@@ -82,5 +86,9 @@ struct cras_observer_ops {
   // Num stream ignoring UI gains changed event
   void (*num_stream_ignore_ui_gains_changed)(void* context, int num);
 };
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_COMMON_CRAS_OBSERVER_OPS_H_

@@ -12,6 +12,10 @@
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_rclient;
 struct cras_rstream;
 struct cras_rstream_config;
@@ -66,5 +70,9 @@ bool stream_list_has_pinned_stream(struct stream_list* list,
 
 // Get the number of output streams in the list.
 int stream_list_get_num_output(struct stream_list* list);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

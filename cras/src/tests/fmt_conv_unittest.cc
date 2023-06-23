@@ -6,10 +6,8 @@
 #include <math.h>
 #include <sys/param.h>
 
-extern "C" {
 #include "cras/src/server/cras_fmt_conv.h"
 #include "cras_types.h"
-}
 
 static int mono_channel_layout[CRAS_CH_MAX] = {-1, -1, -1, -1, 0, -1,
                                                -1, -1, -1, -1, -1};

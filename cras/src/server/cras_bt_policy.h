@@ -10,6 +10,10 @@
 #include "cras/src/server/cras_bt_io.h"
 #include "cras/src/server/cras_iodev.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // All the reasons for when CRAS schedule a suspend to BT device.
 enum cras_bt_policy_suspend_reason {
   A2DP_LONG_TX_FAILURE,
@@ -76,5 +80,9 @@ int cras_bt_policy_start_connection_watch(struct cras_bt_device* device);
 
 // Stops the connection watch flow in main thread.
 int cras_bt_policy_stop_connection_watch(struct cras_bt_device* device);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_POLICY_H_

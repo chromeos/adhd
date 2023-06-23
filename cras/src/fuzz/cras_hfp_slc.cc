@@ -3,21 +3,20 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_hfp_slc.h"
+
 #include <assert.h>
 #include <fuzzer/FuzzedDataProvider.h>
 #include <stddef.h>
 #include <stdint.h>
 
-extern "C" {
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_log.h"
-#include "cras/src/server/cras_hfp_slc.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_mix.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
-}
 
 int disconnect_cb(struct hfp_slc_handle*) {
   return 0;

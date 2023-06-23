@@ -11,6 +11,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_client_message;
 struct cras_message;
 struct cras_server_message;
@@ -98,5 +102,9 @@ int cras_rclient_send_message(const struct cras_rclient* client,
                               const struct cras_client_message* msg,
                               int* fds,
                               unsigned int num_fds);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_RCLIENT_H_

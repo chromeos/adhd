@@ -3,11 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include <assert.h>
-
-extern "C" {
 #include "cras/src/tests/sr_bt_util_stub.h"
-}
+
+#include <assert.h>
 
 namespace {
 

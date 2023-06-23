@@ -15,6 +15,10 @@
 #include "cras/src/server/cras_rstream.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_audio_area;
 struct cras_fmt_conv;
 struct cras_iodev;
@@ -236,5 +240,9 @@ int dev_stream_is_pending_reply(const struct dev_stream* dev_stream);
  * Reads any pending audio message from the socket.
  */
 int dev_stream_flush_old_audio_messages(struct dev_stream* dev_stream);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_DEV_STREAM_H_

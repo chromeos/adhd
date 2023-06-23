@@ -9,6 +9,10 @@
 
 #include "cras/src/server/cras_alsa_jack.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* cras_gpio_jack:  Describes headphone & microphone jack connected to GPIO
  *
  *   On Arm-based systems, the headphone & microphone jacks are
@@ -71,5 +75,9 @@ struct cras_alsa_jack {
   unsigned int display_info_retries;
   struct cras_alsa_jack *prev, *next;
 };
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

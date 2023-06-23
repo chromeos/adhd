@@ -5,9 +5,9 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras_messages.h"
 
+extern "C" {
 //  Include C file to test static functions.
 #include "cras/src/libcras/cras_client.c"
 }

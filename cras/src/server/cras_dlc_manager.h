@@ -5,6 +5,14 @@
 #ifndef CRAS_SRC_SERVER_CRAS_DLC_MANAGER_H_
 #define CRAS_SRC_SERVER_CRAS_DLC_MANAGER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void cras_dlc_manager_init();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_DLC_MANAGER_H_

@@ -12,6 +12,10 @@
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_alsa_jack;
 struct cras_alsa_jack_list;
 struct cras_alsa_mixer;
@@ -167,5 +171,9 @@ void cras_alsa_jack_enable_ucm(const struct cras_alsa_jack* jack, int enable);
  *    jack_name - The name of the jack (for example, "Speaker Phantom Jack").
  */
 int cras_alsa_jack_exists(unsigned int card_index, const char* jack_name);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_JACK_H_

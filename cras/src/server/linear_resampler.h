@@ -8,6 +8,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct linear_resampler;
 
 /* Creates a linear resampler.
@@ -58,5 +62,9 @@ unsigned int linear_resampler_resample(struct linear_resampler* lr,
 
 // Destroy a linear resampler.
 void linear_resampler_destroy(struct linear_resampler* lr);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_LINEAR_RESAMPLER_H_

@@ -7,9 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/linear_resampler.h"
-}
 
 #define BUF_SIZE 2048
 

@@ -5,10 +5,8 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/cras_audio_area.h"
 #include "cras_audio_format.h"
-}
 
 static const int8_t stereo[CRAS_CH_MAX] = {
     0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1,

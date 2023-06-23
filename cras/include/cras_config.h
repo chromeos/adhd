@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CRAS_MIN_BUFFER_TIME_IN_US 1000  // 1 milliseconds
 #define CRAS_MAX_BUFFER_TIME_IN_S 10     // 10 seconds
 
@@ -45,5 +49,9 @@ const char* cras_config_get_system_socket_file_dir();
  *    0 for success, positive error code on error.
  */
 int cras_fill_socket_path(enum CRAS_CONNECTION_TYPE conn_type, char* sock_path);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_INCLUDE_CRAS_CONFIG_H_

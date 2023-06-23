@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_iodev;
 
 /* Initializes an test iodev.  The Test iodev is used to simulate hardware
@@ -29,5 +33,9 @@ void test_iodev_command(struct cras_iodev* iodev,
                         enum CRAS_TEST_IODEV_CMD command,
                         unsigned int data_len,
                         const uint8_t* data);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_TEST_IODEV_H_

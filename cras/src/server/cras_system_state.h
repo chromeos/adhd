@@ -18,6 +18,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CRAS_MAX_SYSTEM_VOLUME 100
 #define DEFAULT_CAPTURE_GAIN 2000  // 20dB of gain.
 /* Default to -6 dBFS as 90% of CrOS boards use microphone with -26dBFS
@@ -459,5 +463,9 @@ bool cras_system_get_force_respect_ui_gains_enabled();
 
 // Gets the number of stream ignoring UI gains.
 int cras_system_get_num_stream_ignore_ui_gains();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_SYSTEM_STATE_H_

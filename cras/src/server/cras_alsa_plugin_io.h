@@ -6,6 +6,10 @@
 #ifndef CRAS_SRC_SERVER_CRAS_ALSA_PLUGIN_IO_H_
 #define CRAS_SRC_SERVER_CRAS_ALSA_PLUGIN_IO_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Disclaimer:
  * The ALSA plugin path in CRAS is intended to be used for development or
@@ -16,5 +20,9 @@
 void alsa_pluigin_io_destroy_all();
 
 void cras_alsa_plugin_io_init(const char* device_config_dir);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_PLUGIN_IO_H_

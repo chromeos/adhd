@@ -8,6 +8,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct hfp_slc_handle;
 struct cras_bt_device;
 
@@ -149,5 +153,9 @@ int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle);
 // Expose internal AT command handling for fuzzing.
 int handle_at_command_for_test(struct hfp_slc_handle* slc_handle,
                                const char* cmd);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_HFP_SLC_H_

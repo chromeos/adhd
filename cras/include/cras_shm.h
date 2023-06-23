@@ -16,6 +16,10 @@
 #include "cras_types.h"
 #include "cras_util.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CRAS_NUM_SHM_BUFFERS 2U  // double buffer
 #define CRAS_SHM_BUFFERS_MASK (CRAS_NUM_SHM_BUFFERS - 1)
 
@@ -696,5 +700,9 @@ void* cras_shm_setup(const char* name,
  * Returns 0 on success, otherwise -1 and errno is set appropriately.
  */
 int cras_selinux_restorecon(const char* pathname);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_INCLUDE_CRAS_SHM_H_

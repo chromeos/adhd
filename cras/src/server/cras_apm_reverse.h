@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_iodev;
 struct cras_stream_apm;
 struct float_buffer;
@@ -96,5 +100,9 @@ bool cras_apm_reverse_is_aec_use_case(struct cras_iodev* echo_ref);
 
 // Deinitializes APM reverse modules and all related resources.
 void cras_apm_reverse_deinit();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_APM_LIST_H_

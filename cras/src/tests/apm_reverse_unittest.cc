@@ -5,12 +5,10 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/cras_apm_reverse.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/float_buffer.h"
-}
 
 namespace {
 static device_enabled_callback_t device_enabled_callback_val;

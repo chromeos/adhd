@@ -10,6 +10,10 @@
 
 #include "cras_audio_format.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Format converter.
  */
@@ -176,5 +180,9 @@ size_t s16_convert_channels(float** ch_conv_mtx,
                             const uint8_t* in,
                             size_t in_frames,
                             uint8_t* out);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_FMT_CONV_OPS_H_

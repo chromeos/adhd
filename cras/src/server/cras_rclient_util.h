@@ -14,6 +14,10 @@
 #include "cras/src/server/cras_rclient.h"
 #include "cras_messages.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MSG_LEN_VALID(msg, type) ((msg)->length >= sizeof(type))
 
 struct cras_connect_message;
@@ -144,5 +148,9 @@ int rclient_handle_message_from_client(struct cras_rclient* client,
                                        const struct cras_server_message* msg,
                                        int* fds,
                                        unsigned int num_fds);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_RCLIENT_UTIL_H_

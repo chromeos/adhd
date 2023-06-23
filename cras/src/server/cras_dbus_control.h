@@ -9,6 +9,10 @@
 #include <dbus/dbus.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CRAS_CONTROL_INTERFACE "org.chromium.cras.Control"
 #define CRAS_ROOT_OBJECT_PATH "/org/chromium/cras"
 
@@ -20,5 +24,9 @@ void cras_dbus_control_stop();
 
 // Notify resourced that RTC is active.
 void cras_dbus_notify_rtc_active(bool active);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_DBUS_CONTROL_H_

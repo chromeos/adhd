@@ -10,6 +10,10 @@
 
 #include "cras/src/common/cras_audio_codec.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* PLC library provides helper functions to mask the effects of lost or
  * disrupted packets. It currentyl only supports the mSBC codec.
  *
@@ -56,5 +60,9 @@ int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc* plc,
 int cras_msbc_plc_handle_good_frames(struct cras_msbc_plc* plc,
                                      const uint8_t* input,
                                      uint8_t* output);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

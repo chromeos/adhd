@@ -14,6 +14,10 @@
 #include "cras_iodev_info.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Rev when message format changes. If new messages are added, or message ID
  * values change. */
 #define CRAS_PROTO_VER 7
@@ -758,5 +762,9 @@ struct __attribute__((__packed__)) audio_message {
   int32_t error;
   uint32_t frames;  // number of samples per channel
 };
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_INCLUDE_CRAS_MESSAGES_H_

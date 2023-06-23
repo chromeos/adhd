@@ -6,6 +6,10 @@
 #ifndef CRAS_SRC_SERVER_CONFIG_CRAS_CARD_CONFIG_H_
 #define CRAS_SRC_SERVER_CONFIG_CRAS_CARD_CONFIG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_card_config;
 struct cras_volume_curve;
 
@@ -34,5 +38,9 @@ void cras_card_config_destroy(struct cras_card_config* card_config);
 struct cras_volume_curve* cras_card_config_get_volume_curve_for_control(
     const struct cras_card_config* card_config,
     const char* control_name);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CONFIG_CRAS_CARD_CONFIG_H_

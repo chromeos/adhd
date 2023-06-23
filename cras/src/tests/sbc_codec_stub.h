@@ -9,6 +9,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void sbc_codec_stub_reset();
 void set_sbc_codec_create_fail(int fail);
 int get_sbc_codec_create_called();
@@ -35,5 +39,9 @@ struct cras_audio_codec* cras_msbc_codec_create();
 void cras_sbc_codec_destroy(struct cras_audio_codec* codec);
 int cras_sbc_get_codesize(struct cras_audio_codec* codec);
 int cras_sbc_get_frame_length(struct cras_audio_codec* codec);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_TESTS_SBC_CODEC_STUB_H_

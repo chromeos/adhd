@@ -8,6 +8,10 @@
 
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Checks if a string is valid UTF-8.
  *
  * Supports 1 to 4 character UTF-8 sequences. Passes tests here:
@@ -37,5 +41,9 @@ int valid_utf8_string(const char* string, size_t* bad_pos);
  *    1 if it is a valid utf-8 string. 0 otherwise.
  */
 int is_utf8_string(const char* string);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

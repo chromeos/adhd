@@ -10,6 +10,10 @@
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras_audio_format.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_a2dp;
 struct fl_media;
 
@@ -114,5 +118,9 @@ void cras_floss_a2dp_cancel_suspend(struct cras_a2dp* a2dp);
 // Update the write stats used for audio metrics.
 void cras_floss_a2dp_update_write_status(struct cras_a2dp* a2dp,
                                          bool write_success);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_A2DP_MANAGER_H_

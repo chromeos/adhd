@@ -2,15 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-extern "C" {
-#include "cras/src/server/audio_thread.c"
-}
-
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <sys/select.h>
 
 extern "C" {
+#include "cras/src/server/audio_thread.c"
+}
 
 struct dev_stream_capture_call {
   struct dev_stream* dev_stream;
@@ -58,7 +56,6 @@ static struct cras_audio_format cras_iodev_set_format_val;
 
 static struct dev_stream_capture_call dev_stream_capture_call;
 static struct cap_sleep_frames_call cap_sleep_frames_call;
-}
 
 // Number of frames past target that will be added to sleep times to insure that
 // all frames are ready.

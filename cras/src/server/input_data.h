@@ -10,6 +10,10 @@
 #include "cras/src/server/cras_dsp_pipeline.h"
 #include "cras/src/server/float_buffer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_iodev;
 struct cras_rstream;
 
@@ -106,5 +110,9 @@ struct input_data_gain input_data_get_software_gain_scaler(
     float ui_gain_scalar,
     float idev_sw_gain_scaler,
     struct cras_rstream* stream);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_INPUT_DATA_H_

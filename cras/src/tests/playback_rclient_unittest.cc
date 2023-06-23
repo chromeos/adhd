@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-extern "C" {
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_rclient.h"
@@ -14,10 +13,12 @@ extern "C" {
 #include "cras/src/server/cras_system_state.h"
 #include "cras_messages.h"
 
+extern "C" {
 // Access to data structures and static functions.
 #include "cras/src/server/cras_playback_rclient.c"
 #include "cras/src/server/cras_rclient_util.c"
 }
+
 static bool audio_format_valid;
 static unsigned int cras_make_fd_nonblocking_called;
 static unsigned int cras_observer_remove_called;

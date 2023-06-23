@@ -9,6 +9,10 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_sr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS {
   CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK,
   CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_UNSUPPORTED,
@@ -49,5 +53,9 @@ struct cras_sr_model_spec cras_sr_bt_get_model_spec(enum cras_sr_bt_model);
 void cras_sr_bt_send_uma_log(struct cras_iodev* iodev,
                              const enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS status,
                              bool is_enabled);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_SR_BT_UTIL_H_

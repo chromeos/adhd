@@ -12,6 +12,10 @@
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/rust/include/cras_dlc.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern const char kNoCodecsFoundMetric[];
 
 /* Codes for how A2DP exit the audio output list.
@@ -197,5 +201,9 @@ int cras_server_metrics_dlc_manager_status(
 
 // Initialize metrics logging stuff.
 int cras_server_metrics_init();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_SERVER_METRICS_H_

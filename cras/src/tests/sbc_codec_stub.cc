@@ -2,12 +2,11 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "cras/src/tests/sbc_codec_stub.h"
+
 #include <stdlib.h>
 
-extern "C" {
 #include "cras/src/common/cras_audio_codec.h"
-#include "cras/src/tests/sbc_codec_stub.h"
-}
 
 namespace {
 

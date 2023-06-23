@@ -6,6 +6,10 @@
 #ifndef CRAS_SRC_COMMON_CRAS_METRICS_H_
 #define CRAS_SRC_COMMON_CRAS_METRICS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Logs the specified event.
 void cras_metrics_log_event(const char* event);
 
@@ -18,5 +22,9 @@ void cras_metrics_log_histogram(const char* name,
 
 // Sends sparse histogram data.
 void cras_metrics_log_sparse_histogram(const char* name, int sample);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_COMMON_CRAS_METRICS_H_

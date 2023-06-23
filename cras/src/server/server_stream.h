@@ -8,6 +8,10 @@
 
 #include "cras_audio_format.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct stream_list;
 struct cras_rstream;
 
@@ -53,5 +57,9 @@ void server_stream_destroy(struct stream_list* stream_list,
 struct cras_rstream* server_stream_find_by_type(
     struct cras_rstream* all_streams,
     enum server_stream_type type);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_SERVER_STREAM_H_

@@ -10,6 +10,10 @@
 
 #include "cras/src/common/cras_audio_codec.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Creates an sbc codec.
  * Args:
  *    freq: frequency for sbc encoder settings.
@@ -43,5 +47,9 @@ int cras_sbc_get_codesize(struct cras_audio_codec* codec);
 /* Gets frame_length, the output block size of sbc codec in bytes.
  */
 int cras_sbc_get_frame_length(struct cras_audio_codec* codec);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // COMMON_CRAS_SRC_COMMON_CRAS_SBC_CODEC_H_

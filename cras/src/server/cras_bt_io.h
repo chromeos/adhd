@@ -9,6 +9,10 @@
 #include "cras/src/server/cras_bt_device.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_iodev;
 
 /*
@@ -77,5 +81,9 @@ void bt_io_manager_set_use_hardware_volume(struct bt_io_manager* mgr,
  * the volume value to |mgr|. */
 void bt_io_manager_update_hardware_volume(struct bt_io_manager* mgr,
                                           int volume);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_IO_H_

@@ -9,6 +9,10 @@
 #include "cras/src/server/cras_sr.h"
 #include "cras/src/server/cras_sr_bt_util.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_iodev_sr_bt_adapter;
 
 /* Creates an iodev_sr_bt_adapter instance.
@@ -74,5 +78,9 @@ int cras_iodev_sr_bt_adapter_put_buffer(
 // Flushes all the buffers.
 int cras_iodev_sr_bt_adapter_flush_buffer(
     struct cras_iodev_sr_bt_adapter* adapter);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

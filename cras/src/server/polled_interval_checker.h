@@ -8,6 +8,10 @@
 
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Represents a time interval, in seconds, which can be checked periodically.
 struct polled_interval;
 
@@ -45,5 +49,9 @@ void pic_interval_reset(struct polled_interval* pi);
  * allow the caller to control when and how often the time is updated.
  */
 void pic_update_current_time();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // POLLED_ACTIVITY_CHECKER_H_

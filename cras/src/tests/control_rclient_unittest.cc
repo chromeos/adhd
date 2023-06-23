@@ -6,16 +6,16 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "cras/src/tests/test_util.h"
-extern "C" {
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_rclient.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras/src/tests/test_util.h"
 #include "cras_messages.h"
 
+extern "C" {
 // Access to data structures and static functions.
 #include "cras/src/server/cras_control_rclient.c"
 #include "cras/src/server/cras_rclient_util.c"

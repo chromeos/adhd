@@ -16,6 +16,10 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define AUDIO_THREAD_LOGGING 1
 
 #if (AUDIO_THREAD_LOGGING)
@@ -88,5 +92,9 @@ static inline void audio_thread_event_log_data(
 
   log->write_pos++;
 }
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_AUDIO_THREAD_LOG_H_

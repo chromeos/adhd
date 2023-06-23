@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-extern "C" {
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/cras_iodev_list.h"
@@ -18,7 +17,6 @@ extern "C" {
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
-}
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   cras_rclient* client = cras_rclient_create(0, 0, CRAS_CONTROL);

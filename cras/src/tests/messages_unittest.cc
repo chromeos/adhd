@@ -2,11 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-extern "C" {
-#include <cras_messages.h>
-}
-
 #include <gtest/gtest.h>
+
+#include "cras_messages.h"
 
 static_assert(sizeof(cras_request_floop::tag) >= sizeof(void*),
               "cras_request_floop::tag is not big enough to store a pointer");

@@ -6,6 +6,10 @@
 #ifndef CRAS_SRC_SERVER_CRAS_BT_CONSTANTS_H_
 #define CRAS_SRC_SERVER_CRAS_BT_CONSTANTS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define BLUEZ_SERVICE "org.bluez"
 
 #define BLUEZ_CHROMIUM_OBJ_PATH "/org/chromium/Bluetooth"
@@ -67,5 +71,9 @@
  * chrome://flag.
  */
 #define A2DP_FIX_PACKET_SIZE 672
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_CONSTANTS_H_

@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_audio_area;
 struct cras_audio_format;
 struct cras_apm;
@@ -200,5 +204,9 @@ void cras_stream_apm_notify_vad_target_changed(
 
 // Initializes the handler of cras_stream_apm_message in the main thread.
 int cras_stream_apm_message_handler_init();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_STREAM_APM_H_

@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* cras_alsa_mixer represents the alsa mixer interface for an alsa card.  It
  * houses the volume and mute controls as well as playback switches for
  * headphones and mic.
@@ -248,5 +252,9 @@ struct mixer_control* cras_alsa_mixer_get_input_matching_name(
 // Sets the given output active or inactive.
 int cras_alsa_mixer_set_output_active_state(struct mixer_control* output,
                                             int active);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_MIXER_H_

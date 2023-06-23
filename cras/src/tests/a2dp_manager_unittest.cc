@@ -4,16 +4,14 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/src/tests/test_util.h"
-
-extern "C" {
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/tests/test_util.h"
 #include "cras_audio_format.h"
-}
+
 static struct cras_a2dp* a2dp_pcm_iodev_create_a2dp_val;
 static struct cras_iodev* a2dp_pcm_iodev_create_ret;
 static struct cras_iodev* a2dp_pcm_iodev_destroy_iodev_val;

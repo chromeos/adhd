@@ -3,8 +3,9 @@
  * found in the LICENSE file.
  */
 
-extern "C" {
 #include "cras/src/server/polled_interval_checker.h"
+
+extern "C" {
 
 struct polled_interval* pic_polled_interval_create(int interval_sec) {
   return NULL;

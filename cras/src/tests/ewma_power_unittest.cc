@@ -4,9 +4,7 @@
 
 #include <gtest/gtest.h>
 
-extern "C" {
 #include "cras/src/server/ewma_power.h"
-}
 
 namespace {
 

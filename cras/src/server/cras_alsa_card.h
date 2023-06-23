@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* cras_alsa_card represents an alsa sound card.  It adds all the devices for
  * this card to the system when it is created, and removes them when it is
  * destroyed.  It will create an alsa_mixer object that can control the volume
@@ -57,5 +61,9 @@ size_t cras_alsa_card_get_index(const struct cras_alsa_card* alsa_card);
  */
 enum CRAS_ALSA_CARD_TYPE cras_alsa_card_get_type(
     const struct cras_alsa_card* alsa_card);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_

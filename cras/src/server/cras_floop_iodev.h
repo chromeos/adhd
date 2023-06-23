@@ -9,6 +9,10 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * A pair of felxible loopback iodevs that can dynamically route
  * playback streams to capture streams.
@@ -57,5 +61,9 @@ bool cras_floop_pair_match_output_stream(const struct cras_floop_pair* pair,
 // Tells whether the floop pair matches the params
 bool cras_floop_pair_match_params(const struct cras_floop_pair* pair,
                                   const struct cras_floop_params* params);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_FLOOP_IODEV_H_

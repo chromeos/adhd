@@ -6,6 +6,10 @@
 #ifndef CRAS_SRC_SERVER_BUFFER_SHARE_H_
 #define CRAS_SRC_SERVER_BUFFER_SHARE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define INITIAL_ID_SIZE 3
 
 struct id_offset {
@@ -58,5 +62,9 @@ unsigned int buffer_share_id_offset(const struct buffer_share* mix,
  * Gets the data pointer for given id.
  */
 void* buffer_share_get_data(const struct buffer_share* mix, unsigned int id);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_BUFFER_SHARE_H_

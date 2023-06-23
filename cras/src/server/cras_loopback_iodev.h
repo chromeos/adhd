@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_iodev;
 
 /* Initializes loopback iodevs.  loopback iodevs provide the ability to
@@ -17,5 +21,9 @@ struct cras_iodev* loopback_iodev_create(enum CRAS_LOOPBACK_TYPE type);
 
 // Destroys loopback_iodevs created with loopback_iodev_create.
 void loopback_iodev_destroy(struct cras_iodev* loopdev);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_LOOPBACK_IO_H_

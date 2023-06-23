@@ -8,6 +8,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CRAS_HATS_GENERAL_SURVEY_STREAM_LIVE_SEC 180
 
 /* Send a signal to trigger a general audio satisfaction survey.
@@ -19,5 +23,9 @@
 void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
                                       enum CRAS_CLIENT_TYPE client_type,
                                       const char* node_type_pair);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_COMMON_CRAS_HATS_H_

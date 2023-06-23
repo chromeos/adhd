@@ -6,11 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C" {
-// For audio_thread_log.h use.
-struct audio_thread_event_log* atlog;
-int atlog_rw_shm_fd;
-int atlog_ro_shm_fd;
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -20,7 +15,11 @@ int atlog_ro_shm_fd;
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
-}
+
+// For audio_thread_log.h use.
+struct audio_thread_event_log* atlog;
+int atlog_rw_shm_fd;
+int atlog_ro_shm_fd;
 
 namespace {
 

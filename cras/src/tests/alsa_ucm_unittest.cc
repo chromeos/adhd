@@ -7,12 +7,12 @@
 #include <stdio.h>
 #include <syslog.h>
 
-extern "C" {
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 
+extern "C" {
 //  Include C file to test static functions.
 #include "cras/src/server/cras_alsa_ucm.c"
 }

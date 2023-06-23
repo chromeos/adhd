@@ -5,7 +5,15 @@
 #ifndef CRAS_SRC_SERVER_CRAS_FEATURE_MONITOR_H_
 #define CRAS_SRC_SERVER_CRAS_FEATURE_MONITOR_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Initializes feature monitor and sets main thread callback.
 int cras_feature_monitor_init();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

@@ -9,6 +9,10 @@
 #include <dbus/dbus.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if HAVE_FUZZER
 #define RET_IF_HAVE_FUZZER(ret) return ret;
 #else
@@ -96,5 +100,9 @@ int retry_until_predicate_satisfied(struct DBusConnection* conn,
                                     int dbus_ret_type,
                                     void* dbus_ret_value_ptr,
                                     bool (*predicate)(int, void*));
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

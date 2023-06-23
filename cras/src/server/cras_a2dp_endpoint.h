@@ -8,6 +8,10 @@
 
 #include <dbus/dbus.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_iodev;
 
 int cras_a2dp_endpoint_create(DBusConnection* conn);
@@ -25,5 +29,9 @@ void cras_a2dp_suspend_connected_device(struct cras_bt_device* device);
 
 // Starts A2DP output by creating the cras_iodev.
 void cras_a2dp_start(struct cras_bt_device* device);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_A2DP_ENDPOINT_H_

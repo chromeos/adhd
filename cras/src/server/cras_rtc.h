@@ -8,6 +8,10 @@
 #ifndef CRAS_SRC_SERVER_CRAS_RTC_H_
 #define CRAS_SRC_SERVER_CRAS_RTC_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Returns true if the stream is possibly a RTC stream.
  * true indicates it may be a RTC stream.
@@ -34,5 +38,9 @@ void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id);
 
 // Returns whether there are running RTC streams.
 bool cras_rtc_is_running();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif

@@ -6,15 +6,21 @@
 #ifndef CRAS_SRC_TESTS_SR_BT_UTIL_STUB_H_
 #define CRAS_SRC_TESTS_SR_BT_UTIL_STUB_H_
 
-extern "C" {
 #include "cras/src/server/cras_sr_bt_util.h"
-}
 
 // The original cras_bt_sr_util.h is included.
 // The following functions are added for testing.
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void enable_cras_sr_bt();
 
 void disable_cras_sr_bt();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_TESTS_SR_BT_UTIL_STUB_H_

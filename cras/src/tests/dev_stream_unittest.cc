@@ -5,16 +5,14 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/dev_stream.h"
+#include "cras/src/tests/dev_io_stubs.h"
 #include "cras_shm.h"
 #include "cras_types.h"
-}
-#include "cras/src/tests/dev_io_stubs.h"
 
 namespace {
 

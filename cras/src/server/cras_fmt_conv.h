@@ -15,6 +15,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_audio_format;
 struct cras_fmt_conv;
 
@@ -108,5 +112,9 @@ int config_format_converter(struct cras_fmt_conv** conv,
                             const struct cras_audio_format* to,
                             enum CRAS_NODE_TYPE node_type,
                             unsigned int frames);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_FMT_CONV_H_

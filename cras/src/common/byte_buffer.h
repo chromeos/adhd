@@ -10,6 +10,10 @@
 #include <stdlib.h>
 #include <sys/param.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct byte_buffer {
   unsigned int write_idx;
   unsigned int read_idx;
@@ -123,5 +127,9 @@ static inline void buf_reset(struct byte_buffer* buf) {
   buf->read_idx = 0;
   buf->level = 0;
 }
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_COMMON_BYTE_BUFFER_H_

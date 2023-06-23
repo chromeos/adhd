@@ -10,6 +10,10 @@
 
 #include "cras/src/server/cras_system_state.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern const struct cras_mix_ops mixer_ops;
 extern const struct cras_mix_ops mixer_ops_sse42;
 extern const struct cras_mix_ops mixer_ops_avx;
@@ -55,4 +59,9 @@ struct cras_mix_ops {
   // cras_mix_mute_buffer.
   size_t (*mute_buffer)(uint8_t* dst, size_t frame_bytes, size_t count);
 };
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
 #endif

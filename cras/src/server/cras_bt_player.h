@@ -13,6 +13,10 @@
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Object to hold current metadata. This is not a full list of what BlueZ/MPRIS
  * supports but a subset because Chromium only provides the following.
  */
@@ -105,4 +109,9 @@ int cras_bt_player_update_metadata(DBusConnection* conn,
                                    const char* artist,
                                    const char* album,
                                    const dbus_int64_t length);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
 #endif  // CRAS_SRC_SERVER_CRAS_BT_PLAYER_H_

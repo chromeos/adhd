@@ -5,10 +5,8 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/buffer_share.h"
 #include "cras_types.h"
-}
 
 namespace {
 

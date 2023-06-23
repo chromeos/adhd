@@ -9,23 +9,20 @@
 #include <time.h>
 #include <unordered_map>
 
-extern "C" {
 #include "cras/src/server/cras_iodev.h"    // stubbed
 #include "cras/src/server/cras_rstream.h"  // stubbed
 #include "cras/src/server/dev_io.h"        // tested
 #include "cras/src/server/dev_stream.h"    // stubbed
-#include "cras_shm.h"
-#include "cras_types.h"
-#include "third_party/utlist/utlist.h"
-
-struct audio_thread_event_log* atlog;
-}
-
 #include "cras/src/server/input_data.h"
 #include "cras/src/tests/dev_io_stubs.h"
 #include "cras/src/tests/iodev_stub.h"
 #include "cras/src/tests/metrics_stub.h"
 #include "cras/src/tests/rstream_stub.h"
+#include "cras_shm.h"
+#include "cras_types.h"
+#include "third_party/utlist/utlist.h"
+
+struct audio_thread_event_log* atlog;
 
 static float dev_stream_capture_software_gain_scaler_val;
 static float dev_stream_capture_ui_gain_scaler_val;

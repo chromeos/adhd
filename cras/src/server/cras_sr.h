@@ -17,6 +17,10 @@
 
 #include "cras/src/common/byte_buffer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_sr;
 
 // Cras SR model specification.
@@ -75,5 +79,9 @@ double cras_sr_get_frames_ratio(struct cras_sr* sr);
  *    the number of frames needed to invoke the model.
  */
 size_t cras_sr_get_num_frames_per_run(struct cras_sr* sr);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_SR_H_

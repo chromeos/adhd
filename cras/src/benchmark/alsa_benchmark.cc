@@ -16,16 +16,14 @@
 #endif
 
 #include "cras/src/benchmark/benchmark_util.h"
-
-namespace {
-extern "C" {
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_mix_ops.h"
 #include "cras_client.h"
 #include "cras_iodev_info.h"
 #include "cras_types.h"
-}
+
+namespace {
 
 class BM_Alsa : public benchmark::Fixture {
  public:

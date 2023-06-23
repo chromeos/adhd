@@ -11,6 +11,10 @@
 
 #include "cras/src/server/cras_bt_device.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_bt_endpoint;
 struct cras_bt_transport;
 
@@ -82,5 +86,9 @@ int cras_bt_transport_release(struct cras_bt_transport* transport,
  */
 int cras_bt_transport_set_volume(struct cras_bt_transport* transport,
                                  uint16_t volume);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_BT_TRANSPORT_H_

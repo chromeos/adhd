@@ -8,11 +8,8 @@
 #include <syslog.h>
 #include <vector>
 
-#include "cras_util.h"
-
-extern "C" {
 #include "cras/src/server/cras_alsa_io_ops.h"
-}
+#include "cras_util.h"
 
 static cras_iodev* mock_iodev;
 static int mock_create_called;

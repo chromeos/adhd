@@ -3,8 +3,9 @@
  * found in the LICENSE file.
  */
 
-extern "C" {
 #include "cras/src/server/cras_server_metrics.h"
+
+extern "C" {
 
 int cras_server_metrics_device_runtime(struct cras_iodev* iodev) {
   return 0;

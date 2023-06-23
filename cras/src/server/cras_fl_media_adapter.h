@@ -13,6 +13,10 @@
 #include "cras/src/server/cras_fl_manager.h"
 #include "cras/src/server/cras_hfp_manager.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define BT_MEDIA_OBJECT_PATH_SIZE_MAX 128
 
 /* Hold information and focus on logic related to communicate with the
@@ -124,4 +128,9 @@ int handle_on_hfp_audio_disconnected(struct fl_media* active_fm,
  *   active_fm - The fl_media struct to be destroyed.
  */
 void fl_media_destroy(struct fl_media** active_fm);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
 #endif  // CRAS_FL_MEDIA_ADAPTOR_H_

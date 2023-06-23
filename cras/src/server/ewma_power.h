@@ -11,6 +11,10 @@
 
 #include "cras/src/server/cras_audio_area.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * The exponentially weighted moving average power module used to
  * calculate the energe level in audio stream.
@@ -69,5 +73,9 @@ void ewma_power_calculate_area(struct ewma_power* ewma,
                                const int16_t* buf,
                                struct cras_audio_area* area,
                                unsigned int size);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_EWMA_POWER_H_

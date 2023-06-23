@@ -13,6 +13,10 @@
 #include "cras/src/server/polled_interval_checker.h"
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Open input/output devices.
  */
@@ -112,5 +116,9 @@ int dev_io_append_stream(struct open_dev** odevs,
 int dev_io_remove_stream(struct open_dev** dev_list,
                          struct cras_rstream* stream,
                          struct cras_iodev* dev);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_DEV_IO_H_

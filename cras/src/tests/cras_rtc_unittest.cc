@@ -6,9 +6,7 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/cras_rtc.h"
-}
 
 namespace {
 

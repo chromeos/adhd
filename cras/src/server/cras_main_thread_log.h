@@ -10,6 +10,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CRAS_MAIN_THREAD_LOGGING 1
 
 #if (CRAS_MAIN_THREAD_LOGGING)
@@ -60,5 +64,9 @@ static inline void main_thread_event_log_data(struct main_thread_event_log* log,
   log->write_pos++;
   log->write_pos %= MAIN_THREAD_EVENT_LOG_SIZE;
 }
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_MAIN_THREAD_LOG_H_

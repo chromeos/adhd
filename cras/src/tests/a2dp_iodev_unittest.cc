@@ -6,14 +6,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
-extern "C" {
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_a2dp_iodev.c"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_bt_transport.h"
 #include "cras/src/server/cras_iodev.h"
-}
 
 #define FAKE_OBJECT_PATH "/fake/obj/path"
 

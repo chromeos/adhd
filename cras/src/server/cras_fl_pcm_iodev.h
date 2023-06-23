@@ -10,6 +10,10 @@
 
 #include "cras_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_a2dp;
 struct cras_hfp;
 
@@ -51,5 +55,9 @@ struct cras_iodev* hfp_pcm_iodev_create(struct cras_hfp* hfp,
 
 // Destroys an hfp pcm iodev.
 void hfp_pcm_iodev_destroy(struct cras_iodev* iodev);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_FL_PCM_IODEV_H_

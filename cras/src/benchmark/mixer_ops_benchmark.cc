@@ -9,11 +9,9 @@
 
 #include "benchmark/benchmark.h"
 #include "cras/src/benchmark/benchmark_util.h"
+#include "cras/src/server/cras_mix.h"
 
 namespace {
-extern "C" {
-#include "cras/src/server/cras_mix.h"
-}
 
 static void BM_CrasMixerOpsScaleBuffer(benchmark::State& state) {
   cras_mix_init();

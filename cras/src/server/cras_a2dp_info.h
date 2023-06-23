@@ -11,6 +11,10 @@
 
 #include "third_party/bluez/a2dp-codecs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define A2DP_BUF_SIZE_BYTES 2048
 
 // Represents the codec and encoded state of a2dp iodev.
@@ -89,5 +93,9 @@ int a2dp_encode(struct a2dp_info* a2dp,
  *    link_mtu: The maximum transmit unit.
  */
 int a2dp_write(struct a2dp_info* a2dp, int stream_fd, size_t link_mtu);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_A2DP_INFO_H_

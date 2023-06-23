@@ -5,11 +5,12 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-extern "C" {
-#include "cras/src/server/buffer_share.c"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/input_data.h"
+
+extern "C" {
+#include "cras/src/server/buffer_share.c"
 }
 
 namespace {

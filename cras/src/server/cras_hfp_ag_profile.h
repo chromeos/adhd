@@ -12,6 +12,10 @@
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_hfp_slc.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * For service record profile, 'SupportedFearues' attribute bit mapping
  * for HFP AG. Bits 0 to 4 are identical to the unsolicited result code
@@ -55,5 +59,9 @@ struct hfp_slc_handle* cras_hfp_ag_get_slc(struct cras_bt_device* device);
 
 // Gets the logger for WBS packet status.
 struct packet_status_logger* cras_hfp_ag_get_wbs_logger();
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_HFP_AG_PROFILE_H_

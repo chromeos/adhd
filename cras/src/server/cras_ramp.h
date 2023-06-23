@@ -8,6 +8,10 @@
 
 #include "cras/src/server/cras_iodev.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct cras_ramp;
 
 /*
@@ -95,5 +99,9 @@ struct cras_ramp_action cras_ramp_get_current_action(
 
 // Updates number of samples that went through ramping.
 int cras_ramp_update_ramped_frames(struct cras_ramp* ramp, int num_frames);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_SRC_SERVER_CRAS_RAMP_H_

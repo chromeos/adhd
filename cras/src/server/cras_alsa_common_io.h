@@ -11,6 +11,10 @@
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_iodev.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define HOTWORD_DEV "Wake on Voice"
 #define DEFAULT "(default)"
 #define HDMI "HDMI"
@@ -161,4 +165,9 @@ int cras_alsa_common_set_active_node(struct cras_iodev* iodev,
 int cras_alsa_common_delay_frames(const struct cras_iodev* iodev);
 int cras_alsa_common_close_dev(const struct cras_iodev* iodev);
 int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
 #endif  // CRAS_SRC_SERVER_CRAS_ALSA_COMMON_IO_H_

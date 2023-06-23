@@ -9,6 +9,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CRAS_IODEV_NAME_BUFFER_SIZE 64
 #define CRAS_NODE_TYPE_BUFFER_SIZE 32
 #define CRAS_NODE_MIC_POS_BUFFER_SIZE 128
@@ -131,5 +135,9 @@ enum audio_effect_type {
   // Noise Cancellation support.
   EFFECT_TYPE_NOISE_CANCELLATION = 1 << 0
 };
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif  // CRAS_INCLUDE_CRAS_IODEV_INFO_H_

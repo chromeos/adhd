@@ -8,12 +8,9 @@
 #include <stdio.h>
 #include <sys/socket.h>
 
-#include "cras/src/tests/dbus_test.h"
-
-extern "C" {
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_bt_profile.h"
-}
+#include "cras/src/tests/dbus_test.h"
 
 namespace {
 

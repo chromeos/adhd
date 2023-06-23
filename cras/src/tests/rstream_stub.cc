@@ -5,9 +5,7 @@
 
 #include <unordered_map>
 
-extern "C" {
 #include "cras/src/server/cras_rstream.h"
-}
 
 namespace {
 
