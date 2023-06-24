@@ -1,0 +1,11 @@
+alias(
+    name = "system_protoc",
+    actual = "protoc_wrapper.sh",
+)
+
+proto_lang_toolchain(
+    name = "system_cc_toolchain",
+    command_line = "--cpp_out=$(OUT)",
+    runtime = "@pkg_config//protobuf",
+    visibility = ["//visibility:public"],
+)

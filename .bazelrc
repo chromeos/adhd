@@ -29,6 +29,10 @@ build --copt=-fno-delete-null-pointer-checks
 # NOTE: These flags don't work with gcc. So put them behind a config.
 build:clang-strict --copt=-Werror=undef-prefix --copt=-Wundef-prefix=HAVE_,CRAS_
 
+# Use system protobuf.
+build --proto_compiler=//third_party/protobuf:system_protoc
+build --proto_toolchain_for_cc=//third_party/protobuf:system_cc_toolchain
+
 # --config=asan
 # Enable AddressSanitizer.
 build:asan --copt=-fsanitize=address --linkopt=-fsanitize=address
