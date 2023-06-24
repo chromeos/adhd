@@ -331,6 +331,7 @@ type buildResult struct {
 	triggerID     string
 	succeedBuilds []string
 	failedBuilds  []string
+	extraInfo     string
 }
 
 func (r *buildResult) String() string {
@@ -340,6 +341,7 @@ func (r *buildResult) String() string {
 		fmt.Fprintf(w, "%d failed builds: %s\n", len(r.failedBuilds), strings.Join(r.failedBuilds, ", "))
 	}
 	fmt.Fprintf(w, "Logs: %s\n", buildURL(r.triggerID))
+	fmt.Fprintf(w, r.extraInfo)
 	return w.String()
 }
 
@@ -364,6 +366,44 @@ func buildName(build *cloudbuildpb.Build) string {
 	return fmt.Sprintf("<unknown build %s>", build.Id)
 }
 
+func buildDiagnostics(build *cloudbuildpb.Build) string {
+	var w strings.Builder
+	for i, step := range build.Steps {
+		switch step.GetStatus() {
+		case cloudbuildpb.Build_SUCCESS:
+			continue
+		case cloudbuildpb.Build_CANCELLED, cloudbuildpb.Build_QUEUED:
+			// Interrutped due to other failures.
+			continue
+		}
+		id := step.GetId()
+		if id == "" {
+			id = fmt.Sprintf("unnamed-step-%d", i)
+		}
+		url, err := url.Parse(build.LogUrl)
+		if err != nil {
+			log.Panicf("bad url %q", url)
+		}
+		url.Path = fmt.Sprintf("%s;step=%d", url.Path, i)
+		fmt.Fprintf(&w, "* Step [%s](%s) of build %s ended with status: %s\n", id, url, buildName(build), build.Status)
+	}
+	return w.String()
+}
+
+func buildStatus(build *cloudbuildpb.Build) (passed bool, diagnostics string, err error) {
+	switch build.Status {
+	case cloudbuildpb.Build_PENDING, cloudbuildpb.Build_QUEUED, cloudbuildpb.Build_WORKING:
+		return false, "", running
+	case cloudbuildpb.Build_SUCCESS:
+		return true, "", nil
+	case cloudbuildpb.Build_CANCELLED, cloudbuildpb.Build_FAILURE, cloudbuildpb.Build_EXPIRED,
+		cloudbuildpb.Build_TIMEOUT, cloudbuildpb.Build_INTERNAL_ERROR:
+		return false, buildDiagnostics(build), nil
+	default:
+		return false, "", fmt.Errorf("unexpected build status %s", build.Status)
+	}
+}
+
 func queryBuilds(triggerID string) (*buildResult, error) {
 	ctx := context.Background()
 	c, err := cloudbuild.NewClient(ctx)
@@ -375,6 +415,7 @@ func queryBuilds(triggerID string) (*buildResult, error) {
 	result := buildResult{
 		triggerID: triggerID,
 	}
+	var extraInfoBuilder strings.Builder
 	buildIt := c.ListBuilds(ctx, &cloudbuildpb.ListBuildsRequest{
 		ProjectId: projectID,
 		Filter:    fmt.Sprintf("tags=%s", triggerID),
@@ -385,23 +426,21 @@ func queryBuilds(triggerID string) (*buildResult, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("Unexpected error iterating builds: %w", err)
+			return nil, fmt.Errorf("unexpected error iterating builds: %w", err)
 		}
-
 		name := buildName(build)
-		switch build.Status {
-		case cloudbuildpb.Build_PENDING, cloudbuildpb.Build_QUEUED, cloudbuildpb.Build_WORKING:
-			return nil, running
-		case cloudbuildpb.Build_SUCCESS:
+		passed, diags, err := buildStatus(build)
+		if err != nil {
+			return nil, err
+		}
+		if passed {
 			result.succeedBuilds = append(result.succeedBuilds, name)
-		case cloudbuildpb.Build_CANCELLED, cloudbuildpb.Build_FAILURE, cloudbuildpb.Build_EXPIRED,
-			cloudbuildpb.Build_TIMEOUT, cloudbuildpb.Build_INTERNAL_ERROR:
+		} else {
 			result.failedBuilds = append(result.failedBuilds, name)
-		default:
-			return nil, fmt.Errorf("Unexpected build status %s", build.Status)
+			extraInfoBuilder.WriteString(diags)
 		}
 	}
-
+	result.extraInfo = extraInfoBuilder.String()
 	return &result, nil
 }
 
