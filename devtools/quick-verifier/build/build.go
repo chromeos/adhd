@@ -331,17 +331,13 @@ type buildResult struct {
 	triggerID     string
 	succeedBuilds []string
 	failedBuilds  []string
-	knownFailures []string
 }
 
 func (r *buildResult) String() string {
 	w := &strings.Builder{}
-	fmt.Fprintf(w, "%d/%d builds passed\n", len(r.succeedBuilds), len(r.succeedBuilds)+len(r.failedBuilds)+len(r.knownFailures))
+	fmt.Fprintf(w, "%d/%d builds passed\n", len(r.succeedBuilds), len(r.succeedBuilds)+len(r.failedBuilds))
 	if len(r.failedBuilds) > 0 {
 		fmt.Fprintf(w, "%d failed builds: %s\n", len(r.failedBuilds), strings.Join(r.failedBuilds, ", "))
-	}
-	if len(r.knownFailures) > 0 {
-		fmt.Fprintf(w, "%d failed non-critical builds: %s\n", len(r.knownFailures), strings.Join(r.knownFailures, ", "))
 	}
 	fmt.Fprintf(w, "Logs: %s\n", buildURL(r.triggerID))
 	return w.String()
@@ -366,11 +362,6 @@ func buildName(build *cloudbuildpb.Build) string {
 		return tag
 	}
 	return fmt.Sprintf("<unknown build %s>", build.Id)
-}
-
-var knownFailures = map[string]bool{
-	"archlinux-tsan": true,
-	// "oss-fuzz-coverage": true,
 }
 
 func queryBuilds(triggerID string) (*buildResult, error) {
@@ -405,11 +396,7 @@ func queryBuilds(triggerID string) (*buildResult, error) {
 			result.succeedBuilds = append(result.succeedBuilds, name)
 		case cloudbuildpb.Build_CANCELLED, cloudbuildpb.Build_FAILURE, cloudbuildpb.Build_EXPIRED,
 			cloudbuildpb.Build_TIMEOUT, cloudbuildpb.Build_INTERNAL_ERROR:
-			if knownFailures[name] {
-				result.knownFailures = append(result.knownFailures, name)
-			} else {
-				result.failedBuilds = append(result.failedBuilds, name)
-			}
+			result.failedBuilds = append(result.failedBuilds, name)
 		default:
 			return nil, fmt.Errorf("Unexpected build status %s", build.Status)
 		}
