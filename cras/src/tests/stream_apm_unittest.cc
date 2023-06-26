@@ -14,6 +14,7 @@
 #include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/float_buffer.h"
+#include "cras/src/tests/scoped_features_override.hh"
 #include "cras_types.h"
 #include "webrtc_apm.h"
 
@@ -46,14 +47,32 @@ static int cras_iodev_set_rtc_proc_enabled_called;
 static std::unordered_map<cras_iodev*, bool> iodev_rtc_proc_enabled_maps[3];
 
 TEST(StreamApm, StreamApmCreate) {
-  stream = cras_stream_apm_create(0);
-  EXPECT_EQ((void*)NULL, stream);
+  {
+    ScopedFeaturesOverride override(
+        {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
 
-  stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, stream);
-  EXPECT_EQ(APM_ECHO_CANCELLATION, cras_stream_apm_get_effects(stream));
+    stream = cras_stream_apm_create(0);
+    EXPECT_EQ(nullptr, stream)
+        << "Should not create APM when empty APM is not allowed";
 
-  cras_stream_apm_destroy(stream);
+    stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+    EXPECT_NE(nullptr, stream);
+    EXPECT_EQ(APM_ECHO_CANCELLATION, cras_stream_apm_get_effects(stream));
+
+    cras_stream_apm_destroy(stream);
+  }
+
+  {
+    ScopedFeaturesOverride override({CrOSLateBootAudioEmptyAPMForCrasProcessor},
+                                    {});
+
+    stream = cras_stream_apm_create(0);
+    EXPECT_NE(nullptr, stream)
+        << "Should create APM with no effects when empty APM is allowed";
+    EXPECT_EQ(0, cras_stream_apm_get_effects(stream));
+
+    cras_stream_apm_destroy(stream);
+  }
 }
 
 static char* prepare_tempdir() {

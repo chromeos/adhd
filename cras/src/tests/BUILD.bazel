@@ -8,7 +8,6 @@ cc_library(
     name = "test_support",
     defines = [
         "CRAS_SOCKET_FILE_DIR=\\\"/run/cras\\\"",
-        "CRAS_CONFIG_FILE_DIR=\\\"/etc\\\"",
     ],
     linkopts = [
         "-Wl,--gc-sections",
@@ -1683,6 +1682,9 @@ cc_test(
         "-fdata-sections",
         "-ffunction-sections",
     ],
+    defines = [
+        "CRAS_CONFIG_FILE_DIR=\\\"/etc\\\"",
+    ],
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
@@ -1794,16 +1796,20 @@ cc_test(
         "//cras/src/common:cras_string.c",
         "//cras/src/server:cras_speak_on_mute_detector_stub.c",
         "//cras/src/server:cras_stream_apm.c",
+        "//cras/src/server:cras_system_state.c",
     ],
     copts = ["-ffunction-sections"],
     target_compatible_with = require_config("//:apm_build"),
     deps = [
+        ":scoped_features_override",
         ":test_support",
         "//audio_processor/c:plugin_processor",
+        "//cras/platform/features",
         "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
+        "//cras/src/server/config",
         "//cras/src/server/rust",
         "//cras/src/server/rust:headers",
         "@iniparser",

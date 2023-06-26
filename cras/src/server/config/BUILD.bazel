@@ -17,7 +17,10 @@ cc_library(
     defines = [
         "CRAS_CONFIG_FILE_DIR=\\\"/etc/cras\\\"",
     ],
-    visibility = ["//cras/src/server:__pkg__"],
+    visibility = [
+        "//cras/src/server:__pkg__",
+        "//cras/src/tests:__pkg__",
+    ],
     deps = [
         "//cras/src/common",
         "//cras/src/server:cras_volume_curve",

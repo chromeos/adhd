@@ -10,6 +10,8 @@
 #include <syslog.h>
 
 #include "audio_processor/c/plugin_processor.h"
+#include "cras/platform/features/features.h"
+#include "cras/server/main_message.h"
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
@@ -19,9 +21,9 @@
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/server/main_message.h"
 #include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/float_buffer.h"
 #include "cras/src/server/iniparser_wrapper.h"
 #include "cras/src/server/rust/include/cras_processor.h"
@@ -492,7 +494,9 @@ static void apm_destroy(struct cras_apm** apm) {
 struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
   struct cras_stream_apm* stream;
 
-  if (effects == 0) {
+  if (effects == 0 &&
+      !(cras_system_get_ap_noise_cancellation_supported() &&
+        cras_feature_enabled(CrOSLateBootAudioEmptyAPMForCrasProcessor))) {
     return NULL;
   }
 
@@ -620,10 +624,18 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
     }
   }
 
+  bool nc_provided_by_ap =
+      idev->active_node &&
+      idev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP;
+  enum CrasProcessorEffect cp_effect =
+      cras_processor_get_effect(nc_provided_by_ap, stream->effects);
+
   // TODO(hychao): Remove the check when we enable more effects.
   if (!((stream->effects & APM_ECHO_CANCELLATION) ||
         (stream->effects & APM_NOISE_SUPRESSION) ||
-        (stream->effects & APM_GAIN_CONTROL))) {
+        (stream->effects & APM_GAIN_CONTROL) ||
+        (cras_feature_enabled(CrOSLateBootAudioEmptyAPMForCrasProcessor) &&
+         cp_effect != NoEffects))) {
     return NULL;
   }
 
@@ -700,16 +712,13 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   apm->fbuffer = float_buffer_create(frame_length, apm->fmt.num_channels);
   apm->area = cras_audio_area_create(apm->fmt.num_channels);
 
-  bool nc_provided_by_ap =
-      idev->active_node &&
-      idev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP;
   struct CrasProcessorConfig cfg = {
       // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
       // AEC capture.
       .channels = 1,
       .block_size = frame_length,
       .frame_rate = apm->fmt.frame_rate,
-      .effect = cras_processor_get_effect(nc_provided_by_ap, stream->effects),
+      .effect = cp_effect,
   };
   apm->pp = cras_processor_create(&cfg);
   if (apm->pp == NULL) {
