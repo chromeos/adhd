@@ -284,7 +284,7 @@ static int configure_dev(struct cras_iodev* iodev) {
     return -EINVAL;
   }
   iodev->format->format = SND_PCM_FORMAT_S16_LE;
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
 
   a2dpio->pcm_buf = byte_buffer_create(PCM_BUF_MAX_SIZE_BYTES);
   if (!a2dpio->pcm_buf) {

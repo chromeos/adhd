@@ -138,7 +138,7 @@ static int usb_configure_dev(struct cras_iodev* iodev) {
   aio->common.severe_underrun_frames =
       SEVERE_UNDERRUN_MS * iodev->format->frame_rate / 1000;
 
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
 
   syslog(LOG_DEBUG,
          "card type: %s, Configure alsa device %s rate %zuHz, %zu channels",

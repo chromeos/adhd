@@ -896,7 +896,7 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   return 0;
 }
 
-void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
+void cras_iodev_init_audio_area(struct cras_iodev* iodev) {
   iodev->area = mock_audio_area;
 }
 

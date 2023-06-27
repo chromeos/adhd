@@ -54,7 +54,7 @@ static inline void channel_area_set_channel(struct cras_channel_area* ca,
  * Args:
  *    num_channels - The number of channels in the audio area.
  */
-struct cras_audio_area* cras_audio_area_create(int num_channels);
+struct cras_audio_area* cras_audio_area_create(size_t num_channels);
 
 /*
  * Copies a cras_audio_area to another cras_audio_area with given offset.

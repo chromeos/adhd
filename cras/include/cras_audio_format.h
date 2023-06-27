@@ -115,7 +115,7 @@ static inline struct cras_audio_format unpack_cras_audio_format(
 }
 
 /* Returns the number of bytes per sample.
- * This is bits per smaple / 8 * num_channels.
+ * This is bits per sample / 8 * num_channels.
  */
 static inline size_t cras_get_format_bytes(
     const struct cras_audio_format* fmt) {

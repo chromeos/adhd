@@ -267,7 +267,7 @@ static int configure_dev(struct cras_iodev* iodev) {
   }
 
   iodev->format->format = SND_PCM_FORMAT_S16_LE;
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
 
   ret = cras_sco_add_iodev(hfpio->sco, iodev->direction, iodev->format);
   if (ret < 0) {

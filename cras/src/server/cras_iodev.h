@@ -432,9 +432,8 @@ void cras_iodev_free_format(struct cras_iodev* iodev);
 /* Initializes the audio area for this iodev.
  * Args:
  *    iodev - the iodev to init audio area
- *    num_channels - the total number of channels
  */
-void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels);
+void cras_iodev_init_audio_area(struct cras_iodev* iodev);
 
 /* Frees the audio area for this iodev.
  * Args:

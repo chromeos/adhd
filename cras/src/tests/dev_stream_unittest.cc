@@ -91,7 +91,7 @@ static struct cras_audio_format in_fmt;
 static struct cras_audio_format out_fmt;
 static struct cras_audio_area_copy_call copy_area_call;
 static struct fmt_conv_call conv_frames_call;
-static int cras_audio_area_create_num_channels_val;
+static size_t cras_audio_area_create_num_channels_val;
 static int cras_fmt_conversion_needed_val;
 static int cras_fmt_conv_set_linear_resample_rates_called;
 static float cras_fmt_conv_set_linear_resample_rates_from;
@@ -1254,7 +1254,7 @@ void cras_mix_add(snd_pcm_format_t fmt,
   mix_add_call.mix_vol = mix_vol;
 }
 
-struct cras_audio_area* cras_audio_area_create(int num_channels) {
+struct cras_audio_area* cras_audio_area_create(size_t num_channels) {
   cras_audio_area_create_num_channels_val = num_channels;
   return NULL;
 }

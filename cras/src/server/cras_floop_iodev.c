@@ -146,7 +146,7 @@ static int input_configure_dev(struct cras_iodev* iodev) {
   // Otherwise cras_floop_pair_match_output_stream always returns false.
   floop->input_active = true;
 
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
   cras_iodev_list_enable_floop_pair(&floop->pair);
   clock_gettime(CLOCK_MONOTONIC_RAW, &floop->dev_start_time);
   return 0;
@@ -208,7 +208,7 @@ static int output_close_dev(struct cras_iodev* iodev) {
 }
 
 static int output_configure_dev(struct cras_iodev* iodev) {
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
   return 0;
 }
 

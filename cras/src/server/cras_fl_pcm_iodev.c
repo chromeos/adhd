@@ -301,7 +301,7 @@ static int a2dp_configure_dev(struct cras_iodev* iodev) {
   }
 
   format_bytes = cras_get_format_bytes(iodev->format);
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
 
   a2dpio->total_written_bytes = 0;
   a2dpio->bt_stack_delay = 0;
@@ -637,7 +637,7 @@ static int hfp_configure_dev(struct cras_iodev* iodev) {
   }
 
   iodev->format->format = SND_PCM_FORMAT_S16_LE;
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
 
   buf_reset(hfpio->pcm_buf);
   iodev->buffer_size =

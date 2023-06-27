@@ -11,7 +11,7 @@
 #include "cras/src/server/cras_mix.h"
 #include "cras_audio_format.h"
 
-struct cras_audio_area* cras_audio_area_create(int num_channels) {
+struct cras_audio_area* cras_audio_area_create(size_t num_channels) {
   struct cras_audio_area* area;
   size_t sz;
 

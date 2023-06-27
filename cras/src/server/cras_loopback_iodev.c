@@ -196,7 +196,7 @@ static int configure_record_dev(struct cras_iodev* iodev) {
   struct cras_iodev* edev;
   struct byte_buffer* sbuf = loopdev->sample_buffer;
 
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
   clock_gettime(CLOCK_MONOTONIC_RAW, &loopdev->dev_start_time);
   loopdev->read_frames = 0;
   loopdev->started = 0;

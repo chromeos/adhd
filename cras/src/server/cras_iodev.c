@@ -680,12 +680,12 @@ void cras_iodev_free_format(struct cras_iodev* iodev) {
   iodev->format = NULL;
 }
 
-void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
+void cras_iodev_init_audio_area(struct cras_iodev* iodev) {
   if (iodev->area) {
     cras_iodev_free_audio_area(iodev);
   }
 
-  iodev->area = cras_audio_area_create(num_channels);
+  iodev->area = cras_audio_area_create(iodev->format->num_channels);
   cras_audio_area_config_channels(iodev->area, iodev->format);
 }
 

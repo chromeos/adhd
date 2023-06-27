@@ -745,7 +745,7 @@ bool cras_iodev_get_rtc_proc_enabled(struct cras_iodev* iodev,
   return 0;
 }
 
-struct cras_audio_area* cras_audio_area_create(int num_channels) {
+struct cras_audio_area* cras_audio_area_create(size_t num_channels) {
   return &fake_audio_area;
 }
 

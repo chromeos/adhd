@@ -2802,7 +2802,7 @@ void cras_iodev_list_notify_active_node_changed(
   notify_active_node_changed_called++;
 }
 
-struct cras_audio_area* cras_audio_area_create(int num_channels) {
+struct cras_audio_area* cras_audio_area_create(size_t num_channels) {
   return NULL;
 }
 

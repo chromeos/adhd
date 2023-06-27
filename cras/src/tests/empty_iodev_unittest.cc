@@ -54,7 +54,7 @@ int cras_iodev_default_no_stream_playback(struct cras_iodev* odev, int enable) {
   return 0;
 }
 
-void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
+void cras_iodev_init_audio_area(struct cras_iodev* iodev) {
   iodev->area = &mock_audio_area;
 }
 

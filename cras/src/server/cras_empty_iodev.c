@@ -93,7 +93,7 @@ static int configure_dev(struct cras_iodev* iodev) {
     return -EINVAL;
   }
 
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
   empty_iodev->audio_buffer = calloc(1, EMPTY_BUFFER_SIZE);
   if (!empty_iodev->audio_buffer) {
     return -ENOMEM;

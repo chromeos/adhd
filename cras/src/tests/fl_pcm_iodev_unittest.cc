@@ -588,7 +588,7 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
   cras_iodev_free_resources_called++;
 }
 
-void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
+void cras_iodev_init_audio_area(struct cras_iodev* iodev) {
   cras_iodev_init_audio_area_called++;
   iodev->area = mock_audio_area;
 }

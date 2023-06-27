@@ -437,7 +437,7 @@ TEST_F(RstreamTestSuite, EffectPostProcessingFormat) {
 // stubs
 extern "C" {
 
-struct cras_audio_area* cras_audio_area_create(int num_channels) {
+struct cras_audio_area* cras_audio_area_create(size_t num_channels) {
   return NULL;
 }
 

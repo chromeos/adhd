@@ -518,7 +518,7 @@ void cras_sco_force_output_level(struct cras_sco* sco, unsigned int level) {
   cras_sco_forceoutput_level_target = level;
 }
 
-void cras_iodev_init_audio_area(struct cras_iodev* iodev, int num_channels) {
+void cras_iodev_init_audio_area(struct cras_iodev* iodev) {
   iodev->area = mock_audio_area;
 }
 

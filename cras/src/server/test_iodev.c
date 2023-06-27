@@ -73,7 +73,7 @@ static int configure_dev(struct cras_iodev* iodev) {
     return -EINVAL;
   }
 
-  cras_iodev_init_audio_area(iodev, iodev->format->num_channels);
+  cras_iodev_init_audio_area(iodev);
   testio->fmt_bytes = cras_get_format_bytes(iodev->format);
   testio->audbuff = byte_buffer_create(TEST_BUFFER_SIZE * testio->fmt_bytes);
 
