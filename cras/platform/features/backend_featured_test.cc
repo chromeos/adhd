@@ -5,7 +5,7 @@
 #include <featured/fake_platform_features.h>
 #include <unistd.h>
 
-#include "cras/platform/features/backend_featured.h"
+#include "cras/platform/features/backend_featured.hh"
 #include "cras/platform/features/features.h"
 #include "gtest/gtest.h"
 

@@ -14,7 +14,7 @@ cc_library(
         "override.h",
     ] + select({
         "//:featured_build": [
-            "backend_featured.h",
+            "backend_featured.hh",
             "backend_featured.cc",
         ],
         "//conditions:default": ["backend_stub.c"],
@@ -61,7 +61,7 @@ cc_test(
 cc_test(
     name = "backend_featured_test",
     srcs = [
-        "backend_featured.h",
+        "backend_featured.hh",
         "backend_featured_test.cc",
     ],
     copts = COPTS,

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CRAS_SRC_TESTS_DEV_IO_STUBS_H_
-#define CRAS_SRC_TESTS_DEV_IO_STUBS_H_
+#ifndef CRAS_SRC_TESTS_DEV_IO_STUBS_HH_
+#define CRAS_SRC_TESTS_DEV_IO_STUBS_HH_
 
 #include <memory>
 #include <stdint.h>
@@ -14,8 +14,8 @@
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/dev_io.h"
 #include "cras/src/server/dev_stream.h"
-#include "cras/src/tests/iodev_stub.h"
-#include "cras/src/tests/rstream_stub.h"
+#include "cras/src/tests/iodev_stub.hh"
+#include "cras/src/tests/rstream_stub.hh"
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
@@ -80,4 +80,4 @@ DevicePtr create_device(CRAS_STREAM_DIRECTION direction,
 void add_stream_to_dev(IodevPtr& dev, const StreamPtr& stream);
 void fill_audio_format(cras_audio_format* format, unsigned int rate);
 
-#endif
+#endif  // CRAS_SRC_TESTS_DEV_IO_STUBS_HH_

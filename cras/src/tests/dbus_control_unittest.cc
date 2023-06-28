@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "cras/src/server/cras_dbus_control.h"
-#include "cras/src/tests/dbus_test.h"
+#include "cras/src/tests/dbus_test.hh"
 #include "cras_types.h"
 
 static int num_channels_val;

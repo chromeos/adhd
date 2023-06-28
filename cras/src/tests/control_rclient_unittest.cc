@@ -12,7 +12,7 @@
 #include "cras/src/server/cras_rclient.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras/src/tests/test_util.h"
+#include "cras/src/tests/test_util.hh"
 #include "cras_messages.h"
 
 extern "C" {

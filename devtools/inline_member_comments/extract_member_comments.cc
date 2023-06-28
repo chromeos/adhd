@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "extract_member_comments.h"
+#include "extract_member_comments.hh"
 
 #include <string>
 #include <tuple>

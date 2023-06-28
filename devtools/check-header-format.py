@@ -37,11 +37,11 @@ class ChunkType(enum.IntEnum):
 
 
 CHUNK_RE = re.compile(
-    r'(^#ifndef ([\w_]+_H_)\n#define \2\n)|(^#ifdef __cplusplus\nextern "C" {\n#endif\n)|(^#include .+\n)|(^(?:#if|#ifdef|#ifndef) [^\n]+\n)|(^#endif[^\n]*\n)|(^\n+)',
+    r'(^#ifndef ([\w_]+_HH?_)\n#define \2\n)|(^#ifdef __cplusplus\nextern "C" {\n#endif\n)|(^#include .+\n)|(^(?:#if|#ifdef|#ifndef) [^\n]+\n)|(^#endif[^\n]*\n)|(^\n+)',
     re.MULTILINE,
 )
 
-INCLUDE_GUARD_RE = re.compile(r'#ifndef ([\w_]+_H_)\n#define \1\n')
+INCLUDE_GUARD_RE = re.compile(r'#ifndef ([\w_]+_HH?_)\n#define \1\n')
 
 
 def get_chunks(content):
@@ -86,13 +86,7 @@ def make_license_header():
 
 
 def is_cpp_header(path, content):
-    if '\nclass ' in content:
-        return True
-    if re.search('^#include +<[a-z]+>', content, re.MULTILINE):
-        return True
-    if path.endswith('.h') and os.path.exists(path[:-2] + '.cc'):
-        return True
-    return False
+    return path.endswith('.hh')
 
 
 def check(path, content):
@@ -196,7 +190,7 @@ def main(files, fix):
     broken = []
 
     for fn in files:
-        if not fn.endswith('.h'):
+        if not fn.endswith(('.h', '.hh')):
             continue
         if fn.startswith('third_party/'):
             continue

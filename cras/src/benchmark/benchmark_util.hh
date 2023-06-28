@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_H_
-#define CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_H_
+#ifndef CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_HH_
+#define CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_HH_
 
 #include <cstddef>
 #include <cstdint>
@@ -22,4 +22,4 @@ std::vector<float> gen_float_samples(size_t size, std::mt19937& engine);
  */
 std::vector<int16_t> gen_s16_le_samples(size_t size, std::mt19937& engine);
 
-#endif
+#endif  // CRAS_SRC_BENCHMARK_BENCHMARK_UTIL_HH_

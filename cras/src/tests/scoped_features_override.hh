@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_H_
-#define CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_H_
+#ifndef CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_HH_
+#define CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_HH_
 
 #include <utility>
 #include <vector>
@@ -29,4 +29,4 @@ class ScopedFeaturesOverride final {
   std::vector<std::pair<cras_feature_id, bool>> restore_enabled_;
 };
 
-#endif  // CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_H_
+#endif  // CRAS_SRC_TESTS_SCOPED_FEATURES_OVERRIDE_HH_

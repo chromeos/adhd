@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "cras/src/benchmark/benchmark_util.h"
+#include "cras/src/benchmark/benchmark_util.hh"
 #include "cras/src/dsp/dsp_util.h"
 #include "cras_audio_format.h"
 #include "webrtc_apm.h"

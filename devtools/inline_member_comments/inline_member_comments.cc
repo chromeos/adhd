@@ -8,7 +8,7 @@
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Refactoring.h"
-#include "extract_member_comments.h"
+#include "extract_member_comments.hh"
 #include "llvm/Support/CommandLine.h"
 
 using namespace clang;

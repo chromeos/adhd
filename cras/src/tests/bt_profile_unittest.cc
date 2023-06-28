@@ -10,7 +10,7 @@
 
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_bt_profile.h"
-#include "cras/src/tests/dbus_test.h"
+#include "cras/src/tests/dbus_test.hh"
 
 namespace {
 

@@ -4,8 +4,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef DEVTOOLS_INLINE_MEMBER_COMMENTS_EXTRACT_MEMBER_COMMENTS_H_
-#define DEVTOOLS_INLINE_MEMBER_COMMENTS_EXTRACT_MEMBER_COMMENTS_H_
+#ifndef DEVTOOLS_INLINE_MEMBER_COMMENTS_EXTRACT_MEMBER_COMMENTS_HH_
+#define DEVTOOLS_INLINE_MEMBER_COMMENTS_EXTRACT_MEMBER_COMMENTS_HH_
 
 #include <string>
 #include <tuple>
@@ -29,4 +29,4 @@ std::string comment_text(const std::string& s, const std::string& indent);
 
 }  // namespace devtools
 
-#endif
+#endif  // DEVTOOLS_INLINE_MEMBER_COMMENTS_EXTRACT_MEMBER_COMMENTS_HH_

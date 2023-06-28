@@ -15,7 +15,7 @@
 #undef DISABLE_CFI_ICALL
 #endif
 
-#include "cras/src/benchmark/benchmark_util.h"
+#include "cras/src/benchmark/benchmark_util.hh"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_mix_ops.h"

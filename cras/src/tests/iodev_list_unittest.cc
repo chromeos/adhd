@@ -17,8 +17,8 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/stream_list.h"
-#include "cras/src/tests/scoped_features_override.h"
-#include "cras/src/tests/test_util.h"
+#include "cras/src/tests/scoped_features_override.hh"
+#include "cras/src/tests/test_util.hh"
 #include "cras_iodev_info.h"
 #include "third_party/utlist/utlist.h"
 

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras/src/tests/scoped_features_override.h"
+#include "cras/src/tests/scoped_features_override.hh"
 #include "gtest/gtest.h"
 
 TEST(ScopedFeaturesOverrideTest, Override) {

@@ -25,6 +25,48 @@ The purpose of a written process is to:
     should be written, we should document it so that the agreed style is applied
     consistently to our code base.
 
+## Headers
+
+Headers should have:
+
+*   A copyright notice
+*   A include guard
+*   If it's a C header, a `extern "C"` block for the header to be used in
+    C++ sources directly.
+
+A C header should have the file extension `.h`; a C++ header should have the
+file extension `.hh`.
+
+You can use the tool `devtools/check-header-format.py --fix path/to/header.h`
+to help populate the boilerplate.
+
+### Example
+
+A header at `my/awesome/header.h` would look like:
+
+``` c
+// Copyright 2099 The ChromiumOS Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#ifndef MY_AWESOME_HEADER_H_
+#define MY_AWESOME_HEADER_H_
+
+#include <time.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int my_cool_function(struct timespec *ts);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
+
+#endif  // MY_AWESOME_HEADER_H_
+```
+
 ## Error level
 
 CRAS uses syslog for logging.

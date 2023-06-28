@@ -14,10 +14,10 @@
 #include "cras/src/server/dev_io.h"        // tested
 #include "cras/src/server/dev_stream.h"    // stubbed
 #include "cras/src/server/input_data.h"
-#include "cras/src/tests/dev_io_stubs.h"
-#include "cras/src/tests/iodev_stub.h"
+#include "cras/src/tests/dev_io_stubs.hh"
+#include "cras/src/tests/iodev_stub.hh"
 #include "cras/src/tests/metrics_stub.h"
-#include "cras/src/tests/rstream_stub.h"
+#include "cras/src/tests/rstream_stub.hh"
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"

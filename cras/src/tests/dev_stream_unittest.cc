@@ -10,7 +10,7 @@
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/dev_stream.h"
-#include "cras/src/tests/dev_io_stubs.h"
+#include "cras/src/tests/dev_io_stubs.hh"
 #include "cras_shm.h"
 #include "cras_types.h"
 

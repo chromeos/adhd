@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras/src/tests/test_util.h"
+#include "cras/src/tests/test_util.hh"
 
 #include <assert.h>
 

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CRAS_PLATFORM_FEATURES_BACKEND_FEATURED_H_
-#define CRAS_PLATFORM_FEATURES_BACKEND_FEATURED_H_
+#ifndef CRAS_PLATFORM_FEATURES_BACKEND_FEATURED_HH_
+#define CRAS_PLATFORM_FEATURES_BACKEND_FEATURED_HH_
 
 #include <dbus/bus.h>
 #include <featured/feature_library.h>
@@ -41,4 +41,4 @@ class FeatureLibraryAdapter {
 
 int backend_featured_init(std::unique_ptr<FeatureLibraryAdapter> adapter);
 
-#endif
+#endif  // CRAS_PLATFORM_FEATURES_BACKEND_FEATURED_HH_

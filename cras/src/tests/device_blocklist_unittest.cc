@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "cras/src/server/config/cras_device_blocklist.h"
-#include "cras/src/tests/test_util.h"
+#include "cras/src/tests/test_util.hh"
 
 namespace {
 
