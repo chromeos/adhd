@@ -1574,6 +1574,40 @@ static size_t get_fixed_channels(struct alsa_io* aio) {
   return (rc) ? 0 : channels;
 }
 
+static int copy_formats_from_open_dev(struct cras_iodev* dst,
+                                      struct cras_iodev* src) {
+  if (!src->format) {
+    return -ENOENT;
+  }
+
+  // supported_rates/channel_counts/formats are zero terminated arrays.
+  dst->supported_rates = (size_t*)calloc(2, sizeof(dst->supported_rates[0]));
+  if (!dst->supported_rates) {
+    return -ENOMEM;
+  }
+  dst->supported_rates[0] = src->format->frame_rate;
+  dst->supported_rates[1] = 0;
+
+  dst->supported_channel_counts =
+      (size_t*)calloc(2, sizeof(dst->supported_channel_counts[0]));
+  if (!dst->supported_channel_counts) {
+    return -ENOMEM;
+  }
+  dst->supported_channel_counts[0] = src->format->num_channels;
+  dst->supported_channel_counts[1] = 0;
+
+  dst->supported_formats =
+      (snd_pcm_format_t*)calloc(2, sizeof(dst->supported_formats[0]));
+  if (!dst->supported_formats) {
+    return -ENOMEM;
+  }
+  dst->supported_formats[0] = src->format->format;
+  // Array terminated by zero (SND_PCM_FORMAT_S8), see get_best_pcm_format.
+  dst->supported_formats[1] = (snd_pcm_format_t)0;
+
+  return 0;
+}
+
 /*
  * Updates the supported sample rates and channel counts.
  */
@@ -1589,6 +1623,30 @@ static int update_supported_formats(struct cras_iodev* iodev) {
   iodev->supported_channel_counts = NULL;
   free(iodev->supported_formats);
   iodev->supported_formats = NULL;
+
+  // If aio is in a group with an open dev, use the open dev's audio formats.
+  struct cras_iodev* open_dev_in_group = NULL;
+  if (aio->group) {
+    for (size_t i = 0; i < aio->group->num_devs; i++) {
+      struct cras_iodev* cdev = &aio->group->devs[i]->common.base;
+
+      if (cdev != iodev && cras_iodev_is_open(cdev)) {
+        open_dev_in_group = cdev;
+        break;
+      }
+    }
+  }
+  if (open_dev_in_group) {
+    syslog(LOG_DEBUG, "Use existing audio formats");
+
+    err = copy_formats_from_open_dev(iodev, open_dev_in_group);
+    if (err) {
+      syslog(LOG_ERR, "Failed to copy formats from open dev %s to %s: %d",
+             open_dev_in_group->info.name, iodev->info.name, err);
+    }
+
+    return err;
+  }
 
   err = cras_alsa_fill_properties(aio->common.handle, &iodev->supported_rates,
                                   &iodev->supported_channel_counts,
