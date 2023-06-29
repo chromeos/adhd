@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "audio_diagnostics",
     "cras_tests",
     "cras-sys",
     "libcras",
@@ -23,3 +24,6 @@ minijail = { path = "../../../../platform/minijail/rust/minijail" } # ignored by
 serde_keyvalue = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue-0.1.50/" } # ignored by ebuild
 serde_keyvalue_derive = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue_derive-0.1.50/" } # ignored by ebuild
 sync = { path = "../../../../../chroot/usr/lib/cros_rust_registry/registry/sync-0.1.149/" } # ignored by ebuild
+cras = { path = "../src/server/rust" }  # ignored by ebuild
+cras_dlc = { path = "../src/server/rust/cras_dlc" } # ignored by ebuild
+audio_processor = {path = "../../audio_processor" } # ignored by ebuild

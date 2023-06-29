@@ -4,6 +4,8 @@
 
 // Collect information about the audio system from top to bottom.
 
+mod uptime;
+
 use std::collections::HashSet;
 use std::env;
 use std::fs;
@@ -17,6 +19,9 @@ use anyhow::Context;
 use cras::pseudonymization::Salt;
 use glob::glob;
 use regex::Regex;
+
+use crate::uptime::analyze;
+use audio_diagnostics::Analysis;
 
 /// Fancy wrapper to run a Command.
 fn run_command(cmd: &mut Command) {
@@ -267,7 +272,7 @@ fn main() {
     ]));
 }
 
-fn print_analysis_result(results: Vec<cras::diagnostics::Analysis>) {
+fn print_analysis_result(results: Vec<Analysis>) {
     if results.len() == 0 {
         return;
     }
@@ -299,8 +304,5 @@ fn do_analysis_uptime() {
         }
     };
 
-    print_analysis_result(cras::diagnostics::uptime::analyze(
-        &ps_uptime_output,
-        &uptime_output,
-    ));
+    print_analysis_result(analyze(&ps_uptime_output, &uptime_output));
 }
