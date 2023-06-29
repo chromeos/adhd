@@ -7,7 +7,7 @@ build --experimental_cc_shared_library
 build --define VCSID=vcsid-unspecified
 
 build --conlyopt=-std=gnu11
-build --cxxopt=-std=gnu++17
+build --cxxopt=-std=gnu++20
 
 build --copt=-Wall
 
