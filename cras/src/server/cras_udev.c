@@ -14,6 +14,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/common/cras_checksum.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_card.h"

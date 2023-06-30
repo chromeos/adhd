@@ -8,6 +8,7 @@
 
 #include <alsa/asoundlib.h>
 
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"

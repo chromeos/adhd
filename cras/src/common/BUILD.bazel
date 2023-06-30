@@ -3,6 +3,19 @@
 # found in the LICENSE file.
 
 cc_library(
+    name = "cras_alsa_card_info",
+    hdrs = [
+        "cras_alsa_card_info.h",
+    ],
+    visibility = [
+        "//cras/src/common:__pkg__",
+        "//cras/src/server:__pkg__",
+    ],
+    deps = [
+    ],
+)
+
+cc_library(
     name = "cras_config",
     srcs = [
         "cras_config.c",
@@ -207,6 +220,7 @@ cc_library(
         "//cras:__subpackages__",
     ],
     deps = [
+        ":cras_alsa_card_info",
         ":cras_config",
         ":cras_file_wait",
         ":cras_selinux_helper",

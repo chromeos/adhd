@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unordered_map>
 
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_main_thread_log.h"

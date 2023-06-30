@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras_types.h"
 
 #ifdef __cplusplus

@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <sys/time.h>
 
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_iodev.h"
 

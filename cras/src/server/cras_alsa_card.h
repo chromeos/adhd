@@ -6,7 +6,7 @@
 #ifndef CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_
 #define CRAS_SRC_SERVER_CRAS_ALSA_CARD_H_
 
-#include "cras_types.h"
+#include "cras/src/common/cras_alsa_card_info.h"
 
 #ifdef __cplusplus
 extern "C" {

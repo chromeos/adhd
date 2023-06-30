@@ -44,7 +44,10 @@ cc_library(
         "cras_system_state.h",
     ],
     hdrs = ["cras_mix_ops.h"],
-    deps = ["//cras/src/common:cras_types"],
+    deps = [
+        "//cras/src/common:cras_alsa_card_info",
+        "//cras/src/common:cras_types",
+    ],
 )
 
 cc_library(
@@ -60,7 +63,10 @@ cc_library(
     ],
     local_defines = ["OPS_SSE42"],
     target_compatible_with = ["@platforms//cpu:x86_64"],
-    deps = ["//cras/src/common:cras_types"],
+    deps = [
+        "//cras/src/common:cras_alsa_card_info",
+        "//cras/src/common:cras_types",
+    ],
 )
 
 cc_library(
@@ -76,7 +82,10 @@ cc_library(
     ],
     local_defines = ["OPS_AVX"],
     target_compatible_with = ["@platforms//cpu:x86_64"],
-    deps = ["//cras/src/common:cras_types"],
+    deps = [
+        "//cras/src/common:cras_alsa_card_info",
+        "//cras/src/common:cras_types",
+    ],
 )
 
 cc_library(
@@ -92,7 +101,10 @@ cc_library(
     ],
     local_defines = ["OPS_AVX2"],
     target_compatible_with = ["@platforms//cpu:x86_64"],
-    deps = ["//cras/src/common:cras_types"],
+    deps = [
+        "//cras/src/common:cras_alsa_card_info",
+        "//cras/src/common:cras_types",
+    ],
 )
 
 cc_library(
@@ -109,7 +121,10 @@ cc_library(
     ],
     local_defines = ["OPS_FMA"],
     target_compatible_with = ["@platforms//cpu:x86_64"],
-    deps = ["//cras/src/common:cras_types"],
+    deps = [
+        "//cras/src/common:cras_alsa_card_info",
+        "//cras/src/common:cras_types",
+    ],
 )
 
 cc_library(

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "cras/include/cras_types.h"
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_volume_curve.h"

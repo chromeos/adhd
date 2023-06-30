@@ -10,6 +10,7 @@
 
 #include "cras/include/cras_types.h"
 #include "cras/platform/features/override.h"
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_alsa_card.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_mixer.h"

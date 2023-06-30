@@ -8,6 +8,7 @@
 #include <syslog.h>
 #include <vector>
 
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras_util.h"
 
