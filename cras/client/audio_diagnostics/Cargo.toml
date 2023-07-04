@@ -13,3 +13,4 @@ regex = "1.6.0"
 cras = "*" # provided by ebuild
 cras_dlc = "*" # provided by ebuild
 audio_processor = "*" # provided by ebuild
+libcras = { version = "*", path = "../libcras" }

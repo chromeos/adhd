@@ -18,6 +18,7 @@ use std::process::Stdio;
 use anyhow::Context;
 use cras::pseudonymization::Salt;
 use glob::glob;
+use libcras::CrasClient;
 use regex::Regex;
 
 use crate::uptime::analyze;
@@ -127,6 +128,7 @@ fn main() {
     // Show CRAS process uptime
     run_command(Command::new("ps").args(["-C", "cras", "-o", "comm,etime"]));
     do_analysis_uptime();
+    dump_active_node();
 
     run_command(
         Command::new("cras_test_client")
@@ -305,4 +307,41 @@ fn do_analysis_uptime() {
     };
 
     print_analysis_result(analyze(&ps_uptime_output, &uptime_output));
+}
+
+fn dump_active_node() {
+    let cras_client = match CrasClient::new() {
+        Ok(client) => client,
+        Err(err) => {
+            eprintln!("dump_active_node failed to new cras_client: {}", err);
+            return;
+        }
+    };
+
+    let mut res: Vec<Analysis> = Vec::new();
+
+    if let Some(node) = cras_client.output_nodes().find(|node| node.active) {
+        res.push(Analysis {
+            name: format!(
+                "{}_is_active_output_audio_device",
+                node.type_name.to_lowercase()
+            ),
+            description: format!("{} is the active output audio device", node.type_name),
+            suggestion: String::new(),
+            additional_info: String::new(),
+        });
+    }
+
+    if let Some(node) = cras_client.input_nodes().find(|node| node.active) {
+        res.push(Analysis {
+            name: format!(
+                "{}_is_active_input_audio_device",
+                node.type_name.to_lowercase()
+            ),
+            description: format!("{} is the active input audio device", node.type_name),
+            suggestion: String::new(),
+            additional_info: String::new(),
+        });
+    }
+    print_analysis_result(res);
 }
