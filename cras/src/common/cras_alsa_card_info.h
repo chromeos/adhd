@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,22 +44,32 @@ static inline const char* cras_card_type_to_string(
   return NULL;
 }
 
-/* Information about an ALSA card to be added to the system. */
-#define USB_SERIAL_NUMBER_BUFFER_SIZE 64
 struct __attribute__((__packed__)) cras_alsa_card_info {
   enum CRAS_ALSA_CARD_TYPE card_type;
   // Index ALSA uses to refer to the card.  The X in "hw:X".
   uint32_t card_index;
-  // vendor ID if the device is on the USB bus.
+};
+
+#define USB_SERIAL_NUMBER_BUFFER_SIZE 64
+
+struct __attribute__((__packed__)) cras_alsa_usb_card_info {
+  struct cras_alsa_card_info base;
   uint32_t usb_vendor_id;
-  // product ID if the device is on the USB bus.
+  // product ID.
   uint32_t usb_product_id;
-  // serial number if the device is on the USB bus.
+  // serial number.
   char usb_serial_number[USB_SERIAL_NUMBER_BUFFER_SIZE];
-  // the checksum of the USB descriptors if the device
-  // is on the USB bus.
+  // the checksum of the USB descriptors.
   uint32_t usb_desc_checksum;
 };
+
+static inline struct cras_alsa_usb_card_info* cras_alsa_usb_card_info_get(
+    const struct cras_alsa_card_info* info) {
+  if (!info || info->card_type != ALSA_CARD_TYPE_USB) {
+    return NULL;
+  }
+  return (struct cras_alsa_usb_card_info*)info;
+}
 
 #ifdef __cplusplus
 }  // extern "C"

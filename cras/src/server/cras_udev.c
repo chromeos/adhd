@@ -273,53 +273,65 @@ static int get_usb_device_number(struct udev_device* dev) {
   return device_number;
 }
 
-static void fill_usb_card_info(struct cras_alsa_card_info* card_info,
-                               struct udev_device* dev) {
-  const char* sysattr;
-  struct udev_device* parent_dev =
-      udev_device_get_parent_with_subsystem_devtype(dev, "usb", "usb_device");
-  if (!parent_dev) {
-    return;
+static long get_udev_long_or(struct udev_device* dev,
+                             const char* sysattr,
+                             long default_value) {
+  const char* sysattr_val = udev_device_get_sysattr_value(dev, sysattr);
+  if (sysattr_val) {
+    return strtol(sysattr, NULL, 16);
   }
+  return default_value;
+}
 
-  sysattr = udev_device_get_sysattr_value(parent_dev, "idVendor");
-  if (sysattr) {
-    card_info->usb_vendor_id = strtol(sysattr, NULL, 16);
-  }
-  sysattr = udev_device_get_sysattr_value(parent_dev, "idProduct");
-  if (sysattr) {
-    card_info->usb_product_id = strtol(sysattr, NULL, 16);
-  }
-  sysattr = udev_device_get_sysattr_value(parent_dev, "serial");
-  if (sysattr) {
-    strncpy(card_info->usb_serial_number, sysattr,
-            USB_SERIAL_NUMBER_BUFFER_SIZE - 1);
-    card_info->usb_serial_number[USB_SERIAL_NUMBER_BUFFER_SIZE - 1] = '\0';
-  }
+static struct cras_alsa_usb_card_info usb_card_info_create(
+    uint32_t card_index,
+    struct udev_device* dev,
+    struct udev_device* parent_dev) {
+  struct cras_alsa_usb_card_info usb_card_info = {
+      .base =
+          {
+              .card_type = ALSA_CARD_TYPE_USB,
+              .card_index = (uint32_t)card_index,
+          },
+      .usb_vendor_id = get_udev_long_or(parent_dev, "idVendor", 0),
+      .usb_product_id = get_udev_long_or(parent_dev, "idVendor", 0),
+      .usb_desc_checksum = calculate_desc_checksum(parent_dev),
+  };
 
-  card_info->usb_desc_checksum = calculate_desc_checksum(parent_dev);
+  const char* usb_serial_number =
+      udev_device_get_sysattr_value(parent_dev, "serial");
+  if (usb_serial_number) {
+    strncpy(usb_card_info.usb_serial_number, usb_serial_number,
+            USB_SERIAL_NUMBER_BUFFER_SIZE);
+  }
 
   syslog(LOG_INFO,
          "USB card: device number:%d, vendor:%04x, product:%04x checksum:%08x",
-         get_usb_device_number(parent_dev), card_info->usb_vendor_id,
-         card_info->usb_product_id, card_info->usb_desc_checksum);
+         get_usb_device_number(parent_dev), usb_card_info.usb_vendor_id,
+         usb_card_info.usb_product_id, usb_card_info.usb_desc_checksum);
+
+  return usb_card_info;
 }
 
 static void device_add_alsa(struct udev_device* dev,
                             const char* sysname,
                             unsigned card,
                             enum CRAS_ALSA_CARD_TYPE card_type) {
-  struct cras_alsa_card_info card_info;
-  memset(&card_info, 0, sizeof(card_info));
-
   udev_delay_for_alsa();
-  card_info.card_index = card;
-  card_info.card_type = card_type;
   if (card_type == ALSA_CARD_TYPE_USB) {
-    fill_usb_card_info(&card_info, dev);
+    struct udev_device* parent_dev =
+        udev_device_get_parent_with_subsystem_devtype(dev, "usb", "usb_device");
+    if (!parent_dev) {
+      return;
+    }
+    struct cras_alsa_usb_card_info usb_card_info =
+        usb_card_info_create(card, dev, parent_dev);
+    cras_system_add_alsa_card(&usb_card_info.base);
+  } else {
+    struct cras_alsa_card_info card_info = {.card_type = card_type,
+                                            .card_index = card};
+    cras_system_add_alsa_card(&card_info);
   }
-
-  cras_system_add_alsa_card(&card_info);
 }
 
 void device_remove_alsa(const char* sysname, unsigned card) {
