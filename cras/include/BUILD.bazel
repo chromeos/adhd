@@ -14,3 +14,13 @@ filegroup(
     srcs = glob(["*.h"]),
     visibility = ["//dist:__pkg__"],
 )
+
+cc_test(
+    name = "abi_test",
+    srcs = ["abi_test.cc"],
+    deps = [
+        ":include",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
