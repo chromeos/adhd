@@ -132,6 +132,10 @@ class BM_Alsa : public benchmark::Fixture {
       ucm_config = ucm_config + "." + ucm_suffix;
     }
     ucm_mgr = ucm_create(ucm_config.c_str());
+    if (ucm_mgr == nullptr) {
+      fprintf(stderr, "Cannot ucm_create(\"%s\")\n", ucm_config.c_str());
+      return "";
+    }
     int dev_idx = ucm_get_alsa_dev_idx_for_dev(ucm_mgr, ToString(device),
                                                CRAS_STREAM_OUTPUT);
 
