@@ -45,7 +45,10 @@ def _pkg_config(repository_ctx, library):
         cmd,
     )
     if result.return_code != 0:
-        return struct(error = "{library} unavailable: command {cmd} failed with code {return_code}:\n{stderr}".format(
+        return struct(error = """
+{library} unavailable: command {cmd} failed with code {return_code}:
+{stderr}
+hint: If you just installed that library, please retry after running `bazel shutdown`.""".format(
             cmd = repr(" ".join([str(s) for s in cmd])),
             return_code = result.return_code,
             stderr = result.stderr,
@@ -197,6 +200,8 @@ pkg_config_repository = repository_rule(
     implementation = _pkg_config_repository_impl,
     attrs = _pkg_config_repository_attrs,
     environ = ["PKG_CONFIG", "OSS_FUZZ_STATIC_PKG_CONFIG_DEPS"],
+    local = True,
+    configure = True,
     doc =
         """Makes pkg-config-enabled libraries available for binding.
 
