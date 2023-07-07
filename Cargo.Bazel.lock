@@ -1,5 +1,5 @@
 {
-  "checksum": "3ac3b59044fba9d562e2d4c8e1cd56ffbb2ad2245617aaf56728020ba6461232",
+  "checksum": "0c9cd3bef5c1a628bd95905b8c81f517d0ad48460cfc0ad8768194a9270fbab8",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -1047,6 +1047,10 @@
             {
               "id": "regex 1.7.3",
               "target": "regex"
+            },
+            {
+              "id": "serde_json 1.0.96",
+              "target": "serde_json"
             },
             {
               "id": "syslog 6.0.1",

@@ -198,6 +198,7 @@ dependencies = [
  "nix",
  "openssl",
  "regex",
+ "serde_json",
  "syslog",
 ]
 

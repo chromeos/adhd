@@ -80,6 +80,14 @@ fn main() {
     );
 
     generate(
+        builder(2023)
+            .with_src("../src/fra.rs")
+            .rename_item("CrasFRASignal", "CRAS_FRA_SIGNAL")
+            .rename_item("KeyValuePair", "cras_fra_kv_t"),
+        "cras_fra.h",
+    );
+
+    generate(
         builder(2023).with_src("../src/cras_processor.rs"),
         "cras_processor.h",
     );

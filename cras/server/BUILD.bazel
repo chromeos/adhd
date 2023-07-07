@@ -17,7 +17,7 @@ cc_library(
     hdrs = ["main_message.h"],
     deps = [
         "//cras/include",
-        "//cras/src/common",
+        "//cras/src/common:cras_util",
         "//third_party/utlist",
     ],
 )

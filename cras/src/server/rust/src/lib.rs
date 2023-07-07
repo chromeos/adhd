@@ -10,4 +10,5 @@ mod rate_estimator;
 pub mod rate_estimator_bindings;
 pub use cras_dlc::bindings as cras_dlc_bindings;
 pub use logging::bindings as logging_bindings;
+pub mod fra;
 pub mod pseudonymization;

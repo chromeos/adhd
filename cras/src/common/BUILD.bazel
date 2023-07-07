@@ -158,6 +158,7 @@ cc_library(
         "//cras/src/benchmark:__pkg__",
         "//cras/src/libcras:__pkg__",
         "//cras/src/server:__pkg__",
+	"//cras/server:__pkg__",
     ],
     deps = ["//cras/src/common:cras_types"],
 )
