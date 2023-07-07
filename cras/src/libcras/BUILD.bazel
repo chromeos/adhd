@@ -43,11 +43,9 @@ cras_shared_library(
         "@//:__subpackages__",
         # Despite that we list external deps in static_deps, they are linked
         # dynamically because pkg_config does not provide object files.
-        "@pkg_config//alsa",
-    ] + select({
-        "//:selinux_build": ["@pkg_config//libselinux"],
-        "//conditions:default": [],
-    }),
+        "@pkg_config__alsa//:__subpackages__",
+        "@pkg_config__libselinux//:__subpackages__",
+    ],
     visibility = [
         "//cras/src/alsa_plugin:__pkg__",
         "//dist:__pkg__",

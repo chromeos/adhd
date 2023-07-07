@@ -54,11 +54,6 @@ http_archive(
     ],
 )
 
-load(
-    ":repositories/pkg_config/pkg_config.bzl",
-    "pkg_config_repository",
-)
-
 http_archive(
     name = "iniparser",
     build_file = "//:third_party/BUILD.iniparser.bazel",
@@ -70,7 +65,12 @@ http_archive(
     ],
 )
 
-pkg_config_repository(
+load(
+    ":repositories/pkg_config/pkg_config.bzl",
+    "pkg_config",
+)
+
+pkg_config(
     name = "pkg_config",
     libs = [
         "gtest",

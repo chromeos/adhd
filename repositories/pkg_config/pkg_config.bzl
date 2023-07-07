@@ -7,24 +7,25 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@bazel_skylib//lib:unittest.bzl", "asserts", "unittest")
 
-_PKG_CONFIG_LIBRARY = """
+_PKG_CONFIG_LIBRARY = """\
 cc_library(
     name = {name},
     hdrs = glob({hdrs_spec}),
     defines = {defines},
     includes = {includes},
     linkopts = {linkopts},
-    visibility = ["//visibility:public"],
+    visibility = {visibility},
 )
 """
 
-def _pkg_config_library_entry(name, hdrs_globs, defines, includes, linkopts):
+def _pkg_config_library_entry(name, hdrs_globs, defines, includes, linkopts, visibility):
     return _PKG_CONFIG_LIBRARY.format(
         name = repr(name),
         hdrs_spec = repr(hdrs_globs),
         defines = repr(defines),
         includes = repr(includes),
         linkopts = repr(linkopts),
+        visibility = repr(visibility),
     )
 
 def _maybe_fixup_lib_for_oss_fuzz(linkopt, oss_fuzz_static):
@@ -38,6 +39,9 @@ def _maybe_fixup_lib_for_oss_fuzz(linkopt, oss_fuzz_static):
         return linkopt
     return "-l:lib{}.a".format(linkopt[2:])
 
+def _indent(text, indent):
+    return indent + text.replace("\n", "\n" + indent)
+
 def _pkg_config(repository_ctx, library):
     pkg_config = repository_ctx.os.environ.get("PKG_CONFIG", default = "pkg-config").split(" ")
     cmd = pkg_config + ["--cflags", "--libs", library]
@@ -45,14 +49,14 @@ def _pkg_config(repository_ctx, library):
         cmd,
     )
     if result.return_code != 0:
-        return struct(error = """
-{library} unavailable: command {cmd} failed with code {return_code}:
+        fail("""
+Package {library} unavailable: command {cmd} failed with code {return_code}:
 {stderr}
-hint: If you just installed that library, please retry after running `bazel shutdown`.""".format(
+""".format(
             cmd = repr(" ".join([str(s) for s in cmd])),
             return_code = result.return_code,
-            stderr = result.stderr,
-            library = library,
+            stderr = _indent(result.stderr.strip("\n"), "> "),
+            library = repr(library),
         ))
 
     oss_fuzz_static = repository_ctx.os.environ.get("OSS_FUZZ_STATIC_PKG_CONFIG_DEPS")
@@ -72,7 +76,6 @@ hint: If you just installed that library, please retry after running `bazel shut
         defines = defines,
         includes = includes,
         linkopts = linkopts,
-        error = None,
     )
 
 def _common_roots(paths):
@@ -101,16 +104,16 @@ def _common_roots(paths):
         roots.append(path)
     return roots
 
-def _symlink_includes(repository_ctx, library, includes):
+def _symlink_includes(repository_ctx, prefix, includes):
     """
     Symlink system includes to a local directory and return the localized include paths.
 
     For each child directory in the pkg_config include path, create a symlink under the external/ folder and add the
     correct -isystem path.
-    Examples:
+    Example:
         symlink src: /build/hatch/usr/include/dbus-1.0
-        symlink dst: /build/hatch/tmp/portage/media-sound/cras_bench-9999/work/cras_bench-9999-bazel-base/external/system_libs/build/hatch/usr/include/dbus-1.0
-        -isystem path: external/pkg_config/${library}/build/hatch/usr/include/dbus-1.0
+        symlink dst: $(bazel info output_base)/external/pkg_config__dbus-1/${prefix}/usr/include
+/dbus-1.0
     """
 
     # Clean up .. in path segments.
@@ -120,112 +123,101 @@ def _symlink_includes(repository_ctx, library, includes):
 
     local_includes = []
     for inc in _common_roots(includes):
-        repository_ctx.symlink(inc, library + inc)
-        local_includes.append(inc.lstrip("/"))
+        repository_ctx.symlink(inc, prefix + inc)
+        local_includes.append(prefix + inc)
 
     return local_includes
 
-def _pkg_config_library(repository_ctx, library, defines = []):
+def _pkg_config_library_impl(repository_ctx):
+    library = repository_ctx.attr.library
+
     result = _pkg_config(repository_ctx, library)
-    if result.error != None:
-        build_file_contents = """
-cc_library(
+    includes = _symlink_includes(repository_ctx, "sysroot", result.includes)
+    hdrs_globs = [
+        "{}/**/*.h".format(inc)
+        for inc in includes
+    ]
+
+    build_file_contents = _pkg_config_library_entry(
+        name = repository_ctx.name,
+        hdrs_globs = hdrs_globs,
+        defines = result.defines,
+        includes = includes,
+        linkopts = result.linkopts,
+        visibility = repository_ctx.attr.library_visibility,
+    )
+
+    repository_ctx.file("BUILD.bazel", build_file_contents)
+    repository_ctx.file(
+        "WORKSPACE",
+        """workspace(name = "{name}")
+""".format(name = repository_ctx.name),
+    )
+
+_pkg_config_library = repository_rule(
+    implementation = _pkg_config_library_impl,
+    attrs = {
+        "library": attr.string(
+            doc = "The name of the library (as passed to pkg-config)",
+        ),
+        "library_visibility": attr.string_list(
+            doc = "Visibility of the generated rules",
+        ),
+    },
+    environ = ["PKG_CONFIG", "OSS_FUZZ_STATIC_PKG_CONFIG_DEPS"],
+    local = True,
+    configure = True,
+    doc = """Makes a pkg-config-enabled library available for binding.
+
+If the environment variable PKG_CONFIG is set, this rule will use its value
+as the `pkg-config` command.
+
+If OSS_FUZZ_STATIC_PKG_CONFIG_DEPS is set, this rule will prefer static
+libraries. This environment variable is intended for oss-fuzz, where the
+runtime image does not have the dynamic system dependencies.
+""",
+)
+
+def _pkg_config_aggregate_impl(repository_ctx):
+    for library in repository_ctx.attr.libs:
+        repository_ctx.file(
+            "{library}/BUILD.bazel".format(library = library),
+            """\
+alias(
     name = {name},
-    deps = select({{"//:never_set": []}}, no_match_error = {error}),
+    actual = {actual},
     visibility = ["//visibility:public"],
 )
 """.format(
-            name = repr(library),
-            error = repr("\n\n" + result.error.rstrip()),
+                name = repr(library),
+                actual = repr("@{name}__{library}".format(name = repository_ctx.name, library = library)),
+            ),
         )
-    else:
-        includes = _symlink_includes(repository_ctx, library, result.includes)
-        hdrs_globs = [
-            "{}/**/*.h".format(inc)
-            for inc in includes
-        ]
-
-        build_file_contents = _pkg_config_library_entry(
-            name = library,
-            hdrs_globs = hdrs_globs,
-            defines = defines + result.defines,
-            includes = includes,
-            linkopts = result.linkopts,
-        )
-
-    repository_ctx.file(library + "/BUILD", build_file_contents)
-
-_pkg_config_repository_attrs = {
-    "libs": attr.string_list(
-        doc = """The names of the libraries to include (as passed to pkg-config)""",
-    ),
-    "additional_build_file_contents": attr.string(
-        default = "",
-        mandatory = False,
-        doc = """Additional content to inject into the build file.""",
-    ),
-}
-
-def _pkg_config_repository(repository_ctx, libs, additional_build_file_contents):
-    # Create BUILD with the cc_library section for each library.
-    build_file_contents = """config_setting(
-    name = "never_set",
-    define_values = {
-        "never_set": "never_set",
-    },
-    visibility = ["//:__subpackages__"],
-)
-
-""" + additional_build_file_contents
-
-    for library in libs:
-        _pkg_config_library(repository_ctx, library)
 
     repository_ctx.file(
         "WORKSPACE",
         """workspace(name = "{name}")
 """.format(name = repository_ctx.name),
     )
-    repository_ctx.file("BUILD", build_file_contents)
 
-def _pkg_config_repository_impl(repository_ctx):
-    """Implementation of the pkg_config_repository rule."""
-    return _pkg_config_repository(
-        repository_ctx,
-        libs = repository_ctx.attr.libs,
-        additional_build_file_contents = repository_ctx.attr.additional_build_file_contents,
-    )
-
-pkg_config_repository = repository_rule(
-    implementation = _pkg_config_repository_impl,
-    attrs = _pkg_config_repository_attrs,
-    environ = ["PKG_CONFIG", "OSS_FUZZ_STATIC_PKG_CONFIG_DEPS"],
-    local = True,
-    configure = True,
-    doc =
-        """Makes pkg-config-enabled libraries available for binding.
-
-If the environment variable PKG_CONFIG is set, this rule will use its value
-as the `pkg-config` command.
-
-Examples:
-  Suppose the current repository contains the source code for a chat program,
-  rooted at the directory `~/chat-app`. It needs to depend on an SSL library
-  which is available from the current system, registered with pkg-config.
-
-  Targets in the `~/chat-app` repository can depend on this library through the
-  target @system_libs//:openssl if the following lines are added to
-  `~/chat-app/WORKSPACE`:
-  ```python
-  load(":system_libs.bzl", "pkg_config_repository")
-  pkg_config_repository(
-      name = "system_libs",
-      libs = ["openssl"],
-  )
-  ```
-  Then targets would specify `@system_libs//:openssl` as a dependency.
-""",
+_pkg_config_aggregate = repository_rule(
+    implementation = _pkg_config_aggregate_impl,
+    attrs = {
+        "libs": attr.string_list(
+            doc = "The name of the libraries (as passed to pkg-config)",
+        ),
+    },
+    doc = "Collects pkg_config_library rules",
 )
+
+def pkg_config(name, libs):
+    _pkg_config_aggregate(name = name, libs = libs)
+    for library in libs:
+        _pkg_config_library(
+            name = "{}__{}".format(name, library),
+            library = library,
+            library_visibility = ["@{}//:__subpackages__".format(name)],
+        )
 
 def _common_roots_test_impl(ctx):
     env = unittest.begin(ctx)
