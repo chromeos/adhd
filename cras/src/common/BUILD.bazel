@@ -123,6 +123,9 @@ cc_library(
 
 cc_library(
     name = "cras_log",
+    srcs = [
+        "cras_log.c",
+    ],
     hdrs = [
         "cras_log.h",
     ],
@@ -130,8 +133,10 @@ cc_library(
         "//cras/src/common:__pkg__",
         "//cras/src/libcras:__pkg__",
         "//cras/src/server:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
     deps = [
+        "//cras/src/server/rust",
     ],
 )
 
@@ -217,6 +222,7 @@ cc_library(
         "byte_buffer.h",
         "cras_checksum.c",
         "cras_hats.c",
+        "cras_log.c",
         "cras_metrics.c",
         "cras_observer_ops.h",
         "cras_sbc_codec.c",

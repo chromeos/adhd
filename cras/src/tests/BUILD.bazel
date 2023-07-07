@@ -201,9 +201,10 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/src/common:all_headers",
+        "//cras/src/common:cras_log",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
-        "//cras/src/server/rust:headers",
+        "//cras/src/server/rust",
         "@iniparser",
         "@pkg_config//alsa",
         "@pkg_config//gtest",
@@ -1869,6 +1870,19 @@ cc_test(
     srcs = ["scoped_features_override_unittest.cc"],
     deps = [
         "scoped_features_override",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cras_log_unittest",
+    srcs = [
+        "cras_log_unittest.cc",
+    ],
+    deps = [
+        "//cras/src/common:all_headers",
+        "//cras/src/common:cras_log",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "cras/src/common/cras_alsa_card_info.h"
+#include "cras/src/common/cras_log.h"
 #include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_iodev.h"
@@ -1222,8 +1223,7 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
   return cras_iodev_buffer_avail_ret;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
   cras_iodev_fill_odev_zeros_called++;
   cras_iodev_fill_odev_zeros_frames = frames;
   return (int)frames;

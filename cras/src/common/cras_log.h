@@ -6,31 +6,30 @@
 #ifndef CRAS_SRC_COMMON_CRAS_LOG_H_
 #define CRAS_SRC_COMMON_CRAS_LOG_H_
 
-#include <syslog.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// FRA signal enum.
-enum FRA_SIGNAL {
-  PeripheralsUsbSoundCard,
-  USBAudioSelected,
-  USBAudioConfigureFailed,
-  USBAudioListOutputNodeFailed,
-  USBAudioStartFailed,
-  USBAudioSoftwareVolumeAbnormalRange,
-  USBAudioSoftwareVolumeAbnormalSteps,
-  USBAudioUCMNoJack,
-  USBAudioUCMWrongJack,
-  USBAudioResumeFailed,
-};
+#include "cras/src/server/rust/include/cras_fra.h"
 
-// The log is monitoring by FRA. If the log format it changed, please also
-// update the signal regular expressions under
-// `google3/chromeos/feedback/analyzer/signals` as well.
-// The `signal` parameter should be the `enum FRA_SIGNAL` type.
-#define fra_log(__pri, signal, __fmt, ...) syslog(__pri, __fmt, __VA_ARGS__);
+// prints something to thread-local storage.
+// Use only for printting debug messages.
+const char* tlsprintf(const char* fmt, ...);
+
+// Example:
+//
+// * FRALOG(USBAudioStartFailed, {"key1", "value1"}, {"key2", "value2"});
+//
+// Use tlsprintf to print non-string type values in one liner:
+// * FRALOG(USBAudioStartFailed, {"key1", tlsprintf("%zx",int_value1)},
+// {"key2", tlsprintf("%zx",int_value2)});
+//
+// It allows at most 8 tlsprintf calls within a FRALOG call.
+#define FRALOG(signal, ...)                                        \
+  {                                                                \
+    struct cras_fra_kv_t context[] = {__VA_ARGS__};                \
+    fralog(signal, sizeof(context) / sizeof(struct cras_fra_kv_t), context); \
+  }
 
 #ifdef __cplusplus
 }  // extern "C"
