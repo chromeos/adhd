@@ -239,7 +239,6 @@ cc_library(
         ":dsp_types",
         ":ewma_power",
         "//cras/src/server/rust",
-        "//cras/src:include_here_hack",
         "//cras/src/common",
     ] + select({
         "//:ml_build": ["//cras/src/dsp:am"],

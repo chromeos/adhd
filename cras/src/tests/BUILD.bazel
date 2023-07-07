@@ -1843,7 +1843,6 @@ cc_test(
     target_compatible_with = require_config("//:ml_build"),
     deps = [
         ":test_support",
-        "//cras/src:include_here_hack",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
