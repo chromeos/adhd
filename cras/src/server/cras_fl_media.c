@@ -1261,6 +1261,8 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 }
 
 int floss_media_disconnect_device(struct fl_media* fm, const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
+
   int rc = 0;
 
   syslog(LOG_DEBUG, "%s: %s", __func__, addr);
