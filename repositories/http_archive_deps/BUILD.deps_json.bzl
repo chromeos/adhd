@@ -5,4 +5,7 @@
 """BUILD file for generated dependencies
 """
 
-exports_files(["deps.json"])
+exports_files([
+    "deps.json",
+    "bazel_external_uris_exclude.json",
+])

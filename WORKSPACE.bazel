@@ -83,6 +83,7 @@ pkg_config(
         "openssl",
         "sbc",
         # optional deps
+        "absl",
         "libmetrics",
         "libselinux",
         "libfeatures",
@@ -197,8 +198,6 @@ hedron_compile_commands_setup()
 
 load("//repositories/http_archive_deps:repo.bzl", "http_archive_deps_setup")
 
-http_archive_deps_setup()
-
 http_archive(
     name = "cppcheck",
     build_file = "//:third_party/BUILD.cppcheck.bazel",
@@ -206,3 +205,11 @@ http_archive(
     strip_prefix = "cppcheck-2.10.3",
     urls = ["https://github.com/danmar/cppcheck/archive/refs/tags/2.10.3.tar.gz"],
 )
+
+# Please keep this at the bottom of the WORKSPACE.
+# http_archive_deps_setup can only scan http_archives that are already declared.
+http_archive_deps_setup(bazel_external_uris_exclude = [
+    "cppcheck",
+    "com_google_absl",
+    "protobuf_mutator",  # TODO(b/273122913): Upload to chromeos-localmirror.
+])

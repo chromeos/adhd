@@ -29,17 +29,22 @@ def _deps_json():
 
 def _impl(repository_ctx):
     repository_ctx.file("deps.json", repository_ctx.attr.deps_json)
+    repository_ctx.file("bazel_external_uris_exclude.json", json.encode_indent(repository_ctx.attr.bazel_external_uris_exclude))
     repository_ctx.template("BUILD.bazel", Label("//repositories/http_archive_deps:BUILD.deps_json.bzl"))
 
 _http_archive_deps_repository = repository_rule(
     implementation = _impl,
     attrs = {
         "deps_json": attr.string(),
+        "bazel_external_uris_exclude": attr.string_list(
+            doc = "List of http_archive()s to exclude from bazel_external_uris",
+        ),
     },
 )
 
-def http_archive_deps_setup():
+def http_archive_deps_setup(bazel_external_uris_exclude):
     _http_archive_deps_repository(
         name = "deps_json",
         deps_json = _deps_json(),
+        bazel_external_uris_exclude = bazel_external_uris_exclude,
     )

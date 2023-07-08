@@ -1,0 +1,11 @@
+"""
+This package replaces com_google_absl with the system libs.
+
+To use the system absl instead of the one from http_archive, pass:
+    --override_repository=com_google_absl=/absolute/path/to/third_party/system_absl
+To bazel.
+
+To update generated build files: run generate_build.py.
+"""
+
+workspace(name = "com_google_absl")

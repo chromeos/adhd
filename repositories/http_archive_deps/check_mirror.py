@@ -29,11 +29,16 @@ def repository_cache():
     ).rstrip()
 
 
-def main(deps_sha256_json):
+def main(deps_sha256_json, json_bazel_external_uris_exclude):
     with open(deps_sha256_json) as file:
         deps_sha256 = json.load(file)
+    with open(json_bazel_external_uris_exclude) as file:
+        bazel_external_uris_exclude = set(json.load(file))
 
     for dep in deps_sha256:
+        if dep['name'] in bazel_external_uris_exclude:
+            continue
+
         canonical_name = dep['canonical_name']
         for mirror in MIRRORS:
             url = mirror + canonical_name
@@ -87,4 +92,5 @@ def main(deps_sha256_json):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('deps_sha256_json')
+    parser.add_argument('json_bazel_external_uris_exclude')
     main(**vars(parser.parse_args()))

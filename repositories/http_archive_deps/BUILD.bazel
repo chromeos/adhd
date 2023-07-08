@@ -7,6 +7,11 @@ alias(
     actual = "@deps_json//:deps.json",
 )
 
+alias(
+    name = "bazel_external_uris_exclude.json",
+    actual = "@deps_json//:bazel_external_uris_exclude.json",
+)
+
 py_binary(
     name = "tool",
     srcs = ["tool.py"],
@@ -23,20 +28,26 @@ py_test(
 
 genrule(
     name = "bazel_external_uris",
-    srcs = ["deps.json"],
+    srcs = [
+        "deps.json",
+        "bazel_external_uris_exclude.json",
+    ],
     outs = [
         "bazel_external_uris.txt",
         "deps_sha256.json",
     ],
-    cmd = "$(location :tool) $(<) $(OUTS)",
+    cmd = "$(location :tool) $(location :deps.json) $(location :bazel_external_uris_exclude.json) $(OUTS)",
     tools = [":tool"],
 )
 
 py_binary(
     name = "check_mirror",
     srcs = ["check_mirror.py"],
-    args = ["$(location :deps_sha256.json)"],
-    data = [":deps_sha256.json"],
+    args = ["$(location :deps_sha256.json) $(location :bazel_external_uris_exclude.json)"],
+    data = [
+        ":bazel_external_uris_exclude.json",
+        ":deps_sha256.json",
+    ],
 )
 
 py_binary(

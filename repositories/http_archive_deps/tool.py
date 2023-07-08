@@ -47,9 +47,13 @@ def canonical_name(url):
     return basename
 
 
-def main(json_deps, bazel_external_uris_out, deps_sha256_json_out):
+def main(
+    json_deps, json_bazel_external_uris_exclude, bazel_external_uris_out, deps_sha256_json_out
+):
     with open(json_deps) as file:
         deps = json.load(file)
+    with open(json_bazel_external_uris_exclude) as file:
+        bazel_external_uris_exclude = set(json.load(file))
 
     bazel_external_uris = []
     bazel_external_uri_set = set()
@@ -63,9 +67,11 @@ def main(json_deps, bazel_external_uris_out, deps_sha256_json_out):
         bazel_external_uri_set.add(url)
 
         cname = canonical_name(url)
-        bazel_external_uris.append(f'{url} -> {cname}')
+        if name not in bazel_external_uris_exclude:
+            bazel_external_uris.append(f'{url} -> {cname}')
         deps_sha256.append(
             {
+                'name': name,
                 'canonical_url': url,
                 'urls': urls,
                 'canonical_name': cname,
@@ -85,6 +91,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument('json_deps')
+    parser.add_argument('json_bazel_external_uris_exclude')
     parser.add_argument('bazel_external_uris_out')
     parser.add_argument('deps_sha256_json_out')
     main(**(vars(parser.parse_args())))
