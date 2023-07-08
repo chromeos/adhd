@@ -4,6 +4,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 
@@ -68,7 +69,10 @@ def main(
 
         cname = canonical_name(url)
         if name not in bazel_external_uris_exclude:
-            bazel_external_uris.append(f'{url} -> {cname}')
+            if os.path.basename(url) == cname:
+                bazel_external_uris.append(f'{url}')
+            else:
+                bazel_external_uris.append(f'{url} -> {cname}')
         deps_sha256.append(
             {
                 'name': name,
