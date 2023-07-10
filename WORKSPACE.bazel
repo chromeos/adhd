@@ -206,6 +206,10 @@ http_archive(
     urls = ["https://github.com/danmar/cppcheck/archive/refs/tags/2.10.3.tar.gz"],
 )
 
+load("//:repositories/deps.bzl", "file_deps")
+
+file_deps()
+
 # Please keep this at the bottom of the WORKSPACE.
 # http_archive_deps_setup can only scan http_archives that are already declared.
 http_archive_deps_setup(bazel_external_uris_exclude = [

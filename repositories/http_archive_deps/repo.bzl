@@ -12,7 +12,7 @@ def _deps_json():
     deps = {}
 
     for name, rule in native.existing_rules().items():
-        if rule["kind"] != "http_archive":
+        if rule["kind"] not in ("http_archive", "http_file"):
             continue
 
         # Ignore rules_rust generated repisotiries
