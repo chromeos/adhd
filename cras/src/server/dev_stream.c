@@ -96,7 +96,7 @@ struct dev_stream* dev_stream_create(struct cras_rstream* stream,
      * format to configure format converter.
      */
     cras_stream_apm_start(stream->stream_apm, iodev);
-    ofmt = cras_rstream_post_processing_format(stream, iodev) ?: dev_fmt,
+    ofmt = cras_rstream_post_processing_format(stream, iodev) ?: dev_fmt;
     rc =
         config_format_converter(&out->conv, stream->direction, ofmt, stream_fmt,
                                 iodev->active_node->type, max_frames);

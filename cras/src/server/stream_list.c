@@ -68,7 +68,8 @@ struct stream_list* stream_list_create(stream_callback* add_cb,
   list->stream_removed_cb = rm_cb;
   list->stream_create_cb = create_cb;
   list->stream_destroy_cb = destroy_cb;
-  list->list_changed_cb = list_changed_cb, list->timer_manager = timer_manager;
+  list->list_changed_cb = list_changed_cb;
+  list->timer_manager = timer_manager;
   return list;
 }
 
