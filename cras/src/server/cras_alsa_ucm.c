@@ -131,18 +131,12 @@ static int get_var(struct cras_use_case_mgr* mgr,
                    const char* dev,
                    const char* verb,
                    const char** value) {
-  char* id;
   int rc;
-  size_t len = strlen(var) + strlen(dev) + strlen(verb) + 4;
+  char id[strlen(var) + strlen(dev) + strlen(verb) + 4];
 
-  id = (char*)malloc(len);
-  if (!id) {
-    return -ENOMEM;
-  }
-  snprintf(id, len, "=%s/%s/%s", var, dev, verb);
+  snprintf(id, sizeof(id), "=%s/%s/%s", var, dev, verb);
   rc = snd_use_case_get(mgr->mgr, id, value);
 
-  free((void*)id);
   return rc;
 }
 
