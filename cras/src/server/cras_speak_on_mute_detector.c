@@ -7,9 +7,9 @@
 #include <stdint.h>
 #include <syslog.h>
 
+#include "cras/server/main_message.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/server/main_message.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rtc.h"
@@ -98,7 +98,7 @@ static void maybe_configure_server_vad_stream(
     maybe_destroy_server_vad_stream();
     return;
   }
-  if (target_client_stream->stream_apm) {
+  if (cras_stream_apm_vad_available(target_client_stream->stream_apm)) {
     // Client has APM. Use the client stream's APM.
     maybe_destroy_server_vad_stream();
     return;
@@ -134,14 +134,16 @@ static void maybe_update_vad_target() {
   if (should_run_vad()) {
     if (detector.server_vad_stream) {
       // The existence of a server_vad_stream indicates that
-      // the selected target_client_stream does not have a APM.
+      // the selected target_client_stream does not have a usable APM for VAD.
       target_stream = detector.server_vad_stream;
     } else if (detector.target_client_stream &&
-               detector.target_client_stream->stream_apm) {
+               cras_stream_apm_vad_available(
+                   detector.target_client_stream->stream_apm)) {
       target_stream = detector.target_client_stream;
     }
   }
 
+  // The target_stream if not NULL at this point, always has a VAD capable APM.
   struct cras_stream_apm* new_vad_target =
       target_stream ? target_stream->stream_apm : NULL;
 
@@ -243,8 +245,8 @@ static struct cras_rstream* find_target_client_stream(
     if (!first_rtc_stream) {
       first_rtc_stream = stream;
     }
-    if (stream->stream_apm) {
-      // Prefer RTC streams with a APM.
+    if (cras_stream_apm_vad_available(stream->stream_apm)) {
+      // Prefer RTC streams with a APM suitable for VAD.
       return stream;
     }
   }

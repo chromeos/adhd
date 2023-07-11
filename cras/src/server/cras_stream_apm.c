@@ -495,6 +495,13 @@ struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
   struct cras_stream_apm* stream;
 
   if (effects == 0 &&
+      // cras_stream_apm is a container for cras_apms, and the container's
+      // lifetime is bound to streams.
+      // If the noise cancellation feature is supported, we need to create
+      // the container, even if the initial condition does not require the
+      // use of a cras_apm. The user may turn on noise cancellation afterwards,
+      // or switch from a devices that doesn't support noise cancellation
+      // to one that supports.
       !(cras_system_get_ap_noise_cancellation_supported() &&
         cras_feature_enabled(CrOSLateBootAudioEmptyAPMForCrasProcessor))) {
     return NULL;
@@ -1343,4 +1350,18 @@ static void handle_stream_apm_message(struct cras_main_message* msg,
 int cras_stream_apm_message_handler_init() {
   return cras_main_message_add_handler(CRAS_MAIN_STREAM_APM,
                                        handle_stream_apm_message, NULL);
+}
+
+bool cras_stream_apm_vad_available(struct cras_stream_apm* stream) {
+  // A stream can only provide VAD if the stream has the echo cancellation effect:
+  // 1. We don't want to detect speech coming from the device's speaker.
+  //    An APM with APM_ECHO_CANCELLATION will always have echo cancelled:
+  //    either inside the WebRTC-APM instance or already cancelled by DSP AEC.
+  // 2. cras_stream_apm is just a container for streams to hold multiple cras_apms.
+  //    A stream with the APM_ECHO_CANCELLATION effect will always have a cras_apm attached.
+  //    Streams that don't have AEC may get or lose their cras_apms when the
+  //    user toggles the NC effect from the UI or switch the default input device.
+  //    For simplicity, the voice activity detection target stream selection
+  //    algorithm should not worry about device changes or preference changes.
+  return stream && (stream->effects & APM_ECHO_CANCELLATION);
 }

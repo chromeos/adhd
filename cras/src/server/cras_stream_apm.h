@@ -205,6 +205,10 @@ void cras_stream_apm_notify_vad_target_changed(
 // Initializes the handler of cras_stream_apm_message in the main thread.
 int cras_stream_apm_message_handler_init();
 
+// Returns whether the stream_apm can be used for voice activity detection.
+// Returns false if stream is NULL.
+bool cras_stream_apm_vad_available(struct cras_stream_apm* stream);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

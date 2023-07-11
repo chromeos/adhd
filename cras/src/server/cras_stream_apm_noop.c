@@ -86,3 +86,7 @@ void cras_stream_apm_notify_vad_target_changed(
 int cras_stream_apm_message_handler_init() {
   return 0;
 }
+
+bool cras_stream_apm_vad_available(struct cras_stream_apm* stream) {
+  return false;
+}
