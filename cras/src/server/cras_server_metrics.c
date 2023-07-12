@@ -25,6 +25,7 @@ const char kA2dp20msFailureOverStream[] = "Cras.A2dp20msFailureOverStream";
 const char kA2dp100msFailureOverStream[] = "Cras.A2dp100msFailureOverStream";
 const char kBusyloop[] = "Cras.Busyloop";
 const char kBusyloopLength[] = "Cras.BusyloopLength";
+const char kDeviceOpenStatus[] = "Cras.DeviceOpenStatus";
 const char kDeviceTypeInput[] = "Cras.DeviceTypeInput";
 const char kDeviceTypeOutput[] = "Cras.DeviceTypeOutput";
 const char kDeviceGain[] = "Cras.DeviceGain";
@@ -115,6 +116,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   BUSYLOOP_LENGTH,
   DEVICE_CONFIGURE_TIME,
   DEVICE_GAIN,
+  DEVICE_OPEN_STATUS,
   DEVICE_RUNTIME,
   DEVICE_VOLUME,
   DEVICE_NOISE_CANCELLATION_STATUS,
@@ -1344,6 +1346,29 @@ int cras_server_metrics_stream_create_failure(
   return 0;
 }
 
+int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
+                                           enum CRAS_DEVICE_OPEN_STATUS code) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  int err;
+  union cras_server_metrics_data data = {
+      .device_data =
+          {
+              .type = get_metrics_device_type(iodev),
+              .direction = iodev->direction,
+              .value = code,
+          },
+  };
+
+  init_server_metrics_msg(&msg, DEVICE_OPEN_STATUS, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING, "Failed to send metrics message: DEVICE_OPEN_STATUS");
+    return err;
+  }
+  return 0;
+}
+
 static void metrics_device_runtime(
     struct cras_server_metrics_device_data data) {
   switch (data.type) {
@@ -1571,6 +1596,14 @@ static void metrics_stream_config(
   }
 }
 
+static void metrics_device_open_status(struct cras_server_metrics_device_data data) {
+  log_sparse_histogram_each_level(
+      3, data.value, kDeviceOpenStatus,
+      data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
+      metrics_device_type_str(data.type));
+}
+
+
 static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
   struct cras_server_metrics_message* metrics_msg =
       (struct cras_server_metrics_message*)msg;
@@ -1721,6 +1754,9 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
     case SET_AEC_REF_DEVICE_TYPE:
       cras_metrics_log_sparse_histogram(kSetAecRefDeviceType,
                                         metrics_msg->data.device_data.type);
+      break;
+    case DEVICE_OPEN_STATUS:
+      metrics_device_open_status(metrics_msg->data.device_data);
       break;
     default:
       syslog(LOG_ERR, "Unknown metrics type %u", metrics_msg->metrics_type);

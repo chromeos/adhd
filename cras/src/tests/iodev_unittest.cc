@@ -12,6 +12,7 @@
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_ramp.h"
 #include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/dev_stream.h"
 #include "cras/src/server/input_data.h"
 #include "cras_types.h"
@@ -2986,6 +2987,11 @@ int cras_audio_thread_event_underrun() {
 
 int cras_audio_thread_event_dev_overrun() {
   cras_audio_thread_event_dev_overrun_called++;
+  return 0;
+}
+
+int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
+                                           enum CRAS_DEVICE_OPEN_STATUS code) {
   return 0;
 }
 

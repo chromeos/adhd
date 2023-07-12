@@ -64,4 +64,9 @@ int cras_server_metrics_busyloop_length(unsigned count) {
   return 0;
 }
 
+int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
+                                           enum CRAS_DEVICE_OPEN_STATUS code) {
+  return 0;
+}
+
 }  // extern "C"

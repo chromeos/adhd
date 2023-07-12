@@ -45,6 +45,13 @@ enum CRAS_METRICS_BT_SCO_ERROR_TYPE {
   CRAS_METRICS_SCO_SKT_POLL_ERR_HUP = 4,
 };
 
+enum CRAS_DEVICE_OPEN_STATUS {
+  CRAS_DEVICE_OPEN_SUCCESS,
+  CRAS_DEVICE_OPEN_ERROR_OPEN,
+  CRAS_DEVICE_OPEN_ERROR_SET_FORMAT,
+  CRAS_DEVICE_OPEN_ERROR_CONFIGURE,
+};
+
 enum CRAS_STREAM_CONNECT_ERROR {
   CRAS_STREAM_CONN_INVALID_FORMAT,
   CRAS_STREAM_CONN_INVALID_SHM_SIZE,
@@ -198,6 +205,10 @@ int cras_server_metrics_dlc_manager_status(
     enum CrasDlcId dlc_id,
     int num_retry_times,
     enum CRAS_METRICS_DLC_STATUS dlc_status);
+
+// Logs failures when opening devices.
+int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
+                                           enum CRAS_DEVICE_OPEN_STATUS code);
 
 // Initialize metrics logging stuff.
 int cras_server_metrics_init();

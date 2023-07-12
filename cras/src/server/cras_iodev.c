@@ -1023,6 +1023,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
   if (iodev->open_dev) {
     rc = iodev->open_dev(iodev);
     if (rc) {
+      cras_server_metrics_device_open_status(iodev,
+                                             CRAS_DEVICE_OPEN_ERROR_OPEN);
       return rc;
     }
   }
@@ -1030,6 +1032,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
   if (iodev->format == NULL) {
     rc = cras_iodev_set_format(iodev, fmt);
     if (rc) {
+      cras_server_metrics_device_open_status(iodev,
+                                             CRAS_DEVICE_OPEN_ERROR_SET_FORMAT);
       iodev->close_dev(iodev);
       return rc;
     }
@@ -1038,6 +1042,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
   clock_gettime(CLOCK_MONOTONIC_RAW, &beg);
   rc = iodev->configure_dev(iodev);
   if (rc < 0) {
+    cras_server_metrics_device_open_status(iodev,
+                                           CRAS_DEVICE_OPEN_ERROR_CONFIGURE);
     iodev->close_dev(iodev);
     return rc;
   }
@@ -1105,6 +1111,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
 
   add_ext_dsp_module_to_pipeline(iodev);
   clock_gettime(CLOCK_MONOTONIC_RAW, &iodev->open_ts);
+  cras_server_metrics_device_open_status(iodev, CRAS_DEVICE_OPEN_SUCCESS);
 
   return 0;
 }
