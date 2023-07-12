@@ -25,7 +25,7 @@ def _fuzz_engine_repository(repository_ctx):
 
     repository_ctx.template(
         "BUILD.bazel",
-        repository_ctx.path(Label("//:repositories/fuzz_engine/fuzz_engine.BUILD.tpl")),
+        repository_ctx.path(Label("//repositories:fuzz_engine/fuzz_engine.BUILD.tpl")),
         {
             "@name@": repr(repository_ctx.name),
             "@srcs@": repr(srcs),

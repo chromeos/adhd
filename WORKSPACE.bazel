@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+workspace(name = "adhd")
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # For building from ebuild, we need to download files from following http_archive urls,
@@ -66,7 +68,7 @@ http_archive(
 )
 
 load(
-    ":repositories/pkg_config/pkg_config.bzl",
+    "//repositories:pkg_config/pkg_config.bzl",
     "pkg_config",
 )
 
@@ -101,7 +103,7 @@ local_repository(
     path = "../webrtc-apm",
 )
 
-load("//:repositories/fuzz_engine/fuzz_engine.bzl", "fuzz_engine_repository")
+load("//repositories:fuzz_engine/fuzz_engine.bzl", "fuzz_engine_repository")
 
 fuzz_engine_repository(name = "fuzz_engine")
 
@@ -206,7 +208,7 @@ http_archive(
     urls = ["https://github.com/danmar/cppcheck/archive/refs/tags/2.10.3.tar.gz"],
 )
 
-load("//:repositories/deps.bzl", "file_deps")
+load("//repositories:deps.bzl", "file_deps")
 
 file_deps()
 

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 load("//:utils.bzl", "bool_flag_config", "define_feature")
-load("//:repositories/pkg_config/pkg_config.bzl", "pkg_config_test_suite")
+load("//repositories:pkg_config/pkg_config.bzl", "pkg_config_test_suite")
 load("@hedron_compile_commands//:refresh_compile_commands.bzl", "refresh_compile_commands")
 
 package(default_visibility = [":__subpackages__"])

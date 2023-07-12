@@ -1,0 +1,13 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@bazel_skylib//rules:diff_test.bzl", "diff_test")
+load("//:utils.bzl", "require_config")
+
+diff_test(
+    name = "ensure_deps_bzl_is_in_sync_with_webrtc_apm",
+    file1 = ":deps.bzl",
+    file2 = "@webrtc_apm//:deps.bzl",
+    target_compatible_with = require_config("//:apm_build"),
+)
