@@ -104,6 +104,10 @@ pub trait Amp {
     fn get_fake_temp(&mut self, ch: usize) -> i32 {
         DSM::DEFAULT_FAKE_TEMP as i32
     }
+    /// Set the rdc value by channel index.
+    fn set_rdc(&mut self, ch: usize, rdc: f32) -> Result<()>;
+    /// Set the temp value by channel index.
+    fn set_temp(&mut self, ch: usize, temp: f32) -> Result<()>;
 
     /// Get the number of channels.
     fn num_channels(&mut self) -> usize;

@@ -194,6 +194,21 @@ impl Amp for Max98390 {
         Ok(Some(rdc))
     }
 
+    fn set_rdc(&mut self, ch: usize, rdc: f32) -> Result<()> {
+        self.card
+            .control_by_name::<IntControl>(&self.setting.controls[ch].rdc_ctrl)?
+            .set(Max98390CalibData::ohm_to_rdc(rdc))?;
+        Ok(())
+    }
+
+    /// Set the temp value by channel index.
+    fn set_temp(&mut self, ch: usize, temp: f32) -> Result<()> {
+        self.card
+            .control_by_name::<IntControl>(&self.setting.controls[ch].temp_ctrl)?
+            .set(Max98390CalibData::celsius_to_dsm_unit(temp))?;
+        Ok(())
+    }
+
     fn num_channels(&mut self) -> usize {
         self.setting.num_channels()
     }

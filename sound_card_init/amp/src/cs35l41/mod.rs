@@ -196,6 +196,45 @@ impl Amp for CS35L41 {
         Ok(CS35L41CalibData::rdc_to_ohm(rdc))
     }
 
+    fn set_rdc(&mut self, ch: usize, rdc: f32) -> Result<()> {
+        CS35L41::load_firmware(&mut self.card, &self.setting.controls[ch])?;
+
+        self.card
+            .control_by_name::<FourBytesControl>(&self.setting.controls[ch].cal_r)?
+            .set(CS35L41CalibData::ohm_to_rdc(rdc))?;
+        self.card
+            .control_by_name::<FourBytesControl>(&self.setting.controls[ch].cal_status)?
+            .set(CalibStatus::Success as i32)?;
+        self.card
+            .control_by_name::<FourBytesControl>(&self.setting.controls[ch].cal_checksum)?
+            .set(CS35L41CalibData::ohm_to_rdc(rdc) + CalibStatus::Success as i32)?;
+
+        // Apply calibration result to CSPL by playing music, which causes CSPL to begin running.
+        // When CSPL starts running, it updates the calibration resistance using applied values.
+        let mut zero_player: ZeroPlayer = Default::default();
+        zero_player.start(Self::CALIB_APPLY_TIME)?;
+        zero_player.stop()?;
+
+        Ok(())
+    }
+
+    /// Set the temp value by channel index.
+    fn set_temp(&mut self, ch: usize, temp: f32) -> Result<()> {
+        CS35L41::load_firmware(&mut self.card, &self.setting.controls[ch])?;
+
+        self.card
+            .control_by_name::<FourBytesControl>(&self.setting.controls[ch].cal_ambient)?
+            .set(temp as i32)?;
+
+        // Apply calibration result to CSPL by playing music, which causes CSPL to begin running.
+        // When CSPL starts running, it updates the calibration resistance using applied values.
+        let mut zero_player: ZeroPlayer = Default::default();
+        zero_player.start(Self::CALIB_APPLY_TIME)?;
+        zero_player.stop()?;
+
+        Ok(())
+    }
+
     fn num_channels(&mut self) -> usize {
         self.setting.num_channels()
     }

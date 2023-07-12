@@ -37,8 +37,30 @@ enum Command {
     BootTimeCalibration(BootTimeCalibrationArgs),
     Debug(DebugArgs),
     FakeVPD(FakeVPDArgs),
+    SetCalibrationParam(SetCalibrationParamArgs),
     ReadAppliedRdc(ReadAppliedRdcArgs),
     ReadCurrentRdc(ReadCurrentRdcArgs),
+}
+
+/// set the applied rdc of the input channel
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "set_calib")]
+struct SetCalibrationParamArgs {
+    /// the sound card id
+    #[argh(option)]
+    pub id: String,
+    /// the speaker amp on the device. It should be $(cros_config /audio/main speaker-amp)
+    #[argh(option)]
+    pub amp: String,
+    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf)
+    #[argh(option)]
+    pub conf: String,
+    #[argh(option, description = "channel index")]
+    pub channel: usize,
+    #[argh(option, description = "rdc in ohm")]
+    pub rdc: f32,
+    #[argh(option, description = "temperature in celsius unit")]
+    pub temp: f32,
 }
 
 /// read the applied rdc of the input channel
@@ -160,6 +182,21 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                 rdc_in_ohm: amp.get_applied_rdc(param.channel)?,
             };
             println!("{}", serde_json::to_string(&rdc)?);
+        }
+        Command::SetCalibrationParam(param) => {
+            let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            info!(
+                "cmd: set_applied_rdc sound_card_id: {}, conf:{}, ch: {}, rdc: {}, temp: {}",
+                param.id, param.conf, param.channel, param.rdc, param.temp,
+            );
+
+            if let Err(e) = amp.set_rdc(param.channel, param.rdc) {
+                error!("sound_card_init: set_rdc failed: {}", e);
+            }
+
+            if let Err(e) = amp.set_temp(param.channel, param.temp) {
+                error!("sound_card_init: set_temp failed: {}", e);
+            }
         }
         Command::ReadCurrentRdc(param) => {
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;

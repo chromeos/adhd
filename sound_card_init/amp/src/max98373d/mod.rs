@@ -160,6 +160,39 @@ impl Amp for Max98373 {
         Ok(Some(Max98373CalibData::rdc_to_ohm(rdc[ch])))
     }
 
+    fn set_rdc(&mut self, ch: usize, rdc: f32) -> Result<()> {
+        let mut dsm_param = DSMParam::new(
+            &mut self.card,
+            self.setting.num_channels(),
+            &self.setting.dsm_param_read_ctrl,
+        )?;
+
+        dsm_param.set_rdc(ch, Max98373CalibData::ohm_to_rdc(rdc));
+
+        self.card
+            .control_tlv_by_name(&self.setting.dsm_param_write_ctrl)?
+            .save(dsm_param.into())
+            .map_err(Error::DSMParamUpdateFailed)?;
+        Ok(())
+    }
+
+    /// Set the temp value by channel index.
+    fn set_temp(&mut self, ch: usize, temp: f32) -> Result<()> {
+        let mut dsm_param = DSMParam::new(
+            &mut self.card,
+            self.setting.num_channels(),
+            &self.setting.dsm_param_read_ctrl,
+        )?;
+
+        dsm_param.set_ambient_temp(ch, Max98373CalibData::celsius_to_dsm_unit(temp));
+
+        self.card
+            .control_tlv_by_name(&self.setting.dsm_param_write_ctrl)?
+            .save(dsm_param.into())
+            .map_err(Error::DSMParamUpdateFailed)?;
+        Ok(())
+    }
+
     fn num_channels(&mut self) -> usize {
         self.setting.num_channels()
     }
