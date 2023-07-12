@@ -289,7 +289,7 @@ fn main() {
 }
 
 fn print_analysis_result(results: Vec<Analysis>) {
-    if results.len() == 0 {
+    if results.is_empty() {
         return;
     }
 

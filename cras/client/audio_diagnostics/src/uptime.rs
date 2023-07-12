@@ -20,7 +20,7 @@ pub fn analyze(ps_uptime_output: &str, uptime_output: &str) -> Vec<Analysis> {
     let mut res: Vec<Analysis> = Vec::new();
 
     // If CRAS is not running, ps uptime output will be empty.
-    if ps_uptime_output.trim().len() == 0 {
+    if ps_uptime_output.trim().is_empty() {
         res.push(Analysis {
             name: String::from("uptime-cras-not-running"),
             description: String::from("CRAS is not running"),
