@@ -5,7 +5,7 @@
 mod feature_tier;
 pub use feature_tier::bindings as feature_tier_bindings;
 pub mod cras_processor;
-mod logging;
+pub mod logging;
 mod rate_estimator;
 pub mod rate_estimator_bindings;
 pub use cras_dlc::bindings as cras_dlc_bindings;

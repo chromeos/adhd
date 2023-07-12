@@ -6,7 +6,7 @@
 
 mod uptime;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -16,13 +16,26 @@ use std::process::Command;
 use std::process::Stdio;
 
 use anyhow::Context;
-use cras::pseudonymization::Salt;
+use cras::logging::SimpleStdoutLogger;
+use cras::{
+    fra,
+    fra::{CrasFRASignal, FRALog},
+    pseudonymization::Salt,
+};
 use glob::glob;
 use libcras::CrasClient;
 use regex::Regex;
 
 use crate::uptime::analyze;
-use audio_diagnostics::Analysis;
+use audio_diagnostics::*;
+
+use log::{LevelFilter, SetLoggerError};
+
+static LOGGER: SimpleStdoutLogger = SimpleStdoutLogger;
+
+fn init_log() -> Result<(), SetLoggerError> {
+    log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Info))
+}
 
 /// Fancy wrapper to run a Command.
 fn run_command(cmd: &mut Command) {
@@ -122,6 +135,7 @@ fn dump_amp(output_cards: &[String]) -> Result<(), anyhow::Error> {
 }
 
 fn main() {
+    init_log().expect("cannot init log");
     let salt = Salt::new().expect("cannot generate random salt");
     env::set_var("CRAS_PSEUDONYMIZATION_SALT", u32::from(salt).to_string());
 
@@ -318,30 +332,17 @@ fn dump_active_node() {
         }
     };
 
-    let mut res: Vec<Analysis> = Vec::new();
-
     if let Some(node) = cras_client.output_nodes().find(|node| node.active) {
-        res.push(Analysis {
-            name: format!(
-                "{}_is_active_output_audio_device",
-                node.type_name.to_lowercase()
-            ),
-            description: format!("{} is the active output audio device", node.type_name),
-            suggestion: String::new(),
-            additional_info: String::new(),
-        });
+        fra!(
+            CrasFRASignal::ActiveOutputDevice,
+            HashMap::from([(String::from("type"), node.type_name.to_lowercase())])
+        )
     }
 
     if let Some(node) = cras_client.input_nodes().find(|node| node.active) {
-        res.push(Analysis {
-            name: format!(
-                "{}_is_active_input_audio_device",
-                node.type_name.to_lowercase()
-            ),
-            description: format!("{} is the active input audio device", node.type_name),
-            suggestion: String::new(),
-            additional_info: String::new(),
-        });
+        fra!(
+            CrasFRASignal::ActiveInputDevice,
+            HashMap::from([(String::from("type"), node.type_name.to_lowercase())])
+        )
     }
-    print_analysis_result(res);
 }

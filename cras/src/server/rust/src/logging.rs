@@ -9,6 +9,7 @@ use anyhow::anyhow;
 use log::Level;
 use log::LevelFilter;
 use log::Log;
+use log::Record;
 use nix::unistd::getpid;
 use syslog::BasicLogger;
 use syslog::Facility;
@@ -41,6 +42,25 @@ impl Log for StderrLogger {
 
     fn flush(&self) {
         let _ = std::io::stderr().lock().flush();
+    }
+}
+
+/// A struct that represents a logger that logs to stdout with fixed format "{:LEVEL} - {:LOG}"
+pub struct SimpleStdoutLogger;
+
+impl log::Log for SimpleStdoutLogger {
+    fn enabled(&self, _metadata: &log::Metadata) -> bool {
+        true
+    }
+
+    fn log(&self, record: &Record) {
+        if self.enabled(record.metadata()) {
+            println!("{} - {}", record.level(), record.args());
+        }
+    }
+
+    fn flush(&self) {
+        let _ = std::io::stdout().lock().flush();
     }
 }
 
