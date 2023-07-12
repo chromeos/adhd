@@ -5,9 +5,9 @@
 
 #define _GNU_SOURCE  // Needed for Linux socket credential passing.
 
-#if CRAS_DBUS
+#include "cras/src/server/cras_server.h"
+
 #include <dbus/dbus.h>
-#endif
 #include <errno.h>
 #include <poll.h>
 #include <stdint.h>
@@ -23,12 +23,6 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#if CRAS_DBUS
-#include "cras/src/server/cras_bt_manager.h"
-#include "cras/src/server/cras_dbus.h"
-#include "cras/src/server/cras_dbus_control.h"
-#include "cras/src/server/cras_dlc_manager.h"
-#endif
 #include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
 #include "cras/src/common/cras_metrics.h"
@@ -36,7 +30,11 @@
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
+#include "cras/src/server/cras_bt_manager.h"
+#include "cras/src/server/cras_dbus.h"
+#include "cras/src/server/cras_dbus_control.h"
 #include "cras/src/server/cras_device_monitor.h"
+#include "cras/src/server/cras_dlc_manager.h"
 #include "cras/src/server/cras_feature_monitor.h"
 #include "cras/src/server/cras_hotword_handler.h"
 #include "cras/src/server/cras_iodev_list.h"
@@ -44,7 +42,6 @@
 #include "cras/src/server/cras_non_empty_audio_handler.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rclient.h"
-#include "cras/src/server/cras_server.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
@@ -515,9 +512,7 @@ static void cleanup_server_sockets() {
 
 int cras_server_run(unsigned int profile_disable_mask) {
   static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
-#if CRAS_DBUS
   DBusConnection* dbus_conn;
-#endif
   int rc = 0;
   struct attached_client* elm;
   struct client_callback* client_cb;
@@ -567,7 +562,6 @@ int cras_server_run(unsigned int profile_disable_mask) {
     goto bail;
   }
 
-#if CRAS_DBUS
   if (!dbus_threads_init_default()) {
     goto bail;
   }
@@ -576,7 +570,6 @@ int cras_server_run(unsigned int profile_disable_mask) {
     cras_bt_start(dbus_conn, profile_disable_mask);
     cras_dbus_control_start(dbus_conn);
   }
-#endif
 
   for (int conn_type = 0; conn_type < CRAS_NUM_CONN_TYPE; conn_type++) {
     rc = create_and_listen_server_socket(
@@ -685,11 +678,9 @@ int cras_server_run(unsigned int profile_disable_mask) {
 
     cleanup_select_fds(&server_instance);
 
-#if CRAS_DBUS
     if (dbus_conn) {
       cras_dbus_dispatch(dbus_conn);
     }
-#endif
 
     cras_alert_process_all_pending_alerts();
   }

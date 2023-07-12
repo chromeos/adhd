@@ -14,19 +14,17 @@
 #include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/cras_fl_manager.h"
 #include "cras/src/server/cras_floop_iodev.h"
+#include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_stream_apm.h"
-#include "cras_config.h"
-#if CRAS_DBUS
-#include "cras/src/server/cras_hfp_ag_profile.h"
-#endif
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rclient.h"
 #include "cras/src/server/cras_rclient_util.h"
 #include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -421,17 +419,10 @@ static int ccr_handle_message_from_client(struct cras_rclient* client,
       struct cras_server_state* state;
 
       state = cras_system_state_get_no_lock();
-#if CRAS_DBUS
       memcpy(&state->bt_debug_info.bt_log, btlog,
              sizeof(state->bt_debug_info.bt_log));
       memcpy(&state->bt_debug_info.wbs_logger, cras_hfp_ag_get_wbs_logger(),
              sizeof(state->bt_debug_info.wbs_logger));
-#else
-      memset(&state->bt_debug_info.bt_log, 0,
-             sizeof(state->bt_debug_info.bt_log));
-      memset(&state->bt_debug_info.wbs_logger, 0,
-             sizeof(state->bt_debug_info.wbs_logger));
-#endif
       state->bt_debug_info.floss_enabled = cras_floss_get_enabled();
 
       cras_fill_client_audio_debug_info_ready(&msg);

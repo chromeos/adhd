@@ -3,15 +3,13 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_utf8.h"
+
+#include <dbus/dbus.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
-#if CRAS_DBUS
-#include <dbus/dbus.h>
-#endif
-
-#include "cras/src/server/cras_utf8.h"
 #include "cras_util.h"
 
 static const uint8_t kUTF8ByteOrderMask[3] = {0xef, 0xbb, 0xbf};
@@ -157,18 +155,9 @@ error:
   return ret;
 }
 
-#if CRAS_DBUS
 /* Use the DBus implementation if available to ensure that the UTF-8
  * sequences match those expected by the DBus implementation. */
 
 int is_utf8_string(const char* string) {
   return !!dbus_validate_utf8(string, NULL);
 }
-
-#else
-
-int is_utf8_string(const char* string) {
-  return valid_utf8_string(string, NULL);
-}
-
-#endif

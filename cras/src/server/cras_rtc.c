@@ -2,16 +2,14 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+#include "cras/src/server/cras_rtc.h"
+
 #include <syslog.h>
 
-#if CRAS_DBUS
-#include "cras/src/server/cras_dbus_control.h"
-#endif
-
 #include "cras/src/common/cras_string.h"
+#include "cras/src/server/cras_dbus_control.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
@@ -52,13 +50,11 @@ static struct rtc_data* find_rtc_stream(struct rtc_data* list,
 }
 
 static void notify_rtc_active_now(bool was_active) {
-#if CRAS_DBUS
   bool now_active = cras_rtc_is_running();
 
   if (now_active != was_active) {
     cras_dbus_notify_rtc_active(now_active);
   }
-#endif
 }
 
 bool cras_rtc_check_stream_config(const struct cras_rstream* stream) {

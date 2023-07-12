@@ -66,14 +66,11 @@ config_setting(
 
 cc_library(
     name = "build_config",
-    defines =
-        [
-            "CRAS_DBUS=1",
-        ] + define_feature("//:selinux_build", "CRAS_SELINUX") +
-        define_feature("//:apm_build", "HAVE_WEBRTC_APM") +
-        define_feature("//:metrics_build", "HAVE_LIB_METRICS") +
-        define_feature("//:hats_build", "HAVE_HATS") +
-        define_feature("//:fuzzer_build", "HAVE_FUZZER"),
+    defines = define_feature("//:selinux_build", "CRAS_SELINUX") +
+              define_feature("//:apm_build", "HAVE_WEBRTC_APM") +
+              define_feature("//:metrics_build", "HAVE_LIB_METRICS") +
+              define_feature("//:hats_build", "HAVE_HATS") +
+              define_feature("//:fuzzer_build", "HAVE_FUZZER"),
     target_compatible_with = select({
         ":incompatible_selinux_fuzzer_build": ["@platforms//:incompatible"],
         "//conditions:default": [],
