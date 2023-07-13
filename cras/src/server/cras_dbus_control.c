@@ -194,6 +194,8 @@ void cras_dbus_notify_rtc_active(bool active) {
   if (!dbus_connection_send(dbus_control.conn, msg, NULL)) {
     syslog(LOG_WARNING, "%s: Error sending dbus message.", __func__);
   }
+
+  syslog(LOG_INFO, "Notified SetRTCAudioActive=%s", active ? "true" : "false");
 }
 
 // Helper to send an bool reply.
