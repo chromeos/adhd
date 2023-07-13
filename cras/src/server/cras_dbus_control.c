@@ -1905,7 +1905,7 @@ static void signal_num_stream_ignore_ui_gains_changed(void* context, int num) {
     return;
   }
 
-  dbus_message_append_args(msg, DBUS_TYPE_BOOLEAN, &num, DBUS_TYPE_INVALID);
+  dbus_message_append_args(msg, DBUS_TYPE_INT32, &num, DBUS_TYPE_INVALID);
 
   dbus_connection_send(control->conn, msg, &serial);
   dbus_message_unref(msg);
