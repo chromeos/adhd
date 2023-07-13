@@ -13,6 +13,7 @@
 #include <syslog.h>
 #include <vector>
 
+#include "cras/base/check.h"
 #include "cras/src/common/edid_utils.h"
 #include "cras/src/server/cras_alsa_jack.h"
 #include "cras/src/server/cras_alsa_jack_private.h"
@@ -1096,7 +1097,7 @@ int gpio_switch_read(int fd, void* buf, size_t n_bytes) {
    * callback is invoked.  That code is not exercised by this
    * unittest.
    */
-  assert(0);
+  CRAS_CHECK(0);
   return 0;
 }
 

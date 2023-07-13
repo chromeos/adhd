@@ -12,6 +12,7 @@
 #include <alsa/asoundlib.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/platform/features/features.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
@@ -679,12 +680,12 @@ void cras_alsa_card_destroy(struct cras_alsa_card* alsa_card) {
 }
 
 size_t cras_alsa_card_get_index(const struct cras_alsa_card* alsa_card) {
-  assert(alsa_card);
+  CRAS_CHECK(alsa_card);
   return alsa_card->card_index;
 }
 
 enum CRAS_ALSA_CARD_TYPE cras_alsa_card_get_type(
     const struct cras_alsa_card* alsa_card) {
-  assert(alsa_card);
+  CRAS_CHECK(alsa_card);
   return alsa_card->card_type;
 }

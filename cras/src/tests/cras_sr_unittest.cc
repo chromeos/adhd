@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "cras/base/check.h"
 #include "cras/src/common/sample_buffer.h"
 #include "cras/src/dsp/am.h"
 #include "cras/src/server/cras_sr.h"
@@ -30,7 +31,7 @@ inline void Fill(struct byte_buffer* buf, T value, size_t num_samples) {
       break;
     }
   }
-  assert(num_samples == 0);
+  CRAS_CHECK(num_samples == 0);
 }
 
 template <typename T>

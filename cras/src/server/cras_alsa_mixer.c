@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_alsa_ucm.h"
@@ -1145,7 +1146,7 @@ int cras_alsa_mixer_add_controls_in_section(struct cras_alsa_mixer* cmix,
 }
 
 void cras_alsa_mixer_destroy(struct cras_alsa_mixer* cras_mixer) {
-  assert(cras_mixer);
+  CRAS_CHECK(cras_mixer);
 
   mixer_control_destroy_list(cras_mixer->main_volume_controls);
   mixer_control_destroy_list(cras_mixer->main_capture_controls);
@@ -1171,7 +1172,7 @@ void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer* cras_mixer,
   struct mixer_control* c;
   long to_set;
 
-  assert(cras_mixer);
+  CRAS_CHECK(cras_mixer);
 
   if (dBFS > 0) {
     syslog(LOG_WARNING, "dBFS to set should <= 0 but instead %ld", dBFS);
@@ -1236,7 +1237,7 @@ int cras_alsa_mixer_get_playback_step(struct mixer_control* mixer_output) {
 void cras_alsa_mixer_set_capture_dBFS(struct cras_alsa_mixer* cras_mixer,
                                       long dBFS,
                                       struct mixer_control* mixer_input) {
-  assert(cras_mixer);
+  CRAS_CHECK(cras_mixer);
 
   // Ensure the mixer is _not_ muted.
   if (cras_mixer->capture_switch) {
@@ -1276,7 +1277,7 @@ long cras_alsa_mixer_get_minimum_capture_gain(
   struct mixer_control* c;
   long total_min = 0;
 
-  assert(cmix);
+  CRAS_CHECK(cmix);
   DL_FOREACH (cmix->main_capture_controls, c) {
     if (c->has_volume) {
       total_min += c->min_volume_dB;
@@ -1295,7 +1296,7 @@ long cras_alsa_mixer_get_maximum_capture_gain(
   struct mixer_control* c;
   long total_max = 0;
 
-  assert(cmix);
+  CRAS_CHECK(cmix);
   DL_FOREACH (cmix->main_capture_controls, c) {
     if (c->has_volume) {
       total_max += c->max_volume_dB;
@@ -1312,7 +1313,7 @@ long cras_alsa_mixer_get_maximum_capture_gain(
 void cras_alsa_mixer_set_mute(struct cras_alsa_mixer* cras_mixer,
                               int muted,
                               struct mixer_control* mixer_output) {
-  assert(cras_mixer);
+  CRAS_CHECK(cras_mixer);
 
   if (cras_mixer->playback_switch) {
     snd_mixer_selem_set_playback_switch_all(cras_mixer->playback_switch,
@@ -1326,14 +1327,14 @@ void cras_alsa_mixer_set_mute(struct cras_alsa_mixer* cras_mixer,
 void cras_alsa_mixer_list_outputs(struct cras_alsa_mixer* cras_mixer,
                                   cras_alsa_mixer_control_callback cb,
                                   void* cb_arg) {
-  assert(cras_mixer);
+  CRAS_CHECK(cras_mixer);
   list_controls(cras_mixer->output_controls, cb, cb_arg);
 }
 
 void cras_alsa_mixer_list_inputs(struct cras_alsa_mixer* cras_mixer,
                                  cras_alsa_mixer_control_callback cb,
                                  void* cb_arg) {
-  assert(cras_mixer);
+  CRAS_CHECK(cras_mixer);
   list_controls(cras_mixer->input_controls, cb, cb_arg);
 }
 
@@ -1352,7 +1353,7 @@ struct mixer_control* cras_alsa_mixer_get_control_matching_name(
     int create_missing) {
   struct mixer_control* c;
 
-  assert(cras_mixer);
+  CRAS_CHECK(cras_mixer);
   if (!name) {
     return NULL;
   }
@@ -1381,7 +1382,7 @@ struct mixer_control* cras_alsa_mixer_get_control_matching_name(
 struct mixer_control* cras_alsa_mixer_get_control_for_section(
     struct cras_alsa_mixer* cras_mixer,
     const struct ucm_section* section) {
-  assert(cras_mixer && section);
+  CRAS_CHECK(cras_mixer && section);
   if (section->mixer_name) {
     return cras_alsa_mixer_get_control_matching_name(cras_mixer, section->dir,
                                                      section->mixer_name, 0);
@@ -1411,7 +1412,7 @@ struct mixer_control* cras_alsa_mixer_get_input_matching_name(
 
 int cras_alsa_mixer_set_output_active_state(struct mixer_control* output,
                                             int active) {
-  assert(output);
+  CRAS_CHECK(output);
   if (!output->has_mute) {
     return -EINVAL;
   }

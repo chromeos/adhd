@@ -46,6 +46,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/base/check.h"
 #include "cras/src/common/cras_file_wait.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/common/cras_string.h"
@@ -2150,7 +2151,7 @@ static int handle_command_message(struct cras_client* client,
       rc = server_connect(client);
       break;
     default:
-      assert(0);
+      CRAS_CHECK(0);
       break;
   }
 
@@ -3059,8 +3060,8 @@ int cras_client_run_thread(struct cras_client* client) {
     return 0;
   }
 
-  assert(client->command_reply_fds[0] == -1 &&
-         client->command_reply_fds[1] == -1);
+  CRAS_CHECK(client->command_reply_fds[0] == -1 &&
+             client->command_reply_fds[1] == -1);
 
   if (pipe(client->command_reply_fds) < 0) {
     return -EIO;

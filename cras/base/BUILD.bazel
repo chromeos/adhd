@@ -1,0 +1,25 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+cc_library(
+    name = "base",
+    visibility = ["//cras:__subpackages__"],
+    deps = [":check"],
+)
+
+cc_library(
+    name = "check",
+    srcs = ["check.c"],
+    hdrs = ["check.h"],
+)
+
+cc_test(
+    name = "check_test",
+    srcs = ["check_test.cc"],
+    deps = [
+        ":check",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)

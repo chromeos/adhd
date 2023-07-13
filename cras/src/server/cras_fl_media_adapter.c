@@ -4,7 +4,6 @@
  */
 #include "cras/src/server/cras_fl_media_adapter.h"
 
-#include <assert.h>
 #include <errno.h>
 #include <regex.h>
 #include <stdio.h>
@@ -12,6 +11,7 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_fl_media.h"
@@ -131,7 +131,7 @@ int handle_on_bluetooth_device_added(struct fl_media* active_fm,
 
 int handle_on_bluetooth_device_removed(struct fl_media* active_fm,
                                        const char* addr) {
-  assert(active_fm != NULL);
+  CRAS_CHECK(active_fm != NULL);
   if (!active_fm->bt_io_mgr) {
     syslog(LOG_WARNING, "No device has been added.");
     return -EINVAL;
@@ -160,7 +160,7 @@ int handle_on_bluetooth_device_removed(struct fl_media* active_fm,
 
 int handle_on_absolute_volume_supported_changed(struct fl_media* active_fm,
                                                 bool abs_vol_supported) {
-  assert(active_fm != NULL);
+  CRAS_CHECK(active_fm != NULL);
   if (!active_fm->bt_io_mgr || !active_fm->a2dp) {
     syslog(LOG_WARNING,
            "No active a2dp device. Skip the absolute volume support change");
@@ -177,7 +177,7 @@ int handle_on_absolute_volume_supported_changed(struct fl_media* active_fm,
 
 int handle_on_absolute_volume_changed(struct fl_media* active_fm,
                                       uint8_t volume) {
-  assert(active_fm != NULL);
+  CRAS_CHECK(active_fm != NULL);
   if (!active_fm->bt_io_mgr || !active_fm->a2dp) {
     syslog(LOG_WARNING, "No active a2dp device. Skip the volume update");
     return -EINVAL;
@@ -194,7 +194,7 @@ int handle_on_absolute_volume_changed(struct fl_media* active_fm,
 int handle_on_hfp_volume_changed(struct fl_media* active_fm,
                                  const char* addr,
                                  uint8_t volume) {
-  assert(active_fm != NULL);
+  CRAS_CHECK(active_fm != NULL);
   int rc = validate_bluetooth_device_address(addr);
   if (rc) {
     syslog(LOG_WARNING, "Erroneous bluetooth device address match %d", rc);
@@ -214,7 +214,7 @@ int handle_on_hfp_volume_changed(struct fl_media* active_fm,
 
 int handle_on_hfp_audio_disconnected(struct fl_media* active_fm,
                                      const char* addr) {
-  assert(active_fm != NULL);
+  CRAS_CHECK(active_fm != NULL);
   int rc = validate_bluetooth_device_address(addr);
   if (rc) {
     syslog(LOG_WARNING, "Erroneous bluetooth device address match %d", rc);

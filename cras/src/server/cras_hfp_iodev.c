@@ -5,13 +5,13 @@
 
 #include "cras/src/server/cras_hfp_iodev.h"
 
-#include <assert.h>
 #include <stdbool.h>
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_hfp_slc.h"

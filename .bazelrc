@@ -11,7 +11,7 @@ build --cxxopt=-std=gnu++20
 
 build --copt=-Wall
 
-# Ensure assert() is executed.
+# Ensure CRAS_CHECK() is executed.
 build --copt=-UNDEBUG
 
 # Pthread support

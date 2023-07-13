@@ -5,6 +5,7 @@
 
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/cras_volume_curve.h"
 #include "cras/src/server/iniparser_wrapper.h"
 #include "cras_util.h"
@@ -94,7 +95,7 @@ struct cras_card_config* cras_card_config_create(const char* config_path,
 }
 
 void cras_card_config_destroy(struct cras_card_config* card_config) {
-  assert(card_config);
+  CRAS_CHECK(card_config);
   iniparser_freedict(card_config->ini);
   free(card_config);
 }

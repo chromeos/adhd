@@ -356,7 +356,7 @@ static size_t get_best_channel_count(struct cras_iodev* iodev, size_t count) {
   static const size_t preferred_channel_count = 2;
   size_t i;
 
-  assert(iodev->supported_channel_counts[0] != 0);
+  CRAS_CHECK(iodev->supported_channel_counts[0] != 0);
 
   for (i = 0; iodev->supported_channel_counts[i] != 0; i++) {
     if (iodev->supported_channel_counts[i] == count) {

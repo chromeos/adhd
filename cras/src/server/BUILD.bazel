@@ -467,6 +467,7 @@ cc_library(
         ":cras_sr",
         ":dsp_types",
         ":ewma_power",
+        "//cras/base",
         "//cras/platform/features",
         "//cras/server:main_message",
         "//cras/src/common",

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/common/sample_buffer.h"
 #include "cras/src/dsp/am.h"
 #include "cras/src/server/cras_fmt_conv_ops.h"
@@ -63,8 +64,8 @@ struct cras_sr {
 
 struct cras_sr* cras_sr_create(const struct cras_sr_model_spec spec,
                                const size_t input_nbytes) {
-  assert(input_nbytes % sizeof(int16_t) == 0 &&
-         "input buffer size must be multiple of sizeof(int16_t).");
+  CRAS_CHECK(input_nbytes % sizeof(int16_t) == 0 &&
+             "input buffer size must be multiple of sizeof(int16_t).");
   struct cras_sr* sr = NULL;
 
   sr = calloc(1, sizeof(*sr));

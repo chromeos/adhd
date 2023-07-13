@@ -15,6 +15,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/base/check.h"
 #include "cras/src/common/cras_string.h"
 #include "cras_util.h"
 
@@ -63,7 +64,7 @@ void gpio_switch_list_for_each(gpio_switch_list_callback callback, void* arg) {
   }
 
   udev = udev_new();
-  assert(udev != NULL);
+  CRAS_CHECK(udev != NULL);
   enumerate = udev_enumerate_new(udev);
   udev_enumerate_add_match_subsystem(enumerate, "input");
   udev_enumerate_scan_devices(enumerate);

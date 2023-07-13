@@ -2,7 +2,6 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include <assert.h>
 #include <errno.h>
 #include <libudev.h>
 #include <regex.h>
@@ -14,6 +13,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/base/check.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/common/cras_checksum.h"
 #include "cras/src/common/cras_string.h"
@@ -413,13 +413,13 @@ static void udev_sound_subsystem_callback(void* arg, int revents) {
 
 static void compile_regex(regex_t* regex, const char* str) {
   __attribute__((__unused__)) int r = regcomp(regex, str, REG_EXTENDED);
-  assert(r == 0);
+  CRAS_CHECK(r == 0);
 }
 
 static struct udev_callback_data udev_data;
 void cras_udev_start_sound_subsystem_monitor() {
   udev_data.udev = udev_new();
-  assert(udev_data.udev != NULL);
+  CRAS_CHECK(udev_data.udev != NULL);
   udev_data.mon = udev_monitor_new_from_netlink(udev_data.udev, "udev");
 
   udev_monitor_filter_add_match_subsystem_devtype(udev_data.mon, subsystem,
@@ -429,7 +429,7 @@ void cras_udev_start_sound_subsystem_monitor() {
 
   __attribute__((__unused__)) int r = cras_system_add_select_fd(
       udev_data.fd, udev_sound_subsystem_callback, &udev_data, POLLIN);
-  assert(r == 0);
+  CRAS_CHECK(r == 0);
   compile_regex(&pcm_regex, pcm_regex_string);
   compile_regex(&card_regex, card_regex_string);
 

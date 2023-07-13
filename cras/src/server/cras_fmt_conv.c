@@ -13,6 +13,7 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/cras_fmt_conv_ops.h"
 #include "cras/src/server/linear_resampler.h"
 #include "cras_audio_format.h"
@@ -657,7 +658,7 @@ struct cras_fmt_conv* cras_fmt_conv_create(const struct cras_audio_format* in,
     }
   }
 
-  assert(conv->num_converters <= MAX_NUM_CONVERTERS);
+  CRAS_CHECK(conv->num_converters <= MAX_NUM_CONVERTERS);
 
   return conv;
 }
@@ -807,8 +808,8 @@ size_t cras_fmt_conv_convert_frames(struct cras_fmt_conv* conv,
   unsigned int pre_linear_resample = 0;
   unsigned int linear_resample_fr = 0;
 
-  assert(conv);
-  assert(*in_frames <= conv->tmp_buf_frames);
+  CRAS_CHECK(conv);
+  CRAS_CHECK(*in_frames <= conv->tmp_buf_frames);
 
   if (linear_resampler_needed(conv->resampler)) {
     post_linear_resample = !conv->pre_linear_resample;

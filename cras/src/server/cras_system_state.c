@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alert.h"
@@ -162,7 +163,7 @@ void cras_system_state_init(const char* device_config_dir,
   struct cras_board_config board_config;
   int rc;
 
-  assert(sizeof(*exp_state) == exp_state_size);
+  CRAS_CHECK(sizeof(*exp_state) == exp_state_size);
   state.shm_size = sizeof(*exp_state);
 
   strncpy(state.shm_name, shm_name, sizeof(state.shm_name));

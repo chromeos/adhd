@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/server/main_message.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_iodev_list.h"
@@ -197,7 +198,7 @@ void cras_speak_on_mute_detector_init() {
                                               }};
 
   // Should never fail for static configuration.
-  assert(speak_on_mute_detector_init(&detector.impl, &cfg) == 0);
+  CRAS_CHECK(speak_on_mute_detector_init(&detector.impl, &cfg) == 0);
 
   detector.enabled = false;
   detector.target_client_stream = NULL;

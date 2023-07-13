@@ -10,6 +10,7 @@
 #include <syslog.h>
 
 #include "audio_processor/c/plugin_processor.h"
+#include "cras/base/check.h"
 #include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
 #include "cras/src/common/byte_buffer.h"
@@ -1214,8 +1215,8 @@ int cras_stream_apm_process(struct cras_apm* apm,
      * TODO(hychao): remove this when we're ready for multi channel
      * capture process.
      */
-    assert(output.channels == 1);
-    assert(output.num_frames == nread);
+    CRAS_CHECK(output.channels == 1);
+    CRAS_CHECK(output.num_frames == nread);
     for (ch = 0; ch < apm->fbuffer->num_channels; ch++) {
       // TODO(aaronyu): audio_processor does not guarantee that the output and
       // the input don't overlap. It's better to call dsp_util_interleave
@@ -1353,15 +1354,18 @@ int cras_stream_apm_message_handler_init() {
 }
 
 bool cras_stream_apm_vad_available(struct cras_stream_apm* stream) {
-  // A stream can only provide VAD if the stream has the echo cancellation effect:
+  // A stream can only provide VAD if the stream has the echo cancellation
+  // effect:
   // 1. We don't want to detect speech coming from the device's speaker.
   //    An APM with APM_ECHO_CANCELLATION will always have echo cancelled:
   //    either inside the WebRTC-APM instance or already cancelled by DSP AEC.
-  // 2. cras_stream_apm is just a container for streams to hold multiple cras_apms.
-  //    A stream with the APM_ECHO_CANCELLATION effect will always have a cras_apm attached.
-  //    Streams that don't have AEC may get or lose their cras_apms when the
-  //    user toggles the NC effect from the UI or switch the default input device.
-  //    For simplicity, the voice activity detection target stream selection
-  //    algorithm should not worry about device changes or preference changes.
+  // 2. cras_stream_apm is just a container for streams to hold multiple
+  // cras_apms.
+  //    A stream with the APM_ECHO_CANCELLATION effect will always have a
+  //    cras_apm attached. Streams that don't have AEC may get or lose their
+  //    cras_apms when the user toggles the NC effect from the UI or switch the
+  //    default input device. For simplicity, the voice activity detection
+  //    target stream selection algorithm should not worry about device changes
+  //    or preference changes.
   return stream && (stream->effects & APM_ECHO_CANCELLATION);
 }

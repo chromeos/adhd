@@ -79,6 +79,7 @@ cc_library(
     ],
     deps = [
         "//:build_config",
+        "//cras/base",
         "//cras/include",
         "//cras/src/common:cras_string",
         "//cras/src/common:cras_types",
@@ -160,12 +161,15 @@ cc_library(
     name = "cras_util",
     srcs = ["cras_util.c"],
     visibility = [
+        "//cras/server:__pkg__",
         "//cras/src/benchmark:__pkg__",
         "//cras/src/libcras:__pkg__",
         "//cras/src/server:__pkg__",
-	"//cras/server:__pkg__",
     ],
-    deps = ["//cras/src/common:cras_types"],
+    deps = [
+        "//cras/base",
+        "//cras/src/common:cras_types",
+    ],
 )
 
 genrule(

@@ -383,7 +383,7 @@ static void usb_set_alsa_volume(struct cras_iodev* iodev) {
   size_t volume;
   struct alsa_usb_output_node* aout;
 
-  assert(aio);
+  CRAS_CHECK(aio);
   if (aio->common.mixer == NULL) {
     return;
   }
@@ -433,7 +433,7 @@ static void usb_set_alsa_capture_gain(struct cras_iodev* iodev) {
   const struct alsa_usb_io* aio = (const struct alsa_usb_io*)iodev;
   struct alsa_usb_input_node* ain;
   long min_capture_gain, max_capture_gain, gain;
-  assert(aio);
+  CRAS_CHECK(aio);
   if (aio->common.mixer == NULL) {
     return;
   }
@@ -473,7 +473,7 @@ static int usb_set_alsa_node_swapped(struct cras_iodev* iodev,
                                      struct cras_ionode* node,
                                      int enable) {
   const struct alsa_usb_io* aio = (const struct alsa_usb_io*)iodev;
-  assert(aio);
+  CRAS_CHECK(aio);
   return ucm_enable_swap_mode(aio->common.ucm, node->ucm_name, enable);
 }
 

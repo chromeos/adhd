@@ -22,6 +22,7 @@ cc_library(
         "//cras/src/tests:__pkg__",
     ],
     deps = [
+        "//cras/base",
         "//cras/src/common",
         "//cras/src/server:cras_volume_curve",
         "//cras/src/server:iniparser_wrapper",

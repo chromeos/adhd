@@ -5,7 +5,7 @@
 
 #include "cras/src/tests/sr_bt_util_stub.h"
 
-#include <assert.h>
+#include "cras/base/check.h"
 
 namespace {
 
@@ -49,7 +49,7 @@ struct cras_sr_model_spec cras_sr_bt_get_model_spec(
       break;
     }
     default:
-      assert(0 && "unknown model type.");
+      CRAS_CHECK(0 && "unknown model type.");
   }
   return spec;
 }

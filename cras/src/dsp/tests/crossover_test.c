@@ -3,12 +3,12 @@
  * found in the LICENSE file.
  */
 
-#include <assert.h>
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
+#include "cras/base/check.h"
 #include "cras/src/dsp/crossover.h"
 #include "cras/src/dsp/dsp_util.h"
 #include "cras/src/dsp/tests/dsp_test_util.h"

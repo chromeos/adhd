@@ -6,11 +6,11 @@
 #ifndef CRAS_SRC_SERVER_SOFTVOL_CURVE_H_
 #define CRAS_SRC_SERVER_SOFTVOL_CURVE_H_
 
-#include <assert.h>
 #include <math.h>
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/cras_volume_curve.h"
 
 #ifdef __cplusplus
@@ -31,7 +31,7 @@ static inline float softvol_get_scaler_default(unsigned int volume_index) {
 
 static inline float softvol_get_scaler(float* scalers,
                                        unsigned int volume_index) {
-  assert(scalers);
+  CRAS_CHECK(scalers);
   volume_index = MIN(volume_index, MAX_VOLUME);
   return scalers[volume_index];
 }

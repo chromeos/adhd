@@ -76,6 +76,7 @@ cc_library(
         ":crossover2",
         ":drc_kernel",
         ":eq2",
+        "//cras/base",
     ],
 )
 
@@ -99,6 +100,7 @@ cc_library(
     linkopts = ["-lm"],
     deps = [
         ":drc_math",
+        "//cras/base",
         "//cras/include",
     ],
 )

@@ -8,6 +8,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "cras/base/check.h"
 #include "cras/src/common/sample_buffer.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -91,8 +92,8 @@ void cras_iodev_sr_bt_adapter_destroy(
 static unsigned copy_mono_area_to_sample_buffer(
     const struct cras_audio_area* area,
     struct sample_buffer* buf) {
-  assert(area->num_channels == 1);
-  assert(area->channels[0].step_bytes == sizeof(int16_t));
+  CRAS_CHECK(area->num_channels == 1);
+  CRAS_CHECK(area->channels[0].step_bytes == sizeof(int16_t));
 
   const unsigned ori_src_frames = area->frames;
   unsigned remaining_frames = ori_src_frames;

@@ -8,6 +8,7 @@
 #include <alsa/asoundlib.h>
 #include <stdint.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_alsa_ucm.h"
@@ -32,7 +33,7 @@ inline struct cras_iodev* cras_alsa_iodev_ops_create(
     size_t usb_vid,
     size_t usb_pid,
     char* usb_serial_number) {
-  assert(ops->create);
+  CRAS_CHECK(ops->create);
   return ops->create(card_index, card_name, device_index, pcm_name, dev_name,
                      dev_id, card_type, is_first, mixer, config, ucm, hctl,
                      direction, usb_vid, usb_pid, usb_serial_number);
@@ -41,7 +42,7 @@ inline struct cras_iodev* cras_alsa_iodev_ops_create(
 inline int cras_alsa_iodev_ops_legacy_complete_init(
     struct cras_alsa_iodev_ops* ops,
     struct cras_iodev* iodev) {
-  assert(ops->legacy_complete_init);
+  CRAS_CHECK(ops->legacy_complete_init);
   return ops->legacy_complete_init(iodev);
 }
 
@@ -49,29 +50,29 @@ inline int cras_alsa_iodev_ops_ucm_add_nodes_and_jacks(
     struct cras_alsa_iodev_ops* ops,
     struct cras_iodev* iodev,
     struct ucm_section* section) {
-  assert(ops->ucm_add_nodes_and_jacks);
+  CRAS_CHECK(ops->ucm_add_nodes_and_jacks);
   return ops->ucm_add_nodes_and_jacks(iodev, section);
 }
 inline void cras_alsa_iodev_ops_ucm_complete_init(
     struct cras_alsa_iodev_ops* ops,
     struct cras_iodev* iodev) {
-  assert(ops->ucm_complete_init);
+  CRAS_CHECK(ops->ucm_complete_init);
   ops->ucm_complete_init(iodev);
 }
 inline void cras_alsa_iodev_ops_destroy(struct cras_alsa_iodev_ops* ops,
                                         struct cras_iodev* iodev) {
-  assert(ops->destroy);
+  CRAS_CHECK(ops->destroy);
   ops->destroy(iodev);
 }
 
 inline unsigned cras_alsa_iodev_ops_index(struct cras_alsa_iodev_ops* ops,
                                           struct cras_iodev* iodev) {
-  assert(ops->index);
+  CRAS_CHECK(ops->index);
   return ops->index(iodev);
 }
 
 inline int cras_alsa_iodev_ops_has_hctl_jacks(struct cras_alsa_iodev_ops* ops,
                                               struct cras_iodev* iodev) {
-  assert(ops->has_hctl_jacks);
+  CRAS_CHECK(ops->has_hctl_jacks);
   return ops->has_hctl_jacks(iodev);
 }

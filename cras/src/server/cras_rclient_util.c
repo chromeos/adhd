@@ -7,6 +7,7 @@
 
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rclient.h"
@@ -310,7 +311,7 @@ int rclient_handle_message_from_client(struct cras_rclient* client,
                                        int* fds,
                                        unsigned int num_fds) {
   int rc = 0;
-  assert(client && msg);
+  CRAS_CHECK(client && msg);
 
   rc = rclient_validate_message_fds(msg, fds, num_fds);
   if (rc < 0) {

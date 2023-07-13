@@ -24,6 +24,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/base/check.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/cras_version.h"
 #include "cras/src/server/rust/include/pseudonymization.h"
@@ -91,8 +92,9 @@ uint32_t salted_id(uint32_t stable_id) {
 
 static void init_salt() {
   int rc = pseudonymize_salt_get_from_env(&salt);
-  assert(rc != -EINVAL && "CRAS_PSEUDONYMIZATION_SALT set but invalid");
-  assert(rc == 0 && "Unknown error initializing CRAS_PSEUDONYMIZATION_SALT");
+  CRAS_CHECK(rc != -EINVAL && "CRAS_PSEUDONYMIZATION_SALT set but invalid");
+  CRAS_CHECK(rc == 0 &&
+             "Unknown error initializing CRAS_PSEUDONYMIZATION_SALT");
 }
 
 // ionode flags used in --print_nodes_inlined
@@ -135,14 +137,14 @@ static void thread_priority_cb(struct cras_client* client) {
     case THREAD_PRIORITY_NONE:
       break;
     case THREAD_PRIORITY_NICE:
-      assert(0 == cras_set_nice_level(niceness_level));
+      CRAS_CHECK(0 == cras_set_nice_level(niceness_level));
       break;
     case THREAD_PRIORITY_RT_RR:
-      assert(0 == cras_set_rt_scheduling(rt_priority));
-      assert(0 == cras_set_thread_priority(rt_priority));
+      CRAS_CHECK(0 == cras_set_rt_scheduling(rt_priority));
+      CRAS_CHECK(0 == cras_set_thread_priority(rt_priority));
       break;
     default:
-      assert(false && "thread_priority is unset!");
+      CRAS_CHECK(false && "thread_priority is unset!");
   }
 }
 
@@ -366,10 +368,10 @@ static int parse_node_id_with_value(char* input,
 
 // Signal done_cond so the main thread can continue execution
 static void signal_done() {
-  assert(pthread_mutex_lock(&done_mutex) == 0);
+  CRAS_CHECK(pthread_mutex_lock(&done_mutex) == 0);
   done_flag = true;
-  assert(pthread_cond_signal(&done_cond) == 0);
-  assert(pthread_mutex_unlock(&done_mutex) == 0);
+  CRAS_CHECK(pthread_cond_signal(&done_cond) == 0);
+  CRAS_CHECK(pthread_mutex_unlock(&done_mutex) == 0);
 }
 
 /*
@@ -619,7 +621,7 @@ static void print_device_lists(struct cras_client* client) {
 // str_truncate(10, "foo") -> "foo"
 // str_truncate(10, "a very long string") -> "a v...ring"
 static char* str_truncate(int len, char* str) {
-  assert(len >= 3);
+  CRAS_CHECK(len >= 3);
   int actual_len = strlen(str);
   if (actual_len <= len) {
     return str;
@@ -645,7 +647,7 @@ static void print_nodes_inlined_for_direction(
     int num_nodes,
     bool is_input) {
   bool* has_associated_node = calloc(sizeof(bool), num_devs);
-  assert(has_associated_node != NULL);
+  CRAS_CHECK(has_associated_node != NULL);
 
   for (int i = 0; i < num_nodes; i++) {
     const struct cras_ionode_info* node = &nodes[i];
@@ -701,7 +703,7 @@ static void print_nodes_inlined_for_direction(
 
   // every dev should have a node associated with it
   for (int i = 0; i < num_devs; i++) {
-    assert(has_associated_node[i]);
+    CRAS_CHECK(has_associated_node[i]);
   }
 
   free(has_associated_node);

@@ -4,10 +4,10 @@
  */
 #include "cras/src/server/cras_control_rclient.h"
 
-#include <assert.h>
 #include <stdlib.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_bt_log.h"
@@ -280,7 +280,7 @@ static int ccr_handle_message_from_client(struct cras_rclient* client,
                                           int* fds,
                                           unsigned int num_fds) {
   int rc = 0;
-  assert(client && msg);
+  CRAS_CHECK(client && msg);
 
   rc = rclient_validate_message_fds(msg, fds, num_fds);
   if (rc < 0) {

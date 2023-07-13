@@ -5,10 +5,10 @@
 
 #include "cras/src/server/cras_rclient.h"
 
-#include <assert.h>
 #include <stdlib.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_capture_rclient.h"

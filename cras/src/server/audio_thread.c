@@ -16,6 +16,7 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
 #include "cras/src/server/cras_device_monitor.h"
@@ -1051,7 +1052,7 @@ int audio_thread_add_stream(struct audio_thread* thread,
                             unsigned int num_devs) {
   struct audio_thread_add_rm_stream_msg msg;
 
-  assert(thread && stream);
+  CRAS_CHECK(thread && stream);
 
   if (!thread->started) {
     return -EINVAL;
@@ -1066,7 +1067,7 @@ int audio_thread_disconnect_stream(struct audio_thread* thread,
                                    struct cras_iodev* dev) {
   struct audio_thread_add_rm_stream_msg msg;
 
-  assert(thread && stream);
+  CRAS_CHECK(thread && stream);
 
   init_add_rm_stream_msg(&msg, AUDIO_THREAD_DISCONNECT_STREAM, stream, &dev, 0);
   return audio_thread_post_message(thread, &msg.header);
@@ -1076,7 +1077,7 @@ int audio_thread_drain_stream(struct audio_thread* thread,
                               struct cras_rstream* stream) {
   struct audio_thread_add_rm_stream_msg msg;
 
-  assert(thread && stream);
+  CRAS_CHECK(thread && stream);
 
   init_add_rm_stream_msg(&msg, AUDIO_THREAD_DRAIN_STREAM, stream, NULL, 0);
   return audio_thread_post_message(thread, &msg.header);
@@ -1215,7 +1216,7 @@ int audio_thread_add_open_dev(struct audio_thread* thread,
                               struct cras_iodev* dev) {
   struct audio_thread_open_device_msg msg;
 
-  assert(thread && dev);
+  CRAS_CHECK(thread && dev);
 
   if (!thread->started) {
     return -EINVAL;
@@ -1230,7 +1231,7 @@ int audio_thread_rm_open_dev(struct audio_thread* thread,
                              unsigned int dev_idx) {
   struct audio_thread_rm_device_msg msg;
 
-  assert(thread);
+  CRAS_CHECK(thread);
   if (!thread->started) {
     return -EINVAL;
   }
@@ -1256,7 +1257,7 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
                                 enum CRAS_IODEV_RAMP_REQUEST request) {
   struct audio_thread_dev_start_ramp_msg msg;
 
-  assert(thread);
+  CRAS_CHECK(thread);
 
   if (!thread->started) {
     return -EINVAL;

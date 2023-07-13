@@ -5,10 +5,10 @@
 
 #include "cras/src/server/cras_sr_bt_util.h"
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "cras/base/check.h"
 #include "cras/platform/features/features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_server_metrics.h"
@@ -57,7 +57,7 @@ struct cras_sr_model_spec cras_sr_bt_get_model_spec(
       break;
     }
     default:
-      assert(0 && "unknown model type.");
+      CRAS_CHECK(0 && "unknown model type.");
   }
   return spec;
 }
@@ -86,7 +86,7 @@ void cras_sr_bt_send_uma_log(struct cras_iodev* iodev,
       break;
     }
     default:
-      assert(0 && "unknown status.");
+      CRAS_CHECK(0 && "unknown status.");
   }
   cras_server_metrics_hfp_mic_sr_status(iodev, log_status);
 }

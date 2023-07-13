@@ -8,6 +8,8 @@
 #include <cras_client.h>
 #include <sys/socket.h>
 
+#include "cras/base/check.h"
+
 // Holds configuration for the alsa plugin.
 struct snd_pcm_cras {
   // ALSA ioplug object.
@@ -45,7 +47,7 @@ static void snd_pcm_cras_free(struct snd_pcm_cras* pcm_cras) {
   if (pcm_cras == NULL) {
     return;
   }
-  assert(!pcm_cras->stream_playing);
+  CRAS_CHECK(!pcm_cras->stream_playing);
   if (pcm_cras->fd >= 0) {
     close(pcm_cras->fd);
   }
@@ -338,7 +340,7 @@ static int snd_pcm_cras_open(snd_pcm_t** pcmp,
   int rc;
   int fd[2];
 
-  assert(pcmp);
+  CRAS_CHECK(pcmp);
   pcm_cras = calloc(1, sizeof(*pcm_cras));
   if (!pcm_cras) {
     return -ENOMEM;

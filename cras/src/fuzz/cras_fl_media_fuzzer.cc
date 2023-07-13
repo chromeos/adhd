@@ -2,7 +2,6 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include <assert.h>
 #include <cstdio>
 #include <cstring>
 #include <fuzzer/FuzzedDataProvider.h>
@@ -11,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_bt_log.h"

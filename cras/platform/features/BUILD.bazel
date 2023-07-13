@@ -25,7 +25,7 @@ cc_library(
         "//cras/src/server:__pkg__",
         "//cras/src/tests:__pkg__",
     ],
-    deps = select({
+    deps = ["//cras/base"] + select({
         "//:featured_build": [
             "@pkg_config//libchrome",
             "@pkg_config//libfeatures",

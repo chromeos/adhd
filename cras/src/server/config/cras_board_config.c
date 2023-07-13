@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/iniparser_wrapper.h"
 #include "cras_util.h"
 
@@ -67,7 +68,7 @@ void cras_board_config_get(const char* config_path,
   if (ini == NULL) {
     // No valid ini. Create empty dictionary to set defaults.
     ini = dictionary_new(0);
-    assert(ini != NULL);
+    CRAS_CHECK(ini != NULL);
     snprintf(ini_name, sizeof(ini_name), "<none>");
   }
 
@@ -89,7 +90,7 @@ void cras_board_config_get(const char* config_path,
 }
 
 void cras_board_config_clear(struct cras_board_config* board_config) {
-  assert(board_config);
+  CRAS_CHECK(board_config);
   free(board_config->ucm_ignore_suffix);
   memset(board_config, 0, sizeof(*board_config));
 }

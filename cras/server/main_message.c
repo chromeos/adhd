@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 
+#include "cras/base/check.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 
@@ -63,7 +64,7 @@ void cras_main_message_rm_handler(enum CRAS_MAIN_MESSAGE_TYPE type) {
 }
 
 int cras_main_message_send(struct cras_main_message* msg) {
-  assert(msg->length <= CRAS_MAIN_MESSAGE_MAX_LENGTH && "message too long");
+  CRAS_CHECK(msg->length <= CRAS_MAIN_MESSAGE_MAX_LENGTH && "message too long");
 
   int err = write(main_msg_fds[1], msg, msg->length);
   if (err < 0) {

@@ -27,6 +27,9 @@ cc_library(
     testonly = True,
     srcs = ["test_util.cc"],
     hdrs = ["test_util.hh"],
+    deps = [
+        "//cras/base",
+    ],
 )
 
 cc_test(
@@ -39,6 +42,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -100,6 +104,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -160,6 +165,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -178,6 +184,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -199,6 +206,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/common:cras_log",
         "//cras/src/server:all_headers",
@@ -222,6 +230,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -240,6 +249,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -350,6 +360,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -382,6 +393,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
@@ -522,6 +534,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -541,6 +554,7 @@ cc_test(
     deps = [
         ":test_support",
         ":test_util",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -601,6 +615,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/libcras:all_headers",
         "@pkg_config//alsa",
@@ -625,6 +640,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/libcras:all_headers",
         "@pkg_config//alsa",
@@ -669,6 +685,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/plc:all_headers",
         "//cras/src/server:all_headers",
@@ -711,6 +728,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -856,6 +874,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
@@ -1091,6 +1110,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1166,6 +1186,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1209,6 +1230,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1230,6 +1252,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1341,6 +1364,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1359,6 +1383,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1444,6 +1469,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1584,6 +1610,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1627,6 +1654,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:headers",
@@ -1687,6 +1715,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -1726,6 +1755,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server:cras_mix",
@@ -1829,6 +1859,7 @@ cc_test(
     target_compatible_with = require_config("//:apm_build"),
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
@@ -1850,6 +1881,7 @@ cc_test(
     target_compatible_with = require_config("//:ml_build"),
     deps = [
         ":test_support",
+        "//cras/base",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
