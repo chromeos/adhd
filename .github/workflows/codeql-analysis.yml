@@ -53,6 +53,7 @@ jobs:
       run: |
         sudo apt-get install -y \
           build-essential \
+          clang \
           ladspa-sdk \
           libasound-dev \
           libdbus-1-dev \
@@ -66,7 +67,7 @@ jobs:
 
     - name: Build
       # Build without the sandbox so the CodeQL library hooks work.
-      run: bazel build //... --action_env=LD_PRELOAD --spawn_strategy=standalone
+      run: bazel build //... --action_env=LD_PRELOAD --config=local-clang --spawn_strategy=standalone
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
