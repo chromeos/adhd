@@ -90,3 +90,7 @@ int cras_stream_apm_message_handler_init() {
 bool cras_stream_apm_vad_available(struct cras_stream_apm* stream) {
   return false;
 }
+
+bool cras_apm_needed_for_effects(uint64_t effects, bool cras_processor_needed) {
+  return false;
+}

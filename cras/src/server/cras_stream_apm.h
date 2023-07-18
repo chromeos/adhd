@@ -209,6 +209,9 @@ int cras_stream_apm_message_handler_init();
 // Returns false if stream is NULL.
 bool cras_stream_apm_vad_available(struct cras_stream_apm* stream);
 
+// Returns true if the stream effects requires the use of APM.
+bool cras_apm_needed_for_effects(uint64_t effects, bool cras_processor_needed);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

@@ -492,23 +492,35 @@ static void apm_destroy(struct cras_apm** apm) {
   *apm = NULL;
 }
 
-struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
-  struct cras_stream_apm* stream;
+static inline bool apm_needed_for_effects(uint64_t effects,
+                                          bool cras_processor_needed) {
+  if (effects &
+      (APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL)) {
+    // Required for webrtc-apm.
+    return true;
+  }
+  if (cras_processor_needed &&
+      cras_feature_enabled(CrOSLateBootAudioEmptyAPMForCrasProcessor)) {
+    // Required for hosting cras_processor.
+    return true;
+  }
+  return false;
+}
 
-  if (effects == 0 &&
-      // cras_stream_apm is a container for cras_apms, and the container's
-      // lifetime is bound to streams.
-      // If the noise cancellation feature is supported, we need to create
-      // the container, even if the initial condition does not require the
-      // use of a cras_apm. The user may turn on noise cancellation afterwards,
-      // or switch from a devices that doesn't support noise cancellation
-      // to one that supports.
-      !(cras_system_get_ap_noise_cancellation_supported() &&
-        cras_feature_enabled(CrOSLateBootAudioEmptyAPMForCrasProcessor))) {
+struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
+  if (!apm_needed_for_effects(
+          effects,
+          // Assume the stream may need cras_processor.
+          // Whether a stream need NC, and by extension cras_processor
+          // cannot be known at stream creation as the active device
+          // may change (from not support NC to support NC), or the user
+          // may touch the platform NC toggle.
+          /*cras_processor_needed=*/true)) {
     return NULL;
   }
 
-  stream = (struct cras_stream_apm*)calloc(1, sizeof(*stream));
+  struct cras_stream_apm* stream =
+      (struct cras_stream_apm*)calloc(1, sizeof(*stream));
   if (stream == NULL) {
     syslog(LOG_ERR, "No memory in creating stream apm");
     return NULL;
@@ -639,11 +651,8 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       cras_processor_get_effect(nc_provided_by_ap, stream->effects);
 
   // TODO(hychao): Remove the check when we enable more effects.
-  if (!((stream->effects & APM_ECHO_CANCELLATION) ||
-        (stream->effects & APM_NOISE_SUPRESSION) ||
-        (stream->effects & APM_GAIN_CONTROL) ||
-        (cras_feature_enabled(CrOSLateBootAudioEmptyAPMForCrasProcessor) &&
-         cp_effect != NoEffects))) {
+  if (!apm_needed_for_effects(
+          stream->effects, /*cras_processor_needed=*/cp_effect != NoEffects)) {
     return NULL;
   }
 
