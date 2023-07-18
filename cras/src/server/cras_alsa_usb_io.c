@@ -189,7 +189,9 @@ static int usb_configure_dev(struct cras_iodev* iodev) {
 
 error_out:
 
-  FRALOG(USBAudioConfigureFailed, {"name", iodev->info.name},
+  FRALOG(USBAudioConfigureFailed,
+         {"vid", tlsprintf("%zx", aio->common.vendor_id)},
+         {"pid", tlsprintf("%zx", aio->common.product_id)},
          {"error", snd_strerror(rc)});
 
   syslog(LOG_ERR, "card type: %s, name: %s, Failed to configure_dev, ret: %s",
@@ -223,7 +225,9 @@ static int usb_start(struct cras_iodev* iodev) {
   if (snd_pcm_state(handle) == SND_PCM_STATE_SUSPENDED) {
     rc = cras_alsa_attempt_resume(handle);
     if (rc < 0) {
-      FRALOG(USBAudioResumeFailed, {"name", iodev->info.name},
+      FRALOG(USBAudioResumeFailed,
+             {"vid", tlsprintf("%zx", aio->common.vendor_id)},
+             {"pid", tlsprintf("%zx", aio->common.product_id)},
              {"error", snd_strerror(rc)});
       syslog(LOG_ERR, "card type: %s, name: %s, Resume error: %s",
              cras_card_type_to_string(aio->common.card_type), iodev->info.name,
@@ -234,7 +238,9 @@ static int usb_start(struct cras_iodev* iodev) {
   } else {
     rc = cras_alsa_pcm_start(handle);
     if (rc < 0) {
-      FRALOG(USBAudioStartFailed, {"name", iodev->info.name},
+      FRALOG(USBAudioStartFailed,
+             {"vid", tlsprintf("%zx", aio->common.vendor_id)},
+             {"pid", tlsprintf("%zx", aio->common.product_id)},
              {"error", snd_strerror(rc)});
       syslog(LOG_ERR, "card type: %s, name: %s, Start error: %s",
              cras_card_type_to_string(aio->common.card_type), iodev->info.name,
@@ -638,7 +644,9 @@ static void usb_set_output_node_software_volume_needed(
   if (volume_range_db < db_to_alsa_db(VOLUME_RANGE_DB_MIN) ||
       volume_range_db > db_to_alsa_db(VOLUME_RANGE_DB_MAX)) {
     output->base.software_volume_needed = 1;
-    FRALOG(USBAudioSoftwareVolumeAbnormalRange, {"name", output->base.name});
+    FRALOG(USBAudioSoftwareVolumeAbnormalRange,
+           {"vid", tlsprintf("%zx", aio->common.vendor_id)},
+           {"pid", tlsprintf("%zx", aio->common.product_id)});
     syslog(LOG_WARNING,
            "card type: %s, name: %s, output volume range [%ld %ld] is abnormal."
            "Fallback to software volume",
@@ -651,7 +659,9 @@ static void usb_set_output_node_software_volume_needed(
     output->base.software_volume_needed = 1;
     output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
 
-    FRALOG(USBAudioSoftwareVolumeAbnormalSteps, {"name", output->base.name});
+    FRALOG(USBAudioSoftwareVolumeAbnormalSteps,
+           {"vid", tlsprintf("%zx", aio->common.vendor_id)},
+           {"pid", tlsprintf("%zx", aio->common.product_id)});
     syslog(LOG_WARNING,
            "card type: %s, name: %s, output number_of_volume_steps [%" PRId32
            "] is abnormally small."
@@ -1112,7 +1122,9 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
   if (node == NULL) {
     if (aio->common.fully_specified) {
       // When fully specified, can't have new nodes.
-      FRALOG(USBAudioUCMNoJack, {"name", aio->common.base.info.name});
+      FRALOG(USBAudioUCMNoJack,
+             {"vid", tlsprintf("%zx", aio->common.vendor_id)},
+             {"pid", tlsprintf("%zx", aio->common.product_id)});
       syslog(LOG_ERR,
              "card type: %s, name: %s, No matching output node for jack %s!",
              cras_card_type_to_string(aio->common.card_type),
@@ -1129,7 +1141,9 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
 
   if (!node->jack) {
     if (aio->common.fully_specified) {
-      FRALOG(USBAudioUCMWrongJack, {"name", aio->common.base.info.name});
+      FRALOG(USBAudioUCMWrongJack,
+             {"vid", tlsprintf("%zx", aio->common.vendor_id)},
+             {"pid", tlsprintf("%zx", aio->common.product_id)});
       syslog(LOG_ERR,
              "card type: %s, name: %s, Jack '%s' was found to match output "
              "node '%s'."
@@ -1253,8 +1267,8 @@ static void usb_set_iodev_name(struct cras_iodev* dev,
   aio->common.product_id = usb_pid;
 
   FRALOG(PeripheralsUsbSoundCard, {"deviceName", dev->info.name},
-         {"idVendor", tlsprintf("%zx", usb_vid)},
-         {"idProduct", tlsprintf("%zx", usb_pid)});
+         {"vid", tlsprintf("%zx", usb_vid)},
+         {"pid", tlsprintf("%zx", usb_pid)});
   syslog(LOG_INFO,
          "Add cardType=USB, deviceName=%s, idVendor=%zx, idProduct=%zx, "
          "direction=%s",
