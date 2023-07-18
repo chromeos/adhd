@@ -242,13 +242,13 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
 
         let mut chunk = (&mut sample_source).take((frames * frame_size) as u64);
         let transferred = io::copy(&mut chunk, &mut buffer).map_err(Error::Io)?;
-        let _transferred_frames = (transferred / frame_size as u64) as usize;
+        let transferred_frames = (transferred / frame_size as u64) as usize;
 
         buffer.commit();
 
         // if duration is specified
         if let Some(frames) = duration_frames {
-            let remaining_frames = frames.saturating_sub(0);
+            let remaining_frames = frames.saturating_sub(transferred_frames);
             if remaining_frames == 0 {
                 break;
             }
@@ -444,12 +444,12 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
     while !INTERRUPTED.load(Ordering::Acquire) {
         let mut buf = stream.next_capture_buffer().map_err(Error::FetchStream)?;
         let transferred = io::copy(&mut buf, &mut sample_sink).map_err(Error::Io)?;
-        let _transferred_frames = (transferred / frame_rate as u64) as usize;
+        let transferred_frames = (transferred / frame_rate as u64) as usize;
         buf.commit();
 
         // if duration is specified
         if let Some(frames) = duration_frames {
-            let remaining_frames = frames.saturating_sub(0);
+            let remaining_frames = frames.saturating_sub(transferred_frames);
             if remaining_frames == 0 {
                 break;
             }
