@@ -689,5 +689,6 @@
   "timeout": "1200s",
   "options": {
     "machineType": "E2_HIGHCPU_32"
-  }
+  },
+  "CoP_hide_full_logs": true
 }

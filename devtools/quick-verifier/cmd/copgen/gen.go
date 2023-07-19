@@ -27,6 +27,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to marshal JSON: ", err)
 	}
+
+	bjson = setCopParams(bjson)
+
 	var buf bytes.Buffer
 	if err := json.Indent(&buf, bjson, "", "  "); err != nil {
 		log.Fatal("Failed to indent JSON: ", err)
@@ -45,4 +48,9 @@ func main() {
 			log.Fatal("Failed to write build: ", err)
 		}
 	}
+}
+
+func setCopParams(json []byte) []byte {
+	json[len(json)-1] = ','
+	return append(json, []byte(`"CoP_hide_full_logs": true}`)...)
 }
