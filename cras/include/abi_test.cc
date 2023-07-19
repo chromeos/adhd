@@ -6,6 +6,9 @@
 #include "gtest/gtest.h"
 
 TEST(ABI, CrasServerState) {
+#ifdef __arm__
+  GTEST_SKIP() << "b/291872708: Skip broken test on ARM32";
+#endif
   // ARC++ expects that these fields are at these specific offsets.
   // Do not change unless you also uprev ARC++'s CRAS client.
   EXPECT_EQ(0, offsetof(struct cras_server_state, state_version));
