@@ -25,9 +25,9 @@ const char* tlsprintf(const char* fmt, ...);
 // {"key2", tlsprintf("%zx",int_value2)});
 //
 // It allows at most 8 tlsprintf calls within a FRALOG call.
-#define FRALOG(signal, ...)                                        \
-  {                                                                \
-    struct cras_fra_kv_t context[] = {__VA_ARGS__};                \
+#define FRALOG(signal, ...)                                                  \
+  {                                                                          \
+    const struct cras_fra_kv_t context[] = {__VA_ARGS__};                    \
     fralog(signal, sizeof(context) / sizeof(struct cras_fra_kv_t), context); \
   }
 
