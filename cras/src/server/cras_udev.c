@@ -109,10 +109,30 @@ static bool is_dummy_device(struct udev_device* dev) {
   return strstr(udev_device_get_devpath(dev), "snd_dummy") != NULL;
 }
 
+static bool is_hda_intel_pch(struct udev_device* dev) {
+  struct udev_device* parent = dev;
+
+  while (parent != NULL) {
+    const char* id = udev_device_get_sysattr_value(parent, "id");
+    // Currently, the only ID that needs to be matched is "PCH"
+    // Check for ID with "PCH" prefix, as it is likely that other devices with
+    // "PCH" prefix ID has similar behavior.
+    if (id != NULL && (strncmp(id, "PCH", 3) == 0)) {
+      return true;
+    }
+    parent = udev_device_get_parent(parent);
+  }
+  return false;
+}
+
 static enum CRAS_ALSA_CARD_TYPE check_device_type(struct udev_device* dev) {
   // treat snd_dummy as external USB device
   if (is_dummy_device(dev)) {
     return ALSA_CARD_TYPE_USB;
+  }
+  // Special case: HDA Intel PCH cards are internal cards with dmic and speaker
+  if (is_hda_intel_pch(dev)) {
+    return ALSA_CARD_TYPE_INTERNAL;
   }
   struct udev_device* parent = udev_device_get_parent(dev);
 
@@ -139,7 +159,6 @@ static unsigned is_card_device(struct udev_device* dev,
                                const char** sysname) {
   regmatch_t m[2];
   const char* devpath = udev_device_get_devpath(dev);
-
   if (devpath != NULL &&
       regexec(&card_regex, devpath, ARRAY_SIZE(m), m, 0) == 0) {
     *sysname = udev_device_get_sysname(dev);
