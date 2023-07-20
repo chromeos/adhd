@@ -359,6 +359,10 @@ static int fill_node_list(struct iodev_list* list,
            node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP)) {
         node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
       }
+      if (cras_system_get_sr_bt_supported() &&
+          node->type == CRAS_NODE_TYPE_BLUETOOTH_NB_MIC) {
+        node_info->audio_effect |= EFFECT_TYPE_HFP_MIC_SR;
+      }
       node_info->number_of_volume_steps = node->number_of_volume_steps;
       node_info++;
       i++;

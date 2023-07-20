@@ -133,7 +133,8 @@ enum ionode_attr {
  */
 enum audio_effect_type {
   // Noise Cancellation support.
-  EFFECT_TYPE_NOISE_CANCELLATION = 1 << 0
+  EFFECT_TYPE_NOISE_CANCELLATION = 1 << 0,
+  EFFECT_TYPE_HFP_MIC_SR = 1 << 1,
 };
 
 #ifdef __cplusplus

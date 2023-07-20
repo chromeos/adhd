@@ -115,6 +115,7 @@ static int cras_stream_apm_set_aec_ref_called;
 static int cras_stream_apm_remove_called;
 static int cras_stream_apm_add_called;
 static struct cras_floop_pair* cras_floop_pair_create_return;
+static bool cras_system_get_sr_bt_supported_return = false;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
@@ -159,6 +160,8 @@ class IodevTests : public TestBase {
     fmt_.format = SND_PCM_FORMAT_S16_LE;
     fmt_.frame_rate = 48000;
     fmt_.num_channels = 2;
+
+    memset(&server_state_stub, 0, sizeof(struct cras_server_state));
 
     memset(&d1_, 0, sizeof(d1_));
     memset(&d2_, 0, sizeof(d2_));
@@ -268,6 +271,7 @@ class IodevTests : public TestBase {
     server_state_hotword_pause_at_suspend = 0;
     cras_system_get_max_internal_mic_gain_return = DEFAULT_MAX_INPUT_NODE_GAIN;
     cras_floop_pair_create_return = NULL;
+    cras_system_get_sr_bt_supported_return = false;
   }
   void SetUp() override {
     cras_iodev_list_reset();
@@ -3258,6 +3262,55 @@ TEST_F(IoDevTestSuite, RequestFloop) {
   cras_iodev_list_reset();
 }
 
+TEST_F(IoDevTestSuite, BluetoothNbMicAudioEffectHasSr) {
+  cras_system_get_sr_bt_supported_return = true;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  d1_.nodes->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+
+  d2_.direction = CRAS_STREAM_INPUT;
+  d2_.nodes->type = CRAS_NODE_TYPE_MIC;
+
+  d3_.direction = CRAS_STREAM_OUTPUT;
+  d3_.nodes->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+
+  EXPECT_EQ(server_state_stub.num_input_nodes, 0);
+  EXPECT_EQ(server_state_stub.num_output_nodes, 0);
+
+  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add_output(&d3_), 0);
+
+  EXPECT_EQ(server_state_stub.num_input_nodes, 2);
+  EXPECT_EQ(server_state_stub.num_output_nodes, 1);
+
+  EXPECT_EQ(server_state_stub.input_nodes[1].audio_effect,
+            EFFECT_TYPE_HFP_MIC_SR);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, 0);
+  EXPECT_EQ(server_state_stub.output_nodes[0].audio_effect, 0);
+
+  cras_iodev_list_deinit();
+}
+
+TEST_F(IoDevTestSuite, BluetoothNbMicAudioEffectSrNotSupported) {
+  cras_system_get_sr_bt_supported_return = false;
+
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  d1_.nodes->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+
+  EXPECT_EQ(server_state_stub.num_input_nodes, 0);
+  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
+  EXPECT_EQ(server_state_stub.num_input_nodes, 1);
+
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, 0);
+
+  cras_iodev_list_deinit();
+}
+
 }  //  namespace
 
 extern "C" {
@@ -3690,6 +3743,10 @@ int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev* iodev) {
 }
 int cras_server_metrics_stream_add_failure(enum CRAS_STREAM_ADD_ERROR code) {
   return 0;
+}
+
+bool cras_system_get_sr_bt_supported() {
+  return cras_system_get_sr_bt_supported_return;
 }
 
 }  // extern "C"
