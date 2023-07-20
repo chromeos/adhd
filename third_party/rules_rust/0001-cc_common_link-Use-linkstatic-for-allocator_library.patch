@@ -1,0 +1,24 @@
+From 32a476eb459f5a81b2ef69e93e861126d8a36ea3 Mon Sep 17 00:00:00 2001
+From: Li-Yu Yu <aaronyu@google.com>
+Date: Thu, 20 Jul 2023 21:49:32 +0800
+Subject: [PATCH] cc_common_link: Use linkstatic for allocator_library
+
+---
+ test/cc_common_link/BUILD.bazel | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/test/cc_common_link/BUILD.bazel b/test/cc_common_link/BUILD.bazel
+index ef952e2f..534f3703 100644
+--- a/test/cc_common_link/BUILD.bazel
++++ b/test/cc_common_link/BUILD.bazel
+@@ -10,6 +10,7 @@ load(
+ cc_library(
+     name = "allocator_library",
+     srcs = ["allocator_library.cc"],
++    linkstatic = 1,
+     visibility = ["//visibility:public"],
+ )
+ 
+-- 
+2.41.0.255.g8b1d071c50-goog
+

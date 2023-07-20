@@ -145,6 +145,8 @@ http_archive(
 
 http_archive(
     name = "rust_cc_common_link",
+    patch_args = ["-p3"],
+    patches = ["//:third_party/rules_rust/0001-cc_common_link-Use-linkstatic-for-allocator_library.patch"],
     sha256 = RULES_RUST_SHA256,
     strip_prefix = "test/cc_common_link",
     urls = [
