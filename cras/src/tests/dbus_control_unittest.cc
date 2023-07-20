@@ -186,8 +186,8 @@ int cras_floss_set_enabled(bool enable) {
 void cras_system_set_bt_wbs_enabled(bool enabled) {
   return;
 }
-int cras_system_set_noise_cancellation_enabled(bool enable) {
-  return 0;
+void cras_system_set_noise_cancellation_enabled(bool enable) {
+  return;
 }
 bool cras_system_get_noise_cancellation_supported() {
   return true;
@@ -195,11 +195,17 @@ bool cras_system_get_noise_cancellation_supported() {
 void cras_system_set_bypass_block_noise_cancellation(bool bypass) {
   return;
 }
+void cras_system_set_sr_bt_enabled(bool enabled) {
+  return;
+}
+bool cras_system_get_sr_bt_supported() {
+  return false;
+}
 void cras_system_set_force_sr_bt_enabled(bool enabled) {
   return;
 }
 bool cras_system_get_force_sr_bt_enabled() {
-  return true;
+  return false;
 }
 int cras_bt_player_update_playback_status(DBusConnection* conn,
                                           const char* status) {

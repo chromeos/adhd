@@ -592,11 +592,42 @@ TEST(SystemFeatureTier, CrasFeatureTierInitCalled) {
   cras_system_state_deinit();
 }
 
-TEST(SystemFeatureTier, GetSrBtUnSupported) {
+TEST(SystemFeatureTier, GetSrBtEnabled) {
   ResetStubData();
   do_sys_init();
 
-  EXPECT_EQ(cras_system_get_sr_bt_supported(), false);
+  EXPECT_FALSE(cras_system_get_sr_bt_enabled());
+
+  cras_system_state_deinit();
+}
+
+TEST(SystemFeatureTier, SetSrBtEnabledWhenNotSupported) {
+  ResetStubData();
+  do_sys_init();
+
+  cras_system_set_sr_bt_enabled(true);
+  // Still false due to unsupported.
+  EXPECT_FALSE(cras_system_get_sr_bt_enabled());
+
+  cras_system_state_deinit();
+}
+
+TEST(SystemFeatureTier, SetSrBtEnabledWhenSupported) {
+  ResetStubData();
+  fake_tier.sr_bt_supported = true;
+  do_sys_init();
+
+  cras_system_set_sr_bt_enabled(true);
+  EXPECT_TRUE(cras_system_get_sr_bt_enabled());
+
+  cras_system_state_deinit();
+}
+
+TEST(SystemFeatureTier, GetSrBtUnsupported) {
+  ResetStubData();
+  do_sys_init();
+
+  EXPECT_FALSE(cras_system_get_sr_bt_supported());
 
   cras_system_state_deinit();
 }

@@ -20,7 +20,11 @@ enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
     if (!cras_system_get_sr_bt_supported()) {
       return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_UNSUPPORTED;
     }
+    // TODO: remove the flag when toggle in chromium is ready.
     if (!cras_feature_enabled(CrOSLateBootAudioHFPMicSR)) {
+      return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
+    }
+    if (!cras_system_get_sr_bt_enabled()) {
       return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
     }
   }

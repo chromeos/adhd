@@ -1172,6 +1172,32 @@ static DBusHandlerResult handle_get_force_sr_bt_enabled(DBusConnection* conn,
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_set_hfp_mic_sr_enabled(DBusConnection* conn,
+                                                       DBusMessage* message,
+                                                       void* arg) {
+  int rc;
+  dbus_bool_t enabled;
+
+  rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+  if (rc) {
+    return rc;
+  }
+
+  cras_system_set_sr_bt_enabled(enabled);
+
+  send_empty_reply(conn, message);
+
+  return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult handle_is_hfp_mic_sr_supported(DBusConnection* conn,
+                                                        DBusMessage* message,
+                                                        void* arg) {
+  send_bool_reply(conn, message, cras_system_get_sr_bt_supported());
+
+  return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 static DBusHandlerResult handle_set_player_playback_status(DBusConnection* conn,
                                                            DBusMessage* message,
                                                            void* arg) {
@@ -1493,6 +1519,12 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetForceSrBtEnabled")) {
     return handle_get_force_sr_bt_enabled(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "SetHfpMicSrEnabled")) {
+    return handle_set_hfp_mic_sr_enabled(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "IsHfpMicSrSupported")) {
+    return handle_is_hfp_mic_sr_supported(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetPlayerPlaybackStatus")) {
     return handle_set_player_playback_status(conn, message, arg);

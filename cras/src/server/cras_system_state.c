@@ -46,6 +46,8 @@ struct feature_state {
   // Whether the feature is force enabled. It's for
   // testing purpose.
   bool force_sr_bt_enabled;
+  // Whether the feature is enabled.
+  bool sr_bt_enabled;
 };
 
 /* The system state. */
@@ -505,6 +507,17 @@ void cras_system_set_bypass_block_noise_cancellation(bool bypass) {
 
 bool cras_system_get_bypass_block_noise_cancellation() {
   return !!state.exp_state->bypass_block_noise_cancellation;
+}
+
+void cras_system_set_sr_bt_enabled(bool enabled) {
+  if (!cras_system_get_sr_bt_supported()) {
+    return;
+  }
+  state.feature_state.sr_bt_enabled = enabled;
+}
+
+bool cras_system_get_sr_bt_enabled() {
+  return state.feature_state.sr_bt_enabled;
 }
 
 bool cras_system_get_sr_bt_supported() {

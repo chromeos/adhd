@@ -14,6 +14,7 @@
 extern "C" {
 static bool cras_system_get_force_sr_bt_enabled_return_value = false;
 static bool cras_system_get_sr_bt_supported_return_value = false;
+static bool cras_system_get_sr_bt_enabled_return_value = false;
 static bool cras_dlc_is_available_return_value = false;
 static enum CRAS_METRICS_HFP_MIC_SR_STATUS
     cras_server_metrics_hfp_mic_sr_called_status =
@@ -25,6 +26,10 @@ bool cras_system_get_force_sr_bt_enabled() {
 
 bool cras_system_get_sr_bt_supported() {
   return cras_system_get_sr_bt_supported_return_value;
+}
+
+bool cras_system_get_sr_bt_enabled() {
+  return cras_system_get_sr_bt_enabled_return_value;
 }
 
 bool cras_dlc_is_available(enum CrasDlcId) {
@@ -45,6 +50,7 @@ int cras_server_metrics_hfp_mic_sr_status(
 void ResetFakeState() {
   cras_system_get_force_sr_bt_enabled_return_value = false;
   cras_system_get_sr_bt_supported_return_value = false;
+  cras_system_get_sr_bt_enabled_return_value = false;
   cras_dlc_is_available_return_value = false;
   cras_server_metrics_hfp_mic_sr_called_status =
       CRAS_METRICS_HFP_MIC_SR_ENABLE_SUCCESS;
@@ -58,6 +64,7 @@ struct SrBtUtilTestParam {
   bool cras_system_get_force_sr_bt_enabled_return_value = false;
   bool cras_system_get_sr_bt_supported_return_value = false;
   bool hfp_mic_sr_feature_enabled = false;
+  bool cras_system_get_sr_bt_enabled_return_value = false;
   bool cras_dlc_is_available_return_value = false;
   enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS expected_status;
 };
@@ -74,8 +81,11 @@ TEST_P(SrBtUtilTest, TestExpectedStatus) {
       GetParam().cras_system_get_sr_bt_supported_return_value;
   cras_dlc_is_available_return_value =
       GetParam().cras_dlc_is_available_return_value;
+  cras_system_get_sr_bt_enabled_return_value =
+      GetParam().cras_system_get_sr_bt_enabled_return_value;
   cras_features_set_override(CrOSLateBootAudioHFPMicSR,
                              GetParam().hfp_mic_sr_feature_enabled);
+
   EXPECT_EQ(cras_sr_bt_can_be_enabled(), GetParam().expected_status);
 }
 
@@ -93,11 +103,13 @@ INSTANTIATE_TEST_SUITE_P(
         SrBtUtilTestParam(
             {.cras_system_get_sr_bt_supported_return_value = true,
              .hfp_mic_sr_feature_enabled = true,
+             .cras_system_get_sr_bt_enabled_return_value = true,
              .expected_status =
                  CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE}),
         SrBtUtilTestParam(
             {.cras_system_get_sr_bt_supported_return_value = true,
              .hfp_mic_sr_feature_enabled = true,
+             .cras_system_get_sr_bt_enabled_return_value = true,
              .cras_dlc_is_available_return_value = true,
              .expected_status = CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK}),
         SrBtUtilTestParam(

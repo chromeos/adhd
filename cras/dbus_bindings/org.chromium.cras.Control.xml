@@ -401,6 +401,17 @@
       <arg name="enabled" type="b" direction="out"/>
     </method>
 
+    <method name="SetHfpMicSrEnabled">
+      <arg name="enabled" type="b" direction="in"/>
+    </method>
+
+    <method name="IsHfpMicSrSupported">
+      <tp:docstring>
+        Tells whether the system can potentially support hfp mic sr.
+      </tp:docstring>
+      <arg name="supported" type="b" direction="out"/>
+    </method>
+
     <method name="SetPlayerPlaybackStatus">
       <arg name="status" type="s" direction="in"/>
     </method>
