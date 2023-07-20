@@ -9,6 +9,8 @@ anyhow = "1.0.68"
 log = "0.4.17"
 glob = "0.3.0"
 regex = "1.6.0"
+serde = { version = "1.0.52", features = ["derive"]}
+serde_json = "1.0.96"
 
 cras = "*" # provided by ebuild
 cras_dlc = "*" # provided by ebuild

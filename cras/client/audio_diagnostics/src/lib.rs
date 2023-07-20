@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+pub mod settings;
+pub mod uptime;
+
 pub struct Analysis {
     pub name: String,            // Name of the event for FRA to grep.
     pub description: String,     // Description of what this event mean.
@@ -18,5 +21,3 @@ impl std::fmt::Display for Analysis {
         )
     }
 }
-
-pub mod uptime;
