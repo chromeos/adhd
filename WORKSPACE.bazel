@@ -67,6 +67,24 @@ http_archive(
     ],
 )
 
+http_archive(
+    name = "protobuf_mutator",
+    build_file = "//:third_party/BUILD.protobuf_mutator.bazel",
+    sha256 = "fd299fd72c5cf664259d9bd43a72cb74dc6a8b9604d107fe2d2e90885aeb7c16",
+    strip_prefix = "libprotobuf-mutator-1.1",
+    urls = [
+        "https://github.com/google/libprotobuf-mutator/archive/refs/tags/v1.1.tar.gz",
+    ],
+)
+
+http_archive(
+    name = "cppcheck",
+    build_file = "//:third_party/BUILD.cppcheck.bazel",
+    sha256 = "8aae5e116daeaaf5d19f3efa61b91c06f161cb97412a1d1af6e1e20686e48967",
+    strip_prefix = "cppcheck-2.10.3",
+    urls = ["https://github.com/danmar/cppcheck/archive/refs/tags/2.10.3.tar.gz"],
+)
+
 load(
     "//repositories:pkg_config/pkg_config.bzl",
     "pkg_config",
@@ -135,16 +153,6 @@ http_archive(
     ],
 )
 
-http_archive(
-    name = "protobuf_mutator",
-    build_file = "//:third_party/BUILD.protobuf_mutator.bazel",
-    sha256 = "fd299fd72c5cf664259d9bd43a72cb74dc6a8b9604d107fe2d2e90885aeb7c16",
-    strip_prefix = "libprotobuf-mutator-1.1",
-    urls = [
-        "https://github.com/google/libprotobuf-mutator/archive/refs/tags/v1.1.tar.gz",
-    ],
-)
-
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
 rules_rust_dependencies()
@@ -198,22 +206,14 @@ load("@hedron_compile_commands//:workspace_setup.bzl", "hedron_compile_commands_
 
 hedron_compile_commands_setup()
 
-load("//repositories/http_archive_deps:repo.bzl", "http_archive_deps_setup")
-
-http_archive(
-    name = "cppcheck",
-    build_file = "//:third_party/BUILD.cppcheck.bazel",
-    sha256 = "8aae5e116daeaaf5d19f3efa61b91c06f161cb97412a1d1af6e1e20686e48967",
-    strip_prefix = "cppcheck-2.10.3",
-    urls = ["https://github.com/danmar/cppcheck/archive/refs/tags/2.10.3.tar.gz"],
-)
-
 load("//repositories:deps.bzl", "file_deps")
 
 file_deps()
 
 # Please keep this at the bottom of the WORKSPACE.
 # http_archive_deps_setup can only scan http_archives that are already declared.
+load("//repositories/http_archive_deps:repo.bzl", "http_archive_deps_setup")
+
 http_archive_deps_setup(bazel_external_uris_exclude = [
     "cppcheck",
     "com_google_absl",
