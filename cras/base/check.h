@@ -11,16 +11,15 @@
 extern "C" {
 #endif
 
-void cras_assertion_failure(FILE* stream,
-                            const char* assertion,
-                            const char* filename,
-                            unsigned line,
-                            const char* func);
+__attribute__((__noreturn__)) void cras_assertion_failure(const char* assertion,
+                                                          const char* filename,
+                                                          unsigned line,
+                                                          const char* func);
 
 // Our version of assert that is always executed regardless of NDEBUG.
-#define CRAS_CHECK(expr)                                              \
-  ((expr) ? (void)0                                                   \
-          : cras_assertion_failure(stderr, #expr, __FILE__, __LINE__, \
+#define CRAS_CHECK(expr)                                      \
+  ((expr) ? (void)0                                           \
+          : cras_assertion_failure(#expr, __FILE__, __LINE__, \
                                    __PRETTY_FUNCTION__))
 
 #ifdef __cplusplus
