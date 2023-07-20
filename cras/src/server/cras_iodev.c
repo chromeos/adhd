@@ -67,7 +67,7 @@ static const struct timespec dev_no_stream_wake_up_time = {
 };
 
 /*
- * Check issu b/72496547 and commit message for the history of
+ * Check issue b/72496547 and commit message for the history of
  * rate estimator tuning.
  */
 static const struct timespec rate_estimation_window_sz = {

@@ -323,7 +323,8 @@ TEST_F(A2dpIodev, FramesQueued) {
 
 TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
 #ifdef __arm__
-  GTEST_SKIP() << "b/291875693: Skip broken test on ARM32";
+  // TODO(b/291875693): Undo skip.
+  GTEST_SKIP() << "Broken on ARM32";
 #endif
 
   struct cras_iodev* iodev;
