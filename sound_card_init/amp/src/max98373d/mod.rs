@@ -120,22 +120,20 @@ impl Amp for Max98373 {
         } else {
             match dsm.check_speaker_over_heated_workflow()? {
                 SpeakerStatus::Hot(previous_calib) => previous_calib,
-                SpeakerStatus::Cold => {
-                    let all_temp = self.get_ambient_temp()?;
-                    let all_rdc = self.do_rdc_calibration()?;
-                    all_rdc
+                SpeakerStatus::Cold => match self.run_calibration() {
+                    Ok(calibs) => calibs
                         .iter()
-                        .zip(all_temp)
                         .enumerate()
-                        .map(|(ch, (&rdc, temp))| {
-                            dsm.decide_calibration_value_workflow(
-                                ch,
-                                Max98373CalibData { rdc, temp },
-                            )
-                            .map_err(crate::Error::DSMError)
+                        .map(|(ch, calib_data)| {
+                            dsm.decide_calibration_value_workflow(ch, *calib_data)
+                                .map_err(crate::Error::DSMError)
                         })
-                        .collect::<Result<Vec<_>>>()?
-                }
+                        .collect::<Result<Vec<_>>>()?,
+                    Err(e) => {
+                        info!("boot time calibration failed: {}. Use previous values", e);
+                        dsm.get_all_previous_calibration_value()?
+                    }
+                },
             }
         };
         self.apply_calibration_value(&calib)?;
@@ -238,6 +236,17 @@ impl Max98373 {
             card: Card::new(card_name)?,
             setting: settings.amp_calibrations,
         })
+    }
+
+    /// Run the amplifier rdc calibration and reads the current temperature.
+    fn run_calibration(&mut self) -> Result<Vec<Max98373CalibData>> {
+        let all_temp = self.get_ambient_temp()?;
+        let all_rdc = self.do_rdc_calibration()?;
+        Ok(all_rdc
+            .iter()
+            .zip(all_temp)
+            .map(|(&rdc, temp)| Max98373CalibData { rdc, temp })
+            .collect::<Vec<_>>())
     }
 
     /// Triggers the amplifier calibration and reads the calibrated rdc.

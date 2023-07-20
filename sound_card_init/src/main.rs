@@ -217,7 +217,10 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                 param.id, param.conf
             );
             if let Err(e) = amp.boot_time_calibration() {
-                error!("sound_card_init: boot_time_calibration failed: {} sound_card_id: {}", e, param.id);
+                error!(
+                    "sound_card_init: boot_time_calibration failed: {} sound_card_id: {}",
+                    e, param.id
+                );
                 return Err(Box::new(e));
             }
 

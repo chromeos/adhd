@@ -148,15 +148,20 @@ impl Amp for Max98390 {
         } else {
             match dsm.check_speaker_over_heated_workflow()? {
                 SpeakerStatus::Hot(previous_calib) => previous_calib,
-                SpeakerStatus::Cold => self
-                    .do_calibration()?
-                    .iter()
-                    .enumerate()
-                    .map(|(ch, calib_data)| {
-                        dsm.decide_calibration_value_workflow(ch, *calib_data)
-                            .map_err(crate::Error::DSMError)
-                    })
-                    .collect::<Result<Vec<_>>>()?,
+                SpeakerStatus::Cold => match self.do_calibration() {
+                    Ok(calibs) => calibs
+                        .iter()
+                        .enumerate()
+                        .map(|(ch, calib_data)| {
+                            dsm.decide_calibration_value_workflow(ch, *calib_data)
+                                .map_err(crate::Error::DSMError)
+                        })
+                        .collect::<Result<Vec<_>>>()?,
+                    Err(e) => {
+                        info!("boot time calibration failed: {}. Use previous values", e);
+                        dsm.get_all_previous_calibration_value()?
+                    }
+                },
             }
         };
         info!("applied {:?}", calib);

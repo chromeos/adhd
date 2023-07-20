@@ -320,7 +320,7 @@ impl DSM {
     /// # Errors
     ///
     /// * Failed to read datastore.
-    fn get_all_previous_calibration_value<T: CalibData>(&self) -> Result<Vec<T>> {
+    pub fn get_all_previous_calibration_value<T: CalibData>(&self) -> Result<Vec<T>> {
         (0..self.num_channels)
             .map(|ch| self.get_previous_calibration_value(ch))
             .collect::<Result<Vec<_>>>()
