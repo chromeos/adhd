@@ -144,31 +144,11 @@ fn main() {
     do_analysis_uptime();
     dump_active_node();
 
-    run_command(
-        Command::new("cras_test_client")
-            .arg("--use_env_salt")
-            .arg("--dump_server_info"),
-    );
-    run_command(
-        Command::new("cras_test_client")
-            .arg("--use_env_salt")
-            .arg("--dump_audio_thread"),
-    );
-    run_command(
-        Command::new("cras_test_client")
-            .arg("--use_env_salt")
-            .arg("--dump_main"),
-    );
-    run_command(
-        Command::new("cras_test_client")
-            .arg("--use_env_salt")
-            .arg("--dump_bt"),
-    );
-    run_command(
-        Command::new("cras_test_client")
-            .arg("--use_env_salt")
-            .arg("--dump_events"),
-    );
+    run_command(Command::new("cras_test_client").arg("--dump_server_info"));
+    run_command(Command::new("cras_test_client").arg("--dump_audio_thread"));
+    run_command(Command::new("cras_test_client").arg("--dump_main"));
+    run_command(Command::new("cras_test_client").arg("--dump_bt"));
+    run_command(Command::new("cras_test_client").arg("--dump_events"));
     run_command(Command::new("aplay").arg("-l"));
     run_command(Command::new("arecord").arg("-l"));
 
