@@ -161,7 +161,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient* client,
     if (aud_fd >= 0) {
       close(aud_fd);
     }
-    cras_server_metrics_stream_connect_failure(CRAS_STREAM_CONN_INVALID_FORMAT);
+    cras_server_metrics_stream_connect_status(CRAS_STREAM_CONN_INVALID_FORMAT);
     goto reply_err;
   }
 
@@ -189,7 +189,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient* client,
            stream_config.effects, stream_config.buffer_frames,
            stream_config.cb_threshold, remote_fmt.format, remote_fmt.frame_rate,
            remote_fmt.num_channels);
-    cras_server_metrics_stream_connect_failure(CRAS_STREAM_CONN_ADD_FAIL);
+    cras_server_metrics_stream_connect_status(CRAS_STREAM_CONN_ADD_FAIL);
     goto cleanup_config;
   }
 
@@ -207,7 +207,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient* client,
       close(aud_fd);
     }
     rc = -EINVAL;
-    cras_server_metrics_stream_connect_failure(
+    cras_server_metrics_stream_connect_status(
         CRAS_STREAM_CONN_INVALID_SHM_SIZE);
     goto cleanup_config;
   }
@@ -218,8 +218,7 @@ int rclient_handle_client_stream_connect(struct cras_rclient* client,
 
   rc = cras_rstream_get_shm_fds(stream, &header_fd, &samples_fd);
   if (rc) {
-    cras_server_metrics_stream_connect_failure(
-        CRAS_STREAM_CONN_INVALID_SHM_FDS);
+    cras_server_metrics_stream_connect_status(CRAS_STREAM_CONN_INVALID_SHM_FDS);
     goto cleanup_config;
   }
 
@@ -232,12 +231,13 @@ int rclient_handle_client_stream_connect(struct cras_rclient* client,
   if (rc < 0) {
     syslog(LOG_WARNING, "Failed to send connected messaged\n");
     stream_list_rm(cras_iodev_list_get_stream_list(), stream->stream_id);
-    cras_server_metrics_stream_connect_failure(CRAS_STREAM_CONN_REPLY_FAIL);
+    cras_server_metrics_stream_connect_status(CRAS_STREAM_CONN_REPLY_FAIL);
     goto cleanup_config;
   }
 
   // Cleanup local object explicitly.
   cras_rstream_config_cleanup(&stream_config);
+  cras_server_metrics_stream_connect_status(CRAS_STREAM_CONN_SUCCESS);
   return 0;
 
 cleanup_config:

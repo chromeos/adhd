@@ -52,7 +52,8 @@ enum CRAS_DEVICE_OPEN_STATUS {
   CRAS_DEVICE_OPEN_ERROR_CONFIGURE,
 };
 
-enum CRAS_STREAM_CONNECT_ERROR {
+enum CRAS_STREAM_CONNECT_STATUS {
+  CRAS_STREAM_CONN_SUCCESS,
   CRAS_STREAM_CONN_INVALID_FORMAT,
   CRAS_STREAM_CONN_INVALID_SHM_SIZE,
   CRAS_STREAM_CONN_INVALID_SHM_FDS,
@@ -187,9 +188,9 @@ int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num);
 // Logs failures when adding stream to open iodev.
 int cras_server_metrics_stream_add_failure(enum CRAS_STREAM_ADD_ERROR code);
 
-// Logs client stream connection failures.
-int cras_server_metrics_stream_connect_failure(
-    enum CRAS_STREAM_CONNECT_ERROR code);
+// Logs client stream connection status.
+int cras_server_metrics_stream_connect_status(
+    enum CRAS_STREAM_CONNECT_STATUS code);
 
 // Logs failures when CRAS creates dev stream.
 int cras_server_metrics_stream_create_failure(

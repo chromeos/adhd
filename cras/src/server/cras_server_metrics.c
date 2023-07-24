@@ -61,7 +61,7 @@ const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
 const char kStreamClientTypeInput[] = "Cras.StreamClientTypeInput";
 const char kStreamClientTypeOutput[] = "Cras.StreamClientTypeOutput";
 const char kStreamAddError[] = "Cras.StreamAddError";
-const char kStreamConnectError[] = "Cras.StreamConnectError";
+const char kStreamConnectStatus[] = "Cras.StreamConnectStatus";
 const char kStreamCreateError[] = "Cras.StreamCreateError";
 const char kStreamFlags[] = "Cras.StreamFlags";
 const char kStreamEffects[] = "Cras.StreamEffects";
@@ -140,7 +140,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   SET_AEC_REF_DEVICE_TYPE,
   STREAM_ADD_ERROR,
   STREAM_CONFIG,
-  STREAM_CONNECT_ERROR,
+  STREAM_CONNECT_STATUS,
   STREAM_CREATE_ERROR,
   STREAM_RUNTIME
 };
@@ -1323,13 +1323,13 @@ int cras_server_metrics_stream_add_failure(enum CRAS_STREAM_ADD_ERROR code) {
   return 0;
 }
 
-int cras_server_metrics_stream_connect_failure(
-    enum CRAS_STREAM_CONNECT_ERROR code) {
+int cras_server_metrics_stream_connect_status(
+    enum CRAS_STREAM_CONNECT_STATUS code) {
   int err;
-  err = send_unsigned_metrics(STREAM_CONNECT_ERROR, code);
+  err = send_unsigned_metrics(STREAM_CONNECT_STATUS, code);
   if (err < 0) {
     syslog(LOG_WARNING,
-           "Failed to send metrics message:  STREAM_CONNECT_ERROR");
+           "Failed to send metrics message:  STREAM_CONNECT_STATUS");
     return err;
   }
   return 0;
@@ -1596,13 +1596,13 @@ static void metrics_stream_config(
   }
 }
 
-static void metrics_device_open_status(struct cras_server_metrics_device_data data) {
+static void metrics_device_open_status(
+    struct cras_server_metrics_device_data data) {
   log_sparse_histogram_each_level(
       3, data.value, kDeviceOpenStatus,
       data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
       metrics_device_type_str(data.type));
 }
-
 
 static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
   struct cras_server_metrics_message* metrics_msg =
@@ -1722,8 +1722,8 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
     case STREAM_CONFIG:
       metrics_stream_config(metrics_msg->data.stream_config);
       break;
-    case STREAM_CONNECT_ERROR:
-      cras_metrics_log_sparse_histogram(kStreamConnectError,
+    case STREAM_CONNECT_STATUS:
+      cras_metrics_log_sparse_histogram(kStreamConnectStatus,
                                         metrics_msg->data.value);
       break;
     case STREAM_CREATE_ERROR:

@@ -946,8 +946,9 @@ void cras_system_set_hotword_pause_at_suspend(bool pause) {}
 int cras_iodev_list_request_floop(const struct cras_floop_params* params) {
   return 0;
 }
-int cras_server_metrics_stream_connect_failure(
-    enum CRAS_STREAM_CONNECT_ERROR code) {
+
+int cras_server_metrics_stream_connect_status(
+    enum CRAS_STREAM_CONNECT_STATUS code) {
   return 0;
 }
 
