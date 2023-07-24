@@ -781,15 +781,16 @@ static const char* const main_volume_names[] = {
 };
 // Names of controls for individual outputs.
 static const char* const output_names[] = {
-    "Headphone", "Headset", "Headset Earphone", "HDMI", "Speaker",
-};
+    "Headphone", "Headset", "Headset Earphone",
+    "HDMI",      "Speaker", "Speaker Volume"};
 // Names of controls for capture gain/attenuation and mute.
 static const char* const main_capture_names[] = {
     "Capture",
     "Digital Capture",
 };
 // Names of controls for individual inputs.
-static const char* const input_names[] = {"Mic", "Microphone", "Headset"};
+static const char* const input_names[] = {"Mic", "Microphone", "Headset",
+                                          "Mic Volume"};
 
 int cras_alsa_mixer_add_controls_by_name_matching_usb(
     struct cras_alsa_mixer* cmix) {
