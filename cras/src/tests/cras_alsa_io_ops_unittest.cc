@@ -33,18 +33,22 @@ void ResetStubData() {
 }
 
 // Mock functions for testing.
-static struct cras_iodev* mock_create(const struct cras_alsa_card_info* card_info,
+static struct cras_iodev* mock_create(size_t card_index,
                                       const char* card_name,
                                       size_t device_index,
                                       const char* pcm_name,
                                       const char* dev_name,
                                       const char* dev_id,
+                                      enum CRAS_ALSA_CARD_TYPE card_type,
                                       int is_first,
                                       struct cras_alsa_mixer* mixer,
                                       const struct cras_card_config* config,
                                       struct cras_use_case_mgr* ucm,
                                       snd_hctl_t* hctl,
-                                      enum CRAS_STREAM_DIRECTION direction) {
+                                      enum CRAS_STREAM_DIRECTION direction,
+                                      size_t usb_vid,
+                                      size_t usb_pid,
+                                      char* usb_serial_number) {
   mock_create_called++;
   return mock_iodev;
 }
@@ -84,13 +88,12 @@ TEST(AlsaIodevOps, Create) {
   struct cras_alsa_iodev_ops mock_ops = {
       .create = mock_create,
   };
-  struct cras_alsa_card_info card_info = {.card_type = ALSA_CARD_TYPE_INTERNAL,
-                                          .card_index = 0};
 
   // Call the function under test with the mock struct.
   struct cras_iodev* result = cras_alsa_iodev_ops_create(
-      &mock_ops, &card_info, "card_name", 0, "pcm_name", "dev_name", "dev_id",
-      1, NULL, NULL, NULL, NULL, CRAS_STREAM_OUTPUT);
+      &mock_ops, 0, "card_name", 0, "pcm_name", "dev_name", "dev_id",
+      ALSA_CARD_TYPE_INTERNAL, 1, NULL, NULL, NULL, NULL, CRAS_STREAM_OUTPUT, 0,
+      0, NULL);
 
   // Verify the result.
   EXPECT_EQ(result, mock_iodev);

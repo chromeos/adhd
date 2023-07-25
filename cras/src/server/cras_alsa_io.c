@@ -1539,7 +1539,7 @@ static void set_iodev_name(struct cras_iodev* dev,
                            enum CRAS_ALSA_CARD_TYPE card_type,
                            size_t usb_vid,
                            size_t usb_pid,
-                           const char* usb_serial_number) {
+                           char* usb_serial_number) {
   snprintf(dev->info.name, sizeof(dev->info.name), "%s: %s:%zu,%zu", card_name,
            dev_name, card_index, device_index);
   dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
@@ -2044,37 +2044,24 @@ static bool get_rtc_proc_enabled(struct cras_iodev* iodev,
  * Exported Interface.
  */
 
-struct cras_iodev* alsa_iodev_create(
-    const struct cras_alsa_card_info* card_info,
-    const char* card_name,
-    size_t device_index,
-    const char* pcm_name,
-    const char* dev_name,
-    const char* dev_id,
-    int is_first,
-    struct cras_alsa_mixer* mixer,
-    const struct cras_card_config* config,
-    struct cras_use_case_mgr* ucm,
-    snd_hctl_t* hctl,
-    enum CRAS_STREAM_DIRECTION direction) {
+struct cras_iodev* alsa_iodev_create(size_t card_index,
+                                     const char* card_name,
+                                     size_t device_index,
+                                     const char* pcm_name,
+                                     const char* dev_name,
+                                     const char* dev_id,
+                                     enum CRAS_ALSA_CARD_TYPE card_type,
+                                     int is_first,
+                                     struct cras_alsa_mixer* mixer,
+                                     const struct cras_card_config* config,
+                                     struct cras_use_case_mgr* ucm,
+                                     snd_hctl_t* hctl,
+                                     enum CRAS_STREAM_DIRECTION direction,
+                                     size_t usb_vid,
+                                     size_t usb_pid,
+                                     char* usb_serial_number) {
   struct alsa_io* aio;
   struct cras_iodev* iodev;
-  // TODO(b/247732405): remove all USB logic in this file after iodev refactor.
-  struct cras_alsa_usb_card_info* usb_card_info;
-  size_t usb_vid = 0;
-  size_t usb_pid = 0;
-  const char* usb_serial_number = NULL;
-
-  if (!card_info) {
-    return NULL;
-  }
-
-  if (card_info->card_type == ALSA_CARD_TYPE_USB) {
-    usb_card_info = cras_alsa_usb_card_info_get(card_info);
-    usb_vid = usb_card_info->usb_vendor_id;
-    usb_pid = usb_card_info->usb_product_id;
-    usb_serial_number = usb_card_info->usb_serial_number;
-  }
 
   if (direction != CRAS_STREAM_INPUT && direction != CRAS_STREAM_OUTPUT) {
     return NULL;
@@ -2088,7 +2075,7 @@ struct cras_iodev* alsa_iodev_create(
   iodev->direction = direction;
 
   aio->common.device_index = device_index;
-  aio->common.card_type = card_info->card_type;
+  aio->common.card_type = card_type;
   aio->common.is_first = is_first;
   aio->common.handle = NULL;
   aio->common.num_severe_underruns = 0;
@@ -2146,7 +2133,7 @@ struct cras_iodev* alsa_iodev_create(
   iodev->support_noise_cancellation = support_noise_cancellation;
   iodev->set_rtc_proc_enabled = set_rtc_proc_enabled;
   iodev->get_rtc_proc_enabled = get_rtc_proc_enabled;
-  if (card_info->card_type == ALSA_CARD_TYPE_USB) {
+  if (card_type == ALSA_CARD_TYPE_USB) {
     iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
   }
 
@@ -2183,13 +2170,12 @@ struct cras_iodev* alsa_iodev_create(
     }
   }
 
-  set_iodev_name(iodev, card_name, dev_name, card_info->card_index,
-                 device_index, card_info->card_type, usb_vid, usb_pid,
-                 usb_serial_number);
+  set_iodev_name(iodev, card_name, dev_name, card_index, device_index,
+                 card_type, usb_vid, usb_pid, usb_serial_number);
 
   aio->common.jack_list = cras_alsa_jack_list_create(
-      card_info->card_index, card_name, device_index, is_first, mixer, ucm,
-      hctl, direction,
+      card_index, card_name, device_index, is_first, mixer, ucm, hctl,
+      direction,
       direction == CRAS_STREAM_OUTPUT ? jack_output_plug_event
                                       : jack_input_plug_event,
       aio);

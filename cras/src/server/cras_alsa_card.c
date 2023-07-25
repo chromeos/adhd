@@ -140,9 +140,10 @@ struct cras_iodev* create_iodev_for_device(
 
   new_dev->direction = direction;
   new_dev->iodev = cras_alsa_iodev_ops_create(
-      alsa_card->ops, info, card_name, device_index, pcm_name, dev_name, dev_id,
-      first, alsa_card->mixer, alsa_card->config, alsa_card->ucm,
-      alsa_card->hctl, direction);
+      alsa_card->ops, info->card_index, card_name, device_index, pcm_name,
+      dev_name, dev_id, info->card_type, first, alsa_card->mixer,
+      alsa_card->config, alsa_card->ucm, alsa_card->hctl, direction,
+      info->usb_vendor_id, info->usb_product_id, info->usb_serial_number);
   if (new_dev->iodev == NULL) {
     syslog(LOG_ERR, "Couldn't create alsa_iodev for %s", pcm_name);
     free(new_dev);
@@ -177,11 +178,9 @@ static int should_ignore_dev(struct cras_alsa_card_info* info,
                              struct cras_device_blocklist* blocklist,
                              size_t device_index) {
   if (info->card_type == ALSA_CARD_TYPE_USB) {
-    struct cras_alsa_usb_card_info* usb_card_info =
-        cras_alsa_usb_card_info_get(info);
-    return cras_device_blocklist_check(
-        blocklist, usb_card_info->usb_vendor_id, usb_card_info->usb_product_id,
-        usb_card_info->usb_desc_checksum, device_index);
+    return cras_device_blocklist_check(blocklist, info->usb_vendor_id,
+                                       info->usb_product_id,
+                                       info->usb_desc_checksum, device_index);
   }
   return 0;
 }

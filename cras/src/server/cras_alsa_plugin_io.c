@@ -10,7 +10,6 @@
 #include <syslog.h>
 
 #include "cras/platform/features/features.h"
-#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_jack.h"
@@ -137,17 +136,6 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
   struct ucm_section* ucm_sections;
   int rc;
 
-  struct cras_alsa_usb_card_info usb_card_info = {
-      .base =
-          {
-              .card_type = ALSA_CARD_TYPE_USB,
-              .card_index = 0,
-          },
-      .usb_vendor_id = NULL_USB_VID,
-      .usb_product_id = NULL_USB_PID,
-      .usb_serial_number = NULL_USB_SERIAL_NUMBER,
-      .usb_desc_checksum = 0};
-
   plugin = (struct alsa_plugin*)calloc(1, sizeof(*plugin));
   if (!plugin) {
     syslog(LOG_ERR, "No memory to create alsa plugin");
@@ -196,9 +184,10 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
   }
 
   plugin->iodev = cras_alsa_iodev_ops_create(
-      plugin->ops, &usb_card_info.base, card_name, 0, pcm_name, "", "",
+      plugin->ops, 0, card_name, 0, pcm_name, "", "", ALSA_CARD_TYPE_USB,
       1,  // is first
-      plugin->mixer, NULL, plugin->ucm, plugin->hctl, direction);
+      plugin->mixer, NULL, plugin->ucm, plugin->hctl, direction, NULL_USB_VID,
+      NULL_USB_PID, NULL_USB_SERIAL_NUMBER);
 
   DL_FOREACH (ucm_sections, section) {
     if (section->dir != plugin->iodev->direction) {
