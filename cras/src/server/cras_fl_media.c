@@ -168,33 +168,7 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
   dbus_message_unref(start_sco_call);
 
   if (rc < 0) {
-    // TODO: remove this fallback to legacy API once aosp/2606710 is merged
-    dbus_bool_t dbus_force_cvsd =
-        disabled_codecs == (HFP_CODEC_MSBC | HFP_CODEC_LC3);
-    rc = create_dbus_method_call(
-        &start_sco_call,
-        /* dest= */ BT_SERVICE_NAME,
-        /* path= */ fm->obj_path,
-        /* iface= */ BT_MEDIA_INTERFACE,
-        /* method_name= */ "StartScoCall",
-        /* num_args= */ 3,
-        /* arg1= */ DBUS_TYPE_STRING, &addr,
-        /* arg2= */ DBUS_TYPE_BOOLEAN, &dbus_enable_offload,
-        /* arg3= */ DBUS_TYPE_BOOLEAN, &dbus_force_cvsd);
-    if (rc < 0) {
-      return rc;
-    }
-
-    rc = call_method_and_parse_reply(
-        /* conn= */ fm->conn,
-        /* method_call= */ start_sco_call,
-        /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-        /* dbus_ret_value_ptr= */ &response);
-
-    dbus_message_unref(start_sco_call);
-    if (rc < 0) {
-      return rc;
-    }
+    return rc;
   }
 
   if (response == FALSE) {
