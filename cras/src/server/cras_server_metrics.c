@@ -38,6 +38,7 @@ const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
 const char kHighestOutputHardwareLevel[] = "Cras.HighestOutputHardwareLevel";
+const char kInternalSoundcardStatus[] = "Cras.InternalSoundcardStatus";
 const char kMissedCallbackFirstTimeInput[] =
     "Cras.MissedCallbackFirstTimeInput";
 const char kMissedCallbackFirstTimeOutput[] =
@@ -54,7 +55,6 @@ const char kMissedCallbackSecondTimeInput[] =
     "Cras.MissedCallbackSecondTimeInput";
 const char kMissedCallbackSecondTimeOutput[] =
     "Cras.MissedCallbackSecondTimeOutput";
-const char kNoCodecsFoundMetric[] = "Cras.NoCodecsFoundAtBoot";
 const char kRtcDevicePair[] = "Cras.RtcDevicePair";
 const char kSetAecRefDeviceType[] = "Cras.SetAecRefDeviceType";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
@@ -126,6 +126,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   HIGHEST_DEVICE_DELAY_OUTPUT,
   HIGHEST_INPUT_HW_LEVEL,
   HIGHEST_OUTPUT_HW_LEVEL,
+  INTERNAL_SOUNDCARD_STATUS,
   LONGEST_FETCH_DELAY,
   MISSED_CB_FIRST_TIME_INPUT,
   MISSED_CB_FIRST_TIME_OUTPUT,
@@ -1369,6 +1370,17 @@ int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
   return 0;
 }
 
+int cras_server_metrics_internal_soundcard_status(bool detected) {
+  int err;
+  err = send_unsigned_metrics(INTERNAL_SOUNDCARD_STATUS, detected);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: INTERNAL_SOUNDCARD_STATUS");
+    return err;
+  }
+  return 0;
+}
+
 static void metrics_device_runtime(
     struct cras_server_metrics_device_data data) {
   switch (data.type) {
@@ -1757,6 +1769,10 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case DEVICE_OPEN_STATUS:
       metrics_device_open_status(metrics_msg->data.device_data);
+      break;
+    case INTERNAL_SOUNDCARD_STATUS:
+      cras_metrics_log_sparse_histogram(kInternalSoundcardStatus,
+                                        metrics_msg->data.value);
       break;
     default:
       syslog(LOG_ERR, "Unknown metrics type %u", metrics_msg->metrics_type);

@@ -380,12 +380,10 @@ static void cleanup_select_fds(void* server_data) {
   }
 }
 
-/* Checks that at least two outputs are present (one will be the "empty"
- * default device. */
-void check_output_exists(struct cras_timer* t, void* data) {
-  if (cras_iodev_list_get_outputs(NULL) < 2) {
-    cras_metrics_log_event(kNoCodecsFoundMetric);
-  }
+/* Checks whether the internal card is present. */
+void check_internal_card(struct cras_timer* t, void* data) {
+  cras_server_metrics_internal_soundcard_status(
+      cras_system_state_internal_cards_detected());
 }
 
 /*
@@ -511,7 +509,7 @@ static void cleanup_server_sockets() {
 }
 
 int cras_server_run(unsigned int profile_disable_mask) {
-  static const unsigned int OUTPUT_CHECK_MS = 5 * 1000;
+  static const unsigned int CHECK_INTERNAL_CARD_MS = 5 * 1000;
   DBusConnection* dbus_conn;
   int rc = 0;
   struct attached_client* elm;
@@ -586,8 +584,8 @@ int cras_server_run(unsigned int profile_disable_mask) {
     goto bail;
   }
 
-  // After a delay, make sure there is at least one real output device.
-  cras_tm_create_timer(tm, OUTPUT_CHECK_MS, check_output_exists, 0);
+  // After a delay, make sure there is an internal soundcard probed.
+  cras_tm_create_timer(tm, CHECK_INTERNAL_CARD_MS, check_internal_card, 0);
 
   // Download DLC packages
   cras_dlc_manager_init();
