@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/syslog.h>
 #include <sys/types.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -150,6 +151,9 @@ static enum CRAS_ALSA_CARD_TYPE check_device_type(struct udev_device* dev) {
     }
     parent = udev_device_get_parent(parent);
   }
+  syslog(LOG_WARNING,
+         "%s device type not identified, falling back to USB device",
+         udev_device_get_sysname(dev));
   return ALSA_CARD_TYPE_USB;
 }
 
