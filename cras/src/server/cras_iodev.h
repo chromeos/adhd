@@ -740,6 +740,7 @@ static inline int cras_iodev_is_open(const struct cras_iodev* iodev) {
 // Configure iodev to exit idle mode.
 static inline void cras_iodev_exit_idle(struct cras_iodev* iodev) {
   iodev->idle_timeout.tv_sec = 0;
+  iodev->idle_timeout.tv_nsec = 0;
 }
 
 /*
