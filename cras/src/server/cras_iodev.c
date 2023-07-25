@@ -227,7 +227,7 @@ static int cras_iodev_no_stream_playback_transition(struct cras_iodev* odev,
  * system volume, and active node volume on the device. */
 static int output_should_mute(struct cras_iodev* odev) {
   // System mute has highest priority.
-  if (cras_system_get_mute()) {
+  if (cras_system_get_mute() && !cras_iodev_is_loopback(odev->active_node)) {
     return 1;
   }
 
@@ -863,6 +863,14 @@ bool cras_iodev_is_node_internal_mic(const struct cras_ionode* node) {
            (node->position == NODE_POSITION_REAR);
   }
   return false;
+}
+
+bool cras_iodev_is_loopback(const struct cras_ionode* node) {
+  return node->type == CRAS_NODE_TYPE_FLOOP_INTERNAL ||
+         node->type == CRAS_NODE_TYPE_FLOOP ||
+         node->type == CRAS_NODE_TYPE_POST_MIX_PRE_DSP ||
+         node->type == CRAS_NODE_TYPE_POST_DSP ||
+         node->type == CRAS_NODE_TYPE_POST_DSP_DELAYED;
 }
 
 bool cras_iodev_is_node_type_internal_mic(const char* type) {

@@ -263,6 +263,11 @@ static int floop_update_channel_layout(struct cras_iodev* iodev) {
 }
 
 /*
+ * Flexible loopback devices should not be muted.
+ */
+static void floop_set_mute(struct cras_iodev* iodev) {}
+
+/*
  * iodev creation
  */
 
@@ -276,6 +281,7 @@ static void common_init_iodev(const struct cras_floop_params* params,
   iodev->buffer_size = LOOPBACK_BUFFER_SIZE;
   iodev->update_active_node = common_update_active_node;
   iodev->update_channel_layout = floop_update_channel_layout;
+  iodev->set_mute = floop_set_mute;
 
   int namelen =
       snprintf(iodev->info.name, sizeof(iodev->info.name), "%s", name);

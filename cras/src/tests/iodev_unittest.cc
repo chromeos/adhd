@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "cras/include/cras_types.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -591,11 +592,13 @@ static int loopback_hook_control(bool start, void* cb_data) {
 TEST(IoDevPutOutputBuffer, SystemMuted) {
   struct cras_audio_format fmt;
   struct cras_iodev iodev;
+  struct cras_ionode ionode;
   uint8_t* frames = reinterpret_cast<uint8_t*>(0x44);
   int rc;
 
   ResetStubData();
   memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
   cras_system_get_mute_return = 1;
 
   fmt.format = SND_PCM_FORMAT_S16_LE;
@@ -603,6 +606,10 @@ TEST(IoDevPutOutputBuffer, SystemMuted) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  iodev.active_node->dev = &iodev;
   iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
@@ -678,16 +685,22 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMute) {
 TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
   struct cras_audio_format fmt;
   struct cras_iodev iodev;
+  struct cras_ionode ionode;
   uint8_t* frames = reinterpret_cast<uint8_t*>(0x44);
   int rc;
 
   ResetStubData();
   memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
   cras_system_get_mute_return = 1;
 
   fmt.format = SND_PCM_FORMAT_S16_LE;
   fmt.frame_rate = 48000;
   fmt.num_channels = 2;
+  ionode.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
 
@@ -1692,6 +1705,7 @@ TEST(IoDev, DefaultNoStreamPlaybackRunning) {
 
 TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   struct cras_iodev iodev;
+  struct cras_ionode ionode;
   struct cras_audio_format fmt;
   unsigned int min_cb_level = 240;
   int rc;
@@ -1710,10 +1724,16 @@ TEST(IoDev, PrepareOutputBeforeWriteSamples) {
   stream1.is_running = 1;
 
   memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
 
   fmt.format = SND_PCM_FORMAT_S16_LE;
   fmt.frame_rate = 48000;
   fmt.num_channels = 2;
+  ionode.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  ionode.volume = 100;
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
   iodev.format = &fmt;
   iodev.format = &fmt;
   iodev.min_cb_level = min_cb_level;
@@ -2694,6 +2714,22 @@ TEST(IoDev, OnInternalCard) {
   EXPECT_EQ(0, cras_iodev_is_on_internal_card(&node));
   node.type = CRAS_NODE_TYPE_BLUETOOTH;
   EXPECT_EQ(0, cras_iodev_is_on_internal_card(&node));
+}
+
+TEST(IoDev, IsLoopback) {
+  static struct cras_ionode node;
+  node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  EXPECT_EQ(0, cras_iodev_is_loopback(&node));
+  node.type = CRAS_NODE_TYPE_HEADPHONE;
+  EXPECT_EQ(0, cras_iodev_is_loopback(&node));
+  node.type = CRAS_NODE_TYPE_MIC;
+  EXPECT_EQ(0, cras_iodev_is_loopback(&node));
+  node.type = CRAS_NODE_TYPE_ALSA_LOOPBACK;
+  EXPECT_EQ(0, cras_iodev_is_loopback(&node));
+  node.type = CRAS_NODE_TYPE_FLOOP_INTERNAL;
+  EXPECT_EQ(1, cras_iodev_is_loopback(&node));
+  node.type = CRAS_NODE_TYPE_POST_MIX_PRE_DSP;
+  EXPECT_EQ(1, cras_iodev_is_loopback(&node));
 }
 
 class IoDevSetDisplayRotationSuite : public testing::Test {
