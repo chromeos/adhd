@@ -878,8 +878,8 @@ static int signal_gain_setting(struct hfp_slc_handle* handle, const char* cmd) {
       return hfp_send(handle, AT_CMD("ERROR"));
     }
     BTLOG(btlog, BT_HFP_UPDATE_SPEAKER_GAIN, gain, 0);
-    cras_bt_device_update_hardware_volume(handle->device,
-                                          (gain + 1) * 100 / 16);
+    cras_bt_device_update_hardware_volume(handle->device, (gain + 1) * 100 / 16,
+                                          CRAS_BT_FLAG_HFP);
   }
 
   return hfp_send(handle, AT_CMD("OK"));

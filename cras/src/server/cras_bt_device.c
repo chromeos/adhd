@@ -882,7 +882,8 @@ int cras_bt_device_get_use_hardware_volume(struct cras_bt_device* device) {
 }
 
 void cras_bt_device_update_hardware_volume(struct cras_bt_device* device,
-                                           int volume) {
+                                           int volume,
+                                           enum CRAS_BT_FLAGS btflag) {
   /* Check if this BT device is okay to use hardware volume. If not
    * then ignore the reported volume change event.
    */
@@ -890,7 +891,7 @@ void cras_bt_device_update_hardware_volume(struct cras_bt_device* device,
     return;
   }
 
-  bt_io_manager_update_hardware_volume(device->bt_io_mgr, volume);
+  bt_io_manager_update_hardware_volume(device->bt_io_mgr, volume, btflag);
 }
 
 int cras_bt_device_sco_handle(int sco_socket) {

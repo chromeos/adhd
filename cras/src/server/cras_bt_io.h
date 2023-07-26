@@ -77,10 +77,11 @@ int bt_io_manager_has_a2dp(struct bt_io_manager* mgr);
 void bt_io_manager_set_use_hardware_volume(struct bt_io_manager* mgr,
                                            int use_hardware_volume);
 
-/* When remote BT device reports volume change through AVRCP, update
+/* When remote BT device reports volume change through AVRCP or HFP, update
  * the volume value to |mgr|. */
 void bt_io_manager_update_hardware_volume(struct bt_io_manager* mgr,
-                                          int volume);
+                                          int volume,
+                                          enum CRAS_BT_FLAGS btflag);
 
 #ifdef __cplusplus
 }  // extern "C"

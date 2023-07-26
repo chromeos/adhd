@@ -189,11 +189,15 @@ int handle_on_absolute_volume_changed(struct fl_media* active_fm,
     syslog(LOG_WARNING, "No active a2dp device. Skip the volume update");
     return -EINVAL;
   }
+  if (active_fm->hfp && cras_floss_hfp_get_fd(active_fm->hfp) != -1) {
+    syslog(LOG_WARNING, "AVRCP volume update received while HFP is streaming.");
+  }
   if (active_fm->a2dp) {
     BTLOG(btlog, BT_A2DP_UPDATE_VOLUME, volume, 0);
     bt_io_manager_update_hardware_volume(
         active_fm->bt_io_mgr,
-        cras_floss_a2dp_convert_volume(active_fm->a2dp, volume));
+        cras_floss_a2dp_convert_volume(active_fm->a2dp, volume),
+        CRAS_BT_FLAG_A2DP);
   }
   return 0;
 }
@@ -213,9 +217,14 @@ int handle_on_hfp_volume_changed(struct fl_media* active_fm,
            addr);
     return -EINVAL;
   }
+  if (active_fm->a2dp && cras_floss_a2dp_get_fd(active_fm->a2dp) != -1) {
+    syslog(LOG_WARNING, "HFP volume update received while a2dp is streaming.");
+  }
+
   BTLOG(btlog, BT_HFP_UPDATE_SPEAKER_GAIN, volume, 0);
   bt_io_manager_update_hardware_volume(active_fm->bt_io_mgr,
-                                       cras_floss_hfp_convert_volume(volume));
+                                       cras_floss_hfp_convert_volume(volume),
+                                       CRAS_BT_FLAG_HFP);
   return 0;
 }
 

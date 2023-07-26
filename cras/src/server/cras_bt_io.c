@@ -52,6 +52,22 @@ struct bt_io {
 
 static struct bt_io_manager* bt_io_managers;
 
+/*
+ * Sets up the volume to HFP or A2DP iodev using the cached volume
+ * lastly updated by headset volume events.
+ */
+static void set_bt_volume(struct cras_iodev* iodev);
+
+static inline enum CRAS_BT_FLAGS btflags_to_profile(uint32_t btflags) {
+  if (btflags & CRAS_BT_FLAG_A2DP) {
+    return CRAS_BT_FLAG_A2DP;
+  }
+  if (btflags & CRAS_BT_FLAG_HFP) {
+    return CRAS_BT_FLAG_HFP;
+  }
+  return CRAS_BT_FLAG_NONE;
+}
+
 // Returns the active profile specific iodev.
 static struct cras_iodev* active_profile_dev(const struct cras_iodev* iodev) {
   struct bt_node* active = (struct bt_node*)iodev->active_node;
@@ -129,11 +145,20 @@ void bt_io_manager_set_use_hardware_volume(struct bt_io_manager* mgr,
 }
 
 void bt_io_manager_update_hardware_volume(struct bt_io_manager* mgr,
-                                          int volume) {
+                                          int volume,
+                                          enum CRAS_BT_FLAGS btflag) {
   struct cras_iodev* iodev;
+  enum CRAS_BT_FLAGS active_profile, event_profile;
 
   iodev = mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
   if (iodev == NULL) {
+    return;
+  }
+
+  /* If the volume update event isn't from the active profile, ignore it. */
+  active_profile = btflags_to_profile(mgr->active_btflag);
+  event_profile = btflags_to_profile(btflag);
+  if (active_profile != CRAS_BT_FLAG_NONE && active_profile != event_profile) {
     return;
   }
 
@@ -256,12 +281,6 @@ static int update_supported_formats(struct cras_iodev* iodev) {
   iodev->info.max_supported_channels = dev->info.max_supported_channels;
   return 0;
 }
-
-/*
- * Sets up the volume to HFP or A2DP iodev using the cached volume
- * lastly updated by headset volume events.
- */
-static void set_bt_volume(struct cras_iodev* iodev);
 
 static int configure_dev(struct cras_iodev* iodev) {
   int rc;
@@ -569,16 +588,6 @@ static int get_valid_frames(struct cras_iodev* iodev,
   }
 
   return cras_iodev_frames_queued(iodev, hw_tstamp);
-}
-
-static enum CRAS_BT_FLAGS btflags_to_profile(uint32_t btflags) {
-  if (btflags & CRAS_BT_FLAG_A2DP) {
-    return CRAS_BT_FLAG_A2DP;
-  }
-  if (btflags & CRAS_BT_FLAG_HFP) {
-    return CRAS_BT_FLAG_HFP;
-  }
-  return CRAS_BT_FLAG_NONE;
 }
 
 // Creates a bt_io iodev wrapper.

@@ -195,7 +195,8 @@ int cras_bt_device_has_a2dp(struct cras_bt_device* device);
 
 // Updates the volume to bt_device when a volume change event is reported.
 void cras_bt_device_update_hardware_volume(struct cras_bt_device* device,
-                                           int volume);
+                                           int volume,
+                                           enum CRAS_BT_FLAGS btflag);
 
 // Notifies bt_device that a2dp connection is configured.
 void cras_bt_device_a2dp_configured(struct cras_bt_device* device);

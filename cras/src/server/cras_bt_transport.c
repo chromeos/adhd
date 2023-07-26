@@ -247,8 +247,8 @@ static void cras_bt_transport_update_device(
    */
   if (transport->volume != -1) {
     cras_bt_device_set_use_hardware_volume(transport->device, 1);
-    cras_bt_device_update_hardware_volume(transport->device,
-                                          transport->volume * 100 / 127);
+    cras_bt_device_update_hardware_volume(
+        transport->device, transport->volume * 100 / 127, CRAS_BT_FLAG_A2DP);
   }
 }
 
