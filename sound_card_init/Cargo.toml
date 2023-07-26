@@ -20,6 +20,7 @@ dsm = { path = "dsm" }
 getopts = "0.2"
 libchromeos = { path = "../../../platform2/libchromeos-rs/" } # provided by ebuild
 libcras = { path = "../cras/client/libcras" } # provided by ebuild
+log = "0.4"
 remain = "0.2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.96"

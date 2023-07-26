@@ -16,5 +16,6 @@ data_model = "*"
 futures = "*"
 libc = "*"
 libchromeos = { path = "../../../../../platform2/libchromeos-rs/" } # provided by ebuild
+log = "0.4"
 serde = "1.0.125"
 tokio = { version = "1.19.2", features = ["rt", "net", "time"]}

@@ -17,9 +17,9 @@ use std::string::String;
 use amp::AmpBuilder;
 use argh::FromArgs;
 use dsm::utils::run_time;
-use libchromeos::sys::error;
-use libchromeos::sys::info;
 use libchromeos::syslog;
+use log::error;
+use log::info;
 use serde::Serialize;
 
 const IDENT: &str = "sound_card_init";

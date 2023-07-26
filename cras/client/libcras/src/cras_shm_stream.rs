@@ -9,7 +9,7 @@ use audio_streams::{
     BoxError, SampleFormat, StreamDirection,
 };
 use cras_sys::gen::CRAS_AUDIO_MESSAGE_ID;
-use libchromeos::sys::error;
+use log::error;
 
 use crate::audio_socket::{AudioMessage, AudioSocket};
 use crate::cras_server_socket::CrasServerSocket;

@@ -18,7 +18,7 @@ use cras_sys::gen::{
     audio_message, snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_STREAM_DIRECTION,
 };
 use data_model::DataInit;
-use libchromeos::sys::error;
+use log::error;
 
 use crate::audio_socket::AudioMessage;
 use crate::cras_server_socket::CrasServerSocket;

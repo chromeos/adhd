@@ -21,7 +21,7 @@ use cras_sys::{
     AudioDebugInfo, AudioDevDebugInfo, AudioStreamDebugInfo, CrasIodevInfo, CrasIonodeInfo,
 };
 use data_model::VolatileSlice;
-use libchromeos::sys::warn;
+use log::warn;
 
 use crate::unaligned_memory::UnalignedRef;
 
