@@ -151,6 +151,8 @@ static int input_configure_dev(struct cras_iodev* iodev) {
   cras_iodev_init_audio_area(iodev);
   cras_iodev_list_enable_floop_pair(&floop->pair);
   clock_gettime(CLOCK_MONOTONIC_RAW, &floop->dev_start_time);
+  floop->read_frames = 0;
+
   return 0;
 }
 
