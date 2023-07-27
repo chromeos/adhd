@@ -321,7 +321,8 @@ static void device_add_alsa(struct udev_device* dev,
   if (card_type == ALSA_CARD_TYPE_USB) {
     struct udev_device* parent_dev =
         udev_device_get_parent_with_subsystem_devtype(dev, "usb", "usb_device");
-    if (!parent_dev) {
+    // snd-dummy devices don't have a parent_dev
+    if (!parent_dev && !is_dummy_device(dev)) {
       return;
     }
     struct cras_alsa_usb_card_info usb_card_info =
