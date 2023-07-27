@@ -83,6 +83,7 @@ class BtIoBasicSuite : public testing::Test {
     d->get_buffer = get_buffer;
     d->put_buffer = put_buffer;
     d->configure_dev = configure_dev;
+    d->start = start;
     d->close_dev = close_dev;
     d->supported_rates = NULL;
     d->supported_channel_counts = NULL;
@@ -119,6 +120,7 @@ class BtIoBasicSuite : public testing::Test {
     configure_dev_called_++;
     return 0;
   }
+  static int start(cras_iodev* iodev) { return 0; }
   static int close_dev(cras_iodev* iodev) {
     free(iodev->format);
     iodev->format = NULL;
@@ -225,6 +227,30 @@ TEST_F(BtIoBasicSuite, AppendRmIodev) {
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
   EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
 
+  bt_io_manager_remove_iodev(bt_io_mgr, &iodev2_);
+  bt_io_manager_remove_iodev(bt_io_mgr, &iodev3_);
+}
+
+TEST_F(BtIoBasicSuite, CanStartOp) {
+  struct cras_iodev* bt_iodev;
+
+  ResetStubData();
+  iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP);
+  iodev2_.direction = CRAS_STREAM_INPUT;
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_HFP);
+  iodev3_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev3_, CRAS_BT_FLAG_HFP);
+
+  bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
+  EXPECT_EQ(true, cras_iodev_can_start(bt_iodev));
+
+  // If iodev_ doesn't have start op, the parent bt_iodev can't do start
+  iodev_.start = NULL;
+  EXPECT_EQ(false, cras_iodev_can_start(bt_iodev));
+
+  bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev2_);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev3_);
 }

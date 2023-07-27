@@ -87,6 +87,7 @@ static unsigned int put_buffer_nframes;
 static int is_free_running_ret;
 static int no_stream_called;
 static int no_stream_enable;
+static bool can_start_ret;
 // This will be used extensively in cras_iodev.
 struct audio_thread_event_log* atlog;
 static unsigned int simple_no_stream_called;
@@ -196,6 +197,7 @@ void ResetStubData() {
   is_free_running_ret = 0;
   no_stream_called = 0;
   no_stream_enable = 0;
+  can_start_ret = 1;
   simple_no_stream_called = 0;
   simple_no_stream_enable = 0;
   dev_stream_playback_frames_ret = 0;
@@ -1309,6 +1311,10 @@ TEST(IoDev, OpenOutputDeviceWithLowRateFmt) {
   EXPECT_EQ(240, iodev.min_cb_level);
 }
 
+bool can_start(const struct cras_iodev* iodev) {
+  return can_start_ret;
+}
+
 int fake_start(struct cras_iodev* iodev) {
   return 0;
 }
@@ -1323,6 +1329,7 @@ TEST(IoDev, OpenOutputDeviceWithStart) {
   ResetStubData();
 
   iodev.state = CRAS_IODEV_STATE_CLOSE;
+  iodev.can_start = can_start;
   iodev.start = fake_start;
 
   iodev_buffer_size = 1024;
@@ -1332,6 +1339,32 @@ TEST(IoDev, OpenOutputDeviceWithStart) {
 
   // Test that state is no stream run when there is start ops.
   EXPECT_EQ(CRAS_IODEV_STATE_OPEN, iodev.state);
+}
+
+TEST(IoDev, OpenOutputDeviceCanNotStart) {
+  struct cras_iodev iodev;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.configure_dev = configure_dev;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.format = &audio_fmt;
+  ResetStubData();
+
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+  iodev.can_start = can_start;
+  iodev.start = fake_start;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+
+  can_start_ret = 0;
+  iodev_buffer_size = 1024;
+  cras_iodev_open(&iodev, 240, &audio_fmt);
+  EXPECT_EQ(0, iodev.max_cb_level);
+  EXPECT_EQ(240, iodev.min_cb_level);
+
+  // If the |can_start| op returns negative, iodev jumps to
+  // no stream state directly.
+  EXPECT_EQ(CRAS_IODEV_STATE_NO_STREAM_RUN, iodev.state);
 }
 
 TEST(IoDev, OpenInputDeviceNoStart) {

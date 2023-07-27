@@ -218,6 +218,14 @@ struct cras_iodev {
   // If device does not support this ops, then device will be in
   // CRAS_IODEV_STATE_NO_STREAM_RUN.
   int (*start)(struct cras_iodev* iodev);
+
+  // (Optional) operation to check if |start| can be called at the time.
+  // This is useful for iodev that has logic to allow |start| being
+  // called only under certain conditions.
+  // If |can_start| is left unimplemented, it means the |start| op can
+  // be called whenever it's non-null.
+  bool (*can_start)(const struct cras_iodev* iodev);
+
   // (Optional) Checks if the device is in free running state.
   int (*is_free_running)(const struct cras_iodev* iodev);
   // (Optional) Handle output device underrun and return the number of frames
@@ -599,6 +607,14 @@ static inline float cras_iodev_get_ui_gain_scaler(
     return 1.0f;
   }
   return iodev->active_node->ui_gain_scaler;
+}
+
+static inline bool cras_iodev_can_start(const struct cras_iodev* iodev) {
+  if (iodev->start && iodev->can_start) {
+    return iodev->can_start(iodev);
+  } else {
+    return !!iodev->start;
+  }
 }
 
 /* Gets the software gain scaler should be applied on the deivce.

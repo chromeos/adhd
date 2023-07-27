@@ -123,8 +123,11 @@ static int cras_iodev_start(struct cras_iodev* iodev) {
   if (!cras_iodev_is_open(iodev)) {
     return -EPERM;
   }
-  if (!iodev->start) {
-    syslog(LOG_WARNING, "start called on device %s not supporting start ops",
+  // If |cras_iodev_can_start| returns true, |cras_iodev_open| will put
+  // iodev in CRAS_IODEV_STATE_OPEN and expects it be started later.
+  // Warn log if the state is incorrect.
+  if (!cras_iodev_can_start(iodev)) {
+    syslog(LOG_WARNING, "start called on iodev %s which can NOT do start op",
            iodev->info.name);
     return -EINVAL;
   }
@@ -1082,7 +1085,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
     /* If device supports start ops, device can be in open state.
      * Otherwise, device starts running right after opening. */
-    if (iodev->start) {
+    if (cras_iodev_can_start(iodev)) {
       iodev->state = CRAS_IODEV_STATE_OPEN;
     } else {
       iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;

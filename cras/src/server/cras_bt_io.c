@@ -286,7 +286,7 @@ static int configure_dev(struct cras_iodev* iodev) {
 
   iodev->buffer_size = dev->buffer_size;
   iodev->min_buffer_level = dev->min_buffer_level;
-  if (dev->start) {
+  if (cras_iodev_can_start(dev)) {
     dev->state = CRAS_IODEV_STATE_OPEN;
   } else {
     dev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
@@ -458,7 +458,7 @@ static int output_underrun(struct cras_iodev* iodev) {
   dev->buffer_size = iodev->buffer_size;
   frames = dev->output_underrun(dev);
   if (frames > 0) {
-     cras_iodev_update_underrun_duration(iodev, frames);
+    cras_iodev_update_underrun_duration(iodev, frames);
   }
   return frames;
 }
@@ -509,6 +509,11 @@ static int is_free_running(const struct cras_iodev* iodev) {
   return 0;
 }
 
+static bool can_start(const struct cras_iodev* iodev) {
+  struct cras_iodev* dev = active_profile_dev(iodev);
+  return cras_iodev_can_start(dev);
+}
+
 static int start(struct cras_iodev* iodev) {
   struct cras_iodev* dev = active_profile_dev(iodev);
   int rc;
@@ -517,7 +522,7 @@ static int start(struct cras_iodev* iodev) {
     return -EINVAL;
   }
 
-  if (dev->start) {
+  if (cras_iodev_can_start(dev)) {
     /*
      * Fill in properties set by audio thread.  A2dp or hfp
      * iodevs might need them to initialize states.
@@ -610,6 +615,7 @@ static struct cras_iodev* bt_io_create(struct bt_io_manager* mgr,
   iodev->output_underrun = output_underrun;
   iodev->is_free_running = is_free_running;
   iodev->get_valid_frames = get_valid_frames;
+  iodev->can_start = can_start;
   iodev->start = start;
   iodev->frames_to_play_in_sleep = frames_to_play_in_sleep;
 
