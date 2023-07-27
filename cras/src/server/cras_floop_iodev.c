@@ -116,9 +116,11 @@ static int input_frames_queued(const struct cras_iodev* iodev,
   if (floop->input_active && !floop->pair.output.streams) {
     unsigned int frames_since_start = cras_frames_since_time(
         &floop->dev_start_time, iodev->format->frame_rate);
-    unsigned int frames_to_fill = frames_since_start > floop->read_frames
-                                      ? frames_since_start - floop->read_frames
-                                      : 0;
+    unsigned int frames_in_buffer = buf_queued(floop->buffer) / frame_bytes;
+    unsigned int frames_to_fill =
+        frames_since_start > (floop->read_frames + frames_in_buffer)
+            ? frames_since_start - (floop->read_frames + frames_in_buffer)
+            : 0;
     frames_to_fill =
         MIN(buf_writable(floop->buffer) / frame_bytes, frames_to_fill);
     if (frames_to_fill > 0) {
