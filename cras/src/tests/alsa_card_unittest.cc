@@ -1244,18 +1244,19 @@ void cras_alsa_mixer_destroy(struct cras_alsa_mixer* cras_mixer) {
   cras_alsa_mixer_destroy_called++;
 }
 
-struct cras_iodev* alsa_iodev_create(const struct cras_alsa_card_info* card_info,
-                                     const char* card_name,
-                                     size_t device_index,
-                                     const char* pcm_name,
-                                     const char* dev_name,
-                                     const char* dev_id,
-                                     int is_first,
-                                     struct cras_alsa_mixer* mixer,
-                                     const struct cras_card_config* config,
-                                     struct cras_use_case_mgr* ucm,
-                                     snd_hctl_t* hctl,
-                                     enum CRAS_STREAM_DIRECTION direction) {
+struct cras_iodev* alsa_iodev_create(
+    const struct cras_alsa_card_info* card_info,
+    const char* card_name,
+    size_t device_index,
+    const char* pcm_name,
+    const char* dev_name,
+    const char* dev_id,
+    int is_first,
+    struct cras_alsa_mixer* mixer,
+    const struct cras_card_config* config,
+    struct cras_use_case_mgr* ucm,
+    snd_hctl_t* hctl,
+    enum CRAS_STREAM_DIRECTION direction) {
   struct cras_iodev* result = NULL;
   if (cras_alsa_iodev_create_called < cras_alsa_iodev_create_return_size) {
     result = cras_alsa_iodev_create_return[cras_alsa_iodev_create_called];

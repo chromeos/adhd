@@ -38,18 +38,19 @@ struct ucm_section;
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.
  */
-struct cras_iodev* alsa_iodev_create(const struct cras_alsa_card_info* card_info,
-                                     const char* card_name,
-                                     size_t device_index,
-                                     const char* pcm_name,
-                                     const char* dev_name,
-                                     const char* dev_id,
-                                     int is_first,
-                                     struct cras_alsa_mixer* mixer,
-                                     const struct cras_card_config* config,
-                                     struct cras_use_case_mgr* ucm,
-                                     snd_hctl_t* hctl,
-                                     enum CRAS_STREAM_DIRECTION direction);
+struct cras_iodev* alsa_iodev_create(
+    const struct cras_alsa_card_info* card_info,
+    const char* card_name,
+    size_t device_index,
+    const char* pcm_name,
+    const char* dev_name,
+    const char* dev_id,
+    int is_first,
+    struct cras_alsa_mixer* mixer,
+    const struct cras_card_config* config,
+    struct cras_use_case_mgr* ucm,
+    snd_hctl_t* hctl,
+    enum CRAS_STREAM_DIRECTION direction);
 
 /* Complete initializeation of this iodev with the legacy method.
  * Add IO nodes and find jacks for this iodev with magic sauce, then choose

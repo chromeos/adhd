@@ -33,18 +33,19 @@ void ResetStubData() {
 }
 
 // Mock functions for testing.
-static struct cras_iodev* mock_create(const struct cras_alsa_card_info* card_info,
-                                      const char* card_name,
-                                      size_t device_index,
-                                      const char* pcm_name,
-                                      const char* dev_name,
-                                      const char* dev_id,
-                                      int is_first,
-                                      struct cras_alsa_mixer* mixer,
-                                      const struct cras_card_config* config,
-                                      struct cras_use_case_mgr* ucm,
-                                      snd_hctl_t* hctl,
-                                      enum CRAS_STREAM_DIRECTION direction) {
+static struct cras_iodev* mock_create(
+    const struct cras_alsa_card_info* card_info,
+    const char* card_name,
+    size_t device_index,
+    const char* pcm_name,
+    const char* dev_name,
+    const char* dev_id,
+    int is_first,
+    struct cras_alsa_mixer* mixer,
+    const struct cras_card_config* config,
+    struct cras_use_case_mgr* ucm,
+    snd_hctl_t* hctl,
+    enum CRAS_STREAM_DIRECTION direction) {
   mock_create_called++;
   return mock_iodev;
 }
