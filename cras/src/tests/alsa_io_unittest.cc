@@ -276,10 +276,26 @@ static struct cras_iodev* alsa_iodev_create_with_default_parameters(
     struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     enum CRAS_STREAM_DIRECTION direction) {
-  return alsa_iodev_create(card_index, test_card_name, 0, test_pcm_name,
-                           test_dev_name, dev_id, card_type, is_first, mixer,
-                           config, ucm, fake_hctl, direction, 0, 0,
-                           (char*)"123");
+  if (card_type == ALSA_CARD_TYPE_USB) {
+    struct cras_alsa_usb_card_info usb_card_info = {
+        .base =
+            {
+                .card_type = ALSA_CARD_TYPE_USB,
+                .card_index = 0,
+            },
+        .usb_vendor_id = 0,
+        .usb_product_id = 0,
+        .usb_serial_number = "1234",
+        .usb_desc_checksum = 0};
+    return alsa_iodev_create(&usb_card_info.base, test_card_name, 0,
+                             test_pcm_name, test_dev_name, dev_id, is_first,
+                             mixer, config, ucm, fake_hctl, direction);
+  }
+  struct cras_alsa_card_info card_info = {.card_type = card_type,
+                                          .card_index = (uint32_t)card_index};
+  return alsa_iodev_create(&card_info, test_card_name, 0, test_pcm_name,
+                           test_dev_name, dev_id, is_first, mixer, config, ucm,
+                           fake_hctl, direction);
 }
 
 namespace {
