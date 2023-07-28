@@ -14,8 +14,9 @@ impl CrasFeatureTier {
     pub fn new(board_name: &str, cpu_name: &str) -> Self {
         Self {
             sr_bt_supported: match board_name {
-                "eve" | "soraka" | "nautilus" | "nami" | "atlas" | "nocturne" | "rammus"
-                | "fizz" => !has_substr(cpu_name, &["celeron", "pentium"]),
+                "eve" | "soraka" | "nautilus" | "nami" | "nocturne" | "rammus" | "fizz" => {
+                    !has_substr(cpu_name, &["celeron", "pentium"])
+                }
                 _ => false,
             },
         }
