@@ -28,6 +28,7 @@ enum CRAS_MAIN_MESSAGE_TYPE {
   CRAS_MAIN_SPEAK_ON_MUTE,
   CRAS_MAIN_STREAM_APM,
   CRAS_MAIN_FEATURE_CHANGED,
+  CRAS_MAIN_NOTIFY_RTC,
 };
 
 /* Structure of the header of the message handled by main thread.

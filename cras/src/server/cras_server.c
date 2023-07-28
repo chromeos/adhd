@@ -42,6 +42,7 @@
 #include "cras/src/server/cras_non_empty_audio_handler.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
@@ -557,6 +558,10 @@ int cras_server_run(unsigned int profile_disable_mask) {
   }
 
   if (cras_feature_monitor_init() < 0) {
+    goto bail;
+  }
+
+  if (cras_rtc_init()) {
     goto bail;
   }
 

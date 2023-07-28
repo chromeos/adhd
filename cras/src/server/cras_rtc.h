@@ -39,6 +39,9 @@ void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id);
 // Returns whether there are running RTC streams.
 bool cras_rtc_is_running();
 
+// Initialize cras_rtc.
+int cras_rtc_init();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

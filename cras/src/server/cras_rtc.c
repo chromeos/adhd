@@ -6,6 +6,7 @@
 
 #include <syslog.h>
 
+#include "cras/server/main_message.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_dbus_control.h"
 #include "cras/src/server/cras_iodev.h"
@@ -49,11 +50,30 @@ static struct rtc_data* find_rtc_stream(struct rtc_data* list,
   return NULL;
 }
 
+struct notify_rtc_active {
+  struct cras_main_message base;
+  bool now_active;
+};
+
+static void notify_rtc_active_in_main(struct cras_main_message* msg,
+                                      void* arg) {
+  struct notify_rtc_active* notify_rtc_active = (struct notify_rtc_active*)msg;
+  cras_dbus_notify_rtc_active(notify_rtc_active->now_active);
+}
+
 static void notify_rtc_active_now(bool was_active) {
   bool now_active = cras_rtc_is_running();
 
   if (now_active != was_active) {
-    cras_dbus_notify_rtc_active(now_active);
+    struct notify_rtc_active msg = {
+        .base =
+            {
+                .length = sizeof(msg),
+                .type = CRAS_MAIN_NOTIFY_RTC,
+            },
+        .now_active = now_active,
+    };
+    cras_main_message_send(&msg.base);
   }
 }
 
@@ -155,4 +175,14 @@ void cras_rtc_remove_stream(struct cras_rstream* stream, unsigned int dev_id) {
 
 bool cras_rtc_is_running() {
   return input_list && output_list;
+}
+
+// Initialize cras_rtc.
+int cras_rtc_init() {
+  int rc = cras_main_message_add_handler(CRAS_MAIN_NOTIFY_RTC,
+                                         notify_rtc_active_in_main, NULL);
+  if (rc) {
+    syslog(LOG_ERR, "cannot add message handler: %s", cras_strerror(-rc));
+  }
+  return rc;
 }
