@@ -6,14 +6,17 @@ use std::error;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, BufReader, BufWriter, Read, Write};
+use std::mem::MaybeUninit;
 use std::os::raw::c_int;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::{SampleFormat, StreamSource};
 use hound::{WavReader, WavSpec, WavWriter};
-use libchromeos::sys::{register_signal_handler, set_rt_prio_limit, set_rt_round_robin};
+use libc;
+use libchromeos::sys::register_signal_handler;
 use libcras::{BoxError, CrasClient, CrasNodeType};
+use nix;
 
 use crate::arguments::{AudioOptions, FileType, LoopbackType, SampleFormatArg};
 
@@ -457,4 +460,38 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Enables real time thread priorities in the current thread up to `limit`.
+pub fn set_rt_prio_limit(limit: u64) -> nix::Result<()> {
+    let rt_limit_arg = libc::rlimit64 {
+        rlim_cur: limit,
+        rlim_max: limit,
+    };
+    // Safe because the kernel doesn't modify memory that is accessible to the process here.
+    let res = unsafe { libc::setrlimit64(libc::RLIMIT_RTPRIO, &rt_limit_arg) };
+
+    if res != 0 {
+        Err(nix::Error::last())
+    } else {
+        Ok(())
+    }
+}
+
+/// Sets the current thread to be scheduled using the round robin real time class with `priority`.
+pub fn set_rt_round_robin(priority: i32) -> nix::Result<()> {
+    // SAFETY: Safe because sched_param only contains primitive types for which zero
+    // initialization is valid.
+    let mut sched_param: libc::sched_param = unsafe { MaybeUninit::zeroed().assume_init() };
+    sched_param.sched_priority = priority;
+
+    // SAFETY: Safe because the kernel doesn't modify memory that is accessible to the process here.
+    let res =
+        unsafe { libc::pthread_setschedparam(libc::pthread_self(), libc::SCHED_RR, &sched_param) };
+
+    if res != 0 {
+        Err(nix::Error::last())
+    } else {
+        Ok(())
+    }
 }
