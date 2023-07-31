@@ -111,6 +111,7 @@ pkg_config(
         "tensorflowlite",
         "libchrome",
         "libcros_config",
+        "libsegmentation",
         # @webrtc_apm deps
         "protobuf",
         "libevent",

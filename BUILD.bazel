@@ -48,6 +48,11 @@ bool_flag_config(
 )
 
 bool_flag_config(
+    name = "chromeos",
+    build_setting_default = False,
+)
+
+bool_flag_config(
     name = "fuzzer",
     build_setting_default = False,
 )
