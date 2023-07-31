@@ -469,6 +469,8 @@ cc_library(
         ":ewma_power",
         "//cras/base",
         "//cras/platform/features",
+        "//cras/platform/features:override",
+        "//cras/platform/segmentation",
         "//cras/server:main_message",
         "//cras/src/common",
         "//cras/src/dsp",

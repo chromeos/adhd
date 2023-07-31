@@ -24,6 +24,8 @@
 #include <unistd.h>
 
 #include "cras/platform/features/features.h"
+#include "cras/platform/features/override.h"
+#include "cras/platform/segmentation/segmentation.h"
 #include "cras/server/main_message.h"
 #include "cras/src/common/cras_metrics.h"
 #include "cras/src/common/cras_string.h"
@@ -426,6 +428,9 @@ int cras_server_init() {
   int rc = cras_features_init();
   if (rc != 0) {
     syslog(LOG_ERR, "failed to initialize the cras_features backend: %d", rc);
+  }
+  if (cras_segmentation_enabled("FeatureManagementAPNoiseCancellation")) {
+    cras_features_set_override(CrOSLateBootAudioAPNoiseCancellation, true);
   }
 
   return 0;
