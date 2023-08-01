@@ -17,5 +17,6 @@ futures = "*"
 libc = "*"
 libchromeos = { path = "../../../../../platform2/libchromeos-rs/" } # provided by ebuild
 log = "0.4"
+nix = { version = "0.26", features = ["socket"] }
 serde = "1.0.125"
 tokio = { version = "1.19.2", features = ["rt", "net", "time"]}

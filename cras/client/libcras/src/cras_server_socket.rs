@@ -1,16 +1,17 @@
 // Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd, RawFd};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::{io, mem};
 
 use super::Error;
 use cras_sys::gen::{cras_disconnect_stream_message, cras_server_message, CRAS_SERVER_MESSAGE_ID};
-use libchromeos::sys::{net::UnixSeqpacket, ScmSocket};
-use serde::{Deserialize, Serialize};
-
 use data_model::DataInit;
+use libchromeos::sys::ScmSocket;
+use nix::sys::socket;
+use serde::{Deserialize, Serialize};
 
 /// Server socket type to connect.
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
@@ -44,7 +45,7 @@ impl FromStr for CrasSocketType {
 
 /// A socket connecting to the CRAS audio server.
 pub struct CrasServerSocket {
-    socket: UnixSeqpacket,
+    socket: OwnedFd,
 }
 
 impl CrasServerSocket {
@@ -58,9 +59,20 @@ impl CrasServerSocket {
     ///
     /// Returns the `io::Error` generated when connecting to the socket on failure.
     pub fn with_type(socket_type: CrasSocketType) -> io::Result<CrasServerSocket> {
-        Ok(CrasServerSocket {
-            socket: UnixSeqpacket::connect(socket_type.sock_path())?,
-        })
+        // SAFETY: Safe since OwnedFd is created from a newly created FD.
+        let fd = unsafe {
+            OwnedFd::from_raw_fd(socket::socket(
+                socket::AddressFamily::Unix,
+                socket::SockType::SeqPacket,
+                socket::SockFlag::empty(),
+                None,
+            )?)
+        };
+        let socket_path = PathBuf::from(socket_type.sock_path());
+        let addr = socket::UnixAddr::new(&socket_path)?;
+        socket::connect(fd.as_raw_fd(), &addr)?;
+
+        Ok(CrasServerSocket { socket: fd })
     }
 
     /// Sends a sized and packed server messge to the server socket. The message
@@ -80,7 +92,8 @@ impl CrasServerSocket {
         fds: &[RawFd],
     ) -> io::Result<usize> {
         match fds.len() {
-            0 => self.socket.send(message.as_slice()),
+            0 => nix::unistd::write(self.socket.as_raw_fd(), message.as_slice())
+                .map_err(|e| e.into()),
             _ => {
                 let ioslice = io::IoSlice::new(message.as_slice());
                 match self.send_with_fds(&[ioslice], fds) {
