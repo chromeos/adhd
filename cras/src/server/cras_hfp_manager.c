@@ -120,11 +120,8 @@ struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
     hfp->hfp_caps &= ~FL_HFP_CODEC_LC3;
   }
 
-  if (!cras_feature_enabled(CrOSLateBootAudioHFPSwb)) {
-    hfp->hfp_caps &= ~FL_HFP_CODEC_LC3;
-  }
-
-  if (cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3) &&
+  if (cras_feature_enabled(CrOSLateBootAudioHFPSwb) &&
+      cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3) &&
       hfp->sco_pcm_used) {
     hfp->sco_pcm_used = false;
     syslog(LOG_INFO, "Bypassed offloading to allow LC3");
