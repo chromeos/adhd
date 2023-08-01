@@ -5,14 +5,11 @@
 #ifndef CRAS_SRC_SERVER_INIPARSER_WRAPPER_H_
 #define CRAS_SRC_SERVER_INIPARSER_WRAPPER_H_
 
-#ifdef HAVE_INIPARSER_INIPARSER_H
-#include <iniparser/iniparser.h>
-#else
-#include <iniparser.h>
-#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "iniparser.h"
 
 #ifdef __cplusplus
 extern "C" {

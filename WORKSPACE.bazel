@@ -60,7 +60,7 @@ http_archive(
     name = "iniparser",
     build_file = "//:third_party/BUILD.iniparser.bazel",
     sha256 = "aedf23881b834519aea5e861b2400606d211da049cd59d3cfb4568e0d9eff5c5",
-    strip_prefix = "iniparser/src",
+    strip_prefix = "iniparser",
     urls = [
         "https://storage.googleapis.com/chromeos-localmirror/distfiles/iniparser-3.1.tar.gz",
         "http://ndevilla.free.fr/iniparser/iniparser-3.1.tar.gz",

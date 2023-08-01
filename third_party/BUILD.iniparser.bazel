@@ -5,17 +5,17 @@
 cc_library(
     name = "iniparser",
     srcs = [
-        "dictionary.c",
-        "iniparser.c",
+        "src/dictionary.c",
+        "src/iniparser.c",
     ],
     hdrs = [
-        "dictionary.h",
-        "iniparser.h",
+        "src/dictionary.h",
+        "src/iniparser.h",
     ],
     copts = [
         "-Wno-format-overflow",
         "-Wno-unknown-warning-option",
     ],
-    includes = ["."],
+    includes = ["src"],
     visibility = ["//visibility:public"],
 )
