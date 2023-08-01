@@ -1569,7 +1569,7 @@ static void print_cras_audio_thread_snapshot(
     time_t sec_offset,
     int32_t nsec_offset) {
   struct timespec ts;
-  ts = snapshot->timestamp;
+  cras_timespec_to_timespec(&ts, &snapshot->timestamp);
   convert_to_time_str(&ts, sec_offset, nsec_offset);
 
   printf("-------------snapshot------------\n");

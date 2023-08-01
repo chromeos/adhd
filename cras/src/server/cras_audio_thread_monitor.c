@@ -28,7 +28,7 @@ static void take_snapshot(enum CRAS_AUDIO_THREAD_EVENT_TYPE event_type) {
 
   struct timespec now_time;
   clock_gettime(CLOCK_MONOTONIC_RAW, &now_time);
-  snapshot.timestamp = now_time;
+  cras_timespec_from_timespec(&snapshot.timestamp, &now_time);
   snapshot.event_type = event_type;
   audio_thread_dump_thread_info(cras_iodev_list_get_audio_thread(),
                                 &snapshot.audio_debug_info);

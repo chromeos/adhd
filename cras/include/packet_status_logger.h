@@ -6,9 +6,12 @@
 #ifndef CRAS_INCLUDE_PACKET_STATUS_LOGGER_H_
 #define CRAS_INCLUDE_PACKET_STATUS_LOGGER_H_
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+
+#include "cras_timespec.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,8 +37,15 @@ struct packet_status_logger {
   // Number of times the ring buffer has wrapped.
   int num_wraps;
   // The timestamp of the last time when the first bit of |data| updated.
-  struct timespec ts;
+  struct cras_timespec ts;
+  // Reserve 4 bytes to make this struct size a multiple of 8.
+  uint32_t reserved;
 };
+
+// struct size should be a multiple of 8 to make the offset align on both 32
+// and 64 bit arch when embedded in cras_server_state.
+static_assert(sizeof(struct packet_status_logger) % 8 == 0,
+              "not multiple of 8");
 
 // Initializes the packet status logger.
 void packet_status_logger_init(struct packet_status_logger* logger);
@@ -52,7 +62,7 @@ static inline void packet_status_logger_begin_ts(
     struct timespec* ts) {
   long nsec = WBS_FRAME_NS * (logger->size - logger->wp);
 
-  *ts = logger->ts;
+  cras_timespec_to_timespec(ts, &logger->ts);
   if (logger->num_wraps == 0) {
     return;
   }
@@ -73,7 +83,7 @@ static inline void packet_status_logger_begin_ts(
 static inline void packet_status_logger_end_ts(
     const struct packet_status_logger* logger,
     struct timespec* ts) {
-  *ts = logger->ts;
+  cras_timespec_to_timespec(ts, &logger->ts);
   ts->tv_nsec += WBS_FRAME_NS * logger->wp;
   while (ts->tv_nsec > 1000000000L) {
     ts->tv_sec++;

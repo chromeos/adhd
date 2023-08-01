@@ -15,17 +15,12 @@
 
 #include "cras_audio_format.h"
 #include "cras_iodev_info.h"
+#include "cras_timespec.h"
 #include "packet_status_logger.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-// Architecture independent timespec
-struct __attribute__((__packed__)) cras_timespec {
-  int64_t tv_sec;
-  int64_t tv_nsec;
-};
 
 // Some special device index values.
 enum CRAS_SPECIAL_DEVICE {
@@ -551,7 +546,7 @@ enum CRAS_AUDIO_THREAD_EVENT_TYPE {
  * Structure of snapshot for audio thread.
  */
 struct __attribute__((__packed__)) cras_audio_thread_snapshot {
-  struct timespec timestamp;
+  struct cras_timespec timestamp;
   enum CRAS_AUDIO_THREAD_EVENT_TYPE event_type;
   struct audio_debug_info audio_debug_info;
 };
