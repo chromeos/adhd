@@ -73,13 +73,12 @@ bazel_opts+=("--linkopt=-lsystemd")
 # Print inferred @fuzz_engine
 bazel cquery  "${bazel_opts[@]}" --output=build @fuzz_engine//:fuzz_engine
 
-bazel run "${bazel_opts[@]}" //dist -- ${WORK}/build
+bazel build "${bazel_opts[@]}" //dist:fuzzers
+tar -C "${OUT}" -xvvf bazel-bin/dist/fuzzers.tar
 
 # Preserve historical names
-mv ${WORK}/build/fuzzer/cras_rclient_message_fuzzer ${OUT}/rclient_message
-mv ${WORK}/build/fuzzer/cras_hfp_slc_fuzzer ${OUT}/cras_hfp_slc
-
-mv ${WORK}/build/fuzzer/* ${OUT}/
+mv ${OUT}/cras_rclient_message_fuzzer ${OUT}/rclient_message
+mv ${OUT}/cras_hfp_slc_fuzzer ${OUT}/cras_hfp_slc
 
 zip -j ${OUT}/rclient_message_corpus.zip ${SRC}/adhd/cras/src/fuzz/corpus/*
 cp "${SRC}/adhd/cras/src/fuzz/cras_hfp_slc.dict" "${OUT}/cras_hfp_slc.dict"

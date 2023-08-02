@@ -2,20 +2,82 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("//:utils.bzl", "require_no_config")
+load("//:utils.bzl", "require_config")
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_filegroup", "pkg_files", "pkg_mklink", "strip_prefix")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+
+#
+# Shared configs.
+#
+EXECUTABLE_ATTRIBUTES = pkg_attributes(
+    group = "root",
+    mode = "0755",
+    user = "root",
+)
+
+FILE_ATTRIBUTES = pkg_attributes(
+    group = "root",
+    mode = "0644",
+    user = "root",
+)
+
+LIBDIR = select({
+    ":lib_is_lib": "usr/lib",
+    ":lib_is_lib32": "usr/lib32",
+    ":lib_is_lib64": "usr/lib64",
+})
+
+#
+# Tarballs.
+#
+pkg_tar(
+    name = "default",
+    srcs = [
+        ":alsa_lib",
+        ":bin",
+        ":extra_bin",
+        ":include",
+        ":lib",
+        ":pkgconfig",
+    ],
+)
+
+pkg_tar(
+    name = "client_only",
+    srcs = [
+        ":alsa_lib",
+        ":lib",
+        "//cras/src/tools:cras_test_client",
+    ],
+)
+
+pkg_tar(
+    name = "client_lib_only",
+    srcs = [
+        ":alsa_lib",
+        ":lib",
+    ],
+)
+
+#
+# Targets.
+#
 
 # Binary targets.
-filegroup(
+pkg_files(
     name = "bin",
     srcs = [
         "//cras/src/server:cras",
         "//cras/src/tools:cras_test_client",
     ],
+    attributes = EXECUTABLE_ATTRIBUTES,
+    prefix = "usr/bin",
 )
 
 # Extra binary targets.
 # These are installed to /usr/local/bin by ebuild, hence only appear on test images.
-filegroup(
+pkg_files(
     name = "extra_bin",
     srcs = [
         "//cras/scripts:asoc_dapm_graph",
@@ -23,103 +85,102 @@ filegroup(
         "//cras/src/tools:cras_monitor",
         "//cras/src/tools:cras_router",
     ],
+    attributes = EXECUTABLE_ATTRIBUTES,
+    prefix = "usr/local/bin",
 )
 
 # Public header targets.
-filegroup(
+pkg_files(
     name = "include",
     srcs = ["//cras/include:public_headers"],
+    attributes = FILE_ATTRIBUTES,
+    prefix = "usr/include",
 )
 
 # Library targets
-filegroup(
+pkg_filegroup(
     name = "lib",
     srcs = [
-        "//cras/src/libcras:cras",
+        "libcras_so",
+        "libcras_so_0",
+        "libcras_so_0_0_0",
     ],
 )
 
-filegroup(
+pkg_files(
+    name = "libcras_so",
+    srcs = [
+        "//cras/src/libcras:cras",
+    ],
+    attributes = EXECUTABLE_ATTRIBUTES,
+    prefix = LIBDIR,
+)
+
+pkg_mklink(
+    name = "libcras_so_0",
+    link_name = LIBDIR + "/libcras.so.0",
+    target = "libcras.so",
+)
+
+pkg_mklink(
+    name = "libcras_so_0_0_0",
+    link_name = LIBDIR + "/libcras.so.0.0.0",
+    target = "libcras.so",
+)
+
+pkg_files(
     name = "alsa_lib",
     srcs = [
         "//cras/src/alsa_plugin:asound_module_ctl_cras",
         "//cras/src/alsa_plugin:asound_module_pcm_cras",
     ],
+    attributes = EXECUTABLE_ATTRIBUTES,
+    prefix = LIBDIR + "/alsa-lib",
 )
 
-filegroup(
+pkg_files(
     name = "pkgconfig",
     srcs = [
         "//cras:libcras.pc",
     ],
+    attributes = FILE_ATTRIBUTES,
+    prefix = LIBDIR + "/pkgconfig",
 )
 
-filegroup(
-    name = "fuzzer",
+pkg_tar(
+    name = "fuzzers",
     srcs = [
         "//cras/src/fuzz:cras_fl_media_fuzzer",
         "//cras/src/fuzz:cras_hfp_slc_fuzzer",
         "//cras/src/fuzz:cras_rclient_message_fuzzer",
     ],
+    target_compatible_with = require_config("//:fuzzer_build"),
 )
 
-py_binary(
-    name = "dist",
-    srcs = ["dist.py"],
-    args = select({
-        "//:fuzzer_build": ["--_fuzzer_files $(locations :fuzzer)"],
-        "//conditions:default": [
-            "--_bin_files $(locations :bin)",
-            "--_extra_bin_files $(locations :extra_bin)",
-            "--_include_files $(locations :include)",
-            "--_lib_files $(locations :lib)",
-            "--_alsa_lib_files $(locations :alsa_lib)",
-            "--_pkgconfig_files $(locations :pkgconfig)",
-        ],
-    }) + ["--"],
-    data = select({
-        "//:fuzzer_build": [":fuzzer"],
-        "//conditions:default": [
-            ":alsa_lib",
-            ":bin",
-            ":extra_bin",
-            ":include",
-            ":lib",
-            ":pkgconfig",
-        ],
-    }),
+#
+# libdir selection
+#
+string_flag(
+    name = "libdir",
+    build_setting_default = "lib",
+    values = [
+        "lib",
+        "lib32",
+        "lib64",
+    ],
 )
 
-py_binary(
-    name = "dist_client_only",
-    srcs = ["dist.py"],
-    args = [
-        "--_bin_files $(location //cras/src/tools:cras_test_client)",
-        "--_lib_files $(locations :lib)",
-        "--_alsa_lib_files $(locations :alsa_lib)",
-        "--",
-    ],
-    data = [
-        ":alsa_lib",
-        ":lib",
-        "//cras/src/tools:cras_test_client",
-    ],
-    main = "dist.py",
-    target_compatible_with = require_no_config("//:fuzzer_build"),
+config_setting(
+    name = "lib_is_lib",
+    flag_values = {":libdir": "lib"},
 )
 
-py_binary(
-    name = "dist_client_libs_only",
-    srcs = ["dist.py"],
-    args = [
-        "--_lib_files $(locations :lib)",
-        "--_alsa_lib_files $(locations :alsa_lib)",
-        "--",
-    ],
-    data = [
-        ":alsa_lib",
-        ":lib",
-    ],
-    main = "dist.py",
-    target_compatible_with = require_no_config("//:fuzzer_build"),
+config_setting(
+    name = "lib_is_lib32",
+    flag_values = {":libdir": "lib32"},
+)
+
+config_setting(
+    name = "lib_is_lib64",
+    flag_values = {":libdir": "lib64"},
 )
