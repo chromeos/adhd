@@ -14,9 +14,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use audio_streams::{SampleFormat, StreamSource};
 use hound::{WavReader, WavSpec, WavWriter};
 use libc;
-use libchromeos::sys::register_signal_handler;
+use libchromeos::signal::register_signal_handler;
 use libcras::{BoxError, CrasClient, CrasNodeType};
 use nix;
+use nix::sys::signal::Signal;
 
 use crate::arguments::{AudioOptions, FileType, LoopbackType, SampleFormatArg};
 
@@ -31,7 +32,7 @@ pub enum Error {
     NoLoopbackNode(CrasNodeType),
     OpenFile(hound::Error),
     SampleBits(u16),
-    SysUtil(libchromeos::sys::Error),
+    SysUtil(nix::Error),
     ParseArgs(crate::arguments::Error),
 }
 
@@ -75,7 +76,7 @@ extern "C" fn sigint_handler(_: c_int) {
 
 fn add_sigint_handler() -> Result<()> {
     const SIGINT: c_int = 2;
-    let result = unsafe { register_signal_handler(SIGINT, sigint_handler) };
+    let result = unsafe { register_signal_handler(Signal::SIGINT, sigint_handler) };
     result.map_err(Error::SysUtil)
 }
 
