@@ -6,12 +6,13 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::{io, mem};
 
-use super::Error;
 use cras_sys::gen::{cras_disconnect_stream_message, cras_server_message, CRAS_SERVER_MESSAGE_ID};
 use data_model::DataInit;
-use libchromeos::sys::ScmSocket;
 use nix::sys::socket;
 use serde::{Deserialize, Serialize};
+
+use super::Error;
+use crate::scm_socket::ScmSocket;
 
 /// Server socket type to connect.
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
