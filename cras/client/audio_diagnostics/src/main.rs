@@ -265,6 +265,8 @@ fn main() {
         "/org/chromium/cras",
         "org.chromium.cras.Control.SpeakOnMuteDetectionEnabled",
     ]));
+
+    crate::settings::print_salted_audio_settings("/home/chronos/Local State");
 }
 
 fn print_analysis_result(results: Vec<Analysis>) {

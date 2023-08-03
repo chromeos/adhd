@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use anyhow::Context;
 use cras::pseudonymization::Salt;
 use serde::de::Visitor;
 use serde::Deserialize;
@@ -116,9 +117,25 @@ struct DeviceState {
 
 #[derive(Serialize, Deserialize)]
 struct Devices {
-    gain_percent: Option<HashMap<AudioNode, i32>>,
+    gain_percent: Option<HashMap<AudioNode, f64>>,
     mute: Option<HashMap<AudioNode, i32>>,
-    volume_percent: Option<HashMap<AudioNode, i32>>,
+    volume_percent: Option<HashMap<AudioNode, f64>>,
+}
+
+fn get_salted_audio_settings(path: &str) -> Result<String, anyhow::Error> {
+    let contents =
+        std::fs::read_to_string(path).with_context(|| "error reading Local State file")?;
+    let local_state: LocalState =
+        serde_json::from_str(contents.as_str()).with_context(|| "error parsing local state")?;
+    serde_json::to_string_pretty(&local_state).with_context(|| "error serializing local state")
+}
+
+pub fn print_salted_audio_settings(path: &str) {
+    println!("=== audio settings ===");
+    match get_salted_audio_settings(path) {
+        Ok(settings) => println!("{settings}"),
+        Err(err) => println!("{err:#}"),
+    };
 }
 
 #[cfg(test)]
@@ -167,16 +184,16 @@ mod tests {
   },
   "devices": {
     "gain_percent": {
-      "2315562897 : 1": 50,
-      "2356475750 : 1": 50,
-      "3787040 : 1": 50,
-      "3962083865 : 1": 50
+      "2315562897 : 1": 50.0,
+      "2356475750 : 1": 50.0,
+      "3787040 : 1": 50.0,
+      "3962083865 : 1": 50.0
     },
     "mute": {
       "1923447123 : 0": 0
     },
     "volume_percent": {
-      "1923447123 : 0": 75
+      "1923447123 : 0": 75.0
     }
   },
   "input_user_priority": {
@@ -226,7 +243,7 @@ mod tests {
                     is_input: true,
                 })
                 .unwrap(),
-            50
+            50.
         );
         assert_eq!(
             *audio
@@ -256,7 +273,7 @@ mod tests {
                     is_input: false
                 })
                 .unwrap(),
-            75
+            75.
         );
         assert_eq!(
             *audio
