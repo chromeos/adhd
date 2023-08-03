@@ -48,7 +48,7 @@ impl Salt {
         INSTANCE.get_or_init(|| Salt::new_from_environment().expect("Cannot initialize new salt"))
     }
 
-    fn pseudonymize_stable_id(&self, stable_id: u32) -> u32 {
+    pub fn pseudonymize_stable_id(&self, stable_id: u32) -> u32 {
         match self.0 {
             None => stable_id,
             Some(salt) => {

@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use cras::pseudonymization::Salt;
 use serde::de::Visitor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -65,7 +66,11 @@ impl Serialize for AudioNode {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(&format!("{} : {}", self.stable_id, self.is_input as i32))
+        serializer.serialize_str(&format!(
+            "0x{:x} : {}",
+            Salt::instance().pseudonymize_stable_id(self.stable_id),
+            self.is_input as i32
+        ))
     }
 }
 
@@ -122,6 +127,8 @@ mod tests {
     use super::DeviceState;
     use super::LocalState;
 
+    use cras::pseudonymization::Salt;
+
     #[test]
     fn audio_node() {
         let a = AudioNode {
@@ -129,15 +136,20 @@ mod tests {
             is_input: true,
         };
         let a_json = "\"0 : 1\"";
+        let a_json_salted = format!("\"0x{:x} : 1\"", Salt::instance().pseudonymize_stable_id(0));
         let b = AudioNode {
             stable_id: 56789,
             is_input: false,
         };
         let b_json = "\"56789 : 0\"";
-        assert_eq!(serde_json::to_string(&a).unwrap(), a_json);
-        assert_eq!(serde_json::to_string(&b).unwrap(), b_json);
-        assert_eq!(serde_json::from_str::<AudioNode>(a_json).unwrap(), a);
-        assert_eq!(serde_json::from_str::<AudioNode>(b_json).unwrap(), b);
+        let b_json_salted = format!(
+            "\"0x{:x} : 0\"",
+            Salt::instance().pseudonymize_stable_id(56789)
+        );
+        assert_eq!(serde_json::to_string(&a).unwrap(), a_json_salted);
+        assert_eq!(serde_json::to_string(&b).unwrap(), b_json_salted);
+        assert_eq!(serde_json::from_str::<AudioNode>(&a_json).unwrap(), a);
+        assert_eq!(serde_json::from_str::<AudioNode>(&b_json).unwrap(), b);
     }
 
     #[test]
