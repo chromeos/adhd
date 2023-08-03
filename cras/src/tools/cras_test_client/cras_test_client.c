@@ -79,24 +79,6 @@ static int effect_agc_on_dsp = 0;
 
 static enum CRAS_CLIENT_TYPE client_type = CRAS_CLIENT_TYPE_TEST;
 
-// Salt for pseudonymization.
-// 0 to disable.
-static uint32_t salt;
-
-uint32_t salted_id(uint32_t stable_id) {
-  if (salt == 0) {
-    return stable_id;
-  }
-  return pseudonymize_stable_id(salt, stable_id);
-}
-
-static void init_salt() {
-  int rc = pseudonymize_salt_get_from_env(&salt);
-  CRAS_CHECK(rc != -EINVAL && "CRAS_PSEUDONYMIZATION_SALT set but invalid");
-  CRAS_CHECK(rc == 0 &&
-             "Unknown error initializing CRAS_PSEUDONYMIZATION_SALT");
-}
-
 // ionode flags used in --print_nodes_inlined
 enum {
   IONODE_FLAG_DIRECTION,
@@ -573,7 +555,7 @@ static void print_node_info(struct cras_client* client,
       snprintf(max_channels_str, sizeof(max_channels_str), "%6u", max_channels);
     }
     printf("\t(%08x)\t%u:%u\t%5g %f %7s\t%14s\t%10ld %-7s\t%-16s%-6s%c%s\n",
-           salted_id(nodes[i].stable_id), nodes[i].iodev_idx,
+           pseudonymize_stable_id(nodes[i].stable_id), nodes[i].iodev_idx,
            nodes[i].ionode_idx,
            is_input ? nodes[i].capture_gain / 100.0 : (double)nodes[i].volume,
            nodes[i].ui_gain_scaler, nodes[i].plugged ? "yes" : "no",
@@ -1415,11 +1397,11 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
       break;
     case BT_DEV_CONNECTED:
       printf("%-30s supported profiles 0x%.2x stable_id 0x%08x\n",
-             "DEV_CONNECTED", data1, salted_id(data2));
+             "DEV_CONNECTED", data1, pseudonymize_stable_id(data2));
       break;
     case BT_DEV_DISCONNECTED:
       printf("%-30s supported profiles 0x%.2x stable_id 0x%08x\n",
-             "DEV_DISCONNECTED", data1, salted_id(data2));
+             "DEV_DISCONNECTED", data1, pseudonymize_stable_id(data2));
       break;
     case BT_DEV_CONN_WATCH_CB:
       printf("%-30s %u retries left, supported profiles 0x%.2x\n",
@@ -2527,10 +2509,6 @@ int main(int argc, char** argv) {
   option_index = 0;
   openlog("cras_test_client", LOG_PERROR, LOG_USER);
   setlogmask(LOG_UPTO(LOG_INFO));
-
-  // Initialize the pseudonymization salt very early so all things that
-  // may print out IDs are salted.
-  init_salt();
 
   rc = cras_client_create_and_connect(&client, conn_type);
   if (rc) {

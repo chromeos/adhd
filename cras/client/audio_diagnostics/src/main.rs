@@ -136,8 +136,7 @@ fn dump_amp(output_cards: &[String]) -> Result<(), anyhow::Error> {
 
 fn main() {
     init_log().expect("cannot init log");
-    let salt = Salt::new().expect("cannot generate random salt");
-    env::set_var("CRAS_PSEUDONYMIZATION_SALT", u32::from(salt).to_string());
+    env::set_var("CRAS_PSEUDONYMIZATION_SALT", Salt::instance().to_string());
 
     // Show CRAS process uptime
     run_command(Command::new("ps").args(["-C", "cras", "-o", "comm,etime"]));

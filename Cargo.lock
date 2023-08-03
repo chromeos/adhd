@@ -196,6 +196,7 @@ dependencies = [
  "libc",
  "log",
  "nix",
+ "once_cell",
  "openssl",
  "regex",
  "serde_json",

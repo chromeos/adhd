@@ -1,5 +1,5 @@
 {
-  "checksum": "0c9cd3bef5c1a628bd95905b8c81f517d0ad48460cfc0ad8768194a9270fbab8",
+  "checksum": "0ac6e6a98b517e04ce1f7bceb07c7b1c96b3aace57b412cc15b1f148507f7be7",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -1039,6 +1039,10 @@
             {
               "id": "nix 0.26.2",
               "target": "nix"
+            },
+            {
+              "id": "once_cell 1.17.1",
+              "target": "once_cell"
             },
             {
               "id": "openssl 0.10.52",

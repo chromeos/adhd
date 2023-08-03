@@ -8,6 +8,7 @@
 #include "gtest/gtest.h"
 
 TEST(Pseudonymization, Bindings) {
-  EXPECT_NE(pseudonymize_stable_id(0), 0);
-  EXPECT_NE(pseudonymize_stable_id(1), 1);
+  ASSERT_EQ(setenv("CRAS_PSEUDONYMIZATION_SALT", "none", 1), 0);
+  EXPECT_EQ(pseudonymize_stable_id(0), 0);
+  EXPECT_EQ(pseudonymize_stable_id(1), 1);
 }

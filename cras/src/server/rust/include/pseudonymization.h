@@ -19,10 +19,10 @@ extern "C" {
 #include <stdlib.h>
 
 /**
- * Pseudonymize the stable_id using the given salt.
+ * Pseudonymize the stable_id using the global salt.
  * Returns the salted stable_id.
  */
-uint32_t pseudonymize_stable_id(uint32_t salt, uint32_t stable_id);
+uint32_t pseudonymize_stable_id(uint32_t stable_id);
 
 /**
  * Gets the salt from the environment variable CRAS_PSEUDONYMIZATION_SALT.
