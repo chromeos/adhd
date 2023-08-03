@@ -50,9 +50,9 @@ struct cras_fra_kv_t {
  * The memory pointed by context_arr must contains valid array of `KeyValuePair` structs.
  * The memory pointed by KeyValuePair::key and KeyValuePair::value must contains a valid nul terminator at the end of the string.
  */
-uint32_t fralog(enum CRAS_FRA_SIGNAL signal,
-                size_t num,
-                const struct cras_fra_kv_t *context_arr);
+void fralog(enum CRAS_FRA_SIGNAL signal,
+            size_t num,
+            const struct cras_fra_kv_t *context_arr);
 
 #endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_FRA_H_ */
 
