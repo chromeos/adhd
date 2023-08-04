@@ -927,13 +927,25 @@ impl CrasServerStateShmFd {
 
 #[cfg(test)]
 mod tests {
+    use nix::sys::memfd::memfd_create;
+    use nix::sys::memfd::MemFdCreateFlag;
+    use nix::unistd::ftruncate;
+
     use super::*;
-    use libchromeos::sys::SharedMemory;
     use std::ffi::CString;
     use std::fs::File;
+    use std::os::fd::FromRawFd;
     use std::os::unix::io::IntoRawFd;
     use std::sync::{Arc, Mutex};
     use std::thread;
+
+    fn create_shm(size: usize) -> File {
+        let fd: i32 =
+            memfd_create(&CString::new("cras").unwrap(), MemFdCreateFlag::empty()).unwrap();
+        ftruncate(fd, size as i64).unwrap();
+        // SAFETY: Safe since the fd is newly created and not owned yet. `File` will own the fd.
+        unsafe { File::from_raw_fd(fd) }
+    }
 
     #[test]
     fn cras_audio_header_switch_test() {
@@ -1153,12 +1165,6 @@ mod tests {
         let samples_fd = cras_audio_samples_fd(20);
         let res = create_header_and_buffers(header_fd, samples_fd);
         res.expect("Failed to create header and buffer.");
-    }
-
-    fn create_shm(size: usize) -> File {
-        SharedMemory::new(&CString::new("cras").unwrap(), size as u64)
-            .expect("failed to create shm")
-            .into()
     }
 
     fn create_cras_audio_header<'a>(samples_len: usize) -> CrasAudioHeader<'a> {

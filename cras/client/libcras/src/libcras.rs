@@ -172,7 +172,7 @@ pub enum Error {
     CrasSysError(cras_sys::Error),
     InvalidCrasSocket,
     IoError(io::Error),
-    SysUtilError(libchromeos::sys::Error),
+    SysUtilError(nix::Error),
     MessageTypeError,
     UnexpectedExit,
 }
@@ -202,8 +202,8 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<libchromeos::sys::Error> for Error {
-    fn from(sys_util_err: libchromeos::sys::Error) -> Self {
+impl From<nix::Error> for Error {
+    fn from(sys_util_err: nix::Error) -> Self {
         Error::SysUtilError(sys_util_err)
     }
 }
