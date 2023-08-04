@@ -1801,6 +1801,12 @@ static int run_file_io_stream(struct cras_client* client,
 
   stream_playing = start_stream(client, &stream_id, params, volume_scaler) == 0;
 
+  // To simulate the special behavior that client aborts immediately after
+  // stream creation by using --play_short_sound 0
+  if (play_short_sound && (play_short_sound_periods == 0)) {
+    keep_looping = 0;
+  }
+
   tty = open("/dev/tty", O_RDONLY);
 
   // There could be no terminal available when run in autotest.
