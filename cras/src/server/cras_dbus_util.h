@@ -71,13 +71,15 @@ int create_dbus_method_call(DBusMessage** method_call,
  *    dbus_ret_type - The expected DBus type of the return value.
  *                    Set to DBUS_TYPE_INVALID to skip parsing.
  *    dbus_ret_value_ptr - Pointer to store the parsed return value.
+ *    log_on_error - Print logs on unexpected failures.
  * Returns:
  *    0 on success, otherwise a negative errno.
  */
 int call_method_and_parse_reply(DBusConnection* conn,
                                 DBusMessage* method_call,
                                 int dbus_ret_type,
-                                void* dbus_ret_value_ptr);
+                                void* dbus_ret_value_ptr,
+                                bool log_on_error);
 
 /* Repeatedly calls a method on a DBus connection until the specified predicate
  * is satisfied or a maximum number of retries is reached.

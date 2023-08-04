@@ -163,7 +163,8 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
       /* conn= */ fm->conn,
       /* method_call= */ start_sco_call,
       /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-      /* dbus_ret_value_ptr= */ &response);
+      /* dbus_ret_value_ptr= */ &response,
+      /* log_on_error= */ true);
 
   dbus_message_unref(start_sco_call);
 
@@ -457,7 +458,8 @@ int floss_media_a2dp_set_audio_config(struct fl_media* fm,
       /* conn= */ fm->conn,
       /* method_call= */ set_audio_config,
       /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-      /* dbus_ret_value_ptr= */ &response);
+      /* dbus_ret_value_ptr= */ &response,
+      /* log_on_error= */ false);
 
   dbus_message_unref(set_audio_config);
 
@@ -481,7 +483,8 @@ int floss_media_a2dp_set_audio_config(struct fl_media* fm,
         /* conn= */ fm->conn,
         /* method_call= */ set_audio_config,
         /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-        /* dbus_ret_value_ptr= */ &response);
+        /* dbus_ret_value_ptr= */ &response,
+        /* log_on_error= */ true);
 
     dbus_message_unref(set_audio_config);
     if (rc < 0) {
@@ -525,7 +528,8 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
       /* conn= */ fm->conn,
       /* method_call= */ start_audio_request,
       /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-      /* dbus_ret_value_ptr= */ &response);
+      /* dbus_ret_value_ptr= */ &response,
+      /* log_on_error= */ true);
 
   dbus_message_unref(start_audio_request);
 
@@ -1263,7 +1267,8 @@ int floss_media_disconnect_device(struct fl_media* fm, const char* addr) {
       /* conn= */ fm->conn,
       /* method_call= */ disconnect,
       /* dbus_ret_type= */ DBUS_TYPE_INVALID,
-      /* dbus_ret_value_ptr= */ NULL);
+      /* dbus_ret_value_ptr= */ NULL,
+      /* log_on_error= */ true);
 
   dbus_message_unref(disconnect);
 

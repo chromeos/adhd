@@ -94,7 +94,8 @@ int create_dbus_method_call(DBusMessage** method_call,
 int call_method_and_parse_reply(DBusConnection* conn,
                                 DBusMessage* method_call,
                                 int dbus_ret_type,
-                                void* dbus_ret_value_ptr) {
+                                void* dbus_ret_value_ptr,
+                                bool log_on_error) {
   int rc = 0;
   const char* method_name = dbus_message_get_member(method_call);
 
@@ -105,14 +106,19 @@ int call_method_and_parse_reply(DBusConnection* conn,
       conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
 
   if (!reply) {
-    syslog(LOG_ERR, "Failed to send %s : %s", method_name, dbus_error.message);
+    if (log_on_error) {
+      syslog(LOG_ERR, "Failed to send %s : %s", method_name,
+             dbus_error.message);
+    }
     rc = -EIO;
     goto cleanup;
   }
 
   if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
-    syslog(LOG_ERR, "%s returned error: %s", method_name,
-           dbus_message_get_error_name(reply));
+    if (log_on_error) {
+      syslog(LOG_ERR, "%s returned error: %s", method_name,
+             dbus_message_get_error_name(reply));
+    }
     rc = -EIO;
     goto cleanup;
   }
@@ -152,7 +158,8 @@ int retry_until_predicate_satisfied(struct DBusConnection* conn,
         /* conn= */ conn,
         /* method_call= */ method_call,
         /* dbus_ret_type= */ dbus_ret_type,
-        /* dbus_ret_value_ptr= */ dbus_ret_value_ptr);
+        /* dbus_ret_value_ptr= */ dbus_ret_value_ptr,
+        /* log_on_error= */ true);
 
     // Some fundamental error occured, abort immediately.
     if (rc < 0) {
