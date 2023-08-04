@@ -11,9 +11,6 @@ build --cxxopt=-std=gnu++20
 
 build --copt=-Wall
 
-# Ensure CRAS_CHECK() is executed.
-build --copt=-UNDEBUG
-
 # Pthread support
 build --copt=-pthread --linkopt=-pthread
 

@@ -3,7 +3,6 @@
 # found in the LICENSE file.
 
 load("//:utils.bzl", "require_config")
-load("//cras/platform:defs.bzl", "COPTS")
 
 alias(
     name = "segmentation",
@@ -24,7 +23,6 @@ cc_library(
     name = "segmentation_chromeos",
     srcs = ["segmentation_chromeos.cc"],
     hdrs = ["segmentation.h"],
-    copts = COPTS,
     target_compatible_with = require_config("//:chromeos_build"),
     deps = ["@pkg_config//libsegmentation"],
 )

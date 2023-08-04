@@ -3,7 +3,6 @@
 # found in the LICENSE file.
 
 load("//:utils.bzl", "require_config")
-load("//cras/platform:defs.bzl", "COPTS")
 
 cc_library(
     name = "features",
@@ -20,7 +19,6 @@ cc_library(
         "//conditions:default": ["backend_stub.c"],
     }),
     hdrs = ["features.h"],
-    copts = COPTS,
     visibility = [
         "//cras/src/server:__pkg__",
         "//cras/src/tests:__pkg__",
@@ -38,7 +36,6 @@ cc_library(
 cc_library(
     name = "override",
     hdrs = ["override.h"],
-    copts = COPTS,
     visibility = [
         "//cras/src/server:__pkg__",
         "//cras/src/tests:__pkg__",
@@ -52,7 +49,6 @@ cc_test(
         "features_impl.h",
         "features_test.cc",
     ],
-    copts = COPTS,
     deps = [
         ":features",
         "@pkg_config//gtest",
@@ -66,7 +62,6 @@ cc_test(
         "backend_featured.hh",
         "backend_featured_test.cc",
     ],
-    copts = COPTS,
     linkopts = ["-lfake_platform_features"],
     target_compatible_with = require_config("//:featured_build"),
     deps = [

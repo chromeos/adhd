@@ -134,6 +134,10 @@ class SampleBufferTestCheckSuite
     : public testing::TestWithParam<SampleBufferTestParam> {};
 
 TEST_P(SampleBufferTestCheckSuite, TestCheckFalse) {
+#ifdef NDEBUG
+  GTEST_SKIP() << "Skipping due to NDEBUG";
+#endif
+
   const auto& param = SampleBufferTestSuite::GetParam();
   struct byte_buffer* buf = byte_buffer_create(param.num_bytes);
 
