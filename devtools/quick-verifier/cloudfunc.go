@@ -2,37 +2,34 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-package main
+package cloudfunc
 
 import (
+	"context"
 	"errors"
-	"log"
+	"fmt"
+	"sync"
 
 	"chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/quick-verifier/build"
 	"chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/quick-verifier/qv"
 	"chromium.googlesource.com/chromiumos/third_party/adhd.git/devtools/quick-verifier/wc"
-	"cloud.google.com/go/compute/metadata"
 	"github.com/andygrunwald/go-gerrit"
 )
 
-func getGerritClient() (*gerrit.Client, error) {
-	const url = "https://chromium-review.googlesource.com"
+var mux sync.Mutex
 
-	if wc.HasGitCookies() {
-		return wc.NewGerritClient(url, wc.FsCookieJar{})
+func Handle(ctx context.Context, event struct{}) error {
+	if !mux.TryLock() {
+		return errors.New("failed to acquire mutex")
 	}
-	if metadata.OnGCE() {
-		return wc.NewGerritClient(url, wc.NewGCECookieJar())
-	}
-	return nil, errors.New("missing gerrit gitcookies and not on GCE")
-}
+	defer mux.Unlock()
 
-func main() {
-	log.SetFlags(log.Ltime | log.Lshortfile)
-
-	gerritClient, err := getGerritClient()
+	gerritClient, err := wc.NewGerritClient(
+		"https://chromium-review.googlesource.com",
+		wc.NewGCECookieJar(),
+	)
 	if err != nil {
-		log.Fatal("Cannot create gerrit client: ", err)
+		return fmt.Errorf("cannot create gerrit client: %w", err)
 	}
 
 	changesPtr, _, err := gerritClient.Changes.QueryChanges(&gerrit.QueryChangeOptions{
@@ -44,10 +41,12 @@ func main() {
 		},
 	})
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("cannot query changes: %w", err)
 	}
 
 	for _, change := range *changesPtr {
 		build.ProcessChange(gerritClient, change)
 	}
+
+	return nil
 }
