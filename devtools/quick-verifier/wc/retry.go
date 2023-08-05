@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-func retryClient() *http.Client {
+func retryClient(jar http.CookieJar) *http.Client {
 	c := retryablehttp.NewClient()
-	c.HTTPClient.Jar = reloadCookieJar{}
+	c.HTTPClient.Jar = jar
 	c.CheckRetry = retryPolicy
 	return c.StandardClient()
 }

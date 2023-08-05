@@ -13,6 +13,9 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 type gitCookieJar []*http.Cookie
@@ -77,6 +80,15 @@ func openGitCookies() (io.ReadCloser, error) {
 	return os.Open(path)
 }
 
+func HasGitCookies() bool {
+	r, err := openGitCookies()
+	if err != nil {
+		return false
+	}
+	r.Close()
+	return true
+}
+
 func domainMatch(cookieDomain, requestHost string) bool {
 	if strings.TrimPrefix(cookieDomain, ".") == requestHost {
 		return true
@@ -84,13 +96,13 @@ func domainMatch(cookieDomain, requestHost string) bool {
 	return strings.HasPrefix(cookieDomain, ".") && strings.HasSuffix(requestHost, cookieDomain)
 }
 
-type reloadCookieJar struct{}
+type FsCookieJar struct{}
 
-var _ http.CookieJar = reloadCookieJar{}
+var _ http.CookieJar = FsCookieJar{}
 
-func (j reloadCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {}
+func (j FsCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {}
 
-func (j reloadCookieJar) Cookies(u *url.URL) (cookies []*http.Cookie) {
+func (j FsCookieJar) Cookies(u *url.URL) (cookies []*http.Cookie) {
 	r, err := openGitCookies()
 	if err != nil {
 		panic(err)
@@ -103,4 +115,40 @@ func (j reloadCookieJar) Cookies(u *url.URL) (cookies []*http.Cookie) {
 	}
 
 	return staticJar.Cookies(u)
+}
+
+func NewGCECookieJar() http.CookieJar {
+	return &gceCookieJar{
+		ts: google.ComputeTokenSource(
+			"",
+			"https://www.googleapis.com/auth/cloud-platform",
+			"https://www.googleapis.com/auth/gerritcodereview",
+		),
+	}
+}
+
+type gceCookieJar struct {
+	ts oauth2.TokenSource
+}
+
+func (j *gceCookieJar) SetCookies(u *url.URL, cookies []*http.Cookie) {}
+
+func (j *gceCookieJar) Cookies(u *url.URL) (cookies []*http.Cookie) {
+	if !domainMatch(".googlesource.com", u.Host) {
+		return nil
+	}
+	tok, err := j.ts.Token()
+	if err != nil {
+		return nil
+	}
+	return []*http.Cookie{
+		{
+			Name:    "o",
+			Value:   tok.AccessToken,
+			Path:    "/",
+			Domain:  ".googlesource.com",
+			Expires: tok.Expiry,
+			Secure:  true,
+		},
+	}
 }

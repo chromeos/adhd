@@ -9,10 +9,7 @@ COPY . /workspace
 RUN cd /workspace && CGO_ENABLED=0 go build -o bot ./cmd/quick-verifier
 
 FROM alpine:latest
-RUN apk add git python3
-RUN git clone --depth=1 https://gerrit.googlesource.com/gcompute-tools
 COPY entrypoint /entrypoint
 RUN chmod 755 /entrypoint
-RUN ln -s ~/.git-credential-cache/cookie ~/.gitcookies
 COPY --from=go /workspace/bot /bot
 ENTRYPOINT /entrypoint

@@ -7,28 +7,13 @@ package wc
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/andygrunwald/go-gerrit"
 )
 
 type Client struct {
 	gerritClients map[GerritHost]*gerrit.Client
-}
-
-func NewClient() (*Client, error) {
-	c := &Client{
-		gerritClients: make(map[GerritHost]*gerrit.Client),
-	}
-
-	for _, host := range gerritHosts {
-		var err error
-		c.gerritClients[host], err = NewGerritClient(host.URL())
-		if err != nil {
-			return nil, fmt.Errorf("cannot access %s: %v", host.URL(), err)
-		}
-	}
-
-	return c, nil
 }
 
 func (c *Client) Host(h GerritHost) *gerrit.Client {
@@ -39,16 +24,10 @@ func (c *Client) Host(h GerritHost) *gerrit.Client {
 	return gc
 }
 
-func NewGerritClient(gerritURL string) (*gerrit.Client, error) {
-	r, err := openGitCookies()
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
+func NewGerritClient(gerritURL string, jar http.CookieJar) (*gerrit.Client, error) {
 	c, err := gerrit.NewClient(
 		gerritURL,
-		retryClient(),
+		retryClient(jar),
 	)
 	if err != nil {
 		return nil, err
