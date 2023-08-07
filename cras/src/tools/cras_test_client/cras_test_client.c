@@ -1291,9 +1291,7 @@ static void show_mainlog_tag(const struct main_thread_event_log* log,
       break;
     case MAIN_THREAD_NC_BLOCK_STATE:
       printf("%-30s %s: non_echo=%u disallow=%u\n", "NC_BLOCK_STATE",
-             (data1 > 1 ? "flag changed"
-                        : (data1 ? "nc deactivated" : "nc activated")),
-             data2, data3);
+             (data1 ? "NC deactivated" : "NC activated"), data2, data3);
       break;
     case MAIN_THREAD_STREAM_ADDED:
       printf("%-30s %s stream 0x%x buffer frames %u\n", "STREAM_ADDED",

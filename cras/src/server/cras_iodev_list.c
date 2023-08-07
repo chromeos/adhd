@@ -154,9 +154,6 @@ static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_alive,
                                     bool new_aec_on_dsp_is_disallowed) {
   bool prev_state = get_nc_blocked_state();
 
-  // 0: set to false, 1: set to true, 2: no edge
-  uint32_t nc_block_state_edge_type = 2;
-
   non_dsp_aec_echo_ref_dev_alive = new_non_dsp_aec_echo_ref_dev_alive;
   aec_on_dsp_is_disallowed = new_aec_on_dsp_is_disallowed;
 
@@ -166,16 +163,15 @@ static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_alive,
       return;
     }
 
-    nc_block_state_edge_type = get_nc_blocked_state();
-    syslog(LOG_DEBUG, "NC blocked state sets to %s",
-           get_nc_blocked_state() ? "true" : "false");
+    MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE, get_nc_blocked_state(),
+            non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
+    syslog(LOG_DEBUG, "NC is %s: non_echo=%d disallow=%d",
+           get_nc_blocked_state() ? "deactivated" : "activated",
+           non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
     // notify Chrome for NC blocking state change
     cras_iodev_list_update_device_list();
     cras_iodev_list_notify_nodes_changed();
   }
-
-  MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE, nc_block_state_edge_type,
-          non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
 }
 
 static void set_non_dsp_aec_echo_ref_dev_alive(bool state) {
