@@ -572,14 +572,6 @@ static inline bool cras_floop_params_eq(const struct cras_floop_params* a,
   return a->client_types_mask == b->client_types_mask;
 }
 
-// Visibility of an IO device to the end user.
-enum CRAS_IODEV_VISIBILITY {
-  CRAS_IODEV_VISIBLE = 0,
-  // Some devices are internal to CRAS and should be hidden from the end user.
-  // No client except CRAS_CLIENT_TYPE_TEST can see a hidden device.
-  CRAS_IODEV_HIDDEN,
-};
-
 /* The server state that is shared with clients. Note that any new members must
  * be appended at the tail of the struct. Otherwise, it will be incompatible
  * with the one in other environments where files can't be updated atomically,
@@ -719,10 +711,6 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Whether or not Voice Isolation is supported by at least one input node by
   // either AP or DSP.
   int32_t voice_isolation_supported;
-  // Visibility of iodevs to the end user.
-  // TODO(b/289997062): Merge into cras_iodev_info on ABI update with ARC++.
-  enum CRAS_IODEV_VISIBILITY output_devs_visibility[CRAS_MAX_IODEVS];
-  enum CRAS_IODEV_VISIBILITY input_devs_visibility[CRAS_MAX_IODEVS];
 };
 
 /* Unique identifier for each active stream.

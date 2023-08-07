@@ -287,18 +287,14 @@ static int rm_dev_from_list(struct cras_iodev* dev) {
   return -EINVAL;
 }
 
-// Fills a dev_info array and a visibility array from the iodev_list.
+// Fills a dev_info array from the iodev_list.
 static void fill_dev_list(struct iodev_list* list,
                           struct cras_iodev_info* dev_info,
-                          enum CRAS_IODEV_VISIBILITY* dev_visibility,
                           size_t out_size) {
   int i = 0;
   struct cras_iodev* tmp;
   DL_FOREACH (list->iodevs, tmp) {
     memcpy(&dev_info[i], &tmp->info, sizeof(dev_info[0]));
-    if (dev_visibility) {
-      dev_visibility[i] = tmp->visibility;
-    }
     i++;
     if (i == out_size) {
       return;
@@ -393,7 +389,7 @@ static int get_dev_list(struct iodev_list* list,
     return -ENOMEM;
   }
 
-  fill_dev_list(list, dev_info, NULL, list->size);
+  fill_dev_list(list, dev_info, list->size);
 
   *list_out = dev_info;
   return list->size;
@@ -1721,9 +1717,9 @@ void cras_iodev_list_update_device_list() {
   state->num_output_devs = devs[CRAS_STREAM_OUTPUT].size;
   state->num_input_devs = devs[CRAS_STREAM_INPUT].size;
   fill_dev_list(&devs[CRAS_STREAM_OUTPUT], &state->output_devs[0],
-                state->output_devs_visibility, CRAS_MAX_IODEVS);
+                CRAS_MAX_IODEVS);
   fill_dev_list(&devs[CRAS_STREAM_INPUT], &state->input_devs[0],
-                state->input_devs_visibility, CRAS_MAX_IODEVS);
+                CRAS_MAX_IODEVS);
 
   state->num_output_nodes =
       fill_node_list(&devs[CRAS_STREAM_OUTPUT], &state->output_nodes[0],

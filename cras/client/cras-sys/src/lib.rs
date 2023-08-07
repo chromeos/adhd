@@ -33,8 +33,8 @@ use gen::{
     _snd_pcm_format, audio_dev_debug_info, audio_message, audio_stream_debug_info,
     cras_audio_format_packed, cras_iodev_info, cras_ionode_info, cras_ionode_info__bindgen_ty_1,
     cras_timespec, snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_CHANNEL, CRAS_CLIENT_TYPE,
-    CRAS_IODEV_LAST_OPEN_RESULT, CRAS_NODE_TYPE, CRAS_SCREEN_ROTATION, CRAS_STREAM_DIRECTION,
-    CRAS_STREAM_EFFECT, CRAS_STREAM_TYPE,
+    CRAS_IODEV_LAST_OPEN_RESULT, CRAS_IODEV_VISIBILITY, CRAS_NODE_TYPE, CRAS_SCREEN_ROTATION,
+    CRAS_STREAM_DIRECTION, CRAS_STREAM_EFFECT, CRAS_STREAM_TYPE,
 };
 
 use audio_streams::{SampleFormat, StreamDirection, StreamEffect};
@@ -202,6 +202,7 @@ impl Default for cras_iodev_info {
             stable_id: 0,
             max_supported_channels: 0,
             last_open_result: CRAS_IODEV_LAST_OPEN_RESULT::UNKNOWN,
+            visibility: CRAS_IODEV_VISIBILITY::CRAS_IODEV_VISIBLE,
         }
     }
 }

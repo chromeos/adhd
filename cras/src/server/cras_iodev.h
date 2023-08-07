@@ -378,10 +378,6 @@ struct cras_iodev {
   struct input_data* input_data;
   // The ewma instance to calculate iodev volume.
   struct ewma_power ewma;
-  // Visibility of this iodev to the end user.
-  // TODO b/289997062 Move to cras_iodev_info after the server state ABI can be
-  // updated atomically with ARC++.
-  enum CRAS_IODEV_VISIBILITY visibility;
   struct cras_iodev *prev, *next;
 };
 

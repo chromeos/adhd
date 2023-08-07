@@ -102,16 +102,15 @@ static struct cras_alsa_iodev_ops cras_alsa_iodev_ops_usb_ops = {
  *    Pointer to the created iodev, or NULL on error.
  *    other negative error code otherwise.
  */
-struct cras_iodev* create_iodev_for_device(
-    struct cras_alsa_card* alsa_card,
-    struct cras_alsa_card_info* info,
-    const char* card_name,
-    const char* dev_name,
-    const char* dev_id,
-    unsigned device_index,
-    enum CRAS_STREAM_DIRECTION direction,
-    enum CRAS_USE_CASE use_case,
-    struct cras_iodev* group_ref) {
+struct cras_iodev* create_iodev_for_device(struct cras_alsa_card* alsa_card,
+                                           struct cras_alsa_card_info* info,
+                                           const char* card_name,
+                                           const char* dev_name,
+                                           const char* dev_id,
+                                           unsigned device_index,
+                                           enum CRAS_STREAM_DIRECTION direction,
+                                           enum CRAS_USE_CASE use_case,
+                                           struct cras_iodev* group_ref) {
   struct iodev_list_node* new_dev;
   struct iodev_list_node* node;
   int first = 1;
@@ -407,7 +406,7 @@ static int create_iodevs_from_ucm_sections(
         snd_pcm_info_get_id(dev_info), section->dev_idx, section->dir, use_case,
         group_ref);
     if (iodev) {
-      iodev->visibility = visibility;
+      iodev->info.visibility = visibility;
     }
   }
 

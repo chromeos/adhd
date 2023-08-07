@@ -55,6 +55,14 @@ static inline const char* cras_iodev_last_open_result_abb_str(
   }
 }
 
+// Visibility of an IO device to the end user.
+enum CRAS_IODEV_VISIBILITY {
+  CRAS_IODEV_VISIBLE = 0,
+  // Some devices are internal to CRAS and should be hidden from the end user.
+  // No client except CRAS_CLIENT_TYPE_TEST can see a hidden device.
+  CRAS_IODEV_HIDDEN,
+};
+
 // Identifying information about an IO device.
 struct __attribute__((__packed__)) cras_iodev_info {
   // iodev index.
@@ -67,6 +75,8 @@ struct __attribute__((__packed__)) cras_iodev_info {
   uint32_t max_supported_channels;
   // The last opening result for this IO device.
   enum CRAS_IODEV_LAST_OPEN_RESULT last_open_result;
+  // Visibility of this IO device to the end user.
+  enum CRAS_IODEV_VISIBILITY visibility;
 };
 
 // Identifying information about an ionode on an iodev.

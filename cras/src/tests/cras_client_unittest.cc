@@ -390,8 +390,8 @@ TEST(CrasClientTest, HideInternalDevices) {
     shm.output_devs[num_devs].idx = 0x1000 + num_devs;
     shm.input_devs[num_devs].idx = 0x1000 + num_devs;
     if (num_devs == 1) {
-      shm.output_devs_visibility[num_devs] = CRAS_IODEV_VISIBLE;
-      shm.input_devs_visibility[num_devs] = CRAS_IODEV_VISIBLE;
+      shm.output_devs[num_devs].visibility = CRAS_IODEV_VISIBLE;
+      shm.input_devs[num_devs].visibility = CRAS_IODEV_VISIBLE;
 
       // Attach a node to the visible device.
       shm.output_nodes[num_nodes].iodev_idx = shm.output_devs[num_devs].idx;
@@ -400,8 +400,8 @@ TEST(CrasClientTest, HideInternalDevices) {
       shm.input_nodes[num_nodes].stable_id = 0x2000 + num_nodes;
       num_nodes++;
     } else {
-      shm.output_devs_visibility[num_devs] = CRAS_IODEV_HIDDEN;
-      shm.input_devs_visibility[num_devs] = CRAS_IODEV_HIDDEN;
+      shm.output_devs[num_devs].visibility = CRAS_IODEV_HIDDEN;
+      shm.input_devs[num_devs].visibility = CRAS_IODEV_HIDDEN;
     }
   }
   shm.num_output_devs = num_devs;

@@ -3112,13 +3112,12 @@ static void fill_iodev_info(const struct cras_client* client,
                             struct cras_iodev_info* dst,
                             size_t* dst_devs,
                             const struct cras_iodev_info* src,
-                            const enum CRAS_IODEV_VISIBILITY* src_visibility,
                             size_t src_devs) {
   size_t i, filled;
 
   for (i = 0, filled = 0; i < src_devs && filled < *dst_devs; i++) {
     if (client->client_type != CRAS_CLIENT_TYPE_TEST &&
-        src_visibility[i] == CRAS_IODEV_HIDDEN) {
+        src[i].visibility == CRAS_IODEV_HIDDEN) {
       continue;
     }
     dst[filled++] = src[i];
@@ -3144,7 +3143,7 @@ int cras_client_get_output_devices(const struct cras_client* client,
 read_outputs_again:
   version = begin_server_state_read(state);
   fill_iodev_info(client, devs, num_devs, state->output_devs,
-                  state->output_devs_visibility, state->num_output_devs);
+                  state->num_output_devs);
   avail_nodes = MIN(*num_nodes, state->num_output_nodes);
   memcpy(nodes, state->output_nodes, avail_nodes * sizeof(*nodes));
   if (end_server_state_read(state, version)) {
@@ -3175,7 +3174,7 @@ int cras_client_get_input_devices(const struct cras_client* client,
 read_inputs_again:
   version = begin_server_state_read(state);
   fill_iodev_info(client, devs, num_devs, state->input_devs,
-                  state->input_devs_visibility, state->num_input_devs);
+                  state->num_input_devs);
   avail_nodes = MIN(*num_nodes, state->num_input_nodes);
   memcpy(nodes, state->input_nodes, avail_nodes * sizeof(*nodes));
   if (end_server_state_read(state, version)) {
