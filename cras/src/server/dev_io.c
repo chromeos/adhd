@@ -3,10 +3,13 @@
  * found in the LICENSE file.
  */
 
+#define _GNU_SOURCE
+
 #include "cras/src/server/dev_io.h"
 
 #include <poll.h>
 #include <stdbool.h>
+#include <sys/resource.h>
 #include <syslog.h>
 
 #include "cras/src/server/audio_thread_log.h"
@@ -1210,20 +1213,55 @@ static void update_longest_wake(struct open_dev* dev_list,
   }
 }
 
+static int times(struct timespec* wall,
+                 struct timeval* user,
+                 struct timeval* sys) {
+  struct rusage usage;
+  int rc = clock_gettime(CLOCK_MONOTONIC_RAW, wall);
+  if (!rc) {
+    return rc;
+  }
+  rc = getrusage(RUSAGE_THREAD, &usage);
+  if (!rc) {
+    return rc;
+  }
+  *user = usage.ru_utime;
+  *sys = usage.ru_stime;
+  return 0;
+}
+
 void dev_io_run(struct open_dev** odevs,
                 struct open_dev** idevs,
                 struct cras_fmt_conv* output_converter) {
-  struct timespec now;
+  struct timespec beg;
+  struct timeval user_beg, sys_beg;
 
-  clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+  bool bad_time = times(&beg, &user_beg, &sys_beg);
   pic_update_current_time();
-  update_longest_wake(*odevs, &now);
-  update_longest_wake(*idevs, &now);
+  update_longest_wake(*odevs, &beg);
+  update_longest_wake(*idevs, &beg);
 
   dev_io_playback_fetch(*odevs);
   dev_io_capture(idevs, odevs);
   dev_io_send_captured_samples(*idevs);
   dev_io_playback_write(odevs, output_converter);
+
+  // Compute and report execution time.
+  struct timespec end;
+  struct timeval user_end, sys_end;
+  bad_time |= times(&end, &user_end, &sys_end);
+  if (bad_time) {
+    return;
+  }
+  // TODO(b/294957919): Move to a util function.
+  uint32_t wall_micros = (end.tv_sec - beg.tv_sec) * 1000000 +
+                         end.tv_nsec / 1000 - beg.tv_nsec / 1000;
+  uint32_t user_micros = (user_end.tv_sec - user_beg.tv_sec) * 1000000 +
+                         user_end.tv_usec - user_beg.tv_usec;
+  uint32_t sys_micros = (sys_end.tv_sec - sys_beg.tv_sec) * 1000000 +
+                        sys_end.tv_usec - sys_beg.tv_usec;
+  ATLOG(atlog, AUDIO_THREAD_DEV_IO_RUN_TIME, wall_micros, user_micros,
+        sys_micros);
 }
 
 static int input_adev_ignore_wake(const struct open_dev* adev) {

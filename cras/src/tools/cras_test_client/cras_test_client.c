@@ -1053,6 +1053,11 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
     case AUDIO_THREAD_DEV_OVERRUN:
       printf("%-30s dev:%u hw_level:%u\n", "DEV_OVERRUN", data1, data2);
       break;
+    case AUDIO_THREAD_DEV_IO_RUN_TIME:
+      printf("%-30s wall:%u.%06u user:%u.%06u sys:%u.%06u\n", "DEV_IO_RUN_TIME",
+             data1 / 1000000, data1 % 1000000, data2 / 1000000, data2 % 1000000,
+             data3 / 1000000, data3 % 1000000);
+      break;
     default:
       printf("%-30s tag:%u\n", "UNKNOWN", tag);
       break;
