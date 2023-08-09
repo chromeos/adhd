@@ -23,6 +23,7 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_processor_config.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/float_buffer.h"
@@ -737,7 +738,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       .frame_rate = apm->fmt.frame_rate,
       .effect = cp_effect,
   };
-  cras_processor_create(&cfg, &(apm->pp));
+  bool cp_effect_init_success = cras_processor_create(&cfg, &(apm->pp));
   if (apm->pp == NULL) {
     // cras_processor_create should never fail.
     // If it ever fails, give up using the APM.
@@ -745,6 +746,9 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
     syslog(LOG_ERR, "cras_processor_create returned NULL");
     apm_destroy(&apm);
     return NULL;
+  }
+  if (cp_effect == NoiseCancellation) {
+    cras_server_metrics_ap_nc_start_status(cp_effect_init_success);
   }
 
   /* TODO(hychao):remove mono_channel once we're ready for multi

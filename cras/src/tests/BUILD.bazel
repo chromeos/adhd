@@ -1839,6 +1839,7 @@ cc_test(
 cc_test(
     name = "stream_apm_unittest",
     srcs = [
+        "metrics_stub.cc",
         "stream_apm_unittest.cc",
         "//cras/src/common:cras_string.c",
         "//cras/src/server:cras_speak_on_mute_detector_stub.c",

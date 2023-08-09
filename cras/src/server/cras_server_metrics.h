@@ -207,6 +207,9 @@ int cras_server_metrics_dlc_manager_status(
     int num_retry_times,
     enum CRAS_METRICS_DLC_STATUS dlc_status);
 
+// Logs whether AP NC has successfully started or not.
+int cras_server_metrics_ap_nc_start_status(bool success);
+
 // Logs failures when opening devices.
 int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
                                            enum CRAS_DEVICE_OPEN_STATUS code);

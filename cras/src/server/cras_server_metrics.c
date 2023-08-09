@@ -23,6 +23,7 @@
 const char kA2dpExitCode[] = "Cras.A2dpExitCode";
 const char kA2dp20msFailureOverStream[] = "Cras.A2dp20msFailureOverStream";
 const char kA2dp100msFailureOverStream[] = "Cras.A2dp100msFailureOverStream";
+const char kApNcStartStatus[] = "Cras.ApNcStartStatus";
 const char kBusyloop[] = "Cras.Busyloop";
 const char kBusyloopLength[] = "Cras.BusyloopLength";
 const char kDeviceOpenStatus[] = "Cras.DeviceOpenStatus";
@@ -105,6 +106,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   A2DP_EXIT_CODE,
   A2DP_20MS_FAILURE_OVER_STREAM,
   A2DP_100MS_FAILURE_OVER_STREAM,
+  AP_NC_START_STATUS,
   BT_BATTERY_INDICATOR_SUPPORTED,
   BT_BATTERY_REPORT,
   BT_SCO_CONNECTION_ERROR,
@@ -258,6 +260,8 @@ static void init_server_metrics_msg(struct cras_server_metrics_message* msg,
   msg->data = data;
 }
 
+static int send_unsigned_metrics(enum CRAS_SERVER_METRICS_TYPE type,
+                                 unsigned num);
 static void handle_metrics_message(struct cras_main_message* msg, void* arg);
 
 // The wrapper function of cras_main_message_send.
@@ -709,6 +713,15 @@ int cras_server_metrics_dlc_manager_status(
     return err;
   }
 
+  return 0;
+}
+
+int cras_server_metrics_ap_nc_start_status(bool success) {
+  int err = send_unsigned_metrics(AP_NC_START_STATUS, success);
+  if (err < 0) {
+    syslog(LOG_WARNING, "Failed to send metrics message: AP_NC_START_STATUS");
+    return err;
+  }
   return 0;
 }
 
@@ -1620,6 +1633,10 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
   struct cras_server_metrics_message* metrics_msg =
       (struct cras_server_metrics_message*)msg;
   switch (metrics_msg->metrics_type) {
+    case AP_NC_START_STATUS:
+      cras_metrics_log_sparse_histogram(kApNcStartStatus,
+                                        metrics_msg->data.value);
+      break;
     case BT_SCO_CONNECTION_ERROR:
       cras_metrics_log_sparse_histogram(kHfpScoConnectionError,
                                         metrics_msg->data.value);
