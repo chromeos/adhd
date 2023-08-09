@@ -95,6 +95,10 @@ struct cras_apm {
   // The audio processor pipeline which is run after the APM.
   // If the APM is created successfully, pp is always non-NULL.
   struct plugin_processor* pp;
+  // The active effect of plugin_processor pp
+  enum CrasProcessorEffect pp_effect;
+  // The time when the apm started.
+  struct timespec start_ts;
   struct cras_apm *prev, *next;
 };
 
@@ -750,6 +754,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   if (cp_effect == NoiseCancellation) {
     cras_server_metrics_ap_nc_start_status(cp_effect_init_success);
   }
+  apm->pp_effect = cp_effect_init_success ? cp_effect : NoEffects;
 
   /* TODO(hychao):remove mono_channel once we're ready for multi
    * channel capture process. */
@@ -789,6 +794,8 @@ void cras_stream_apm_start(struct cras_stream_apm* stream,
   active->stream = stream;
   DL_APPEND(active_apms, active);
 
+  clock_gettime(CLOCK_MONOTONIC_RAW, &apm->start_ts);
+
   cras_apm_reverse_state_update();
   update_supported_dsp_effects_activation();
   reconfigure_apm_vad();
@@ -804,6 +811,13 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
 
   active = get_active_apm(stream, idev);
   if (active) {
+    if (active->apm && active->apm->pp_effect == NoiseCancellation) {
+      struct timespec now, runtime;
+      clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+      subtract_timespecs(&now, &active->apm->start_ts, &runtime);
+      cras_server_metrics_ap_nc_runtime(runtime.tv_sec);
+    }
+
     DL_DELETE(active_apms, active);
     free(active);
   }
