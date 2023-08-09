@@ -6,6 +6,7 @@
 rseq: 1
 
 clock_gettime: 1
+getrusage: 1
 # Allow ioctl command of type 'A' and 'U' for SNDRV_PCM_IOCTL_* and
 # SNDRV_CTL_IOCTL_*, and EVIOCGSW(8), EVIOCGNAME(256), EVIOCGBIT(0x05, 8),
 # HCIGETDEVINFO

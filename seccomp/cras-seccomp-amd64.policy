@@ -6,6 +6,7 @@
 rseq: 1
 
 clock_gettime: 1
+getrusage: 1
 getuid: 1
 lstat: 1
 read: 1

@@ -1218,11 +1218,11 @@ static int times(struct timespec* wall,
                  struct timeval* sys) {
   struct rusage usage;
   int rc = clock_gettime(CLOCK_MONOTONIC_RAW, wall);
-  if (!rc) {
+  if (rc) {
     return rc;
   }
   rc = getrusage(RUSAGE_THREAD, &usage);
-  if (!rc) {
+  if (rc) {
     return rc;
   }
   *user = usage.ru_utime;

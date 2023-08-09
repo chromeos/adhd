@@ -7,6 +7,7 @@ rseq: 1
 
 clock_gettime: 1
 clock_gettime64: 1
+getrusage: 1
 poll: 1
 read: 1
 ppoll: 1
