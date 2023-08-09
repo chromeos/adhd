@@ -88,7 +88,9 @@ fn main() {
     );
 
     generate(
-        builder(2023).with_src("../src/cras_processor.rs"),
+        builder(2023)
+            .with_src("../src/cras_processor.rs")
+            .with_include("audio_processor/c/plugin_processor.h"),
         "cras_processor.h",
     );
 

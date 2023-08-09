@@ -143,18 +143,27 @@ impl CrasProcessor {
 /// # Safety
 ///
 /// `config` must point to a CrasProcessorConfig struct.
+/// `ret` is where the constructed plugin_processor would be stored
+/// Returns true if the plugin_processor is successfully constructed,
+/// returns false otherwise.
 #[no_mangle]
 pub unsafe extern "C" fn cras_processor_create(
     config: *const CrasProcessorConfig,
-) -> *mut plugin_processor {
+    ret: *mut *mut plugin_processor,
+) -> bool {
     let config = match config.as_ref() {
         Some(config) => config,
-        None => return std::ptr::null_mut(),
+        None => {
+            *ret = std::ptr::null_mut();
+            return false;
+        }
     };
 
+    let mut success = true;
     let processor = match CrasProcessor::new(config.clone()) {
         Ok(processor) => processor,
         Err(err) => {
+            success = false;
             log::error!(
                 "CrasProcessor::new failed with {:#}, creating no-op processor",
                 err
@@ -170,5 +179,7 @@ pub unsafe extern "C" fn cras_processor_create(
             .expect("CrasProcessor::new with CrasProcessorEffect::NoEffects should never fail")
         }
     };
-    export_plugin(processor)
+
+    *ret = export_plugin(processor);
+    return success;
 }

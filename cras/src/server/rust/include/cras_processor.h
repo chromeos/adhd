@@ -17,6 +17,7 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "audio_processor/c/plugin_processor.h"
 
 enum CrasProcessorEffect {
   NoEffects,
@@ -37,8 +38,11 @@ struct CrasProcessorConfig {
  * # Safety
  *
  * `config` must point to a CrasProcessorConfig struct.
+ * `ret` is where the constructed plugin_processor would be stored
+ * Returns true if the plugin_processor is successfully constructed,
+ * returns false otherwise.
  */
-struct plugin_processor *cras_processor_create(const struct CrasProcessorConfig *config);
+bool cras_processor_create(const struct CrasProcessorConfig *config, struct plugin_processor **ret);
 
 #endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_PROCESSOR_H_ */
 

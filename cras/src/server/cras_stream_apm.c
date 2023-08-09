@@ -737,7 +737,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       .frame_rate = apm->fmt.frame_rate,
       .effect = cp_effect,
   };
-  apm->pp = cras_processor_create(&cfg);
+  cras_processor_create(&cfg, &(apm->pp));
   if (apm->pp == NULL) {
     // cras_processor_create should never fail.
     // If it ever fails, give up using the APM.
