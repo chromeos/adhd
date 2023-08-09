@@ -601,6 +601,11 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   int32_t capture_mute;
   // 0 = unlocked, 1 = locked.
   int32_t capture_mute_locked;
+  // Flag to indicate if system aec is supported.
+  int32_t aec_supported;
+  // Group ID for the system aec to use for separating aec
+  // tunings.
+  int32_t aec_group_id;
   // Total number of streams since server started.
   uint32_t num_streams_attached;
   // Number of available output devices.
@@ -632,24 +637,13 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Time the last stream was removed.  Can be used
   // to determine how long audio has been idle.
   struct cras_timespec last_active_stream_time;
-  // Debug data filled in when a client requests it. This
-  // isn't protected against concurrent updating, only one client should
-  // use it.
-  struct audio_debug_info audio_debug_info;
   // Default output buffer size in frames.
   int32_t default_output_buffer_size;
   // Whether any non-empty audio is being
   // played/captured.
   int32_t non_empty_status;
-  // Flag to indicate if system aec is supported.
-  int32_t aec_supported;
-  // Group ID for the system aec to use for separating aec
-  // tunings.
-  int32_t aec_group_id;
   // ring buffer for storing audio thread snapshots.
   struct cras_audio_thread_snapshot_buffer snapshot_buffer;
-  // ring buffer for storing bluetooth event logs.
-  struct cras_bt_debug_info bt_debug_info;
   // Whether or not bluetooth wideband speech is enabled.
   int32_t bt_wbs_enabled;
   // Whether or not enabling Bluetooth HFP
@@ -658,11 +652,6 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Whether Bluetooth wideband speech mic
   // should be deprioritized for selecting as default audio input.
   int32_t deprioritize_bt_wbs_mic;
-  // ring buffer for storing main thread event logs.
-  struct main_thread_debug_info main_thread_debug_info;
-  // An array containing numbers of input
-  // streams with permission in each client type.
-  uint32_t num_input_streams_with_permission[CRAS_NUM_CLIENT_TYPE];
   // Whether or not Noise Cancellation is enabled.
   int32_t noise_cancellation_enabled;
   // Whether or not Noise Cancellation is
@@ -711,6 +700,20 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Whether or not Voice Isolation is supported by at least one input node by
   // either AP or DSP.
   int32_t voice_isolation_supported;
+  // An array containing numbers of input
+  // streams with permission in each client type.
+  uint32_t num_input_streams_with_permission[CRAS_NUM_CLIENT_TYPE];
+
+  // Debug structs:
+
+  // ring buffer for storing bluetooth event logs.
+  struct cras_bt_debug_info bt_debug_info;
+  // ring buffer for storing main thread event logs.
+  struct main_thread_debug_info main_thread_debug_info;
+  // Debug data filled in when a client requests it. This
+  // isn't protected against concurrent updating, only one client should
+  // use it.
+  struct audio_debug_info audio_debug_info;
 };
 
 /* Unique identifier for each active stream.

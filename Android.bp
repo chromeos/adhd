@@ -1,0 +1,42 @@
+cc_library_static {
+    name: "libcras",
+
+    srcs: [
+        "cras/base/check.c",
+        "cras/src/common/cras_audio_format.c",
+        "cras/src/common/cras_config.c",
+        "cras/src/common/cras_file_wait.c",
+        "cras/src/common/cras_shm.c",
+        "cras/src/common/cras_string.c",
+        "cras/src/common/cras_util.c",
+        "cras/src/common/edid_utils.c",
+        "cras/src/libcras/cras_client.c",
+        "cras/src/libcras/cras_helpers.c",
+    ],
+
+    shared_libs: [
+        "libcutils",
+        "libtinyalsa",
+    ],
+
+    export_include_dirs: [
+        "cras/include",
+        "cras/src/common",
+    ],
+
+    local_include_dirs: [
+        "cras/base",
+    ],
+
+    c_std: "gnu11",
+
+    cflags: [
+        "-DCRAS_SOCKET_FILE_DIR=\"/var/run/cras\"",
+        "-Wall",
+        "-Werror",
+        "-Wno-error=missing-field-initializers",
+        "-Wno-sign-compare",
+        "-Wno-unused-function",
+        "-Wno-unused-parameter",
+    ],
+}
