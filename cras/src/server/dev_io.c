@@ -523,7 +523,7 @@ static int capture_to_streams(struct open_dev* adev,
                               struct open_dev* odev_list) {
   struct cras_iodev* idev = adev->dev;
   snd_pcm_uframes_t remainder, hw_level, cap_limit;
-  struct timespec hw_tstamp;
+  struct timespec hw_tstamp = {};
   int rc;
   struct dev_stream* cap_limit_stream;
   struct dev_stream* stream;
