@@ -15,6 +15,7 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -b /run/cras,,1 \
         -b /run/dbus,,1 \
         -k '/run/imageloader,/run/imageloader,none,MS_BIND|MS_REC' \
+        -b /run/libsegmentation \
         -b /run/udev \
         -b /dev \
         -b /dev/shm,,1 \
