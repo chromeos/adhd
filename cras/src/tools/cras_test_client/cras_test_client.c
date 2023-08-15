@@ -1373,6 +1373,9 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
     case BT_A2DP_SET_VOLUME:
       printf("%-30s %u\n", "A2DP_SET_VOLUME", data1);
       break;
+    case BT_A2DP_SET_ABS_VOLUME_SUPPORT:
+      printf("%-30s %u\n", "A2DP_SET_ABS_VOLUME_SUPPORT", data1);
+      break;
     case BT_A2DP_UPDATE_VOLUME:
       printf("%-30s %u\n", "A2DP_UPDATE_VOLUME", data1);
       break;

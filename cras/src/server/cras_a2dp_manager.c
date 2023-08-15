@@ -407,6 +407,7 @@ void cras_floss_a2dp_set_support_absolute_volume(struct cras_a2dp* a2dp,
   a2dp->support_absolute_volume = support_absolute_volume;
   if (a2dp->iodev) {
     a2dp->iodev->software_volume_needed = !support_absolute_volume;
+    BTLOG(btlog, BT_A2DP_SET_ABS_VOLUME_SUPPORT, support_absolute_volume, 0);
   }
 }
 
