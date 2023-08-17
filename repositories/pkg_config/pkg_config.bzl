@@ -137,6 +137,18 @@ def _pkg_config_library_impl(repository_ctx):
         "{}/**/*.h".format(inc)
         for inc in includes
     ]
+    if library == "libcros_config":
+        # Hack for b/296440405.
+        # The sysroot may change during src_compile() and Bazel is sensitive to changes.
+        # We only actually need $SYSROOT/usr/include/chromeos/chromeos-config, but
+        # pkg-config would return -I$SYSROOT/usr/include/chromeos.
+        # glob on only the chromeos-config directory instead, so Bazel doesn't
+        # see changes out of chromeos-config/.
+        # TODO: Remove hack once we are with Alchemy, which gives us immutable sysroots.
+        hdrs_globs = [
+            glob.replace("/usr/include/chromeos/**/*.h", "/usr/include/chromeos/chromeos-config/**/*.h")
+            for glob in hdrs_globs
+        ]
 
     build_file_contents = _pkg_config_library_entry(
         name = repository_ctx.name,
