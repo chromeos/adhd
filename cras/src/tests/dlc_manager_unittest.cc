@@ -3,9 +3,9 @@
  * found in the LICENSE file.
  */
 
+#include <deque>
 #include <gtest/gtest.h>
 #include <syslog.h>
-#include <vector>
 
 #include "cras/src/server/cras_dlc_manager_test_only.h"
 #include "cras/src/server/cras_server_metrics.h"
@@ -21,7 +21,7 @@ struct cras_timer {
 };
 
 struct cras_tm {
-  std::vector<struct cras_timer*> timers;
+  std::deque<struct cras_timer*> timers;
 };
 
 static struct cras_tm fake_tm = {};
@@ -57,6 +57,12 @@ void cras_tm_cancel_timer(struct cras_tm* tm, struct cras_timer* t) {
   }
   tm->timers.erase(it);
   free(t);
+}
+
+void cras_tm_call_first_callback(struct cras_tm* tm) {
+  struct cras_timer* timer = tm->timers.front();
+  timer->cb(timer, timer->cb_data);
+  cras_tm_cancel_timer(tm, timer);
 }
 
 // Fake implementation of cras_system_state.
@@ -132,46 +138,32 @@ TEST_F(DlcManagerTest, TestIfDlcIsAvailable) {
   }
 
   for (int i = 0; i < NumCrasDlc; ++i) {
-    struct cras_timer* timer = tm->timers[i];
-    timer->cb(timer, timer->cb_data);
+    cras_tm_call_first_callback(tm);
   }
 
   // no new timer should be added.
-  EXPECT_EQ(tm->timers.size(), NumCrasDlc);
+  EXPECT_EQ(tm->timers.size(), 0);
   // each DLC installation, either success or not, would send 1 UMA
   EXPECT_EQ(cras_server_metrics_dlc_counter, NumCrasDlc);
   EXPECT_TRUE(cras_dlc_manager_is_null());
 }
 
-TEST_F(DlcManagerTest, TestDlcIsUnAvailableAndReachesMaxRetry) {
+TEST_F(DlcManagerTest, TestDlcIsUnAvailableAndKeepsRetrying) {
   cras_dlc_manager_init();
   struct cras_tm* tm = cras_system_state_get_tm();
+  ASSERT_EQ(tm->timers.size(), NumCrasDlc);
 
-  // The first try pluses the `MAX_RETRY_COUNT`, which is 10.
-  for (int i = 0; i < 10; ++i) {
+  // Test for a few rounds
+  for (int i = 0; i < NumCrasDlc * 5; ++i) {
+    cras_tm_call_first_callback(tm);
+    // When dlc is unavailable, a new timer will be added.
     ASSERT_EQ(tm->timers.size(), NumCrasDlc);
-    for (int num_cur_timers = NumCrasDlc; num_cur_timers > 0;
-         --num_cur_timers) {
-      struct cras_timer* timer = tm->timers[0];
-      timer->cb(timer, timer->cb_data);
-      // When dlc is unavailable, new timer will be added.
-      ASSERT_EQ(tm->timers.size(), NumCrasDlc + 1);
-      cras_tm_cancel_timer(tm, timer);
-    }
-  }
-  for (int num_cur_timers = NumCrasDlc; num_cur_timers > 0; --num_cur_timers) {
-    // When `MAX_RETRY_COUNT` is reached, no more timer is added.
-    ASSERT_EQ(tm->timers.size(), num_cur_timers);
-    struct cras_timer* timer = tm->timers[0];
-    timer->cb(timer, timer->cb_data);
-    cras_tm_cancel_timer(tm, timer);
   }
 
-  // no timer remains.
-  EXPECT_EQ(tm->timers.size(), 0);
-  // each DLC installation, either success or not, would send 1 UMA
-  EXPECT_EQ(cras_server_metrics_dlc_counter, NumCrasDlc);
-  EXPECT_TRUE(cras_dlc_manager_is_null());
+  EXPECT_EQ(tm->timers.size(), NumCrasDlc);
+  // All retries failed, no metrics are sent
+  EXPECT_EQ(cras_server_metrics_dlc_counter, 0);
+  EXPECT_TRUE(!cras_dlc_manager_is_null());
 }
 
 }  // namespace

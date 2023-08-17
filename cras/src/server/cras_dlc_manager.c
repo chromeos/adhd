@@ -4,7 +4,6 @@
 
 #include "cras/src/server/cras_dlc_manager.h"
 
-#include <errno.h>
 #include <syslog.h>
 
 #include "cras/src/server/cras_server_metrics.h"
@@ -12,14 +11,14 @@
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/rust/include/cras_dlc.h"
 
-#define FIRST_TRY_MSEC 5000
-#define RETRY_MSEC 60000
-#define MAX_RETRY_COUNT 10
+#define FIRST_TRY_MSEC 10000
+#define MAX_RETRY_MSEC 1800000
 
 struct dlc_download_context {
   enum CrasDlcId dlc_id;
   struct cras_timer* retry_timer;
   int retry_counter;
+  unsigned int retry_ms;
 };
 
 struct dlc_manager {
@@ -93,19 +92,13 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
              "%s: unable to connect to dlcservice during `cras_dlc_install`.",
              __func__);
     }
-    if (context->retry_counter < MAX_RETRY_COUNT) {
-      ++context->retry_counter;
-      context->retry_timer =
-          cras_tm_create_timer(tm, RETRY_MSEC, download_supported_dlc, context);
-      syslog(LOG_WARNING, "%s: retry downloading `%s`, attempt #%d.", __func__,
-             dlc_id_string, context->retry_counter);
-      return;
-    } else {
-      syslog(LOG_ERR,
-             "%s: failed to install the DLC of `%s`. Please check the network "
-             "connection. Restart CRAS to retry.",
-             __func__, dlc_id_string);
-    }
+    ++context->retry_counter;
+    context->retry_ms = MIN(context->retry_ms * 2, MAX_RETRY_MSEC);
+    context->retry_timer = cras_tm_create_timer(
+        tm, context->retry_ms, download_supported_dlc, context);
+    syslog(LOG_WARNING, "%s: retry downloading `%s`, attempt #%d.", __func__,
+           dlc_id_string, context->retry_counter);
+    return;
   } else {
     syslog(LOG_DEBUG, "%s: successfully installed DLC of `%s`! Tried %d times.",
            __func__, dlc_id_string, context->retry_counter);
@@ -138,6 +131,7 @@ void cras_dlc_manager_init() {
     for (int i = 0; i < NumCrasDlc; ++i) {
       dlc_manager->to_download[i].dlc_id = (enum CrasDlcId)i;
       dlc_manager->to_download[i].retry_counter = 0;
+      dlc_manager->to_download[i].retry_ms = FIRST_TRY_MSEC;
       dlc_manager->to_download[i].retry_timer =
           cras_tm_create_timer(tm, FIRST_TRY_MSEC, download_supported_dlc,
                                &(dlc_manager->to_download[i]));
