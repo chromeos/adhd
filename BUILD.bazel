@@ -97,7 +97,7 @@ refresh_compile_commands(
 refresh_compile_commands(
     name = "compdb_notest",
     targets = {
-        "//dist": "",
+        "//dist:default": "",
     },
 )
 
