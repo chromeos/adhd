@@ -793,6 +793,12 @@ void cras_dsp_pipeline_set_sink_ext_module(struct pipeline* pipeline,
                                       ext_module);
 }
 
+void cras_dsp_pipeline_set_sink_lr_swapped(struct pipeline* pipeline,
+                                           bool left_right_swapped) {
+  cras_dsp_module_set_sink_lr_swapped(pipeline->sink_instance->module,
+                                      left_right_swapped);
+}
+
 struct ini* cras_dsp_pipeline_get_ini(struct pipeline* pipeline) {
   return pipeline->ini;
 }

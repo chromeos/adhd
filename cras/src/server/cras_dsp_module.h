@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
+
 #include "cras/src/server/cras_dsp_ini.h"
 
 // TODO: Study feasibility of increasing this limit.
@@ -119,6 +121,10 @@ enum { MODULE_INPLACE_BROKEN = 1 };  // See ladspa.h for explanation
 // Connects an external dsp module to a builtin sink module.
 void cras_dsp_module_set_sink_ext_module(struct dsp_module* module,
                                          struct ext_dsp_module* ext_module);
+
+// Sets the flag of swapping left/right channel to a builtin sink module.
+void cras_dsp_module_set_sink_lr_swapped(struct dsp_module* module,
+                                         bool left_right_swapped);
 
 struct dsp_module* cras_dsp_module_load_ladspa(struct plugin* plugin);
 struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin);

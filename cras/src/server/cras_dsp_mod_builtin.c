@@ -758,6 +758,7 @@ static void drc_init_module(struct dsp_module* module) {
  */
 struct sink_data {
   struct ext_dsp_module* ext_module;
+  bool left_right_swapped;
   float* ports[MAX_EXT_DSP_PORTS];
 };
 
@@ -789,7 +790,18 @@ static void sink_connect_port(struct dsp_module* module,
 }
 
 static void sink_run(struct dsp_module* module, unsigned long sample_count) {
+  unsigned long i;
   struct sink_data* data = module->data;
+  float** ports = data->ports;
+
+  if (data->left_right_swapped) {
+    /* In-place swap two channel data, i.e. ports[0] and ports[1]. */
+    for (i = 0; i < sample_count; i++) {
+      float temp = ports[0][i];
+      ports[0][i] = ports[1][i];
+      ports[1][i] = temp;
+    }
+  }
 
   if (!data->ext_module) {
     return;
@@ -822,6 +834,13 @@ void cras_dsp_module_set_sink_ext_module(struct dsp_module* module,
   for (i = 0; i < MAX_EXT_DSP_PORTS; i++) {
     ext_module->ports[i] = data->ports[i];
   }
+}
+
+void cras_dsp_module_set_sink_lr_swapped(struct dsp_module* module,
+                                         bool left_right_swapped) {
+  struct sink_data* data = module->data;
+
+  data->left_right_swapped = left_right_swapped;
 }
 
 /*

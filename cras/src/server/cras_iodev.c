@@ -546,6 +546,44 @@ error:
 }
 
 /*
+ * Configures the flag of swapping L/R channel to sink module on the existing
+ * dsp pipeline.
+ */
+static void set_left_right_swapped_to_pipeline(struct cras_iodev* iodev,
+                                               bool left_right_swapped) {
+  if (!iodev->format) {
+    /* Should not be called prior to cras_iodev_set_format(). */
+    return;
+  }
+
+  if (iodev->format->num_channels != 2) {
+    syslog(LOG_ERR,
+           "Cannot set left_right_swapped to non-stereo dev idx:%u, ch:%zu",
+           iodev->info.idx, iodev->format->num_channels);
+    return;
+  }
+
+  struct pipeline* pipeline =
+      iodev->dsp_context ? cras_dsp_get_pipeline(iodev->dsp_context) : NULL;
+
+  if (!pipeline) {
+    cras_iodev_alloc_dsp(iodev);
+    cras_dsp_load_mock_pipeline(iodev->dsp_context,
+                                iodev->format->num_channels);
+    pipeline = cras_dsp_get_pipeline(iodev->dsp_context);
+  }
+  /* dsp_context mutex locked. Now it's safe to modify dsp
+   * pipeline resources. */
+
+  cras_dsp_pipeline_set_sink_lr_swapped(pipeline, left_right_swapped);
+  // Unlock dsp_context mutex.
+  cras_dsp_put_pipeline(iodev->dsp_context);
+
+  syslog(LOG_DEBUG, "Set left_right_swapped to %d for pipeline of dev_idx:%u",
+         left_right_swapped, iodev->info.idx);
+}
+
+/*
  * Configures the external dsp module and adds it to the existing dsp pipeline.
  */
 static void add_ext_dsp_module_to_pipeline(struct cras_iodev* iodev) {
@@ -613,21 +651,12 @@ void cras_iodev_set_ext_dsp_module(struct cras_iodev* iodev,
 }
 
 void cras_iodev_update_dsp(struct cras_iodev* iodev) {
-  char swap_lr_disabled = 1;
-
   if (!iodev->dsp_context) {
     return;
   }
 
   cras_dsp_set_variable_string(iodev->dsp_context, "dsp_name",
                                iodev->dsp_name ?: "");
-
-  if (iodev->active_node && iodev->active_node->left_right_swapped) {
-    swap_lr_disabled = 0;
-  }
-
-  cras_dsp_set_variable_boolean(iodev->dsp_context, "swap_lr_disabled",
-                                swap_lr_disabled);
 
   if (iodev->active_node) {
     cras_dsp_set_variable_integer(iodev->dsp_context, "display_rotation",
@@ -665,15 +694,14 @@ int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev* iodev,
     return 0;
   }
 
-  /* Sets left_right_swapped property on the node. It will be used
-   * when cras_iodev_update_dsp is called. */
+  /* Sets left_right_swapped property on the node. */
   node->left_right_swapped = enable;
 
-  /* Possibly updates dsp if the node is active on the device and there
-   * is dsp context. If dsp context is not created yet,
-   * cras_iodev_update_dsp returns right away. */
-  if (iodev->active_node == node) {
-    cras_iodev_update_dsp(iodev);
+  /* Possibly sets left_right_swapped state to pipeline if the node is active
+   * on an opened device. Otherwise the setting can be deferred to the moment
+   * when device opens. */
+  if (cras_iodev_is_open(iodev) && iodev->active_node == node) {
+    set_left_right_swapped_to_pipeline(iodev, enable);
   }
   return 0;
 }
@@ -1083,6 +1111,10 @@ int cras_iodev_open(struct cras_iodev* iodev,
                   iodev->format->frame_rate);
 
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
+    if (iodev->active_node && iodev->active_node->left_right_swapped) {
+      set_left_right_swapped_to_pipeline(iodev, true);
+    }
+
     /* If device supports start ops, device can be in open state.
      * Otherwise, device starts running right after opening. */
     if (cras_iodev_can_start(iodev)) {

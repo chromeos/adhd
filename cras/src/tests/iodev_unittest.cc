@@ -61,6 +61,7 @@ static float cras_dsp_pipeline_sink_buffer[2][DSP_BUFFER_SIZE];
 static int cras_dsp_pipeline_get_delay_called;
 static int cras_dsp_pipeline_apply_called;
 static int cras_dsp_pipeline_set_sink_ext_module_called;
+static int cras_dsp_pipeline_set_sink_lr_swapped_called;
 static int cras_dsp_pipeline_apply_sample_count;
 static unsigned int cras_mix_mute_count;
 static unsigned int cras_dsp_num_input_channels_return;
@@ -171,6 +172,7 @@ void ResetStubData() {
   cras_dsp_pipeline_get_delay_called = 0;
   cras_dsp_pipeline_apply_called = 0;
   cras_dsp_pipeline_set_sink_ext_module_called = 0;
+  cras_dsp_pipeline_set_sink_lr_swapped_called = 0;
   cras_dsp_pipeline_apply_sample_count = 0;
   cras_dsp_num_input_channels_return = 2;
   cras_dsp_num_output_channels_return = 2;
@@ -2388,6 +2390,81 @@ TEST(IoDev, SetExtDspMod) {
   EXPECT_EQ(4, cras_dsp_pipeline_set_sink_ext_module_called);
 }
 
+TEST(IoDev, SetLeftRightSwapToDsp) {
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+  struct cras_audio_format fmt;
+
+  ResetStubData();
+
+  memset(&iodev, 0, sizeof(iodev));
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.configure_dev = configure_dev;
+  iodev.format = &fmt;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+
+  memset(&ionode, 0, sizeof(ionode));
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->dev = &iodev;
+
+  iodev.dsp_context = reinterpret_cast<cras_dsp_context*>(0xf0f);
+  cras_dsp_get_pipeline_ret = 0x25;
+
+  // Update active_node->left_right_swapped only when device is closed.
+  cras_iodev_dsp_set_swap_mode_for_node(&iodev, &ionode, 1 /* enabled */);
+  EXPECT_EQ(1, ionode.left_right_swapped);
+  EXPECT_EQ(0, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(0, cras_dsp_pipeline_set_sink_lr_swapped_called);
+
+  // Set active_node->left_right_swapped to DSP pipeline on device open.
+  cras_iodev_open(&iodev, 240, &fmt);
+  EXPECT_EQ(2, cras_dsp_get_pipeline_called); /* swap + ext_dsp_mod */
+  EXPECT_EQ(1, cras_dsp_pipeline_set_sink_lr_swapped_called);
+
+  // When device is opened, toggling swap_mode for active_node will set to DSP
+  // pipeline spontaneously.
+  cras_iodev_dsp_set_swap_mode_for_node(&iodev, &ionode, 0 /* enabled */);
+  EXPECT_EQ(0, ionode.left_right_swapped);
+  EXPECT_EQ(3, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_set_sink_lr_swapped_called);
+  // No effect if the swap_mode is not toggled.
+  cras_iodev_dsp_set_swap_mode_for_node(&iodev, &ionode, 0 /* enabled */);
+  EXPECT_EQ(0, ionode.left_right_swapped);
+  EXPECT_EQ(3, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(2, cras_dsp_pipeline_set_sink_lr_swapped_called);
+  cras_iodev_dsp_set_swap_mode_for_node(&iodev, &ionode, 1 /* enabled */);
+  EXPECT_EQ(1, ionode.left_right_swapped);
+  EXPECT_EQ(4, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(3, cras_dsp_pipeline_set_sink_lr_swapped_called);
+
+  // If pipeline doesn't exist, mock pipeline should be loaded.
+  cras_dsp_get_pipeline_ret = 0x0;
+  cras_iodev_dsp_set_swap_mode_for_node(&iodev, &ionode, 0 /* enabled */);
+  EXPECT_EQ(0, ionode.left_right_swapped);
+  EXPECT_EQ(6, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(1, cras_dsp_load_mock_pipeline_called);
+  EXPECT_EQ(4, cras_dsp_pipeline_set_sink_lr_swapped_called);
+
+  // Skip setting left_right_swapped to DSP pipeline if format is not stereo.
+  iodev.format->num_channels = 1;
+  cras_iodev_dsp_set_swap_mode_for_node(&iodev, &ionode, 1 /* enabled */);
+  EXPECT_EQ(1, ionode.left_right_swapped);
+  EXPECT_EQ(6, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(4, cras_dsp_pipeline_set_sink_lr_swapped_called);
+
+  // Update node->left_right_swapped only if node is not active_node.
+  iodev.format->num_channels = 2;
+  iodev.active_node = NULL;
+  cras_iodev_dsp_set_swap_mode_for_node(&iodev, &ionode, 0 /* enabled */);
+  EXPECT_EQ(0, ionode.left_right_swapped);
+  EXPECT_EQ(6, cras_dsp_get_pipeline_called);
+  EXPECT_EQ(4, cras_dsp_pipeline_set_sink_lr_swapped_called);
+}
+
 TEST(IoDev, InputDspOffset) {
   struct cras_iodev iodev;
   struct cras_audio_format fmt;
@@ -2792,6 +2869,11 @@ void cras_dsp_pipeline_add_statistic(struct pipeline* pipeline,
 void cras_dsp_pipeline_set_sink_ext_module(struct pipeline* pipeline,
                                            struct ext_dsp_module* ext_module) {
   cras_dsp_pipeline_set_sink_ext_module_called++;
+}
+
+void cras_dsp_pipeline_set_sink_lr_swapped(struct pipeline* pipeline,
+                                           bool left_right_swapped) {
+  cras_dsp_pipeline_set_sink_lr_swapped_called++;
 }
 
 unsigned int cras_dsp_num_output_channels(const struct cras_dsp_context* ctx) {

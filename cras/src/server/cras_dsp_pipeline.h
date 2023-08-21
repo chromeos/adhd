@@ -114,6 +114,17 @@ float* cras_dsp_pipeline_get_sink_buffer(struct pipeline* pipeline, int index);
 void cras_dsp_pipeline_set_sink_ext_module(struct pipeline* pipeline,
                                            struct ext_dsp_module* ext_module);
 
+/*
+ * Sets the flag of swapping L/R channel to the sink of given dsp pipeline.
+ * Note it relies on clients to make sure that the swap L/R setting is only
+ * requested on pipelines with 2-channel sink.
+ * Args:
+ *    pipeline - The pipeline whose sink should set the swap.
+ *    left_right_swapped - Whether to swap L/R channel data.
+ */
+void cras_dsp_pipeline_set_sink_lr_swapped(struct pipeline* pipeline,
+                                           bool left_right_swapped);
+
 /* Returns the number of internal audio buffers allocated by the
  * pipeline. This is used by the unit test only */
 int cras_dsp_pipeline_get_peak_audio_buffers(struct pipeline* pipeline);

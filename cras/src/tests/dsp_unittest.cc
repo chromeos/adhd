@@ -151,4 +151,6 @@ struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
 }
 void cras_dsp_module_set_sink_ext_module(struct dsp_module* module,
                                          struct ext_dsp_module* ext_module) {}
+void cras_dsp_module_set_sink_lr_swapped(struct dsp_module* module,
+                                         bool left_right_swapped) {}
 }  // extern "C"

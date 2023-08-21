@@ -196,6 +196,7 @@ static struct dsp_module* create_mock_module(struct plugin* plugin) {
 
 static struct dsp_module* modules[MAX_MODULES];
 static struct dsp_module* cras_dsp_module_set_sink_ext_module_val;
+static struct dsp_module* cras_dsp_module_set_sink_lr_swapped_val;
 static int num_modules;
 static struct dsp_module* find_module(const char* name) {
   for (int i = 0; i < num_modules; i++) {
@@ -219,6 +220,10 @@ struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
 void cras_dsp_module_set_sink_ext_module(struct dsp_module* module,
                                          struct ext_dsp_module* ext_module) {
   cras_dsp_module_set_sink_ext_module_val = module;
+}
+void cras_dsp_module_set_sink_lr_swapped(struct dsp_module* module,
+                                         bool left_right_swapped) {
+  cras_dsp_module_set_sink_lr_swapped_val = module;
 }
 }
 
@@ -498,6 +503,11 @@ TEST_F(DspPipelineTestSuite, Complex) {
   // Expect the sink module "m5" is set.
   cras_dsp_pipeline_set_sink_ext_module(p, &ext_mod);
   struct data* d = (struct data*)cras_dsp_module_set_sink_ext_module_val->data;
+  ASSERT_STREQ("m5", d->title);
+
+  // Expect the sink module "m5" is set.
+  cras_dsp_pipeline_set_sink_lr_swapped(p, true);
+  d = (struct data*)cras_dsp_module_set_sink_lr_swapped_val->data;
   ASSERT_STREQ("m5", d->title);
 
   // re-instantiate

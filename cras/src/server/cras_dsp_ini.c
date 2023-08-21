@@ -208,25 +208,6 @@ static void add_audio_port(struct ini* ini,
   p->direction = port_direction;
 }
 
-// Fills fields for a swap_lr plugin.
-static void fill_swap_lr_plugin(struct ini* ini,
-                                struct plugin* plugin,
-                                int input_flowid_0,
-                                int input_flowid_1,
-                                int output_flowid_0,
-                                int output_flowid_1) {
-  plugin->title = "swap_lr";
-  plugin->library = "builtin";
-  plugin->label = "swap_lr";
-  plugin->purpose = "playback";
-  plugin->disable_expr = cras_expr_expression_parse("swap_lr_disabled");
-
-  add_audio_port(ini, plugin, input_flowid_0, PORT_INPUT);
-  add_audio_port(ini, plugin, input_flowid_1, PORT_INPUT);
-  add_audio_port(ini, plugin, output_flowid_0, PORT_OUTPUT);
-  add_audio_port(ini, plugin, output_flowid_1, PORT_OUTPUT);
-}
-
 /* Adds a new flow with name. If there is already a flow with the name, returns
  * INVALID_FLOW_ID.
  */
@@ -328,52 +309,6 @@ static int insert_quad_rotation_plugin(struct ini* ini) {
   return 0;
 }
 
-/* Inserts a swap_lr plugin before sink. Handles the port change such that
- * the port originally connects to sink will connect to swap_lr.
- */
-static int insert_swap_lr_plugin(struct ini* ini) {
-  struct plugin *swap_lr, *sink;
-  int sink_input_flowid_0, sink_input_flowid_1;
-  int swap_lr_output_flowid_0, swap_lr_output_flowid_1;
-
-  /* Only add swap_lr plugin for two-channel playback dsp.
-   * TODO(cychiang): Handle multiple sinks if needed.
-   */
-  sink = find_first_playback_sink_plugin(ini);
-  if ((sink == NULL) || ARRAY_COUNT(&sink->ports) != 2) {
-    return 0;
-  }
-
-  // Gets the original flow ids of the sink input ports.
-  sink_input_flowid_0 = ARRAY_ELEMENT(&sink->ports, 0)->flow_id;
-  sink_input_flowid_1 = ARRAY_ELEMENT(&sink->ports, 1)->flow_id;
-
-  // Create new flow ids for swap_lr output ports.
-  swap_lr_output_flowid_0 = add_new_flow(ini, "{swap_lr_out:0}");
-  swap_lr_output_flowid_1 = add_new_flow(ini, "{swap_lr_out:1}");
-
-  if (swap_lr_output_flowid_0 == INVALID_FLOW_ID ||
-      swap_lr_output_flowid_1 == INVALID_FLOW_ID) {
-    syslog(LOG_ERR, "Can not create flow id for swap_lr_out");
-    return -EINVAL;
-  }
-
-  // Creates a swap_lr plugin and sets the input and output ports.
-  swap_lr = ARRAY_APPEND_ZERO(&ini->plugins);
-  fill_swap_lr_plugin(ini, swap_lr, sink_input_flowid_0, sink_input_flowid_1,
-                      swap_lr_output_flowid_0, swap_lr_output_flowid_1);
-
-  // Look up first sink again because ini->plugins could be realloc'ed
-  sink = find_first_playback_sink_plugin(ini);
-
-  /* The flow ids of sink input ports should be changed to flow ids of
-   * {swap_lr_out:0}, {swap_lr_out:1}. */
-  ARRAY_ELEMENT(&sink->ports, 0)->flow_id = swap_lr_output_flowid_0;
-  ARRAY_ELEMENT(&sink->ports, 1)->flow_id = swap_lr_output_flowid_1;
-
-  return 0;
-}
-
 struct ini* create_mock_ini(const char* purpose, unsigned int num_channels) {
   static char mock_flow_names[MAX_MOCK_INI_CH][9] = {
       "{tmp:0}",  "{tmp:1}",  "{tmp:2}",  "{tmp:3}",  "{tmp:4}",
@@ -455,13 +390,6 @@ struct ini* cras_dsp_ini_create(const char* ini_filename) {
     if (parse_plugin_section(ini, sec_name, plugin) < 0) {
       goto bail;
     }
-  }
-
-  // Insert a swap_lr plugin before sink.
-  rc = insert_swap_lr_plugin(ini);
-  if (rc < 0) {
-    syslog(LOG_ERR, "failed to insert swap_lr plugin");
-    goto bail;
   }
 
   // Insert a quad_rotation plugin before sink.
