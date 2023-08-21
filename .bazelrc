@@ -71,3 +71,7 @@ build --copt=-g --linkopt=-g --strip=never
 build:ci --show_progress_rate_limit=10
 test:ci --test_output=errors
 test:ci --test_summary=terse
+
+# Allow user customization.
+# https://bazel.build/configure/best-practices#bazelrc-file
+try-import %workspace%/user.bazelrc

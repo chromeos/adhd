@@ -14,6 +14,7 @@ compile_commands.json
 # https://github.com/hedronvision/bazel-compile-commands-extractor/issues/59
 /compile_commands.json
 /.cache/
+/user.bazelrc
 
 # Rust
 /target/
