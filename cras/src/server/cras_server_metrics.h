@@ -201,11 +201,11 @@ int cras_server_metrics_hfp_mic_sr_status(
     struct cras_iodev* iodev,
     enum CRAS_METRICS_HFP_MIC_SR_STATUS status);
 
-// Logs the dlc status from cras_dlc_manager.
-int cras_server_metrics_dlc_manager_status(
+// Logs the number of retries it took for cras_dlc_manager to
+// successfully download dlc_id.
+int cras_server_metrics_dlc_install_retried_times_on_success(
     enum CrasDlcId dlc_id,
-    int num_retry_times,
-    enum CRAS_METRICS_DLC_STATUS dlc_status);
+    int num_retry_times);
 
 // Logs whether AP NC has successfully started or not.
 int cras_server_metrics_ap_nc_start_status(bool success);

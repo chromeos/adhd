@@ -75,10 +75,9 @@ struct cras_tm* cras_system_state_get_tm() {
 
 static int cras_server_metrics_dlc_counter = 0;
 
-int cras_server_metrics_dlc_manager_status(
+int cras_server_metrics_dlc_install_retried_times_on_success(
     enum CrasDlcId dlc_id,
-    int num_retry_times,
-    enum CRAS_METRICS_DLC_STATUS dlc_status) {
+    int num_retry_times) {
   ++cras_server_metrics_dlc_counter;
   return 0;
 }

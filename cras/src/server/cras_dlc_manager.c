@@ -107,10 +107,8 @@ static void download_supported_dlc(struct cras_timer* timer, void* arg) {
   // No more timer scheduled. This is important to prevent from double freeing.
   context->retry_timer = NULL;
   ++dlc_manager->num_finished;
-  cras_server_metrics_dlc_manager_status(
-      context->dlc_id, context->retry_counter,
-      dlc_available ? CRAS_METRICS_DLC_STATUS_AVAILABLE
-                    : CRAS_METRICS_DLC_STATUS_UNAVAILABLE);
+  cras_server_metrics_dlc_install_retried_times_on_success(
+      context->dlc_id, context->retry_counter);
 
   // This could be dangerous if we export the `cras_dlc_manager_destroy`
   cras_dlc_manager_destroy_if_all_finished();

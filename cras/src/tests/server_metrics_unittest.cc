@@ -11,6 +11,7 @@
 
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_server_metrics.h"
 
 extern "C" {
 #include "cras/src/server/cras_server_metrics.c"
@@ -448,7 +449,6 @@ struct CrasDlcManagerTestParam {
   enum CrasDlcId dlc_id;
   std::string dlc_id_str;
   int num_retry_times;
-  enum CRAS_METRICS_DLC_STATUS dlc_status;
 };
 
 class ServerMetricsCrasDlcManagerTest
@@ -462,44 +462,29 @@ TEST_P(ServerMetricsCrasDlcManagerTest, TestCrasServerMetricsDlcManagerStatus) {
   const auto& param = GetParam();
   cras_system_state_in_main_thread_ret = 1;
 
-  cras_server_metrics_dlc_manager_status(param.dlc_id, param.num_retry_times,
-                                         param.dlc_status);
+  cras_server_metrics_dlc_install_retried_times_on_success(
+      param.dlc_id, param.num_retry_times);
 
-  bool dlc_available = param.dlc_status == CRAS_METRICS_DLC_STATUS_AVAILABLE;
-  int args_size = dlc_available ? 2 : 1;
-  ASSERT_EQ(cras_metrics_log_sparse_histogram_called_args.size(), args_size);
+  ASSERT_EQ(cras_metrics_log_sparse_histogram_called_args.size(), 1);
 
   std::string prefix = "Cras.DlcManagerStatus";
   std::string num_retry_times_name =
       prefix + ".RetriedTimesOnSuccess." + param.dlc_id_str;
-  std::string dlc_status_name = prefix + ".DlcStatus." + param.dlc_id_str;
-  if (dlc_available) {
-    EXPECT_EQ(
-        std::get<0>(cras_metrics_log_sparse_histogram_called_args.front()),
-        num_retry_times_name);
-    EXPECT_EQ(
-        std::get<1>(cras_metrics_log_sparse_histogram_called_args.front()),
-        param.num_retry_times);
-  }
-  EXPECT_EQ(std::get<0>(cras_metrics_log_sparse_histogram_called_args.back()),
-            dlc_status_name);
-  EXPECT_EQ(std::get<1>(cras_metrics_log_sparse_histogram_called_args.back()),
-            param.dlc_status);
+  EXPECT_EQ(std::get<0>(cras_metrics_log_sparse_histogram_called_args.front()),
+            num_retry_times_name);
+  EXPECT_EQ(std::get<1>(cras_metrics_log_sparse_histogram_called_args.front()),
+            param.num_retry_times);
 }
 
 INSTANTIATE_TEST_SUITE_P(
     ,
     ServerMetricsCrasDlcManagerTest,
-    testing::Values(CrasDlcManagerTestParam(
-                        {.dlc_id = CrasDlcNcAp,
-                         .dlc_id_str = "NcAp",
-                         .num_retry_times = 0,
-                         .dlc_status = CRAS_METRICS_DLC_STATUS_AVAILABLE}),
-                    CrasDlcManagerTestParam(
-                        {.dlc_id = CrasDlcSrBt,
-                         .dlc_id_str = "SrBt",
-                         .num_retry_times = 10,
-                         .dlc_status = CRAS_METRICS_DLC_STATUS_UNAVAILABLE})));
+    testing::Values(CrasDlcManagerTestParam({.dlc_id = CrasDlcNcAp,
+                                             .dlc_id_str = "NcAp",
+                                             .num_retry_times = 0}),
+                    CrasDlcManagerTestParam({.dlc_id = CrasDlcSrBt,
+                                             .dlc_id_str = "SrBt",
+                                             .num_retry_times = 10})));
 
 extern "C" {
 
