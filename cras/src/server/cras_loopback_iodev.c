@@ -4,6 +4,7 @@
  */
 
 #include <pthread.h>
+#include <stdbool.h>
 #include <sys/param.h>
 #include <syslog.h>
 
@@ -105,6 +106,8 @@ static void update_first_output_to_loopback(struct loopback_iodev* loopdev) {
     cras_iodev_list_register_loopback(
         loopdev->loopback_type, loopdev->sender_idx, sample_hook,
         sample_hook_start, loopdev->base.info.idx);
+  } else {
+    loopdev->started = false;
   }
 }
 

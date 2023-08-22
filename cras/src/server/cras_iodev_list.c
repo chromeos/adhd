@@ -1255,6 +1255,14 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir) {
       close_dev(edev->dev);
       continue;
     }
+    // If output stream is empty, set loopback devices to stop
+    struct cras_loopback* loopback;
+    DL_FOREACH (edev->dev->loopbacks, loopback) {
+      if (loopback->hook_control) {
+        loopback->hook_control(false, loopback->cb_data);
+      }
+    }
+
     // Allow output devs to drain before closing.
     clock_gettime(CLOCK_MONOTONIC_RAW, &edev->dev->idle_timeout);
     add_timespecs(&edev->dev->idle_timeout, &idle_timeout_interval);
@@ -2179,24 +2187,19 @@ void cras_iodev_list_register_loopback(enum CRAS_LOOPBACK_TYPE loopback_type,
                                        loopback_hook_control_t hook_control,
                                        unsigned int loopback_dev_idx) {
   struct cras_iodev* iodev = find_dev(output_dev_idx);
-  struct cras_iodev* loopback_dev;
-  struct cras_loopback* loopback;
-  bool dev_open;
-
   if (iodev == NULL) {
     syslog(LOG_ERR, "Output dev %u not found for loopback", output_dev_idx);
     return;
   }
 
-  loopback_dev = find_dev(loopback_dev_idx);
+  struct cras_iodev* loopback_dev = find_dev(loopback_dev_idx);
   if (loopback_dev == NULL) {
     syslog(LOG_ERR, "Loopback dev %u not found", loopback_dev_idx);
     return;
   }
 
-  dev_open = cras_iodev_is_open(iodev);
-
-  loopback = (struct cras_loopback*)calloc(1, sizeof(*loopback));
+  struct cras_loopback* loopback =
+      (struct cras_loopback*)calloc(1, sizeof(*loopback));
   if (NULL == loopback) {
     syslog(LOG_ERR, "Not enough memory for loopback");
     return;
@@ -2206,7 +2209,10 @@ void cras_iodev_list_register_loopback(enum CRAS_LOOPBACK_TYPE loopback_type,
   loopback->hook_data = hook_data;
   loopback->hook_control = hook_control;
   loopback->cb_data = loopback_dev;
-  if (loopback->hook_control && dev_open) {
+
+  bool stream_running = cras_iodev_is_open(iodev) &&
+                        iodev->state != CRAS_IODEV_STATE_NO_STREAM_RUN;
+  if (loopback->hook_control && stream_running) {
     loopback->hook_control(true, loopback->cb_data);
   }
 
