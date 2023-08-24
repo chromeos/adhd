@@ -750,7 +750,7 @@ void cras_iodev_set_node_plugged(struct cras_ionode* node, int plugged) {
   } else if (node == node->dev->active_node) {
     /*
      * Remove normal and pinned streams, when node unplugged.
-     * TODO(hychao): clean this up, per crbug.com/1006646
+     * TODO(b/172337142): clean this up
      */
     cras_iodev_list_disable_dev(node->dev, true);
   }
