@@ -24,9 +24,10 @@ enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
     if (!cras_feature_enabled(CrOSLateBootAudioHFPMicSR)) {
       return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
     }
-    if (!cras_system_get_sr_bt_enabled()) {
-      return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
-    }
+    // TODO: uncomment these lines when toggle is ready.
+    // if (!cras_system_get_sr_bt_enabled()) {
+    //   return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_FEATURE_DISABLED;
+    // }
   }
   // else: feature is force enabled.
 
