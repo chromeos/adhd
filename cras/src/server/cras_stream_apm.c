@@ -534,9 +534,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
     }
   }
 
-  bool nc_provided_by_ap =
-      idev->active_node &&
-      idev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP;
+  bool nc_provided_by_ap = idev->active_nc_provider == CRAS_NC_PROVIDER_AP;
   enum CrasProcessorEffect cp_effect =
       cras_processor_get_effect(nc_provided_by_ap, stream->effects);
 

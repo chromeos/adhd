@@ -35,47 +35,31 @@ struct cras_ionode* first_plugged_node(struct cras_iodev* iodev) {
   return iodev->nodes;
 }
 
-/* Returns true if the corresponding node_info of the specified input node has
- * Noise Cancellation flag in audio_effect. */
-static bool noise_cancellation_support_is_exposed(uint32_t dev_idx,
-                                                  uint32_t node_idx) {
-  const struct cras_ionode_info* nodes;
-  int nnodes;
-  int i;
-
-  nnodes = cras_system_state_get_input_nodes(&nodes);
-
-  for (i = 0; i < nnodes; i++) {
-    if (nodes[i].iodev_idx == dev_idx && nodes[i].ionode_idx == node_idx) {
-      return nodes[i].audio_effect & EFFECT_TYPE_NOISE_CANCELLATION;
-    }
-  }
-
-  syslog(LOG_ERR, "Cannot find input ionode_info dev_idx:%u node_idx:%u",
-         dev_idx, node_idx);
-  return false;
-}
-
 int cras_alsa_common_configure_noise_cancellation(
     struct cras_iodev* iodev,
     struct cras_use_case_mgr* ucm) {
-  if (iodev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_DSP) {
-    bool enable_noise_cancellation =
-        cras_system_get_noise_cancellation_enabled();
+  bool user_enabled = cras_system_get_noise_cancellation_enabled();
+  iodev->active_nc_provider = user_enabled
+                                  ? iodev->active_node->desired_nc_provider
+                                  : CRAS_NC_PROVIDER_NONE;
+
+  if (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_DSP) {
+    bool enable_dsp_noise_cancellation =
+        iodev->active_nc_provider == CRAS_NC_PROVIDER_DSP;
+
     int rc = ucm_enable_node_noise_cancellation(ucm, iodev->active_node->name,
-                                                enable_noise_cancellation);
+                                                enable_dsp_noise_cancellation);
     if (rc < 0) {
       return rc;
     }
 
     enum CRAS_NOISE_CANCELLATION_STATUS nc_status;
-    if (!noise_cancellation_support_is_exposed(iodev->info.idx,
-                                               iodev->active_node->idx)) {
-      nc_status = CRAS_NOISE_CANCELLATION_BLOCKED;
-    } else if (!enable_noise_cancellation) {
+    if (!user_enabled) {
       nc_status = CRAS_NOISE_CANCELLATION_DISABLED;
-    } else {
+    } else if (enable_dsp_noise_cancellation) {
       nc_status = CRAS_NOISE_CANCELLATION_ENABLED;
+    } else {
+      nc_status = CRAS_NOISE_CANCELLATION_BLOCKED;
     }
 
     cras_server_metrics_device_noise_cancellation_status(iodev, nc_status);
@@ -84,17 +68,18 @@ int cras_alsa_common_configure_noise_cancellation(
   return 0;
 }
 
-enum CRAS_IONODE_NC_PROVIDER cras_alsa_common_get_nc_provider(
+enum CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
     struct cras_use_case_mgr* ucm,
     const char* node_name) {
+  enum CRAS_NC_PROVIDER provider = 0;
   if (ucm && cras_system_get_dsp_noise_cancellation_supported() &&
       ucm_node_noise_cancellation_exists(ucm, node_name)) {
-    return CRAS_IONODE_NC_PROVIDER_DSP;
+    provider |= CRAS_NC_PROVIDER_DSP;
   }
   if (cras_system_get_ap_noise_cancellation_supported()) {
-    return CRAS_IONODE_NC_PROVIDER_AP;
+    provider |= CRAS_NC_PROVIDER_AP;
   }
-  return CRAS_IONODE_NC_PROVIDER_NONE;
+  return provider;
 }
 
 int cras_alsa_common_set_hwparams(struct cras_iodev* iodev, int period_wakeup) {

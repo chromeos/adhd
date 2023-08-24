@@ -23,6 +23,7 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_loopback_iodev.h"
 #include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"
@@ -309,8 +310,7 @@ struct fill_node_list_auxiliary {
 
 static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
   struct fill_node_list_auxiliary aux = {
-      .dsp_nc_allowed = !get_dsp_input_effects_blocked_state() ||
-                        cras_system_get_bypass_block_noise_cancellation(),
+      .dsp_nc_allowed = !get_dsp_input_effects_blocked_state(),
       .ap_nc_allowed =
           cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation),
   };
@@ -348,12 +348,13 @@ static int fill_node_list(struct iodev_list* list,
                cras_node_type_to_str(node->type, node->position));
       node_info->type_enum = node->type;
       node_info->audio_effect = 0;
-      if ((aux->dsp_nc_allowed &&
-           node->nc_provider == CRAS_IONODE_NC_PROVIDER_DSP) ||
-          (aux->ap_nc_allowed &&
-           node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP)) {
+
+      node->desired_nc_provider = cras_nc_resolve_provider(
+          node->nc_providers, aux->dsp_nc_allowed, aux->ap_nc_allowed);
+      if (node->desired_nc_provider != CRAS_NC_PROVIDER_NONE) {
         node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
       }
+
       if (cras_system_get_sr_bt_supported() &&
           node->type == CRAS_NODE_TYPE_BLUETOOTH_NB_MIC) {
         node_info->audio_effect |= EFFECT_TYPE_HFP_MIC_SR;
@@ -802,6 +803,11 @@ void sys_suspend_change(void* arg, int suspended) {
   } else {
     resume_devs();
   }
+}
+
+// Callback for nodes changed.
+static void nodes_changed(void* arg) {
+  cras_iodev_list_reset_for_noise_cancellation();
 }
 
 /* Called when the system capture mute state changes.  Pass the current capture
@@ -1431,6 +1437,7 @@ void cras_iodev_list_init() {
   observer_ops.output_mute_changed = sys_mute_change;
   observer_ops.capture_mute_changed = sys_cap_mute_change;
   observer_ops.suspend_changed = sys_suspend_change;
+  observer_ops.nodes_changed = nodes_changed;
   list_observer = cras_observer_add(&observer_ops, NULL);
   idle_timer = NULL;
   floop_timer = NULL;
@@ -2269,17 +2276,19 @@ void cras_iodev_list_reset_for_noise_cancellation() {
   bool enabled = cras_system_get_noise_cancellation_enabled();
 
   DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
-    if (!(cras_iodev_is_open(dev) && dev->active_node &&
-          (
-              // Restart needed for DSP NC.
-              cras_iodev_support_noise_cancellation(dev,
-                                                    dev->active_node->idx) ||
-              // Restart needed for AP NC.
-              dev->active_node->nc_provider == CRAS_IONODE_NC_PROVIDER_AP))) {
+    if (!cras_iodev_is_open(dev)) {
       continue;
     }
-    syslog(LOG_DEBUG, "Re-open %s for %s noise cancellation", dev->info.name,
-           enabled ? "enabling" : "disabling");
+    if (!dev->active_node) {
+      continue;
+    }
+    enum CRAS_NC_PROVIDER want_provider =
+        enabled ? dev->active_node->desired_nc_provider : CRAS_NC_PROVIDER_NONE;
+    if (want_provider == dev->active_nc_provider) {
+      continue;
+    }
+    syslog(LOG_INFO, "Re-open %s for noise cancellation: %d -> %d",
+           dev->info.name, dev->active_nc_provider, want_provider);
     possibly_enable_fallback(CRAS_STREAM_INPUT, false);
     restart_dev(dev->info.idx);
     possibly_disable_fallback(CRAS_STREAM_INPUT);

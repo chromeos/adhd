@@ -1549,10 +1549,11 @@ TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
     ASSERT_NE(iodev->nodes, (void*)NULL);
 
     // ucm_node_noise_cancellation_exists is 1 for Internal Microphone.
-    // However node.nc_provider will be CRAS_IONODE_NC_PROVIDER_DSP on only if
+    // However node.nc_providers will have CRAS_NC_PROVIDER_DSP on only if
     // cras_system_get_noise_cancellation_supported is true.
-    ASSERT_EQ(sys_get_dsp_noise_cancellation_supported_return_value,
-              iodev->nodes[0].nc_provider == CRAS_IONODE_NC_PROVIDER_DSP);
+    ASSERT_EQ(
+        sys_get_dsp_noise_cancellation_supported_return_value,
+        static_cast<bool>(iodev->nodes[0].nc_providers & CRAS_NC_PROVIDER_DSP));
 
     ucm_section_free_list(section);
     alsa_iodev_destroy(iodev);
@@ -1570,8 +1571,8 @@ TEST(AlsaOutputNode, InputNoiseCancellationSupport) {
     ASSERT_NE(iodev->nodes, (void*)NULL);
 
     // ucm_node_noise_cancellation_exists is 0 for Keyboard Microphone.
-    // NC flag in node.nc_provider should not be CRAS_IONODE_NC_PROVIDER_DSP
-    ASSERT_NE(iodev->nodes[0].nc_provider, CRAS_IONODE_NC_PROVIDER_DSP);
+    // node.nc_providers should not have CRAS_NC_PROVIDER_DSP.
+    ASSERT_EQ(iodev->nodes[0].nc_providers & CRAS_NC_PROVIDER_DSP, 0);
 
     ucm_section_free_list(section);
     alsa_iodev_destroy(iodev);
@@ -1607,7 +1608,8 @@ TEST(AlsaOutputNode, InputBypassBlockNoiseCancellation) {
     ASSERT_NE(iodev->nodes, (void*)NULL);
 
     // NC flag in node.audio_effect should be unrelated to AEC on DSP states.
-    ASSERT_EQ(iodev->nodes[0].nc_provider, CRAS_IONODE_NC_PROVIDER_DSP);
+    ASSERT_EQ(iodev->nodes[0].nc_providers & CRAS_NC_PROVIDER_DSP,
+              CRAS_NC_PROVIDER_DSP);
 
     ucm_section_free_list(section);
     alsa_iodev_destroy(iodev);
@@ -3499,6 +3501,10 @@ void cras_board_config_get(const char* config_path,
 
 int cras_system_get_speaker_output_latency_offset_ms() {
   return 0;
+}
+
+bool cras_iodev_list_get_dsp_nc_allowed() {
+  return false;
 }
 
 }  // extern "C"

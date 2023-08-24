@@ -1397,4 +1397,8 @@ void audio_peripheral_close(int vendor_id,
                             int channel,
                             int format) {}
 
+bool cras_iodev_list_get_dsp_nc_allowed() {
+  return false;
+}
+
 }  // extern "C"

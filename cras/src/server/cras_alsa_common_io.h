@@ -160,7 +160,7 @@ int cras_alsa_common_configure_noise_cancellation(
     struct cras_use_case_mgr* ucm);
 
 // Get the provider for noise cancellation on the node.
-enum CRAS_IONODE_NC_PROVIDER cras_alsa_common_get_nc_provider(
+enum CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
     struct cras_use_case_mgr* ucm,
     const char* node_name);
 

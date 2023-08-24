@@ -924,8 +924,8 @@ static struct alsa_usb_input_node* usb_new_input(
   }
 
   // Set NC provider.
-  input->base.nc_provider =
-      cras_alsa_common_get_nc_provider(aio->common.ucm, name);
+  input->base.nc_providers =
+      cras_alsa_common_get_nc_providers(aio->common.ucm, name);
 
   cras_iodev_add_node(&aio->common.base, &input->base);
   usb_check_auto_unplug_input_node(aio, &input->base, input->base.plugged);

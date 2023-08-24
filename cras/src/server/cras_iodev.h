@@ -18,6 +18,7 @@
 #include <time.h>
 
 #include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/ewma_power.h"
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
@@ -94,13 +95,6 @@ enum CRAS_IODEV_STATE {
   CRAS_IODEV_STATE_NO_STREAM_RUN = 3,
 };
 
-// Which NC module should provide support for this cras_ionode?
-enum CRAS_IONODE_NC_PROVIDER {
-  CRAS_IONODE_NC_PROVIDER_NONE,  // NC is disabled for this ionode.
-  CRAS_IONODE_NC_PROVIDER_DSP,   // NC is supported by DSP.
-  CRAS_IONODE_NC_PROVIDER_AP,    // NC is supported by AP.
-};
-
 /* Holds an output/input node for this device.  An ionode is a control that
  * can be switched on and off such as headphones or speakers.
  */
@@ -161,7 +155,13 @@ struct cras_ionode {
   // Output nodes have valid values ​​(> 0).
   int32_t number_of_volume_steps;
   // NC support status of the ionode.
-  enum CRAS_IONODE_NC_PROVIDER nc_provider;
+  // Set when the ionode is constructed and frozen.
+  enum CRAS_NC_PROVIDER nc_providers;
+  // Tells which NC procider should provide NC.
+  // Managed by cras_iodev_list_update_device_list.
+  // Desired means the NC provider we should use for this ionode,
+  // if the user enables NC.
+  enum CRAS_NC_PROVIDER desired_nc_provider;
   // The latency offset given in ms. This value will be directly added
   // when calculating the playback/capture timestamp
   // The value is read in board.ini, with 0 being the default if there is no
@@ -397,6 +397,8 @@ struct cras_iodev {
   struct ewma_power ewma;
   // Indicates that this device is used by the system instead of by the user.
   bool is_utility_device;
+  // The active NC provider in use. Should be set during device open.
+  enum CRAS_NC_PROVIDER active_nc_provider;
   struct cras_iodev *prev, *next;
 };
 

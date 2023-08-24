@@ -116,6 +116,7 @@ static int cras_stream_apm_remove_called;
 static int cras_stream_apm_add_called;
 static struct cras_floop_pair* cras_floop_pair_create_return;
 static bool cras_system_get_sr_bt_supported_return = false;
+static bool cras_system_get_noise_cancellation_enabled_ret = false;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
@@ -149,6 +150,7 @@ class IodevTests : public TestBase {
     audio_thread_disconnect_stream_stream = NULL;
     audio_thread_is_dev_open_ret = 0;
     stream_list_has_pinned_stream_ret.clear();
+    cras_system_get_noise_cancellation_enabled_ret = false;
 
     sample_rates_[0] = 44100;
     sample_rates_[1] = 48000;
@@ -2536,6 +2538,76 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
                          1);
 
+    // A mismatch of NC providers should cause restarts.
+    d1_.active_nc_provider = CRAS_NC_PROVIDER_NONE;
+    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_DSP;
+    cras_system_get_noise_cancellation_enabled_ret = true;
+    cras_iodev_list_reset_for_noise_cancellation();
+  }
+
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_fallback_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_fallback_called,
+                         0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
+                         0);
+
+    // A match of NC providers should NOT cause restarts.
+    d1_.active_nc_provider = CRAS_NC_PROVIDER_DSP;
+    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_DSP;
+    cras_system_get_noise_cancellation_enabled_ret = true;
+    cras_iodev_list_reset_for_noise_cancellation();
+  }
+
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_fallback_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_fallback_called,
+                         1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
+                         1);
+
+    // A match of NC providers but with user disabled should cause restarts.
+    d1_.active_nc_provider = CRAS_NC_PROVIDER_DSP;
+    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_DSP;
+    cras_system_get_noise_cancellation_enabled_ret = false;
+    cras_iodev_list_reset_for_noise_cancellation();
+  }
+
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_fallback_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_fallback_called,
+                         0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
+                         0);
+
+    // No restarts if not active and user disabled.
+    d1_.active_nc_provider = CRAS_NC_PROVIDER_NONE;
+    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_DSP;
+    cras_system_get_noise_cancellation_enabled_ret = false;
     cras_iodev_list_reset_for_noise_cancellation();
   }
 
@@ -2547,7 +2619,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
 
   d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_INPUT;
-  node1.nc_provider = CRAS_IONODE_NC_PROVIDER_DSP;
+  node1.nc_providers = CRAS_NC_PROVIDER_DSP;
   d2_.info.idx = 2;
   d2_.direction = CRAS_STREAM_OUTPUT;
   node2.type = CRAS_NODE_TYPE_USB;
@@ -2614,7 +2686,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
 
   // Add 1 input device for checking Noise Cancellation state.
   d3_.direction = CRAS_STREAM_INPUT;
-  node3.nc_provider = CRAS_IONODE_NC_PROVIDER_DSP;
+  node3.nc_providers = CRAS_NC_PROVIDER_DSP;
   EXPECT_EQ(cras_iodev_list_add_input(&d3_), 0);
 
   // Make sure shared state was updated.
@@ -2819,7 +2891,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   // Add input device for checking Noise Cancellation state.
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
-  node2.nc_provider = CRAS_IONODE_NC_PROVIDER_DSP;
+  node2.nc_providers = CRAS_NC_PROVIDER_DSP;
   EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
 
   // Make sure shared state was updated.
@@ -2928,7 +3000,7 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
   node2.idx = 2;
-  node2.nc_provider = CRAS_IONODE_NC_PROVIDER_DSP;
+  node2.nc_providers = CRAS_NC_PROVIDER_DSP;
   EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
 
   // Make sure shared state was updated.
@@ -3332,7 +3404,7 @@ bool cras_system_get_dsp_noise_cancellation_supported() {
 }
 
 bool cras_system_get_noise_cancellation_enabled() {
-  return false;
+  return cras_system_get_noise_cancellation_enabled_ret;
 }
 
 bool cras_system_get_bypass_block_noise_cancellation() {
