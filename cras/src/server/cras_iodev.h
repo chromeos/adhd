@@ -401,6 +401,10 @@ struct cras_iodev {
   enum CRAS_NC_PROVIDER active_nc_provider;
   // Indicates that this device ignores capture mute.
   bool ignore_capture_mute;
+  // The total number of pinned streams targeting this device from the main
+  // thread point of view. Some of these pinned streams may not be attached
+  // actually due to init/attach errors or suspend.
+  int num_pinned_streams;
   struct cras_iodev *prev, *next;
 };
 
@@ -1036,6 +1040,20 @@ bool cras_iodev_is_channel_count_supported(struct cras_iodev* iodev,
 
 // Reset the buffer offset for all streams
 void cras_iodev_stream_offset_reset_all(struct cras_iodev* iodev);
+
+/* Checks if the given iodev has any pinned stream targeting it from the main
+ * thread point of view. Some of the pinned streams may not be attached actually
+ * due to init/attach errors or suspend, but they still count here.
+ * Args:
+ *    iodev - The device to check.
+ * Returns:
+ *    True if the given iodev has at least one pinned stream.
+ *    False otherwise.
+ */
+static inline bool cras_iodev_has_pinned_stream(
+    const struct cras_iodev* iodev) {
+  return iodev->num_pinned_streams;
+}
 
 /* Gets the current iodev's group. The iodevs in a group are enabled/disabled
  * together. The returned read-only array is freed when all iodevs in the group

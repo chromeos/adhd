@@ -104,7 +104,6 @@ static std::vector<struct cras_iodev*> set_mute_dev_vector;
 static std::vector<unsigned int> audio_thread_dev_start_ramp_dev_vector;
 static int audio_thread_dev_start_ramp_called;
 static enum CRAS_IODEV_RAMP_REQUEST audio_thread_dev_start_ramp_req;
-static std::map<int, bool> stream_list_has_pinned_stream_ret;
 static struct cras_rstream* audio_thread_disconnect_stream_stream;
 static int audio_thread_disconnect_stream_called;
 static struct cras_iodev fake_sco_in_dev, fake_sco_out_dev;
@@ -150,7 +149,6 @@ class IodevTests : public TestBase {
     audio_thread_disconnect_stream_called = 0;
     audio_thread_disconnect_stream_stream = NULL;
     audio_thread_is_dev_open_ret = 0;
-    stream_list_has_pinned_stream_ret.clear();
     cras_system_get_noise_cancellation_enabled_ret = false;
 
     sample_rates_[0] = 44100;
@@ -2104,8 +2102,6 @@ TEST_F(IoDevTestSuite, DisableDevWithPinnedStream) {
     stream_add_cb(&rstream1);
   }
 
-  stream_list_has_pinned_stream_ret[d1_.info.idx] = 1;
-
   {  // Selects to d2_ expect no close dev triggered because pinned stream.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 0);
@@ -2160,13 +2156,13 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
     EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d1_);
 
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d1_), true);
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d2_), false);
     EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_APPEND(stream_list_get_ret, &rstream);
     rc = stream_add_cb(&rstream);
   }
-
-  stream_list_has_pinned_stream_ret[d1_.info.idx] = 1;
 
   {  // Select d2, check pinned stream is not added to d2.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 0);
@@ -2182,8 +2178,6 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
                                 cras_make_node_id(d2_.info.idx, 0));
   }
 
-  stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
-
   {  // Remove pinned stream from d1, check d1 is closed after stream removed.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_dev, &d1_);
@@ -2192,6 +2186,8 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 1);
     EVENTUALLY(EXPECT_EQ, update_active_node_iodev_val[0], &d1_);
 
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d1_), false);
+    EVENTUALLY(EXPECT_EQ, cras_iodev_has_pinned_stream(&d2_), false);
     EVENTUALLY(EXPECT_EQ, rc, 0);
 
     DL_DELETE(stream_list_get_ret, &rstream);
@@ -2251,9 +2247,8 @@ TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
   // Device state enters no_stream after stream is disconnected.
   d1_.state = CRAS_IODEV_STATE_NO_STREAM_RUN;
 
-  // Device has no pinned stream now. But this pinned stream remains in
+  // Device has no pinned stream attached now. But this pinned stream remains in
   // stream_list.
-  stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
 
   {  // Suspend and verify that stream is disconnected and d1 is closed.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_disconnect_stream_called, 1);
@@ -2764,9 +2759,6 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     rc = stream_add_cb(&rstream2);
   }
 
-  stream_list_has_pinned_stream_ret[d1_.info.idx] = 1;
-  stream_list_has_pinned_stream_ret[d2_.info.idx] = 0;
-
   {  // Remove pinned stream from d2.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
 
@@ -2779,8 +2771,6 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
     DL_DELETE(stream_list_get_ret, &rstream2);
     rc = stream_rm_cb(&rstream2);
   }
-
-  stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
 
   {  // Remove pinned stream from d1.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 1);
@@ -2941,8 +2931,6 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
     rc = stream_add_cb(&rstream);
   }
 
-  stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
-
   {  // Remove pinned stream from d1, which means usb device is closed.
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_observer_notify_nodes_called, 0);
     EVENTUALLY(EXPECT_EQ, cras_iodev_list_dev_is_enabled(&d1_), 1);
@@ -3082,8 +3070,6 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
     cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
                                 cras_make_node_id(d1_.info.idx, node1_2.idx));
   }
-
-  stream_list_has_pinned_stream_ret[d1_.info.idx] = 0;
 
   {  // Remove pinned stream from d1.
     EVENTUALLY(EXPECT_EQ, rc, 0);
@@ -3635,10 +3621,6 @@ int cras_iodev_start_volume_ramp(struct cras_iodev* odev,
 }
 bool cras_iodev_is_dsp_aec_use_case(const struct cras_ionode* node) {
   return (node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER);
-}
-bool stream_list_has_pinned_stream(struct stream_list* list,
-                                   unsigned int dev_idx) {
-  return stream_list_has_pinned_stream_ret[dev_idx];
 }
 
 struct stream_list* stream_list_create(stream_callback* add_cb,

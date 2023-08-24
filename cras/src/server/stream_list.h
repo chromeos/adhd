@@ -64,10 +64,6 @@ int stream_list_direct_rm(struct stream_list* list, cras_stream_id_t id);
 int stream_list_rm_all_client_streams(struct stream_list* list,
                                       struct cras_rclient* rclient);
 
-// Checks if there is a stream pinned to the given device.
-bool stream_list_has_pinned_stream(struct stream_list* list,
-                                   unsigned int dev_idx);
-
 // Get the number of output streams in the list.
 int stream_list_get_num_output(struct stream_list* list);
 

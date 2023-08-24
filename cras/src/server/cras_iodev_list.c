@@ -1054,6 +1054,8 @@ static int pinned_stream_added(struct cras_rstream* rstream) {
     return -EINVAL;
   }
 
+  dev->num_pinned_streams++;
+
   rc = init_pinned_device(dev, rstream);
   if (rc) {
     syslog(LOG_DEBUG, "init_pinned_device failed, rc %d", rc);
@@ -1249,7 +1251,7 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir) {
   /* No more default streams, close any device that doesn't have a stream
    * pinned to it. */
   DL_FOREACH (enabled_devs[dir], edev) {
-    if (stream_list_has_pinned_stream(stream_list, edev->dev->info.idx)) {
+    if (cras_iodev_has_pinned_stream(edev->dev)) {
       continue;
     }
     if (dir == CRAS_STREAM_INPUT) {
@@ -1285,8 +1287,12 @@ static void pinned_stream_removed(struct cras_rstream* rstream) {
   if (!dev) {
     return;
   }
+
+  // The stream has already been drained at this point.
+  dev->num_pinned_streams--;
+
   if (!cras_iodev_list_dev_is_enabled(dev) &&
-      !stream_list_has_pinned_stream(stream_list, dev->info.idx)) {
+      !cras_iodev_has_pinned_stream(dev)) {
     close_pinned_device(dev);
   }
 }
@@ -1413,7 +1419,7 @@ static int disable_device(struct enabled_dev* edev, bool force) {
   }
   /* If there's a pinned stream exists, simply disconnect all the normal
    * streams off this device and return. */
-  else if (stream_list_has_pinned_stream(stream_list, dev->info.idx)) {
+  else if (cras_iodev_has_pinned_stream(dev)) {
     DL_FOREACH (stream_list_get(stream_list), stream) {
       if (stream->direction != dev->direction) {
         continue;
@@ -1618,7 +1624,7 @@ void cras_iodev_list_resume_dev(unsigned int dev_idx) {
     /* If dev initialize succeeded and this is not a pinned device,
      * disable the silent fallback device because it's just
      * unnecessary. */
-    if (!stream_list_has_pinned_stream(stream_list, dev_idx)) {
+    if (!cras_iodev_has_pinned_stream(dev)) {
       possibly_disable_fallback(dev->direction);
     }
   } else {
