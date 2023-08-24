@@ -1137,6 +1137,32 @@ static inline int cras_iodev_group_has_open_dev(
   return false;
 }
 
+/* Checks if the iodev's group has an iodev with the given index.
+ * Args:
+ *    iodev - Any device in the iodev group to check.
+ *    dev_index - The device index to check.
+ * Returns:
+ *    True if the iodev's group has an iodev with the given index.
+ *    False otherwise.
+ */
+static inline int cras_iodev_group_has_dev(const struct cras_iodev* iodev,
+                                           uint32_t dev_index) {
+  size_t size;
+  struct cras_iodev* const* group = cras_iodev_get_dev_group(iodev, &size);
+
+  if (!group) {
+    return iodev->info.idx == dev_index;
+  }
+
+  for (size_t i = 0; i < size; i++) {
+    if (group[i]->info.idx == dev_index) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /* Gets the hardware timestamp of the last update. If there is no hardware
  * timestamp, returns the current time as the timestamp.
  * Args:
