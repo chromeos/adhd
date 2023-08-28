@@ -18,6 +18,7 @@ extern "C" {
 #endif
 
 #define BT_MEDIA_OBJECT_PATH_SIZE_MAX 128
+#define BT_TELEPHONY_OBJECT_PATH_SIZE_MAX 128
 
 /* Hold information and focus on logic related to communicate with the
  * Bluetooth stack through DBus. Information and logic regarding A2DP and
@@ -28,6 +29,8 @@ struct fl_media {
   unsigned int hci;
   // Object path of the Bluetooth media.
   char obj_path[BT_MEDIA_OBJECT_PATH_SIZE_MAX];
+  // Object path of the Bluetooth telephony.
+  char obj_telephony_path[BT_TELEPHONY_OBJECT_PATH_SIZE_MAX];
   // The DBus connection object used to send message to Floss Media
   // interface.
   DBusConnection* conn;
@@ -36,6 +39,8 @@ struct fl_media {
   // Object representing the connected HFP headset.
   struct cras_hfp* hfp;
   struct bt_io_manager* bt_io_mgr;
+  // The flag to indicate that WebHid is in use
+  bool telephony_use;
 };
 
 /* Sets up new a2dp and hfp and feeds them into active_fm when bluetooth

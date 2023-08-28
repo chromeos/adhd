@@ -133,6 +133,9 @@ int handle_on_bluetooth_device_added(struct fl_media* active_fm,
     bt_io_manager_set_nodes_plugged(active_fm->bt_io_mgr, 1);
     BTLOG(btlog, BT_DEV_ADDED, a2dp_avail, hfp_avail | hfp_cap << 1);
   }
+
+  bt_io_manager_set_telephony_use(active_fm->bt_io_mgr,
+                                  active_fm->telephony_use);
   return 0;
 }
 

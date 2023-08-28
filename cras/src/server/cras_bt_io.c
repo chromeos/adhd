@@ -330,13 +330,13 @@ static int close_dev(struct cras_iodev* iodev) {
     return -EINVAL;
   }
 
-  /* If input iodev is in open state and being closed, switch profile
-   * from HFP to A2DP.
+  /* If telephony is not in use, input iodev is in open state and being closed,
+   * switch profile  from HFP to A2DP.
    * However, don't switch to A2DP if a profile-switch event is being queued,
    * which could be a special case where we want to simply restart an
    * existing HFP connection.
    */
-  if (cras_iodev_is_open(iodev) &&
+  if (!btio->mgr->telephony_use && cras_iodev_is_open(iodev) &&
       btio->mgr->active_btflag == CRAS_BT_FLAG_HFP &&
       iodev->direction == CRAS_STREAM_INPUT &&
       !btio->mgr->is_profile_switching) {
@@ -956,5 +956,35 @@ destroy_bt_io:
   if (!mgr->bt_iodevs[CRAS_STREAM_INPUT] &&
       !mgr->bt_iodevs[CRAS_STREAM_OUTPUT]) {
     mgr->active_btflag = CRAS_BT_FLAG_NONE;
+  }
+}
+
+/* Returns the profile to use. If telephony_use flag is set or audio input
+ * stream is opened HFP should be used else A2DP */
+static enum CRAS_BT_FLAGS profile_should_be_use(struct bt_io_manager* mgr,
+                                                struct cras_iodev* iodev) {
+  if (mgr->telephony_use ||
+      (cras_iodev_is_open(iodev) && iodev->direction == CRAS_STREAM_INPUT)) {
+    return CRAS_BT_FLAG_HFP;
+  } else {
+    return CRAS_BT_FLAG_A2DP;
+  }
+}
+
+void bt_io_manager_set_telephony_use(struct bt_io_manager* mgr,
+                                     bool telephony_use) {
+  struct cras_iodev* iodev = mgr->bt_iodevs[CRAS_STREAM_INPUT];
+  mgr->telephony_use = telephony_use;
+
+  if (mgr->active_btflag == CRAS_BT_FLAG_A2DP &&
+      profile_should_be_use(mgr, iodev) == CRAS_BT_FLAG_HFP &&
+      !mgr->is_profile_switching) {
+    syslog(LOG_DEBUG, "%s: switch to hfp", __func__);
+    switch_to_hfp(mgr);
+  } else if (mgr->active_btflag == CRAS_BT_FLAG_HFP &&
+             profile_should_be_use(mgr, iodev) == CRAS_BT_FLAG_A2DP &&
+             !mgr->is_profile_switching) {
+    syslog(LOG_DEBUG, "%s: possibly switch to a2dp", __func__);
+    possibly_switch_to_a2dp(mgr);
   }
 }

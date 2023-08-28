@@ -28,9 +28,14 @@
 #define BT_OBJECT_BASE "/org/chromium/bluetooth/hci"
 #define BT_OBJECT_MEDIA "/media"
 #define BT_MEDIA_INTERFACE "org.chromium.bluetooth.BluetoothMedia"
+#define BT_OBJECT_TELEPHONY "/telephony"
+#define BT_TELEPHONY_INTERFACE "org.chromium.bluetooth.BluetoothTelephony"
 
 #define BT_MEDIA_CALLBACK_INTERFACE \
   "org.chromium.bluetooth.BluetoothMediaCallback"
+
+#define BT_TELEPHONY_CALLBACK_INTERFACE \
+  "org.chromium.bluetooth.BluetoothTelephonyCallback"
 
 #define CRAS_BT_MEDIA_OBJECT_PATH "/org/chromium/cras/bluetooth/media"
 
@@ -57,6 +62,8 @@ int fl_media_init(int hci) {
   fm->hci = hci;
   snprintf(fm->obj_path, BT_MEDIA_OBJECT_PATH_SIZE_MAX, "%s%d%s",
            BT_OBJECT_BASE, hci, BT_OBJECT_MEDIA);
+  snprintf(fm->obj_telephony_path, BT_TELEPHONY_OBJECT_PATH_SIZE_MAX, "%s%d%s",
+           BT_OBJECT_BASE, hci, BT_OBJECT_TELEPHONY);
   active_fm = fm;
   return 0;
 }
@@ -911,6 +918,64 @@ static int floss_media_register_callback(DBusConnection* conn,
   return 0;
 }
 
+static void floss_on_register_telephony_callback(DBusPendingCall* pending_call,
+                                                 void* data) {
+  DBusMessage* reply;
+
+  reply = dbus_pending_call_steal_reply(pending_call);
+  dbus_pending_call_unref(pending_call);
+
+  if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+    syslog(LOG_WARNING, "RegisterTelephonyCallback returned error: %s",
+           dbus_message_get_error_name(reply));
+    dbus_message_unref(reply);
+    return;
+  }
+
+  dbus_message_unref(reply);
+}
+
+static int floss_media_register_telephony_callback(DBusConnection* conn,
+                                                   const struct fl_media* fm) {
+  const char* bt_media_object_path = CRAS_BT_MEDIA_OBJECT_PATH;
+  DBusMessage* method_call;
+  DBusPendingCall* pending_call;
+
+  method_call = dbus_message_new_method_call(
+      BT_SERVICE_NAME, fm->obj_telephony_path, BT_TELEPHONY_INTERFACE,
+      "RegisterTelephonyCallback");
+  if (!method_call) {
+    return -ENOMEM;
+  }
+
+  if (!dbus_message_append_args(method_call, DBUS_TYPE_OBJECT_PATH,
+                                &bt_media_object_path, DBUS_TYPE_INVALID)) {
+    dbus_message_unref(method_call);
+    return -ENOMEM;
+  }
+
+  pending_call = NULL;
+  if (!dbus_connection_send_with_reply(conn, method_call, &pending_call,
+                                       DBUS_TIMEOUT_USE_DEFAULT)) {
+    dbus_message_unref(method_call);
+    return -ENOMEM;
+  }
+
+  dbus_message_unref(method_call);
+  if (!pending_call) {
+    return -EIO;
+  }
+
+  if (!dbus_pending_call_set_notify(
+          pending_call, floss_on_register_telephony_callback, conn, NULL)) {
+    dbus_pending_call_cancel(pending_call);
+    dbus_pending_call_unref(pending_call);
+    return -ENOMEM;
+  }
+
+  return 0;
+}
+
 static struct cras_fl_a2dp_codec_config* parse_a2dp_codec(
     DBusMessageIter* codec) {
   DBusMessageIter dict;
@@ -1140,6 +1205,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
   DBusError dbus_error;
   dbus_int32_t hfp_cap;
   dbus_bool_t abs_vol_supported;
+  dbus_bool_t telephony_use;
   struct cras_fl_a2dp_codec_config* codecs = NULL;
   uint8_t volume;
 
@@ -1282,6 +1348,28 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
              rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(
+                 message, BT_TELEPHONY_CALLBACK_INTERFACE, "OnTelephonyUse")) {
+    dbus_error_init(&dbus_error);
+    if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_STRING, &addr,
+                               DBUS_TYPE_BOOLEAN, &telephony_use,
+                               DBUS_TYPE_INVALID)) {
+      syslog(LOG_ERR, "Failed to get args from OnTelephonyUse: %s",
+             dbus_error.message);
+      dbus_error_free(&dbus_error);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    if (!active_fm) {
+      syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+    syslog(LOG_DEBUG, "OnTelephonyUse: %d", telephony_use);
+    active_fm->telephony_use = telephony_use;
+    if (active_fm->bt_io_mgr) {
+      bt_io_manager_set_telephony_use(active_fm->bt_io_mgr, telephony_use);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
   }
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
@@ -1354,6 +1442,7 @@ int floss_media_start(DBusConnection* conn, unsigned int hci) {
 
   syslog(LOG_DEBUG, "floss_media_start");
   floss_media_register_callback(conn, active_fm);
+  floss_media_register_telephony_callback(conn, active_fm);
   // TODO: Call config codec to Floss when we support more than just SBC.
   return 0;
 }

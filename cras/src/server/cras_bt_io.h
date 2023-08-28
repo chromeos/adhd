@@ -31,6 +31,8 @@ struct bt_io_manager {
   // profile-switch event, and make sure no btio be opened in between.
   bool is_profile_switching;
   struct bt_io_manager *prev, *next;
+  // The flag to indicate that WebHId is in use
+  bool telephony_use;
 };
 
 // Creates a bt_io_manager.
@@ -82,6 +84,11 @@ void bt_io_manager_set_use_hardware_volume(struct bt_io_manager* mgr,
 void bt_io_manager_update_hardware_volume(struct bt_io_manager* mgr,
                                           int volume,
                                           enum CRAS_BT_FLAGS btflag);
+
+/* When Telephony is in use set |mgr| to use HFP and prevent to switch to
+ * A2DP */
+void bt_io_manager_set_telephony_use(struct bt_io_manager* mgr,
+                                     bool telephony_use);
 
 #ifdef __cplusplus
 }  // extern "C"
