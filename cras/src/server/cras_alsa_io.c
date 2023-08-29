@@ -5,6 +5,7 @@
 #include "cras/src/server/cras_alsa_io.h"
 
 #include <alsa/asoundlib.h>
+#include <alsa/use-case.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -855,6 +856,14 @@ static void set_node_initial_state(struct cras_ionode* node,
 
   if (!is_utf8_string(node->name)) {
     drop_node_name(node);
+  }
+
+  /* Modifiers associate with device names through their suffixes.
+   * Override echo refs accordingly as they match incorrectly on
+   * their prefix.
+   */
+  if (endswith(node->name, SND_USE_CASE_MOD_ECHO_REF)) {
+    node->type = CRAS_NODE_TYPE_ECHO_REFERENCE;
   }
 
   // TODO(b/289173343): Remove when output latency offset is moved out of

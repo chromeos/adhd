@@ -1069,30 +1069,32 @@ error_cleanup:
   return rc;
 }
 
-struct ucm_section* ucm_get_sections(struct cras_use_case_mgr* mgr) {
-  struct ucm_section* sections = NULL;
+static int get_sections_by_type(struct cras_use_case_mgr* mgr,
+                                struct ucm_section** sections,
+                                const char* path_identifier) {
   const char** list;
   int num_devs;
   int i;
   char* identifier;
+  int ret = 0;
 
   /* Find the list of all mixers using the control names defined in
    * the header definintion for this function.  */
-  identifier = snd_use_case_identifier("_devices/%s", uc_verb(mgr));
+  identifier = snd_use_case_identifier("%s/%s", path_identifier, uc_verb(mgr));
   num_devs = snd_use_case_get_list(mgr->mgr, identifier, &list);
   free(identifier);
 
   if (num_devs < 0) {
-    syslog(LOG_ERR, "Failed to get ucm sections: %d", num_devs);
-    return NULL;
+    syslog(LOG_ERR, "Failed to get ucm sections for %s: %d", path_identifier,
+           num_devs);
+    return num_devs;
   }
 
   /* snd_use_case_get_list fills list with pairs of device name and
    * comment, so device names are in even-indexed elements. */
   for (i = 0; i < num_devs; i += 2) {
-    if (ucm_parse_device_section(mgr, list[i], &sections) < 0) {
-      ucm_section_free_list(sections);
-      sections = NULL;
+    ret = ucm_parse_device_section(mgr, list[i], sections);
+    if (ret < 0) {
       break;
     }
   }
@@ -1100,7 +1102,23 @@ struct ucm_section* ucm_get_sections(struct cras_use_case_mgr* mgr) {
   if (num_devs > 0) {
     snd_use_case_free_list(list, num_devs);
   }
+  return ret;
+}
+
+struct ucm_section* ucm_get_sections(struct cras_use_case_mgr* mgr) {
+  struct ucm_section* sections = NULL;
+
+  if (get_sections_by_type(mgr, &sections, "_devices") < 0) {
+    goto ucm_err;
+  }
+  if (get_sections_by_type(mgr, &sections, "_modifiers") < 0) {
+    goto ucm_err;
+  }
+
   return sections;
+ucm_err:
+  ucm_section_free_list(sections);
+  return NULL;
 }
 
 char* ucm_get_hotword_models(struct cras_use_case_mgr* mgr) {
