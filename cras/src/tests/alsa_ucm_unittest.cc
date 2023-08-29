@@ -521,6 +521,27 @@ TEST(AlsaUcm, GetEchoReferenceDev) {
   free((void*)echo_ref_dev);
 }
 
+TEST(AlsaUcm, GetEchoReferenceMod) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  const char* supported_devices[] = {"Mod1", "Comment1", "Echo Reference",
+                                     "Comment5"};
+  ResetStubData();
+
+  fake_list["_supporteddevs/Speakers/HiFi"] = supported_devices;
+  fake_list_size["_supporteddevs/Speakers/HiFi"] = 4;
+
+  const char* echo_ref_mod =
+      ucm_get_echo_reference_dev_name_for_dev(mgr, "Speakers");
+  EXPECT_EQ(0, strcmp(echo_ref_mod, "Echo Reference"));
+  free((void*)echo_ref_mod);
+
+  const char* supported_devices_missing[] = {"Mod1", "Comment1", "Comment5"};
+
+  fake_list["_supporteddevs/Speakers/HiFi"] = supported_devices_missing;
+  fake_list_size["_supporteddevs/Speakers/HiFi"] = 3;
+  EXPECT_EQ(NULL, ucm_get_echo_reference_dev_name_for_dev(mgr, "Speakers"));
+}
+
 TEST(AlsaUcm, GetHotwordModels) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   const char* models;

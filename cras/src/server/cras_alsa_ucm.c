@@ -94,6 +94,7 @@ static const char main_volume_names[] = "MainVolumeNames";
  */
 static const char enabled_devices_list[] = "_devstatus";
 static const char enabled_modifiers_list[] = "_modstatus";
+static const char supported_devs_list[] = "_supporteddevs";
 
 /*
  * Use case verbs corresponding to CRAS_USE_CASE. CRAS-specific use cases not
@@ -845,9 +846,56 @@ int ucm_get_alsa_dev_idx_for_dev(struct cras_use_case_mgr* mgr,
   return dev_idx;
 }
 
-inline const char* ucm_get_echo_reference_dev_name_for_dev(
+// Get FIRST prefix match
+//
+// caller must free result
+char* get_list_item_by_prefix(struct cras_use_case_mgr* mgr,
+                              const char* list,
+                              const char* prefix) {
+  const char** results;
+  int n = snd_use_case_get_list(mgr->mgr, list, &results);
+
+  if (n < 0) {
+    return NULL;
+  }
+
+  char* result = NULL;
+  for (int i = 0; i < n; i++) {
+    if (!strncmp(results[i], prefix, strlen(prefix))) {
+      result = strdup(results[i]);
+      break;
+    }
+  }
+
+  snd_use_case_free_list(results, n);
+
+  return result;
+}
+
+// Can also return modifiers
+static inline char* get_supported_device_by_prefix(
+    struct cras_use_case_mgr* mgr,
+    const char* dev,
+    const char* prefix) {
+  char list[max_section_name_len];
+  snprintf(list, max_section_name_len, "%s/%s/%s", supported_devs_list, dev,
+           uc_verb(mgr));
+
+  return get_list_item_by_prefix(mgr, list, prefix);
+}
+
+const char* ucm_get_echo_reference_dev_name_for_dev(
     struct cras_use_case_mgr* mgr,
     const char* dev) {
+  // just inline and return this once below todo is resolved
+  char* name =
+      get_supported_device_by_prefix(mgr, dev, SND_USE_CASE_MOD_ECHO_REF);
+
+  if (name) {
+    return name;
+  }
+
+  // TODO(b/298058909) remove me once all UCMs are updated
   return ucm_get_value_for_dev(mgr, echo_reference_dev_name_var, dev);
 }
 
