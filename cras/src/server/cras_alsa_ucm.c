@@ -994,11 +994,11 @@ static int ucm_parse_device_section(struct cras_use_case_mgr* mgr,
   }
 
   if (dir == CRAS_STREAM_UNDEFINED) {
-    syslog(LOG_ERR,
-           "UCM configuration for device '%s' missing"
+    syslog(LOG_INFO,
+           "UCM configuration for device '%s' does not have"
            " PlaybackPCM or CapturePCM definition.",
            dev_name);
-    rc = -EINVAL;
+    rc = 0;
     goto error_cleanup;
   }
 
