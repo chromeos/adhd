@@ -75,7 +75,6 @@ extern "C" fn sigint_handler(_: c_int) {
 }
 
 fn add_sigint_handler() -> Result<()> {
-    const SIGINT: c_int = 2;
     let result = unsafe { register_signal_handler(Signal::SIGINT, sigint_handler) };
     result.map_err(Error::SysUtil)
 }
