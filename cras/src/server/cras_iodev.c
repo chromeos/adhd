@@ -5,6 +5,8 @@
 
 #include "cras/src/server/cras_iodev.h"
 
+#include <errno.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -1267,6 +1269,7 @@ int cras_iodev_put_output_buffer(struct cras_iodev* iodev,
   // Nullity check for frames
   if (!frames) {
     syslog(LOG_ERR, "%s: %s: get NULL frames", __func__, iodev->info.name);
+    return -EIO;
   }
 
   // Calculate whether the final output was non-empty, if requested.

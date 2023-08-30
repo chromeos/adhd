@@ -1046,6 +1046,32 @@ TEST(IoDevPutOutputBuffer, Scale32Bit) {
   EXPECT_EQ(SND_PCM_FORMAT_S32_LE, cras_scale_buffer_fmt);
 }
 
+TEST(IoDevPutOutputBuffer, NullFrames) {
+  struct cras_audio_format fmt;
+  struct cras_iodev iodev;
+  struct cras_ionode ionode;
+  uint8_t* frames = NULL;
+  int rc;
+
+  ResetStubData();
+  memset(&iodev, 0, sizeof(iodev));
+  memset(&ionode, 0, sizeof(ionode));
+
+  fmt.format = SND_PCM_FORMAT_S16_LE;
+  fmt.frame_rate = 48000;
+  fmt.num_channels = 2;
+  iodev.format = &fmt;
+  iodev.put_buffer = put_buffer;
+  iodev.nodes = &ionode;
+  iodev.active_node = &ionode;
+  iodev.active_node->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  iodev.active_node->dev = &iodev;
+  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+
+  rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
+  EXPECT_EQ(-EIO, rc);
+}
+
 // frames queued/avail tests
 
 static unsigned fr_queued = 0;
