@@ -58,6 +58,17 @@ int fl_media_init(int hci) {
   return 0;
 }
 
+static bool dbus_uint8_is_zero(int dbus_type, void* dbus_value_ptr) {
+  if (dbus_type != DBUS_TYPE_BYTE) {
+    syslog(LOG_ERR,
+           "Mismatched return type, "
+           "expected type id: %d, received type id: %d",
+           DBUS_TYPE_BYTE, dbus_type);
+    return false;
+  }
+  return *(uint8_t*)dbus_value_ptr == 0;
+}
+
 static bool dbus_uint8_is_nonzero(int dbus_type, void* dbus_value_ptr) {
   if (dbus_type != DBUS_TYPE_BYTE) {
     syslog(LOG_ERR,
@@ -255,6 +266,34 @@ int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
   }
 
   dbus_message_unref(reply);
+
+  DBusMessage* get_hfp_audio_final_codecs;
+  int rc = create_dbus_method_call(&get_hfp_audio_final_codecs,
+                                   /* dest= */ BT_SERVICE_NAME,
+                                   /* path= */ fm->obj_path,
+                                   /* iface= */ BT_MEDIA_INTERFACE,
+                                   /* method_name= */ "GetHfpAudioFinalCodecs",
+                                   /* num_args= */ 1,
+                                   /* arg1= */ DBUS_TYPE_STRING, &addr);
+  if (rc < 0) {
+    return rc;
+  }
+
+  uint8_t final_codecs = 0;
+  rc = retry_until_predicate_satisfied(
+      /* conn=*/fm->conn,
+      /* num_retries= */ GET_HFP_AUDIO_STARTED_RETRIES,
+      /* sleep_time_us= */ GET_HFP_AUDIO_STARTED_SLEEP_US,
+      /* method_call= */ get_hfp_audio_final_codecs,
+      /* dbus_ret_type= */ DBUS_TYPE_BYTE,
+      /* dbus_ret_value_ptr= */ &final_codecs,
+      /* predicate= */ dbus_uint8_is_zero);
+
+  dbus_message_unref(get_hfp_audio_final_codecs);
+
+  if (rc < 0) {
+    return rc;
+  }
 
   return 0;
 }

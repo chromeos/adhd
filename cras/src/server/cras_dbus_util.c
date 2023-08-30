@@ -151,7 +151,7 @@ int retry_until_predicate_satisfied(struct DBusConnection* conn,
                                     bool (*predicate)(int, void*)) {
   const char* method_name = dbus_message_get_member(method_call);
 
-  syslog(LOG_DEBUG, "%s: polling until started", method_name);
+  syslog(LOG_DEBUG, "%s: polling", method_name);
 
   for (int retry = 0; retry < num_retries; ++retry) {
     int rc = call_method_and_parse_reply(
