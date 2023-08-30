@@ -247,7 +247,7 @@ int handle_on_hfp_audio_disconnected(struct fl_media* active_fm,
     return -EINVAL;
   }
   BTLOG(btlog, BT_HFP_AUDIO_DISCONNECTED, 0, 0);
-  cras_floss_hfp_possibly_reconnect(active_fm->hfp);
+  cras_floss_hfp_handle_audio_disconnection(active_fm->hfp);
   return 0;
 }
 

@@ -64,6 +64,8 @@ struct cras_hfp {
   // If an output device started. This is used to determine if
   // a sco start or stop is required.
   int odev_started;
+  // If we issued |StopScoCall| and expect an HFP audio disconnection callback
+  bool pending_audio_disconnection;
   int hfp_caps;
   enum HFP_CODEC active_codec;
   bool sco_pcm_used;
@@ -296,10 +298,20 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
   }
   hfp->fd = -1;
 
+  hfp->pending_audio_disconnection = true;
+
   return floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
 }
 
-void cras_floss_hfp_possibly_reconnect(struct cras_hfp* hfp) {
+// Attempt to reconnect to the headset, if and only if:
+// (1) there is no pending disconnection event ever requested by CRAS, and
+// (2) CRAS is still streaming to HFP
+void cras_floss_hfp_handle_audio_disconnection(struct cras_hfp* hfp) {
+  if (hfp->pending_audio_disconnection) {
+    hfp->pending_audio_disconnection = false;
+    return;
+  }
+
   if (hfp->idev_started || hfp->odev_started) {
     syslog(LOG_WARNING,
            "HFP audio was disconnected by the headset, attempt to reconnect.");

@@ -69,7 +69,7 @@ void cras_floss_hfp_set_volume(struct cras_hfp* hfp, unsigned int volume);
 
 /* Check if HFP audio was disconnected by the headset.
  * If true, issue a switch-profile event as a means to reconnect. */
-void cras_floss_hfp_possibly_reconnect(struct cras_hfp* hfp);
+void cras_floss_hfp_handle_audio_disconnection(struct cras_hfp* hfp);
 
 // Fills the format property lists.
 int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
