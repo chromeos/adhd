@@ -1051,7 +1051,7 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   struct cras_volume_curve* curve;
   long max_volume, min_volume;
   int32_t number_of_volume_steps;
-  unsigned int disable_software_volume = 0;
+  int disable_software_volume = -ENOENT;
 
   syslog(LOG_DEBUG, "New output node for '%s'", name);
   if (aio == NULL) {
@@ -1091,7 +1091,7 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
     long long volume_range_db = max_volume - min_volume;
     /* if we specified to disable sw volume or your headset volume
      * range is with a reasonable range, create volume curve. */
-    if (disable_software_volume ||
+    if (disable_software_volume == 1 ||
         (volume_range_db >= db_to_alsa_db(VOLUME_RANGE_DB_MIN) &&
          volume_range_db <= db_to_alsa_db(VOLUME_RANGE_DB_MAX))) {
       curve = cras_volume_curve_create_simple_step(0, volume_range_db);
@@ -1105,11 +1105,18 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   strncpy(output->base.name, name, sizeof(output->base.name) - 1);
   strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
   set_node_initial_state(&output->base, aio->common.card_type);
-  if (disable_software_volume) {
+  if (disable_software_volume == 1) {
     syslog(LOG_DEBUG, "Disable software volume for %s from ucm.",
            output->base.name);
-  } else {
+    output->base.software_volume_needed = 0;
+  } else if (disable_software_volume == 0) {
+    output->base.software_volume_needed = 1;
+  } else if (disable_software_volume == -ENOENT) {
     set_output_node_software_volume_needed(output, aio);
+  } else {
+    syslog(LOG_ERR,
+           "The value for DisableSoftwareVolume in ucm for %s is incorrect.",
+           output->base.name);
   }
   cras_iodev_add_node(&aio->common.base, &output->base);
 

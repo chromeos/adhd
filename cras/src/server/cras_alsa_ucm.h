@@ -323,9 +323,12 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
  * Returns:
- *    0 on success, -ENOENT on failure.
+ *    0 on enable software volume.
+ *    1 on disable software volume.
+ *    -ENOENT if not value not set.
+ *    -EINVAL on invalid value.
  */
-unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr);
+int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr);
 
 /* Gets the value for default node gain.
  * Args:

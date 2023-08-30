@@ -286,10 +286,10 @@ static struct cras_iodev* cras_alsa_usb_iodev_create_with_default_parameters(
       .usb_serial_number = "1234",
       .usb_desc_checksum = 0};
 
-  return cras_alsa_usb_iodev_create(
-      &usb_card_info.base, test_card_name, 0, test_pcm_name, test_dev_name,
-      dev_id, is_first, mixer, config, ucm, fake_hctl, direction,
-      CRAS_USE_CASE_HIFI, NULL);
+  return cras_alsa_usb_iodev_create(&usb_card_info.base, test_card_name, 0,
+                                    test_pcm_name, test_dev_name, dev_id,
+                                    is_first, mixer, config, ucm, fake_hctl,
+                                    direction, CRAS_USE_CASE_HIFI, NULL);
 }
 
 TEST(AlsaIoInit, DefaultNodeUSBCard) {
@@ -1037,7 +1037,7 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
-unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
+int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
   return 0;
 }
 

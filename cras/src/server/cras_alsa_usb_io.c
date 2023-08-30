@@ -760,7 +760,7 @@ static struct alsa_usb_output_node* usb_new_output(
   struct cras_volume_curve* curve;
   long max_volume, min_volume;
   int32_t number_of_volume_steps;
-  unsigned int disable_software_volume = 0;
+  unsigned int disable_software_volume = -ENOENT;
 
   syslog(LOG_DEBUG, "card type: %s, New output node for '%s'",
          cras_card_type_to_string(aio->common.card_type), name);
@@ -802,7 +802,7 @@ static struct alsa_usb_output_node* usb_new_output(
     long long volume_range_db = max_volume - min_volume;
     /* if we specified to disable sw volume or your headset volume
      * range is with a reasonable range, create volume curve. */
-    if (disable_software_volume ||
+    if (disable_software_volume == 1 ||
         (volume_range_db >= db_to_alsa_db(VOLUME_RANGE_DB_MIN) &&
          volume_range_db <= db_to_alsa_db(VOLUME_RANGE_DB_MAX))) {
       curve = cras_volume_curve_create_simple_step(0, volume_range_db);
@@ -816,11 +816,22 @@ static struct alsa_usb_output_node* usb_new_output(
   strncpy(output->base.name, name, sizeof(output->base.name) - 1);
   strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
   usb_set_node_initial_state(&output->base);
-  if (disable_software_volume) {
-    syslog(LOG_DEBUG, "card type: %s, Disable software volume for %s from ucm.",
+  if (disable_software_volume == 1) {
+    syslog(LOG_ERR, "card type: %s, Disable software volume for %s from ucm.",
            cras_card_type_to_string(aio->common.card_type), output->base.name);
-  } else {
+    output->base.software_volume_needed = 0;
+  } else if (disable_software_volume == 0) {
+    syslog(LOG_ERR, "card type: %s, Enable software volume for %s from ucm.",
+           cras_card_type_to_string(aio->common.card_type), output->base.name);
+    output->base.software_volume_needed = 1;
+  } else if (disable_software_volume == -ENOENT) {
+    syslog(LOG_ERR, "card type: %s, software volume not set from ucm.",
+           cras_card_type_to_string(aio->common.card_type));
     usb_set_output_node_software_volume_needed(output, aio);
+  } else {
+    syslog(LOG_ERR,
+           "The value for DisableSoftwareVolume in ucm for %s is incorrect.",
+           output->base.name);
   }
   cras_iodev_add_node(&aio->common.base, &output->base);
 

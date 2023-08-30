@@ -3146,7 +3146,7 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
-unsigned int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
+int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
   return 0;
 }
 
