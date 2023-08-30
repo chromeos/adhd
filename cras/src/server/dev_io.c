@@ -873,6 +873,10 @@ int write_output_samples(struct open_dev** odevs,
        * won't fill the request. */
       fr_to_req = 0;  // break out after committing samples
     }
+    if (written > (snd_pcm_sframes_t)frames) {
+      syslog(LOG_WARNING, "%s: %s: wrote %ld > buffer size %u", __func__,
+             odev->info.name, written, frames);
+    }
 
     // This interval is lazily initialized once per device.
     // Note that newly opened devices are considered non-empty
