@@ -15,11 +15,8 @@ overflow-checks = true
 # Run inside the chroot: emerge-amd64-generic -j --onlydeps cras-client
 [patch.crates-io] # ignored by ebuild
 audio_streams = { path = "../../../../../chroot/build/amd64-generic/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
-base_event_token_derive = { path = "../../../../../chroot/build/amd64-generic/usr/lib/cros_rust_registry/registry/base_event_token_derive-0.1.0/" } # ignored by ebuild
-crosvm-base = { path = "../../../../../chroot/build/amd64-generic/usr/lib/cros_rust_registry/registry/crosvm-base-0.1.0/" } # ignored by ebuild
 data_model = { path = "../../../../../chroot/build/amd64-generic/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
 minijail = { path = "../../../../platform/minijail/rust/minijail" } # ignored by ebuild
-sync = { path = "../../../../../chroot/build/amd64-generic/usr/lib/cros_rust_registry/registry/sync-0.1.149/" } # ignored by ebuild
 cras = { path = "../src/server/rust" }  # ignored by ebuild
 cras_dlc = { path = "../src/server/rust/cras_dlc" } # ignored by ebuild
 audio_processor = {path = "../../audio_processor" } # ignored by ebuild
