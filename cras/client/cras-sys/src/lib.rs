@@ -27,7 +27,7 @@ use serde::Serializer;
 #[allow(non_snake_case)]
 #[allow(clippy::cognitive_complexity)]
 pub mod gen {
-    include!("gen.rs");
+    include!(env!("GEN_FILE"));
 }
 use gen::{
     _snd_pcm_format, audio_dev_debug_info, audio_message, audio_stream_debug_info,
