@@ -36,6 +36,9 @@
 #include "third_party/superfasthash/sfh.h"
 #include "third_party/utlist/utlist.h"
 
+// The sleep time before retrying to reconnect to HFP when it is busy.
+#define HFP_BUSY_CONN_SLEEP_TIME_US 50000
+
 /*
  * Bluetooth Core 5.0 spec, vol 4, part B, section 2 describes
  * the recommended HCI packet size in one USB transfer for CVSD
@@ -758,6 +761,16 @@ int cras_bt_device_sco_connect(struct cras_bt_device* device,
   }
 
   err = connect(sk, (struct sockaddr*)&addr, sizeof(addr));
+
+  // This could potentially increase iodev open time.
+  if (err && errno == EBUSY) {
+    usleep(HFP_BUSY_CONN_SLEEP_TIME_US);
+    err = connect(sk, (struct sockaddr*)&addr, sizeof(addr));
+    if (err && errno != EINPROGRESS) {
+      syslog(LOG_WARNING, "%s: device is busy", __func__);
+    }
+  }
+
   if (err && errno != EINPROGRESS) {
     syslog(LOG_WARNING, "Failed to connect: %s (%d)", cras_strerror(errno),
            errno);
