@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 
 use std::path::Path;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 
 use anyhow::anyhow;
 use anyhow::Context;
@@ -35,6 +37,7 @@ pub struct CrasProcessorConfig {
 }
 
 pub struct CrasProcessor {
+    id: usize,
     check_shape: CheckShape<f32>,
     pipeline: Vec<Box<dyn AudioProcessor<I = f32, O = f32>>>,
     _config: CrasProcessorConfig,
@@ -56,8 +59,11 @@ impl AudioProcessor for CrasProcessor {
     }
 }
 
+static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
 impl CrasProcessor {
     fn new(config: CrasProcessorConfig) -> anyhow::Result<Self> {
+        let id = GLOBAL_ID_COUNTER.fetch_add(1, Ordering::AcqRel);
         let check_shape = CheckShape::new(config.channels, config.block_size);
         let pipeline: Vec<Box<dyn AudioProcessor<I = f32, O = f32>>> = match config.effect {
             CrasProcessorEffect::NoEffects => vec![],
@@ -129,12 +135,19 @@ impl CrasProcessor {
             }
         };
 
-        log::info!("CrasProcessor created with: {:?}", config);
+        log::info!("CrasProcessor #{id} created with: {config:?}");
         Ok(CrasProcessor {
+            id,
             check_shape,
             pipeline,
             _config: config,
         })
+    }
+}
+
+impl Drop for CrasProcessor {
+    fn drop(&mut self) {
+        log::info!("CrasProcessor #{} dropped", self.id);
     }
 }
 
