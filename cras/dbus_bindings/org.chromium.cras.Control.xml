@@ -458,6 +458,14 @@
       <arg name="num_non_chrome_output_streams" type="i" direction="out"></arg>
     </method>
 
+    <method name="SetForceBtHfpOffloadOnSupport">
+      <tp:docstring>
+        Sets true to always adopt BT HFP offload path while supported.
+        Sets false to defer to the default setting of path selection.
+      </tp:docstring>
+      <arg name="enabled" type="b" direction="in"/>
+    </method>
+
     <signal name="OutputVolumeChanged">
       <tp:docstring>
         Indicates that the output volume level has changed.

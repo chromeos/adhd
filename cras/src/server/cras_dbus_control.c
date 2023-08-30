@@ -1371,6 +1371,28 @@ static inline DBusHandlerResult handle_get_num_stream_ignore_ui_gains(
                           cras_system_get_num_stream_ignore_ui_gains());
 }
 
+static DBusHandlerResult handle_set_force_bt_hfp_offload_on_support(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  int rc;
+  dbus_bool_t enabled;
+
+  rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+  if (rc) {
+    return rc;
+  }
+
+  // The system state "bt_hfp_offload_finch_applied" has the inverse meaning as
+  // the enabled flag set via force_bt_hfp_offload_on_support(enabled), which is
+  // more straightforward for clients to use.
+  cras_system_set_bt_hfp_offload_finch_applied(!enabled);
+
+  send_empty_reply(conn, message);
+
+  return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 // Handle incoming messages.
 static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                                 DBusMessage* message,
@@ -1559,6 +1581,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetNumStreamIgnoreUiGains")) {
     return handle_get_num_stream_ignore_ui_gains(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "SetForceBtHfpOffloadOnSupport")) {
+    return handle_set_force_bt_hfp_offload_on_support(conn, message, arg);
   }
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

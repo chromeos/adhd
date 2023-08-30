@@ -207,6 +207,9 @@ void cras_system_set_force_sr_bt_enabled(bool enabled) {
 bool cras_system_get_force_sr_bt_enabled() {
   return false;
 }
+void cras_system_set_bt_hfp_offload_finch_applied(bool applied) {
+  return;
+}
 int cras_bt_player_update_playback_status(DBusConnection* conn,
                                           const char* status) {
   return 0;

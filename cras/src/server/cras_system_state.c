@@ -450,6 +450,10 @@ bool cras_system_get_bt_wbs_enabled() {
   return !!state.exp_state->bt_wbs_enabled;
 }
 
+void cras_system_set_bt_hfp_offload_finch_applied(bool applied) {
+  state.exp_state->bt_hfp_offload_finch_applied = applied;
+}
+
 bool cras_system_get_bt_hfp_offload_finch_applied() {
   return !!state.exp_state->bt_hfp_offload_finch_applied;
 }
