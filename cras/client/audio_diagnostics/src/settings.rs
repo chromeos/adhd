@@ -111,7 +111,7 @@ impl<'de> Deserialize<'de> for AudioNode {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 struct DeviceState {
-    activate_by_user: bool,
+    activate_by_user: Option<bool>,
     active: bool,
 }
 
@@ -178,7 +178,6 @@ mod tests {
       "active": true
     },
     "3787040 : 1": {
-      "activate_by_user": false,
       "active": true
     }
   },
@@ -226,7 +225,23 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             &DeviceState {
-                activate_by_user: false,
+                activate_by_user: Some(false),
+                active: true
+            }
+        );
+        assert_eq!(
+            *audio
+                .device_state
+                .as_ref()
+                .unwrap()
+                .get(&AudioNode {
+                    stable_id: 3787040,
+                    is_input: true,
+                })
+                .as_ref()
+                .unwrap(),
+            &DeviceState {
+                activate_by_user: None,
                 active: true
             }
         );
