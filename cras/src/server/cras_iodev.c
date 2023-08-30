@@ -1257,6 +1257,11 @@ int cras_iodev_put_output_buffer(struct cras_iodev* iodev,
   int rc;
   struct cras_loopback* loopback;
 
+  // Nullity check for frames
+  if (!frames) {
+    syslog(LOG_ERR, "%s: %s: get NULL frames", __func__, iodev->info.name);
+  }
+
   // Calculate whether the final output was non-empty, if requested.
   if (is_non_empty) {
     const size_t bytes = nframes * cras_get_format_bytes(fmt);
