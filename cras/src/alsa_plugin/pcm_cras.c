@@ -173,6 +173,9 @@ static int pcm_cras_process_cb(struct cras_client* client,
   }
 
   areas = snd_pcm_ioplug_mmap_areas(io);
+  if (!areas) {
+    fprintf(stderr, "%s: %s: get NULL mmap area", __func__, io->name);
+  }
 
   copied_frames = 0;
   while (copied_frames < nframes) {
