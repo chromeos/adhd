@@ -74,6 +74,7 @@ const char kStreamCreateError[] = "Cras.StreamCreateError";
 const char kStreamFlags[] = "Cras.StreamFlags";
 const char kStreamEffects[] = "Cras.StreamEffects";
 const char kStreamRuntime[] = "Cras.StreamRuntime";
+const char kStreamRuntimeWithMinimum10s[] = "Cras.StreamRuntimeWithMinimum.10s";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kStreamChannelCount[] = "Cras.StreamChannelCount";
@@ -1588,6 +1589,15 @@ static void metrics_stream_runtime(
       data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
       metrics_client_type_str(data.client_type),
       metrics_stream_type_str(data.stream_type));
+
+  if ((int)data.runtime.tv_sec >= 10) {
+    log_histogram_each_level(
+        4, (int)data.runtime.tv_sec, 10, 10000, 20,
+        kStreamRuntimeWithMinimum10s,
+        data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
+        metrics_client_type_str(data.client_type),
+        metrics_stream_type_str(data.stream_type));
+  }
 }
 
 static void metrics_busyloop(struct cras_server_metrics_timespec_data data) {
