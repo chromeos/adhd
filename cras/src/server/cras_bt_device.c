@@ -766,9 +766,14 @@ int cras_bt_device_sco_connect(struct cras_bt_device* device,
   if (err && errno == EBUSY) {
     usleep(HFP_BUSY_CONN_SLEEP_TIME_US);
     err = connect(sk, (struct sockaddr*)&addr, sizeof(addr));
-    if (err && errno != EINPROGRESS) {
+
+    bool success = err == 0 || errno == EINPROGRESS;
+
+    if (!success) {
       syslog(LOG_WARNING, "%s: device is busy", __func__);
     }
+
+    cras_server_metrics_hfp_sco_reconnection_on_busy(success);
   }
 
   if (err && errno != EINPROGRESS) {

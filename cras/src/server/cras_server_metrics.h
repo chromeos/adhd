@@ -94,6 +94,11 @@ enum CRAS_METRICS_DLC_STATUS {
 int cras_server_metrics_hfp_sco_connection_error(
     enum CRAS_METRICS_BT_SCO_ERROR_TYPE type);
 
+/* Logs the outcome of the reconnection attempt to HFP SCO after the initial
+ * failure due to the device being busy.
+ */
+int cras_server_metrics_hfp_sco_reconnection_on_busy(bool success);
+
 /* Logs an enum representing which spec does HFP headset supports battery
  * indicator. Apple, HFP, none or both. */
 int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support);

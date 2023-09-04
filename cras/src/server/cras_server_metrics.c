@@ -73,6 +73,7 @@ const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kStreamChannelCount[] = "Cras.StreamChannelCount";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
 const char kHfpScoConnectionError[] = "Cras.HfpScoConnectionError";
+const char kHfpScoReconnectionOnBusy[] = "Cras.HfpScoReconnectionOnBusy";
 const char kHfpBatteryIndicatorSupported[] =
     "Cras.HfpBatteryIndicatorSupported";
 const char kHfpBatteryReport[] = "Cras.HfpBatteryReport";
@@ -112,6 +113,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   BT_BATTERY_INDICATOR_SUPPORTED,
   BT_BATTERY_REPORT,
   BT_SCO_CONNECTION_ERROR,
+  BT_SCO_RECONNECTION_ON_BUSY,
   BT_WIDEBAND_PACKET_LOSS,
   BT_WIDEBAND_SUPPORTED,
   BT_WIDEBAND_SELECTED_CODEC,
@@ -574,6 +576,23 @@ int cras_server_metrics_hfp_sco_connection_error(
     syslog(LOG_WARNING,
            "Failed to send metrics message: "
            "BT_SCO_CONNECTION_ERROR");
+    return err;
+  }
+  return 0;
+}
+
+int cras_server_metrics_hfp_sco_reconnection_on_busy(bool success) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  int err;
+
+  data.value = success;
+  init_server_metrics_msg(&msg, BT_SCO_RECONNECTION_ON_BUSY, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: BT_SCO_RECONNECTION_ON_BUSY");
     return err;
   }
   return 0;
@@ -1643,6 +1662,10 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case BT_SCO_CONNECTION_ERROR:
       cras_metrics_log_sparse_histogram(kHfpScoConnectionError,
+                                        metrics_msg->data.value);
+      break;
+    case BT_SCO_RECONNECTION_ON_BUSY:
+      cras_metrics_log_sparse_histogram(kHfpScoReconnectionOnBusy,
                                         metrics_msg->data.value);
       break;
     case BT_BATTERY_INDICATOR_SUPPORTED:
