@@ -52,18 +52,6 @@ TEST(StreamApm, StreamApmCreate) {
         {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
 
     stream = cras_stream_apm_create(0);
-    EXPECT_NE(nullptr, stream) << "Should create APM with no effects when "
-                                  "PRIVATE_DONT_CARE_APM_EFFECTS is not set";
-    EXPECT_EQ(0, cras_stream_apm_get_effects(stream));
-
-    cras_stream_apm_destroy(stream);
-  }
-
-  {
-    ScopedFeaturesOverride override(
-        {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
-
-    stream = cras_stream_apm_create(PRIVATE_DONT_CARE_APM_EFFECTS);
     EXPECT_EQ(nullptr, stream)
         << "Should not create APM when empty APM is not allowed";
 
@@ -78,11 +66,10 @@ TEST(StreamApm, StreamApmCreate) {
     ScopedFeaturesOverride override({CrOSLateBootAudioEmptyAPMForCrasProcessor},
                                     {});
 
-    stream = cras_stream_apm_create(PRIVATE_DONT_CARE_APM_EFFECTS);
+    stream = cras_stream_apm_create(0);
     EXPECT_NE(nullptr, stream)
         << "Should create APM with no effects when empty APM is allowed";
-    EXPECT_EQ(PRIVATE_DONT_CARE_APM_EFFECTS,
-              cras_stream_apm_get_effects(stream));
+    EXPECT_EQ(0, cras_stream_apm_get_effects(stream));
 
     cras_stream_apm_destroy(stream);
   }

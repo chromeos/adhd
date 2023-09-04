@@ -233,10 +233,6 @@ enum CRAS_STREAM_EFFECT {
   // VOICE_ISOLATION.
   CLIENT_CONTROLLED_VOICE_ISOLATION = (1 << 8),
   VOICE_ISOLATION = (1 << 9),
-  // Indicates that CRAS is free to decide whether to actually apply the
-  // APM_* effects on the stream.
-  // Private field internal to CRAS. Should not be set by clients.
-  PRIVATE_DONT_CARE_APM_EFFECTS = (1 << 10),
 };
 
 //

@@ -504,11 +504,6 @@ static inline bool apm_needed_for_effects(uint64_t effects,
     // Required for webrtc-apm.
     return true;
   }
-  if (!(effects & PRIVATE_DONT_CARE_APM_EFFECTS)) {
-    // This stream expects CRAS to serve the exact APM effects.
-    // Create an APM so it could be checked with dsp_effect_check_conflict.
-    return true;
-  }
   if (cras_processor_needed &&
       cras_feature_enabled(CrOSLateBootAudioEmptyAPMForCrasProcessor)) {
     // Required for hosting cras_processor.
