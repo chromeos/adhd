@@ -1844,7 +1844,6 @@ cc_test(
         "//cras/src/common:cras_string.c",
         "//cras/src/server:cras_speak_on_mute_detector_stub.c",
         "//cras/src/server:cras_stream_apm.c",
-        "//cras/src/server:cras_system_state.c",
     ],
     copts = ["-ffunction-sections"],
     target_compatible_with = require_config("//:apm_build"),

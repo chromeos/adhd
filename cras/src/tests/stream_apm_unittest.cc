@@ -13,6 +13,7 @@
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/float_buffer.h"
 #include "cras/src/tests/scoped_features_override.hh"
 #include "cras_types.h"
@@ -45,8 +46,40 @@ static bool cras_iodev_is_dsp_aec_use_case_value;
 static int cras_iodev_get_rtc_proc_enabled_called;
 static int cras_iodev_set_rtc_proc_enabled_called;
 static std::unordered_map<cras_iodev*, bool> iodev_rtc_proc_enabled_maps[3];
+static int cras_system_aec_on_dsp_supported_ret = 0;
 
-TEST(StreamApm, StreamApmCreate) {
+TEST(StreamApm, StreamApmCreateNoDspAEC) {
+  cras_system_aec_on_dsp_supported_ret = 0;
+  {
+    ScopedFeaturesOverride override(
+        {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
+
+    stream = cras_stream_apm_create(0);
+    EXPECT_EQ(nullptr, stream)
+        << "Should not create APM when empty APM is not allowed";
+
+    stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
+    EXPECT_NE(nullptr, stream);
+    EXPECT_EQ(APM_ECHO_CANCELLATION, cras_stream_apm_get_effects(stream));
+
+    cras_stream_apm_destroy(stream);
+  }
+
+  {
+    ScopedFeaturesOverride override({CrOSLateBootAudioEmptyAPMForCrasProcessor},
+                                    {});
+
+    stream = cras_stream_apm_create(0);
+    EXPECT_NE(nullptr, stream)
+        << "Should create APM with no effects when empty APM is allowed";
+    EXPECT_EQ(0, cras_stream_apm_get_effects(stream));
+
+    cras_stream_apm_destroy(stream);
+  }
+}
+
+TEST(StreamApm, StreamApmCreateDspAEC) {
+  cras_system_aec_on_dsp_supported_ret = 1;
   {
     ScopedFeaturesOverride override(
         {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
@@ -883,6 +916,10 @@ bool cras_iodev_support_rtc_proc_on_dsp(const struct cras_iodev* iodev,
 enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
                                                    uint64_t effects) {
   return NoEffects;
+}
+
+int cras_system_aec_on_dsp_supported() {
+  return cras_system_aec_on_dsp_supported_ret;
 }
 
 }  // extern "C"
