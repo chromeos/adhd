@@ -5,14 +5,16 @@
 
 #include "cras/src/server/cras_a2dp_iodev.h"
 
-#include <linux/sockios.h>
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/param.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <syslog.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/server/audio_thread.h"
@@ -23,13 +25,17 @@
 #include "cras/src/server/cras_audio_thread_monitor.h"
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_policy.h"
+#include "cras/src/server/cras_bt_transport.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/ewma_power.h"
+#include "cras_audio_format.h"
+#include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/bluez/a2dp-codecs.h"
 #include "third_party/bluez/rtp.h"
 #include "third_party/strlcpy/strlcpy.h"
-#include "third_party/utlist/utlist.h"
 
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 #define PCM_BUF_MAX_SIZE_BYTES (PCM_BUF_MAX_SIZE_FRAMES * 4)

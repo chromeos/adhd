@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <random>
+#include <vector>
 
 std::vector<float> gen_float_samples(size_t size, std::mt19937& engine) {
   std::uniform_real_distribution<float> dist(-1.0, 1.0);

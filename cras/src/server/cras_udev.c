@@ -3,13 +3,16 @@
  * found in the LICENSE file.
  */
 #include <errno.h>
+#include <fcntl.h>
 #include <libudev.h>
 #include <regex.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/poll.h>
 #include <sys/stat.h>
-#include <sys/syslog.h>
 #include <sys/types.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -18,9 +21,7 @@
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/common/cras_checksum.h"
 #include "cras/src/common/cras_string.h"
-#include "cras/src/server/cras_alsa_card.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras_types.h"
 #include "cras_util.h"
 
 struct udev_callback_data {

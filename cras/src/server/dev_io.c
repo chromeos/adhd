@@ -7,10 +7,15 @@
 
 #include "cras/src/server/dev_io.h"
 
-#include <poll.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/param.h>
 #include <sys/resource.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
@@ -20,11 +25,16 @@
 #include "cras/src/server/cras_non_empty_audio_handler.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/dev_stream.h"
+#include "cras/src/server/ewma_power.h"
 #include "cras/src/server/input_data.h"
 #include "cras/src/server/polled_interval_checker.h"
-#include "cras/src/server/rust/include/rate_estimator.h"
+#include "cras_audio_format.h"
+#include "cras_shm.h"
+#include "cras_types.h"
+#include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 
 static const struct timespec playback_wake_fuzz_ts = {

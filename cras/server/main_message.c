@@ -7,9 +7,11 @@
 
 #include <errno.h>
 #include <linux/limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras/base/check.h"
 #include "cras_util.h"

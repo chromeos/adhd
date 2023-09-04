@@ -5,20 +5,14 @@
 
 #include "cras/src/server/cras_rstream_config.h"
 
-#include <fcntl.h>
 #include <stdint.h>
 #include <sys/mman.h>
-#include <sys/types.h>
-#include <syslog.h>
+#include <unistd.h>
 
-#include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_rclient.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/cras_server_metrics.h"
-#include "cras/src/server/cras_system_state.h"
-#include "cras_config.h"
+#include "cras_audio_format.h"
 #include "cras_messages.h"
-#include "cras_shm.h"
 #include "cras_types.h"
 
 void cras_rstream_config_init(struct cras_rclient* client,

@@ -5,6 +5,8 @@
 
 #include "cras/src/common/cras_hats.h"
 
+#include "cras_types.h"
+
 #if HAVE_HATS
 
 #include "cras/src/server/cras_observer.h"

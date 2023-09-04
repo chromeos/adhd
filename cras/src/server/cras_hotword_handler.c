@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_observer.h"

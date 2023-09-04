@@ -7,16 +7,22 @@
 
 #include <errno.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras/server/main_message.h"
 #include "cras/src/common/cras_metrics.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_rstream_config.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_dlc.h"
+#include "cras_shm.h"
+#include "cras_types.h"
+#include "cras_util.h"
 
 #define METRICS_NAME_BUFFER_SIZE 100
 

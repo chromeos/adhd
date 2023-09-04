@@ -8,10 +8,18 @@
 #include <alsa/asoundlib.h>
 #include <alsa/use-case.h>
 #include <ctype.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/src/server/cras_alsa_mixer_name.h"
+#include "cras/src/server/cras_alsa_ucm_section.h"
+#include "cras_audio_format.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/strlcpy/strlcpy.h"
 #include "third_party/utlist/utlist.h"

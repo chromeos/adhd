@@ -6,24 +6,27 @@
 #include "cras/src/server/cras_hfp_iodev.h"
 
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/time.h>
 #include <syslog.h>
+#include <time.h>
 
-#include "cras/base/check.h"
 #include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_hfp_slc.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_sco.h"
-#include "cras/src/server/cras_server_metrics.h"
-#include "cras/src/server/cras_sr.h"
 #include "cras/src/server/cras_sr_bt_util.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/ewma_power.h"
+#include "cras_audio_format.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/strlcpy/strlcpy.h"
-#include "third_party/utlist/utlist.h"
 
 // Implementation of bluetooth hands-free profile iodev.
 struct hfp_io {

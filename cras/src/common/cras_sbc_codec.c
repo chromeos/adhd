@@ -7,7 +7,11 @@
 
 #include <errno.h>
 #include <sbc/sbc.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <sys/types.h>
+
+#include "cras/src/common/cras_audio_codec.h"
 
 /* SBC library encodes one PCM input block to one SBC output block. This
  * structure holds related info about the SBC codec.

@@ -5,7 +5,7 @@
 
 #include "cras/src/server/cras_device_monitor.h"
 
-#include <stdbool.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "cras/server/main_message.h"

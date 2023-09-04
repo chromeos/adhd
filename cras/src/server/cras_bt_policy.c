@@ -5,17 +5,22 @@
 
 #include "cras/src/server/cras_bt_policy.h"
 
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
+#include "cras/server/main_message.h"
 #include "cras/src/server/cras_a2dp_endpoint.h"
 #include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_device.h"
+#include "cras/src/server/cras_bt_io.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/server/main_message.h"
-#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
+#include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
 /* Check profile connections every 2 seconds and rerty 30 times maximum.

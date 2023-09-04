@@ -5,12 +5,16 @@
 
 #include "cras/src/server/cras_a2dp_info.h"
 
+#include <errno.h>
 #include <netinet/in.h>
 #include <sbc/sbc.h>
+#include <stdint.h>
+#include <string.h>
+#include <sys/socket.h>
 #include <syslog.h>
 
 #include "cras/src/common/cras_sbc_codec.h"
-#include "cras_types.h"
+#include "third_party/bluez/a2dp-codecs.h"
 #include "third_party/bluez/rtp.h"
 
 int init_a2dp(struct a2dp_info* a2dp, a2dp_sbc_t* sbc) {

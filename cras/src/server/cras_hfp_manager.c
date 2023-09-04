@@ -10,11 +10,18 @@
 #include "cras/src/server/cras_hfp_manager.h"
 
 #include <errno.h>
-#include <poll.h>
+#include <fcntl.h>
+#include <sched.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "cras/platform/features/features.h"
@@ -28,8 +35,8 @@
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras_audio_format.h"
 #include "cras_config.h"
+#include "cras_types.h"
 #include "third_party/superfasthash/sfh.h"
 
 #define CRAS_HFP_SOCKET_FILE ".hfp"

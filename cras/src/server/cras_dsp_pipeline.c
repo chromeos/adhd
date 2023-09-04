@@ -6,11 +6,22 @@
 #include "cras/src/server/cras_dsp_pipeline.h"
 
 #include <inttypes.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
 #include <syslog.h>
+#include <time.h>
 
+#include "cras/src/common/array.h"
+#include "cras/src/common/dumper.h"
 #include "cras/src/dsp/dsp_util.h"
+#include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_module.h"
+#include "cras/src/server/cras_expr.h"
+#include "cras_audio_format.h"
 #include "cras_util.h"
 
 /* We have a static representation of the dsp graph in a "struct ini",

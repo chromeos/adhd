@@ -5,15 +5,17 @@
 
 #include "cras/src/server/cras_iodev.h"
 
-#include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
-#include <sys/syslog.h>
 #include <sys/time.h>
 #include <syslog.h>
 #include <time.h>
 
+#include "cras/base/check.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/buffer_share.h"
@@ -31,9 +33,14 @@
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/dev_stream.h"
+#include "cras/src/server/ewma_power.h"
 #include "cras/src/server/input_data.h"
 #include "cras/src/server/rust/include/rate_estimator.h"
 #include "cras/src/server/softvol_curve.h"
+#include "cras_audio_format.h"
+#include "cras_iodev_info.h"
+#include "cras_shm.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 

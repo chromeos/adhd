@@ -7,7 +7,10 @@
 #include <getopt.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras/src/server/cras_alsa_plugin_io.h"
 #include "cras/src/server/cras_bt_manager.h"
@@ -17,9 +20,8 @@
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras/src/server/rust/include/cras_feature_tier.h"
-#include "cras_config.h"
 #include "cras_shm.h"
+#include "cras_types.h"
 
 #define DEFAULT_LOG_MASK LOG_INFO
 

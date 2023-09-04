@@ -5,8 +5,8 @@
 
 #include "packet_status_logger.h"
 
+#include <stdbool.h>
 #include <string.h>
-#include <time.h>
 
 #include "cras_util.h"
 

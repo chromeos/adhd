@@ -5,10 +5,9 @@
 
 #include "cras/src/server/buffer_share.h"
 
+#include <errno.h>
 #include <stdlib.h>
 #include <sys/param.h>
-
-#include "cras_types.h"
 
 static inline struct id_offset* find_unused(const struct buffer_share* mix) {
   unsigned int i;

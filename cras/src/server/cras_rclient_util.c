@@ -5,17 +5,20 @@
 
 #include "cras/src/server/cras_rclient_util.h"
 
+#include <stdlib.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras/base/check.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rclient.h"
 #include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/cras_rstream_config.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras/src/server/cras_tm.h"
 #include "cras/src/server/stream_list.h"
+#include "cras_audio_format.h"
 #include "cras_messages.h"
 #include "cras_types.h"
 #include "cras_util.h"

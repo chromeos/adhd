@@ -3,6 +3,9 @@
  * found in the LICENSE file.
  */
 
+#include <stdbool.h>
+
+#include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_sr.h"
 #include "cras/src/server/cras_sr_bt_util.h"
 

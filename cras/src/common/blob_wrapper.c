@@ -5,6 +5,9 @@
 
 #include "cras/src/common/blob_wrapper.h"
 
+#include <stdint.h>
+#include <stdlib.h>
+
 int blob_wrapper_get_wrapped_size(struct blob_wrapper* bw,
                                   const uint8_t* src,
                                   size_t src_size) {

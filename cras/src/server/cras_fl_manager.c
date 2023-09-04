@@ -15,6 +15,7 @@
 #include "cras/src/server/cras_bt_manager.h"
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_fl_media.h"
+#include "cras_types.h"
 
 #define BT_MANAGER_SERVICE_NAME "org.chromium.bluetooth.Manager"
 #define BT_MANAGER_INTERFACE "org.chromium.bluetooth.Manager"

@@ -5,14 +5,19 @@
 
 #include "cras/src/server/cras_bt_io.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <sys/time.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_utf8.h"
+#include "cras_types.h"
 #include "third_party/strlcpy/strlcpy.h"
 #include "third_party/superfasthash/sfh.h"
 #include "third_party/utlist/utlist.h"

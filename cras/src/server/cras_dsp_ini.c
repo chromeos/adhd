@@ -5,10 +5,17 @@
 
 #include "cras/src/server/cras_dsp_ini.h"
 
+#include <dictionary.h>
 #include <errno.h>
+#include <iniparser.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
+#include "cras/src/common/array.h"
+#include "cras/src/common/dumper.h"
+#include "cras/src/server/cras_expr.h"
 #include "cras/src/server/iniparser_wrapper.h"
 
 #define MAX_NR_PORT 128          // the max number of ports for a plugin

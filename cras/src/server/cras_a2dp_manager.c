@@ -10,21 +10,30 @@
 #include "cras/src/server/cras_a2dp_manager.h"
 
 #include <errno.h>
-#include <poll.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <syslog.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_fl_pcm_iodev.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
+#include "cras_audio_format.h"
 #include "cras_config.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 

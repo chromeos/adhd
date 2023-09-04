@@ -6,8 +6,14 @@
 #include "cras/src/server/cras_hfp_slc.h"
 
 #include <stdbool.h>
-#include <sys/socket.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
 #include <syslog.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_bt_device.h"
@@ -17,6 +23,7 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_telephony.h"
 #include "cras/src/server/cras_tm.h"
+#include "cras_types.h"
 #include "cras_util.h"
 
 // Message start and end with "\r\n". refer to spec 4.33.

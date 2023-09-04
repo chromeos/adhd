@@ -4,15 +4,21 @@
  */
 #include "cras/src/server/cras_alsa_common_io.h"
 
-#include <sys/time.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <syslog.h>
+#include <time.h>
 
-#include "cras/src/common/cras_log.h"
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras_iodev_info.h"
+#include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev) {

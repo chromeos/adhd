@@ -4,9 +4,13 @@
  */
 #include "cras/src/server/cras_fmt_conv_ops.h"
 
+#include <endian.h>
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
+
+#include "cras_audio_format.h"
 
 #define MAX(a, b)           \
   ({                        \

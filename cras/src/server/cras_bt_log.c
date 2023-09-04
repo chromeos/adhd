@@ -5,4 +5,6 @@
 
 #include "cras/src/server/cras_bt_log.h"
 
+#include "cras_types.h"
+
 struct cras_bt_event_log* btlog;

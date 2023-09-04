@@ -3,14 +3,15 @@
  * found in the LICENSE file.
  */
 
-#include <stdbool.h>
-#include <syslog.h>
+#include <string.h>
+#include <time.h>
 
 #include "cras/server/main_message.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras_timespec.h"
 #include "cras_types.h"
 #include "cras_util.h"
 

@@ -5,7 +5,7 @@
 
 #include "cras/src/server/cras_ramp.h"
 
-#include <syslog.h>
+#include <stdlib.h>
 
 /*
  * Struct to hold ramping information.

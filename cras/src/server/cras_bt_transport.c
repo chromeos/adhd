@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "cras/src/server/cras_bt_constants.h"
@@ -18,6 +19,7 @@
 #include "cras/src/server/cras_bt_endpoint.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 

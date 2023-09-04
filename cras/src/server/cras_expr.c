@@ -7,9 +7,11 @@
 
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "cras/src/common/array.h"
+#include "cras/src/common/dumper.h"
 
 static const char* copy_str(const char* begin, const char* end) {
   char* s = malloc(end - begin + 1);

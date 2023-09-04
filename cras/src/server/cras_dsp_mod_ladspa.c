@@ -6,9 +6,16 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include <ladspa.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
+#include "cras/src/common/array.h"
+#include "cras/src/common/dumper.h"
+#include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_module.h"
+#include "cras/src/server/cras_expr.h"
 
 #define PLUGIN_PATH_PREFIX "/usr/lib/ladspa"
 #define PLUGIN_PATH_MAX 256

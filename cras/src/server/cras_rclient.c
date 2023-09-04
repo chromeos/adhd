@@ -5,28 +5,18 @@
 
 #include "cras/src/server/cras_rclient.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "cras/base/check.h"
-#include "cras/src/server/audio_thread.h"
-#include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_capture_rclient.h"
 #include "cras/src/server/cras_control_rclient.h"
-#include "cras/src/server/cras_dsp.h"
-#include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_playback_rclient.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/cras_server_metrics.h"
-#include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_unified_rclient.h"
-#include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_types.h"
-#include "cras_util.h"
-#include "third_party/utlist/utlist.h"
 
 // Removes all streams that the client owns and destroys it.
 void cras_rclient_destroy(struct cras_rclient* client) {

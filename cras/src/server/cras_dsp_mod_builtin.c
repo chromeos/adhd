@@ -3,17 +3,21 @@
  * found in the LICENSE file.
  */
 
+#include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
+#include "cras/src/common/dumper.h"
 #include "cras/src/dsp/dcblock.h"
 #include "cras/src/dsp/drc.h"
-#include "cras/src/dsp/dsp_util.h"
 #include "cras/src/dsp/eq.h"
 #include "cras/src/dsp/eq2.h"
 #include "cras/src/dsp/quad_rotation.h"
+#include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_module.h"
-#include "cras_types.h"
+#include "cras/src/server/cras_expr.h"
+#include "cras_iodev_info.h"
 
 /*
  *  empty module functions (for source and sink)

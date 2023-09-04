@@ -5,12 +5,18 @@
 
 #include "cras/src/server/cras_iodev_list.h"
 
+#include <stdbool.h>
 #include <stdint.h>
-#include <sys/syslog.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/param.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras/platform/features/features.h"
 #include "cras/src/common/cras_hats.h"
+#include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_empty_iodev.h"
 #include "cras/src/server/cras_floop_iodev.h"
@@ -19,9 +25,9 @@
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/cras_server.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
+#include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/server_stream.h"
@@ -30,6 +36,7 @@
 #include "cras/src/server/test_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_types.h"
+#include "cras_util.h"
 #include "third_party/strlcpy/strlcpy.h"
 #include "third_party/utlist/utlist.h"
 

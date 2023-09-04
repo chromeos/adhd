@@ -5,8 +5,8 @@
 
 #include "cras/src/server/cras_hfp_ag_profile.h"
 
-#include <stdint.h>
-#include <sys/socket.h>
+#include <stdbool.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -14,14 +14,17 @@
 #include "cras/src/server/cras_a2dp_endpoint.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_profile.h"
 #include "cras/src/server/cras_hfp_alsa_iodev.h"
 #include "cras/src/server/cras_hfp_iodev.h"
+#include "cras/src/server/cras_hfp_slc.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_sco.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras_types.h"
 #include "packet_status_logger.h"
 #include "third_party/utlist/utlist.h"
 

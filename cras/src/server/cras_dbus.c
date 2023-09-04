@@ -4,13 +4,9 @@
  */
 
 #include <dbus/dbus.h>
-#include <errno.h>
-#include <poll.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <sys/select.h>
+#include <sys/poll.h>
 #include <syslog.h>
-#include <unistd.h>
 
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"

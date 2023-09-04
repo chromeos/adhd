@@ -5,10 +5,10 @@
 
 #include "cras_config.h"
 
-#include <pwd.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <unistd.h>
+
+#include "cras_types.h"
 
 const char* cras_config_get_system_socket_file_dir() {
   /* This directory is created by the upstart script, eventually it would

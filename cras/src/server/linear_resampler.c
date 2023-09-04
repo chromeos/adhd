@@ -5,8 +5,8 @@
 
 #include "cras/src/server/linear_resampler.h"
 
-#include "cras/src/server/cras_audio_area.h"
-#include "cras_util.h"
+#include <stdint.h>
+#include <stdlib.h>
 
 // A linear resampler.
 struct linear_resampler {

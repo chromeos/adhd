@@ -12,25 +12,29 @@
 #include <limits.h>
 #include <math.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
+#include <strings.h>
 #include <sys/param.h>
 #include <sys/select.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "cras/base/check.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/cras_version.h"
 #include "cras/src/server/rust/include/pseudonymization.h"
+#include "cras_audio_format.h"
 #include "cras_client.h"
+#include "cras_iodev_info.h"
+#include "cras_timespec.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "packet_status_logger.h"
 #include "third_party/strlcpy/strlcpy.h"
 
 #define NOT_ASSIGNED (0)

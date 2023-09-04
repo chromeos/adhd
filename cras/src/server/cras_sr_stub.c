@@ -3,6 +3,9 @@
  * found in the LICENSE file.
  */
 
+#include <stdlib.h>
+
+#include "cras/src/common/byte_buffer.h"
 #include "cras/src/server/cras_sr.h"
 
 struct cras_sr* cras_sr_create(struct cras_sr_model_spec spec,

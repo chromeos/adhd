@@ -6,7 +6,10 @@
 #include <alsa/asoundlib.h>
 #include <sound/sof/abi.h>
 #include <sound/sof/header.h>
-#include <syslog.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "cras/src/common/blob_wrapper.h"
 

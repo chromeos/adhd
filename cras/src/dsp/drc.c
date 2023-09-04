@@ -10,10 +10,15 @@
 
 #include "cras/src/dsp/drc.h"
 
+#include <math.h>
 #include <stdlib.h>
 
 #include "cras/base/check.h"
+#include "cras/src/dsp/biquad.h"
+#include "cras/src/dsp/crossover2.h"
+#include "cras/src/dsp/drc_kernel.h"
 #include "cras/src/dsp/drc_math.h"
+#include "cras/src/dsp/eq2.h"
 
 static void set_default_parameters(struct drc* drc);
 static void init_data_buffer(struct drc* drc);

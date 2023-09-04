@@ -4,6 +4,8 @@
  */
 #include "cras/src/dsp/drc_math.h"
 
+#include <math.h>
+
 float db_to_linear[201];  // from -100dB to 100dB
 
 void drc_math_init() {

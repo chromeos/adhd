@@ -5,8 +5,14 @@
 
 #include "cras/src/server/config/cras_board_config.h"
 
+#include <dictionary.h>
 #include <errno.h>
+#include <iniparser.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "cras/base/check.h"

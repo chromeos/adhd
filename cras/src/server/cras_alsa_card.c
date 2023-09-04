@@ -10,22 +10,28 @@
 #include "cras/src/server/cras_alsa_card.h"
 
 #include <alsa/asoundlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
 #include <syslog.h>
 
 #include "cras/base/check.h"
 #include "cras/platform/features/features.h"
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_io_ops.h"
 #include "cras/src/server/cras_alsa_mixer.h"
+#include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_alsa_ucm_section.h"
 #include "cras/src/server/cras_alsa_usb_io.h"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras_config.h"
+#include "cras_iodev_info.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"

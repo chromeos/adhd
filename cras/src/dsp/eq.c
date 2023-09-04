@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include "cras/src/dsp/biquad.h"
+
 struct eq {
   int n;
   struct biquad biquad[MAX_BIQUADS_PER_EQ];

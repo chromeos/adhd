@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 #include <cstdint>
-#include <iostream>
 #include <random>
 #include <vector>
 

@@ -7,9 +7,8 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
-
-#include "cras_util.h"
 
 // Simple curve with configurable max volume and range.
 struct stepped_curve {

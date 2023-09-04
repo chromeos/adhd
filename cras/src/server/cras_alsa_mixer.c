@@ -8,13 +8,17 @@
 #include <alsa/asoundlib.h>
 #include <alsa/mixer.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "cras/base/check.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_mixer_name.h"
-#include "cras/src/server/cras_alsa_ucm.h"
+#include "cras/src/server/cras_alsa_ucm_section.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 

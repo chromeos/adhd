@@ -5,8 +5,12 @@
 
 #include <alsa/asoundlib.h>
 #include <alsa/use-case.h>
+#include <dictionary.h>
+#include <iniparser.h>
 #include <stdio.h>
-#include <sys/select.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
 #include <syslog.h>
 
 #include "cras/platform/features/features.h"
@@ -20,6 +24,7 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/iniparser_wrapper.h"
+#include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
 #define PLUGINS_INI "plugins.ini"

@@ -6,15 +6,22 @@
 
 #include <errno.h>
 #include <regex.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
 #include "cras/base/check.h"
+#include "cras/src/server/cras_a2dp_manager.h"
+#include "cras/src/server/cras_bt_io.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_policy.h"
+#include "cras/src/server/cras_fl_manager.h"
 #include "cras/src/server/cras_fl_media.h"
+#include "cras/src/server/cras_hfp_manager.h"
+#include "cras_types.h"
 
 static int validate_bluetooth_device_address(const char* addr) {
   if (!addr) {

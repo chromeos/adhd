@@ -5,7 +5,9 @@
 
 #include "cras/src/server/cras_audio_area.h"
 
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
 
 #include "cras/src/server/cras_mix.h"

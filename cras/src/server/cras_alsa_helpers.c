@@ -8,12 +8,14 @@
 #include <alsa/asoundlib.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "cras_audio_format.h"
-#include "cras_util.h"
 
 /* Macro to convert between snd_pcm_chmap_position(defined in
  * alsa-lib since 1.0.27) and CRAS_CHANNEL, values of which are

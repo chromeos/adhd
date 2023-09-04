@@ -5,16 +5,17 @@
 
 #include "cras/src/server/input_data.h"
 
+#include <stdlib.h>
+#include <string.h>
+#include <sys/param.h>
 #include <syslog.h>
 
-#include "cras/src/dsp/dsp_util.h"
 #include "cras/src/server/buffer_share.h"
 #include "cras/src/server/cras_audio_area.h"
-#include "cras/src/server/cras_dsp_pipeline.h"
-#include "cras/src/server/cras_mix.h"
+#include "cras/src/server/cras_dsp_module.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/cras_system_state.h"
-#include "third_party/utlist/utlist.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/float_buffer.h"
 
 void input_data_run(struct ext_dsp_module* ext, unsigned int nframes) {
   struct input_data* data = (struct input_data*)ext;

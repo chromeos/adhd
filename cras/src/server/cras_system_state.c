@@ -5,16 +5,21 @@
 #include "cras/src/server/cras_system_state.h"
 
 #include <errno.h>
-#include <fcntl.h>
+#include <linux/limits.h>
 #include <pthread.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/param.h>
-#include <sys/stat.h>
+#include <sys/types.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras/base/check.h"
+#include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alert.h"
@@ -25,8 +30,9 @@
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/rust/include/cras_feature_tier.h"
-#include "cras_config.h"
+#include "cras_iodev_info.h"
 #include "cras_shm.h"
+#include "cras_timespec.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"

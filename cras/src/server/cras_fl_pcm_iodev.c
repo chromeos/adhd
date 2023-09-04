@@ -4,12 +4,15 @@
  */
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
-#include <sys/ioctl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/un.h>
 #include <syslog.h>
 #include <time.h>
 
@@ -23,12 +26,15 @@
 #include "cras/src/server/cras_hfp_manager.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_sr.h"
 #include "cras/src/server/cras_sr_bt_util.h"
+#include "cras/src/server/ewma_power.h"
+#include "cras_audio_format.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
 #include "third_party/superfasthash/sfh.h"
-#include "third_party/utlist/utlist.h"
 
 #define PCM_BUF_MAX_SIZE_FRAMES (4096 * 4)
 

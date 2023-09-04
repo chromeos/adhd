@@ -6,9 +6,15 @@
 #include "cras/src/server/cras_alsa_jack.h"
 
 #include <alsa/asoundlib.h>
+#include <fcntl.h>
 #include <linux/input.h>
 #include <regex.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/edid_utils.h"
@@ -18,6 +24,7 @@
 #include "cras/src/server/cras_gpio_jack.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/superfasthash/sfh.h"
 #include "third_party/utlist/utlist.h"

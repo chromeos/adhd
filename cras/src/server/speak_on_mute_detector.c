@@ -5,6 +5,7 @@
 #include "cras/src/server/speak_on_mute_detector.h"
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 

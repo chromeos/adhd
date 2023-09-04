@@ -5,10 +5,14 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/param.h>
+#include <time.h>
 
+#include "cras_audio_format.h"
 #include "cras_client.h"
-#include "cras_util.h"
+#include "cras_types.h"
 
 struct buffer_data {
   const uint8_t* buffer;

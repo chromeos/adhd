@@ -6,9 +6,19 @@
 #include <alsa/asoundlib.h>
 #include <alsa/pcm_external.h>
 #include <cras_client.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "cras/base/check.h"
+#include "cras_audio_format.h"
+#include "cras_types.h"
+#include "cras_util.h"
 
 // Holds configuration for the alsa plugin.
 struct snd_pcm_cras {

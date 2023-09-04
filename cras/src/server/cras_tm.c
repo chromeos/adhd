@@ -5,6 +5,7 @@
 
 #include "cras/src/server/cras_tm.h"
 
+#include <stdlib.h>
 #include <time.h>
 
 #include "cras_util.h"

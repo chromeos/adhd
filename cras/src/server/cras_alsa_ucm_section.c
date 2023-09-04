@@ -11,6 +11,7 @@
 
 #include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_alsa_ucm.h"
+#include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
 static void ucm_section_free(struct ucm_section* section) {

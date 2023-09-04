@@ -6,14 +6,16 @@
 
 #include <dbus/dbus.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"
-#include "cras/src/server/cras_dbus_util.h"
 #include "cras/src/server/cras_observer.h"
 #include "third_party/utlist/utlist.h"
 

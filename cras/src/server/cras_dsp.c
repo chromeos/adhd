@@ -4,6 +4,8 @@
  */
 
 #include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "cras/src/common/dumper.h"
@@ -11,6 +13,7 @@
 #include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_pipeline.h"
 #include "cras/src/server/cras_expr.h"
+#include "cras_audio_format.h"
 #include "cras_iodev_info.h"
 #include "third_party/utlist/utlist.h"
 

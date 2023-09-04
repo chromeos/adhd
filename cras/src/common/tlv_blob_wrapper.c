@@ -3,7 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include <syslog.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "cras/src/common/blob_wrapper.h"
 

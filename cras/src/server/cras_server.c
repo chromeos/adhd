@@ -9,25 +9,24 @@
 
 #include <dbus/dbus.h>
 #include <errno.h>
-#include <poll.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
-#include <sys/select.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/un.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "cras/platform/features/features.h"
 #include "cras/platform/features/override.h"
 #include "cras/platform/segmentation/segmentation.h"
 #include "cras/server/main_message.h"
-#include "cras/src/common/cras_metrics.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_alsa_helpers.h"

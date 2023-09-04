@@ -5,6 +5,9 @@
 
 #include "cras/src/server/polled_interval_checker.h"
 
+#include <stdlib.h>
+#include <time.h>
+
 #include "cras_util.h"
 
 struct polled_interval {

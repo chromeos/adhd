@@ -6,9 +6,9 @@
 #include "cras/src/server/cras_mix.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "cras/src/server/cras_mix_ops.h"
-#include "cras/src/server/cras_system_state.h"
 
 static const struct cras_mix_ops* ops = &mixer_ops;
 

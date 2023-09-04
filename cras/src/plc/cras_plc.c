@@ -7,9 +7,11 @@
 
 #include <float.h>
 #include <math.h>
-#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "cras/src/common/cras_audio_codec.h"
 
 #define MSBC_SAMPLE_SIZE 2  // 2 bytes
 #define MSBC_PKT_LEN 57     // Packet length without the header

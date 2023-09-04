@@ -5,19 +5,22 @@
 
 #include "cras/src/server/cras_floop_iodev.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <sys/syslog.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/param.h>
 #include <time.h>
 
 #include "cras/src/common/byte_buffer.h"
-#include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/cras_rstream_config.h"
 #include "cras_audio_format.h"
 #include "cras_types.h"
+#include "cras_util.h"
 #include "third_party/superfasthash/sfh.h"
 
 /*

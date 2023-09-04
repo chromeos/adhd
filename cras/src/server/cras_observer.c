@@ -5,6 +5,11 @@
 
 #include "cras/src/server/cras_observer.h"
 
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras_types.h"

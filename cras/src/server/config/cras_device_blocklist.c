@@ -5,8 +5,12 @@
 
 #include "cras/src/server/config/cras_device_blocklist.h"
 
+#include <dictionary.h>
+#include <iniparser.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "cras/src/server/iniparser_wrapper.h"
-#include "third_party/utlist/utlist.h"
 
 struct cras_device_blocklist {
   dictionary* ini;

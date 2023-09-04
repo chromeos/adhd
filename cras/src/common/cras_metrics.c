@@ -5,7 +5,6 @@
 
 #include "cras_metrics.h"
 
-#include <stdio.h>
 #include <syslog.h>
 #include <unistd.h>
 

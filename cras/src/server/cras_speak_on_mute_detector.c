@@ -4,11 +4,13 @@
 
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 
-#include <stdint.h>
+#include <stdbool.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras/base/check.h"
 #include "cras/server/main_message.h"
+#include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_thread_log.h"
@@ -16,7 +18,6 @@
 #include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras/src/server/cras_tm.h"
 #include "cras/src/server/server_stream.h"
 #include "cras/src/server/speak_on_mute_detector.h"
 #include "cras_types.h"

@@ -7,14 +7,17 @@
 
 #include <dbus/dbus.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_bt_io.h"
-#include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_dbus_util.h"
 #include "cras/src/server/cras_fl_media_adapter.h"
 #include "cras/src/server/cras_hfp_manager.h"

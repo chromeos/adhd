@@ -4,7 +4,10 @@
  */
 #include "cras/src/server/cras_rtc.h"
 
+#include <stdbool.h>
+#include <stdlib.h>
 #include <syslog.h>
+#include <time.h>
 
 #include "cras/server/main_message.h"
 #include "cras/src/common/cras_string.h"
@@ -12,6 +15,7 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"
+#include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 

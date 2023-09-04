@@ -5,9 +5,12 @@
 
 #include "cras/src/server/stream_list.h"
 
-#include <syslog.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <sys/param.h>
 
 #include "cras/src/server/cras_rstream.h"
+#include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
 struct stream_list {

@@ -4,18 +4,19 @@
  */
 #include "cras/src/server/cras_control_rclient.h"
 
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras/base/check.h"
+#include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
-#include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/cras_fl_manager.h"
-#include "cras/src/server/cras_floop_iodev.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
-#include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
@@ -24,11 +25,8 @@
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_types.h"
-#include "cras_util.h"
-#include "third_party/utlist/utlist.h"
 
 // Handles dumping audio thread debug info back to the client.
 static void dump_audio_thread_info(struct cras_rclient* client) {

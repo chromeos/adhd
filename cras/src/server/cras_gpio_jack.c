@@ -9,15 +9,14 @@
 #include <libudev.h>
 #include <linux/input.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <sys/ioctl.h>
 #include <syslog.h>
 #include <unistd.h>
 
 #include "cras/base/check.h"
 #include "cras/src/common/cras_string.h"
-#include "cras_util.h"
 
 int gpio_switch_open(const char* pathname) {
   return open(pathname, O_RDONLY);

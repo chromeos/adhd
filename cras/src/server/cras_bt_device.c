@@ -11,13 +11,16 @@
 
 #include <dbus/dbus.h>
 #include <errno.h>
-#include <poll.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <syslog.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "cras/src/common/bluetooth.h"
 #include "cras/src/common/cras_string.h"
@@ -31,8 +34,8 @@
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_hfp_slc.h"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server_metrics.h"
+#include "cras_types.h"
 #include "third_party/superfasthash/sfh.h"
 #include "third_party/utlist/utlist.h"
 

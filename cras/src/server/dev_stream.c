@@ -5,7 +5,11 @@
 
 #include "cras/src/server/dev_stream.h"
 
-#include <syslog.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/param.h>
+#include <time.h>
 
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/server/audio_thread_log.h"
@@ -13,10 +17,15 @@
 #include "cras/src/server/cras_fmt_conv.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_mix.h"
+#include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_server_metrics.h"
-#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras_audio_format.h"
 #include "cras_shm.h"
+#include "cras_timespec.h"
+#include "cras_types.h"
+#include "cras_util.h"
 
 /* Adjust device's sample rate by this step faster or slower. Used
  * to make sure multiple active device has stable buffer level.
@@ -594,8 +603,7 @@ void dev_stream_set_delay(const struct dev_stream* dev_stream,
         cras_fmt_conv_out_frames_to_in(dev_stream->conv, delay_frames);
     cras_set_playback_timestamp(
         rstream->format.frame_rate, stream_frames + cras_shm_get_frames(shm),
-        dev_stream->iodev->active_node->latency_offset_ms,
-        &shm->header->ts);
+        dev_stream->iodev->active_node->latency_offset_ms, &shm->header->ts);
   } else {
     shm = cras_rstream_shm(rstream);
     stream_frames =

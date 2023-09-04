@@ -3,17 +3,18 @@
  * found in the LICENSE file.
  */
 #include <errno.h>
-#include <fcntl.h>
 #include <getopt.h>
-#include <pthread.h>
+#include <sched.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
+#include <sys/select.h>
+#include <time.h>
 #include <unistd.h>
 
-#include "cras/src/common/cras_version.h"
+#include "cras_audio_format.h"
 #include "cras_client.h"
 #include "cras_types.h"
 #include "cras_util.h"

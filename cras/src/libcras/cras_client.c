@@ -28,33 +28,39 @@
 #include "cras_client.h"
 
 #include <errno.h>
-#include <fcntl.h>
 #include <limits.h>
-#include <poll.h>
 #include <pthread.h>
+#include <sched.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/eventfd.h>
-#include <sys/ipc.h>
 #include <sys/mman.h>
 #include <sys/param.h>
-#include <sys/signal.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/timerfd.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "cras/base/check.h"
 #include "cras/src/common/cras_file_wait.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/common/cras_string.h"
+#include "cras_audio_format.h"
 #include "cras_config.h"
+#include "cras_iodev_info.h"
 #include "cras_messages.h"
 #include "cras_shm.h"
+#include "cras_timespec.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
 #include "third_party/utlist/utlist.h"
 
 static const size_t MAX_CMD_MSG_LEN = 256;

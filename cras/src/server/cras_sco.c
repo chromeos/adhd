@@ -5,14 +5,19 @@
 
 #include "cras/src/server/cras_sco.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras/src/common/bluetooth.h"
 #include "cras/src/common/byte_buffer.h"
+#include "cras/src/common/cras_audio_codec.h"
 #include "cras/src/common/cras_sbc_codec.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/plc/cras_plc.h"
@@ -22,8 +27,10 @@
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_sr.h"
+#include "cras/src/server/cras_sr_bt_util.h"
+#include "cras_audio_format.h"
+#include "cras_types.h"
 #include "packet_status_logger.h"
-#include "third_party/utlist/utlist.h"
 
 /* The max buffer size. Note that the actual used size must set to multiple
  * of SCO packet size, and the packet size does not necessarily be equal to

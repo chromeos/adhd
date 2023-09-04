@@ -3,22 +3,20 @@
  * found in the LICENSE file.
  */
 
-#include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <sys/select.h>
 #include <syslog.h>
 #include <unistd.h>
 
 #include "cras/src/common/cras_string.h"
-#include "cras/src/common/cras_version.h"
 #include "cras_client.h"
+#include "cras_iodev_info.h"
 #include "cras_types.h"
-#include "cras_util.h"
 
 static void output_volume_changed(void* context, int32_t volume) {
   printf("output volume: %d/100\n", volume);

@@ -13,6 +13,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "cras/src/common/bluetooth.h"
 #include "cras/src/common/cras_string.h"

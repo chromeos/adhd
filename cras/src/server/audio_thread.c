@@ -9,12 +9,17 @@
 
 #include "cras/src/server/audio_thread.h"
 
-#include <poll.h>
 #include <pthread.h>
+#include <sched.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <sys/param.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
 #include <syslog.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "cras/base/check.h"
 #include "cras/src/server/audio_thread_log.h"
@@ -24,7 +29,8 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"
-#include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/cras_stream_apm.h"
+#include "cras/src/server/dev_io.h"
 #include "cras/src/server/dev_stream.h"
 #include "cras_config.h"
 #include "cras_shm.h"

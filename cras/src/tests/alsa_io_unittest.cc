@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "cras/src/common/cras_alsa_card_info.h"
+#include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/cras_alsa_mixer.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"

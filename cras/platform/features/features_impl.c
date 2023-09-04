@@ -7,6 +7,7 @@
 #include "cras/platform/features/features_impl.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <string.h>
 #include <syslog.h>
 

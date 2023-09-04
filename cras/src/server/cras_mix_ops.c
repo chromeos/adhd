@@ -6,6 +6,7 @@
 #include "cras/src/server/cras_mix_ops.h"
 
 #include <stdint.h>
+#include <string.h>
 
 #include "cras/src/server/cras_system_state.h"
 

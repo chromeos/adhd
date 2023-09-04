@@ -5,20 +5,33 @@
 
 #include "cras/src/server/cras_rstream.h"
 
-#include <fcntl.h>
+#include <linux/limits.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
-#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/poll.h>
 #include <syslog.h>
+#include <time.h>
+#include <unistd.h>
 
+#include "cras/src/server/buffer_share.h"
 #include "cras/src/server/cras_audio_area.h"
-#include "cras/src/server/cras_rclient.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_rstream_config.h"
 #include "cras/src/server/cras_server_metrics.h"
+#include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras/src/server/ewma_power.h"
+#include "cras_audio_format.h"
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_shm.h"
 #include "cras_types.h"
+#include "cras_util.h"
 
 static bool cras_rstream_config_is_client_shm_stream(
     const struct cras_rstream_config* config) {

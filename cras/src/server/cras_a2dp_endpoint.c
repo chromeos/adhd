@@ -6,16 +6,16 @@
 #include "cras/src/server/cras_a2dp_endpoint.h"
 
 #include <errno.h>
-#include <stdint.h>
 #include <syslog.h>
 
 #include "cras/src/server/cras_a2dp_iodev.h"
 #include "cras/src/server/cras_bt_constants.h"
+#include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_endpoint.h"
 #include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_bt_transport.h"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/src/server/cras_system_state.h"
-#include "cras_util.h"
+#include "cras_types.h"
 #include "third_party/bluez/a2dp-codecs.h"
 
 #define A2DP_SOURCE_ENDPOINT_PATH "/org/chromium/Cras/Bluetooth/A2DPSource"

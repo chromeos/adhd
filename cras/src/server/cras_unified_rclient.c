@@ -3,16 +3,13 @@
  * found in the LICENSE file.
  */
 
-#include <syslog.h>
+#include <stdio.h>
 
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rclient.h"
 #include "cras/src/server/cras_rclient_util.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras_messages.h"
 #include "cras_types.h"
-#include "cras_util.h"
 
 // Declarations of cras_rclient operators for cras_unified_rclient.
 static const struct cras_rclient_ops cras_unified_rclient_ops = {

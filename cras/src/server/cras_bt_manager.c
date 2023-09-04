@@ -7,7 +7,6 @@
 
 #include <dbus/dbus.h>
 #include <errno.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
@@ -26,7 +25,7 @@
 #include "cras/src/server/cras_bt_transport.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_telephony.h"
-#include "third_party/utlist/utlist.h"
+#include "cras_types.h"
 
 static void cras_bt_start_bluez(struct bt_stack* s);
 static void cras_bt_stop_bluez(struct bt_stack* s);

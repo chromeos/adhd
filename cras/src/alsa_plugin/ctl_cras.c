@@ -6,6 +6,13 @@
 #include <alsa/asoundlib.h>
 #include <alsa/control_external.h>
 #include <cras_client.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "cras_iodev_info.h"
+#include "cras_types.h"
 
 static const size_t MAX_IODEVS = 10;   // Max devices to print out.
 static const size_t MAX_IONODES = 20;  // Max ionodes to print out.

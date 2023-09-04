@@ -10,12 +10,14 @@
 
 #include "cras/src/dsp/drc_kernel.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "cras/src/dsp/drc_math.h"
 #include "cras_util.h"
+#include "packet_status_logger.h"
 
 #define MAX_PRE_DELAY_FRAMES 1024
 #define MAX_PRE_DELAY_FRAMES_MASK (MAX_PRE_DELAY_FRAMES - 1)

@@ -7,7 +7,6 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <syslog.h>
 #include <threads.h>
 
 #define MAX_LENGTH 256
@@ -17,12 +16,12 @@
 static thread_local char tlsmsg[TLS_MSG_COUNT][MAX_LENGTH] = {};
 
 const char* tlsprintf(const char* fmt, ...) {
-    static thread_local int i = 0;
-    i = (i + 1) % TLS_MSG_COUNT;
+  static thread_local int i = 0;
+  i = (i + 1) % TLS_MSG_COUNT;
 
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(tlsmsg[i], sizeof(tlsmsg[i]), fmt, args);
-    va_end(args);
-    return tlsmsg[i];
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(tlsmsg[i], sizeof(tlsmsg[i]), fmt, args);
+  va_end(args);
+  return tlsmsg[i];
 }

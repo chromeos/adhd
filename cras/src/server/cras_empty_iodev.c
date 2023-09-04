@@ -3,18 +3,19 @@
  * found in the LICENSE file.
  */
 
-#include <pthread.h>
+#include <sched.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/param.h>
-#include <syslog.h>
+#include <time.h>
 
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_rstream.h"
-#include "cras_config.h"
 #include "cras_types.h"
+#include "cras_util.h"
 #include "third_party/strlcpy/strlcpy.h"
-#include "third_party/utlist/utlist.h"
 
 #define EMPTY_BUFFER_SIZE (32 * 1024)
 #define MAX_EMPTY_FRAME_SIZE 8

@@ -6,6 +6,8 @@
 #include "cras/src/dsp/dsp_util.h"
 
 #include <limits.h>
+#include <stdint.h>
+#include <string.h>
 #include <syslog.h>
 
 #ifndef max

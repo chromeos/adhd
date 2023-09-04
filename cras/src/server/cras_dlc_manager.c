@@ -4,6 +4,10 @@
 
 #include "cras/src/server/cras_dlc_manager.h"
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/param.h>
 #include <syslog.h>
 
 #include "cras/src/server/cras_server_metrics.h"
