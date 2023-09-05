@@ -153,6 +153,8 @@ static int frames_queued(const struct cras_iodev* iodev,
    * them all and that deletes the initial delay created for
    * post DSP delayed version of loopback. */
   if (!iodev->streams) {
+    hw_tstamp->tv_nsec = 0;
+    hw_tstamp->tv_sec = 0;
     return 0;
   }
 

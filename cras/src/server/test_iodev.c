@@ -50,6 +50,8 @@ static int frames_queued(const struct cras_iodev* iodev,
   int available;
 
   if (testio->fd < 0) {
+    tstamp->tv_nsec = 0;
+    tstamp->tv_sec = 0;
     return 0;
   }
   ioctl(testio->fd, FIONREAD, &available);
