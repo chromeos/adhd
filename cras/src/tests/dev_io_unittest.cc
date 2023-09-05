@@ -50,6 +50,10 @@ class DevIoSuite : public testing::Test {
     fill_audio_format(&format, 48000);
     set_dev_rate_map.clear();
     stream = create_stream(1, 1, CRAS_STREAM_INPUT, cb_threshold, &format);
+    output_stream1 =
+        create_stream(1, 1, CRAS_STREAM_OUTPUT, cb_threshold, &format);
+    output_stream2 =
+        create_stream(1, 1, CRAS_STREAM_OUTPUT, cb_threshold, &format);
     clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
     cras_audio_thread_event_severe_underrun_called = 0;
   }
@@ -58,7 +62,7 @@ class DevIoSuite : public testing::Test {
 
   size_t cb_threshold = 480;
   cras_audio_format format;
-  StreamPtr stream;
+  StreamPtr stream, output_stream1, output_stream2;
   struct timespec ts;
 };
 
@@ -419,6 +423,118 @@ TEST_F(DevIoSuite, PlaybackWriteSevereUnderrun) {
   EXPECT_EQ(cras_audio_thread_event_severe_underrun_called, 1);
 }
 
+TEST_F(DevIoSuite, GetWriteLimitLessQueuedFrames) {
+  struct open_dev* dev_list = nullptr;
+  AddFakeDataToStream(output_stream1.get(), 480);
+
+  DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
+
+  dev1->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  DL_APPEND(dev_list, dev1->odev.get());
+
+  add_stream_to_dev(dev1->dev, output_stream1);
+  EXPECT_EQ(480, get_write_limit(&dev_list, dev_list, 960));
+  EXPECT_EQ(dev_stream_playback_frames(output_stream1->dstream.get()), 480);
+  EXPECT_EQ(480, output_stream1->rstream->queued_frames);
+}
+
+TEST_F(DevIoSuite, GetWriteLimitLessWritableFrames) {
+  struct open_dev* dev_list = nullptr;
+  AddFakeDataToStream(output_stream1.get(), 480);
+
+  DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
+
+  dev1->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  DL_APPEND(dev_list, dev1->odev.get());
+
+  add_stream_to_dev(dev1->dev, output_stream1);
+
+  EXPECT_EQ(360, get_write_limit(&dev_list, dev_list, 360));
+  EXPECT_EQ(480, output_stream1->rstream->queued_frames);
+}
+
+TEST_F(DevIoSuite, GetWriteLimitSkipNotRunningStream) {
+  struct open_dev* dev_list = nullptr;
+  AddFakeDataToStream(output_stream1.get(), 480);
+  AddFakeDataToStream(output_stream2.get(), 360);
+
+  DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
+
+  dev1->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  DL_APPEND(dev_list, dev1->odev.get());
+  output_stream2->dstream->is_running = false;
+
+  add_stream_to_dev(dev1->dev, output_stream1);
+  add_stream_to_dev(dev1->dev, output_stream2);
+
+  EXPECT_EQ(480, get_write_limit(&dev_list, dev_list, 960));
+}
+
+TEST_F(DevIoSuite, GetWriteLimitSkipNegativeDevFrames) {
+  struct open_dev* dev_list = nullptr;
+  AddFakeDataToStream(output_stream1.get(), 480);
+  AddFakeDataToStream(output_stream2.get(), 360);
+
+  DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
+
+  dev1->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  rstream_stub_dev_offset(output_stream2->rstream.get(), 1, 480);
+  DL_APPEND(dev_list, dev1->odev.get());
+
+  add_stream_to_dev(dev1->dev, output_stream1);
+  add_stream_to_dev(dev1->dev, output_stream2);
+
+  EXPECT_EQ(480, get_write_limit(&dev_list, dev_list, 960));
+  rstream_stub_dev_offset(output_stream2->rstream.get(), 1, 0);
+}
+
+TEST_F(DevIoSuite, GetWriteLimitSkipDrainingStreamWithRegularStream) {
+  struct open_dev* dev_list = nullptr;
+  AddFakeDataToStream(output_stream1.get(), 480);
+  AddFakeDataToStream(output_stream2.get(), 360);
+
+  DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
+
+  dev1->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  output_stream2->rstream->is_draining = true;
+
+  DL_APPEND(dev_list, dev1->odev.get());
+
+  add_stream_to_dev(dev1->dev, output_stream1);
+  add_stream_to_dev(dev1->dev, output_stream2);
+  EXPECT_EQ(480, get_write_limit(&dev_list, dev_list, 960));
+}
+
+TEST_F(DevIoSuite, GetWriteLimitAllDrainingStreams) {
+  struct open_dev* dev_list = nullptr;
+  AddFakeDataToStream(output_stream1.get(), 480);
+  AddFakeDataToStream(output_stream2.get(), 0);
+
+  DevicePtr dev1 = create_device(CRAS_STREAM_OUTPUT, cb_threshold, &format,
+                                 CRAS_NODE_TYPE_INTERNAL_SPEAKER, 0);
+
+  dev1->dev->state = CRAS_IODEV_STATE_NORMAL_RUN;
+
+  output_stream1->rstream->is_draining = true;
+  output_stream2->rstream->is_draining = true;
+
+  DL_APPEND(dev_list, dev1->odev.get());
+
+  add_stream_to_dev(dev1->dev, output_stream1);
+  add_stream_to_dev(dev1->dev, output_stream2);
+  EXPECT_EQ(0, get_write_limit(&dev_list, dev_list, 960));
+}
+
 // Stubs
 extern "C" {
 
@@ -457,11 +573,13 @@ int cras_audio_thread_event_severe_underrun() {
 }
 
 int dev_stream_attached_devs(const struct dev_stream* dev_stream) {
-  return 0;
+  return dev_stream->stream->num_attached_devs;
 }
-void dev_stream_update_frames(const struct dev_stream* dev_stream) {}
+void dev_stream_update_frames(const struct dev_stream* dev_stream) {
+  cras_rstream_update_queued_frames(dev_stream->stream);
+}
 int dev_stream_playback_frames(const struct dev_stream* dev_stream) {
-  return 0;
+  return cras_rstream_playable_frames(dev_stream->stream, dev_stream->dev_id);
 }
 int dev_stream_is_pending_reply(const struct dev_stream* dev_stream) {
   return 0;

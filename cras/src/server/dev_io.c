@@ -671,35 +671,31 @@ static int capture_to_streams(struct open_dev* adev,
   return 0;
 }
 
-/* Fill the buffer with samples from the attached streams.
+/* Gets the maximum number of frames that can be rendered.
+ * It is the minimum number of available samples in playing dev_streams, or
+ * writeable_frames if it's smaller than the minimum number of available
+ * samples. If all streams are draining, get_write_limit returns the minimum
+ * number of available samples in draining dev_streams.
+ *
  * Args:
  *    odevs - The list of open output devices, provided so streams can be
  *            removed from all devices on error.
  *    adev - The device to write to.
- *    dst - The buffer to put the samples in (returned from snd_pcm_mmap_begin)
- *    write_limit - The maximum number of frames to write to dst.
+ *    writeable_frames - The maximum number frames to write.
  *
  * Returns:
- *    The number of frames rendered on success.
- *    This number of frames is the minimum of the amount of frames each stream
- *    could provide which is the maximum that can currently be rendered.
+ *    The number of frames that can be rendered.
  */
-static unsigned int write_streams(struct open_dev** odevs,
-                                  struct open_dev* adev,
-                                  uint8_t* dst,
-                                  size_t write_limit) {
+unsigned int get_write_limit(struct open_dev** odevs,
+                             struct open_dev* adev,
+                             unsigned int writeable_frames) {
   struct cras_iodev* odev = adev->dev;
-  struct dev_stream* curr;
-  unsigned int max_offset = 0;
-  unsigned int frame_bytes = cras_get_format_bytes(odev->format);
+  unsigned int drain_limit = writeable_frames;
+  unsigned int write_limit = writeable_frames;
   unsigned int num_playing = 0;
-  unsigned int drain_limit = write_limit;
+  struct dev_stream* curr;
 
-  // Mix as much as we can, the minimum fill level of any stream.
-  max_offset = cras_iodev_max_stream_offset(odev);
-
-  // Mix as much as we can, the minimum fill level of any stream.
-  DL_FOREACH (adev->dev->streams, curr) {
+  DL_FOREACH (odev->streams, curr) {
     int dev_frames;
 
     // Skip stream which hasn't started running yet.
@@ -734,7 +730,33 @@ static unsigned int write_streams(struct open_dev** odevs,
   if (!num_playing) {
     write_limit = drain_limit;
   }
+  return write_limit;
+}
 
+/* Fill the buffer with samples from the attached streams.
+ * Args:
+ *    odevs - The list of open output devices, provided so streams can be
+ *            removed from all devices on error.
+ *    adev - The device to write to.
+ *    dst - The buffer to put the samples in (returned from snd_pcm_mmap_begin)
+ *    write_limit - The maximum number of frames to write to dst.
+ *
+ * Returns:
+ *    The number of frames rendered on success.
+ *    This number of frames is the minimum of the amount of frames each stream
+ *    could provide which is the maximum that can currently be rendered.
+ */
+static unsigned int write_streams(struct open_dev** odevs,
+                                  struct open_dev* adev,
+                                  uint8_t* dst,
+                                  size_t write_limit) {
+  struct cras_iodev* odev = adev->dev;
+  struct dev_stream* curr;
+
+  unsigned int frame_bytes = cras_get_format_bytes(odev->format);
+  unsigned int max_offset = cras_iodev_max_stream_offset(odev);
+
+  // Initialize buffer that is not written previously.
   if (write_limit > max_offset) {
     memset(dst + max_offset * frame_bytes, 0,
            (write_limit - max_offset) * frame_bytes);
@@ -742,7 +764,7 @@ static unsigned int write_streams(struct open_dev** odevs,
 
   ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX, write_limit, max_offset, 0);
 
-  DL_FOREACH (adev->dev->streams, curr) {
+  DL_FOREACH (odev->streams, curr) {
     unsigned int offset;
     int nwritten;
 
@@ -816,7 +838,7 @@ int write_output_samples(struct open_dev** odevs,
   struct cras_iodev* odev = adev->dev;
   unsigned int hw_level;
   struct timespec hw_tstamp;
-  unsigned int frames, fr_to_req;
+  unsigned int frames_writeable, fr_to_req;
   snd_pcm_sframes_t written;
   snd_pcm_uframes_t total_written = 0;
   int rc;
@@ -871,22 +893,23 @@ int write_output_samples(struct open_dev** odevs,
    * partial area to write to from mmap_begin */
   while (total_written < fr_to_req) {
     rc = cras_iodev_get_output_buffer(odev, fr_to_req - total_written, &area,
-                                      &frames);
+                                      &frames_writeable);
     if (rc < 0) {
       return rc;
     }
 
     // TODO(dgreid) - This assumes interleaved audio.
     dst = area->channels[0].buf;
-    written = write_streams(odevs, adev, dst, frames);
-    if (written < (snd_pcm_sframes_t)frames) {
+    unsigned int write_limit = get_write_limit(odevs, adev, frames_writeable);
+    written = write_streams(odevs, adev, dst, write_limit);
+    if (written < (snd_pcm_sframes_t)frames_writeable) {
       /* Got all the samples from client that we can, but it
        * won't fill the request. */
       fr_to_req = 0;  // break out after committing samples
     }
-    if (written > (snd_pcm_sframes_t)frames) {
+    if (written > (snd_pcm_sframes_t)frames_writeable) {
       syslog(LOG_WARNING, "%s: %s: wrote %ld > buffer size %u", __func__,
-             odev->info.name, written, frames);
+             odev->info.name, written, frames_writeable);
     }
 
     // This interval is lazily initialized once per device.

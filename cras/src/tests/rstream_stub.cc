@@ -74,7 +74,7 @@ void cras_rstream_dev_offset_update(struct cras_rstream* rstream,
 
 unsigned int cras_rstream_playable_frames(struct cras_rstream* rstream,
                                           unsigned int dev_id) {
-  return 0;
+  return rstream->queued_frames - cras_rstream_dev_offset(rstream, dev_id);
 }
 
 float cras_rstream_get_volume_scaler(struct cras_rstream* rstream) {
@@ -105,7 +105,10 @@ int cras_rstream_request_audio(struct cras_rstream* stream,
   return 0;
 }
 
-void cras_rstream_update_queued_frames(struct cras_rstream* rstream) {}
+void cras_rstream_update_queued_frames(struct cras_rstream* rstream) {
+  rstream->queued_frames =
+      MIN(cras_shm_get_frames(rstream->shm), rstream->buffer_frames);
+}
 
 int cras_rstream_is_pending_reply(const struct cras_rstream* rstream) {
   auto elem = data_map.find(rstream);

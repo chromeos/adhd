@@ -117,6 +117,11 @@ int dev_io_remove_stream(struct open_dev** dev_list,
                          struct cras_rstream* stream,
                          struct cras_iodev* dev);
 
+// Only public for testing.
+unsigned int get_write_limit(struct open_dev** odevs,
+                             struct open_dev* adev,
+                             unsigned int writeable_frames);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
