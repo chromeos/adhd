@@ -272,6 +272,33 @@ static void disallow_non_supported_dsp_effects(uint32_t* effects) {
   }
 }
 
+// Check whether the APM_* effects should be honored.
+// TODO(b/297826149): Always honor APM_* effects with multiple endpoint capture.
+static bool should_honor_apm_effects(const struct cras_rstream_config* config) {
+  if (config->effects & (APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION |
+                         APM_GAIN_CONTROL | APM_VOICE_DETECTION)) {
+    return true;
+  }
+  if (config->stream_type == CRAS_STREAM_TYPE_SPEECH_RECOGNITION) {
+    // Avoid the case where causes a SPEECH_RECOGNITION stream to block
+    // DSP NC usage.
+    return false;
+  }
+  switch (config->client_type) {
+    case CRAS_CLIENT_TYPE_ARC:
+    case CRAS_CLIENT_TYPE_CROSVM:
+    case CRAS_CLIENT_TYPE_PLUGIN:
+    case CRAS_CLIENT_TYPE_ARCVM:
+    case CRAS_CLIENT_TYPE_BOREALIS:
+    case CRAS_CLIENT_TYPE_SOUND_CARD_INIT:
+      // APM usage is not enabled for these clients.
+      // If it's not explicitly requested, assume it doesn't matter.
+      return false;
+    default:
+      return true;
+  }
+}
+
 // Exported functions
 
 int cras_rstream_create(struct cras_rstream_config* config,
@@ -324,7 +351,13 @@ int cras_rstream_create(struct cras_rstream_config* config,
   stream->fd = config->audio_fd;
   config->audio_fd = -1;
   stream->buf_state = buffer_share_create(stream->buffer_frames);
+
+  // Resolve stream effects.
   disallow_non_supported_dsp_effects(&config->effects);
+  if (!should_honor_apm_effects(config)) {
+    config->effects |= PRIVATE_DONT_CARE_APM_EFFECTS;
+  }
+
   stream->stream_apm = (stream->direction == CRAS_STREAM_INPUT)
                            ? cras_stream_apm_create(config->effects)
                            : NULL;
