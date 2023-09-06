@@ -28,7 +28,7 @@ class GDBServer:
             "CheckHostIP": "no",
             "BatchMode": "yes",
             "LogLevel": "QUIET",
-            f"LocalForward {str(self.gdb_port)}": f"localhost:{str(self.gdb_port)}",
+            f"LocalForward": f"{str(self.gdb_port)} localhost:{str(self.gdb_port)}",
         }
 
     def RunRemoteGDBServer(self):
