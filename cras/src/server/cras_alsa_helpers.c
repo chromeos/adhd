@@ -760,6 +760,13 @@ int cras_alsa_mmap_begin(snd_pcm_t* handle,
   const snd_pcm_channel_area_t* my_areas;
 
   while (attempts++ < MAX_MMAP_BEGIN_ATTEMPTS) {
+    /* Call snd_pcm_avail_update before snd_pcm_mmap_begin to ensure correct
+     * frame count.
+     */
+    rc = snd_pcm_avail_update(handle);
+    if (rc < 0) {
+      return rc;
+    }
     rc = snd_pcm_mmap_begin(handle, &my_areas, offset, frames);
     if (rc == -ESTRPIPE) {
       // First handle suspend/resume.
