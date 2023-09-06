@@ -544,6 +544,8 @@ int floss_media_a2dp_set_audio_config(struct fl_media* fm,
 
 int floss_media_a2dp_start_audio_request(struct fl_media* fm,
                                          const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
+
   int rc = 0;
 
   syslog(LOG_DEBUG, "%s: %s", __func__, addr);
@@ -617,6 +619,8 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
 }
 
 int floss_media_a2dp_stop_audio_request(struct fl_media* fm) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
 
@@ -760,6 +764,8 @@ int floss_media_a2dp_get_presentation_position(
     uint64_t* remote_delay_report_ns,
     uint64_t* total_bytes_read,
     struct timespec* data_position_ts) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
 
