@@ -158,6 +158,10 @@ static int sys_get_max_headphone_channels_called = 0;
 static int sys_get_max_headphone_channels_return_value = 2;
 static int cras_iodev_update_underrun_duration_called = 0;
 
+unsigned int cras_iodev_max_stream_offset(const struct cras_iodev* iodev) {
+  return 0;
+}
+
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
                                    int value) {
@@ -319,6 +323,7 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   ASSERT_EQ(1, aio->common.base.active_node->plugged);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
+  iodev->close_dev(iodev);
   cras_alsa_usb_iodev_destroy(iodev);
   free(fake_format);
   iodev = cras_alsa_usb_iodev_create_with_default_parameters(
@@ -336,6 +341,7 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS,
             aio->common.base.active_node->intrinsic_sensitivity);
   ASSERT_EQ(0, aio->common.base.active_node->capture_gain);
+  iodev->close_dev(iodev);
   cras_alsa_usb_iodev_destroy(iodev);
   free(fake_format);
 }
@@ -344,6 +350,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
   struct cras_iodev* iodev;
   struct cras_audio_format format;
 
+  ResetStubData();
   iodev = cras_alsa_usb_iodev_create_with_default_parameters(
       0, NULL, ALSA_CARD_TYPE_USB, 0, fake_mixer, fake_config, NULL,
       CRAS_STREAM_INPUT);
@@ -356,13 +363,12 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
   iodev->active_node->intrinsic_sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
   iodev->active_node->capture_gain = 0;
 
-  ResetStubData();
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
 
   // Not change mixer controls for USB devices without UCM config.
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_called);
-
+  iodev->close_dev(iodev);
   cras_alsa_usb_iodev_destroy(iodev);
   free(fake_format);
 }
@@ -394,6 +400,7 @@ TEST(AlsaIoInit, MaxSupportedChannels) {
     EXPECT_EQ(1, cras_alsa_fill_properties_called);
     uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
     EXPECT_EQ(max_channels, aio->common.base.info.max_supported_channels);
+    iodev->close_dev(iodev);
     cras_alsa_usb_iodev_destroy((struct cras_iodev*)iodev);
     free(fake_format);
     EXPECT_EQ(1, cras_iodev_free_resources_called);
@@ -472,6 +479,7 @@ class NodeUSBCardSuite : public testing::Test {
               aio->common.base.active_node->number_of_volume_steps);
     EXPECT_EQ(expect_enable_software_volume,
               aio->common.base.active_node->software_volume_needed);
+    iodev->close_dev(iodev);
     cras_alsa_usb_iodev_destroy(iodev);
     free(fake_format);
   }
@@ -507,6 +515,7 @@ class NodeUSBCardSuite : public testing::Test {
     } else {
       EXPECT_EQ(0, cras_volume_curve_create_simple_step_called);
     }
+    iodev->close_dev(iodev);
     cras_alsa_usb_iodev_destroy(iodev);
     free(fake_format);
   }

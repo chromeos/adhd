@@ -22,6 +22,7 @@
 
 #include "cras/base/check.h"
 #include "cras/src/common/cras_alsa_card_info.h"
+#include "cras/src/common/cras_string.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/cras_alsa_common_io.h"
@@ -306,6 +307,7 @@ static int configure_dev(struct cras_iodev* iodev) {
   aio->common.severe_underrun_frames =
       SEVERE_UNDERRUN_MS * iodev->format->frame_rate / 1000;
 
+  size_t fmt_bytes = cras_get_format_bytes(iodev->format);
   cras_iodev_init_audio_area(iodev);
 
   syslog(LOG_DEBUG, "Configure alsa device %s rate %zuHz, %zu channels",
@@ -315,6 +317,18 @@ static int configure_dev(struct cras_iodev* iodev) {
   rc = set_hwparams(iodev);
   if (rc < 0) {
     return rc;
+  }
+
+  if (!aio->common.sample_buf) {
+    aio->common.sample_buf =
+        (uint8_t*)calloc(iodev->buffer_size * fmt_bytes, sizeof(uint8_t));
+    if (!aio->common.sample_buf) {
+      syslog(LOG_ERR, "cras_alsa_io: configure_dev: calloc: %s",
+             cras_strerror(errno));
+      return -ENOMEM;
+    }
+    cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
+                                        aio->common.sample_buf);
   }
 
   // Set channel map to device
@@ -429,19 +443,30 @@ static int get_buffer(struct cras_iodev* iodev,
                       struct cras_audio_area** area,
                       unsigned* frames) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
-  snd_pcm_uframes_t nframes = *frames;
-  uint8_t* dst = NULL;
-  size_t format_bytes;
-  int rc;
+  snd_pcm_uframes_t nframes = MIN(iodev->buffer_size, *frames);
 
   aio->common.mmap_offset = 0;
-  format_bytes = cras_get_format_bytes(iodev->format);
+  size_t format_bytes = cras_get_format_bytes(iodev->format);
 
-  rc = cras_alsa_mmap_begin(aio->common.handle, format_bytes, &dst,
-                            &aio->common.mmap_offset, &nframes);
-
+  int rc = cras_alsa_mmap_begin(aio->common.handle, format_bytes,
+                                &aio->common.mmap_buf, &aio->common.mmap_offset,
+                                &nframes);
+  if (rc < 0) {
+    return rc;
+  }
   iodev->area->frames = nframes;
-  cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
+  // Copy mmap_buf data to local memory for faster manipulation.
+  // Check `cras_bench --benchmark_filter=BM_Alsa/MmapBuffer` for analysis.
+  if (iodev->direction == CRAS_STREAM_INPUT) {
+    if (nframes > iodev->input_dsp_offset) {
+      memcpy(aio->common.sample_buf + iodev->input_dsp_offset * format_bytes,
+             aio->common.mmap_buf + iodev->input_dsp_offset * format_bytes,
+             (nframes - iodev->input_dsp_offset) * format_bytes);
+    } else {
+      syslog(LOG_WARNING, "nframe is less than input_dsp_offset: %lu  > %u",
+             nframes, iodev->input_dsp_offset);
+    }
+  }
 
   *area = iodev->area;
   *frames = nframes;
@@ -451,6 +476,27 @@ static int get_buffer(struct cras_iodev* iodev,
 
 static int put_buffer(struct cras_iodev* iodev, unsigned nwritten) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
+
+  size_t format_bytes = cras_get_format_bytes(iodev->format);
+  if (iodev->direction == CRAS_STREAM_OUTPUT) {
+    memcpy(aio->common.mmap_buf, aio->common.sample_buf,
+           nwritten * format_bytes);
+    unsigned int max_offset = cras_iodev_max_stream_offset(iodev);
+    if (max_offset) {
+      memmove(aio->common.sample_buf,
+              aio->common.sample_buf + nwritten * format_bytes,
+              max_offset * format_bytes);
+    }
+  } else {
+    // CRAS applied input DSP on the uncommitted data, move then to the
+    // beginning.
+    if (iodev->input_dsp_offset) {
+      memmove(aio->common.sample_buf,
+              aio->common.sample_buf + nwritten * format_bytes,
+              iodev->input_dsp_offset * format_bytes);
+    }
+  }
+
   return cras_alsa_mmap_commit(aio->common.handle, aio->common.mmap_offset,
                                nwritten);
 }

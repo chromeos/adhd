@@ -148,6 +148,12 @@ struct alsa_common_io {
   size_t product_id;
   // Last obtained hardware timestamp.
   struct timespec hardware_timestamp;
+  // Pointer to mmap buffer. It's mmap-ed in get_buffer() and
+  // committed in put_buffer().
+  uint8_t* mmap_buf;
+  // Pointer to sample buffer. It's malloc in configure_dev() and
+  // free in close_dev().
+  uint8_t* sample_buf;
 };
 
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);

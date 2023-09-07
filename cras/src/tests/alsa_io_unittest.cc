@@ -268,6 +268,10 @@ static cras_volume_curve default_curve = {
     .get_dBFS = fake_get_dBFS,
 };
 
+unsigned int cras_iodev_max_stream_offset(const struct cras_iodev* iodev) {
+  return 0;
+}
+
 static struct cras_iodev* alsa_iodev_create_with_default_parameters(
     size_t card_index,
     const char* dev_id,
