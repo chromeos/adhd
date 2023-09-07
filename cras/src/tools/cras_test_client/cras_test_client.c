@@ -1568,6 +1568,9 @@ static void print_cras_audio_thread_snapshot(
   printf("Event time: %s\n", time_str);
   printf("Event type: ");
   switch (snapshot->event_type) {
+    case AUDIO_THREAD_EVENT_A2DP_OVERRUN:
+      printf("a2dp overrun");
+      break;
     case AUDIO_THREAD_EVENT_A2DP_THROTTLE:
       printf("a2dp throttle\n");
       break;
