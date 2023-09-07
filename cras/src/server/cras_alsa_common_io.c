@@ -232,6 +232,8 @@ int cras_alsa_common_close_dev(const struct cras_iodev* iodev) {
   aio->hwparams_set = 0;
   cras_iodev_free_format(&aio->base);
   cras_iodev_free_audio_area(&aio->base);
+  free(aio->sample_buf);
+  aio->sample_buf = NULL;
   return 0;
 }
 int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name) {
