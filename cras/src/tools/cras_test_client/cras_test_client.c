@@ -26,6 +26,7 @@
 
 #include "cras/base/check.h"
 #include "cras/src/common/cras_string.h"
+#include "cras/src/common/cras_types_internal.h"
 #include "cras/src/common/cras_version.h"
 #include "cras/src/server/rust/include/pseudonymization.h"
 #include "cras_audio_format.h"
@@ -1566,35 +1567,8 @@ static void print_cras_audio_thread_snapshot(
 
   printf("-------------snapshot------------\n");
   printf("Event time: %s\n", time_str);
-  printf("Event type: ");
-  switch (snapshot->event_type) {
-    case AUDIO_THREAD_EVENT_A2DP_OVERRUN:
-      printf("a2dp overrun");
-      break;
-    case AUDIO_THREAD_EVENT_A2DP_THROTTLE:
-      printf("a2dp throttle\n");
-      break;
-    case AUDIO_THREAD_EVENT_BUSYLOOP:
-      printf("busyloop\n");
-      break;
-    case AUDIO_THREAD_EVENT_UNDERRUN:
-      printf("underrun\n");
-      break;
-    case AUDIO_THREAD_EVENT_SEVERE_UNDERRUN:
-      printf("severe underrun\n");
-      break;
-    case AUDIO_THREAD_EVENT_DROP_SAMPLES:
-      printf("drop samples\n");
-      break;
-    case AUDIO_THREAD_EVENT_DEV_OVERRUN:
-      printf("device overrun\n");
-      break;
-    case AUDIO_THREAD_EVENT_DEBUG:
-      printf("debug\n");
-      break;
-    default:
-      printf("no such type\n");
-  }
+  printf("Event type: %s\n",
+         audio_thread_event_type_to_str(snapshot->event_type));
   print_aligned_audio_debug_info(&snapshot->audio_debug_info, sec_offset,
                                  nsec_offset);
 }

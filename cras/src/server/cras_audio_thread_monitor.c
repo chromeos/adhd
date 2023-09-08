@@ -7,6 +7,8 @@
 #include <time.h>
 
 #include "cras/server/main_message.h"
+#include "cras/src/common/cras_log.h"
+#include "cras/src/common/cras_types_internal.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_observer.h"
@@ -112,6 +114,10 @@ static void handle_audio_thread_event_message(struct cras_main_message* msg,
   if (audio_thread_msg->event_type >= AUDIO_THREAD_EVENT_TYPE_COUNT) {
     return;
   }
+
+  FRALOG(
+      AudioThreadEvent,
+      {"type", audio_thread_event_type_to_str(audio_thread_msg->event_type)});
 
   struct timespec* last_snapshot_time =
       &last_event_snapshot_time[audio_thread_msg->event_type];

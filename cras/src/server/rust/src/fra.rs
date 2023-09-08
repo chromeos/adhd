@@ -22,6 +22,7 @@ pub enum CrasFRASignal {
     USBAudioResumeFailed,
     ActiveOutputDevice,
     ActiveInputDevice,
+    AudioThreadEvent,
 }
 
 #[repr(C)]

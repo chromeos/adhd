@@ -10,6 +10,7 @@ cc_binary(
     name = "cras_test_client",
     srcs = ["cras_test_client/cras_test_client.c"],
     deps = [
+        "//cras/src/common:cras_types_internal",
         "//cras/src/libcras:cras_client",
         "//cras/src/server/rust",
     ],

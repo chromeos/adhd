@@ -30,6 +30,7 @@ enum CRAS_FRA_SIGNAL {
   USBAudioResumeFailed,
   ActiveOutputDevice,
   ActiveInputDevice,
+  AudioThreadEvent,
 };
 
 struct cras_fra_kv_t {

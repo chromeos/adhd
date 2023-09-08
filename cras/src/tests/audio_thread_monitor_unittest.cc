@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "cras/server/main_message.h"
+#include "cras/src/common/cras_log.h"
 
 extern "C" {
 #include "cras/src/server/cras_audio_thread_monitor.c"

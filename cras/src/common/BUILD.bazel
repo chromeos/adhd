@@ -172,6 +172,19 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "cras_types_internal",
+    hdrs = ["cras_types_internal.h"],
+    visibility = [
+        "//cras/src/common:__pkg__",
+        "//cras/src/server:__pkg__",
+        "//cras/src/tools:__pkg__",
+    ],
+    deps = [
+        "//cras/include",
+    ],
+)
+
 genrule(
     name = "cras_dbus_bindings_h",
     srcs = [
@@ -258,6 +271,7 @@ cc_library(
         ":cras_string",
         ":cras_log",
         ":cras_types",
+        ":cras_types_internal",
         ":cras_util",
         "//third_party/superfasthash",
         "//third_party/utlist",
