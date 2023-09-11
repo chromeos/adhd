@@ -1865,7 +1865,7 @@ cc_test(
         "@pkg_config//alsa",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
-        "@webrtc_apm",
+        "@webrtc_apm//webrtc_apm",
     ],
 )
 

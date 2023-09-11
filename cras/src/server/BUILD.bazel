@@ -543,7 +543,7 @@ cc_library(
         "//cras/src/dsp",
         "//cras/src/server/rust",
     ] + select({
-        "//:apm_build": ["@webrtc_apm"],
+        "//:apm_build": ["@webrtc_apm//webrtc_apm"],
         "//conditions:default": [],
     }),
 )

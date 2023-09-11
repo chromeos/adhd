@@ -17,7 +17,7 @@
 #include "cras/src/server/float_buffer.h"
 #include "cras/src/tests/scoped_features_override.hh"
 #include "cras_types.h"
-#include "webrtc_apm.h"
+#include "webrtc_apm/webrtc_apm.h"
 
 #define FILENAME_TEMPLATE "ApmTest.XXXXXX"
 

@@ -31,7 +31,7 @@
 #include "cras/src/server/rust/include/cras_processor.h"
 #include "cras_audio_format.h"
 #include "third_party/utlist/utlist.h"
-#include "webrtc_apm.h"
+#include "webrtc_apm/webrtc_apm.h"
 
 #define AEC_CONFIG_NAME "aec.ini"
 #define APM_CONFIG_NAME "apm.ini"
