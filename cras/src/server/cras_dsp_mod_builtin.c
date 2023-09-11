@@ -38,6 +38,12 @@ static int empty_get_delay(struct dsp_module* module) {
   return 0;
 }
 
+static int unimplemented_get_offload_blob(struct dsp_module* module,
+                                          uint32_t** config,
+                                          size_t* config_size) {
+  return -EINVAL;
+}
+
 static void empty_run(struct dsp_module* module, unsigned long sample_count) {}
 
 static void empty_deinstantiate(struct dsp_module* module) {}
@@ -59,6 +65,7 @@ static void empty_init_module(struct dsp_module* module) {
   module->connect_port = &empty_connect_port;
   module->configure = &empty_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &empty_run;
   module->deinstantiate = &empty_deinstantiate;
   module->free_module = &empty_free_module;
@@ -190,6 +197,7 @@ static void quad_rotation_init_module(struct dsp_module* module) {
   module->connect_port = &quad_rotation_connect_port;
   module->configure = &empty_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &quad_rotation_run;
   module->deinstantiate = &quad_rotation_deinstantiate;
   module->free_module = &empty_free_module;
@@ -242,6 +250,7 @@ static void swap_lr_init_module(struct dsp_module* module) {
   module->connect_port = &swap_lr_connect_port;
   module->configure = &empty_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &swap_lr_run;
   module->deinstantiate = &swap_lr_deinstantiate;
   module->free_module = &empty_free_module;
@@ -291,6 +300,7 @@ static void invert_lr_init_module(struct dsp_module* module) {
   module->connect_port = &invert_lr_connect_port;
   module->configure = &empty_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &invert_lr_run;
   module->deinstantiate = &invert_lr_deinstantiate;
   module->free_module = &empty_free_module;
@@ -342,6 +352,7 @@ static void mix_stereo_init_module(struct dsp_module* module) {
   module->connect_port = &mix_stereo_connect_port;
   module->configure = &empty_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &mix_stereo_run;
   module->deinstantiate = &mix_stereo_deinstantiate;
   module->free_module = &empty_free_module;
@@ -440,6 +451,7 @@ static void dcblock_init_module(struct dsp_module* module) {
   module->connect_port = &dcblock_connect_port;
   module->configure = &dcblock_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &dcblock_run;
   module->deinstantiate = &dcblock_deinstantiate;
   module->free_module = &empty_free_module;
@@ -533,6 +545,7 @@ static void eq_init_module(struct dsp_module* module) {
   module->connect_port = &eq_connect_port;
   module->configure = &eq_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &eq_run;
   module->deinstantiate = &eq_deinstantiate;
   module->free_module = &empty_free_module;
@@ -634,6 +647,7 @@ static void eq2_init_module(struct dsp_module* module) {
   module->connect_port = &eq2_connect_port;
   module->configure = &eq2_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &eq2_run;
   module->deinstantiate = &eq2_deinstantiate;
   module->free_module = &empty_free_module;
@@ -750,6 +764,7 @@ static void drc_init_module(struct dsp_module* module) {
   module->connect_port = &drc_connect_port;
   module->configure = &drc_configure;
   module->get_delay = &drc_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &drc_run;
   module->deinstantiate = &drc_deinstantiate;
   module->free_module = &empty_free_module;
@@ -818,6 +833,7 @@ static void sink_init_module(struct dsp_module* module) {
   module->connect_port = &sink_connect_port;
   module->configure = &empty_configure;
   module->get_delay = &empty_get_delay;
+  module->get_offload_blob = &unimplemented_get_offload_blob;
   module->run = &sink_run;
   module->deinstantiate = &sink_deinstantiate;
   module->free_module = &empty_free_module;

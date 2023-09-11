@@ -11,6 +11,7 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "cras/src/server/cras_dsp_ini.h"
 
@@ -50,6 +51,20 @@ struct dsp_module {
    * prior to the run() call.
    */
   void (*configure)(struct dsp_module* mod);
+
+  /* Generates the config blob of this module for DSP offload.
+   * If needed, it should be called right after the configure() call.
+   * Args:
+   *    config - The pointer of the config blob buffer to be returned. The
+   *             buffer will be allocated in this funtion. Clients should help
+   *             on release after use.
+   *    config_size - The config blob size in bytes.
+   * Returns:
+   *    0 if the generation is successful. A negative error code otherwise.
+   */
+  int (*get_offload_blob)(struct dsp_module* mod,
+                          uint32_t** config,
+                          size_t* config_size);
 
   /* Returns the buffering delay of this module. This should be called
    * only after all input control ports have been connected.
