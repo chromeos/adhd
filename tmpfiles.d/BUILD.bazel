@@ -1,0 +1,16 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
+load("//dist:defs.bzl", "FILE_ATTRIBUTES")
+
+pkg_files(
+    name = "tmpfiles_d_files",
+    srcs = [
+        "cras.conf",
+    ],
+    attributes = FILE_ATTRIBUTES,
+    prefix = "usr/lib/tmpfiles.d",
+    visibility = ["//dist:__pkg__"],
+)

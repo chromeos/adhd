@@ -1,0 +1,52 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@rules_pkg//pkg:mappings.bzl", "pkg_filegroup", "pkg_files", "pkg_mklink")
+load("//dist:defs.bzl", "FILE_ATTRIBUTES")
+
+pkg_filegroup(
+    name = "init_files",
+    srcs = [
+        ":cras_dev_link",
+        ":init_conf",
+        ":init_scripts",
+        ":init_scripts_local",
+    ],
+    visibility = ["//dist:__pkg__"],
+)
+
+pkg_files(
+    name = "init_conf",
+    srcs = [
+        "cras.conf",
+        "cras-dev.conf",
+    ],
+    attributes = FILE_ATTRIBUTES,
+    prefix = "etc/init",
+)
+
+pkg_files(
+    name = "init_scripts",
+    srcs = [
+        "cras.sh",
+        "cras-env.sh",
+    ],
+    attributes = FILE_ATTRIBUTES,
+    prefix = "usr/share/cros/init",
+)
+
+pkg_files(
+    name = "init_scripts_local",
+    srcs = [
+        "cras-dev.sh",
+    ],
+    attributes = FILE_ATTRIBUTES,
+    prefix = "usr/local/share/cros/init",
+)
+
+pkg_mklink(
+    name = "cras_dev_link",
+    link_name = "usr/local/bin/cras-dev.sh",
+    target = "../share/cros/init/cras-dev.sh",
+)
