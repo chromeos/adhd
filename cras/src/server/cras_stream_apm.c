@@ -498,14 +498,14 @@ static void apm_destroy(struct cras_apm** apm) {
 }
 
 static inline bool apm_needed_for_effects(uint64_t effects,
-                                          bool cras_processor_needed) {
+                                          bool cras_processor_needed,
+                                          bool dsp_aec_supported) {
   if (effects &
       (APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL)) {
     // Required for webrtc-apm.
     return true;
   }
-  if (cras_system_aec_on_dsp_supported() &&
-      !(effects & PRIVATE_DONT_CARE_APM_EFFECTS)) {
+  if (dsp_aec_supported && !(effects & PRIVATE_DONT_CARE_APM_EFFECTS)) {
     // This stream expects CRAS to serve the exact APM effects.
     // Create an APM so it could be checked with dsp_effect_check_conflict.
     return true;
@@ -526,7 +526,8 @@ struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
           // cannot be known at stream creation as the active device
           // may change (from not support NC to support NC), or the user
           // may touch the platform NC toggle.
-          /*cras_processor_needed=*/true)) {
+          /*cras_processor_needed=*/true,
+          /*dsp_aec_supported=*/cras_system_aec_on_dsp_supported())) {
     return NULL;
   }
 
@@ -663,7 +664,9 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
 
   // TODO(hychao): Remove the check when we enable more effects.
   if (!apm_needed_for_effects(
-          stream->effects, /*cras_processor_needed=*/cp_effect != NoEffects)) {
+          stream->effects, /*cras_processor_needed=*/cp_effect != NoEffects,
+          /*dsp_aec_supported=*/
+          cras_iodev_support_rtc_proc_on_dsp(idev, RTC_PROC_AEC))) {
     return NULL;
   }
 
