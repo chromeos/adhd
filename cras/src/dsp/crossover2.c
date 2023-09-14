@@ -666,7 +666,7 @@ static void lr42_merge(struct lr42* lp,
 
 void crossover2_init(struct crossover2* xo2, float freq1, float freq2) {
   int i;
-  for (i = 0; i < 3; i++) {
+  for (i = 0; i < CROSSOVER2_NUM_LR4_PAIRS; i++) {
     float f = (i == 0) ? freq1 : freq2;
     lr42_set(&xo2->lp[i], BQ_LOWPASS, f);
     lr42_set(&xo2->hp[i], BQ_HIGHPASS, f);

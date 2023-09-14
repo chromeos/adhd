@@ -10,9 +10,11 @@
 
 #include "cras/src/dsp/biquad.h"
 
+#define EQ2_NUM_CHANNELS 2
+
 struct eq2 {
-  int n[2];
-  struct biquad biquad[MAX_BIQUADS_PER_EQ2][2];
+  int n[EQ2_NUM_CHANNELS];
+  struct biquad biquad[MAX_BIQUADS_PER_EQ2][EQ2_NUM_CHANNELS];
 };
 
 struct eq2* eq2_new() {
@@ -25,7 +27,7 @@ struct eq2* eq2_new() {
   /* Initialize all biquads to identity filter, so if two channels have
    * different numbers of biquads, it still works. */
   for (i = 0; i < MAX_BIQUADS_PER_EQ2; i++) {
-    for (j = 0; j < 2; j++) {
+    for (j = 0; j < EQ2_NUM_CHANNELS; j++) {
       biquad_set(&eq2->biquad[i][j], BQ_NONE, 0, 0, 0);
     }
   }
@@ -336,7 +338,7 @@ void eq2_process(struct eq2* eq2, float* data0, float* data1, int count) {
   if (eq2->n[1] > n) {
     n = eq2->n[1];
   }
-  for (i = 0; i < n; i += 2) {
+  for (i = 0; i < n; i += EQ2_NUM_CHANNELS) {
     if (i + 1 == n) {
       eq2_process_one(&eq2->biquad[i], data0, data1, count);
     } else {

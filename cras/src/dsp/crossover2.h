@@ -13,6 +13,9 @@ extern "C" {
 /* "crossover2" is a two channel version of the "crossover" filter. It processes
  * two channels of data at once to increase performance. */
 
+// The number of lp and hp LR4 filter pairs in crossover2
+#define CROSSOVER2_NUM_LR4_PAIRS 3
+
 /* An LR4 filter is two biquads with the same parameters connected in series:
  *
  * x -- [BIQUAD] -- y -- [BIQUAD] -- z
@@ -44,7 +47,7 @@ struct lr42 {
  * lowpass or highpass butterworth filters.
  */
 struct crossover2 {
-  struct lr42 lp[3], hp[3];
+  struct lr42 lp[CROSSOVER2_NUM_LR4_PAIRS], hp[CROSSOVER2_NUM_LR4_PAIRS];
 };
 
 /* Initializes a crossover2 filter

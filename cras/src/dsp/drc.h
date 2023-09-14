@@ -100,6 +100,9 @@ enum {
 // The number of compressor kernels (also the number of bands).
 #define DRC_NUM_KERNELS 3
 
+// The number of stages for emphasis and deemphasis filters.
+#define DRC_EMPHASIS_NUM_STAGES 2
+
 // The maximum number of frames can be passed to drc_process() call.
 #define DRC_PROCESS_MAX_FRAMES 2048
 
