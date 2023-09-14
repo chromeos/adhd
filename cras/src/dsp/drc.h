@@ -181,6 +181,17 @@ void drc_process(struct drc* drc, float** data, int frames);
  */
 void drc_set_param(struct drc* drc, int index, unsigned paramID, float value);
 
+/* Converts the parameter set of a DRC to the config blob for DSP offload.
+ * Args:
+ *    drc - The DRC we want to use.
+ *    config - The pointer of the config blob buffer to be returned.
+ *    config_size - The config blob size in bytes.
+ * Returns:
+ *    0 if the conversion is successful. A negative error code otherwise.
+ */
+int drc_convert_params_to_blob(struct drc* drc,
+                               uint32_t** config,
+                               size_t* config_size);
 #ifdef __cplusplus
 }  // extern "C"
 #endif

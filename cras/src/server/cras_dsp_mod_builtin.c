@@ -621,6 +621,18 @@ static void eq2_configure(struct dsp_module* module) {
   }
 }
 
+static int eq2_get_offload_blob(struct dsp_module* module,
+                                uint32_t** config,
+                                size_t* config_size) {
+  struct eq2_data* data = module->data;
+  if (!data) {
+    syslog(LOG_ERR, "eq2 is not instantiated");
+    return -ENOMEM;
+  }
+
+  return eq2_convert_params_to_blob(data->eq2, config, config_size);
+}
+
 static void eq2_run(struct dsp_module* module, unsigned long sample_count) {
   struct eq2_data* data = module->data;
 
@@ -647,7 +659,7 @@ static void eq2_init_module(struct dsp_module* module) {
   module->connect_port = &eq2_connect_port;
   module->configure = &eq2_configure;
   module->get_delay = &empty_get_delay;
-  module->get_offload_blob = &unimplemented_get_offload_blob;
+  module->get_offload_blob = &eq2_get_offload_blob;
   module->run = &eq2_run;
   module->deinstantiate = &eq2_deinstantiate;
   module->free_module = &empty_free_module;
@@ -733,6 +745,18 @@ static void drc_configure(struct dsp_module* module) {
   drc_init(drc);
 }
 
+static int drc_get_offload_blob(struct dsp_module* module,
+                                uint32_t** config,
+                                size_t* config_size) {
+  struct drc_data* data = module->data;
+  if (!data) {
+    syslog(LOG_ERR, "drc is not instantiated");
+    return -ENOMEM;
+  }
+
+  return drc_convert_params_to_blob(data->drc, config, config_size);
+}
+
 static int drc_get_delay(struct dsp_module* module) {
   struct drc_data* data = module->data;
   return DRC_DEFAULT_PRE_DELAY * data->sample_rate;
@@ -764,7 +788,7 @@ static void drc_init_module(struct dsp_module* module) {
   module->connect_port = &drc_connect_port;
   module->configure = &drc_configure;
   module->get_delay = &drc_get_delay;
-  module->get_offload_blob = &unimplemented_get_offload_blob;
+  module->get_offload_blob = &drc_get_offload_blob;
   module->run = &drc_run;
   module->deinstantiate = &drc_deinstantiate;
   module->free_module = &empty_free_module;

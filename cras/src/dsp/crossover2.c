@@ -5,9 +5,12 @@
 
 #include "cras/src/dsp/crossover2.h"
 
+#include <errno.h>
 #include <string.h>
 
 #include "cras/src/dsp/biquad.h"
+#include "cras/src/dsp/dsp_helpers.h"
+#include "user/eq.h"
 
 static void lr42_set(struct lr42* lr42, enum biquad_type type, float freq) {
   struct biquad q;
@@ -688,4 +691,41 @@ void crossover2_process(struct crossover2* xo2,
   lr42_split(&xo2->lp[0], &xo2->hp[0], count, data0L, data0R, data1L, data1R);
   lr42_merge(&xo2->lp[1], &xo2->hp[1], count, data0L, data0R);
   lr42_split(&xo2->lp[2], &xo2->hp[2], count, data1L, data1R, data2L, data2R);
+}
+
+static void crossover2_convert_lr42(struct lr42* lr4,
+                                    struct sof_eq_iir_biquad* cfg) {
+  /* In SOF, the biquad filter is implemented similar to the form below:
+   * https://en.wikipedia.org/wiki/Digital_biquad_filter#Transposed_direct_form_2
+   * The coefficient a1 and a2 are applied in a negative way, which should be
+   * handled on blob conversion.
+   */
+  cfg->a2 = float_to_qint32(lr4->a2 * (-1), 30); /* Q2.30 */
+  cfg->a1 = float_to_qint32(lr4->a1 * (-1), 30); /* Q2.30 */
+
+  cfg->b2 = float_to_qint32(lr4->b2, 30); /* Q2.30 */
+  cfg->b1 = float_to_qint32(lr4->b1, 30); /* Q2.30 */
+  cfg->b0 = float_to_qint32(lr4->b0, 30); /* Q2.30 */
+  cfg->output_shift = 0;
+  cfg->output_gain = 1 << 14; /* Q2.14 (last 16 bits are redundant) */
+}
+
+int crossover2_convert_params_to_blob(struct crossover2* xo2,
+                                      int32_t* xo2_cfg) {
+  if (!xo2_cfg || !xo2) {
+    return -EINVAL;
+  }
+
+  struct sof_eq_iir_biquad* xo2_biquad = (struct sof_eq_iir_biquad*)xo2_cfg;
+
+  /* crossover2 is designed for 3-band splitter, which contains 3 pairs of
+   * lowpass and highpass filters. The blob needs to be converted in the order
+   * that LP0, HP0, LP1, HP1, LP2, HP2.
+   */
+  for (int comp = 0; comp < CROSSOVER2_NUM_LR4_PAIRS; comp++) {
+    crossover2_convert_lr42(&xo2->lp[comp], xo2_biquad++); /* LP[comp] */
+    crossover2_convert_lr42(&xo2->hp[comp], xo2_biquad++); /* HP[comp] */
+  }
+
+  return 0;
 }

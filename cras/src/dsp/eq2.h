@@ -6,14 +6,14 @@
 #ifndef CRAS_SRC_DSP_EQ2_H_
 #define CRAS_SRC_DSP_EQ2_H_
 
+#include "cras/src/dsp/biquad.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* "eq2" is a two channel version of the "eq" filter. It processes two channels
  * of data at once to increase performance. */
-
-#include "cras/src/dsp/biquad.h"
 
 // Maximum number of biquad filters an EQ2 can have per channel
 #define MAX_BIQUADS_PER_EQ2 10
@@ -69,6 +69,27 @@ int eq2_append_biquad_direct(struct eq2* eq2,
  */
 void eq2_process(struct eq2* eq2, float* data0, float* data1, int count);
 
+/* Convert the biquad array on the given channel to the config blob.
+ * Args:
+ *    eq2 - The EQ2 we want to use.
+ *    bq_cfg - The pointer of the config blob buffer to be filled.
+ *    channel - The channel to convert.
+ * Returns:
+ *    0 if the generation is successful. A negative error code otherwise.
+ */
+int eq2_convert_channel_response(struct eq2* eq2, int32_t* bq_cfg, int channel);
+
+/* Convert the parameter set of an EQ2 to the config blob for DSP offload.
+ * Args:
+ *    eq2 - The EQ2 we want to use.
+ *    config - The pointer of the config blob buffer to be returned.
+ *    config_size - The config blob size in bytes.
+ * Returns:
+ *    0 if the conversion is successful. A negative error code otherwise.
+ */
+int eq2_convert_params_to_blob(struct eq2* eq2,
+                               uint32_t** config,
+                               size_t* config_size);
 #ifdef __cplusplus
 }  // extern "C"
 #endif

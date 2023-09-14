@@ -6,6 +6,8 @@
 #ifndef CRAS_SRC_DSP_CROSSOVER2_H_
 #define CRAS_SRC_DSP_CROSSOVER2_H_
 
+#include "cras/src/dsp/biquad.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -76,6 +78,14 @@ void crossover2_process(struct crossover2* xo2,
                         float* data2L,
                         float* data2R);
 
+/* Converts parameters of a crossover2 to a blob for DSP offload.
+ * Args:
+ *    xo2 - The crossover2 we want to convert.
+ *    xo2_cfg - The pointer of the allocated blob buffer to be filled.
+ * Returns:
+ *    0 if the conversion is successful. A negative error code otherwise.
+ */
+int crossover2_convert_params_to_blob(struct crossover2* xo2, int32_t* xo2_cfg);
 #ifdef __cplusplus
 }  // extern "C"
 #endif

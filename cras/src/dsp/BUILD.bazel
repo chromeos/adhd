@@ -21,6 +21,12 @@ cc_library(
 )
 
 cc_library(
+    name = "dsp_helpers",
+    hdrs = ["dsp_helpers.h"],
+    visibility = [":__subpackages__"],
+)
+
+cc_library(
     name = "dsp",
     srcs = [
         "biquad.c",
@@ -45,9 +51,11 @@ cc_library(
     deps = [
         ":drc",
         ":drc_math",
+        ":dsp_helpers",
         ":dsp_util",
         "//cras/src/common",
         "//cras/src/server:dsp_types",
+        "@thesofproject_sof",
     ],
 )
 
@@ -55,7 +63,10 @@ cc_library(
     name = "eq",
     srcs = ["eq.c"],
     hdrs = ["eq.h"],
-    deps = [":biquad"],
+    deps = [
+        ":biquad",
+        "@thesofproject_sof",
+    ],
 )
 
 cc_library(
@@ -63,7 +74,10 @@ cc_library(
     srcs = ["eq2.c"],
     hdrs = ["eq2.h"],
     visibility = ["//cras/src/benchmark:__pkg__"],
-    deps = [":biquad"],
+    deps = [
+        ":biquad",
+        "@thesofproject_sof",
+    ],
 )
 
 cc_library(
@@ -75,8 +89,10 @@ cc_library(
     deps = [
         ":crossover2",
         ":drc_kernel",
+        ":dsp_helpers",
         ":eq2",
         "//cras/base",
+        "@thesofproject_sof",
     ],
 )
 
@@ -84,13 +100,21 @@ cc_library(
     name = "biquad",
     srcs = ["biquad.c"],
     hdrs = ["biquad.h"],
+    deps = [
+        ":dsp_helpers",
+        "@thesofproject_sof",
+    ],
 )
 
 cc_library(
     name = "crossover2",
     srcs = ["crossover2.c"],
     hdrs = ["crossover2.h"],
-    deps = [":biquad"],
+    deps = [
+        ":biquad",
+        ":dsp_helpers",
+        "@thesofproject_sof",
+    ],
 )
 
 cc_library(
