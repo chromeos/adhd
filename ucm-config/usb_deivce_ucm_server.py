@@ -49,7 +49,7 @@ class USBInfoParser(object):
                 "amixer",
                 f"-c{card_index}",
                 "sget",
-                ",".join([name, index]),
+                f'"{name},{index}"',
             ]
             if "pvolume" in self.device.run(amixer_list_certain_mixer_cmd).stdout:
                 ret.append(line)
@@ -63,7 +63,7 @@ class USBInfoParser(object):
                 "amixer",
                 f"-c{card_index}",
                 "sget",
-                ",".join([name, index]),
+                f'"{name},{index}"',
             ]
             if "cvolume" in self.device.run(amixer_list_certain_mixer_cmd).stdout:
                 ret.append(line)
