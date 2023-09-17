@@ -385,6 +385,22 @@
       <arg name="bypass" type="b" direction="in"/>
     </method>
 
+    <method name="SetForceA2DPAdvancedCodecsEnabled">
+      <tp:docstring>
+        Set the force advanced codecs enabled state to `enabled`.
+        Caution: This method is for testing purpose.
+      </tp:docstring>
+      <arg name="enabled" type="b" direction="in"/>
+    </method>
+
+    <method name="GetForceA2DPAdvancedCodecsEnabled">
+      <tp:docstring>
+        Returns the state of the force advanced codecs enabled.
+        Caution: This method is for testing purpose.
+      </tp:docstring>
+      <arg name="enabled" type="b" direction="out"/>
+    </method>
+
     <method name="SetForceSrBtEnabled">
       <tp:docstring>
         Set the force sr bt enabled state to `enabled`.

@@ -185,6 +185,12 @@ void cras_system_set_bypass_block_noise_cancellation(bool bypass);
 // Gets the flag of bypass block/unblock Noise Cancellation mechanism.
 bool cras_system_get_bypass_block_noise_cancellation();
 
+// Sets the force a2dp advanced codecs enable flag for testing purpose.
+void cras_system_set_force_a2dp_advanced_codecs_enabled(bool enabled);
+
+// Returns if a2dp advanced codecs should be force enabled.
+bool cras_system_get_force_a2dp_advanced_codecs_enabled();
+
 // Sets the sr bt enable flag to enable or disable.
 void cras_system_set_sr_bt_enabled(bool enabled);
 

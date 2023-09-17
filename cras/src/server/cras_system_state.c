@@ -49,11 +49,13 @@ struct name_list {
 
 // A struct holding the states of the features.
 struct feature_state {
-  // Whether the feature is force enabled. It's for
-  // testing purpose.
-  bool force_sr_bt_enabled;
   // Whether the feature is enabled.
   bool sr_bt_enabled;
+
+  // Whether the feature is force enabled. These are only for
+  // testing purposes.
+  bool force_sr_bt_enabled;
+  bool force_a2dp_advanced_codecs_enabled;
 };
 
 /* The system state. */
@@ -540,6 +542,14 @@ void cras_system_set_force_sr_bt_enabled(bool enabled) {
 
 bool cras_system_get_force_sr_bt_enabled() {
   return state.feature_state.force_sr_bt_enabled;
+}
+
+void cras_system_set_force_a2dp_advanced_codecs_enabled(bool enabled) {
+  state.feature_state.force_a2dp_advanced_codecs_enabled = enabled;
+}
+
+bool cras_system_get_force_a2dp_advanced_codecs_enabled() {
+  return state.feature_state.force_a2dp_advanced_codecs_enabled;
 }
 
 bool cras_system_check_ignore_ucm_suffix(const char* card_name) {

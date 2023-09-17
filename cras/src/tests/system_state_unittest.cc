@@ -505,6 +505,18 @@ TEST(SystemSettingsStreamCount, ForceSrBtEnabled) {
   cras_system_state_deinit();
 }
 
+TEST(SystemSettingsStreamCount, ForceA2DPAdvancedCodecsEnabled) {
+  do_sys_init();
+
+  EXPECT_EQ(cras_system_get_force_a2dp_advanced_codecs_enabled(), false);
+  cras_system_set_force_a2dp_advanced_codecs_enabled(true);
+  EXPECT_EQ(cras_system_get_force_a2dp_advanced_codecs_enabled(), true);
+  cras_system_set_force_a2dp_advanced_codecs_enabled(false);
+  EXPECT_EQ(cras_system_get_force_a2dp_advanced_codecs_enabled(), false);
+
+  cras_system_state_deinit();
+}
+
 TEST(SystemStateSuite, InternalCardDetectdNoCard) {
   do_sys_init();
   EXPECT_EQ(0, cras_system_state_internal_cards_detected());
