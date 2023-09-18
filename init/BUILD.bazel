@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 load("@rules_pkg//pkg:mappings.bzl", "pkg_filegroup", "pkg_files", "pkg_mklink")
-load("//dist:defs.bzl", "FILE_ATTRIBUTES")
+load("//dist:defs.bzl", "EXECUTABLE_ATTRIBUTES", "FILE_ATTRIBUTES")
 
 pkg_filegroup(
     name = "init_files",
@@ -41,7 +41,7 @@ pkg_files(
     srcs = [
         "cras-dev.sh",
     ],
-    attributes = FILE_ATTRIBUTES,
+    attributes = EXECUTABLE_ATTRIBUTES,
     prefix = "usr/local/share/cros/init",
 )
 
