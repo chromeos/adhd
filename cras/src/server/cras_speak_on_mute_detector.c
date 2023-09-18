@@ -228,33 +228,46 @@ void cras_speak_on_mute_detector_enable(bool enabled) {
   handle_state_change();
 }
 
+// Given a cras_rstream, return the preference to use it for speak on mute
+// detection.
+// A stream with a higher score is preferred to a lower scored stream.
+// A score of 0 means the stream should not be used as the speak on mute
+// detection target.
+static int target_client_stream_score(const struct cras_rstream* stream) {
+  if (stream->direction != CRAS_STREAM_INPUT) {
+    // Don't detect output streams.
+    return 0;
+  }
+  if (!cras_rtc_check_stream_config(stream)) {
+    // Ignore non-RTC streams.
+    // TODO(b/262518361): cras_rtc_check_stream_config only checks stream
+    // parameters. Use the real RTC detector result by add a callback
+    // from cras_rtc and use CRAS_STREAM_TYPE_VOICE_COMMUNICATION instead.
+    return 0;
+  }
+  if (cras_stream_apm_vad_available(stream->stream_apm)) {
+    // Prefer RTC streams with a APM for VAD.
+    return 110;
+  }
+  return 100;
+}
+
 // Return the client stream we should detect speak on mute behavior on.
 static struct cras_rstream* find_target_client_stream(
     struct cras_rstream* all_streams) {
-  // TODO(b/262518361): Select VAD target based on real RTC detector result.
-  // cras_rtc_check_stream_config only checks for the client type and block
-  // size.
-
   struct cras_rstream* stream = NULL;
-  struct cras_rstream* first_rtc_stream = NULL;
+  struct cras_rstream* best_stream = NULL;
+  int best_stream_score = 0;
+
   DL_FOREACH (all_streams, stream) {
-    if (stream->direction != CRAS_STREAM_INPUT) {
-      continue;
-    }
-    if (!cras_rtc_check_stream_config(stream)) {
-      continue;
-    }
-    if (!first_rtc_stream) {
-      first_rtc_stream = stream;
-    }
-    if (cras_stream_apm_vad_available(stream->stream_apm)) {
-      // Prefer RTC streams with a APM suitable for VAD.
-      return stream;
+    int score = target_client_stream_score(stream);
+    if (score > best_stream_score) {
+      best_stream = stream;
+      best_stream_score = score;
     }
   }
 
-  // If no RTC streams have an APM, return the first RTC stream.
-  return first_rtc_stream;
+  return best_stream;
 }
 
 void cras_speak_on_mute_detector_streams_changed(
