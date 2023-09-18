@@ -21,7 +21,6 @@
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/common/cras_log.h"
 #include "cras/src/common/cras_metrics.h"
-#include "cras/src/common/cras_string.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/cras_alsa_common_io.h"
@@ -148,7 +147,6 @@ static int usb_configure_dev(struct cras_iodev* iodev) {
   aio->common.severe_underrun_frames =
       SEVERE_UNDERRUN_MS * iodev->format->frame_rate / 1000;
 
-  size_t fmt_bytes = cras_get_format_bytes(iodev->format);
   cras_iodev_init_audio_area(iodev);
 
   syslog(LOG_DEBUG,
@@ -159,18 +157,6 @@ static int usb_configure_dev(struct cras_iodev* iodev) {
   rc = usb_set_hwparams(iodev);
   if (rc < 0) {
     goto error_out;
-  }
-
-  if (!aio->common.sample_buf) {
-    aio->common.sample_buf =
-        (uint8_t*)calloc(iodev->buffer_size * fmt_bytes, sizeof(uint8_t));
-    if (!aio->common.sample_buf) {
-      syslog(LOG_ERR, "cras_alsa_io: configure_dev: calloc: %s",
-             cras_strerror(errno));
-      return -ENOMEM;
-    }
-    cras_audio_area_config_buf_pointers(iodev->area, iodev->format,
-                                        aio->common.sample_buf);
   }
 
   // Set channel map to device
@@ -269,22 +255,19 @@ static int usb_get_buffer(struct cras_iodev* iodev,
                           struct cras_audio_area** area,
                           unsigned* frames) {
   struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
-  snd_pcm_uframes_t nframes = MIN(iodev->buffer_size, *frames);
+  snd_pcm_uframes_t nframes = *frames;
+  uint8_t* dst = NULL;
+  size_t format_bytes;
+  int rc;
 
   aio->common.mmap_offset = 0;
-  size_t format_bytes = cras_get_format_bytes(iodev->format);
+  format_bytes = cras_get_format_bytes(iodev->format);
 
-  int rc = cras_alsa_mmap_begin(aio->common.handle, format_bytes,
-                                &aio->common.mmap_buf, &aio->common.mmap_offset,
-                                &nframes);
-  if (rc < 0) {
-    return rc;
-  }
+  rc = cras_alsa_mmap_begin(aio->common.handle, format_bytes, &dst,
+                            &aio->common.mmap_offset, &nframes);
+
   iodev->area->frames = nframes;
-  // Copy mmap_buf data to local memory for faster manipulation.
-  // See b/174213995 for analysis.
-  memcpy(aio->common.sample_buf, aio->common.mmap_buf,
-         iodev->area->frames * format_bytes);
+  cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
 
   *area = iodev->area;
   *frames = nframes;
@@ -295,9 +278,6 @@ static int usb_get_buffer(struct cras_iodev* iodev,
 static int usb_put_buffer(struct cras_iodev* iodev, unsigned nwritten) {
   struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
 
-  size_t format_bytes = cras_get_format_bytes(iodev->format);
-  memcpy(aio->common.mmap_buf, aio->common.sample_buf,
-         iodev->area->frames * format_bytes);
   return cras_alsa_mmap_commit(aio->common.handle, aio->common.mmap_offset,
                                nwritten);
 }

@@ -215,7 +215,6 @@ cc_test(
     name = "cras_alsa_usb_io_unittest",
     srcs = [
         ":cras_alsa_usb_io_unittest.cc",
-        "//cras/src/common:cras_string.c",
         "//cras/src/server:cras_alsa_common_io.c",
         "//cras/src/server:cras_alsa_mixer_name.c",
         "//cras/src/server:cras_alsa_ucm_section.c",
