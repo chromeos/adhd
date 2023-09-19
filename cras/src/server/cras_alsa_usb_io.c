@@ -106,9 +106,17 @@ static inline int usb_delay_frames(const struct cras_iodev* iodev) {
 
 static inline int usb_close_dev(struct cras_iodev* iodev) {
   struct timespec now, elapse;
+  struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &now);
   subtract_timespecs(&now, &iodev->open_ts, &elapse);
+
+  if (iodev->format != NULL) {
+    audio_peripheral_close(aio->common.vendor_id, aio->common.product_id,
+                           CRAS_NODE_TYPE_USB, elapse.tv_sec,
+                           iodev->format->frame_rate,
+                           iodev->format->num_channels, iodev->format->format);
+  }
 
   return cras_alsa_common_close_dev(iodev);
 }
