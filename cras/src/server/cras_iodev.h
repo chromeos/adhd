@@ -15,6 +15,7 @@
 #define CRAS_SRC_SERVER_CRAS_IODEV_H_
 
 #include <stdbool.h>
+#include <time.h>
 
 #include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/ewma_power.h"
@@ -284,6 +285,14 @@ struct cras_iodev {
   // on the iodev's use case and stream parameters.
   int (*should_attach_stream)(const struct cras_iodev* iodev,
                               const struct cras_rstream* stream);
+  // (Optional) Obtain the hardware timestamp for the last update
+  // The hardware timestamp should be using the MONOTONIC_RAW clock
+  // For playback, the timestamp is the last time the iodev wrote into the
+  // buffer.
+  // For capture, the timestamp is the last time the iodev read from the buffer.
+  // Not implementing this ops means fall back to default behavior using current
+  // time with MONOTONIC_RAW clock as the timestamp.
+  int (*get_htimestamp)(const struct cras_iodev* iodev, struct timespec* ts);
 
   // The audio format being rendered or captured to hardware.
   struct cras_audio_format* format;
@@ -1115,6 +1124,28 @@ static inline int cras_iodev_group_has_open_dev(
   }
 
   return false;
+}
+
+/* Gets the hardware timestamp of the last update. If there is no hardware
+ * timestamp, returns the current time as the timestamp.
+ * Args:
+ *    iodev - The device.
+ *    ts - The caller receives the timestamp.
+ * Returns:
+ *    0 if the timestamp is correctly obtained. A negative error code otherwise.
+ */
+static inline int cras_iodev_get_htimestamp(const struct cras_iodev* iodev,
+                                            struct timespec* ts) {
+  if (iodev->get_htimestamp) {
+    return iodev->get_htimestamp(iodev, ts);
+  }
+
+  int rc = clock_gettime(CLOCK_MONOTONIC_RAW, ts);
+  if (rc < 0) {
+    return -errno;
+  }
+
+  return 0;
 }
 
 #ifdef __cplusplus

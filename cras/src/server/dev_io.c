@@ -261,7 +261,12 @@ static int fetch_streams(struct open_dev* adev) {
       continue;
     }
 
-    dev_stream_set_delay(dev_stream, delay);
+    rc = dev_stream_set_delay(dev_stream, delay);
+    if (rc < 0) {
+      syslog(LOG_WARNING, "set sample time err: %d for %x", rc,
+             cras_rstream_id(rstream));
+      cras_rstream_set_is_draining(rstream, 1);
+    }
 
     ATLOG(atlog, AUDIO_THREAD_FETCH_STREAM, rstream->stream_id,
           cras_rstream_get_cb_threshold(rstream),
@@ -314,7 +319,10 @@ static unsigned int set_stream_delay(struct open_dev* adev) {
       continue;
     }
 
-    dev_stream_set_delay(stream, delay);
+    int rc = dev_stream_set_delay(stream, delay);
+    if (rc < 0) {
+      return rc;
+    }
   }
 
   return 0;
@@ -580,7 +588,10 @@ static int capture_to_streams(struct open_dev* adev,
   }
 
   cap_limit = get_stream_limit(adev, hw_level, &cap_limit_stream);
-  set_stream_delay(adev);
+  rc = set_stream_delay(adev);
+  if (rc < 0) {
+    return rc;
+  }
 
   remainder = MIN(hw_level, cap_limit);
 

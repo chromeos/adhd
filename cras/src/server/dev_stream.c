@@ -22,6 +22,7 @@
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras_audio_format.h"
+#include "cras_iodev.h"
 #include "cras_shm.h"
 #include "cras_timespec.h"
 #include "cras_types.h"
@@ -557,45 +558,49 @@ int dev_stream_capture_update_rstream(struct dev_stream* dev_stream) {
 void cras_set_playback_timestamp(size_t frame_rate,
                                  size_t frames,
                                  int32_t offset_ms,
-                                 struct cras_timespec* ts) {
-  cras_clock_gettime(CLOCK_MONOTONIC_RAW, ts);
-
-  /* For playback, want now + samples left to be played.
-   * ts = time next written sample will be played to DAC,
+                                 struct timespec* now_ts,
+                                 struct cras_timespec* playback_ts) {
+  /* For playback, want now + samples left to be played + offset.
+   * playback_ts = time next written sample will be played to DAC,
    */
 
   // Use timespec for cras_util.h functions
-  struct timespec samples_left_ts, offset_ts, playback_ts;
-  cras_timespec_to_timespec(&playback_ts, ts);
+  struct timespec samples_left_ts, offset_ts;
   cras_frames_to_time(frames, frame_rate, &samples_left_ts);
   ms_to_timespec(offset_ms, &offset_ts);
-  add_timespecs(&playback_ts, &samples_left_ts);
-  add_timespecs(&playback_ts, &offset_ts);
-  ts->tv_sec = playback_ts.tv_sec;
-  ts->tv_nsec = playback_ts.tv_nsec;
+  add_timespecs(now_ts, &samples_left_ts);
+  add_timespecs(now_ts, &offset_ts);
+  playback_ts->tv_sec = now_ts->tv_sec;
+  playback_ts->tv_nsec = now_ts->tv_nsec;
 }
 
 void cras_set_capture_timestamp(size_t frame_rate,
                                 size_t frames,
-                                struct cras_timespec* ts) {
-  cras_clock_gettime(CLOCK_MONOTONIC_RAW, ts);
-
+                                struct timespec* now_ts,
+                                struct cras_timespec* capture_ts) {
   /* For capture, now - samples left to be read.
-   * ts = time next sample to be read was captured at ADC.
+   * capture_ts = time next sample to be read was captured at ADC.
    */
-  struct timespec samples_left_ts, now_ts, capture_ts;
-  cras_timespec_to_timespec(&now_ts, ts);
+
+  // Use timespec for cras_util.h functions
+  struct timespec samples_left_ts;
   cras_frames_to_time(frames, frame_rate, &samples_left_ts);
-  subtract_timespecs(&now_ts, &samples_left_ts, &capture_ts);
-  ts->tv_sec = capture_ts.tv_sec;
-  ts->tv_nsec = capture_ts.tv_nsec;
+  subtract_timespecs(now_ts, &samples_left_ts, now_ts);
+  capture_ts->tv_sec = now_ts->tv_sec;
+  capture_ts->tv_nsec = now_ts->tv_nsec;
 }
 
-void dev_stream_set_delay(const struct dev_stream* dev_stream,
-                          unsigned int delay_frames) {
+int dev_stream_set_delay(const struct dev_stream* dev_stream,
+                         unsigned int delay_frames) {
   struct cras_rstream* rstream = dev_stream->stream;
   struct cras_audio_shm* shm;
   unsigned int stream_frames;
+
+  struct timespec now_ts;
+  int rc = cras_iodev_get_htimestamp(dev_stream->iodev, &now_ts);
+  if (rc < 0) {
+    return rc;
+  }
 
   if (rstream->direction == CRAS_STREAM_OUTPUT) {
     shm = cras_rstream_shm(rstream);
@@ -603,16 +608,18 @@ void dev_stream_set_delay(const struct dev_stream* dev_stream,
         cras_fmt_conv_out_frames_to_in(dev_stream->conv, delay_frames);
     cras_set_playback_timestamp(
         rstream->format.frame_rate, stream_frames + cras_shm_get_frames(shm),
-        dev_stream->iodev->active_node->latency_offset_ms, &shm->header->ts);
+        dev_stream->iodev->active_node->latency_offset_ms, &now_ts,
+        &shm->header->ts);
   } else {
     shm = cras_rstream_shm(rstream);
     stream_frames =
         cras_fmt_conv_in_frames_to_out(dev_stream->conv, delay_frames);
     if (cras_shm_frames_written(shm) == 0) {
       cras_set_capture_timestamp(rstream->format.frame_rate, stream_frames,
-                                 &shm->header->ts);
+                                 &now_ts, &shm->header->ts);
     }
   }
+  return 0;
 }
 
 int dev_stream_request_playback_samples(struct dev_stream* dev_stream,

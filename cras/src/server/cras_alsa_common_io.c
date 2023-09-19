@@ -164,6 +164,7 @@ int cras_alsa_common_frames_queued(const struct cras_iodev* iodev,
     }
     return rc;
   }
+  aio->hardware_timestamp = *tstamp;
   rc = clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
   if (rc < 0) {
     return rc;
@@ -256,5 +257,11 @@ int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name) {
     return rc;
   }
 
+  return 0;
+}
+int cras_alsa_common_get_htimestamp(const struct cras_iodev* iodev,
+                                    struct timespec* ts) {
+  struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
+  *ts = aio->hardware_timestamp;
   return 0;
 }

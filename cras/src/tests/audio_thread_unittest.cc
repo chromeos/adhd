@@ -1275,8 +1275,10 @@ int dev_stream_request_playback_samples(struct dev_stream* dev_stream,
   return 0;
 }
 
-void dev_stream_set_delay(const struct dev_stream* dev_stream,
-                          unsigned int delay_frames) {}
+int dev_stream_set_delay(const struct dev_stream* dev_stream,
+                         unsigned int delay_frames) {
+  return 0;
+}
 
 void dev_stream_set_dev_rate(struct dev_stream* dev_stream,
                              unsigned int dev_rate,

@@ -160,24 +160,34 @@ int dev_stream_capture_update_rstream(struct dev_stream* dev_stream);
 // Updates the read buffer pointers for the stream.
 int dev_stream_playback_update_rstream(struct dev_stream* dev_stream);
 
-/* Fill ts with the time the playback sample will be played.
+/* Fill playback_ts with the time the playback sample will be played.
  * Args:
  *    frame_rate - The sample rate used to calculate the playback time.
  *    frames - The number of frames that before the next written sample is
  *      played.
  *    offset_ms - The duration in milliseconds of additional offset added for
  *      more accurate playback timestamp.
- *    ts - The timestamp the next written sample will be played in DAC.
+ *    now_ts - The current timestamp, used to calculate the playback time.
+ *    playback_ts - The timestamp the next written sample will be played in DAC.
  */
 void cras_set_playback_timestamp(size_t frame_rate,
                                  size_t frames,
                                  int32_t offset_ms,
-                                 struct cras_timespec* ts);
+                                 struct timespec* now_ts,
+                                 struct cras_timespec* playback_ts);
 
-// Fill ts with the time the capture sample was recorded.
+/* Fill capture_ts with the time the capture sample was recorded
+ * Args:
+ *    frame_rate - The sample rate used to calculate the capture time.
+ *    frames - The number of frames before the captured sample is read from the
+ *      ADC.
+ *    now_ts - The current timestamp, used to calculate the capture time.
+ *    capture_ts - The timestamp the next capture sample was recorded.
+ */
 void cras_set_capture_timestamp(size_t frame_rate,
                                 size_t frames,
-                                struct cras_timespec* ts);
+                                struct timespec* now_ts,
+                                struct cras_timespec* capture_ts);
 
 /* Fill shm ts with the time the playback sample will be played or the capture
  * sample was captured depending on the direction of the stream.
@@ -185,8 +195,8 @@ void cras_set_capture_timestamp(size_t frame_rate,
  *    delay_frames - The delay reproted by the device, in frames at the device's
  *      sample rate.
  */
-void dev_stream_set_delay(const struct dev_stream* dev_stream,
-                          unsigned int delay_frames);
+int dev_stream_set_delay(const struct dev_stream* dev_stream,
+                         unsigned int delay_frames);
 
 // Ask the client for cb_threshold samples of audio to play.
 int dev_stream_request_playback_samples(struct dev_stream* dev_stream,

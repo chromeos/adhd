@@ -2306,6 +2306,7 @@ struct cras_iodev* alsa_iodev_create(
   iodev->get_dev_group = get_dev_group;
   iodev->get_dev_group_id = get_dev_group_id;
   iodev->should_attach_stream = should_attach_stream;
+  iodev->get_htimestamp = cras_alsa_common_get_htimestamp;
   if (card_info->card_type == ALSA_CARD_TYPE_USB) {
     iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
   }

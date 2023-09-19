@@ -146,6 +146,8 @@ struct alsa_common_io {
   size_t vendor_id;
   // Device product id
   size_t product_id;
+  // Last obtained hardware timestamp.
+  struct timespec hardware_timestamp;
 };
 
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);
@@ -170,6 +172,8 @@ int cras_alsa_common_set_active_node(struct cras_iodev* iodev,
 int cras_alsa_common_delay_frames(const struct cras_iodev* iodev);
 int cras_alsa_common_close_dev(const struct cras_iodev* iodev);
 int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name);
+int cras_alsa_common_get_htimestamp(const struct cras_iodev* iodev,
+                                    struct timespec* ts);
 
 #ifdef __cplusplus
 }  // extern "C"

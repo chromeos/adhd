@@ -372,8 +372,8 @@ TEST_F(DevIoSuite, SendCapturedNoNeedToDrop) {
       create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_HOTWORD, 0);
   DevicePtr dev2 = create_device(CRAS_STREAM_INPUT, 480, &format,
                                  CRAS_NODE_TYPE_POST_MIX_PRE_DSP, 0);
-  DevicePtr dev3 =
-      create_device(CRAS_STREAM_INPUT, 480, &format, CRAS_NODE_TYPE_POST_DSP, 0);
+  DevicePtr dev3 = create_device(CRAS_STREAM_INPUT, 480, &format,
+                                 CRAS_NODE_TYPE_POST_DSP, 0);
 
   DL_APPEND(dev_list, dev1->odev.get());
   DL_APPEND(dev_list, dev2->odev.get());
@@ -499,8 +499,10 @@ int dev_stream_wake_time(struct dev_stream* dev_stream,
 int dev_stream_flush_old_audio_messages(struct dev_stream* dev_stream) {
   return 0;
 }
-void dev_stream_set_delay(const struct dev_stream* dev_stream,
-                          unsigned int delay_frames) {}
+int dev_stream_set_delay(const struct dev_stream* dev_stream,
+                         unsigned int delay_frames) {
+  return 0;
+}
 unsigned int dev_stream_capture(struct dev_stream* dev_stream,
                                 const struct cras_audio_area* area,
                                 unsigned int area_offset,

@@ -608,6 +608,21 @@ int cras_alsa_set_swparams(snd_pcm_t* handle) {
     return err;
   }
 
+  // Enable timestamps
+  err = snd_pcm_sw_params_set_tstamp_type(handle, swparams,
+                                          SND_PCM_TSTAMP_TYPE_MONOTONIC_RAW);
+  if (err < 0) {
+    syslog(LOG_WARNING, "set_tstamp_type: %s\n", snd_strerror(err));
+    return err;
+  }
+
+  err = snd_pcm_sw_params_set_tstamp_mode(handle, swparams,
+                                          SND_PCM_TSTAMP_ENABLE);
+  if (err < 0) {
+    syslog(LOG_WARNING, "set_tstamp_mode: %s\n", snd_strerror(err));
+    return err;
+  }
+
   err = snd_pcm_sw_params(handle, swparams);
 
   if (err < 0) {

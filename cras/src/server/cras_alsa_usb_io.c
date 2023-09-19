@@ -38,6 +38,7 @@
 #include "cras/src/server/dev_stream.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras_audio_format.h"
+#include "cras_iodev.h"
 #include "cras_iodev_info.h"
 #include "cras_types.h"
 #include "cras_utf8.h"
@@ -1770,6 +1771,7 @@ struct cras_iodev* cras_alsa_usb_iodev_create(
   iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
   iodev->set_display_rotation_for_node =
       cras_iodev_dsp_set_display_rotation_for_node;
+  iodev->get_htimestamp = cras_alsa_common_get_htimestamp;
   iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
 
   iodev->ramp = cras_ramp_create();

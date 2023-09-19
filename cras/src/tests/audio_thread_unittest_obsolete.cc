@@ -1889,8 +1889,8 @@ void cras_iodev_fill_time_from_frames(size_t frames,
   ts->tv_nsec = to_play_usec * 1000;
 }
 
-void dev_stream_set_delay(const struct dev_stream* dev_stream,
-                          unsigned int delay_frames) {
+int dev_stream_set_delay(const struct dev_stream* dev_stream,
+                         unsigned int delay_frames) {
   dev_stream_set_delay_called++;
 }
 

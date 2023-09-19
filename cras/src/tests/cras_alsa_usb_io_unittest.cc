@@ -752,6 +752,11 @@ int cras_alsa_attempt_resume(snd_pcm_t* handle) {
   cras_alsa_attempt_resume_called++;
   return 0;
 }
+int cras_alsa_get_timestamp(snd_pcm_t* handle,
+                            const char* dev_name,
+                            struct timespec* tstamp) {
+  return 0;
+}
 
 //  ALSA stubs.
 int snd_pcm_format_physical_width(snd_pcm_format_t format) {
