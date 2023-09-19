@@ -817,15 +817,15 @@ static struct alsa_usb_output_node* usb_new_output(
   strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
   usb_set_node_initial_state(&output->base);
   if (disable_software_volume == 1) {
-    syslog(LOG_ERR, "card type: %s, Disable software volume for %s from ucm.",
+    syslog(LOG_INFO, "card type: %s, Disable software volume for %s from ucm.",
            cras_card_type_to_string(aio->common.card_type), output->base.name);
     output->base.software_volume_needed = 0;
   } else if (disable_software_volume == 0) {
-    syslog(LOG_ERR, "card type: %s, Enable software volume for %s from ucm.",
+    syslog(LOG_INFO, "card type: %s, Enable software volume for %s from ucm.",
            cras_card_type_to_string(aio->common.card_type), output->base.name);
     output->base.software_volume_needed = 1;
   } else if (disable_software_volume == -ENOENT) {
-    syslog(LOG_ERR, "card type: %s, software volume not set from ucm.",
+    syslog(LOG_INFO, "card type: %s, software volume not set from ucm.",
            cras_card_type_to_string(aio->common.card_type));
     usb_set_output_node_software_volume_needed(output, aio);
   } else {
