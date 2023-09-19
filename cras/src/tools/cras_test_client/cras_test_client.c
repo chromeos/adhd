@@ -84,6 +84,10 @@ static int effect_agc_on_dsp = 0;
 
 static enum CRAS_CLIENT_TYPE client_type = CRAS_CLIENT_TYPE_TEST;
 
+static bool show_ooo_ts = 0;
+static struct timespec last_ts;
+static bool ooo_ts_encountered = false;
+
 // ionode flags used in --print_nodes_inlined
 enum {
   IONODE_FLAG_DIRECTION,
@@ -401,6 +405,17 @@ static int got_samples(struct cras_client* client,
   }
 
   cras_client_calc_capture_latency(captured_time, &last_latency);
+  if (show_ooo_ts && timespec_after(&last_ts, captured_time)) {
+    printf("Capture timestamp out of order\n");
+    printf("Last capture timestamp: %ld.%09ld\n", last_ts.tv_sec,
+           last_ts.tv_nsec);
+    printf("Current capture timestamp: %ld.%09ld\n", captured_time->tv_sec,
+           captured_time->tv_nsec);
+    terminate_stream_loop();
+    ooo_ts_encountered = true;
+  }
+  last_ts.tv_nsec = captured_time->tv_nsec;
+  last_ts.tv_sec = captured_time->tv_sec;
 
   frame_bytes = cras_client_format_bytes_per_frame(aud_format);
   write_size = frames * frame_bytes;
@@ -446,6 +461,17 @@ static int put_samples(struct cras_client* client,
   check_stream_terminate(frames);
 
   cras_client_calc_playback_latency(playback_time, &last_latency);
+  if (show_ooo_ts && timespec_after(&last_ts, playback_time)) {
+    printf("Playback timestamp out of order\n");
+    printf("Last playback timestamp: %ld.%09ld\n", last_ts.tv_sec,
+           last_ts.tv_nsec);
+    printf("Current playback timestamp: %ld.%09ld\n", playback_time->tv_sec,
+           playback_time->tv_nsec);
+    terminate_stream_loop();
+    ooo_ts_encountered = true;
+  }
+  last_ts.tv_nsec = playback_time->tv_nsec;
+  last_ts.tv_sec = playback_time->tv_sec;
 
   if (play_short_sound) {
     if (play_short_sound_periods_left) {
@@ -1919,6 +1945,10 @@ static int run_file_io_stream(struct cras_client* client,
   close(pipefd[0]);
   close(pipefd[1]);
 
+  if (ooo_ts_encountered) {
+    return EINVAL;
+  }
+
   return 0;
 }
 
@@ -1938,11 +1968,11 @@ static int run_capture(struct cras_client* client,
     return -errno;
   }
 
-  run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size, stream_type,
-                     rate, format, num_channels, flags, is_loopback, post_dsp);
-
+  int rc = run_file_io_stream(client, fd, CRAS_STREAM_INPUT, block_size,
+                              stream_type, rate, format, num_channels, flags,
+                              is_loopback, post_dsp);
   close(fd);
-  return 0;
+  return rc;
 }
 
 static int run_playback(struct cras_client* client,
@@ -1960,11 +1990,10 @@ static int run_playback(struct cras_client* client,
     return -errno;
   }
 
-  run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT, block_size, stream_type,
-                     rate, format, num_channels, 0, 0, 0);
-
+  int rc = run_file_io_stream(client, fd, CRAS_STREAM_OUTPUT, block_size,
+                              stream_type, rate, format, num_channels, 0, 0, 0);
   close(fd);
-  return 0;
+  return rc;
 }
 
 static void print_server_info(struct cras_client* client) {
@@ -2217,6 +2246,7 @@ static struct option long_options[] = {
 	{"dump_main",           no_argument,            0, 'N'},
 	{"set_aec_ref",         required_argument,      0, 'O'},
 	{"playback_file",       required_argument,      0, 'P'},
+	{"show_ooo_timestamp",  no_argument,            0, 'Q'},
 	{"stream_type",         required_argument,      0, 'T'},
 	{"print_nodes_inlined", no_argument,            0, 'U'},
 	{"request_floop_mask",  required_argument,      0, 'V'},
@@ -2452,6 +2482,9 @@ static void show_usage() {
   printf(
       "--client_type <int> - "
       "Override the client type.\n");
+  printf(
+      "--show_ooo_timestamp - "
+      "Display out of order timestamps while playing or recording.\n");
 }
 
 static int cras_client_create_and_connect(struct cras_client** client,
@@ -2830,6 +2863,9 @@ int main(int argc, char** argv) {
         break;
       case 'P':
         playback_file = optarg;
+        break;
+      case 'Q':
+        show_ooo_ts = 1;
         break;
       case 'T':
         stream_type = atoi(optarg);
