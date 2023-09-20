@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_alsa_plugin_io.h"
+
 #include <alsa/asoundlib.h>
 #include <alsa/use-case.h>
 #include <dictionary.h>

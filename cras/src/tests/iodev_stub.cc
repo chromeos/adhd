@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/tests/iodev_stub.hh"
+
 #include <time.h>
 #include <unordered_map>
 

@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_fl_pcm_iodev.h"
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>

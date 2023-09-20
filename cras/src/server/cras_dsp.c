@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_dsp.h"
+
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>

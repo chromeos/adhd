@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_playback_rclient.h"
+
 #include <stdio.h>
 
 #include "cras/src/server/cras_iodev_list.h"

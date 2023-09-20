@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_non_empty_audio_handler.h"
+
 #include <stdint.h>
 #include <string.h>
 #include <syslog.h>

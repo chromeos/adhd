@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "cras/src/server/cras_feature_monitor.h"
+
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_iodev_list.h"
 

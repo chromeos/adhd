@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_dbus.h"
+
 #include <dbus/dbus.h>
 #include <stdlib.h>
 #include <sys/poll.h>

@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/tests/rstream_stub.hh"
+
 #include <unordered_map>
 
 #include "cras/src/server/cras_rstream.h"

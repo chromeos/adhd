@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/dsp/tests/raw.h"
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

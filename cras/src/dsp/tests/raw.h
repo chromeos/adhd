@@ -37,7 +37,7 @@ float* read_raw(const char* filename, size_t* frames);
  *    0 if success. -1 if writing fails.
  * The format of the float buffer is the same as described in read_raw().
  */
-void write_raw(const char* filename, float* buf, size_t frames);
+int write_raw(const char* filename, float* buf, size_t frames);
 
 #ifdef __cplusplus
 }  // extern "C"

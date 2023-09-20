@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_fl_manager.h"
+
 #include <dbus/dbus.h>
 #include <errno.h>
 #include <stdbool.h>

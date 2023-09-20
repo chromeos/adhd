@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_hotword_handler.h"
+
 #include <stdint.h>
 #include <string.h>
 #include <syslog.h>

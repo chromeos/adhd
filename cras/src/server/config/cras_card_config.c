@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/config/cras_card_config.h"
+
 #include <dictionary.h>
 #include <iniparser.h>
 #include <stdio.h>

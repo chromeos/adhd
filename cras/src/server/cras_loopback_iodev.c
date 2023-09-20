@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_loopback_iodev.h"
+
 #include <sched.h>
 #include <stdbool.h>
 #include <stdint.h>

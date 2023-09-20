@@ -3,6 +3,8 @@
  * found in the LICENSE file.
  */
 
+#include "cras/src/server/cras_audio_thread_monitor.h"
+
 #include <string.h>
 #include <time.h>
 
