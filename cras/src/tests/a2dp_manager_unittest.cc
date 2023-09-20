@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cras/platform/features/override.h"
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_bt_log.h"
@@ -38,6 +39,8 @@ static int floss_media_a2dp_set_volume_arg;
 static int floss_media_a2dp_get_presentation_position_called;
 static int floss_media_a2dp_suspend_called;
 static struct cras_fl_a2dp_codec_config a2dp_codecs;
+static bool cras_system_get_force_a2dp_advanced_codecs_enabled_return_value =
+    false;
 
 void ResetStubData() {
   a2dp_pcm_update_bt_stack_delay_called = 0;
@@ -55,6 +58,8 @@ void ResetStubData() {
   cras_tm_cancel_timer_called = 0;
   cras_tm_create_timer_ret = NULL;
   a2dp_codecs.codec_type = FL_A2DP_CODEC_SRC_SBC;
+  cras_system_get_force_a2dp_advanced_codecs_enabled_return_value = false;
+  cras_features_unset_override(CrOSLateBootAudioA2DPAdvancedCodecs);
 }
 
 namespace {
@@ -349,6 +354,7 @@ TEST_F(A2dpManagerTestSuite, SuspendCallback) {
 
   cras_floss_a2dp_destroy(a2dp);
 }
+
 }  // namespace
 
 extern "C" {
@@ -493,6 +499,10 @@ int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num) {
 
 int cras_server_metrics_a2dp_exit(enum A2DP_EXIT_CODE code) {
   return 0;
+}
+
+bool cras_system_get_force_a2dp_advanced_codecs_enabled() {
+  return cras_system_get_force_a2dp_advanced_codecs_enabled_return_value;
 }
 
 }  // extern "C"

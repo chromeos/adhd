@@ -239,6 +239,13 @@ static bool cras_floss_is_supported_codec_type(int codec_type) {
   }
 }
 
+static bool cras_floss_a2dp_nonstandard_codecs_allowed() {
+  if (cras_system_get_force_a2dp_advanced_codecs_enabled()) {
+    return true;
+  }
+  return cras_feature_enabled(CrOSLateBootAudioA2DPAdvancedCodecs);
+}
+
 static struct cras_fl_a2dp_codec_config* cras_floss_a2dp_get_best_codec(
     struct cras_fl_a2dp_codec_config* codecs) {
   struct cras_fl_a2dp_codec_config* codec;
@@ -246,7 +253,7 @@ static struct cras_fl_a2dp_codec_config* cras_floss_a2dp_get_best_codec(
 
   DL_FOREACH (codecs, codec) {
     // TODO(b/279991957): Add UMA to record availability of codecs
-    if (!cras_feature_enabled(CrOSLateBootAudioA2DPAdvancedCodecs) &&
+    if (!cras_floss_a2dp_nonstandard_codecs_allowed() &&
         codec->codec_type != FL_A2DP_CODEC_SRC_SBC) {
       continue;
     }
