@@ -8,6 +8,9 @@
 
 #include <time.h>
 
+struct cras_iodev;
+struct cras_ionode;
+
 void iodev_stub_reset();
 
 void iodev_stub_est_rate_ratio(cras_iodev* iodev, double ratio);

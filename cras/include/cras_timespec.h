@@ -6,6 +6,7 @@
 #ifndef CRAS_INCLUDE_CRAS_TIMESPEC_H_
 #define CRAS_INCLUDE_CRAS_TIMESPEC_H_
 
+#include <stdint.h>
 #include <time.h>
 
 #ifdef __cplusplus

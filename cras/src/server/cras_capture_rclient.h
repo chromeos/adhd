@@ -6,6 +6,8 @@
 #ifndef CRAS_SRC_SERVER_CRAS_CAPTURE_RCLIENT_H_
 #define CRAS_SRC_SERVER_CRAS_CAPTURE_RCLIENT_H_
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

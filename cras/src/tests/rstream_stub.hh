@@ -6,7 +6,7 @@
 #ifndef CRAS_SRC_TESTS_RSTREAM_STUB_HH_
 #define CRAS_SRC_TESTS_RSTREAM_STUB_HH_
 
-#include <time.h>
+struct cras_rstream;
 
 void rstream_stub_reset();
 

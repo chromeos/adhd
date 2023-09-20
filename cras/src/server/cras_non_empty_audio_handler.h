@@ -16,6 +16,8 @@
 #ifndef CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_
 #define CRAS_SRC_SERVER_CRAS_NON_EMPTY_AUDIO_HANDLER_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

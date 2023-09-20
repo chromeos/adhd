@@ -12,6 +12,7 @@
 #ifndef CRAS_SRC_COMMON_BLUETOOTH_H_
 #define CRAS_SRC_COMMON_BLUETOOTH_H_
 
+#include <stdint.h>
 #include <unistd.h>
 
 #ifdef __cplusplus
