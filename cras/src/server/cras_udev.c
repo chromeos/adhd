@@ -305,7 +305,7 @@ static long get_udev_long_or(struct udev_device* dev,
                              long default_value) {
   const char* sysattr_val = udev_device_get_sysattr_value(dev, sysattr);
   if (sysattr_val) {
-    return strtol(sysattr, NULL, 16);
+    return strtol(sysattr_val, NULL, 16);
   }
   return default_value;
 }
@@ -321,7 +321,7 @@ static struct cras_alsa_usb_card_info usb_card_info_create(
               .card_index = (uint32_t)card_index,
           },
       .usb_vendor_id = get_udev_long_or(parent_dev, "idVendor", 0),
-      .usb_product_id = get_udev_long_or(parent_dev, "idVendor", 0),
+      .usb_product_id = get_udev_long_or(parent_dev, "idProduct", 0),
       .usb_desc_checksum = calculate_desc_checksum(parent_dev),
   };
 
