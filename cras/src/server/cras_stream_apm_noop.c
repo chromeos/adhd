@@ -96,3 +96,5 @@ bool cras_stream_apm_vad_available(struct cras_stream_apm* stream) {
 bool cras_apm_needed_for_effects(uint64_t effects, bool cras_processor_needed) {
   return false;
 }
+
+void cras_stream_apm_notify_dsp_input_effects_blocked(bool blocked) {}

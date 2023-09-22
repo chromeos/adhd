@@ -317,6 +317,7 @@ static struct cras_iodev* create_loopback_iodev(enum CRAS_LOOPBACK_TYPE type) {
   iodev->supported_channel_counts = loopback_supported_channel_counts;
   iodev->supported_formats = loopback_supported_formats;
   iodev->buffer_size = LOOPBACK_BUFFER_SIZE;
+  iodev->is_utility_device = true;
 
   iodev->frames_queued = frames_queued;
   iodev->delay_frames = delay_frames;

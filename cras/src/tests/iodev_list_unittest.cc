@@ -3591,6 +3591,10 @@ int cras_rstream_create(struct cras_rstream_config* config,
 
 void cras_rstream_destroy(struct cras_rstream* rstream) {}
 
+unsigned int cras_rstream_get_effects(const struct cras_rstream* stream) {
+  return 0;
+}
+
 struct cras_tm* cras_system_state_get_tm() {
   return NULL;
 }
@@ -3693,6 +3697,8 @@ int cras_stream_apm_set_aec_ref(struct cras_stream_apm* stream,
   cras_stream_apm_set_aec_ref_called++;
   return 0;
 }
+
+void cras_stream_apm_notify_dsp_input_effects_blocked(bool blocked) {}
 
 //  From librt.
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {

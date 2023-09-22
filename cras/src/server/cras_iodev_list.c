@@ -147,8 +147,8 @@ static int hotword_auto_resume = 0;
 static bool non_dsp_aec_echo_ref_dev_alive = false;
 static bool aec_on_dsp_is_disallowed = false;
 
-// Returns true for blocking Noise Cancellation; false for unblocking.
-static bool get_nc_blocked_state() {
+// Returns true for blocking DSP input effects; false for unblocking.
+static bool get_dsp_input_effects_blocked_state() {
   // TODO(b/272408566) remove this WA when the formal fix is landed
   if (cras_system_get_noise_cancellation_standalone_mode()) {
     return non_dsp_aec_echo_ref_dev_alive;
@@ -157,24 +157,25 @@ static bool get_nc_blocked_state() {
   return non_dsp_aec_echo_ref_dev_alive || aec_on_dsp_is_disallowed;
 }
 
-static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_alive,
-                                    bool new_aec_on_dsp_is_disallowed) {
-  bool prev_state = get_nc_blocked_state();
+static void update_dsp_input_effects_blocked_state(
+    bool new_non_dsp_aec_echo_ref_dev_alive,
+    bool new_aec_on_dsp_is_disallowed) {
+  bool prev_state = get_dsp_input_effects_blocked_state();
 
   non_dsp_aec_echo_ref_dev_alive = new_non_dsp_aec_echo_ref_dev_alive;
   aec_on_dsp_is_disallowed = new_aec_on_dsp_is_disallowed;
 
-  if (prev_state != get_nc_blocked_state()) {
-    if (!cras_system_get_dsp_noise_cancellation_supported() ||
-        cras_system_get_bypass_block_noise_cancellation()) {
-      return;
-    }
-
-    MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE, get_nc_blocked_state(),
+  if (prev_state != get_dsp_input_effects_blocked_state()) {
+    MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE,
+            get_dsp_input_effects_blocked_state(),
             non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
-    syslog(LOG_DEBUG, "NC is %s: non_echo=%d disallow=%d",
-           get_nc_blocked_state() ? "deactivated" : "activated",
+    syslog(LOG_INFO, "DSP input effects are %s: non_echo=%d disallow=%d",
+           get_dsp_input_effects_blocked_state() ? "deactivated" : "activated",
            non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
+
+    cras_stream_apm_notify_dsp_input_effects_blocked(
+        get_dsp_input_effects_blocked_state());
+
     // notify Chrome for NC blocking state change
     cras_iodev_list_update_device_list();
     cras_iodev_list_notify_nodes_changed();
@@ -182,21 +183,12 @@ static void update_nc_blocked_state(bool new_non_dsp_aec_echo_ref_dev_alive,
 }
 
 static void set_non_dsp_aec_echo_ref_dev_alive(bool state) {
-  update_nc_blocked_state(state, aec_on_dsp_is_disallowed);
+  update_dsp_input_effects_blocked_state(state, aec_on_dsp_is_disallowed);
 }
 
-static void set_aec_on_dsp_is_disallowed(bool state) {
-  update_nc_blocked_state(non_dsp_aec_echo_ref_dev_alive, state);
-}
-
-// |dev_idx| is unused by now.
-void cras_iodev_list_set_aec_on_dsp_is_disallowed(unsigned int dev_idx,
-                                                  bool is_disallowed) {
-  if (aec_on_dsp_is_disallowed == is_disallowed) {
-    return;
-  }
-
-  set_aec_on_dsp_is_disallowed(is_disallowed);
+static void set_aec_on_dsp_is_disallowed(bool disallowed) {
+  update_dsp_input_effects_blocked_state(non_dsp_aec_echo_ref_dev_alive,
+                                         disallowed);
 }
 
 static void idle_dev_check(struct cras_timer* timer, void* data);
@@ -317,7 +309,7 @@ struct fill_node_list_auxiliary {
 
 static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
   struct fill_node_list_auxiliary aux = {
-      .dsp_nc_allowed = !get_nc_blocked_state() ||
+      .dsp_nc_allowed = !get_dsp_input_effects_blocked_state() ||
                         cras_system_get_bypass_block_noise_cancellation(),
       .ap_nc_allowed =
           cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation),
@@ -1322,8 +1314,30 @@ static int stream_removed_cb(struct cras_rstream* rstream) {
   return 0;
 }
 
+static bool can_use_dsp_aec(struct cras_rstream* all_streams) {
+  struct cras_rstream* stream;
+  DL_FOREACH (all_streams, stream) {
+    if (stream->direction != CRAS_STREAM_INPUT) {
+      continue;
+    }
+    if (cras_iodev_list_is_utility_stream(stream)) {
+      continue;
+    }
+
+    unsigned int effects = cras_rstream_get_effects(stream);
+    if (effects & PRIVATE_DONT_CARE_APM_EFFECTS) {
+      continue;
+    }
+    if (!(effects & (APM_ECHO_CANCELLATION | DSP_ECHO_CANCELLATION_ALLOWED))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static int stream_list_changed_cb(struct cras_rstream* all_streams) {
   cras_speak_on_mute_detector_streams_changed(all_streams);
+  set_aec_on_dsp_is_disallowed(!can_use_dsp_aec(all_streams));
 
   return 0;
 }
@@ -2497,4 +2511,27 @@ void cras_iodev_list_create_server_vad_stream(int dev_idx) {
 
 void cras_iodev_list_destroy_server_vad_stream(int dev_idx) {
   server_stream_destroy(stream_list, SERVER_STREAM_VAD, dev_idx);
+}
+
+bool cras_iodev_list_is_utility_stream(const struct cras_rstream* stream) {
+  switch (stream->client_type) {
+    case CRAS_CLIENT_TYPE_SERVER_STREAM:
+      return true;
+    default:;  // Do nothing.
+  }
+
+  switch (stream->stream_type) {
+    case CRAS_STREAM_TYPE_SPEECH_RECOGNITION:
+      return true;
+    default:;  // Do nothing.
+  }
+
+  if (stream->is_pinned) {
+    struct cras_iodev* dev = find_dev(stream->pinned_dev_idx);
+    if (dev && dev->is_utility_device) {
+      return true;
+    }
+  }
+
+  return false;
 }

@@ -212,6 +212,14 @@ bool cras_stream_apm_vad_available(struct cras_stream_apm* stream);
 // Returns true if the stream effects requires the use of APM.
 bool cras_apm_needed_for_effects(uint64_t effects, bool cras_processor_needed);
 
+// Sets whether DSP input effects are blocked directly.
+// Exposed for testing only. Normal code should use
+// cras_stream_apm_notify_dsp_input_effects_blocked.
+void apm_thread_set_dsp_input_effects_blocked(bool blocked);
+
+// Sets whether DSP input effects are blocked.
+void cras_stream_apm_notify_dsp_input_effects_blocked(bool blocked);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

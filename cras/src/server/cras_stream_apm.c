@@ -141,7 +141,9 @@ struct active_apm {
 
 // Commands sent to be handled in main thread.
 enum CRAS_STREAM_APM_MSG_TYPE {
-  APM_DISALLOW_AEC_ON_DSP,
+  // Only having this here to keep the enum.
+  // Remove this when adding the next msg type.
+  APM_DISALLOW_AEC_ON_DSP_B301535557_UNUSED,
 };
 
 struct cras_stream_apm_message {
@@ -151,28 +153,12 @@ struct cras_stream_apm_message {
   uint32_t arg2;
 };
 
-/*
- * Initializes message sent to main thread with type APM_DISALLOW_AEC_ON_DSP.
- * Arguments:
- *   dev_idx - the index of input device APM takes effect on.
- *   is_disallowed - 1 to disallow, 0 otherwise.
- */
-static void init_disallow_aec_on_dsp_msg(struct cras_stream_apm_message* msg,
-                                         uint32_t dev_idx,
-                                         uint32_t is_disallowed) {
-  memset(msg, 0, sizeof(*msg));
-  msg->header.type = CRAS_MAIN_STREAM_APM;
-  msg->header.length = sizeof(*msg);
-  msg->message_type = APM_DISALLOW_AEC_ON_DSP;
-  msg->arg1 = dev_idx;
-  msg->arg2 = is_disallowed;
-}
-
 // Commands from main thread to be handled in audio thread.
 enum APM_THREAD_CMD {
   APM_REVERSE_DEV_CHANGED,
   APM_SET_AEC_REF,
   APM_VAD_TARGET_CHANGED,
+  APM_DSP_INPUT_EFFECTS_BLOCKED,
 };
 
 // Message to send command to audio thread.
@@ -214,25 +200,23 @@ static struct cras_audio_format mono_channel = {
     1,  // mono, front center
     {-1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1}};
 
-static inline bool should_enable_dsp_aec(uint64_t effects) {
-  return (effects & DSP_ECHO_CANCELLATION_ALLOWED) &&
-         (effects & APM_ECHO_CANCELLATION);
-}
-
-static inline bool should_enable_dsp_ns(uint64_t effects) {
-  return (effects & DSP_NOISE_SUPPRESSION_ALLOWED) &&
-         (effects & APM_NOISE_SUPRESSION);
-}
-
-static inline bool should_enable_dsp_agc(uint64_t effects) {
-  return (effects & DSP_GAIN_CONTROL_ALLOWED) && (effects & APM_GAIN_CONTROL);
-}
-
 static bool stream_apm_should_enable_vad(struct cras_stream_apm* stream_apm) {
   /* There is no stream_apm->effects bit allocated for client VAD
    * usage. Determine whether VAD should be enabled solely by the
    * requirements of speak-on-mute detection. */
   return cached_vad_target == stream_apm;
+}
+
+static void update_supported_dsp_effects_activation();
+
+static bool dsp_input_effects_blocked = false;
+
+void apm_thread_set_dsp_input_effects_blocked(bool blocked) {
+  if (dsp_input_effects_blocked == blocked) {
+    return;
+  }
+  dsp_input_effects_blocked = blocked;
+  update_supported_dsp_effects_activation();
 }
 
 /*
@@ -241,48 +225,8 @@ static bool stream_apm_should_enable_vad(struct cras_stream_apm* stream_apm) {
  */
 static bool dsp_effect_check_conflict(struct cras_iodev* const idev,
                                       enum RTC_PROC_ON_DSP effect) {
-  struct active_apm* active;
-
-  // Return true if any APM should not apply the effect on DSP.
-  DL_FOREACH (active_apms, active) {
-    if (active->apm->idev != idev) {
-      continue;
-    }
-
-    switch (effect) {
-      case RTC_PROC_AEC: {
-        /*
-         * The AEC effect can only be applied if the audio
-         * output devices configuration meets our AEC usecase.
-         */
-        bool is_dsp_aec_use_case =
-            cras_iodev_is_dsp_aec_use_case(idev->active_node) &&
-            cras_apm_reverse_is_aec_use_case(active->stream->echo_ref);
-        if (!(is_dsp_aec_use_case &&
-              should_enable_dsp_aec(active->stream->effects))) {
-          return true;
-        }
-        break;
-      }
-      case RTC_PROC_NS:
-        if (!should_enable_dsp_ns(active->stream->effects)) {
-          return true;
-        }
-        break;
-      case RTC_PROC_AGC:
-        if (!should_enable_dsp_agc(active->stream->effects)) {
-          return true;
-        }
-        break;
-      default:
-        syslog(LOG_WARNING, "Unhandled RTC_PROC %d", effect);
-        break;
-    }
-  }
-
-  /* Return false otherwise. Nothing conflicts with activating |effect|
-   * on |idev| */
-  return false;
+  return dsp_input_effects_blocked ||
+         !cras_iodev_is_dsp_aec_use_case(idev->active_node);
 }
 
 /*
@@ -331,54 +275,6 @@ static bool toggle_dsp_effect(struct cras_iodev* const idev,
 }
 
 /*
- * Adds the info of APM_DISALLOW_AEC_ON_DSP messages to a list. The list is used
- * for reducing repeated and conflicted infos, minimizing the number of messgaes
- * to be sent to the main thread.
- */
-static void add_disallow_aec_on_dsp_info_to_list(uint32_t* info_list,
-                                                 size_t* info_list_size,
-                                                 uint32_t dev_idx,
-                                                 uint32_t is_disallowed) {
-  size_t i;
-  // info: [31:16] for dev_idx, [15:0] for is_disallowed
-  uint32_t info = (dev_idx << 16) + (is_disallowed & 0xFFFF);
-
-  for (i = 0; i < *info_list_size; i++) {
-    uint32_t list_info = *(info_list + i);
-    // repeated info
-    if (list_info == info) {
-      return;
-    }
-    // conflicted info for the same device, replace with the latter
-    if (list_info >> 16 == info >> 16) {
-      *(info_list + i) = info;
-      syslog(LOG_ERR, "disallow_aec_on_dsp conflicted on dev:%u, %u", dev_idx,
-             is_disallowed);
-      return;
-    }
-  }
-
-  *(info_list + *info_list_size) = info;
-  (*info_list_size)++;
-}
-
-// Sends APM_DISALLOW_AEC_ON_DSP message to the main thread.
-static void send_disallow_aec_on_dsp_msg_from_info(uint32_t info) {
-  struct cras_stream_apm_message msg = CRAS_MAIN_MESSAGE_INIT;
-  int err;
-
-  // info: [31:16] for dev_idx, [15:0] for is_disallowed
-  syslog(LOG_DEBUG, "Send APM_DISALLOW_AEC_ON_DSP(%u, %u) message to main",
-         info >> 16, info & 0xFFFF);
-  init_disallow_aec_on_dsp_msg(&msg, info >> 16, info & 0xFFFF);
-  err = cras_main_message_send((struct cras_main_message*)&msg);
-  if (err < 0) {
-    syslog(LOG_ERR, "Failed to send stream apm message %d: %d",
-           APM_DISALLOW_AEC_ON_DSP, err);
-  }
-}
-
-/*
  * Iterates all active apms and applies the restrictions to determine
  * whether or not to activate effects on DSP for each associated
  * input devices. Called in audio thread.
@@ -402,9 +298,6 @@ static void update_supported_dsp_effects_activation() {
   // Toggle between having effects applied on DSP and in CRAS for each APM
   struct active_apm* active;
   struct cras_apm* apm;
-  uint32_t disallow_aec_on_dsp_infos[CRAS_MAX_IODEVS];
-  size_t disallow_aec_on_dsp_info_size = 0;
-  size_t i;
   LL_FOREACH (active_apms, active) {
     apm = active->apm;
     struct cras_iodev* const idev = apm->idev;
@@ -450,16 +343,6 @@ static void update_supported_dsp_effects_activation() {
     if (!cras_iodev_support_rtc_proc_on_dsp(idev, RTC_PROC_AEC)) {
       continue;
     }
-
-    // Collect APM_DISALLOW_AEC_ON_DSP infos to be sent.
-    add_disallow_aec_on_dsp_info_to_list(disallow_aec_on_dsp_infos,
-                                         &disallow_aec_on_dsp_info_size,
-                                         idev->info.idx, !aec_on_dsp);
-  }
-
-  // Send APM_DISALLOW_AEC_ON_DSP messages to the main thread.
-  for (i = 0; i < disallow_aec_on_dsp_info_size; i++) {
-    send_disallow_aec_on_dsp_msg_from_info(disallow_aec_on_dsp_infos[i]);
   }
 }
 
@@ -498,16 +381,10 @@ static void apm_destroy(struct cras_apm** apm) {
 }
 
 static inline bool apm_needed_for_effects(uint64_t effects,
-                                          bool cras_processor_needed,
-                                          bool dsp_aec_supported) {
+                                          bool cras_processor_needed) {
   if (effects &
       (APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL)) {
     // Required for webrtc-apm.
-    return true;
-  }
-  if (dsp_aec_supported && !(effects & PRIVATE_DONT_CARE_APM_EFFECTS)) {
-    // This stream expects CRAS to serve the exact APM effects.
-    // Create an APM so it could be checked with dsp_effect_check_conflict.
     return true;
   }
   if (cras_processor_needed &&
@@ -526,8 +403,9 @@ struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
           // cannot be known at stream creation as the active device
           // may change (from not support NC to support NC), or the user
           // may touch the platform NC toggle.
-          /*cras_processor_needed=*/true,
-          /*dsp_aec_supported=*/cras_system_aec_on_dsp_supported())) {
+          /*cras_processor_needed=*/true) &&
+      // If effects is non-zero, create a cras_stream_apm to store the bits.
+      !effects) {
     return NULL;
   }
 
@@ -664,9 +542,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
 
   // TODO(hychao): Remove the check when we enable more effects.
   if (!apm_needed_for_effects(
-          stream->effects, /*cras_processor_needed=*/cp_effect != NoEffects,
-          /*dsp_aec_supported=*/
-          cras_iodev_support_rtc_proc_on_dsp(idev, RTC_PROC_AEC))) {
+          stream->effects, /*cras_processor_needed=*/cp_effect != NoEffects)) {
     return NULL;
   }
 
@@ -849,17 +725,6 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
   toggle_dsp_effect(idev, RTC_PROC_AEC, 0);
   toggle_dsp_effect(idev, RTC_PROC_NS, 0);
   toggle_dsp_effect(idev, RTC_PROC_AGC, 0);
-
-  /* If the APM which causes AEC on DSP disallowed is the last active_apm
-   * on |idev| to stop, update_supported_dsp_effects_activation cannot
-   * detect the condition is released because there is no active_apm
-   * applied on |idev| at that moment.
-   * To solve such cases, send message to clear the disallowed state when
-   * |idev| is no longer being used by APMs.
-   */
-  if (cras_iodev_support_rtc_proc_on_dsp(idev, RTC_PROC_AEC)) {
-    send_disallow_aec_on_dsp_msg_from_info(idev->info.idx << 16);
-  }
 }
 
 int cras_stream_apm_destroy(struct cras_stream_apm* stream) {
@@ -1067,6 +932,9 @@ static int apm_thread_callback(void* arg, int revents) {
         break;
       case APM_VAD_TARGET_CHANGED:
         update_vad_target(msg.data1);
+        break;
+      case APM_DSP_INPUT_EFFECTS_BLOCKED:
+        apm_thread_set_dsp_input_effects_blocked(msg.data1);
         break;
       default:
         break;
@@ -1358,11 +1226,23 @@ int cras_stream_apm_set_aec_ref(struct cras_stream_apm* stream,
   return 0;
 }
 
+struct cras_iodev* cras_stream_apm_get_aec_ref(struct cras_stream_apm* stream) {
+  return stream ? stream->echo_ref : NULL;
+}
+
 void cras_stream_apm_notify_vad_target_changed(
     struct cras_stream_apm* vad_target) {
   int rc = send_apm_message_explicit(APM_VAD_TARGET_CHANGED, vad_target);
   if (rc < 0) {
     syslog(LOG_ERR, "Error sending vad target changed message");
+  }
+}
+
+void cras_stream_apm_notify_dsp_input_effects_blocked(bool blocked) {
+  int rc = send_apm_message_explicit(APM_DSP_INPUT_EFFECTS_BLOCKED,
+                                     blocked ? NULL : (void*)1);
+  if (rc < 0) {
+    syslog(LOG_ERR, "Error sending APM_AEC_ON_DSP_DISALLOWED message: %d", rc);
   }
 }
 
@@ -1372,11 +1252,6 @@ static void handle_stream_apm_message(struct cras_main_message* msg,
       (struct cras_stream_apm_message*)msg;
 
   switch (stream_apm_msg->message_type) {
-    case APM_DISALLOW_AEC_ON_DSP:
-      cras_iodev_list_set_aec_on_dsp_is_disallowed(
-          stream_apm_msg->arg1,   // dev_idx
-          stream_apm_msg->arg2);  // is_disallowed
-      break;
     default:
       syslog(LOG_ERR, "Unknown stream apm message type %u",
              stream_apm_msg->message_type);

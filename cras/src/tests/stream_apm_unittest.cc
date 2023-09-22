@@ -48,7 +48,11 @@ static int cras_iodev_set_rtc_proc_enabled_called;
 static std::unordered_map<cras_iodev*, bool> iodev_rtc_proc_enabled_maps[3];
 static int cras_system_aec_on_dsp_supported_ret = 0;
 
-TEST(StreamApm, StreamApmCreateNoDspAEC) {
+class StreamApm : public ::testing::Test {
+  void SetUp() override { apm_thread_set_dsp_input_effects_blocked(false); }
+};
+
+TEST_F(StreamApm, StreamApmCreateNoDspAEC) {
   cras_system_aec_on_dsp_supported_ret = 0;
   {
     ScopedFeaturesOverride override(
@@ -78,18 +82,14 @@ TEST(StreamApm, StreamApmCreateNoDspAEC) {
   }
 }
 
-TEST(StreamApm, StreamApmCreateDspAEC) {
+TEST_F(StreamApm, StreamApmCreateDspAEC) {
   cras_system_aec_on_dsp_supported_ret = 1;
   {
     ScopedFeaturesOverride override(
         {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
 
     stream = cras_stream_apm_create(0);
-    EXPECT_NE(nullptr, stream) << "Should create APM with no effects when "
-                                  "PRIVATE_DONT_CARE_APM_EFFECTS is not set";
-    EXPECT_EQ(0, cras_stream_apm_get_effects(stream));
-
-    cras_stream_apm_destroy(stream);
+    EXPECT_EQ(nullptr, stream) << "Should not create APM with empty effects";
   }
 
   {
@@ -97,8 +97,10 @@ TEST(StreamApm, StreamApmCreateDspAEC) {
         {}, {CrOSLateBootAudioEmptyAPMForCrasProcessor});
 
     stream = cras_stream_apm_create(PRIVATE_DONT_CARE_APM_EFFECTS);
-    EXPECT_EQ(nullptr, stream)
-        << "Should not create APM when empty APM is not allowed";
+    EXPECT_NE(nullptr, stream) << "Should create APM to store effect bits";
+    EXPECT_EQ(PRIVATE_DONT_CARE_APM_EFFECTS,
+              cras_stream_apm_get_effects(stream));
+    cras_stream_apm_destroy(stream);
 
     stream = cras_stream_apm_create(APM_ECHO_CANCELLATION);
     EXPECT_NE(nullptr, stream);
@@ -159,7 +161,7 @@ static void init_channel_layout(struct cras_audio_format* fmt) {
   }
 }
 
-TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
+TEST_F(StreamApm, AddApmInputDevUnuseFirstChannel) {
   struct cras_audio_format fmt;
   struct cras_audio_format* val;
   struct cras_apm* apm;
@@ -216,7 +218,7 @@ TEST(StreamApm, AddApmInputDevUnuseFirstChannel) {
   cras_stream_apm_deinit();
 }
 
-TEST(StreamApm, AddRemoveApm) {
+TEST_F(StreamApm, AddRemoveApm) {
   struct cras_audio_format fmt;
   char* dir;
 
@@ -270,7 +272,7 @@ TEST(StreamApm, AddRemoveApm) {
   free(dir);
 }
 
-TEST(StreamApm, OutputTypeNotAecUseCase) {
+TEST_F(StreamApm, OutputTypeNotAecUseCase) {
   struct cras_audio_format fmt;
   char* dir;
 
@@ -306,7 +308,7 @@ TEST(StreamApm, OutputTypeNotAecUseCase) {
   free(dir);
 }
 
-TEST(StreamApm, ApmProcessForwardBuffer) {
+TEST_F(StreamApm, ApmProcessForwardBuffer) {
   struct cras_apm* apm;
   struct cras_audio_format fmt;
   struct cras_audio_area* area;
@@ -366,7 +368,7 @@ TEST(StreamApm, ApmProcessForwardBuffer) {
   cras_stream_apm_deinit();
 }
 
-TEST(StreamApm, StreamAddToAlreadyOpenedDev) {
+TEST_F(StreamApm, StreamAddToAlreadyOpenedDev) {
   struct cras_audio_format fmt;
   struct cras_apm *apm1, *apm2;
 
@@ -393,7 +395,7 @@ TEST(StreamApm, StreamAddToAlreadyOpenedDev) {
   cras_stream_apm_deinit();
 }
 
-TEST(StreamApm, ReverseDevChanged) {
+TEST_F(StreamApm, ReverseDevChanged) {
   cras_stream_apm_init("");
   EXPECT_NE((void*)NULL, output_devices_changed_callback);
   EXPECT_NE((void*)NULL, thread_cb);
@@ -407,7 +409,7 @@ TEST(StreamApm, ReverseDevChanged) {
   cras_stream_apm_deinit();
 }
 
-TEST(StreamApm, GetUseTunedSettings) {
+TEST_F(StreamApm, GetUseTunedSettings) {
   struct cras_audio_format fmt;
   char* dir;
 
@@ -530,7 +532,7 @@ TEST(ApmList, NeedsReverseProcessing) {
   cras_stream_apm_deinit();
 }
 
-TEST(StreamApm, DSPEffectsNotSupportedShouldNotCallIodevOps) {
+TEST_F(StreamApm, DSPEffectsNotSupportedShouldNotCallIodevOps) {
   struct cras_audio_format fmt;
   struct cras_apm* apm1;
 
@@ -553,6 +555,9 @@ TEST(StreamApm, DSPEffectsNotSupportedShouldNotCallIodevOps) {
 
   apm1 = cras_stream_apm_add(stream, idev, &fmt);
   EXPECT_NE((void*)NULL, apm1);
+
+  apm_thread_set_dsp_input_effects_blocked(true);
+
   cras_stream_apm_start(stream, idev);
   EXPECT_EQ(0, cras_iodev_set_rtc_proc_enabled_called);
 
@@ -564,7 +569,7 @@ TEST(StreamApm, DSPEffectsNotSupportedShouldNotCallIodevOps) {
   cras_stream_apm_deinit();
 }
 
-TEST(StreamApm, UpdateEffect) {
+TEST_F(StreamApm, UpdateEffect) {
   struct cras_audio_format fmt;
   struct cras_apm* apm1;
 
@@ -586,6 +591,7 @@ TEST(StreamApm, UpdateEffect) {
                                   DSP_ECHO_CANCELLATION_ALLOWED);
   EXPECT_NE((void*)NULL, stream);
 
+  apm_thread_set_dsp_input_effects_blocked(false);
   apm1 = cras_stream_apm_add(stream, idev, &fmt);
   EXPECT_NE((void*)NULL, apm1);
   cras_stream_apm_start(stream, idev);
@@ -600,6 +606,7 @@ TEST(StreamApm, UpdateEffect) {
   cras_stream_apm_destroy(stream);
 
   // No DSP aec allowed should block DSP ns/agc being enabled.
+  apm_thread_set_dsp_input_effects_blocked(true);
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_NOISE_SUPPRESSION_ALLOWED | DSP_GAIN_CONTROL_ALLOWED);
@@ -619,6 +626,7 @@ TEST(StreamApm, UpdateEffect) {
   cras_stream_apm_destroy(stream);
 
   // Allowing DSP aec means DSP ns/agc can be enalbed.
+  apm_thread_set_dsp_input_effects_blocked(false);
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_ECHO_CANCELLATION_ALLOWED | DSP_NOISE_SUPPRESSION_ALLOWED |
@@ -685,10 +693,9 @@ TEST(StreamApm, UpdateEffect) {
   cras_stream_apm_deinit();
 }
 
-TEST(StreamApm, UpdateEffectMultipleStreamApms) {
+TEST_F(StreamApm, UpdateEffectMultipleStreamApms) {
   struct cras_audio_format fmt;
-  struct cras_apm *apm1, *apm2;
-  struct cras_stream_apm* stream2;
+  struct cras_apm* apm1;
 
   fmt.num_channels = 2;
   fmt.frame_rate = 48000;
@@ -704,7 +711,7 @@ TEST(StreamApm, UpdateEffectMultipleStreamApms) {
   iodev_rtc_proc_enabled_maps[RTC_PROC_AGC].clear();
   cras_stream_apm_init("");
 
-  // Allowing DSP aec means DSP ns/agc can be enalbed.
+  // Allowing DSP aec means DSP ns/agc can be enabled.
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
       DSP_ECHO_CANCELLATION_ALLOWED | DSP_NOISE_SUPPRESSION_ALLOWED |
@@ -717,42 +724,6 @@ TEST(StreamApm, UpdateEffectMultipleStreamApms) {
   EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_AEC][idev]);
   EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_NS][idev]);
   EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_AGC][idev]);
-
-  /* Another stream apm not feasible to use with DSP effect would
-   * block enabling DSP effect on |idev|. */
-  stream2 = cras_stream_apm_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, stream);
-  apm2 = cras_stream_apm_add(stream2, idev, &fmt);
-  EXPECT_NE((void*)NULL, apm2);
-  cras_stream_apm_start(stream2, idev);
-  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_AEC][idev]);
-  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_NS][idev]);
-  EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_AGC][idev]);
-
-  cras_stream_apm_stop(stream2, idev);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_AEC][idev]);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_NS][idev]);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_AGC][idev]);
-  cras_stream_apm_remove(stream2, idev);
-  cras_stream_apm_destroy(stream2);
-
-  /* Another stream apm not feasible to use with DSP effect does not
-   * cause a problem when it's added on a different iodbv
-   * (i.e idev2 in this case. */
-  stream2 = cras_stream_apm_create(APM_ECHO_CANCELLATION);
-  EXPECT_NE((void*)NULL, stream);
-  apm2 = cras_stream_apm_add(stream2, idev2, &fmt);
-  EXPECT_NE((void*)NULL, apm2);
-  cras_stream_apm_start(stream2, idev);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_AEC][idev]);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_NS][idev]);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_AGC][idev]);
-  cras_stream_apm_stop(stream2, idev);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_AEC][idev]);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_NS][idev]);
-  EXPECT_EQ(true, iodev_rtc_proc_enabled_maps[RTC_PROC_AGC][idev]);
-  cras_stream_apm_remove(stream2, idev);
-  cras_stream_apm_destroy(stream2);
 
   cras_stream_apm_stop(stream, idev);
   EXPECT_EQ(false, iodev_rtc_proc_enabled_maps[RTC_PROC_AEC][idev]);

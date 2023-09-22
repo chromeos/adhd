@@ -342,6 +342,9 @@ void cras_iodev_list_create_server_vad_stream(int dev_idx);
  */
 void cras_iodev_list_destroy_server_vad_stream(int dev_idx);
 
+/* Returns true if stream is started by the system instead of by the user */
+bool cras_iodev_list_is_utility_stream(const struct cras_rstream* stream);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

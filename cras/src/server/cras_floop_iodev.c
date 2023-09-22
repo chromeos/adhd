@@ -295,6 +295,7 @@ static void common_init_iodev(const struct cras_floop_params* params,
       SuperFastHash((const char*)params, sizeof(*params), hash);
 
   iodev->info.max_supported_channels = loopback_supported_channel_counts[0];
+  iodev->is_utility_device = true;
 
   struct cras_ionode* node = (struct cras_ionode*)calloc(1, sizeof(*node));
   node->dev = iodev;

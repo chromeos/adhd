@@ -395,6 +395,8 @@ struct cras_iodev {
   struct input_data* input_data;
   // The ewma instance to calculate iodev volume.
   struct ewma_power ewma;
+  // Indicates that this device is used by the system instead of by the user.
+  bool is_utility_device;
   struct cras_iodev *prev, *next;
 };
 
