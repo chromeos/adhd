@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("//:utils.bzl", "require_config")
+
 cc_library(
     name = "message_builder",
     testonly = True,
@@ -16,6 +18,10 @@ cc_library(
 cc_test(
     name = "message_builder_test",
     srcs = ["message_builder_test.cc"],
+    # TODO(b/294166984): This currently breaks on archlinux due to mixing
+    # http_archive absl and pkg-config absl.
+    # Re-enable after we figure out how to select 3P dependencies.
+    target_compatible_with = require_config("//:chromeos_build"),
     deps = [
         ":message_builder",
         "@com_google_absl//absl/types:span",
