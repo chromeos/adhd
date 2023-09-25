@@ -908,8 +908,8 @@ int write_output_samples(struct open_dev** odevs,
       fr_to_req = 0;  // break out after committing samples
     }
     if (written > (snd_pcm_sframes_t)frames_writeable) {
-      syslog(LOG_WARNING, "%s: %s: wrote %ld > buffer size %u", __func__,
-             odev->info.name, written, frames_writeable);
+      syslog(LOG_WARNING, "%s: %s: wrote %ld > buffer available frames %u",
+             __func__, odev->info.name, written, frames_writeable);
     }
 
     // This interval is lazily initialized once per device.
