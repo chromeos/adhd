@@ -45,6 +45,13 @@ int buffer_share_offset_update(struct buffer_share* mix,
                                unsigned int id,
                                unsigned int frames);
 
+// Gets the minimum offset from all users.
+unsigned int buffer_share_get_minimum_offset(struct buffer_share* mix);
+
+// Updates the write point based on the written frames given.
+int buffer_share_update_write_point(struct buffer_share* mix,
+                                    unsigned int written);
+
 /*
  * Updates the write point to the minimum offset from all users.
  * Returns the number of minimum number of frames written.

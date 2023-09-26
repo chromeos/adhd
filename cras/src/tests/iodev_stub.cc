@@ -125,7 +125,8 @@ enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev* iodev) {
   return iodev->state;
 }
 
-unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev) {
+unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev,
+                                            unsigned int write_limit) {
   return 0;
 }
 

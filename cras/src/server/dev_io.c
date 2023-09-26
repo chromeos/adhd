@@ -787,11 +787,12 @@ static unsigned int write_streams(struct open_dev** odevs,
     cras_iodev_stream_written(odev, curr, nwritten);
   }
 
-  write_limit = cras_iodev_all_streams_written(odev);
+  unsigned int written_frames =
+      cras_iodev_all_streams_written(odev, write_limit);
 
-  ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED, write_limit, 0, 0);
+  ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED, written_frames, 0, 0);
 
-  return write_limit;
+  return written_frames;
 }
 
 /* Update next wake up time of the device.

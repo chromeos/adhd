@@ -1036,11 +1036,20 @@ void cras_iodev_stream_written(struct cras_iodev* iodev,
                              nwritten);
 }
 
-unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev) {
+unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev,
+                                            unsigned int write_limit) {
   if (!iodev->buf_state) {
     return 0;
   }
-  return buffer_share_get_new_write_point(iodev->buf_state);
+  unsigned int minimum_offset =
+      buffer_share_get_minimum_offset(iodev->buf_state);
+  unsigned int written_frames = MIN(minimum_offset, write_limit);
+  int rc = buffer_share_update_write_point(iodev->buf_state, written_frames);
+  if (rc < 0) {
+    return 0;
+  } else {
+    return written_frames;
+  }
 }
 
 unsigned int cras_iodev_max_stream_offset(const struct cras_iodev* iodev) {

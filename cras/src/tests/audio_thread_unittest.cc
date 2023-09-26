@@ -1044,8 +1044,9 @@ void cras_iodev_start_stream(struct cras_iodev* iodev,
   cras_iodev_start_stream_called++;
 }
 
-unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev) {
-  return cras_iodev_all_streams_written_ret;
+unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev,
+                                            unsigned int write_limit) {
+  return MIN(cras_iodev_all_streams_written_ret, write_limit);
 }
 
 int cras_iodev_close(struct cras_iodev* iodev) {

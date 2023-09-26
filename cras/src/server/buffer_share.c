@@ -119,11 +119,10 @@ int buffer_share_offset_update(struct buffer_share* mix,
   return 0;
 }
 
-unsigned int buffer_share_get_new_write_point(struct buffer_share* mix) {
+unsigned int buffer_share_get_minimum_offset(struct buffer_share* mix) {
   unsigned int min_written = mix->buf_sz + 1;
-  unsigned int i;
 
-  for (i = 0; i < mix->id_sz; i++) {
+  for (unsigned int i = 0; i < mix->id_sz; i++) {
     struct id_offset* o = &mix->wr_idx[i];
 
     if (!o->used) {
@@ -132,16 +131,40 @@ unsigned int buffer_share_get_new_write_point(struct buffer_share* mix) {
 
     min_written = MIN(min_written, o->offset);
   }
-  for (i = 0; i < mix->id_sz; i++) {
-    struct id_offset* o = &mix->wr_idx[i];
-    o->offset -= min_written;
-  }
-
   if (min_written > mix->buf_sz) {
     return 0;
   }
-
   return min_written;
+}
+
+int buffer_share_update_write_point(struct buffer_share* mix,
+                                    unsigned int written) {
+  for (unsigned int i = 0; i < mix->id_sz; i++) {
+    struct id_offset* o = &mix->wr_idx[i];
+
+    if (!o->used) {
+      continue;
+    }
+
+    if (o->offset < written) {
+      return -EINVAL;
+    }
+  }
+  for (unsigned int i = 0; i < mix->id_sz; i++) {
+    struct id_offset* o = &mix->wr_idx[i];
+    o->offset -= written;
+  }
+
+  return 0;
+}
+
+unsigned int buffer_share_get_new_write_point(struct buffer_share* mix) {
+  unsigned int minimum_offset = buffer_share_get_minimum_offset(mix);
+  int rc = buffer_share_update_write_point(mix, minimum_offset);
+  if (rc < 0) {
+    return 0;
+  }
+  return minimum_offset;
 }
 
 static struct id_offset* get_id_offset(const struct buffer_share* mix,

@@ -669,10 +669,11 @@ void cras_iodev_stream_written(struct cras_iodev* iodev,
                                unsigned int nwritten);
 
 /* All streams have written what they can, update the write pointers and return
- * the amount that has been filled by all streams and can be comitted to the
+ * the amount that has been filled by all streams and can be committed to the
  * device.
  */
-unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev);
+unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev,
+                                            unsigned int write_limit);
 
 // Return the state of an iodev.
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev* iodev);

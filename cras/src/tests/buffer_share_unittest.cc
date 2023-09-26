@@ -106,4 +106,102 @@ TEST_F(BufferShareTestSuite, TwoDevs) {
   buffer_share_destroy(dm);
 }
 
+TEST_F(BufferShareTestSuite, IgnoreRemovedDev) {
+  buffer_share* dm = buffer_share_create(1024);
+  int rc;
+
+  rc = buffer_share_add_id(dm, 0xf00, NULL);
+  EXPECT_EQ(0, rc);
+  rc = buffer_share_add_id(dm, 0xf02, NULL);
+  EXPECT_EQ(0, rc);
+
+  buffer_share_offset_update(dm, 0xf00, 500);
+  EXPECT_EQ(0, buffer_share_get_new_write_point(dm));
+
+  buffer_share_offset_update(dm, 0xf02, 750);
+  EXPECT_EQ(500, buffer_share_get_new_write_point(dm));
+
+  rc = buffer_share_rm_id(dm, 0xf02);
+  EXPECT_EQ(0, rc);
+
+  buffer_share_offset_update(dm, 0xf00, 500);
+  EXPECT_EQ(500, buffer_share_get_new_write_point(dm));
+
+  buffer_share_destroy(dm);
+}
+
+TEST_F(BufferShareTestSuite, AllRemovedDev) {
+  buffer_share* dm = buffer_share_create(1024);
+  int rc;
+
+  rc = buffer_share_add_id(dm, 0xf00, NULL);
+  EXPECT_EQ(0, rc);
+  rc = buffer_share_add_id(dm, 0xf02, NULL);
+  EXPECT_EQ(0, rc);
+
+  buffer_share_offset_update(dm, 0xf00, 500);
+  EXPECT_EQ(0, buffer_share_get_new_write_point(dm));
+
+  buffer_share_offset_update(dm, 0xf02, 750);
+  EXPECT_EQ(500, buffer_share_get_new_write_point(dm));
+
+  rc = buffer_share_rm_id(dm, 0xf02);
+  EXPECT_EQ(0, rc);
+
+  rc = buffer_share_rm_id(dm, 0xf00);
+  EXPECT_EQ(0, rc);
+
+  EXPECT_EQ(0, buffer_share_get_new_write_point(dm));
+
+  buffer_share_destroy(dm);
+}
+
+TEST_F(BufferShareTestSuite, GetMinimumOffset) {
+  buffer_share* dm = buffer_share_create(1024);
+  int rc;
+
+  rc = buffer_share_add_id(dm, 0xf00, NULL);
+  EXPECT_EQ(0, rc);
+  rc = buffer_share_add_id(dm, 0xf02, NULL);
+  EXPECT_EQ(0, rc);
+
+  buffer_share_offset_update(dm, 0xf00, 500);
+  buffer_share_offset_update(dm, 0xf02, 750);
+  EXPECT_EQ(500, buffer_share_get_minimum_offset(dm));
+
+  buffer_share_destroy(dm);
+}
+
+TEST_F(BufferShareTestSuite, UpdateWritePoint) {
+  buffer_share* dm = buffer_share_create(1024);
+  int rc;
+
+  rc = buffer_share_add_id(dm, 0xf00, NULL);
+  EXPECT_EQ(0, rc);
+  rc = buffer_share_add_id(dm, 0xf02, NULL);
+  EXPECT_EQ(0, rc);
+
+  buffer_share_offset_update(dm, 0xf00, 500);
+  buffer_share_offset_update(dm, 0xf02, 750);
+  EXPECT_EQ(0, buffer_share_update_write_point(dm, 500));
+
+  buffer_share_destroy(dm);
+}
+
+TEST_F(BufferShareTestSuite, UpdateWritePointInvalid) {
+  buffer_share* dm = buffer_share_create(1024);
+  int rc;
+
+  rc = buffer_share_add_id(dm, 0xf00, NULL);
+  EXPECT_EQ(0, rc);
+  rc = buffer_share_add_id(dm, 0xf02, NULL);
+  EXPECT_EQ(0, rc);
+
+  buffer_share_offset_update(dm, 0xf00, 500);
+  buffer_share_offset_update(dm, 0xf02, 750);
+  EXPECT_EQ(-EINVAL, buffer_share_update_write_point(dm, 750));
+
+  buffer_share_destroy(dm);
+}
+
 }  //  namespace
