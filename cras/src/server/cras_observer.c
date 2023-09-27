@@ -46,6 +46,7 @@ struct cras_observer_alerts {
   struct cras_alert* severe_underrun;
   struct cras_alert* underrun;
   struct cras_alert* general_survey;
+  struct cras_alert* bluetooth_survey;
   struct cras_alert* speak_on_mute_detected;
   struct cras_alert* num_stream_ignore_ui_gains_changed;
 };
@@ -109,6 +110,10 @@ struct cras_observer_non_empty_audio_state {
 struct cras_observer_alert_data_bt_battery_changed {
   const char* address;
   uint32_t level;
+};
+
+struct cras_observer_alert_data_bluetooth_survey {
+  uint32_t bt_flags;
 };
 
 struct cras_observer_alert_data_general_survey {
@@ -373,6 +378,18 @@ static void general_survey_alert(void* arg, void* data) {
   }
 }
 
+static void bluetooth_survey_alert(void* arg, void* data) {
+  struct cras_observer_client* client;
+  struct cras_observer_alert_data_bluetooth_survey* triggered_data =
+      (struct cras_observer_alert_data_bluetooth_survey*)data;
+
+  DL_FOREACH (g_observer->clients, client) {
+    if (client->ops.bluetooth_survey) {
+      client->ops.bluetooth_survey(client->context, triggered_data->bt_flags);
+    }
+  }
+}
+
 static void speak_on_mute_detected_alert(void* arg, void* data) {
   struct cras_observer_client* client;
 
@@ -454,6 +471,7 @@ int cras_observer_server_init() {
   CRAS_OBSERVER_SET_ALERT(severe_underrun, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(underrun, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(general_survey, NULL, 0);
+  CRAS_OBSERVER_SET_ALERT(bluetooth_survey, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(speak_on_mute_detected, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(num_non_chrome_output_streams, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(num_stream_ignore_ui_gains_changed, NULL, 0);
@@ -497,6 +515,7 @@ void cras_observer_server_free() {
       g_observer->alerts.num_active_streams[CRAS_STREAM_POST_MIX_PRE_DSP]);
   cras_alert_destroy(g_observer->alerts.num_non_chrome_output_streams);
   cras_alert_destroy(g_observer->alerts.general_survey);
+  cras_alert_destroy(g_observer->alerts.bluetooth_survey);
   cras_alert_destroy(g_observer->alerts.speak_on_mute_detected);
   cras_alert_destroy(g_observer->alerts.num_stream_ignore_ui_gains_changed);
   free(g_observer);
@@ -720,6 +739,15 @@ void cras_observer_notify_general_survey(enum CRAS_STREAM_TYPE stream_type,
   data.client_type = client_type;
   data.node_type_pair = node_type_pair;
   cras_alert_pending_data(g_observer->alerts.general_survey, &data,
+                          sizeof(data));
+}
+
+void cras_observer_notify_bluetooth_survey(uint32_t bt_flags) {
+  struct cras_observer_alert_data_bluetooth_survey data;
+
+  data.bt_flags = bt_flags;
+
+  cras_alert_pending_data(g_observer->alerts.bluetooth_survey, &data,
                           sizeof(data));
 }
 

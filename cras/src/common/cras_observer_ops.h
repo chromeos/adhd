@@ -80,6 +80,8 @@ struct cras_observer_ops {
                          enum CRAS_STREAM_TYPE stream_type,
                          enum CRAS_CLIENT_TYPE client_type,
                          const char* node_type_pair);
+  // Bluetooth Survey trigger event
+  void (*bluetooth_survey)(void* context, uint32_t bt_flags);
   // Speech detected while on mute
   void (*speak_on_mute_detected)(void* context);
 

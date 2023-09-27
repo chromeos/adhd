@@ -16,6 +16,7 @@
 
 #include "cras/platform/features/features.h"
 #include "cras/src/common/cras_dbus_bindings.h"  // Generated from Makefile
+#include "cras/src/common/cras_hats.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_player.h"
@@ -1982,6 +1983,73 @@ error:
   dbus_message_unref(msg);
 }
 
+static inline const char* profile_str_of(uint32_t bt_flags) {
+  if (bt_flags & CRAS_BT_FLAG_A2DP) {
+    return "A2DP";
+  }
+  if (bt_flags & CRAS_BT_FLAG_HFP) {
+    return "HFP";
+  }
+  return "NONE";
+}
+
+static bool fill_bluetooth_survey_dict(uint32_t bt_flags,
+                                       DBusMessageIter* dict) {
+  const char* survey_name_str = CRAS_HATS_SURVEY_NAME_BLUETOOTH;
+  if (!append_key_value(dict, CRAS_HATS_SURVEY_NAME_KEY, DBUS_TYPE_STRING,
+                        DBUS_TYPE_STRING_AS_STRING, &survey_name_str)) {
+    return FALSE;
+  }
+
+  const char* profile_str = profile_str_of(bt_flags);
+  if (!append_key_value(dict, "Profile", DBUS_TYPE_STRING,
+                        DBUS_TYPE_STRING_AS_STRING, &profile_str)) {
+    return FALSE;
+  }
+
+  const char* offload_str =
+      bt_flags & CRAS_BT_FLAG_SCO_OFFLOAD ? "true" : "false";
+  if (!append_key_value(dict, "Offload", DBUS_TYPE_STRING,
+                        DBUS_TYPE_STRING_AS_STRING, &offload_str)) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+static void signal_bluetooth_survey(void* context, uint32_t bt_flags) {
+  struct cras_dbus_control* control = (struct cras_dbus_control*)context;
+  dbus_uint32_t serial = 0;
+  DBusMessage* msg;
+  DBusMessageIter array;
+  DBusMessageIter dict;
+
+  msg = create_dbus_message("SurveyTrigger");
+  if (!msg) {
+    return;
+  }
+
+  dbus_message_iter_init_append(msg, &array);
+
+  if (!dbus_message_iter_open_container(&array, DBUS_TYPE_ARRAY, "{sv}",
+                                        &dict)) {
+    goto error;
+  }
+
+  if (!fill_bluetooth_survey_dict(bt_flags, &dict)) {
+    goto error;
+  }
+
+  if (!dbus_message_iter_close_container(&array, &dict)) {
+    goto error;
+  }
+
+  dbus_connection_send(control->conn, msg, &serial);
+
+error:
+  dbus_message_unref(msg);
+}
+
 static void signal_speak_on_mute_detected(void* context) {
   struct cras_dbus_control* control = (struct cras_dbus_control*)context;
   dbus_uint32_t serial = 0;
@@ -2056,6 +2124,7 @@ void cras_dbus_control_start(DBusConnection* conn) {
   observer_ops.severe_underrun = signal_severe_underrun;
   observer_ops.underrun = signal_underrun;
   observer_ops.general_survey = signal_general_survey;
+  observer_ops.bluetooth_survey = signal_bluetooth_survey;
   observer_ops.speak_on_mute_detected = signal_speak_on_mute_detected;
   observer_ops.num_stream_ignore_ui_gains_changed =
       signal_num_stream_ignore_ui_gains_changed;

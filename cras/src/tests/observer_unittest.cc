@@ -17,7 +17,7 @@ extern "C" {
 
 namespace {
 
-static const size_t kNumAlert = 23;
+static const size_t kNumAlert = 24;
 
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;

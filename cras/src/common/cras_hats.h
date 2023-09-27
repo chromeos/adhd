@@ -13,6 +13,10 @@ extern "C" {
 #endif
 
 #define CRAS_HATS_GENERAL_SURVEY_STREAM_LIVE_SEC 180
+#define CRAS_HATS_BLUETOOTH_SURVEY_STREAM_LIVE_SEC 60
+
+#define CRAS_HATS_SURVEY_NAME_KEY "SurveyName"
+#define CRAS_HATS_SURVEY_NAME_BLUETOOTH "BLUETOOTH"
 
 /* Send a signal to trigger a general audio satisfaction survey.
  *     stream_type - type of the removed stream.
@@ -23,6 +27,11 @@ extern "C" {
 void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
                                       enum CRAS_CLIENT_TYPE client_type,
                                       const char* node_type_pair);
+
+/* Send a signal to trigger the Bluetooth audio satisfaction survey.
+ *     bt_flags - a bitmask of Bluetooth stack flags.
+ */
+void cras_hats_trigger_bluetooth_survey(uint32_t bt_flags);
 
 #ifdef __cplusplus
 }  // extern "C"

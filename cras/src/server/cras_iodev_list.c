@@ -1296,6 +1296,7 @@ static void pinned_stream_removed(struct cras_rstream* rstream) {
 static int stream_removed_cb(struct cras_rstream* rstream) {
   struct timespec now, time_since;
   enum CRAS_STREAM_DIRECTION direction = rstream->direction;
+  struct cras_iodev* dev = (struct cras_iodev*)rstream->main_dev.dev_ptr;
   int rc;
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &now);
@@ -1303,6 +1304,10 @@ static int stream_removed_cb(struct cras_rstream* rstream) {
   if (time_since.tv_sec >= CRAS_HATS_GENERAL_SURVEY_STREAM_LIVE_SEC) {
     cras_hats_trigger_general_survey(rstream->stream_type, rstream->client_type,
                                      cras_system_state_get_active_node_types());
+  }
+
+  if (time_since.tv_sec >= CRAS_HATS_BLUETOOTH_SURVEY_STREAM_LIVE_SEC) {
+    cras_hats_trigger_bluetooth_survey(dev->active_node->btflags);
   }
 
   rc = audio_thread_drain_stream(audio_thread, rstream);
