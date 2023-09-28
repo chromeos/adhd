@@ -562,4 +562,10 @@ void cras_iodev_set_node_plugged(struct cras_ionode* ionode, int plugged) {
   cras_iodev_set_node_plugged_value = plugged;
 }
 
+void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev) {}
+
+bool cras_system_get_ap_nc_supported_on_bluetooth() {
+  return false;
+}
+
 }  // extern "C"

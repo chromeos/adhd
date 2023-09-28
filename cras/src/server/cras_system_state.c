@@ -954,3 +954,7 @@ int cras_system_get_num_stream_ignore_ui_gains() {
 int cras_system_get_speaker_output_latency_offset_ms() {
   return state.speaker_output_latency_offset_ms;
 }
+
+bool cras_system_get_ap_nc_supported_on_bluetooth() {
+  return !cras_system_get_sr_bt_supported();
+}

@@ -483,6 +483,10 @@ int cras_system_get_num_stream_ignore_ui_gains();
 // Returns the latency offset that should be added for speaker output.
 int cras_system_get_speaker_output_latency_offset_ms();
 
+// Returns true AP NC is supported on bluetooth devices.
+// This does not consider feature flags.
+bool cras_system_get_ap_nc_supported_on_bluetooth();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

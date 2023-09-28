@@ -16,6 +16,7 @@
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_utf8.h"
 #include "cras_types.h"
 #include "third_party/strlcpy/strlcpy.h"
@@ -230,6 +231,8 @@ static int open_dev(struct cras_iodev* iodev) {
     }
     return rc;
   }
+
+  cras_iodev_set_active_nc_provider(iodev);
 
   return 0;
 }
@@ -671,6 +674,13 @@ static struct cras_iodev* bt_io_create(struct bt_io_manager* mgr,
     strlcpy(active->base.name, DEFAULT_BT_DEVICE_NAME,
             sizeof(active->base.name));
   }
+
+  // Configure NC.
+  if (dev->direction == CRAS_STREAM_INPUT &&
+      cras_system_get_ap_nc_supported_on_bluetooth()) {
+    active->base.nc_providers = CRAS_NC_PROVIDER_AP;
+  }
+
   cras_iodev_add_node(iodev, &active->base);
 
   node = add_profile_dev(&btio->base, dev);

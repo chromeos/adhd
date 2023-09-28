@@ -1153,6 +1153,12 @@ static inline int cras_iodev_get_htimestamp(const struct cras_iodev* iodev,
   return 0;
 }
 
+// Sets iodev->active_nc_provider based on the current the iodev and user
+// config. To be used in iodev open.
+//
+// iodev->active_node must exist.
+void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

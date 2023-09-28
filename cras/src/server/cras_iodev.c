@@ -2039,3 +2039,10 @@ bool cras_iodev_is_channel_count_supported(struct cras_iodev* iodev,
   }
   return false;
 }
+
+void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev) {
+  bool user_enabled = cras_system_get_noise_cancellation_enabled();
+  iodev->active_nc_provider = user_enabled
+                                  ? iodev->active_node->desired_nc_provider
+                                  : CRAS_NC_PROVIDER_NONE;
+}

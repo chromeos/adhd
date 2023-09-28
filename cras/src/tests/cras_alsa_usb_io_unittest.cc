@@ -1401,4 +1401,6 @@ bool cras_iodev_list_get_dsp_nc_allowed() {
   return false;
 }
 
+void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev) {}
+
 }  // extern "C"
