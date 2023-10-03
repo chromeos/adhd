@@ -39,6 +39,7 @@ static device_disabled_callback_t device_disabled_callback_cb;
 static void* device_enabled_callback_cb_data;
 static int cras_iodev_list_register_loopback_called;
 static int cras_iodev_list_unregister_loopback_called;
+static size_t cras_iodev_free_resources_called;
 
 static char* atlog_name;
 
@@ -64,6 +65,7 @@ class LoopBackTestSuite : public testing::Test {
     cras_iodev_list_set_device_enabled_callback_called = 0;
     cras_iodev_list_register_loopback_called = 0;
     cras_iodev_list_unregister_loopback_called = 0;
+    cras_iodev_free_resources_called = 0;
 
     ASSERT_FALSE(asprintf(&atlog_name, "/ATlog-%d", getpid()) < 0);
     // To avoid un-used variable warning.
@@ -74,6 +76,7 @@ class LoopBackTestSuite : public testing::Test {
   virtual void TearDown() {
     loopback_iodev_destroy(loop_in_);
     EXPECT_EQ(1, cras_iodev_list_rm_input_called);
+    EXPECT_EQ(1, cras_iodev_free_resources_called);
     EXPECT_EQ(NULL, device_enabled_callback_cb);
     EXPECT_EQ(NULL, device_disabled_callback_cb);
     free(mock_audio_area);
@@ -294,6 +297,10 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
 struct cras_iodev* cras_iodev_list_get_first_enabled_iodev(
     enum CRAS_STREAM_DIRECTION direction) {
   return enabled_dev;
+}
+
+void cras_iodev_free_resources(struct cras_iodev* iodev) {
+  cras_iodev_free_resources_called++;
 }
 
 }  // extern "C"
