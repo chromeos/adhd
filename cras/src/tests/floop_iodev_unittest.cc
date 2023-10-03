@@ -4,9 +4,12 @@
 
 extern "C" {
 #include "cras/src/server/cras_floop_iodev.c"
+#include "cras/src/server/cras_iodev.h"
 }
 
 #include <gtest/gtest.h>
+
+static size_t cras_iodev_free_resources_called;
 
 TEST(FlexibleLoopback, PointerArithmetic) {
   struct flexible_loopback floop = {};
@@ -38,7 +41,9 @@ TEST(FlexibleLoopback, CrasFloopPairMatchOutputStream) {
 TEST(FlexibleLoopback, CreateDestroy) {
   struct cras_floop_params params = {.client_types_mask = 0};
   struct cras_floop_pair* floop = cras_floop_pair_create(&params);
+  cras_iodev_free_resources_called = 0;
   cras_floop_pair_destroy(floop);
+  EXPECT_EQ(2, cras_iodev_free_resources_called);
 }
 
 // Stubs
@@ -81,4 +86,8 @@ int cras_iodev_list_rm_output(struct cras_iodev* output) {
 void cras_iodev_list_enable_floop_pair(struct cras_floop_pair* pair) {}
 
 void cras_iodev_list_disable_floop_pair(struct cras_floop_pair* pair) {}
+
+void cras_iodev_free_resources(struct cras_iodev* iodev) {
+  cras_iodev_free_resources_called++;
+}
 }

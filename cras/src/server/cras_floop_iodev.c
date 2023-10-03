@@ -366,6 +366,8 @@ void cras_floop_pair_destroy(struct cras_floop_pair* fpair) {
   cras_iodev_list_rm_output(&fpair->output);
   free(fpair->input.nodes);
   free(fpair->output.nodes);
+  cras_iodev_free_resources(&fpair->input);
+  cras_iodev_free_resources(&fpair->output);
 
   byte_buffer_destroy(&floop->buffer);
 
