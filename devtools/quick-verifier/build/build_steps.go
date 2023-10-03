@@ -185,9 +185,16 @@ func ossFuzzSetupSteps() *buildplan.Sequence {
 }
 
 func ossFuzzSteps(id, sanitizer, engine string) *buildplan.Sequence {
-	var checkStep *buildplan.Step
+	rsyncStep := buildplan.Command(archlinuxBuilder, "rsync", "-ah", "oss-fuzz-setup/", id+"/")
+	buildStep := &buildplan.Step{
+		Name:       "gcr.io/cloud-builders/docker",
+		Entrypoint: "python3",
+		Args:       []string{"oss-fuzz/infra/helper.py", "build_fuzzers", "--sanitizer", sanitizer, "--engine", engine, "cras", "/workspace/" + id + "/adhd"},
+		Dir:        id,
+	}
+
 	if sanitizer == "coverage" {
-		checkStep = &buildplan.Step{
+		checkStep := &buildplan.Step{
 			Name:       "gcr.io/google.com/cloudsdktool/cloud-sdk",
 			Entrypoint: "python3",
 			Args: []string{
@@ -196,25 +203,27 @@ func ossFuzzSteps(id, sanitizer, engine string) *buildplan.Sequence {
 			},
 			Dir: id,
 		}
+		_ = checkStep // Disabled for b/303194232.
+		return buildplan.Commands(
+			id,
+			rsyncStep,
+			buildStep,
+			// checkStep, // Disabled for b/303194232.
+		)
 	} else {
-		checkStep = &buildplan.Step{
+		checkStep := &buildplan.Step{
 			Name:       "gcr.io/cloud-builders/docker",
 			Entrypoint: "python3",
 			Args:       []string{"oss-fuzz/infra/helper.py", "check_build", "--sanitizer", sanitizer, "--engine", engine, "cras"},
 			Dir:        id,
 		}
+		return buildplan.Commands(
+			id,
+			rsyncStep,
+			buildStep,
+			checkStep,
+		)
 	}
-	return buildplan.Commands(
-		id,
-		buildplan.Command(archlinuxBuilder, "rsync", "-ah", "oss-fuzz-setup/", id+"/"),
-		&buildplan.Step{
-			Name:       "gcr.io/cloud-builders/docker",
-			Entrypoint: "python3",
-			Args:       []string{"oss-fuzz/infra/helper.py", "build_fuzzers", "--sanitizer", sanitizer, "--engine", engine, "cras", "/workspace/" + id + "/adhd"},
-			Dir:        id,
-		},
-		checkStep,
-	)
 }
 
 func copgenCheckSteps() *buildplan.Sequence {
