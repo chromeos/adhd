@@ -85,6 +85,17 @@ http_archive(
     urls = ["https://github.com/danmar/cppcheck/archive/refs/tags/2.10.3.tar.gz"],
 )
 
+http_archive(
+    name = "thesofproject_sof",
+    build_file = "//:third_party/BUILD.thesofproject_sof.bazel",
+    sha256 = "2753902fd47e0e4686d3df42f494bb25b595fd681b221ca0ff26e3c11501620a",
+    strip_prefix = "sof-2.5",
+    urls = [
+        "https://github.com/thesofproject/sof/archive/refs/tags/v2.5.tar.gz",
+        "https://storage.googleapis.com/chromeos-localmirror/distfiles/thesofproject-sof-v2.5.tar.gz",
+    ],
+)
+
 load(
     "//repositories:pkg_config/pkg_config.bzl",
     "pkg_config",
