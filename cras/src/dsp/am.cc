@@ -28,6 +28,8 @@ static inline const char* get_tflite_error_string(const TfLiteStatus status) {
   switch (status) {
     case kTfLiteOk:
       return "kTfLiteOk";
+    case kTfLiteCancelled:
+      return "kTfLiteCancelled";
     case kTfLiteError:
       return "kTfLiteError";
     case kTfLiteDelegateError:
