@@ -118,9 +118,8 @@ pkg_config(
         "libmetrics",
         "libstructuredmetrics",
         "libselinux",
-        "libfeatures",
+        "libfeatures_c",
         "tensorflowlite",
-        "libchrome",
         "libsegmentation",
         # @webrtc_apm deps
         "protobuf",
@@ -205,6 +204,7 @@ crates_repository(
     manifests = [
         "//:Cargo.toml",
         "//audio_processor:Cargo.toml",
+        "//cras/platform/features:Cargo.toml",
         "//cras/src/server/rust:Cargo.toml",
         "//cras/src/server/rust:binding_generator/Cargo.toml",
         "//cras/src/server/rust:cras_dlc/Cargo.toml",

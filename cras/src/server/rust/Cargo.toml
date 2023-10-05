@@ -19,3 +19,4 @@ syslog = "6.0.1"
 
 cras_dlc = { version = "*" }
 audio_processor = { version = "*" }
+cras_features_backend = { version = "*" }

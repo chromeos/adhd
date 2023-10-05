@@ -13,6 +13,7 @@
 
 #include "cras/platform/features/features.h"
 #include "cras/platform/features/override.h"
+#include "cras/server/main_message.h"
 
 #define DEFINE_FEATURE(name, default_enabled) [name] = {#name, default_enabled},
 struct cras_feature features[NUM_FEATURES] = {
@@ -31,7 +32,7 @@ bool cras_feature_enabled(enum cras_feature_id id) {
            enabled);
     return enabled;
   }
-  bool enabled = cras_features_backend_get_enabled(&features[id]);
+  bool enabled = cras_features_backend_get_enabled(id);
   syslog(LOG_DEBUG, "feature %s enabled = %d", features[id].name, enabled);
   return enabled;
 }

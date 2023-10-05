@@ -2,7 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("//:utils.bzl", "require_config")
+load("//:utils.bzl", "require_no_config")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test", "rust_test_suite")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@crate_index//:defs.bzl", "all_crate_deps")
 
 cc_library(
     name = "features",
@@ -11,13 +14,7 @@ cc_library(
         "features_impl.c",
         "features_impl.h",
         "override.h",
-    ] + select({
-        "//:featured_build": [
-            "backend_featured.cc",
-            "backend_featured.hh",
-        ],
-        "//conditions:default": ["backend_stub.c"],
-    }),
+    ],
     hdrs = ["features.h"],
     visibility = [
         "//cras/src/server:__pkg__",
@@ -26,13 +23,8 @@ cc_library(
     deps = [
         "//cras/base",
         "//cras/server:main_message",
-    ] + select({
-        "//:featured_build": [
-            "@pkg_config//libchrome",
-            "@pkg_config//libfeatures",
-        ],
-        "//conditions:default": [],
-    }),
+        "//cras/src/server/rust",
+    ],
 )
 
 cc_library(
@@ -58,17 +50,27 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "backend_featured_test",
-    srcs = [
-        "backend_featured.hh",
-        "backend_featured_test.cc",
-    ],
-    linkopts = ["-lfake_platform_features"],
-    target_compatible_with = require_config("//:featured_build"),
+rust_library(
+    name = "backend",
+    srcs = glob(
+        include = ["src/**/*.rs"],
+    ),
+    crate_name = "cras_features_backend",
+    edition = "2021",
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
+    visibility = ["//visibility:public"],
     deps = [
-        ":features",
-        "@pkg_config//gtest",
-        "@pkg_config//gtest_main",
+        ":build_script",
+    ] + all_crate_deps(normal = True),
+)
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    data = [
+        "features.h",
+        "features.inc",
+        "features_impl.h",
     ],
+    deps = all_crate_deps(build = True),
 )

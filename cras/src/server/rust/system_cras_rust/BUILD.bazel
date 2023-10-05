@@ -16,13 +16,22 @@ load(":default_link_flags.bzl", "default_link_flags")
 
 cc_import(
     name = "system_cras_rust",
+    linkopts = [
+        "-lm",
+    ] + select({
+        "//:featured_build": ["-lc_fake_feature_library"],
+        "//conditions:default": [],
+    }),
     static_library = ":libcras_rust_a",
     target_compatible_with = require_config("//:system_cras_rust_build"),
     visibility = ["//cras/src/server/rust:__pkg__"],
     deps = [
         "@pkg_config//openssl",
         "@pkg_config//speexdsp",
-    ],
+    ] + select({
+        "//:featured_build": ["@pkg_config//libfeatures_c"],
+        "//conditions:default": [],
+    }),
 )
 
 py_binary(

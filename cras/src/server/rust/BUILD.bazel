@@ -29,6 +29,7 @@ rust_library(
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     deps = [
         "//audio_processor",
+        "//cras/platform/features:backend",
         "//cras/src/server/rust/cras_dlc",
     ] + all_crate_deps(),
 )

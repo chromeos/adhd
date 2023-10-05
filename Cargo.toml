@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "audio_processor",
+    "cras/platform/features",
     "cras/src/server/rust",
     "cras/src/server/rust/staticlib",
     "cras/src/server/rust/binding_generator",
@@ -17,6 +18,7 @@ overflow-checks = true
 audio_processor = { path = "audio_processor" }
 cras = { path = "cras/src/server/rust" }
 cras_dlc = { path = "cras/src/server/rust/cras_dlc" }
+cras_features_backend = { path = "cras/platform/features" }
 
 # When building out of ChromiumOS, we do not actually use system_api.
 # Stub it to avoid downloading the platform2 repository.
@@ -27,3 +29,5 @@ system_api = { path = "repositories/system_api_stub" } # ignored by ebuild
 # system_api = { git = "https://chromium.googlesource.com/chromiumos/platform2", version = ">=0.24.53" } # ignored by ebuild
 # For testing in-repo changes in chroot:
 # system_api = { path = "../../platform2/system_api" } # ignored by ebuild
+
+featured = { path = "repositories/featured_stub" } # ignored by ebuild

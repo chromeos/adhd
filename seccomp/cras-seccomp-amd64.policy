@@ -108,3 +108,4 @@ fstatfs: 1
 sched_yield: 1
 sched_getaffinity: 1
 lchown: 1
+eventfd2: 1

@@ -9,8 +9,8 @@
 
 #include <stdbool.h>
 
-#include "cras/platform/features/features.h"
-#include "cras/server/main_message.h"
+// Include path relative for bindgen.
+#include "features.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +39,7 @@ int cras_features_backend_init(cras_features_notify_changed changed_callback);
 // Clean up resources associated with the cras_features backend.
 void cras_features_backend_deinit();
 
-bool cras_features_backend_get_enabled(const struct cras_feature* feature);
+bool cras_features_backend_get_enabled(enum cras_feature_id id);
 
 enum cras_feature_id cras_feature_get_id(const struct cras_feature* feature);
 

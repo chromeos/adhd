@@ -250,6 +250,3 @@ enum CRAS_CONNECTION_TYPE {
 Do not directly depend on libchrome for code in the main packages `adhd` and
 `cras_rust` to prevent issues with the `cros-debug` flag when building or
 deploying CRAS.
-
-The implementation of the separation of existing libchrome dependencies is
-tracked in b/299569226

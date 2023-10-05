@@ -15,7 +15,8 @@ extern "C" {
 
 #define DEFINE_FEATURE(name, default_enabled) name,
 enum cras_feature_id {
-#include "cras/platform/features/features.inc"
+// Include path relative for bindgen.
+#include "features.inc"
 #undef DEFINE_FEATURE
   NUM_FEATURES,
 };
