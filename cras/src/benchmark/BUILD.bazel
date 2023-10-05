@@ -7,14 +7,12 @@ cc_binary(
     name = "cras_bench",
     visibility = ["//dist:__pkg__"],
     deps = [
+        ":alsa_benchmark",
         ":benchmark_util",
         ":default_benchmarks",
         "@com_github_google_benchmark//:benchmark_main",
     ] + select({
         "//:apm_build": [":apm_benchmark"],
-        "//conditions:default": [],
-    }) + select({
-        "//:hw_dependency_build": ["alsa_benchmark"],
         "//conditions:default": [],
     }) + select({
         "//:ml_build": ["am_benchmark"],
@@ -71,11 +69,6 @@ cc_library(
     srcs = [
         "alsa_benchmark.cc",
     ],
-    linkopts = [
-        "-lasound",
-        "-lcros_config",
-    ],
-    target_compatible_with = require_config("//:hw_dependency_build"),
     deps = [
         ":benchmark_util",
         "//cras/src/libcras:cras_client",
@@ -83,16 +76,8 @@ cc_library(
         "//cras/src/server:cras_alsa_ucm",
         "//cras/src/server:cras_mix",
         "@com_github_google_benchmark//:benchmark",
-    ] + select({
-        # Guard pkg_config behind hw_dependency_build so bazel does not attempt
-        # to run pkg-config in the analysis phase for platforms missing the
-        # dependencies.
-        "//:hw_dependency_build": [
-            "@pkg_config//libchrome",
-            "@pkg_config//libcros_config",
-        ],
-        "//conditions:default": [],
-    }),
+        "@pkg_config//alsa",
+    ],
     alwayslink = True,
 )
 

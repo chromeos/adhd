@@ -110,7 +110,6 @@ pkg_config(
         "libfeatures",
         "tensorflowlite",
         "libchrome",
-        "libcros_config",
         "libsegmentation",
         # @webrtc_apm deps
         "protobuf",

@@ -2,19 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <chromeos-config/libcros_config/cros_config.h>
+#include <chrono>
 #include <cstdint>
-#include <iostream>
+#include <fstream>
 #include <random>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "benchmark/benchmark.h"
-// Both "/usr/include/libchrome/base/compiler_specific.h" and "libcras.h"
-// have definitions for DISABLE_CFI_ICALL. Undefine the libchrome one.
-#ifdef DISABLE_CFI_ICALL
-#undef DISABLE_CFI_ICALL
-#endif
-
 #include "cras/src/benchmark/benchmark_util.hh"
 #include "cras/src/server/cras_alsa_helpers.h"
 #include "cras/src/server/cras_alsa_ucm.h"
@@ -24,6 +20,19 @@
 #include "cras_types.h"
 
 namespace {
+
+std::string read_file_to_string(const std::string& path) {
+  std::string str;
+  std::ifstream f(path);
+  while (f.good()) {
+    char buf[4096];
+    f.read(buf, sizeof(buf));
+    if (f.gcount() > 0) {
+      str += std::string_view(buf, f.gcount());
+    }
+  }
+  return str;
+}
 
 class BM_Alsa : public benchmark::Fixture {
  public:
@@ -115,10 +124,10 @@ class BM_Alsa : public benchmark::Fixture {
 
   // Returns the pcm device name, ex: hw:0,0
   std::string get_pcm_name(BM_Alsa::PCM_DEVICE device) {
-    brillo::CrosConfig cros_config;
     struct cras_use_case_mgr* ucm_mgr;
     std::string ucm_suffix;
-    cros_config.GetString("/audio", "main/ucm-suffix", &ucm_suffix);
+    ucm_suffix =
+        read_file_to_string("/run/chromeos-config/v1/audio/main/ucm-suffix");
 
     auto card_info = get_card_info(device);
     std::string card_name = std::get<0>(card_info);
