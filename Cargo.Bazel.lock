@@ -1,5 +1,5 @@
 {
-  "checksum": "0ac6e6a98b517e04ce1f7bceb07c7b1c96b3aace57b412cc15b1f148507f7be7",
+  "checksum": "3cbf2a50474f2ee9d156a8e11acbd16cd77bdea61e66fdbabef47c1bb3dcca80",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -2358,12 +2358,31 @@
         ],
         "crate_features": {
           "common": [
-            "errno",
             "general",
-            "ioctl",
             "no_std"
           ],
-          "selects": {}
+          "selects": {
+            "aarch64-unknown-linux-gnu": [
+              "errno",
+              "ioctl"
+            ],
+            "arm-unknown-linux-gnueabi": [
+              "errno",
+              "ioctl"
+            ],
+            "armv7-unknown-linux-gnueabi": [
+              "errno",
+              "ioctl"
+            ],
+            "i686-unknown-linux-gnu": [
+              "errno",
+              "ioctl"
+            ],
+            "x86_64-unknown-linux-gnu": [
+              "errno",
+              "ioctl"
+            ]
+          }
         },
         "edition": "2018",
         "version": "0.3.1"
@@ -5079,7 +5098,6 @@
             "consoleapi",
             "errhandlingapi",
             "fileapi",
-            "libloaderapi",
             "minwinbase",
             "minwindef",
             "processenv",
@@ -5301,18 +5319,8 @@
           "common": [
             "Win32",
             "Win32_Foundation",
-            "Win32_NetworkManagement",
-            "Win32_NetworkManagement_IpHelper",
-            "Win32_Networking",
-            "Win32_Networking_WinSock",
-            "Win32_Security",
             "Win32_Storage",
             "Win32_Storage_FileSystem",
-            "Win32_System",
-            "Win32_System_Diagnostics",
-            "Win32_System_Diagnostics_Debug",
-            "Win32_System_IO",
-            "Win32_System_Threading",
             "default"
           ],
           "selects": {}
