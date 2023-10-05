@@ -47,6 +47,8 @@ static const char disable_software_volume[] = "DisableSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
 static const char playback_device_rate_var[] = "PlaybackRate";
 static const char playback_channels_var[] = "PlaybackChannels";
+static const char playback_number_of_volume_steps_var[] =
+    "CRASPlaybackNumberOfVolumeSteps";
 static const char capture_device_name_var[] = "CapturePCM";
 static const char capture_device_rate_var[] = "CaptureRate";
 static const char capture_channel_map_var[] = "CaptureChannelMap";
@@ -894,6 +896,26 @@ int ucm_get_channels_for_dev(struct cras_use_case_mgr* mgr,
   }
 
   *channels = (size_t)value;
+  return 0;
+}
+
+int ucm_get_playback_number_of_volume_steps_for_dev(
+    struct cras_use_case_mgr* mgr,
+    const char* dev,
+    int32_t* playback_number_of_volume_steps) {
+  int value;
+  int rc;
+  // TODO(b/317461596) abstract get_int usage when migrate to rust.
+  rc = get_int(mgr, playback_number_of_volume_steps_var, dev, uc_verb(mgr),
+               &value);
+  if (rc) {
+    return rc;
+  }
+  if (value < 0) {
+    return -EINVAL;
+  }
+
+  *playback_number_of_volume_steps = (int32_t)value;
   return 0;
 }
 

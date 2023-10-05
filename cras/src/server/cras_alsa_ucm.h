@@ -419,6 +419,19 @@ int ucm_get_channels_for_dev(struct cras_use_case_mgr* mgr,
                              const char* dev,
                              enum CRAS_STREAM_DIRECTION direction,
                              size_t* channels);
+/* Gets the playback volume steps at which to run this device. Only used for USB
+ * card.
+ *
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for channel count.
+ *    playback_number_of_volume_steps - The pointer to the returned playback
+ * volume steps. Returns: 0 on success, other error codes on failure.
+ */
+int ucm_get_playback_number_of_volume_steps_for_dev(
+    struct cras_use_case_mgr* mgr,
+    const char* dev,
+    int32_t* playback_number_of_volume_steps);
 
 /* Gets the capture channel map for this device.
  * Args:

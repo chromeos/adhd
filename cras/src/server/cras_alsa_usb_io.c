@@ -1781,6 +1781,48 @@ static void add_output_node_and_associate_jack(
   }
 }
 
+/* Settle everything about volume steps on an output node.*/
+static void finalize_volume_steps_setting(struct alsa_usb_output_node* output,
+                                          struct alsa_usb_io* aio) {
+  int32_t number_of_volume_steps;
+  output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
+  // When UCM specifies playback volume steps, respect it and skip all checks
+  // below.
+  if (aio->common.ucm &&
+      0 == ucm_get_playback_number_of_volume_steps_for_dev(
+               aio->common.ucm, output->base.name, &number_of_volume_steps)) {
+    output->base.number_of_volume_steps = number_of_volume_steps;
+    return;
+  }
+
+  output->base.number_of_volume_steps =
+      MIN(cras_alsa_mixer_get_playback_step(output->mixer_output),
+          NUMBER_OF_VOLUME_STEPS_MAX);
+
+  if (output->base.number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
+    output->base.software_volume_needed = 1;
+
+    FRALOG(USBAudioSoftwareVolumeAbnormalSteps,
+           {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
+           {"pid", tlsprintf("0x%04X", aio->common.product_id)});
+    syslog(LOG_WARNING,
+           "card type: %s, name: %s, output number_of_volume_steps [%" PRId32
+           "] is abnormally small."
+           " Fallback to software volume",
+           cras_card_type_to_string(aio->common.card_type), output->base.name,
+           output->base.number_of_volume_steps);
+  }
+
+  if (output->base.software_volume_needed == 1) {
+    output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
+    syslog(LOG_INFO,
+           "card type: %s, name: %s, output: software volume enabled and set "
+           "number_of_volume_steps to %d",
+           cras_card_type_to_string(aio->common.card_type), output->base.name,
+           NUMBER_OF_VOLUME_STEPS_DEFAULT);
+  }
+}
+
 /* Settle everything about volume on an output node. For eaxmple: SW or HW
  * volume to use, volume range check, volume curve construction.
  */
@@ -1788,7 +1830,6 @@ static void finalize_volume_settings(struct alsa_usb_output_node* output,
                                      struct alsa_usb_io* aio) {
   long max, min, range;
   bool vol_range_reasonable;
-  int32_t number_of_volume_steps;
   const struct cras_volume_curve* curve;
   int disable_sw_vol = -ENOENT;
 
@@ -1802,11 +1843,6 @@ static void finalize_volume_settings(struct alsa_usb_output_node* output,
   // Create volume curve for nodes base on cras config.
   output->volume_curve =
       usb_create_volume_curve_for_output(aio->common.config, output);
-
-  output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-
-  number_of_volume_steps =
-      cras_alsa_mixer_get_playback_step(output->mixer_output);
 
   cras_alsa_mixer_get_playback_dBFS_range(aio->common.mixer,
                                           output->mixer_output, &max, &min);
@@ -1823,8 +1859,6 @@ static void finalize_volume_settings(struct alsa_usb_output_node* output,
     if (disable_sw_vol == 1 || vol_range_reasonable) {
       output->volume_curve = cras_volume_curve_create_simple_step(0, range);
     }
-    output->base.number_of_volume_steps =
-        MIN(number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_MAX);
   }
 
   // If UCM explicitly sets disable/enable software volume, we're confident
@@ -1849,22 +1883,8 @@ static void finalize_volume_settings(struct alsa_usb_output_node* output,
            min, max);
   }
 
-  if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
-    output->base.software_volume_needed = 1;
-    output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-
-    FRALOG(USBAudioSoftwareVolumeAbnormalSteps,
-           {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
-           {"pid", tlsprintf("0x%04X", aio->common.product_id)});
-    syslog(LOG_WARNING,
-           "card type: %s, name: %s, output number_of_volume_steps [%" PRId32
-           "] is abnormally small."
-           "Fallback to software volume and set number_of_volume_steps to %d",
-           cras_card_type_to_string(aio->common.card_type), output->base.name,
-           number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_DEFAULT);
-  }
-
 complete_init_software_volume:
+  finalize_volume_steps_setting(output, aio);
   // Lastly, construct software volume scaler from the curve.
   curve = usb_get_curve_for_output_node(aio, output);
   output->base.softvol_scalers = softvol_build_from_curve(curve);

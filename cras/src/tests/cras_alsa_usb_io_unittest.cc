@@ -157,6 +157,8 @@ static int sys_get_max_internal_speaker_channels_return_value;
 static int sys_get_max_headphone_channels_called = 0;
 static int sys_get_max_headphone_channels_return_value = 2;
 static int cras_iodev_update_underrun_duration_called = 0;
+static std::map<std::string, int32_t>
+    ucm_get_playback_number_of_volume_steps_values;
 
 unsigned int cras_iodev_max_stream_offset(const struct cras_iodev* iodev) {
   return 0;
@@ -248,6 +250,7 @@ void ResetStubData() {
   cras_iodev_dsp_set_swap_mode_for_node_called = 0;
   ucm_get_default_node_gain_values.clear();
   ucm_get_intrinsic_sensitivity_values.clear();
+  ucm_get_playback_number_of_volume_steps_values.clear();
   cras_iodev_reset_rate_estimator_called = 0;
   display_rotation = 0;
   sys_get_noise_cancellation_supported_return_value = 0;
@@ -495,7 +498,7 @@ class NodeUSBCardSuite : public testing::Test {
 
     ASSERT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init(iodev));
     aio = (struct alsa_usb_io*)iodev;
-    EXPECT_EQ(1, cras_alsa_mixer_get_playback_step_called);
+    EXPECT_LE(1, cras_alsa_mixer_get_playback_step_called);
     EXPECT_EQ(expect_output_node_volume_steps,
               aio->common.base.active_node->number_of_volume_steps);
     EXPECT_EQ(expect_enable_software_volume,
@@ -504,6 +507,42 @@ class NodeUSBCardSuite : public testing::Test {
     cras_alsa_usb_iodev_destroy(iodev);
     free(fake_format);
   }
+  void CheckExpectBehaviorWithNumberOfVolumeStepUCM(
+      int control_volume_steps,
+      int ucm_output_node_volume_steps,
+      int expect_output_node_volume_steps) {
+    ResetStubData();
+    struct cras_iodev* iodev;
+    struct cras_audio_format format;
+    struct ucm_section* section;
+    struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
+    cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
+    cras_alsa_mixer_get_playback_step_values[outputs] = control_volume_steps;
+    ucm_get_playback_number_of_volume_steps_values[test_dev_name] =
+        ucm_output_node_volume_steps;
+    iodev = cras_alsa_usb_iodev_create_with_default_parameters(
+        0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, fake_ucm,
+        CRAS_STREAM_OUTPUT);
+
+    format.frame_rate = 48000;
+    format.num_channels = 1;
+    cras_iodev_set_format(iodev, &format);
+
+    section = ucm_section_create(test_dev_name, "hw:0,1", 0, -1,
+                                 CRAS_STREAM_OUTPUT, NULL, NULL);
+
+    ASSERT_EQ(0, cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(iodev, section));
+    cras_alsa_usb_iodev_ucm_complete_init(iodev);
+    aio = (struct alsa_usb_io*)iodev;
+    EXPECT_EQ(0, cras_alsa_mixer_get_playback_step_called);
+    EXPECT_EQ(expect_output_node_volume_steps,
+              aio->common.base.active_node->number_of_volume_steps);
+    iodev->close_dev(iodev);
+    cras_alsa_usb_iodev_destroy(iodev);
+    ucm_section_free_list(section);
+    free(fake_format);
+  }
+
   void CheckVolumeCurveWithDifferentVolumeRange(
       long dBFS_range_max,
       long dBFS_range_min,
@@ -545,7 +584,18 @@ class NodeUSBCardSuite : public testing::Test {
   struct mixer_control* outputs;
 };
 
-TEST_F(NodeUSBCardSuite, NumberOfVolumeStep) {
+TEST_F(NodeUSBCardSuite, NumberOfVolumeStepWithUCM) {
+  /*
+   * Regardless of the number of volume steps reported by a particular device,
+   * if the UCM value is specified, it should be respected.
+   */
+  // deivce with report 0 volume steps, but UCM set volume steps as 50
+  CheckExpectBehaviorWithNumberOfVolumeStepUCM(0, 50, 50);
+  // deivce with report 100 volume steps, but UCM set volume steps as 50
+  CheckExpectBehaviorWithNumberOfVolumeStepUCM(100, 50, 50);
+}
+
+TEST_F(NodeUSBCardSuite, NumberOfVolumeStepWithoutUCM) {
   /* For number_of_volume_steps < 10, set number_of_volume_steps = 25 and enable
    * software_volume
    */
@@ -1071,7 +1121,7 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
 }
 
 int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
-  return 0;
+  return -ENOENT;
 }
 
 char* ucm_get_hotword_models(struct cras_use_case_mgr* mgr) {
@@ -1413,6 +1463,19 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
 bool cras_iodev_is_channel_count_supported(struct cras_iodev* dev,
                                            int channel) {
   return true;
+}
+
+int ucm_get_playback_number_of_volume_steps_for_dev(
+    struct cras_use_case_mgr* mgr,
+    const char* dev,
+    int32_t* playback_number_of_volume_steps) {
+  std::string dev_name = std::string(dev);
+  auto it = ucm_get_playback_number_of_volume_steps_values.find(dev_name);
+  if (it == ucm_get_playback_number_of_volume_steps_values.end()) {
+    return -EINVAL;
+  }
+  *playback_number_of_volume_steps = it->second;
+  return 0;
 }
 
 void audio_peripheral_info(int vendor_id, int product_id, int type) {}

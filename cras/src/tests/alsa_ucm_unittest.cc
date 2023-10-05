@@ -1009,6 +1009,33 @@ TEST(AlsaUcm, GetMixerNameForDevice) {
   free((void*)mixer_name_2);
 }
 
+TEST(AlsaUcm, GetPlaybackNumberOfVolumeSteps) {
+  struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
+  int rc;
+  int32_t playback_number_of_volume_steps;
+  const char* devices[] = {"Dev1", "Comment for Dev1", "Dev2",
+                           "Comment for Dev2"};
+
+  ResetStubData();
+
+  fake_list["_devices/HiFi"] = devices;
+  fake_list_size["_devices/HiFi"] = 4;
+  std::string id_1 = "=CRASPlaybackNumberOfVolumeSteps/Dev1/HiFi";
+  std::string id_2 = "=CRASPlaybackNumberOfVolumeSteps/Dev2/HiFi";
+  std::string value_1 = "10";
+  std::string value_2 = "-1";
+
+  snd_use_case_get_value[id_1] = value_1;
+  snd_use_case_get_value[id_2] = value_2;
+  rc = ucm_get_playback_number_of_volume_steps_for_dev(
+      mgr, "Dev1", &playback_number_of_volume_steps);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(10, playback_number_of_volume_steps);
+  rc = ucm_get_playback_number_of_volume_steps_for_dev(
+      mgr, "Dev2", &playback_number_of_volume_steps);
+  EXPECT_EQ(-EINVAL, rc);
+}
+
 TEST(AlsaUcm, GetMainVolumeMixerName) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
   struct mixer_name *mixer_names_1, *mixer_names_2, *c;
