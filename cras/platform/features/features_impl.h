@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 #include "cras/platform/features/features.h"
+#include "cras/server/main_message.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,16 @@ struct cras_feature {
 };
 
 extern struct cras_feature features[NUM_FEATURES];
+
+// Callback to call from a backend to notify that features changed.
+typedef void (*cras_features_notify_changed)();
+
+// Initialize the cras_features backend.
+// Returns a negative error code on failure, 0 on success.
+int cras_features_backend_init(cras_features_notify_changed changed_callback);
+
+// Clean up resources associated with the cras_features backend.
+void cras_features_backend_deinit();
 
 bool cras_features_backend_get_enabled(const struct cras_feature* feature);
 

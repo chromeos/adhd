@@ -49,6 +49,22 @@ enum cras_feature_id cras_feature_get_id(const struct cras_feature* feature) {
   return feature - features;
 }
 
+static void notify_changed() {
+  struct cras_main_message msg = {
+      .length = sizeof(msg),
+      .type = CRAS_MAIN_FEATURE_CHANGED,
+  };
+  cras_main_message_send(&msg);
+}
+
+int cras_features_init() {
+  return cras_features_backend_init(notify_changed);
+}
+
+void cras_features_deinit() {
+  return cras_features_backend_deinit();
+}
+
 enum cras_feature_id cras_feature_get_by_name(const char* name) {
   if (name == NULL) {
     return CrOSLateBootUnknown;

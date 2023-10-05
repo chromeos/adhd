@@ -7,14 +7,14 @@ load("//:utils.bzl", "require_config")
 cc_library(
     name = "features",
     srcs = [
+        "features.inc",
         "features_impl.c",
         "features_impl.h",
-        "features.inc",
         "override.h",
     ] + select({
         "//:featured_build": [
-            "backend_featured.hh",
             "backend_featured.cc",
+            "backend_featured.hh",
         ],
         "//conditions:default": ["backend_stub.c"],
     }),
@@ -23,11 +23,13 @@ cc_library(
         "//cras/src/server:__pkg__",
         "//cras/src/tests:__pkg__",
     ],
-    deps = ["//cras/base"] + select({
+    deps = [
+        "//cras/base",
+        "//cras/server:main_message",
+    ] + select({
         "//:featured_build": [
             "@pkg_config//libchrome",
             "@pkg_config//libfeatures",
-            "//cras/server:main_message",
         ],
         "//conditions:default": [],
     }),

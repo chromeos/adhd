@@ -19,12 +19,12 @@ class FakeFeatureLibraryAdapterImpl : public FeatureLibraryAdapter {
     return true;
   }
 
-  void Shutdown() override {
-    fake_lib_.reset(nullptr);
-  }
+  void Shutdown() override { fake_lib_.reset(nullptr); }
 
   std::unique_ptr<feature::FakePlatformFeatures> fake_lib_;
 };
+
+static void do_nothing() {}
 
 TEST(FeaturesBackendFeatured, InitShutdown) {
   // The real instance can be initialized once.
@@ -35,17 +35,17 @@ TEST(FeaturesBackendFeatured, InitShutdown) {
   cras_features_deinit();
 
   // Try to construct and destruct the fake version multiple times.
-  ASSERT_EQ(
-      backend_featured_init(std::make_unique<FakeFeatureLibraryAdapterImpl>()),
-      0);
+  ASSERT_EQ(backend_featured_init(
+                std::make_unique<FakeFeatureLibraryAdapterImpl>(), do_nothing),
+            0);
   cras_features_deinit();
-  ASSERT_EQ(
-      backend_featured_init(std::make_unique<FakeFeatureLibraryAdapterImpl>()),
-      0);
+  ASSERT_EQ(backend_featured_init(
+                std::make_unique<FakeFeatureLibraryAdapterImpl>(), do_nothing),
+            0);
   cras_features_deinit();
-  ASSERT_EQ(
-      backend_featured_init(std::make_unique<FakeFeatureLibraryAdapterImpl>()),
-      0);
+  ASSERT_EQ(backend_featured_init(
+                std::make_unique<FakeFeatureLibraryAdapterImpl>(), do_nothing),
+            0);
   cras_features_deinit();
   // Should be safe to double destruct.
   cras_features_deinit();
@@ -54,7 +54,7 @@ TEST(FeaturesBackendFeatured, InitShutdown) {
 TEST(FeaturesBackendFeatured, IsEnabled) {
   auto adapter = std::make_unique<FakeFeatureLibraryAdapterImpl>();
   FakeFeatureLibraryAdapterImpl* adapter_unowned = adapter.get();
-  ASSERT_EQ(backend_featured_init(std::move(adapter)), 0);
+  ASSERT_EQ(backend_featured_init(std::move(adapter), do_nothing), 0);
   // Once backend_featured_init returns fake_lib_ should be initialized.
   auto fake_lib = adapter_unowned->fake_lib_.get();
 

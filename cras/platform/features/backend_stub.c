@@ -6,11 +6,11 @@
 
 #include "cras/platform/features/features_impl.h"
 
-int cras_features_init() {
+int cras_features_backend_init(cras_features_notify_changed changed_callback) {
   return 0;
 }
 
-void cras_features_deinit() {
+void cras_features_backend_deinit() {
   // Do nothing.
 }
 

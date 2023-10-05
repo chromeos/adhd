@@ -26,7 +26,6 @@
 #include <time.h>
 
 #include "cras/platform/features/features_impl.h"
-#include "cras/server/main_message.h"
 
 namespace {
 
@@ -54,9 +53,10 @@ std::vector<const VariationsFeature*> makeVariationsFeaturePtrVector(
 
 class Worker {
  public:
-  Worker()
+  Worker(cras_features_notify_changed changed_callback)
       : features_(makeVariationsFeatureArray()),
         feature_ptrs_(makeVariationsFeaturePtrVector(features_)),
+        changed_callback_(changed_callback),
         feature_status_(DefaultState()) {}
   // Disallow copy and move.
   Worker(const Worker&) = delete;
@@ -131,11 +131,7 @@ class Worker {
       feature_status_ = payload;
     }
     if (notification_needed) {
-      struct cras_main_message msg = {
-          .length = sizeof(msg),
-          .type = CRAS_MAIN_FEATURE_CHANGED,
-      };
-      cras_main_message_send(&msg);
+      changed_callback_();
     }
   }
 
@@ -222,6 +218,7 @@ class Worker {
   // const, safe to share.
   const FeatureArray features_;
   const std::vector<const VariationsFeature*> feature_ptrs_;
+  cras_features_notify_changed changed_callback_;
 
   // Set in main thread, used by worker thread.
   std::unique_ptr<FeatureLibraryAdapter> adapter_;
@@ -266,21 +263,23 @@ Worker* g_worker;
 
 }  // namespace
 
-int backend_featured_init(std::unique_ptr<FeatureLibraryAdapter> adapter) {
+int backend_featured_init(std::unique_ptr<FeatureLibraryAdapter> adapter,
+                          cras_features_notify_changed changed_callback) {
   if (g_worker != nullptr) {
     return -EEXIST;
   }
 
-  g_worker = new Worker;
+  g_worker = new Worker(changed_callback);
   return g_worker->Start(std::move(adapter));
 }
 
 extern "C" {
-int cras_features_init() {
-  return backend_featured_init(std::make_unique<FeatureLibraryAdapterImpl>());
+int cras_features_backend_init(cras_features_notify_changed changed_callback) {
+  return backend_featured_init(std::make_unique<FeatureLibraryAdapterImpl>(),
+                               changed_callback);
 }
 
-void cras_features_deinit() {
+void cras_features_backend_deinit() {
   delete g_worker;
   g_worker = nullptr;
 }

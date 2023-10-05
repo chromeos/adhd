@@ -10,7 +10,7 @@
 #include <functional>
 #include <memory>
 
-#include "cras/platform/features/features.h"
+#include "cras/platform/features/features_impl.h"
 
 // Wrapper to make PlatformFeatures and FakePlatformFeatures behave the same.
 class FeatureLibraryAdapter {
@@ -39,6 +39,7 @@ class FeatureLibraryAdapter {
   feature::PlatformFeaturesInterface* lib_;
 };
 
-int backend_featured_init(std::unique_ptr<FeatureLibraryAdapter> adapter);
+int backend_featured_init(std::unique_ptr<FeatureLibraryAdapter> adapter,
+                          cras_features_notify_changed changed_callback);
 
 #endif  // CRAS_PLATFORM_FEATURES_BACKEND_FEATURED_HH_
