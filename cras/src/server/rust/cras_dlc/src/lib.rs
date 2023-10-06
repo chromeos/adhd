@@ -7,10 +7,14 @@ pub mod bindings;
 mod chromiumos;
 mod stub;
 
+use std::collections::HashMap;
 use std::fmt::Display;
+use std::sync::Mutex;
 
+use once_cell::sync::Lazy;
 use thiserror::Error;
 
+#[derive(Clone)]
 pub struct State {
     pub installed: bool,
     pub root_path: String,
@@ -34,7 +38,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// All supported DLCs in CRAS.
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Hash, Eq)]
 pub enum CrasDlcId {
     CrasDlcSrBt,
     CrasDlcNcAp,
@@ -71,12 +75,28 @@ type Service = chromiumos::Service;
 #[cfg(not(feature = "dlc"))]
 type Service = stub::Service;
 
+static STATE_OVERRIDES: Lazy<Mutex<HashMap<CrasDlcId, State>>> =
+    Lazy::new(|| Mutex::new(Default::default()));
+
 pub fn install_dlc(id: CrasDlcId) -> Result<()> {
     let mut service = Service::new()?;
     service.install(id)
 }
 
 pub fn get_dlc_state(id: CrasDlcId) -> Result<State> {
+    // Return override if exist.
+    if let Some(state) = STATE_OVERRIDES.lock().unwrap().get(&id) {
+        return Ok(state.clone());
+    }
+
     let mut service = Service::new()?;
     service.get_dlc_state(id)
+}
+
+fn override_state_for_testing(id: CrasDlcId, state: State) {
+    STATE_OVERRIDES.lock().unwrap().insert(id, state);
+}
+
+fn reset_overrides() {
+    STATE_OVERRIDES.lock().unwrap().clear();
 }

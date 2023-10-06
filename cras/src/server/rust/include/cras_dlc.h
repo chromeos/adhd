@@ -61,6 +61,19 @@ const char *cras_dlc_get_root_path(enum CrasDlcId id);
  */
 void cras_dlc_get_id_string(char *ret, size_t ret_len, enum CrasDlcId id);
 
+/**
+ * Overrides the DLC state for DLC `id`.
+ *
+ * # Safety
+ * root_path must be a valid NULL terminated UTF-8 string.
+ */
+void cras_dlc_override_state_for_testing(enum CrasDlcId id, bool installed, const char *root_path);
+
+/**
+ * Reset all DLC overrides.
+ */
+void cras_dlc_reset_overrides_for_testing(void);
+
 #endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_DLC_H_ */
 
 #ifdef __cplusplus

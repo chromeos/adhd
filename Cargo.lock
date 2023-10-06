@@ -210,6 +210,7 @@ dependencies = [
  "anyhow",
  "dbus",
  "log",
+ "once_cell",
  "protobuf",
  "system_api",
  "thiserror",

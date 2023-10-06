@@ -1,5 +1,5 @@
 {
-  "checksum": "3cbf2a50474f2ee9d156a8e11acbd16cd77bdea61e66fdbabef47c1bb3dcca80",
+  "checksum": "cac3258c5a84e852161b0fbc28220dd4712b71cc7cc467dfdcd8152d720f0b61",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -1101,6 +1101,10 @@
             {
               "id": "log 0.4.17",
               "target": "log"
+            },
+            {
+              "id": "once_cell 1.17.1",
+              "target": "once_cell"
             },
             {
               "id": "protobuf 3.2.0",

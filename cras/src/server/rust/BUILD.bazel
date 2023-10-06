@@ -8,26 +8,19 @@ load("@crate_index//:defs.bzl", "all_crate_deps")
 
 cc_library(
     name = "rust",
+    hdrs = glob(include = ["include/*.h"]),
     visibility = ["//visibility:public"],
     deps = select({
         "//:system_cras_rust_build": [
-            ":headers",
             "//cras/src/server/rust/system_cras_rust",
         ],
         "//conditions:default": [
-            ":headers",
             ":lib",
         ],
     }) + [
         "@pkg_config//dbus-1",
         "@pkg_config//openssl",
     ],
-)
-
-cc_library(
-    name = "headers",
-    hdrs = glob(include = ["include/*.h"]),
-    visibility = ["//visibility:public"],
 )
 
 rust_library(

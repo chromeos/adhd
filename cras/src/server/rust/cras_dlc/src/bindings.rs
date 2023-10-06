@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 use std::ffi::c_char;
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
@@ -64,4 +65,37 @@ pub unsafe extern "C" fn cras_dlc_get_id_string(ret: *mut c_char, ret_len: usize
     let len = std::cmp::min(id.as_str().as_bytes().len(), ret_len - 1);
     std::ptr::copy(id.as_str().as_bytes().as_ptr().cast(), ret, len);
     std::ptr::write(ret.add(len) as *mut u8, 0u8);
+}
+
+/// Overrides the DLC state for DLC `id`.
+///
+/// # Safety
+/// root_path must be a valid NULL terminated UTF-8 string.
+#[no_mangle]
+pub unsafe extern "C" fn cras_dlc_override_state_for_testing(
+    id: CrasDlcId,
+    installed: bool,
+    root_path: *const c_char,
+) {
+    let root_path = if root_path.is_null() {
+        String::new()
+    } else {
+        CStr::from_ptr(root_path)
+            .to_str()
+            .expect("to_str() failed")
+            .into()
+    };
+    crate::override_state_for_testing(
+        id,
+        crate::State {
+            installed,
+            root_path,
+        },
+    );
+}
+
+/// Reset all DLC overrides.
+#[no_mangle]
+pub extern "C" fn cras_dlc_reset_overrides_for_testing() {
+    crate::reset_overrides();
 }
