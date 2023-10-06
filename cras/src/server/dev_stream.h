@@ -160,21 +160,19 @@ int dev_stream_capture_update_rstream(struct dev_stream* dev_stream);
 // Updates the read buffer pointers for the stream.
 int dev_stream_playback_update_rstream(struct dev_stream* dev_stream);
 
-/* Fill playback_ts with the time the playback sample will be played.
+/* Fill ts with the time the playback sample will be played.
  * Args:
  *    frame_rate - The sample rate used to calculate the playback time.
  *    frames - The number of frames that before the next written sample is
  *      played.
  *    offset_ms - The duration in milliseconds of additional offset added for
  *      more accurate playback timestamp.
- *    now_ts - The current timestamp, used to calculate the playback time.
- *    playback_ts - The timestamp the next written sample will be played in DAC.
+ *    ts - The timestamp the next written sample will be played in DAC.
  */
 void cras_set_playback_timestamp(size_t frame_rate,
                                  size_t frames,
                                  int32_t offset_ms,
-                                 struct timespec* now_ts,
-                                 struct cras_timespec* playback_ts);
+                                 struct cras_timespec* ts);
 
 /* Fill capture_ts with the time the capture sample was recorded
  * Args:
