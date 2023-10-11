@@ -17,6 +17,15 @@ extern "C" {
  * controls) and TLV-byte (blob controls).
  */
 
+/* Probes the control specified by name.
+ * Args:
+ *    name - The control name.
+ * Returns:
+ *    0 when the control exists and the handler is created successfully.
+ *    Negative error code otherwise.
+ */
+int cras_alsa_config_probe(const char* name);
+
 /* Sets enabled state to the switch control specified by name.
  * Args:
  *    name - The control name.

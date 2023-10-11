@@ -3,10 +3,12 @@
  * found in the LICENSE file.
  */
 
+#include <array>
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "cras/include/cras_types.h"
 #include "cras/src/common/blob_wrapper.h"
 #include "cras/src/server/cras_alsa_config.h"
@@ -118,6 +120,7 @@ static struct MockConfigControl* stub_control_ptr;
 static char snd_ctl_opened_card_name[MAX_CARD_NAME_LEN];
 static size_t snd_ctl_elem_tlv_read_called;
 static size_t snd_ctl_elem_tlv_write_called;
+static size_t snd_card_next_called;
 
 static void ResetStubData() {
   snd_ctl_ptr_val = reinterpret_cast<snd_ctl_t*>(0x4323);
@@ -128,6 +131,7 @@ static void ResetStubData() {
   memset(snd_ctl_opened_card_name, 0, MAX_CARD_NAME_LEN);
   snd_ctl_elem_tlv_read_called = 0;
   snd_ctl_elem_tlv_write_called = 0;
+  snd_card_next_called = 0;
 }
 
 namespace {
@@ -233,18 +237,17 @@ TEST_F(AlsaConfigTestSuite, GetBytes) {
 
 TEST_F(AlsaConfigTestSuite, SetBytes) {
   const size_t buf_size = 4;
-  uint8_t buf[buf_size] = {0x55, 0xaa, 0x55, 0xaa};
-  unsigned int i;
+  std::array<uint8_t, buf_size> buf = {0x55, 0xaa, 0x55, 0xaa};
   int rc;
 
   // Set control "BYTES1.4".
   stub_control_ptr = &card1_bytes;
-  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf, buf_size);
+  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf.data(),
+                                      buf_size);
   EXPECT_EQ(rc, 0);
-  for (i = 0; i < buf_size; i++) {
-    EXPECT_EQ(buf[i], card1_bytes.config_data[SOF_ABI_HEADER_SIZE + i])
-        << "byte[" << i << "] mismatched";
-  }
+  EXPECT_EQ(
+      buf, absl::Span(card1_bytes.config_data + SOF_ABI_HEADER_SIZE, buf_size));
+
   // One read call for the preliminary read.
   EXPECT_EQ(snd_ctl_elem_tlv_read_called, 1);
   EXPECT_EQ(snd_ctl_elem_tlv_write_called, 1);
@@ -252,24 +255,24 @@ TEST_F(AlsaConfigTestSuite, SetBytes) {
   buf[0] = 0x66;
 
   // Set control "BYTES1.4" again.
-  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf, buf_size);
+  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf.data(),
+                                      buf_size);
   EXPECT_EQ(rc, 0);
-  for (i = 0; i < buf_size; i++) {
-    EXPECT_EQ(buf[i], card1_bytes.config_data[SOF_ABI_HEADER_SIZE + i])
-        << "byte[" << i << "] mismatched";
-  }
+  EXPECT_EQ(
+      buf, absl::Span(card1_bytes.config_data + SOF_ABI_HEADER_SIZE, buf_size));
+
   // The preliminary read is only needed for the first time.
   EXPECT_EQ(snd_ctl_elem_tlv_read_called, 1);
   EXPECT_EQ(snd_ctl_elem_tlv_write_called, 2);
 
   // Set control "BYTES8.6".
   stub_control_ptr = &card8_bytes;
-  rc = cras_alsa_config_set_tlv_bytes(card8_bytes.control_name, buf, buf_size);
+  rc = cras_alsa_config_set_tlv_bytes(card8_bytes.control_name, buf.data(),
+                                      buf_size);
   EXPECT_EQ(rc, 0);
-  for (i = 0; i < buf_size; i++) {
-    EXPECT_EQ(buf[i], card8_bytes.config_data[SOF_ABI_HEADER_SIZE + i])
-        << "byte[" << i << "] mismatched";
-  }
+  EXPECT_EQ(
+      buf, absl::Span(card8_bytes.config_data + SOF_ABI_HEADER_SIZE, buf_size));
+
   // The preliminary read is needed by controls individually.
   EXPECT_EQ(snd_ctl_elem_tlv_read_called, 2);
   EXPECT_EQ(snd_ctl_elem_tlv_write_called, 3);
@@ -278,12 +281,12 @@ TEST_F(AlsaConfigTestSuite, SetBytes) {
 
   // Set control "BYTES1.4" the third time.
   stub_control_ptr = &card1_bytes;
-  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf, buf_size);
+  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf.data(),
+                                      buf_size);
   EXPECT_EQ(rc, 0);
-  for (i = 0; i < buf_size; i++) {
-    EXPECT_EQ(buf[i], card1_bytes.config_data[SOF_ABI_HEADER_SIZE + i])
-        << "byte[" << i << "] mismatched";
-  }
+  EXPECT_EQ(
+      buf, absl::Span(card1_bytes.config_data + SOF_ABI_HEADER_SIZE, buf_size));
+
   // The preliminary read is only needed for the first time.
   EXPECT_EQ(snd_ctl_elem_tlv_read_called, 2);
   EXPECT_EQ(snd_ctl_elem_tlv_write_called, 4);
@@ -292,12 +295,12 @@ TEST_F(AlsaConfigTestSuite, SetBytes) {
   buf[0] = 0x88;
 
   // Set control "BYTES1.4" the fourth time.
-  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf, buf_size);
+  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf.data(),
+                                      buf_size);
   EXPECT_EQ(rc, 0);
-  for (i = 0; i < buf_size; i++) {
-    EXPECT_EQ(buf[i], card1_bytes.config_data[SOF_ABI_HEADER_SIZE + i])
-        << "byte[" << i << "] mismatched";
-  }
+  EXPECT_EQ(
+      buf, absl::Span(card1_bytes.config_data + SOF_ABI_HEADER_SIZE, buf_size));
+
   // The preliminary read is needed once its control got released.
   EXPECT_EQ(snd_ctl_elem_tlv_read_called, 3);
   EXPECT_EQ(snd_ctl_elem_tlv_write_called, 5);
@@ -305,13 +308,61 @@ TEST_F(AlsaConfigTestSuite, SetBytes) {
   // Set read-only control "BYTES1.5" and expect on error while the control
   // config is not tainted.
   stub_control_ptr = &card1_bytes_ro;
-  rc = cras_alsa_config_set_tlv_bytes(card1_bytes_ro.control_name, buf,
+  rc = cras_alsa_config_set_tlv_bytes(card1_bytes_ro.control_name, buf.data(),
                                       buf_size);
   EXPECT_LT(rc, 0);
-  for (i = 0; i < buf_size; i++) {
-    EXPECT_NE(buf[i], card1_bytes_ro.config_data[SOF_ABI_HEADER_SIZE + i])
-        << "byte[" << i << "] tainted";
-  }
+  EXPECT_NE(buf, absl::Span(card1_bytes_ro.config_data + SOF_ABI_HEADER_SIZE,
+                            buf_size));
+}
+
+TEST_F(AlsaConfigTestSuite, CacheForConnectedCtls) {
+  const size_t buf_size = 4;
+  std::array<uint8_t, buf_size> buf = {0x01, 0x02, 0x03, 0x04};
+  int rc;
+
+  // The design for cras_alsa_config supports caching the connection with each
+  // control element once it is established on probe/set/get requestsand hence
+  // the overhead of connection over sound card scanning can be reduced. Such
+  // overheads can be checked by monitoring the time for calling snd_card_next,
+  // which should not be called while tthe control element is stored in cache.
+
+  // Probe control "BYTES1.4".
+  stub_control_ptr = &card1_bytes;
+  snd_card_next_called = 0;
+  rc = cras_alsa_config_probe(card1_bytes.control_name);
+  EXPECT_EQ(rc, 0);
+  EXPECT_GE(snd_card_next_called, 1);  // snd_card_next was called
+
+  // Set control "BYTES1.4".
+  snd_card_next_called = 0;
+  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf.data(),
+                                      buf_size);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(
+      buf, absl::Span(card1_bytes.config_data + SOF_ABI_HEADER_SIZE, buf_size));
+  EXPECT_EQ(snd_card_next_called, 0);  // no more snd_card_next calls
+
+  // The cache will be clear as soon as the sound card it belongs is released.
+  cras_alsa_config_release_controls_on_card(1);
+
+  // Set control "BYTES1.4".
+  snd_card_next_called = 0;
+  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf.data(),
+                                      buf_size);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(
+      buf, absl::Span(card1_bytes.config_data + SOF_ABI_HEADER_SIZE, buf_size));
+  EXPECT_GE(snd_card_next_called, 1);  // snd_card_next was called
+
+  // Set control "BYTES1.4".
+  snd_card_next_called = 0;
+  buf[0] = 0xff;
+  rc = cras_alsa_config_set_tlv_bytes(card1_bytes.control_name, buf.data(),
+                                      buf_size);
+  EXPECT_EQ(rc, 0);
+  EXPECT_EQ(
+      buf, absl::Span(card1_bytes.config_data + SOF_ABI_HEADER_SIZE, buf_size));
+  EXPECT_EQ(snd_card_next_called, 0);  // no more snd_card_next calls
 }
 
 TEST_F(AlsaConfigTestSuite, InvalidArguments) {
@@ -363,6 +414,8 @@ TEST_F(AlsaConfigTestSuite, InvalidArguments) {
 extern "C" {
 
 int snd_card_next(int* rcard) {
+  snd_card_next_called++;
+
   // Valid card indices: 0, 1, 8
   switch (*rcard) {
     case -1:

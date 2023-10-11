@@ -370,6 +370,8 @@ cc_library(
         "cras_dsp_mod_builtin.c",
         "cras_dsp_mod_ladspa.c",
         "cras_dsp_module.h",
+        "cras_dsp_offload.c",
+        "cras_dsp_offload.h",
         "cras_dsp_pipeline.c",
         "cras_dsp_pipeline.h",
         "cras_empty_iodev.c",

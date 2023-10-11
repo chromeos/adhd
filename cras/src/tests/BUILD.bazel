@@ -146,6 +146,7 @@ cc_test(
         "//cras/src/common:blob_wrapper",
         "//cras/src/server:all_headers",
         "//cras/src/server:cras_alsa_config",
+        "@com_google_absl//absl/types:span",
         "@pkg_config//alsa",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
@@ -919,6 +920,25 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
+        "@iniparser",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
+    name = "dsp_offload_unittest",
+    srcs = [
+        ":cras_dsp_offload_unittest.cc",
+        "//cras/src/server:cras_dsp_offload.c",
+    ],
+    deps = [
+        ":test_support",
+        "//cras/src/common:all_headers",
+        "//cras/src/dsp:all_headers",
+        "//cras/src/server:all_headers",
+        "//cras/src/server:cras_alsa_config",
         "@iniparser",
         "@pkg_config//alsa",
         "@pkg_config//gtest",

@@ -333,6 +333,11 @@ static int ctl_elem_read_tlv_bytes_internal(struct ctl_elem* ctl_elem) {
  * Exported Interface.
  */
 
+int cras_alsa_config_probe(const char* name) {
+  struct ctl_elem* ctl_elem;
+  return get_ctl_elem_by_name(name, &ctl_elem);
+}
+
 int cras_alsa_config_set_switch(const char* name, bool enabled) {
   struct ctl_elem* ctl_elem;
   int rc;
