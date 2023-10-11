@@ -1043,6 +1043,11 @@ unsigned int cras_iodev_all_streams_written(struct cras_iodev* iodev,
   }
   unsigned int minimum_offset =
       buffer_share_get_minimum_offset(iodev->buf_state);
+  if (minimum_offset > write_limit) {
+    ATLOG(atlog, AUDIO_THREAD_OFFSET_EXCEED_AVAILABLE, iodev->info.idx,
+          minimum_offset, write_limit);
+    cras_audio_thread_event_offset_exceed_available();
+  }
   unsigned int written_frames = MIN(minimum_offset, write_limit);
   int rc = buffer_share_update_write_point(iodev->buf_state, written_frames);
   if (rc < 0) {

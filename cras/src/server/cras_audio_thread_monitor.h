@@ -51,6 +51,12 @@ int cras_audio_thread_event_drop_samples();
 int cras_audio_thread_event_dev_overrun();
 
 /*
+ * Notifies the main thread when the minimum offset exceeds the available
+ * frames.
+ */
+int cras_audio_thread_event_offset_exceed_available();
+
+/*
  * Initializes audio thread monitor and sets main thread callback.
  */
 int cras_audio_thread_monitor_init();

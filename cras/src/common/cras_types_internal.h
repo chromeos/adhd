@@ -31,6 +31,8 @@ static inline const char* audio_thread_event_type_to_str(
       return "drop samples";
     case AUDIO_THREAD_EVENT_DEV_OVERRUN:
       return "device overrun";
+    case AUDIO_THREAD_EVENT_OFFSET_EXCEED_AVAILABLE:
+      return "minimum offset exceed available buffer frames";
     default:
       return "no such type";
   }
