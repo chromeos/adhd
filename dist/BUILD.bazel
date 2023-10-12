@@ -67,7 +67,12 @@ pkg_files(
         "//cras/src/benchmark:cras_bench",
         "//cras/src/tools:cras_monitor",
         "//cras/src/tools:cras_router",
-    ],
+    ] + select({
+        "//:apm_build": [
+            "@webrtc_apm//rtc_tools:unpack_aecdump",
+        ],
+        "//conditions:default": [],
+    }),
     attributes = EXECUTABLE_ATTRIBUTES,
     prefix = "usr/local/bin",
 )
