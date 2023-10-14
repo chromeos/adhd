@@ -11,6 +11,8 @@
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/cras_alsa_mixer.h"
+#include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_dsp_offload.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_shm.h"
@@ -1325,6 +1327,58 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
   EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
   EXPECT_EQ(0, ucm_set_enabled_called);
 
+  alsa_iodev_destroy(iodev);
+}
+
+TEST(AlsaOutputNode, DspOffloadMapForOutputs) {
+  struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
+  struct cras_iodev* iodev;
+  struct ucm_section* section;
+
+  // Create the IO device.
+  ResetStubData();
+  iodev = alsa_iodev_create_with_default_parameters(
+      1, nullptr, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
+      CRAS_STREAM_OUTPUT);
+  ASSERT_NE(iodev, nullptr);
+
+  // Add INTERNAL_SPEAKER node without controls or jacks.
+  section = ucm_section_create(INTERNAL_SPEAKER, "hw:0,1", 1, -1,
+                               CRAS_STREAM_OUTPUT, nullptr, nullptr);
+  // Device index doesn't match.
+  EXPECT_EQ(-22, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  section->dev_idx = 0;
+  ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  ucm_section_free_list(section);
+
+  // Complete initialization.
+  alsa_iodev_ucm_complete_init(iodev);
+  // dsp_offload_map is allocated for IO device with INTERNAL_SPEAKER node.
+  EXPECT_NE(iodev->dsp_offload_map, nullptr);
+  alsa_iodev_destroy(iodev);
+  // dsp_offload_map is released by cras_iodev_free_resources().
+  EXPECT_EQ(1, cras_iodev_free_resources_called);
+
+  // Create the IO device.
+  ResetStubData();
+  iodev = alsa_iodev_create_with_default_parameters(
+      1, nullptr, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
+      CRAS_STREAM_OUTPUT);
+  ASSERT_NE(iodev, nullptr);
+
+  // Add LineOut node without controls or jacks.
+  section = ucm_section_create("Line Out", "hw:0,1", 1, -1, CRAS_STREAM_OUTPUT,
+                               nullptr, nullptr);
+  // Device index doesn't match.
+  EXPECT_EQ(-22, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  section->dev_idx = 0;
+  ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  ucm_section_free_list(section);
+
+  // Complete initialization.
+  alsa_iodev_ucm_complete_init(iodev);
+  // dsp_offload_map should not be allocated.
+  EXPECT_EQ(iodev->dsp_offload_map, nullptr);
   alsa_iodev_destroy(iodev);
 }
 
@@ -3073,6 +3127,10 @@ void cras_iodev_set_active_node(struct cras_iodev* iodev,
 }
 
 void cras_iodev_free_resources(struct cras_iodev* iodev) {
+  if (iodev) {
+    free(iodev->dsp_offload_map);
+    iodev->dsp_offload_map = nullptr;
+  }
   cras_iodev_free_resources_called++;
 }
 
@@ -3298,4 +3356,17 @@ void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev) {}
 
 void cras_iodev_stream_offset_reset_all(struct cras_iodev* iodev) {}
 
+int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
+                                enum CRAS_NODE_TYPE type) {
+  if (type == CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+    struct dsp_offload_map* alloc_map =
+        (struct dsp_offload_map*)calloc(1, sizeof(*alloc_map));
+    *offload_map = alloc_map;
+    return 0;
+  }
+  return -EINVAL;
+}
+
+void cras_dsp_context_set_offload_map(struct cras_dsp_context* ctx,
+                                      struct dsp_offload_map* offload_map) {}
 }  // extern "C"

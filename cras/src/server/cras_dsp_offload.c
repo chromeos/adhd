@@ -17,10 +17,9 @@
 #include <syslog.h>
 
 #include "cras/src/server/cras_alsa_config.h"
-#include "cras_types.h"
 #include "cras_util.h"
 
-// DSP module offload API definition
+// DSP module offload APIs
 
 /* Probes the DSP module mixer controls for the given ids.
  * Args:
@@ -282,34 +281,66 @@ static const struct dsp_module_offload_api* find_dsp_module_offload_api(
   return NULL;
 }
 
+static int mixer_controls_ready_for_offload_to_dsp(
+    struct dsp_offload_map* offload_map) {
+  char* pattern = strdup(offload_map->dsp_pattern);
+
+  // parse DSP module labels
+  char* p = strtok(pattern, ">");
+  while (p) {
+    const struct dsp_module_offload_api* module_offload_api =
+        find_dsp_module_offload_api(p);
+    if (!module_offload_api) {
+      free(pattern);
+      return -EINVAL;
+    }
+
+    int rc = module_offload_api->probe(offload_map->pipeline_id, 0);
+    if (rc) {
+      free(pattern);
+      return rc;
+    }
+
+    p = strtok(NULL, ">");
+  }
+  free(pattern);
+  return 0;
+}
+
 // Exposed function implementations
 
-/* Temporarily use fixed pipeline and comp ids.
- * TODO(b/188647460): make them configurable via function arguments.
- */
-static const uint32_t pipeline_id_tmp = 1;
-static const uint32_t comp_id_tmp = 0;
+int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
+                                enum CRAS_NODE_TYPE type) {
+  struct dsp_offload_map* offload_pipe_map =
+      (struct dsp_offload_map*)calloc(1, sizeof(*offload_pipe_map));
+  if (!offload_pipe_map) {
+    return -ENOMEM;
+  }
 
-static int check_validity_on_dsp(const char* label) {
-  const struct dsp_module_offload_api* module_offload_api =
-      find_dsp_module_offload_api(label);
-  if (!module_offload_api) {
+  // TODO(b/188647460): obtain from the board config setting for the given type.
+  offload_pipe_map->pipeline_id = 1;
+  offload_pipe_map->dsp_pattern = "drc>eq2";
+
+  // The validity check to confirm the presence of the associated mixer controls
+  // for offload to DSP.
+  int rc = mixer_controls_ready_for_offload_to_dsp(offload_pipe_map);
+  if (rc) {
+    free(offload_pipe_map);
+    return rc;
+  }
+
+  *offload_map = offload_pipe_map;
+  return 0;
+}
+
+int cras_dsp_offload_config_module(struct dsp_offload_map* offload_map,
+                                   struct dsp_module* mod,
+                                   const char* label) {
+  if (!offload_map || !mod || !label) {
+    syslog(LOG_ERR, "cras_dsp_offload_config_module: invalid argument(s)");
     return -EINVAL;
   }
 
-  return module_offload_api->probe(pipeline_id_tmp, comp_id_tmp);
-}
-
-void cras_dsp_offload_init() {
-  /* Temporarily check the validity for each module on DSP on init.
-   * TODO(b/188647460): use the validity check to identify if the DSP build on a
-   * device supports EQ/DRC offload.
-   */
-  check_validity_on_dsp("drc");
-  check_validity_on_dsp("eq2");
-}
-
-int cras_dsp_offload_config_module(struct dsp_module* mod, const char* label) {
   const struct dsp_module_offload_api* module_offload_api =
       find_dsp_module_offload_api(label);
   if (!module_offload_api) {
@@ -319,19 +350,42 @@ int cras_dsp_offload_config_module(struct dsp_module* mod, const char* label) {
     return -EINVAL;
   }
 
-  return module_offload_api->set_offload_blob(mod, pipeline_id_tmp,
-                                              comp_id_tmp);
+  return module_offload_api->set_offload_blob(mod, offload_map->pipeline_id, 0);
 }
 
-int cras_dsp_offload_set_mode(bool enabled, const char* label) {
-  const struct dsp_module_offload_api* module_offload_api =
-      find_dsp_module_offload_api(label);
-  if (!module_offload_api) {
-    syslog(LOG_ERR, "cras_dsp_offload_set_mode: No offload api for module: %s",
-           label);
+int cras_dsp_offload_set_mode(struct dsp_offload_map* offload_map,
+                              bool enabled) {
+  if (!offload_map) {
+    syslog(LOG_ERR, "cras_dsp_offload_set_mode: offload map is invalid");
     return -EINVAL;
   }
 
-  return module_offload_api->set_offload_mode(enabled, pipeline_id_tmp,
-                                              comp_id_tmp);
+  char* pattern = strdup(offload_map->dsp_pattern);
+
+  // Parse DSP module labels
+  char* p = strtok(pattern, ">");
+  while (p) {
+    const struct dsp_module_offload_api* module_offload_api =
+        find_dsp_module_offload_api(p);
+    if (!module_offload_api) {
+      syslog(LOG_ERR,
+             "cras_dsp_offload_set_mode: No offload api for module: %s", p);
+      free(pattern);
+      return -EINVAL;
+    }
+
+    int rc = module_offload_api->set_offload_mode(enabled,
+                                                  offload_map->pipeline_id, 0);
+    if (rc) {
+      syslog(LOG_ERR, "cras_dsp_offload_set_mode: Failed to set %s to %s",
+             enabled ? "enabled" : "disabled", p);
+      free(pattern);
+      return rc;
+    }
+
+    p = strtok(NULL, ">");
+  }
+
+  free(pattern);
+  return 0;
 }

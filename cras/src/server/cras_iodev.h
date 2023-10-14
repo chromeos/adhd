@@ -374,6 +374,9 @@ struct cras_iodev {
   // External dsp module to process audio data in stream level
   // after dsp_context.
   struct ext_dsp_module* ext_dsp_module;
+  // Optional dsp_offload_map instance to store the information of CRAS DSP
+  // offload to ADSP FW. This is available only if supported on this iodev.
+  struct dsp_offload_map* dsp_offload_map;
   // The flag for pending reset request.
   int reset_request_pending;
   // The cras_ramp struct to control ramping up/down at mute/unmute and

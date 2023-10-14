@@ -38,6 +38,7 @@ struct cras_dsp_context {
   struct cras_expr_env env;
   int sample_rate;
   const char* purpose;
+  struct dsp_offload_map* offload_map;
   struct cras_dsp_context *prev, *next;
 };
 
@@ -186,6 +187,13 @@ struct cras_dsp_context* cras_dsp_context_new(int sample_rate,
 
   DL_APPEND(context_list, ctx);
   return ctx;
+}
+
+void cras_dsp_context_set_offload_map(struct cras_dsp_context* ctx,
+                                      struct dsp_offload_map* offload_map) {
+  if (ctx) {
+    ctx->offload_map = offload_map;
+  }
 }
 
 void cras_dsp_context_free(struct cras_dsp_context* ctx) {

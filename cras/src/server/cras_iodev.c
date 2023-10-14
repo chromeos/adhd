@@ -672,6 +672,12 @@ void cras_iodev_update_dsp(struct cras_iodev* iodev) {
                                   iodev->active_node->display_rotation);
   }
 
+  if (iodev->dsp_offload_map) {
+    // Share the reference pointer for dsp_offload_map in dsp_context.
+    cras_dsp_context_set_offload_map(iodev->dsp_context,
+                                     iodev->dsp_offload_map);
+  }
+
   cras_dsp_load_pipeline(iodev->dsp_context);
 }
 
@@ -744,6 +750,7 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
   if (iodev->ramp) {
     cras_ramp_destroy(iodev->ramp);
   }
+  free(iodev->dsp_offload_map);
 }
 
 static void cras_iodev_alloc_dsp(struct cras_iodev* iodev) {
@@ -818,6 +825,7 @@ void cras_iodev_set_active_node(struct cras_iodev* iodev,
       group[i]->active_node = node;
     }
   }
+
   cras_iodev_list_notify_active_node_changed(iodev->direction);
 }
 

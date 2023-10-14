@@ -33,6 +33,7 @@
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_dsp_offload.h"
 #include "cras/src/server/cras_hotword_handler.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
@@ -2534,6 +2535,32 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
   // Build software volume scaler.
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
     build_softvol_scalers(aio);
+  }
+
+  /*
+   * Create the mapping information for DSP offload if the device has any node
+   * for type supporting offload. The temporary implementation now just regards
+   * the node type INTERNAL_SPEAKER as supported.
+   * TODO(b/188647460): obtain the list of offload-supported node types from the
+   *                    board config setting.
+   */
+  aio->common.base.dsp_offload_map = NULL;
+  if (aio->common.base.nodes) {
+    DL_FOREACH (aio->common.base.nodes, node) {
+      if (node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+        struct dsp_offload_map* offload_map;
+        int rc = cras_dsp_offload_create_map(&offload_map, node->type);
+        if (rc) {
+          syslog(LOG_INFO,
+                 "Cannot create dsp_offload_map for dev=%u (rc=%d), offload is "
+                 "not supported?",
+                 aio->common.base.info.idx, rc);
+        } else {
+          aio->common.base.dsp_offload_map = offload_map;
+        }
+        break;
+      }
+    }
   }
 
   /* In an iodev group the ionodes are shared by all member iodevs conceptually.

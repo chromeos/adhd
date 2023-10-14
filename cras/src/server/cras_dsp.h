@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+#include "cras/src/server/cras_dsp_offload.h"
 #include "cras/src/server/cras_dsp_pipeline.h"
 
 struct cras_dsp_context;
@@ -36,6 +37,10 @@ void cras_dsp_stop();
  */
 struct cras_dsp_context* cras_dsp_context_new(int sample_rate,
                                               const char* purpose);
+
+// Sets the reference pointer of the offload map object to the context.
+void cras_dsp_context_set_offload_map(struct cras_dsp_context* ctx,
+                                      struct dsp_offload_map* offload_map);
 
 // Frees a dsp context.
 void cras_dsp_context_free(struct cras_dsp_context* ctx);

@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
 cc_library(
     name = "cras_mix",
     srcs = [
@@ -270,6 +272,7 @@ cc_library(
     hdrs = [
         "cras_dsp_ini.h",
         "cras_dsp_module.h",
+        "cras_dsp_offload.h",
         "cras_dsp_pipeline.h",
         "cras_expr.h",
     ],

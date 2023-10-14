@@ -24,7 +24,7 @@ static int StubDspModGetOffloadBlob(struct dsp_module* mod,
                                     size_t* config_size) {
   *config_size = stub_dsp_mod_blob_config_size;
   if (stub_dsp_mod_blob_config_size == 0) {
-    *config = NULL;
+    *config = nullptr;
     return -ENOMEM;
   }
 
@@ -53,53 +53,55 @@ class DspOffloadTestSuite : public testing::Test {
     ResetStubData();
     stub_dsp_module = (struct dsp_module*)calloc(1, sizeof(*stub_dsp_module));
     stub_dsp_module->get_offload_blob = StubDspModGetOffloadBlob;
+    cras_dsp_offload_create_map(&offload_map_spk,
+                                CRAS_NODE_TYPE_INTERNAL_SPEAKER);
   }
 
-  virtual void TearDown() { free(stub_dsp_module); }
+  virtual void TearDown() {
+    free(offload_map_spk);
+    free(stub_dsp_module);
+  }
+
+  struct dsp_offload_map* offload_map_spk;
 };
 
-TEST_F(DspOffloadTestSuite, ProbeOnInit) {
-  cras_dsp_offload_init();
+TEST_F(DspOffloadTestSuite, ProbeOnMapCreate) {
+  ASSERT_NE(offload_map_spk, nullptr);
   // Probed the blob and switch control for drc, and the blob control for eq2.
   EXPECT_EQ(3, alsa_config_probed_mixers.size());
 }
 
-TEST_F(DspOffloadTestSuite, OffloadDrc) {
+TEST_F(DspOffloadTestSuite, OffloadProcess) {
+  ASSERT_NE(offload_map_spk, nullptr);
+
   stub_dsp_mod_blob_config_size = 16;
 
   // Set offload config blob to DRC
-  EXPECT_EQ(0, cras_dsp_offload_config_module(stub_dsp_module, "drc"));
+  EXPECT_EQ(0, cras_dsp_offload_config_module(offload_map_spk, stub_dsp_module,
+                                              "drc"));
   EXPECT_EQ(stub_dsp_mod_blob_config_size, alsa_config_set_tlv_bytes_size);
   EXPECT_TRUE(alsa_config_set_tlv_bytes_data_equal_to_stub);
 
-  // Set mode to enable offload for DRC
-  EXPECT_EQ(0, cras_dsp_offload_set_mode(true, "drc"));
-  EXPECT_TRUE(alsa_config_set_switch_val);
-  EXPECT_EQ(1, alsa_config_set_switch_called);
-
-  // Set mode to disable offload for DRC
-  EXPECT_EQ(0, cras_dsp_offload_set_mode(false, "drc"));
-  EXPECT_FALSE(alsa_config_set_switch_val);
-  EXPECT_EQ(2, alsa_config_set_switch_called);
-}
-
-TEST_F(DspOffloadTestSuite, OffloadEq2) {
   stub_dsp_mod_blob_config_size = 32;
 
   // Set offload config blob to EQ2
-  EXPECT_EQ(0, cras_dsp_offload_config_module(stub_dsp_module, "eq2"));
+  EXPECT_EQ(0, cras_dsp_offload_config_module(offload_map_spk, stub_dsp_module,
+                                              "eq2"));
   EXPECT_EQ(stub_dsp_mod_blob_config_size, alsa_config_set_tlv_bytes_size);
   EXPECT_TRUE(alsa_config_set_tlv_bytes_data_equal_to_stub);
 
-  // Set mode to enable offload for EQ2
-  EXPECT_EQ(0, cras_dsp_offload_set_mode(true, "eq2"));
-  // No ops because EQ2 doesn't have the switch control.
-  EXPECT_EQ(0, alsa_config_set_switch_called);
+  // Set mode to enable offload for both DRC and EQ2
+  EXPECT_EQ(0, cras_dsp_offload_set_mode(offload_map_spk, true));
+  EXPECT_TRUE(alsa_config_set_switch_val);
+  // Only call set_switch once (by DRC) given that there is no switch control
+  // for EQ2
+  EXPECT_EQ(1, alsa_config_set_switch_called);
 
-  // Set mode to disable offload for EQ2
-  EXPECT_EQ(0, cras_dsp_offload_set_mode(false, "eq2"));
-  // To disable EQ2, a built-in config blob for bypass mode will be set
-  EXPECT_EQ(0, alsa_config_set_switch_called);
+  // Set mode to disable offload for both DRC and EQ2
+  EXPECT_EQ(0, cras_dsp_offload_set_mode(offload_map_spk, false));
+  EXPECT_FALSE(alsa_config_set_switch_val);
+  EXPECT_EQ(2, alsa_config_set_switch_called);
+  // A built-in config blob for bypass mode is set to disable EQ2
   EXPECT_NE(stub_dsp_mod_blob_config_size, alsa_config_set_tlv_bytes_size);
   EXPECT_FALSE(alsa_config_set_tlv_bytes_data_equal_to_stub);
 }
