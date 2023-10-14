@@ -16,7 +16,9 @@
 #include <sys/param.h>
 #include <syslog.h>
 
+#include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_config.h"
+#include "cras/src/server/cras_iodev.h"
 #include "cras_util.h"
 
 // DSP module offload APIs
@@ -87,6 +89,11 @@ static int module_set_offload_blob(struct dsp_module* module,
   return rc;
 }
 
+/* Mixer names vary according to SOF IPC versions. The ones specified below are
+ * applied on IPC3 (adopted by pre-MTL DSP now), while IPC4 is available and
+ * will be adopted by MTL.
+ * TODO(b/188647460): support both mixer names on IPC3 and IPC4 as needed.
+ */
 static char* drc_blob_control_name(uint32_t pipeline_id, uint32_t comp_id) {
   char* mixer_name;
   if (asprintf(&mixer_name, "MULTIBAND_DRC%u.%u multiband_drc_control_%u",
@@ -273,19 +280,43 @@ static const struct dsp_module_offload_api* find_dsp_module_offload_api(
   }
 
   for (int i = 0; i < ARRAY_SIZE(module_offload_apis); i++) {
-    size_t cmp_len = MAX(strlen(module_offload_apis[i].label), strlen(label));
-    if (!strncmp(module_offload_apis[i].label, label, cmp_len)) {
+    if (str_equals(module_offload_apis[i].label, label)) {
       return &module_offload_apis[i];
     }
   }
   return NULL;
 }
 
-static int mixer_controls_ready_for_offload_to_dsp(
-    struct dsp_offload_map* offload_map) {
-  char* pattern = strdup(offload_map->dsp_pattern);
+typedef int (*exec_dsp_module_func_t)(const struct dsp_module_offload_api* api,
+                                      uint32_t pipeline_id,
+                                      uint32_t comp_id);
 
-  // parse DSP module labels
+static int exec_probe(const struct dsp_module_offload_api* api,
+                      uint32_t pipeline_id,
+                      uint32_t comp_id) {
+  return api->probe(pipeline_id, comp_id);
+}
+
+static int exec_enable(const struct dsp_module_offload_api* api,
+                       uint32_t pipeline_id,
+                       uint32_t comp_id) {
+  return api->set_offload_mode(true, pipeline_id, comp_id);
+}
+
+static int exec_disable(const struct dsp_module_offload_api* api,
+                        uint32_t pipeline_id,
+                        uint32_t comp_id) {
+  return api->set_offload_mode(false, pipeline_id, comp_id);
+}
+
+// Iterate DSP modules by scanning module labels through the pattern string of
+// the given map, and execute the given function on each.
+static int iterate_dsp_modules_from_offload_map(
+    struct dsp_offload_map* offload_map,
+    exec_dsp_module_func_t exec_func) {
+  char* pattern = strndup(offload_map->dsp_pattern, DSP_PATTERN_MAX_SIZE - 1);
+
+  // Scan through all DSP module labels from dsp_pattern
   char* p = strtok(pattern, ">");
   while (p) {
     const struct dsp_module_offload_api* module_offload_api =
@@ -295,8 +326,9 @@ static int mixer_controls_ready_for_offload_to_dsp(
       return -EINVAL;
     }
 
-    int rc = module_offload_api->probe(offload_map->pipeline_id, 0);
+    int rc = exec_func(module_offload_api, offload_map->pipeline_id, 0);
     if (rc) {
+      syslog(LOG_ERR, "iterate offload map failed on module %s", p);
       free(pattern);
       return rc;
     }
@@ -307,19 +339,32 @@ static int mixer_controls_ready_for_offload_to_dsp(
   return 0;
 }
 
+static int mixer_controls_ready_for_offload_to_dsp(
+    struct dsp_offload_map* offload_map) {
+  return iterate_dsp_modules_from_offload_map(offload_map, exec_probe);
+}
+
 // Exposed function implementations
 
 int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
-                                enum CRAS_NODE_TYPE type) {
+                                const struct cras_ionode* node) {
+  // Temporarily regard the node type INTERNAL_SPEAKER as offload-supported.
+  // TODO(b/188647460): determine by the mapping info parsed from the board
+  //                    config string.
+  if (node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+    *offload_map = NULL;
+    return 0;
+  }
+
   struct dsp_offload_map* offload_pipe_map =
       (struct dsp_offload_map*)calloc(1, sizeof(*offload_pipe_map));
   if (!offload_pipe_map) {
     return -ENOMEM;
   }
 
-  // TODO(b/188647460): obtain from the board config setting for the given type.
+  // TODO(b/188647460): obtain from the board config setting.
   offload_pipe_map->pipeline_id = 1;
-  offload_pipe_map->dsp_pattern = "drc>eq2";
+  offload_pipe_map->dsp_pattern = DSP_PATTERN_OFFLOAD_DEFAULT;
 
   // The validity check to confirm the presence of the associated mixer controls
   // for offload to DSP.
@@ -329,8 +374,30 @@ int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
     return rc;
   }
 
+  // Set to the initial state of offload.
+  offload_pipe_map->parent_dev = node->dev;
+  offload_pipe_map->state = DSP_PROC_NOT_STARTED;
   *offload_map = offload_pipe_map;
   return 0;
+}
+
+bool cras_dsp_offload_is_already_applied(struct dsp_offload_map* offload_map) {
+  if (!offload_map) {
+    return false;
+  }
+
+  if (offload_map->state != DSP_PROC_ON_DSP) {
+    return false;
+  }
+
+  if (!offload_map->parent_dev || !offload_map->parent_dev->active_node) {
+    syslog(LOG_ERR,
+           "cras_dsp_offload_is_already_applied: invalid dev or active_node");
+    return false;
+  }
+
+  uint32_t active_node_idx = offload_map->parent_dev->active_node->idx;
+  return offload_map->applied_node_idx == active_node_idx;
 }
 
 int cras_dsp_offload_config_module(struct dsp_offload_map* offload_map,
@@ -353,39 +420,42 @@ int cras_dsp_offload_config_module(struct dsp_offload_map* offload_map,
   return module_offload_api->set_offload_blob(mod, offload_map->pipeline_id, 0);
 }
 
-int cras_dsp_offload_set_mode(struct dsp_offload_map* offload_map,
-                              bool enabled) {
+int cras_dsp_offload_set_state(struct dsp_offload_map* offload_map,
+                               bool enabled) {
   if (!offload_map) {
-    syslog(LOG_ERR, "cras_dsp_offload_set_mode: offload map is invalid");
+    syslog(LOG_ERR, "cras_dsp_offload_set_state: offload map is invalid");
     return -EINVAL;
   }
 
-  char* pattern = strdup(offload_map->dsp_pattern);
-
-  // Parse DSP module labels
-  char* p = strtok(pattern, ">");
-  while (p) {
-    const struct dsp_module_offload_api* module_offload_api =
-        find_dsp_module_offload_api(p);
-    if (!module_offload_api) {
-      syslog(LOG_ERR,
-             "cras_dsp_offload_set_mode: No offload api for module: %s", p);
-      free(pattern);
-      return -EINVAL;
-    }
-
-    int rc = module_offload_api->set_offload_mode(enabled,
-                                                  offload_map->pipeline_id, 0);
+  if (enabled) {
+    int rc = iterate_dsp_modules_from_offload_map(offload_map, exec_enable);
     if (rc) {
-      syslog(LOG_ERR, "cras_dsp_offload_set_mode: Failed to set %s to %s",
-             enabled ? "enabled" : "disabled", p);
-      free(pattern);
+      syslog(LOG_ERR, "cras_dsp_offload_set_state: Failed to set enabled");
       return rc;
     }
 
-    p = strtok(NULL, ">");
-  }
+    offload_map->state = DSP_PROC_ON_DSP;
+    offload_map->applied_node_idx = offload_map->parent_dev->active_node->idx;
+  } else {
+    // Skip the disable proccess when the current state is not offloaded.
+    if (offload_map->state == DSP_PROC_ON_CRAS) {
+      return 0;
+    }
 
-  free(pattern);
+    int rc = iterate_dsp_modules_from_offload_map(offload_map, exec_disable);
+    if (rc) {
+      syslog(LOG_ERR, "cras_dsp_offload_set_state: Failed to set disabled");
+      return rc;
+    }
+
+    offload_map->state = DSP_PROC_ON_CRAS;
+  }
   return 0;
+}
+
+void cras_dsp_offload_reset_map(struct dsp_offload_map* offload_map) {
+  if (!offload_map) {
+    return;
+  }
+  offload_map->state = DSP_PROC_NOT_STARTED;
 }

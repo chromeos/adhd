@@ -15,6 +15,7 @@ extern "C" {
 #include "cras/src/common/dumper.h"
 #include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_module.h"
+#include "cras/src/server/cras_dsp_offload.h"
 #include "cras_audio_format.h"
 
 /* These are the functions to create and use dsp pipelines. A dsp
@@ -135,6 +136,18 @@ int cras_dsp_pipeline_get_sample_rate(struct pipeline* pipeline);
 
 // Gets the dsp ini that corresponds to the pipeline.
 struct ini* cras_dsp_pipeline_get_ini(struct pipeline* pipeline);
+
+/* Gets the string of DSP pattern for the pipeline. The returned DSP
+ * pattern will be formed by DSP module labels concatenated with ">",
+ * e.g. "drc>eq2".
+ */
+char* cras_dsp_pipeline_get_pattern(const struct pipeline* pipeline);
+
+/* Runs the offload process for the pipeline by configuring the offload blobs
+ * to the DSP mixer controls for each module.
+ */
+int cras_dsp_pipeline_config_offload(struct dsp_offload_map* offload_map,
+                                     struct pipeline* pipeline);
 
 /* Processes a block of audio samples. sample_count should be no more
  * than DSP_BUFFER_SIZE */

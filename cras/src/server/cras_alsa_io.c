@@ -2600,29 +2600,26 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
     build_softvol_scalers(aio);
   }
 
-  /*
-   * Create the mapping information for DSP offload if the device has any node
-   * for type supporting offload. The temporary implementation now just regards
-   * the node type INTERNAL_SPEAKER as supported.
-   * TODO(b/188647460): obtain the list of offload-supported node types from the
-   *                    board config setting.
-   */
+  // Create the mapping information for DSP offload if the device has any node
+  // supporting offload.
   aio->common.base.dsp_offload_map = NULL;
   if (aio->common.base.nodes) {
     DL_FOREACH (aio->common.base.nodes, node) {
-      if (node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
-        struct dsp_offload_map* offload_map;
-        int rc = cras_dsp_offload_create_map(&offload_map, node->type);
-        if (rc) {
-          syslog(LOG_INFO,
-                 "Cannot create dsp_offload_map for dev=%u (rc=%d), offload is "
-                 "not supported?",
-                 aio->common.base.info.idx, rc);
-        } else {
-          aio->common.base.dsp_offload_map = offload_map;
-        }
+      struct dsp_offload_map* offload_map;
+      int rc = cras_dsp_offload_create_map(&offload_map, node);
+      if (rc) {
+        syslog(LOG_INFO,
+               "DSP offload is not supported for specified node: %s, rc=%d",
+               node->name, rc);
         break;
       }
+      if (offload_map) {
+        aio->common.base.dsp_offload_map = offload_map;
+        break;
+      }
+      // (!rc && !offload_map) stands for the node is not supposed to have
+      // offload support, i.e. it's not specified in the mapping info. Continue
+      // on checking other nodes.
     }
   }
 

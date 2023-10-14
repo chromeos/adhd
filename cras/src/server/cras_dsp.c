@@ -10,6 +10,7 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/dsp/dsp_util.h"
 #include "cras/src/server/cras_dsp_ini.h"
@@ -118,11 +119,94 @@ bail:
   return NULL;
 }
 
+/* The strategy is to offload the given CRAS pipeline to DSP if applicable. If
+ * not, the pipeline will be processed on CRAS as is, while disabling the
+ * associated modules on DSP to ensure effects are taken on CRAS only.
+ * To apply/enable the DSP offload:
+ *   1.Enable the associated modules on DSP and set the config blob to them each
+ *     correspondent to the CRAS pipeline.
+ *   2.Replace the given CRAS pipeline with NULL.
+ *
+ * The first action item will be done in function while the second one should be
+ * taken by the caller itself in respect of the returned value. In other words,
+ * "returning true" means the given CRAS pipeline is applied offload to DSP,
+ * which should be released to ensure effects are taken on DSP only.
+ */
+static bool possibly_offload_pipeline(struct dsp_offload_map* offload_map,
+                                      struct pipeline* pipe) {
+  int rc;
+
+  if (!offload_map) {
+    // The DSP offload doesn't support for the device running this pipeline.
+    return false;
+  }
+
+  // If supports, check if the DSP offload is applicable, i.e. the pattern for
+  // the CRAS pipeline is matched with the offload map. The pipeline can be NULL
+  // when the current active node has no DSP config specified, which will be
+  // regarded as not applicable.
+  bool is_applicable = false;
+  if (pipe) {
+    char* pattern = cras_dsp_pipeline_get_pattern(pipe);
+    syslog(LOG_DEBUG, "cras_dsp: trying to offload pipeline (%s)...", pattern);
+    is_applicable = str_equals_bounded(offload_map->dsp_pattern, pattern,
+                                       DSP_PATTERN_MAX_SIZE);
+    free(pattern);
+  }
+  syslog(LOG_DEBUG, "cras_dsp: offload is %sapplicable",
+         is_applicable ? "" : "non-");
+
+  // If the DSP offload is already applied for the same pipeline/node, no more
+  // action is needed in this function.
+  if (cras_dsp_offload_is_already_applied(offload_map)) {
+    // Note: it's a special case here while is_applicable is false, which can be
+    //       met only by the non-static CRAS DSP request on the offload-applied
+    //       pipeline, e.g. LR-swap and ext_dsp_module. In such circumstances,
+    //       an empty pipeline will be generated from mock ini and loaded again.
+    syslog(LOG_DEBUG, "cras_dsp: offload is already applied");
+    return is_applicable;
+  }
+
+  // Take action to enable or disable the associated modules on DSP in respect
+  // of is_applicable.
+  if (is_applicable) {
+    rc = cras_dsp_pipeline_config_offload(offload_map, pipe);
+    if (rc) {
+      syslog(LOG_ERR, "cras_dsp: Failed to config offload blobs, rc: %d", rc);
+      goto disable_offload;  // fallback to process on CRAS
+    }
+
+    rc = cras_dsp_offload_set_state(offload_map, true);
+    if (rc) {
+      syslog(LOG_ERR, "cras_dsp: Failed to enable offload, rc: %d", rc);
+      goto disable_offload;  // fallback to process on CRAS
+    }
+
+    syslog(LOG_DEBUG, "cras_dsp: offload is applied on success.");
+    return true;
+  }
+
+disable_offload:
+  rc = cras_dsp_offload_set_state(offload_map, false);
+  if (rc) {
+    // TODO(b/188647460): Consider better error handlings e.g. N-time retries,
+    //                    report up to CRAS server, and etc.
+    syslog(LOG_ERR, "cras_dsp: Failed to disable offload, rc: %d", rc);
+  }
+  return false;
+}
+
 static void cmd_load_pipeline(struct cras_dsp_context* ctx,
                               struct ini* target_ini) {
   struct pipeline *pipeline, *old_pipeline;
 
   pipeline = target_ini ? prepare_pipeline(ctx, target_ini) : NULL;
+
+  if (possibly_offload_pipeline(ctx->offload_map, pipeline)) {
+    // Release the pipeline once successfully offloaded.
+    destroy_pipeline(pipeline);
+    pipeline = NULL;
+  }
 
   // This locking is short to avoild blocking audio thread.
   pthread_mutex_lock(&ctx->mutex);
@@ -146,6 +230,8 @@ static void cmd_reload_ini() {
   }
 
   DL_FOREACH (context_list, ctx) {
+    // Reset the offload state to force the offload blob re-configuring.
+    cras_dsp_offload_reset_map(ctx->offload_map);
     cmd_load_pipeline(ctx, new_ini);
   }
 

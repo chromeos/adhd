@@ -3357,8 +3357,8 @@ void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev) {}
 void cras_iodev_stream_offset_reset_all(struct cras_iodev* iodev) {}
 
 int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
-                                enum CRAS_NODE_TYPE type) {
-  if (type == CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+                                const struct cras_ionode* node) {
+  if (node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
     struct dsp_offload_map* alloc_map =
         (struct dsp_offload_map*)calloc(1, sizeof(*alloc_map));
     *offload_map = alloc_map;

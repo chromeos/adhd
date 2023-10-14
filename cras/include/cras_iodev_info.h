@@ -147,6 +147,16 @@ enum audio_effect_type {
   EFFECT_TYPE_HFP_MIC_SR = 1 << 1,
 };
 
+// The working state of DSP processings for a CRAS device.
+enum CRAS_DSP_PROC_STATE {
+  // The DSP processings are not ever started.
+  DSP_PROC_NOT_STARTED,
+  // The DSP processings work on CRAS.
+  DSP_PROC_ON_CRAS,
+  // The DSP processings work on DSP (offloaded).
+  DSP_PROC_ON_DSP,
+};
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

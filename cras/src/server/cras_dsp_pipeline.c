@@ -16,10 +16,12 @@
 #include <time.h>
 
 #include "cras/src/common/array.h"
+#include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/dsp/dsp_util.h"
 #include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_module.h"
+#include "cras/src/server/cras_dsp_offload.h"
 #include "cras/src/server/cras_expr.h"
 #include "cras_audio_format.h"
 #include "cras_util.h"
@@ -812,6 +814,58 @@ void cras_dsp_pipeline_set_sink_lr_swapped(struct pipeline* pipeline,
 
 struct ini* cras_dsp_pipeline_get_ini(struct pipeline* pipeline) {
   return pipeline->ini;
+}
+
+// If label is equal to "source" or "sink".
+static bool is_endpoint(const char* label) {
+  return str_equals(label, "source") || str_equals(label, "sink");
+}
+
+char* cras_dsp_pipeline_get_pattern(const struct pipeline* pipeline) {
+  char dsp_pattern[DSP_PATTERN_MAX_SIZE];
+  size_t len = 0;
+  int i;
+  struct instance* instance;
+
+  ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
+    const char* label = instance->plugin->label;
+    if (is_endpoint(label)) {
+      continue;  // don't print out source or sink
+    }
+    if (len > 0) {
+      // catenate the delimiter ">"
+      strlcpy(dsp_pattern + len, ">", sizeof(dsp_pattern) - len);
+      len++;
+    }
+    // catenate the label of DSP module
+    size_t n = strlcpy(dsp_pattern + len, label, sizeof(dsp_pattern) - len);
+    if (n >= sizeof(dsp_pattern) - len) {
+      break;  // pattern is too long
+    }
+    len += n;
+  }
+  return strndup(dsp_pattern, DSP_PATTERN_MAX_SIZE - 1);
+}
+
+int cras_dsp_pipeline_config_offload(struct dsp_offload_map* offload_map,
+                                     struct pipeline* pipeline) {
+  int i;
+  struct instance* instance;
+
+  ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
+    const char* label = instance->plugin->label;
+    if (is_endpoint(label)) {
+      continue;
+    }
+    int rc =
+        cras_dsp_offload_config_module(offload_map, instance->module, label);
+    if (rc) {
+      syslog(LOG_ERR, "pipeline_config_offload: Error configuring module %s",
+             label);
+      return rc;
+    }
+  }
+  return 0;
 }
 
 void cras_dsp_pipeline_run(struct pipeline* pipeline, int sample_count) {

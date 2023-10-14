@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("//:utils.bzl", "require_config")
 
 cc_library(
@@ -941,7 +942,6 @@ cc_test(
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
-        "//cras/src/server:cras_alsa_config",
         "@iniparser",
         "@pkg_config//alsa",
         "@pkg_config//gtest",
@@ -982,6 +982,7 @@ cc_test(
         "//cras/src/dsp/tests:dsp_test_util.c",
         "//cras/src/server:cras_dsp.c",
         "//cras/src/server:cras_dsp_ini.c",
+        "//cras/src/server:cras_dsp_offload.c",
         "//cras/src/server:cras_dsp_pipeline.c",
         "//cras/src/server:cras_expr.c",
     ],

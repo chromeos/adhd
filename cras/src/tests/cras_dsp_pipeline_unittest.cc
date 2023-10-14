@@ -225,6 +225,13 @@ void cras_dsp_module_set_sink_lr_swapped(struct dsp_module* module,
                                          bool left_right_swapped) {
   cras_dsp_module_set_sink_lr_swapped_val = module;
 }
+
+// This is originally declared in cras_dsp_offload.c
+int cras_dsp_offload_config_module(struct dsp_offload_map* offload_map,
+                                   struct dsp_module* mod,
+                                   const char* label) {
+  return 0;
+}
 }
 
 namespace {
@@ -538,6 +545,61 @@ TEST_F(DspPipelineTestSuite, Complex) {
   really_free_module(m2);
   really_free_module(m3);
   really_free_module(m5);
+}
+
+TEST_F(DspPipelineTestSuite, DspPattern) {
+  const char* content =
+      "[M1]\n"
+      "library=builtin\n"
+      "label=source\n"
+      "purpose=playback\n"
+      "output_0={a0}\n"
+      "output_1={a1}\n"
+      "[M2]\n"
+      "library=builtin\n"
+      "label=drc\n"
+      "purpose=playback\n"
+      "input_0={a0}\n"
+      "input_1={a1}\n"
+      "output_2={b0}\n"
+      "output_3={b1}\n"
+      "[M3]\n"
+      "library=builtin\n"
+      "label=eq2\n"
+      "purpose=playback\n"
+      "input_0={b0}\n"
+      "input_1={b1}\n"
+      "output_2={c0}\n"
+      "output_3={c1}\n"
+      "[M4]\n"
+      "library=builtin\n"
+      "label=sink\n"
+      "purpose=playback\n"
+      "input_0={c0}\n"
+      "input_1={c1}\n"
+      "\n";
+  fprintf(fp, "%s", content);
+  CloseFile();
+
+  struct cras_expr_env env = CRAS_EXPR_ENV_INIT;
+  struct ini* ini = cras_dsp_ini_create(filename);
+  ASSERT_TRUE(ini);
+  struct pipeline* p = cras_dsp_pipeline_create(ini, &env, "playback");
+  ASSERT_TRUE(p);
+
+  /*
+   *   source ==(a0,a1)== drc ==(b0,b1)== eq2 ==(c0,c1)== sink
+   */
+
+  // cras_dsp_pipeline_get_pattern is available for the pipeline once created
+  char* pattern = cras_dsp_pipeline_get_pattern(p);
+  EXPECT_STREQ("drc>eq2", pattern);
+  free(pattern);
+
+  cras_dsp_pipeline_free(p);
+
+  cras_dsp_ini_free(ini);
+  cras_expr_env_free(&env);
 }
 
 }  //  namespace
