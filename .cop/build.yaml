@@ -669,6 +669,21 @@
         "oss-fuzz-coverage:0"
       ],
       "entrypoint": "python3"
+    },
+    {
+      "name": "gcr.io/google.com/cloudsdktool/cloud-sdk",
+      "args": [
+        "oss-fuzz/infra/helper.py",
+        "coverage",
+        "cras",
+        "--port="
+      ],
+      "dir": "oss-fuzz-coverage",
+      "id": "oss-fuzz-coverage:2",
+      "waitFor": [
+        "oss-fuzz-coverage:1"
+      ],
+      "entrypoint": "python3"
     }
   ],
   "timeout": "1200s",
