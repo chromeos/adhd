@@ -161,64 +161,69 @@ class BM_Alsa : public benchmark::Fixture {
       state.SkipWithError("Couldn't get pcm_name.");
     }
 
+    int rc =
+        cras_alsa_pcm_open(&handle, pcm_name.c_str(), SND_PCM_STREAM_PLAYBACK);
+    if (rc < 0) {
+      auto msg = "cras_alsa_pcm_open: " + pcm_name +
+                 " failed. rc = " + std::to_string(rc);
+      state.SkipWithError(msg.c_str());
+      return;
+    }
+    rc = cras_alsa_set_hwparams(handle, &format, &buffer_frames, 0, 0);
+    if (rc < 0) {
+      auto msg = "cras_alsa_set_hwparams failed. rc = " + std::to_string(rc);
+      state.SkipWithError(msg.c_str());
+      cras_alsa_pcm_close(handle);
+      return;
+    }
+    rc = cras_alsa_mmap_begin(handle, format_bytes, &buffer, &offset, &frames);
+    if (rc < 0) {
+      auto msg = "cras_alsa_mmap_begin failed. rc = " + std::to_string(rc);
+      state.SkipWithError(msg.c_str());
+      cras_alsa_pcm_close(handle);
+      return;
+    }
+
+    int_samples = gen_s16_le_samples(frames * channels, engine);
+    n_bytes = frames * channels * format_bytes;
+    std::uniform_real_distribution<double> distribution(0.0000001, 0.9999999);
+    scale = distribution(engine);
+
     return;
   }
 
-  void TearDown(benchmark::State& state) {}
+  void TearDown(benchmark::State& state) {
+    if (handle) {
+      memset(buffer, 0, n_bytes);
+      cras_alsa_mmap_commit(handle, offset, frames);
+      cras_alsa_pcm_close(handle);
+    }
+  }
 
   std::string pcm_name;
+  struct cras_audio_format format = {
+      SND_PCM_FORMAT_S16_LE,
+      48000,
+      2,
+  };
+  snd_pcm_t* handle = NULL;
+  snd_pcm_uframes_t buffer_frames = 0;
   std::vector<int16_t> int_samples;
   std::random_device rnd_device;
   std::mt19937 engine{rnd_device()};
+  uint8_t* buffer;
+  snd_pcm_uframes_t offset, frames = 4096;
+  const unsigned channels = 2;
+  const unsigned int format_bytes = 2;
+  double scale;
+  int n_bytes;
 };
 
 /* This benchmark evaluates the performace of accessing the buffer created by
  * snd_pcm_mmap_* API.
  */
 BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {
-  snd_pcm_t* handle = NULL;
-  snd_pcm_uframes_t buffer_frames = 0;
-  const unsigned channels = 2;
-  const unsigned int format_bytes = 2;
-  struct cras_audio_format format = {
-      SND_PCM_FORMAT_S16_LE,
-      48000,
-      2,
-  };
-
-  uint8_t* buffer;
-  int rc = 0;
-  snd_pcm_uframes_t offset, frames = 4096;
-
-  rc = cras_alsa_pcm_open(&handle, pcm_name.c_str(), SND_PCM_STREAM_PLAYBACK);
-  if (rc < 0) {
-    auto msg = "cras_alsa_pcm_open: " + pcm_name +
-               " failed. rc = " + std::to_string(rc);
-    state.SkipWithError(msg.c_str());
-    return;
-  }
-  rc = cras_alsa_set_hwparams(handle, &format, &buffer_frames, 0, 0);
-  if (rc < 0) {
-    auto msg = "cras_alsa_set_hwparams failed. rc = " + std::to_string(rc);
-    state.SkipWithError(msg.c_str());
-    cras_alsa_pcm_close(handle);
-    return;
-  }
-  rc = cras_alsa_mmap_begin(handle, format_bytes, &buffer, &offset, &frames);
-  if (rc < 0) {
-    auto msg = "cras_alsa_mmap_begin failed. rc = " + std::to_string(rc);
-    state.SkipWithError(msg.c_str());
-    cras_alsa_pcm_close(handle);
-    return;
-  }
-
-  int_samples = gen_s16_le_samples(frames * channels, engine);
-  int n_bytes = frames * channels * format_bytes;
   memcpy(buffer, int_samples.data(), n_bytes);
-
-  std::uniform_real_distribution<double> distribution(0.0000001, 0.9999999);
-  double scale = distribution(engine);
-
   double max_elapsed_seconds = 0.0;
   for (auto _ : state) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -233,10 +238,32 @@ BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {
     max_elapsed_seconds = fmax(max_elapsed_seconds, elapsed_seconds.count());
   }
 
-  memset(buffer, 0, n_bytes);
-  cras_alsa_mmap_commit(handle, offset, frames);
-  cras_alsa_pcm_close(handle);
+  state.counters["frames_per_second"] = benchmark::Counter(
+      int64_t(state.iterations()) * frames, benchmark::Counter::kIsRate);
 
+  state.counters["time_per_4096_frames"] = benchmark::Counter(
+      int64_t(state.iterations()),
+      benchmark::Counter::kIsRate | benchmark::Counter::kInvert);
+
+  state.counters["max_time_per_4096_frames"] = max_elapsed_seconds;
+}
+
+BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferCopy)(benchmark::State& state) {
+  double max_elapsed_seconds = 0.0;
+  for (auto _ : state) {
+    auto start = std::chrono::high_resolution_clock::now();
+    mixer_ops.scale_buffer(SND_PCM_FORMAT_S16_LE, (uint8_t*)int_samples.data(),
+                           frames * channels, scale);
+    memcpy(buffer, int_samples.data(), n_bytes);
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_seconds =
+        std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+
+    state.SetIterationTime(elapsed_seconds.count());
+    max_elapsed_seconds = fmax(max_elapsed_seconds, elapsed_seconds.count());
+  }
   state.counters["frames_per_second"] = benchmark::Counter(
       int64_t(state.iterations()) * frames, benchmark::Counter::kIsRate);
 
@@ -255,4 +282,13 @@ BENCHMARK_REGISTER_F(BM_Alsa, MmapBufferAccess)
     ->Name("BM_Alsa/MmapBufferAccess/Headphone")
     ->UseManualTime()
     ->Arg(1);
+BENCHMARK_REGISTER_F(BM_Alsa, MmapBufferCopy)
+    ->Name("BM_Alsa/MmapBufferCopy/Speaker")
+    ->UseManualTime()
+    ->Arg(0);
+BENCHMARK_REGISTER_F(BM_Alsa, MmapBufferCopy)
+    ->Name("BM_Alsa/MmapBufferCopy/Headphone")
+    ->UseManualTime()
+    ->Arg(1);
+
 }  // namespace
