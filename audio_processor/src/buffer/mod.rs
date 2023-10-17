@@ -21,6 +21,16 @@ impl<T> From<Vec<Vec<T>>> for MultiBuffer<T> {
     }
 }
 
+impl<'a, T> From<MultiSlice<'a, T>> for MultiBuffer<T>
+where
+    T: Sample,
+{
+    fn from(s: MultiSlice<'a, T>) -> Self {
+        let v: Vec<Vec<T>> = s.iter().map(|ch| ch.to_vec()).collect();
+        Self::from(v)
+    }
+}
+
 impl<'a, S: Sample> MultiBuffer<S> {
     /// Get a [`MultiSlice`] referencing the `MultiBuffer`
     pub fn as_multi_slice(&'a mut self) -> MultiSlice<'a, S> {

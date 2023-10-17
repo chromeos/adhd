@@ -203,6 +203,7 @@ crates_repository(
     lockfile = "//:Cargo.Bazel.lock",
     manifests = [
         "//:Cargo.toml",
+        "//:rock/Cargo.toml",
         "//audio_processor:Cargo.toml",
         "//cras/platform/features:Cargo.toml",
         "//cras/src/server/rust:Cargo.toml",
