@@ -829,6 +829,8 @@ static int enable_device(struct cras_iodev* dev);
 static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir) {
   struct enabled_dev* edev;
 
+  syslog(LOG_DEBUG, "possibly_disable_fallback(dir=%d)", dir);
+
   DL_FOREACH (enabled_devs[dir], edev) {
     if (edev->dev == fallback_devs[dir]) {
       disable_device(edev, false);
@@ -844,6 +846,8 @@ static void possibly_disable_fallback(enum CRAS_STREAM_DIRECTION dir) {
  */
 static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir,
                                      bool error) {
+  syslog(LOG_DEBUG, "possibly_enable_fallback(dir=%d)", dir);
+
   if (fallback_devs[dir] == NULL) {
     return;
   }
