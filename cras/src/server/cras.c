@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
   cras_server_init();
   char* shm_name;
   if (asprintf(&shm_name, "/cras-%d", getpid()) < 0) {
-    exit(-1);
+    exit(-EPERM);
   }
   int rw_shm_fd;
   int ro_shm_fd;
@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
       (struct cras_server_state*)cras_shm_setup(shm_name, sizeof(*exp_state),
                                                 &rw_shm_fd, &ro_shm_fd);
   if (!exp_state) {
-    exit(-1);
+    exit(-EINVAL);
   }
   cras_system_state_init(device_config_dir, shm_name, rw_shm_fd, ro_shm_fd,
                          exp_state, sizeof(*exp_state), board_name,
