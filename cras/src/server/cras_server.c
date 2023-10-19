@@ -536,39 +536,48 @@ int cras_server_run(unsigned int profile_disable_mask) {
 
   cras_udev_start_sound_subsystem_monitor();
 
-  if (cras_server_metrics_init() < 0) {
+  rc = cras_server_metrics_init();
+  if (rc < 0) {
     goto bail;
   }
 
-  if (cras_device_monitor_init() < 0) {
+  rc = cras_device_monitor_init();
+  if (rc < 0) {
     goto bail;
   }
 
-  if (cras_hotword_handler_init() < 0) {
+  rc = cras_hotword_handler_init();
+  if (rc < 0) {
     goto bail;
   }
 
-  if (cras_non_empty_audio_handler_init() < 0) {
+  rc = cras_non_empty_audio_handler_init();
+  if (rc < 0) {
     goto bail;
   }
 
-  if (cras_audio_thread_monitor_init() < 0) {
+  rc = cras_audio_thread_monitor_init();
+  if (rc < 0) {
     goto bail;
   }
 
-  if (cras_stream_apm_message_handler_init() < 0) {
+  rc = cras_stream_apm_message_handler_init();
+  if (rc < 0) {
     goto bail;
   }
 
-  if (cras_feature_monitor_init() < 0) {
+  rc = cras_feature_monitor_init();
+  if (rc < 0) {
     goto bail;
   }
 
-  if (cras_rtc_init()) {
+  rc = cras_rtc_init();
+  if (rc) {
     goto bail;
   }
 
-  if (!dbus_threads_init_default()) {
+  rc = dbus_threads_init_default();
+  if (!rc) {
     goto bail;
   }
   dbus_conn = cras_dbus_connect_system_bus();
@@ -607,6 +616,7 @@ int cras_server_run(unsigned int profile_disable_mask) {
       pollfds_size = 2 * poll_size_needed;
       pollfds_tmp = realloc(pollfds, sizeof(*pollfds) * pollfds_size);
       if (!pollfds_tmp) {
+        rc = -ENOMEM;
         goto bail;
       }
       pollfds = pollfds_tmp;
