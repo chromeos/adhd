@@ -1089,8 +1089,16 @@ int cras_iodev_open(struct cras_iodev* iodev,
   if (iodev->open_dev) {
     rc = iodev->open_dev(iodev);
     if (rc) {
-      cras_server_metrics_device_open_status(iodev,
-                                             CRAS_DEVICE_OPEN_ERROR_OPEN);
+      struct cras_ionode* node = iodev->active_node;
+      bool is_hfp_mic = node &&
+                        (node->type == CRAS_NODE_TYPE_BLUETOOTH ||
+                         node->type == CRAS_NODE_TYPE_BLUETOOTH_NB_MIC) &&
+                        iodev->direction == CRAS_STREAM_INPUT;
+      // EAGAIN events from BT mics should not be seen as device open failures.
+      if (!(is_hfp_mic && rc == -EAGAIN)) {
+        cras_server_metrics_device_open_status(iodev,
+                                               CRAS_DEVICE_OPEN_ERROR_OPEN);
+      }
       return rc;
     }
   }
