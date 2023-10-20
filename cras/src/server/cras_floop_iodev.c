@@ -296,6 +296,7 @@ static void common_init_iodev(const struct cras_floop_params* params,
 
   iodev->info.max_supported_channels = loopback_supported_channel_counts[0];
   iodev->is_utility_device = true;
+  iodev->ignore_capture_mute = true;
 
   struct cras_ionode* node = (struct cras_ionode*)calloc(1, sizeof(*node));
   node->dev = iodev;

@@ -399,6 +399,8 @@ struct cras_iodev {
   bool is_utility_device;
   // The active NC provider in use. Should be set during device open.
   enum CRAS_NC_PROVIDER active_nc_provider;
+  // Indicates that this device ignores capture mute.
+  bool ignore_capture_mute;
   struct cras_iodev *prev, *next;
 };
 

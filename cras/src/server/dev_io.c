@@ -641,7 +641,7 @@ static int capture_to_streams(struct open_dev* adev,
        * possible to have processing blocks generate data
        * into the buffer area, so do the second round of
        * mute here. */
-      if (cras_system_get_capture_mute()) {
+      if (!idev->ignore_capture_mute && cras_system_get_capture_mute()) {
         gains.postprocessing_scalar = 0.0f;
       }
 
