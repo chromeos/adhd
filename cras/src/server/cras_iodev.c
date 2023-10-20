@@ -1546,11 +1546,23 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
   ATLOG(atlog, AUDIO_THREAD_FILL_ODEV_ZEROS, odev->info.idx, frames, 0);
 
   frame_bytes = cras_get_format_bytes(odev->format);
+
+  bool frames_writable_was_0 = false;
   while (frames > 0) {
     rc = cras_iodev_get_output_buffer(odev, frames, &area, &frames_writable);
     if (rc < 0) {
       syslog(LOG_WARNING, "fill zeros fail: %d", rc);
       return rc;
+    }
+
+    if (frames_writable_was_0 && frames_writable == 0) {
+      // It is possible that the odev's buffer is already full.
+      // Break out the loop if we get two consectuive frames_writable == 0.
+      // We break on two consectuive frames_writable instead of 1 in case a
+      // poor iodev implementation has its write pointer point to the end
+      // of its ring buffer and need a cras_iodev_put_output_buffer call
+      // to reset it to the front.
+      break;
     }
 
     // This assumes consecutive channel areas.
@@ -1559,6 +1571,7 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
     cras_iodev_put_output_buffer(odev, buf, frames_writable, NULL, NULL);
     frames -= frames_writable;
     filled_frames += frames_writable;
+    frames_writable_was_0 = frames_writable == 0;
   }
 
   return filled_frames;
