@@ -572,7 +572,7 @@ int cras_server_run(unsigned int profile_disable_mask) {
   }
 
   rc = cras_rtc_init();
-  if (rc) {
+  if (rc < 0) {
     goto bail;
   }
 
