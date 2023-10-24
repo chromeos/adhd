@@ -714,8 +714,14 @@ unsigned int get_write_limit(struct open_dev** odevs,
       dev_io_remove_stream(odevs, curr->stream, NULL);
       continue;
     }
-    ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_STREAM, curr->stream->stream_id,
-          dev_frames, dev_stream_is_pending_reply(curr));
+    if (cras_rstream_get_is_draining(curr->stream)) {
+      ATLOG(atlog, AUDIO_THREAD_WRITE_STREAM_IS_DRAINING,
+            curr->stream->stream_id, dev_frames,
+            cras_rstream_get_is_draining(curr->stream));
+    } else {
+      ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_STREAM, curr->stream->stream_id,
+            dev_frames, dev_stream_is_pending_reply(curr));
+    }
     if (cras_rstream_get_is_draining(curr->stream)) {
       drain_limit = MIN((size_t)dev_frames, drain_limit);
       if (!dev_frames) {
@@ -782,6 +788,16 @@ static unsigned int write_streams(struct open_dev** odevs,
     if (nwritten < 0) {
       dev_io_remove_stream(odevs, curr->stream, NULL);
       continue;
+    }
+
+    // If the stream is draining and has no more data in the stream, we can
+    // safely mark it as having written more data than it actually has.
+    // By increasing the nwritten to let the draining stream look like it has
+    // written more data, the other streams won't be blocked by the draining
+    // stream when writing data.
+    if (cras_rstream_get_is_draining(curr->stream) &&
+        dev_stream_playback_frames(curr) <= 0) {
+      nwritten = write_limit - offset;
     }
 
     cras_iodev_stream_written(odev, curr, nwritten);
