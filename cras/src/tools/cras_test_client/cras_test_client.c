@@ -1092,6 +1092,7 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
     case AUDIO_THREAD_OFFSET_EXCEED_AVAILABLE:
       printf("%-30s dev:%u minimum_offset:%u buffer_available_frames:%u\n",
              "OFFSET_EXCEED_AVAILBLE", data1, data2, data3);
+      break;
     default:
       printf("%-30s tag:%u\n", "UNKNOWN", tag);
       break;
