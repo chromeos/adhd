@@ -25,6 +25,7 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/ewma_power.h"
 #include "cras_audio_format.h"
+#include "cras_iodev_info.h"
 #include "cras_types.h"
 #include "cras_util.h"
 #include "third_party/strlcpy/strlcpy.h"
@@ -141,9 +142,19 @@ static int hfp_alsa_open_dev(struct cras_iodev* iodev) {
   struct cras_iodev* aio = hfp_alsa_io->aio;
   int rc;
 
+  /* The effective iodev, which is paired with the ALSA BT PCM, will be listed
+   * in input/output devices of server info and owns a node named as
+   * "SCO Line In/Out". Its last_open_result info is never used because it is
+   * not direct-controlled by iodev_list.
+   * By recording last_open_result info itself, one can simply tell if there is
+   * error (OK/FAIL) on opening BT PCM, i.e. the offload path for HFP audio.
+   * (UNKNOWN if the offload path is not applied).
+   */
+  aio->info.last_open_result = SUCCESS;
   rc = aio->open_dev(aio);
   if (rc) {
     syslog(LOG_WARNING, "Failed to open aio: %d\n", rc);
+    aio->info.last_open_result = FAILURE;
     return rc;
   }
 
@@ -164,6 +175,7 @@ static int hfp_alsa_open_dev(struct cras_iodev* iodev) {
         true);
     if (rc < 0) {
       syslog(LOG_WARNING, "Failed to get sco: %d\n", rc);
+      aio->info.last_open_result = FAILURE;
       return rc;
     }
 
