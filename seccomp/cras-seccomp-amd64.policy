@@ -30,6 +30,7 @@ getdents: 1
 getdents64: 1
 sendmsg: 1
 stat: 1
+statx: 1
 statfs: 1
 recvmsg: 1
 brk: 1

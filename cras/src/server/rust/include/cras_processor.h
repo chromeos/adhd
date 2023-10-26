@@ -23,6 +23,7 @@ enum CrasProcessorEffect {
   NoEffects,
   Negate,
   NoiseCancellation,
+  Overridden,
 };
 
 struct CrasProcessorConfig {
@@ -43,6 +44,11 @@ struct CrasProcessorConfig {
  * returns false otherwise.
  */
 bool cras_processor_create(const struct CrasProcessorConfig *config, struct plugin_processor **ret);
+
+/**
+ * Returns true if override is enabled in the system config file.
+ */
+bool cras_processor_is_override_enabled(void);
 
 #endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_PROCESSOR_H_ */
 

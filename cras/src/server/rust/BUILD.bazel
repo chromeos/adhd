@@ -2,9 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("//:utils.bzl", "require_no_config")
-load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("//:utils.bzl", "require_no_config")
 
 cc_library(
     name = "rust",
@@ -28,10 +29,20 @@ rust_library(
     srcs = glob(include = ["src/**/*.rs"]),
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     deps = [
+        ":build_script",
         "//audio_processor",
         "//cras/platform/features:backend",
         "//cras/src/server/rust/cras_dlc",
     ] + all_crate_deps(),
+)
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    data = [
+        "proto/cras_processor.proto",
+    ],
+    deps = all_crate_deps(build = True),
 )
 
 rust_test(

@@ -392,6 +392,9 @@ static inline bool apm_needed_for_effects(uint64_t effects,
     // Required for hosting cras_processor.
     return true;
   }
+  if (cras_processor_is_override_enabled()) {
+    return true;
+  }
   return false;
 }
 

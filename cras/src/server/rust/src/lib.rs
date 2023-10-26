@@ -13,3 +13,4 @@ pub use logging::bindings as logging_bindings;
 pub mod fra;
 pub mod pseudonymization;
 pub use cras_features_backend;
+mod proto;
