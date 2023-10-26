@@ -899,6 +899,18 @@ int write_output_samples(struct open_dev** odevs,
       return rc;
     }
 
+    // Check if iodev is reporting unreasonable buffer frames for output.
+    // In last audio thread wake cycle, the not-yet-committed buffer of szie
+    // |last_get_frames - last_put_frames| could have already been utilized by
+    // streams mixing audio data. If iodev reports less than that number of
+    // frames available, it'd lead to problems.
+    // If this ever happens, something bad in driver/FW must be fixed.
+    if (adev->last_get_frames - adev->last_put_frames > frames_writeable) {
+      syslog(LOG_WARNING, "Unreasonable buffer writable %u - %u > %u",
+             adev->last_get_frames, adev->last_put_frames, frames_writeable);
+    }
+    adev->last_get_frames = frames_writeable;
+
     // TODO(dgreid) - This assumes interleaved audio.
     dst = area->channels[0].buf;
     unsigned int write_limit = get_write_limit(odevs, adev, frames_writeable);
@@ -934,6 +946,8 @@ int write_output_samples(struct open_dev** odevs,
     if (rc < 0) {
       return rc;
     }
+
+    adev->last_put_frames = written;
     total_written += written;
 
     if (non_empty && adev->empty_pi) {

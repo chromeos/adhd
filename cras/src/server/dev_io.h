@@ -35,6 +35,9 @@ struct open_dev {
   struct polled_interval* empty_pi;
   // Hack for when the sample rate needs heavy correction.
   int coarse_rate_adjust;
+  // For debug purpose
+  unsigned int last_get_frames;
+  unsigned int last_put_frames;
   struct open_dev *prev, *next;
 };
 
