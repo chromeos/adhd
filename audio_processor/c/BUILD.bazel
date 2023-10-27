@@ -17,9 +17,11 @@ filegroup(
 )
 
 cc_library(
-    name = "test_plugins",
+    name = "test_plugins_cc",
     testonly = True,
     srcs = [
+        "abs_plugin.c",
+        "abs_plugin.h",
         "bad_plugin.c",
         "bad_plugin.h",
         "negate_plugin.c",
@@ -30,9 +32,12 @@ cc_library(
 )
 
 cras_shared_library(
-    name = "test_plugins_so",
+    name = "test_plugins",
     testonly = True,
-    roots = [":test_plugins"],
-    static_deps = [":test_plugins"],
-    visibility = ["//audio_processor:__pkg__"],
+    roots = [":test_plugins_cc"],
+    static_deps = [":test_plugins_cc"],
+    visibility = [
+        "//audio_processor:__pkg__",
+        "//dist:__pkg__",
+    ],
 )

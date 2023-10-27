@@ -6,17 +6,19 @@ load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_filegroup", "pkg_files", "pkg_mklink")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("//:utils.bzl", "require_config")
-load(":defs.bzl", "EXECUTABLE_ATTRIBUTES", "FILE_ATTRIBUTES", "LIBDIR")
+load(":defs.bzl", "EXECUTABLE_ATTRIBUTES", "FILE_ATTRIBUTES", "LIBDIR", "LOCAL_LIBDIR")
 
 #
 # Tarballs.
 #
 pkg_tar(
     name = "default",
+    testonly = True,  # to include /usr/local stuff
     srcs = [
         ":alsa_lib",
         ":bin",
         ":extra_bin",
+        ":extra_lib",
         ":include",
         ":lib",
         ":pkgconfig",
@@ -75,6 +77,16 @@ pkg_files(
     }),
     attributes = EXECUTABLE_ATTRIBUTES,
     prefix = "usr/local/bin",
+)
+
+pkg_files(
+    name = "extra_lib",
+    testonly = True,  # Set testonly so we can put test libs in usr/local/lib
+    srcs = [
+        "//audio_processor/c:test_plugins",
+    ],
+    attributes = EXECUTABLE_ATTRIBUTES,
+    prefix = LOCAL_LIBDIR,
 )
 
 # Public header targets.

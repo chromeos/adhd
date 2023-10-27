@@ -27,13 +27,13 @@ rust_test(
     crate = ":audio_processor",
     crate_features = ["bazel"],
     data = [
-        "//audio_processor/c:test_plugins_so",
+        "//audio_processor/c:test_plugins",
     ],
     env = {
-        "LIBTEST_PLUGINS_SO": "$(rootpath //audio_processor/c:test_plugins_so)",
+        "LIBTEST_PLUGINS_SO": "$(rootpath //audio_processor/c:test_plugins)",
     },
     deps = [
-        "//audio_processor/c:test_plugins",
+        "//audio_processor/c:test_plugins_cc",
     ] + all_crate_deps(
         normal = True,
         normal_dev = True,
@@ -45,10 +45,10 @@ rust_test_suite(
     srcs = glob(["src/bin/*.rs"]),
     crate_features = ["bazel"],
     data = [
-        "//audio_processor/c:test_plugins_so",
+        "//audio_processor/c:test_plugins",
     ],
     env = {
-        "LIBTEST_PLUGINS_SO": "$(rootpath //audio_processor/c:test_plugins_so)",
+        "LIBTEST_PLUGINS_SO": "$(rootpath //audio_processor/c:test_plugins)",
     },
     deps = [
         ":audio_processor",

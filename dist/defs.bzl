@@ -21,3 +21,9 @@ LIBDIR = select({
     ":lib_is_lib32": "usr/lib32",
     ":lib_is_lib64": "usr/lib64",
 })
+
+LOCAL_LIBDIR = select({
+    ":lib_is_lib": "usr/local/lib",
+    ":lib_is_lib32": "usr/local/lib32",
+    ":lib_is_lib64": "usr/local/lib64",
+})

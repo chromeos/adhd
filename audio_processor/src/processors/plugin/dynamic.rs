@@ -104,4 +104,21 @@ mod tests {
         // non-in-place: input does not change
         assert_eq!(input.data, [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
     }
+
+    #[test]
+    fn abs_process() {
+        let mut input: MultiBuffer<f32> =
+            MultiBuffer::from(vec![vec![1., -2., 3., -4.], vec![5., -6., 7., -8.]]);
+        let mut ap =
+            DynamicPluginProcessor::new(&dl_lib_path(), "abs_processor_create", 4, 2, 48000)
+                .unwrap();
+
+        let output = ap.process(input.as_multi_slice()).unwrap();
+
+        // output = abs(input)
+        assert_eq!(output.into_raw(), [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
+
+        // in-place: input changed
+        assert_eq!(input.data, [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
+    }
 }
