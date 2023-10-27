@@ -700,11 +700,6 @@ static void set_alsa_capture_gain(struct cras_iodev* iodev) {
 
   ain = get_active_input(aio);
 
-  // For USB device without UCM config, not change a gain control.
-  if (ain && ain->base.type == CRAS_NODE_TYPE_USB && !aio->common.ucm) {
-    return;
-  }
-
   // Set hardware gain to 0dB if software gain is needed.
   if (cras_iodev_software_volume_needed(iodev)) {
     gain = 0;
@@ -796,7 +791,7 @@ static void free_alsa_iodev_resources(struct alsa_io* aio) {
  * Returns true if this is the first internal device.
  */
 static int first_internal_device(struct alsa_io* aio) {
-  return aio->common.is_first && aio->common.card_type != ALSA_CARD_TYPE_USB;
+  return aio->common.is_first;
 }
 
 /*
@@ -827,12 +822,10 @@ int endswith(const char* s, const char* suffix) {
  * Drop the node name and replace it with node type.
  */
 static void drop_node_name(struct cras_ionode* node) {
-  if (node->type == CRAS_NODE_TYPE_USB) {
-    strlcpy(node->name, USB, sizeof(node->name));
-  } else if (node->type == CRAS_NODE_TYPE_HDMI) {
+  if (node->type == CRAS_NODE_TYPE_HDMI) {
     strlcpy(node->name, HDMI, sizeof(node->name));
   } else {
-    // Only HDMI or USB node might have invalid name to drop
+    // Only HDMI node might have invalid name to drop
     syslog(LOG_ERR,
            "Unexpectedly drop node name for "
            "node: %s, type: %d",
@@ -890,14 +883,6 @@ static void set_node_initial_state(struct cras_ionode* node,
         node->dev->direction == CRAS_STREAM_OUTPUT) {
       node->type = CRAS_NODE_TYPE_HDMI;
     }
-  }
-
-  /* Regardless of the node name of a USB headset (it can be "Speaker"),
-   * set it's type to usb.
-   */
-  if (card_type == ALSA_CARD_TYPE_USB) {
-    node->type = CRAS_NODE_TYPE_USB;
-    node->position = NODE_POSITION_EXTERNAL;
   }
 
   if (!is_utf8_string(node->name)) {
@@ -979,8 +964,6 @@ static void set_output_node_software_volume_needed(
     struct alsa_output_node* output,
     struct alsa_io* aio) {
   struct cras_alsa_mixer* mixer = aio->common.mixer;
-  long max, min;
-  int32_t number_of_volume_steps;
 
   /* Use software volume for HDMI output and nodes without volume mixer
    * control. */
@@ -990,32 +973,6 @@ static void set_output_node_software_volume_needed(
     output->base.software_volume_needed = 1;
   }
 
-  // Use software volume if the usb device's volume range is 0
-  if (output->base.type == CRAS_NODE_TYPE_USB) {
-    cras_alsa_mixer_get_playback_dBFS_range(mixer, output->mixer_output, &max,
-                                            &min);
-    long volume_range_db = max - min;
-    if (volume_range_db < db_to_alsa_db(VOLUME_RANGE_DB_MIN) ||
-        volume_range_db > db_to_alsa_db(VOLUME_RANGE_DB_MAX)) {
-      output->base.software_volume_needed = 1;
-      syslog(LOG_WARNING,
-             "%s' output volume range [%ld %ld] is abnormal."
-             "Fallback to software volume",
-             output->base.name, min, max);
-    }
-    number_of_volume_steps =
-        cras_alsa_mixer_get_playback_step(output->mixer_output);
-    if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
-      output->base.software_volume_needed = 1;
-      output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-      syslog(LOG_WARNING,
-             "%s output number_of_volume_steps [%" PRId32
-             "] is abnormally small."
-             "Fallback to software volume and set number_of_volume_steps to %d",
-             output->base.name, number_of_volume_steps,
-             NUMBER_OF_VOLUME_STEPS_DEFAULT);
-    }
-  }
   if (output->base.software_volume_needed) {
     syslog(LOG_DEBUG, "Use software volume for node: %s", output->base.name);
   }
@@ -1051,12 +1008,6 @@ static void set_input_node_intrinsic_sensitivity(struct alsa_input_node* input,
     if (rc) {
       return;
     }
-  } else if (input->base.type == CRAS_NODE_TYPE_USB) {
-    /*
-     * For USB devices without UCM config, trust the default capture gain.
-     * Set sensitivity to the default dbfs so the capture gain is 0.
-     */
-    sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
   } else {
     return;
   }
@@ -1103,10 +1054,6 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
                                            struct mixer_control* cras_control,
                                            const char* name) {
   struct alsa_output_node* output;
-  struct cras_volume_curve* curve;
-  long max_volume, min_volume;
-  int32_t number_of_volume_steps;
-  int disable_software_volume = -ENOENT;
 
   syslog(LOG_DEBUG, "New output node for '%s'", name);
   if (aio == NULL) {
@@ -1126,7 +1073,6 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
   if (aio->common.ucm) {
     output->base.dsp_name = ucm_get_dsp_name_for_dev(aio->common.ucm, name);
-    disable_software_volume = ucm_get_disable_software_volume(aio->common.ucm);
   }
 
   if (strcmp(name, "SCO Line Out") == 0) {
@@ -1135,46 +1081,15 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   output->mixer_output = cras_control;
 
   // Volume curve.
-  curve = cras_card_config_get_volume_curve_for_control(
+  output->volume_curve = cras_card_config_get_volume_curve_for_control(
       aio->common.config,
       name ? name : cras_alsa_mixer_get_control_name(cras_control));
-  if (!curve && aio->common.card_type == ALSA_CARD_TYPE_USB) {
-    cras_alsa_mixer_get_playback_dBFS_range(aio->common.mixer, cras_control,
-                                            &max_volume, &min_volume);
-    syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", name, min_volume,
-           max_volume);
-    long long volume_range_db = max_volume - min_volume;
-    /* if we specified to disable sw volume or your headset volume
-     * range is with a reasonable range, create volume curve. */
-    if (disable_software_volume == 1 ||
-        (volume_range_db >= db_to_alsa_db(VOLUME_RANGE_DB_MIN) &&
-         volume_range_db <= db_to_alsa_db(VOLUME_RANGE_DB_MAX))) {
-      curve = cras_volume_curve_create_simple_step(0, volume_range_db);
-    }
-    number_of_volume_steps = cras_alsa_mixer_get_playback_step(cras_control);
-    output->base.number_of_volume_steps =
-        MIN(number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_MAX);
-  }
-  output->volume_curve = curve;
 
   strncpy(output->base.name, name, sizeof(output->base.name) - 1);
   strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
   set_node_initial_state(&output->base, aio->common.card_type);
-  if (disable_software_volume == 1) {
-    syslog(LOG_DEBUG, "Disable software volume for %s from ucm.",
-           output->base.name);
-    output->base.software_volume_needed = 0;
-  } else if (disable_software_volume == 0) {
-    output->base.software_volume_needed = 1;
-  } else if (disable_software_volume == -ENOENT) {
-    set_output_node_software_volume_needed(output, aio);
-  } else {
-    syslog(LOG_ERR,
-           "The value for DisableSoftwareVolume in ucm for %s is incorrect.",
-           output->base.name);
-  }
+  set_output_node_software_volume_needed(output, aio);
   cras_iodev_add_node(&aio->common.base, &output->base);
-
   check_auto_unplug_output_node(aio, &output->base, output->base.plugged);
   return output;
 }
@@ -1182,22 +1097,13 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
 static void new_output_by_mixer_control(struct mixer_control* cras_output,
                                         void* callback_arg) {
   struct alsa_io* aio = (struct alsa_io*)callback_arg;
-  char node_name[CRAS_IODEV_NAME_BUFFER_SIZE];
   const char* ctl_name;
 
   ctl_name = cras_alsa_mixer_get_control_name(cras_output);
   if (!ctl_name) {
     return;
   }
-
-  if (aio->common.card_type == ALSA_CARD_TYPE_USB) {
-    if (snprintf(node_name, sizeof(node_name), "%s: %s",
-                 aio->common.base.info.name, ctl_name) > 0) {
-      new_output(aio, cras_output, node_name);
-    }
-  } else {
-    new_output(aio, cras_output, ctl_name);
-  }
+  new_output(aio, cras_output, ctl_name);
 }
 
 static void check_auto_unplug_input_node(struct alsa_io* aio,
@@ -1281,20 +1187,8 @@ static struct alsa_input_node* new_input(struct alsa_io* aio,
 static void new_input_by_mixer_control(struct mixer_control* cras_input,
                                        void* callback_arg) {
   struct alsa_io* aio = (struct alsa_io*)callback_arg;
-  char node_name[CRAS_IODEV_NAME_BUFFER_SIZE];
   const char* ctl_name = cras_alsa_mixer_get_control_name(cras_input);
-
-  if (aio->common.card_type == ALSA_CARD_TYPE_USB) {
-    int ret = snprintf(node_name, sizeof(node_name), "%s: %s",
-                       aio->common.base.info.name, ctl_name);
-    // Truncation is OK, but add a check to make the compiler happy.
-    if (ret == sizeof(node_name)) {
-      node_name[sizeof(node_name) - 1] = '\0';
-    }
-    new_input(aio, cras_input, node_name);
-  } else {
-    new_input(aio, cras_input, ctl_name);
-  }
+  new_input(aio, cras_input, ctl_name);
 }
 
 /*
@@ -1340,23 +1234,6 @@ static struct alsa_input_node* get_input_node_from_jack(
   DL_SEARCH_SCALAR_WITH_CAST(aio->common.base.nodes, node, ain, mixer_input,
                              mixer_input);
   return ain;
-}
-
-static const struct cras_alsa_jack* get_jack_from_node(
-    struct cras_ionode* node) {
-  const struct cras_alsa_jack* jack = NULL;
-
-  if (node == NULL) {
-    return NULL;
-  }
-
-  if (node->dev->direction == CRAS_STREAM_OUTPUT) {
-    jack = ((struct alsa_output_node*)node)->jack;
-  } else if (node->dev->direction == CRAS_STREAM_INPUT) {
-    jack = ((struct alsa_input_node*)node)->jack;
-  }
-
-  return jack;
 }
 
 /*
@@ -1621,10 +1498,7 @@ static void set_iodev_name(struct cras_iodev* dev,
                            const char* dev_name,
                            size_t card_index,
                            size_t device_index,
-                           enum CRAS_ALSA_CARD_TYPE card_type,
-                           size_t usb_vid,
-                           size_t usb_pid,
-                           const char* usb_serial_number) {
+                           enum CRAS_ALSA_CARD_TYPE card_type) {
   snprintf(dev->info.name, sizeof(dev->info.name), "%s: %s:%zu,%zu", card_name,
            dev_name, card_index, device_index);
   dev->info.name[ARRAY_SIZE(dev->info.name) - 1] = '\0';
@@ -1641,14 +1515,6 @@ static void set_iodev_name(struct cras_iodev* dev,
       dev->info.stable_id =
           SuperFastHash((const char*)&device_index, sizeof(device_index),
                         dev->info.stable_id);
-      break;
-    case ALSA_CARD_TYPE_USB:
-      dev->info.stable_id = SuperFastHash((const char*)&usb_vid,
-                                          sizeof(usb_vid), dev->info.stable_id);
-      dev->info.stable_id = SuperFastHash((const char*)&usb_pid,
-                                          sizeof(usb_pid), dev->info.stable_id);
-      dev->info.stable_id = SuperFastHash(
-          usb_serial_number, strlen(usb_serial_number), dev->info.stable_id);
       break;
     default:
       break;
@@ -2262,21 +2128,9 @@ struct cras_iodev* alsa_iodev_create(
     struct cras_iodev* group_ref) {
   struct alsa_io* aio;
   struct cras_iodev* iodev;
-  // TODO(b/247732405): remove all USB logic in this file after iodev refactor.
-  struct cras_alsa_usb_card_info* usb_card_info;
-  size_t usb_vid = 0;
-  size_t usb_pid = 0;
-  const char* usb_serial_number = NULL;
 
   if (!card_info) {
     return NULL;
-  }
-
-  if (card_info->card_type == ALSA_CARD_TYPE_USB) {
-    usb_card_info = cras_alsa_usb_card_info_get(card_info);
-    usb_vid = usb_card_info->usb_vendor_id;
-    usb_pid = usb_card_info->usb_product_id;
-    usb_serial_number = usb_card_info->usb_serial_number;
   }
 
   if (direction != CRAS_STREAM_INPUT && direction != CRAS_STREAM_OUTPUT) {
@@ -2353,9 +2207,6 @@ struct cras_iodev* alsa_iodev_create(
   iodev->get_dev_group_id = get_dev_group_id;
   iodev->should_attach_stream = should_attach_stream;
   iodev->get_htimestamp = cras_alsa_common_get_htimestamp;
-  if (card_info->card_type == ALSA_CARD_TYPE_USB) {
-    iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
-  }
 
   iodev->ramp = cras_ramp_create();
   if (iodev->ramp == NULL) {
@@ -2391,8 +2242,7 @@ struct cras_iodev* alsa_iodev_create(
   }
 
   set_iodev_name(iodev, card_name, dev_name, card_info->card_index,
-                 device_index, card_info->card_type, usb_vid, usb_pid,
-                 usb_serial_number);
+                 device_index, card_info->card_type);
 
   aio->use_case = use_case;
   if (group_ref) {
@@ -2519,13 +2369,6 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev* iodev) {
   alsa_iodev_set_active_node(&aio->common.base,
                              first_plugged_node(&aio->common.base), 0);
 
-  /* Set plugged for the first USB device per card when it appears if
-   * there is no jack reporting plug status. */
-  if (aio->common.card_type == ALSA_CARD_TYPE_USB && is_first &&
-      !get_jack_from_node(iodev->active_node)) {
-    cras_iodev_set_node_plugged(iodev->active_node, 1);
-  }
-
   set_default_hotword_model(iodev);
 
   // Record max supported channels into cras_iodev_info.
@@ -2635,18 +2478,6 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
     // Set the active node as the best node we have now.
     alsa_iodev_set_active_node(&aio->common.base,
                                first_plugged_node(&aio->common.base), 0);
-  }
-
-  /*
-   * Set plugged for the USB device per card when it appears if
-   * there is no jack reporting plug status
-   */
-  if (aio->common.card_type == ALSA_CARD_TYPE_USB) {
-    DL_FOREACH (iodev->nodes, node) {
-      if (!get_jack_from_node(node)) {
-        cras_iodev_set_node_plugged(node, 1);
-      }
-    }
   }
 
   set_default_hotword_model(iodev);

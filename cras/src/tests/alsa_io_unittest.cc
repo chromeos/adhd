@@ -281,22 +281,6 @@ static struct cras_iodev* alsa_iodev_create_with_default_parameters(
     struct cras_card_config* config,
     struct cras_use_case_mgr* ucm,
     enum CRAS_STREAM_DIRECTION direction) {
-  if (card_type == ALSA_CARD_TYPE_USB) {
-    struct cras_alsa_usb_card_info usb_card_info = {
-        .base =
-            {
-                .card_type = ALSA_CARD_TYPE_USB,
-                .card_index = 0,
-            },
-        .usb_vendor_id = 0,
-        .usb_product_id = 0,
-        .usb_serial_number = "1234",
-        .usb_desc_checksum = 0};
-    return alsa_iodev_create(&usb_card_info.base, test_card_name, 0,
-                             test_pcm_name, test_dev_name, dev_id, is_first,
-                             mixer, config, ucm, fake_hctl, direction,
-                             CRAS_USE_CASE_HIFI, NULL);
-  }
   struct cras_alsa_card_info card_info = {.card_type = card_type,
                                           .card_index = (uint32_t)card_index};
   return alsa_iodev_create(&card_info, test_card_name, 0, test_pcm_name,
@@ -388,45 +372,6 @@ TEST(AlsaIoInit, DefaultNodeInternalCard) {
   ASSERT_EQ(1, aio->common.base.active_node->plugged);
   ASSERT_EQ((void*)no_stream, (void*)aio->common.base.no_stream);
   ASSERT_EQ((void*)is_free_running, (void*)aio->common.base.is_free_running);
-  alsa_iodev_destroy((struct cras_iodev*)aio);
-}
-
-TEST(AlsaIoInit, DefaultNodeUSBCard) {
-  struct alsa_io* aio;
-  struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
-
-  ResetStubData();
-  aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
-      CRAS_STREAM_OUTPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(2, cras_alsa_mixer_get_playback_dBFS_range_called);
-  EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
-  EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,
-            cras_volume_curve_create_simple_step_max_volume);
-  EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
-             cras_alsa_mixer_get_playback_dBFS_range_min),
-            cras_volume_curve_create_simple_step_range);
-  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
-  ASSERT_EQ(1, aio->common.base.active_node->plugged);
-  EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
-  EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
-  alsa_iodev_destroy((struct cras_iodev*)aio);
-
-  aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
-      CRAS_STREAM_INPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  ASSERT_STREQ(DEFAULT, aio->common.base.active_node->name);
-  ASSERT_EQ(1, aio->common.base.active_node->plugged);
-  EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
-
-  // No extra gain applied.
-  ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS,
-            aio->common.base.active_node->intrinsic_sensitivity);
-  ASSERT_EQ(0, aio->common.base.active_node->capture_gain);
   alsa_iodev_destroy((struct cras_iodev*)aio);
 }
 
@@ -565,39 +510,6 @@ TEST(AlsaIoInit, RetryHWParamWithStereo) {
   iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
-}
-
-TEST(AlsaIoInit, UsbCardAutoPlug) {
-  struct cras_iodev* iodev;
-
-  ResetStubData();
-  iodev = alsa_iodev_create_with_default_parameters(
-      0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, NULL,
-      CRAS_STREAM_OUTPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(0, cras_iodev_set_node_plugged_called);
-  alsa_iodev_destroy(iodev);
-
-  ResetStubData();
-  iodev = alsa_iodev_create_with_default_parameters(0, NULL, ALSA_CARD_TYPE_USB,
-                                                    0, fake_mixer, fake_config,
-                                                    NULL, CRAS_STREAM_OUTPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  EXPECT_EQ(0, cras_iodev_set_node_plugged_called);
-  alsa_iodev_destroy(iodev);
-
-  ResetStubData();
-  iodev = alsa_iodev_create_with_default_parameters(0, NULL, ALSA_CARD_TYPE_USB,
-                                                    1, fake_mixer, fake_config,
-                                                    NULL, CRAS_STREAM_OUTPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-  // Should assume USB devs are plugged when they appear.
-  EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
-  EXPECT_EQ(1, iodev->active_node->plugged);
-  alsa_iodev_destroy(iodev);
 }
 
 TEST(AlsaIoInit, SoftwareGainIntrinsicSensitivity) {
@@ -806,33 +718,6 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
   // Hardware gain is set to 1000 * 0.01 dB as got from catpure_gain.
   EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_value);
 
-  alsa_iodev_destroy(iodev);
-  free(fake_format);
-}
-
-TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
-  struct cras_iodev* iodev;
-  struct cras_audio_format format;
-
-  iodev = alsa_iodev_create_with_default_parameters(0, NULL, ALSA_CARD_TYPE_USB,
-                                                    0, fake_mixer, fake_config,
-                                                    NULL, CRAS_STREAM_INPUT);
-  ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
-
-  format.frame_rate = 48000;
-  format.num_channels = 1;
-  cras_iodev_set_format(iodev, &format);
-
-  iodev->active_node->intrinsic_sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
-  iodev->active_node->capture_gain = 0;
-
-  ResetStubData();
-  iodev->open_dev(iodev);
-  iodev->configure_dev(iodev);
-
-  // Not change mixer controls for USB devices without UCM config.
-  EXPECT_EQ(0, alsa_mixer_set_capture_dBFS_called);
-  iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
 }
@@ -1061,31 +946,6 @@ TEST(AlsaIoInit, MaxSupportedChannelsInternalSpeaker) {
     EXPECT_EQ(1, cras_iodev_free_resources_called);
   }
 }
-
-TEST(AlsaIoInit, MaxSupportedChannels) {
-  struct alsa_io* aio;
-  struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
-  int i;
-
-  // i = 0: cras_alsa_support_8_channels is false, support 2 channels only.
-  // i = 1: cras_alsa_support_8_channels is true, support up to 8 channels.
-  for (i = 0; i < 2; i++) {
-    ResetStubData();
-    cras_alsa_support_8_channels = (bool)i;
-
-    aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
-        0, test_dev_id, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
-        CRAS_STREAM_OUTPUT);
-    ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-    // Call cras_alsa_fill_properties once on update_max_supported_channels.
-    EXPECT_EQ(1, cras_alsa_fill_properties_called);
-    uint32_t max_channels = (cras_alsa_support_8_channels) ? 8 : 2;
-    EXPECT_EQ(max_channels, aio->common.base.info.max_supported_channels);
-    alsa_iodev_destroy((struct cras_iodev*)aio);
-    EXPECT_EQ(1, cras_iodev_free_resources_called);
-  }
-}
-
 // Test that system settings aren't touched if no streams active.
 TEST(AlsaOutputNode, SystemSettingsWhenInactive) {
   int rc;
@@ -1992,15 +1852,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
-  strcpy(node.name, "Unknown");
-  dev.direction = CRAS_STREAM_OUTPUT;
-  set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
-  ASSERT_EQ(0, node.plugged);
-  ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
-  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
-
-  memset(&node, 0, sizeof(node));
-  node.dev = &dev;
   dev.direction = CRAS_STREAM_INPUT;
   strcpy(node.name, "DAISY-I2S Mic Jack");
   set_node_initial_state(&node, ALSA_CARD_TYPE_INTERNAL);
@@ -2020,16 +1871,6 @@ TEST(AlsaInitNode, SetNodeInitialState) {
   ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
   // Node name is changed to "Headphone".
   ASSERT_EQ(0, strcmp(node.name, HEADPHONE));
-
-  memset(&node, 0, sizeof(node));
-  node.dev = &dev;
-  strcpy(node.name, INTERNAL_SPEAKER);
-  dev.direction = CRAS_STREAM_OUTPUT;
-  set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
-  ASSERT_EQ(1, node.plugged);
-  ASSERT_GT(node.plugged_time.tv_sec, 0);
-  ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
-  ASSERT_EQ(NODE_POSITION_EXTERNAL, node.position);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -2059,17 +1900,6 @@ TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {
   memset(&dev, 0, sizeof(dev));
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
-
-  memset(&node, 0, sizeof(node));
-  node.dev = &dev;
-  strcpy(node.name, "Something USB");
-  // 0xfe can not appear in a valid UTF-8 string.
-  node.name[0] = 0xfe;
-  is_utf8_string_ret_value = 0;
-  dev.direction = CRAS_STREAM_OUTPUT;
-  set_node_initial_state(&node, ALSA_CARD_TYPE_USB);
-  ASSERT_EQ(CRAS_NODE_TYPE_USB, node.type);
-  ASSERT_STREQ(USB, node.name);
 
   memset(&node, 0, sizeof(node));
   node.dev = &dev;
@@ -2611,104 +2441,6 @@ TEST(AlsaGetValidFrames, GetValidFramesFreeRunning) {
   EXPECT_EQ(tstamp.tv_nsec, clock_gettime_retspec.tv_nsec);
 
   alsa_iodev_destroy(iodev);
-}
-
-class NodeUSBCardSuite : public testing::Test {
- protected:
-  virtual void SetUp() {
-    fake_mixer = (struct cras_alsa_mixer*)2;
-    outputs = reinterpret_cast<struct mixer_control*>(0);
-  }
-  void CheckExpectBehaviorWithDifferentNumberOfVolumeStep(
-      int control_volume_steps,
-      int expect_output_node_volume_steps,
-      int expect_enable_software_volume) {
-    ResetStubData();
-    cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
-    cras_alsa_mixer_get_playback_step_values[outputs] = control_volume_steps;
-    aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
-        0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
-        CRAS_STREAM_OUTPUT);
-    ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-    EXPECT_EQ(2, cras_alsa_mixer_get_playback_step_called);
-    EXPECT_EQ(expect_output_node_volume_steps,
-              aio->common.base.active_node->number_of_volume_steps);
-    EXPECT_EQ(expect_enable_software_volume,
-              aio->common.base.active_node->software_volume_needed);
-    alsa_iodev_destroy((struct cras_iodev*)aio);
-  }
-  void CheckVolumeCurveWithDifferentVolumeRange(
-      long dBFS_range_max,
-      long dBFS_range_min,
-      int expect_enable_software_volume) {
-    ResetStubData();
-    cras_alsa_mixer_get_playback_dBFS_range_max = dBFS_range_max;
-    cras_alsa_mixer_get_playback_dBFS_range_min = dBFS_range_min;
-    cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
-    aio = (struct alsa_io*)alsa_iodev_create_with_default_parameters(
-        0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
-        CRAS_STREAM_OUTPUT);
-    ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
-    EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-    EXPECT_EQ(2, cras_alsa_mixer_get_playback_dBFS_range_called);
-    EXPECT_EQ(expect_enable_software_volume,
-              aio->common.base.active_node->software_volume_needed);
-    EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
-    if (!expect_enable_software_volume) {
-      EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,
-                cras_volume_curve_create_simple_step_max_volume);
-      EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
-                 cras_alsa_mixer_get_playback_dBFS_range_min),
-                cras_volume_curve_create_simple_step_range);
-      EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
-    } else {
-      EXPECT_EQ(0, cras_volume_curve_create_simple_step_called);
-    }
-    alsa_iodev_destroy((struct cras_iodev*)aio);
-  }
-  struct alsa_io* aio;
-  struct cras_alsa_mixer* fake_mixer;
-  struct mixer_control* outputs;
-};
-
-TEST_F(NodeUSBCardSuite, NumberOfVolumeStep) {
-  /* For number_of_volume_steps < 10, set number_of_volume_steps = 25 and enable
-   * software_volume
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(0, 25, 1);
-  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
-   * ionode same as number_of_volume_steps mixer_control reported
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(10, 10, 0);
-  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
-   * ionode same as number_of_volume_steps mixer_control reported
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(15, 15, 0);
-  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
-   * ionode same as number_of_volume_steps mixer_control reported
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(25, 25, 0);
-  /* For number_of_volume_steps >= 25 set set number_of_volume_steps = 25
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(50, 25, 0);
-}
-
-TEST_F(NodeUSBCardSuite, VolumeRange) {
-  /* For USB devices 5.00 dB - 200.00 dB will be considered the normal volume
-   * range. If the range reported by the USB device is outside this range,
-   * fallback to software volume and use default volume curve.
-   */
-
-  // lower that 5.00 dBFS, use software volume and default volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-2), 1);
-  // 5.00 dBFS, use hardware volume and custom volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-5), 0);
-  // 20.00 dBFS, use hardware volume and custom volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-20), 0);
-  // 200.00 dBFS, use hardware volume and custom volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-200), 0);
-  // 999999.00 dBFS, use software volume and default volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-999999), 1);
 }
 
 }  //  namespace
