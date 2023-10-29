@@ -25,6 +25,10 @@
 
 #define UCM_IGNORE_SUFFIX_KEY "ucm:ignore_suffix"
 
+#define DSP_OFFLOAD_MAP_KEY "processing:dsp_offload_map"
+
+#define DSP_OFFLOAD_MAP_DEFAULT "Speaker:(1,)"
+
 struct ini_int_field {
   int32_t default_value;
   int32_t offset;
@@ -97,13 +101,23 @@ struct cras_board_config* cras_board_config_create(const char* config_path) {
     }
   }
 
+  ptr = iniparser_getstring(ini, DSP_OFFLOAD_MAP_KEY, DSP_OFFLOAD_MAP_DEFAULT);
+  if (ptr) {
+    board_config->dsp_offload_map = strdup(ptr);
+    if (!board_config->dsp_offload_map) {
+      syslog(LOG_ERR, "Failed to call strdup: %d", errno);
+    }
+  }
+
   iniparser_freedict(ini);
   syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
   return board_config;
 }
 
 void cras_board_config_destroy(struct cras_board_config* board_config) {
-  CRAS_CHECK(board_config);
-  free(board_config->ucm_ignore_suffix);
+  if (board_config) {
+    free(board_config->ucm_ignore_suffix);
+    free(board_config->dsp_offload_map);
+  }
   free(board_config);
 }

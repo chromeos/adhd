@@ -750,7 +750,7 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
   if (iodev->ramp) {
     cras_ramp_destroy(iodev->ramp);
   }
-  free(iodev->dsp_offload_map);
+  cras_dsp_offload_free_map(iodev->dsp_offload_map);
 }
 
 static void cras_iodev_alloc_dsp(struct cras_iodev* iodev) {

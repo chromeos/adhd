@@ -784,6 +784,7 @@ struct cras_board_config* cras_board_config_create(const char* config_path) {
 
 void cras_board_config_destroy(struct cras_board_config* board_config) {
   free(fake_board_config.ucm_ignore_suffix);
+  free(fake_board_config.dsp_offload_map);
 }
 
 void cras_alert_process_all_pending_alerts() {

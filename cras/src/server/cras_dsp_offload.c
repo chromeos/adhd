@@ -19,6 +19,7 @@
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_system_state.h"
 #include "cras_util.h"
 
 // DSP module offload APIs
@@ -348,12 +349,34 @@ static int mixer_controls_ready_for_offload_to_dsp(
 
 int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
                                 const struct cras_ionode* node) {
-  // Temporarily regard the node type INTERNAL_SPEAKER as offload-supported.
-  // TODO(b/188647460): determine by the mapping info parsed from the board
-  //                    config string.
-  if (node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+  // An example of dsp_offload_map_str from board config:
+  //    "Speaker:(1,) Headphone:(6,eq2>drc) Line Out:(10,eq2)"
+  //     ^~~~~~~  ^                ^~~~~~~
+  //     Name     Pipeline ID      DSP Pattern (optional)
+  const char* map_str = cras_system_get_dsp_offload_map_str();
+
+  // strstr(A,B) returns the substring of A started from the first occurrence
+  // of B, or NULL if B is not present in A.
+  char* node_str = strstr(map_str, node->name);
+  if (!node_str) {
     *offload_map = NULL;
     return 0;
+  }
+
+  // Use sscanf to identify the first regex string piece (%d,%s) and obtain
+  // both values respectively.
+  int pipeline_id = 0;
+  char pattern[DSP_PATTERN_MAX_SIZE] = "";
+  if (sscanf(node_str, "%*[^(](%d,%[^)])", &pipeline_id, pattern) == EOF) {
+    syslog(LOG_ERR, "Failed to create dsp_offload_map. Invalid format.");
+    return -EINVAL;
+  }
+
+  // The valid pipeline ID must be a positive integer, while 0 is returned when
+  // the matched substring is not an integer.
+  if (pipeline_id <= 0) {
+    syslog(LOG_ERR, "Failed to create dsp_offload_map. Invalid pipeline ID");
+    return -EINVAL;
   }
 
   struct dsp_offload_map* offload_pipe_map =
@@ -362,15 +385,22 @@ int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
     return -ENOMEM;
   }
 
-  // TODO(b/188647460): obtain from the board config setting.
-  offload_pipe_map->pipeline_id = 1;
-  offload_pipe_map->dsp_pattern = DSP_PATTERN_OFFLOAD_DEFAULT;
+  offload_pipe_map->pipeline_id = pipeline_id;
+  size_t len = strnlen(pattern, DSP_PATTERN_MAX_SIZE);
+  if (len == 0 || len == DSP_PATTERN_MAX_SIZE) {
+    offload_pipe_map->dsp_pattern =
+        strndup(DSP_PATTERN_OFFLOAD_DEFAULT, DSP_PATTERN_MAX_SIZE - 1);
+  } else {
+    offload_pipe_map->dsp_pattern = strndup(pattern, DSP_PATTERN_MAX_SIZE - 1);
+  }
 
   // The validity check to confirm the presence of the associated mixer controls
   // for offload to DSP.
   int rc = mixer_controls_ready_for_offload_to_dsp(offload_pipe_map);
   if (rc) {
-    free(offload_pipe_map);
+    syslog(LOG_INFO, "Specified DSP offload of %s not supported by this DSP",
+           node->name);
+    cras_dsp_offload_free_map(offload_pipe_map);
     return rc;
   }
 
@@ -458,4 +488,12 @@ void cras_dsp_offload_reset_map(struct dsp_offload_map* offload_map) {
     return;
   }
   offload_map->state = DSP_PROC_NOT_STARTED;
+}
+
+void cras_dsp_offload_free_map(struct dsp_offload_map* offload_map) {
+  if (!offload_map) {
+    return;
+  }
+  free(offload_map->dsp_pattern);
+  free(offload_map);
 }

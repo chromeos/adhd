@@ -24,6 +24,7 @@
 #include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_alsa_card.h"
+#include "cras/src/server/cras_dsp_offload.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
@@ -123,6 +124,19 @@ struct private_state {
   // Incorrect values will cause issues such as A/V sync. Only update the values
   // based on actual measured latency data.
   int32_t speaker_output_latency_offset_ms;
+  // The raw string content obtained from board config for DSP offload. The
+  // content should have at least one map entries. Each entry should be stated
+  // in specific format: <NAME>:(<PPL_ID>,<PATTERN?>)
+  //   NAME - the displayed name of the representative node, should be aligned
+  //          with the member "name" in struct cras_ionode.
+  //   PPL_ID - the associated pipeline ID on DSP, should be a positive integer.
+  //   PATTERN - (optional) the string to describe the DSP module graph, see
+  //             cras_dsp_pipeline_get_pattern(). If not provided, system will
+  //             apply the default pattern, i.e. DSP_PATTERN_OFFLOAD_DEFAULT.
+  // Examples:
+  //   "Speaker:(1,)"
+  //   "Speaker:(1,) Headphone:(6,eq2>drc) Line Out:(10,eq2)"
+  char* dsp_offload_map_str;
 };
 
 static struct private_state state;
@@ -269,6 +283,11 @@ void cras_system_state_init(const char* device_config_dir,
   state.speaker_output_latency_offset_ms =
       board_config->speaker_output_latency_offset_ms;
 
+  state.dsp_offload_map_str = NULL;
+  if (board_config->dsp_offload_map) {
+    state.dsp_offload_map_str = strdup(board_config->dsp_offload_map);
+  }
+
   // Release board config.
   cras_board_config_destroy(board_config);
 }
@@ -289,6 +308,7 @@ void cras_system_state_deinit() {
   }
 
   deinit_ignore_suffix_cards();
+  free(state.dsp_offload_map_str);
   pthread_mutex_destroy(&state.update_lock);
 }
 
@@ -973,4 +993,8 @@ int cras_system_get_speaker_output_latency_offset_ms() {
 
 bool cras_system_get_ap_nc_supported_on_bluetooth() {
   return !cras_system_get_sr_bt_supported();
+}
+
+const char* cras_system_get_dsp_offload_map_str() {
+  return state.dsp_offload_map_str;
 }

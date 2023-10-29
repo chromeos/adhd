@@ -4,11 +4,13 @@
 
 #include <gtest/gtest.h>
 
+#include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/cras_dsp_module.h"
 #include "cras/src/server/cras_dsp_offload.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_system_state.h"
 
 #define FILENAME_TEMPLATE "DspTest.XXXXXX"
 
@@ -23,6 +25,7 @@ static bool cras_alsa_config_eq2_enabled;
 static size_t cras_alsa_config_drc_called;
 static size_t cras_alsa_config_eq2_called;
 static size_t cras_alsa_config_other_called;
+static const char* system_get_dsp_offload_map_str_ret = "Speaker:(1,)";
 
 static void ResetStubData() {
   cras_alsa_config_probe_retval = -1;
@@ -213,15 +216,15 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   // Init iodev and ionodes for testing purposes.
   struct cras_iodev dev;
   struct cras_ionode node[3];
-  node[0].type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+  strncpy(node[0].name, INTERNAL_SPEAKER, sizeof(node[0].name) - 1);
   node[0].idx = 0;
   node[0].dsp_name = "drc_eq";
   node[0].dev = &dev;
-  node[1].type = CRAS_NODE_TYPE_HEADPHONE;
+  strncpy(node[1].name, HEADPHONE, sizeof(node[1].name) - 1);
   node[1].idx = 1;
   node[1].dsp_name = "eq_drc";
   node[1].dev = &dev;
-  node[2].type = CRAS_NODE_TYPE_LINEOUT;
+  strncpy(node[2].name, "Line Out", sizeof(node[2].name) - 1);
   node[2].idx = 2;
   node[2].dsp_name = nullptr;
   node[2].dev = &dev;
@@ -349,7 +352,7 @@ TEST_F(DspTestSuite, DspOffloadExample) {
 
   cras_dsp_context_free(ctx);
   cras_dsp_stop();
-  free(map_dev);
+  cras_dsp_offload_free_map(map_dev);
 }
 
 static int empty_instantiate(struct dsp_module* module,
@@ -478,6 +481,10 @@ int cras_alsa_config_set_switch(const char* name, bool enabled) {
   // Only DRC relies on switch control for enabling/disabling.
   cras_alsa_config_drc_enabled = enabled;
   return 0;
+}
+
+const char* cras_system_get_dsp_offload_map_str() {
+  return system_get_dsp_offload_map_str_ret;
 }
 
 }  // extern "C"

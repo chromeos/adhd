@@ -6,11 +6,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "cras/include/cras_types.h"
+#include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_dsp_module.h"
 #include "cras/src/server/cras_dsp_offload.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_system_state.h"
 
 static std::vector<std::string> alsa_config_probed_mixers;
 static struct dsp_module* stub_dsp_module;
@@ -19,6 +20,7 @@ static size_t alsa_config_set_tlv_bytes_size;
 static bool alsa_config_set_tlv_bytes_data_equal_to_stub;
 static bool alsa_config_set_switch_val;
 static size_t alsa_config_set_switch_called;
+static const char* system_get_dsp_offload_map_str_ret;
 
 static int StubDspModGetOffloadBlob(struct dsp_module* mod,
                                     uint32_t** config,
@@ -44,6 +46,7 @@ static void ResetStubData() {
   alsa_config_set_tlv_bytes_data_equal_to_stub = false;
   alsa_config_set_switch_val = false;
   alsa_config_set_switch_called = 0;
+  system_get_dsp_offload_map_str_ret = "Speaker:(1,)";
 }
 
 namespace {
@@ -52,7 +55,7 @@ class DspOffloadTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
     ResetStubData();
-    node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+    strncpy(node.name, INTERNAL_SPEAKER, sizeof(node.name) - 1);
     node.idx = 0;
     node.dev = &dev;
     dev.active_node = &node;
@@ -63,7 +66,7 @@ class DspOffloadTestSuite : public testing::Test {
   }
 
   virtual void TearDown() {
-    free(offload_map_spk);
+    cras_dsp_offload_free_map(offload_map_spk);
     free(stub_dsp_module);
   }
 
@@ -146,6 +149,41 @@ TEST_F(DspOffloadTestSuite, StateTransition) {
   EXPECT_EQ(offload_map_spk->state, DSP_PROC_NOT_STARTED);
 }
 
+TEST_F(DspOffloadTestSuite, ParseDspOffloadMapFromConfig) {
+  const char* test_cfg = "Speaker:(1,) Headphone:(6,eq2>drc) Line Out:(10,eq2)";
+  system_get_dsp_offload_map_str_ret = test_cfg;
+  struct dsp_offload_map* test_map = nullptr;
+
+  ASSERT_EQ(0, cras_dsp_offload_create_map(&test_map, &node));
+  ASSERT_NE(test_map, nullptr);
+  EXPECT_EQ(test_map->pipeline_id, 1);
+  EXPECT_STREQ(test_map->dsp_pattern, "drc>eq2");
+  cras_dsp_offload_free_map(test_map);
+  test_map = nullptr;
+
+  strncpy(node.name, HEADPHONE, sizeof(node.name) - 1);
+  ASSERT_EQ(0, cras_dsp_offload_create_map(&test_map, &node));
+  ASSERT_NE(test_map, nullptr);
+  EXPECT_EQ(test_map->pipeline_id, 6);
+  EXPECT_STREQ(test_map->dsp_pattern, "eq2>drc");
+  cras_dsp_offload_free_map(test_map);
+  test_map = nullptr;
+
+  strncpy(node.name, "Line Out", sizeof(node.name) - 1);
+  ASSERT_EQ(0, cras_dsp_offload_create_map(&test_map, &node));
+  ASSERT_NE(test_map, nullptr);
+  EXPECT_EQ(test_map->pipeline_id, 10);
+  EXPECT_STREQ(test_map->dsp_pattern, "eq2");
+  cras_dsp_offload_free_map(test_map);
+  test_map = nullptr;
+
+  // The call with non-specified node name will still get rc = 0,
+  // while the input map pointer will be a nullptr.
+  strncpy(node.name, HDMI, sizeof(node.name) - 1);
+  ASSERT_EQ(0, cras_dsp_offload_create_map(&test_map, &node));
+  ASSERT_EQ(test_map, nullptr);
+}
+
 extern "C" {
 
 int cras_alsa_config_probe(const char* name) {
@@ -171,6 +209,10 @@ int cras_alsa_config_set_switch(const char* name, bool enabled) {
   alsa_config_set_switch_val = enabled;
   alsa_config_set_switch_called++;
   return 0;
+}
+
+const char* cras_system_get_dsp_offload_map_str() {
+  return system_get_dsp_offload_map_str_ret;
 }
 
 }  // extern "C"

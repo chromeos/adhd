@@ -493,6 +493,9 @@ int cras_system_get_speaker_output_latency_offset_ms();
 // This does not consider feature flags.
 bool cras_system_get_ap_nc_supported_on_bluetooth();
 
+// Gets DSP offload map string obtained from board config.
+const char* cras_system_get_dsp_offload_map_str();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

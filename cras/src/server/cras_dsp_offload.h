@@ -116,6 +116,12 @@ int cras_dsp_offload_set_state(struct dsp_offload_map* offload_map,
  */
 void cras_dsp_offload_reset_map(struct dsp_offload_map* offload_map);
 
+/* Frees memory of the offload map.
+ * Args:
+ *    offload_map - Pointer to the offload map instance.
+ */
+void cras_dsp_offload_free_map(struct dsp_offload_map* offload_map);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

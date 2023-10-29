@@ -3224,6 +3224,8 @@ int buffer_share_update_write_point(struct buffer_share* mix,
 
 void cras_dsp_context_set_offload_map(struct cras_dsp_context* ctx,
                                       struct dsp_offload_map* offload_map) {}
+
+void cras_dsp_offload_free_map(struct dsp_offload_map* offload_map) {}
 }  // extern "C"
 }  //  namespace
 
