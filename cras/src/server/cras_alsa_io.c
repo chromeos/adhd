@@ -22,6 +22,7 @@
 
 #include "cras/base/check.h"
 #include "cras/src/common/cras_alsa_card_info.h"
+#include "cras/src/common/cras_log.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/config/cras_card_config.h"
@@ -544,6 +545,49 @@ static int update_channel_layout(struct cras_iodev* iodev) {
     if (input->channel_layout) {
       memcpy(iodev->format->channel_layout, input->channel_layout,
              CRAS_CH_MAX * sizeof(*input->channel_layout));
+
+      /* Capture channel map might contain value higher than or equal to
+       * num_channels. If that's the case, try to open the device using higher
+       * channel count. */
+      int min_valid_channels =
+          cras_audio_format_get_least_num_channels(iodev->format);
+      if (iodev->format->num_channels < min_valid_channels) {
+        /* Use the minimum supported channel count that is still at least
+         * min_valid_channels, or else return error to fall back to default
+         * channel layout. */
+        int target_channels = -1;
+        for (int i = 0; iodev->supported_channel_counts[i] != 0; i++) {
+          if (iodev->supported_channel_counts[i] >= min_valid_channels &&
+              (target_channels == -1 ||
+               iodev->supported_channel_counts[i] < target_channels)) {
+            target_channels = iodev->supported_channel_counts[i];
+          }
+        }
+        if (target_channels != -1) {
+          syslog(LOG_WARNING,
+                 "ALSA dev=%s UCM capture channel map exceeds requested "
+                 "num_channels. min_valid_channels=%d, num_channels=%zu. "
+                 "Using a higher channel count=%d",
+                 aio->common.pcm_name, min_valid_channels,
+                 iodev->format->num_channels, target_channels);
+          iodev->format->num_channels = target_channels;
+          return 0;
+        }
+
+        FRALOG(ALSAUCMCaptureChannelMapExceedsNumChannels,
+               {"device", aio->common.pcm_name},
+               {"min_valid_channels", tlsprintf("%d", min_valid_channels)},
+               {"num_channels", tlsprintf("%d", iodev->format->num_channels)});
+
+        syslog(LOG_ERR,
+               "ALSA dev=%s UCM capture channel map exceeds requested "
+               "num_channels. min_valid_channels=%d, num_channels=%zu. Falling "
+               "back to default channel layout",
+               aio->common.pcm_name, min_valid_channels,
+               iodev->format->num_channels);
+
+        return -EINVAL;
+      }
       return 0;
     }
   }

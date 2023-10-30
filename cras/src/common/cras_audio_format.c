@@ -185,3 +185,14 @@ fail:
   cras_channel_conv_matrix_destroy(mtx, out->num_channels);
   return NULL;
 }
+
+size_t cras_audio_format_get_least_num_channels(
+    const struct cras_audio_format* fmt) {
+  size_t max_channel = 0;
+  for (int i = 0; i < CRAS_CH_MAX; i++) {
+    if (fmt->channel_layout[i] + 1 > max_channel) {
+      max_channel = fmt->channel_layout[i] + 1;
+    }
+  }
+  return max_channel;
+}

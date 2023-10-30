@@ -31,6 +31,7 @@ enum CRAS_FRA_SIGNAL {
   ActiveOutputDevice,
   ActiveInputDevice,
   AudioThreadEvent,
+  ALSAUCMCaptureChannelMapExceedsNumChannels,
 };
 
 struct cras_fra_kv_t {

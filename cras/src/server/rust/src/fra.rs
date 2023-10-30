@@ -23,6 +23,7 @@ pub enum CrasFRASignal {
     ActiveOutputDevice,
     ActiveInputDevice,
     AudioThreadEvent,
+    ALSAUCMCaptureChannelMapExceedsNumChannels,
 }
 
 #[repr(C)]
@@ -121,6 +122,7 @@ pub mod bindings {
     }
 }
 
+#[cfg(test)]
 mod tests {
 
     #[test]
@@ -138,5 +140,10 @@ mod tests {
         assert_eq!(CrasFRASignal::USBAudioResumeFailed as u32, 8);
         assert_eq!(CrasFRASignal::ActiveOutputDevice as u32, 9);
         assert_eq!(CrasFRASignal::ActiveInputDevice as u32, 10);
+        assert_eq!(CrasFRASignal::AudioThreadEvent as u32, 11);
+        assert_eq!(
+            CrasFRASignal::ALSAUCMCaptureChannelMapExceedsNumChannels as u32,
+            12
+        );
     }
 }

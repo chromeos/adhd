@@ -114,4 +114,30 @@ TEST_F(ChannelConvMtxTestSuite, SLSRToRRRL) {
   ASSERT_NE(conv_mtx, (void*)NULL);
 }
 
+TEST(AudioFormat, GetMinNumChannelsDefault) {
+  struct cras_audio_format* fmt =
+      cras_audio_format_create(SND_PCM_FORMAT_S16_LE, 48000, 6);
+  ASSERT_EQ(cras_audio_format_get_least_num_channels(fmt), 6);
+  cras_audio_format_destroy(fmt);
+}
+
+TEST(AudioFormat, GetMinNumChannelsNonDefault) {
+  struct cras_audio_format* fmt =
+      cras_audio_format_create(SND_PCM_FORMAT_S16_LE, 48000, 4);
+  const int8_t layout[CRAS_CH_MAX] = {2, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+  cras_audio_format_set_channel_layout(fmt, layout);
+  ASSERT_EQ(cras_audio_format_get_least_num_channels(fmt), 3);
+  cras_audio_format_destroy(fmt);
+}
+
+TEST(AudioFormat, GetMinNumChannelsAllUndefined) {
+  struct cras_audio_format* fmt =
+      cras_audio_format_create(SND_PCM_FORMAT_S16_LE, 48000, 2);
+  const int8_t layout[CRAS_CH_MAX] = {-1, -1, -1, -1, -1, -1,
+                                      -1, -1, -1, -1, -1};
+  cras_audio_format_set_channel_layout(fmt, layout);
+  ASSERT_EQ(cras_audio_format_get_least_num_channels(fmt), 0);
+  cras_audio_format_destroy(fmt);
+}
+
 }  // namespace

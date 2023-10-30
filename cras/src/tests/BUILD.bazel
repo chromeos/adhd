@@ -174,6 +174,7 @@ cc_test(
     name = "alsa_io_unittest",
     srcs = [
         ":alsa_io_unittest.cc",
+        "//cras/src/common:cras_audio_format.c",
         "//cras/src/common:cras_string.c",
         "//cras/src/server:cras_alsa_common_io.c",
         "//cras/src/server:cras_alsa_mixer_name.c",
@@ -184,6 +185,7 @@ cc_test(
         ":test_support",
         "//cras/base",
         "//cras/src/common:all_headers",
+        "//cras/src/common:cras_log",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
         "//cras/src/server/rust",
