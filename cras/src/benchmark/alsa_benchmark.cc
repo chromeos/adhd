@@ -172,16 +172,16 @@ class BM_Alsa : public benchmark::Fixture {
     rc = cras_alsa_set_hwparams(handle, &format, &buffer_frames, 0, 0);
     if (rc < 0) {
       auto msg = "cras_alsa_set_hwparams failed. rc = " + std::to_string(rc);
-      state.SkipWithError(msg.c_str());
       cras_alsa_pcm_close(handle);
-      return;
+      handle = nullptr;
+      return state.SkipWithError(msg.c_str());
     }
     rc = cras_alsa_mmap_begin(handle, format_bytes, &buffer, &offset, &frames);
     if (rc < 0) {
       auto msg = "cras_alsa_mmap_begin failed. rc = " + std::to_string(rc);
-      state.SkipWithError(msg.c_str());
       cras_alsa_pcm_close(handle);
-      return;
+      handle = nullptr;
+      return state.SkipWithError(msg.c_str());
     }
 
     int_samples = gen_s16_le_samples(frames * channels, engine);
@@ -197,6 +197,7 @@ class BM_Alsa : public benchmark::Fixture {
       memset(buffer, 0, n_bytes);
       cras_alsa_mmap_commit(handle, offset, frames);
       cras_alsa_pcm_close(handle);
+      handle = nullptr;
     }
   }
 
