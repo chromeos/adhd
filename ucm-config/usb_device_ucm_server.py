@@ -124,13 +124,14 @@ class UCMConfig:
         self.path = all_ucm_folder / self.sound_card_name
 
     def GetCardNameConf(self):
-        content = f"""
-Comment \"{self.sound_card_name}\"
+        content = f"""Comment \"{self.sound_card_name}\"
 
 SectionUseCase.\"HiFi\" {{
         File \"HiFi.conf\"
         Comment \"Default\"
 }}"""
+
+        content = content.replace(' ' * 8, '\t')
         path = self.path / (self.sound_card_name + ".conf")
         print(path)
         print("--------------------")
@@ -138,8 +139,7 @@ SectionUseCase.\"HiFi\" {{
         return content, path
 
     def GetHiFiConf(self):
-        content = f"""
-SectionVerb {{
+        content = f"""SectionVerb {{
         Value {{
                 FullySpecifiedUCM \"1\""""
         if self.disable_software_volume:
@@ -157,23 +157,24 @@ SectionVerb {{
 
 """
         if self.playback_pcm:
-            content += f"""
-SectionDevice.\"{self.sound_card_name} Output\".0 {{
+            content += f"""SectionDevice.\"{self.sound_card_name} Output\".0 {{
         Value {{
                 PlaybackPCM \"{self.playback_pcm}\"
                 PlaybackMixerElem \"{self.playback_mixer}\"
         }}
 }}
+
 """
         if self.capture_pcm:
-            content += f"""
-SectionDevice.\"{self.sound_card_name} Input\".0 {{
+            content += f"""SectionDevice.\"{self.sound_card_name} Input\".0 {{
         Value {{
                 CapturePCM \"{self.capture_pcm}\"
                 CaptureMixerElem \"{self.capture_mixer}\"
         }}
 }}
+
 """
+        content = content.replace(' ' * 8, '\t')
         path = self.path / "HiFi.conf"
         print(path)
         print("--------------------")
