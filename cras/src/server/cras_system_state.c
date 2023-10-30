@@ -56,6 +56,7 @@ struct feature_state {
   // testing purposes.
   bool force_sr_bt_enabled;
   bool force_a2dp_advanced_codecs_enabled;
+  bool force_hfp_swb_enabled;
 };
 
 /* The system state. */
@@ -550,6 +551,14 @@ void cras_system_set_force_a2dp_advanced_codecs_enabled(bool enabled) {
 
 bool cras_system_get_force_a2dp_advanced_codecs_enabled() {
   return state.feature_state.force_a2dp_advanced_codecs_enabled;
+}
+
+void cras_system_set_force_hfp_swb_enabled(bool enabled) {
+  state.feature_state.force_hfp_swb_enabled = enabled;
+}
+
+bool cras_system_get_force_hfp_swb_enabled() {
+  return state.feature_state.force_hfp_swb_enabled;
 }
 
 bool cras_system_check_ignore_ucm_suffix(const char* card_name) {

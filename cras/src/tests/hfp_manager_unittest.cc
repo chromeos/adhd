@@ -34,6 +34,7 @@ static int audio_thread_config_events_callback_called;
 static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
 static enum HFP_CODEC floss_media_hfp_start_sco_call_ret;
+static bool cras_system_get_force_hfp_swb_enabled_ret = false;
 
 void ResetStubData() {
   cras_iodev_list_get_sco_pcm_iodev_ret = NULL;
@@ -57,6 +58,8 @@ void ResetStubData() {
   audio_thread_add_events_callback_data = NULL;
   audio_thread_config_events_callback_called = 0;
   socket_ret = 456;
+  cras_system_get_force_hfp_swb_enabled_ret = false;
+  cras_features_unset_override(CrOSLateBootAudioHFPSwb);
   btlog = cras_bt_event_log_init();
 }
 
@@ -284,6 +287,10 @@ bool cras_system_get_bt_hfp_offload_finch_applied() {
 
 bool cras_system_get_bt_wbs_enabled() {
   return true;
+}
+
+bool cras_system_get_force_hfp_swb_enabled() {
+  return cras_system_get_force_hfp_swb_enabled_ret;
 }
 
 }  // extern "C"

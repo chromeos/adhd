@@ -103,6 +103,13 @@ static bool is_sco_pcm_supported() {
           cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT));
 }
 
+static bool cras_floss_hfp_swb_allowed() {
+  if (cras_system_get_force_hfp_swb_enabled()) {
+    return true;
+  }
+  return cras_feature_enabled(CrOSLateBootAudioHFPSwb);
+}
+
 /* Creates cras_hfp object representing a connected hfp device. */
 struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
                                        const char* addr,
@@ -127,7 +134,7 @@ struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
     hfp->hfp_caps &= ~FL_HFP_CODEC_LC3;
   }
 
-  if (cras_feature_enabled(CrOSLateBootAudioHFPSwb) &&
+  if (cras_floss_hfp_swb_allowed() &&
       cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3) &&
       hfp->sco_pcm_used) {
     hfp->sco_pcm_used = false;
@@ -184,7 +191,7 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
   if (!cras_system_get_bt_wbs_enabled()) {
     disabled_codecs |= FL_HFP_CODEC_MSBC | FL_HFP_CODEC_LC3;
   }
-  if (hfp->sco_pcm_used || !cras_feature_enabled(CrOSLateBootAudioHFPSwb)) {
+  if (hfp->sco_pcm_used || !cras_floss_hfp_swb_allowed()) {
     disabled_codecs |= FL_HFP_CODEC_LC3;
   }
 
