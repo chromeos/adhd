@@ -1178,48 +1178,6 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
     jack_name = INTERNAL_SPEAKER;
   }
 
-  // If there isn't a node for this jack, create one.
-  if (node == NULL) {
-    if (aio->common.fully_specified) {
-      // When fully specified, can't have new nodes.
-      FRALOG(USBAudioUCMNoJack,
-             {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
-             {"pid", tlsprintf("0x%04X", aio->common.product_id)});
-      syslog(LOG_ERR,
-             "card type: %s, name: %s, No matching output node for jack %s!",
-             cras_card_type_to_string(aio->common.card_type),
-             aio->common.base.info.name, jack_name);
-      return;
-    }
-    node = usb_new_output(aio, NULL, jack_name);
-    if (node == NULL) {
-      return;
-    }
-
-    cras_alsa_jack_update_node_type(jack, &(node->base.type));
-  }
-
-  if (!node->jack) {
-    if (aio->common.fully_specified) {
-      FRALOG(USBAudioUCMWrongJack,
-             {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
-             {"pid", tlsprintf("0x%04X", aio->common.product_id)});
-      syslog(LOG_ERR,
-             "card type: %s, name: %s, Jack '%s' was found to match output "
-             "node '%s'."
-             " Please fix your UCM configuration to match.",
-             cras_card_type_to_string(aio->common.card_type),
-             aio->common.base.info.name, jack_name, node->base.ucm_name);
-    }
-
-    // If we already have the node, associate with the jack.
-    node->jack = jack;
-    if (node->volume_curve == NULL) {
-      node->volume_curve =
-          usb_create_volume_curve_for_jack(aio->common.config, jack);
-    }
-  }
-
   syslog(LOG_DEBUG, "card type: %s, %s plugged: %d, %s",
          cras_card_type_to_string(aio->common.card_type), jack_name, plugged,
          cras_alsa_mixer_get_control_name(node->mixer_output));
@@ -1244,7 +1202,6 @@ static void usb_jack_input_plug_event(const struct cras_alsa_jack* jack,
                                       void* arg) {
   struct alsa_usb_io* aio;
   struct alsa_usb_input_node* node;
-  struct mixer_control* cras_input;
   const char* jack_name;
 
   if (arg == NULL) {
@@ -1254,39 +1211,9 @@ static void usb_jack_input_plug_event(const struct cras_alsa_jack* jack,
   node = usb_get_input_node_from_jack(aio, jack);
   jack_name = cras_alsa_jack_get_name(jack);
 
-  // If there isn't a node for this jack, create one.
-  if (node == NULL) {
-    if (aio->common.fully_specified) {
-      // When fully specified, can't have new nodes.
-      syslog(LOG_ERR,
-             "card type: %s, name: %s, No matching input node for jack %s!",
-             cras_card_type_to_string(aio->common.card_type),
-             aio->common.base.info.name, jack_name);
-      return;
-    }
-    cras_input = cras_alsa_jack_get_mixer_input(jack);
-    node = usb_new_input(aio, cras_input, jack_name);
-    if (node == NULL) {
-      return;
-    }
-  }
-
   syslog(LOG_DEBUG, "card type: %s, %s plugged: %d, %s",
          cras_card_type_to_string(aio->common.card_type), jack_name, plugged,
          cras_alsa_mixer_get_control_name(node->mixer_input));
-
-  // If we already have the node, associate with the jack.
-  if (!node->jack) {
-    if (aio->common.fully_specified) {
-      syslog(LOG_ERR,
-             "card type: %s, name: %s, Jack '%s' was found to match input node "
-             "'%s'."
-             " Please fix your UCM configuration to match.",
-             cras_card_type_to_string(aio->common.card_type),
-             aio->common.base.info.name, jack_name, node->base.ucm_name);
-    }
-    node->jack = jack;
-  }
 
   cras_iodev_set_node_plugged(&node->base, plugged);
 
@@ -1887,6 +1814,110 @@ cleanup_iodev:
   return NULL;
 }
 
+//
+static void add_input_node_and_associate_jack(const struct cras_alsa_jack* jack,
+                                              void* arg) {
+  struct alsa_usb_io* aio;
+  struct alsa_usb_input_node* node;
+  struct mixer_control* cras_input;
+  const char* jack_name;
+
+  CRAS_CHECK(arg);
+
+  aio = (struct alsa_usb_io*)arg;
+  node = usb_get_input_node_from_jack(aio, jack);
+  jack_name = cras_alsa_jack_get_name(jack);
+
+  // If there isn't a node for this jack, create one.
+  if (node == NULL) {
+    if (aio->common.fully_specified) {
+      // When fully specified, can't have new nodes.
+      syslog(LOG_ERR,
+             "card type: %s, name: %s, No matching input node for jack %s!",
+             cras_card_type_to_string(aio->common.card_type),
+             aio->common.base.info.name, jack_name);
+      return;
+    }
+    cras_input = cras_alsa_jack_get_mixer_input(jack);
+    node = usb_new_input(aio, cras_input, jack_name);
+    if (node == NULL) {
+      return;
+    }
+  }
+
+  // If we already have the node, associate with the jack.
+  if (!node->jack) {
+    if (aio->common.fully_specified) {
+      syslog(LOG_ERR,
+             "card type: %s, name: %s, Jack '%s' was found to match input node "
+             "'%s'."
+             " Please fix your UCM configuration to match.",
+             cras_card_type_to_string(aio->common.card_type),
+             aio->common.base.info.name, jack_name, node->base.ucm_name);
+    }
+    node->jack = jack;
+  }
+}
+
+static void add_output_node_and_associate_jack(
+    const struct cras_alsa_jack* jack,
+    void* arg) {
+  struct alsa_usb_io* aio;
+  struct alsa_usb_output_node* node;
+  const char* jack_name;
+
+  CRAS_CHECK(arg);
+
+  aio = (struct alsa_usb_io*)arg;
+  node = usb_get_output_node_from_jack(aio, jack);
+  jack_name = cras_alsa_jack_get_name(jack);
+  if (!jack_name || !strcmp(jack_name, "Speaker Phantom Jack")) {
+    jack_name = INTERNAL_SPEAKER;
+  }
+
+  // If there isn't a node for this jack, create one.
+  if (node == NULL) {
+    if (aio->common.fully_specified) {
+      // When fully specified, can't have new nodes.
+      FRALOG(USBAudioUCMNoJack,
+             {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
+             {"pid", tlsprintf("0x%04X", aio->common.product_id)});
+      syslog(LOG_ERR,
+             "card type: %s, name: %s, No matching output node for jack %s!",
+             cras_card_type_to_string(aio->common.card_type),
+             aio->common.base.info.name, jack_name);
+      return;
+    }
+    node = usb_new_output(aio, NULL, jack_name);
+    if (node == NULL) {
+      return;
+    }
+
+    cras_alsa_jack_update_node_type(jack, &(node->base.type));
+  }
+
+  if (!node->jack) {
+    if (aio->common.fully_specified) {
+      FRALOG(USBAudioUCMWrongJack,
+             {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
+             {"pid", tlsprintf("0x%04X", aio->common.product_id)});
+      syslog(LOG_ERR,
+             "card type: %s, name: %s, Jack '%s' was found to match output "
+             "node '%s'."
+             " Please fix your UCM configuration to match.",
+             cras_card_type_to_string(aio->common.card_type),
+             aio->common.base.info.name, jack_name, node->base.ucm_name);
+    }
+
+    // If we already have the node, associate with the jack.
+    node->jack = jack;
+    if (node->volume_curve == NULL) {
+      node->volume_curve =
+          usb_create_volume_curve_for_jack(aio->common.config, jack);
+    }
+  }
+}
+
 int cras_alsa_usb_iodev_legacy_complete_init(struct cras_iodev* iodev) {
   struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
   enum CRAS_STREAM_DIRECTION direction;
@@ -1909,7 +1940,12 @@ int cras_alsa_usb_iodev_legacy_complete_init(struct cras_iodev* iodev) {
     cras_alsa_mixer_list_inputs(mixer, usb_new_input_by_mixer_control, aio);
   }
 
-  err = cras_alsa_jack_list_find_jacks_by_name_matching(aio->common.jack_list);
+  err = cras_alsa_jack_list_find_jacks_by_name_matching(
+      aio->common.jack_list,
+      iodev->direction == CRAS_STREAM_OUTPUT
+          ? add_output_node_and_associate_jack
+          : add_input_node_and_associate_jack,
+      aio);
   if (err) {
     return err;
   }

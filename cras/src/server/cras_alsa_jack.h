@@ -31,6 +31,16 @@ typedef void(jack_state_change_callback)(const struct cras_alsa_jack* jack,
                                          int plugged,
                                          void* data);
 
+/* Callback type for users of find_jacks_by_name_matching to define. It will
+ * be called when a jack is officially found.
+ * Args:
+ *     jack - The jack that is found.
+ *     data - Uesr defined pointer passed to
+ *            cras_alsa_jack_list_find_jacks_by_name_matching
+ */
+typedef void(jack_found_callback)(const struct cras_alsa_jack* jack,
+                                  void* data);
+
 /* Creates a jack list. The jacks can be added later by name matching or
  * fully specified UCM.
  * Args:
@@ -70,7 +80,9 @@ struct cras_alsa_jack_list* cras_alsa_jack_list_create(
  *   0 on success. Error code if there is a failure.
  */
 int cras_alsa_jack_list_find_jacks_by_name_matching(
-    struct cras_alsa_jack_list* jack_list);
+    struct cras_alsa_jack_list* jack_list,
+    jack_found_callback cb,
+    void* cb_data);
 
 /* Add the jack defined by the UCM section information.
  * Args:

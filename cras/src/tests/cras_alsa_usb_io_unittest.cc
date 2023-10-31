@@ -955,7 +955,9 @@ struct cras_alsa_jack_list* cras_alsa_jack_list_create(
 }
 
 int cras_alsa_jack_list_find_jacks_by_name_matching(
-    struct cras_alsa_jack_list* jack_list) {
+    struct cras_alsa_jack_list* jack_list,
+    jack_found_callback cb,
+    void* cb_data) {
   cras_alsa_jack_list_find_jacks_by_name_matching_called++;
   return 0;
 }

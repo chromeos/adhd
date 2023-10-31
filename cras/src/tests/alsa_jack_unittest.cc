@@ -61,6 +61,7 @@ static snd_hctl_t* snd_hctl_elem_get_hctl_return_value;
 static size_t snd_ctl_elem_value_get_boolean_called;
 static int snd_ctl_elem_value_get_boolean_return_value;
 static void* fake_jack_cb_arg;
+static void* fake_jack_found_cb_data;
 static struct cras_alsa_mixer* fake_mixer;
 static size_t cras_alsa_mixer_get_output_matching_name_called;
 static size_t cras_alsa_mixer_get_input_matching_name_called;
@@ -122,6 +123,7 @@ static void ResetStubData() {
   fake_jack_cb_called = 0;
   fake_jack_cb_plugged = 0;
   fake_jack_cb_arg = reinterpret_cast<void*>(0x987);
+  fake_jack_found_cb_data = reinterpret_cast<void*>(0x654);
   fake_mixer = reinterpret_cast<struct cras_alsa_mixer*>(0x789);
   cras_alsa_mixer_get_output_matching_name_called = 0;
   cras_alsa_mixer_get_input_matching_name_called = 0;
@@ -156,6 +158,8 @@ static void fake_jack_cb(const struct cras_alsa_jack* jack,
             ucm_set_enabled_value);
 }
 
+static void fake_jack_found_cb(const struct cras_alsa_jack* jack, void* data) {}
+
 class FakeEDIDFile {
  public:
   FakeEDIDFile(uint16_t mfg_id, uint16_t prod_id, uint32_t serial) {
@@ -188,7 +192,8 @@ TEST(AlsaJacks, CreateNullHctl) {
                                          CRAS_STREAM_OUTPUT, fake_jack_cb,
                                          fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
   EXPECT_EQ(1, gpio_switch_list_for_each_called);
   EXPECT_EQ(0, gpio_switch_open_called);
   EXPECT_EQ(0, gpio_switch_eviocgsw_called);
@@ -206,7 +211,8 @@ TEST(AlsaJacks, CreateNoElements) {
                                          fake_hctl, CRAS_STREAM_OUTPUT,
                                          fake_jack_cb, fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
   EXPECT_EQ(1, gpio_switch_list_for_each_called);
   EXPECT_EQ(0, gpio_switch_open_called);
   EXPECT_EQ(0, gpio_switch_eviocgsw_called);
@@ -240,7 +246,8 @@ static struct cras_alsa_jack_list* run_test_with_elem_list(
   if (jack_list == NULL) {
     return jack_list;
   }
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
   EXPECT_EQ(ucm ? njacks : 0, ucm_get_dev_for_jack_called);
   EXPECT_EQ(ucm ? njacks : 0, ucm_get_override_type_name_called);
   EXPECT_EQ(1, snd_hctl_first_elem_called);
@@ -338,7 +345,8 @@ TEST(AlsaJacks, CreateGPIOHp) {
                                          fake_hctl, CRAS_STREAM_OUTPUT,
                                          fake_jack_cb, fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(1, gpio_switch_list_for_each_called);
   EXPECT_GT(gpio_switch_open_called, 1);
@@ -367,7 +375,8 @@ TEST(AlsaJacks, CreateGPIOMic) {
       reinterpret_cast<struct cras_use_case_mgr*>(0x55), fake_hctl,
       CRAS_STREAM_INPUT, fake_jack_cb, fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
   EXPECT_EQ(ucm_get_cap_control_called, 1);
   EXPECT_EQ(cras_alsa_mixer_get_input_matching_name_called, 1);
   cras_alsa_jack_list_destroy(jack_list);
@@ -388,7 +397,8 @@ TEST(AlsaJacks, CreateGPIOHdmi) {
                                          fake_hctl, CRAS_STREAM_OUTPUT,
                                          fake_jack_cb, fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
   EXPECT_EQ(1, gpio_switch_eviocgsw_called);
 
   fake_jack_cb_called = 0;
@@ -427,7 +437,8 @@ void run_gpio_jack_test(int device_index,
                                          fake_mixer, ucm, fake_hctl, direction,
                                          fake_jack_cb, fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
 
   cras_alsa_jack_list_report(jack_list);
   EXPECT_EQ(should_create_jack, fake_jack_cb_plugged);
@@ -597,7 +608,8 @@ TEST(AlsaJacks, GPIOHdmiWithEdid) {
       reinterpret_cast<struct cras_use_case_mgr*>(0x55), fake_hctl,
       CRAS_STREAM_OUTPUT, fake_jack_cb, fake_jack_cb_arg);
   ASSERT_NE(static_cast<cras_alsa_jack_list*>(NULL), jack_list);
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
   EXPECT_EQ(1, gpio_switch_eviocgsw_called);
 
   // EDID shouldn't open, callback should be skipped until re-try.
@@ -624,7 +636,8 @@ TEST(AlsaJacks, CreateGPIOHpNoNameMatch) {
                                          fake_hctl, CRAS_STREAM_OUTPUT,
                                          fake_jack_cb, fake_jack_cb_arg);
   ASSERT_NE(static_cast<struct cras_alsa_jack_list*>(NULL), jack_list);
-  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(jack_list));
+  EXPECT_EQ(0, cras_alsa_jack_list_find_jacks_by_name_matching(
+                   jack_list, fake_jack_found_cb, fake_jack_found_cb_data));
 
   cras_alsa_jack_list_destroy(jack_list);
   EXPECT_EQ(1, gpio_switch_list_for_each_called);

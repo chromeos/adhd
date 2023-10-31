@@ -941,7 +941,10 @@ static int find_jack_controls(struct cras_alsa_jack_list* jack_list) {
  */
 
 int cras_alsa_jack_list_find_jacks_by_name_matching(
-    struct cras_alsa_jack_list* jack_list) {
+    struct cras_alsa_jack_list* jack_list,
+    jack_found_callback cb,
+    void* cb_data) {
+  struct cras_alsa_jack* jack;
   int rc;
 
   rc = find_jack_controls(jack_list);
@@ -949,7 +952,15 @@ int cras_alsa_jack_list_find_jacks_by_name_matching(
     return rc;
   }
 
-  return find_gpio_jacks(jack_list, NULL, NULL);
+  rc = find_gpio_jacks(jack_list, NULL, NULL);
+  if (rc != 0) {
+    return rc;
+  }
+
+  DL_FOREACH (jack_list->jacks, jack) {
+    cb(jack, cb_data);
+  }
+  return 0;
 }
 
 static int find_hctl_jack_for_section(struct cras_alsa_jack_list* jack_list,
