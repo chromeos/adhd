@@ -688,13 +688,14 @@ error:
 }
 
 void cras_floss_a2dp_set_active(struct cras_a2dp* a2dp, unsigned enabled) {
-  /* Clear session. */
-  floss_media_a2dp_reset_active_device(a2dp->fm);
   if (enabled) {
     /* Set the connected a2dp device to be active. This is required
      * for other profiles (e.g., AVRCP) depending on the active a2dp
      * status to work. */
     floss_media_a2dp_set_active_device(a2dp->fm, a2dp->addr);
+  } else {
+    /* Clear session. */
+    floss_media_a2dp_reset_active_device(a2dp->fm);
   }
 }
 
