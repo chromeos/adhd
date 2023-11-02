@@ -1468,6 +1468,10 @@ int cras_audio_thread_event_severe_underrun() {
   return 0;
 }
 
+int cras_audio_thread_event_unreasonable_available_frames() {
+  return 0;
+}
+
 struct input_data_gain input_data_get_software_gain_scaler(
     struct input_data* data,
     float ui_gain_scalar,

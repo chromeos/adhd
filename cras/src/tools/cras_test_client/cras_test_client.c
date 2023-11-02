@@ -1097,6 +1097,12 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
       printf("%-30s id:%x shm_frames:%u is_draining:%u\n",
              "WRITE_STREAM_IS_DRAINING", data1, data2, data3);
       break;
+    case AUDIO_THREAD_UNREASONABLE_AVAILABLE_FRAMES:
+      printf(
+          "%-30s previous_available:%u previous_write:%u "
+          "current_available:%u\n",
+          "UNREASONABLE_AVAILABLE_FRAMES", data1, data2, data3);
+      break;
     default:
       printf("%-30s tag:%u\n", "UNKNOWN", tag);
       break;

@@ -663,6 +663,10 @@ uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
   return cras_stream_apm_get_effects_ret;
 }
 
+int cras_audio_thread_event_unreasonable_available_frames() {
+  return 0;
+}
+
 }  // extern "C"
 
 }  //  namespace

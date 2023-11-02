@@ -57,6 +57,11 @@ int cras_audio_thread_event_dev_overrun();
 int cras_audio_thread_event_offset_exceed_available();
 
 /*
+ * Notifies the main thread when the available frames is unreasonable.
+ */
+int cras_audio_thread_event_unreasonable_available_frames();
+
+/*
  * Initializes audio thread monitor and sets main thread callback.
  */
 int cras_audio_thread_monitor_init();

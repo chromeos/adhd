@@ -922,8 +922,9 @@ int write_output_samples(struct open_dev** odevs,
     // frames available, it'd lead to problems.
     // If this ever happens, something bad in driver/FW must be fixed.
     if (adev->last_get_frames - adev->last_put_frames > frames_writeable) {
-      syslog(LOG_WARNING, "Unreasonable buffer writable %u - %u > %u",
-             adev->last_get_frames, adev->last_put_frames, frames_writeable);
+      ATLOG(atlog, AUDIO_THREAD_UNREASONABLE_AVAILABLE_FRAMES,
+            adev->last_get_frames, adev->last_put_frames, frames_writeable);
+      cras_audio_thread_event_unreasonable_available_frames();
     }
     adev->last_get_frames = frames_writeable;
 

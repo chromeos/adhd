@@ -33,6 +33,8 @@ static inline const char* audio_thread_event_type_to_str(
       return "device overrun";
     case AUDIO_THREAD_EVENT_OFFSET_EXCEED_AVAILABLE:
       return "minimum offset exceed available buffer frames";
+    case AUDIO_THREAD_EVENT_UNREASONABLE_AVAILABLE_FRAMES:
+      return "obtained unreasonable available frame count";
     default:
       return "no such type";
   }

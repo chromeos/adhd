@@ -91,6 +91,11 @@ int cras_audio_thread_event_offset_exceed_available() {
       AUDIO_THREAD_EVENT_OFFSET_EXCEED_AVAILABLE);
 }
 
+int cras_audio_thread_event_unreasonable_available_frames() {
+  return cras_audio_thread_event_send(
+      AUDIO_THREAD_EVENT_UNREASONABLE_AVAILABLE_FRAMES);
+}
+
 static struct timespec last_event_snapshot_time[AUDIO_THREAD_EVENT_TYPE_COUNT];
 static struct timespec last_underrun_time = {0, 0};
 static struct timespec last_severe_underrun_time = {0, 0};
