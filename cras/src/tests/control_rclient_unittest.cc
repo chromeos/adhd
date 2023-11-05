@@ -956,4 +956,9 @@ bool cras_floss_get_enabled() {
   return false;
 }
 
+int cras_iodev_list_fill_dsp_offload_infos(struct cras_dsp_offload_info* infos,
+                                           uint32_t max_num_info) {
+  return 0;
+}
+
 }  // extern "C"

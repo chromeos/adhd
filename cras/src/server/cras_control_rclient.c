@@ -97,6 +97,21 @@ static void handle_request_floop(struct cras_rclient* client,
   client->ops->send_message_to_client(client, &msg.header, NULL, 0);
 }
 
+static void handle_get_dsp_offload_info(struct cras_rclient* client) {
+  struct cras_client_get_dsp_offload_info_ready msg;
+
+  cras_init_client_get_dsp_offload_info_ready(&msg);
+  int rc = cras_iodev_list_fill_dsp_offload_infos(
+      msg.infos, CRAS_MAX_DSP_OFFLOAD_INFO_SIZE);
+  if (rc < 0) {
+    syslog(LOG_ERR, "Failed to get DSP offload info, rc: %d", rc);
+    rc = 0;
+  }
+  msg.num_infos = rc;
+
+  client->ops->send_message_to_client(client, &msg.header, NULL, 0);
+}
+
 // Client notification callback functions.
 
 static void send_output_volume_changed(void* context, int32_t volume) {
@@ -506,6 +521,13 @@ static int ccr_handle_message_from_client(struct cras_rclient* client,
         return -EINVAL;
       }
       handle_request_floop(client, &m->params, m->tag);
+      break;
+    }
+    case CRAS_SERVER_GET_DSP_OFFLOAD_INFO: {
+      if (!MSG_LEN_VALID(msg, struct cras_get_dsp_offload_info)) {
+        return -EINVAL;
+      }
+      handle_get_dsp_offload_info(client);
       break;
     }
     default:

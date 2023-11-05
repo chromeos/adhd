@@ -2791,3 +2791,28 @@ bool cras_iodev_list_is_utility_stream(const struct cras_rstream* stream) {
 
   return false;
 }
+
+int cras_iodev_list_fill_dsp_offload_infos(struct cras_dsp_offload_info* infos,
+                                           uint32_t max_num_info) {
+  if (!infos || !max_num_info) {
+    return -EINVAL;
+  }
+
+  struct cras_iodev* dev;
+  uint32_t num_info = 0;
+
+  DL_FOREACH (devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
+    if (!dev->dsp_offload_map) {
+      continue;
+    }
+    infos[num_info].iodev_idx = dev->info.idx;
+    infos[num_info].dsp_pipe_id = dev->dsp_offload_map->pipeline_id;
+    strlcpy(infos[num_info].dsp_pattern, dev->dsp_offload_map->dsp_pattern,
+            sizeof(infos[num_info].dsp_pattern));
+    infos[num_info].state = dev->dsp_offload_map->state;
+    if (++num_info >= max_num_info) {
+      break;
+    }
+  }
+  return num_info;
+}

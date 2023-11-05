@@ -26,6 +26,7 @@ extern "C" {
 #define CRAS_MAX_HOTWORD_MODELS 243
 #define CRAS_MAX_TEST_DATA_LEN 224
 #define CRAS_AEC_DUMP_FILE_NAME_LEN 128
+#define CRAS_MAX_DSP_OFFLOAD_INFO_SIZE 6
 
 // Message IDs.
 enum CRAS_SERVER_MESSAGE_ID {
@@ -64,6 +65,7 @@ enum CRAS_SERVER_MESSAGE_ID {
   CRAS_SERVER_DUMP_MAIN,
   CRAS_SERVER_SET_AEC_REF,
   CRAS_SERVER_REQUEST_FLOOP,
+  CRAS_SERVER_GET_DSP_OFFLOAD_INFO,
 };
 
 enum CRAS_CLIENT_MESSAGE_ID {
@@ -86,6 +88,7 @@ enum CRAS_CLIENT_MESSAGE_ID {
   // Server -> Client
   CRAS_CLIENT_ATLOG_FD_READY,
   CRAS_CLIENT_REQUEST_FLOOP_READY,
+  CRAS_CLIENT_GET_DSP_OFFLOAD_INFO_READY,
 };
 
 /* Messages that control the server. These are sent from the client to affect
@@ -519,6 +522,15 @@ static inline void cras_fill_request_floop(
   m->tag = (uintptr_t)tag;
 }
 
+struct __attribute__((__packed__)) cras_get_dsp_offload_info {
+  struct cras_server_message header;
+};
+static inline void cras_fill_get_dsp_offload_info(
+    struct cras_get_dsp_offload_info* m) {
+  m->header.id = CRAS_SERVER_GET_DSP_OFFLOAD_INFO;
+  m->header.length = sizeof(*m);
+}
+
 /*
  * Messages sent from server to client.
  */
@@ -745,6 +757,17 @@ static inline void cras_fill_client_request_floop_ready(
   m->header.length = sizeof(*m);
   m->dev_idx = dev_idx;
   m->tag = tag;
+}
+
+struct __attribute__((__packed__)) cras_client_get_dsp_offload_info_ready {
+  struct cras_client_message header;
+  uint32_t num_infos;
+  struct cras_dsp_offload_info infos[CRAS_MAX_DSP_OFFLOAD_INFO_SIZE];
+};
+static inline void cras_init_client_get_dsp_offload_info_ready(
+    struct cras_client_get_dsp_offload_info_ready* m) {
+  m->header.id = CRAS_CLIENT_GET_DSP_OFFLOAD_INFO_READY;
+  m->header.length = sizeof(*m);
 }
 
 /*

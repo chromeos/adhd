@@ -171,6 +171,11 @@ typedef int (*cras_hotword_error_cb_t)(struct cras_client* client,
                                        int error,
                                        void* user_data);
 
+// Callback for handling get DSP offload info reply.
+typedef void (*get_dsp_offload_info_cb_t)(struct cras_client* client,
+                                          uint32_t num_infos,
+                                          struct cras_dsp_offload_info* infos);
+
 /*
  * Client handling.
  */
@@ -1258,6 +1263,17 @@ void cras_client_set_state_change_callback_context(struct cras_client* client,
 int32_t cras_client_get_floop_dev_idx_by_client_types(
     struct cras_client* client,
     int64_t client_types_mask);
+
+/* Gets the set of DSP offload information.
+ *
+ * Args:
+ *    client - The client from cras_client_create.
+ *    cb - The function to be called when DSP offload information set is ready.
+ * Returns:
+ *    0 on success.
+ */
+int cras_client_get_dsp_offload_info(struct cras_client* client,
+                                     get_dsp_offload_info_cb_t cb);
 
 /* Output volume change callback.
  *

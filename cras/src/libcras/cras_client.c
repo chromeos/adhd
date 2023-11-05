@@ -274,6 +274,8 @@ struct cras_client {
   pthread_mutex_t floop_request_list_mu;
   // Client type set directly on the client by cras_client_set_client_type.
   enum CRAS_CLIENT_TYPE client_type;
+  // Function to call when DSP offload info is ready.
+  get_dsp_offload_info_cb_t get_dsp_offload_info_cb;
 };
 
 /*
@@ -1882,6 +1884,18 @@ cleanup:
   return;
 }
 
+static void cras_client_get_dsp_offload_info_ready(
+    struct cras_client* client,
+    uint32_t num_infos,
+    struct cras_dsp_offload_info* infos) {
+  if (!client->get_dsp_offload_info_cb) {
+    return;
+  }
+  client->get_dsp_offload_info_cb(
+      client, MIN(num_infos, CRAS_MAX_DSP_OFFLOAD_INFO_SIZE), infos);
+  client->get_dsp_offload_info_cb = NULL;
+}
+
 // Handles messages from the cras server.
 static int handle_message_from_server(struct cras_client* client) {
   uint8_t buf[CRAS_CLIENT_MAX_MSG_SIZE];
@@ -1968,6 +1982,13 @@ static int handle_message_from_server(struct cras_client* client) {
       struct cras_client_request_floop_ready* cmsg =
           (struct cras_client_request_floop_ready*)msg;
       request_floop_ready(client, cmsg->dev_idx, cmsg->tag);
+      break;
+    }
+    case CRAS_CLIENT_GET_DSP_OFFLOAD_INFO_READY: {
+      struct cras_client_get_dsp_offload_info_ready* cmsg =
+          (struct cras_client_get_dsp_offload_info_ready*)msg;
+      cras_client_get_dsp_offload_info_ready(client, cmsg->num_infos,
+                                             cmsg->infos);
       break;
     }
     case CRAS_CLIENT_OUTPUT_VOLUME_CHANGED: {
@@ -4431,6 +4452,19 @@ int32_t cras_client_get_floop_dev_idx_by_client_types(
   };
   const struct timespec timeout = {.tv_sec = 3};
   return request_floop(client, &params, &timeout);
+}
+
+int cras_client_get_dsp_offload_info(struct cras_client* client,
+                                     get_dsp_offload_info_cb_t cb) {
+  struct cras_get_dsp_offload_info msg;
+
+  if (!client || !cb) {
+    return -EINVAL;
+  }
+  client->get_dsp_offload_info_cb = cb;
+
+  cras_fill_get_dsp_offload_info(&msg);
+  return write_message_to_server(client, &msg.header);
 }
 
 struct libcras_client* libcras_client_create() {

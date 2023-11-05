@@ -78,6 +78,16 @@ int cras_iodev_list_rm_input(struct cras_iodev* input);
  */
 int cras_iodev_list_get_outputs(struct cras_iodev_info** list_out);
 
+/* Fills a list of DSP offload information.
+ * Args:
+ *    infos - This should be allocated by caller itself to fill info.
+ *    max_num_info - The max number of info can be filled.
+ * Returns:
+ *    The number of DSP offload info filled in list, negative error on failure.
+ */
+int cras_iodev_list_fill_dsp_offload_infos(struct cras_dsp_offload_info* infos,
+                                           uint32_t max_num_info);
+
 /* Gets a list of inputs. Callee must free the list when finished.  If list_out
  * is NULL, this function can be used to return the number of inputs.
  * Args:

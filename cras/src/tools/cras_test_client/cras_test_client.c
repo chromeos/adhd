@@ -2043,6 +2043,32 @@ static void request_floop_mask(struct cras_client* client, int mask) {
   printf("flexible loopback dev id: %" PRId32 " \n", idx);
 }
 
+static void dsp_offload_infos_cb(struct cras_client* client,
+                                 uint32_t num_infos,
+                                 struct cras_dsp_offload_info* infos) {
+  printf("There are %u devices supporting DSP offload:\n", num_infos);
+  if (num_infos == 0) {
+    signal_done();
+    return;
+  }
+
+  printf("\tCRAS Dev | DSP Pipeline     Pattern : Status\n");
+  for (uint32_t i = 0; i < num_infos; i++) {
+    printf("\t     %-3u ----> %-3u %16s : %s\n", infos[i].iodev_idx,
+           infos[i].dsp_pipe_id, infos[i].dsp_pattern,
+           cras_dsp_proc_state_to_str(infos[i].state));
+  }
+  signal_done();
+}
+
+static void print_dsp_offload_infos(struct cras_client* client) {
+  cras_client_run_thread(client);
+  cras_client_connected_wait(client);
+  cras_client_get_dsp_offload_info(client, dsp_offload_infos_cb);
+
+  wait_done_timeout(2);
+}
+
 static void check_output_plugged(struct cras_client* client, const char* name) {
   cras_client_run_thread(client);
   cras_client_connected_wait(client);  // To synchronize data.
@@ -2235,6 +2261,7 @@ static struct option long_options[] = {
 	{"request_floop_mask",  required_argument,      0, 'V'},
 	{"thread_priority",     required_argument,      0, 'W'},
 	{"client_type",         required_argument,      0, 'X'},
+	{"dump_dsp_offload",    no_argument,            0, 'Y'},
 	{0, 0, 0, 0}
 };
 // clang-format on
@@ -2302,6 +2329,9 @@ static void show_usage() {
   printf(
       "--dump_server_info - "
       "Print status of the server.\n");
+  printf(
+      "--dump_dsp_offload - "
+      "Print status of DSP offload for supported devices.\n");
   printf(
       "--duration_seconds <N> - "
       "Seconds to record or playback.\n");
@@ -2885,6 +2915,9 @@ int main(int argc, char** argv) {
         if (rc) {
           goto destroy_exit;
         }
+        break;
+      case 'Y':
+        print_dsp_offload_infos(client);
         break;
       default:
         break;
