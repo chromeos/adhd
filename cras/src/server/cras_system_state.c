@@ -171,7 +171,6 @@ void cras_system_state_init(const char* device_config_dir,
                             size_t exp_state_size,
                             const char* board_name,
                             const char* cpu_model_name) {
-  struct cras_board_config board_config;
   int rc;
 
   CRAS_CHECK(sizeof(*exp_state) == exp_state_size);
@@ -182,9 +181,13 @@ void cras_system_state_init(const char* device_config_dir,
   state.shm_fd = rw_shm_fd;
   state.shm_fd_ro = ro_shm_fd;
 
-  // Read board config.
-  memset(&board_config, 0, sizeof(board_config));
-  cras_board_config_get(device_config_dir, &board_config);
+  // Create board config.
+  struct cras_board_config* board_config =
+      cras_board_config_create(device_config_dir);
+  if (!board_config) {
+    syslog(LOG_ERR, "Fatal: no memory to create board config");
+    exit(-ENOMEM);
+  }
 
   // Initial system state.
   exp_state->state_version = CRAS_SERVER_STATE_VERSION;
@@ -198,36 +201,37 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->max_volume_dBFS = DEFAULT_MAX_VOLUME_DBFS;
   exp_state->num_streams_attached = 0;
   exp_state->default_output_buffer_size =
-      board_config.default_output_buffer_size;
-  exp_state->aec_supported = board_config.aec_supported;
-  exp_state->aec_group_id = board_config.aec_group_id;
-  exp_state->ns_supported = board_config.ns_supported;
-  exp_state->agc_supported = board_config.agc_supported;
-  exp_state->aec_on_dsp_supported = board_config.aec_on_dsp_supported;
-  exp_state->ns_on_dsp_supported = board_config.ns_on_dsp_supported;
-  exp_state->agc_on_dsp_supported = board_config.agc_on_dsp_supported;
-  exp_state->bt_wbs_enabled = board_config.bt_wbs_enabled;
+      board_config->default_output_buffer_size;
+  exp_state->aec_supported = board_config->aec_supported;
+  exp_state->aec_group_id = board_config->aec_group_id;
+  exp_state->ns_supported = board_config->ns_supported;
+  exp_state->agc_supported = board_config->agc_supported;
+  exp_state->aec_on_dsp_supported = board_config->aec_on_dsp_supported;
+  exp_state->ns_on_dsp_supported = board_config->ns_on_dsp_supported;
+  exp_state->agc_on_dsp_supported = board_config->agc_on_dsp_supported;
+  exp_state->bt_wbs_enabled = board_config->bt_wbs_enabled;
   exp_state->bt_hfp_offload_finch_applied =
-      board_config.bt_hfp_offload_finch_applied;
-  exp_state->deprioritize_bt_wbs_mic = board_config.deprioritize_bt_wbs_mic;
+      board_config->bt_hfp_offload_finch_applied;
+  exp_state->deprioritize_bt_wbs_mic = board_config->deprioritize_bt_wbs_mic;
   // Disable Noise Cancellation as default.
   exp_state->noise_cancellation_enabled = 0;
-  exp_state->dsp_noise_cancellation_supported = board_config.nc_supported;
+  exp_state->dsp_noise_cancellation_supported = board_config->nc_supported;
   exp_state->bypass_block_noise_cancellation = 0;
-  exp_state->hotword_pause_at_suspend = board_config.hotword_pause_at_suspend;
-  exp_state->hw_echo_ref_disabled = board_config.hw_echo_ref_disabled;
-  exp_state->max_internal_mic_gain = board_config.max_internal_mic_gain;
+  exp_state->hotword_pause_at_suspend = board_config->hotword_pause_at_suspend;
+  exp_state->hw_echo_ref_disabled = board_config->hw_echo_ref_disabled;
+  exp_state->max_internal_mic_gain = board_config->max_internal_mic_gain;
   exp_state->max_internal_speaker_channels =
-      board_config.max_internal_speaker_channels;
-  exp_state->max_headphone_channels = board_config.max_headphone_channels;
+      board_config->max_internal_speaker_channels;
+  exp_state->max_headphone_channels = board_config->max_headphone_channels;
   exp_state->num_non_chrome_output_streams = 0;
-  exp_state->nc_standalone_mode = board_config.nc_standalone_mode;
+  exp_state->nc_standalone_mode = board_config->nc_standalone_mode;
 
   // TODO(b/271383461): update AP NC availability through libsegmentation.
-  exp_state->voice_isolation_supported = board_config.nc_supported | 1;
+  exp_state->voice_isolation_supported = board_config->nc_supported | 1;
 
   if ((rc = pthread_mutex_init(&state.update_lock, 0) != 0)) {
     syslog(LOG_ERR, "Fatal: system state mutex init");
+    cras_board_config_destroy(board_config);
     exit(rc);
   }
 
@@ -239,12 +243,12 @@ void cras_system_state_init(const char* device_config_dir,
    * to change device blocklist at run time. */
   state.device_config_dir = device_config_dir;
   state.internal_ucm_suffix = NULL;
-  init_ignore_suffix_cards(board_config.ucm_ignore_suffix);
-  free(board_config.ucm_ignore_suffix);
+  init_ignore_suffix_cards(board_config->ucm_ignore_suffix);
 
   state.tm = cras_tm_init();
   if (!state.tm) {
     syslog(LOG_ERR, "Fatal: system state timer init");
+    cras_board_config_destroy(board_config);
     exit(-ENOMEM);
   }
 
@@ -263,7 +267,10 @@ void cras_system_state_init(const char* device_config_dir,
 
   // Obtain latency offsets and clamp the values.
   state.speaker_output_latency_offset_ms =
-      board_config.speaker_output_latency_offset_ms;
+      board_config->speaker_output_latency_offset_ms;
+
+  // Release board config.
+  cras_board_config_destroy(board_config);
 }
 
 void cras_system_state_deinit() {

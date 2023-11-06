@@ -56,11 +56,17 @@ static const struct ini_int_field INI_INT_KEYS[] = {
 };
 // clang-format on
 
-void cras_board_config_get(const char* config_path,
-                           struct cras_board_config* board_config) {
+struct cras_board_config* cras_board_config_create(const char* config_path) {
+  struct cras_board_config* board_config =
+      (struct cras_board_config*)calloc(1, sizeof(*board_config));
+  if (!board_config) {
+    syslog(LOG_ERR, "Failed to allocate memory for cras_board_config");
+    return NULL;
+  }
+
   char ini_name[MAX_INI_NAME_LENGTH + 1] = {};
   dictionary* ini = NULL;
-  uint8_t* cfg_ptr = ((uint8_t*)board_config);
+  uint8_t* cfg_ptr = (uint8_t*)board_config;
 
   if (config_path != NULL) {
     // Load the config only if config_path is set.
@@ -93,10 +99,11 @@ void cras_board_config_get(const char* config_path,
 
   iniparser_freedict(ini);
   syslog(LOG_DEBUG, "Loaded ini file %s", ini_name);
+  return board_config;
 }
 
-void cras_board_config_clear(struct cras_board_config* board_config) {
+void cras_board_config_destroy(struct cras_board_config* board_config) {
   CRAS_CHECK(board_config);
   free(board_config->ucm_ignore_suffix);
-  memset(board_config, 0, sizeof(*board_config));
+  free(board_config);
 }

@@ -778,9 +778,12 @@ void cras_observer_notify_input_streams_with_permission(
 
 void cras_observer_notify_num_stream_ignore_ui_gains_changed(int num) {}
 
-void cras_board_config_get(const char* config_path,
-                           struct cras_board_config* board_config) {
-  *board_config = fake_board_config;
+struct cras_board_config* cras_board_config_create(const char* config_path) {
+  return &fake_board_config;
+}
+
+void cras_board_config_destroy(struct cras_board_config* board_config) {
+  free(fake_board_config.ucm_ignore_suffix);
 }
 
 void cras_alert_process_all_pending_alerts() {

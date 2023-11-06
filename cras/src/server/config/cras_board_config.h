@@ -35,16 +35,16 @@ struct cras_board_config {
   int32_t speaker_output_latency_offset_ms;
 };
 
-/* Gets a configuration based on the config file specified.
+/* Creates a configuration based on the config file specified.
  * Args:
  *    config_path - Path containing the config files.
- *    board_config - The returned configs.
+ * Returns:
+ *    The created board config or NULL if memory allocation failed.
  */
-void cras_board_config_get(const char* config_path,
-                           struct cras_board_config* board_config);
+struct cras_board_config* cras_board_config_create(const char* config_path);
 
-/* Free the members in board config. */
-void cras_board_config_clear(struct cras_board_config* board_config);
+/* Frees the board config and its internal members. */
+void cras_board_config_destroy(struct cras_board_config* board_config);
 
 #ifdef __cplusplus
 }
