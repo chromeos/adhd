@@ -70,6 +70,9 @@ unsigned int buffer_share_id_offset(const struct buffer_share* mix,
  */
 void* buffer_share_get_data(const struct buffer_share* mix, unsigned int id);
 
+// Resets all write points to 0.
+int buffer_share_reset_write_point(struct buffer_share* mix);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

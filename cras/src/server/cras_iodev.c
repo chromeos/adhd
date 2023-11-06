@@ -1567,7 +1567,17 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
 
     // This assumes consecutive channel areas.
     buf = area->channels[0].buf;
-    memset(buf, 0, (size_t)frames_writable * (size_t)frame_bytes);
+    // Buffer areas that are within the stream offset already have valid data
+    // written.
+    // Only write zeros in buffer areas that is beyond the max_offset, which has
+    // garbage data.
+    unsigned int max_offset = cras_iodev_max_stream_offset(odev);
+    if (frames_writable > max_offset) {
+      memset(buf + max_offset * frame_bytes, 0,
+             (size_t)(frames_writable - max_offset) * (size_t)frame_bytes);
+    }
+    // Update offsets to mark existing valid data as written.
+    cras_iodev_all_streams_written(odev, frames_writable);
     cras_iodev_put_output_buffer(odev, buf, frames_writable, NULL, NULL);
     frames -= frames_writable;
     filled_frames += frames_writable;
@@ -2071,4 +2081,8 @@ void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev) {
   iodev->active_nc_provider = user_enabled
                                   ? iodev->active_node->desired_nc_provider
                                   : CRAS_NC_PROVIDER_NONE;
+}
+
+void cras_iodev_stream_offset_reset_all(struct cras_iodev* iodev) {
+  buffer_share_reset_write_point(iodev->buf_state);
 }

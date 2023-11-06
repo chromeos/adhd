@@ -1670,6 +1670,7 @@ static int fill_whole_buffer_with_zeros(struct cras_iodev* iodev) {
   }
   format_bytes = cras_get_format_bytes(iodev->format);
   memset(dst, 0, iodev->buffer_size * format_bytes);
+  cras_iodev_stream_offset_reset_all(iodev);
 
   return iodev->buffer_size;
 }

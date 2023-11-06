@@ -801,7 +801,8 @@ void cras_iodev_set_ext_dsp_module(struct cras_iodev* iodev,
                                    struct ext_dsp_module* ext);
 
 /*
- * Put 'frames' worth of zero samples into odev.
+ * Put 'frames' worth of zero samples into odev. This function is mainly used to
+ * pad the buffer by putting frames of zero samples.
  * Args:
  *    odev - The device.
  *    frames - The number of frames of zero samples to put into the device.
@@ -1032,6 +1033,9 @@ void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
  */
 bool cras_iodev_is_channel_count_supported(struct cras_iodev* iodev,
                                            int channel);
+
+// Reset the buffer offset for all streams
+void cras_iodev_stream_offset_reset_all(struct cras_iodev* iodev);
 
 /* Gets the current iodev's group. The iodevs in a group are enabled/disabled
  * together. The returned read-only array is freed when all iodevs in the group

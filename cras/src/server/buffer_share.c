@@ -191,3 +191,18 @@ void* buffer_share_get_data(const struct buffer_share* mix, unsigned int id) {
   struct id_offset* o = get_id_offset(mix, id);
   return o ? o->data : NULL;
 }
+
+int buffer_share_reset_write_point(struct buffer_share* mix) {
+  // The paths that call this function may end up having removed all streams.
+  // Add a null check to prevent crash.
+  if (mix != NULL) {
+    for (unsigned int i = 0; i < mix->id_sz; i++) {
+      struct id_offset* o = &mix->wr_idx[i];
+      if (!o->used) {
+        continue;
+      }
+      o->offset = 0;
+    }
+  }
+  return 0;
+}

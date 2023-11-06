@@ -3208,6 +3208,20 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   *tp = time_now;
   return 0;
 }
+
+unsigned int buffer_share_get_minimum_offset(struct buffer_share* mix) {
+  return 0;
+}
+
+int cras_audio_thread_event_offset_exceed_available() {
+  return 0;
+}
+
+int buffer_share_update_write_point(struct buffer_share* mix,
+                                    unsigned int written) {
+  return 0;
+}
+
 }  // extern "C"
 }  //  namespace
 
