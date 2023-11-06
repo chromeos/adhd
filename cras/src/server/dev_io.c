@@ -873,6 +873,11 @@ int write_output_samples(struct open_dev** odevs,
   }
 
   if (cras_iodev_state(odev) != CRAS_IODEV_STATE_NORMAL_RUN) {
+    // iodev is normal but not running, running without streams or closed
+    // Reset the last_get_frames and last_put_frames, as the state of the buffer
+    // will change upon returning to nomral run.
+    adev->last_get_frames = 0;
+    adev->last_put_frames = 0;
     return 0;
   }
 
