@@ -207,15 +207,15 @@ static int open_dev(struct cras_iodev* iodev) {
   struct cras_iodev* dev = active_profile_dev(iodev);
   int rc;
 
+  // Make sure not to open when there is a pending profile-switch event.
+  if (btio->mgr->is_profile_switching) {
+    return -EAGAIN;
+  }
+
   // Force to use HFP if opening input dev.
   if (btio->mgr->active_btflag == CRAS_BT_FLAG_A2DP &&
       iodev->direction == CRAS_STREAM_INPUT) {
     switch_to_hfp(btio->mgr);
-    return -EAGAIN;
-  }
-
-  // Make sure not to open when there is a pending profile-switch event.
-  if (btio->mgr->is_profile_switching) {
     return -EAGAIN;
   }
 
