@@ -297,9 +297,6 @@ static int usb_get_buffer(struct cras_iodev* iodev,
       memcpy(aio->common.sample_buf + iodev->input_dsp_offset * format_bytes,
              aio->common.mmap_buf + iodev->input_dsp_offset * format_bytes,
              (nframes - iodev->input_dsp_offset) * format_bytes);
-    } else {
-      syslog(LOG_WARNING, "nframe is less than input_dsp_offset: %lu  > %u",
-             nframes, iodev->input_dsp_offset);
     }
   }
 
