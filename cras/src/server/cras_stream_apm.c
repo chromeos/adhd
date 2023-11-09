@@ -1241,7 +1241,7 @@ void cras_stream_apm_notify_vad_target_changed(
 
 void cras_stream_apm_notify_dsp_input_effects_blocked(bool blocked) {
   int rc = send_apm_message_explicit(APM_DSP_INPUT_EFFECTS_BLOCKED,
-                                     blocked ? NULL : (void*)1);
+                                     blocked ? (void*)1 : NULL);
   if (rc < 0) {
     syslog(LOG_ERR, "Error sending APM_AEC_ON_DSP_DISALLOWED message: %d", rc);
   }
