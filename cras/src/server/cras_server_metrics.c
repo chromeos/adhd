@@ -193,6 +193,7 @@ enum CRAS_METRICS_DEVICE_TYPE {
   CRAS_METRICS_DEVICE_UNKNOWN,
   CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC,
   CRAS_METRICS_DEVICE_ALSA_LOOPBACK,
+  CRAS_METRICS_DEVICE_BLUETOOTH_SWB_MIC,
 };
 
 struct cras_server_metrics_stream_config {
@@ -327,6 +328,8 @@ static inline const char* metrics_device_type_str(
       return "BluetoothNarrowBandMic";
     case CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC:
       return "BluetoothWideBandMic";
+    case CRAS_METRICS_DEVICE_BLUETOOTH_SWB_MIC:
+      return "BluetoothSuperWideBandMic";
     case CRAS_METRICS_DEVICE_NO_DEVICE:
       return "NoDevice";
     case CRAS_METRICS_DEVICE_ALSA_LOOPBACK:
@@ -466,9 +469,13 @@ get_metrics_device_type_from_active_node_type(const struct cras_iodev* iodev) {
         case CRAS_BT_FLAG_HFP:
           /* HFP narrow band has its own node type so we know
            * this is wideband mic for sure. */
-          return (iodev->direction == CRAS_STREAM_INPUT)
-                     ? CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC
-                     : CRAS_METRICS_DEVICE_HFP;
+          if (iodev->direction == CRAS_STREAM_INPUT) {
+            return (iodev->active_node->btflags & CRAS_BT_FLAG_SWB)
+                       ? CRAS_METRICS_DEVICE_BLUETOOTH_SWB_MIC
+                       : CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC;
+          } else {
+            return CRAS_METRICS_DEVICE_HFP;
+          }
         default:
           break;
       }
@@ -1433,13 +1440,16 @@ static void metrics_device_runtime(
   switch (data.type) {
     case CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC:
     case CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC:
+    case CRAS_METRICS_DEVICE_BLUETOOTH_SWB_MIC:
       log_histogram_each_level(
           5, (unsigned)data.runtime.tv_sec, 0, 10000, 20, "Cras.DeviceRuntime",
           "Input", "HFP",
           data.value & CRAS_BT_FLAG_SCO_OFFLOAD ? "Offloading"
                                                 : "NonOffloading",
           data.type == CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC ? "NarrowBandMic"
-                                                            : "WideBandMic");
+          : data.type == CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC
+              ? "WideBandMic"
+              : "SuperWideBandMic");
       break;
     case CRAS_METRICS_DEVICE_HFP:
       log_histogram_each_level(4, (unsigned)data.runtime.tv_sec, 0, 10000, 20,
@@ -1479,12 +1489,15 @@ static void metrics_device_configure_time(
   switch (data.type) {
     case CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC:
     case CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC:
+    case CRAS_METRICS_DEVICE_BLUETOOTH_SWB_MIC:
       log_histogram_each_level(
           5, msec, 0, 10000, 20, "Cras.DeviceConfigureTime", "Input", "HFP",
           data.value & CRAS_BT_FLAG_SCO_OFFLOAD ? "Offloading"
                                                 : "NonOffloading",
           data.type == CRAS_METRICS_DEVICE_BLUETOOTH_NB_MIC ? "NarrowBandMic"
-                                                            : "WideBandMic");
+          : data.type == CRAS_METRICS_DEVICE_BLUETOOTH_WB_MIC
+              ? "WideBandMic"
+              : "SuperWideBandMic");
       break;
     case CRAS_METRICS_DEVICE_HFP:
       log_histogram_each_level(

@@ -626,11 +626,23 @@ static int hfp_open_dev(struct cras_iodev* iodev) {
 
   handle_cras_sr_bt(iodev);
 
-  // TODO: add a type for SWB
-  if (iodev->direction == CRAS_STREAM_INPUT &&
-      !cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_MSBC) &&
-      !cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_LC3)) {
-    iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+  if (iodev->direction == CRAS_STREAM_INPUT) {
+    switch (cras_floss_hfp_get_active_codec(hfpio->hfp)) {
+      case HFP_CODEC_LC3:
+        iodev->active_node->btflags |= CRAS_BT_FLAG_SWB;
+        iodev->active_node->btflags &= ~CRAS_BT_FLAG_WBS;
+        iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH;
+        break;
+      case HFP_CODEC_MSBC:
+        iodev->active_node->btflags &= ~CRAS_BT_FLAG_SWB;
+        iodev->active_node->btflags |= CRAS_BT_FLAG_WBS;
+        iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH;
+        break;
+      default:
+        iodev->active_node->btflags &= ~CRAS_BT_FLAG_SWB;
+        iodev->active_node->btflags &= ~CRAS_BT_FLAG_WBS;
+        iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+    }
   }
 
   return 0;
@@ -1178,11 +1190,23 @@ struct cras_iodev* hfp_pcm_iodev_create(struct cras_hfp* hfp,
     goto error;
   }
 
-  // TODO: add a type for SWB
-  if (iodev->direction == CRAS_STREAM_INPUT &&
-      !cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_MSBC) &&
-      !cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_LC3)) {
-    iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+  // At this point, we know which codec is preferred. This will usually
+  // be the negotiated codec, but the spec allows to fallback to CVSD,
+  // in which case this will be updated in |hfp_open_dev|.
+  if (iodev->direction == CRAS_STREAM_INPUT) {
+    if (cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_LC3)) {
+      iodev->active_node->btflags |= CRAS_BT_FLAG_SWB;
+      iodev->active_node->btflags &= ~CRAS_BT_FLAG_WBS;
+      iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH;
+    } else if (cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_MSBC)) {
+      iodev->active_node->btflags &= ~CRAS_BT_FLAG_SWB;
+      iodev->active_node->btflags |= CRAS_BT_FLAG_WBS;
+      iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH;
+    } else {
+      iodev->active_node->btflags &= ~CRAS_BT_FLAG_SWB;
+      iodev->active_node->btflags &= ~CRAS_BT_FLAG_WBS;
+      iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+    }
   }
 
   iodev->active_node->btflags |= CRAS_BT_FLAG_HFP;

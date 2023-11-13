@@ -527,10 +527,24 @@ struct cras_iodev* hfp_alsa_iodev_create(struct cras_iodev* aio,
       node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
     }
   } else {
-    if (iodev->direction == CRAS_STREAM_INPUT &&
-        !cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_MSBC) &&
-        !cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3)) {
-      node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+    // At this point, we know which codec is preferred. This will usually
+    // be the negotiated codec, but the spec allows to fallback to CVSD,
+    // in which case this will be updated in |hfp_open_dev|.
+    if (iodev->direction == CRAS_STREAM_INPUT) {
+      if (cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3)) {
+        node->btflags |= CRAS_BT_FLAG_SWB;
+        node->btflags &= ~CRAS_BT_FLAG_WBS;
+        node->type = CRAS_NODE_TYPE_BLUETOOTH;
+        syslog(LOG_WARNING, "LC3 offloading is unexpected");
+      } else if (cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_MSBC)) {
+        node->btflags &= ~CRAS_BT_FLAG_SWB;
+        node->btflags |= CRAS_BT_FLAG_WBS;
+        node->type = CRAS_NODE_TYPE_BLUETOOTH;
+      } else {
+        node->btflags &= ~CRAS_BT_FLAG_SWB;
+        node->btflags &= ~CRAS_BT_FLAG_WBS;
+        node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
+      }
     }
   }
   node->volume = 100;

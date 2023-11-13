@@ -11,6 +11,7 @@
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_hfp_manager.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "sr_bt_util_stub.h"
@@ -55,7 +56,7 @@ static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
 static int cras_floss_a2dp_fill_format_called;
 static int cras_floss_hfp_fill_format_called;
-static bool cras_floss_hfp_get_codec_supported_ret;
+static uint32_t cras_floss_hfp_get_codec_supported_mask;
 static enum HFP_CODEC cras_floss_hfp_get_active_codec_ret;
 
 void ResetStubData() {
@@ -85,7 +86,7 @@ void ResetStubData() {
   audio_thread_config_events_callback_trigger = TRIGGER_NONE;
   cras_floss_a2dp_fill_format_called = 0;
   cras_floss_hfp_fill_format_called = 0;
-  cras_floss_hfp_get_codec_supported_ret = false;
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
   cras_floss_hfp_get_active_codec_ret = HFP_CODEC_NONE;
 }
 
@@ -199,6 +200,7 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
             CRAS_BT_FLAG_FLOSS & odev->active_node->btflags);
   EXPECT_EQ(CRAS_BT_FLAG_HFP, CRAS_BT_FLAG_HFP & odev->active_node->btflags);
 
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
   EXPECT_NE(idev, (void*)NULL);
@@ -225,6 +227,51 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
   EXPECT_EQ(2, cras_iodev_free_resources_called);
 }
 
+TEST_F(PcmIodev, CreateDestroyNbsInputHfpPcmIodev) {
+  struct cras_iodev* idev;
+
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
+  idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
+
+  EXPECT_NE(idev, (void*)NULL);
+  EXPECT_EQ(idev->direction, CRAS_STREAM_INPUT);
+
+  EXPECT_EQ(0, CRAS_BT_FLAG_SWB & idev->active_node->btflags);
+  EXPECT_EQ(CRAS_NODE_TYPE_BLUETOOTH_NB_MIC, idev->active_node->type);
+
+  hfp_pcm_iodev_destroy(idev);
+}
+
+TEST_F(PcmIodev, CreateDestroyWbsInputHfpPcmIodev) {
+  struct cras_iodev* idev;
+
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD | HFP_CODEC_MSBC;
+  idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
+
+  EXPECT_NE(idev, (void*)NULL);
+  EXPECT_EQ(idev->direction, CRAS_STREAM_INPUT);
+
+  EXPECT_EQ(0, CRAS_BT_FLAG_SWB & idev->active_node->btflags);
+  EXPECT_EQ(CRAS_NODE_TYPE_BLUETOOTH, idev->active_node->type);
+
+  hfp_pcm_iodev_destroy(idev);
+}
+
+TEST_F(PcmIodev, CreateDestroySwbInputHfpPcmIodev) {
+  struct cras_iodev* idev;
+
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD | HFP_CODEC_LC3;
+  idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
+
+  EXPECT_NE(idev, (void*)NULL);
+  EXPECT_EQ(idev->direction, CRAS_STREAM_INPUT);
+
+  EXPECT_EQ(CRAS_BT_FLAG_SWB, CRAS_BT_FLAG_SWB & idev->active_node->btflags);
+  EXPECT_EQ(CRAS_NODE_TYPE_BLUETOOTH, idev->active_node->type);
+
+  hfp_pcm_iodev_destroy(idev);
+}
+
 TEST_F(PcmIodev, TestHfpReadNotStarted) {
   int sock[2];
   struct cras_iodev* idev;
@@ -234,6 +281,7 @@ TEST_F(PcmIodev, TestHfpReadNotStarted) {
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
   cras_floss_hfp_get_fd_ret = sock[1];
 
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
   // Mock the pcm fd and send some fake data
   send(sock[0], sample, 48, 0);
@@ -257,6 +305,7 @@ TEST_F(PcmIodev, TestHfpReadStarted) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
   cras_floss_hfp_get_fd_ret = sock[1];
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
   pcm_idev = (fl_pcm_io*)idev;
   iodev_set_hfp_format(idev, &format);
@@ -400,6 +449,7 @@ TEST_F(PcmIodev, TestHfpCb) {
   cras_floss_hfp_get_fd_ret = sock[1];
   cras_floss_hfp_get_output_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
   cras_floss_hfp_get_input_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
@@ -446,6 +496,7 @@ TEST_F(PcmIodev, TestHfpCbWithSr) {
   cras_floss_hfp_get_fd_ret = sock[1];
   cras_floss_hfp_get_output_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
+  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
   cras_floss_hfp_get_input_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
@@ -506,6 +557,9 @@ class PcmIodevWithSrTest
     }
 
     cras_floss_hfp_get_active_codec_ret = GetParam().active_codec;
+
+    cras_floss_hfp_get_codec_supported_mask =
+        HFP_CODEC_CVSD | GetParam().active_codec;
   }
 
   virtual void TearDown() { disable_cras_sr_bt(); }
@@ -560,6 +614,98 @@ INSTANTIATE_TEST_SUITE_P(
                                              .direction = CRAS_STREAM_OUTPUT,
                                              .expected_sample_rate = 16000})));
 
+struct HfpInputCodecNegotiationTestParam {
+  uint32_t supported_codecs;
+  enum HFP_CODEC final_codec;
+  uint32_t expected_btflags_before_open;
+  uint32_t expected_btflags_after_open;
+  enum CRAS_NODE_TYPE expected_type_before_open;
+  enum CRAS_NODE_TYPE expected_type_after_open;
+};
+
+class HfpInputCodecNegotiationTest
+    : public testing::TestWithParam<HfpInputCodecNegotiationTestParam> {
+ protected:
+  virtual void SetUp() {
+    ResetStubData();
+
+    cras_floss_hfp_get_codec_supported_mask = GetParam().supported_codecs;
+    cras_floss_hfp_get_active_codec_ret = GetParam().final_codec;
+  }
+
+  virtual void TearDown() { disable_cras_sr_bt(); }
+};
+
+TEST_P(HfpInputCodecNegotiationTest, CreateNegotiateDestroyHfpPcmIodev) {
+  struct cras_iodev* iodev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
+  ASSERT_NE(iodev, (void*)NULL);
+
+  EXPECT_EQ(GetParam().expected_btflags_before_open,
+            iodev->active_node->btflags);
+  EXPECT_EQ(GetParam().expected_type_before_open, iodev->active_node->type);
+
+  iodev->open_dev(iodev);
+  iodev->update_supported_formats(iodev);
+
+  EXPECT_EQ(GetParam().expected_btflags_after_open,
+            iodev->active_node->btflags);
+  EXPECT_EQ(GetParam().expected_type_after_open, iodev->active_node->type);
+
+  iodev->close_dev(iodev);
+
+  hfp_pcm_iodev_destroy(iodev);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    HfpInputCodecNegotiationTest,
+    testing::Values(
+        HfpInputCodecNegotiationTestParam(
+            {.supported_codecs = HFP_CODEC_CVSD,
+             .final_codec = HFP_CODEC_CVSD,
+             .expected_btflags_before_open = CRAS_BT_FLAG_FLOSS |
+                                             CRAS_BT_FLAG_HFP,
+             .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
+                                            CRAS_BT_FLAG_HFP,
+             .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC,
+             .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC}),
+        HfpInputCodecNegotiationTestParam(
+            {.supported_codecs = HFP_CODEC_CVSD | HFP_CODEC_MSBC,
+             .final_codec = HFP_CODEC_MSBC,
+             .expected_btflags_before_open =
+                 CRAS_BT_FLAG_FLOSS | CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_WBS,
+             .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
+                                            CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_WBS,
+             .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH,
+             .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH}),
+        HfpInputCodecNegotiationTestParam(
+            {.supported_codecs = HFP_CODEC_CVSD | HFP_CODEC_MSBC,
+             .final_codec = HFP_CODEC_CVSD,
+             .expected_btflags_before_open =
+                 CRAS_BT_FLAG_FLOSS | CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_WBS,
+             .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
+                                            CRAS_BT_FLAG_HFP,
+             .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH,
+             .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC}),
+        HfpInputCodecNegotiationTestParam(
+            {.supported_codecs = HFP_CODEC_CVSD | HFP_CODEC_LC3,
+             .final_codec = HFP_CODEC_LC3,
+             .expected_btflags_before_open =
+                 CRAS_BT_FLAG_FLOSS | CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_SWB,
+             .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
+                                            CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_SWB,
+             .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH,
+             .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH}),
+        HfpInputCodecNegotiationTestParam(
+            {.supported_codecs = HFP_CODEC_CVSD | HFP_CODEC_LC3,
+             .final_codec = HFP_CODEC_CVSD,
+             .expected_btflags_before_open =
+                 CRAS_BT_FLAG_FLOSS | CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_SWB,
+             .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
+                                            CRAS_BT_FLAG_HFP,
+             .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH,
+             .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC})));
+
 }  // namespace
 
 extern "C" {
@@ -603,8 +749,7 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
   mock_audio_area->channels[0].buf = base_buffer;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
-                               unsigned int frames) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
   return (int)frames;
 }
 
@@ -756,7 +901,7 @@ const char* cras_floss_hfp_get_addr(struct cras_hfp* hfp) {
 
 bool cras_floss_hfp_get_codec_supported(struct cras_hfp* hfp,
                                         enum HFP_CODEC codec) {
-  return cras_floss_hfp_get_codec_supported_ret;
+  return cras_floss_hfp_get_codec_supported_mask & codec;
 }
 
 enum HFP_CODEC cras_floss_hfp_get_active_codec(struct cras_hfp* hfp) {

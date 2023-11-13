@@ -145,7 +145,7 @@ struct cras_ionode {
   unsigned int stable_id;
   // Bit-wise information to indicate the BT profile and attributes
   // that apply.
-  // See enum CRAS_BT_FLAGS in ../common/cras_types.h.
+  // See enum CRAS_BT_FLAGS in include/cras_types.h.
   uint32_t btflags;
   // The total volume step of the node
   // suggested by the system.
