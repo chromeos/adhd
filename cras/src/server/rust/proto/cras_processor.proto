@@ -1,9 +1,13 @@
 syntax = "proto3";
 
-message CrasProcessorOverride {
+message Plugin {
   bool enabled = 1;
   uint32 block_size = 2;
   uint32 frame_rate = 3;
   string plugin_path = 4;
   string constructor = 5;
+}
+
+message CrasProcessorOverride {
+  Plugin input = 1;
 }

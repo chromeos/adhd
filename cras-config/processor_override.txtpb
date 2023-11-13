@@ -1,15 +1,19 @@
-# Uncomment the following line to override CRAS processing.
-# enabled: true
+# Input processing override.
+input {
+  # Uncomment the following line to override CRAS input processing.
+  # enabled: true
 
-# Block size of the processor.
-# If 0, use the block size that cras_stream_apm is using.
-block_size: 480
-# Frame rate of the processor.
-# If 0, use the rate that CRAS is using and no resampling is done.
-frame_rate: 48000
+  # Block size of the processor.
+  # If 0, use the block size that cras_stream_apm is using.
+  block_size: 480
+  # Frame rate of the processor.
+  # If 0, use the rate that CRAS is using and no resampling is done.
+  frame_rate: 48000
 
-# The path to the plugin shared library.
-plugin_path: "/usr/local/lib64/libtest_plugins.so"
+  # The path to the plugin shared library.
+  plugin_path: "/usr/local/lib64/libtest_plugins.so"
 
-# The name of the function to create the plugin processor.
-constructor: "abs_processor_create"
+  # The name of the function to create the plugin processor.
+  constructor: "abs_processor_create"
+  # constructor: "plugin_processor_create"
+}

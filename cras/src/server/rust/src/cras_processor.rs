@@ -70,7 +70,7 @@ static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 impl CrasProcessor {
     fn new(mut config: CrasProcessorConfig) -> anyhow::Result<Self> {
-        let override_config = processor_override::read_system_config();
+        let override_config = processor_override::read_system_config().input;
         if override_config.enabled {
             config.effect = CrasProcessorEffect::Overridden;
         }
@@ -275,5 +275,5 @@ pub unsafe extern "C" fn cras_processor_create(
 /// Returns true if override is enabled in the system config file.
 #[no_mangle]
 pub extern "C" fn cras_processor_is_override_enabled() -> bool {
-    processor_override::read_system_config().enabled
+    processor_override::read_system_config().input.enabled
 }
