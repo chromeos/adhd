@@ -5,7 +5,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::anyhow;
+use anyhow::bail;
 use anyhow::Context;
 use audio_processor::processors::WavSource;
 use audio_processor::AudioProcessor;
@@ -30,11 +30,11 @@ impl DelayCommand {
         let (aspec, a) = read_wav_expect_len_at_least(&self.a, window_size)?;
         let (bspec, b) = read_wav_expect_len_at_least(&self.b, window_size)?;
         if aspec.sample_rate != bspec.sample_rate {
-            return Err(anyhow!(
+            bail!(
                 "sample rate mismatch: {} != {}",
                 aspec.sample_rate,
                 bspec.sample_rate
-            ));
+            );
         }
 
         // Only handle channel 0 for now.
@@ -54,12 +54,12 @@ fn read_wav_expect_len_at_least(
 ) -> anyhow::Result<(hound::WavSpec, MultiBuffer<f32>)> {
     let (spec, buffer) = read_wav(path)?;
     if buffer.data[0].len() < len_at_least {
-        return Err(anyhow!(
+        bail!(
             "{} is too short! Expected at least {} frames but got {}",
             path.display(),
             len_at_least,
             buffer.data[0].len()
-        ));
+        );
     }
     Ok((spec, buffer))
 }

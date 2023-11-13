@@ -7,6 +7,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 
 use anyhow::anyhow;
+use anyhow::bail;
 use anyhow::Context;
 use audio_processor::processors::binding::plugin_processor;
 use audio_processor::processors::export_plugin;
@@ -86,21 +87,15 @@ impl CrasProcessor {
             CrasProcessorEffect::NoiseCancellation => {
                 // Check shape is supported.
                 if config.channels != 1 {
-                    return Err(anyhow!("unsupported channel count {}", config.channels));
+                    bail!("unsupported channel count {}", config.channels);
                 }
                 if config.block_size * 100 != config.frame_rate {
-                    return Err(anyhow!(
-                        "config is not using a block size of 10ms: {:?}",
-                        config
-                    ));
+                    bail!("config is not using a block size of 10ms: {:?}", config);
                 }
 
                 let ap_nc_dlc = get_dlc_state(cras_dlc::CrasDlcId::CrasDlcNcAp)?;
                 if !ap_nc_dlc.installed {
-                    return Err(anyhow!(
-                        "{} not installed",
-                        cras_dlc::CrasDlcId::CrasDlcNcAp
-                    ));
+                    bail!("{} not installed", cras_dlc::CrasDlcId::CrasDlcNcAp);
                 }
 
                 PluginLoader {
