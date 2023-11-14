@@ -170,12 +170,22 @@ void bt_io_manager_update_hardware_volume(struct bt_io_manager* mgr,
 /*
  * When A2DP is connected and appends iodev to |mgr| we prefer to use if
  * possible. And the logic to whether it's allowed is by checking if BT
- * input is now being used or not.
+ * input and bluetooth telephony is now being used or not.
  */
-static int can_switch_to_a2dp_when_connected(struct bt_io_manager* mgr) {
+static int can_switch_to_a2dp(struct bt_io_manager* mgr) {
   struct cras_iodev* idev = mgr->bt_iodevs[CRAS_STREAM_INPUT];
 
-  return bt_io_manager_has_a2dp(mgr) && (!idev || !cras_iodev_is_open(idev));
+  // When BT telephony is in use, always stick to HFP.
+  if (mgr->telephony_use) {
+    return false;
+  }
+
+  // If BT input is being used, has to be HFP
+  if (idev && cras_iodev_is_open(idev)) {
+    return false;
+  }
+
+  return bt_io_manager_has_a2dp(mgr);
 }
 
 /* When bt_io opens or closes so that A2DP better serves the use case,
@@ -696,8 +706,7 @@ static struct cras_iodev* bt_io_create(struct bt_io_manager* mgr,
    */
   profile_flag = btflags_to_profile(active->base.btflags);
   if (!btio->mgr->active_btflag ||
-      (profile_flag == CRAS_BT_FLAG_A2DP &&
-       can_switch_to_a2dp_when_connected(btio->mgr))) {
+      (profile_flag == CRAS_BT_FLAG_A2DP && can_switch_to_a2dp(btio->mgr))) {
     btio->mgr->active_btflag = profile_flag;
   }
 
@@ -766,8 +775,7 @@ static int bt_io_append(struct cras_iodev* bt_iodev, struct cras_iodev* dev) {
 
   // TODO(hychao): refine below after BT stop sending asynchronous
   // A2DP and HFP connection to CRAS.
-  if ((node->btflags & CRAS_BT_FLAG_A2DP) &&
-      can_switch_to_a2dp_when_connected(btio->mgr)) {
+  if ((node->btflags & CRAS_BT_FLAG_A2DP) && can_switch_to_a2dp(btio->mgr)) {
     possibly_switch_to_a2dp(btio->mgr);
   }
   return 0;
@@ -959,32 +967,14 @@ destroy_bt_io:
   }
 }
 
-/* Returns the profile to use. If telephony_use flag is set or audio input
- * stream is opened HFP should be used else A2DP */
-static enum CRAS_BT_FLAGS profile_should_be_use(struct bt_io_manager* mgr,
-                                                struct cras_iodev* iodev) {
-  if (mgr->telephony_use ||
-      (cras_iodev_is_open(iodev) && iodev->direction == CRAS_STREAM_INPUT)) {
-    return CRAS_BT_FLAG_HFP;
-  } else {
-    return CRAS_BT_FLAG_A2DP;
-  }
-}
-
 void bt_io_manager_set_telephony_use(struct bt_io_manager* mgr,
                                      bool telephony_use) {
-  struct cras_iodev* iodev = mgr->bt_iodevs[CRAS_STREAM_INPUT];
   mgr->telephony_use = telephony_use;
 
-  if (mgr->active_btflag == CRAS_BT_FLAG_A2DP &&
-      profile_should_be_use(mgr, iodev) == CRAS_BT_FLAG_HFP &&
-      !mgr->is_profile_switching) {
-    syslog(LOG_DEBUG, "%s: switch to hfp", __func__);
-    switch_to_hfp(mgr);
-  } else if (mgr->active_btflag == CRAS_BT_FLAG_HFP &&
-             profile_should_be_use(mgr, iodev) == CRAS_BT_FLAG_A2DP &&
-             !mgr->is_profile_switching) {
-    syslog(LOG_DEBUG, "%s: possibly switch to a2dp", __func__);
+  if (mgr->active_btflag != CRAS_BT_FLAG_A2DP && can_switch_to_a2dp(mgr)) {
     possibly_switch_to_a2dp(mgr);
+  } else if (mgr->active_btflag != CRAS_BT_FLAG_HFP &&
+             !can_switch_to_a2dp(mgr)) {
+    switch_to_hfp(mgr);
   }
 }

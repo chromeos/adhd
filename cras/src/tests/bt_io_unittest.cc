@@ -410,8 +410,27 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnAppendHfpDev) {
 
   iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
   bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
+  // Do not switch profile if Bluetooth telephony is not enabled
+  bt_io_manager_set_telephony_use(bt_io_mgr, false);
 
   EXPECT_EQ(0, cras_bt_policy_switch_profile_called);
+  EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
+  bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
+  bt_io_manager_remove_iodev(bt_io_mgr, &iodev2_);
+}
+
+TEST_F(BtIoBasicSuite, SwitchProfileOnAppendHfpDev) {
+  ResetStubData();
+  iodev2_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev2_, CRAS_BT_FLAG_A2DP);
+
+  iodev_.active_node->btflags = CRAS_BT_FLAG_HFP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_HFP);
+
+  // If the Bluetooth telephony have been enabled, switch back to HFP.
+  bt_io_manager_set_telephony_use(bt_io_mgr, true);
+  EXPECT_EQ(1, cras_bt_policy_switch_profile_called);
+  EXPECT_EQ(CRAS_BT_FLAG_HFP, bt_io_mgr->active_btflag);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev2_);
 }
