@@ -441,6 +441,12 @@ static void update_active_node(struct cras_iodev* iodev,
   struct cras_iodev* dev;
   int rc;
 
+  // While there is a pending profile-switch request, do not alter
+  // |profile_dev| so as to avoid state de-sync.
+  if (btio->mgr->is_profile_switching) {
+    return;
+  }
+
   if (btio->mgr->active_btflag & active->base.btflags) {
     goto leave;
   }
