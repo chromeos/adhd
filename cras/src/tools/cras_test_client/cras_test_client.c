@@ -953,11 +953,11 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
       break;
     }
     case AUDIO_THREAD_WRITE_STREAMS_MIX:
-      printf("%-30s write_limit:%u max_offset:%u\n", "WRITE_STREAMS_MIX", data1,
-             data2);
+      printf("%-30s write_limit:%u max_offset:%u buffer_avail:%u\n",
+             "WRITE_STREAMS_MIX", data1, data2, data3);
       break;
     case AUDIO_THREAD_WRITE_STREAMS_MIXED:
-      printf("%-30s write_limit:%u\n", "WRITE_STREAMS_MIXED", data1);
+      printf("%-30s written_frames:%u\n", "WRITE_STREAMS_MIXED", data1);
       break;
     case AUDIO_THREAD_WRITE_STREAMS_STREAM:
       printf("%-30s id:%x shm_frames:%u cb_pending:%u\n",

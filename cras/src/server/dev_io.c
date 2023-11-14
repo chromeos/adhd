@@ -746,6 +746,7 @@ unsigned int get_write_limit(struct open_dev** odevs,
  *    adev - The device to write to.
  *    dst - The buffer to put the samples in (returned from snd_pcm_mmap_begin)
  *    write_limit - The maximum number of frames to write to dst.
+ *    buffer_avail - The available frames in the buffer.
  *
  * Returns:
  *    The number of frames rendered on success.
@@ -755,7 +756,8 @@ unsigned int get_write_limit(struct open_dev** odevs,
 static unsigned int write_streams(struct open_dev** odevs,
                                   struct open_dev* adev,
                                   uint8_t* dst,
-                                  size_t write_limit) {
+                                  size_t write_limit,
+                                  size_t buffer_avail) {
   struct cras_iodev* odev = adev->dev;
   struct dev_stream* curr;
 
@@ -768,7 +770,8 @@ static unsigned int write_streams(struct open_dev** odevs,
            (write_limit - max_offset) * frame_bytes);
   }
 
-  ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX, write_limit, max_offset, 0);
+  ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIX, write_limit, max_offset,
+        buffer_avail);
 
   DL_FOREACH (odev->streams, curr) {
     unsigned int offset;
@@ -803,8 +806,10 @@ static unsigned int write_streams(struct open_dev** odevs,
     cras_iodev_stream_written(odev, curr, nwritten);
   }
 
+  // Limit the writable frames by the actual buffer_avail limit rather than the
+  // write_limit, as there may be data that is already mixed.
   unsigned int written_frames =
-      cras_iodev_all_streams_written(odev, write_limit);
+      cras_iodev_all_streams_written(odev, buffer_avail);
 
   ATLOG(atlog, AUDIO_THREAD_WRITE_STREAMS_MIXED, written_frames, 0, 0);
 
@@ -936,7 +941,7 @@ int write_output_samples(struct open_dev** odevs,
     // TODO(dgreid) - This assumes interleaved audio.
     dst = area->channels[0].buf;
     unsigned int write_limit = get_write_limit(odevs, adev, frames_writeable);
-    written = write_streams(odevs, adev, dst, write_limit);
+    written = write_streams(odevs, adev, dst, write_limit, frames_writeable);
     if (written < (snd_pcm_sframes_t)frames_writeable) {
       /* Got all the samples from client that we can, but it
        * won't fill the request. */
