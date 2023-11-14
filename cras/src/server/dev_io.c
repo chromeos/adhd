@@ -1261,6 +1261,11 @@ int dev_io_playback_write(struct open_dev** odevs,
           handle_dev_err(rc, odevs, adev);
         } else {
           update_dev_wakeup_time(adev, &hw_level);
+          // ALSA iodev handles underrun by manually manipulating the appl_ptr
+          // in adjust_appl_ptr_for_underrun(). This causes issues with tracking
+          // the get/put frames, so just reset them.
+          adev->last_get_frames = 0;
+          adev->last_put_frames = 0;
         }
       }
     }
