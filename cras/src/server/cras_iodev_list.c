@@ -1342,7 +1342,11 @@ static bool can_use_dsp_aec(struct cras_rstream* all_streams) {
     if (effects & PRIVATE_DONT_CARE_APM_EFFECTS) {
       continue;
     }
-    if (!(effects & (APM_ECHO_CANCELLATION | DSP_ECHO_CANCELLATION_ALLOWED))) {
+
+    // Block DSP AEC if any stream cannot use DSP AEC.
+    unsigned int dsp_aec_bits =
+        APM_ECHO_CANCELLATION | DSP_ECHO_CANCELLATION_ALLOWED;
+    if ((effects & dsp_aec_bits) != dsp_aec_bits) {
       return false;
     }
   }

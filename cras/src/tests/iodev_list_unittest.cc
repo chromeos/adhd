@@ -117,6 +117,7 @@ static int cras_stream_apm_add_called;
 static struct cras_floop_pair* cras_floop_pair_create_return;
 static bool cras_system_get_sr_bt_supported_return = false;
 static bool cras_system_get_noise_cancellation_enabled_ret = false;
+static int cras_rstream_get_effects_return = 0;
 
 int dev_idx_in_vector(std::vector<unsigned int> v, unsigned int idx) {
   return std::find(v.begin(), v.end(), idx) != v.end();
@@ -274,6 +275,7 @@ class IodevTests : public TestBase {
     cras_system_get_max_internal_mic_gain_return = DEFAULT_MAX_INPUT_NODE_GAIN;
     cras_floop_pair_create_return = NULL;
     cras_system_get_sr_bt_supported_return = false;
+    cras_rstream_get_effects_return = 0;
   }
   void SetUp() override {
     cras_iodev_list_reset();
@@ -3383,6 +3385,33 @@ TEST_F(IoDevTestSuite, BluetoothNbMicAudioEffectSrNotSupported) {
   cras_iodev_list_deinit();
 }
 
+TEST(CanUseDspAec, InputEffects) {
+  // next/prev are nullptr, single item list.
+  struct cras_rstream stream = {
+      .direction = CRAS_STREAM_INPUT,
+  };
+
+  cras_rstream_get_effects_return = 0;
+  EXPECT_EQ(can_use_dsp_aec(&stream), false);
+
+  // DSP AEC needs both APM_ECHO_CANCELLATION and DSP_ECHO_CANCELLATION_ALLOWED
+  // bits.
+  cras_rstream_get_effects_return = APM_ECHO_CANCELLATION;
+  EXPECT_EQ(can_use_dsp_aec(&stream), false);
+  cras_rstream_get_effects_return = DSP_ECHO_CANCELLATION_ALLOWED;
+  EXPECT_EQ(can_use_dsp_aec(&stream), false);
+
+  cras_rstream_get_effects_return =
+      APM_ECHO_CANCELLATION | DSP_ECHO_CANCELLATION_ALLOWED;
+  EXPECT_EQ(can_use_dsp_aec(&stream), true);
+
+  cras_rstream_get_effects_return = PRIVATE_DONT_CARE_APM_EFFECTS;
+  EXPECT_EQ(can_use_dsp_aec(&stream), true);
+
+  // Reset state.
+  cras_rstream_get_effects_return = 0;
+}
+
 }  //  namespace
 
 extern "C" {
@@ -3664,7 +3693,7 @@ int cras_rstream_create(struct cras_rstream_config* config,
 void cras_rstream_destroy(struct cras_rstream* rstream) {}
 
 unsigned int cras_rstream_get_effects(const struct cras_rstream* stream) {
-  return 0;
+  return cras_rstream_get_effects_return;
 }
 
 struct cras_tm* cras_system_state_get_tm() {
