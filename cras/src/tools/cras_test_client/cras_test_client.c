@@ -71,16 +71,10 @@ static int play_short_sound = 0;
 static int play_short_sound_periods = 0;
 static int play_short_sound_periods_left = 0;
 
-static int effect_aec = 0;
-static int effect_ns = 0;
-static int effect_agc = 0;
-static int effect_vad = 0;
+static unsigned int effects = 0;
+
 static char* aecdump_file = NULL;
 static char time_str[128];
-
-static int effect_aec_on_dsp = 0;
-static int effect_ns_on_dsp = 0;
-static int effect_agc_on_dsp = 0;
 
 static enum CRAS_CLIENT_TYPE client_type = CRAS_CLIENT_TYPE_TEST;
 
@@ -226,13 +220,7 @@ static int parse_effect_bits(const char* s) {
     return errno;
   }
 
-  effect_aec = (val & APM_ECHO_CANCELLATION) ? 1 : 0;
-  effect_ns = (val & APM_NOISE_SUPRESSION) ? 1 : 0;
-  effect_agc = (val & APM_GAIN_CONTROL) ? 1 : 0;
-  effect_vad = (val & APM_VOICE_DETECTION) ? 1 : 0;
-  effect_aec_on_dsp = (val & DSP_ECHO_CANCELLATION_ALLOWED) ? 1 : 0;
-  effect_ns_on_dsp = (val & DSP_NOISE_SUPPRESSION_ALLOWED) ? 1 : 0;
-  effect_agc_on_dsp = (val & DSP_GAIN_CONTROL_ALLOWED) ? 1 : 0;
+  effects = val;
   return 0;
 }
 
@@ -248,6 +236,7 @@ static int parse_effect_bits(const char* s) {
  */
 static void parse_stream_effects(char* input) {
   char* s;
+  effects = 0;
 
   // Parse if effects specified by hex value.
   if (strncmp("0x", input, 2) == 0) {
@@ -261,13 +250,13 @@ static void parse_stream_effects(char* input) {
   s = strtok(input, ",");
   while (s) {
     if (strcmp("aec", s) == 0) {
-      effect_aec = 1;
+      effects |= APM_ECHO_CANCELLATION;
     } else if (strcmp("ns", s) == 0) {
-      effect_ns = 1;
+      effects |= APM_NOISE_SUPRESSION;
     } else if (strcmp("agc", s) == 0) {
-      effect_agc = 1;
+      effects |= APM_GAIN_CONTROL;
     } else if (strcmp("vad", s) == 0) {
-      effect_vad = 1;
+      effects |= APM_VOICE_DETECTION;
     } else {
       printf("Unknown effect %s\n", s);
     }
@@ -1781,27 +1770,7 @@ static int run_file_io_stream(struct cras_client* client,
     return -ENOMEM;
   }
 
-  if (effect_aec) {
-    cras_client_stream_params_enable_aec(params);
-    if (effect_aec_on_dsp) {
-      cras_client_stream_params_allow_aec_on_dsp(params);
-    }
-  }
-  if (effect_ns) {
-    cras_client_stream_params_enable_ns(params);
-    if (effect_ns_on_dsp) {
-      cras_client_stream_params_allow_ns_on_dsp(params);
-    }
-  }
-  if (effect_agc) {
-    cras_client_stream_params_enable_agc(params);
-    if (effect_agc_on_dsp) {
-      cras_client_stream_params_allow_agc_on_dsp(params);
-    }
-  }
-  if (effect_vad) {
-    cras_client_stream_params_enable_vad(params);
-  }
+  cras_client_stream_params_set_effects_for_testing(params, effects);
 
   cras_client_run_thread(client);
   if (is_loopback) {

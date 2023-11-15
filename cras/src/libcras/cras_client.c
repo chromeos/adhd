@@ -2546,6 +2546,12 @@ void cras_client_stream_params_set_client_type(
   params->client_type = client_type;
 }
 
+void cras_client_stream_params_set_effects_for_testing(
+    struct cras_stream_params* params,
+    uint32_t effects) {
+  params->effects = effects;
+}
+
 void cras_client_stream_params_enable_aec(struct cras_stream_params* params) {
   params->effects |= APM_ECHO_CANCELLATION;
 }

@@ -636,6 +636,9 @@ void cras_client_stream_params_set_client_type(
  * Args:
  *    params - Stream configuration parameters.
  */
+void cras_client_stream_params_set_effects_for_testing(
+    struct cras_stream_params* params,
+    uint32_t effects);
 void cras_client_stream_params_enable_aec(struct cras_stream_params* params);
 void cras_client_stream_params_disable_aec(struct cras_stream_params* params);
 void cras_client_stream_params_enable_ns(struct cras_stream_params* params);
