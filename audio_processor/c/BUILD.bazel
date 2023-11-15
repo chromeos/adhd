@@ -24,6 +24,8 @@ cc_library(
         "abs_plugin.h",
         "bad_plugin.c",
         "bad_plugin.h",
+        "echo_plugin.cc",
+        "echo_plugin.h",
         "negate_plugin.c",
         "negate_plugin.h",
         "plugin_processor.h",

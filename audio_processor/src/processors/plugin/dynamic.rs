@@ -121,4 +121,34 @@ mod tests {
         // in-place: input changed
         assert_eq!(input.data, [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
     }
+
+    #[test]
+    fn echo_process() {
+        let mut input: MultiBuffer<f32> = MultiBuffer::from(vec![vec![0.1, 0.2, -0.3, -0.4]]);
+        let mut ap = DynamicPluginProcessor::new(
+            &dl_lib_path(),
+            "echo_processor_create",
+            4,
+            1,
+            6, // The processor delays echo by 0.5secs. Frame rate 6 Hz => echo delay = 3 frames.
+        )
+        .unwrap();
+
+        let output = ap.process(input.as_multi_slice()).unwrap();
+
+        assert_eq!(output.into_raw(), [[0.1, 0.2, -0.3, -0.4 + 0.1 * 0.5]]);
+
+        let mut input: MultiBuffer<f32> = MultiBuffer::from(vec![vec![0.5, -0.6, 0.7, -0.8]]);
+        let output = ap.process(input.as_multi_slice()).unwrap();
+        // output = input + 0.5 echo.
+        assert_eq!(
+            output.into_raw(),
+            [[
+                0.5 + 0.2 * 0.5,
+                -0.6 - 0.3 * 0.5,
+                0.7 + (-0.4 + 0.1 * 0.5) * 0.5,
+                -0.8 + (0.5 + 0.2 * 0.5) * 0.5,
+            ]]
+        );
+    }
 }
