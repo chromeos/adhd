@@ -127,10 +127,6 @@ static void handle_audio_thread_event_message(struct cras_main_message* msg,
     return;
   }
 
-  FRALOG(
-      AudioThreadEvent,
-      {"type", audio_thread_event_type_to_str(audio_thread_msg->event_type)});
-
   struct timespec* last_snapshot_time =
       &last_event_snapshot_time[audio_thread_msg->event_type];
 
@@ -143,6 +139,10 @@ static void handle_audio_thread_event_message(struct cras_main_message* msg,
   subtract_timespecs(&now_time, last_snapshot_time, &diff_time);
   if (timespec_is_zero(last_snapshot_time) ||
       diff_time.tv_sec >= MIN_WAIT_SECOND) {
+    FRALOG(
+        AudioThreadEvent,
+        {"type", audio_thread_event_type_to_str(audio_thread_msg->event_type)});
+
     take_snapshot(audio_thread_msg->event_type);
     *last_snapshot_time = now_time;
   }
