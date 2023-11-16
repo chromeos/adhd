@@ -17,8 +17,8 @@ pub enum CrasFRASignal {
     USBAudioStartFailed,
     USBAudioSoftwareVolumeAbnormalRange,
     USBAudioSoftwareVolumeAbnormalSteps,
-    USBAudioUCMNoJack,
-    USBAudioUCMWrongJack,
+    USBAudioUCMNoJack,    // No use
+    USBAudioUCMWrongJack, // No use
     USBAudioResumeFailed,
     ActiveOutputDevice,
     ActiveInputDevice,

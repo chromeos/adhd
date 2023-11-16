@@ -2296,6 +2296,9 @@ cleanup_iodev:
   return NULL;
 }
 
+// When a jack is found, try to associate it with a node already created
+// for mixer control. If there isn't a node can be associated, go for
+// creating a new node for the jack.
 static void add_input_node_or_associate_jack(const struct cras_alsa_jack* jack,
                                              void* arg) {
   struct alsa_io* aio;
@@ -2311,11 +2314,6 @@ static void add_input_node_or_associate_jack(const struct cras_alsa_jack* jack,
 
   // If there isn't a node for this jack, create one.
   if (node == NULL) {
-    if (aio->common.fully_specified) {
-      // When fully specified, can't have new nodes.
-      syslog(LOG_ERR, "No matching input node for jack %s!", jack_name);
-      return;
-    }
     cras_input = cras_alsa_jack_get_mixer_input(jack);
     node = new_input(aio, cras_input, jack_name);
     if (node == NULL) {
@@ -2325,12 +2323,6 @@ static void add_input_node_or_associate_jack(const struct cras_alsa_jack* jack,
 
   // If we already have the node, associate with the jack.
   if (!node->jack) {
-    if (aio->common.fully_specified) {
-      syslog(LOG_ERR,
-             "Jack '%s' was found to match input node '%s'."
-             " Please fix your UCM configuration to match.",
-             jack_name, node->base.ucm_name);
-    }
     node->jack = jack;
   }
 }
@@ -2352,11 +2344,6 @@ static void add_output_node_or_associate_jack(const struct cras_alsa_jack* jack,
 
   // If there isn't a node for this jack, create one.
   if (node == NULL) {
-    if (aio->common.fully_specified) {
-      // When fully specified, can't have new nodes.
-      syslog(LOG_ERR, "No matching output node for jack %s!", jack_name);
-      return;
-    }
     node = new_output(aio, NULL, jack_name);
     if (node == NULL) {
       return;
@@ -2366,13 +2353,6 @@ static void add_output_node_or_associate_jack(const struct cras_alsa_jack* jack,
   }
 
   if (!node->jack) {
-    if (aio->common.fully_specified) {
-      syslog(LOG_ERR,
-             "Jack '%s' was found to match output node '%s'."
-             " Please fix your UCM configuration to match.",
-             jack_name, node->base.ucm_name);
-    }
-
     // If we already have the node, associate with the jack.
     node->jack = jack;
     if (node->volume_curve == NULL) {
@@ -2493,9 +2473,6 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev* iodev,
   if (section->dependent_dev_idx != -1) {
     aio->common.has_dependent_dev = 1;
   }
-
-  // This iodev is fully specified. Avoid automatic node creation.
-  aio->common.fully_specified = 1;
 
   /* Check here in case the DmaPeriodMicrosecs flag has only been
    * specified on one of many device entries with the same PCM. */

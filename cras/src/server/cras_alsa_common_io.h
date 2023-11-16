@@ -100,9 +100,6 @@ struct alsa_common_io {
   enum CRAS_ALSA_CARD_TYPE card_type;
   // true if this is the first iodev on the card.
   int is_first;
-  // true if this device and it's nodes were fully specified.
-  // That is, don't automatically create nodes for it.
-  int fully_specified;
   // Handle to the opened ALSA device.
   snd_pcm_t* handle;
   // Number of times we have run out of data badly.
