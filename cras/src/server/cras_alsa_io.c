@@ -1011,24 +1011,6 @@ static int no_create_default_output_node(struct alsa_io* aio) {
   return result;
 }
 
-static void set_output_node_software_volume_needed(
-    struct alsa_output_node* output,
-    struct alsa_io* aio) {
-  struct cras_alsa_mixer* mixer = aio->common.mixer;
-
-  /* Use software volume for HDMI output and nodes without volume mixer
-   * control. */
-  if ((output->base.type == CRAS_NODE_TYPE_HDMI) ||
-      (!cras_alsa_mixer_has_main_volume(mixer) &&
-       !cras_alsa_mixer_has_volume(output->mixer_output))) {
-    output->base.software_volume_needed = 1;
-  }
-
-  if (output->base.software_volume_needed) {
-    syslog(LOG_DEBUG, "Use software volume for node: %s", output->base.name);
-  }
-}
-
 static void set_input_default_node_gain(struct alsa_input_node* input,
                                         struct alsa_io* aio) {
   long gain;
@@ -1105,6 +1087,7 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
                                            struct mixer_control* cras_control,
                                            const char* name) {
   struct alsa_output_node* output;
+  CRAS_CHECK(name);
 
   syslog(LOG_DEBUG, "New output node for '%s'", name);
   if (aio == NULL) {
@@ -1121,7 +1104,6 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   output->base.stable_id =
       SuperFastHash(name, strlen(name), aio->common.base.info.stable_id);
 
-  output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
   if (aio->common.ucm) {
     output->base.dsp_name = ucm_get_dsp_name_for_dev(aio->common.ucm, name);
   }
@@ -1131,15 +1113,9 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   }
   output->mixer_output = cras_control;
 
-  // Volume curve.
-  output->volume_curve = cras_card_config_get_volume_curve_for_control(
-      aio->common.config,
-      name ? name : cras_alsa_mixer_get_control_name(cras_control));
-
   strncpy(output->base.name, name, sizeof(output->base.name) - 1);
   strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
   set_node_initial_state(&output->base, aio->common.card_type);
-  set_output_node_software_volume_needed(output, aio);
   cras_iodev_add_node(&aio->common.base, &output->base);
   check_auto_unplug_output_node(aio, &output->base, output->base.plugged);
   return output;
@@ -1304,27 +1280,64 @@ static const char* get_active_dsp_name(struct alsa_io* aio) {
 /*
  * Creates volume curve for the node associated with given jack.
  */
-static struct cras_volume_curve* create_volume_curve_for_jack(
+static struct cras_volume_curve* create_volume_curve_for_output(
     const struct cras_card_config* config,
-    const struct cras_alsa_jack* jack) {
+    const struct alsa_output_node* aout) {
   struct cras_volume_curve* curve;
   const char* name;
 
+  // Use node's name as key to get volume curve.
+  name = aout->base.name;
+  curve = cras_card_config_get_volume_curve_for_control(config, name);
+  if (curve) {
+    return curve;
+  }
+
+  if (aout->jack == NULL) {
+    return NULL;
+  }
+
   // Use jack's UCM device name as key to get volume curve.
-  name = cras_alsa_jack_get_ucm_device(jack);
+  name = cras_alsa_jack_get_ucm_device(aout->jack);
   curve = cras_card_config_get_volume_curve_for_control(config, name);
   if (curve) {
     return curve;
   }
 
   // Use alsa jack's name as key to get volume curve.
-  name = cras_alsa_jack_get_name(jack);
+  name = cras_alsa_jack_get_name(aout->jack);
   curve = cras_card_config_get_volume_curve_for_control(config, name);
   if (curve) {
     return curve;
   }
 
   return NULL;
+}
+
+/* 1. Create volume curve for nodes base on cras config.
+ * 2. Finalize volume settings including SW or HW volume.
+ * 3. Build software volume scaler.
+ */
+static void finalize_volume_settings(struct alsa_output_node* output,
+                                     struct alsa_io* aio) {
+  const struct cras_volume_curve* curve;
+
+  output->volume_curve =
+      create_volume_curve_for_output(aio->common.config, output);
+
+  output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
+
+  /* Use software volume for HDMI output and nodes without volume mixer
+   * control. */
+  if ((output->base.type == CRAS_NODE_TYPE_HDMI) ||
+      (!cras_alsa_mixer_has_main_volume(aio->common.mixer) &&
+       !cras_alsa_mixer_has_volume(output->mixer_output))) {
+    output->base.software_volume_needed = 1;
+    syslog(LOG_DEBUG, "Use software volume for node: %s", output->base.name);
+  }
+
+  curve = get_curve_for_output_node(aio, output);
+  output->base.softvol_scalers = softvol_build_from_curve(curve);
 }
 
 /*
@@ -1681,23 +1694,6 @@ static int update_supported_formats(struct cras_iodev* iodev) {
     }
   }
   return 0;
-}
-
-/*
- * Builds software volume scalers for output nodes in the device.
- */
-static void build_softvol_scalers(struct alsa_io* aio) {
-  struct cras_ionode* ionode;
-
-  DL_FOREACH (aio->common.base.nodes, ionode) {
-    struct alsa_output_node* aout;
-    const struct cras_volume_curve* curve;
-
-    aout = (struct alsa_output_node*)ionode;
-    curve = get_curve_for_output_node(aio, aout);
-
-    ionode->softvol_scalers = softvol_build_from_curve(curve);
-  }
 }
 
 static void enable_active_ucm(struct alsa_io* aio, int plugged) {
@@ -2421,10 +2417,6 @@ static void add_output_node_or_associate_jack(const struct cras_alsa_jack* jack,
   if (!node->jack) {
     // If we already have the node, associate with the jack.
     node->jack = jack;
-    if (node->volume_curve == NULL) {
-      node->volume_curve =
-          create_volume_curve_for_jack(aio->common.config, jack);
-    }
   }
 }
 
@@ -2498,9 +2490,12 @@ int alsa_iodev_legacy_complete_init(struct cras_iodev* iodev) {
     }
   }
 
-  // Build software volume scalers.
+  // Finalize volume settings for output nodes.
   if (direction == CRAS_STREAM_OUTPUT) {
-    build_softvol_scalers(aio);
+    struct cras_ionode* node;
+    DL_FOREACH (iodev->nodes, node) {
+      finalize_volume_settings((struct alsa_output_node*)node, aio);
+    }
   }
 
   // Set the active node as the best node we have now.
@@ -2575,10 +2570,6 @@ int alsa_iodev_ucm_add_nodes_and_jacks(struct cras_iodev* iodev,
   if (jack) {
     if (output_node) {
       output_node->jack = jack;
-      if (!output_node->volume_curve) {
-        output_node->volume_curve =
-            create_volume_curve_for_jack(aio->common.config, jack);
-      }
     } else if (input_node) {
       input_node->jack = jack;
     }
@@ -2597,9 +2588,11 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
   // Get an initial read of the jacks for this device.
   cras_alsa_jack_list_report(aio->common.jack_list);
 
-  // Build software volume scaler.
+  // Finalize volume settings for output nodes.
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
-    build_softvol_scalers(aio);
+    DL_FOREACH (iodev->nodes, node) {
+      finalize_volume_settings((struct alsa_output_node*)node, aio);
+    }
   }
 
   // Create the mapping information for DSP offload if the device has any node

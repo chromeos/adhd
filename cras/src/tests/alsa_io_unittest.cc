@@ -1082,7 +1082,6 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
       reinterpret_cast<struct cras_alsa_jack*>(10);
   cras_alsa_mixer_get_control_for_section_return_value = output;
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
-  EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
   ucm_section_free_list(section);
 
   // Second node 'Line Out'
@@ -1093,8 +1092,11 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
       reinterpret_cast<struct cras_alsa_jack*>(20);
   cras_alsa_mixer_get_control_for_section_return_value = output;
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
-  EXPECT_EQ(7, cras_card_config_get_volume_curve_for_control_called);
   ucm_section_free_list(section);
+
+  //
+  alsa_iodev_ucm_complete_init(iodev);
+  EXPECT_EQ(7, cras_card_config_get_volume_curve_for_control_called);
 
   // Both nodes are associated with the same mixer output. Different jack plug
   // report should trigger different node attribute change.
@@ -1185,7 +1187,6 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   cras_alsa_mixer_get_control_for_section_return_value = outputs[0];
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   ucm_section_free_list(section);
-  EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
 
   // Add a second node (will use the same iodev).
   section = ucm_section_create(HEADPHONE, "hw:0,2", 0, -1, CRAS_STREAM_OUTPUT,
@@ -1197,9 +1198,6 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   cras_alsa_mixer_get_control_for_section_return_value = outputs[1];
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   ucm_section_free_list(section);
-  /* New nodes creation calls get volume curve once, hp_jack makes two
-   * more calls. */
-  EXPECT_EQ(7, cras_card_config_get_volume_curve_for_control_called);
 
   // Jack plug of an unknown device should do nothing.
   cras_alsa_jack_get_mixer_output_ret = NULL;
@@ -1212,6 +1210,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   cras_alsa_support_8_channels = false;  // Support 2 channels only.
   alsa_iodev_ucm_complete_init(iodev);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
+  EXPECT_EQ(7, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(2, cras_alsa_jack_list_add_jack_for_section_called);
   EXPECT_EQ(2, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, ucm_get_dma_period_for_dev_called);
@@ -1274,7 +1273,6 @@ TEST(AlsaOutputNode, OutputNoControlsUCM) {
   EXPECT_EQ(-22, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
   section->dev_idx = 0;
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
-  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, cras_iodev_add_node_called);
   ucm_section_free_list(section);
@@ -1282,6 +1280,7 @@ TEST(AlsaOutputNode, OutputNoControlsUCM) {
   // Complete initialization, and make first node active.
   alsa_iodev_ucm_complete_init(iodev);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
+  EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(0, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ(0, cras_alsa_jack_enable_ucm_called);
@@ -1313,7 +1312,6 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
   section = ucm_section_create(HEADPHONE, "hw:0,1", 0, -1, CRAS_STREAM_OUTPUT,
                                jack_name, "hctl");
   ASSERT_EQ(0, alsa_iodev_ucm_add_nodes_and_jacks(iodev, section));
-  EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(1, cras_alsa_mixer_get_control_for_section_called);
   EXPECT_EQ(1, cras_iodev_add_node_called);
   EXPECT_EQ(1, cras_alsa_jack_list_add_jack_for_section_called);
@@ -1322,6 +1320,7 @@ TEST(AlsaOutputNode, OutputFromJackUCM) {
   // Complete initialization, and make first node active.
   alsa_iodev_ucm_complete_init(iodev);
   EXPECT_EQ(SND_PCM_STREAM_PLAYBACK, aio->common.alsa_stream);
+  EXPECT_EQ(4, cras_card_config_get_volume_curve_for_control_called);
   EXPECT_EQ(0, cras_alsa_mixer_get_control_name_called);
   EXPECT_EQ(1, cras_iodev_update_dsp_called);
   EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);

@@ -679,50 +679,6 @@ static int usb_no_create_default_output_node(struct alsa_usb_io* aio) {
   return result;
 }
 
-static void usb_set_output_node_software_volume_needed(
-    struct alsa_usb_output_node* output,
-    struct alsa_usb_io* aio) {
-  struct cras_alsa_mixer* mixer = aio->common.mixer;
-  long max, min;
-  int32_t number_of_volume_steps;
-
-  cras_alsa_mixer_get_playback_dBFS_range(mixer, output->mixer_output, &max,
-                                          &min);
-  long volume_range_db = max - min;
-  if (volume_range_db < db_to_alsa_db(VOLUME_RANGE_DB_MIN) ||
-      volume_range_db > db_to_alsa_db(VOLUME_RANGE_DB_MAX)) {
-    output->base.software_volume_needed = 1;
-    FRALOG(USBAudioSoftwareVolumeAbnormalRange,
-           {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
-           {"pid", tlsprintf("0x%04X", aio->common.product_id)});
-    syslog(LOG_WARNING,
-           "card type: %s, name: %s, output volume range [%ld %ld] is abnormal."
-           "Fallback to software volume",
-           cras_card_type_to_string(aio->common.card_type), output->base.name,
-           min, max);
-  }
-  number_of_volume_steps =
-      cras_alsa_mixer_get_playback_step(output->mixer_output);
-  if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
-    output->base.software_volume_needed = 1;
-    output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-
-    FRALOG(USBAudioSoftwareVolumeAbnormalSteps,
-           {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
-           {"pid", tlsprintf("0x%04X", aio->common.product_id)});
-    syslog(LOG_WARNING,
-           "card type: %s, name: %s, output number_of_volume_steps [%" PRId32
-           "] is abnormally small."
-           "Fallback to software volume and set number_of_volume_steps to %d",
-           cras_card_type_to_string(aio->common.card_type), output->base.name,
-           number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_DEFAULT);
-  }
-  if (output->base.software_volume_needed) {
-    syslog(LOG_DEBUG, "card type: %s, Use software volume for node: %s",
-           cras_card_type_to_string(aio->common.card_type), output->base.name);
-  }
-}
-
 static void usb_set_input_default_node_gain(struct alsa_usb_input_node* input,
                                             struct alsa_usb_io* aio) {
   long gain;
@@ -806,10 +762,7 @@ static struct alsa_usb_output_node* usb_new_output(
     struct mixer_control* cras_control,
     const char* name) {
   struct alsa_usb_output_node* output;
-  struct cras_volume_curve* curve;
-  long max_volume, min_volume;
-  int32_t number_of_volume_steps;
-  unsigned int disable_software_volume = -ENOENT;
+  CRAS_CHECK(name);
 
   syslog(LOG_DEBUG, "card type: %s, New output node for '%s'",
          cras_card_type_to_string(aio->common.card_type), name);
@@ -832,56 +785,15 @@ static struct alsa_usb_output_node* usb_new_output(
   output->base.stable_id =
       SuperFastHash(name, strlen(name), aio->common.base.info.stable_id);
 
-  output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
   if (aio->common.ucm) {
     output->base.dsp_name = ucm_get_dsp_name_for_dev(aio->common.ucm, name);
-    disable_software_volume = ucm_get_disable_software_volume(aio->common.ucm);
   }
   output->mixer_output = cras_control;
-  // Volume curve.
-  curve = cras_card_config_get_volume_curve_for_control(
-      aio->common.config,
-      name ? name : cras_alsa_mixer_get_control_name(cras_control));
-  if (!curve) {
-    cras_alsa_mixer_get_playback_dBFS_range(aio->common.mixer, cras_control,
-                                            &max_volume, &min_volume);
-    syslog(LOG_DEBUG, "card type: %s, %s's output volume range: [%ld %ld]",
-           cras_card_type_to_string(aio->common.card_type), name, min_volume,
-           max_volume);
-    long long volume_range_db = max_volume - min_volume;
-    /* if we specified to disable sw volume or your headset volume
-     * range is with a reasonable range, create volume curve. */
-    if (disable_software_volume == 1 ||
-        (volume_range_db >= db_to_alsa_db(VOLUME_RANGE_DB_MIN) &&
-         volume_range_db <= db_to_alsa_db(VOLUME_RANGE_DB_MAX))) {
-      curve = cras_volume_curve_create_simple_step(0, volume_range_db);
-    }
-    number_of_volume_steps = cras_alsa_mixer_get_playback_step(cras_control);
-    output->base.number_of_volume_steps =
-        MIN(number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_MAX);
-  }
-  output->volume_curve = curve;
 
   strncpy(output->base.name, name, sizeof(output->base.name) - 1);
   strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
   usb_set_node_initial_state(&output->base);
-  if (disable_software_volume == 1) {
-    syslog(LOG_INFO, "card type: %s, Disable software volume for %s from ucm.",
-           cras_card_type_to_string(aio->common.card_type), output->base.name);
-    output->base.software_volume_needed = 0;
-  } else if (disable_software_volume == 0) {
-    syslog(LOG_INFO, "card type: %s, Enable software volume for %s from ucm.",
-           cras_card_type_to_string(aio->common.card_type), output->base.name);
-    output->base.software_volume_needed = 1;
-  } else if (disable_software_volume == -ENOENT) {
-    syslog(LOG_INFO, "card type: %s, software volume not set from ucm.",
-           cras_card_type_to_string(aio->common.card_type));
-    usb_set_output_node_software_volume_needed(output, aio);
-  } else {
-    syslog(LOG_ERR,
-           "The value for DisableSoftwareVolume in ucm for %s is incorrect.",
-           output->base.name);
-  }
+
   cras_iodev_add_node(&aio->common.base, &output->base);
 
   usb_check_auto_unplug_output_node(aio, &output->base, output->base.plugged);
@@ -1057,23 +969,35 @@ static const struct cras_alsa_jack* usb_get_jack_from_node(
 }
 
 /*
- * Creates volume curve for the node associated with given jack.
+ * Creates volume curve for the node associated with given output
+ * usb node.
  */
-static struct cras_volume_curve* usb_create_volume_curve_for_jack(
+static struct cras_volume_curve* usb_create_volume_curve_for_output(
     const struct cras_card_config* config,
-    const struct cras_alsa_jack* jack) {
+    const struct alsa_usb_output_node* aout) {
   struct cras_volume_curve* curve;
   const char* name;
 
+  // Use node's name as key to get volume curve.
+  name = aout->base.name;
+  curve = cras_card_config_get_volume_curve_for_control(config, name);
+  if (curve) {
+    return curve;
+  }
+
+  if (aout->jack == NULL) {
+    return NULL;
+  }
+
   // Use jack's UCM device name as key to get volume curve.
-  name = cras_alsa_jack_get_ucm_device(jack);
+  name = cras_alsa_jack_get_ucm_device(aout->jack);
   curve = cras_card_config_get_volume_curve_for_control(config, name);
   if (curve) {
     return curve;
   }
 
   // Use alsa jack's name as key to get volume curve.
-  name = cras_alsa_jack_get_name(jack);
+  name = cras_alsa_jack_get_name(aout->jack);
   curve = cras_card_config_get_volume_curve_for_control(config, name);
   if (curve) {
     return curve;
@@ -1352,23 +1276,6 @@ static int usb_update_supported_formats(struct cras_iodev* iodev) {
     }
   }
   return 0;
-}
-
-/*
- * Builds software volume scalers for output nodes in the device.
- */
-static void usb_build_softvol_scalers(struct alsa_usb_io* aio) {
-  struct cras_ionode* ionode;
-
-  DL_FOREACH (aio->common.base.nodes, ionode) {
-    struct alsa_usb_output_node* aout;
-    const struct cras_volume_curve* curve;
-
-    aout = (struct alsa_usb_output_node*)ionode;
-    curve = usb_get_curve_for_output_node(aio, aout);
-
-    ionode->softvol_scalers = softvol_build_from_curve(curve);
-  }
 }
 
 static void usb_enable_active_ucm(struct alsa_usb_io* aio, int plugged) {
@@ -1871,11 +1778,96 @@ static void add_output_node_and_associate_jack(
   if (!node->jack) {
     // If we already have the node, associate with the jack.
     node->jack = jack;
-    if (node->volume_curve == NULL) {
-      node->volume_curve =
-          usb_create_volume_curve_for_jack(aio->common.config, jack);
-    }
   }
+}
+
+/* Settle everything about volume on an output node. For eaxmple: SW or HW
+ * volume to use, volume range check, volume curve construction.
+ */
+static void finalize_volume_settings(struct alsa_usb_output_node* output,
+                                     struct alsa_usb_io* aio) {
+  long max, min, range;
+  bool vol_range_reasonable;
+  int32_t number_of_volume_steps;
+  const struct cras_volume_curve* curve;
+  int disable_sw_vol = -ENOENT;
+
+  if (aio->common.ucm) {
+    disable_sw_vol = ucm_get_disable_software_volume(aio->common.ucm);
+  }
+
+  CRAS_CHECK((disable_sw_vol == 0) || (disable_sw_vol == 1) ||
+             (disable_sw_vol == -ENOENT));
+
+  // Create volume curve for nodes base on cras config.
+  output->volume_curve =
+      usb_create_volume_curve_for_output(aio->common.config, output);
+
+  output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
+
+  number_of_volume_steps =
+      cras_alsa_mixer_get_playback_step(output->mixer_output);
+
+  cras_alsa_mixer_get_playback_dBFS_range(aio->common.mixer,
+                                          output->mixer_output, &max, &min);
+  syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", output->base.name,
+         min, max);
+
+  range = max - min;
+  vol_range_reasonable = ((range >= db_to_alsa_db(VOLUME_RANGE_DB_MIN)) &&
+                          (range <= db_to_alsa_db(VOLUME_RANGE_DB_MAX)));
+
+  if (!output->volume_curve) {
+    /* if we specified to disable sw volume or your headset volume
+     * range is with a reasonable range, create volume curve. */
+    if (disable_sw_vol == 1 || vol_range_reasonable) {
+      output->volume_curve = cras_volume_curve_create_simple_step(0, range);
+    }
+    output->base.number_of_volume_steps =
+        MIN(number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_MAX);
+  }
+
+  // If UCM explicitly sets disable/enable software volume, we're confident
+  // that all settings written in UCM are good to use.
+  if (disable_sw_vol != -ENOENT) {
+    syslog(LOG_INFO, "%s software volume for %s from ucm.",
+           disable_sw_vol ? "Disable" : "Enable", output->base.name);
+    output->base.software_volume_needed = !disable_sw_vol;
+    goto complete_init_software_volume;
+  }
+
+  // Examine abnormal volume and force back to SW volume.
+  if (!vol_range_reasonable) {
+    output->base.software_volume_needed = 1;
+    FRALOG(USBAudioSoftwareVolumeAbnormalRange,
+           {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
+           {"pid", tlsprintf("0x%04X", aio->common.product_id)});
+    syslog(LOG_WARNING,
+           "card type: %s, name: %s, output volume range [%ld %ld] is abnormal."
+           "Fallback to software volume",
+           cras_card_type_to_string(aio->common.card_type), output->base.name,
+           min, max);
+  }
+
+  if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
+    output->base.software_volume_needed = 1;
+    output->base.number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
+
+    FRALOG(USBAudioSoftwareVolumeAbnormalSteps,
+           {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
+           {"pid", tlsprintf("0x%04X", aio->common.product_id)});
+    syslog(LOG_WARNING,
+           "card type: %s, name: %s, output number_of_volume_steps [%" PRId32
+           "] is abnormally small."
+           "Fallback to software volume and set number_of_volume_steps to %d",
+           cras_card_type_to_string(aio->common.card_type), output->base.name,
+           number_of_volume_steps, NUMBER_OF_VOLUME_STEPS_DEFAULT);
+  }
+
+complete_init_software_volume:
+  // Lastly, construct software volume scaler from the curve.
+  curve = usb_get_curve_for_output_node(aio, output);
+  output->base.softvol_scalers = softvol_build_from_curve(curve);
 }
 
 int cras_alsa_usb_iodev_legacy_complete_init(struct cras_iodev* iodev) {
@@ -1884,6 +1876,7 @@ int cras_alsa_usb_iodev_legacy_complete_init(struct cras_iodev* iodev) {
   int err;
   int is_first;
   struct cras_alsa_mixer* mixer;
+  struct cras_ionode* node;
 
   if (!aio) {
     return -EINVAL;
@@ -1931,7 +1924,9 @@ int cras_alsa_usb_iodev_legacy_complete_init(struct cras_iodev* iodev) {
 
   // Build software volume scalers.
   if (direction == CRAS_STREAM_OUTPUT) {
-    usb_build_softvol_scalers(aio);
+    DL_FOREACH (iodev->nodes, node) {
+      finalize_volume_settings((struct alsa_usb_output_node*)node, aio);
+    }
   }
 
   // Set the active node as the best node we have now.
@@ -2010,10 +2005,6 @@ int cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(struct cras_iodev* iodev,
   if (jack) {
     if (output_node) {
       output_node->jack = jack;
-      if (!output_node->volume_curve) {
-        output_node->volume_curve =
-            usb_create_volume_curve_for_jack(aio->common.config, jack);
-      }
     } else if (input_node) {
       input_node->jack = jack;
     }
@@ -2034,7 +2025,9 @@ void cras_alsa_usb_iodev_ucm_complete_init(struct cras_iodev* iodev) {
 
   // Build software volume scaler.
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
-    usb_build_softvol_scalers(aio);
+    DL_FOREACH (iodev->nodes, node) {
+      finalize_volume_settings((struct alsa_usb_output_node*)node, aio);
+    }
   }
 
   // Set the active node as the best node we have now.
