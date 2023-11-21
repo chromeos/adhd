@@ -223,7 +223,7 @@ int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
                                            enum CRAS_DEVICE_OPEN_STATUS code);
 
 // Logs whether there is an internal soundcard detected.
-int cras_server_metrics_internal_soundcard_status(bool detected);
+int cras_server_metrics_internal_soundcard_status(bool detected, int sec);
 
 // Initialize metrics logging stuff.
 int cras_server_metrics_init();

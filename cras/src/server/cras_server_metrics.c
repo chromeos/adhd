@@ -46,7 +46,8 @@ const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
 const char kHighestOutputHardwareLevel[] = "Cras.HighestOutputHardwareLevel";
-const char kInternalSoundcardStatus[] = "Cras.InternalSoundcardStatus";
+const char kInternalSoundcardStatus5s[] = "Cras.InternalSoundcardStatus";
+const char kInternalSoundcardStatus10s[] = "Cras.InternalSoundcardStatus.10s";
 const char kMissedCallbackFirstTimeInput[] =
     "Cras.MissedCallbackFirstTimeInput";
 const char kMissedCallbackFirstTimeOutput[] =
@@ -139,7 +140,8 @@ enum CRAS_SERVER_METRICS_TYPE {
   HIGHEST_DEVICE_DELAY_OUTPUT,
   HIGHEST_INPUT_HW_LEVEL,
   HIGHEST_OUTPUT_HW_LEVEL,
-  INTERNAL_SOUNDCARD_STATUS,
+  INTERNAL_SOUNDCARD_STATUS_5S,
+  INTERNAL_SOUNDCARD_STATUS_10S,
   LONGEST_FETCH_DELAY,
   MISSED_CB_FIRST_TIME_INPUT,
   MISSED_CB_FIRST_TIME_OUTPUT,
@@ -1424,9 +1426,21 @@ int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
   return 0;
 }
 
-int cras_server_metrics_internal_soundcard_status(bool detected) {
+int cras_server_metrics_internal_soundcard_status(bool detected, int sec) {
   int err;
-  err = send_unsigned_metrics(INTERNAL_SOUNDCARD_STATUS, detected);
+  enum CRAS_SERVER_METRICS_TYPE metric;
+
+  if (sec == 5) {
+    metric = INTERNAL_SOUNDCARD_STATUS_5S;
+  } else if (sec == 10) {
+    metric = INTERNAL_SOUNDCARD_STATUS_10S;
+  } else {
+    syslog(LOG_WARNING,
+           "Not support to log InternalSoundcardStatus with %d sec", sec);
+    return 1;
+  }
+
+  err = send_unsigned_metrics(metric, detected);
   if (err < 0) {
     syslog(LOG_WARNING,
            "Failed to send metrics message: INTERNAL_SOUNDCARD_STATUS");
@@ -1844,8 +1858,12 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
     case DEVICE_OPEN_STATUS:
       metrics_device_open_status(metrics_msg->data.device_data);
       break;
-    case INTERNAL_SOUNDCARD_STATUS:
-      cras_metrics_log_sparse_histogram(kInternalSoundcardStatus,
+    case INTERNAL_SOUNDCARD_STATUS_5S:
+      cras_metrics_log_sparse_histogram(kInternalSoundcardStatus5s,
+                                        metrics_msg->data.value);
+      break;
+    case INTERNAL_SOUNDCARD_STATUS_10S:
+      cras_metrics_log_sparse_histogram(kInternalSoundcardStatus10s,
                                         metrics_msg->data.value);
       break;
     default:
