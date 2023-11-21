@@ -205,6 +205,7 @@ crates_repository(
         "//:Cargo.toml",
         "//:rock/Cargo.toml",
         "//audio_processor:Cargo.toml",
+        "//cras/common:Cargo.toml",
         "//cras/platform/features:Cargo.toml",
         "//cras/src/server/rust:Cargo.toml",
         "//cras/src/server/rust:binding_generator/Cargo.toml",

@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "audio_processor",
+    "cras/common",
     "cras/platform/features",
     "cras/src/server/rust",
     "cras/src/server/rust/staticlib",
@@ -18,6 +19,7 @@ overflow-checks = true
 [patch.crates-io]
 audio_processor = { path = "audio_processor" }
 cras = { path = "cras/src/server/rust" }
+cras_common = { path = "cras/common" }
 cras_dlc = { path = "cras/src/server/rust/cras_dlc" }
 cras_features_backend = { path = "cras/platform/features" }
 

@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
-use cras::pseudonymization::Salt;
+use cras_common::pseudonymization::Salt;
 use serde::de::Visitor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -144,7 +144,7 @@ mod tests {
     use super::DeviceState;
     use super::LocalState;
 
-    use cras::pseudonymization::Salt;
+    use cras_common::pseudonymization::Salt;
 
     #[test]
     fn audio_node() {

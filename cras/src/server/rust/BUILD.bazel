@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 load("//:utils.bzl", "require_no_config")
@@ -20,7 +21,6 @@ cc_library(
         ],
     }) + [
         "@pkg_config//dbus-1",
-        "@pkg_config//openssl",
     ],
 )
 
@@ -31,6 +31,7 @@ rust_library(
     deps = [
         ":build_script",
         "//audio_processor",
+        "//cras/common:rust_common",
         "//cras/platform/features:backend",
         "//cras/src/server/rust/cras_dlc",
     ] + all_crate_deps(),

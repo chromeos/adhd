@@ -190,19 +190,27 @@ version = "0.1.1"
 dependencies = [
  "anyhow",
  "audio_processor",
+ "cras_common",
  "cras_dlc",
  "cras_features_backend",
+ "libc",
+ "log",
+ "protobuf",
+ "protobuf-codegen",
+ "protobuf-parse",
+]
+
+[[package]]
+name = "cras_common"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
  "getrandom",
- "glob",
  "libc",
  "log",
  "nix",
  "once_cell",
  "openssl",
- "protobuf",
- "protobuf-codegen",
- "protobuf-parse",
- "regex",
  "serde_json",
  "syslog",
 ]

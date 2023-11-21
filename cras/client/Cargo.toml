@@ -21,9 +21,6 @@ data_model = { path = "../../../../../out/build/amd64-generic/usr/lib/cros_rust_
 libchromeos = { path = "../../../../platform2/libchromeos-rs/" } # ignored by ebuild
 minijail = { path = "../../../../platform/minijail/rust/minijail" } # ignored by ebuild
 # adhd deps
-audio_processor = { path = "../../audio_processor" } # ignored by ebuild
-cras = { path = "../src/server/rust" }  # ignored by ebuild
-cras_dlc = { path = "../src/server/rust/cras_dlc" } # ignored by ebuild
-cras_features_backend = { path = "../platform/features" } # ignored by ebuild
+cras_common = { path = "../common" }
 cras-sys = { path = "cras-sys" }
 libcras = { path = "libcras" }

@@ -16,8 +16,8 @@ use std::process::Command;
 use std::process::Stdio;
 
 use anyhow::Context;
-use cras::logging::SimpleStdoutLogger;
-use cras::{
+use cras_common::logging::SimpleStdoutLogger;
+use cras_common::{
     fra,
     fra::{CrasFRASignal, FRALog},
     pseudonymization::Salt,

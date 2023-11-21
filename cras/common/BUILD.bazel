@@ -1,0 +1,30 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("//:utils.bzl", "require_no_config")
+
+rust_library(
+    name = "rust_common",
+    srcs = glob(
+        include = ["src/**/*.rs"],
+    ),
+    crate_name = "cras_common",
+    edition = "2021",
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
+    visibility = ["//cras/src/server/rust:__pkg__"],
+    deps = [
+        "@pkg_config//openssl",
+    ] + all_crate_deps(normal = True),
+)
+
+rust_test(
+    name = "rust_common_test",
+    crate = ":rust_common",
+    deps = all_crate_deps(
+        normal = True,
+        normal_dev = True,
+    ),
+)

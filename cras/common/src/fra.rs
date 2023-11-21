@@ -60,8 +60,8 @@ impl std::fmt::Display for FRALog {
 /// # Example
 ///
 /// ```
-/// use cras::fra;
-/// use cras::fra::{FRALog, CrasFRASignal};
+/// use cras_common::fra;
+/// use cras_common::fra::{FRALog, CrasFRASignal};
 /// use std::collections::HashMap;
 ///
 /// fn main() {

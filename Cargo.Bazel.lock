@@ -1,5 +1,5 @@
 {
-  "checksum": "aeba442ed8dea83149ef6fc7a4241a00b311319c34ad6e64f57af558487cf0b2",
+  "checksum": "63e3cea27dda5cc0bb56d46c67cc75a63fd6a7bdfedfdf19943b809877c8eae6",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -1034,14 +1034,6 @@
               "target": "build_script_build"
             },
             {
-              "id": "getrandom 0.2.9",
-              "target": "getrandom"
-            },
-            {
-              "id": "glob 0.3.1",
-              "target": "glob"
-            },
-            {
               "id": "libc 0.2.140",
               "target": "libc"
             },
@@ -1050,32 +1042,8 @@
               "target": "log"
             },
             {
-              "id": "nix 0.26.2",
-              "target": "nix"
-            },
-            {
-              "id": "once_cell 1.17.1",
-              "target": "once_cell"
-            },
-            {
-              "id": "openssl 0.10.52",
-              "target": "openssl"
-            },
-            {
               "id": "protobuf 3.2.0",
               "target": "protobuf"
-            },
-            {
-              "id": "regex 1.7.3",
-              "target": "regex"
-            },
-            {
-              "id": "serde_json 1.0.96",
-              "target": "serde_json"
-            },
-            {
-              "id": "syslog 6.0.1",
-              "target": "syslog"
             }
           ],
           "selects": {}
@@ -1100,6 +1068,72 @@
           ],
           "selects": {}
         }
+      },
+      "license": null
+    },
+    "cras_common 0.1.0": {
+      "name": "cras_common",
+      "version": "0.1.0",
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cras_common",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "cras_common",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.75",
+              "target": "anyhow"
+            },
+            {
+              "id": "getrandom 0.2.9",
+              "target": "getrandom"
+            },
+            {
+              "id": "libc 0.2.140",
+              "target": "libc"
+            },
+            {
+              "id": "log 0.4.17",
+              "target": "log"
+            },
+            {
+              "id": "nix 0.26.2",
+              "target": "nix"
+            },
+            {
+              "id": "once_cell 1.17.1",
+              "target": "once_cell"
+            },
+            {
+              "id": "openssl 0.10.52",
+              "target": "openssl"
+            },
+            {
+              "id": "serde_json 1.0.96",
+              "target": "serde_json"
+            },
+            {
+              "id": "syslog 6.0.1",
+              "target": "syslog"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
       },
       "license": null
     },
@@ -8064,6 +8098,7 @@
     "audio_processor 0.1.0": "audio_processor",
     "binding_generator 0.1.0": "cras/src/server/rust/binding_generator",
     "cras 0.1.1": "cras/src/server/rust",
+    "cras_common 0.1.0": "cras/common",
     "cras_dlc 0.1.0": "cras/src/server/rust/cras_dlc",
     "cras_features_backend 0.1.0": "cras/platform/features",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
