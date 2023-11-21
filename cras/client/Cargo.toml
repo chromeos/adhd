@@ -13,10 +13,17 @@ overflow-checks = true
 
 # To get rust-analyzer and cargo build working out of the chroot,
 # Run inside the chroot: emerge-amd64-generic -j --onlydeps cras-client
-[patch.crates-io] # ignored by ebuild
-audio_streams = { path = "../../../../../chroot/build/amd64-generic/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
-data_model = { path = "../../../../../chroot/build/amd64-generic/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
+[patch.crates-io]
+# System deps
+audio_streams = { path = "../../../../../out/build/amd64-generic/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
+chromeos-dbus-bindings = { path = "../../../../platform2/chromeos-dbus-bindings" } # ignored by ebuild
+data_model = { path = "../../../../../out/build/amd64-generic/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
+libchromeos = { path = "../../../../platform2/libchromeos-rs/" } # ignored by ebuild
 minijail = { path = "../../../../platform/minijail/rust/minijail" } # ignored by ebuild
+# adhd deps
+audio_processor = { path = "../../audio_processor" } # ignored by ebuild
 cras = { path = "../src/server/rust" }  # ignored by ebuild
 cras_dlc = { path = "../src/server/rust/cras_dlc" } # ignored by ebuild
-audio_processor = {path = "../../audio_processor" } # ignored by ebuild
+cras_features_backend = { path = "../platform/features" } # ignored by ebuild
+cras-sys = { path = "cras-sys" }
+libcras = { path = "libcras" }

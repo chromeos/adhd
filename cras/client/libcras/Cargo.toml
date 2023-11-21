@@ -11,11 +11,11 @@ path = "src/libcras.rs"
 anyhow = "1.0"
 async-trait = "0.1.36"
 audio_streams = "*"
-cras-sys = { version = "*", path = "../cras-sys" }
+cras-sys = "*"
 data_model = "*"
 futures = "*"
 libc = "*"
-libchromeos = { path = "../../../../../platform2/libchromeos-rs/" } # provided by ebuild
+libchromeos = "*"
 log = "0.4"
 nix = { version = "0.26", features = ["socket"] }
 serde = "1.0.125"

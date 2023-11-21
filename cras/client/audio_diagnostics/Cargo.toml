@@ -12,7 +12,7 @@ regex = "1.6.0"
 serde = { version = "1.0.52", features = ["derive"]}
 serde_json = "1.0.96"
 
-cras = "*" # provided by ebuild
-cras_dlc = "*" # provided by ebuild
-audio_processor = "*" # provided by ebuild
-libcras = { version = "*", path = "../libcras" }
+cras = "*"
+cras_dlc = "*"
+audio_processor = "*"
+libcras = "*"
