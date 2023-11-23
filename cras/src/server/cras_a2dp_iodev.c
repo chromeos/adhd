@@ -190,14 +190,14 @@ static int output_underrun(struct cras_iodev* iodev) {
 
 /*
  * This will be called multiple times when a2dpio is in no_stream state
- * frames_to_play_in_sleep ops determins how regular this will be called.
+ * frames_to_play_in_sleep ops determines how regular this will be called.
  */
 static int enter_no_stream(struct a2dp_io* a2dpio) {
   struct cras_iodev* odev = &a2dpio->base;
   int rc;
   /*
    * Setting target level to 3 times of min_buffer_level.
-   * We want hw_level to stay bewteen 1-2 times of min_buffer_level on
+   * We want hw_level to stay between 1-2 times of min_buffer_level on
    * top of the underrun threshold(i.e one min_cb_level).
    */
   rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
@@ -615,7 +615,7 @@ do_flush:
   audio_thread_config_events_callback(cras_bt_transport_fd(a2dpio->transport),
                                       TRIGGER_NONE);
 
-  /* Data succcessfully written to a2dp socket, cancel any scheduled
+  /* Data successfully written to a2dp socket, cancel any scheduled
    * suspend timer. */
   cras_bt_policy_cancel_suspend(device);
 

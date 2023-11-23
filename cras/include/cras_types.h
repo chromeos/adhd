@@ -344,7 +344,7 @@ enum MAIN_THREAD_LOG_EVENTS {
   MAIN_THREAD_DEV_CLOSE,
   // When an iodev is removed from active dev list.
   MAIN_THREAD_DEV_DISABLE,
-  // When an iodev opens when stream attachs.
+  // When an iodev opens when stream attaches.
   MAIN_THREAD_DEV_INIT,
   // When an iodev reopens for format change.
   MAIN_THREAD_DEV_REOPEN,

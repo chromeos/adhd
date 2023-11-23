@@ -150,7 +150,7 @@ static void cras_a2dp_suspend(struct cras_bt_endpoint* endpoint,
 static void a2dp_transport_state_changed(struct cras_bt_endpoint* endpoint,
                                          struct cras_bt_transport* transport) {
   if (connected_a2dp.iodev && transport) {
-    /* When pending message is received in bluez, try to aquire
+    /* When pending message is received in bluez, try to acquire
      * the transport. */
     if (cras_bt_transport_fd(transport) != -1 &&
         cras_bt_transport_state(transport) == CRAS_BT_TRANSPORT_STATE_PENDING) {

@@ -165,7 +165,7 @@ has the following format.
 [<output-node-name>] ; Name of the mixer control for this output.
   <config-option> = <config-value>
 ```
-output-node-name can be speficied in a few ways to link with the real node:
+output-node-name can be specified in a few ways to link with the real node:
 - UCM device name - The name string following the SectionDevice label in UCM
     config, i.e. HiFi.conf
 - Jack name - Name of the mixer control for mixer jack, or the gpio jack name
@@ -174,7 +174,7 @@ output-node-name can be speficied in a few ways to link with the real node:
     'amixer scontrols' command.
 
 Note that an output node matches to the output-node-name label in card config by
-priorty ordered above. For example if a node has UCM device, it will first
+priority ordered above. For example if a node has UCM device, it will first
 search the config file for the UCM device name. When not found, jack name will
 be used for searching, and lastly the mixer output control name.
 

@@ -252,7 +252,7 @@ union cras_server_metrics_data {
 
 /*
  * Make sure the size of message in the acceptable range. Otherwise, it may
- * be split into mutiple packets while sending.
+ * be split into multiple packets while sending.
  */
 static_assert(sizeof(union cras_server_metrics_data) <= 256,
               "The size is too large.");
@@ -1117,7 +1117,7 @@ static int cras_server_metrics_missed_cb_frequency(
   }
 
   /*
-   * If missed callback happened at least once, also record frequncy after
+   * If missed callback happened at least once, also record frequency after
    * rescheduling.
    */
   if (!stream->num_missed_cb) {

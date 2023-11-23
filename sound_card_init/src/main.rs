@@ -155,7 +155,7 @@ struct FakeVPDArgs {
 pub struct AppliedRDC {
     /// The channel index.
     pub channel: usize,
-    /// The DC resistence in ohm.
+    /// The DC resistance in ohm.
     pub rdc_in_ohm: f32,
 }
 
@@ -164,7 +164,7 @@ pub struct AppliedRDC {
 pub struct CurrentRDC {
     /// The channel index.
     pub channel: usize,
-    /// The DC resistence in ohm.
+    /// The DC resistance in ohm.
     pub rdc_in_ohm: Option<f32>,
 }
 

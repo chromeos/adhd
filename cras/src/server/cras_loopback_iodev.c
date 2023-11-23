@@ -278,7 +278,7 @@ static void update_active_node(struct cras_iodev* iodev,
 
 /*
  * Loopback devices are forced to be stereo. However, the channel
- * layout is not created to match the force assigment. This
+ * layout is not created to match the force assignment. This
  * function should set the channel layout as default, that is
  * FL, FR in this case.
  */

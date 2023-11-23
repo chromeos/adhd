@@ -18,7 +18,7 @@
 # limitations under the License.
 #
 ################################################################################
-# This srcipt is invoked by projects/cras/build.sh from oss-fuzz's container.
+# This script is invoked by projects/cras/build.sh from oss-fuzz's container.
 # The working directory is ${SRC}/adhd.
 # This is run with devtools/oss-fuzz-build.sh.
 

@@ -1921,7 +1921,7 @@ int cras_alsa_usb_iodev_legacy_complete_init(struct cras_iodev* iodev) {
   /* Make a default node if there is still no node for this
    * device, or we still don't have the "Speaker"/"Internal Mic"
    * node for the first internal device. Note that the default
-   * node creation can be supressed by UCM flags for platforms
+   * node creation can be suppressed by UCM flags for platforms
    * which really don't have an internal device. */
   if ((direction == CRAS_STREAM_OUTPUT) &&
       !usb_no_create_default_output_node(aio) && !aio->common.base.nodes) {

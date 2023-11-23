@@ -45,7 +45,7 @@ typedef int (*set_offload_blob_t)(struct dsp_module* module,
                                   uint32_t pipeline_id,
                                   uint32_t comp_id);
 
-/* Sets the offload mode to the coresponding module on DSP.
+/* Sets the offload mode to the corresponding module on DSP.
  * Args:
  *    enabled - True to run with the config; false to run in bypass mode.
  *    pipeline_id - The pipeline id which the DSP module locates on.
@@ -467,7 +467,7 @@ int cras_dsp_offload_set_state(struct dsp_offload_map* offload_map,
     offload_map->state = DSP_PROC_ON_DSP;
     offload_map->applied_node_idx = offload_map->parent_dev->active_node->idx;
   } else {
-    // Skip the disable proccess when the current state is not offloaded.
+    // Skip the disable process when the current state is not offloaded.
     if (offload_map->state == DSP_PROC_ON_CRAS) {
       return 0;
     }

@@ -979,7 +979,7 @@ unsigned int snd_hctl_elem_get_device(const snd_hctl_elem_t* obj) {
 snd_hctl_elem_t* snd_hctl_first_elem(snd_hctl_t* hctl) {
   snd_hctl_first_elem_called++;
 
-  // When first elem is called, restored the poped ret values
+  // When first elem is called, restored the popped ret values
   while (!snd_hctl_elem_next_ret_vals_poped.empty()) {
     snd_hctl_elem_t* tmp = snd_hctl_elem_next_ret_vals_poped.back();
     snd_hctl_elem_next_ret_vals_poped.pop_back();

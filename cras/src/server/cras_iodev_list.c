@@ -1221,7 +1221,7 @@ static int stream_added_cb(struct cras_rstream* rstream) {
   }
 
   /* Add the new stream to all enabled iodevs at once to avoid offset
-   * in shm level between different ouput iodevs. */
+   * in shm level between different output iodevs. */
   num_iodevs = 0;
   iodev_reopened = false;
   DL_FOREACH (enabled_devs[rstream->direction], edev) {

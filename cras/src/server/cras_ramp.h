@@ -15,7 +15,7 @@ extern "C" {
 struct cras_ramp;
 
 /*
- * Infomation telling user how to do ramping.
+ * Information telling user how to do ramping.
  * action CRAS_RAMP_ACTION_NONE: No scale should be applied.
  * action CRAS_RAMP_ACTION_PARTIAL: scale sample by sample starting from scaler
  *                                  and increase increment for each sample.

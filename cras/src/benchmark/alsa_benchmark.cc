@@ -111,7 +111,7 @@ class BM_Alsa : public benchmark::Fixture {
       goto end;
     }
 
-    // target_dev->name example formt: sc7180-rt5682-max98357a-1mic: :0,1.
+    // target_dev->name example format: sc7180-rt5682-max98357a-1mic: :0,1.
     target_dev_name = std::string(target_dev->name);
     card_name = target_dev_name.substr(0, target_dev_name.find(":"));
     card_idx = target_dev_name.substr(target_dev_name.find(":") + 3);
@@ -220,7 +220,7 @@ class BM_Alsa : public benchmark::Fixture {
   int n_bytes;
 };
 
-/* This benchmark evaluates the performace of accessing the buffer created by
+/* This benchmark evaluates the performance of accessing the buffer created by
  * snd_pcm_mmap_* API.
  */
 BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {

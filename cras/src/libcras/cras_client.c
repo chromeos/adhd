@@ -207,10 +207,10 @@ typedef enum cras_socket_state {
 struct floop_request {
   // mutex protecting the members
   pthread_mutex_t mu;
-  // whether the response is fullfilled. signalled by request_floop_ready.
+  // whether the response is fulfilled. signalled by request_floop_ready.
   pthread_cond_t cond;
-  // whether the response is fullfilled. set by request_floop_ready
-  bool fullfilled;
+  // whether the response is fulfilled. set by request_floop_ready
+  bool fulfilled;
   // return value of the request
   int32_t response;
   // pointers for ulist.h
@@ -1875,7 +1875,7 @@ static void request_floop_ready(struct cras_client* client,
 
   pthread_mutex_lock(&req->mu);
   req->response = dev_idx;
-  req->fullfilled = true;
+  req->fulfilled = true;
   pthread_cond_broadcast(&req->cond);
   pthread_mutex_unlock(&req->mu);
 
@@ -2191,7 +2191,7 @@ cmd_msg_complete:
 }
 
 /*  This thread handles non audio sample communication with the audio server.
- *  The client program will call fucntions below to send messages to this thread
+ *  The client program will call functions below to send messages to this thread
  *  to add or remove streams or change parameters.
  */
 static void* client_thread(void* arg) {
@@ -4419,10 +4419,10 @@ static int32_t request_floop(struct cras_client* client,
 
   // Set result
   pthread_mutex_lock(&req.mu);
-  if (!req.fullfilled) {
+  if (!req.fulfilled) {
     pthread_cond_timedwait(&req.cond, &req.mu, &deadline);
   }
-  if (req.fullfilled) {
+  if (req.fulfilled) {
     rc = req.response;
   } else {
     rc = -ETIMEDOUT;

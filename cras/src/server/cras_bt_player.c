@@ -219,19 +219,19 @@ nomem:
 
 static void cras_bt_player_append_metadata_artist(DBusMessageIter* iter,
                                                   const char* artist) {
-  DBusMessageIter dict, varient, array;
+  DBusMessageIter dict, variant, array;
   const char* artist_key = "xesam:artist";
 
   dbus_message_iter_open_container(iter, DBUS_TYPE_DICT_ENTRY, NULL, &dict);
   dbus_message_iter_append_basic(&dict, DBUS_TYPE_STRING, &artist_key);
   dbus_message_iter_open_container(
       &dict, DBUS_TYPE_VARIANT,
-      DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_STRING_AS_STRING, &varient);
-  dbus_message_iter_open_container(&varient, DBUS_TYPE_ARRAY,
+      DBUS_TYPE_ARRAY_AS_STRING DBUS_TYPE_STRING_AS_STRING, &variant);
+  dbus_message_iter_open_container(&variant, DBUS_TYPE_ARRAY,
                                    DBUS_TYPE_STRING_AS_STRING, &array);
   dbus_message_iter_append_basic(&array, DBUS_TYPE_STRING, &artist);
-  dbus_message_iter_close_container(&varient, &array);
-  dbus_message_iter_close_container(&dict, &varient);
+  dbus_message_iter_close_container(&variant, &array);
+  dbus_message_iter_close_container(&dict, &variant);
   dbus_message_iter_close_container(iter, &dict);
 }
 
@@ -240,15 +240,15 @@ static void cras_bt_player_append_metadata(DBusMessageIter* iter,
                                            const char* artist,
                                            const char* album,
                                            dbus_int64_t length) {
-  DBusMessageIter varient, array;
+  DBusMessageIter variant, array;
   dbus_message_iter_open_container(
       iter, DBUS_TYPE_VARIANT,
       DBUS_TYPE_ARRAY_AS_STRING DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
           DBUS_TYPE_STRING_AS_STRING DBUS_TYPE_VARIANT_AS_STRING
               DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
-      &varient);
+      &variant);
   dbus_message_iter_open_container(
-      &varient, DBUS_TYPE_ARRAY,
+      &variant, DBUS_TYPE_ARRAY,
       DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING DBUS_TYPE_STRING_AS_STRING
           DBUS_TYPE_VARIANT_AS_STRING DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
       &array);
@@ -273,8 +273,8 @@ static void cras_bt_player_append_metadata(DBusMessageIter* iter,
                    DBUS_TYPE_INT64_AS_STRING, &length);
   cras_bt_player_append_metadata_artist(&array, artist);
 
-  dbus_message_iter_close_container(&varient, &array);
-  dbus_message_iter_close_container(iter, &varient);
+  dbus_message_iter_close_container(&variant, &array);
+  dbus_message_iter_close_container(iter, &variant);
 }
 
 static bool cras_bt_player_parse_metadata(const char* title,

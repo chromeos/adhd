@@ -2,8 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 package(
-    # Allow leagcy packages to see //cras/server.
+    # Allow legacy packages to see //cras/server.
     default_visibility = [
         "//cras/platform:__subpackages__",  # Allow platform dependencies to send notifications.
         "//cras/src/server:__pkg__",

@@ -59,7 +59,7 @@ struct mixer_control_element {
  * range.
  */
 struct mixer_control {
-  // Name of the control (typicially this is the same as the name of the
+  // Name of the control (typically this is the same as the name of the
   // mixer_control_element when there is one, or the name of the UCM
   // parent when there are multiple).
   const char* name;
@@ -177,7 +177,7 @@ static struct mixer_control_element* mixer_control_element_create(
       }
 
       if (c->number_of_volume_steps == MIXER_CONTROL_STEP_INVALID) {
-        syslog(LOG_WARNING, "Name: [%s] Get invaild volume range [%ld:%ld]",
+        syslog(LOG_WARNING, "Name: [%s] Get invalid volume range [%ld:%ld]",
                snd_mixer_selem_get_name(elem), min_step, max_step);
       }
     }

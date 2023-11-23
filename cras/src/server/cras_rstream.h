@@ -24,7 +24,7 @@ struct cras_connect_message;
 struct cras_rclient;
 struct dev_mix;
 
-// Holds informations about the main active device.
+// Holds information about the main active device.
 struct main_dev_info {
   // id of the main device.
   int dev_id;
@@ -279,7 +279,7 @@ static inline int cras_rstream_input_level_met(struct cras_rstream* rstream) {
 }
 
 /* Updates the number of queued frames in shm. The queued frames should be
- * updated everytime before calling cras_rstream_playable_frames.
+ * updated every time before calling cras_rstream_playable_frames.
  */
 void cras_rstream_update_queued_frames(struct cras_rstream* rstream);
 

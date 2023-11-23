@@ -621,6 +621,6 @@ void dsp_enable_flush_denormal_to_zero() {
       "vmsr   fpscr, %0			    \n"
       : "=r"(cw)::"memory");
 #else
-#warning "Don't know how to disable denorms. Performace may suffer."
+#warning "Don't know how to disable denorms. Performance may suffer."
 #endif
 }

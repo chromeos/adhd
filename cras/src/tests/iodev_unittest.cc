@@ -2809,7 +2809,7 @@ int pthread_join(pthread_t thread, void** value_ptr) {
   return 0;
 }
 
-// Fromt fmt_conv
+// From fmt_conv
 void cras_channel_remix_convert(struct cras_fmt_conv* conv,
                                 uint8_t* in_buf,
                                 size_t frames) {}

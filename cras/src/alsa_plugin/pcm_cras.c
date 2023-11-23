@@ -289,7 +289,7 @@ static snd_pcm_ioplug_callback_t cras_pcm_callback = {
 };
 
 /* Set constraints for hw_params.  This lists the handled formats, sample rates,
- * access patters, and buffer/period sizes.  These are enforce in
+ * access patterns, and buffer/period sizes.  These are enforce in
  * snd_pcm_set_params(). */
 static int set_hw_constraints(struct snd_pcm_cras* pcm_cras) {
   // clang-format off

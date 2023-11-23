@@ -44,7 +44,7 @@ static const size_t test_sample_rates[] = {
     44100, 48000, 32000, 96000, 22050, 16000, 8000, 4000, 192000, 0,
 };
 
-/* What channel counts shoud be checked on this dev?
+/* What channel counts should be checked on this dev?
  * Listed in order of preference. 0 terminalted. */
 static const size_t test_channel_counts[] = {10, 6, 4, 2, 1, 8, 0};
 

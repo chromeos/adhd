@@ -549,7 +549,7 @@ static const struct cras_rclient_ops cras_control_rclient_ops = {
  */
 
 /* Creates a client structure and sends a message back informing the client that
- * the conneciton has succeeded. */
+ * the connection has succeeded. */
 struct cras_rclient* cras_control_rclient_create(int fd, size_t id) {
   // Supports all directions but not CRAS_STREAM_UNDEFINED.
   int supported_directions = CRAS_STREAM_ALL_DIRECTION ^

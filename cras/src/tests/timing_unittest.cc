@@ -976,7 +976,7 @@ TEST_F(TimingSuite, NewOutputStreamInitNoStreamSomeFramesInDevice) {
 //   return False
 
 // Test rule_1.
-// The wake up time should be the earlier time amoung streams and devices.
+// The wake up time should be the earlier time among streams and devices.
 TEST_F(TimingSuite, OutputWakeTimeOneStreamWithEarlierStreamWakeTime) {
   cras_audio_format format;
   fill_audio_format(&format, 48000);
@@ -1001,7 +1001,7 @@ TEST_F(TimingSuite, OutputWakeTimeOneStreamWithEarlierStreamWakeTime) {
 }
 
 // Test rule_1.
-// The wake up time should be the earlier time amoung streams and devices.
+// The wake up time should be the earlier time among streams and devices.
 TEST_F(TimingSuite, OutputWakeTimeOneStreamWithEarlierDeviceWakeTime) {
   cras_audio_format format;
   fill_audio_format(&format, 48000);

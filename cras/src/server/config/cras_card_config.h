@@ -29,7 +29,7 @@ struct cras_card_config* cras_card_config_create(const char* config_path,
  */
 void cras_card_config_destroy(struct cras_card_config* card_config);
 
-/* Returns the apporpriate volume curve to use for the control given by name.
+/* Returns the appropriate volume curve to use for the control given by name.
  * Args:
  *    card_config - Card configuration returned by cras_card_config_create()
  * Returns:

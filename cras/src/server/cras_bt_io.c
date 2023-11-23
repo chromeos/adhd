@@ -701,7 +701,7 @@ static struct cras_iodev* bt_io_create(struct bt_io_manager* mgr,
   /* Now we're creating a new cras_bt_io for |active->base.btflags|
    * check what does the bt_io_manager currently use as active_btflag.
    * If |active_btflag| hasn't been set at all, assign |btflag| to it.
-   * Or if this is A2DP which we treat as higiher prioirty, set to A2DP
+   * Or if this is A2DP which we treat as higiher priority, set to A2DP
    * if we can.
    */
   profile_flag = btflags_to_profile(active->base.btflags);

@@ -219,7 +219,7 @@ TEST_F(A2dpIodev, GetPutBuffer) {
   EXPECT_EQ(104, iodev->frames_queued(iodev, &tstamp));
   EXPECT_GT(a2dpio->next_flush_time.tv_nsec, 0);
 
-  // Assert buffer possition shifted 1000 * 4 bytes
+  // Assert buffer position shifted 1000 * 4 bytes
   frames = 1000;
   iodev->get_buffer(iodev, &area2, &frames);
   ASSERT_EQ(1000, frames);
@@ -240,7 +240,7 @@ TEST_F(A2dpIodev, GetPutBuffer) {
   frames = 50;
   iodev->get_buffer(iodev, &area3, &frames);
   ASSERT_EQ(50, frames);
-  // Assert buffer possition shifted 700 * 4 bytes
+  // Assert buffer position shifted 700 * 4 bytes
   EXPECT_EQ(2800, area3->channels[0].buf - last_buf_head);
 
   iodev->put_buffer(iodev, 50);
@@ -406,7 +406,7 @@ TEST_F(A2dpIodev, SleepTimeWithWriteThrottle) {
   EXPECT_EQ(0, iodev->put_buffer(iodev, 1000));
 
   /* Last a2dp write call failed with -EAGAIN, time now(45ms) is after
-   * next_flush_time. Expect to return exact |write_block| equivalant
+   * next_flush_time. Expect to return exact |write_block| equivalent
    * of time to sleep. */
   EXPECT_EQ(1208, iodev->frames_queued(iodev, &tstamp));  // 208 + 1000
   EXPECT_EQ(a2dpio->write_block,

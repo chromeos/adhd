@@ -62,7 +62,7 @@ void cras_system_state_init(const char* device_config_dir,
                             const char* cpu_model_name);
 void cras_system_state_deinit();
 
-// Sets the suffix string to control which UCM config fo load.
+// Sets the suffix string to control which UCM config to load.
 void cras_system_state_set_internal_ucm_suffix(const char* internal_ucm_suffix);
 
 // Sets the system volume.  Will be applied by the active device.

@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 """
+
 A script to modify dsp.ini config files.
 A dsp.ini config file is represented by an Ini object.
 An Ini object contains one or more Sections.
@@ -617,7 +618,7 @@ class IniEditor(object):
         If input Ini object does not have a section named args.section, this method
         does not do anything. If the editing is valid, prints the changed section
         to console. Writes the editied config file to the same path as input path
-        plus a suffix speficied in args.output_suffix. If that suffix is "None",
+        plus a suffix specified in args.output_suffix. If that suffix is "None",
         prompts and waits for user to confirm editing in-place.
 
         Args:

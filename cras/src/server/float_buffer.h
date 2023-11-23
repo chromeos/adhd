@@ -17,7 +17,7 @@ extern "C" {
  */
 struct float_buffer {
   struct byte_buffer* buf;
-  // Pointer to be filled wtih read/write position of the buffer.
+  // Pointer to be filled with read/write position of the buffer.
   float** fp;
   // Number of channels.
   unsigned int num_channels;

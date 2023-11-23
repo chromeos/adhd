@@ -24,7 +24,7 @@
 #include "third_party/utlist/utlist.h"
 
 /* Check profile connections every 2 seconds and rerty 30 times maximum.
- * Attemp to connect profiles which haven't been ready every 3 retries_left.
+ * Attempt to connect profiles which haven't been ready every 3 retries_left.
  */
 static const unsigned int CONN_WATCH_PERIOD_MS = 2000;
 static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
@@ -248,7 +248,7 @@ static void cancel_suspend(struct cras_bt_device* device) {
 }
 
 /* We're going to remove the dependency on cras_bt_device which is BlueZ
- * specific. For backward compatiblity during this migration, we have to live
+ * specific. For backward compatibility during this migration, we have to live
  * with the complexity in checking both |msg->device| and |msg->mgr|.
  * TODO(hychao): clean up the validity check logic.
  */

@@ -680,7 +680,7 @@ void cras_shm_close_unlink(const char* name, int fd);
  * Configure shared memory for the system state.
  * Args:
  *    name - Name of the shared-memory area.
- *    mmap_size - Amount of shared memor to map.
+ *    mmap_size - Amount of shared memory to map.
  *    rw_fd_out - Filled with the RW fd for the shm region.
  *    ro_fd_out - Filled with the RO fd for the shm region.
  * Returns a pointer to the new shared memory region. Or NULL on error.

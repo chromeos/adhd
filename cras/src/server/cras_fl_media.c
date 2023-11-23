@@ -1232,7 +1232,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     rc = handle_on_bluetooth_device_added(active_fm, addr, name, codecs,
                                           hfp_cap, abs_vol_supported);
     if (rc) {
-      syslog(LOG_ERR, "Error occured in adding bluetooth device %d", rc);
+      syslog(LOG_ERR, "Error occurred in adding bluetooth device %d", rc);
     }
 
     struct cras_fl_a2dp_codec_config* codec;
@@ -1259,7 +1259,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     rc = handle_on_bluetooth_device_removed(active_fm, addr);
     if (rc) {
-      syslog(LOG_ERR, "Error occured in removing bluetooth device %d", rc);
+      syslog(LOG_ERR, "Error occurred in removing bluetooth device %d", rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
@@ -1280,7 +1280,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
                                                      abs_vol_supported);
     if (rc) {
       syslog(LOG_ERR,
-             "Error occured in setting absolute volume supported change %d",
+             "Error occurred in setting absolute volume supported change %d",
              rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
@@ -1300,7 +1300,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     rc = handle_on_absolute_volume_changed(active_fm, volume);
     if (rc) {
-      syslog(LOG_ERR, "Error occured in updating hardware volume %d", rc);
+      syslog(LOG_ERR, "Error occurred in updating hardware volume %d", rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
@@ -1323,7 +1323,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     rc = handle_on_hfp_volume_changed(active_fm, addr, volume);
     if (rc) {
-      syslog(LOG_ERR, "Error occured in updating hfp volume %d", rc);
+      syslog(LOG_ERR, "Error occurred in updating hfp volume %d", rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
@@ -1345,7 +1345,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
 
     rc = handle_on_hfp_audio_disconnected(active_fm, addr);
     if (rc) {
-      syslog(LOG_ERR, "Error occured in handling hfp audio disconnection %d",
+      syslog(LOG_ERR, "Error occurred in handling hfp audio disconnection %d",
              rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;

@@ -32,7 +32,7 @@
   (sizeof(struct sof_abi_hdr) + 2 * sizeof(uint32_t))
 
 /* sof_blob_wrapper provides bytes data manipulation for SOF-backed DSP
- * byte-typed configuation controls.The wrapping/unwrapping is as depicted
+ * byte-typed configuration controls.The wrapping/unwrapping is as depicted
  * below.
  *
  * byte# 0   4   8                40                                       40+N

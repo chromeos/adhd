@@ -112,11 +112,11 @@ int cras_alsa_resume_appl_ptr(snd_pcm_t* handle,
 /* Probes properties of the alsa device.
  * Args:
  *    handle - The open PCM to configure.
- *    rates - Pointer that will be set to the arrary of valid samples rates.
+ *    rates - Pointer that will be set to the array of valid samples rates.
  *            Must be freed by the caller.
  *    channel_counts - Pointer that will be set to the array of valid channel
  *                     counts.  Must be freed by the caller.
- *    formats - Pointer that will be set to the arrary of valid PCM formats.
+ *    formats - Pointer that will be set to the array of valid PCM formats.
  *              Must be freed by the caller.
  * Returns:
  *   0 on success.  On failure an error code from alsa or -ENOMEM.

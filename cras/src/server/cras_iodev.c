@@ -60,7 +60,7 @@ static const unsigned MAX_IODEV_RESET_TRIES = 5;
 static const double IODEV_RESET_TIMEWINDOW_SECS = 5.0;
 
 /*
- * It is the lastest time for the device to wake up when it is in the normal
+ * It is the last time for the device to wake up when it is in the normal
  * run state. It represents how many remaining frames in the device buffer.
  */
 static const struct timespec dev_normal_run_wake_up_time = {
@@ -68,7 +68,7 @@ static const struct timespec dev_normal_run_wake_up_time = {
 };
 
 /*
- * It is the lastest time for the device to wake up when it is in the no stream
+ * It is the last time for the device to wake up when it is in the no stream
  * state. It represents how many remaining frames in the device buffer.
  */
 static const struct timespec dev_no_stream_wake_up_time = {

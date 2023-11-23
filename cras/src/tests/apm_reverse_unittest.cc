@@ -156,7 +156,7 @@ TEST_F(EchoRefTestSuite, SetAecRefThenToDefault) {
   EXPECT_EQ(2, process_reverse_mock_called);
 
   /* Pretend user select system default to the first used echo ref.
-   * Note that the stream apm is on the default aec ref per ealier
+   * Note that the stream apm is on the default aec ref per earlier
    * logic. */
   iodev_list_get_first_enabled_iodev_ret = &echo_ref;
   device_enabled_callback_val(&unused_odev, NULL);
@@ -169,7 +169,7 @@ TEST_F(EchoRefTestSuite, SetAecRefThenToDefault) {
   EXPECT_EQ(1, output_devices_changed_mock_called);
   cras_apm_reverse_state_update();
 
-  /* Since stream apm is on another echo ref set ealier. Running the
+  /* Since stream apm is on another echo ref set earlier. Running the
    * new iodev/rmod won't trigger apm process reverse call. */
   default_ext_->run(default_ext_, 500);
   EXPECT_EQ(2, process_reverse_mock_called);
@@ -268,7 +268,7 @@ TEST_F(EchoRefTestSuite, SetAecRefBeforeStart) {
   EXPECT_NE(default_ext_, ext_dsp_module_value[0]);
 
   /* Expect default ext dsp module won't trigger APM process reverse stream
-   * because the aec ref set ealier is different than default output. */
+   * because the aec ref set earlier is different than default output. */
   default_ext_->run(default_ext_, 500);
   EXPECT_EQ(0, process_reverse_mock_called);
 

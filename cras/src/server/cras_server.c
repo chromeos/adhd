@@ -80,7 +80,7 @@ struct attached_client {
 struct client_callback {
   // The file descriptor passed to select.
   int select_fd;
-  // The funciton to call when fd is ready.
+  // The function to call when fd is ready.
   void (*callback)(void* data, int revents);
   // Pointer passed to the callback.
   void* callback_data;

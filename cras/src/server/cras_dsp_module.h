@@ -56,7 +56,7 @@ struct dsp_module {
    * If needed, it should be called right after the configure() call.
    * Args:
    *    config - The pointer of the config blob buffer to be returned. The
-   *             buffer will be allocated in this funtion. Clients should help
+   *             buffer will be allocated in this function. Clients should help
    *             on release after use.
    *    config_size - The config blob size in bytes.
    * Returns:

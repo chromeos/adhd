@@ -190,7 +190,7 @@ static void show_usage(void) {
   printf("--rate <N> - desired sample rate\n\n");
   printf("Running cras_router will run a loop through ");
   printf("from the currently set input to the currently set output.\n");
-  printf("Use cras_test_client --dump_s to see all avaiable nodes and");
+  printf("Use cras_test_client --dump_s to see all available nodes and");
   printf(" cras_test_client --set_input/output to set a node.\n");
 }
 

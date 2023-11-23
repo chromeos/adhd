@@ -138,7 +138,7 @@ static inline int timespec_after(const struct timespec* a,
          (a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec);
 }
 
-/* Retruns the equivalent number of milliseconds for a given timespec.
+/* Returns the equivalent number of milliseconds for a given timespec.
  * The result is rounded up to the next millisecond. */
 static inline unsigned int timespec_to_ms(const struct timespec* ts) {
   return ts->tv_sec * 1000 + (ts->tv_nsec + 999999) / 1000000;
@@ -219,7 +219,7 @@ static inline bool timespec_diff_shorter_than(const struct timespec* a,
  *    sigmask - Signal mask while in the poll.
  *
  * Returns:
- *    Positive when file decriptors are ready.
+ *    Positive when file descriptors are ready.
  *    Zero if no file descriptors are ready and timeout is NULL.
  *    -ETIMEDOUT when no file descriptors are ready and a timeout specified.
  *    Other negative error codes specified in the ppoll() man page.

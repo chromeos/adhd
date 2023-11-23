@@ -55,7 +55,7 @@ enum CRAS_ALERT_FLAGS {
  *    prepare - A function which will be called before calling the callbacks.
  *        The prepare function should update the system state in the shared
  *        memory to be consistent. It can be NULL if not needed.
- *    flags - 0 for defauts, or ORed values from enum CRAS_ALERT_FLAGS.
+ *    flags - 0 for defaults, or ORed values from enum CRAS_ALERT_FLAGS.
  * Returns:
  *    A pointer to the alert, NULL if out of memory.
  */

@@ -17,7 +17,7 @@ extern "C" {
 /* PLC library provides helper functions to mask the effects of lost or
  * disrupted packets. It currentyl only supports the mSBC codec.
  *
- * This struct contains informations needed for applying the PLC algorithm.
+ * This struct contains information needed for applying the PLC algorithm.
  */
 struct cras_msbc_plc;
 
@@ -32,9 +32,9 @@ struct cras_msbc_plc* cras_msbc_plc_create();
  */
 void cras_msbc_plc_destroy(struct cras_msbc_plc* plc);
 
-/* Conceals the packet loss by writing the substitution samples to the ouput
+/* Conceals the packet loss by writing the substitution samples to the output
  * buffer provided by the caller. The samples will be generated based on the
- * informations recorded in the PLC struct passed in.
+ * information recorded in the PLC struct passed in.
  * Args:
  *    plc - The PLC you use.
  *    codec - The mSBC codec.
@@ -46,7 +46,7 @@ int cras_msbc_plc_handle_bad_frames(struct cras_msbc_plc* plc,
                                     struct cras_audio_codec* codec,
                                     uint8_t* output);
 
-/* Updates informations needed and potentially processes the input samples to
+/* Updates information needed and potentially processes the input samples to
  * help it to reconverge after a frame loss.
  *
  * The memory space input and output pointers point to can be overlapping.

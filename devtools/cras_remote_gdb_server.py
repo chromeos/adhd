@@ -50,7 +50,7 @@ class GDBServer:
             device.RegisterCleanupCmd(CleanupCmd)
             print("clean up gdbserver")
             device.run(CleanupCmd, check=False)
-            print("start runing gdbserver on dut cmd: ", gdbserver_cmds)
+            print("start running gdbserver on dut cmd: ", gdbserver_cmds)
             device.run(gdbserver_cmds)
 
 

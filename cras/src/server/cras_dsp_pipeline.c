@@ -140,7 +140,7 @@ struct pipeline {
   int input_channels;
   int output_channels;
 
-  /* The audio sampling rate for this pipleine. It is zero if
+  /* The audio sampling rate for this pipeline. It is zero if
    * cras_dsp_pipeline_instantiate() has not been called. */
   int sample_rate;
 

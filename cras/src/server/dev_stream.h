@@ -111,7 +111,7 @@ int dev_stream_mix(struct dev_stream* dev_stream,
                    unsigned int num_to_write);
 
 /*
- * Reads froms from the source into the dev_stream.
+ * Reads from the source into the dev_stream.
  * Args:
  *    dev_stream - The struct holding the stream to mix to.
  *    area - The area to copy audio from.
@@ -143,7 +143,7 @@ int dev_stream_playback_frames(const struct dev_stream* dev_stream);
 unsigned int dev_stream_capture_avail(const struct dev_stream* dev_stream);
 
 /*
- * Returns the callback threshold, if necesary converted from a stream frame
+ * Returns the callback threshold, if necessary converted from a stream frame
  * count to a device frame count.
  */
 unsigned int dev_stream_cb_threshold(const struct dev_stream* dev_stream);

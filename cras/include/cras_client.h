@@ -1293,7 +1293,7 @@ typedef void (*cras_client_output_volume_changed_callback)(void* context,
  *    muted - Non-zero when the audio is muted, zero otherwise.
  *    user_muted - Non-zero when the audio has been muted by the
  *                 user, zero otherwise.
- *    mute_locked - Non-zero when the mute funcion is locked,
+ *    mute_locked - Non-zero when the mute function is locked,
  *                  zero otherwise.
  */
 typedef void (*cras_client_output_mute_changed_callback)(void* context,
@@ -1317,7 +1317,7 @@ typedef void (*cras_client_capture_gain_changed_callback)(void* context,
  *    context - Context pointer set with
  *              cras_client_set_state_change_callback_context().
  *    muted - Non-zero when the audio is muted, zero otherwise.
- *    mute_locked - Non-zero when the mute funcion is locked,
+ *    mute_locked - Non-zero when the mute function is locked,
  *                  zero otherwise.
  */
 typedef void (*cras_client_capture_mute_changed_callback)(void* context,

@@ -17,7 +17,7 @@ struct cras_iodev;
 /* Initializes an test iodev.  The Test iodev is used to simulate hardware
  * iodevs when they aren't available.
  * Args:
- *    direciton - input or output.
+ *    direction - input or output.
  *    type - The test type.
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.

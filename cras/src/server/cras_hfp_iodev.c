@@ -32,7 +32,7 @@
 struct hfp_io {
   // The cras_iodev structure base class.
   struct cras_iodev base;
-  // The assciated bt_device.
+  // The associated bt_device.
   struct cras_bt_device* device;
   // Handle to the HFP service level connection.
   struct hfp_slc_handle* slc;

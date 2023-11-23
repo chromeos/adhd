@@ -28,7 +28,7 @@ bool cras_feature_enabled(enum cras_feature_id id) {
   }
   if (features[id].overridden) {
     bool enabled = features[id].overridden_enabled;
-    syslog(LOG_DEBUG, "feature %s overriden enabled = %d", features[id].name,
+    syslog(LOG_DEBUG, "feature %s overridden enabled = %d", features[id].name,
            enabled);
     return enabled;
   }

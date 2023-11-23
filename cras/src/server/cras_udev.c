@@ -203,7 +203,7 @@ static void set_factory_default(unsigned card_number) {
 
 static inline void udev_delay_for_alsa() {
   /* Provide a small delay so that the udev message can
-   * propogate throughout the whole system, and Alsa can set up
+   * propagate throughout the whole system, and Alsa can set up
    * the new device.  Without a small delay, an error of the
    * form:
    *

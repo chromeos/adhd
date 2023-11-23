@@ -476,7 +476,7 @@ struct cras_use_case_mgr* ucm_create(const char* name) {
 
   rc = snd_use_case_get(mgr->mgr, "_alibpref", &mgr->private_prefix);
   if (rc) {
-    syslog(LOG_WARNING, "Error occured when fetch ucm private prefix, rc = %d",
+    syslog(LOG_WARNING, "Error occurred when fetch ucm private prefix, rc = %d",
            rc);
     mgr->private_prefix = NULL;
   }
@@ -1079,7 +1079,7 @@ static int get_sections_by_type(struct cras_use_case_mgr* mgr,
   int ret = 0;
 
   /* Find the list of all mixers using the control names defined in
-   * the header definintion for this function.  */
+   * the header definition for this function.  */
   identifier = snd_use_case_identifier("%s/%s", path_identifier, uc_verb(mgr));
   num_devs = snd_use_case_get_list(mgr->mgr, identifier, &list);
   free(identifier);

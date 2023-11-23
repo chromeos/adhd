@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 """
+
 Generate cras_dbus_bindings.h from DBus XML files
 """
 
@@ -13,7 +14,7 @@ import sys
 
 def generate_file_to_c_string(path):
     """
-    similiar to `xxd -i`
+    similar to `xxd -i`
     """
     string_name = os.path.basename(path).replace('.', '_')
     yield f'static const char {string_name}[] = {{\n'

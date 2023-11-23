@@ -1238,7 +1238,7 @@ TEST(FormatConverterOpsTest, TwoToTwentyS16LE) {
 
   for (size_t i = 0; i < frames; ++i) {
     size_t k;
-    // Input channles should be directly copied over.
+    // Input channels should be directly copied over.
     for (k = 0; k < in_ch; ++k) {
       EXPECT_EQ(src[i * in_ch + k], dst[i * out_ch + k]);
     }
@@ -1269,7 +1269,7 @@ TEST(FormatConverterOpsTest, TwentyToTwoS16LE) {
 
   for (size_t i = 0; i < frames; ++i) {
     size_t k;
-    // Input channles should be directly copied over.
+    // Input channels should be directly copied over.
     for (k = 0; k < out_ch; ++k) {
       EXPECT_EQ(src[i * in_ch + k], dst[i * out_ch + k]);
     }

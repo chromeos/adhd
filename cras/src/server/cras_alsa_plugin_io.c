@@ -87,7 +87,7 @@ static void hctl_event_pending(void* arg, int revents) {
   snd_hctl_handle_events(plugin->hctl);
 }
 
-// hctl poll descritpor
+// hctl poll descriptor
 static void collect_poll_descriptors(struct alsa_plugin* plugin) {
   struct hctl_poll_fd* registered_fd;
   struct pollfd* pollfds;
@@ -95,7 +95,7 @@ static void collect_poll_descriptors(struct alsa_plugin* plugin) {
 
   n = snd_hctl_poll_descriptors_count(plugin->hctl);
   if (n == 0) {
-    syslog(LOG_DEBUG, "No hctl descritpor to poll");
+    syslog(LOG_DEBUG, "No hctl descriptor to poll");
     return;
   }
 

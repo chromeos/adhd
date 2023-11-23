@@ -18,7 +18,7 @@ struct cras_iodev;
  * iodevs available.  They give the attached streams a temporary place to live
  * until a new iodev becomes available.
  * Args:
- *    direciton - input or output.
+ *    direction - input or output.
  *    node_type - the default node type.
  * Returns:
  *    A pointer to the newly created iodev if successful, NULL otherwise.

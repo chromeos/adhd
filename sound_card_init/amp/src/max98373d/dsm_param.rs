@@ -38,7 +38,7 @@ pub enum SPTMode {
 }
 
 #[derive(Copy, Clone)]
-/// DSM Parem field enumeration.
+/// DSM Param field enumeration.
 enum DsmAPI {
     ParamCount = 0x0,
     CalibMode = 0x1,

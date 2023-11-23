@@ -106,7 +106,7 @@ static void update_estimated_rate(struct open_dev* adev,
   }
 
   /*
-   * Self-owned rate esimator does not need to udpate rate. There is no tracked
+   * Self-owned rate estimator does not need to update rate. There is no tracked
    * output device. So there is no need to update.
    */
   if (!self_rate_need_update && !tracked_dev) {
@@ -926,7 +926,7 @@ int write_output_samples(struct open_dev** odevs,
     }
 
     // Check if iodev is reporting unreasonable buffer frames for output.
-    // In last audio thread wake cycle, the not-yet-committed buffer of szie
+    // In last audio thread wake cycle, the not-yet-committed buffer of size
     // |last_get_frames - last_put_frames| could have already been utilized by
     // streams mixing audio data. If iodev reports less than that number of
     // frames available, it'd lead to problems.
@@ -1083,7 +1083,7 @@ static void dev_io_drop_samples(struct open_dev* idev_list) {
 }
 
 /*
- * Public funcitons.
+ * Public functions.
  */
 
 int dev_io_send_captured_samples(struct open_dev* idev_list) {
@@ -1128,7 +1128,7 @@ static void handle_dev_err(int err_rc,
     cras_iodev_reset_request(adev->dev);
     cras_audio_thread_event_severe_underrun();
   } else if (err_rc == -EIO) {
-    syslog(LOG_WARNING, "I/O err, reseting %s dev %s",
+    syslog(LOG_WARNING, "I/O err, resetting %s dev %s",
            adev->dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
            adev->dev->info.name);
     clock_gettime(CLOCK_REALTIME, &now);

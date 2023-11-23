@@ -47,7 +47,7 @@ pub trait ByteProcessor {
     fn process_bytes<'a>(&'a mut self, input: MultiSlice<'a, u8>) -> Result<MultiSlice<'a, u8>>;
 }
 
-/// Convinence trait to ease implementing [`ByteProcessor`]s.
+/// Convenience trait to ease implementing [`ByteProcessor`]s.
 /// The input and output types are casted from `u8` to `I`, and `O` to `u8` automatically.
 ///
 /// Prefer implementing [`AudioProcessor`] when the input and output types are

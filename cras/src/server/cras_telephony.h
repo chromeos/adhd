@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Handle object to hold required info to handle telephony status which
- * is required for responsing HFP query commands.
+ * is required for responding HFP query commands.
  */
 struct cras_telephony_handle {
   // standard call status indicator, where
@@ -22,7 +22,7 @@ struct cras_telephony_handle {
   int call;
   // call set up status indicator.
   // 0: not currently in call set up
-  // 1: an incoming call prcess ongoing
+  // 1: an incoming call process ongoing
   // 2: an outgoing call set up is ongoing
   int callsetup;
   // call hold status indicator.
@@ -35,7 +35,7 @@ struct cras_telephony_handle {
   // number storage.
   char* dial_number;
 
-  // dus connetion which is used in whole telephony module.
+  // dus connection which is used in whole telephony module.
   DBusConnection* dbus_conn;
 };
 

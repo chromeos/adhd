@@ -1201,7 +1201,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
    * more calls. */
   EXPECT_EQ(7, cras_card_config_get_volume_curve_for_control_called);
 
-  // Jack plug of an unkonwn device should do nothing.
+  // Jack plug of an unknown device should do nothing.
   cras_alsa_jack_get_mixer_output_ret = NULL;
   cras_alsa_jack_get_name_ret_value = "Some other jack";
   jack_plug_cb(reinterpret_cast<struct cras_alsa_jack*>(4), 0,

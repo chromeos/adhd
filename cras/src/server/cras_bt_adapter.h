@@ -46,7 +46,7 @@ void cras_bt_adapter_update_properties(struct cras_bt_adapter* adapter,
 int cras_bt_adapter_on_usb(struct cras_bt_adapter* adapter);
 
 /*
- * Queries adapter supported capabilies from bluetooth daemon. This shall
+ * Queries adapter supported capabilities from bluetooth daemon. This shall
  * be called only after adapter powers on.
  */
 int cras_bt_adapter_get_supported_capabilities(struct cras_bt_adapter* adapter);

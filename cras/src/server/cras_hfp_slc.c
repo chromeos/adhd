@@ -1226,7 +1226,7 @@ void hfp_slc_destroy(struct hfp_slc_handle* slc_handle) {
 
 int hfp_slc_get_selected_codec(struct hfp_slc_handle* handle) {
   /* If codec negotiation is not supported on HF, or the negotiation
-   * process never completed. Fallback to the preffered codec. */
+   * process never completed. Fallback to the preferred codec. */
   if (handle->selected_codec == HFP_CODEC_UNUSED) {
     return handle->preferred_codec;
   } else {

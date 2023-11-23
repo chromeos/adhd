@@ -162,7 +162,7 @@ int retry_until_predicate_satisfied(struct DBusConnection* conn,
         /* dbus_ret_value_ptr= */ dbus_ret_value_ptr,
         /* log_on_error= */ true);
 
-    // Some fundamental error occured, abort immediately.
+    // Some fundamental error occurred, abort immediately.
     if (rc < 0) {
       return rc;
     }

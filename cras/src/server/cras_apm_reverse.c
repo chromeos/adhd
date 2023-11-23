@@ -109,7 +109,7 @@ static bool hw_echo_ref_disabled = 0;
  * with audio output device selection. */
 static struct cras_apm_reverse_module* default_rmod = NULL;
 
-// The utilitiy functions provided during init and wrapper to call into them.
+// The utility functions provided during init and wrapper to call into them.
 static process_reverse_t process_reverse_callback;
 static process_reverse_needed_t process_reverse_needed_callback;
 static output_devices_changed_t output_devices_changed_callback;
@@ -194,7 +194,7 @@ static void destroy_echo_ref_request(struct echo_ref_request* req) {
  * ext dsp module to this echo reference target.
  * When this echo reference iodev is opened and audio data flows through its
  * dsp pipeline, APMs will anaylize the reverse stream. This is expected to be
- * called in main thread when output devices enable/dsiable state changes.
+ * called in main thread when output devices enable/disable state changes.
  */
 static void handle_iodev_states_changed(struct cras_iodev* iodev,
                                         void* cb_data) {

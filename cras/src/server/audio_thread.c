@@ -272,7 +272,7 @@ static void fill_odevs_zeros_min_level(struct cras_iodev* odev) {
   int rc;
   rc = cras_iodev_fill_odev_zeros(odev, odev->min_buffer_level);
   if (rc < 0) {
-    syslog(LOG_WARNING, "failed to fill odev with %u length fo zeros:%d",
+    syslog(LOG_WARNING, "failed to fill odev with %u length of zeros:%d",
            odev->min_buffer_level, rc);
   }
 }
@@ -431,7 +431,7 @@ static int thread_drain_stream_ms_remaining(struct audio_thread* thread,
 }
 
 /* Handles a request to begin draining and return the amount of time left to
- * draing a stream.
+ * drawing a stream.
  */
 static int thread_drain_stream(struct audio_thread* thread,
                                struct cras_rstream* rstream) {

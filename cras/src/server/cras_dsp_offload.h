@@ -100,7 +100,7 @@ int cras_dsp_offload_config_module(struct dsp_offload_map* offload_map,
                                    struct dsp_module* mod,
                                    const char* label);
 
-/* Sets the offload state and propagates to the asssociated DSP modules.
+/* Sets the offload state and propagates to the associated DSP modules.
  * Args:
  *    offload_map - Pointer to the offload map instance.
  *    enabled - True to enable the offload; False to disable.

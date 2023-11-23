@@ -57,7 +57,7 @@ enum AUDIO_THREAD_EVENTS_CB_TRIGGER {
   TRIGGER_NONE,
   // Triggered by poll given fd and revent.
   TRIGGER_POLL,
-  // Triggered everytime when audio thread wakes up.
+  // Triggered every time when audio thread wakes up.
   TRIGGER_WAKEUP,
 };
 
@@ -127,7 +127,7 @@ void audio_thread_rm_callback(int fd);
  */
 int audio_thread_rm_callback_sync(struct audio_thread* thread, int fd);
 
-/* Configures the callback associated with fd when it should be triggerred.
+/* Configures the callback associated with fd when it should be triggered.
  * Args:
  *    fd - The file descriptor associate to the callback.
  *    trigger - Specifies how the callback should be triggered.

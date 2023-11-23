@@ -204,7 +204,7 @@ static int a2dp_output_underrun(struct cras_iodev* iodev) {
 static int a2dp_enter_no_stream(struct cras_iodev* odev) {
   int rc;
   /* Setting target level to 3 times of min_buffer_level.
-   * We want hw_level to stay bewteen 1-2 times of min_buffer_level on top
+   * We want hw_level to stay between 1-2 times of min_buffer_level on top
    * of the underrun threshold(i.e one min_cb_level). */
   rc = fill_zeros_to_target_level(odev, 3 * odev->min_buffer_level);
   if (rc < 0) {

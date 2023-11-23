@@ -87,7 +87,7 @@ int cras_dsp_pipeline_get_num_output_channels(struct pipeline* pipeline);
 
 /* Returns the pointer to the input buffer for a channel of this
  * pipeline. The size of the buffer is DSP_BUFFER_SIZE samples, and
- * the number of samples acually used should be passed to
+ * the number of samples actually used should be passed to
  * cras_dsp_pipeline_run().
  *
  * Args:
@@ -169,7 +169,7 @@ void cras_dsp_pipeline_add_statistic(struct pipeline* pipeline,
  *    pipeline - The pipeline to run.
  *    buf - The samples to be processed, interleaved.
  *    format - Sample format of the buffer.
- *    frames - the numver of samples in the buffer.
+ *    frames - the number of samples in the buffer.
  * Returns:
  *    Negative code if error, otherwise 0.
  */

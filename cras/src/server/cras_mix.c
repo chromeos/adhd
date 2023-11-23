@@ -39,7 +39,7 @@ static const struct cras_mix_ops* get_mixer_ops(unsigned int cpu_flags) {
   return &mixer_ops;
 }
 #if defined(__amd64__)
-// CPU detection - probaby best to move this elsewhere
+// CPU detection - probably best to move this elsewhere
 static void cpuid(unsigned int* eax,
                   unsigned int* ebx,
                   unsigned int* ecx,

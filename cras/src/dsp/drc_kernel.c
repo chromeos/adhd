@@ -947,8 +947,8 @@ static void dk_compress_output(struct drc_kernel* dk) {
 }
 #endif
 
-/* After one complete divison of samples have been received (and one divison of
- * samples have been output), we calculate shaped power average
+/* After one complete division of samples have been received (and one division
+ * of samples have been output), we calculate shaped power average
  * (detector_average) from the input division, update envelope parameters from
  * detector_average, then prepare the next output division by applying the
  * envelope to compress the samples.

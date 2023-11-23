@@ -471,7 +471,7 @@ struct cras_fmt_conv* cras_fmt_conv_create(const struct cras_audio_format* in,
 
   // Set up sample format conversion.
   /* TODO(dgreid) - modify channel and sample rate conversion so
-   * converting to s16 isnt necessary. */
+   * converting to s16 isn't necessary. */
   if (in->format != SND_PCM_FORMAT_S16_LE) {
     conv->num_converters++;
     syslog(LOG_DEBUG, "Convert from format %d to %d.", in->format, out->format);

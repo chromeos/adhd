@@ -117,7 +117,7 @@ struct cras_ionode {
   float ui_gain_scaler;
   // If left and right output channels are swapped.
   int left_right_swapped;
-  // The currect display rotation status.
+  // The current display rotation status.
   enum CRAS_SCREEN_ROTATION display_rotation;
   // Type displayed to the user.
   enum CRAS_NODE_TYPE type;
@@ -187,7 +187,7 @@ struct cras_iodev {
                                 struct cras_ionode* node,
                                 int enable);
   // Function to call to update the display
-  // rotaion for the node.
+  // rotation for the node.
   int (*set_display_rotation_for_node)(struct cras_iodev* iodev,
                                        struct cras_ionode* node,
                                        enum CRAS_SCREEN_ROTATION);
@@ -519,7 +519,7 @@ void cras_iodev_fill_time_from_frames(size_t frames,
 void cras_iodev_update_dsp(struct cras_iodev* iodev);
 
 /* Sets display_rotation on a node using dsp. This function can be called when
- * dsp pipline is not created yet. It will take effect when dsp pipeline
+ * dsp pipeline is not created yet. It will take effect when dsp pipeline
  * is created later. If there is dsp pipeline, this function triggers a dsp
  * pipeline reload and display_rotation takes effect right away.
  * Args:
@@ -534,7 +534,7 @@ int cras_iodev_dsp_set_display_rotation_for_node(struct cras_iodev* iodev,
                                                  enum CRAS_SCREEN_ROTATION);
 
 /* Sets swap mode on a node using dsp. This function can be called when
- * dsp pipline is not created yet. It will take effect when dsp pipeline
+ * dsp pipeline is not created yet. It will take effect when dsp pipeline
  * is created later. If there is dsp pipeline, this function causes the dsp
  * pipeline to be reloaded and swap mode takes effect right away.
  * Args:
@@ -647,7 +647,7 @@ static inline bool cras_iodev_can_start(const struct cras_iodev* iodev) {
   }
 }
 
-/* Gets the software gain scaler should be applied on the deivce.
+/* Gets the software gain scaler should be applied on the device.
  * Args:
  *    iodev - The device.
  * Returns:
@@ -709,7 +709,7 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level);
  * Args:
  *    iodev - The input device.
  * Returns:
- *    Number of frames to put sucessfully. Negative error code on failure.
+ *    Number of frames to put successfully. Negative error code on failure.
  */
 int cras_iodev_put_input_buffer(struct cras_iodev* iodev);
 

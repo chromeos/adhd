@@ -76,7 +76,7 @@ impl CrasServerSocket {
         Ok(CrasServerSocket { socket: fd })
     }
 
-    /// Sends a sized and packed server messge to the server socket. The message
+    /// Sends a sized and packed server message to the server socket. The message
     /// must implement `Sized` and `DataInit`.
     /// # Arguments
     /// * `message` - A sized and packed message.
@@ -146,7 +146,7 @@ impl ScmSocket for CrasServerSocket {
     }
 }
 
-// For using `PollContex`.
+// For using `PollContext`.
 impl AsRawFd for CrasServerSocket {
     fn as_raw_fd(&self) -> RawFd {
         self.socket.as_raw_fd()

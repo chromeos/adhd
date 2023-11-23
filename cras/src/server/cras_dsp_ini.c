@@ -46,7 +46,7 @@
   output port, and each port is either an audio port or a control
   port. The connections between two ports are expressed by giving the
   same value to both ports. For audio ports, the value should be
-  "{identifier}". For control ports, the value shoule be
+  "{identifier}". For control ports, the value should be
   "<identifier>". For example, the following fragment
 
   [plugin1]

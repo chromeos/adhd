@@ -63,7 +63,7 @@ func NewGerritClient(gerritURL string) (*gerrit.Client, error) {
 	}
 
 	// set an unused cookie so c.AuthenticationService.HasAuth returns true
-	// the actual cookie token is already availabe with our own ~/.gitcookies
+	// the actual cookie token is already available with our own ~/.gitcookies
 	// based cookie jar
 	c.Authentication.SetCookieAuth("unused", "unused")
 

@@ -109,7 +109,7 @@ struct cras_sco {
   int (*read_cb)(struct cras_sco* sco);
   // Callback to call when SCO socket can write.
   int (*write_cb)(struct cras_sco* sco);
-  // Temp buffer for writeing HCI SCO packet in wideband.
+  // Temp buffer for writing HCI SCO packet in wideband.
   uint8_t* write_buf;
   // Temp buffer for reading HCI SCO packet in wideband.
   uint8_t* read_buf;

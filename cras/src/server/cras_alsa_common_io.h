@@ -48,10 +48,10 @@ extern "C" {
 // Default 25 step, volume change 4% once a time
 #define NUMBER_OF_VOLUME_STEPS_DEFAULT 25
 
-// maxium 25 step, volume change 4% once a time
+// maximum 25 step, volume change 4% once a time
 #define NUMBER_OF_VOLUME_STEPS_MAX 25
 
-// minium 10 step, volume change 10% once a time
+// minimum 10 step, volume change 10% once a time
 #define NUMBER_OF_VOLUME_STEPS_MIN 10
 
 /*

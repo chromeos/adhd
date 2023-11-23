@@ -64,7 +64,7 @@ int create_dbus_method_call(DBusMessage** method_call,
                             int num_args,
                             ...);
 
-/* Calls a method on the specificed DBus connection and parses the reply.
+/* Calls a method on the specified DBus connection and parses the reply.
  * Args:
  *    conn - The DBus connection to use for the method call.
  *    method_call - The DBus method call to invoke.

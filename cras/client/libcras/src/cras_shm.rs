@@ -84,7 +84,7 @@ unsafe impl<'a> Send for CrasAudioHeader<'a> {}
 /// - Make sure all `UnalignedRef`s generated from this macro have exclusive ownership for the same
 /// pointer.
 ///
-/// TODO(b/239850356): Use self-implemented `UnalignedRef` implemetation
+/// TODO(b/239850356): Use self-implemented `UnalignedRef` implementation
 /// with [`ptr::read_unaligned`] and [`ptr::write_unaligned`].
 #[macro_export]
 macro_rules! vref_from_addr {

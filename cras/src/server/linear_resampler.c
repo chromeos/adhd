@@ -10,7 +10,7 @@
 
 // A linear resampler.
 struct linear_resampler {
-  // The number of channles in once frames.
+  // The number of channels in once frames.
   unsigned int num_channels;
   // The size of one frame in bytes.
   unsigned int format_bytes;
@@ -71,7 +71,7 @@ void linear_resampler_set_rates(struct linear_resampler* lr,
  * equations X-1 = floor(Y/f) and Y = ceil((X-1)*f).  Note that in any case
  * when the resampled frames number isn't sufficient to consume the first
  * buffer at input or output offset(index 0), always count as one buffer
- * used so the intput/output offset can always increment.
+ * used so the input/output offset can always increment.
  */
 unsigned int linear_resampler_out_frames_to_in(struct linear_resampler* lr,
                                                unsigned int frames) {

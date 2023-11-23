@@ -40,7 +40,7 @@ static inline void byte_buffer_set_used_size(struct byte_buffer* buf,
   buf->used_size = MIN(used_size, buf->max_size);
 }
 
-// Destory a byte_buffer created with byte_buffer_create.
+// Destroy a byte_buffer created with byte_buffer_create.
 static inline void byte_buffer_destroy(struct byte_buffer** buf) {
   free(*buf);
   *buf = NULL;

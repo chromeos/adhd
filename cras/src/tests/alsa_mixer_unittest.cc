@@ -958,7 +958,7 @@ TEST_F(AlsaMixerOutputs, CheckFindInputNameWorkaround) {
   control = cras_alsa_mixer_get_input_matching_name(cras_mixer_, "MIC");
   EXPECT_NE(static_cast<struct mixer_control*>(NULL), control);
   /* This exercises the 'workaround' where the control is added if it was
-   * previouly missing in cras_alsa_mixer_get_input_matching_name().
+   * previously missing in cras_alsa_mixer_get_input_matching_name().
    * snd_mixer_find_selem is called once for the missing control. */
   EXPECT_EQ(1, snd_mixer_find_selem_called);
   EXPECT_EQ(1, snd_mixer_selem_has_capture_volume_called);

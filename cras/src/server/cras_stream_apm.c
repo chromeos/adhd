@@ -126,7 +126,7 @@ struct cras_stream_apm {
 /*
  * Wrappers of APM instances that are active, which means it is associated
  * to a dev/stream pair in audio thread and ready for processing.
- * The existance of an |active_apm| is the key to treat a |cras_apm| is alive
+ * The existence of an |active_apm| is the key to treat a |cras_apm| is alive
  * and can be used for processing.
  */
 struct active_apm {
@@ -287,7 +287,7 @@ static void update_supported_dsp_effects_activation() {
    * that request different effects. Therefore we need to iterate through
    * all APMs to find out the answer to each rule.
    *
-   * 1. If the associated input and output device pair don't allign with
+   * 1. If the associated input and output device pair don't align with
    * the AEC use case, we shall deactivate DSP effects on idev.
    * 2. We shall deactivate DSP effects on idev if any APM has requested
    * to not be applied.
@@ -956,7 +956,7 @@ static void possibly_track_voice_activity(struct cras_apm* apm) {
 
   struct active_apm* active;
   DL_FOREACH (active_apms, active) {
-    // Match only the first apm. We don't care mutiple inputs.
+    // Match only the first apm. We don't care multiple inputs.
     if (active->stream->apms != apm) {
       continue;
     }

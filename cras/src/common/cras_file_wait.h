@@ -81,7 +81,7 @@ int cras_file_wait_create(const char* file_path,
 
 /* Returns the file-descriptor to poll for a file wait.
  *
- * Poll for POLLIN on this file decriptor. When there is data available, call
+ * Poll for POLLIN on this file descriptor. When there is data available, call
  * cras_file_wait_continue() on the associated file_wait structure.
  *
  * Args:

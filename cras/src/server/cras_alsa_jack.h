@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  *
  * Handles finding and monitoring ALSA Jack controls.  These controls represent
- * external jacks and report back when the plugged state of teh hack changes.
+ * external jacks and report back when the plugged state of the hack changes.
  */
 
 #ifndef CRAS_SRC_SERVER_CRAS_ALSA_JACK_H_

@@ -251,7 +251,7 @@ class CrasRouterTest(object):
                 print('Error setting output')
         command.append('--rate')
         command.append(str(rate))
-        print('Running commmand: ' + str(command))
+        print('Running command: ' + str(command))
         p = subprocess.Popen(command)
         cherrypy.session['process'] = p
         return """
@@ -271,7 +271,7 @@ class CrasRouterTest(object):
     <body>
       <div id="test">
         <h1>Test in progress</h1>
-        <form action="index"><!--Go back to orginal page-->
+        <form action="index"><!--Go back to original page-->
           <button type="submit" id="stop">Click to stop</button>
         </form>
         <h2>Time Elapsed<br>

@@ -2,7 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  *
- * The blow logging funcitons must only be called from the audio thread.
+ * The blow logging functions must only be called from the audio thread.
  */
 
 #ifndef CRAS_SRC_SERVER_AUDIO_THREAD_LOG_H_

@@ -13,7 +13,7 @@ extern "C" {
 #include "cras/src/server/rust/include/cras_fra.h"
 
 // prints something to thread-local storage.
-// Use only for printting debug messages.
+// Use only for printing debug messages.
 const char* tlsprintf(const char* fmt, ...);
 
 // Example:

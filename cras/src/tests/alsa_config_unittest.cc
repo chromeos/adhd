@@ -324,7 +324,7 @@ TEST_F(AlsaConfigTestSuite, CacheForConnectedCtls) {
   // control element once it is established on probe/set/get requestsand hence
   // the overhead of connection over sound card scanning can be reduced. Such
   // overheads can be checked by monitoring the time for calling snd_card_next,
-  // which should not be called while tthe control element is stored in cache.
+  // which should not be called while the control element is stored in cache.
 
   // Probe control "BYTES1.4".
   stub_control_ptr = &card1_bytes;

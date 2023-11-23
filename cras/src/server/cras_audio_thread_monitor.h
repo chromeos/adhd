@@ -16,7 +16,7 @@ extern "C" {
 int cras_audio_thread_event_a2dp_overrun();
 
 /*
- * Notifies the main thread when A2DP packet transmittion throttles.
+ * Notifies the main thread when A2DP packet transmission throttles.
  */
 int cras_audio_thread_event_a2dp_throttle();
 

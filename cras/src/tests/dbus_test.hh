@@ -117,7 +117,7 @@
  *
  * In some cases (notably "AddMatch" method calls) the method call will
  * be handled by libdbus itself and the mechanism DBusTest uses to verify
- * that the reply is recieved does not work. In which case you need to use
+ * that the reply is received does not work. In which case you need to use
  * .SendReplyNoWait() instead.
  *
  *    ExpectMethodCall("", DBUS_INTERFACE_DBUS, "AddMatch")

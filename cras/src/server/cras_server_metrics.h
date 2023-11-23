@@ -19,7 +19,7 @@ extern "C" {
 extern const char kNoCodecsFoundMetric[];
 
 /* Codes for how A2DP exit the audio output list.
- * IDLE - Disconnected while idle. The default disconnec reason without
+ * IDLE - Disconnected while idle. The default disconnect reason without
  *     anything special.
  * WHILE_STREAMING - Disconnected while a2dp is streaming and audio
  *     thread didn't catch any socket error.
@@ -125,7 +125,7 @@ int cras_server_metrics_webrtc_devs_runtime(
 // Logs runtime of a device.
 int cras_server_metrics_device_runtime(struct cras_iodev* iodev);
 
-// Logs device cofigure time from |beg| to |end| in milliseconds.
+// Logs device configure time from |beg| to |end| in milliseconds.
 int cras_server_metrics_device_configure_time(struct cras_iodev* iodev,
                                               struct timespec* beg,
                                               struct timespec* end);
@@ -181,12 +181,12 @@ int cras_server_metrics_busyloop_length(unsigned length);
 int cras_server_metrics_a2dp_exit(enum A2DP_EXIT_CODE code);
 
 /* Logs A2dp write failure periods that exceed 20ms all summed up and then
- * divide by the stream time. The final ratio is normalized by multipling
+ * divide by the stream time. The final ratio is normalized by multiplying
  * 10^9 for metric logging. */
 int cras_server_metrics_a2dp_20ms_failure_over_stream(unsigned num);
 
 /* Logs A2dp write failure periods that exceed 100ms all summed up and then
- * divide by the stream time. The final ratio is normalized by multipling
+ * divide by the stream time. The final ratio is normalized by multiplying
  * 10^9 for metric logging. */
 int cras_server_metrics_a2dp_100ms_failure_over_stream(unsigned num);
 

@@ -6,12 +6,13 @@
 # usage: merge_2way_conf [1st-way conf] [2nd-way conf]
 
 """
+
 output files (in the working directory):
     audio-2way.conf - merged audio.conf file for 2way usage
     bandsplit-param-lines.txt - lines of code to be filled into tuning script
 
 asserts:
-  - global config varaiables are equivalent on both ways
+  - global config variables are equivalent on both ways
   - drc parameters are equivalent on both ways
   - bandsplit filter parameters are equivalent on left and right channel
   - the number of EQ filters per channel after merged is <= 8

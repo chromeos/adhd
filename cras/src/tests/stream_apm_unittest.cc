@@ -625,7 +625,7 @@ TEST_F(StreamApm, UpdateEffect) {
   cras_stream_apm_remove(stream, idev);
   cras_stream_apm_destroy(stream);
 
-  // Allowing DSP aec means DSP ns/agc can be enalbed.
+  // Allowing DSP aec means DSP ns/agc can be enabled.
   apm_thread_set_dsp_input_effects_blocked(false);
   stream = cras_stream_apm_create(
       APM_ECHO_CANCELLATION | APM_NOISE_SUPRESSION | APM_GAIN_CONTROL |
