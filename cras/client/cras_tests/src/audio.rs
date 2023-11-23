@@ -12,6 +12,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::{SampleFormat, StreamSource};
+use cras_sys::gen::CRAS_SPECIAL_DEVICE;
 use hound::{WavReader, WavSpec, WavWriter};
 
 use libchromeos::signal::register_signal_handler;
@@ -191,6 +192,7 @@ pub fn playback(opts: AudioOptions) -> Result<()> {
     let frame_rate;
     let format;
     let file_type = opts.file_type().map_err(Error::ParseArgs)?;
+    assert!(opts.effects.is_none(), "playback effects not supported");
 
     let mut sample_source: Box<dyn Read> = match file_type {
         FileType::Wav => {
@@ -416,33 +418,32 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
 
     let mut cras_client = CrasClient::new().map_err(Error::Libcras)?;
     cras_client.enable_cras_capture();
-    let (_control, mut stream) = match opts.loopback_type {
+
+    let pin_iodev_index = match opts.loopback_type {
         Some(loopback_type) => {
             let node_type = match loopback_type {
                 LoopbackType::PreDsp => CrasNodeType::CRAS_NODE_TYPE_POST_MIX_PRE_DSP,
                 LoopbackType::PostDsp => CrasNodeType::CRAS_NODE_TYPE_POST_DSP,
             };
-
             let loopback_node = cras_client
                 .input_nodes()
                 .find(|node| node.node_type == node_type)
                 .ok_or(Error::NoLoopbackNode(node_type))?;
-
-            cras_client
-                .new_pinned_capture_stream(
-                    loopback_node.iodev_index,
-                    num_channels,
-                    format,
-                    frame_rate,
-                    buffer_size,
-                    CrasStreamEffect(0),
-                )
-                .map_err(Error::CreateStream)?
+            loopback_node.iodev_index
         }
-        None => cras_client
-            .new_capture_stream(num_channels, format, frame_rate, buffer_size, &[])
-            .map_err(Error::CreateStream)?,
+        None => CRAS_SPECIAL_DEVICE::NO_DEVICE as u32,
     };
+    let (_control, mut stream) = cras_client
+        .new_pinned_capture_stream(
+            pin_iodev_index,
+            num_channels,
+            format,
+            frame_rate,
+            buffer_size,
+            CrasStreamEffect(opts.effects.unwrap_or(0)),
+        )
+        .map_err(Error::CreateStream)?;
+
     set_priority_to_realtime();
     add_sigint_handler()?;
     while !INTERRUPTED.load(Ordering::Acquire) {

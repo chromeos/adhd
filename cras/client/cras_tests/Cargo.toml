@@ -6,6 +6,7 @@ edition = "2021"
 
 [dependencies]
 audio_streams = "*"
+cras-sys = "*"
 clap = { version = "3.1.10", features = ["derive"] }
 dbus = "0.9"
 hound = "3.4.0"

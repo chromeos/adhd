@@ -10,6 +10,7 @@ use thiserror::Error as ThisError;
 
 use crate::getter::GetCommand;
 use crate::setter::SetCommand;
+use std::str::FromStr;
 
 #[derive(ThisError, Debug)]
 pub enum Error {
@@ -106,6 +107,22 @@ pub struct AudioOptions {
     /// Duration of playing/recording action in seconds.
     #[clap(short = 'd', long = "duration")]
     pub duration_sec: Option<usize>,
+
+    /// Capture effects to enable.
+    #[clap(long = "effects", value_parser = parse_hex_or_decimal)]
+    pub effects: Option<u32>,
+}
+
+/// Parse string starting with 0x as hex and others as decimal.
+fn parse_hex_or_decimal(maybe_hex_string: &str) -> std::result::Result<u32, String> {
+    if let Some(hex_string) = maybe_hex_string.strip_prefix("0x") {
+        u32::from_str_radix(hex_string, 16)
+    } else if let Some(hex_string) = maybe_hex_string.strip_prefix("0X") {
+        u32::from_str_radix(hex_string, 16)
+    } else {
+        u32::from_str(maybe_hex_string)
+    }
+    .map_err(|e| format!("invalid numeric value {}: {}", maybe_hex_string, e))
 }
 
 impl AudioOptions {
@@ -220,6 +237,7 @@ mod tests {
                 format: None,
                 buffer_size: None,
                 duration_sec: None,
+                effects: None,
             })
         );
 
@@ -235,6 +253,7 @@ mod tests {
                 format: None,
                 buffer_size: None,
                 duration_sec: None,
+                effects: None,
             })
         );
 
@@ -258,6 +277,7 @@ mod tests {
                 format: None,
                 buffer_size: None,
                 duration_sec: None,
+                effects: None,
             })
         );
 
@@ -283,6 +303,7 @@ mod tests {
                 format: None,
                 buffer_size: None,
                 duration_sec: Some(5),
+                effects: None,
             })
         );
 
@@ -306,6 +327,23 @@ mod tests {
                 format: None,
                 buffer_size: None,
                 duration_sec: Some(10),
+                effects: None,
+            })
+        );
+
+        let command = Command::parse_from(["cras_tests", "capture", "out.wav", "--effects=0x11"]);
+        assert_eq!(
+            command,
+            Command::Capture(AudioOptions {
+                file_name: PathBuf::from("out.wav"),
+                loopback_type: None,
+                file_type_option: None,
+                frame_rate: None,
+                num_channels: None,
+                format: None,
+                buffer_size: None,
+                duration_sec: None,
+                effects: Some(0x11),
             })
         );
 
