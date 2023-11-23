@@ -13,10 +13,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::{SampleFormat, StreamSource};
 use hound::{WavReader, WavSpec, WavWriter};
-use libc;
+
 use libchromeos::signal::register_signal_handler;
 use libcras::{BoxError, CrasClient, CrasNodeType};
-use nix;
+
 use nix::sys::signal::Signal;
 
 use crate::arguments::{AudioOptions, FileType, LoopbackType, SampleFormatArg};

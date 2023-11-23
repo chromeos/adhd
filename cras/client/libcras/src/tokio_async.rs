@@ -14,7 +14,7 @@ use audio_streams::async_api::ReadAsync;
 use audio_streams::async_api::ReadWriteAsync;
 use audio_streams::async_api::WriteAsync;
 use futures::Future;
-use libc;
+
 use std::io;
 use std::io::Result as IoResult;
 use std::os::unix::io::RawFd;
@@ -113,7 +113,7 @@ impl ReadAsync for TokioAsyncStream {
                     continue;
                 }
                 Err(e) => {
-                    return Err(e.into());
+                    return Err(e);
                 }
             }
         }
@@ -142,7 +142,7 @@ impl WriteAsync for TokioAsyncStream {
                     continue;
                 }
                 Err(e) => {
-                    return Err(e.into());
+                    return Err(e);
                 }
             }
         }

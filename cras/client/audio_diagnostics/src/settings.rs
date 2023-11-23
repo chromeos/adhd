@@ -46,7 +46,7 @@ impl AudioNode {
     fn try_from_str(v: &str) -> Result<Self, AudioNodeParseError> {
         let (stable_id_str, is_input_str) = v
             .split_once(" : ")
-            .ok_or_else(|| AudioNodeParseError::MissingDelimiter)?;
+            .ok_or(AudioNodeParseError::MissingDelimiter)?;
         let stable_id = stable_id_str
             .parse::<u32>()
             .map_err(|_| AudioNodeParseError::StableIdNotU32)?;
@@ -165,8 +165,8 @@ mod tests {
         );
         assert_eq!(serde_json::to_string(&a).unwrap(), a_json_salted);
         assert_eq!(serde_json::to_string(&b).unwrap(), b_json_salted);
-        assert_eq!(serde_json::from_str::<AudioNode>(&a_json).unwrap(), a);
-        assert_eq!(serde_json::from_str::<AudioNode>(&b_json).unwrap(), b);
+        assert_eq!(serde_json::from_str::<AudioNode>(a_json).unwrap(), a);
+        assert_eq!(serde_json::from_str::<AudioNode>(b_json).unwrap(), b);
     }
 
     #[test]

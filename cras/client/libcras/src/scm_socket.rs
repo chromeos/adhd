@@ -142,7 +142,7 @@ fn raw_sendmsg<D: AsIobuf>(fd: RawFd, out_data: &[D], out_fds: &[RawFd]) -> Resu
         cmsg.cmsg_type = SCM_RIGHTS;
         unsafe {
             // Safe because cmsg_buffer was allocated to be large enough to contain cmsghdr.
-            write_unaligned(cmsg_buffer.as_mut_ptr() as *mut cmsghdr, cmsg);
+            write_unaligned(cmsg_buffer.as_mut_ptr(), cmsg);
             // Safe because the cmsg_buffer was allocated to be large enough to hold out_fds.len()
             // file descriptors.
             copy_nonoverlapping(
@@ -203,7 +203,7 @@ fn raw_recvmsg(fd: RawFd, iovs: &mut [IoSliceMut], in_fds: &mut [RawFd]) -> Resu
     while !cmsg_ptr.is_null() {
         // Safe because we checked that cmsg_ptr was non-null, and the loop is constructed such that
         // that only happens when there is at least sizeof(cmsghdr) space after the pointer to read.
-        let cmsg = unsafe { (cmsg_ptr as *mut cmsghdr).read_unaligned() };
+        let cmsg = unsafe { cmsg_ptr.read_unaligned() };
 
         if cmsg.cmsg_level == SOL_SOCKET && cmsg.cmsg_type == SCM_RIGHTS {
             let fd_count = (cmsg.cmsg_len - CMSG_LEN!(0)) / size_of::<RawFd>();
