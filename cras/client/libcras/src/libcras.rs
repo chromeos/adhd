@@ -423,7 +423,7 @@ impl<'a> CrasClient<'a> {
         rate: u32,
         channel_num: usize,
         format: SampleFormat,
-        effects: &[StreamEffect],
+        effects: CrasStreamEffect,
         client_shm_size: u64,
         buffer_offsets: [u64; 2],
         fds: &[RawFd],
@@ -448,7 +448,7 @@ impl<'a> CrasClient<'a> {
             flags: 0,
             format: audio_format,
             dev_idx: device_index.unwrap_or(CRAS_SPECIAL_DEVICE::NO_DEVICE as u32),
-            effects: effects.iter().collect::<CrasStreamEffect>().into(),
+            effects: effects.into(),
             client_type: self.client_type,
             client_shm_size,
             buffer_offsets,
@@ -471,7 +471,7 @@ impl<'a> CrasClient<'a> {
         rate: u32,
         channel_num: usize,
         format: SampleFormat,
-        effects: &[StreamEffect],
+        effects: CrasStreamEffect,
     ) -> Result<CrasStream<'b, T>> {
         assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
 
@@ -520,7 +520,7 @@ impl<'a> CrasClient<'a> {
         rate: u32,
         channel_num: usize,
         format: SampleFormat,
-        effects: &[StreamEffect],
+        effects: CrasStreamEffect,
         ex: &dyn AudioStreamsExecutor,
     ) -> Result<async_::CrasStream<'b, T>> {
         assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
@@ -570,7 +570,7 @@ impl<'a> CrasClient<'a> {
         rate: u32,
         channel_num: usize,
         format: SampleFormat,
-        effects: &[StreamEffect],
+        effects: CrasStreamEffect,
         ex: &dyn AudioStreamsExecutor,
     ) -> Result<async_::CrasStream<'b, T>> {
         assert!(direction == CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT || self.cras_capture);
@@ -639,7 +639,7 @@ impl<'a> CrasClient<'a> {
                 frame_rate,
                 num_channels,
                 format,
-                effects,
+                effects.iter().collect(),
             )?),
         ))
     }
@@ -664,7 +664,7 @@ impl<'a> CrasClient<'a> {
         format: SampleFormat,
         frame_rate: u32,
         buffer_size: usize,
-        effects: &[StreamEffect],
+        effects: CrasStreamEffect,
     ) -> std::result::Result<(Box<dyn StreamControl>, Box<dyn CaptureBufferStream>), BoxError> {
         assert!(self.cras_capture);
 
@@ -740,7 +740,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                 frame_rate,
                 num_channels,
                 format,
-                &[],
+                CrasStreamEffect(0),
             )?),
         ))
     }
@@ -764,7 +764,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                 frame_rate,
                 num_channels,
                 format,
-                &[],
+                CrasStreamEffect(0),
                 ex,
             )?),
         ))
@@ -790,7 +790,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                     frame_rate,
                     num_channels,
                     format,
-                    &[],
+                    CrasStreamEffect(0),
                     ex,
                 )
                 .await?,
@@ -817,7 +817,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                     frame_rate,
                     num_channels,
                     format,
-                    effects,
+                    effects.iter().collect(),
                 )?),
             ))
         } else {
@@ -854,7 +854,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                     frame_rate,
                     num_channels,
                     format,
-                    effects,
+                    effects.iter().collect(),
                     ex,
                 )?),
             ))
@@ -893,7 +893,7 @@ impl<'a> StreamSource for CrasClient<'a> {
                         frame_rate,
                         num_channels,
                         format,
-                        effects,
+                        effects.iter().collect(),
                         ex,
                     )
                     .await?,
@@ -946,7 +946,7 @@ impl<'a, E: std::error::Error> ShmStreamSource<E> for CrasClient<'a> {
             frame_rate,
             num_channels,
             format,
-            effects,
+            effects.iter().collect(),
             client_shm.size(),
             buffer_offsets,
             &[sock2.as_raw_fd(), client_shm.as_raw_fd()],

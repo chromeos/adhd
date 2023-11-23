@@ -15,6 +15,7 @@ use audio_streams::{SampleFormat, StreamSource};
 use hound::{WavReader, WavSpec, WavWriter};
 
 use libchromeos::signal::register_signal_handler;
+use libcras::CrasStreamEffect;
 use libcras::{BoxError, CrasClient, CrasNodeType};
 
 use nix::sys::signal::Signal;
@@ -434,7 +435,7 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
                     format,
                     frame_rate,
                     buffer_size,
-                    &[],
+                    CrasStreamEffect(0),
                 )
                 .map_err(Error::CreateStream)?
         }
