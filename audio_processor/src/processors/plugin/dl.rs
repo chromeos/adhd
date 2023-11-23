@@ -58,10 +58,9 @@ impl DynLib {
 
 impl Drop for DynLib {
     fn drop(&mut self) {
-        // SAFETY: self.0 was returned by dlopen().
-        unsafe {
-            libc::dlclose(self.0.as_ptr());
-        }
+        // Reloading dlclose() + dlopen() is not well supported.
+        // Do nothing about the library handle.
+        // See also: https://wiki.musl-libc.org/functional-differences-from-glibc.html#Unloading-libraries
     }
 }
 
