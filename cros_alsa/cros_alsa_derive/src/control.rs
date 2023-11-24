@@ -8,7 +8,8 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 
-use crate::common::{parse_cros_alsa_attr, CrosAlsaAttr};
+use crate::common::parse_cros_alsa_attr;
+use crate::common::CrosAlsaAttr;
 
 /// The provide default implementation for `ControlOps`.
 /// Users could hold `Ctl` and `ElemID` as `handle` and `id` in their control structure and use

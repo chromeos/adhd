@@ -17,13 +17,22 @@
 
 use std::default::Default;
 use std::error;
-use std::fmt::{self, Debug};
+use std::fmt;
+use std::fmt::Debug;
 
-use libc::{c_long, c_uchar, c_uint};
+use libc::c_long;
+use libc::c_uchar;
+use libc::c_uint;
 use log::debug;
 use remain::sorted;
 
-use crate::control_primitive::{self, snd_strerror, Ctl, ElemId, ElemInfo, ElemType, ElemValue};
+use crate::control_primitive;
+use crate::control_primitive::snd_strerror;
+use crate::control_primitive::Ctl;
+use crate::control_primitive::ElemId;
+use crate::control_primitive::ElemInfo;
+use crate::control_primitive::ElemType;
+use crate::control_primitive::ElemValue;
 
 /// The Result type of cros-alsa::elem.
 pub type Result<T> = std::result::Result<T, Error>;

@@ -1,15 +1,22 @@
 // Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::os::unix::io::{AsRawFd, FromRawFd, OwnedFd, RawFd};
+use std::io;
+use std::mem;
+use std::os::unix::io::AsRawFd;
+use std::os::unix::io::FromRawFd;
+use std::os::unix::io::OwnedFd;
+use std::os::unix::io::RawFd;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::{io, mem};
 
-use cras_sys::gen::{cras_disconnect_stream_message, cras_server_message, CRAS_SERVER_MESSAGE_ID};
+use cras_sys::gen::cras_disconnect_stream_message;
+use cras_sys::gen::cras_server_message;
+use cras_sys::gen::CRAS_SERVER_MESSAGE_ID;
 use data_model::DataInit;
 use nix::sys::socket;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 use super::Error;
 use crate::scm_socket::ScmSocket;

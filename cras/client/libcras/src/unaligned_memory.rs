@@ -52,8 +52,9 @@ impl<'a, T: DataInit> UnalignedRef<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::ptr;
+
+    use super::*;
 
     #[repr(packed)]
     #[derive(Copy, Clone, Debug, PartialEq)]

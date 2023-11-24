@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 use thiserror::Error as ThisError;
 
-use crate::cras_dbus::{self, DBusControlOp};
+use crate::cras_dbus;
+use crate::cras_dbus::DBusControlOp;
 
 // Errors for get command.
 #[derive(ThisError, Debug)]

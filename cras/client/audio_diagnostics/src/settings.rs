@@ -140,11 +140,11 @@ pub fn print_salted_audio_settings(path: &str) {
 
 #[cfg(test)]
 mod tests {
+    use cras_common::pseudonymization::Salt;
+
     use super::AudioNode;
     use super::DeviceState;
     use super::LocalState;
-
-    use cras_common::pseudonymization::Salt;
 
     #[test]
     fn audio_node() {

@@ -5,7 +5,9 @@
 use std::error;
 use std::fmt;
 
-use libcras::{AudioDebugInfo, CrasClient, CrasIonodeInfo};
+use libcras::AudioDebugInfo;
+use libcras::CrasClient;
+use libcras::CrasIonodeInfo;
 
 use crate::arguments::ControlCommand;
 

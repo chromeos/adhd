@@ -4,7 +4,10 @@
 
 use std::convert::TryFrom;
 use std::error;
-use std::ffi::{CStr, CString, FromBytesWithNulError, NulError};
+use std::ffi::CStr;
+use std::ffi::CString;
+use std::ffi::FromBytesWithNulError;
+use std::ffi::NulError;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ptr;

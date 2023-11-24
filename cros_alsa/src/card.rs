@@ -7,10 +7,14 @@ use std::fmt;
 
 use remain::sorted;
 
-use crate::control::{self, Control};
+use crate::control;
+use crate::control::Control;
 use crate::control_primitive;
-use crate::control_primitive::{Ctl, ElemId, ElemIface};
-use crate::control_tlv::{self, ControlTLV};
+use crate::control_primitive::Ctl;
+use crate::control_primitive::ElemId;
+use crate::control_primitive::ElemIface;
+use crate::control_tlv;
+use crate::control_tlv::ControlTLV;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

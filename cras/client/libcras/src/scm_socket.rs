@@ -29,7 +29,6 @@ use libc::sendmsg;
 use libc::MSG_NOSIGNAL;
 use libc::SCM_RIGHTS;
 use libc::SOL_SOCKET;
-
 use nix::Error;
 use nix::Result;
 

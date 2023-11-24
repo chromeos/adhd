@@ -1,22 +1,27 @@
 // Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::{
-    array::TryFromSliceError, convert::TryInto, error, fmt, io, io::IoSliceMut, mem,
-    os::unix::io::RawFd,
-};
+use std::array::TryFromSliceError;
+use std::convert::TryInto;
+use std::error;
+use std::fmt;
+use std::io;
+use std::io::IoSliceMut;
+use std::mem;
+use std::os::unix::io::RawFd;
 
-use crate::scm_socket::ScmSocket;
-use cras_sys::gen::{
-    cras_client_connected, cras_client_message, cras_client_stream_connected,
-    CRAS_CLIENT_MAX_MSG_SIZE,
-    CRAS_CLIENT_MESSAGE_ID::{self, *},
-};
+use cras_sys::gen::cras_client_connected;
+use cras_sys::gen::cras_client_message;
+use cras_sys::gen::cras_client_stream_connected;
+use cras_sys::gen::CRAS_CLIENT_MAX_MSG_SIZE;
+use cras_sys::gen::CRAS_CLIENT_MESSAGE_ID;
+use cras_sys::gen::CRAS_CLIENT_MESSAGE_ID::*;
 use data_model::DataInit;
 
 use crate::cras_server_socket::CrasServerSocket;
 use crate::cras_shm::*;
 use crate::cras_stream;
+use crate::scm_socket::ScmSocket;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug)]

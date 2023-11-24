@@ -45,18 +45,22 @@ mod control_primitive;
 pub mod control_tlv;
 pub mod elem;
 
-pub use self::card::Card;
-pub use self::control::{
-    Control, ControlOps, EnumControl, IntControl, SimpleEnumControl, StereoVolumeControl,
-    SwitchControl,
-};
-pub use self::control_primitive::{Ctl, ElemId};
-pub use self::control_tlv::{ControlTLV, TLV};
-
-pub use self::card::Error as CardError;
-pub use self::control::Error as ControlError;
-pub use self::control_tlv::Error as ControlTLVError;
-pub use self::elem::Error as ElemError;
-
 #[allow(unused_imports)]
 pub use cros_alsa_derive::*;
+
+pub use self::card::Card;
+pub use self::card::Error as CardError;
+pub use self::control::Control;
+pub use self::control::ControlOps;
+pub use self::control::EnumControl;
+pub use self::control::Error as ControlError;
+pub use self::control::IntControl;
+pub use self::control::SimpleEnumControl;
+pub use self::control::StereoVolumeControl;
+pub use self::control::SwitchControl;
+pub use self::control_primitive::Ctl;
+pub use self::control_primitive::ElemId;
+pub use self::control_tlv::ControlTLV;
+pub use self::control_tlv::Error as ControlTLVError;
+pub use self::control_tlv::TLV;
+pub use self::elem::Error as ElemError;

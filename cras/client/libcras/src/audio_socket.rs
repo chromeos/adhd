@@ -5,8 +5,8 @@ use std::io;
 use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
-use cras_sys::gen::{audio_message, CRAS_AUDIO_MESSAGE_ID};
-
+use cras_sys::gen::audio_message;
+use cras_sys::gen::CRAS_AUDIO_MESSAGE_ID;
 #[cfg(test)]
 use data_model::DataInit;
 

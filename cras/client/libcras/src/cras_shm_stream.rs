@@ -1,19 +1,26 @@
 // Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+use std::error;
+use std::fmt;
+use std::io;
 use std::time::Duration;
-use std::{error, fmt, io};
 
-use audio_streams::{
-    shm_streams::{BufferSet, ServerRequest, ShmStream},
-    BoxError, SampleFormat, StreamDirection,
-};
+use audio_streams::shm_streams::BufferSet;
+use audio_streams::shm_streams::ServerRequest;
+use audio_streams::shm_streams::ShmStream;
+use audio_streams::BoxError;
+use audio_streams::SampleFormat;
+use audio_streams::StreamDirection;
 use cras_sys::gen::CRAS_AUDIO_MESSAGE_ID;
 use log::error;
 
-use crate::audio_socket::{AudioMessage, AudioSocket};
+use crate::audio_socket::AudioMessage;
+use crate::audio_socket::AudioSocket;
 use crate::cras_server_socket::CrasServerSocket;
-use crate::cras_shm::{self, CrasAudioHeader, CrasAudioShmHeaderFd};
+use crate::cras_shm;
+use crate::cras_shm::CrasAudioHeader;
+use crate::cras_shm::CrasAudioShmHeaderFd;
 
 #[derive(Debug)]
 pub enum Error {

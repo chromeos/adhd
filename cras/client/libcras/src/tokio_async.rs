@@ -9,19 +9,19 @@
 //!   This uses the cros_async implementation of the async interface.
 //! - For the rest of ChromeOS. This uses the tokio implementation in this file.
 
-use async_trait::async_trait;
-use audio_streams::async_api::ReadAsync;
-use audio_streams::async_api::ReadWriteAsync;
-use audio_streams::async_api::WriteAsync;
-use futures::Future;
-
 use std::io;
 use std::io::Result as IoResult;
 use std::os::unix::io::RawFd;
 use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
-use audio_streams::{AsyncStream, AudioStreamsExecutor};
+use async_trait::async_trait;
+use audio_streams::async_api::ReadAsync;
+use audio_streams::async_api::ReadWriteAsync;
+use audio_streams::async_api::WriteAsync;
+use audio_streams::AsyncStream;
+use audio_streams::AudioStreamsExecutor;
+use futures::Future;
 
 fn set_nonblocking(fd: RawFd, nonblocking: bool) -> io::Result<()> {
     let mut nonblocking = nonblocking as libc::c_int;

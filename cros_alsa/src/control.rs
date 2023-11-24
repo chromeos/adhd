@@ -63,8 +63,14 @@ use std::fmt;
 use cros_alsa_derive::ControlOps;
 use remain::sorted;
 
-use crate::control_primitive::{self, Ctl, ElemId, ElemInfo, ElemType};
-use crate::elem::{self, Elem, EnumElem};
+use crate::control_primitive;
+use crate::control_primitive::Ctl;
+use crate::control_primitive::ElemId;
+use crate::control_primitive::ElemInfo;
+use crate::control_primitive::ElemType;
+use crate::elem;
+use crate::elem::Elem;
+use crate::elem::EnumElem;
 
 /// The Result type of cros-alsa::control.
 pub type Result<T> = std::result::Result<T, Error>;

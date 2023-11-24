@@ -40,7 +40,8 @@ impl DBusControlOp {
     // Consumes operation and makes DBus call.
     pub fn run(self) -> Result<()> {
         // use generated interface here to get proxy implementation.
-        use cras_tests::client::{OrgChromiumCrasControl, OrgFreedesktopDBusIntrospectable};
+        use cras_tests::client::OrgChromiumCrasControl;
+        use cras_tests::client::OrgFreedesktopDBusIntrospectable;
 
         let conn = Connection::new_system().map_err(Error::NewDBusConnection)?;
         let proxy = conn.with_proxy(

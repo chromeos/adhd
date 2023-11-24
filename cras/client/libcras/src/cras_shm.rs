@@ -1,25 +1,38 @@
 // Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::io;
 use std::mem;
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::unix::io::AsRawFd;
+use std::os::unix::io::RawFd;
 use std::ptr;
 use std::ptr::NonNull;
 use std::slice;
-use std::sync::atomic::{self, Ordering};
+use std::sync::atomic;
+use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 
-use cras_sys::gen::{
-    audio_dev_debug_info, audio_stream_debug_info, cras_audio_shm_header, cras_iodev_info,
-    cras_ionode_info, cras_server_state, CRAS_MAX_IODEVS, CRAS_MAX_IONODES, CRAS_NUM_SHM_BUFFERS,
-    CRAS_SERVER_STATE_VERSION, CRAS_SHM_BUFFERS_MASK, MAX_DEBUG_DEVS, MAX_DEBUG_STREAMS,
-};
-use cras_sys::{
-    AudioDebugInfo, AudioDevDebugInfo, AudioStreamDebugInfo, CrasIodevInfo, CrasIonodeInfo,
-};
+use cras_sys::gen::audio_dev_debug_info;
+use cras_sys::gen::audio_stream_debug_info;
+use cras_sys::gen::cras_audio_shm_header;
+use cras_sys::gen::cras_iodev_info;
+use cras_sys::gen::cras_ionode_info;
+use cras_sys::gen::cras_server_state;
+use cras_sys::gen::CRAS_MAX_IODEVS;
+use cras_sys::gen::CRAS_MAX_IONODES;
+use cras_sys::gen::CRAS_NUM_SHM_BUFFERS;
+use cras_sys::gen::CRAS_SERVER_STATE_VERSION;
+use cras_sys::gen::CRAS_SHM_BUFFERS_MASK;
+use cras_sys::gen::MAX_DEBUG_DEVS;
+use cras_sys::gen::MAX_DEBUG_STREAMS;
+use cras_sys::AudioDebugInfo;
+use cras_sys::AudioDevDebugInfo;
+use cras_sys::AudioStreamDebugInfo;
+use cras_sys::CrasIodevInfo;
+use cras_sys::CrasIonodeInfo;
 use data_model::VolatileSlice;
 use log::warn;
 
@@ -927,17 +940,19 @@ impl CrasServerStateShmFd {
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::CString;
+    use std::fs::File;
+    use std::os::fd::FromRawFd;
+    use std::os::unix::io::IntoRawFd;
+    use std::sync::Arc;
+    use std::sync::Mutex;
+    use std::thread;
+
     use nix::sys::memfd::memfd_create;
     use nix::sys::memfd::MemFdCreateFlag;
     use nix::unistd::ftruncate;
 
     use super::*;
-    use std::ffi::CString;
-    use std::fs::File;
-    use std::os::fd::FromRawFd;
-    use std::os::unix::io::IntoRawFd;
-    use std::sync::{Arc, Mutex};
-    use std::thread;
 
     fn create_shm(size: usize) -> File {
         let fd: i32 =

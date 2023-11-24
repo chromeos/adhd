@@ -3,14 +3,17 @@
 // found in the LICENSE file.
 use std::fmt;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use audio_streams::SampleFormat;
-use clap::{ArgEnum, Args, Parser, Subcommand};
+use clap::ArgEnum;
+use clap::Args;
+use clap::Parser;
+use clap::Subcommand;
 use thiserror::Error as ThisError;
 
 use crate::getter::GetCommand;
 use crate::setter::SetCommand;
-use std::str::FromStr;
 
 #[derive(ThisError, Debug)]
 pub enum Error {

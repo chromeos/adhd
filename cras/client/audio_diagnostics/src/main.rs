@@ -6,7 +6,8 @@
 
 mod uptime;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -16,20 +17,19 @@ use std::process::Command;
 use std::process::Stdio;
 
 use anyhow::Context;
+use audio_diagnostics::*;
+use cras_common::fra;
+use cras_common::fra::CrasFRASignal;
+use cras_common::fra::FRALog;
 use cras_common::logging::SimpleStdoutLogger;
-use cras_common::{
-    fra,
-    fra::{CrasFRASignal, FRALog},
-    pseudonymization::Salt,
-};
+use cras_common::pseudonymization::Salt;
 use glob::glob;
 use libcras::CrasClient;
+use log::LevelFilter;
+use log::SetLoggerError;
 use regex::Regex;
 
 use crate::uptime::analyze;
-use audio_diagnostics::*;
-
-use log::{LevelFilter, SetLoggerError};
 
 static LOGGER: SimpleStdoutLogger = SimpleStdoutLogger;
 

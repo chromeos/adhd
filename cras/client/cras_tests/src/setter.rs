@@ -1,10 +1,12 @@
 // Copyright 2021 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+use libcras::CrasIodevNodeId;
+use libcras::CrasScreenRotation;
 use thiserror::Error as ThisError;
 
-use crate::cras_dbus::{self, DBusControlOp};
-use libcras::{CrasIodevNodeId, CrasScreenRotation};
+use crate::cras_dbus;
+use crate::cras_dbus::DBusControlOp;
 
 // Errors for set command.
 #[derive(ThisError, Debug)]

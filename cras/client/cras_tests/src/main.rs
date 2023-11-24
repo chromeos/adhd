@@ -15,7 +15,8 @@ use std::fmt;
 use clap::Parser;
 
 use crate::arguments::Command;
-use crate::audio::{capture, playback};
+use crate::audio::capture;
+use crate::audio::playback;
 use crate::control::control;
 
 #[derive(Debug)]

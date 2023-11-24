@@ -5,7 +5,10 @@
 //! This mod provides common constants, structs and functions used across cros_alsa_derive.
 use std::convert::TryFrom;
 
-use syn::{Lit, Meta, NestedMeta, Result};
+use syn::Lit;
+use syn::Meta;
+use syn::NestedMeta;
+use syn::Result;
 
 /// Attribute name of cros_alsa.
 const CROS_ALSA: &str = "cros_alsa";

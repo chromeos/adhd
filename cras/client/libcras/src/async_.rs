@@ -1,7 +1,6 @@
 // Copyright 2021 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-use async_trait::async_trait;
 use std::cmp::min;
 use std::io;
 use std::marker::PhantomData;
@@ -9,14 +8,19 @@ use std::mem;
 use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
-use audio_streams::{
-    capture::{AsyncCaptureBuffer, AsyncCaptureBufferStream},
-    AsyncBufferCommit, AsyncPlaybackBuffer, AsyncPlaybackBufferStream, AsyncStream,
-    AudioStreamsExecutor, BoxError,
-};
-use cras_sys::gen::{
-    audio_message, snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_STREAM_DIRECTION,
-};
+use async_trait::async_trait;
+use audio_streams::capture::AsyncCaptureBuffer;
+use audio_streams::capture::AsyncCaptureBufferStream;
+use audio_streams::AsyncBufferCommit;
+use audio_streams::AsyncPlaybackBuffer;
+use audio_streams::AsyncPlaybackBufferStream;
+use audio_streams::AsyncStream;
+use audio_streams::AudioStreamsExecutor;
+use audio_streams::BoxError;
+use cras_sys::gen::audio_message;
+use cras_sys::gen::snd_pcm_format_t;
+use cras_sys::gen::CRAS_AUDIO_MESSAGE_ID;
+use cras_sys::gen::CRAS_STREAM_DIRECTION;
 use data_model::DataInit;
 use log::error;
 

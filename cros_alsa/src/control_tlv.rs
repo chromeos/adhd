@@ -27,17 +27,21 @@
 //!
 //! ```
 
-use std::{
-    convert::TryFrom,
-    fmt,
-    ops::{Index, IndexMut},
-    slice::SliceIndex,
-};
-use std::{error, mem::size_of};
+use std::convert::TryFrom;
+use std::error;
+use std::fmt;
+use std::mem::size_of;
+use std::ops::Index;
+use std::ops::IndexMut;
+use std::slice::SliceIndex;
 
 use remain::sorted;
 
-use crate::control_primitive::{self, Ctl, ElemId, ElemInfo, ElemType};
+use crate::control_primitive;
+use crate::control_primitive::Ctl;
+use crate::control_primitive::ElemId;
+use crate::control_primitive::ElemInfo;
+use crate::control_primitive::ElemType;
 
 /// The Result type of cros-alsa::control.
 pub type Result<T> = std::result::Result<T, Error>;

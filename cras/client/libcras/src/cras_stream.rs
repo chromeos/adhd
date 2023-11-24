@@ -2,19 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 use std::cmp::min;
+use std::error;
+use std::fmt;
 use std::io;
 use std::marker::PhantomData;
 use std::time::Duration;
-use std::{error, fmt};
 
-use audio_streams::{
-    capture::{CaptureBuffer, CaptureBufferStream},
-    BoxError, BufferCommit, PlaybackBuffer, PlaybackBufferStream,
-};
-use cras_sys::gen::{snd_pcm_format_t, CRAS_AUDIO_MESSAGE_ID, CRAS_STREAM_DIRECTION};
+use audio_streams::capture::CaptureBuffer;
+use audio_streams::capture::CaptureBufferStream;
+use audio_streams::BoxError;
+use audio_streams::BufferCommit;
+use audio_streams::PlaybackBuffer;
+use audio_streams::PlaybackBufferStream;
+use cras_sys::gen::snd_pcm_format_t;
+use cras_sys::gen::CRAS_AUDIO_MESSAGE_ID;
+use cras_sys::gen::CRAS_STREAM_DIRECTION;
 use log::error;
 
-use crate::audio_socket::{AudioMessage, AudioSocket};
+use crate::audio_socket::AudioMessage;
+use crate::audio_socket::AudioSocket;
 use crate::cras_server_socket::CrasServerSocket;
 use crate::cras_shm::*;
 

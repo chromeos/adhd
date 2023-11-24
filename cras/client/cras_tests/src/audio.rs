@@ -5,25 +5,36 @@
 use std::error;
 use std::fmt;
 use std::fs::File;
-use std::io::{self, BufReader, BufWriter, Read, Write};
+use std::io;
+use std::io::BufReader;
+use std::io::BufWriter;
+use std::io::Read;
+use std::io::Write;
 use std::mem::MaybeUninit;
 use std::os::raw::c_int;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 
-use audio_streams::{SampleFormat, StreamSource};
+use audio_streams::SampleFormat;
+use audio_streams::StreamSource;
 use cras_sys::gen::CRAS_SPECIAL_DEVICE;
 use either::Either::Left;
 use either::Either::Right;
-use hound::{WavReader, WavSpec, WavWriter};
-
+use hound::WavReader;
+use hound::WavSpec;
+use hound::WavWriter;
 use libchromeos::signal::register_signal_handler;
+use libcras::BoxError;
+use libcras::CrasClient;
+use libcras::CrasNodeType;
 use libcras::CrasStreamEffect;
-use libcras::{BoxError, CrasClient, CrasNodeType};
-
 use nix::sys::signal::Signal;
 
-use crate::arguments::{AudioOptions, FileType, LoopbackType, SampleFormatArg};
+use crate::arguments::AudioOptions;
+use crate::arguments::FileType;
+use crate::arguments::LoopbackType;
+use crate::arguments::SampleFormatArg;
 
 #[derive(Debug)]
 pub enum Error {

@@ -117,35 +117,49 @@
 //! # }
 //!  ```
 
+use std::error;
+use std::fmt;
 use std::io;
 use std::mem;
-use std::os::unix::{
-    io::{AsRawFd, RawFd},
-    net::UnixStream,
-};
-use std::{error, fmt};
+use std::os::unix::io::AsRawFd;
+use std::os::unix::io::RawFd;
+use std::os::unix::net::UnixStream;
 
 use async_trait::async_trait;
+use audio_streams::capture::AsyncCaptureBufferStream;
+use audio_streams::capture::CaptureBufferStream;
+use audio_streams::capture::NoopCaptureStream;
+use audio_streams::shm_streams::NullShmStream;
+use audio_streams::shm_streams::SharedMemory;
+use audio_streams::shm_streams::ShmStream;
+use audio_streams::shm_streams::ShmStreamSource;
+use audio_streams::AsyncBufferCommit;
+use audio_streams::AsyncPlaybackBufferStream;
+use audio_streams::AudioStreamsExecutor;
 pub use audio_streams::BoxError;
-use audio_streams::{
-    capture::{AsyncCaptureBufferStream, CaptureBufferStream, NoopCaptureStream},
-    shm_streams::{NullShmStream, SharedMemory, ShmStream, ShmStreamSource},
-    AsyncBufferCommit, AsyncPlaybackBufferStream, AudioStreamsExecutor, BufferCommit,
-    NoopStreamControl, PlaybackBufferStream, SampleFormat, StreamControl, StreamDirection,
-    StreamEffect, StreamSource, StreamSourceGenerator,
-};
+use audio_streams::BufferCommit;
+use audio_streams::NoopStreamControl;
+use audio_streams::PlaybackBufferStream;
+use audio_streams::SampleFormat;
+use audio_streams::StreamControl;
+use audio_streams::StreamDirection;
+use audio_streams::StreamEffect;
+use audio_streams::StreamSource;
+use audio_streams::StreamSourceGenerator;
+pub use cras_sys::deserialize_cras_client_type;
+pub use cras_sys::gen::CRAS_CLIENT_TYPE as CrasClientType;
+pub use cras_sys::gen::CRAS_NODE_TYPE as CrasNodeType;
+pub use cras_sys::gen::CRAS_SCREEN_ROTATION as CrasScreenRotation;
+pub use cras_sys::gen::CRAS_STREAM_EFFECT as CrasStreamEffect;
+pub use cras_sys::gen::CRAS_STREAM_TYPE as CrasStreamType;
 use cras_sys::gen::*;
-pub use cras_sys::gen::{
-    CRAS_CLIENT_TYPE as CrasClientType, CRAS_NODE_TYPE as CrasNodeType,
-    CRAS_SCREEN_ROTATION as CrasScreenRotation, CRAS_STREAM_EFFECT as CrasStreamEffect,
-    CRAS_STREAM_TYPE as CrasStreamType,
-};
-pub use cras_sys::{
-    deserialize_cras_client_type, AudioDebugInfo, CrasIodevInfo, CrasIodevNodeId, CrasIonodeInfo,
-    Error as CrasSysError,
-};
-
-use libchromeos::deprecated::{PollContext, PollToken};
+pub use cras_sys::AudioDebugInfo;
+pub use cras_sys::CrasIodevInfo;
+pub use cras_sys::CrasIodevNodeId;
+pub use cras_sys::CrasIonodeInfo;
+pub use cras_sys::Error as CrasSysError;
+use libchromeos::deprecated::PollContext;
+use libchromeos::deprecated::PollToken;
 
 mod async_;
 mod audio_socket;
@@ -159,7 +173,10 @@ use crate::cras_shm::CrasServerState;
 pub mod cras_shm_stream;
 use crate::cras_shm_stream::CrasShmStream;
 mod cras_stream;
-use crate::cras_stream::{CrasCaptureData, CrasPlaybackData, CrasStream, CrasStreamData};
+use crate::cras_stream::CrasCaptureData;
+use crate::cras_stream::CrasPlaybackData;
+use crate::cras_stream::CrasStream;
+use crate::cras_stream::CrasStreamData;
 mod cras_client_message;
 use crate::cras_client_message::*;
 mod scm_socket;
