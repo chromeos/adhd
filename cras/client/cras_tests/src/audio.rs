@@ -13,6 +13,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use audio_streams::{SampleFormat, StreamSource};
 use cras_sys::gen::CRAS_SPECIAL_DEVICE;
+use either::Either::Left;
+use either::Either::Right;
 use hound::{WavReader, WavSpec, WavWriter};
 
 use libchromeos::signal::register_signal_handler;
@@ -27,7 +29,6 @@ use crate::arguments::{AudioOptions, FileType, LoopbackType, SampleFormatArg};
 pub enum Error {
     CreateStream(BoxError),
     FetchStream(BoxError),
-    FloatingPointSamples,
     InvalidWavFile(hound::Error),
     Io(io::Error),
     Libcras(libcras::Error),
@@ -46,7 +47,6 @@ impl fmt::Display for Error {
         match self {
             CreateStream(e) => write!(f, "Failed to create stream: {}", e),
             FetchStream(e) => write!(f, "Failed to fetch buffer from stream: {}", e),
-            FloatingPointSamples => write!(f, "Floating point audio samples are not supported"),
             InvalidWavFile(e) => write!(f, "Could not open file as WAV file: {}", e),
             Io(e) => write!(f, "IO Error: {}", e),
             Libcras(e) => write!(f, "Libcras Error: {}", e),
@@ -109,17 +109,16 @@ impl WavSource {
     fn try_new(opts: &AudioOptions) -> Result<Self> {
         let wav_reader = WavReader::open(&opts.file_name).map_err(Error::InvalidWavFile)?;
         let spec = wav_reader.spec();
-        if spec.sample_format == hound::SampleFormat::Float {
-            return Err(Error::FloatingPointSamples);
-        }
-
-        let format = match spec.bits_per_sample {
-            8 => SampleFormat::U8,
-            16 => SampleFormat::S16LE,
-            24 => SampleFormat::S24LE,
-            32 => SampleFormat::S32LE,
-            s => return Err(Error::SampleBits(s)),
+        let format = match (spec.sample_format, spec.bits_per_sample) {
+            (hound::SampleFormat::Int, 8) => SampleFormat::U8,
+            (hound::SampleFormat::Int, 16) => SampleFormat::S16LE,
+            (hound::SampleFormat::Int, 24) => SampleFormat::S24LE,
+            (hound::SampleFormat::Int, 32) => SampleFormat::S32LE,
+            // Use S32_LE as the output type for f32.
+            (hound::SampleFormat::Float, 32) => SampleFormat::S32LE,
+            (_, bits) => return Err(Error::SampleBits(bits)),
         };
+
         if let Some(formatopt) = opts.format {
             if formatopt.to_sample_format() != format {
                 eprintln!("Warning: format changed to {:?}", format);
@@ -162,7 +161,21 @@ impl Read for WavSource {
         let frame_size = self.format.sample_bytes() * self.num_channels;
         let read_len = buf.len() - buf.len() % frame_size;
         let num_samples = read_len / self.format.sample_bytes();
-        let samples = self.wav_reader.samples::<i32>();
+
+        let mut either = match self.wav_reader.spec().sample_format {
+            hound::SampleFormat::Int => Left(self.wav_reader.samples::<i32>()),
+            hound::SampleFormat::Float => Right(
+                self.wav_reader
+                    .samples::<f32>()
+                    .map(|s| s.map(dasp_sample::conv::f32::to_i32)),
+            ),
+        };
+        let samples: &mut dyn Iterator<Item = std::result::Result<i32, hound::Error>> =
+            match either.as_mut() {
+                Left(s) => s,
+                Right(s) => s,
+            };
+
         let mut read = 0;
         for s in samples.take(num_samples) {
             match s {

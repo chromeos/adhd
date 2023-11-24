@@ -118,7 +118,7 @@ offline-pipeline /usr/local/lib64/libecho.so --plugin-name=echo_processor_create
 Play processed audio directly on the DUT:
 
 ```
-play /tmp/out.wav
+cras_tests playback /tmp/out.wav
 ```
 
 ## Running a plugin online on a ChromiumOS device
@@ -139,7 +139,11 @@ try to run it online on the DUT.
     cras-dev.sh
     ```
 
-3.  Try to record audio using any web app.
+3.  Try to record audio using any web app, or use `cras_tests`.
+
+    ```
+    cras_tests capture /tmp/capture.wav
+    ```
 
     If the override is enabled, then you should see logs like the below from `cras-dev.sh` logs.
 
