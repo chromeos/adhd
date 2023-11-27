@@ -16,8 +16,12 @@
 #include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_pipeline.h"
 #include "cras/src/server/cras_expr.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras_audio_format.h"
 #include "cras_iodev_info.h"
+#include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
 /* We have a dsp_context for each pipeline. The context records the
@@ -134,10 +138,16 @@ bail:
  */
 static bool possibly_offload_pipeline(struct dsp_offload_map* offload_map,
                                       struct pipeline* pipe) {
+  bool fallback = false;
   int rc;
 
   if (!offload_map) {
     // The DSP offload doesn't support for the device running this pipeline.
+    return false;
+  }
+
+  if (!offload_map->parent_dev) {
+    syslog(LOG_ERR, "cras_dsp: invalid parent_dev in offload_map");
     return false;
   }
 
@@ -173,16 +183,26 @@ static bool possibly_offload_pipeline(struct dsp_offload_map* offload_map,
     rc = cras_dsp_pipeline_config_offload(offload_map, pipe);
     if (rc) {
       syslog(LOG_ERR, "cras_dsp: Failed to config offload blobs, rc: %d", rc);
+      MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
+              offload_map->parent_dev->info.idx, 1 /* enable */, 1 /* error */);
+      fallback = true;
       goto disable_offload;  // fallback to process on CRAS
     }
 
     rc = cras_dsp_offload_set_state(offload_map, true);
     if (rc) {
       syslog(LOG_ERR, "cras_dsp: Failed to enable offload, rc: %d", rc);
+      MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
+              offload_map->parent_dev->info.idx, 1 /* enable */, 1 /* error */);
+      fallback = true;
       goto disable_offload;  // fallback to process on CRAS
     }
 
     syslog(LOG_DEBUG, "cras_dsp: offload is applied on success.");
+    MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
+            offload_map->parent_dev->info.idx, 1 /* enable */, 0 /* ok */);
+    cras_server_metrics_device_dsp_offload_status(
+        offload_map->parent_dev, CRAS_DEVICE_DSP_OFFLOAD_SUCCESS);
     return true;
   }
 
@@ -192,6 +212,22 @@ disable_offload:
     // TODO(b/188647460): Consider better error handlings e.g. N-time retries,
     //                    report up to CRAS server, and etc.
     syslog(LOG_ERR, "cras_dsp: Failed to disable offload, rc: %d", rc);
+    MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
+            offload_map->parent_dev->info.idx, 0 /* disable */, 1 /* error */);
+    if (fallback) {
+      cras_server_metrics_device_dsp_offload_status(
+          offload_map->parent_dev, CRAS_DEVICE_DSP_OFFLOAD_FALLBACK_ERROR);
+    } else {
+      cras_server_metrics_device_dsp_offload_status(
+          offload_map->parent_dev, CRAS_DEVICE_DSP_OFFLOAD_ERROR);
+    }
+  } else {
+    MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
+            offload_map->parent_dev->info.idx, 0 /* disable */, 0 /* ok */);
+    if (fallback) {
+      cras_server_metrics_device_dsp_offload_status(
+          offload_map->parent_dev, CRAS_DEVICE_DSP_OFFLOAD_FALLBACK_SUCCESS);
+    }
   }
   return false;
 }

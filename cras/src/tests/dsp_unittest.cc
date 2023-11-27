@@ -10,6 +10,7 @@
 #include "cras/src/server/cras_dsp_module.h"
 #include "cras/src/server/cras_dsp_offload.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 
 #define FILENAME_TEMPLATE "DspTest.XXXXXX"
@@ -433,6 +434,7 @@ static void empty_init_module(struct dsp_module* module) {
 }  //  namespace
 
 extern "C" {
+struct main_thread_event_log* main_log;
 struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
   struct dsp_module* module;
   module = (struct dsp_module*)calloc(1, sizeof(struct dsp_module));
@@ -485,6 +487,12 @@ int cras_alsa_config_set_switch(const char* name, bool enabled) {
 
 const char* cras_system_get_dsp_offload_map_str() {
   return system_get_dsp_offload_map_str_ret;
+}
+
+int cras_server_metrics_device_dsp_offload_status(
+    const struct cras_iodev* iodev,
+    enum CRAS_DEVICE_DSP_OFFLOAD_STATUS code) {
+  return 0;
 }
 
 }  // extern "C"

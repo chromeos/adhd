@@ -369,6 +369,8 @@ enum MAIN_THREAD_LOG_EVENTS {
   MAIN_THREAD_SUSPEND_DEVS,
   // When NC-blockage related flags are toggled.
   MAIN_THREAD_NC_BLOCK_STATE,
+  // When an iodev enabling/disabling DSP offload is failed/ok.
+  MAIN_THREAD_DEV_DSP_OFFLOAD,
   // stream related
   // When an audio stream is added.
   MAIN_THREAD_STREAM_ADDED,

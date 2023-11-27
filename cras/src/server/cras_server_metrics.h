@@ -52,6 +52,13 @@ enum CRAS_DEVICE_OPEN_STATUS {
   CRAS_DEVICE_OPEN_ERROR_CONFIGURE,
 };
 
+enum CRAS_DEVICE_DSP_OFFLOAD_STATUS {
+  CRAS_DEVICE_DSP_OFFLOAD_SUCCESS,
+  CRAS_DEVICE_DSP_OFFLOAD_FALLBACK_SUCCESS,
+  CRAS_DEVICE_DSP_OFFLOAD_FALLBACK_ERROR,
+  CRAS_DEVICE_DSP_OFFLOAD_ERROR,
+};
+
 enum CRAS_STREAM_CONNECT_STATUS {
   CRAS_STREAM_CONN_SUCCESS,
   CRAS_STREAM_CONN_INVALID_FORMAT,
@@ -221,6 +228,11 @@ int cras_server_metrics_ap_nc_runtime(unsigned runtime_second);
 // Logs failures when opening devices.
 int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
                                            enum CRAS_DEVICE_OPEN_STATUS code);
+
+// Logs DSP offload status for devices.
+int cras_server_metrics_device_dsp_offload_status(
+    const struct cras_iodev* iodev,
+    enum CRAS_DEVICE_DSP_OFFLOAD_STATUS code);
 
 // Logs whether there is an internal soundcard detected.
 int cras_server_metrics_internal_soundcard_status(bool detected, int sec);

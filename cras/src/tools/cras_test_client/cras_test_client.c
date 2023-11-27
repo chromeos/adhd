@@ -1332,6 +1332,10 @@ static void show_mainlog_tag(const struct main_thread_event_log* log,
       printf("%-30s %s: non_echo=%u disallow=%u\n", "NC_BLOCK_STATE",
              (data1 ? "NC deactivated" : "NC activated"), data2, data3);
       break;
+    case MAIN_THREAD_DEV_DSP_OFFLOAD:
+      printf("%-30s dev %u %s %s\n", "DEV_DSP_OFFLOAD", data1,
+             data2 ? "enable" : "disable", data3 ? "failed" : "ok");
+      break;
     case MAIN_THREAD_STREAM_ADDED:
       printf("%-30s %s stream 0x%x buffer frames %u\n", "STREAM_ADDED",
              (data2 == CRAS_STREAM_OUTPUT ? "output" : "input"), data1, data3);
