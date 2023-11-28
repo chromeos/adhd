@@ -924,9 +924,17 @@ int cras_dsp_pipeline_apply(struct pipeline* pipeline,
   // get pointers to source and sink buffers
   for (i = 0; i < input_channels; i++) {
     source[i] = cras_dsp_pipeline_get_source_buffer(pipeline, i);
+    if (!source[i]) {
+      syslog(LOG_ERR, "No source buffer found for index %zu", i);
+      return -EINVAL;
+    }
   }
   for (i = 0; i < output_channels; i++) {
     sink[i] = cras_dsp_pipeline_get_sink_buffer(pipeline, i);
+    if (!sink[i]) {
+      syslog(LOG_ERR, "No sink buffer found for index %zu", i);
+      return -EINVAL;
+    }
   }
 
   remaining = frames;
