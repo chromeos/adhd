@@ -943,6 +943,14 @@ int cras_dsp_pipeline_apply(struct pipeline* pipeline,
   while (remaining > 0) {
     chunk = MIN(remaining, (size_t)DSP_BUFFER_SIZE);
 
+    if (!buf) {
+      syslog(LOG_ERR,
+             "%s: NULL sample buffer received, total frames = %u, remaining "
+             "frames = %zu",
+             __func__, frames, remaining);
+      return -EINVAL;
+    }
+
     // deinterleave and convert to float
     rc = dsp_util_deinterleave(buf, source, input_channels, format, chunk);
     if (rc) {
