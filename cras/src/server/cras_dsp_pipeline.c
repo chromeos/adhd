@@ -1090,3 +1090,29 @@ void cras_dsp_pipeline_dump(struct dumper* d, struct pipeline* pipeline) {
   dumpf(d, " peak_buf = %d\n", pipeline->peak_buf);
   dumpf(d, "---- pipeline dump end ----\n");
 }
+
+int cras_dsp_pipeline_validate(const struct pipeline* pipeline,
+                               const struct cras_audio_format* format) {
+  if (!pipeline) {
+    return 0;
+  }
+  const unsigned int input_channels = pipeline->input_channels;
+  const unsigned int output_channels = pipeline->output_channels;
+
+  if (input_channels != format->num_channels) {
+    syslog(LOG_ERR,
+           "Pipeline source channel count %u does not match device channel "
+           "count %zu",
+           input_channels, format->num_channels);
+    return -EINVAL;
+  }
+  if (output_channels != format->num_channels) {
+    syslog(LOG_ERR,
+           "Pipeline sink channel count %u does not match device channel "
+           "count %zu",
+           output_channels, format->num_channels);
+    return -EINVAL;
+  }
+
+  return 0;
+}

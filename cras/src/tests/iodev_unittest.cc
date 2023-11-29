@@ -3226,6 +3226,11 @@ void cras_dsp_context_set_offload_map(struct cras_dsp_context* ctx,
                                       struct dsp_offload_map* offload_map) {}
 
 void cras_dsp_offload_free_map(struct dsp_offload_map* offload_map) {}
+
+int cras_dsp_pipeline_validate(const struct pipeline* pipeline,
+                               const struct cras_audio_format* format) {
+  return 0;
+}
 }  // extern "C"
 }  //  namespace
 

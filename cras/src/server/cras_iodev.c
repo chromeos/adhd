@@ -419,6 +419,11 @@ static int apply_dsp(struct cras_iodev* iodev, uint8_t* buf, size_t frames) {
     return 0;
   }
 
+  rc = cras_dsp_pipeline_validate(pipeline, iodev->format);
+  if (rc < 0) {
+    return rc;
+  }
+
   rc = cras_dsp_pipeline_apply(pipeline, buf, iodev->format->format, frames);
 
   cras_dsp_put_pipeline(ctx);

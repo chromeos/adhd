@@ -178,6 +178,16 @@ int cras_dsp_pipeline_apply(struct pipeline* pipeline,
                             snd_pcm_format_t format,
                             unsigned int frames);
 
+/* Validate the specified pipeline matches the given hardware format
+ * Args:
+ *    pipeline - The pipeline to run.
+ *    format - Sample format of the hardware.
+ * Returns:
+ *    Negative code if error, otherwise 0.
+ */
+int cras_dsp_pipeline_validate(const struct pipeline* pipeline,
+                               const struct cras_audio_format* format);
+
 // Dumps the current state of the pipeline. For debugging only
 void cras_dsp_pipeline_dump(struct dumper* d, struct pipeline* pipeline);
 
