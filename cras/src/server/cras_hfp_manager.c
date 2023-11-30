@@ -139,6 +139,11 @@ struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
   // Until SWB is fully launched, it will be guarded by a flag,
   // which can be enabled by users, experiments, or tests.
   if (!cras_floss_hfp_swb_allowed()) {
+    // If SWB is available but we have disabled it, then it will almost
+    // certainly fallback to WBS.
+    if (hfp->hfp_caps & FL_HFP_CODEC_LC3) {
+      hfp->hfp_caps |= FL_HFP_CODEC_MSBC;
+    }
     hfp->hfp_caps &= ~FL_HFP_CODEC_LC3;
   }
 

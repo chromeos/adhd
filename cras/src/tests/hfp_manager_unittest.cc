@@ -87,6 +87,14 @@ TEST_F(HfpManagerTestSuite, PCMCreateFailed) {
             (struct cras_hfp*)NULL);
 }
 
+TEST_F(HfpManagerTestSuite, PCMCreateSwbWhenDisallowed) {
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name",
+                                               HFP_CODEC_CVSD | HFP_CODEC_LC3);
+  ASSERT_NE(hfp, (struct cras_hfp*)NULL);
+  ASSERT_EQ(cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_MSBC), true);
+  cras_floss_hfp_destroy(hfp);
+}
+
 TEST_F(HfpManagerTestSuite, AlsaCreateFailed) {
   cras_iodev_list_get_sco_pcm_iodev_ret =
       reinterpret_cast<struct cras_iodev*>(0xabc);
