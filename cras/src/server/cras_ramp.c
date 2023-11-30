@@ -130,7 +130,7 @@ int cras_ramp_update_ramped_frames(struct cras_ramp* ramp, int num_frames) {
   ramp->ramped_frames += num_frames;
   if (ramp->ramped_frames >= ramp->duration_frames) {
     ramp->active = 0;
-    if (ramp->cb) {
+    if (ramp->cb && ramp->cb_data) {
       ramp->cb(ramp->cb_data);
     }
   }
