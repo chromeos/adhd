@@ -868,14 +868,25 @@ int cras_dsp_pipeline_config_offload(struct dsp_offload_map* offload_map,
   return 0;
 }
 
-void cras_dsp_pipeline_run(struct pipeline* pipeline, int sample_count) {
+int cras_dsp_pipeline_run(struct pipeline* pipeline, int sample_count) {
   int i;
   struct instance* instance;
 
   ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
     struct dsp_module* module = instance->module;
+    if (!module) {
+      syslog(LOG_ERR, "No module found for %s instance",
+             instance->plugin->title);
+      return -EINVAL;
+    }
+    if (!module->run) {
+      syslog(LOG_ERR, "No processing function found for %s instance",
+             instance->plugin->title);
+      return -EINVAL;
+    }
     module->run(module, sample_count);
   }
+  return 0;
 }
 
 void cras_dsp_pipeline_add_statistic(struct pipeline* pipeline,
@@ -958,7 +969,10 @@ int cras_dsp_pipeline_apply(struct pipeline* pipeline,
     }
 
     // Run the pipeline
-    cras_dsp_pipeline_run(pipeline, chunk);
+    rc = cras_dsp_pipeline_run(pipeline, chunk);
+    if (rc) {
+      return rc;
+    }
 
     // interleave and convert back to int16_t
     rc = dsp_util_interleave(sink, buf, output_channels, format, chunk);

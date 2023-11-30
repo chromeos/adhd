@@ -151,7 +151,7 @@ int cras_dsp_pipeline_config_offload(struct dsp_offload_map* offload_map,
 
 /* Processes a block of audio samples. sample_count should be no more
  * than DSP_BUFFER_SIZE */
-void cras_dsp_pipeline_run(struct pipeline* pipeline, int sample_count);
+int cras_dsp_pipeline_run(struct pipeline* pipeline, int sample_count);
 
 /* Add a statistic of running time for the pipeline.
  *
