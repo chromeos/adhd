@@ -489,10 +489,9 @@ static void usb_set_alsa_mute(struct cras_iodev* iodev) {
                            aout ? aout->mixer_output : NULL);
 }
 
-/*
- * Sets the capture gain to the current system input gain level, given in dBFS.
- * Set mute based on the system mute state.  This gain can be positive or
- * negative and might be adjusted often if an app is running an AGC.
+/* Sets the capture gain based on the internal gain value configured on
+ * active node. It could be HW or SW gain decided by the logic behind
+ * |cras_iodev_software_volume_needed|.
  */
 static void usb_set_alsa_capture_gain(struct cras_iodev* iodev) {
   const struct alsa_usb_io* aio = (const struct alsa_usb_io*)iodev;
@@ -1721,8 +1720,6 @@ struct cras_iodev* cras_alsa_usb_iodev_create(
 
   if (direction == CRAS_STREAM_INPUT) {
     aio->common.alsa_stream = SND_PCM_STREAM_CAPTURE;
-    aio->common.base.set_capture_gain = usb_set_alsa_capture_gain;
-    aio->common.base.set_capture_mute = usb_set_alsa_capture_gain;
   } else {
     aio->common.alsa_stream = SND_PCM_STREAM_PLAYBACK;
     aio->common.base.set_volume = usb_set_alsa_volume;

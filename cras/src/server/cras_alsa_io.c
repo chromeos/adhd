@@ -731,9 +731,10 @@ static void set_alsa_mute(struct cras_iodev* iodev) {
 }
 
 /*
- * Sets the capture gain to the current system input gain level, given in dBFS.
- * Set mute based on the system mute state.  This gain can be positive or
- * negative and might be adjusted often if an app is running an AGC.
+ * Sets the capture gain according to the current active node's
+ * |internal_capture_gain| in dBFS. Multiple nodes could share common
+ * mixer controls so this needs to be called every time when active
+ * node changes.
  */
 static void set_alsa_capture_gain(struct cras_iodev* iodev) {
   const struct alsa_io* aio = (const struct alsa_io*)iodev;
@@ -779,9 +780,8 @@ static int set_alsa_node_swapped(struct cras_iodev* iodev,
 }
 
 /*
- * Initializes the device settings according to system volume, mute, gain
- * settings.
- * Updates system capture gain limits based on current active device/node.
+ * Initializes the device settings according to system volume, mute, and
+ * nodes' gain settings.
  */
 static void init_device_settings(struct alsa_io* aio) {
   /* Register for volume/mute callback and set initial volume/mute for
@@ -2241,8 +2241,6 @@ struct cras_iodev* alsa_iodev_create(
 
   if (direction == CRAS_STREAM_INPUT) {
     aio->common.alsa_stream = SND_PCM_STREAM_CAPTURE;
-    aio->common.base.set_capture_gain = set_alsa_capture_gain;
-    aio->common.base.set_capture_mute = set_alsa_capture_gain;
   } else {
     aio->common.alsa_stream = SND_PCM_STREAM_PLAYBACK;
     aio->common.base.set_volume = set_alsa_volume;

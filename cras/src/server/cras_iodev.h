@@ -180,6 +180,8 @@ struct cras_iodev {
   // Function to call if the system mute state changes.
   void (*set_mute)(struct cras_iodev* iodev);
   // Function to call if active node's capture_gain changes.
+  // TODO(hychao): This is currently not used. Remove all related
+  // functions.
   void (*set_capture_gain)(struct cras_iodev* iodev);
   // Function to call if the system capture mute state changes.
   void (*set_capture_mute)(struct cras_iodev* iodev);
