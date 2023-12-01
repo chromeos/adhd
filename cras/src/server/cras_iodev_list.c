@@ -337,7 +337,7 @@ static int fill_node_list(struct iodev_list* list,
       node_info->plugged_time.tv_usec = node->plugged_time.tv_usec;
       node_info->active = dev->is_enabled && (dev->active_node == node);
       node_info->volume = node->volume;
-      node_info->capture_gain = node->capture_gain;
+      node_info->capture_gain = node->internal_capture_gain;
       node_info->ui_gain_scaler = node->ui_gain_scaler;
       node_info->left_right_swapped = node->left_right_swapped;
       node_info->display_rotation = node->display_rotation;

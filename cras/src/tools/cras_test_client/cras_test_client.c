@@ -1149,7 +1149,7 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         (unsigned int)info->devs[i].runtime_nsec,
         (unsigned int)info->devs[i].longest_wake_sec,
         (unsigned int)info->devs[i].longest_wake_nsec,
-        info->devs[i].software_gain_scaler);
+        info->devs[i].internal_gain_scaler);
     printf("\n");
   }
 

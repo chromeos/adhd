@@ -523,7 +523,7 @@ static void usb_set_alsa_capture_gain(struct cras_iodev* iodev) {
         aio->common.mixer, ain ? ain->mixer_input : NULL);
     max_capture_gain = cras_alsa_mixer_get_maximum_capture_gain(
         aio->common.mixer, ain ? ain->mixer_input : NULL);
-    gain = MAX(iodev->active_node->capture_gain, min_capture_gain);
+    gain = MAX(iodev->active_node->internal_capture_gain, min_capture_gain);
     gain = MIN(gain, max_capture_gain);
   }
 
@@ -728,7 +728,7 @@ static void usb_set_input_default_node_gain(struct alsa_usb_input_node* input,
                                             struct alsa_usb_io* aio) {
   long gain;
 
-  input->base.capture_gain = DEFAULT_CAPTURE_GAIN;
+  input->base.internal_capture_gain = DEFAULT_CAPTURE_GAIN;
   input->base.ui_gain_scaler = 1.0f;
 
   if (!aio->common.ucm) {
@@ -737,7 +737,7 @@ static void usb_set_input_default_node_gain(struct alsa_usb_input_node* input,
 
   if (ucm_get_default_node_gain(aio->common.ucm, input->base.ucm_name, &gain) ==
       0) {
-    input->base.capture_gain = gain;
+    input->base.internal_capture_gain = gain;
   }
 }
 
@@ -763,13 +763,13 @@ static void usb_set_input_node_intrinsic_sensitivity(
     sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
   }
   input->base.intrinsic_sensitivity = sensitivity;
-  input->base.capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
+  input->base.internal_capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
   syslog(LOG_INFO,
          "card type: %s, Use software gain %ld for %s because "
          "IntrinsicSensitivity %ld is"
          " specified in UCM",
          cras_card_type_to_string(aio->common.card_type),
-         input->base.capture_gain, input->base.name, sensitivity);
+         input->base.internal_capture_gain, input->base.name, sensitivity);
 }
 
 static void usb_check_auto_unplug_output_node(struct alsa_usb_io* aio,

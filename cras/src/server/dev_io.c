@@ -630,7 +630,7 @@ static int capture_to_streams(struct open_dev* adev,
       }
 
       struct input_data_gain gains = input_data_get_software_gain_scaler(
-          idev->input_data, ui_gain_scaler, idev->software_gain_scaler,
+          idev->input_data, ui_gain_scaler, idev->internal_gain_scaler,
           stream->stream);
 
       input_data_get_for_stream(idev->input_data, stream->stream,

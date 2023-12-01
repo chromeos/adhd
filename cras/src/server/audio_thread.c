@@ -511,8 +511,8 @@ static void append_dev_dump_info(struct audio_dev_debug_info* di,
   di->num_underruns = cras_iodev_get_num_underruns(adev->dev);
   di->num_severe_underruns = cras_iodev_get_num_severe_underruns(adev->dev);
   di->highest_hw_level = adev->dev->highest_hw_level;
-  di->software_gain_scaler = (adev->dev->direction == CRAS_STREAM_INPUT)
-                                 ? adev->dev->software_gain_scaler
+  di->internal_gain_scaler = (adev->dev->direction == CRAS_STREAM_INPUT)
+                                 ? adev->dev->internal_gain_scaler
                                  : 0.0f;
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &now);

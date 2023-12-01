@@ -1256,15 +1256,15 @@ TEST(IoDev, SoftwareGain) {
   iodev.active_node = &ionode;
   iodev.active_node->dev = &iodev;
 
-  ionode.capture_gain = 2400;
+  ionode.internal_capture_gain = 2400;
   ionode.software_volume_needed = 1;
 
   // 2400 * 0.01 dB is 15.848931
-  EXPECT_FLOAT_EQ(15.848931, cras_iodev_get_software_gain_scaler(&iodev));
+  EXPECT_FLOAT_EQ(15.848931, cras_iodev_get_internal_gain_scaler(&iodev));
 
   // Software gain scaler should be 1.0 if software gain is not needed.
   ionode.software_volume_needed = 0;
-  EXPECT_FLOAT_EQ(1.0, cras_iodev_get_software_gain_scaler(&iodev));
+  EXPECT_FLOAT_EQ(1.0, cras_iodev_get_internal_gain_scaler(&iodev));
 }
 
 // This get_buffer implementation set returned frames larger than requested

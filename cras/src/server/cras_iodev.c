@@ -912,9 +912,10 @@ float cras_iodev_get_software_volume_scaler(struct cras_iodev* iodev) {
   return softvol_get_scaler_default(volume);
 }
 
-float cras_iodev_get_software_gain_scaler(const struct cras_iodev* iodev) {
+float cras_iodev_get_internal_gain_scaler(const struct cras_iodev* iodev) {
   if (cras_iodev_software_volume_needed(iodev)) {
-    return convert_softvol_scaler_from_dB(iodev->active_node->capture_gain);
+    return convert_softvol_scaler_from_dB(
+        iodev->active_node->internal_capture_gain);
   }
   return 1.0f;
 }
@@ -1202,7 +1203,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
      * control. For alsa device, this gain value will be configured
      * based on UCM labels IntrinsicSensitivity.
      */
-    iodev->software_gain_scaler = cras_iodev_get_software_gain_scaler(iodev);
+    iodev->internal_gain_scaler = cras_iodev_get_internal_gain_scaler(iodev);
   }
 
   add_ext_dsp_module_to_pipeline(iodev);

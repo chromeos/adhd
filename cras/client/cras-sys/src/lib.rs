@@ -393,7 +393,7 @@ impl Default for audio_dev_debug_info {
             runtime_nsec: 0,
             longest_wake_sec: 0,
             longest_wake_nsec: 0,
-            software_gain_scaler: 0.0,
+            internal_gain_scaler: 0.0,
             dev_idx: 0,
         }
     }
@@ -423,7 +423,7 @@ pub struct AudioDevDebugInfo {
         serialize_with = "serialize_duration_secs"
     )]
     pub longest_wake: Duration,
-    pub software_gain_scaler: f64,
+    pub internal_gain_scaler: f64,
 }
 
 impl From<audio_dev_debug_info> for AudioDevDebugInfo {
@@ -444,7 +444,7 @@ impl From<audio_dev_debug_info> for AudioDevDebugInfo {
             highest_hw_level: info.highest_hw_level,
             runtime: Duration::new(info.runtime_sec.into(), info.runtime_nsec),
             longest_wake: Duration::new(info.longest_wake_sec.into(), info.longest_wake_nsec),
-            software_gain_scaler: info.software_gain_scaler,
+            internal_gain_scaler: info.internal_gain_scaler,
         }
     }
 }
@@ -470,7 +470,7 @@ impl fmt::Display for AudioDevDebugInfo {
         writeln!(f, "  Highest hardware level: {}", self.highest_hw_level)?;
         writeln!(f, "  Runtime: {:?}", self.runtime)?;
         writeln!(f, "  Longest wake: {:?}", self.longest_wake)?;
-        writeln!(f, "  Software gain scaler: {}", self.software_gain_scaler)?;
+        writeln!(f, "  Internal gain scaler: {}", self.internal_gain_scaler)?;
         Ok(())
     }
 }

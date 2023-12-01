@@ -535,7 +535,7 @@ TEST(AlsaIoInit, SoftwareGainIntrinsicSensitivity) {
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
   ASSERT_EQ(intrinsic_sensitivity, iodev->active_node->intrinsic_sensitivity);
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS - intrinsic_sensitivity,
-            iodev->active_node->capture_gain);
+            iodev->active_node->internal_capture_gain);
 
   alsa_iodev_destroy(iodev);
 }
@@ -677,7 +677,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultNodeGain) {
   cras_iodev_set_format(iodev, &format);
 
   // Check the default node gain is the same as what specified in UCM.
-  EXPECT_EQ(default_node_gain, iodev->active_node->capture_gain);
+  EXPECT_EQ(default_node_gain, iodev->active_node->internal_capture_gain);
   cras_alsa_mixer_get_minimum_capture_gain_ret_value = 0;
   cras_alsa_mixer_get_maximum_capture_gain_ret_value = 2000;
 
@@ -727,7 +727,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithSoftwareGain) {
 
   // Test the case where software gain is not needed.
   iodev->active_node->software_volume_needed = 0;
-  iodev->active_node->capture_gain = 1000;
+  iodev->active_node->internal_capture_gain = 1000;
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
   iodev->close_dev(iodev);
@@ -1466,7 +1466,7 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   EXPECT_EQ(1, cras_alsa_jack_enable_ucm_called);
   EXPECT_EQ(1, ucm_set_enabled_called);
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS - intrinsic_sensitivity,
-            iodev->active_node->capture_gain);
+            iodev->active_node->internal_capture_gain);
 
   alsa_iodev_destroy(iodev);
 }

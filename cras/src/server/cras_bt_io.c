@@ -93,7 +93,7 @@ static struct cras_ionode* add_profile_dev(struct cras_iodev* bt_iodev,
   n->base.type = CRAS_NODE_TYPE_BLUETOOTH;
   n->base.volume = 100;
   n->base.stable_id = dev->info.stable_id;
-  n->base.capture_gain = 0;
+  n->base.internal_capture_gain = 0;
   gettimeofday(&n->base.plugged_time, NULL);
 
   strlcpy(n->base.name, dev->info.name, sizeof(n->base.name));

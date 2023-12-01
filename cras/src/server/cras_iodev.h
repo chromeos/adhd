@@ -111,8 +111,9 @@ struct cras_ionode {
   unsigned int volume;
   // Internal per-node capture gain/attenuation (in 100*dBFS)
   // This is only used for CRAS internal tuning, no way to change by
-  // client.
-  long capture_gain;
+  // client. The value could be used in setting mixer controls in HW
+  // or converted to SW scaler based on device configuration.
+  long internal_capture_gain;
   // The adjustable gain scaler set by client.
   float ui_gain_scaler;
   // If left and right output channels are swapped.
@@ -335,10 +336,10 @@ struct cras_iodev {
   int is_enabled;
   // True if volume control is not supported by hardware.
   int software_volume_needed;
-  // Scaler value to apply to captured data. This can
-  // be different when active node changes. Configured when there's no
-  // hardware gain control.
-  float software_gain_scaler;
+  // Adjust captured data by applying a software gain.
+  // This scaler value may vary depending on the active node.
+  // Configure this value when hardware gain control is unavailable.
+  float internal_gain_scaler;
   // List of audio streams serviced by dev.
   struct dev_stream* streams;
   // Device is in one of close, open, normal, or no_stream state defined
@@ -653,7 +654,7 @@ static inline bool cras_iodev_can_start(const struct cras_iodev* iodev) {
  * Returns:
  *    A scaler translated from system gain and active node gain.
  *    Returns 1.0 if software gain is not needed. */
-float cras_iodev_get_software_gain_scaler(const struct cras_iodev* iodev);
+float cras_iodev_get_internal_gain_scaler(const struct cras_iodev* iodev);
 
 /* Gets the software volume scaler of the iodev. The scaler should only be
  * applied if the device needs software volume. */
