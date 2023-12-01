@@ -130,6 +130,10 @@ static void switch_profile(struct bt_io_manager* mgr) {
     cras_iodev_list_suspend_dev(iodev->info.idx);
   }
 
+  // |is_profile_switching| is critical and has several implications worth
+  // noting: Before this toggle, close/suspend btio won't trigger an unexpected
+  // profile switch request. After this toggle, btio update_active_node would
+  // trigger the reroute to desired profile dev.
   mgr->is_profile_switching = false;
 
   for (dir = 0; dir < CRAS_NUM_DIRECTIONS; dir++) {
@@ -137,6 +141,8 @@ static void switch_profile(struct bt_io_manager* mgr) {
     if (!iodev) {
       continue;
     }
+
+    iodev->update_active_node(iodev, 0, 0);
 
     /* If the iodev was active or this profile switching is
      * triggered at opening iodev, add it to active dev list.
