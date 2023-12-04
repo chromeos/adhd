@@ -92,15 +92,17 @@ TEST_F(A2dpManagerTestSuite, CreateFailed) {
   a2dp_pcm_iodev_create_ret =
       (struct cras_iodev*)calloc(1, sizeof(struct cras_iodev));
 
-  // NULL a2dp_codec_configs should fail the a2dp_create without a crash
-  ASSERT_EQ(cras_floss_a2dp_create(NULL, "addr", "name",
-                                   (struct cras_fl_a2dp_codec_config*)NULL),
-            (struct cras_a2dp*)NULL);
+  // NULL a2dp_codec_configs should succeed with fallback to default params
+  struct cras_a2dp* a2dp = cras_floss_a2dp_create(
+      NULL, "addr", "name", (struct cras_fl_a2dp_codec_config*)NULL);
+  ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
+  cras_floss_a2dp_destroy(a2dp);
 
-  // Unsupported codecs should fail the a2dp_create without a crash
+  // Unsupported codecs should succeed with fallback to default params
   a2dp_codecs.codec_type = FL_A2DP_CODEC_SINK_AAC;
-  ASSERT_EQ(cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs),
-            (struct cras_a2dp*)NULL);
+  a2dp = cras_floss_a2dp_create(NULL, "addr", "name", &a2dp_codecs);
+  ASSERT_NE(a2dp, (struct cras_a2dp*)NULL);
+  cras_floss_a2dp_destroy(a2dp);
 }
 
 TEST_F(A2dpManagerTestSuite, CreateDestroy) {

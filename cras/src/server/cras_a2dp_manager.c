@@ -246,10 +246,17 @@ static bool cras_floss_a2dp_nonstandard_codecs_allowed() {
   return cras_feature_enabled(CrOSLateBootAudioA2DPAdvancedCodecs);
 }
 
-static struct cras_fl_a2dp_codec_config* cras_floss_a2dp_get_best_codec(
+static struct cras_fl_a2dp_codec_config cras_floss_a2dp_get_best_codec(
     struct cras_fl_a2dp_codec_config* codecs) {
   struct cras_fl_a2dp_codec_config* codec;
-  struct cras_fl_a2dp_codec_config* best_codec = NULL;
+  struct cras_fl_a2dp_codec_config best_codec = {
+      .bits_per_sample = FL_SAMPLE_16,
+      .channel_mode = FL_MODE_STEREO,
+      .codec_priority = -1,
+      .codec_type = FL_A2DP_CODEC_SRC_SBC,
+      .sample_rate = FL_RATE_44100,
+      .next = NULL,
+  };
 
   DL_FOREACH (codecs, codec) {
     // TODO(b/279991957): Add UMA to record availability of codecs
@@ -262,9 +269,13 @@ static struct cras_fl_a2dp_codec_config* cras_floss_a2dp_get_best_codec(
       continue;
     }
 
-    if (!best_codec || codec->codec_priority > best_codec->codec_priority) {
-      best_codec = codec;
+    if (codec->codec_priority >= best_codec.codec_priority) {
+      best_codec = *codec;
     }
+  }
+
+  if (best_codec.codec_priority == -1) {
+    syslog(LOG_WARNING, "No valid A2DP codec available, fallback to SBC.");
   }
 
   return best_codec;
@@ -275,12 +286,8 @@ struct cras_a2dp* cras_floss_a2dp_create(
     const char* addr,
     const char* name,
     struct cras_fl_a2dp_codec_config* codecs) {
-  struct cras_fl_a2dp_codec_config* codec =
+  struct cras_fl_a2dp_codec_config codec =
       cras_floss_a2dp_get_best_codec(codecs);
-  if (!codec) {
-    syslog(LOG_WARNING, "No supported A2dp codec");
-    return NULL;
-  }
 
   struct cras_a2dp* a2dp = (struct cras_a2dp*)calloc(1, sizeof(*a2dp));
   if (!a2dp) {
@@ -290,9 +297,9 @@ struct cras_a2dp* cras_floss_a2dp_create(
   a2dp->fm = fm;
   a2dp->addr = strdup(addr);
   a2dp->name = strdup(name);
-  a2dp->active_codec_type = codec->codec_type;
+  a2dp->active_codec_type = codec.codec_type;
   a2dp->iodev = a2dp_pcm_iodev_create(
-      a2dp, codec->sample_rate, codec->bits_per_sample, codec->channel_mode);
+      a2dp, codec.sample_rate, codec.bits_per_sample, codec.channel_mode);
 
   if (!a2dp->iodev) {
     syslog(LOG_WARNING, "Failed to create a2dp pcm_iodev for %s", name);
