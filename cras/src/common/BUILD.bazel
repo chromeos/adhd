@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 cc_library(
     name = "cras_alsa_card_info",
     hdrs = [
@@ -147,7 +149,7 @@ cc_library(
         "cras_audio_format.c",
     ],
     visibility = [
-        "//cras/src/benchmark:__pkg__",
+        "//cras/benchmark:__pkg__",
         "//cras/src/dsp:__pkg__",
         "//cras/src/libcras:__pkg__",
         "//cras/src/server:__pkg__",
@@ -161,8 +163,8 @@ cc_library(
     name = "cras_util",
     srcs = ["cras_util.c"],
     visibility = [
+        "//cras/benchmark:__pkg__",
         "//cras/server:__pkg__",
-        "//cras/src/benchmark:__pkg__",
         "//cras/src/libcras:__pkg__",
         "//cras/src/server:__pkg__",
     ],

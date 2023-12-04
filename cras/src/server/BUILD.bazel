@@ -25,7 +25,7 @@ cc_library(
         ],
     }),
     visibility = [
-        "//cras/src/benchmark:__pkg__",
+        "//cras/benchmark:__pkg__",
         "//cras/src/tests:__pkg__",
     ],
     deps = ["cras_mix_ops"] + select({
@@ -135,7 +135,7 @@ cc_library(
         "cras_alsa_helpers.c",
     ],
     hdrs = ["cras_alsa_helpers.h"],
-    visibility = ["//cras/src/benchmark:__pkg__"],
+    visibility = ["//cras/benchmark:__pkg__"],
     deps = [
         "//cras/src/common:cras_types",
         "//cras/src/common:cras_util",
@@ -154,7 +154,7 @@ cc_library(
         "cras_alsa_ucm.h",
         "cras_alsa_ucm_section.h",
     ],
-    visibility = ["//cras/src/benchmark:__pkg__"],
+    visibility = ["//cras/benchmark:__pkg__"],
     deps = [
         "//cras/src/common:cras_string",
         "//cras/src/common:cras_util",

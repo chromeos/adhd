@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "cras/src/benchmark/benchmark_util.hh"
+#include "cras/benchmark/benchmark_util.hh"
 #include "cras/src/dsp/am.h"
 
 namespace {

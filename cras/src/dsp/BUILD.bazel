@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//:utils.bzl", "require_config")
 
 cc_library(
@@ -11,7 +12,7 @@ cc_library(
     target_compatible_with = require_config("//:ml_build"),
     visibility = [
         ":__subpackages__",
-        "//cras/src/benchmark:__pkg__",
+        "//cras/benchmark:__pkg__",
         "//cras/src/server:__pkg__",
     ],
     deps = select({
@@ -73,7 +74,7 @@ cc_library(
     name = "eq2",
     srcs = ["eq2.c"],
     hdrs = ["eq2.h"],
-    visibility = ["//cras/src/benchmark:__pkg__"],
+    visibility = ["//cras/benchmark:__pkg__"],
     deps = [
         ":biquad",
         "@thesofproject_sof",
@@ -85,7 +86,7 @@ cc_library(
     srcs = ["drc.c"],
     hdrs = ["drc.h"],
     linkopts = ["-lm"],
-    visibility = ["//cras/src/benchmark:__pkg__"],
+    visibility = ["//cras/benchmark:__pkg__"],
     deps = [
         ":crossover2",
         ":drc_kernel",
@@ -139,7 +140,7 @@ cc_library(
     name = "dsp_util",
     srcs = ["dsp_util.c"],
     hdrs = ["dsp_util.h"],
-    visibility = ["//cras/src/benchmark:__pkg__"],
+    visibility = ["//cras/benchmark:__pkg__"],
     deps = ["//cras/src/common:cras_types"],
 )
 

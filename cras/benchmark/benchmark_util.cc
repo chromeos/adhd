@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras/src/benchmark/benchmark_util.hh"
+#include "cras/benchmark/benchmark_util.hh"
 
 #include <algorithm>
 #include <cstdint>
