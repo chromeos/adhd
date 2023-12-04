@@ -514,32 +514,7 @@ int floss_media_a2dp_set_audio_config(struct fl_media* fm,
   dbus_message_unref(set_audio_config);
 
   if (rc < 0) {
-    // TODO: remove this fallback-to-legacy API once aosp/2627857 is merged
-    rc = create_dbus_method_call(
-        &set_audio_config,
-        /* dest= */ BT_SERVICE_NAME,
-        /* path= */ fm->obj_path,
-        /* iface= */ BT_MEDIA_INTERFACE,
-        /* method_name= */ "SetAudioConfig",
-        /* num_args= */ 3,
-        /* arg1= */ DBUS_TYPE_INT32, &dbus_sample_rate,
-        /* arg2= */ DBUS_TYPE_INT32, &dbus_bits_per_sample,
-        /* arg3= */ DBUS_TYPE_INT32, &dbus_channel_mode);
-    if (rc < 0) {
-      return rc;
-    }
-
-    rc = call_method_and_parse_reply(
-        /* conn= */ fm->conn,
-        /* method_call= */ set_audio_config,
-        /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-        /* dbus_ret_value_ptr= */ &response,
-        /* log_on_error= */ true);
-
-    dbus_message_unref(set_audio_config);
-    if (rc < 0) {
-      return rc;
-    }
+    return rc;
   }
 
   if (response == FALSE) {
