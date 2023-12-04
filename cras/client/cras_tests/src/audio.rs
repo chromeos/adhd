@@ -473,7 +473,8 @@ pub fn capture(opts: AudioOptions) -> Result<()> {
     while !INTERRUPTED.load(Ordering::Acquire) {
         let mut buf = stream.next_capture_buffer().map_err(Error::FetchStream)?;
         let transferred = io::copy(&mut buf, &mut sample_sink).map_err(Error::Io)?;
-        let transferred_frames = (transferred / frame_rate as u64) as usize;
+        let frame_size = num_channels * format.sample_bytes();
+        let transferred_frames = (transferred / frame_size as u64) as usize;
         buf.commit();
 
         // if duration is specified
