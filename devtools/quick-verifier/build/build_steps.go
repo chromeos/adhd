@@ -33,7 +33,8 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	b.Add(ossFuzzSteps("oss-fuzz-address-afl", "address", "afl").WithDep(ossFuzzSetup))
 	b.Add(ossFuzzSteps("oss-fuzz-memory", "memory", "libfuzzer").WithDep(ossFuzzSetup))
 	b.Add(ossFuzzSteps("oss-fuzz-undefined", "undefined", "libfuzzer").WithDep(ossFuzzSetup))
-	b.Add(ossFuzzSteps("oss-fuzz-coverage", "coverage", "libfuzzer").WithDep(ossFuzzSetup))
+	// TODO(b/314697420): Re-enable when fixed.
+	// b.Add(ossFuzzSteps("oss-fuzz-coverage", "coverage", "libfuzzer").WithDep(ossFuzzSetup))
 
 	return &cloudbuildpb.Build{
 		Steps: b.AsCloudBuild(),

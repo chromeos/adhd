@@ -637,53 +637,6 @@
         "oss-fuzz-undefined:1"
       ],
       "entrypoint": "python3"
-    },
-    {
-      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
-      "args": [
-        "-ah",
-        "oss-fuzz-setup/",
-        "oss-fuzz-coverage/"
-      ],
-      "id": "oss-fuzz-coverage:0",
-      "waitFor": [
-        "oss-fuzz-setup:3"
-      ],
-      "entrypoint": "rsync"
-    },
-    {
-      "name": "gcr.io/cloud-builders/docker",
-      "args": [
-        "oss-fuzz/infra/helper.py",
-        "build_fuzzers",
-        "--sanitizer",
-        "coverage",
-        "--engine",
-        "libfuzzer",
-        "cras",
-        "/workspace/oss-fuzz-coverage/adhd"
-      ],
-      "dir": "oss-fuzz-coverage",
-      "id": "oss-fuzz-coverage:1",
-      "waitFor": [
-        "oss-fuzz-coverage:0"
-      ],
-      "entrypoint": "python3"
-    },
-    {
-      "name": "gcr.io/google.com/cloudsdktool/cloud-sdk",
-      "args": [
-        "oss-fuzz/infra/helper.py",
-        "coverage",
-        "cras",
-        "--port="
-      ],
-      "dir": "oss-fuzz-coverage",
-      "id": "oss-fuzz-coverage:2",
-      "waitFor": [
-        "oss-fuzz-coverage:1"
-      ],
-      "entrypoint": "python3"
     }
   ],
   "timeout": "1200s",
