@@ -152,6 +152,12 @@ void cras_system_set_bt_hfp_offload_finch_applied(bool applied);
 // Gets the flag of whether to determine BT HFP offload enabling by Finch.
 bool cras_system_get_bt_hfp_offload_finch_applied();
 
+// Sets the supported statement of BT HFP offload.
+void cras_system_set_bt_hfp_offload_supported(bool supported);
+
+// Returns if BT HFP offload is supported.
+bool cras_system_get_bt_hfp_offload_supported();
+
 /*
  * Returns if Bluetooth WBS mic should be deprioritized for selecting
  * as default audio input option.

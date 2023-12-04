@@ -53,6 +53,10 @@
 #include "third_party/superfasthash/sfh.h"
 #include "third_party/utlist/utlist.h"
 
+// Bluetooth SCO offload node name for input/output
+#define SCO_LINE_IN "SCO Line In"
+#define SCO_LINE_OUT "SCO Line Out"
+
 /*
  * This extends cras_ionode to include alsa-specific information.
  */
@@ -198,12 +202,12 @@ static const struct {
         .position = NODE_POSITION_EXTERNAL,
     },
     {
-        .name = "SCO Line In",
+        .name = SCO_LINE_IN,
         .type = CRAS_NODE_TYPE_BLUETOOTH,
         .position = NODE_POSITION_EXTERNAL,
     },
     {
-        .name = "SCO Line Out",
+        .name = SCO_LINE_OUT,
         .type = CRAS_NODE_TYPE_BLUETOOTH,
         .position = NODE_POSITION_EXTERNAL,
     },
@@ -1122,7 +1126,7 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
     output->base.dsp_name = ucm_get_dsp_name_for_dev(aio->common.ucm, name);
   }
 
-  if (strcmp(name, "SCO Line Out") == 0) {
+  if (str_equals(name, SCO_LINE_OUT)) {
     output->base.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
   }
   output->mixer_output = cras_control;
@@ -1194,7 +1198,7 @@ static struct alsa_input_node* new_input(struct alsa_io* aio,
   input->base.idx = aio->common.next_ionode_index++;
   input->base.stable_id =
       SuperFastHash(name, strlen(name), aio->common.base.info.stable_id);
-  if (strcmp(name, "SCO Line In") == 0) {
+  if (str_equals(name, SCO_LINE_IN)) {
     input->base.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
   }
   input->mixer_input = cras_input;
@@ -2649,6 +2653,15 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
    */
   if (node && (node->plugged || node->type != CRAS_NODE_TYPE_HDMI)) {
     update_max_supported_channels(iodev);
+  }
+
+  /*
+   * Regard BT HFP offload is supported and store the statement while the
+   * SCO_LINE_IN node is present. For HFP offload the input and output node
+   * are always supported in pairs so checkcking either one is sufficient.
+   */
+  if (node && str_equals(node->name, SCO_LINE_IN)) {
+    cras_system_set_bt_hfp_offload_supported(true);
   }
 }
 

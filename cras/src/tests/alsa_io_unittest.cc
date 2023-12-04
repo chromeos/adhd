@@ -2777,6 +2777,8 @@ int cras_system_aec_on_dsp_supported() {
   return sys_aec_on_dsp_supported_return_value;
 }
 
+void cras_system_set_bt_hfp_offload_supported(bool supported) {}
+
 //  From cras_alsa_mixer.
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer* m,
                               long dB_level,

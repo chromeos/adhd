@@ -58,6 +58,9 @@ struct feature_state {
   bool force_sr_bt_enabled;
   bool force_a2dp_advanced_codecs_enabled;
   bool force_hfp_swb_enabled;
+
+  // Whether the feature is supported.
+  bool bt_hfp_offload_supported;
 };
 
 /* The system state. */
@@ -492,6 +495,14 @@ void cras_system_set_bt_hfp_offload_finch_applied(bool applied) {
 
 bool cras_system_get_bt_hfp_offload_finch_applied() {
   return !!state.exp_state->bt_hfp_offload_finch_applied;
+}
+
+void cras_system_set_bt_hfp_offload_supported(bool supported) {
+  state.feature_state.bt_hfp_offload_supported = supported;
+}
+
+bool cras_system_get_bt_hfp_offload_supported() {
+  return state.feature_state.bt_hfp_offload_supported;
 }
 
 bool cras_system_get_deprioritize_bt_wbs_mic() {
