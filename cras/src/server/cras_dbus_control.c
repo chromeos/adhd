@@ -1454,6 +1454,17 @@ static DBusHandlerResult handle_set_force_bt_hfp_offload_on_support(
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_get_bt_hfp_offload_supported(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  dbus_bool_t supported = cras_system_get_bt_hfp_offload_supported();
+
+  send_bool_reply(conn, message, supported);
+
+  return DBUS_HANDLER_RESULT_HANDLED;
+}
+
 // Handle incoming messages.
 static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                                 DBusMessage* message,
@@ -1657,6 +1668,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetForceBtHfpOffloadOnSupport")) {
     return handle_set_force_bt_hfp_offload_on_support(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetBtHfpOffloadSupported")) {
+    return handle_get_bt_hfp_offload_supported(conn, message, arg);
   }
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

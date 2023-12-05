@@ -222,6 +222,9 @@ bool cras_system_get_force_hfp_swb_enabled() {
 void cras_system_set_bt_hfp_offload_finch_applied(bool applied) {
   return;
 }
+bool cras_system_get_bt_hfp_offload_supported() {
+  return false;
+}
 int cras_bt_player_update_playback_status(DBusConnection* conn,
                                           const char* status) {
   return 0;

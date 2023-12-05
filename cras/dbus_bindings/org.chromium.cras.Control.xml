@@ -498,6 +498,14 @@
       <arg name="enabled" type="b" direction="in"/>
     </method>
 
+    <method name="GetBtHfpOffloadSupported">
+      <tp:docstring>
+        Returns true if BT HFP offload is supported.
+        Caution: This method is for testing purpose.
+      </tp:docstring>
+      <arg name="supported" type="b" direction="out"/>
+    </method>
+
     <signal name="OutputVolumeChanged">
       <tp:docstring>
         Indicates that the output volume level has changed.
