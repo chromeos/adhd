@@ -1,22 +1,16 @@
-# Copyright 2022 The ChromiumOS Authors
+# Copyright 2023 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
 load("//dist:defs.bzl", "FILE_ATTRIBUTES")
 
-filegroup(
-    name = "xml",
-    srcs = glob(["*.xml"]),
-    visibility = ["//visibility:public"],
-)
-
 pkg_files(
     name = "dist_files",
     srcs = [
-        ":xml",
+        "org.chromium.cras.conf",
     ],
     attributes = FILE_ATTRIBUTES,
-    prefix = "/usr/share/dbus-1/interfaces/",
+    prefix = "/etc/dbus-1/system.d",
     visibility = ["//dist:__pkg__"],
 )

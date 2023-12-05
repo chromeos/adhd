@@ -8,26 +8,24 @@ load("//dist:defs.bzl", "FILE_ATTRIBUTES")
 pkg_filegroup(
     name = "dist_files",
     srcs = [
-        ":cras-config_files",
-        ":for_all_boards_files",
+        ":ucm1_files",
+        ":ucm2_files",
     ],
     visibility = ["//dist:__pkg__"],
 )
 
 pkg_files(
-    name = "cras-config_files",
-    srcs = [
-        "device_blocklist",
-        "processor_override.txtpb",
-    ],
+    name = "ucm1_files",
+    srcs = glob(["for_all_boards/**"]),
     attributes = FILE_ATTRIBUTES,
-    prefix = "etc/cras",
+    prefix = "/usr/share/alsa/ucm",
+    strip_prefix = strip_prefix.from_pkg("for_all_boards"),
 )
 
 pkg_files(
-    name = "for_all_boards_files",
-    srcs = glob(["for_all_boards/**"]),
+    name = "ucm2_files",
+    srcs = glob(["for_all_boards_ucm2/**"]),
     attributes = FILE_ATTRIBUTES,
-    prefix = "etc/cras",
-    strip_prefix = strip_prefix.from_pkg("for_all_boards"),
+    prefix = "/usr/share/alsa/ucm2/conf.d",
+    strip_prefix = strip_prefix.from_pkg("for_all_boards_ucm2"),
 )

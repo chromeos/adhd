@@ -22,9 +22,12 @@ pkg_tar(
         ":include",
         ":lib",
         ":pkgconfig",
-        "//cras-config:cras-config_files",
+        "//cras-config:dist_files",
+        "//cras/dbus_bindings:dist_files",
+        "//dbus-config:dist_files",
         "//init:init_files",
         "//tmpfiles.d:tmpfiles_d_files",
+        "//ucm-config:dist_files",
     ],
 )
 
@@ -65,8 +68,8 @@ pkg_files(
 pkg_files(
     name = "extra_bin",
     srcs = [
-        "//cras/scripts:asoc_dapm_graph",
         "//cras/benchmark:cras_bench",
+        "//cras/scripts:asoc_dapm_graph",
         "//cras/src/tools:cras_monitor",
         "//cras/src/tools:cras_router",
     ] + select({
