@@ -48,15 +48,17 @@ fn generate(b: Builder, filename: &str) {
         filename.to_uppercase().replace('.', "_")
     ))
     .generate()
-    .unwrap_or_else(|_| panic!("cannot generate {}", filename))
-    .write_to_file(Path::new("../include").join(filename));
+    .unwrap_or_else(|e| panic!("cannot generate {filename}: {e}"))
+    .write_to_file(Path::new("cras/src/server/rust/include").join(filename));
 }
 
 fn main() {
+    std::env::set_current_dir("../../../../..").unwrap();
+
     generate(
         builder(2019)
-            .with_src("../src/rate_estimator.rs")
-            .with_src("../src/rate_estimator_bindings.rs")
+            .with_src("cras/src/server/rust/src/rate_estimator.rs")
+            .with_src("cras/src/server/rust/src/rate_estimator_bindings.rs")
             .rename_item("RateEstimator", "rate_estimator")
             .with_sys_include("time.h"),
         "rate_estimator.h",
@@ -64,24 +66,24 @@ fn main() {
 
     generate(
         builder(2022)
-            .with_src("../src/feature_tier.rs")
+            .with_src("cras/src/server/rust/src/feature_tier.rs")
             .rename_item("CrasFeatureTier", "cras_feature_tier"),
         "cras_feature_tier.h",
     );
 
     generate(
-        builder(2022).with_src("../cras_dlc/src/lib.rs"),
+        builder(2022).with_src("cras/src/server/rust/cras_dlc/src/lib.rs"),
         "cras_dlc.h",
     );
 
     generate(
-        builder(2023).with_src("../src/logging.rs"),
+        builder(2023).with_src("cras/common/src/logging.rs"),
         "cras_rust_logging.h",
     );
 
     generate(
         builder(2023)
-            .with_src("../src/fra.rs")
+            .with_src("cras/common/src/fra.rs")
             .rename_item("CrasFRASignal", "CRAS_FRA_SIGNAL")
             .rename_item("KeyValuePair", "cras_fra_kv_t"),
         "cras_fra.h",
@@ -89,13 +91,13 @@ fn main() {
 
     generate(
         builder(2023)
-            .with_src("../src/cras_processor.rs")
+            .with_src("cras/src/server/rust/src/cras_processor.rs")
             .with_include("audio_processor/c/plugin_processor.h"),
         "cras_processor.h",
     );
 
     generate(
-        builder(2023).with_src("../src/pseudonymization.rs"),
+        builder(2023).with_src("cras/common/src/pseudonymization.rs"),
         "pseudonymization.h",
-    )
+    );
 }
