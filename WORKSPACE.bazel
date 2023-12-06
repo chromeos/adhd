@@ -154,8 +154,8 @@ fuzz_engine_repository(name = "fuzz_engine")
 #
 
 RULES_RUST_VERSION, RULES_RUST_SHA256 = (
-    "0.24.0",
-    "48e715be2368d79bc174efdb12f34acfc89abd7ebfcbffbc02568fcb9ad91536",
+    "0.32.0",
+    "1e7114ea2af800c6987ca38daeee13e3ae6e934875b4f7ca24b798857f95431e",
 )
 
 http_archive(
@@ -167,27 +167,14 @@ http_archive(
     ],
 )
 
-http_archive(
-    name = "rust_cc_common_link",
-    patch_args = ["-p3"],
-    patches = ["//:third_party/rules_rust/0001-cc_common_link-Use-linkstatic-for-allocator_library.patch"],
-    sha256 = RULES_RUST_SHA256,
-    strip_prefix = "test/cc_common_link",
-    urls = [
-        "https://github.com/bazelbuild/rules_rust/releases/download/{0}/rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
-        "https://storage.googleapis.com/chromeos-localmirror/distfiles/bazelbuild-rules_rust-v{0}.tar.gz".format(RULES_RUST_VERSION),
-    ],
-)
-
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
 rules_rust_dependencies()
 
 rust_register_toolchains(
-    allocator_library = "@rust_cc_common_link//:allocator_library",
-    edition = "2018",
+    edition = "2021",
     versions = [
-        "1.69.0",
+        "1.72.1",
     ],
 )
 
