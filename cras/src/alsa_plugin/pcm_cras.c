@@ -361,7 +361,7 @@ static int snd_pcm_cras_open(snd_pcm_t** pcmp,
 
   pcm_cras->fd = -1;
   pcm_cras->io.poll_fd = -1;
-  pcm_cras->channels = 2;
+  pcm_cras->channels = 8;
   pcm_cras->direction = (stream == SND_PCM_STREAM_PLAYBACK) ? CRAS_STREAM_OUTPUT
                                                             : CRAS_STREAM_INPUT;
 
