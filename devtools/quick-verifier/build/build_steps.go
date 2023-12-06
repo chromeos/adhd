@@ -20,6 +20,7 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	git := b.Add(gitSteps)
 
 	b.Add(copgenCheckSteps().WithDep(git))
+	b.Add(rustGenerateSteps().WithDep(git))
 
 	b.Add(archlinuxSteps("archlinux-clang", "--config=local-clang").WithDep(git))
 	b.Add(archlinuxSteps("archlinux-clang-asan", "--config=local-clang", "--config=asan").WithDep(git))
@@ -152,6 +153,15 @@ func kytheSteps() *buildplan.Sequence {
 		prepareSourceStep,
 		buildplan.Command(archlinuxBuilder, "bash", "devtools/kythe/build_kzip.bash", "."),
 	).WithVolume()
+}
+
+func rustGenerateSteps() *buildplan.Sequence {
+	return buildplan.Commands(
+		"rust_generate",
+		prepareSourceStep,
+		buildplan.Command(archlinuxBuilder, "devtools/rust_generate.bash"),
+		buildplan.Command(archlinuxBuilder, "git", "diff", "--exit-code"),
+	)
 }
 
 func ossFuzzSetupSteps() *buildplan.Sequence {

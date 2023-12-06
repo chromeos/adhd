@@ -76,6 +76,39 @@
         "/workspace/adhd/",
         "./"
       ],
+      "id": "rust_generate:0",
+      "waitFor": [
+        "prepare-source:1"
+      ],
+      "entrypoint": "rsync"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "id": "rust_generate:1",
+      "waitFor": [
+        "rust_generate:0"
+      ],
+      "entrypoint": "devtools/rust_generate.bash"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "diff",
+        "--exit-code"
+      ],
+      "id": "rust_generate:2",
+      "waitFor": [
+        "rust_generate:1"
+      ],
+      "entrypoint": "git"
+    },
+    {
+      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "args": [
+        "-ah",
+        "/workspace/adhd/",
+        "./"
+      ],
       "dir": "/workspace-archlinux-clang",
       "id": "archlinux-clang:0",
       "waitFor": [
