@@ -193,6 +193,7 @@ dependencies = [
  "cras_common",
  "cras_dlc",
  "cras_features_backend",
+ "cras_s2",
  "libc",
  "log",
  "protobuf",
@@ -252,6 +253,15 @@ name = "cras_rust"
 version = "0.1.1"
 dependencies = [
  "cras",
+]
+
+[[package]]
+name = "cras_s2"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

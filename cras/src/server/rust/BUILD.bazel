@@ -33,6 +33,7 @@ rust_library(
         "//audio_processor",
         "//cras/common:rust_common",
         "//cras/platform/features:backend",
+        "//cras/server/s2",
         "//cras/src/server/rust/cras_dlc",
     ] + all_crate_deps(),
 )

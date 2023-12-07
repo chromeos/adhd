@@ -4,13 +4,17 @@
 
 #include "cras/src/server/cras_feature_monitor.h"
 
+#include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/rust/include/cras_s2.h"
 
 static void handle_feature_changed() {
   // NC availability is controlled by feature flags that may change dynamically.
   // Notify Chrome to refetch the node list to propagate NC support status.
   // TODO(b/287567735): Remove after launch when removing the flag.
+  cras_s2_set_ap_nc_featured_allowed(
+      cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation));
   cras_iodev_list_update_device_list();
   cras_iodev_list_notify_nodes_changed();
 }

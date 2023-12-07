@@ -29,6 +29,8 @@
 #include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_utf8.h"
+#include "cras/src/server/rust/include/cras_s2.h"
+#include "cras/src/server/rust/include/string.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras_audio_format.h"
 #include "cras_iodev_info.h"
@@ -156,6 +158,34 @@ static DBusHandlerResult send_int32_reply(DBusConnection* conn,
   }
 
   if (!dbus_message_append_args(reply, DBUS_TYPE_INT32, &value,
+                                DBUS_TYPE_INVALID)) {
+    ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
+    goto unref_reply;
+  }
+  if (!dbus_connection_send(conn, reply, &serial)) {
+    ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
+  }
+
+unref_reply:
+  dbus_message_unref(reply);
+  return ret;
+}
+
+// Helper to send a string reply.
+static __attribute__((warn_unused_result)) DBusHandlerResult send_string_reply(
+    DBusConnection* conn,
+    DBusMessage* message,
+    const char* value) {
+  DBusMessage* reply;
+  dbus_uint32_t serial = 0;
+  DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
+
+  reply = dbus_message_new_method_return(message);
+  if (!reply) {
+    return DBUS_HANDLER_RESULT_NEED_MEMORY;
+  }
+
+  if (!dbus_message_append_args(reply, DBUS_TYPE_STRING, &value,
                                 DBUS_TYPE_INVALID)) {
     ret = DBUS_HANDLER_RESULT_NEED_MEMORY;
     goto unref_reply;
@@ -1465,6 +1495,17 @@ static DBusHandlerResult handle_get_bt_hfp_offload_supported(
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_dump_s2_as_json(DBusConnection* conn,
+                                                DBusMessage* message,
+                                                void* arg) {
+  char* json = cras_s2_dump_json();
+
+  int ret = send_string_reply(conn, message, json);
+  cras_rust_free_string(json);
+
+  return ret;
+}
+
 // Handle incoming messages.
 static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                                 DBusMessage* message,
@@ -1671,6 +1712,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetBtHfpOffloadSupported")) {
     return handle_get_bt_hfp_offload_supported(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "DumpS2AsJSON")) {
+    return handle_dump_s2_as_json(conn, message, arg);
   }
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

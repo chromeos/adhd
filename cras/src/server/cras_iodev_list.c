@@ -31,6 +31,7 @@
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
+#include "cras/src/server/rust/include/cras_s2.h"
 #include "cras/src/server/server_stream.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras/src/server/stream_list.h"
@@ -312,8 +313,7 @@ static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
   struct fill_node_list_auxiliary aux = {
       .dsp_nc_allowed = !get_dsp_input_effects_blocked_state() ||
                         cras_system_get_bypass_block_noise_cancellation(),
-      .ap_nc_allowed =
-          cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation),
+      .ap_nc_allowed = cras_s2_get_ap_nc_allowed(),
   };
   return aux;
 }

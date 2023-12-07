@@ -105,4 +105,9 @@ fn main() {
         builder(2023).with_src("cras/src/server/rust/src/string.rs"),
         "string.h",
     );
+
+    generate(
+        builder(2023).with_src("cras/server/s2/src/global.rs"),
+        "cras_s2.h",
+    );
 }

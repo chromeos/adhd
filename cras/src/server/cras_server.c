@@ -50,6 +50,7 @@
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/cras_udev.h"
 #include "cras/src/server/rust/include/cras_rust_logging.h"
+#include "cras/src/server/rust/include/cras_s2.h"
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_types.h"
@@ -428,9 +429,8 @@ int cras_server_init() {
   if (rc != 0) {
     syslog(LOG_ERR, "failed to initialize the cras_features backend: %d", rc);
   }
-  if (cras_segmentation_enabled("FeatureManagementAPNoiseCancellation")) {
-    cras_features_set_override(CrOSLateBootAudioAPNoiseCancellation, true);
-  }
+  cras_s2_set_ap_nc_segmentation_allowed(
+      cras_segmentation_enabled("FeatureManagementAPNoiseCancellation"));
 
   return 0;
 }

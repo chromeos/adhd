@@ -266,6 +266,14 @@ fn main() {
         "org.chromium.cras.Control.SpeakOnMuteDetectionEnabled",
     ]));
 
+    run_command(Command::new("dbus-send").args([
+        "--system",
+        "--print-reply",
+        "--dest=org.chromium.cras",
+        "/org/chromium/cras",
+        "org.chromium.cras.Control.DumpS2AsJSON",
+    ]));
+
     crate::settings::print_salted_audio_settings("/home/chronos/Local State");
 }
 

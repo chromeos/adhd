@@ -10,10 +10,11 @@ libc = "0.2.44"
 log = "0.4.17"
 protobuf = "3.2.0"
 
-cras_common = { version = "*" }
-cras_dlc = { version = "*" }
-audio_processor = { version = "*" }
-cras_features_backend = { version = "*" }
+cras_common = "*"
+cras_dlc = "*"
+audio_processor = "*"
+cras_features_backend = "*"
+cras_s2 = "*"
 
 [build-dependencies]
 protobuf-codegen = "3.2.0"

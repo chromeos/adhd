@@ -15,3 +15,4 @@ pub use cras_features_backend;
 pub use logging::bindings as logging_bindings;
 mod proto;
 pub mod string;
+pub use cras_s2;

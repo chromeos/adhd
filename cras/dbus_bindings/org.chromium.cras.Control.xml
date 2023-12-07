@@ -506,6 +506,10 @@
       <arg name="supported" type="b" direction="out"/>
     </method>
 
+    <method name="DumpS2AsJSON">
+      <arg name="data" type="s" direction="out"/>
+    </method>
+
     <signal name="OutputVolumeChanged">
       <tp:docstring>
         Indicates that the output volume level has changed.
