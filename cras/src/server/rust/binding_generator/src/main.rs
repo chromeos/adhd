@@ -100,4 +100,9 @@ fn main() {
         builder(2023).with_src("cras/common/src/pseudonymization.rs"),
         "pseudonymization.h",
     );
+
+    generate(
+        builder(2023).with_src("cras/src/server/rust/src/string.rs"),
+        "string.h",
+    );
 }

@@ -95,8 +95,8 @@ bool cras_dlc_is_available(enum CrasDlcId id) {
   return cras_dlc_is_available_ret[id];
 }
 
-const char* cras_dlc_get_root_path(enum CrasDlcId id) {
-  static const char* cras_dlc_get_root_path_ret = "";
+char* cras_dlc_get_root_path(enum CrasDlcId id) {
+  static char cras_dlc_get_root_path_ret[] = "";
   return cras_dlc_get_root_path_ret;
 }
 

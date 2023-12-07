@@ -43,14 +43,9 @@ bool cras_dlc_is_available(enum CrasDlcId id);
 
 /**
  * Returns the root path of the DLC package.
- *
- * # Safety
- *
- * This function leaks memory if called from C.
- * There is no valid way to free the returned string in C.
- * TODO(b/277566731): Fix it.
+ * The returned string should be freed with cras_rust_free_string.
  */
-const char *cras_dlc_get_root_path(enum CrasDlcId id);
+char *cras_dlc_get_root_path(enum CrasDlcId id);
 
 /**
  * Writes the DLC ID string corresponding to the enum id to `ret`.

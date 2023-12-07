@@ -14,6 +14,7 @@
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_dlc.h"
+#include "cras/src/server/rust/include/string.h"
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
   if (!cras_system_get_force_sr_bt_enabled()) {
@@ -40,7 +41,7 @@ enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
 
 struct cras_sr_model_spec cras_sr_bt_get_model_spec(
     enum cras_sr_bt_model model) {
-  const char* dlc_root = cras_dlc_get_root_path(CrasDlcSrBt);
+  char* dlc_root = cras_dlc_get_root_path(CrasDlcSrBt);
   struct cras_sr_model_spec spec = {};
   switch (model) {
     case SR_BT_NBS: {
@@ -64,6 +65,7 @@ struct cras_sr_model_spec cras_sr_bt_get_model_spec(
     default:
       CRAS_CHECK(0 && "unknown model type.");
   }
+  cras_rust_free_string(dlc_root);
   return spec;
 }
 

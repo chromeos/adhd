@@ -41,14 +41,9 @@ pub extern "C" fn cras_dlc_is_available(id: CrasDlcId) -> bool {
 }
 
 /// Returns the root path of the DLC package.
-///
-/// # Safety
-///
-/// This function leaks memory if called from C.
-/// There is no valid way to free the returned string in C.
-/// TODO(b/277566731): Fix it.
+/// The returned string should be freed with cras_rust_free_string.
 #[no_mangle]
-pub unsafe extern "C" fn cras_dlc_get_root_path(id: CrasDlcId) -> *const c_char {
+pub extern "C" fn cras_dlc_get_root_path(id: CrasDlcId) -> *mut c_char {
     match get_dlc_root_path(id) {
         Ok(root_path) => root_path.into_raw(),
         Err(_) => ptr::null_mut(),
