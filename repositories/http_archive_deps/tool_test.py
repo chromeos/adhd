@@ -27,9 +27,9 @@ class CanonicalNameTest(unittest.TestCase):
     def test_archive_sha1(self):
         self.assertEqual(
             tool.canonical_name(
-                'https://github.com/hedronvision/bazel-compile-commands-extractor/archive/0197fc673a1a6035078ac7790318659d7442e27e.tar.gz'
+                'https://github.com/abseil/abseil-cpp/archive/78be63686ba732b25052be15f8d6dee891c05749.zip'
             ),
-            'hedronvision-bazel-compile-commands-extractor-0197fc673a1a6035078ac7790318659d7442e27e.tar.gz',
+            'abseil-abseil-cpp-78be63686ba732b25052be15f8d6dee891c05749.zip',
         )
 
 

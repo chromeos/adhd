@@ -1,9 +1,10 @@
 # Copyright 2022 The ChromiumOS Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//:utils.bzl", "bool_flag_config", "define_feature")
 load("//repositories:pkg_config/pkg_config.bzl", "pkg_config_test_suite")
-load("@hedron_compile_commands//:refresh_compile_commands.bzl", "refresh_compile_commands")
 
 package(default_visibility = [":__subpackages__"])
 
@@ -85,20 +86,14 @@ cc_library(
 config_setting(
     name = "incompatible_selinux_fuzzer_build",
     flag_values = {
-        ":selinux": "true",
         ":fuzzer": "true",
+        ":selinux": "true",
     },
 )
 
-refresh_compile_commands(
+alias(
     name = "compdb",
-)
-
-refresh_compile_commands(
-    name = "compdb_notest",
-    targets = {
-        "//dist:default": "",
-    },
+    actual = "@compdb",
 )
 
 pkg_config_test_suite()

@@ -67,15 +67,7 @@ llvm_configure(name = "llvm-project")
 
 llvm_disable_optional_support_deps()
 
-HEDRON_COMPILE_COMMANDS_REF = "0197fc673a1a6035078ac7790318659d7442e27e"
-
-http_archive(
-    name = "hedron_compile_commands",
-    sha256 = "632cf245a06f38a02eefe9764ae5ca581b74bfa106a44067665fcd99fb6babb0",
-    strip_prefix = "bazel-compile-commands-extractor-{}".format(HEDRON_COMPILE_COMMANDS_REF),
-    url = "https://github.com/hedronvision/bazel-compile-commands-extractor/archive/{}.tar.gz".format(HEDRON_COMPILE_COMMANDS_REF),
+local_repository(
+    name = "compdb",
+    path = "../repositories/compdb",
 )
-
-load("@hedron_compile_commands//:workspace_setup.bzl", "hedron_compile_commands_setup")
-
-hedron_compile_commands_setup()
