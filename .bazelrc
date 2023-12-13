@@ -75,3 +75,6 @@ test:ci --test_summary=terse
 # Allow user customization.
 # https://bazel.build/configure/best-practices#bazelrc-file
 try-import %workspace%/user.bazelrc
+
+# b/316075428: Disable bzlmod for now, to avoid generating MODULE.bazel files.
+build --noexperimental_enable_bzlmod
