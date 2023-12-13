@@ -20,7 +20,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/common/cras_checksum.h"
 #include "cras/src/common/cras_string.h"

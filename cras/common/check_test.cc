@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "gtest/gtest.h"
 
 TEST(CrasCheck, Pass) {

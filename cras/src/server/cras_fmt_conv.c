@@ -13,7 +13,7 @@
 #include <sys/param.h>
 #include <syslog.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/server/cras_fmt_conv_ops.h"
 #include "cras/src/server/linear_resampler.h"
 #include "cras_audio_format.h"

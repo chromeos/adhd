@@ -17,7 +17,7 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/buffer_share.h"

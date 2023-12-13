@@ -492,7 +492,7 @@ cc_library(
         ":cras_sr",
         ":dsp_types",
         ":ewma_power",
-        "//cras/base",
+        "//cras/common:check",
         "//cras/platform/features",
         "//cras/platform/features:override",
         "//cras/platform/segmentation",

@@ -10,7 +10,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"

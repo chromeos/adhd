@@ -5,7 +5,7 @@
 
 #include "cras/src/tests/sr_bt_util_stub.h"
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 
 namespace {
 

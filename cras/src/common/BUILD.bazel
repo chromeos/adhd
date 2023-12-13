@@ -81,7 +81,7 @@ cc_library(
     ],
     deps = [
         "//:build_config",
-        "//cras/base",
+        "//cras/common:check",
         "//cras/include",
         "//cras/src/common:cras_string",
         "//cras/src/common:cras_types",
@@ -169,7 +169,7 @@ cc_library(
         "//cras/src/server:__pkg__",
     ],
     deps = [
-        "//cras/base",
+        "//cras/common:check",
         "//cras/src/common:cras_types",
     ],
 )
@@ -268,19 +268,19 @@ cc_library(
         ":cras_alsa_card_info",
         ":cras_config",
         ":cras_file_wait",
+        ":cras_log",
         ":cras_selinux_helper",
         ":cras_shm",
         ":cras_string",
-        ":cras_log",
         ":cras_types",
         ":cras_types_internal",
         ":cras_util",
-        "//third_party/superfasthash",
-        "//third_party/utlist",
-        "//third_party/bluez:rtp",
-        "//third_party/bluez:a2dp_codecs",
         "//cras/include",
         "//cras/src/server:cras_observer_types",
+        "//third_party/bluez:a2dp_codecs",
+        "//third_party/bluez:rtp",
+        "//third_party/superfasthash",
+        "//third_party/utlist",
         "@pkg_config//sbc",
     ] + select({
         "//:metrics_build": [

@@ -20,7 +20,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/common/cras_log.h"
 #include "cras/src/common/cras_string.h"

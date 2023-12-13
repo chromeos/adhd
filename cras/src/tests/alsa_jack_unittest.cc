@@ -13,7 +13,7 @@
 #include <syslog.h>
 #include <vector>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/edid_utils.h"
 #include "cras/src/server/cras_alsa_jack.h"
 #include "cras/src/server/cras_alsa_jack_private.h"

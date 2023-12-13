@@ -24,7 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/cras_types_internal.h"
 #include "cras/src/common/cras_version.h"

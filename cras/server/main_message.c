@@ -13,7 +13,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras_util.h"
 #include "third_party/utlist/utlist.h"
 

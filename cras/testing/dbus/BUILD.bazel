@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("//:utils.bzl", "require_config")
 
 cc_library(
@@ -9,7 +10,7 @@ cc_library(
     testonly = True,
     hdrs = ["message_builder.hh"],
     deps = [
-        "//cras/base",
+        "//cras/common:check",
         "@pkg_config//dbus-1",
         "@pkg_config//protobuf",
     ],

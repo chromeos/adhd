@@ -15,7 +15,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras_audio_format.h"
 #include "cras_types.h"
 #include "cras_util.h"

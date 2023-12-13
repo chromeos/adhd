@@ -2,10 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("//:utils.bzl", "require_no_config")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test", "rust_test_suite")
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_library")
+load("//:utils.bzl", "require_no_config")
 
 cc_library(
     name = "features",
@@ -21,7 +22,7 @@ cc_library(
         "//cras/src/tests:__pkg__",
     ],
     deps = [
-        "//cras/base",
+        "//cras/common:check",
         "//cras/server:main_message",
         "//cras/src/server/rust",
     ],

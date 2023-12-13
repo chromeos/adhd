@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CRAS_BASE_CHECK_H_
-#define CRAS_BASE_CHECK_H_
+#ifndef CRAS_COMMON_CHECK_H_
+#define CRAS_COMMON_CHECK_H_
 
 #include <stdio.h>
 
@@ -26,4 +26,4 @@ __attribute__((__noreturn__)) void cras_assertion_failure(const char* assertion,
 }  // extern "C"
 #endif
 
-#endif  // CRAS_BASE_CHECK_H_
+#endif  // CRAS_COMMON_CHECK_H_

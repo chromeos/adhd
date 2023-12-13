@@ -15,7 +15,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/cras_string.h"
 
 int gpio_switch_open(const char* pathname) {

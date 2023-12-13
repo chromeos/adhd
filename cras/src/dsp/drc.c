@@ -14,7 +14,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/dsp/biquad.h"
 #include "cras/src/dsp/crossover2.h"
 #include "cras/src/dsp/drc_kernel.h"

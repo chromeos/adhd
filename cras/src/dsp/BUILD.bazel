@@ -92,7 +92,7 @@ cc_library(
         ":drc_kernel",
         ":dsp_helpers",
         ":eq2",
-        "//cras/base",
+        "//cras/common:check",
         "@thesofproject_sof",
     ],
 )
@@ -125,7 +125,7 @@ cc_library(
     linkopts = ["-lm"],
     deps = [
         ":drc_math",
-        "//cras/base",
+        "//cras/common:check",
         "//cras/include",
     ],
 )

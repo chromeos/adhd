@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/platform/features/features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_server_metrics.h"

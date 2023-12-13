@@ -48,7 +48,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/cras_file_wait.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/common/cras_string.h"

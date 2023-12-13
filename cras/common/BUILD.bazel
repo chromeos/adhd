@@ -3,8 +3,26 @@
 # found in the LICENSE file.
 
 load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 load("//:utils.bzl", "require_no_config")
+
+cc_library(
+    name = "check",
+    srcs = ["check.c"],
+    hdrs = ["check.h"],
+    visibility = ["//cras:__subpackages__"],
+)
+
+cc_test(
+    name = "check_test",
+    srcs = ["check_test.cc"],
+    deps = [
+        ":check",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
 
 rust_library(
     name = "rust_common",

@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
 cc_library(
     name = "config",
     srcs = [
@@ -22,7 +24,7 @@ cc_library(
         "//cras/src/tests:__pkg__",
     ],
     deps = [
-        "//cras/base",
+        "//cras/common:check",
         "//cras/src/common",
         "//cras/src/server:cras_volume_curve",
         "//cras/src/server:iniparser_wrapper",

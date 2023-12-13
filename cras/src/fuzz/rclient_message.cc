@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/cras_iodev_list.h"

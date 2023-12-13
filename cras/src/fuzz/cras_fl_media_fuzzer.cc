@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_bt_log.h"

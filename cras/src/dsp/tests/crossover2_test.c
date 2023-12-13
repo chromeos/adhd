@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/dsp/crossover2.h"
 #include "cras/src/dsp/dsp_util.h"
 #include "cras/src/dsp/tests/dsp_test_util.h"

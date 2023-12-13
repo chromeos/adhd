@@ -15,7 +15,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/server/iniparser_wrapper.h"
 #include "cras_util.h"
 

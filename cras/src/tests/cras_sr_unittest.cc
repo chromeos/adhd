@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/sample_buffer.h"
 #include "cras/src/dsp/am.h"
 #include "cras/src/server/cras_sr.h"

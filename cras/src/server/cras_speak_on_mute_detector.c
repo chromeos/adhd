@@ -8,7 +8,7 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/server/main_message.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/common/cras_string.h"

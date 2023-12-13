@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/sample_buffer.h"
 #include "cras/src/dsp/am.h"
 #include "cras/src/server/cras_fmt_conv_ops.h"

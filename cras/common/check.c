@@ -4,7 +4,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 
 #include <stdio.h>
 #include <stdlib.h>

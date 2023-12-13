@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "dbus/dbus.h"
 #include "google/protobuf/descriptor.h"
 

@@ -13,7 +13,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_bt_io.h"
 #include "cras/src/server/cras_bt_log.h"

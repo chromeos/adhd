@@ -10,7 +10,7 @@
 #include <syslog.h>
 
 #include "audio_processor/c/plugin_processor.h"
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
 #include "cras/src/common/byte_buffer.h"

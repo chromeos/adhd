@@ -18,7 +18,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"

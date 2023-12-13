@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 #include <math.h>
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 #include "cras/src/dsp/biquad.h"
 
 namespace {

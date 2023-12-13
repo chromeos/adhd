@@ -4,7 +4,7 @@
 
 #include "cras/src/tests/test_util.hh"
 
-#include "cras/base/check.h"
+#include "cras/common/check.h"
 
 const char* test_tmpdir() {
   const char* dir = getenv("TEST_TMPDIR");
