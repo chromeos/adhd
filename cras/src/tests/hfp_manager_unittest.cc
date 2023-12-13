@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/platform/features/override.h"
+#include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_hfp_alsa_iodev.h"
 #include "cras/src/server/cras_hfp_manager.h"

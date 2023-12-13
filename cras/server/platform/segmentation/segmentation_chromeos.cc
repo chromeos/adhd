@@ -4,7 +4,7 @@
 
 #include <libsegmentation/feature_management.h>
 
-#include "cras/platform/segmentation/segmentation.h"
+#include "cras/server/platform/segmentation/segmentation.h"
 
 extern "C" bool cras_segmentation_enabled(const char* feature) {
   thread_local segmentation::FeatureManagement fm;

@@ -17,7 +17,7 @@
 #include <syslog.h>
 
 #include "cras/common/check.h"
-#include "cras/platform/features/features.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"

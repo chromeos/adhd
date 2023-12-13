@@ -22,8 +22,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_fl_pcm_iodev.h"

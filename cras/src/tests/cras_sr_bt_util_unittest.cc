@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <syslog.h>
 
-#include "cras/platform/features/override.h"
+#include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_sr_bt_util.h"
 #include "cras/src/server/rust/include/cras_dlc.h"

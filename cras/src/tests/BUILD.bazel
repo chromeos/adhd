@@ -84,8 +84,8 @@ cc_test(
     deps = [
         ":test_support",
         ":test_util",
-        "//cras/platform/features:override",
         "//cras/server:main_message",
+        "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
@@ -126,7 +126,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
-        "//cras/platform/features:override",
+        "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -734,7 +734,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
-        "//cras/platform/features",
+        "//cras/server/platform/features",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
@@ -775,7 +775,7 @@ cc_test(
     flaky = True,  # TODO(b/271618403): Fix the flake.
     deps = [
         ":test_support",
-        "//cras/platform/features",
+        "//cras/server/platform/features",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
@@ -1249,7 +1249,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
-        "//cras/platform/features:override",
+        "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
@@ -1320,7 +1320,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
-        "//cras/platform/features:override",
+        "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust",
@@ -1876,8 +1876,8 @@ cc_test(
         ":scoped_features_override",
         ":test_support",
         "//audio_processor/c:plugin_processor",
-        "//cras/platform/features",
         "//cras/server:main_message",
+        "//cras/server/platform/features",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
@@ -1939,8 +1939,8 @@ cc_library(
     srcs = ["scoped_features_override.cc"],
     hdrs = ["scoped_features_override.hh"],
     deps = [
-        "//cras/platform/features",
-        "//cras/platform/features:override",
+        "//cras/server/platform/features",
+        "//cras/server/platform/features:override",
     ],
 )
 

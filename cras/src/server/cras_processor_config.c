@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "cras/platform/features/features.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_processor.h"
 #include "cras_types.h"

@@ -4,8 +4,8 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/platform/features/override.h"
 #include "cras/server/main_message.h"
+#include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"

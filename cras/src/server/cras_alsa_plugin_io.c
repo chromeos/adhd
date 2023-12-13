@@ -15,7 +15,7 @@
 #include <sys/poll.h>
 #include <syslog.h>
 
-#include "cras/platform/features/features.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_io_ops.h"

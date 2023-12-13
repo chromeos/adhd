@@ -4,20 +4,20 @@
  * found in the LICENSE file.
  */
 
-#include "cras/platform/features/features_impl.h"
+#include "cras/server/platform/features/features_impl.h"
 
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/platform/features/features.h"
-#include "cras/platform/features/override.h"
 #include "cras/server/main_message.h"
+#include "cras/server/platform/features/features.h"
+#include "cras/server/platform/features/override.h"
 
 #define DEFINE_FEATURE(name, default_enabled) [name] = {#name, default_enabled},
 struct cras_feature features[NUM_FEATURES] = {
-#include "cras/platform/features/features.inc"
+#include "cras/server/platform/features/features.inc"
 };
 #undef DEFINE_FEATURE
 

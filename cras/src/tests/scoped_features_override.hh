@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "cras/platform/features/features.h"
+#include "cras/server/platform/features/features.h"
 
 // ScopedFeaturesOverride overrides the enabled features upon construction.
 // Upon destruct the original feature configuration is restored.

@@ -1,5 +1,5 @@
 {
-  "checksum": "9a4f1ae6cf508bf98e95e716c7773f6fc83881656d1103c4b1fdf5f4c752f930",
+  "checksum": "94c0d1c37407d5c23f302224dd45eac5a99f31db09b1588919b42190e50cc280",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -8160,7 +8160,7 @@
     "cras 0.1.1": "cras/src/server/rust",
     "cras_common 0.1.0": "cras/common",
     "cras_dlc 0.1.0": "cras/src/server/rust/cras_dlc",
-    "cras_features_backend 0.1.0": "cras/platform/features",
+    "cras_features_backend 0.1.0": "cras/server/platform/features",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
     "cras_s2 0.1.0": "cras/server/s2",
     "rock 0.1.0": "rock"

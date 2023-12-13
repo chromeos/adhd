@@ -23,10 +23,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "cras/platform/features/features.h"
-#include "cras/platform/features/override.h"
-#include "cras/platform/segmentation/segmentation.h"
 #include "cras/server/main_message.h"
+#include "cras/server/platform/features/features.h"
+#include "cras/server/platform/features/override.h"
+#include "cras/server/platform/segmentation/segmentation.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_alsa_helpers.h"

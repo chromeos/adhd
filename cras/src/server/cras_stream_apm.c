@@ -11,8 +11,8 @@
 
 #include "audio_processor/c/plugin_processor.h"
 #include "cras/common/check.h"
-#include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"

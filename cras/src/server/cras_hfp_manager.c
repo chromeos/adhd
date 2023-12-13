@@ -24,7 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "cras/platform/features/features.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_policy.h"

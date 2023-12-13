@@ -14,7 +14,7 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "cras/platform/features/features.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/common/cras_hats.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"

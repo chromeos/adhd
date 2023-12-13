@@ -10,7 +10,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "cras/platform/features/features.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_a2dp_endpoint.h"
 #include "cras/src/server/cras_bt_adapter.h"
 #include "cras/src/server/cras_bt_constants.h"

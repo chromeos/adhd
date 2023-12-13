@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 
-#include "cras/platform/segmentation/segmentation.h"
+#include "cras/server/platform/segmentation/segmentation.h"
 
 bool cras_segmentation_enabled(const char* feature) {
   return false;

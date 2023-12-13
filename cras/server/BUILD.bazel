@@ -7,7 +7,7 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(
     # Allow legacy packages to see //cras/server.
     default_visibility = [
-        "//cras/platform:__subpackages__",  # Allow platform dependencies to send notifications.
+        "//cras/server/platform:__subpackages__",  # Allow platform dependencies to send notifications.
         "//cras/src/server:__pkg__",
         "//cras/src/tests:__pkg__",
     ],

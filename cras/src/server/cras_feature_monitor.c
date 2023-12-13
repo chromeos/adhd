@@ -4,8 +4,8 @@
 
 #include "cras/src/server/cras_feature_monitor.h"
 
-#include "cras/platform/features/features.h"
 #include "cras/server/main_message.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/rust/include/cras_s2.h"
 

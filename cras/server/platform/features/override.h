@@ -9,7 +9,7 @@
 
 #include <stdbool.h>
 
-#include "cras/platform/features/features.h"
+#include "cras/server/platform/features/features.h"
 
 #ifdef __cplusplus
 extern "C" {
