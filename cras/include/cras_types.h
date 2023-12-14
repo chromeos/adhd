@@ -654,8 +654,6 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Whether any non-empty audio is being
   // played/captured.
   int32_t non_empty_status;
-  // ring buffer for storing audio thread snapshots.
-  struct cras_audio_thread_snapshot_buffer snapshot_buffer;
   // Whether or not bluetooth wideband speech is enabled.
   int32_t bt_wbs_enabled;
   // Whether or not enabling Bluetooth HFP
@@ -716,12 +714,17 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // streams with permission in each client type.
   uint32_t num_input_streams_with_permission[CRAS_NUM_CLIENT_TYPE];
 
-  // Debug structs:
+  // Start of debug structs which may change frequently.
+  // Append new members that are accessed in other environments like ARC++
+  // before this point so that the server state ABI is not broken when debug
+  // structs change.
 
   // ring buffer for storing bluetooth event logs.
   struct cras_bt_debug_info bt_debug_info;
   // ring buffer for storing main thread event logs.
   struct main_thread_debug_info main_thread_debug_info;
+  // ring buffer for storing audio thread snapshots.
+  struct cras_audio_thread_snapshot_buffer snapshot_buffer;
   // Debug data filled in when a client requests it. This
   // isn't protected against concurrent updating, only one client should
   // use it.

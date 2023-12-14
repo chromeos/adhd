@@ -38,39 +38,35 @@ TEST(ABI, CrasServerState) {
   EXPECT_EQ(10992,
             offsetof(struct cras_server_state, default_output_buffer_size));
   EXPECT_EQ(10996, offsetof(struct cras_server_state, non_empty_status));
-  EXPECT_EQ(11000, offsetof(struct cras_server_state, snapshot_buffer));
-  EXPECT_EQ(1256244, offsetof(struct cras_server_state, bt_wbs_enabled));
-  EXPECT_EQ(1256248,
+  EXPECT_EQ(11000, offsetof(struct cras_server_state, bt_wbs_enabled));
+  EXPECT_EQ(11004,
             offsetof(struct cras_server_state, bt_hfp_offload_finch_applied));
-  EXPECT_EQ(1256252,
-            offsetof(struct cras_server_state, deprioritize_bt_wbs_mic));
-  EXPECT_EQ(1256256,
+  EXPECT_EQ(11008, offsetof(struct cras_server_state, deprioritize_bt_wbs_mic));
+  EXPECT_EQ(11012,
             offsetof(struct cras_server_state, noise_cancellation_enabled));
-  EXPECT_EQ(1256260, offsetof(struct cras_server_state,
-                              dsp_noise_cancellation_supported));
-  EXPECT_EQ(1256264, offsetof(struct cras_server_state,
-                              bypass_block_noise_cancellation));
-  EXPECT_EQ(1256268,
+  EXPECT_EQ(11016, offsetof(struct cras_server_state,
+                            dsp_noise_cancellation_supported));
+  EXPECT_EQ(11020, offsetof(struct cras_server_state,
+                            bypass_block_noise_cancellation));
+  EXPECT_EQ(11024,
             offsetof(struct cras_server_state, hotword_pause_at_suspend));
-  EXPECT_EQ(1256272, offsetof(struct cras_server_state, ns_supported));
-  EXPECT_EQ(1256276, offsetof(struct cras_server_state, agc_supported));
-  EXPECT_EQ(1256280, offsetof(struct cras_server_state, hw_echo_ref_disabled));
-  EXPECT_EQ(1256284, offsetof(struct cras_server_state, max_internal_mic_gain));
-  EXPECT_EQ(1256288, offsetof(struct cras_server_state, aec_on_dsp_supported));
-  EXPECT_EQ(1256292, offsetof(struct cras_server_state, ns_on_dsp_supported));
-  EXPECT_EQ(1256296, offsetof(struct cras_server_state, agc_on_dsp_supported));
-  EXPECT_EQ(1256300,
-            offsetof(struct cras_server_state, force_respect_ui_gains));
-  EXPECT_EQ(1256304, offsetof(struct cras_server_state, active_node_type_pair));
-  EXPECT_EQ(1256372,
+  EXPECT_EQ(11028, offsetof(struct cras_server_state, ns_supported));
+  EXPECT_EQ(11032, offsetof(struct cras_server_state, agc_supported));
+  EXPECT_EQ(11036, offsetof(struct cras_server_state, hw_echo_ref_disabled));
+  EXPECT_EQ(11040, offsetof(struct cras_server_state, max_internal_mic_gain));
+  EXPECT_EQ(11044, offsetof(struct cras_server_state, aec_on_dsp_supported));
+  EXPECT_EQ(11048, offsetof(struct cras_server_state, ns_on_dsp_supported));
+  EXPECT_EQ(11052, offsetof(struct cras_server_state, agc_on_dsp_supported));
+  EXPECT_EQ(11056, offsetof(struct cras_server_state, force_respect_ui_gains));
+  EXPECT_EQ(11060, offsetof(struct cras_server_state, active_node_type_pair));
+  EXPECT_EQ(11128,
             offsetof(struct cras_server_state, max_internal_speaker_channels));
-  EXPECT_EQ(1256376,
-            offsetof(struct cras_server_state, max_headphone_channels));
-  EXPECT_EQ(1256380,
+  EXPECT_EQ(11132, offsetof(struct cras_server_state, max_headphone_channels));
+  EXPECT_EQ(11136,
             offsetof(struct cras_server_state, num_non_chrome_output_streams));
-  EXPECT_EQ(1256384, offsetof(struct cras_server_state, nc_standalone_mode));
-  EXPECT_EQ(1256388,
+  EXPECT_EQ(11140, offsetof(struct cras_server_state, nc_standalone_mode));
+  EXPECT_EQ(11144,
             offsetof(struct cras_server_state, voice_isolation_supported));
-  EXPECT_EQ(1256392, offsetof(struct cras_server_state,
-                              num_input_streams_with_permission));
+  EXPECT_EQ(11148, offsetof(struct cras_server_state,
+                            num_input_streams_with_permission));
 }
