@@ -101,7 +101,7 @@ pub trait Amp {
     /// Get the fake dsm_calib_r0 value by channel index.
     fn get_fake_r0(&mut self, ch: usize) -> i32;
     /// Get the fake dsm_calib_temp value by channel index.
-    fn get_fake_temp(&mut self, ch: usize) -> i32 {
+    fn get_fake_temp(&mut self, _ch: usize) -> i32 {
         DSM::DEFAULT_FAKE_TEMP as i32
     }
     /// Set the rdc value by channel index.

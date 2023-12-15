@@ -8,7 +8,6 @@ description = "The boot time calibration logic for smart amp"
 [dependencies]
 cros_alsa = { path = "../../cros_alsa" } # provided by ebuild
 dsm = { path = "../dsm" }
-libcras = { path = "../../cras/client/libcras" } # provided by ebuild
 log = "0.4"
 remain = "0.2.1"
 serde = { version = "1.0", features = ["derive"]}

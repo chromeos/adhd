@@ -41,12 +41,6 @@ const FIRMWARE_TYPE_PROTECTION: &str = "Protection";
 const PCM_SOURCE_DSP: &str = "DSP";
 
 #[derive(PartialEq, Clone, Copy)]
-enum PreLoadSwitch {
-    On = 1,
-    Off = 0,
-}
-
-#[derive(PartialEq, Clone, Copy)]
 enum CalibStatus {
     Success = 1,
 }
@@ -354,6 +348,6 @@ mod tests {
     }
 
     fn ohm_to_rdc() {
-        assert_eq!(ALC1011CalibData::ohm_to_rdc(3.4169054), 4779);
+        assert_eq!(CS35L41CalibData::ohm_to_rdc(3.4169054), 4779);
     }
 }

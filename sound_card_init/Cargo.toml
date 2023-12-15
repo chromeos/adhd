@@ -15,27 +15,29 @@ members = [
 argh = "*"
 amp = { path = "amp" }
 audio_streams = "*"
-cros_alsa = { path = "../cros_alsa" } # provided by ebuild
+cras-sys = "*"
+cros_alsa = "*"
+libchromeos = "*"
 dsm = { path = "dsm" }
 getopts = "0.2"
-libchromeos = { path = "../../../platform2/libchromeos-rs/" } # provided by ebuild
-libcras = { path = "../cras/client/libcras" } # provided by ebuild
 log = "0.4"
 remain = "0.2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.96"
 serde_yaml = "0.8.11"
-sof_sys = { path = "../sof_sys" } # provided by ebuild
 thiserror = "*"
 
+
+# To get rust-analyzer and cargo build working out of the chroot,
+# Run inside the chroot: emerge-amd64-generic  -j --onlydeps sound_card_init
 [patch.crates-io]
-audio_streams = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/audio_streams-0.1.0/" } # ignored by ebuild
-base_event_token_derive = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/base_event_token_derive-0.1.0/" } # ignored by ebuild
-crosvm-base = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/crosvm-base-0.1.0/" } # ignored by ebuild
-minijail = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/minijail-0.2.3/" } # ignored by ebuild
-minijail-sys = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/minijail-sys-0.0.14/" } # ignored by ebuild
-data_model = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
-io_uring = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/io_uring-0.1.51/" } # ignored by ebuild
-serde_keyvalue = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue-0.1.50/" } # ignored by ebuild
-serde_keyvalue_derive = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/serde_keyvalue_derive-0.1.50/" } # ignored by ebuild
-sync = { path = "../../../../chroot/usr/lib/cros_rust_registry/registry/sync-0.1.149/" } # ignored by ebuild
+data_model = { path = "../../../../out/build/amd64-generic/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
+io-uring = { path = "../../../../out/build/amd64-generic/usr/lib/cros_rust_registry/registry/io-uring-0.5.13/" } # ignored by ebuild
+
+# first party deps
+audio_streams = { path = "../../../platform/crosvm/common/audio_streams" } # ignored by ebuild
+libchromeos = { path = "../../../platform2/libchromeos-rs" }  # ignored by ebuild
+cras-sys = { path = "../cras/client/cras-sys" }  # ignored by ebuild
+cros_alsa = { path = "../cros_alsa" }  # ignored by ebuild
+libcras = { path = "../cras/client/libcras" } # ignored by ebuild
+sof_sys = { path = "../sof_sys" } # ignored by ebuild
