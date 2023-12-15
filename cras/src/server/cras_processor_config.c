@@ -7,9 +7,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_processor.h"
+#include "cras/src/server/rust/include/cras_s2.h"
 #include "cras_types.h"
 
 enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
@@ -20,7 +20,7 @@ enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
           : cras_system_get_noise_cancellation_enabled();
   if (nc_provided_by_ap && voice_isolation_enabled &&
       cras_system_get_ap_noise_cancellation_supported() &&
-      cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation)) {
+      cras_s2_get_ap_nc_allowed()) {
     return NoiseCancellation;
   }
   return NoEffects;
