@@ -182,9 +182,6 @@ bool cras_system_get_noise_cancellation_supported();
 // Returns if Noise Cancellation is supported by DSP.
 bool cras_system_get_dsp_noise_cancellation_supported();
 
-// Returns if Noise Cancellation is supported by AP.
-bool cras_system_get_ap_noise_cancellation_supported();
-
 // Sets the flag to bypass block/unblock Noise Cancellation mechanism.
 void cras_system_set_bypass_block_noise_cancellation(bool bypass);
 

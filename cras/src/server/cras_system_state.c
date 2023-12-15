@@ -533,17 +533,12 @@ bool cras_system_get_noise_cancellation_enabled() {
 }
 
 bool cras_system_get_noise_cancellation_supported() {
-  return cras_system_get_dsp_noise_cancellation_supported() ||
-         cras_system_get_ap_noise_cancellation_supported();
+  // TODO(b/316444947): Delete this function.
+  return true;
 }
 
 bool cras_system_get_dsp_noise_cancellation_supported() {
   return !!state.exp_state->dsp_noise_cancellation_supported;
-}
-
-bool cras_system_get_ap_noise_cancellation_supported() {
-  // TODO(b/271383461): Ask cras_feature_tier.
-  return true;
 }
 
 void cras_system_set_bypass_block_noise_cancellation(bool bypass) {

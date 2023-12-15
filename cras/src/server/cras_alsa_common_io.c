@@ -73,9 +73,7 @@ enum CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
       ucm_node_noise_cancellation_exists(ucm, node_name)) {
     provider |= CRAS_NC_PROVIDER_DSP;
   }
-  if (cras_system_get_ap_noise_cancellation_supported()) {
-    provider |= CRAS_NC_PROVIDER_AP;
-  }
+  provider |= CRAS_NC_PROVIDER_AP;
   return provider;
 }
 

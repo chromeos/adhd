@@ -19,7 +19,6 @@ enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
           ? (effects & VOICE_ISOLATION)
           : cras_system_get_noise_cancellation_enabled();
   if (nc_provided_by_ap && voice_isolation_enabled &&
-      cras_system_get_ap_noise_cancellation_supported() &&
       cras_s2_get_ap_nc_allowed()) {
     return NoiseCancellation;
   }
