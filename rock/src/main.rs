@@ -3,9 +3,11 @@
 // found in the LICENSE file.
 
 mod delay;
+pub(crate) mod wav;
 
 use clap::Parser;
 use clap::Subcommand;
+
 #[derive(Parser)]
 struct Cli {
     #[clap(subcommand)]
