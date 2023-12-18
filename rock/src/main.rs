@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+mod cosine;
 mod delay;
 pub(crate) mod wav;
 
@@ -18,12 +19,15 @@ struct Cli {
 enum Commands {
     /// Compute the delay of two WAVE files
     Delay(delay::DelayCommand),
+    /// Compute the cosine similarity of two WAVE files
+    Cosine(cosine::CosineCommand),
 }
 
 impl Cli {
     fn run(&self) -> anyhow::Result<()> {
         match &self.command {
             Commands::Delay(c) => c.run(),
+            Commands::Cosine(c) => c.run(),
         }
     }
 }
