@@ -72,9 +72,9 @@ build:ci --show_progress_rate_limit=10
 test:ci --test_output=errors
 test:ci --test_summary=terse
 
+# b/316075428: Disable bzlmod for now, to avoid generating MODULE.bazel files.
+common --noexperimental_enable_bzlmod
+
 # Allow user customization.
 # https://bazel.build/configure/best-practices#bazelrc-file
 try-import %workspace%/user.bazelrc
-
-# b/316075428: Disable bzlmod for now, to avoid generating MODULE.bazel files.
-build --noexperimental_enable_bzlmod
