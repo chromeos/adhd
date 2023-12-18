@@ -132,8 +132,24 @@ impl RateEstimator {
     ///    * `frames` - The number of frames written to the device.  For input,
     ///                 this should be negative to indicate how many samples
     ///                 were read.
-    pub fn add_frames(&mut self, frames: i32) {
-        self.level_diff += frames;
+    ///
+    /// # Returns
+    ///    True if the frames is successfully added, and False if there is overflow
+    pub fn add_frames(&mut self, frames: i32) -> bool {
+        match self.level_diff.checked_add(frames) {
+            Some(d) => {
+                self.level_diff = d;
+                true
+            }
+            None => {
+                log::error!(
+                    "rate_estimator frames overflow, current_frames={}, additional_frames={}",
+                    self.level_diff,
+                    frames
+                );
+                false
+            }
+        }
     }
 
     /// Gets the estimated rate.

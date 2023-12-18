@@ -64,7 +64,7 @@ void rate_estimator_destroy(struct rate_estimator *re);
  * To use this function safely, `re` must be a pointer returned from
  * rate_estimator_create, or null.
  */
-void rate_estimator_add_frames(struct rate_estimator *re, int frames);
+bool rate_estimator_add_frames(struct rate_estimator *re, int frames);
 
 /**
  * # Safety

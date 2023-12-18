@@ -49,9 +49,12 @@ pub unsafe extern "C" fn rate_estimator_destroy(re: *mut RateEstimator) {
 /// To use this function safely, `re` must be a pointer returned from
 /// rate_estimator_create, or null.
 #[no_mangle]
-pub unsafe extern "C" fn rate_estimator_add_frames(re: *mut RateEstimator, frames: libc::c_int) {
+pub unsafe extern "C" fn rate_estimator_add_frames(
+    re: *mut RateEstimator,
+    frames: libc::c_int,
+) -> bool {
     if re.is_null() {
-        return;
+        return false;
     }
 
     (*re).add_frames(frames)

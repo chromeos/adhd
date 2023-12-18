@@ -1386,8 +1386,10 @@ int cras_iodev_put_output_buffer(struct cras_iodev* iodev,
   if (remix_converter) {
     cras_channel_remix_convert(remix_converter, iodev->format, frames, nframes);
   }
-  if (iodev->rate_est) {
-    rate_estimator_add_frames(iodev->rate_est, nframes);
+  if (iodev->rate_est && !rate_estimator_add_frames(iodev->rate_est, nframes)) {
+    syslog(LOG_ERR, "%s rate_estimator accumulated too many frames",
+           iodev->info.name);
+    rate_estimator_reset_rate(iodev->rate_est, iodev->format->frame_rate);
   }
 
   return iodev->put_buffer(iodev, nframes);
