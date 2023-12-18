@@ -97,7 +97,7 @@ where
             .take(self.block_size * channels)
             .enumerate()
         {
-            self.block.data[i % channels][i / channels] = U::from(s?).to_sample::<f32>();
+            self.block[i % channels][i / channels] = U::from(s?).to_sample::<f32>();
             nread += 1
         }
 

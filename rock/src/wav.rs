@@ -16,12 +16,12 @@ pub(crate) fn read_wav_expect_len_at_least(
     len_at_least: usize,
 ) -> anyhow::Result<(hound::WavSpec, MultiBuffer<f32>)> {
     let (spec, buffer) = read_wav(path)?;
-    if buffer.data[0].len() < len_at_least {
+    if buffer[0].len() < len_at_least {
         bail!(
             "{} is too short! Expected at least {} frames but got {}",
             path.display(),
             len_at_least,
-            buffer.data[0].len()
+            buffer[0].len()
         );
     }
     Ok((spec, buffer))

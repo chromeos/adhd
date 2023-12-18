@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::ops::Index;
+use std::ops::IndexMut;
+
 use crate::slice_cast::SliceCast;
 use crate::Sample;
 use crate::Shape;
@@ -11,13 +14,54 @@ mod debug;
 /// A `MultiBuffer` holds multiple buffers of audio samples or bytes.
 /// Each buffer typically holds a channel of audio data.
 pub struct MultiBuffer<T> {
-    pub data: Vec<Vec<T>>,
+    shape: Shape,
+    // Deinterleaved audio data.
+    buffer: Vec<T>,
+}
+
+impl<T> Index<usize> for MultiBuffer<T> {
+    type Output = [T];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if index >= self.shape.channels {
+            panic!("index {} >= {}", index, self.shape.channels);
+        }
+        let start = index * self.shape.frames;
+        &self.buffer[start..start + self.shape.frames]
+    }
+}
+
+impl<T> IndexMut<usize> for MultiBuffer<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        if index >= self.shape.channels {
+            panic!("index {} >= {}", index, self.shape.channels);
+        }
+        let start = index * self.shape.frames;
+        &mut self.buffer[start..start + self.shape.frames]
+    }
 }
 
 impl<T> From<Vec<Vec<T>>> for MultiBuffer<T> {
     /// Take ownership from `vec` and create a `MultiBuffer`.
     fn from(vec: Vec<Vec<T>>) -> Self {
-        Self { data: vec }
+        let min_len = vec.iter().map(|ch| ch.len()).min().unwrap_or(0);
+        let max_len = vec.iter().map(|ch| ch.len()).max().unwrap_or(0);
+        assert_eq!(min_len, max_len);
+        Self {
+            shape: Shape {
+                channels: vec.len(),
+                frames: min_len,
+            },
+            buffer: vec.into_iter().flatten().collect::<Vec<T>>(),
+        }
+    }
+}
+
+impl<T: Clone> MultiBuffer<T> {
+    pub fn to_vecs(&self) -> Vec<Vec<T>> {
+        (0..self.shape.channels)
+            .map(|ch| self[ch].to_vec())
+            .collect()
     }
 }
 
@@ -34,7 +78,12 @@ where
 impl<'a, S: Sample> MultiBuffer<S> {
     /// Get a [`MultiSlice`] referencing the `MultiBuffer`
     pub fn as_multi_slice(&'a mut self) -> MultiSlice<'a, S> {
-        MultiSlice::from_vecs(&mut self.data)
+        if self.buffer.len() == 0 {
+            // `Chunks` and `ChunksMut` don't work on empty.
+            MultiSlice::from_slices((0..self.shape.channels).map(|_| &mut [][..]))
+        } else {
+            MultiSlice::from_slices(self.buffer.chunks_mut(self.shape.frames))
+        }
     }
 
     /// Create `shape.channels` buffers with each with `shape.frames` samples.
@@ -61,13 +110,13 @@ mod buffer_tests {
             channels: 2,
             frames: 4,
         });
-        assert_eq!(buf.data, [[0., 0., 0., 0.], [0., 0., 0., 0.]]);
+        assert_eq!(buf.to_vecs(), [[0., 0., 0., 0.], [0., 0., 0., 0.]]);
 
         let buf = MultiBuffer::<u8>::new(Shape {
             channels: 2,
             frames: 4,
         });
-        assert_eq!(buf.data, [[0, 0, 0, 0], [0, 0, 0, 0]]);
+        assert_eq!(buf.to_vecs(), [[0, 0, 0, 0], [0, 0, 0, 0]]);
     }
 
     #[test]
@@ -76,13 +125,13 @@ mod buffer_tests {
             channels: 2,
             frames: 4,
         });
-        assert_eq!(buf.data, [[0., 0., 0., 0.], [0., 0., 0., 0.]]);
+        assert_eq!(buf.to_vecs(), [[0., 0., 0., 0.], [0., 0., 0., 0.]]);
 
         let buf = MultiBuffer::<u8>::new_equilibrium(Shape {
             channels: 2,
             frames: 4,
         });
-        assert_eq!(buf.data, [[128, 128, 128, 128], [128, 128, 128, 128]]);
+        assert_eq!(buf.to_vecs(), [[128, 128, 128, 128], [128, 128, 128, 128]]);
     }
 
     #[test]
@@ -91,7 +140,7 @@ mod buffer_tests {
         let mut slices = buf.as_multi_slice();
         slices.data[0][1] = 0;
         slices.data[1][2] = 0;
-        assert_eq!(buf.data, [[1, 0, 3, 4], [5, 6, 0, 8]]);
+        assert_eq!(buf.to_vecs(), [[1, 0, 3, 4], [5, 6, 0, 8]]);
     }
 }
 
@@ -102,6 +151,16 @@ pub struct MultiSlice<'a, T> {
 }
 
 impl<'a, T> MultiSlice<'a, T> {
+    /// Create a `MultiSlice` referencing data owned by `slices`.
+    pub fn from_slices<I>(slices: I) -> Self
+    where
+        I: IntoIterator<Item = &'a mut [T]>,
+    {
+        Self {
+            data: slices.into_iter().collect(),
+        }
+    }
+
     /// Create a `MultiSlice` referencing data owned by `vecs`.
     pub fn from_vecs(vecs: &'a mut [Vec<T>]) -> Self {
         Self {
@@ -270,8 +329,8 @@ mod slice_tests {
     fn iter() {
         let ch0 = vec![1i32, 2, 3];
         let ch1 = vec![4i32, 5, 6, 7];
-        let mut buf = MultiBuffer::from(vec![ch0.clone(), ch1.clone()]);
-        let slices = buf.as_multi_slice();
+        let mut buf = vec![ch0.clone(), ch1.clone()];
+        let slices = MultiSlice::from_vecs(&mut buf);
         let mut it = slices.iter();
         assert_eq!(*it.next().unwrap(), ch0);
         assert_eq!(*it.next().unwrap(), ch1);
@@ -280,8 +339,8 @@ mod slice_tests {
 
     #[test]
     fn iter_mut() {
-        let mut buf = MultiBuffer::from(vec![vec![1i32, 2, 3], vec![4i32, 5, 6, 7]]);
-        let mut slices = buf.as_multi_slice();
+        let mut buf = vec![vec![1i32, 2, 3], vec![4i32, 5, 6, 7]];
+        let mut slices = MultiSlice::from_vecs(&mut buf);
         let mut it = slices.iter_mut();
 
         let ch0 = it.next().unwrap();
@@ -294,17 +353,13 @@ mod slice_tests {
 
         assert!(it.next().is_none());
 
-        assert_eq!(buf.data, vec![vec![0, 2, 3], vec![4, 0, 6, 7]]);
+        assert_eq!(buf, vec![vec![0, 2, 3], vec![4, 0, 6, 7]]);
     }
 
     #[test]
     fn min_len() {
-        let mut buf = MultiBuffer::from(vec![
-            vec![1, 2, 3, 4],
-            vec![5, 6, 7],
-            vec![8, 9, 10, 11, 12],
-        ]);
-        assert_eq!(buf.as_multi_slice().min_len(), 3);
+        let mut buf = vec![vec![1, 2, 3, 4], vec![5, 6, 7], vec![8, 9, 10, 11, 12]];
+        assert_eq!(MultiSlice::from_vecs(&mut buf).min_len(), 3);
     }
 
     #[test]
@@ -325,7 +380,7 @@ mod slice_tests {
                 *x = 0;
             }
         }
-        assert_eq!(buf.data, [[1, 0, 0, 4], [5, 0, 0, 8]]);
+        assert_eq!(buf.to_vecs(), [[1, 0, 0, 4], [5, 0, 0, 8]]);
     }
 
     #[test]
@@ -346,6 +401,6 @@ mod slice_tests {
                 *x = 0;
             }
         }
-        assert_eq!(buf.data, [[1, 0, 0, 4], [5, 0, 0, 8]]);
+        assert_eq!(buf.to_vecs(), [[1, 0, 0, 4], [5, 0, 0, 8]]);
     }
 }

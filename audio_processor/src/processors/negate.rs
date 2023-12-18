@@ -103,7 +103,10 @@ mod tests {
         );
 
         // in-place: input = -input
-        assert_eq!(input.data, [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]);
+        assert_eq!(
+            input.to_vecs(),
+            [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]
+        );
     }
 
     #[test]
@@ -121,6 +124,6 @@ mod tests {
         );
 
         // non-in-place: input does not change
-        assert_eq!(input.data, [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
+        assert_eq!(input.to_vecs(), [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
     }
 }

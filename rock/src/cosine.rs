@@ -32,11 +32,7 @@ impl CosineCommand {
             );
         }
 
-        let val = cosine_with_delay(
-            a_buf.data[0].as_slice(),
-            b_buf.data[0].as_slice(),
-            self.delay,
-        );
+        let val = cosine_with_delay(&a_buf[0], &b_buf[0], self.delay);
         println!("{val}");
 
         Ok(())

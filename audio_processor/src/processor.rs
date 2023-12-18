@@ -104,6 +104,6 @@ mod tests {
         );
 
         // Y = -X; p2 does not modify the input data
-        assert_eq!(bufs.data, [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]);
+        assert_eq!(bufs.to_vecs(), [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]);
     }
 }

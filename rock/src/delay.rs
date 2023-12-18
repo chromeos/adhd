@@ -34,8 +34,8 @@ impl DelayCommand {
         }
 
         // Only handle channel 0 for now.
-        let astddev: Vec<f32> = a.data[0].windows(window_size).map(pstddev).collect();
-        let bstddev: Vec<f32> = b.data[0].windows(window_size).map(pstddev).collect();
+        let astddev: Vec<f32> = a[0].windows(window_size).map(pstddev).collect();
+        let bstddev: Vec<f32> = b[0].windows(window_size).map(pstddev).collect();
 
         let lag_frames = lag(&astddev, &bstddev);
         println!("{lag_frames}");
