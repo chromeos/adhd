@@ -56,22 +56,6 @@ fn main() {
     std::env::set_current_dir("../../../../..").unwrap();
 
     generate(
-        builder(2019)
-            .with_src("cras/src/server/rust/src/rate_estimator.rs")
-            .with_src("cras/src/server/rust/src/rate_estimator_bindings.rs")
-            .rename_item("RateEstimator", "rate_estimator")
-            .with_sys_include("time.h"),
-        "rate_estimator.h",
-    );
-
-    generate(
-        builder(2022)
-            .with_src("cras/src/server/rust/src/feature_tier.rs")
-            .rename_item("CrasFeatureTier", "cras_feature_tier"),
-        "cras_feature_tier.h",
-    );
-
-    generate(
         builder(2022).with_src("cras/src/server/rust/cras_dlc/src/lib.rs"),
         "cras_dlc.h",
     );
@@ -99,11 +83,6 @@ fn main() {
     generate(
         builder(2023).with_src("cras/common/src/pseudonymization.rs"),
         "pseudonymization.h",
-    );
-
-    generate(
-        builder(2023).with_src("cras/src/server/rust/src/string.rs"),
-        "string.h",
     );
 
     generate(

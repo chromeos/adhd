@@ -15,3 +15,8 @@ cargo run
 
 cd "${ADHD}"
 CARGO_BAZEL_REPIN=true bazel sync --only=crate_index
+
+for target in $(bazel query 'kind(write_source_file, //...)')
+do
+    bazel run "${target}"
+done

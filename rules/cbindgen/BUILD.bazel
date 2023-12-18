@@ -1,0 +1,18 @@
+# Copyright 2023 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("//:utils.bzl", "require_no_config")
+
+rust_binary(
+    name = "cbindgen",
+    srcs = glob(
+        include = ["src/**/*.rs"],
+    ),
+    crate_name = "cras_cbindgen",
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
+    visibility = ["//:__subpackages__"],
+    deps = all_crate_deps(normal = True),
+)

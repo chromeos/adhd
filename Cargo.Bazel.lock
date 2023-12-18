@@ -1,5 +1,5 @@
 {
-  "checksum": "94c0d1c37407d5c23f302224dd45eac5a99f31db09b1588919b42190e50cc280",
+  "checksum": "e5e909db184b953ea074b58a72cb88fbd368fa31543f02e3e4ea872a675267af",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -1077,6 +1077,34 @@
           ],
           "selects": {}
         }
+      },
+      "license": null
+    },
+    "cras_cbindgen 0.1.0": {
+      "name": "cras_cbindgen",
+      "version": "0.1.0",
+      "repository": null,
+      "targets": [],
+      "library_target_name": null,
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cbindgen 0.24.3",
+              "target": "cbindgen"
+            },
+            {
+              "id": "clap 3.2.23",
+              "target": "clap"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
       },
       "license": null
     },
@@ -8158,6 +8186,7 @@
     "audio_processor 0.1.0": "audio_processor",
     "binding_generator 0.1.0": "cras/src/server/rust/binding_generator",
     "cras 0.1.1": "cras/src/server/rust",
+    "cras_cbindgen 0.1.0": "rules/cbindgen",
     "cras_common 0.1.0": "cras/common",
     "cras_dlc 0.1.0": "cras/src/server/rust/cras_dlc",
     "cras_features_backend 0.1.0": "cras/server/platform/features",

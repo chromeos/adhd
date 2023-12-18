@@ -7,6 +7,7 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 load("//:utils.bzl", "require_no_config")
+load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
 
 cc_library(
     name = "rust",
@@ -95,4 +96,35 @@ cc_test(
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],
+)
+
+cras_cbindgen(
+    name = "cras_feature_tier_h",
+    srcs = ["src/feature_tier.rs"],
+    out = "include/cras_feature_tier.h",
+    copyright_year = 2022,
+)
+
+cras_cbindgen(
+    name = "cras_processor_h",
+    srcs = ["src/cras_processor.rs"],
+    out = "include/cras_processor.h",
+    extra_args = ["--with-include=audio_processor/c/plugin_processor.h"],
+)
+
+cras_cbindgen(
+    name = "rate_estimator_h",
+    srcs = [
+        "src/rate_estimator.rs",
+        "src/rate_estimator_bindings.rs",
+    ],
+    out = "include/rate_estimator.h",
+    copyright_year = 2019,
+    extra_args = ["--with-sys-include=time.h"],
+)
+
+cras_cbindgen(
+    name = "string_h",
+    srcs = ["src/string.rs"],
+    out = "include/string.h",
 )

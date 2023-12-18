@@ -202,6 +202,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cras_cbindgen"
+version = "0.1.0"
+dependencies = [
+ "cbindgen",
+ "clap",
+]
+
+[[package]]
 name = "cras_common"
 version = "0.1.0"
 dependencies = [
