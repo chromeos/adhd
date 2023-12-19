@@ -3,6 +3,10 @@
  * found in the LICENSE file.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "cras/src/server/cras_alsa_ucm.h"
 
 #include <alsa/asoundlib.h>
@@ -149,11 +153,14 @@ static int get_var(struct cras_use_case_mgr* mgr,
                    const char* dev,
                    const char* verb,
                    const char** value) {
-  int rc;
-  char id[strlen(var) + strlen(dev) + strlen(verb) + 4];
+  char* id;
+  int rc = asprintf(&id, "=%s/%s/%s", var, dev, verb);
+  if (rc < 0) {
+    return -ENOMEM;
+  }
 
-  snprintf(id, sizeof(id), "=%s/%s/%s", var, dev, verb);
   rc = snd_use_case_get(mgr->mgr, id, value);
+  free(id);
 
   return rc;
 }
