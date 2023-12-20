@@ -18,6 +18,8 @@
 #include "cras/common/check.h"
 #include "cras/src/common/cras_string.h"
 
+#define NAME_SIZE 256
+
 int gpio_switch_open(const char* pathname) {
   return open(pathname, O_RDONLY);
 }
@@ -39,13 +41,13 @@ int gpio_switch_eviocgsw(int fd, void* bits, size_t n_bytes) {
 }
 
 char* sys_input_get_device_name(const char* path) {
-  char name[256];
+  char name[NAME_SIZE];
   int fd = open(path, O_RDONLY);
 
   if (fd >= 0) {
     gpio_switch_eviocgname(fd, name, sizeof(name));
     close(fd);
-    return strdup(name);
+    return strndup(name, NAME_SIZE);
   } else {
     syslog(LOG_WARNING, "Could not open '%s': %s", path, cras_strerror(errno));
     return NULL;
