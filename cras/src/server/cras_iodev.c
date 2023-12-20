@@ -1131,6 +1131,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
       return rc;
     }
   }
+  // Always reset rate_est to ensure rate estimation correctness.
+  rate_estimator_reset_rate(iodev->rate_est, iodev->format->frame_rate);
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &beg);
   rc = iodev->configure_dev(iodev);
