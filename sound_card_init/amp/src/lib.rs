@@ -16,6 +16,7 @@ use alc1011::ALC1011;
 use cs35l41::CS35L41;
 use dsm::RDCRange;
 use dsm::DSM;
+use log::info;
 use max98373d::Max98373;
 use max98390d::Max98390;
 use serde::Serialize;
@@ -86,6 +87,8 @@ pub struct DebugInfo {
     pub applied_rdc: Vec<f32>,
     /// The current speaker rdc estimated by the amp (ohm).
     pub current_rdc: Option<Vec<f32>>,
+    /// The current speaker rdc estimated by the amp (ohm).
+    pub is_safe_mode_enabled: bool,
 }
 
 /// It defines the required functions of amplifier objects.
@@ -125,6 +128,7 @@ pub trait Amp {
                 .collect::<Result<Vec<Option<f32>>>>()?
                 .into_iter()
                 .collect::<Option<Vec<f32>>>(),
+            is_safe_mode_enabled: self.get_safe_mode()?,
         })
     }
     /// Get an example vpd value by channel index.
@@ -138,5 +142,16 @@ pub trait Amp {
                 .map(|ch| self.get_fake_temp(ch))
                 .collect(),
         })
+    }
+
+    /// Enable or disable the amp safe mode. The amp should act like a regular amp in safe mode
+    /// that it should not boost or attenuate the volume.
+    fn set_safe_mode(&mut self, enable: bool) -> Result<()> {
+        info!("set_safe_mode: {} is not supported", enable);
+        Ok(())
+    }
+    /// Get the status of amp safe mode enablement.
+    fn get_safe_mode(&mut self) -> Result<bool> {
+        Ok(false)
     }
 }

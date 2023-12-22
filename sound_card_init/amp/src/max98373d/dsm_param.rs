@@ -13,12 +13,12 @@ use crate::Result;
 /// Amp volume mode enumeration used by set_volume().
 #[derive(Copy, Clone, PartialEq)]
 pub enum VolumeMode {
-    /// Low mode protects the speaker by limiting its output volume if the
+    /// Safe mode protects the speaker by limiting its output volume if the
     /// calibration has not been completed successfully.
-    Low = 0x1009B9CF,
-    /// High mode removes the speaker output volume limitation after
+    Safe = 0x1009B9CF,
+    /// Normal mode removes the speaker output volume limitation after
     /// having successfully completed the calibration.
-    High = 0x20000000,
+    Normal = 0x20000000,
 }
 
 #[allow(clippy::upper_case_acronyms)]
@@ -100,6 +100,10 @@ impl DSMParam {
         for channel in 0..self.num_channels {
             self.set(channel, DsmAPI::MakeupGain, mode as i32);
         }
+    }
+
+    pub fn get_volume(&self) -> Vec<i32> {
+        self.get(DsmAPI::MakeupGain)
     }
 
     /// Reads the calibrated rdc from DSMParam.

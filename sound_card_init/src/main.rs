@@ -38,6 +38,7 @@ enum Command {
     Debug(DebugArgs),
     FakeVPD(FakeVPDArgs),
     SetCalibrationParam(SetCalibrationParamArgs),
+    SetSafeMode(SetSafeModeArgs),
     ReadAppliedRdc(ReadAppliedRdcArgs),
     ReadCurrentRdc(ReadCurrentRdcArgs),
 }
@@ -61,6 +62,23 @@ struct SetCalibrationParamArgs {
     pub rdc: f32,
     #[argh(option, description = "temperature in celsius unit")]
     pub temp: f32,
+}
+
+/// set the applied rdc of the input channel
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "set_safe_mode")]
+struct SetSafeModeArgs {
+    /// the sound card id
+    #[argh(option)]
+    pub id: String,
+    /// the speaker amp on the device. It should be $(cros_config /audio/main speaker-amp)
+    #[argh(option)]
+    pub amp: String,
+    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf)
+    #[argh(option)]
+    pub conf: String,
+    #[argh(option, description = "enable")]
+    pub enable: bool,
 }
 
 /// read the applied rdc of the input channel
@@ -121,7 +139,7 @@ struct DebugArgs {
     /// the sound card id.
     #[argh(option)]
     pub id: String,
-    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf).
+    /// the speaker amp on the device. It should be $(cros_config /audio/main speaker-amp).
     #[argh(option)]
     pub amp: String,
     /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf).
@@ -139,10 +157,10 @@ struct FakeVPDArgs {
     /// the sound card id.
     #[argh(option)]
     pub id: String,
-    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf).
+    /// the config file name. It should be $(cros_config /audio/main speaker-amp).
     #[argh(option)]
     pub amp: String,
-    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf).
+    /// the speaker amp on the device. It should be $(cros_config /audio/main sound-card-init-conf).
     #[argh(option)]
     pub conf: String,
     /// show the vpd in json.
@@ -198,6 +216,17 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                 error!("sound_card_init: set_temp failed: {}", e);
             }
         }
+        Command::SetSafeMode(param) => {
+            let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            info!(
+                "cmd: set_safe_mode sound_card_id: {}, conf:{}, enable: {}",
+                param.id, param.conf, param.enable,
+            );
+
+            if let Err(e) = amp.set_safe_mode(param.enable) {
+                error!("sound_card_init: set_safe_mode failed: {}", e);
+            }
+        }
         Command::ReadCurrentRdc(param) => {
             let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
             info!(
@@ -216,16 +245,26 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                 "cmd: boot_time_calibration sound_card_id: {}, conf:{}",
                 param.id, param.conf
             );
-            if let Err(e) = amp.boot_time_calibration() {
-                error!(
-                    "sound_card_init: boot_time_calibration failed: {} sound_card_id: {}",
-                    e, param.id
-                );
-                return Err(Box::new(e));
-            }
-
-            if let Err(e) = run_time::now_to_file(&param.id) {
-                error!("failed to create sound_card_init run time file: {}", e);
+            match amp.boot_time_calibration() {
+                Err(e) => {
+                    error!(
+                        "sound_card_init: boot_time_calibration failed: {} sound_card_id: {}",
+                        e, param.id
+                    );
+                    if let Err(e) = amp.set_safe_mode(true) {
+                        error!("failed to enable safe_mode: {}", e);
+                    }
+                    return Err(Box::new(e));
+                }
+                Ok(_) => {
+                    if let Err(e) = amp.set_safe_mode(false) {
+                        error!("failed to disable safe_mode: {}", e);
+                        return Err(Box::new(e));
+                    }
+                    if let Err(e) = run_time::now_to_file(&param.id) {
+                        error!("failed to create sound_card_init run time file: {}", e);
+                    }
+                }
             }
         }
         Command::Debug(param) => {

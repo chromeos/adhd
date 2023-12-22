@@ -33,14 +33,13 @@ use crate::Amp;
 use crate::Result;
 
 /// Amp volume mode emulation used by set_volume().
-#[derive(PartialEq, Clone, Copy)]
 enum VolumeMode {
-    /// Low mode protects the speaker by limiting its output volume if the
+    /// Safe mode protects the speaker by limiting its output volume if the
     /// calibration has not been completed successfully.
-    Low = 138,
-    /// High mode removes the speaker output volume limitation after
+    Safe,
+    /// Normal mode removes the speaker output volume limitation after
     /// having successfully completed the calibration.
-    High = 148,
+    Normal,
 }
 
 /// It implements the Max98390 functions of boot time calibration.
@@ -139,9 +138,6 @@ impl Amp for Max98390 {
         // it would be overwritten by the DSM blob update.
         dsm.wait_for_speakers_ready()?;
 
-        let volume_state = self.get_volume_state()?;
-
-        self.set_volume(VolumeMode::Low)?;
         let calib = if !self.setting.boot_time_calibration_enabled {
             info!("skip boot time calibration and use vpd values");
             dsm.get_all_vpd_calibration_value()?
@@ -153,8 +149,12 @@ impl Amp for Max98390 {
                         .iter()
                         .enumerate()
                         .map(|(ch, calib_data)| {
-                            dsm.decide_calibration_value_workflow(ch, *calib_data)
-                                .map_err(crate::Error::DSMError)
+                            dsm.decide_calibration_value_workflow(
+                                ch,
+                                *calib_data,
+                                self.setting.rdc_ranges[ch],
+                            )
+                            .map_err(crate::Error::DSMError)
                         })
                         .collect::<Result<Vec<_>>>()?,
                     Err(e) => {
@@ -166,8 +166,6 @@ impl Amp for Max98390 {
         };
         info!("applied {:?}", calib);
         self.apply_calibration_value(calib)?;
-        info!("applied {:?}", volume_state);
-        self.set_volume_from_state(volume_state)?;
         Ok(())
     }
 
@@ -181,6 +179,29 @@ impl Amp for Max98390 {
                 .control_by_name::<IntControl>(&self.setting.controls[ch].rdc_ctrl)?
                 .get()?,
         ))
+    }
+
+    fn set_safe_mode(&mut self, enable: bool) -> Result<()> {
+        info!("set_safe_mode: {}", enable);
+        match enable {
+            true => self.set_volume(VolumeMode::Safe),
+            false => self.set_volume(VolumeMode::Normal),
+        }
+    }
+
+    fn get_safe_mode(&mut self) -> Result<bool> {
+        for control in &self.setting.controls {
+            let volume = self
+                .card
+                .control_by_name::<IntControl>(&control.volume_ctrl)?
+                .get()?;
+
+            if volume != control.safe_mode_volume as i32 {
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
     }
 
     fn get_current_rdc(&mut self, ch: usize) -> Result<Option<f32>> {
@@ -227,7 +248,7 @@ impl Amp for Max98390 {
         Max98390CalibData::ohm_to_rdc(range)
     }
 
-    fn get_fake_temp(&mut self, ch: usize) -> i32 {
+    fn get_fake_temp(&mut self, _ch: usize) -> i32 {
         Max98390CalibData::celsius_to_dsm_unit(DSM::DEFAULT_FAKE_TEMP)
     }
 }
@@ -260,46 +281,16 @@ impl Max98390 {
         })
     }
 
-    /// Get the current volume for each card control listed in Amp Calib Settings.
-    /// # Reuslts
-    ///
-    /// * `Vec(String, i32)` - An array that contains the name of the control and its associated
-    ///                        volume.
-    fn get_volume_state(&mut self) -> Result<Vec<(String, i32)>> {
-        let mut volume_state: Vec<(String, i32)> = vec![];
-
-        for control in &self.setting.controls {
-            let volume = self
-                .card
-                .control_by_name::<IntControl>(&control.volume_ctrl)?
-                .get()?;
-
-            volume_state.push((control.volume_ctrl.clone(), volume));
-        }
-        Ok(volume_state)
-    }
-
-    /// Set the volume of the card control listed in `state`.
-    /// # Arguments
-    ///
-    /// * `state` - a vector with tuples of desired volume associated with the name of the control,
-    ///             format: [(control_anme, volume)].
-    ///
-    fn set_volume_from_state(&mut self, state: Vec<(String, i32)>) -> Result<()> {
-        for (control_name, volume) in state {
-            self.card
-                .control_by_name::<IntControl>(&control_name)?
-                .set(volume)?;
-        }
-        Ok(())
-    }
-
     /// Sets the card volume control to given VolumeMode.
     fn set_volume(&mut self, mode: VolumeMode) -> Result<()> {
         for control in &self.setting.controls {
+            let val = match mode {
+                VolumeMode::Normal => control.normal_mode_volume,
+                VolumeMode::Safe => control.safe_mode_volume,
+            };
             self.card
                 .control_by_name::<IntControl>(&control.volume_ctrl)?
-                .set(mode as i32)?;
+                .set(val as i32)?;
         }
         Ok(())
     }

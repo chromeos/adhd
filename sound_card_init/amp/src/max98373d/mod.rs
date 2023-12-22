@@ -112,8 +112,6 @@ impl Amp for Max98373 {
         // it would be overwritten by the DSM blob update.
         dsm.wait_for_speakers_ready()?;
 
-        self.set_volume(VolumeMode::Low)?;
-
         let calib = if !self.setting.boot_time_calibration_enabled {
             info!("skip boot time calibration and use vpd values");
             dsm.get_all_vpd_calibration_value()?
@@ -125,8 +123,12 @@ impl Amp for Max98373 {
                         .iter()
                         .enumerate()
                         .map(|(ch, calib_data)| {
-                            dsm.decide_calibration_value_workflow(ch, *calib_data)
-                                .map_err(crate::Error::DSMError)
+                            dsm.decide_calibration_value_workflow(
+                                ch,
+                                *calib_data,
+                                self.setting.rdc_ranges[ch],
+                            )
+                            .map_err(crate::Error::DSMError)
                         })
                         .collect::<Result<Vec<_>>>()?,
                     Err(e) => {
@@ -138,7 +140,6 @@ impl Amp for Max98373 {
         };
         self.apply_calibration_value(&calib)?;
         info!("applied {:?}", calib);
-        self.set_volume(VolumeMode::High)?;
         Ok(())
     }
 
@@ -203,6 +204,19 @@ impl Amp for Max98373 {
     fn get_fake_r0(&mut self, ch: usize) -> i32 {
         let range = (self.setting.rdc_ranges[ch].lower + self.setting.rdc_ranges[ch].upper) / 2.0;
         Max98373CalibData::ohm_to_rdc(range)
+    }
+
+    fn set_safe_mode(&mut self, enable: bool) -> Result<()> {
+        info!("set_safe_mode: {}", enable);
+        match enable {
+            true => self.set_volume(VolumeMode::Safe),
+            false => self.set_volume(VolumeMode::Normal),
+        }
+    }
+
+    fn get_safe_mode(&mut self) -> Result<bool> {
+        let volume = self.get_volume()?;
+        Ok(volume.iter().all(|&v| v == VolumeMode::Safe as i32))
     }
 }
 
@@ -294,6 +308,17 @@ impl Max98373 {
             .save(dsm_param.into())
             .map_err(Error::DSMParamUpdateFailed)?;
         Ok(())
+    }
+
+    /// Get the Volume
+    fn get_volume(&mut self) -> Result<Vec<i32>> {
+        let dsm_param = DSMParam::new(
+            &mut self.card,
+            self.setting.num_channels(),
+            &self.setting.dsm_param_read_ctrl,
+        )?;
+
+        Ok(dsm_param.get_volume())
     }
 
     /// Applies the calibration value to the amp.

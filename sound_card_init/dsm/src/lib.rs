@@ -139,7 +139,6 @@ pub struct DSM {
 impl DSM {
     pub const DEFAULT_FAKE_TEMP: f32 = 28.0;
     const SPEAKER_COOL_DOWN_TIME: Duration = Duration::from_secs(180);
-    const CALI_ERROR_UPPER_LIMIT: f32 = 0.3;
     const CALI_ERROR_LOWER_LIMIT: f32 = 0.03;
 
     /// Creates a `DSM`
@@ -223,17 +222,17 @@ impl DSM {
     /// logic:
     /// * Returns the previous value if the ambient temperature is not within a valid range.
     ///   If previous value does not exist, use VPD value instead.
-    /// * Returns Error::LargeCalibrationDiff if rdc difference is larger than
-    ///   `CALI_ERROR_UPPER_LIMIT`.
+    /// * Returns Error::LargeCalibrationDiff if rdc is not within the `rdc_range`.
     /// * Returns the previous value if the rdc difference is smaller than `CALI_ERROR_LOWER_LIMIT`.
-    /// * Returns the boot time calibration value and updates the datastore value if the rdc.
-    ///   difference is between `CALI_ERROR_UPPER_LIMIT` and `CALI_ERROR_LOWER_LIMIT`.
+    /// * Returns the boot time calibration value and updates the datastore value if the rdc
+    ///   difference is within the `rdc_range`and larger than the `CALI_ERROR_LOWER_LIMIT`.
     ///
     /// # Arguments
     ///
     /// * `card` - `&Card`.
     /// * `channel` - `channel number`.
     /// * `calib_data` - `boot time calibrated data`.
+    /// * `rdc_range` - rdc_acceptant_range in the speaker data sheet.
     ///
     /// # Results
     ///
@@ -242,12 +241,13 @@ impl DSM {
     /// # Errors
     ///
     /// * VPD does not exist.
-    /// * rdc difference is larger than `CALI_ERROR_UPPER_LIMIT`.
+    /// * If rdc is not within the `rdc_range`.
     /// * Failed to update Datastore.
     pub fn decide_calibration_value_workflow<T: CalibData + 'static>(
         &self,
         channel: usize,
         calib_data: T,
+        rdc_range: RDCRange,
     ) -> Result<T> {
         // Look for datastore first
         let (datastore_exist, previous_calib) = match self.get_previous_calibration_value(channel) {
@@ -257,6 +257,10 @@ impl DSM {
                 (false, self.get_vpd_calibration_value(channel)?)
             }
         };
+        info!(
+            "boot_time_calib: {:?}, previous_calib: {:?}",
+            calib_data, previous_calib
+        );
 
         if calib_data.temp() < self.temp_lower_limit || calib_data.temp() > self.temp_upper_limit {
             info!(
@@ -269,19 +273,23 @@ impl DSM {
             }
             return Ok(previous_calib);
         }
-        info!(
-            "boot_time_calib: {:?}, previous_calib: {:?}",
-            calib_data, previous_calib
-        );
+
+        if calib_data.rdc_ohm() <= rdc_range.lower || calib_data.rdc_ohm() >= rdc_range.upper {
+            info!(
+                "invalid rdc: {}, rdc_acceptant_range: [{},{}], use previous calibration value",
+                calib_data.rdc_ohm(),
+                rdc_range.lower,
+                rdc_range.upper,
+            );
+            return Err(Error::LargeCalibrationDiff(Box::new(calib_data)));
+        }
 
         let diff = {
             let calib_rdc_ohm = calib_data.rdc_ohm();
             let previous_rdc_ohm = previous_calib.rdc_ohm();
             (calib_rdc_ohm - previous_rdc_ohm) / previous_rdc_ohm
         };
-        if diff > Self::CALI_ERROR_UPPER_LIMIT {
-            Err(Error::LargeCalibrationDiff(Box::new(calib_data)))
-        } else if diff < Self::CALI_ERROR_LOWER_LIMIT {
+        if diff < Self::CALI_ERROR_LOWER_LIMIT {
             if !datastore_exist {
                 Datastore::UseVPD.save(&self.snd_card, channel)?;
             }

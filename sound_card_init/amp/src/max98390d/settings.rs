@@ -27,8 +27,13 @@ pub struct AmpCalibCtrl {
     pub temp_ctrl: String,
     // Mixer control to trigger calibration.
     pub calib_ctrl: String,
-    // Mixer control to adjust volume.
+    // Mixer control to adjust volume for the safe mode.
+    // This is used to limit the gain to prevent speaker damage due to faulty amp initialization.
     pub volume_ctrl: String,
+    // Volume in the safe mode.
+    pub safe_mode_volume: u32,
+    // Volume in the normal mode.
+    pub normal_mode_volume: u32,
 }
 
 /// `AmpCalibSettings` includes the settings needed for amplifier calibration.
