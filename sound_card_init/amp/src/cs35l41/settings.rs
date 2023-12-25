@@ -32,6 +32,8 @@ pub struct AmpCalibCtrl {
     pub cal_ambient: String,
     /// The mixer control name of `DSP1 Protection cd CAL_R`. Ex: "Left DSP1 Protection cd CAL_R".
     pub cal_r: String,
+    /// The mixer control name of `DSP1 Protection cd CAL_R_SELECTED`. Ex: "Left DSP1 Protection cd CAL_R".
+    pub cal_r_selected: String,
     /// The mixer control name of `DSP1 Protection cd CAL_STATUS`.
     /// Ex: "Left DSP1 Protection cd CAL_STATUS".
     pub cal_status: String,

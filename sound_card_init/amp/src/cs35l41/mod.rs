@@ -178,15 +178,23 @@ impl Amp for CS35L41 {
     }
 
     fn get_applied_rdc(&mut self, ch: usize) -> Result<f32> {
+        let mut zero_player: ZeroPlayer = Default::default();
+        zero_player.start(Self::CALIB_APPLY_TIME)?;
+
         if ch >= self.setting.controls.len() {
             return Err(dsm::Error::InvalidChannelNumer(ch).into());
         }
 
+        if let Err(e) = self.verify_calibration_applied() {
+            info!("{:?}", e);
+        }
+
         let rdc = self
             .card
-            .control_by_name::<FourBytesControl>(&self.setting.controls[ch].cal_r)?
+            .control_by_name::<FourBytesControl>(&self.setting.controls[ch].cal_r_selected)?
             .get()?;
 
+        zero_player.stop()?;
         Ok(CS35L41CalibData::rdc_to_ohm(rdc))
     }
 
