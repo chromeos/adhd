@@ -53,10 +53,8 @@ class BM_Alsa : public benchmark::Fixture {
     return NULL;
   }
 
-  /* Returns the card name and card index in tuple, ex:
-   * ("sof-cml_max98390_da7219" , "0") */
-  std::tuple<std::string, std::string> get_card_info(
-      BM_Alsa::PCM_DEVICE device) {
+  /* Returns the pcm device, ex: hw:0,0 */
+  std::string get_pcm_name(BM_Alsa::PCM_DEVICE device) {
     struct cras_client* client;
     struct cras_iodev_info* target_dev = NULL;
     struct cras_ionode_info* target_node = NULL;
@@ -67,6 +65,8 @@ class BM_Alsa : public benchmark::Fixture {
     std::string card_name = "";
     std::string card_idx = "";
     std::string target_dev_name = "";
+    std::string pcm_name = "";
+    size_t last_colon_pos = std::string::npos;
     int i = 0;
 
     int rc;
@@ -74,7 +74,7 @@ class BM_Alsa : public benchmark::Fixture {
     rc = cras_client_create_with_type(&client, CRAS_CONTROL);
     if (rc) {
       fprintf(stderr, "Couldn't create to cras_client, rc = %d.\n", rc);
-      return std::make_tuple("", "");
+      return "";
     }
     rc = cras_client_run_thread(client);
     if (rc) {
@@ -113,43 +113,17 @@ class BM_Alsa : public benchmark::Fixture {
 
     // target_dev->name example format: sc7180-rt5682-max98357a-1mic: :0,1.
     target_dev_name = std::string(target_dev->name);
-    card_name = target_dev_name.substr(0, target_dev_name.find(":"));
-    card_idx = target_dev_name.substr(target_dev_name.find(":") + 3);
-    card_idx.erase(card_idx.find(","));
+
+    last_colon_pos = target_dev_name.rfind(':');
+    if (last_colon_pos != std::string::npos) {
+      // Extract the substring after the last colon
+      pcm_name = "hw:" + target_dev_name.substr(last_colon_pos + 1);
+    } else {
+      fprintf(stderr, "Couldn't parse target_dev_name.\n");
+    }
 
   end:
     cras_client_destroy(client);
-    return std::make_tuple(card_name, card_idx);
-  }
-
-  // Returns the pcm device name, ex: hw:0,0
-  std::string get_pcm_name(BM_Alsa::PCM_DEVICE device) {
-    struct cras_use_case_mgr* ucm_mgr;
-    std::string ucm_suffix;
-    ucm_suffix =
-        read_file_to_string("/run/chromeos-config/v1/audio/main/ucm-suffix");
-
-    auto card_info = get_card_info(device);
-    std::string card_name = std::get<0>(card_info);
-    std::string card_idx = std::get<1>(card_info);
-    if (card_name == "" || card_idx == "") {
-      fprintf(stderr, "Couldn't get card info.\n");
-      return "";
-    }
-    std::string ucm_config = card_name;
-    if (ucm_suffix != "") {
-      ucm_config = ucm_config + "." + ucm_suffix;
-    }
-    ucm_mgr = ucm_create(ucm_config.c_str());
-    if (ucm_mgr == nullptr) {
-      fprintf(stderr, "Cannot ucm_create(\"%s\")\n", ucm_config.c_str());
-      return "";
-    }
-    int dev_idx = ucm_get_alsa_dev_idx_for_dev(ucm_mgr, ToString(device),
-                                               CRAS_STREAM_OUTPUT);
-
-    std::string pcm_name = "hw:" + card_idx + "," + std::to_string(dev_idx);
-
     return pcm_name;
   }
 
@@ -158,7 +132,8 @@ class BM_Alsa : public benchmark::Fixture {
         static_cast<BM_Alsa::PCM_DEVICE>(state.range(0));
     pcm_name = get_pcm_name(device);
     if (pcm_name == "") {
-      state.SkipWithError("Couldn't get pcm_name.");
+      handle = nullptr;
+      return state.SkipWithError("Couldn't get pcm_name.");
     }
 
     int rc =
@@ -224,6 +199,9 @@ class BM_Alsa : public benchmark::Fixture {
  * snd_pcm_mmap_* API.
  */
 BENCHMARK_DEFINE_F(BM_Alsa, MmapBufferAccess)(benchmark::State& state) {
+  if (!handle) {
+    return state.SkipWithError("device handle is null");
+  }
   memcpy(buffer, int_samples.data(), n_bytes);
   double max_elapsed_seconds = 0.0;
   for (auto _ : state) {
