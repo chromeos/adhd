@@ -19,8 +19,7 @@ use std::sync::atomic::Ordering;
 use audio_streams::SampleFormat;
 use audio_streams::StreamSource;
 use cras_sys::gen::CRAS_SPECIAL_DEVICE;
-use either::Either::Left;
-use either::Either::Right;
+use either::Either;
 use hound::WavReader;
 use hound::WavSpec;
 use hound::WavWriter;
@@ -173,19 +172,14 @@ impl Read for WavSource {
         let read_len = buf.len() - buf.len() % frame_size;
         let num_samples = read_len / self.format.sample_bytes();
 
-        let mut either = match self.wav_reader.spec().sample_format {
-            hound::SampleFormat::Int => Left(self.wav_reader.samples::<i32>()),
-            hound::SampleFormat::Float => Right(
+        let samples = match self.wav_reader.spec().sample_format {
+            hound::SampleFormat::Int => Either::Left(self.wav_reader.samples::<i32>()),
+            hound::SampleFormat::Float => Either::Right(
                 self.wav_reader
                     .samples::<f32>()
                     .map(|s| s.map(dasp_sample::conv::f32::to_i32)),
             ),
         };
-        let samples: &mut dyn Iterator<Item = std::result::Result<i32, hound::Error>> =
-            match either.as_mut() {
-                Left(s) => s,
-                Right(s) => s,
-            };
 
         let mut read = 0;
         for s in samples.take(num_samples) {
