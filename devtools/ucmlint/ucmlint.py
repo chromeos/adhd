@@ -253,7 +253,7 @@ class HiFiParser:
                 modifiers.append(
                     Section(
                         lineinfo[1][len(mod_start) : -len(end)],
-                        *self.parse_blocks(is_modifier),
+                        *self.parse_blocks(),
                         self.path,
                         lineinfo,
                     )
@@ -262,7 +262,7 @@ class HiFiParser:
                 devices.append(
                     Section(
                         lineinfo[1][len(dev_start) : -len(end)],
-                        *self.parse_blocks(is_modifier),
+                        *self.parse_blocks(),
                         self.path,
                         lineinfo,
                     )
@@ -272,14 +272,9 @@ class HiFiParser:
 
         return HiFiConf(verb, devices, modifiers, self.path)
 
-    def parse_blocks(self, is_modifier=False) -> tuple[Block | None, Block, Block]:
-        # "Value" block won't be present in "SectionModifier"
-        value_block = None
-        if not is_modifier:
-            value_block = self.parse_block('Value', '{', '}')
-
+    def parse_blocks(self) -> tuple[Block, Block, Block]:
         return (
-            value_block,
+            self.parse_block('Value', '{', '}'),
             self.parse_block('EnableSequence', '[', ']'),
             self.parse_block('DisableSequence', '[', ']'),
         )
@@ -288,7 +283,10 @@ class HiFiParser:
         want = block_name + ' ' + lp
         dedented = self.getline(1)
         if dedented != want:
-            self.error(f'expecting `{want}` but got `{dedented}`')
+            self.warning(f'expecting `{want}` but got `{dedented}`')
+            # return an empty block when the parsing one is not present
+            return Block([], self.path, self.lines[0])
+
         lineinfo = self.lines.popleft()  # consume lp
 
         kvs = []
