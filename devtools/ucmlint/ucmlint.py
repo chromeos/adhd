@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 """
+
 Strict linter for device specific UCM files
 """
 
@@ -116,6 +117,7 @@ class HiFiConf(TreeNode):
 
     verb: Section
     devices: list[Section]
+    modifiers: list[Section]
     path: str
 
 
@@ -227,31 +229,57 @@ class HiFiParser:
         self.expect(0, '}')
 
         devices = []
+        modifiers = []
         while self.lines:
-            start = 'SectionDevice."'
+            dev_start = 'SectionDevice."'
+            mod_start = 'SectionModifier."'
             end = '".0 {'
-            if not self.line.startswith(start):
-                self.error(f'expecting starting with `{start}`, got `{self.line}`')
+
+            is_modifier = False
+            if self.line.startswith(dev_start):
+                pass
+            elif self.line.startswith(mod_start):
+                is_modifier = True
+            else:
+                self.error(
+                    f'expecting starting with `{dev_start}` or `{mod_start}`, got `{self.line}`'
+                )
+
             if not self.line.endswith(end):
                 self.error(f'expecting ending with `{end}`, got `{self.line}`')
             lineinfo = self.lines.popleft()
 
-            devices.append(
-                Section(
-                    lineinfo[1][len(start) : -len(end)],
-                    *self.parse_blocks(),
-                    self.path,
-                    lineinfo,
+            if is_modifier:
+                modifiers.append(
+                    Section(
+                        lineinfo[1][len(mod_start) : -len(end)],
+                        *self.parse_blocks(is_modifier),
+                        self.path,
+                        lineinfo,
+                    )
                 )
-            )
+            else:
+                devices.append(
+                    Section(
+                        lineinfo[1][len(dev_start) : -len(end)],
+                        *self.parse_blocks(is_modifier),
+                        self.path,
+                        lineinfo,
+                    )
+                )
 
             self.expect(0, '}')
 
-        return HiFiConf(verb, devices, self.path)
+        return HiFiConf(verb, devices, modifiers, self.path)
 
-    def parse_blocks(self) -> tuple[Block, Block, Block]:
+    def parse_blocks(self, is_modifier=False) -> tuple[Block | None, Block, Block]:
+        # "Value" block won't be present in "SectionModifier"
+        value_block = None
+        if not is_modifier:
+            value_block = self.parse_block('Value', '{', '}')
+
         return (
-            self.parse_block('Value', '{', '}'),
+            value_block,
             self.parse_block('EnableSequence', '[', ']'),
             self.parse_block('DisableSequence', '[', ']'),
         )
@@ -291,6 +319,9 @@ def lint_hifi_conf(path: pathlib.Path, relpath: str, card_name: str):
 
     for device in hifi.devices:
         lint_device(card_name, device)
+
+    for modifier in hifi.modifiers:
+        lint_modifier(card_name, modifier)
 
 
 class DeviceType(enum.Enum):
@@ -389,6 +420,30 @@ def lint_device(card_name: str, dev: Section):
 
     lint_sequences(card_name, dev.enable_sequence)
     lint_sequences(card_name, dev.disable_sequence)
+
+
+class ModifierType(enum.Enum):
+    DmicDSPNoiseCancellation = enum.auto()
+    DmicDSPEchoCancellation = enum.auto()
+    HotwordModel = enum.auto()
+
+    @classmethod
+    def fromstring(cls, name: str) -> Optional[ModifierType]:
+        try:
+            return {
+                'Internal Mic Noise Cancellation': ModifierType.DmicDSPNoiseCancellation,
+                'RTC Proc Echo Cancellation': ModifierType.DmicDSPEchoCancellation,
+            }[name]
+        except KeyError:
+            pass
+        if 'Hotword Model' in name:
+            return ModifierType.HotwordModel
+
+
+def lint_modifier(card_name: str, mod: Section):
+    t = ModifierType.fromstring(mod.name)
+    if t is None:
+        mod.warning(f'invalid modifier name `{mod.name}`')
 
 
 def get_card_id(card_name: str):
