@@ -15,6 +15,7 @@
 
 #include "cras/src/common/blob_wrapper.h"
 #include "cras/src/server/cras_alsa_card.h"
+#include "third_party/strlcpy/strlcpy.h"
 #include "third_party/utlist/utlist.h"
 
 #define MAX_ALSA_CTL_ELEM_NAME_LENGTH 100
@@ -187,7 +188,7 @@ static int ctl_elem_create_for_control_name(const char* name,
     syslog(LOG_DEBUG, "ctl_elem_create: %s found on card %d", name, card_index);
 
     /* Fill the matched keys, i.e. name and matched card index. */
-    strcpy((*ctl_elem_p)->name, name);
+    strlcpy((*ctl_elem_p)->name, name, MAX_ALSA_CTL_ELEM_NAME_LENGTH);
     (*ctl_elem_p)->card_index = card_index;
     return 0;
   }

@@ -175,6 +175,7 @@ cc_library(
     deps = [
         "//cras/src/common:blob_wrapper",
         "//cras/src/common:cras_alsa_card_info",
+        "//third_party/strlcpy",
         "//third_party/utlist",
         "@pkg_config//alsa",
     ],
