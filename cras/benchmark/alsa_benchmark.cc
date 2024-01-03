@@ -21,19 +21,6 @@
 
 namespace {
 
-std::string read_file_to_string(const std::string& path) {
-  std::string str;
-  std::ifstream f(path);
-  while (f.good()) {
-    char buf[4096];
-    f.read(buf, sizeof(buf));
-    if (f.gcount() > 0) {
-      str += std::string_view(buf, f.gcount());
-    }
-  }
-  return str;
-}
-
 class BM_Alsa : public benchmark::Fixture {
  public:
   enum PCM_DEVICE {
