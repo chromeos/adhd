@@ -16,6 +16,8 @@ use std::string::String;
 
 use amp::AmpBuilder;
 use argh::FromArgs;
+use dsm::metrics::log_uma_enum;
+use dsm::metrics::UMASoundCardInitResult;
 use dsm::utils::run_time;
 use libchromeos::syslog;
 use log::error;
@@ -251,6 +253,7 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                         "sound_card_init: boot_time_calibration failed: {} sound_card_id: {}",
                         e, param.id
                     );
+                    log_uma_enum(UMASoundCardInitResult::from(&e));
                     if let Err(e) = amp.set_safe_mode(true) {
                         error!("failed to enable safe_mode: {}", e);
                     }
@@ -259,8 +262,10 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                 Ok(_) => {
                     if let Err(e) = amp.set_safe_mode(false) {
                         error!("failed to disable safe_mode: {}", e);
+                        log_uma_enum(UMASoundCardInitResult::from(&e));
                         return Err(Box::new(e));
                     }
+                    log_uma_enum(UMASoundCardInitResult::OK);
                     if let Err(e) = run_time::now_to_file(&param.id) {
                         error!("failed to create sound_card_init run time file: {}", e);
                     }

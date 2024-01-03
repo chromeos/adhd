@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 #![allow(missing_docs)]
 
+use dsm::metrics::UMASoundCardInitResult;
 use remain::sorted;
 use thiserror::Error as ThisError;
 
@@ -35,4 +36,21 @@ pub enum Error {
     SerdeYamlError(#[from] serde_yaml::Error),
     #[error("unsupported amp: {0}")]
     UnsupportedAmp(String),
+}
+
+impl From<&Error> for UMASoundCardInitResult {
+    fn from(e: &Error) -> UMASoundCardInitResult {
+        match e {
+            Error::AlsaCardError(_) => UMASoundCardInitResult::AlsaCardError,
+            Error::AlsaControlError(_) => UMASoundCardInitResult::AlsaControlError,
+            Error::AlsaControlTLVError(_) => UMASoundCardInitResult::AlsaControlTLVError,
+            Error::Cs35l41Error(_) => UMASoundCardInitResult::Cs35l41Error,
+            Error::DSMError(_) => UMASoundCardInitResult::DSMError,
+            Error::Max98373Error(_) => UMASoundCardInitResult::Max98373Error,
+            Error::Max98390Error(_) => UMASoundCardInitResult::Max98390Error,
+            Error::SerdeJsonError(_) => UMASoundCardInitResult::SerdeJsonError,
+            Error::SerdeYamlError(_) => UMASoundCardInitResult::SerdeYamlError,
+            Error::UnsupportedAmp(_) => UMASoundCardInitResult::UnsupportedAmp,
+        }
+    }
 }

@@ -5,6 +5,7 @@
 
 mod datastore;
 mod error;
+pub mod metrics;
 pub mod utils;
 mod vpd;
 mod zero_player;
@@ -25,6 +26,7 @@ use serde::Serialize;
 use crate::datastore::Datastore;
 pub use crate::error::Error;
 pub use crate::error::Result;
+use crate::metrics::*;
 use crate::utils::run_time;
 use crate::utils::shutdown_time;
 use crate::vpd::VPD;
@@ -271,6 +273,7 @@ impl DSM {
             if !datastore_exist {
                 Datastore::UseVPD.save(&self.snd_card, channel)?;
             }
+            log_uma_enum(UMACalibrationResult::UsePreviousValue);
             return Ok(previous_calib);
         }
 
@@ -281,6 +284,7 @@ impl DSM {
                 rdc_range.lower,
                 rdc_range.upper,
             );
+            log_uma_enum(UMACalibrationResult::LargeCalibrationDiff);
             return Err(Error::LargeCalibrationDiff(Box::new(calib_data)));
         }
 
@@ -293,6 +297,7 @@ impl DSM {
             if !datastore_exist {
                 Datastore::UseVPD.save(&self.snd_card, channel)?;
             }
+            log_uma_enum(UMACalibrationResult::UsePreviousValue);
             Ok(previous_calib)
         } else {
             Datastore::DSM {
@@ -300,6 +305,7 @@ impl DSM {
                 temp: (self.temp_converter.celsius_to_vpd)(calib_data.temp()),
             }
             .save(&self.snd_card, channel)?;
+            log_uma_enum(UMACalibrationResult::NewCalibrationValue);
             Ok(calib_data)
         }
     }
@@ -353,11 +359,15 @@ impl DSM {
         const RETRY_INTERVAL: Duration = Duration::from_millis(500);
         for _ in 0..RETRY {
             match find_speaker() {
-                Ok(_) => return Ok(()),
+                Ok(_) => {
+                    log_uma_enum(UMAWaitForSpeaker::OK);
+                    return Ok(());
+                }
                 Err(e) => error!("retry on finding speaker: {}", e),
             };
             thread::sleep(RETRY_INTERVAL);
         }
+        log_uma_enum(UMAWaitForSpeaker::Error);
         Err(Error::InternalSpeakerNotFound)
     }
 

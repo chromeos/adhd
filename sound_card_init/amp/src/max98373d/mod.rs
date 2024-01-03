@@ -19,6 +19,8 @@ use std::time::Duration;
 
 use cros_alsa::Card;
 use cros_alsa::IntControl;
+use dsm::metrics::log_uma_enum;
+use dsm::metrics::UMACalibrationResult;
 use dsm::CalibData;
 use dsm::RDCRange;
 use dsm::SpeakerStatus;
@@ -133,6 +135,7 @@ impl Amp for Max98373 {
                         .collect::<Result<Vec<_>>>()?,
                     Err(e) => {
                         info!("boot time calibration failed: {}. Use previous values", e);
+                        log_uma_enum(UMACalibrationResult::CaibFailedUsePreviousValue);
                         dsm.get_all_previous_calibration_value()?
                     }
                 },

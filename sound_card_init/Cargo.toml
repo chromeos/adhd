@@ -30,13 +30,14 @@ thiserror = "*"
 
 # To get rust-analyzer and cargo build working out of the chroot,
 # Run inside the chroot: emerge-amd64-generic  -j --onlydeps sound_card_init
+# TODO: fix "/usr/bin/ld: cannot find -lmetrics" link error when cargo build out of the chroot.
 [patch.crates-io]
 data_model = { path = "../../../../out/build/amd64-generic/usr/lib/cros_rust_registry/registry/data_model-0.1.50/" } # ignored by ebuild
-io-uring = { path = "../../../../out/build/amd64-generic/usr/lib/cros_rust_registry/registry/io-uring-0.5.13/" } # ignored by ebuild
 
 # first party deps
 audio_streams = { path = "../../../platform/crosvm/common/audio_streams" } # ignored by ebuild
 libchromeos = { path = "../../../platform2/libchromeos-rs" }  # ignored by ebuild
+metrics_rs = { path = "../../../platform2/metrics/rust-client" }  # ignored by ebuild
 cras-sys = { path = "../cras/client/cras-sys" }  # ignored by ebuild
 cros_alsa = { path = "../cros_alsa" }  # ignored by ebuild
 libcras = { path = "../cras/client/libcras" } # ignored by ebuild
