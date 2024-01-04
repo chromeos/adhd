@@ -23,6 +23,10 @@ int cras_server_metrics_device_volume(struct cras_iodev* iodev) {
   return 0;
 }
 
+int cras_server_metrics_device_sample_format(struct cras_iodev* iodev) {
+  return 0;
+}
+
 int cras_server_metrics_device_sample_rate(struct cras_iodev* iodev) {
   return 0;
 }

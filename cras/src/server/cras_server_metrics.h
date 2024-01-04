@@ -148,6 +148,9 @@ int cras_server_metrics_device_noise_cancellation_status(
     struct cras_iodev* iodev,
     int status);
 
+// Logs the sample format of a device.
+int cras_server_metrics_device_sample_format(struct cras_iodev* iodev);
+
 // Logs the sample rate of a device.
 int cras_server_metrics_device_sample_rate(struct cras_iodev* iodev);
 

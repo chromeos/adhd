@@ -41,6 +41,7 @@ const char kDeviceGain[] = "Cras.DeviceGain";
 const char kDeviceVolume[] = "Cras.DeviceVolume";
 const char kDeviceNoiseCancellationStatus[] =
     "Cras.DeviceNoiseCancellationStatus";
+const char kDeviceSampleFormat[] = "Cras.DeviceSampleFormat";
 const char kDeviceSampleRate[] = "Cras.DeviceSampleRate";
 const char kDeviceDspOffloadStatus[] = "Cras.DeviceDspOffloadStatus";
 const char kFetchDelayMilliSeconds[] = "Cras.FetchDelayMilliSeconds";
@@ -136,6 +137,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   DEVICE_RUNTIME,
   DEVICE_VOLUME,
   DEVICE_NOISE_CANCELLATION_STATUS,
+  DEVICE_SAMPLE_FORMAT,
   DEVICE_SAMPLE_RATE,
   DEVICE_DSP_OFFLOAD_STATUS,
   DLC_MANAGER_STATUS,
@@ -218,6 +220,8 @@ struct cras_server_metrics_device_data {
   struct timespec runtime;
   unsigned value;
   int sample_rate;
+  // SND_PCM_FORMAT_* values look stable from alsa-lib include/pcm.h history.
+  snd_pcm_format_t sample_format;
   enum CRAS_USE_CASE use_case;
   // For DEVICE_OPEN_STATUS:
   //    false - This is the first iodev opened in its iodev group.
@@ -928,6 +932,27 @@ int cras_server_metrics_device_noise_cancellation_status(
   return 0;
 }
 
+int cras_server_metrics_device_sample_format(struct cras_iodev* iodev) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  int err;
+
+  data.device_data.type = get_metrics_device_type(iodev);
+  data.device_data.direction = iodev->direction;
+  data.device_data.sample_format = iodev->format->format;
+  data.device_data.use_case = cras_iodev_get_use_case(iodev);
+
+  init_server_metrics_msg(&msg, DEVICE_SAMPLE_FORMAT, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING, "Failed to send metrics message: DEVICE_SAMPLE_FORMAT");
+    return err;
+  }
+
+  return 0;
+}
+
 int cras_server_metrics_device_sample_rate(struct cras_iodev* iodev) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   union cras_server_metrics_data data;
@@ -1590,6 +1615,14 @@ static void metrics_device_noise_cancellation_status(
   cras_metrics_log_sparse_histogram(metrics_name, data.value);
 }
 
+static void metrics_device_sample_format(
+    struct cras_server_metrics_device_data data) {
+  log_sparse_histogram_each_level(
+      4, data.sample_format, kDeviceSampleFormat,
+      data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
+      metrics_device_type_str(data.type), cras_use_case_str(data.use_case));
+}
+
 static void metrics_device_sample_rate(
     struct cras_server_metrics_device_data data) {
   log_sparse_histogram_each_level(
@@ -1795,6 +1828,9 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case DEVICE_NOISE_CANCELLATION_STATUS:
       metrics_device_noise_cancellation_status(metrics_msg->data.device_data);
+      break;
+    case DEVICE_SAMPLE_FORMAT:
+      metrics_device_sample_format(metrics_msg->data.device_data);
       break;
     case DEVICE_SAMPLE_RATE:
       metrics_device_sample_rate(metrics_msg->data.device_data);
