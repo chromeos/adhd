@@ -1397,6 +1397,7 @@ cc_test(
     name = "iodev_unittest",
     srcs = [
         ":iodev_unittest.cc",
+        ":metrics_stub.cc",
         "//cras/src/common:cras_selinux_helper_stub.c",
         "//cras/src/common:cras_shm.c",
         "//cras/src/common:cras_string.c",

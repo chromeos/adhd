@@ -19,6 +19,20 @@ int cras_server_metrics_device_runtime(struct cras_iodev* iodev) {
   return 0;
 }
 
+int cras_server_metrics_device_volume(struct cras_iodev* iodev) {
+  return 0;
+}
+
+int cras_server_metrics_device_sample_rate(struct cras_iodev* iodev) {
+  return 0;
+}
+
+int cras_server_metrics_device_configure_time(struct cras_iodev* iodev,
+                                              struct timespec* beg,
+                                              struct timespec* end) {
+  return 0;
+}
+
 int cras_server_metrics_highest_device_delay(
     unsigned int hw_level,
     unsigned int largest_cb_level,
