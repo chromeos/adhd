@@ -2126,6 +2126,12 @@ static struct alsa_io_group* create_iodev_group(struct cras_iodev* iodev) {
   return group;
 }
 
+enum CRAS_USE_CASE get_use_case(const struct cras_iodev* iodev) {
+  const struct alsa_io* aio = (const struct alsa_io*)iodev;
+
+  return aio->use_case;
+}
+
 /*
  * Exported Interface.
  */
@@ -2223,6 +2229,7 @@ struct cras_iodev* alsa_iodev_create(
   iodev->get_dev_group = get_dev_group;
   iodev->get_dev_group_id = get_dev_group_id;
   iodev->should_attach_stream = should_attach_stream;
+  iodev->get_use_case = get_use_case;
   iodev->get_htimestamp = cras_alsa_common_get_htimestamp;
 
   iodev->ramp = cras_ramp_create();

@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include <time.h>
 
+#include "cras/src/common/cras_types_internal.h"
 #include "cras/src/server/cras_dsp.h"
 #include "cras/src/server/cras_nc.h"
 #include "cras/src/server/ewma_power.h"
@@ -282,6 +283,8 @@ struct cras_iodev {
   // on the iodev's use case and stream parameters.
   int (*should_attach_stream)(const struct cras_iodev* iodev,
                               const struct cras_rstream* stream);
+  // (Optional) Gets the use case of the iodev.
+  enum CRAS_USE_CASE (*get_use_case)(const struct cras_iodev* iodev);
   // (Optional) Obtain the hardware timestamp for the last update
   // The hardware timestamp should be using the MONOTONIC_RAW clock
   // For playback, the timestamp is the last time the iodev wrote into the
@@ -1181,6 +1184,21 @@ static inline int cras_iodev_group_has_dev(const struct cras_iodev* iodev,
   }
 
   return false;
+}
+
+/* Gets the use case of the iodev. e.g. HiFi, LowLatency.
+ * Args:
+ *    iodev - The device
+ * Returns:
+ *    Use case of the device.
+ */
+static inline enum CRAS_USE_CASE cras_iodev_get_use_case(
+    const struct cras_iodev* iodev) {
+  if (iodev->get_use_case) {
+    return iodev->get_use_case(iodev);
+  }
+
+  return CRAS_USE_CASE_HIFI;
 }
 
 /* Gets the hardware timestamp of the last update. If there is no hardware
