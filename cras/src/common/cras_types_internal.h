@@ -12,6 +12,29 @@
 extern "C" {
 #endif
 
+// Use cases corresponding to ALSA UCM verbs. Each iodev has one use case.
+enum CRAS_USE_CASE {
+  // Default case for regular streams.
+  CRAS_USE_CASE_HIFI,
+  // For streams with block size <= 480 frames (10ms at 48KHz).
+  CRAS_USE_CASE_LOW_LATENCY,
+  // For low latency streams requiring raw audio (no effect processing in DSP).
+  CRAS_USE_CASE_LOW_LATENCY_RAW,
+  CRAS_NUM_USE_CASES,
+};
+
+static inline const char* cras_use_case_str(enum CRAS_USE_CASE use_case) {
+  // clang-format off
+    switch (use_case) {
+    ENUM_STR(CRAS_USE_CASE_HIFI)
+    ENUM_STR(CRAS_USE_CASE_LOW_LATENCY)
+    ENUM_STR(CRAS_USE_CASE_LOW_LATENCY_RAW)
+    default:
+        return "INVALID_USE_CASE";
+    }
+  // clang-format on
+}
+
 static inline const char* audio_thread_event_type_to_str(
     enum CRAS_AUDIO_THREAD_EVENT_TYPE event) {
   switch (event) {
