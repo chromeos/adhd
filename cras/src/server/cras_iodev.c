@@ -1068,6 +1068,7 @@ unsigned int cras_iodev_max_stream_offset(const struct cras_iodev* iodev) {
 int cras_iodev_open(struct cras_iodev* iodev,
                     unsigned int cb_level,
                     const struct cras_audio_format* fmt) {
+  bool has_open_dev = cras_iodev_group_has_open_dev(iodev);
   struct cras_loopback* loopback;
   struct timespec beg, end;
   int rc;
@@ -1092,8 +1093,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
                         iodev->direction == CRAS_STREAM_INPUT;
       // EAGAIN events from BT mics should not be seen as device open failures.
       if (!(is_hfp_mic && rc == -EAGAIN)) {
-        cras_server_metrics_device_open_status(iodev,
-                                               CRAS_DEVICE_OPEN_ERROR_OPEN);
+        cras_server_metrics_device_open_status(
+            iodev, CRAS_DEVICE_OPEN_ERROR_OPEN, has_open_dev);
       }
       return rc;
     }
@@ -1102,8 +1103,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
   if (iodev->format == NULL) {
     rc = cras_iodev_set_format(iodev, fmt);
     if (rc) {
-      cras_server_metrics_device_open_status(iodev,
-                                             CRAS_DEVICE_OPEN_ERROR_SET_FORMAT);
+      cras_server_metrics_device_open_status(
+          iodev, CRAS_DEVICE_OPEN_ERROR_SET_FORMAT, has_open_dev);
       iodev->close_dev(iodev);
       return rc;
     }
@@ -1114,8 +1115,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
   clock_gettime(CLOCK_MONOTONIC_RAW, &beg);
   rc = iodev->configure_dev(iodev);
   if (rc < 0) {
-    cras_server_metrics_device_open_status(iodev,
-                                           CRAS_DEVICE_OPEN_ERROR_CONFIGURE);
+    cras_server_metrics_device_open_status(
+        iodev, CRAS_DEVICE_OPEN_ERROR_CONFIGURE, has_open_dev);
     iodev->close_dev(iodev);
     return rc;
   }
@@ -1187,7 +1188,8 @@ int cras_iodev_open(struct cras_iodev* iodev,
 
   add_ext_dsp_module_to_pipeline(iodev);
   clock_gettime(CLOCK_MONOTONIC_RAW, &iodev->open_ts);
-  cras_server_metrics_device_open_status(iodev, CRAS_DEVICE_OPEN_SUCCESS);
+  cras_server_metrics_device_open_status(iodev, CRAS_DEVICE_OPEN_SUCCESS,
+                                         has_open_dev);
 
   return 0;
 }

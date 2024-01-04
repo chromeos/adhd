@@ -23,6 +23,7 @@ enum CRAS_USE_CASE {
   CRAS_NUM_USE_CASES,
 };
 
+// NOTE: Updates UMA as well, change with caution
 static inline const char* cras_use_case_str(enum CRAS_USE_CASE use_case) {
   // clang-format off
     switch (use_case) {

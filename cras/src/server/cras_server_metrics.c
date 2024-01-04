@@ -16,6 +16,7 @@
 #include "cras/server/main_message.h"
 #include "cras/server/platform/dlc/dlc.h"
 #include "cras/src/common/cras_metrics.h"
+#include "cras/src/common/cras_types_internal.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_rstream_config.h"
@@ -217,6 +218,11 @@ struct cras_server_metrics_device_data {
   struct timespec runtime;
   unsigned value;
   int sample_rate;
+  enum CRAS_USE_CASE use_case;
+  // For DEVICE_OPEN_STATUS:
+  //    false - This is the first iodev opened in its iodev group.
+  //    true - There are already other open iodev(s) in the group.
+  bool has_open_dev;
 };
 
 struct cras_server_metrics_stream_data {
@@ -809,6 +815,7 @@ int cras_server_metrics_device_runtime(struct cras_iodev* iodev) {
   data.device_data.type = get_metrics_device_type(iodev);
   data.device_data.direction = iodev->direction;
   data.device_data.value = iodev->active_node->btflags;
+  data.device_data.use_case = cras_iodev_get_use_case(iodev);
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &now);
   subtract_timespecs(&now, &iodev->open_ts, &data.device_data.runtime);
@@ -834,6 +841,7 @@ int cras_server_metrics_device_configure_time(struct cras_iodev* iodev,
   data.device_data.type = get_metrics_device_type(iodev);
   data.device_data.direction = iodev->direction;
   data.device_data.value = iodev->active_node->btflags;
+  data.device_data.use_case = cras_iodev_get_use_case(iodev);
 
   subtract_timespecs(end, beg, &data.device_data.runtime);
 
@@ -926,6 +934,7 @@ int cras_server_metrics_device_sample_rate(struct cras_iodev* iodev) {
   data.device_data.type = get_metrics_device_type(iodev);
   data.device_data.direction = iodev->direction;
   data.device_data.sample_rate = iodev->format->frame_rate;
+  data.device_data.use_case = cras_iodev_get_use_case(iodev);
 
   init_server_metrics_msg(&msg, DEVICE_SAMPLE_RATE, data);
 
@@ -1406,7 +1415,8 @@ int cras_server_metrics_stream_create_failure(
 }
 
 int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
-                                           enum CRAS_DEVICE_OPEN_STATUS code) {
+                                           enum CRAS_DEVICE_OPEN_STATUS code,
+                                           bool has_open_dev) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   int err;
   union cras_server_metrics_data data = {
@@ -1415,6 +1425,8 @@ int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
               .type = get_metrics_device_type(iodev),
               .direction = iodev->direction,
               .value = code,
+              .use_case = cras_iodev_get_use_case(iodev),
+              .has_open_dev = has_open_dev,
           },
   };
 
@@ -1497,9 +1509,9 @@ static void metrics_device_runtime(
       break;
     default:
       log_histogram_each_level(
-          3, (unsigned)data.runtime.tv_sec, 0, 10000, 20, "Cras.DeviceRuntime",
+          4, (unsigned)data.runtime.tv_sec, 0, 10000, 20, "Cras.DeviceRuntime",
           data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
-          metrics_device_type_str(data.type));
+          metrics_device_type_str(data.type), cras_use_case_str(data.use_case));
       break;
   }
 
@@ -1544,9 +1556,9 @@ static void metrics_device_configure_time(
       break;
     default:
       log_histogram_each_level(
-          3, msec, 0, 10000, 20, "Cras.DeviceConfigureTime",
+          4, msec, 0, 10000, 20, "Cras.DeviceConfigureTime",
           data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
-          metrics_device_type_str(data.type));
+          metrics_device_type_str(data.type), cras_use_case_str(data.use_case));
       break;
   }
 }
@@ -1579,9 +1591,9 @@ static void metrics_device_noise_cancellation_status(
 static void metrics_device_sample_rate(
     struct cras_server_metrics_device_data data) {
   log_sparse_histogram_each_level(
-      3, data.sample_rate, kDeviceSampleRate,
+      4, data.sample_rate, kDeviceSampleRate,
       data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
-      metrics_device_type_str(data.type));
+      metrics_device_type_str(data.type), cras_use_case_str(data.use_case));
 }
 
 static void metrics_device_dsp_offload_status(
@@ -1719,9 +1731,10 @@ static void metrics_stream_config(
 static void metrics_device_open_status(
     struct cras_server_metrics_device_data data) {
   log_sparse_histogram_each_level(
-      3, data.value, kDeviceOpenStatus,
+      5, data.value, kDeviceOpenStatus,
       data.direction == CRAS_STREAM_INPUT ? "Input" : "Output",
-      metrics_device_type_str(data.type));
+      metrics_device_type_str(data.type), cras_use_case_str(data.use_case),
+      data.has_open_dev ? "HasOpenDev" : "FirstOpen");
 }
 
 static void handle_metrics_message(struct cras_main_message* msg, void* arg) {

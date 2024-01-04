@@ -43,8 +43,8 @@ TEST(ServerMetricsTestSuite, Init) {
 
 TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
   ResetStubData();
-  struct cras_iodev iodev;
-  struct cras_ionode active_node;
+  struct cras_iodev iodev = {};
+  struct cras_ionode active_node = {};
 
   clock_gettime_retspec.tv_sec = 200;
   clock_gettime_retspec.tv_nsec = 0;
@@ -65,6 +65,7 @@ TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
   EXPECT_EQ(sent_msgs[0].data.device_data.type, CRAS_METRICS_DEVICE_USB);
   EXPECT_EQ(sent_msgs[0].data.device_data.direction, CRAS_STREAM_INPUT);
   EXPECT_EQ(sent_msgs[0].data.device_data.runtime.tv_sec, 100);
+  EXPECT_EQ(sent_msgs[0].data.device_data.use_case, CRAS_USE_CASE_HIFI);
 
   sent_msgs.clear();
 
@@ -73,6 +74,9 @@ TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
   iodev.open_ts.tv_sec = 100;
   iodev.open_ts.tv_nsec = 0;
   iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.get_use_case = [](const struct cras_iodev* iodev) {
+    return CRAS_USE_CASE_LOW_LATENCY;
+  };
   iodev.active_node = &active_node;
   active_node.type = CRAS_NODE_TYPE_HEADPHONE;
 
@@ -86,6 +90,7 @@ TEST(ServerMetricsTestSuite, SetMetricsDeviceRuntime) {
   EXPECT_EQ(sent_msgs[0].data.device_data.type, CRAS_METRICS_DEVICE_HEADPHONE);
   EXPECT_EQ(sent_msgs[0].data.device_data.direction, CRAS_STREAM_OUTPUT);
   EXPECT_EQ(sent_msgs[0].data.device_data.runtime.tv_sec, 200);
+  EXPECT_EQ(sent_msgs[0].data.device_data.use_case, CRAS_USE_CASE_LOW_LATENCY);
 
   std::map<uint32_t, enum CRAS_METRICS_DEVICE_TYPE> btflags_to_device = {
       {CRAS_BT_FLAG_A2DP, CRAS_METRICS_DEVICE_A2DP},

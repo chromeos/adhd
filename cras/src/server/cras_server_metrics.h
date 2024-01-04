@@ -226,8 +226,12 @@ int cras_server_metrics_ap_nc_start_status(bool success);
 int cras_server_metrics_ap_nc_runtime(unsigned runtime_second);
 
 // Logs failures when opening devices.
+// group_acitve:
+//    false - This is the first iodev opened in its iodev group.
+//    true - There are already other open iodev(s) in the group.
 int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
-                                           enum CRAS_DEVICE_OPEN_STATUS code);
+                                           enum CRAS_DEVICE_OPEN_STATUS code,
+                                           bool group_active);
 
 // Logs DSP offload status for devices.
 int cras_server_metrics_device_dsp_offload_status(

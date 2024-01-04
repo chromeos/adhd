@@ -87,7 +87,8 @@ int cras_server_metrics_busyloop_length(unsigned count) {
 }
 
 int cras_server_metrics_device_open_status(struct cras_iodev* iodev,
-                                           enum CRAS_DEVICE_OPEN_STATUS code) {
+                                           enum CRAS_DEVICE_OPEN_STATUS code,
+                                           bool group_active) {
   return 0;
 }
 
