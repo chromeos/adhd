@@ -179,8 +179,6 @@ struct cras_iodev {
   void (*set_volume)(struct cras_iodev* iodev);
   // Function to call if the system mute state changes.
   void (*set_mute)(struct cras_iodev* iodev);
-  // Function to call if the system capture mute state changes.
-  void (*set_capture_mute)(struct cras_iodev* iodev);
   // Function to call to set swap mode for the node.
   int (*set_swap_mode_for_node)(struct cras_iodev* iodev,
                                 struct cras_ionode* node,

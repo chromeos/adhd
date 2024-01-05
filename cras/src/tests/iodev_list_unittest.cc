@@ -181,7 +181,6 @@ class IodevTests : public TestBase {
     memset(&clock_gettime_retspec, 0, sizeof(clock_gettime_retspec));
 
     d1_.set_volume = NULL;
-    d1_.set_capture_mute = NULL;
     d1_.update_supported_formats = NULL;
     d1_.update_active_node = update_active_node;
     d1_.set_swap_mode_for_node = set_swap_mode_for_node;
@@ -195,7 +194,6 @@ class IodevTests : public TestBase {
     d1_.supported_rates = sample_rates_;
     d1_.supported_channel_counts = channel_counts_;
     d2_.set_volume = NULL;
-    d2_.set_capture_mute = NULL;
     d2_.update_supported_formats = NULL;
     d2_.update_active_node = update_active_node;
     d2_.format = NULL;
@@ -207,7 +205,6 @@ class IodevTests : public TestBase {
     d2_.supported_rates = sample_rates_;
     d2_.supported_channel_counts = channel_counts_;
     d3_.set_volume = NULL;
-    d3_.set_capture_mute = NULL;
     d3_.update_supported_formats = NULL;
     d3_.update_active_node = update_active_node;
     d3_.format = NULL;
@@ -220,7 +217,6 @@ class IodevTests : public TestBase {
     d3_.supported_channel_counts = channel_counts_;
 
     loopback_input.set_volume = NULL;
-    loopback_input.set_capture_mute = NULL;
     loopback_input.update_supported_formats = NULL;
     loopback_input.update_active_node = update_active_node;
     loopback_input.format = NULL;

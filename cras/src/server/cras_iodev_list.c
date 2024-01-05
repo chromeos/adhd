@@ -811,18 +811,6 @@ static void nodes_changed(void* arg) {
   cras_iodev_list_reset_for_noise_cancellation();
 }
 
-/* Called when the system capture mute state changes.  Pass the current capture
- * mute setting to the default input if it is active. */
-static void sys_cap_mute_change(void* context, int muted, int mute_locked) {
-  struct cras_iodev* dev;
-
-  DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
-    if (dev->set_capture_mute && cras_iodev_is_open(dev)) {
-      dev->set_capture_mute(dev);
-    }
-  }
-}
-
 static int disable_device(struct enabled_dev* edev, bool force);
 static int enable_device(struct cras_iodev* dev);
 
@@ -1677,7 +1665,6 @@ void cras_iodev_list_init() {
   memset(&observer_ops, 0, sizeof(observer_ops));
   observer_ops.output_volume_changed = sys_vol_change;
   observer_ops.output_mute_changed = sys_mute_change;
-  observer_ops.capture_mute_changed = sys_cap_mute_change;
   observer_ops.suspend_changed = sys_suspend_change;
   observer_ops.nodes_changed = nodes_changed;
   list_observer = cras_observer_add(&observer_ops, NULL);
