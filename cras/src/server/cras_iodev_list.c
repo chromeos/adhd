@@ -2269,9 +2269,6 @@ static int set_node_capture_gain(struct cras_iodev* iodev,
       convert_softvol_scaler_from_dB(convert_dBFS_from_input_node_gain(
           value, cras_iodev_is_node_internal_mic(node)));
 
-  if (iodev->set_capture_gain) {
-    iodev->set_capture_gain(iodev);
-  }
   cras_iodev_list_notify_node_capture_gain(node, value);
   MAINLOG(main_log, MAIN_THREAD_INPUT_NODE_GAIN, iodev->info.idx, value, 0);
   return 0;
