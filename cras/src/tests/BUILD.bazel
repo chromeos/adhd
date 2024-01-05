@@ -991,6 +991,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/dsp/tests:all_headers",

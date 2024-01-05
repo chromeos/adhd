@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_dsp.h"
@@ -46,6 +47,7 @@ struct dsp_module* cras_dsp_module_load_ladspa(struct plugin* plugin) {
 class DspTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
+    cras_features_set_override(CrOSLateBootAudioOffloadCrasDSPToSOF, true);
     strcpy(filename, FILENAME_TEMPLATE);
     int fd = mkstemp(filename);
     fp = fdopen(fd, "w");
@@ -54,6 +56,7 @@ class DspTestSuite : public testing::Test {
   virtual void TearDown() {
     CloseFile();
     unlink(filename);
+    cras_features_unset_override(CrOSLateBootAudioOffloadCrasDSPToSOF);
   }
 
   virtual void CloseFile() {

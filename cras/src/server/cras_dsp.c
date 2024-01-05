@@ -10,6 +10,7 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/server/platform/features/features.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/dsp/dsp_util.h"
@@ -149,6 +150,11 @@ static bool possibly_offload_pipeline(struct dsp_offload_map* offload_map,
   if (!offload_map->parent_dev) {
     syslog(LOG_ERR, "cras_dsp: invalid parent_dev in offload_map");
     return false;
+  }
+
+  // Check feature enable flag from Chrome. If off, force to disable offload.
+  if (!cras_feature_enabled(CrOSLateBootAudioOffloadCrasDSPToSOF)) {
+    goto disable_offload;
   }
 
   // If supports, check if the DSP offload is applicable, i.e. the pattern for
