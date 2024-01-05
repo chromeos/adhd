@@ -217,6 +217,8 @@ static int open_dev(struct cras_iodev* iodev) {
   struct cras_iodev* dev = active_profile_dev(iodev);
   int rc;
 
+  cras_iodev_set_active_nc_provider(iodev);
+
   // Make sure not to open when there is a pending profile-switch event.
   if (btio->mgr->is_profile_switching) {
     return -EAGAIN;
@@ -241,8 +243,6 @@ static int open_dev(struct cras_iodev* iodev) {
     }
     return rc;
   }
-
-  cras_iodev_set_active_nc_provider(iodev);
 
   return 0;
 }
