@@ -144,6 +144,7 @@ fn main() {
     dump_active_node();
 
     run_command(Command::new("cras_test_client").arg("--dump_server_info"));
+    run_command(Command::new("cras_test_client").arg("--dump_dsp_offload"));
     run_command(Command::new("cras_test_client").arg("--dump_audio_thread"));
     run_command(Command::new("cras_test_client").arg("--dump_main"));
     run_command(Command::new("cras_test_client").arg("--dump_bt"));
