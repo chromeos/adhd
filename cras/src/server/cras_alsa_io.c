@@ -924,10 +924,10 @@ static void set_node_initial_state(struct cras_ionode* node,
     if (endswith(node->name, "Jack") && !strstr(node->name, HDMI)) {
       if (node->dev->direction == CRAS_STREAM_OUTPUT) {
         node->type = CRAS_NODE_TYPE_HEADPHONE;
-        strncpy(node->name, HEADPHONE, sizeof(node->name) - 1);
+        strlcpy(node->name, HEADPHONE, sizeof(node->name));
       } else {
         node->type = CRAS_NODE_TYPE_MIC;
-        strncpy(node->name, MIC, sizeof(node->name) - 1);
+        strlcpy(node->name, MIC, sizeof(node->name));
       }
     }
     if (strstr(node->name, HDMI) &&
@@ -1113,8 +1113,8 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   }
   output->mixer_output = cras_control;
 
-  strncpy(output->base.name, name, sizeof(output->base.name) - 1);
-  strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
+  strlcpy(output->base.name, name, sizeof(output->base.name));
+  strlcpy(output->base.ucm_name, name, sizeof(output->base.ucm_name));
   set_node_initial_state(&output->base, aio->common.card_type);
   cras_iodev_add_node(&aio->common.base, &output->base);
   check_auto_unplug_output_node(aio, &output->base, output->base.plugged);
@@ -1178,8 +1178,8 @@ static struct alsa_input_node* new_input(struct alsa_io* aio,
     input->base.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
   }
   input->mixer_input = cras_input;
-  strncpy(input->base.name, name, sizeof(input->base.name) - 1);
-  strncpy(input->base.ucm_name, name, sizeof(input->base.ucm_name) - 1);
+  strlcpy(input->base.name, name, sizeof(input->base.name));
+  strlcpy(input->base.ucm_name, name, sizeof(input->base.ucm_name));
   set_node_initial_state(&input->base, aio->common.card_type);
   set_input_default_node_gain(input, aio);
   set_input_node_intrinsic_sensitivity(input, aio);

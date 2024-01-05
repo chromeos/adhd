@@ -790,8 +790,8 @@ static struct alsa_usb_output_node* usb_new_output(
   }
   output->mixer_output = cras_control;
 
-  strncpy(output->base.name, name, sizeof(output->base.name) - 1);
-  strncpy(output->base.ucm_name, name, sizeof(output->base.ucm_name) - 1);
+  strlcpy(output->base.name, name, sizeof(output->base.name));
+  strlcpy(output->base.ucm_name, name, sizeof(output->base.ucm_name));
   usb_set_node_initial_state(&output->base);
 
   cras_iodev_add_node(&aio->common.base, &output->base);
@@ -859,8 +859,8 @@ static struct alsa_usb_input_node* usb_new_input(
   input->base.stable_id =
       SuperFastHash(name, strlen(name), aio->common.base.info.stable_id);
   input->mixer_input = cras_input;
-  strncpy(input->base.name, name, sizeof(input->base.name) - 1);
-  strncpy(input->base.ucm_name, name, sizeof(input->base.ucm_name) - 1);
+  strlcpy(input->base.name, name, sizeof(input->base.name));
+  strlcpy(input->base.ucm_name, name, sizeof(input->base.ucm_name));
   usb_set_node_initial_state(&input->base);
   usb_set_input_default_node_gain(input, aio);
   usb_set_input_node_intrinsic_sensitivity(input, aio);
