@@ -124,7 +124,7 @@ static int drc_probe(uint32_t pipeline_id, uint32_t comp_id) {
   int rc = cras_alsa_config_probe(mixer_name);
   free(mixer_name);
   if (rc) {
-    syslog(LOG_ERR, "drc_probe: Error on probing blob control");
+    syslog(LOG_INFO, "drc_probe: Blob control is not detected");
     return rc;
   }
 
@@ -138,7 +138,7 @@ static int drc_probe(uint32_t pipeline_id, uint32_t comp_id) {
   rc = cras_alsa_config_probe(mixer_name);
   free(mixer_name);
   if (rc) {
-    syslog(LOG_ERR, "drc_probe: Error on probing enable control");
+    syslog(LOG_INFO, "drc_probe: Enable control is not detected");
   }
   return rc;
 }
@@ -197,7 +197,7 @@ static int eq2_probe(uint32_t pipeline_id, uint32_t comp_id) {
   int rc = cras_alsa_config_probe(mixer_name);
   free(mixer_name);
   if (rc) {
-    syslog(LOG_ERR, "eq2_probe: Error on probing");
+    syslog(LOG_INFO, "eq2_probe: Blob control is not detected");
   }
   return rc;
 }
@@ -329,7 +329,6 @@ static int iterate_dsp_modules_from_offload_map(
 
     int rc = exec_func(module_offload_api, offload_map->pipeline_id, 0);
     if (rc) {
-      syslog(LOG_ERR, "iterate offload map failed on module %s", p);
       free(pattern);
       return rc;
     }
@@ -398,8 +397,6 @@ int cras_dsp_offload_create_map(struct dsp_offload_map** offload_map,
   // for offload to DSP.
   int rc = mixer_controls_ready_for_offload_to_dsp(offload_pipe_map);
   if (rc) {
-    syslog(LOG_INFO, "Specified DSP offload of %s not supported by this DSP",
-           node->name);
     cras_dsp_offload_free_map(offload_pipe_map);
     return rc;
   }

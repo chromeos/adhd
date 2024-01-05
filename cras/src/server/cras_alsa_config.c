@@ -192,7 +192,6 @@ static int ctl_elem_create_for_control_name(const char* name,
     (*ctl_elem_p)->card_index = card_index;
     return 0;
   }
-  syslog(LOG_ERR, "ctl_elem_create: %s not found on any card", name);
   return rc;
 }
 
@@ -222,7 +221,7 @@ static int get_ctl_elem_by_name(const char* name,
   /* Create the control element (and connect) if not matched in list. */
   rc = ctl_elem_create_for_control_name(name, &ctl_elem);
   if (rc) {
-    syslog(LOG_ERR, "get_ctl_elem_by_name: Failed creating ctl_elem");
+    syslog(LOG_WARNING, "get_ctl_elem_by_name: %s is not detected ", name);
     return rc;
   }
 
