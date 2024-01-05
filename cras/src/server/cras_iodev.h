@@ -790,11 +790,8 @@ static inline int cras_iodev_input_streaming(const struct cras_iodev* iodev) {
 }
 
 // Returns true if the device is open.
-static inline int cras_iodev_is_open(const struct cras_iodev* iodev) {
-  if (iodev && iodev->state != CRAS_IODEV_STATE_CLOSE) {
-    return 1;
-  }
-  return 0;
+static inline bool cras_iodev_is_open(const struct cras_iodev* iodev) {
+  return iodev && iodev->state != CRAS_IODEV_STATE_CLOSE;
 }
 
 // Configure iodev to exit idle mode.
