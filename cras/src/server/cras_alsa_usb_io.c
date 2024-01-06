@@ -998,12 +998,7 @@ static struct cras_volume_curve* usb_create_volume_curve_for_output(
 
   // Use alsa jack's name as key to get volume curve.
   name = cras_alsa_jack_get_name(aout->jack);
-  curve = cras_card_config_get_volume_curve_for_control(config, name);
-  if (curve) {
-    return curve;
-  }
-
-  return NULL;
+  return cras_card_config_get_volume_curve_for_control(config, name);
 }
 
 /*
