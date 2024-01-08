@@ -153,6 +153,16 @@ struct alsa_common_io {
   uint8_t* sample_buf;
 };
 
+struct alsa_common_node {
+  struct cras_ionode base;
+  // From cras_alsa_mixer.
+  struct mixer_control* mixer;
+  // PCM name for snd_pcm_open.
+  const char* pcm_name;
+  // The jack associated with the node.
+  const struct cras_alsa_jack* jack;
+};
+
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);
 
 // Enable or disable noise cancellation for the active node if supported.

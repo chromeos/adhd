@@ -2462,7 +2462,7 @@ TEST(AlsaHotwordNode, HotwordTriggeredSendMessage) {
   struct cras_iodev* iodev;
   struct cras_audio_format format;
   struct alsa_input_node alsa_node;
-  struct cras_ionode* node = &alsa_node.base;
+  struct cras_ionode* node = &alsa_node.common.base;
   int rc;
 
   ResetStubData();
