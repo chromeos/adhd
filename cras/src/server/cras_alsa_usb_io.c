@@ -84,8 +84,6 @@ static int usb_alsa_iodev_set_active_node(struct cras_iodev* iodev,
                                           struct cras_ionode* ionode,
                                           unsigned dev_enabled);
 
-static int usb_get_fixed_rate(struct alsa_usb_io* aio);
-
 static int usb_update_supported_formats(struct cras_iodev* iodev);
 
 static inline int usb_set_hwparams(struct cras_iodev* iodev) {
@@ -1181,51 +1179,6 @@ static void usb_set_iodev_name(struct cras_iodev* dev,
          dev->direction == CRAS_STREAM_OUTPUT ? "output" : "input");
 }
 
-static int usb_get_fixed_rate(struct alsa_usb_io* aio) {
-  const char* name;
-
-  if (aio->common.base.direction == CRAS_STREAM_OUTPUT) {
-    struct alsa_usb_output_node* active = usb_get_active_output(aio);
-    if (!active) {
-      return -ENOENT;
-    }
-    name = active->base.ucm_name;
-  } else {
-    struct alsa_usb_input_node* active = usb_get_active_input(aio);
-    if (!active) {
-      return -ENOENT;
-    }
-    name = active->base.ucm_name;
-  }
-
-  return ucm_get_sample_rate_for_dev(aio->common.ucm, name,
-                                     aio->common.base.direction);
-}
-
-static size_t usb_get_fixed_channels(struct alsa_usb_io* aio) {
-  const char* name;
-  int rc;
-  size_t channels;
-
-  if (aio->common.base.direction == CRAS_STREAM_OUTPUT) {
-    struct alsa_usb_output_node* active = usb_get_active_output(aio);
-    if (!active) {
-      return -ENOENT;
-    }
-    name = active->base.ucm_name;
-  } else {
-    struct alsa_usb_input_node* active = usb_get_active_input(aio);
-    if (!active) {
-      return -ENOENT;
-    }
-    name = active->base.ucm_name;
-  }
-
-  rc = ucm_get_channels_for_dev(aio->common.ucm, name,
-                                aio->common.base.direction, &channels);
-  return (rc) ? 0 : channels;
-}
-
 /*
  * Updates the supported sample rates and channel counts.
  */
@@ -1251,7 +1204,7 @@ static int usb_update_supported_formats(struct cras_iodev* iodev) {
 
   if (aio->common.ucm) {
     // Allow UCM to override supplied rates.
-    fixed_rate = usb_get_fixed_rate(aio);
+    fixed_rate = cras_alsa_get_fixed_rate(&aio->common);
     if (fixed_rate > 0) {
       free(iodev->supported_rates);
       iodev->supported_rates =
@@ -1261,7 +1214,7 @@ static int usb_update_supported_formats(struct cras_iodev* iodev) {
     }
 
     // Allow UCM to override supported channel counts.
-    fixed_channels = usb_get_fixed_channels(aio);
+    fixed_channels = cras_alsa_get_fixed_channels(&aio->common);
     if (fixed_channels > 0) {
       free(iodev->supported_channel_counts);
       iodev->supported_channel_counts =

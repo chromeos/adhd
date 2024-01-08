@@ -177,6 +177,8 @@ int cras_alsa_common_close_dev(const struct cras_iodev* iodev);
 int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name);
 int cras_alsa_common_get_htimestamp(const struct cras_iodev* iodev,
                                     struct timespec* ts);
+int cras_alsa_get_fixed_rate(struct alsa_common_io* aio);
+size_t cras_alsa_get_fixed_channels(struct alsa_common_io* aio);
 
 #ifdef __cplusplus
 }  // extern "C"

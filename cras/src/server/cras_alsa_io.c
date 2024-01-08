@@ -114,8 +114,6 @@ static int alsa_iodev_set_active_node(struct cras_iodev* iodev,
                                       struct cras_ionode* ionode,
                                       unsigned dev_enabled);
 
-static int get_fixed_rate(struct alsa_io* aio);
-
 static int update_supported_formats(struct cras_iodev* iodev);
 
 /*
@@ -1546,51 +1544,6 @@ static void set_iodev_name(struct cras_iodev* dev,
   syslog(LOG_DEBUG, "Stable ID=%08x", dev->info.stable_id);
 }
 
-static int get_fixed_rate(struct alsa_io* aio) {
-  const char* name;
-
-  if (aio->common.base.direction == CRAS_STREAM_OUTPUT) {
-    struct alsa_output_node* active = get_active_output(aio);
-    if (!active) {
-      return -ENOENT;
-    }
-    name = active->base.ucm_name;
-  } else {
-    struct alsa_input_node* active = get_active_input(aio);
-    if (!active) {
-      return -ENOENT;
-    }
-    name = active->base.ucm_name;
-  }
-
-  return ucm_get_sample_rate_for_dev(aio->common.ucm, name,
-                                     aio->common.base.direction);
-}
-
-static size_t get_fixed_channels(struct alsa_io* aio) {
-  const char* name;
-  int rc;
-  size_t channels;
-
-  if (aio->common.base.direction == CRAS_STREAM_OUTPUT) {
-    struct alsa_output_node* active = get_active_output(aio);
-    if (!active) {
-      return -ENOENT;
-    }
-    name = active->base.ucm_name;
-  } else {
-    struct alsa_input_node* active = get_active_input(aio);
-    if (!active) {
-      return -ENOENT;
-    }
-    name = active->base.ucm_name;
-  }
-
-  rc = ucm_get_channels_for_dev(aio->common.ucm, name,
-                                aio->common.base.direction, &channels);
-  return (rc) ? 0 : channels;
-}
-
 static int copy_formats_from_open_dev(struct cras_iodev* dst,
                                       struct cras_iodev* src) {
   if (!src->format) {
@@ -1674,7 +1627,7 @@ static int update_supported_formats(struct cras_iodev* iodev) {
 
   if (aio->common.ucm) {
     // Allow UCM to override supplied rates.
-    fixed_rate = get_fixed_rate(aio);
+    fixed_rate = cras_alsa_get_fixed_rate(&aio->common);
     if (fixed_rate > 0) {
       free(iodev->supported_rates);
       iodev->supported_rates =
@@ -1684,7 +1637,7 @@ static int update_supported_formats(struct cras_iodev* iodev) {
     }
 
     // Allow UCM to override supported channel counts.
-    fixed_channels = get_fixed_channels(aio);
+    fixed_channels = cras_alsa_get_fixed_channels(&aio->common);
     if (fixed_channels > 0) {
       free(iodev->supported_channel_counts);
       iodev->supported_channel_counts =

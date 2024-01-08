@@ -217,6 +217,7 @@ int cras_alsa_common_close_dev(const struct cras_iodev* iodev) {
   aio->sample_buf = NULL;
   return 0;
 }
+
 int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name) {
   struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
   snd_pcm_t* handle;
@@ -242,9 +243,34 @@ int cras_alsa_common_open_dev(struct cras_iodev* iodev, const char* pcm_name) {
 
   return 0;
 }
+
 int cras_alsa_common_get_htimestamp(const struct cras_iodev* iodev,
                                     struct timespec* ts) {
   struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
   *ts = aio->hardware_timestamp;
   return 0;
+}
+
+int cras_alsa_get_fixed_rate(struct alsa_common_io* aio) {
+  struct cras_ionode* node = aio->base.active_node;
+
+  if (!node) {
+    return -ENOENT;
+  }
+
+  return ucm_get_sample_rate_for_dev(aio->ucm, node->ucm_name,
+                                     aio->base.direction);
+}
+
+size_t cras_alsa_get_fixed_channels(struct alsa_common_io* aio) {
+  struct cras_ionode* node = aio->base.active_node;
+  int rc;
+  size_t channels;
+
+  if (!node) {
+    return -ENOENT;
+  }
+  rc = ucm_get_channels_for_dev(aio->ucm, node->ucm_name, aio->base.direction,
+                                &channels);
+  return (rc) ? 0 : channels;
 }
