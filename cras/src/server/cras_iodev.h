@@ -127,8 +127,6 @@ struct cras_ionode {
   enum CRAS_NODE_POSITION position;
   // Name displayed to the user.
   char name[CRAS_NODE_NAME_BUFFER_SIZE];
-  // Name for the ucm device section.
-  char ucm_name[CRAS_NODE_NAME_BUFFER_SIZE];
   // The "DspName" variable specified in the ucm config.
   const char* dsp_name;
   // name of the currently selected hotword model.

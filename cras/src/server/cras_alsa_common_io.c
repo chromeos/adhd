@@ -252,25 +252,27 @@ int cras_alsa_common_get_htimestamp(const struct cras_iodev* iodev,
 }
 
 int cras_alsa_get_fixed_rate(struct alsa_common_io* aio) {
-  struct cras_ionode* node = aio->base.active_node;
+  struct alsa_common_node* anode =
+      (struct alsa_common_node*)aio->base.active_node;
 
-  if (!node) {
+  if (!anode) {
     return -ENOENT;
   }
 
-  return ucm_get_sample_rate_for_dev(aio->ucm, node->ucm_name,
+  return ucm_get_sample_rate_for_dev(aio->ucm, anode->ucm_name,
                                      aio->base.direction);
 }
 
 size_t cras_alsa_get_fixed_channels(struct alsa_common_io* aio) {
-  struct cras_ionode* node = aio->base.active_node;
+  struct alsa_common_node* anode =
+      (struct alsa_common_node*)aio->base.active_node;
   int rc;
   size_t channels;
 
-  if (!node) {
+  if (!anode) {
     return -ENOENT;
   }
-  rc = ucm_get_channels_for_dev(aio->ucm, node->ucm_name, aio->base.direction,
+  rc = ucm_get_channels_for_dev(aio->ucm, anode->ucm_name, aio->base.direction,
                                 &channels);
   return (rc) ? 0 : channels;
 }

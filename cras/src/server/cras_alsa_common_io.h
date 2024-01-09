@@ -159,6 +159,8 @@ struct alsa_common_node {
   struct mixer_control* mixer;
   // PCM name for snd_pcm_open.
   const char* pcm_name;
+  // Name for the ucm device section.
+  char ucm_name[CRAS_NODE_NAME_BUFFER_SIZE];
   // The jack associated with the node.
   const struct cras_alsa_jack* jack;
 };

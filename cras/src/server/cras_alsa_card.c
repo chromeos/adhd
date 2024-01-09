@@ -21,6 +21,7 @@
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_card_config.h"
 #include "cras/src/server/config/cras_device_blocklist.h"
+#include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_alsa_io.h"
 #include "cras/src/server/cras_alsa_io_ops.h"
@@ -342,8 +343,9 @@ static struct cras_iodev* find_first_iodev_with_ucm_section_name(
 
   DL_FOREACH (alsa_card->iodevs, dev) {
     DL_FOREACH (dev->iodev->nodes, node) {
-      if (!strncmp(node->ucm_name, ucm_section_name,
-                   ARRAY_SIZE(node->ucm_name))) {
+      struct alsa_common_node* anode = (struct alsa_common_node*)node;
+      if (!strncmp(anode->ucm_name, ucm_section_name,
+                   sizeof(anode->ucm_name))) {
         return dev->iodev;
       }
     }
@@ -581,8 +583,10 @@ static void configure_echo_reference_dev(struct cras_alsa_card* alsa_card) {
       continue;
     }
 
-    echo_ref_name = ucm_get_echo_reference_dev_name_for_dev(
-        alsa_card->ucm, dev_node->iodev->nodes->ucm_name);
+    struct alsa_common_node* anode =
+        (struct alsa_common_node*)dev_node->iodev->nodes;
+    echo_ref_name = ucm_get_echo_reference_dev_name_for_dev(alsa_card->ucm,
+                                                            anode->ucm_name);
     if (!echo_ref_name) {
       continue;
     }

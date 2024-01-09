@@ -759,8 +759,9 @@ static int set_alsa_node_swapped(struct cras_iodev* iodev,
                                  struct cras_ionode* node,
                                  int enable) {
   const struct alsa_io* aio = (const struct alsa_io*)iodev;
+  const struct alsa_common_node* anode = (const struct alsa_common_node*)node;
   CRAS_CHECK(aio);
-  return ucm_enable_swap_mode(aio->common.ucm, node->ucm_name, enable);
+  return ucm_enable_swap_mode(aio->common.ucm, anode->ucm_name, enable);
 }
 
 /*
@@ -1004,7 +1005,8 @@ static void set_input_default_node_gain(struct alsa_input_node* input,
     return;
   }
 
-  if (ucm_get_default_node_gain(aio->common.ucm, node->ucm_name, &gain) == 0) {
+  if (ucm_get_default_node_gain(aio->common.ucm, input->common.ucm_name,
+                                &gain) == 0) {
     node->internal_capture_gain = gain;
   }
 }
@@ -1020,7 +1022,7 @@ static void set_input_node_intrinsic_sensitivity(struct alsa_input_node* input,
   if (!aio->common.ucm) {
     return;
   }
-  rc = ucm_get_intrinsic_sensitivity(aio->common.ucm, node->ucm_name,
+  rc = ucm_get_intrinsic_sensitivity(aio->common.ucm, input->common.ucm_name,
                                      &sensitivity);
   if (rc) {
     return;
@@ -1096,7 +1098,7 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
   output->common.mixer = cras_control;
 
   strlcpy(node->name, name, sizeof(node->name));
-  strlcpy(node->ucm_name, name, sizeof(node->ucm_name));
+  strlcpy(output->common.ucm_name, name, sizeof(output->common.ucm_name));
   set_node_initial_state(node, aio->common.card_type);
   cras_iodev_add_node(&aio->common.base, node);
   check_auto_unplug_output_node(aio, node, node->plugged);
@@ -1163,7 +1165,7 @@ static struct alsa_input_node* new_input(struct alsa_io* aio,
   }
   input->common.mixer = cras_input;
   strlcpy(node->name, name, sizeof(node->name));
-  strlcpy(node->ucm_name, name, sizeof(node->ucm_name));
+  strlcpy(input->common.ucm_name, name, sizeof(input->common.ucm_name));
   set_node_initial_state(node, aio->common.card_type);
   set_input_default_node_gain(input, aio);
   set_input_node_intrinsic_sensitivity(input, aio);
@@ -1635,7 +1637,7 @@ static void enable_active_ucm(struct alsa_io* aio, int plugged) {
     return;
   }
 
-  const char* name = anode->base.ucm_name;
+  const char* name = anode->ucm_name;
   const struct cras_alsa_jack* jack = anode->jack;
 
   if (jack) {
@@ -1922,7 +1924,9 @@ static int support_noise_cancellation(const struct cras_iodev* iodev,
 
   DL_FOREACH (iodev->nodes, n) {
     if (n->idx == node_idx) {
-      return ucm_node_noise_cancellation_exists(aio->common.ucm, n->ucm_name);
+      struct alsa_common_node* anode = (struct alsa_common_node*)n;
+      return ucm_node_noise_cancellation_exists(aio->common.ucm,
+                                                anode->ucm_name);
     }
   }
   return 0;

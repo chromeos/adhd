@@ -519,8 +519,9 @@ static int usb_set_alsa_node_swapped(struct cras_iodev* iodev,
                                      struct cras_ionode* node,
                                      int enable) {
   const struct alsa_usb_io* aio = (const struct alsa_usb_io*)iodev;
+  const struct alsa_common_node* anode = (const struct alsa_common_node*)node;
   CRAS_CHECK(aio);
-  return ucm_enable_swap_mode(aio->common.ucm, node->ucm_name, enable);
+  return ucm_enable_swap_mode(aio->common.ucm, anode->ucm_name, enable);
 }
 
 /*
@@ -669,7 +670,7 @@ static void usb_set_input_default_node_gain(struct alsa_usb_input_node* input,
     return;
   }
 
-  if (ucm_get_default_node_gain(aio->common.ucm, input->common.base.ucm_name,
+  if (ucm_get_default_node_gain(aio->common.ucm, input->common.ucm_name,
                                 &gain) == 0) {
     input->common.base.internal_capture_gain = gain;
   }
@@ -685,7 +686,7 @@ static void usb_set_input_node_intrinsic_sensitivity(
   node->intrinsic_sensitivity = 0;
 
   if (aio->common.ucm) {
-    rc = ucm_get_intrinsic_sensitivity(aio->common.ucm, node->ucm_name,
+    rc = ucm_get_intrinsic_sensitivity(aio->common.ucm, input->common.ucm_name,
                                        &sensitivity);
     if (rc) {
       return;
@@ -772,7 +773,7 @@ static struct alsa_usb_output_node* usb_new_output(
   output->common.mixer = cras_control;
 
   strlcpy(node->name, name, sizeof(node->name));
-  strlcpy(node->ucm_name, name, sizeof(node->ucm_name));
+  strlcpy(output->common.ucm_name, name, sizeof(output->common.ucm_name));
   usb_set_node_initial_state(node);
 
   cras_iodev_add_node(&aio->common.base, node);
@@ -842,7 +843,7 @@ static struct alsa_usb_input_node* usb_new_input(
       SuperFastHash(name, strlen(name), aio->common.base.info.stable_id);
   input->common.mixer = cras_input;
   strlcpy(node->name, name, sizeof(node->name));
-  strlcpy(node->ucm_name, name, sizeof(node->ucm_name));
+  strlcpy(input->common.ucm_name, name, sizeof(input->common.ucm_name));
   usb_set_node_initial_state(node);
   usb_set_input_default_node_gain(input, aio);
   usb_set_input_node_intrinsic_sensitivity(input, aio);
@@ -1205,7 +1206,7 @@ static void usb_enable_active_ucm(struct alsa_usb_io* aio, int plugged) {
   if (!anode) {
     return;
   }
-  const char* name = anode->base.ucm_name;
+  const char* name = anode->ucm_name;
   const struct cras_alsa_jack* jack = anode->jack;
 
   if (jack) {
