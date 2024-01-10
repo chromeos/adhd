@@ -12,6 +12,7 @@
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_helpers.h"
+#include "cras/src/server/cras_alsa_jack.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
@@ -275,4 +276,44 @@ size_t cras_alsa_get_fixed_channels(struct alsa_common_io* aio) {
   rc = ucm_get_channels_for_dev(aio->ucm, anode->ucm_name, aio->base.direction,
                                 &channels);
   return (rc) ? 0 : channels;
+}
+
+struct alsa_common_node* cras_alsa_get_output_node_from_jack(
+    struct alsa_common_io* aio,
+    const struct cras_alsa_jack* jack) {
+  struct mixer_control* mixer_output;
+  struct cras_ionode* node = NULL;
+  struct alsa_common_node* anode = NULL;
+
+  // Search by jack first.
+  DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, anode, jack, jack);
+  if (anode) {
+    return anode;
+  }
+
+  // Search by mixer control next.
+  mixer_output = cras_alsa_jack_get_mixer_output(jack);
+  if (mixer_output == NULL) {
+    return NULL;
+  }
+
+  DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, anode, mixer, mixer_output);
+  return anode;
+}
+
+struct alsa_common_node* cras_alsa_get_input_node_from_jack(
+    struct alsa_common_io* aio,
+    const struct cras_alsa_jack* jack) {
+  struct mixer_control* mixer_input;
+  struct alsa_common_node* anode = NULL;
+  struct cras_ionode* node = NULL;
+
+  mixer_input = cras_alsa_jack_get_mixer_input(jack);
+  if (mixer_input == NULL) {
+    DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, anode, jack, jack);
+    return anode;
+  }
+
+  DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, anode, mixer, mixer_input);
+  return anode;
 }

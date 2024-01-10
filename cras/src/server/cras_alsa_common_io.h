@@ -192,6 +192,16 @@ int cras_alsa_common_get_htimestamp(const struct cras_iodev* iodev,
 int cras_alsa_get_fixed_rate(struct alsa_common_io* aio);
 size_t cras_alsa_get_fixed_channels(struct alsa_common_io* aio);
 
+/*
+ * Finds the output node associated with the jack. Returns NULL if not found.
+ */
+struct alsa_common_node* cras_alsa_get_output_node_from_jack(
+    struct alsa_common_io* aio,
+    const struct cras_alsa_jack* jack);
+struct alsa_common_node* cras_alsa_get_input_node_from_jack(
+    struct alsa_common_io* aio,
+    const struct cras_alsa_jack* jack);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

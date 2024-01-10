@@ -888,51 +888,6 @@ static void usb_new_input_by_mixer_control(struct mixer_control* cras_input,
   usb_new_input(aio, cras_input, node_name);
 }
 
-/*
- * Finds the output node associated with the jack. Returns NULL if not found.
- */
-static struct alsa_usb_output_node* usb_get_output_node_from_jack(
-    struct alsa_usb_io* aio,
-    const struct cras_alsa_jack* jack) {
-  struct mixer_control* mixer_output;
-  struct cras_ionode* node = NULL;
-  struct alsa_common_node* anode = NULL;
-
-  // Search by jack first.
-  DL_SEARCH_SCALAR_WITH_CAST(aio->common.base.nodes, node, anode, jack, jack);
-  if (anode) {
-    return (struct alsa_usb_output_node*)anode;
-  }
-
-  // Search by mixer control next.
-  mixer_output = cras_alsa_jack_get_mixer_output(jack);
-  if (mixer_output == NULL) {
-    return NULL;
-  }
-
-  DL_SEARCH_SCALAR_WITH_CAST(aio->common.base.nodes, node, anode, mixer,
-                             mixer_output);
-  return (struct alsa_usb_output_node*)anode;
-}
-
-static struct alsa_usb_input_node* usb_get_input_node_from_jack(
-    struct alsa_usb_io* aio,
-    const struct cras_alsa_jack* jack) {
-  struct mixer_control* mixer_input;
-  struct alsa_common_node* anode = NULL;
-  struct cras_ionode* node = NULL;
-
-  mixer_input = cras_alsa_jack_get_mixer_input(jack);
-  if (mixer_input == NULL) {
-    DL_SEARCH_SCALAR_WITH_CAST(aio->common.base.nodes, node, anode, jack, jack);
-    return (struct alsa_usb_input_node*)anode;
-  }
-
-  DL_SEARCH_SCALAR_WITH_CAST(aio->common.base.nodes, node, anode, mixer,
-                             mixer_input);
-  return (struct alsa_usb_input_node*)anode;
-}
-
 static const struct cras_alsa_jack* usb_get_jack_from_node(
     struct cras_ionode* node) {
   const struct alsa_common_node* anode = (struct alsa_common_node*)node;
@@ -1063,7 +1018,9 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
   }
 
   struct alsa_usb_io* aio = (struct alsa_usb_io*)arg;
-  struct alsa_usb_output_node* aout = usb_get_output_node_from_jack(aio, jack);
+  struct alsa_usb_output_node* aout =
+      (struct alsa_usb_output_node*)cras_alsa_get_output_node_from_jack(
+          &aio->common, jack);
   struct alsa_common_node* anode = &aout->common;
   const char* jack_name = cras_alsa_jack_get_name(jack);
   if (!jack_name || !strcmp(jack_name, "Speaker Phantom Jack")) {
@@ -1096,13 +1053,14 @@ static void usb_jack_input_plug_event(const struct cras_alsa_jack* jack,
     return;
   }
   struct alsa_usb_io* aio = (struct alsa_usb_io*)arg;
-  struct alsa_usb_input_node* ain = usb_get_input_node_from_jack(aio, jack);
-  struct cras_ionode* node = &ain->common.base;
+  struct alsa_common_node* ain =
+      cras_alsa_get_input_node_from_jack(&aio->common, jack);
+  struct cras_ionode* node = &ain->base;
   const char* jack_name = cras_alsa_jack_get_name(jack);
 
   syslog(LOG_DEBUG, "card type: %s, %s plugged: %d, %s",
          cras_card_type_to_string(aio->common.card_type), jack_name, plugged,
-         cras_alsa_mixer_get_control_name(ain->common.mixer));
+         cras_alsa_mixer_get_control_name(ain->mixer));
 
   cras_iodev_set_node_plugged(node, plugged);
 
@@ -1635,28 +1593,28 @@ cleanup_iodev:
 static void add_input_node_and_associate_jack(const struct cras_alsa_jack* jack,
                                               void* arg) {
   struct alsa_usb_io* aio;
-  struct alsa_usb_input_node* node;
+  struct alsa_common_node* node;
   struct mixer_control* cras_input;
   const char* jack_name;
 
   CRAS_CHECK(arg);
 
   aio = (struct alsa_usb_io*)arg;
-  node = usb_get_input_node_from_jack(aio, jack);
+  node = cras_alsa_get_input_node_from_jack(&aio->common, jack);
   jack_name = cras_alsa_jack_get_name(jack);
 
   // If there isn't a node for this jack, create one.
   if (node == NULL) {
     cras_input = cras_alsa_jack_get_mixer_input(jack);
-    node = usb_new_input(aio, cras_input, jack_name);
+    node = (struct alsa_common_node*)usb_new_input(aio, cras_input, jack_name);
     if (node == NULL) {
       return;
     }
   }
 
   // If we already have the node, associate with the jack.
-  if (!node->common.jack) {
-    node->common.jack = jack;
+  if (!node->jack) {
+    node->jack = jack;
   }
 }
 
@@ -1664,13 +1622,13 @@ static void add_output_node_and_associate_jack(
     const struct cras_alsa_jack* jack,
     void* arg) {
   struct alsa_usb_io* aio;
-  struct alsa_usb_output_node* node;
+  struct alsa_common_node* node;
   const char* jack_name;
 
   CRAS_CHECK(arg);
 
   aio = (struct alsa_usb_io*)arg;
-  node = usb_get_output_node_from_jack(aio, jack);
+  node = cras_alsa_get_output_node_from_jack(&aio->common, jack);
   jack_name = cras_alsa_jack_get_name(jack);
   if (!jack_name || !strcmp(jack_name, "Speaker Phantom Jack")) {
     jack_name = INTERNAL_SPEAKER;
@@ -1678,17 +1636,17 @@ static void add_output_node_and_associate_jack(
 
   // If there isn't a node for this jack, create one.
   if (node == NULL) {
-    node = usb_new_output(aio, NULL, jack_name);
+    node = (struct alsa_common_node*)usb_new_output(aio, NULL, jack_name);
     if (node == NULL) {
       return;
     }
 
-    cras_alsa_jack_update_node_type(jack, &(node->common.base.type));
+    cras_alsa_jack_update_node_type(jack, &(node->base.type));
   }
 
-  if (!node->common.jack) {
+  if (!node->jack) {
     // If we already have the node, associate with the jack.
-    node->common.jack = jack;
+    node->jack = jack;
   }
 }
 
