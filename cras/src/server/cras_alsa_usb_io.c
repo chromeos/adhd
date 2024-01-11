@@ -1574,11 +1574,7 @@ struct cras_iodev* cras_alsa_usb_iodev_create(
 
   /* Add this now so that cleanup of the iodev (in case of error or card
    * card removal will function as expected. */
-  if (direction == CRAS_STREAM_OUTPUT) {
-    cras_iodev_list_add_output(&aio->common.base);
-  } else {
-    cras_iodev_list_add_input(&aio->common.base);
-  }
+  cras_iodev_list_add(&aio->common.base);
   return &aio->common.base;
 
 cleanup_iodev:

@@ -31,7 +31,7 @@ static struct timespec time_now;
 static cras_audio_area* mock_audio_area;
 static loopback_hook_data_t loop_hook;
 static struct cras_iodev* enabled_dev;
-static unsigned int cras_iodev_list_add_input_called;
+static unsigned int cras_iodev_list_add_called;
 static unsigned int cras_iodev_list_rm_called;
 static unsigned int cras_iodev_list_set_device_enabled_callback_called;
 static device_enabled_callback_t device_enabled_callback_cb;
@@ -56,11 +56,11 @@ class LoopBackTestSuite : public testing::Test {
     fmt_.format = SND_PCM_FORMAT_S16_LE;
 
     loop_in_ = loopback_iodev_create(LOOPBACK_POST_MIX_PRE_DSP);
-    EXPECT_EQ(1, cras_iodev_list_add_input_called);
+    EXPECT_EQ(1, cras_iodev_list_add_called);
     loop_in_->format = &fmt_;
 
     loop_hook = NULL;
-    cras_iodev_list_add_input_called = 0;
+    cras_iodev_list_add_called = 0;
     cras_iodev_list_rm_called = 0;
     cras_iodev_list_set_device_enabled_callback_called = 0;
     cras_iodev_list_register_loopback_called = 0;
@@ -267,8 +267,8 @@ void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE loopback_type,
   cras_iodev_list_unregister_loopback_called++;
 }
 
-int cras_iodev_list_add_input(struct cras_iodev* input) {
-  cras_iodev_list_add_input_called++;
+int cras_iodev_list_add(struct cras_iodev* iodev) {
+  cras_iodev_list_add_called++;
   return 0;
 }
 

@@ -612,7 +612,6 @@ static int get_valid_frames(struct cras_iodev* iodev,
 // Creates a bt_io iodev wrapper.
 static struct cras_iodev* bt_io_create(struct bt_io_manager* mgr,
                                        struct cras_iodev* dev) {
-  int err;
   struct bt_io* btio;
   struct cras_iodev* iodev;
   struct cras_ionode* node;
@@ -716,12 +715,7 @@ static struct cras_iodev* bt_io_create(struct bt_io_manager* mgr,
     btio->mgr->active_btflag = profile_flag;
   }
 
-  if (iodev->direction == CRAS_STREAM_OUTPUT) {
-    err = cras_iodev_list_add_output(iodev);
-  } else {
-    err = cras_iodev_list_add_input(iodev);
-  }
-  if (err) {
+  if (cras_iodev_list_add(iodev)) {
     goto error;
   }
 

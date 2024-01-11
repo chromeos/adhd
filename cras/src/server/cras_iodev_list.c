@@ -1857,37 +1857,16 @@ void cras_iodev_list_rm_active_node(enum CRAS_STREAM_DIRECTION dir,
   cras_iodev_list_notify_active_node_changed(dev->direction);
 }
 
-int cras_iodev_list_add_output(struct cras_iodev* output) {
+int cras_iodev_list_add(struct cras_iodev* iodev) {
   int rc;
 
-  if (output->direction != CRAS_STREAM_OUTPUT) {
-    return -EINVAL;
-  }
-
-  rc = add_dev_to_list(output);
+  rc = add_dev_to_list(iodev);
   if (rc) {
     return rc;
   }
 
-  MAINLOG(main_log, MAIN_THREAD_ADD_TO_DEV_LIST, output->info.idx,
-          CRAS_STREAM_OUTPUT, 0);
-  return 0;
-}
-
-int cras_iodev_list_add_input(struct cras_iodev* input) {
-  int rc;
-
-  if (input->direction != CRAS_STREAM_INPUT) {
-    return -EINVAL;
-  }
-
-  rc = add_dev_to_list(input);
-  if (rc) {
-    return rc;
-  }
-
-  MAINLOG(main_log, MAIN_THREAD_ADD_TO_DEV_LIST, input->info.idx,
-          CRAS_STREAM_INPUT, 0);
+  MAINLOG(main_log, MAIN_THREAD_ADD_TO_DEV_LIST, iodev->info.idx,
+          iodev->direction, 0);
   return 0;
 }
 

@@ -36,21 +36,13 @@ void cras_iodev_list_init();
 // Clean up any resources used by iodev.
 void cras_iodev_list_deinit();
 
-/* Adds an output to the output list.
+/* Adds an iodev to the respective direction list.
  * Args:
- *    output - the output to add.
+ *    iodev - the iodev to add.
  * Returns:
  *    0 on success, negative error on failure.
  */
-int cras_iodev_list_add_output(struct cras_iodev* output);
-
-/* Adds an input to the input list.
- * Args:
- *    input - the input to add.
- * Returns:
- *    0 on success, negative error on failure.
- */
-int cras_iodev_list_add_input(struct cras_iodev* input);
+int cras_iodev_list_add(struct cras_iodev* iodev);
 
 /* Removes an output from the enabled list.
  * Args:

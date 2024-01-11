@@ -16,8 +16,7 @@ static unsigned int cras_iodev_rm_node_called;
 static unsigned int cras_iodev_free_format_called;
 static unsigned int cras_iodev_free_resources_called;
 static unsigned int cras_iodev_set_active_node_called;
-static unsigned int cras_iodev_list_add_output_called;
-static unsigned int cras_iodev_list_add_input_called;
+static unsigned int cras_iodev_list_add_called;
 static unsigned int cras_iodev_list_rm_called;
 static int cras_bt_policy_switch_profile_called;
 static int is_utf8_string_ret_value;
@@ -31,8 +30,7 @@ void ResetStubData() {
   cras_iodev_free_resources_called = 0;
   cras_iodev_set_active_node_called = 0;
   cras_iodev_set_node_plugged_called = 0;
-  cras_iodev_list_add_output_called = 0;
-  cras_iodev_list_add_input_called = 0;
+  cras_iodev_list_add_called = 0;
   cras_iodev_list_rm_called = 0;
   cras_bt_policy_switch_profile_called = 0;
   is_utf8_string_ret_value = 1;
@@ -173,7 +171,7 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
   bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP);
   EXPECT_NE((void*)NULL, bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT]);
-  EXPECT_EQ(1, cras_iodev_list_add_output_called);
+  EXPECT_EQ(1, cras_iodev_list_add_called);
   EXPECT_EQ(CRAS_BT_FLAG_A2DP, bt_io_mgr->active_btflag);
 
   bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
@@ -529,13 +527,8 @@ void cras_iodev_update_underrun_duration(struct cras_iodev* iodev,
 }
 
 //  From iodev list.
-int cras_iodev_list_add_output(struct cras_iodev* output) {
-  cras_iodev_list_add_output_called++;
-  return 0;
-}
-
-int cras_iodev_list_add_input(struct cras_iodev* output) {
-  cras_iodev_list_add_input_called++;
+int cras_iodev_list_add(struct cras_iodev* iodev) {
+  cras_iodev_list_add_called++;
   return 0;
 }
 

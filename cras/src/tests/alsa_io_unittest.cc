@@ -2552,13 +2552,10 @@ int main(int argc, char** argv) {
 extern "C" {
 
 //  From iodev.
-int cras_iodev_list_add_output(struct cras_iodev* output) {
+int cras_iodev_list_add(struct cras_iodev* output) {
   return 0;
 }
 
-int cras_iodev_list_add_input(struct cras_iodev* input) {
-  return 0;
-}
 int cras_iodev_list_rm(struct cras_iodev* dev) {
   return 0;
 }

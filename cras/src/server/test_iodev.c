@@ -223,7 +223,7 @@ struct cras_iodev* test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
   // Finally add it to the appropriate iodev list.
   snprintf(iodev->info.name, ARRAY_SIZE(iodev->info.name), "Tester");
   iodev->info.name[ARRAY_SIZE(iodev->info.name) - 1] = '\0';
-  cras_iodev_list_add_input(iodev);
+  cras_iodev_list_add(iodev);
 
   return iodev;
 }

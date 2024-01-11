@@ -351,8 +351,8 @@ struct cras_floop_pair* cras_floop_pair_create(
   common_init_iodev(params, output, "Flexible Loopback (internal)",
                     CRAS_NODE_TYPE_FLOOP_INTERNAL);
 
-  cras_iodev_list_add_input(&floop->pair.input);
-  cras_iodev_list_add_output(&floop->pair.output);
+  cras_iodev_list_add(&floop->pair.input);
+  cras_iodev_list_add(&floop->pair.output);
 
   return &floop->pair;
 }

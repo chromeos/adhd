@@ -380,7 +380,7 @@ struct cras_iodev* loopback_iodev_create(enum CRAS_LOOPBACK_TYPE type) {
   cras_iodev_add_node(iodev, node);
   cras_iodev_set_active_node(iodev, node);
 
-  cras_iodev_list_add_input(iodev);
+  cras_iodev_list_add(iodev);
 
   return iodev;
 }

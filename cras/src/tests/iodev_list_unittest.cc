@@ -405,12 +405,12 @@ TEST_F(IoDevTestSuite, SetSuspendResume) {
 
   d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d2_.info.idx = 2;
   d2_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -500,7 +500,7 @@ TEST_F(IoDevTestSuite, ReopenDevForHigherChannels) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -589,7 +589,7 @@ TEST_F(IoDevTestSuite, DevOpenFailsFollowedByReopenDev) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -653,12 +653,12 @@ TEST_F(IoDevTestSuite, RampMuteAfterResume) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   d1_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.initial_ramp_request = CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK;
-  rc = cras_iodev_list_add_input(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -714,7 +714,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldEnableFallback) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -745,12 +745,12 @@ TEST_F(IoDevTestSuite, InitDevWithEchoRef) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   d1_.echo_reference_dev = &d2_;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_INPUT;
   snprintf(d2_.active_node->name, CRAS_NODE_NAME_BUFFER_SIZE, "echo ref");
-  rc = cras_iodev_list_add_input(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -796,11 +796,11 @@ TEST_F(IoDevTestSuite, SelectNodeOpenFailShouldScheduleRetry) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -892,7 +892,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -951,7 +951,7 @@ TEST_F(IoDevTestSuite, PinnedStreamInitFailShouldScheduleRetry) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -1010,12 +1010,12 @@ TEST_F(IoDevTestSuite, SelectNode) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   node1.idx = 1;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   node2.idx = 2;
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -1099,12 +1099,12 @@ TEST_F(IoDevTestSuite, SelectPreviouslyEnabledNode) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   node1.idx = 1;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   node2.idx = 2;
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -1180,11 +1180,11 @@ TEST_F(IoDevTestSuite, UpdateActiveNode) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   {
@@ -1227,7 +1227,7 @@ TEST_F(IoDevTestSuite, SelectNonExistingNode) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   {
@@ -1248,19 +1248,6 @@ TEST_F(IoDevTestSuite, SelectNonExistingNode) {
   cras_iodev_list_deinit();
 }
 
-// Devices with the wrong direction should be rejected.
-TEST_F(IoDevTestSuite, AddWrongDirection) {
-  int rc;
-
-  rc = cras_iodev_list_add_input(&d1_);
-  EXPECT_EQ(rc, -EINVAL);
-
-  d1_.direction = CRAS_STREAM_INPUT;
-
-  rc = cras_iodev_list_add_output(&d1_);
-  EXPECT_EQ(rc, -EINVAL);
-}
-
 // Test adding/removing an iodev to the list.
 TEST_F(IoDevTestSuite, AddRemoveOutput) {
   struct cras_iodev_info* dev_info;
@@ -1268,15 +1255,15 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
 
   cras_iodev_list_init();
 
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
 
   // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_NE(rc, 0);
 
   // Test insert a second output.
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   EXPECT_EQ(rc, 0);
 
   // Test that it is removed.
@@ -1314,9 +1301,9 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToMute) {
   d1_.info.idx = 1;
   d2_.info.idx = 2;
 
-  cras_iodev_list_add_output(&d1_);
-  cras_iodev_list_add_output(&d2_);
-  cras_iodev_list_add_output(&d3_);
+  cras_iodev_list_add(&d1_);
+  cras_iodev_list_add(&d2_);
+  cras_iodev_list_add(&d3_);
 
   // d1_ and d2_ are enabled.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
@@ -1356,9 +1343,9 @@ TEST_F(IoDevTestSuite, OutputMuteChangedToUnmute) {
 
   d1_.info.idx = 1;
   d2_.info.idx = 2;
-  cras_iodev_list_add_output(&d1_);
-  cras_iodev_list_add_output(&d2_);
-  cras_iodev_list_add_output(&d3_);
+  cras_iodev_list_add(&d1_);
+  cras_iodev_list_add(&d2_);
+  cras_iodev_list_add(&d3_);
 
   // d1_ and d2_ are enabled.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
@@ -1400,7 +1387,7 @@ TEST_F(IoDevTestSuite, EnableDisableDevice) {
   cras_iodev_list_init();
 
   d1_.info.idx = 1;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
 
   cras_iodev_list_set_device_enabled_callback(
@@ -1465,15 +1452,15 @@ TEST_F(IoDevTestSuite, EnableDisableIodevGroup) {
   SetGroupOps();
 
   d1_.info.idx = 1;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
 
   d2_.info.idx = 2;
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   EXPECT_EQ(rc, 0);
 
   d3_.info.idx = 3;
-  rc = cras_iodev_list_add_output(&d3_);
+  rc = cras_iodev_list_add(&d3_);
   EXPECT_EQ(rc, 0);
 
   cras_iodev_list_set_device_enabled_callback(
@@ -1545,14 +1532,14 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   rc = cras_iodev_list_get_inputs(NULL);
   EXPECT_EQ(rc, 0);
 
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
   EXPECT_GE(d1_.info.idx, 0);
   // Test can't insert same iodev twice.
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_NE(rc, 0);
   // Test insert a second input.
-  rc = cras_iodev_list_add_input(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   EXPECT_EQ(rc, 0);
   EXPECT_GE(d2_.info.idx, 1);
   // make sure shared state was updated.
@@ -1607,10 +1594,10 @@ TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
   server_state_update_begin_return = NULL;
   cras_iodev_list_init();
 
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
   EXPECT_GE(d1_.info.idx, 0);
-  rc = cras_iodev_list_add_input(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   EXPECT_EQ(rc, 0);
   EXPECT_GE(d2_.info.idx, 1);
 
@@ -1629,28 +1616,28 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
 
   cras_iodev_list_init();
 
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
-  rc = cras_iodev_list_add_input(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   EXPECT_EQ(rc, 0);
 
   // Test that it is removed.
   rc = cras_iodev_list_rm(&d1_);
   EXPECT_EQ(rc, 0);
   // Add it back.
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
   // And again.
   rc = cras_iodev_list_rm(&d1_);
   EXPECT_EQ(rc, 0);
   // Add it back.
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
   // Remove other dev.
   rc = cras_iodev_list_rm(&d2_);
   EXPECT_EQ(rc, 0);
   // Add it back.
-  rc = cras_iodev_list_add_input(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   EXPECT_EQ(rc, 0);
   // Remove both.
   rc = cras_iodev_list_rm(&d2_);
@@ -1715,9 +1702,9 @@ TEST_F(IoDevTestSuite, IodevListSetNodeAttr) {
 
   // Add two device, each with one node.
   d1_.direction = CRAS_STREAM_INPUT;
-  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
   node1.idx = 1;
-  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
   node2.idx = 2;
 
   // Mismatch id
@@ -1746,7 +1733,7 @@ TEST_F(IoDevTestSuite, SetNodeVolumeCaptureGain) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
   node1.idx = 1;
   node1.dev = &d1_;
@@ -1794,7 +1781,7 @@ TEST_F(IoDevTestSuite, SetNodeVolumeInvalid) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
   node1.idx = 1;
   node1.dev = &d1_;
@@ -1823,7 +1810,7 @@ TEST_F(IoDevTestSuite, SetNodeSwapLeftRight) {
 
   cras_iodev_list_init();
 
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
   node1.idx = 1;
   node1.dev = &d1_;
@@ -1848,7 +1835,7 @@ TEST_F(IoDevTestSuite, SetNodeDisplayRotation) {
   int rc;
   cras_iodev_list_init();
 
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
   node1.idx = 1;
   node1.dev = &d1_;
@@ -1879,11 +1866,11 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   d2_.direction = CRAS_STREAM_OUTPUT;
   d3_.direction = CRAS_STREAM_OUTPUT;
 
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
-  rc = cras_iodev_list_add_output(&d3_);
+  rc = cras_iodev_list_add(&d3_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -1958,7 +1945,7 @@ TEST_F(IoDevTestSuite, OutputDevIdleClose) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -2026,7 +2013,7 @@ TEST_F(IoDevTestSuite, DrainTimerCancel) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -2107,9 +2094,9 @@ TEST_F(IoDevTestSuite, RemoveThenSelectActiveNode) {
   d2_.direction = CRAS_STREAM_OUTPUT;
 
   // d1_ will be the default_output
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   /* Test the scenario that the selected active output removed
@@ -2133,9 +2120,9 @@ TEST_F(IoDevTestSuite, SuspendDevWithPinnedStream) {
   d2_.direction = CRAS_STREAM_OUTPUT;
   d2_.info.idx = 2;
 
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   memset(&rstream1, 0, sizeof(rstream1));
@@ -2199,9 +2186,9 @@ TEST_F(IoDevTestSuite, DisableDevWithPinnedStream) {
   d2_.direction = CRAS_STREAM_OUTPUT;
   d2_.info.idx = 2;
 
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   EXPECT_EQ(rc, 0);
-  rc = cras_iodev_list_add_output(&d2_);
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
 
   rstream1.is_pinned = 1;
@@ -2246,7 +2233,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
   d1_.direction = CRAS_STREAM_OUTPUT;
   d1_.info.idx = 1;
-  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
 
   {  // Update d1_, then update fallback (disable)
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, update_active_node_called, 2);
@@ -2261,7 +2248,7 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStream) {
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   d2_.info.idx = 2;
-  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -2353,11 +2340,11 @@ TEST_F(IoDevTestSuite, AddRemovePinnedStreamOnIodevGroup) {
   SetGroupOps();
 
   d1_.info.idx = 1;
-  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
   d2_.info.idx = 2;
-  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
   d3_.info.idx = 3;
-  EXPECT_EQ(cras_iodev_list_add_output(&d3_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d3_), 0);
 
   // Select the node on the second group so that the first group is disabled.
   cras_iodev_list_select_node(CRAS_STREAM_OUTPUT,
@@ -2450,9 +2437,9 @@ TEST_F(IoDevTestSuite, SuspendResumePinnedStream) {
 
   // Add 2 output devices.
   d1_.direction = CRAS_STREAM_OUTPUT;
-  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
   d2_.direction = CRAS_STREAM_OUTPUT;
-  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
 
   d1_.format = &fmt_;
   d2_.format = &fmt_;
@@ -2514,7 +2501,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedThenSuspendResume) {
 
   node1.type = CRAS_NODE_TYPE_HOTWORD;
   d1_.direction = CRAS_STREAM_INPUT;
-  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
 
   d1_.format = &fmt_;
 
@@ -2578,7 +2565,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsAddedAfterSuspend) {
 
   node1.type = CRAS_NODE_TYPE_HOTWORD;
   d1_.direction = CRAS_STREAM_INPUT;
-  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
 
   d1_.format = &fmt_;
 
@@ -2631,10 +2618,10 @@ TEST_F(IoDevTestSuite, GetSCOPCMIodevs) {
 
   fake_sco_in_dev.direction = CRAS_STREAM_INPUT;
   fake_sco_in_node.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
-  cras_iodev_list_add_input(&fake_sco_in_dev);
+  cras_iodev_list_add(&fake_sco_in_dev);
   fake_sco_out_dev.direction = CRAS_STREAM_OUTPUT;
   fake_sco_out_node.btflags |= CRAS_BT_FLAG_SCO_OFFLOAD;
-  cras_iodev_list_add_output(&fake_sco_out_dev);
+  cras_iodev_list_add(&fake_sco_out_dev);
 
   EXPECT_EQ(&fake_sco_in_dev,
             cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_INPUT));
@@ -2654,7 +2641,7 @@ TEST_F(IoDevTestSuite, HotwordStreamsPausedAtSystemSuspend) {
 
   node1.type = CRAS_NODE_TYPE_HOTWORD;
   d1_.direction = CRAS_STREAM_INPUT;
-  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
 
   d1_.format = &fmt_;
 
@@ -2730,7 +2717,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
 
   d1_.info.idx = 1;
   d1_.direction = CRAS_STREAM_INPUT;
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   d1_.format = &fmt_;
@@ -2857,11 +2844,11 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByActiveSpeaker) {
   // Check no devices exist initially.
   EXPECT_EQ(cras_iodev_list_get_inputs(NULL), 0);
 
-  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
   EXPECT_GE(d1_.info.idx, 0);
-  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
   EXPECT_GE(d2_.info.idx, 1);
-  EXPECT_EQ(cras_iodev_list_add_output(&d3_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d3_), 0);
   EXPECT_GE(d3_.info.idx, 2);
 
   // Make sure shared state was updated.
@@ -2903,18 +2890,18 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByPinnedSpeaker) {
   d1_.info.idx = 1;
   node1.idx = 1;
   node1.type = CRAS_NODE_TYPE_USB;
-  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
 
   d2_.direction = CRAS_STREAM_OUTPUT;
   d2_.info.idx = 2;
   node2.idx = 2;
   node2.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
-  EXPECT_EQ(cras_iodev_list_add_output(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
 
   // Add 1 input device for checking Noise Cancellation state.
   d3_.direction = CRAS_STREAM_INPUT;
   node3.nc_providers = CRAS_NC_PROVIDER_DSP;
-  EXPECT_EQ(cras_iodev_list_add_input(&d3_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d3_), 0);
 
   // Make sure shared state was updated.
   EXPECT_EQ(server_state_stub.num_input_devs, 1);
@@ -3028,13 +3015,13 @@ TEST_F(IoDevTestSuite, SetAecRefReconnectStream) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_list_add_output(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   // Prepare an enabled input iodev for stream to attach to.
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
-  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
 
   cras_iodev_list_select_node(CRAS_STREAM_INPUT,
                               cras_make_node_id(d2_.info.idx, 0));
@@ -3068,13 +3055,13 @@ TEST_F(IoDevTestSuite, ReconnectStreamsWithApm) {
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_INPUT;
-  rc = cras_iodev_list_add_input(&d1_);
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
 
   // Prepare an enabled input iodev for stream to attach to.
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
-  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
   cras_iodev_list_select_node(CRAS_STREAM_INPUT,
                               cras_make_node_id(d2_.info.idx, 0));
 
@@ -3108,13 +3095,13 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationInHybridCases) {
   d1_.direction = CRAS_STREAM_OUTPUT;
   d1_.info.idx = 1;
   node1.type = CRAS_NODE_TYPE_USB;
-  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
 
   // Add input device for checking Noise Cancellation state.
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
   node2.nc_providers = CRAS_NC_PROVIDER_DSP;
-  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
 
   // Make sure shared state was updated.
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
@@ -3214,14 +3201,14 @@ TEST_F(IoDevTestSuite, BlockNoiseCancellationByTwoNodesInOneDev) {
   node1_2.idx = 2;
   node1_2.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
   DL_APPEND(d1_.nodes, &node1_2);
-  EXPECT_EQ(cras_iodev_list_add_output(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
 
   // Add input device for checking Noise Cancellation state.
   d2_.direction = CRAS_STREAM_INPUT;
   d2_.info.idx = 2;
   node2.idx = 2;
   node2.nc_providers = CRAS_NC_PROVIDER_DSP;
-  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
 
   // Make sure shared state was updated.
   ASSERT_EQ(server_state_stub.num_input_nodes, 1);
@@ -3349,11 +3336,7 @@ TEST_P(OpenIodevTestSuite, IodevLastOpenResult) {
   cras_iodev_list_init();
 
   d1_.direction = param.first_iodev_direction;
-  if (d1_.direction == CRAS_STREAM_INPUT) {
-    rc = cras_iodev_list_add_input(&d1_);
-  } else {
-    rc = cras_iodev_list_add_output(&d1_);
-  }
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
   EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
 
@@ -3391,11 +3374,7 @@ TEST_P(OpenIodevTestSuite, IodevCloseSameLastOpenResult) {
   cras_iodev_list_init();
 
   d1_.direction = param.first_iodev_direction;
-  if (d1_.direction == CRAS_STREAM_INPUT) {
-    rc = cras_iodev_list_add_input(&d1_);
-  } else {
-    rc = cras_iodev_list_add_output(&d1_);
-  }
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
   EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
 
@@ -3441,22 +3420,14 @@ TEST_P(OpenIodevTestSuite, IodevLastOpenResultWithOtherDevice) {
   cras_iodev_list_init();
 
   d1_.direction = param.first_iodev_direction;
-  if (d1_.direction == CRAS_STREAM_INPUT) {
-    rc = cras_iodev_list_add_input(&d1_);
-  } else {
-    rc = cras_iodev_list_add_output(&d1_);
-  }
+  rc = cras_iodev_list_add(&d1_);
   ASSERT_EQ(rc, 0);
   EXPECT_EQ(d1_.info.last_open_result, UNKNOWN);
 
   d1_.format = &fmt_;
 
   d2_.direction = param.second_iodev_direction;
-  if (d2_.direction == CRAS_STREAM_INPUT) {
-    rc = cras_iodev_list_add_input(&d2_);
-  } else {
-    rc = cras_iodev_list_add_output(&d2_);
-  }
+  rc = cras_iodev_list_add(&d2_);
   ASSERT_EQ(rc, 0);
   EXPECT_EQ(d2_.info.last_open_result, UNKNOWN);
 
@@ -3569,9 +3540,9 @@ TEST_F(IoDevTestSuite, BluetoothNbMicAudioEffectHasSr) {
   EXPECT_EQ(server_state_stub.num_input_nodes, 0);
   EXPECT_EQ(server_state_stub.num_output_nodes, 0);
 
-  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
-  EXPECT_EQ(cras_iodev_list_add_input(&d2_), 0);
-  EXPECT_EQ(cras_iodev_list_add_output(&d3_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d3_), 0);
 
   EXPECT_EQ(server_state_stub.num_input_nodes, 2);
   EXPECT_EQ(server_state_stub.num_output_nodes, 1);
@@ -3593,7 +3564,7 @@ TEST_F(IoDevTestSuite, BluetoothNbMicAudioEffectSrNotSupported) {
   d1_.nodes->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
 
   EXPECT_EQ(server_state_stub.num_input_nodes, 0);
-  EXPECT_EQ(cras_iodev_list_add_input(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
   EXPECT_EQ(server_state_stub.num_input_nodes, 1);
 
   EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, 0);
