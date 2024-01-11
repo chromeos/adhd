@@ -754,14 +754,9 @@ static void bt_io_free_resources(struct cras_iodev* bt_iodev) {
 
 // Destroys a bt_io iodev wrapper.
 static void bt_io_destroy(struct cras_iodev* bt_iodev) {
-  int rc;
   struct bt_io* btio = (struct bt_io*)bt_iodev;
+  int rc = cras_iodev_list_rm(bt_iodev);
 
-  if (bt_iodev->direction == CRAS_STREAM_OUTPUT) {
-    rc = cras_iodev_list_rm_output(bt_iodev);
-  } else {
-    rc = cras_iodev_list_rm_input(bt_iodev);
-  }
   if (rc == -EBUSY) {
     return;
   }

@@ -937,7 +937,7 @@ TEST_F(IoDevTestSuite, InitDevFailShouldScheduleRetry) {
   {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_tm_cancel_timer_called, 1);
 
-    cras_iodev_list_rm_output(&d1_);
+    cras_iodev_list_rm(&d1_);
   }
 
   cras_iodev_list_deinit();
@@ -982,7 +982,7 @@ TEST_F(IoDevTestSuite, PinnedStreamInitFailShouldScheduleRetry) {
     cras_tm_timer_cb(NULL, cras_tm_timer_cb_data);
   }
 
-  cras_iodev_list_rm_output(&d1_);
+  cras_iodev_list_rm(&d1_);
 
   cras_iodev_list_deinit();
 }
@@ -1280,11 +1280,11 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   EXPECT_EQ(rc, 0);
 
   // Test that it is removed.
-  rc = cras_iodev_list_rm_output(&d1_);
+  rc = cras_iodev_list_rm(&d1_);
   EXPECT_EQ(rc, 0);
 
   // Test that we can't remove a dev twice.
-  rc = cras_iodev_list_rm_output(&d1_);
+  rc = cras_iodev_list_rm(&d1_);
   EXPECT_NE(rc, 0);
 
   // Should be 1 dev now.
@@ -1295,7 +1295,7 @@ TEST_F(IoDevTestSuite, AddRemoveOutput) {
   EXPECT_EQ(cras_iodev_list_get_outputs(NULL), 1);
 
   // Remove other dev.
-  rc = cras_iodev_list_rm_output(&d2_);
+  rc = cras_iodev_list_rm(&d2_);
   EXPECT_EQ(rc, 0);
 
   // Should be 0 devs now.
@@ -1576,17 +1576,17 @@ TEST_F(IoDevTestSuite, AddRemoveInput) {
   }
 
   // Test that it is removed.
-  rc = cras_iodev_list_rm_input(&d1_);
+  rc = cras_iodev_list_rm(&d1_);
   EXPECT_EQ(rc, 0);
   // Test that we can't remove a dev twice.
-  rc = cras_iodev_list_rm_input(&d1_);
+  rc = cras_iodev_list_rm(&d1_);
   EXPECT_NE(rc, 0);
   // Should be 1 dev now.
   rc = cras_iodev_list_get_inputs(&dev_info);
   EXPECT_EQ(rc, 1);
   free(dev_info);
   // Remove other dev.
-  rc = cras_iodev_list_rm_input(&d2_);
+  rc = cras_iodev_list_rm(&d2_);
   EXPECT_EQ(rc, 0);
   // Shouldn't be any devices left.
   rc = cras_iodev_list_get_inputs(&dev_info);
@@ -1614,8 +1614,8 @@ TEST_F(IoDevTestSuite, AddRemoveInputNoSem) {
   EXPECT_EQ(rc, 0);
   EXPECT_GE(d2_.info.idx, 1);
 
-  EXPECT_EQ(cras_iodev_list_rm_input(&d1_), 0);
-  EXPECT_EQ(cras_iodev_list_rm_input(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_rm(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_rm(&d2_), 0);
   cras_iodev_list_deinit();
 }
 
@@ -1635,27 +1635,27 @@ TEST_F(IoDevTestSuite, RemoveLastInput) {
   EXPECT_EQ(rc, 0);
 
   // Test that it is removed.
-  rc = cras_iodev_list_rm_input(&d1_);
+  rc = cras_iodev_list_rm(&d1_);
   EXPECT_EQ(rc, 0);
   // Add it back.
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(rc, 0);
   // And again.
-  rc = cras_iodev_list_rm_input(&d1_);
+  rc = cras_iodev_list_rm(&d1_);
   EXPECT_EQ(rc, 0);
   // Add it back.
   rc = cras_iodev_list_add_input(&d1_);
   EXPECT_EQ(rc, 0);
   // Remove other dev.
-  rc = cras_iodev_list_rm_input(&d2_);
+  rc = cras_iodev_list_rm(&d2_);
   EXPECT_EQ(rc, 0);
   // Add it back.
   rc = cras_iodev_list_add_input(&d2_);
   EXPECT_EQ(rc, 0);
   // Remove both.
-  rc = cras_iodev_list_rm_input(&d2_);
+  rc = cras_iodev_list_rm(&d2_);
   EXPECT_EQ(rc, 0);
-  rc = cras_iodev_list_rm_input(&d1_);
+  rc = cras_iodev_list_rm(&d1_);
   EXPECT_EQ(rc, 0);
   // Shouldn't be any devices left.
   rc = cras_iodev_list_get_inputs(&dev_info);
@@ -1940,12 +1940,12 @@ TEST_F(IoDevTestSuite, AddActiveNode) {
   {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
 
-    cras_iodev_list_rm_output(&d3_);
+    cras_iodev_list_rm(&d3_);
   }
 
   /* Assert active devices was set to default one, when selected device
    * removed. */
-  cras_iodev_list_rm_output(&d1_);
+  cras_iodev_list_rm(&d1_);
 
   cras_iodev_list_deinit();
 }
@@ -2002,7 +2002,7 @@ TEST_F(IoDevTestSuite, OutputDevIdleClose) {
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 1);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_tm_cancel_timer_called, 0);
 
-    cras_iodev_list_rm_output(&d1_);
+    cras_iodev_list_rm(&d1_);
   }
 
   {  // When timer eventually fired expect there's no more new

@@ -17,9 +17,8 @@ static unsigned int cras_iodev_free_format_called;
 static unsigned int cras_iodev_free_resources_called;
 static unsigned int cras_iodev_set_active_node_called;
 static unsigned int cras_iodev_list_add_output_called;
-static unsigned int cras_iodev_list_rm_output_called;
 static unsigned int cras_iodev_list_add_input_called;
-static unsigned int cras_iodev_list_rm_input_called;
+static unsigned int cras_iodev_list_rm_called;
 static int cras_bt_policy_switch_profile_called;
 static int is_utf8_string_ret_value;
 static size_t cras_iodev_set_node_plugged_called;
@@ -33,9 +32,8 @@ void ResetStubData() {
   cras_iodev_set_active_node_called = 0;
   cras_iodev_set_node_plugged_called = 0;
   cras_iodev_list_add_output_called = 0;
-  cras_iodev_list_rm_output_called = 0;
   cras_iodev_list_add_input_called = 0;
-  cras_iodev_list_rm_input_called = 0;
+  cras_iodev_list_rm_called = 0;
   cras_bt_policy_switch_profile_called = 0;
   is_utf8_string_ret_value = 1;
 }
@@ -201,7 +199,7 @@ TEST_F(BtIoBasicSuite, CreateBtIo) {
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
 
   EXPECT_EQ(1, cras_iodev_free_resources_called);
-  EXPECT_EQ(1, cras_iodev_list_rm_output_called);
+  EXPECT_EQ(1, cras_iodev_list_rm_called);
 }
 
 TEST_F(BtIoBasicSuite, AppendRmIodev) {
@@ -536,18 +534,13 @@ int cras_iodev_list_add_output(struct cras_iodev* output) {
   return 0;
 }
 
-int cras_iodev_list_rm_output(struct cras_iodev* dev) {
-  cras_iodev_list_rm_output_called++;
-  return 0;
-}
-
 int cras_iodev_list_add_input(struct cras_iodev* output) {
   cras_iodev_list_add_input_called++;
   return 0;
 }
 
-int cras_iodev_list_rm_input(struct cras_iodev* dev) {
-  cras_iodev_list_rm_input_called++;
+int cras_iodev_list_rm(struct cras_iodev* dev) {
+  cras_iodev_list_rm_called++;
   return 0;
 }
 

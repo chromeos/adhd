@@ -32,7 +32,7 @@ static cras_audio_area* mock_audio_area;
 static loopback_hook_data_t loop_hook;
 static struct cras_iodev* enabled_dev;
 static unsigned int cras_iodev_list_add_input_called;
-static unsigned int cras_iodev_list_rm_input_called;
+static unsigned int cras_iodev_list_rm_called;
 static unsigned int cras_iodev_list_set_device_enabled_callback_called;
 static device_enabled_callback_t device_enabled_callback_cb;
 static device_disabled_callback_t device_disabled_callback_cb;
@@ -61,7 +61,7 @@ class LoopBackTestSuite : public testing::Test {
 
     loop_hook = NULL;
     cras_iodev_list_add_input_called = 0;
-    cras_iodev_list_rm_input_called = 0;
+    cras_iodev_list_rm_called = 0;
     cras_iodev_list_set_device_enabled_callback_called = 0;
     cras_iodev_list_register_loopback_called = 0;
     cras_iodev_list_unregister_loopback_called = 0;
@@ -75,7 +75,7 @@ class LoopBackTestSuite : public testing::Test {
 
   virtual void TearDown() {
     loopback_iodev_destroy(loop_in_);
-    EXPECT_EQ(1, cras_iodev_list_rm_input_called);
+    EXPECT_EQ(1, cras_iodev_list_rm_called);
     EXPECT_EQ(1, cras_iodev_free_resources_called);
     EXPECT_EQ(NULL, device_enabled_callback_cb);
     EXPECT_EQ(NULL, device_disabled_callback_cb);
@@ -272,8 +272,8 @@ int cras_iodev_list_add_input(struct cras_iodev* input) {
   return 0;
 }
 
-int cras_iodev_list_rm_input(struct cras_iodev* input) {
-  cras_iodev_list_rm_input_called++;
+int cras_iodev_list_rm(struct cras_iodev* iodev) {
+  cras_iodev_list_rm_called++;
   return 0;
 }
 

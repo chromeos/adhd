@@ -2537,13 +2537,7 @@ void alsa_iodev_ucm_complete_init(struct cras_iodev* iodev) {
 
 void alsa_iodev_destroy(struct cras_iodev* iodev) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
-  int rc;
-
-  if (iodev->direction == CRAS_STREAM_INPUT) {
-    rc = cras_iodev_list_rm_input(iodev);
-  } else {
-    rc = cras_iodev_list_rm_output(iodev);
-  }
+  int rc = cras_iodev_list_rm(iodev);
 
   if (rc == -EBUSY) {
     syslog(LOG_WARNING, "Failed to remove iodev %s", iodev->info.name);

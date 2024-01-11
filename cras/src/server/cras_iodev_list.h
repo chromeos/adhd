@@ -52,21 +52,13 @@ int cras_iodev_list_add_output(struct cras_iodev* output);
  */
 int cras_iodev_list_add_input(struct cras_iodev* input);
 
-/* Removes an output from the output list.
+/* Removes an output from the enabled list.
  * Args:
- *    output - the output to remove.
+ *    dev - the iodev to remove.
  * Returns:
  *    0 on success, negative error on failure.
  */
-int cras_iodev_list_rm_output(struct cras_iodev* output);
-
-/* Removes an input from the input list.
- * Args:
- *    output - the input to remove.
- * Returns:
- *    0 on success, negative error on failure.
- */
-int cras_iodev_list_rm_input(struct cras_iodev* input);
+int cras_iodev_list_rm(struct cras_iodev* dev);
 
 /* Gets a list of outputs. Callee must free the list when finished.  If list_out
  * is NULL, this function can be used to return the number of outputs.

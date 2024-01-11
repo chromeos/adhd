@@ -64,11 +64,7 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
                                          uint8_t* base_buffer) {}
 
-int cras_iodev_list_rm_input(struct cras_iodev* input) {
-  return 0;
-}
-
-int cras_iodev_list_rm_output(struct cras_iodev* output) {
+int cras_iodev_list_rm(struct cras_iodev* iodev) {
   return 0;
 }
 

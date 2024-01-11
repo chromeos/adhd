@@ -231,7 +231,7 @@ struct cras_iodev* test_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 void test_iodev_destroy(struct cras_iodev* iodev) {
   struct test_iodev* testio = (struct test_iodev*)iodev;
 
-  cras_iodev_list_rm_input(iodev);
+  cras_iodev_list_rm(iodev);
   free(iodev->active_node);
   cras_iodev_free_resources(iodev);
   free(testio);

@@ -43,8 +43,6 @@ static audio_thread* iodev_get_thread_return;
 static int stream_list_add_stream_return;
 static unsigned int stream_list_add_stream_called;
 static unsigned int stream_list_disconnect_stream_called;
-static unsigned int cras_iodev_list_rm_input_called;
-static unsigned int cras_iodev_list_rm_output_called;
 static struct cras_audio_shm mock_shm;
 static struct cras_rstream mock_rstream;
 static size_t cras_observer_num_ops_registered;
@@ -82,8 +80,6 @@ void ResetStubData() {
   stream_list_add_stream_return = 0;
   stream_list_add_stream_called = 0;
   stream_list_disconnect_stream_called = 0;
-  cras_iodev_list_rm_output_called = 0;
-  cras_iodev_list_rm_input_called = 0;
   cras_observer_num_ops_registered = 0;
   cras_observer_register_notify_called = 0;
   cras_observer_add_called = 0;
@@ -199,7 +195,6 @@ TEST_F(RClientMessagesSuite, AudThreadAttachFail) {
   EXPECT_EQ(sizeof(out_msg), rc);
   EXPECT_EQ(stream_id_, out_msg.stream_id);
   EXPECT_NE(0, out_msg.err);
-  EXPECT_EQ(0, cras_iodev_list_rm_output_called);
   EXPECT_EQ(1, stream_list_add_stream_called);
   EXPECT_EQ(0, stream_list_disconnect_stream_called);
 }
@@ -754,16 +749,6 @@ unsigned int cras_rstream_get_effects(const struct cras_rstream* stream) {
 }
 
 int cras_iodev_move_stream_type(uint32_t type, uint32_t index) {
-  return 0;
-}
-
-int cras_iodev_list_rm_output(struct cras_iodev* output) {
-  cras_iodev_list_rm_output_called++;
-  return 0;
-}
-
-int cras_iodev_list_rm_input(struct cras_iodev* input) {
-  cras_iodev_list_rm_input_called++;
   return 0;
 }
 

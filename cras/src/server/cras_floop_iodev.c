@@ -363,8 +363,8 @@ void cras_floop_pair_destroy(struct cras_floop_pair* fpair) {
   }
   struct flexible_loopback* floop = (struct flexible_loopback*)fpair;
 
-  cras_iodev_list_rm_input(&fpair->input);
-  cras_iodev_list_rm_output(&fpair->output);
+  cras_iodev_list_rm(&fpair->input);
+  cras_iodev_list_rm(&fpair->output);
   free(fpair->input.nodes);
   free(fpair->output.nodes);
   cras_iodev_free_resources(&fpair->input);

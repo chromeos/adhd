@@ -261,7 +261,7 @@ static int add_dev_to_list(struct cras_iodev* dev) {
   return 0;
 }
 
-// Removes a device to the list.  Used from rm_input and rm_output.
+// Removes a device from all direciton lists.
 static int rm_dev_from_list(struct cras_iodev* dev) {
   struct cras_iodev* tmp;
   struct device_enabled_cb* callback;
@@ -1891,24 +1891,7 @@ int cras_iodev_list_add_input(struct cras_iodev* input) {
   return 0;
 }
 
-int cras_iodev_list_rm_output(struct cras_iodev* dev) {
-  int res;
-
-  /* Disable and close the dev group if any device in it is about to be removed.
-   * The dev group is enabled/disabled as a whole to ensure:
-   * 1. Fallback device is enabled properly. A partially disabled dev group may
-   *    drop some streams and block clients.
-   * 2. No stream is running if the dev group's node owner is removed.
-   */
-  cras_iodev_list_disable_and_close_dev_group(dev);
-  res = rm_dev_from_list(dev);
-  if (res == 0) {
-    cras_iodev_list_update_device_list();
-  }
-  return res;
-}
-
-int cras_iodev_list_rm_input(struct cras_iodev* dev) {
+int cras_iodev_list_rm(struct cras_iodev* dev) {
   int res;
 
   /* Disable and close the dev group if any device in it is about to be removed.

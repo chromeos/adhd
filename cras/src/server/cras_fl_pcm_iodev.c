@@ -1098,7 +1098,7 @@ void a2dp_pcm_iodev_destroy(struct cras_iodev* iodev) {
   struct fl_pcm_io* a2dpio = (struct fl_pcm_io*)iodev;
 
   // Free resources when device successfully removed.
-  cras_iodev_list_rm_output(iodev);
+  cras_iodev_list_rm(iodev);
   cras_iodev_free_resources(iodev);
   pcm_free_base_resources(a2dpio);
   free(a2dpio);
@@ -1223,11 +1223,7 @@ void hfp_pcm_iodev_destroy(struct cras_iodev* iodev) {
   struct fl_pcm_io* hfpio = (struct fl_pcm_io*)iodev;
 
   byte_buffer_destroy(&hfpio->pcm_buf);
-  if (iodev->direction == CRAS_STREAM_OUTPUT) {
-    cras_iodev_list_rm_output(iodev);
-  } else if (iodev->direction == CRAS_STREAM_INPUT) {
-    cras_iodev_list_rm_input(iodev);
-  }
+  cras_iodev_list_rm(iodev);
   pcm_free_base_resources(hfpio);
   cras_iodev_free_resources(iodev);
   free(hfpio);

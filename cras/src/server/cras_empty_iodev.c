@@ -246,11 +246,7 @@ struct cras_iodev* empty_iodev_create(enum CRAS_STREAM_DIRECTION direction,
 void empty_iodev_destroy(struct cras_iodev* iodev) {
   struct empty_iodev* empty_iodev = (struct empty_iodev*)iodev;
 
-  if (iodev->direction == CRAS_STREAM_INPUT) {
-    cras_iodev_list_rm_input(iodev);
-  } else {
-    cras_iodev_list_rm_output(iodev);
-  }
+  cras_iodev_list_rm(iodev);
   free(iodev->active_node);
   cras_iodev_free_resources(iodev);
   free(empty_iodev);

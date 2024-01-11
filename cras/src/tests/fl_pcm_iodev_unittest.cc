@@ -34,8 +34,7 @@ static unsigned cras_iodev_free_format_called;
 static unsigned cras_iodev_free_resources_called;
 static unsigned cras_iodev_list_add_output_called;
 static unsigned cras_iodev_list_add_input_called;
-static unsigned cras_iodev_list_rm_output_called;
-static unsigned cras_iodev_list_rm_input_called;
+static unsigned cras_iodev_list_rm_called;
 static cras_audio_area* mock_audio_area;
 static unsigned cras_iodev_init_audio_area_called;
 static unsigned cras_iodev_free_audio_area_called;
@@ -67,8 +66,7 @@ void ResetStubData() {
   cras_iodev_free_resources_called = 0;
   cras_iodev_list_add_output_called = 0;
   cras_iodev_list_add_input_called = 0;
-  cras_iodev_list_rm_output_called = 0;
-  cras_iodev_list_rm_input_called = 0;
+  cras_iodev_list_rm_called = 0;
   cras_iodev_init_audio_area_called = 0;
   cras_iodev_free_audio_area_called = 0;
   cras_floss_a2dp_start_called = 0;
@@ -156,7 +154,7 @@ TEST_F(PcmIodev, CreateDestroyA2dpPcmIodev) {
   a2dp_pcm_iodev_destroy(iodev);
 
   EXPECT_EQ(1, cras_iodev_rm_node_called);
-  EXPECT_EQ(1, cras_iodev_list_rm_output_called);
+  EXPECT_EQ(1, cras_iodev_list_rm_called);
   EXPECT_EQ(1, cras_iodev_free_resources_called);
 }
 
@@ -217,13 +215,13 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
   hfp_pcm_iodev_destroy(odev);
 
   EXPECT_EQ(1, cras_iodev_rm_node_called);
-  EXPECT_EQ(1, cras_iodev_list_rm_output_called);
+  EXPECT_EQ(1, cras_iodev_list_rm_called);
   EXPECT_EQ(1, cras_iodev_free_resources_called);
 
   hfp_pcm_iodev_destroy(idev);
 
   EXPECT_EQ(2, cras_iodev_rm_node_called);
-  EXPECT_EQ(1, cras_iodev_list_rm_input_called);
+  EXPECT_EQ(2, cras_iodev_list_rm_called);
   EXPECT_EQ(2, cras_iodev_free_resources_called);
 }
 
@@ -764,13 +762,8 @@ int cras_iodev_list_add_input(struct cras_iodev* input) {
   return 0;
 }
 
-int cras_iodev_list_rm_output(struct cras_iodev* output) {
-  cras_iodev_list_rm_output_called++;
-  return 0;
-}
-
-int cras_iodev_list_rm_input(struct cras_iodev* output) {
-  cras_iodev_list_rm_input_called++;
+int cras_iodev_list_rm(struct cras_iodev* iodev) {
+  cras_iodev_list_rm_called++;
   return 0;
 }
 

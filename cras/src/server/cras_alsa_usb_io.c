@@ -1933,13 +1933,7 @@ void cras_alsa_usb_iodev_ucm_complete_init(struct cras_iodev* iodev) {
 
 void cras_alsa_usb_iodev_destroy(struct cras_iodev* iodev) {
   struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
-  int rc;
-
-  if (iodev->direction == CRAS_STREAM_INPUT) {
-    rc = cras_iodev_list_rm_input(iodev);
-  } else {
-    rc = cras_iodev_list_rm_output(iodev);
-  }
+  int rc = cras_iodev_list_rm(iodev);
 
   if (rc == -EBUSY) {
     syslog(LOG_WARNING, "card type: %s, Failed to remove iodev %s",
