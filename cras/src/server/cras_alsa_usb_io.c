@@ -1019,8 +1019,8 @@ static void usb_jack_output_plug_event(const struct cras_alsa_jack* jack,
 
   struct alsa_usb_io* aio = (struct alsa_usb_io*)arg;
   struct alsa_usb_output_node* aout =
-      (struct alsa_usb_output_node*)cras_alsa_get_output_node_from_jack(
-          &aio->common, jack);
+      (struct alsa_usb_output_node*)cras_alsa_get_node_from_jack(&aio->common,
+                                                                 jack);
   struct alsa_common_node* anode = &aout->common;
   const char* jack_name = cras_alsa_jack_get_name(jack);
   if (!jack_name || !strcmp(jack_name, "Speaker Phantom Jack")) {
@@ -1054,7 +1054,7 @@ static void usb_jack_input_plug_event(const struct cras_alsa_jack* jack,
   }
   struct alsa_usb_io* aio = (struct alsa_usb_io*)arg;
   struct alsa_common_node* ain =
-      cras_alsa_get_input_node_from_jack(&aio->common, jack);
+      cras_alsa_get_node_from_jack(&aio->common, jack);
   struct cras_ionode* node = &ain->base;
   const char* jack_name = cras_alsa_jack_get_name(jack);
 
@@ -1600,7 +1600,7 @@ static void add_input_node_and_associate_jack(const struct cras_alsa_jack* jack,
   CRAS_CHECK(arg);
 
   aio = (struct alsa_usb_io*)arg;
-  node = cras_alsa_get_input_node_from_jack(&aio->common, jack);
+  node = cras_alsa_get_node_from_jack(&aio->common, jack);
   jack_name = cras_alsa_jack_get_name(jack);
 
   // If there isn't a node for this jack, create one.
@@ -1628,7 +1628,7 @@ static void add_output_node_and_associate_jack(
   CRAS_CHECK(arg);
 
   aio = (struct alsa_usb_io*)arg;
-  node = cras_alsa_get_output_node_from_jack(&aio->common, jack);
+  node = cras_alsa_get_node_from_jack(&aio->common, jack);
   jack_name = cras_alsa_jack_get_name(jack);
   if (!jack_name || !strcmp(jack_name, "Speaker Phantom Jack")) {
     jack_name = INTERNAL_SPEAKER;
