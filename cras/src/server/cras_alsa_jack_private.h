@@ -58,12 +58,8 @@ struct cras_alsa_jack {
   snd_hctl_elem_t* eld_control;
   // list of jacks this belongs to.
   struct cras_alsa_jack_list* jack_list;
-  // mixer output control used to control audio to this jack.
-  // This will be null for input jacks.
-  struct mixer_control* mixer_output;
-  // mixer input control used to control audio to this jack.
-  // This will be null for output jacks.
-  struct mixer_control* mixer_input;
+  // mixer control used to control audio to this jack.
+  struct mixer_control* mixer;
   // Name of the ucm device if found, otherwise, NULL.
   char* ucm_device;
   const char* override_type_name;

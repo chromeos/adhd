@@ -292,7 +292,7 @@ struct alsa_common_node* cras_alsa_get_output_node_from_jack(
   }
 
   // Search by mixer control next.
-  mixer_output = cras_alsa_jack_get_mixer_output(jack);
+  mixer_output = cras_alsa_jack_get_mixer(jack);
   if (mixer_output == NULL) {
     return NULL;
   }
@@ -308,7 +308,7 @@ struct alsa_common_node* cras_alsa_get_input_node_from_jack(
   struct alsa_common_node* anode = NULL;
   struct cras_ionode* node = NULL;
 
-  mixer_input = cras_alsa_jack_get_mixer_input(jack);
+  mixer_input = cras_alsa_jack_get_mixer(jack);
   if (mixer_input == NULL) {
     DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, anode, jack, jack);
     return anode;

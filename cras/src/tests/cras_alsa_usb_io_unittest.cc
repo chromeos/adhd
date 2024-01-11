@@ -77,8 +77,7 @@ static cras_audio_format* fake_format;
 static size_t sys_set_volume_limits_called;
 static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
 static size_t cras_alsa_mixer_get_maximum_capture_gain_called;
-static struct mixer_control* cras_alsa_jack_get_mixer_output_ret;
-static struct mixer_control* cras_alsa_jack_get_mixer_input_ret;
+static struct mixer_control* cras_alsa_jack_get_mixer_ret;
 static size_t cras_alsa_mixer_get_output_volume_curve_called;
 typedef std::map<const struct mixer_control*, std::string> ControlNameMap;
 static ControlNameMap cras_alsa_mixer_get_control_name_values;
@@ -203,8 +202,7 @@ void ResetStubData() {
   cras_alsa_mixer_get_minimum_capture_gain_called = 0;
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
   cras_alsa_mixer_get_output_volume_curve_called = 0;
-  cras_alsa_jack_get_mixer_output_ret = NULL;
-  cras_alsa_jack_get_mixer_input_ret = NULL;
+  cras_alsa_jack_get_mixer_ret = NULL;
   cras_alsa_mixer_get_control_name_values.clear();
   cras_alsa_mixer_get_control_name_called = 0;
   cras_alsa_jack_list_create_called = 0;
@@ -1073,14 +1071,9 @@ const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
   return strdup(it->second.c_str());
 }
 
-struct mixer_control* cras_alsa_jack_get_mixer_output(
+struct mixer_control* cras_alsa_jack_get_mixer(
     const struct cras_alsa_jack* jack) {
-  return cras_alsa_jack_get_mixer_output_ret;
-}
-
-struct mixer_control* cras_alsa_jack_get_mixer_input(
-    const struct cras_alsa_jack* jack) {
-  return cras_alsa_jack_get_mixer_input_ret;
+  return cras_alsa_jack_get_mixer_ret;
 }
 
 int ucm_set_enabled(struct cras_use_case_mgr* mgr,

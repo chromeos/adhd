@@ -77,8 +77,7 @@ static cras_audio_format* fake_format;
 static size_t sys_set_volume_limits_called;
 static size_t cras_alsa_mixer_get_minimum_capture_gain_called;
 static size_t cras_alsa_mixer_get_maximum_capture_gain_called;
-static struct mixer_control* cras_alsa_jack_get_mixer_output_ret;
-static struct mixer_control* cras_alsa_jack_get_mixer_input_ret;
+static struct mixer_control* cras_alsa_jack_get_mixer_ret;
 static size_t cras_alsa_mixer_get_output_volume_curve_called;
 typedef std::map<const struct mixer_control*, std::string> ControlNameMap;
 static ControlNameMap cras_alsa_mixer_get_control_name_values;
@@ -201,8 +200,7 @@ void ResetStubData() {
   cras_alsa_mixer_get_minimum_capture_gain_called = 0;
   cras_alsa_mixer_get_maximum_capture_gain_called = 0;
   cras_alsa_mixer_get_output_volume_curve_called = 0;
-  cras_alsa_jack_get_mixer_output_ret = NULL;
-  cras_alsa_jack_get_mixer_input_ret = NULL;
+  cras_alsa_jack_get_mixer_ret = NULL;
   cras_alsa_mixer_get_control_name_values.clear();
   cras_alsa_mixer_get_control_name_called = 0;
   cras_alsa_jack_list_create_called = 0;
@@ -1100,7 +1098,7 @@ TEST(AlsaOutputNode, TwoJacksHeadphoneLineout) {
 
   // Both nodes are associated with the same mixer output. Different jack plug
   // report should trigger different node attribute change.
-  cras_alsa_jack_get_mixer_output_ret = output;
+  cras_alsa_jack_get_mixer_ret = output;
   jack_plug_cb(reinterpret_cast<struct cras_alsa_jack*>(10), 0,
                jack_plug_cb_data);
   EXPECT_STREQ(cras_iodev_set_node_plugged_ionode->name, HEADPHONE);
@@ -1200,7 +1198,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
   ucm_section_free_list(section);
 
   // Jack plug of an unknown device should do nothing.
-  cras_alsa_jack_get_mixer_output_ret = NULL;
+  cras_alsa_jack_get_mixer_ret = NULL;
   cras_alsa_jack_get_name_ret_value = "Some other jack";
   jack_plug_cb(reinterpret_cast<struct cras_alsa_jack*>(4), 0,
                jack_plug_cb_data);
@@ -1222,7 +1220,7 @@ TEST(AlsaOutputNode, OutputsFromUCM) {
 
   // Simulate jack plug event.
   cras_alsa_support_8_channels = true;  // Support up to 8 channels.
-  cras_alsa_jack_get_mixer_output_ret = outputs[1];
+  cras_alsa_jack_get_mixer_ret = outputs[1];
   cras_alsa_jack_get_name_ret_value = jack_name;
   jack_plug_cb(hp_jack, 0, jack_plug_cb_data);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
@@ -1431,14 +1429,14 @@ TEST(AlsaOutputNode, InputsFromUCM) {
   ucm_section_free_list(section);
 
   // Jack plug of an unknown device should do nothing.
-  cras_alsa_jack_get_mixer_input_ret = NULL;
+  cras_alsa_jack_get_mixer_ret = NULL;
   cras_alsa_jack_get_name_ret_value = "Some other jack";
   jack_plug_cb(reinterpret_cast<struct cras_alsa_jack*>(4), 0,
                jack_plug_cb_data);
   EXPECT_EQ(0, cras_iodev_set_node_plugged_called);
 
   // Simulate jack plug event.
-  cras_alsa_jack_get_mixer_input_ret = inputs[1];
+  cras_alsa_jack_get_mixer_ret = inputs[1];
   cras_alsa_jack_get_name_ret_value = jack_name;
   jack_plug_cb(mic_jack, 0, jack_plug_cb_data);
   EXPECT_EQ(1, cras_iodev_set_node_plugged_called);
@@ -1666,7 +1664,7 @@ TEST(AlsaOutputNode, AutoUnplugOutputNode) {
   cras_alsa_jack_found_val[0] = jack;
   cras_alsa_jack_get_name_ret_value = "Headphone Jack";
   is_utf8_string_ret_value = 1;
-  cras_alsa_jack_get_mixer_output_ret = outputs[1];
+  cras_alsa_jack_get_mixer_ret = outputs[1];
 
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(5, cras_card_config_get_volume_curve_for_control_called);
@@ -1716,7 +1714,7 @@ TEST(AlsaOutputNode, AutoUnplugInputNode) {
   cras_alsa_jack_found_val[0] = jack;
   cras_alsa_jack_get_name_ret_value = "Mic Jack";
   is_utf8_string_ret_value = 1;
-  cras_alsa_jack_get_mixer_input_ret = inputs[1];
+  cras_alsa_jack_get_mixer_ret = inputs[1];
 
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init((struct cras_iodev*)aio));
   EXPECT_EQ(1, cras_alsa_mixer_list_inputs_called);
@@ -2051,7 +2049,7 @@ class AlsaVolumeMuteSuite : public testing::Test {
     hp_jack = (struct cras_alsa_jack*)4;
 
     // Add headphone jack with its own volume curve.
-    cras_alsa_jack_get_mixer_output_ret = NULL;
+    cras_alsa_jack_get_mixer_ret = NULL;
     cras_alsa_jack_get_name_ret_value = HEADPHONE;
     cras_card_config_get_volume_curve_vals[HEADPHONE] = &hp_curve;
     cras_alsa_jack_found_num = 1;
@@ -2944,14 +2942,9 @@ const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
   return strdup(it->second.c_str());
 }
 
-struct mixer_control* cras_alsa_jack_get_mixer_output(
+struct mixer_control* cras_alsa_jack_get_mixer(
     const struct cras_alsa_jack* jack) {
-  return cras_alsa_jack_get_mixer_output_ret;
-}
-
-struct mixer_control* cras_alsa_jack_get_mixer_input(
-    const struct cras_alsa_jack* jack) {
-  return cras_alsa_jack_get_mixer_input_ret;
+  return cras_alsa_jack_get_mixer_ret;
 }
 
 int ucm_set_enabled(struct cras_use_case_mgr* mgr,

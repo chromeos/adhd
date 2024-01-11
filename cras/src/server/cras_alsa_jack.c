@@ -524,11 +524,11 @@ static int open_and_monitor_gpio(struct gpio_switch_list_data* data,
   if (direction == CRAS_STREAM_OUTPUT &&
       (strstr(jack->gpio.device_name, "Headphone") ||
        strstr(jack->gpio.device_name, "Headset"))) {
-    jack->mixer_output =
+    jack->mixer =
         cras_alsa_mixer_get_output_matching_name(jack_list->mixer, "Headphone");
   } else if (direction == CRAS_STREAM_OUTPUT &&
              strstr(jack->gpio.device_name, "HDMI")) {
-    jack->mixer_output =
+    jack->mixer =
         cras_alsa_mixer_get_output_matching_name(jack_list->mixer, "HDMI");
   }
 
@@ -536,8 +536,8 @@ static int open_and_monitor_gpio(struct gpio_switch_list_data* data,
     char* control_name;
     control_name = ucm_get_cap_control(jack->jack_list->ucm, jack->ucm_device);
     if (control_name) {
-      jack->mixer_input = cras_alsa_mixer_get_input_matching_name(
-          jack_list->mixer, control_name);
+      jack->mixer = cras_alsa_mixer_get_input_matching_name(jack_list->mixer,
+                                                            control_name);
     }
   }
 
@@ -551,7 +551,6 @@ static int open_and_monitor_gpio_with_section(
   struct cras_alsa_jack* jack;
   struct cras_alsa_jack_list* jack_list = data->jack_list;
   struct ucm_section* section = data->section;
-  enum CRAS_STREAM_DIRECTION direction = jack_list->direction;
   int r;
 
   r = create_jack_for_gpio(jack_list, pathname, section->jack_name,
@@ -566,13 +565,8 @@ static int open_and_monitor_gpio_with_section(
     return -ENOMEM;
   }
 
-  if (direction == CRAS_STREAM_OUTPUT) {
-    jack->mixer_output =
-        cras_alsa_mixer_get_control_for_section(jack_list->mixer, section);
-  } else if (direction == CRAS_STREAM_INPUT) {
-    jack->mixer_input =
-        cras_alsa_mixer_get_control_for_section(jack_list->mixer, section);
-  }
+  jack->mixer =
+      cras_alsa_mixer_get_control_for_section(jack_list->mixer, section);
 
   return cras_complete_gpio_jack(data, jack, switch_event);
 }
@@ -895,7 +889,7 @@ static int find_jack_controls(struct cras_alsa_jack_list* jack_list) {
     snd_hctl_elem_set_callback_private(elem, jack);
 
     if (jack_list->direction == CRAS_STREAM_OUTPUT) {
-      jack->mixer_output =
+      jack->mixer =
           cras_alsa_mixer_get_output_matching_name(jack_list->mixer, name);
     }
     if (jack_list->ucm) {
@@ -908,8 +902,8 @@ static int find_jack_controls(struct cras_alsa_jack_list* jack_list) {
       control_name =
           ucm_get_cap_control(jack->jack_list->ucm, jack->ucm_device);
       if (control_name) {
-        jack->mixer_input = cras_alsa_mixer_get_input_matching_name(
-            jack_list->mixer, control_name);
+        jack->mixer = cras_alsa_mixer_get_input_matching_name(jack_list->mixer,
+                                                              control_name);
       }
     }
 
@@ -999,13 +993,8 @@ static int find_hctl_jack_for_section(struct cras_alsa_jack_list* jack_list,
     free(jack);
     return -ENOMEM;
   }
-  if (jack_list->direction == CRAS_STREAM_OUTPUT) {
-    jack->mixer_output =
-        cras_alsa_mixer_get_control_for_section(jack_list->mixer, section);
-  } else if (jack_list->direction == CRAS_STREAM_INPUT) {
-    jack->mixer_input =
-        cras_alsa_mixer_get_control_for_section(jack_list->mixer, section);
-  }
+  jack->mixer =
+      cras_alsa_mixer_get_control_for_section(jack_list->mixer, section);
 
   snd_hctl_elem_set_callback(elem, hctl_jack_cb);
   snd_hctl_elem_set_callback_private(elem, jack);
@@ -1124,17 +1113,9 @@ int cras_alsa_jack_list_has_hctl_jacks(struct cras_alsa_jack_list* jack_list) {
   return 0;
 }
 
-struct mixer_control* cras_alsa_jack_get_mixer_output(
+struct mixer_control* cras_alsa_jack_get_mixer(
     const struct cras_alsa_jack* jack) {
-  if (jack == NULL) {
-    return NULL;
-  }
-  return jack->mixer_output;
-}
-
-struct mixer_control* cras_alsa_jack_get_mixer_input(
-    const struct cras_alsa_jack* jack) {
-  return jack ? jack->mixer_input : NULL;
+  return jack ? jack->mixer : NULL;
 }
 
 void cras_alsa_jack_list_report(const struct cras_alsa_jack_list* jack_list) {

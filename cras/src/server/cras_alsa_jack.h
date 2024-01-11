@@ -109,22 +109,13 @@ void cras_alsa_jack_list_destroy(struct cras_alsa_jack_list* jack_list);
  */
 int cras_alsa_jack_list_has_hctl_jacks(struct cras_alsa_jack_list* jack_list);
 
-/* Gets the mixer output associated with the given jack.
+/* Gets the mixer associated with the given jack.
  * Args:
  *    jack - The jack to query for a mixer output.
  * Returns:
  *    A pointer to the mixer output if it exists, otherwise NULL.
  */
-struct mixer_control* cras_alsa_jack_get_mixer_output(
-    const struct cras_alsa_jack* jack);
-
-/* Gets the mixer input associated with given jack.
- * Args:
- *    jack - The jack to query for a mixer input.
- * Returns:
- *    A pointer to the mixer input if it exists, otherwise NULL.
- */
-struct mixer_control* cras_alsa_jack_get_mixer_input(
+struct mixer_control* cras_alsa_jack_get_mixer(
     const struct cras_alsa_jack* jack);
 
 /* Query all jacks in the list and report the state to the callback.

@@ -2266,7 +2266,7 @@ static void add_input_node_or_associate_jack(const struct cras_alsa_jack* jack,
 
   // If there isn't a node for this jack, create one.
   if (node == NULL) {
-    cras_input = cras_alsa_jack_get_mixer_input(jack);
+    cras_input = cras_alsa_jack_get_mixer(jack);
     node = (struct alsa_common_node*)new_input(aio, cras_input, jack_name);
     if (node == NULL) {
       return;
