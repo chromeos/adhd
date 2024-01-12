@@ -1495,6 +1495,40 @@ static DBusHandlerResult handle_get_bt_hfp_offload_supported(
   return DBUS_HANDLER_RESULT_HANDLED;
 }
 
+static DBusHandlerResult handle_get_dsp_offload_supported(DBusConnection* conn,
+                                                          DBusMessage* message,
+                                                          void* arg) {
+  int rc;
+  cras_node_id_t id;
+  dbus_bool_t supported;
+
+  rc = get_single_arg(message, DBUS_TYPE_UINT64, &id);
+  if (rc) {
+    return rc;
+  }
+
+  supported = cras_iodev_list_get_dsp_offload_state(id) != DSP_PROC_UNSUPPORTED;
+
+  return send_bool_reply(conn, message, supported);
+}
+
+static DBusHandlerResult handle_get_dsp_offload_state(DBusConnection* conn,
+                                                      DBusMessage* message,
+                                                      void* arg) {
+  int rc;
+  cras_node_id_t id;
+  dbus_int32_t state;
+
+  rc = get_single_arg(message, DBUS_TYPE_UINT64, &id);
+  if (rc) {
+    return rc;
+  }
+
+  state = cras_iodev_list_get_dsp_offload_state(id);
+
+  return send_int32_reply(conn, message, state);
+}
+
 static DBusHandlerResult handle_dump_s2_as_json(DBusConnection* conn,
                                                 DBusMessage* message,
                                                 void* arg) {
@@ -1712,6 +1746,12 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetBtHfpOffloadSupported")) {
     return handle_get_bt_hfp_offload_supported(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetDSPOffloadSupported")) {
+    return handle_get_dsp_offload_supported(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetDSPOffloadState")) {
+    return handle_get_dsp_offload_state(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "DumpS2AsJSON")) {
     return handle_dump_s2_as_json(conn, message, arg);

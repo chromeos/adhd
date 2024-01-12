@@ -177,6 +177,9 @@ int cras_iodev_list_set_hotword_model(cras_node_id_t id,
                                       const char* model_name) {
   return 0;
 }
+int cras_iodev_list_get_dsp_offload_state(cras_node_id_t node_id) {
+  return 0;
+}
 int cras_system_state_get_non_empty_status() {
   return 0;
 }

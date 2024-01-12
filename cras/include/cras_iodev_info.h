@@ -6,6 +6,7 @@
 #ifndef CRAS_INCLUDE_CRAS_IODEV_INFO_H_
 #define CRAS_INCLUDE_CRAS_IODEV_INFO_H_
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -150,8 +151,10 @@ enum audio_effect_type {
 
 // The working state of DSP processings for a CRAS device.
 enum CRAS_DSP_PROC_STATE {
+  // Used by retcode when the CRAS device on query has no DSP processing info.
+  DSP_PROC_UNSUPPORTED = -EINVAL,
   // The DSP processings are not ever started.
-  DSP_PROC_NOT_STARTED,
+  DSP_PROC_NOT_STARTED = -1,
   // The DSP processings work on CRAS.
   DSP_PROC_ON_CRAS,
   // The DSP processings work on DSP (offloaded).

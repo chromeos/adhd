@@ -506,6 +506,24 @@
       <arg name="supported" type="b" direction="out"/>
     </method>
 
+    <method name="GetDSPOffloadSupported">
+      <tp:docstring>
+        Returns whether the given node supports CRAS DSP offload to SOF.
+        Caution: This method is for testing purpose.
+      </tp:docstring>
+      <arg name="node_id" type="t" direction="in"/>
+      <arg name="supported" type="b" direction="out"/>
+    </method>
+
+    <method name="GetDSPOffloadState">
+      <tp:docstring>
+        Returns the current state of DSP offload on the given node.
+        Caution: This method is for testing purpose.
+      </tp:docstring>
+      <arg name="node_id" type="t" direction="in"/>
+      <arg name="state" type="i" direction="out"/>
+    </method>
+
     <method name="DumpS2AsJSON">
       <arg name="data" type="s" direction="out"/>
     </method>

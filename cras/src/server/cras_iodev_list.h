@@ -88,6 +88,15 @@ int cras_iodev_list_get_outputs(struct cras_iodev_info** list_out);
 int cras_iodev_list_fill_dsp_offload_infos(struct cras_dsp_offload_info* infos,
                                            uint32_t max_num_info);
 
+/* Gets DSP offload state of an ionode.
+ * Args:
+ *    node_id - The id of the ionode.
+ * Returns:
+ *    The state in integer. DSP_PROC_UNSUPPORTED(-22) if offload is not
+ *    supported.
+ */
+int cras_iodev_list_get_dsp_offload_state(cras_node_id_t node_id);
+
 /* Gets a list of inputs. Callee must free the list when finished.  If list_out
  * is NULL, this function can be used to return the number of inputs.
  * Args:
