@@ -10,6 +10,9 @@ pub mod global;
 struct Input {
     ap_nc_featured_allowed: bool,
     ap_nc_segmentation_allowed: bool,
+    /// Tells whether the DLC manager is ready.
+    /// Used by tests to avoid races.
+    dlc_manager_ready: bool,
 }
 
 #[derive(Serialize)]
@@ -34,6 +37,7 @@ impl S2 {
         let input = Input {
             ap_nc_featured_allowed: false,
             ap_nc_segmentation_allowed: false,
+            dlc_manager_ready: false,
         };
         let output = resolve(&input);
         Self { input, output }
@@ -46,6 +50,11 @@ impl S2 {
 
     fn set_ap_nc_segmentation_allowed(&mut self, allowed: bool) {
         self.input.ap_nc_segmentation_allowed = allowed;
+        self.update();
+    }
+
+    fn set_dlc_manager_ready(&mut self) {
+        self.input.dlc_manager_ready = true;
         self.update();
     }
 

@@ -12,6 +12,8 @@ rust_library(
     crate_name = "cras_dlc",
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     visibility = ["//cras/src/server/rust:__pkg__"],
-    deps = all_crate_deps(),
+    deps = all_crate_deps() + [
+        "//cras/server/s2",
+    ],
     # TODO: Enable "dlc" feature based on //:dlc_build
 )

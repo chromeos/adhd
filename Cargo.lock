@@ -229,6 +229,7 @@ name = "cras_dlc"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cras_s2",
  "dbus",
  "libc",
  "log",

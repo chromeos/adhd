@@ -146,6 +146,8 @@ fn download_dlcs_until_installed(
             }
         }
 
+        cras_s2::global::set_dlc_manager_ready();
+
         if todo_next.is_empty() {
             return;
         }
