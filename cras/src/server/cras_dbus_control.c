@@ -125,8 +125,9 @@ static bool get_metadata(DBusMessage* message,
 }
 
 // Helper to send an empty reply.
-static DBusHandlerResult send_empty_reply(DBusConnection* conn,
-                                          DBusMessage* message) {
+static __attribute__((warn_unused_result)) DBusHandlerResult send_empty_reply(
+    DBusConnection* conn,
+    DBusMessage* message) {
   DBusMessage* reply;
   dbus_uint32_t serial = 0;
   DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
@@ -145,9 +146,10 @@ static DBusHandlerResult send_empty_reply(DBusConnection* conn,
 }
 
 // Helper to send an int32 reply.
-static DBusHandlerResult send_int32_reply(DBusConnection* conn,
-                                          DBusMessage* message,
-                                          dbus_int32_t value) {
+static __attribute__((warn_unused_result)) DBusHandlerResult send_int32_reply(
+    DBusConnection* conn,
+    DBusMessage* message,
+    dbus_int32_t value) {
   DBusMessage* reply;
   dbus_uint32_t serial = 0;
   DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
@@ -236,9 +238,8 @@ void cras_dbus_notify_rtc_active(bool active) {
 }
 
 // Helper to send an bool reply.
-static DBusHandlerResult send_bool_reply(DBusConnection* conn,
-                                         DBusMessage* message,
-                                         dbus_bool_t value) {
+static __attribute__((warn_unused_result)) DBusHandlerResult
+send_bool_reply(DBusConnection* conn, DBusMessage* message, dbus_bool_t value) {
   DBusMessage* reply;
   dbus_uint32_t serial = 0;
   DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
@@ -276,9 +277,7 @@ static DBusHandlerResult handle_set_output_volume(DBusConnection* conn,
 
   cras_system_set_volume(new_vol);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_output_node_volume(DBusConnection* conn,
@@ -299,9 +298,7 @@ static DBusHandlerResult handle_set_output_node_volume(DBusConnection* conn,
 
   cras_iodev_list_set_node_attr(id, IONODE_ATTR_VOLUME, new_vol);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_display_rotation(DBusConnection* conn,
@@ -326,9 +323,7 @@ static DBusHandlerResult handle_set_display_rotation(DBusConnection* conn,
     cras_iodev_list_set_node_attr(id, IONODE_ATTR_DISPLAY_ROTATION, rotation);
   }
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_swap_left_right(DBusConnection* conn,
@@ -349,9 +344,7 @@ static DBusHandlerResult handle_swap_left_right(DBusConnection* conn,
 
   cras_iodev_list_set_node_attr(id, IONODE_ATTR_SWAP_LEFT_RIGHT, swap);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_output_mute(DBusConnection* conn,
@@ -367,9 +360,7 @@ static DBusHandlerResult handle_set_output_mute(DBusConnection* conn,
 
   cras_system_set_mute(new_mute);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_output_user_mute(DBusConnection* conn,
@@ -386,9 +377,7 @@ static DBusHandlerResult handle_set_output_user_mute(DBusConnection* conn,
   cras_system_set_user_mute(new_mute);
   MAINLOG(main_log, MAIN_THREAD_SET_OUTPUT_USER_MUTE, new_mute, 0, 0);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_suspend_audio(DBusConnection* conn,
@@ -403,9 +392,7 @@ static DBusHandlerResult handle_set_suspend_audio(DBusConnection* conn,
 
   cras_system_set_suspended(suspend);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_input_node_gain(DBusConnection* conn,
@@ -426,9 +413,7 @@ static DBusHandlerResult handle_set_input_node_gain(DBusConnection* conn,
 
   cras_iodev_list_set_node_attr(id, IONODE_ATTR_CAPTURE_GAIN, new_gain);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_input_mute(DBusConnection* conn,
@@ -444,9 +429,7 @@ static DBusHandlerResult handle_set_input_mute(DBusConnection* conn,
 
   cras_system_set_capture_mute(new_mute);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_get_feature_flag_for_test(DBusConnection* conn,
@@ -499,9 +482,7 @@ static DBusHandlerResult handle_get_default_output_buffer_size(
     void* arg) {
   dbus_int32_t buffer_size = cras_system_get_default_output_buffer_size();
 
-  send_int32_reply(conn, message, buffer_size);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_int32_reply(conn, message, buffer_size);
 }
 
 /* Appends the information about a node to the dbus message. Returns
@@ -771,9 +752,7 @@ static DBusHandlerResult handle_get_system_aec_supported(DBusConnection* conn,
                                                          void* arg) {
   dbus_bool_t system_aec_supported = cras_system_get_aec_supported();
 
-  send_bool_reply(conn, message, system_aec_supported);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, system_aec_supported);
 }
 
 static DBusHandlerResult handle_get_system_aec_group_id(DBusConnection* conn,
@@ -781,9 +760,7 @@ static DBusHandlerResult handle_get_system_aec_group_id(DBusConnection* conn,
                                                         void* arg) {
   dbus_int32_t system_aec_group_id = cras_system_get_aec_group_id();
 
-  send_int32_reply(conn, message, system_aec_group_id);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_int32_reply(conn, message, system_aec_group_id);
 }
 
 static DBusHandlerResult handle_get_system_ns_supported(DBusConnection* conn,
@@ -791,9 +768,7 @@ static DBusHandlerResult handle_get_system_ns_supported(DBusConnection* conn,
                                                         void* arg) {
   dbus_bool_t ns_supported = cras_system_get_ns_supported();
 
-  send_bool_reply(conn, message, ns_supported);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, ns_supported);
 }
 
 static DBusHandlerResult handle_get_system_agc_supported(DBusConnection* conn,
@@ -801,9 +776,7 @@ static DBusHandlerResult handle_get_system_agc_supported(DBusConnection* conn,
                                                          void* arg) {
   dbus_bool_t agc_supported = cras_system_get_agc_supported();
 
-  send_bool_reply(conn, message, agc_supported);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, agc_supported);
 }
 
 static DBusHandlerResult handle_get_deprioritize_bt_wbs_mic(
@@ -812,9 +785,7 @@ static DBusHandlerResult handle_get_deprioritize_bt_wbs_mic(
     void* arg) {
   dbus_bool_t deprioritized = cras_system_get_deprioritize_bt_wbs_mic();
 
-  send_bool_reply(conn, message, deprioritized);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, deprioritized);
 }
 
 static DBusHandlerResult handle_get_rtc_running(DBusConnection* conn,
@@ -822,9 +793,7 @@ static DBusHandlerResult handle_get_rtc_running(DBusConnection* conn,
                                                 void* arg) {
   dbus_bool_t running = cras_rtc_is_running();
 
-  send_bool_reply(conn, message, running);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, running);
 }
 
 static DBusHandlerResult handle_set_active_node(
@@ -842,9 +811,7 @@ static DBusHandlerResult handle_set_active_node(
 
   cras_iodev_list_select_node(direction, id);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_add_active_node(
@@ -862,9 +829,7 @@ static DBusHandlerResult handle_add_active_node(
 
   cras_iodev_list_add_active_node(direction, id);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_remove_active_node(
@@ -882,9 +847,7 @@ static DBusHandlerResult handle_remove_active_node(
 
   cras_iodev_list_rm_active_node(direction, id);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_fix_a2dp_packet_size(DBusConnection* conn,
@@ -900,17 +863,15 @@ static DBusHandlerResult handle_set_fix_a2dp_packet_size(DBusConnection* conn,
 
   cras_system_set_bt_fix_a2dp_packet_size_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_get_number_of_active_streams(
     DBusConnection* conn,
     DBusMessage* message,
     void* arg) {
-  send_int32_reply(conn, message, cras_system_state_get_active_streams());
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_int32_reply(conn, message,
+                          cras_system_state_get_active_streams());
 }
 
 static DBusHandlerResult handle_get_number_of_active_input_streams(
@@ -925,9 +886,7 @@ static DBusHandlerResult handle_get_number_of_active_input_streams(
       num += cras_system_state_get_active_streams_by_direction(i);
     }
   }
-  send_int32_reply(conn, message, num);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_int32_reply(conn, message, num);
 }
 
 static DBusHandlerResult handle_get_number_of_active_output_streams(
@@ -942,9 +901,7 @@ static DBusHandlerResult handle_get_number_of_active_output_streams(
       num += cras_system_state_get_active_streams_by_direction(i);
     }
   }
-  send_int32_reply(conn, message, num);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_int32_reply(conn, message, num);
 }
 
 static bool append_num_input_streams_with_permission(
@@ -1058,9 +1015,8 @@ static DBusHandlerResult handle_set_global_output_channel_remix(
   audio_thread_config_global_remix(cras_iodev_list_get_audio_thread(),
                                    num_channels, coefficient);
 
-  send_empty_reply(conn, message);
   free(coefficient);
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_hotword_model(DBusConnection* conn,
@@ -1082,9 +1038,7 @@ static DBusHandlerResult handle_set_hotword_model(DBusConnection* conn,
   }
 
   ret = cras_iodev_list_set_hotword_model(id, model_name);
-  send_int32_reply(conn, message, ret);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_int32_reply(conn, message, ret);
 }
 
 static DBusHandlerResult handle_is_audio_output_active(DBusConnection* conn,
@@ -1092,9 +1046,7 @@ static DBusHandlerResult handle_is_audio_output_active(DBusConnection* conn,
                                                        void* arg) {
   dbus_int32_t active = cras_system_state_get_non_empty_status();
 
-  send_int32_reply(conn, message, active);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_int32_reply(conn, message, active);
 }
 
 static DBusHandlerResult handle_set_floss_enabled(DBusConnection* conn,
@@ -1110,9 +1062,7 @@ static DBusHandlerResult handle_set_floss_enabled(DBusConnection* conn,
 
   cras_floss_set_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_wbs_enabled(DBusConnection* conn,
@@ -1128,9 +1078,7 @@ static DBusHandlerResult handle_set_wbs_enabled(DBusConnection* conn,
 
   cras_system_set_bt_wbs_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_noise_cancellation_enabled(
@@ -1147,9 +1095,7 @@ static DBusHandlerResult handle_set_noise_cancellation_enabled(
 
   cras_system_set_noise_cancellation_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 // TODO(b/281608407): Remove this function.
@@ -1157,9 +1103,7 @@ static DBusHandlerResult handle_is_noise_cancellation_supported(
     DBusConnection* conn,
     DBusMessage* message,
     void* arg) {
-  send_bool_reply(conn, message, true);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, true);
 }
 
 static DBusHandlerResult handle_set_bypass_block_noise_cancellation(
@@ -1176,9 +1120,7 @@ static DBusHandlerResult handle_set_bypass_block_noise_cancellation(
 
   cras_system_set_bypass_block_noise_cancellation(bypass);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_force_a2dp_advanced_codecs_enabled(
@@ -1195,9 +1137,7 @@ static DBusHandlerResult handle_set_force_a2dp_advanced_codecs_enabled(
 
   cras_system_set_force_a2dp_advanced_codecs_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_get_force_a2dp_advanced_codecs_enabled(
@@ -1206,9 +1146,7 @@ static DBusHandlerResult handle_get_force_a2dp_advanced_codecs_enabled(
     void* arg) {
   dbus_bool_t enabled = cras_system_get_force_a2dp_advanced_codecs_enabled();
 
-  send_bool_reply(conn, message, enabled);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, enabled);
 }
 
 static DBusHandlerResult handle_set_force_hfp_swb_enabled(DBusConnection* conn,
@@ -1224,9 +1162,7 @@ static DBusHandlerResult handle_set_force_hfp_swb_enabled(DBusConnection* conn,
 
   cras_system_set_force_hfp_swb_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_get_force_hfp_swb_enabled(DBusConnection* conn,
@@ -1234,9 +1170,7 @@ static DBusHandlerResult handle_get_force_hfp_swb_enabled(DBusConnection* conn,
                                                           void* arg) {
   dbus_bool_t enabled = cras_system_get_force_hfp_swb_enabled();
 
-  send_bool_reply(conn, message, enabled);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, enabled);
 }
 
 static DBusHandlerResult handle_set_force_sr_bt_enabled(DBusConnection* conn,
@@ -1252,9 +1186,7 @@ static DBusHandlerResult handle_set_force_sr_bt_enabled(DBusConnection* conn,
 
   cras_system_set_force_sr_bt_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_get_force_sr_bt_enabled(DBusConnection* conn,
@@ -1262,9 +1194,7 @@ static DBusHandlerResult handle_get_force_sr_bt_enabled(DBusConnection* conn,
                                                         void* arg) {
   dbus_bool_t enabled = cras_system_get_force_sr_bt_enabled();
 
-  send_bool_reply(conn, message, enabled);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, enabled);
 }
 
 static DBusHandlerResult handle_set_hfp_mic_sr_enabled(DBusConnection* conn,
@@ -1280,17 +1210,13 @@ static DBusHandlerResult handle_set_hfp_mic_sr_enabled(DBusConnection* conn,
 
   cras_system_set_sr_bt_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_is_hfp_mic_sr_supported(DBusConnection* conn,
                                                         DBusMessage* message,
                                                         void* arg) {
-  send_bool_reply(conn, message, cras_system_get_sr_bt_supported());
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, cras_system_get_sr_bt_supported());
 }
 
 static DBusHandlerResult handle_set_player_playback_status(DBusConnection* conn,
@@ -1312,9 +1238,7 @@ static DBusHandlerResult handle_set_player_playback_status(DBusConnection* conn,
     syslog(LOG_WARNING, "CRAS failed to update BT Player Status: %d", rc);
   }
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_player_identity(DBusConnection* conn,
@@ -1336,9 +1260,7 @@ static DBusHandlerResult handle_set_player_identity(DBusConnection* conn,
     syslog(LOG_WARNING, "CRAS failed to update BT Player Identity: %d", rc);
   }
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_player_position(DBusConnection* conn,
@@ -1360,9 +1282,7 @@ static DBusHandlerResult handle_set_player_position(DBusConnection* conn,
     syslog(LOG_WARNING, "CRAS failed to update BT Player Position: %d", rc);
   }
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_player_metadata(DBusConnection* conn,
@@ -1384,9 +1304,7 @@ static DBusHandlerResult handle_set_player_metadata(DBusConnection* conn,
     syslog(LOG_WARNING, "CRAS failed to update BT Metadata: %d", rc);
   }
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_set_speak_on_mute_detection(
@@ -1404,8 +1322,7 @@ static DBusHandlerResult handle_set_speak_on_mute_detection(
 
   cras_system_state_set_speak_on_mute_detection(enabled);
 
-  send_empty_reply(conn, message);
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_speak_on_mute_detection_enabled(
@@ -1422,9 +1339,7 @@ static DBusHandlerResult handle_is_internal_card_detected(DBusConnection* conn,
   dbus_bool_t internal_cards_detected =
       cras_system_state_internal_cards_detected();
 
-  send_bool_reply(conn, message, internal_cards_detected);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, internal_cards_detected);
 }
 
 static inline DBusHandlerResult handle_get_number_of_non_chrome_output_streams(
@@ -1449,9 +1364,7 @@ static DBusHandlerResult handle_set_force_respect_ui_gains_enabled(
 
   cras_system_set_force_respect_ui_gains_enabled(enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static inline DBusHandlerResult handle_get_num_stream_ignore_ui_gains(
@@ -1479,9 +1392,7 @@ static DBusHandlerResult handle_set_force_bt_hfp_offload_on_support(
   // more straightforward for clients to use.
   cras_system_set_bt_hfp_offload_finch_applied(!enabled);
 
-  send_empty_reply(conn, message);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_empty_reply(conn, message);
 }
 
 static DBusHandlerResult handle_get_bt_hfp_offload_supported(
@@ -1490,9 +1401,7 @@ static DBusHandlerResult handle_get_bt_hfp_offload_supported(
     void* arg) {
   dbus_bool_t supported = cras_system_get_bt_hfp_offload_supported();
 
-  send_bool_reply(conn, message, supported);
-
-  return DBUS_HANDLER_RESULT_HANDLED;
+  return send_bool_reply(conn, message, supported);
 }
 
 static DBusHandlerResult handle_get_dsp_offload_supported(DBusConnection* conn,
