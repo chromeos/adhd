@@ -33,9 +33,9 @@ rust_library(
         ":build_script",
         "//audio_processor",
         "//cras/common:rust_common",
+        "//cras/server/platform/dlc",
         "//cras/server/platform/features:backend",
         "//cras/server/s2",
-        "//cras/src/server/rust/cras_dlc",
     ] + all_crate_deps(),
 )
 

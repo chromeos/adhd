@@ -3,12 +3,12 @@ resolver = "2"
 members = [
     "audio_processor",
     "cras/common",
+    "cras/server/platform/dlc",
     "cras/server/platform/features",
     "cras/server/s2",
     "cras/src/server/rust",
     "cras/src/server/rust/staticlib",
     "cras/src/server/rust/binding_generator",
-    "cras/src/server/rust/cras_dlc",
     "rock",
     "rules/cbindgen",
 ]
@@ -22,7 +22,7 @@ overflow-checks = true
 audio_processor = { path = "audio_processor" }
 cras = { path = "cras/src/server/rust" }
 cras_common = { path = "cras/common" }
-cras_dlc = { path = "cras/src/server/rust/cras_dlc" }
+cras_dlc = { path = "cras/server/platform/dlc" }
 cras_features_backend = { path = "cras/server/platform/features" }
 cras_s2 = { path = "cras/server/s2" }
 

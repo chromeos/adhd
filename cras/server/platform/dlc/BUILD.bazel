@@ -2,13 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("//:utils.bzl", "require_no_config")
-load("@rules_rust//rust:defs.bzl", "rust_library")
 load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_library")
+load("//:utils.bzl", "require_no_config")
 
 rust_library(
-    name = "cras_dlc",
+    name = "dlc",
     srcs = glob(include = ["src/*.rs"]),
+    crate_name = "cras_dlc",
     target_compatible_with = require_no_config("//:system_cras_rust_build"),
     visibility = ["//cras/src/server/rust:__pkg__"],
     deps = all_crate_deps(),
