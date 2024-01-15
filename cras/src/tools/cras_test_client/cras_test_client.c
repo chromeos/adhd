@@ -2520,7 +2520,9 @@ static int cras_client_create_and_connect(struct cras_client** client,
     return rc;
   }
 
-  rc = cras_client_connect_timeout(*client, 1000);
+  // TODO(b/316817066): revert the timeout to 1000 ms after b/316817066 is
+  // fixed.
+  rc = cras_client_connect_timeout(*client, 3000);
   if (rc) {
     fprintf(stderr, "Couldn't connect to server.\n");
     cras_client_destroy(*client);
