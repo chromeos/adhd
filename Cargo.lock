@@ -230,6 +230,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dbus",
+ "libc",
  "log",
  "once_cell",
  "protobuf",

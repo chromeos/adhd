@@ -32,7 +32,6 @@ enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {
   }
   // else: feature is force enabled.
 
-  cras_dlc_install(CrasDlcSrBt);
   if (!cras_dlc_is_available(CrasDlcSrBt)) {
     return CRAS_SR_BT_CAN_BE_ENABLED_STATUS_DLC_UNAVAILABLE;
   }

@@ -26,14 +26,9 @@ extern "C" {
 enum CrasDlcId {
   CrasDlcSrBt,
   CrasDlcNcAp,
-  NumCrasDlc,
 };
 
-/**
- * Returns `true` if the installation request is successfully sent,
- * otherwise returns `false`.
- */
-bool cras_dlc_install(enum CrasDlcId id);
+typedef int (*CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc)(enum CrasDlcId, int32_t);
 
 /**
  * Returns `true` if the DLC package is ready for use, otherwise
@@ -48,15 +43,6 @@ bool cras_dlc_is_available(enum CrasDlcId id);
 char *cras_dlc_get_root_path(enum CrasDlcId id);
 
 /**
- * Writes the DLC ID string corresponding to the enum id to `ret`.
- * Suggested value of `ret_len` is `CRAS_DLC_ID_STRING_MAX_LENGTH`.
- *
- * # Safety
- * `ret` should have `ret_len` bytes writable.
- */
-void cras_dlc_get_id_string(char *ret, size_t ret_len, enum CrasDlcId id);
-
-/**
  * Overrides the DLC state for DLC `id`.
  *
  * # Safety
@@ -68,6 +54,11 @@ void cras_dlc_override_state_for_testing(enum CrasDlcId id, bool installed, cons
  * Reset all DLC overrides.
  */
 void cras_dlc_reset_overrides_for_testing(void);
+
+/**
+ * Start a thread to download all DLCs.
+ */
+void download_dlcs_until_installed_with_thread(CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc cras_server_metrics_dlc_install_retried_times_on_success);
 
 #endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_DLC_H_ */
 

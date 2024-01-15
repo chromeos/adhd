@@ -18,7 +18,7 @@ use audio_processor::processors::NegateAudioProcessor;
 use audio_processor::processors::SpeexResampler;
 use audio_processor::AudioProcessor;
 use audio_processor::Shape;
-use cras_dlc::get_dlc_state;
+use cras_dlc::get_dlc_state_cached;
 
 mod processor_override;
 
@@ -93,7 +93,7 @@ impl CrasProcessor {
                     bail!("config is not using a block size of 10ms: {:?}", config);
                 }
 
-                let ap_nc_dlc = get_dlc_state(cras_dlc::CrasDlcId::CrasDlcNcAp)?;
+                let ap_nc_dlc = get_dlc_state_cached(cras_dlc::CrasDlcId::CrasDlcNcAp);
                 if !ap_nc_dlc.installed {
                     bail!("{} not installed", cras_dlc::CrasDlcId::CrasDlcNcAp);
                 }

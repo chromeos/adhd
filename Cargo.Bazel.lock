@@ -1,5 +1,5 @@
 {
-  "checksum": "ef3a99fc7903ab6818c66431f7eb3cd437d5f4ef38b02f5b0ee4b4c79b8f74d2",
+  "checksum": "788bb1049277f72b0a9a63d5100964513427ef95e2736fad29187e57b169e7bb",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -1203,6 +1203,10 @@
             {
               "id": "dbus 0.9.7",
               "target": "dbus"
+            },
+            {
+              "id": "libc 0.2.140",
+              "target": "libc"
             },
             {
               "id": "log 0.4.17",
