@@ -723,9 +723,7 @@ static struct cras_iodev* bt_io_create(struct bt_io_manager* mgr,
   return &btio->base;
 
 error:
-  if (btio) {
-    free(btio);
-  }
+  free(btio);
   return NULL;
 }
 
