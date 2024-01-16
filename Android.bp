@@ -2,7 +2,7 @@ cc_library_static {
     name: "libcras",
 
     srcs: [
-        "cras/base/check.c",
+        "cras/common/check.c",
         "cras/src/common/cras_audio_format.c",
         "cras/src/common/cras_config.c",
         "cras/src/common/cras_file_wait.c",
@@ -25,7 +25,7 @@ cc_library_static {
     ],
 
     local_include_dirs: [
-        "cras/base",
+        "cras/common",
     ],
 
     c_std: "gnu11",
