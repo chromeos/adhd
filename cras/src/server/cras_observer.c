@@ -43,6 +43,7 @@ struct cras_observer_alerts {
   struct cras_alert* non_empty_audio_state_changed;
   struct cras_alert* bt_battery_changed;
   struct cras_alert* num_input_streams_with_permission;
+  struct cras_alert* num_arc_streams;
   struct cras_alert* severe_underrun;
   struct cras_alert* underrun;
   struct cras_alert* general_survey;
@@ -96,6 +97,10 @@ struct cras_observer_alert_data_num_non_chrome_output_streams {
 
 struct cras_observer_alert_data_input_streams {
   uint32_t num_input_streams[CRAS_NUM_CLIENT_TYPE];
+};
+
+struct cras_observer_alert_data_num_arc_streams {
+  uint32_t num_arc_streams;
 };
 
 struct cras_observer_alert_data_hotword_triggered {
@@ -305,6 +310,19 @@ static void num_input_streams_with_permission_alert(void* arg, void* data) {
   }
 }
 
+static void num_arc_streams_alert(void* arg, void* data) {
+  struct cras_observer_client* client;
+  struct cras_observer_alert_data_num_arc_streams* streams_data =
+      (struct cras_observer_alert_data_num_arc_streams*)data;
+
+  DL_FOREACH (g_observer->clients, client) {
+    if (client->ops.num_arc_streams_changed) {
+      client->ops.num_arc_streams_changed(client->context,
+                                          streams_data->num_arc_streams);
+    }
+  }
+}
+
 static void hotword_triggered_alert(void* arg, void* data) {
   struct cras_observer_client* client;
   struct cras_observer_alert_data_hotword_triggered* triggered_data =
@@ -475,6 +493,7 @@ int cras_observer_server_init() {
   CRAS_OBSERVER_SET_ALERT(speak_on_mute_detected, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(num_non_chrome_output_streams, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(num_stream_ignore_ui_gains_changed, NULL, 0);
+  CRAS_OBSERVER_SET_ALERT(num_arc_streams, NULL, 0);
 
   CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(num_active_streams,
                                          CRAS_STREAM_OUTPUT);
@@ -518,6 +537,7 @@ void cras_observer_server_free() {
   cras_alert_destroy(g_observer->alerts.bluetooth_survey);
   cras_alert_destroy(g_observer->alerts.speak_on_mute_detected);
   cras_alert_destroy(g_observer->alerts.num_stream_ignore_ui_gains_changed);
+  cras_alert_destroy(g_observer->alerts.num_arc_streams);
   free(g_observer);
   g_observer = NULL;
 }
@@ -770,4 +790,11 @@ void cras_observer_notify_num_stream_ignore_ui_gains_changed(int num) {
 
   cras_alert_pending_data(g_observer->alerts.num_stream_ignore_ui_gains_changed,
                           &data, sizeof(data));
+}
+
+void cras_observer_notify_num_arc_streams(uint32_t num_arc_streams) {
+  struct cras_observer_alert_data_num_arc_streams data = {.num_arc_streams =
+                                                              num_arc_streams};
+  cras_alert_pending_data(g_observer->alerts.num_arc_streams, &data,
+                          sizeof(data));
 }

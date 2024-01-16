@@ -140,6 +140,8 @@ struct private_state {
   //   "Speaker:(1,)"
   //   "Speaker:(1,) Headphone:(6,eq2>drc) Line Out:(10,eq2)"
   char* dsp_offload_map_str;
+  // Number of streams from CLIENT_TYPE_ARC and CLIENT_TYPE_ARCVM.
+  uint32_t num_arc_streams;
 };
 
 static struct private_state state;
@@ -781,6 +783,12 @@ void cras_system_state_stream_added(enum CRAS_STREAM_DIRECTION direction,
         s->num_non_chrome_output_streams);
   }
 
+  if (client_type == CRAS_CLIENT_TYPE_ARC ||
+      client_type == CRAS_CLIENT_TYPE_ARCVM) {
+    state.num_arc_streams++;
+    cras_observer_notify_num_arc_streams(state.num_arc_streams);
+  }
+
   cras_system_state_update_complete();
   cras_observer_notify_num_active_streams(direction,
                                           s->num_active_streams[direction]);
@@ -824,6 +832,12 @@ void cras_system_state_stream_removed(enum CRAS_STREAM_DIRECTION direction,
     s->num_non_chrome_output_streams--;
     cras_observer_notify_num_non_chrome_output_streams(
         s->num_non_chrome_output_streams);
+  }
+
+  if (client_type == CRAS_CLIENT_TYPE_ARC ||
+      client_type == CRAS_CLIENT_TYPE_ARCVM) {
+    state.num_arc_streams--;
+    cras_observer_notify_num_arc_streams(state.num_arc_streams);
   }
 
   cras_system_state_update_complete();
@@ -1003,4 +1017,8 @@ bool cras_system_get_ap_nc_supported_on_bluetooth() {
 
 const char* cras_system_get_dsp_offload_map_str() {
   return state.dsp_offload_map_str;
+}
+
+int cras_system_state_num_arc_streams() {
+  return state.num_arc_streams;
 }

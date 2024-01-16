@@ -499,6 +499,9 @@ bool cras_system_get_ap_nc_supported_on_bluetooth();
 // Gets DSP offload map string obtained from board config.
 const char* cras_system_get_dsp_offload_map_str();
 
+// Get number of ARC streams
+int cras_system_state_num_arc_streams();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

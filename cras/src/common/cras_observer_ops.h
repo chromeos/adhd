@@ -87,6 +87,9 @@ struct cras_observer_ops {
 
   // Num stream ignoring UI gains changed event
   void (*num_stream_ignore_ui_gains_changed)(void* context, int num);
+
+  // Number of ARC streams changed.
+  void (*num_arc_streams_changed)(void* context, uint32_t num_arc_streams);
 };
 
 #ifdef __cplusplus

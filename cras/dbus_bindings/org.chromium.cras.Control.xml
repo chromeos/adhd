@@ -490,6 +490,13 @@
       <arg name="num_non_chrome_output_streams" type="i" direction="out"></arg>
     </method>
 
+    <method name="GetNumberOfArcStreams">
+      <tp:docstring>
+        Returns the number of active streams from ARC.
+      </tp:docstring>
+      <arg name="num_arc_streams" type="i" direction="out"></arg>
+    </method>
+
     <method name="SetForceBtHfpOffloadOnSupport">
       <tp:docstring>
         Sets true to always adopt BT HFP offload path while supported.
@@ -618,6 +625,13 @@
 
     <signal name="NumberOfInputStreamsWithPermissionChanged">
       <arg name="num" type="a{sv}"></arg>
+    </signal>
+
+    <signal name="NumberOfArcStreamsChanged">
+      <tp:docstring>
+        Indicates the number of active streams from ARC has changed.
+      </tp:docstring>
+      <arg name="num_arc_streams" type="i"></arg>
     </signal>
 
     <signal name="HotwordTriggered">

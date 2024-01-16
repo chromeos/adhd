@@ -136,6 +136,9 @@ void cras_observer_notify_speak_on_mute_detected();
 // Notify observers of a num stream ignore UI gains changed event
 void cras_observer_notify_num_stream_ignore_ui_gains_changed(int num);
 
+// Notify observers of the number of arc streams changed.
+void cras_observer_notify_num_arc_streams(uint32_t num_arc_streams_changed);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

@@ -44,6 +44,7 @@ static size_t cras_observer_notify_suspend_changed_called;
 static size_t cras_observer_notify_num_active_streams_called;
 static size_t cras_observer_notify_num_non_chrome_output_streams_called;
 static size_t cras_observer_notify_input_streams_with_permission_called;
+static size_t cras_observer_notify_num_arc_streams_called;
 static size_t cras_iodev_list_reset_for_noise_cancellation_called;
 static size_t cras_feature_tier_init_called;
 static struct cras_board_config fake_board_config;
@@ -76,6 +77,7 @@ static void ResetStubData() {
   cras_observer_notify_num_active_streams_called = 0;
   cras_observer_notify_num_non_chrome_output_streams_called = 0;
   cras_observer_notify_input_streams_with_permission_called = 0;
+  cras_observer_notify_num_arc_streams_called = 0;
   cras_alert_process_all_pending_alerts_called = 0;
   cras_iodev_list_reset_for_noise_cancellation_called = 0;
   cras_alsa_card_get_type_called = 0;
@@ -389,6 +391,38 @@ TEST(SystemSettingsAddTask, AddTask) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(1, add_task_stub_called);
   EXPECT_EQ(task_data, task_data_value);
+
+  cras_system_state_deinit();
+}
+
+TEST(SystemSettingsStreamCount, ArcStreamCount) {
+  ResetStubData();
+  do_sys_init();
+
+  EXPECT_EQ(0, cras_system_state_num_arc_streams());
+  // Adding non ARC streams
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_TEST, 0);
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_CHROME,
+                                 0);
+  cras_system_state_stream_added(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_CHROME, 0);
+  EXPECT_EQ(0, cras_system_state_num_arc_streams());
+  EXPECT_EQ(0, cras_observer_notify_num_arc_streams_called);
+  // Adding 4 ARC streams
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_ARC, 0);
+  cras_system_state_stream_added(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_ARC, 0);
+  cras_system_state_stream_added(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_ARCVM, 0);
+  cras_system_state_stream_added(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_ARCVM, 0);
+  EXPECT_EQ(4, cras_system_state_num_arc_streams());
+  EXPECT_EQ(4, cras_observer_notify_num_arc_streams_called);
+  // Removing 4 ARC streams
+  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_ARC, 0);
+  cras_system_state_stream_removed(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_ARC, 0);
+  cras_system_state_stream_removed(CRAS_STREAM_OUTPUT, CRAS_CLIENT_TYPE_ARCVM,
+                                   0);
+  cras_system_state_stream_removed(CRAS_STREAM_INPUT, CRAS_CLIENT_TYPE_ARCVM,
+                                   0);
+  EXPECT_EQ(0, cras_system_state_num_arc_streams());
+  EXPECT_EQ(8, cras_observer_notify_num_arc_streams_called);
 
   cras_system_state_deinit();
 }
@@ -777,6 +811,10 @@ void cras_observer_notify_input_streams_with_permission(
 }
 
 void cras_observer_notify_num_stream_ignore_ui_gains_changed(int num) {}
+
+void cras_observer_notify_num_arc_streams(int num_arc_streams) {
+  cras_observer_notify_num_arc_streams_called++;
+}
 
 struct cras_board_config* cras_board_config_create(const char* config_path) {
   return &fake_board_config;

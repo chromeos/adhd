@@ -17,7 +17,7 @@ extern "C" {
 
 namespace {
 
-static const size_t kNumAlert = 24;
+static const size_t kNumAlert = 25;
 
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;
@@ -69,6 +69,8 @@ static size_t cb_speak_on_mute_detected_called;
 static size_t cb_num_non_chrome_output_streams_called;
 static std::vector<uint32_t> cb_num_non_chrome_output_streams_values;
 static size_t cb_num_stream_ignore_ui_gains_changed_called;
+static size_t cb_num_arc_streams_called;
+static std::vector<uint32_t> cb_num_arc_streams_values;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -120,6 +122,8 @@ static void ResetStubData() {
   cb_num_non_chrome_output_streams_called = 0;
   cb_num_non_chrome_output_streams_values.clear();
   cb_num_stream_ignore_ui_gains_changed_called = 0;
+  cb_num_arc_streams_called = 0;
+  cb_num_arc_streams_values.clear();
 }
 
 // System output volume changed.
@@ -245,6 +249,12 @@ void cb_num_non_chrome_output_streams(void* context,
 
 void cb_num_stream_ignore_ui_gains_changed(void* context, int num) {
   cb_num_stream_ignore_ui_gains_changed_called++;
+  cb_context.push_back(context);
+}
+
+void cb_num_arc_streams(void* context, uint32_t num_arc_streams) {
+  cb_num_arc_streams_called++;
+  cb_num_arc_streams_values.push_back(num_arc_streams);
   cb_context.push_back(context);
 }
 
@@ -790,6 +800,24 @@ TEST_F(ObserverTest, NumStreamIgnoreUiGainsChanged) {
   ASSERT_EQ(cb_num_stream_ignore_ui_gains_changed_called, 2);
 
   DoObserverRemoveClear(num_stream_ignore_ui_gains_changed_alert, data);
+}
+
+TEST_F(ObserverTest, NumArcStreamsChanged) {
+  cras_observer_notify_num_arc_streams(99);
+  EXPECT_EQ(cras_alert_pending_alert_value, g_observer->alerts.num_arc_streams);
+  auto* data =
+      reinterpret_cast<struct cras_observer_alert_data_num_arc_streams*>(
+          cras_alert_pending_data_value);
+  EXPECT_EQ(data->num_arc_streams, 99);
+
+  ops1_.num_arc_streams_changed = cb_num_arc_streams;
+  ops2_.num_arc_streams_changed = cb_num_arc_streams;
+
+  DoObserverAlert(num_arc_streams_alert, data);
+  ASSERT_EQ(cb_num_arc_streams_called, 2);
+  EXPECT_EQ(cb_num_arc_streams_values, (std::vector<uint32_t>{99, 99}));
+
+  DoObserverRemoveClear(num_arc_streams_alert, data);
 }
 
 // Stubs

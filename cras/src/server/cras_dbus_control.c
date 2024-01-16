@@ -1449,6 +1449,13 @@ static DBusHandlerResult handle_dump_s2_as_json(DBusConnection* conn,
   return ret;
 }
 
+static inline DBusHandlerResult handle_get_number_of_arc_streams(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  return send_int32_reply(conn, message, cras_system_state_num_arc_streams());
+}
+
 // Handle incoming messages.
 static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                                 DBusMessage* message,
@@ -1664,6 +1671,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "DumpS2AsJSON")) {
     return handle_dump_s2_as_json(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetNumberOfArcStreams")) {
+    return handle_get_number_of_arc_streams(conn, message, arg);
   }
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -2121,6 +2131,22 @@ static void signal_num_stream_ignore_ui_gains_changed(void* context, int num) {
   dbus_message_unref(msg);
 }
 
+static void signal_number_of_arc_stream_changed(void* context,
+                                                uint32_t num_arc_streams) {
+  struct cras_dbus_control* control = (struct cras_dbus_control*)context;
+  dbus_uint32_t serial = 0;
+  dbus_int32_t num = num_arc_streams;
+
+  DBusMessage* msg = create_dbus_message("NumberOfArcStreamsChanged");
+  if (!msg) {
+    return;
+  }
+
+  dbus_message_append_args(msg, DBUS_TYPE_INT32, &num, DBUS_TYPE_INVALID);
+  dbus_connection_send(control->conn, msg, &serial);
+  dbus_message_unref(msg);
+}
+
 // Exported Interface
 
 void cras_dbus_control_start(DBusConnection* conn) {
@@ -2169,6 +2195,7 @@ void cras_dbus_control_start(DBusConnection* conn) {
   observer_ops.speak_on_mute_detected = signal_speak_on_mute_detected;
   observer_ops.num_stream_ignore_ui_gains_changed =
       signal_num_stream_ignore_ui_gains_changed;
+  observer_ops.num_arc_streams_changed = signal_number_of_arc_stream_changed;
 
   dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }
