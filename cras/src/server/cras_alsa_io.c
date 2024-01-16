@@ -1011,29 +1011,6 @@ static void set_input_default_node_gain(struct alsa_input_node* input,
   }
 }
 
-static void set_input_node_intrinsic_sensitivity(struct alsa_input_node* input,
-                                                 struct alsa_io* aio) {
-  struct cras_ionode* node = (struct cras_ionode*)&input->common.base;
-  long sensitivity;
-  int rc;
-
-  if (!aio->common.ucm) {
-    return;
-  }
-  rc = ucm_get_intrinsic_sensitivity(aio->common.ucm, input->common.ucm_name,
-                                     &sensitivity);
-  if (rc) {
-    return;
-  }
-
-  node->software_volume_needed = 1;
-  node->internal_capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
-  syslog(LOG_DEBUG,
-         "Use software gain %ld for %s because IntrinsicSensitivity %ld is"
-         " specified in UCM",
-         node->internal_capture_gain, node->name, sensitivity);
-}
-
 static void check_auto_unplug_output_node(struct alsa_io* aio,
                                           struct cras_ionode* node,
                                           int plugged) {
@@ -1166,7 +1143,7 @@ static struct alsa_input_node* new_input(struct alsa_io* aio,
   strlcpy(input->common.ucm_name, name, sizeof(input->common.ucm_name));
   set_node_initial_state(node, aio->common.card_type);
   set_input_default_node_gain(input, aio);
-  set_input_node_intrinsic_sensitivity(input, aio);
+  cras_alsa_set_node_intrinsic_sensitivity(&input->common, &aio->common);
 
   if (aio->common.ucm) {
     // Check if channel map is specified in UCM.

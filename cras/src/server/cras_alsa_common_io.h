@@ -199,6 +199,9 @@ struct alsa_common_node* cras_alsa_get_node_from_jack(
     struct alsa_common_io* aio,
     const struct cras_alsa_jack* jack);
 
+int cras_alsa_set_node_intrinsic_sensitivity(struct alsa_common_node* anode,
+                                             struct alsa_common_io* aio);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
