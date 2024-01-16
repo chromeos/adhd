@@ -321,6 +321,9 @@ int ucm_get_default_node_gain(struct cras_use_case_mgr* mgr,
                               long* gain);
 
 /* Gets the value for intrinsic sensitivity.
+ *
+ * The "IntrinsicSensitivity" in 0.01 dBFS/Pa
+ *
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
  *    dev - The device to query for intrinsic volume.
