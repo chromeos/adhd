@@ -1,0 +1,52 @@
+{
+  "blocked_functions": [
+    {
+      "regex": "atoi",
+      "replacement": "strtol"
+    },
+    {
+      "regex": "atof",
+      "replacement": "strtof"
+    },
+    {
+      "regex": "sprintf",
+      "replacement": "snprintf or scnprintf if using the return value"
+    },
+    {
+      "regex": "strcmp",
+      "replacement": "strncmp"
+    },
+    {
+      "regex": "strcpy",
+      "replacement": "strlcpy"
+    },
+    {
+      "regex": "strncpy",
+      "replacement": "strlcpy"
+    },
+    {
+      "regex": "strlen",
+      "replacement": "strnlen"
+    },
+    {
+      "regex": "strdup",
+      "replacement": "strndup"
+    },
+    {
+      "regex": "strstr",
+      "replacement": "strnstr"
+    },
+    {
+      "regex": "strchr",
+      "replacement": "strnchr"
+    },
+    {
+      "regex": "strcasecmp",
+      "replacement": "strncasecmp"
+    },
+    {
+      "regex": "strdupa",
+      "replacement": "strndupa"
+    }
+  ]
+}
