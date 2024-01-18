@@ -25,6 +25,8 @@ static size_t hfp_pcm_iodev_destroy_called;
 static size_t hfp_alsa_iodev_destroy_called;
 static size_t floss_media_hfp_start_sco_called;
 static size_t floss_media_hfp_stop_sco_called;
+static size_t floss_media_hfp_set_volume_called;
+static unsigned int floss_media_hfp_set_volume_volume_val;
 static int socket_ret;
 static int audio_thread_add_events_callback_called;
 static int audio_thread_add_events_callback_fd;
@@ -52,6 +54,8 @@ void ResetStubData() {
   hfp_alsa_iodev_destroy_called = 0;
   floss_media_hfp_start_sco_called = 0;
   floss_media_hfp_stop_sco_called = 0;
+  floss_media_hfp_set_volume_called = 0;
+  floss_media_hfp_set_volume_volume_val = 0;
   audio_thread_add_events_callback_called = 0;
   audio_thread_add_events_callback_fd = 0;
   audio_thread_add_events_callback_cb = NULL;
@@ -194,6 +198,36 @@ TEST_F(HfpManagerTestSuite, StartStop) {
   cras_floss_hfp_destroy(hfp);
 }
 
+TEST_F(HfpManagerTestSuite, SetVolume) {
+  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name", false);
+  ASSERT_NE(hfp, (struct cras_hfp*)NULL);
+
+  cras_floss_hfp_set_volume(hfp, 100);
+  EXPECT_EQ(floss_media_hfp_set_volume_called, 1);
+  EXPECT_EQ(floss_media_hfp_set_volume_volume_val, 15);
+
+  cras_floss_hfp_set_volume(hfp, 0);
+  EXPECT_EQ(floss_media_hfp_set_volume_called, 2);
+  EXPECT_EQ(floss_media_hfp_set_volume_volume_val, 0);
+
+  cras_floss_hfp_set_volume(hfp, 6);
+  EXPECT_EQ(floss_media_hfp_set_volume_called, 3);
+  EXPECT_EQ(floss_media_hfp_set_volume_volume_val, 0);
+
+  cras_floss_hfp_set_volume(hfp, 7);
+  EXPECT_EQ(floss_media_hfp_set_volume_called, 4);
+  EXPECT_EQ(floss_media_hfp_set_volume_volume_val, 1);
+
+  cras_floss_hfp_destroy(hfp);
+}
+
+TEST_F(HfpManagerTestSuite, ConvertVolume) {
+  EXPECT_EQ(cras_floss_hfp_convert_volume(0), 0);
+  EXPECT_EQ(cras_floss_hfp_convert_volume(1), 6);
+  EXPECT_EQ(cras_floss_hfp_convert_volume(15), 100);
+  EXPECT_EQ(cras_floss_hfp_convert_volume(20), 100);
+}
+
 }  // namespace
 
 extern "C" {
@@ -280,6 +314,14 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
 
 int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
   floss_media_hfp_stop_sco_called++;
+  return 0;
+}
+
+int floss_media_hfp_set_volume(struct fl_media* fm,
+                               unsigned int volume,
+                               const char* addr) {
+  floss_media_hfp_set_volume_called++;
+  floss_media_hfp_set_volume_volume_val = volume;
   return 0;
 }
 

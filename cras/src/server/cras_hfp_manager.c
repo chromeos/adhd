@@ -413,7 +413,7 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
 }
 
 void cras_floss_hfp_set_volume(struct cras_hfp* hfp, unsigned int volume) {
-  // Normailize volume value to 0-15
+  // Normalize volume value to 0-15
   volume = volume * 15 / 100;
   BTLOG(btlog, BT_HFP_SET_SPEAKER_GAIN, volume, 0);
   floss_media_hfp_set_volume(hfp->fm, volume, hfp->addr);
@@ -425,9 +425,7 @@ int cras_floss_hfp_convert_volume(unsigned int vgs_volume) {
     vgs_volume = 15;
   }
 
-  /* Map 0 to the smallest non-zero scale 6/100, and 15 to
-   * 100/100 full. */
-  return (vgs_volume + 1) * 100 / 16;
+  return vgs_volume * 100 / 15;
 }
 
 bool cras_floss_hfp_get_codec_supported(struct cras_hfp* hfp,
