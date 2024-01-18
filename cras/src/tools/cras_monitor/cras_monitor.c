@@ -212,7 +212,10 @@ int main(int argc, char** argv) {
         synchronous = !synchronous;
         break;
       case 'l':
-        log_level = atoi(optarg);
+        rc = parse_int(optarg, &log_level);
+        if (rc < 0) {
+          syslog(LOG_WARNING, "Invalid log_level %s", optarg);
+        }
         if (log_level < 0) {
           log_level = LOG_WARNING;
         } else if (log_level > LOG_DEBUG) {

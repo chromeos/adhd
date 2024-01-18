@@ -20,6 +20,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_alsa_ucm_section.h"
 #include "cras_audio_format.h"
@@ -182,7 +183,10 @@ static int get_int(struct cras_use_case_mgr* mgr,
   if (rc != 0) {
     return rc;
   }
-  *value = atoi(str_value);
+  rc = parse_int(str_value, value);
+  if (rc < 0) {
+    return rc;
+  }
   free((void*)str_value);
   return 0;
 }
@@ -934,7 +938,14 @@ int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr* mgr,
   tokens = strdup(var_str);
   token = strtok(tokens, " ");
   for (i = 0; token && (i < CRAS_CH_MAX); i++) {
-    channel_layout[i] = atoi(token);
+    int channel;
+    rc = parse_int(token, &channel);
+    if (rc < 0) {
+      free((void*)tokens);
+      free((void*)var_str);
+      return rc;
+    }
+    channel_layout[i] = channel;
     token = strtok(NULL, " ");
   }
 
@@ -978,7 +989,12 @@ static int get_device_index_from_target(struct cras_use_case_mgr* mgr,
   }
   if (*pos == ',') {
     ++pos;
-    return atoi(pos);
+    int index;
+    int rc = parse_int(pos, &index);
+    if (rc < 0) {
+      return rc;
+    }
+    return index;
   }
   return (is_private ? 0 : -EINVAL);
 }

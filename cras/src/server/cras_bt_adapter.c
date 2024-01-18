@@ -67,7 +67,12 @@ static int cras_bt_adapter_query_bus_type(struct cras_bt_adapter* adapter) {
 
   // dev_id = 0 for hci0
   dev_info.type = 0;
-  dev_info.dev_id = atoi(pos + 3);
+  unsigned long ul;
+  int rc = parse_unsigned_long(pos + 3, &ul);
+  if (rc < 0) {
+    return rc;
+  }
+  dev_info.dev_id = ul;
   err = ioctl(ctl, HCIGETDEVINFO, (void*)&dev_info);
   if (err) {
     syslog(LOG_WARNING, "HCI get dev info error %s", cras_strerror(errno));

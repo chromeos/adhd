@@ -621,8 +621,11 @@ static int usb_get_ucm_flag_integer(struct alsa_usb_io* aio,
     return -EINVAL;
   }
 
-  i = atoi(value);
+  int rc = parse_int(value, &i);
   free(value);
+  if (rc < 0) {
+    return rc;
+  }
   *result = i;
   return 0;
 }

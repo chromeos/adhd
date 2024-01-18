@@ -1664,7 +1664,12 @@ static int parse_channel_layout(char* channel_layout_str,
 
   chp = strtok(channel_layout_str, ",");
   while (chp && i < CRAS_CH_MAX) {
-    channel_layout[i++] = atoi(chp);
+    int channel_layout_int;
+    int rc = parse_int(chp, &channel_layout_int);
+    if (rc < 0) {
+      return rc;
+    }
+    channel_layout[i++] = channel_layout_int;
     chp = strtok(NULL, ",");
   }
 
@@ -1701,9 +1706,14 @@ static unsigned int read_dev_idx(int tty) {
     }
   } while (*(buf + pos) != '\n' && ++pos < 16);
   buf[pos] = '\n';
-  /* If error occurs this will return 0. Since we're in a test
-   * tool, just pretend as setting NO_DEVICE(value 0).*/
-  return atoi(buf);
+  int idx;
+  int rc = parse_int(buf, &idx);
+  if (rc < 0) {
+    /* If error occurs this will return 0. Since we're in a test
+     * tool, just pretend as setting NO_DEVICE(value 0).*/
+    return 0;
+  }
+  return idx;
 }
 
 static int run_file_io_stream(struct cras_client* client,
@@ -2537,7 +2547,8 @@ static int cras_client_create_and_connect(struct cras_client** client,
 
 int main(int argc, char** argv) {
   struct cras_client* client;
-  int c, option_index;
+  int c, option_index, auto_reconnect, mask, bt_wbs_enabled, log_level, mute,
+      volume;
   size_t block_size = NOT_ASSIGNED;
   size_t rate = 48000;
   size_t num_channels = 2;
@@ -2553,6 +2564,7 @@ int main(int argc, char** argv) {
   snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
   enum CRAS_CONNECTION_TYPE conn_type = CRAS_CONTROL;
   enum CRAS_CONNECTION_TYPE new_conn_type;
+  unsigned long ul = 0;
 
   option_index = 0;
   openlog("cras_test_client", LOG_PERROR, LOG_USER);
@@ -2590,10 +2602,20 @@ int main(int argc, char** argv) {
         break;
       }
       case 'b':
-        block_size = atoi(optarg);
+        rc = parse_unsigned_long(optarg, &ul);
+        if (rc < 0) {
+          fprintf(stderr, "invalid block size %s\n", optarg);
+          goto destroy_exit;
+        }
+        block_size = ul;
         break;
       case 'c':
-        num_channels = atoi(optarg);
+        rc = parse_unsigned_long(optarg, &ul);
+        if (rc < 0) {
+          fprintf(stderr, "invalid channel num %s\n", optarg);
+          goto destroy_exit;
+        }
+        num_channels = ul;
         break;
       case 'd':
         rc = parse_float(optarg, &duration_seconds);
@@ -2662,8 +2684,11 @@ int main(int argc, char** argv) {
         show_audio_debug_info(client);
         break;
       case 'n': {
-        int log_level = atoi(optarg);
-
+        rc = parse_int(optarg, &log_level);
+        if (rc < 0) {
+          fprintf(stderr, "invalid log level %s\n", optarg);
+          goto destroy_exit;
+        }
         setlogmask(LOG_UPTO(log_level));
         break;
       }
@@ -2674,7 +2699,11 @@ int main(int argc, char** argv) {
         printf("AEC group ID %d\n", cras_client_get_aec_group_id(client));
         break;
       case 'q': {
-        int mute = atoi(optarg);
+        rc = parse_int(optarg, &mute);
+        if (rc < 0) {
+          fprintf(stderr, "invalid mute value %s\n", optarg);
+          goto destroy_exit;
+        }
         rc = cras_client_set_user_mute(client, mute);
         if (rc < 0) {
           fprintf(stderr, "problem setting mute\n");
@@ -2683,13 +2712,22 @@ int main(int argc, char** argv) {
         break;
       }
       case 'r':
-        rate = atoi(optarg);
+        rc = parse_unsigned_long(optarg, &ul);
+        if (rc < 0) {
+          fprintf(stderr, "invalid rate %s\n", optarg);
+          goto destroy_exit;
+        }
+        rate = ul;
         break;
       case 's':
         cras_client_reload_dsp(client);
         break;
       case 'u': {
-        int mute = atoi(optarg);
+        rc = parse_int(optarg, &mute);
+        if (rc < 0) {
+          fprintf(stderr, "invalid mute value %s\n", optarg);
+          goto destroy_exit;
+        }
         rc = cras_client_set_system_mute(client, mute);
         if (rc < 0) {
           fprintf(stderr, "problem setting mute\n");
@@ -2698,7 +2736,11 @@ int main(int argc, char** argv) {
         break;
       }
       case 'v': {
-        int volume = atoi(optarg);
+        rc = parse_int(optarg, &volume);
+        if (rc < 0) {
+          fprintf(stderr, "invalid volume %s\n", optarg);
+          goto destroy_exit;
+        }
         volume = MIN(100, MAX(0, volume));
         rc = cras_client_set_system_volume(client, volume);
         if (rc < 0) {
@@ -2738,11 +2780,19 @@ int main(int argc, char** argv) {
         break;
       }
       case 'z':
-        pause_in_playback_reply = atoi(optarg);
+        rc = parse_int(optarg, &pause_in_playback_reply);
+        if (rc < 0) {
+          fprintf(stderr, "invalid pause_in_playback_reply value %s\n", optarg);
+          goto destroy_exit;
+        }
         break;
 
       case '0': {
-        int mute = atoi(optarg);
+        rc = parse_int(optarg, &mute);
+        if (rc < 0) {
+          fprintf(stderr, "invalid mute value %s\n", optarg);
+          goto destroy_exit;
+        }
         rc = cras_client_set_system_capture_mute(client, mute);
         if (rc < 0) {
           fprintf(stderr, "problem setting mute\n");
@@ -2766,7 +2816,13 @@ int main(int argc, char** argv) {
         printf("%s\n", VCSID);
         break;
       case '5': {
-        cras_client_add_test_iodev(client, atoi(optarg));
+        unsigned long type;
+        rc = parse_unsigned_long(optarg, &type);
+        if (errno == ERANGE) {
+          fprintf(stderr, "invalid iodev type %s\n", optarg);
+          goto destroy_exit;
+        }
+        cras_client_add_test_iodev(client, type);
         break;
       }
       case '7': {
@@ -2775,17 +2831,30 @@ int main(int argc, char** argv) {
         break;
       }
       case '8':
-        pin_device_id = atoi(optarg);
+        rc = parse_int(optarg, &pin_device_id);
+        if (rc < 0) {
+          fprintf(stderr, "invalid device_id %s\n", optarg);
+          goto destroy_exit;
+        }
         break;
       case '9': {
-        int suspend = atoi(optarg);
+        int suspend;
+        rc = parse_int(optarg, &suspend);
+        if (rc < 0) {
+          fprintf(stderr, "invalid suspend value %s\n", optarg);
+          goto destroy_exit;
+        }
         cras_client_set_suspend(client, suspend);
         break;
       }
 
       case '!': {
         play_short_sound = 1;
-        play_short_sound_periods = atoi(optarg);
+        rc = parse_int(optarg, &play_short_sound_periods);
+        if (rc < 0) {
+          fprintf(stderr, "invalid period count %s\n", optarg);
+          goto destroy_exit;
+        }
         break;
       }
       case '<':
@@ -2799,14 +2868,22 @@ int main(int argc, char** argv) {
           show_usage();
           return -EINVAL;
         }
-        dev_index = atoi(s);
+        rc = parse_int(s, &dev_index);
+        if (rc < 0) {
+          fprintf(stderr, "invalid dev index %s\n", optarg);
+          goto destroy_exit;
+        }
 
         s = strtok(NULL, ":");
         if (!s) {
           show_usage();
           return -EINVAL;
         }
-        node_index = atoi(s);
+        rc = parse_int(s, &node_index);
+        if (rc < 0) {
+          fprintf(stderr, "invalid node index %s\n", optarg);
+          goto destroy_exit;
+        }
 
         s = strtok(NULL, ":");
         if (!s && c == ';') {
@@ -2825,10 +2902,19 @@ int main(int argc, char** argv) {
       }
 
       case 'A':
-        post_dsp = atoi(optarg);
+        rc = parse_int(optarg, &rc);
+        if (rc < 0) {
+          fprintf(stderr, "invalid post_dsp value %s\n", optarg);
+          goto destroy_exit;
+        }
         break;
       case 'B':
-        stream_id = atoi(optarg);
+        rc = parse_unsigned_long(optarg, &ul);
+        if (rc < 0) {
+          fprintf(stderr, "invalid stream_id %s\n", optarg);
+          goto destroy_exit;
+        }
+        stream_id = ul;
         break;
       case 'C':
         capture_file = optarg;
@@ -2849,13 +2935,23 @@ int main(int argc, char** argv) {
         show_cras_bt_debug_info(client);
         break;
       case 'I':
-        cras_client_set_bt_wbs_enabled(client, atoi(optarg));
+        rc = parse_int(optarg, &bt_wbs_enabled);
+        if (rc < 0) {
+          fprintf(stderr, "invalid bt_wbs_enabled value %s\n", optarg);
+          goto destroy_exit;
+        }
+        cras_client_set_bt_wbs_enabled(client, bt_wbs_enabled);
         break;
       case 'J':
         cras_show_continuous_atlog(client);
         break;
       case 'K':
-        new_conn_type = atoi(optarg);
+        rc = parse_unsigned_long(optarg, &ul);
+        if (rc < 0) {
+          fprintf(stderr, "invalid connection type %s\n", optarg);
+          goto destroy_exit;
+        }
+        new_conn_type = ul;
         if (cras_validate_connection_type(new_conn_type)) {
           if (new_conn_type != conn_type) {
             cras_client_destroy(client);
@@ -2879,13 +2975,22 @@ int main(int argc, char** argv) {
         loopback_file = optarg;
         break;
       case 'M':
-        mute_loop_test(client, atoi(optarg));
+        rc = parse_int(optarg, &auto_reconnect);
+        if (rc < 0) {
+          fprintf(stderr, "invalid auto reconnect value %s\n", optarg);
+          goto destroy_exit;
+        }
+        mute_loop_test(client, auto_reconnect);
         break;
       case 'N':
         show_main_thread_debug_info(client);
         break;
       case 'O':
-        aec_ref_device_id = atoi(optarg);
+        rc = parse_int(optarg, &aec_ref_device_id);
+        if (rc < 0) {
+          fprintf(stderr, "invalid device id %s\n", optarg);
+          goto destroy_exit;
+        }
         break;
       case 'P':
         playback_file = optarg;
@@ -2894,13 +2999,24 @@ int main(int argc, char** argv) {
         show_ooo_ts = 1;
         break;
       case 'T':
-        stream_type = atoi(optarg);
+        rc = parse_unsigned_long(optarg, &ul);
+        if (rc < 0) {
+          fprintf(stderr, "invalid stream type %s\n", optarg);
+          goto destroy_exit;
+        }
+        stream_type = ul;
         break;
       case 'U':
         print_nodes_inlined(client);
         break;
       case 'V':
-        request_floop_mask(client, atoi(optarg));
+        rc = parse_int(optarg, &mask);
+        if (rc < 0) {
+          fprintf(stderr, "invalid mask %s\n", optarg);
+          goto destroy_exit;
+        }
+        request_floop_mask(client, mask);
+
         break;
       case 'W': {
         cras_client_set_thread_priority_cb(client, thread_priority_cb);
@@ -2908,10 +3024,18 @@ int main(int argc, char** argv) {
           thread_priority = THREAD_PRIORITY_NONE;
         } else if (str_has_prefix(optarg, "nice:")) {
           thread_priority = THREAD_PRIORITY_NICE;
-          niceness_level = atoi(optarg + strlen("nice:"));
+          rc = parse_int(optarg + strlen("nice:"), &niceness_level);
+          if (rc < 0) {
+            fprintf(stderr, "invalid niceness_levels %s\n", optarg);
+            goto destroy_exit;
+          }
         } else if (str_has_prefix(optarg, "rt:")) {
           thread_priority = THREAD_PRIORITY_RT_RR;
-          rt_priority = atoi(optarg + strlen("rt:"));
+          rc = parse_int(optarg + strlen("rt:"), &rt_priority);
+          if (rc < 0) {
+            fprintf(stderr, "invalid rt_priority %s\n", optarg);
+            goto destroy_exit;
+          }
         } else {
           fprintf(stderr, "invalid --thread_priority argument: %s\n", optarg);
           rc = 1;

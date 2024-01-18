@@ -171,7 +171,13 @@ static unsigned is_card_device(struct udev_device* dev,
       regexec(&card_regex, devpath, ARRAY_SIZE(m), m, 0) == 0) {
     *sysname = udev_device_get_sysname(dev);
     *card_type = check_device_type(dev);
-    *card_number = (unsigned)atoi(&devpath[m[1].rm_so]);
+    int card_number_int;
+    int rc = parse_int(&devpath[m[1].rm_so], &card_number_int);
+    if (rc < 0) {
+      syslog(LOG_WARNING, "invalid card number %s", &devpath[m[1].rm_so]);
+      return 0;
+    }
+    *card_number = (unsigned)card_number_int;
     return 1;
   }
 
@@ -295,8 +301,11 @@ static int get_usb_device_number(struct udev_device* dev) {
 
   basename = strrchr(path, '/') + 1;
 
-  int device_number = strtol(basename, NULL, 10);
-
+  int device_number;
+  int rc = parse_int(basename, &device_number);
+  if (rc < 0) {
+    return rc;
+  }
   return device_number;
 }
 

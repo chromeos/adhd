@@ -5,10 +5,12 @@
 
 #include "cras/src/server/cras_alsa_mixer_name.h"
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/src/common/cras_string.h"
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
@@ -23,7 +25,10 @@ static void mixer_control_get_name_and_index(const char* name,
     *mixer_control_index = 0;
   } else {
     mixer_control_name_len = (size_t)(pos - name);
-    *mixer_control_index = atoi(pos + 1);
+    int rc = parse_int(pos + 1, mixer_control_index);
+    if (rc < 0) {
+      *mixer_control_index = 0;
+    }
   }
   strncpy(mixer_control_name, name, mixer_control_name_len);
 

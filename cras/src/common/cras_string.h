@@ -49,6 +49,43 @@ static inline bool str_equals_bounded(const char* str1,
          memchr(str2, 0, max);
 }
 
+// Convert string to int. This function is a wrapper for strtol;
+static __attribute__((warn_unused_result)) inline int parse_int(const char* str,
+                                                                int* out) {
+  if (!str || !out) {
+    return -EINVAL;
+  }
+  char* endptr;
+  errno = 0;
+
+  int num = strtol(str, &endptr, 10);
+  if (endptr == str) {
+    return -EINVAL;
+  }
+  *out = num;
+
+  return -errno;
+}
+
+// Convert string to unsigned long. This function is a wrapper for strtoul;
+static __attribute__((warn_unused_result)) inline int parse_unsigned_long(
+    const char* str,
+    unsigned long* out) {
+  if (!str || !out) {
+    return -EINVAL;
+  }
+  char* endptr;
+  errno = 0;
+
+  unsigned long num = strtoul(str, &endptr, 10);
+  if (endptr == str) {
+    return -EINVAL;
+  }
+  *out = num;
+
+  return -errno;
+}
+
 // Convert string to float. This function is a wrapper for strtof.
 static __attribute__((warn_unused_result)) inline int parse_float(
     const char* str,

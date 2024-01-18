@@ -14,6 +14,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "cras/src/common/cras_string.h"
 #include "cras_audio_format.h"
 #include "cras_client.h"
 #include "cras_types.h"
@@ -201,6 +202,7 @@ int main(int argc, char** argv) {
   size_t block_size;
   int rc = 0;
   int c, option_index;
+  unsigned long ul;
 
   option_index = 0;
 
@@ -226,7 +228,12 @@ int main(int argc, char** argv) {
         show_usage();
         goto destroy_exit;
       case 'r':
-        rate = atoi(optarg);
+        rc = parse_unsigned_long(optarg, &ul);
+        if (rc < 0) {
+          fprintf(stderr, "Invalid rate %s.\n", optarg);
+          return rc;
+        }
+        rate = ul;
         break;
       default:
         break;

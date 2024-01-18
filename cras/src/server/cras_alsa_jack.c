@@ -798,8 +798,8 @@ static unsigned int hctl_jack_device_index(const char* name) {
   if (*substr == '\0') {
     return 0;
   }
-  device_index = atoi(substr);
-  if (device_index < 0) {
+  int rc = parse_int(substr, &device_index);
+  if (device_index < 0 || rc < 0) {
     return 0;
   }
   return (unsigned int)device_index;

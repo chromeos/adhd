@@ -955,8 +955,11 @@ static int get_ucm_flag_integer(struct alsa_io* aio,
     return -EINVAL;
   }
 
-  i = atoi(value);
+  int rc = parse_int(value, &i);
   free(value);
+  if (rc < 0) {
+    return rc;
+  }
   *result = i;
   return 0;
 }

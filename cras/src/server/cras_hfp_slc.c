@@ -5,6 +5,7 @@
 
 #include "cras/src/server/cras_hfp_slc.h"
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -294,8 +295,8 @@ static int bluetooth_codec_selection(struct hfp_slc_handle* handle,
   if (!codec) {
     goto bcs_cmd_cleanup;
   }
-  id = atoi(codec);
-  if ((id <= HFP_CODEC_UNUSED) || (id >= HFP_MAX_CODECS)) {
+  int rc = parse_int(codec, &id);
+  if ((rc < 0 || id <= HFP_CODEC_UNUSED) || (id >= HFP_MAX_CODECS)) {
     syslog(LOG_WARNING, "%s: invalid codec id: '%s'", __func__, cmd);
     free(tokens);
     return hfp_send(handle, AT_CMD("ERROR"));
@@ -341,17 +342,33 @@ static int apple_accessory_state_change(struct hfp_slc_handle* handle,
     return hfp_send(handle, AT_CMD("ERROR"));
   }
 
-  for (i = 0; i < atoi(num); i++) {
+  int num_int;
+  int rc = parse_int(num, &num_int);
+  if (rc < 0) {
+    free(tokens);
+    return hfp_send(handle, AT_CMD("ERROR"));
+  }
+  for (i = 0; i < num_int; i++) {
     key = strtok(NULL, ",");
     val = strtok(NULL, ",");
     if (!key || !val) {
       syslog(LOG_WARNING, "IPHONEACCEV: Expected %d kv pairs but got %d",
-             atoi(num), i);
+             num_int, i);
       break;
     }
 
-    if (atoi(key) == 1) {
-      level = atoi(val);
+    int key_int;
+    int rc = parse_int(key, &key_int);
+    if (rc < 0) {
+      syslog(LOG_WARNING, "Get invalid battery status from cmd:%s", cmd);
+      continue;
+    }
+    rc = parse_int(val, &level);
+    if (rc < 0) {
+      syslog(LOG_WARNING, "Get invalid battery status from cmd:%s", cmd);
+      continue;
+    }
+    if (key_int == 1) {
       if (level >= 0 && level < 10) {
         cras_server_metrics_hfp_battery_report(
             CRAS_HFP_BATTERY_INDICATOR_APPLE);
@@ -392,7 +409,10 @@ static int apple_supported_features(struct hfp_slc_handle* handle,
     goto error_out;
   }
 
-  apple_features = atoi(features);
+  int rc = parse_int(features, &apple_features);
+  if (rc < 0) {
+    goto error_out;
+  }
 
   if (apple_features & APL_BATTERY) {
     handle->hf_supports_battery_indicator |= CRAS_HFP_BATTERY_INDICATOR_APPLE;
@@ -427,7 +447,10 @@ static int available_codecs(struct hfp_slc_handle* handle, const char* cmd) {
   strtok(tokens, "=");
   id_str = strtok(NULL, ",");
   while (id_str) {
-    id = atoi(id_str);
+    int rc = parse_int(id_str, &id);
+    if (rc < 0) {
+      goto error_out;
+    }
     if ((id > HFP_CODEC_UNUSED) && (id < HFP_MAX_CODECS)) {
       handle->hf_codec_supported[id] = true;
       BTLOG(btlog, BT_AVAILABLE_CODECS, 0, id);
@@ -443,6 +466,11 @@ static int available_codecs(struct hfp_slc_handle* handle, const char* cmd) {
 
   free(tokens);
   return hfp_send(handle, AT_CMD("OK"));
+
+error_out:
+  syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
+  free(tokens);
+  return hfp_send(handle, AT_CMD("ERROR"));
 }
 
 /* AT+CMER command enables the registration status update function in AG.
@@ -475,10 +503,22 @@ static int event_reporting(struct hfp_slc_handle* handle, const char* cmd) {
     err = -EINVAL;
     goto event_reporting_done;
   }
-  if (atoi(mode) == FORWARD_UNSOLICIT_RESULT_CODE) {
-    handle->ind_event_reports[CRAS_INDICATOR_ENABLE_INDEX] = atoi(tmp);
+  int mode_int;
+  int rc = parse_int(mode, &mode_int);
+  if (rc < 0) {
+    syslog(LOG_WARNING, "Invalid event reporting” cmd %s", cmd);
+    err = rc;
+    goto event_reporting_done;
   }
-
+  if (mode_int == FORWARD_UNSOLICIT_RESULT_CODE) {
+    rc =
+        parse_int(tmp, &handle->ind_event_reports[CRAS_INDICATOR_ENABLE_INDEX]);
+    if (rc < 0) {
+      syslog(LOG_WARNING, "Invalid event reporting” cmd %s", cmd);
+      err = rc;
+      goto event_reporting_done;
+    }
+  }
   err = hfp_send(handle, AT_CMD("OK"));
   if (err) {
     syslog(LOG_WARNING, "Error sending response for command %s", cmd);
@@ -751,7 +791,13 @@ static int indicator_support(struct hfp_slc_handle* handle, const char* cmd) {
       strtok(tokens, "=");
       key = strtok(NULL, ",");
       while (key != NULL) {
-        if (atoi(key) == 2) {
+        int key_int = 0;
+        err = parse_int(key, &key_int);
+        if (err < 0) {
+          free(tokens);
+          return err;
+        }
+        if (key_int == 2) {
           handle->hf_supports_battery_indicator |=
               CRAS_HFP_BATTERY_INDICATOR_HFP;
         }
@@ -828,12 +874,21 @@ static int indicator_state_change(struct hfp_slc_handle* handle,
     goto error_out;
   }
 
-  if (atoi(key) == 2) {
+  int key_int;
+  int rc = parse_int(key, &key_int);
+  if (rc < 0) {
+    goto error_out;
+  }
+
+  if (key_int == 2) {
     val = strtok(NULL, ",");
     if (!val) {
       goto error_out;
     }
-    level = atoi(val);
+    rc = parse_int(val, &level);
+    if (rc < 0) {
+      goto error_out;
+    }
     if (level >= 0 && level <= 100) {
       cras_server_metrics_hfp_battery_report(CRAS_HFP_BATTERY_INDICATOR_HFP);
       if (handle->hf_battery != level) {
@@ -871,7 +926,11 @@ static int signal_gain_setting(struct hfp_slc_handle* handle, const char* cmd) {
   /* Map 0 to the smallest non-zero scale 6/100, and 15 to
    * 100/100 full. */
   if (cmd[5] == 'S') {
-    gain = atoi(&cmd[7]);
+    int rc = parse_int(&cmd[7], &gain);
+    if (rc < 0) {
+      syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
+      return hfp_send(handle, AT_CMD("ERROR"));
+    }
     if (gain < 0 || gain > 15) {
       syslog(LOG_WARNING,
              "signal_gain_setting: gain %d is not between 0 and 15", gain);
@@ -913,10 +972,12 @@ static int supported_features(struct hfp_slc_handle* handle, const char* cmd) {
     goto error_out;
   }
 
-  handle->hf_supported_features = atoi(features);
+  int rc = parse_int(features, &(handle->hf_supported_features));
   BTLOG(btlog, BT_HFP_SUPPORTED_FEATURES, 0, handle->hf_supported_features);
   free(tokens);
-
+  if (rc < 0) {
+    goto error_out;
+  }
   /* AT+BRSF=<feature> command received, ignore the HF supported feature
    * for now. Respond with +BRSF:<feature> to notify mandatory supported
    * features in AG(audio gateway).
@@ -992,9 +1053,12 @@ static int vendor_specific_features(struct hfp_slc_handle* handle,
       goto error_out;
     }
 
-    level = atoi(level_str);
-    num_of_level = atoi(num_of_level_str);
-    if (level < 0 || num_of_level <= 1 || level >= num_of_level) {
+    int rc = parse_int(level_str, &level);
+    if (rc < 0) {
+      goto error_out;
+    }
+    rc = parse_int(num_of_level_str, &num_of_level);
+    if (rc < 0 || level < 0 || num_of_level <= 1 || level >= num_of_level) {
       goto error_out;
     }
 
