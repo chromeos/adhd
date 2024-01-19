@@ -6,7 +6,9 @@
 #ifndef CRAS_SRC_COMMON_CRAS_STRING_H_
 #define CRAS_SRC_COMMON_CRAS_STRING_H_
 
+#include <errno.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "third_party/strlcpy/strlcpy.h"
@@ -45,6 +47,38 @@ static inline bool str_equals_bounded(const char* str1,
 
   return !strncmp(str1, str2, max) && memchr(str1, 0, max) &&
          memchr(str2, 0, max);
+}
+
+// Convert string to float. This function is a wrapper for strtof.
+static __attribute__((warn_unused_result)) inline int parse_float(
+    const char* str,
+    float* out) {
+  if (!str || !out) {
+    return -EINVAL;
+  }
+  char* endptr;
+  errno = 0;
+  *out = strtof(str, &endptr);
+  if (endptr == str) {
+    return -EINVAL;
+  }
+  return -errno;
+}
+
+// Convert string to double. This function is a wrapper for strtod.
+static __attribute__((warn_unused_result)) inline int parse_double(
+    const char* str,
+    double* out) {
+  if (!str || !out) {
+    return -EINVAL;
+  }
+  char* endptr;
+  errno = 0;
+  *out = strtod(str, &endptr);
+  if (endptr == str) {
+    return -EINVAL;
+  }
+  return -errno;
 }
 
 #ifdef __cplusplus

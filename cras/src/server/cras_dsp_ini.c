@@ -14,6 +14,7 @@
 #include <syslog.h>
 
 #include "cras/src/common/array.h"
+#include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/server/cras_expr.h"
 #include "cras/src/server/iniparser_wrapper.h"
@@ -134,9 +135,9 @@ static int parse_ports(struct ini* ini,
       p->flow_id = lookup_or_add_flow(ini, str);
       p->init_value = 0;
     } else {
-      char* endptr;
-      float init_value = strtof(str, &endptr);
-      if (endptr == str) {
+      float init_value = 0;
+      int rc = parse_float(str, &init_value);
+      if (rc < 0) {
         syslog(LOG_ERR, "cannot parse number from '%s'", str);
       }
       p = ARRAY_APPEND_ZERO(&plugin->ports);

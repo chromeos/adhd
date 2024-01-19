@@ -2591,7 +2591,11 @@ int main(int argc, char** argv) {
         num_channels = atoi(optarg);
         break;
       case 'd':
-        duration_seconds = atof(optarg);
+        rc = parse_float(optarg, &duration_seconds);
+        if (rc < 0) {
+          printf("Invalid duration: %s\n", optarg);
+          return rc;
+        }
         break;
       case 'e':
         show_audio_thread_snapshots(client);

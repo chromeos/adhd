@@ -160,6 +160,7 @@ int main(int argc, char** argv) {
   int pl_percent_set = 0;
   int option_character;
   int option_index = 0;
+  int rc = 0;
   const char* input_file = NULL;
   const char* pl_hex = NULL;
   bool* pl_seq = NULL;
@@ -188,7 +189,11 @@ int main(int argc, char** argv) {
         pl_hex = optarg;
         break;
       case 'r':
-        pl_percent = atof(optarg);
+        rc = parse_float(optarg, &pl_percent);
+        if (rc < 0) {
+          fprintf(stderr, "Invalid pl_percent %s\n", optarg);
+          return rc;
+        }
         pl_percent_set = 1;
         break;
       default:
