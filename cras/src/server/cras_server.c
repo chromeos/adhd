@@ -23,6 +23,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/server/main_message.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/server/platform/features/override.h"
@@ -50,7 +51,6 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/cras_udev.h"
-#include "cras/src/server/rust/include/cras_rust_logging.h"
 #include "cras_config.h"
 #include "cras_messages.h"
 #include "cras_types.h"

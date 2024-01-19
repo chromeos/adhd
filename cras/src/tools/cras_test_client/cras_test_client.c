@@ -25,10 +25,10 @@
 #include <unistd.h>
 
 #include "cras/common/check.h"
+#include "cras/common/rust_common.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/cras_types_internal.h"
 #include "cras/src/common/cras_version.h"
-#include "cras/src/server/rust/include/pseudonymization.h"
 #include "cras_audio_format.h"
 #include "cras_client.h"
 #include "cras_iodev_info.h"

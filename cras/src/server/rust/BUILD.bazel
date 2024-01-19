@@ -64,6 +64,7 @@ cc_test(
     srcs = ["pseudonymization_test.cc"],
     deps = [
         ":cc",
+        "//cras/common:rust_common_cc",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],
@@ -74,6 +75,7 @@ cc_test(
     srcs = ["pseudonymization_none_test.cc"],
     deps = [
         ":cc",
+        "//cras/common:rust_common_cc",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],
@@ -84,6 +86,7 @@ cc_test(
     srcs = ["cras_fra_test.cc"],
     deps = [
         ":cc",
+        "//cras/common:rust_common_cc",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],

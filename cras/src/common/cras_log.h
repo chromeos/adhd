@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-#include "cras/src/server/rust/include/cras_fra.h"
+#include "cras/common/rust_common.h"
 
 // prints something to thread-local storage.
 // Use only for printing debug messages.

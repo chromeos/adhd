@@ -139,6 +139,7 @@ cc_library(
         "//cras/src/tests:__pkg__",
     ],
     deps = [
+        "//cras/common:rust_common_cc",
         "//cras/src/server/rust:cc",
     ],
 )

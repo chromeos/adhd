@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <errno.h>
 
-#include "cras/src/server/rust/include/cras_fra.h"
+#include "cras/common/rust_common.h"
 #include "gtest/gtest.h"
 
 TEST(FRA, Fralog) {

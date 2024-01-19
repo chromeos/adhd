@@ -4,7 +4,7 @@
 
 #include <errno.h>
 
-#include "cras/src/server/rust/include/pseudonymization.h"
+#include "cras/common/rust_common.h"
 #include "gtest/gtest.h"
 
 TEST(Pseudonymization, Bindings) {

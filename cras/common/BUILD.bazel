@@ -4,8 +4,10 @@
 
 load("@crate_index//:defs.bzl", "all_crate_deps")
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
-load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_test")
 load("//:utils.bzl", "require_no_config")
+load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
+load("//rules/rust:defs.bzl", "cras_rust_library")
 
 cc_library(
     name = "check",
@@ -24,14 +26,13 @@ cc_test(
     ],
 )
 
-rust_library(
+cras_rust_library(
     name = "rust_common",
     srcs = glob(
         include = ["src/**/*.rs"],
     ),
     crate_name = "cras_common",
     edition = "2021",
-    target_compatible_with = require_no_config("//:system_cras_rust_build"),
     visibility = ["//cras/src/server/rust:__pkg__"],
     deps = [
         "@pkg_config//openssl",
@@ -41,8 +42,25 @@ rust_library(
 rust_test(
     name = "rust_common_test",
     crate = ":rust_common",
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
     deps = all_crate_deps(
         normal = True,
         normal_dev = True,
     ),
+)
+
+cras_cbindgen(
+    name = "rust_common_h",
+    srcs = glob(
+        include = ["src/**/*.rs"],
+    ),
+    out = "rust_common.h",
+    copyright_year = 2023,
+)
+
+cc_library(
+    name = "rust_common_cc",
+    hdrs = ["rust_common.h"],
+    visibility = ["//visibility:public"],
+    deps = [":rust_common"],
 )

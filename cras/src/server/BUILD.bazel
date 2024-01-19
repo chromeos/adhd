@@ -496,6 +496,7 @@ cc_library(
         ":dsp_types",
         ":ewma_power",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server:main_message",
         "//cras/server/platform/features",
         "//cras/server/platform/features:override",

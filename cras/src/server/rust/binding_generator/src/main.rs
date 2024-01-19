@@ -56,27 +56,9 @@ fn main() {
     std::env::set_current_dir("../../../../..").unwrap();
 
     generate(
-        builder(2023).with_src("cras/common/src/logging.rs"),
-        "cras_rust_logging.h",
-    );
-
-    generate(
-        builder(2023)
-            .with_src("cras/common/src/fra.rs")
-            .rename_item("CrasFRASignal", "CRAS_FRA_SIGNAL")
-            .rename_item("KeyValuePair", "cras_fra_kv_t"),
-        "cras_fra.h",
-    );
-
-    generate(
         builder(2023)
             .with_src("cras/src/server/rust/src/cras_processor.rs")
             .with_include("audio_processor/c/plugin_processor.h"),
         "cras_processor.h",
-    );
-
-    generate(
-        builder(2023).with_src("cras/common/src/pseudonymization.rs"),
-        "pseudonymization.h",
     );
 }
