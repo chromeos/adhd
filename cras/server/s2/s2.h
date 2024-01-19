@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#ifndef CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_S2_H_
-#define CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_S2_H_
+#ifndef CRAS_SERVER_S2_S2_H_
+#define CRAS_SERVER_S2_S2_H_
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -26,7 +26,7 @@ bool cras_s2_get_ap_nc_allowed(void);
 
 char *cras_s2_dump_json(void);
 
-#endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_S2_H_ */
+#endif /* CRAS_SERVER_S2_S2_H_ */
 
 #ifdef __cplusplus
 }

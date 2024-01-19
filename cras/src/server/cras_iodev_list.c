@@ -15,6 +15,7 @@
 #include <time.h>
 
 #include "cras/server/platform/features/features.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_hats.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
@@ -31,7 +32,6 @@
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
-#include "cras/src/server/rust/include/cras_s2.h"
 #include "cras/src/server/server_stream.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras/src/server/stream_list.h"

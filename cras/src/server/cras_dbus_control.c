@@ -15,6 +15,7 @@
 #include <syslog.h>
 
 #include "cras/server/platform/features/features.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_dbus_bindings.h"  // Generated from Makefile
 #include "cras/src/common/cras_hats.h"
 #include "cras/src/common/cras_observer_ops.h"
@@ -29,7 +30,6 @@
 #include "cras/src/server/cras_rtc.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_utf8.h"
-#include "cras/src/server/rust/include/cras_s2.h"
 #include "cras/src/server/rust/include/string.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras_audio_format.h"

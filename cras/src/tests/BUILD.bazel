@@ -788,6 +788,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/server/platform/features",
+        "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -1387,6 +1388,7 @@ cc_test(
         ":test_support",
         ":test_util",
         "//cras/server/platform/dlc:cc",
+        "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",

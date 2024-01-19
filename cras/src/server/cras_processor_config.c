@@ -7,9 +7,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "cras/server/s2/s2.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_processor.h"
-#include "cras/src/server/rust/include/cras_s2.h"
 #include "cras_types.h"
 
 enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,

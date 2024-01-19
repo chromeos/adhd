@@ -79,9 +79,4 @@ fn main() {
         builder(2023).with_src("cras/common/src/pseudonymization.rs"),
         "pseudonymization.h",
     );
-
-    generate(
-        builder(2023).with_src("cras/server/s2/src/global.rs"),
-        "cras_s2.h",
-    );
 }

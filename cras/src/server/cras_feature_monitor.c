@@ -6,8 +6,8 @@
 
 #include "cras/server/main_message.h"
 #include "cras/server/platform/features/features.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/rust/include/cras_s2.h"
 
 static void handle_feature_changed() {
   // NC availability is controlled by feature flags that may change dynamically.
