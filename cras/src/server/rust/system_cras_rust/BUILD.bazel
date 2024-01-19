@@ -27,7 +27,7 @@ cc_import(
     }),
     static_library = ":libcras_rust_a",
     target_compatible_with = require_config("//:system_cras_rust_build"),
-    visibility = ["//cras/src/server/rust:__pkg__"],
+    visibility = ["//visibility:public"],
     deps = [
         "@pkg_config//dbus-1",
         "@pkg_config//openssl",

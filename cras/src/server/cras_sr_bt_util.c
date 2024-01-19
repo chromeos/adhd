@@ -9,11 +9,11 @@
 #include <stdio.h>
 
 #include "cras/common/check.h"
+#include "cras/server/platform/dlc/dlc.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
-#include "cras/src/server/rust/include/cras_dlc.h"
 #include "cras/src/server/rust/include/string.h"
 
 enum CRAS_SR_BT_CAN_BE_ENABLED_STATUS cras_sr_bt_can_be_enabled() {

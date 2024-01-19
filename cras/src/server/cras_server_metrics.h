@@ -8,9 +8,9 @@
 
 #include <stdbool.h>
 
+#include "cras/server/platform/dlc/dlc.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/rust/include/cras_dlc.h"
 
 #ifdef __cplusplus
 extern "C" {

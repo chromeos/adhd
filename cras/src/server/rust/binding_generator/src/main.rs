@@ -56,11 +56,6 @@ fn main() {
     std::env::set_current_dir("../../../../..").unwrap();
 
     generate(
-        builder(2022).with_src("cras/server/platform/dlc/src/lib.rs"),
-        "cras_dlc.h",
-    );
-
-    generate(
         builder(2023).with_src("cras/common/src/logging.rs"),
         "cras_rust_logging.h",
     );

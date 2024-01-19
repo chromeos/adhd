@@ -6,10 +6,10 @@
 #include <gtest/gtest.h>
 #include <syslog.h>
 
+#include "cras/server/platform/dlc/dlc.h"
 #include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_sr_bt_util.h"
-#include "cras/src/server/rust/include/cras_dlc.h"
 
 extern "C" {
 static bool cras_system_get_force_sr_bt_enabled_return_value = false;

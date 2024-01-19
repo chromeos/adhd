@@ -4,8 +4,8 @@
 
 #include "cras/src/server/cras_dlc_manager.h"
 
+#include "cras/server/platform/dlc/dlc.h"
 #include "cras/src/server/cras_server_metrics.h"
-#include "cras/src/server/rust/include/cras_dlc.h"
 
 void cras_dlc_manager_init() {
   download_dlcs_until_installed_with_thread(
