@@ -204,7 +204,6 @@ crates_repository(
         "//cras/server/platform/dlc:Cargo.toml",
         "//cras/server/platform/features:Cargo.toml",
         "//cras/src/server/rust:Cargo.toml",
-        "//cras/src/server/rust:binding_generator/Cargo.toml",
         "//cras/src/server/rust:staticlib/Cargo.toml",
         "//rules/cbindgen:Cargo.toml",
     ],

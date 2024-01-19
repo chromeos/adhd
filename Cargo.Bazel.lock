@@ -1,5 +1,5 @@
 {
-  "checksum": "76ff8f0db98b5e1c87b058a3685b15942be5aa12acbde920fe612ab96a3f982f",
+  "checksum": "a5656bffa44079050fdc1e525b280c63723a882de2086765f35207d44bbdc2b6",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -458,30 +458,6 @@
         }
       },
       "license": "BSD-3-Clause"
-    },
-    "binding_generator 0.1.0": {
-      "name": "binding_generator",
-      "version": "0.1.0",
-      "repository": null,
-      "targets": [],
-      "library_target_name": null,
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "cbindgen 0.24.3",
-              "target": "cbindgen"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2021",
-        "version": "0.1.0"
-      },
-      "license": null
     },
     "bitflags 1.3.2": {
       "name": "bitflags",
@@ -8188,7 +8164,6 @@
   "binary_crates": [],
   "workspace_members": {
     "audio_processor 0.1.0": "audio_processor",
-    "binding_generator 0.1.0": "cras/src/server/rust/binding_generator",
     "cras 0.1.1": "cras/src/server/rust",
     "cras_cbindgen 0.1.0": "rules/cbindgen",
     "cras_common 0.1.0": "cras/common",

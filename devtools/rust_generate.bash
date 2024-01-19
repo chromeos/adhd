@@ -10,9 +10,6 @@ set -eux
 
 ADHD="$(realpath "$(dirname "${BASH_SOURCE[0]}")/..")"
 
-cd "${ADHD}/cras/src/server/rust/binding_generator"
-cargo run
-
 cd "${ADHD}"
 CARGO_BAZEL_REPIN=true bazel sync --only=crate_index
 

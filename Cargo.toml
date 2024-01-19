@@ -8,7 +8,6 @@ members = [
     "cras/server/s2",
     "cras/src/server/rust",
     "cras/src/server/rust/staticlib",
-    "cras/src/server/rust/binding_generator",
     "rock",
     "rules/cbindgen",
 ]
