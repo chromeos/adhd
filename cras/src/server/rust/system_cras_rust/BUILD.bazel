@@ -2,6 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_import")
+load("@rules_python//python:defs.bzl", "py_binary")
+
 """This package holds the magic to find libcras_rust.a as the way
 the compiler does and list it explicitly in the dependency.
 
@@ -26,6 +29,7 @@ cc_import(
     target_compatible_with = require_config("//:system_cras_rust_build"),
     visibility = ["//cras/src/server/rust:__pkg__"],
     deps = [
+        "@pkg_config//dbus-1",
         "@pkg_config//openssl",
         "@pkg_config//speexdsp",
     ] + select({

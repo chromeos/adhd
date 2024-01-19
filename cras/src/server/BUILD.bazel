@@ -262,7 +262,7 @@ cc_library(
         ":ewma_power",
         "//cras/server/platform/features",
         "//cras/src/common",
-        "//cras/src/server/rust",
+        "//cras/src/server/rust:cc",
     ] + select({
         "//:ml_build": ["//cras/src/dsp:am"],
         "//conditions:default": [],
@@ -503,7 +503,7 @@ cc_library(
         "//cras/src/dsp",
         "//cras/src/plc",
         "//cras/src/server/config",
-        "//cras/src/server/rust",
+        "//cras/src/server/rust:cc",
         "@pkg_config//alsa",
         "@pkg_config//dbus-1",
         "@pkg_config//libudev",
@@ -550,7 +550,7 @@ cc_library(
         "//cras/server/platform/features",
         "//cras/src/common",
         "//cras/src/dsp",
-        "//cras/src/server/rust",
+        "//cras/src/server/rust:cc",
     ] + select({
         "//:apm_build": ["@webrtc_apm//webrtc_apm"],
         "//conditions:default": [],

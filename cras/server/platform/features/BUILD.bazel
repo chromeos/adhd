@@ -24,7 +24,7 @@ cc_library(
     deps = [
         "//cras/common:check",
         "//cras/server:main_message",
-        "//cras/src/server/rust",
+        "//cras/src/server/rust:cc",
     ],
 )
 
