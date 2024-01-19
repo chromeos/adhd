@@ -64,3 +64,33 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [":rust_common"],
 )
+
+cc_test(
+    name = "pseudonymization_test",
+    srcs = ["pseudonymization_test.cc"],
+    deps = [
+        ":rust_common_cc",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
+    name = "pseudonymization_none_test",
+    srcs = ["pseudonymization_none_test.cc"],
+    deps = [
+        ":rust_common_cc",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cras_fra_test",
+    srcs = ["cras_fra_test.cc"],
+    deps = [
+        ":rust_common_cc",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
