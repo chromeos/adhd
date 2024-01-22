@@ -189,22 +189,6 @@ cc_library(
 )
 
 genrule(
-    name = "cras_dbus_bindings_h",
-    srcs = [
-        "//cras/dbus_bindings:xml",
-    ],
-    outs = [
-        "cras_dbus_bindings.h",
-    ],
-    cmd = "$(location //cras/tools:generate_dbus_bindings_h) " +
-          "$(locations //cras/dbus_bindings:xml) > $@",
-    tools = ["//cras/tools:generate_dbus_bindings_h"],
-    visibility = [
-        "//cras/src/tests:__pkg__",
-    ],
-)
-
-genrule(
     name = "cras_version_h",
     outs = ["cras_version.h"],
     cmd = "echo '#define VCSID \"$(VCSID)\"' > '$@'",
@@ -257,7 +241,6 @@ cc_library(
         "bluetooth.h",
         "cras_audio_codec.h",
         "cras_checksum.h",
-        "cras_dbus_bindings.h",
         "cras_hats.h",
         "cras_metrics.h",
         "dumper.h",
@@ -276,6 +259,7 @@ cc_library(
         ":cras_types",
         ":cras_types_internal",
         ":cras_util",
+        "//cras/dbus_bindings",
         "//cras/include",
         "//cras/src/server:cras_observer_types",
         "//third_party/bluez:a2dp_codecs",

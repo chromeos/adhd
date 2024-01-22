@@ -10,7 +10,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/src/common/cras_dbus_bindings.h"
+#include "cras/dbus_bindings/cras_dbus_bindings.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_hfp_slc.h"
 

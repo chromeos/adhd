@@ -780,13 +780,13 @@ cc_test(
         ":dbus_control_unittest.cc",
         ":dbus_test.cc",
         ":dbus_test.hh",
-        "//cras/src/common:cras_dbus_bindings.h",
         "//cras/src/server:cras_dbus_control.c",
         "//cras/src/server:cras_dbus_util.c",
     ],
     flaky = True,  # TODO(b/271618403): Fix the flake.
     deps = [
         ":test_support",
+        "//cras/dbus_bindings",
         "//cras/server/platform/features",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",

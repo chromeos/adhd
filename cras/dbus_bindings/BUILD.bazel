@@ -2,7 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_pkg//pkg:mappings.bzl", "pkg_files")
+load("@rules_python//python:defs.bzl", "py_binary")
 load("//dist:defs.bzl", "FILE_ATTRIBUTES")
 
 filegroup(
@@ -19,4 +21,28 @@ pkg_files(
     attributes = FILE_ATTRIBUTES,
     prefix = "/usr/share/dbus-1/interfaces/",
     visibility = ["//dist:__pkg__"],
+)
+
+py_binary(
+    name = "generate_dbus_bindings_h",
+    srcs = ["generate_dbus_bindings_h.py"],
+    visibility = ["//cras:__subpackages__"],
+)
+
+genrule(
+    name = "cras_dbus_bindings_h",
+    srcs = [":xml"],
+    outs = ["cras_dbus_bindings.h"],
+    cmd = "$(location :generate_dbus_bindings_h) " +
+          "$(locations :xml) > $@",
+    tools = [":generate_dbus_bindings_h"],
+    visibility = [
+        "//cras/src/tests:__pkg__",
+    ],
+)
+
+cc_library(
+    name = "dbus_bindings",
+    hdrs = ["cras_dbus_bindings.h"],
+    visibility = ["//cras:__subpackages__"],
 )

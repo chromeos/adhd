@@ -14,9 +14,9 @@
 #include <strings.h>
 #include <syslog.h>
 
+#include "cras/dbus_bindings/cras_dbus_bindings.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/server/s2/s2.h"
-#include "cras/src/common/cras_dbus_bindings.h"  // Generated from Makefile
 #include "cras/src/common/cras_hats.h"
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
