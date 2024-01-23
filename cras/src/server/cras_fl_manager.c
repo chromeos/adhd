@@ -11,6 +11,7 @@
 #include <string.h>
 #include <syslog.h>
 
+#include "cras/src/common/cras_log.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_bt_constants.h"
 #include "cras/src/server/cras_bt_log.h"
@@ -116,7 +117,7 @@ static void floss_manager_on_get_adapter_enabled(DBusPendingCall* pending_call,
   syslog(LOG_DEBUG, "GetAdapterEnabled receives reply, state %d", enabled);
   if (!enabled) {
     BTLOG(btlog, BT_ADAPTER_REMOVED, 0, 0);
-    floss_media_stop(conn);
+    floss_media_stop(conn, 0);
   } else {
     BTLOG(btlog, BT_ADAPTER_ADDED, 0, 0);
     floss_media_start(conn, 0);
@@ -188,10 +189,19 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection* conn,
   }
 
   syslog(LOG_DEBUG, "OnHciEnabledChanged %d %d", hci_interface, enabled);
+
+  // Ignore HCI device change if there is another active one.
+  if (floss_media_get_active_fm() &&
+      floss_media_get_active_hci() != hci_interface) {
+    FRALOG(SecondaryHciDeviceChanged, {"hci", tlsprintf("%u", hci_interface)},
+           {"enabled", enabled ? "true" : "false"});
+    return DBUS_HANDLER_RESULT_HANDLED;
+  }
+
   if (enabled) {
     floss_media_start(conn, hci_interface);
   } else {
-    floss_media_stop(conn);
+    floss_media_stop(conn, hci_interface);
   }
 
   return DBUS_HANDLER_RESULT_HANDLED;
@@ -501,7 +511,7 @@ static void floss_stop(struct bt_stack* s) {
   dbus_connection_remove_filter(s->conn, floss_handle_interfaces_removed, NULL);
   dbus_connection_unregister_object_path(s->conn, CRAS_BT_OBJECT_PATH);
 
-  floss_media_stop(s->conn);
+  floss_media_stop(s->conn, floss_media_get_active_hci());
 }
 
 static bool floss_enabled;

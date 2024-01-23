@@ -24,6 +24,7 @@ pub enum CrasFRASignal {
     ActiveInputDevice,
     AudioThreadEvent,
     ALSAUCMCaptureChannelMapExceedsNumChannels,
+    SecondaryHciDeviceChanged,
 }
 
 #[repr(C)]
@@ -145,5 +146,6 @@ mod tests {
             CrasFRASignal::ALSAUCMCaptureChannelMapExceedsNumChannels as u32,
             12
         );
+        assert_eq!(CrasFRASignal::SecondaryHciDeviceChanged as u32, 13);
     }
 }

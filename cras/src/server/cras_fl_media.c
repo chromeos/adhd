@@ -52,6 +52,14 @@ struct fl_media* floss_media_get_active_fm() {
   return active_fm;
 }
 
+unsigned int floss_media_get_active_hci() {
+  if (active_fm == NULL) {
+    syslog(LOG_WARNING, "Queried the active HCI device when there is none.");
+    return 0;
+  }
+  return active_fm->hci;
+}
+
 int fl_media_init(int hci) {
   struct fl_media* fm = (struct fl_media*)calloc(1, sizeof(*fm));
 
@@ -1423,7 +1431,11 @@ int floss_media_start(DBusConnection* conn, unsigned int hci) {
   return 0;
 }
 
-int floss_media_stop(DBusConnection* conn) {
+int floss_media_stop(DBusConnection* conn, unsigned int hci) {
+  if (!active_fm || active_fm->hci != hci) {
+    return -ENOENT;
+  }
+
   if (!dbus_connection_unregister_object_path(conn,
                                               CRAS_BT_MEDIA_OBJECT_PATH)) {
     syslog(LOG_WARNING, "Couldn't unregister BT media obj path");

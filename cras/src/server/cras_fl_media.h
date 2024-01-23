@@ -63,11 +63,13 @@ struct fl_media;
 
 struct fl_media* floss_media_get_active_fm();
 
+unsigned int floss_media_get_active_hci();
+
 int fl_media_init(int hci);
 
 int floss_media_start(DBusConnection* conn, unsigned int hci);
 
-int floss_media_stop(DBusConnection* conn);
+int floss_media_stop(DBusConnection* conn, unsigned int hci);
 
 // Calls SetHfpActiveDevice method to Floss media interface.
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr);
