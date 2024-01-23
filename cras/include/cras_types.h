@@ -374,6 +374,9 @@ enum MAIN_THREAD_LOG_EVENTS {
   // stream related
   // When an audio stream is added.
   MAIN_THREAD_STREAM_ADDED,
+  // When an audio stream is added (always log after MAIN_THREAD_STREAM_ADDED),
+  // Contains stream's format.
+  MAIN_THREAD_STREAM_ADDED_INFO_FORMAT,
   // When an audio stream is removed.
   MAIN_THREAD_STREAM_REMOVED,
   // server state related

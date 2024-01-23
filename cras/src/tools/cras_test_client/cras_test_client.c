@@ -1340,6 +1340,11 @@ static void show_mainlog_tag(const struct main_thread_event_log* log,
       printf("%-30s %s stream 0x%x buffer frames %u\n", "STREAM_ADDED",
              (data2 == CRAS_STREAM_OUTPUT ? "output" : "input"), data1, data3);
       break;
+    case MAIN_THREAD_STREAM_ADDED_INFO_FORMAT:
+      printf("%-30s stream 0x%x format %u (%s) channels %u\n",
+             "STREAM_ADDED_INFO_FORMAT", data1, data2,
+             snd_pcm_format_name(data2), data3);
+      break;
     case MAIN_THREAD_STREAM_REMOVED:
       printf("%-30s stream 0x%x\n", "STREAM_REMOVED", data1);
       break;

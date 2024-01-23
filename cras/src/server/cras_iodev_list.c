@@ -1197,6 +1197,8 @@ static int stream_added_cb(struct cras_rstream* rstream) {
 
   MAINLOG(main_log, MAIN_THREAD_STREAM_ADDED, rstream->stream_id,
           rstream->direction, rstream->buffer_frames);
+  MAINLOG(main_log, MAIN_THREAD_STREAM_ADDED_INFO_FORMAT, rstream->stream_id,
+          rstream->format.format, rstream->format.num_channels);
 
   if (rstream->is_pinned) {
     return pinned_stream_added(rstream);
