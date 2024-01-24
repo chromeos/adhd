@@ -14,9 +14,6 @@ pub use plugin::*;
 mod negate;
 pub use negate::*;
 
-mod nearest_neighbor;
-pub use nearest_neighbor::*;
-
 pub mod profile;
 
 mod wav;
