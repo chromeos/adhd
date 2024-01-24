@@ -58,10 +58,11 @@ static __attribute__((warn_unused_result)) inline int parse_float(
   }
   char* endptr;
   errno = 0;
-  *out = strtof(str, &endptr);
+  float f = strtof(str, &endptr);
   if (endptr == str) {
     return -EINVAL;
   }
+  *out = f;
   return -errno;
 }
 
@@ -74,10 +75,11 @@ static __attribute__((warn_unused_result)) inline int parse_double(
   }
   char* endptr;
   errno = 0;
-  *out = strtod(str, &endptr);
+  double d = strtod(str, &endptr);
   if (endptr == str) {
     return -EINVAL;
   }
+  *out = d;
   return -errno;
 }
 
