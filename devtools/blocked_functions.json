@@ -13,10 +13,6 @@
       "replacement": "snprintf or scnprintf if using the return value"
     },
     {
-      "regex": "strcmp",
-      "replacement": "strncmp"
-    },
-    {
       "regex": "strcpy",
       "replacement": "strlcpy"
     },
@@ -39,10 +35,6 @@
     {
       "regex": "strchr",
       "replacement": "strnchr"
-    },
-    {
-      "regex": "strcasecmp",
-      "replacement": "strncasecmp"
     },
     {
       "regex": "strdupa",
