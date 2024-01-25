@@ -2065,6 +2065,12 @@ static bool fill_bluetooth_survey_dict(uint32_t bt_flags,
     return FALSE;
   }
 
+  const char* floss_str = bt_flags & CRAS_BT_FLAG_FLOSS ? "true" : "false";
+  if (!append_key_value(dict, "Floss", DBUS_TYPE_STRING,
+                        DBUS_TYPE_STRING_AS_STRING, &floss_str)) {
+    return FALSE;
+  }
+
   return TRUE;
 }
 

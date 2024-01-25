@@ -546,6 +546,8 @@ struct cras_iodev* hfp_alsa_iodev_create(struct cras_iodev* aio,
         node->type = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC;
       }
     }
+
+    node->btflags |= CRAS_BT_FLAG_FLOSS;
   }
   node->volume = 100;
   gettimeofday(&node->plugged_time, NULL);
