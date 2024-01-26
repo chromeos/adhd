@@ -320,7 +320,7 @@ static DBusHandlerResult handle_set_display_rotation(DBusConnection* conn,
   if (!cras_validate_screen_rotation(rotation)) {
     syslog(LOG_WARNING, "Invalid display rotation received: %u", rotation);
   } else {
-    cras_iodev_list_set_node_attr(id, IONODE_ATTR_DISPLAY_ROTATION, rotation);
+    cras_system_set_display_rotation(rotation);
   }
 
   return send_empty_reply(conn, message);

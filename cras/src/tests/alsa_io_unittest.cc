@@ -149,7 +149,6 @@ static void* audio_thread_cb_data;
 static int hotword_send_triggered_msg_called;
 static struct timespec clock_gettime_retspec;
 static unsigned cras_iodev_reset_rate_estimator_called;
-static unsigned display_rotation;
 static bool sys_get_dsp_noise_cancellation_supported_return_value;
 static int sys_aec_on_dsp_supported_return_value;
 static int ucm_node_echo_cancellation_exists_ret_value;
@@ -163,11 +162,7 @@ static struct cras_board_config fake_board_config;
 
 void cras_dsp_set_variable_integer(struct cras_dsp_context* ctx,
                                    const char* key,
-                                   int value) {
-  if (!strcmp(key, "display_rotation")) {
-    display_rotation = value;
-  }
-}
+                                   int value) {}
 
 void ResetStubData() {
   cras_alsa_open_called = 0;
@@ -248,7 +243,6 @@ void ResetStubData() {
   ucm_get_default_node_gain_values.clear();
   ucm_get_intrinsic_sensitivity_values.clear();
   cras_iodev_reset_rate_estimator_called = 0;
-  display_rotation = 0;
   sys_get_dsp_noise_cancellation_supported_return_value = 0;
   sys_aec_on_dsp_supported_return_value = 0;
   ucm_node_echo_cancellation_exists_ret_value = 0;
@@ -481,11 +475,9 @@ TEST(AlsaIoInit, QuadChannelInternalSpeakerOpenPlayback) {
   format.num_channels = 4;
   cras_iodev_set_format(iodev, &format);
   iodev->active_node->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
-  iodev->active_node->display_rotation = ROTATE_270;
   iodev->open_dev(iodev);
   iodev->configure_dev(iodev);
 
-  EXPECT_EQ(3, display_rotation);
   iodev->close_dev(iodev);
   alsa_iodev_destroy(iodev);
   free(fake_format);
@@ -2759,6 +2751,10 @@ bool cras_system_get_noise_cancellation_enabled() {
   return false;
 }
 
+enum CRAS_SCREEN_ROTATION cras_system_get_display_rotation() {
+  return ROTATE_0;
+}
+
 int cras_system_aec_on_dsp_supported() {
   return sys_aec_on_dsp_supported_return_value;
 }
@@ -3286,13 +3282,6 @@ int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev* iodev,
                                           struct cras_ionode* node,
                                           int enable) {
   cras_iodev_dsp_set_swap_mode_for_node_called++;
-  return 0;
-}
-
-int cras_iodev_dsp_set_display_rotation_for_node(
-    struct cras_iodev* iodev,
-    struct cras_ionode* node,
-    enum CRAS_SCREEN_ROTATION rotation) {
   return 0;
 }
 

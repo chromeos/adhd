@@ -143,6 +143,8 @@ struct private_state {
   char* dsp_offload_map_str;
   // Number of streams from CLIENT_TYPE_ARC and CLIENT_TYPE_ARCVM.
   uint32_t num_arc_streams;
+  // The current display rotation status.
+  enum CRAS_SCREEN_ROTATION display_rotation;
 };
 
 static struct private_state state;
@@ -262,6 +264,7 @@ void cras_system_state_init(const char* device_config_dir,
    * to change device blocklist at run time. */
   state.device_config_dir = device_config_dir;
   state.internal_ucm_suffix = NULL;
+  state.display_rotation = ROTATE_0;
   init_ignore_suffix_cards(board_config->ucm_ignore_suffix);
 
   state.tm = cras_tm_init();
@@ -637,6 +640,16 @@ int cras_system_get_max_internal_speaker_channels() {
 
 int cras_system_get_max_headphone_channels() {
   return state.exp_state->max_headphone_channels;
+}
+
+void cras_system_set_display_rotation(
+    enum CRAS_SCREEN_ROTATION display_rotation) {
+  state.display_rotation = display_rotation;
+  cras_iodev_list_update_display_rotation();
+}
+
+enum CRAS_SCREEN_ROTATION cras_system_get_display_rotation() {
+  return state.display_rotation;
 }
 
 int cras_system_add_alsa_card(struct cras_alsa_card_info* alsa_card_info) {

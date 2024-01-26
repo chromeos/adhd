@@ -248,6 +248,9 @@ int cras_bt_player_update_metadata(DBusConnection* conn,
 void cras_system_state_set_speak_on_mute_detection(bool enabled) {
   return;
 }
+void cras_system_set_display_rotation(enum CRAS_SCREEN_ROTATION rotation) {
+  return;
+}
 bool cras_system_state_get_speak_on_mute_detection_enabled() {
   return true;
 }

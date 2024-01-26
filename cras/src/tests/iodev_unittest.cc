@@ -48,6 +48,7 @@ static int dsp_context_new_sample_rate;
 static const char* dsp_context_new_purpose;
 static int dsp_context_free_called;
 static int display_rotation;
+static enum CRAS_SCREEN_ROTATION system_state_display_rotation;
 static int update_channel_layout_called;
 static int update_channel_layout_return_val;
 static int cras_audio_format_set_channel_layout_called;
@@ -160,6 +161,7 @@ void ResetStubData() {
   dsp_context_new_purpose = NULL;
   dsp_context_free_called = 0;
   display_rotation = ROTATE_0;
+  system_state_display_rotation = ROTATE_0;
   cras_audio_format_set_channel_layout_called = 0;
   cras_dsp_get_pipeline_called = 0;
   cras_dsp_get_pipeline_ret = 0;
@@ -2763,33 +2765,16 @@ class IoDevSetDisplayRotationSuite : public testing::Test {
   virtual void SetUp() {
     ResetStubData();
     memset(&iodev_, 0, sizeof(iodev_));
-    memset(&node_, 0, sizeof(node_));
     iodev_.dsp_context = reinterpret_cast<cras_dsp_context*>(0xf0f);
-    node_.display_rotation = ROTATE_0;
   }
 
   struct cras_iodev iodev_;
   struct cras_ionode node_;
 };
 
-TEST_F(IoDevSetDisplayRotationSuite, NotActiveNode) {
-  int rc;
-
-  rc =
-      cras_iodev_dsp_set_display_rotation_for_node(&iodev_, &node_, ROTATE_180);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(ROTATE_180, node_.display_rotation);
-  EXPECT_EQ(ROTATE_0, display_rotation);
-}
-
-TEST_F(IoDevSetDisplayRotationSuite, ActiveNode) {
-  int rc;
-
-  iodev_.active_node = &node_;
-  rc =
-      cras_iodev_dsp_set_display_rotation_for_node(&iodev_, &node_, ROTATE_180);
-  EXPECT_EQ(0, rc);
-  EXPECT_EQ(ROTATE_180, node_.display_rotation);
+TEST_F(IoDevSetDisplayRotationSuite, UpdateRotation) {
+  system_state_display_rotation = ROTATE_180;
+  cras_iodev_update_dsp(&iodev_);
   EXPECT_EQ(ROTATE_180, display_rotation);
 }
 
@@ -3016,6 +3001,9 @@ int cras_system_get_capture_mute() {
 }
 int cras_system_aec_on_dsp_supported() {
   return cras_system_aec_on_dsp_supported_return;
+}
+enum CRAS_SCREEN_ROTATION cras_system_get_display_rotation() {
+  return system_state_display_rotation;
 }
 
 void cras_scale_buffer(snd_pcm_format_t fmt,

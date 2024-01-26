@@ -136,8 +136,8 @@ enum ionode_attr {
   IONODE_ATTR_CAPTURE_GAIN,
   // Swap the node's left and right channel.
   IONODE_ATTR_SWAP_LEFT_RIGHT,
-  // set the node's display rotation state.
-  IONODE_ATTR_DISPLAY_ROTATION
+  // DEPRECATED: Formerly DISPLAY_ROTATION
+  DEPRECATED_ATTR_0,
 };
 
 /* The bitmask enum of audio effects. Bit is toggled on for supporting.

@@ -672,10 +672,8 @@ void cras_iodev_update_dsp(struct cras_iodev* iodev) {
   cras_dsp_set_variable_string(iodev->dsp_context, "dsp_name",
                                iodev->dsp_name ?: "");
 
-  if (iodev->active_node) {
-    cras_dsp_set_variable_integer(iodev->dsp_context, "display_rotation",
-                                  iodev->active_node->display_rotation);
-  }
+  cras_dsp_set_variable_integer(iodev->dsp_context, "display_rotation",
+                                cras_system_get_display_rotation());
 
   if (iodev->dsp_offload_map) {
     // Share the reference pointer for dsp_offload_map in dsp_context.
@@ -684,27 +682,6 @@ void cras_iodev_update_dsp(struct cras_iodev* iodev) {
   }
 
   cras_dsp_load_pipeline(iodev->dsp_context);
-}
-
-int cras_iodev_dsp_set_display_rotation_for_node(
-    struct cras_iodev* iodev,
-    struct cras_ionode* node,
-    enum CRAS_SCREEN_ROTATION rotation) {
-  if (node->display_rotation == rotation) {
-    return 0;
-  }
-
-  /* Sets display_rotation property on the node. It will be used
-   * when cras_iodev_update_dsp is called. */
-  node->display_rotation = rotation;
-
-  /* Possibly updates dsp if the node is active on the device and there
-   * is dsp context. If dsp context is not created yet,
-   * cras_iodev_update_dsp returns right away. */
-  if (iodev->active_node == node) {
-    cras_iodev_update_dsp(iodev);
-  }
-  return 0;
 }
 
 int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev* iodev,

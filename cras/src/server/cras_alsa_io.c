@@ -272,7 +272,7 @@ static void init_quad_rotation_dsp_env_for_internal_speaker(
       iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER &&
       iodev->format && iodev->format->num_channels == 4) {
     cras_dsp_set_variable_integer(iodev->dsp_context, "display_rotation",
-                                  iodev->active_node->display_rotation);
+                                  cras_system_get_display_rotation());
     cras_dsp_set_variable_integer(iodev->dsp_context, "FL",
                                   iodev->format->channel_layout[CRAS_CH_FL]);
     cras_dsp_set_variable_integer(iodev->dsp_context, "FR",
@@ -2129,8 +2129,7 @@ struct cras_iodev* alsa_iodev_create(
   iodev->get_num_severe_underruns = get_num_severe_underruns;
   iodev->get_valid_frames = get_valid_frames;
   iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
-  iodev->set_display_rotation_for_node =
-      cras_iodev_dsp_set_display_rotation_for_node;
+  iodev->display_rotation_changed = cras_iodev_update_dsp;
   iodev->support_noise_cancellation = support_noise_cancellation;
   iodev->set_rtc_proc_enabled = set_rtc_proc_enabled;
   iodev->get_rtc_proc_enabled = get_rtc_proc_enabled;

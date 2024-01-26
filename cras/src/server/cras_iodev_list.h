@@ -157,6 +157,11 @@ int cras_iodev_list_set_node_attr(cras_node_id_t id,
                                   enum ionode_attr attr,
                                   int value);
 
+/*
+ * Callback to notify any observing deivces of a display rotation change
+ */
+void cras_iodev_list_update_display_rotation();
+
 /* Select a node as the preferred node.
  * Args:
  *    direction - Playback or capture.

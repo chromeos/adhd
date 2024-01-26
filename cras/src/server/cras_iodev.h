@@ -119,8 +119,6 @@ struct cras_ionode {
   float ui_gain_scaler;
   // If left and right output channels are swapped.
   int left_right_swapped;
-  // The current display rotation status.
-  enum CRAS_SCREEN_ROTATION display_rotation;
   // Type displayed to the user.
   enum CRAS_NODE_TYPE type;
   // Specify where on the system this node locates.
@@ -179,11 +177,8 @@ struct cras_iodev {
   int (*set_swap_mode_for_node)(struct cras_iodev* iodev,
                                 struct cras_ionode* node,
                                 int enable);
-  // Function to call to update the display
-  // rotation for the node.
-  int (*set_display_rotation_for_node)(struct cras_iodev* iodev,
-                                       struct cras_ionode* node,
-                                       enum CRAS_SCREEN_ROTATION);
+  // Callback when display rotation is changed in system state
+  void (*display_rotation_changed)(struct cras_iodev* iodev);
   // Opens the device.
   int (*open_dev)(struct cras_iodev* iodev);
   // Configures the device.
@@ -512,21 +507,6 @@ void cras_iodev_fill_time_from_frames(size_t frames,
  *    iodev - device which the state changes.
  */
 void cras_iodev_update_dsp(struct cras_iodev* iodev);
-
-/* Sets display_rotation on a node using dsp. This function can be called when
- * dsp pipeline is not created yet. It will take effect when dsp pipeline
- * is created later. If there is dsp pipeline, this function triggers a dsp
- * pipeline reload and display_rotation takes effect right away.
- * Args:
- *    iodev - device to be changed as display rotated.
- *    node - the node to be changed as display rotated.
- *    rotation - screen Rotation in clock-wise degrees.
- * Returns:
- *    0 on success, error code on failure.
- */
-int cras_iodev_dsp_set_display_rotation_for_node(struct cras_iodev* iodev,
-                                                 struct cras_ionode* node,
-                                                 enum CRAS_SCREEN_ROTATION);
 
 /* Sets swap mode on a node using dsp. This function can be called when
  * dsp pipeline is not created yet. It will take effect when dsp pipeline

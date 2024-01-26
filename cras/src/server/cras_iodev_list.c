@@ -45,6 +45,11 @@
 #define NUM_OPEN_DEVS_MAX 10
 #define NUM_FLOOP_PAIRS_MAX 20
 
+#define FOR_ALL_DEVS(list, dir, tmp, func) \
+  DL_FOREACH (list[dir].iodevs, tmp) {     \
+    func;                                  \
+  }
+
 const struct timespec idle_timeout_interval = {.tv_sec = 10, .tv_nsec = 0};
 
 // Linked list of available devices.
@@ -340,7 +345,6 @@ static int fill_node_list(struct iodev_list* list,
       node_info->capture_gain = node->internal_capture_gain;
       node_info->ui_gain_scaler = node->ui_gain_scaler;
       node_info->left_right_swapped = node->left_right_swapped;
-      node_info->display_rotation = node->display_rotation;
       node_info->stable_id = node->stable_id;
       strlcpy(node_info->name, node->name, sizeof(node_info->name));
       strlcpy(node_info->active_hotword_model, node->active_hotword_model,
@@ -2227,28 +2231,19 @@ static int set_node_capture_gain(struct cras_iodev* iodev,
   return 0;
 }
 
-static int set_node_display_rotation(struct cras_iodev* iodev,
-                                     unsigned int node_idx,
-                                     enum CRAS_SCREEN_ROTATION rotation) {
-  struct cras_ionode* node;
-  int rc;
+static inline void update_display_rotation_inner(struct cras_iodev* iodev) {
+  if (iodev->display_rotation_changed) {
+    iodev->display_rotation_changed(iodev);
+  }
+}
 
-  if (!iodev->set_display_rotation_for_node) {
-    return -EINVAL;
-  }
-  node = find_node(iodev, node_idx);
-  if (!node) {
-    return -EINVAL;
-  }
+void cras_iodev_list_update_display_rotation() {
+  struct cras_iodev* iodev;
 
-  rc = iodev->set_display_rotation_for_node(iodev, node, rotation);
-  if (rc) {
-    syslog(LOG_ERR, "Failed to set display_rotation on node %s to %d",
-           node->name, rotation);
-    return rc;
-  }
-  node->display_rotation = rotation;
-  return 0;
+  FOR_ALL_DEVS(devs, CRAS_STREAM_OUTPUT, iodev,
+               update_display_rotation_inner(iodev));
+  FOR_ALL_DEVS(devs, CRAS_STREAM_INPUT, iodev,
+               update_display_rotation_inner(iodev));
 }
 
 static int set_node_left_right_swapped(struct cras_iodev* iodev,
@@ -2296,10 +2291,6 @@ int cras_iodev_list_set_node_attr(cras_node_id_t node_id,
       break;
     case IONODE_ATTR_CAPTURE_GAIN:
       rc = set_node_capture_gain(iodev, node_index_of(node_id), value);
-      break;
-    case IONODE_ATTR_DISPLAY_ROTATION:
-      rc = set_node_display_rotation(iodev, node_index_of(node_id),
-                                     (enum CRAS_SCREEN_ROTATION)value);
       break;
     case IONODE_ATTR_SWAP_LEFT_RIGHT:
       rc = set_node_left_right_swapped(iodev, node_index_of(node_id), value);
