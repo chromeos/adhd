@@ -1646,29 +1646,32 @@ static void add_output_node_and_associate_jack(
     node->jack = jack;
   }
 }
+/*
+ * If volume range abnormal (< 5db or volume range > 200), then use SW volume.
+ * Base on go/refine-cros-playback-vol
+ *   If volume step < 10, then use SW volume and 25 volume steps
+ *   If 10 <= volume step <= 25, then use HW volume and device reported steps
+ *   If volume step >= 25, then use HW volume and 25 volume steps
+ */
 
-/* Settle everything about volume steps on an output node.*/
-static void finalize_volume_steps_setting(struct alsa_usb_output_node* output,
-                                          struct alsa_usb_io* aio) {
-  int32_t number_of_volume_steps;
+static void configure_default_volume_settings(
+    struct alsa_usb_output_node* output,
+    struct alsa_usb_io* aio,
+    long min,
+    long max) {
   struct cras_ionode* node = &output->common.base;
-  node->number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-  // When UCM specifies playback volume steps, respect it and skip all checks
-  // below.
-  if (aio->common.ucm &&
-      0 == ucm_get_playback_number_of_volume_steps_for_dev(
-               aio->common.ucm, node->name, &number_of_volume_steps)) {
-    node->number_of_volume_steps = number_of_volume_steps;
-    return;
-  }
+  int number_of_volume_steps = 0;
+  long range = max - min;
+  bool vol_range_reasonable = ((range >= db_to_alsa_db(VOLUME_RANGE_DB_MIN)) &&
+                               (range <= db_to_alsa_db(VOLUME_RANGE_DB_MAX)));
 
-  node->number_of_volume_steps =
+  node->software_volume_needed = 0;
+  node->number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
+
+  number_of_volume_steps =
       MIN(cras_alsa_mixer_get_playback_step(output->common.mixer),
           NUMBER_OF_VOLUME_STEPS_MAX);
-
-  if (node->number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
-    node->software_volume_needed = 1;
-
+  if (number_of_volume_steps < NUMBER_OF_VOLUME_STEPS_MIN) {
     FRALOG(USBAudioSoftwareVolumeAbnormalSteps,
            {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
            {"pid", tlsprintf("0x%04X", aio->common.product_id)});
@@ -1677,70 +1680,9 @@ static void finalize_volume_steps_setting(struct alsa_usb_output_node* output,
            "] is abnormally small."
            " Fallback to software volume",
            cras_card_type_to_string(aio->common.card_type), node->name,
-           node->number_of_volume_steps);
-  }
-
-  if (node->software_volume_needed == 1) {
-    node->number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-    syslog(LOG_INFO,
-           "card type: %s, name: %s, output: software volume enabled and set "
-           "number_of_volume_steps to %d",
-           cras_card_type_to_string(aio->common.card_type), node->name,
-           NUMBER_OF_VOLUME_STEPS_DEFAULT);
-  }
-}
-
-/* Settle everything about volume on an output node. For eaxmple: SW or HW
- * volume to use, volume range check, volume curve construction.
- */
-static void finalize_volume_settings(struct alsa_usb_output_node* output,
-                                     struct alsa_usb_io* aio) {
-  long max, min, range;
-  bool vol_range_reasonable;
-  const struct cras_volume_curve* curve;
-  struct cras_ionode* node = &output->common.base;
-  int disable_sw_vol = -ENOENT;
-
-  if (aio->common.ucm) {
-    disable_sw_vol = ucm_get_disable_software_volume(aio->common.ucm);
-  }
-
-  CRAS_CHECK((disable_sw_vol == 0) || (disable_sw_vol == 1) ||
-             (disable_sw_vol == -ENOENT));
-
-  // Create volume curve for nodes base on cras config.
-  output->volume_curve =
-      usb_create_volume_curve_for_output(aio->common.config, output);
-
-  cras_alsa_mixer_get_playback_dBFS_range(aio->common.mixer,
-                                          output->common.mixer, &max, &min);
-  syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", node->name, min,
-         max);
-
-  range = max - min;
-  vol_range_reasonable = ((range >= db_to_alsa_db(VOLUME_RANGE_DB_MIN)) &&
-                          (range <= db_to_alsa_db(VOLUME_RANGE_DB_MAX)));
-
-  if (!output->volume_curve) {
-    /* if we specified to disable sw volume or your headset volume
-     * range is with a reasonable range, create volume curve. */
-    if (disable_sw_vol == 1 || vol_range_reasonable) {
-      output->volume_curve = cras_volume_curve_create_simple_step(0, range);
-    }
-  }
-
-  // If UCM explicitly sets disable/enable software volume, we're confident
-  // that all settings written in UCM are good to use.
-  if (disable_sw_vol != -ENOENT) {
-    syslog(LOG_INFO, "%s software volume for %s from ucm.",
-           disable_sw_vol ? "Disable" : "Enable", node->name);
-    node->software_volume_needed = !disable_sw_vol;
-    goto complete_init_software_volume;
-  }
-
-  // Examine abnormal volume and force back to SW volume.
-  if (!vol_range_reasonable) {
+           number_of_volume_steps);
     node->software_volume_needed = 1;
+  } else if (!vol_range_reasonable) {
     FRALOG(USBAudioSoftwareVolumeAbnormalRange,
            {"vid", tlsprintf("0x%04X", aio->common.vendor_id)},
            {"pid", tlsprintf("0x%04X", aio->common.product_id)});
@@ -1749,10 +1691,86 @@ static void finalize_volume_settings(struct alsa_usb_output_node* output,
            "Fallback to software volume",
            cras_card_type_to_string(aio->common.card_type), node->name, min,
            max);
+    node->software_volume_needed = 1;
+  } else {
+    /* Hardware volume is decided to be used in this case. */
+    node->number_of_volume_steps = number_of_volume_steps;
+  }
+}
+/* Only call this function if USB soundcard have ucm and Explicitly write
+ * DisableSoftwareVolume in UCM. When DisableSoftwareVolume = 1 CRAS always
+ * use device reported steps. If HW volume granularity is an issue, use
+ * CRASPlaybackNumberOfVolumeSteps to overwrite it. When DisableSoftwareVolume
+ * = 0 use 25 volume steps
+ */
+
+static void configure_ucm_volume_settings(struct alsa_usb_output_node* output,
+                                          struct alsa_usb_io* aio,
+                                          bool software_volume_needed) {
+  struct cras_ionode* node = &output->common.base;
+  int number_of_volume_steps = -1;
+
+  node->software_volume_needed = software_volume_needed;
+  syslog(LOG_INFO, "Use %s volume for %s with UCM.",
+         node->software_volume_needed ? "software" : "hardware", node->name);
+  const char* mixer_name =
+      ucm_get_playback_mixer_elem_for_dev(aio->common.ucm, node->name);
+  // In the UCM, if the PlaybackMixerElem is set then it should always use
+  // HW volume because it has an associated control.
+  CRAS_CHECK(!mixer_name || !software_volume_needed);
+
+  node->number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
+  ucm_get_playback_number_of_volume_steps_for_dev(aio->common.ucm, node->name,
+                                                  &number_of_volume_steps);
+  // If the developer wants to tune volume steps, must use HW volume.
+  CRAS_CHECK((number_of_volume_steps == -1) || !software_volume_needed);
+
+  // You only need to configure the parameter if you're using a hardware volume.
+  if (!software_volume_needed) {
+    if (number_of_volume_steps != -1) {
+      node->number_of_volume_steps = number_of_volume_steps;
+    } else {
+      node->number_of_volume_steps =
+          MIN(cras_alsa_mixer_get_playback_step(output->common.mixer),
+              NUMBER_OF_VOLUME_STEPS_DEFAULT);
+    }
   }
 
-complete_init_software_volume:
-  finalize_volume_steps_setting(output, aio);
+  // number_of_volume_steps is used as a denominator to calculate percentage, so
+  // it must be non-zero when set to node.
+  CRAS_CHECK(node->number_of_volume_steps > 0);
+}
+
+/* Settle everything about volume on an output node. For eaxmple: SW or HW
+ * volume to use, volume range check, volume curve construction.
+ */
+static void finalize_volume_settings(struct alsa_usb_output_node* output,
+                                     struct alsa_usb_io* aio) {
+  long max, min;
+  const struct cras_volume_curve* curve;
+  struct cras_ionode* node = &output->common.base;
+
+  cras_alsa_mixer_get_playback_dBFS_range(aio->common.mixer,
+                                          output->common.mixer, &max, &min);
+  syslog(LOG_DEBUG, "%s's output volume range: [%ld %ld]", node->name, min,
+         max);
+
+  if (aio->common.ucm) {
+    configure_ucm_volume_settings(
+        output, aio, !ucm_get_disable_software_volume(aio->common.ucm));
+  } else {
+    configure_default_volume_settings(output, aio, min, max);
+  }
+
+  // Create volume curve for nodes base on cras config.
+  output->volume_curve =
+      usb_create_volume_curve_for_output(aio->common.config, output);
+  /* if we finally decide to use HW volume and no volume curve in cras config,
+   * create volume curve. */
+  if (!output->volume_curve && !node->software_volume_needed) {
+    output->volume_curve = cras_volume_curve_create_simple_step(0, max - min);
+  }
+
   // Lastly, construct software volume scaler from the curve.
   curve = usb_get_curve_for_output_node(aio, output);
   node->softvol_scalers = softvol_build_from_curve(curve);

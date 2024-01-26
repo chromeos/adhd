@@ -20,6 +20,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/common/check.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_mixer_name.h"
 #include "cras/src/server/cras_alsa_ucm_section.h"
@@ -775,13 +776,11 @@ int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
 
   rc = get_int(mgr, disable_software_volume, "", uc_verb(mgr), &value);
   if (rc) {
-    return -ENOENT;
+    /* Default to use HW volume */
+    return 1;
   }
 
-  if (value != 0 && value != 1) {
-    return -EINVAL;
-  }
-
+  CRAS_CHECK(value == 0 || value == 1);
   return value;
 }
 

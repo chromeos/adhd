@@ -300,6 +300,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:check",
         "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",

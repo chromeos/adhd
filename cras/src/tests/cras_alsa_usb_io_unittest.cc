@@ -95,6 +95,8 @@ static char test_card_name[] = "TestCard";
 static char test_pcm_name[] = "TestPCM";
 static char test_dev_name[] = "TestDev";
 static char test_dev_id[] = "TestDevId";
+static std::map<std::string, std::string>
+    ucm_get_playback_mixer_elem_for_dev_values;
 static size_t cras_iodev_add_node_called;
 static struct cras_ionode* cras_iodev_set_node_plugged_ionode;
 static size_t cras_iodev_set_node_plugged_called;
@@ -150,6 +152,7 @@ static unsigned cras_iodev_reset_rate_estimator_called;
 static unsigned display_rotation;
 static bool sys_get_noise_cancellation_supported_return_value;
 static int sys_aec_on_dsp_supported_return_value;
+static int ucm_node_disable_software_volume_ret_value;
 static int ucm_node_echo_cancellation_exists_ret_value;
 static int sys_get_max_internal_speaker_channels_called;
 static int sys_get_max_internal_speaker_channels_return_value;
@@ -259,6 +262,7 @@ void ResetStubData() {
   sys_get_max_headphone_channels_called = 0;
   sys_get_max_headphone_channels_return_value = 2;
   cras_iodev_update_underrun_duration_called = 0;
+  ucm_node_disable_software_volume_ret_value = -ENOENT;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -476,161 +480,416 @@ class NodeUSBCardSuite : public testing::Test {
   virtual void SetUp() {
     fake_mixer = (struct cras_alsa_mixer*)2;
     outputs = reinterpret_cast<struct mixer_control*>(0);
+    fake_ucm = (struct cras_use_case_mgr*)3;
+    section = ucm_section_create(test_dev_name, "hw:0,1", 0, -1,
+                                 CRAS_STREAM_OUTPUT, NULL, NULL);
   }
-  void CheckExpectBehaviorWithDifferentNumberOfVolumeStep(
-      int control_volume_steps,
-      int expect_output_node_volume_steps,
-      int expect_enable_software_volume) {
-    ResetStubData();
-    struct cras_iodev* iodev;
-    struct cras_audio_format format;
+  virtual void TearDown() { ucm_section_free_list(section); }
+  void SetupUSBVolumeSteps(int control_volume_steps) {
     cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
     cras_alsa_mixer_get_playback_step_values[outputs] = control_volume_steps;
-    iodev = cras_alsa_usb_iodev_create_with_default_parameters(
-        0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
-        CRAS_STREAM_OUTPUT);
-
-    format.frame_rate = 48000;
-    format.num_channels = 1;
-    cras_iodev_set_format(iodev, &format);
-
-    ASSERT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init(iodev));
-    aio = (struct alsa_usb_io*)iodev;
-    EXPECT_LE(1, cras_alsa_mixer_get_playback_step_called);
-    EXPECT_EQ(expect_output_node_volume_steps,
-              aio->common.base.active_node->number_of_volume_steps);
-    EXPECT_EQ(expect_enable_software_volume,
-              aio->common.base.active_node->software_volume_needed);
-    iodev->close_dev(iodev);
-    cras_alsa_usb_iodev_destroy(iodev);
-    free(fake_format);
   }
-  void CheckExpectBehaviorWithNumberOfVolumeStepUCM(
-      int control_volume_steps,
-      int ucm_output_node_volume_steps,
-      int expect_output_node_volume_steps) {
-    ResetStubData();
-    struct cras_iodev* iodev;
-    struct cras_audio_format format;
-    struct ucm_section* section;
-    struct cras_use_case_mgr* const fake_ucm = (struct cras_use_case_mgr*)3;
-    cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
-    cras_alsa_mixer_get_playback_step_values[outputs] = control_volume_steps;
+  void SetupUSBVolumeRange(long dBFS_range_min, long dBFS_range_max) {
+    cras_alsa_mixer_get_playback_dBFS_range_max = dBFS_range_max;
+    cras_alsa_mixer_get_playback_dBFS_range_min = dBFS_range_min;
+  }
+  void SetupUCMCRASPlaybackNumberOfVolumeSteps(
+      int ucm_output_node_volume_steps) {
     ucm_get_playback_number_of_volume_steps_values[test_dev_name] =
         ucm_output_node_volume_steps;
+  }
+  void SetupDisableSoftwareVolume(int ucm_node_disable_software_volume) {
+    ucm_node_disable_software_volume_ret_value =
+        ucm_node_disable_software_volume;
+  }
+  struct cras_iodev* GenerateUSBIodevWithUCM(
+      int control_volume_steps,
+      int control_volume_range_min,
+      int control_volume_range_max,
+      const std::map<std::string, int>& ucm_values) {
+    struct cras_iodev* iodev;
+    ResetStubData();
+    SetupUSBVolumeSteps(control_volume_steps);
+    SetupUSBVolumeRange(control_volume_range_min, control_volume_range_max);
+    auto it = ucm_values.find("CRASPlaybackNumberOfVolumeSteps");
+    if (it != ucm_values.end()) {
+      SetupUCMCRASPlaybackNumberOfVolumeSteps(it->second);
+    }
+    it = ucm_values.find("DisableSoftwareVolume");
+    if (it != ucm_values.end()) {
+      SetupDisableSoftwareVolume(it->second);
+    }
     iodev = cras_alsa_usb_iodev_create_with_default_parameters(
         0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, fake_ucm,
         CRAS_STREAM_OUTPUT);
-
-    format.frame_rate = 48000;
-    format.num_channels = 1;
-    cras_iodev_set_format(iodev, &format);
-
-    section = ucm_section_create(test_dev_name, "hw:0,1", 0, -1,
-                                 CRAS_STREAM_OUTPUT, NULL, NULL);
-
-    ASSERT_EQ(0, cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(iodev, section));
+    cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(iodev, section);
     cras_alsa_usb_iodev_ucm_complete_init(iodev);
-    aio = (struct alsa_usb_io*)iodev;
-    EXPECT_EQ(0, cras_alsa_mixer_get_playback_step_called);
-    EXPECT_EQ(expect_output_node_volume_steps,
-              aio->common.base.active_node->number_of_volume_steps);
-    iodev->close_dev(iodev);
-    cras_alsa_usb_iodev_destroy(iodev);
-    ucm_section_free_list(section);
-    free(fake_format);
+    return iodev;
   }
-
-  void CheckVolumeCurveWithDifferentVolumeRange(
-      long dBFS_range_max,
-      long dBFS_range_min,
-      int expect_enable_software_volume) {
-    ResetStubData();
-    cras_alsa_mixer_get_playback_dBFS_range_max = dBFS_range_max;
-    cras_alsa_mixer_get_playback_dBFS_range_min = dBFS_range_min;
-    cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
+  struct cras_iodev* GenerateUSBIodevNoUCM(int control_volume_steps,
+                                           int control_volume_range_min,
+                                           int control_volume_range_max) {
     struct cras_iodev* iodev;
-    struct cras_audio_format format;
 
+    ResetStubData();
+    SetupUSBVolumeSteps(control_volume_steps);
+    SetupUSBVolumeRange(control_volume_range_min, control_volume_range_max);
     iodev = cras_alsa_usb_iodev_create_with_default_parameters(
         0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, NULL,
         CRAS_STREAM_OUTPUT);
-    cras_iodev_set_format(iodev, &format);
-    ASSERT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init(iodev));
-    aio = (struct alsa_usb_io*)iodev;
-    EXPECT_EQ(2, cras_card_config_get_volume_curve_for_control_called);
-    EXPECT_EQ(1, cras_alsa_mixer_get_playback_dBFS_range_called);
-    EXPECT_EQ(expect_enable_software_volume,
-              aio->common.base.active_node->software_volume_needed);
-    EXPECT_EQ(&default_curve, fake_get_dBFS_volume_curve_val);
-    if (!expect_enable_software_volume) {
-      EXPECT_EQ(cras_alsa_mixer_get_playback_dBFS_range_max,
-                cras_volume_curve_create_simple_step_max_volume);
-      EXPECT_EQ((cras_alsa_mixer_get_playback_dBFS_range_max -
-                 cras_alsa_mixer_get_playback_dBFS_range_min),
-                cras_volume_curve_create_simple_step_range);
-      EXPECT_EQ(1, cras_volume_curve_create_simple_step_called);
-    } else {
-      EXPECT_EQ(0, cras_volume_curve_create_simple_step_called);
-    }
+    cras_alsa_usb_iodev_legacy_complete_init(iodev);
+    return iodev;
+  }
+  struct cras_ionode* GetActiveNode(struct cras_iodev* iodev) {
+    struct alsa_usb_io* aio = (struct alsa_usb_io*)iodev;
+    return aio->common.base.active_node;
+  }
+  void FreeIodev(struct cras_iodev* iodev) {
     iodev->close_dev(iodev);
     cras_alsa_usb_iodev_destroy(iodev);
-    free(fake_format);
   }
-  struct alsa_usb_io* aio;
   struct cras_alsa_mixer* fake_mixer;
   struct mixer_control* outputs;
+  struct cras_use_case_mgr* fake_ucm;
+  struct ucm_section* section;
 };
 
-TEST_F(NodeUSBCardSuite, NumberOfVolumeStepWithUCM) {
-  /*
-   * Regardless of the number of volume steps reported by a particular device,
-   * if the UCM value is specified, it should be respected.
-   */
-  // deivce with report 0 volume steps, but UCM set volume steps as 50
-  CheckExpectBehaviorWithNumberOfVolumeStepUCM(0, 50, 50);
-  // deivce with report 100 volume steps, but UCM set volume steps as 50
-  CheckExpectBehaviorWithNumberOfVolumeStepUCM(100, 50, 50);
+/*
+ * In this test case, CRASPlaybackNumberOfVolumeSteps and DisableSoftwareVolume
+ * are already set in UCM. This test checks that CRAS always uses the UCM value
+ * for volume, regardless of the device's reported volume steps or range.
+ */
+
+TEST_F(NodeUSBCardSuite,
+       CRASPlaybackNumberOfVolumeStepsAndDisableSoftwareVolumeInUCM) {
+  std::map<std::string, int> ucm_values;
+  struct cras_iodev* iodev;
+
+  ucm_values["CRASPlaybackNumberOfVolumeSteps"] = 20;
+  ucm_values["DisableSoftwareVolume"] = 1;
+
+  // small volume steps + small volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + mid volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + large volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + small volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + mid volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + large volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + small volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + mid volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + large volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(20, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+}
+/*
+ * In this test case, DisableSoftwareVolume is already set, but
+ CRASPlaybackNumberOfVolumeSteps is not set in UCM.
+ * The final volume steps applied by CRAS to a device should be based on the
+ DisableSoftwareVolume setting in UCM and the volume steps reported by the
+ device.
+ * Based on the research in go/refine-cros-playback-vol, we can formulate the
+ behavior as follows:
+
+                step<10     10<=step<=25   step>25
+              ------------ -------------- ------------
+   sw_vol    | 25 steps  |   25 steps    |  25 steps
+   hw_vol    | dev_steps |   dev_steps   |  25 steps
+ * This test verify CRAS's behavior follow above metric.
+ */
+
+TEST_F(NodeUSBCardSuite, OnlyDisableSoftwareVolumeInUCM) {
+  std::map<std::string, int> ucm_values;
+  struct cras_iodev* iodev;
+
+  ucm_values["DisableSoftwareVolume"] = 1;
+
+  // small volume steps + small volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(5, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + mid volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(5, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + large volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(5, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + small volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(15, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + mid volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(15, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + large volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(15, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + small volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + mid volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + large volume range + software volume disabled
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  ucm_values["DisableSoftwareVolume"] = 0;
+
+  // small volume steps + small volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + mid volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + large volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + small volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + mid volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + large volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + small volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + mid volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + large volume range + software volume enable
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
 }
 
-TEST_F(NodeUSBCardSuite, NumberOfVolumeStepWithoutUCM) {
-  /* For number_of_volume_steps < 10, set number_of_volume_steps = 25 and enable
-   * software_volume
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(0, 25, 1);
-  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
-   * ionode same as number_of_volume_steps mixer_control reported
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(10, 10, 0);
-  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
-   * ionode same as number_of_volume_steps mixer_control reported
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(15, 15, 0);
-  /* For number_of_volume_steps >= 10 && number_of_volume_steps <= 25, set
-   * ionode same as number_of_volume_steps mixer_control reported
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(25, 25, 0);
-  /* For number_of_volume_steps >= 25 set set number_of_volume_steps = 25
-   */
-  CheckExpectBehaviorWithDifferentNumberOfVolumeStep(50, 25, 0);
+/*
+ * In this test case, CRASPlaybackNumberOfVolumeSteps and DisableSoftwareVolume
+ are not set in UCM. The expect behavior should be same as DisableSoftwareVolume
+ set as 1.
+ */
+
+TEST_F(NodeUSBCardSuite,
+       NoCRASPlaybackNumberOfVolumeStepsAndDisableSoftwareVolumeInUCM) {
+  std::map<std::string, int> ucm_values;
+  struct cras_iodev* iodev;
+
+  // small volume steps + small volume range
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(5, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + mid volume range
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(5, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + large volume range
+  iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(5, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + small volume range
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(15, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + mid volume range
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(15, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + large volume range
+  iodev = GenerateUSBIodevWithUCM(15, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(15, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + small volume range
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-2), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + mid volume range
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-200), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + large volume range
+  iodev = GenerateUSBIodevWithUCM(45, db_to_alsa_db(-999999), 0, ucm_values);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
 }
+/*
+ * In this test case, No UCM for this USB device.
+ * The final software volume and volume steps are based on the device-reported
+ volume steps and range.
+ * There are two rule
+ * 1. software volume should be used if volume range > 200db or < 5db.
+ * 2. follow the UX defined in go/refine-cros-playback-vol
+ * Based on two rule above we can formulate the behavior as follows:
+                     step<10           10<=step<=25       step>25
+                 ------------------ -----------------  -----------------
+   5<=range<=200 | sw_vol/25 steps | hw_vol/dev_steps |  hw_vol/25 steps
+   else          | sw_vol/25 steps | sw_vol/25 steps  |  sw_vol/25 steps
+ * This test verify CRAS's behavior follow above metric.
+ */
+TEST_F(NodeUSBCardSuite, DefaultWithNoUCM) {
+  struct cras_iodev* iodev;
 
-TEST_F(NodeUSBCardSuite, VolumeRange) {
-  /* For USB devices 5.00 dB - 200.00 dB will be considered the normal volume
-   * range. If the range reported by the USB device is outside this range,
-   * fallback to software volume and use default volume curve.
-   */
+  // small volume steps + small volume range
+  iodev = GenerateUSBIodevNoUCM(0, db_to_alsa_db(-2), 0);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
 
-  // lower that 5.00 dBFS, use software volume and default volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-2), 1);
-  // 5.00 dBFS, use hardware volume and custom volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-5), 0);
-  // 20.00 dBFS, use hardware volume and custom volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-20), 0);
-  // 200.00 dBFS, use hardware volume and custom volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-200), 0);
-  // 999999.00 dBFS, use software volume and default volume curve
-  CheckVolumeCurveWithDifferentVolumeRange(0, db_to_alsa_db(-999999), 1);
+  // small volume steps + mid volume range
+  iodev = GenerateUSBIodevNoUCM(0, db_to_alsa_db(-200), 0);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // small volume steps + large volume range
+  iodev = GenerateUSBIodevNoUCM(0, db_to_alsa_db(-999999), 0);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + small volume range
+  iodev = GenerateUSBIodevNoUCM(15, db_to_alsa_db(-2), 0);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + mid volume range
+  iodev = GenerateUSBIodevNoUCM(15, db_to_alsa_db(-200), 0);
+  EXPECT_EQ(15, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // mid volume steps + large volume range
+  iodev = GenerateUSBIodevNoUCM(15, db_to_alsa_db(-999999), 0);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + small volume range
+  iodev = GenerateUSBIodevNoUCM(45, db_to_alsa_db(-2), 0);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + mid volume range
+  iodev = GenerateUSBIodevNoUCM(45, db_to_alsa_db(-200), 0);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
+
+  // large volume steps + large volume range
+  iodev = GenerateUSBIodevNoUCM(45, db_to_alsa_db(-999999), 0);
+  EXPECT_EQ(25, GetActiveNode(iodev)->number_of_volume_steps);
+  EXPECT_EQ(1, GetActiveNode(iodev)->software_volume_needed);
+  FreeIodev(iodev);
 }
 
 //  Test free run.
@@ -1107,7 +1366,16 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
 }
 
 int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
-  return -ENOENT;
+  return ucm_node_disable_software_volume_ret_value;
+}
+
+const char* ucm_get_playback_mixer_elem_for_dev(struct cras_use_case_mgr* mgr,
+                                                const char* dev) {
+  if (ucm_get_playback_mixer_elem_for_dev_values.find(std::string(dev)) ==
+      ucm_get_playback_mixer_elem_for_dev_values.end()) {
+    return NULL;
+  }
+  return ucm_get_playback_mixer_elem_for_dev_values[dev].c_str();
 }
 
 char* ucm_get_hotword_models(struct cras_use_case_mgr* mgr) {
@@ -1308,7 +1576,6 @@ int ucm_enable_node_noise_suppression(struct cras_use_case_mgr* mgr,
 int ucm_enable_node_gain_control(struct cras_use_case_mgr* mgr, int enable) {
   return 0;
 }
-
 void cras_iodev_init_audio_area(struct cras_iodev* iodev) {}
 
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}

@@ -286,6 +286,67 @@ given, which is a 1dBFS per step curve from max = +0.5dBFS to min = -99.5dBFS
 [compile commands]: https://clang.llvm.org/docs/JSONCompilationDatabase.html
 [language server plugins in editors]: https://clangd.llvm.org/installation.html#editor-plugins
 
+### USB UCM Configuration
+There can be a UCM config file for each sound alsa card on the system.  This file
+lives in `/usr/share/alsa/ucm/` or `/usr/share/alsa/ucm2/`.  The file should be named with the card name returned by ALSA, the string in the second set of '[]' in the aplay -l output.
+
+Several fields are commonly utilized in USB UCM.
+
+* DisableSoftwareVolume - If not specified, default to value '1' which means hardware volume is used by default. Setting this flag to '0' will enforce using software volume.
+  * hardware volume - control playback volume via setting mixer control exposed by USB device. Use `PlaybackMixerElem` to explicitly tell CRAS which mixer to use, otherwise some name matching will be used.
+  * software volume - control playback volume via changing the amplitude of digital audio data. Setting `PlaybackMixerElem` or` CRASPlaybackNumberOfVolumeSteps` in this mode will throw an error.
+* PlaybackPCM - PCM device for USB playback.
+* PlaybackMixerElem - mixer control for USB playback volume.
+* CapturePCM - PCM device for USB capture.
+* CaptureMixerElem - mixer control for USB capture gain.
+* CRASPlaybackNumberOfVolumeSteps - percentage calculated as 100% / `CRASPlaybackNumberOfVolumeSteps` is used to increment/decrement playback volume in the UI correspond to each "volume up" or "volume down" event. If not specified, the value reported by mixer control will be used.
+
+Example:
+This example configures Logi tech dock to have a `PlaybackPCM`=`hw:Dock,0` with playback volume mixer control `PlaybackMixerElem`=`PCM,0` using hardware volume and change 5% volume for each volume step
+and have a `CapturePCM`=`hw:Dock,0` with capture gain mixer control `CaptureMixerElem`=`Headset,0`.
+
+
+`ucm-config/for_all_boards/Logi Dock/Logi Dock.conf`
+```
+Comment "Logi Dock"
+
+SectionUseCase."HiFi" {
+	File "HiFi.conf"
+	Comment "Default"
+}
+
+```
+`ucm-config/for_all_boards/Logi Dock/HiFi.conf`
+```
+SectionVerb {
+	Value {
+		FullySpecifiedUCM "1"
+	}
+
+	EnableSequence [
+	]
+
+	DisableSequence [
+	]
+}
+
+
+SectionDevice."Logi Dock Output".0 {
+	Value {
+		PlaybackPCM "hw:Dock,0"
+		PlaybackMixerElem "PCM,0"
+		CRASPlaybackNumberOfVolumeSteps "20"
+	}
+}
+
+SectionDevice."Logi Dock Input".0 {
+	Value {
+		CapturePCM "hw:Dock,0"
+		CaptureMixerElem "Headset,0"
+	}
+}
+```
+
 ### DBus docs
 
 See [cras/dbus_bindings/org.chromium.cras.Control.xml](dbus_bindings/org.chromium.cras.Control.xml)
