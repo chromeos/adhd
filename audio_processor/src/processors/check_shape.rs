@@ -16,17 +16,19 @@ pub struct CheckShape<T: Sample> {
     channels: usize,
     block_size: usize,
     phantom: PhantomData<T>,
+    frame_rate: usize,
 }
 
 impl<T> CheckShape<T>
 where
     T: Sample,
 {
-    pub fn new(channels: usize, block_size: usize) -> Self {
+    pub fn new(channels: usize, block_size: usize, frame_rate: usize) -> Self {
         Self {
             channels,
             block_size,
             phantom: PhantomData,
+            frame_rate,
         }
     }
 }
@@ -50,6 +52,10 @@ where
             })
         }
     }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        self.frame_rate
+    }
 }
 
 #[cfg(test)]
@@ -61,7 +67,7 @@ mod tests {
 
     #[test]
     fn good_shape() {
-        let mut ap = CheckShape::<i32>::new(2, 4);
+        let mut ap = CheckShape::<i32>::new(2, 4, 16000);
         let mut buf = MultiBuffer::from(vec![vec![1, 2, 3, 4], vec![5, 6, 7, 8]]);
 
         let result = ap.process(buf.as_multi_slice());
@@ -73,7 +79,7 @@ mod tests {
 
     #[test]
     fn bad_shape() {
-        let mut ap = CheckShape::<i32>::new(2, 4);
+        let mut ap = CheckShape::<i32>::new(2, 4, 16000);
         let mut buf = MultiBuffer::from(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]);
 
         let result = ap.process(buf.as_multi_slice());
@@ -82,5 +88,11 @@ mod tests {
             err.to_string(),
             "invalid channels x frames: want 2x4; got 3x3"
         );
+    }
+
+    #[test]
+    fn get_output_frame_rate() {
+        let ap = CheckShape::<i32>::new(2, 4, 16000);
+        assert_eq!(ap.get_output_frame_rate(), 16000);
     }
 }

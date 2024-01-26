@@ -30,7 +30,15 @@ enum status bad_plugin_missing_destroy_create(
     struct plugin_processor** out,
     const struct plugin_processor_config* config);
 
+enum status bad_plugin_missing_get_output_frame_rate_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config);
+
 enum status bad_plugin_failing_run_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config);
+
+enum status bad_plugin_failing_get_output_frame_rate_create(
     struct plugin_processor** out,
     const struct plugin_processor_config* config);
 

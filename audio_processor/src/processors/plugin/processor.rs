@@ -20,6 +20,9 @@ pub type PluginProcessorRun = unsafe extern "C" fn(
 pub type PluginProcessorDestroy =
     unsafe extern "C" fn(*mut binding::plugin_processor) -> binding::status;
 
+pub type PluginProcessorGetOutputFrameRate =
+    unsafe extern "C" fn(*mut binding::plugin_processor, *mut usize) -> binding::status;
+
 #[derive(Debug)]
 /// `PluginProcessor` is an [`AudioProcessor`] that wraps an audio processor
 /// implemented in another language.
@@ -27,6 +30,7 @@ pub struct PluginProcessor {
     handle: *mut binding::plugin_processor,
     run: PluginProcessorRun,
     destroy: PluginProcessorDestroy,
+    _get_output_frame_rate: PluginProcessorGetOutputFrameRate,
 }
 
 /// Helper to create a [`crate::Error`] for unexpected NULLs.
@@ -84,11 +88,16 @@ impl PluginProcessor {
             destroy(handle);
             null_error("ops.run")
         })?;
+        let _get_output_frame_rate = ops.get_output_frame_rate.ok_or_else(|| {
+            destroy(handle);
+            null_error("ops.get_output_frame_rate")
+        })?;
 
         Ok(PluginProcessor {
             handle,
             run,
             destroy,
+            _get_output_frame_rate,
         })
     }
 }
@@ -121,6 +130,15 @@ impl AudioProcessor for PluginProcessor {
         // SAFETY: We assume that `self.run` returns a valid multi_slice.
         let output = unsafe { crate::MultiSlice::<f32>::from_raw(c_output.as_slice_vec()) };
         Ok(output)
+    }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        let mut frame_rate = 0;
+        let status = unsafe { (self._get_output_frame_rate)(self.handle, &mut frame_rate) };
+        if status != binding::status::StatusOk {
+            panic!("PluginProcessor get_output_frame_rate failed with status {status}");
+        }
+        frame_rate
     }
 }
 
@@ -178,6 +196,20 @@ mod plugin_tests {
     }
 
     #[test]
+    fn missing_get_output_frame_rate() {
+        let err = unsafe {
+            PluginProcessor::new(
+                binding::bad_plugin_missing_get_output_frame_rate_create,
+                480,
+                2,
+                48000,
+            )
+        }
+        .unwrap_err();
+        assert_matches!(err, crate::Error::Plugin(PluginError::UnexpectedNull(_)));
+    }
+
+    #[test]
     fn failing_run() {
         let mut p =
             unsafe { PluginProcessor::new(binding::bad_plugin_failing_run_create, 480, 2, 48000) }
@@ -207,5 +239,28 @@ mod plugin_tests {
 
         // non-in-place: input does not change
         assert_eq!(input.to_vecs(), [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
+    }
+
+    #[test]
+    fn get_output_frame_rate() {
+        let ap =
+            unsafe { PluginProcessor::new(binding::negate_processor_create, 4, 2, 48000) }.unwrap();
+
+        assert_eq!(ap.get_output_frame_rate(), 48000,);
+    }
+
+    #[test]
+    #[should_panic(expected = "PluginProcessor get_output_frame_rate failed with status")]
+    fn failing_get_output_frame_rate() {
+        let ap = unsafe {
+            PluginProcessor::new(
+                binding::bad_plugin_failing_get_output_frame_rate_create,
+                4,
+                2,
+                48000,
+            )
+        }
+        .unwrap();
+        ap.get_output_frame_rate();
     }
 }

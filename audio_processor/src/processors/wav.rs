@@ -51,6 +51,7 @@ fn storage_type(spec: hound::WavSpec) -> Type {
 /// The `input` passed to `WavSource` is ignored.
 pub struct WavSource<R> {
     spec: hound::WavSpec,
+    frame_rate: usize,
     reader: hound::WavReader<R>,
     block_size: usize,
     block: MultiBuffer<f32>,
@@ -66,9 +67,12 @@ where
     /// `block_size` frames from the `reader` in each [`AudioProcessor::process()`] call.
     pub fn new(reader: hound::WavReader<R>, block_size: usize) -> Self {
         let spec = reader.spec();
+        let frame_rate = usize::try_from(reader.spec().sample_rate)
+            .expect("sample rate failed to fit into usize");
         let channels = spec.channels as usize;
         Self {
             spec,
+            frame_rate,
             reader,
             block_size,
             block: MultiBuffer::new(Shape {
@@ -128,6 +132,10 @@ where
 
         Ok(self.block.as_multi_slice().into_indexes(0..result))
     }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        self.frame_rate
+    }
 }
 
 /// `WavSink` is an [`AudioProcessor`] which writes audio samples to the
@@ -141,6 +149,7 @@ where
     W: std::io::Write + std::io::Seek,
 {
     writer: hound::WavWriter<W>,
+    frame_rate: usize,
 }
 
 impl<W> WavSink<W>
@@ -150,7 +159,10 @@ where
     /// Create a new `WavSink` which writes the audio frames passed to it
     /// to the `writer`.
     pub fn new(writer: hound::WavWriter<W>) -> WavSink<W> {
-        Self { writer }
+        let frame_rate = usize::try_from(writer.spec().sample_rate)
+            .expect("sample rate failed to fit into usize");
+
+        Self { writer, frame_rate }
     }
 }
 
@@ -172,6 +184,10 @@ where
         }
 
         Ok(input)
+    }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        self.frame_rate
     }
 }
 
@@ -223,6 +239,33 @@ mod tests {
 
         use super::storage_type;
         storage_type(spec(Float, 23));
+    }
+
+    #[test]
+    fn get_output_frame_rate() {
+        let spec = hound::WavSpec {
+            bits_per_sample: 16,
+            channels: 1,
+            sample_rate: 16000,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let mut buf = Vec::new();
+
+        // Tests WavSink.get_output_frame_rate and Dumps header data to buf.
+        let sink =
+            WavSink::new(hound::WavWriter::new(std::io::Cursor::new(&mut buf), spec).unwrap());
+
+        assert_eq!(sink.get_output_frame_rate(), 16000);
+
+        drop(sink); // Flush the buffer
+
+        // Tests WavSource.get_output_frame_rate.
+        let source = WavSource::new(
+            hound::WavReader::new(std::io::Cursor::new(&buf)).unwrap(),
+            3,
+        );
+
+        assert_eq!(source.get_output_frame_rate(), 16000);
     }
 
     #[test]

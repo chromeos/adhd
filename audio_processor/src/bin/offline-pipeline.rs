@@ -134,7 +134,9 @@ fn run(command: Command) {
     let block_size = command.compute_block_size(spec.sample_rate as usize);
     eprintln!("block size: {}", block_size);
     let mut source = WavSource::new(reader, block_size);
-    let mut check_shape = CheckShape::<f32>::new(spec.channels as usize, block_size);
+    let frame_rate =
+        usize::try_from(spec.sample_rate).expect("Sample rate failed to fit into usize");
+    let mut check_shape = CheckShape::<f32>::new(spec.channels as usize, block_size, frame_rate);
     let ext = DynamicPluginProcessor::new(
         &command.plugin,
         &command.plugin_name,

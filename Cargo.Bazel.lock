@@ -1,5 +1,5 @@
 {
-  "checksum": "a5656bffa44079050fdc1e525b280c63723a882de2086765f35207d44bbdc2b6",
+  "checksum": "4eecd13f31428567a974dd92c89ce51a6e081d9112bbfce112653cace15ad9fc",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -248,6 +248,10 @@
             {
               "id": "libc 0.2.140",
               "target": "libc"
+            },
+            {
+              "id": "log 0.4.17",
+              "target": "log"
             },
             {
               "id": "nix 0.26.2",

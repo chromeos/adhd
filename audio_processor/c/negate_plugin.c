@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "audio_processor/c/plugin_processor.h"
+
 struct negate_processor {
   struct plugin_processor p;
   struct plugin_processor_config config;
@@ -64,12 +66,25 @@ static enum status negate_processor_destroy(struct plugin_processor* p) {
   return StatusOk;
 }
 
+static enum status negate_processor_get_output_frame_rate(
+    struct plugin_processor* p,
+    size_t* frame_rate) {
+  if (!p) {
+    return ErrInvalidProcessor;
+  }
+
+  struct negate_processor* np = (struct negate_processor*)p;
+  *frame_rate = np->config.frame_rate;
+  return StatusOk;
+}
+
 enum status negate_processor_create(
     struct plugin_processor** out,
     const struct plugin_processor_config* config) {
   static const struct plugin_processor_ops ops = {
       .run = negate_processor_run,
       .destroy = negate_processor_destroy,
+      .get_output_frame_rate = negate_processor_get_output_frame_rate,
   };
 
   if (config->debug) {

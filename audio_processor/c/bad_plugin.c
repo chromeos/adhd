@@ -6,6 +6,8 @@
 
 #include <stdlib.h>
 
+#include "audio_processor/c/plugin_processor.h"
+
 static enum status noop_run(struct plugin_processor* p,
                             const struct multi_slice* in,
                             struct multi_slice* out) {
@@ -20,6 +22,17 @@ static enum status failing_run(struct plugin_processor* p,
   (void)p;
   (void)in;
   (void)out;
+  return ErrOther;
+}
+
+static enum status get_output_frame_rate_48k(struct plugin_processor* p,
+                                             size_t* frame_rate) {
+  *frame_rate = 48000;
+  return StatusOk;
+}
+
+static enum status failing_get_output_frame_rate(struct plugin_processor* p,
+                                                 size_t* frame_rate) {
   return ErrOther;
 }
 
@@ -63,6 +76,7 @@ enum status bad_plugin_missing_run_create(
   static const struct plugin_processor_ops ops = {
       .run = NULL,
       .destroy = free_destroy,
+      .get_output_frame_rate = get_output_frame_rate_48k,
   };
 
   struct plugin_processor* p = calloc(1, sizeof(*p));
@@ -78,12 +92,29 @@ enum status bad_plugin_missing_destroy_create(
   static const struct plugin_processor_ops ops = {
       .run = noop_run,
       .destroy = NULL,
+      .get_output_frame_rate = get_output_frame_rate_48k,
   };
 
   static struct plugin_processor p = {
       .ops = &ops,
   };
   *out = &p;
+  return StatusOk;
+}
+
+enum status bad_plugin_missing_get_output_frame_rate_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config) {
+  (void)config;
+  static const struct plugin_processor_ops ops = {
+      .run = noop_run,
+      .destroy = free_destroy,
+      .get_output_frame_rate = NULL,
+  };
+
+  struct plugin_processor* p = calloc(1, sizeof(*p));
+  p->ops = &ops;
+  *out = p;
   return StatusOk;
 }
 
@@ -94,6 +125,23 @@ enum status bad_plugin_failing_run_create(
   static const struct plugin_processor_ops ops = {
       .run = failing_run,
       .destroy = free_destroy,
+      .get_output_frame_rate = get_output_frame_rate_48k,
+  };
+
+  struct plugin_processor* p = calloc(1, sizeof(*p));
+  p->ops = &ops;
+  *out = p;
+  return StatusOk;
+}
+
+enum status bad_plugin_failing_get_output_frame_rate_create(
+    struct plugin_processor** out,
+    const struct plugin_processor_config* config) {
+  (void)config;
+  static const struct plugin_processor_ops ops = {
+      .run = failing_run,
+      .destroy = free_destroy,
+      .get_output_frame_rate = failing_get_output_frame_rate,
   };
 
   struct plugin_processor* p = calloc(1, sizeof(*p));

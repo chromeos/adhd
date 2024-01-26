@@ -36,6 +36,10 @@ impl<T: AudioProcessor> AudioProcessor for Profile<T> {
 
         Ok(output)
     }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        self.inner.get_output_frame_rate()
+    }
 }
 
 impl<T: AudioProcessor> Profile<T> {
@@ -126,8 +130,10 @@ mod tests {
     use super::Profile;
     use crate::processors::profile::cpu_time;
     use crate::processors::InPlaceNegateAudioProcessor;
+    use crate::processors::SpeexResampler;
     use crate::AudioProcessor;
     use crate::MultiBuffer;
+    use crate::Shape;
 
     #[test]
     fn cpu_time_smoke() {
@@ -176,8 +182,25 @@ mod tests {
     }
 
     #[test]
+    fn get_output_frame_rate() {
+        let p = Profile::new(
+            SpeexResampler::new(
+                Shape {
+                    channels: 1,
+                    frames: 5,
+                },
+                8000,
+                16000,
+            )
+            .unwrap(),
+        );
+
+        assert_eq!(p.get_output_frame_rate(), 16000);
+    }
+
+    #[test]
     fn profile() {
-        let mut p = Profile::new(InPlaceNegateAudioProcessor::<i32>::new());
+        let mut p = Profile::new(InPlaceNegateAudioProcessor::<i32>::new(48000));
         let mut buf = MultiBuffer::from(vec![vec![1i32, 2, 3, 4], vec![5, 6, 7, 8]]);
 
         let cpu_start = super::cpu_time();

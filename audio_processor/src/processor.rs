@@ -66,6 +66,9 @@ pub trait AudioProcessor {
     fn process_bytes<'a>(&'a mut self, input: MultiSlice<'a, u8>) -> Result<MultiSlice<'a, u8>> {
         self.process(input.into_typed()).map(|x| x.into_bytes())
     }
+
+    /// Get the frame rate of the `process`ed output.
+    fn get_output_frame_rate<'a>(&'a self) -> usize;
 }
 
 impl<T> ByteProcessor for T
@@ -86,8 +89,8 @@ mod tests {
     #[test]
     fn simple_pipeline() {
         // Test a simple pipeline using a Vec of ByteProcessor.
-        let mut p1 = processors::InPlaceNegateAudioProcessor::<f32>::new();
-        let mut p2 = processors::NegateAudioProcessor::<f32>::new(2, 4);
+        let mut p1 = processors::InPlaceNegateAudioProcessor::<f32>::new(48000);
+        let mut p2 = processors::NegateAudioProcessor::<f32>::new(2, 4, 48000);
         let mut pipeline: Vec<&mut dyn ByteProcessor> = vec![&mut p1, &mut p2];
 
         let mut bufs = MultiBuffer::<f32>::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);

@@ -36,6 +36,11 @@ class EchoProcessor {
     return StatusOk;
   }
 
+  enum status GetOutputFrameRate(size_t* frame_rate) {
+    *frame_rate = config_.frame_rate;
+    return StatusOk;
+  }
+
  private:
   void processChannel(std::span<float> input,
                       std::span<float> output,
@@ -86,6 +91,10 @@ class CppWrapper {
     return StatusOk;
   }
 
+  enum status GetOutputFrameRate(size_t* frame_rate) {
+    return wrapped_->GetOutputFrameRate(frame_rate);
+  }
+
   ~CppWrapper() { delete wrapped_; }
 
   CppWrapper(const CppWrapper&) = delete;
@@ -129,10 +138,21 @@ static enum status destroy(struct plugin_processor* p) {
   return StatusOk;
 }
 
+static enum status get_output_frame_rate(struct plugin_processor* p,
+                                         size_t* frame_rate) {
+  if (!p) {
+    return ErrInvalidProcessor;
+  }
+
+  auto wrapper = reinterpret_cast<CppWrapper<EchoProcessor>*>(p);
+  return wrapper->GetOutputFrameRate(frame_rate);
+}
+
 // plugin_processor ops for DenoiserWrapper.
 static const struct plugin_processor_ops ops = {
     .run = run,
     .destroy = destroy,
+    .get_output_frame_rate = get_output_frame_rate,
 };
 
 extern "C" enum status echo_processor_create(

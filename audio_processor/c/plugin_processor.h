@@ -62,6 +62,10 @@ struct plugin_processor_ops {
 
   // Destruct the plugin audio processor p.
   enum status (*destroy)(struct plugin_processor* p);
+
+  // Get the frame rate of the `output` of `run`.
+  enum status (*get_output_frame_rate)(struct plugin_processor* p,
+                                       size_t* output_frame_rate);
 };
 
 #ifdef __cplusplus

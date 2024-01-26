@@ -55,6 +55,10 @@ impl<T: AudioProcessor<I = S, O = S>, S: Sample> AudioProcessor for ChunkWrapper
 
         Ok(input)
     }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        self.inner.get_output_frame_rate()
+    }
 }
 
 impl<T: AudioProcessor<I = S, O = S>, S: Sample> ChunkWrapper<T, S> {
@@ -95,8 +99,10 @@ mod tests {
     use super::ChunkWrapper;
     use crate::processors::InPlaceNegateAudioProcessor;
     use crate::processors::NegateAudioProcessor;
+    use crate::processors::SpeexResampler;
     use crate::AudioProcessor;
     use crate::MultiBuffer;
+    use crate::Shape;
 
     // Test that ChunkedWrapper generates the correct delay.
     fn delayed_neg<T: AudioProcessor<I = i32, O = i32>>(neg: T) {
@@ -123,12 +129,31 @@ mod tests {
 
     #[test]
     fn delayed_neg_test() {
-        delayed_neg(NegateAudioProcessor::<i32>::new(2, 2));
+        delayed_neg(NegateAudioProcessor::<i32>::new(2, 2, 48000));
     }
 
     #[test]
     fn delayed_neg_in_place_test() {
-        delayed_neg(InPlaceNegateAudioProcessor::<i32>::new());
+        delayed_neg(InPlaceNegateAudioProcessor::<i32>::new(48000));
+    }
+
+    #[test]
+    fn get_output_frame_rate() {
+        let cw = ChunkWrapper::new(
+            SpeexResampler::new(
+                Shape {
+                    channels: 1,
+                    frames: 5,
+                },
+                16000,
+                48000,
+            )
+            .unwrap(),
+            2,
+            2,
+            2,
+        );
+        assert_eq!(cw.get_output_frame_rate(), 48000);
     }
 
     // TODO: Add a test for when input_channels and output_channels are different.

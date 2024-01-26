@@ -22,6 +22,7 @@ mod sys {
 pub struct SpeexResampler {
     resampler_state: *mut sys::SpeexResamplerState,
     output_buffer: MultiBuffer<f32>,
+    output_frame_rate: usize,
 }
 
 impl SpeexResampler {
@@ -68,6 +69,7 @@ impl SpeexResampler {
         Ok(Self {
             resampler_state,
             output_buffer: MultiBuffer::new_equilibrium(output_shape),
+            output_frame_rate: output_rate,
         })
     }
 }
@@ -122,6 +124,10 @@ impl AudioProcessor for SpeexResampler {
         }
         Ok(self.output_buffer.as_multi_slice())
     }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        self.output_frame_rate
+    }
 }
 
 #[cfg(test)]
@@ -167,5 +173,20 @@ mod tests {
         assert_synchronous_output(1, 240, 24000, 16000);
         assert_synchronous_output(1, 2, 16000, 24000);
         assert_synchronous_output(1, 3, 24000, 16000);
+    }
+
+    #[test]
+    fn get_output_frame_rate() {
+        let speex = SpeexResampler::new(
+            Shape {
+                channels: 1,
+                frames: 5,
+            },
+            16000,
+            48000,
+        )
+        .unwrap();
+
+        assert_eq!(speex.get_output_frame_rate(), 48000);
     }
 }

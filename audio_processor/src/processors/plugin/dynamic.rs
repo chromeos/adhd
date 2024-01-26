@@ -54,6 +54,10 @@ impl AudioProcessor for DynamicPluginProcessor {
     ) -> crate::Result<crate::MultiSlice<'a, Self::O>> {
         self.processor.process(input)
     }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        self.processor.get_output_frame_rate()
+    }
 }
 
 #[cfg(feature = "bazel")]

@@ -17,13 +17,16 @@ pub fn export_plugin(p: impl AudioProcessor<I = f32, O = f32>) -> *mut binding::
 struct Exporter<'a> {
     pub base: binding::plugin_processor,
     processor: Box<dyn AudioProcessor<I = f32, O = f32> + 'a>,
+    frame_rate: usize,
 }
 
 impl<'a> Exporter<'a> {
     pub fn new(p: impl AudioProcessor<I = f32, O = f32> + 'a) -> Self {
+        let frame_rate = p.get_output_frame_rate();
         Exporter {
             base: binding::plugin_processor { ops: &OPS },
             processor: Box::new(p),
+            frame_rate,
         }
     }
 
@@ -35,6 +38,7 @@ impl<'a> Exporter<'a> {
 const OPS: binding::plugin_processor_ops = binding::plugin_processor_ops {
     run: Some(wrapper_run),
     destroy: Some(wrapper_destroy),
+    get_output_frame_rate: Some(wrapper_get_output_frame_rate),
 };
 
 unsafe extern "C" fn wrapper_run(
@@ -85,19 +89,35 @@ unsafe extern "C" fn wrapper_destroy(p: *mut binding::plugin_processor) -> bindi
     binding::status::StatusOk
 }
 
+unsafe extern "C" fn wrapper_get_output_frame_rate(
+    p: *mut binding::plugin_processor,
+    output_frame_rate: *mut usize,
+) -> binding::status {
+    let wrapper: &mut Exporter = match std::mem::transmute::<_, *mut Exporter>(p).as_mut() {
+        Some(wrapper) => wrapper,
+        None => return binding::status::ErrInvalidProcessor,
+    };
+
+    *output_frame_rate = wrapper.frame_rate;
+
+    binding::status::StatusOk
+}
+
 #[cfg(test)]
 mod tests {
     use crate::processors::export_plugin;
     use crate::processors::NegateAudioProcessor;
     use crate::processors::PluginProcessor;
+    use crate::processors::SpeexResampler;
     use crate::AudioProcessor;
     use crate::MultiBuffer;
+    use crate::Shape;
 
     #[test]
     fn negate_process() {
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
-        let original_ap = NegateAudioProcessor::new(2, 4);
+        let original_ap = NegateAudioProcessor::new(2, 4, 48000);
         let ap_binding = export_plugin(original_ap);
         let mut ap = unsafe { PluginProcessor::from_handle(ap_binding) }.unwrap();
 
@@ -111,5 +131,22 @@ mod tests {
 
         // non-in-place: input does not change
         assert_eq!(input.to_vecs(), [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
+    }
+
+    #[test]
+    fn get_output_frame_rate() {
+        let original_ap = SpeexResampler::new(
+            Shape {
+                channels: 1,
+                frames: 5,
+            },
+            16000,
+            48000,
+        )
+        .unwrap();
+        let ap_binding = export_plugin(original_ap);
+        let ap = unsafe { PluginProcessor::from_handle(ap_binding) }.unwrap();
+
+        assert_eq!(ap.get_output_frame_rate(), 48000);
     }
 }

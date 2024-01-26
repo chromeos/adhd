@@ -64,6 +64,13 @@ impl AudioProcessor for CrasProcessor {
         }
         Ok(input)
     }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        match self.pipeline.last() {
+            Some(last) => last.get_output_frame_rate(),
+            None => self._config.frame_rate,
+        }
+    }
 }
 
 static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -77,12 +84,13 @@ impl CrasProcessor {
         let config = config;
 
         let id = GLOBAL_ID_COUNTER.fetch_add(1, Ordering::AcqRel);
-        let check_shape = CheckShape::new(config.channels, config.block_size);
+        let check_shape = CheckShape::new(config.channels, config.block_size, config.frame_rate);
         let pipeline: Pipeline = match config.effect {
             CrasProcessorEffect::NoEffects => vec![],
             CrasProcessorEffect::Negate => vec![Box::new(NegateAudioProcessor::new(
                 config.channels,
                 config.block_size,
+                config.frame_rate,
             ))],
             CrasProcessorEffect::NoiseCancellation => {
                 // Check shape is supported.
