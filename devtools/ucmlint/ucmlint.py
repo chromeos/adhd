@@ -79,6 +79,15 @@ class k(str, enum.Enum):
     CHROMEOS_BASE = 'chromeos-base'
     OVERLAY_ = 'overlay-'
 
+    def __str__(self):
+        """Returns the string value on str() calls instead of the Enum name.
+
+        This is affected by PY3.11 https://peps.python.org/pep-0663/. StrEnum
+        was introduced to the rescue on PY3.11 accordingly. Though this is added
+        preferably as alternative to be backward-compatible.
+        """
+        return f'{self.value}'
+
 
 def path_check_exact(p: pathlib.Path, name: str):
     if p.name != name:
