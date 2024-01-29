@@ -1493,8 +1493,6 @@ struct cras_iodev* cras_alsa_usb_iodev_create(
   iodev->get_num_severe_underruns = usb_get_num_severe_underruns;
   iodev->get_valid_frames = usb_get_valid_frames;
   iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
-  iodev->set_display_rotation_for_node =
-      cras_iodev_dsp_set_display_rotation_for_node;
   iodev->get_htimestamp = cras_alsa_common_get_htimestamp;
   iodev->min_buffer_level = USB_EXTRA_BUFFER_FRAMES;
 
