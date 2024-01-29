@@ -102,7 +102,7 @@ def path_check_prefix(p: pathlib.Path, name: str):
 
 
 def lint_card_conf(path: pathlib.Path, relpath: str, project_name: str):
-    actual_content = path.read_text(encoding='ascii')
+    actual_content = path.read_text(encoding='utf-8')
     expected_content = f'''\
 Comment "{project_name.capitalize()} internal card"
 
@@ -305,14 +305,41 @@ class HiFiParser:
 
         return Block(kvs, self.path, lineinfo)
 
+    def is_included_path(self, line):
+        """The line content would be like '<waves/EnableSeq.conf>'."""
+        return line.startswith('<') and line.endswith('>')
+
+    def get_lines_from_included_path(self, line):
+        """Get lines of content from cfg file included by HiFi.
+
+        The included path is a relative path based on k.AUDIO directory, while
+        we have HiFi cfg filepath like .../k.AUDIO/k.UCM_CONFIG/*/HiFi.conf.
+        """
+        hifi_path = pathlib.Path(self.path).absolute()
+        relpath = line.strip('<>')
+        filepath = hifi_path.parent.parent.parent / relpath
+        if not filepath.exists():
+            self.error(f'included path `{relpath}` is not reachable')
+
+        return filepath.read_text(encoding='utf-8').splitlines()
+
     def parse_Item(self) -> Item:
         line = self.getline(2)
+        if self.is_included_path(line):
+            inc_lines = self.get_lines_from_included_path(line)
+
+            # It could have arbitrary number of lines in the included file. Here
+            # simply takes the first line since it's a rather special case.
+            if len(inc_lines) != 1:
+                self.error(f'included path `{relpath}` is not exactly one line inside.')
+            line = inc_lines[0]
+
         k, v = line.split(' ', 1)
         return Item(k, v, self.path, self.lines.popleft())
 
 
 def lint_hifi_conf(path: pathlib.Path, relpath: str, card_name: str):
-    hifi = HiFiParser(path.read_text(encoding='ascii').splitlines(), path=relpath).parse()
+    hifi = HiFiParser(path.read_text(encoding='utf-8').splitlines(), path=relpath).parse()
     if hifi is None:
         return
 
