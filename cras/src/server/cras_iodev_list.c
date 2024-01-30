@@ -2070,8 +2070,8 @@ int cras_iodev_list_set_hotword_model(cras_node_id_t node_id,
 
   ret = dev->set_hotword_model(dev, model_name);
   if (!ret) {
-    strncpy(dev->active_node->active_hotword_model, model_name,
-            sizeof(dev->active_node->active_hotword_model) - 1);
+    strlcpy(dev->active_node->active_hotword_model, model_name,
+            sizeof(dev->active_node->active_hotword_model));
   }
   return ret;
 }

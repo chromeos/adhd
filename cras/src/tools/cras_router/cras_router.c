@@ -19,6 +19,7 @@
 #include "cras_client.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
 
 #define PLAYBACK_BUFFERED_TIME_IN_NS (5000000)
 

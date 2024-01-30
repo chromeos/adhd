@@ -12,10 +12,11 @@
 
 #include "cras/src/common/cras_string.h"
 #include "cras_types.h"
+#include "third_party/strlcpy/strlcpy.h"
 #include "third_party/utlist/utlist.h"
 
 static void mixer_control_get_name_and_index(const char* name,
-                                             char* mixer_control_name,
+                                             char** mixer_control_name,
                                              int* mixer_control_index) {
   size_t name_size = strlen(name);
   size_t mixer_control_name_len = 0;
@@ -30,11 +31,8 @@ static void mixer_control_get_name_and_index(const char* name,
       *mixer_control_index = 0;
     }
   }
-  strncpy(mixer_control_name, name, mixer_control_name_len);
 
-  // clean up remaining byte
-  mixer_control_name += mixer_control_name_len;
-  memset(mixer_control_name, 0, name_size - mixer_control_name_len);
+  *mixer_control_name = strndup(name, mixer_control_name_len);
 }
 
 struct mixer_name* mixer_name_add(struct mixer_name* names,
@@ -43,7 +41,7 @@ struct mixer_name* mixer_name_add(struct mixer_name* names,
                                   mixer_name_type type) {
   struct mixer_name* m_name;
   int mixer_control_index;
-  char* mixer_control_name;
+  char* mixer_control_name = NULL;
   if (!name) {
     return names;
   }
@@ -52,14 +50,13 @@ struct mixer_name* mixer_name_add(struct mixer_name* names,
   if (!m_name) {
     return names;
   }
-  mixer_control_name = strdup(name);
+
+  mixer_control_get_name_and_index(name, &mixer_control_name,
+                                   &mixer_control_index);
   if (!mixer_control_name) {
     free(m_name);
     return names;
   }
-  mixer_control_get_name_and_index(name, mixer_control_name,
-                                   &mixer_control_index);
-
   m_name->name = mixer_control_name;
   m_name->index = mixer_control_index;
   m_name->dir = dir;

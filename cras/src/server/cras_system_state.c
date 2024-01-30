@@ -36,6 +36,7 @@
 #include "cras_timespec.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
 #include "third_party/utlist/utlist.h"
 
 struct card_list {
@@ -164,7 +165,7 @@ void init_ignore_suffix_cards(char* str) {
       syslog(LOG_ERR, "Failed to call calloc: %d", errno);
       return;
     }
-    strncpy(card->name, ptr, NAME_MAX - 1);
+    strlcpy(card->name, ptr, NAME_MAX);
     DL_APPEND(state.ignore_suffix_cards, card);
     ptr = strtok(NULL, ",");
   }
@@ -195,8 +196,7 @@ void cras_system_state_init(const char* device_config_dir,
   CRAS_CHECK(sizeof(*exp_state) == exp_state_size);
   state.shm_size = sizeof(*exp_state);
 
-  strncpy(state.shm_name, shm_name, sizeof(state.shm_name));
-  state.shm_name[sizeof(state.shm_name) - 1] = '\0';
+  strlcpy(state.shm_name, shm_name, sizeof(state.shm_name));
   state.shm_fd = rw_shm_fd;
   state.shm_fd_ro = ro_shm_fd;
 

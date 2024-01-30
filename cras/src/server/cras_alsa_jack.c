@@ -26,6 +26,7 @@
 #include "cras/src/server/cras_tm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
 #include "third_party/superfasthash/sfh.h"
 #include "third_party/utlist/utlist.h"
 
@@ -1192,14 +1193,13 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack* jack,
   if (mnl >= buf_size) {
     mnl = buf_size - 1;
   }
-  strncpy(name_buf, buf + ELD_MONITOR_NAME_OFFSET, mnl);
-  name_buf[mnl] = '\0';
+  strlcpy(name_buf, buf + ELD_MONITOR_NAME_OFFSET, mnl);
 
   return;
 
 fallback_jack_name:
   buf = cras_alsa_jack_get_name(jack);
-  strncpy(name_buf, buf, buf_size - 1);
+  strlcpy(name_buf, buf, buf_size);
 
   return;
 }

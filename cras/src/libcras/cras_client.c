@@ -4668,12 +4668,9 @@ struct libcras_node_info* libcras_node_info_create(
   node->node_->max_supported_channels = iodev->max_supported_channels;
   node->node_->plugged = ionode->plugged;
   node->node_->active = ionode->active;
-  strncpy(node->node_->type, ionode->type, CRAS_NODE_TYPE_BUFFER_SIZE);
-  node->node_->type[CRAS_NODE_TYPE_BUFFER_SIZE - 1] = '\0';
-  strncpy(node->node_->node_name, ionode->name, CRAS_NODE_NAME_BUFFER_SIZE);
-  node->node_->node_name[CRAS_NODE_NAME_BUFFER_SIZE - 1] = '\0';
-  strncpy(node->node_->dev_name, iodev->name, CRAS_IODEV_NAME_BUFFER_SIZE);
-  node->node_->dev_name[CRAS_IODEV_NAME_BUFFER_SIZE - 1] = '\0';
+  strlcpy(node->node_->type, ionode->type, CRAS_NODE_TYPE_BUFFER_SIZE);
+  strlcpy(node->node_->node_name, ionode->name, CRAS_NODE_NAME_BUFFER_SIZE);
+  strlcpy(node->node_->dev_name, iodev->name, CRAS_IODEV_NAME_BUFFER_SIZE);
   node->get_id = cras_node_info_get_id;
   node->get_dev_idx = cras_node_info_get_dev_idx;
   node->get_node_idx = cras_node_info_get_node_idx;

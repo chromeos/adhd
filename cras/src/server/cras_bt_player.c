@@ -432,8 +432,7 @@ int cras_bt_player_update_identity(DBusConnection* conn, const char* identity) {
     return 0;
   }
 
-  strncpy(player.identity, identity, CRAS_PLAYER_IDENTITY_SIZE_MAX - 1);
-  player.identity[CRAS_PLAYER_IDENTITY_SIZE_MAX - 1] = '\0';
+  strlcpy(player.identity, identity, CRAS_PLAYER_IDENTITY_SIZE_MAX);
 
   msg = dbus_message_new_signal(CRAS_DEFAULT_PLAYER, DBUS_INTERFACE_PROPERTIES,
                                 "PropertiesChanged");

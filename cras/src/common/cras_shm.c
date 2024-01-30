@@ -18,6 +18,7 @@
 
 #include "cras/src/common/cras_string.h"
 #include "cras_shm.h"
+#include "third_party/strlcpy/strlcpy.h"
 
 int cras_shm_info_init(const char* stream_name,
                        uint32_t length,
@@ -28,8 +29,7 @@ int cras_shm_info_init(const char* stream_name,
     return -EINVAL;
   }
 
-  strncpy(info.name, stream_name, sizeof(info.name) - 1);
-  info.name[sizeof(info.name) - 1] = '\0';
+  strlcpy(info.name, stream_name, sizeof(info.name));
   info.length = length;
   info.fd = cras_shm_open_rw(info.name, info.length);
   if (info.fd < 0) {

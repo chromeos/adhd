@@ -337,7 +337,7 @@ static struct cras_alsa_usb_card_info usb_card_info_create(
   const char* usb_serial_number =
       udev_device_get_sysattr_value(parent_dev, "serial");
   if (usb_serial_number) {
-    strncpy(usb_card_info.usb_serial_number, usb_serial_number,
+    strlcpy(usb_card_info.usb_serial_number, usb_serial_number,
             USB_SERIAL_NUMBER_BUFFER_SIZE);
   }
 

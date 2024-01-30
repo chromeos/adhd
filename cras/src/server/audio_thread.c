@@ -36,6 +36,7 @@
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_util.h"
+#include "third_party/strlcpy/strlcpy.h"
 #include "third_party/utlist/utlist.h"
 
 #define MIN_PROCESS_TIME_US 500  // 0.5ms - min amount of time to mix/src.
@@ -502,7 +503,7 @@ static void append_dev_dump_info(struct audio_dev_debug_info* di,
                                  struct open_dev* adev) {
   struct cras_audio_format* fmt = adev->dev->format;
   struct timespec now, time_since;
-  strncpy(di->dev_name, adev->dev->info.name, sizeof(di->dev_name));
+  strlcpy(di->dev_name, adev->dev->info.name, sizeof(di->dev_name));
   di->buffer_size = adev->dev->buffer_size;
   di->min_buffer_level = adev->dev->min_buffer_level;
   di->min_cb_level = adev->dev->min_cb_level;

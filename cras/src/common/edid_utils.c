@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "third_party/strlcpy/strlcpy.h"
+
 // Dump out an EDID block in a simple format
 void show_edid_data(FILE* outfile,
                     unsigned char* edid_data,
@@ -33,7 +35,7 @@ static void get_dtd_string(const char* str, char* buf, int buf_size) {
   int stp;
   int len = buf_size < 14 ? buf_size : 14;
 
-  strncpy(buf, str, len - 1);
+  strlcpy(buf, str, len);
   for (stp = 0; stp < len - 1; stp++) {
     if (buf[stp] == 0x0a) {
       buf[stp] = 0;

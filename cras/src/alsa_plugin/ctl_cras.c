@@ -13,6 +13,7 @@
 
 #include "cras_iodev_info.h"
 #include "cras_types.h"
+#include "third_party/strlcpy/strlcpy.h"
 
 static const size_t MAX_IODEVS = 10;   // Max devices to print out.
 static const size_t MAX_IONODES = 20;  // Max ionodes to print out.
@@ -261,17 +262,11 @@ SND_CTL_PLUGIN_DEFINE_FUNC(cras) {
 
   cras->ext_ctl.version = SND_CTL_EXT_VERSION;
   cras->ext_ctl.card_idx = 0;
-  strncpy(cras->ext_ctl.id, "cras", sizeof(cras->ext_ctl.id) - 1);
-  cras->ext_ctl.id[sizeof(cras->ext_ctl.id) - 1] = '\0';
-  strncpy(cras->ext_ctl.driver, "CRAS plugin",
-          sizeof(cras->ext_ctl.driver) - 1);
-  cras->ext_ctl.driver[sizeof(cras->ext_ctl.driver) - 1] = '\0';
-  strncpy(cras->ext_ctl.name, "CRAS", sizeof(cras->ext_ctl.name) - 1);
-  cras->ext_ctl.name[sizeof(cras->ext_ctl.name) - 1] = '\0';
-  strncpy(cras->ext_ctl.longname, "CRAS", sizeof(cras->ext_ctl.longname) - 1);
-  cras->ext_ctl.longname[sizeof(cras->ext_ctl.longname) - 1] = '\0';
-  strncpy(cras->ext_ctl.mixername, "CRAS", sizeof(cras->ext_ctl.mixername) - 1);
-  cras->ext_ctl.mixername[sizeof(cras->ext_ctl.mixername) - 1] = '\0';
+  strlcpy(cras->ext_ctl.id, "cras", sizeof(cras->ext_ctl.id));
+  strlcpy(cras->ext_ctl.driver, "CRAS plugin", sizeof(cras->ext_ctl.driver));
+  strlcpy(cras->ext_ctl.name, "CRAS", sizeof(cras->ext_ctl.name));
+  strlcpy(cras->ext_ctl.longname, "CRAS", sizeof(cras->ext_ctl.longname));
+  strlcpy(cras->ext_ctl.mixername, "CRAS", sizeof(cras->ext_ctl.mixername));
   cras->ext_ctl.poll_fd = -1;
 
   cras->ext_ctl.callback = &ctl_cras_ext_callback;

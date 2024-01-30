@@ -13,6 +13,7 @@
 #include "cras/dbus_bindings/cras_dbus_bindings.h"
 #include "cras/src/server/cras_hfp_ag_profile.h"
 #include "cras/src/server/cras_hfp_slc.h"
+#include "third_party/strlcpy/strlcpy.h"
 
 #define CRAS_TELEPHONY_INTERFACE "org.chromium.cras.Telephony"
 #define CRAS_TELEPHONY_OBJECT_PATH "/org/chromium/cras/telephony"
@@ -420,7 +421,7 @@ void cras_telephony_store_dial_number(int len, const char* number) {
 
   telephony_handle.dial_number =
       (char*)calloc(len + 1, sizeof(*telephony_handle.dial_number));
-  strncpy(telephony_handle.dial_number, number, len);
+  strlcpy(telephony_handle.dial_number, number, len);
 
   syslog(LOG_WARNING, "store dial_number: \"%s\"",
          telephony_handle.dial_number);
