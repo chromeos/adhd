@@ -9,17 +9,6 @@ package(
 )
 
 cc_binary(
-    name = "cras_test_client",
-    srcs = ["cras_test_client/cras_test_client.c"],
-    deps = [
-        "//cras/common:rust_common_cc",
-        "//cras/src/common:cras_types_internal",
-        "//cras/src/libcras:cras_client",
-        "//cras/src/server/rust:cc",
-    ],
-)
-
-cc_binary(
     name = "cras_monitor",
     srcs = ["cras_monitor/cras_monitor.c"],
     deps = [

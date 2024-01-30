@@ -36,7 +36,7 @@ pkg_tar(
     srcs = [
         ":alsa_lib",
         ":lib",
-        "//cras/src/tools:cras_test_client",
+        "//cras/deprecated/cras_test_client",
     ],
 )
 
@@ -56,8 +56,8 @@ pkg_tar(
 pkg_files(
     name = "bin",
     srcs = [
+        "//cras/deprecated/cras_test_client",
         "//cras/src/server:cras",
-        "//cras/src/tools:cras_test_client",
     ],
     attributes = EXECUTABLE_ATTRIBUTES,
     prefix = "usr/bin",

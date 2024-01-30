@@ -178,11 +178,7 @@ cc_library(
 cc_library(
     name = "cras_types_internal",
     hdrs = ["cras_types_internal.h"],
-    visibility = [
-        "//cras/src/common:__pkg__",
-        "//cras/src/server:__pkg__",
-        "//cras/src/tools:__pkg__",
-    ],
+    visibility = ["//cras:internal"],
     deps = [
         "//cras/include",
     ],

@@ -10,3 +10,11 @@ generate_pc(
     name = "libcras.pc",
     src = "libcras.pc.in",
 )
+
+package_group(
+    name = "internal",
+    packages = [
+        "-//cras/include/...",
+        "//cras/...",
+    ],
+)

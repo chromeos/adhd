@@ -1,0 +1,17 @@
+# Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "cras_test_client",
+    srcs = ["cras_test_client.c"],
+    visibility = ["//dist:__pkg__"],
+    deps = [
+        "//cras/common:rust_common_cc",
+        "//cras/src/common:cras_types_internal",
+        "//cras/src/libcras:cras_client",
+        "//cras/src/server/rust:cc",
+    ],
+)

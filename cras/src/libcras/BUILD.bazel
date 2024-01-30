@@ -15,11 +15,7 @@ cc_library(
         "-lm",
         "-lrt",
     ],
-    visibility = [
-        "//cras/benchmark:__pkg__",
-        "//cras/src/alsa_plugin:__pkg__",
-        "//cras/src/tools:__pkg__",
-    ],
+    visibility = ["//cras:internal"],
     deps = [
         "//cras/include",
         "//cras/src/common:cras_config",
