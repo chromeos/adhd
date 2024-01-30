@@ -1,43 +1,43 @@
 {
   "blocked_functions": [
     {
-      "regex": "atoi",
+      "function": "atoi",
       "replacement": "strtol"
     },
     {
-      "regex": "atof",
+      "function": "atof",
       "replacement": "strtof"
     },
     {
-      "regex": "sprintf",
+      "function": "sprintf",
       "replacement": "snprintf or scnprintf if using the return value"
     },
     {
-      "regex": "strcpy",
+      "function": "strcpy",
       "replacement": "strlcpy"
     },
     {
-      "regex": "strncpy",
+      "function": "strncpy",
       "replacement": "strlcpy"
     },
     {
-      "regex": "strlen",
+      "function": "strlen",
       "replacement": "strnlen"
     },
     {
-      "regex": "strdup",
+      "function": "strdup",
       "replacement": "strndup"
     },
     {
-      "regex": "strstr",
+      "function": "strstr",
       "replacement": "strnstr"
     },
     {
-      "regex": "strchr",
+      "function": "strchr",
       "replacement": "strnchr"
     },
     {
-      "regex": "strdupa",
+      "function": "strdupa",
       "replacement": "strndupa"
     }
   ]

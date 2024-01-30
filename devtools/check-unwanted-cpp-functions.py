@@ -100,9 +100,10 @@ def _check_functions_in_file(commit, file, blocked_functions):
             return None
 
         for function in blocked_functions:
-            match = re.search(function["regex"], line)
+            regex = r"(?<![a-zA-Z])" + function["function"] + r"\("
+            match = re.search(regex, line)
             if match:
-                return f'Found usage of "{function["regex"]}", please replace it with "{function["replacement"]}"'
+                return f'Found usage of "{function["function"]}", please replace it with "{function["replacement"]}"'
         return None
 
     error_list = []
