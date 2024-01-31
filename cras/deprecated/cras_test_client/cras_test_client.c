@@ -691,14 +691,14 @@ static void print_nodes_inlined_for_direction(
     // clang-format off
 		printf("%*d  %-*s  %*d:%-*d  %-*s  %*d  %*f  %-*s  %s\n",
 			opt->maxch_width, dev_max_ch,
-			opt->name_width, str_truncate(opt->name_width, strdupa(dev_name)),
+			opt->name_width, str_truncate(opt->name_width, strndupa(dev_name, CRAS_IODEV_NAME_BUFFER_SIZE)),
 			opt->id_width, dev_id,
 			opt->id_width, node->ionode_idx,
 			opt->flag_width, flags,
 			opt->vol_width, is_input ? node->capture_gain / 100: node->volume,
 			opt->ui_width, node->ui_gain_scaler,
-			opt->type_width, str_truncate(opt->type_width, strdupa(node->type)),
-			str_truncate(opt->name_width, strdupa(node->name))
+			opt->type_width, str_truncate(opt->type_width, strndupa(node->type, CRAS_NODE_TYPE_BUFFER_SIZE)),
+			str_truncate(opt->name_width, strndupa(node->name, CRAS_NODE_NAME_BUFFER_SIZE))
 		);
     // clang-format on
   }
