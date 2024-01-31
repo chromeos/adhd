@@ -94,9 +94,9 @@ def _check_functions_in_file(commit, file, blocked_functions):
     """Checks there are no blocked functions in a file being changed."""
 
     def _check_line(line):
-        # Ignore lines that end with nocheck, typically in a comment.
+        # Ignore lines that end with nofunctioncheck, typically in a comment.
         # This enables devs to bypass this check line by line.
-        if line.endswith(" nocheck") or line.endswith(" nocheck */"):
+        if line.endswith(" nofunctioncheck") or line.endswith(" nofunctioncheck */"):
             return None
 
         for function in blocked_functions:
