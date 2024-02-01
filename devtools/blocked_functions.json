@@ -21,22 +21,6 @@
       "replacement": "strlcpy"
     },
     {
-      "function": "strlen",
-      "replacement": "strnlen"
-    },
-    {
-      "function": "strdup",
-      "replacement": "strndup"
-    },
-    {
-      "function": "strstr",
-      "replacement": "strnstr"
-    },
-    {
-      "function": "strchr",
-      "replacement": "strnchr"
-    },
-    {
       "function": "strdupa",
       "replacement": "strndupa"
     }
