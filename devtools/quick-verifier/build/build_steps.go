@@ -36,6 +36,8 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	b.Add(ossFuzzSteps("oss-fuzz-undefined", "undefined", "libfuzzer").WithDep(ossFuzzSetup))
 	b.Add(ossFuzzSteps("oss-fuzz-coverage", "coverage", "libfuzzer").WithDep(ossFuzzSetup))
 
+	b.Add(cppcheckSteps().WithDep(git))
+
 	return &cloudbuildpb.Build{
 		Steps: b.AsCloudBuild(),
 		Timeout: &durationpb.Duration{
@@ -232,5 +234,33 @@ func copgenCheckSteps() *buildplan.Sequence {
 		"copgen-check",
 		prepareSourceStep,
 		buildplan.Command(archlinuxBuilder, "devtools/copgen.sh", "--check"),
+	).WithVolume()
+}
+
+func cppcheckSteps() *buildplan.Sequence {
+	return buildplan.Commands("cppcheck",
+		[]*buildplan.Step{
+			prepareSourceStep,
+			{
+				Name:       archlinuxBuilder,
+				Entrypoint: "bazel",
+				Args: []string{
+					"build", "//...",
+				},
+			},
+			{
+				Name:       archlinuxBuilder,
+				Entrypoint: "bazel",
+				Args: []string{
+					"run", "//:compdb",
+				},
+			},
+			{
+				Name: archlinuxBuilder,
+				Args: []string{
+					"devtools/cppcheck.sh", "/workspace-cppcheck/compile_commands.json",
+				},
+			},
+		}...,
 	).WithVolume()
 }
