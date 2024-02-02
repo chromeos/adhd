@@ -1433,7 +1433,9 @@ static int stream_removed_cb(struct cras_rstream* rstream) {
   }
 
   if (time_since.tv_sec >= CRAS_HATS_BLUETOOTH_SURVEY_STREAM_LIVE_SEC) {
-    if (dev && dev->active_node) {
+    if (dev && dev->active_node &&
+        ((dev->active_node->type == CRAS_NODE_TYPE_BLUETOOTH) ||
+         (dev->active_node->type == CRAS_NODE_TYPE_BLUETOOTH_NB_MIC))) {
       cras_hats_trigger_bluetooth_survey(dev->active_node->btflags);
     }
   }
