@@ -1,3 +1,5 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
 package(
     # Mark testonly so we don't accidentally ship this.
     default_testonly = True,
@@ -31,11 +33,13 @@ cc_library(
     srcs = glob(["lib/*.cpp"]),
     hdrs = glob(["lib/*.h"]),
     copts = COPTS,
+    data = glob(include = ["cfg/*.cfg"]),
     includes = ["lib"],
     deps = [
         ":picojson",
         ":simplecpp",
         ":tinyxml2",
+        "@bazel_tools//tools/cpp/runfiles",
     ],
 )
 

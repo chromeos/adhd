@@ -87,9 +87,11 @@ http_archive(
 http_archive(
     name = "cppcheck",
     build_file = "//:third_party/BUILD.cppcheck.bazel",
-    sha256 = "8aae5e116daeaaf5d19f3efa61b91c06f161cb97412a1d1af6e1e20686e48967",
-    strip_prefix = "cppcheck-2.10.3",
-    urls = ["https://github.com/danmar/cppcheck/archive/refs/tags/2.10.3.tar.gz"],
+    integrity = "sha256-gimv4d3cPtiTJIuKcjtCjcIh6gFPvHbmKJhAhXwD1FA=",
+    patch_args = ["-p1"],
+    patches = ["@//:third_party/cppcheck.runfiles.patch"],
+    strip_prefix = "cppcheck-2.13.0",
+    urls = ["https://github.com/danmar/cppcheck/archive/refs/tags/2.13.0.tar.gz"],
 )
 
 http_archive(

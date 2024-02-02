@@ -1,0 +1,61 @@
+diff --git a/cli/cmdlineparser.cpp b/cli/cmdlineparser.cpp
+index f15f37b8b..7820ad570 100644
+--- a/cli/cmdlineparser.cpp
++++ b/cli/cmdlineparser.cpp
+@@ -310,7 +310,7 @@ bool CmdLineParser::fillSettingsFromArgs(int argc, const char* const argv[])
+ // TODO: error out on all missing given files/paths
+ CmdLineParser::Result CmdLineParser::parseFromArgs(int argc, const char* const argv[])
+ {
+-    mSettings.exename = Path::getCurrentExecutablePath(argv[0]);
++    mSettings.exename = argv[0];
+
+     if (argc <= 1) {
+         printHelp();
+diff --git a/lib/library.cpp b/lib/library.cpp
+index 96df48117..068f189c8 100644
+--- a/lib/library.cpp
++++ b/lib/library.cpp
+@@ -30,6 +30,7 @@
+ #include "vfvalue.h"
+
+ #include <algorithm>
++#include <iostream>
+ #include <cctype>
+ #include <climits>
+ #include <cstring>
+@@ -40,8 +41,11 @@
+ #include <stdexcept>
+ #include <string>
+
++#include "tools/cpp/runfiles/runfiles.h"
+ #include "xml.h"
+
++using bazel::tools::cpp::runfiles::Runfiles;
++
+ static std::vector<std::string> getnames(const char *names)
+ {
+     std::vector<std::string> ret;
+@@ -83,6 +87,15 @@ Library::Error Library::load(const char exename[], const char path[])
+         return Error();
+     }
+
++
++    std::string runfiles_error;
++    std::unique_ptr<Runfiles> runfiles(Runfiles::Create(exename, &runfiles_error));
++    if (runfiles == nullptr) {
++        std::clog << runfiles_error << std::endl;
++        return Error();
++    }
++    std::string bazel_cfg = runfiles->Rlocation("cppcheck/cfg", "cppcheck");
++
+     std::string absolute_path;
+     // open file..
+     tinyxml2::XMLDocument doc;
+@@ -101,6 +114,7 @@ Library::Error Library::load(const char exename[], const char path[])
+         }
+
+         std::list<std::string> cfgfolders;
++        cfgfolders.emplace_back(bazel_cfg);
+ #ifdef FILESDIR
+         cfgfolders.emplace_back(FILESDIR "/cfg");
+ #endif
