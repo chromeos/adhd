@@ -82,6 +82,8 @@ struct cras_observer_ops {
                          const char* node_type_pair);
   // Bluetooth Survey trigger event
   void (*bluetooth_survey)(void* context, uint32_t bt_flags);
+  // Output Processing Survey trigger event
+  void (*output_proc_survey)(void* context, enum CRAS_NODE_TYPE node_type);
   // Speech detected while on mute
   void (*speak_on_mute_detected)(void* context);
 

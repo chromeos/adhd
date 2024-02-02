@@ -2126,6 +2126,58 @@ error:
   dbus_message_unref(msg);
 }
 
+static bool fill_output_proc_survey_dict(enum CRAS_NODE_TYPE node_type,
+                                         DBusMessageIter* dict) {
+  const char* survey_name_str = CRAS_HATS_SURVEY_NAME_OUTPUT_PROC;
+  if (!append_key_value(dict, CRAS_HATS_SURVEY_NAME_KEY, DBUS_TYPE_STRING,
+                        DBUS_TYPE_STRING_AS_STRING, &survey_name_str)) {
+    return FALSE;
+  }
+
+  const char* node_type_str =
+      cras_node_type_to_str(node_type, NODE_POSITION_INTERNAL);
+  if (!append_key_value(dict, "NodeType", DBUS_TYPE_STRING,
+                        DBUS_TYPE_STRING_AS_STRING, &node_type_str)) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+static void signal_output_proc_survey(void* context,
+                                      enum CRAS_NODE_TYPE node_type) {
+  struct cras_dbus_control* control = (struct cras_dbus_control*)context;
+  dbus_uint32_t serial = 0;
+  DBusMessage* msg;
+  DBusMessageIter array;
+  DBusMessageIter dict;
+
+  msg = create_dbus_message("SurveyTrigger");
+  if (!msg) {
+    return;
+  }
+
+  dbus_message_iter_init_append(msg, &array);
+
+  if (!dbus_message_iter_open_container(&array, DBUS_TYPE_ARRAY, "{sv}",
+                                        &dict)) {
+    goto error;
+  }
+
+  if (!fill_output_proc_survey_dict(node_type, &dict)) {
+    goto error;
+  }
+
+  if (!dbus_message_iter_close_container(&array, &dict)) {
+    goto error;
+  }
+
+  dbus_connection_send(control->conn, msg, &serial);
+
+error:
+  dbus_message_unref(msg);
+}
+
 static void signal_speak_on_mute_detected(void* context) {
   struct cras_dbus_control* control = (struct cras_dbus_control*)context;
   dbus_uint32_t serial = 0;
@@ -2217,6 +2269,7 @@ void cras_dbus_control_start(DBusConnection* conn) {
   observer_ops.underrun = signal_underrun;
   observer_ops.general_survey = signal_general_survey;
   observer_ops.bluetooth_survey = signal_bluetooth_survey;
+  observer_ops.output_proc_survey = signal_output_proc_survey;
   observer_ops.speak_on_mute_detected = signal_speak_on_mute_detected;
   observer_ops.num_stream_ignore_ui_gains_changed =
       signal_num_stream_ignore_ui_gains_changed;

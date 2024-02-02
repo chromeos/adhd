@@ -14,9 +14,11 @@ extern "C" {
 
 #define CRAS_HATS_GENERAL_SURVEY_STREAM_LIVE_SEC 180
 #define CRAS_HATS_BLUETOOTH_SURVEY_STREAM_LIVE_SEC 60
+#define CRAS_HATS_OUTPUT_PROC_SURVEY_DEV_LIVE_SEC 120
 
 #define CRAS_HATS_SURVEY_NAME_KEY "SurveyName"
 #define CRAS_HATS_SURVEY_NAME_BLUETOOTH "BLUETOOTH"
+#define CRAS_HATS_SURVEY_NAME_OUTPUT_PROC "OUTPUTPROC"
 
 /* Send a signal to trigger a general audio satisfaction survey.
  *     stream_type - type of the removed stream.
@@ -32,6 +34,12 @@ void cras_hats_trigger_general_survey(enum CRAS_STREAM_TYPE stream_type,
  *     bt_flags - a bitmask of Bluetooth stack flags.
  */
 void cras_hats_trigger_bluetooth_survey(uint32_t bt_flags);
+
+/* Send a signal to trigger the audio output processing satisfaction survey.
+ *     node_type - type of the closed output device node used to distinguish
+ *                 output processing for speaker and 3.5mm.
+ */
+void cras_hats_trigger_output_proc_survey(enum CRAS_NODE_TYPE node_type);
 
 #ifdef __cplusplus
 }  // extern "C"

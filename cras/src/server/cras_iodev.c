@@ -19,6 +19,7 @@
 
 #include "cras/common/check.h"
 #include "cras/server/platform/features/features.h"
+#include "cras/src/common/cras_hats.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/buffer_share.h"
@@ -1261,6 +1262,7 @@ enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev* iodev) {
 
 int cras_iodev_close(struct cras_iodev* iodev) {
   struct cras_loopback* loopback;
+  struct timespec now, runtime;
   int rc;
 
   if (!cras_iodev_is_open(iodev)) {
@@ -1271,6 +1273,17 @@ int cras_iodev_close(struct cras_iodev* iodev) {
     cras_server_metrics_device_runtime(iodev);
     cras_server_metrics_device_gain(iodev);
     cras_server_metrics_device_volume(iodev);
+
+    if (iodev->direction == CRAS_STREAM_OUTPUT &&
+        cras_system_get_output_proc_hats() &&
+        (iodev->active_node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER ||
+         iodev->active_node->type == CRAS_NODE_TYPE_HEADPHONE)) {
+      clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+      subtract_timespecs(&now, &iodev->open_ts, &runtime);
+      if (runtime.tv_sec >= CRAS_HATS_OUTPUT_PROC_SURVEY_DEV_LIVE_SEC) {
+        cras_hats_trigger_output_proc_survey(iodev->active_node->type);
+      }
+    }
   }
 
   if (iodev->input_data) {
