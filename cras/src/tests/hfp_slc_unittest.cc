@@ -364,6 +364,31 @@ TEST(HfpSlc, CodecNegotiationCapabilityChanged) {
   cras_bt_event_log_deinit(btlog);
 }
 
+TEST(HfpSlc, SupportedFeaturesMalformedCommandNoValue) {
+  int err;
+  int sock[2];
+  char buf[256];
+  char* chp;
+  ResetStubData();
+
+  btlog = cras_bt_event_log_init();
+
+  ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
+  handle = hfp_slc_create(sock[0], AG_CODEC_NEGOTIATION, device,
+                          slc_initialized_cb, slc_disconnected_cb);
+
+  err = handle_at_command_for_test(handle, "AT+BRSF=\r");
+  ASSERT_EQ(err, 0);
+
+  // Assert "\r\nERROR\r\n" response is received
+  err = read(sock[1], buf, 256);
+  chp = strstr(buf, "\r\nERROR\r\n");
+  ASSERT_NE((void*)NULL, (void*)chp);
+
+  hfp_slc_destroy(handle);
+  cras_bt_event_log_deinit(btlog);
+}
+
 }  // namespace
 
 int slc_initialized_cb(struct hfp_slc_handle* handle) {

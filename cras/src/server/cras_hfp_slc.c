@@ -969,15 +969,17 @@ static int supported_features(struct hfp_slc_handle* handle, const char* cmd) {
   strtok(tokens, "=");
   features = strtok(NULL, ",");
   if (!features) {
+    free(tokens);
     goto error_out;
   }
 
   int rc = parse_int(features, &(handle->hf_supported_features));
-  BTLOG(btlog, BT_HFP_SUPPORTED_FEATURES, 0, handle->hf_supported_features);
   free(tokens);
   if (rc < 0) {
     goto error_out;
   }
+  BTLOG(btlog, BT_HFP_SUPPORTED_FEATURES, 0, handle->hf_supported_features);
+
   /* AT+BRSF=<feature> command received, ignore the HF supported feature
    * for now. Respond with +BRSF:<feature> to notify mandatory supported
    * features in AG(audio gateway).
@@ -992,7 +994,6 @@ static int supported_features(struct hfp_slc_handle* handle, const char* cmd) {
   return hfp_send(handle, AT_CMD("OK"));
 
 error_out:
-  free(tokens);
   syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
   return hfp_send(handle, AT_CMD("ERROR"));
 }
