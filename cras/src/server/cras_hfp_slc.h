@@ -151,8 +151,8 @@ int hfp_slc_get_hf_supports_battery_indicator(struct hfp_slc_handle* handle);
 int hfp_slc_codec_connection_setup(struct hfp_slc_handle* handle);
 
 // Expose internal AT command handling for fuzzing.
-int handle_at_command_for_test(struct hfp_slc_handle* slc_handle,
-                               const char* cmd);
+void handle_at_command_for_test(struct hfp_slc_handle* slc_handle,
+                                const char* cmd);
 
 #ifdef __cplusplus
 }  // extern "C"

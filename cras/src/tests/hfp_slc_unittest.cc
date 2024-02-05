@@ -377,11 +377,11 @@ TEST(HfpSlc, SupportedFeaturesMalformedCommandTooShort) {
   handle = hfp_slc_create(sock[0], AG_CODEC_NEGOTIATION, device,
                           slc_initialized_cb, slc_disconnected_cb);
 
-  err = handle_at_command_for_test(handle, "AT+BRSF\r");
-  ASSERT_EQ(err, 0);
+  handle_at_command_for_test(handle, "AT+BRSF\r");
 
   // Assert "\r\nERROR\r\n" response is received
   err = read(sock[1], buf, 256);
+  ASSERT_NE(err, 0);
   chp = strstr(buf, "\r\nERROR\r\n");
   ASSERT_NE((void*)NULL, (void*)chp);
 
@@ -402,11 +402,12 @@ TEST(HfpSlc, SupportedFeaturesMalformedCommandNoValue) {
   handle = hfp_slc_create(sock[0], AG_CODEC_NEGOTIATION, device,
                           slc_initialized_cb, slc_disconnected_cb);
 
-  err = handle_at_command_for_test(handle, "AT+BRSF=\r");
-  ASSERT_EQ(err, 0);
+  handle_at_command_for_test(handle, "AT+BRSF=\r");
 
   // Assert "\r\nERROR\r\n" response is received
   err = read(sock[1], buf, 256);
+  ASSERT_GE(err, 0);
+
   chp = strstr(buf, "\r\nERROR\r\n");
   ASSERT_NE((void*)NULL, (void*)chp);
 

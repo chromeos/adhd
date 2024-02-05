@@ -1167,9 +1167,16 @@ static int handle_at_command(struct hfp_slc_handle* slc_handle,
   return hfp_send(slc_handle, AT_CMD("ERROR"));
 }
 
-int handle_at_command_for_test(struct hfp_slc_handle* slc_handle,
-                               const char* cmd) {
-  return handle_at_command(slc_handle, cmd);
+void handle_at_command_for_test(struct hfp_slc_handle* slc_handle,
+                                const char* cmd) {
+  char buf[SLC_BUF_SIZE_BYTES];
+  size_t copied = strlcpy(buf, cmd, SLC_BUF_SIZE_BYTES);
+  while (copied > 0) {
+    handle_at_command(slc_handle, buf);
+    // advance pointer down test data
+    cmd += copied;
+    copied = strlcpy(buf, cmd, SLC_BUF_SIZE_BYTES);
+  }
 }
 
 static int process_at_commands(struct hfp_slc_handle* handle) {
