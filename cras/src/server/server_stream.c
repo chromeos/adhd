@@ -38,8 +38,13 @@ static struct server_stream* g_server_streams[NUM_SERVER_STREAM_TYPES] = {};
 
 // Actually create the server stream and add to stream list.
 static void server_stream_add_cb(void* data) {
-  struct server_stream* ss = (struct server_stream*)data;
   struct cras_rstream* stream = NULL;
+  struct server_stream* ss = *(struct server_stream**)data;
+
+  if (ss == NULL) {
+    syslog(LOG_WARNING, "Server stream is null before add callback");
+    return;
+  }
 
   stream_list_add(ss->list, &ss->config, &stream);
 }
@@ -75,8 +80,8 @@ int server_stream_create(struct stream_list* stream_list,
   ss->stream_id = ss->config.stream_id;
 
   // Schedule add stream in next main thread loop.
-  cras_system_add_task(server_stream_add_cb, ss);
   g_server_streams[type] = ss;
+  cras_system_add_task(server_stream_add_cb, &g_server_streams[type]);
 
   return 0;
 }
