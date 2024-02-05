@@ -1980,3 +1980,23 @@ cc_test(
         "@pkg_config//gtest_main",
     ],
 )
+
+cc_test(
+    name = "server_stream_unittest",
+    srcs = [
+        "server_stream_unittest.cc",
+        "//cras/src/server:cras_rstream_config.c",
+        "//cras/src/server:cras_tm.c",
+        "//cras/src/server:server_stream.c",
+        "//cras/src/server:stream_list.c",
+    ],
+    deps = [
+        "//cras/include",
+        "//cras/src/common",
+        "//cras/src/server:all_headers",
+        "//cras/src/server/config",
+        "//third_party/utlist",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
