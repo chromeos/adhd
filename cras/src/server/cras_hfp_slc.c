@@ -958,23 +958,20 @@ static int subscriber_number(struct hfp_slc_handle* handle, const char* buf) {
 static int supported_features(struct hfp_slc_handle* handle, const char* cmd) {
   int err;
   char response[128];
-  char *tokens, *features;
+  char *tokens = NULL, *features;
 
   if (strlen(cmd) < 9) {
-    syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
-    return hfp_send(handle, AT_CMD("ERROR"));
+    goto error_out;
   }
 
   tokens = strdup(cmd);
   strtok(tokens, "=");
   features = strtok(NULL, ",");
   if (!features) {
-    free(tokens);
     goto error_out;
   }
 
   int rc = parse_int(features, &(handle->hf_supported_features));
-  free(tokens);
   if (rc < 0) {
     goto error_out;
   }
@@ -987,13 +984,14 @@ static int supported_features(struct hfp_slc_handle* handle, const char* cmd) {
   BTLOG(btlog, BT_HFP_SUPPORTED_FEATURES, 1, handle->ag_supported_features);
   snprintf(response, 128, AT_CMD("+BRSF: %d"), handle->ag_supported_features);
   err = hfp_send(handle, response);
+  free(tokens);
   if (err < 0) {
     return err;
   }
-
   return hfp_send(handle, AT_CMD("OK"));
 
 error_out:
+  free(tokens);
   syslog(LOG_WARNING, "%s: malformed command: '%s'", __func__, cmd);
   return hfp_send(handle, AT_CMD("ERROR"));
 }
