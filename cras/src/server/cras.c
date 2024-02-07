@@ -12,6 +12,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_plugin_io.h"
 #include "cras/src/server/cras_bt_manager.h"
 #include "cras/src/server/cras_dsp.h"
@@ -68,9 +69,15 @@ int main(int argc, char** argv) {
          all. While there is no formal standard for the
          integer values there is an informal standard:
          http://tools.ietf.org/html/rfc5424#page-11 */
-      case 'l':
-        log_mask = atoi(optarg);
+      case 'l': {
+        int rc = parse_int(optarg, &log_mask);
+        if (rc < 0) {
+          fprintf(stderr, "Invalid syslog priority value: %s; using %d\n",
+                  optarg, DEFAULT_LOG_MASK);
+          log_mask = DEFAULT_LOG_MASK;
+        }
         break;
+      }
 
       case 'c':
         device_config_dir = optarg;
