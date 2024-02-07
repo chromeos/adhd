@@ -96,6 +96,50 @@ enum CRAS_IODEV_STATE {
   CRAS_IODEV_STATE_NO_STREAM_RUN = 3,
 };
 
+/*
+ * Ramp request used in cras_iodev_start_ramp.
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE: Mute->unmute.
+ *   Change device to unmute state after ramping is stared,
+ *                 that is, (a) in the plot.
+ *
+ *                                  ____
+ *                            .... /
+ *                      _____/
+ *                          (a)
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE: Unmute->mute.
+ *   Change device to mute state after ramping is done, that is,
+ *                 (b) in the plot.
+ *
+ *                      _____
+ *                           \....
+ *                                \____
+ *                                (b)
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK: Ramping is requested because
+ *   first sample of new stream is ready, there is no need to change mute/unmute
+ *   state.
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE: To prevent popped noise, mute the
+ *   device for RAMP_RESUME_MUTE_DURATION_SECS seconds on sample ready after
+ *   resume if there were playback stream before suspend.
+ *
+ * - CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE: To prevent popped noise, mute the
+ *   device for RAMP_SWITCH_MUTE_DURATION_SECS seconds on sample ready after
+ *   device switch if there were playback stream before switch.
+ *
+ */
+
+enum CRAS_IODEV_RAMP_REQUEST {
+  CRAS_IODEV_RAMP_REQUEST_NONE = 0,
+  CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE = 1,
+  CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE = 2,
+  CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK = 3,
+  CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE = 4,
+  CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE = 5,
+};
+
 /* Holds an output/input node for this device.  An ionode is a control that
  * can be switched on and off such as headphones or speakers.
  */
@@ -387,7 +431,7 @@ struct cras_iodev {
   unsigned int input_dsp_offset;
   // The value indicates which type of ramp the device
   // should perform when some samples are ready for playback.
-  unsigned int initial_ramp_request;
+  enum CRAS_IODEV_RAMP_REQUEST initial_ramp_request;
   // Used to pass audio input data to streams with or without
   // stream side processing.
   struct input_data* input_data;
@@ -404,50 +448,6 @@ struct cras_iodev {
   // actually due to init/attach errors or suspend.
   int num_pinned_streams;
   struct cras_iodev *prev, *next;
-};
-
-/*
- * Ramp request used in cras_iodev_start_ramp.
- *
- * - CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE: Mute->unmute.
- *   Change device to unmute state after ramping is stared,
- *                 that is, (a) in the plot.
- *
- *                                  ____
- *                            .... /
- *                      _____/
- *                          (a)
- *
- * - CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE: Unmute->mute.
- *   Change device to mute state after ramping is done, that is,
- *                 (b) in the plot.
- *
- *                      _____
- *                           \....
- *                                \____
- *                                (b)
- *
- * - CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK: Ramping is requested because
- *   first sample of new stream is ready, there is no need to change mute/unmute
- *   state.
- *
- * - CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE: To prevent popped noise, mute the
- *   device for RAMP_RESUME_MUTE_DURATION_SECS seconds on sample ready after
- *   resume if there were playback stream before suspend.
- *
- * - CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE: To prevent popped noise, mute the
- *   device for RAMP_SWITCH_MUTE_DURATION_SECS seconds on sample ready after
- *   device switch if there were playback stream before switch.
- *
- */
-
-enum CRAS_IODEV_RAMP_REQUEST {
-  CRAS_IODEV_RAMP_REQUEST_NONE = 0,
-  CRAS_IODEV_RAMP_REQUEST_UP_UNMUTE = 1,
-  CRAS_IODEV_RAMP_REQUEST_DOWN_MUTE = 2,
-  CRAS_IODEV_RAMP_REQUEST_UP_START_PLAYBACK = 3,
-  CRAS_IODEV_RAMP_REQUEST_RESUME_MUTE = 4,
-  CRAS_IODEV_RAMP_REQUEST_SWITCH_MUTE = 5,
 };
 
 /*
