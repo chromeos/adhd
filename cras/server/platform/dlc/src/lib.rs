@@ -46,10 +46,15 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum CrasDlcId {
     CrasDlcSrBt,
     CrasDlcNcAp,
+    CrasDlcNuance,
 }
 
 // The list of DLCs that are installed automatically.
-const MANAGED_DLCS: &[CrasDlcId] = &[CrasDlcId::CrasDlcSrBt, CrasDlcId::CrasDlcNcAp];
+const MANAGED_DLCS: &[CrasDlcId] = &[
+    CrasDlcId::CrasDlcSrBt,
+    CrasDlcId::CrasDlcNcAp,
+    CrasDlcId::CrasDlcNuance,
+];
 
 pub const CRAS_DLC_ID_STRING_MAX_LENGTH: i32 = 50;
 impl CrasDlcId {
@@ -59,6 +64,7 @@ impl CrasDlcId {
             // CRAS_DLC_ID_STRING_MAX_LENGTH
             CrasDlcId::CrasDlcSrBt => "sr-bt-dlc",
             CrasDlcId::CrasDlcNcAp => "nc-ap-dlc",
+            CrasDlcId::CrasDlcNuance => "nuance-dlc",
         }
     }
 }

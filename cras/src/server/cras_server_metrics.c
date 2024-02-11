@@ -398,6 +398,8 @@ static inline const char* metrics_dlc_id_str(enum CrasDlcId dlc_id) {
       return "SrBt";
     case CrasDlcNcAp:
       return "NcAp";
+    case CrasDlcNuance:
+      return "Nuance";
     default:
       return "InvalidDlcId";
   }

@@ -26,6 +26,7 @@ extern "C" {
 enum CrasDlcId {
   CrasDlcSrBt,
   CrasDlcNcAp,
+  CrasDlcNuance,
 };
 
 typedef int (*CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc)(enum CrasDlcId, int32_t);
