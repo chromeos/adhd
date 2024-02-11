@@ -214,7 +214,7 @@ impl<'a> PluginLoader<'a> {
                     SpeexResampler::new(
                         Shape {
                             channels: self.channels,
-                            frames: self.inner_block_size,
+                            frames: self.outer_block_size * self.inner_rate / self.outer_rate,
                         },
                         self.inner_rate,
                         self.outer_rate,
