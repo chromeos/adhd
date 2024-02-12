@@ -55,6 +55,26 @@
  * now disabled, in the pipeline we construct there will only be two
  * instances (A and C) and the audio ports on these instances will
  * connect to each other directly, bypassing B.
+ *
+ * When DSP offload is supported on the pipeline, the load process contains two
+ * major steps:
+ * 1. prepare_pipeline - construct the pipeline topology and instantiate
+ *                       modules linked with buffers.
+ * 2. possibly_offload_pipeline - if applicable, make DSP module effects along
+ *                       the pipeline offload to SOF firmware. Enable effects on
+ *                       firmware while bypassing DSP modules on CRAS pipeline.
+ *
+ * For example, consider a common speaker pipeline adopting drc and eq2 modules.
+ * When offload is applied, cras_dsp_pipeline_run will only run the sink module.
+ * get_source_buffer will return the same as the sink buffer so data will flow
+ * in the sink directly.
+ *
+ *              cras_dsp_pipeline               SOF firmware
+ *  -----------------------------------------  --------------
+ *   [source] === [drc] === [eq2] === [sink]
+ * run---> 1   -->   2   -->   3   -->    4  -->   no effect   !offload_applied
+ * run------------------------------->    1  --> (drc+eqiir)    offload_applied
+ *
  */
 
 // This represents an audio port on an instance.
@@ -156,6 +176,9 @@ struct pipeline {
 
   // The total number of sample frames the pipeline processed
   int64_t total_samples;
+
+  // The flag to indicate whether DSP offload is applied on the pipeline.
+  bool offload_applied;
 };
 
 static struct instance* find_instance_by_plugin(const instance_array* instances,
@@ -775,22 +798,34 @@ int cras_dsp_pipeline_get_peak_audio_buffers(struct pipeline* pipeline) {
   return pipeline->peak_buf;
 }
 
-static float* find_buffer(struct pipeline* pipeline,
-                          audio_port_array* audio_ports,
-                          int index) {
+static int find_buf_index(audio_port_array* audio_ports, int index) {
   int i;
   struct audio_port* audio_port;
 
   ARRAY_ELEMENT_FOREACH (audio_ports, i, audio_port) {
     if (audio_port->original_index == index) {
-      return pipeline->buffers[audio_port->buf_index];
+      return audio_port->buf_index;
     }
   }
-  return NULL;
+  return -EINVAL;
+}
+
+static float* find_buffer(struct pipeline* pipeline,
+                          audio_port_array* audio_ports,
+                          int index) {
+  int buf_index = find_buf_index(audio_ports, index);
+  if (buf_index < 0) {
+    return NULL;
+  }
+  return pipeline->buffers[buf_index];
 }
 
 float* cras_dsp_pipeline_get_source_buffer(struct pipeline* pipeline,
                                            int index) {
+  if (pipeline->offload_applied) {
+    // Audio samples will be written straight to the sink while offloaded.
+    return cras_dsp_pipeline_get_sink_buffer(pipeline, index);
+  }
   return find_buffer(pipeline, &pipeline->source_instance->output_audio_ports,
                      index);
 }
@@ -814,6 +849,22 @@ void cras_dsp_pipeline_set_sink_lr_swapped(struct pipeline* pipeline,
 
 struct ini* cras_dsp_pipeline_get_ini(struct pipeline* pipeline) {
   return pipeline->ini;
+}
+
+void cras_dsp_pipeline_apply_offload(struct pipeline* pipeline, bool applied) {
+  if (!pipeline) {
+    return;
+  }
+  if (pipeline->input_channels != pipeline->output_channels) {
+    syslog(LOG_ERR,
+           "Unable to apply offload for channel-variant pipeline. "
+           "(in: %d-ch, out: %d-ch)",
+           pipeline->input_channels, pipeline->output_channels);
+    return;
+  }
+
+  syslog(LOG_DEBUG, "cras_dsp_pipeline->offload_applied = %d", applied);
+  pipeline->offload_applied = applied;
 }
 
 // If label is equal to "source" or "sink".
@@ -871,6 +922,17 @@ int cras_dsp_pipeline_config_offload(struct dsp_offload_map* offload_map,
 int cras_dsp_pipeline_run(struct pipeline* pipeline, int sample_count) {
   int i;
   struct instance* instance;
+
+  if (pipeline->offload_applied) {
+    // Skip all DSP modules during pipeline run except for the sink.
+    struct dsp_module* module = pipeline->sink_instance->module;
+    if (!module) {
+      syslog(LOG_ERR, "No module found for sink instance");
+      return -EINVAL;
+    }
+    module->run(module, sample_count);
+    return 0;
+  }
 
   ARRAY_ELEMENT_FOREACH (&pipeline->instances, i, instance) {
     struct dsp_module* module = instance->module;
@@ -1068,6 +1130,7 @@ void cras_dsp_pipeline_dump(struct dumper* d, struct pipeline* pipeline) {
   dumpf(d, " input channels: %d\n", pipeline->input_channels);
   dumpf(d, " output channels: %d\n", pipeline->output_channels);
   dumpf(d, " sample_rate: %d\n", pipeline->sample_rate);
+  dumpf(d, " offload_applied: %d\n", pipeline->offload_applied);
   dumpf(d, " processed samples: %" PRId64 "\n", pipeline->total_samples);
   dumpf(d, " processed blocks: %" PRId64 "\n", pipeline->total_blocks);
   dumpf(d, " total processing time: %" PRId64 "ns\n", pipeline->total_time);

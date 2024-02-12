@@ -547,7 +547,7 @@ TEST_F(DspPipelineTestSuite, Complex) {
   really_free_module(m5);
 }
 
-TEST_F(DspPipelineTestSuite, DspPattern) {
+TEST_F(DspPipelineTestSuite, DspOffloadPattern) {
   const char* content =
       "[M1]\n"
       "library=builtin\n"
@@ -557,7 +557,7 @@ TEST_F(DspPipelineTestSuite, DspPattern) {
       "output_1={a1}\n"
       "[M2]\n"
       "library=builtin\n"
-      "label=drc\n"
+      "label=foo\n"
       "purpose=playback\n"
       "input_0={a0}\n"
       "input_1={a1}\n"
@@ -565,7 +565,7 @@ TEST_F(DspPipelineTestSuite, DspPattern) {
       "output_3={b1}\n"
       "[M3]\n"
       "library=builtin\n"
-      "label=eq2\n"
+      "label=inplace_broken\n"
       "purpose=playback\n"
       "input_0={b0}\n"
       "input_1={b1}\n"
@@ -586,14 +586,82 @@ TEST_F(DspPipelineTestSuite, DspPattern) {
   ASSERT_TRUE(ini);
   struct pipeline* p = cras_dsp_pipeline_create(ini, &env, "playback");
   ASSERT_TRUE(p);
+  ASSERT_EQ(0, cras_dsp_pipeline_load(p));
+
+  ASSERT_EQ(4, num_modules);
+  struct dsp_module* m1 = find_module("m1");
+  struct dsp_module* m2 = find_module("m2");
+  struct dsp_module* m3 = find_module("m3");
+  struct dsp_module* m4 = find_module("m4");
+
+  ASSERT_TRUE(m1);
+  ASSERT_TRUE(m2);
+  ASSERT_TRUE(m3);
+  ASSERT_TRUE(m4);
+
+  ASSERT_EQ(2, cras_dsp_pipeline_get_num_input_channels(p));
+  ASSERT_EQ(0, cras_dsp_pipeline_instantiate(p, 48000, &env));
+
+  char* pattern = cras_dsp_pipeline_get_pattern(p);
+  EXPECT_STREQ("foo>inplace_broken", pattern);
+  free(pattern);
+
+  struct data* d1 = (struct data*)m1->data;
+  struct data* d2 = (struct data*)m2->data;
+  struct data* d3 = (struct data*)m3->data;
+  struct data* d4 = (struct data*)m4->data;
 
   /*
-   *   source ==(a0,a1)== drc ==(b0,b1)== eq2 ==(c0,c1)== sink
+   * The original pipeline grpah and buffer assignment:
+   *
+   *   m1 ==buf[0,1]== m2 ==buf[0,1]== m3 ==buf[2,3]== m4
    */
+  ASSERT_EQ(d1->data_location[0], d2->data_location[0]);
+  ASSERT_EQ(d1->data_location[1], d2->data_location[1]);
+  ASSERT_EQ(d2->data_location[2], d3->data_location[0]);
+  ASSERT_EQ(d2->data_location[3], d3->data_location[1]);
+  ASSERT_NE(d3->data_location[0], d3->data_location[2]);  // inplace-broken
+  ASSERT_NE(d3->data_location[1], d3->data_location[3]);  // inplace-broken
+  ASSERT_EQ(d3->data_location[2], d4->data_location[0]);
+  ASSERT_EQ(d3->data_location[3], d4->data_location[1]);
 
-  // cras_dsp_pipeline_get_pattern is available for the pipeline once created
-  char* pattern = cras_dsp_pipeline_get_pattern(p);
-  EXPECT_STREQ("drc>eq2", pattern);
+  // need 4 buffers because m3 has inplace-broken flag
+  ASSERT_EQ(4, cras_dsp_pipeline_get_peak_audio_buffers(p));
+  ASSERT_NE(d1->data_location[0], d4->data_location[0]);
+  ASSERT_NE(d1->data_location[1], d4->data_location[1]);
+
+  // before offload
+  float* source = cras_dsp_pipeline_get_source_buffer(p, 0);
+  ASSERT_EQ(d1->data_location[0], source);  // buf[0]
+
+  source[0] = 100;
+  cras_dsp_pipeline_run(p, DSP_BUFFER_SIZE);
+  ASSERT_EQ(1, d1->run_called);
+  ASSERT_EQ(1, d2->run_called);
+  ASSERT_EQ(1, d3->run_called);
+  ASSERT_EQ(1, d4->run_called);
+  ASSERT_EQ(200, d1->data_location[0][0]);  // buf[0] (in-place 2x)
+  ASSERT_EQ(400, d4->data_location[0][0]);  // buf[2]
+
+  cras_dsp_pipeline_apply_offload(p, true);
+
+  // if offloaded, sink buffer is obtained by get_source_buffer
+  source = cras_dsp_pipeline_get_source_buffer(p, 0);
+  ASSERT_EQ(d4->data_location[0], source);  // buf[2]
+
+  // cras_dsp_pipeline_run only runs the sink module
+  source[0] = 1000;
+  cras_dsp_pipeline_run(p, DSP_BUFFER_SIZE);
+  ASSERT_EQ(1, d1->run_called);
+  ASSERT_EQ(1, d2->run_called);
+  ASSERT_EQ(1, d3->run_called);
+  ASSERT_EQ(2, d4->run_called);
+  ASSERT_EQ(200, d1->data_location[0][0]);   // buf[0] (unchanged)
+  ASSERT_EQ(1000, d4->data_location[0][0]);  // buf[2]
+
+  // the topological graph should not be changed
+  pattern = cras_dsp_pipeline_get_pattern(p);
+  EXPECT_STREQ("foo>inplace_broken", pattern);
   free(pattern);
 
   cras_dsp_pipeline_free(p);

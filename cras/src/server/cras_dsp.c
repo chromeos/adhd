@@ -125,31 +125,29 @@ bail:
 }
 
 /* The strategy is to offload the given CRAS pipeline to DSP if applicable. If
- * not, the pipeline will be processed on CRAS as is, while disabling the
- * associated modules on DSP to ensure effects are taken on CRAS only.
- * To apply/enable the DSP offload:
- *   1.Enable the associated modules on DSP and set the config blob to them each
- *     correspondent to the CRAS pipeline.
- *   2.Replace the given CRAS pipeline with NULL.
+ * that is the case, the following steps will be done to offload post-processing
+ * effects from CRAS to DSP firmware:
+ *   1. Enable the associated components on DSP and set the config blob to them
+ *      each correspondent to CRAS pipeline modules.
+ *   2. Set offload_applied flag true in CRAS pipeline, which makes the pipeline
+ *      run through audio streams while bypassing post-processing modules.
  *
- * The first action item will be done in function while the second one should be
- * taken by the caller itself in respect of the returned value. In other words,
- * "returning true" means the given CRAS pipeline is applied offload to DSP,
- * which should be released to ensure effects are taken on DSP only.
+ * On the other hand if the pipeline is not applicable, disabling the associated
+ * components on DSP is needed to assure no post-processing effect is on DSP.
  */
-static bool possibly_offload_pipeline(struct dsp_offload_map* offload_map,
+static void possibly_offload_pipeline(struct dsp_offload_map* offload_map,
                                       struct pipeline* pipe) {
   bool fallback = false;
   int rc;
 
   if (!offload_map) {
     // The DSP offload doesn't support for the device running this pipeline.
-    return false;
+    return;
   }
 
   if (!offload_map->parent_dev) {
     syslog(LOG_ERR, "cras_dsp: invalid parent_dev in offload_map");
-    return false;
+    return;
   }
 
   // Check feature enable flag from Chrome. If off, force to disable offload.
@@ -172,47 +170,50 @@ static bool possibly_offload_pipeline(struct dsp_offload_map* offload_map,
   syslog(LOG_DEBUG, "cras_dsp: offload is %sapplicable",
          is_applicable ? "" : "non-");
 
-  // If the DSP offload is already applied for the same pipeline/node, no more
-  // action is needed in this function.
+  // If not applicable, disable offload.
+  if (!is_applicable) {
+    goto disable_offload;
+  }
+
+  // is_applicable == true
+  // If the DSP offload is already applied for the same pipeline/node, there
+  // is no longer needed for setting configs to components on DSP.
   if (cras_dsp_offload_is_already_applied(offload_map)) {
-    // Note: it's a special case here while is_applicable is false, which can be
-    //       met only by the non-static CRAS DSP request on the offload-applied
-    //       pipeline, e.g. LR-swap and ext_dsp_module. In such circumstances,
-    //       an empty pipeline will be generated from mock ini and loaded again.
     syslog(LOG_DEBUG, "cras_dsp: offload is already applied");
-    return is_applicable;
+    cras_dsp_pipeline_apply_offload(pipe, true);
+    return;
   }
 
-  // Take action to enable or disable the associated modules on DSP in respect
-  // of is_applicable.
-  if (is_applicable) {
-    rc = cras_dsp_pipeline_config_offload(offload_map, pipe);
-    if (rc) {
-      syslog(LOG_ERR, "cras_dsp: Failed to config offload blobs, rc: %d", rc);
-      MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
-              offload_map->parent_dev->info.idx, 1 /* enable */, 1 /* error */);
-      fallback = true;
-      goto disable_offload;  // fallback to process on CRAS
-    }
-
-    rc = cras_dsp_offload_set_state(offload_map, true);
-    if (rc) {
-      syslog(LOG_ERR, "cras_dsp: Failed to enable offload, rc: %d", rc);
-      MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
-              offload_map->parent_dev->info.idx, 1 /* enable */, 1 /* error */);
-      fallback = true;
-      goto disable_offload;  // fallback to process on CRAS
-    }
-
-    syslog(LOG_DEBUG, "cras_dsp: offload is applied on success.");
+  rc = cras_dsp_pipeline_config_offload(offload_map, pipe);
+  if (rc) {
+    syslog(LOG_ERR, "cras_dsp: Failed to config offload blobs, rc: %d", rc);
     MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
-            offload_map->parent_dev->info.idx, 1 /* enable */, 0 /* ok */);
-    cras_server_metrics_device_dsp_offload_status(
-        offload_map->parent_dev, CRAS_DEVICE_DSP_OFFLOAD_SUCCESS);
-    return true;
+            offload_map->parent_dev->info.idx, 1 /* enable */, 1 /* error */);
+    fallback = true;
+    goto disable_offload;  // fallback to process on CRAS
   }
+
+  rc = cras_dsp_offload_set_state(offload_map, true);
+  if (rc) {
+    syslog(LOG_ERR, "cras_dsp: Failed to enable offload, rc: %d", rc);
+    MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
+            offload_map->parent_dev->info.idx, 1 /* enable */, 1 /* error */);
+    fallback = true;
+    goto disable_offload;  // fallback to process on CRAS
+  }
+
+  syslog(LOG_DEBUG, "cras_dsp: offload is applied on success.");
+  MAINLOG(main_log, MAIN_THREAD_DEV_DSP_OFFLOAD,
+          offload_map->parent_dev->info.idx, 1 /* enable */, 0 /* ok */);
+  cras_server_metrics_device_dsp_offload_status(
+      offload_map->parent_dev, CRAS_DEVICE_DSP_OFFLOAD_SUCCESS);
+
+  // Set offload_applied flag true
+  cras_dsp_pipeline_apply_offload(pipe, true);
+  return;
 
 disable_offload:
+  // Take actions to disable components on DSP if not applicable.
   rc = cras_dsp_offload_set_state(offload_map, false);
   if (rc) {
     // TODO(b/188647460): Consider better error handlings e.g. N-time retries,
@@ -235,7 +236,9 @@ disable_offload:
           offload_map->parent_dev, CRAS_DEVICE_DSP_OFFLOAD_FALLBACK_SUCCESS);
     }
   }
-  return false;
+
+  // Set offload_applied flag false
+  cras_dsp_pipeline_apply_offload(pipe, false);
 }
 
 static void cmd_load_pipeline(struct cras_dsp_context* ctx,
@@ -244,11 +247,7 @@ static void cmd_load_pipeline(struct cras_dsp_context* ctx,
 
   pipeline = target_ini ? prepare_pipeline(ctx, target_ini) : NULL;
 
-  if (possibly_offload_pipeline(ctx->offload_map, pipeline)) {
-    // Release the pipeline once successfully offloaded.
-    destroy_pipeline(pipeline);
-    pipeline = NULL;
-  }
+  possibly_offload_pipeline(ctx->offload_map, pipeline);
 
   // This locking is short to avoild blocking audio thread.
   pthread_mutex_lock(&ctx->mutex);

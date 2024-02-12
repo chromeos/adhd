@@ -126,6 +126,14 @@ void cras_dsp_pipeline_set_sink_ext_module(struct pipeline* pipeline,
 void cras_dsp_pipeline_set_sink_lr_swapped(struct pipeline* pipeline,
                                            bool left_right_swapped);
 
+/*
+ * Sets the applied flag of given CRAS DSP pipeline.
+ * Args:
+ *    pipeline - The pipeline which should set the offloaded flag.
+ *    applied - True when DSP offload is applied; False otherwise.
+ */
+void cras_dsp_pipeline_apply_offload(struct pipeline* pipeline, bool applied);
+
 /* Returns the number of internal audio buffers allocated by the
  * pipeline. This is used by the unit test only */
 int cras_dsp_pipeline_get_peak_audio_buffers(struct pipeline* pipeline);

@@ -195,7 +195,7 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   fprintf(fp, "%s", content);
   CloseFile();
 
-  /* In this test example, 3 nodes ae appended on a single playback device,
+  /* In this test example, 3 nodes are appended on a single playback device,
    * which is linked to the PCM endpoint of DSP DRC-EQ-integrated pipeline (DRC
    * before EQ). The information of 3 nodes is as below:
    * [idx] [type]           [dsp_name] [cras_dsp_pipeline graph] [DSP offload]
@@ -205,8 +205,8 @@ TEST_F(DspTestSuite, DspOffloadExample) {
    *
    * The expected behavior while setting each node as active:
    * [idx] [cras_dsp_pipeline] [DSP DRC/EQ]
-   *    0  should be released  configured offload blobs and enabled
-   *    1  should retains      disabled
+   *    0  offload_applied=1   configured offload blobs and enabled
+   *    1  offload_applied=0   disabled
    *    2  n/a                 disabled
    */
 
@@ -250,7 +250,9 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   cras_dsp_context_set_offload_map(ctx, map_dev);
   cras_dsp_load_pipeline(ctx);
 
-  // DSP DRC/EQ will be configured and enabled; CRAS pipeline will be released.
+  struct pipeline* pipeline;
+
+  // DSP DRC/EQ will be configured and enabled
   EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
   EXPECT_EQ(node[0].idx, map_dev->applied_node_idx);
   EXPECT_EQ(1, cras_alsa_config_drc_called);
@@ -258,7 +260,9 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   EXPECT_EQ(0, cras_alsa_config_other_called);
   EXPECT_TRUE(cras_alsa_config_drc_enabled);
   EXPECT_TRUE(cras_alsa_config_eq2_enabled);
-  ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx));
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  cras_dsp_put_pipeline(ctx);
 
   // 2. re-open device
   ResetStubData();
@@ -270,9 +274,7 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   cras_dsp_context_set_offload_map(ctx, map_dev);
   cras_dsp_load_pipeline(ctx);
 
-  // DSP DRC/EQ is already configured and enabled; CRAS pipeline will be
-  // released. It is not needed to configure DSP every time CRAS opens the
-  // device.
+  // DSP DRC/EQ is already configured and enabled, no need to configure again.
   EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
   EXPECT_EQ(node[0].idx, map_dev->applied_node_idx);
   EXPECT_EQ(0, cras_alsa_config_drc_called);
@@ -280,7 +282,9 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   EXPECT_EQ(0, cras_alsa_config_other_called);
   EXPECT_TRUE(cras_alsa_config_drc_enabled);
   EXPECT_TRUE(cras_alsa_config_eq2_enabled);
-  ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx));
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  cras_dsp_put_pipeline(ctx);
 
   // 3. switch active_node to HEADPHONE
   ResetStubData();
@@ -290,14 +294,14 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   cras_dsp_context_set_offload_map(ctx, map_dev);
   cras_dsp_load_pipeline(ctx);
 
-  // DSP DRC/EQ will be disabled; CRAS pipeline will retain.
+  // DSP DRC/EQ will be disabled
   EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
   EXPECT_EQ(0, cras_alsa_config_drc_called);
   EXPECT_EQ(0, cras_alsa_config_eq2_called);
   EXPECT_EQ(0, cras_alsa_config_other_called);
   EXPECT_FALSE(cras_alsa_config_drc_enabled);
   EXPECT_FALSE(cras_alsa_config_eq2_enabled);
-  struct pipeline* pipeline = cras_dsp_get_pipeline(ctx);
+  pipeline = cras_dsp_get_pipeline(ctx);
   ASSERT_TRUE(pipeline);
   cras_dsp_put_pipeline(ctx);
 
@@ -309,7 +313,7 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   cras_dsp_context_set_offload_map(ctx, map_dev);
   cras_dsp_load_pipeline(ctx);
 
-  // DSP DRC/EQ will be configured and enabled; CRAS pipeline will be released.
+  // DSP DRC/EQ will be configured and enabled
   EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
   EXPECT_EQ(node[0].idx, map_dev->applied_node_idx);
   EXPECT_EQ(1, cras_alsa_config_drc_called);
@@ -317,7 +321,9 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   EXPECT_EQ(0, cras_alsa_config_other_called);
   EXPECT_TRUE(cras_alsa_config_drc_enabled);
   EXPECT_TRUE(cras_alsa_config_eq2_enabled);
-  ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx));
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  cras_dsp_put_pipeline(ctx);
 
   // 5. close device, switch node to LINEOUT and then open device
   ResetStubData();
@@ -329,7 +335,7 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   cras_dsp_context_set_offload_map(ctx, map_dev);
   cras_dsp_load_pipeline(ctx);
 
-  // DSP DRC/EQ will be disabled; CRAS pipeline does not exist.
+  // DSP DRC/EQ will be disabled
   EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
   EXPECT_EQ(0, cras_alsa_config_drc_called);
   EXPECT_EQ(0, cras_alsa_config_eq2_called);
@@ -343,7 +349,7 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   cras_dsp_set_variable_string(ctx, "dsp_name", node[1].dsp_name);
   cras_dsp_reload_ini();
 
-  // DSP DRC/EQ will be disabled; CRAS pipeline will retain.
+  // DSP DRC/EQ will be disabled
   EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
   EXPECT_EQ(0, cras_alsa_config_drc_called);
   EXPECT_EQ(0, cras_alsa_config_eq2_called);
