@@ -28,6 +28,7 @@ pub enum CrasProcessorEffect {
     NoEffects,
     Negate,
     NoiseCancellation,
+    StyleTransfer,
     Overridden,
 }
 
@@ -75,6 +76,63 @@ impl AudioProcessor for CrasProcessor {
 
 static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
+fn create_noise_cancellation_pipeline(config: &CrasProcessorConfig) -> anyhow::Result<Pipeline> {
+    // Check shape is supported.
+    if config.channels != 1 {
+        bail!("unsupported channel count {}", config.channels);
+    }
+    if config.block_size * 100 != config.frame_rate {
+        bail!("config is not using a block size of 10ms: {:?}", config);
+    }
+
+    let ap_nc_dlc = get_dlc_state_cached(cras_dlc::CrasDlcId::CrasDlcNcAp);
+    if !ap_nc_dlc.installed {
+        bail!("{} not installed", cras_dlc::CrasDlcId::CrasDlcNcAp);
+    }
+
+    PluginLoader {
+        path: Path::new(&ap_nc_dlc.root_path)
+            .join("libdenoiser.so")
+            .to_str()
+            .unwrap(),
+        constructor: "plugin_processor_create",
+        channels: config.channels,
+        outer_rate: config.frame_rate,
+        inner_rate: 48000,
+        outer_block_size: config.block_size,
+        inner_block_size: 480,
+        allow_chunk_wrapper: false,
+    }
+    .load_and_wrap()
+}
+
+fn create_style_transfer_pipeline(config: &CrasProcessorConfig) -> anyhow::Result<Pipeline> {
+    // Check shape is supported.
+    if config.channels != 1 {
+        bail!("unsupported channel count {}", config.channels);
+    }
+
+    let nuance_dlc = get_dlc_state_cached(cras_dlc::CrasDlcId::CrasDlcNuance);
+    if !nuance_dlc.installed {
+        bail!("{} not installed", cras_dlc::CrasDlcId::CrasDlcNuance);
+    }
+
+    PluginLoader {
+        path: Path::new(&nuance_dlc.root_path)
+            .join("libstyle.so")
+            .to_str()
+            .unwrap(),
+        constructor: "plugin_processor_create_ast",
+        channels: config.channels,
+        outer_rate: config.frame_rate,
+        inner_rate: 24000,
+        outer_block_size: config.block_size,
+        inner_block_size: 480,
+        allow_chunk_wrapper: true,
+    }
+    .load_and_wrap()
+}
+
 impl CrasProcessor {
     fn new(mut config: CrasProcessorConfig) -> anyhow::Result<Self> {
         let override_config = processor_override::read_system_config().input;
@@ -93,33 +151,18 @@ impl CrasProcessor {
                 config.frame_rate,
             ))],
             CrasProcessorEffect::NoiseCancellation => {
-                // Check shape is supported.
-                if config.channels != 1 {
-                    bail!("unsupported channel count {}", config.channels);
-                }
-                if config.block_size * 100 != config.frame_rate {
-                    bail!("config is not using a block size of 10ms: {:?}", config);
-                }
-
-                let ap_nc_dlc = get_dlc_state_cached(cras_dlc::CrasDlcId::CrasDlcNcAp);
-                if !ap_nc_dlc.installed {
-                    bail!("{} not installed", cras_dlc::CrasDlcId::CrasDlcNcAp);
-                }
-
-                PluginLoader {
-                    path: Path::new(&ap_nc_dlc.root_path)
-                        .join("libdenoiser.so")
-                        .to_str()
-                        .unwrap(),
-                    constructor: "plugin_processor_create",
-                    channels: config.channels,
-                    outer_rate: config.frame_rate,
-                    inner_rate: 48000,
-                    outer_block_size: config.block_size,
-                    inner_block_size: 480,
-                    allow_chunk_wrapper: false,
-                }
-                .load_and_wrap()?
+                create_noise_cancellation_pipeline(&config)
+                    .context("failed when creating noise cancellation pipeline")?
+            }
+            CrasProcessorEffect::StyleTransfer => {
+                let mut pipeline = Pipeline::new();
+                let nc_pipeline = create_noise_cancellation_pipeline(&config)
+                    .context("failed when creating noise cancellation pipeline")?;
+                pipeline.extend(nc_pipeline);
+                let style_pipeline = create_style_transfer_pipeline(&config)
+                    .context("failed when creating style transfer pipeline")?;
+                pipeline.extend(style_pipeline);
+                pipeline
             }
             CrasProcessorEffect::Overridden => PluginLoader {
                 path: &override_config.plugin_path,

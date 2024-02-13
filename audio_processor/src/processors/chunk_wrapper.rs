@@ -79,8 +79,8 @@ impl<T: AudioProcessor<I = S, O = S>, S: Sample> ChunkWrapper<T, S> {
     pub fn new(inner: T, block_size: usize, input_channels: usize, output_channels: usize) -> Self {
         assert!(input_channels >= output_channels);
         ChunkWrapper {
-            block_size,
             inner,
+            block_size,
             index: 0,
             pending: MultiBuffer::new_equilibrium(Shape {
                 channels: input_channels,
