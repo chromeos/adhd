@@ -987,7 +987,6 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/server/platform/dlc:cc",
-        "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/dsp/tests:all_headers",
@@ -1397,6 +1396,7 @@ cc_test(
         ":test_support",
         "//cras/common:check",
         "//cras/server/platform/dlc:cc",
+        "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",

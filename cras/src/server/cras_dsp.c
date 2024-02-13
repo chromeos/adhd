@@ -10,7 +10,6 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "cras/server/platform/features/features.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
 #include "cras/src/dsp/dsp_util.h"
@@ -150,8 +149,11 @@ static void possibly_offload_pipeline(struct dsp_offload_map* offload_map,
     return;
   }
 
-  // Check feature enable flag from Chrome. If off, force to disable offload.
-  if (!cras_feature_enabled(CrOSLateBootAudioOffloadCrasDSPToSOF)) {
+  // Disable offload when disallow_bits is non-zero (at least one condition is
+  // met that disallows applying DSP offload).
+  if (offload_map->disallow_bits) {
+    syslog(LOG_DEBUG, "cras_dsp: disallow offload (disallow_bits=%d)",
+           offload_map->disallow_bits);
     goto disable_offload;
   }
 
@@ -172,10 +174,12 @@ static void possibly_offload_pipeline(struct dsp_offload_map* offload_map,
 
   // If not applicable, disable offload.
   if (!is_applicable) {
+    cras_dsp_offload_set_disallow_bit(offload_map, DISALLOW_OFFLOAD_BY_PATTERN);
     goto disable_offload;
   }
 
   // is_applicable == true
+  cras_dsp_offload_clear_disallow_bit(offload_map, DISALLOW_OFFLOAD_BY_PATTERN);
   // If the DSP offload is already applied for the same pipeline/node, there
   // is no longer needed for setting configs to components on DSP.
   if (cras_dsp_offload_is_already_applied(offload_map)) {

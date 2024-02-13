@@ -2766,6 +2766,6 @@ int cras_iodev_list_get_dsp_offload_state(cras_node_id_t node_id) {
     return DSP_PROC_UNSUPPORTED;
   }
 
-  // -1: NOT STARTED, 0: PROC ON CRAS, 1: PROC ON DSP (offloaded)
+  // return enum CRAS_DSP_PROC_STATE by its value
   return (int)dev->dsp_offload_map->state;
 }

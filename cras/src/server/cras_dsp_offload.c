@@ -485,6 +485,7 @@ void cras_dsp_offload_reset_map(struct dsp_offload_map* offload_map) {
     return;
   }
   offload_map->state = DSP_PROC_NOT_STARTED;
+  cras_dsp_offload_clear_disallow_bit(offload_map, DISALLOW_OFFLOAD_BY_PATTERN);
 }
 
 void cras_dsp_offload_free_map(struct dsp_offload_map* offload_map) {

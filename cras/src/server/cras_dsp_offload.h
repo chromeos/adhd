@@ -27,6 +27,13 @@ struct cras_ionode;
  */
 #define DSP_PATTERN_OFFLOAD_DEFAULT "drc>eq2"
 
+// Which condition disallows applying DSP offload.
+enum DSP_OFFLOAD_DISALLOW_BIT {
+  DISALLOW_OFFLOAD_NONE = 0,
+  DISALLOW_OFFLOAD_BY_FLAG = 1 << 0,     // by external flags, e.g. Finch.
+  DISALLOW_OFFLOAD_BY_PATTERN = 1 << 1,  // by non-applicable DSP pattern.
+};
+
 /* dsp_offload_map provides the mapping information of modules offloaded
  * from CRAS to DSP, which is instantiated per DSP pipeline. Given that DSP
  * pipeline and ALSA PCM endpoint are 1:1 mapped, so are ALSA PCM and CRAS
@@ -66,6 +73,9 @@ struct dsp_offload_map {
   // The node index that DSP offload is currently applied for. This is valid
   // only if state == DSP_PROC_ON_DSP (offload applied).
   uint32_t applied_node_idx;
+  // The bit field for the present conditions that disallow DSP offload.
+  // Bits are defined by enum DSP_OFFLOAD_DISALLOW_BIT.
+  int disallow_bits;
 };
 
 /* Creates the offload map for the device where the given node belongs to.
@@ -121,6 +131,34 @@ void cras_dsp_offload_reset_map(struct dsp_offload_map* offload_map);
  *    offload_map - Pointer to the offload map instance.
  */
 void cras_dsp_offload_free_map(struct dsp_offload_map* offload_map);
+
+/* Sets the disallowing condition bit of the offload map.
+ * Args:
+ *    offload_map - Pointer to the offload map instance.
+ *    bit - The bit to set (defined by enum DSP_OFFLOAD_DISALLOW_BIT).
+ */
+static inline void cras_dsp_offload_set_disallow_bit(
+    struct dsp_offload_map* offload_map,
+    enum DSP_OFFLOAD_DISALLOW_BIT bit) {
+  if (!offload_map) {
+    return;
+  }
+  offload_map->disallow_bits |= bit;
+}
+
+/* Clears the disallowing condition bit of the offload map.
+ * Args:
+ *    offload_map - Pointer to the offload map instance.
+ *    bit - The bit to clear (defined by enum DSP_OFFLOAD_DISALLOW_BIT).
+ */
+static inline void cras_dsp_offload_clear_disallow_bit(
+    struct dsp_offload_map* offload_map,
+    enum DSP_OFFLOAD_DISALLOW_BIT bit) {
+  if (!offload_map) {
+    return;
+  }
+  offload_map->disallow_bits &= ~bit;
+}
 
 #ifdef __cplusplus
 }  // extern "C"

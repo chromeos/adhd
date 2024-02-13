@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_dsp.h"
@@ -28,12 +27,14 @@ static size_t cras_alsa_config_drc_called;
 static size_t cras_alsa_config_eq2_called;
 static size_t cras_alsa_config_other_called;
 static const char* system_get_dsp_offload_map_str_ret = "Speaker:(1,)";
+static bool cras_feature_enabled_dsp_offload;
 
 static void ResetStubData() {
   cras_alsa_config_probe_retval = -1;
   cras_alsa_config_drc_called = 0;
   cras_alsa_config_eq2_called = 0;
   cras_alsa_config_other_called = 0;
+  cras_feature_enabled_dsp_offload = true;
 }
 
 namespace {
@@ -47,7 +48,6 @@ struct dsp_module* cras_dsp_module_load_ladspa(struct plugin* plugin) {
 class DspTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
-    cras_features_set_override(CrOSLateBootAudioOffloadCrasDSPToSOF, true);
     strcpy(filename, FILENAME_TEMPLATE);
     int fd = mkstemp(filename);
     fp = fdopen(fd, "w");
@@ -56,7 +56,6 @@ class DspTestSuite : public testing::Test {
   virtual void TearDown() {
     CloseFile();
     unlink(filename);
-    cras_features_unset_override(CrOSLateBootAudioOffloadCrasDSPToSOF);
   }
 
   virtual void CloseFile() {
@@ -125,7 +124,28 @@ TEST_F(DspTestSuite, Simple) {
   cras_dsp_stop();
 }
 
-TEST_F(DspTestSuite, DspOffloadExample) {
+static struct cras_dsp_context* test_cras_iodev_alloc_dsp(
+    struct dsp_offload_map* map) {
+  struct cras_dsp_context* ctx = cras_dsp_context_new(48000, "playback");
+
+  if (cras_feature_enabled_dsp_offload) {
+    cras_dsp_offload_clear_disallow_bit(map, DISALLOW_OFFLOAD_BY_FLAG);
+  } else {
+    cras_dsp_offload_set_disallow_bit(map, DISALLOW_OFFLOAD_BY_FLAG);
+  }
+  cras_dsp_context_set_offload_map(ctx, map);
+
+  return ctx;
+}
+
+static void test_cras_iodev_update_dsp(struct cras_dsp_context* ctx,
+                                       struct dsp_offload_map* map,
+                                       struct cras_ionode* node) {
+  cras_dsp_set_variable_string(ctx, "dsp_name", node->dsp_name);
+  cras_dsp_offload_clear_disallow_bit(map, DISALLOW_OFFLOAD_BY_PATTERN);
+}
+
+TEST_F(DspTestSuite, DspOffloadNodeSwitch) {
   const char* content =
       "[M1]\n"
       "library=builtin\n"
@@ -207,7 +227,7 @@ TEST_F(DspTestSuite, DspOffloadExample) {
    * [idx] [cras_dsp_pipeline] [DSP DRC/EQ]
    *    0  offload_applied=1   configured offload blobs and enabled
    *    1  offload_applied=0   disabled
-   *    2  n/a                 disabled
+   *    2  nullptr             disabled
    */
 
   ResetStubData();
@@ -230,7 +250,7 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   node[1].dev = &dev;
   strncpy(node[2].name, "Line Out", sizeof(node[2].name) - 1);
   node[2].idx = 2;
-  node[2].dsp_name = nullptr;
+  node[2].dsp_name = "";
   node[2].dev = &dev;
   dev.active_node = &node[0];
 
@@ -239,21 +259,21 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   ASSERT_EQ(0, cras_dsp_offload_create_map(&map_dev, &node[0]));
   ASSERT_TRUE(map_dev);
   EXPECT_EQ(DSP_PROC_NOT_STARTED, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
 
   // 1. open device while active_node is INTERNAL_SPEAKER
   dev.active_node = &node[0];
-  // on cras_iodev_alloc_dsp...
   struct cras_dsp_context* ctx;
-  ctx = cras_dsp_context_new(48000, "playback");
-  // on cras_iodev_update_dsp...
-  cras_dsp_set_variable_string(ctx, "dsp_name", node[0].dsp_name);
-  cras_dsp_context_set_offload_map(ctx, map_dev);
+  // simulate alloc_dsp() and update_dsp() calls for opening device.
+  ctx = test_cras_iodev_alloc_dsp(map_dev);
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
   cras_dsp_load_pipeline(ctx);
 
   struct pipeline* pipeline;
 
   // DSP DRC/EQ will be configured and enabled
   EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
   EXPECT_EQ(node[0].idx, map_dev->applied_node_idx);
   EXPECT_EQ(1, cras_alsa_config_drc_called);
   EXPECT_EQ(1, cras_alsa_config_eq2_called);
@@ -266,16 +286,15 @@ TEST_F(DspTestSuite, DspOffloadExample) {
 
   // 2. re-open device
   ResetStubData();
-  // on cras_iodev_alloc_dsp...
   cras_dsp_context_free(ctx);
-  ctx = cras_dsp_context_new(48000, "playback");
-  // on cras_iodev_update_dsp...
-  cras_dsp_set_variable_string(ctx, "dsp_name", node[0].dsp_name);
-  cras_dsp_context_set_offload_map(ctx, map_dev);
+  // simulate alloc_dsp() and update_dsp() calls for opening device.
+  ctx = test_cras_iodev_alloc_dsp(map_dev);
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
   cras_dsp_load_pipeline(ctx);
 
   // DSP DRC/EQ is already configured and enabled, no need to configure again.
   EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
   EXPECT_EQ(node[0].idx, map_dev->applied_node_idx);
   EXPECT_EQ(0, cras_alsa_config_drc_called);
   EXPECT_EQ(0, cras_alsa_config_eq2_called);
@@ -286,16 +305,18 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   ASSERT_TRUE(pipeline);
   cras_dsp_put_pipeline(ctx);
 
-  // 3. switch active_node to HEADPHONE
+  // 3. re-open device while toggling CRAS feature flag off
   ResetStubData();
-  dev.active_node = &node[1];
-  // on cras_iodev_update_dsp...
-  cras_dsp_set_variable_string(ctx, "dsp_name", node[1].dsp_name);
-  cras_dsp_context_set_offload_map(ctx, map_dev);
+  cras_feature_enabled_dsp_offload = false;
+  cras_dsp_context_free(ctx);
+  // simulate alloc_dsp() and update_dsp() calls for opening device.
+  ctx = test_cras_iodev_alloc_dsp(map_dev);
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
   cras_dsp_load_pipeline(ctx);
 
-  // DSP DRC/EQ will be disabled
+  // DSP DRC/EQ will be disabled; offload is disallowed by feature flag.
   EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_BY_FLAG, map_dev->disallow_bits);
   EXPECT_EQ(0, cras_alsa_config_drc_called);
   EXPECT_EQ(0, cras_alsa_config_eq2_called);
   EXPECT_EQ(0, cras_alsa_config_other_called);
@@ -305,16 +326,17 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   ASSERT_TRUE(pipeline);
   cras_dsp_put_pipeline(ctx);
 
-  // 4. switch active_node back to INTERNAL_SPEAKER
+  // 4. re-open device while toggling CRAS feature flag on
   ResetStubData();
-  dev.active_node = &node[0];
-  // on cras_iodev_update_dsp...
-  cras_dsp_set_variable_string(ctx, "dsp_name", node[0].dsp_name);
-  cras_dsp_context_set_offload_map(ctx, map_dev);
+  cras_dsp_context_free(ctx);
+  // simulate alloc_dsp() and update_dsp() calls for opening device.
+  ctx = test_cras_iodev_alloc_dsp(map_dev);
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
   cras_dsp_load_pipeline(ctx);
 
   // DSP DRC/EQ will be configured and enabled
   EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
   EXPECT_EQ(node[0].idx, map_dev->applied_node_idx);
   EXPECT_EQ(1, cras_alsa_config_drc_called);
   EXPECT_EQ(1, cras_alsa_config_eq2_called);
@@ -325,37 +347,79 @@ TEST_F(DspTestSuite, DspOffloadExample) {
   ASSERT_TRUE(pipeline);
   cras_dsp_put_pipeline(ctx);
 
-  // 5. close device, switch node to LINEOUT and then open device
+  // 5. switch active_node to HEADPHONE
   ResetStubData();
-  dev.active_node = &node[2];
-  // on cras_iodev_alloc_dsp...
-  cras_dsp_context_free(ctx);
-  ctx = cras_dsp_context_new(48000, "playback");
-  // on cras_iodev_update_dsp...
-  cras_dsp_context_set_offload_map(ctx, map_dev);
+  dev.active_node = &node[1];
+  // simulate update_dsp() call for switching node.
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
   cras_dsp_load_pipeline(ctx);
 
-  // DSP DRC/EQ will be disabled
+  // DSP DRC/EQ will be disabled; offload is disallowed by unapplicable pattern.
   EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_BY_PATTERN, map_dev->disallow_bits);
   EXPECT_EQ(0, cras_alsa_config_drc_called);
   EXPECT_EQ(0, cras_alsa_config_eq2_called);
   EXPECT_EQ(0, cras_alsa_config_other_called);
   EXPECT_FALSE(cras_alsa_config_drc_enabled);
   EXPECT_FALSE(cras_alsa_config_eq2_enabled);
-  ASSERT_EQ(NULL, cras_dsp_get_pipeline(ctx));
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  cras_dsp_put_pipeline(ctx);
 
-  // 6. alternate the applied dsp as like HEADPHONE, then reload dsp
+  // 6. switch active_node back to INTERNAL_SPEAKER
   ResetStubData();
-  cras_dsp_set_variable_string(ctx, "dsp_name", node[1].dsp_name);
+  dev.active_node = &node[0];
+  // simulate update_dsp() call for switching node.
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
+  cras_dsp_load_pipeline(ctx);
+
+  // DSP DRC/EQ will be configured and enabled
+  EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
+  EXPECT_EQ(node[0].idx, map_dev->applied_node_idx);
+  EXPECT_EQ(1, cras_alsa_config_drc_called);
+  EXPECT_EQ(1, cras_alsa_config_eq2_called);
+  EXPECT_EQ(0, cras_alsa_config_other_called);
+  EXPECT_TRUE(cras_alsa_config_drc_enabled);
+  EXPECT_TRUE(cras_alsa_config_eq2_enabled);
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  cras_dsp_put_pipeline(ctx);
+
+  // 7. close device, switch node to LINEOUT and then open device
+  ResetStubData();
+  dev.active_node = &node[2];
+  cras_dsp_context_free(ctx);
+  // simulate alloc_dsp() and update_dsp() calls for opening device.
+  ctx = test_cras_iodev_alloc_dsp(map_dev);
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
+  cras_dsp_load_pipeline(ctx);
+
+  // DSP DRC/EQ will be disabled; CRAS pipeline does not exist.
+  EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_BY_PATTERN, map_dev->disallow_bits);
+  EXPECT_EQ(0, cras_alsa_config_drc_called);
+  EXPECT_EQ(0, cras_alsa_config_eq2_called);
+  EXPECT_EQ(0, cras_alsa_config_other_called);
+  EXPECT_FALSE(cras_alsa_config_drc_enabled);
+  EXPECT_FALSE(cras_alsa_config_eq2_enabled);
+  ASSERT_EQ(nullptr, cras_dsp_get_pipeline(ctx));
+
+  // 8. alternate the applied dsp as SPEAKER(node[0]), then reload dsp
+  ResetStubData();
+  cras_dsp_set_variable_string(ctx, "dsp_name", node[0].dsp_name);
   cras_dsp_reload_ini();
 
-  // DSP DRC/EQ will be disabled
-  EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
-  EXPECT_EQ(0, cras_alsa_config_drc_called);
-  EXPECT_EQ(0, cras_alsa_config_eq2_called);
+  // DSP DRC/EQ will be configured and enabled
+  EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
+  // the active node should be still node[2]; only dsp_name is tweaked.
+  EXPECT_EQ(node[2].idx, map_dev->applied_node_idx);
+  EXPECT_EQ(1, cras_alsa_config_drc_called);
+  EXPECT_EQ(1, cras_alsa_config_eq2_called);
   EXPECT_EQ(0, cras_alsa_config_other_called);
-  EXPECT_FALSE(cras_alsa_config_drc_enabled);
-  EXPECT_FALSE(cras_alsa_config_eq2_enabled);
+  EXPECT_TRUE(cras_alsa_config_drc_enabled);
+  EXPECT_TRUE(cras_alsa_config_eq2_enabled);
   pipeline = cras_dsp_get_pipeline(ctx);
   ASSERT_TRUE(pipeline);
   cras_dsp_put_pipeline(ctx);
