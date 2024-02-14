@@ -22,14 +22,14 @@ class EchoProcessor {
   explicit EchoProcessor(const struct plugin_processor_config& config)
       : config_(config), frames_(config.frame_rate * kEchoDelaySec) {
     buffer_.resize(config_.channels);
-    for (int ch = 0; ch < config_.channels; ch++) {
+    for (size_t ch = 0; ch < config_.channels; ch++) {
       buffer_[ch].resize(frames_);
     }
   }
 
   enum status Run(std::span<std::span<float>> input,
                   std::span<std::span<float>> output) {
-    for (int ch = 0; ch < config_.channels; ch++) {
+    for (size_t ch = 0; ch < config_.channels; ch++) {
       processChannel(input[ch], output[ch], buffer_[ch], pos_);
     }
     pos_ = (pos_ + config_.block_size) % frames_;
@@ -46,7 +46,7 @@ class EchoProcessor {
                       std::span<float> output,
                       std::vector<float>& buffer,
                       size_t pos) {
-    for (int i = 0; i < config_.block_size; i++) {
+    for (size_t i = 0; i < config_.block_size; i++) {
       output[i] = std::clamp(buffer[pos] + input[i], -1.0f, 1.0f);
       buffer[pos] = output[i] * kEchoDecayMultlipier;
       pos = (pos + 1) % frames_;
@@ -71,7 +71,7 @@ class CppWrapper {
   // This function implements plugin_processor->run.
   enum status Run(const struct multi_slice& input, struct multi_slice& output) {
     std::vector<std::span<float>> input_span;
-    for (int ch = 0; ch < input.channels; ch++) {
+    for (size_t ch = 0; ch < input.channels; ch++) {
       input_span.push_back(std::span(input.data[ch], input.num_frames));
     }
     std::vector<std::span<float>> output_span;
@@ -83,7 +83,7 @@ class CppWrapper {
 
     output.channels = output_span.size();
     output.num_frames = std::numeric_limits<size_t>::max();
-    for (int ch = 0; ch < output_span.size(); ch++) {
+    for (size_t ch = 0; ch < output_span.size(); ch++) {
       output.num_frames = std::min(output.num_frames, output_span[ch].size());
       output.data[ch] = output_span[ch].data();
     }
@@ -106,7 +106,7 @@ class CppWrapper {
   explicit CppWrapper(const struct plugin_processor_config& config)
       : wrapped_(new T(config)) {
     output_buffer_.resize(config.channels);
-    for (int ch = 0; ch < config.channels; ch++) {
+    for (size_t ch = 0; ch < config.channels; ch++) {
       output_buffer_[ch].resize(config.block_size);
     }
   }

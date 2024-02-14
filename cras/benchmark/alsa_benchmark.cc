@@ -54,7 +54,6 @@ class BM_Alsa : public benchmark::Fixture {
     std::string target_dev_name = "";
     std::string pcm_name = "";
     size_t last_colon_pos = std::string::npos;
-    int i = 0;
 
     int rc;
 
@@ -75,7 +74,7 @@ class BM_Alsa : public benchmark::Fixture {
     }
     rc = cras_client_get_output_devices(client, devs, nodes, &num_devs,
                                         &num_nodes);
-    for (i = 0; i < num_nodes; i++) {
+    for (size_t i = 0; i < num_nodes; i++) {
       if (strcmp(nodes[i].name, ToString(device)) == 0) {
         target_node = &nodes[i];
         break;
@@ -87,7 +86,7 @@ class BM_Alsa : public benchmark::Fixture {
       goto end;
     }
 
-    for (i = 0; i < num_devs; i++) {
+    for (size_t i = 0; i < num_devs; i++) {
       if (devs[i].idx == target_node->iodev_idx) {
         target_dev = &devs[i];
       }
