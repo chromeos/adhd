@@ -6,8 +6,6 @@
 #ifndef CRAS_SRC_SERVER_CRAS_RAMP_H_
 #define CRAS_SRC_SERVER_CRAS_RAMP_H_
 
-#include "cras/src/server/cras_iodev.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

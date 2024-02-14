@@ -5,6 +5,7 @@
 
 #include "cras/src/server/cras_ramp.h"
 
+#include <errno.h>
 #include <stdlib.h>
 
 /*
