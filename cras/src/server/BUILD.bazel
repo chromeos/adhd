@@ -297,13 +297,119 @@ cc_library(
 )
 
 cc_library(
+    name = "cras_ramp",
+    srcs = ["cras_ramp.c"],
+    hdrs = ["cras_ramp.h"],
+    visibility = [
+        "//cras/src/tests:__pkg__",
+    ],
+)
+
+cc_library(
+    name = "buffer_share",
+    srcs = ["buffer_share.c"],
+    hdrs = ["buffer_share.h"],
+    visibility = [
+        "//cras/src/tests:__pkg__",
+    ],
+)
+
+cc_library(
+    name = "linear_resampler",
+    srcs = ["linear_resampler.c"],
+    hdrs = ["linear_resampler.h"],
+    visibility = [
+        "//cras/src/tests:__pkg__",
+    ],
+)
+
+cc_library(
+    name = "polled_interval_checker",
+    srcs = ["polled_interval_checker.c"],
+    hdrs = ["polled_interval_checker.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = ["//cras/src/common:cras_util"],
+)
+
+cc_library(
+    name = "cras_alert",
+    srcs = ["cras_alert.c"],
+    hdrs = ["cras_alert.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = ["//third_party/utlist"],
+)
+
+cc_library(
+    name = "cras_tm",
+    srcs = ["cras_tm.c"],
+    hdrs = ["cras_tm.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = [
+        "//cras/src/common:cras_util",
+        "//third_party/utlist",
+    ],
+)
+
+cc_library(
+    name = "cras_gpio_jack",
+    srcs = ["cras_gpio_jack.c"],
+    hdrs = ["cras_gpio_jack.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = [
+        "//cras/common:check",
+        "//cras/src/common:cras_string",
+        "//cras/src/common:cras_types",
+    ],
+)
+
+cc_library(
+    name = "cras_expr",
+    srcs = ["cras_expr.c"],
+    hdrs = ["cras_expr.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = [
+        "//cras/src/common",
+    ],
+)
+
+cc_library(
+    name = "cras_utf8",
+    srcs = ["cras_utf8.c"],
+    hdrs = ["cras_utf8.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = [
+        "//cras/src/common:cras_util",
+        "@pkg_config//dbus-1",
+    ],
+)
+
+cc_library(
+    name = "softvol_curve",
+    srcs = ["softvol_curve.c"],
+    hdrs = ["softvol_curve.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = [
+        ":cras_volume_curve",
+        "//cras/common:check",
+    ],
+)
+
+cc_library(
+    name = "speak_on_mute_detector",
+    srcs = ["speak_on_mute_detector.c"],
+    hdrs = ["speak_on_mute_detector.h"],
+    visibility = ["//cras/src/tests:__pkg__"],
+    deps = [
+        "//cras/src/common:cras_util",
+    ],
+)
+
+cc_library(
     name = "libcrasserver",
     srcs = [
         "audio_thread.c",
         "audio_thread.h",
         "audio_thread_log.h",
-        "buffer_share.c",
-        "buffer_share.h",
         "cras_a2dp_endpoint.c",
         "cras_a2dp_endpoint.h",
         "cras_a2dp_info.c",
@@ -312,14 +418,10 @@ cc_library(
         "cras_a2dp_iodev.h",
         "cras_a2dp_manager.c",
         "cras_a2dp_manager.h",
-        "cras_alert.c",
-        "cras_alert.h",
         "cras_alsa_card.c",
         "cras_alsa_card.h",
         "cras_alsa_common_io.c",
         "cras_alsa_common_io.h",
-        "cras_alsa_helpers.c",
-        "cras_alsa_helpers.h",
         "cras_alsa_io.c",
         "cras_alsa_io.h",
         "cras_alsa_io_ops.c",
@@ -382,8 +484,6 @@ cc_library(
         "cras_dsp_pipeline.h",
         "cras_empty_iodev.c",
         "cras_empty_iodev.h",
-        "cras_expr.c",
-        "cras_expr.h",
         "cras_feature_monitor.c",
         "cras_feature_monitor.h",
         "cras_fl_manager.c",
@@ -398,8 +498,6 @@ cc_library(
         "cras_floop_iodev.h",
         "cras_fmt_conv.c",
         "cras_fmt_conv.h",
-        "cras_gpio_jack.c",
-        "cras_gpio_jack.h",
         "cras_hfp_ag_profile.c",
         "cras_hfp_ag_profile.h",
         "cras_hfp_alsa_iodev.c",
@@ -425,8 +523,6 @@ cc_library(
         "cras_observer.h",
         "cras_playback_rclient.c",
         "cras_playback_rclient.h",
-        "cras_ramp.c",
-        "cras_ramp.h",
         "cras_rclient.c",
         "cras_rclient.h",
         "cras_rclient_util.c",
@@ -449,14 +545,10 @@ cc_library(
         "cras_system_state.h",
         "cras_telephony.c",
         "cras_telephony.h",
-        "cras_tm.c",
-        "cras_tm.h",
         "cras_udev.c",
         "cras_udev.h",
         "cras_unified_rclient.c",
         "cras_unified_rclient.h",
-        "cras_utf8.c",
-        "cras_utf8.h",
         "dev_io.c",
         "dev_io.h",
         "dev_stream.c",
@@ -464,16 +556,8 @@ cc_library(
         "float_buffer.h",
         "input_data.c",
         "input_data.h",
-        "linear_resampler.c",
-        "linear_resampler.h",
-        "polled_interval_checker.c",
-        "polled_interval_checker.h",
         "server_stream.c",
         "server_stream.h",
-        "softvol_curve.c",
-        "softvol_curve.h",
-        "speak_on_mute_detector.c",
-        "speak_on_mute_detector.h",
         "stream_list.c",
         "stream_list.h",
         "test_iodev.c",
@@ -486,15 +570,27 @@ cc_library(
     ],
     visibility = ["//cras/src/fuzz:__pkg__"],
     deps = [
+        ":buffer_share",
+        ":cras_alert",
         ":cras_alsa_config",
+        ":cras_alsa_helpers",
         ":cras_alsa_ucm",
         ":cras_apm",
         ":cras_audio_area",
+        ":cras_expr",
         ":cras_fmt_conv_ops",
+        ":cras_gpio_jack",
         ":cras_mix",
+        ":cras_ramp",
         ":cras_sr",
+        ":cras_tm",
+        ":cras_utf8",
         ":dsp_types",
         ":ewma_power",
+        ":linear_resampler",
+        ":polled_interval_checker",
+        ":softvol_curve",
+        ":speak_on_mute_detector",
         "//cras/common:check",
         "//cras/common:rust_common_cc",
         "//cras/server:main_message",
