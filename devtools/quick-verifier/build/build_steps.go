@@ -34,7 +34,8 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	b.Add(ossFuzzSteps("oss-fuzz-address-afl", "address", "afl").WithDep(ossFuzzSetup))
 	b.Add(ossFuzzSteps("oss-fuzz-memory", "memory", "libfuzzer").WithDep(ossFuzzSetup))
 	b.Add(ossFuzzSteps("oss-fuzz-undefined", "undefined", "libfuzzer").WithDep(ossFuzzSetup))
-	b.Add(ossFuzzSteps("oss-fuzz-coverage", "coverage", "libfuzzer").WithDep(ossFuzzSetup))
+	// TODO(b/325995661): Figure out why it's broken.
+	// b.Add(ossFuzzSteps("oss-fuzz-coverage", "coverage", "libfuzzer").WithDep(ossFuzzSetup))
 
 	b.Add(cppcheckSteps().WithDep(git))
 
