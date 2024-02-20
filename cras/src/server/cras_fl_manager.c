@@ -115,11 +115,10 @@ static void floss_manager_on_get_adapter_enabled(DBusPendingCall* pending_call,
   }
 
   syslog(LOG_DEBUG, "GetAdapterEnabled receives reply, state %d", enabled);
+  BTLOG(btlog, BT_HCI_ENABLED, 0, enabled);
   if (!enabled) {
-    BTLOG(btlog, BT_ADAPTER_REMOVED, 0, 0);
     floss_media_stop(conn, 0);
   } else {
-    BTLOG(btlog, BT_ADAPTER_ADDED, 0, 0);
     floss_media_start(conn, 0);
   }
 
@@ -189,6 +188,7 @@ static DBusHandlerResult handle_hci_device_callback(DBusConnection* conn,
   }
 
   syslog(LOG_DEBUG, "OnHciEnabledChanged %d %d", hci_interface, enabled);
+  BTLOG(btlog, BT_HCI_ENABLED, hci_interface, enabled);
 
   // Ignore HCI device change if there is another active one.
   if (floss_media_get_active_fm() &&

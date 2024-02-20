@@ -390,8 +390,8 @@ enum MAIN_THREAD_LOG_EVENTS {
 
 // There are 8 bits of space for events.
 enum CRAS_BT_LOG_EVENTS {
-  BT_ADAPTER_ADDED,
-  BT_ADAPTER_REMOVED,
+  BT_ADAPTER_ADDED,       // BlueZ
+  BT_ADAPTER_REMOVED,     // BlueZ
   BT_MANAGER_ADDED,       // Floss
   BT_MANAGER_REMOVED,     // Floss
   BT_AUDIO_GATEWAY_INIT,  // BlueZ
@@ -424,6 +424,7 @@ enum CRAS_BT_LOG_EVENTS {
   BT_RESET,                            // BlueZ
   BT_SCO_CONNECT,
   BT_TRANSPORT_RELEASE,  // BlueZ
+  BT_HCI_ENABLED,        // Floss
 };
 
 struct __attribute__((__packed__)) audio_thread_event {

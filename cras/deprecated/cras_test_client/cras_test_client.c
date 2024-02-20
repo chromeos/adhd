@@ -1510,6 +1510,9 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
     case BT_TRANSPORT_RELEASE:
       printf("%-30s\n", "TRANSPORT_RELEASE");
       break;
+    case BT_HCI_ENABLED:
+      printf("%-30s hci%d enabled %d\n", "HCI_ENABLED", data1, data2);
+      break;
     default:
       printf("%-30s\n", "UNKNOWN");
       break;
