@@ -658,7 +658,7 @@ static int capture_to_streams(struct open_dev* adev,
     }
 
     total_read = rc;
-    remainder -= nread;
+    remainder -= total_read;
 
     if (total_read < nread) {
       break;
