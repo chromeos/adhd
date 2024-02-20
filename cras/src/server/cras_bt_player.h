@@ -17,36 +17,6 @@
 extern "C" {
 #endif
 
-/* Object to hold current metadata. This is not a full list of what BlueZ/MPRIS
- * supports but a subset because Chromium only provides the following.
- */
-struct cras_bt_player_metadata {
-  char title[CRAS_PLAYER_METADATA_SIZE_MAX];
-  char artist[CRAS_PLAYER_METADATA_SIZE_MAX];
-  char album[CRAS_PLAYER_METADATA_SIZE_MAX];
-  int64_t length;
-};
-
-/* Object to register as media player so that bluetoothd will report hardware
- * volume from device through bt_transport. Properties of the player are defined
- * in BlueZ's media API.
- */
-struct cras_bt_player {
-  const char* object_path;
-  char* playback_status;
-  char* identity;
-  const char* loop_status;
-  struct cras_bt_player_metadata* metadata;
-  int64_t position;
-  bool can_go_next;
-  bool can_go_prev;
-  bool can_play;
-  bool can_pause;
-  bool can_control;
-  bool shuffle;
-  void (*message_cb)(const char* message);
-};
-
 /* Creates a player object and register it to bluetoothd.
  * Args:
  *    conn - The dbus connection.
