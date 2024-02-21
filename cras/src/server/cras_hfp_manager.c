@@ -211,6 +211,10 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
   if (hfp->sco_pcm_used || !cras_floss_hfp_swb_allowed()) {
     disabled_codecs |= FL_HFP_CODEC_BIT_ID_LC3;
   }
+  if (!hfp->sco_pcm_used && !cras_floss_hfp_is_codec_format_supported(
+                                hfp, HFP_CODEC_FORMAT_MSBC_TRANSPARENT)) {
+    disabled_codecs |= FL_HFP_CODEC_BIT_ID_MSBC;
+  }
 
   rc = floss_media_hfp_start_sco_call(hfp->fm, hfp->addr, hfp->sco_pcm_used,
                                       disabled_codecs);

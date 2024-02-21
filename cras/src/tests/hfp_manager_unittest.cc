@@ -25,6 +25,7 @@ static size_t hfp_alsa_iodev_create_called;
 static size_t hfp_pcm_iodev_destroy_called;
 static size_t hfp_alsa_iodev_destroy_called;
 static size_t floss_media_hfp_start_sco_called;
+static int floss_media_hfp_start_sco_call_disabled_codecs;
 static size_t floss_media_hfp_stop_sco_called;
 static size_t floss_media_hfp_set_volume_called;
 static unsigned int floss_media_hfp_set_volume_volume_val;
@@ -54,6 +55,7 @@ void ResetStubData() {
   hfp_pcm_iodev_destroy_called = 0;
   hfp_alsa_iodev_destroy_called = 0;
   floss_media_hfp_start_sco_called = 0;
+  floss_media_hfp_start_sco_call_disabled_codecs = 0;
   floss_media_hfp_stop_sco_called = 0;
   floss_media_hfp_set_volume_called = 0;
   floss_media_hfp_set_volume_volume_val = 0;
@@ -232,6 +234,23 @@ TEST_F(HfpManagerTestSuite, ConvertVolume) {
   EXPECT_EQ(cras_floss_hfp_convert_volume(20), 100);
 }
 
+TEST_F(HfpManagerTestSuite, FallbackToCvsdWhenNoSco) {
+  struct cras_hfp* hfp = cras_floss_hfp_create(
+      NULL, "addr", "name", HFP_CODEC_FORMAT_CVSD | HFP_CODEC_FORMAT_MSBC);
+  ASSERT_NE(hfp, (struct cras_hfp*)NULL);
+
+  connect_ret = -1;  // for early return
+
+  thread_callback rwcb = reinterpret_cast<thread_callback>(0xdeadbeef);
+  ASSERT_EQ(connect_ret, cras_floss_hfp_start(hfp, rwcb, CRAS_STREAM_OUTPUT));
+
+  ASSERT_EQ(floss_media_hfp_start_sco_called, 1);
+  EXPECT_EQ(
+      floss_media_hfp_start_sco_call_disabled_codecs & FL_HFP_CODEC_BIT_ID_MSBC,
+      FL_HFP_CODEC_BIT_ID_MSBC);
+
+  cras_floss_hfp_destroy(hfp);
+}
 }  // namespace
 
 extern "C" {
@@ -313,6 +332,7 @@ enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
                                                         const char* addr,
                                                         bool enable_offload,
                                                         int disabled_codecs) {
+  floss_media_hfp_start_sco_call_disabled_codecs = disabled_codecs;
   floss_media_hfp_start_sco_called++;
   return floss_media_hfp_start_sco_call_ret;
 }
