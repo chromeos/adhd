@@ -131,29 +131,6 @@ audio SoftEng along with the issue feedback.
 
 ## Configuration
 
-### Device Blocklisting
-
-Blocklist of certain USB output device(s) is possible by modifying the config
-file `/etc/cras/device_blocklist`.
-
-The format of this file is as follows:
-```
-[USB_Outputs]
-  <vendor_id>_<product_id>_<checksum>_<device_index> = 1
-```
-Where vendor_id and product id are the USB identifiers for the card to
-blocklist. The checksum is the output of "cksum" command applied to the
-sysfs "descriptors" file of the device. The device index specifies the
-index of the output device in the card to blocklist.  This is a bool
-parameter, so '= 1' enables the option.
-
-Example, blocklisting the non-functional output device reported by the C-Media
-based CAD-u1 mic:
-```
-[USB_Outputs]
-  0d8c_0008_00000000_0 = 1
-```
-
 ### Card Configuration
 
 There can be a config file for each sound alsa card on the system.  This file

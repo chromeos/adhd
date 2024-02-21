@@ -705,10 +705,8 @@ extern "C" {
 // Stubs
 struct main_thread_event_log* main_log;
 
-struct cras_alsa_card* cras_alsa_card_create(
-    struct cras_alsa_card_info* info,
-    const char* device_config_dir,
-    struct cras_device_blocklist* blocklist) {
+struct cras_alsa_card* cras_alsa_card_create(struct cras_alsa_card_info* info,
+                                             const char* device_config_dir) {
   if (kFakeAlsaCards[cras_alsa_card_create_called]) {
     card_type_map[kFakeAlsaCards[cras_alsa_card_create_called]] =
         info->card_type;
@@ -732,13 +730,6 @@ enum CRAS_ALSA_CARD_TYPE cras_alsa_card_get_type(
     const struct cras_alsa_card* alsa_card) {
   return card_type_map[alsa_card];
 }
-
-struct cras_device_blocklist* cras_device_blocklist_create(
-    const char* config_path) {
-  return NULL;
-}
-
-void cras_device_blocklist_destroy(struct cras_device_blocklist* blocklist) {}
 
 struct cras_alert* cras_alert_create(cras_alert_prepare prepare,
                                      unsigned int flags) {

@@ -21,7 +21,6 @@
 #include "cras/common/check.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
-#include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_alsa_card.h"
 #include "cras/src/server/cras_dsp_offload.h"
@@ -83,8 +82,6 @@ struct private_state {
   // control which ucm config file to load.
   const char* internal_ucm_suffix;
   struct name_list* ignore_suffix_cards;
-  // Blocklist of device the server will ignore.
-  struct cras_device_blocklist* device_blocklist;
   // A list of active sound cards in the system.
   struct card_list* cards;
   // Protects the update_count, as audio threads can update the
@@ -258,10 +255,7 @@ void cras_system_state_init(const char* device_config_dir,
 
   state.exp_state = exp_state;
 
-  /* Directory for volume curve configs.
-   * Note that device_config_dir does not affect device blocklist.
-   * Device blocklist is common to all boards so we do not need
-   * to change device blocklist at run time. */
+  // Directory for volume curve configs.
   state.device_config_dir = device_config_dir;
   state.internal_ucm_suffix = NULL;
   state.display_rotation = ROTATE_0;
@@ -273,9 +267,6 @@ void cras_system_state_init(const char* device_config_dir,
     cras_board_config_destroy(board_config);
     exit(-ENOMEM);
   }
-
-  // Read config file for blocklisted devices.
-  state.device_blocklist = cras_device_blocklist_create(CRAS_CONFIG_FILE_DIR);
 
   // Initialize snapshot buffer memory
   memset(&state.snapshot_buffer, 0, sizeof(state.snapshot_buffer));
@@ -302,8 +293,6 @@ void cras_system_state_init(const char* device_config_dir,
 
 void cras_system_state_deinit() {
   // Free any resources used.  This prevents unit tests from leaking.
-
-  cras_device_blocklist_destroy(state.device_blocklist);
 
   cras_tm_deinit(state.tm);
 
@@ -668,9 +657,8 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info* alsa_card_info) {
       return -EEXIST;
     }
   }
-  alsa_card =
-      cras_alsa_card_create(alsa_card_info, state.device_config_dir,
-                            state.device_blocklist, state.internal_ucm_suffix);
+  alsa_card = cras_alsa_card_create(alsa_card_info, state.device_config_dir,
+                                    state.internal_ucm_suffix);
   if (alsa_card == NULL) {
     return -ENOMEM;
   }

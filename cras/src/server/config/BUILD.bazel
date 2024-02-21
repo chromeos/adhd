@@ -9,8 +9,6 @@ cc_library(
     srcs = [
         "cras_board_config.c",
         "cras_card_config.c",
-        "cras_device_blocklist.c",
-        "cras_device_blocklist.h",
     ],
     hdrs = [
         "cras_board_config.h",

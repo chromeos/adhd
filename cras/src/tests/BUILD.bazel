@@ -859,26 +859,6 @@ cc_test(
 )
 
 cc_test(
-    name = "device_blocklist_unittest",
-    srcs = [
-        ":device_blocklist_unittest.cc",
-        "//cras/src/server/config:cras_device_blocklist.c",
-    ],
-    deps = [
-        ":test_support",
-        ":test_util",
-        "//cras/src/common:all_headers",
-        "//cras/src/server:all_headers",
-        "//cras/src/server/config:all_headers",
-        "//cras/src/server/rust:cc",
-        "@iniparser",
-        "@pkg_config//alsa",
-        "@pkg_config//gtest",
-        "@pkg_config//gtest_main",
-    ],
-)
-
-cc_test(
     name = "device_monitor_unittest",
     srcs = [
         ":device_monitor_unittest.cc",

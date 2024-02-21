@@ -17,7 +17,6 @@ pkg_filegroup(
 pkg_files(
     name = "cras-config_files",
     srcs = [
-        "device_blocklist",
         "processor_override.txtpb",
     ],
     attributes = FILE_ATTRIBUTES,

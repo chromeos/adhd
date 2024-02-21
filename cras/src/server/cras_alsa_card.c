@@ -20,7 +20,6 @@
 #include "cras/server/platform/features/features.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_card_config.h"
-#include "cras/src/server/config/cras_device_blocklist.h"
 #include "cras/src/server/cras_alsa_common_io.h"
 #include "cras/src/server/cras_alsa_config.h"
 #include "cras/src/server/cras_alsa_io.h"
@@ -181,22 +180,6 @@ static int card_has_hctl_jack(struct cras_alsa_card* alsa_card) {
   return 0;
 }
 
-/* Check if a device should be ignored for this card. Returns non-zero if the
- * device is in the blocklist and should be ignored.
- */
-static int should_ignore_dev(struct cras_alsa_card_info* info,
-                             struct cras_device_blocklist* blocklist,
-                             size_t device_index) {
-  if (info->card_type == ALSA_CARD_TYPE_USB) {
-    struct cras_alsa_usb_card_info* usb_card_info =
-        cras_alsa_usb_card_info_get(info);
-    return cras_device_blocklist_check(
-        blocklist, usb_card_info->usb_vendor_id, usb_card_info->usb_product_id,
-        usb_card_info->usb_desc_checksum, device_index);
-  }
-  return 0;
-}
-
 /* Filters an array of mixer control names. Keep a name if it is
  * specified in the ucm config. */
 static struct mixer_name* filter_controls(struct cras_use_case_mgr* ucm,
@@ -229,12 +212,10 @@ static void alsa_control_event_pending(void* arg, int revent) {
   snd_hctl_handle_events(card->hctl);
 }
 
-static int add_controls_and_iodevs_by_matching(
-    struct cras_alsa_card_info* info,
-    struct cras_device_blocklist* blocklist,
-    struct cras_alsa_card* alsa_card,
-    const char* card_name,
-    snd_ctl_t* handle) {
+static int add_controls_and_iodevs_by_matching(struct cras_alsa_card_info* info,
+                                               struct cras_alsa_card* alsa_card,
+                                               const char* card_name,
+                                               snd_ctl_t* handle) {
   struct mixer_name* coupled_controls = NULL;
   int dev_idx;
   snd_pcm_info_t* dev_info;
@@ -296,8 +277,7 @@ static int add_controls_and_iodevs_by_matching(
 
     // Check for playback devices.
     snd_pcm_info_set_stream(dev_info, SND_PCM_STREAM_PLAYBACK);
-    if (snd_ctl_pcm_info(handle, dev_info) == 0 &&
-        !should_ignore_dev(info, blocklist, dev_idx)) {
+    if (snd_ctl_pcm_info(handle, dev_info) == 0) {
       struct cras_iodev* iodev = create_iodev_for_device(
           alsa_card, info, card_name, snd_pcm_info_get_name(dev_info),
           snd_pcm_info_get_id(dev_info), dev_idx, CRAS_STREAM_OUTPUT,
@@ -612,11 +592,9 @@ static void configure_echo_reference_dev(struct cras_alsa_card* alsa_card) {
  * Exported Interface.
  */
 
-struct cras_alsa_card* cras_alsa_card_create(
-    struct cras_alsa_card_info* info,
-    const char* device_config_dir,
-    struct cras_device_blocklist* blocklist,
-    const char* ucm_suffix) {
+struct cras_alsa_card* cras_alsa_card_create(struct cras_alsa_card_info* info,
+                                             const char* device_config_dir,
+                                             const char* ucm_suffix) {
   snd_ctl_t* handle = NULL;
   int rc, n;
   snd_ctl_card_info_t* card_info;
@@ -733,8 +711,8 @@ struct cras_alsa_card* cras_alsa_card_create(
   if (alsa_card->ucm && ucm_has_fully_specified_ucm_flag(alsa_card->ucm)) {
     rc = add_controls_and_iodevs_with_ucm(info, alsa_card, card_name, handle);
   } else {
-    rc = add_controls_and_iodevs_by_matching(info, blocklist, alsa_card,
-                                             card_name, handle);
+    rc =
+        add_controls_and_iodevs_by_matching(info, alsa_card, card_name, handle);
   }
   if (rc) {
     goto error_bail;
