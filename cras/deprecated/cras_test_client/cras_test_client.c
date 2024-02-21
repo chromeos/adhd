@@ -1429,9 +1429,11 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
       printf("%-30s supported profiles 0x%.2x\n", "AUDIO_GATEWAY_INIT", data1);
       break;
     case BT_AUDIO_GATEWAY_START:
-      printf("%-30s offload path is %s%s\n", "AUDIO_GATEWAY_START",
-             data1 ? "supported" : "not supported",
-             data1 ? (data2 ? " and enabled" : " but disabled") : "");
+      printf(
+          "%-30s offload path is %s%s, hfp_caps bitmask is %u\n",
+          "AUDIO_GATEWAY_START", (data1 >> 1) ? "supported" : "not supported",
+          (data1 >> 1) ? ((data1 & 1) ? " and enabled" : " but disabled") : "",
+          data2);
       break;
     case BT_AVAILABLE_CODECS:
       printf("%-30s codec #%u id %u\n", "AVAILABLE_CODECS", data1, data2);

@@ -510,16 +510,18 @@ static void fl_pcm_io_disable_cras_sr_bt(struct fl_pcm_io* fl_pcm_io) {
 
 static int fl_pcm_io_get_sr_bt_model(struct fl_pcm_io* fl_pcm_io,
                                      enum cras_sr_bt_model* model) {
-  const int active_codec = cras_floss_hfp_get_active_codec(fl_pcm_io->hfp);
-  switch (active_codec) {
-    case HFP_CODEC_CVSD:
+  const int active_codec_format =
+      cras_floss_hfp_get_active_codec_format(fl_pcm_io->hfp);
+  switch (active_codec_format) {
+    case HFP_CODEC_FORMAT_CVSD:
       *model = SR_BT_NBS;
       break;
-    case HFP_CODEC_MSBC:
+    case HFP_CODEC_FORMAT_MSBC_TRANSPARENT:
       *model = SR_BT_WBS;
       break;
     default:
-      syslog(LOG_INFO, "cras_sr_bt is not supported in codec %d", active_codec);
+      syslog(LOG_INFO, "cras_sr_bt is not supported in codec format %d",
+             active_codec_format);
       return -EINVAL;
   }
   return 0;
@@ -571,7 +573,7 @@ static void handle_cras_sr_bt_enable_disable(
 
   if (iodev->direction == CRAS_STREAM_INPUT &&
       status == CRAS_SR_BT_CAN_BE_ENABLED_STATUS_OK) {
-    // active_codec is set in cras_floss_hfp_start.
+    // active_codec_format is set in cras_floss_hfp_start.
     int err = fl_pcm_io_enable_cras_sr_bt(fl_pcm_io);
     if (err < 0) {
       syslog(LOG_WARNING,
@@ -601,8 +603,10 @@ static inline void handle_cras_sr_bt_uma_log(
  */
 static void handle_cras_sr_bt(struct cras_iodev* iodev) {
   struct fl_pcm_io* hfpio = (struct fl_pcm_io*)iodev;
-  if (cras_floss_hfp_get_active_codec(hfpio->hfp) != HFP_CODEC_CVSD &&
-      cras_floss_hfp_get_active_codec(hfpio->hfp) != HFP_CODEC_MSBC) {
+  if (cras_floss_hfp_get_active_codec_format(hfpio->hfp) !=
+          HFP_CODEC_FORMAT_CVSD &&
+      cras_floss_hfp_get_active_codec_format(hfpio->hfp) !=
+          HFP_CODEC_FORMAT_MSBC_TRANSPARENT) {
     return;
   }
 
@@ -627,13 +631,13 @@ static int hfp_open_dev(struct cras_iodev* iodev) {
   handle_cras_sr_bt(iodev);
 
   if (iodev->direction == CRAS_STREAM_INPUT) {
-    switch (cras_floss_hfp_get_active_codec(hfpio->hfp)) {
-      case HFP_CODEC_LC3:
+    switch (cras_floss_hfp_get_active_codec_format(hfpio->hfp)) {
+      case HFP_CODEC_FORMAT_LC3_TRANSPARENT:
         iodev->active_node->btflags |= CRAS_BT_FLAG_SWB;
         iodev->active_node->btflags &= ~CRAS_BT_FLAG_WBS;
         iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH;
         break;
-      case HFP_CODEC_MSBC:
+      case HFP_CODEC_FORMAT_MSBC_TRANSPARENT:
         iodev->active_node->btflags &= ~CRAS_BT_FLAG_SWB;
         iodev->active_node->btflags |= CRAS_BT_FLAG_WBS;
         iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH;
@@ -1194,11 +1198,13 @@ struct cras_iodev* hfp_pcm_iodev_create(struct cras_hfp* hfp,
   // be the negotiated codec, but the spec allows to fallback to CVSD,
   // in which case this will be updated in |hfp_open_dev|.
   if (iodev->direction == CRAS_STREAM_INPUT) {
-    if (cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_LC3)) {
+    if (cras_floss_hfp_is_codec_format_supported(
+            hfpio->hfp, HFP_CODEC_FORMAT_LC3_TRANSPARENT)) {
       iodev->active_node->btflags |= CRAS_BT_FLAG_SWB;
       iodev->active_node->btflags &= ~CRAS_BT_FLAG_WBS;
       iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH;
-    } else if (cras_floss_hfp_get_codec_supported(hfpio->hfp, HFP_CODEC_MSBC)) {
+    } else if (cras_floss_hfp_is_codec_format_supported(
+                   hfpio->hfp, HFP_CODEC_FORMAT_MSBC_TRANSPARENT)) {
       iodev->active_node->btflags &= ~CRAS_BT_FLAG_SWB;
       iodev->active_node->btflags |= CRAS_BT_FLAG_WBS;
       iodev->active_node->type = CRAS_NODE_TYPE_BLUETOOTH;

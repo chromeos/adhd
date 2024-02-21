@@ -153,10 +153,10 @@ int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr) {
   return 0;
 }
 
-int floss_media_hfp_start_sco_call(struct fl_media* fm,
-                                   const char* addr,
-                                   bool enable_offload,
-                                   int disabled_codecs) {
+enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
+                                                        const char* addr,
+                                                        bool enable_offload,
+                                                        int disabled_codecs) {
   RET_IF_HAVE_FUZZER(0);
 
   int rc = 0;
@@ -218,14 +218,14 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
     return rc;
   }
 
-  uint8_t final_codecs = 0;
+  uint8_t final_codec_id = 0;
   rc = retry_until_predicate_satisfied(
       /* conn=*/fm->conn,
       /* num_retries= */ GET_HFP_AUDIO_STARTED_RETRIES,
       /* sleep_time_us= */ GET_HFP_AUDIO_STARTED_SLEEP_US,
       /* method_call= */ get_hfp_audio_final_codecs,
       /* dbus_ret_type= */ DBUS_TYPE_BYTE,
-      /* dbus_ret_value_ptr= */ &final_codecs,
+      /* dbus_ret_value_ptr= */ &final_codec_id,
       /* predicate= */ dbus_uint8_is_nonzero);
 
   dbus_message_unref(get_hfp_audio_final_codecs);
@@ -241,7 +241,7 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
     return rc;
   }
 
-  return final_codecs;
+  return final_codec_id;
 }
 
 int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {

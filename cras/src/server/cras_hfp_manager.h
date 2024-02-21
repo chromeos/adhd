@@ -18,13 +18,14 @@ extern "C" {
 struct cras_hfp;
 struct fl_media;
 
-// Isomorphic to FL_HFP_CODEC
-enum HFP_CODEC {
-  HFP_CODEC_NONE = 0,
-  HFP_CODEC_CVSD = (1 << 0),
-  HFP_CODEC_MSBC = (1 << 1),
-  HFP_CODEC_LC3 = (1 << 2),
-  HFP_CODEC_UNKNOWN = (1 << 3),
+// Isomorphic to |FL_HFP_CODEC_FORMAT|
+enum HFP_CODEC_FORMAT {
+  HFP_CODEC_FORMAT_NONE = 0,
+  HFP_CODEC_FORMAT_CVSD = (1 << 0),
+  HFP_CODEC_FORMAT_MSBC_TRANSPARENT = (1 << 1),
+  HFP_CODEC_FORMAT_MSBC = (1 << 2),
+  HFP_CODEC_FORMAT_LC3_TRANSPARENT = (1 << 3),
+  HFP_CODEC_FORMAT_UNKNOWN = (1 << 4),
 };
 
 /* Creates cras_hfp object representing a connected hfp device. */
@@ -81,12 +82,13 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
  * event to CRAS's system volume. */
 int cras_floss_hfp_convert_volume(unsigned int vgs_volume);
 
-// Gets whether a codec is supported.
-bool cras_floss_hfp_get_codec_supported(struct cras_hfp* hfp,
-                                        enum HFP_CODEC codec);
+// Gets whether a codec format is supported.
+bool cras_floss_hfp_is_codec_format_supported(struct cras_hfp* hfp,
+                                              enum HFP_CODEC_FORMAT codec);
 
-/* Get the active codec after SCO is created. */
-enum HFP_CODEC cras_floss_hfp_get_active_codec(struct cras_hfp* hfp);
+/* Get the active codec format after SCO is created. */
+enum HFP_CODEC_FORMAT cras_floss_hfp_get_active_codec_format(
+    struct cras_hfp* hfp);
 
 /* Destroys given cras_hfp object. */
 void cras_floss_hfp_destroy(struct cras_hfp* hfp);

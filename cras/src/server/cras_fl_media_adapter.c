@@ -50,8 +50,9 @@ static int validate_bluetooth_device_address(const char* addr) {
   return 0;
 }
 
-static int validate_hfp_codec_capability(int32_t hfp_cap) {
-  if (FL_HFP_CODEC_NONE <= hfp_cap && hfp_cap < FL_HFP_CODEC_UNKNOWN) {
+static int validate_hfp_codec_format(int32_t hfp_cap) {
+  if (FL_HFP_CODEC_FORMAT_NONE <= hfp_cap &&
+      hfp_cap < FL_HFP_CODEC_FORMAT_UNKNOWN) {
     return 0;
   }
   return -EINVAL;
@@ -69,7 +70,7 @@ int handle_on_bluetooth_device_added(struct fl_media* active_fm,
     return rc;
   }
 
-  rc = validate_hfp_codec_capability(hfp_cap);
+  rc = validate_hfp_codec_format(hfp_cap);
   if (rc) {
     syslog(LOG_WARNING, "Invalid hfp_cap: %d", hfp_cap);
     return rc;

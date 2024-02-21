@@ -190,19 +190,16 @@ static int hfp_alsa_open_dev(struct cras_iodev* iodev) {
   return 0;
 }
 
-static int convert_hfp_codec_to_rate(enum HFP_CODEC codec) {
+static int convert_hfp_codec_format_to_rate(enum HFP_CODEC_FORMAT codec) {
   switch (codec) {
-    case HFP_CODEC_NONE:
+    case HFP_CODEC_FORMAT_NONE:
       return 0;
-    case HFP_CODEC_CVSD:
+    case HFP_CODEC_FORMAT_CVSD:
       return 8000;
-    case HFP_CODEC_MSBC:
+    case HFP_CODEC_FORMAT_MSBC:
       return 16000;
-    case HFP_CODEC_LC3:
-      syslog(LOG_ERR, "Unexpected LC3 codec in hfp_alsa_iodev");
-      break;
     default:
-      syslog(LOG_ERR, "Unknown codec %d in hfp_alsa_iodev", codec);
+      syslog(LOG_ERR, "Unsupported codec format %d in hfp_alsa_iodev", codec);
       break;
   }
   return 0;
@@ -216,8 +213,8 @@ static inline size_t hfp_alsa_get_device_sample_rate(struct cras_iodev* iodev) {
                ? 16000
                : 8000;
   }
-  return convert_hfp_codec_to_rate(
-      cras_floss_hfp_get_active_codec(hfp_alsa_io->hfp));
+  return convert_hfp_codec_format_to_rate(
+      cras_floss_hfp_get_active_codec_format(hfp_alsa_io->hfp));
 }
 
 /* Gets supported sample rate.
@@ -531,12 +528,8 @@ struct cras_iodev* hfp_alsa_iodev_create(struct cras_iodev* aio,
     // be the negotiated codec, but the spec allows to fallback to CVSD,
     // in which case this will be updated in |hfp_open_dev|.
     if (iodev->direction == CRAS_STREAM_INPUT) {
-      if (cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3)) {
-        node->btflags |= CRAS_BT_FLAG_SWB;
-        node->btflags &= ~CRAS_BT_FLAG_WBS;
-        node->type = CRAS_NODE_TYPE_BLUETOOTH;
-        syslog(LOG_WARNING, "LC3 offloading is unexpected");
-      } else if (cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_MSBC)) {
+      if (cras_floss_hfp_is_codec_format_supported(hfp,
+                                                   HFP_CODEC_FORMAT_MSBC)) {
         node->btflags &= ~CRAS_BT_FLAG_SWB;
         node->btflags |= CRAS_BT_FLAG_WBS;
         node->type = CRAS_NODE_TYPE_BLUETOOTH;

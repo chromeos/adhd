@@ -50,13 +50,23 @@ extern "C" {
 #define FL_A2DP_CODEC_SINK_LDAC 7
 #define FL_A2DP_CODEC_MAX 8
 
-// Bitmask form of enum defined on floss to expose HF's HFP codec capability.
-enum FL_HFP_CODEC {
-  FL_HFP_CODEC_NONE = 0,
-  FL_HFP_CODEC_CVSD = (1 << 0),
-  FL_HFP_CODEC_MSBC = (1 << 1),
-  FL_HFP_CODEC_LC3 = (1 << 2),
-  FL_HFP_CODEC_UNKNOWN = (1 << 3),
+// Bitmask form of enum defined on floss to expose HF's available codec IDs.
+enum FL_HFP_CODEC_BIT_ID {
+  FL_HFP_CODEC_BIT_ID_NONE = 0,
+  FL_HFP_CODEC_BIT_ID_CVSD = (1 << 0),
+  FL_HFP_CODEC_BIT_ID_MSBC = (1 << 1),
+  FL_HFP_CODEC_BIT_ID_LC3 = (1 << 2),
+  FL_HFP_CODEC_BIT_ID_UNKNOWN = (1 << 3),
+};
+
+// Bitmask form of enum defined on floss to expose available codec and formats.
+enum FL_HFP_CODEC_FORMAT {
+  FL_HFP_CODEC_FORMAT_NONE = 0,
+  FL_HFP_CODEC_FORMAT_CVSD = (1 << 0),
+  FL_HFP_CODEC_FORMAT_MSBC_TRANSPARENT = (1 << 1),
+  FL_HFP_CODEC_FORMAT_MSBC = (1 << 2),
+  FL_HFP_CODEC_FORMAT_LC3_TRANSPARENT = (1 << 3),
+  FL_HFP_CODEC_FORMAT_UNKNOWN = (1 << 4),
 };
 
 struct fl_media;
@@ -75,11 +85,11 @@ int floss_media_stop(DBusConnection* conn, unsigned int hci);
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr);
 
 // Calls StartScoCall to Floss media interface.
-// Returns codec inuse (CVSD=1, mSBC=2, LC3=4) on success.
-int floss_media_hfp_start_sco_call(struct fl_media* fm,
-                                   const char* addr,
-                                   bool enable_offload,
-                                   int disabled_codecs);
+// Returns the codec bit id inuse on success.
+enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
+                                                        const char* addr,
+                                                        bool enable_offload,
+                                                        int disabled_codecs);
 
 // Calls StopScoCall method to Floss media interface.
 int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr);

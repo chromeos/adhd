@@ -54,8 +54,8 @@ static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
 static int cras_floss_a2dp_fill_format_called;
 static int cras_floss_hfp_fill_format_called;
-static uint32_t cras_floss_hfp_get_codec_supported_mask;
-static enum HFP_CODEC cras_floss_hfp_get_active_codec_ret;
+static uint32_t cras_floss_hfp_is_codec_format_supported_mask;
+static enum HFP_CODEC_FORMAT cras_floss_hfp_get_active_codec_format_ret;
 
 void ResetStubData() {
   cras_iodev_add_node_called = 0;
@@ -82,8 +82,8 @@ void ResetStubData() {
   audio_thread_config_events_callback_trigger = TRIGGER_NONE;
   cras_floss_a2dp_fill_format_called = 0;
   cras_floss_hfp_fill_format_called = 0;
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
-  cras_floss_hfp_get_active_codec_ret = HFP_CODEC_NONE;
+  cras_floss_hfp_is_codec_format_supported_mask = HFP_CODEC_FORMAT_CVSD;
+  cras_floss_hfp_get_active_codec_format_ret = HFP_CODEC_FORMAT_NONE;
 }
 
 int iodev_set_format(struct cras_iodev* iodev, struct cras_audio_format* fmt) {
@@ -101,7 +101,7 @@ int iodev_set_hfp_format(struct cras_iodev* iodev,
   fmt->num_channels = 1;
   fmt->frame_rate = 8000;
   iodev->format = fmt;
-  cras_floss_hfp_get_active_codec_ret = HFP_CODEC_CVSD;
+  cras_floss_hfp_get_active_codec_format_ret = HFP_CODEC_FORMAT_CVSD;
   cras_floss_hfp_fill_format(hfpio->hfp, &iodev->supported_rates,
                              &iodev->supported_formats,
                              &iodev->supported_channel_counts);
@@ -196,7 +196,7 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
             CRAS_BT_FLAG_FLOSS & odev->active_node->btflags);
   EXPECT_EQ(CRAS_BT_FLAG_HFP, CRAS_BT_FLAG_HFP & odev->active_node->btflags);
 
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
+  cras_floss_hfp_is_codec_format_supported_mask = HFP_CODEC_FORMAT_CVSD;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
   EXPECT_NE(idev, (void*)NULL);
@@ -226,7 +226,7 @@ TEST_F(PcmIodev, CreateDestroyHfpPcmIodev) {
 TEST_F(PcmIodev, CreateDestroyNbsInputHfpPcmIodev) {
   struct cras_iodev* idev;
 
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
+  cras_floss_hfp_is_codec_format_supported_mask = HFP_CODEC_FORMAT_CVSD;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
   EXPECT_NE(idev, (void*)NULL);
@@ -241,13 +241,15 @@ TEST_F(PcmIodev, CreateDestroyNbsInputHfpPcmIodev) {
 TEST_F(PcmIodev, CreateDestroyWbsInputHfpPcmIodev) {
   struct cras_iodev* idev;
 
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD | HFP_CODEC_MSBC;
+  cras_floss_hfp_is_codec_format_supported_mask =
+      HFP_CODEC_FORMAT_CVSD | HFP_CODEC_FORMAT_MSBC_TRANSPARENT;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
   EXPECT_NE(idev, (void*)NULL);
   EXPECT_EQ(idev->direction, CRAS_STREAM_INPUT);
 
-  EXPECT_EQ(0, CRAS_BT_FLAG_SWB & idev->active_node->btflags);
+  EXPECT_EQ(CRAS_BT_FLAG_WBS,
+            (CRAS_BT_FLAG_WBS | CRAS_BT_FLAG_SWB) & idev->active_node->btflags);
   EXPECT_EQ(CRAS_NODE_TYPE_BLUETOOTH, idev->active_node->type);
 
   hfp_pcm_iodev_destroy(idev);
@@ -256,7 +258,8 @@ TEST_F(PcmIodev, CreateDestroyWbsInputHfpPcmIodev) {
 TEST_F(PcmIodev, CreateDestroySwbInputHfpPcmIodev) {
   struct cras_iodev* idev;
 
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD | HFP_CODEC_LC3;
+  cras_floss_hfp_is_codec_format_supported_mask =
+      HFP_CODEC_FORMAT_CVSD | HFP_CODEC_FORMAT_LC3_TRANSPARENT;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
   EXPECT_NE(idev, (void*)NULL);
@@ -277,7 +280,7 @@ TEST_F(PcmIodev, TestHfpReadNotStarted) {
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
   cras_floss_hfp_get_fd_ret = sock[1];
 
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
+  cras_floss_hfp_is_codec_format_supported_mask = HFP_CODEC_FORMAT_CVSD;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
   // Mock the pcm fd and send some fake data
   send(sock[0], sample, 48, 0);
@@ -301,7 +304,7 @@ TEST_F(PcmIodev, TestHfpReadStarted) {
 
   ASSERT_EQ(0, socketpair(AF_UNIX, SOCK_STREAM, 0, sock));
   cras_floss_hfp_get_fd_ret = sock[1];
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
+  cras_floss_hfp_is_codec_format_supported_mask = HFP_CODEC_FORMAT_CVSD;
   idev = hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
   pcm_idev = (fl_pcm_io*)idev;
   iodev_set_hfp_format(idev, &format);
@@ -445,7 +448,7 @@ TEST_F(PcmIodev, TestHfpCb) {
   cras_floss_hfp_get_fd_ret = sock[1];
   cras_floss_hfp_get_output_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
+  cras_floss_hfp_is_codec_format_supported_mask = HFP_CODEC_FORMAT_CVSD;
   cras_floss_hfp_get_input_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
@@ -492,7 +495,7 @@ TEST_F(PcmIodev, TestHfpCbWithSr) {
   cras_floss_hfp_get_fd_ret = sock[1];
   cras_floss_hfp_get_output_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_OUTPUT);
-  cras_floss_hfp_get_codec_supported_mask = HFP_CODEC_CVSD;
+  cras_floss_hfp_is_codec_format_supported_mask = HFP_CODEC_FORMAT_CVSD;
   cras_floss_hfp_get_input_iodev_ret =
       hfp_pcm_iodev_create(NULL, CRAS_STREAM_INPUT);
 
@@ -535,7 +538,7 @@ TEST_F(PcmIodev, TestHfpCbWithSr) {
 
 struct PcmIodevWithSrTestParam {
   bool is_cras_sr_enabled;
-  enum HFP_CODEC active_codec;
+  enum HFP_CODEC_FORMAT active_codec_format;
   enum CRAS_STREAM_DIRECTION direction;
   size_t expected_sample_rate;
 };
@@ -552,10 +555,10 @@ class PcmIodevWithSrTest
       disable_cras_sr_bt();
     }
 
-    cras_floss_hfp_get_active_codec_ret = GetParam().active_codec;
+    cras_floss_hfp_get_active_codec_format_ret = GetParam().active_codec_format;
 
-    cras_floss_hfp_get_codec_supported_mask =
-        HFP_CODEC_CVSD | GetParam().active_codec;
+    cras_floss_hfp_is_codec_format_supported_mask =
+        HFP_CODEC_FORMAT_CVSD | GetParam().active_codec_format;
   }
 
   virtual void TearDown() { disable_cras_sr_bt(); }
@@ -577,42 +580,47 @@ TEST_P(PcmIodevWithSrTest, CreateDestroyHfpPcmIodev) {
 INSTANTIATE_TEST_SUITE_P(
     ,
     PcmIodevWithSrTest,
-    testing::Values(PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
-                                             .active_codec = HFP_CODEC_CVSD,
-                                             .direction = CRAS_STREAM_INPUT,
-                                             .expected_sample_rate = 8000}),
-                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
-                                             .active_codec = HFP_CODEC_CVSD,
-                                             .direction = CRAS_STREAM_OUTPUT,
-                                             .expected_sample_rate = 8000}),
-                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
-                                             .active_codec = HFP_CODEC_MSBC,
-                                             .direction = CRAS_STREAM_INPUT,
-                                             .expected_sample_rate = 16000}),
-                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
-                                             .active_codec = HFP_CODEC_MSBC,
-                                             .direction = CRAS_STREAM_OUTPUT,
-                                             .expected_sample_rate = 16000}),
-                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
-                                             .active_codec = HFP_CODEC_CVSD,
-                                             .direction = CRAS_STREAM_INPUT,
-                                             .expected_sample_rate = 24000}),
-                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
-                                             .active_codec = HFP_CODEC_CVSD,
-                                             .direction = CRAS_STREAM_OUTPUT,
-                                             .expected_sample_rate = 8000}),
-                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
-                                             .active_codec = HFP_CODEC_MSBC,
-                                             .direction = CRAS_STREAM_INPUT,
-                                             .expected_sample_rate = 24000}),
-                    PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
-                                             .active_codec = HFP_CODEC_MSBC,
-                                             .direction = CRAS_STREAM_OUTPUT,
-                                             .expected_sample_rate = 16000})));
+    testing::Values(
+        PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
+                                 .active_codec_format = HFP_CODEC_FORMAT_CVSD,
+                                 .direction = CRAS_STREAM_INPUT,
+                                 .expected_sample_rate = 8000}),
+        PcmIodevWithSrTestParam({.is_cras_sr_enabled = false,
+                                 .active_codec_format = HFP_CODEC_FORMAT_CVSD,
+                                 .direction = CRAS_STREAM_OUTPUT,
+                                 .expected_sample_rate = 8000}),
+        PcmIodevWithSrTestParam(
+            {.is_cras_sr_enabled = false,
+             .active_codec_format = HFP_CODEC_FORMAT_MSBC_TRANSPARENT,
+             .direction = CRAS_STREAM_INPUT,
+             .expected_sample_rate = 16000}),
+        PcmIodevWithSrTestParam(
+            {.is_cras_sr_enabled = false,
+             .active_codec_format = HFP_CODEC_FORMAT_MSBC_TRANSPARENT,
+             .direction = CRAS_STREAM_OUTPUT,
+             .expected_sample_rate = 16000}),
+        PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
+                                 .active_codec_format = HFP_CODEC_FORMAT_CVSD,
+                                 .direction = CRAS_STREAM_INPUT,
+                                 .expected_sample_rate = 24000}),
+        PcmIodevWithSrTestParam({.is_cras_sr_enabled = true,
+                                 .active_codec_format = HFP_CODEC_FORMAT_CVSD,
+                                 .direction = CRAS_STREAM_OUTPUT,
+                                 .expected_sample_rate = 8000}),
+        PcmIodevWithSrTestParam(
+            {.is_cras_sr_enabled = true,
+             .active_codec_format = HFP_CODEC_FORMAT_MSBC_TRANSPARENT,
+             .direction = CRAS_STREAM_INPUT,
+             .expected_sample_rate = 24000}),
+        PcmIodevWithSrTestParam(
+            {.is_cras_sr_enabled = true,
+             .active_codec_format = HFP_CODEC_FORMAT_MSBC_TRANSPARENT,
+             .direction = CRAS_STREAM_OUTPUT,
+             .expected_sample_rate = 16000})));
 
 struct HfpInputCodecNegotiationTestParam {
   uint32_t supported_codecs;
-  enum HFP_CODEC final_codec;
+  enum HFP_CODEC_FORMAT final_codec;
   uint32_t expected_btflags_before_open;
   uint32_t expected_btflags_after_open;
   enum CRAS_NODE_TYPE expected_type_before_open;
@@ -625,8 +633,8 @@ class HfpInputCodecNegotiationTest
   virtual void SetUp() {
     ResetStubData();
 
-    cras_floss_hfp_get_codec_supported_mask = GetParam().supported_codecs;
-    cras_floss_hfp_get_active_codec_ret = GetParam().final_codec;
+    cras_floss_hfp_is_codec_format_supported_mask = GetParam().supported_codecs;
+    cras_floss_hfp_get_active_codec_format_ret = GetParam().final_codec;
   }
 
   virtual void TearDown() { disable_cras_sr_bt(); }
@@ -657,8 +665,8 @@ INSTANTIATE_TEST_SUITE_P(
     HfpInputCodecNegotiationTest,
     testing::Values(
         HfpInputCodecNegotiationTestParam(
-            {.supported_codecs = HFP_CODEC_CVSD,
-             .final_codec = HFP_CODEC_CVSD,
+            {.supported_codecs = HFP_CODEC_FORMAT_CVSD,
+             .final_codec = HFP_CODEC_FORMAT_CVSD,
              .expected_btflags_before_open = CRAS_BT_FLAG_FLOSS |
                                              CRAS_BT_FLAG_HFP,
              .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
@@ -666,8 +674,18 @@ INSTANTIATE_TEST_SUITE_P(
              .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC,
              .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC}),
         HfpInputCodecNegotiationTestParam(
-            {.supported_codecs = HFP_CODEC_CVSD | HFP_CODEC_MSBC,
-             .final_codec = HFP_CODEC_MSBC,
+            {.supported_codecs = HFP_CODEC_FORMAT_CVSD | HFP_CODEC_FORMAT_MSBC,
+             .final_codec = HFP_CODEC_FORMAT_CVSD,
+             .expected_btflags_before_open = CRAS_BT_FLAG_FLOSS |
+                                             CRAS_BT_FLAG_HFP,
+             .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
+                                            CRAS_BT_FLAG_HFP,
+             .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC,
+             .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC}),
+        HfpInputCodecNegotiationTestParam(
+            {.supported_codecs = HFP_CODEC_FORMAT_CVSD |
+                                 HFP_CODEC_FORMAT_MSBC_TRANSPARENT,
+             .final_codec = HFP_CODEC_FORMAT_MSBC_TRANSPARENT,
              .expected_btflags_before_open =
                  CRAS_BT_FLAG_FLOSS | CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_WBS,
              .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
@@ -675,8 +693,9 @@ INSTANTIATE_TEST_SUITE_P(
              .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH,
              .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH}),
         HfpInputCodecNegotiationTestParam(
-            {.supported_codecs = HFP_CODEC_CVSD | HFP_CODEC_MSBC,
-             .final_codec = HFP_CODEC_CVSD,
+            {.supported_codecs = HFP_CODEC_FORMAT_CVSD |
+                                 HFP_CODEC_FORMAT_MSBC_TRANSPARENT,
+             .final_codec = HFP_CODEC_FORMAT_CVSD,
              .expected_btflags_before_open =
                  CRAS_BT_FLAG_FLOSS | CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_WBS,
              .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
@@ -684,8 +703,9 @@ INSTANTIATE_TEST_SUITE_P(
              .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH,
              .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH_NB_MIC}),
         HfpInputCodecNegotiationTestParam(
-            {.supported_codecs = HFP_CODEC_CVSD | HFP_CODEC_LC3,
-             .final_codec = HFP_CODEC_LC3,
+            {.supported_codecs = HFP_CODEC_FORMAT_CVSD |
+                                 HFP_CODEC_FORMAT_LC3_TRANSPARENT,
+             .final_codec = HFP_CODEC_FORMAT_LC3_TRANSPARENT,
              .expected_btflags_before_open =
                  CRAS_BT_FLAG_FLOSS | CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_SWB,
              .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
@@ -693,8 +713,9 @@ INSTANTIATE_TEST_SUITE_P(
              .expected_type_before_open = CRAS_NODE_TYPE_BLUETOOTH,
              .expected_type_after_open = CRAS_NODE_TYPE_BLUETOOTH}),
         HfpInputCodecNegotiationTestParam(
-            {.supported_codecs = HFP_CODEC_CVSD | HFP_CODEC_LC3,
-             .final_codec = HFP_CODEC_CVSD,
+            {.supported_codecs = HFP_CODEC_FORMAT_CVSD |
+                                 HFP_CODEC_FORMAT_LC3_TRANSPARENT,
+             .final_codec = HFP_CODEC_FORMAT_CVSD,
              .expected_btflags_before_open =
                  CRAS_BT_FLAG_FLOSS | CRAS_BT_FLAG_HFP | CRAS_BT_FLAG_SWB,
              .expected_btflags_after_open = CRAS_BT_FLAG_FLOSS |
@@ -885,22 +906,23 @@ const char* cras_floss_hfp_get_addr(struct cras_hfp* hfp) {
   return "11:22:33:44:55:66";
 }
 
-bool cras_floss_hfp_get_codec_supported(struct cras_hfp* hfp,
-                                        enum HFP_CODEC codec) {
-  return cras_floss_hfp_get_codec_supported_mask & codec;
+bool cras_floss_hfp_is_codec_format_supported(struct cras_hfp* hfp,
+                                              enum HFP_CODEC_FORMAT codec) {
+  return cras_floss_hfp_is_codec_format_supported_mask & codec;
 }
 
-enum HFP_CODEC cras_floss_hfp_get_active_codec(struct cras_hfp* hfp) {
-  return cras_floss_hfp_get_active_codec_ret;
+enum HFP_CODEC_FORMAT cras_floss_hfp_get_active_codec_format(
+    struct cras_hfp* hfp) {
+  return cras_floss_hfp_get_active_codec_format_ret;
 }
 
-static int convert_hfp_codec_to_rate(enum HFP_CODEC codec) {
+static int convert_hfp_codec_format_to_rate(enum HFP_CODEC_FORMAT codec) {
   switch (codec) {
-    case HFP_CODEC_CVSD:
+    case HFP_CODEC_FORMAT_CVSD:
       return 8000;
-    case HFP_CODEC_MSBC:
+    case HFP_CODEC_FORMAT_MSBC_TRANSPARENT:
       return 16000;
-    case HFP_CODEC_LC3:
+    case HFP_CODEC_FORMAT_LC3_TRANSPARENT:
       return 32000;
     default:
       break;
@@ -914,8 +936,8 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
                                size_t** channel_counts) {
   cras_floss_hfp_fill_format_called++;
 
-  int codec_rate =
-      convert_hfp_codec_to_rate(cras_floss_hfp_get_active_codec(hfp));
+  int codec_rate = convert_hfp_codec_format_to_rate(
+      cras_floss_hfp_get_active_codec_format(hfp));
 
   free(*rates);
   free(*formats);

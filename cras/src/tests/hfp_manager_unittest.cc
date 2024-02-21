@@ -6,6 +6,7 @@
 
 #include "cras/server/platform/features/override.h"
 #include "cras/src/server/cras_bt_log.h"
+#include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_hfp_alsa_iodev.h"
 #include "cras/src/server/cras_hfp_manager.h"
 #include "cras/src/server/cras_iodev.h"
@@ -35,7 +36,7 @@ static void* audio_thread_add_events_callback_data;
 static int audio_thread_config_events_callback_called;
 static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
-static enum HFP_CODEC floss_media_hfp_start_sco_call_ret;
+static enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call_ret;
 static bool cras_system_get_force_hfp_swb_enabled_ret = false;
 
 void ResetStubData() {
@@ -47,7 +48,7 @@ void ResetStubData() {
   hfp_alsa_iodev_create_hfp_val = NULL;
   hfp_pcm_iodev_create_ret = reinterpret_cast<struct cras_iodev*>(0x123);
   hfp_alsa_iodev_create_ret = reinterpret_cast<struct cras_iodev*>(0x123);
-  floss_media_hfp_start_sco_call_ret = HFP_CODEC_CVSD;
+  floss_media_hfp_start_sco_call_ret = FL_HFP_CODEC_BIT_ID_CVSD;
   hfp_pcm_iodev_create_called = 0;
   hfp_alsa_iodev_create_called = 0;
   hfp_pcm_iodev_destroy_called = 0;
@@ -92,10 +93,13 @@ TEST_F(HfpManagerTestSuite, PCMCreateFailed) {
 }
 
 TEST_F(HfpManagerTestSuite, PCMCreateSwbWhenDisallowed) {
-  struct cras_hfp* hfp = cras_floss_hfp_create(NULL, "addr", "name",
-                                               HFP_CODEC_CVSD | HFP_CODEC_LC3);
+  struct cras_hfp* hfp = cras_floss_hfp_create(
+      NULL, "addr", "name",
+      FL_HFP_CODEC_FORMAT_CVSD | FL_HFP_CODEC_FORMAT_LC3_TRANSPARENT);
   ASSERT_NE(hfp, (struct cras_hfp*)NULL);
-  ASSERT_EQ(cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_MSBC), true);
+  ASSERT_EQ(cras_floss_hfp_is_codec_format_supported(
+                hfp, HFP_CODEC_FORMAT_MSBC_TRANSPARENT),
+            true);
   cras_floss_hfp_destroy(hfp);
 }
 
@@ -305,9 +309,10 @@ void hfp_alsa_iodev_destroy(struct cras_iodev* iodev) {
 }
 
 // From cras_fl_media
-int floss_media_hfp_start_sco_call(struct fl_media* fm,
-                                   const char* addr,
-                                   int disabled_codecs) {
+enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
+                                                        const char* addr,
+                                                        bool enable_offload,
+                                                        int disabled_codecs) {
   floss_media_hfp_start_sco_called++;
   return floss_media_hfp_start_sco_call_ret;
 }

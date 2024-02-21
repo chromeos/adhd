@@ -67,7 +67,7 @@ struct cras_hfp {
   // If we issued |StopScoCall| and expect an HFP audio disconnection callback
   bool pending_audio_disconnection;
   int hfp_caps;
-  enum HFP_CODEC active_codec;
+  enum HFP_CODEC_FORMAT active_codec_format;
   bool sco_pcm_used;
 };
 
@@ -132,25 +132,27 @@ struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
   hfp->sco_pcm_used = is_sco_pcm_supported() && is_sco_pcm_used();
 
   if (!cras_system_get_bt_wbs_enabled()) {
-    hfp->hfp_caps &= ~FL_HFP_CODEC_MSBC;
-    hfp->hfp_caps &= ~FL_HFP_CODEC_LC3;
+    hfp->hfp_caps &= ~HFP_CODEC_FORMAT_MSBC_TRANSPARENT;
+    hfp->hfp_caps &= ~HFP_CODEC_FORMAT_MSBC;
   }
 
   // Until SWB is fully launched, it will be guarded by a flag,
   // which can be enabled by users, experiments, or tests.
   if (!cras_floss_hfp_swb_allowed()) {
-    // If SWB is available but we have disabled it, then it will almost
-    // certainly fallback to WBS.
-    if (hfp->hfp_caps & FL_HFP_CODEC_LC3) {
-      hfp->hfp_caps |= FL_HFP_CODEC_MSBC;
+    // If SWB is available but we have disabled it, then the peer will almost
+    // certainly fallback to WBS. In such event, MSBC transparent should be
+    // tried.
+    if (hfp->hfp_caps & HFP_CODEC_FORMAT_LC3_TRANSPARENT) {
+      hfp->hfp_caps |= HFP_CODEC_FORMAT_MSBC_TRANSPARENT;
     }
-    hfp->hfp_caps &= ~FL_HFP_CODEC_LC3;
+    hfp->hfp_caps &= ~HFP_CODEC_FORMAT_LC3_TRANSPARENT;
   }
 
   // Currently, SWB is only supported via SW encoding. If CRAS would
   // have been using HW encoding but LC3 is available, we will back off to
   // the SW encoding backend.
-  if (cras_floss_hfp_get_codec_supported(hfp, HFP_CODEC_LC3) &&
+  if (cras_floss_hfp_is_codec_format_supported(
+          hfp, HFP_CODEC_FORMAT_LC3_TRANSPARENT) &&
       hfp->sco_pcm_used) {
     hfp->sco_pcm_used = false;
     syslog(LOG_INFO, "Bypassed offloading to allow LC3");
@@ -170,8 +172,8 @@ struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
     hfp->odev = hfp_pcm_iodev_create(hfp, CRAS_STREAM_OUTPUT);
   }
 
-  BTLOG(btlog, BT_AUDIO_GATEWAY_START, is_sco_pcm_supported(),
-        hfp->sco_pcm_used);
+  BTLOG(btlog, BT_AUDIO_GATEWAY_START,
+        (is_sco_pcm_supported() << 1) | hfp->sco_pcm_used, hfp->hfp_caps);
 
   if (!hfp->idev || !hfp->odev) {
     syslog(LOG_WARNING, "Failed to create hfp pcm_iodev for %s", name);
@@ -202,12 +204,12 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
     goto start_dev;
   }
 
-  int disabled_codecs = FL_HFP_CODEC_NONE;
+  int disabled_codecs = FL_HFP_CODEC_BIT_ID_NONE;
   if (!cras_system_get_bt_wbs_enabled()) {
-    disabled_codecs |= FL_HFP_CODEC_MSBC | FL_HFP_CODEC_LC3;
+    disabled_codecs |= FL_HFP_CODEC_BIT_ID_MSBC | FL_HFP_CODEC_BIT_ID_LC3;
   }
   if (hfp->sco_pcm_used || !cras_floss_hfp_swb_allowed()) {
-    disabled_codecs |= FL_HFP_CODEC_LC3;
+    disabled_codecs |= FL_HFP_CODEC_BIT_ID_LC3;
   }
 
   rc = floss_media_hfp_start_sco_call(hfp->fm, hfp->addr, hfp->sco_pcm_used,
@@ -217,15 +219,31 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
     return rc;
   }
 
-  if (!(HFP_CODEC_NONE < rc && rc < HFP_CODEC_UNKNOWN) ||
+  if (!(FL_HFP_CODEC_BIT_ID_NONE < rc && rc < FL_HFP_CODEC_BIT_ID_UNKNOWN) ||
       __builtin_popcount(rc) != 1) {
     syslog(LOG_ERR, "Invalid active codec %d", rc);
     return -EINVAL;
   }
 
-  hfp->active_codec = rc;
+  switch (rc) {
+    case FL_HFP_CODEC_BIT_ID_CVSD:
+      hfp->active_codec_format = HFP_CODEC_FORMAT_CVSD;
+      break;
+    case FL_HFP_CODEC_BIT_ID_MSBC:
+      hfp->active_codec_format = hfp->sco_pcm_used
+                                     ? HFP_CODEC_FORMAT_MSBC
+                                     : HFP_CODEC_FORMAT_MSBC_TRANSPARENT;
+      break;
+    case FL_HFP_CODEC_BIT_ID_LC3:
+      hfp->active_codec_format = HFP_CODEC_FORMAT_LC3_TRANSPARENT;
+      break;
+    default:
+      syslog(LOG_ERR, "Invalid active codec format %d", rc);
+      return -EINVAL;
+  }
 
-  syslog(LOG_INFO, "Negotiated active codec is %d", hfp->active_codec);
+  syslog(LOG_INFO, "Negotiated active codec format is %d",
+         hfp->active_codec_format);
 
   if (hfp->sco_pcm_used) {
     // When sco is offloaded, we do not need to connect to the fd in Floss.
@@ -370,18 +388,19 @@ const uint32_t cras_floss_hfp_get_stable_id(struct cras_hfp* hfp) {
   return SuperFastHash(addr, strlen(addr), strlen(addr));
 }
 
-static int convert_hfp_codec_to_rate(enum HFP_CODEC codec) {
+static int convert_hfp_codec_format_to_rate(enum HFP_CODEC_FORMAT codec) {
   switch (codec) {
-    case HFP_CODEC_NONE:
+    case HFP_CODEC_FORMAT_NONE:
       return 0;
-    case HFP_CODEC_CVSD:
+    case HFP_CODEC_FORMAT_CVSD:
       return 8000;
-    case HFP_CODEC_MSBC:
+    case HFP_CODEC_FORMAT_MSBC_TRANSPARENT:
+    case HFP_CODEC_FORMAT_MSBC:
       return 16000;
-    case HFP_CODEC_LC3:
+    case HFP_CODEC_FORMAT_LC3_TRANSPARENT:
       return 32000;
     default:
-      syslog(LOG_ERR, "%s: unknown codec %d", __func__, codec);
+      syslog(LOG_ERR, "%s: unknown codec format %d", __func__, codec);
       break;
   }
   return 0;
@@ -395,7 +414,7 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
   if (!*rates) {
     return -ENOMEM;
   }
-  (*rates)[0] = convert_hfp_codec_to_rate(hfp->active_codec);
+  (*rates)[0] = convert_hfp_codec_format_to_rate(hfp->active_codec_format);
   (*rates)[1] = 0;
 
   *formats = (snd_pcm_format_t*)malloc(2 * sizeof(snd_pcm_format_t));
@@ -430,13 +449,14 @@ int cras_floss_hfp_convert_volume(unsigned int vgs_volume) {
   return vgs_volume * 100 / 15;
 }
 
-bool cras_floss_hfp_get_codec_supported(struct cras_hfp* hfp,
-                                        enum HFP_CODEC codec) {
+bool cras_floss_hfp_is_codec_format_supported(struct cras_hfp* hfp,
+                                              enum HFP_CODEC_FORMAT codec) {
   return hfp->hfp_caps & codec;
 }
 
-enum HFP_CODEC cras_floss_hfp_get_active_codec(struct cras_hfp* hfp) {
-  return hfp->active_codec;
+enum HFP_CODEC_FORMAT cras_floss_hfp_get_active_codec_format(
+    struct cras_hfp* hfp) {
+  return hfp->active_codec_format;
 }
 
 // Destroys given cras_hfp object.
