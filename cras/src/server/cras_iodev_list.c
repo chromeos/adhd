@@ -481,6 +481,38 @@ static void possibly_disable_echo_reference(struct cras_iodev* dev) {
                         dev->echo_reference_dev->info.idx);
 }
 
+static inline bool is_fallback_dev(struct cras_iodev* dev);
+
+static inline bool has_any_open_input_dev() {
+  struct enabled_dev* edev;
+  DL_FOREACH (enabled_devs[CRAS_STREAM_INPUT], edev) {
+    if (cras_iodev_is_open(edev->dev) && !is_fallback_dev(edev->dev)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+ * DSP offload will be disallowed on the output device while being referenced as
+ * the echo signal for AEC effect on any active input stream, which is
+ * determined within audio thread. A proximate condition on main thread is
+ * provided in this function, regarding that if any input device is open. i.e.
+ *   disallowed=1: disallow DSP offload on output devs if any input dev is open
+ *   disallowed=0: allow DSP offload on output devs if no input dev is open
+ */
+static void possibly_disallow_dsp_offload_by_aec_ref(bool disallowed) {
+  struct enabled_dev* edev;
+
+  if (has_any_open_input_dev() != disallowed) {
+    return;
+  }
+
+  DL_FOREACH (enabled_devs[CRAS_STREAM_OUTPUT], edev) {
+    cras_iodev_set_dsp_offload_disallow_by_aec_ref(edev->dev, disallowed);
+  }
+}
+
 static bool is_dsp_aec_use_case(const struct cras_ionode* node) {
   /* For NC standalone mode, this checker should be interpreted to
    * old-fashioned use case, i.e. any node but Internal Speaker.
@@ -578,6 +610,8 @@ static void close_dev(struct cras_iodev* dev) {
   cras_iodev_close(dev);
 
   possibly_clear_non_dsp_aec_echo_ref_dev_alive();
+
+  possibly_disallow_dsp_offload_by_aec_ref(false);
 }
 
 static void idle_dev_check(struct cras_timer* timer, void* data) {
@@ -712,6 +746,8 @@ static int init_device(struct cras_iodev* dev, struct cras_rstream* rstream) {
   possibly_enable_echo_reference(dev);
 
   possibly_set_non_dsp_aec_echo_ref_dev_alive(dev);
+
+  possibly_disallow_dsp_offload_by_aec_ref(true);
 
   return rc;
 }

@@ -390,6 +390,19 @@ void cras_dsp_reload_ini() {
   cmd_reload_ini();
 }
 
+void cras_dsp_readapt_pipeline(struct cras_dsp_context* ctx) {
+  struct pipeline* pipeline = cras_dsp_get_pipeline(ctx);
+  if (!pipeline) {
+    syslog(LOG_WARNING, "Bad attempt to readapt pipeline while not loaded.");
+    return;
+  }
+  /* dsp_context mutex locked. Now it's safe to modify dsp
+   * pipeline resources. */
+
+  possibly_offload_pipeline(ctx->offload_map, pipeline);
+  cras_dsp_put_pipeline(ctx);
+}
+
 void cras_dsp_dump_info() {
   struct pipeline* pipeline;
   struct cras_dsp_context* ctx;

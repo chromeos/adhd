@@ -82,6 +82,24 @@ struct pipeline* cras_dsp_get_pipeline(struct cras_dsp_context* ctx);
  * cras_dsp_get_pipeline() was called. */
 void cras_dsp_put_pipeline(struct cras_dsp_context* ctx);
 
+/* Readapts the pipeline in the context. In contrast with
+ * cras_dsp_load_pipeline:
+ *  - is called while opening iodev, or updating active_node, i.e. at the start
+ *    of audio playback on a certain node.
+ *  - will replace the current cras_dsp_pipeline with a new one.
+ *    ext_dsp_pipeline and swap_lr will be reset after replacement.
+ *  - the offload process (mixer control config setting) can be done without
+ *    blocking audio thread.
+ * cras_dsp_readapt_pipeline:
+ *  - is called while triggering DSP offload fallback for a running pipeline,
+ *    i.e. in the middle of audio playback on a certain node.
+ *  - will retain the current cras_dsp_pipeline. ext_dsp_pipeline and swap_lr
+ *    are unaffected by readaptation.
+ *  - the offload process will be done with audio thread blocked. As a
+ *    consequence, this should be called only if necessary.
+ */
+void cras_dsp_readapt_pipeline(struct cras_dsp_context* ctx);
+
 // Re-reads the ini file and reloads all pipelines in the system.
 void cras_dsp_reload_ini();
 

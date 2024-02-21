@@ -781,6 +781,16 @@ void cras_iodev_set_ext_dsp_module(struct cras_iodev* iodev,
                                    struct ext_dsp_module* ext);
 
 /*
+ * Sets the DSP offload disallow bit for |iodev| and readapt the pipeline
+ * accordingly if necessary. This function should be called in main thread.
+ * Args:
+ *    iodev - The iodev to hold the DSP offload map.
+ *    disallowed - The disallow bit state to set to iodev for AEC reference.
+ */
+void cras_iodev_set_dsp_offload_disallow_by_aec_ref(struct cras_iodev* iodev,
+                                                    bool disallowed);
+
+/*
  * Put 'frames' worth of zero samples into odev. This function is mainly used to
  * pad the buffer by putting frames of zero samples.
  * Args:

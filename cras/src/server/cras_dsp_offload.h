@@ -32,6 +32,7 @@ enum DSP_OFFLOAD_DISALLOW_BIT {
   DISALLOW_OFFLOAD_NONE = 0,
   DISALLOW_OFFLOAD_BY_FLAG = 1 << 0,     // by external flags, e.g. Finch.
   DISALLOW_OFFLOAD_BY_PATTERN = 1 << 1,  // by non-applicable DSP pattern.
+  DISALLOW_OFFLOAD_BY_AEC_REF = 1 << 2,  // by the use as AEC echo reference.
 };
 
 /* dsp_offload_map provides the mapping information of modules offloaded

@@ -3814,6 +3814,9 @@ bool cras_iodev_is_dsp_aec_use_case(const struct cras_ionode* node) {
   return (node->type == CRAS_NODE_TYPE_INTERNAL_SPEAKER);
 }
 
+void cras_iodev_set_dsp_offload_disallow_by_aec_ref(struct cras_iodev* iodev,
+                                                    bool disallowed) {}
+
 struct stream_list* stream_list_create(stream_callback* add_cb,
                                        stream_callback* rm_cb,
                                        stream_create_func* create_cb,

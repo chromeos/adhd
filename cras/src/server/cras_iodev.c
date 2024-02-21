@@ -665,6 +665,45 @@ void cras_iodev_set_ext_dsp_module(struct cras_iodev* iodev,
   }
 }
 
+void cras_iodev_set_dsp_offload_disallow_by_aec_ref(struct cras_iodev* iodev,
+                                                    bool disallowed) {
+  /* Only consider the device having both dsp_offload_map and ext_dsp_module.
+   * The former represents the support of DSP offload on device, and the latter
+   * implies that device is one of the candidate for CRAS AEC echo reference.
+   */
+  if (!iodev->dsp_offload_map || !iodev->ext_dsp_module) {
+    return;
+  }
+
+  if (disallowed) {
+    cras_dsp_offload_set_disallow_bit(iodev->dsp_offload_map,
+                                      DISALLOW_OFFLOAD_BY_AEC_REF);
+  } else {
+    cras_dsp_offload_clear_disallow_bit(iodev->dsp_offload_map,
+                                        DISALLOW_OFFLOAD_BY_AEC_REF);
+  }
+
+  if (!cras_iodev_is_open(iodev) || !iodev->dsp_context) {
+    return;
+  }
+
+  /* If device is open, readapt the pipeline to apply/disable the DSP offload
+   * after updating disallow_bits. The action will be taken into account only if
+   * the disallowed state is changed after updating bits. i.e.
+   *  1. DSP offload "is not applied" now and "is allowed" after updating bits.
+   *  2. DSP offload "is applied" now and "is not allowed" after updating bits.
+   */
+  bool is_applied = cras_dsp_offload_is_already_applied(iodev->dsp_offload_map);
+  bool is_allowed = !iodev->dsp_offload_map->disallow_bits;
+  if (is_allowed != is_applied) {
+    syslog(LOG_DEBUG, "Readapt DSP pipeline (offload applied:%d, allowed:%d)",
+           is_applied, is_allowed);
+    cras_dsp_readapt_pipeline(iodev->dsp_context);
+    syslog(LOG_DEBUG, "DSP pipeline readaptation finished (offload applied:%d)",
+           cras_dsp_offload_is_already_applied(iodev->dsp_offload_map));
+  }
+}
+
 void cras_iodev_update_dsp(struct cras_iodev* iodev) {
   if (!iodev->dsp_context) {
     return;

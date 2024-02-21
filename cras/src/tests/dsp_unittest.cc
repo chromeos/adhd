@@ -28,6 +28,9 @@ static size_t cras_alsa_config_eq2_called;
 static size_t cras_alsa_config_other_called;
 static const char* system_get_dsp_offload_map_str_ret = "Speaker:(1,)";
 static bool cras_feature_enabled_dsp_offload;
+static struct ext_dsp_module stub_ext_mod;
+static size_t stub_running_module_count;
+static bool stub_sink_ext_dsp_module_adopted;
 
 static void ResetStubData() {
   cras_alsa_config_probe_retval = -1;
@@ -35,6 +38,8 @@ static void ResetStubData() {
   cras_alsa_config_eq2_called = 0;
   cras_alsa_config_other_called = 0;
   cras_feature_enabled_dsp_offload = true;
+  stub_running_module_count = 0;
+  stub_sink_ext_dsp_module_adopted = false;
 }
 
 namespace {
@@ -429,6 +434,216 @@ TEST_F(DspTestSuite, DspOffloadNodeSwitch) {
   cras_dsp_offload_free_map(map_dev);
 }
 
+TEST_F(DspTestSuite, DspOffloadReadaptation) {
+  const char* content =
+      "[M1]\n"
+      "library=builtin\n"
+      "label=source\n"
+      "purpose=playback\n"
+      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
+      "output_0={a0}\n"
+      "output_1={a1}\n"
+      "[M2]\n"
+      "library=builtin\n"
+      "label=drc\n"
+      "purpose=playback\n"
+      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
+      "input_0={a0}\n"
+      "input_1={a1}\n"
+      "output_2={b0}\n"
+      "output_3={b1}\n"
+      "[M3]\n"
+      "library=builtin\n"
+      "label=eq2\n"
+      "purpose=playback\n"
+      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
+      "input_0={b0}\n"
+      "input_1={b1}\n"
+      "output_2={c0}\n"
+      "output_3={c1}\n"
+      "[M4]\n"
+      "library=builtin\n"
+      "label=sink\n"
+      "purpose=playback\n"
+      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
+      "input_0={c0}\n"
+      "input_1={c1}\n";
+  fprintf(fp, "%s", content);
+  CloseFile();
+
+  /* In this test example, the playback device has one node appended as below:
+   * [idx] [type]           [dsp_name] [cras_dsp_pipeline graph] [DSP offload]
+   *    0  INTERNAL_SPEAKER  drc_eq    src->drc->eq2->sink       can be applied
+   *
+   * Here are the summary for information of all 7 steps under testing:
+   * [step][odev_state]  [idev_state][finch] [cras_dsp_pipeline]  [DSP offload]
+   *     1  open          closed      on      src----------->sink  applied
+   *     2  open(ext_mod) closed      on      src----------->sink  applied
+   *     3  open(ext_mod) open        on      src->drc->eq2->sink  disallowed
+   *     4  open(ext_mod) closed      on      src----------->sink  applied
+   *     5  re-opened     closed      off     src->drc->eq2->sink  disallowed
+   *     6  open(ext_mod) open        off     src->drc->eq2->sink  disallowed
+   *     7  open(ext_mod) closed      off     src->drc->eq2->sink  disallowed
+   */
+
+  ResetStubData();
+  cras_alsa_config_probe_retval = 0;
+  cras_alsa_config_drc_enabled = false;
+  cras_alsa_config_eq2_enabled = false;
+
+  cras_dsp_init(filename);
+
+  // Init iodev and ionode for testing purposes.
+  struct cras_iodev dev;
+  struct cras_ionode node;
+  strncpy(node.name, INTERNAL_SPEAKER, sizeof(node.name) - 1);
+  node.idx = 0;
+  node.dsp_name = "drc_eq";
+  node.dev = &dev;
+  dev.active_node = &node;
+
+  // dsp_offload_map should be stored and owned by iodev in practice.
+  struct dsp_offload_map* map_dev;
+  ASSERT_EQ(0, cras_dsp_offload_create_map(&map_dev, &node));
+  ASSERT_TRUE(map_dev);
+  EXPECT_EQ(DSP_PROC_NOT_STARTED, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
+
+  // 1. open device and load pipeline
+  struct cras_dsp_context* ctx;
+  ctx = test_cras_iodev_alloc_dsp(map_dev);
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
+  cras_dsp_load_pipeline(ctx);
+
+  // DSP DRC/EQ will be configured and enabled
+  EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
+  EXPECT_EQ(node.idx, map_dev->applied_node_idx);
+  EXPECT_EQ(1, cras_alsa_config_drc_called);
+  EXPECT_EQ(1, cras_alsa_config_eq2_called);
+  EXPECT_TRUE(cras_alsa_config_drc_enabled);
+  EXPECT_TRUE(cras_alsa_config_eq2_enabled);
+  // while offloaded, pipeline runs on source and sink modules only
+  struct pipeline* pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  ASSERT_EQ(0, cras_dsp_pipeline_run(pipeline, 0 /* sample_count */));
+  EXPECT_EQ(1, stub_running_module_count);  // 1(sink)
+  cras_dsp_put_pipeline(ctx);
+
+  // 2. set ext_dsp_module to pipeline
+  ResetStubData();
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  cras_dsp_pipeline_set_sink_ext_module(pipeline, &stub_ext_mod);
+  cras_dsp_put_pipeline(ctx);
+
+  // DSP DRC/EQ will be configured and enabled
+  EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
+  EXPECT_EQ(node.idx, map_dev->applied_node_idx);
+  EXPECT_TRUE(cras_alsa_config_drc_enabled);
+  EXPECT_TRUE(cras_alsa_config_eq2_enabled);
+  // pipeline is still offloaded, while ext_dsp_module is adopted in sink
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  ASSERT_EQ(0, cras_dsp_pipeline_run(pipeline, 0 /* sample_count */));
+  EXPECT_EQ(1, stub_running_module_count);  // 1(sink)
+  EXPECT_TRUE(stub_sink_ext_dsp_module_adopted);
+  cras_dsp_put_pipeline(ctx);
+
+  // 3. set disallow_bits and readapt pipeline (any input dev is open)
+  ResetStubData();
+  cras_dsp_offload_set_disallow_bit(map_dev, DISALLOW_OFFLOAD_BY_AEC_REF);
+  cras_dsp_readapt_pipeline(ctx);
+
+  // DSP DRC/EQ will be disabled
+  EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_BY_AEC_REF, map_dev->disallow_bits);
+  EXPECT_FALSE(cras_alsa_config_drc_enabled);
+  EXPECT_FALSE(cras_alsa_config_eq2_enabled);
+  // pipeline runs through all modules
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  ASSERT_EQ(0, cras_dsp_pipeline_run(pipeline, 0 /* sample_count */));
+  EXPECT_EQ(4, stub_running_module_count);  // 4(source, drc, eq2, sink)
+  EXPECT_TRUE(stub_sink_ext_dsp_module_adopted);
+  cras_dsp_put_pipeline(ctx);
+
+  // 4. clear disallow_bits and readapt pipeline (the input dev is closed)
+  ResetStubData();
+  cras_dsp_offload_clear_disallow_bit(map_dev, DISALLOW_OFFLOAD_BY_AEC_REF);
+  cras_dsp_readapt_pipeline(ctx);
+
+  // DSP DRC/EQ will be enabled
+  EXPECT_EQ(DSP_PROC_ON_DSP, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_NONE, map_dev->disallow_bits);
+  EXPECT_TRUE(cras_alsa_config_drc_enabled);
+  EXPECT_TRUE(cras_alsa_config_eq2_enabled);
+  // pipeline runs on sink module only
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  ASSERT_EQ(0, cras_dsp_pipeline_run(pipeline, 0 /* sample_count */));
+  EXPECT_EQ(1, stub_running_module_count);  // 1(sink)
+  EXPECT_TRUE(stub_sink_ext_dsp_module_adopted);
+  cras_dsp_put_pipeline(ctx);
+
+  // 5. re-open device while toggling CRAS feature flag off
+  ResetStubData();
+  cras_feature_enabled_dsp_offload = false;
+  cras_dsp_context_free(ctx);
+  // simulate alloc_dsp() and update_dsp() calls for opening device.
+  ctx = test_cras_iodev_alloc_dsp(map_dev);
+  test_cras_iodev_update_dsp(ctx, map_dev, dev.active_node);
+  cras_dsp_load_pipeline(ctx);
+  // set ext_dsp_module to pipeline
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  cras_dsp_pipeline_set_sink_ext_module(pipeline, &stub_ext_mod);
+  cras_dsp_put_pipeline(ctx);
+
+  // DSP DRC/EQ will be disabled; offload is disallowed by feature flag.
+  EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_BY_FLAG, map_dev->disallow_bits);
+  EXPECT_EQ(0, cras_alsa_config_drc_called);
+  EXPECT_EQ(0, cras_alsa_config_eq2_called);
+  EXPECT_FALSE(cras_alsa_config_drc_enabled);
+  EXPECT_FALSE(cras_alsa_config_eq2_enabled);
+  // pipeline runs through all modules
+  pipeline = cras_dsp_get_pipeline(ctx);
+  ASSERT_TRUE(pipeline);
+  ASSERT_EQ(0, cras_dsp_pipeline_run(pipeline, 0 /* sample_count */));
+  EXPECT_EQ(4, stub_running_module_count);  // 4(source, drc, eq2, sink)
+  EXPECT_TRUE(stub_sink_ext_dsp_module_adopted);
+  cras_dsp_put_pipeline(ctx);
+
+  // 6. set disallow_bits and readapt pipeline (any input dev is open)
+  ResetStubData();
+  cras_dsp_offload_set_disallow_bit(map_dev, DISALLOW_OFFLOAD_BY_AEC_REF);
+  cras_dsp_readapt_pipeline(ctx);
+
+  // DSP DRC/EQ will be disabled
+  EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_BY_AEC_REF | DISALLOW_OFFLOAD_BY_FLAG,
+            map_dev->disallow_bits);
+  EXPECT_FALSE(cras_alsa_config_drc_enabled);
+  EXPECT_FALSE(cras_alsa_config_eq2_enabled);
+
+  // 7. clear disallow_bits and readapt pipeline (the input dev is closed)
+  ResetStubData();
+  cras_dsp_offload_clear_disallow_bit(map_dev, DISALLOW_OFFLOAD_BY_AEC_REF);
+  cras_dsp_readapt_pipeline(ctx);
+
+  // DSP DRC/EQ will be disabled still (due to feature flag)
+  EXPECT_EQ(DSP_PROC_ON_CRAS, map_dev->state);
+  EXPECT_EQ(DISALLOW_OFFLOAD_BY_FLAG, map_dev->disallow_bits);
+  EXPECT_FALSE(cras_alsa_config_drc_enabled);
+  EXPECT_FALSE(cras_alsa_config_eq2_enabled);
+
+  cras_dsp_context_free(ctx);
+  cras_dsp_stop();
+  cras_dsp_offload_free_map(map_dev);
+}
+
 static int empty_instantiate(struct dsp_module* module,
                              unsigned long sample_rate,
                              struct cras_expr_env* env) {
@@ -475,7 +690,16 @@ static int empty_get_delay(struct dsp_module* module) {
   return 0;
 }
 
-static void empty_run(struct dsp_module* module, unsigned long sample_count) {}
+static void stub_run(struct dsp_module* module, unsigned long sample_count) {
+  stub_running_module_count++;
+}
+
+static void sink_run(struct dsp_module* module, unsigned long sample_count) {
+  stub_running_module_count++;
+  if (&stub_ext_mod == static_cast<struct ext_dsp_module*>(module->data)) {
+    stub_sink_ext_dsp_module_adopted = true;
+  }
+}
 
 static void empty_deinstantiate(struct dsp_module* module) {}
 
@@ -497,7 +721,7 @@ static void empty_init_module(struct dsp_module* module) {
   module->configure = &empty_configure;
   module->get_offload_blob = &empty_get_offload_blob;
   module->get_delay = &empty_get_delay;
-  module->run = &empty_run;
+  module->run = &stub_run;
   module->deinstantiate = &empty_deinstantiate;
   module->free_module = &empty_free_module;
   module->get_properties = &empty_get_properties;
@@ -517,11 +741,18 @@ struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
     module->get_offload_blob = &drc_get_offload_blob;
   } else if (strcmp(plugin->label, "eq2") == 0) {
     module->get_offload_blob = &eq2_get_offload_blob;
+  } else if (strcmp(plugin->label, "sink") == 0) {
+    module->run = &sink_run;
   }
   return module;
 }
 void cras_dsp_module_set_sink_ext_module(struct dsp_module* module,
-                                         struct ext_dsp_module* ext_module) {}
+                                         struct ext_dsp_module* ext_module) {
+  if (!module) {
+    return;
+  }
+  module->data = ext_module;
+}
 void cras_dsp_module_set_sink_lr_swapped(struct dsp_module* module,
                                          bool left_right_swapped) {}
 
