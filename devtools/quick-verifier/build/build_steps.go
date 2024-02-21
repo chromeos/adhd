@@ -247,6 +247,8 @@ func cppcheckSteps() *buildplan.Sequence {
 				Entrypoint: "bazel",
 				Args: []string{
 					"build", "//...",
+					"--config=ci",
+					"--config=local-clang",
 				},
 			},
 			{

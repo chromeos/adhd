@@ -695,7 +695,9 @@
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
       "args": [
         "build",
-        "//..."
+        "//...",
+        "--config=ci",
+        "--config=local-clang"
       ],
       "dir": "/workspace-cppcheck",
       "id": "cppcheck:1",
