@@ -499,6 +499,9 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
     idev->hfp_rw_offset = odev->hfp_rw_offset = 0;
   }
 
+  clock_gettime(CLOCK_MONOTONIC_RAW, &odev->last_write_ts);
+  idev->last_write_ts = odev->last_write_ts;
+
   return rc;
 }
 
@@ -669,6 +672,7 @@ static int hfp_configure_dev(struct cras_iodev* iodev) {
 
   hfpio->write_block = iodev->format->frame_rate * PCM_BLOCK_MS / 1000;
   hfpio->bt_stack_delay = 0;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &hfpio->last_write_ts);
 
   // As we directly write PCM here, there is no min buffer limitation.
   iodev->min_buffer_level = 0;
@@ -858,13 +862,33 @@ do_flush:
   return 0;
 }
 
-static int delay_frames(const struct cras_iodev* iodev) {
+static int a2dp_delay_frames(const struct cras_iodev* iodev) {
   const struct fl_pcm_io* pcmio = (struct fl_pcm_io*)iodev;
-  struct timespec tstamp;
+  int local_frs = bt_local_queued_frames(iodev);
 
   /* The number of frames in the pcm buffer plus the delay
    * derived from a2dp_pcm_update_bt_stack_delay. */
-  return frames_queued(iodev, &tstamp) + pcmio->bt_stack_delay;
+  return local_frs + pcmio->bt_stack_delay;
+}
+
+static int hfp_delay_frames(const struct cras_iodev* iodev) {
+  const struct fl_pcm_io* pcmio = (struct fl_pcm_io*)iodev;
+  int local_frs = bt_local_queued_frames(iodev);
+  int incoming_frs =
+      cras_frames_since_time(&pcmio->last_write_ts, iodev->format->frame_rate);
+
+  // As time goes by since |last_write_ts| we estimate |incoming_frs|
+  // frames are generated but not yet transmitted from/to Floss.
+  // These frames are taken into accounted when CRAS client asks for
+  // delay because it requires the continuously reported values look
+  // as smooth as possible when viewed as a graph.
+  if (pcmio->write_block > incoming_frs) {
+    local_frs += (iodev->direction == CRAS_STREAM_OUTPUT)
+                     ? pcmio->write_block - incoming_frs
+                     : incoming_frs;
+  }
+
+  return local_frs + pcmio->bt_stack_delay;
 }
 
 static int get_buffer(struct cras_iodev* iodev,
@@ -1021,7 +1045,6 @@ struct fl_pcm_io* pcm_iodev_create(enum CRAS_STREAM_DIRECTION dir,
 
   // Same callbacks for A2DP and HFP
   iodev->frames_queued = frames_queued;
-  iodev->delay_frames = delay_frames;
   iodev->get_buffer = get_buffer;
 
   // A2DP specific fields
@@ -1057,6 +1080,7 @@ static void set_a2dp_callbacks(struct cras_iodev* a2dpio) {
   a2dpio->no_stream = a2dp_no_stream;
   a2dpio->close_dev = a2dp_close_dev;
   a2dpio->set_volume = a2dp_set_volume;
+  a2dpio->delay_frames = a2dp_delay_frames;
 
   a2dpio->frames_to_play_in_sleep = a2dp_frames_to_play_in_sleep;
   a2dpio->output_underrun = a2dp_output_underrun;
@@ -1156,6 +1180,7 @@ static void set_hfp_callbacks(struct cras_iodev* hfpio) {
   hfpio->no_stream = hfp_no_stream;
   hfpio->close_dev = hfp_close_dev;
   hfpio->set_volume = hfp_set_volume;
+  hfpio->delay_frames = hfp_delay_frames;
 
   hfpio->is_free_running = hfp_is_free_running;
 }
