@@ -263,21 +263,20 @@ class DspPipelineTestSuite : public testing::Test {
 };
 
 TEST_F(DspPipelineTestSuite, Simple) {
-  const char* content =
-      "[M1]\n"
-      "library=builtin\n"
-      "label=source\n"
-      "purpose=capture\n"
-      "output_0={audio}\n"
-      "output_1=<control>\n"
-      "input_2=3.0\n"
-      "[M2]\n"
-      "library=builtin\n"
-      "label=sink\n"
-      "purpose=capture\n"
-      "input_0=<control>\n"
-      "input_1={audio}\n"
-      "\n";
+  const char* content = R"([M1]
+library=builtin
+label=source
+purpose=capture
+output_0={audio}
+output_1=<control>
+input_2=3.0
+[M2]
+library=builtin
+label=sink
+purpose=capture
+input_0=<control>
+input_1={audio}
+)";
   fprintf(fp, "%s", content);
   CloseFile();
 
@@ -390,51 +389,50 @@ TEST_F(DspPipelineTestSuite, Complex) {
    *                     --(g)-- 6 --(h)--
    */
 
-  const char* content =
-      "[M6]\n"
-      "library=builtin\n"
-      "label=foo\n"
-      "input_0={g}\n"
-      "output_1={h}\n"
-      "[M5]\n"
-      "library=builtin\n"
-      "label=sink\n"
-      "purpose=playback\n"
-      "input_0={f0}\n"
-      "input_1={f1}\n"
-      "[M4]\n"
-      "library=builtin\n"
-      "label=foo\n"
-      "disable=(equal? output_device \"HDMI\")\n"
-      "input_0=3.14\n"
-      "input_1={c}\n"
-      "output_2={f0}\n"
-      "input_3={e}\n"
-      "output_4={f1}\n"
-      "[M3]\n"
-      "library=builtin\n"
-      "label=foo\n"
-      "input_0={d}\n"
-      "output_1={e}\n"
-      "[M2]\n"
-      "library=builtin\n"
-      "label=inplace_broken\n"
-      "input_0={b}\n"
-      "output_1={c}\n"
-      "[M1]\n"
-      "library=builtin\n"
-      "label=foo\n"
-      "disable=(equal? output_device \"USB\")\n"
-      "input_0={a0}\n"
-      "input_1={a1}\n"
-      "output_2={b}\n"
-      "output_3={d}\n"
-      "[M0]\n"
-      "library=builtin\n"
-      "label=source\n"
-      "purpose=playback\n"
-      "output_0={a0}\n"
-      "output_1={a1}\n";
+  const char* content = R"([M6]
+library=builtin
+label=foo
+input_0={g}
+output_1={h}
+[M5]
+library=builtin
+label=sink
+purpose=playback
+input_0={f0}
+input_1={f1}
+[M4]
+library=builtin
+label=foo
+disable=(equal? output_device "HDMI")
+input_0=3.14
+input_1={c}
+output_2={f0}
+input_3={e}
+output_4={f1}
+[M3]
+library=builtin
+label=foo
+input_0={d}
+output_1={e}
+[M2]
+library=builtin
+label=inplace_broken
+input_0={b}
+output_1={c}
+[M1]
+library=builtin
+label=foo
+disable=(equal? output_device "USB")
+input_0={a0}
+input_1={a1}
+output_2={b}
+output_3={d}
+[M0]
+library=builtin
+label=source
+purpose=playback
+output_0={a0}
+output_1={a1})";
   fprintf(fp, "%s", content);
   CloseFile();
 
@@ -548,36 +546,35 @@ TEST_F(DspPipelineTestSuite, Complex) {
 }
 
 TEST_F(DspPipelineTestSuite, DspOffloadPattern) {
-  const char* content =
-      "[M1]\n"
-      "library=builtin\n"
-      "label=source\n"
-      "purpose=playback\n"
-      "output_0={a0}\n"
-      "output_1={a1}\n"
-      "[M2]\n"
-      "library=builtin\n"
-      "label=foo\n"
-      "purpose=playback\n"
-      "input_0={a0}\n"
-      "input_1={a1}\n"
-      "output_2={b0}\n"
-      "output_3={b1}\n"
-      "[M3]\n"
-      "library=builtin\n"
-      "label=inplace_broken\n"
-      "purpose=playback\n"
-      "input_0={b0}\n"
-      "input_1={b1}\n"
-      "output_2={c0}\n"
-      "output_3={c1}\n"
-      "[M4]\n"
-      "library=builtin\n"
-      "label=sink\n"
-      "purpose=playback\n"
-      "input_0={c0}\n"
-      "input_1={c1}\n"
-      "\n";
+  const char* content = R"([M1]
+library=builtin
+label=source
+purpose=playback
+output_0={a0}
+output_1={a1}
+[M2]
+library=builtin
+label=foo
+purpose=playback
+input_0={a0}
+input_1={a1}
+output_2={b0}
+output_3={b1}
+[M3]
+library=builtin
+label=inplace_broken
+purpose=playback
+input_0={b0}
+input_1={b1}
+output_2={c0}
+output_3={c1}
+[M4]
+library=builtin
+label=sink
+purpose=playback
+input_0={c0}
+input_1={c1}
+)";
   fprintf(fp, "%s", content);
   CloseFile();
 

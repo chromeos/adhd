@@ -75,19 +75,18 @@ class DspTestSuite : public testing::Test {
 };
 
 TEST_F(DspTestSuite, Simple) {
-  const char* content =
-      "[M1]\n"
-      "library=builtin\n"
-      "label=source\n"
-      "purpose=capture\n"
-      "output_0={audio}\n"
-      "disable=(not (equal? variable \"foo\"))\n"
-      "[M2]\n"
-      "library=builtin\n"
-      "label=sink\n"
-      "purpose=capture\n"
-      "input_0={audio}\n"
-      "\n";
+  const char* content = R"([M1]
+library=builtin
+label=source
+purpose=capture
+output_0={audio}
+disable=(not (equal? variable "foo"))
+[M2]
+library=builtin
+label=sink
+purpose=capture
+input_0={audio}
+)";
   fprintf(fp, "%s", content);
   CloseFile();
 
@@ -151,72 +150,71 @@ static void test_cras_iodev_update_dsp(struct cras_dsp_context* ctx,
 }
 
 TEST_F(DspTestSuite, DspOffloadNodeSwitch) {
-  const char* content =
-      "[M1]\n"
-      "library=builtin\n"
-      "label=source\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
-      "output_0={a0}\n"
-      "output_1={a1}\n"
-      "[M2]\n"
-      "library=builtin\n"
-      "label=drc\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
-      "input_0={a0}\n"
-      "input_1={a1}\n"
-      "output_2={b0}\n"
-      "output_3={b1}\n"
-      "[M3]\n"
-      "library=builtin\n"
-      "label=eq2\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
-      "input_0={b0}\n"
-      "input_1={b1}\n"
-      "output_2={c0}\n"
-      "output_3={c1}\n"
-      "[M4]\n"
-      "library=builtin\n"
-      "label=sink\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
-      "input_0={c0}\n"
-      "input_1={c1}\n"
-      "\n"
-      "[M5]\n"
-      "library=builtin\n"
-      "label=source\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"eq_drc\"))\n"
-      "output_0={d0}\n"
-      "output_1={d1}\n"
-      "[M6]\n"
-      "library=builtin\n"
-      "label=eq2\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"eq_drc\"))\n"
-      "input_0={d0}\n"
-      "input_1={d1}\n"
-      "output_2={e0}\n"
-      "output_3={e1}\n"
-      "[M7]\n"
-      "library=builtin\n"
-      "label=drc\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"eq_drc\"))\n"
-      "input_0={e0}\n"
-      "input_1={e1}\n"
-      "output_2={f0}\n"
-      "output_3={f1}\n"
-      "[M8]\n"
-      "library=builtin\n"
-      "disable=(not (equal? dsp_name \"eq_drc\"))\n"
-      "label=sink\n"
-      "purpose=playback\n"
-      "input_0={f0}\n"
-      "input_1={f1}\n";
+  const char* content = R"([M1]
+library=builtin
+label=source
+purpose=playback
+disable=(not (equal? dsp_name "drc_eq"))
+output_0={a0}
+output_1={a1}
+[M2]
+library=builtin
+label=drc
+purpose=playback
+disable=(not (equal? dsp_name "drc_eq"))
+input_0={a0}
+input_1={a1}
+output_2={b0}
+output_3={b1}
+[M3]
+library=builtin
+label=eq2
+purpose=playback
+disable=(not (equal? dsp_name "drc_eq"))
+input_0={b0}
+input_1={b1}
+output_2={c0}
+output_3={c1}
+[M4]
+library=builtin
+label=sink
+purpose=playback
+disable=(not (equal? dsp_name "drc_eq"))
+input_0={c0}
+input_1={c1}
+
+[M5]
+library=builtin
+label=source
+purpose=playback
+disable=(not (equal? dsp_name "eq_drc"))
+output_0={d0}
+output_1={d1}
+[M6]
+library=builtin
+label=eq2
+purpose=playback
+disable=(not (equal? dsp_name "eq_drc"))
+input_0={d0}
+input_1={d1}
+output_2={e0}
+output_3={e1}
+[M7]
+library=builtin
+label=drc
+purpose=playback
+disable=(not (equal? dsp_name "eq_drc"))
+input_0={e0}
+input_1={e1}
+output_2={f0}
+output_3={f1}
+[M8]
+library=builtin
+disable=(not (equal? dsp_name "eq_drc"))
+label=sink
+purpose=playback
+input_0={f0}
+input_1={f1})";
   fprintf(fp, "%s", content);
   CloseFile();
 
@@ -435,39 +433,38 @@ TEST_F(DspTestSuite, DspOffloadNodeSwitch) {
 }
 
 TEST_F(DspTestSuite, DspOffloadReadaptation) {
-  const char* content =
-      "[M1]\n"
-      "library=builtin\n"
-      "label=source\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
-      "output_0={a0}\n"
-      "output_1={a1}\n"
-      "[M2]\n"
-      "library=builtin\n"
-      "label=drc\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
-      "input_0={a0}\n"
-      "input_1={a1}\n"
-      "output_2={b0}\n"
-      "output_3={b1}\n"
-      "[M3]\n"
-      "library=builtin\n"
-      "label=eq2\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
-      "input_0={b0}\n"
-      "input_1={b1}\n"
-      "output_2={c0}\n"
-      "output_3={c1}\n"
-      "[M4]\n"
-      "library=builtin\n"
-      "label=sink\n"
-      "purpose=playback\n"
-      "disable=(not (equal? dsp_name \"drc_eq\"))\n"
-      "input_0={c0}\n"
-      "input_1={c1}\n";
+  const char* content = R"([M1]
+library=builtin
+label=source
+purpose=playback
+disable=(not (equal? dsp_name "drc_eq"))
+output_0={a0}
+output_1={a1}
+[M2]
+library=builtin
+label=drc
+purpose=playback
+disable=(not (equal? dsp_name "drc_eq"))
+input_0={a0}
+input_1={a1}
+output_2={b0}
+output_3={b1}
+[M3]
+library=builtin
+label=eq2
+purpose=playback
+disable=(not (equal? dsp_name "drc_eq"))
+input_0={b0}
+input_1={b1}
+output_2={c0}
+output_3={c1}
+[M4]
+library=builtin
+label=sink
+purpose=playback
+disable=(not (equal? dsp_name "drc_eq"))
+input_0={c0}
+input_1={c1})";
   fprintf(fp, "%s", content);
   CloseFile();
 
