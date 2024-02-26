@@ -534,6 +534,9 @@ int cras_floss_a2dp_stop(struct cras_a2dp* a2dp) {
   collect_write_fail_stats(a2dp);
 
   cancel_a2dp_delay_sync(a2dp);
+
+  BTLOG(btlog, BT_A2DP_REQUEST_STOP, 0, 0);
+
   floss_media_a2dp_stop_audio_request(a2dp->fm);
   return 0;
 }

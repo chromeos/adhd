@@ -1407,6 +1407,9 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
     case BT_A2DP_REQUEST_START:
       printf("%-30s %s\n", "A2DP_REQUEST_START", data1 ? "success" : "failed");
       break;
+    case BT_A2DP_REQUEST_STOP:
+      printf("%-30s\n", "A2DP_REQUEST_STOP");
+      break;
     case BT_A2DP_START:
       printf("%-30s\n", "A2DP_START");
       break;
@@ -1506,6 +1509,9 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
     case BT_SCO_CONNECT:
       printf("%-30s %s sk %d\n", "SCO_CONNECT", data1 ? "success" : "failed",
              (int)data2);
+      break;
+    case BT_SCO_DISCONNECT:
+      printf("%-30s\n", "SCO_DISCONNECT");
       break;
     case BT_TRANSPORT_RELEASE:
       printf("%-30s\n", "TRANSPORT_RELEASE");

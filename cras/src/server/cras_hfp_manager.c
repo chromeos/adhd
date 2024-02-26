@@ -284,8 +284,8 @@ start_dev:
 
   return 0;
 error:
-  floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
   BTLOG(btlog, BT_SCO_CONNECT, 0, skt_fd);
+  floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
   if (skt_fd >= 0) {
     close(skt_fd);
     unlink(addr.sun_path);
@@ -312,6 +312,8 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
   hfp->fd = -1;
 
   hfp->pending_audio_disconnection = true;
+
+  BTLOG(btlog, BT_SCO_DISCONNECT, 0, 0);
 
   return floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
 }
