@@ -381,6 +381,10 @@
       <arg name="supported" type="b" direction="out"/>
     </method>
 
+    <method name="SetStyleTransferEnabled">
+      <arg name="enabled" type="b" direction="in"/>
+    </method>
+
     <method name="SetBypassBlockNoiseCancellation">
       <arg name="bypass" type="b" direction="in"/>
     </method>

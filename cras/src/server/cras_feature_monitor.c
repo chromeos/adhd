@@ -15,6 +15,8 @@ static void handle_feature_changed() {
   // TODO(b/287567735): Remove after launch when removing the flag.
   cras_s2_set_ap_nc_featured_allowed(
       cras_feature_enabled(CrOSLateBootAudioAPNoiseCancellation));
+  cras_s2_set_style_transfer_featured_allowed(
+      cras_feature_enabled(CrOSLateBootAudioStyleTransfer));
   cras_iodev_list_update_device_list();
   cras_iodev_list_notify_nodes_changed();
 }

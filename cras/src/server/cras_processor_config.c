@@ -22,9 +22,8 @@ enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
   if (nc_provided_by_ap && voice_isolation_enabled &&
       cras_s2_get_ap_nc_allowed()) {
     // StyleTransfer includes NoiseCancellation.
-    return cras_feature_enabled(CrOSLateBootAudioStyleTransfer)
-               ? StyleTransfer
-               : NoiseCancellation;
+    return cras_system_get_style_transfer_enabled() ? StyleTransfer
+                                                    : NoiseCancellation;
   }
   return NoEffects;
 }

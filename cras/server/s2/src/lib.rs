@@ -13,6 +13,7 @@ struct Input {
     /// Tells whether the DLC manager is ready.
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
+    style_transfer_featured_allowed: bool,
     style_transfer_enabled: bool,
 }
 
@@ -25,7 +26,12 @@ struct Output {
 fn resolve(input: &Input) -> Output {
     Output {
         ap_nc_allowed: input.ap_nc_featured_allowed || input.ap_nc_segmentation_allowed,
-        style_transfer_enabled: input.style_transfer_enabled,
+        // It's 'or' here because before the toggle of StyleTransfer is landed, users
+        // should be able to control the feature only by the feature flag and there
+        // would be only tests writing its system state currently.
+        // TODO(b/327530996): handle tests: enabled without featured allowed.
+        style_transfer_enabled: input.style_transfer_featured_allowed
+            || input.style_transfer_enabled,
     }
 }
 
@@ -41,6 +47,7 @@ impl S2 {
             ap_nc_featured_allowed: false,
             ap_nc_segmentation_allowed: false,
             dlc_manager_ready: false,
+            style_transfer_featured_allowed: false,
             style_transfer_enabled: false,
         };
         let output = resolve(&input);
@@ -59,6 +66,11 @@ impl S2 {
 
     fn set_dlc_manager_ready(&mut self) {
         self.input.dlc_manager_ready = true;
+        self.update();
+    }
+
+    fn set_style_transfer_featured_allowed(&mut self, allowed: bool) {
+        self.input.style_transfer_featured_allowed = allowed;
         self.update();
     }
 
@@ -96,5 +108,14 @@ mod tests {
 
         s.set_style_transfer_enabled(true);
         assert_eq!(s.output.style_transfer_enabled, true);
+
+        s.set_style_transfer_featured_allowed(true);
+        assert_eq!(s.output.style_transfer_enabled, true);
+
+        s.set_style_transfer_enabled(false);
+        assert_eq!(s.output.style_transfer_enabled, true);
+
+        s.set_style_transfer_featured_allowed(false);
+        assert_eq!(s.output.style_transfer_enabled, false);
     }
 }

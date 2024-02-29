@@ -36,6 +36,11 @@ pub extern "C" fn cras_s2_get_ap_nc_allowed() -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_set_style_transfer_featured_allowed(allowed: bool) {
+    state().set_style_transfer_featured_allowed(allowed);
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_set_style_transfer_enabled(enabled: bool) {
     state().set_style_transfer_enabled(enabled);
 }
