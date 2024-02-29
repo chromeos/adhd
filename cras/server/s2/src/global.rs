@@ -36,6 +36,16 @@ pub extern "C" fn cras_s2_get_ap_nc_allowed() -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_set_style_transfer_enabled(enabled: bool) {
+    state().set_style_transfer_enabled(enabled);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_style_transfer_enabled() -> bool {
+    state().output.style_transfer_enabled
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_dump_json() -> *mut c_char {
     let s = serde_json::to_string_pretty(state().deref()).expect("serde_json::to_string_pretty");
     CString::new(s).expect("CString::new").into_raw()

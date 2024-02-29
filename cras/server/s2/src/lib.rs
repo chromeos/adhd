@@ -13,16 +13,19 @@ struct Input {
     /// Tells whether the DLC manager is ready.
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
+    style_transfer_enabled: bool,
 }
 
 #[derive(Serialize)]
 struct Output {
     ap_nc_allowed: bool,
+    style_transfer_enabled: bool,
 }
 
 fn resolve(input: &Input) -> Output {
     Output {
         ap_nc_allowed: input.ap_nc_featured_allowed || input.ap_nc_segmentation_allowed,
+        style_transfer_enabled: input.style_transfer_enabled,
     }
 }
 
@@ -38,6 +41,7 @@ impl S2 {
             ap_nc_featured_allowed: false,
             ap_nc_segmentation_allowed: false,
             dlc_manager_ready: false,
+            style_transfer_enabled: false,
         };
         let output = resolve(&input);
         Self { input, output }
@@ -55,6 +59,11 @@ impl S2 {
 
     fn set_dlc_manager_ready(&mut self) {
         self.input.dlc_manager_ready = true;
+        self.update();
+    }
+
+    fn set_style_transfer_enabled(&mut self, enabled: bool) {
+        self.input.style_transfer_enabled = enabled;
         self.update();
     }
 
@@ -78,5 +87,14 @@ mod tests {
         s.set_ap_nc_featured_allowed(false);
         s.set_ap_nc_segmentation_allowed(true);
         assert_eq!(s.output.ap_nc_allowed, true);
+    }
+
+    #[test]
+    fn test_style_transfer_enabled() {
+        let mut s = S2::new();
+        assert_eq!(s.output.style_transfer_enabled, false);
+
+        s.set_style_transfer_enabled(true);
+        assert_eq!(s.output.style_transfer_enabled, true);
     }
 }
