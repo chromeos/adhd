@@ -2499,6 +2499,11 @@ void cras_iodev_list_reset_for_noise_cancellation() {
   }
 }
 
+void cras_iodev_list_reset_for_style_transfer() {
+  // If available, StyleTransfer is only called after NC currently.
+  cras_iodev_list_reset_for_noise_cancellation();
+}
+
 /*
  * Removes |rstream| from the attached devices and immediately reconnect
  * it back. This is used to reconfigure the stream apm after events

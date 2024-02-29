@@ -1352,6 +1352,9 @@ static void show_mainlog_tag(const struct main_thread_event_log* log,
       printf("%-30s %s\n", "NOISE_CANCELLATION",
              data1 ? "enabled" : "disabled");
       break;
+    case MAIN_THREAD_STYLE_TRANSFER:
+      printf("%-30s %s\n", "STYLE_TRANSFER", data1 ? "enabled" : "disabled");
+      break;
     case MAIN_THREAD_VAD_TARGET_CHANGED: {
       printf(
           "%-30s target_stream 0x%x target_client_stream 0x%x "

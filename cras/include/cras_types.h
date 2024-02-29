@@ -382,6 +382,8 @@ enum MAIN_THREAD_LOG_EVENTS {
   // server state related
   // When Noise Cancellation is enabled/disabled.
   MAIN_THREAD_NOISE_CANCELLATION,
+  // When Style Transfer is enabled/disabled.
+  MAIN_THREAD_STYLE_TRANSFER,
   // When VAD target for speak on mute changed.
   MAIN_THREAD_VAD_TARGET_CHANGED,
   // When force respect UI gains is enabled/disabled.

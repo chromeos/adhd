@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #include "cras/common/check.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/cras_alert.h"
@@ -529,6 +530,20 @@ bool cras_system_get_noise_cancellation_enabled() {
 bool cras_system_get_noise_cancellation_supported() {
   // TODO(b/316444947): Delete this function.
   return true;
+}
+
+void cras_system_set_style_transfer_enabled(bool enabled) {
+  // When the flag is toggled, propagate to all iodevs immediately.
+  if (cras_system_get_style_transfer_enabled() != enabled) {
+    MAINLOG(main_log, MAIN_THREAD_STYLE_TRANSFER, enabled, 0, 0);
+    syslog(LOG_DEBUG, "Style Transfer is %s", enabled ? "enabled" : "disabled");
+    cras_s2_set_style_transfer_enabled(enabled);
+    cras_iodev_list_reset_for_style_transfer();
+  }
+}
+
+bool cras_system_get_style_transfer_enabled() {
+  return cras_s2_get_style_transfer_enabled();
 }
 
 bool cras_system_get_dsp_noise_cancellation_supported() {

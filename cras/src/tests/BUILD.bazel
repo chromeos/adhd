@@ -1750,6 +1750,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",

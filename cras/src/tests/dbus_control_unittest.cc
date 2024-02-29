@@ -195,6 +195,9 @@ void cras_system_set_noise_cancellation_enabled(bool enable) {
 bool cras_system_get_noise_cancellation_supported() {
   return true;
 }
+void cras_system_set_style_transfer_enabled(bool enable) {
+  return;
+}
 void cras_system_set_bypass_block_noise_cancellation(bool bypass) {
   return;
 }
