@@ -412,7 +412,7 @@ static void convert_one_band(struct drc_kernel* drc,
   cfg->linear_threshold =
       float_to_qint32(drc->linear_threshold, 30);                 /* Q2.30 */
   cfg->slope = float_to_qint32(drc->slope, 30);                   /* Q2.30 */
-  cfg->db_knee = float_to_qint32(drc->K, 20);                     /* Q12.20 */
+  cfg->K = float_to_qint32(drc->K, 20);                           /* Q12.20 */
   cfg->knee_alpha = float_to_qint32(drc->knee_alpha, 24);         /* Q8.24 */
   cfg->knee_beta = float_to_qint32(drc->knee_beta, 24);           /* Q8.24 */
   cfg->knee_threshold = float_to_qint32(drc->knee_threshold, 24); /* Q8.24 */
@@ -489,6 +489,6 @@ int drc_convert_params_to_blob(struct drc* drc,
   }
 
   *config = (uint32_t*)drc_config;
-  *config_size = sizeof(*drc_config);
+  *config_size = drc_config_size;
   return 0;
 }

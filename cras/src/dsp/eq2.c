@@ -402,21 +402,27 @@ int eq2_convert_params_to_blob(struct eq2* eq2,
   };
 
   size_t size =
-      eq_cfg_hdr_size + response_config_size[0] + response_config_size[1];
+      eq_cfg_hdr_size +                     /* sof_eq_iir_config header */
+      EQ2_NUM_CHANNELS * sizeof(uint32_t) + /* assign_response[channels] */
+      response_config_size[0] +             /* 1st response config data */
+      response_config_size[1];              /* 2nd response config data */
+
   struct sof_eq_iir_config* eq_config =
       (struct sof_eq_iir_config*)calloc(1, size);
   if (!eq_config) {
     return -ENOMEM;
   }
 
-  /* Fill the header of sof_eq_iir_config. */
+  /* Fill sof_eq_iir_config header. */
   eq_config->size = size;
   eq_config->channels_in_config = EQ2_NUM_CHANNELS;
   eq_config->number_of_responses = EQ2_NUM_CHANNELS;
 
+  /* Fill assign_response[channels]. */
   eq_config->data[0] = 0; /* assign response-0 to ch-0 */
   eq_config->data[1] = 1; /* assign response-1 to ch-1 */
 
+  /* Fill config data per response. */
   struct sof_eq_iir_header* eq_hdr =
       (struct sof_eq_iir_header*)(&eq_config->data[2]);
   int ret;
