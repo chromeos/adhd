@@ -16,6 +16,7 @@
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/dev_stream.h"
 #include "cras/src/server/input_data.h"
+#include "cras/src/server/rust/include/rate_estimator.h"
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
@@ -70,8 +71,6 @@ static unsigned int cras_dsp_num_input_channels_return;
 static unsigned int cras_dsp_num_output_channels_return;
 struct cras_dsp_context* cras_dsp_context_new_return;
 static unsigned int cras_dsp_load_mock_pipeline_called;
-static unsigned int rate_estimator_add_frames_num_frames;
-static unsigned int rate_estimator_add_frames_called;
 static int cras_system_get_mute_return;
 static int cras_system_aec_on_dsp_supported_return;
 static snd_pcm_format_t cras_scale_buffer_fmt;
@@ -123,7 +122,6 @@ static int buffer_share_add_id_called;
 static int buffer_share_get_new_write_point_ret;
 static int ext_mod_configure_called;
 static struct input_data* input_data_create_ret;
-static double rate_estimator_get_rate_ret;
 static int cras_audio_thread_event_dev_overrun_called;
 
 static char* atlog_name;
@@ -181,8 +179,6 @@ void ResetStubData() {
   cras_dsp_num_output_channels_return = 2;
   cras_dsp_context_new_return = NULL;
   cras_dsp_load_mock_pipeline_called = 0;
-  rate_estimator_add_frames_num_frames = 0;
-  rate_estimator_add_frames_called = 0;
   cras_system_get_mute_return = 0;
   cras_system_get_volume_return = 100;
   cras_system_aec_on_dsp_supported_return = 0;
@@ -242,13 +238,22 @@ void ResetStubData() {
   audio_fmt.num_channels = 2;
   buffer_share_add_id_called = 0;
   ext_mod_configure_called = 0;
-  rate_estimator_get_rate_ret = 0;
   cras_audio_thread_event_dev_overrun_called = 0;
   time_now.tv_sec = 0;
   time_now.tv_nsec = 0;
 }
 
 namespace {
+
+// rate_estimator with RAII.
+class TestRateEstimator {
+ public:
+  ~TestRateEstimator() { rate_estimator_destroy(re_); }
+  struct rate_estimator* get() { return re_; }
+
+ private:
+  struct rate_estimator* re_ = rate_estimator_create_stub();
+};
 
 //  Test fill_time_from_frames
 TEST(IoDevTestSuite, FillTimeFromFramesNormal) {
@@ -313,6 +318,8 @@ class IoDevSetFormatTestSuite : public testing::Test {
   virtual void TearDown() {
     cras_iodev_free_format(&iodev_);
     main_thread_event_log_deinit(main_log);
+    // cras_iodev_set_format might create a rate estimator.
+    rate_estimator_destroy(iodev_.rate_est);
   }
 
   struct cras_iodev iodev_;
@@ -612,13 +619,14 @@ TEST(IoDevPutOutputBuffer, SystemMuted) {
   iodev.active_node = &ionode;
   iodev.active_node->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
   iodev.active_node->dev = &iodev;
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(20, cras_mix_mute_count);
   EXPECT_EQ(20, put_buffer_nframes);
-  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(20, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 }
 
 TEST(IoDevPutOutputBuffer, MuteForVolume) {
@@ -675,13 +683,14 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMute) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(20, cras_mix_mute_count);
   EXPECT_EQ(20, put_buffer_nframes);
-  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(20, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 }
 
 TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
@@ -708,7 +717,8 @@ TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
 
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
@@ -718,7 +728,7 @@ TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(20, cras_mix_mute_count);
   EXPECT_EQ(20, put_buffer_nframes);
-  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(20, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 
   // Test for the case where ramping is not done yet.
   ResetStubData();
@@ -731,7 +741,7 @@ TEST(IoDevPutOutputBuffer, SystemMutedWithRamp) {
   // Ramped frames should be increased by 20.
   EXPECT_EQ(20, cras_ramp_update_ramped_frames_num_frames);
   EXPECT_EQ(20, put_buffer_nframes);
-  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(20, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 }
 
 TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMuteWithRamp) {
@@ -755,7 +765,8 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMuteWithRamp) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
@@ -767,7 +778,7 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMuteWithRamp) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(20, cras_mix_mute_count);
   EXPECT_EQ(20, put_buffer_nframes);
-  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(20, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 
   // Test for the case where ramping is not done yet.
   ResetStubData();
@@ -780,7 +791,7 @@ TEST(IoDevPutOutputBuffer, NodeVolumeZeroShouldMuteWithRamp) {
   // Ramped frames should be increased by 20.
   EXPECT_EQ(20, cras_ramp_update_ramped_frames_num_frames);
   EXPECT_EQ(20, put_buffer_nframes);
-  EXPECT_EQ(20, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(20, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 }
 TEST(IoDevPutOutputBuffer, NoDSP) {
   struct cras_audio_format fmt;
@@ -803,13 +814,14 @@ TEST(IoDevPutOutputBuffer, NoDSP) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 22, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(22, put_buffer_nframes);
-  EXPECT_EQ(22, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(22, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 }
 
 TEST(IoDevPutOutputBuffer, DSP) {
@@ -830,7 +842,8 @@ TEST(IoDevPutOutputBuffer, DSP) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
   pre_dsp.type = LOOPBACK_POST_MIX_PRE_DSP;
   pre_dsp.hook_data = pre_dsp_hook;
   pre_dsp.hook_control = loopback_hook_control;
@@ -851,7 +864,7 @@ TEST(IoDevPutOutputBuffer, DSP) {
   EXPECT_EQ(1, post_dsp_hook_called);
   EXPECT_EQ((void*)0x5678, post_dsp_hook_cb_data);
   EXPECT_EQ(32, put_buffer_nframes);
-  EXPECT_EQ(32, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(32, rate_estimator_get_last_add_frames_value_for_test(re.get()));
   EXPECT_EQ(32, cras_dsp_pipeline_apply_sample_count);
   EXPECT_EQ(cras_dsp_get_pipeline_called, cras_dsp_put_pipeline_called);
 }
@@ -871,7 +884,8 @@ TEST(IoDevPutOutputBuffer, SoftVol) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   cras_system_get_volume_return = 13;
   softvol_scalers[13] = 0.435;
@@ -880,7 +894,7 @@ TEST(IoDevPutOutputBuffer, SoftVol) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(53, put_buffer_nframes);
-  EXPECT_EQ(53, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(53, rate_estimator_get_last_add_frames_value_for_test(re.get()));
   EXPECT_EQ(softvol_scalers[13], cras_scale_buffer_scaler);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, cras_scale_buffer_fmt);
 }
@@ -908,7 +922,8 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   iodev.put_buffer = put_buffer;
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
@@ -920,7 +935,8 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(n_frames, put_buffer_nframes);
-  EXPECT_EQ(n_frames, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(n_frames,
+            rate_estimator_get_last_add_frames_value_for_test(re.get()));
   EXPECT_EQ(softvol_scalers[volume], cras_scale_buffer_scaler);
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, cras_scale_buffer_fmt);
 
@@ -957,7 +973,8 @@ TEST(IoDevPutOutputBuffer, SoftVolWithRamp) {
   EXPECT_EQ(fmt.num_channels, cras_scale_buffer_increment_channel);
 
   EXPECT_EQ(n_frames, put_buffer_nframes);
-  EXPECT_EQ(n_frames, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(n_frames,
+            rate_estimator_get_last_add_frames_value_for_test(re.get()));
 }
 
 TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
@@ -981,7 +998,8 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   iodev.put_buffer = put_buffer;
   // Assume device has ramp member.
   iodev.ramp = reinterpret_cast<struct cras_ramp*>(0x1);
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   // Assume ramping is done.
   cras_ramp_get_current_action_ret.type = CRAS_RAMP_ACTION_NONE;
@@ -992,7 +1010,8 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   // cras_scale_buffer is not called.
   EXPECT_EQ(0, cras_scale_buffer_called);
   EXPECT_EQ(n_frames, put_buffer_nframes);
-  EXPECT_EQ(n_frames, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(n_frames,
+            rate_estimator_get_last_add_frames_value_for_test(re.get()));
 
   ResetStubData();
   // Assume ramping is not done.
@@ -1017,7 +1036,8 @@ TEST(IoDevPutOutputBuffer, NoSoftVolWithRamp) {
   EXPECT_EQ(fmt.num_channels, cras_scale_buffer_increment_channel);
 
   EXPECT_EQ(n_frames, put_buffer_nframes);
-  EXPECT_EQ(n_frames, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(n_frames,
+            rate_estimator_get_last_add_frames_value_for_test(re.get()));
 }
 
 TEST(IoDevPutOutputBuffer, Scale32Bit) {
@@ -1038,13 +1058,14 @@ TEST(IoDevPutOutputBuffer, Scale32Bit) {
   fmt.num_channels = 2;
   iodev.format = &fmt;
   iodev.put_buffer = put_buffer;
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 53, NULL, nullptr);
   EXPECT_EQ(0, rc);
   EXPECT_EQ(0, cras_mix_mute_count);
   EXPECT_EQ(53, put_buffer_nframes);
-  EXPECT_EQ(53, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(53, rate_estimator_get_last_add_frames_value_for_test(re.get()));
   EXPECT_EQ(SND_PCM_FORMAT_S32_LE, cras_scale_buffer_fmt);
 }
 
@@ -1068,7 +1089,8 @@ TEST(IoDevPutOutputBuffer, NullFrames) {
   iodev.active_node = &ionode;
   iodev.active_node->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
   iodev.active_node->dev = &iodev;
-  iodev.rate_est = reinterpret_cast<struct rate_estimator*>(0xdeadbeef);
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
 
   rc = cras_iodev_put_output_buffer(&iodev, frames, 20, NULL, nullptr);
   EXPECT_EQ(-EIO, rc);
@@ -2367,7 +2389,9 @@ TEST(IoDev, HandleOutputUnderrun) {
   iodev.put_buffer = put_buffer;
   iodev.direction = CRAS_STREAM_OUTPUT;
   iodev.min_cb_level = frames;
-  rate_estimator_get_rate_ret = 48000.0;
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
+  rate_estimator_reset_rate(re.get(), 48000);
 
   // Default case, fill one block of zeros.
   EXPECT_EQ(iodev.min_cb_level, cras_iodev_output_underrun(&iodev, 0, 0));
@@ -2587,7 +2611,9 @@ TEST(IoDev, DropDeviceFramesByTime) {
   iodev.buffer_size = 480;
   input_data_create_ret = &data;
   cras_iodev_open(&iodev, 240, &fmt);
-  rate_estimator_get_rate_ret = 48000.0;
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
+  rate_estimator_reset_rate(re.get(), 48000);
 
   // hw_level: 240, drop: 48(1ms).
   fr_queued = 240;
@@ -2596,8 +2622,8 @@ TEST(IoDev, DropDeviceFramesByTime) {
   rc = cras_iodev_drop_frames_by_time(&iodev, ts);
   EXPECT_EQ(48, rc);
   EXPECT_EQ(48, put_buffer_nframes);
-  EXPECT_EQ(1, rate_estimator_add_frames_called);
-  EXPECT_EQ(-48, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(1, rate_estimator_get_add_frames_called_count_for_test(re.get()));
+  EXPECT_EQ(-48, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 
   // hw_level: 360, drop: 240(5ms).
   fr_queued = 360;
@@ -2606,8 +2632,8 @@ TEST(IoDev, DropDeviceFramesByTime) {
   rc = cras_iodev_drop_frames_by_time(&iodev, ts);
   EXPECT_EQ(240, rc);
   EXPECT_EQ(240, put_buffer_nframes);
-  EXPECT_EQ(2, rate_estimator_add_frames_called);
-  EXPECT_EQ(-240, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(2, rate_estimator_get_add_frames_called_count_for_test(re.get()));
+  EXPECT_EQ(-240, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 
   // hw_level: 360, drop: 480(10ms). Only drop 360 because of lower hw_level.
   fr_queued = 360;
@@ -2616,8 +2642,8 @@ TEST(IoDev, DropDeviceFramesByTime) {
   rc = cras_iodev_drop_frames_by_time(&iodev, ts);
   EXPECT_EQ(360, rc);
   EXPECT_EQ(360, put_buffer_nframes);
-  EXPECT_EQ(3, rate_estimator_add_frames_called);
-  EXPECT_EQ(-360, rate_estimator_add_frames_num_frames);
+  EXPECT_EQ(3, rate_estimator_get_add_frames_called_count_for_test(re.get()));
+  EXPECT_EQ(-360, rate_estimator_get_last_add_frames_value_for_test(re.get()));
 }
 
 TEST(IoDev, GetRateEstRatioUnderrun) {
@@ -2637,7 +2663,9 @@ TEST(IoDev, GetRateEstRatioUnderrun) {
   iodev.buffer_size = 480;
   EXPECT_EQ(0, cras_iodev_open(&iodev, 240, &fmt));
 
-  rate_estimator_get_rate_ret = 24000.0;
+  TestRateEstimator re;
+  iodev.rate_est = re.get();
+  rate_estimator_reset_rate(re.get(), 24000);
   EXPECT_EQ(0, cras_iodev_update_rate(&iodev, 0, nullptr));
   EXPECT_EQ(cras_iodev_get_rate_est_underrun_ratio(&iodev), 0.5);
   EXPECT_EQ(cras_iodev_get_est_rate_ratio(&iodev), 1.0);
@@ -3034,33 +3062,6 @@ void cras_scale_buffer_increment(snd_pcm_format_t fmt,
 size_t cras_mix_mute_buffer(uint8_t* dst, size_t frame_bytes, size_t count) {
   cras_mix_mute_count = count;
   return count;
-}
-
-struct rate_estimator* rate_estimator_create(unsigned int rate,
-                                             const struct timespec* window_size,
-                                             double smooth_factor) {
-  return NULL;
-}
-
-void rate_estimator_destroy(struct rate_estimator* re) {}
-
-void rate_estimator_add_frames(struct rate_estimator* re, int fr) {
-  rate_estimator_add_frames_called++;
-  rate_estimator_add_frames_num_frames = fr;
-}
-
-int rate_estimator_check(struct rate_estimator* re,
-                         int level,
-                         struct timespec* now) {
-  return 0;
-}
-
-void rate_estimator_reset_rate(struct rate_estimator* re, unsigned int rate) {
-  rate_estimator_get_rate_ret = rate;
-}
-
-double rate_estimator_get_rate(struct rate_estimator* re) {
-  return rate_estimator_get_rate_ret;
 }
 
 unsigned int dev_stream_cb_threshold(const struct dev_stream* dev_stream) {

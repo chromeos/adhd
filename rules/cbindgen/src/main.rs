@@ -75,7 +75,7 @@ fn main() {
     let b = b
         .rename_item("timespec", "struct timespec")
         .rename_item("plugin_processor", "struct plugin_processor")
-        .rename_item("RateEstimator", "rate_estimator")
+        .rename_item("RateEstimatorHandle", "rate_estimator")
         .rename_item("CrasFeatureTier", "cras_feature_tier")
         .rename_item("CrasFRASignal", "CRAS_FRA_SIGNAL")
         .rename_item("KeyValuePair", "cras_fra_kv_t");

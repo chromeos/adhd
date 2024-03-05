@@ -7,6 +7,12 @@ use std::time::Duration;
 use libc;
 
 use crate::rate_estimator::RateEstimator;
+use crate::rate_estimator::RateEstimatorImpl;
+use crate::rate_estimator::RateEstimatorStub;
+
+// An extra indirection with `Box` is needed because dyn trait objects
+// don't have a safe ABI and cannot be used across the FFI boundary.
+pub type RateEstimatorHandle = Box<dyn RateEstimator>;
 
 /// # Safety
 ///
@@ -17,26 +23,32 @@ pub unsafe extern "C" fn rate_estimator_create(
     rate: libc::c_uint,
     window_size: *const libc::timespec,
     smooth_factor: libc::c_double,
-) -> *mut RateEstimator {
+) -> *mut RateEstimatorHandle {
     if window_size.is_null() {
-        return std::ptr::null_mut::<RateEstimator>();
+        return std::ptr::null_mut::<RateEstimatorHandle>();
     }
 
     let ts = &*window_size;
     let window = Duration::new(ts.tv_sec as u64, ts.tv_nsec as u32);
 
-    match RateEstimator::try_new(rate, window, smooth_factor) {
-        Ok(re) => Box::into_raw(Box::new(re)),
-        Err(_) => std::ptr::null_mut::<RateEstimator>(),
+    match RateEstimatorImpl::try_new(rate, window, smooth_factor) {
+        Ok(re) => Box::into_raw(Box::new(Box::new(re))),
+        Err(_) => std::ptr::null_mut::<RateEstimatorHandle>(),
     }
+}
+
+/// Create a stub rate estimator for testing.
+#[no_mangle]
+pub extern "C" fn rate_estimator_create_stub() -> *mut RateEstimatorHandle {
+    Box::into_raw(Box::new(Box::new(RateEstimatorStub::default())))
 }
 
 /// # Safety
 ///
 /// To use this function safely, `re` must be a pointer returned from
-/// rate_estimator_create, or null.
+/// rate_estimator_create*, or null.
 #[no_mangle]
-pub unsafe extern "C" fn rate_estimator_destroy(re: *mut RateEstimator) {
+pub unsafe extern "C" fn rate_estimator_destroy(re: *mut RateEstimatorHandle) {
     if re.is_null() {
         return;
     }
@@ -47,10 +59,10 @@ pub unsafe extern "C" fn rate_estimator_destroy(re: *mut RateEstimator) {
 /// # Safety
 ///
 /// To use this function safely, `re` must be a pointer returned from
-/// rate_estimator_create, or null.
+/// rate_estimator_create*, or null.
 #[no_mangle]
 pub unsafe extern "C" fn rate_estimator_add_frames(
-    re: *mut RateEstimator,
+    re: *mut RateEstimatorHandle,
     frames: libc::c_int,
 ) -> bool {
     if re.is_null() {
@@ -63,11 +75,11 @@ pub unsafe extern "C" fn rate_estimator_add_frames(
 /// # Safety
 ///
 /// To use this function safely, `re` must be a pointer returned from
-/// rate_estimator_create, or null, and `now` must be a valid pointer to a
+/// rate_estimator_create*, or null, and `now` must be a valid pointer to a
 /// timespec.
 #[no_mangle]
 pub unsafe extern "C" fn rate_estimator_check(
-    re: *mut RateEstimator,
+    re: *mut RateEstimatorHandle,
     level: libc::c_int,
     now: *const libc::timespec,
 ) -> i32 {
@@ -91,7 +103,7 @@ pub unsafe extern "C" fn rate_estimator_check(
 /// To use this function safely, `re` must be a pointer returned from
 /// rate_estimator_create, or null.
 #[no_mangle]
-pub unsafe extern "C" fn rate_estimator_get_rate(re: *const RateEstimator) -> libc::c_double {
+pub unsafe extern "C" fn rate_estimator_get_rate(re: *const RateEstimatorHandle) -> libc::c_double {
     if re.is_null() {
         return 0.0;
     }
@@ -104,10 +116,35 @@ pub unsafe extern "C" fn rate_estimator_get_rate(re: *const RateEstimator) -> li
 /// To use this function safely, `re` must be a pointer returned from
 /// rate_estimator_create, or null.
 #[no_mangle]
-pub unsafe extern "C" fn rate_estimator_reset_rate(re: *mut RateEstimator, rate: libc::c_uint) {
+pub unsafe extern "C" fn rate_estimator_reset_rate(
+    re: *mut RateEstimatorHandle,
+    rate: libc::c_uint,
+) {
     if re.is_null() {
         return;
     }
 
     (*re).reset_rate(rate)
+}
+
+/// # Safety
+///
+/// To use this function safely, `re` must be a pointer returned from
+/// rate_estimator_create_stub.
+#[no_mangle]
+pub unsafe extern "C" fn rate_estimator_get_last_add_frames_value_for_test(
+    re: *const RateEstimatorHandle,
+) -> i32 {
+    re.as_ref().unwrap().get_last_add_frames_value_for_test()
+}
+
+/// # Safety
+///
+/// To use this function safely, `re` must be a pointer returned from
+/// rate_estimator_create_stub.
+#[no_mangle]
+pub unsafe extern "C" fn rate_estimator_get_add_frames_called_count_for_test(
+    re: *const RateEstimatorHandle,
+) -> u64 {
+    re.as_ref().unwrap().get_add_frames_called_count_for_test()
 }

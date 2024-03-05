@@ -19,25 +19,6 @@ extern "C" {
 #include <stdlib.h>
 #include <time.h>
 
-/**
- * An estimator holding the required information to determine the actual frame
- * rate of an audio device.
- *
- * # Members
- *    * `last_level` - Buffer level of the audio device at last check time.
- *    * `level_diff` - Number of frames written to or read from audio device
- *                     since the last check time. Rate estimator will use this
- *                     change plus the difference of buffer level to derive the
- *                     number of frames audio device has actually processed.
- *    * `window_start` - The start time of the current window.
- *    * `window_size` - The size of the window.
- *    * `window_frames` - The number of frames accumulated in current window.
- *    * `lsq` - The helper used to estimate sample rate.
- *    * `smooth_factor` - A scaling factor used to average the previous and new
- *                        rate estimates to ensure that estimates do not change
- *                        too quickly.
- *    * `estimated_rate` - The estimated rate at which samples are consumed.
- */
 struct rate_estimator;
 
 /**
@@ -51,10 +32,15 @@ struct rate_estimator *rate_estimator_create(unsigned int rate,
                                              double smooth_factor);
 
 /**
+ * Create a stub rate estimator for testing.
+ */
+struct rate_estimator *rate_estimator_create_stub(void);
+
+/**
  * # Safety
  *
  * To use this function safely, `re` must be a pointer returned from
- * rate_estimator_create, or null.
+ * rate_estimator_create*, or null.
  */
 void rate_estimator_destroy(struct rate_estimator *re);
 
@@ -62,7 +48,7 @@ void rate_estimator_destroy(struct rate_estimator *re);
  * # Safety
  *
  * To use this function safely, `re` must be a pointer returned from
- * rate_estimator_create, or null.
+ * rate_estimator_create*, or null.
  */
 bool rate_estimator_add_frames(struct rate_estimator *re, int frames);
 
@@ -70,7 +56,7 @@ bool rate_estimator_add_frames(struct rate_estimator *re, int frames);
  * # Safety
  *
  * To use this function safely, `re` must be a pointer returned from
- * rate_estimator_create, or null, and `now` must be a valid pointer to a
+ * rate_estimator_create*, or null, and `now` must be a valid pointer to a
  * timespec.
  */
 int32_t rate_estimator_check(struct rate_estimator *re, int level, const struct timespec *now);
@@ -90,6 +76,22 @@ double rate_estimator_get_rate(const struct rate_estimator *re);
  * rate_estimator_create, or null.
  */
 void rate_estimator_reset_rate(struct rate_estimator *re, unsigned int rate);
+
+/**
+ * # Safety
+ *
+ * To use this function safely, `re` must be a pointer returned from
+ * rate_estimator_create_stub.
+ */
+int32_t rate_estimator_get_last_add_frames_value_for_test(const struct rate_estimator *re);
+
+/**
+ * # Safety
+ *
+ * To use this function safely, `re` must be a pointer returned from
+ * rate_estimator_create_stub.
+ */
+uint64_t rate_estimator_get_add_frames_called_count_for_test(const struct rate_estimator *re);
 
 #endif /* CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_ */
 

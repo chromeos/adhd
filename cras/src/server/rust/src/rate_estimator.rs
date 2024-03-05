@@ -57,6 +57,49 @@ impl LeastSquares {
     }
 }
 
+pub trait RateEstimator {
+    /// Resets the estimated rate
+    ///
+    /// Reset the estimated rate to `rate`, and erase all collected data.
+    fn reset_rate(&mut self, rate: u32);
+
+    /// Adds additional frames transmitted to/from audio device.
+    ///
+    /// # Arguments
+    ///    * `frames` - The number of frames written to the device.  For input,
+    ///                 this should be negative to indicate how many samples
+    ///                 were read.
+    ///
+    /// # Returns
+    ///    True if the frames is successfully added, and False if there is overflow
+    fn add_frames(&mut self, frames: i32) -> bool;
+
+    /// Gets the estimated rate.
+    fn get_estimated_rate(&self) -> f64;
+
+    /// Check the timestamp and buffer level difference since last check time,
+    /// and use them as a new sample to update the estimated rate.
+    ///
+    /// # Arguments
+    ///    * `level` - The current buffer level of audio device.
+    ///    * `now` - The time at which this function is called.
+    ///
+    /// # Returns
+    ///    True if the estimated rate is updated and window is reset,
+    ///    otherwise false.
+    fn update_estimated_rate(&mut self, level: i32, now: Duration) -> bool;
+
+    /// Returns the last value passed to add_frames.
+    fn get_last_add_frames_value_for_test(&self) -> i32 {
+        unimplemented!();
+    }
+
+    /// Returns the number of times add_frames has been called.
+    fn get_add_frames_called_count_for_test(&self) -> u64 {
+        unimplemented!();
+    }
+}
+
 /// An estimator holding the required information to determine the actual frame
 /// rate of an audio device.
 ///
@@ -74,7 +117,7 @@ impl LeastSquares {
 ///                        rate estimates to ensure that estimates do not change
 ///                        too quickly.
 ///    * `estimated_rate` - The estimated rate at which samples are consumed.
-pub struct RateEstimator {
+pub struct RateEstimatorImpl {
     last_level: i32,
     level_diff: i32,
     window_start: Option<Duration>,
@@ -85,7 +128,7 @@ pub struct RateEstimator {
     estimated_rate: f64,
 }
 
-impl RateEstimator {
+impl RateEstimatorImpl {
     /// Creates a rate estimator.
     ///
     /// # Arguments
@@ -102,7 +145,7 @@ impl RateEstimator {
             return Err(Error::InvalidSmoothFactor(smooth_factor));
         }
 
-        Ok(RateEstimator {
+        Ok(RateEstimatorImpl {
             last_level: 0,
             level_diff: 0,
             window_start: None,
@@ -113,11 +156,10 @@ impl RateEstimator {
             estimated_rate: rate as f64,
         })
     }
+}
 
-    /// Resets the estimated rate
-    ///
-    /// Reset the estimated rate to `rate`, and erase all collected data.
-    pub fn reset_rate(&mut self, rate: u32) {
+impl RateEstimator for RateEstimatorImpl {
+    fn reset_rate(&mut self, rate: u32) {
         self.last_level = 0;
         self.level_diff = 0;
         self.window_start = None;
@@ -126,16 +168,7 @@ impl RateEstimator {
         self.estimated_rate = rate as f64;
     }
 
-    /// Adds additional frames transmitted to/from audio device.
-    ///
-    /// # Arguments
-    ///    * `frames` - The number of frames written to the device.  For input,
-    ///                 this should be negative to indicate how many samples
-    ///                 were read.
-    ///
-    /// # Returns
-    ///    True if the frames is successfully added, and False if there is overflow
-    pub fn add_frames(&mut self, frames: i32) -> bool {
+    fn add_frames(&mut self, frames: i32) -> bool {
         match self.level_diff.checked_add(frames) {
             Some(d) => {
                 self.level_diff = d;
@@ -152,22 +185,11 @@ impl RateEstimator {
         }
     }
 
-    /// Gets the estimated rate.
-    pub fn get_estimated_rate(&self) -> f64 {
+    fn get_estimated_rate(&self) -> f64 {
         self.estimated_rate
     }
 
-    /// Check the timestamp and buffer level difference since last check time,
-    /// and use them as a new sample to update the estimated rate.
-    ///
-    /// # Arguments
-    ///    * `level` - The current buffer level of audio device.
-    ///    * `now` - The time at which this function is called.
-    ///
-    /// # Returns
-    ///    True if the estimated rate is updated and window is reset,
-    ///    otherwise false.
-    pub fn update_estimated_rate(&mut self, level: i32, now: Duration) -> bool {
+    fn update_estimated_rate(&mut self, level: i32, now: Duration) -> bool {
         let start = match self.window_start {
             None => {
                 self.window_start = Some(now);
@@ -198,5 +220,40 @@ impl RateEstimator {
             return true;
         }
         false
+    }
+}
+
+#[derive(Default)]
+pub struct RateEstimatorStub {
+    rate: u32,
+    add_frames_called: u64,
+    last_add_frames_value: i32,
+}
+
+impl RateEstimator for RateEstimatorStub {
+    fn reset_rate(&mut self, rate: u32) {
+        self.rate = rate;
+    }
+
+    fn add_frames(&mut self, frames: i32) -> bool {
+        self.last_add_frames_value = frames;
+        self.add_frames_called += 1;
+        true
+    }
+
+    fn get_estimated_rate(&self) -> f64 {
+        self.rate as f64
+    }
+
+    fn update_estimated_rate(&mut self, _level: i32, _now: Duration) -> bool {
+        true
+    }
+
+    fn get_last_add_frames_value_for_test(&self) -> i32 {
+        self.last_add_frames_value
+    }
+
+    fn get_add_frames_called_count_for_test(&self) -> u64 {
+        self.add_frames_called
     }
 }
