@@ -22,6 +22,7 @@ extern "C" {
  * Support status for CRAS features.
  */
 struct cras_feature_tier {
+  bool initialized;
   bool sr_bt_supported;
 };
 

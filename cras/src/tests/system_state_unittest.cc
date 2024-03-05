@@ -46,14 +46,12 @@ static size_t cras_observer_notify_num_non_chrome_output_streams_called;
 static size_t cras_observer_notify_input_streams_with_permission_called;
 static size_t cras_observer_notify_num_arc_streams_called;
 static size_t cras_iodev_list_reset_for_noise_cancellation_called;
-static size_t cras_feature_tier_init_called;
 static struct cras_board_config fake_board_config;
 static size_t cras_alert_process_all_pending_alerts_called;
 static size_t cras_alsa_card_get_type_called;
 std::unordered_map<const cras_alsa_card*, enum CRAS_ALSA_CARD_TYPE>
     card_type_map;
 std::unordered_map<const cras_alsa_card*, int> card_index_map;
-static cras_feature_tier fake_tier = {};
 
 static void ResetStubData() {
   cras_alsa_card_create_called = 0;
@@ -83,9 +81,8 @@ static void ResetStubData() {
   cras_alsa_card_get_type_called = 0;
   card_type_map.clear();
   card_index_map.clear();
-  cras_feature_tier_init_called = 0;
+  *get_feature_tier_for_test() = {};
   memset(&fake_board_config, 0, sizeof(fake_board_config));
-  fake_tier = {};
 }
 
 static int add_stub(int fd,
@@ -643,9 +640,10 @@ TEST(SystemStateSuite, InternalCardDetectedMultipleCards) {
 
 TEST(SystemFeatureTier, CrasFeatureTierInitCalled) {
   ResetStubData();
-  do_sys_init();
 
-  EXPECT_EQ(cras_feature_tier_init_called, 1);
+  EXPECT_FALSE(get_feature_tier_for_test()->initialized);
+  do_sys_init();
+  EXPECT_TRUE(get_feature_tier_for_test()->initialized);
 
   cras_system_state_deinit();
 }
@@ -672,8 +670,8 @@ TEST(SystemFeatureTier, SetSrBtEnabledWhenNotSupported) {
 
 TEST(SystemFeatureTier, SetSrBtEnabledWhenSupported) {
   ResetStubData();
-  fake_tier.sr_bt_supported = true;
   do_sys_init();
+  get_feature_tier_for_test()->sr_bt_supported = true;
 
   cras_system_set_sr_bt_enabled(true);
   EXPECT_TRUE(cras_system_get_sr_bt_enabled());
@@ -692,8 +690,8 @@ TEST(SystemFeatureTier, GetSrBtUnsupported) {
 
 TEST(SystemFeatureTier, GetSrBtSupported) {
   ResetStubData();
-  fake_tier.sr_bt_supported = true;
   do_sys_init();
+  get_feature_tier_for_test()->sr_bt_supported = true;
 
   EXPECT_EQ(cras_system_get_sr_bt_supported(), true);
 
@@ -822,12 +820,6 @@ void cras_alert_process_all_pending_alerts() {
 
 void cras_iodev_list_reset_for_noise_cancellation() {
   cras_iodev_list_reset_for_noise_cancellation_called++;
-}
-
-int cras_feature_tier_init(cras_feature_tier* tier, const char*, const char*) {
-  cras_feature_tier_init_called++;
-  *tier = fake_tier;
-  return 0;
 }
 
 }  // extern "C"

@@ -1038,3 +1038,7 @@ const char* cras_system_get_dsp_offload_map_str() {
 int cras_system_state_num_arc_streams() {
   return state.num_arc_streams;
 }
+
+struct cras_feature_tier* get_feature_tier_for_test() {
+  return &state.feature_tier;
+}

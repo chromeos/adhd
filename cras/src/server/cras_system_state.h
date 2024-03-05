@@ -513,6 +513,9 @@ const char* cras_system_get_dsp_offload_map_str();
 // Get number of ARC streams
 int cras_system_state_num_arc_streams();
 
+// Get the feature tier struct for testing.
+struct cras_feature_tier* get_feature_tier_for_test();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

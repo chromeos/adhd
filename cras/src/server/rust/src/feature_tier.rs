@@ -5,6 +5,7 @@
 /// Support status for CRAS features.
 #[repr(C)]
 pub struct CrasFeatureTier {
+    pub initialized: bool,
     pub sr_bt_supported: bool,
 }
 
@@ -13,6 +14,7 @@ impl CrasFeatureTier {
     /// reference board. `cpu_name` should be the model name of the CPU.
     pub fn new(board_name: &str, cpu_name: &str) -> Self {
         Self {
+            initialized: true,
             sr_bt_supported: match board_name {
                 "eve" | "soraka" | "nautilus" | "nami" | "nocturne" | "rammus" | "fizz" => {
                     !has_substr(cpu_name, &["celeron", "pentium"])
