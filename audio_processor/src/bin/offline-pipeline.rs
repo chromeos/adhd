@@ -51,6 +51,11 @@ struct Command {
     /// Also print JSON profile results in stdout.
     #[clap(long)]
     json: bool,
+
+    /// The number of output channels.
+    /// If not specified, assumes output channels equals to input channels.
+    #[clap(long)]
+    output_channels: Option<u16>,
 }
 
 fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
@@ -123,7 +128,7 @@ fn run(command: Command) {
     let writer = hound::WavWriter::create(
         command.output.clone(),
         hound::WavSpec {
-            channels: spec.channels,
+            channels: command.output_channels.unwrap_or(spec.channels),
             sample_rate: spec.sample_rate,
             bits_per_sample: 32,
             sample_format: hound::SampleFormat::Float,
@@ -254,6 +259,7 @@ mod tests {
             block_size_ms: 10,
             block_size_frames: None,
             json: false,
+            output_channels: None,
         });
 
         // Verify the output.
