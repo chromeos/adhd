@@ -745,23 +745,24 @@ static int handle_audio_thread_message(struct audio_thread* thread) {
 
 // Returns the number of active streams plus the number of active devices.
 static int fill_next_sleep_interval(struct audio_thread* thread,
-                                    struct timespec* ts) {
-  struct timespec min_ts;
+                                    struct timespec* sleep_interval,
+                                    struct timespec* sleep_until) {
   struct timespec now;
   int ret;
 
-  ts->tv_sec = 0;
-  ts->tv_nsec = 0;
+  sleep_interval->tv_sec = 0;
+  sleep_interval->tv_nsec = 0;
   // Limit the sleep time to 20 seconds.
-  min_ts.tv_sec = 20;
-  min_ts.tv_nsec = 0;
+  sleep_until->tv_sec = 20;
+  sleep_until->tv_nsec = 0;
   clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-  add_timespecs(&min_ts, &now);
-  ret =
-      dev_io_next_output_wake(&thread->open_devs[CRAS_STREAM_OUTPUT], &min_ts);
-  ret += dev_io_next_input_wake(&thread->open_devs[CRAS_STREAM_INPUT], &min_ts);
-  if (timespec_after(&min_ts, &now)) {
-    subtract_timespecs(&min_ts, &now, ts);
+  add_timespecs(sleep_until, &now);
+  ret = dev_io_next_output_wake(&thread->open_devs[CRAS_STREAM_OUTPUT],
+                                sleep_until);
+  ret += dev_io_next_input_wake(&thread->open_devs[CRAS_STREAM_INPUT],
+                                sleep_until);
+  if (timespec_after(sleep_until, &now)) {
+    subtract_timespecs(sleep_until, &now, sleep_interval);
   }
 
   return ret;
@@ -828,6 +829,21 @@ static void check_busyloop(struct timespec* wait_ts) {
   }
 }
 
+static void check_wake_delay(const struct timespec* sleep_until) {
+  struct timespec diff, now;
+  const struct timespec threshold = {0, 1000000};  // 1ms
+
+  clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+  if (!timespec_after(&now, sleep_until)) {
+    return;
+  }
+  subtract_timespecs(&now, sleep_until, &diff);
+  if (timespec_after(&diff, &threshold)) {
+    ATLOG(atlog, AUDIO_THREAD_WAKE_DELAY, diff.tv_sec, diff.tv_nsec, 0);
+    cras_server_metrics_wake_delay(&diff);
+  }
+}
+
 /* For playback, fill the audio buffer when needed, for capture, pull out
  * samples when they are ready.
  * This thread will attempt to run at a high priority to allow for low latency
@@ -855,6 +871,7 @@ static void* audio_io_thread(void* arg) {
 
   while (1) {
     struct timespec* wait_ts;
+    struct timespec sleep_until;
     struct iodev_callback_list* iodev_cb;
     int non_empty;
 
@@ -868,7 +885,7 @@ static void* audio_io_thread(void* arg) {
     non_empty = dev_io_check_non_empty_state_transition(
         thread->open_devs[CRAS_STREAM_OUTPUT]);
 
-    if (fill_next_sleep_interval(thread, &ts)) {
+    if (fill_next_sleep_interval(thread, &ts, &sleep_until)) {
       wait_ts = &ts;
     }
 
@@ -924,7 +941,9 @@ static void* audio_io_thread(void* arg) {
 
     rc = ppoll(thread->pollfds, thread->num_pollfds, wait_ts, NULL);
     ATLOG(atlog, AUDIO_THREAD_WAKE, rc, 0, 0);
-
+    if (wait_ts) {
+      check_wake_delay(&sleep_until);
+    }
     // Handle callbacks registered by TRIGGER_WAKEUP
     DL_FOREACH (iodev_callbacks, iodev_cb) {
       if (iodev_cb->trigger == TRIGGER_WAKEUP) {

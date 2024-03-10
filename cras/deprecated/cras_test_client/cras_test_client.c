@@ -1092,6 +1092,9 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
           "current_available:%u\n",
           "UNREASONABLE_AVAILABLE_FRAMES", data1, data2, data3);
       break;
+    case AUDIO_THREAD_WAKE_DELAY:
+      printf("%-30s delay:%09d.%09d\n", "WAKE_DELAY", (int)data1, (int)data2);
+      break;
     default:
       printf("%-30s tag:%u\n", "UNKNOWN", tag);
       break;

@@ -102,4 +102,8 @@ int cras_server_metrics_device_dsp_offload_status(
   return 0;
 }
 
+int cras_server_metrics_wake_delay(const struct timespec* ts) {
+  return 0;
+}
+
 }  // extern "C"

@@ -244,6 +244,9 @@ int cras_server_metrics_device_dsp_offload_status(
 // Logs whether there is an internal soundcard detected.
 int cras_server_metrics_internal_soundcard_status(bool detected, int sec);
 
+// Logs how long the audio thread delayed waking up.
+int cras_server_metrics_wake_delay(const struct timespec* ts);
+
 // Initialize metrics logging stuff.
 int cras_server_metrics_init();
 
