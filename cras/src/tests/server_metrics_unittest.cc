@@ -180,16 +180,24 @@ TEST(ServerMetricsTestSuite, SetMetricHighestHardwareLevel) {
 
 TEST(ServerMetricsTestSuite, SetMetricsNumUnderruns) {
   ResetStubData();
-  unsigned int underrun = 10;
+  struct cras_iodev iodev = {};
+  struct cras_ionode active_node;
 
-  cras_server_metrics_num_underruns(underrun);
+  iodev.num_underruns = 10;
+  iodev.active_node = &active_node;
+  iodev.info.idx = MAX_SPECIAL_DEVICE_IDX;
+  active_node.type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+
+  cras_server_metrics_num_underruns(&iodev);
 
   EXPECT_EQ(sent_msgs.size(), 1);
   EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
   EXPECT_EQ(sent_msgs[0].header.length,
             sizeof(struct cras_server_metrics_message));
   EXPECT_EQ(sent_msgs[0].metrics_type, NUM_UNDERRUNS);
-  EXPECT_EQ(sent_msgs[0].data.value, underrun);
+  EXPECT_EQ(sent_msgs[0].data.device_data.value, iodev.num_underruns);
+  EXPECT_EQ(sent_msgs[0].data.device_data.type,
+            CRAS_METRICS_DEVICE_INTERNAL_SPEAKER);
 }
 
 TEST(ServerMetricsTestSuite, SetMetricsMissedCallbackEventInputStream) {
@@ -527,6 +535,10 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   tp->tv_sec = clock_gettime_retspec.tv_sec;
   tp->tv_nsec = clock_gettime_retspec.tv_nsec;
   return 0;
+}
+
+unsigned int cras_iodev_get_num_underruns(const struct cras_iodev* iodev) {
+  return iodev->num_underruns;
 }
 
 }  // extern "C"

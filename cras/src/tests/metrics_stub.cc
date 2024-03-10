@@ -57,7 +57,7 @@ int cras_server_metrics_missed_cb_event(struct cras_rstream* stream) {
   return 0;
 }
 
-int cras_server_metrics_num_underruns(unsigned num_underruns) {
+int cras_server_metrics_num_underruns(struct cras_iodev* iodev) {
   return 0;
 }
 

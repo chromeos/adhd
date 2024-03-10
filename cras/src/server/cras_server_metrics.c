@@ -1106,12 +1106,14 @@ int cras_server_metrics_longest_fetch_delay(const struct cras_rstream* stream) {
   return 0;
 }
 
-int cras_server_metrics_num_underruns(unsigned num_underruns) {
+int cras_server_metrics_num_underruns(struct cras_iodev* iodev) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   union cras_server_metrics_data data;
   int err;
 
-  data.value = num_underruns;
+  data.device_data.value = cras_iodev_get_num_underruns(iodev);
+  data.device_data.type = get_metrics_device_type(iodev);
+
   init_server_metrics_msg(&msg, NUM_UNDERRUNS, data);
   err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
   if (err < 0) {
@@ -1917,8 +1919,10 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
                                  metrics_msg->data.value, 0, 90000, 20);
       break;
     case NUM_UNDERRUNS:
-      cras_metrics_log_histogram(kUnderrunsPerDevice, metrics_msg->data.value,
-                                 0, 1000, 10);
+      log_histogram_each_level(
+          2, (unsigned)metrics_msg->data.device_data.value, 0, 1000000000, 50,
+          kUnderrunsPerDevice,
+          metrics_device_type_str(metrics_msg->data.device_data.type));
       break;
     case RTC_RUNTIME:
       metrics_rtc_runtime(metrics_msg->data.rtc_data);
