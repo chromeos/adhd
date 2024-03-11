@@ -329,6 +329,7 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   stream.longest_fetch_interval.tv_nsec = 0;
   stream.sleep_interval_ts.tv_sec = 0;
   stream.sleep_interval_ts.tv_nsec = 5000000;
+  stream.num_delayed_fetches = 10;
 
   stream.direction = CRAS_STREAM_INPUT;
   stream.client_type = CRAS_CLIENT_TYPE_TEST;
@@ -336,7 +337,7 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   cras_server_metrics_stream_destroy(&stream);
 
   subtract_timespecs(&clock_gettime_retspec, &stream.start_ts, &diff_ts);
-  EXPECT_EQ(sent_msgs.size(), 4);
+  EXPECT_EQ(sent_msgs.size(), 5);
 
   // Log missed cb frequency.
   EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
@@ -379,6 +380,17 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   EXPECT_EQ(sent_msgs[3].data.stream_data.direction, CRAS_STREAM_INPUT);
   EXPECT_EQ(sent_msgs[3].data.stream_data.runtime.tv_sec, 0);
   EXPECT_EQ(sent_msgs[3].data.stream_data.runtime.tv_nsec, 995000000);
+
+  // Log number of fetch delays.
+  EXPECT_EQ(sent_msgs[4].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[4].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[4].metrics_type, FETCH_DELAY_COUNT);
+  EXPECT_EQ(sent_msgs[4].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
+  EXPECT_EQ(sent_msgs[4].data.stream_data.stream_type,
+            CRAS_STREAM_TYPE_DEFAULT);
+  EXPECT_EQ(sent_msgs[4].data.stream_data.direction, CRAS_STREAM_INPUT);
+  EXPECT_EQ(sent_msgs[4].data.stream_data.count, 10);
 }
 
 TEST(ServerMetricsTestSuite, SetMetricsBusyloop) {

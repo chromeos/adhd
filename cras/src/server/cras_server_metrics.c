@@ -45,6 +45,7 @@ const char kDeviceSampleFormat[] = "Cras.DeviceSampleFormat";
 const char kDeviceSampleRate[] = "Cras.DeviceSampleRate";
 const char kDeviceDspOffloadStatus[] = "Cras.DeviceDspOffloadStatus";
 const char kFetchDelayMilliSeconds[] = "Cras.FetchDelayMilliSeconds";
+const char kFetchDelayCount[] = "Cras.FetchDelayCount";
 const char kHighestDeviceDelayInput[] = "Cras.HighestDeviceDelayInput";
 const char kHighestDeviceDelayOutput[] = "Cras.HighestDeviceDelayOutput";
 const char kHighestInputHardwareLevel[] = "Cras.HighestInputHardwareLevel";
@@ -149,6 +150,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   INTERNAL_SOUNDCARD_STATUS_5S,
   INTERNAL_SOUNDCARD_STATUS_10S,
   LONGEST_FETCH_DELAY,
+  FETCH_DELAY_COUNT,
   MISSED_CB_FIRST_TIME_INPUT,
   MISSED_CB_FIRST_TIME_OUTPUT,
   MISSED_CB_FREQUENCY_INPUT,
@@ -236,6 +238,7 @@ struct cras_server_metrics_stream_data {
   enum CRAS_STREAM_TYPE stream_type;
   enum CRAS_STREAM_DIRECTION direction;
   struct timespec runtime;
+  unsigned count;
 };
 
 struct cras_server_metrics_timespec_data {
@@ -1106,6 +1109,26 @@ int cras_server_metrics_longest_fetch_delay(const struct cras_rstream* stream) {
   return 0;
 }
 
+int cras_server_metrics_fetch_delay_count(const struct cras_rstream* stream) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  int err;
+
+  data.stream_data.client_type = stream->client_type;
+  data.stream_data.stream_type = stream->stream_type;
+  data.stream_data.direction = stream->direction;
+  data.stream_data.count = stream->num_delayed_fetches;
+
+  init_server_metrics_msg(&msg, FETCH_DELAY_COUNT, data);
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING, "Failed to send metrics message: FETCH_DELAY_COUNT");
+    return err;
+  }
+
+  return 0;
+}
+
 int cras_server_metrics_num_underruns(struct cras_iodev* iodev) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   union cras_server_metrics_data data;
@@ -1337,7 +1360,11 @@ int cras_server_metrics_stream_destroy(const struct cras_rstream* stream) {
   if (rc < 0) {
     return rc;
   }
-  return cras_server_metrics_longest_fetch_delay(stream);
+  rc = cras_server_metrics_longest_fetch_delay(stream);
+  if (rc < 0) {
+    return rc;
+  }
+  return cras_server_metrics_fetch_delay_count(stream);
 }
 
 int cras_server_metrics_busyloop(struct timespec* ts, unsigned count) {
@@ -1683,6 +1710,15 @@ static void metrics_longest_fetch_delay(
                            metrics_stream_type_str(data.stream_type));
 }
 
+static void metrics_fetch_delay_count(
+    struct cras_server_metrics_stream_data data) {
+  int fetch_delay_count = data.count;
+  log_histogram_each_level(3, fetch_delay_count, 0, 1000000000, 50,
+                           kFetchDelayCount,
+                           metrics_client_type_str(data.client_type),
+                           metrics_stream_type_str(data.stream_type));
+}
+
 static void metrics_dlc_install_retried_times_on_success(
     struct cras_server_metrics_dlc_manager_data data) {
   char metrics_name[METRICS_NAME_BUFFER_SIZE];
@@ -1884,6 +1920,9 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case LONGEST_FETCH_DELAY:
       metrics_longest_fetch_delay(metrics_msg->data.stream_data);
+      break;
+    case FETCH_DELAY_COUNT:
+      metrics_fetch_delay_count(metrics_msg->data.stream_data);
       break;
     case MISSED_CB_FIRST_TIME_INPUT:
       cras_metrics_log_histogram(kMissedCallbackFirstTimeInput,
