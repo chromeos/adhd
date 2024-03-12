@@ -390,6 +390,8 @@ struct cras_iodev {
   unsigned int largest_cb_level;
   // Number of times we have run out of data (playback only).
   unsigned int num_underruns;
+  // Number of underruns while AP NC is running.
+  unsigned int num_underruns_during_nc;
   double rate_est_underrun;
   // Timestamp of the last update to the reset quota.
   struct timespec last_reset_timeref;
@@ -871,6 +873,15 @@ int cras_iodev_prepare_output_before_write_samples(struct cras_iodev* odev);
  *    An unsigned int for number of underruns recorded.
  */
 unsigned int cras_iodev_get_num_underruns(const struct cras_iodev* iodev);
+
+/* Get number of underruns while AP NC is running so far.
+ * Args:
+ *    iodev[in] - The device.
+ * Returns:
+ *    An unsigned int for number of underruns during NC recorded.
+ */
+unsigned int cras_iodev_get_num_underruns_during_nc(
+    const struct cras_iodev* iodev);
 
 /* Get number of severe underruns recorded so far.
  * Args:

@@ -712,7 +712,7 @@ impl<'a> CrasClient<'a> {
         // Check the first readable message
         let tokens: Vec<Token> = events.iter_readable().map(|e| e.token()).collect();
         tokens
-            .get(0)
+            .first()
             .ok_or(Error::UnexpectedExit)
             .and_then(|ref token| {
                 match token {

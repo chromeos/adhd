@@ -37,6 +37,14 @@
 #define APM_CONFIG_NAME "apm.ini"
 #define WEBRTC_CHANNELS_SUPPORTED_MAX 2
 
+// Information of APM.
+struct cras_apm_state {
+  // Number of streams enabling Noise Cancellation.
+  unsigned num_nc;
+  // The last time Noise Cancellation was closed.
+  struct timespec last_nc_closed;
+} apm_state = {};
+
 /*
  * Structure holding a WebRTC audio processing module and necessary
  * info to process and transfer input buffer from device to stream.
@@ -639,6 +647,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   }
   if (cp_effect == NoiseCancellation) {
     cras_server_metrics_ap_nc_start_status(cp_effect_init_success);
+    apm_state.num_nc++;
   }
   apm->pp_effect = cp_effect_init_success ? cp_effect : NoEffects;
 
@@ -702,6 +711,8 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
       clock_gettime(CLOCK_MONOTONIC_RAW, &now);
       subtract_timespecs(&now, &active->apm->start_ts, &runtime);
       cras_server_metrics_ap_nc_runtime(runtime.tv_sec);
+      apm_state.num_nc--;
+      apm_state.last_nc_closed = now;
     }
 
     DL_DELETE(active_apms, active);
@@ -1280,4 +1291,12 @@ bool cras_stream_apm_vad_available(struct cras_stream_apm* stream) {
   //    target stream selection algorithm should not worry about device changes
   //    or preference changes.
   return stream && (stream->effects & APM_ECHO_CANCELLATION);
+}
+
+unsigned cras_apm_state_get_num_nc() {
+  return apm_state.num_nc;
+}
+
+struct timespec cras_apm_state_get_last_nc_closed() {
+  return apm_state.last_nc_closed;
 }

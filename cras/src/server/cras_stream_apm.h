@@ -220,6 +220,12 @@ void apm_thread_set_dsp_input_effects_blocked(bool blocked);
 // Sets whether DSP input effects are blocked.
 void cras_stream_apm_notify_dsp_input_effects_blocked(bool blocked);
 
+// Returns the number of running AP NC.
+unsigned cras_apm_state_get_num_nc();
+
+// Returns the last time AP NC was closed.
+struct timespec cras_apm_state_get_last_nc_closed();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

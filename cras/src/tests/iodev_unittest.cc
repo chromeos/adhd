@@ -3197,6 +3197,15 @@ int cras_dsp_pipeline_validate(const struct pipeline* pipeline,
                                const struct cras_audio_format* format) {
   return 0;
 }
+
+unsigned cras_apm_state_get_num_nc() {
+  return 0;
+}
+
+struct timespec cras_apm_state_get_last_nc_closed() {
+  return {0, 0};
+}
+
 }  // extern "C"
 }  //  namespace
 

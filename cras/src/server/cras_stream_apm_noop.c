@@ -98,3 +98,11 @@ bool cras_apm_needed_for_effects(uint64_t effects, bool cras_processor_needed) {
 }
 
 void cras_stream_apm_notify_dsp_input_effects_blocked(bool blocked) {}
+
+unsigned cras_apm_state_get_num_nc() {
+  return 0;
+}
+
+struct timespec cras_apm_state_get_last_nc_closed() {
+  return (struct timespec){0, 0};
+}

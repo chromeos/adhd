@@ -170,6 +170,9 @@ int cras_server_metrics_highest_hw_level(unsigned hw_level,
 // Logs the number of underruns of a device.
 int cras_server_metrics_num_underruns(struct cras_iodev* iodev);
 
+// Logs the number of underruns during NC of a device.
+int cras_server_metrics_num_underruns_during_apnc(struct cras_iodev* iodev);
+
 // Logs the missed callback event.
 int cras_server_metrics_missed_cb_event(struct cras_rstream* stream);
 

@@ -200,6 +200,11 @@ unsigned int cras_iodev_get_num_underruns(const struct cras_iodev* iodev) {
   return 0;
 }
 
+unsigned int cras_iodev_get_num_underruns_during_nc(
+    const struct cras_iodev* iodev) {
+  return 0;
+}
+
 unsigned int cras_iodev_frames_to_play_in_sleep(struct cras_iodev* odev,
                                                 unsigned int* hw_level,
                                                 struct timespec* hw_tstamp) {

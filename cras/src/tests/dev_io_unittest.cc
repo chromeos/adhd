@@ -667,6 +667,14 @@ int cras_audio_thread_event_unreasonable_available_frames() {
   return 0;
 }
 
+unsigned cras_apm_state_get_num_nc() {
+  return 0;
+}
+
+struct timespec cras_apm_state_get_last_nc_closed() {
+  return {0, 0};
+}
+
 }  // extern "C"
 
 }  //  namespace

@@ -1465,6 +1465,7 @@ void dev_io_rm_open_dev(struct open_dev** odev_list,
                         struct open_dev* dev_to_rm) {
   struct open_dev* odev;
   struct dev_stream* dev_stream;
+  struct timespec last_nc_closed;
 
   // Do nothing if dev_to_rm wasn't already in the active dev list.
   DL_FOREACH (*odev_list, odev) {
@@ -1480,6 +1481,14 @@ void dev_io_rm_open_dev(struct open_dev** odev_list,
 
   // Metrics logs the number of underruns of this device.
   cras_server_metrics_num_underruns(dev_to_rm->dev);
+
+  // Metrics logs the number of underruns during NC if NC was enabled while
+  // the device was running.
+  last_nc_closed = cras_apm_state_get_last_nc_closed();
+  if (cras_apm_state_get_num_nc() ||
+      timespec_after(&last_nc_closed, &dev_to_rm->dev->open_ts)) {
+    cras_server_metrics_num_underruns_during_apnc(dev_to_rm->dev);
+  }
 
   // Metrics logs the delay of this device.
   cras_server_metrics_highest_device_delay(dev_to_rm->dev->highest_hw_level,

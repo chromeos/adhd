@@ -387,6 +387,7 @@ impl Default for audio_dev_debug_info {
             est_rate_ratio_when_underrun: 0.0,
             direction: 0,
             num_underruns: 0,
+            num_underruns_during_nc: 0,
             num_severe_underruns: 0,
             highest_hw_level: 0,
             runtime_sec: 0,
@@ -414,6 +415,7 @@ pub struct AudioDevDebugInfo {
     pub est_rate_ratio_when_underrun: f64,
     pub direction: CRAS_STREAM_DIRECTION,
     pub num_underruns: u32,
+    pub num_underruns_during_nc: u32,
     pub num_severe_underruns: u32,
     pub highest_hw_level: u32,
     #[serde(rename = "runtime_sec", serialize_with = "serialize_duration_secs")]
@@ -440,6 +442,7 @@ impl From<audio_dev_debug_info> for AudioDevDebugInfo {
             est_rate_ratio_when_underrun: info.est_rate_ratio_when_underrun,
             direction: CRAS_STREAM_DIRECTION::from(u32::from(info.direction)),
             num_underruns: info.num_underruns,
+            num_underruns_during_nc: info.num_underruns_during_nc,
             num_severe_underruns: info.num_severe_underruns,
             highest_hw_level: info.highest_hw_level,
             runtime: Duration::new(info.runtime_sec.into(), info.runtime_nsec),
@@ -466,6 +469,11 @@ impl fmt::Display for AudioDevDebugInfo {
             self.est_rate_ratio_when_underrun
         )?;
         writeln!(f, "  Underrun count: {}", self.num_underruns)?;
+        writeln!(
+            f,
+            "  Underrun during NC count: {}",
+            self.num_underruns_during_nc
+        )?;
         writeln!(f, "  Severe underrun count: {}", self.num_severe_underruns)?;
         writeln!(f, "  Highest hardware level: {}", self.highest_hw_level)?;
         writeln!(f, "  Runtime: {:?}", self.runtime)?;

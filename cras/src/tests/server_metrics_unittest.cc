@@ -553,5 +553,10 @@ unsigned int cras_iodev_get_num_underruns(const struct cras_iodev* iodev) {
   return iodev->num_underruns;
 }
 
+unsigned int cras_iodev_get_num_underruns_during_nc(
+    const struct cras_iodev* iodev) {
+  return iodev->num_underruns_during_nc;
+}
+
 }  // extern "C"
 }  // namespace

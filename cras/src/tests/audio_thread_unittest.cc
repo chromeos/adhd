@@ -1472,6 +1472,14 @@ int cras_audio_thread_event_unreasonable_available_frames() {
   return 0;
 }
 
+unsigned cras_apm_state_get_num_nc() {
+  return 0;
+}
+
+struct timespec cras_apm_state_get_last_nc_closed() {
+  return {0, 0};
+}
+
 struct input_data_gain input_data_get_software_gain_scaler(
     struct input_data* data,
     float ui_gain_scalar,

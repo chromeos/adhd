@@ -510,6 +510,8 @@ static void append_dev_dump_info(struct audio_dev_debug_info* di,
   di->max_cb_level = adev->dev->max_cb_level;
   di->direction = adev->dev->direction;
   di->num_underruns = cras_iodev_get_num_underruns(adev->dev);
+  di->num_underruns_during_nc =
+      cras_iodev_get_num_underruns_during_nc(adev->dev);
   di->num_severe_underruns = cras_iodev_get_num_severe_underruns(adev->dev);
   di->highest_hw_level = adev->dev->highest_hw_level;
   di->internal_gain_scaler = (adev->dev->direction == CRAS_STREAM_INPUT)

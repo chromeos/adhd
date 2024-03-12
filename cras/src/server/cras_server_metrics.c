@@ -84,6 +84,8 @@ const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kStreamChannelCount[] = "Cras.StreamChannelCount";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
+const char kUnderrunsPerDeviceDuringAPNC[] =
+    "Cras.UnderrunsPerDeviceDuringAPNC";
 const char kHfpScoConnectionError[] = "Cras.HfpScoConnectionError";
 const char kHfpScoReconnectionOnBusy[] = "Cras.HfpScoReconnectionOnBusy";
 const char kHfpBatteryIndicatorSupported[] =
@@ -160,6 +162,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   MISSED_CB_SECOND_TIME_INPUT,
   MISSED_CB_SECOND_TIME_OUTPUT,
   NUM_UNDERRUNS,
+  NUM_UNDERRUNS_DURING_APNC,
   RTC_RUNTIME,
   SET_AEC_REF_DEVICE_TYPE,
   STREAM_ADD_ERROR,
@@ -1134,6 +1137,10 @@ int cras_server_metrics_num_underruns(struct cras_iodev* iodev) {
   union cras_server_metrics_data data;
   int err;
 
+  if (iodev->direction != CRAS_STREAM_OUTPUT) {
+    return 0;
+  }
+
   data.device_data.value = cras_iodev_get_num_underruns(iodev);
   data.device_data.type = get_metrics_device_type(iodev);
 
@@ -1141,6 +1148,29 @@ int cras_server_metrics_num_underruns(struct cras_iodev* iodev) {
   err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
   if (err < 0) {
     syslog(LOG_WARNING, "Failed to send metrics message: NUM_UNDERRUNS");
+    return err;
+  }
+
+  return 0;
+}
+
+int cras_server_metrics_num_underruns_during_apnc(struct cras_iodev* iodev) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  int err;
+
+  if (iodev->direction != CRAS_STREAM_OUTPUT) {
+    return 0;
+  }
+
+  data.device_data.value = cras_iodev_get_num_underruns_during_nc(iodev);
+  data.device_data.type = get_metrics_device_type(iodev);
+
+  init_server_metrics_msg(&msg, NUM_UNDERRUNS_DURING_APNC, data);
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: NUM_UNDERRUNS_DURING_APNC");
     return err;
   }
 
@@ -1961,6 +1991,12 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       log_histogram_each_level(
           2, (unsigned)metrics_msg->data.device_data.value, 0, 1000000000, 50,
           kUnderrunsPerDevice,
+          metrics_device_type_str(metrics_msg->data.device_data.type));
+      break;
+    case NUM_UNDERRUNS_DURING_APNC:
+      log_histogram_each_level(
+          2, (unsigned)metrics_msg->data.device_data.value, 0, 1000000000, 50,
+          kUnderrunsPerDeviceDuringAPNC,
           metrics_device_type_str(metrics_msg->data.device_data.type));
       break;
     case RTC_RUNTIME:

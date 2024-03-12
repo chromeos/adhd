@@ -61,6 +61,10 @@ int cras_server_metrics_num_underruns(struct cras_iodev* iodev) {
   return 0;
 }
 
+int cras_server_metrics_num_underruns_during_apnc(struct cras_iodev* iodev) {
+  return 0;
+}
+
 int cras_server_metrics_hfp_battery_indicator(int battery_indicator_support) {
   return 0;
 }
