@@ -7,6 +7,7 @@
 pub struct CrasFeatureTier {
     pub initialized: bool,
     pub sr_bt_supported: bool,
+    pub ap_nc_supported: bool,
 }
 
 impl CrasFeatureTier {
@@ -21,6 +22,7 @@ impl CrasFeatureTier {
                 }
                 _ => false,
             },
+            ap_nc_supported: false,
         }
     }
 }

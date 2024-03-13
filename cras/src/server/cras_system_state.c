@@ -278,6 +278,7 @@ void cras_system_state_init(const char* device_config_dir,
   state.bt_fix_a2dp_packet_size = false;
 
   cras_feature_tier_init(&state.feature_tier, board_name, cpu_model_name);
+  cras_s2_set_ap_nc_feature_tier_allowed(state.feature_tier.ap_nc_supported);
 
   // Obtain latency offsets and clamp the values.
   state.speaker_output_latency_offset_ms =

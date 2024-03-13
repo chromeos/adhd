@@ -10,6 +10,7 @@ pub mod global;
 struct Input {
     ap_nc_featured_allowed: bool,
     ap_nc_segmentation_allowed: bool,
+    ap_nc_feature_tier_allowed: bool,
     /// Tells whether the DLC manager is ready.
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
@@ -25,7 +26,9 @@ struct Output {
 
 fn resolve(input: &Input) -> Output {
     Output {
-        ap_nc_allowed: input.ap_nc_featured_allowed || input.ap_nc_segmentation_allowed,
+        ap_nc_allowed: input.ap_nc_featured_allowed
+            || input.ap_nc_segmentation_allowed
+            || input.ap_nc_feature_tier_allowed,
         // It's 'or' here because before the toggle of StyleTransfer is landed, users
         // should be able to control the feature only by the feature flag and there
         // would be only tests writing its system state currently.
@@ -46,6 +49,7 @@ impl S2 {
         let input = Input {
             ap_nc_featured_allowed: false,
             ap_nc_segmentation_allowed: false,
+            ap_nc_feature_tier_allowed: false,
             dlc_manager_ready: false,
             style_transfer_featured_allowed: false,
             style_transfer_enabled: false,
@@ -61,6 +65,11 @@ impl S2 {
 
     fn set_ap_nc_segmentation_allowed(&mut self, allowed: bool) {
         self.input.ap_nc_segmentation_allowed = allowed;
+        self.update();
+    }
+
+    fn set_ap_nc_feature_tier_allowed(&mut self, allowed: bool) {
+        self.input.ap_nc_feature_tier_allowed = allowed;
         self.update();
     }
 
@@ -98,6 +107,10 @@ mod tests {
 
         s.set_ap_nc_featured_allowed(false);
         s.set_ap_nc_segmentation_allowed(true);
+        assert_eq!(s.output.ap_nc_allowed, true);
+
+        s.set_ap_nc_segmentation_allowed(false);
+        s.set_ap_nc_feature_tier_allowed(true);
         assert_eq!(s.output.ap_nc_allowed, true);
     }
 

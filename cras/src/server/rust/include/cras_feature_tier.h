@@ -24,6 +24,7 @@ extern "C" {
 struct cras_feature_tier {
   bool initialized;
   bool sr_bt_supported;
+  bool ap_nc_supported;
 };
 
 /**

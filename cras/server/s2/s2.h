@@ -22,6 +22,8 @@ void cras_s2_set_ap_nc_featured_allowed(bool allowed);
 
 void cras_s2_set_ap_nc_segmentation_allowed(bool allowed);
 
+void cras_s2_set_ap_nc_feature_tier_allowed(bool allowed);
+
 bool cras_s2_get_ap_nc_allowed(void);
 
 void cras_s2_set_style_transfer_featured_allowed(bool allowed);

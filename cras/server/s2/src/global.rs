@@ -26,6 +26,11 @@ pub extern "C" fn cras_s2_set_ap_nc_segmentation_allowed(allowed: bool) {
     state().set_ap_nc_segmentation_allowed(allowed);
 }
 
+#[no_mangle]
+pub extern "C" fn cras_s2_set_ap_nc_feature_tier_allowed(allowed: bool) {
+    state().set_ap_nc_feature_tier_allowed(allowed);
+}
+
 pub fn set_dlc_manager_ready() {
     state().set_dlc_manager_ready();
 }
