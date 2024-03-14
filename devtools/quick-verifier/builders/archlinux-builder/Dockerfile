@@ -14,7 +14,6 @@ RUN pacman -Sy archlinux-keyring --noconfirm --cachedir=/paccache \
   sbc \
   speexdsp \
   clang \
-  ladspa \
   gtest \
   rust \
   python \

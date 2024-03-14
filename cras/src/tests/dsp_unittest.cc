@@ -44,12 +44,6 @@ static void ResetStubData() {
 
 namespace {
 
-extern "C" {
-struct dsp_module* cras_dsp_module_load_ladspa(struct plugin* plugin) {
-  return NULL;
-}
-}
-
 class DspTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {

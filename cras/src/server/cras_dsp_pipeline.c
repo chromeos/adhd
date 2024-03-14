@@ -511,9 +511,6 @@ static int load_module(struct plugin* plugin, struct instance* instance) {
   struct dsp_module* module;
   module = cras_dsp_module_load_builtin(plugin);
   if (!module) {
-    module = cras_dsp_module_load_ladspa(plugin);
-  }
-  if (!module) {
     return -ENOENT;
   }
   instance->module = module;

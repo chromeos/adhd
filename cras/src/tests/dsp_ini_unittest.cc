@@ -52,27 +52,6 @@ TEST_F(DspIniTestSuite, NoLibraryOrLabel) {
   EXPECT_EQ(NULL, ini);
 }
 
-TEST_F(DspIniTestSuite, OneSimplePlugin) {
-  fprintf(fp, "[Test]\n");
-  fprintf(fp, "library=foo.so\n");
-  fprintf(fp, "label=bar\n");
-  fprintf(fp, "disable=\"#f\"\n");
-  CloseFile();
-
-  struct ini* ini = cras_dsp_ini_create(filename);
-  EXPECT_EQ(1, ARRAY_COUNT(&ini->plugins));
-  EXPECT_EQ(0, ARRAY_COUNT(&ini->flows));
-
-  struct plugin* plugin = ARRAY_ELEMENT(&ini->plugins, 0);
-  EXPECT_STREQ("test", plugin->title);
-  EXPECT_STREQ("foo.so", plugin->library);
-  EXPECT_STREQ("bar", plugin->label);
-  EXPECT_TRUE(plugin->disable_expr);
-  EXPECT_EQ(0, ARRAY_COUNT(&plugin->ports));
-
-  cras_dsp_ini_free(ini);
-}
-
 TEST_F(DspIniTestSuite, BuiltinPlugin) {
   fprintf(fp, "[foo]\n");
   fprintf(fp, "library=builtin\n");

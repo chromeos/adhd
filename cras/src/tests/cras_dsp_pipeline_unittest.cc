@@ -209,9 +209,6 @@ static struct dsp_module* find_module(const char* name) {
 }
 
 extern "C" {
-struct dsp_module* cras_dsp_module_load_ladspa(struct plugin* plugin) {
-  return NULL;
-}
 struct dsp_module* cras_dsp_module_load_builtin(struct plugin* plugin) {
   struct dsp_module* module = create_mock_module(plugin);
   modules[num_modules++] = module;
