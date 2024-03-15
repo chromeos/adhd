@@ -360,6 +360,8 @@ TEST(AlsaIoInit, DefaultNodeUSBCard) {
   EXPECT_EQ(2, cras_iodev_set_node_plugged_called);
 
   // No extra gain applied.
+  ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS,
+            aio->common.base.active_node->intrinsic_sensitivity);
   ASSERT_EQ(0, aio->common.base.active_node->internal_capture_gain);
   iodev->close_dev(iodev);
   cras_alsa_usb_iodev_destroy(iodev);
@@ -380,6 +382,7 @@ TEST(AlsaIoInit, OpenCaptureSetCaptureGainWithDefaultUsbDevice) {
 
   ASSERT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init(iodev));
 
+  iodev->active_node->intrinsic_sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
   iodev->active_node->internal_capture_gain = 0;
 
   iodev->open_dev(iodev);

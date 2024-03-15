@@ -686,6 +686,8 @@ static void usb_set_input_node_intrinsic_sensitivity(
   long sensitivity;
   int rc;
 
+  node->intrinsic_sensitivity = 0;
+
   if (aio->common.ucm) {
     rc = ucm_get_intrinsic_sensitivity(aio->common.ucm, input->common.ucm_name,
                                        &sensitivity);
@@ -699,7 +701,7 @@ static void usb_set_input_node_intrinsic_sensitivity(
      */
     sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
   }
-  node->software_volume_needed = 1;
+  node->intrinsic_sensitivity = sensitivity;
   node->internal_capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
   syslog(LOG_INFO,
          "card type: %s, Use software gain %ld for %s because "

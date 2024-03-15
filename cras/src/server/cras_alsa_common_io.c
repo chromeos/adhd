@@ -160,8 +160,6 @@ int cras_alsa_common_frames_queued(const struct cras_iodev* iodev,
 int cras_alsa_common_set_active_node(struct cras_iodev* iodev,
                                      struct cras_ionode* ionode) {
   struct alsa_common_io* aio = (struct alsa_common_io*)iodev;
-  long intrinsic_sensitivity =
-      DEFAULT_CAPTURE_VOLUME_DBFS - ionode->internal_capture_gain;
   cras_iodev_set_active_node(iodev, ionode);
   syslog(LOG_INFO,
          "card type: %s, Set active node. name: %s, id: %d, direction: %s, "
@@ -171,8 +169,7 @@ int cras_alsa_common_set_active_node(struct cras_iodev* iodev,
          cras_card_type_to_string(aio->card_type), ionode->name, ionode->idx,
          iodev->direction == CRAS_STREAM_OUTPUT ? "output" : "input",
          cras_node_type_to_str(ionode->type, ionode->position),
-         ionode->software_volume_needed,
-         iodev->software_volume_needed ? intrinsic_sensitivity : 0,
+         ionode->software_volume_needed, ionode->intrinsic_sensitivity,
          ionode->volume, ionode->number_of_volume_steps);
   return 0;
 }

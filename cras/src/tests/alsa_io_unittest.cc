@@ -523,6 +523,7 @@ TEST(AlsaIoInit, SoftwareGainIntrinsicSensitivity) {
       0, NULL, ALSA_CARD_TYPE_INTERNAL, 1, fake_mixer, fake_config, fake_ucm,
       CRAS_STREAM_INPUT);
   ASSERT_EQ(0, alsa_iodev_legacy_complete_init(iodev));
+  ASSERT_EQ(intrinsic_sensitivity, iodev->active_node->intrinsic_sensitivity);
   ASSERT_EQ(DEFAULT_CAPTURE_VOLUME_DBFS - intrinsic_sensitivity,
             iodev->active_node->internal_capture_gain);
 

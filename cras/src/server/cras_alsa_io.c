@@ -1020,6 +1020,8 @@ static void set_input_node_intrinsic_sensitivity(struct alsa_input_node* input,
   long sensitivity;
   int rc;
 
+  node->intrinsic_sensitivity = 0;
+
   if (!aio->common.ucm) {
     return;
   }
@@ -1029,7 +1031,7 @@ static void set_input_node_intrinsic_sensitivity(struct alsa_input_node* input,
     return;
   }
 
-  node->software_volume_needed = 1;
+  node->intrinsic_sensitivity = sensitivity;
   node->internal_capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
   syslog(LOG_DEBUG,
          "Use software gain %ld for %s because IntrinsicSensitivity %ld is"

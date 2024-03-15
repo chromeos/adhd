@@ -180,6 +180,9 @@ struct cras_ionode {
   // is smaller than desired. For input: True if this node needs software
   // gain.
   int software_volume_needed;
+  // The "IntrinsicSensitivity" in 0.01 dBFS/Pa
+  // specified in the ucm config.
+  long intrinsic_sensitivity;
   // id for node that doesn't change after unplug/plug.
   unsigned int stable_id;
   // Bit-wise information to indicate the BT profile and attributes
@@ -599,6 +602,10 @@ static inline int cras_iodev_software_volume_needed(
 
   if (!iodev->active_node) {
     return 0;
+  }
+
+  if (iodev->active_node->intrinsic_sensitivity) {
+    return 1;
   }
 
   return iodev->active_node->software_volume_needed;
