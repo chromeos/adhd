@@ -25,9 +25,14 @@ build --copt=-fno-delete-null-pointer-checks
 # Breaks protobuf.
 build --copt=-Wno-error=unused-function
 
-# Do not enable -Werror with GCC.
-# It's not scalable to support -Wall -Werror on both GCC and Clang.
+# Compiler-specific strict configs.
 build:clang-strict --copt=-Werror
+
+build:gcc-strict --copt=-Werror
+build:gcc-strict --copt=-Wno-sign-compare
+build:gcc-strict --copt=-Wno-address-of-packed-member
+build:gcc-strict --copt=-Wno-stringop-overread
+build:gcc-strict --copt=-Wno-format-truncation
 
 # go/cras-style#build-time-feature-switches
 # NOTE: These flags don't work with gcc. So put them behind a config.

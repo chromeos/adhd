@@ -261,7 +261,8 @@
         "--config=ci",
         "-c",
         "dbg",
-        "--config=local-gcc"
+        "--config=local-gcc",
+        "--config=gcc-strict"
       ],
       "dir": "/workspace-archlinux-gcc",
       "id": "archlinux-gcc:1",

@@ -25,7 +25,7 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	b.Add(archlinuxSteps("archlinux-clang", "--config=local-clang").WithDep(git))
 	b.Add(archlinuxSteps("archlinux-clang-asan", "--config=local-clang", "--config=asan").WithDep(git))
 	b.Add(archlinuxSteps("archlinux-clang-ubsan", "--config=local-clang", "--config=ubsan").WithDep(git))
-	b.Add(archlinuxSteps("archlinux-gcc", "--config=local-gcc").WithDep(git))
+	b.Add(archlinuxSteps("archlinux-gcc", "--config=local-gcc", "--config=gcc-strict").WithDep(git))
 	b.Add(systemCrasRustSteps().WithDep(git))
 	b.Add(kytheSteps().WithDep(git))
 
