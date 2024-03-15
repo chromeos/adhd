@@ -303,27 +303,3 @@ struct alsa_common_node* cras_alsa_get_node_from_jack(
   DL_SEARCH_SCALAR_WITH_CAST(aio->base.nodes, node, anode, mixer, mixer);
   return anode;
 }
-
-int cras_alsa_set_node_intrinsic_sensitivity(struct alsa_common_node* anode,
-                                             struct alsa_common_io* aio) {
-  struct cras_ionode* node = &anode->base;
-  long sensitivity = 0;
-  int rc;
-
-  if (!aio->ucm) {
-    return -ENOENT;
-  }
-  // override default if we have ucm
-  rc = ucm_get_intrinsic_sensitivity(aio->ucm, anode->ucm_name, &sensitivity);
-  if (rc) {
-    return rc;
-  }
-
-  node->software_volume_needed = 1;
-  node->internal_capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
-  syslog(LOG_DEBUG,
-         "Use software gain %ld for %s because IntrinsicSensitivity %ld is"
-         " specified in UCM",
-         node->internal_capture_gain, node->name, sensitivity);
-  return 0;
-}

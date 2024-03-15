@@ -679,6 +679,36 @@ static void usb_set_input_default_node_gain(struct alsa_usb_input_node* input,
   }
 }
 
+static void usb_set_input_node_intrinsic_sensitivity(
+    struct alsa_usb_input_node* input,
+    struct alsa_usb_io* aio) {
+  struct cras_ionode* node = &input->common.base;
+  long sensitivity;
+  int rc;
+
+  if (aio->common.ucm) {
+    rc = ucm_get_intrinsic_sensitivity(aio->common.ucm, input->common.ucm_name,
+                                       &sensitivity);
+    if (rc) {
+      return;
+    }
+  } else {
+    /*
+     * For USB devices without UCM config, trust the default capture gain.
+     * Set sensitivity to the default dbfs so the capture gain is 0.
+     */
+    sensitivity = DEFAULT_CAPTURE_VOLUME_DBFS;
+  }
+  node->software_volume_needed = 1;
+  node->internal_capture_gain = DEFAULT_CAPTURE_VOLUME_DBFS - sensitivity;
+  syslog(LOG_INFO,
+         "card type: %s, Use software gain %ld for %s because "
+         "IntrinsicSensitivity %ld is"
+         " specified in UCM",
+         cras_card_type_to_string(aio->common.card_type),
+         node->internal_capture_gain, node->name, sensitivity);
+}
+
 static void usb_check_auto_unplug_output_node(struct alsa_usb_io* aio,
                                               struct cras_ionode* node,
                                               int plugged) {
@@ -817,13 +847,7 @@ static struct alsa_usb_input_node* usb_new_input(
   strlcpy(input->common.ucm_name, name, sizeof(input->common.ucm_name));
   usb_set_node_initial_state(node);
   usb_set_input_default_node_gain(input, aio);
-
-  err = cras_alsa_set_node_intrinsic_sensitivity(&input->common, &aio->common);
-  if (err == -ENOENT) {
-    // No UCM value found, set gain manually
-    input->common.base.software_volume_needed = 1;
-    input->common.base.internal_capture_gain = 0;
-  }
+  usb_set_input_node_intrinsic_sensitivity(input, aio);
 
   if (aio->common.ucm) {
     // Check if channel map is specified in UCM.
