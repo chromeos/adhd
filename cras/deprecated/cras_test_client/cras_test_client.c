@@ -1189,7 +1189,16 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
     printf(
         "buffer_frames: %u\n"
         "cb_threshold: %u\n"
-        "effects: 0x%.4x\n"
+        "effects: 0x%.4x\n",
+        (unsigned int)info->streams[i].buffer_frames,
+        (unsigned int)info->streams[i].cb_threshold,
+        (unsigned int)info->streams[i].effects);
+
+    printf("active_effects: 0x%" PRIx64 " =", info->streams[i].active_effects);
+    print_cras_stream_active_effects(stdout, info->streams[i].active_effects);
+    printf("\n");
+
+    printf(
         "frame_rate: %u\n"
         "num_channels: %u\n"
         "longest_fetch_sec: %u.%09u\n"
@@ -1203,9 +1212,6 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         "num_missed_cb: %u\n"
         "%s: %lf\n"
         "runtime: %u.%09u\n",
-        (unsigned int)info->streams[i].buffer_frames,
-        (unsigned int)info->streams[i].cb_threshold,
-        (unsigned int)info->streams[i].effects,
         (unsigned int)info->streams[i].frame_rate,
         (unsigned int)info->streams[i].num_channels,
         (unsigned int)info->streams[i].longest_fetch_sec,

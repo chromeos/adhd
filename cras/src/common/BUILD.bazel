@@ -177,6 +177,7 @@ cc_library(
 
 cc_library(
     name = "cras_types_internal",
+    srcs = ["cras_types_internal.c"],
     hdrs = ["cras_types_internal.h"],
     visibility = ["//cras:internal"],
     deps = [

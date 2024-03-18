@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "cras/src/common/cras_types_internal.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/float_buffer.h"
@@ -41,6 +42,11 @@ void cras_stream_apm_start(struct cras_stream_apm* stream,
 void cras_stream_apm_stop(struct cras_stream_apm* stream,
                           struct cras_iodev* idev) {}
 uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
+  return 0;
+}
+
+enum CRAS_STREAM_ACTIVE_EFFECT cras_stream_apm_get_active_effects(
+    struct cras_stream_apm* stream) {
   return 0;
 }
 

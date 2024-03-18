@@ -445,6 +445,21 @@ static struct active_apm* get_active_apm(struct cras_stream_apm* stream,
   return NULL;
 }
 
+static struct cras_apm* find_active_apm(struct cras_stream_apm* stream) {
+  if (stream == NULL) {
+    return NULL;
+  }
+
+  struct active_apm* active;
+
+  DL_FOREACH (active_apms, active) {
+    if (active->stream == stream) {
+      return active->apm;
+    }
+  }
+  return NULL;
+}
+
 struct cras_apm* cras_stream_apm_get_active(struct cras_stream_apm* stream,
                                             const struct cras_iodev* idev) {
   struct active_apm* active = get_active_apm(stream, idev);
@@ -457,6 +472,50 @@ uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
   } else {
     return stream->effects;
   }
+}
+
+enum CRAS_STREAM_ACTIVE_EFFECT cras_stream_apm_get_active_effects(
+    struct cras_stream_apm* stream) {
+  struct cras_apm* apm = find_active_apm(stream);
+  if (apm == NULL) {
+    return 0;
+  }
+
+  enum CRAS_STREAM_ACTIVE_EFFECT effects = 0;
+
+  struct WebRtcApmActiveEffects webrtc_effects =
+      webrtc_apm_get_active_effects(apm->apm_ptr);
+  if (webrtc_effects.echo_cancellation) {
+    effects |= AE_ECHO_CANCELLATION;
+  }
+  if (webrtc_effects.noise_suppression) {
+    effects |= AE_NOISE_SUPPRESSION;
+  }
+  if (webrtc_effects.voice_activity_detection) {
+    effects |= AE_VOICE_ACTIVITY_DETECTION;
+  }
+
+  switch (apm->pp_effect) {
+    case NoEffects:
+      break;
+    case Negate:
+      effects |= AE_NEGATE;
+      break;
+    case NoiseCancellation:
+      effects |= AE_NOISE_CANCELLATION;
+      break;
+    case StyleTransfer:
+      // Style transfer implies noise cancellation.
+      effects |= AE_NOISE_CANCELLATION;
+
+      effects |= AE_STYLE_TRANSFER;
+      break;
+    case Overridden:
+      effects |= AE_PROCESSOR_OVERRIDDEN;
+      break;
+  }
+
+  return effects;
 }
 
 void cras_stream_apm_remove(struct cras_stream_apm* stream,

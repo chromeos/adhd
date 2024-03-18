@@ -6,6 +6,7 @@
 #ifndef CRAS_SRC_SERVER_CRAS_STREAM_APM_H_
 #define CRAS_SRC_SERVER_CRAS_STREAM_APM_H_
 
+#include "cras/src/common/cras_types_internal.h"
 #include "cras_types.h"
 
 #ifdef __cplusplus
@@ -108,11 +109,15 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
                           struct cras_iodev* idev);
 
 /*
- * Gets the effects bit map of the stream APM.
+ * Gets the effects bit map of the stream APM, specified by the stream.
  * Args:
  *    stream - The stream apm holding APM instances.
  */
 uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream);
+
+// Returns the active effects on the stream.
+enum CRAS_STREAM_ACTIVE_EFFECT cras_stream_apm_get_active_effects(
+    struct cras_stream_apm* stream);
 
 // Removes all cras_apm from stream and destroys it.
 int cras_stream_apm_destroy(struct cras_stream_apm* stream);

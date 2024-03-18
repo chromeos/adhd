@@ -583,6 +583,7 @@ impl Default for audio_stream_debug_info {
             buffer_frames: 0,
             cb_threshold: 0,
             effects: 0,
+            active_effects: 0,
             flags: 0,
             frame_rate: 0,
             num_channels: 0,
