@@ -143,6 +143,8 @@ struct private_state {
   uint32_t num_arc_streams;
   // The current display rotation status.
   enum CRAS_SCREEN_ROTATION display_rotation;
+  // this board is selected for output processing hats
+  int32_t output_proc_hats;
 };
 
 static struct private_state state;
@@ -283,6 +285,7 @@ void cras_system_state_init(const char* device_config_dir,
   // Obtain latency offsets and clamp the values.
   state.speaker_output_latency_offset_ms =
       board_config->speaker_output_latency_offset_ms;
+  state.output_proc_hats = board_config->output_proc_hats;
 
   state.dsp_offload_map_str = NULL;
   if (board_config->dsp_offload_map) {
@@ -645,6 +648,10 @@ int cras_system_get_max_internal_speaker_channels() {
 
 int cras_system_get_max_headphone_channels() {
   return state.exp_state->max_headphone_channels;
+}
+
+int cras_system_get_output_proc_hats() {
+  return state.output_proc_hats;
 }
 
 void cras_system_set_display_rotation(

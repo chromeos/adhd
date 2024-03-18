@@ -33,6 +33,7 @@ struct cras_board_config {
   int32_t max_internal_speaker_channels;
   int32_t max_headphone_channels;
   int32_t speaker_output_latency_offset_ms;
+  int32_t output_proc_hats;
   char* dsp_offload_map;
 };
 

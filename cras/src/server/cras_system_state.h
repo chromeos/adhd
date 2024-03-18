@@ -242,6 +242,9 @@ int cras_system_get_max_internal_speaker_channels();
 // Returns the maximum headphone channels.
 int cras_system_get_max_headphone_channels();
 
+// Returns the maximum headphone channels.
+int cras_system_get_output_proc_hats();
+
 // Set new rotation and update all observers
 void cras_system_set_display_rotation(
     enum CRAS_SCREEN_ROTATION display_rotation);

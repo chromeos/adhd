@@ -57,6 +57,7 @@ static const struct ini_int_field INI_INT_KEYS[] = {
     {2,    board_offset(max_headphone_channels),        "output:max_headphone_channels"},
     {0,    board_offset(nc_standalone_mode),            "processing:nc_standalone_mode"},
     {0,    board_offset(speaker_output_latency_offset_ms),"output:speaker_output_latency_offset_ms"},
+    {0,    board_offset(output_proc_hats),              "output:output_proc_hats"},
 };
 // clang-format on
 
