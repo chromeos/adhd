@@ -4,6 +4,7 @@
 
 use cbindgen::Builder;
 use cbindgen::Config;
+use cbindgen::MacroExpansionConfig;
 use clap::Parser;
 
 fn header(copyright_year: u32) -> String {
@@ -59,6 +60,7 @@ fn main() {
 
     let config = Config {
         usize_is_size_t: true,
+        macro_expansion: MacroExpansionConfig { bitflags: true },
         ..Default::default()
     };
 

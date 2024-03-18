@@ -116,7 +116,7 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
 uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream);
 
 // Returns the active effects on the stream.
-enum CRAS_STREAM_ACTIVE_EFFECT cras_stream_apm_get_active_effects(
+CRAS_STREAM_ACTIVE_EFFECT cras_stream_apm_get_active_effects(
     struct cras_stream_apm* stream);
 
 // Removes all cras_apm from stream and destroys it.

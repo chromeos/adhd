@@ -40,6 +40,15 @@ struct cras_fra_kv_t {
   const char *value;
 };
 
+typedef uint64_t CRAS_STREAM_ACTIVE_EFFECT;
+#define CRAS_STREAM_ACTIVE_EFFECT_ECHO_CANCELLATION (uint64_t)(1 << 0)
+#define CRAS_STREAM_ACTIVE_EFFECT_NOISE_SUPPRESSION (uint64_t)(1 << 1)
+#define CRAS_STREAM_ACTIVE_EFFECT_VOICE_ACTIVITY_DETECTION (uint64_t)(1 << 2)
+#define CRAS_STREAM_ACTIVE_EFFECT_NEGATE (uint64_t)(1 << 3)
+#define CRAS_STREAM_ACTIVE_EFFECT_NOISE_CANCELLATION (uint64_t)(1 << 4)
+#define CRAS_STREAM_ACTIVE_EFFECT_STYLE_TRANSFER (uint64_t)(1 << 5)
+#define CRAS_STREAM_ACTIVE_EFFECT_PROCESSOR_OVERRIDDEN (uint64_t)(1 << 6)
+
 /**
  * This function is called from C code to log a FRA event.
  *
@@ -87,6 +96,12 @@ int cras_rust_init_logging(void);
 uint32_t pseudonymize_stable_id(uint32_t stable_id);
 
 /**
+ * Returns the names of active effects as a string.
+ * The resulting string should be freed with cras_rust_free_string.
+ */
+char *cras_stream_active_effects_string(CRAS_STREAM_ACTIVE_EFFECT effect);
+
+/**
  * Initialize logging for cras_rust.
  * Recommended to be called before all other cras_rust functions.
  */
@@ -97,6 +112,12 @@ int cras_rust_init_logging(void);
  * Returns the salted stable_id.
  */
 uint32_t pseudonymize_stable_id(uint32_t stable_id);
+
+/**
+ * Returns the names of active effects as a string.
+ * The resulting string should be freed with cras_rust_free_string.
+ */
+char *cras_stream_active_effects_string(CRAS_STREAM_ACTIVE_EFFECT effect);
 
 #endif /* CRAS_COMMON_RUST_COMMON_H_ */
 

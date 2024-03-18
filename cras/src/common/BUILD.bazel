@@ -181,7 +181,9 @@ cc_library(
     hdrs = ["cras_types_internal.h"],
     visibility = ["//cras:internal"],
     deps = [
+        "//cras/common:rust_common_cc",
         "//cras/include",
+        "//cras/src/server/rust:cc",
     ],
 )
 

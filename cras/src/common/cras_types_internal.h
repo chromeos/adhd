@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 
+#include "cras/common/rust_common.h"
 #include "cras_types.h"
 
 #ifdef __cplusplus
@@ -66,18 +67,8 @@ static inline const char* audio_thread_event_type_to_str(
   }
 }
 
-enum CRAS_STREAM_ACTIVE_EFFECT {
-  AE_ECHO_CANCELLATION = 1 << 0,
-  AE_NOISE_SUPPRESSION = 1 << 1,
-  AE_VOICE_ACTIVITY_DETECTION = 1 << 2,
-  AE_NEGATE = 1 << 3,
-  AE_NOISE_CANCELLATION = 1 << 4,
-  AE_STYLE_TRANSFER = 1 << 5,
-  AE_PROCESSOR_OVERRIDDEN = 1 << 6,
-};
-
 void print_cras_stream_active_effects(FILE* f,
-                                      enum CRAS_STREAM_ACTIVE_EFFECT effects);
+                                      CRAS_STREAM_ACTIVE_EFFECT effects);
 
 #ifdef __cplusplus
 }  // extern "C"

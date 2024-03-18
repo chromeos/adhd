@@ -1,5 +1,5 @@
 {
-  "checksum": "cc04a48261ad906ca11f6b9f4985e071dd79a9a661de9ebd6c37deeab1f9b2bb",
+  "checksum": "222c48ccf6b3fa8f004cd6113ef3cc41c465bd9f5f88363cbf3b3148e7aeb082",
   "crates": {
     "aho-corasick 0.7.20": {
       "name": "aho-corasick",
@@ -498,6 +498,36 @@
         "version": "1.3.2"
       },
       "license": "MIT/Apache-2.0"
+    },
+    "bitflags 2.5.0": {
+      "name": "bitflags",
+      "version": "2.5.0",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/bitflags/2.5.0/download",
+          "sha256": "cf4b9d6a944f767f8e5e0db018570623c85f3d925ac718db4e06d0187adb21c1"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "bitflags",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "bitflags",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2021",
+        "version": "2.5.0"
+      },
+      "license": "MIT OR Apache-2.0"
     },
     "cbindgen 0.24.3": {
       "name": "cbindgen",
@@ -1115,8 +1145,16 @@
               "target": "anyhow"
             },
             {
+              "id": "bitflags 2.5.0",
+              "target": "bitflags"
+            },
+            {
               "id": "getrandom 0.2.9",
               "target": "getrandom"
+            },
+            {
+              "id": "itertools 0.11.0",
+              "target": "itertools"
             },
             {
               "id": "libc 0.2.140",
@@ -2953,6 +2991,53 @@
         ]
       },
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
+    },
+    "itertools 0.11.0": {
+      "name": "itertools",
+      "version": "0.11.0",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/itertools/0.11.0/download",
+          "sha256": "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "itertools",
+            "crate_root": "src/lib.rs",
+            "srcs": [
+              "**/*.rs"
+            ]
+          }
+        }
+      ],
+      "library_target_name": "itertools",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default",
+            "use_alloc",
+            "use_std"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "either 1.8.1",
+              "target": "either"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.11.0"
+      },
+      "license": "MIT OR Apache-2.0"
     },
     "itoa 1.0.6": {
       "name": "itoa",

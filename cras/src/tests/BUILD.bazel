@@ -62,6 +62,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -85,6 +86,7 @@ cc_test(
     deps = [
         ":test_support",
         ":test_util",
+        "//cras/common:rust_common_cc",
         "//cras/server:main_message",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features:override",
@@ -129,6 +131,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -209,6 +212,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -257,6 +261,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -276,6 +281,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -294,6 +300,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/config:all_headers",
@@ -388,6 +395,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -446,6 +454,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -469,6 +478,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -490,6 +500,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -512,6 +523,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -565,6 +577,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -622,6 +635,7 @@ cc_test(
     deps = [
         ":test_support",
         ":test_util",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -691,6 +705,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server:main_message",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
@@ -720,6 +735,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/plc:all_headers",
@@ -745,6 +761,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features",
         "//cras/src/common:all_headers",
@@ -786,6 +803,7 @@ cc_test(
     flaky = True,  # TODO(b/271618403): Fix the flake.
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/dbus_bindings",
         "//cras/server/platform/features",
         "//cras/server/s2:cc",
@@ -818,6 +836,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -847,6 +866,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -865,6 +885,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server:main_message",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -934,6 +955,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
@@ -957,6 +979,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
@@ -986,6 +1009,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
@@ -1037,6 +1061,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -1133,6 +1158,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1229,6 +1255,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
@@ -1255,6 +1282,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -1277,6 +1305,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1302,6 +1331,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
@@ -1325,6 +1355,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1345,6 +1376,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
@@ -1366,6 +1398,7 @@ cc_test(
         ":scoped_features_override",
         ":test_support",
         ":test_util",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
@@ -1395,6 +1428,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features:override",
         "//cras/src/common:all_headers",
@@ -1436,6 +1470,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -1484,6 +1519,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -1502,6 +1538,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1577,6 +1614,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1609,6 +1647,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/server:main_message",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
@@ -1689,6 +1728,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -1707,6 +1747,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
@@ -1750,6 +1791,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1791,6 +1833,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1896,6 +1939,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:check",
+        "//cras/common:rust_common_cc",
         "//cras/src/common:all_headers",
         "//cras/src/dsp:all_headers",
         "//cras/src/server:all_headers",
