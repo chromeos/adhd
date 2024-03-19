@@ -142,8 +142,8 @@ func systemCrasRustSteps() *buildplan.Sequence {
 				Args: []string{
 					"test", "//...", "--config=ci", "-c", "dbg",
 					"--//:system_cras_rust",
+					"--repo_env=SYSTEM_CRAS_RUST_LIB=/workspace-archlinux-system-cras-rust/target/debug/libcras_rust.a",
 					"--config=local-clang",
-					"--linkopt=-L/workspace-archlinux-system-cras-rust/target/debug",
 				},
 			},
 		}...,

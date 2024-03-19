@@ -25,7 +25,7 @@ def cras_rust_library(name, crate_name = None, visibility = None, **kwargs):
     native.alias(
         name = name,
         actual = select({
-            "//:system_cras_rust_build": "//cras/src/server/rust/system_cras_rust",
+            "//:system_cras_rust_build": "@system_cras_rust",
             "//conditions:default": ":{}__rust_library".format(name),
         }),
         visibility = visibility,

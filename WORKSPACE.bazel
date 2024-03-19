@@ -158,6 +158,10 @@ load("//repositories:fuzz_engine/fuzz_engine.bzl", "fuzz_engine_repository")
 
 fuzz_engine_repository(name = "fuzz_engine")
 
+load("//repositories/system_cras_rust:repo.bzl", "system_cras_rust_repository")
+
+system_cras_rust_repository(name = "system_cras_rust")
+
 #
 # Rust dependencies
 #

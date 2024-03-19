@@ -27,7 +27,6 @@
 #
 export CARGO_BUILD_TARGET="x86_64-unknown-linux-gnu"
 cargo build --package=cras_rust --release --target-dir=${WORK}/cargo_out
-cp ${WORK}/cargo_out/${CARGO_BUILD_TARGET}/release/libcras_rust.a /usr/local/lib
 
 #
 # Build C code.
@@ -48,6 +47,7 @@ bazel_opts=(
     "--linkopt=-lc++"
     "--config=fuzzer"
     "--//:system_cras_rust"
+    "--repo_env=SYSTEM_CRAS_RUST_LIB=${WORK}/cargo_out/${CARGO_BUILD_TARGET}/release/libcras_rust.a"
 )
 for f in ${CFLAGS}; do
     bazel_opts+=("--conlyopt=${f}")

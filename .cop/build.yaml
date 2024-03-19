@@ -363,8 +363,8 @@
         "-c",
         "dbg",
         "--//:system_cras_rust",
-        "--config=local-clang",
-        "--linkopt=-L/workspace-archlinux-system-cras-rust/target/debug"
+        "--repo_env=SYSTEM_CRAS_RUST_LIB=/workspace-archlinux-system-cras-rust/target/debug/libcras_rust.a",
+        "--config=local-clang"
       ],
       "dir": "/workspace-archlinux-system-cras-rust",
       "id": "archlinux-system-cras-rust:4",

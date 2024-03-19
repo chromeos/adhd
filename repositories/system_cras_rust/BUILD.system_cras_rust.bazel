@@ -1,0 +1,25 @@
+# Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@rules_cc//cc:defs.bzl", "cc_import")
+
+cc_import(
+    name = "system_cras_rust",
+    linkopts = [
+        "-lm",
+    ] + select({
+        "@adhd//:featured_build": ["-lc_fake_feature_library"],
+        "//conditions:default": [],
+    }),
+    static_library = "libcras_rust.a",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@pkg_config//dbus-1",
+        "@pkg_config//openssl",
+        "@pkg_config//speexdsp",
+    ] + select({
+        "@adhd//:featured_build": ["@pkg_config//libfeatures_c"],
+        "//conditions:default": [],
+    }),
+)
