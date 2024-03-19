@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 cc_library(
     name = "cras_alsa_card_info",
@@ -182,6 +182,16 @@ cc_library(
     visibility = ["//cras:internal"],
     deps = [
         "//cras/include",
+    ],
+)
+
+cc_test(
+    name = "cras_types_internal_test",
+    srcs = ["cras_types_internal_test.cc"],
+    deps = [
+        ":cras_types_internal",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
