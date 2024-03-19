@@ -8,6 +8,7 @@ include = ["Cargo.toml", "build.rs", "src/lib.rs", "src/gen.rs"]
 
 [dependencies]
 audio_streams = "*"
+cras_common = "*"
 data_model = "*"
 serde = "1.0.125"
 

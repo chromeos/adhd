@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::borrow::Cow;
 use std::ffi::CString;
 
 use bitflags::bitflags;
@@ -21,16 +22,23 @@ bitflags! {
     }
 }
 
+impl CRAS_STREAM_ACTIVE_EFFECT {
+    pub fn joined_name(&self) -> Cow<str> {
+        if self.is_empty() {
+            Cow::Borrowed("none")
+        } else {
+            Cow::Owned(self.iter_names().map(|(s, _)| s.to_lowercase()).join(" "))
+        }
+    }
+}
+
 /// Returns the names of active effects as a string.
 /// The resulting string should be freed with cras_rust_free_string.
 #[no_mangle]
 pub extern "C" fn cras_stream_active_effects_string(
     effect: CRAS_STREAM_ACTIVE_EFFECT,
 ) -> *mut libc::c_char {
-    if effect.is_empty() {
-        CString::new("none").unwrap().into_raw()
-    } else {
-        let names = effect.iter_names().map(|(s, _)| s.to_lowercase()).join(" ");
-        CString::new(names).unwrap().into_raw()
-    }
+    CString::new(effect.joined_name().as_ref())
+        .unwrap()
+        .into_raw()
 }
