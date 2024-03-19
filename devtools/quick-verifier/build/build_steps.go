@@ -37,8 +37,7 @@ func makeBuild(gitSteps *buildplan.Sequence, tags []string) *cloudbuildpb.Build 
 	// TODO(b/325995661): Figure out why it's broken.
 	// b.Add(ossFuzzSteps("oss-fuzz-coverage", "coverage", "libfuzzer").WithDep(ossFuzzSetup))
 
-	// TODO(b/330255177): Re-enable once cppcheck is fixed.
-	// b.Add(cppcheckSteps().WithDep(git))
+	b.Add(cppcheckSteps().WithDep(git))
 
 	return &cloudbuildpb.Build{
 		Steps: b.AsCloudBuild(),

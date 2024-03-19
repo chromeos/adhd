@@ -7,7 +7,10 @@
 # This script runs cppcheck with the arguments used for COP
 # Usage: cppcheck.bash <absolute compile_commands.json filepath>
 ENABLE_ARGS="--enable=warning,performance,portability,information"
-IGNORE_PATH_ARGS=("-iexternal" "-icras/src/tests" "-ibazel-out")
+IGNORE_PATH_ARGS=("-iexternal"
+"-icras/src/tests"
+"-ibazel-out"
+"-icras/benchmark")
 SUPPRESS_ARGS=("--suppress=uninitvar"
 "--suppress=unknownMacro"
 "--suppress=missingInclude"
