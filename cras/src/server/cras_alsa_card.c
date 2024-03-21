@@ -617,8 +617,7 @@ struct cras_alsa_card* cras_alsa_card_create(struct cras_alsa_card_info* info,
 
   alsa_card->name = cras_alsa_card_get_name(info->card_index);
   alsa_card->ops = &cras_alsa_iodev_ops_internal_ops;
-  if (cras_feature_enabled(CrOSLateBootCrasSplitAlsaUSBInternal) &&
-      alsa_card->card_type == ALSA_CARD_TYPE_USB) {
+  if (alsa_card->card_type == ALSA_CARD_TYPE_USB) {
     alsa_card->ops = &cras_alsa_iodev_ops_usb_ops;
   }
 

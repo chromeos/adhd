@@ -54,13 +54,6 @@ struct alsa_plugin {
   struct alsa_plugin *next, *prev;
 };
 
-static struct cras_alsa_iodev_ops cras_alsa_iodev_ops_internal_ops = {
-    .create = alsa_iodev_create,
-    .ucm_add_nodes_and_jacks = alsa_iodev_ucm_add_nodes_and_jacks,
-    .ucm_complete_init = alsa_iodev_ucm_complete_init,
-    .destroy = alsa_iodev_destroy,
-};
-
 static struct cras_alsa_iodev_ops cras_alsa_iodev_ops_usb_ops = {
     .create = cras_alsa_usb_iodev_create,
     .ucm_add_nodes_and_jacks = cras_alsa_usb_iodev_ucm_add_nodes_and_jacks,
@@ -196,11 +189,7 @@ void alsa_plugin_io_create(enum CRAS_STREAM_DIRECTION direction,
     }
   }
 
-  if (cras_feature_enabled(CrOSLateBootCrasSplitAlsaUSBInternal)) {
-    plugin->ops = &cras_alsa_iodev_ops_usb_ops;
-  } else {
-    plugin->ops = &cras_alsa_iodev_ops_internal_ops;
-  }
+  plugin->ops = &cras_alsa_iodev_ops_usb_ops;
 
   plugin->iodev = cras_alsa_iodev_ops_create(
       plugin->ops, &usb_card_info.base, card_name, 0, pcm_name, "", "",

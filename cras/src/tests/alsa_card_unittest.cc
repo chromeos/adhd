@@ -209,7 +209,6 @@ static void ResetStubData() {
   fake_dev4.nodes = NULL;
   cras_alsa_mixer_add_controls_by_name_matching_usb_called = 0;
   cras_alsa_mixer_add_controls_by_name_matching_internal_called = 0;
-  cras_features_set_override(CrOSLateBootCrasSplitAlsaUSBInternal, true);
 }
 
 TEST(AlsaCard, CreateFailInvalidCard) {
@@ -442,73 +441,6 @@ TEST(AlsaCard, USBCardBasic) {
   EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
   EXPECT_EQ(cras_alsa_usb_iodev_create_return[0],
             cras_alsa_usb_iodev_destroy_arg);
-}
-
-TEST(AlsaCard, CrOSLateBootCrasSplitAlsaUSBInternalOpen) {
-  struct cras_alsa_card* c;
-  int dev_nums[] = {0};
-  int info_rets[] = {0, -1};
-  struct cras_alsa_usb_card_info usb_card_info = {
-      .base =
-          {
-              .card_type = ALSA_CARD_TYPE_USB,
-              .card_index = 0,
-          },
-      .usb_vendor_id = 0,
-      .usb_product_id = 0,
-      .usb_serial_number = "1234",
-      .usb_desc_checksum = 0};
-  ResetStubData();
-  cras_features_set_override(CrOSLateBootCrasSplitAlsaUSBInternal, true);
-  snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
-  snd_ctl_pcm_next_device_set_devs = dev_nums;
-  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
-  snd_ctl_pcm_info_rets = info_rets;
-  c = cras_alsa_card_create(&usb_card_info.base, device_config_dir, NULL);
-  EXPECT_NE(static_cast<struct cras_alsa_card*>(NULL), c);
-  EXPECT_EQ(1, cras_alsa_usb_iodev_create_called);
-  EXPECT_EQ(0, cras_alsa_iodev_create_called);
-  EXPECT_EQ(1, cras_alsa_usb_iodev_legacy_complete_init_called);
-  EXPECT_EQ(0, cras_alsa_iodev_legacy_complete_init_called);
-
-  cras_alsa_card_destroy(c);
-  EXPECT_EQ(1, cras_alsa_usb_iodev_destroy_called);
-  EXPECT_EQ(0, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_usb_iodev_create_return[0],
-            cras_alsa_usb_iodev_destroy_arg);
-}
-
-TEST(AlsaCard, CrOSLateBootCrasSplitAlsaUSBInternalClose) {
-  struct cras_alsa_card* c;
-  int dev_nums[] = {0};
-  int info_rets[] = {0, -1};
-  struct cras_alsa_usb_card_info usb_card_info = {
-      .base =
-          {
-              .card_type = ALSA_CARD_TYPE_USB,
-              .card_index = 0,
-          },
-      .usb_vendor_id = 0,
-      .usb_product_id = 0,
-      .usb_serial_number = "1234",
-      .usb_desc_checksum = 0};
-  ResetStubData();
-  cras_features_set_override(CrOSLateBootCrasSplitAlsaUSBInternal, false);
-  snd_ctl_pcm_next_device_set_devs_size = ARRAY_SIZE(dev_nums);
-  snd_ctl_pcm_next_device_set_devs = dev_nums;
-  snd_ctl_pcm_info_rets_size = ARRAY_SIZE(info_rets);
-  snd_ctl_pcm_info_rets = info_rets;
-  c = cras_alsa_card_create(&usb_card_info.base, device_config_dir, NULL);
-  EXPECT_NE(static_cast<struct cras_alsa_card*>(NULL), c);
-  EXPECT_EQ(0, cras_alsa_usb_iodev_create_called);
-  EXPECT_EQ(1, cras_alsa_iodev_create_called);
-  EXPECT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init_called);
-  EXPECT_EQ(1, cras_alsa_iodev_legacy_complete_init_called);
-
-  cras_alsa_card_destroy(c);
-  EXPECT_EQ(0, cras_alsa_usb_iodev_destroy_called);
-  EXPECT_EQ(1, cras_alsa_iodev_destroy_called);
-  EXPECT_EQ(cras_alsa_iodev_create_return[0], cras_alsa_iodev_destroy_arg);
 }
 
 TEST(AlsaCard, CreateOneOutputNextDevError) {
