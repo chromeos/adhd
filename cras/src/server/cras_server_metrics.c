@@ -68,6 +68,7 @@ const char kMissedCallbackSecondTimeInput[] =
     "Cras.MissedCallbackSecondTimeInput";
 const char kMissedCallbackSecondTimeOutput[] =
     "Cras.MissedCallbackSecondTimeOutput";
+const char kPeerSupportedA2dpCodecs[] = "Cras.PeerSupportedA2dpCodecs";
 const char kRtcDevicePair[] = "Cras.RtcDevicePair";
 const char kSetAecRefDeviceType[] = "Cras.SetAecRefDeviceType";
 const char kStreamCallbackThreshold[] = "Cras.StreamCallbackThreshold";
@@ -163,6 +164,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   MISSED_CB_SECOND_TIME_OUTPUT,
   NUM_UNDERRUNS,
   NUM_UNDERRUNS_DURING_APNC,
+  PEER_SUPPORTED_A2DP_CODECS,
   RTC_RUNTIME,
   SET_AEC_REF_DEVICE_TYPE,
   STREAM_ADD_ERROR,
@@ -1076,6 +1078,16 @@ int cras_server_metrics_highest_hw_level(unsigned hw_level,
     return err;
   }
 
+  return 0;
+}
+
+int cras_server_metrics_peer_supported_a2dp_codecs(unsigned codec_mask) {
+  int err = send_unsigned_metrics(PEER_SUPPORTED_A2DP_CODECS, codec_mask);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: PEER_SUPPORTED_A2DP_CODECS");
+    return err;
+  }
   return 0;
 }
 
@@ -1998,6 +2010,10 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
           2, (unsigned)metrics_msg->data.device_data.value, 0, 1000000000, 50,
           kUnderrunsPerDeviceDuringAPNC,
           metrics_device_type_str(metrics_msg->data.device_data.type));
+      break;
+    case PEER_SUPPORTED_A2DP_CODECS:
+      cras_metrics_log_sparse_histogram(kPeerSupportedA2dpCodecs,
+                                        metrics_msg->data.value);
       break;
     case RTC_RUNTIME:
       metrics_rtc_runtime(metrics_msg->data.rtc_data);

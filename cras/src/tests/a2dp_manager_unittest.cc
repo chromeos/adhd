@@ -507,4 +507,7 @@ bool cras_system_get_force_a2dp_advanced_codecs_enabled() {
   return cras_system_get_force_a2dp_advanced_codecs_enabled_return_value;
 }
 
+int cras_server_metrics_peer_supported_a2dp_codecs(unsigned codec_mask) {
+  return 0;
+}
 }  // extern "C"

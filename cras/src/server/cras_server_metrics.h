@@ -250,6 +250,9 @@ int cras_server_metrics_internal_soundcard_status(bool detected, int sec);
 // Logs how long the audio thread delayed waking up.
 int cras_server_metrics_wake_delay(const struct timespec* ts);
 
+// Logs the available A2DP codecs claimed by the peer, in bitmask form.
+int cras_server_metrics_peer_supported_a2dp_codecs(unsigned codec_mask);
+
 // Initialize metrics logging stuff.
 int cras_server_metrics_init();
 

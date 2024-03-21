@@ -259,7 +259,6 @@ static struct cras_fl_a2dp_codec_config cras_floss_a2dp_get_best_codec(
   };
 
   DL_FOREACH (codecs, codec) {
-    // TODO(b/279991957): Add UMA to record availability of codecs
     if (!cras_floss_a2dp_nonstandard_codecs_allowed() &&
         codec->codec_type != FL_A2DP_CODEC_SRC_SBC) {
       continue;
@@ -281,6 +280,16 @@ static struct cras_fl_a2dp_codec_config cras_floss_a2dp_get_best_codec(
   return best_codec;
 }
 
+static void collect_peer_supported_a2dp_codecs(
+    struct cras_fl_a2dp_codec_config* codecs) {
+  unsigned avail_codec_mask = 0;
+  struct cras_fl_a2dp_codec_config* codec;
+  DL_FOREACH (codecs, codec) {
+    avail_codec_mask |= 1u << codec->codec_type;
+  }
+  cras_server_metrics_peer_supported_a2dp_codecs(avail_codec_mask);
+}
+
 struct cras_a2dp* cras_floss_a2dp_create(
     struct fl_media* fm,
     const char* addr,
@@ -288,6 +297,8 @@ struct cras_a2dp* cras_floss_a2dp_create(
     struct cras_fl_a2dp_codec_config* codecs) {
   struct cras_fl_a2dp_codec_config codec =
       cras_floss_a2dp_get_best_codec(codecs);
+
+  collect_peer_supported_a2dp_codecs(codecs);
 
   struct cras_a2dp* a2dp = (struct cras_a2dp*)calloc(1, sizeof(*a2dp));
   if (!a2dp) {
