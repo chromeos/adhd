@@ -14,6 +14,7 @@
 #include "cras/server/cras_thread.h"
 #include "cras/server/main_message.h"
 #include "cras/server/platform/features/features.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/common/dumper.h"
@@ -614,7 +615,18 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
     }
   }
 
+  bool voice_isolation_forced_enabled =
+      (stream->effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&
+      (stream->effects & VOICE_ISOLATION);
   bool nc_provided_by_ap = idev->active_nc_provider == CRAS_NC_PROVIDER_AP;
+
+  // Force enable per-stream voice isolation even if noise cancellation
+  // UI button is switched off.
+  if (voice_isolation_forced_enabled &&
+      idev->active_nc_provider == CRAS_NC_PROVIDER_NONE &&
+      cras_s2_get_ap_nc_allowed()) {
+    nc_provided_by_ap = true;
+  }
   enum CrasProcessorEffect cp_effect =
       cras_processor_get_effect(nc_provided_by_ap, stream->effects);
 

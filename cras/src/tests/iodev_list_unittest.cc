@@ -3568,21 +3568,26 @@ TEST(CanUseDspAec, InputEffects) {
   };
 
   cras_rstream_get_effects_return = 0;
-  EXPECT_EQ(can_use_dsp_aec(&stream), false);
+  EXPECT_EQ(can_use_dsp_input_effects(&stream), false);
 
   // DSP AEC needs both APM_ECHO_CANCELLATION and DSP_ECHO_CANCELLATION_ALLOWED
   // bits.
   cras_rstream_get_effects_return = APM_ECHO_CANCELLATION;
-  EXPECT_EQ(can_use_dsp_aec(&stream), false);
+  EXPECT_EQ(can_use_dsp_input_effects(&stream), false);
   cras_rstream_get_effects_return = DSP_ECHO_CANCELLATION_ALLOWED;
-  EXPECT_EQ(can_use_dsp_aec(&stream), false);
+  EXPECT_EQ(can_use_dsp_input_effects(&stream), false);
 
   cras_rstream_get_effects_return =
       APM_ECHO_CANCELLATION | DSP_ECHO_CANCELLATION_ALLOWED;
-  EXPECT_EQ(can_use_dsp_aec(&stream), true);
+  EXPECT_EQ(can_use_dsp_input_effects(&stream), true);
 
   cras_rstream_get_effects_return = PRIVATE_DONT_CARE_APM_EFFECTS;
-  EXPECT_EQ(can_use_dsp_aec(&stream), true);
+  EXPECT_EQ(can_use_dsp_input_effects(&stream), true);
+
+  // If client control voice isolation is forced, block usage of
+  // DSP input effects to avoid confliction.
+  cras_rstream_get_effects_return = CLIENT_CONTROLLED_VOICE_ISOLATION;
+  EXPECT_EQ(can_use_dsp_input_effects(&stream), false);
 
   // Reset state.
   cras_rstream_get_effects_return = 0;

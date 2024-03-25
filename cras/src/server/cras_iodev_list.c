@@ -1496,7 +1496,7 @@ static int stream_removed_cb(struct cras_rstream* rstream) {
   return 0;
 }
 
-static bool can_use_dsp_aec(struct cras_rstream* all_streams) {
+static bool can_use_dsp_input_effects(struct cras_rstream* all_streams) {
   struct cras_rstream* stream;
   DL_FOREACH (all_streams, stream) {
     if (stream->direction != CRAS_STREAM_INPUT) {
@@ -1517,13 +1517,19 @@ static bool can_use_dsp_aec(struct cras_rstream* all_streams) {
     if ((effects & dsp_aec_bits) != dsp_aec_bits) {
       return false;
     }
+
+    // Block DSP NC if any stream forces to enable/disable voice isolation.
+    if (effects & CLIENT_CONTROLLED_VOICE_ISOLATION) {
+      return false;
+    }
   }
   return true;
 }
 
 static int stream_list_changed_cb(struct cras_rstream* all_streams) {
   cras_speak_on_mute_detector_streams_changed(all_streams);
-  set_aec_on_dsp_is_disallowed(!can_use_dsp_aec(all_streams));
+  // TODO(eddyhsu): utilize multiple endpoint for DSP NC.
+  set_aec_on_dsp_is_disallowed(!can_use_dsp_input_effects(all_streams));
 
   return 0;
 }
