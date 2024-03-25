@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <unordered_map>
 
+#include "cras/server/cras_thread_testonly.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_apm_reverse.h"
 #include "cras/src/server/cras_audio_area.h"
@@ -49,7 +50,10 @@ static std::unordered_map<cras_iodev*, bool> iodev_rtc_proc_enabled_maps[3];
 static int cras_system_aec_on_dsp_supported_ret = 0;
 
 class StreamApm : public ::testing::Test {
-  void SetUp() override { apm_thread_set_dsp_input_effects_blocked(false); }
+  void SetUp() override {
+    cras_thread_disarm_checks();
+    apm_thread_set_dsp_input_effects_blocked(false);
+  }
 };
 
 TEST_F(StreamApm, StreamApmCreateNoDspAEC) {

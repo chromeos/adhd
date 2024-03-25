@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "cras/common/check.h"
+#include "cras/server/cras_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
 #include "cras/src/server/cras_device_monitor.h"
@@ -1301,7 +1302,7 @@ int audio_thread_dev_start_ramp(struct audio_thread* thread,
 int audio_thread_start(struct audio_thread* thread) {
   int rc;
 
-  rc = pthread_create(&thread->tid, NULL, audio_io_thread, thread);
+  rc = cras_thread_create_audio(&thread->tid, NULL, audio_io_thread, thread);
   if (rc) {
     syslog(LOG_ERR, "Failed pthread_create");
     return rc;

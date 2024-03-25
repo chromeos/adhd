@@ -12,6 +12,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/server/cras_thread.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_plugin_io.h"
 #include "cras/src/server/cras_bt_manager.h"
@@ -44,6 +45,8 @@ static void set_signals() {
 
 // Entry point for the server.
 int main(int argc, char** argv) {
+  cras_thread_init_main();
+
   int c, option_index;
   int log_mask = DEFAULT_LOG_MASK;
   const char default_dsp_config[] = CRAS_CONFIG_FILE_DIR "/dsp.ini";

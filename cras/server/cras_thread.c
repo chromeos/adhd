@@ -66,3 +66,7 @@ int cras_thread_create_audio(pthread_t* thread,
   audio_ctx_allowed = false;
   return 0;
 }
+
+void cras_thread_disarm_checks() {
+  main_ctx_allowed = audio_ctx_allowed = true;
+}

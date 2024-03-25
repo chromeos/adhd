@@ -11,6 +11,7 @@
 
 #include "audio_processor/c/plugin_processor.h"
 #include "cras/common/check.h"
+#include "cras/server/cras_thread.h"
 #include "cras/server/main_message.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/src/common/byte_buffer.h"
@@ -131,21 +132,23 @@ struct cras_stream_apm {
   struct cras_iodev* echo_ref;
 };
 
-/*
- * Wrappers of APM instances that are active, which means it is associated
- * to a dev/stream pair in audio thread and ready for processing.
- * The existence of an |active_apm| is the key to treat a |cras_apm| is alive
- * and can be used for processing.
- */
-struct active_apm {
-  // The APM for audio data processing.
-  struct cras_apm* apm;
-  // The associated |cras_stream_apm| instance. It is ensured by
-  // the objects life cycle that whenever an |active_apm| is valid
-  // in audio thread, it's safe to access its |stream| member.
-  struct cras_stream_apm* stream;
-  struct active_apm *prev, *next;
-}* active_apms;
+static struct actx_apm {
+  /*
+   * Wrappers of APM instances that are active, which means it is associated
+   * to a dev/stream pair in audio thread and ready for processing.
+   * The existence of an |active_apm| is the key to treat a |cras_apm| is alive
+   * and can be used for processing.
+   */
+  struct active_apm {
+    // The APM for audio data processing.
+    struct cras_apm* apm;
+    // The associated |cras_stream_apm| instance. It is ensured by
+    // the objects life cycle that whenever an |active_apm| is valid
+    // in audio thread, it's safe to access its |stream| member.
+    struct cras_stream_apm* stream;
+    struct active_apm *prev, *next;
+  }* active_apms;
+} ACTX_APM;
 
 // Commands sent to be handled in main thread.
 enum CRAS_STREAM_APM_MSG_TYPE {
@@ -215,16 +218,19 @@ static bool stream_apm_should_enable_vad(struct cras_stream_apm* stream_apm) {
   return cached_vad_target == stream_apm;
 }
 
-static void update_supported_dsp_effects_activation();
+static void update_supported_dsp_effects_activation(
+    struct cras_audio_ctx* actx);
 
 static bool dsp_input_effects_blocked = false;
 
 void apm_thread_set_dsp_input_effects_blocked(bool blocked) {
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
   if (dsp_input_effects_blocked == blocked) {
     return;
   }
   dsp_input_effects_blocked = blocked;
-  update_supported_dsp_effects_activation();
+  update_supported_dsp_effects_activation(actx);
 }
 
 /*
@@ -241,11 +247,12 @@ static bool dsp_effect_check_conflict(struct cras_iodev* const idev,
  * Analyzes the active APMs and returns whether the effect is active in any of
  * them.
  */
-static bool effect_needed_for_dev(const struct cras_iodev* const idev,
+static bool effect_needed_for_dev(struct cras_audio_ctx* actx,
+                                  const struct cras_iodev* const idev,
                                   uint64_t effect) {
   struct active_apm* active;
   struct cras_apm* apm;
-  DL_FOREACH (active_apms, active) {
+  DL_FOREACH (actx->apm->active_apms, active) {
     apm = active->apm;
     if (apm->idev == idev && ((bool)(active->stream->effects & effect))) {
       return true;
@@ -285,9 +292,10 @@ static bool toggle_dsp_effect(struct cras_iodev* const idev,
 /*
  * Iterates all active apms and applies the restrictions to determine
  * whether or not to activate effects on DSP for each associated
- * input devices. Called in audio thread.
+ * input devices.
  */
-static void update_supported_dsp_effects_activation() {
+static void update_supported_dsp_effects_activation(
+    struct cras_audio_ctx* actx) {
   /*
    * DSP effect restriction rules to follow in order.
    *
@@ -306,7 +314,7 @@ static void update_supported_dsp_effects_activation() {
   // Toggle between having effects applied on DSP and in CRAS for each APM
   struct active_apm* active;
   struct cras_apm* apm;
-  LL_FOREACH (active_apms, active) {
+  LL_FOREACH (actx->apm->active_apms, active) {
     apm = active->apm;
     struct cras_iodev* const idev = apm->idev;
 
@@ -319,9 +327,9 @@ static void update_supported_dsp_effects_activation() {
      * Check all APMs on idev to see what effects are active and
      * what effects can be applied on DSP.
      */
-    bool aec_needed = effect_needed_for_dev(idev, APM_ECHO_CANCELLATION);
-    bool ns_needed = effect_needed_for_dev(idev, APM_NOISE_SUPRESSION);
-    bool agc_needed = effect_needed_for_dev(idev, APM_GAIN_CONTROL);
+    bool aec_needed = effect_needed_for_dev(actx, idev, APM_ECHO_CANCELLATION);
+    bool ns_needed = effect_needed_for_dev(actx, idev, APM_NOISE_SUPRESSION);
+    bool agc_needed = effect_needed_for_dev(actx, idev, APM_GAIN_CONTROL);
 
     /*
      * Identify if effects can be activated on DSP and attempt
@@ -355,18 +363,19 @@ static void update_supported_dsp_effects_activation() {
 }
 
 // Reconfigure APMs to update their VAD enabled status.
-static void reconfigure_apm_vad() {
+static void reconfigure_apm_vad(struct cras_audio_ctx* actx) {
   struct active_apm* active;
-  LL_FOREACH (active_apms, active) {
+  LL_FOREACH (actx->apm->active_apms, active) {
     webrtc_apm_enable_vad(active->apm->apm_ptr,
                           stream_apm_should_enable_vad(active->stream));
   }
 }
 
 // Set the VAD target to new_vad_target and propagate the changes to APMs.
-static void update_vad_target(struct cras_stream_apm* new_vad_target) {
+static void update_vad_target(struct cras_audio_ctx* actx,
+                              struct cras_stream_apm* new_vad_target) {
   cached_vad_target = new_vad_target;
-  reconfigure_apm_vad();
+  reconfigure_apm_vad(actx);
 }
 
 static void apm_destroy(struct cras_apm** apm) {
@@ -433,11 +442,12 @@ struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
   return stream;
 }
 
-static struct active_apm* get_active_apm(struct cras_stream_apm* stream,
+static struct active_apm* get_active_apm(struct cras_audio_ctx* actx,
+                                         struct cras_stream_apm* stream,
                                          const struct cras_iodev* idev) {
   struct active_apm* active;
 
-  DL_FOREACH (active_apms, active) {
+  DL_FOREACH (actx->apm->active_apms, active) {
     if ((active->apm->idev == idev) && (active->stream == stream)) {
       return active;
     }
@@ -445,14 +455,15 @@ static struct active_apm* get_active_apm(struct cras_stream_apm* stream,
   return NULL;
 }
 
-static struct cras_apm* find_active_apm(struct cras_stream_apm* stream) {
+static struct cras_apm* find_active_apm(struct cras_audio_ctx* actx,
+                                        struct cras_stream_apm* stream) {
   if (stream == NULL) {
     return NULL;
   }
 
   struct active_apm* active;
 
-  DL_FOREACH (active_apms, active) {
+  DL_FOREACH (actx->apm->active_apms, active) {
     if (active->stream == stream) {
       return active->apm;
     }
@@ -462,7 +473,9 @@ static struct cras_apm* find_active_apm(struct cras_stream_apm* stream) {
 
 struct cras_apm* cras_stream_apm_get_active(struct cras_stream_apm* stream,
                                             const struct cras_iodev* idev) {
-  struct active_apm* active = get_active_apm(stream, idev);
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
+  struct active_apm* active = get_active_apm(actx, stream, idev);
   return active ? active->apm : NULL;
 }
 
@@ -476,7 +489,9 @@ uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
 
 CRAS_STREAM_ACTIVE_AP_EFFECT cras_stream_apm_get_active_ap_effects(
     struct cras_stream_apm* stream) {
-  struct cras_apm* apm = find_active_apm(stream);
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
+  struct cras_apm* apm = find_active_apm(actx, stream);
   if (apm == NULL) {
     return 0;
   }
@@ -723,6 +738,8 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
 
 void cras_stream_apm_start(struct cras_stream_apm* stream,
                            const struct cras_iodev* idev) {
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
   struct active_apm* active;
   struct cras_apm* apm;
 
@@ -748,24 +765,26 @@ void cras_stream_apm_start(struct cras_stream_apm* stream,
   }
   active->apm = apm;
   active->stream = stream;
-  DL_APPEND(active_apms, active);
+  DL_APPEND(actx->apm->active_apms, active);
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &apm->start_ts);
 
   cras_apm_reverse_state_update();
-  update_supported_dsp_effects_activation();
-  reconfigure_apm_vad();
+  update_supported_dsp_effects_activation(actx);
+  reconfigure_apm_vad(actx);
 }
 
 void cras_stream_apm_stop(struct cras_stream_apm* stream,
                           struct cras_iodev* idev) {
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
   struct active_apm* active;
 
   if (stream == NULL) {
     return;
   }
 
-  active = get_active_apm(stream, idev);
+  active = get_active_apm(actx, stream, idev);
   if (active) {
     if (active->apm && active->apm->pp_effect == NoiseCancellation) {
       struct timespec now, runtime;
@@ -776,18 +795,18 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
       apm_state.last_nc_closed = now;
     }
 
-    DL_DELETE(active_apms, active);
+    DL_DELETE(actx->apm->active_apms, active);
     free(active);
   }
 
   cras_apm_reverse_state_update();
-  update_supported_dsp_effects_activation();
+  update_supported_dsp_effects_activation(actx);
 
   /* If there's still an APM using |idev| at this moment, the above call
    * to update_supported_dsp_effects_activation has decided the final
    * state of DSP effects on |idev|.
    */
-  DL_FOREACH (active_apms, active) {
+  DL_FOREACH (actx->apm->active_apms, active) {
     if (active->apm->idev == idev) {
       return;
     }
@@ -819,6 +838,8 @@ int cras_stream_apm_destroy(struct cras_stream_apm* stream) {
 static int process_reverse(struct float_buffer* fbuf,
                            unsigned int frame_rate,
                            const struct cras_iodev* echo_ref) {
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
   struct active_apm* active;
   int ret;
   float* const* rp;
@@ -827,7 +848,7 @@ static int process_reverse(struct float_buffer* fbuf,
   // Caller side ensures fbuf is full and hasn't been read at all.
   rp = float_buffer_read_pointer(fbuf, 0, &unused);
 
-  DL_FOREACH (active_apms, active) {
+  DL_FOREACH (actx->apm->active_apms, active) {
     if (!(active->stream->effects & APM_ECHO_CANCELLATION)) {
       continue;
     }
@@ -893,9 +914,11 @@ static int process_reverse(struct float_buffer* fbuf,
  */
 static int process_reverse_needed(bool default_reverse,
                                   const struct cras_iodev* echo_ref) {
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
   struct active_apm* active;
 
-  DL_FOREACH (active_apms, active) {
+  DL_FOREACH (actx->apm->active_apms, active) {
     // No processing need when APM doesn't ask for AEC.
     if (!(active->stream->effects & APM_ECHO_CANCELLATION)) {
       continue;
@@ -983,6 +1006,8 @@ static void on_output_devices_changed() {
 
 // Receives commands and handles them in audio thread.
 static int apm_thread_callback(void* arg, int revents) {
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
   struct apm_message msg;
   int rc;
 
@@ -1001,10 +1026,10 @@ static int apm_thread_callback(void* arg, int revents) {
       case APM_REVERSE_DEV_CHANGED:
       case APM_SET_AEC_REF:
         cras_apm_reverse_state_update();
-        update_supported_dsp_effects_activation();
+        update_supported_dsp_effects_activation(actx);
         break;
       case APM_VAD_TARGET_CHANGED:
-        update_vad_target(msg.data1);
+        update_vad_target(actx, msg.data1);
         break;
       case APM_DSP_INPUT_EFFECTS_BLOCKED:
         apm_thread_set_dsp_input_effects_blocked(msg.data1);
@@ -1021,13 +1046,14 @@ read_write_err:
   return 0;
 }
 
-static void possibly_track_voice_activity(struct cras_apm* apm) {
+static void possibly_track_voice_activity(struct cras_audio_ctx* actx,
+                                          struct cras_apm* apm) {
   if (!cached_vad_target) {
     return;
   }
 
   struct active_apm* active;
-  DL_FOREACH (active_apms, active) {
+  DL_FOREACH (actx->apm->active_apms, active) {
     // Match only the first apm. We don't care multiple inputs.
     if (active->stream->apms != apm) {
       continue;
@@ -1048,6 +1074,8 @@ static void possibly_track_voice_activity(struct cras_apm* apm) {
 }
 
 int cras_stream_apm_init(const char* device_config_dir) {
+  checked_audio_ctx()->apm = &ACTX_APM;
+
   static const char* cras_apm_metrics_prefix = "Cras.";
   int rc;
 
@@ -1101,6 +1129,8 @@ int cras_stream_apm_process(struct cras_apm* apm,
                             struct float_buffer* input,
                             unsigned int offset,
                             float preprocessing_gain_scalar) {
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
   unsigned int writable, nframes, nread;
   int ch, i, j, ret;
   size_t num_channels;
@@ -1165,7 +1195,7 @@ int cras_stream_apm_process(struct cras_apm* apm,
       return ret;
     }
 
-    possibly_track_voice_activity(apm);
+    possibly_track_voice_activity(actx, apm);
 
     // Process audio with cras_processor.
     struct multi_slice input = {
@@ -1229,7 +1259,9 @@ struct cras_audio_format* cras_stream_apm_get_format(struct cras_apm* apm) {
 
 bool cras_stream_apm_get_use_tuned_settings(struct cras_stream_apm* stream,
                                             const struct cras_iodev* idev) {
-  struct active_apm* active = get_active_apm(stream, idev);
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
+  struct active_apm* active = get_active_apm(actx, stream, idev);
   if (active == NULL) {
     return false;
   }

@@ -16,9 +16,13 @@ struct cras_main_ctx {
   int test_num;
 };
 
+// Forward declare module structs.
+struct actx_apm;
+
 // Audio thread context. Singleton.
 struct cras_audio_ctx {
   int test_num;
+  struct actx_apm* apm;
 };
 
 // Returns the main thread context singleton if the current thread is the main
