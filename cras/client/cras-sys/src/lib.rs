@@ -15,7 +15,7 @@ use std::os::raw::c_char;
 use std::str::FromStr;
 use std::time::Duration;
 
-use cras_common::types_internal::CRAS_STREAM_ACTIVE_EFFECT;
+use cras_common::types_internal::CRAS_STREAM_ACTIVE_AP_EFFECT;
 use serde::ser::SerializeSeq;
 use serde::Deserialize;
 use serde::Deserializer;
@@ -585,7 +585,7 @@ impl Default for audio_stream_debug_info {
             buffer_frames: 0,
             cb_threshold: 0,
             effects: 0,
-            active_effects: 0,
+            active_ap_effects: 0,
             flags: 0,
             frame_rate: 0,
             num_channels: 0,
@@ -642,8 +642,8 @@ pub struct AudioStreamDebugInfo {
     pub buffer_frames: u32,
     pub cb_threshold: u32,
     pub effects: u64,
-    #[serde(serialize_with = "serialize_active_effects")]
-    pub active_effects: u64,
+    #[serde(serialize_with = "serialize_active_ap_effects")]
+    pub active_ap_effects: u64,
     pub flags: u32,
     pub frame_rate: u32,
     pub num_channels: u32,
@@ -682,7 +682,7 @@ impl TryFrom<audio_stream_debug_info> for AudioStreamDebugInfo {
             buffer_frames: info.buffer_frames,
             cb_threshold: info.cb_threshold,
             effects: info.effects,
-            active_effects: info.active_effects,
+            active_ap_effects: info.active_ap_effects,
             flags: info.flags,
             frame_rate: info.frame_rate,
             num_channels: info.num_channels,
@@ -715,8 +715,8 @@ impl fmt::Display for AudioStreamDebugInfo {
         writeln!(
             f,
             "  Active effects: {:#x} = {}",
-            self.active_effects,
-            CRAS_STREAM_ACTIVE_EFFECT::from_bits_truncate(self.active_effects).joined_name()
+            self.active_ap_effects,
+            CRAS_STREAM_ACTIVE_AP_EFFECT::from_bits_truncate(self.active_ap_effects).joined_name()
         )?;
         writeln!(f, "  Frame rate: {}", self.frame_rate)?;
         writeln!(f, "  Number of channels: {}", self.num_channels)?;
@@ -853,11 +853,11 @@ where
     s.serialize_f64(d.as_secs_f64())
 }
 
-fn serialize_active_effects<S>(effects: &u64, s: S) -> Result<S::Ok, S::Error>
+fn serialize_active_ap_effects<S>(effects: &u64, s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let effect = CRAS_STREAM_ACTIVE_EFFECT::from_bits_truncate(*effects);
+    let effect = CRAS_STREAM_ACTIVE_AP_EFFECT::from_bits_truncate(*effects);
     let mut seq = s.serialize_seq(None)?;
     for (name, _) in effect.iter_names() {
         seq.serialize_element(&name.to_lowercase())?

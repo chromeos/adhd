@@ -11,7 +11,7 @@ use itertools::Itertools;
 bitflags! {
     #[allow(non_camel_case_types)]
     #[repr(transparent)]
-    pub struct CRAS_STREAM_ACTIVE_EFFECT: u64 {
+    pub struct CRAS_STREAM_ACTIVE_AP_EFFECT: u64 {
         const ECHO_CANCELLATION = 1 << 0;
         const NOISE_SUPPRESSION = 1 << 1;
         const VOICE_ACTIVITY_DETECTION = 1 << 2;
@@ -22,7 +22,7 @@ bitflags! {
     }
 }
 
-impl CRAS_STREAM_ACTIVE_EFFECT {
+impl CRAS_STREAM_ACTIVE_AP_EFFECT {
     pub fn joined_name(&self) -> Cow<str> {
         if self.is_empty() {
             Cow::Borrowed("none")
@@ -35,8 +35,8 @@ impl CRAS_STREAM_ACTIVE_EFFECT {
 /// Returns the names of active effects as a string.
 /// The resulting string should be freed with cras_rust_free_string.
 #[no_mangle]
-pub extern "C" fn cras_stream_active_effects_string(
-    effect: CRAS_STREAM_ACTIVE_EFFECT,
+pub extern "C" fn cras_stream_active_ap_effects_string(
+    effect: CRAS_STREAM_ACTIVE_AP_EFFECT,
 ) -> *mut libc::c_char {
     CString::new(effect.joined_name().as_ref())
         .unwrap()

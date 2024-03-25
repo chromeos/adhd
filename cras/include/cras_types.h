@@ -479,8 +479,10 @@ struct __attribute__((__packed__)) audio_stream_debug_info {
   uint32_t client_type;
   uint32_t buffer_frames;
   uint32_t cb_threshold;
-  uint64_t effects;         // Effects requested by the stream.
-  uint64_t active_effects;  // Effects applied on the stream.
+  // Effects requested by the stream.
+  uint64_t effects;
+  // Effects applied on the stream that run in the CPU
+  uint64_t active_ap_effects;
   uint32_t flags;
   uint32_t frame_rate;
   uint32_t num_channels;

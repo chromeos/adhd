@@ -15,9 +15,9 @@ TEST(CrasTypesInternal, PrintCrasStreamActiveEffects) {
     size_t bufsize;
     FILE* f = open_memstream(&buf, &bufsize);
     ASSERT_TRUE(f);
-    print_cras_stream_active_effects(
-        f, CRAS_STREAM_ACTIVE_EFFECT_NEGATE |
-               CRAS_STREAM_ACTIVE_EFFECT_NOISE_CANCELLATION);
+    print_cras_stream_active_ap_effects(
+        f, CRAS_STREAM_ACTIVE_AP_EFFECT_NEGATE |
+               CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_CANCELLATION);
     ASSERT_EQ(fclose(f), 0);
     EXPECT_EQ(std::string_view(buf, bufsize), "negate noise_cancellation");
     free(buf);
@@ -28,7 +28,7 @@ TEST(CrasTypesInternal, PrintCrasStreamActiveEffects) {
     size_t bufsize;
     FILE* f = open_memstream(&buf, &bufsize);
     ASSERT_TRUE(f);
-    print_cras_stream_active_effects(f, 0);
+    print_cras_stream_active_ap_effects(f, 0);
     ASSERT_EQ(fclose(f), 0);
     EXPECT_EQ(std::string_view(buf, bufsize), "none");
     free(buf);

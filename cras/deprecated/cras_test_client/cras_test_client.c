@@ -1194,8 +1194,10 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         (unsigned int)info->streams[i].cb_threshold,
         (unsigned int)info->streams[i].effects);
 
-    printf("active_effects: 0x%" PRIx64 " = ", info->streams[i].active_effects);
-    print_cras_stream_active_effects(stdout, info->streams[i].active_effects);
+    printf("active_ap_effects: 0x%" PRIx64 " = ",
+           info->streams[i].active_ap_effects);
+    print_cras_stream_active_ap_effects(stdout,
+                                        info->streams[i].active_ap_effects);
     printf("\n");
 
     printf(

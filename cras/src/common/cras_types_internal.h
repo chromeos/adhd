@@ -67,8 +67,8 @@ static inline const char* audio_thread_event_type_to_str(
   }
 }
 
-void print_cras_stream_active_effects(FILE* f,
-                                      CRAS_STREAM_ACTIVE_EFFECT effects);
+void print_cras_stream_active_ap_effects(FILE* f,
+                                         CRAS_STREAM_ACTIVE_AP_EFFECT effects);
 
 #ifdef __cplusplus
 }  // extern "C"

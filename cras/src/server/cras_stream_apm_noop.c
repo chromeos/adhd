@@ -45,7 +45,7 @@ uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
   return 0;
 }
 
-CRAS_STREAM_ACTIVE_EFFECT cras_stream_apm_get_active_effects(
+CRAS_STREAM_ACTIVE_AP_EFFECT cras_stream_apm_get_active_ap_effects(
     struct cras_stream_apm* stream) {
   return 0;
 }

@@ -7,9 +7,9 @@
 #include "cras/common/rust_common.h"
 #include "cras/src/server/rust/include/string.h"
 
-void print_cras_stream_active_effects(FILE* f,
-                                      CRAS_STREAM_ACTIVE_EFFECT effects) {
-  char* s = cras_stream_active_effects_string(effects);
+void print_cras_stream_active_ap_effects(FILE* f,
+                                         CRAS_STREAM_ACTIVE_AP_EFFECT effects) {
+  char* s = cras_stream_active_ap_effects_string(effects);
   fprintf(f, "%s", s);
   cras_rust_free_string(s);
 }
