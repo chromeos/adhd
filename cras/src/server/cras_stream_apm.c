@@ -483,16 +483,18 @@ CRAS_STREAM_ACTIVE_AP_EFFECT cras_stream_apm_get_active_ap_effects(
 
   CRAS_STREAM_ACTIVE_AP_EFFECT effects = 0;
 
-  struct WebRtcApmActiveEffects webrtc_effects =
-      webrtc_apm_get_active_effects(apm->apm_ptr);
-  if (webrtc_effects.echo_cancellation) {
-    effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_ECHO_CANCELLATION;
-  }
-  if (webrtc_effects.noise_suppression) {
-    effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_SUPPRESSION;
-  }
-  if (webrtc_effects.voice_activity_detection) {
-    effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_VOICE_ACTIVITY_DETECTION;
+  if (apm->apm_ptr) {
+    struct WebRtcApmActiveEffects webrtc_effects =
+        webrtc_apm_get_active_effects(apm->apm_ptr);
+    if (webrtc_effects.echo_cancellation) {
+      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_ECHO_CANCELLATION;
+    }
+    if (webrtc_effects.noise_suppression) {
+      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_SUPPRESSION;
+    }
+    if (webrtc_effects.voice_activity_detection) {
+      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_VOICE_ACTIVITY_DETECTION;
+    }
   }
 
   switch (apm->pp_effect) {
