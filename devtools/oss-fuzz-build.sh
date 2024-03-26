@@ -80,8 +80,8 @@ tar -C "${OUT}" -xvvf bazel-bin/dist/fuzzers.tar
 mv ${OUT}/cras_rclient_message_fuzzer ${OUT}/rclient_message
 mv ${OUT}/cras_hfp_slc_fuzzer ${OUT}/cras_hfp_slc
 
-zip -j ${OUT}/rclient_message_corpus.zip ${SRC}/adhd/cras/src/fuzz/corpus/*
-cp "${SRC}/adhd/cras/src/fuzz/cras_hfp_slc.dict" "${OUT}/cras_hfp_slc.dict"
+zip -j ${OUT}/rclient_message_corpus.zip ${SRC}/adhd/cras/fuzz/corpus/*
+cp "${SRC}/adhd/cras/fuzz/cras_hfp_slc.dict" "${OUT}/cras_hfp_slc.dict"
 
 if [ "$SANITIZER" = "coverage" ]; then
     echo "Collecting the repository source files for coverage tracking."

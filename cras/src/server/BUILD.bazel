@@ -568,7 +568,7 @@ cc_library(
         "cras_bt_manager.h",
         "cras_dlc_manager.h",
     ],
-    visibility = ["//cras/src/fuzz:__pkg__"],
+    visibility = ["//cras/fuzz:__pkg__"],
     deps = [
         ":buffer_share",
         ":cras_alert",

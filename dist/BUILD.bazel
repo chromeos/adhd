@@ -153,9 +153,9 @@ pkg_files(
 pkg_tar(
     name = "fuzzers",
     srcs = [
-        "//cras/src/fuzz:cras_fl_media_fuzzer",
-        "//cras/src/fuzz:cras_hfp_slc_fuzzer",
-        "//cras/src/fuzz:cras_rclient_message_fuzzer",
+        "//cras/fuzz:cras_fl_media_fuzzer",
+        "//cras/fuzz:cras_hfp_slc_fuzzer",
+        "//cras/fuzz:cras_rclient_message_fuzzer",
     ],
     target_compatible_with = require_config("//:fuzzer_build"),
 )
