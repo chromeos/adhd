@@ -115,10 +115,6 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
  */
 uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream);
 
-// Returns the active effects on the stream.
-CRAS_STREAM_ACTIVE_AP_EFFECT cras_stream_apm_get_active_ap_effects(
-    struct cras_stream_apm* stream);
-
 // Removes all cras_apm from stream and destroys it.
 int cras_stream_apm_destroy(struct cras_stream_apm* stream);
 
@@ -230,6 +226,16 @@ unsigned cras_apm_state_get_num_nc();
 
 // Returns the last time AP NC was closed.
 struct timespec cras_apm_state_get_last_nc_closed();
+
+struct cras_stream_apm_state {
+  CRAS_STREAM_ACTIVE_AP_EFFECT active_ap_effects;
+  uint64_t webrtc_apm_forward_blocks_processed;
+  uint64_t webrtc_apm_reverse_blocks_processed;
+};
+
+// Returns the state of the APM.
+struct cras_stream_apm_state cras_stream_apm_get_state(
+    struct cras_stream_apm* stream);
 
 #ifdef __cplusplus
 }  // extern "C"

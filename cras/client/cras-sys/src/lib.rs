@@ -605,6 +605,8 @@ impl Default for audio_stream_debug_info {
             dropped_samples_duration_nsec: 0,
             underrun_duration_sec: 0,
             underrun_duration_nsec: 0,
+            webrtc_apm_forward_blocks_processed: 0,
+            webrtc_apm_reverse_blocks_processed: 0,
         }
     }
 }
@@ -661,6 +663,8 @@ pub struct AudioStreamDebugInfo {
     pub runtime: Duration,
     pub stream_volume: f64,
     pub channel_layout: Vec<CRAS_CHANNEL>,
+    pub webrtc_apm_forward_blocks_processed: u64,
+    pub webrtc_apm_reverse_blocks_processed: u64,
 }
 
 impl TryFrom<audio_stream_debug_info> for AudioStreamDebugInfo {
@@ -695,6 +699,8 @@ impl TryFrom<audio_stream_debug_info> for AudioStreamDebugInfo {
             runtime: Duration::new(info.runtime_sec.into(), info.runtime_nsec),
             stream_volume: info.stream_volume,
             channel_layout,
+            webrtc_apm_forward_blocks_processed: info.webrtc_apm_forward_blocks_processed,
+            webrtc_apm_reverse_blocks_processed: info.webrtc_apm_reverse_blocks_processed,
         })
     }
 }
@@ -735,6 +741,16 @@ impl fmt::Display for AudioStreamDebugInfo {
             _ => (),
         };
         writeln!(f, "  Runtime: {:?}", self.runtime)?;
+        writeln!(
+            f,
+            "  webrtc_apm_forward_blocks_processed: {}",
+            self.webrtc_apm_forward_blocks_processed
+        )?;
+        writeln!(
+            f,
+            "  webrtc_apm_reverse_blocks_processed: {}",
+            self.webrtc_apm_reverse_blocks_processed
+        )?;
         write!(f, "  Channel map:")?;
         for channel in &self.channel_layout {
             write!(f, " {:?}", channel)?;

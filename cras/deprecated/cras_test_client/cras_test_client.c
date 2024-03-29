@@ -1213,7 +1213,10 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         "pinned_dev_idx: %u\n"
         "num_missed_cb: %u\n"
         "%s: %lf\n"
-        "runtime: %u.%09u\n",
+        "runtime: %u.%09u\n"
+        "webrtc_apm_forward_blocks_processed: %" PRIu64
+        "\n"
+        "webrtc_apm_reverse_blocks_processed: %" PRIu64 "\n",
         (unsigned int)info->streams[i].frame_rate,
         (unsigned int)info->streams[i].num_channels,
         (unsigned int)info->streams[i].longest_fetch_sec,
@@ -1231,7 +1234,9 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         (info->streams[i].direction == CRAS_STREAM_INPUT) ? "gain" : "volume",
         info->streams[i].stream_volume,
         (unsigned int)info->streams[i].runtime_sec,
-        (unsigned int)info->streams[i].runtime_nsec);
+        (unsigned int)info->streams[i].runtime_nsec,
+        info->streams[i].webrtc_apm_forward_blocks_processed,
+        info->streams[i].webrtc_apm_reverse_blocks_processed);
     printf("channel map:");
     for (channel = 0; channel < CRAS_CH_MAX; channel++) {
       printf("%d ", info->streams[i].channel_layout[channel]);

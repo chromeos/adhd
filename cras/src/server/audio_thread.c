@@ -566,8 +566,6 @@ static void append_stream_dump_info(struct audio_debug_info* info,
   si->num_delayed_fetches = stream->stream->num_delayed_fetches;
   si->num_overruns = cras_shm_num_overruns(stream->stream->shm);
   si->effects = cras_stream_apm_get_effects(stream->stream->stream_apm);
-  si->active_ap_effects =
-      cras_stream_apm_get_active_ap_effects(stream->stream->stream_apm);
   si->pinned_dev_idx = stream->stream->pinned_dev_idx;
   si->is_pinned = stream->stream->is_pinned;
   si->num_missed_cb = stream->stream->num_missed_cb;
@@ -581,6 +579,14 @@ static void append_stream_dump_info(struct audio_debug_info* info,
       cras_shm_underrun_duration(stream->stream->shm).tv_sec;
   si->underrun_duration_nsec =
       cras_shm_underrun_duration(stream->stream->shm).tv_nsec;
+
+  struct cras_stream_apm_state apm_state =
+      cras_stream_apm_get_state(stream->stream->stream_apm);
+  si->active_ap_effects = apm_state.active_ap_effects;
+  si->webrtc_apm_forward_blocks_processed =
+      apm_state.webrtc_apm_forward_blocks_processed;
+  si->webrtc_apm_reverse_blocks_processed =
+      apm_state.webrtc_apm_reverse_blocks_processed;
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &now);
   subtract_timespecs(&now, &stream->stream->start_ts, &time_since);

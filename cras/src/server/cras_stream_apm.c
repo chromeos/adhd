@@ -487,15 +487,8 @@ uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
   }
 }
 
-CRAS_STREAM_ACTIVE_AP_EFFECT cras_stream_apm_get_active_ap_effects(
-    struct cras_stream_apm* stream) {
-  struct cras_audio_ctx* actx = checked_audio_ctx();
-
-  struct cras_apm* apm = find_active_apm(actx, stream);
-  if (apm == NULL) {
-    return 0;
-  }
-
+static CRAS_STREAM_ACTIVE_AP_EFFECT get_active_ap_effects(
+    struct cras_apm* apm) {
   CRAS_STREAM_ACTIVE_AP_EFFECT effects = 0;
 
   if (apm->apm_ptr) {
@@ -1392,4 +1385,21 @@ unsigned cras_apm_state_get_num_nc() {
 
 struct timespec cras_apm_state_get_last_nc_closed() {
   return apm_state.last_nc_closed;
+}
+
+struct cras_stream_apm_state cras_stream_apm_get_state(
+    struct cras_stream_apm* stream) {
+  struct cras_audio_ctx* actx = checked_audio_ctx();
+
+  struct cras_apm* apm = find_active_apm(actx, stream);
+  if (!apm) {
+    return (struct cras_stream_apm_state){};
+  }
+
+  struct WebRtcApmStats stats = webrtc_apm_get_stats(apm->apm_ptr);
+  return (struct cras_stream_apm_state){
+      .active_ap_effects = get_active_ap_effects(apm),
+      .webrtc_apm_forward_blocks_processed = stats.forward_blocks_processed,
+      .webrtc_apm_reverse_blocks_processed = stats.reverse_blocks_processed,
+  };
 }

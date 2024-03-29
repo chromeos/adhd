@@ -45,11 +45,6 @@ uint64_t cras_stream_apm_get_effects(struct cras_stream_apm* stream) {
   return 0;
 }
 
-CRAS_STREAM_ACTIVE_AP_EFFECT cras_stream_apm_get_active_ap_effects(
-    struct cras_stream_apm* stream) {
-  return 0;
-}
-
 int cras_stream_apm_destroy(struct cras_stream_apm* stream) {
   return 0;
 }
@@ -111,4 +106,9 @@ unsigned cras_apm_state_get_num_nc() {
 
 struct timespec cras_apm_state_get_last_nc_closed() {
   return (struct timespec){0, 0};
+}
+
+struct cras_stream_apm_state cras_stream_apm_get_state(
+    struct cras_stream_apm* stream) {
+  return (struct cras_stream_apm_state){};
 }
