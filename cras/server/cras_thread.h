@@ -38,9 +38,6 @@ struct cras_main_ctx* checked_main_ctx();
 // Otherwise aborts (SIGABRT) the program.
 struct cras_audio_ctx* checked_audio_ctx();
 
-// Registers the current thread as the main thread.
-void cras_thread_init_main();
-
 // Wrapper to create the audio thread.
 int cras_thread_create_audio(pthread_t* thread,
                              const pthread_attr_t* attr,

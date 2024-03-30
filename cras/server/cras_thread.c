@@ -28,7 +28,7 @@ struct cras_audio_ctx* checked_audio_ctx() {
   return &actx;
 }
 
-void cras_thread_init_main() {
+__attribute__((constructor)) static void init() {
   main_ctx_allowed = audio_ctx_allowed = true;
 }
 
