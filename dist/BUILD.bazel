@@ -13,7 +13,6 @@ load(":defs.bzl", "EXECUTABLE_ATTRIBUTES", "FILE_ATTRIBUTES", "LIBDIR", "LOCAL_L
 #
 pkg_tar(
     name = "default",
-    testonly = True,  # to include /usr/local stuff
     srcs = [
         ":alsa_lib",
         ":bin",
@@ -84,7 +83,6 @@ pkg_files(
 
 pkg_files(
     name = "extra_lib",
-    testonly = True,  # Set testonly so we can put test libs in usr/local/lib
     srcs = [
         "//audio_processor/c:test_plugins",
     ],

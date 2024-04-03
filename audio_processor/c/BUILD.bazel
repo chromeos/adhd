@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//dist:cras_rules_cc.bzl", "cras_shared_library")
 
 cc_library(
@@ -18,7 +19,6 @@ filegroup(
 
 cc_library(
     name = "test_plugins_cc",
-    testonly = True,
     srcs = [
         "abs_plugin.c",
         "abs_plugin.h",
@@ -35,7 +35,6 @@ cc_library(
 
 cras_shared_library(
     name = "test_plugins",
-    testonly = True,
     roots = [":test_plugins_cc"],
     static_deps = [":test_plugins_cc"],
     visibility = [
