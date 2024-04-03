@@ -14,19 +14,45 @@ load(":defs.bzl", "EXECUTABLE_ATTRIBUTES", "FILE_ATTRIBUTES", "LIBDIR", "LOCAL_L
 pkg_tar(
     name = "default",
     srcs = [
-        ":alsa_lib",
+        ":media_libs_libcras_files",
+        ":media_sound_adhd_files",
+    ],
+)
+
+# For the ChromeOS media-sound/adhd package.
+pkg_tar(
+    name = "media_sound_adhd",
+    srcs = [":media_sound_adhd_files"],
+)
+
+pkg_filegroup(
+    name = "media_sound_adhd_files",
+    srcs = [
         ":bin",
         ":extra_bin",
         ":extra_lib",
-        ":include",
-        ":lib",
-        ":pkgconfig",
         "//cras-config:dist_files",
-        "//cras/dbus_bindings:dist_files",
         "//dbus-config:dist_files",
         "//init:init_files",
         "//tmpfiles.d:tmpfiles_d_files",
         "//ucm-config:dist_files",
+    ],
+)
+
+# For the ChromeOS media-libs/libcras package.
+pkg_tar(
+    name = "media_libs_libcras",
+    srcs = [":media_libs_libcras_files"],
+)
+
+pkg_filegroup(
+    name = "media_libs_libcras_files",
+    srcs = [
+        ":alsa_lib",
+        ":include",
+        ":lib",
+        ":pkgconfig",
+        "//cras/dbus_bindings:dist_files",
     ],
 )
 
