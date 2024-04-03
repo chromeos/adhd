@@ -23,6 +23,7 @@ extern "C" {
  */
 struct cras_feature_tier {
   bool initialized;
+  bool is_x86_64_v2;
   bool sr_bt_supported;
   bool ap_nc_supported;
 };
