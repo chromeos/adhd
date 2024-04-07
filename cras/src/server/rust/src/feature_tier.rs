@@ -24,13 +24,7 @@ impl CrasFeatureTier {
                 }
                 _ => false,
             },
-            ap_nc_supported: match std::env::consts::ARCH {
-                "x86_64" => match board_name {
-                    "reven" => x86_64_v2,
-                    _ => true,
-                },
-                _ => false,
-            },
+            ap_nc_supported: false,
             is_x86_64_v2: x86_64_v2,
         }
     }
