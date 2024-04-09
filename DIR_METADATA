@@ -24,11 +24,12 @@ chromeos {
         project: "chromeos/config-internal"
         path: "test/plans/v2/ctpv1_compatible/audio_cq.star"
       }
-      test_plan_starlark_files {
-        host: "chrome-internal.googlesource.com"
-        project: "chromeos/config-internal"
-        path: "test/plans/v2/ctpv1_compatible/bluetooth_floss_cq.star"
-      }
+      # TODO(b/333469448): Re-enable after fixed.
+      # test_plan_starlark_files {
+      #   host: "chrome-internal.googlesource.com"
+      #   project: "chromeos/config-internal"
+      #   path: "test/plans/v2/ctpv1_compatible/bluetooth_floss_cq.star"
+      # }
       test_plan_starlark_files {
         host: "chrome-internal.googlesource.com"
         project: "chromeos/config-internal"
