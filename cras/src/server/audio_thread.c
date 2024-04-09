@@ -840,18 +840,27 @@ static void check_busyloop(struct timespec* wait_ts) {
   }
 }
 
+static int wake_delay_count = 0;
+static int wake_count = 0;
+
 static void check_wake_delay(const struct timespec* sleep_until) {
   struct timespec diff, now;
   const struct timespec threshold = {0, 1000000};  // 1ms
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-  if (!timespec_after(&now, sleep_until)) {
-    return;
+  if (timespec_after(&now, sleep_until)) {
+    subtract_timespecs(&now, sleep_until, &diff);
+    if (timespec_after(&diff, &threshold)) {
+      ATLOG(atlog, AUDIO_THREAD_WAKE_DELAY, diff.tv_sec, diff.tv_nsec, 0);
+      cras_server_metrics_wake_delay(&diff);
+      wake_delay_count++;
+    }
   }
-  subtract_timespecs(&now, sleep_until, &diff);
-  if (timespec_after(&diff, &threshold)) {
-    ATLOG(atlog, AUDIO_THREAD_WAKE_DELAY, diff.tv_sec, diff.tv_nsec, 0);
-    cras_server_metrics_wake_delay(&diff);
+  wake_count++;
+  if (wake_count == 10000) {
+    cras_server_metrics_wake_delay_count_per_10k_wakes(wake_delay_count);
+    wake_count = 0;
+    wake_delay_count = 0;
   }
 }
 

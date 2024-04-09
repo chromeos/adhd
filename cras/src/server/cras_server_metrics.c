@@ -99,6 +99,7 @@ const char kHfpWidebandSpeechSelectedCodec[] =
 const char kHfpMicSuperResolutionStatus[] = "Cras.HfpMicSuperResolutionStatus";
 const char kCrasDlcManagerStatus[] = "Cras.DlcManagerStatus";
 const char kWakeDelay[] = "Cras.WakeDelay";
+const char kWakeDelayCountPer10kWakes[] = "Cras.WakeDelayCountPer10kWakes";
 
 /*
  * Records missed callback frequency only when the runtime of stream is larger
@@ -172,7 +173,8 @@ enum CRAS_SERVER_METRICS_TYPE {
   STREAM_CONNECT_STATUS,
   STREAM_CREATE_ERROR,
   STREAM_RUNTIME,
-  WAKE_DELAY
+  WAKE_DELAY,
+  WAKE_DELAY_COUNT_PER_10K_WAKES
 };
 
 /*
@@ -1604,6 +1606,19 @@ int cras_server_metrics_wake_delay(const struct timespec* ts) {
   return 0;
 }
 
+int cras_server_metrics_wake_delay_count_per_10k_wakes(unsigned count) {
+  int err;
+
+  err = send_unsigned_metrics(WAKE_DELAY_COUNT_PER_10K_WAKES, count);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: DELAY_WAKE_COUNT_PER_10K_WAKES");
+    return err;
+  }
+
+  return 0;
+}
+
 static void metrics_device_runtime(
     struct cras_server_metrics_device_data data) {
   switch (data.type) {
@@ -2072,6 +2087,10 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
     case WAKE_DELAY:
       cras_metrics_log_histogram(kWakeDelay, metrics_msg->data.value, 0,
                                  1000000000, 40);
+      break;
+    case WAKE_DELAY_COUNT_PER_10K_WAKES:
+      cras_metrics_log_histogram(kWakeDelayCountPer10kWakes,
+                                 metrics_msg->data.value, 0, 10000, 40);
       break;
     default:
       syslog(LOG_ERR, "Unknown metrics type %u", metrics_msg->metrics_type);

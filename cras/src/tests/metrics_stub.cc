@@ -110,6 +110,10 @@ int cras_server_metrics_wake_delay(const struct timespec* ts) {
   return 0;
 }
 
+int cras_server_metrics_wake_delay_per_10k_wakes(unsigned count) {
+  return 0;
+}
+
 int cras_server_metrics_peer_supported_a2dp_codecs(unsigned codec_mask) {
   return 0;
 }
