@@ -1636,7 +1636,11 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
     }
     // Update offsets to mark existing valid data as written.
     cras_iodev_all_streams_written(odev, frames_writable);
-    cras_iodev_put_output_buffer(odev, buf, frames_writable, NULL, NULL);
+    rc = cras_iodev_put_output_buffer(odev, buf, frames_writable, NULL, NULL);
+    if (rc < 0) {
+      syslog(LOG_WARNING, "Put output buffer failed: %d", rc);
+      return rc;
+    }
     frames -= frames_writable;
     filled_frames += frames_writable;
     frames_writable_was_0 = frames_writable == 0;

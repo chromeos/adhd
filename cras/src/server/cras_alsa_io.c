@@ -453,6 +453,10 @@ static int get_buffer(struct cras_iodev* iodev,
   // Check `cras_bench --benchmark_filter=BM_Alsa/MmapBuffer` for analysis.
   if (iodev->direction == CRAS_STREAM_INPUT) {
     if (nframes > iodev->input_dsp_offset) {
+      if (!aio->common.sample_buf) {
+        syslog(LOG_WARNING, "sample_buf is NULL");
+        return -EINVAL;
+      }
       memcpy(aio->common.sample_buf + iodev->input_dsp_offset * format_bytes,
              aio->common.mmap_buf + iodev->input_dsp_offset * format_bytes,
              (nframes - iodev->input_dsp_offset) * format_bytes);
@@ -470,6 +474,14 @@ static int put_buffer(struct cras_iodev* iodev, unsigned nwritten) {
 
   size_t format_bytes = cras_get_format_bytes(iodev->format);
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
+    if (!aio->common.sample_buf) {
+      syslog(LOG_WARNING, "sample_buf is NULL");
+      return -EINVAL;
+    }
+    if (!aio->common.mmap_buf) {
+      syslog(LOG_WARNING, "mmap_buf is NULL");
+      return -EINVAL;
+    }
     memcpy(aio->common.mmap_buf, aio->common.sample_buf,
            nwritten * format_bytes);
     unsigned int max_offset = cras_iodev_max_stream_offset(iodev);
