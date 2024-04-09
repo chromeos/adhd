@@ -15,6 +15,10 @@
 
 enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
                                                    uint64_t effects) {
+  if (cras_feature_enabled(CrOSLateBootAudioAecRequiredForCrasProcessor) &&
+      !(effects & APM_ECHO_CANCELLATION)) {
+    return NoEffects;
+  }
   bool voice_isolation_enabled =
       (effects & CLIENT_CONTROLLED_VOICE_ISOLATION)
           ? (effects & VOICE_ISOLATION)
