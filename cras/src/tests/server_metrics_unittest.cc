@@ -330,6 +330,11 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   stream.sleep_interval_ts.tv_sec = 0;
   stream.sleep_interval_ts.tv_nsec = 5000000;
   stream.num_delayed_fetches = 10;
+  stream.shm = static_cast<cras_audio_shm*>(calloc(1, sizeof(cras_audio_shm)));
+  stream.shm->header = static_cast<cras_audio_shm_header*>(
+      calloc(1, sizeof(cras_audio_shm_header)));
+  stream.shm->header->num_overruns = 3;
+  stream.shm->header->overrun_frames = 1000;
 
   stream.direction = CRAS_STREAM_INPUT;
   stream.client_type = CRAS_CLIENT_TYPE_TEST;
@@ -337,7 +342,7 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
   cras_server_metrics_stream_destroy(&stream);
 
   subtract_timespecs(&clock_gettime_retspec, &stream.start_ts, &diff_ts);
-  EXPECT_EQ(sent_msgs.size(), 5);
+  EXPECT_EQ(sent_msgs.size(), 7);
 
   // Log missed cb frequency.
   EXPECT_EQ(sent_msgs[0].header.type, CRAS_MAIN_METRICS);
@@ -391,6 +396,29 @@ TEST(ServerMetricsTestSuite, SetMetricsStreamDestroy) {
             CRAS_STREAM_TYPE_DEFAULT);
   EXPECT_EQ(sent_msgs[4].data.stream_data.direction, CRAS_STREAM_INPUT);
   EXPECT_EQ(sent_msgs[4].data.stream_data.count, 10);
+
+  // Log number of overrun count.
+  EXPECT_EQ(sent_msgs[5].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[5].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[5].metrics_type, STREAM_OVERRUN_COUNT);
+  EXPECT_EQ(sent_msgs[5].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
+  EXPECT_EQ(sent_msgs[5].data.stream_data.stream_type,
+            CRAS_STREAM_TYPE_DEFAULT);
+  EXPECT_EQ(sent_msgs[5].data.stream_data.count, 3);
+
+  // Log overrun frames.
+  EXPECT_EQ(sent_msgs[6].header.type, CRAS_MAIN_METRICS);
+  EXPECT_EQ(sent_msgs[6].header.length,
+            sizeof(struct cras_server_metrics_message));
+  EXPECT_EQ(sent_msgs[6].metrics_type, STREAM_OVERRUN_FRAMES);
+  EXPECT_EQ(sent_msgs[6].data.stream_data.client_type, CRAS_CLIENT_TYPE_TEST);
+  EXPECT_EQ(sent_msgs[6].data.stream_data.stream_type,
+            CRAS_STREAM_TYPE_DEFAULT);
+  EXPECT_EQ(sent_msgs[6].data.stream_data.count, 1000);
+
+  free(stream.shm->header);
+  free(stream.shm);
 }
 
 TEST(ServerMetricsTestSuite, SetMetricsBusyloop) {

@@ -84,6 +84,8 @@ const char kStreamRuntimeWithMinimum10s[] = "Cras.StreamRuntimeWithMinimum.10s";
 const char kStreamSamplingFormat[] = "Cras.StreamSamplingFormat";
 const char kStreamSamplingRate[] = "Cras.StreamSamplingRate";
 const char kStreamChannelCount[] = "Cras.StreamChannelCount";
+const char kStreamOverrunCount[] = "Cras.StreamOverrunCount";
+const char kStreamOverrunFrames[] = "Cras.StreamOverrunFrames";
 const char kUnderrunsPerDevice[] = "Cras.UnderrunsPerDevice";
 const char kUnderrunsPerDeviceDuringAPNC[] =
     "Cras.UnderrunsPerDeviceDuringAPNC";
@@ -173,6 +175,8 @@ enum CRAS_SERVER_METRICS_TYPE {
   STREAM_CONNECT_STATUS,
   STREAM_CREATE_ERROR,
   STREAM_RUNTIME,
+  STREAM_OVERRUN_COUNT,
+  STREAM_OVERRUN_FRAMES,
   WAKE_DELAY,
   WAKE_DELAY_COUNT_PER_10K_WAKES
 };
@@ -1389,6 +1393,46 @@ int cras_server_metrics_stream_runtime(const struct cras_rstream* stream) {
   return 0;
 }
 
+int cras_server_metrics_stream_overrun(const struct cras_rstream* stream) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  struct cras_audio_shm* shm = cras_rstream_shm(stream);
+  int err;
+
+  if (stream->direction == CRAS_STREAM_OUTPUT) {
+    return 0;
+  }
+
+  if (!shm) {
+    syslog(LOG_ERR, "%s: shm is null", __func__);
+    return -EINVAL;
+  }
+
+  data.stream_data.client_type = stream->client_type;
+  data.stream_data.stream_type = stream->stream_type;
+  data.stream_data.count = cras_shm_num_overruns(shm);
+
+  init_server_metrics_msg(&msg, STREAM_OVERRUN_COUNT, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING, "Failed to send metrics message: STREAM_OVERRUN_COUNT");
+    return err;
+  }
+
+  data.stream_data.count = cras_shm_overrun_frames(shm);
+  init_server_metrics_msg(&msg, STREAM_OVERRUN_FRAMES, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: STREAM_OVERRUN_FRAMES");
+    return err;
+  }
+
+  return 0;
+}
+
 int cras_server_metrics_stream_create(
     const struct cras_rstream_config* config) {
   return cras_server_metrics_stream_config(config);
@@ -1408,7 +1452,11 @@ int cras_server_metrics_stream_destroy(const struct cras_rstream* stream) {
   if (rc < 0) {
     return rc;
   }
-  return cras_server_metrics_fetch_delay_count(stream);
+  rc = cras_server_metrics_fetch_delay_count(stream);
+  if (rc < 0) {
+    return rc;
+  }
+  return cras_server_metrics_stream_overrun(stream);
 }
 
 int cras_server_metrics_busyloop(struct timespec* ts, unsigned count) {
@@ -2050,6 +2098,20 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case STREAM_RUNTIME:
       metrics_stream_runtime(metrics_msg->data.stream_data);
+      break;
+    case STREAM_OVERRUN_COUNT:
+      log_histogram_each_level(
+          3, metrics_msg->data.stream_data.count, 0, 1000000000, 50,
+          kStreamOverrunCount,
+          metrics_client_type_str(metrics_msg->data.stream_data.client_type),
+          metrics_stream_type_str(metrics_msg->data.stream_data.stream_type));
+      break;
+    case STREAM_OVERRUN_FRAMES:
+      log_histogram_each_level(
+          3, metrics_msg->data.stream_data.count, 0, 1000000000, 50,
+          kStreamOverrunFrames,
+          metrics_client_type_str(metrics_msg->data.stream_data.client_type),
+          metrics_stream_type_str(metrics_msg->data.stream_data.stream_type));
       break;
     case BUSYLOOP:
       metrics_busyloop(metrics_msg->data.timespec_data);

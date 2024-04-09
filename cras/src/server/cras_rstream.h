@@ -213,7 +213,7 @@ static inline size_t cras_rstream_get_samples_shm_size(
 
 // Gets shared memory region for this stream.
 static inline struct cras_audio_shm* cras_rstream_shm(
-    struct cras_rstream* stream) {
+    const struct cras_rstream* stream) {
   return stream->shm;
 }
 
