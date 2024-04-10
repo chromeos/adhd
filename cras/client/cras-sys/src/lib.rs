@@ -228,6 +228,7 @@ impl Default for cras_iodev_info {
 pub struct CrasIodevInfo {
     pub index: u32,
     pub name: String,
+    pub last_open_result: String,
 }
 
 fn cstring_to_string(cstring: &[c_char]) -> String {
@@ -241,11 +242,19 @@ fn cstring_to_string(cstring: &[c_char]) -> String {
     String::from_utf8_lossy(slice).to_string()
 }
 
+impl fmt::Display for CRAS_IODEV_LAST_OPEN_RESULT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl From<cras_iodev_info> for CrasIodevInfo {
     fn from(info: cras_iodev_info) -> Self {
+        let result = info.last_open_result;
         Self {
             index: info.idx,
             name: cstring_to_string(&info.name),
+            last_open_result: result.to_string(),
         }
     }
 }

@@ -90,15 +90,21 @@ pub fn control(command: ControlCommand) -> Result<()> {
             cras_client.set_system_mute(mute).map_err(Error::Libcras)?;
         }
         ListOutputDevices => {
-            println!("{: <5}{: <10}", "ID", "Name");
+            println!("{: <5}{: <10}{: <10}", "ID", "LastOpen", "Name");
             for dev in cras_client.output_devices() {
-                println!("{: <5}{: <10}", dev.index, dev.name);
+                println!(
+                    "{: <5}{: <10}{: <10}",
+                    dev.index, dev.last_open_result, dev.name
+                );
             }
         }
         ListInputDevices => {
-            println!("{: <5}{: <10}", "ID", "Name");
+            println!("{: <5}{: <10}{: <10}", "ID", "LastOpen", "Name");
             for dev in cras_client.input_devices() {
-                println!("{: <5}{: <10}", dev.index, dev.name);
+                println!(
+                    "{: <5}{: <10}{: <10}",
+                    dev.index, dev.last_open_result, dev.name
+                );
             }
         }
         ListOutputNodes => print_nodes(cras_client.output_nodes()),
