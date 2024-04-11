@@ -199,11 +199,19 @@ pub enum ControlCommand {
 
     /// Print list of output devices
     #[clap(name = "list_output_devices")]
-    ListOutputDevices,
+    ListOutputDevices {
+        /// Print as JSON
+        #[clap(long)]
+        json: bool,
+    },
 
     /// Print list of input devices
     #[clap(name = "list_input_devices")]
-    ListInputDevices,
+    ListInputDevices {
+        /// Print as JSON
+        #[clap(long)]
+        json: bool,
+    },
 
     /// Print list of output nodes
     #[clap(name = "list_output_nodes")]

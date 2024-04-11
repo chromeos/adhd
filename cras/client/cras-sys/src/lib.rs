@@ -224,7 +224,7 @@ impl Default for cras_iodev_info {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct CrasIodevInfo {
     pub index: u32,
     pub name: String,

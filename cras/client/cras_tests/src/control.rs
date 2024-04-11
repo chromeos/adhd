@@ -7,6 +7,7 @@ use std::fmt;
 
 use libcras::AudioDebugInfo;
 use libcras::CrasClient;
+use libcras::CrasIodevInfo;
 use libcras::CrasIonodeInfo;
 
 use crate::arguments::ControlCommand;
@@ -74,6 +75,24 @@ fn print_audio_debug_info_json(info: &AudioDebugInfo) {
     serde_json::to_writer(std::io::stdout(), &info).unwrap();
 }
 
+fn print_devices<I>(devices: I, json: bool)
+where
+    I: Iterator<Item = CrasIodevInfo>,
+{
+    if json {
+        let devices_vec: Vec<_> = devices.collect();
+        serde_json::to_writer(std::io::stdout(), &devices_vec).unwrap();
+    } else {
+        println!("{: <5}{: <10}{: <10}", "ID", "LastOpen", "Name");
+        for dev in devices {
+            println!(
+                "{: <5}{: <10}{: <10}",
+                dev.index, dev.last_open_result, dev.name
+            );
+        }
+    }
+}
+
 /// Connect to CRAS and run the given `ControlCommand`.
 pub fn control(command: ControlCommand) -> Result<()> {
     use ControlCommand::*;
@@ -89,24 +108,9 @@ pub fn control(command: ControlCommand) -> Result<()> {
         SetSystemMute { mute } => {
             cras_client.set_system_mute(mute).map_err(Error::Libcras)?;
         }
-        ListOutputDevices => {
-            println!("{: <5}{: <10}{: <10}", "ID", "LastOpen", "Name");
-            for dev in cras_client.output_devices() {
-                println!(
-                    "{: <5}{: <10}{: <10}",
-                    dev.index, dev.last_open_result, dev.name
-                );
-            }
-        }
-        ListInputDevices => {
-            println!("{: <5}{: <10}{: <10}", "ID", "LastOpen", "Name");
-            for dev in cras_client.input_devices() {
-                println!(
-                    "{: <5}{: <10}{: <10}",
-                    dev.index, dev.last_open_result, dev.name
-                );
-            }
-        }
+        ListOutputDevices { json } => print_devices(cras_client.output_devices(), json),
+        ListInputDevices { json } => print_devices(cras_client.input_devices(), json),
+
         ListOutputNodes => print_nodes(cras_client.output_nodes()),
         ListInputNodes => print_nodes(cras_client.input_nodes()),
         DumpAudioDebugInfo { json } => {
