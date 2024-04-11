@@ -5,6 +5,8 @@
 
 source /usr/share/cros/init/cras-env.sh || exit 1
 
+ulimit -r 12
+
 exec sudo -E -u cras \
         -- \
         /usr/bin/cras \
