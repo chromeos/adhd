@@ -6,6 +6,7 @@
 #include "cras/src/server/cras_fl_pcm_iodev.h"
 
 #include <errno.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -109,6 +110,9 @@ struct fl_pcm_io {
   struct cras_sr* sr;
   // Buffer to hold the sr input pcm samples.
   struct byte_buffer* sr_buf;
+  // The mutex to protect |sr| and |sr_buf| from being destructed
+  // by the main thread during its processing in the audio thread.
+  pthread_mutex_t sr_mutex;
 };
 
 static int flush(const struct cras_iodev* iodev);
@@ -464,6 +468,8 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
 
   // Allow last read before handling error or hang-up events.
   if (revents & POLLIN) {
+    pthread_mutex_lock(&idev->sr_mutex);
+
     if (idev->sr) {
       swap_pcm_buf_and_sr_buf(idev);
       rc = hfp_read(idev);
@@ -477,7 +483,10 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
     if (idev->sr) {
       cras_sr_process(idev->sr, idev->sr_buf, idev->pcm_buf);
     }
+
+    pthread_mutex_unlock(&idev->sr_mutex);
   }
+
   if (revents & (POLLERR | POLLHUP)) {
     syslog(LOG_WARNING, "Error polling SCO socket, revents %d", revents);
     if (revents & POLLHUP) {
@@ -506,9 +515,13 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
 }
 
 static void fl_pcm_io_disable_cras_sr_bt(struct fl_pcm_io* fl_pcm_io) {
+  pthread_mutex_lock(&fl_pcm_io->sr_mutex);
+
   byte_buffer_destroy(&fl_pcm_io->sr_buf);
   cras_sr_destroy(fl_pcm_io->sr);
   fl_pcm_io->sr = NULL;
+
+  pthread_mutex_unlock(&fl_pcm_io->sr_mutex);
 }
 
 static int fl_pcm_io_get_sr_bt_model(struct fl_pcm_io* fl_pcm_io,
@@ -1219,10 +1232,12 @@ struct cras_iodev* hfp_pcm_iodev_create(struct cras_hfp* hfp,
     goto error;
   }
 
-  // At this point, we know which codec is preferred. This will usually
-  // be the negotiated codec, but the spec allows to fallback to CVSD,
-  // in which case this will be updated in |hfp_open_dev|.
   if (iodev->direction == CRAS_STREAM_INPUT) {
+    pthread_mutex_init(&hfpio->sr_mutex, NULL);
+
+    // At this point, we know which codec is preferred. This will usually
+    // be the negotiated codec, but the spec allows to fallback to CVSD,
+    // in which case this will be updated in |hfp_open_dev|.
     if (cras_floss_hfp_is_codec_format_supported(
             hfpio->hfp, HFP_CODEC_FORMAT_LC3_TRANSPARENT)) {
       iodev->active_node->btflags |= CRAS_BT_FLAG_SWB;
