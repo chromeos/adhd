@@ -109,6 +109,17 @@ static bool dbus_bool_is_true(int dbus_type, void* dbus_value_ptr) {
   return *(dbus_bool_t*)dbus_value_ptr == TRUE;
 }
 
+static bool dbus_bool_is_false(int dbus_type, void* dbus_value_ptr) {
+  if (dbus_type != DBUS_TYPE_BOOLEAN) {
+    syslog(LOG_ERR,
+           "Mismatched return type, "
+           "expected type id: %d, received type id: %d",
+           DBUS_TYPE_BOOLEAN, dbus_type);
+    return false;
+  }
+  return *(dbus_bool_t*)dbus_value_ptr == FALSE;
+}
+
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr) {
   RET_IF_HAVE_FUZZER(0);
   DBusMessage *method_call, *reply;
@@ -609,8 +620,12 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
   return started;
 }
 
-int floss_media_a2dp_stop_audio_request(struct fl_media* fm) {
+int floss_media_a2dp_stop_audio_request(struct fl_media* fm, const char* addr) {
   RET_IF_HAVE_FUZZER(0);
+
+  int rc = 0;
+
+  syslog(LOG_DEBUG, "%s: %s", __func__, addr);
 
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
@@ -644,6 +659,35 @@ int floss_media_a2dp_stop_audio_request(struct fl_media* fm) {
   }
 
   dbus_message_unref(reply);
+
+  DBusMessage* get_a2dp_audio_started;
+  rc = create_dbus_method_call(&get_a2dp_audio_started,
+                               /* dest= */ BT_SERVICE_NAME,
+                               /* path= */ fm->obj_path,
+                               /* iface= */ BT_MEDIA_INTERFACE,
+                               /* method_name= */ "GetA2dpAudioStarted",
+                               /* num_args= */ 1,
+                               /* arg1= */ DBUS_TYPE_STRING, &addr);
+
+  if (rc < 0) {
+    return rc;
+  }
+
+  dbus_bool_t started = FALSE;
+  rc = retry_until_predicate_satisfied(
+      /* conn= */ fm->conn,
+      /* num_retries= */ GET_A2DP_AUDIO_STARTED_RETRIES,
+      /* sleep_time_us= */ GET_A2DP_AUDIO_STARTED_SLEEP_US,
+      /* method_call= */ get_a2dp_audio_started,
+      /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+      /* dbus_ret_value_ptr= */ &started,
+      /* predicate= */ dbus_bool_is_false);
+
+  dbus_message_unref(get_a2dp_audio_started);
+
+  if (rc < 0) {
+    return rc;
+  }
 
   return 0;
 }

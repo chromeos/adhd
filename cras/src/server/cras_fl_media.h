@@ -130,7 +130,7 @@ int floss_media_a2dp_set_volume(struct fl_media* fm, unsigned int volume);
 int floss_media_a2dp_start_audio_request(struct fl_media* fm, const char* addr);
 
 // Calls StopAudioRequest method to Floss media interface.
-int floss_media_a2dp_stop_audio_request(struct fl_media* fm);
+int floss_media_a2dp_stop_audio_request(struct fl_media* fm, const char* addr);
 
 // Unlink a2dp with bt_io_manager and destroy related resources.
 int floss_media_a2dp_suspend(struct fl_media* fm);

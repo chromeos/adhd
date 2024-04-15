@@ -465,7 +465,7 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
   return 0;
 }
 
-int floss_media_a2dp_stop_audio_request(struct fl_media* fm) {
+int floss_media_a2dp_stop_audio_request(struct fl_media* fm, const char* addr) {
   floss_media_a2dp_stop_audio_request_called++;
   return 0;
 }

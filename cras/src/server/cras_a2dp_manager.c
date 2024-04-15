@@ -546,9 +546,10 @@ int cras_floss_a2dp_stop(struct cras_a2dp* a2dp) {
 
   cancel_a2dp_delay_sync(a2dp);
 
-  BTLOG(btlog, BT_A2DP_REQUEST_STOP, 0, 0);
+  int rc = floss_media_a2dp_stop_audio_request(a2dp->fm, a2dp->addr);
 
-  floss_media_a2dp_stop_audio_request(a2dp->fm);
+  BTLOG(btlog, BT_A2DP_REQUEST_STOP, !rc, 0);
+
   return 0;
 }
 
@@ -700,7 +701,7 @@ int cras_floss_a2dp_start(struct cras_a2dp* a2dp,
   return 0;
 error:
   BTLOG(btlog, BT_A2DP_REQUEST_START, 0, 0);
-  floss_media_a2dp_stop_audio_request(a2dp->fm);
+  floss_media_a2dp_stop_audio_request(a2dp->fm, a2dp->addr);
   if (skt_fd >= 0) {
     close(skt_fd);
     unlink(addr.sun_path);
