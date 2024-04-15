@@ -43,6 +43,7 @@ const char kDeviceNoiseCancellationStatus[] =
     "Cras.DeviceNoiseCancellationStatus";
 const char kDeviceSampleFormat[] = "Cras.DeviceSampleFormat";
 const char kDeviceSampleRate[] = "Cras.DeviceSampleRate";
+const char kDeviceSamplesDropped[] = "Cras.DeviceSamplesDropped";
 const char kDeviceDspOffloadStatus[] = "Cras.DeviceDspOffloadStatus";
 const char kFetchDelayMilliSeconds[] = "Cras.FetchDelayMilliSeconds";
 const char kFetchDelayCount[] = "Cras.FetchDelayCount";
@@ -147,6 +148,7 @@ enum CRAS_SERVER_METRICS_TYPE {
   DEVICE_NOISE_CANCELLATION_STATUS,
   DEVICE_SAMPLE_FORMAT,
   DEVICE_SAMPLE_RATE,
+  DEVICE_SAMPLES_DROPPED,
   DEVICE_DSP_OFFLOAD_STATUS,
   DLC_MANAGER_STATUS,
   HIGHEST_DEVICE_DELAY_INPUT,
@@ -1195,6 +1197,29 @@ int cras_server_metrics_num_underruns_during_apnc(struct cras_iodev* iodev) {
   return 0;
 }
 
+int cras_server_metrics_device_samples_dropped(struct cras_iodev* iodev) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  int err;
+
+  if (iodev->direction != CRAS_STREAM_INPUT) {
+    return 0;
+  }
+
+  data.device_data.value = cras_iodev_get_num_samples_dropped(iodev);
+  data.device_data.type = get_metrics_device_type(iodev);
+
+  init_server_metrics_msg(&msg, DEVICE_SAMPLES_DROPPED, data);
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: DEVICE_SAMPLES_DROPPED");
+    return err;
+  }
+
+  return 0;
+}
+
 // Logs the frequency of missed callback.
 static int cras_server_metrics_missed_cb_frequency(
     const struct cras_rstream* stream) {
@@ -1999,6 +2024,12 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case DEVICE_SAMPLE_RATE:
       metrics_device_sample_rate(metrics_msg->data.device_data);
+      break;
+    case DEVICE_SAMPLES_DROPPED:
+      log_histogram_each_level(
+          2, (unsigned)metrics_msg->data.device_data.value, 0, 2000000000, 50,
+          kDeviceSamplesDropped,
+          metrics_device_type_str(metrics_msg->data.device_data.type));
       break;
     case DEVICE_DSP_OFFLOAD_STATUS:
       metrics_device_dsp_offload_status(metrics_msg->data.device_data);

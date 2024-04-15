@@ -154,6 +154,9 @@ int cras_server_metrics_device_sample_format(struct cras_iodev* iodev);
 // Logs the sample rate of a device.
 int cras_server_metrics_device_sample_rate(struct cras_iodev* iodev);
 
+// Logs the sample dropped of a device.
+int cras_server_metrics_device_samples_dropped(struct cras_iodev* iodev);
+
 // Logs the device type when cras clients request to set aec ref.
 int cras_server_metrics_set_aec_ref_device_type(struct cras_iodev* iodev);
 

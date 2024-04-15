@@ -31,6 +31,10 @@ int cras_server_metrics_device_sample_rate(struct cras_iodev* iodev) {
   return 0;
 }
 
+int cras_server_metrics_device_samples_dropped(struct cras_iodev* iodev) {
+  return 0;
+}
+
 int cras_server_metrics_device_configure_time(struct cras_iodev* iodev,
                                               struct timespec* beg,
                                               struct timespec* end) {

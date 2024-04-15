@@ -400,6 +400,7 @@ impl Default for audio_dev_debug_info {
             num_underruns: 0,
             num_underruns_during_nc: 0,
             num_severe_underruns: 0,
+            num_samples_dropped: 0,
             highest_hw_level: 0,
             runtime_sec: 0,
             runtime_nsec: 0,
@@ -428,6 +429,7 @@ pub struct AudioDevDebugInfo {
     pub num_underruns: u32,
     pub num_underruns_during_nc: u32,
     pub num_severe_underruns: u32,
+    pub num_samples_dropped: u32,
     pub highest_hw_level: u32,
     #[serde(rename = "runtime_sec", serialize_with = "serialize_duration_secs")]
     pub runtime: Duration,
@@ -455,6 +457,7 @@ impl From<audio_dev_debug_info> for AudioDevDebugInfo {
             num_underruns: info.num_underruns,
             num_underruns_during_nc: info.num_underruns_during_nc,
             num_severe_underruns: info.num_severe_underruns,
+            num_samples_dropped: info.num_samples_dropped,
             highest_hw_level: info.highest_hw_level,
             runtime: Duration::new(info.runtime_sec.into(), info.runtime_nsec),
             longest_wake: Duration::new(info.longest_wake_sec.into(), info.longest_wake_nsec),

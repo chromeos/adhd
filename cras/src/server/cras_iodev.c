@@ -1196,6 +1196,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
   iodev->largest_cb_level = 0;
   iodev->num_underruns = 0;
   iodev->num_underruns_during_nc = 0;
+  iodev->num_samples_dropped = 0;
 
   iodev->reset_request_pending = 0;
   iodev->state = CRAS_IODEV_STATE_OPEN;
@@ -1807,6 +1808,11 @@ unsigned int cras_iodev_get_num_severe_underruns(
   return 0;
 }
 
+unsigned int cras_iodev_get_num_samples_dropped(
+    const struct cras_iodev* iodev) {
+  return iodev->num_samples_dropped;
+}
+
 int cras_iodev_reset_request(struct cras_iodev* iodev) {
   /* Ignore requests if there is a pending request.
    * This function sends the request from audio thread to main
@@ -2041,6 +2047,7 @@ static int cras_iodev_drop_frames(struct cras_iodev* iodev,
     rate_estimator_add_frames(iodev->rate_est, -frames);
   }
 
+  iodev->num_samples_dropped += dropped_frames;
   ATLOG(atlog, AUDIO_THREAD_DEV_DROP_FRAMES, iodev->info.idx, dropped_frames,
         0);
 

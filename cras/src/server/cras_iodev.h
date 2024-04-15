@@ -395,6 +395,8 @@ struct cras_iodev {
   unsigned int num_underruns;
   // Number of underruns while AP NC is running.
   unsigned int num_underruns_during_nc;
+  // Number of samples dropped.
+  unsigned int num_samples_dropped;
   double rate_est_underrun;
   // Timestamp of the last update to the reset quota.
   struct timespec last_reset_timeref;
@@ -899,6 +901,14 @@ unsigned int cras_iodev_get_num_underruns_during_nc(
  */
 unsigned int cras_iodev_get_num_severe_underruns(
     const struct cras_iodev* iodev);
+
+/* Get number of samples dropped so far.
+ * Args:
+ *    iodev[in] - The device.
+ * Returns:
+ *    An unsigned int for number of samples dropped.
+ */
+unsigned int cras_iodev_get_num_samples_dropped(const struct cras_iodev* iodev);
 
 /* Get number of valid frames in the hardware buffer. The valid frames does
  * not include zero samples we filled with before.

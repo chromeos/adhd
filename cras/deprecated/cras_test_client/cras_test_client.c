@@ -1134,6 +1134,7 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         "num_underruns: %u\n"
         "num_underruns_during_nc: %u\n"
         "num_severe_underruns: %u\n"
+        "num_samples_dropped: %u\n"
         "highest_hw_level: %u\n"
         "runtime: %u.%09u\n"
         "longest_wake: %u.%09u\n"
@@ -1149,6 +1150,7 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         (unsigned int)info->devs[i].num_underruns,
         (unsigned int)info->devs[i].num_underruns_during_nc,
         (unsigned int)info->devs[i].num_severe_underruns,
+        (unsigned int)info->devs[i].num_samples_dropped,
         (unsigned int)info->devs[i].highest_hw_level,
         (unsigned int)info->devs[i].runtime_sec,
         (unsigned int)info->devs[i].runtime_nsec,

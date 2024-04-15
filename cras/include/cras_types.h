@@ -462,6 +462,7 @@ struct __attribute__((__packed__)) audio_dev_debug_info {
   uint32_t num_underruns;
   uint32_t num_underruns_during_nc;
   uint32_t num_severe_underruns;
+  uint32_t num_samples_dropped;
   uint32_t highest_hw_level;
   uint32_t runtime_sec;
   uint32_t runtime_nsec;
