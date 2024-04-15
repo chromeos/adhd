@@ -64,8 +64,10 @@ struct cras_hfp {
   // If an output device started. This is used to determine if
   // a sco start or stop is required.
   int odev_started;
-  // If we issued |StopScoCall| and expect an HFP audio disconnection callback
-  bool pending_audio_disconnection;
+  // Every successful |StartScoCall| should expect an audio disconnection
+  // event callback. If the event comes before |StopScoCall|, we will
+  // issue a reconnection request.
+  bool is_sco_stopped;
   int hfp_caps;
   enum HFP_CODEC_FORMAT active_codec_format;
   bool sco_pcm_used;
@@ -249,6 +251,8 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
   syslog(LOG_INFO, "Negotiated active codec format is %d",
          hfp->active_codec_format);
 
+  hfp->is_sco_stopped = false;
+
   if (hfp->sco_pcm_used) {
     // When sco is offloaded, we do not need to connect to the fd in Floss.
     BTLOG(btlog, BT_SCO_CONNECT, 1, -1);
@@ -333,23 +337,26 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
   }
   hfp->fd = -1;
 
-  hfp->pending_audio_disconnection = true;
+  hfp->is_sco_stopped = true;
 
   BTLOG(btlog, BT_SCO_DISCONNECT, 0, 0);
 
   return floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
 }
 
-// Attempt to reconnect to the headset, if and only if:
-// (1) there is no pending disconnection event ever requested by CRAS, and
-// (2) CRAS is still streaming to HFP
+// This event is where we learn about unsolicited SCO disconnection.
+// This can occur at any moment including sensitive timings around
+// (before/after) |StopScoCall|, so it is not guaranteed to be triggered
+// as a reply to |cras_floss_hfp_stop|.
 void cras_floss_hfp_handle_audio_disconnection(struct cras_hfp* hfp) {
-  if (hfp->pending_audio_disconnection) {
-    hfp->pending_audio_disconnection = false;
+  if (hfp->is_sco_stopped) {
     return;
   }
 
   if (hfp->idev_started || hfp->odev_started) {
+    // Attempt to reconnect to the headset, if and only if:
+    // (1) SCO was not requested to be stopped by CRAS, and
+    // (2) CRAS is still streaming to HFP
     syslog(LOG_WARNING,
            "HFP audio was disconnected by the headset, attempt to reconnect.");
     cras_bt_policy_switch_profile(hfp->fm->bt_io_mgr);
