@@ -21,3 +21,6 @@ pub use wav::*;
 
 mod speex;
 pub use speex::*;
+
+mod thread;
+pub use thread::*;

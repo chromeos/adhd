@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 /// An audio sample.
-pub trait Sample: dasp_sample::Sample + Default {}
+pub trait Sample: dasp_sample::Sample + Default + Send {}
 
 impl Sample for f32 {}
 impl Sample for i32 {}
