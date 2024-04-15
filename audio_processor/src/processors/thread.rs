@@ -23,10 +23,16 @@ pub struct ThreadedProcessor<T: AudioProcessor> {
 }
 
 impl<T: AudioProcessor + Send + 'static> ThreadedProcessor<T> {
-    pub fn new(mut inner: T) -> Self {
+    pub fn new(mut inner: T, output_shape: Shape, delay_blocks: usize) -> Self {
         let output_frame_rate = inner.get_output_frame_rate();
         let (intx, inrx) = std::sync::mpsc::channel::<MultiBuffer<T::I>>();
         let (outtx, outrx) = std::sync::mpsc::channel();
+
+        // Populate delay_blocks.
+        for _ in 0..delay_blocks {
+            outtx.send(Ok(MultiBuffer::new(output_shape))).unwrap();
+        }
+
         let join_handle = std::thread::spawn(move || {
             for mut buf in inrx.iter() {
                 match inner.process(buf.as_multi_slice()) {
@@ -91,18 +97,32 @@ mod tests {
     use crate::processors::ThreadedProcessor;
     use crate::AudioProcessor;
     use crate::MultiBuffer;
+    use crate::Shape;
 
     #[test]
     fn process() {
-        let mut input: MultiBuffer<f32> =
+        let mut input1: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
-        let mut ap = ThreadedProcessor::new(NegateAudioProcessor::new(2, 4, 16000));
+        let mut input2: MultiBuffer<f32> =
+            MultiBuffer::from(vec![vec![11., 22., 33., 44.], vec![55., 66., 77., 88.]]);
+        let mut ap = ThreadedProcessor::new(
+            NegateAudioProcessor::new(2, 4, 16000),
+            Shape {
+                channels: 1,
+                frames: 4,
+            },
+            1,
+        );
 
-        let output = ap.process(input.as_multi_slice()).unwrap();
+        let output1 = ap.process(input1.as_multi_slice()).unwrap();
 
-        // output = -input
+        // First output should be empty due to delayed.
+        assert_eq!(output1.into_raw(), [[0.; 4]]);
+
+        let output2 = ap.process(input2.as_multi_slice()).unwrap();
+        // output2 = -input1.
         assert_eq!(
-            output.into_raw(),
+            output2.into_raw(),
             [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]
         );
     }
