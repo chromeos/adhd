@@ -222,12 +222,14 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
                                       disabled_codecs);
 
   if (rc < 0) {
+    BTLOG(btlog, BT_SCO_CONNECT, 0, -1);
     return rc;
   }
 
   if (!(FL_HFP_CODEC_BIT_ID_NONE < rc && rc < FL_HFP_CODEC_BIT_ID_UNKNOWN) ||
       __builtin_popcount(rc) != 1) {
     syslog(LOG_ERR, "Invalid active codec %d", rc);
+    BTLOG(btlog, BT_SCO_CONNECT, 0, -1);
     return -EINVAL;
   }
 
@@ -245,6 +247,7 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
       break;
     default:
       syslog(LOG_ERR, "Invalid active codec format %d", rc);
+      BTLOG(btlog, BT_SCO_CONNECT, 0, -1);
       return -EINVAL;
   }
 
