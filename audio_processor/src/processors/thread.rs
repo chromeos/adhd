@@ -6,12 +6,33 @@ use std::marker::PhantomData;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 
+use anyhow::ensure;
 use anyhow::Context;
+use nix::sys::resource::setrlimit;
+use nix::sys::resource::Resource;
 
 use crate::AudioProcessor;
 use crate::MultiBuffer;
 use crate::Result;
 use crate::Shape;
+
+// TODO(b/268271100): Call the C version when we can build C code before Rust.
+fn set_thread_priority() -> anyhow::Result<()> {
+    // CRAS_SERVER_RT_THREAD_PRIORITY 12
+    let p = 12;
+    setrlimit(Resource::RLIMIT_RTPRIO, p, p).context("setrlimit")?;
+
+    // SAFETY: sched_param is properly initialized.
+    unsafe {
+        let sched_param = libc::sched_param {
+            sched_priority: p as i32,
+        };
+        let rc = libc::pthread_setschedparam(libc::pthread_self(), libc::SCHED_RR, &sched_param);
+        ensure!(rc == 0, "pthread_setschedparam returned {rc}");
+    }
+
+    Ok(())
+}
 
 pub struct ThreadedProcessor<T: AudioProcessor> {
     phantom: PhantomData<T>,
@@ -34,6 +55,11 @@ impl<T: AudioProcessor + Send + 'static> ThreadedProcessor<T> {
         }
 
         let join_handle = std::thread::spawn(move || {
+            // TODO(aaronyu): Figure out a better location to do this.
+            if let Err(err) = set_thread_priority() {
+                log::error!("set_thread_priority: {err:#}");
+            }
+
             for mut buf in inrx.iter() {
                 match inner.process(buf.as_multi_slice()) {
                     Err(err) => outtx.send(Err(err)).unwrap(),
