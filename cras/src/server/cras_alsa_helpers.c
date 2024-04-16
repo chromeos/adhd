@@ -31,7 +31,7 @@
 #define UNDERRUN_LOG_TIME_SECS 30
 
 // Limit the number of channels supported for devices: b/158509536
-#define TEMP_CHANNEL_LIMIT 20
+#define TEMP_CHANNEL_LIMIT 32
 
 // Chances to give mmap_begin to work.
 static const size_t MAX_MMAP_BEGIN_ATTEMPTS = 3;
