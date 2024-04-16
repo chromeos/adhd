@@ -25,6 +25,10 @@ pub struct SpeexResampler {
     output_frame_rate: usize,
 }
 
+// Safety: Use of speex should be safe as long as the state is not accessed
+// from multiple threads at the same time.
+unsafe impl Send for SpeexResampler {}
+
 impl SpeexResampler {
     /// Create a resampler for the given input shape, rate and output rate.
     pub fn new(input_shape: Shape, input_rate: usize, output_rate: usize) -> crate::Result<Self> {

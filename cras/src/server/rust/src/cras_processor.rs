@@ -16,6 +16,7 @@ use audio_processor::processors::ChunkWrapper;
 use audio_processor::processors::DynamicPluginProcessor;
 use audio_processor::processors::NegateAudioProcessor;
 use audio_processor::processors::SpeexResampler;
+use audio_processor::processors::ThreadedProcessor;
 use audio_processor::AudioProcessor;
 use audio_processor::Shape;
 use cras_dlc::get_dlc_state_cached;
@@ -40,9 +41,12 @@ pub struct CrasProcessorConfig {
     frame_rate: usize,
 
     effect: CrasProcessorEffect,
+
+    // Run the processor pipeline in a separate, dedicated thread.
+    dedicated_thread: bool,
 }
 
-type Pipeline = Vec<Box<dyn AudioProcessor<I = f32, O = f32>>>;
+type Pipeline = Vec<Box<dyn AudioProcessor<I = f32, O = f32> + Send>>;
 
 pub struct CrasProcessor {
     id: usize,
@@ -218,7 +222,7 @@ impl<'a> PluginLoader<'a> {
         )
         .with_context(|| "DynamicPluginProcessor::new failed")?;
 
-        let maybe_wrapped_processor: Box<dyn AudioProcessor<I = f32, O = f32>> = if self
+        let maybe_wrapped_processor: Box<dyn AudioProcessor<I = f32, O = f32> + Send> = if self
             .outer_block_size
             * self.inner_rate
             != self.inner_block_size * self.outer_rate
@@ -314,12 +318,25 @@ pub unsafe extern "C" fn cras_processor_create(
                 channels: config.channels,
                 block_size: config.block_size,
                 frame_rate: config.frame_rate,
+                dedicated_thread: config.dedicated_thread,
             })
             .expect("CrasProcessor::new with CrasProcessorEffect::NoEffects should never fail")
         }
     };
 
-    *ret = export_plugin(processor);
+    *ret = if config.dedicated_thread {
+        let threaded_processor = ThreadedProcessor::new(
+            processor,
+            Shape {
+                channels: config.channels,
+                frames: config.block_size,
+            },
+            1,
+        );
+        export_plugin(threaded_processor)
+    } else {
+        export_plugin(processor)
+    };
     return success;
 }
 

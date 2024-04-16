@@ -32,6 +32,7 @@ struct CrasProcessorConfig {
   size_t block_size;
   size_t frame_rate;
   enum CrasProcessorEffect effect;
+  bool dedicated_thread;
 };
 
 /**

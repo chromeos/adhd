@@ -18,6 +18,10 @@ pub struct DynamicPluginProcessor {
     _library: dl::DynLib,
 }
 
+// SAFETY: Assume the underlying library is safe to be created and
+// used on different threads.
+unsafe impl Send for DynamicPluginProcessor {}
+
 impl DynamicPluginProcessor {
     /// Create a new `DynamicPluginProcessor` from dynamically loaded `lib`
     /// and a constructor named `symbol`.
