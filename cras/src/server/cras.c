@@ -5,6 +5,7 @@
 
 #define _GNU_SOURCE  // for asprintf
 #include <getopt.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +54,8 @@ int main(int argc, char** argv) {
   const char* board_name = NULL;
   const char* cpu_model_name = NULL;
   unsigned int profile_disable_mask = 0;
+
+  pthread_setname_np(pthread_self(), "cras-main");
 
   set_signals();
 

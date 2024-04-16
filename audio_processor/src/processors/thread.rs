@@ -54,19 +54,22 @@ impl<T: AudioProcessor + Send + 'static> ThreadedProcessor<T> {
             outtx.send(Ok(MultiBuffer::new(output_shape))).unwrap();
         }
 
-        let join_handle = std::thread::spawn(move || {
-            // TODO(aaronyu): Figure out a better location to do this.
-            if let Err(err) = set_thread_priority() {
-                log::error!("set_thread_priority: {err:#}");
-            }
-
-            for mut buf in inrx.iter() {
-                match inner.process(buf.as_multi_slice()) {
-                    Err(err) => outtx.send(Err(err)).unwrap(),
-                    Ok(slice) => outtx.send(Ok(MultiBuffer::from(slice))).unwrap(),
+        let builder = std::thread::Builder::new().name("ThreadedProcessor".into());
+        let join_handle = builder
+            .spawn(move || {
+                // TODO(aaronyu): Figure out a better location to do this.
+                if let Err(err) = set_thread_priority() {
+                    log::error!("set_thread_priority: {err:#}");
                 }
-            }
-        });
+
+                for mut buf in inrx.iter() {
+                    match inner.process(buf.as_multi_slice()) {
+                        Err(err) => outtx.send(Err(err)).unwrap(),
+                        Ok(slice) => outtx.send(Ok(MultiBuffer::from(slice))).unwrap(),
+                    }
+                }
+            })
+            .expect("cannot spawn ThreadedProcessor thread");
         ThreadedProcessor {
             phantom: PhantomData,
             join_handle: Some(join_handle),

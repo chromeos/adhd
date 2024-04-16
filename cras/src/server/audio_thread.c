@@ -887,6 +887,8 @@ static void* audio_io_thread(void* arg) {
     cras_set_thread_priority(CRAS_SERVER_RT_THREAD_PRIORITY);
   }
 
+  pthread_setname_np(pthread_self(), "cras-audio");
+
   thread->pollfds[0].fd = msg_fd;
   thread->pollfds[0].events = POLLIN;
 
