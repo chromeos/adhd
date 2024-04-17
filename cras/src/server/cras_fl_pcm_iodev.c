@@ -726,7 +726,17 @@ static int hfp_close_dev(struct cras_iodev* iodev) {
 
   cras_iodev_free_format(iodev);
   cras_iodev_free_audio_area(iodev);
-  fl_pcm_io_disable_cras_sr_bt(hfpio);
+
+  // Free resources only when the SCO callback is not live.
+  if (!cras_floss_hfp_is_sco_running(hfpio->hfp)) {
+    struct fl_pcm_io* idev =
+        (struct fl_pcm_io*)cras_floss_hfp_get_input_iodev(hfpio->hfp);
+
+    if (idev) {
+      fl_pcm_io_disable_cras_sr_bt(idev);
+    }
+  }
+
   return 0;
 }
 

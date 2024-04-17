@@ -82,6 +82,9 @@ int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
  * event to CRAS's system volume. */
 int cras_floss_hfp_convert_volume(unsigned int vgs_volume);
 
+// Gets whether the SCO callback is live.
+bool cras_floss_hfp_is_sco_running(struct cras_hfp* hfp);
+
 // Gets whether a codec format is supported.
 bool cras_floss_hfp_is_codec_format_supported(struct cras_hfp* hfp,
                                               enum HFP_CODEC_FORMAT codec);

@@ -202,7 +202,7 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
 
   /* Check if the sco and socket connection has started by another
    * direction's iodev. We can skip the data channel setup if so. */
-  if (hfp->idev_started || hfp->odev_started) {
+  if (cras_floss_hfp_is_sco_running(hfp)) {
     goto start_dev;
   }
 
@@ -324,13 +324,13 @@ error:
 
 int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
   // i/odev_started is only used to determine SCO status.
-  if (!(hfp->idev_started || hfp->odev_started)) {
+  if (!cras_floss_hfp_is_sco_running(hfp)) {
     return 0;
   }
 
   set_dev_started(hfp, dir, 0);
 
-  if (hfp->idev_started || hfp->odev_started) {
+  if (cras_floss_hfp_is_sco_running(hfp)) {
     return 0;
   }
 
@@ -356,7 +356,7 @@ void cras_floss_hfp_handle_audio_disconnection(struct cras_hfp* hfp) {
     return;
   }
 
-  if (hfp->idev_started || hfp->odev_started) {
+  if (cras_floss_hfp_is_sco_running(hfp)) {
     // Attempt to reconnect to the headset, if and only if:
     // (1) SCO was not requested to be stopped by CRAS, and
     // (2) CRAS is still streaming to HFP
@@ -461,6 +461,10 @@ int cras_floss_hfp_convert_volume(unsigned int vgs_volume) {
   }
 
   return vgs_volume * 100 / 15;
+}
+
+bool cras_floss_hfp_is_sco_running(struct cras_hfp* hfp) {
+  return hfp->idev_started || hfp->odev_started;
 }
 
 bool cras_floss_hfp_is_codec_format_supported(struct cras_hfp* hfp,

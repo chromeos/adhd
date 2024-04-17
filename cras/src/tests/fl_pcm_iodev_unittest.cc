@@ -568,6 +568,8 @@ TEST_P(PcmIodevWithSrTest, CreateDestroyHfpPcmIodev) {
   struct cras_iodev* iodev = hfp_pcm_iodev_create(NULL, GetParam().direction);
   ASSERT_NE(iodev, (void*)NULL);
 
+  cras_floss_hfp_get_input_iodev_ret = iodev;
+
   iodev->open_dev(iodev);
   iodev->update_supported_formats(iodev);
 
@@ -928,6 +930,10 @@ static int convert_hfp_codec_format_to_rate(enum HFP_CODEC_FORMAT codec) {
       break;
   }
   return 0;
+}
+
+bool cras_floss_hfp_is_sco_running(struct cras_hfp* hfp) {
+  return false;
 }
 
 int cras_floss_hfp_fill_format(struct cras_hfp* hfp,
