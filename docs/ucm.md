@@ -14,7 +14,7 @@ For example, for kevin board HiFi.conf:
 * It is in overlay repo chromeos-bsp-kevin package
 * rk3399-gru-sound is the card name
 * HiFi.conf is the config for HiFi use case.
-* On device, it is at /usr/share/alsa/ucm/[Card]/HiFi.conf
+* On device, it is at /usr/share/alsa/ucm/[Card]/HiFi.conf or /usr/share/alsa/ucm2/[Card]/HiFi.conf.
 
 The available controls can be queried by:
 
@@ -267,15 +267,14 @@ alsaucm -c <card name here> set _verb HiFi
 Look for HiFi.conf on [codesearch](https://source.chromium.org/search?q=file:HiFi.conf&ss=chromiumos)
 
 ### USB UCM Configuration
-There can be a UCM config file for each sound alsa card on the system.  This file
-lives in `/usr/share/alsa/ucm/` or `/usr/share/alsa/ucm2/`.  The file should be named with the card name returned by ALSA, the string in the second set of '[]' in the aplay -l output.
-
 Several fields are commonly utilized in USB UCM.
 
 * DisableSoftwareVolume - If not specified, default to value '1' which means hardware volume is used by default. Setting this flag to '0' will enforce using software volume.
-  * hardware volume - control playback volume via setting mixer control exposed by USB device. Use `PlaybackMixerElem` to explicitly tell CRAS which mixer to use, otherwise some name matching will be used.
-  * software volume - control playback volume via changing the amplitude of digital audio data. Setting `PlaybackMixerElem` or` CRASPlaybackNumberOfVolumeSteps` in this mode will throw an error.
-* PlaybackPCM - PCM device for USB playback.
+  * hardware volume - control playback volume via setting mixer control exposed by USB device. Use `PlaybackMixerElem` to explicitly tell CRAS which mixer to use. If `PlaybackMixerElem` is not specified in this mode(HW Volume) will throw an error.
+  * software volume - control playback volume via changing the amplitude of digital audio data. Setting `PlaybackMixerElem` or` CRASPlaybackNumberOfVolumeSteps` in this mode(SW Volume) will throw an error.
+* PlaybackPCM - PCM device for USB playback. Specify `PlaybackPCM` need to follow one of following requirements. Otherwise will throw an error.
+  * If you specify `PlaybackPCM`, `PlaybackMixerElem` should be set together because hw volume is default.
+  * Set `DisableSoftwareVolume` to 0 to enable software volume if no associated `PlaybackMixerElem` for `PlaybackPCM`.
 * PlaybackMixerElem - mixer control for USB playback volume.
 * CapturePCM - PCM device for USB capture.
 * CaptureMixerElem - mixer control for USB capture gain.
