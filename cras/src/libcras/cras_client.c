@@ -1274,6 +1274,15 @@ static int handle_capture_data_ready(struct client_stream* stream,
     frames = config->aud_cb(stream->client, stream->id, captured_frames,
                             num_frames, &ts, config->user_data);
   }
+  // If the callback returns more frames than requested num_frames, log an error
+  // and limit it to num_frames.
+  if (frames > num_frames) {
+    syslog(
+        LOG_ERR,
+        "cras_client: callback returns %d frames which exceeds num_frames: %d",
+        frames, num_frames);
+    frames = num_frames;
+  }
   if (frames < 0) {
     send_stream_message(stream, CLIENT_STREAM_EOF);
     rc = frames;
@@ -1363,6 +1372,15 @@ static int handle_playback_request(struct client_stream* stream,
   } else {
     frames = config->aud_cb(stream->client, stream->id, buf, num_frames, &ts,
                             config->user_data);
+  }
+  // If the callback returns more frames than requested num_frames, log an error
+  // and limit it to num_frames.
+  if (frames > num_frames) {
+    syslog(
+        LOG_ERR,
+        "cras_client: callback returns %d frames which exceeds num_frames: %d",
+        frames, num_frames);
+    frames = num_frames;
   }
   if (frames < 0) {
     send_stream_message(stream, CLIENT_STREAM_EOF);
