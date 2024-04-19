@@ -888,7 +888,9 @@ enum CRAS_BT_FLAGS {
   CRAS_BT_FLAG_WBS = (1 << 4),
   // SWB is the preferred/current codec. This is for the purpose of metrics
   // and is only attributed to the input HFP node.
-  CRAS_BT_FLAG_SWB = (1 << 5)
+  CRAS_BT_FLAG_SWB = (1 << 5),
+  // LEA is the current profile
+  CRAS_BT_FLAG_LEA = (1 << 6),
 };
 
 #ifdef __cplusplus
