@@ -14,6 +14,7 @@
 #include <syslog.h>
 
 #include "cras/common/check.h"
+#include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_a2dp_manager.h"
 #include "cras/src/server/cras_bt_io.h"
 #include "cras/src/server/cras_bt_log.h"
@@ -64,6 +65,11 @@ int handle_on_bluetooth_device_added(struct fl_media* active_fm,
                                      struct cras_fl_a2dp_codec_config* codecs,
                                      int32_t hfp_cap,
                                      bool abs_vol_supported) {
+  if (cras_feature_enabled(CrOSLateBootBluetoothAudioLEAudioOnly)) {
+    syslog(LOG_WARNING, "%s: ignored due to LEAudioOnly flag.", __func__);
+    return -EPERM;
+  }
+
   int rc = validate_bluetooth_device_address(addr);
   if (rc) {
     syslog(LOG_WARNING, "Erroneous bluetooth device address match %d", rc);
