@@ -411,6 +411,28 @@ cc_test(
 )
 
 cc_test(
+    name = "lea_iodev_unittest",
+    srcs = [
+        ":lea_iodev_unittest.cc",
+        "//cras/src/common:cras_string.c",
+    ],
+    deps = [
+        ":test_support",
+        ":test_util",
+        "//cras/common:check",
+        "//cras/common:rust_common_cc",
+        "//cras/server/platform/dlc:cc",
+        "//cras/src/common:all_headers",
+        "//cras/src/server:all_headers",
+        "//cras/src/server/rust:cc",
+        "@iniparser",
+        "@pkg_config//alsa",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
     name = "lea_manager_unittest",
     srcs = [
         ":lea_manager_unittest.cc",

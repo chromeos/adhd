@@ -51,6 +51,15 @@ enum LEA_GROUP_NODE_STATUS {
   LEA_GROUP_NODE_REMOVED,
 };
 
+bool cras_floss_lea_is_odev_started(struct cras_lea* lea);
+
+bool cras_floss_lea_is_idev_started(struct cras_lea* lea);
+
+struct cras_iodev* cras_floss_lea_get_primary_idev(struct cras_lea* lea);
+
+struct cras_iodev* cras_floss_lea_get_primary_odev(struct cras_lea* lea);
+
+
 int cras_floss_lea_configure_sink_for_voice_communication(struct cras_lea* lea);
 
 int cras_floss_lea_configure_source_for_voice_communication(

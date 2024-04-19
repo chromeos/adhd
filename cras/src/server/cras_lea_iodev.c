@@ -48,7 +48,411 @@ struct lea_io {
   int group_id;
   // If the device has been configured and attached with any stream.
   int started;
+
+  // TODO: implement presentation delay correctly
+  unsigned int bt_stack_delay;
 };
+
+static unsigned int bt_local_queued_frames(const struct cras_iodev* iodev) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+  if (iodev->format) {
+    return buf_queued(leaio->pcm_buf) / cras_get_format_bytes(iodev->format);
+  }
+  return 0;
+}
+
+static int update_supported_formats(struct cras_iodev* iodev) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+  free(iodev->supported_channel_counts);
+  iodev->supported_channel_counts = NULL;
+  free(iodev->supported_rates);
+  iodev->supported_rates = NULL;
+  free(iodev->supported_formats);
+  iodev->supported_formats = NULL;
+  int err = cras_floss_lea_fill_format(leaio->lea, &iodev->supported_rates,
+                                       &iodev->supported_formats,
+                                       &iodev->supported_channel_counts);
+  return err;
+}
+
+static int lea_write(struct lea_io* odev, size_t target_len) {
+  int fd, rc;
+  uint8_t* buf;
+  unsigned int to_send;
+
+  if (!odev->started) {
+    buf_increment_write(odev->pcm_buf, target_len);
+  }
+
+  fd = cras_floss_lea_get_fd(odev->lea);
+
+  buf = buf_read_pointer_size(odev->pcm_buf, &to_send);
+  syslog(LOG_DEBUG, "lea_write to_send=%u, target_len=%zu", to_send,
+         target_len);
+  while (to_send && target_len) {
+    if (to_send > target_len) {
+      to_send = target_len;
+    }
+
+    rc = send(fd, buf, to_send, MSG_DONTWAIT);
+    if (rc <= 0) {
+      if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+        syslog(LOG_WARNING, "Send error %s", cras_strerror(errno));
+        return rc;
+      }
+      syslog(LOG_DEBUG, "rc = %d, errno = %d", rc, errno);
+      return 0;
+    }
+    buf_increment_read(odev->pcm_buf, rc);
+
+    syslog(LOG_DEBUG, "lea_write %d bytes", rc);
+    target_len -= rc;
+    buf = buf_read_pointer_size(odev->pcm_buf, &to_send);
+  }
+
+  return 0;
+}
+
+static int frames_queued(const struct cras_iodev* iodev,
+                         struct timespec* tstamp) {
+  clock_gettime(CLOCK_MONOTONIC_RAW, tstamp);
+  return bt_local_queued_frames(iodev);
+}
+
+static int output_underrun(struct cras_iodev* iodev) {
+  unsigned int local_queued_frames = bt_local_queued_frames(iodev);
+
+  /* The upper layer treat underrun in a more strict way. So even
+   * this is called it may not be an underrun scenario to LEA audio.
+   * Check if local buffer touches zero before trying to fill zero. */
+  if (local_queued_frames > 0) {
+    return 0;
+  }
+
+  // Handle it the same way as cras_iodev_output_underrun().
+  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+}
+
+static int no_stream(struct cras_iodev* iodev, int enable) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+
+  if (iodev->direction != CRAS_STREAM_OUTPUT) {
+    return 0;
+  }
+
+  // Have output fallback to sending zeros to peer.
+  if (enable) {
+    leaio->started = 0;
+    memset(leaio->pcm_buf->bytes, 0, leaio->pcm_buf->used_size);
+  } else {
+    leaio->started = 1;
+  }
+  return 0;
+}
+
+static int is_free_running(const struct cras_iodev* iodev) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+
+  if (iodev->direction != CRAS_STREAM_OUTPUT) {
+    return 0;
+  }
+
+  /* If NOT started, lea_write will automatically puts more data to
+   * socket so audio thread doesn't need to wake up for us. */
+  return !leaio->started;
+}
+
+static int lea_read(struct lea_io* idev) {
+  int fd, rc;
+  uint8_t* buf;
+  unsigned int to_read;
+
+  syslog(LOG_DEBUG, "In lea_read");
+
+  fd = cras_floss_lea_get_fd(idev->lea);
+  // Loop to make sure ring buffer is filled.
+  buf = buf_write_pointer_size(idev->pcm_buf, &to_read);
+  while (to_read) {
+    rc = recv(fd, buf, to_read, MSG_DONTWAIT);
+    if (rc <= 0) {
+      if (rc < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
+        syslog(LOG_WARNING, "Recv error %s", cras_strerror(errno));
+        return rc;
+      }
+      return 0;
+    }
+
+    buf_increment_write(idev->pcm_buf, rc);
+
+    // Ignore the bytes just read if input dev not in present
+    if (!idev->started) {
+      buf_increment_read(idev->pcm_buf, rc);
+    }
+
+    // Update the to_read and buf pointer
+    buf = buf_write_pointer_size(idev->pcm_buf, &to_read);
+  }
+  return 0;
+}
+
+static int lea_socket_read_write_cb(void* arg, int revents) {
+  syslog(LOG_DEBUG, "revents = %d", revents);
+
+  int rc = 0;
+  struct cras_lea* lea = (struct cras_lea*)arg;
+
+  struct lea_io* odev = (struct lea_io*)cras_floss_lea_get_primary_odev(lea);
+  struct lea_io* idev = (struct lea_io*)cras_floss_lea_get_primary_idev(lea);
+
+  const struct cras_audio_format* fmt = idev->base.format ?: odev->base.format;
+
+  if (!fmt) {
+    return 0;
+  }
+
+  if (revents & (POLLERR | POLLHUP)) {
+    syslog(LOG_WARNING, "Error polling LEA socket, revents %d", revents);
+    audio_thread_rm_callback(cras_floss_lea_get_fd(lea));
+    // TODO: implement recovery fallback for this case
+    return -EPIPE;
+  }
+
+  if (revents & POLLIN) {
+    lea_read(idev);
+  }
+
+  if (revents & POLLOUT) {
+    size_t nwrite_btyes = odev->write_block * cras_get_format_bytes(fmt);
+    rc = lea_write(odev, nwrite_btyes);
+  }
+
+  return rc;
+}
+
+static int open_dev(struct cras_iodev* iodev) {
+  int rc = 0;
+  struct lea_io* leaio = (struct lea_io*)iodev;
+  struct cras_lea* lea = leaio->lea;
+
+  if (iodev->direction == CRAS_STREAM_INPUT &&
+      cras_floss_lea_is_idev_started(lea)) {
+    return -EALREADY;
+  }
+
+  if (iodev->direction == CRAS_STREAM_OUTPUT &&
+      cras_floss_lea_is_odev_started(lea)) {
+    return -EALREADY;
+  }
+
+  struct cras_iodev* odev = cras_floss_lea_get_primary_odev(lea);
+  struct cras_iodev* idev = cras_floss_lea_get_primary_idev(lea);
+
+  if (odev != iodev && idev != iodev) {
+    syslog(LOG_WARNING, "%s: cannot open iodev from a non-primary group",
+           __func__);
+    return -EINVAL;
+  }
+
+  cras_floss_lea_set_active(lea, leaio->group_id, 1);
+
+  if (iodev->direction == CRAS_STREAM_INPUT) {
+    rc = cras_floss_lea_configure_sink_for_voice_communication(lea);
+  } else {
+    if (cras_floss_lea_is_idev_started(lea)) {
+      rc = cras_floss_lea_configure_source_for_voice_communication(lea);
+    } else {
+      rc = cras_floss_lea_configure_source_for_media(lea);
+    }
+  }
+  if (rc < 0) {
+    return rc;
+  }
+
+  bool reopen_odev = iodev->direction == CRAS_STREAM_INPUT &&
+                     cras_floss_lea_is_odev_started(lea);
+
+  if (reopen_odev) {
+    syslog(LOG_DEBUG, "%s: context changed, reopening output group", __func__);
+    cras_iodev_list_suspend_dev(odev->info.idx);
+    cras_floss_lea_set_active(lea, leaio->group_id, 1);
+  }
+
+  rc = cras_floss_lea_start(lea, lea_socket_read_write_cb, iodev->direction);
+  if (rc < 0) {
+    syslog(LOG_WARNING, "LEA failed to start");
+    return rc;
+  }
+
+  if (reopen_odev) {
+    cras_iodev_list_resume_dev(odev->info.idx);
+  }
+
+  return 0;
+}
+
+static int configure_dev(struct cras_iodev* iodev) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+
+  // Assert format is set before opening device.
+  if (iodev->format == NULL) {
+    return -EINVAL;
+  }
+
+  iodev->format->format = SND_PCM_FORMAT_S16_LE;
+  cras_iodev_init_audio_area(iodev);
+
+  buf_reset(leaio->pcm_buf);
+  iodev->buffer_size =
+      leaio->pcm_buf->used_size / cras_get_format_bytes(iodev->format);
+
+  leaio->write_block = iodev->format->frame_rate * PCM_BLOCK_MS / 1000;
+  leaio->bt_stack_delay = 0;
+
+  iodev->min_buffer_level = 0;
+  leaio->started = 1;
+
+  return 0;
+}
+
+static int close_dev(struct cras_iodev* iodev) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+  struct cras_lea* lea = leaio->lea;
+
+  struct cras_iodev* odev = cras_floss_lea_get_primary_odev(lea);
+  struct cras_iodev* idev = cras_floss_lea_get_primary_idev(lea);
+
+  if (odev != iodev && idev != iodev) {
+    syslog(LOG_WARNING, "%s: closing an iodev from a non-primary group",
+           __func__);
+    return -EINVAL;
+  }
+
+  if (iodev->direction == CRAS_STREAM_INPUT) {
+    int rc = cras_floss_lea_configure_source_for_media(lea);
+    if (rc < 0) {
+      return rc;
+    }
+  }
+
+  bool reopen_odev = iodev->direction == CRAS_STREAM_INPUT &&
+                     cras_floss_lea_is_odev_started(lea);
+
+  if (reopen_odev) {
+    cras_iodev_list_suspend_dev(odev->info.idx);
+  }
+
+  leaio->started = 0;
+  cras_floss_lea_stop(leaio->lea, iodev->direction);
+
+  // This is to release the ASE, otherwise reconfiguration does not occur.
+  // TODO: try to minimize the idle time caused by deactivating groups
+  cras_floss_lea_set_active(lea, leaio->group_id, 0);
+
+  if (iodev->direction == CRAS_STREAM_OUTPUT) {
+    memset(leaio->pcm_buf->bytes, 0, leaio->pcm_buf->used_size);
+  }
+
+  cras_iodev_free_format(iodev);
+  cras_iodev_free_audio_area(iodev);
+
+  if (reopen_odev) {
+    cras_floss_lea_set_active(lea, leaio->group_id, 1);
+    cras_iodev_list_resume_dev(odev->info.idx);
+  }
+
+  return 0;
+}
+
+static int delay_frames(const struct cras_iodev* iodev) {
+  const struct lea_io* leaio = (struct lea_io*)iodev;
+  struct timespec tstamp;
+
+  /* The number of frames in the pcm buffer plus the delay
+   * derived from a2dp_pcm_update_bt_stack_delay. */
+  return frames_queued(iodev, &tstamp) + leaio->bt_stack_delay;
+}
+
+static int get_buffer(struct cras_iodev* iodev,
+                      struct cras_audio_area** area,
+                      unsigned* frames) {
+  struct lea_io* leaio;
+  uint8_t* dst = NULL;
+  unsigned buf_avail = 0;
+  size_t format_bytes;
+
+  leaio = (struct lea_io*)iodev;
+
+  if (iodev->direction == CRAS_STREAM_OUTPUT && iodev->format) {
+    dst = buf_write_pointer_size(leaio->pcm_buf, &buf_avail);
+  } else if (iodev->direction == CRAS_STREAM_INPUT && iodev->format) {
+    dst = buf_read_pointer_size(leaio->pcm_buf, &buf_avail);
+  } else {
+    *frames = 0;
+    return 0;
+  }
+
+  format_bytes = cras_get_format_bytes(iodev->format);
+
+  *frames = MIN(*frames, buf_avail / format_bytes);
+  iodev->area->frames = *frames;
+  cras_audio_area_config_buf_pointers(iodev->area, iodev->format, dst);
+
+  *area = iodev->area;
+  return 0;
+}
+
+static int put_buffer(struct cras_iodev* iodev, unsigned frames) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+  size_t format_bytes, frames_bytes;
+
+  if (!frames || !iodev->format) {
+    return 0;
+  }
+
+  format_bytes = cras_get_format_bytes(iodev->format);
+  frames_bytes = frames * format_bytes;
+
+  if (iodev->direction == CRAS_STREAM_OUTPUT) {
+    if (frames_bytes > buf_writable(leaio->pcm_buf)) {
+      return -EINVAL;
+    }
+    buf_increment_write(leaio->pcm_buf, frames * format_bytes);
+  } else if (iodev->direction == CRAS_STREAM_INPUT) {
+    if (frames_bytes > buf_readable(leaio->pcm_buf)) {
+      return -EINVAL;
+    }
+    buf_increment_read(leaio->pcm_buf, frames * format_bytes);
+  }
+
+  return 0;
+}
+
+static int flush_buffer(struct cras_iodev* iodev) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+  size_t format_bytes;
+  unsigned nframes;
+
+  format_bytes = cras_get_format_bytes(iodev->format);
+  if (iodev->direction == CRAS_STREAM_INPUT) {
+    nframes = buf_queued(leaio->pcm_buf) / format_bytes;
+    buf_increment_read(leaio->pcm_buf, nframes * format_bytes);
+  }
+  return 0;
+}
+
+static void set_volume(struct cras_iodev* iodev) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+
+  cras_floss_lea_set_volume(leaio->lea, iodev->active_node->volume);
+}
+
+static void update_active_node(struct cras_iodev* iodev,
+                               unsigned node_idx,
+                               unsigned dev_enabled) {
+  struct lea_io* leaio = (struct lea_io*)iodev;
+
+  cras_floss_lea_set_active(leaio->lea, leaio->group_id, dev_enabled);
+}
 
 static void lea_free_base_resources(struct lea_io* leaio) {
   struct cras_ionode* node;
@@ -82,6 +486,21 @@ struct cras_iodev* lea_iodev_create(struct cras_lea* lea,
 
   iodev = &leaio->base;
   iodev->direction = dir;
+
+  iodev->frames_queued = frames_queued;
+  iodev->delay_frames = delay_frames;
+  iodev->get_buffer = get_buffer;
+  iodev->open_dev = open_dev;
+  iodev->configure_dev = configure_dev;
+  iodev->update_active_node = update_active_node;
+  iodev->update_supported_formats = update_supported_formats;
+  iodev->put_buffer = put_buffer;
+  iodev->flush_buffer = flush_buffer;
+  iodev->output_underrun = output_underrun;
+  iodev->no_stream = no_stream;
+  iodev->close_dev = close_dev;
+  iodev->set_volume = set_volume;
+  iodev->is_free_running = is_free_running;
 
   snprintf(iodev->info.name, sizeof(iodev->info.name), "%s group %d", name,
            group_id);

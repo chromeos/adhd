@@ -62,6 +62,24 @@ struct cras_lea {
   int odev_started;
 };
 
+struct cras_iodev* cras_floss_lea_get_primary_odev(struct cras_lea* lea) {
+  struct lea_group* group = lea->connected_groups;
+  return group ? group->odev : NULL;
+}
+
+struct cras_iodev* cras_floss_lea_get_primary_idev(struct cras_lea* lea) {
+  struct lea_group* group = lea->connected_groups;
+  return group ? group->idev : NULL;
+}
+
+bool cras_floss_lea_is_odev_started(struct cras_lea* lea) {
+  return lea->odev_started;
+}
+
+bool cras_floss_lea_is_idev_started(struct cras_lea* lea) {
+  return lea->idev_started;
+}
+
 int cras_floss_lea_configure_sink_for_voice_communication(
     struct cras_lea* lea) {
   return floss_media_lea_sink_metadata_changed(
