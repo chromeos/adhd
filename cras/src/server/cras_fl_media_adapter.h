@@ -36,6 +36,8 @@ struct fl_media {
   DBusConnection* conn;
   // Object representing the connected A2DP headset.
   struct cras_a2dp* a2dp;
+  // Object representing the LEA service.
+  struct cras_lea* lea;
   // Object representing the connected HFP headset.
   struct cras_hfp* hfp;
   struct bt_io_manager* bt_io_mgr;

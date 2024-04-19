@@ -411,6 +411,32 @@ cc_test(
 )
 
 cc_test(
+    name = "lea_manager_unittest",
+    srcs = [
+        ":lea_manager_unittest.cc",
+        "//cras/src/server:cras_lea_manager.c",
+    ],
+    copts = [
+        "-fdata-sections",
+        "-ffunction-sections",
+    ],
+    deps = [
+        ":test_support",
+        "//cras/common:rust_common_cc",
+        "//cras/server/platform/dlc:cc",
+        "//cras/server/platform/features:override",
+        "//cras/src/common:all_headers",
+        "//cras/src/server:all_headers",
+        "//cras/src/server/rust:cc",
+        "@iniparser",
+        "@pkg_config//alsa",
+        "@pkg_config//dbus-1",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
     name = "blob_wrapper_unittest",
     srcs = [
         ":blob_wrapper_unittest.cc",

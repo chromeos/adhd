@@ -19,6 +19,7 @@
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
+#include "cras/src/server/cras_lea_manager.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_utf8.h"
@@ -41,6 +42,8 @@ struct lea_io {
   // How many frames of audio samples we prefer to write in one
   // socket write.
   unsigned int write_block;
+  // The associated |cras_lea| object.
+  struct cras_lea* lea;
   // The associated ID of the corresponding LE audio group.
   int group_id;
   // If the device has been configured and attached with any stream.
@@ -59,7 +62,8 @@ static void lea_free_base_resources(struct lea_io* leaio) {
   free(leaio->base.supported_formats);
 }
 
-struct cras_iodev* lea_iodev_create(const char* name,
+struct cras_iodev* lea_iodev_create(struct cras_lea* lea,
+                                    const char* name,
                                     int group_id,
                                     enum CRAS_STREAM_DIRECTION dir) {
   struct lea_io* leaio;
@@ -73,6 +77,7 @@ struct cras_iodev* lea_iodev_create(const char* name,
   }
 
   leaio->started = 0;
+  leaio->lea = lea;
   leaio->group_id = group_id;
 
   iodev = &leaio->base;

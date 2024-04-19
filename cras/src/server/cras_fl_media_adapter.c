@@ -16,6 +16,7 @@
 #include "cras/common/check.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_a2dp_manager.h"
+#include "cras/src/server/cras_lea_manager.h"
 #include "cras/src/server/cras_bt_io.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_policy.h"
@@ -74,7 +75,11 @@ int handle_on_lea_group_connected(struct fl_media* active_fm,
     return -EINVAL;
   }
 
-  // TODO: notify BLE manager
+  if (!active_fm->lea) {
+    active_fm->lea = cras_floss_lea_create(active_fm);
+  }
+
+  cras_floss_lea_add_group(active_fm->lea, name, group_id);
 
   return 0;
 }
@@ -91,7 +96,7 @@ int handle_on_lea_group_disconnected(struct fl_media* active_fm, int group_id) {
     return -EINVAL;
   }
 
-  // TODO: notify BLE manager
+  cras_floss_lea_remove_group(active_fm->lea, group_id);
 
   return 0;
 }
@@ -117,7 +122,9 @@ int handle_on_lea_audio_conf(struct fl_media* active_fm,
     return -EINVAL;
   }
 
-  // TODO: notify BLE manager
+  cras_floss_lea_audio_conf_updated(active_fm->lea, direction, group_id,
+                                    snk_audio_location, src_audio_location,
+                                    available_contexts);
 
   return 0;
 }

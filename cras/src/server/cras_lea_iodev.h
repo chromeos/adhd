@@ -18,11 +18,13 @@ extern "C" {
  * Note that if a group supports both input and output, two `lea_iodev`s
  * will be instantiated.
  * Args:
+ *    lea - The associated |cras_lea| object.
  *    name - Name associated to the LE audio group.
  *    group - ID of the associated group.
  *    dir - The direction of the iodev.
  */
-struct cras_iodev* lea_iodev_create(const char* name,
+struct cras_iodev* lea_iodev_create(struct cras_lea* lea,
+                                    const char* name,
                                     int group_id,
                                     enum CRAS_STREAM_DIRECTION dir);
 

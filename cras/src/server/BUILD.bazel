@@ -439,6 +439,8 @@ cc_library(
         "cras_audio_thread_monitor.h",
         "cras_lea_iodev.c",
         "cras_lea_iodev.h",
+        "cras_lea_manager.c",
+        "cras_lea_manager.h",
         "cras_bt_adapter.c",
         "cras_bt_adapter.h",
         "cras_bt_battery_provider.c",
