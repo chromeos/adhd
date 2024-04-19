@@ -59,6 +59,97 @@ static int validate_hfp_codec_format(int32_t hfp_cap) {
   return -EINVAL;
 }
 
+int handle_on_lea_group_connected(struct fl_media* active_fm,
+                                  const char* name,
+                                  int group_id) {
+  syslog(LOG_DEBUG, "%s(name=%s, group_id=%d)", __func__, name, group_id);
+
+  if (!cras_feature_enabled(CrOSLateBootBluetoothAudioLEAudioOnly)) {
+    syslog(LOG_WARNING, "%s: ignored due to LEAudioOnly flag.", __func__);
+    return -EPERM;
+  }
+
+  if (!active_fm) {
+    syslog(LOG_WARNING, "%s: Floss media is inactive.", __func__);
+    return -EINVAL;
+  }
+
+  // TODO: notify BLE manager
+
+  return 0;
+}
+
+int handle_on_lea_group_disconnected(struct fl_media* active_fm, int group_id) {
+  syslog(LOG_DEBUG, "%s(group_id=%d)", __func__, group_id);
+
+  if (!cras_feature_enabled(CrOSLateBootBluetoothAudioLEAudioOnly)) {
+    return -EPERM;
+  }
+
+  if (!active_fm) {
+    syslog(LOG_WARNING, "%s: Floss media is inactive.", __func__);
+    return -EINVAL;
+  }
+
+  // TODO: notify BLE manager
+
+  return 0;
+}
+
+int handle_on_lea_audio_conf(struct fl_media* active_fm,
+                             uint8_t direction,
+                             int group_id,
+                             uint32_t snk_audio_location,
+                             uint32_t src_audio_location,
+                             uint16_t available_contexts) {
+  syslog(LOG_DEBUG,
+         "%s(direction=%u, group_id=%d, snk_audio_location=%u, "
+         "src_audio_location=%u, available_contexts=%u)",
+         __func__, direction, group_id, snk_audio_location, src_audio_location,
+         available_contexts);
+
+  if (!cras_feature_enabled(CrOSLateBootBluetoothAudioLEAudioOnly)) {
+    return -EPERM;
+  }
+
+  if (!active_fm) {
+    syslog(LOG_WARNING, "%s: Floss media is inactive.", __func__);
+    return -EINVAL;
+  }
+
+  // TODO: notify BLE manager
+
+  return 0;
+}
+
+int handle_on_lea_group_status(struct fl_media* active_fm,
+                               int group_id,
+                               int status) {
+  syslog(LOG_DEBUG, "%s(group_id=%d, status=%d)", __func__, group_id, status);
+
+  if (!cras_feature_enabled(CrOSLateBootBluetoothAudioLEAudioOnly)) {
+    return -EPERM;
+  }
+
+  if (status != FL_LEA_GROUP_INACTIVE && status != FL_LEA_GROUP_ACTIVE &&
+      status != FL_LEA_GROUP_TURNED_IDLE_DURING_CALL) {
+    syslog(LOG_WARNING, "%s: Unknown status %d", __func__, status);
+    return -EINVAL;
+  }
+
+  syslog(LOG_INFO, "LEA group %d status changed %d", group_id, status);
+  return 0;
+}
+
+int handle_on_lea_group_node_status(struct fl_media* active_fm,
+                                    const char* addr,
+                                    int group_id,
+                                    int status) {
+  syslog(LOG_DEBUG, "%s(addr=%s, group_id=%d, status=%d)", __func__, addr,
+         group_id, status);
+  return 0;
+}
+
 int handle_on_bluetooth_device_added(struct fl_media* active_fm,
                                      const char* addr,
                                      const char* name,

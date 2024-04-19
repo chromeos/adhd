@@ -1247,6 +1247,7 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
   dbus_int32_t hfp_cap;
   dbus_bool_t abs_vol_supported;
   dbus_bool_t telephony_use;
+  dbus_int32_t group_id;
   struct cras_fl_a2dp_codec_config* codecs = NULL;
   uint8_t volume;
 
@@ -1400,7 +1401,6 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       dbus_error_free(&dbus_error);
       return DBUS_HANDLER_RESULT_HANDLED;
     }
-
     if (!active_fm) {
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
       return DBUS_HANDLER_RESULT_HANDLED;
@@ -1409,6 +1409,133 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     active_fm->telephony_use = telephony_use;
     if (active_fm->bt_io_mgr) {
       bt_io_manager_set_telephony_use(active_fm->bt_io_mgr, telephony_use);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
+                                         "OnLeaGroupConnected")) {
+    dbus_error_init(&dbus_error);
+    if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_INT32, &group_id,
+                               DBUS_TYPE_STRING, &name, DBUS_TYPE_INVALID)) {
+      syslog(LOG_ERR,
+             "Failed to get group_id and name from OnLeaGroupConnected: %s",
+             dbus_error.message);
+      dbus_error_free(&dbus_error);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    syslog(LOG_DEBUG, "OnLeaGroupConnected %s %d", name, group_id);
+
+    if (!active_fm) {
+      syslog(LOG_WARNING, "Floss media object not ready");
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    rc = handle_on_lea_group_connected(active_fm, name, group_id);
+    if (rc) {
+      syslog(LOG_ERR, "Error occured in adding LEA group %d", rc);
+    }
+
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
+                                         "OnLeaGroupDisconnected")) {
+    rc = get_single_arg(message, DBUS_TYPE_INT32, &group_id);
+    if (rc) {
+      syslog(LOG_ERR, "Failed to get addr from OnLeaGroupDisconnected");
+      return rc;
+    }
+
+    syslog(LOG_DEBUG, "OnLeaGroupDisconnected %d", group_id);
+
+    if (!active_fm) {
+      syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    rc = handle_on_lea_group_disconnected(active_fm, group_id);
+    if (rc) {
+      syslog(LOG_ERR, "Error occured in removing LEA group %d", rc);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
+                                         "OnLeaGroupStatus")) {
+    dbus_int32_t group_id, status;
+    dbus_error_init(&dbus_error);
+    if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_INT32, &group_id,
+                               DBUS_TYPE_INT32, &status, DBUS_TYPE_INVALID)) {
+      syslog(LOG_ERR, "Failed to get args from OnLeaGroupStatus: %s",
+             dbus_error.message);
+      dbus_error_free(&dbus_error);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    if (!active_fm) {
+      syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+    syslog(LOG_DEBUG, "OnLeaGroupStatus %d, %d", group_id, status);
+
+    rc = handle_on_lea_group_status(active_fm, group_id, status);
+    if (rc) {
+      syslog(LOG_ERR, "Error occured in updating group status %d", rc);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
+                                         "OnLeaGroupNodeStatus")) {
+    dbus_int32_t group_id, status;
+    dbus_error_init(&dbus_error);
+    if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_STRING, &addr,
+                               DBUS_TYPE_INT32, &group_id, DBUS_TYPE_INT32,
+                               &status, DBUS_TYPE_INVALID)) {
+      syslog(LOG_ERR, "Failed to get args from OnLeaGroupNodeStatus: %s",
+             dbus_error.message);
+      dbus_error_free(&dbus_error);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    if (!active_fm) {
+      syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+    syslog(LOG_DEBUG, "OnLeaGroupNodeStatus %s, %d, %d", addr, group_id,
+           status);
+
+    rc = handle_on_lea_group_node_status(active_fm, addr, group_id, status);
+    if (rc) {
+      syslog(LOG_ERR, "Error occured in updating group node status %d", rc);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
+                                         "OnLeaAudioConf")) {
+    uint8_t direction;
+    dbus_int32_t group_id;
+    dbus_uint32_t snk_audio_location;
+    dbus_uint32_t src_audio_location;
+    dbus_uint16_t available_contexts;
+
+    dbus_error_init(&dbus_error);
+    if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_BYTE, &direction,
+                               DBUS_TYPE_INT32, &group_id, DBUS_TYPE_UINT32,
+                               &snk_audio_location, DBUS_TYPE_UINT32,
+                               &src_audio_location, DBUS_TYPE_UINT16,
+                               &available_contexts, DBUS_TYPE_INVALID)) {
+      syslog(LOG_ERR, "Failed to get args from OnLeaAudioConf: %s",
+             dbus_error.message);
+      dbus_error_free(&dbus_error);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    if (!active_fm) {
+      syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+    syslog(LOG_DEBUG, "OnLeaAudioConf %u, %d, %u, %u, %u", direction, group_id,
+           snk_audio_location, src_audio_location, available_contexts);
+
+    rc = handle_on_lea_audio_conf(active_fm, direction, group_id,
+                                  snk_audio_location, src_audio_location,
+                                  available_contexts);
+    if (rc) {
+      syslog(LOG_ERR, "Error occured in updating audio conf %d", rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
   }

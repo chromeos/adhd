@@ -43,6 +43,32 @@ struct fl_media {
   bool telephony_use;
 };
 
+/* Adds an LE-Audio device into `active_fm` when member(s) of an
+ * LE audio group has connected.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   name - The remote name of the added LE audio group.
+ *   group_id - The ID of the group to be regarded as an audio device.
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_lea_group_connected(struct fl_media* active_fm,
+                                  const char* name,
+                                  int group_id);
+
+/* Removes an LE-Audio device when notified by the BT stack.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   group_id - The ID of the removed LE audio group.
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_lea_group_disconnected(struct fl_media* active_fm, int group_id);
+
 /* Sets up new a2dp and hfp and feeds them into active_fm when bluetooth
  * device is added.
  *
@@ -126,6 +152,56 @@ int handle_on_hfp_volume_changed(struct fl_media* active_fm,
  */
 int handle_on_hfp_audio_disconnected(struct fl_media* active_fm,
                                      const char* addr);
+
+/* Updates the audio config of the specified group.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   direction - available directions (see |FL_LEA_AUDIO_DIRECTION|) in bitmask
+ *   group_id - The ID of the specified group
+ *   snk_audio_location - Unused
+ *   src_audio_location - Unused
+ *   available_contexts - Available audio contexts of the group
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_lea_audio_conf(struct fl_media* active_fm,
+                             uint8_t direction,
+                             int group_id,
+                             uint32_t snk_audio_location,
+                             uint32_t src_audio_location,
+                             uint16_t available_contexts);
+
+/* Updates the status of the specified group.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   group_id - The ID of the specified group
+ *   status - See |FL_LEA_GROUP_STATUS|
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_lea_group_status(struct fl_media* active_fm,
+                               int group_id,
+                               int status);
+
+/* Notifes that a member has been added/removed to/from the specified group.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   addr - The address of the added bluetooth device.
+ *   group_id - The ID of the specified group
+ *   status - See |FL_LEA_GROUP_NODE_STATUS|
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_lea_group_node_status(struct fl_media* active_fm,
+                                    const char* addr,
+                                    int group_id,
+                                    int status);
 
 /* Destroys struct fl_media and frees up relevant resources.
  *
