@@ -2077,6 +2077,14 @@ enum CRAS_USE_CASE get_use_case(const struct cras_iodev* iodev) {
   return aio->use_case;
 }
 
+static void cras_iodev_update_speaker_rotation(struct cras_iodev* iodev) {
+  if (!iodev->active_node ||
+      iodev->active_node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+    return;
+  }
+  cras_iodev_update_dsp(iodev);
+}
+
 /*
  * Exported Interface.
  */
@@ -2166,7 +2174,7 @@ struct cras_iodev* alsa_iodev_create(
   iodev->get_num_severe_underruns = get_num_severe_underruns;
   iodev->get_valid_frames = get_valid_frames;
   iodev->set_swap_mode_for_node = cras_iodev_dsp_set_swap_mode_for_node;
-  iodev->display_rotation_changed = cras_iodev_update_dsp;
+  iodev->display_rotation_changed = cras_iodev_update_speaker_rotation;
   iodev->support_noise_cancellation = support_noise_cancellation;
   iodev->set_rtc_proc_enabled = set_rtc_proc_enabled;
   iodev->get_rtc_proc_enabled = get_rtc_proc_enabled;
