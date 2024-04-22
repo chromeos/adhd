@@ -213,8 +213,8 @@ enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
   }
 
   if (response == FALSE) {
-    syslog(LOG_WARNING, "Failed to make request to StartScoCall.");
-    return -EBUSY;
+    syslog(LOG_WARNING, "StartScoCall was rejected");
+    return -EPERM;
   }
 
   DBusMessage* get_hfp_audio_final_codecs;
@@ -530,8 +530,8 @@ int floss_media_a2dp_set_audio_config(struct fl_media* fm,
   }
 
   if (response == FALSE) {
-    syslog(LOG_WARNING, "Failed to make request to SetAudioConfig.");
-    return -EBUSY;
+    syslog(LOG_WARNING, "SetAudioConfig was rejected");
+    return -EPERM;
   }
 
   return 0;
@@ -577,8 +577,8 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
   }
 
   if (response == FALSE) {
-    syslog(LOG_WARNING, "Failed to make request to StartAudioRequest.");
-    return -EBUSY;
+    syslog(LOG_WARNING, "StartAudioRequest was rejected");
+    return -EPERM;
   }
 
   DBusMessage* get_a2dp_audio_started;

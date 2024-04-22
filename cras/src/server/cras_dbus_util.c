@@ -177,5 +177,5 @@ int retry_until_predicate_satisfied(struct DBusConnection* conn,
   syslog(LOG_ERR, "%s: polling failed after %d us", method_name,
          num_retries * sleep_time_us);
 
-  return -EBUSY;
+  return -ETIMEDOUT;
 }
