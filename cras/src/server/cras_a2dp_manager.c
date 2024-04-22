@@ -641,8 +641,8 @@ static void audio_format_to_floss(const struct cras_audio_format* fmt,
 
 int cras_floss_a2dp_start(struct cras_a2dp* a2dp,
                           struct cras_audio_format* fmt) {
-  int skt_fd;
-  int rc;
+  int skt_fd = -1;
+  int rc = 0;
   struct sockaddr_un addr;
   struct timespec timeout = {1, 0};
   struct pollfd poll_fd;
@@ -655,7 +655,11 @@ int cras_floss_a2dp_start(struct cras_a2dp* a2dp,
                                     a2dp->active_codec_type, sample_rate,
                                     bits_per_sample, channel_mode);
 
-  floss_media_a2dp_start_audio_request(a2dp->fm, a2dp->addr);
+  rc = floss_media_a2dp_start_audio_request(a2dp->fm, a2dp->addr);
+  if (rc < 0) {
+    BTLOG(btlog, BT_A2DP_REQUEST_START, 0, 0);
+    return rc;
+  }
 
   skt_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (skt_fd < 0) {

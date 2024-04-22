@@ -241,13 +241,6 @@ enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
 
   dbus_message_unref(get_hfp_audio_final_codecs);
 
-  // Did not receive response after timeout.
-  if (rc == -EBUSY) {
-    syslog(LOG_WARNING, "Failed to make request to StartScoCall.");
-    // Stop sco call in case it does resolve later.
-    floss_media_hfp_stop_sco_call(fm, addr);
-  }
-
   if (rc < 0) {
     return rc;
   }
