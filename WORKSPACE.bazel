@@ -105,6 +105,16 @@ http_archive(
     ],
 )
 
+http_archive(
+    name = "percetto",
+    build_file = "//:third_party/BUILD.percetto.bazel",
+    sha256 = "2c1e9bcd710eaeaa6750bf91f3a2a7e143141d7d182a3a2c46dd806c8616deef",
+    strip_prefix = "percetto-0.1.6",
+    urls = [
+        "https://github.com/olvaffe/percetto/archive/refs/tags/v0.1.6.zip",
+    ],
+)
+
 load(
     "//repositories:pkg_config/pkg_config.bzl",
     "pkg_config",
@@ -130,6 +140,7 @@ pkg_config(
         "libfeatures_c",
         "tensorflowlite",
         "libsegmentation",
+        "percetto",
         # @webrtc_apm deps
         "protobuf",
         "libevent",
@@ -236,5 +247,6 @@ load("//repositories/http_archive_deps:repo.bzl", "http_archive_deps_setup")
 http_archive_deps_setup(bazel_external_uris_exclude = [
     "cppcheck",
     "com_google_absl",
+    "percetto",
     "protobuf_mutator",  # TODO(b/273122913): Upload to chromeos-localmirror.
 ])

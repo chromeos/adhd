@@ -12,6 +12,7 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -f /sys/fs/cgroup/cpuset/user_space/media/tasks \
         -k 'tmpfs,/run,tmpfs,MS_NODEV|MS_NOEXEC|MS_NOSUID,mode=755,size=10M' \
         -b /run/bluetooth/audio \
+        -b /run/perfetto,/run/perfetto,1 \
         -b /run/cras,,1 \
         -b /run/dbus,,1 \
         -k '/run/imageloader,/run/imageloader,none,MS_BIND|MS_REC' \

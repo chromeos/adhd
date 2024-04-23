@@ -1,0 +1,9 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "percetto",
+    hdrs = ["src/percetto.h"],
+    defines = ["NPERCETTO"],  # This cc_library is used as a stub.
+    includes = ["src"],
+    visibility = ["//visibility:public"],
+)

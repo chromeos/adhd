@@ -17,6 +17,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "cras/server/cras_trace.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
@@ -540,6 +541,9 @@ static int set_input_dev_wake_ts(struct open_dev* adev, bool* need_to_drop) {
 static int capture_to_streams(struct open_dev* adev,
                               struct open_dev* odev_list) {
   struct cras_iodev* idev = adev->dev;
+
+  TRACE_EVENT_DATA(audio, __func__, PERCETTO_I(idev->info.idx));
+
   snd_pcm_uframes_t remainder, hw_level, cap_limit;
   struct timespec hw_tstamp = {};
   int rc;
@@ -1087,6 +1091,8 @@ static void dev_io_drop_samples(struct open_dev* idev_list) {
  */
 
 int dev_io_send_captured_samples(struct open_dev* idev_list) {
+  TRACE_EVENT(audio, __func__);
+
   struct open_dev* adev;
   bool need_to_drop = false;
   int rc;
@@ -1149,6 +1155,8 @@ static void handle_dev_err(int err_rc,
 }
 
 int dev_io_capture(struct open_dev** list, struct open_dev** olist) {
+  TRACE_EVENT(audio, __func__);
+
   struct open_dev* idev_list = *list;
   struct open_dev* odev_list = *olist;
   struct open_dev* adev;
@@ -1184,6 +1192,8 @@ static void dev_io_check_dev_stream_start(struct open_dev* adev) {
 }
 
 void dev_io_playback_fetch(struct open_dev* odev_list) {
+  TRACE_EVENT(audio, __func__);
+
   struct open_dev* adev;
 
   // Check whether it is the time to start dev_stream before fetching.
@@ -1204,6 +1214,8 @@ void dev_io_playback_fetch(struct open_dev* odev_list) {
 
 int dev_io_playback_write(struct open_dev** odevs,
                           struct cras_fmt_conv* output_converter) {
+  TRACE_EVENT(audio, __func__);
+
   struct open_dev* adev;
   struct dev_stream* curr;
   int rc;
@@ -1328,6 +1340,8 @@ static int times(struct timespec* wall,
 void dev_io_run(struct open_dev** odevs,
                 struct open_dev** idevs,
                 struct cras_fmt_conv* output_converter) {
+  TRACE_EVENT(audio, __func__);
+
   struct timespec beg;
   struct timeval user_beg, sys_beg;
 

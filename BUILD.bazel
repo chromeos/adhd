@@ -63,6 +63,13 @@ bool_flag_config(
     build_setting_default = False,
 )
 
+# Whether to use percetto from the system.
+# If False, a stubbed version will be used.
+bool_flag_config(
+    name = "system_percetto",
+    build_setting_default = False,
+)
+
 config_setting(
     name = "x86_64_build",
     constraint_values = [

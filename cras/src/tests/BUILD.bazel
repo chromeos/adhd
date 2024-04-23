@@ -398,6 +398,7 @@ cc_test(
         "//cras/common:check",
         "//cras/common:rust_common_cc",
         "//cras/server:cras_thread",
+        "//cras/server:cras_trace",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -839,6 +840,7 @@ cc_test(
     deps = [
         ":test_support",
         "//cras/common:rust_common_cc",
+        "//cras/server:cras_trace",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
@@ -1836,6 +1838,7 @@ cc_test(
         ":test_support",
         "//cras/common:check",
         "//cras/common:rust_common_cc",
+        "//cras/server:cras_trace",
         "//cras/server/platform/dlc:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",

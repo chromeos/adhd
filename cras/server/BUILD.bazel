@@ -50,3 +50,26 @@ cc_test(
         "@pkg_config//gtest_main",
     ],
 )
+
+cc_library(
+    name = "cras_trace",
+    srcs = ["cras_trace.c"],
+    hdrs = ["cras_trace.h"],
+    visibility = [
+        "//cras/src/server:__pkg__",
+        "//cras/src/tests:__pkg__",
+    ],
+    deps = select({
+        "@adhd//:system_percetto_build": ["@pkg_config//percetto"],
+        "//conditions:default": ["@percetto"],
+    }),
+)
+
+cc_test(
+    name = "cras_trace_test",
+    srcs = ["cras_trace_test.cc"],
+    deps = [
+        ":cras_trace",
+        "@pkg_config//gtest",
+    ],
+)

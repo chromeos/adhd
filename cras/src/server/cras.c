@@ -13,6 +13,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "cras/server/cras_trace.h"
 #include "cras/src/common/cras_string.h"
 #include "cras/src/server/cras_alsa_plugin_io.h"
 #include "cras/src/server/cras_bt_manager.h"
@@ -140,6 +141,8 @@ int main(int argc, char** argv) {
       break;
   }
   setlogmask(LOG_UPTO(log_mask));
+
+  cras_trace_init();
 
   // Initialize system.
   cras_server_init();

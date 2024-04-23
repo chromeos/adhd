@@ -43,7 +43,7 @@ statfs: 1
 getsockopt: 1
 accept: 1
 pipe2: 1
-prctl: arg0 == PR_SET_NAME
+prctl: arg0 == PR_SET_NAME || arg0 == PR_GET_NAME || arg0 == PR_SET_PDEATHSIG || arg0 == PR_SET_DUMPABLE || arg0 == PR_GET_DUMPABLE
 futex: 1
 ftruncate: 1
 fallocate: 1
@@ -105,3 +105,4 @@ getcpu: 1
 fchown: 1
 process_vm_readv: 1
 eventfd2: 1
+shutdown: 1

@@ -86,7 +86,7 @@ restart_syscall: 1
 rt_sigreturn: 1
 getresuid32: 1
 exit: 1
-prctl: arg0 == PR_SET_NAME
+prctl: arg0 == PR_SET_NAME || arg0 == PR_GET_NAME || arg0 == PR_SET_PDEATHSIG || arg0 == PR_SET_DUMPABLE || arg0 == PR_GET_DUMPABLE
 clock_getres: 1
 clock_getres_time64: 1
 epoll_create1: 1
@@ -122,3 +122,4 @@ sched_getaffinity: 1
 getcpu: 1
 lchown: 1
 eventfd2: 1
+shutdown: 1

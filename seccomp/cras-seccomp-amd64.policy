@@ -83,7 +83,7 @@ sched_setscheduler: 1
 epoll_wait: 1
 getegid: 1
 getgid: 1
-prctl: arg0 == PR_SET_NAME
+prctl: arg0 == PR_SET_NAME || arg0 == PR_GET_NAME || arg0 == PR_SET_PDEATHSIG || arg0 == PR_SET_DUMPABLE || arg0 == PR_GET_DUMPABLE
 epoll_create1: 1
 sched_get_priority_min: 1
 pipe2: 1
@@ -110,3 +110,4 @@ sched_yield: 1
 sched_getaffinity: 1
 lchown: 1
 eventfd2: 1
+shutdown: 1
