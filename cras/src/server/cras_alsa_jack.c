@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 #include <sys/poll.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -1190,10 +1191,7 @@ void cras_alsa_jack_update_monitor_name(const struct cras_alsa_jack* jack,
   /* Note that monitor name string does not contain terminate character.
    * Check monitor name length with name buffer size.
    */
-  if (mnl >= buf_size) {
-    mnl = buf_size - 1;
-  }
-  strlcpy(name_buf, buf + ELD_MONITOR_NAME_OFFSET, mnl);
+  strlcpy(name_buf, buf + ELD_MONITOR_NAME_OFFSET, MIN(mnl + 1, buf_size));
 
   return;
 
