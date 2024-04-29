@@ -193,7 +193,7 @@ pub enum ControlCommand {
     /// Set the system mute state to MUTE (true or false)
     #[clap(name = "set_mute")]
     SetSystemMute {
-        #[clap(parse(try_from_str))]
+        #[clap(value_parser = bool::from_str, action = clap::ArgAction::Set)]
         mute: bool,
     },
 
