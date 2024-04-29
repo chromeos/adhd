@@ -1204,8 +1204,6 @@ int cras_stream_apm_process(struct cras_apm* apm,
       return ret;
     }
 
-    possibly_track_voice_activity(actx, apm);
-
     // Process audio with cras_processor.
     struct multi_slice input = {
         // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
@@ -1244,6 +1242,8 @@ int cras_stream_apm_process(struct cras_apm* apm,
                         apm->fbuffer->num_channels, apm->fmt.format, nread);
     buf_increment_write(apm->buffer, nread * cras_get_format_bytes(&apm->fmt));
     float_buffer_reset(apm->fbuffer);
+
+    possibly_track_voice_activity(actx, apm);
   }
 
   return writable;
