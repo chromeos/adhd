@@ -4,7 +4,7 @@
 
 """A repository rule to list http_archive dependencies and store them in a file.
 
-This help us maintail the bazel_external_uris in our ebuild:
+This help us maintain the bazel_external_uris in our ebuild:
 https://source.chromium.org/chromiumos/chromiumos/codesearch/+/main:src/third_party/chromiumos-overlay/media-sound/adhd/adhd-9999.ebuild
 """
 
@@ -35,10 +35,10 @@ def _impl(repository_ctx):
 _http_archive_deps_repository = repository_rule(
     implementation = _impl,
     attrs = {
-        "deps_json": attr.string(),
         "bazel_external_uris_exclude": attr.string_list(
             doc = "List of http_archive()s to exclude from bazel_external_uris",
         ),
+        "deps_json": attr.string(),
     },
 )
 
