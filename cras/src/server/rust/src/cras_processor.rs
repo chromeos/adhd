@@ -56,7 +56,7 @@ pub struct CrasProcessor {
     apm_processor: PluginProcessor,
     check_shape: CheckShape<f32>,
     pipeline: Pipeline,
-    _config: CrasProcessorConfig,
+    config: CrasProcessorConfig,
 }
 
 impl AudioProcessor for CrasProcessor {
@@ -81,7 +81,7 @@ impl AudioProcessor for CrasProcessor {
     fn get_output_frame_rate<'a>(&'a self) -> usize {
         match self.pipeline.last() {
             Some(last) => last.get_output_frame_rate(),
-            None => self._config.frame_rate,
+            None => self.config.frame_rate,
         }
     }
 }
@@ -204,7 +204,7 @@ impl CrasProcessor {
             apm_processor,
             check_shape,
             pipeline,
-            _config: config,
+            config,
         })
     }
 }
@@ -293,42 +293,55 @@ impl Drop for CrasProcessor {
     }
 }
 
+#[repr(C)]
+pub struct CrasProcessorCreateResult {
+    /// The created processor.
+    pub plugin_processor: *mut plugin_processor,
+    /// The actual effect used in the processor.
+    /// Might be different from what was passed to cras_processor_create.
+    pub effect: CrasProcessorEffect,
+}
+
+impl CrasProcessorCreateResult {
+    fn none() -> Self {
+        Self {
+            plugin_processor: std::ptr::null_mut(),
+            effect: CrasProcessorEffect::NoEffects,
+        }
+    }
+}
+
 /// Create a CRAS processor.
+///
+/// Returns the created processor (might be NULL), and the applied effect.
 ///
 /// # Safety
 ///
 /// `config` must point to a CrasProcessorConfig struct.
 /// `apm_plugin_processor` must point to a plugin_processor.
-/// `ret` is where the constructed plugin_processor would be stored
-/// Returns true if the plugin_processor is successfully constructed,
-/// returns false otherwise.
 #[no_mangle]
 pub unsafe extern "C" fn cras_processor_create(
     config: *const CrasProcessorConfig,
     apm_plugin_processor: NonNull<plugin_processor>,
-    ret: *mut *mut plugin_processor,
-) -> bool {
+) -> CrasProcessorCreateResult {
     let apm_processor = match PluginProcessor::from_handle(apm_plugin_processor.as_ptr()) {
         Ok(processor) => processor,
         Err(err) => {
             log::error!("failed PluginProcessor::from_handle {:#}", err);
-            return false;
+            return CrasProcessorCreateResult::none();
         }
     };
 
     let config = match config.as_ref() {
         Some(config) => config,
         None => {
-            *ret = std::ptr::null_mut();
-            return false;
+            return CrasProcessorCreateResult::none();
         }
     };
 
-    let mut success = true;
     let processor = match CrasProcessor::new(config.clone(), apm_processor) {
         Ok(processor) => processor,
         Err(err) => {
-            success = false;
             log::error!(
                 "CrasProcessor::new failed with {:#}, creating no-op processor",
                 err
@@ -352,7 +365,8 @@ pub unsafe extern "C" fn cras_processor_create(
         }
     };
 
-    *ret = if config.dedicated_thread {
+    let effect = processor.config.effect;
+    let plugin_processor = if config.dedicated_thread {
         let threaded_processor = ThreadedProcessor::new(
             processor,
             Shape {
@@ -365,7 +379,10 @@ pub unsafe extern "C" fn cras_processor_create(
     } else {
         export_plugin(processor)
     };
-    return success;
+    CrasProcessorCreateResult {
+        plugin_processor,
+        effect,
+    }
 }
 
 /// Returns true if override is enabled in the system config file.

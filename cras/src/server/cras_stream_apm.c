@@ -742,9 +742,9 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
               ? false
               : cras_feature_enabled(CrOSLateBootCrasProcessorDedicatedThread),
   };
-  bool cp_effect_init_success = cras_processor_create(
-      &cfg, &apm->webrtc_apm_wrapper_processor, &(apm->cras_processor));
-  if (apm->cras_processor == NULL) {
+  struct CrasProcessorCreateResult cras_processor_create_result =
+      cras_processor_create(&cfg, &apm->webrtc_apm_wrapper_processor);
+  if (cras_processor_create_result.plugin_processor == NULL) {
     // cras_processor_create should never fail.
     // If it ever fails, give up using the APM.
     // TODO: Add UMA about this failure.
@@ -753,10 +753,12 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
     return NULL;
   }
   if (cp_effect == NoiseCancellation) {
-    cras_server_metrics_ap_nc_start_status(cp_effect_init_success);
+    cras_server_metrics_ap_nc_start_status(
+        cras_processor_create_result.effect == NoiseCancellation);
     apm_state.num_nc++;
   }
-  apm->cras_processor_effect = cp_effect_init_success ? cp_effect : NoEffects;
+  apm->cras_processor = cras_processor_create_result.plugin_processor;
+  apm->cras_processor_effect = cras_processor_create_result.effect;
 
   /* TODO(hychao):remove mono_channel once we're ready for multi
    * channel capture process. */

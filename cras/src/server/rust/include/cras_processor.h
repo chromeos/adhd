@@ -27,6 +27,18 @@ enum CrasProcessorEffect {
   Overridden,
 };
 
+struct CrasProcessorCreateResult {
+  /**
+   * The created processor.
+   */
+  struct plugin_processor *plugin_processor;
+  /**
+   * The actual effect used in the processor.
+   * Might be different from what was passed to cras_processor_create.
+   */
+  enum CrasProcessorEffect effect;
+};
+
 struct CrasProcessorConfig {
   size_t channels;
   size_t block_size;
@@ -38,17 +50,15 @@ struct CrasProcessorConfig {
 /**
  * Create a CRAS processor.
  *
+ * Returns the created processor (might be NULL), and the applied effect.
+ *
  * # Safety
  *
  * `config` must point to a CrasProcessorConfig struct.
  * `apm_plugin_processor` must point to a plugin_processor.
- * `ret` is where the constructed plugin_processor would be stored
- * Returns true if the plugin_processor is successfully constructed,
- * returns false otherwise.
  */
-bool cras_processor_create(const struct CrasProcessorConfig *config,
-                           struct plugin_processor *apm_plugin_processor,
-                           struct plugin_processor **ret);
+struct CrasProcessorCreateResult cras_processor_create(const struct CrasProcessorConfig *config,
+                                                       struct plugin_processor *apm_plugin_processor);
 
 /**
  * Returns true if override is enabled in the system config file.

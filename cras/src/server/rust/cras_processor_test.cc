@@ -43,8 +43,9 @@ TEST(CrasProcessor, Negate) {
       .effect = CrasProcessorEffect::Negate,
   };
 
-  plugin_processor* processor = nullptr;
-  cras_processor_create(&cfg, &noop_processor, &processor);
+  auto r = cras_processor_create(&cfg, &noop_processor);
+  plugin_processor* processor = r.plugin_processor;
+  ASSERT_EQ(r.effect, cfg.effect);
   ASSERT_THAT(processor, testing::NotNull());
 
   // Process audio a few times to make catch obvious memory problems.
