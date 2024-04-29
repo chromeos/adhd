@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 use std::path::Path;
+use std::ptr::NonNull;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 
@@ -15,6 +16,7 @@ use audio_processor::processors::CheckShape;
 use audio_processor::processors::ChunkWrapper;
 use audio_processor::processors::DynamicPluginProcessor;
 use audio_processor::processors::NegateAudioProcessor;
+use audio_processor::processors::PluginProcessor;
 use audio_processor::processors::SpeexResampler;
 use audio_processor::processors::ThreadedProcessor;
 use audio_processor::AudioProcessor;
@@ -36,6 +38,7 @@ pub enum CrasProcessorEffect {
 #[repr(C)]
 #[derive(Clone, Debug)]
 pub struct CrasProcessorConfig {
+    // The number of channels after apm_processor.
     channels: usize,
     block_size: usize,
     frame_rate: usize,
@@ -50,6 +53,7 @@ type Pipeline = Vec<Box<dyn AudioProcessor<I = f32, O = f32> + Send>>;
 
 pub struct CrasProcessor {
     id: usize,
+    apm_processor: PluginProcessor,
     check_shape: CheckShape<f32>,
     pipeline: Pipeline,
     _config: CrasProcessorConfig,
@@ -63,6 +67,10 @@ impl AudioProcessor for CrasProcessor {
         &'a mut self,
         mut input: audio_processor::MultiSlice<'a, Self::I>,
     ) -> audio_processor::Result<audio_processor::MultiSlice<'a, Self::O>> {
+        input = self
+            .apm_processor
+            .process(input)
+            .context("apm_processor.process")?;
         input = self.check_shape.process(input)?;
         for processor in self.pipeline.iter_mut() {
             input = processor.process(input)?
@@ -138,7 +146,10 @@ fn create_style_transfer_pipeline(config: &CrasProcessorConfig) -> anyhow::Resul
 }
 
 impl CrasProcessor {
-    fn new(mut config: CrasProcessorConfig) -> anyhow::Result<Self> {
+    fn new(
+        mut config: CrasProcessorConfig,
+        apm_processor: PluginProcessor,
+    ) -> anyhow::Result<Self> {
         let override_config = processor_override::read_system_config().input;
         if override_config.enabled {
             config.effect = CrasProcessorEffect::Overridden;
@@ -190,6 +201,7 @@ impl CrasProcessor {
         log::info!("CrasProcessor #{id} created with: {config:?}");
         Ok(CrasProcessor {
             id,
+            apm_processor,
             check_shape,
             pipeline,
             _config: config,
@@ -286,14 +298,24 @@ impl Drop for CrasProcessor {
 /// # Safety
 ///
 /// `config` must point to a CrasProcessorConfig struct.
+/// `apm_plugin_processor` must point to a plugin_processor.
 /// `ret` is where the constructed plugin_processor would be stored
 /// Returns true if the plugin_processor is successfully constructed,
 /// returns false otherwise.
 #[no_mangle]
 pub unsafe extern "C" fn cras_processor_create(
     config: *const CrasProcessorConfig,
+    apm_plugin_processor: NonNull<plugin_processor>,
     ret: *mut *mut plugin_processor,
 ) -> bool {
+    let apm_processor = match PluginProcessor::from_handle(apm_plugin_processor.as_ptr()) {
+        Ok(processor) => processor,
+        Err(err) => {
+            log::error!("failed PluginProcessor::from_handle {:#}", err);
+            return false;
+        }
+    };
+
     let config = match config.as_ref() {
         Some(config) => config,
         None => {
@@ -303,7 +325,7 @@ pub unsafe extern "C" fn cras_processor_create(
     };
 
     let mut success = true;
-    let processor = match CrasProcessor::new(config.clone()) {
+    let processor = match CrasProcessor::new(config.clone(), apm_processor) {
         Ok(processor) => processor,
         Err(err) => {
             success = false;
@@ -313,13 +335,19 @@ pub unsafe extern "C" fn cras_processor_create(
             );
 
             let config = config.clone();
-            CrasProcessor::new(CrasProcessorConfig {
-                effect: CrasProcessorEffect::NoEffects,
-                channels: config.channels,
-                block_size: config.block_size,
-                frame_rate: config.frame_rate,
-                dedicated_thread: config.dedicated_thread,
-            })
+            CrasProcessor::new(
+                CrasProcessorConfig {
+                    effect: CrasProcessorEffect::NoEffects,
+                    channels: config.channels,
+                    block_size: config.block_size,
+                    frame_rate: config.frame_rate,
+                    dedicated_thread: config.dedicated_thread,
+                },
+                // apm_processor was consumed so create it again.
+                // It should not fail given that we created it successfully once.
+                PluginProcessor::from_handle(apm_plugin_processor.as_ptr())
+                    .expect("PluginProcessor::from_handle failed"),
+            )
             .expect("CrasProcessor::new with CrasProcessorEffect::NoEffects should never fail")
         }
     };

@@ -33,6 +33,9 @@ pub struct PluginProcessor {
     _get_output_frame_rate: PluginProcessorGetOutputFrameRate,
 }
 
+// SAFETY: Assume that the binding is safe to use across different threads.
+unsafe impl Send for PluginProcessor {}
+
 /// Helper to create a [`crate::Error`] for unexpected NULLs.
 fn null_error(desc: &str) -> crate::Error {
     crate::Error::Plugin(PluginError::UnexpectedNull(String::from(desc)))

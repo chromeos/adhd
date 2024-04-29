@@ -72,7 +72,7 @@ struct cras_apm_state {
  *                     |------------------------------------> stream N
  */
 struct cras_apm {
-  // An APM instance from libwebrtc_audio_processing
+  // An APM instance from libwebrtc_audio_processing.
   webrtc_apm apm_ptr;
   // Pointer to the input device this APM is associated with.
   struct cras_iodev* idev;
@@ -102,11 +102,13 @@ struct cras_apm {
   // consecutive frames where symmetric content in render has been
   // observed. Used for falling-back to mono processing.
   int blocks_with_symmetric_content_in_render;
-  // The audio processor pipeline which is run after the APM.
-  // If the APM is created successfully, pp is always non-NULL.
-  struct plugin_processor* pp;
-  // The active effect of plugin_processor pp
-  enum CrasProcessorEffect pp_effect;
+  // The audio processor pipeline which runs various effects including APM.
+  // If the APM is created successfully, cras_processor is always non-NULL.
+  struct plugin_processor* cras_processor;
+  // The active effect of plugin_processor cras_processor.
+  enum CrasProcessorEffect cras_processor_effect;
+  // Processor that wraps webrtc_apm.
+  struct plugin_processor webrtc_apm_wrapper_processor;
   // The time when the apm started.
   struct timespec start_ts;
   struct cras_apm *prev, *next;
@@ -192,6 +194,44 @@ static dictionary* apm_ini = NULL;
  * Should be only updated through update_vad_target().
  */
 static struct cras_stream_apm* cached_vad_target = NULL;
+
+static struct cras_apm* get_apm_wrapper_processor(struct plugin_processor* p) {
+  return (struct cras_apm*)((char*)p - offsetof(struct cras_apm,
+                                                webrtc_apm_wrapper_processor));
+}
+
+static enum status apm_wrapper_processor_run(struct plugin_processor* p,
+                                             const struct multi_slice* input,
+                                             struct multi_slice* output) {
+  struct cras_apm* apm = get_apm_wrapper_processor(p);
+  webrtc_apm_process_stream_f(apm->apm_ptr, input->channels,
+                              apm->fmt.frame_rate, input->data);
+  *output = *input;
+  // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
+  // AEC capture.
+  output->channels = 1;
+  return StatusOk;
+}
+
+static enum status apm_wrapper_processor_destroy(struct plugin_processor* p) {
+  // Do nothing.
+  // Destruction handled by cras_apm, not plugin_processor.
+  return StatusOk;
+}
+
+static enum status apm_wrapper_processor_get_output_frame_rate(
+    struct plugin_processor* p,
+    size_t* output_frame_rate) {
+  struct cras_apm* apm = get_apm_wrapper_processor(p);
+  *output_frame_rate = apm->fmt.frame_rate;
+  return StatusOk;
+}
+
+static const struct plugin_processor_ops apm_wrapper_processor_ops = {
+    .run = apm_wrapper_processor_run,
+    .destroy = apm_wrapper_processor_destroy,
+    .get_output_frame_rate = apm_wrapper_processor_get_output_frame_rate,
+};
 
 /* Mono front center format used to configure the process output end of
  * APM to work around an issue that APM might pick the 1st channel of
@@ -384,8 +424,8 @@ static void apm_destroy(struct cras_apm** apm) {
     return;
   }
 
-  if ((*apm)->pp) {
-    (*apm)->pp->ops->destroy((*apm)->pp);
+  if ((*apm)->cras_processor) {
+    (*apm)->cras_processor->ops->destroy((*apm)->cras_processor);
   }
 
   byte_buffer_destroy(&(*apm)->buffer);
@@ -506,7 +546,7 @@ static CRAS_STREAM_ACTIVE_AP_EFFECT get_active_ap_effects(
     }
   }
 
-  switch (apm->pp_effect) {
+  switch (apm->cras_processor_effect) {
     case NoEffects:
       break;
     case Negate:
@@ -689,6 +729,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   apm->fbuffer = float_buffer_create(frame_length, apm->fmt.num_channels);
   apm->area = cras_audio_area_create(apm->fmt.num_channels);
 
+  apm->webrtc_apm_wrapper_processor.ops = &apm_wrapper_processor_ops;
   struct CrasProcessorConfig cfg = {
       // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
       // AEC capture.
@@ -701,8 +742,9 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
               ? false
               : cras_feature_enabled(CrOSLateBootCrasProcessorDedicatedThread),
   };
-  bool cp_effect_init_success = cras_processor_create(&cfg, &(apm->pp));
-  if (apm->pp == NULL) {
+  bool cp_effect_init_success = cras_processor_create(
+      &cfg, &apm->webrtc_apm_wrapper_processor, &(apm->cras_processor));
+  if (apm->cras_processor == NULL) {
     // cras_processor_create should never fail.
     // If it ever fails, give up using the APM.
     // TODO: Add UMA about this failure.
@@ -714,7 +756,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
     cras_server_metrics_ap_nc_start_status(cp_effect_init_success);
     apm_state.num_nc++;
   }
-  apm->pp_effect = cp_effect_init_success ? cp_effect : NoEffects;
+  apm->cras_processor_effect = cp_effect_init_success ? cp_effect : NoEffects;
 
   /* TODO(hychao):remove mono_channel once we're ready for multi
    * channel capture process. */
@@ -775,7 +817,8 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
 
   active = get_active_apm(actx, stream, idev);
   if (active) {
-    if (active->apm && active->apm->pp_effect == NoiseCancellation) {
+    if (active->apm &&
+        active->apm->cras_processor_effect == NoiseCancellation) {
       struct timespec now, runtime;
       clock_gettime(CLOCK_MONOTONIC_RAW, &now);
       subtract_timespecs(&now, &active->apm->start_ts, &runtime);
@@ -1121,7 +1164,7 @@ int cras_stream_apm_process(struct cras_apm* apm,
   struct cras_audio_ctx* actx = checked_audio_ctx();
 
   unsigned int writable, nframes, nread;
-  int ch, i, j, ret;
+  int ch, i, j;
   size_t num_channels;
   float* const* wp;
   float* const* rp;
@@ -1177,25 +1220,18 @@ int cras_stream_apm_process(struct cras_apm* apm,
     nread = float_buffer_level(apm->fbuffer);
     rp = float_buffer_read_pointer(apm->fbuffer, 0, &nread);
     num_channels = MIN(apm->fmt.num_channels, WEBRTC_CHANNELS_SUPPORTED_MAX);
-    ret = webrtc_apm_process_stream_f(apm->apm_ptr, num_channels,
-                                      apm->fmt.frame_rate, rp);
-    if (ret) {
-      syslog(LOG_ERR, "APM process stream f err");
-      return ret;
-    }
 
     // Process audio with cras_processor.
     struct multi_slice input = {
-        // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
-        // AEC capture.
-        .channels = 1,
+        .channels = num_channels,
         .num_frames = nread,
     };
     struct multi_slice output = {};
     for (int ch = 0; ch < input.channels; ch++) {
       input.data[ch] = rp[ch];
     }
-    enum status st = apm->pp->ops->run(apm->pp, &input, &output);
+    enum status st =
+        apm->cras_processor->ops->run(apm->cras_processor, &input, &output);
     if (st != StatusOk) {
       syslog(LOG_ERR, "cras_processor run failed");
       return -ENOTRECOVERABLE;

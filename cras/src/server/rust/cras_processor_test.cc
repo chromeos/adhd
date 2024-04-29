@@ -9,6 +9,32 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+static enum status noop_processor_run(struct plugin_processor* p,
+                                      const struct multi_slice* input,
+                                      struct multi_slice* output) {
+  *output = *input;
+  return StatusOk;
+}
+
+static enum status noop_processor_destroy(struct plugin_processor* p) {
+  return StatusOk;
+}
+
+static enum status noop_processor_get_output_frame_rate(
+    struct plugin_processor* p,
+    size_t* output_frame_rate) {
+  *output_frame_rate = 0;
+  return StatusOk;
+}
+
+static const struct plugin_processor_ops noop_processor_ops = {
+    .run = noop_processor_run,
+    .destroy = noop_processor_destroy,
+    .get_output_frame_rate = noop_processor_get_output_frame_rate,
+};
+
+static struct plugin_processor noop_processor = {.ops = &noop_processor_ops};
+
 TEST(CrasProcessor, Negate) {
   CrasProcessorConfig cfg = {
       .channels = 1,
@@ -18,7 +44,7 @@ TEST(CrasProcessor, Negate) {
   };
 
   plugin_processor* processor = nullptr;
-  cras_processor_create(&cfg, &processor);
+  cras_processor_create(&cfg, &noop_processor, &processor);
   ASSERT_THAT(processor, testing::NotNull());
 
   // Process audio a few times to make catch obvious memory problems.

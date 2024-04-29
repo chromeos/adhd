@@ -41,11 +41,14 @@ struct CrasProcessorConfig {
  * # Safety
  *
  * `config` must point to a CrasProcessorConfig struct.
+ * `apm_plugin_processor` must point to a plugin_processor.
  * `ret` is where the constructed plugin_processor would be stored
  * Returns true if the plugin_processor is successfully constructed,
  * returns false otherwise.
  */
-bool cras_processor_create(const struct CrasProcessorConfig *config, struct plugin_processor **ret);
+bool cras_processor_create(const struct CrasProcessorConfig *config,
+                           struct plugin_processor *apm_plugin_processor,
+                           struct plugin_processor **ret);
 
 /**
  * Returns true if override is enabled in the system config file.
