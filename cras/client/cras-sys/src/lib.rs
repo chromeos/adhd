@@ -306,7 +306,7 @@ impl From<u32> for CRAS_NODE_TYPE {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct CrasIodevNodeId {
     pub iodev_index: u32,
     pub ionode_index: u32,

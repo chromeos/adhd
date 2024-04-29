@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 audio_streams = "*"
 cras-sys = "*"
-clap = { version = "3.1.10", features = ["derive"] }
+clap = { version = "4.5.4", features = ["derive"] }
 dasp_sample = "0.11"
 dbus = "0.9"
 either = "1.9.0"

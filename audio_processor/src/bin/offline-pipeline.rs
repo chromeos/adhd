@@ -20,7 +20,6 @@ use clap::Parser;
 use serde::Serialize;
 
 #[derive(Parser, Debug)]
-#[clap(global_setting(clap::AppSettings::DeriveDisplayOrder))]
 struct Command {
     /// Path to the plugin library (.so)
     plugin: String,

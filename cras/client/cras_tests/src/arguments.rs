@@ -6,10 +6,10 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use audio_streams::SampleFormat;
-use clap::ArgEnum;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
+use clap::ValueEnum;
 use thiserror::Error as ThisError;
 
 use crate::getter::GetCommand;
@@ -24,7 +24,6 @@ pub enum Error {
 type Result<T> = std::result::Result<T, Error>;
 
 #[derive(PartialEq, Debug, Parser)]
-#[clap(global_setting(clap::AppSettings::DeriveDisplayOrder))]
 pub enum Command {
     /// Capture to a file from CRAS
     Capture(AudioOptions),
@@ -51,7 +50,7 @@ pub enum Command {
     },
 }
 
-#[derive(Debug, PartialEq, Clone, ArgEnum)]
+#[derive(Debug, PartialEq, Clone, ValueEnum)]
 pub enum FileType {
     Raw,
     Wav,
@@ -71,7 +70,7 @@ impl fmt::Display for FileType {
 /// explicitly provided by the user.
 ///
 /// This struct will be passed to `playback()` and `capture()`.
-#[derive(Debug, PartialEq, Clone, ArgEnum)]
+#[derive(Debug, PartialEq, Clone, ValueEnum)]
 pub enum LoopbackType {
     #[clap(name = "pre_dsp")]
     PreDsp,
@@ -92,7 +91,7 @@ pub struct AudioOptions {
     pub num_channels: Option<usize>,
 
     /// Sample format
-    #[clap(short = 'f', long, arg_enum)]
+    #[clap(short = 'f', long, value_enum)]
     pub format: Option<SampleFormatArg>,
 
     /// Audio frame rate (Hz)
@@ -100,11 +99,11 @@ pub struct AudioOptions {
     pub frame_rate: Option<u32>,
 
     /// Capture from loopback device
-    #[clap(long = "loopback", arg_enum)]
+    #[clap(long = "loopback", value_enum)]
     pub loopback_type: Option<LoopbackType>,
 
     /// Type of the file. Defaults to file extension.
-    #[clap(long = "file_type", arg_enum)]
+    #[clap(long = "file_type", value_enum)]
     pub file_type_option: Option<FileType>,
 
     /// Duration of playing/recording action in seconds.
@@ -149,7 +148,7 @@ impl AudioOptions {
     }
 }
 
-#[derive(PartialEq, Debug, Copy, Clone, ArgEnum)]
+#[derive(PartialEq, Debug, Copy, Clone, ValueEnum)]
 pub enum SampleFormatArg {
     #[clap(name = "U8")]
     U8,
@@ -369,7 +368,7 @@ mod tests {
             Command::try_parse_from(["cras_tests", "help"])
                 .unwrap_err()
                 .kind(),
-            clap::ErrorKind::DisplayHelp
+            clap::error::ErrorKind::DisplayHelp
         );
         assert!(Command::try_parse_from([
             "cras_tests",

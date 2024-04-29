@@ -72,7 +72,7 @@ mod tests {
             get_command(&["cras_tests", "get", "help"])
                 .unwrap_err()
                 .kind(),
-            clap::ErrorKind::DisplayHelp
+            clap::error::ErrorKind::DisplayHelp
         );
         assert_eq!(
             get_command(&["cras_tests", "get", "control_introspect"])

@@ -102,7 +102,7 @@ mod tests {
             set_command(&["cras_tests", "set", "help"])
                 .unwrap_err()
                 .kind(),
-            clap::ErrorKind::DisplayHelp
+            clap::error::ErrorKind::DisplayHelp
         );
         assert!(set_command(&["cras_tests", "set", "output_volume"]).is_err());
         assert!(set_command(&["cras_tests", "set", "output_volume", "1a"]).is_err());
