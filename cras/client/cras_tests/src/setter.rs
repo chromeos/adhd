@@ -25,10 +25,10 @@ type Result<T> = std::result::Result<T, Error>;
 #[derive(PartialEq, Debug, clap::Subcommand)]
 pub enum SetCommand {
     /// Set output to the given VOLUME (0 - 100)
-    #[clap(name = "output_volume")]
+    #[command(name = "output_volume")]
     OutputVolume { volume: i32 },
 
-    #[clap(name = "global_remix")]
+    #[command(name = "global_remix")]
     GlobalRemix {
         num_channels: u32,
         /// Float array representing |num_channels| * |num_channels| matrix
@@ -36,16 +36,16 @@ pub enum SetCommand {
     },
 
     /// Sets the display rotation for the given node
-    #[clap(name = "display_rotation")]
+    #[command(name = "display_rotation")]
     DisplayRotation {
         node_id: CrasIodevNodeId,
         rotation: CrasScreenRotation,
     },
 
     /// Enable or disable using Floss as Bluetooth stack
-    #[clap(name = "floss_enabled")]
+    #[command(name = "floss_enabled")]
     FlossEnabled {
-        #[clap(value_parser = bool::from_str, action = clap::ArgAction::Set)]
+        #[arg(value_parser = bool::from_str, action = clap::ArgAction::Set)]
         enabled: bool,
     },
 }

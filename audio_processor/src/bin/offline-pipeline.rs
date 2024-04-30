@@ -31,29 +31,29 @@ struct Command {
 
     /// Time in seconds to sleep between each processing block iteration.
     /// A value of 0 causes the running thread to yield instead of sleeping.
-    #[clap(long = "sleep-sec", value_parser = parse_duration)]
+    #[arg(long = "sleep-sec", value_parser = parse_duration)]
     sleep_duration: Option<Duration>,
 
     /// Symbol name of the function that creates the plugin processor in `plugin`.
-    #[clap(long, default_value = "plugin_processor_create")]
+    #[arg(long, default_value = "plugin_processor_create")]
     plugin_name: String,
 
     /// Block size of the processor, in milliseconds.
-    #[clap(long, default_value = "10")]
+    #[arg(long, default_value = "10")]
     block_size_ms: usize,
 
     /// Block size of the processor, in frames.
     /// Takes precedence over --block-size-ms.
-    #[clap(long)]
+    #[arg(long)]
     block_size_frames: Option<usize>,
 
     /// Also print JSON profile results in stdout.
-    #[clap(long)]
+    #[arg(long)]
     json: bool,
 
     /// The number of output channels.
     /// If not specified, assumes output channels equals to input channels.
-    #[clap(long)]
+    #[arg(long)]
     output_channels: Option<u16>,
 }
 

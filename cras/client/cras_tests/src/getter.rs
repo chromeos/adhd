@@ -18,19 +18,19 @@ type Result<T> = std::result::Result<T, Error>;
 #[derive(PartialEq, Debug, clap::Subcommand)]
 pub enum GetCommand {
     /// Get number of active streams
-    #[clap(name = "num_active_streams")]
+    #[command(name = "num_active_streams")]
     NumActiveStreams,
 
     /// Get default output buffer size
-    #[clap(name = "default_output_buffer_size")]
+    #[command(name = "default_output_buffer_size")]
     DefaultOutputBufferSize,
 
     /// Get current output volume (0 - 100)
-    #[clap(name = "output_volume")]
+    #[command(name = "output_volume")]
     OutputVolume,
 
     /// Get DBus introspect xml for interface org.chromium.cras.Control
-    #[clap(name = "control_introspect")]
+    #[command(name = "control_introspect")]
     ControlIntrospect,
 }
 

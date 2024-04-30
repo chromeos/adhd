@@ -16,7 +16,7 @@ pub(crate) struct CosineCommand {
     /// Path to the second WAVE file
     b: PathBuf,
     /// Delay of b in frames.
-    #[clap(long, default_value = "0")]
+    #[arg(long, default_value = "0")]
     delay: i32,
 }
 

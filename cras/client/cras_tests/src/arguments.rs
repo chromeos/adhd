@@ -72,9 +72,9 @@ impl fmt::Display for FileType {
 /// This struct will be passed to `playback()` and `capture()`.
 #[derive(Debug, PartialEq, Clone, ValueEnum)]
 pub enum LoopbackType {
-    #[clap(name = "pre_dsp")]
+    #[value(name = "pre_dsp")]
     PreDsp,
-    #[clap(name = "post_dsp")]
+    #[value(name = "post_dsp")]
     PostDsp,
 }
 
@@ -83,35 +83,35 @@ pub struct AudioOptions {
     pub file_name: PathBuf,
 
     /// Buffer size in frames
-    #[clap(short = 'b', long = "buffer_size")]
+    #[arg(short = 'b', long = "buffer_size")]
     pub buffer_size: Option<usize>,
 
     /// Number of channels
-    #[clap(short = 'c', long = "channels")]
+    #[arg(short = 'c', long = "channels")]
     pub num_channels: Option<usize>,
 
     /// Sample format
-    #[clap(short = 'f', long, value_enum)]
+    #[arg(short = 'f', long, value_enum)]
     pub format: Option<SampleFormatArg>,
 
     /// Audio frame rate (Hz)
-    #[clap(short = 'r', long = "rate")]
+    #[arg(short = 'r', long = "rate")]
     pub frame_rate: Option<u32>,
 
     /// Capture from loopback device
-    #[clap(long = "loopback", value_enum)]
+    #[arg(long = "loopback", value_enum)]
     pub loopback_type: Option<LoopbackType>,
 
     /// Type of the file. Defaults to file extension.
-    #[clap(long = "file_type", value_enum)]
+    #[arg(long = "file_type", value_enum)]
     pub file_type_option: Option<FileType>,
 
     /// Duration of playing/recording action in seconds.
-    #[clap(short = 'd', long = "duration")]
+    #[arg(short = 'd', long = "duration")]
     pub duration_sec: Option<usize>,
 
     /// Capture effects to enable.
-    #[clap(long = "effects", value_parser = parse_hex_or_decimal)]
+    #[arg(long = "effects", value_parser = parse_hex_or_decimal)]
     pub effects: Option<u32>,
 }
 
@@ -150,16 +150,16 @@ impl AudioOptions {
 
 #[derive(PartialEq, Debug, Copy, Clone, ValueEnum)]
 pub enum SampleFormatArg {
-    #[clap(name = "U8")]
+    #[value(name = "U8")]
     U8,
 
-    #[clap(name = "S16_LE")]
+    #[value(name = "S16_LE")]
     S16LE,
 
-    #[clap(name = "S24_LE")]
+    #[value(name = "S24_LE")]
     S24LE,
 
-    #[clap(name = "S32_LE")]
+    #[value(name = "S32_LE")]
     S32LE,
 }
 
@@ -178,53 +178,53 @@ impl SampleFormatArg {
 #[derive(PartialEq, Debug, Subcommand)]
 pub enum ControlCommand {
     /// Get the system volume (0 - 100)
-    #[clap(name = "get_volume")]
+    #[command(name = "get_volume")]
     GetSystemVolume,
 
     /// Set the system volume to VOLUME (0 - 100)
-    #[clap(name = "set_volume")]
+    #[command(name = "set_volume")]
     SetSystemVolume { volume: u32 },
 
     /// Get the system mute state (true or false)
-    #[clap(name = "get_mute")]
+    #[command(name = "get_mute")]
     GetSystemMute,
 
     /// Set the system mute state to MUTE (true or false)
-    #[clap(name = "set_mute")]
+    #[command(name = "set_mute")]
     SetSystemMute {
-        #[clap(value_parser = bool::from_str, action = clap::ArgAction::Set)]
+        #[arg(value_parser = bool::from_str, action = clap::ArgAction::Set)]
         mute: bool,
     },
 
     /// Print list of output devices
-    #[clap(name = "list_output_devices")]
+    #[command(name = "list_output_devices")]
     ListOutputDevices {
         /// Print as JSON
-        #[clap(long)]
+        #[arg(long)]
         json: bool,
     },
 
     /// Print list of input devices
-    #[clap(name = "list_input_devices")]
+    #[command(name = "list_input_devices")]
     ListInputDevices {
         /// Print as JSON
-        #[clap(long)]
+        #[arg(long)]
         json: bool,
     },
 
     /// Print list of output nodes
-    #[clap(name = "list_output_nodes")]
+    #[command(name = "list_output_nodes")]
     ListOutputNodes,
 
     /// Print list of input nodes
-    #[clap(name = "list_input_nodes")]
+    #[command(name = "list_input_nodes")]
     ListInputNodes,
 
     /// Print stream info, device info
-    #[clap(name = "dump_audio_debug_info")]
+    #[command(name = "dump_audio_debug_info")]
     DumpAudioDebugInfo {
         /// Print as JSON
-        #[clap(long)]
+        #[arg(long)]
         json: bool,
     },
 }

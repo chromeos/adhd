@@ -36,22 +36,22 @@ fn include_guard(path: &str) -> String {
 
 #[derive(Parser)]
 struct Command {
-    #[clap(long)]
+    #[arg(long)]
     output: String,
 
-    #[clap(long)]
+    #[arg(long)]
     assume_output: Option<String>,
 
-    #[clap(long)]
+    #[arg(long)]
     with_src: Vec<String>,
 
-    #[clap(long)]
+    #[arg(long)]
     with_include: Vec<String>,
 
-    #[clap(long)]
+    #[arg(long)]
     with_sys_include: Vec<String>,
 
-    #[clap(long, default_value = "2023")]
+    #[arg(long, default_value = "2023")]
     copyright_year: u32,
 }
 
