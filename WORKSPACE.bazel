@@ -167,8 +167,8 @@ system_cras_rust_repository(name = "system_cras_rust")
 #
 
 RULES_RUST_VERSION, RULES_RUST_SHA256 = (
-    "0.32.0",
-    "1e7114ea2af800c6987ca38daeee13e3ae6e934875b4f7ca24b798857f95431e",
+    "0.42.1",
+    "24b378ed97006f1f7012be498a26f81ddb9901318b88380aee8522fdfbe8b735",
 )
 
 http_archive(
@@ -187,7 +187,7 @@ rules_rust_dependencies()
 rust_register_toolchains(
     edition = "2021",
     versions = [
-        "1.72.1",
+        "1.77.1",
     ],
 )
 
