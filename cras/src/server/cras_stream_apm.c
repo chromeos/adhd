@@ -559,46 +559,27 @@ int left_and_right_channels_are_symmetric(int num_channels,
   return (0 == memcmp(data[0], data[1], frame_length * sizeof(float)));
 }
 
-/*
- * WebRTC APM handles no more than stereo + keyboard mic channels.
- * Ignore keyboard mic feature for now because that requires processing on
- * mixed buffer from two input devices. Based on that we should modify the best
- * channel layout for APM use.
- * Args:
- *    apm_fmt - Pointer to a format struct already filled with the value of
- *        the open device format. Its content may be modified for APM use.
- */
-static void get_best_channels(struct cras_audio_format* apm_fmt) {
-  int ch;
-  int8_t layout[CRAS_CH_MAX];
+// Returns the format that APM should use given a device format.
+static struct cras_audio_format get_best_channels(
+    const struct cras_audio_format* dev_fmt) {
+  struct cras_audio_format apm_fmt = {
+      .format = dev_fmt->format,
+      .frame_rate = dev_fmt->frame_rate,
+  };
 
-  /* Using the format from dev_fmt is dangerous because input device
-   * could have wild configurations like unuse the 1st channel and
-   * connects 2nd channel to the only mic. Data in the first channel
-   * is what APM cares about so always construct a new channel layout
-   * containing subset of original channels that matches either FL, FR,
-   * or FC.
-   * TODO(hychao): extend the logic when we have a stream that wants
-   * to record channels like RR(rear right).
-   */
-  for (ch = 0; ch < CRAS_CH_MAX; ch++) {
-    layout[ch] = -1;
+  for (int ch = 0; ch < CRAS_CH_MAX; ch++) {
+    apm_fmt.channel_layout[ch] = -1;
   }
 
-  apm_fmt->num_channels = 0;
-  if (apm_fmt->channel_layout[CRAS_CH_FL] != -1) {
-    layout[CRAS_CH_FL] = apm_fmt->num_channels++;
-  }
-  if (apm_fmt->channel_layout[CRAS_CH_FR] != -1) {
-    layout[CRAS_CH_FR] = apm_fmt->num_channels++;
-  }
-  if (apm_fmt->channel_layout[CRAS_CH_FC] != -1) {
-    layout[CRAS_CH_FC] = apm_fmt->num_channels++;
+  int apm_valid_channels[] = {CRAS_CH_FL, CRAS_CH_FR, CRAS_CH_FC};
+  for (int i = 0; i < ARRAY_SIZE(apm_valid_channels); i++) {
+    int ch = apm_valid_channels[i];
+    if (dev_fmt->channel_layout[ch] != -1) {
+      apm_fmt.channel_layout[ch] = apm_fmt.num_channels++;
+    }
   }
 
-  for (ch = 0; ch < CRAS_CH_MAX; ch++) {
-    apm_fmt->channel_layout[ch] = layout[ch];
-  }
+  return apm_fmt;
 }
 
 struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
@@ -642,8 +623,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
    * count is larger than stereo, use the standard channel count/layout
    * in APM. */
   apm->dev_fmt = *dev_fmt;
-  apm->fmt = *dev_fmt;
-  get_best_channels(&apm->fmt);
+  apm->fmt = get_best_channels(dev_fmt);
 
   // Reset detection of proper stereo
   apm->only_symmetric_content_in_render = true;
