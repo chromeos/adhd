@@ -15,14 +15,20 @@ def find_build_target(args):
     return args[i + 1]
 
 
-def run(directory, output_file, target):
+def run(directory, output_file, target, aquery_args):
     print('[compdb] Ensuring external/ symlink', file=sys.stderr)
     try:
         os.symlink('bazel-out/../../../external', os.path.join(directory, 'external'))
     except FileExistsError:
         pass
 
-    cmd = ['bazel', 'aquery', f'mnemonic("CppCompile", {target})', '--output=jsonproto']
+    cmd = [
+        'bazel',
+        'aquery',
+        f'mnemonic("CppCompile", {target})',
+        '--output=jsonproto',
+        *aquery_args,
+    ]
     print('[compdb] Running', shlex.join(cmd), file=sys.stderr)
     output = subprocess.check_output(cmd, cwd=directory)
 
@@ -57,6 +63,7 @@ def run(directory, output_file, target):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('target', default='"//..."', nargs='?')
+    parser.add_argument('--aquery-arg', action='append')
     args = parser.parse_args()
 
     directory = os.environ['BUILD_WORKSPACE_DIRECTORY']
@@ -65,6 +72,7 @@ def main():
         directory=directory,
         output_file=os.path.join(directory, 'compile_commands.json'),
         target=f'deps({args.target})',
+        aquery_args=args.aquery_arg or [],
     )
 
 
