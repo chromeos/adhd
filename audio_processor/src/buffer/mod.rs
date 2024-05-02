@@ -256,6 +256,20 @@ impl<'a> MultiSlice<'a, u8> {
     }
 }
 
+impl<'a, T> Index<usize> for MultiSlice<'a, T> {
+    type Output = [T];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.data[index]
+    }
+}
+
+impl<'a, T> IndexMut<usize> for MultiSlice<'a, T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.data[index]
+    }
+}
+
 #[cfg(test)]
 mod slice_tests {
     use crate::MultiBuffer;
@@ -402,5 +416,16 @@ mod slice_tests {
             }
         }
         assert_eq!(buf.to_vecs(), [[1, 0, 0, 4], [5, 0, 0, 8]]);
+    }
+
+    #[test]
+    fn index() {
+        let mut buf = MultiBuffer::from(vec![vec![1, 2], vec![3, 4]]);
+        let mut slice = buf.as_multi_slice();
+
+        assert_eq!(slice[0], [1, 2]);
+        assert_eq!(slice[1], [3, 4]);
+        slice[0][1] = 5;
+        assert_eq!(slice[0], [1, 5]);
     }
 }

@@ -24,3 +24,6 @@ pub use speex::*;
 
 mod thread;
 pub use thread::*;
+
+mod shuffle_channels;
+pub use shuffle_channels::*;
