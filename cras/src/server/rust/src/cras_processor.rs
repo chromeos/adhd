@@ -17,6 +17,7 @@ use audio_processor::processors::ChunkWrapper;
 use audio_processor::processors::DynamicPluginProcessor;
 use audio_processor::processors::NegateAudioProcessor;
 use audio_processor::processors::PluginProcessor;
+use audio_processor::processors::ShuffleChannels;
 use audio_processor::processors::SpeexResampler;
 use audio_processor::processors::ThreadedProcessor;
 use audio_processor::AudioProcessor;
@@ -183,21 +184,45 @@ impl CrasProcessor {
                     config.frame_rate,
                 ));
             }
-            CrasProcessorEffect::NoiseCancellation => {
+            CrasProcessorEffect::NoiseCancellation | CrasProcessorEffect::StyleTransfer => {
+                if config.channels > 1 {
+                    // Run mono noise cancellation.
+                    // Pick just the first channel.
+                    pipeline.add(ShuffleChannels::new(
+                        &[0],
+                        Shape {
+                            channels: config.channels,
+                            frames: config.block_size,
+                        },
+                        config.frame_rate,
+                    ));
+                }
+                // TODO: Change this to an audio format struct when we have it.
+                let mono_config = CrasProcessorConfig {
+                    channels: 1,
+                    ..config
+                };
                 pipeline.extend(
-                    create_noise_cancellation_pipeline(&config)
+                    create_noise_cancellation_pipeline(&mono_config)
                         .context("failed when creating noise cancellation pipeline")?,
                 );
-            }
-            CrasProcessorEffect::StyleTransfer => {
-                pipeline.extend(
-                    create_noise_cancellation_pipeline(&config)
-                        .context("failed when creating noise cancellation pipeline")?,
-                );
-                pipeline.extend(
-                    create_style_transfer_pipeline(&config)
-                        .context("failed when creating style transfer pipeline")?,
-                );
+                if let CrasProcessorEffect::StyleTransfer = config.effect {
+                    pipeline.extend(
+                        create_style_transfer_pipeline(&mono_config)
+                            .context("failed when creating style transfer pipeline")?,
+                    );
+                }
+                if config.channels > 1 {
+                    // Copy to all channels.
+                    pipeline.add(ShuffleChannels::new(
+                        &vec![0; config.channels],
+                        Shape {
+                            channels: config.channels,
+                            frames: config.block_size,
+                        },
+                        config.frame_rate,
+                    ));
+                }
             }
             CrasProcessorEffect::Overridden => {
                 pipeline.extend(

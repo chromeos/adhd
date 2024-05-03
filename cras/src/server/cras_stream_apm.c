@@ -37,7 +37,6 @@
 
 #define AEC_CONFIG_NAME "aec.ini"
 #define APM_CONFIG_NAME "apm.ini"
-#define WEBRTC_CHANNELS_SUPPORTED_MAX 2
 
 // Information of APM.
 struct cras_apm_state {
@@ -207,9 +206,6 @@ static enum status apm_wrapper_processor_run(struct plugin_processor* p,
   webrtc_apm_process_stream_f(apm->apm_ptr, input->channels,
                               apm->fmt.frame_rate, input->data);
   *output = *input;
-  // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
-  // AEC capture.
-  output->channels = 1;
   return StatusOk;
 }
 
@@ -232,25 +228,6 @@ static const struct plugin_processor_ops apm_wrapper_processor_ops = {
     .destroy = apm_wrapper_processor_destroy,
     .get_output_frame_rate = apm_wrapper_processor_get_output_frame_rate,
 };
-
-/* Mono front center format used to configure the process output end of
- * APM to work around an issue that APM might pick the 1st channel of
- * input, process and then writes to all output channels.
- *
- * The exact condition to trigger this:
- * (1) More than one channel in input
- * (2) More than one channel in output
- * (3) multi_channel_capture is false
- *
- * We're not ready to turn on multi_channel_capture so the best option is
- * to address (2). This is an acceptable fix because it makes APM's
- * behavior align with browser APM.
- */
-static struct cras_audio_format mono_channel = {
-    0,  // unused
-    0,  // unused
-    1,  // mono, front center
-    {-1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1}};
 
 static bool stream_apm_should_enable_vad(struct cras_stream_apm* stream_apm) {
   /* There is no stream_apm->effects bit allocated for client VAD
@@ -702,11 +679,8 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   dictionary* aec_ini_use = is_aec_use_case ? aec_ini : NULL;
   dictionary* apm_ini_use = is_aec_use_case ? apm_ini : NULL;
 
-  const size_t num_channels =
-      MIN(apm->fmt.num_channels, WEBRTC_CHANNELS_SUPPORTED_MAX);
-
   apm->apm_ptr = webrtc_apm_create_with_enforced_effects(
-      num_channels, apm->fmt.frame_rate, aec_ini_use, apm_ini_use,
+      apm->fmt.num_channels, apm->fmt.frame_rate, aec_ini_use, apm_ini_use,
       enforce_aec_on, enforce_ns_on, enforce_agc_on);
   if (apm->apm_ptr == NULL) {
     syslog(LOG_ERR,
@@ -728,12 +702,11 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       byte_buffer_create(frame_length * cras_get_format_bytes(&apm->fmt));
   apm->fbuffer = float_buffer_create(frame_length, apm->fmt.num_channels);
   apm->area = cras_audio_area_create(apm->fmt.num_channels);
+  cras_audio_area_config_channels(apm->area, &apm->fmt);
 
   apm->webrtc_apm_wrapper_processor.ops = &apm_wrapper_processor_ops;
   struct CrasProcessorConfig cfg = {
-      // TODO(b/268276912): Removed hard-coded mono once we have multi-channel
-      // AEC capture.
-      .channels = 1,
+      .channels = apm->fmt.num_channels,
       .block_size = frame_length,
       .frame_rate = apm->fmt.frame_rate,
       .effect = cp_effect,
@@ -759,10 +732,6 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   }
   apm->cras_processor = cras_processor_create_result.plugin_processor;
   apm->cras_processor_effect = cras_processor_create_result.effect;
-
-  /* TODO(hychao):remove mono_channel once we're ready for multi
-   * channel capture process. */
-  cras_audio_area_config_channels(apm->area, &mono_channel);
 
   DL_APPEND(stream->apms, apm);
 
@@ -1167,7 +1136,6 @@ int cras_stream_apm_process(struct cras_apm* apm,
 
   unsigned int writable, nframes, nread;
   int ch, i, j;
-  size_t num_channels;
   float* const* wp;
   float* const* rp;
 
@@ -1221,11 +1189,10 @@ int cras_stream_apm_process(struct cras_apm* apm,
       (buf_queued(apm->buffer) == 0)) {
     nread = float_buffer_level(apm->fbuffer);
     rp = float_buffer_read_pointer(apm->fbuffer, 0, &nread);
-    num_channels = MIN(apm->fmt.num_channels, WEBRTC_CHANNELS_SUPPORTED_MAX);
 
     // Process audio with cras_processor.
     struct multi_slice input = {
-        .channels = num_channels,
+        .channels = apm->fmt.num_channels,
         .num_frames = nread,
     };
     struct multi_slice output = {};
@@ -1239,25 +1206,11 @@ int cras_stream_apm_process(struct cras_apm* apm,
       return -ENOTRECOVERABLE;
     }
 
-    /* We configure APM for N-ch input to 1-ch output processing
-     * and that has the side effect that the rest of channels are
-     * filled with the unprocessed content from hardware mic.
-     * Overwrite it with the processed data from first channel to
-     * avoid leaking it later.
-     * TODO(hychao): remove this when we're ready for multi channel
-     * capture process.
-     */
-    CRAS_CHECK(output.channels == 1);
+    CRAS_CHECK(output.channels == apm->fmt.num_channels);
     CRAS_CHECK(output.num_frames == nread);
-    for (ch = 0; ch < apm->fbuffer->num_channels; ch++) {
-      // TODO(aaronyu): audio_processor does not guarantee that the output and
-      // the input don't overlap. It's better to call dsp_util_interleave
-      // on `output.data`, instead of copying data back to `rp`.
-      memcpy(rp[ch], output.data[0], nread * sizeof(float));
-    }
 
-    dsp_util_interleave(rp, buf_write_pointer(apm->buffer),
-                        apm->fbuffer->num_channels, apm->fmt.format, nread);
+    dsp_util_interleave(output.data, buf_write_pointer(apm->buffer),
+                        output.channels, apm->fmt.format, nread);
     buf_increment_write(apm->buffer, nread * cras_get_format_bytes(&apm->fmt));
     float_buffer_reset(apm->fbuffer);
 
