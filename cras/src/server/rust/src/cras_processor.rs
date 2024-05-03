@@ -49,13 +49,21 @@ pub struct CrasProcessorConfig {
     dedicated_thread: bool,
 }
 
-type Pipeline = Vec<Box<dyn AudioProcessor<I = f32, O = f32> + Send>>;
+type ProcessorVec = Vec<Box<dyn AudioProcessor<I = f32, O = f32> + Send>>;
+
+trait Pipeline {
+    fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static);
+}
+
+impl Pipeline for ProcessorVec {
+    fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static) {
+        self.push(Box::new(processor));
+    }
+}
 
 pub struct CrasProcessor {
     id: usize,
-    apm_processor: PluginProcessor,
-    check_shape: CheckShape<f32>,
-    pipeline: Pipeline,
+    pipeline: ProcessorVec,
     config: CrasProcessorConfig,
 }
 
@@ -67,11 +75,6 @@ impl AudioProcessor for CrasProcessor {
         &'a mut self,
         mut input: audio_processor::MultiSlice<'a, Self::I>,
     ) -> audio_processor::Result<audio_processor::MultiSlice<'a, Self::O>> {
-        input = self
-            .apm_processor
-            .process(input)
-            .context("apm_processor.process")?;
-        input = self.check_shape.process(input)?;
         for processor in self.pipeline.iter_mut() {
             input = processor.process(input)?
         }
@@ -88,7 +91,9 @@ impl AudioProcessor for CrasProcessor {
 
 static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-fn create_noise_cancellation_pipeline(config: &CrasProcessorConfig) -> anyhow::Result<Pipeline> {
+fn create_noise_cancellation_pipeline(
+    config: &CrasProcessorConfig,
+) -> anyhow::Result<ProcessorVec> {
     // Check shape is supported.
     if config.channels != 1 {
         bail!("unsupported channel count {}", config.channels);
@@ -118,7 +123,7 @@ fn create_noise_cancellation_pipeline(config: &CrasProcessorConfig) -> anyhow::R
     .load_and_wrap()
 }
 
-fn create_style_transfer_pipeline(config: &CrasProcessorConfig) -> anyhow::Result<Pipeline> {
+fn create_style_transfer_pipeline(config: &CrasProcessorConfig) -> anyhow::Result<ProcessorVec> {
     // Check shape is supported.
     if config.channels != 1 {
         bail!("unsupported channel count {}", config.channels);
@@ -157,52 +162,69 @@ impl CrasProcessor {
         let config = config;
 
         let id = GLOBAL_ID_COUNTER.fetch_add(1, Ordering::AcqRel);
-        let check_shape = CheckShape::new(config.channels, config.block_size, config.frame_rate);
-        let pipeline: Pipeline = match config.effect {
-            CrasProcessorEffect::NoEffects => vec![],
-            CrasProcessorEffect::Negate => vec![Box::new(NegateAudioProcessor::new(
-                config.channels,
-                config.block_size,
-                config.frame_rate,
-            ))],
+
+        let mut pipeline = vec![];
+
+        pipeline.add(apm_processor);
+        pipeline.add(CheckShape::new(
+            config.channels,
+            config.block_size,
+            config.frame_rate,
+        ));
+
+        match config.effect {
+            CrasProcessorEffect::NoEffects => {
+                // Do nothing.
+            }
+            CrasProcessorEffect::Negate => {
+                pipeline.add(NegateAudioProcessor::new(
+                    config.channels,
+                    config.block_size,
+                    config.frame_rate,
+                ));
+            }
             CrasProcessorEffect::NoiseCancellation => {
-                create_noise_cancellation_pipeline(&config)
-                    .context("failed when creating noise cancellation pipeline")?
+                pipeline.extend(
+                    create_noise_cancellation_pipeline(&config)
+                        .context("failed when creating noise cancellation pipeline")?,
+                );
             }
             CrasProcessorEffect::StyleTransfer => {
-                let mut pipeline = Pipeline::new();
-                let nc_pipeline = create_noise_cancellation_pipeline(&config)
-                    .context("failed when creating noise cancellation pipeline")?;
-                pipeline.extend(nc_pipeline);
-                let style_pipeline = create_style_transfer_pipeline(&config)
-                    .context("failed when creating style transfer pipeline")?;
-                pipeline.extend(style_pipeline);
-                pipeline
+                pipeline.extend(
+                    create_noise_cancellation_pipeline(&config)
+                        .context("failed when creating noise cancellation pipeline")?,
+                );
+                pipeline.extend(
+                    create_style_transfer_pipeline(&config)
+                        .context("failed when creating style transfer pipeline")?,
+                );
             }
-            CrasProcessorEffect::Overridden => PluginLoader {
-                path: &override_config.plugin_path,
-                constructor: &override_config.constructor,
-                channels: config.channels,
-                outer_rate: config.frame_rate,
-                inner_rate: match override_config.frame_rate {
-                    0 => config.frame_rate, // Use outer rate if 0.
-                    rate => rate as usize,
-                },
-                outer_block_size: config.block_size,
-                inner_block_size: match override_config.block_size {
-                    0 => config.block_size, // User outer block size if 0.
-                    block_size => block_size as usize,
-                },
-                allow_chunk_wrapper: true,
+            CrasProcessorEffect::Overridden => {
+                pipeline.extend(
+                    PluginLoader {
+                        path: &override_config.plugin_path,
+                        constructor: &override_config.constructor,
+                        channels: config.channels,
+                        outer_rate: config.frame_rate,
+                        inner_rate: match override_config.frame_rate {
+                            0 => config.frame_rate, // Use outer rate if 0.
+                            rate => rate as usize,
+                        },
+                        outer_block_size: config.block_size,
+                        inner_block_size: match override_config.block_size {
+                            0 => config.block_size, // User outer block size if 0.
+                            block_size => block_size as usize,
+                        },
+                        allow_chunk_wrapper: true,
+                    }
+                    .load_and_wrap()?,
+                );
             }
-            .load_and_wrap()?,
         };
 
         log::info!("CrasProcessor #{id} created with: {config:?}");
         Ok(CrasProcessor {
             id,
-            apm_processor,
-            check_shape,
             pipeline,
             config,
         })
@@ -224,7 +246,7 @@ struct PluginLoader<'a> {
 }
 
 impl<'a> PluginLoader<'a> {
-    fn load_and_wrap(self) -> anyhow::Result<Pipeline> {
+    fn load_and_wrap(self) -> anyhow::Result<ProcessorVec> {
         let processor = DynamicPluginProcessor::new(
             self.path,
             self.constructor,
@@ -253,7 +275,7 @@ impl<'a> PluginLoader<'a> {
             Box::new(processor)
         };
 
-        let pipeline: Pipeline = if self.outer_rate == self.inner_rate {
+        let processors = if self.outer_rate == self.inner_rate {
             vec![maybe_wrapped_processor]
         } else {
             vec![
@@ -283,7 +305,7 @@ impl<'a> PluginLoader<'a> {
             ]
         };
 
-        Ok(pipeline)
+        Ok(processors)
     }
 }
 
