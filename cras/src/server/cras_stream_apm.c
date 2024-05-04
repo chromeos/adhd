@@ -714,6 +714,7 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
           cp_effect == NoEffects
               ? false
               : cras_feature_enabled(CrOSLateBootCrasProcessorDedicatedThread),
+      .wav_dump = cras_feature_enabled(CrOSLateBootCrasProcessorWavDump),
   };
   struct CrasProcessorCreateResult cras_processor_create_result =
       cras_processor_create(&cfg, &apm->webrtc_apm_wrapper_processor);

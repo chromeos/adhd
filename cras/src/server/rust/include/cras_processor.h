@@ -45,6 +45,7 @@ struct CrasProcessorConfig {
   size_t frame_rate;
   enum CrasProcessorEffect effect;
   bool dedicated_thread;
+  bool wav_dump;
 };
 
 /**

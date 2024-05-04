@@ -106,3 +106,4 @@ fchown: 1
 process_vm_readv: 1
 eventfd2: 1
 shutdown: 1
+mkdirat: 1

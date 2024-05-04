@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 use std::path::Path;
+use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
@@ -20,9 +21,12 @@ use audio_processor::processors::PluginProcessor;
 use audio_processor::processors::ShuffleChannels;
 use audio_processor::processors::SpeexResampler;
 use audio_processor::processors::ThreadedProcessor;
+use audio_processor::processors::WavSink;
 use audio_processor::AudioProcessor;
 use audio_processor::Shape;
 use cras_dlc::get_dlc_state_cached;
+use hound::WavSpec;
+use hound::WavWriter;
 
 mod processor_override;
 
@@ -48,12 +52,40 @@ pub struct CrasProcessorConfig {
 
     // Run the processor pipeline in a separate, dedicated thread.
     dedicated_thread: bool,
+
+    // Enable processing dumps as WAVE files.
+    wav_dump: bool,
 }
 
 type ProcessorVec = Vec<Box<dyn AudioProcessor<I = f32, O = f32> + Send>>;
 
 trait Pipeline {
     fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static);
+
+    fn add_wav_dump(
+        &mut self,
+        filename: &Path,
+        channels: usize,
+        frame_rate: usize,
+    ) -> anyhow::Result<()> {
+        {
+            self.add(WavSink::new(
+                WavWriter::create(
+                    filename,
+                    WavSpec {
+                        channels: channels.try_into().context("channels.try_into()")?,
+                        sample_rate: frame_rate.try_into().context("frame_rate.try_into()")?,
+                        bits_per_sample: 32,
+                        sample_format: hound::SampleFormat::Float,
+                    },
+                )
+                .context("WavWriter::create")?,
+            ));
+            anyhow::Result::<()>::Ok(())
+        }
+        .context("add_wav_dump")?;
+        Ok(())
+    }
 }
 
 impl Pipeline for ProcessorVec {
@@ -164,7 +196,18 @@ impl CrasProcessor {
 
         let id = GLOBAL_ID_COUNTER.fetch_add(1, Ordering::AcqRel);
 
+        let dump_base = PathBuf::from(format!("/run/cras/debug/cras_processor_{id}"));
+
         let mut pipeline = vec![];
+
+        if config.wav_dump {
+            std::fs::create_dir_all(&dump_base).context("mkdir dump_base")?;
+            pipeline.add_wav_dump(
+                &dump_base.join("input.wav"),
+                config.channels,
+                config.frame_rate,
+            )?;
+        }
 
         pipeline.add(apm_processor);
         pipeline.add(CheckShape::new(
@@ -172,6 +215,14 @@ impl CrasProcessor {
             config.block_size,
             config.frame_rate,
         ));
+
+        if config.wav_dump {
+            pipeline.add_wav_dump(
+                &dump_base.join("post_apm.wav"),
+                config.channels,
+                config.frame_rate,
+            )?;
+        }
 
         match config.effect {
             CrasProcessorEffect::NoEffects => {
@@ -246,6 +297,14 @@ impl CrasProcessor {
                 );
             }
         };
+
+        if config.wav_dump {
+            pipeline.add_wav_dump(
+                &dump_base.join("output.wav"),
+                config.channels,
+                config.frame_rate,
+            )?;
+        }
 
         log::info!("CrasProcessor #{id} created with: {config:?}");
         Ok(CrasProcessor {
@@ -402,6 +461,7 @@ pub unsafe extern "C" fn cras_processor_create(
                     block_size: config.block_size,
                     frame_rate: config.frame_rate,
                     dedicated_thread: config.dedicated_thread,
+                    wav_dump: config.wav_dump,
                 },
                 // apm_processor was consumed so create it again.
                 // It should not fail given that we created it successfully once.

@@ -1,5 +1,5 @@
 {
-  "checksum": "7948eeffb5ce1977d44d005328ca48d53a968fc7c767f56f41c1f207576d6cf4",
+  "checksum": "2f2a27c1424b9f42eae14f2df4a2a35f665f81eb1eff0eb98792b0be758d5257",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -1900,6 +1900,10 @@
             {
               "id": "cras 0.1.1",
               "target": "build_script_build"
+            },
+            {
+              "id": "hound 3.5.0",
+              "target": "hound"
             },
             {
               "id": "libc 0.2.153",

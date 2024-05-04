@@ -111,3 +111,5 @@ sched_getaffinity: 1
 lchown: 1
 eventfd2: 1
 shutdown: 1
+mkdir: 1
+mkdirat: 1

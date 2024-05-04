@@ -306,6 +306,7 @@ dependencies = [
  "cras_dlc",
  "cras_features_backend",
  "cras_s2",
+ "hound",
  "libc",
  "log",
  "protobuf",
