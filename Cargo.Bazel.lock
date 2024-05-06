@@ -1,5 +1,5 @@
 {
-  "checksum": "2f2a27c1424b9f42eae14f2df4a2a35f665f81eb1eff0eb98792b0be758d5257",
+  "checksum": "fdcdf676d9bf2c46b288464c42c31a70f882f1339f47050290cd212d93893218",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2274,6 +2274,14 @@
         ],
         "deps": {
           "common": [
+            {
+              "id": "libc 0.2.153",
+              "target": "libc"
+            },
+            {
+              "id": "log 0.4.20",
+              "target": "log"
+            },
             {
               "id": "once_cell 1.17.0",
               "target": "once_cell"

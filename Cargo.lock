@@ -384,6 +384,8 @@ dependencies = [
 name = "cras_s2"
 version = "0.1.0"
 dependencies = [
+ "libc",
+ "log",
  "once_cell",
  "serde",
  "serde_json",

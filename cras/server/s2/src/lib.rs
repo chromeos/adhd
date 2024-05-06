@@ -16,12 +16,15 @@ struct Input {
     dlc_manager_ready: bool,
     style_transfer_featured_allowed: bool,
     style_transfer_enabled: bool,
+    // cros_config /audio/main ucm-suffix.
+    ucm_suffix: String,
 }
 
 #[derive(Serialize)]
 struct Output {
     ap_nc_allowed: bool,
     style_transfer_enabled: bool,
+    beamforming_supported: bool,
 }
 
 fn resolve(input: &Input) -> Output {
@@ -35,6 +38,7 @@ fn resolve(input: &Input) -> Output {
         // TODO(b/327530996): handle tests: enabled without featured allowed.
         style_transfer_enabled: input.style_transfer_featured_allowed
             || input.style_transfer_enabled,
+        beamforming_supported: input.ucm_suffix == "omniknight.3mic",
     }
 }
 
@@ -53,6 +57,7 @@ impl S2 {
             dlc_manager_ready: false,
             style_transfer_featured_allowed: false,
             style_transfer_enabled: false,
+            ucm_suffix: String::new(),
         };
         let output = resolve(&input);
         Self { input, output }
@@ -85,6 +90,11 @@ impl S2 {
 
     fn set_style_transfer_enabled(&mut self, enabled: bool) {
         self.input.style_transfer_enabled = enabled;
+        self.update();
+    }
+
+    fn set_ucm_suffix(&mut self, ucm_suffix: &str) {
+        self.input.ucm_suffix = ucm_suffix.into();
         self.update();
     }
 
@@ -130,5 +140,17 @@ mod tests {
 
         s.set_style_transfer_featured_allowed(false);
         assert_eq!(s.output.style_transfer_enabled, false);
+    }
+
+    #[test]
+    fn test_beamforming() {
+        let mut s = S2::new();
+        assert!(!s.output.beamforming_supported);
+
+        s.set_ucm_suffix("omniknight.3mic");
+        assert!(s.output.beamforming_supported);
+
+        s.set_ucm_suffix("omniknight");
+        assert!(!s.output.beamforming_supported);
     }
 }

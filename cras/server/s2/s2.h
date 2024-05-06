@@ -32,6 +32,8 @@ void cras_s2_set_style_transfer_enabled(bool enabled);
 
 bool cras_s2_get_style_transfer_enabled(void);
 
+void cras_s2_set_ucm_suffix(const char *ucm_suffix);
+
 char *cras_s2_dump_json(void);
 
 #endif /* CRAS_SERVER_S2_S2_H_ */

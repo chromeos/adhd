@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 use std::ffi::c_char;
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::ops::Deref;
 use std::sync::Mutex;
@@ -53,6 +54,23 @@ pub extern "C" fn cras_s2_set_style_transfer_enabled(enabled: bool) {
 #[no_mangle]
 pub extern "C" fn cras_s2_get_style_transfer_enabled() -> bool {
     state().output.style_transfer_enabled
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn cras_s2_set_ucm_suffix(ucm_suffix: *const libc::c_char) {
+    if ucm_suffix.is_null() {
+        state().set_ucm_suffix("");
+    } else {
+        match CStr::from_ptr(ucm_suffix).to_str() {
+            Ok(str) => {
+                state().set_ucm_suffix(str);
+            }
+            Err(err) => {
+                state().set_ucm_suffix("");
+                log::error!("ucm_suffix is not a valid string: {err}");
+            }
+        }
+    }
 }
 
 #[no_mangle]

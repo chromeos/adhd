@@ -317,6 +317,7 @@ void cras_system_state_deinit() {
 void cras_system_state_set_internal_ucm_suffix(
     const char* internal_ucm_suffix) {
   state.internal_ucm_suffix = internal_ucm_suffix;
+  cras_s2_set_ucm_suffix(internal_ucm_suffix);
 }
 
 void cras_system_set_volume(size_t volume) {
