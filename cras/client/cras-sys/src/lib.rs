@@ -732,8 +732,7 @@ impl fmt::Display for AudioStreamDebugInfo {
         writeln!(f, "  Effects: {:#x}", self.effects)?;
         writeln!(
             f,
-            "  Active AP effects: {:#x} = {}",
-            self.active_ap_effects,
+            "  Active AP effects: {}",
             CRAS_STREAM_ACTIVE_AP_EFFECT::from_bits_truncate(self.active_ap_effects).joined_name()
         )?;
         writeln!(f, "  Frame rate: {}", self.frame_rate)?;
