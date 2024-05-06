@@ -322,7 +322,8 @@ int cras_hfp_ag_start(struct cras_bt_device* device) {
   sco_pcm_supported = is_sco_pcm_supported();
   ag->sco_pcm_used = sco_pcm_supported && is_sco_pcm_used();
 
-  BTLOG(btlog, BT_AUDIO_GATEWAY_START, sco_pcm_supported, ag->sco_pcm_used);
+  BTLOG(btlog, BT_AUDIO_GATEWAY_START,
+        (sco_pcm_supported << 1) | ag->sco_pcm_used, 0);
 
   if (ag->sco_pcm_used) {
     struct cras_iodev *in_aio, *out_aio;
