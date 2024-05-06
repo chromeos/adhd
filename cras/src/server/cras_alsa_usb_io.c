@@ -1710,6 +1710,7 @@ static void configure_ucm_volume_settings(struct alsa_usb_output_node* output,
                                           bool software_volume_needed) {
   struct cras_ionode* node = &output->common.base;
   int number_of_volume_steps = -1;
+  int rc = 0;
 
   node->software_volume_needed = software_volume_needed;
   syslog(LOG_INFO, "Use %s volume for %s with UCM.",
@@ -1721,8 +1722,13 @@ static void configure_ucm_volume_settings(struct alsa_usb_output_node* output,
   CRAS_CHECK(!mixer_name || !software_volume_needed);
 
   node->number_of_volume_steps = NUMBER_OF_VOLUME_STEPS_DEFAULT;
-  ucm_get_playback_number_of_volume_steps_for_dev(aio->common.ucm, node->name,
-                                                  &number_of_volume_steps);
+  rc = ucm_get_playback_number_of_volume_steps_for_dev(
+      aio->common.ucm, node->name, &number_of_volume_steps);
+  if (!rc) {
+    // number_of_volume_steps is used as a denominator to calculate percentage,
+    // so it must be non-zero when set to node.
+    CRAS_CHECK(number_of_volume_steps > 0);
+  }
   // If the developer wants to tune volume steps, must use HW volume.
   CRAS_CHECK((number_of_volume_steps == -1) || !software_volume_needed);
 

@@ -1054,7 +1054,8 @@ TEST(AlsaUcm, GetPlaybackNumberOfVolumeSteps) {
   EXPECT_EQ(10, playback_number_of_volume_steps);
   rc = ucm_get_playback_number_of_volume_steps_for_dev(
       mgr, "Dev2", &playback_number_of_volume_steps);
-  EXPECT_EQ(-EINVAL, rc);
+  EXPECT_EQ(0, rc);
+  EXPECT_EQ(-1, playback_number_of_volume_steps);
 }
 
 TEST(AlsaUcm, GetMainVolumeMixerName) {

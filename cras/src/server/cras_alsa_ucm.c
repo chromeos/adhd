@@ -962,9 +962,6 @@ int ucm_get_playback_number_of_volume_steps_for_dev(
   if (rc) {
     return rc;
   }
-  if (value < 0) {
-    return -EINVAL;
-  }
 
   *playback_number_of_volume_steps = (int32_t)value;
   return 0;
