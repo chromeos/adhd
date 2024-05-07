@@ -889,6 +889,7 @@ bool cras_iodev_support_rtc_proc_on_dsp(const struct cras_iodev* iodev,
 }
 
 enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
+                                                   bool beamforming_supported,
                                                    uint64_t effects) {
   return NoEffects;
 }

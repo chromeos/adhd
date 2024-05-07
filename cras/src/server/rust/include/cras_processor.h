@@ -24,6 +24,7 @@ enum CrasProcessorEffect {
   Negate,
   NoiseCancellation,
   StyleTransfer,
+  Beamforming,
   Overridden,
 };
 

@@ -538,6 +538,10 @@ static CRAS_STREAM_ACTIVE_AP_EFFECT get_active_ap_effects(
 
       effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_STYLE_TRANSFER;
       break;
+    case Beamforming:
+      // Beamforming is a variant of noise cancellation.
+      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_CANCELLATION;
+      effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_BEAMFORMING;
     case Overridden:
       effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN;
       break;
@@ -625,8 +629,11 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       cras_s2_get_ap_nc_allowed()) {
     nc_provided_by_ap = true;
   }
-  enum CrasProcessorEffect cp_effect =
-      cras_processor_get_effect(nc_provided_by_ap, stream->effects);
+  bool beamforming_supported =
+      cras_s2_get_beamforming_supported() && idev->active_node &&
+      idev->active_node->position == NODE_POSITION_INTERNAL;
+  enum CrasProcessorEffect cp_effect = cras_processor_get_effect(
+      nc_provided_by_ap, beamforming_supported, stream->effects);
 
   // TODO(hychao): Remove the check when we enable more effects.
   if (!apm_needed_for_effects(

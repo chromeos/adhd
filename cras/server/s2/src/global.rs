@@ -74,6 +74,11 @@ pub unsafe extern "C" fn cras_s2_set_ucm_suffix(ucm_suffix: *const libc::c_char)
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_get_beamforming_supported() -> bool {
+    state().output.beamforming_supported
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_dump_json() -> *mut c_char {
     let s = serde_json::to_string_pretty(state().deref()).expect("serde_json::to_string_pretty");
     CString::new(s).expect("CString::new").into_raw()

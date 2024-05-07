@@ -37,6 +37,7 @@ pub enum CrasProcessorEffect {
     Negate,
     NoiseCancellation,
     StyleTransfer,
+    Beamforming,
     Overridden,
 }
 
@@ -183,6 +184,26 @@ fn create_style_transfer_pipeline(config: &CrasProcessorConfig) -> anyhow::Resul
     .load_and_wrap()
 }
 
+fn create_beamforming_pipeline(config: &CrasProcessorConfig) -> anyhow::Result<ProcessorVec> {
+    // Check shape is supported.
+    if config.channels != 3 {
+        bail!("unsupported channel count {}", config.channels);
+    }
+
+    PluginLoader {
+        // TODO(aaronyu): Use DLC instead.
+        path: "/usr/local/lib64/libigo_processor.so",
+        constructor: "plugin_processor_create",
+        channels: config.channels,
+        outer_rate: config.frame_rate,
+        inner_rate: 16000,
+        outer_block_size: config.block_size,
+        inner_block_size: 256,
+        allow_chunk_wrapper: true,
+    }
+    .load_and_wrap()
+}
+
 impl CrasProcessor {
     fn new(
         mut config: CrasProcessorConfig,
@@ -274,6 +295,12 @@ impl CrasProcessor {
                         config.frame_rate,
                     ));
                 }
+            }
+            CrasProcessorEffect::Beamforming => {
+                pipeline.extend(
+                    create_beamforming_pipeline(&config)
+                        .context("failed when creating beamforming pipeline")?,
+                );
             }
             CrasProcessorEffect::Overridden => {
                 pipeline.extend(

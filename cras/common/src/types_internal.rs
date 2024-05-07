@@ -18,7 +18,8 @@ bitflags! {
         const NEGATE = 1 << 3;
         const NOISE_CANCELLATION = 1 << 4;
         const STYLE_TRANSFER = 1 << 5;
-        const PROCESSOR_OVERRIDDEN = 1 << 6;
+        const BEAMFORMING = 1 << 6;
+        const PROCESSOR_OVERRIDDEN = 1 << 7;
     }
 }
 
