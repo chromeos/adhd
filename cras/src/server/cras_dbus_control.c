@@ -1519,6 +1519,22 @@ static inline DBusHandlerResult handle_get_number_of_arc_streams(
   return send_int32_reply(conn, message, cras_system_state_num_arc_streams());
 }
 
+static DBusHandlerResult handle_set_spatial_audio_enabled(DBusConnection* conn,
+                                                          DBusMessage* message,
+                                                          void* arg) {
+  int rc;
+  dbus_bool_t enabled;
+
+  rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+  if (rc) {
+    return rc;
+  }
+
+  cras_s2_set_spatial_audio_enabled(enabled);
+
+  return send_empty_reply(conn, message);
+}
+
 // Handle incoming messages.
 static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                                 DBusMessage* message,
@@ -1752,6 +1768,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetNumberOfArcStreams")) {
     return handle_get_number_of_arc_streams(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "SetSpatialAudio")) {
+    return handle_set_spatial_audio_enabled(conn, message, arg);
   }
 
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
