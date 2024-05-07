@@ -446,6 +446,7 @@ static int get_buffer(struct cras_iodev* iodev,
                                 &aio->common.mmap_buf, &aio->common.mmap_offset,
                                 &nframes);
   if (rc < 0) {
+    aio->common.mmap_buf = NULL;
     return rc;
   }
   iodev->area->frames = nframes;
@@ -483,7 +484,7 @@ static int put_buffer(struct cras_iodev* iodev, unsigned nwritten) {
       return -EINVAL;
     }
     memcpy(aio->common.mmap_buf, aio->common.sample_buf,
-           nwritten * format_bytes);
+           (size_t)nwritten * (size_t)format_bytes);
     unsigned int max_offset = cras_iodev_max_stream_offset(iodev);
     if (max_offset) {
       memmove(aio->common.sample_buf,
