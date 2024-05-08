@@ -385,6 +385,13 @@
       <arg name="enabled" type="b" direction="in"/>
     </method>
 
+    <method name="IsStyleTransferSupported">
+      <tp:docstring>
+        Tells whether the system can potentially support style transfer.
+      </tp:docstring>
+      <arg name="supported" type="b" direction="out"/>
+    </method>
+
     <method name="SetBypassBlockNoiseCancellation">
       <arg name="bypass" type="b" direction="in"/>
     </method>

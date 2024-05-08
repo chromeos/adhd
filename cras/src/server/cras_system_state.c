@@ -551,6 +551,10 @@ bool cras_system_get_style_transfer_enabled() {
   return cras_s2_get_style_transfer_enabled();
 }
 
+bool cras_system_get_style_transfer_supported() {
+  return cras_s2_get_style_transfer_supported();
+}
+
 bool cras_system_get_dsp_noise_cancellation_supported() {
   return !!state.exp_state->dsp_noise_cancellation_supported;
 }

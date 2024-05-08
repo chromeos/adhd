@@ -185,6 +185,9 @@ void cras_system_set_style_transfer_enabled(bool enabled);
 // Gets the flag of Style Transfer.
 bool cras_system_get_style_transfer_enabled();
 
+// Returns if style transfer is supported.
+bool cras_system_get_style_transfer_supported();
+
 // Returns if Noise Cancellation is supported by DSP.
 bool cras_system_get_dsp_noise_cancellation_supported();
 

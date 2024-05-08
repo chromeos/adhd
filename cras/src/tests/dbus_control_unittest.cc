@@ -198,6 +198,9 @@ bool cras_system_get_noise_cancellation_supported() {
 void cras_system_set_style_transfer_enabled(bool enable) {
   return;
 }
+bool cras_system_get_style_transfer_supported() {
+  return false;
+}
 void cras_system_set_bypass_block_noise_cancellation(bool bypass) {
   return;
 }

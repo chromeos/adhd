@@ -1122,6 +1122,14 @@ static DBusHandlerResult handle_is_noise_cancellation_supported(
   return send_bool_reply(conn, message, true);
 }
 
+static DBusHandlerResult handle_is_style_transfer_supported(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  return send_bool_reply(conn, message,
+                         cras_system_get_style_transfer_supported());
+}
+
 static DBusHandlerResult handle_set_bypass_block_noise_cancellation(
     DBusConnection* conn,
     DBusMessage* message,
@@ -1615,6 +1623,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "IsNoiseCancellationSupported")) {
     return handle_is_noise_cancellation_supported(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "IsStyleTransferSupported")) {
+    return handle_is_style_transfer_supported(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetStyleTransferEnabled")) {
     return handle_set_style_transfer_enabled(conn, message, arg);
