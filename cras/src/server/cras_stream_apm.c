@@ -111,6 +111,9 @@ struct cras_apm {
   // The time when the apm started.
   struct timespec start_ts;
   struct cras_apm *prev, *next;
+  // Indicate if AEC dump is active on this APM. If this APM is
+  // stopped while AEC dump is active, the dump will be stopped.
+  bool aec_dump_active;
 };
 
 /*
@@ -123,7 +126,7 @@ struct cras_apm {
  * Access with cautious from audio thread.
  */
 struct cras_stream_apm {
-  // The effecets bit map of APM.
+  // The effects bit map of APM.
   uint64_t effects;
   // List of APMs for stream processing. It is a list because
   // multiple input devices could be configured by user.
@@ -132,6 +135,13 @@ struct cras_stream_apm {
   // used as echo ref for this apm. When set to NULL it means to
   // follow what the default_rmod provides as echo ref.
   struct cras_iodev* echo_ref;
+  // Indicate if AEC dump is running or not. AEC dump can be
+  // started and stopped via cras_stream_apm_set_aec_dump.
+  bool aec_dump_enabled;
+  // fd to the AEC dump file if it is running.
+  int aec_dump_fd;
+  // Reference to the APM with AEC dump active.
+  struct cras_apm* aec_dump_active_apm;
 };
 
 static struct actx_apm {
@@ -433,6 +443,64 @@ static inline bool apm_needed_for_effects(uint64_t effects,
   return false;
 }
 
+// Start AEC dump for the APM. Caller must ensure that the stream contains the
+// APM.
+void possibly_start_apm_aec_dump(struct cras_stream_apm* stream,
+                                 struct cras_apm* apm) {
+  if (!stream->aec_dump_enabled) {
+    return;
+  }
+  if (stream->aec_dump_active_apm) {
+    return;
+  }
+
+  // Create or append to the dump file fd.
+  //
+  // aecdump format is appendable. It consists of events in the
+  // third_party/webrtc/modules/audio_processing/debug.proto file.
+  //
+  // Example of aecdump file:
+  //  [CONFIG] [INIT] [REVERSE_STREAM] [STREAM] [REVERSE_STREAM] [STREAM] ...
+  //
+  // unpack_aecdump read through the events. It will create a new set of wave
+  // files on INIT event, and append REVERSE_STREAM and STREAM data to them.
+  //
+  // Appended aecdump content will be in different wave files due to the INIT
+  // event. The frame counter will be continued from the previous aecdump
+  // instead of starting from 0, but the data will be correct.
+  FILE* handle = fdopen(dup(stream->aec_dump_fd), "w");
+  if (handle == NULL) {
+    syslog(LOG_WARNING, "Create dump handle failed, errno %d", errno);
+    return;
+  }
+
+  // webrtc apm will own the FILE handle and close it.
+  int rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, 1, handle);
+  if (rc) {
+    syslog(LOG_WARNING, "Start apm aec dump failed, rc %d", rc);
+  }
+
+  apm->aec_dump_active = true;
+  stream->aec_dump_active_apm = apm;
+}
+
+// Stop AEC dump for the APM. Caller must ensure that the stream contains the
+// APM.
+void possibly_stop_apm_aec_dump(struct cras_stream_apm* stream,
+                                struct cras_apm* apm) {
+  if (!apm->aec_dump_active) {
+    return;
+  }
+
+  int rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, 0, NULL);
+  if (rc) {
+    syslog(LOG_WARNING, "Stop apm aec dump failed, rc %d", rc);
+  }
+
+  apm->aec_dump_active = false;
+  stream->aec_dump_active_apm = NULL;
+}
+
 struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
   if (!apm_needed_for_effects(
           effects,
@@ -456,6 +524,9 @@ struct cras_stream_apm* cras_stream_apm_create(uint64_t effects) {
   stream->effects = effects;
   stream->apms = NULL;
   stream->echo_ref = NULL;
+  stream->aec_dump_enabled = false;
+  stream->aec_dump_fd = -1;
+  stream->aec_dump_active_apm = NULL;
 
   return stream;
 }
@@ -558,6 +629,9 @@ void cras_stream_apm_remove(struct cras_stream_apm* stream,
   DL_FOREACH (stream->apms, apm) {
     if (apm->idev == idev) {
       DL_DELETE(stream->apms, apm);
+      if (stream->aec_dump_active_apm == apm) {
+        stream->aec_dump_active_apm = NULL;
+      }
       apm_destroy(&apm);
     }
   }
@@ -781,6 +855,11 @@ void cras_stream_apm_start(struct cras_stream_apm* stream,
   cras_apm_reverse_state_update();
   update_supported_dsp_effects_activation(actx);
   reconfigure_apm_vad(actx);
+
+  // If AEC dump is running, start AEC dump for this new APM.
+  if (stream->aec_dump_enabled) {
+    possibly_start_apm_aec_dump(stream, apm);
+  }
 }
 
 void cras_stream_apm_stop(struct cras_stream_apm* stream,
@@ -803,6 +882,11 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
       cras_server_metrics_ap_nc_runtime(runtime.tv_sec);
       apm_state.num_nc--;
       apm_state.last_nc_closed = now;
+    }
+
+    // If AEC dump is active on this APM, stop it.
+    if (active->apm->aec_dump_active) {
+      possibly_stop_apm_aec_dump(stream, active->apm);
     }
 
     DL_DELETE(actx->apm->active_apms, active);
@@ -834,6 +918,10 @@ int cras_stream_apm_destroy(struct cras_stream_apm* stream) {
 
   // Unlink any linked echo ref.
   cras_apm_reverse_link_echo_ref(stream, NULL);
+
+  if (stream->aec_dump_enabled) {
+    close(stream->aec_dump_fd);
+  }
 
   DL_FOREACH (stream->apms, apm) {
     DL_DELETE(stream->apms, apm);
@@ -1270,9 +1358,6 @@ void cras_stream_apm_set_aec_dump(struct cras_stream_apm* stream,
                                   int start,
                                   int fd) {
   struct cras_apm* apm;
-  char file_name[256];
-  int rc;
-  FILE* handle;
 
   DL_SEARCH_SCALAR(stream->apms, apm, idev, idev);
   if (apm == NULL) {
@@ -1280,21 +1365,34 @@ void cras_stream_apm_set_aec_dump(struct cras_stream_apm* stream,
   }
 
   if (start) {
-    handle = fdopen(fd, "w");
-    if (handle == NULL) {
-      syslog(LOG_WARNING, "Create dump handle fail, errno %d", errno);
+    if (stream->aec_dump_enabled) {
+      // If AEC dump is already running, keep it running. If the new fd is
+      // different, close the previous one.
+      //
+      // If there is an APM with active AEC dump, possibly_start_apm_aec_dump
+      // will fail (do nothing). New APM created after that will use the new fd.
+      syslog(LOG_WARNING,
+             "got aec dump start request, but it is already running");
+      if (fd != stream->aec_dump_fd) {
+        close(stream->aec_dump_fd);
+      }
+    }
+    stream->aec_dump_enabled = true;
+    stream->aec_dump_fd = fd;
+    possibly_start_apm_aec_dump(stream, apm);
+  } else {
+    if (!stream->aec_dump_enabled) {
+      syslog(LOG_WARNING, "got aec dump stop request, but it is not running");
       return;
     }
-    // webrtc apm will own the FILE handle and close it.
-    rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, start, handle);
-    if (rc) {
-      syslog(LOG_WARNING, "Fail to dump debug file %s, rc %d", file_name, rc);
+
+    // Stop the AEC dump on the APM with active dump.
+    if (stream->aec_dump_active_apm) {
+      possibly_stop_apm_aec_dump(stream, stream->aec_dump_active_apm);
     }
-  } else {
-    rc = webrtc_apm_aec_dump(apm->apm_ptr, &apm->work_queue, 0, NULL);
-    if (rc) {
-      syslog(LOG_WARNING, "Failed to stop apm debug, rc %d", rc);
-    }
+
+    stream->aec_dump_enabled = false;
+    close(stream->aec_dump_fd);
   }
 }
 
