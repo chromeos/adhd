@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <time.h>
 
 #include "cras_timespec.h"
