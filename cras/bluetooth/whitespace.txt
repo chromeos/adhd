@@ -1,0 +1,13 @@
+modify this file to opt into bluetooth_floss_cq.star for CLs that
+don't change files in this directory otherwise
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
