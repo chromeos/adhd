@@ -29,19 +29,21 @@ struct Output {
 }
 
 fn resolve(input: &Input) -> Output {
+    let beamforming_supported = input.ucm_suffix == "omniknight.3mic";
     Output {
         ap_nc_allowed: input.ap_nc_featured_allowed
             || input.ap_nc_segmentation_allowed
             || input.ap_nc_feature_tier_allowed,
         style_transfer_supported: input.style_transfer_featured_allowed
-            && input.ap_nc_segmentation_allowed,
+            && input.ap_nc_segmentation_allowed
+            && !beamforming_supported,
         // It's 'or' here because before the toggle of StyleTransfer is landed, users
         // should be able to control the feature only by the feature flag and there
         // would be only tests writing its system state currently.
         // TODO(b/327530996): handle tests: enabled without featured allowed.
         style_transfer_enabled: input.style_transfer_featured_allowed
             || input.style_transfer_enabled,
-        beamforming_supported: input.ucm_suffix == "omniknight.3mic",
+        beamforming_supported,
     }
 }
 
@@ -162,12 +164,17 @@ mod tests {
     #[test]
     fn test_beamforming() {
         let mut s = S2::new();
+        s.set_ap_nc_segmentation_allowed(true);
+        s.set_style_transfer_featured_allowed(true);
         assert!(!s.output.beamforming_supported);
+        assert!(s.output.style_transfer_supported);
 
         s.set_ucm_suffix("omniknight.3mic");
         assert!(s.output.beamforming_supported);
+        assert!(!s.output.style_transfer_supported);
 
         s.set_ucm_suffix("omniknight");
         assert!(!s.output.beamforming_supported);
+        assert!(s.output.style_transfer_supported);
     }
 }
