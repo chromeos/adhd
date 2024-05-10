@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 use std::ffi::c_char;
-use std::ffi::CStr;
 use std::ffi::CString;
 use std::ops::Deref;
 use std::sync::Mutex;
@@ -62,18 +61,14 @@ pub extern "C" fn cras_s2_get_style_transfer_enabled() -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn cras_s2_set_ucm_suffix(ucm_suffix: *const libc::c_char) {
-    if ucm_suffix.is_null() {
-        state().set_ucm_suffix("");
-    } else {
-        match CStr::from_ptr(ucm_suffix).to_str() {
-            Ok(str) => {
-                state().set_ucm_suffix(str);
-            }
-            Err(err) => {
-                state().set_ucm_suffix("");
-                log::error!("ucm_suffix is not a valid string: {err}");
-            }
+pub extern "C" fn cras_s2_load_cras_config_dir() {
+    match std::fs::read_to_string("/run/chromeos-config/v1/audio/main/cras-config-dir") {
+        Ok(str) => {
+            state().set_cras_config_dir(&str);
+        }
+        Err(err) => {
+            state().set_cras_config_dir("");
+            log::info!("Failed to read cras-config-dir: {err}");
         }
     }
 }

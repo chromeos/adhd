@@ -18,6 +18,7 @@ exec minijail0 -u cras -g cras -G --uts -v -l \
         -k '/run/imageloader,/run/imageloader,none,MS_BIND|MS_REC' \
         -b /run/libsegmentation \
         -b /run/udev \
+        -b /run/chromeos-config/v1 \
         -b /dev \
         -b /dev/shm,,1 \
         -k proc,/proc,proc \

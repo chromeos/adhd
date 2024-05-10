@@ -16,8 +16,8 @@ struct Input {
     dlc_manager_ready: bool,
     style_transfer_featured_allowed: bool,
     style_transfer_enabled: bool,
-    // cros_config /audio/main ucm-suffix.
-    ucm_suffix: String,
+    // cros_config /audio/main cras-config-dir.
+    cras_config_dir: String,
 }
 
 #[derive(Serialize)]
@@ -29,7 +29,8 @@ struct Output {
 }
 
 fn resolve(input: &Input) -> Output {
-    let beamforming_supported = input.ucm_suffix == "omniknight.3mic";
+    // TODO(b/339785214): Decide this based on config file content.
+    let beamforming_supported = input.cras_config_dir == "omniknight.3mic";
     Output {
         ap_nc_allowed: input.ap_nc_featured_allowed
             || input.ap_nc_segmentation_allowed
@@ -62,7 +63,7 @@ impl S2 {
             dlc_manager_ready: false,
             style_transfer_featured_allowed: false,
             style_transfer_enabled: false,
-            ucm_suffix: String::new(),
+            cras_config_dir: String::new(),
         };
         let output = resolve(&input);
         Self { input, output }
@@ -98,8 +99,8 @@ impl S2 {
         self.update();
     }
 
-    fn set_ucm_suffix(&mut self, ucm_suffix: &str) {
-        self.input.ucm_suffix = ucm_suffix.into();
+    fn set_cras_config_dir(&mut self, cras_config_dir: &str) {
+        self.input.cras_config_dir = cras_config_dir.into();
         self.update();
     }
 
@@ -169,11 +170,11 @@ mod tests {
         assert!(!s.output.beamforming_supported);
         assert!(s.output.style_transfer_supported);
 
-        s.set_ucm_suffix("omniknight.3mic");
+        s.set_cras_config_dir("omniknight.3mic");
         assert!(s.output.beamforming_supported);
         assert!(!s.output.style_transfer_supported);
 
-        s.set_ucm_suffix("omniknight");
+        s.set_cras_config_dir("omniknight");
         assert!(!s.output.beamforming_supported);
         assert!(s.output.style_transfer_supported);
     }

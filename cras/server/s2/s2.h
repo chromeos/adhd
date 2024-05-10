@@ -34,7 +34,7 @@ void cras_s2_set_style_transfer_enabled(bool enabled);
 
 bool cras_s2_get_style_transfer_enabled(void);
 
-void cras_s2_set_ucm_suffix(const char *ucm_suffix);
+void cras_s2_load_cras_config_dir(void);
 
 bool cras_s2_get_beamforming_supported(void);
 

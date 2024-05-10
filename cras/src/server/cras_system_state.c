@@ -2,6 +2,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 #include "cras/src/server/cras_system_state.h"
 
 #include <errno.h>
@@ -209,6 +210,7 @@ void cras_system_state_init(const char* device_config_dir,
     syslog(LOG_ERR, "Fatal: no memory to create board config");
     exit(-ENOMEM);
   }
+  cras_s2_load_cras_config_dir();
 
   // Initial system state.
   exp_state->state_version = CRAS_SERVER_STATE_VERSION;
@@ -317,7 +319,6 @@ void cras_system_state_deinit() {
 void cras_system_state_set_internal_ucm_suffix(
     const char* internal_ucm_suffix) {
   state.internal_ucm_suffix = internal_ucm_suffix;
-  cras_s2_set_ucm_suffix(internal_ucm_suffix);
 }
 
 void cras_system_set_volume(size_t volume) {
