@@ -577,56 +577,6 @@
       "args": [
         "-ah",
         "oss-fuzz-setup/",
-        "oss-fuzz-memory/"
-      ],
-      "id": "oss-fuzz-memory:0",
-      "waitFor": [
-        "oss-fuzz-setup:3"
-      ],
-      "entrypoint": "rsync"
-    },
-    {
-      "name": "gcr.io/cloud-builders/docker",
-      "args": [
-        "oss-fuzz/infra/helper.py",
-        "build_fuzzers",
-        "--sanitizer",
-        "memory",
-        "--engine",
-        "libfuzzer",
-        "cras",
-        "/workspace/oss-fuzz-memory/adhd"
-      ],
-      "dir": "oss-fuzz-memory",
-      "id": "oss-fuzz-memory:1",
-      "waitFor": [
-        "oss-fuzz-memory:0"
-      ],
-      "entrypoint": "python3"
-    },
-    {
-      "name": "gcr.io/cloud-builders/docker",
-      "args": [
-        "oss-fuzz/infra/helper.py",
-        "check_build",
-        "--sanitizer",
-        "memory",
-        "--engine",
-        "libfuzzer",
-        "cras"
-      ],
-      "dir": "oss-fuzz-memory",
-      "id": "oss-fuzz-memory:2",
-      "waitFor": [
-        "oss-fuzz-memory:1"
-      ],
-      "entrypoint": "python3"
-    },
-    {
-      "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
-      "args": [
-        "-ah",
-        "oss-fuzz-setup/",
         "oss-fuzz-undefined/"
       ],
       "id": "oss-fuzz-undefined:0",
