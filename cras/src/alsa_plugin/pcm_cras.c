@@ -20,6 +20,10 @@
 #include "cras_types.h"
 #include "cras_util.h"
 
+#define CH_TO_ALSA(ch) ((ch) + (3))
+#define CH_TO_CRAS(ch) ((ch) - (3))
+#define ALSA_CH_VALID(ch) ((ch >= SND_CHMAP_FL) && (ch <= SND_CHMAP_FRC))
+
 // Holds configuration for the alsa plugin.
 struct snd_pcm_cras {
   // ALSA ioplug object.
@@ -50,6 +54,10 @@ struct snd_pcm_cras {
   struct timespec capture_sample_time;
   // The time when playback_sample_index was captured.
   struct timespec playback_sample_time;
+  // The channel layout.
+  int8_t channel_layout[CRAS_CH_MAX];
+  // Whether the channel layout is set.
+  bool has_channel_layout;
 };
 
 // Frees all resources allocated during use.
@@ -249,6 +257,15 @@ static int snd_pcm_cras_start(snd_pcm_ioplug_t* io) {
     return -ENOMEM;
   }
 
+  if (pcm_cras->has_channel_layout) {
+    rc = cras_audio_format_set_channel_layout(audio_format,
+                                              pcm_cras->channel_layout);
+    if (rc < 0) {
+      fprintf(stderr, "Failed to set channel layout\n");
+      return rc;
+    }
+  }
+
   params = cras_client_unified_params_create(
       pcm_cras->direction, io->period_size, 0, 0, io, pcm_cras_process_cb,
       pcm_cras_error_cb, audio_format);
@@ -279,6 +296,55 @@ error_out:
   return rc;
 }
 
+static int snd_pcm_cras_set_chmap(snd_pcm_ioplug_t* io,
+                                  const snd_pcm_chmap_t* map) {
+  struct snd_pcm_cras* pcm_cras = io->private_data;
+
+  pcm_cras->channels = map->channels;
+  for (int i = 0; i < CRAS_CH_MAX; i++) {
+    pcm_cras->channel_layout[i] = -1;
+  }
+  for (int i = 0; i < map->channels; i++) {
+    if (!ALSA_CH_VALID(map->pos[i])) {
+      continue;
+    }
+    pcm_cras->channel_layout[CH_TO_CRAS(map->pos[i])] = i;
+  }
+  pcm_cras->has_channel_layout = true;
+  return 0;
+}
+
+static snd_pcm_chmap_t* snd_pcm_cras_get_chmap(snd_pcm_ioplug_t* io) {
+  struct snd_pcm_cras* pcm_cras = io->private_data;
+
+  // The caller is responsible to free this
+  snd_pcm_chmap_t* map = (snd_pcm_chmap_t*)calloc(1, io->channels);
+  if (!map) {
+    fprintf(stderr, "Failed to calloc snd_pcm_chmap_t");
+    return NULL;
+  }
+
+  map->channels = io->channels;
+
+  // If the layout is not set, return the default layout
+  if (!pcm_cras->has_channel_layout) {
+    for (int i = 0; i < map->channels; i++) {
+      map->pos[i] = CH_TO_ALSA(i);
+    }
+  } else {
+    for (int i = 0; i < map->channels; i++) {
+      map->pos[i] = SND_CHMAP_NA;
+    }
+    for (int i = 0; i < CRAS_CH_MAX; i++) {
+      if (pcm_cras->channel_layout[i] >= 0 &&
+          pcm_cras->channel_layout[i] < map->channels) {
+        map->pos[pcm_cras->channel_layout[i]] = CH_TO_ALSA(i);
+      }
+    }
+  }
+  return map;
+}
+
 static snd_pcm_ioplug_callback_t cras_pcm_callback = {
     .close = snd_pcm_cras_close,
     .start = snd_pcm_cras_start,
@@ -286,6 +352,8 @@ static snd_pcm_ioplug_callback_t cras_pcm_callback = {
     .pointer = snd_pcm_cras_pointer,
     .prepare = snd_pcm_cras_prepare,
     .poll_revents = snd_pcm_cras_poll_revents,
+    .set_chmap = snd_pcm_cras_set_chmap,
+    .get_chmap = snd_pcm_cras_get_chmap,
 };
 
 /* Set constraints for hw_params.  This lists the handled formats, sample rates,
