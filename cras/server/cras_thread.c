@@ -14,18 +14,34 @@
 static thread_local bool main_ctx_allowed = false;
 static thread_local bool audio_ctx_allowed = false;
 
+static struct cras_main_ctx mctx = {};
+
 struct cras_main_ctx* checked_main_ctx() {
   CRAS_CHECK(main_ctx_allowed);
 
-  static struct cras_main_ctx mctx = {};
   return &mctx;
 }
+
+struct cras_main_ctx* get_main_ctx_or_null() {
+  if (main_ctx_allowed) {
+    return &mctx;
+  }
+  return NULL;
+}
+
+static struct cras_audio_ctx actx = {};
 
 struct cras_audio_ctx* checked_audio_ctx() {
   CRAS_CHECK(audio_ctx_allowed);
 
-  static struct cras_audio_ctx actx = {};
   return &actx;
+}
+
+struct cras_audio_ctx* get_audio_ctx_or_null() {
+  if (audio_ctx_allowed) {
+    return &actx;
+  }
+  return NULL;
 }
 
 __attribute__((constructor)) static void init() {

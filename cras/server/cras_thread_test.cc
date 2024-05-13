@@ -9,13 +9,18 @@
 // be one the main thread.
 TEST(CrasThread, Checks) {
   // Both contexts are allowed on the main thread.
+  EXPECT_TRUE(get_main_ctx_or_null());
+  EXPECT_TRUE(get_audio_ctx_or_null());
   checked_main_ctx()->test_num = 1;
   checked_audio_ctx()->test_num = 2;
 
   {
     pthread_t child_tid = {};
     auto audio_thread = [](void* data) -> void* {
+      // main_ctx disallowed in the audio thread.
+      EXPECT_FALSE(get_main_ctx_or_null());
       // audio_ctx allowed in the audio thread.
+      EXPECT_TRUE(get_audio_ctx_or_null());
       EXPECT_EQ(checked_audio_ctx()->test_num, 2);
       return nullptr;
     };
@@ -24,8 +29,10 @@ TEST(CrasThread, Checks) {
         0);
     EXPECT_NE(pthread_self(), child_tid);
     // main_ctx allowed after creating the audio thread.
+    EXPECT_TRUE(get_main_ctx_or_null());
     EXPECT_EQ(checked_main_ctx()->test_num, 1);
     // audio_ctx not allowed after creating the audio thread.
+    EXPECT_FALSE(get_audio_ctx_or_null());
     EXPECT_EXIT(checked_audio_ctx(), testing::KilledBySignal(SIGABRT),
                 "audio_ctx_allowed");
     pthread_join(child_tid, nullptr);

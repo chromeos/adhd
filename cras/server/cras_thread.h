@@ -30,6 +30,13 @@ struct cras_audio_ctx {
 // Otherwise aborts (SIGABRT) the program.
 struct cras_main_ctx* checked_main_ctx();
 
+// Like checked_main_ctx() but returns NULL instead of SIGABRT-ing when
+// called from the wrong thread.
+//
+// Use this instead of checked_main_ctx() only when you need to workaround
+// unexpected callers gracefully.
+struct cras_main_ctx* get_main_ctx_or_null();
+
 // Returns the audio thread context singleton if any of the following is true:
 // - The current thread is the audio thread
 // - The audio thread has not started yet.
@@ -37,6 +44,13 @@ struct cras_main_ctx* checked_main_ctx();
 //   way you should not store the acquired context.
 // Otherwise aborts (SIGABRT) the program.
 struct cras_audio_ctx* checked_audio_ctx();
+
+// Like checked_audio_ctx() but returns NULL instead of SIGABRT-ing when
+// called from the wrong thread.
+//
+// Use this instead of checked_audio_ctx() only when you need to workaround
+// unexpected callers gracefully.
+struct cras_audio_ctx* get_audio_ctx_or_null();
 
 // Wrapper to create the audio thread.
 int cras_thread_create_audio(pthread_t* thread,
