@@ -542,6 +542,7 @@ static CRAS_STREAM_ACTIVE_AP_EFFECT get_active_ap_effects(
       // Beamforming is a variant of noise cancellation.
       effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_NOISE_CANCELLATION;
       effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_BEAMFORMING;
+      break;
     case Overridden:
       effects |= CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN;
       break;
