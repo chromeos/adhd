@@ -141,12 +141,13 @@ enum ionode_attr {
 };
 
 /* The bitmask enum of audio effects. Bit is toggled on for supporting.
- * This should be always aligned to system_api/dbus/service_constants.h.
+ * This should be always aligned to system_api/dbus/dbus-constants.h.
  */
 enum audio_effect_type {
   // Noise Cancellation support.
   EFFECT_TYPE_NOISE_CANCELLATION = 1 << 0,
   EFFECT_TYPE_HFP_MIC_SR = 1 << 1,
+  EFFECT_TYPE_STYLE_TRANSFER = 1 << 2,
 };
 
 // The working state of DSP processings for a CRAS device.

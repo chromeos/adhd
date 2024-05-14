@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cras_types.h>
 #include <functional>
 #include <gtest/gtest.h>
 #include <map>
@@ -14,6 +15,7 @@
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_main_thread_log.h"
+#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_ramp.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"
@@ -3512,6 +3514,42 @@ TEST_F(IoDevTestSuite, RequestFloop) {
   cras_iodev_list_reset();
 }
 
+TEST_F(IoDevTestSuite, StyleTransferSupported) {
+  cras_iodev_list_init();
+
+  d1_.direction = CRAS_STREAM_INPUT;
+  d1_.info.idx = 1u;
+  d1_.nodes->type = CRAS_NODE_TYPE_MIC;
+  d1_.nodes->nc_providers = CRAS_NC_PROVIDER_AST;
+
+  d2_.direction = CRAS_STREAM_INPUT;
+  d2_.info.idx = 2u;
+  d2_.nodes->type = CRAS_NODE_TYPE_USB;
+
+  d3_.direction = CRAS_STREAM_OUTPUT;
+  d3_.info.idx = 3u;
+  d3_.nodes->type = CRAS_NODE_TYPE_INTERNAL_SPEAKER;
+
+  EXPECT_EQ(server_state_stub.num_input_nodes, 0);
+  EXPECT_EQ(server_state_stub.num_output_nodes, 0);
+
+  EXPECT_EQ(cras_iodev_list_add(&d1_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d2_), 0);
+  EXPECT_EQ(cras_iodev_list_add(&d3_), 0);
+
+  EXPECT_EQ(server_state_stub.num_input_nodes, 2);
+  EXPECT_EQ(server_state_stub.num_output_nodes, 1);
+
+  ASSERT_EQ(server_state_stub.input_nodes[1].iodev_idx, d1_.info.idx);
+  EXPECT_EQ(server_state_stub.input_nodes[1].audio_effect,
+            EFFECT_TYPE_STYLE_TRANSFER);
+  ASSERT_EQ(server_state_stub.input_nodes[0].iodev_idx, d2_.info.idx);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, 0);
+  ASSERT_EQ(server_state_stub.output_nodes[0].iodev_idx, d3_.info.idx);
+  EXPECT_EQ(server_state_stub.output_nodes[0].audio_effect, 0);
+
+  cras_iodev_list_deinit();
+}
 TEST_F(IoDevTestSuite, BluetoothNbMicAudioEffectHasSr) {
   cras_system_get_sr_bt_supported_return = true;
 

@@ -356,8 +356,16 @@ static int fill_node_list(struct iodev_list* list,
 
       node->desired_nc_provider = cras_nc_resolve_provider(
           node->nc_providers, aux->dsp_nc_allowed, aux->ap_nc_allowed);
-      if (node->desired_nc_provider != CRAS_NC_PROVIDER_NONE) {
-        node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
+      switch (node->desired_nc_provider) {
+        case CRAS_NC_PROVIDER_NONE:
+          break;
+        case CRAS_NC_PROVIDER_DSP:
+        case CRAS_NC_PROVIDER_AP:
+          node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
+          break;
+        case CRAS_NC_PROVIDER_AST:
+          node_info->audio_effect |= EFFECT_TYPE_STYLE_TRANSFER;
+          break;
       }
 
       if (cras_system_get_sr_bt_supported() &&

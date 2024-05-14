@@ -16,6 +16,7 @@
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_iodev_info.h"
@@ -68,10 +69,16 @@ int cras_alsa_common_configure_noise_cancellation(
 
 enum CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
     struct cras_use_case_mgr* ucm,
-    const char* node_name) {
+    const struct cras_ionode* node) {
   enum CRAS_NC_PROVIDER provider = 0;
+  if (node->type == CRAS_NODE_TYPE_MIC &&
+      (node->position == NODE_POSITION_INTERNAL ||
+       node->position == NODE_POSITION_FRONT) &&
+      cras_system_get_style_transfer_supported()) {
+    provider |= CRAS_NC_PROVIDER_AST;
+  }
   if (ucm && cras_system_get_dsp_noise_cancellation_supported() &&
-      ucm_node_noise_cancellation_exists(ucm, node_name)) {
+      ucm_node_noise_cancellation_exists(ucm, node->name)) {
     provider |= CRAS_NC_PROVIDER_DSP;
   }
   provider |= CRAS_NC_PROVIDER_AP;

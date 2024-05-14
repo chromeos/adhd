@@ -177,7 +177,7 @@ int cras_alsa_common_configure_noise_cancellation(
 // Get the provider for noise cancellation on the node.
 enum CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
     struct cras_use_case_mgr* ucm,
-    const char* node_name);
+    const struct cras_ionode* node);
 
 int cras_alsa_common_set_hwparams(struct cras_iodev* iodev, int period_wakeup);
 int cras_alsa_common_frames_queued(const struct cras_iodev* iodev,

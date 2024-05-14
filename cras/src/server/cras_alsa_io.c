@@ -1205,7 +1205,7 @@ static struct alsa_input_node* new_input(struct alsa_io* aio,
   }
 
   // Set NC providers.
-  node->nc_providers = cras_alsa_common_get_nc_providers(aio->common.ucm, name);
+  node->nc_providers = cras_alsa_common_get_nc_providers(aio->common.ucm, node);
 
   cras_iodev_add_node(&aio->common.base, node);
   check_auto_unplug_input_node(aio, node, node->plugged);

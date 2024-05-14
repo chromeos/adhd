@@ -2752,6 +2752,10 @@ bool cras_system_get_noise_cancellation_enabled() {
   return false;
 }
 
+bool cras_system_get_style_transfer_supported() {
+  return false;
+}
+
 enum CRAS_SCREEN_ROTATION cras_system_get_display_rotation() {
   return ROTATE_0;
 }
