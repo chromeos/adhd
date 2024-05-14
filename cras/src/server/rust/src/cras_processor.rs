@@ -14,6 +14,7 @@ use audio_processor::processors::binding::plugin_processor;
 use audio_processor::processors::export_plugin;
 use audio_processor::processors::CheckShape;
 use audio_processor::processors::NegateAudioProcessor;
+use audio_processor::processors::PluginDumpConfig;
 use audio_processor::processors::PluginLoader;
 use audio_processor::processors::PluginProcessor;
 use audio_processor::processors::ShuffleChannels;
@@ -112,6 +113,7 @@ fn create_noise_cancellation_pipeline(
         outer_block_size: config.block_size,
         inner_block_size: 480,
         allow_chunk_wrapper: false,
+        dump_config: None,
     }
     .load_and_wrap()
 }
@@ -139,11 +141,15 @@ fn create_style_transfer_pipeline(config: &CrasProcessorConfig) -> anyhow::Resul
         outer_block_size: config.block_size,
         inner_block_size: 480,
         allow_chunk_wrapper: true,
+        dump_config: None,
     }
     .load_and_wrap()
 }
 
-fn create_beamforming_pipeline(config: &CrasProcessorConfig) -> anyhow::Result<ProcessorVec> {
+fn create_beamforming_pipeline(
+    config: &CrasProcessorConfig,
+    dump_config: Option<&PluginDumpConfig>,
+) -> anyhow::Result<ProcessorVec> {
     // Check shape is supported.
     if config.channels != 3 {
         bail!("unsupported channel count {}", config.channels);
@@ -159,6 +165,7 @@ fn create_beamforming_pipeline(config: &CrasProcessorConfig) -> anyhow::Result<P
         outer_block_size: config.block_size,
         inner_block_size: 256,
         allow_chunk_wrapper: true,
+        dump_config,
     }
     .load_and_wrap()
 }
@@ -256,8 +263,16 @@ impl CrasProcessor {
                 }
             }
             CrasProcessorEffect::Beamforming => {
+                let dump_config = if config.wav_dump {
+                    Some(PluginDumpConfig {
+                        pre_processing_wav_dump: dump_base.join("pre_beamforming.wav"),
+                        post_processing_wav_dump: dump_base.join("post_beamforming.wav"),
+                    })
+                } else {
+                    None
+                };
                 pipeline.extend(
-                    create_beamforming_pipeline(&config)
+                    create_beamforming_pipeline(&config, dump_config.as_ref())
                         .context("failed when creating beamforming pipeline")?,
                 );
             }
@@ -278,6 +293,7 @@ impl CrasProcessor {
                             block_size => block_size as usize,
                         },
                         allow_chunk_wrapper: true,
+                        dump_config: None,
                     }
                     .load_and_wrap()?,
                 );
