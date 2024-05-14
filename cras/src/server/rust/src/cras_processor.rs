@@ -21,12 +21,11 @@ use audio_processor::processors::PluginProcessor;
 use audio_processor::processors::ShuffleChannels;
 use audio_processor::processors::SpeexResampler;
 use audio_processor::processors::ThreadedProcessor;
-use audio_processor::processors::WavSink;
 use audio_processor::AudioProcessor;
+use audio_processor::Pipeline;
+use audio_processor::ProcessorVec;
 use audio_processor::Shape;
 use cras_dlc::get_dlc_state_cached;
-use hound::WavSpec;
-use hound::WavWriter;
 
 mod processor_override;
 
@@ -56,43 +55,6 @@ pub struct CrasProcessorConfig {
 
     // Enable processing dumps as WAVE files.
     wav_dump: bool,
-}
-
-type ProcessorVec = Vec<Box<dyn AudioProcessor<I = f32, O = f32> + Send>>;
-
-trait Pipeline {
-    fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static);
-
-    fn add_wav_dump(
-        &mut self,
-        filename: &Path,
-        channels: usize,
-        frame_rate: usize,
-    ) -> anyhow::Result<()> {
-        {
-            self.add(WavSink::new(
-                WavWriter::create(
-                    filename,
-                    WavSpec {
-                        channels: channels.try_into().context("channels.try_into()")?,
-                        sample_rate: frame_rate.try_into().context("frame_rate.try_into()")?,
-                        bits_per_sample: 32,
-                        sample_format: hound::SampleFormat::Float,
-                    },
-                )
-                .context("WavWriter::create")?,
-            ));
-            anyhow::Result::<()>::Ok(())
-        }
-        .context("add_wav_dump")?;
-        Ok(())
-    }
-}
-
-impl Pipeline for ProcessorVec {
-    fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static) {
-        self.push(Box::new(processor));
-    }
 }
 
 pub struct CrasProcessor {

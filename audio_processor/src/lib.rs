@@ -14,3 +14,6 @@ pub use sample::*;
 
 mod shape;
 pub use shape::Shape;
+
+mod pipeline;
+pub use pipeline::*;
