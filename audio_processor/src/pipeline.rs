@@ -78,10 +78,10 @@ impl AudioProcessor for ProcessorVec {
 #[cfg(test)]
 mod tests {
     use anyhow::Context;
-    use hound::WavReader;
     use tempfile::TempDir;
 
     use crate::processors::NegateAudioProcessor;
+    use crate::util::read_wav;
     use crate::AudioProcessor;
     use crate::MultiBuffer;
     use crate::Pipeline;
@@ -110,18 +110,10 @@ mod tests {
         // Drop p to flush wav dumps.
         drop(p);
 
-        let wav1: Vec<_> = WavReader::open(&dump1)
-            .unwrap()
-            .samples::<f32>()
-            .map(|x| x.unwrap())
-            .collect();
-        let wav2: Vec<_> = WavReader::open(&dump2)
-            .unwrap()
-            .samples::<f32>()
-            .map(|x| x.unwrap())
-            .collect();
-        assert_eq!(wav1, [1., 2., 3., 4.]);
-        assert_eq!(wav2, [-1., -2., -3., -4.]);
+        let (_, wav1) = read_wav::<f32>(&dump1).unwrap();
+        let (_, wav2) = read_wav::<f32>(&dump2).unwrap();
+        assert_eq!(wav1.to_vecs(), [[1., 2., 3., 4.]]);
+        assert_eq!(wav2.to_vecs(), [[-1., -2., -3., -4.]]);
 
         Ok(())
     }

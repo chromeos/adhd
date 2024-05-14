@@ -222,7 +222,7 @@ mod tests {
     fn simple_negate() {
         use std::env;
 
-        use assert_matches::assert_matches;
+        use audio_processor::util::read_wav;
         use tempfile::TempDir;
 
         let dir = TempDir::new().unwrap();
@@ -262,23 +262,16 @@ mod tests {
         });
 
         // Verify the output.
-        let mut reader = hound::WavReader::open(out_wav_path).unwrap();
-        assert_eq!(
-            reader.spec(),
-            hound::WavSpec {
-                channels: 2,
-                sample_rate: 48000,
-                bits_per_sample: 32,
-                sample_format: hound::SampleFormat::Float,
-            }
-        );
-        let mut samples = reader.samples::<f32>();
-        for _ in 0..48000 {
+        let (_, buffer) = read_wav::<f32>(&out_wav_path).unwrap();
+        let vecs = buffer.to_vecs();
+        assert_eq!(vecs.len(), 2);
+        assert_eq!(vecs[0].len(), 48000);
+        assert_eq!(vecs[1].len(), 48000);
+        for (&l, &r) in vecs[0].iter().zip(vecs[1].iter()) {
             // A -(i16::MAX) sample is around -1f32.
-            assert!(samples.next().unwrap().unwrap() < -0.9);
+            assert!(l < -0.9);
             // A -(i16::MIN) sample is around 1f32.
-            assert!(samples.next().unwrap().unwrap() > 0.9);
+            assert!(r > 0.9);
         }
-        assert_matches!(samples.next(), None);
     }
 }

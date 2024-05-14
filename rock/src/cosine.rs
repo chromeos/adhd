@@ -5,9 +5,8 @@
 use std::path::PathBuf;
 
 use anyhow::bail;
+use audio_processor::util::read_wav;
 use clap::Args;
-
-use crate::wav::read_wav;
 
 #[derive(Args)]
 pub(crate) struct CosineCommand {
