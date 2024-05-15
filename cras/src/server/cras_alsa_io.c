@@ -255,6 +255,7 @@ static int open_dev(struct cras_iodev* iodev) {
   struct alsa_io* aio = (struct alsa_io*)iodev;
   const char* pcm_name = NULL;
 
+  aio->common.poll_fd = -1;
   /* For DependentPCM usage in HiFi.conf only.
    * Normally the pcm name should come from the alsa_io device, not from nodes.
    */
@@ -343,7 +344,6 @@ static int configure_dev(struct cras_iodev* iodev) {
   // Initialize device settings.
   init_device_settings(aio);
 
-  aio->common.poll_fd = -1;
   if (iodev->active_node->type == CRAS_NODE_TYPE_HOTWORD) {
     struct pollfd* ufds;
     int count, i;

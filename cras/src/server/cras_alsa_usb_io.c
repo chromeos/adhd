@@ -117,6 +117,7 @@ static int usb_open_dev(struct cras_iodev* iodev) {
       (struct alsa_common_node*)aio->common.base.active_node;
   const char* pcm_name = anode->pcm_name;
 
+  aio->common.poll_fd = -1;
   audio_peripheral_info(aio->common.vendor_id, aio->common.product_id,
                         CRAS_NODE_TYPE_USB);
 
@@ -177,8 +178,6 @@ static int usb_configure_dev(struct cras_iodev* iodev) {
 
   // Initialize device settings.
   usb_init_device_settings(aio);
-
-  aio->common.poll_fd = -1;
 
   // Capture starts right away, playback will wait for samples.
   if (aio->common.alsa_stream == SND_PCM_STREAM_CAPTURE) {
