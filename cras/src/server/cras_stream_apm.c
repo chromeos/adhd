@@ -936,12 +936,7 @@ int cras_stream_apm_destroy(struct cras_stream_apm* stream) {
 static int process_reverse(struct float_buffer* fbuf,
                            unsigned int frame_rate,
                            const struct cras_iodev* echo_ref) {
-  // TODO(b/340138001): Switch back to checked_audio_ctx() after we stop
-  // calling this function in the main thread.
-  struct cras_audio_ctx* actx = get_audio_ctx_or_null();
-  if (!actx) {
-    return 0;
-  }
+  struct cras_audio_ctx* actx = checked_audio_ctx();
 
   struct active_apm* active;
   int ret;

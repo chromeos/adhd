@@ -159,8 +159,8 @@ static int fill_zeros_to_target_level(struct cras_iodev* iodev,
   unsigned int local_queued_frames = bt_local_queued_frames(iodev);
 
   if (local_queued_frames < target_level) {
-    return cras_iodev_fill_odev_zeros(iodev,
-                                      target_level - local_queued_frames);
+    return cras_iodev_fill_odev_zeros(iodev, target_level - local_queued_frames,
+                                      true);
   }
   return 0;
 }
@@ -250,7 +250,7 @@ static int hfp_output_underrun(struct cras_iodev* iodev) {
   }
 
   // Handle it the same way as cras_iodev_output_underrun().
-  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level, true);
 }
 
 static int hfp_no_stream(struct cras_iodev* iodev, int enable) {
@@ -343,7 +343,7 @@ static int a2dp_configure_dev(struct cras_iodev* iodev) {
 
   /* Send one block of silence to Floss as jitter buffer to handle the
    * variation in packet scheduling caused by clock drift and state-polling. */
-  cras_iodev_fill_odev_zeros(iodev, a2dpio->write_block);
+  cras_iodev_fill_odev_zeros(iodev, a2dpio->write_block, true);
   init_level = a2dpio->write_block * cras_get_format_bytes(iodev->format);
 
   buf = buf_read_pointer_size(a2dpio->pcm_buf, &to_send);

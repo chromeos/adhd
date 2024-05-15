@@ -528,7 +528,9 @@ void cras_iodev_free_resources(struct cras_iodev* iodev) {
   cras_iodev_free_resources_called++;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
+                               unsigned int frames,
+                               bool processing) {
   return (int)frames;
 }
 

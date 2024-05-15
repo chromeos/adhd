@@ -1599,7 +1599,9 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
   return cras_iodev_buffer_avail_ret;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
+                               unsigned int frames,
+                               bool processing) {
   cras_iodev_fill_odev_zeros_called++;
   cras_iodev_fill_odev_zeros_frames = frames;
   return (int)frames;

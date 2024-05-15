@@ -807,11 +807,13 @@ void cras_iodev_set_dsp_offload_disallow_by_aec_ref(struct cras_iodev* iodev,
  * Args:
  *    odev - The device.
  *    frames - The number of frames of zero samples to put into the device.
+ *    processing - Whether to handle audio processing or not.
  * Returns:
  *    Number of frames filled with zeros, negative errno if failed.
  */
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames);
-
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
+                               unsigned int frames,
+                               bool processing);
 /*
  * The default implementation of frames_to_play_in_sleep ops, used when an
  * iodev doesn't have its own logic.

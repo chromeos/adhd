@@ -10,9 +10,9 @@
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
-#include "cras/src/server/cras_lea_manager.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_lea_manager.h"
 #include "cras/src/tests/test_util.hh"
 #include "third_party/utlist/utlist.h"
 
@@ -505,7 +505,9 @@ void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
   mock_audio_area->channels[0].buf = base_buffer;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
+                               unsigned int frames,
+                               bool processing) {
   return (int)frames;
 }
 

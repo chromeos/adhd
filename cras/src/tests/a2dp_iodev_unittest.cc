@@ -907,7 +907,9 @@ void cras_iodev_init_audio_area(struct cras_iodev* iodev) {
 
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
+                               unsigned int frames,
+                               bool processing) {
   struct cras_audio_area* area;
   cras_iodev_fill_odev_zeros_called++;
   cras_iodev_fill_odev_zeros_frames = frames;

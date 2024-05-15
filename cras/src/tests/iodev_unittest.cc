@@ -1683,11 +1683,11 @@ TEST(IoDev, FillZeros) {
   iodev.put_buffer = put_buffer;
 
   iodev.direction = CRAS_STREAM_INPUT;
-  rc = cras_iodev_fill_odev_zeros(&iodev, frames);
+  rc = cras_iodev_fill_odev_zeros(&iodev, frames, true);
   EXPECT_EQ(-EINVAL, rc);
 
   iodev.direction = CRAS_STREAM_OUTPUT;
-  rc = cras_iodev_fill_odev_zeros(&iodev, frames);
+  rc = cras_iodev_fill_odev_zeros(&iodev, frames, true);
 
   EXPECT_EQ(frames, rc);
   EXPECT_EQ(frames, put_buffer_nframes);

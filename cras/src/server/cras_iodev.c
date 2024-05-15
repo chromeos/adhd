@@ -121,7 +121,7 @@ static int default_no_stream_playback(struct cras_iodev* odev) {
   fr_to_write = cras_iodev_buffer_avail(odev, hw_level);
   if (hw_level <= target_hw_level) {
     fr_to_write = MIN(target_hw_level - hw_level, fr_to_write);
-    rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
+    rc = cras_iodev_fill_odev_zeros(odev, fr_to_write, true);
     if (rc < 0) {
       return rc;
     }
@@ -306,7 +306,7 @@ static int cras_iodev_output_event_sample_ready(struct cras_iodev* odev) {
      * stream, fill 1 min_cb_level of zeros first and fill sample
      * from stream later.
      * Starts the device here to finish state transition. */
-    rc = cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+    rc = cras_iodev_fill_odev_zeros(odev, odev->min_cb_level, true);
     if (rc < 0) {
       syslog(LOG_WARNING, "Failed to fill zeros to device %s before start",
              odev->info.name);
@@ -1218,7 +1218,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
     } else {
       iodev->state = CRAS_IODEV_STATE_NO_STREAM_RUN;
 
-      rc = cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+      rc = cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level, false);
       if (rc < 0) {
         syslog(LOG_WARNING, "Failed to fill zeros to device %s while open",
                iodev->info.name);
@@ -1600,7 +1600,9 @@ int cras_iodev_buffer_avail(struct cras_iodev* iodev, unsigned hw_level) {
   return iodev->buffer_size - iodev->min_buffer_level - hw_level;
 }
 
-int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
+int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
+                               unsigned int frames,
+                               bool processing) {
   struct cras_audio_area* area = NULL;
   unsigned int frame_bytes, frames_writable;
   int rc = 0, filled_frames = 0;
@@ -1650,7 +1652,11 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev, unsigned int frames) {
     }
     // Update offsets to mark existing valid data as written.
     cras_iodev_all_streams_written(odev, frames_writable);
-    rc = cras_iodev_put_output_buffer(odev, buf, frames_writable, NULL, NULL);
+    if (processing) {
+      rc = cras_iodev_put_output_buffer(odev, buf, frames_writable, NULL, NULL);
+    } else {
+      rc = odev->put_buffer(odev, frames_writable);
+    }
     if (rc < 0) {
       syslog(LOG_WARNING, "Put output buffer failed: %d", rc);
       return rc;
@@ -1676,7 +1682,7 @@ int cras_iodev_output_underrun(struct cras_iodev* odev,
   if (odev->output_underrun) {
     return odev->output_underrun(odev);
   } else {
-    rc = cras_iodev_fill_odev_zeros(odev, odev->min_cb_level);
+    rc = cras_iodev_fill_odev_zeros(odev, odev->min_cb_level, true);
     if (rc > 0) {
       cras_iodev_update_underrun_duration(odev, rc);
     }

@@ -1272,7 +1272,7 @@ static int usb_adjust_appl_ptr_samples_remaining(struct cras_iodev* odev) {
 
   // Fill zeros to make sure there are enough zero samples in device buffer.
   if (offset > real_hw_level) {
-    rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level);
+    rc = cras_iodev_fill_odev_zeros(odev, offset - real_hw_level, true);
     if (rc < 0) {
       return rc;
     }
@@ -1342,7 +1342,7 @@ static int usb_possibly_enter_free_run(struct cras_iodev* odev) {
   fr_to_write = MIN(cras_time_to_frames(&no_stream_fill_zeros_duration,
                                         odev->format->frame_rate),
                     odev->buffer_size - real_hw_level);
-  rc = cras_iodev_fill_odev_zeros(odev, fr_to_write);
+  rc = cras_iodev_fill_odev_zeros(odev, fr_to_write, true);
   if (rc < 0) {
     return rc;
   }

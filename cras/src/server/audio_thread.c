@@ -272,7 +272,7 @@ static int audio_thread_read_command(struct audio_thread* thread,
 // Builds an initial buffer to avoid an underrun. Adds min_level of latency.
 static void fill_odevs_zeros_min_level(struct cras_iodev* odev) {
   int rc;
-  rc = cras_iodev_fill_odev_zeros(odev, odev->min_buffer_level);
+  rc = cras_iodev_fill_odev_zeros(odev, odev->min_buffer_level, false);
   if (rc < 0) {
     syslog(LOG_WARNING, "failed to fill odev with %u length of zeros:%d",
            odev->min_buffer_level, rc);

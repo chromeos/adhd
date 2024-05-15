@@ -19,9 +19,9 @@
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
-#include "cras/src/server/cras_lea_manager.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_lea_manager.h"
 #include "cras/src/server/cras_utf8.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -130,7 +130,7 @@ static int output_underrun(struct cras_iodev* iodev) {
   }
 
   // Handle it the same way as cras_iodev_output_underrun().
-  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level);
+  return cras_iodev_fill_odev_zeros(iodev, iodev->min_cb_level, true);
 }
 
 static int no_stream(struct cras_iodev* iodev, int enable) {
