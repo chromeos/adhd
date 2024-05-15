@@ -191,6 +191,15 @@ bool cras_system_get_style_transfer_supported();
 // Returns if Noise Cancellation is supported by DSP.
 bool cras_system_get_dsp_noise_cancellation_supported();
 
+/*
+ * Sets the flag to enable or disable sidetone.
+ * Returns true if success.
+ */
+bool cras_system_set_sidetone_enabled(bool enabled);
+
+// Returns whether or not sidetone is enabled.
+bool cras_system_get_sidetone_enabled();
+
 // Sets the flag to bypass block/unblock Noise Cancellation mechanism.
 void cras_system_set_bypass_block_noise_cancellation(bool bypass);
 

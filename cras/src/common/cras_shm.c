@@ -105,9 +105,9 @@ int cras_audio_shm_create(struct cras_shm_info* header_info,
     goto cleanup_info;
   }
 
-  if (samples_prot != PROT_READ && samples_prot != PROT_WRITE) {
+  if (!(samples_prot & (PROT_READ | PROT_WRITE))) {
     ret = -EINVAL;
-    syslog(LOG_ERR, "cras_shm: samples must be mapped read or write only");
+    syslog(LOG_ERR, "cras_shm: samples must be mapped read or write");
     goto cleanup_info;
   }
 
@@ -161,19 +161,26 @@ cleanup_info:
   return ret;
 }
 
-void cras_audio_shm_destroy(struct cras_audio_shm* shm) {
-  if (!shm) {
-    return;
-  }
-
+void cras_audio_shm_samples_destroy(struct cras_audio_shm* shm) {
   if (shm->samples != NULL && shm->samples != (uint8_t*)-1) {
     munmap(shm->samples, shm->samples_info.length);
   }
   cras_shm_info_cleanup(&shm->samples_info);
+}
+
+void cras_audio_shm_header_destroy(struct cras_audio_shm* shm) {
   if (shm->header != NULL && shm->header != (struct cras_audio_shm_header*)-1) {
     munmap(shm->header, shm->header_info.length);
   }
   cras_shm_info_cleanup(&shm->header_info);
+}
+
+void cras_audio_shm_destroy(struct cras_audio_shm* shm) {
+  if (!shm) {
+    return;
+  }
+  cras_audio_shm_samples_destroy(shm);
+  cras_audio_shm_header_destroy(shm);
   free(shm);
 }
 

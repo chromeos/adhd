@@ -1394,6 +1394,9 @@ static void show_mainlog_tag(const struct main_thread_event_log* log,
       printf("%-30s %s\n", "FORCE_RESPECT_UI_GAINS",
              data1 ? "enabled" : "disabled");
       break;
+    case MAIN_THREAD_SIDETONE:
+      printf("%-30s %s\n", "SIDETONE", data1 ? "enabled" : "disabled");
+      break;
     default:
       printf("%-30s\n", "UNKNOWN");
       break;

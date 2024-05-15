@@ -32,6 +32,7 @@
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/rust/include/cras_feature_tier.h"
+#include "cras/src/server/sidetone.h"
 #include "cras_iodev_info.h"
 #include "cras_shm.h"
 #include "cras_timespec.h"
@@ -148,6 +149,8 @@ struct private_state {
   int32_t output_proc_hats;
   // The name of the ChromeOS board.
   const char* board_name;
+  // Whether or not sidetone is enabled.
+  int32_t sidetone_enabled;
 };
 
 static struct private_state state;
@@ -531,6 +534,30 @@ void cras_system_set_noise_cancellation_enabled(bool enabled) {
     state.exp_state->noise_cancellation_enabled = enabled;
     cras_iodev_list_reset_for_noise_cancellation();
   }
+}
+
+bool cras_system_set_sidetone_enabled(bool enabled) {
+  if (cras_system_get_sidetone_enabled() != enabled) {
+    state.sidetone_enabled = enabled;
+    MAINLOG(main_log, MAIN_THREAD_SIDETONE, enabled, 0, 0);
+    syslog(LOG_DEBUG, "Set sidetone to: %s", enabled ? "enabled" : "disabled");
+
+    if (enabled) {
+      if (!enable_sidetone(cras_iodev_list_get_stream_list())) {
+        syslog(LOG_ERR, "Failed to enable sidetone");
+        state.sidetone_enabled = false;
+        return false;
+      }
+    } else {
+      disable_sidetone(cras_iodev_list_get_stream_list());
+    }
+  }
+
+  return true;
+}
+
+bool cras_system_get_sidetone_enabled() {
+  return state.sidetone_enabled;
 }
 
 bool cras_system_get_noise_cancellation_enabled() {

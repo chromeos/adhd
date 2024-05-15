@@ -1149,6 +1149,20 @@ static DBusHandlerResult handle_set_bypass_block_noise_cancellation(
   return send_empty_reply(conn, message);
 }
 
+static DBusHandlerResult handle_set_sidetone_enabled(DBusConnection* conn,
+                                                     DBusMessage* message,
+                                                     void* arg) {
+  dbus_bool_t enabled;
+  int rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+  if (rc) {
+    return rc;
+  }
+
+  dbus_bool_t success = cras_system_set_sidetone_enabled(enabled);
+
+  return send_bool_reply(conn, message, success);
+}
+
 static DBusHandlerResult handle_set_force_a2dp_advanced_codecs_enabled(
     DBusConnection* conn,
     DBusMessage* message,
@@ -1634,6 +1648,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetBypassBlockNoiseCancellation")) {
     return handle_set_bypass_block_noise_cancellation(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "SetSidetoneEnabled")) {
+    return handle_set_sidetone_enabled(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetForceA2DPAdvancedCodecsEnabled")) {
     return handle_set_force_a2dp_advanced_codecs_enabled(conn, message, arg);

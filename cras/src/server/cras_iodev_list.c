@@ -33,6 +33,7 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras/src/server/server_stream.h"
+#include "cras/src/server/sidetone.h"
 #include "cras/src/server/softvol_curve.h"
 #include "cras/src/server/stream_list.h"
 #include "cras/src/server/test_iodev.h"
@@ -471,9 +472,9 @@ static void possibly_enable_echo_reference(struct cras_iodev* dev) {
     return;
   }
 
-  int rc =
-      server_stream_create(stream_list, SERVER_STREAM_ECHO_REF,
-                           dev->echo_reference_dev->info.idx, dev->format, 0);
+  int rc = server_stream_create(stream_list, SERVER_STREAM_ECHO_REF,
+                                dev->echo_reference_dev->info.idx, dev->format,
+                                0, false);
   if (rc) {
     syslog(LOG_ERR, "Failed to create echo ref server stream");
   }
@@ -1244,6 +1245,12 @@ static int stream_added_cb(struct cras_rstream* rstream) {
 
   if (stream_list_suspended) {
     return 0;
+  }
+
+  if (stream_is_sidetone(rstream) && rstream->direction == CRAS_STREAM_OUTPUT) {
+    struct cras_rstream* input = server_stream_find_by_type(
+        stream_list_get(stream_list), SERVER_STREAM_SIDETONE_INPUT);
+    configure_sidetone_streams(input, rstream);
   }
 
   MAINLOG(main_log, MAIN_THREAD_STREAM_ADDED, rstream->stream_id,
@@ -2778,7 +2785,7 @@ void cras_iodev_list_create_server_vad_stream(int dev_idx) {
       2,
       {0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
   int rc = server_stream_create(stream_list, SERVER_STREAM_VAD, dev_idx,
-                                &srv_stream_fmt, APM_ECHO_CANCELLATION);
+                                &srv_stream_fmt, APM_ECHO_CANCELLATION, false);
   if (rc) {
     syslog(LOG_ERR, "Fail to create VAD server stream");
   }

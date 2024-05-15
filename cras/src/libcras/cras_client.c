@@ -162,7 +162,7 @@ struct client_stream {
   int aud_fd;  // audio messages from server come in here.
   // playback, capture, or loopback (see CRAS_STREAM_DIRECTION).
   enum CRAS_STREAM_DIRECTION direction;
-  // Currently only used for CRAS_INPUT_STREAM_FLAG.
+  // Currently used for CRAS_STREAM_FLAG.
   uint32_t flags;
   // Amount to scale the stream by, 0.0 to 1.0. Client could
   // change this scaler value before stream actually connected, so we need

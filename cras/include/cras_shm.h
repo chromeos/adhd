@@ -174,6 +174,18 @@ int cras_audio_shm_create(struct cras_shm_info* header_info,
  */
 void cras_audio_shm_destroy(struct cras_audio_shm* shm);
 
+/* Destroys the samples area and samples_info of a cras_audio_shm.
+ *
+ * shm - the cras_audio_shm to destroy.
+ */
+void cras_audio_shm_samples_destroy(struct cras_audio_shm* shm);
+
+/* Destroys the header area and header_info of a cras_audio_shm.
+ *
+ * shm - the cras_audio_shm to destroy.
+ */
+void cras_audio_shm_header_destroy(struct cras_audio_shm* shm);
+
 // Limit a buffer offset to within the samples area size.
 static inline unsigned cras_shm_get_checked_buffer_offset(
     const struct cras_audio_shm* shm,
@@ -503,6 +515,16 @@ static inline void cras_shm_buffer_read_current(struct cras_audio_shm* shm,
     buf_idx = (buf_idx + 1) & CRAS_SHM_BUFFERS_MASK;
     header->read_buf_idx = buf_idx;
   }
+}
+
+static inline void cras_shm_header_copy_offset(struct cras_audio_shm* source,
+                                               struct cras_audio_shm* dest) {
+  for (int i = 0; i < CRAS_NUM_SHM_BUFFERS; i++) {
+    dest->header->write_offset[i] = source->header->write_offset[i];
+    dest->header->read_offset[i] = source->header->read_offset[i];
+  }
+  dest->header->read_buf_idx = source->header->read_buf_idx;
+  dest->header->write_buf_idx = source->header->write_buf_idx;
 }
 
 /* Sets the volume for the stream.  The volume level is a scaling factor that

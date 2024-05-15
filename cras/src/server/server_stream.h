@@ -18,11 +18,13 @@ struct cras_rstream;
 enum server_stream_type {
   SERVER_STREAM_ECHO_REF,
   SERVER_STREAM_VAD,
+  SERVER_STREAM_SIDETONE_INPUT,
+  SERVER_STREAM_SIDETONE_OUTPUT,
   NUM_SERVER_STREAM_TYPES,
 };
 
 /*
- * Asynchronously creates a server stream pinned to device of given idx.
+ * Creates a server stream pinned to device of given idx.
  * Args:
  *    stream_list - List of stream to add new server stream to.
  *    type - The type of the new server stream. It is only allowed to have a
@@ -31,6 +33,8 @@ enum server_stream_type {
  *              Or NO_DEVICE to create a non-pinned stream.
  *    format - The audio format for the server stream.
  *    effects - The effects bits for the new server stream.
+ *    synchronous - Whether the stream is created immediately or created in the
+ *                  next main thread loop.
  * Returns:
  *    0 for success otherwise negative error code.
  */
@@ -38,7 +42,8 @@ int server_stream_create(struct stream_list* stream_list,
                          enum server_stream_type type,
                          unsigned int dev_idx,
                          struct cras_audio_format* format,
-                         unsigned int effects);
+                         unsigned int effects,
+                         bool synchronous);
 
 /*
  * Synchronously destroys existing server stream pinned to device of given idx.

@@ -103,6 +103,9 @@ struct cras_rstream {
   int triggered;
   // cb_threshold / sample_rate.
   struct timespec acceptable_fetch_interval;
+  // Store the paired stream for sidetone, which is the
+  // input stream for the output stream and vice versa.
+  struct cras_rstream* pair;
   struct cras_rstream *prev, *next;
 };
 
@@ -229,6 +232,11 @@ static inline int stream_uses_input(const struct cras_rstream* s) {
 
 static inline int stream_is_server_only(const struct cras_rstream* s) {
   return s->flags & SERVER_ONLY;
+}
+
+// Checks if the stream is a sidetone stream
+static inline int stream_is_sidetone(const struct cras_rstream* s) {
+  return (s->flags & SIDETONE_STREAM) == SIDETONE_STREAM;
 }
 
 // Gets the enabled effects of this stream.

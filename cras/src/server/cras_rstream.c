@@ -84,7 +84,9 @@ static inline int setup_shm_area(struct cras_rstream* stream,
   }
 
   int samples_prot = 0;
-  if (stream->direction == CRAS_STREAM_OUTPUT) {
+  if (stream_is_sidetone(stream)) {
+    samples_prot = PROT_READ | PROT_WRITE;
+  } else if (stream->direction == CRAS_STREAM_OUTPUT) {
     samples_prot = PROT_READ;
   } else {
     samples_prot = PROT_WRITE;
@@ -449,7 +451,7 @@ static void init_audio_message(struct audio_message* msg,
 int cras_rstream_request_audio(struct cras_rstream* stream,
                                const struct timespec* now) {
   struct audio_message msg;
-  int rc;
+  int rc = 0;
 
   // Only request samples from output streams.
   if (stream->direction != CRAS_STREAM_OUTPUT) {
@@ -458,10 +460,12 @@ int cras_rstream_request_audio(struct cras_rstream* stream,
 
   stream->last_fetch_ts = *now;
 
-  init_audio_message(&msg, AUDIO_MESSAGE_REQUEST_DATA, stream->cb_threshold);
-  rc = write(stream->fd, &msg, sizeof(msg));
-  if (rc < 0) {
-    return -errno;
+  if (!stream_is_server_only(stream)) {
+    init_audio_message(&msg, AUDIO_MESSAGE_REQUEST_DATA, stream->cb_threshold);
+    rc = write(stream->fd, &msg, sizeof(msg));
+    if (rc < 0) {
+      return -errno;
+    }
   }
 
   set_pending_reply(stream);
@@ -475,8 +479,12 @@ int cras_rstream_audio_ready(struct cras_rstream* stream, size_t count) {
 
   cras_shm_buffer_write_complete(stream->shm);
 
-  // Mark shm as used.
   if (stream_is_server_only(stream)) {
+    if (stream_is_sidetone(stream) && stream->pair) {
+      cras_shm_header_copy_offset(stream->shm, stream->pair->shm);
+      clear_pending_reply(stream->pair);
+    }
+    // Mark shm as used.
     cras_shm_buffer_read_current(stream->shm, count);
     return 0;
   }

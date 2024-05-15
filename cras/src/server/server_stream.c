@@ -53,7 +53,8 @@ int server_stream_create(struct stream_list* stream_list,
                          enum server_stream_type type,
                          unsigned int dev_idx,
                          struct cras_audio_format* format,
-                         unsigned int effects) {
+                         unsigned int effects,
+                         bool synchronous) {
   int audio_fd = -1;
   int client_shm_fd = -1;
   uint64_t buffer_offsets[2] = {0, 0};
@@ -69,20 +70,35 @@ int server_stream_create(struct stream_list* stream_list,
     return -ENOMEM;
   }
 
+  enum CRAS_STREAM_DIRECTION direction = type == SERVER_STREAM_SIDETONE_OUTPUT
+                                             ? CRAS_STREAM_OUTPUT
+                                             : CRAS_STREAM_INPUT;
+  uint32_t flags;
+  switch (type) {
+    case SERVER_STREAM_SIDETONE_OUTPUT:
+    case SERVER_STREAM_SIDETONE_INPUT:
+      flags = SIDETONE_STREAM;
+    default:
+      flags = SERVER_ONLY;
+  }
+
   cras_rstream_config_init(
       /*client=*/NULL, cras_get_stream_id(SERVER_STREAM_CLIENT_ID, type),
-      CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_SERVER_STREAM,
-      CRAS_STREAM_INPUT, dev_idx,
-      /*flags=*/SERVER_ONLY, effects, format, server_stream_block_size,
+      CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_SERVER_STREAM, direction,
+      dev_idx, flags, effects, format, server_stream_block_size,
       server_stream_block_size, &audio_fd, &client_shm_fd,
       /*client_shm_size=*/0, buffer_offsets, &ss->config);
   ss->list = stream_list;
   ss->stream_id = ss->config.stream_id;
 
-  // Schedule add stream in next main thread loop.
   g_server_streams[type] = ss;
-  cras_system_add_task(server_stream_add_cb, &g_server_streams[type]);
-
+  if (synchronous) {
+    struct cras_rstream* stream = NULL;
+    return stream_list_add(ss->list, &ss->config, &stream);
+  } else {
+    // Schedule add stream in the next main thread loop.
+    cras_system_add_task(server_stream_add_cb, &g_server_streams[type]);
+  }
   return 0;
 }
 
@@ -94,11 +110,16 @@ static void server_stream_rm_cb(void* data) {
   }
 
   /*
-   * Server stream needs no 'draining' state. Uses stream_list_direct_rm
+   * Input Server stream needs no 'draining' state. Uses stream_list_direct_rm
    * here to prevent recursion.
    */
-  if (stream_list_direct_rm(ss->list, ss->config.stream_id)) {
-    syslog(LOG_WARNING, "Server stream %x no longer exist",
+  if (ss->config.direction == CRAS_STREAM_INPUT &&
+      stream_list_direct_rm(ss->list, ss->config.stream_id)) {
+    syslog(LOG_WARNING, "Server stream input %x no longer exist",
+           ss->config.stream_id);
+  } else if (ss->config.direction == CRAS_STREAM_OUTPUT &&
+             stream_list_rm(ss->list, ss->config.stream_id)) {
+    syslog(LOG_WARNING, "Server stream output %x no longer exist",
            ss->config.stream_id);
   }
 

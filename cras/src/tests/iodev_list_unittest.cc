@@ -4024,7 +4024,8 @@ int server_stream_create(struct stream_list* stream_list,
                          enum server_stream_type type,
                          unsigned int dev_idx,
                          struct cras_audio_format* format,
-                         unsigned int effects) {
+                         unsigned int effects,
+                         bool synchronous) {
   server_stream_create_called++;
   return 0;
 }
@@ -4051,6 +4052,17 @@ struct cras_tm* cras_system_state_get_tm() {
 
 const char* cras_system_state_get_active_node_types() {
   return NULL;
+}
+
+struct cras_rstream* server_stream_find_by_type(
+    struct cras_rstream* all_streams,
+    enum server_stream_type type) {
+  return NULL;
+}
+
+void configure_sidetone_streams(struct cras_rstream* input,
+                                struct cras_rstream* output) {
+  return;
 }
 
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,

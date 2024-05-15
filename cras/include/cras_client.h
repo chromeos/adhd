@@ -599,7 +599,7 @@ int cras_client_set_client_type(struct cras_client* client,
  *        be called when buffer_frames have been captured).
  *    unused - No longer used.
  *    stream_type - media or talk (currently only support "default").
- *    flags - Currently only used for CRAS_INPUT_STREAM_FLAG.
+ *    flags - Currently only used for CRAS_STREAM_FLAG.
  *    user_data - Pointer that will be passed to the callback.
  *    aud_cb - Called when audio is needed(playback) or ready(capture). Allowed
  *        return EOF to indicate that the stream should terminate.
@@ -2003,7 +2003,7 @@ void libcras_stream_params_destroy(struct libcras_stream_params* params);
  *        be called when buffer_frames have been captured).
  *    stream_type - Media or talk (currently only support "default").
  *    client_type - The client type, like Chrome or CrOSVM.
- *    flags - Currently only used for CRAS_INPUT_STREAM_FLAG.
+ *    flags - Currently only used for CRAS_STREAM_FLAG.
  *    user_data - Pointer that will be passed to the callback.
  *    stream_cb - The audio callback. Called when audio is needed(playback) or
  *        ready(capture).

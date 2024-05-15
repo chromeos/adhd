@@ -97,7 +97,7 @@ static inline int cras_stream_direction_mask(
 /*
  * Flags for stream types.
  */
-enum CRAS_INPUT_STREAM_FLAG {
+enum CRAS_STREAM_FLAG {
   // This stream is OK with receiving up to a full shm of samples
   // in a single callback.
   BULK_AUDIO_OK = 0x01,
@@ -113,6 +113,9 @@ enum CRAS_INPUT_STREAM_FLAG {
   // This stream doesn't associate to a client. It's used mainly
   // for audio data to flow from hardware through iodev's dsp pipeline.
   SERVER_ONLY = 0x08,
+  // This stream will have a pair to share the cras_audio_shm with.
+  // Note that it is also a SERVER_ONLY stream.
+  SIDETONE_STREAM = 0x18,
 };
 
 /*
@@ -393,6 +396,8 @@ enum MAIN_THREAD_LOG_EVENTS {
   MAIN_THREAD_VAD_TARGET_CHANGED,
   // When force respect UI gains is enabled/disabled.
   MAIN_THREAD_FORCE_RESPECT_UI_GAINS,
+  // When sidetone is enabled/disabled.
+  MAIN_THREAD_SIDETONE,
 };
 
 // There are 8 bits of space for events.
