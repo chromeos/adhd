@@ -1338,6 +1338,9 @@ static void show_mainlog_tag(const struct main_thread_event_log* log,
     case MAIN_THREAD_OUTPUT_NODE_VOLUME:
       printf("%-30s dev %u volume %u\n", "OUTPUT_NODE_VOLUME", data1, data2);
       break;
+    case MAIN_THREAD_SET_DISPLAY_ROTATION:
+      printf("%-30s id %u rotation %u\n", "SET_DISPLAY_ROTATION", data1, data2);
+      break;
     case MAIN_THREAD_SET_OUTPUT_USER_MUTE:
       printf("%-30s mute %u\n", "SET_OUTPUT_USER_MUTE", data1);
       break;

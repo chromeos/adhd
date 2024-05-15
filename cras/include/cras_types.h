@@ -362,6 +362,8 @@ enum MAIN_THREAD_LOG_EVENTS {
   MAIN_THREAD_INPUT_NODE_GAIN,
   // When output node volume changes.
   MAIN_THREAD_OUTPUT_NODE_VOLUME,
+  // When display rotation is set.
+  MAIN_THREAD_SET_DISPLAY_ROTATION,
   // When output mute state is set.
   MAIN_THREAD_SET_OUTPUT_USER_MUTE,
   // When system resumes and notifies CRAS.

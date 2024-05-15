@@ -317,6 +317,8 @@ static DBusHandlerResult handle_set_display_rotation(DBusConnection* conn,
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
 
+  MAINLOG(main_log, MAIN_THREAD_SET_DISPLAY_ROTATION, id, rotation, 0);
+
   if (!cras_validate_screen_rotation(rotation)) {
     syslog(LOG_WARNING, "Invalid display rotation received: %u", rotation);
   } else {
