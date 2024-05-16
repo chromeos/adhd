@@ -19,9 +19,9 @@
 #include <syslog.h>
 
 #include "cras/server/main_message.h"
-#include "cras/src/server/cras_lea_iodev.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_lea_iodev.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/cras_tm.h"
 #include "cras_config.h"
@@ -389,8 +389,15 @@ void cras_floss_lea_remove_group(struct cras_lea* lea, int group_id) {
   struct lea_group* group;
   DL_FOREACH (lea->connected_groups, group) {
     if (group_id == group->group_id) {
-      lea_iodev_destroy(group->idev);
-      lea_iodev_destroy(group->odev);
+      if (group->idev) {
+        cras_iodev_set_node_plugged(group->idev->active_node, 0);
+        lea_iodev_destroy(group->idev);
+      }
+
+      if (group->odev) {
+        cras_iodev_set_node_plugged(group->odev->active_node, 0);
+        lea_iodev_destroy(group->odev);
+      }
 
       DL_DELETE(lea->connected_groups, group);
       free(group->name);

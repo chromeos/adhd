@@ -444,6 +444,7 @@ cc_test(
     ],
     deps = [
         ":test_support",
+        ":test_util",
         "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features:override",

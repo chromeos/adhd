@@ -4,11 +4,12 @@
 
 #include <gtest/gtest.h>
 
-#include "cras/src/server/cras_lea_iodev.h"
-#include "cras/src/server/cras_lea_manager.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
+#include "cras/src/server/cras_lea_iodev.h"
+#include "cras/src/server/cras_lea_manager.h"
+#include "cras/src/tests/test_util.hh"
 #include "cras_types.h"
 
 static size_t connect_called;
@@ -76,14 +77,20 @@ TEST_F(LeaManagerTestSuite, PCMCreateDestroy) {
   struct cras_lea* lea = cras_floss_lea_create(NULL);
   ASSERT_NE(lea, (struct cras_lea*)NULL);
 
-  cras_floss_lea_add_group(lea, "name", 0);
-  EXPECT_EQ(lea, lea_iodev_create_lea_val);
-  EXPECT_EQ(lea_iodev_create_called, 2);
-  EXPECT_EQ(cras_iodev_set_node_plugged_called, 2);
-  EXPECT_EQ(notify_nodes_changed_called, 1);
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, lea_iodev_create_lea_val, lea);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, lea_iodev_create_called, 2);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_set_node_plugged_called, 2);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, notify_nodes_changed_called, 1);
+    cras_floss_lea_add_group(lea, "name", 0);
+  }
 
-  cras_floss_lea_remove_group(lea, 0);
-  EXPECT_EQ(lea_iodev_destroy_called, 2);
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_set_node_plugged_value, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_set_node_plugged_called, 2);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, lea_iodev_destroy_called, 2);
+    cras_floss_lea_remove_group(lea, 0);
+  }
 
   cras_floss_lea_destroy(lea);
 }
