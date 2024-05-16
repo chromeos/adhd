@@ -720,7 +720,9 @@ void cras_iodev_update_dsp(struct cras_iodev* iodev) {
   cras_dsp_offload_clear_disallow_bit(iodev->dsp_offload_map,
                                       DISALLOW_OFFLOAD_BY_PATTERN);
 
+  release_ext_dsp_module_from_pipeline(iodev);
   cras_dsp_load_pipeline(iodev->dsp_context);
+  add_ext_dsp_module_to_pipeline(iodev);
 }
 
 int cras_iodev_dsp_set_swap_mode_for_node(struct cras_iodev* iodev,
