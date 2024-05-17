@@ -1101,7 +1101,10 @@ int audio_thread_add_stream(struct audio_thread* thread,
                             unsigned int num_devs) {
   struct audio_thread_add_rm_stream_msg msg;
 
-  CRAS_CHECK(thread && stream);
+  // Separate into multiple CRAS_CHECK calls to determine which variable is NULL
+  CRAS_CHECK(thread);
+  CRAS_CHECK(stream);
+  CRAS_CHECK(devs);
 
   if (!thread->started) {
     return -EINVAL;
@@ -1116,7 +1119,10 @@ int audio_thread_disconnect_stream(struct audio_thread* thread,
                                    struct cras_iodev* dev) {
   struct audio_thread_add_rm_stream_msg msg;
 
-  CRAS_CHECK(thread && stream);
+  // Separate into multiple CRAS_CHECK calls to determine which variable is NULL
+  // No check for dev, NULL dev is valid for disconnecting streams.
+  CRAS_CHECK(thread);
+  CRAS_CHECK(stream);
 
   init_add_rm_stream_msg(&msg, AUDIO_THREAD_DISCONNECT_STREAM, stream, &dev, 0);
   return audio_thread_post_message(thread, &msg.header);
