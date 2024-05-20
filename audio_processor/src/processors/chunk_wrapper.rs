@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 use crate::AudioProcessor;
+use crate::Format;
 use crate::MultiBuffer;
 use crate::Sample;
 use crate::Shape;
@@ -10,9 +11,13 @@ use crate::Shape;
 /// The `ChunkWrapper` struct is an audio processor that wraps another audio
 /// processor `T`. It processes audio data in chunks of a fixed size
 /// specified by `block_size`.
+///
+/// The ChunkWrapper assumes that the wrapped AudioProcessor has the same
+/// input and output formats.
 pub struct ChunkWrapper<T: AudioProcessor<I = S, O = S>, S: Sample> {
     inner: T,
     block_size: usize,
+    output_format: Format,
 
     index: usize,
     pending: MultiBuffer<T::I>,
@@ -56,8 +61,8 @@ impl<T: AudioProcessor<I = S, O = S>, S: Sample> AudioProcessor for ChunkWrapper
         Ok(input)
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.inner.get_output_frame_rate()
+    fn get_output_format(&self) -> Format {
+        self.output_format
     }
 }
 
@@ -76,11 +81,24 @@ impl<T: AudioProcessor<I = S, O = S>, S: Sample> ChunkWrapper<T, S> {
     /// Create a new ChunkWrapper. `input_channels` and `output_channels`
     /// should match those of `inner`. They are allowed to be different
     /// to support down-mixing processors.
-    pub fn new(inner: T, block_size: usize, input_channels: usize, output_channels: usize) -> Self {
+    pub fn new(
+        inner: T,
+        outer_block_size: usize,
+        block_size: usize,
+        input_channels: usize,
+        output_channels: usize,
+    ) -> Self {
         assert!(input_channels >= output_channels);
+        let inner_output_format = inner.get_output_format();
+
         ChunkWrapper {
             inner,
             block_size,
+            output_format: Format {
+                channels: output_channels,
+                block_size: outer_block_size,
+                frame_rate: inner_output_format.frame_rate,
+            },
             index: 0,
             pending: MultiBuffer::new_equilibrium(Shape {
                 channels: input_channels,
@@ -99,14 +117,13 @@ mod tests {
     use super::ChunkWrapper;
     use crate::processors::InPlaceNegateAudioProcessor;
     use crate::processors::NegateAudioProcessor;
-    use crate::processors::SpeexResampler;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
-    use crate::Shape;
 
     // Test that ChunkedWrapper generates the correct delay.
     fn delayed_neg<T: AudioProcessor<I = i32, O = i32>>(neg: T) {
-        let mut cw = ChunkWrapper::new(neg, 2, 2, 2);
+        let mut cw = ChunkWrapper::new(neg, 0, 2, 2, 2);
 
         let mut input = MultiBuffer::from(vec![vec![1, 2, 3], vec![4, 5, 6]]);
         assert_eq!(
@@ -129,31 +146,20 @@ mod tests {
 
     #[test]
     fn delayed_neg_test() {
-        delayed_neg(NegateAudioProcessor::<i32>::new(2, 2, 48000));
+        delayed_neg(NegateAudioProcessor::<i32>::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        }));
     }
 
     #[test]
     fn delayed_neg_in_place_test() {
-        delayed_neg(InPlaceNegateAudioProcessor::<i32>::new(48000));
-    }
-
-    #[test]
-    fn get_output_frame_rate() {
-        let cw = ChunkWrapper::new(
-            SpeexResampler::new(
-                Shape {
-                    channels: 1,
-                    frames: 5,
-                },
-                16000,
-                48000,
-            )
-            .unwrap(),
-            2,
-            2,
-            2,
-        );
-        assert_eq!(cw.get_output_frame_rate(), 48000);
+        delayed_neg(InPlaceNegateAudioProcessor::<i32>::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        }));
     }
 
     // TODO: Add a test for when input_channels and output_channels are different.

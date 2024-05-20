@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 use crate::AudioProcessor;
+use crate::Format;
 use crate::MultiBuffer;
 use crate::MultiSlice;
 use crate::Shape;
@@ -11,26 +12,29 @@ use crate::Shape;
 pub struct ShuffleChannels {
     channel_indexes: Vec<usize>,
     buffer: MultiBuffer<f32>,
-    output_frame_rate: usize,
+    output_format: Format,
 }
 
 impl ShuffleChannels {
     /// Create a new `ChannelMap` processor which shuffles channels.
     /// output[i] will be assigned with input[channel_indexes[i]].
-    pub fn new(channel_indexes: &[usize], input_shape: Shape, output_frame_rate: usize) -> Self {
+    pub fn new(channel_indexes: &[usize], input_format: Format) -> Self {
         for &channel in channel_indexes {
             assert!(
-                channel < input_shape.channels,
-                "channel out of bounds! channel_indexes={channel_indexes:?}, input_shape={input_shape:?}",
+                channel < input_format.channels,
+                "channel out of bounds! channel_indexes={channel_indexes:?}, input_format={input_format:?}",
             );
         }
         Self {
             channel_indexes: Vec::from(channel_indexes),
             buffer: MultiBuffer::new(Shape {
                 channels: channel_indexes.len(),
-                frames: input_shape.frames,
+                frames: input_format.block_size,
             }),
-            output_frame_rate,
+            output_format: Format {
+                channels: channel_indexes.len(),
+                ..input_format
+            },
         }
     }
 }
@@ -54,8 +58,8 @@ impl AudioProcessor for ShuffleChannels {
         Ok(self.buffer.as_multi_slice())
     }
 
-    fn get_output_frame_rate(&self) -> usize {
-        self.output_frame_rate
+    fn get_output_format(&self) -> Format {
+        self.output_format
     }
 }
 
@@ -63,18 +67,18 @@ impl AudioProcessor for ShuffleChannels {
 mod tests {
     use super::ShuffleChannels;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
-    use crate::Shape;
 
     #[test]
     fn map() {
         let mut p = ShuffleChannels::new(
             &[1, 0, 1],
-            Shape {
+            Format {
                 channels: 2,
-                frames: 2,
+                block_size: 2,
+                frame_rate: 48000,
             },
-            48000,
         );
 
         let mut input = MultiBuffer::from(vec![vec![1., 2.], vec![3., 4.]]);

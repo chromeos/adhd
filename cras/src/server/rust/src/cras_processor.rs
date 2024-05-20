@@ -20,9 +20,9 @@ use audio_processor::processors::PluginProcessor;
 use audio_processor::processors::ShuffleChannels;
 use audio_processor::processors::ThreadedProcessor;
 use audio_processor::AudioProcessor;
+use audio_processor::Format;
 use audio_processor::Pipeline;
 use audio_processor::ProcessorVec;
-use audio_processor::Shape;
 use cras_dlc::get_dlc_state_cached;
 
 mod processor_override;
@@ -55,6 +55,16 @@ pub struct CrasProcessorConfig {
     wav_dump: bool,
 }
 
+impl CrasProcessorConfig {
+    fn format(&self) -> Format {
+        Format {
+            channels: self.channels,
+            block_size: self.block_size,
+            frame_rate: self.frame_rate,
+        }
+    }
+}
+
 pub struct CrasProcessor {
     id: usize,
     pipeline: ProcessorVec,
@@ -75,11 +85,8 @@ impl AudioProcessor for CrasProcessor {
         Ok(input)
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        match self.pipeline.last() {
-            Some(last) => last.get_output_frame_rate(),
-            None => self.config.frame_rate,
-        }
+    fn get_output_format(&self) -> audio_processor::Format {
+        self.pipeline.get_output_format()
     }
 }
 
@@ -197,11 +204,7 @@ impl CrasProcessor {
         }
 
         pipeline.add(apm_processor);
-        pipeline.add(CheckShape::new(
-            config.channels,
-            config.block_size,
-            config.frame_rate,
-        ));
+        pipeline.add(CheckShape::new(config.format()));
 
         if config.wav_dump {
             pipeline.add_wav_dump(
@@ -216,24 +219,13 @@ impl CrasProcessor {
                 // Do nothing.
             }
             CrasProcessorEffect::Negate => {
-                pipeline.add(NegateAudioProcessor::new(
-                    config.channels,
-                    config.block_size,
-                    config.frame_rate,
-                ));
+                pipeline.add(NegateAudioProcessor::new(config.format()));
             }
             CrasProcessorEffect::NoiseCancellation | CrasProcessorEffect::StyleTransfer => {
                 if config.channels > 1 {
                     // Run mono noise cancellation.
                     // Pick just the first channel.
-                    pipeline.add(ShuffleChannels::new(
-                        &[0],
-                        Shape {
-                            channels: config.channels,
-                            frames: config.block_size,
-                        },
-                        config.frame_rate,
-                    ));
+                    pipeline.add(ShuffleChannels::new(&[0], config.format()));
                 }
                 // TODO: Change this to an audio format struct when we have it.
                 let mono_config = CrasProcessorConfig {
@@ -254,11 +246,7 @@ impl CrasProcessor {
                     // Copy to all channels.
                     pipeline.add(ShuffleChannels::new(
                         &vec![0; config.channels],
-                        Shape {
-                            channels: config.channels,
-                            frames: config.block_size,
-                        },
-                        config.frame_rate,
+                        config.format(),
                     ));
                 }
             }
@@ -354,20 +342,21 @@ pub unsafe extern "C" fn cras_processor_create(
     config: *const CrasProcessorConfig,
     apm_plugin_processor: NonNull<plugin_processor>,
 ) -> CrasProcessorCreateResult {
-    let apm_processor = match PluginProcessor::from_handle(apm_plugin_processor.as_ptr()) {
-        Ok(processor) => processor,
-        Err(err) => {
-            log::error!("failed PluginProcessor::from_handle {:#}", err);
-            return CrasProcessorCreateResult::none();
-        }
-    };
-
     let config = match config.as_ref() {
         Some(config) => config,
         None => {
             return CrasProcessorCreateResult::none();
         }
     };
+
+    let apm_processor =
+        match PluginProcessor::from_handle(apm_plugin_processor.as_ptr(), config.format()) {
+            Ok(processor) => processor,
+            Err(err) => {
+                log::error!("failed PluginProcessor::from_handle {:#}", err);
+                return CrasProcessorCreateResult::none();
+            }
+        };
 
     let processor = match CrasProcessor::new(config.clone(), apm_processor) {
         Ok(processor) => processor,
@@ -389,7 +378,7 @@ pub unsafe extern "C" fn cras_processor_create(
                 },
                 // apm_processor was consumed so create it again.
                 // It should not fail given that we created it successfully once.
-                PluginProcessor::from_handle(apm_plugin_processor.as_ptr())
+                PluginProcessor::from_handle(apm_plugin_processor.as_ptr(), config.format())
                     .expect("PluginProcessor::from_handle failed"),
             )
             .expect("CrasProcessor::new with CrasProcessorEffect::NoEffects should never fail")
@@ -398,14 +387,7 @@ pub unsafe extern "C" fn cras_processor_create(
 
     let effect = processor.config.effect;
     let plugin_processor = if config.dedicated_thread {
-        let threaded_processor = ThreadedProcessor::new(
-            processor,
-            Shape {
-                channels: config.channels,
-                frames: config.block_size,
-            },
-            1,
-        );
+        let threaded_processor = ThreadedProcessor::new(processor, 1);
         export_plugin(threaded_processor)
     } else {
         export_plugin(processor)

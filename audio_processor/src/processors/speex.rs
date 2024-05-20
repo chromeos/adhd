@@ -7,8 +7,8 @@ use anyhow::Context;
 
 use self::sys::speex_resampler_destroy;
 use crate::AudioProcessor;
+use crate::Format;
 use crate::MultiBuffer;
-use crate::Shape;
 
 mod sys {
     #![allow(non_upper_case_globals)]
@@ -22,7 +22,7 @@ mod sys {
 pub struct SpeexResampler {
     resampler_state: *mut sys::SpeexResamplerState,
     output_buffer: MultiBuffer<f32>,
-    output_frame_rate: usize,
+    output_format: Format,
 }
 
 // Safety: Use of speex should be safe as long as the state is not accessed
@@ -31,25 +31,29 @@ unsafe impl Send for SpeexResampler {}
 
 impl SpeexResampler {
     /// Create a resampler for the given input shape, rate and output rate.
-    pub fn new(input_shape: Shape, input_rate: usize, output_rate: usize) -> crate::Result<Self> {
-        let output_shape = Shape {
-            channels: input_shape.channels,
-            frames: input_shape.frames * output_rate / input_rate,
+    pub fn new(input_format: Format, output_rate: usize) -> crate::Result<Self> {
+        let output_format = Format {
+            channels: input_format.channels,
+            block_size: input_format.block_size * output_rate / input_format.frame_rate,
+            frame_rate: output_rate,
         };
-        if input_shape.frames * output_rate != output_shape.frames * input_rate {
+        if input_format.block_size * output_rate
+            != output_format.block_size * input_format.frame_rate
+        {
             return Err(
                 anyhow!("provided input frames {}, rate {} and output rate {} does not allow an integral output frames",
-            input_shape.frames, input_rate, output_rate).into());
+            input_format.block_size, input_format.frame_rate, output_rate).into());
         }
         let mut err = std::mem::MaybeUninit::zeroed();
         // Safety: Initialization is safe.
         let resampler_state = unsafe {
             sys::speex_resampler_init(
-                input_shape
+                input_format
                     .channels
                     .try_into()
                     .with_context(|| "channels too large")?,
-                input_rate
+                input_format
+                    .frame_rate
                     .try_into()
                     .with_context(|| "input rate too large")?,
                 output_rate
@@ -72,8 +76,8 @@ impl SpeexResampler {
 
         Ok(Self {
             resampler_state,
-            output_buffer: MultiBuffer::new_equilibrium(output_shape),
-            output_frame_rate: output_rate,
+            output_buffer: MultiBuffer::new_equilibrium(output_format.into()),
+            output_format,
         })
     }
 }
@@ -129,8 +133,8 @@ impl AudioProcessor for SpeexResampler {
         Ok(self.output_buffer.as_multi_slice())
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.output_frame_rate
+    fn get_output_format(&self) -> Format {
+        self.output_format
     }
 }
 
@@ -138,8 +142,8 @@ impl AudioProcessor for SpeexResampler {
 mod tests {
     use super::SpeexResampler;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
-    use crate::Shape;
 
     /// Check that the resampler produces the same number of outputs every iteration.
     fn assert_synchronous_output(
@@ -148,12 +152,13 @@ mod tests {
         in_rate: usize,
         out_rate: usize,
     ) {
-        let in_shape = Shape {
+        let in_format = Format {
             channels,
-            frames: in_frames,
+            block_size: in_frames,
+            frame_rate: in_rate,
         };
-        let mut p = SpeexResampler::new(in_shape, in_rate, out_rate).unwrap();
-        let mut input = MultiBuffer::<f32>::new_equilibrium(in_shape);
+        let mut p = SpeexResampler::new(in_format, out_rate).unwrap();
+        let mut input = MultiBuffer::<f32>::new_equilibrium(in_format.into());
         for _ in 0..3 {
             // Run a few iterations.
             let output = p.process(input.as_multi_slice()).unwrap();
@@ -180,17 +185,24 @@ mod tests {
     }
 
     #[test]
-    fn get_output_frame_rate() {
+    fn get_output_format() {
         let speex = SpeexResampler::new(
-            Shape {
+            Format {
                 channels: 1,
-                frames: 5,
+                block_size: 5,
+                frame_rate: 16000,
             },
-            16000,
             48000,
         )
         .unwrap();
 
-        assert_eq!(speex.get_output_frame_rate(), 48000);
+        assert_eq!(
+            speex.get_output_format(),
+            Format {
+                channels: 1,
+                block_size: 15,
+                frame_rate: 48000,
+            }
+        );
     }
 }

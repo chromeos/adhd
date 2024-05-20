@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 
 use crate::AudioProcessor;
 use crate::Error;
+use crate::Format;
 use crate::MultiSlice;
 use crate::Result;
 use crate::Sample;
@@ -13,22 +14,18 @@ use crate::Sample;
 /// `CheckShape` returns the input unmodified if the input matches the specified
 /// shape. Otherwise an error is returned.
 pub struct CheckShape<T: Sample> {
-    channels: usize,
-    block_size: usize,
+    format: Format,
     phantom: PhantomData<T>,
-    frame_rate: usize,
 }
 
 impl<T> CheckShape<T>
 where
     T: Sample,
 {
-    pub fn new(channels: usize, block_size: usize, frame_rate: usize) -> Self {
+    pub fn new(format: Format) -> Self {
         Self {
-            channels,
-            block_size,
+            format,
             phantom: PhantomData,
-            frame_rate,
         }
     }
 }
@@ -41,20 +38,20 @@ where
     type O = T;
 
     fn process<'a>(&'a mut self, input: MultiSlice<'a, T>) -> Result<MultiSlice<'a, T>> {
-        if input.min_len() == self.block_size && input.channels() == self.channels {
+        if input.min_len() == self.format.block_size && input.channels() == self.format.channels {
             Ok(input)
         } else {
             Err(Error::InvalidShape {
-                want_channels: self.channels,
-                want_frames: self.block_size,
+                want_channels: self.format.channels,
+                want_frames: self.format.block_size,
                 got_channels: input.channels(),
                 got_frames: input.min_len(),
             })
         }
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.frame_rate
+    fn get_output_format(&self) -> Format {
+        self.format
     }
 }
 
@@ -63,11 +60,16 @@ mod tests {
 
     use crate::processors::CheckShape;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
 
     #[test]
     fn good_shape() {
-        let mut ap = CheckShape::<i32>::new(2, 4, 16000);
+        let mut ap = CheckShape::<i32>::new(Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 16000,
+        });
         let mut buf = MultiBuffer::from(vec![vec![1, 2, 3, 4], vec![5, 6, 7, 8]]);
 
         let result = ap.process(buf.as_multi_slice());
@@ -79,7 +81,11 @@ mod tests {
 
     #[test]
     fn bad_shape() {
-        let mut ap = CheckShape::<i32>::new(2, 4, 16000);
+        let mut ap = CheckShape::<i32>::new(Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 16000,
+        });
         let mut buf = MultiBuffer::from(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]);
 
         let result = ap.process(buf.as_multi_slice());
@@ -91,8 +97,13 @@ mod tests {
     }
 
     #[test]
-    fn get_output_frame_rate() {
-        let ap = CheckShape::<i32>::new(2, 4, 16000);
-        assert_eq!(ap.get_output_frame_rate(), 16000);
+    fn get_output_format() {
+        let format = Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 16000,
+        };
+        let ap = CheckShape::<i32>::new(format);
+        assert_eq!(ap.get_output_format(), format);
     }
 }

@@ -10,12 +10,15 @@ use hound::WavWriter;
 
 use crate::processors::WavSink;
 use crate::AudioProcessor;
+use crate::Format;
 use crate::MultiSlice;
 
 pub type ProcessorVec = Vec<Box<dyn AudioProcessor<I = f32, O = f32> + Send>>;
 
 pub trait Pipeline {
     fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static);
+
+    fn get_last_output_format(&self) -> Option<Format>;
 
     fn add_wav_dump(
         &mut self,
@@ -35,6 +38,10 @@ pub trait Pipeline {
                     },
                 )
                 .context("WavWriter::create")?,
+                self.get_last_output_format()
+                    .map(|f| f.block_size)
+                    // Use a fake block size if the pipeline is empty.
+                    .unwrap_or(0),
             ));
             anyhow::Result::<()>::Ok(())
         }
@@ -46,6 +53,10 @@ pub trait Pipeline {
 impl Pipeline for ProcessorVec {
     fn add(&mut self, processor: impl AudioProcessor<I = f32, O = f32> + Send + 'static) {
         self.push(Box::new(processor));
+    }
+
+    fn get_last_output_format(&self) -> Option<Format> {
+        self.last().map(|p| p.get_output_format())
     }
 }
 
@@ -63,15 +74,8 @@ impl AudioProcessor for ProcessorVec {
         Ok(input)
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        for processor in self.iter().rev() {
-            let frame_rate = processor.get_output_frame_rate();
-            if frame_rate != 0 {
-                // Zero means the output rate is the same as the previous processor.
-                return frame_rate;
-            }
-        }
-        0
+    fn get_output_format(&self) -> Format {
+        self.last().unwrap().get_output_format()
     }
 }
 
@@ -83,6 +87,7 @@ mod tests {
     use crate::processors::NegateAudioProcessor;
     use crate::util::read_wav;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
     use crate::Pipeline;
     use crate::ProcessorVec;
@@ -97,10 +102,21 @@ mod tests {
         let mut p: ProcessorVec = vec![];
 
         p.add_wav_dump(&dump1, 1, 48000).unwrap();
-        p.add(NegateAudioProcessor::new(1, 4, 48000));
+        p.add(NegateAudioProcessor::new(Format {
+            channels: 1,
+            block_size: 4,
+            frame_rate: 48000,
+        }));
         p.add_wav_dump(&dump2, 1, 48000).unwrap();
 
-        assert_eq!(p.get_output_frame_rate(), 48000);
+        assert_eq!(
+            p.get_output_format(),
+            Format {
+                channels: 1,
+                block_size: 4,
+                frame_rate: 48000,
+            }
+        );
 
         let mut buf = MultiBuffer::from(vec![vec![1f32, 2., 3., 4.]]);
         let out = p.process(buf.as_multi_slice()).unwrap();

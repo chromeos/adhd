@@ -5,25 +5,25 @@
 use std::marker::PhantomData;
 
 use crate::AudioProcessor;
+use crate::Format;
 use crate::MultiBuffer;
 use crate::MultiSlice;
 use crate::Result;
-use crate::Shape;
 use crate::SignedSample;
 
 /// `InPlaceNegateAudioProcessor` is an [`AudioProcessor`] that negates the audio samples.
 /// Audio samples are modified in-place.
 pub struct InPlaceNegateAudioProcessor<T: SignedSample> {
     phantom: PhantomData<T>,
-    frame_rate: usize,
+    format: Format,
 }
 
 impl<T: SignedSample> InPlaceNegateAudioProcessor<T> {
     /// Create a `InPlaceNegateAudioProcessor`.
-    pub fn new(frame_rate: usize) -> Self {
+    pub fn new(format: Format) -> Self {
         Self {
             phantom: PhantomData,
-            frame_rate,
+            format,
         }
     }
 }
@@ -42,8 +42,8 @@ impl<T: SignedSample> AudioProcessor for InPlaceNegateAudioProcessor<T> {
         Ok(input)
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.frame_rate
+    fn get_output_format(&self) -> Format {
+        self.format
     }
 }
 
@@ -51,22 +51,15 @@ impl<T: SignedSample> AudioProcessor for InPlaceNegateAudioProcessor<T> {
 /// Results are written to a dedicated output buffer and the input is unmodified.
 pub struct NegateAudioProcessor<T: SignedSample> {
     output: MultiBuffer<T>,
-    frame_rate: usize,
+    format: Format,
 }
 
 impl<T: SignedSample> NegateAudioProcessor<T> {
     /// Create a `NegateAudioProcessor` with the specified parameters.
-    ///
-    /// Each [`MultiSlice`] passed to the [`AudioProcessor::process()`] function
-    /// must have the matching `num_channels` slices and each slice must be
-    ///  `num_frames` long.
-    pub fn new(num_channels: usize, num_frames: usize, frame_rate: usize) -> Self {
+    pub fn new(format: Format) -> Self {
         Self {
-            output: MultiBuffer::new(Shape {
-                channels: num_channels,
-                frames: num_frames,
-            }),
-            frame_rate,
+            output: MultiBuffer::new(format.into()),
+            format,
         }
     }
 }
@@ -85,8 +78,8 @@ impl<T: SignedSample> AudioProcessor for NegateAudioProcessor<T> {
         Ok(self.output.as_multi_slice())
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.frame_rate
+    fn get_output_format(&self) -> Format {
+        self.format
     }
 }
 
@@ -96,9 +89,14 @@ mod tests {
 
     #[test]
     fn in_place_process() {
+        let format = Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        };
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
-        let mut ap = InPlaceNegateAudioProcessor::<f32>::new(48000);
+        let mut ap = InPlaceNegateAudioProcessor::<f32>::new(format);
 
         let output = ap.process(input.as_multi_slice()).unwrap();
 
@@ -117,9 +115,15 @@ mod tests {
 
     #[test]
     fn process() {
+        let format = Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 16000,
+        };
+
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
-        let mut ap = NegateAudioProcessor::new(2, 4, 16000);
+        let mut ap = NegateAudioProcessor::new(format);
 
         let output = ap.process(input.as_multi_slice()).unwrap();
 
@@ -134,9 +138,15 @@ mod tests {
     }
 
     #[test]
-    fn get_output_frame_rate() {
-        let ap = NegateAudioProcessor::<f32>::new(2, 4, 16000);
+    fn get_output_format() {
+        let format = Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 16000,
+        };
 
-        assert_eq!(ap.get_output_frame_rate(), 16000);
+        let ap = NegateAudioProcessor::<f32>::new(format);
+
+        assert_eq!(ap.get_output_format(), format);
     }
 }

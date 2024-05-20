@@ -7,6 +7,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use crate::AudioProcessor;
+use crate::Format;
 use crate::MultiSlice;
 
 pub struct Profile<T: AudioProcessor> {
@@ -37,8 +38,8 @@ impl<T: AudioProcessor> AudioProcessor for Profile<T> {
         Ok(output)
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.inner.get_output_frame_rate()
+    fn get_output_format(&self) -> Format {
+        self.inner.get_output_format()
     }
 }
 
@@ -132,8 +133,8 @@ mod tests {
     use crate::processors::InPlaceNegateAudioProcessor;
     use crate::processors::SpeexResampler;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
-    use crate::Shape;
 
     #[test]
     fn cpu_time_smoke() {
@@ -182,25 +183,36 @@ mod tests {
     }
 
     #[test]
-    fn get_output_frame_rate() {
+    fn get_output_format() {
         let p = Profile::new(
             SpeexResampler::new(
-                Shape {
+                Format {
                     channels: 1,
-                    frames: 5,
+                    block_size: 5,
+                    frame_rate: 8000,
                 },
-                8000,
                 16000,
             )
             .unwrap(),
         );
 
-        assert_eq!(p.get_output_frame_rate(), 16000);
+        assert_eq!(
+            p.get_output_format(),
+            Format {
+                channels: 1,
+                block_size: 10,
+                frame_rate: 16000,
+            }
+        );
     }
 
     #[test]
     fn profile() {
-        let mut p = Profile::new(InPlaceNegateAudioProcessor::<i32>::new(48000));
+        let mut p = Profile::new(InPlaceNegateAudioProcessor::<i32>::new(Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        }));
         let mut buf = MultiBuffer::from(vec![vec![1i32, 2, 3, 4], vec![5, 6, 7, 8]]);
 
         let cpu_start = super::cpu_time();

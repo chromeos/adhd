@@ -12,6 +12,7 @@ use nix::sys::resource::setrlimit;
 use nix::sys::resource::Resource;
 
 use crate::AudioProcessor;
+use crate::Format;
 use crate::MultiBuffer;
 use crate::Result;
 use crate::Shape;
@@ -40,18 +41,20 @@ pub struct ThreadedProcessor<T: AudioProcessor> {
     intx: Option<Sender<MultiBuffer<T::I>>>,
     outrx: Receiver<Result<MultiBuffer<T::O>>>,
     outbuf: MultiBuffer<T::O>,
-    output_frame_rate: usize,
+    output_format: Format,
 }
 
 impl<T: AudioProcessor + Send + 'static> ThreadedProcessor<T> {
-    pub fn new(mut inner: T, output_shape: Shape, delay_blocks: usize) -> Self {
-        let output_frame_rate = inner.get_output_frame_rate();
+    pub fn new(mut inner: T, delay_blocks: usize) -> Self {
+        let output_format = inner.get_output_format();
         let (intx, inrx) = std::sync::mpsc::channel::<MultiBuffer<T::I>>();
         let (outtx, outrx) = std::sync::mpsc::channel();
 
         // Populate delay_blocks.
         for _ in 0..delay_blocks {
-            outtx.send(Ok(MultiBuffer::new(output_shape))).unwrap();
+            outtx
+                .send(Ok(MultiBuffer::new(output_format.into())))
+                .unwrap();
         }
 
         let builder = std::thread::Builder::new().name("ThreadedProcessor".into());
@@ -79,7 +82,7 @@ impl<T: AudioProcessor + Send + 'static> ThreadedProcessor<T> {
                 channels: 0,
                 frames: 0,
             }),
-            output_frame_rate,
+            output_format,
         }
     }
 }
@@ -115,8 +118,8 @@ impl<T: AudioProcessor> AudioProcessor for ThreadedProcessor<T> {
         }
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.output_frame_rate
+    fn get_output_format(&self) -> Format {
+        self.output_format
     }
 }
 
@@ -125,8 +128,8 @@ mod tests {
     use crate::processors::NegateAudioProcessor;
     use crate::processors::ThreadedProcessor;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
-    use crate::Shape;
 
     #[test]
     fn process() {
@@ -135,18 +138,18 @@ mod tests {
         let mut input2: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![11., 22., 33., 44.], vec![55., 66., 77., 88.]]);
         let mut ap = ThreadedProcessor::new(
-            NegateAudioProcessor::new(2, 4, 16000),
-            Shape {
-                channels: 1,
-                frames: 4,
-            },
+            NegateAudioProcessor::new(Format {
+                channels: 2,
+                block_size: 4,
+                frame_rate: 48000,
+            }),
             1,
         );
 
         let output1 = ap.process(input1.as_multi_slice()).unwrap();
 
         // First output should be empty due to delayed.
-        assert_eq!(output1.into_raw(), [[0.; 4]]);
+        assert_eq!(output1.into_raw(), [[0.; 4]; 2]);
 
         let output2 = ap.process(input2.as_multi_slice()).unwrap();
         // output2 = -input1.

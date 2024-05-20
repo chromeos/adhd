@@ -22,7 +22,7 @@ struct Exporter<'a> {
 
 impl<'a> Exporter<'a> {
     pub fn new(p: impl AudioProcessor<I = f32, O = f32> + 'a) -> Self {
-        let frame_rate = p.get_output_frame_rate();
+        let frame_rate = p.get_output_format().frame_rate;
         Exporter {
             base: binding::plugin_processor { ops: &OPS },
             processor: Box::new(p),
@@ -110,16 +110,21 @@ mod tests {
     use crate::processors::PluginProcessor;
     use crate::processors::SpeexResampler;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
-    use crate::Shape;
 
     #[test]
     fn negate_process() {
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
-        let original_ap = NegateAudioProcessor::new(2, 4, 48000);
+        let format = Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        };
+        let original_ap = NegateAudioProcessor::new(format);
         let ap_binding = export_plugin(original_ap);
-        let mut ap = unsafe { PluginProcessor::from_handle(ap_binding) }.unwrap();
+        let mut ap = unsafe { PluginProcessor::from_handle(ap_binding, format) }.unwrap();
 
         let output = ap.process(input.as_multi_slice()).unwrap();
 
@@ -134,19 +139,25 @@ mod tests {
     }
 
     #[test]
-    fn get_output_frame_rate() {
-        let original_ap = SpeexResampler::new(
-            Shape {
-                channels: 1,
-                frames: 5,
-            },
-            16000,
-            48000,
-        )
-        .unwrap();
+    fn get_output_format() {
+        let format = Format {
+            channels: 1,
+            block_size: 5,
+            frame_rate: 16000,
+        };
+        let original_ap = SpeexResampler::new(format, 48000).unwrap();
         let ap_binding = export_plugin(original_ap);
-        let ap = unsafe { PluginProcessor::from_handle(ap_binding) }.unwrap();
+        let ap = unsafe { PluginProcessor::from_handle(ap_binding, format) }.unwrap();
 
-        assert_eq!(ap.get_output_frame_rate(), 48000);
+        assert_eq!(
+            ap.get_output_format(),
+            Format {
+                channels: 1,
+                // TODO: The output block size should be reported by the plugin.
+                // In this case, the correct value is 15 = 5 * 48000 / 16000.
+                block_size: 5,
+                frame_rate: 48000,
+            }
+        );
     }
 }

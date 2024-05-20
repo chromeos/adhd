@@ -6,6 +6,7 @@ use super::dl;
 use super::PluginProcessor;
 use super::PluginProcessorCreate;
 use crate::AudioProcessor;
+use crate::Format;
 
 /// `DynamicPluginProcessor` supports running [`PluginProcessor`]s in dynamic
 /// loaded libraries.
@@ -25,21 +26,14 @@ unsafe impl Send for DynamicPluginProcessor {}
 impl DynamicPluginProcessor {
     /// Create a new `DynamicPluginProcessor` from dynamically loaded `lib`
     /// and a constructor named `symbol`.
-    pub fn new(
-        lib: &str,
-        symbol: &str,
-        block_size: usize,
-        channels: usize,
-        frame_rate: usize,
-    ) -> crate::Result<Self> {
+    pub fn new(lib: &str, symbol: &str, format: Format) -> crate::Result<Self> {
         let dyn_lib = dl::DynLib::new(lib)?;
         let constructor: PluginProcessorCreate =
             unsafe { std::mem::transmute(dyn_lib.sym(symbol)?) };
 
         // SAFETY: We assume that the dynamic library is safe if it is
         // loaded successfully.
-        let processor =
-            unsafe { PluginProcessor::new(constructor, block_size, channels, frame_rate) }?;
+        let processor = unsafe { PluginProcessor::new(constructor, format) }?;
 
         Ok(Self {
             processor,
@@ -59,8 +53,8 @@ impl AudioProcessor for DynamicPluginProcessor {
         self.processor.process(input)
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.processor.get_output_frame_rate()
+    fn get_output_format(&self) -> Format {
+        self.processor.get_output_format()
     }
 }
 
@@ -74,6 +68,7 @@ mod tests {
     use crate::processors::DynamicPluginProcessor;
     use crate::processors::PluginError;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
 
     fn dl_lib_path() -> String {
@@ -82,14 +77,31 @@ mod tests {
 
     #[test]
     fn dlopen_error() {
-        let err = DynamicPluginProcessor::new("./does_not_exist.so", "ctor", 1, 1, 1).unwrap_err();
+        let err = DynamicPluginProcessor::new(
+            "./does_not_exist.so",
+            "ctor",
+            Format {
+                channels: 1,
+                block_size: 1,
+                frame_rate: 1,
+            },
+        )
+        .unwrap_err();
         assert_matches!(err, crate::Error::Plugin(PluginError::Dl { .. }));
     }
 
     #[test]
     fn dlsym_error() {
-        let err =
-            DynamicPluginProcessor::new(&dl_lib_path(), "does_not_exist", 1, 1, 1).unwrap_err();
+        let err = DynamicPluginProcessor::new(
+            &dl_lib_path(),
+            "does_not_exist",
+            Format {
+                channels: 1,
+                block_size: 1,
+                frame_rate: 1,
+            },
+        )
+        .unwrap_err();
         assert_matches!(err, crate::Error::Plugin(PluginError::Dl { .. }));
     }
 
@@ -97,9 +109,16 @@ mod tests {
     fn negate_process() {
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
-        let mut ap =
-            DynamicPluginProcessor::new(&dl_lib_path(), "negate_processor_create", 4, 2, 48000)
-                .unwrap();
+        let mut ap = DynamicPluginProcessor::new(
+            &dl_lib_path(),
+            "negate_processor_create",
+            Format {
+                channels: 2,
+                block_size: 4,
+                frame_rate: 48000,
+            },
+        )
+        .unwrap();
 
         let output = ap.process(input.as_multi_slice()).unwrap();
 
@@ -117,9 +136,16 @@ mod tests {
     fn abs_process() {
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., -2., 3., -4.], vec![5., -6., 7., -8.]]);
-        let mut ap =
-            DynamicPluginProcessor::new(&dl_lib_path(), "abs_processor_create", 4, 2, 48000)
-                .unwrap();
+        let mut ap = DynamicPluginProcessor::new(
+            &dl_lib_path(),
+            "abs_processor_create",
+            Format {
+                channels: 2,
+                block_size: 4,
+                frame_rate: 48000,
+            },
+        )
+        .unwrap();
 
         let output = ap.process(input.as_multi_slice()).unwrap();
 
@@ -136,9 +162,12 @@ mod tests {
         let mut ap = DynamicPluginProcessor::new(
             &dl_lib_path(),
             "echo_processor_create",
-            4,
-            1,
-            6, // The processor delays echo by 0.5secs. Frame rate 6 Hz => echo delay = 3 frames.
+            Format {
+                channels: 1,
+                block_size: 4,
+                // The processor delays echo by 0.5secs. Frame rate 6 Hz => echo delay = 3 frames.
+                frame_rate: 6,
+            },
         )
         .unwrap();
 

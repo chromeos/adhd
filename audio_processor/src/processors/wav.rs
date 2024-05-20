@@ -6,6 +6,7 @@ use dasp_sample::ToSample;
 
 use crate::AudioProcessor;
 use crate::Error;
+use crate::Format;
 use crate::MultiBuffer;
 use crate::MultiSlice;
 use crate::Result;
@@ -50,10 +51,8 @@ fn storage_type(spec: hound::WavSpec) -> Type {
 ///
 /// The `input` passed to `WavSource` is ignored.
 pub struct WavSource<R> {
-    spec: hound::WavSpec,
-    frame_rate: usize,
+    format: Format,
     reader: hound::WavReader<R>,
-    block_size: usize,
     block: MultiBuffer<f32>,
 
     storage_type: Type,
@@ -71,10 +70,12 @@ where
             .expect("sample rate failed to fit into usize");
         let channels = spec.channels as usize;
         Self {
-            spec,
-            frame_rate,
+            format: Format {
+                channels: spec.channels.into(),
+                frame_rate,
+                block_size,
+            },
             reader,
-            block_size,
             block: MultiBuffer::new(Shape {
                 channels,
                 frames: block_size,
@@ -93,19 +94,19 @@ where
         T: Sample + hound::Sample,
         U: dasp_sample::Sample + From<T> + ToSample<f32>,
     {
-        let channels = self.spec.channels as usize;
         let mut nread = 0;
         for (i, s) in self
             .reader
             .samples::<T>()
-            .take(self.block_size * channels)
+            .take(self.format.block_size * self.format.channels)
             .enumerate()
         {
-            self.block[i % channels][i / channels] = U::from(s?).to_sample::<f32>();
+            self.block[i % self.format.channels][i / self.format.channels] =
+                U::from(s?).to_sample::<f32>();
             nread += 1
         }
 
-        Ok(nread / channels)
+        Ok(nread / self.format.channels)
     }
 }
 
@@ -133,8 +134,8 @@ where
         Ok(self.block.as_multi_slice().into_indexes(0..result))
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.frame_rate
+    fn get_output_format(&self) -> Format {
+        self.format
     }
 }
 
@@ -149,7 +150,7 @@ where
     W: std::io::Write + std::io::Seek,
 {
     writer: hound::WavWriter<W>,
-    frame_rate: usize,
+    format: Format,
 }
 
 impl<W> WavSink<W>
@@ -158,11 +159,18 @@ where
 {
     /// Create a new `WavSink` which writes the audio frames passed to it
     /// to the `writer`.
-    pub fn new(writer: hound::WavWriter<W>) -> WavSink<W> {
-        let frame_rate = usize::try_from(writer.spec().sample_rate)
-            .expect("sample rate failed to fit into usize");
+    pub fn new(writer: hound::WavWriter<W>, block_size: usize) -> WavSink<W> {
+        let spec = writer.spec();
+        let format = Format {
+            channels: spec.channels.into(),
+            frame_rate: spec
+                .sample_rate
+                .try_into()
+                .expect("sample rate failed to fit into usize"),
+            block_size,
+        };
 
-        Self { writer, frame_rate }
+        Self { writer, format }
     }
 }
 
@@ -186,8 +194,8 @@ where
         Ok(input)
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        self.frame_rate
+    fn get_output_format(&self) -> Format {
+        self.format
     }
 }
 
@@ -197,6 +205,7 @@ mod tests {
     use super::WavSource;
     use crate::AudioProcessor;
     use crate::Error;
+    use crate::Format;
     use crate::MultiBuffer;
     use crate::Shape;
 
@@ -252,10 +261,19 @@ mod tests {
         let mut buf = Vec::new();
 
         // Tests WavSink.get_output_frame_rate and Dumps header data to buf.
-        let sink =
-            WavSink::new(hound::WavWriter::new(std::io::Cursor::new(&mut buf), spec).unwrap());
+        let sink = WavSink::new(
+            hound::WavWriter::new(std::io::Cursor::new(&mut buf), spec).unwrap(),
+            0, // Fake block size
+        );
 
-        assert_eq!(sink.get_output_frame_rate(), 16000);
+        assert_eq!(
+            sink.get_output_format(),
+            Format {
+                channels: 1,
+                frame_rate: 16000,
+                block_size: 0,
+            }
+        );
 
         drop(sink); // Flush the buffer
 
@@ -265,7 +283,14 @@ mod tests {
             3,
         );
 
-        assert_eq!(source.get_output_frame_rate(), 16000);
+        assert_eq!(
+            source.get_output_format(),
+            Format {
+                channels: 1,
+                frame_rate: 16000,
+                block_size: 3,
+            }
+        );
     }
 
     #[test]
@@ -279,8 +304,10 @@ mod tests {
 
         let mut buf = Vec::new();
 
-        let mut sink =
-            WavSink::new(hound::WavWriter::new(std::io::Cursor::new(&mut buf), spec).unwrap());
+        let mut sink = WavSink::new(
+            hound::WavWriter::new(std::io::Cursor::new(&mut buf), spec).unwrap(),
+            0, // Fake block size
+        );
 
         // Content to write to the wav file
         // Data in channel-0: 1, 2, 5, 6, 7
@@ -424,6 +451,7 @@ mod tests {
                 },
             )
             .unwrap(),
+            0, // Fake block size.
         );
 
         let mut data = MultiBuffer::from(vec![vec![1f32], vec![2.]]);

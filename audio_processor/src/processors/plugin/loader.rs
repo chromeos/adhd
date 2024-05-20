@@ -11,9 +11,9 @@ use crate::processors::ChunkWrapper;
 use crate::processors::DynamicPluginProcessor;
 use crate::processors::SpeexResampler;
 use crate::AudioProcessor;
+use crate::Format;
 use crate::Pipeline;
 use crate::ProcessorVec;
-use crate::Shape;
 
 /// Configuration for plugin dump.
 pub struct PluginDumpConfig {
@@ -43,9 +43,11 @@ impl<'a> PluginLoader<'a> {
         let processor = DynamicPluginProcessor::new(
             self.path,
             self.constructor,
-            self.inner_block_size,
-            self.channels,
-            self.inner_rate,
+            Format {
+                channels: self.channels,
+                block_size: self.inner_block_size,
+                frame_rate: self.inner_rate,
+            },
         )
         .with_context(|| "DynamicPluginProcessor::new failed")?;
 
@@ -80,6 +82,7 @@ impl<'a> PluginLoader<'a> {
             }
             Box::new(ChunkWrapper::new(
                 maybe_dump_processor,
+                self.outer_block_size,
                 self.inner_block_size,
                 self.channels,
                 self.channels,
@@ -94,11 +97,11 @@ impl<'a> PluginLoader<'a> {
             vec![
                 Box::new(
                     SpeexResampler::new(
-                        Shape {
+                        Format {
+                            frame_rate: self.outer_rate,
                             channels: self.channels,
-                            frames: self.outer_block_size,
+                            block_size: self.outer_block_size,
                         },
-                        self.outer_rate,
                         self.inner_rate,
                     )
                     .with_context(|| "failed to create 1st wrapping resampler")?,
@@ -106,11 +109,11 @@ impl<'a> PluginLoader<'a> {
                 maybe_wrapped_processor,
                 Box::new(
                     SpeexResampler::new(
-                        Shape {
+                        Format {
+                            frame_rate: self.inner_rate,
                             channels: self.channels,
-                            frames: self.outer_block_size * self.inner_rate / self.outer_rate,
+                            block_size: self.outer_block_size * self.inner_rate / self.outer_rate,
                         },
-                        self.inner_rate,
                         self.outer_rate,
                     )
                     .with_context(|| "failed to create 2nd wrapping resampler")?,

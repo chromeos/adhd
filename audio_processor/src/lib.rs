@@ -13,6 +13,7 @@ pub use processor::*;
 pub use sample::*;
 
 mod shape;
+pub use shape::Format;
 pub use shape::Shape;
 
 mod pipeline;

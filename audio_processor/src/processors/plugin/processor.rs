@@ -5,6 +5,7 @@
 use super::binding;
 use super::PluginError;
 use crate::AudioProcessor;
+use crate::Format;
 
 pub type PluginProcessorCreate = unsafe extern "C" fn(
     out: *mut *mut binding::plugin_processor,
@@ -30,6 +31,7 @@ pub struct PluginProcessor {
     handle: *mut binding::plugin_processor,
     run: PluginProcessorRun,
     destroy: PluginProcessorDestroy,
+    input_format: Format,
     _get_output_frame_rate: PluginProcessorGetOutputFrameRate,
 }
 
@@ -50,14 +52,12 @@ impl PluginProcessor {
     /// a `plugin_processor_create` function. See also `plugin_processor.h`.
     pub unsafe fn new(
         constructor: PluginProcessorCreate,
-        block_size: usize,
-        channels: usize,
-        frame_rate: usize,
+        format: Format,
     ) -> crate::Result<PluginProcessor> {
         let config = binding::plugin_processor_config {
-            block_size,
-            channels,
-            frame_rate,
+            block_size: format.block_size,
+            channels: format.channels,
+            frame_rate: format.frame_rate,
             debug: false,
         };
 
@@ -69,7 +69,7 @@ impl PluginProcessor {
             return Err(null_error("create"));
         }
 
-        Self::from_handle(handle)
+        Self::from_handle(handle, format)
     }
 
     /// Create a [`PluginProcessor`] from a already created plugin_processor
@@ -84,6 +84,7 @@ impl PluginProcessor {
     /// plugin_processor.h API.
     pub unsafe fn from_handle(
         handle: *mut binding::plugin_processor,
+        format: Format,
     ) -> crate::Result<PluginProcessor> {
         let ops = (*handle).ops.as_ref().ok_or_else(|| null_error("ops"))?;
         let destroy = ops.destroy.ok_or_else(|| null_error("ops.destroy"))?;
@@ -101,7 +102,17 @@ impl PluginProcessor {
             run,
             destroy,
             _get_output_frame_rate,
+            input_format: format,
         })
+    }
+
+    fn get_output_frame_rate<'a>(&'a self) -> usize {
+        let mut frame_rate = 0;
+        let status = unsafe { (self._get_output_frame_rate)(self.handle, &mut frame_rate) };
+        if status != binding::status::StatusOk {
+            panic!("PluginProcessor get_output_frame_rate failed with status {status}");
+        }
+        frame_rate
     }
 }
 
@@ -135,13 +146,11 @@ impl AudioProcessor for PluginProcessor {
         Ok(output)
     }
 
-    fn get_output_frame_rate<'a>(&'a self) -> usize {
-        let mut frame_rate = 0;
-        let status = unsafe { (self._get_output_frame_rate)(self.handle, &mut frame_rate) };
-        if status != binding::status::StatusOk {
-            panic!("PluginProcessor get_output_frame_rate failed with status {status}");
+    fn get_output_format(&self) -> Format {
+        Format {
+            frame_rate: self.get_output_frame_rate(),
+            ..self.input_format
         }
-        frame_rate
     }
 }
 
@@ -154,20 +163,37 @@ mod plugin_tests {
     use super::PluginError;
     use super::PluginProcessor;
     use crate::AudioProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
     use crate::Shape;
 
     #[test]
     fn oom_create() {
-        let err = unsafe { PluginProcessor::new(binding::bad_plugin_oom_create, 480, 2, 48000) }
-            .unwrap_err();
+        let err = unsafe {
+            PluginProcessor::new(
+                binding::bad_plugin_oom_create,
+                Format {
+                    channels: 2,
+                    block_size: 480,
+                    frame_rate: 48000,
+                },
+            )
+        }
+        .unwrap_err();
         assert_matches!(err, crate::Error::Plugin(PluginError::Binding(_)));
     }
 
     #[test]
     fn null_processor() {
         let err = unsafe {
-            PluginProcessor::new(binding::bad_plugin_null_processor_create, 480, 2, 48000)
+            PluginProcessor::new(
+                binding::bad_plugin_null_processor_create,
+                Format {
+                    channels: 2,
+                    block_size: 480,
+                    frame_rate: 48000,
+                },
+            )
         }
         .unwrap_err();
         assert_matches!(err, crate::Error::Plugin(PluginError::UnexpectedNull(_)));
@@ -175,24 +201,47 @@ mod plugin_tests {
 
     #[test]
     fn null_ops() {
-        let err =
-            unsafe { PluginProcessor::new(binding::bad_plugin_null_ops_create, 480, 2, 48000) }
-                .unwrap_err();
+        let err = unsafe {
+            PluginProcessor::new(
+                binding::bad_plugin_null_ops_create,
+                Format {
+                    channels: 2,
+                    block_size: 480,
+                    frame_rate: 48000,
+                },
+            )
+        }
+        .unwrap_err();
         assert_matches!(err, crate::Error::Plugin(PluginError::UnexpectedNull(_)));
     }
 
     #[test]
     fn missing_run() {
-        let err =
-            unsafe { PluginProcessor::new(binding::bad_plugin_missing_run_create, 480, 2, 48000) }
-                .unwrap_err();
+        let err = unsafe {
+            PluginProcessor::new(
+                binding::bad_plugin_missing_run_create,
+                Format {
+                    channels: 2,
+                    block_size: 480,
+                    frame_rate: 48000,
+                },
+            )
+        }
+        .unwrap_err();
         assert_matches!(err, crate::Error::Plugin(PluginError::UnexpectedNull(_)));
     }
 
     #[test]
     fn missing_destroy() {
         let err = unsafe {
-            PluginProcessor::new(binding::bad_plugin_missing_destroy_create, 480, 2, 48000)
+            PluginProcessor::new(
+                binding::bad_plugin_missing_destroy_create,
+                Format {
+                    channels: 2,
+                    block_size: 480,
+                    frame_rate: 48000,
+                },
+            )
         }
         .unwrap_err();
         assert_matches!(err, crate::Error::Plugin(PluginError::UnexpectedNull(_)));
@@ -203,9 +252,11 @@ mod plugin_tests {
         let err = unsafe {
             PluginProcessor::new(
                 binding::bad_plugin_missing_get_output_frame_rate_create,
-                480,
-                2,
-                48000,
+                Format {
+                    channels: 2,
+                    block_size: 480,
+                    frame_rate: 48000,
+                },
             )
         }
         .unwrap_err();
@@ -214,9 +265,17 @@ mod plugin_tests {
 
     #[test]
     fn failing_run() {
-        let mut p =
-            unsafe { PluginProcessor::new(binding::bad_plugin_failing_run_create, 480, 2, 48000) }
-                .unwrap();
+        let mut p = unsafe {
+            PluginProcessor::new(
+                binding::bad_plugin_failing_run_create,
+                Format {
+                    channels: 2,
+                    block_size: 480,
+                    frame_rate: 48000,
+                },
+            )
+        }
+        .unwrap();
         let mut buf = MultiBuffer::<f32>::new_equilibrium(Shape {
             channels: 2,
             frames: 480,
@@ -229,8 +288,17 @@ mod plugin_tests {
     fn negate_process() {
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
-        let mut ap =
-            unsafe { PluginProcessor::new(binding::negate_processor_create, 4, 2, 48000) }.unwrap();
+        let mut ap = unsafe {
+            PluginProcessor::new(
+                binding::negate_processor_create,
+                Format {
+                    channels: 2,
+                    block_size: 4,
+                    frame_rate: 48000,
+                },
+            )
+        }
+        .unwrap();
 
         let output = ap.process(input.as_multi_slice()).unwrap();
 
@@ -245,9 +313,18 @@ mod plugin_tests {
     }
 
     #[test]
-    fn get_output_frame_rate() {
-        let ap =
-            unsafe { PluginProcessor::new(binding::negate_processor_create, 4, 2, 48000) }.unwrap();
+    fn get_output_format() {
+        let ap = unsafe {
+            PluginProcessor::new(
+                binding::negate_processor_create,
+                Format {
+                    channels: 2,
+                    block_size: 4,
+                    frame_rate: 48000,
+                },
+            )
+        }
+        .unwrap();
 
         assert_eq!(ap.get_output_frame_rate(), 48000,);
     }
@@ -258,9 +335,11 @@ mod plugin_tests {
         let ap = unsafe {
             PluginProcessor::new(
                 binding::bad_plugin_failing_get_output_frame_rate_create,
-                4,
-                2,
-                48000,
+                Format {
+                    channels: 2,
+                    block_size: 4,
+                    frame_rate: 48000,
+                },
             )
         }
         .unwrap();

@@ -12,8 +12,10 @@ use audio_processor::processors::CheckShape;
 use audio_processor::processors::DynamicPluginProcessor;
 use audio_processor::processors::WavSink;
 use audio_processor::processors::WavSource;
+use audio_processor::AudioProcessor;
 use audio_processor::ByteProcessor;
 use audio_processor::Error;
+use audio_processor::Format;
 use audio_processor::MultiBuffer;
 use audio_processor::Shape;
 use clap::Parser;
@@ -140,17 +142,23 @@ fn run(command: Command) {
     let mut source = WavSource::new(reader, block_size);
     let frame_rate =
         usize::try_from(spec.sample_rate).expect("Sample rate failed to fit into usize");
-    let mut check_shape = CheckShape::<f32>::new(spec.channels as usize, block_size, frame_rate);
+    let mut check_shape = CheckShape::<f32>::new(Format {
+        channels: spec.channels as usize,
+        block_size,
+        frame_rate,
+    });
     let ext = DynamicPluginProcessor::new(
         &command.plugin,
         &command.plugin_name,
-        block_size,
-        spec.channels as usize,
-        spec.sample_rate as usize,
+        Format {
+            channels: spec.channels as usize,
+            block_size,
+            frame_rate: spec.sample_rate as usize,
+        },
     )
     .expect("Cannot load plugin");
     let mut profile = profile::Profile::new(ext);
-    let mut sink = WavSink::new(writer);
+    let mut sink = WavSink::new(writer, profile.get_output_format().block_size);
 
     let mut pipeline: Vec<&mut dyn ByteProcessor> =
         vec![&mut source, &mut check_shape, &mut profile, &mut sink];

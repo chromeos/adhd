@@ -10,3 +10,23 @@ pub struct Shape {
     /// Number of frames.
     pub frames: usize,
 }
+
+/// Format of an audio processor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Format {
+    /// Number of channels.
+    pub channels: usize,
+    /// Number of frames per processing.
+    pub block_size: usize,
+    /// Number of frames per second.
+    pub frame_rate: usize,
+}
+
+impl Into<Shape> for Format {
+    fn into(self) -> Shape {
+        Shape {
+            channels: self.channels,
+            frames: self.block_size,
+        }
+    }
+}

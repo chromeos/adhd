@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use crate::shape::Format;
 use crate::MultiSlice;
 use crate::Sample;
 
@@ -67,8 +68,8 @@ pub trait AudioProcessor {
         self.process(input.into_typed()).map(|x| x.into_bytes())
     }
 
-    /// Get the frame rate of the `process`ed output.
-    fn get_output_frame_rate<'a>(&'a self) -> usize;
+    /// Get the `Format` of the `process`ed output.
+    fn get_output_format(&self) -> Format;
 }
 
 impl<T> ByteProcessor for T
@@ -84,13 +85,19 @@ where
 mod tests {
     use crate::processors;
     use crate::ByteProcessor;
+    use crate::Format;
     use crate::MultiBuffer;
 
     #[test]
     fn simple_pipeline() {
+        let format = Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        };
         // Test a simple pipeline using a Vec of ByteProcessor.
-        let mut p1 = processors::InPlaceNegateAudioProcessor::<f32>::new(48000);
-        let mut p2 = processors::NegateAudioProcessor::<f32>::new(2, 4, 48000);
+        let mut p1 = processors::InPlaceNegateAudioProcessor::<f32>::new(format);
+        let mut p2 = processors::NegateAudioProcessor::<f32>::new(format);
         let mut pipeline: Vec<&mut dyn ByteProcessor> = vec![&mut p1, &mut p2];
 
         let mut bufs = MultiBuffer::<f32>::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
