@@ -299,6 +299,9 @@ void cras_iodev_list_reset_for_noise_cancellation();
 /* Sets the state of style transfer for input devices. */
 void cras_iodev_list_reset_for_style_transfer();
 
+/* Reset the iodev so it's opened with low enough cb level for sidetone */
+void cras_iodev_list_reset_for_sidetone();
+
 // Sets dev_idx as the aec ref for a given stream.
 int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx);
 

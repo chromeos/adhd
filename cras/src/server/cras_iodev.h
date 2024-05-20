@@ -387,6 +387,8 @@ struct cras_iodev {
   unsigned int max_cb_level;
   // The highest hardware level of the device.
   unsigned int highest_hw_level;
+  // The callback level when the device was opened.
+  unsigned int open_cb_level;
   // The largest callback level of streams attached to this
   // device. The difference with max_cb_level is it takes all
   // streams into account even if they have been removed.

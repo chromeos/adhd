@@ -1196,6 +1196,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
   // Make sure the min_cb_level doesn't get too large.
   iodev->min_cb_level = MIN(iodev->buffer_size / 2, cb_level);
   iodev->max_cb_level = 0;
+  iodev->open_cb_level = cb_level;
   iodev->largest_cb_level = 0;
   iodev->num_underruns = 0;
   iodev->num_underruns_during_nc = 0;

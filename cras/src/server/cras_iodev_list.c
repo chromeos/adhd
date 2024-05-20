@@ -744,7 +744,11 @@ static int init_device(struct cras_iodev* dev, struct cras_rstream* rstream) {
   MAINLOG(main_log, MAIN_THREAD_DEV_INIT, dev->info.idx,
           rstream->format.num_channels, rstream->format.frame_rate);
 
-  rc = cras_iodev_open(dev, rstream->cb_threshold, &rstream->format);
+  size_t cb_threshold =
+      cras_system_get_sidetone_enabled()
+          ? sidetone_get_max_cb_level(rstream->format.frame_rate)
+          : rstream->cb_threshold;
+  rc = cras_iodev_open(dev, cb_threshold, &rstream->format);
   if (rc) {
     dev->info.last_open_result = FAILURE;
     return rc;
@@ -2546,6 +2550,44 @@ void cras_iodev_list_reset_for_noise_cancellation() {
 
 void cras_iodev_list_reset_for_style_transfer() {
   cras_iodev_list_reset_for_noise_cancellation();
+}
+
+void cras_iodev_list_reset_for_sidetone() {
+  struct cras_iodev* dev;
+
+  DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
+    if (!cras_iodev_is_open(dev)) {
+      continue;
+    }
+    if (!dev->active_node) {
+      continue;
+    }
+
+    if (dev->open_cb_level <=
+        sidetone_get_max_cb_level(dev->format->frame_rate)) {
+      continue;
+    }
+    possibly_enable_fallback(CRAS_STREAM_INPUT, false);
+    restart_device_group(dev->info.idx);
+    possibly_disable_fallback(CRAS_STREAM_INPUT);
+  }
+
+  DL_FOREACH (devs[CRAS_STREAM_OUTPUT].iodevs, dev) {
+    if (!cras_iodev_is_open(dev)) {
+      continue;
+    }
+    if (!dev->active_node) {
+      continue;
+    }
+
+    if (dev->open_cb_level <=
+        sidetone_get_max_cb_level(dev->format->frame_rate)) {
+      continue;
+    }
+    possibly_enable_fallback(CRAS_STREAM_OUTPUT, false);
+    restart_device_group(dev->info.idx);
+    possibly_disable_fallback(CRAS_STREAM_OUTPUT);
+  }
 }
 
 /*

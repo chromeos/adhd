@@ -4065,6 +4065,10 @@ void configure_sidetone_streams(struct cras_rstream* input,
   return;
 }
 
+bool cras_system_get_sidetone_enabled() {
+  return false;
+}
+
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                         unsigned int ms,
                                         void (*cb)(struct cras_timer* t,
