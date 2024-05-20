@@ -1538,7 +1538,7 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
              (int)data2);
       break;
     case BT_SCO_DISCONNECT:
-      printf("%-30s\n", "SCO_DISCONNECT");
+      printf("%-30s %s\n", "SCO_DISCONNECT", data1 ? "success" : "failed");
       break;
     case BT_TRANSPORT_RELEASE:
       printf("%-30s\n", "TRANSPORT_RELEASE");

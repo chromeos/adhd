@@ -314,7 +314,8 @@ start_dev:
   return 0;
 error:
   BTLOG(btlog, BT_SCO_CONNECT, 0, skt_fd);
-  floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
+  int stop_rc = floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
+  BTLOG(btlog, BT_SCO_DISCONNECT, stop_rc == 0, 0);
   if (skt_fd >= 0) {
     close(skt_fd);
     unlink(addr.sun_path);
@@ -336,15 +337,19 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
 
   if (hfp->fd >= 0) {
     audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(), hfp->fd);
-    close(hfp->fd);
   }
-  hfp->fd = -1;
 
   hfp->is_sco_stopped = true;
 
-  BTLOG(btlog, BT_SCO_DISCONNECT, 0, 0);
+  int rc = floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
+  BTLOG(btlog, BT_SCO_DISCONNECT, rc == 0, 0);
 
-  return floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
+  if (hfp->fd >= 0) {
+    close(hfp->fd);
+    hfp->fd = -1;
+  }
+
+  return rc;
 }
 
 // This event is where we learn about unsolicited SCO disconnection.
