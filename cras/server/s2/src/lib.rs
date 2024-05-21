@@ -38,12 +38,7 @@ fn resolve(input: &Input) -> Output {
             || input.ap_nc_feature_tier_allowed,
         style_transfer_supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
         style_transfer_allowed: input.style_transfer_featured_allowed,
-        // It's 'or' here because before the toggle of StyleTransfer is landed, users
-        // should be able to control the feature only by the feature flag and there
-        // would be only tests writing its system state currently.
-        // TODO(b/327530996): handle tests: enabled without featured allowed.
-        style_transfer_enabled: input.style_transfer_featured_allowed
-            || input.style_transfer_enabled,
+        style_transfer_enabled: input.style_transfer_enabled,
         beamforming_supported,
     }
 }
@@ -150,13 +145,7 @@ mod tests {
         s.set_style_transfer_enabled(true);
         assert_eq!(s.output.style_transfer_enabled, true);
 
-        s.set_style_transfer_featured_allowed(true);
-        assert_eq!(s.output.style_transfer_enabled, true);
-
         s.set_style_transfer_enabled(false);
-        assert_eq!(s.output.style_transfer_enabled, true);
-
-        s.set_style_transfer_featured_allowed(false);
         assert_eq!(s.output.style_transfer_enabled, false);
     }
 
