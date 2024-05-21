@@ -1721,12 +1721,6 @@ int floss_media_lea_host_start_audio_request(struct fl_media* fm,
                                              uint8_t* channels_count) {
   int rc = 0;
 
-  syslog(LOG_DEBUG,
-         "%s(data_interval_us=%u, sample_rate=%u, bits_per_sample=%u, "
-         "channels_count=%u)",
-         __func__, *data_interval_us, *sample_rate, *bits_per_sample,
-         *channels_count);
-
   if (!fm) {
     syslog(LOG_WARNING, "%s: Floss media not started", __func__);
     return -EINVAL;
@@ -1820,6 +1814,12 @@ int floss_media_lea_host_start_audio_request(struct fl_media* fm,
   }
 
   dbus_message_unref(reply);
+
+  syslog(LOG_DEBUG,
+         "%s(data_interval_us=%u, sample_rate=%u, bits_per_sample=%u, "
+         "channels_count=%u)",
+         __func__, *data_interval_us, *sample_rate, *bits_per_sample,
+         *channels_count);
 
   return started;
 }
@@ -1939,12 +1939,6 @@ int floss_media_lea_peer_start_audio_request(struct fl_media* fm,
     return -EINVAL;
   }
 
-  syslog(LOG_DEBUG,
-         "%s(data_interval_us=%u, sample_rate=%u, bits_per_sample=%u, "
-         "channels_count=%u)",
-         __func__, *data_interval_us, *sample_rate, *bits_per_sample,
-         *channels_count);
-
   int rc = 0;
 
   DBusMessage* start_audio_request;
@@ -2035,6 +2029,12 @@ int floss_media_lea_peer_start_audio_request(struct fl_media* fm,
   }
 
   dbus_message_unref(reply);
+
+  syslog(LOG_DEBUG,
+         "%s(data_interval_us=%u, sample_rate=%u, bits_per_sample=%u, "
+         "channels_count=%u)",
+         __func__, *data_interval_us, *sample_rate, *bits_per_sample,
+         *channels_count);
 
   return started;
 }
