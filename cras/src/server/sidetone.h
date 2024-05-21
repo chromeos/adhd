@@ -1,6 +1,9 @@
 // Copyright 2024 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+#include <stdint.h>
+
+#include "cras_types.h"
 
 #ifndef CRAS_SRC_SERVER_SIDETONE_H_
 #define CRAS_SRC_SERVER_SIDETONE_H_
@@ -31,6 +34,9 @@ static inline unsigned int sidetone_get_max_cb_level(size_t frame_rate) {
   // Number of frames within 10 ms
   return frame_rate / 100;
 }
+
+// Check if the output node type supports sidetone.
+bool is_sidetone_available(enum CRAS_NODE_TYPE output_node_type);
 
 #ifdef __cplusplus
 }  // extern "C"

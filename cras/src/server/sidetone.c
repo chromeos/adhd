@@ -10,6 +10,7 @@
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/server_stream.h"
 #include "cras/src/server/stream_list.h"
+#include "cras_iodev_info.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 
@@ -55,4 +56,14 @@ void configure_sidetone_streams(struct cras_rstream* input,
   output->shm->samples_info = input->shm->samples_info;
   output->pair = input;
   input->pair = output;
+}
+
+bool is_sidetone_available(enum CRAS_NODE_TYPE output_node_type) {
+  switch (output_node_type) {
+    case CRAS_NODE_TYPE_HEADPHONE:
+    case CRAS_NODE_TYPE_ALSA_LOOPBACK:
+      return 1;
+    default:
+      return 0;
+  }
 }

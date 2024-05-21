@@ -452,6 +452,18 @@ void cras_system_state_set_non_empty_status(int non_empty);
  */
 int cras_system_state_get_non_empty_status();
 
+/*
+ * Returns the active output node.
+ * There could be no active output node.
+ */
+void get_active_output_node(struct cras_ionode_info* node);
+
+/*
+ * Returns the active input node.
+ * There could be no active input node.
+ */
+void get_active_input_node(struct cras_ionode_info* node);
+
 /* Returns a pointer to the current system state that is shared with clients.
  * This also 'locks' the structure by incrementing the update count to an odd
  * value.

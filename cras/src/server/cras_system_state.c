@@ -538,9 +538,16 @@ void cras_system_set_noise_cancellation_enabled(bool enabled) {
 
 bool cras_system_set_sidetone_enabled(bool enabled) {
   if (cras_system_get_sidetone_enabled() != enabled) {
-    state.sidetone_enabled = enabled;
+    struct cras_ionode_info active_node;
+    get_active_output_node(&active_node);
+
+    if (enabled && !is_sidetone_available(active_node.type_enum)) {
+      return false;
+    }
+
     MAINLOG(main_log, MAIN_THREAD_SIDETONE, enabled, 0, 0);
     syslog(LOG_DEBUG, "Set sidetone to: %s", enabled ? "enabled" : "disabled");
+    state.sidetone_enabled = enabled;
 
     if (enabled) {
       cras_iodev_list_reset_for_sidetone();
@@ -961,24 +968,33 @@ int cras_system_state_get_input_nodes(const struct cras_ionode_info** nodes) {
   return state.exp_state->num_input_nodes;
 }
 
-const char* cras_system_state_get_active_node_types() {
-  char *input_type = "NONE", *output_type = "NONE";
-  int i;
-
-  for (i = 0; i < state.exp_state->num_input_nodes; i++) {
+void get_active_input_node(struct cras_ionode_info* node) {
+  for (int i = 0; i < state.exp_state->num_input_nodes; i++) {
     if (state.exp_state->input_nodes[i].active) {
-      input_type = state.exp_state->input_nodes[i].type;
+      *node = state.exp_state->input_nodes[i];
     }
   }
-  for (i = 0; i < state.exp_state->num_output_nodes; i++) {
+}
+
+void get_active_output_node(struct cras_ionode_info* node) {
+  for (int i = 0; i < state.exp_state->num_output_nodes; i++) {
     if (state.exp_state->output_nodes[i].active) {
-      output_type = state.exp_state->output_nodes[i].type;
+      *node = state.exp_state->output_nodes[i];
     }
   }
+}
+
+const char* cras_system_state_get_active_node_types() {
+  struct cras_ionode_info output, input;
+  snprintf(output.type, CRAS_NODE_TYPE_BUFFER_SIZE, "NONE");
+  snprintf(input.type, CRAS_NODE_TYPE_BUFFER_SIZE, "NONE");
+
+  get_active_input_node(&input);
+  get_active_output_node(&output);
 
   snprintf(state.exp_state->active_node_type_pair,
-           sizeof(state.exp_state->active_node_type_pair), "%s_%s", input_type,
-           output_type);
+           sizeof(state.exp_state->active_node_type_pair), "%s_%s", input.type,
+           output.type);
 
   return state.exp_state->active_node_type_pair;
 }

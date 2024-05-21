@@ -745,7 +745,8 @@ static int init_device(struct cras_iodev* dev, struct cras_rstream* rstream) {
           rstream->format.num_channels, rstream->format.frame_rate);
 
   size_t cb_threshold =
-      cras_system_get_sidetone_enabled()
+      cras_system_get_sidetone_enabled() &&
+              is_sidetone_available(dev->active_node->type)
           ? sidetone_get_max_cb_level(rstream->format.frame_rate)
           : rstream->cb_threshold;
   rc = cras_iodev_open(dev, cb_threshold, &rstream->format);
@@ -912,6 +913,12 @@ static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir,
       error ? CRAS_NODE_TYPE_FALLBACK_ABNORMAL : CRAS_NODE_TYPE_FALLBACK_NORMAL;
   if (!cras_iodev_list_dev_is_enabled(fallback_devs[dir])) {
     enable_device(fallback_devs[dir]);
+  }
+}
+
+static void possibly_disable_sidetone(enum CRAS_NODE_TYPE type) {
+  if (!is_sidetone_available(type)) {
+    cras_system_set_sidetone_enabled(false);
   }
 }
 
@@ -2227,6 +2234,10 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
     }
   }
 
+  if (cras_system_get_sidetone_enabled() && direction == CRAS_STREAM_OUTPUT) {
+    possibly_disable_sidetone(new_dev->active_node->type);
+  }
+
   cras_iodev_list_notify_active_node_changed(direction);
 }
 
@@ -2560,6 +2571,10 @@ void cras_iodev_list_reset_for_sidetone() {
       continue;
     }
     if (!dev->active_node) {
+      continue;
+    }
+
+    if (!is_sidetone_available(dev->active_node->type)) {
       continue;
     }
 

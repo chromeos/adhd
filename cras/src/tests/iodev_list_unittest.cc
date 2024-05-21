@@ -4069,6 +4069,14 @@ bool cras_system_get_sidetone_enabled() {
   return false;
 }
 
+bool is_sidetone_available(enum CRAS_NODE_TYPE output_node_type) {
+  return false;
+}
+
+bool cras_system_set_sidetone_enabled(bool enabled) {
+  return true;
+}
+
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                         unsigned int ms,
                                         void (*cb)(struct cras_timer* t,
