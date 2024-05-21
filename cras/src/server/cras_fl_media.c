@@ -140,6 +140,30 @@ static bool dbus_int32_as_group_stream_status_is_idle(int dbus_type,
              FL_LEA_GROUP_STREAM_STATUS_CONFIGURED_AUTONOMOUS;
 }
 
+static bool dbus_int32_as_group_status_is_active(int dbus_type,
+                                                 void* dbus_value_ptr) {
+  if (dbus_type != DBUS_TYPE_INT32) {
+    syslog(LOG_ERR,
+           "Mismatched return type, "
+           "expected type id: %d, received type id: %d",
+           DBUS_TYPE_INT32, dbus_type);
+    return false;
+  }
+  return *(dbus_int32_t*)dbus_value_ptr == FL_LEA_GROUP_ACTIVE;
+}
+
+static bool dbus_int32_as_group_status_is_inactive(int dbus_type,
+                                                   void* dbus_value_ptr) {
+  if (dbus_type != DBUS_TYPE_INT32) {
+    syslog(LOG_ERR,
+           "Mismatched return type, "
+           "expected type id: %d, received type id: %d",
+           DBUS_TYPE_INT32, dbus_type);
+    return false;
+  }
+  return *(dbus_int32_t*)dbus_value_ptr == FL_LEA_GROUP_INACTIVE;
+}
+
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr) {
   RET_IF_HAVE_FUZZER(0);
   DBusMessage *method_call, *reply;
@@ -2123,6 +2147,38 @@ int floss_media_lea_set_active_group(struct fl_media* fm, int group_id) {
 
   if (rc < 0) {
     return rc;
+  }
+
+  DBusMessage* get_group_status;
+  rc = create_dbus_method_call(&get_group_status,
+                               /* dest= */ BT_SERVICE_NAME,
+                               /* path= */ fm->obj_path,
+                               /* iface= */ BT_MEDIA_INTERFACE,
+                               /* method_name= */ "GetGroupStatus",
+                               /* num_args= */ 1,
+                               /* arg1= */ DBUS_TYPE_INT32, &dbus_group_id);
+
+  if (rc < 0) {
+    return rc;
+  }
+
+  dbus_int32_t status = -1;
+  rc = retry_until_predicate_satisfied(
+      /* conn=*/fm->conn,
+      /* num_retries= */ LEA_AUDIO_OP_RETRIES,
+      /* sleep_time_us= */ LEA_AUDIO_OP_US,
+      /* method_call= */ get_group_status,
+      /* dbus_ret_type= */ DBUS_TYPE_INT32,
+      /* dbus_ret_value_ptr= */ &status,
+      /* predicate= */ group_id == -1 ? dbus_int32_as_group_status_is_inactive
+                                      : dbus_int32_as_group_status_is_active);
+
+  dbus_message_unref(get_group_status);
+
+  if (rc < 0) {
+    syslog(LOG_WARNING,
+           "%s: Failed to wait for group status to transition to %s", __func__,
+           group_id == -1 ? "inactive" : "active");
   }
 
   return rc;
