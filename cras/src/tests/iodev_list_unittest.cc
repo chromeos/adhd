@@ -3515,6 +3515,8 @@ TEST_F(IoDevTestSuite, RequestFloop) {
 }
 
 TEST_F(IoDevTestSuite, StyleTransferSupported) {
+  cras_s2_set_style_transfer_featured_allowed(true);
+
   cras_iodev_list_init();
 
   d1_.direction = CRAS_STREAM_INPUT;
@@ -3550,6 +3552,7 @@ TEST_F(IoDevTestSuite, StyleTransferSupported) {
 
   cras_iodev_list_deinit();
 }
+
 TEST_F(IoDevTestSuite, BluetoothNbMicAudioEffectHasSr) {
   cras_system_get_sr_bt_supported_return = true;
 

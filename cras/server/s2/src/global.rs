@@ -46,6 +46,11 @@ pub extern "C" fn cras_s2_set_style_transfer_featured_allowed(allowed: bool) {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_get_style_transfer_allowed() -> bool {
+    state().output.style_transfer_allowed
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_get_style_transfer_supported() -> bool {
     state().output.style_transfer_supported
 }

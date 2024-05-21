@@ -22,8 +22,9 @@ enum CRAS_NC_PROVIDER {
 static inline enum CRAS_NC_PROVIDER cras_nc_resolve_provider(
     enum CRAS_NC_PROVIDER nc_providers,
     bool dsp_nc_allowed,
-    bool ap_nc_allowed) {
-  if (nc_providers & CRAS_NC_PROVIDER_AST) {
+    bool ap_nc_allowed,
+    bool ast_allowed) {
+  if (ast_allowed && (nc_providers & CRAS_NC_PROVIDER_AST)) {
     return CRAS_NC_PROVIDER_AST;
   }
   if (dsp_nc_allowed && (nc_providers & CRAS_NC_PROVIDER_DSP)) {

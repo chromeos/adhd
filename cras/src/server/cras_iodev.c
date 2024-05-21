@@ -19,6 +19,7 @@
 
 #include "cras/common/check.h"
 #include "cras/server/platform/features/features.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_hats.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
@@ -32,6 +33,7 @@
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_mix.h"
+#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_ramp.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"
@@ -2175,10 +2177,12 @@ bool cras_iodev_is_channel_count_supported(struct cras_iodev* iodev,
 }
 
 void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev) {
-  iodev->active_nc_provider = cras_system_get_noise_cancellation_enabled() ||
-                                      cras_system_get_style_transfer_enabled()
-                                  ? iodev->active_node->desired_nc_provider
-                                  : CRAS_NC_PROVIDER_NONE;
+  iodev->active_nc_provider =
+      (cras_s2_get_style_transfer_allowed()
+           ? cras_system_get_style_transfer_enabled()
+           : cras_system_get_noise_cancellation_enabled())
+          ? iodev->active_node->desired_nc_provider
+          : CRAS_NC_PROVIDER_NONE;
 }
 
 void cras_iodev_stream_offset_reset_all(struct cras_iodev* iodev) {

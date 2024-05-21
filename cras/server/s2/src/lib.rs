@@ -24,6 +24,7 @@ struct Input {
 struct Output {
     ap_nc_allowed: bool,
     style_transfer_supported: bool,
+    style_transfer_allowed: bool,
     style_transfer_enabled: bool,
     beamforming_supported: bool,
 }
@@ -35,9 +36,8 @@ fn resolve(input: &Input) -> Output {
         ap_nc_allowed: input.ap_nc_featured_allowed
             || input.ap_nc_segmentation_allowed
             || input.ap_nc_feature_tier_allowed,
-        style_transfer_supported: input.style_transfer_featured_allowed
-            && input.ap_nc_segmentation_allowed
-            && !beamforming_supported,
+        style_transfer_supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
+        style_transfer_allowed: input.style_transfer_featured_allowed,
         // It's 'or' here because before the toggle of StyleTransfer is landed, users
         // should be able to control the feature only by the feature flag and there
         // would be only tests writing its system state currently.
@@ -135,12 +135,10 @@ mod tests {
         let mut s = S2::new();
         assert_eq!(s.output.style_transfer_supported, false);
 
-        s.set_style_transfer_featured_allowed(true);
-        assert_eq!(s.output.style_transfer_supported, false);
         s.set_ap_nc_segmentation_allowed(true);
         assert_eq!(s.output.style_transfer_supported, true);
 
-        s.set_style_transfer_featured_allowed(false);
+        s.set_cras_config_dir("omniknight.3mic");
         assert_eq!(s.output.style_transfer_supported, false);
     }
 

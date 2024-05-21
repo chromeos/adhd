@@ -1483,6 +1483,7 @@ cc_test(
         "//cras/common:rust_common_cc",
         "//cras/server/platform/dlc:cc",
         "//cras/server/platform/features:override",
+        "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",

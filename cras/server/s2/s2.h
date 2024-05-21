@@ -28,6 +28,8 @@ bool cras_s2_get_ap_nc_allowed(void);
 
 void cras_s2_set_style_transfer_featured_allowed(bool allowed);
 
+bool cras_s2_get_style_transfer_allowed(void);
+
 bool cras_s2_get_style_transfer_supported(void);
 
 void cras_s2_set_style_transfer_enabled(bool enabled);

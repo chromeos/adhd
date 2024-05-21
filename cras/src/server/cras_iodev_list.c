@@ -312,6 +312,7 @@ static void fill_dev_list(struct iodev_list* list,
 struct fill_node_list_auxiliary {
   bool dsp_nc_allowed;
   bool ap_nc_allowed;
+  bool ast_allowed;
 };
 
 static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
@@ -319,6 +320,7 @@ static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
       .dsp_nc_allowed = !get_dsp_input_effects_blocked_state() ||
                         cras_system_get_bypass_block_noise_cancellation(),
       .ap_nc_allowed = cras_s2_get_ap_nc_allowed(),
+      .ast_allowed = cras_s2_get_style_transfer_allowed(),
   };
   return aux;
 }
@@ -354,8 +356,9 @@ static int fill_node_list(struct iodev_list* list,
       node_info->type_enum = node->type;
       node_info->audio_effect = 0;
 
-      node->desired_nc_provider = cras_nc_resolve_provider(
-          node->nc_providers, aux->dsp_nc_allowed, aux->ap_nc_allowed);
+      node->desired_nc_provider =
+          cras_nc_resolve_provider(node->nc_providers, aux->dsp_nc_allowed,
+                                   aux->ap_nc_allowed, aux->ast_allowed);
       switch (node->desired_nc_provider) {
         case CRAS_NC_PROVIDER_NONE:
           break;
