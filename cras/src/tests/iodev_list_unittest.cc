@@ -121,6 +121,7 @@ static int cras_stream_apm_add_called;
 static struct cras_floop_pair* cras_floop_pair_create_return;
 static bool cras_system_get_sr_bt_supported_return = false;
 static bool cras_system_get_noise_cancellation_enabled_ret = false;
+static bool cras_system_get_style_transfer_enabled_ret = false;
 static int cras_rstream_get_effects_return = 0;
 static std::vector<std::vector<struct cras_iodev*>> iodev_groups;
 static std::function<int(const struct cras_iodev*, const struct cras_rstream*)>
@@ -158,6 +159,7 @@ class IodevTests : public TestBase {
     audio_thread_disconnect_stream_stream = NULL;
     audio_thread_is_dev_open_ret = 0;
     cras_system_get_noise_cancellation_enabled_ret = false;
+    cras_system_get_style_transfer_enabled_ret = false;
 
     sample_rates_[0] = 44100;
     sample_rates_[1] = 48000;
@@ -3553,6 +3555,127 @@ TEST_F(IoDevTestSuite, StyleTransferSupported) {
   cras_iodev_list_deinit();
 }
 
+TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
+  struct cras_rstream rstream;
+  int rc;
+
+  memset(&rstream, 0, sizeof(rstream));
+
+  cras_iodev_list_init();
+
+  d1_.info.idx = 1;
+  d1_.direction = CRAS_STREAM_INPUT;
+  rc = cras_iodev_list_add(&d1_);
+  ASSERT_EQ(rc, 0);
+
+  d1_.format = &fmt_;
+
+  rstream.direction = CRAS_STREAM_INPUT;
+
+  cras_iodev_list_select_node(CRAS_STREAM_INPUT,
+                              cras_make_node_id(d1_.info.idx, 0));
+
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_stream_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
+
+    DL_APPEND(stream_list_get_ret, &rstream);
+    stream_add_cb(&rstream);
+  }
+
+  {  // reset_for_style_transfer causes device suspend & resume
+     // While suspending d1_: rm d1_, open fallback
+     // While resuming d1_: rm fallback, open d1_
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_fallback_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_fallback_called,
+                         1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
+                         1);
+
+    // A mismatch of NC providers should cause restarts.
+    d1_.active_nc_provider = CRAS_NC_PROVIDER_NONE;
+    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_AST;
+    cras_system_get_style_transfer_enabled_ret = true;
+    cras_iodev_list_reset_for_style_transfer();
+  }
+
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_fallback_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_fallback_called,
+                         0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
+                         0);
+
+    // A match of NC providers should NOT cause restarts.
+    d1_.active_nc_provider = CRAS_NC_PROVIDER_AST;
+    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_AST;
+    cras_system_get_style_transfer_enabled_ret = true;
+    cras_iodev_list_reset_for_style_transfer();
+  }
+
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_fallback_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_fallback_called,
+                         1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 1);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
+                         1);
+
+    // A match of NC providers but with user disabled should cause restarts.
+    d1_.active_nc_provider = CRAS_NC_PROVIDER_AST;
+    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_AST;
+    cras_system_get_style_transfer_enabled_ret = false;
+    cras_iodev_list_reset_for_style_transfer();
+  }
+
+  {
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_fallback_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_fallback_called,
+                         0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_called, 0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_open_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_add_open_dev_called, 0);
+
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_close_fallback_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, audio_thread_rm_open_dev_fallback_called,
+                         0);
+
+    // No restarts if not active and user disabled.
+    d1_.active_nc_provider = CRAS_NC_PROVIDER_NONE;
+    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_AST;
+    cras_system_get_noise_cancellation_enabled_ret = false;
+    cras_iodev_list_reset_for_style_transfer();
+  }
+
+  cras_iodev_list_deinit();
+}
+
 TEST_F(IoDevTestSuite, BluetoothNbMicAudioEffectHasSr) {
   cras_system_get_sr_bt_supported_return = true;
 
@@ -3848,6 +3971,10 @@ void cras_iodev_set_node_plugged(struct cras_ionode* node, int plugged) {
 bool cras_iodev_support_noise_cancellation(const struct cras_iodev* iodev,
                                            unsigned node_idx) {
   return true;
+}
+
+bool cras_system_get_style_transfer_enabled() {
+  return cras_system_get_style_transfer_enabled_ret;
 }
 
 int cras_iodev_start_volume_ramp(struct cras_iodev* odev,

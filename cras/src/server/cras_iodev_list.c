@@ -2492,9 +2492,30 @@ void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
   }
 }
 
+static enum CRAS_NC_PROVIDER resolve_new_nc_provider(struct cras_iodev* dev,
+                                                     bool nc_enabled,
+                                                     bool ast_enabled) {
+  bool enabled = false;
+  switch (dev->active_node->desired_nc_provider) {
+    case CRAS_NC_PROVIDER_NONE:
+      break;
+    case CRAS_NC_PROVIDER_DSP:
+    case CRAS_NC_PROVIDER_AP:
+      enabled = nc_enabled;
+      break;
+    case CRAS_NC_PROVIDER_AST:
+      enabled = ast_enabled;
+      break;
+  }
+  return enabled ? dev->active_node->desired_nc_provider
+                 : CRAS_NC_PROVIDER_NONE;
+}
+
 void cras_iodev_list_reset_for_noise_cancellation() {
+  const bool nc_enabled = cras_system_get_noise_cancellation_enabled();
+  const bool ast_enabled = cras_system_get_style_transfer_enabled();
+
   struct cras_iodev* dev;
-  bool enabled = cras_system_get_noise_cancellation_enabled();
 
   DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
     if (!cras_iodev_is_open(dev)) {
@@ -2503,13 +2524,13 @@ void cras_iodev_list_reset_for_noise_cancellation() {
     if (!dev->active_node) {
       continue;
     }
-    enum CRAS_NC_PROVIDER want_provider =
-        enabled ? dev->active_node->desired_nc_provider : CRAS_NC_PROVIDER_NONE;
+    const enum CRAS_NC_PROVIDER want_provider =
+        resolve_new_nc_provider(dev, nc_enabled, ast_enabled);
     if (want_provider == dev->active_nc_provider) {
       continue;
     }
-    syslog(LOG_INFO, "Re-open %s for noise cancellation: %d -> %d",
-           dev->info.name, dev->active_nc_provider, want_provider);
+    syslog(LOG_INFO, "Re-open %s for nc provider: %d -> %d", dev->info.name,
+           dev->active_nc_provider, want_provider);
     possibly_enable_fallback(CRAS_STREAM_INPUT, false);
     restart_device_group(dev->info.idx);
     possibly_disable_fallback(CRAS_STREAM_INPUT);
@@ -2517,7 +2538,6 @@ void cras_iodev_list_reset_for_noise_cancellation() {
 }
 
 void cras_iodev_list_reset_for_style_transfer() {
-  // If available, StyleTransfer is only called after NC currently.
   cras_iodev_list_reset_for_noise_cancellation();
 }
 
