@@ -7,6 +7,8 @@
 
 #include <stdbool.h>
 
+#include "cras/src/server/cras_iodev.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,9 +18,10 @@ extern "C" {
 // Get the processor effect.
 // `nc_provided_by_ap` indicates the availability of NC on AP.
 // `effects` indicates the stream effects.
-enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
-                                                   bool beamforming_supported,
-                                                   uint64_t effects);
+enum CrasProcessorEffect cras_processor_get_effect(
+    bool nc_provided_by_ap,
+    const struct cras_iodev* iodev,
+    uint64_t effects);
 
 #ifdef __cplusplus
 }

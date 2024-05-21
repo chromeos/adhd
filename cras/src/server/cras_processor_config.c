@@ -9,17 +9,38 @@
 
 #include "cras/server/platform/features/features.h"
 #include "cras/server/s2/s2.h"
+#include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_processor.h"
 #include "cras_types.h"
 
-enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
-                                                   bool beamforming_supported,
-                                                   uint64_t effects) {
+enum CrasProcessorEffect cras_processor_get_effect(
+    bool nc_provided_by_ap,
+    const struct cras_iodev* iodev,
+    uint64_t effects) {
   if (cras_feature_enabled(CrOSLateBootAudioAecRequiredForCrasProcessor) &&
       !(effects & APM_ECHO_CANCELLATION)) {
     return NoEffects;
   }
+
+  const bool beamforming_supported =
+      cras_s2_get_beamforming_supported() && iodev->active_node &&
+      iodev->active_node->position == NODE_POSITION_INTERNAL;
+
+  // StyleTransfer
+  // TODO(cranelw): always check supported when tast is ready.
+  if (iodev->active_node->desired_nc_provider == CRAS_NC_PROVIDER_AST &&
+      ((effects & CLIENT_CONTROLLED_VOICE_ISOLATION &&  // client controlled.
+        effects & VOICE_ISOLATION &&
+        cras_system_get_style_transfer_supported()) ||
+       (~(effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&  // system controlled.
+        cras_system_get_style_transfer_enabled())) &&
+      !beamforming_supported) {  // no beamforming.
+    return StyleTransfer;
+  }
+
+  // NoiseCancellation
   bool voice_isolation_enabled =
       (effects & CLIENT_CONTROLLED_VOICE_ISOLATION)
           ? (effects & VOICE_ISOLATION)
@@ -29,10 +50,6 @@ enum CrasProcessorEffect cras_processor_get_effect(bool nc_provided_by_ap,
     if (beamforming_supported) {
       // Beamforming is a variant of NoiseCancellation.
       return Beamforming;
-    }
-    if (cras_system_get_style_transfer_enabled()) {
-      // StyleTransfer includes NoiseCancellation.
-      return StyleTransfer;
     }
     return NoiseCancellation;
   }

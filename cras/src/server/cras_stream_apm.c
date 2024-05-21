@@ -702,11 +702,8 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       cras_s2_get_ap_nc_allowed()) {
     nc_provided_by_ap = true;
   }
-  bool beamforming_supported =
-      cras_s2_get_beamforming_supported() && idev->active_node &&
-      idev->active_node->position == NODE_POSITION_INTERNAL;
-  enum CrasProcessorEffect cp_effect = cras_processor_get_effect(
-      nc_provided_by_ap, beamforming_supported, stream->effects);
+  enum CrasProcessorEffect cp_effect =
+      cras_processor_get_effect(nc_provided_by_ap, idev, stream->effects);
 
   // TODO(hychao): Remove the check when we enable more effects.
   if (!apm_needed_for_effects(
