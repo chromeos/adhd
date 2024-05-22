@@ -29,23 +29,107 @@
 static const unsigned int CONN_WATCH_PERIOD_MS = 2000;
 static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
 
+static const unsigned int LEA_CONTEXT_SWITCH_DELAY_MS = 500;
 static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
 
 enum BT_POLICY_COMMAND {
   BT_POLICY_SWITCH_PROFILE,
   BT_POLICY_SCHEDULE_SUSPEND,
   BT_POLICY_CANCEL_SUSPEND,
+  BT_POLICY_LEA_SWITCH_CONTEXT,
 };
 
 struct bt_policy_msg {
   struct cras_main_message header;
   enum BT_POLICY_COMMAND cmd;
+  struct cras_lea* lea;
   struct bt_io_manager* mgr;
   struct cras_bt_device* device;
   struct cras_iodev* dev;
   unsigned int arg1;
   unsigned int arg2;
 };
+
+struct lea_context_switch_policy {
+  struct cras_lea* lea;
+  struct cras_timer* timer;
+  struct lea_context_switch_policy *prev, *next;
+};
+
+struct lea_context_switch_policy* lea_context_switch_policies;
+
+static void lea_context_switch_delay_cb(struct cras_timer* timer, void* arg) {
+  struct lea_context_switch_policy* policy =
+      (struct lea_context_switch_policy*)arg;
+  struct cras_iodev* iodev;
+
+  /*
+   * During the |LEA_CONTEXT_SWITCH_DELAY_MS| time interval, the iodev could
+   * have been enabled by others, and its active context may have changed.
+   *
+   * Ensure that |update_active_node| is essentially no-op and/or safe to call
+   * in such cases.
+   *
+   * TODO(b/342943472): consider guarding the |odev| from being opened when
+   * this callback is in schedule.
+   */
+  iodev = cras_floss_lea_get_primary_odev(policy->lea);
+  if (iodev) {
+    iodev->update_active_node(iodev, 0, 1);
+    cras_iodev_list_resume_dev(iodev->info.idx);
+  }
+
+  DL_DELETE(lea_context_switch_policies, policy);
+  free(policy);
+}
+
+static void lea_switch_context_with_delay(struct cras_lea* lea) {
+  struct cras_tm* tm = cras_system_state_get_tm();
+  struct lea_context_switch_policy* policy;
+
+  DL_SEARCH_SCALAR(lea_context_switch_policies, policy, lea, lea);
+  if (policy) {
+    cras_tm_cancel_timer(tm, policy->timer);
+    policy->timer = NULL;
+  } else {
+    policy = (struct lea_context_switch_policy*)calloc(1, sizeof(*policy));
+  }
+
+  policy->lea = lea;
+  policy->timer = cras_tm_create_timer(tm, LEA_CONTEXT_SWITCH_DELAY_MS,
+                                       lea_context_switch_delay_cb, policy);
+  DL_APPEND(lea_context_switch_policies, policy);
+}
+
+static void lea_switch_context(struct cras_lea* lea) {
+  struct cras_iodev* odev;
+  struct cras_iodev* idev;
+
+  odev = cras_floss_lea_get_primary_odev(lea);
+  if (odev) {
+    cras_iodev_list_suspend_dev(odev->info.idx);
+    odev->update_active_node(odev, 0, 0);
+  }
+
+  idev = cras_floss_lea_get_primary_idev(lea);
+  if (idev) {
+    cras_iodev_list_suspend_dev(idev->info.idx);
+    idev->update_active_node(idev, 0, 0);
+  }
+
+  cras_floss_lea_set_is_context_switching(lea, false);
+
+  // Some headsets will have recurrent noise in the capture path if the
+  // output stream opens too soon, so put this task in a delayed callback.
+  if (odev) {
+    lea_switch_context_with_delay(lea);
+  }
+
+  if (idev) {
+    idev->update_active_node(idev, 0, 1);
+    cras_iodev_list_resume_dev(idev->info.idx);
+  }
+}
 
 struct profile_switch_policy {
   struct bt_io_manager* mgr;
@@ -186,6 +270,15 @@ static void init_bt_profile_switch_msg(struct bt_policy_msg* msg,
   msg->mgr = mgr;
 }
 
+static void init_bt_lea_context_switch_msg(struct bt_policy_msg* msg,
+                                           struct cras_lea* lea) {
+  memset(msg, 0, sizeof(*msg));
+  msg->header.type = CRAS_MAIN_BT_POLICY;
+  msg->header.length = sizeof(*msg);
+  msg->cmd = BT_POLICY_LEA_SWITCH_CONTEXT;
+  msg->lea = lea;
+}
+
 static void suspend_cb(struct cras_timer* timer, void* arg) {
   struct suspend_policy* policy = (struct suspend_policy*)arg;
 
@@ -259,11 +352,22 @@ static void cancel_suspend(struct cras_bt_device* device) {
  * TODO(hychao): clean up the validity check logic.
  */
 static bool is_message_sender_valid(struct bt_policy_msg* msg) {
-  if (!msg->device) {
+  // BlueZ classic device
+  if (msg->device) {
+    return cras_bt_device_valid(msg->device);
+  }
+
+  // Floss classic device
+  if (msg->mgr) {
     return bt_io_manager_exists(msg->mgr);
   }
 
-  return cras_bt_device_valid(msg->device);
+  // Floss LEA device
+  if (msg->lea) {
+    return cras_floss_lea_is_active(msg->lea);
+  }
+
+  return false;
 }
 
 static void process_bt_policy_msg(struct cras_main_message* msg, void* arg) {
@@ -287,6 +391,9 @@ static void process_bt_policy_msg(struct cras_main_message* msg, void* arg) {
       break;
     case BT_POLICY_CANCEL_SUSPEND:
       cancel_suspend(policy_msg->device);
+      break;
+    case BT_POLICY_LEA_SWITCH_CONTEXT:
+      lea_switch_context(policy_msg->lea);
       break;
     default:
       break;
@@ -475,4 +582,16 @@ void cras_bt_policy_start() {
 
 void cras_bt_policy_stop() {
   cras_main_message_rm_handler(CRAS_MAIN_BT_POLICY);
+}
+
+int cras_bt_policy_lea_switch_context(struct cras_lea* lea) {
+  struct bt_policy_msg msg = CRAS_MAIN_MESSAGE_INIT;
+  int rc;
+
+  cras_floss_lea_set_is_context_switching(lea, true);
+
+  init_bt_lea_context_switch_msg(&msg, lea);
+
+  rc = cras_main_message_send((struct cras_main_message*)&msg);
+  return rc;
 }

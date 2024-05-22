@@ -51,6 +51,20 @@ enum LEA_GROUP_NODE_STATUS {
   LEA_GROUP_NODE_REMOVED,
 };
 
+bool cras_floss_lea_is_active(struct cras_lea* lea);
+
+bool cras_floss_lea_has_connected_group(struct cras_lea* lea);
+
+bool cras_floss_lea_is_context_switching(struct cras_lea* lea);
+
+void cras_floss_lea_set_is_context_switching(struct cras_lea* lea,
+                                             bool is_context_switching);
+
+void cras_floss_lea_set_target_context(struct cras_lea* lea,
+                                       enum LEA_AUDIO_CONTEXT_TYPE context);
+
+void cras_floss_lea_apply_target_context(struct cras_lea* lea);
+
 bool cras_floss_lea_is_odev_started(struct cras_lea* lea);
 
 bool cras_floss_lea_is_idev_started(struct cras_lea* lea);
@@ -58,14 +72,6 @@ bool cras_floss_lea_is_idev_started(struct cras_lea* lea);
 struct cras_iodev* cras_floss_lea_get_primary_idev(struct cras_lea* lea);
 
 struct cras_iodev* cras_floss_lea_get_primary_odev(struct cras_lea* lea);
-
-
-int cras_floss_lea_configure_sink_for_voice_communication(struct cras_lea* lea);
-
-int cras_floss_lea_configure_source_for_voice_communication(
-    struct cras_lea* lea);
-
-int cras_floss_lea_configure_source_for_media(struct cras_lea* lea);
 
 struct cras_lea* cras_floss_lea_create(struct fl_media* fm);
 

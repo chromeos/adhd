@@ -19,6 +19,7 @@
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_audio_thread_monitor.h"
+#include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_lea_manager.h"
@@ -233,6 +234,12 @@ static int open_dev(struct cras_iodev* iodev) {
   int rc = 0;
   struct lea_io* leaio = (struct lea_io*)iodev;
   struct cras_lea* lea = leaio->lea;
+  struct cras_iodev* odev = cras_floss_lea_get_primary_odev(lea);
+  struct cras_iodev* idev = cras_floss_lea_get_primary_idev(lea);
+
+  if (cras_floss_lea_is_context_switching(lea)) {
+    return -EAGAIN;
+  }
 
   if (iodev->direction == CRAS_STREAM_INPUT &&
       cras_floss_lea_is_idev_started(lea)) {
@@ -244,47 +251,35 @@ static int open_dev(struct cras_iodev* iodev) {
     return -EALREADY;
   }
 
-  struct cras_iodev* odev = cras_floss_lea_get_primary_odev(lea);
-  struct cras_iodev* idev = cras_floss_lea_get_primary_idev(lea);
-
   if (odev != iodev && idev != iodev) {
     syslog(LOG_WARNING, "%s: cannot open iodev from a non-primary group",
            __func__);
     return -EINVAL;
   }
 
-  cras_floss_lea_set_active(lea, leaio->group_id, 1);
-
+  // Immediately apply target context if it is the only direction.
+  // Otherwise, either file a context-switch request or acknowledge
+  // that the context must already be |CONVERSATIONAL| (the case for output).
   if (iodev->direction == CRAS_STREAM_INPUT) {
-    rc = cras_floss_lea_configure_sink_for_voice_communication(lea);
-  } else {
-    if (cras_floss_lea_is_idev_started(lea)) {
-      rc = cras_floss_lea_configure_source_for_voice_communication(lea);
+    cras_floss_lea_set_target_context(lea, LEA_AUDIO_CONTEXT_CONVERSATIONAL);
+    if (!cras_floss_lea_is_odev_started(lea)) {
+      cras_floss_lea_apply_target_context(lea);
     } else {
-      rc = cras_floss_lea_configure_source_for_media(lea);
+      cras_floss_lea_set_is_context_switching(lea, true);
+      cras_bt_policy_lea_switch_context(lea);
+      return -EAGAIN;
     }
-  }
-  if (rc < 0) {
-    return rc;
-  }
-
-  bool reopen_odev = iodev->direction == CRAS_STREAM_INPUT &&
-                     cras_floss_lea_is_odev_started(lea);
-
-  if (reopen_odev) {
-    syslog(LOG_DEBUG, "%s: context changed, reopening output group", __func__);
-    cras_iodev_list_suspend_dev(odev->info.idx);
-    cras_floss_lea_set_active(lea, leaio->group_id, 1);
+  } else if (iodev->direction == CRAS_STREAM_OUTPUT) {
+    if (!cras_floss_lea_is_idev_started(lea)) {
+      cras_floss_lea_set_target_context(lea, LEA_AUDIO_CONTEXT_MEDIA);
+      cras_floss_lea_apply_target_context(lea);
+    }
   }
 
   rc = cras_floss_lea_start(lea, lea_socket_read_write_cb, iodev->direction);
   if (rc < 0) {
-    syslog(LOG_WARNING, "LEA failed to start");
+    syslog(LOG_WARNING, "LEA failed to start for dir %d", iodev->direction);
     return rc;
-  }
-
-  if (reopen_odev) {
-    cras_iodev_list_resume_dev(odev->info.idx);
   }
 
   return 0;
@@ -327,26 +322,16 @@ static int close_dev(struct cras_iodev* iodev) {
     return -EINVAL;
   }
 
-  if (iodev->direction == CRAS_STREAM_INPUT) {
-    int rc = cras_floss_lea_configure_source_for_media(lea);
-    if (rc < 0) {
-      return rc;
-    }
-  }
-
-  bool reopen_odev = iodev->direction == CRAS_STREAM_INPUT &&
-                     cras_floss_lea_is_odev_started(lea);
-
-  if (reopen_odev) {
-    cras_iodev_list_suspend_dev(odev->info.idx);
+  if (iodev->direction == CRAS_STREAM_INPUT &&
+      cras_floss_lea_is_odev_started(lea) &&
+      !cras_floss_lea_is_context_switching(lea)) {
+    cras_floss_lea_set_is_context_switching(lea, true);
+    cras_floss_lea_set_target_context(lea, LEA_AUDIO_CONTEXT_MEDIA);
+    cras_bt_policy_lea_switch_context(lea);
   }
 
   leaio->started = 0;
   cras_floss_lea_stop(leaio->lea, iodev->direction);
-
-  // This is to release the ASE, otherwise reconfiguration does not occur.
-  // TODO: try to minimize the idle time caused by deactivating groups
-  cras_floss_lea_set_active(lea, leaio->group_id, 0);
 
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
     memset(leaio->pcm_buf->bytes, 0, leaio->pcm_buf->used_size);
@@ -354,11 +339,6 @@ static int close_dev(struct cras_iodev* iodev) {
 
   cras_iodev_free_format(iodev);
   cras_iodev_free_audio_area(iodev);
-
-  if (reopen_odev) {
-    cras_floss_lea_set_active(lea, leaio->group_id, 1);
-    cras_iodev_list_resume_dev(odev->info.idx);
-  }
 
   return 0;
 }
@@ -446,12 +426,25 @@ static void set_volume(struct cras_iodev* iodev) {
   cras_floss_lea_set_volume(leaio->lea, iodev->active_node->volume);
 }
 
+// This is a critical function that we rely on to synchronize the
+// audio context with the BT stack. Ensure that it is safe to call
+// multiple times over context switches and on already-enabled devices.
+//
+// See |lea_context_switch_delay_cb| for potential issues. This is
+// currently safe because we ensure that the |target_context| member
+// is always updated when we call this function, and delayed calls with
+// outdated intentions end up being no-op.
 static void update_active_node(struct cras_iodev* iodev,
                                unsigned node_idx,
                                unsigned dev_enabled) {
   struct lea_io* leaio = (struct lea_io*)iodev;
+  struct cras_lea* lea = leaio->lea;
 
   cras_floss_lea_set_active(leaio->lea, leaio->group_id, dev_enabled);
+
+  if (dev_enabled) {
+    cras_floss_lea_apply_target_context(lea);
+  }
 }
 
 static void lea_free_base_resources(struct lea_io* leaio) {

@@ -6,6 +6,7 @@
 
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_lea_manager.h"
 
 extern "C" {
 #include "cras/src/server/cras_bt_policy.c"
@@ -30,6 +31,11 @@ static int cras_bt_device_remove_conflict_called;
 static int bt_io_manager_set_nodes_plugged_called;
 static bool cras_bt_device_valid_ret;
 static bool bt_io_manager_exists_ret;
+static bool cras_floss_lea_is_context_switching_ret;
+static cras_iodev* cras_floss_lea_get_primary_idev_ret;
+static cras_iodev* cras_floss_lea_get_primary_odev_ret;
+static int update_active_node_enable_called;
+static int update_active_node_disable_called;
 
 void ResetStubData() {
   cras_tm_create_timer_called = 0;
@@ -47,13 +53,22 @@ void ResetStubData() {
   cras_tm_create_timer_ret = reinterpret_cast<struct cras_timer*>(0x123);
   cras_bt_device_valid_ret = 1;
   bt_io_manager_exists_ret = 1;
+  cras_floss_lea_is_context_switching_ret = false;
+  cras_floss_lea_get_primary_idev_ret = NULL;
+  cras_floss_lea_get_primary_odev_ret = NULL;
+  update_active_node_enable_called = 0;
+  update_active_node_disable_called = 0;
 }
 
 // Iodev callback
 void update_active_node(struct cras_iodev* iodev,
                         unsigned node_idx,
                         unsigned dev_enabled) {
-  return;
+  if (dev_enabled) {
+    ++update_active_node_enable_called;
+  } else {
+    ++update_active_node_disable_called;
+  }
 }
 
 namespace {
@@ -369,6 +384,55 @@ TEST_F(BtPolicyTestSuite, ConnectionWatchTimeout) {
   cras_bt_policy_stop_connection_watch(&device);
 }
 
+TEST_F(BtPolicyTestSuite, LeaSwitchContext) {
+  cras_floss_lea_get_primary_idev_ret = &idev;
+  cras_floss_lea_get_primary_odev_ret = &odev;
+
+  /* In the typical switch context case, the associated input and
+   * output iodev are suspended and resumed later. */
+  EXPECT_EQ(0, cras_iodev_list_suspend_dev_called);
+
+  init_bt_lea_context_switch_msg(&msg, reinterpret_cast<cras_lea*>(0x123));
+
+  cras_floss_lea_is_context_switching_ret = true;
+
+  process_bt_policy_msg(&msg.header, NULL);
+
+  EXPECT_EQ(false, cras_floss_lea_is_context_switching_ret);
+
+  EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
+  EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
+  EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  // The output iodev is resumed in a callback
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  EXPECT_EQ(2, cras_iodev_list_resume_dev_called);
+}
+
+TEST_F(BtPolicyTestSuite, LeaSwitchContextRepeatedly) {
+  cras_floss_lea_get_primary_idev_ret = &idev;
+  cras_floss_lea_get_primary_odev_ret = &odev;
+
+  init_bt_lea_context_switch_msg(&msg, reinterpret_cast<cras_lea*>(0x123));
+  process_bt_policy_msg(&msg.header, NULL);
+  EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
+  EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
+  EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
+  EXPECT_EQ(1, cras_tm_create_timer_called);
+
+  /* Expect repeated context switch before the schedule callback
+   * is executed will cause the timer being cancelled and redo
+   * all the suspend/resume and timer creation.
+   */
+  process_bt_policy_msg(&msg.header, NULL);
+  EXPECT_EQ(1, cras_tm_cancel_timer_called);
+  EXPECT_EQ(4, cras_iodev_list_suspend_dev_called);
+  EXPECT_EQ(2, cras_iodev_list_resume_dev_called);
+  EXPECT_EQ(2, cras_tm_create_timer_called);
+
+  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+}
 }  // namespace
 
 extern "C" {
@@ -458,4 +522,25 @@ void bt_io_manager_set_nodes_plugged(struct bt_io_manager* mgr, int plugged) {
   bt_io_manager_set_nodes_plugged_called++;
 }
 
+// LEA manager
+struct cras_iodev* cras_floss_lea_get_primary_idev(struct cras_lea* lea) {
+  return cras_floss_lea_get_primary_idev_ret;
+}
+
+struct cras_iodev* cras_floss_lea_get_primary_odev(struct cras_lea* lea) {
+  return cras_floss_lea_get_primary_odev_ret;
+}
+
+bool cras_floss_lea_is_active(struct cras_lea* lea) {
+  return true;
+}
+
+bool cras_floss_lea_is_context_switching(struct cras_lea* lea) {
+  return cras_floss_lea_is_context_switching_ret;
+}
+
+void cras_floss_lea_set_is_context_switching(struct cras_lea* lea,
+                                             bool is_context_switching) {
+  cras_floss_lea_is_context_switching_ret = is_context_switching;
+}
 }  // extern "C"

@@ -16,13 +16,13 @@
 #include "cras/common/check.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/src/server/cras_a2dp_manager.h"
-#include "cras/src/server/cras_lea_manager.h"
 #include "cras/src/server/cras_bt_io.h"
 #include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_fl_manager.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_hfp_manager.h"
+#include "cras/src/server/cras_lea_manager.h"
 #include "cras_types.h"
 
 static int validate_bluetooth_device_address(const char* addr) {
@@ -97,6 +97,10 @@ int handle_on_lea_group_disconnected(struct fl_media* active_fm, int group_id) {
   }
 
   cras_floss_lea_remove_group(active_fm->lea, group_id);
+
+  if (!cras_floss_lea_has_connected_group(active_fm->lea)) {
+    cras_floss_lea_destroy(active_fm->lea);
+  }
 
   return 0;
 }

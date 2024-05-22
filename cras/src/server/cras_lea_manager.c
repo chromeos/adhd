@@ -45,7 +45,7 @@ struct lea_group {
   struct lea_group *prev, *next;
 };
 
-/* Object holding information and resources of a connected LEA headset. */
+/* Object holding information and resources of LEA. */
 struct cras_lea {
   // Object representing the media interface of BT adapter.
   struct fl_media* fm;
@@ -60,7 +60,29 @@ struct cras_lea {
   // If the output has started. This is used to determine if
   // a lea start or stop is required.
   int odev_started;
+  // The current context type.
+  enum LEA_AUDIO_CONTEXT_TYPE current_context;
+  // The target context type.
+  // Ignore if set to |LEA_AUDIO_CONTEXT_UNINITIALIZED|.
+  enum LEA_AUDIO_CONTEXT_TYPE target_context;
+  // Whether there is a pending context switch event.
+  bool is_context_switching;
 };
+
+static struct cras_lea* g_lea;
+
+bool cras_floss_lea_is_active(struct cras_lea* lea) {
+  return lea && lea == g_lea;
+}
+
+bool cras_floss_lea_is_context_switching(struct cras_lea* lea) {
+  return lea->is_context_switching;
+}
+
+void cras_floss_lea_set_is_context_switching(struct cras_lea* lea,
+                                             bool is_context_switching) {
+  lea->is_context_switching = is_context_switching;
+}
 
 struct cras_iodev* cras_floss_lea_get_primary_odev(struct cras_lea* lea) {
   struct lea_group* group = lea->connected_groups;
@@ -78,24 +100,6 @@ bool cras_floss_lea_is_odev_started(struct cras_lea* lea) {
 
 bool cras_floss_lea_is_idev_started(struct cras_lea* lea) {
   return lea->idev_started;
-}
-
-int cras_floss_lea_configure_sink_for_voice_communication(
-    struct cras_lea* lea) {
-  return floss_media_lea_sink_metadata_changed(
-      lea->fm, FL_LEA_AUDIO_SOURCE_VOICE_COMMUNICATION, 1.0);
-}
-
-int cras_floss_lea_configure_source_for_voice_communication(
-    struct cras_lea* lea) {
-  return floss_media_lea_source_metadata_changed(
-      lea->fm, FL_LEA_AUDIO_USAGE_VOICE_COMMUNICATION,
-      FL_LEA_AUDIO_CONTENT_TYPE_MUSIC, 0.0);
-}
-
-int cras_floss_lea_configure_source_for_media(struct cras_lea* lea) {
-  return floss_media_lea_source_metadata_changed(
-      lea->fm, FL_LEA_AUDIO_USAGE_MEDIA, FL_LEA_AUDIO_CONTENT_TYPE_MUSIC, 1.0);
 }
 
 void fill_floss_lea_skt_addr(struct sockaddr_un* addr) {
@@ -116,17 +120,20 @@ static void set_dev_started(struct cras_lea* lea,
 
 /* Creates a |cras_lea| object representing the LEA service. */
 struct cras_lea* cras_floss_lea_create(struct fl_media* fm) {
-  struct cras_lea* lea;
-  lea = (struct cras_lea*)calloc(1, sizeof(*lea));
+  if (g_lea) {
+    syslog(LOG_WARNING, "%s: memory leak in g_lea", __func__);
+  }
 
-  if (!lea) {
+  g_lea = (struct cras_lea*)calloc(1, sizeof(*g_lea));
+
+  if (!g_lea) {
     return NULL;
   }
 
-  lea->fm = fm;
-  lea->fd = -1;
+  g_lea->fm = fm;
+  g_lea->fd = -1;
 
-  return lea;
+  return g_lea;
 }
 
 int cras_floss_lea_start(struct cras_lea* lea,
@@ -317,18 +324,19 @@ void cras_floss_lea_set_volume(struct cras_lea* lea, unsigned int volume) {
                                    volume * 255 / 100);
 }
 
+bool cras_floss_lea_has_connected_group(struct cras_lea* lea) {
+  return lea->connected_groups != NULL;
+}
+
 void cras_floss_lea_destroy(struct cras_lea* lea) {
-  struct lea_group* group;
-  DL_FOREACH (lea->connected_groups, group) {
-    if (group->idev) {
-      lea_iodev_destroy(group->idev);
-    }
-    if (group->odev) {
-      lea_iodev_destroy(group->odev);
-    }
-    DL_DELETE(lea->connected_groups, group);
-    free(group->name);
-    free(group);
+  if (lea != g_lea) {
+    syslog(LOG_WARNING, "%s: unrecognized lea object", __func__);
+    return;
+  }
+
+  if (cras_floss_lea_has_connected_group(lea)) {
+    syslog(LOG_WARNING, "%s: there are still connected groups", __func__);
+    return;
   }
 
   if (lea->fd >= 0) {
@@ -336,6 +344,8 @@ void cras_floss_lea_destroy(struct cras_lea* lea) {
   }
 
   free(lea);
+
+  g_lea = NULL;
 }
 
 void cras_floss_lea_set_active(struct cras_lea* lea,
@@ -348,9 +358,46 @@ void cras_floss_lea_set_active(struct cras_lea* lea,
 
   if (!enabled) {
     group_id = FL_LEA_GROUP_NONE;
+    lea->current_context = LEA_AUDIO_CONTEXT_UNINITIALIZED;
   }
 
   floss_media_lea_set_active_group(lea->fm, group_id);
+}
+
+void cras_floss_lea_set_target_context(struct cras_lea* lea,
+                                       enum LEA_AUDIO_CONTEXT_TYPE context) {
+  syslog(LOG_INFO, "%s: set target context to %d", __func__, context);
+  lea->target_context = context;
+}
+
+void cras_floss_lea_apply_target_context(struct cras_lea* lea) {
+  if (lea->target_context == LEA_AUDIO_CONTEXT_UNINITIALIZED) {
+    syslog(LOG_DEBUG, "%s: target context is none", __func__);
+    return;
+  }
+
+  syslog(LOG_INFO, "%s: update context from %d to %d", __func__,
+         lea->current_context, lea->target_context);
+
+  switch (lea->target_context) {
+    case LEA_AUDIO_CONTEXT_MEDIA:
+      floss_media_lea_source_metadata_changed(lea->fm, FL_LEA_AUDIO_USAGE_MEDIA,
+                                              FL_LEA_AUDIO_CONTENT_TYPE_MUSIC,
+                                              1.0);
+      break;
+    case LEA_AUDIO_CONTEXT_CONVERSATIONAL:
+      floss_media_lea_source_metadata_changed(
+          lea->fm, FL_LEA_AUDIO_USAGE_VOICE_COMMUNICATION,
+          FL_LEA_AUDIO_CONTENT_TYPE_MUSIC, 0.0);
+      floss_media_lea_sink_metadata_changed(
+          lea->fm, FL_LEA_AUDIO_SOURCE_VOICE_COMMUNICATION, 1.0);
+      break;
+    default:
+      break;
+  }
+
+  lea->current_context = lea->target_context;
+  lea->target_context = LEA_AUDIO_CONTEXT_UNINITIALIZED;
 }
 
 int cras_floss_lea_get_fd(struct cras_lea* lea) {

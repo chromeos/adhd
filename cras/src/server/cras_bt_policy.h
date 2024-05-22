@@ -9,6 +9,7 @@
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_io.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_lea_manager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,7 +48,7 @@ void cras_bt_policy_stop();
  *  |           |  +------------------+    +-----------------+   | |
  *  +-----------|------------------------------------------------|-+
  *              |                                                |
- * Main thread: |
+ * Main thread: |                                                |
  *  +-----------|------------------------------------------------|-+
  *  |           |                                                | |
  *  |           |      +------------+     +----------------+     | |
@@ -57,6 +58,13 @@ void cras_bt_policy_stop();
  *  +--------------------------------------------------------------+
  */
 int cras_bt_policy_switch_profile(struct bt_io_manager* mgr);
+
+/* Sends message to main thread for switching associated lea iodevs
+ * to use the target context. This is achieved by suspending the iodevs,
+ * updating their active nodes (to reactivate the group),
+ * and then finally reopening them.
+ */
+int cras_bt_policy_lea_switch_context(struct cras_lea* lea);
 
 // Cleans up associated policy instances when bt_io_manager is removed.
 void cras_bt_policy_remove_io_manager(struct bt_io_manager* mgr);

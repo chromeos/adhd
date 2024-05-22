@@ -46,15 +46,13 @@ static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
 static int cras_floss_lea_fill_format_called;
 static int is_utf8_string_ret_value;
-static int cras_iodev_list_suspend_dev_called;
-static int cras_iodev_list_resume_dev_called;
-static int cras_iodev_list_resume_dev_idx;
 static int cras_floss_lea_is_idev_started_ret;
 static int cras_floss_lea_is_odev_started_ret;
 static int cras_floss_lea_set_active_called;
-static int cras_floss_lea_configure_sink_for_voice_communication_called;
-static int cras_floss_lea_configure_source_for_voice_communication_called;
-static int cras_floss_lea_configure_source_for_media_called;
+static bool cras_floss_lea_has_connected_group_ret;
+static bool cras_floss_lea_is_context_switching_ret;
+static enum LEA_AUDIO_CONTEXT_TYPE cras_floss_lea_current_context;
+static enum LEA_AUDIO_CONTEXT_TYPE cras_floss_lea_target_context;
 
 void ResetStubData() {
   cras_iodev_add_node_called = 0;
@@ -76,14 +74,13 @@ void ResetStubData() {
   audio_thread_config_events_callback_trigger = TRIGGER_NONE;
   cras_floss_lea_fill_format_called = 0;
   is_utf8_string_ret_value = 1;
-  cras_iodev_list_suspend_dev_called = 0;
-  cras_iodev_list_resume_dev_called = 0;
   cras_floss_lea_is_idev_started_ret = 0;
   cras_floss_lea_is_odev_started_ret = 0;
   cras_floss_lea_set_active_called = 0;
-  cras_floss_lea_configure_sink_for_voice_communication_called = 0;
-  cras_floss_lea_configure_source_for_voice_communication_called = 0;
-  cras_floss_lea_configure_source_for_media_called = 0;
+  cras_floss_lea_has_connected_group_ret = false;
+  cras_floss_lea_is_context_switching_ret = false;
+  cras_floss_lea_current_context = LEA_AUDIO_CONTEXT_UNINITIALIZED;
+  cras_floss_lea_target_context = LEA_AUDIO_CONTEXT_UNINITIALIZED;
 }
 
 int iodev_set_lea_format(struct cras_iodev* iodev,
@@ -177,23 +174,22 @@ TEST_F(PcmIodev, OpenLeaIdevThenOdev) {
   cras_floss_lea_get_primary_idev_ret = idev;
 
   {
-    CLEAR_AND_EVENTUALLY(
-        EXPECT_EQ, cras_floss_lea_configure_sink_for_voice_communication_called,
-        1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_suspend_dev_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_current_context,
+                         LEA_AUDIO_CONTEXT_CONVERSATIONAL);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_start_called, 1);
+
     idev->open_dev(idev);
     cras_floss_lea_is_idev_started_ret = 1;
   }
 
   {
-    CLEAR_AND_EVENTUALLY(
-        EXPECT_EQ,
-        cras_floss_lea_configure_source_for_voice_communication_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_suspend_dev_called, 0);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_start_called, 1);
+
     odev->open_dev(odev);
     cras_floss_lea_is_odev_started_ret = 1;
+
+    // The context is still conversational.
+    EXPECT_EQ(cras_floss_lea_current_context, LEA_AUDIO_CONTEXT_CONVERSATIONAL);
   }
 
   {
@@ -237,22 +233,22 @@ TEST_F(PcmIodev, OpenLeaOdevThenIdev) {
   cras_floss_lea_get_primary_idev_ret = idev;
 
   {
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ,
-                         cras_floss_lea_configure_source_for_media_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_suspend_dev_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_current_context,
+                         LEA_AUDIO_CONTEXT_MEDIA);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_start_called, 1);
+
     odev->open_dev(odev);
     cras_floss_lea_is_odev_started_ret = 1;
   }
 
   {
-    CLEAR_AND_EVENTUALLY(
-        EXPECT_EQ, cras_floss_lea_configure_sink_for_voice_communication_called,
-        1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_suspend_dev_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_resume_dev_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_start_called, 1);
-    idev->open_dev(idev);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_target_context,
+                         LEA_AUDIO_CONTEXT_CONVERSATIONAL);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_is_context_switching_ret,
+                         true);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_start_called, 0);
+
+    EXPECT_EQ(idev->open_dev(idev), -EAGAIN);
     cras_floss_lea_is_idev_started_ret = 1;
   }
 
@@ -288,18 +284,23 @@ TEST_F(PcmIodev, CloseLeaIdevThenOdev) {
   cras_floss_lea_is_odev_started_ret = 1;
 
   {
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ,
-                         cras_floss_lea_configure_source_for_media_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_suspend_dev_called, 1);
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_resume_dev_called, 1);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_target_context,
+                         LEA_AUDIO_CONTEXT_MEDIA);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_is_context_switching_ret,
+                         true);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_stop_called, 1);
+
     idev->close_dev(idev);
     cras_floss_lea_is_idev_started_ret = 0;
+
+    EXPECT_EQ(cras_floss_lea_current_context, LEA_AUDIO_CONTEXT_CONVERSATIONAL);
   }
 
   {
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_suspend_dev_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_is_context_switching_ret,
+                         false);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_stop_called, 1);
+
     odev->close_dev(odev);
     cras_floss_lea_is_odev_started_ret = 0;
   }
@@ -325,15 +326,25 @@ TEST_F(PcmIodev, CloseLeaOdevThenIdev) {
   cras_floss_lea_is_odev_started_ret = 1;
 
   {
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_suspend_dev_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_target_context,
+                         LEA_AUDIO_CONTEXT_UNINITIALIZED);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_is_context_switching_ret,
+                         false);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_stop_called, 1);
     odev->close_dev(odev);
+
     cras_floss_lea_is_odev_started_ret = 0;
+
+    EXPECT_EQ(cras_floss_lea_current_context, LEA_AUDIO_CONTEXT_CONVERSATIONAL);
   }
 
   {
-    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_iodev_list_suspend_dev_called, 0);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_target_context,
+                         LEA_AUDIO_CONTEXT_UNINITIALIZED);
+    CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_is_context_switching_ret,
+                         false);
     CLEAR_AND_EVENTUALLY(EXPECT_EQ, cras_floss_lea_stop_called, 1);
+
     idev->close_dev(idev);
     cras_floss_lea_is_idev_started_ret = 0;
   }
@@ -530,15 +541,6 @@ int is_utf8_string(const char* string) {
   return is_utf8_string_ret_value;
 }
 
-void cras_iodev_list_suspend_dev(unsigned int dev_idx) {
-  cras_iodev_list_suspend_dev_called++;
-}
-
-void cras_iodev_list_resume_dev(unsigned int dev_idx) {
-  cras_iodev_list_resume_dev_called++;
-  cras_iodev_list_resume_dev_idx = dev_idx;
-}
-
 // From ewma_power
 void ewma_power_disable(struct ewma_power* ewma) {}
 
@@ -633,20 +635,36 @@ bool cras_floss_lea_is_odev_started(struct cras_lea* lea) {
   return cras_floss_lea_is_odev_started_ret;
 }
 
-int cras_floss_lea_configure_sink_for_voice_communication(
-    struct cras_lea* lea) {
-  cras_floss_lea_configure_sink_for_voice_communication_called++;
-  return 0;
+bool cras_floss_lea_is_active(struct cras_lea* lea) {
+  return true;
 }
 
-int cras_floss_lea_configure_source_for_voice_communication(
-    struct cras_lea* lea) {
-  cras_floss_lea_configure_source_for_voice_communication_called++;
-  return 0;
+bool cras_floss_lea_has_connected_group(struct cras_lea* lea) {
+  return cras_floss_lea_has_connected_group_ret;
 }
 
-int cras_floss_lea_configure_source_for_media(struct cras_lea* lea) {
-  cras_floss_lea_configure_source_for_media_called++;
+bool cras_floss_lea_is_context_switching(struct cras_lea* lea) {
+  return cras_floss_lea_is_context_switching_ret;
+}
+
+void cras_floss_lea_set_is_context_switching(struct cras_lea* lea,
+                                             bool is_context_switching) {
+  cras_floss_lea_is_context_switching_ret = is_context_switching;
+}
+
+void cras_floss_lea_set_target_context(struct cras_lea* lea,
+                                       enum LEA_AUDIO_CONTEXT_TYPE context) {
+  cras_floss_lea_target_context = context;
+}
+
+void cras_floss_lea_apply_target_context(struct cras_lea* lea) {
+  cras_floss_lea_current_context = cras_floss_lea_target_context;
+  cras_floss_lea_target_context = LEA_AUDIO_CONTEXT_UNINITIALIZED;
+}
+
+// BT policy
+int cras_bt_policy_lea_switch_context(struct cras_lea* lea) {
+  cras_floss_lea_is_context_switching_ret = true;
   return 0;
 }
 }
