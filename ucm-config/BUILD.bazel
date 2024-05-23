@@ -9,8 +9,12 @@ pkg_filegroup(
     name = "dist_files",
     srcs = [
         ":ucm1_files",
-        ":ucm2_files",
-    ],
+    ] + select({
+        "//:ucm2_files_build": [
+            ":ucm2_files",
+        ],
+        "//conditions:default": [],
+    }),
     visibility = ["//dist:__pkg__"],
 )
 

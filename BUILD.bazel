@@ -70,6 +70,11 @@ bool_flag_config(
     build_setting_default = False,
 )
 
+bool_flag_config(
+    name = "ucm2_files",
+    build_setting_default = True,
+)
+
 config_setting(
     name = "x86_64_build",
     constraint_values = [
