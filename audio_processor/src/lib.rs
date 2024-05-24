@@ -20,3 +20,5 @@ mod pipeline;
 pub use pipeline::*;
 
 pub mod util;
+
+pub mod config;
