@@ -54,7 +54,7 @@
  * to check for floop odevs that the stream should be attached to.
  */
 
-#define LOOPBACK_BUFFER_SIZE 8192
+#define LOOPBACK_BUFFER_SIZE 16384
 
 static size_t loopback_supported_rates[] = {48000, 0};
 
