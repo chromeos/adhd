@@ -1546,6 +1546,12 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
     case BT_HCI_ENABLED:
       printf("%-30s hci%d enabled %d\n", "HCI_ENABLED", data1, data2);
       break;
+    case BT_HFP_TELEPHONY_EVENT:
+      printf("%-30s event:%s call state:%s\n", "HFP_TELEPHONY_EVENT",
+             cras_bt_hfp_telephony_event_to_str(
+                 (enum CRAS_BT_HFP_TELEPHONY_EVENT)data1),
+             cras_bt_hfp_call_state_to_str((enum CRAS_BT_HFP_CALL_STATE)data2));
+      break;
     default:
       printf("%-30s\n", "UNKNOWN");
       break;

@@ -1270,8 +1270,9 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
   DBusError dbus_error;
   dbus_int32_t hfp_cap;
   dbus_bool_t abs_vol_supported;
-  dbus_bool_t telephony_use;
   dbus_int32_t group_id;
+  uint8_t telephony_event;
+  uint8_t telephony_state;
   struct cras_fl_a2dp_codec_config* codecs = NULL;
   uint8_t volume;
 
@@ -1414,13 +1415,14 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
              rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
-  } else if (dbus_message_is_method_call(
-                 message, BT_TELEPHONY_CALLBACK_INTERFACE, "OnTelephonyUse")) {
+  } else if (dbus_message_is_method_call(message,
+                                         BT_TELEPHONY_CALLBACK_INTERFACE,
+                                         "OnTelephonyEvent")) {
     dbus_error_init(&dbus_error);
     if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_STRING, &addr,
-                               DBUS_TYPE_BOOLEAN, &telephony_use,
-                               DBUS_TYPE_INVALID)) {
-      syslog(LOG_ERR, "Failed to get args from OnTelephonyUse: %s",
+                               DBUS_TYPE_BYTE, &telephony_event, DBUS_TYPE_BYTE,
+                               &telephony_state, DBUS_TYPE_INVALID)) {
+      syslog(LOG_ERR, "Failed to get args from OnTelephonyEvent: %s",
              dbus_error.message);
       dbus_error_free(&dbus_error);
       return DBUS_HANDLER_RESULT_HANDLED;
@@ -1429,10 +1431,13 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "fl_media hasn't started or stopped");
       return DBUS_HANDLER_RESULT_HANDLED;
     }
-    syslog(LOG_DEBUG, "OnTelephonyUse: %d", telephony_use);
-    active_fm->telephony_use = telephony_use;
-    if (active_fm->bt_io_mgr) {
-      bt_io_manager_set_telephony_use(active_fm->bt_io_mgr, telephony_use);
+    syslog(LOG_DEBUG, "OnTelephonyEvent: event: %u state: %u", telephony_event,
+           telephony_state);
+    rc = handle_on_hfp_telephony_event(active_fm, addr, telephony_event,
+                                       telephony_state);
+    if (rc) {
+      syslog(LOG_ERR,
+             "Error occurred in handling handle_on_hfp_telephony_event %d", rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,

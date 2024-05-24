@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <syslog.h>
 
 #include "cras/common/check.h"
@@ -357,6 +358,30 @@ int handle_on_hfp_audio_disconnected(struct fl_media* active_fm,
   }
   BTLOG(btlog, BT_HFP_AUDIO_DISCONNECTED, 0, 0);
   cras_floss_hfp_handle_audio_disconnection(active_fm->hfp);
+  return 0;
+}
+
+int handle_on_hfp_telephony_event(struct fl_media* active_fm,
+                                  const char* addr,
+                                  uint8_t event,
+                                  uint8_t state) {
+  CRAS_CHECK(active_fm != NULL);
+  enum CRAS_BT_HFP_TELEPHONY_EVENT telephony_event =
+      (enum CRAS_BT_HFP_TELEPHONY_EVENT)event;
+  if (!active_fm->bt_io_mgr) {
+    return -EINVAL;
+  }
+  switch (telephony_event) {
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_OPEN:
+      bt_io_manager_set_telephony_use(active_fm->bt_io_mgr, true);
+      break;
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_CLOSE:
+      bt_io_manager_set_telephony_use(active_fm->bt_io_mgr, false);
+      break;
+    default:
+      break;
+  }
+  BTLOG(btlog, BT_HFP_TELEPHONY_EVENT, event, state);
   return 0;
 }
 

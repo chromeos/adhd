@@ -204,6 +204,23 @@ int handle_on_lea_group_node_status(struct fl_media* active_fm,
                                     const char* addr,
                                     int group_id,
                                     int status);
+/* Handler for Bluetooth Telephony events received from Floss.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   addr - The address of the added bluetooth device.
+ *   event: The specific Bluetooth HFP telephony event (e.g. incoming-call,
+ *          call).
+ *   state: The new call state after the event occurred in Floss.
+ *
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_hfp_telephony_event(struct fl_media* active_fm,
+                                  const char* addr,
+                                  uint8_t event,
+                                  uint8_t state);
 
 /* Destroys struct fl_media and frees up relevant resources.
  *

@@ -67,6 +67,116 @@ static inline const char* audio_thread_event_type_to_str(
   }
 }
 
+// The Bluetooth HFP telephony events happen in Floss.
+enum CRAS_BT_HFP_TELEPHONY_EVENT {
+  // Floss uhid device created (typically when SLC connects)
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_CREATE = 0,
+  // Floss uhid device destroyed (typically when SLC disconnects)
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_DESTROY,
+  // WebHID opens the uhid device
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_OPEN,
+  // WebHID closes the uhid device
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_CLOSE,
+  // WebHID sends incoming-call event
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_INCOMING_CALL,
+  // WebHID sends off-hook=1 to answer an incoming call
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_ANSWER_CALL,
+  // WebHID sends off-hook=0 to hang up current call
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_HANGUP_CALL,
+  // WebHID sends off-hook=1 without prior incoming call
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_PLACE_ACTIVE_CALL,
+  // WebHID sends phone-mute=1
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_MIC_MUTE,
+  // WebHID sends phone-mute=0
+  CRAS_BT_HFP_TELEPHONY_EVENT_UHID_MIC_UNMUTE,
+  // Active call starts SCO alongside cras
+  CRAS_BT_HFP_TELEPHONY_EVENT_CRAS_PLACE_ACTIVE_CALL,
+  // Active call ends and SCO stops with cras
+  CRAS_BT_HFP_TELEPHONY_EVENT_CRAS_REMOVE_ACTIVE_CALL,
+  // Bluetooth headset sends ATA command to Floss
+  CRAS_BT_HFP_TELEPHONY_EVENT_HF_ANSWER_CALL,
+  // Bluetooth headset sends AT+CHUP command to Floss
+  CRAS_BT_HFP_TELEPHONY_EVENT_HF_HANGUP_CALL,
+  // Bluetooth headset sends AT+VGM=0
+  CRAS_BT_HFP_TELEPHONY_EVENT_HF_MIC_MUTE,
+  // Bluetooth headset sends AT+VGM=15
+  CRAS_BT_HFP_TELEPHONY_EVENT_HF_MIC_UNMUTE,
+  // Bluetooth headset queries current call list when SLC connected
+  CRAS_BT_HFP_TELEPHONY_EVENT_HF_CURRENT_CALLS_QUERY,
+};
+
+static inline const char* cras_bt_hfp_telephony_event_to_str(
+    enum CRAS_BT_HFP_TELEPHONY_EVENT event) {
+  switch (event) {
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_CREATE:
+      return "UHID_CREATE";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_DESTROY:
+      return "UHID_DESTROY";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_OPEN:
+      return "UHID_OPEN";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_CLOSE:
+      return "UHID_CLOSE";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_INCOMING_CALL:
+      return "UHID_INCOMING_CALL";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_ANSWER_CALL:
+      return "UHID_ANSWER_CALL";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_HANGUP_CALL:
+      return "UHID_HANGUP_CALL";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_PLACE_ACTIVE_CALL:
+      return "UHID_PLACE_ACTIVE_CALL";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_MIC_MUTE:
+      return "UHID_MIC_MUTE";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_MIC_UNMUTE:
+      return "UHID_MIC_UNMUTE";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_CRAS_PLACE_ACTIVE_CALL:
+      return "CRAS_PLACE_ACTIVE_CALL";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_CRAS_REMOVE_ACTIVE_CALL:
+      return "CRAS_REMOVE_ACTIVE_CALL";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_HF_ANSWER_CALL:
+      return "HF_ANSWER_CALL";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_HF_HANGUP_CALL:
+      return "HF_HANGUP_CALL";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_HF_MIC_MUTE:
+      return "HF_MIC_MUTE";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_HF_MIC_UNMUTE:
+      return "HF_MIC_UNMUTE";
+    case CRAS_BT_HFP_TELEPHONY_EVENT_HF_CURRENT_CALLS_QUERY:
+      return "HF_CURRENT_CALLS_QUERY";
+    default:
+      return "UNKNOWN_TELEPHONY_EVENT";
+  }
+}
+
+// The call state in Floss.
+enum CRAS_BT_HFP_CALL_STATE {
+  CRAS_BT_HFP_CALL_IDLE = 0,
+  CRAS_BT_HFP_CALL_INCOMING,
+  CRAS_BT_HFP_CALL_DIALING,
+  CRAS_BT_HFP_CALL_ALERTING,
+  CRAS_BT_HFP_CALL_ACTIVE,
+  CRAS_BT_HFP_CALL_HELD,
+};
+
+static inline const char* cras_bt_hfp_call_state_to_str(
+    enum CRAS_BT_HFP_CALL_STATE state) {
+  switch (state) {
+    case CRAS_BT_HFP_CALL_IDLE:
+      return "IDLE";
+    case CRAS_BT_HFP_CALL_INCOMING:
+      return "INCOMING";
+    case CRAS_BT_HFP_CALL_DIALING:
+      return "DIALING";
+    case CRAS_BT_HFP_CALL_ALERTING:
+      return "ALERTING";
+    case CRAS_BT_HFP_CALL_ACTIVE:
+      return "ACTIVE";
+    case CRAS_BT_HFP_CALL_HELD:
+      return "HELD";
+    default:
+      return "UNKNOWN_CALL_STATE";
+  }
+}
+
 void print_cras_stream_active_ap_effects(FILE* f,
                                          CRAS_STREAM_ACTIVE_AP_EFFECT effects);
 

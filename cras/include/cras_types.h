@@ -429,9 +429,10 @@ enum CRAS_BT_LOG_EVENTS {
   BT_NEW_AUDIO_PROFILE_AFTER_CONNECT,  // BlueZ
   BT_RESET,                            // BlueZ
   BT_SCO_CONNECT,
-  BT_SCO_DISCONNECT,     // Floss
-  BT_TRANSPORT_RELEASE,  // BlueZ
-  BT_HCI_ENABLED,        // Floss
+  BT_SCO_DISCONNECT,       // Floss
+  BT_TRANSPORT_RELEASE,    // BlueZ
+  BT_HCI_ENABLED,          // Floss
+  BT_HFP_TELEPHONY_EVENT,  // Floss
 };
 
 struct __attribute__((__packed__)) audio_thread_event {
