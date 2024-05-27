@@ -756,9 +756,14 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   dictionary* aec_ini_use = is_aec_use_case ? aec_ini : NULL;
   dictionary* apm_ini_use = is_aec_use_case ? apm_ini : NULL;
 
+  const struct WebRtcApmConfig webrtc_apm_config = {
+      .enforce_aec_on = enforce_aec_on,
+      .enforce_ns_on = enforce_ns_on,
+      .enforce_agc_on = enforce_agc_on,
+  };
   apm->apm_ptr = webrtc_apm_create_with_enforced_effects(
       apm->fmt.num_channels, apm->fmt.frame_rate, aec_ini_use, apm_ini_use,
-      enforce_aec_on, enforce_ns_on, enforce_agc_on);
+      &webrtc_apm_config);
   if (apm->apm_ptr == NULL) {
     syslog(LOG_ERR,
            "Fail to create webrtc apm for ch %zu"

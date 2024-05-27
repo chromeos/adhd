@@ -816,9 +816,7 @@ webrtc_apm webrtc_apm_create_with_enforced_effects(
     unsigned int frame_rate,
     dictionary* aec_ini,
     dictionary* apm_ini,
-    unsigned int enforce_aec_on,
-    unsigned int enforce_ns_on,
-    unsigned int enforce_agc_on) {
+    const struct WebRtcApmConfig* webrtc_apm_config) {
   webrtc_apm_create_called++;
   webrtc_apm_create_aec_ini_val = aec_ini;
   webrtc_apm_create_apm_ini_val = apm_ini;
