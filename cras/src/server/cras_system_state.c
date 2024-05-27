@@ -146,6 +146,8 @@ struct private_state {
   enum CRAS_SCREEN_ROTATION display_rotation;
   // this board is selected for output processing hats
   int32_t output_proc_hats;
+  // The name of the ChromeOS board.
+  const char* board_name;
 };
 
 static struct private_state state;
@@ -293,6 +295,8 @@ void cras_system_state_init(const char* device_config_dir,
   if (board_config->dsp_offload_map) {
     state.dsp_offload_map_str = strdup(board_config->dsp_offload_map);
   }
+
+  state.board_name = board_name ?: "";
 
   // Release board config.
   cras_board_config_destroy(board_config);
@@ -1055,4 +1059,8 @@ int cras_system_state_num_arc_streams() {
 
 struct cras_feature_tier* get_feature_tier_for_test() {
   return &state.feature_tier;
+}
+
+const char* cras_system_get_board_name() {
+  return state.board_name;
 }

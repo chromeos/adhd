@@ -522,6 +522,9 @@ int cras_system_state_num_arc_streams();
 // Get the feature tier struct for testing.
 struct cras_feature_tier* get_feature_tier_for_test();
 
+// Get the ChromeOS board name.
+const char* cras_system_get_board_name();
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

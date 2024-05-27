@@ -676,6 +676,16 @@ static struct cras_audio_format get_best_channels(
   return apm_fmt;
 }
 
+static size_t get_aec3_fixed_capture_delay_samples() {
+  if (str_equals("zork", cras_system_get_board_name())) {
+    return 320;
+  }
+  if (cras_feature_enabled(CrOSLateBootCrasAecFixedCaptureDelay320Samples)) {
+    return 320;
+  }
+  return 0;
+}
+
 struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
                                      struct cras_iodev* idev,
                                      const struct cras_audio_format* dev_fmt) {
@@ -760,6 +770,8 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
       .enforce_aec_on = enforce_aec_on,
       .enforce_ns_on = enforce_ns_on,
       .enforce_agc_on = enforce_agc_on,
+      .aec3_fixed_capture_delay_samples =
+          get_aec3_fixed_capture_delay_samples(),
   };
   apm->apm_ptr = webrtc_apm_create_with_enforced_effects(
       apm->fmt.num_channels, apm->fmt.frame_rate, aec_ini_use, apm_ini_use,

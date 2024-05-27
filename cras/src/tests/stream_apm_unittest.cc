@@ -897,5 +897,9 @@ int cras_system_aec_on_dsp_supported() {
   return cras_system_aec_on_dsp_supported_ret;
 }
 
+const char* cras_system_get_board_name() {
+  return "";
+}
+
 }  // extern "C"
 }  // namespace
