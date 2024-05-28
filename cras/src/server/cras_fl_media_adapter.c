@@ -81,6 +81,7 @@ int handle_on_lea_group_connected(struct fl_media* active_fm,
   }
 
   cras_floss_lea_add_group(active_fm->lea, name, group_id);
+  cras_floss_lea_set_active(active_fm->lea, group_id, 1);
 
   return 0;
 }

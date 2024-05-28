@@ -440,11 +440,7 @@ static void update_active_node(struct cras_iodev* iodev,
   struct lea_io* leaio = (struct lea_io*)iodev;
   struct cras_lea* lea = leaio->lea;
 
-  cras_floss_lea_set_active(leaio->lea, leaio->group_id, dev_enabled);
-
-  if (dev_enabled) {
-    cras_floss_lea_apply_target_context(lea);
-  }
+  cras_floss_lea_apply_target_context(lea);
 }
 
 static void lea_free_base_resources(struct lea_io* leaio) {
