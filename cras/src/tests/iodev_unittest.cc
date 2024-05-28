@@ -500,7 +500,7 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail) {
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.format->format);
   EXPECT_EQ(48000, iodev_.format->frame_rate);
   EXPECT_EQ(2, iodev_.format->num_channels);
-  EXPECT_EQ(1, dsp_context_free_called);
+  EXPECT_EQ(0, dsp_context_free_called);
   for (i = 0; i < CRAS_CH_MAX; i++) {
     EXPECT_EQ(iodev_.format->channel_layout[i], stereo_layout[i]);
   }
@@ -527,7 +527,7 @@ TEST_F(IoDevSetFormatTestSuite, UpdateChannelLayoutFail6ch) {
   EXPECT_EQ(SND_PCM_FORMAT_S16_LE, iodev_.format->format);
   EXPECT_EQ(48000, iodev_.format->frame_rate);
   EXPECT_EQ(6, iodev_.format->num_channels);
-  EXPECT_EQ(1, dsp_context_free_called);
+  EXPECT_EQ(0, dsp_context_free_called);
   for (i = 0; i < CRAS_CH_MAX; i++) {
     EXPECT_EQ(iodev_.format->channel_layout[i], default_6ch_layout[i]);
   }
@@ -2791,19 +2791,13 @@ TEST(IoDev, IsLoopback) {
 class IoDevSetDisplayRotationSuite : public testing::Test {
  protected:
   virtual void SetUp() {
-    fmt_.format = SND_PCM_FORMAT_S16_LE;
-    fmt_.frame_rate = 48000;
-    fmt_.num_channels = 2;
-
     ResetStubData();
     memset(&iodev_, 0, sizeof(iodev_));
     iodev_.dsp_context = reinterpret_cast<cras_dsp_context*>(0xf0f);
-    iodev_.format = &fmt_;
   }
 
   struct cras_iodev iodev_;
   struct cras_ionode node_;
-  struct cras_audio_format fmt_;
 };
 
 TEST_F(IoDevSetDisplayRotationSuite, UpdateRotation) {
