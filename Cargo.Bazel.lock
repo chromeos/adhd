@@ -1,5 +1,5 @@
 {
-  "checksum": "b2310187ef1f7403122a658237ada76b63171f32fc13a2075dad28a0efae81fe",
+  "checksum": "dbabd1be57e0157df16363da0ca6c9fb34d962ee02f191b5c27e79bdb2192b18",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -7579,6 +7579,45 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "sof_tests 0.1.0": {
+      "name": "sof_tests",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [],
+      "library_target_name": null,
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "anyhow 1.0.75",
+              "target": "anyhow"
+            },
+            {
+              "id": "clap 4.5.4",
+              "target": "clap"
+            },
+            {
+              "id": "serde 1.0.152",
+              "target": "serde"
+            },
+            {
+              "id": "serde_json 1.0.96",
+              "target": "serde_json"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
+    },
     "strength_reduce 0.2.4": {
       "name": "strength_reduce",
       "version": "0.2.4",
@@ -10932,7 +10971,8 @@
     "cras_features_backend 0.1.0": "cras/server/platform/features",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
     "cras_s2 0.1.0": "cras/server/s2",
-    "rock 0.1.0": "rock"
+    "rock 0.1.0": "rock",
+    "sof_tests 0.1.0": "sof_tests"
   },
   "conditions": {
     "aarch64-apple-darwin": [

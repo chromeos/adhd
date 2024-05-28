@@ -215,6 +215,7 @@ crates_repository(
     manifests = [
         "//:Cargo.toml",
         "//:rock/Cargo.toml",
+        "//:sof_tests/Cargo.toml",
         "//cras/server/s2:Cargo.toml",
         "//audio_processor:Cargo.toml",
         "//cras/common:Cargo.toml",

@@ -1162,6 +1162,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sof_tests"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap 4.5.4",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "strength_reduce"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
