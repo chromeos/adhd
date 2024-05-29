@@ -768,7 +768,6 @@ void cras_iodev_free_audio_area(struct cras_iodev* iodev) {
 }
 
 void cras_iodev_free_resources(struct cras_iodev* iodev) {
-  cras_iodev_free_dsp(iodev);
   rate_estimator_destroy(iodev->rate_est);
   if (iodev->ramp) {
     cras_ramp_destroy(iodev->ramp);
@@ -1315,6 +1314,7 @@ int cras_iodev_close(struct cras_iodev* iodev) {
     }
   }
 
+  cras_iodev_free_dsp(iodev);
   return 0;
 }
 
