@@ -104,6 +104,17 @@ static bool dbus_uint8_is_nonzero(int dbus_type, void* dbus_value_ptr) {
   return *(uint8_t*)dbus_value_ptr != 0;
 }
 
+static bool dbus_int32_is_nonzero(int dbus_type, void* dbus_value_ptr) {
+  if (dbus_type != DBUS_TYPE_INT32) {
+    syslog(LOG_ERR,
+           "Mismatched return type, "
+           "expected type id: %d, received type id: %d",
+           DBUS_TYPE_INT32, dbus_type);
+    return false;
+  }
+  return *(dbus_int32_t*)dbus_value_ptr != 0;
+}
+
 static bool dbus_bool_is_true(int dbus_type, void* dbus_value_ptr) {
   if (dbus_type != DBUS_TYPE_BOOLEAN) {
     syslog(LOG_ERR,
@@ -1728,6 +1739,8 @@ int floss_media_lea_host_start_audio_request(struct fl_media* fm,
                                              uint32_t* sample_rate,
                                              uint8_t* bits_per_sample,
                                              uint8_t* channels_count) {
+  syslog(LOG_DEBUG, "%s", __func__);
+
   int rc = 0;
 
   if (!fm) {
@@ -1735,64 +1748,81 @@ int floss_media_lea_host_start_audio_request(struct fl_media* fm,
     return -EINVAL;
   }
 
-  DBusMessage* start_audio_request;
-  rc = create_dbus_method_call(&start_audio_request,
-                               /* dest= */ BT_SERVICE_NAME,
-                               /* path= */ fm->obj_path,
-                               /* iface= */ BT_MEDIA_INTERFACE,
-                               /* method_name= */ "HostStartAudioRequest",
-                               /* num_args= */ 0);
+  for (int retries = GET_LEA_AUDIO_STARTED_RETRIES; retries > 0;) {
+    DBusMessage* start_audio_request;
+    rc = create_dbus_method_call(&start_audio_request,
+                                 /* dest= */ BT_SERVICE_NAME,
+                                 /* path= */ fm->obj_path,
+                                 /* iface= */ BT_MEDIA_INTERFACE,
+                                 /* method_name= */ "HostStartAudioRequest",
+                                 /* num_args= */ 0);
 
-  if (rc < 0) {
-    return rc;
-  }
+    if (rc < 0) {
+      return rc;
+    }
 
-  dbus_bool_t response = FALSE;
-  rc = call_method_and_parse_reply(
-      /* conn= */ fm->conn,
-      /* method_call= */ start_audio_request,
-      /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-      /* dbus_ret_value_ptr= */ &response,
-      /* log_on_error= */ true);
+    dbus_bool_t response = FALSE;
+    rc = call_method_and_parse_reply(
+        /* conn= */ fm->conn,
+        /* method_call= */ start_audio_request,
+        /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+        /* dbus_ret_value_ptr= */ &response,
+        /* log_on_error= */ true);
 
-  dbus_message_unref(start_audio_request);
+    dbus_message_unref(start_audio_request);
 
-  if (rc < 0) {
-    return rc;
-  }
+    if (rc < 0) {
+      return rc;
+    }
 
-  if (response == FALSE) {
-    syslog(LOG_WARNING, "Failed to make request to HostStartAudioRequest.");
-    return -EBUSY;
-  }
+    if (response == FALSE) {
+      syslog(LOG_WARNING, "Failed to make request to HostStartAudioRequest.");
+      return -EBUSY;
+    }
 
-  DBusMessage* get_host_stream_started;
-  rc = create_dbus_method_call(&get_host_stream_started,
-                               /* dest= */ BT_SERVICE_NAME,
-                               /* path= */ fm->obj_path,
-                               /* iface= */ BT_MEDIA_INTERFACE,
-                               /* method_name= */ "GetHostStreamStarted",
-                               /* num_args= */ 0);
+    DBusMessage* get_host_stream_started;
+    rc = create_dbus_method_call(&get_host_stream_started,
+                                 /* dest= */ BT_SERVICE_NAME,
+                                 /* path= */ fm->obj_path,
+                                 /* iface= */ BT_MEDIA_INTERFACE,
+                                 /* method_name= */ "GetHostStreamStarted",
+                                 /* num_args= */ 0);
 
-  if (rc < 0) {
-    return rc;
-  }
+    if (rc < 0) {
+      return rc;
+    }
 
-  dbus_bool_t started = FALSE;
-  rc = retry_until_predicate_satisfied(
-      /* conn= */ fm->conn,
-      /* num_retries= */ GET_LEA_AUDIO_STARTED_RETRIES,
-      /* sleep_time_us= */ GET_LEA_AUDIO_STARTED_SLEEP_US,
-      /* method_call= */ get_host_stream_started,
-      /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-      /* dbus_ret_value_ptr= */ &started,
-      /* predicate= */ dbus_bool_is_true,
-      /* executed_retries= */ NULL);
+    int executed_retries = 0;
 
-  dbus_message_unref(get_host_stream_started);
+    dbus_int32_t started = 0;
+    rc = retry_until_predicate_satisfied(
+        /* conn= */ fm->conn,
+        /* num_retries= */ retries,
+        /* sleep_time_us= */ GET_LEA_AUDIO_STARTED_SLEEP_US,
+        /* method_call= */ get_host_stream_started,
+        /* dbus_ret_type= */ DBUS_TYPE_INT32,
+        /* dbus_ret_value_ptr= */ &started,
+        /* predicate= */ dbus_int32_is_nonzero,
+        /* executed_retries= */ &executed_retries);
 
-  if (rc < 0) {
-    return rc;
+    dbus_message_unref(get_host_stream_started);
+
+    retries -= executed_retries;
+
+    if (started == FL_LEA_STREAM_STARTED_STATUS_STARTED) {
+      break;
+    }
+
+    if (started == FL_LEA_STREAM_STARTED_STATUS_CANCELED) {
+      syslog(LOG_DEBUG,
+             "HostStartAudioRequest was cancelled after %d retries to wait for "
+             "|started|, remaining attempts: %d",
+             executed_retries, retries);
+    }
+
+    if (rc < 0) {
+      return rc;
+    }
   }
 
   DBusMessage* get_pcm_config;
@@ -1826,12 +1856,12 @@ int floss_media_lea_host_start_audio_request(struct fl_media* fm,
   dbus_message_unref(reply);
 
   syslog(LOG_DEBUG,
-         "%s(data_interval_us=%u, sample_rate=%u, bits_per_sample=%u, "
-         "channels_count=%u)",
+         "%s -> {data_interval_us=%u, sample_rate=%u, bits_per_sample=%u, "
+         "channels_count=%u}",
          __func__, *data_interval_us, *sample_rate, *bits_per_sample,
          *channels_count);
 
-  return started;
+  return 0;
 }
 
 int floss_media_lea_source_metadata_changed(
@@ -1944,6 +1974,8 @@ int floss_media_lea_peer_start_audio_request(struct fl_media* fm,
                                              uint32_t* sample_rate,
                                              uint8_t* bits_per_sample,
                                              uint8_t* channels_count) {
+  syslog(LOG_DEBUG, "%s", __func__);
+
   if (!fm) {
     syslog(LOG_WARNING, "%s: Floss media not started", __func__);
     return -EINVAL;
@@ -1951,64 +1983,81 @@ int floss_media_lea_peer_start_audio_request(struct fl_media* fm,
 
   int rc = 0;
 
-  DBusMessage* start_audio_request;
-  rc = create_dbus_method_call(&start_audio_request,
-                               /* dest= */ BT_SERVICE_NAME,
-                               /* path= */ fm->obj_path,
-                               /* iface= */ BT_MEDIA_INTERFACE,
-                               /* method_name= */ "PeerStartAudioRequest",
-                               /* num_args= */ 0);
+  for (int retries = GET_LEA_AUDIO_STARTED_RETRIES; retries > 0;) {
+    DBusMessage* start_audio_request;
+    rc = create_dbus_method_call(&start_audio_request,
+                                 /* dest= */ BT_SERVICE_NAME,
+                                 /* path= */ fm->obj_path,
+                                 /* iface= */ BT_MEDIA_INTERFACE,
+                                 /* method_name= */ "PeerStartAudioRequest",
+                                 /* num_args= */ 0);
 
-  if (rc < 0) {
-    return rc;
-  }
+    if (rc < 0) {
+      return rc;
+    }
 
-  dbus_bool_t response = FALSE;
-  rc = call_method_and_parse_reply(
-      /* conn= */ fm->conn,
-      /* method_call= */ start_audio_request,
-      /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-      /* dbus_ret_value_ptr= */ &response,
-      /* log_on_error= */ true);
+    dbus_bool_t response = FALSE;
+    rc = call_method_and_parse_reply(
+        /* conn= */ fm->conn,
+        /* method_call= */ start_audio_request,
+        /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+        /* dbus_ret_value_ptr= */ &response,
+        /* log_on_error= */ true);
 
-  dbus_message_unref(start_audio_request);
+    dbus_message_unref(start_audio_request);
 
-  if (rc < 0) {
-    return rc;
-  }
+    if (rc < 0) {
+      return rc;
+    }
 
-  if (response == FALSE) {
-    syslog(LOG_WARNING, "Failed to make request to PeerStartAudioRequest.");
-    return -EBUSY;
-  }
+    if (response == FALSE) {
+      syslog(LOG_WARNING, "Failed to make request to PeerStartAudioRequest.");
+      return -EBUSY;
+    }
 
-  DBusMessage* get_peer_stream_started;
-  rc = create_dbus_method_call(&get_peer_stream_started,
-                               /* dest= */ BT_SERVICE_NAME,
-                               /* path= */ fm->obj_path,
-                               /* iface= */ BT_MEDIA_INTERFACE,
-                               /* method_name= */ "GetPeerStreamStarted",
-                               /* num_args= */ 0);
+    DBusMessage* get_peer_stream_started;
+    rc = create_dbus_method_call(&get_peer_stream_started,
+                                 /* dest= */ BT_SERVICE_NAME,
+                                 /* path= */ fm->obj_path,
+                                 /* iface= */ BT_MEDIA_INTERFACE,
+                                 /* method_name= */ "GetPeerStreamStarted",
+                                 /* num_args= */ 0);
 
-  if (rc < 0) {
-    return rc;
-  }
+    if (rc < 0) {
+      return rc;
+    }
 
-  dbus_bool_t started = FALSE;
-  rc = retry_until_predicate_satisfied(
-      /* conn= */ fm->conn,
-      /* num_retries= */ GET_LEA_AUDIO_STARTED_RETRIES,
-      /* sleep_time_us= */ GET_LEA_AUDIO_STARTED_SLEEP_US,
-      /* method_call= */ get_peer_stream_started,
-      /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
-      /* dbus_ret_value_ptr= */ &started,
-      /* predicate= */ dbus_bool_is_true,
-      /* executed_retries= */ NULL);
+    int executed_retries = 0;
 
-  dbus_message_unref(get_peer_stream_started);
+    dbus_int32_t started = 0;
+    rc = retry_until_predicate_satisfied(
+        /* conn= */ fm->conn,
+        /* num_retries= */ retries,
+        /* sleep_time_us= */ GET_LEA_AUDIO_STARTED_SLEEP_US,
+        /* method_call= */ get_peer_stream_started,
+        /* dbus_ret_type= */ DBUS_TYPE_INT32,
+        /* dbus_ret_value_ptr= */ &started,
+        /* predicate= */ dbus_int32_is_nonzero,
+        /* executed_retries= */ &executed_retries);
 
-  if (rc < 0) {
-    return rc;
+    dbus_message_unref(get_peer_stream_started);
+
+    retries -= executed_retries;
+
+    if (started == FL_LEA_STREAM_STARTED_STATUS_STARTED) {
+      break;
+    }
+
+    if (started == FL_LEA_STREAM_STARTED_STATUS_CANCELED) {
+      syslog(LOG_DEBUG,
+             "PeerStartAudioRequest was cancelled after %d retries to wait for "
+             "|started|, remaining attempts: %d",
+             executed_retries, retries);
+    }
+
+    if (rc < 0) {
+      return rc;
+    }
   }
 
   DBusMessage* get_pcm_config;
@@ -2042,12 +2091,12 @@ int floss_media_lea_peer_start_audio_request(struct fl_media* fm,
   dbus_message_unref(reply);
 
   syslog(LOG_DEBUG,
-         "%s(data_interval_us=%u, sample_rate=%u, bits_per_sample=%u, "
-         "channels_count=%u)",
+         "%s -> {data_interval_us=%u, sample_rate=%u, bits_per_sample=%u, "
+         "channels_count=%u}",
          __func__, *data_interval_us, *sample_rate, *bits_per_sample,
          *channels_count);
 
-  return started;
+  return 0;
 }
 
 int floss_media_lea_peer_stop_audio_request(struct fl_media* fm) {

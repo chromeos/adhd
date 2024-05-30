@@ -167,6 +167,12 @@ enum FL_LEA_AUDIO_SOURCE {
   FL_LEA_AUDIO_SOURCE_INVALID = -1,
 };
 
+enum FL_LEA_STREAM_STARTED_STATUS {
+  FL_LEA_STREAM_STARTED_STATUS_CANCELED = -1,
+  FL_LEA_STREAM_STARTED_STATUS_IDLE = 0,
+  FL_LEA_STREAM_STARTED_STATUS_STARTED = 1,
+};
+
 struct fl_media;
 
 struct fl_media* floss_media_get_active_fm();
