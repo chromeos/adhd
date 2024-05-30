@@ -281,7 +281,8 @@ enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
       /* method_call= */ get_hfp_audio_final_codecs,
       /* dbus_ret_type= */ DBUS_TYPE_BYTE,
       /* dbus_ret_value_ptr= */ &final_codec_id,
-      /* predicate= */ dbus_uint8_is_nonzero);
+      /* predicate= */ dbus_uint8_is_nonzero,
+      /* executed_retries= */ NULL);
 
   dbus_message_unref(get_hfp_audio_final_codecs);
 
@@ -354,7 +355,8 @@ int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
       /* method_call= */ get_hfp_audio_final_codecs,
       /* dbus_ret_type= */ DBUS_TYPE_BYTE,
       /* dbus_ret_value_ptr= */ &final_codecs,
-      /* predicate= */ dbus_uint8_is_zero);
+      /* predicate= */ dbus_uint8_is_zero,
+      /* executed_retries= */ NULL);
 
   dbus_message_unref(get_hfp_audio_final_codecs);
 
@@ -646,7 +648,8 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
       /* method_call= */ get_a2dp_audio_started,
       /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
       /* dbus_ret_value_ptr= */ &started,
-      /* predicate= */ dbus_bool_is_true);
+      /* predicate= */ dbus_bool_is_true,
+      /* executed_retries= */ NULL);
 
   dbus_message_unref(get_a2dp_audio_started);
 
@@ -718,7 +721,8 @@ int floss_media_a2dp_stop_audio_request(struct fl_media* fm, const char* addr) {
       /* method_call= */ get_a2dp_audio_started,
       /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
       /* dbus_ret_value_ptr= */ &started,
-      /* predicate= */ dbus_bool_is_false);
+      /* predicate= */ dbus_bool_is_false,
+      /* executed_retries= */ NULL);
 
   dbus_message_unref(get_a2dp_audio_started);
 
@@ -1782,7 +1786,8 @@ int floss_media_lea_host_start_audio_request(struct fl_media* fm,
       /* method_call= */ get_host_stream_started,
       /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
       /* dbus_ret_value_ptr= */ &started,
-      /* predicate= */ dbus_bool_is_true);
+      /* predicate= */ dbus_bool_is_true,
+      /* executed_retries= */ NULL);
 
   dbus_message_unref(get_host_stream_started);
 
@@ -1997,7 +2002,8 @@ int floss_media_lea_peer_start_audio_request(struct fl_media* fm,
       /* method_call= */ get_peer_stream_started,
       /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
       /* dbus_ret_value_ptr= */ &started,
-      /* predicate= */ dbus_bool_is_true);
+      /* predicate= */ dbus_bool_is_true,
+      /* executed_retries= */ NULL);
 
   dbus_message_unref(get_peer_stream_started);
 
@@ -2117,7 +2123,8 @@ int floss_media_lea_set_active_group(struct fl_media* fm, int group_id) {
         /* method_call= */ get_group_stream_status,
         /* dbus_ret_type= */ DBUS_TYPE_INT32,
         /* dbus_ret_value_ptr= */ &status,
-        /* predicate= */ dbus_int32_as_group_stream_status_is_idle);
+        /* predicate= */ dbus_int32_as_group_stream_status_is_idle,
+        /* executed_retries= */ NULL);
 
     dbus_message_unref(get_group_stream_status);
 
@@ -2176,7 +2183,8 @@ int floss_media_lea_set_active_group(struct fl_media* fm, int group_id) {
       /* dbus_ret_type= */ DBUS_TYPE_INT32,
       /* dbus_ret_value_ptr= */ &status,
       /* predicate= */ group_id == -1 ? dbus_int32_as_group_status_is_inactive
-                                      : dbus_int32_as_group_status_is_active);
+                                      : dbus_int32_as_group_status_is_active,
+      /* executed_retries= */ NULL);
 
   dbus_message_unref(get_group_status);
 

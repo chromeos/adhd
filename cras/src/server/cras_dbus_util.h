@@ -105,6 +105,7 @@ int call_method_and_parse_reply(DBusConnection* conn,
  *                    Set to DBUS_TYPE_INVALID to skip parsing.
  *    dbus_ret_value_ptr - Pointer to store the parsed return value.
  *    predicate - The predicate function to use for determining success.
+ *    executed_retries - Pointer to store the number of retries executed.
  * Returns:
  *    0 on success, otherwise a negative errno.
  */
@@ -114,7 +115,8 @@ int retry_until_predicate_satisfied(struct DBusConnection* conn,
                                     DBusMessage* method_call,
                                     int dbus_ret_type,
                                     void* dbus_ret_value_ptr,
-                                    bool (*predicate)(int, void*));
+                                    bool (*predicate)(int, void*),
+                                    int* executed_retries);
 
 #ifdef __cplusplus
 }  // extern "C"

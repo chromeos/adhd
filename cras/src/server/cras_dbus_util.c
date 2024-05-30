@@ -174,12 +174,17 @@ int retry_until_predicate_satisfied(struct DBusConnection* conn,
                                     DBusMessage* method_call,
                                     int dbus_ret_type,
                                     void* dbus_ret_value_ptr,
-                                    bool (*predicate)(int, void*)) {
+                                    bool (*predicate)(int, void*),
+                                    int* executed_retries) {
   const char* method_name = dbus_message_get_member(method_call);
 
   syslog(LOG_DEBUG, "%s: polling", method_name);
 
   for (int retry = 0; retry < num_retries; ++retry) {
+    if (executed_retries) {
+      ++(*executed_retries);
+    }
+
     int rc = call_method_and_parse_reply(
         /* conn= */ conn,
         /* method_call= */ method_call,
