@@ -10,6 +10,7 @@
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/audio_thread_log.h"
 #include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_lea_manager.h"
@@ -107,11 +108,13 @@ class PcmIodev : public testing::Test {
     mock_audio_area = (cras_audio_area*)calloc(
         1, sizeof(*mock_audio_area) + sizeof(cras_channel_area) * 2);
     atlog = (audio_thread_event_log*)calloc(1, sizeof(audio_thread_event_log));
+    btlog = cras_bt_event_log_init();
   }
 
   virtual void TearDown() {
     free(mock_audio_area);
     free(atlog);
+    cras_bt_event_log_deinit(btlog);
   }
 };
 

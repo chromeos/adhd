@@ -19,6 +19,7 @@
 #include <syslog.h>
 
 #include "cras/server/main_message.h"
+#include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_lea_iodev.h"
@@ -322,6 +323,7 @@ void cras_floss_lea_set_volume(struct cras_lea* lea, unsigned int volume) {
   struct lea_group* group = lea->connected_groups;
   floss_media_lea_set_group_volume(lea->fm, group->group_id,
                                    volume * 255 / 100);
+  BTLOG(btlog, BT_LEA_SET_GROUP_VOLUME, group->group_id, volume);
 }
 
 bool cras_floss_lea_has_connected_group(struct cras_lea* lea) {

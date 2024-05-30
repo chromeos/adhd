@@ -428,6 +428,13 @@ enum CRAS_BT_LOG_EVENTS {
   BT_HFP_AUDIO_DISCONNECTED,           // Floss
   BT_HSP_NEW_CONNECTION,               // BlueZ
   BT_HSP_REQUEST_DISCONNECT,           // BlueZ
+  BT_LEA_AUDIO_CONF_UPDATED,           // Floss
+  BT_LEA_GROUP_CONNECTED,              // Floss
+  BT_LEA_GROUP_DISCONNECTED,           // Floss
+  BT_LEA_GROUP_NODE_STATUS,            // Floss
+  BT_LEA_GROUP_STATUS,                 // Floss
+  BT_LEA_GROUP_VOLUME_CHANGED,         // Floss
+  BT_LEA_SET_GROUP_VOLUME,             // Floss
   BT_NEW_AUDIO_PROFILE_AFTER_CONNECT,  // BlueZ
   BT_RESET,                            // BlueZ
   BT_SCO_CONNECT,

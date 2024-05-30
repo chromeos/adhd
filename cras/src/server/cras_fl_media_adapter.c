@@ -83,6 +83,8 @@ int handle_on_lea_group_connected(struct fl_media* active_fm,
   cras_floss_lea_add_group(active_fm->lea, name, group_id);
   cras_floss_lea_set_active(active_fm->lea, group_id, 1);
 
+  BTLOG(btlog, BT_LEA_GROUP_CONNECTED, group_id, 0);
+
   return 0;
 }
 
@@ -103,6 +105,8 @@ int handle_on_lea_group_disconnected(struct fl_media* active_fm, int group_id) {
   if (!cras_floss_lea_has_connected_group(active_fm->lea)) {
     cras_floss_lea_destroy(active_fm->lea);
   }
+
+  BTLOG(btlog, BT_LEA_GROUP_DISCONNECTED, group_id, 0);
 
   return 0;
 }
@@ -132,6 +136,9 @@ int handle_on_lea_audio_conf(struct fl_media* active_fm,
                                     snk_audio_location, src_audio_location,
                                     available_contexts);
 
+  BTLOG(btlog, BT_LEA_AUDIO_CONF_UPDATED, group_id,
+        (direction << 16) | available_contexts);
+
   return 0;
 }
 
@@ -150,7 +157,8 @@ int handle_on_lea_group_status(struct fl_media* active_fm,
     return -EINVAL;
   }
 
-  syslog(LOG_INFO, "LEA group %d status changed %d", group_id, status);
+  BTLOG(btlog, BT_LEA_GROUP_STATUS, group_id, status);
+
   return 0;
 }
 
@@ -160,6 +168,9 @@ int handle_on_lea_group_node_status(struct fl_media* active_fm,
                                     int status) {
   syslog(LOG_DEBUG, "%s(addr=%s, group_id=%d, status=%d)", __func__, addr,
          group_id, status);
+
+  BTLOG(btlog, BT_LEA_GROUP_NODE_STATUS, group_id, status);
+
   return 0;
 }
 
@@ -167,6 +178,8 @@ int handle_on_lea_group_volume_changed(struct fl_media* active_fm,
                                        int group_id,
                                        uint8_t volume) {
   syslog(LOG_DEBUG, "%s(group_id=%d, volume=%u)", __func__, group_id, volume);
+
+  BTLOG(btlog, BT_LEA_GROUP_VOLUME_CHANGED, group_id, volume);
 
   return cras_floss_lea_update_group_volume(active_fm->lea, group_id, volume);
 }

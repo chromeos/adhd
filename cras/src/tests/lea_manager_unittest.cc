@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cras/src/server/cras_bt_log.h"
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
@@ -68,9 +69,12 @@ namespace {
 
 class LeaManagerTestSuite : public testing::Test {
  protected:
-  virtual void SetUp() { ResetStubData(); }
+  virtual void SetUp() {
+    ResetStubData();
+    btlog = cras_bt_event_log_init();
+  }
 
-  virtual void TearDown() {}
+  virtual void TearDown() { cras_bt_event_log_deinit(btlog); }
 };
 
 TEST_F(LeaManagerTestSuite, PCMCreateDestroy) {

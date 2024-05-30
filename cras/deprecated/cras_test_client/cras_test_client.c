@@ -1526,6 +1526,29 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
     case BT_HSP_REQUEST_DISCONNECT:
       printf("%-30s\n", "HSP_REQUEST_DISCONNECT");
       break;
+    case BT_LEA_AUDIO_CONF_UPDATED:
+      printf("%-30s gid %d direction %u contexts %u\n",
+             "LEA_AUDIO_CONF_UPDATED", data1, data2 >> 16, data2 & 0xffff);
+      break;
+    case BT_LEA_SET_GROUP_VOLUME:
+      printf("%-30s gid %d volume %u\n", "LEA_SET_GROUP_VOLUME", data1, data2);
+      break;
+    case BT_LEA_GROUP_CONNECTED:
+      printf("%-30s gid %d\n", "LEA_GROUP_CONNECTED", data1);
+      break;
+    case BT_LEA_GROUP_DISCONNECTED:
+      printf("%-30s gid %d\n", "LEA_GROUP_DISCONNECTED", data1);
+      break;
+    case BT_LEA_GROUP_NODE_STATUS:
+      printf("%-30s gid %d status %d\n", "LEA_GROUP_NODE_STATUS", data1, data2);
+      break;
+    case BT_LEA_GROUP_STATUS:
+      printf("%-30s gid %d status %d\n", "LEA_GROUP_STATUS", data1, data2);
+      break;
+    case BT_LEA_GROUP_VOLUME_CHANGED:
+      printf("%-30s gid %d volume %u\n", "LEA_GROUP_VOLUME_CHANGED", data1,
+             data2);
+      break;
     case BT_MANAGER_ADDED:
       printf("%-30s\n", "MANAGER_ADDED");
       break;
