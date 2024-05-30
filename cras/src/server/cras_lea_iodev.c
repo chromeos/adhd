@@ -88,8 +88,6 @@ static int lea_write(struct lea_io* odev, size_t target_len) {
   fd = cras_floss_lea_get_fd(odev->lea);
 
   buf = buf_read_pointer_size(odev->pcm_buf, &to_send);
-  syslog(LOG_DEBUG, "lea_write to_send=%u, target_len=%zu", to_send,
-         target_len);
   while (to_send && target_len) {
     if (to_send > target_len) {
       to_send = target_len;
@@ -106,7 +104,8 @@ static int lea_write(struct lea_io* odev, size_t target_len) {
     }
     buf_increment_read(odev->pcm_buf, rc);
 
-    syslog(LOG_DEBUG, "lea_write %d bytes", rc);
+    ATLOG(atlog, AUDIO_THREAD_LEA_WRITE, rc, buf_readable(odev->pcm_buf), 0);
+
     target_len -= rc;
     buf = buf_read_pointer_size(odev->pcm_buf, &to_send);
   }
@@ -168,8 +167,6 @@ static int lea_read(struct lea_io* idev) {
   uint8_t* buf;
   unsigned int to_read;
 
-  syslog(LOG_DEBUG, "In lea_read");
-
   fd = cras_floss_lea_get_fd(idev->lea);
   // Loop to make sure ring buffer is filled.
   buf = buf_write_pointer_size(idev->pcm_buf, &to_read);
@@ -185,6 +182,8 @@ static int lea_read(struct lea_io* idev) {
 
     buf_increment_write(idev->pcm_buf, rc);
 
+    ATLOG(atlog, AUDIO_THREAD_LEA_READ, rc, idev->started, 0);
+
     // Ignore the bytes just read if input dev not in present
     if (!idev->started) {
       buf_increment_read(idev->pcm_buf, rc);
@@ -193,12 +192,11 @@ static int lea_read(struct lea_io* idev) {
     // Update the to_read and buf pointer
     buf = buf_write_pointer_size(idev->pcm_buf, &to_read);
   }
+
   return 0;
 }
 
 static int lea_socket_read_write_cb(void* arg, int revents) {
-  syslog(LOG_DEBUG, "revents = %d", revents);
-
   int rc = 0;
   struct cras_lea* lea = (struct cras_lea*)arg;
 

@@ -976,6 +976,12 @@ static void show_alog_tag(const struct audio_thread_event_log* log,
     case AUDIO_THREAD_A2DP_WRITE:
       printf("%-30s written:%u queued:%u\n", "A2DP_WRITE", data1, data2);
       break;
+    case AUDIO_THREAD_LEA_READ:
+      printf("%-30s read:%u started:%u\n", "LEA_READ", data1, data2);
+      break;
+    case AUDIO_THREAD_LEA_WRITE:
+      printf("%-30s written:%u queued:%u\n", "LEA_WRITE", data1, data2);
+      break;
     case AUDIO_THREAD_DEV_STREAM_MIX:
       printf("%-30s written:%u read:%u\n", "DEV_STREAM_MIX", data1, data2);
       break;
