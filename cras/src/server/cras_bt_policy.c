@@ -29,7 +29,6 @@
 static const unsigned int CONN_WATCH_PERIOD_MS = 2000;
 static const unsigned int CONN_WATCH_MAX_RETRIES = 30;
 
-static const unsigned int LEA_CONTEXT_SWITCH_DELAY_MS = 500;
 static const unsigned int PROFILE_SWITCH_DELAY_MS = 500;
 
 enum BT_POLICY_COMMAND {
@@ -58,49 +57,6 @@ struct lea_context_switch_policy {
 
 struct lea_context_switch_policy* lea_context_switch_policies;
 
-static void lea_context_switch_delay_cb(struct cras_timer* timer, void* arg) {
-  struct lea_context_switch_policy* policy =
-      (struct lea_context_switch_policy*)arg;
-  struct cras_iodev* iodev;
-
-  /*
-   * During the |LEA_CONTEXT_SWITCH_DELAY_MS| time interval, the iodev could
-   * have been enabled by others, and its active context may have changed.
-   *
-   * Ensure that |update_active_node| is essentially no-op and/or safe to call
-   * in such cases.
-   *
-   * TODO(b/342943472): consider guarding the |odev| from being opened when
-   * this callback is in schedule.
-   */
-  iodev = cras_floss_lea_get_primary_odev(policy->lea);
-  if (iodev) {
-    iodev->update_active_node(iodev, 0, 1);
-    cras_iodev_list_resume_dev(iodev->info.idx);
-  }
-
-  DL_DELETE(lea_context_switch_policies, policy);
-  free(policy);
-}
-
-static void lea_switch_context_with_delay(struct cras_lea* lea) {
-  struct cras_tm* tm = cras_system_state_get_tm();
-  struct lea_context_switch_policy* policy;
-
-  DL_SEARCH_SCALAR(lea_context_switch_policies, policy, lea, lea);
-  if (policy) {
-    cras_tm_cancel_timer(tm, policy->timer);
-    policy->timer = NULL;
-  } else {
-    policy = (struct lea_context_switch_policy*)calloc(1, sizeof(*policy));
-  }
-
-  policy->lea = lea;
-  policy->timer = cras_tm_create_timer(tm, LEA_CONTEXT_SWITCH_DELAY_MS,
-                                       lea_context_switch_delay_cb, policy);
-  DL_APPEND(lea_context_switch_policies, policy);
-}
-
 static void lea_switch_context(struct cras_lea* lea) {
   struct cras_iodev* odev;
   struct cras_iodev* idev;
@@ -119,15 +75,14 @@ static void lea_switch_context(struct cras_lea* lea) {
 
   cras_floss_lea_set_is_context_switching(lea, false);
 
-  // Some headsets will have recurrent noise in the capture path if the
-  // output stream opens too soon, so put this task in a delayed callback.
-  if (odev) {
-    lea_switch_context_with_delay(lea);
-  }
-
   if (idev) {
     idev->update_active_node(idev, 0, 1);
     cras_iodev_list_resume_dev(idev->info.idx);
+  }
+
+  if (odev) {
+    odev->update_active_node(odev, 0, 1);
+    cras_iodev_list_resume_dev(odev->info.idx);
   }
 }
 

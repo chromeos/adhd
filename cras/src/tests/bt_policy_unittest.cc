@@ -401,13 +401,10 @@ TEST_F(BtPolicyTestSuite, LeaSwitchContext) {
   EXPECT_EQ(false, cras_floss_lea_is_context_switching_ret);
 
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
-  EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
-  EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
-
-  // The output iodev is resumed in a callback
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
   EXPECT_EQ(2, cras_iodev_list_resume_dev_called);
+
+  // odev is opened later than idev
+  EXPECT_EQ(odev.info.idx, cras_iodev_list_resume_dev_idx);
 }
 
 TEST_F(BtPolicyTestSuite, LeaSwitchContextRepeatedly) {
@@ -417,21 +414,13 @@ TEST_F(BtPolicyTestSuite, LeaSwitchContextRepeatedly) {
   init_bt_lea_context_switch_msg(&msg, reinterpret_cast<cras_lea*>(0x123));
   process_bt_policy_msg(&msg.header, NULL);
   EXPECT_EQ(2, cras_iodev_list_suspend_dev_called);
-  EXPECT_EQ(1, cras_iodev_list_resume_dev_called);
-  EXPECT_EQ(idev.info.idx, cras_iodev_list_resume_dev_idx);
-  EXPECT_EQ(1, cras_tm_create_timer_called);
-
-  /* Expect repeated context switch before the schedule callback
-   * is executed will cause the timer being cancelled and redo
-   * all the suspend/resume and timer creation.
-   */
-  process_bt_policy_msg(&msg.header, NULL);
-  EXPECT_EQ(1, cras_tm_cancel_timer_called);
-  EXPECT_EQ(4, cras_iodev_list_suspend_dev_called);
   EXPECT_EQ(2, cras_iodev_list_resume_dev_called);
-  EXPECT_EQ(2, cras_tm_create_timer_called);
+  EXPECT_EQ(odev.info.idx, cras_iodev_list_resume_dev_idx);
 
-  cras_tm_create_timer_cb(NULL, cras_tm_create_timer_cb_data);
+  process_bt_policy_msg(&msg.header, NULL);
+  EXPECT_EQ(4, cras_iodev_list_suspend_dev_called);
+  EXPECT_EQ(4, cras_iodev_list_resume_dev_called);
+  EXPECT_EQ(odev.info.idx, cras_iodev_list_resume_dev_idx);
 }
 }  // namespace
 
