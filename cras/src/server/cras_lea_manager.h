@@ -109,6 +109,10 @@ int cras_floss_lea_audio_conf_updated(struct cras_lea* lea,
                                       uint32_t src_audio_location,
                                       uint16_t available_contexts);
 
+int cras_floss_lea_update_group_volume(struct cras_lea* lea,
+                                       int group_id,
+                                       uint8_t volume);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

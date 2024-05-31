@@ -495,3 +495,24 @@ int cras_floss_lea_audio_conf_updated(struct cras_lea* lea,
 
   return 0;
 }
+
+int cras_floss_lea_update_group_volume(struct cras_lea* lea,
+                                       int group_id,
+                                       uint8_t volume) {
+  struct lea_group* group = lea->connected_groups;
+
+  if (!group || group->group_id != group_id) {
+    syslog(LOG_WARNING, "Cannot find lea_group %d to update volume", group_id);
+    return -ENOENT;
+  }
+
+  if (!group->odev || !group->odev->active_node) {
+    syslog(LOG_WARNING, "No active output device to update volume");
+    return -ENOENT;
+  }
+
+  group->odev->active_node->volume = volume * 100 / 255;
+  cras_iodev_list_notify_node_volume(group->odev->active_node);
+
+  return 0;
+}

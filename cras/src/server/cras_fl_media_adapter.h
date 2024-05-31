@@ -222,6 +222,20 @@ int handle_on_hfp_telephony_event(struct fl_media* active_fm,
                                   uint8_t event,
                                   uint8_t state);
 
+/* Notifes that the group volume has changed.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   group_id - The ID of the specified group
+ *   volume - The latest group volume, in the range of [0, 255]
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_lea_group_volume_changed(struct fl_media* active_fm,
+                                       int group_id,
+                                       uint8_t volume);
+
 /* Destroys struct fl_media and frees up relevant resources.
  *
  * Args:

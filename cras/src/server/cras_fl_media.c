@@ -1582,6 +1582,29 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
       syslog(LOG_ERR, "Error occured in updating audio conf %d", rc);
     }
     return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
+                                         "OnLeaGroupVolumeChanged")) {
+    dbus_error_init(&dbus_error);
+    if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_INT32, &group_id,
+                               DBUS_TYPE_BYTE, &volume, DBUS_TYPE_INVALID)) {
+      syslog(LOG_ERR, "Failed to get args from OnLeaGroupVolumeChanged: %s",
+             dbus_error.message);
+      dbus_error_free(&dbus_error);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    if (!active_fm) {
+      syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+    syslog(LOG_DEBUG, "OnLeaGroupVolumeChanged %d, %u", group_id, volume);
+
+    rc = handle_on_lea_group_volume_changed(active_fm, group_id, volume);
+    if (rc) {
+      syslog(LOG_ERR, "Error occured in handling vc group volume update %d",
+             rc);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
   }
   return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }

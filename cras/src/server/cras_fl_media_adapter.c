@@ -163,6 +163,14 @@ int handle_on_lea_group_node_status(struct fl_media* active_fm,
   return 0;
 }
 
+int handle_on_lea_group_volume_changed(struct fl_media* active_fm,
+                                       int group_id,
+                                       uint8_t volume) {
+  syslog(LOG_DEBUG, "%s(group_id=%d, volume=%u)", __func__, group_id, volume);
+
+  return cras_floss_lea_update_group_volume(active_fm->lea, group_id, volume);
+}
+
 int handle_on_bluetooth_device_added(struct fl_media* active_fm,
                                      const char* addr,
                                      const char* name,
