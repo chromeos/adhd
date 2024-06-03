@@ -1549,6 +1549,11 @@ static void show_btlog_tag(const struct cras_bt_event_log* log,
       printf("%-30s gid %d volume %u\n", "LEA_GROUP_VOLUME_CHANGED", data1,
              data2);
       break;
+    case BT_LEA_SET_ABS_VOLUME_SUPPORT:
+      printf("%-30s gid %d addr xx:xx:xx:xx:%02x:%02x\n",
+             "LEA_SET_ABS_VOLUME_SUPPORT", data1, ((data2 & 0xff00) >> 8),
+             (data2 & 0xff));
+      break;
     case BT_MANAGER_ADDED:
       printf("%-30s\n", "MANAGER_ADDED");
       break;

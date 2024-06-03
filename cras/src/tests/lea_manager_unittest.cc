@@ -46,6 +46,7 @@ void ResetStubData() {
   lea_iodev_create_lea_val = NULL;
   lea_iodev_create_idev_ret = &cras_idev;
   lea_iodev_create_odev_ret = &cras_odev;
+  lea_iodev_create_odev_ret->software_volume_needed = 0;
   lea_iodev_create_called = 0;
   lea_iodev_destroy_called = 0;
   cras_iodev_set_node_plugged_called = 0;
@@ -178,6 +179,29 @@ TEST_F(LeaManagerTestSuite, StartStop) {
   cras_floss_lea_destroy(lea);
 }
 
+TEST_F(LeaManagerTestSuite, SetSupportAbsoluteVolume) {
+  struct cras_lea* lea = cras_floss_lea_create(NULL);
+  ASSERT_NE(lea, (struct cras_lea*)NULL);
+
+  cras_floss_lea_add_group(lea, "name", 1);
+  EXPECT_EQ(lea, lea_iodev_create_lea_val);
+  EXPECT_EQ(lea_iodev_create_called, 2);
+
+  // Default is false because we wait until VC is connected.
+  ASSERT_EQ(cras_floss_lea_get_support_absolute_volume(lea, 1), false);
+
+  cras_floss_lea_set_support_absolute_volume(lea, 1, true);
+  ASSERT_EQ(cras_floss_lea_get_support_absolute_volume(lea, 1), true);
+
+  cras_floss_lea_set_support_absolute_volume(lea, 1, false);
+  ASSERT_EQ(cras_floss_lea_get_support_absolute_volume(lea, 1), false);
+
+  cras_floss_lea_remove_group(lea, 1);
+  EXPECT_EQ(lea_iodev_destroy_called, 2);
+
+  cras_floss_lea_destroy(lea);
+}
+
 TEST_F(LeaManagerTestSuite, SetVolume) {
   struct cras_lea* lea = cras_floss_lea_create(NULL);
   ASSERT_NE(lea, (struct cras_lea*)NULL);
@@ -273,6 +297,7 @@ struct cras_iodev* lea_iodev_create(struct cras_lea* lea,
 
   switch (dir) {
     case CRAS_STREAM_OUTPUT:
+      lea_iodev_create_odev_ret->software_volume_needed = 1;
       return lea_iodev_create_odev_ret;
     case CRAS_STREAM_INPUT:
       return lea_iodev_create_idev_ret;

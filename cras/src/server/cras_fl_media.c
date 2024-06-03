@@ -1583,6 +1583,28 @@ static DBusHandlerResult handle_bt_media_callback(DBusConnection* conn,
     }
     return DBUS_HANDLER_RESULT_HANDLED;
   } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
+                                         "OnLeaVcConnected")) {
+    dbus_error_init(&dbus_error);
+    if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_STRING, &addr,
+                               DBUS_TYPE_INT32, &group_id, DBUS_TYPE_INVALID)) {
+      syslog(LOG_ERR, "Failed to get args from OnLeaVcConnected: %s",
+             dbus_error.message);
+      dbus_error_free(&dbus_error);
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    if (!active_fm) {
+      syslog(LOG_ERR, "fl_media hasn't started or stopped");
+      return DBUS_HANDLER_RESULT_HANDLED;
+    }
+    syslog(LOG_DEBUG, "OnLeaVcConnected %s, %d", addr, group_id);
+
+    rc = handle_on_lea_vc_connected(active_fm, addr, group_id);
+    if (rc) {
+      syslog(LOG_ERR, "Error occured in handling vc connection update %d", rc);
+    }
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(message, BT_MEDIA_CALLBACK_INTERFACE,
                                          "OnLeaGroupVolumeChanged")) {
     dbus_error_init(&dbus_error);
     if (!dbus_message_get_args(message, &dbus_error, DBUS_TYPE_INT32, &group_id,

@@ -61,6 +61,29 @@ static int validate_hfp_codec_format(int32_t hfp_cap) {
   return -EINVAL;
 }
 
+static uint16_t get_redacted_bluetooth_device_address(const char* addr) {
+  int rc = validate_bluetooth_device_address(addr);
+  if (rc) {
+    syslog(LOG_WARNING, "%s: invalid address, rc=%d.", __func__, rc);
+    return 0;
+  }
+
+  // Let's be extra sure.
+  CRAS_CHECK(strlen(addr) == 17);
+
+  char* ptr;
+
+  uint16_t hi = strtoul(addr + 12, &ptr, 16);
+
+  // This must be true because we have validated the address, otherwise
+  // something has gone really wrong.
+  CRAS_CHECK(ptr == addr + 14);
+
+  uint16_t lo = strtoul(ptr + 1, NULL, 16);
+
+  return (hi << 8) | lo;
+}
+
 int handle_on_lea_group_connected(struct fl_media* active_fm,
                                   const char* name,
                                   int group_id) {
@@ -172,6 +195,28 @@ int handle_on_lea_group_node_status(struct fl_media* active_fm,
   BTLOG(btlog, BT_LEA_GROUP_NODE_STATUS, group_id, status);
 
   return 0;
+}
+
+// Note: The current implementation assumes the group id is fixed for
+// each device during the lifetime of its connection. Since we treat groups
+// as the integral unit of audio device, only the first VC connection matters.
+// This will need to be reworked if the assumption breaks.
+int handle_on_lea_vc_connected(struct fl_media* active_fm,
+                               const char* addr,
+                               int group_id) {
+  int rc = validate_bluetooth_device_address(addr);
+  if (rc) {
+    syslog(LOG_WARNING, "Erroneous bluetooth device address match %d", rc);
+    return rc;
+  }
+
+  syslog(LOG_DEBUG, "%s(addr=%s, group_id=%d)", __func__, addr, group_id);
+
+  BTLOG(btlog, BT_LEA_SET_ABS_VOLUME_SUPPORT, group_id,
+        get_redacted_bluetooth_device_address(addr));
+
+  return cras_floss_lea_set_support_absolute_volume(active_fm->lea, group_id,
+                                                    true);
 }
 
 int handle_on_lea_group_volume_changed(struct fl_media* active_fm,

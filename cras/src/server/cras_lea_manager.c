@@ -317,7 +317,6 @@ int cras_floss_lea_fill_format(struct cras_lea* lea,
   return 0;
 }
 
-// TODO: use software volume if VCP is missing.
 void cras_floss_lea_set_volume(struct cras_lea* lea, unsigned int volume) {
   syslog(LOG_DEBUG, "%s: set_volume(%u)", __func__, volume);
   struct lea_group* group = lea->connected_groups;
@@ -496,6 +495,37 @@ int cras_floss_lea_audio_conf_updated(struct cras_lea* lea,
   cras_iodev_list_notify_nodes_changed();
 
   return 0;
+}
+
+int cras_floss_lea_set_support_absolute_volume(struct cras_lea* lea,
+                                               int group_id,
+                                               bool support_absolute_volume) {
+  struct lea_group* group = lea->connected_groups;
+
+  if (!group || group->group_id != group_id) {
+    syslog(LOG_WARNING, "Cannot find lea_group %d to set abs vol", group_id);
+    return -ENOENT;
+  }
+
+  if (!group->odev) {
+    syslog(LOG_WARNING, "No output device to set absolute volume");
+    return -ENOENT;
+  }
+
+  group->odev->software_volume_needed = !support_absolute_volume;
+
+  return 0;
+}
+
+bool cras_floss_lea_get_support_absolute_volume(struct cras_lea* lea,
+                                                int group_id) {
+  struct lea_group* group = lea->connected_groups;
+
+  if (!group || group->group_id != group_id || !group->odev) {
+    return false;
+  }
+
+  return !group->odev->software_volume_needed;
 }
 
 int cras_floss_lea_update_group_volume(struct cras_lea* lea,

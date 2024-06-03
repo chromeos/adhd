@@ -236,6 +236,20 @@ int handle_on_lea_group_volume_changed(struct fl_media* active_fm,
                                        int group_id,
                                        uint8_t volume);
 
+/* Notifes that the device |addr| with |group_id| has connected to VC.
+ *
+ * Args:
+ *   active_fm - The active fl_media struct used for interacting with the
+ *               Floss interface.
+ *   addr - The address of the connected bluetooth device.
+ *   group_id - The ID of the specified group.
+ * Returns:
+ *   int - Returns a negative errno if an error occurs, 0 otherwise.
+ */
+int handle_on_lea_vc_connected(struct fl_media* active_fm,
+                               const char* addr,
+                               int group_id);
+
 /* Destroys struct fl_media and frees up relevant resources.
  *
  * Args:

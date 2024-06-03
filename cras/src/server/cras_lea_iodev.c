@@ -516,6 +516,9 @@ struct cras_iodev* lea_iodev_create(struct cras_lea* lea,
   cras_iodev_add_node(iodev, node);
 
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
+    // Expect VC to come later than the group added event, which will
+    // update the UI volume along with this attribute.
+    iodev->software_volume_needed = 1;
     rc = cras_iodev_list_add(iodev);
   } else if (iodev->direction == CRAS_STREAM_INPUT) {
     rc = cras_iodev_list_add(iodev);

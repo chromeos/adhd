@@ -113,6 +113,13 @@ int cras_floss_lea_update_group_volume(struct cras_lea* lea,
                                        int group_id,
                                        uint8_t volume);
 
+int cras_floss_lea_set_support_absolute_volume(struct cras_lea* lea,
+                                               int group_id,
+                                               bool support_absolute_volume);
+
+bool cras_floss_lea_get_support_absolute_volume(struct cras_lea* lea,
+                                                int group_id);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

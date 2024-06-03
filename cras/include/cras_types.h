@@ -435,6 +435,7 @@ enum CRAS_BT_LOG_EVENTS {
   BT_LEA_GROUP_STATUS,                 // Floss
   BT_LEA_GROUP_VOLUME_CHANGED,         // Floss
   BT_LEA_SET_GROUP_VOLUME,             // Floss
+  BT_LEA_SET_ABS_VOLUME_SUPPORT,       // Floss
   BT_NEW_AUDIO_PROFILE_AFTER_CONNECT,  // BlueZ
   BT_RESET,                            // BlueZ
   BT_SCO_CONNECT,
