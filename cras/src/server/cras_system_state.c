@@ -690,8 +690,15 @@ int cras_system_add_alsa_card(struct cras_alsa_card_info* alsa_card_info) {
       return -EEXIST;
     }
   }
-  alsa_card = cras_alsa_card_create(alsa_card_info, state.device_config_dir,
-                                    state.internal_ucm_suffix);
+
+  if (alsa_card_info->card_type == ALSA_CARD_TYPE_USB) {
+    alsa_card =
+        cras_alsa_card_create(alsa_card_info, CRAS_CONFIG_FILE_DIR, NULL);
+  } else {
+    alsa_card = cras_alsa_card_create(alsa_card_info, state.device_config_dir,
+                                      state.internal_ucm_suffix);
+  }
+
   if (alsa_card == NULL) {
     return -ENOMEM;
   }
