@@ -705,10 +705,15 @@ impl<'a> CrasClient<'a> {
         enum Token {
             ServerMsg,
         }
-        let poll_ctx: PollContext<Token> =
-            PollContext::new().and_then(|pc| pc.add(socket, Token::ServerMsg).and(Ok(pc)))?;
+        let poll_ctx: PollContext<Token> = PollContext::new()
+            .and_then(|pc| pc.add(socket, Token::ServerMsg).and(Ok(pc)))
+            // TODO: Resolve the incompatible nix::Error across dependencies.
+            .map_err(|e| nix::Error::from_raw(e as i32))?;
 
-        let events = poll_ctx.wait()?;
+        let events = poll_ctx
+            .wait()
+            // TODO: Resolve the incompatible nix::Error across dependencies.
+            .map_err(|e| nix::Error::from_raw(e as i32))?;
         // Check the first readable message
         let tokens: Vec<Token> = events.iter_readable().map(|e| e.token()).collect();
         tokens

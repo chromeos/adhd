@@ -1,5 +1,5 @@
 {
-  "checksum": "fdcdf676d9bf2c46b288464c42c31a70f882f1339f47050290cd212d93893218",
+  "checksum": "b2310187ef1f7403122a658237ada76b63171f32fc13a2075dad28a0efae81fe",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -672,7 +672,7 @@
               "target": "log"
             },
             {
-              "id": "nix 0.26.2",
+              "id": "nix 0.28.0",
               "target": "nix"
             },
             {
@@ -1336,6 +1336,44 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "cfg_aliases 0.1.1": {
+      "name": "cfg_aliases",
+      "version": "0.1.1",
+      "package_url": "https://github.com/katharostech/cfg_aliases",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/cfg_aliases/0.1.1/download",
+          "sha256": "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cfg_aliases",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "cfg_aliases",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2018",
+        "version": "0.1.1"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE"
     },
     "clang-sys 1.6.1": {
       "name": "clang-sys",
@@ -2027,7 +2065,7 @@
               "target": "log"
             },
             {
-              "id": "nix 0.26.2",
+              "id": "nix 0.28.0",
               "target": "nix"
             },
             {
@@ -4859,85 +4897,6 @@
       ],
       "license_file": "LICENSE-MIT"
     },
-    "memoffset 0.7.1": {
-      "name": "memoffset",
-      "version": "0.7.1",
-      "package_url": "https://github.com/Gilnaa/memoffset",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/memoffset/0.7.1/download",
-          "sha256": "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "memoffset",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "memoffset",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": {
-          "common": [
-            "default"
-          ],
-          "selects": {}
-        },
-        "deps": {
-          "common": [
-            {
-              "id": "memoffset 0.7.1",
-              "target": "build_script_build"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2015",
-        "version": "0.7.1"
-      },
-      "build_script_attrs": {
-        "data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "autocfg 1.1.0",
-              "target": "autocfg"
-            }
-          ],
-          "selects": {}
-        }
-      },
-      "license": "MIT",
-      "license_ids": [
-        "MIT"
-      ],
-      "license_file": "LICENSE"
-    },
     "minimal-lexical 0.2.1": {
       "name": "minimal-lexical",
       "version": "0.2.1",
@@ -5105,14 +5064,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "nix 0.26.2": {
+    "nix 0.28.0": {
       "name": "nix",
-      "version": "0.26.2",
+      "version": "0.28.0",
       "package_url": "https://github.com/nix-rust/nix",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/nix/0.26.2/download",
-          "sha256": "bfdda3d196821d6af13126e40375cdf7da646a96114af134d5f417a9a1dc8e1a"
+          "url": "https://static.crates.io/crates/nix/0.28.0/download",
+          "sha256": "ab2156c4fce2f8df6c499cc1c763e4394b7482525bf2a9701c9d79d215f519e4"
         }
       },
       "targets": [
@@ -5120,6 +5079,18 @@
           "Library": {
             "crate_name": "nix",
             "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
             "srcs": {
               "allow_empty": false,
               "include": [
@@ -5136,48 +5107,16 @@
         ],
         "crate_features": {
           "common": [
-            "acct",
-            "aio",
             "default",
-            "dir",
-            "env",
-            "event",
-            "feature",
-            "fs",
-            "hostname",
-            "inotify",
-            "ioctl",
-            "kmod",
-            "memoffset",
-            "mman",
-            "mount",
-            "mqueue",
-            "net",
-            "personality",
-            "pin-utils",
-            "poll",
             "process",
-            "pthread",
-            "ptrace",
-            "quota",
-            "reboot",
-            "resource",
-            "sched",
-            "signal",
-            "socket",
-            "term",
-            "time",
-            "ucontext",
-            "uio",
-            "user",
-            "zerocopy"
+            "resource"
           ],
           "selects": {}
         },
         "deps": {
           "common": [
             {
-              "id": "bitflags 1.3.2",
+              "id": "bitflags 2.4.0",
               "target": "bitflags"
             },
             {
@@ -5189,25 +5128,28 @@
               "target": "libc"
             },
             {
-              "id": "pin-utils 0.1.0",
-              "target": "pin_utils"
-            },
-            {
-              "id": "static_assertions 1.1.0",
-              "target": "static_assertions"
+              "id": "nix 0.28.0",
+              "target": "build_script_build"
             }
           ],
-          "selects": {
-            "cfg(not(target_os = \"redox\"))": [
-              {
-                "id": "memoffset 0.7.1",
-                "target": "memoffset"
-              }
-            ]
-          }
+          "selects": {}
         },
-        "edition": "2018",
-        "version": "0.26.2"
+        "edition": "2021",
+        "version": "0.28.0"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cfg_aliases 0.1.1",
+              "target": "cfg_aliases"
+            }
+          ],
+          "selects": {}
+        }
       },
       "license": "MIT",
       "license_ids": [
@@ -7629,45 +7571,6 @@
         },
         "edition": "2018",
         "version": "0.4.9"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "static_assertions 1.1.0": {
-      "name": "static_assertions",
-      "version": "1.1.0",
-      "package_url": "https://github.com/nvzqz/static-assertions-rs",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/static_assertions/1.1.0/download",
-          "sha256": "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "static_assertions",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "static_assertions",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "1.1.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -11239,42 +11142,6 @@
       "x86_64-unknown-nixos-gnu",
       "x86_64-unknown-none"
     ],
-    "cfg(not(target_os = \"redox\"))": [
-      "aarch64-apple-darwin",
-      "aarch64-apple-ios",
-      "aarch64-apple-ios-sim",
-      "aarch64-fuchsia",
-      "aarch64-linux-android",
-      "aarch64-pc-windows-msvc",
-      "aarch64-unknown-linux-gnu",
-      "aarch64-unknown-nixos-gnu",
-      "aarch64-unknown-nto-qnx710",
-      "arm-unknown-linux-gnueabi",
-      "armv7-linux-androideabi",
-      "armv7-unknown-linux-gnueabi",
-      "i686-apple-darwin",
-      "i686-linux-android",
-      "i686-pc-windows-msvc",
-      "i686-unknown-freebsd",
-      "i686-unknown-linux-gnu",
-      "powerpc-unknown-linux-gnu",
-      "riscv32imc-unknown-none-elf",
-      "riscv64gc-unknown-none-elf",
-      "s390x-unknown-linux-gnu",
-      "thumbv7em-none-eabi",
-      "thumbv8m.main-none-eabi",
-      "wasm32-unknown-unknown",
-      "wasm32-wasi",
-      "x86_64-apple-darwin",
-      "x86_64-apple-ios",
-      "x86_64-fuchsia",
-      "x86_64-linux-android",
-      "x86_64-pc-windows-msvc",
-      "x86_64-unknown-freebsd",
-      "x86_64-unknown-linux-gnu",
-      "x86_64-unknown-nixos-gnu",
-      "x86_64-unknown-none"
-    ],
     "cfg(not(windows))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
@@ -11471,7 +11338,7 @@
     "itertools 0.11.0",
     "libc 0.2.153",
     "log 0.4.20",
-    "nix 0.26.2",
+    "nix 0.28.0",
     "once_cell 1.17.0",
     "openssl 0.10.62",
     "protobuf 3.2.0",

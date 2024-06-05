@@ -23,11 +23,15 @@ use either::Either;
 use hound::WavReader;
 use hound::WavSpec;
 use hound::WavWriter;
-use libchromeos::signal::register_signal_handler;
 use libcras::BoxError;
 use libcras::CrasClient;
 use libcras::CrasNodeType;
 use libcras::CrasStreamEffect;
+use nix::sys::signal::sigaction;
+use nix::sys::signal::SaFlags;
+use nix::sys::signal::SigAction;
+use nix::sys::signal::SigHandler;
+use nix::sys::signal::SigSet;
 use nix::sys::signal::Signal;
 
 use crate::arguments::AudioOptions;
@@ -87,8 +91,19 @@ extern "C" fn sigint_handler(_: c_int) {
 }
 
 fn add_sigint_handler() -> Result<()> {
-    let result = unsafe { register_signal_handler(Signal::SIGINT, sigint_handler) };
-    result.map_err(Error::SysUtil)
+    // SAFETY: sigint_handler only touches an AtomicBool.
+    unsafe {
+        sigaction(
+            Signal::SIGINT,
+            &SigAction::new(
+                SigHandler::Handler(sigint_handler),
+                SaFlags::SA_RESTART,
+                SigSet::empty(),
+            ),
+        )
+    }
+    .map_err(Error::SysUtil)?;
+    Ok(())
 }
 
 fn set_priority_to_realtime() {

@@ -3,8 +3,8 @@
 // found in the LICENSE file.
 use std::io;
 use std::mem;
+use std::os::fd::AsFd;
 use std::os::unix::io::AsRawFd;
-use std::os::unix::io::FromRawFd;
 use std::os::unix::io::OwnedFd;
 use std::os::unix::io::RawFd;
 use std::path::PathBuf;
@@ -68,14 +68,12 @@ impl CrasServerSocket {
     /// Returns the `io::Error` generated when connecting to the socket on failure.
     pub fn with_type(socket_type: CrasSocketType) -> io::Result<CrasServerSocket> {
         // SAFETY: Safe since OwnedFd is created from a newly created FD.
-        let fd = unsafe {
-            OwnedFd::from_raw_fd(socket::socket(
-                socket::AddressFamily::Unix,
-                socket::SockType::SeqPacket,
-                socket::SockFlag::empty(),
-                None,
-            )?)
-        };
+        let fd = socket::socket(
+            socket::AddressFamily::Unix,
+            socket::SockType::SeqPacket,
+            socket::SockFlag::empty(),
+            None,
+        )?;
         let socket_path = PathBuf::from(socket_type.sock_path());
         let addr = socket::UnixAddr::new(&socket_path)?;
         socket::connect(fd.as_raw_fd(), &addr)?;
@@ -100,8 +98,7 @@ impl CrasServerSocket {
         fds: &[RawFd],
     ) -> io::Result<usize> {
         match fds.len() {
-            0 => nix::unistd::write(self.socket.as_raw_fd(), message.as_slice())
-                .map_err(|e| e.into()),
+            0 => nix::unistd::write(self.socket.as_fd(), message.as_slice()).map_err(|e| e.into()),
             _ => {
                 let ioslice = io::IoSlice::new(message.as_slice());
                 match self.send_with_fds(&[ioslice], fds) {

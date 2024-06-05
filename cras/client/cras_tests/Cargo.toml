@@ -14,7 +14,7 @@ either = "1.9.0"
 hound = "3.4.0"
 libchromeos = "*"
 libcras = "*"
-nix = { version = "0.26", features = ["signal"] }
+nix = { version = "0.28", features = ["signal"] }
 serde_json = "1.0.96"
 thiserror = "1.0.20"
 libc = "0.2"

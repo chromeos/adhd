@@ -942,7 +942,7 @@ impl CrasServerStateShmFd {
 mod tests {
     use std::ffi::CString;
     use std::fs::File;
-    use std::os::fd::FromRawFd;
+    use std::os::fd::AsFd;
     use std::os::unix::io::IntoRawFd;
     use std::sync::Arc;
     use std::sync::Mutex;
@@ -955,11 +955,9 @@ mod tests {
     use super::*;
 
     fn create_shm(size: usize) -> File {
-        let fd: i32 =
-            memfd_create(&CString::new("cras").unwrap(), MemFdCreateFlag::empty()).unwrap();
-        ftruncate(fd, size as i64).unwrap();
-        // SAFETY: Safe since the fd is newly created and not owned yet. `File` will own the fd.
-        unsafe { File::from_raw_fd(fd) }
+        let fd = memfd_create(&CString::new("cras").unwrap(), MemFdCreateFlag::empty()).unwrap();
+        ftruncate(fd.as_fd(), size as i64).unwrap();
+        File::from(fd)
     }
 
     #[test]
