@@ -93,6 +93,16 @@ enum CRAS_METRICS_DLC_STATUS {
   CRAS_METRICS_DLC_STATUS_AVAILABLE
 };
 
+/* List of Bluetooth telephony events from Floss sent to CRAS.
+ * HFP_TELEPHONY_UHID_OPEN - uhid device is opened. This event usually happens
+ *     when the user enables a Bluetooth telephony HID device from WebHID to
+ *     start using call control.
+ */
+
+enum HFP_TELEPHONY_EVENT {
+  HFP_TELEPHONY_UHID_OPEN,
+};
+
 /* Logs the error type happens when setting up SCO connection. This is mainly
  * used to track whether the setup of SCO connection succeeds and the frequency
  * of different errors. This will also be used to track if our fixes for these
@@ -258,6 +268,10 @@ int cras_server_metrics_wake_delay_count_per_10k_wakes(unsigned count);
 
 // Logs the available A2DP codecs claimed by the peer, in bitmask form.
 int cras_server_metrics_peer_supported_a2dp_codecs(unsigned codec_mask);
+
+// Logs the Bluetooth hfp telephony event counts when CRAS receives the event
+// from Floss.
+int cras_server_metrics_hfp_telephony_event(enum HFP_TELEPHONY_EVENT event);
 
 // Initialize metrics logging stuff.
 int cras_server_metrics_init();

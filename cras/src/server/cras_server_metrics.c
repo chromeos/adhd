@@ -21,6 +21,7 @@
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_rstream_config.h"
 #include "cras/src/server/cras_system_state.h"
+#include "cras_server_metrics.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -28,6 +29,7 @@
 #define METRICS_NAME_BUFFER_SIZE 100
 
 const char kA2dpExitCode[] = "Cras.A2dpExitCode";
+const char kHfpTelephonyEvent[] = "Cras.HfpTelephonyEvent";
 const char kA2dp20msFailureOverStream[] = "Cras.A2dp20msFailureOverStream";
 const char kA2dp100msFailureOverStream[] = "Cras.A2dp100msFailureOverStream";
 const char kApNcRuntime[] = "Cras.ApNcRuntime";
@@ -126,6 +128,7 @@ static const char* get_timespec_period_str(struct timespec ts) {
 // Type of metrics to log.
 enum CRAS_SERVER_METRICS_TYPE {
   A2DP_EXIT_CODE,
+  HFP_TELEPHONY_EVENT,
   A2DP_20MS_FAILURE_OVER_STREAM,
   A2DP_100MS_FAILURE_OVER_STREAM,
   AP_NC_START_STATUS,
@@ -1692,6 +1695,16 @@ int cras_server_metrics_wake_delay_count_per_10k_wakes(unsigned count) {
   return 0;
 }
 
+int cras_server_metrics_hfp_telephony_event(enum HFP_TELEPHONY_EVENT event) {
+  int err;
+  err = send_unsigned_metrics(HFP_TELEPHONY_EVENT, event);
+  if (err < 0) {
+    syslog(LOG_WARNING, "Failed to send metrics message: HFP_TELEPHONY_EVENT");
+    return err;
+  }
+  return 0;
+}
+
 static void metrics_device_runtime(
     struct cras_server_metrics_device_data data) {
   switch (data.type) {
@@ -2153,6 +2166,10 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       break;
     case A2DP_EXIT_CODE:
       cras_metrics_log_sparse_histogram(kA2dpExitCode, metrics_msg->data.value);
+      break;
+    case HFP_TELEPHONY_EVENT:
+      cras_metrics_log_sparse_histogram(kHfpTelephonyEvent,
+                                        metrics_msg->data.value);
       break;
     case A2DP_20MS_FAILURE_OVER_STREAM:
       cras_metrics_log_histogram(kA2dp20msFailureOverStream,

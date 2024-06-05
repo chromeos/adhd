@@ -24,6 +24,7 @@
 #include "cras/src/server/cras_fl_media.h"
 #include "cras/src/server/cras_hfp_manager.h"
 #include "cras/src/server/cras_lea_manager.h"
+#include "cras/src/server/cras_server_metrics.h"
 #include "cras_types.h"
 
 static int validate_bluetooth_device_address(const char* addr) {
@@ -440,6 +441,7 @@ int handle_on_hfp_telephony_event(struct fl_media* active_fm,
   }
   switch (telephony_event) {
     case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_OPEN:
+      cras_server_metrics_hfp_telephony_event(HFP_TELEPHONY_UHID_OPEN);
       bt_io_manager_set_telephony_use(active_fm->bt_io_mgr, true);
       break;
     case CRAS_BT_HFP_TELEPHONY_EVENT_UHID_CLOSE:
