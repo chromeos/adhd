@@ -1,5 +1,5 @@
 {
-  "checksum": "dbabd1be57e0157df16363da0ca6c9fb34d962ee02f191b5c27e79bdb2192b18",
+  "checksum": "cc6dca74faa09928b35b3d1a4daf7056682f1f5c7b4f9a20a630737a239a2015",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -4897,6 +4897,85 @@
       ],
       "license_file": "LICENSE-MIT"
     },
+    "memoffset 0.9.0": {
+      "name": "memoffset",
+      "version": "0.9.0",
+      "package_url": "https://github.com/Gilnaa/memoffset",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/memoffset/0.9.0/download",
+          "sha256": "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "memoffset",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "memoffset",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "memoffset 0.9.0",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2015",
+        "version": "0.9.0"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "autocfg 1.1.0",
+              "target": "autocfg"
+            }
+          ],
+          "selects": {}
+        }
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE"
+    },
     "minimal-lexical 0.2.1": {
       "name": "minimal-lexical",
       "version": "0.2.1",
@@ -5108,8 +5187,11 @@
         "crate_features": {
           "common": [
             "default",
+            "memoffset",
             "process",
-            "resource"
+            "resource",
+            "socket",
+            "uio"
           ],
           "selects": {}
         },
@@ -5126,6 +5208,10 @@
             {
               "id": "libc 0.2.153",
               "target": "libc"
+            },
+            {
+              "id": "memoffset 0.9.0",
+              "target": "memoffset"
             },
             {
               "id": "nix 0.28.0",

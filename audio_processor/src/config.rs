@@ -7,6 +7,8 @@ use std::path::PathBuf;
 use anyhow::Context;
 use hound::WavSpec;
 use hound::WavWriter;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::processors::ChunkWrapper;
 use crate::processors::DynamicPluginProcessor;
@@ -17,7 +19,7 @@ use crate::Format;
 use crate::Pipeline;
 use crate::ProcessorVec;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Processor {
     Negate,
     WavSink {
