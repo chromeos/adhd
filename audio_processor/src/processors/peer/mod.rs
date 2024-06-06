@@ -3,3 +3,4 @@
 // found in the LICENSE file.
 
 mod messages;
+mod worker;

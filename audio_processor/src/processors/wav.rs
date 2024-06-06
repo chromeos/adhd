@@ -345,11 +345,11 @@ mod tests {
         // Wav file exhausted, return empty slices.
         assert_eq!(
             source.process(empty.as_multi_slice()).unwrap().into_raw(),
-            [[], []]
+            [[0f32; 0], []]
         );
         assert_eq!(
             source.process(empty.as_multi_slice()).unwrap().into_raw(),
-            [[], []]
+            [[0f32; 0], []]
         );
     }
 
