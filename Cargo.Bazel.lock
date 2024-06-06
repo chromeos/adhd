@@ -1,5 +1,5 @@
 {
-  "checksum": "fd486de811587dd537c37aeec52aa0d5186ad78c0e6808118f5336b537e901df",
+  "checksum": "ea299c9befecd39a7cc96a019ed11a75dac4c83dbee5123ab89fb96784495f67",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -690,6 +690,10 @@
             {
               "id": "thiserror 1.0.50",
               "target": "thiserror"
+            },
+            {
+              "id": "zerocopy 0.7.34",
+              "target": "zerocopy"
             }
           ],
           "selects": {}
@@ -1096,6 +1100,45 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "byteorder 1.5.0": {
+      "name": "byteorder",
+      "version": "1.5.0",
+      "package_url": "https://github.com/BurntSushi/byteorder",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/byteorder/1.5.0/download",
+          "sha256": "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "byteorder",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "byteorder",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2021",
+        "version": "1.5.0"
+      },
+      "license": "Unlicense OR MIT",
+      "license_ids": [
+        "MIT",
+        "Unlicense"
+      ],
+      "license_file": "LICENSE-MIT"
     },
     "cbindgen 0.24.5": {
       "name": "cbindgen",
@@ -11057,6 +11100,130 @@
         "MIT"
       ],
       "license_file": "license-apache-2.0"
+    },
+    "zerocopy 0.7.34": {
+      "name": "zerocopy",
+      "version": "0.7.34",
+      "package_url": "https://github.com/google/zerocopy",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/zerocopy/0.7.34/download",
+          "sha256": "ae87e3fcd617500e5d106f0380cf7b77f3c6092aae37191433159dda23cfb087"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "zerocopy",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "zerocopy",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "byteorder",
+            "default"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "byteorder 1.5.0",
+              "target": "byteorder"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "proc_macro_deps": {
+          "common": [],
+          "selects": {
+            "cfg(any())": [
+              {
+                "id": "zerocopy-derive 0.7.34",
+                "target": "zerocopy_derive"
+              }
+            ]
+          }
+        },
+        "version": "0.7.34"
+      },
+      "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "license_ids": [
+        "Apache-2.0",
+        "BSD-2-Clause",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "zerocopy-derive 0.7.34": {
+      "name": "zerocopy-derive",
+      "version": "0.7.34",
+      "package_url": "https://github.com/google/zerocopy",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/zerocopy-derive/0.7.34/download",
+          "sha256": "15e934569e47891f7d9411f1a451d947a60e000ab3bd24fbb970f000387d1b3b"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {
+            "crate_name": "zerocopy_derive",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "zerocopy_derive",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "proc-macro2 1.0.69",
+              "target": "proc_macro2"
+            },
+            {
+              "id": "quote 1.0.32",
+              "target": "quote"
+            },
+            {
+              "id": "syn 2.0.38",
+              "target": "syn"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.7.34"
+      },
+      "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "license_ids": [
+        "Apache-2.0",
+        "BSD-2-Clause",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
     }
   },
   "binary_crates": [],
@@ -11154,6 +11321,7 @@
     "cfg(all(target_arch = \"x86_64\", target_env = \"msvc\", not(windows_raw_dylib)))": [
       "x86_64-pc-windows-msvc"
     ],
+    "cfg(any())": [],
     "cfg(any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"), all(target_endian = \"little\", any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"powerpc64\", target_arch = \"riscv64\", target_arch = \"mips\", target_arch = \"mips64\")))))))": [
       "aarch64-apple-darwin",
       "aarch64-apple-ios",
@@ -11488,7 +11656,8 @@
     "serde_json 1.0.96",
     "syslog 6.0.1",
     "thiserror 1.0.50",
-    "tokio 1.29.1"
+    "tokio 1.29.1",
+    "zerocopy 0.7.34"
   ],
   "direct_dev_deps": [
     "tempfile 3.4.0"

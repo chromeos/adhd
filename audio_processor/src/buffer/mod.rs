@@ -5,6 +5,9 @@
 use std::ops::Index;
 use std::ops::IndexMut;
 
+use zerocopy::AsBytes;
+use zerocopy::FromBytes;
+
 use crate::slice_cast::SliceCast;
 use crate::Sample;
 use crate::Shape;
@@ -99,8 +102,24 @@ impl<'a, S: Sample> MultiBuffer<S> {
     }
 }
 
+impl<'a, T: AsBytes> MultiBuffer<T> {
+    /// Gets the bytes of this buffer.
+    pub fn as_bytes(&'a self) -> &'a [u8] {
+        self.buffer.as_bytes()
+    }
+}
+
+impl<'a, T: AsBytes + FromBytes> MultiBuffer<T> {
+    /// Gets the bytes of this buffer mutably.
+    pub fn as_bytes_mut(&'a mut self) -> &'a mut [u8] {
+        self.buffer.as_bytes_mut()
+    }
+}
+
 #[cfg(test)]
 mod buffer_tests {
+    use zerocopy::AsBytes;
+
     use crate::MultiBuffer;
     use crate::Shape;
 
@@ -141,6 +160,17 @@ mod buffer_tests {
         slices.data[0][1] = 0;
         slices.data[1][2] = 0;
         assert_eq!(buf.to_vecs(), [[1, 0, 3, 4], [5, 6, 0, 8]]);
+    }
+
+    #[test]
+    fn bytes_conversion() {
+        let mut buf = MultiBuffer::from(vec![vec![2i32], vec![-1]]);
+        assert_eq!(buf.as_bytes(), [2i32, -1].as_bytes());
+
+        // Clear LSB and MSB of the first sample. It should become zero.
+        buf.as_bytes_mut()[0] = 0;
+        buf.as_bytes_mut()[3] = 0;
+        assert_eq!(buf.to_vecs(), vec![vec![0], vec![-1]]);
     }
 }
 

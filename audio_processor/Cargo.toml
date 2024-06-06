@@ -23,6 +23,7 @@ serde_json = "1.0.96"
 thiserror = "1.0.30"
 log = "0.4.17"
 protobuf = "3.2.0"
+zerocopy = "0.7.32"
 
 [build-dependencies]
 bindgen = "0.63.0"
