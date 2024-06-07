@@ -33,3 +33,4 @@ protobuf-parse = "3.2.0"
 
 [dev-dependencies]
 tempfile = "3.4.0"
+command-fds = "0.3.0"

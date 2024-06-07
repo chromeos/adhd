@@ -1,5 +1,5 @@
 {
-  "checksum": "ea299c9befecd39a7cc96a019ed11a75dac4c83dbee5123ab89fb96784495f67",
+  "checksum": "1c9928464e73adfcb9b163c4c1e2ae879e70d562c282fa39bf2302260e945495",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -700,6 +700,10 @@
         },
         "deps_dev": {
           "common": [
+            {
+              "id": "command-fds 0.3.0",
+              "target": "command_fds"
+            },
             {
               "id": "tempfile 3.4.0",
               "target": "tempfile"
@@ -1947,6 +1951,63 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "command-fds 0.3.0": {
+      "name": "command-fds",
+      "version": "0.3.0",
+      "package_url": "https://github.com/google/command-fds/",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/command-fds/0.3.0/download",
+          "sha256": "7bb11bd1378bf3731b182997b40cefe00aba6a6cc74042c8318c1b271d3badf7"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "command_fds",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "command_fds",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "nix 0.27.1",
+              "target": "nix"
+            },
+            {
+              "id": "thiserror 1.0.50",
+              "target": "thiserror"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.3.0"
+      },
+      "license": "Apache-2.0",
+      "license_ids": [
+        "Apache-2.0"
+      ],
+      "license_file": "LICENSE"
     },
     "cras 0.1.1": {
       "name": "cras",
@@ -5191,6 +5252,68 @@
         },
         "edition": "2018",
         "version": "0.8.8"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE"
+    },
+    "nix 0.27.1": {
+      "name": "nix",
+      "version": "0.27.1",
+      "package_url": "https://github.com/nix-rust/nix",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/nix/0.27.1/download",
+          "sha256": "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "nix",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "nix",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default",
+            "fs"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "bitflags 2.4.0",
+              "target": "bitflags"
+            },
+            {
+              "id": "cfg-if 1.0.0",
+              "target": "cfg_if"
+            },
+            {
+              "id": "libc 0.2.153",
+              "target": "libc"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.27.1"
       },
       "license": "MIT",
       "license_ids": [
@@ -11660,6 +11783,7 @@
     "zerocopy 0.7.34"
   ],
   "direct_dev_deps": [
+    "command-fds 0.3.0",
     "tempfile 3.4.0"
   ]
 }

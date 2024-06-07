@@ -133,7 +133,7 @@ pub(super) fn recv_slice<'a, T: Op>(
     Ok((op, &mut buf[..len]))
 }
 
-pub(super) fn create_socketpair() -> nix::Result<(OwnedFd, OwnedFd)> {
+pub fn create_socketpair() -> nix::Result<(OwnedFd, OwnedFd)> {
     socketpair(
         AddressFamily::Unix,
         SockType::SeqPacket,

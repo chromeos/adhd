@@ -5,3 +5,7 @@
 mod host;
 mod messages;
 mod worker;
+
+pub use host::BlockingSeqPacketProcessor;
+pub use messages::create_socketpair;
+pub use worker::Worker;

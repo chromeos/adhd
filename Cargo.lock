@@ -106,11 +106,12 @@ dependencies = [
  "bindgen",
  "cc",
  "clap 4.5.4",
+ "command-fds",
  "dasp_sample",
  "hound",
  "libc",
  "log",
- "nix",
+ "nix 0.28.0",
  "protobuf",
  "protobuf-codegen",
  "protobuf-parse",
@@ -313,6 +314,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
+name = "command-fds"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bb11bd1378bf3731b182997b40cefe00aba6a6cc74042c8318c1b271d3badf7"
+dependencies = [
+ "nix 0.27.1",
+ "thiserror",
+]
+
+[[package]]
 name = "cras"
 version = "0.1.1"
 dependencies = [
@@ -348,7 +359,7 @@ dependencies = [
  "itertools",
  "libc",
  "log",
- "nix",
+ "nix 0.28.0",
  "once_cell",
  "openssl",
  "serde_json",
@@ -808,6 +819,17 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "nix"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
+dependencies = [
+ "bitflags 2.4.0",
+ "cfg-if",
+ "libc",
 ]
 
 [[package]]

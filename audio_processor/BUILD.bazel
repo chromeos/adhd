@@ -76,3 +76,27 @@ rust_binary(
         ":audio_processor",
     ] + all_crate_deps(normal = True),
 )
+
+rust_binary(
+    name = "audio-worker",
+    srcs = ["src/bin/audio-worker.rs"],
+    deps = [
+        ":audio_processor",
+    ] + all_crate_deps(normal = True),
+)
+
+rust_test_suite(
+    name = "integration_tests",
+    srcs = glob(["tests/*.rs"]),
+    data = [
+        ":audio-worker",
+    ],
+    rustc_env = {
+        "CARGO_BIN_EXE_audio-worker": "$(rootpath audio-worker)",
+    },
+    deps = [
+        ":audio_processor",
+    ] + all_crate_deps(
+        normal_dev = True,
+    ),
+)

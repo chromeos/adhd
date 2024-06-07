@@ -29,14 +29,18 @@ use crate::Format;
 use crate::MultiBuffer;
 use crate::MultiSlice;
 
-struct BlockingSeqPacketProcessor {
+pub struct BlockingSeqPacketProcessor {
     fd: OwnedFd,
     output_format: Format,
     output_buffer: MultiBuffer<f32>,
 }
 
 impl BlockingSeqPacketProcessor {
-    fn new(fd: OwnedFd, input_format: Format, config: config::Processor) -> anyhow::Result<Self> {
+    pub fn new(
+        fd: OwnedFd,
+        input_format: Format,
+        config: config::Processor,
+    ) -> anyhow::Result<Self> {
         send_str(
             fd.as_fd(),
             RequestOp::Init,

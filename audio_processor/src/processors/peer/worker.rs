@@ -25,7 +25,7 @@ use crate::MultiBuffer;
 use crate::MultiSlice;
 use crate::ProcessorVec;
 
-pub(super) struct Worker<'a> {
+pub struct Worker<'a> {
     fd: BorrowedFd<'a>,
     pipeline: ProcessorVec,
     input_format: Format,
@@ -140,7 +140,7 @@ impl<'a> Worker<'a> {
         Ok(())
     }
 
-    pub(super) fn run(fd: OwnedFd) {
+    pub fn run(fd: OwnedFd) {
         if let Err(err) = Worker::run_result(fd) {
             log::error!("{err:#}");
         }

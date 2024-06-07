@@ -28,4 +28,4 @@ pub use thread::*;
 mod shuffle_channels;
 pub use shuffle_channels::*;
 
-mod peer;
+pub mod peer;
