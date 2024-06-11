@@ -1669,6 +1669,8 @@ int floss_media_disconnect_device(struct fl_media* fm, const char* addr) {
 }
 
 int floss_media_lea_host_stop_audio_request(struct fl_media* fm) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
 
@@ -1784,6 +1786,8 @@ int floss_media_lea_host_start_audio_request(struct fl_media* fm,
                                              uint32_t* sample_rate,
                                              uint8_t* bits_per_sample,
                                              uint8_t* channels_count) {
+  RET_IF_HAVE_FUZZER(0);
+
   syslog(LOG_DEBUG, "%s", __func__);
 
   int rc = 0;
@@ -1914,6 +1918,8 @@ int floss_media_lea_source_metadata_changed(
     enum FL_LEA_AUDIO_USAGE usage,
     enum FL_LEA_AUDIO_CONTENT_TYPE content_type,
     double gain) {
+  RET_IF_HAVE_FUZZER(0);
+
   if (!fm) {
     syslog(LOG_WARNING, "%s: Floss media not started", __func__);
     return -EINVAL;
@@ -1967,6 +1973,8 @@ int floss_media_lea_source_metadata_changed(
 int floss_media_lea_sink_metadata_changed(struct fl_media* fm,
                                           enum FL_LEA_AUDIO_SOURCE source,
                                           double gain) {
+  RET_IF_HAVE_FUZZER(0);
+
   if (!fm) {
     syslog(LOG_WARNING, "%s: Floss media not started", __func__);
     return -EINVAL;
@@ -2019,6 +2027,8 @@ int floss_media_lea_peer_start_audio_request(struct fl_media* fm,
                                              uint32_t* sample_rate,
                                              uint8_t* bits_per_sample,
                                              uint8_t* channels_count) {
+  RET_IF_HAVE_FUZZER(0);
+
   syslog(LOG_DEBUG, "%s", __func__);
 
   if (!fm) {
@@ -2145,6 +2155,8 @@ int floss_media_lea_peer_start_audio_request(struct fl_media* fm,
 }
 
 int floss_media_lea_peer_stop_audio_request(struct fl_media* fm) {
+  RET_IF_HAVE_FUZZER(0);
+
   DBusMessage *method_call, *reply;
   DBusError dbus_error;
 
@@ -2184,6 +2196,8 @@ int floss_media_lea_peer_stop_audio_request(struct fl_media* fm) {
 }
 
 int floss_media_lea_set_active_group(struct fl_media* fm, int group_id) {
+  RET_IF_HAVE_FUZZER(0);
+
   int rc = 0;
 
   syslog(LOG_DEBUG, "%s(group_id=%d)", __func__, group_id);
@@ -2294,6 +2308,8 @@ int floss_media_lea_set_active_group(struct fl_media* fm, int group_id) {
 int floss_media_lea_set_group_volume(struct fl_media* fm,
                                      int group_id,
                                      uint8_t volume) {
+  RET_IF_HAVE_FUZZER(0);
+
   int rc = 0;
 
   syslog(LOG_DEBUG, "%s(group_id=%d, volume=%u)", __func__, group_id, volume);
