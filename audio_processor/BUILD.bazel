@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("//:utils.bzl", "require_no_config")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test", "rust_test_suite")
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test", "rust_test_suite")
+load("//:utils.bzl", "require_no_config")
 
 rust_library(
     name = "audio_processor",
@@ -62,6 +62,7 @@ cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
     data = [
+        "proto/cdcfg.proto",
         "speex_bindgen.h",
         "//audio_processor/c:headers",
     ],

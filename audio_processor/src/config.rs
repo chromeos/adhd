@@ -21,7 +21,7 @@ use crate::Format;
 use crate::Pipeline;
 use crate::ProcessorVec;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Processor {
     Negate,
     WavSink {
@@ -54,6 +54,7 @@ pub enum Processor {
         block_size: Option<usize>,
         frame_rate: Option<usize>,
     },
+    Nothing,
 }
 
 /// PreloadedProcessor is a config that describes a processor that is already created
@@ -92,6 +93,14 @@ impl Debug for PreloadedProcessor {
             .finish()
     }
 }
+
+impl PartialEq for PreloadedProcessor {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
+    }
+}
+
+impl Eq for PreloadedProcessor {}
 
 struct Config {
     input_format: Format,
@@ -227,6 +236,9 @@ impl Config {
                         bail!("expected frame_rate {frame_rate:?} got {format:?}");
                     }
                 }
+            }
+            Nothing => {
+                // Do nothing.
             }
         }
         Ok(())

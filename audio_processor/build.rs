@@ -68,4 +68,12 @@ fn main() {
             println!("cargo:rustc-link-arg={}", link_arg);
         }
     }
+
+    println!("cargo:rerun-if-changed=proto/");
+    protobuf_codegen::Codegen::new()
+        .pure()
+        .include("proto")
+        .input("proto/cdcfg.proto")
+        .cargo_out_dir("proto")
+        .run_from_script();
 }
