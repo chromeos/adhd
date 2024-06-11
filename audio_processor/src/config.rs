@@ -41,6 +41,9 @@ pub enum Processor {
         processors: Vec<Processor>,
     },
     Preloaded(PreloadedProcessor),
+    ShuffleChannels {
+        channel_indexes: Vec<usize>,
+    },
 }
 
 /// PreloadedProcessor is a config that describes a processor that is already created
@@ -179,6 +182,9 @@ impl Config {
             Preloaded(PreloadedProcessor { processor, .. }) => {
                 self.pipeline.push(processor);
             }
+            ShuffleChannels { channel_indexes } => self.pipeline.add(
+                crate::processors::ShuffleChannels::new(&channel_indexes, self.output_format()),
+            ),
         }
         Ok(())
     }
@@ -424,5 +430,24 @@ mod tests {
             output.into_raw(),
             [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]
         );
+    }
+
+    #[test]
+    fn shuffle_channels() {
+        let mut pipeline = build_pipeline(
+            Format {
+                channels: 2,
+                block_size: 2,
+                frame_rate: 48000,
+            },
+            Processor::ShuffleChannels {
+                channel_indexes: vec![1, 0, 1],
+            },
+        )
+        .unwrap();
+
+        let mut input = MultiBuffer::from(vec![vec![1., 2.], vec![3., 4.]]);
+        let output = pipeline.process(input.as_multi_slice()).unwrap();
+        assert_eq!(output.into_raw(), [[3., 4.], [1., 2.], [3., 4.]]);
     }
 }
