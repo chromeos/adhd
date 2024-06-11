@@ -32,6 +32,7 @@ use regex::Regex;
 use crate::uptime::analyze;
 
 static LOGGER: SimpleStdoutLogger = SimpleStdoutLogger;
+static CRAS_PROCESS_NAME: &'static str = "cras-main";
 
 fn init_log() -> Result<(), SetLoggerError> {
     log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Info))
@@ -139,7 +140,7 @@ fn main() {
     env::set_var("CRAS_PSEUDONYMIZATION_SALT", Salt::instance().to_string());
 
     // Show CRAS process uptime
-    run_command(Command::new("ps").args(["-C", "cras", "-o", "comm,etime"]));
+    run_command(Command::new("ps").args(["-C", CRAS_PROCESS_NAME, "-o", "comm,etime"]));
     do_analysis_uptime();
     dump_active_node();
 
@@ -293,7 +294,7 @@ fn print_analysis_result(results: Vec<Analysis>) {
 fn do_analysis_uptime() {
     // Use "etimes" to get the uptime in "second" format.
     let ps_uptime_output = match Command::new("ps")
-        .args(["-C", "cras", "-o", "etimes="])
+        .args(["-C", CRAS_PROCESS_NAME, "-o", "etimes="])
         .output()
     {
         Ok(out) => String::from_utf8_lossy(&out.stdout).to_string(),
