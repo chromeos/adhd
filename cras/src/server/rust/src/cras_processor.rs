@@ -229,13 +229,9 @@ impl CrasProcessor {
                 decl.push(Processor::Negate);
             }
             CrasProcessorEffect::NoiseCancellation | CrasProcessorEffect::StyleTransfer => {
-                if config.channels > 1 {
-                    // Run mono noise cancellation.
-                    // Pick just the first channel.
-                    decl.push(Processor::ShuffleChannels {
-                        channel_indexes: vec![0],
-                    });
-                }
+                decl.push(Processor::ShuffleChannels {
+                    channel_indexes: vec![0],
+                });
                 decl.extend(
                     get_noise_cancellation_pipeline_decl()
                         .context("failed get_noise_cancellation_pipeline_decl")?,
@@ -246,12 +242,9 @@ impl CrasProcessor {
                             .context("failed get_style_transfer_pipeline_decl")?,
                     );
                 }
-                if config.channels > 1 {
-                    // Copy to all channels.
-                    decl.push(Processor::ShuffleChannels {
-                        channel_indexes: vec![0; config.channels],
-                    });
-                }
+                decl.push(Processor::ShuffleChannels {
+                    channel_indexes: vec![0; config.channels],
+                });
             }
             CrasProcessorEffect::Beamforming => {
                 let dump_config = if config.wav_dump {

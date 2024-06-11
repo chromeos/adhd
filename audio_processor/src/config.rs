@@ -192,9 +192,20 @@ impl Config {
             Preloaded(PreloadedProcessor { processor, .. }) => {
                 self.pipeline.push(processor);
             }
-            ShuffleChannels { channel_indexes } => self.pipeline.add(
-                crate::processors::ShuffleChannels::new(&channel_indexes, self.output_format()),
-            ),
+            ShuffleChannels { channel_indexes } => {
+                // Optimization: only shuffle channels if it would change the
+                // channel layout.
+                if !channel_indexes
+                    .iter()
+                    .cloned()
+                    .eq(0..self.output_format().channels)
+                {
+                    self.pipeline.add(crate::processors::ShuffleChannels::new(
+                        &channel_indexes,
+                        self.output_format(),
+                    ))
+                }
+            }
             CheckFormat {
                 channels,
                 block_size,
@@ -481,6 +492,73 @@ mod tests {
         let mut input = MultiBuffer::from(vec![vec![1., 2.], vec![3., 4.]]);
         let output = pipeline.process(input.as_multi_slice()).unwrap();
         assert_eq!(output.into_raw(), [[3., 4.], [1., 2.], [3., 4.]]);
+    }
+
+    #[test]
+    fn shuffle_channels_opt() {
+        let pipeline = build_pipeline(
+            Format {
+                channels: 2,
+                block_size: 2,
+                frame_rate: 48000,
+            },
+            Processor::ShuffleChannels {
+                channel_indexes: vec![1, 0],
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            pipeline.len(),
+            1,
+            "channel swap, should not be optimized away"
+        );
+
+        let pipeline = build_pipeline(
+            Format {
+                channels: 2,
+                block_size: 2,
+                frame_rate: 48000,
+            },
+            Processor::ShuffleChannels {
+                channel_indexes: vec![0, 1, 1],
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            pipeline.len(),
+            1,
+            "different length, should not be optimized away"
+        );
+
+        let pipeline = build_pipeline(
+            Format {
+                channels: 2,
+                block_size: 2,
+                frame_rate: 48000,
+            },
+            Processor::ShuffleChannels {
+                channel_indexes: vec![0],
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            pipeline.len(),
+            1,
+            "different length, should not be optimized away"
+        );
+
+        let pipeline = build_pipeline(
+            Format {
+                channels: 2,
+                block_size: 2,
+                frame_rate: 48000,
+            },
+            Processor::ShuffleChannels {
+                channel_indexes: vec![0, 1],
+            },
+        )
+        .unwrap();
+        assert_eq!(pipeline.len(), 0, "should optimize");
     }
 
     #[test]
