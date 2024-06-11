@@ -59,8 +59,8 @@ pub enum Processor {
 /// PreloadedProcessor is a config that describes a processor that is already created
 /// out of the config system.
 pub struct PreloadedProcessor {
-    description: &'static str,
-    processor: Box<dyn AudioProcessor<I = f32, O = f32> + Send>,
+    pub description: &'static str,
+    pub processor: Box<dyn AudioProcessor<I = f32, O = f32> + Send>,
 }
 
 impl Serialize for PreloadedProcessor {

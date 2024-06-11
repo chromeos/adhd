@@ -12,5 +12,3 @@ mod export;
 pub use export::export_plugin;
 mod processor;
 pub use processor::*;
-mod loader;
-pub use loader::*;
