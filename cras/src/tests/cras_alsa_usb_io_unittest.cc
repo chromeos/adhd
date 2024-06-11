@@ -478,13 +478,19 @@ TEST(AlsaInitNode, SetNodeInitialStateDropInvalidUTF8NodeName) {
 class NodeUSBCardSuite : public testing::Test {
  protected:
   virtual void SetUp() {
+    outputs = reinterpret_cast<struct mixer_control*>(1);
     fake_mixer = (struct cras_alsa_mixer*)2;
-    outputs = reinterpret_cast<struct mixer_control*>(0);
     fake_ucm = (struct cras_use_case_mgr*)3;
     section = ucm_section_create(test_dev_name, "hw:0,1", 0, -1,
                                  CRAS_STREAM_OUTPUT, NULL, NULL);
   }
   virtual void TearDown() { ucm_section_free_list(section); }
+  void SetupUSBOutputMixerControl(struct mixer_control** output_controls,
+                                  int length) {
+    cras_alsa_mixer_get_control_for_section_return_value = *output_controls;
+    cras_alsa_mixer_list_outputs_outputs = output_controls;
+    cras_alsa_mixer_list_outputs_outputs_length = length;
+  }
   void SetupUSBVolumeSteps(int control_volume_steps) {
     cras_alsa_mixer_get_control_name_values[outputs] = HEADPHONE;
     cras_alsa_mixer_get_playback_step_values[outputs] = control_volume_steps;
@@ -509,6 +515,7 @@ class NodeUSBCardSuite : public testing::Test {
       const std::map<std::string, int>& ucm_values) {
     struct cras_iodev* iodev;
     ResetStubData();
+    SetupUSBOutputMixerControl(&outputs, 1);
     SetupUSBVolumeSteps(control_volume_steps);
     SetupUSBVolumeRange(control_volume_range_min, control_volume_range_max);
     auto it = ucm_values.find("CRASPlaybackNumberOfVolumeSteps");
@@ -532,6 +539,7 @@ class NodeUSBCardSuite : public testing::Test {
     struct cras_iodev* iodev;
 
     ResetStubData();
+    SetupUSBOutputMixerControl(&outputs, 1);
     SetupUSBVolumeSteps(control_volume_steps);
     SetupUSBVolumeRange(control_volume_range_min, control_volume_range_max);
     iodev = cras_alsa_usb_iodev_create_with_default_parameters(
