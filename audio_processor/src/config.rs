@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::fmt::Debug;
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -39,6 +40,44 @@ pub enum Processor {
     Pipeline {
         processors: Vec<Processor>,
     },
+    Preloaded(PreloadedProcessor),
+}
+
+/// PreloadedProcessor is a config that describes a processor that is already created
+/// out of the config system.
+pub struct PreloadedProcessor {
+    description: &'static str,
+    processor: Box<dyn AudioProcessor<I = f32, O = f32> + Send>,
+}
+
+impl Serialize for PreloadedProcessor {
+    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Err(serde::ser::Error::custom(
+            "PreloadedProcessor cannot be serialized",
+        ))
+    }
+}
+
+impl<'de> Deserialize<'de> for PreloadedProcessor {
+    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Err(serde::de::Error::custom(
+            "PreloadedProcessor cannot be deserialized",
+        ))
+    }
+}
+
+impl Debug for PreloadedProcessor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Preloaded")
+            .field("description", &self.description)
+            .finish()
+    }
 }
 
 struct Config {
@@ -60,7 +99,7 @@ impl Config {
             .unwrap_or(self.input_format)
     }
 
-    fn add(&mut self, config: &Processor) -> anyhow::Result<()> {
+    fn add(&mut self, config: Processor) -> anyhow::Result<()> {
         use Processor::*;
         match config {
             Negate => {
@@ -100,15 +139,15 @@ impl Config {
                 inner,
                 inner_block_size,
             } => {
-                if self.output_format().block_size == *inner_block_size {
-                    self.add(inner).context("inner")?;
+                if self.output_format().block_size == inner_block_size {
+                    self.add(*inner).context("inner")?;
                 } else {
                     let inner_pipeline = build_pipeline(
                         Format {
-                            block_size: *inner_block_size,
+                            block_size: inner_block_size,
                             ..self.output_format()
                         },
-                        inner,
+                        *inner,
                     )
                     .context("inner")?;
 
@@ -117,25 +156,28 @@ impl Config {
                     self.pipeline.add(ChunkWrapper::new(
                         inner_pipeline,
                         self.output_format().block_size,
-                        *inner_block_size,
+                        inner_block_size,
                         self.output_format().channels,
                         inner_channels,
                     ));
                 }
             }
             Resample { output_frame_rate } => {
-                if self.output_format().frame_rate != *output_frame_rate {
+                if self.output_format().frame_rate != output_frame_rate {
                     self.pipeline.add(
-                        SpeexResampler::new(self.output_format(), *output_frame_rate)
+                        SpeexResampler::new(self.output_format(), output_frame_rate)
                             .context("SpeexResampler::new")?,
                     );
                 }
             }
             Pipeline { processors } => {
-                for (i, config) in processors.iter().enumerate() {
+                for (i, config) in processors.into_iter().enumerate() {
                     self.add(config)
                         .with_context(|| format!("pipeline processor#{i}"))?;
                 }
+            }
+            Preloaded(PreloadedProcessor { processor, .. }) => {
+                self.pipeline.push(processor);
             }
         }
         Ok(())
@@ -143,9 +185,9 @@ impl Config {
 }
 
 /// Build a pipeline from the given configuration.
-pub fn build_pipeline(input_format: Format, config: &Processor) -> anyhow::Result<ProcessorVec> {
+pub fn build_pipeline(input_format: Format, config: Processor) -> anyhow::Result<ProcessorVec> {
     let mut builder = Config::new(input_format);
-    builder.add(&config)?;
+    builder.add(config)?;
     Ok(builder.pipeline)
 }
 
@@ -157,7 +199,9 @@ mod tests {
     use hound::WavSpec;
 
     use crate::config::build_pipeline;
+    use crate::config::PreloadedProcessor;
     use crate::config::Processor;
+    use crate::processors::NegateAudioProcessor;
     use crate::util::read_wav;
     use crate::AudioProcessor;
     use crate::Format;
@@ -219,7 +263,7 @@ mod tests {
                 block_size: 5,
                 frame_rate: 24000,
             },
-            &config,
+            config,
         )
         .unwrap();
 
@@ -340,7 +384,7 @@ mod tests {
                 block_size: 4,
                 frame_rate: 48000,
             },
-            &Processor::Plugin {
+            Processor::Plugin {
                 path: env::var("LIBTEST_PLUGINS_SO").unwrap().into(),
                 constructor: "abs_processor_create".into(),
             },
@@ -351,5 +395,34 @@ mod tests {
 
         // output = abs(input)
         assert_eq!(output.into_raw(), [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
+    }
+
+    #[test]
+    fn preloaded() {
+        let mut input: MultiBuffer<f32> =
+            MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
+
+        let input_format = Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        };
+
+        let mut pipeline = build_pipeline(
+            input_format,
+            Processor::Preloaded(PreloadedProcessor {
+                description: "preloaded negate",
+                processor: Box::new(NegateAudioProcessor::new(input_format)),
+            }),
+        )
+        .unwrap();
+
+        let output = pipeline.process(input.as_multi_slice()).unwrap();
+
+        // output = abs(input)
+        assert_eq!(
+            output.into_raw(),
+            [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]
+        );
     }
 }
