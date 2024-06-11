@@ -558,6 +558,7 @@ int cras_iodev_set_format(struct cras_iodev* iodev,
   return 0;
 
 error:
+  cras_iodev_free_dsp(iodev);
   free(iodev->format);
   iodev->format = NULL;
   return rc;

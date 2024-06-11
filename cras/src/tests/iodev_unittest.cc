@@ -329,6 +329,23 @@ class IoDevSetFormatTestSuite : public testing::Test {
   snd_pcm_format_t pcm_formats_[3];
 };
 
+TEST_F(IoDevSetFormatTestSuite, SetFormatFailure) {
+  struct cras_audio_format fmt;
+  int rc;
+
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  ResetStubData();
+
+  // Simulate the case that HW reports no rate supported.
+  iodev_.supported_rates = 0;
+  cras_dsp_context_new_return = reinterpret_cast<cras_dsp_context*>(0xf0f);
+
+  rc = cras_iodev_set_format(&iodev_, &fmt);
+  EXPECT_NE(0, rc);
+  EXPECT_EQ((void*)NULL, iodev_.format);
+  EXPECT_EQ((void*)NULL, iodev_.dsp_context);
+}
+
 TEST_F(IoDevSetFormatTestSuite, SupportedFormatSecondary) {
   struct cras_audio_format fmt;
   int rc;
