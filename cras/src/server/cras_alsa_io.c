@@ -2079,8 +2079,10 @@ enum CRAS_USE_CASE get_use_case(const struct cras_iodev* iodev) {
 }
 
 static void cras_iodev_update_speaker_rotation(struct cras_iodev* iodev) {
+  // Only 4 speaker devices need the speaker rotation operations.
   if (!iodev->active_node ||
-      iodev->active_node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER) {
+      iodev->active_node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER ||
+      !iodev->format || iodev->format->num_channels != 4) {
     return;
   }
   cras_iodev_update_dsp(iodev);
