@@ -5,6 +5,7 @@
 use std::fmt::Debug;
 use std::path::PathBuf;
 
+use anyhow::bail;
 use anyhow::Context;
 use hound::WavSpec;
 use hound::WavWriter;
@@ -43,6 +44,15 @@ pub enum Processor {
     Preloaded(PreloadedProcessor),
     ShuffleChannels {
         channel_indexes: Vec<usize>,
+    },
+    /// Checks the current format of the pipeline.
+    /// Does not actually builds a processor,
+    /// so unlike `crate::processors::CheckShape`, does not perform checks
+    /// when processing audio.
+    CheckFormat {
+        channels: Option<usize>,
+        block_size: Option<usize>,
+        frame_rate: Option<usize>,
     },
 }
 
@@ -185,6 +195,28 @@ impl Config {
             ShuffleChannels { channel_indexes } => self.pipeline.add(
                 crate::processors::ShuffleChannels::new(&channel_indexes, self.output_format()),
             ),
+            CheckFormat {
+                channels,
+                block_size,
+                frame_rate,
+            } => {
+                let format = self.output_format();
+                if let Some(channels) = channels {
+                    if channels != format.channels {
+                        bail!("expected channels {channels:?} got {format:?}");
+                    }
+                }
+                if let Some(block_size) = block_size {
+                    if block_size != format.block_size {
+                        bail!("expected block_size {block_size:?} got {format:?}");
+                    }
+                }
+                if let Some(frame_rate) = frame_rate {
+                    if frame_rate != format.frame_rate {
+                        bail!("expected frame_rate {frame_rate:?} got {format:?}");
+                    }
+                }
+            }
         }
         Ok(())
     }
@@ -449,5 +481,59 @@ mod tests {
         let mut input = MultiBuffer::from(vec![vec![1., 2.], vec![3., 4.]]);
         let output = pipeline.process(input.as_multi_slice()).unwrap();
         assert_eq!(output.into_raw(), [[3., 4.], [1., 2.], [3., 4.]]);
+    }
+
+    #[test]
+    fn check_format() {
+        let Err(err) = build_pipeline(
+            Format {
+                channels: 2,
+                block_size: 2,
+                frame_rate: 48000,
+            },
+            Processor::CheckFormat {
+                channels: Some(3),
+                block_size: None,
+                frame_rate: None,
+            },
+        ) else {
+            panic!("should fail");
+        };
+        assert!(err.to_string().contains("expected channels 3"), "{err}");
+
+        let Err(err) = build_pipeline(
+            Format {
+                channels: 2,
+                block_size: 2,
+                frame_rate: 48000,
+            },
+            Processor::CheckFormat {
+                channels: None,
+                block_size: Some(1),
+                frame_rate: None,
+            },
+        ) else {
+            panic!("should fail");
+        };
+        assert!(err.to_string().contains("expected block_size 1"), "{err}");
+
+        let Err(err) = build_pipeline(
+            Format {
+                channels: 2,
+                block_size: 2,
+                frame_rate: 48000,
+            },
+            Processor::CheckFormat {
+                channels: None,
+                block_size: None,
+                frame_rate: Some(99999),
+            },
+        ) else {
+            panic!("should fail");
+        };
+        assert!(
+            err.to_string().contains("expected frame_rate 99999"),
+            "{err}"
+        );
     }
 }
