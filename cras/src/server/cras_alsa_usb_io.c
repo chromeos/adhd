@@ -1889,6 +1889,19 @@ int cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(struct cras_iodev* iodev,
   /* Create a node matching this section. If there is a matching
    * control use that, otherwise make a node without a control. */
   control = cras_alsa_mixer_get_control_for_section(aio->common.mixer, section);
+  const char* mixer_name = section->mixer_name;
+  /*
+    If the UCM specifies a mixer control for a node, but the ALSA mixer control
+    is not found using the node name, suppress node creation and return an
+    error.
+  */
+  if (mixer_name && !control) {
+    syslog(LOG_ERR,
+           "mixer name %s is specified in UCM, but ALSA mixer control is not "
+           "found",
+           mixer_name);
+    return -EINVAL;
+  }
   if (iodev->direction == CRAS_STREAM_OUTPUT) {
     struct alsa_usb_output_node* output_node =
         usb_new_output(aio, control, section->name);

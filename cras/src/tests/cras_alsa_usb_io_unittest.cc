@@ -562,6 +562,42 @@ class NodeUSBCardSuite : public testing::Test {
   struct ucm_section* section;
 };
 
+TEST_F(NodeUSBCardSuite, SectionControlUCMAddNodeFail) {
+  ResetStubData();
+  struct cras_iodev* iodev = cras_alsa_usb_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, fake_ucm,
+      CRAS_STREAM_OUTPUT);
+
+  ucm_section_set_mixer_name(section, "Headset,0");
+  // Mixer name is specified in UCM, but ALSA mixer control is not found
+  EXPECT_EQ(-EINVAL,
+            cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  FreeIodev(iodev);
+}
+
+TEST_F(NodeUSBCardSuite, SectionControlUCMAddNodeSuccessCase1) {
+  ResetStubData();
+  struct cras_iodev* iodev = cras_alsa_usb_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, fake_ucm,
+      CRAS_STREAM_OUTPUT);
+
+  ucm_section_set_mixer_name(section, "Headset,0");
+  SetupUSBOutputMixerControl(&outputs, 1);
+  EXPECT_EQ(0, cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  FreeIodev(iodev);
+}
+
+TEST_F(NodeUSBCardSuite, SectionControlUCMAddNodeSuccessCase2) {
+  ResetStubData();
+  struct cras_iodev* iodev = cras_alsa_usb_iodev_create_with_default_parameters(
+      0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, fake_ucm,
+      CRAS_STREAM_OUTPUT);
+  // Mixer name is not specified in UCM + ALSA mixer control is not found. In
+  // this case, CRAS will make a node without a control
+  EXPECT_EQ(0, cras_alsa_usb_iodev_ucm_add_nodes_and_jacks(iodev, section));
+  FreeIodev(iodev);
+}
+
 /*
  * In this test case, CRASPlaybackNumberOfVolumeSteps and DisableSoftwareVolume
  * are already set in UCM. This test checks that CRAS always uses the UCM value
