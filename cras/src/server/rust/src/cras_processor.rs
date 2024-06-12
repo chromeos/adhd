@@ -10,7 +10,7 @@ use std::sync::atomic::Ordering;
 
 use anyhow::bail;
 use anyhow::Context;
-use audio_processor::config::build_pipeline;
+use audio_processor::config::PipelineBuilder;
 use audio_processor::config::PreloadedProcessor;
 use audio_processor::config::Processor;
 use audio_processor::processors::binding::plugin_processor;
@@ -299,8 +299,9 @@ impl CrasProcessor {
         }
 
         let decl_debug = format!("{decl:?}");
-        let pipeline = build_pipeline(config.format(), Processor::Pipeline { processors: decl })
-            .context("build_pipeline failed")?;
+        let pipeline = PipelineBuilder::new(config.format())
+            .build(Processor::Pipeline { processors: decl })
+            .context("failed to build pipeline")?;
 
         log::info!("CrasProcessor #{id} created with: {config:?}");
         log::info!("CrasProcessor #{id} pipeline: {decl_debug:?}");

@@ -102,23 +102,35 @@ impl PartialEq for PreloadedProcessor {
 
 impl Eq for PreloadedProcessor {}
 
-struct Config {
+pub struct PipelineBuilder {
     input_format: Format,
     pipeline: ProcessorVec,
 }
 
-impl Config {
-    fn new(input_format: Format) -> Self {
+impl PipelineBuilder {
+    pub fn new(input_format: Format) -> Self {
         Self {
             input_format,
             pipeline: vec![],
         }
     }
 
+    pub fn build(mut self, config: Processor) -> anyhow::Result<ProcessorVec> {
+        self.add(config)?;
+        Ok(self.pipeline)
+    }
+
     fn output_format(&self) -> Format {
         self.pipeline
             .get_last_output_format()
             .unwrap_or(self.input_format)
+    }
+
+    fn child_builder(&self, input_format: Format) -> Self {
+        Self {
+            input_format,
+            pipeline: vec![],
+        }
     }
 
     fn add(&mut self, config: Processor) -> anyhow::Result<()> {
@@ -164,14 +176,13 @@ impl Config {
                 if self.output_format().block_size == inner_block_size {
                     self.add(*inner).context("inner")?;
                 } else {
-                    let inner_pipeline = build_pipeline(
-                        Format {
+                    let inner_pipeline = self
+                        .child_builder(Format {
                             block_size: inner_block_size,
                             ..self.output_format()
-                        },
-                        *inner,
-                    )
-                    .context("inner")?;
+                        })
+                        .build(*inner)
+                        .context("inner")?;
 
                     let inner_channels = inner_pipeline.get_output_format().channels;
                     // TODO: When the inner_pipeline only has a single processor, wrap just that processor.
@@ -245,13 +256,6 @@ impl Config {
     }
 }
 
-/// Build a pipeline from the given configuration.
-pub fn build_pipeline(input_format: Format, config: Processor) -> anyhow::Result<ProcessorVec> {
-    let mut builder = Config::new(input_format);
-    builder.add(config)?;
-    Ok(builder.pipeline)
-}
-
 #[cfg(test)]
 mod tests {
     use std::env;
@@ -259,7 +263,7 @@ mod tests {
     use assert_matches::assert_matches;
     use hound::WavSpec;
 
-    use crate::config::build_pipeline;
+    use crate::config::PipelineBuilder;
     use crate::config::PreloadedProcessor;
     use crate::config::Processor;
     use crate::processors::NegateAudioProcessor;
@@ -318,14 +322,12 @@ mod tests {
                 },
             ],
         };
-        let mut pipeline = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 5,
-                frame_rate: 24000,
-            },
-            config,
-        )
+        let mut pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 5,
+            frame_rate: 24000,
+        })
+        .build(config)
         .unwrap();
 
         let mut input =
@@ -439,17 +441,15 @@ mod tests {
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., -2., 3., -4.], vec![5., -6., 7., -8.]]);
 
-        let mut pipeline = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 4,
-                frame_rate: 48000,
-            },
-            Processor::Plugin {
-                path: env::var("LIBTEST_PLUGINS_SO").unwrap().into(),
-                constructor: "abs_processor_create".into(),
-            },
-        )
+        let mut pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        })
+        .build(Processor::Plugin {
+            path: env::var("LIBTEST_PLUGINS_SO").unwrap().into(),
+            constructor: "abs_processor_create".into(),
+        })
         .unwrap();
 
         let output = pipeline.process(input.as_multi_slice()).unwrap();
@@ -469,14 +469,12 @@ mod tests {
             frame_rate: 48000,
         };
 
-        let mut pipeline = build_pipeline(
-            input_format,
-            Processor::Preloaded(PreloadedProcessor {
+        let mut pipeline = PipelineBuilder::new(input_format)
+            .build(Processor::Preloaded(PreloadedProcessor {
                 description: "preloaded negate",
                 processor: Box::new(NegateAudioProcessor::new(input_format)),
-            }),
-        )
-        .unwrap();
+            }))
+            .unwrap();
 
         let output = pipeline.process(input.as_multi_slice()).unwrap();
 
@@ -489,16 +487,14 @@ mod tests {
 
     #[test]
     fn shuffle_channels() {
-        let mut pipeline = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 2,
-                frame_rate: 48000,
-            },
-            Processor::ShuffleChannels {
-                channel_indexes: vec![1, 0, 1],
-            },
-        )
+        let mut pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .build(Processor::ShuffleChannels {
+            channel_indexes: vec![1, 0, 1],
+        })
         .unwrap();
 
         let mut input = MultiBuffer::from(vec![vec![1., 2.], vec![3., 4.]]);
@@ -508,16 +504,14 @@ mod tests {
 
     #[test]
     fn shuffle_channels_opt() {
-        let pipeline = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 2,
-                frame_rate: 48000,
-            },
-            Processor::ShuffleChannels {
-                channel_indexes: vec![1, 0],
-            },
-        )
+        let pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .build(Processor::ShuffleChannels {
+            channel_indexes: vec![1, 0],
+        })
         .unwrap();
         assert_eq!(
             pipeline.len(),
@@ -525,16 +519,14 @@ mod tests {
             "channel swap, should not be optimized away"
         );
 
-        let pipeline = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 2,
-                frame_rate: 48000,
-            },
-            Processor::ShuffleChannels {
-                channel_indexes: vec![0, 1, 1],
-            },
-        )
+        let pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .build(Processor::ShuffleChannels {
+            channel_indexes: vec![0, 1, 1],
+        })
         .unwrap();
         assert_eq!(
             pipeline.len(),
@@ -542,16 +534,14 @@ mod tests {
             "different length, should not be optimized away"
         );
 
-        let pipeline = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 2,
-                frame_rate: 48000,
-            },
-            Processor::ShuffleChannels {
-                channel_indexes: vec![0],
-            },
-        )
+        let pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .build(Processor::ShuffleChannels {
+            channel_indexes: vec![0],
+        })
         .unwrap();
         assert_eq!(
             pipeline.len(),
@@ -559,66 +549,58 @@ mod tests {
             "different length, should not be optimized away"
         );
 
-        let pipeline = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 2,
-                frame_rate: 48000,
-            },
-            Processor::ShuffleChannels {
-                channel_indexes: vec![0, 1],
-            },
-        )
+        let pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .build(Processor::ShuffleChannels {
+            channel_indexes: vec![0, 1],
+        })
         .unwrap();
         assert_eq!(pipeline.len(), 0, "should optimize");
     }
 
     #[test]
     fn check_format() {
-        let Err(err) = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 2,
-                frame_rate: 48000,
-            },
-            Processor::CheckFormat {
-                channels: Some(3),
-                block_size: None,
-                frame_rate: None,
-            },
-        ) else {
+        let Err(err) = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .build(Processor::CheckFormat {
+            channels: Some(3),
+            block_size: None,
+            frame_rate: None,
+        }) else {
             panic!("should fail");
         };
         assert!(err.to_string().contains("expected channels 3"), "{err}");
 
-        let Err(err) = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 2,
-                frame_rate: 48000,
-            },
-            Processor::CheckFormat {
-                channels: None,
-                block_size: Some(1),
-                frame_rate: None,
-            },
-        ) else {
+        let Err(err) = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .build(Processor::CheckFormat {
+            channels: None,
+            block_size: Some(1),
+            frame_rate: None,
+        }) else {
             panic!("should fail");
         };
         assert!(err.to_string().contains("expected block_size 1"), "{err}");
 
-        let Err(err) = build_pipeline(
-            Format {
-                channels: 2,
-                block_size: 2,
-                frame_rate: 48000,
-            },
-            Processor::CheckFormat {
-                channels: None,
-                block_size: None,
-                frame_rate: Some(99999),
-            },
-        ) else {
+        let Err(err) = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .build(Processor::CheckFormat {
+            channels: None,
+            block_size: None,
+            frame_rate: Some(99999),
+        }) else {
             panic!("should fail");
         };
         assert!(
