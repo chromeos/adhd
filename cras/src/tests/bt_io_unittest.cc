@@ -290,6 +290,25 @@ TEST_F(BtIoBasicSuite, NoSwitchProfileOnOpenDevForInputDevAlreadyOnHfp) {
   bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
 }
 
+TEST_F(BtIoBasicSuite, A2dpOpenDevWhileDelayedProfileSwitchEventQueued) {
+  struct cras_iodev* bt_iodev;
+  ResetStubData();
+  iodev_.direction = CRAS_STREAM_OUTPUT;
+  iodev_.active_node->btflags = CRAS_BT_FLAG_A2DP;
+  bt_io_manager_append_iodev(bt_io_mgr, &iodev_, CRAS_BT_FLAG_A2DP);
+
+  bt_iodev = bt_io_mgr->bt_iodevs[CRAS_STREAM_OUTPUT];
+  bt_io_mgr->active_btflag = CRAS_BT_FLAG_A2DP;
+
+  bt_io_mgr->is_delayed_a2dp_switch_cb_alive = true;
+  EXPECT_EQ(-EAGAIN, bt_iodev->open_dev(bt_iodev));
+
+  bt_io_mgr->is_delayed_a2dp_switch_cb_alive = false;
+  EXPECT_EQ(0, bt_iodev->open_dev(bt_iodev));
+
+  bt_io_manager_remove_iodev(bt_io_mgr, &iodev_);
+}
+
 TEST_F(BtIoBasicSuite, HfpOpenDevWhileProfileSwitchEventQueued) {
   struct cras_iodev* bt_iodev;
   ResetStubData();

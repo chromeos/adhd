@@ -30,9 +30,13 @@ struct bt_io_manager {
   // The flag to indicate that there is a pending
   // profile-switch event, and make sure no btio be opened in between.
   bool is_profile_switching;
-  struct bt_io_manager *prev, *next;
+  // The flag to indicate that there is a pending delayed a2dp switch event
+  // and make sure no bt odev be opened while this is true.
+  bool is_delayed_a2dp_switch_cb_alive;
   // The flag to indicate that WebHId is in use
   bool telephony_use;
+
+  struct bt_io_manager *prev, *next;
 };
 
 // Creates a bt_io_manager.

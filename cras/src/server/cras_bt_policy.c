@@ -117,6 +117,8 @@ static void profile_switch_delay_cb(struct cras_timer* timer, void* arg) {
   struct profile_switch_policy* policy = (struct profile_switch_policy*)arg;
   struct cras_iodev* iodev;
 
+  policy->mgr->is_delayed_a2dp_switch_cb_alive = false;
+
   /*
    * During the |PROFILE_SWITCH_DELAY_MS| time interval, BT iodev could
    * have been enabled by others, and its active profile may have changed.
@@ -151,6 +153,8 @@ static void switch_profile_with_delay(struct bt_io_manager* mgr) {
   policy->timer = cras_tm_create_timer(tm, PROFILE_SWITCH_DELAY_MS,
                                        profile_switch_delay_cb, policy);
   DL_APPEND(profile_switch_policies, policy);
+
+  policy->mgr->is_delayed_a2dp_switch_cb_alive = true;
 }
 
 static void switch_profile(struct bt_io_manager* mgr) {

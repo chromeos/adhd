@@ -224,6 +224,13 @@ static int open_dev(struct cras_iodev* iodev) {
     return -EAGAIN;
   }
 
+  // Make sure not to open when there is a pending delayed output open cb.
+  if (iodev->direction == CRAS_STREAM_OUTPUT &&
+      btio->mgr->active_btflag == CRAS_BT_FLAG_A2DP &&
+      btio->mgr->is_delayed_a2dp_switch_cb_alive) {
+    return -EAGAIN;
+  }
+
   // Force to use HFP if opening input dev.
   if (btio->mgr->active_btflag == CRAS_BT_FLAG_A2DP &&
       iodev->direction == CRAS_STREAM_INPUT) {
