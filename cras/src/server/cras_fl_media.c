@@ -40,6 +40,9 @@
 #define CRAS_BT_MEDIA_OBJECT_PATH "/org/chromium/cras/bluetooth/media"
 
 // TODO(jrwu): monitor stats for cases that take > 2s
+
+#define POLL_AUDIO_STATUS_TIMEOUT_MS 5000
+
 #define GET_A2DP_AUDIO_STARTED_RETRIES 1000
 #define GET_A2DP_AUDIO_STARTED_SLEEP_US 5000
 
@@ -79,6 +82,34 @@ int fl_media_init(int hci) {
   snprintf(fm->obj_telephony_path, BT_TELEPHONY_OBJECT_PATH_SIZE_MAX, "%s%d%s",
            BT_OBJECT_BASE, hci, BT_OBJECT_TELEPHONY);
   active_fm = fm;
+  return 0;
+}
+
+static int poll_fd_for_events(unsigned int events, int fd, int timeout_ms) {
+  int rc = 0;
+
+  struct pollfd pfd = {
+      .fd = fd,
+      .events = events,
+      .revents = 0,
+  };
+  rc = poll(&pfd, 1, timeout_ms);
+
+  if (rc == 0) {
+    syslog(LOG_WARNING, "%s: timed out polling the fd", __func__);
+    return -ETIMEDOUT;
+  }
+
+  if (rc == -1) {
+    syslog(LOG_WARNING, "%s: failed to poll the fd, rc = %d", __func__, errno);
+    return -errno;
+  }
+
+  if (!(pfd.revents & events)) {
+    syslog(LOG_WARNING, "%s: got unexpected events %d", __func__, pfd.revents);
+    return -EINVAL;
+  }
+
   return 0;
 }
 
@@ -264,7 +295,9 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
   dbus_message_unref(start_sco_call);
 
   if (rc < 0) {
-    return rc;
+    syslog(LOG_WARNING, "Failed to call StartScoCall, trying V2");
+    return floss_media_hfp_start_sco_call_v2(fm, addr, enable_offload,
+                                             disabled_codecs);
   }
 
   if (response == FALSE) {
@@ -304,6 +337,95 @@ int floss_media_hfp_start_sco_call(struct fl_media* fm,
   return final_codec_id;
 }
 
+int floss_media_hfp_start_sco_call_v2(struct fl_media* fm,
+                                      const char* addr,
+                                      bool enable_offload,
+                                      int disabled_codecs) {
+  RET_IF_HAVE_FUZZER(0);
+
+  int rc = 0;
+
+  syslog(LOG_DEBUG, "%s: %s", __func__, addr);
+
+  if (!fm) {
+    syslog(LOG_WARNING, "%s: Floss media not started", __func__);
+    return -EINVAL;
+  }
+
+  int pipefd[2];
+  if (pipe(pipefd) == -1) {
+    syslog(LOG_WARNING, "%s: failed to create pipe, rc = %d", __func__, errno);
+    return -errno;
+  }
+
+  dbus_bool_t dbus_enable_offload = enable_offload;
+  dbus_int32_t dbus_disabled_codecs = disabled_codecs;
+
+  DBusMessage* start_sco_call;
+  rc = create_dbus_method_call(
+      /* method_call= */ &start_sco_call,
+      /* dest= */ BT_SERVICE_NAME,
+      /* path= */ fm->obj_path,
+      /* iface= */ BT_MEDIA_INTERFACE,
+      /* method_name= */ "StartScoCall",
+      /* num_args= */ 4,
+      /* arg1= */ DBUS_TYPE_STRING, &addr,
+      /* arg2= */ DBUS_TYPE_BOOLEAN, &dbus_enable_offload,
+      /* arg3= */ DBUS_TYPE_INT32, &dbus_disabled_codecs,
+      /* arg4= */ DBUS_TYPE_UNIX_FD, &pipefd[1]);
+
+  if (rc < 0) {
+    goto leave;
+  }
+
+  dbus_bool_t response = FALSE;
+  rc = call_method_and_parse_reply(
+      /* conn= */ fm->conn,
+      /* method_call= */ start_sco_call,
+      /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+      /* dbus_ret_value_ptr= */ &response,
+      /* log_on_error= */ true);
+
+  dbus_message_unref(start_sco_call);
+
+  if (rc < 0) {
+    goto leave;
+  }
+
+  if (response == FALSE) {
+    syslog(LOG_WARNING, "%s: request was rejected", __func__);
+    rc = -EPERM;
+    goto leave;
+  }
+
+  rc = poll_fd_for_events(
+      /* events= */ POLLIN,
+      /* fd= */ pipefd[0],
+      /* timeout_ms= */ POLL_AUDIO_STATUS_TIMEOUT_MS);
+
+  if (rc < 0) {
+    syslog(LOG_WARNING, "%s: failed to wait for results", __func__);
+    goto leave;
+  }
+
+  uint8_t codec_id = 0;
+  ssize_t nread = read(pipefd[0], &codec_id, sizeof(codec_id));
+  if (nread != sizeof(codec_id)) {
+    syslog(LOG_WARNING, "%s: failed to read from pipe, rc = %d", __func__,
+           errno);
+    rc = -errno;
+    goto leave;
+  }
+
+  rc = codec_id;
+
+leave:
+  close(pipefd[0]);
+  close(pipefd[1]);
+
+  return rc;
+}
+
 int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
   RET_IF_HAVE_FUZZER(0);
 
@@ -329,10 +451,11 @@ int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
   reply = dbus_connection_send_with_reply_and_block(
       fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
   if (!reply) {
-    syslog(LOG_ERR, "Failed to send StopScoCall: %s", dbus_error.message);
     dbus_error_free(&dbus_error);
     dbus_message_unref(method_call);
-    return -EIO;
+
+    syslog(LOG_WARNING, "Failed to call StopScoCall, trying V2");
+    return floss_media_hfp_stop_sco_call_v2(fm, addr);
   }
 
   dbus_message_unref(method_call);
@@ -376,6 +499,86 @@ int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr) {
   }
 
   return 0;
+}
+
+int floss_media_hfp_stop_sco_call_v2(struct fl_media* fm, const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
+
+  int rc = 0;
+
+  syslog(LOG_DEBUG, "%s: %s", __func__, addr);
+
+  if (!fm) {
+    syslog(LOG_WARNING, "%s: Floss media not started", __func__);
+    return -EINVAL;
+  }
+
+  int pipefd[2];
+  if (pipe(pipefd) == -1) {
+    syslog(LOG_WARNING, "%s: failed to create pipe, rc = %d", __func__, errno);
+    return -errno;
+  }
+
+  DBusMessage* stop_sco_call;
+  rc = create_dbus_method_call(
+      /* method_call= */ &stop_sco_call,
+      /* dest= */ BT_SERVICE_NAME,
+      /* path= */ fm->obj_path,
+      /* iface= */ BT_MEDIA_INTERFACE,
+      /* method_name= */ "StopScoCall",
+      /* num_args= */ 2,
+      /* arg1= */ DBUS_TYPE_STRING, &addr,
+      /* arg2= */ DBUS_TYPE_UNIX_FD, &pipefd[1]);
+
+  if (rc < 0) {
+    goto leave;
+  }
+
+  rc = call_method_and_parse_reply(
+      /* conn= */ fm->conn,
+      /* method_call= */ stop_sco_call,
+      /* dbus_ret_type= */ DBUS_TYPE_INVALID,
+      /* dbus_ret_value_ptr= */ NULL,
+      /* log_on_error= */ true);
+
+  dbus_message_unref(stop_sco_call);
+
+  if (rc < 0) {
+    goto leave;
+  }
+
+  rc = poll_fd_for_events(
+      /* events= */ POLLIN,
+      /* fd= */ pipefd[0],
+      /* timeout_ms= */ POLL_AUDIO_STATUS_TIMEOUT_MS);
+
+  if (rc < 0) {
+    syslog(LOG_WARNING, "%s: failed to wait for results", __func__);
+    goto leave;
+  }
+
+  uint8_t codec_id = 0;
+  ssize_t nread = read(pipefd[0], &codec_id, sizeof(codec_id));
+  if (nread != sizeof(codec_id)) {
+    syslog(LOG_WARNING, "%s: failed to read from pipe, rc = %d", __func__,
+           errno);
+    rc = -errno;
+    goto leave;
+  }
+
+  if (codec_id != 0) {
+    syslog(LOG_WARNING, "%s: unexpected codec_id: %u", __func__, codec_id);
+    rc = -EBADE;
+    goto leave;
+  }
+
+  rc = 0;
+
+leave:
+  close(pipefd[0]);
+  close(pipefd[1]);
+
+  return rc;
 }
 
 int floss_media_hfp_set_volume(struct fl_media* fm,
@@ -630,7 +833,8 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
   dbus_message_unref(start_audio_request);
 
   if (rc < 0) {
-    return rc;
+    syslog(LOG_WARNING, "Failed to call StartAudioRequest, trying V2");
+    return floss_media_a2dp_start_audio_request_v2(fm, addr);
   }
 
   if (response == FALSE) {
@@ -671,6 +875,92 @@ int floss_media_a2dp_start_audio_request(struct fl_media* fm,
   return started;
 }
 
+int floss_media_a2dp_start_audio_request_v2(struct fl_media* fm,
+                                            const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
+
+  int rc = 0;
+
+  syslog(LOG_DEBUG, "%s: %s", __func__, addr);
+
+  if (!fm) {
+    syslog(LOG_WARNING, "%s: Floss media not started", __func__);
+    return -EINVAL;
+  }
+
+  int pipefd[2];
+  if (pipe(pipefd) == -1) {
+    syslog(LOG_WARNING, "%s: failed to create pipe, rc = %d", __func__, errno);
+    return -errno;
+  }
+
+  DBusMessage* start_audio_request;
+  rc = create_dbus_method_call(&start_audio_request,
+                               /* dest= */ BT_SERVICE_NAME,
+                               /* path= */ fm->obj_path,
+                               /* iface= */ BT_MEDIA_INTERFACE,
+                               /* method_name= */ "StartAudioRequest",
+                               /* num_args= */ 1,
+                               /* arg1= */ DBUS_TYPE_UNIX_FD, &pipefd[1]);
+
+  if (rc < 0) {
+    goto leave;
+  }
+
+  dbus_bool_t response = FALSE;
+  rc = call_method_and_parse_reply(
+      /* conn= */ fm->conn,
+      /* method_call= */ start_audio_request,
+      /* dbus_ret_type= */ DBUS_TYPE_BOOLEAN,
+      /* dbus_ret_value_ptr= */ &response,
+      /* log_on_error= */ true);
+
+  dbus_message_unref(start_audio_request);
+
+  if (rc < 0) {
+    goto leave;
+  }
+
+  if (response == FALSE) {
+    syslog(LOG_WARNING, "%s: request was rejected", __func__);
+    rc = -EPERM;
+    goto leave;
+  }
+
+  rc = poll_fd_for_events(
+      /* events= */ POLLIN,
+      /* fd= */ pipefd[0],
+      /* timeout_ms= */ POLL_AUDIO_STATUS_TIMEOUT_MS);
+
+  if (rc < 0) {
+    syslog(LOG_WARNING, "%s: failed to wait for results", __func__);
+    goto leave;
+  }
+
+  uint8_t started = 0;
+  ssize_t nread = read(pipefd[0], &started, sizeof(started));
+  if (nread != sizeof(started)) {
+    syslog(LOG_WARNING, "%s: failed to read from pipe, rc = %d", __func__,
+           errno);
+    rc = -errno;
+    goto leave;
+  }
+
+  if (started == 0) {
+    syslog(LOG_WARNING, "%s: unexpected status: %u", __func__, started);
+    rc = -EBADE;
+    goto leave;
+  }
+
+  rc = 0;
+
+leave:
+  close(pipefd[0]);
+  close(pipefd[1]);
+
+  return rc;
+}
+
 int floss_media_a2dp_stop_audio_request(struct fl_media* fm, const char* addr) {
   RET_IF_HAVE_FUZZER(0);
 
@@ -694,10 +984,11 @@ int floss_media_a2dp_stop_audio_request(struct fl_media* fm, const char* addr) {
   reply = dbus_connection_send_with_reply_and_block(
       fm->conn, method_call, DBUS_TIMEOUT_USE_DEFAULT, &dbus_error);
   if (!reply) {
-    syslog(LOG_ERR, "Failed to send StopAudioRequest: %s", dbus_error.message);
     dbus_error_free(&dbus_error);
     dbus_message_unref(method_call);
-    return -EIO;
+
+    syslog(LOG_WARNING, "Failed to call StopAudioRequest, trying V2");
+    return floss_media_a2dp_stop_audio_request_v2(fm, addr);
   }
 
   dbus_message_unref(method_call);
@@ -742,6 +1033,85 @@ int floss_media_a2dp_stop_audio_request(struct fl_media* fm, const char* addr) {
   }
 
   return 0;
+}
+
+int floss_media_a2dp_stop_audio_request_v2(struct fl_media* fm,
+                                           const char* addr) {
+  RET_IF_HAVE_FUZZER(0);
+
+  int rc = 0;
+
+  syslog(LOG_DEBUG, "%s: %s", __func__, addr);
+
+  if (!fm) {
+    syslog(LOG_WARNING, "%s: Floss media not started", __func__);
+    return -EINVAL;
+  }
+
+  int pipefd[2];
+  if (pipe(pipefd) == -1) {
+    syslog(LOG_WARNING, "%s: failed to create pipe, rc = %d", __func__, errno);
+    return -errno;
+  }
+
+  DBusMessage* stop_audio_request;
+  rc = create_dbus_method_call(&stop_audio_request,
+                               /* dest= */ BT_SERVICE_NAME,
+                               /* path= */ fm->obj_path,
+                               /* iface= */ BT_MEDIA_INTERFACE,
+                               /* method_name= */ "StopAudioRequest",
+                               /* num_args= */ 1,
+                               /* arg1= */ DBUS_TYPE_UNIX_FD, &pipefd[1]);
+
+  if (rc < 0) {
+    goto leave;
+  }
+
+  rc = call_method_and_parse_reply(
+      /* conn= */ fm->conn,
+      /* method_call= */ stop_audio_request,
+      /* dbus_ret_type= */ DBUS_TYPE_INVALID,
+      /* dbus_ret_value_ptr= */ NULL,
+      /* log_on_error= */ true);
+
+  dbus_message_unref(stop_audio_request);
+
+  if (rc < 0) {
+    goto leave;
+  }
+
+  rc = poll_fd_for_events(
+      /* events= */ POLLIN,
+      /* fd= */ pipefd[0],
+      /* timeout_ms= */ POLL_AUDIO_STATUS_TIMEOUT_MS);
+
+  if (rc < 0) {
+    syslog(LOG_WARNING, "%s: failed to wait for results", __func__);
+    goto leave;
+  }
+
+  uint8_t started = 0;
+  ssize_t nread = read(pipefd[0], &started, sizeof(started));
+  if (nread != sizeof(started)) {
+    syslog(LOG_WARNING, "%s: failed to read from pipe, rc = %d", __func__,
+           errno);
+    rc = -errno;
+    goto leave;
+  }
+
+  if (started != 0) {
+    syslog(LOG_WARNING, "%s: unexpected status: %u", __func__, started);
+    rc = -EBADE;
+    goto leave;
+  }
+
+  rc = 0;
+
+leave:
+  close(pipefd[0]);
+  close(pipefd[1]);
+
+  return rc;
 }
 
 int floss_media_a2dp_suspend(struct fl_media* fm) {

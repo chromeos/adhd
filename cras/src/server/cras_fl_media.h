@@ -185,6 +185,17 @@ int floss_media_start(DBusConnection* conn, unsigned int hci);
 
 int floss_media_stop(DBusConnection* conn, unsigned int hci);
 
+// TODO(b/343885745): Replace v1 with v2 once aosp/3124915 is downstreamed.
+int floss_media_hfp_start_sco_call_v2(struct fl_media* fm,
+                                      const char* addr,
+                                      bool enable_offload,
+                                      int disabled_codecs);
+int floss_media_hfp_stop_sco_call_v2(struct fl_media* fm, const char* addr);
+int floss_media_a2dp_start_audio_request_v2(struct fl_media* fm,
+                                            const char* addr);
+int floss_media_a2dp_stop_audio_request_v2(struct fl_media* fm,
+                                           const char* addr);
+
 // Calls SetHfpActiveDevice method to Floss media interface.
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr);
 
