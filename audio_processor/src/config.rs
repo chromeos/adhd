@@ -4,6 +4,7 @@
 
 use std::fmt::Debug;
 use std::path::PathBuf;
+use std::sync::mpsc::Sender;
 
 use anyhow::bail;
 use anyhow::Context;
@@ -12,6 +13,8 @@ use hound::WavWriter;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::processors::profile::Profile;
+use crate::processors::profile::ProfileStats;
 use crate::processors::ChunkWrapper;
 use crate::processors::DynamicPluginProcessor;
 use crate::processors::NegateAudioProcessor;
@@ -105,6 +108,7 @@ impl Eq for PreloadedProcessor {}
 pub struct PipelineBuilder {
     input_format: Format,
     pipeline: ProcessorVec,
+    profile_sender: Option<Sender<ProfileStats>>,
 }
 
 impl PipelineBuilder {
@@ -112,12 +116,21 @@ impl PipelineBuilder {
         Self {
             input_format,
             pipeline: vec![],
+            profile_sender: None,
         }
     }
 
     pub fn build(mut self, config: Processor) -> anyhow::Result<ProcessorVec> {
         self.add(config)?;
         Ok(self.pipeline)
+    }
+
+    /// Enable profiling. The results are sent with sender when the pipeline
+    /// is dropped.
+    /// Currently only `Plugin`s are profiled.
+    pub fn with_profile_sender(mut self, sender: Sender<ProfileStats>) -> Self {
+        self.profile_sender = Some(sender);
+        self
     }
 
     fn output_format(&self) -> Format {
@@ -130,6 +143,7 @@ impl PipelineBuilder {
         Self {
             input_format,
             pipeline: vec![],
+            profile_sender: self.profile_sender.clone(),
         }
     }
 
@@ -160,14 +174,26 @@ impl PipelineBuilder {
                 ));
             }
             Plugin { path, constructor } => {
-                self.pipeline.add(
-                    DynamicPluginProcessor::new(
-                        path.to_str().context("path.to_str")?,
-                        &constructor,
-                        self.output_format(),
-                    )
-                    .context("DynamicPluginProcessor::new")?,
-                );
+                let plugin = DynamicPluginProcessor::new(
+                    path.to_str().context("path.to_str")?,
+                    &constructor,
+                    self.output_format(),
+                )
+                .context("DynamicPluginProcessor::new")?;
+                if let Some(sender) = &self.profile_sender {
+                    let mut profile = Profile::new(plugin);
+                    profile.set_key(format!(
+                        "{}@{}",
+                        constructor,
+                        path.file_name()
+                            .context("path.file_name() failed")?
+                            .to_string_lossy(),
+                    ));
+                    profile.set_sender(sender.clone());
+                    self.pipeline.add(profile);
+                } else {
+                    self.pipeline.add(plugin);
+                }
             }
             WrapChunk {
                 inner,
@@ -258,7 +284,7 @@ impl PipelineBuilder {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
+    use core::panic;
 
     use assert_matches::assert_matches;
     use hound::WavSpec;
@@ -436,29 +462,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "bazel")]
-    fn abs_process() {
-        let mut input: MultiBuffer<f32> =
-            MultiBuffer::from(vec![vec![1., -2., 3., -4.], vec![5., -6., 7., -8.]]);
-
-        let mut pipeline = PipelineBuilder::new(Format {
-            channels: 2,
-            block_size: 4,
-            frame_rate: 48000,
-        })
-        .build(Processor::Plugin {
-            path: env::var("LIBTEST_PLUGINS_SO").unwrap().into(),
-            constructor: "abs_processor_create".into(),
-        })
-        .unwrap();
-
-        let output = pipeline.process(input.as_multi_slice()).unwrap();
-
-        // output = abs(input)
-        assert_eq!(output.into_raw(), [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
-    }
-
-    #[test]
     fn preloaded() {
         let mut input: MultiBuffer<f32> =
             MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
@@ -606,6 +609,97 @@ mod tests {
         assert!(
             err.to_string().contains("expected frame_rate 99999"),
             "{err}"
+        );
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "bazel")]
+mod bazel_tests {
+    use std::env;
+    use std::sync::mpsc::channel;
+    use std::time::Duration;
+
+    use crate::config::PipelineBuilder;
+    use crate::config::Processor;
+    use crate::AudioProcessor;
+    use crate::Format;
+    use crate::MultiBuffer;
+
+    #[test]
+    fn abs_process() {
+        let mut input: MultiBuffer<f32> =
+            MultiBuffer::from(vec![vec![1., -2., 3., -4.], vec![5., -6., 7., -8.]]);
+
+        let mut pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        })
+        .build(Processor::Plugin {
+            path: std::env::var("LIBTEST_PLUGINS_SO").unwrap().into(),
+            constructor: "abs_processor_create".into(),
+        })
+        .unwrap();
+
+        let output = pipeline.process(input.as_multi_slice()).unwrap();
+
+        // output = abs(input)
+        assert_eq!(output.into_raw(), [[1., 2., 3., 4.], [5., 6., 7., 8.]]);
+    }
+
+    #[test]
+    fn profile() {
+        let test_plugin_path: std::path::PathBuf = env::var("LIBTEST_PLUGINS_SO").unwrap().into();
+        let (sender, receiver) = channel();
+
+        let pipeline = PipelineBuilder::new(Format {
+            channels: 2,
+            block_size: 2,
+            frame_rate: 48000,
+        })
+        .with_profile_sender(sender)
+        .build(Processor::Pipeline {
+            processors: vec![
+                Processor::Plugin {
+                    path: test_plugin_path.clone(),
+                    constructor: "abs_processor_create".into(),
+                },
+                Processor::WrapChunk {
+                    inner: Box::new(Processor::Pipeline {
+                        processors: vec![
+                            Processor::Plugin {
+                                path: test_plugin_path.clone(),
+                                constructor: "negate_processor_create".into(),
+                            },
+                            Processor::Plugin {
+                                path: test_plugin_path.clone(),
+                                constructor: "echo_processor_create".into(),
+                            },
+                        ],
+                    }),
+                    inner_block_size: 4096,
+                },
+            ],
+        })
+        .unwrap();
+
+        assert!(receiver.recv_timeout(Duration::ZERO).is_err());
+
+        drop(pipeline);
+        let mut keys = receiver
+            .into_iter()
+            .map(|stat| stat.key)
+            .collect::<Vec<_>>();
+        keys.sort();
+        let basename = test_plugin_path.file_name().unwrap().to_str().unwrap();
+        assert_eq!(
+            keys,
+            [
+                format!("abs_processor_create@{basename}"),
+                format!("echo_processor_create@{basename}"),
+                format!("negate_processor_create@{basename}")
+            ]
         );
     }
 }
