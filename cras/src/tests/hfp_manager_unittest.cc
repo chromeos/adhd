@@ -37,7 +37,7 @@ static void* audio_thread_add_events_callback_data;
 static int audio_thread_config_events_callback_called;
 static enum AUDIO_THREAD_EVENTS_CB_TRIGGER
     audio_thread_config_events_callback_trigger;
-static enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call_ret;
+static int floss_media_hfp_start_sco_call_ret;
 static bool cras_system_get_force_hfp_swb_enabled_ret = false;
 
 void ResetStubData() {
@@ -314,10 +314,10 @@ void hfp_alsa_iodev_destroy(struct cras_iodev* iodev) {
 }
 
 // From cras_fl_media
-enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
-                                                        const char* addr,
-                                                        bool enable_offload,
-                                                        int disabled_codecs) {
+int floss_media_hfp_start_sco_call(struct fl_media* fm,
+                                   const char* addr,
+                                   bool enable_offload,
+                                   int disabled_codecs) {
   floss_media_hfp_start_sco_call_disabled_codecs = disabled_codecs;
   floss_media_hfp_start_sco_called++;
   return floss_media_hfp_start_sco_call_ret;

@@ -189,11 +189,12 @@ int floss_media_stop(DBusConnection* conn, unsigned int hci);
 int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr);
 
 // Calls StartScoCall to Floss media interface.
-// Returns the codec bit id inuse on success.
-enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
-                                                        const char* addr,
-                                                        bool enable_offload,
-                                                        int disabled_codecs);
+// Returns codec (enum FL_HFP_CODEC_BIT_ID) inuse on success,
+// or negative errno value on error.
+int floss_media_hfp_start_sco_call(struct fl_media* fm,
+                                   const char* addr,
+                                   bool enable_offload,
+                                   int disabled_codecs);
 
 // Calls StopScoCall method to Floss media interface.
 int floss_media_hfp_stop_sco_call(struct fl_media* fm, const char* addr);

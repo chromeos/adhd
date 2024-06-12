@@ -219,10 +219,10 @@ int floss_media_hfp_set_active_device(struct fl_media* fm, const char* addr) {
   return 0;
 }
 
-enum FL_HFP_CODEC_BIT_ID floss_media_hfp_start_sco_call(struct fl_media* fm,
-                                                        const char* addr,
-                                                        bool enable_offload,
-                                                        int disabled_codecs) {
+int floss_media_hfp_start_sco_call(struct fl_media* fm,
+                                   const char* addr,
+                                   bool enable_offload,
+                                   int disabled_codecs) {
   RET_IF_HAVE_FUZZER(0);
 
   int rc = 0;
