@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 use std::fmt::Display;
+use std::sync::mpsc::Sender;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -12,6 +13,14 @@ use crate::MultiSlice;
 
 pub struct Profile<T: AudioProcessor> {
     pub inner: T,
+    pub stats: ProfileStats,
+    sender: Option<Sender<ProfileStats>>,
+}
+
+#[derive(Default, Clone)]
+pub struct ProfileStats {
+    // Human readable text describing the profiled processor.
+    pub key: String,
     pub frames_processed: usize,
     pub measurements: Measurements,
 }
@@ -31,9 +40,9 @@ impl<T: AudioProcessor> AudioProcessor for Profile<T> {
 
         let cpu_time = cpu_time() - cpu;
         let wall_time = Instant::elapsed(&wall);
-        self.measurements.cpu_time.add(cpu_time);
-        self.measurements.wall_time.add(wall_time);
-        self.frames_processed += output.min_len();
+        self.stats.measurements.cpu_time.add(cpu_time);
+        self.stats.measurements.wall_time.add(wall_time);
+        self.stats.frames_processed += output.min_len();
 
         Ok(output)
     }
@@ -47,18 +56,39 @@ impl<T: AudioProcessor> Profile<T> {
     pub fn new(processor: T) -> Self {
         Self {
             inner: processor,
-            frames_processed: 0,
-            measurements: Measurements::default(),
+            stats: Default::default(),
+            sender: None,
+        }
+    }
+
+    /// Set the key for stats.
+    pub fn set_key(&mut self, key: String) -> &mut Self {
+        self.stats.key = key;
+        self
+    }
+
+    /// Configure `self` to send out the stats through `sender` on drop.
+    pub fn set_sender(&mut self, sender: Sender<ProfileStats>) -> &mut Self {
+        self.sender = Some(sender);
+        self
+    }
+}
+
+impl<T: AudioProcessor> Drop for Profile<T> {
+    fn drop(&mut self) {
+        if let Some(s) = &self.sender {
+            let _ = s.send(self.stats.clone());
         }
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Measurements {
     pub cpu_time: Measurement,
     pub wall_time: Measurement,
 }
 
+#[derive(Clone)]
 pub struct Measurement {
     /// Sum of all measurements
     pub sum: Duration,
@@ -124,6 +154,7 @@ fn duration_from_timeval(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::mpsc::channel;
     use std::time::Duration;
     use std::time::Instant;
 
@@ -230,9 +261,9 @@ mod tests {
         let cpu_all = cpu_time() - cpu_start;
         let wall_all = Instant::elapsed(&wall_start);
 
-        assert_eq!(p.frames_processed, 8);
+        assert_eq!(p.stats.frames_processed, 8);
 
-        let m = p.measurements;
+        let m = &p.stats.measurements;
         assert!(m.cpu_time.min <= m.cpu_time.max);
         assert!(m.cpu_time.max <= m.cpu_time.sum);
         assert!(m.cpu_time.sum <= cpu_all);
@@ -240,5 +271,26 @@ mod tests {
         assert!(m.wall_time.min <= m.wall_time.max);
         assert!(m.wall_time.max <= m.wall_time.sum);
         assert!(m.wall_time.sum <= wall_all);
+    }
+
+    #[test]
+    fn test_sender() {
+        let (sender, receiver) = channel();
+
+        let mut p = Profile::new(InPlaceNegateAudioProcessor::<i32>::new(Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        }));
+        p.set_key(String::from("foo")).set_sender(sender);
+
+        assert!(
+            receiver.recv_timeout(Duration::ZERO).is_err(),
+            "should not have profile yet"
+        );
+
+        drop(p);
+        let stats = receiver.recv().unwrap();
+        assert_eq!(stats.key, "foo");
     }
 }

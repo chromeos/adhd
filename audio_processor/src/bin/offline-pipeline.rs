@@ -210,8 +210,8 @@ fn run(command: Command) {
         }
     }
 
-    let clip_duration = profile.frames_processed as f64 / spec.sample_rate as f64;
-    let result = ProfileResult::new(&profile.measurements, clip_duration);
+    let clip_duration = profile.stats.frames_processed as f64 / spec.sample_rate as f64;
+    let result = ProfileResult::new(&profile.stats.measurements, clip_duration);
     eprintln!("cpu: {:?}", result.cpu);
     eprintln!("wall: {:?}", result.wall);
 
