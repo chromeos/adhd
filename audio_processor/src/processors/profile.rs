@@ -17,11 +17,12 @@ pub struct Profile<T: AudioProcessor> {
     sender: Option<Sender<ProfileStats>>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct ProfileStats {
     // Human readable text describing the profiled processor.
     pub key: String,
-    pub frames_processed: usize,
+    pub output_format: Format,
+    pub frames_generated: usize,
     pub measurements: Measurements,
 }
 
@@ -42,7 +43,7 @@ impl<T: AudioProcessor> AudioProcessor for Profile<T> {
         let wall_time = Instant::elapsed(&wall);
         self.stats.measurements.cpu_time.add(cpu_time);
         self.stats.measurements.wall_time.add(wall_time);
-        self.stats.frames_processed += output.min_len();
+        self.stats.frames_generated += output.min_len();
 
         Ok(output)
     }
@@ -54,9 +55,15 @@ impl<T: AudioProcessor> AudioProcessor for Profile<T> {
 
 impl<T: AudioProcessor> Profile<T> {
     pub fn new(processor: T) -> Self {
+        let output_format = processor.get_output_format();
         Self {
             inner: processor,
-            stats: Default::default(),
+            stats: ProfileStats {
+                key: String::new(),
+                output_format,
+                frames_generated: 0,
+                measurements: Measurements::default(),
+            },
             sender: None,
         }
     }
@@ -261,7 +268,7 @@ mod tests {
         let cpu_all = cpu_time() - cpu_start;
         let wall_all = Instant::elapsed(&wall_start);
 
-        assert_eq!(p.stats.frames_processed, 8);
+        assert_eq!(p.stats.frames_generated, 8);
 
         let m = &p.stats.measurements;
         assert!(m.cpu_time.min <= m.cpu_time.max);

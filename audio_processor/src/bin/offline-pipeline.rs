@@ -4,18 +4,17 @@
 
 use std::num::ParseFloatError;
 use std::path::PathBuf;
+use std::sync::mpsc::channel;
 use std::time::Duration;
 
+use audio_processor::config::PipelineBuilder;
+use audio_processor::config::Processor;
 use audio_processor::processors::profile;
 use audio_processor::processors::profile::Measurements;
 use audio_processor::processors::CheckShape;
-use audio_processor::processors::DynamicPluginProcessor;
-use audio_processor::processors::WavSink;
 use audio_processor::processors::WavSource;
 use audio_processor::AudioProcessor;
-use audio_processor::ByteProcessor;
 use audio_processor::Error;
-use audio_processor::Format;
 use audio_processor::MultiBuffer;
 use audio_processor::Shape;
 use clap::Parser;
@@ -24,7 +23,7 @@ use serde::Serialize;
 #[derive(Parser, Debug)]
 struct Command {
     /// Path to the plugin library (.so)
-    plugin: String,
+    plugin: PathBuf,
 
     /// Path of input WAVE file
     input: PathBuf,
@@ -126,50 +125,37 @@ fn run(command: Command) {
     eprintln!("{:?}", command);
     let reader = hound::WavReader::open(command.input.clone()).expect("cannot open input file");
     let spec = reader.spec();
-    let writer = hound::WavWriter::create(
-        command.output.clone(),
-        hound::WavSpec {
-            channels: command.output_channels.unwrap_or(spec.channels),
-            sample_rate: spec.sample_rate,
-            bits_per_sample: 32,
-            sample_format: hound::SampleFormat::Float,
-        },
-    )
-    .expect("cannot create output file");
 
     let block_size = command.compute_block_size(spec.sample_rate as usize);
     eprintln!("block size: {}", block_size);
-    let mut source = WavSource::new(reader, block_size);
-    let frame_rate =
-        usize::try_from(spec.sample_rate).expect("Sample rate failed to fit into usize");
-    let mut check_shape = CheckShape::<f32>::new(Format {
-        channels: spec.channels as usize,
-        block_size,
-        frame_rate,
-    });
-    let ext = DynamicPluginProcessor::new(
-        &command.plugin,
-        &command.plugin_name,
-        Format {
-            channels: spec.channels as usize,
-            block_size,
-            frame_rate: spec.sample_rate as usize,
-        },
-    )
-    .expect("Cannot load plugin");
-    let mut profile = profile::Profile::new(ext);
-    let mut sink = WavSink::new(writer, profile.get_output_format().block_size);
 
-    let mut pipeline: Vec<&mut dyn ByteProcessor> =
-        vec![&mut source, &mut check_shape, &mut profile, &mut sink];
+    let mut source = WavSource::new(reader, block_size);
+    let mut check_shape = CheckShape::<f32>::new(source.get_output_format());
+
+    let pipeline_decl = vec![
+        Processor::Plugin {
+            path: command.plugin,
+            constructor: command.plugin_name,
+        },
+        Processor::WavSink {
+            path: command.output,
+        },
+    ];
+    eprintln!("pipeline config: {pipeline_decl:?}");
+
+    let (profile_sender, profile_receiver) = channel();
+    let mut pipeline = PipelineBuilder::new(check_shape.get_output_format())
+        .with_profile_sender(profile_sender)
+        .build(Processor::Pipeline {
+            processors: pipeline_decl,
+        })
+        .unwrap();
 
     let mut buf = MultiBuffer::new(Shape {
         channels: 0,
         frames: 0,
     });
     'outer: loop {
-        let mut slices = buf.as_multi_slice();
-
         if let Some(dur) = command.sleep_duration {
             if dur.is_zero() {
                 std::thread::yield_now();
@@ -178,40 +164,45 @@ fn run(command: Command) {
             }
         }
 
-        for processor in pipeline.iter_mut() {
-            slices = match processor.process_bytes(slices) {
-                Ok(output) => output,
-                Err(error) => match error {
-                    Error::InvalidShape {
-                        want_frames,
-                        got_frames,
-                        want_channels,
-                        got_channels,
-                    } => {
-                        assert_eq!(
-                            want_channels, got_channels,
-                            "WavSource returned invalid channels: want {} got {}",
-                            want_channels, got_channels,
-                        );
-                        if got_frames > 0 {
-                            eprintln!(
-                                "dropped last {} frames which do not fit into a {}-frame block",
-                                got_frames, want_frames,
-                            );
-                        }
-                        break 'outer;
-                    }
-                    _ => panic!("{}", error),
-                },
-            }
-        }
+        let slices = source.process(buf.as_multi_slice()).unwrap();
         if slices.min_len() == 0 {
             break;
         }
+        let slices = match check_shape.process(slices) {
+            Ok(output) => output,
+            Err(error) => match error {
+                Error::InvalidShape {
+                    want_frames,
+                    got_frames,
+                    want_channels,
+                    got_channels,
+                } => {
+                    assert_eq!(
+                        want_channels, got_channels,
+                        "WavSource returned invalid channels: want {} got {}",
+                        want_channels, got_channels,
+                    );
+                    if got_frames > 0 {
+                        eprintln!(
+                            "dropped last {} frames which do not fit into a {}-frame block",
+                            got_frames, want_frames,
+                        );
+                    }
+                    break 'outer;
+                }
+                _ => panic!("{}", error),
+            },
+        };
+        pipeline.process(slices).unwrap();
     }
 
-    let clip_duration = profile.stats.frames_processed as f64 / spec.sample_rate as f64;
-    let result = ProfileResult::new(&profile.stats.measurements, clip_duration);
+    // Drop pipeline to flush profile.
+    drop(pipeline);
+    // Receive the first stat.
+    let stats = profile_receiver.recv().unwrap();
+
+    let clip_duration = stats.frames_generated as f64 / stats.output_format.frame_rate as f64;
+    let result = ProfileResult::new(&stats.measurements, clip_duration);
     eprintln!("cpu: {:?}", result.cpu);
     eprintln!("wall: {:?}", result.wall);
 
@@ -258,7 +249,7 @@ mod tests {
         drop(writer);
 
         super::run(crate::Command {
-            plugin: env::var("LIBTEST_PLUGINS_SO").unwrap(),
+            plugin: env::var("LIBTEST_PLUGINS_SO").unwrap().into(),
             input: in_wav_path,
             output: out_wav_path.clone(),
             sleep_duration: None,
