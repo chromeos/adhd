@@ -9,7 +9,7 @@ build --define VCSID=vcsid-unspecified
 build --conlyopt=-std=gnu11
 build --cxxopt=-std=gnu++20
 
-build --copt=-Wall
+build --copt=-Wall --copt=-Wimplicit-fallthrough
 
 # Pthread support
 build --copt=-pthread --linkopt=-pthread
