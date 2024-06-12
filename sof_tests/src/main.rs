@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+mod cstate;
 mod profile;
 
 use std::error;
@@ -14,6 +15,8 @@ use clap::Parser;
 enum Command {
     /// Get SOF fw/tplg profile on device
     Profile(ProfileOptions),
+    /// Get SOF component state via mixer control
+    Cstate(cstate::CstateOptions),
 }
 
 #[derive(PartialEq, Debug, Args)]
@@ -25,6 +28,7 @@ struct ProfileOptions {
 
 #[derive(Debug)]
 pub enum SofError {
+    Cstate(anyhow::Error),
     Profile(anyhow::Error),
 }
 
@@ -35,6 +39,7 @@ impl fmt::Display for SofError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use SofError::*;
         match self {
+            Cstate(e) => write!(f, "cmd cstate: {}", e),
             Profile(e) => write!(f, "cmd profile: {}", e),
         }
     }
@@ -46,6 +51,7 @@ fn run() -> Result<()> {
     let cmd = Command::parse();
 
     match cmd {
+        Command::Cstate(opts) => cstate::cstate(opts).map_err(SofError::Cstate),
         Command::Profile(opts) => profile::profile(opts.json).map_err(SofError::Profile),
     }
 }
