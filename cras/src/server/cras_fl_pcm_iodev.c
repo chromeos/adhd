@@ -46,6 +46,7 @@
  * Floss doesn't wait until timeout.
  */
 #define PCM_BLOCK_MS 10
+#define SCO_BLOCK_US 7500
 
 /* Schedule the first delay sync 500ms after stream starts, and redo
  * every 10 seconds. */
@@ -451,7 +452,6 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
   int rc;
   struct cras_hfp* hfp = (struct cras_hfp*)arg;
   struct fl_pcm_io *idev, *odev;
-  size_t nwrite_btyes;
 
   idev = (struct fl_pcm_io*)cras_floss_hfp_get_input_iodev(hfp);
   odev = (struct fl_pcm_io*)cras_floss_hfp_get_output_iodev(hfp);
@@ -491,10 +491,16 @@ static int hfp_socket_read_write_cb(void* arg, int revents) {
     return -EPIPE;
   }
 
-  nwrite_btyes = odev->write_block * cras_get_format_bytes(fmt);
-  rc = hfp_write(odev, idev->hfp_rw_offset > odev->hfp_rw_offset
-                           ? idev->hfp_rw_offset - odev->hfp_rw_offset
-                           : nwrite_btyes);
+  const int write_block = idev->write_block ?: odev->write_block;
+
+  const size_t pkt_bytes = write_block * cras_get_format_bytes(fmt);
+
+  size_t to_write = idev->hfp_rw_offset > odev->hfp_rw_offset
+                        ? idev->hfp_rw_offset - odev->hfp_rw_offset
+                        : pkt_bytes;
+
+  rc = hfp_write(odev, to_write);
+
   if (idev->hfp_rw_offset == odev->hfp_rw_offset) {
     idev->hfp_rw_offset = odev->hfp_rw_offset = 0;
   }
@@ -670,12 +676,18 @@ static int hfp_configure_dev(struct cras_iodev* iodev) {
   iodev->buffer_size =
       hfpio->pcm_buf->used_size / cras_get_format_bytes(iodev->format);
 
-  hfpio->write_block = iodev->format->frame_rate * PCM_BLOCK_MS / 1000;
+  hfpio->write_block = iodev->format->frame_rate * SCO_BLOCK_US / 1000000;
   hfpio->bt_stack_delay = 0;
   clock_gettime(CLOCK_MONOTONIC_RAW, &hfpio->last_write_ts);
 
   // As we directly write PCM here, there is no min buffer limitation.
   iodev->min_buffer_level = 0;
+
+  if (iodev->direction == CRAS_STREAM_OUTPUT) {
+    size_t pkt_bytes =
+        hfpio->write_block * cras_get_format_bytes(iodev->format);
+    buf_increment_write(hfpio->pcm_buf, 2 * pkt_bytes);
+  }
 
   hfpio->started = 1;
 

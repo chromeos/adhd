@@ -388,43 +388,48 @@ TEST_F(PcmIodev, TestHfpWriteStarted) {
   format_bytes = cras_get_format_bytes(odev->format);
   odev->configure_dev(odev);
 
-  // Write offset: 150.
-  available = iodev_get_buffer(odev, 150);
-  EXPECT_EQ(150, available);
+  const size_t jitter_frames = pcm_odev->write_block * 2;
+
+  // CVSD=60 frames
+  EXPECT_EQ(120, jitter_frames);
+
+  // Write offset: jitter_frames + 50.
+  available = iodev_get_buffer(odev, 50);
+  EXPECT_EQ(50, available);
   EXPECT_EQ(0, odev->put_buffer(odev, available));
 
   hfp_write(pcm_odev, 100 * format_bytes);
   // Read at max target_len of data.
   rc = recv(sock[0], buf, pcm_buf_length, 0);
   EXPECT_EQ(100 * format_bytes, rc);
-  EXPECT_EQ(50, frames_queued(odev, &tstamp));
+  EXPECT_EQ(70, frames_queued(odev, &tstamp));
 
-  hfp_write(pcm_odev, 50 * format_bytes);
+  hfp_write(pcm_odev, 70 * format_bytes);
   // Read as much as data.
   rc = recv(sock[0], buf, pcm_buf_length, 0);
-  EXPECT_EQ(50 * format_bytes, rc);
+  EXPECT_EQ(70 * format_bytes, rc);
   EXPECT_EQ(0, frames_queued(odev, &tstamp));
   EXPECT_EQ(0, buf_readable(pcm_odev->pcm_buf));
 
   // Fill the buffer to its boundary.
   available = iodev_get_buffer(odev, pcm_buf_length / format_bytes);
-  EXPECT_EQ(pcm_buf_length / format_bytes - 150, available);
+  EXPECT_EQ(pcm_buf_length / format_bytes - 170, available);
   EXPECT_EQ(0, odev->put_buffer(odev, available));
 
   available = iodev_get_buffer(odev, pcm_buf_length / format_bytes);
-  EXPECT_EQ(150, available);
+  EXPECT_EQ(170, available);
   // Fill 50 more frames.
   EXPECT_EQ(0, odev->put_buffer(odev, 50));
-  EXPECT_EQ(pcm_buf_length / format_bytes - 150 + 50,
+  EXPECT_EQ(pcm_buf_length / format_bytes - 170 + 50,
             frames_queued(odev, &tstamp));
 
   // Write all data in the ring buffer out.
-  hfp_write(pcm_odev, pcm_buf_length - 100 * format_bytes);
+  hfp_write(pcm_odev, pcm_buf_length - 120 * format_bytes);
   // Read as much as data.
   rc = recv(sock[0], buf, pcm_buf_length, 0);
 
   // All data in the buffer should be sent and digested.
-  EXPECT_EQ(pcm_buf_length - 100 * format_bytes, rc);
+  EXPECT_EQ(pcm_buf_length - 120 * format_bytes, rc);
   EXPECT_EQ(0, frames_queued(odev, &tstamp));
   /* The write offset is at 50 and the buffer should retrieve the space for
    * next write. */
@@ -463,6 +468,9 @@ TEST_F(PcmIodev, TestHfpCb) {
 
   EXPECT_EQ(-EPIPE, hfp_socket_read_write_cb((void*)NULL, POLLERR));
 
+  const size_t jitter_frames = pcm_odev->write_block * 2;
+  const size_t format_bytes = cras_get_format_bytes(odev->format);
+
   /* Output device should try to write the same number of bytes as input device
    * read. */
   send(sock[0], sample, 100, 0);
@@ -471,7 +479,7 @@ TEST_F(PcmIodev, TestHfpCb) {
   EXPECT_EQ(0, rc);
 
   EXPECT_EQ(100, buf_readable(pcm_idev->pcm_buf));
-  EXPECT_EQ(50, buf_readable(pcm_odev->pcm_buf));
+  EXPECT_EQ(jitter_frames * format_bytes + 50, buf_readable(pcm_odev->pcm_buf));
   rc = recv(sock[0], buf, 200, 0);
   EXPECT_EQ(100, rc);
 
@@ -513,6 +521,9 @@ TEST_F(PcmIodev, TestHfpCbWithSr) {
 
   EXPECT_EQ(-EPIPE, hfp_socket_read_write_cb((void*)NULL, POLLERR));
 
+  const size_t jitter_frames = pcm_odev->write_block * 2;
+  const size_t format_bytes = cras_get_format_bytes(odev->format);
+
   /* Output device should try to write the same number of bytes as input device
    * read. */
   send(sock[0], sample, 100, 0);
@@ -521,7 +532,7 @@ TEST_F(PcmIodev, TestHfpCbWithSr) {
   EXPECT_EQ(0, rc);
 
   EXPECT_EQ(300, buf_readable(pcm_idev->pcm_buf));
-  EXPECT_EQ(50, buf_readable(pcm_odev->pcm_buf));
+  EXPECT_EQ(jitter_frames * format_bytes + 50, buf_readable(pcm_odev->pcm_buf));
   rc = recv(sock[0], buf, 200, 0);
   EXPECT_EQ(100, rc);
 
