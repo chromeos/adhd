@@ -78,8 +78,10 @@ int server_stream_create(struct stream_list* stream_list,
     case SERVER_STREAM_SIDETONE_OUTPUT:
     case SERVER_STREAM_SIDETONE_INPUT:
       flags = SIDETONE_STREAM;
+      break;
     default:
       flags = SERVER_ONLY;
+      break;
   }
 
   cras_rstream_config_init(
