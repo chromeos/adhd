@@ -195,7 +195,7 @@ static void switch_profile(struct bt_io_manager* mgr) {
      * would fail to playback afterwards when the switching happens
      * too soon, so put this task in a delayed callback.
      */
-    if (dir == CRAS_STREAM_INPUT) {
+    if (dir == CRAS_STREAM_INPUT || mgr->active_btflag == CRAS_BT_FLAG_HFP) {
       iodev->update_active_node(iodev, 0, 1);
       cras_iodev_list_resume_dev(iodev->info.idx);
     } else {
