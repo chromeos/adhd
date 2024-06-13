@@ -10,6 +10,7 @@ mod cs35l41;
 mod error;
 mod max98373d;
 mod max98390d;
+mod tas2563;
 use std::path::PathBuf;
 
 use alc1011::ALC1011;
@@ -20,6 +21,7 @@ use log::info;
 use max98373d::Max98373;
 use max98390d::Max98390;
 use serde::Serialize;
+use tas2563::TAS2563;
 
 pub use crate::error::Error;
 pub use crate::error::Result;
@@ -63,6 +65,9 @@ impl<'a> AmpBuilder<'a> {
             }
             "MAX98390" => {
                 Ok(Box::new(Max98390::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
+            }
+            "TAS2563" => {
+                Ok(Box::new(TAS2563::new(self.sound_card_id, &self.config_path)?) as Box<dyn Amp>)
             }
             _ => Err(Error::UnsupportedAmp(self.amp.to_owned())),
         }

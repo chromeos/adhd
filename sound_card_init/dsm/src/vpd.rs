@@ -20,6 +20,15 @@ pub struct VPD {
     pub dsm_calib_temp: i32,
 }
 
+/// `Tas2563VPD`, which represents the amplifier factory calibration values for
+/// TAS2563.
+/// A separate struct is used, as TAS2563 stores different values.
+#[derive(Default, Debug)]
+pub struct Tas2563VPD {
+    // The calibrated value of each channel has 21 bytes in total.
+    pub dsm_calib_value: Vec<u8>,
+}
+
 impl VPDTrait for VPD {
     /// Creates a `VPD` and initializes its fields from VPD_DIR/dsm_calib_r0_{channel}.
     /// # Arguments
@@ -44,6 +53,24 @@ impl VPDTrait for VPD {
     }
 }
 
+impl VPDTrait for Tas2563VPD {
+    /// Creates a `Tas2563VPD` and initializes its fields from VPD_DIR/dsm_calib_value_{channel}.
+    /// # Arguments
+    ///
+    /// * `channel` - channel number.
+    fn new(channel: usize) -> Result<Tas2563VPD> {
+        let mut vpd: Tas2563VPD = Default::default();
+        vpd.dsm_calib_value = read_vpd_files_hex_string(&format!("dsm_calib_value_{}", channel))?;
+        Ok(vpd)
+    }
+    fn new_from_datastore(datastore: Datastore, channel: usize) -> Result<Tas2563VPD> {
+        match datastore {
+            Datastore::UseVPD => Tas2563VPD::new(channel),
+            Datastore::DSM { rdc: _, temp: _ } => Err(Error::InvalidDatastore),
+        }
+    }
+}
+
 fn read_vpd_files(file: &str) -> Result<i32> {
     let path = PathBuf::from(VPD_DIR).with_file_name(file);
     let io_err = |e| Error::FileIOFailed(path.to_owned(), e);
@@ -52,4 +79,27 @@ fn read_vpd_files(file: &str) -> Result<i32> {
     reader.read_line(&mut line).map_err(io_err)?;
     line.parse::<i32>()
         .map_err(|e| Error::VPDParseFailed(path.to_string_lossy().to_string(), e))
+}
+
+fn read_vpd_files_hex_string(file: &str) -> Result<Vec<u8>> {
+    let path = PathBuf::from(VPD_DIR).with_file_name(file);
+    let io_err = |e| Error::FileIOFailed(path.to_owned(), e);
+    let mut reader = BufReader::new(File::open(&path).map_err(io_err)?);
+    let mut line = String::new();
+    reader.read_line(&mut line).map_err(io_err)?;
+    // Convert hex string to bytes
+    // 1 byte is 2 characters.
+    // 21 bytes is 42 characters in total.
+    if line.len() != 42 {
+        return Err(Error::VPDParseHexStringFailed(
+            path.to_string_lossy().to_string(),
+            line.clone(),
+            line.len(),
+        ));
+    }
+    let mut vec = Vec::new();
+    for i in (0..42).step_by(2) {
+        vec.push(u8::from_str_radix(&line[i..i + 2], 16).unwrap())
+    }
+    Ok(vec)
 }

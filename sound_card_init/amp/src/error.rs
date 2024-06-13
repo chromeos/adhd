@@ -10,6 +10,7 @@ use thiserror::Error as ThisError;
 use crate::cs35l41;
 use crate::max98373d;
 use crate::max98390d;
+use crate::tas2563;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -34,6 +35,8 @@ pub enum Error {
     SerdeJsonError(#[from] serde_json::Error),
     #[error(transparent)]
     SerdeYamlError(#[from] serde_yaml::Error),
+    #[error(transparent)]
+    Tas2563Error(#[from] tas2563::Error),
     #[error("unsupported amp: {0}")]
     UnsupportedAmp(String),
 }
@@ -50,6 +53,7 @@ impl From<&Error> for UMASoundCardInitResult {
             Error::Max98390Error(_) => UMASoundCardInitResult::Max98390Error,
             Error::SerdeJsonError(_) => UMASoundCardInitResult::SerdeJsonError,
             Error::SerdeYamlError(_) => UMASoundCardInitResult::SerdeYamlError,
+            Error::Tas2563Error(_) => UMASoundCardInitResult::Tas2563Error,
             Error::UnsupportedAmp(_) => UMASoundCardInitResult::UnsupportedAmp,
         }
     }

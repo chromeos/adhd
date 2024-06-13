@@ -50,6 +50,8 @@ pub enum Error {
     SystemTimeError(#[from] time::SystemTimeError),
     #[error("failed to parse vpd {0}: {1}")]
     VPDParseFailed(String, ParseIntError),
+    #[error("failed to parse vpd hex string {0}: {1} has {2} bytes")]
+    VPDParseHexStringFailed(String, String, usize),
     #[error("run_play_zero_worker panics: {0:?}")]
     WorkerPanics(Box<dyn Any + Send + 'static>),
     #[error("zero player is not running")]

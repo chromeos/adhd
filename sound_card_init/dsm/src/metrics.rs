@@ -49,6 +49,7 @@ pub enum UMASoundCardInitResult {
     SerdeJsonError,
     SerdeYamlError,
     UnsupportedAmp,
+    Tas2563Error,
     ///  The max value of the enum.
     Last,
 }
