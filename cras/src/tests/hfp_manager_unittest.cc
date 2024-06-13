@@ -66,7 +66,6 @@ void ResetStubData() {
   audio_thread_config_events_callback_called = 0;
   socket_ret = 456;
   cras_system_get_force_hfp_swb_enabled_ret = false;
-  cras_features_unset_override(CrOSLateBootAudioHFPSwb);
   btlog = cras_bt_event_log_init();
 }
 
@@ -76,14 +75,12 @@ class HfpManagerTestSuite : public testing::Test {
  protected:
   virtual void SetUp() {
     cras_features_set_override(CrOSLateBootAudioHFPOffload, true);
-    cras_features_set_override(CrOSLateBootAudioHFPSwb, false);
     ResetStubData();
   }
 
   virtual void TearDown() {
     cras_bt_event_log_deinit(btlog);
     cras_features_unset_override(CrOSLateBootAudioHFPOffload);
-    cras_features_unset_override(CrOSLateBootAudioHFPSwb);
   }
 };
 
@@ -92,17 +89,6 @@ TEST_F(HfpManagerTestSuite, PCMCreateFailed) {
   // Failing to create hfp_pcm_iodev should fail the hfp_create
   ASSERT_EQ(cras_floss_hfp_create(NULL, "addr", "name", false),
             (struct cras_hfp*)NULL);
-}
-
-TEST_F(HfpManagerTestSuite, PCMCreateSwbWhenDisallowed) {
-  struct cras_hfp* hfp = cras_floss_hfp_create(
-      NULL, "addr", "name",
-      FL_HFP_CODEC_FORMAT_CVSD | FL_HFP_CODEC_FORMAT_LC3_TRANSPARENT);
-  ASSERT_NE(hfp, (struct cras_hfp*)NULL);
-  ASSERT_EQ(cras_floss_hfp_is_codec_format_supported(
-                hfp, HFP_CODEC_FORMAT_MSBC_TRANSPARENT),
-            true);
-  cras_floss_hfp_destroy(hfp);
 }
 
 TEST_F(HfpManagerTestSuite, AlsaCreateFailed) {

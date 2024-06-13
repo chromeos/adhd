@@ -107,13 +107,6 @@ static bool is_sco_pcm_supported() {
           cras_iodev_list_get_sco_pcm_iodev(CRAS_STREAM_OUTPUT));
 }
 
-static bool cras_floss_hfp_swb_allowed() {
-  if (cras_system_get_force_hfp_swb_enabled()) {
-    return true;
-  }
-  return cras_feature_enabled(CrOSLateBootAudioHFPSwb);
-}
-
 /* Creates cras_hfp object representing a connected hfp device. */
 struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
                                        const char* addr,
@@ -136,18 +129,6 @@ struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
   if (!cras_system_get_bt_wbs_enabled()) {
     hfp->hfp_caps &= ~HFP_CODEC_FORMAT_MSBC_TRANSPARENT;
     hfp->hfp_caps &= ~HFP_CODEC_FORMAT_MSBC;
-  }
-
-  // Until SWB is fully launched, it will be guarded by a flag,
-  // which can be enabled by users, experiments, or tests.
-  if (!cras_floss_hfp_swb_allowed()) {
-    // If SWB is available but we have disabled it, then the peer will almost
-    // certainly fallback to WBS. In such event, MSBC transparent should be
-    // tried.
-    if (hfp->hfp_caps & HFP_CODEC_FORMAT_LC3_TRANSPARENT) {
-      hfp->hfp_caps |= HFP_CODEC_FORMAT_MSBC_TRANSPARENT;
-    }
-    hfp->hfp_caps &= ~HFP_CODEC_FORMAT_LC3_TRANSPARENT;
   }
 
   // Currently, SWB is only supported via SW encoding. If CRAS would
@@ -210,7 +191,7 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
   if (!cras_system_get_bt_wbs_enabled()) {
     disabled_codecs |= FL_HFP_CODEC_BIT_ID_MSBC | FL_HFP_CODEC_BIT_ID_LC3;
   }
-  if (hfp->sco_pcm_used || !cras_floss_hfp_swb_allowed()) {
+  if (hfp->sco_pcm_used) {
     disabled_codecs |= FL_HFP_CODEC_BIT_ID_LC3;
   }
   if (!hfp->sco_pcm_used && !cras_floss_hfp_is_codec_format_supported(
