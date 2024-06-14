@@ -177,6 +177,11 @@ int rclient_handle_client_stream_connect(struct cras_rclient* client,
   if (client->client_type != CRAS_CLIENT_TYPE_UNKNOWN) {
     stream_config.client_type = client->client_type;
   }
+  if ((stream_config.flags & SIDETONE_STREAM) == SIDETONE_STREAM) {
+    syslog(LOG_ERR, "Creating a sidetone stream from a client is not allowed");
+    rc = -EINVAL;
+    goto cleanup_config;
+  }
   rc = stream_list_add(cras_iodev_list_get_stream_list(), &stream_config,
                        &stream);
   if (rc) {
