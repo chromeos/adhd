@@ -45,7 +45,7 @@ static const char playback_mixer_elem_var[] = "PlaybackMixerElem";
 static const char capture_mixer_elem_var[] = "CaptureMixerElem";
 static const char min_buffer_level_var[] = "MinBufferLevel";
 static const char dma_period_var[] = "DmaPeriodMicrosecs";
-static const char disable_software_volume[] = "DisableSoftwareVolume";
+static const char use_software_volume[] = "UseSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
 static const char playback_device_rate_var[] = "PlaybackRate";
 static const char playback_channels_var[] = "PlaybackChannels";
@@ -771,14 +771,14 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
-int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
+int ucm_get_use_software_volume(struct cras_use_case_mgr* mgr) {
   int value;
   int rc;
 
-  rc = get_int(mgr, disable_software_volume, "", uc_verb(mgr), &value);
+  rc = get_int(mgr, use_software_volume, "", uc_verb(mgr), &value);
   if (rc) {
     /* Default to use HW volume */
-    return 1;
+    return 0;
   }
 
   CRAS_CHECK(value == 0 || value == 1);

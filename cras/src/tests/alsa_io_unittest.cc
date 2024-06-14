@@ -2978,8 +2978,8 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
-int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
-  return 0;
+int ucm_get_use_software_volume(struct cras_use_case_mgr* mgr) {
+  return 1;
 }
 
 char* ucm_get_hotword_models(struct cras_use_case_mgr* mgr) {

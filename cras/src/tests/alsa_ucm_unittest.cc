@@ -857,18 +857,18 @@ TEST(AlsaUcm, SectionExistsWithSuffix) {
   EXPECT_EQ(0, ucm_section_exists_with_suffix(mgr, "Suffix3", "Identifier"));
 }
 
-TEST(AlsaUcm, DisableSoftwareVolume) {
+TEST(AlsaUcm, UseSoftwareVolume) {
   struct cras_use_case_mgr* mgr = &cras_ucm_mgr;
-  unsigned int disable_software_volume;
-  std::string id = "=DisableSoftwareVolume//HiFi";
+  unsigned int use_software_volume;
+  std::string id = "=UseSoftwareVolume//HiFi";
   std::string value = "1";
 
   ResetStubData();
 
   snd_use_case_get_value[id] = value;
 
-  disable_software_volume = ucm_get_disable_software_volume(mgr);
-  ASSERT_TRUE(disable_software_volume);
+  use_software_volume = ucm_get_use_software_volume(mgr);
+  ASSERT_TRUE(use_software_volume);
 
   ASSERT_EQ(1, snd_use_case_get_called);
   EXPECT_EQ(snd_use_case_get_id[0], id);

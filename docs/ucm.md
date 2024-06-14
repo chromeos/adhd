@@ -202,7 +202,7 @@ static const char mixer_var[] = "MixerName";
 static const char swap_mode_suffix[] = "Swap Mode";
 static const char min_buffer_level_var[] = "MinBufferLevel";
 static const char dma_period_var[] = "DmaPeriodMicrosecs";
-static const char disable_software_volume[] = "DisableSoftwareVolume";
+static const char use_software_volume[] = "UseSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
 static const char playback_device_rate_var[] = "PlaybackRate";
 static const char capture_device_name_var[] = "CapturePCM";
@@ -233,7 +233,7 @@ In fully-specified UCM, each SectionDevice will correspond to a node. In legacy 
         *   Detailed guide about how to measure the value:
             *   (Partners only) https://chromeos.google.com/partner/dlm/docs/p-hardware-specs/audiotuning.html
 *   Software volume/gain:
-    *   DisableSoftwareVolume: Used in SectionVerb. Set to "1" to disable software volume on this card. When the volume range provided by hardware control on this card is limited, CRAS automatically decides to use software volume. This flag changes that behavior.
+    *   UseSoftwareVolume: Used in SectionVerb. Set to "1" to enable software volume on this card. It's designed for situations where a suitable hardware-based volume control element (PlaybackMixerElem) is unavailable. When set to "1" (enabled), CRAS will adjust the volume by modifying the amplitude of the audio samples directly, bypassing any hardware volume controls.
     *   By default, we rely on the existence of IntrinsicSensitivity to determine if the software gain instead of hardware gain is applied.
 *   Mic:
     *   CaptureChannelMap:  Used in SectionDevice. The selected channel map for multiple-channel mics.  \
@@ -269,12 +269,12 @@ Look for HiFi.conf on [codesearch](https://source.chromium.org/search?q=file:HiF
 ### USB UCM Configuration
 Several fields are commonly utilized in USB UCM.
 
-* DisableSoftwareVolume - If not specified, default to value '1' which means hardware volume is used by default. Setting this flag to '0' will enforce using software volume.
+* UseSoftwareVolume - If not specified, default to value '0' which means hardware volume is used by default. Setting this flag to '1' will enforce using software volume.
   * hardware volume - control playback volume via setting mixer control exposed by USB device. Use `PlaybackMixerElem` to explicitly tell CRAS which mixer to use. If `PlaybackMixerElem` is not specified in this mode(HW Volume) will throw an error.
   * software volume - control playback volume via changing the amplitude of digital audio data. Setting `PlaybackMixerElem` or` CRASPlaybackNumberOfVolumeSteps` in this mode(SW Volume) will throw an error.
 * PlaybackPCM - PCM device for USB playback. Specify `PlaybackPCM` need to follow one of following requirements. Otherwise will throw an error.
   * If you specify `PlaybackPCM`, `PlaybackMixerElem` should be set together because hw volume is default.
-  * Set `DisableSoftwareVolume` to 0 to enable software volume if no associated `PlaybackMixerElem` for `PlaybackPCM`.
+  * Set `UseSoftwareVolume` to 1 to enable software volume if no associated `PlaybackMixerElem` for `PlaybackPCM`.
 * PlaybackMixerElem - mixer control for USB playback volume.
 * CapturePCM - PCM device for USB capture.
 * CaptureMixerElem - mixer control for USB capture gain.

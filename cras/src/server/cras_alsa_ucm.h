@@ -297,16 +297,16 @@ const char* ucm_get_dsp_name_for_dev(struct cras_use_case_mgr* mgr,
 int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
                              unsigned int* level);
 
-/* Gets the flag for disabling software volume.
+/* Gets the flag for enabling software volume.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
  * Returns:
- *    0 on enable software volume.
- *    1 on disable software volume.
+ *    1 on enable software volume.
+ *    0 on disable software volume.
  *    -ENOENT if not value not set.
  *    -EINVAL on invalid value.
  */
-int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr);
+int ucm_get_use_software_volume(struct cras_use_case_mgr* mgr);
 
 /* Gets the value for default node gain.
  * Args:

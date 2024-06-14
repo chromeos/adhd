@@ -1697,11 +1697,11 @@ static void configure_default_volume_settings(
     node->number_of_volume_steps = number_of_volume_steps;
   }
 }
-/* Only call this function if USB soundcard have ucm and Explicitly write
- * DisableSoftwareVolume in UCM. When DisableSoftwareVolume = 1 CRAS always
- * use device reported steps. If HW volume granularity is an issue, use
- * CRASPlaybackNumberOfVolumeSteps to overwrite it. When DisableSoftwareVolume
- * = 0 use 25 volume steps
+/* Only call this function if USB soundcard have ucm. When explicitly specify
+ * UseSoftwareVolume = 1 CRAS will use 25 volume steps and SW volume. When UCM
+ * don't explicitly specify UseSoftwareVolume = 1, CRAS always use device
+ * reported steps and HW volume. If HW volume granularity is an issue, use
+ * CRASPlaybackNumberOfVolumeSteps to overwrite it.
  */
 
 static void configure_ucm_volume_settings(struct alsa_usb_output_node* output,
@@ -1762,8 +1762,8 @@ static void finalize_volume_settings(struct alsa_usb_output_node* output,
          max);
 
   if (aio->common.ucm) {
-    configure_ucm_volume_settings(
-        output, aio, !ucm_get_disable_software_volume(aio->common.ucm));
+    configure_ucm_volume_settings(output, aio,
+                                  ucm_get_use_software_volume(aio->common.ucm));
   } else {
     configure_default_volume_settings(output, aio, min, max);
   }

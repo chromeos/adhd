@@ -152,7 +152,7 @@ static unsigned cras_iodev_reset_rate_estimator_called;
 static unsigned display_rotation;
 static bool sys_get_noise_cancellation_supported_return_value;
 static int sys_aec_on_dsp_supported_return_value;
-static int ucm_node_disable_software_volume_ret_value;
+static int ucm_node_use_software_volume_ret_value;
 static int ucm_node_echo_cancellation_exists_ret_value;
 static int sys_get_max_internal_speaker_channels_called;
 static int sys_get_max_internal_speaker_channels_return_value;
@@ -262,7 +262,7 @@ void ResetStubData() {
   sys_get_max_headphone_channels_called = 0;
   sys_get_max_headphone_channels_return_value = 2;
   cras_iodev_update_underrun_duration_called = 0;
-  ucm_node_disable_software_volume_ret_value = -ENOENT;
+  ucm_node_use_software_volume_ret_value = 0;
 }
 
 static long fake_get_dBFS(const struct cras_volume_curve* curve,
@@ -301,7 +301,7 @@ static struct cras_iodev* cras_alsa_usb_iodev_create_with_default_parameters(
                                     direction, CRAS_USE_CASE_HIFI, NULL);
 }
 
-TEST(AlsaUSBIoInit, UCMNoDisableSoftwareVolume) {
+TEST(AlsaUSBIoInit, UCMNoUseSoftwareVolume) {
   struct alsa_usb_io* aio;
   struct cras_alsa_mixer* const fake_mixer = (struct cras_alsa_mixer*)2;
   static struct cras_use_case_mgr* fake_ucm = (struct cras_use_case_mgr*)3;
@@ -312,7 +312,7 @@ TEST(AlsaUSBIoInit, UCMNoDisableSoftwareVolume) {
       0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, fake_ucm,
       CRAS_STREAM_OUTPUT);
 
-  // With fake_ucm provided, ucm_get_disable_software_volume should pass
+  // With fake_ucm provided, ucm_get_usb_software_volume should pass
   // in its value for volume settings.
   aio = (struct alsa_usb_io*)iodev;
   ASSERT_EQ(0, cras_alsa_usb_iodev_legacy_complete_init(iodev));
@@ -504,9 +504,8 @@ class NodeUSBCardSuite : public testing::Test {
     ucm_get_playback_number_of_volume_steps_values[test_dev_name] =
         ucm_output_node_volume_steps;
   }
-  void SetupDisableSoftwareVolume(int ucm_node_disable_software_volume) {
-    ucm_node_disable_software_volume_ret_value =
-        ucm_node_disable_software_volume;
+  void SetupUseSoftwareVolume(int ucm_node_use_software_volume) {
+    ucm_node_use_software_volume_ret_value = ucm_node_use_software_volume;
   }
   struct cras_iodev* GenerateUSBIodevWithUCM(
       int control_volume_steps,
@@ -522,9 +521,9 @@ class NodeUSBCardSuite : public testing::Test {
     if (it != ucm_values.end()) {
       SetupUCMCRASPlaybackNumberOfVolumeSteps(it->second);
     }
-    it = ucm_values.find("DisableSoftwareVolume");
+    it = ucm_values.find("UseSoftwareVolume");
     if (it != ucm_values.end()) {
-      SetupDisableSoftwareVolume(it->second);
+      SetupUseSoftwareVolume(it->second);
     }
     iodev = cras_alsa_usb_iodev_create_with_default_parameters(
         0, NULL, ALSA_CARD_TYPE_USB, 1, fake_mixer, fake_config, fake_ucm,
@@ -599,18 +598,18 @@ TEST_F(NodeUSBCardSuite, SectionControlUCMAddNodeSuccessCase2) {
 }
 
 /*
- * In this test case, CRASPlaybackNumberOfVolumeSteps and DisableSoftwareVolume
+ * In this test case, CRASPlaybackNumberOfVolumeSteps and UseSoftwareVolume
  * are already set in UCM. This test checks that CRAS always uses the UCM value
  * for volume, regardless of the device's reported volume steps or range.
  */
 
 TEST_F(NodeUSBCardSuite,
-       CRASPlaybackNumberOfVolumeStepsAndDisableSoftwareVolumeInUCM) {
+       CRASPlaybackNumberOfVolumeStepsAndUseSoftwareVolumeInUCM) {
   std::map<std::string, int> ucm_values;
   struct cras_iodev* iodev;
 
   ucm_values["CRASPlaybackNumberOfVolumeSteps"] = 20;
-  ucm_values["DisableSoftwareVolume"] = 1;
+  ucm_values["UseSoftwareVolume"] = 0;
 
   // small volume steps + small volume range + software volume disabled
   iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-2), 0, ucm_values);
@@ -667,10 +666,10 @@ TEST_F(NodeUSBCardSuite,
   FreeIodev(iodev);
 }
 /*
- * In this test case, DisableSoftwareVolume is already set, but
+ * In this test case, UseSoftwareVolume is already set, but
  CRASPlaybackNumberOfVolumeSteps is not set in UCM.
  * The final volume steps applied by CRAS to a device should be based on the
- DisableSoftwareVolume setting in UCM and the volume steps reported by the
+ UseSoftwareVolume setting in UCM and the volume steps reported by the
  device.
  * Based on the research in go/refine-cros-playback-vol, we can formulate the
  behavior as follows:
@@ -682,11 +681,11 @@ TEST_F(NodeUSBCardSuite,
  * This test verify CRAS's behavior follow above metric.
  */
 
-TEST_F(NodeUSBCardSuite, OnlyDisableSoftwareVolumeInUCM) {
+TEST_F(NodeUSBCardSuite, OnlyUseSoftwareVolumeInUCM) {
   std::map<std::string, int> ucm_values;
   struct cras_iodev* iodev;
 
-  ucm_values["DisableSoftwareVolume"] = 1;
+  ucm_values["UseSoftwareVolume"] = 0;
 
   // small volume steps + small volume range + software volume disabled
   iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-2), 0, ucm_values);
@@ -742,7 +741,7 @@ TEST_F(NodeUSBCardSuite, OnlyDisableSoftwareVolumeInUCM) {
   EXPECT_EQ(0, GetActiveNode(iodev)->software_volume_needed);
   FreeIodev(iodev);
 
-  ucm_values["DisableSoftwareVolume"] = 0;
+  ucm_values["UseSoftwareVolume"] = 1;
 
   // small volume steps + small volume range + software volume enable
   iodev = GenerateUSBIodevWithUCM(5, db_to_alsa_db(-2), 0, ucm_values);
@@ -800,13 +799,13 @@ TEST_F(NodeUSBCardSuite, OnlyDisableSoftwareVolumeInUCM) {
 }
 
 /*
- * In this test case, CRASPlaybackNumberOfVolumeSteps and DisableSoftwareVolume
- are not set in UCM. The expect behavior should be same as DisableSoftwareVolume
+ * In this test case, CRASPlaybackNumberOfVolumeSteps and UseSoftwareVolume
+ are not set in UCM. The expect behavior should be same as UseSoftwareVolume
  set as 1.
  */
 
 TEST_F(NodeUSBCardSuite,
-       NoCRASPlaybackNumberOfVolumeStepsAndDisableSoftwareVolumeInUCM) {
+       NoCRASPlaybackNumberOfVolumeStepsAndUseSoftwareVolumeInUCM) {
   std::map<std::string, int> ucm_values;
   struct cras_iodev* iodev;
 
@@ -1413,8 +1412,8 @@ int ucm_get_min_buffer_level(struct cras_use_case_mgr* mgr,
   return 0;
 }
 
-int ucm_get_disable_software_volume(struct cras_use_case_mgr* mgr) {
-  return ucm_node_disable_software_volume_ret_value;
+int ucm_get_use_software_volume(struct cras_use_case_mgr* mgr) {
+  return ucm_node_use_software_volume_ret_value;
 }
 
 const char* ucm_get_playback_mixer_elem_for_dev(struct cras_use_case_mgr* mgr,
