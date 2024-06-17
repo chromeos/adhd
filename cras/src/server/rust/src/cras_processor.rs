@@ -8,7 +8,6 @@ use std::ptr::NonNull;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 
-use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Context;
 use audio_processor::cdcfg;
@@ -126,29 +125,11 @@ fn get_noise_cancellation_pipeline_decl(
     )
 }
 
-fn get_style_transfer_pipeline_decl() -> anyhow::Result<Vec<Processor>> {
-    let nuance_dlc = get_dlc_state_cached(cras_dlc::CrasDlcId::CrasDlcNuance);
-    if !nuance_dlc.installed {
-        bail!("{} not installed", cras_dlc::CrasDlcId::CrasDlcNuance);
-    }
-
-    Ok(vec![
-        Processor::CheckFormat {
-            channels: Some(1),
-            block_size: None,
-            frame_rate: None,
-        },
-        Processor::Resample {
-            output_frame_rate: 24000,
-        },
-        Processor::WrapChunk {
-            inner_block_size: 480,
-            inner: Box::new(Processor::Plugin {
-                path: Path::new(&nuance_dlc.root_path).join("libstyle.so"),
-                constructor: "plugin_processor_create_ast".into(),
-            }),
-        },
-    ])
+fn get_style_transfer_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
+    cdcfg::parse(
+        context,
+        Path::new("/etc/cras/processor/style_transfer.txtpb"),
+    )
 }
 
 struct PluginDumpConfig {
@@ -259,8 +240,8 @@ impl CrasProcessor {
                         .context("failed get_noise_cancellation_pipeline_decl")?,
                 );
                 if let CrasProcessorEffect::StyleTransfer = config.effect {
-                    decl.extend(
-                        get_style_transfer_pipeline_decl()
+                    decl.push(
+                        get_style_transfer_pipeline_decl(&resolver_context)
                             .context("failed get_style_transfer_pipeline_decl")?,
                     );
                 }
