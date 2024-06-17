@@ -13,6 +13,7 @@ use std::sync::Mutex;
 use std::thread::sleep;
 use std::time;
 
+use anyhow::bail;
 use once_cell::sync::Lazy;
 use thiserror::Error;
 
@@ -66,6 +67,19 @@ impl CrasDlcId {
             CrasDlcId::CrasDlcNcAp => "nc-ap-dlc",
             CrasDlcId::CrasDlcNuance => "nuance-dlc",
         }
+    }
+}
+
+impl TryFrom<&str> for CrasDlcId {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> anyhow::Result<Self> {
+        for dlc in MANAGED_DLCS {
+            if dlc.as_str() == value {
+                return Ok(dlc.clone());
+            }
+        }
+        bail!("unknown DLC {value}");
     }
 }
 

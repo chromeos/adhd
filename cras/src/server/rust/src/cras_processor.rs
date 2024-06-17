@@ -9,7 +9,10 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 
 use anyhow::bail;
+use anyhow::ensure;
 use anyhow::Context;
+use audio_processor::cdcfg;
+use audio_processor::cdcfg::ResolverContext;
 use audio_processor::config::PipelineBuilder;
 use audio_processor::config::PreloadedProcessor;
 use audio_processor::config::Processor;
@@ -22,6 +25,7 @@ use audio_processor::AudioProcessor;
 use audio_processor::Format;
 use audio_processor::ProcessorVec;
 use cras_dlc::get_dlc_state_cached;
+use cras_dlc::CrasDlcId;
 
 mod processor_override;
 
@@ -88,28 +92,38 @@ impl AudioProcessor for CrasProcessor {
     }
 }
 
-static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+struct CrasProcessorResolverContext {
+    wav_dump_root: Option<PathBuf>,
+    cras_processor_format: Format,
+}
 
-fn get_noise_cancellation_pipeline_decl() -> anyhow::Result<Vec<Processor>> {
-    let ap_nc_dlc = get_dlc_state_cached(cras_dlc::CrasDlcId::CrasDlcNcAp);
-    if !ap_nc_dlc.installed {
-        bail!("{} not installed", cras_dlc::CrasDlcId::CrasDlcNcAp);
+impl audio_processor::cdcfg::ResolverContext for CrasProcessorResolverContext {
+    fn get_wav_dump_root(&self) -> Option<&Path> {
+        self.wav_dump_root.as_deref()
     }
 
-    Ok(vec![
-        Processor::Resample {
-            output_frame_rate: 48000,
-        },
-        Processor::CheckFormat {
-            channels: Some(1),
-            block_size: Some(480),
-            frame_rate: Some(48000),
-        },
-        Processor::Plugin {
-            path: Path::new(&ap_nc_dlc.root_path).join("libdenoiser.so"),
-            constructor: "plugin_processor_create".into(),
-        },
-    ])
+    fn get_dlc_root_path(&self, dlc_id: &str) -> anyhow::Result<PathBuf> {
+        let cras_dlc_id = CrasDlcId::try_from(dlc_id)?;
+        let dlc_state = get_dlc_state_cached(cras_dlc_id);
+        ensure!(dlc_state.installed, "{cras_dlc_id} not installed");
+        Ok(dlc_state.root_path.into())
+    }
+
+    fn get_duplicate_channel_0(&self) -> Option<usize> {
+        // Duplicate channel 0 to the cras_processor count when requested.
+        Some(self.cras_processor_format.channels)
+    }
+}
+
+static GLOBAL_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+fn get_noise_cancellation_pipeline_decl(
+    context: &dyn ResolverContext,
+) -> anyhow::Result<Processor> {
+    cdcfg::parse(
+        context,
+        Path::new("/etc/cras/processor/noise_cancellation.txtpb"),
+    )
 }
 
 fn get_style_transfer_pipeline_decl() -> anyhow::Result<Vec<Processor>> {
@@ -197,6 +211,14 @@ impl CrasProcessor {
 
         let dump_base = PathBuf::from(format!("/run/cras/debug/cras_processor_{id}"));
 
+        let resolver_context = CrasProcessorResolverContext {
+            wav_dump_root: if config.wav_dump {
+                Some(dump_base.clone())
+            } else {
+                None
+            },
+            cras_processor_format: config.format(),
+        };
         let mut decl = vec![];
 
         if config.wav_dump {
@@ -232,8 +254,8 @@ impl CrasProcessor {
                 decl.push(Processor::ShuffleChannels {
                     channel_indexes: vec![0],
                 });
-                decl.extend(
-                    get_noise_cancellation_pipeline_decl()
+                decl.push(
+                    get_noise_cancellation_pipeline_decl(&resolver_context)
                         .context("failed get_noise_cancellation_pipeline_decl")?,
                 );
                 if let CrasProcessorEffect::StyleTransfer = config.effect {

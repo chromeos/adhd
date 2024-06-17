@@ -1,0 +1,21 @@
+pipeline {
+  processors {
+    resample {
+      output_frame_rate: 48000
+    }
+  }
+  processors {
+    check_format {
+      channels: 1
+      block_size: 480
+      frame_rate: 48000
+    }
+  }
+  processors {
+    dlc_plugin {
+      dlc_id: "nc-ap-dlc"
+      path: "libdenoiser.so"
+      constructor: "plugin_processor_create"
+    }
+  }
+}

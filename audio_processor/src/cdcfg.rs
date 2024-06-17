@@ -10,7 +10,7 @@ use anyhow::Context;
 
 use crate::config::Processor;
 
-trait ResolverContext {
+pub trait ResolverContext {
     fn get_wav_dump_root(&self) -> Option<&Path>;
     fn get_dlc_root_path(&self, dlc_id: &str) -> anyhow::Result<PathBuf>;
     fn get_duplicate_channel_0(&self) -> Option<usize>;
@@ -114,6 +114,12 @@ fn resolve_str(context: &dyn ResolverContext, s: &str) -> anyhow::Result<Process
     let cfg: crate::proto::cdcfg::Processor =
         protobuf::text_format::parse_from_str(s).context("protobuf text_format error")?;
     resolve(context, &cfg)
+}
+
+pub fn parse(context: &dyn ResolverContext, path: &Path) -> anyhow::Result<Processor> {
+    let s = std::fs::read_to_string(path)
+        .with_context(|| format!("read_to_string {}", path.display()))?;
+    resolve_str(context, &s)
 }
 
 #[cfg(test)]
