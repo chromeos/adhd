@@ -71,10 +71,11 @@ enum CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
     struct cras_use_case_mgr* ucm,
     const struct cras_ionode* node) {
   enum CRAS_NC_PROVIDER provider = 0;
-  if (node->type == CRAS_NODE_TYPE_MIC &&
-      (node->position == NODE_POSITION_INTERNAL ||
-       node->position == NODE_POSITION_FRONT) &&
-      cras_system_get_style_transfer_supported()) {
+  if ((node->type == CRAS_NODE_TYPE_ALSA_LOOPBACK ||  // Alsa loopback.
+       (node->type == CRAS_NODE_TYPE_MIC &&           // Internal mic.
+        (node->position == NODE_POSITION_INTERNAL ||
+         node->position == NODE_POSITION_FRONT))) &&
+      cras_system_get_style_transfer_supported()) {  // Supportness.
     provider |= CRAS_NC_PROVIDER_AST;
   }
   if (ucm && cras_system_get_dsp_noise_cancellation_supported() &&
