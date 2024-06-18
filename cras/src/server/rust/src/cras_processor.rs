@@ -132,49 +132,8 @@ fn get_style_transfer_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Re
     )
 }
 
-struct PluginDumpConfig {
-    pre_processing_wav_dump: PathBuf,
-    post_processing_wav_dump: PathBuf,
-}
-
-fn get_beamforming_pipeline_decl(
-    dump_config: Option<PluginDumpConfig>,
-) -> anyhow::Result<Vec<Processor>> {
-    let plugin = Processor::Plugin {
-        path: "/usr/local/lib64/libigo_processor.so".into(),
-        constructor: "plugin_processor_create".into(),
-    };
-    let inner = match dump_config {
-        Some(dump_config) => Processor::Pipeline {
-            processors: vec![
-                Processor::WavSink {
-                    path: dump_config.pre_processing_wav_dump,
-                },
-                plugin,
-                Processor::WavSink {
-                    path: dump_config.post_processing_wav_dump,
-                },
-            ],
-        },
-        None => plugin,
-    };
-    Ok(vec![
-        Processor::CheckFormat {
-            channels: Some(3),
-            block_size: None,
-            frame_rate: None,
-        },
-        Processor::Resample {
-            output_frame_rate: 16000,
-        },
-        Processor::WrapChunk {
-            inner_block_size: 256,
-            inner: Box::new(inner),
-        },
-        Processor::ShuffleChannels {
-            channel_indexes: vec![0; 3],
-        },
-    ])
+fn get_beamforming_pipeline_decl(context: &dyn ResolverContext) -> anyhow::Result<Processor> {
+    cdcfg::parse(context, Path::new("/etc/cras/processor/beamforming.txtpb"))
 }
 
 impl CrasProcessor {
@@ -250,16 +209,8 @@ impl CrasProcessor {
                 });
             }
             CrasProcessorEffect::Beamforming => {
-                let dump_config = if config.wav_dump {
-                    Some(PluginDumpConfig {
-                        pre_processing_wav_dump: dump_base.join("pre_beamforming.wav"),
-                        post_processing_wav_dump: dump_base.join("post_beamforming.wav"),
-                    })
-                } else {
-                    None
-                };
-                decl.extend(
-                    get_beamforming_pipeline_decl(dump_config)
+                decl.push(
+                    get_beamforming_pipeline_decl(&resolver_context)
                         .context("failed when creating beamforming pipeline")?,
                 );
             }

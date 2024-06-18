@@ -1,0 +1,40 @@
+pipeline {
+  processors {
+    check_format {
+      channels: 3
+    }
+  }
+  processors {
+    resample {
+      output_frame_rate: 16000
+    }
+  }
+  processors {
+    wrap_chunk {
+      inner_block_size: 256
+      inner {
+        pipeline {
+          processors {
+            maybe_wav_dump {
+              filename: "pre_beamforming.wav"
+            }
+          }
+          processors {
+            plugin {
+              path: "/usr/local/lib64/libigo_processor.so"
+              constructor: "plugin_processor_create"
+            }
+          }
+          processors {
+            maybe_wav_dump {
+              filename: "post_beamforming.wav"
+            }
+          }
+        }
+      }
+    }
+  }
+  processors {
+    maybe_duplicate_channel_0 {}
+  }
+}
