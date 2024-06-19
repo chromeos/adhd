@@ -26,7 +26,6 @@
 #include "cras/common/rust_common.h"
 #include "cras/server/main_message.h"
 #include "cras/server/platform/features/features.h"
-#include "cras/server/platform/features/override.h"
 #include "cras/server/platform/segmentation/segmentation.h"
 #include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_string.h"
