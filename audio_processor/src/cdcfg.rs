@@ -103,11 +103,19 @@ fn resolve(
             None => Processor::Nothing,
         },
         CheckFormat(check_format) => Processor::CheckFormat {
-            channels: check_format.channels.try_into().ok(),
-            block_size: check_format.block_size.try_into().ok(),
-            frame_rate: check_format.frame_rate.try_into().ok(),
+            channels: positive_or_none(check_format.channels),
+            block_size: positive_or_none(check_format.block_size),
+            frame_rate: positive_or_none(check_format.frame_rate),
         },
     })
+}
+
+fn positive_or_none(val: i32) -> Option<usize> {
+    match val.try_into() {
+        Ok(0) => None,
+        Ok(val) => Some(val),
+        Err(_) => None,
+    }
 }
 
 fn resolve_str(context: &dyn ResolverContext, s: &str) -> anyhow::Result<Processor> {
@@ -167,7 +175,7 @@ mod tests {
   processors {
     check_format {
       channels: 2
-      block_size: -1
+      block_size: 0
       frame_rate: -1
     }
   }

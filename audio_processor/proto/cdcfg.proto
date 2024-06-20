@@ -77,6 +77,7 @@ message MaybeDuplicateChannel0 {}
 
 // Check the audio format of the pipeline at the position
 // this virtual processor is inserted.
+// Checking is skipped if zero or negative.
 message CheckFormat {
   int32 channels = 1;
   int32 block_size = 2;
