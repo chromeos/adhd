@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
-load("//:utils.bzl", "require_config")
+load("//:utils.bzl", "require_config", "require_no_config")
 
 cc_library(
     name = "test_support",
@@ -853,6 +853,7 @@ cc_test(
         "//cras/src/server:cras_dbus_util.c",
     ],
     flaky = True,  # TODO(b/271618403): Fix the flake.
+    target_compatible_with = require_no_config("//:chromeos_build"),
     deps = [
         ":test_support",
         "//cras/common:rust_common_cc",
