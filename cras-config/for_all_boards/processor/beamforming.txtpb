@@ -20,10 +20,18 @@ pipeline {
             }
           }
           processors {
-            plugin {
-              path: "/usr/local/lib64/libigo_processor.so"
+            dlc_plugin {
+              dlc_id: "intelligo-beamforming-dlc"
+              path: "libigo_processor.so"
               constructor: "plugin_processor_create"
             }
+            # # Replace the dlc_plugin above with the plugin below
+            # # to use a custom manually copied plugin shared library instead
+            # # the one from the DLC.
+            # plugin {
+            #   path: "/usr/local/lib64/libigo_processor.so"
+            #   constructor: "plugin_processor_create"
+            # }
           }
           processors {
             maybe_wav_dump {
