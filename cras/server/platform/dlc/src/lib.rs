@@ -48,6 +48,7 @@ pub enum CrasDlcId {
     CrasDlcSrBt,
     CrasDlcNcAp,
     CrasDlcNuance,
+    CrasDlcIntelligoBeamforming,
 }
 
 // The list of DLCs that are installed automatically.
@@ -55,9 +56,10 @@ const MANAGED_DLCS: &[CrasDlcId] = &[
     CrasDlcId::CrasDlcSrBt,
     CrasDlcId::CrasDlcNcAp,
     CrasDlcId::CrasDlcNuance,
+    CrasDlcId::CrasDlcIntelligoBeamforming,
 ];
 
-pub const NUM_CRAS_DLCS: usize = 3;
+pub const NUM_CRAS_DLCS: usize = 4;
 // Assert that NUM_CRAS_DLCS is updated.
 // We cannot assign MANAGED_DLCS.len() to NUM_CRAS_DLCS because cbindgen does
 // not seem to understand it.
@@ -72,6 +74,7 @@ impl CrasDlcId {
             CrasDlcId::CrasDlcSrBt => "sr-bt-dlc",
             CrasDlcId::CrasDlcNcAp => "nc-ap-dlc",
             CrasDlcId::CrasDlcNuance => "nuance-dlc",
+            CrasDlcId::CrasDlcIntelligoBeamforming => "intelligo-beamforming-dlc",
         }
     }
 }

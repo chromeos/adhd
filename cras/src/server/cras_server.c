@@ -611,6 +611,8 @@ int cras_server_run(unsigned int profile_disable_mask) {
               [CrasDlcSrBt] = true,
               [CrasDlcNcAp] = true,
               [CrasDlcNuance] = true,
+              [CrasDlcIntelligoBeamforming] =
+                  cras_s2_get_beamforming_supported(),
           },
   };
   cras_dlc_manager_init(dl_cfg);
