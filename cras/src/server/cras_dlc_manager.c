@@ -7,7 +7,7 @@
 #include "cras/server/platform/dlc/dlc.h"
 #include "cras/src/server/cras_server_metrics.h"
 
-void cras_dlc_manager_init() {
+void cras_dlc_manager_init(struct CrasDlcDownloadConfig dl_cfg) {
   download_dlcs_until_installed_with_thread(
-      cras_server_metrics_dlc_install_retried_times_on_success);
+      dl_cfg, cras_server_metrics_dlc_install_retried_times_on_success);
 }

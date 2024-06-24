@@ -1,5 +1,5 @@
 {
-  "checksum": "c10ffaace9b5872a564673493e80fe7719a6c41d46278853196bfbbf557a3f2d",
+  "checksum": "139a0abb791d9dee74522490e25ce6f5d63f7c5e03272325665b93ebb9a7d30c",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2259,6 +2259,10 @@
             {
               "id": "protobuf 3.2.0",
               "target": "protobuf"
+            },
+            {
+              "id": "static_assertions 1.1.0",
+              "target": "static_assertions"
             },
             {
               "id": "thiserror 1.0.50",
@@ -7949,6 +7953,45 @@
       "license_ids": [],
       "license_file": null
     },
+    "static_assertions 1.1.0": {
+      "name": "static_assertions",
+      "version": "1.1.0",
+      "package_url": "https://github.com/nvzqz/static-assertions-rs",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/static_assertions/1.1.0/download",
+          "sha256": "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "static_assertions",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "static_assertions",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2015",
+        "version": "1.1.0"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
     "strength_reduce 0.2.4": {
       "name": "strength_reduce",
       "version": "0.2.4",
@@ -11844,6 +11887,7 @@
     "rustfft 6.1.0",
     "serde 1.0.152",
     "serde_json 1.0.96",
+    "static_assertions 1.1.0",
     "syslog 6.0.1",
     "thiserror 1.0.50",
     "tokio 1.29.1",

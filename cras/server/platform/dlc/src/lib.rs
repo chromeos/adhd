@@ -57,6 +57,12 @@ const MANAGED_DLCS: &[CrasDlcId] = &[
     CrasDlcId::CrasDlcNuance,
 ];
 
+pub const NUM_CRAS_DLCS: usize = 3;
+// Assert that NUM_CRAS_DLCS is updated.
+// We cannot assign MANAGED_DLCS.len() to NUM_CRAS_DLCS because cbindgen does
+// not seem to understand it.
+static_assertions::const_assert_eq!(NUM_CRAS_DLCS, MANAGED_DLCS.len());
+
 pub const CRAS_DLC_ID_STRING_MAX_LENGTH: i32 = 50;
 impl CrasDlcId {
     fn as_str(&self) -> &'static str {
@@ -144,12 +150,23 @@ fn reset_overrides() {
 type CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc =
     extern "C" fn(CrasDlcId, i32) -> libc::c_int;
 
+#[repr(C)]
+pub struct CrasDlcDownloadConfig {
+    pub dlcs_to_download: [bool; NUM_CRAS_DLCS],
+}
+
 fn download_dlcs_until_installed(
+    download_config: CrasDlcDownloadConfig,
     cras_server_metrics_dlc_install_retried_times_on_success: CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc,
 ) {
     let mut retry_sleep = time::Duration::from_secs(30);
     let max_retry_sleep = time::Duration::from_secs(1800);
-    let mut todo: Vec<_> = MANAGED_DLCS.iter().collect();
+    let mut todo: Vec<_> = download_config
+        .dlcs_to_download
+        .iter()
+        .zip(MANAGED_DLCS.iter())
+        .filter_map(|(download, id)| if *download { Some(id) } else { None })
+        .collect();
     for retry_count in 0..i32::MAX {
         let mut todo_next = vec![];
         for &dlc in todo.iter() {

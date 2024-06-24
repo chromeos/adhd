@@ -72,12 +72,16 @@ pub extern "C" fn cras_dlc_reset_overrides_for_testing() {
 /// Start a thread to download all DLCs.
 #[no_mangle]
 pub extern "C" fn download_dlcs_until_installed_with_thread(
+    download_config: super::CrasDlcDownloadConfig,
     cras_server_metrics_dlc_install_retried_times_on_success: CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc,
 ) {
     thread::Builder::new()
         .name("cras-dlc".into())
         .spawn(move || {
-            download_dlcs_until_installed(cras_server_metrics_dlc_install_retried_times_on_success)
+            download_dlcs_until_installed(
+                download_config,
+                cras_server_metrics_dlc_install_retried_times_on_success,
+            )
         })
         .unwrap();
 }

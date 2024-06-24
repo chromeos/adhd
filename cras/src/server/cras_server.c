@@ -605,7 +605,15 @@ int cras_server_run(unsigned int profile_disable_mask) {
   cras_tm_create_timer(tm, 10000, check_internal_card, (void*)10);
 
   // Download DLC packages
-  cras_dlc_manager_init();
+  struct CrasDlcDownloadConfig dl_cfg = {
+      .dlcs_to_download =
+          {
+              [CrasDlcSrBt] = true,
+              [CrasDlcNcAp] = true,
+              [CrasDlcNuance] = true,
+          },
+  };
+  cras_dlc_manager_init(dl_cfg);
 
   // Main server loop - client callbacks are run from this context.
   while (1) {
