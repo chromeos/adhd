@@ -37,3 +37,4 @@ system_api = { path = "repositories/system_api_stub" } # ignored by ebuild
 # system_api = { path = "../../platform2/system_api" } # ignored by ebuild
 
 featured = { path = "repositories/featured_stub" } # ignored by ebuild
+minijail = { path = "repositories/minijail_stub" } # ignored by ebuild

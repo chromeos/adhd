@@ -336,6 +336,7 @@ dependencies = [
  "hound",
  "libc",
  "log",
+ "minijail",
  "protobuf",
  "protobuf-codegen",
  "protobuf-parse",
@@ -795,6 +796,10 @@ checksum = "5a634b1c61a95585bd15607c6ab0c4e5b226e695ff2800ba0cdccddf208c406c"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "minijail"
+version = "0.1.0"
 
 [[package]]
 name = "minimal-lexical"

@@ -16,7 +16,11 @@ cras_dlc = "*"
 audio_processor = "*"
 cras_features_backend = "*"
 cras_s2 = "*"
+minijail = { version = "*", optional = true } # provided by ebuild
 
 [build-dependencies]
 protobuf-codegen = "3.2.0"
 protobuf-parse = "3.2.0"
+
+[features]
+chromiumos = ["minijail"]
