@@ -51,11 +51,6 @@ struct Command {
     /// Also print JSON profile results in stdout.
     #[arg(long)]
     json: bool,
-
-    /// The number of output channels.
-    /// If not specified, assumes output channels equals to input channels.
-    #[arg(long)]
-    output_channels: Option<u16>,
 }
 
 fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
@@ -257,7 +252,6 @@ mod tests {
             block_size_ms: 10,
             block_size_frames: None,
             json: false,
-            output_channels: None,
         });
 
         // Verify the output.
