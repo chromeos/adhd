@@ -74,10 +74,12 @@ build --copt=-g --linkopt=-g --strip=never
 
 test --run_under=//rules:test_wrapper.py
 
+# Make test output less noisy, but helpful when there's an error.
+test --test_output=errors
+test --test_summary=terse
+
 # CI flags
 build:ci --show_progress_rate_limit=10
-test:ci --test_output=errors
-test:ci --test_summary=terse
 
 # b/316075428: Disable bzlmod for now, to avoid generating MODULE.bazel files.
 common --noexperimental_enable_bzlmod
