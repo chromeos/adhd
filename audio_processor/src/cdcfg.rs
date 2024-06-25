@@ -17,7 +17,7 @@ pub trait ResolverContext {
 }
 
 #[derive(Default)]
-struct NaiveResolverContext {
+pub struct NaiveResolverContext {
     wav_dump_root: Option<PathBuf>,
     duplicate_channel_0: Option<usize>,
 }

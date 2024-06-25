@@ -3,10 +3,13 @@
 // found in the LICENSE file.
 
 use std::num::ParseFloatError;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
+use audio_processor::cdcfg::parse;
+use audio_processor::cdcfg::NaiveResolverContext;
 use audio_processor::config::PipelineBuilder;
 use audio_processor::config::Processor;
 use audio_processor::processors::profile;
@@ -22,8 +25,9 @@ use serde::Serialize;
 
 #[derive(Parser, Debug)]
 struct Command {
-    /// Path to the plugin library (.so)
-    plugin: PathBuf,
+    /// Path to the plugin library (.so) or pipeline (.txtpb)
+    #[arg(value_parser = parse_plugin_or_pipeline)]
+    plugin_or_pipeline: PluginOrPipeline,
 
     /// Path of input WAVE file
     input: PathBuf,
@@ -51,6 +55,23 @@ struct Command {
     /// Also print JSON profile results in stdout.
     #[arg(long)]
     json: bool,
+}
+
+#[derive(Debug, Clone)]
+enum PluginOrPipeline {
+    Plugin(PathBuf),
+    Pipeline(PathBuf),
+}
+
+fn parse_plugin_or_pipeline(arg: &str) -> anyhow::Result<PluginOrPipeline> {
+    let path = Path::new(arg);
+    match path.extension().map(|osstr| osstr.to_str()).flatten() {
+        Some("so") => Ok(PluginOrPipeline::Plugin(path.into())),
+        Some("txtpb") => Ok(PluginOrPipeline::Pipeline(path.into())),
+        _ => Err(anyhow::anyhow!(
+            "invalid extension; supported extensions: .so, .txtpb"
+        )),
+    }
 }
 
 fn parse_duration(arg: &str) -> Result<std::time::Duration, ParseFloatError> {
@@ -127,11 +148,17 @@ fn run(command: Command) {
     let mut source = WavSource::new(reader, block_size);
     let mut check_shape = CheckShape::<f32>::new(source.get_output_format());
 
-    let pipeline_decl = vec![
-        Processor::Plugin {
-            path: command.plugin,
+    let processor = match command.plugin_or_pipeline {
+        PluginOrPipeline::Plugin(path) => Processor::Plugin {
+            path: path,
             constructor: command.plugin_name,
         },
+        PluginOrPipeline::Pipeline(path) => {
+            parse(&NaiveResolverContext::default(), &path).unwrap_or_else(|err| panic!("{err:#}"))
+        }
+    };
+    let pipeline_decl = vec![
+        processor,
         Processor::WavSink {
             path: command.output,
         },
@@ -244,7 +271,9 @@ mod tests {
         drop(writer);
 
         super::run(crate::Command {
-            plugin: env::var("LIBTEST_PLUGINS_SO").unwrap().into(),
+            plugin_or_pipeline: super::PluginOrPipeline::Plugin(
+                env::var("LIBTEST_PLUGINS_SO").unwrap().into(),
+            ),
             input: in_wav_path,
             output: out_wav_path.clone(),
             sleep_duration: None,
