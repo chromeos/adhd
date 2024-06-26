@@ -20,7 +20,6 @@ use crate::processors::peer::messages::Init;
 use crate::processors::peer::messages::RequestOp;
 use crate::processors::peer::messages::INIT_MAX_SIZE;
 use crate::AudioProcessor;
-use crate::Format;
 use crate::MultiBuffer;
 use crate::MultiSlice;
 use crate::ProcessorVec;
@@ -28,8 +27,6 @@ use crate::ProcessorVec;
 pub struct Worker<'a> {
     fd: BorrowedFd<'a>,
     pipeline: ProcessorVec,
-    input_format: Format,
-    output_format: Format,
     input_buffer: MultiBuffer<f32>,
 }
 
@@ -64,8 +61,6 @@ impl<'a> Worker<'a> {
         Ok(Self {
             fd,
             pipeline,
-            input_format: config.input_format,
-            output_format,
             input_buffer: MultiBuffer::new(config.input_format.into()),
         })
     }
@@ -161,8 +156,6 @@ fn send_error_response(fd: BorrowedFd, err: anyhow::Error) -> anyhow::Result<()>
 mod tests {
     use std::io::IoSlice;
     use std::os::fd::AsFd;
-
-    use zerocopy::AsBytes;
 
     use super::Worker;
     use crate::config;
