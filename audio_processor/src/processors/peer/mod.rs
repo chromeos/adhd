@@ -8,6 +8,7 @@ mod messages;
 mod worker;
 
 pub use host::BlockingSeqPacketProcessor;
+pub use managed::AudioWorkerSubprocessFactory;
 pub use managed::ManagedBlockingSeqPacketProcessor;
 pub use managed::ThreadedWorkerFactory;
 pub use managed::WorkerFactory;

@@ -97,6 +97,7 @@ rust_test_suite(
     deps = [
         ":audio_processor",
     ] + all_crate_deps(
+        normal = True,
         normal_dev = True,
     ),
 )

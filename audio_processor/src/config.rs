@@ -142,6 +142,12 @@ impl PipelineBuilder {
         self
     }
 
+    /// Use the factory to spawn peer workers.
+    pub fn with_worker_factory(mut self, factory: impl WorkerFactory + 'static) -> Self {
+        self.worker_factory = Rc::new(factory);
+        self
+    }
+
     fn output_format(&self) -> Format {
         self.pipeline
             .get_last_output_format()

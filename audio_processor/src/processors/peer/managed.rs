@@ -6,6 +6,8 @@ use std::os::fd::OwnedFd;
 use std::thread::JoinHandle;
 
 use anyhow::Context;
+use command_fds::CommandFdExt;
+use command_fds::FdMapping;
 
 use super::create_socketpair;
 use super::BlockingSeqPacketProcessor;
@@ -85,6 +87,36 @@ impl WorkerHandle for ThreadedWorkerHandle {}
 impl Drop for ThreadedWorkerHandle {
     fn drop(&mut self) {
         let _ = self.join_handle.take().unwrap().join();
+    }
+}
+
+pub struct AudioWorkerSubprocessFactory;
+
+impl WorkerFactory for AudioWorkerSubprocessFactory {
+    fn create(&self, worker_fd: OwnedFd) -> anyhow::Result<Box<dyn WorkerHandle>> {
+        let child = std::process::Command::new("audio-worker")
+            .fd_mappings(vec![FdMapping {
+                parent_fd: worker_fd,
+                child_fd: 3,
+            }])
+            .context("fd_mappings")?
+            .spawn()
+            .context("spawn audio-worker")?;
+        Ok(Box::new(AudioWorkerSubprocessHandle { child }))
+    }
+}
+
+struct AudioWorkerSubprocessHandle {
+    child: std::process::Child,
+}
+
+impl WorkerHandle for AudioWorkerSubprocessHandle {}
+
+impl Drop for AudioWorkerSubprocessHandle {
+    fn drop(&mut self) {
+        if let Err(err) = self.child.kill() {
+            eprintln!("failed to kill audio-worker subprocess: {err}");
+        }
     }
 }
 

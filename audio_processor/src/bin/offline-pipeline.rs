@@ -12,6 +12,7 @@ use audio_processor::cdcfg::parse;
 use audio_processor::cdcfg::NaiveResolverContext;
 use audio_processor::config::PipelineBuilder;
 use audio_processor::config::Processor;
+use audio_processor::processors::peer::AudioWorkerSubprocessFactory;
 use audio_processor::processors::profile;
 use audio_processor::processors::profile::Measurements;
 use audio_processor::processors::CheckShape;
@@ -148,9 +149,9 @@ fn run(command: Command) {
     let mut source = WavSource::new(reader, block_size);
     let mut check_shape = CheckShape::<f32>::new(source.get_output_format());
 
-    let processor = match command.plugin_or_pipeline {
+    let processor = match &command.plugin_or_pipeline {
         PluginOrPipeline::Plugin(path) => Processor::Plugin {
-            path: path,
+            path: path.into(),
             constructor: command.plugin_name,
         },
         PluginOrPipeline::Pipeline(path) => {
@@ -168,6 +169,7 @@ fn run(command: Command) {
     let (profile_sender, profile_receiver) = channel();
     let mut pipeline = PipelineBuilder::new(check_shape.get_output_format())
         .with_profile_sender(profile_sender)
+        .with_worker_factory(AudioWorkerSubprocessFactory)
         .build(Processor::Pipeline {
             processors: pipeline_decl,
         })

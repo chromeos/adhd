@@ -14,6 +14,7 @@ bazel = []
 anyhow = "1.0.70"
 assert_matches = "1.5.0"
 clap = { version = "4.5.4", features = ["derive"] }
+command-fds = "0.3.0"
 dasp_sample = "0.11.0"
 hound = "3.4.0"
 libc = "0.2.124"
@@ -33,4 +34,3 @@ protobuf-parse = "3.2.0"
 
 [dev-dependencies]
 tempfile = "3.4.0"
-command-fds = "0.3.0"
