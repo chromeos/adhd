@@ -222,19 +222,23 @@ fn run(command: Command) {
 
     // Drop pipeline to flush profile.
     drop(pipeline);
-    // Receive the first stat.
-    let stats = profile_receiver.recv().unwrap();
 
-    let clip_duration = stats.frames_generated as f64 / stats.output_format.frame_rate as f64;
-    let result = ProfileResult::new(&stats.measurements, clip_duration);
-    eprintln!("cpu: {:?}", result.cpu);
-    eprintln!("wall: {:?}", result.wall);
+    // Dump profiling result if running with plugin mode.
+    if let PluginOrPipeline::Plugin(_) = command.plugin_or_pipeline {
+        // Receive the first stat.
+        let stats = profile_receiver.recv().unwrap();
 
-    if command.json {
-        println!(
-            "{}",
-            serde_json::to_string(&result).expect("JSON serialization failed")
-        );
+        let clip_duration = stats.frames_generated as f64 / stats.output_format.frame_rate as f64;
+        let result = ProfileResult::new(&stats.measurements, clip_duration);
+        eprintln!("cpu: {:?}", result.cpu);
+        eprintln!("wall: {:?}", result.wall);
+
+        if command.json {
+            println!(
+                "{}",
+                serde_json::to_string(&result).expect("JSON serialization failed")
+            );
+        }
     }
 }
 
