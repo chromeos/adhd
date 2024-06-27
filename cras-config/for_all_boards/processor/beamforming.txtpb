@@ -20,12 +20,16 @@ pipeline {
             }
           }
           processors {
-            dlc_plugin {
-              dlc_id: "intelligo-beamforming-dlc"
-              path: "libigo_processor.so"
-              constructor: "plugin_processor_create"
+            peer {
+              processor {
+                dlc_plugin {
+                  dlc_id: "intelligo-beamforming-dlc"
+                  path: "libigo_processor.so"
+                  constructor: "plugin_processor_create"
+                }
+              }
             }
-            # # Replace the dlc_plugin above with the plugin below
+            # # Replace the peer dlc_plugin above with the plugin below
             # # to use a custom manually copied plugin shared library instead
             # # the one from the DLC.
             # plugin {

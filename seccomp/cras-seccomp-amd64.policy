@@ -10,6 +10,7 @@ getrusage: 1
 getuid: 1
 lstat: 1
 read: 1
+pread64: 1
 recvfrom: 1
 poll: 1
 ppoll: 1
@@ -52,8 +53,11 @@ clock_nanosleep: 1
 pipe: 1
 ftruncate: 1
 fallocate: 1
-# Don't allow mprotect with PROT_EXEC.
-mprotect: arg2 in ~PROT_EXEC
+# TODO(b/349784210): Use a separate seccomp filter for the processing worker
+# and restore below.
+# # Don't allow mprotect with PROT_EXEC.
+# mprotect: arg2 in ~PROT_EXEC
+mprotect: 1
 connect: 1
 getsockname: 1
 setsockopt: 1
@@ -101,9 +105,11 @@ flock: 1
 ioctl: arg1 in 0xffff41ff && arg1 & 0x00004100 || arg1 in 0xffff55ff && arg1 & 0x00005500 || arg1 == 0x8008451b || arg1 == 0x81004506 || arg1 == 0x80084525 || arg1 == 0x800448d3
 getpid: 1
 prlimit64: 1
+kill: 1
 tgkill: 1
 mremap: 1
 dup: 1
+dup2: 1
 gettimeofday: 1
 fstatfs: 1
 sched_yield: 1
@@ -113,3 +119,7 @@ eventfd2: 1
 shutdown: 1
 mkdir: 1
 mkdirat: 1
+execve: 1
+arch_prctl: 1
+set_tid_address: 1
+sigaltstack: 1

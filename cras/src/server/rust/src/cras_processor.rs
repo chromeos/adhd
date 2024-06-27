@@ -17,6 +17,7 @@ use audio_processor::config::PreloadedProcessor;
 use audio_processor::config::Processor;
 use audio_processor::processors::binding::plugin_processor;
 use audio_processor::processors::export_plugin;
+use audio_processor::processors::peer::AudioWorkerSubprocessFactory;
 use audio_processor::processors::CheckShape;
 use audio_processor::processors::PluginProcessor;
 use audio_processor::processors::ThreadedProcessor;
@@ -254,6 +255,8 @@ impl CrasProcessor {
 
         let decl_debug = format!("{decl:?}");
         let pipeline = PipelineBuilder::new(config.format())
+            // TODO(b/349784210): Use a hardened worker factory.
+            .with_worker_factory(AudioWorkerSubprocessFactory)
             .build(Processor::Pipeline { processors: decl })
             .context("failed to build pipeline")?;
 
