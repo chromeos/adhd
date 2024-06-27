@@ -25,7 +25,7 @@
 #define DIVISION_FRAMES 32
 #define DIVISION_FRAMES_MASK (DIVISION_FRAMES - 1)
 
-const float uninitialized_value = -1;
+static const float uninitialized_value = -1;
 static int drc_math_initialized;
 
 void dk_init(struct drc_kernel* dk, float sample_rate) {
