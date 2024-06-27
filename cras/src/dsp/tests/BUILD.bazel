@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load("//:utils.bzl", "require_config")
 
 cc_library(
@@ -43,6 +44,7 @@ cc_binary(
         ":dsp_test_util",
         ":raw",
         "//cras/src/dsp",
+        "//cras/src/dsp/rust",
     ],
 )
 

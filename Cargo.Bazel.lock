@@ -1,5 +1,5 @@
 {
-  "checksum": "14553bd9a11f8fb8085ed8a52552151c47b90674f001d3d755683481f8e994e9",
+  "checksum": "363dc04fbaf8a4347a8e034dc1a08c4d0428418a39282fc83940f98d6db4ebb1",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2638,6 +2638,46 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "dsp_rust 0.1.0": {
+      "name": "dsp_rust",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "dsp_rust",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "dsp_rust",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "libc 0.2.153",
+              "target": "libc"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.1.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
     },
     "either 1.9.0": {
       "name": "either",
@@ -11469,6 +11509,7 @@
     "cras_features_backend 0.1.0": "cras/server/platform/features",
     "cras_rust 0.1.1": "cras/src/server/rust/staticlib",
     "cras_s2 0.1.0": "cras/server/s2",
+    "dsp_rust 0.1.0": "cras/src/dsp/rust",
     "rock 0.1.0": "rock",
     "sof_tests 0.1.0": "sof_tests"
   },

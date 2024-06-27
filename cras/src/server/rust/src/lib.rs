@@ -16,3 +16,4 @@ pub use logging::bindings as logging_bindings;
 mod proto;
 pub mod string;
 pub use cras_s2;
+pub use dsp_rust;

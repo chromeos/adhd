@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("//:utils.bzl", "require_config")
 
 cc_library(
@@ -33,7 +33,7 @@ cc_library(
         "biquad.c",
         "crossover.c",
         "crossover2.c",
-        "dcblock.c",
+        #"dcblock.c",
         "drc_kernel.c",
         "eq.c",
         "eq2.c",
@@ -41,7 +41,7 @@ cc_library(
     ],
     hdrs = [
         "crossover.h",
-        "dcblock.h",
+        #"dcblock.h",
         "eq.h",
         "quad_rotation.h",
     ],
@@ -55,6 +55,7 @@ cc_library(
         ":dsp_helpers",
         ":dsp_util",
         "//cras/src/common",
+        "//cras/src/dsp/rust",
         "//cras/src/server:dsp_types",
         "@thesofproject_sof",
     ],
@@ -162,5 +163,15 @@ exports_files(
     ]),
     visibility = [
         "//cras/src/tests:__pkg__",
+    ],
+)
+
+cc_test(
+    name = "dcblock_test",
+    srcs = ["dcblock_test.cc"],
+    deps = [
+        ":dsp",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )

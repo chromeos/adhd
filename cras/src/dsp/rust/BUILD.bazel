@@ -1,0 +1,45 @@
+# Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@crate_index//:defs.bzl", "all_crate_deps")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_rust//rust:defs.bzl", "rust_test")
+load("//:utils.bzl", "require_no_config")
+load("//rules/cbindgen:rules.bzl", "cras_cbindgen")
+load("//rules/rust:defs.bzl", "cras_rust_library")
+
+cras_rust_library(
+    name = "dsp_rust",
+    srcs = glob(include = ["src/**/*.rs"]),
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True),
+)
+
+cras_cbindgen(
+    name = "dcblock.h",
+    srcs = [
+        "src/dcblock.rs",
+        "src/dcblock_bindings.rs",
+        "src/lib.rs",
+    ],
+    out = "headers/dcblock.h",
+    copyright_year = 2024,
+)
+
+rust_test(
+    name = "rust_test",
+    crate = ":dsp_rust",
+    target_compatible_with = require_no_config("//:system_cras_rust_build"),
+)
+
+cc_library(
+    name = "rust",
+    hdrs = glob(include = ["headers/**/*.h"]),
+    visibility = [
+        "//cras/src/dsp:__pkg__",
+        "//cras/src/dsp/tests:__pkg__",
+    ],
+    deps = [":dsp_rust"],
+)

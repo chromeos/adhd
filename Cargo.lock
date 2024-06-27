@@ -333,6 +333,7 @@ dependencies = [
  "cras_dlc",
  "cras_features_backend",
  "cras_s2",
+ "dsp_rust",
  "hound",
  "libc",
  "log",
@@ -448,6 +449,13 @@ dependencies = [
  "dbus",
  "libc",
  "tokio",
+]
+
+[[package]]
+name = "dsp_rust"
+version = "0.1.0"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

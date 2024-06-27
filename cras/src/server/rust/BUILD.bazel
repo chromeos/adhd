@@ -20,6 +20,7 @@ cras_rust_library(
         "//cras/server/platform/dlc",
         "//cras/server/platform/features:backend",
         "//cras/server/s2",
+        "//cras/src/dsp/rust:dsp_rust",
     ] + all_crate_deps(),
 )
 

@@ -3,7 +3,7 @@
  * found in the LICENSE file.
  */
 
-#include "cras/src/dsp/dcblock.h"
+#include "cras/src/dsp/rust/headers/dcblock.h"
 
 #include <stdlib.h>
 

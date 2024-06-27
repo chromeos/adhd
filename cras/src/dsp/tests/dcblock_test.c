@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "cras/src/dsp/dcblock.h"
 #include "cras/src/dsp/dsp_util.h"
+#include "cras/src/dsp/rust/headers/dcblock.h"
 #include "cras/src/dsp/tests/dsp_test_util.h"
 #include "cras/src/dsp/tests/raw.h"
 
