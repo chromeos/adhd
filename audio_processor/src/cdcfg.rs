@@ -107,6 +107,9 @@ fn resolve(
             block_size: positive_or_none(check_format.block_size),
             frame_rate: positive_or_none(check_format.frame_rate),
         },
+        Peer(peer) => Processor::Peer {
+            processor: Box::new(resolve(context, &peer.processor).context("peer.processor")?),
+        },
     })
 }
 
@@ -179,6 +182,13 @@ mod tests {
       frame_rate: -1
     }
   }
+  processors {
+    peer {
+      processor {
+        resample { output_frame_rate: 48000 }
+      }
+    }
+  }
 }"#,
         )
         .unwrap();
@@ -203,6 +213,11 @@ mod tests {
                         channels: Some(2),
                         block_size: None,
                         frame_rate: None
+                    },
+                    Processor::Peer {
+                        processor: Box::new(Processor::Resample {
+                            output_frame_rate: 48000
+                        })
                     }
                 ]
             }

@@ -15,6 +15,7 @@ message Processor {
     ShuffleChannels shuffle_channels = 7;
     MaybeDuplicateChannel0 maybe_duplicate_channel_0 = 8;
     CheckFormat check_format = 9;
+    Peer peer = 10;
   };
 }
 
@@ -82,4 +83,11 @@ message CheckFormat {
   int32 channels = 1;
   int32 block_size = 2;
   int32 frame_rate = 3;
+}
+
+// Run the processor in a peer.
+// Depending on the context, the peer may be in a separate thread, process
+// or a sandboxed process.
+message Peer {
+  Processor processor = 1;
 }
