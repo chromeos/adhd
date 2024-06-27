@@ -4,6 +4,7 @@
 
 use std::fmt::Debug;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
 use anyhow::bail;
@@ -13,6 +14,9 @@ use hound::WavWriter;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::processors::peer::ManagedBlockingSeqPacketProcessor;
+use crate::processors::peer::ThreadedWorkerFactory;
+use crate::processors::peer::WorkerFactory;
 use crate::processors::profile::Profile;
 use crate::processors::profile::ProfileStats;
 use crate::processors::ChunkWrapper;
@@ -58,6 +62,9 @@ pub enum Processor {
         frame_rate: Option<usize>,
     },
     Nothing,
+    Peer {
+        processor: Box<Processor>,
+    },
 }
 
 /// PreloadedProcessor is a config that describes a processor that is already created
@@ -109,6 +116,7 @@ pub struct PipelineBuilder {
     input_format: Format,
     pipeline: ProcessorVec,
     profile_sender: Option<Sender<ProfileStats>>,
+    worker_factory: Rc<dyn WorkerFactory>,
 }
 
 impl PipelineBuilder {
@@ -117,6 +125,7 @@ impl PipelineBuilder {
             input_format,
             pipeline: vec![],
             profile_sender: None,
+            worker_factory: Rc::new(ThreadedWorkerFactory),
         }
     }
 
@@ -144,6 +153,7 @@ impl PipelineBuilder {
             input_format,
             pipeline: vec![],
             profile_sender: self.profile_sender.clone(),
+            worker_factory: self.worker_factory.clone(),
         }
     }
 
@@ -276,6 +286,16 @@ impl PipelineBuilder {
             }
             Nothing => {
                 // Do nothing.
+            }
+            Peer { processor } => {
+                self.pipeline.add(
+                    ManagedBlockingSeqPacketProcessor::new(
+                        self.worker_factory.as_ref(),
+                        self.output_format(),
+                        *processor,
+                    )
+                    .context("ManagedBlockingSeqPacketProcessor::new")?,
+                );
             }
         }
         Ok(())
@@ -609,6 +629,32 @@ mod tests {
         assert!(
             err.to_string().contains("expected frame_rate 99999"),
             "{err}"
+        );
+    }
+
+    #[test]
+    fn peer() {
+        let mut input: MultiBuffer<f32> =
+            MultiBuffer::from(vec![vec![1., 2., 3., 4.], vec![5., 6., 7., 8.]]);
+
+        let input_format = Format {
+            channels: 2,
+            block_size: 4,
+            frame_rate: 48000,
+        };
+
+        let mut pipeline = PipelineBuilder::new(input_format)
+            .build(Processor::Peer {
+                processor: Box::new(Processor::Negate),
+            })
+            .unwrap();
+
+        let output = pipeline.process(input.as_multi_slice()).unwrap();
+
+        // output = abs(input)
+        assert_eq!(
+            output.into_raw(),
+            [[-1., -2., -3., -4.], [-5., -6., -7., -8.]]
         );
     }
 }

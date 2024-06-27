@@ -15,7 +15,7 @@ use crate::AudioProcessor;
 use crate::Format;
 
 /// WorkerHandle holds the resources used by a PeerProcessor worker.
-pub trait WorkerHandle {}
+pub trait WorkerHandle: Send {}
 
 /// A factory for creating PeerProcessor workers, represented by `WorkerHandle`s.
 pub trait WorkerFactory {
@@ -31,7 +31,7 @@ pub struct ManagedBlockingSeqPacketProcessor {
 
 impl ManagedBlockingSeqPacketProcessor {
     pub fn new(
-        worker_factory: impl WorkerFactory,
+        worker_factory: &dyn WorkerFactory,
         input_format: Format,
         config: Processor,
     ) -> anyhow::Result<Self> {
@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn process_negate() {
         let mut processor = ManagedBlockingSeqPacketProcessor::new(
-            ThreadedWorkerFactory,
+            &ThreadedWorkerFactory,
             Format {
                 channels: 2,
                 block_size: 4,
