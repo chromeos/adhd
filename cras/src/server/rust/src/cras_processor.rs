@@ -256,7 +256,7 @@ impl CrasProcessor {
         let decl_debug = format!("{decl:?}");
         let pipeline = PipelineBuilder::new(config.format())
             // TODO(b/349784210): Use a hardened worker factory.
-            .with_worker_factory(AudioWorkerSubprocessFactory)
+            .with_worker_factory(AudioWorkerSubprocessFactory::default().with_set_thread_priority())
             .build(Processor::Pipeline { processors: decl })
             .context("failed to build pipeline")?;
 

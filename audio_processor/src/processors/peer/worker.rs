@@ -19,10 +19,14 @@ use crate::processors::peer::messages::recv;
 use crate::processors::peer::messages::Init;
 use crate::processors::peer::messages::RequestOp;
 use crate::processors::peer::messages::INIT_MAX_SIZE;
+use crate::util::set_thread_priority;
 use crate::AudioProcessor;
 use crate::MultiBuffer;
 use crate::MultiSlice;
 use crate::ProcessorVec;
+
+pub(super) const AUDIO_WORKER_SET_THREAD_PRIORITY: &'static str =
+    "AUDIO_WORKER_SET_THREAD_PRIORITY";
 
 pub struct Worker<'a> {
     fd: BorrowedFd<'a>,
@@ -37,6 +41,10 @@ enum Response<'a> {
 
 impl<'a> Worker<'a> {
     fn new(fd: BorrowedFd<'a>) -> anyhow::Result<Self> {
+        if std::env::var(AUDIO_WORKER_SET_THREAD_PRIORITY).is_ok() {
+            set_thread_priority().context("set_thread_priority")?;
+        }
+
         let mut buf = vec![0u8; INIT_MAX_SIZE];
         let (request_op, payload_len) = recv::<RequestOp>(fd.as_fd(), &mut buf).context("init")?;
         if request_op != RequestOp::Init {

@@ -4,8 +4,11 @@
 
 use std::path::Path;
 
+use anyhow::ensure;
 use anyhow::Context;
 use hound::WavReader;
+use nix::sys::resource::setrlimit;
+use nix::sys::resource::Resource;
 
 use crate::MultiBuffer;
 use crate::Sample;
@@ -24,4 +27,22 @@ pub fn read_wav<T: Sample + hound::Sample>(
     }
 
     Ok((spec, out))
+}
+
+// TODO(b/268271100): Call the C version when we can build C code before Rust.
+pub fn set_thread_priority() -> anyhow::Result<()> {
+    // CRAS_SERVER_RT_THREAD_PRIORITY 12
+    let p = 12;
+    setrlimit(Resource::RLIMIT_RTPRIO, p, p).context("setrlimit")?;
+
+    // SAFETY: sched_param is properly initialized.
+    unsafe {
+        let sched_param = libc::sched_param {
+            sched_priority: p as i32,
+        };
+        let rc = libc::pthread_setschedparam(libc::pthread_self(), libc::SCHED_RR, &sched_param);
+        ensure!(rc == 0, "pthread_setschedparam returned {rc}");
+    }
+
+    Ok(())
 }

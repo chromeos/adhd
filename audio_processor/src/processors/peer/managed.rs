@@ -10,6 +10,7 @@ use command_fds::CommandFdExt;
 use command_fds::FdMapping;
 
 use super::create_socketpair;
+use super::worker::AUDIO_WORKER_SET_THREAD_PRIORITY;
 use super::BlockingSeqPacketProcessor;
 use super::Worker;
 use crate::config::Processor;
@@ -90,18 +91,31 @@ impl Drop for ThreadedWorkerHandle {
     }
 }
 
-pub struct AudioWorkerSubprocessFactory;
+#[derive(Default)]
+pub struct AudioWorkerSubprocessFactory {
+    set_thread_priority: bool,
+}
+
+impl AudioWorkerSubprocessFactory {
+    pub fn with_set_thread_priority(mut self) -> Self {
+        self.set_thread_priority = true;
+        self
+    }
+}
 
 impl WorkerFactory for AudioWorkerSubprocessFactory {
     fn create(&self, worker_fd: OwnedFd) -> anyhow::Result<Box<dyn WorkerHandle>> {
-        let child = std::process::Command::new("audio-worker")
+        let mut command = std::process::Command::new("audio-worker");
+        command
             .fd_mappings(vec![FdMapping {
                 parent_fd: worker_fd,
                 child_fd: 3,
             }])
-            .context("fd_mappings")?
-            .spawn()
-            .context("spawn audio-worker")?;
+            .context("fd_mappings")?;
+        if self.set_thread_priority {
+            command.env(AUDIO_WORKER_SET_THREAD_PRIORITY, "1");
+        }
+        let child = command.spawn().context("spawn audio-worker")?;
         Ok(Box::new(AudioWorkerSubprocessHandle { child }))
     }
 }

@@ -169,7 +169,7 @@ fn run(command: Command) {
     let (profile_sender, profile_receiver) = channel();
     let mut pipeline = PipelineBuilder::new(check_shape.get_output_format())
         .with_profile_sender(profile_sender)
-        .with_worker_factory(AudioWorkerSubprocessFactory)
+        .with_worker_factory(AudioWorkerSubprocessFactory::default())
         .build(Processor::Pipeline {
             processors: pipeline_decl,
         })
