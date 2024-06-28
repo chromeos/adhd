@@ -35,6 +35,7 @@ use std::ops::Index;
 use std::ops::IndexMut;
 use std::slice::SliceIndex;
 
+use log::info;
 use remain::sorted;
 
 use crate::control_primitive;
@@ -230,8 +231,8 @@ impl<'a> ControlTLV<'a> {
         }
 
         let tlv_size = ElemInfo::new(self.handle, &self.id)?.count() + TLV::TLV_HEADER_SIZE_BYTES;
-
-        let mut tlv_buf = vec![0; tlv_size / size_of::<u32>()];
+        info!("tlv_size:{}", tlv_size);
+        let mut tlv_buf: Vec<u32> = vec![0; tlv_size / size_of::<u32>() + 1];
         // Safe because handle.as_mut_ptr() is a valid *mut snd_ctl_t, id_as_ptr is valid and
         // tlv_buf.as_mut_ptr() is also valid.
         let rc = unsafe {
