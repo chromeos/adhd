@@ -21,6 +21,7 @@
 #include "cras/src/dsp/drc_math.h"
 #include "cras/src/dsp/dsp_helpers.h"
 #include "cras/src/dsp/eq2.h"
+#include "cras/src/dsp/rust/headers/biquad.h"
 #include "user/drc.h"
 #include "user/multiband_drc.h"
 

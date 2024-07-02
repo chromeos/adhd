@@ -28,6 +28,17 @@ cras_cbindgen(
     copyright_year = 2024,
 )
 
+cras_cbindgen(
+    name = "biquad.h",
+    srcs = [
+        "src/biquad.rs",
+        "src/biquad_bindings.rs",
+        "src/lib.rs",
+    ],
+    out = "headers/biquad.h",
+    copyright_year = 2024,
+)
+
 rust_test(
     name = "rust_test",
     crate = ":dsp_rust",
@@ -40,6 +51,7 @@ cc_library(
     visibility = [
         "//cras/src/dsp:__pkg__",
         "//cras/src/dsp/tests:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
     deps = [":dsp_rust"],
 )

@@ -73,6 +73,7 @@ cc_binary(
         ":dsp_test_util",
         ":raw",
         "//cras/src/dsp",
+        "//cras/src/dsp/rust",
     ],
 )
 

@@ -33,7 +33,6 @@ cc_library(
         "biquad.c",
         "crossover.c",
         "crossover2.c",
-        #"dcblock.c",
         "drc_kernel.c",
         "eq.c",
         "eq2.c",
@@ -41,7 +40,6 @@ cc_library(
     ],
     hdrs = [
         "crossover.h",
-        #"dcblock.h",
         "eq.h",
         "quad_rotation.h",
     ],
@@ -68,6 +66,7 @@ cc_library(
     hdrs = ["eq.h"],
     deps = [
         ":biquad",
+        "//cras/src/dsp/rust",
         "@thesofproject_sof",
     ],
 )
@@ -79,6 +78,7 @@ cc_library(
     visibility = ["//cras/benchmark:__pkg__"],
     deps = [
         ":biquad",
+        "//cras/src/dsp/rust",
         "@thesofproject_sof",
     ],
 )
@@ -105,6 +105,7 @@ cc_library(
     hdrs = ["biquad.h"],
     deps = [
         ":dsp_helpers",
+        "//cras/src/dsp/rust",
         "@thesofproject_sof",
     ],
 )
@@ -116,6 +117,7 @@ cc_library(
     deps = [
         ":biquad",
         ":dsp_helpers",
+        "//cras/src/dsp/rust",
         "@thesofproject_sof",
     ],
 )

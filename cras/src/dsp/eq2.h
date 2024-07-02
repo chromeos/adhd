@@ -7,6 +7,7 @@
 #define CRAS_SRC_DSP_EQ2_H_
 
 #include "cras/src/dsp/biquad.h"
+#include "cras/src/dsp/rust/headers/biquad.h"
 
 #ifdef __cplusplus
 extern "C" {

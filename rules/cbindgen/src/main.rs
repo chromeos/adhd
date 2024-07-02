@@ -81,7 +81,9 @@ fn main() {
         .rename_item("CrasFeatureTier", "cras_feature_tier")
         .rename_item("CrasFRASignal", "CRAS_FRA_SIGNAL")
         .rename_item("KeyValuePair", "cras_fra_kv_t")
-        .rename_item("DCBlock", "dcblock");
+        .rename_item("DCBlock", "dcblock")
+        .rename_item("Biquad", "biquad")
+        .rename_item("BiquadType", "biquad_type");
 
     let mut b = b;
     for src in c.with_src {
