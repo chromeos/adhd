@@ -48,6 +48,7 @@ cc_library(
     visibility = [
         ":__subpackages__",
         "//cras/src/server:__pkg__",
+        "//cras/src/tests:__pkg__",
     ],
     deps = [
         ":drc",

@@ -475,15 +475,12 @@ cc_test(
 
 cc_test(
     name = "biquad_unittest",
-    srcs = [
-        ":biquad_unittest.cc",
-        "//cras/src/dsp:biquad.c",
-    ],
+    srcs = [":biquad_unittest.cc"],
     deps = [
         ":test_support",
         "//cras/common:check",
         "//cras/src/common:all_headers",
-        "//cras/src/dsp:all_headers",
+        "//cras/src/dsp",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
         "@pkg_config//alsa",
@@ -953,24 +950,12 @@ cc_test(
 
 cc_test(
     name = "dsp_core_unittest",
-    srcs = [
-        ":dsp_core_unittest.cc",
-        "//cras/src/dsp:biquad.c",
-        "//cras/src/dsp:crossover.c",
-        "//cras/src/dsp:crossover2.c",
-        "//cras/src/dsp:drc.c",
-        "//cras/src/dsp:drc_kernel.c",
-        "//cras/src/dsp:drc_math.c",
-        "//cras/src/dsp:dsp_util.c",
-        "//cras/src/dsp:eq.c",
-        "//cras/src/dsp:eq2.c",
-        "//cras/src/dsp:quad_rotation.c",
-    ],
+    srcs = [":dsp_core_unittest.cc"],
     deps = [
         ":test_support",
         "//cras/common:check",
         "//cras/src/common:all_headers",
-        "//cras/src/dsp:all_headers",
+        "//cras/src/dsp",
         "//cras/src/server:all_headers",
         "//cras/src/server/rust:cc",
         "@iniparser",
