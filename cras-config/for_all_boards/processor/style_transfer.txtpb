@@ -10,13 +10,17 @@ pipeline {
     }
   }
   processors {
-    wrap_chunk {
-      inner_block_size: 480
-      inner {
-        dlc_plugin {
-          dlc_id: "nuance-dlc"
-          path: "libstyle.so"
-          constructor: "plugin_processor_create_ast"
+    peer {
+      processor {
+        wrap_chunk {
+          inner_block_size: 480
+          inner {
+            dlc_plugin {
+              dlc_id: "nuance-dlc"
+              path: "libstyle.so"
+              constructor: "plugin_processor_create_ast"
+            }
+          }
         }
       }
     }
