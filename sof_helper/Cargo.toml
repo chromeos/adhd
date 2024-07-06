@@ -1,5 +1,5 @@
 [package]
-name = "sof_tests"
+name = "sof_helper"
 version = "0.1.0"
 authors = ["The ChromiumOS Authors"]
 edition = "2021"

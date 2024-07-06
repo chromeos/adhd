@@ -1,5 +1,5 @@
 {
-  "checksum": "363dc04fbaf8a4347a8e034dc1a08c4d0428418a39282fc83940f98d6db4ebb1",
+  "checksum": "31cf680bebca383ad080e837695c926125ea54068a8ebe3bfa915ee86502eabf",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -7950,8 +7950,8 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "sof_tests 0.1.0": {
-      "name": "sof_tests",
+    "sof_helper 0.1.0": {
+      "name": "sof_helper",
       "version": "0.1.0",
       "package_url": null,
       "repository": null,
@@ -11511,7 +11511,7 @@
     "cras_s2 0.1.0": "cras/server/s2",
     "dsp_rust 0.1.0": "cras/src/dsp/rust",
     "rock 0.1.0": "rock",
-    "sof_tests 0.1.0": "sof_tests"
+    "sof_helper 0.1.0": "sof_helper"
   },
   "conditions": {
     "aarch64-apple-darwin": [
