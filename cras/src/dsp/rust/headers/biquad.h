@@ -42,9 +42,9 @@ struct biquad {
   float y2;
 };
 
-void biquad_set(struct biquad *bq, enum biquad_type enum_type, double freq, double q, double gain);
+struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
 
-void biquad_set(struct biquad *bq, enum biquad_type enum_type, double freq, double q, double gain);
+struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
 
 #endif /* CRAS_SRC_DSP_RUST_HEADERS_BIQUAD_H_ */
 

@@ -32,7 +32,7 @@ int eq_append_biquad(struct eq* eq,
   if (eq->n >= MAX_BIQUADS_PER_EQ) {
     return -EINVAL;
   }
-  biquad_set(&eq->biquad[eq->n++], type, freq, Q, gain);
+  eq->biquad[eq->n++] = biquad_new_set(type, freq, Q, gain);
   return 0;
 }
 

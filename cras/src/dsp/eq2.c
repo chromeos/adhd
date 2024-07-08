@@ -30,7 +30,7 @@ struct eq2* eq2_new() {
    * different numbers of biquads, it still works. */
   for (i = 0; i < MAX_BIQUADS_PER_EQ2; i++) {
     for (j = 0; j < EQ2_NUM_CHANNELS; j++) {
-      biquad_set(&eq2->biquad[i][j], BQ_NONE, 0, 0, 0);
+      eq2->biquad[i][j] = biquad_new_set(BQ_NONE, 0, 0, 0);
     }
   }
 
@@ -50,7 +50,7 @@ int eq2_append_biquad(struct eq2* eq2,
   if (eq2->n[channel] >= MAX_BIQUADS_PER_EQ2) {
     return -EINVAL;
   }
-  biquad_set(&eq2->biquad[eq2->n[channel]++][channel], type, freq, Q, gain);
+  eq2->biquad[eq2->n[channel]++][channel] = biquad_new_set(type, freq, Q, gain);
   return 0;
 }
 

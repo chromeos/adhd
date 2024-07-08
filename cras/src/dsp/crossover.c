@@ -9,8 +9,7 @@
 #include "cras/src/dsp/rust/headers/biquad.h"
 
 static void lr4_set(struct lr4* lr4, enum biquad_type type, float freq) {
-  struct biquad q;
-  biquad_set(&q, type, freq, 0, 0);
+  struct biquad q = biquad_new_set(type, freq, 0, 0);
   lr4->b0 = q.b0;
   lr4->b1 = q.b1;
   lr4->b2 = q.b2;

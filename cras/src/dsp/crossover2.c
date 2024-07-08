@@ -14,8 +14,7 @@
 #include "user/eq.h"
 
 static void lr42_set(struct lr42* lr42, enum biquad_type type, float freq) {
-  struct biquad q;
-  biquad_set(&q, type, freq, 0, 0);
+  struct biquad q = biquad_new_set(type, freq, 0, 0);
   memset(lr42, 0, sizeof(*lr42));
   lr42->b0 = q.b0;
   lr42->b1 = q.b1;

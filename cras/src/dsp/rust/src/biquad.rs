@@ -338,8 +338,8 @@ impl Biquad {
         Self::new_coefficient(b0, b1, b2, a0, a1, a2)
     }
 
-    pub fn set(&mut self, enum_type: BiquadType, freq: f64, q: f64, gain: f64) {
-        *self = match enum_type {
+    pub fn new_set(enum_type: BiquadType, freq: f64, q: f64, gain: f64) -> Self {
+        match enum_type {
             BiquadType::BQ_LOWPASS => Self::new_lowpass(freq, q),
             BiquadType::BQ_HIGHPASS => Self::new_highpass(freq, q),
             BiquadType::BQ_BANDPASS => Self::new_bandpass(freq, q),
@@ -368,86 +368,86 @@ mod tests {
 
     #[test]
     fn invalid_frequency_test() {
-        let mut bq = Biquad::new();
         let f_over: f32 = 1.5;
         let f_under: f32 = -0.1;
         let db_gain: f64 = 2.;
         let a: f64 = 10_f64.powf(db_gain / 40.);
 
         // check response to freq >= 1
-        bq.set(BiquadType::BQ_LOWPASS, f_over as f64, 0., db_gain);
+        let mut bq = Biquad::new_set(BiquadType::BQ_LOWPASS, f_over as f64, 0., db_gain);
         let mut test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_HIGHPASS, f_over as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_HIGHPASS, f_over as f64, 0., db_gain);
         test_bq = Biquad::new();
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_BANDPASS, f_over as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_BANDPASS, f_over as f64, 0., db_gain);
         test_bq = Biquad::new();
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_LOWSHELF, f_over as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_LOWSHELF, f_over as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = (a * a) as f32;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_HIGHSHELF, f_over as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_HIGHSHELF, f_over as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_PEAKING, f_over as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_PEAKING, f_over as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_NOTCH, f_over as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_NOTCH, f_over as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_ALLPASS, f_over as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_ALLPASS, f_over as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
         // check response to frew <= 0
-        bq.set(BiquadType::BQ_LOWPASS, f_under as f64, 0., db_gain);
+
+        bq = Biquad::new_set(BiquadType::BQ_LOWPASS, f_under as f64, 0., db_gain);
         let mut test_bq = Biquad::new();
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_HIGHPASS, f_under as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_HIGHPASS, f_under as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_BANDPASS, f_under as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_BANDPASS, f_under as f64, 0., db_gain);
         test_bq = Biquad::new();
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_LOWSHELF, f_under as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_LOWSHELF, f_under as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_HIGHSHELF, f_under as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_HIGHSHELF, f_under as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = (a * a) as f32;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_PEAKING, f_under as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_PEAKING, f_under as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_NOTCH, f_under as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_NOTCH, f_under as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_ALLPASS, f_under as f64, 0., db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_ALLPASS, f_under as f64, 0., db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
@@ -455,7 +455,6 @@ mod tests {
 
     #[test]
     fn invalid_q_test() {
-        let mut bq = Biquad::new();
         let f: f32 = 0.5;
         let q: f32 = -0.1;
         let db_gain: f64 = 2.;
@@ -464,23 +463,23 @@ mod tests {
         // check response to Q <= 0
         // Low and High pass filters scope Q making the test mute
 
-        bq.set(BiquadType::BQ_BANDPASS, f as f64, q as f64, db_gain);
+        let mut bq = Biquad::new_set(BiquadType::BQ_BANDPASS, f as f64, q as f64, db_gain);
         let mut test_bq = Biquad::new();
         test_bq.b0 = 1.;
         assert_same_biquad(&bq, &test_bq);
 
         // Low and high shelf do not compute resonance
 
-        bq.set(BiquadType::BQ_PEAKING, f as f64, q as f64, db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_PEAKING, f as f64, q as f64, db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = (a * a) as f32;
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_NOTCH, f as f64, q as f64, db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_NOTCH, f as f64, q as f64, db_gain);
         test_bq = Biquad::new();
         assert_same_biquad(&bq, &test_bq);
 
-        bq.set(BiquadType::BQ_ALLPASS, f as f64, q as f64, db_gain);
+        bq = Biquad::new_set(BiquadType::BQ_ALLPASS, f as f64, q as f64, db_gain);
         test_bq = Biquad::new();
         test_bq.b0 = -1.;
         assert_same_biquad(&bq, &test_bq);

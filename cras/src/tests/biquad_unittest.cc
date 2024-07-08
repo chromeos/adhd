@@ -18,7 +18,7 @@ TEST(InvalidFrequencyTest, All) {
   double A = pow(10.0, db_gain / 40);
 
   // check response to freq >= 1
-  biquad_set(&bq, BQ_LOWPASS, f_over, 0, db_gain);
+  bq = biquad_new_set(BQ_LOWPASS, f_over, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -27,7 +27,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_HIGHPASS, f_over, 0, db_gain);
+  bq = biquad_new_set(BQ_HIGHPASS, f_over, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(bq.b0, test_bq.b0);
   EXPECT_EQ(bq.b1, test_bq.b1);
@@ -35,7 +35,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_BANDPASS, f_over, 0, db_gain);
+  bq = biquad_new_set(BQ_BANDPASS, f_over, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(bq.b0, test_bq.b0);
   EXPECT_EQ(bq.b1, test_bq.b1);
@@ -43,7 +43,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_LOWSHELF, f_over, 0, db_gain);
+  bq = biquad_new_set(BQ_LOWSHELF, f_over, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = A * A;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -52,7 +52,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_HIGHSHELF, f_over, 0, db_gain);
+  bq = biquad_new_set(BQ_HIGHSHELF, f_over, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -61,7 +61,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_PEAKING, f_over, 0, db_gain);
+  bq = biquad_new_set(BQ_PEAKING, f_over, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -70,7 +70,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_NOTCH, f_over, 0, db_gain);
+  bq = biquad_new_set(BQ_NOTCH, f_over, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -79,7 +79,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_ALLPASS, f_over, 0, db_gain);
+  bq = biquad_new_set(BQ_ALLPASS, f_over, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -89,7 +89,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a2, test_bq.a2);
 
   // check response to frew <= 0
-  biquad_set(&bq, BQ_LOWPASS, f_under, 0, db_gain);
+  bq = biquad_new_set(BQ_LOWPASS, f_under, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(bq.b0, test_bq.b0);
   EXPECT_EQ(bq.b1, test_bq.b1);
@@ -97,24 +97,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_HIGHPASS, f_under, 0, db_gain);
-  test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-  test_bq.b0 = 1;
-  EXPECT_EQ(bq.b0, test_bq.b0);
-  EXPECT_EQ(bq.b1, test_bq.b1);
-  EXPECT_EQ(bq.b2, test_bq.b2);
-  EXPECT_EQ(bq.a1, test_bq.a1);
-  EXPECT_EQ(bq.a2, test_bq.a2);
-
-  biquad_set(&bq, BQ_BANDPASS, f_under, 0, db_gain);
-  test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-  EXPECT_EQ(bq.b0, test_bq.b0);
-  EXPECT_EQ(bq.b1, test_bq.b1);
-  EXPECT_EQ(bq.b2, test_bq.b2);
-  EXPECT_EQ(bq.a1, test_bq.a1);
-  EXPECT_EQ(bq.a2, test_bq.a2);
-
-  biquad_set(&bq, BQ_LOWSHELF, f_under, 0, db_gain);
+  bq = biquad_new_set(BQ_HIGHPASS, f_under, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -123,7 +106,24 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_HIGHSHELF, f_under, 0, db_gain);
+  bq = biquad_new_set(BQ_BANDPASS, f_under, 0, db_gain);
+  test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+  EXPECT_EQ(bq.b0, test_bq.b0);
+  EXPECT_EQ(bq.b1, test_bq.b1);
+  EXPECT_EQ(bq.b2, test_bq.b2);
+  EXPECT_EQ(bq.a1, test_bq.a1);
+  EXPECT_EQ(bq.a2, test_bq.a2);
+
+  bq = biquad_new_set(BQ_LOWSHELF, f_under, 0, db_gain);
+  test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+  test_bq.b0 = 1;
+  EXPECT_EQ(bq.b0, test_bq.b0);
+  EXPECT_EQ(bq.b1, test_bq.b1);
+  EXPECT_EQ(bq.b2, test_bq.b2);
+  EXPECT_EQ(bq.a1, test_bq.a1);
+  EXPECT_EQ(bq.a2, test_bq.a2);
+
+  bq = biquad_new_set(BQ_HIGHSHELF, f_under, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = A * A;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -132,7 +132,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_PEAKING, f_under, 0, db_gain);
+  bq = biquad_new_set(BQ_PEAKING, f_under, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -141,7 +141,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_NOTCH, f_under, 0, db_gain);
+  bq = biquad_new_set(BQ_NOTCH, f_under, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -150,7 +150,7 @@ TEST(InvalidFrequencyTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_ALLPASS, f_under, 0, db_gain);
+  bq = biquad_new_set(BQ_ALLPASS, f_under, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -170,7 +170,7 @@ TEST(InvalidQTest, All) {
   // check response to Q <= 0
   // Low and High pass filters scope Q making the test mute
 
-  biquad_set(&bq, BQ_BANDPASS, f, Q, db_gain);
+  bq = biquad_new_set(BQ_BANDPASS, f, Q, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = 1;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -181,7 +181,7 @@ TEST(InvalidQTest, All) {
 
   // Low and high shelf do not compute resonance
 
-  biquad_set(&bq, BQ_PEAKING, f, Q, db_gain);
+  bq = biquad_new_set(BQ_PEAKING, f, Q, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = A * A;
   EXPECT_EQ(bq.b0, test_bq.b0);
@@ -190,7 +190,7 @@ TEST(InvalidQTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_NOTCH, f, 0, db_gain);
+  bq = biquad_new_set(BQ_NOTCH, f, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   EXPECT_EQ(bq.b0, test_bq.b0);
   EXPECT_EQ(bq.b1, test_bq.b1);
@@ -198,7 +198,7 @@ TEST(InvalidQTest, All) {
   EXPECT_EQ(bq.a1, test_bq.a1);
   EXPECT_EQ(bq.a2, test_bq.a2);
 
-  biquad_set(&bq, BQ_ALLPASS, f, 0, db_gain);
+  bq = biquad_new_set(BQ_ALLPASS, f, 0, db_gain);
   test_bq = {0, 0, 0, 0, 0, 0, 0, 0, 0};
   test_bq.b0 = -1;
   EXPECT_EQ(bq.b0, test_bq.b0);
