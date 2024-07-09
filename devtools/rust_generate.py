@@ -24,13 +24,20 @@ def run(cmd, env=None, **kwargs):
 
 t0 = time.perf_counter()
 
-run(['bazel', 'sync', '--only=crate_index'], env={'CARGO_BAZEL_REPIN': 'true'})
+# Update Cargo.Bazel.lock.
+run(
+    ['bazel', 'build', '--nobuild', '//...'],
+    env={'CARGO_BAZEL_REPIN': 'true'},
+)
 
+# Find files to generate.
 result = run(
-    ['bazel', 'query', 'kind(write_source_file, //...)'], stdout=subprocess.PIPE, text=True
+    ['bazel', 'cquery', 'kind(write_source_file, //...)', '--output=starlark'],
+    stdout=subprocess.PIPE,
+    text=True,
 )
 targets = sorted(
-    set(x for x in result.stdout.split() if x != '//build/write_source_files:write_source_files')
+    set(x for x in result.stdout.split() if x != '@//build/write_source_files:write_source_files')
 )
 (adhd / 'build/write_source_files/write_source_file_targets_generated.bzl').write_text(
     f'''# # Copyright 2024 The ChromiumOS Authors
