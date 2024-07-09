@@ -89,7 +89,7 @@ func copMoveSourceSteps() *buildplan.Sequence {
 			"find", ".", "-mindepth", "1", "-maxdepth", "1", "-not", "-name", "adhd",
 			"-exec", "mv", "{}", "adhd", ";",
 		),
-	)
+	).WithManualIsolation()
 }
 
 // MakeCopBuild returns a go/cros-cop compatible build.
@@ -164,7 +164,7 @@ func rustGenerateSteps() *buildplan.Sequence {
 		prepareSourceStep,
 		buildplan.Command(archlinuxBuilder, "devtools/rust_generate.bash"),
 		buildplan.Command(archlinuxBuilder, "git", "diff", "--exit-code"),
-	)
+	).WithVolume()
 }
 
 func ossFuzzSetupSteps() *buildplan.Sequence {
@@ -195,7 +195,7 @@ func ossFuzzSetupSteps() *buildplan.Sequence {
 				Dir:        "oss-fuzz-setup",
 			},
 		}...,
-	)
+	).WithManualIsolation()
 }
 
 func ossFuzzSteps(id, sanitizer, engine string) *buildplan.Sequence {
@@ -228,7 +228,7 @@ func ossFuzzSteps(id, sanitizer, engine string) *buildplan.Sequence {
 			Dir:        id,
 		},
 		checkStep,
-	)
+	).WithManualIsolation()
 }
 
 func copgenCheckSteps() *buildplan.Sequence {

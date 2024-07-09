@@ -76,19 +76,33 @@
         "/workspace/adhd/",
         "./"
       ],
+      "dir": "/workspace-rust_generate",
       "id": "rust_generate:0",
       "waitFor": [
         "prepare-source:1"
       ],
-      "entrypoint": "rsync"
+      "entrypoint": "rsync",
+      "volumes": [
+        {
+          "name": "workspace-rust_generate",
+          "path": "/workspace-rust_generate"
+        }
+      ]
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
+      "dir": "/workspace-rust_generate",
       "id": "rust_generate:1",
       "waitFor": [
         "rust_generate:0"
       ],
-      "entrypoint": "devtools/rust_generate.bash"
+      "entrypoint": "devtools/rust_generate.bash",
+      "volumes": [
+        {
+          "name": "workspace-rust_generate",
+          "path": "/workspace-rust_generate"
+        }
+      ]
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",
@@ -96,11 +110,18 @@
         "diff",
         "--exit-code"
       ],
+      "dir": "/workspace-rust_generate",
       "id": "rust_generate:2",
       "waitFor": [
         "rust_generate:1"
       ],
-      "entrypoint": "git"
+      "entrypoint": "git",
+      "volumes": [
+        {
+          "name": "workspace-rust_generate",
+          "path": "/workspace-rust_generate"
+        }
+      ]
     },
     {
       "name": "gcr.io/${PROJECT_ID}/adhd-archlinux-builder",

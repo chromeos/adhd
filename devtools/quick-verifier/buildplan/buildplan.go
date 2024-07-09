@@ -6,6 +6,7 @@ package buildplan
 
 import (
 	"fmt"
+	"log"
 	"path"
 
 	"cloud.google.com/go/cloudbuild/apiv1/v2/cloudbuildpb"
@@ -32,6 +33,7 @@ type Sequence struct {
 	useVolume    bool
 	extraVolumes []string
 	deps         []*Sequence
+	isolated     bool
 }
 
 func Commands(id string, steps ...*Step) *Sequence {
@@ -43,6 +45,12 @@ func Commands(id string, steps ...*Step) *Sequence {
 
 func (s *Sequence) WithVolume() *Sequence {
 	s.useVolume = true
+	s.isolated = true
+	return s
+}
+
+func (s *Sequence) WithManualIsolation() *Sequence {
+	s.isolated = true
 	return s
 }
 
@@ -64,6 +72,10 @@ func volumeForID(id string) *cloudbuildpb.Volume {
 }
 
 func (s *Sequence) AsCloudBuild() []*cloudbuildpb.BuildStep {
+	if !s.isolated {
+		log.Panicf("Sequence %q is not isolated with WithVolume or WithManualIsolation", s.id)
+	}
+
 	cbSteps := make([]*cloudbuildpb.BuildStep, len(s.steps))
 
 	volume := volumeForID(s.id)
