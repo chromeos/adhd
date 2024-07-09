@@ -1,0 +1,11 @@
+# # Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load(":write_source_file_targets_generated.bzl", "WRITE_SOURCE_FILE_TARGETS")
+
+write_source_files(
+    name = "write_source_files",
+    additional_update_targets = WRITE_SOURCE_FILE_TARGETS,
+)

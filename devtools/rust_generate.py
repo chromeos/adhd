@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import json
 import os
 import pathlib
 import shlex
@@ -10,6 +11,7 @@ import subprocess
 import time
 
 
+here = pathlib.Path(__file__).resolve()
 adhd = pathlib.Path(__file__).resolve().parents[1]
 
 
@@ -23,12 +25,26 @@ def run(cmd, env=None, **kwargs):
 t0 = time.perf_counter()
 
 run(['bazel', 'sync', '--only=crate_index'], env={'CARGO_BAZEL_REPIN': 'true'})
+
 result = run(
     ['bazel', 'query', 'kind(write_source_file, //...)'], stdout=subprocess.PIPE, text=True
 )
-targets = result.stdout.split()
-for target in targets:
-    run(['bazel', 'run', target])
+targets = sorted(
+    set(x for x in result.stdout.split() if x != '//build/write_source_files:write_source_files')
+)
+(adhd / 'build/write_source_files/write_source_file_targets_generated.bzl').write_text(
+    f'''# # Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Generated with {here.relative_to(adhd)}
+
+WRITE_SOURCE_FILE_TARGETS = {json.dumps(targets, indent=4)}
+''',
+    encoding='utf-8',
+)
+
+run(['bazel', 'run', '//build/write_source_files'])
 
 t1 = time.perf_counter()
 print(f'Done in {t1-t0:.2f} seconds')

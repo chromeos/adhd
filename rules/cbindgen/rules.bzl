@@ -61,4 +61,5 @@ def cras_cbindgen(name, srcs, out, extra_args = [], copyright_year = None):
         in_file = generated_out,
         out_file = out,
         target_compatible_with = require_no_config("//:system_cras_rust_build"),
+        visibility = ["//build/write_source_files:__pkg__"],
     )

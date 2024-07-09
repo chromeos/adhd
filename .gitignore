@@ -1,4 +1,3 @@
-build
 cscope.*
 __pycache__/
 # clangd
