@@ -6,3 +6,5 @@ mod biquad;
 mod biquad_bindings;
 mod dcblock;
 mod dcblock_bindings;
+mod eq;
+mod eq_bindings;

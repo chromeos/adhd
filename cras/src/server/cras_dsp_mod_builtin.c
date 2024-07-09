@@ -10,7 +10,6 @@
 
 #include "cras/src/common/dumper.h"
 #include "cras/src/dsp/drc.h"
-#include "cras/src/dsp/eq.h"
 #include "cras/src/dsp/eq2.h"
 #include "cras/src/dsp/quad_rotation.h"
 #include "cras/src/dsp/rust/dsp.h"

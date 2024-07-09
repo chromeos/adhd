@@ -18,6 +18,8 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
+#define MAX_BIQUADS_PER_EQ 10
+
 enum biquad_type {
   BQ_NONE,
   BQ_LOWPASS,
@@ -31,6 +33,8 @@ enum biquad_type {
 };
 
 struct dcblock;
+
+struct eq;
 
 struct biquad {
   float b0;
@@ -54,6 +58,20 @@ void dcblock_set_config(struct dcblock *dcblock, float r, unsigned long sample_r
 
 void dcblock_process(struct dcblock *dcblock, float *data, int32_t count);
 
+struct eq *eq_new(void);
+
+void eq_free(struct eq *eq);
+
+int32_t eq_append_biquad(struct eq *eq,
+                         enum biquad_type enum_type,
+                         float freq,
+                         float q,
+                         float gain);
+
+int32_t eq_append_biquad_direct(struct eq *eq, const struct biquad *biquad);
+
+void eq_process(struct eq *eq, float *data, int32_t count);
+
 struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
 
 struct dcblock *dcblock_new(void);
@@ -63,6 +81,20 @@ void dcblock_free(struct dcblock *dcblock);
 void dcblock_set_config(struct dcblock *dcblock, float r, unsigned long sample_rate);
 
 void dcblock_process(struct dcblock *dcblock, float *data, int32_t count);
+
+struct eq *eq_new(void);
+
+void eq_free(struct eq *eq);
+
+int32_t eq_append_biquad(struct eq *eq,
+                         enum biquad_type enum_type,
+                         float freq,
+                         float q,
+                         float gain);
+
+int32_t eq_append_biquad_direct(struct eq *eq, const struct biquad *biquad);
+
+void eq_process(struct eq *eq, float *data, int32_t count);
 
 #endif /* CRAS_SRC_DSP_RUST_DSP_H_ */
 

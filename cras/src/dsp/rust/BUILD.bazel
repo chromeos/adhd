@@ -34,6 +34,7 @@ cc_library(
     name = "rust",
     hdrs = ["dsp.h"],
     visibility = [
+        "//cras/benchmark:__pkg__",
         "//cras/src/dsp:__pkg__",
         "//cras/src/dsp/tests:__pkg__",
         "//cras/src/tests:__pkg__",

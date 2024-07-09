@@ -34,13 +34,11 @@ cc_library(
         "crossover.c",
         "crossover2.c",
         "drc_kernel.c",
-        "eq.c",
         "eq2.c",
         "quad_rotation.c",
     ],
     hdrs = [
         "crossover.h",
-        "eq.h",
         "quad_rotation.h",
     ],
     visibility = [

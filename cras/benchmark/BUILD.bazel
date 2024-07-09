@@ -32,7 +32,6 @@ cc_library(
         ":benchmark_util",
         "//cras/src/dsp:drc",
         "//cras/src/dsp:dsp_util",
-        "//cras/src/dsp:eq",
         "//cras/src/dsp:eq2",
         "//cras/src/server:cras_mix",
         "@com_github_google_benchmark//:benchmark",
