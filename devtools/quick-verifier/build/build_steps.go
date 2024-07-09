@@ -162,7 +162,7 @@ func rustGenerateSteps() *buildplan.Sequence {
 	return buildplan.Commands(
 		"rust_generate",
 		prepareSourceStep,
-		buildplan.Command(archlinuxBuilder, "devtools/rust_generate.bash"),
+		buildplan.Command(archlinuxBuilder, "devtools/rust_generate.py"),
 		buildplan.Command(archlinuxBuilder, "git", "diff", "--exit-code"),
 	).WithVolume()
 }

@@ -96,7 +96,7 @@
       "waitFor": [
         "rust_generate:0"
       ],
-      "entrypoint": "devtools/rust_generate.bash",
+      "entrypoint": "devtools/rust_generate.py",
       "volumes": [
         {
           "name": "workspace-rust_generate",
