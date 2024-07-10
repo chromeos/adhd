@@ -545,7 +545,13 @@ int cras_iodev_set_format(struct cras_iodev* iodev,
     }
 
     update_channel_layout(iodev);
-
+    if (iodev->format->num_channels != actual_num_channels) {
+      // |update_channel_layout| could change the channel count
+      // forcibly in order to adapt with the layout. In that case
+      // drop the DSP because the channel count has changed.
+      trim_channel_layout(iodev->format);
+      cras_iodev_free_dsp(iodev);
+    }
     if (!iodev->rate_est) {
       iodev->rate_est =
           rate_estimator_create(actual_rate, &rate_estimation_window_sz,
