@@ -536,6 +536,12 @@ void cras_system_set_noise_cancellation_enabled(bool enabled) {
   }
 }
 
+bool cras_system_get_sidetone_supported() {
+  struct cras_ionode_info active_node;
+  get_active_output_node(&active_node);
+  return is_sidetone_available(active_node.type_enum);
+}
+
 bool cras_system_set_sidetone_enabled(bool enabled) {
   if (cras_system_get_sidetone_enabled() != enabled) {
     struct cras_ionode_info active_node;

@@ -191,6 +191,9 @@ bool cras_system_get_style_transfer_supported();
 // Returns if Noise Cancellation is supported by DSP.
 bool cras_system_get_dsp_noise_cancellation_supported();
 
+// Returns if the current active nodes support sidetone.
+bool cras_system_get_sidetone_supported();
+
 /*
  * Sets the flag to enable or disable sidetone.
  * Returns true if success.

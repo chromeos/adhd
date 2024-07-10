@@ -216,6 +216,9 @@ void cras_system_set_force_sr_bt_enabled(bool enabled) {
 bool cras_system_get_force_sr_bt_enabled() {
   return false;
 }
+bool cras_system_get_sidetone_supported() {
+  return false;
+}
 
 bool cras_system_set_sidetone_enabled(bool enabled) {
   return false;

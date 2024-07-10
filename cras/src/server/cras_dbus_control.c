@@ -1149,6 +1149,14 @@ static DBusHandlerResult handle_set_bypass_block_noise_cancellation(
   return send_empty_reply(conn, message);
 }
 
+static DBusHandlerResult handle_get_sidetone_supported(DBusConnection* conn,
+                                                       DBusMessage* message,
+                                                       void* arg) {
+  dbus_bool_t supported = cras_system_get_sidetone_supported();
+
+  return send_bool_reply(conn, message, supported);
+}
+
 static DBusHandlerResult handle_set_sidetone_enabled(DBusConnection* conn,
                                                      DBusMessage* message,
                                                      void* arg) {
@@ -1648,6 +1656,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetBypassBlockNoiseCancellation")) {
     return handle_set_bypass_block_noise_cancellation(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "GetSidetoneSupported")) {
+    return handle_get_sidetone_supported(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetSidetoneEnabled")) {
     return handle_set_sidetone_enabled(conn, message, arg);
