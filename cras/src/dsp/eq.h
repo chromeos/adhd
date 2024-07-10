@@ -14,7 +14,7 @@ extern "C" {
  * biquad filters and their parameters. */
 
 #include "cras/src/dsp/biquad.h"
-#include "cras/src/dsp/rust/headers/biquad.h"
+#include "cras/src/dsp/rust/dsp.h"
 
 // Maximum number of biquad filters an EQ can have
 #define MAX_BIQUADS_PER_EQ 10

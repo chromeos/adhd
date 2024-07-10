@@ -6,7 +6,7 @@
 #include "cras/src/dsp/crossover.h"
 
 #include "cras/src/dsp/biquad.h"
-#include "cras/src/dsp/rust/headers/biquad.h"
+#include "cras/src/dsp/rust/dsp.h"
 
 static void lr4_set(struct lr4* lr4, enum biquad_type type, float freq) {
   struct biquad q = biquad_new_set(type, freq, 0, 0);

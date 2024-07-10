@@ -4,7 +4,7 @@
 
 #include <cstdlib>
 
-#include "cras/src/dsp/rust/headers/dcblock.h"
+#include "cras/src/dsp/rust/dsp.h"
 #include "gtest/gtest.h"
 
 // This test should be run with address sanitizer to test out the memory

@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#ifndef CRAS_SRC_DSP_RUST_HEADERS_DCBLOCK_H_
-#define CRAS_SRC_DSP_RUST_HEADERS_DCBLOCK_H_
+#ifndef CRAS_SRC_DSP_RUST_DSP_H_
+#define CRAS_SRC_DSP_RUST_DSP_H_
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -18,8 +18,34 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
+enum biquad_type {
+  BQ_NONE,
+  BQ_LOWPASS,
+  BQ_HIGHPASS,
+  BQ_BANDPASS,
+  BQ_LOWSHELF,
+  BQ_HIGHSHELF,
+  BQ_PEAKING,
+  BQ_NOTCH,
+  BQ_ALLPASS,
+};
+
 struct dcblock;
 
+struct biquad {
+  float b0;
+  float b1;
+  float b2;
+  float a1;
+  float a2;
+  float x1;
+  float x2;
+  float y1;
+  float y2;
+};
+
+struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
+
 struct dcblock *dcblock_new(void);
 
 void dcblock_free(struct dcblock *dcblock);
@@ -28,6 +54,8 @@ void dcblock_set_config(struct dcblock *dcblock, float r, unsigned long sample_r
 
 void dcblock_process(struct dcblock *dcblock, float *data, int32_t count);
 
+struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
+
 struct dcblock *dcblock_new(void);
 
 void dcblock_free(struct dcblock *dcblock);
@@ -36,7 +64,7 @@ void dcblock_set_config(struct dcblock *dcblock, float r, unsigned long sample_r
 
 void dcblock_process(struct dcblock *dcblock, float *data, int32_t count);
 
-#endif /* CRAS_SRC_DSP_RUST_HEADERS_DCBLOCK_H_ */
+#endif /* CRAS_SRC_DSP_RUST_DSP_H_ */
 
 #ifdef __cplusplus
 }

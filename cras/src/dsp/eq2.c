@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 #include "cras/src/dsp/biquad.h"
-#include "cras/src/dsp/rust/headers/biquad.h"
+#include "cras/src/dsp/rust/dsp.h"
 #include "user/eq.h"
 
 #define EQ2_NUM_CHANNELS 2

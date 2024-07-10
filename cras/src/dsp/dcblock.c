@@ -3,9 +3,9 @@
  * found in the LICENSE file.
  */
 
-#include "cras/src/dsp/rust/headers/dcblock.h"
-
 #include <stdlib.h>
+
+#include "cras/src/dsp/rust/dsp.h"
 
 #define RAMP_TIME_MS 20
 

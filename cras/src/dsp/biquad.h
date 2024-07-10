@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "cras/src/dsp/rust/headers/biquad.h"
+#include "cras/src/dsp/rust/dsp.h"
 
 #ifdef __cplusplus
 extern "C" {

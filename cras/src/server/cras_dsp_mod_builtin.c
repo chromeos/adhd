@@ -13,7 +13,7 @@
 #include "cras/src/dsp/eq.h"
 #include "cras/src/dsp/eq2.h"
 #include "cras/src/dsp/quad_rotation.h"
-#include "cras/src/dsp/rust/headers/dcblock.h"
+#include "cras/src/dsp/rust/dsp.h"
 #include "cras/src/server/cras_dsp_ini.h"
 #include "cras/src/server/cras_dsp_module.h"
 #include "cras/src/server/cras_expr.h"

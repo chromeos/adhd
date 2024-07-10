@@ -18,24 +18,9 @@ cras_rust_library(
 )
 
 cras_cbindgen(
-    name = "dcblock.h",
-    srcs = [
-        "src/dcblock.rs",
-        "src/dcblock_bindings.rs",
-        "src/lib.rs",
-    ],
-    out = "headers/dcblock.h",
-    copyright_year = 2024,
-)
-
-cras_cbindgen(
-    name = "biquad.h",
-    srcs = [
-        "src/biquad.rs",
-        "src/biquad_bindings.rs",
-        "src/lib.rs",
-    ],
-    out = "headers/biquad.h",
+    name = "dsp.h",
+    srcs = glob(include = ["src/**/*.rs"]),
+    out = "dsp.h",
     copyright_year = 2024,
 )
 
@@ -47,7 +32,7 @@ rust_test(
 
 cc_library(
     name = "rust",
-    hdrs = glob(include = ["headers/**/*.h"]),
+    hdrs = ["dsp.h"],
     visibility = [
         "//cras/src/dsp:__pkg__",
         "//cras/src/dsp/tests:__pkg__",

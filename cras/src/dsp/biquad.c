@@ -14,7 +14,7 @@
 #include <math.h>
 
 #include "cras/src/dsp/dsp_helpers.h"
-#include "cras/src/dsp/rust/headers/biquad.h"
+#include "cras/src/dsp/rust/dsp.h"
 #include "user/eq.h"
 
 int biquad_convert_blob(struct biquad* bq,

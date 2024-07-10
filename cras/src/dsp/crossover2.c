@@ -10,7 +10,7 @@
 
 #include "cras/src/dsp/biquad.h"
 #include "cras/src/dsp/dsp_helpers.h"
-#include "cras/src/dsp/rust/headers/biquad.h"
+#include "cras/src/dsp/rust/dsp.h"
 #include "user/eq.h"
 
 static void lr42_set(struct lr42* lr42, enum biquad_type type, float freq) {

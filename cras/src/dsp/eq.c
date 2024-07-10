@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 #include "cras/src/dsp/biquad.h"
-#include "cras/src/dsp/rust/headers/biquad.h"
+#include "cras/src/dsp/rust/dsp.h"
 
 struct eq {
   int n;
