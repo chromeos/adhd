@@ -26,13 +26,13 @@ t0 = time.perf_counter()
 
 # Update Cargo.Bazel.lock.
 run(
-    ['bazel', 'build', '--nobuild', '//...'],
+    ['bazel', 'build', '--nobuild', '//cras/...'],
     env={'CARGO_BAZEL_REPIN': 'true'},
 )
 
 # Find files to generate.
 result = run(
-    ['bazel', 'cquery', 'kind(write_source_file, //...)', '--output=starlark'],
+    ['bazel', 'cquery', 'kind(write_source_file, //cras/...)', '--output=starlark'],
     stdout=subprocess.PIPE,
     text=True,
 )
