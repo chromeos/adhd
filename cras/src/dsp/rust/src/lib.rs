@@ -4,6 +4,8 @@
 
 mod biquad;
 mod biquad_bindings;
+mod crossover;
+mod crossover_bindings;
 mod dcblock;
 mod dcblock_bindings;
 mod eq;

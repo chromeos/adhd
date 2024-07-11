@@ -9,8 +9,8 @@
 #include <time.h>
 
 #include "cras/common/check.h"
-#include "cras/src/dsp/crossover.h"
 #include "cras/src/dsp/dsp_util.h"
+#include "cras/src/dsp/rust/dsp.h"
 #include "cras/src/dsp/tests/dsp_test_util.h"
 #include "cras/src/dsp/tests/raw.h"
 

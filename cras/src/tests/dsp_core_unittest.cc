@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 #include <math.h>
 
-#include "cras/src/dsp/crossover.h"
 #include "cras/src/dsp/crossover2.h"
 #include "cras/src/dsp/drc.h"
 #include "cras/src/dsp/dsp_util.h"

@@ -84,7 +84,8 @@ fn main() {
         .rename_item("DCBlock", "dcblock")
         .rename_item("Biquad", "biquad")
         .rename_item("BiquadType", "biquad_type")
-        .rename_item("EQ", "eq");
+        .rename_item("EQ", "eq")
+        .rename_item("Crossover", "crossover");
 
     let mut b = b;
     for src in c.with_src {

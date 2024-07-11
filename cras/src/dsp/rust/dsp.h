@@ -48,7 +48,78 @@ struct biquad {
   float y2;
 };
 
+/**
+ * An LR4 filter is two biquads with the same parameters connected in series:
+ *
+ * ```text
+ * x -- [BIQUAD] -- y -- [BIQUAD] -- z
+ * ```
+ *
+ * Both biquad filter has the same parameter b[012] and a[12],
+ * The variable [xyz][12] keep the history values.
+ */
+struct LR4 {
+  float b0;
+  float b1;
+  float b2;
+  float a1;
+  float a2;
+  float x1;
+  float x2;
+  float y1;
+  float y2;
+  float z1;
+  float z2;
+};
+
+/**
+ * Three bands crossover filter:
+ *
+ * ```text
+ * INPUT --+-- lp0 --+-- lp1 --+---> LOW (0)
+ *         |         |         |
+ *         |         \-- hp1 --/
+ *         |
+ *         \-- hp0 --+-- lp2 ------> MID (1)
+ *                   |
+ *                   \-- hp2 ------> HIGH (2)
+ *
+ *            [f0]       [f1]
+ * ```
+ *
+ * Each lp or hp is an LR4 filter, which consists of two second-order
+ * lowpass or highpass butterworth filters.
+ */
+struct crossover {
+  struct LR4 lp[3];
+  struct LR4 hp[3];
+};
+
 struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
+
+/**
+ * Initializes a crossover filter
+ * Args:
+ *    xo - The crossover filter we want to initialize.
+ *    freq1 - The normalized frequency splits low and mid band.
+ *    freq2 - The normalized frequency splits mid and high band.
+ */
+void crossover_init(struct crossover *xo, float freq1, float freq2);
+
+/**
+ * Splits input samples to three bands.
+ * Args:
+ *    xo - The crossover filter to use.
+ *    count - The number of input samples.
+ *    data0 - The input samples, also the place to store low band output.
+ *    data1 - The place to store mid band output.
+ *    data2 - The place to store high band output.
+ */
+void crossover_process(struct crossover *xo,
+                       int32_t count,
+                       float *data0,
+                       float *data1,
+                       float *data2);
 
 struct dcblock *dcblock_new(void);
 
@@ -73,6 +144,30 @@ int32_t eq_append_biquad_direct(struct eq *eq, const struct biquad *biquad);
 void eq_process(struct eq *eq, float *data, int32_t count);
 
 struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
+
+/**
+ * Initializes a crossover filter
+ * Args:
+ *    xo - The crossover filter we want to initialize.
+ *    freq1 - The normalized frequency splits low and mid band.
+ *    freq2 - The normalized frequency splits mid and high band.
+ */
+void crossover_init(struct crossover *xo, float freq1, float freq2);
+
+/**
+ * Splits input samples to three bands.
+ * Args:
+ *    xo - The crossover filter to use.
+ *    count - The number of input samples.
+ *    data0 - The input samples, also the place to store low band output.
+ *    data1 - The place to store mid band output.
+ *    data2 - The place to store high band output.
+ */
+void crossover_process(struct crossover *xo,
+                       int32_t count,
+                       float *data0,
+                       float *data1,
+                       float *data2);
 
 struct dcblock *dcblock_new(void);
 
