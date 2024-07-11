@@ -1149,6 +1149,21 @@ static DBusHandlerResult handle_set_bypass_block_noise_cancellation(
   return send_empty_reply(conn, message);
 }
 
+static DBusHandlerResult handle_set_ewma_power_report_enabled(
+    DBusConnection* conn,
+    DBusMessage* message,
+    void* arg) {
+  dbus_bool_t enabled;
+  int rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
+  if (rc) {
+    return rc;
+  }
+
+  cras_system_set_ewma_power_report_enabled(enabled);
+
+  return send_empty_reply(conn, message);
+}
+
 static DBusHandlerResult handle_get_sidetone_supported(DBusConnection* conn,
                                                        DBusMessage* message,
                                                        void* arg) {
@@ -1656,6 +1671,9 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetBypassBlockNoiseCancellation")) {
     return handle_set_bypass_block_noise_cancellation(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "SetEwmaPowerReportEnabled")) {
+    return handle_set_ewma_power_report_enabled(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "GetSidetoneSupported")) {
     return handle_get_sidetone_supported(conn, message, arg);

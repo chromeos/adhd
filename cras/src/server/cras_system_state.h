@@ -191,6 +191,9 @@ bool cras_system_get_style_transfer_supported();
 // Returns if Noise Cancellation is supported by DSP.
 bool cras_system_get_dsp_noise_cancellation_supported();
 
+// Sets the flag to enable or disable ewma power report.
+void cras_system_set_ewma_power_report_enabled(bool enabled);
+
 // Returns if the current active nodes support sidetone.
 bool cras_system_get_sidetone_supported();
 

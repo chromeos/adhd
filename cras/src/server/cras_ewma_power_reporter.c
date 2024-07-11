@@ -48,7 +48,7 @@ void cras_ewma_power_reporter_init() {
            cras_strerror(-rc));
   }
 
-  atomic_store(&reporter.enabled, true);
+  atomic_store(&reporter.enabled, false);
   reporter.max_power = 0;
 }
 

@@ -26,6 +26,7 @@
 #include "cras/src/server/cras_alert.h"
 #include "cras/src/server/cras_alsa_card.h"
 #include "cras/src/server/cras_dsp_offload.h"
+#include "cras/src/server/cras_ewma_power_reporter.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_observer.h"
@@ -534,6 +535,10 @@ void cras_system_set_noise_cancellation_enabled(bool enabled) {
     state.exp_state->noise_cancellation_enabled = enabled;
     cras_iodev_list_reset_for_noise_cancellation();
   }
+}
+
+void cras_system_set_ewma_power_report_enabled(bool enabled) {
+  cras_ewma_power_reporter_set_enabled(enabled);
 }
 
 bool cras_system_get_sidetone_supported() {
