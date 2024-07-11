@@ -2265,6 +2265,20 @@ static void signal_number_of_arc_stream_changed(void* context,
   dbus_message_unref(msg);
 }
 
+static void signal_ewma_power_reported(void* context, double power) {
+  struct cras_dbus_control* control = (struct cras_dbus_control*)context;
+  dbus_uint32_t serial = 0;
+
+  DBusMessage* msg = create_dbus_message("EwmaPowerReported");
+  if (!msg) {
+    return;
+  }
+
+  dbus_message_append_args(msg, DBUS_TYPE_DOUBLE, &power, DBUS_TYPE_INVALID);
+  dbus_connection_send(control->conn, msg, &serial);
+  dbus_message_unref(msg);
+}
+
 // Exported Interface
 
 void cras_dbus_control_start(DBusConnection* conn) {
@@ -2315,6 +2329,7 @@ void cras_dbus_control_start(DBusConnection* conn) {
   observer_ops.num_stream_ignore_ui_gains_changed =
       signal_num_stream_ignore_ui_gains_changed;
   observer_ops.num_arc_streams_changed = signal_number_of_arc_stream_changed;
+  observer_ops.ewma_power_reported = signal_ewma_power_reported;
 
   dbus_control.observer = cras_observer_add(&observer_ops, &dbus_control);
 }

@@ -36,8 +36,8 @@ struct ewma_power_message {
 
 static void handle_ewma_power_message(struct cras_main_message* mmsg,
                                       void* arg) {
-  // struct ewma_power_message* msg = (struct ewma_power_message*)mmsg;
-  // cras_observer_notify_ewma_power_reported(msg->power);
+  struct ewma_power_message* msg = (struct ewma_power_message*)mmsg;
+  cras_observer_notify_ewma_power_reported(msg->power);
 }
 
 void cras_ewma_power_reporter_init() {

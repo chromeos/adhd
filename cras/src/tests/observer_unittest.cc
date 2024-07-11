@@ -17,7 +17,7 @@ extern "C" {
 
 namespace {
 
-static const size_t kNumAlert = 26;
+static const size_t kNumAlert = 27;
 
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;
@@ -71,6 +71,8 @@ static std::vector<uint32_t> cb_num_non_chrome_output_streams_values;
 static size_t cb_num_stream_ignore_ui_gains_changed_called;
 static size_t cb_num_arc_streams_called;
 static std::vector<uint32_t> cb_num_arc_streams_values;
+static size_t cb_ewma_power_reported_called;
+static std::vector<double> cb_ewma_power_reported_values;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -124,6 +126,8 @@ static void ResetStubData() {
   cb_num_stream_ignore_ui_gains_changed_called = 0;
   cb_num_arc_streams_called = 0;
   cb_num_arc_streams_values.clear();
+  cb_ewma_power_reported_called = 0;
+  cb_ewma_power_reported_values.clear();
 }
 
 // System output volume changed.
@@ -255,6 +259,12 @@ void cb_num_stream_ignore_ui_gains_changed(void* context, int num) {
 void cb_num_arc_streams(void* context, uint32_t num_arc_streams) {
   cb_num_arc_streams_called++;
   cb_num_arc_streams_values.push_back(num_arc_streams);
+  cb_context.push_back(context);
+}
+
+void cb_ewma_power_reported(void* context, double power) {
+  cb_ewma_power_reported_called++;
+  cb_ewma_power_reported_values.push_back(power);
   cb_context.push_back(context);
 }
 
@@ -818,6 +828,25 @@ TEST_F(ObserverTest, NumArcStreamsChanged) {
   EXPECT_EQ(cb_num_arc_streams_values, (std::vector<uint32_t>{99, 99}));
 
   DoObserverRemoveClear(num_arc_streams_alert, data);
+}
+
+TEST_F(ObserverTest, EwmaPowerReported) {
+  cras_observer_notify_ewma_power_reported(1.0);
+  EXPECT_EQ(cras_alert_pending_alert_value,
+            g_observer->alerts.ewma_power_reported);
+  auto* data =
+      reinterpret_cast<struct cras_observer_alert_data_ewma_power_reported*>(
+          cras_alert_pending_data_value);
+  EXPECT_EQ(data->power, 1.0);
+
+  ops1_.ewma_power_reported = cb_ewma_power_reported;
+  ops2_.ewma_power_reported = cb_ewma_power_reported;
+
+  DoObserverAlert(ewma_power_reported_alert, data);
+  ASSERT_EQ(cb_ewma_power_reported_called, 2);
+  EXPECT_EQ(cb_ewma_power_reported_values, (std::vector<double>{1.0, 1.0}));
+
+  DoObserverRemoveClear(ewma_power_reported_alert, data);
 }
 
 // Stubs

@@ -51,6 +51,7 @@ struct cras_observer_alerts {
   struct cras_alert* output_proc_survey;
   struct cras_alert* speak_on_mute_detected;
   struct cras_alert* num_stream_ignore_ui_gains_changed;
+  struct cras_alert* ewma_power_reported;
 };
 
 struct cras_observer_server {
@@ -134,6 +135,10 @@ struct cras_observer_alert_data_output_proc_survey {
 
 struct cras_observer_num_stream_ignore_ui_gains {
   int num;
+};
+
+struct cras_observer_alert_data_ewma_power_reported {
+  double power;
 };
 
 // Global observer instance.
@@ -449,6 +454,18 @@ static void num_stream_ignore_ui_gains_changed_alert(void* arg, void* data) {
   }
 }
 
+static void ewma_power_reported_alert(void* arg, void* data) {
+  struct cras_observer_client* client;
+  struct cras_observer_alert_data_ewma_power_reported* report =
+      (struct cras_observer_alert_data_ewma_power_reported*)data;
+
+  DL_FOREACH (g_observer->clients, client) {
+    if (client->ops.ewma_power_reported) {
+      client->ops.ewma_power_reported(client->context, report->power);
+    }
+  }
+}
+
 static int cras_observer_server_set_alert(struct cras_alert** alert,
                                           cras_alert_cb cb,
                                           cras_alert_prepare prepare,
@@ -513,6 +530,7 @@ int cras_observer_server_init() {
   CRAS_OBSERVER_SET_ALERT(num_non_chrome_output_streams, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(num_stream_ignore_ui_gains_changed, NULL, 0);
   CRAS_OBSERVER_SET_ALERT(num_arc_streams, NULL, 0);
+  CRAS_OBSERVER_SET_ALERT(ewma_power_reported, NULL, 0);
 
   CRAS_OBSERVER_SET_ALERT_WITH_DIRECTION(num_active_streams,
                                          CRAS_STREAM_OUTPUT);
@@ -558,6 +576,8 @@ void cras_observer_server_free() {
   cras_alert_destroy(g_observer->alerts.speak_on_mute_detected);
   cras_alert_destroy(g_observer->alerts.num_stream_ignore_ui_gains_changed);
   cras_alert_destroy(g_observer->alerts.num_arc_streams);
+  cras_alert_destroy(g_observer->alerts.ewma_power_reported);
+  ;
   free(g_observer);
   g_observer = NULL;
 }
@@ -825,5 +845,12 @@ void cras_observer_notify_num_arc_streams(uint32_t num_arc_streams) {
   struct cras_observer_alert_data_num_arc_streams data = {.num_arc_streams =
                                                               num_arc_streams};
   cras_alert_pending_data(g_observer->alerts.num_arc_streams, &data,
+                          sizeof(data));
+}
+
+void cras_observer_notify_ewma_power_reported(double power) {
+  struct cras_observer_alert_data_ewma_power_reported data = {.power = power};
+
+  cras_alert_pending_data(g_observer->alerts.ewma_power_reported, &data,
                           sizeof(data));
 }

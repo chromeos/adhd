@@ -142,6 +142,9 @@ void cras_observer_notify_num_stream_ignore_ui_gains_changed(int num);
 // Notify observers of the number of arc streams changed.
 void cras_observer_notify_num_arc_streams(uint32_t num_arc_streams_changed);
 
+// Notify observers that there is a report of ewma power.
+void cras_observer_notify_ewma_power_reported(double power);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

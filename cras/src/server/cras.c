@@ -18,6 +18,7 @@
 #include "cras/src/server/cras_alsa_plugin_io.h"
 #include "cras/src/server/cras_bt_manager.h"
 #include "cras/src/server/cras_dsp.h"
+#include "cras/src/server/cras_ewma_power_reporter.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_server.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
@@ -168,6 +169,7 @@ int main(int argc, char** argv) {
   cras_dsp_init(dsp_config);
   cras_stream_apm_init(device_config_dir);
   cras_speak_on_mute_detector_init();
+  cras_ewma_power_reporter_init();
   cras_iodev_list_init();
   cras_alsa_plugin_io_init(device_config_dir);
 

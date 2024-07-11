@@ -92,6 +92,9 @@ struct cras_observer_ops {
 
   // Number of ARC streams changed.
   void (*num_arc_streams_changed)(void* context, uint32_t num_arc_streams);
+
+  // Ewma power of the input stream.
+  void (*ewma_power_reported)(void* context, double power);
 };
 
 #ifdef __cplusplus
