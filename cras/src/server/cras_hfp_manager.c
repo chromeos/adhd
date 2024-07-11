@@ -131,15 +131,16 @@ struct cras_hfp* cras_floss_hfp_create(struct fl_media* fm,
     hfp->hfp_caps &= ~HFP_CODEC_FORMAT_MSBC;
   }
 
-  // Currently, SWB is only supported via SW encoding. If CRAS would
-  // have been using HW encoding but LC3 is available, we will back off to
-  // the SW encoding backend.
+  // Currently, SWB is only supported via SW encoding. We shall respect
+  // the offloading decision from CRAS because the capabilities exposed
+  // from the BT stack can be wrong for this particular case (on Corsola).
+  // See b/316077719 for details.
   if (cras_floss_hfp_is_codec_format_supported(
           hfp, HFP_CODEC_FORMAT_LC3_TRANSPARENT) &&
       hfp->sco_pcm_used) {
-    hfp->sco_pcm_used = false;
-    syslog(LOG_INFO, "Bypassed offloading to allow LC3");
-    // TODO: add UMA for this case
+    syslog(LOG_INFO, "Prefer HW-MSBC over SW-LC3 to respect offload decision");
+    hfp->hfp_caps |= HFP_CODEC_FORMAT_MSBC;
+    hfp->hfp_caps &= ~HFP_CODEC_FORMAT_LC3_TRANSPARENT;
   }
 
   if (hfp->sco_pcm_used) {
