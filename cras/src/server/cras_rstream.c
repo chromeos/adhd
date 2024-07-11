@@ -20,6 +20,7 @@
 
 #include "cras/src/server/buffer_share.h"
 #include "cras/src/server/cras_audio_area.h"
+#include "cras/src/server/cras_ewma_power_reporter.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_rstream_config.h"
 #include "cras/src/server/cras_server_metrics.h"
@@ -548,6 +549,20 @@ void cras_rstream_dev_offset_update(struct cras_rstream* rstream,
 
 void cras_rstream_update_input_write_pointer(struct cras_rstream* rstream) {
   unsigned int nwritten = buffer_share_get_new_write_point(rstream->buf_state);
+
+  if (cras_ewma_power_reporter_should_calculate(rstream->stream_id)) {
+    unsigned int nfr = 0;
+    uint8_t* dst;
+
+    // Should get the frames before the pointer is advanced by
+    // cras_shm_buffer_written
+    dst = cras_shm_get_writeable_frames(rstream->shm, nwritten, &nfr);
+    if (dst != NULL) {
+      ewma_power_calculate(&rstream->ewma, (int16_t*)dst,
+                           rstream->format.num_channels, nfr);
+      cras_ewma_power_reporter_report(rstream->stream_id, &rstream->ewma);
+    }
+  }
 
   cras_shm_buffer_written(rstream->shm, nwritten);
 }

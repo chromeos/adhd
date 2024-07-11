@@ -1431,6 +1431,7 @@ cc_test(
     name = "iodev_list_unittest",
     srcs = [
         ":iodev_list_unittest.cc",
+        "//cras/src/server:cras_ewma_power_reporter_stub.c",
         "//cras/src/server:cras_speak_on_mute_detector_stub.c",
     ],
     deps = [
@@ -1649,6 +1650,7 @@ cc_test(
         "//cras/src/common:cras_selinux_helper_stub.c",
         "//cras/src/common:cras_shm.c",
         "//cras/src/common:cras_string.c",
+        "//cras/src/server:cras_ewma_power_reporter_stub.c",
         "//cras/src/server:cras_rstream.c",
         "//cras/src/server:cras_rstream_config.c",
     ],

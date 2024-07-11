@@ -484,6 +484,8 @@ cc_library(
         "cras_dsp_pipeline.h",
         "cras_empty_iodev.c",
         "cras_empty_iodev.h",
+        "cras_ewma_power_reporter.c",
+        "cras_ewma_power_reporter.h",
         "cras_feature_monitor.c",
         "cras_feature_monitor.h",
         "cras_fl_manager.c",
