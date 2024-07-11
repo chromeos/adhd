@@ -48,6 +48,9 @@ def parse_ucm_config(ucm_file):
                 if match:
                     key, value = match.groups()
                     value = normalized_control_value(value)
+                    # TODO: /opt/${File}} does not exist in the image, add it back after bin files are deployed. (b/352466778)
+                    if "/opt/" in value:
+                        continue
                     config_data[current_section][current_sequence].append((key, value))
 
     return config_data
