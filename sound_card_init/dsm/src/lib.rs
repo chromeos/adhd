@@ -285,7 +285,7 @@ impl DSM {
                 rdc_range.upper,
             );
             log_uma_enum(UMACalibrationResult::LargeCalibrationDiff);
-            return Err(Error::LargeCalibrationDiff(Box::new(calib_data)));
+            return Ok(previous_calib);
         }
 
         let diff = {
