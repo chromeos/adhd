@@ -64,6 +64,7 @@ cc_library(
     name = "eq",
     srcs = ["eq.c"],
     hdrs = ["eq.h"],
+    visibility = ["//cras/benchmark:__pkg__"],
     deps = [
         ":biquad",
         "@thesofproject_sof",

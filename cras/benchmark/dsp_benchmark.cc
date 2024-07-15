@@ -10,7 +10,9 @@
 #include "cras/benchmark/benchmark_util.hh"
 #include "cras/src/dsp/biquad.h"
 #include "cras/src/dsp/drc.h"
+#include "cras/src/dsp/eq.h"
 #include "cras/src/dsp/eq2.h"
+#include "cras/src/dsp/rust/dsp.h"
 
 namespace {
 
@@ -32,6 +34,29 @@ class BM_Dsp : public benchmark::Fixture {
   // |frames| * |NUM_CHANNELS| of samples.
   std::vector<float> samples;
 };
+
+BENCHMARK_DEFINE_F(BM_Dsp, Eq)(benchmark::State& state) {
+  const double NQ = 44100 / 2;  // nyquist frequency
+  // eq chain
+  struct eq* eq = eq_new();
+  eq_append_biquad(eq, BQ_PEAKING, 380 / NQ, 3, -10);
+  eq_append_biquad(eq, BQ_PEAKING, 720 / NQ, 3, -12);
+  eq_append_biquad(eq, BQ_PEAKING, 1705 / NQ, 3, -8);
+  eq_append_biquad(eq, BQ_HIGHPASS, 218 / NQ, 0.7, -10.2);
+  eq_append_biquad(eq, BQ_PEAKING, 580 / NQ, 6, -8);
+  eq_append_biquad(eq, BQ_HIGHSHELF, 8000 / NQ, 3, 2);
+  for (auto _ : state) {
+    eq_process(eq, samples.data(), frames);
+  }
+  eq_free(eq);
+  state.counters["frames_per_second"] = benchmark::Counter(
+      int64_t(state.iterations()) * frames, benchmark::Counter::kIsRate);
+  state.counters["time_per_48k_frames"] = benchmark::Counter(
+      int64_t(state.iterations()) * frames / 48000,
+      benchmark::Counter::kIsRate | benchmark::Counter::kInvert);
+}
+
+BENCHMARK_REGISTER_F(BM_Dsp, Eq)->RangeMultiplier(2)->Range(256, 8 << 10);
 
 BENCHMARK_DEFINE_F(BM_Dsp, Eq2)(benchmark::State& state) {
   const double NQ = 44100 / 2;  // nyquist frequency
