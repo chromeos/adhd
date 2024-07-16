@@ -44,13 +44,15 @@ try:
     os.mkdir(os.path.join(SCRIPT_DIR, "sandbox"))
 except FileExistsError:
     pass
+
+subprocess.run(["bazel", "build", "//cras/src/dsp/tests:" + BUILD_TARGET], cwd=CUR_ADHD)
 shutil.copy(
-    os.path.join("bazel-bin/cras/src/dsp/tests/", BUILD_TARGET),
+    os.path.join(CUR_ADHD, "bazel-bin/cras/src/dsp/tests/", BUILD_TARGET),
     os.path.join(SCRIPT_DIR, "sandbox/rust"),
 )
 subprocess.run(["bazel", "build", "//cras/src/dsp/tests:" + BUILD_TARGET], cwd=args.adhd_dir)
 shutil.copy(
-    os.path.join("bazel-bin/cras/src/dsp/tests/", BUILD_TARGET),
+    os.path.join(args.adhd_dir, "bazel-bin/cras/src/dsp/tests/", BUILD_TARGET),
     os.path.join(SCRIPT_DIR, "sandbox/c"),
 )
 os.chdir(SCRIPT_DIR)
