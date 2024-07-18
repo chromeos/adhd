@@ -1163,6 +1163,10 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         (unsigned int)info->devs[i].longest_wake_sec,
         (unsigned int)info->devs[i].longest_wake_nsec,
         info->devs[i].internal_gain_scaler);
+    printf("channel map:");
+    for (j = 0; j < CRAS_CH_MAX; j++) {
+      printf("%d ", info->devs[i].channel_layout[j]);
+    }
     printf("\n");
   }
 

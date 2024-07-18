@@ -408,6 +408,7 @@ impl Default for audio_dev_debug_info {
             longest_wake_nsec: 0,
             internal_gain_scaler: 0.0,
             dev_idx: 0,
+            channel_layout: [0; 11],
         }
     }
 }
@@ -439,11 +440,20 @@ pub struct AudioDevDebugInfo {
     )]
     pub longest_wake: Duration,
     pub internal_gain_scaler: f64,
+    pub channel_layout: Vec<CRAS_CHANNEL>,
 }
 
-impl From<audio_dev_debug_info> for AudioDevDebugInfo {
-    fn from(info: audio_dev_debug_info) -> Self {
-        Self {
+impl TryFrom<audio_dev_debug_info> for AudioDevDebugInfo {
+    type Error = Error;
+    fn try_from(info: audio_dev_debug_info) -> Result<Self, Self::Error> {
+        let channel_layout = info
+            .channel_layout
+            .iter()
+            .cloned()
+            .take_while(|&c| c != -1)
+            .map(TryInto::try_into)
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self {
             dev_name: cstring_to_string(&info.dev_name),
             buffer_size: info.buffer_size,
             min_buffer_level: info.min_buffer_level,
@@ -462,7 +472,8 @@ impl From<audio_dev_debug_info> for AudioDevDebugInfo {
             runtime: Duration::new(info.runtime_sec.into(), info.runtime_nsec),
             longest_wake: Duration::new(info.longest_wake_sec.into(), info.longest_wake_nsec),
             internal_gain_scaler: info.internal_gain_scaler,
-        }
+            channel_layout,
+        })
     }
 }
 
@@ -493,6 +504,11 @@ impl fmt::Display for AudioDevDebugInfo {
         writeln!(f, "  Runtime: {:?}", self.runtime)?;
         writeln!(f, "  Longest wake: {:?}", self.longest_wake)?;
         writeln!(f, "  Internal gain scaler: {}", self.internal_gain_scaler)?;
+        write!(f, "  Channel map:")?;
+        for channel in &self.channel_layout {
+            write!(f, " {:?}", channel)?;
+        }
+        writeln!(f)?;
         Ok(())
     }
 }

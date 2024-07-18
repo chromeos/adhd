@@ -534,6 +534,7 @@ static void append_dev_dump_info(struct audio_dev_debug_info* di,
     di->est_rate_ratio_when_underrun =
         cras_iodev_get_rate_est_underrun_ratio(adev->dev);
     di->est_rate_ratio = cras_iodev_get_est_rate_ratio(adev->dev);
+    memcpy(di->channel_layout, fmt->channel_layout, sizeof(di->channel_layout));
   } else {
     di->frame_rate = 0;
     di->num_channels = 0;

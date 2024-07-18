@@ -775,8 +775,8 @@ impl<'a> CrasServerState<'a> {
         let dev_info = devs
             .into_iter()
             .take(num_devs as usize)
-            .map(AudioDevDebugInfo::from)
-            .collect();
+            .map(AudioDevDebugInfo::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
         let stream_info = streams
             .into_iter()
             .take(num_streams as usize)

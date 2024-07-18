@@ -488,6 +488,7 @@ struct __attribute__((__packed__)) audio_dev_debug_info {
   uint32_t longest_wake_nsec;
   double internal_gain_scaler;
   uint32_t dev_idx;
+  int8_t channel_layout[CRAS_CH_MAX];
 };
 
 struct __attribute__((__packed__)) audio_stream_debug_info {
