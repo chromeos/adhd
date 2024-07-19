@@ -4077,6 +4077,8 @@ bool cras_system_set_sidetone_enabled(bool enabled) {
   return true;
 }
 
+void cras_observer_notify_sidetone_supported_changed(bool supported) {}
+
 struct cras_timer* cras_tm_create_timer(struct cras_tm* tm,
                                         unsigned int ms,
                                         void (*cb)(struct cras_timer* t,

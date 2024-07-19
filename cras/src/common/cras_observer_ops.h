@@ -95,6 +95,9 @@ struct cras_observer_ops {
 
   // Ewma power of the input stream.
   void (*ewma_power_reported)(void* context, double power);
+
+  // State regarding whether the current audio node supports sidetone.
+  void (*sidetone_supported_changed)(void* context, bool supported);
 };
 
 #ifdef __cplusplus

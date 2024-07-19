@@ -917,12 +917,6 @@ static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir,
   }
 }
 
-static void possibly_disable_sidetone(enum CRAS_NODE_TYPE type) {
-  if (!is_sidetone_available(type)) {
-    cras_system_set_sidetone_enabled(false);
-  }
-}
-
 /*
  * Adds stream to one or more open iodevs. If the stream has processing effect
  * turned on, create new APM instance and add to the list. This makes sure the
@@ -2236,8 +2230,12 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
     }
   }
 
-  if (cras_system_get_sidetone_enabled() && direction == CRAS_STREAM_OUTPUT) {
-    possibly_disable_sidetone(new_dev->active_node->type);
+  if (direction == CRAS_STREAM_OUTPUT && new_dev && new_dev->active_node) {
+    bool available = is_sidetone_available(new_dev->active_node->type);
+    if (!available) {
+      cras_system_set_sidetone_enabled(false);
+    }
+    cras_observer_notify_sidetone_supported_changed(available);
   }
 
   cras_iodev_list_notify_active_node_changed(direction);

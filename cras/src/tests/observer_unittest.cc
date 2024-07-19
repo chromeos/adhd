@@ -17,7 +17,7 @@ extern "C" {
 
 namespace {
 
-static const size_t kNumAlert = 27;
+static const size_t kNumAlert = 28;
 
 static size_t cras_alert_destroy_called;
 static size_t cras_alert_create_called;
@@ -73,6 +73,8 @@ static size_t cb_num_arc_streams_called;
 static std::vector<uint32_t> cb_num_arc_streams_values;
 static size_t cb_ewma_power_reported_called;
 static std::vector<double> cb_ewma_power_reported_values;
+static size_t cb_sidetone_supported_changed_called;
+static std::vector<bool> cb_sidetone_supported_changed_values;
 
 static void ResetStubData() {
   cras_alert_destroy_called = 0;
@@ -128,6 +130,8 @@ static void ResetStubData() {
   cb_num_arc_streams_values.clear();
   cb_ewma_power_reported_called = 0;
   cb_ewma_power_reported_values.clear();
+  cb_sidetone_supported_changed_called = 0;
+  cb_sidetone_supported_changed_values.clear();
 }
 
 // System output volume changed.
@@ -265,6 +269,12 @@ void cb_num_arc_streams(void* context, uint32_t num_arc_streams) {
 void cb_ewma_power_reported(void* context, double power) {
   cb_ewma_power_reported_called++;
   cb_ewma_power_reported_values.push_back(power);
+  cb_context.push_back(context);
+}
+
+void cb_sidetone_supported_changed(void* context, bool supported) {
+  cb_sidetone_supported_changed_called++;
+  cb_sidetone_supported_changed_values.push_back(supported);
   cb_context.push_back(context);
 }
 
@@ -847,6 +857,26 @@ TEST_F(ObserverTest, EwmaPowerReported) {
   EXPECT_EQ(cb_ewma_power_reported_values, (std::vector<double>{1.0, 1.0}));
 
   DoObserverRemoveClear(ewma_power_reported_alert, data);
+}
+
+TEST_F(ObserverTest, SidetoneSupportedChanged) {
+  cras_observer_notify_sidetone_supported_changed(true);
+  EXPECT_EQ(cras_alert_pending_alert_value,
+            g_observer->alerts.sidetone_supported_changed);
+  auto* data = reinterpret_cast<
+      struct cras_observer_alert_data_sidetone_supported_changed*>(
+      cras_alert_pending_data_value);
+  EXPECT_EQ(data->supported, true);
+
+  ops1_.sidetone_supported_changed = cb_sidetone_supported_changed;
+  ops2_.sidetone_supported_changed = cb_sidetone_supported_changed;
+
+  DoObserverAlert(sidetone_supported_changed_alert, data);
+  ASSERT_EQ(cb_sidetone_supported_changed_called, 2);
+  EXPECT_EQ(cb_sidetone_supported_changed_values,
+            (std::vector<bool>{true, true}));
+
+  DoObserverRemoveClear(sidetone_supported_changed_alert, data);
 }
 
 // Stubs
