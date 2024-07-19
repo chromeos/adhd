@@ -48,6 +48,7 @@ static const char dma_period_var[] = "DmaPeriodMicrosecs";
 static const char use_software_volume[] = "UseSoftwareVolume";
 static const char playback_device_name_var[] = "PlaybackPCM";
 static const char playback_device_rate_var[] = "PlaybackRate";
+static const char playback_channel_map_var[] = "PlaybackChannelMap";
 static const char playback_channels_var[] = "PlaybackChannels";
 static const char playback_number_of_volume_steps_var[] =
     "CRASPlaybackNumberOfVolumeSteps";
@@ -967,14 +968,15 @@ int ucm_get_playback_number_of_volume_steps_for_dev(
   return 0;
 }
 
-int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr* mgr,
-                                  const char* dev,
-                                  int8_t* channel_layout) {
+int ucm_get_chmap_for_dev(struct cras_use_case_mgr* mgr,
+                          const char* dev,
+                          int8_t* channel_layout,
+                          const char* var_name) {
   const char* var_str;
   char *tokens, *token;
   int i, rc;
 
-  rc = get_var(mgr, capture_channel_map_var, dev, uc_verb(mgr), &var_str);
+  rc = get_var(mgr, var_name, dev, uc_verb(mgr), &var_str);
   if (rc) {
     return rc;
   }
@@ -996,6 +998,20 @@ int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr* mgr,
   free((void*)tokens);
   free((void*)var_str);
   return (i == CRAS_CH_MAX) ? 0 : -EINVAL;
+}
+
+int ucm_get_playback_chmap_for_dev(struct cras_use_case_mgr* mgr,
+                                   const char* dev,
+                                   int8_t* channel_layout) {
+  return ucm_get_chmap_for_dev(mgr, dev, channel_layout,
+                               playback_channel_map_var);
+}
+
+int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr* mgr,
+                                  const char* dev,
+                                  int8_t* channel_layout) {
+  return ucm_get_chmap_for_dev(mgr, dev, channel_layout,
+                               capture_channel_map_var);
 }
 
 struct mixer_name* ucm_get_coupled_mixer_names(struct cras_use_case_mgr* mgr,

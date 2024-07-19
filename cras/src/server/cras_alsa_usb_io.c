@@ -58,7 +58,6 @@ struct alsa_usb_output_node {
 
 struct alsa_usb_input_node {
   struct alsa_common_node common;
-  int8_t* channel_layout;
 };
 
 /*
@@ -347,13 +346,12 @@ static int usb_update_channel_layout(struct cras_iodev* iodev) {
 
   /* If the capture channel map is specified in UCM, prefer it over
    * what ALSA provides. */
-  if (aio->common.ucm && (iodev->direction == CRAS_STREAM_INPUT)) {
-    struct alsa_usb_input_node* input =
-        (struct alsa_usb_input_node*)iodev->active_node;
-
-    if (input->channel_layout) {
-      memcpy(iodev->format->channel_layout, input->channel_layout,
-             CRAS_CH_MAX * sizeof(*input->channel_layout));
+  if (aio->common.ucm) {
+    struct alsa_common_node* node =
+        (struct alsa_common_node*)iodev->active_node;
+    if (node->channel_layout) {
+      memcpy(iodev->format->channel_layout, node->channel_layout,
+             CRAS_CH_MAX * sizeof(*node->channel_layout));
       return 0;
     }
   }
@@ -747,6 +745,7 @@ static struct alsa_usb_output_node* usb_new_output(
     const char* name) {
   CRAS_CHECK(name);
 
+  int err;
   syslog(LOG_DEBUG, "card type: %s, New output node for '%s'",
          cras_card_type_to_string(aio->common.card_type), name);
   if (aio == NULL) {
@@ -771,6 +770,16 @@ static struct alsa_usb_output_node* usb_new_output(
       SuperFastHash(name, strlen(name), aio->common.base.info.stable_id);
 
   if (aio->common.ucm) {
+    // Check if channel map is specified in UCM.
+    output->common.channel_layout =
+        (int8_t*)malloc(CRAS_CH_MAX * sizeof(*output->common.channel_layout));
+    err = ucm_get_playback_chmap_for_dev(aio->common.ucm, name,
+                                         output->common.channel_layout);
+    if (err) {
+      free(output->common.channel_layout);
+      output->common.channel_layout = 0;
+    }
+
     node->dsp_name = ucm_get_dsp_name_for_dev(aio->common.ucm, name);
   }
   output->common.mixer = cras_control;
@@ -853,13 +862,13 @@ static struct alsa_usb_input_node* usb_new_input(
 
   if (aio->common.ucm) {
     // Check if channel map is specified in UCM.
-    input->channel_layout =
-        (int8_t*)malloc(CRAS_CH_MAX * sizeof(*input->channel_layout));
+    input->common.channel_layout =
+        (int8_t*)malloc(CRAS_CH_MAX * sizeof(*input->common.channel_layout));
     err = ucm_get_capture_chmap_for_dev(aio->common.ucm, name,
-                                        input->channel_layout);
+                                        input->common.channel_layout);
     if (err) {
-      free(input->channel_layout);
-      input->channel_layout = 0;
+      free(input->common.channel_layout);
+      input->common.channel_layout = 0;
     }
     if (ucm_get_preempt_hotword(aio->common.ucm, name)) {
       iodev->pre_open_iodev_hook = cras_iodev_list_suspend_hotword_streams;

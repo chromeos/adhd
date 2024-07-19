@@ -3008,6 +3008,12 @@ int ucm_get_capture_chmap_for_dev(struct cras_use_case_mgr* mgr,
   return -EINVAL;
 }
 
+int ucm_get_playback_chmap_for_dev(struct cras_use_case_mgr* mgr,
+                                   const char* dev,
+                                   int8_t* channel_layout) {
+  return -EINVAL;
+}
+
 int ucm_get_preempt_hotword(struct cras_use_case_mgr* mgr, const char* dev) {
   return 0;
 }

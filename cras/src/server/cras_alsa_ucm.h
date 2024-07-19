@@ -411,6 +411,16 @@ int ucm_get_playback_number_of_volume_steps_for_dev(
     const char* dev,
     int32_t* playback_number_of_volume_steps);
 
+/* Gets the playback channel map for this device.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    dev - The device to check for playback channel map.
+ *    channel_layout - The channel layout to fill.
+ */
+int ucm_get_playback_chmap_for_dev(struct cras_use_case_mgr* mgr,
+                                   const char* dev,
+                                   int8_t* channel_layout);
+
 /* Gets the capture channel map for this device.
  * Args:
  *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.

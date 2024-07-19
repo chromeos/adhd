@@ -163,6 +163,8 @@ struct alsa_common_node {
   char ucm_name[CRAS_NODE_NAME_BUFFER_SIZE];
   // The jack associated with the node.
   const struct cras_alsa_jack* jack;
+  // Customized channel layout with the node.
+  int8_t* channel_layout;
 };
 
 struct cras_ionode* first_plugged_node(struct cras_iodev* iodev);

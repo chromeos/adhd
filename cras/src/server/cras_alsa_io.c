@@ -68,7 +68,6 @@ struct alsa_output_node {
 
 struct alsa_input_node {
   struct alsa_common_node common;
-  int8_t* channel_layout;
 };
 
 struct alsa_io_group;
@@ -545,16 +544,16 @@ static int update_channel_layout(struct cras_iodev* iodev) {
 
   /* If the capture channel map is specified in UCM, prefer it over
    * what ALSA provides. */
-  if (aio->common.ucm && (iodev->direction == CRAS_STREAM_INPUT)) {
-    struct alsa_input_node* input = (struct alsa_input_node*)iodev->active_node;
+  if (aio->common.ucm) {
+    struct alsa_common_node* node =
+        (struct alsa_common_node*)iodev->active_node;
+    if (node->channel_layout) {
+      memcpy(iodev->format->channel_layout, node->channel_layout,
+             CRAS_CH_MAX * sizeof(*node->channel_layout));
 
-    if (input->channel_layout) {
-      memcpy(iodev->format->channel_layout, input->channel_layout,
-             CRAS_CH_MAX * sizeof(*input->channel_layout));
-
-      /* Capture channel map might contain value higher than or equal to
-       * num_channels. If that's the case, try to open the device using higher
-       * channel count. */
+      /* Channel map might contain value higher than or equal to num_channels.
+       * If that's the case, try to open the device using higher channel
+       * count. */
       int min_valid_channels =
           cras_audio_format_get_least_num_channels(iodev->format);
       if (iodev->format->num_channels < min_valid_channels) {
@@ -1086,6 +1085,7 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
                                            struct mixer_control* cras_control,
                                            const char* name) {
   CRAS_CHECK(name);
+  int err;
 
   syslog(LOG_DEBUG, "New output node for '%s'", name);
   if (aio == NULL) {
@@ -1105,6 +1105,16 @@ static struct alsa_output_node* new_output(struct alsa_io* aio,
       SuperFastHash(name, strlen(name), aio->common.base.info.stable_id);
 
   if (aio->common.ucm) {
+    // Check if channel map is specified in UCM.
+    output->common.channel_layout =
+        (int8_t*)malloc(CRAS_CH_MAX * sizeof(*output->common.channel_layout));
+    err = ucm_get_playback_chmap_for_dev(aio->common.ucm, name,
+                                         output->common.channel_layout);
+    if (err) {
+      free(output->common.channel_layout);
+      output->common.channel_layout = 0;
+    }
+
     node->dsp_name = ucm_get_dsp_name_for_dev(aio->common.ucm, name);
   }
 
@@ -1188,13 +1198,13 @@ static struct alsa_input_node* new_input(struct alsa_io* aio,
 
   if (aio->common.ucm) {
     // Check if channel map is specified in UCM.
-    input->channel_layout =
-        (int8_t*)malloc(CRAS_CH_MAX * sizeof(*input->channel_layout));
+    input->common.channel_layout =
+        (int8_t*)malloc(CRAS_CH_MAX * sizeof(*input->common.channel_layout));
     err = ucm_get_capture_chmap_for_dev(aio->common.ucm, name,
-                                        input->channel_layout);
+                                        input->common.channel_layout);
     if (err) {
-      free(input->channel_layout);
-      input->channel_layout = 0;
+      free(input->common.channel_layout);
+      input->common.channel_layout = 0;
     }
     if (ucm_get_preempt_hotword(aio->common.ucm, name)) {
       iodev->pre_open_iodev_hook = cras_iodev_list_suspend_hotword_streams;

@@ -239,6 +239,7 @@ In fully-specified UCM, each SectionDevice will correspond to a node. In legacy 
     *   CaptureChannelMap:  Used in SectionDevice. The selected channel map for multiple-channel mics.  \
 E.g. "2 3 0 1 -1 -1 -1 -1 -1 -1 -1" means, FL takes channel 2, FR takes channel 3, RL takes channel 0, RL takes channel 1. \
 E.g.  "0 1 -1 -1 -1 -1 -1 -1 -1 -1 -1" means, FL takes channel 0, FR takes channel 1. The channels in the array are defined in [cras_audio_format.c](https://chromium.googlesource.com/chromiumos/third_party/adhd/+/master/cras/src/common/cras_audio_format.c#19). The meaning of the channel name follows [ALSA PCM channel mapping API](https://www.kernel.org/doc/html/v4.10/sound/designs/channel-mapping-api.html).
+    *   PlaybackChannelMap:  Similar to CaptureChannelMap, but used for playback SectionDevice.
 *   DSP:
     *   DspName: Used in SectionDevice. DSP name specified in dsp.ini. E.g. "speaker_eq" or "dmic_eq".
 *   Scheduling:
