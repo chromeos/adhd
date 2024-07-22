@@ -12,7 +12,7 @@ use std::f64::consts::PI;
  * We use double during the coefficients calculation for better accuracy, but
  * float is used during the actual filtering for faster computation.
  */
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 #[repr(C)]
 pub struct Biquad {
     pub b0: f32,

@@ -194,8 +194,8 @@ static void init_emphasis_eq(struct drc* drc) {
     emphasis_stage_pair_biquads(stage_gain, anchor_freq,
                                 anchor_freq / stage_ratio, &e, &d);
     for (j = 0; j < DRC_NUM_CHANNELS; j++) {
-      eq2_append_biquad_direct(drc->emphasis_eq, j, &e);
-      eq2_append_biquad_direct(drc->deemphasis_eq, j, &d);
+      eq2_append_biquad_direct(drc->emphasis_eq, j, e);
+      eq2_append_biquad_direct(drc->deemphasis_eq, j, d);
     }
     anchor_freq /= (stage_ratio * stage_ratio);
   }

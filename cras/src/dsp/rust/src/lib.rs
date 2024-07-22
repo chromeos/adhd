@@ -9,4 +9,6 @@ mod crossover_bindings;
 mod dcblock;
 mod dcblock_bindings;
 mod eq;
+mod eq2;
+mod eq2_bindings;
 mod eq_bindings;
