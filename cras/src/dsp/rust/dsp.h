@@ -18,6 +18,8 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
+#define CROSSOVER2_NUM_LR4_PAIRS 3
+
 #define MAX_BIQUADS_PER_EQ 10
 
 /**
@@ -59,6 +61,61 @@ struct biquad {
   float x2;
   float y1;
   float y2;
+};
+
+/**
+ * An LR4 filter is two biquads with the same parameters connected in series:
+ *
+ *```text
+ * x -- [BIQUAD] -- y -- [BIQUAD] -- z
+ * ```
+ *
+ * Both biquad filter has the same parameter b[012] and a[12],
+ * The variable [xyz][12][LR] keep the history values.
+ *
+ */
+struct lr42 {
+  float b0;
+  float b1;
+  float b2;
+  float a1;
+  float a2;
+  float x1L;
+  float x1R;
+  float x2L;
+  float x2R;
+  float y1L;
+  float y1R;
+  float y2L;
+  float y2R;
+  float z1L;
+  float z1R;
+  float z2L;
+  float z2R;
+};
+
+/**
+ * Three bands crossover filter:
+ *
+ *```text
+ * INPUT --+-- lp0 --+-- lp1 --+---> LOW (0)
+ *         |         |         |
+ *         |         \-- hp1 --/
+ *         |
+ *         \-- hp0 --+-- lp2 ------> MID (1)
+ *                   |
+ *                   \-- hp2 ------> HIGH (2)
+ *
+ *            [f0]       [f1]
+ * ```
+ *
+ * Each lp or hp is an LR4 filter, which consists of two second-order
+ * lowpass or highpass butterworth filters.
+ *
+ */
+struct crossover2 {
+  struct lr42 lp[CROSSOVER2_NUM_LR4_PAIRS];
+  struct lr42 hp[CROSSOVER2_NUM_LR4_PAIRS];
 };
 
 /**
@@ -109,6 +166,38 @@ struct crossover {
 };
 
 struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
+
+/**
+ * "crossover2" is a two channel version of the "crossover" filter. It processes
+ * two channels of data at once to increase performance.
+ * Initializes a crossover2 filter
+ * Args:
+ *    xo2 - The crossover2 filter we want to initialize.
+ *    freq1 - The normalized frequency splits low and mid band.
+ *    freq2 - The normalized frequency splits mid and high band.
+ *
+ */
+void crossover2_init(struct crossover2 *xo2, float freq1, float freq2);
+
+/**
+ * Splits input samples to three bands.
+ * Args:
+ *    xo2 - The crossover2 filter to use.
+ *    count - The number of input samples.
+ *    data0L, data0R - The input samples, also the place to store low band
+ *                     output.
+ *    data1L, data1R - The place to store mid band output.
+ *    data2L, data2R - The place to store high band output.
+ *
+ */
+void crossover2_process(struct crossover2 *xo2,
+                        int32_t count,
+                        float *data0L,
+                        float *data0R,
+                        float *data1L,
+                        float *data1R,
+                        float *data2L,
+                        float *data2R);
 
 /**
  * Initializes a crossover filter
@@ -224,6 +313,38 @@ int32_t eq_append_biquad_direct(struct eq *eq, const struct biquad *biquad);
 void eq_process(struct eq *eq, float *data, int32_t count);
 
 struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
+
+/**
+ * "crossover2" is a two channel version of the "crossover" filter. It processes
+ * two channels of data at once to increase performance.
+ * Initializes a crossover2 filter
+ * Args:
+ *    xo2 - The crossover2 filter we want to initialize.
+ *    freq1 - The normalized frequency splits low and mid band.
+ *    freq2 - The normalized frequency splits mid and high band.
+ *
+ */
+void crossover2_init(struct crossover2 *xo2, float freq1, float freq2);
+
+/**
+ * Splits input samples to three bands.
+ * Args:
+ *    xo2 - The crossover2 filter to use.
+ *    count - The number of input samples.
+ *    data0L, data0R - The input samples, also the place to store low band
+ *                     output.
+ *    data1L, data1R - The place to store mid band output.
+ *    data2L, data2R - The place to store high band output.
+ *
+ */
+void crossover2_process(struct crossover2 *xo2,
+                        int32_t count,
+                        float *data0L,
+                        float *data0R,
+                        float *data1L,
+                        float *data1R,
+                        float *data2L,
+                        float *data2R);
 
 /**
  * Initializes a crossover filter

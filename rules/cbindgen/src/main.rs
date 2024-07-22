@@ -86,7 +86,9 @@ fn main() {
         .rename_item("BiquadType", "biquad_type")
         .rename_item("EQ", "eq")
         .rename_item("Crossover", "crossover")
-        .rename_item("EQ2", "eq2");
+        .rename_item("EQ2", "eq2")
+        .rename_item("Crossover2", "crossover2")
+        .rename_item("LR42", "lr42");
 
     let mut b = b;
     for src in c.with_src {
