@@ -34,7 +34,7 @@ enum CrasProcessorEffect cras_processor_get_effect(
       ((effects & CLIENT_CONTROLLED_VOICE_ISOLATION &&  // client controlled.
         effects & VOICE_ISOLATION &&
         cras_system_get_style_transfer_supported()) ||
-       (~(effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&  // system controlled.
+       (!(effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&  // system controlled.
         cras_system_get_style_transfer_enabled())) &&
       !beamforming_supported) {  // no beamforming.
     return StyleTransfer;
