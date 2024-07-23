@@ -261,35 +261,41 @@ fn get_control_candidates(card: &str) -> Result<Vec<Control>> {
     for m in re.captures_iter(&stdout) {
         // m[1]:numid, m[2]:name, m[3]:type, m[4]:note in the 3rd line
         let state = parse_state(&m[3], &m[4])?;
-        let ctl = Control {
-            card: String::from(card),
-            numid: String::from(&m[1]),
-            name: String::from(&m[2]),
-            state: state,
-        };
-        controls.push(ctl);
+        match state {
+            Some(s) => {
+                let ctl = Control {
+                    card: String::from(card),
+                    numid: String::from(&m[1]),
+                    name: String::from(&m[2]),
+                    state: s,
+                };
+                controls.push(ctl);
+            }
+            None => (),
+        }
     }
     return Ok(controls);
 }
 
-fn parse_state(mtype: &str, note: &str) -> Result<ControlState> {
+fn parse_state(mtype: &str, note: &str) -> Result<Option<ControlState>> {
     match mtype {
         "BOOLEAN" => {
             let boolean_re = Regex::new(r"values=(on|off)").unwrap();
             if let Some(caps) = boolean_re.captures(note) {
                 if caps[1].to_string() == "on" {
-                    return Ok(ControlState::On);
+                    return Ok(Some(ControlState::On));
                 }
-                return Ok(ControlState::Off);
+                return Ok(Some(ControlState::Off));
             }
             anyhow::bail!("cannot parse bool from `{note}`");
         }
         "BYTES" => {
             let bytes_re = Regex::new(r"ASoC TLV Byte control").unwrap();
             if bytes_re.is_match(note) {
-                return Ok(ControlState::Exists);
+                return Ok(Some(ControlState::Exists));
             }
-            anyhow::bail!("not sn ASoC contorl `{note}`");
+            // This bytes control is not an SOF control, just ignore it.
+            return Ok(None);
         }
         &_ => std::unreachable!(),
     }
