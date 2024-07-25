@@ -39,6 +39,7 @@ audio_streams = { path = "../../../platform/crosvm/common/audio_streams" } # ign
 libchromeos = { path = "../../../platform2/libchromeos-rs" }  # ignored by ebuild
 metrics_rs = { path = "../../../platform2/metrics/rust-client" }  # ignored by ebuild
 cras-sys = { path = "../cras/client/cras-sys" }  # ignored by ebuild
+cras_common = { path = "../cras/common" }  # ignored by ebuild
 cros_alsa = { path = "../cros_alsa" }  # ignored by ebuild
 libcras = { path = "../cras/client/libcras" } # ignored by ebuild
 sof_sys = { path = "../sof_sys" } # ignored by ebuild
