@@ -20,6 +20,7 @@ use cros_alsa::IntControl;
 use cros_alsa::SwitchControl;
 use dsm::metrics::log_uma_enum;
 use dsm::metrics::UMACalibrationResult;
+use dsm::vpd::VPD;
 use dsm::CalibData;
 use dsm::RDCRange;
 use dsm::SpeakerStatus;
@@ -61,9 +62,7 @@ struct Max98390CalibData {
 }
 
 impl CalibData for Max98390CalibData {
-    fn new(rdc: i32, temp: f32) -> Self {
-        Self { rdc, temp }
-    }
+    type VPDType = VPD;
 
     fn rdc(&self) -> i32 {
         self.rdc
@@ -83,6 +82,15 @@ impl CalibData for Max98390CalibData {
     #[inline]
     fn ohm_to_rdc(x: f32) -> i32 {
         (3.66 * (1 << 20) as f32 / x).round() as i32
+    }
+}
+
+impl From<VPD> for Max98390CalibData {
+    fn from(vpd: VPD) -> Self {
+        Self {
+            rdc: vpd.dsm_calib_r0,
+            temp: Self::dsm_unit_to_celsius(vpd.dsm_calib_temp), // 98390 VPD stores the temperature in raw data.
+        }
     }
 }
 

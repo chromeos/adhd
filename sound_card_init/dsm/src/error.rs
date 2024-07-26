@@ -11,8 +11,6 @@ use std::time;
 use remain::sorted;
 use thiserror::Error as ThisError;
 
-use crate::CalibData;
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[sorted]
@@ -36,8 +34,6 @@ pub enum Error {
     InvalidDatastore,
     #[error("invalid shutdown time")]
     InvalidShutDownTime,
-    #[error("calibration difference is too large, calib: {0:?}")]
-    LargeCalibrationDiff(Box<dyn CalibData>),
     #[error("mutex is poisoned")]
     MutexPoisonError,
     #[error("{0}")]

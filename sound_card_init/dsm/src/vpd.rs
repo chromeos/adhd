@@ -8,6 +8,8 @@ use std::path::PathBuf;
 
 use crate::error::Error;
 use crate::error::Result;
+use crate::Datastore;
+use crate::VPDTrait;
 
 const VPD_DIR: &str = "/sys/firmware/vpd/ro/vpdfile";
 
@@ -18,16 +20,27 @@ pub struct VPD {
     pub dsm_calib_temp: i32,
 }
 
-impl VPD {
+impl VPDTrait for VPD {
     /// Creates a `VPD` and initializes its fields from VPD_DIR/dsm_calib_r0_{channel}.
     /// # Arguments
     ///
     /// * `channel` - channel number.
-    pub fn new(channel: usize) -> Result<VPD> {
+    fn new(channel: usize) -> Result<VPD> {
         let mut vpd: VPD = Default::default();
         vpd.dsm_calib_r0 = read_vpd_files(&format!("dsm_calib_r0_{}", channel))?;
         vpd.dsm_calib_temp = read_vpd_files(&format!("dsm_calib_temp_{}", channel))?;
         Ok(vpd)
+    }
+    fn new_from_datastore(datastore: Datastore, channel: usize) -> Result<VPD> {
+        match datastore {
+            Datastore::UseVPD => VPD::new(channel),
+            Datastore::DSM { rdc, temp } => {
+                let mut vpd: VPD = Default::default();
+                vpd.dsm_calib_r0 = rdc;
+                vpd.dsm_calib_temp = temp as i32;
+                Ok(vpd)
+            }
+        }
     }
 }
 

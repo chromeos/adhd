@@ -14,6 +14,7 @@ use std::path::Path;
 
 use cros_alsa::Card;
 use cros_alsa::IntControl;
+use dsm::vpd::VPD;
 use dsm::CalibData;
 use dsm::Error;
 use dsm::RDCRange;
@@ -41,9 +42,7 @@ struct ALC1011CalibData {
 }
 
 impl CalibData for ALC1011CalibData {
-    fn new(rdc: i32, temp: f32) -> Self {
-        Self { rdc, temp }
-    }
+    type VPDType = VPD;
 
     fn rdc(&self) -> i32 {
         self.rdc
@@ -62,6 +61,15 @@ impl CalibData for ALC1011CalibData {
     #[inline]
     fn ohm_to_rdc(x: f32) -> i32 {
         ((1 << 24) as f32 / x).round() as i32
+    }
+}
+
+impl From<VPD> for ALC1011CalibData {
+    fn from(vpd: VPD) -> Self {
+        Self {
+            rdc: vpd.dsm_calib_r0,
+            temp: vpd.dsm_calib_temp as f32, //  // ALC1011 VPD stores the temperature in celsius.
+        }
     }
 }
 

@@ -23,6 +23,7 @@ use cros_alsa::Ctl;
 use cros_alsa::ElemId;
 use cros_alsa::SimpleEnumControl;
 use cros_alsa::SwitchControl;
+use dsm::vpd::VPD;
 use dsm::CalibData;
 use dsm::RDCRange;
 use dsm::ZeroPlayer;
@@ -108,9 +109,7 @@ struct CS35L41CalibData {
 }
 
 impl CalibData for CS35L41CalibData {
-    fn new(rdc: i32, temp: f32) -> Self {
-        Self { rdc, temp }
-    }
+    type VPDType = VPD;
 
     fn rdc(&self) -> i32 {
         self.rdc
@@ -129,6 +128,15 @@ impl CalibData for CS35L41CalibData {
     #[inline]
     fn ohm_to_rdc(x: f32) -> i32 {
         (x * 8192.0 / 5.857_143_4).round() as i32
+    }
+}
+
+impl From<VPD> for CS35L41CalibData {
+    fn from(vpd: VPD) -> Self {
+        Self {
+            rdc: vpd.dsm_calib_r0,
+            temp: vpd.dsm_calib_temp as f32, //  // CS35L41 VPD stores the temperature in celsius.
+        }
     }
 }
 

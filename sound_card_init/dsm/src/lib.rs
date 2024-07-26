@@ -7,7 +7,7 @@ mod datastore;
 mod error;
 pub mod metrics;
 pub mod utils;
-mod vpd;
+pub mod vpd;
 mod zero_player;
 
 use std::fmt;
@@ -29,7 +29,6 @@ pub use crate::error::Result;
 use crate::metrics::*;
 use crate::utils::run_time;
 use crate::utils::shutdown_time;
-use crate::vpd::VPD;
 pub use crate::zero_player::ZeroPlayer;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize, Clone, Copy)]
@@ -39,13 +38,8 @@ pub struct RDCRange {
 }
 
 /// `CalibData` is the trait for the calibration data.
-pub trait CalibData: Send + fmt::Debug {
-    /// Creates `CalibData`. rdc is the DC resistance in raw data.
-    /// temp is the ambient temperature in celsius unit at which the
-    /// rdc is measured.
-    fn new(rdc: i32, temp: f32) -> Self
-    where
-        Self: Sized;
+pub trait CalibData: Send + fmt::Debug + From<Self::VPDType> {
+    type VPDType: VPDTrait;
     /// The function to convert the rdc to ohm unit.
     fn rdc_to_ohm(rdc: i32) -> f32
     where
@@ -80,6 +74,16 @@ pub trait CalibData: Send + fmt::Debug {
             self.temp()
         )
     }
+}
+
+// `VPDTrait` defines that any VPD can be created by giving the channel number.
+pub trait VPDTrait {
+    fn new(channel: usize) -> Result<Self>
+    where
+        Self: Sized;
+    fn new_from_datastore(datastore: Datastore, channel: usize) -> Result<Self>
+    where
+        Self: Sized;
 }
 
 /// `TempConverter` converts the temperature value between celsius and unit in VPD::dsm_calib_temp.
@@ -224,7 +228,6 @@ impl DSM {
     /// logic:
     /// * Returns the previous value if the ambient temperature is not within a valid range.
     ///   If previous value does not exist, use VPD value instead.
-    /// * Returns Error::LargeCalibrationDiff if rdc is not within the `rdc_range`.
     /// * Returns the previous value if the rdc difference is smaller than `CALI_ERROR_LOWER_LIMIT`.
     /// * Returns the boot time calibration value and updates the datastore value if the rdc
     ///   difference is within the `rdc_range`and larger than the `CALI_ERROR_LOWER_LIMIT`.
@@ -398,20 +401,10 @@ impl DSM {
 
     fn get_previous_calibration_value<T: CalibData>(&self, ch: usize) -> Result<T> {
         let sci_calib = Datastore::from_file(&self.snd_card, ch)?;
-        match sci_calib {
-            Datastore::UseVPD => self.get_vpd_calibration_value(ch),
-            Datastore::DSM { rdc, temp } => Ok(CalibData::new(
-                rdc,
-                (self.temp_converter.vpd_to_celsius)(temp),
-            )),
-        }
+        Ok(T::from(T::VPDType::new_from_datastore(sci_calib, ch)?))
     }
 
     fn get_vpd_calibration_value<T: CalibData>(&self, channel: usize) -> Result<T> {
-        let vpd = VPD::new(channel)?;
-        Ok(CalibData::new(
-            vpd.dsm_calib_r0,
-            (self.temp_converter.vpd_to_celsius)(vpd.dsm_calib_temp),
-        ))
+        Ok(T::from(T::VPDType::new(channel)?))
     }
 }

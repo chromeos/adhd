@@ -5,6 +5,7 @@ compile_commands.json
 .cache
 # vscode
 *.code-workspace
+*.vscode
 
 # bazel
 /external
