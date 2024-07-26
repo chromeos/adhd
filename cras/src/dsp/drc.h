@@ -16,7 +16,6 @@ extern "C" {
 #endif
 
 #include "cras/src/dsp/crossover2.h"
-#include "cras/src/dsp/drc_kernel.h"
 #include "cras/src/dsp/eq2.h"
 
 /* DRC implements a flexible audio dynamics compression effect such as is
@@ -109,6 +108,8 @@ enum {
 // The default value of PARAM_PRE_DELAY in seconds.
 #define DRC_DEFAULT_PRE_DELAY 0.006f
 
+#define PI_FLOAT 3.141592653589793f
+
 struct drc {
   // sample rate in Hz
   float sample_rate;
@@ -127,7 +128,7 @@ struct drc {
   struct crossover2 xo2;
 
   // The compressor kernels
-  struct drc_kernel kernel[DRC_NUM_KERNELS];
+  struct drc_kernel* kernel[DRC_NUM_KERNELS];
 
   /* Temporary buffer used during drc_process(). The mid and high band
    * signal is stored in these buffers (the low band is stored in the

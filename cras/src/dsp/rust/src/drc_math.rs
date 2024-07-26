@@ -7,8 +7,7 @@ use std::f64::consts::FRAC_PI_2;
 
 use num_traits::Float;
 
-#[allow(dead_code)]
-const NEG_TWO_DB: f64 = 0.7943282347242815; // -2dB = 10^(-2/20)
+pub const NEG_TWO_DB: f64 = 0.7943282347242815; // -2dB = 10^(-2/20)
 
 pub fn db_to_linear_table() -> [f32; 201] {
     let mut arr: [f32; 201] = [0.; 201];
@@ -26,7 +25,6 @@ pub fn db_to_linear(db: usize) -> f32 {
     table.with(|x| x[db])
 }
 
-#[allow(dead_code)]
 pub fn isbadf(x: f32) -> bool {
     let bits: u32 = x.to_bits();
     let exp = (bits >> 23) & 0xff;
@@ -75,7 +73,7 @@ pub mod slow {
     }
 }
 
-#[allow(non_snake_case, dead_code)]
+#[allow(non_snake_case)]
 pub mod fast {
     use super::db_to_linear;
     use super::FRAC_2_PI;
@@ -161,7 +159,6 @@ pub mod fast {
     }
 }
 
-#[allow(unused_imports)]
 pub use fast::*;
 
 #[cfg(test)]

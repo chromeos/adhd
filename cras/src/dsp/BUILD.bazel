@@ -32,7 +32,6 @@ cc_library(
     srcs = [
         "biquad.c",
         "crossover2.c",
-        "drc_kernel.c",
         "eq2.c",
         "quad_rotation.c",
     ],
@@ -46,7 +45,6 @@ cc_library(
     ],
     deps = [
         ":drc",
-        ":drc_math",
         ":dsp_helpers",
         ":dsp_util",
         "//cras/src/common",
@@ -86,7 +84,6 @@ cc_library(
     visibility = ["//cras/benchmark:__pkg__"],
     deps = [
         ":crossover2",
-        ":drc_kernel",
         ":dsp_helpers",
         ":eq2",
         "//cras/common:check",
@@ -132,13 +129,17 @@ cc_library(
     name = "drc_math",
     srcs = ["drc_math.c"],
     hdrs = ["drc_math.h"],
+    visibility = ["//cras/src/dsp/tests:__pkg__"],
 )
 
 cc_library(
     name = "dsp_util",
     srcs = ["dsp_util.c"],
     hdrs = ["dsp_util.h"],
-    visibility = ["//cras/benchmark:__pkg__"],
+    visibility = [
+        "//cras/benchmark:__pkg__",
+        "//cras/src/dsp/tests:__pkg__",
+    ],
     deps = ["//cras/src/common:cras_types"],
 )
 

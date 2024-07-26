@@ -62,7 +62,8 @@ cc_binary(
     name = "dsp_util_test",
     srcs = ["dsp_util_test.c"],
     deps = [
-        "//cras/src/dsp",
+        "//cras/src/dsp:drc_math",
+        "//cras/src/dsp:dsp_util",
     ],
 )
 

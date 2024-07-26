@@ -88,7 +88,9 @@ fn main() {
         .rename_item("Crossover", "crossover")
         .rename_item("EQ2", "eq2")
         .rename_item("Crossover2", "crossover2")
-        .rename_item("LR42", "lr42");
+        .rename_item("LR42", "lr42")
+        .rename_item("DrcKernel", "drc_kernel")
+        .rename_item("DrcKernelParam", "drc_kernel_param");
 
     let mut b = b;
     for src in c.with_src {

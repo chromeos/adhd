@@ -17,8 +17,6 @@
 #include "cras/common/check.h"
 #include "cras/src/dsp/biquad.h"
 #include "cras/src/dsp/crossover2.h"
-#include "cras/src/dsp/drc_kernel.h"
-#include "cras/src/dsp/drc_math.h"
 #include "cras/src/dsp/dsp_helpers.h"
 #include "cras/src/dsp/eq2.h"
 #include "cras/src/dsp/rust/dsp.h"
@@ -220,7 +218,7 @@ static void init_kernel(struct drc* drc) {
   int i;
 
   for (i = 0; i < DRC_NUM_KERNELS; i++) {
-    dk_init(&drc->kernel[i], drc->sample_rate);
+    drc->kernel[i] = dk_new(drc->sample_rate);
 
     float db_threshold = drc_get_param(drc, i, PARAM_THRESHOLD);
     float db_knee = drc_get_param(drc, i, PARAM_KNEE);
@@ -235,11 +233,11 @@ static void init_kernel(struct drc* drc) {
     float db_post_gain = drc_get_param(drc, i, PARAM_POST_GAIN);
     int enabled = drc_get_param(drc, i, PARAM_ENABLED);
 
-    dk_set_parameters(&drc->kernel[i], db_threshold, db_knee, ratio,
-                      attack_time, release_time, pre_delay_time, db_post_gain,
-                      releaseZone1, releaseZone2, releaseZone3, releaseZone4);
+    dk_set_parameters(drc->kernel[i], db_threshold, db_knee, ratio, attack_time,
+                      release_time, pre_delay_time, db_post_gain, releaseZone1,
+                      releaseZone2, releaseZone3, releaseZone4);
 
-    dk_set_enabled(&drc->kernel[i], enabled);
+    dk_set_enabled(drc->kernel[i], enabled);
   }
 }
 
@@ -247,7 +245,7 @@ static void init_kernel(struct drc* drc) {
 static void free_kernel(struct drc* drc) {
   int i;
   for (i = 0; i < DRC_NUM_KERNELS; i++) {
-    dk_free(&drc->kernel[i]);
+    dk_free(drc->kernel[i]);
   }
 }
 
@@ -387,9 +385,9 @@ void drc_process(struct drc* drc, float** data, int frames) {
   /* Apply compression to each band of the signal. The processing is
    * performed in place.
    */
-  dk_process(&drc->kernel[0], data, frames);
-  dk_process(&drc->kernel[1], data1, frames);
-  dk_process(&drc->kernel[2], data2, frames);
+  dk_process(drc->kernel[0], data, frames);
+  dk_process(drc->kernel[1], data1, frames);
+  dk_process(drc->kernel[2], data2, frames);
 
   // Sum the three bands of signal
   for (i = 0; i < DRC_NUM_CHANNELS; i++) {
@@ -405,34 +403,35 @@ void drc_process(struct drc* drc, float** data, int frames) {
 static void convert_one_band(struct drc_kernel* drc,
                              float* param,
                              struct sof_drc_params* cfg) {
-  cfg->enabled = drc->enabled;
-  cfg->db_threshold = float_to_qint32(drc->db_threshold, 24);        /* Q8.24 */
-  cfg->db_knee = float_to_qint32(drc->db_knee, 24);                  /* Q8.24 */
-  cfg->ratio = float_to_qint32(drc->ratio, 24);                      /* Q8.24 */
+  struct drc_kernel_param dkp;
+  dkp = dk_get_parameter(drc);
+  cfg->enabled = dkp.enabled;
+  cfg->db_threshold = float_to_qint32(dkp.db_threshold, 24);         /* Q8.24 */
+  cfg->db_knee = float_to_qint32(dkp.db_knee, 24);                   /* Q8.24 */
+  cfg->ratio = float_to_qint32(dkp.ratio, 24);                       /* Q8.24 */
   cfg->pre_delay_time = float_to_qint32(param[PARAM_PRE_DELAY], 30); /* Q2.30 */
-  cfg->linear_threshold =
-      float_to_qint32(drc->linear_threshold, 30);                 /* Q2.30 */
-  cfg->slope = float_to_qint32(drc->slope, 30);                   /* Q2.30 */
-  cfg->K = float_to_qint32(drc->K, 20);                           /* Q12.20 */
-  cfg->knee_alpha = float_to_qint32(drc->knee_alpha, 24);         /* Q8.24 */
-  cfg->knee_beta = float_to_qint32(drc->knee_beta, 24);           /* Q8.24 */
-  cfg->knee_threshold = float_to_qint32(drc->knee_threshold, 24); /* Q8.24 */
-  cfg->ratio_base = float_to_qint32(drc->ratio_base, 30);         /* Q2.30 */
+  cfg->linear_threshold = float_to_qint32(dkp.linear_threshold, 30); /* Q2.30 */
+  cfg->slope = float_to_qint32(dkp.slope, 30);                       /* Q2.30 */
+  cfg->K = float_to_qint32(dkp.K, 20);                           /* Q12.20 */
+  cfg->knee_alpha = float_to_qint32(dkp.knee_alpha, 24);         /* Q8.24 */
+  cfg->knee_beta = float_to_qint32(dkp.knee_beta, 24);           /* Q8.24 */
+  cfg->knee_threshold = float_to_qint32(dkp.knee_threshold, 24); /* Q8.24 */
+  cfg->ratio_base = float_to_qint32(dkp.ratio_base, 30);         /* Q2.30 */
   cfg->master_linear_gain =
-      float_to_qint32(drc->main_linear_gain, 24); /* Q8.24 */
+      float_to_qint32(dkp.main_linear_gain, 24); /* Q8.24 */
 
-  float tmp = 1.0 / drc->attack_frames;
+  float tmp = 1.0 / dkp.attack_frames;
   cfg->one_over_attack_frames = float_to_qint32(tmp, 30); /* Q2.30 */
   cfg->sat_release_frames_inv_neg =
-      float_to_qint32(drc->sat_release_frames_inv_neg, 30); /* Q2.30 */
+      float_to_qint32(dkp.sat_release_frames_inv_neg, 30); /* Q2.30 */
   cfg->sat_release_rate_at_neg_two_db =
-      float_to_qint32(drc->sat_release_rate_at_neg_two_db, 30); /* Q2.30 */
-  cfg->kSpacingDb = 5;                                          /* integer */
-  cfg->kA = float_to_qint32(drc->kA, 12);                       /* Q20.12 */
-  cfg->kB = float_to_qint32(drc->kB, 12);                       /* Q20.12 */
-  cfg->kC = float_to_qint32(drc->kC, 12);                       /* Q20.12 */
-  cfg->kD = float_to_qint32(drc->kD, 12);                       /* Q20.12 */
-  cfg->kE = float_to_qint32(drc->kE, 12);                       /* Q20.12 */
+      float_to_qint32(dkp.sat_release_rate_at_neg_two_db, 30); /* Q2.30 */
+  cfg->kSpacingDb = 5;                                         /* integer */
+  cfg->kA = float_to_qint32(dkp.kA, 12);                       /* Q20.12 */
+  cfg->kB = float_to_qint32(dkp.kB, 12);                       /* Q20.12 */
+  cfg->kC = float_to_qint32(dkp.kC, 12);                       /* Q20.12 */
+  cfg->kD = float_to_qint32(dkp.kD, 12);                       /* Q20.12 */
+  cfg->kE = float_to_qint32(dkp.kE, 12);                       /* Q20.12 */
 }
 
 int drc_convert_params_to_blob(struct drc* drc,
@@ -485,7 +484,7 @@ int drc_convert_params_to_blob(struct drc* drc,
 
   struct sof_drc_params* drc_coef = drc_config->drc_coef;
   for (int band = 0; band < DRC_NUM_KERNELS; band++) {
-    convert_one_band(&drc->kernel[band], drc->parameters[band], drc_coef);
+    convert_one_band(drc->kernel[band], drc->parameters[band], drc_coef);
     drc_coef++;
   }
 

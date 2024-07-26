@@ -20,6 +20,10 @@ extern "C" {
 
 #define CROSSOVER2_NUM_LR4_PAIRS 3
 
+#define DRC_NUM_CHANNELS 2
+
+#define NEG_TWO_DB 0.7943282347242815
+
 #define MAX_BIQUADS_PER_EQ 10
 
 /**
@@ -42,6 +46,8 @@ enum biquad_type {
 };
 
 struct dcblock;
+
+struct drc_kernel;
 
 struct eq;
 
@@ -165,6 +171,52 @@ struct crossover {
   struct LR4 hp[3];
 };
 
+struct drc_kernel_param {
+  bool enabled;
+  /**
+   * Amount of input change in dB required for 1 dB of output change.
+   * This applies to the portion of the curve above knee_threshold
+   * (see below).
+   *
+   */
+  float ratio;
+  float slope;
+  float linear_threshold;
+  float db_threshold;
+  /**
+   * db_knee is the number of dB above the threshold before we enter the
+   * "ratio" portion of the curve.  The portion between db_threshold and
+   * (db_threshold + db_knee) is the "soft knee" portion of the curve
+   * which transitions smoothly from the linear portion to the ratio
+   * portion. knee_threshold is db_to_linear(db_threshold + db_knee).
+   *
+   */
+  float db_knee;
+  float knee_threshold;
+  float ratio_base;
+  /**
+   * Internal parameter for the knee portion of the curve.
+   */
+  float K;
+  /**
+   * The release frames coefficients
+   */
+  float kA;
+  float kB;
+  float kC;
+  float kD;
+  float kE;
+  /**
+   * Calculated parameters
+   */
+  float main_linear_gain;
+  float attack_frames;
+  float sat_release_frames_inv_neg;
+  float sat_release_rate_at_neg_two_db;
+  float knee_alpha;
+  float knee_beta;
+};
+
 struct biquad biquad_new_set(enum biquad_type enum_type, double freq, double q, double gain);
 
 /**
@@ -230,6 +282,56 @@ void dcblock_free(struct dcblock *dcblock);
 void dcblock_set_config(struct dcblock *dcblock, float r, unsigned long sample_rate);
 
 void dcblock_process(struct dcblock *dcblock, float *data, int32_t count);
+
+/**
+ * Initializes a drc kernel
+ */
+struct drc_kernel *dk_new(float sample_rate);
+
+/**
+ * Frees a drc kernel
+ */
+void dk_free(struct drc_kernel *dk);
+
+/**
+ * Sets the parameters of a drc kernel. See drc.h for details
+ */
+void dk_set_parameters(struct drc_kernel *dk,
+                       float db_threshold,
+                       float db_knee,
+                       float ratio,
+                       float attack_time,
+                       float release_time,
+                       float pre_delay_time,
+                       float db_post_gain,
+                       float releaseZone1,
+                       float releaseZone2,
+                       float releaseZone3,
+                       float releaseZone4);
+
+/**
+ * Enables or disables a drc kernel
+ */
+void dk_set_enabled(struct drc_kernel *dk, int32_t enabled);
+
+/**
+ * Performs stereo-linked compression.
+ * Args:
+ *    dk - The DRC kernel.
+ *    data - The pointers to the audio sample buffer. One pointer per channel.
+ *    count - The number of audio samples per channel.
+ *
+ */
+void dk_process(struct drc_kernel *dk, float **data_channels, uint32_t count);
+
+/**
+ * Retrieves and returns the parameters from a DRC kernel, `dk` must be a
+ * pointer returned from dk_new.
+ * Args:
+ *    dk - The DRC kernel.
+ *
+ */
+struct drc_kernel_param dk_get_parameter(struct drc_kernel *dk);
 
 /**
  * Create an EQ2.
@@ -377,6 +479,56 @@ void dcblock_free(struct dcblock *dcblock);
 void dcblock_set_config(struct dcblock *dcblock, float r, unsigned long sample_rate);
 
 void dcblock_process(struct dcblock *dcblock, float *data, int32_t count);
+
+/**
+ * Initializes a drc kernel
+ */
+struct drc_kernel *dk_new(float sample_rate);
+
+/**
+ * Frees a drc kernel
+ */
+void dk_free(struct drc_kernel *dk);
+
+/**
+ * Sets the parameters of a drc kernel. See drc.h for details
+ */
+void dk_set_parameters(struct drc_kernel *dk,
+                       float db_threshold,
+                       float db_knee,
+                       float ratio,
+                       float attack_time,
+                       float release_time,
+                       float pre_delay_time,
+                       float db_post_gain,
+                       float releaseZone1,
+                       float releaseZone2,
+                       float releaseZone3,
+                       float releaseZone4);
+
+/**
+ * Enables or disables a drc kernel
+ */
+void dk_set_enabled(struct drc_kernel *dk, int32_t enabled);
+
+/**
+ * Performs stereo-linked compression.
+ * Args:
+ *    dk - The DRC kernel.
+ *    data - The pointers to the audio sample buffer. One pointer per channel.
+ *    count - The number of audio samples per channel.
+ *
+ */
+void dk_process(struct drc_kernel *dk, float **data_channels, uint32_t count);
+
+/**
+ * Retrieves and returns the parameters from a DRC kernel, `dk` must be a
+ * pointer returned from dk_new.
+ * Args:
+ *    dk - The DRC kernel.
+ *
+ */
+struct drc_kernel_param dk_get_parameter(struct drc_kernel *dk);
 
 /**
  * Create an EQ2.

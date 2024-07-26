@@ -10,6 +10,8 @@ mod crossover2_bindings;
 mod crossover_bindings;
 mod dcblock;
 mod dcblock_bindings;
+mod drc_kernel;
+mod drc_kernel_bindings;
 mod drc_math;
 mod eq;
 mod eq2;
