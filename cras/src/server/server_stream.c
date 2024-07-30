@@ -96,7 +96,11 @@ int server_stream_create(struct stream_list* stream_list,
   g_server_streams[type] = ss;
   if (synchronous) {
     struct cras_rstream* stream = NULL;
-    return stream_list_add(ss->list, &ss->config, &stream);
+    int rc = stream_list_add(ss->list, &ss->config, &stream);
+    if (rc) {
+      g_server_streams[type] = NULL;
+      return rc;
+    }
   } else {
     // Schedule add stream in the next main thread loop.
     cras_system_add_task(server_stream_add_cb, &g_server_streams[type]);
