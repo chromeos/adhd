@@ -1,5 +1,5 @@
 {
-  "checksum": "f7de0e8907328c83d03a76fc913f7c148657ad17050d3dd859022acd55e3057f",
+  "checksum": "eaf4e3f491c579c0e41f9c9773f4ecdd4fc3d809efff4591ad83af92f5a58a83",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2185,7 +2185,7 @@
               "target": "nix"
             },
             {
-              "id": "once_cell 1.17.0",
+              "id": "once_cell 1.19.0",
               "target": "once_cell"
             },
             {
@@ -2253,7 +2253,7 @@
               "target": "log"
             },
             {
-              "id": "once_cell 1.17.0",
+              "id": "once_cell 1.19.0",
               "target": "once_cell"
             },
             {
@@ -2353,7 +2353,7 @@
               "target": "log"
             },
             {
-              "id": "once_cell 1.17.0",
+              "id": "once_cell 1.19.0",
               "target": "once_cell"
             },
             {
@@ -2441,7 +2441,7 @@
               "target": "log"
             },
             {
-              "id": "once_cell 1.17.0",
+              "id": "once_cell 1.19.0",
               "target": "once_cell"
             },
             {
@@ -2666,6 +2666,10 @@
         "deps": {
           "common": [
             {
+              "id": "float-cmp 0.9.0",
+              "target": "float_cmp"
+            },
+            {
               "id": "itertools 0.11.0",
               "target": "itertools"
             },
@@ -2676,6 +2680,10 @@
             {
               "id": "nix 0.28.0",
               "target": "nix"
+            },
+            {
+              "id": "num-traits 0.2.15",
+              "target": "num_traits"
             }
           ],
           "selects": {}
@@ -3053,6 +3061,61 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "float-cmp 0.9.0": {
+      "name": "float-cmp",
+      "version": "0.9.0",
+      "package_url": "https://github.com/mikedilger/float-cmp",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/float-cmp/0.9.0/download",
+          "sha256": "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "float_cmp",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "float_cmp",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default",
+            "num-traits",
+            "ratio"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "num-traits 0.2.15",
+              "target": "num_traits"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.9.0"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE"
     },
     "foreign-types 0.3.2": {
       "name": "foreign-types",
@@ -5881,14 +5944,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "once_cell 1.17.0": {
+    "once_cell 1.19.0": {
       "name": "once_cell",
-      "version": "1.17.0",
+      "version": "1.19.0",
       "package_url": "https://github.com/matklad/once_cell",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/once_cell/1.17.0/download",
-          "sha256": "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
+          "url": "https://static.crates.io/crates/once_cell/1.19.0/download",
+          "sha256": "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
         }
       },
       "targets": [
@@ -5920,7 +5983,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.17.0"
+        "version": "1.19.0"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -5995,7 +6058,7 @@
               "target": "libc"
             },
             {
-              "id": "once_cell 1.17.0",
+              "id": "once_cell 1.19.0",
               "target": "once_cell"
             },
             {
@@ -6560,7 +6623,7 @@
         "deps": {
           "common": [
             {
-              "id": "once_cell 1.17.0",
+              "id": "once_cell 1.19.0",
               "target": "once_cell"
             },
             {
@@ -6628,7 +6691,7 @@
               "target": "anyhow"
             },
             {
-              "id": "once_cell 1.17.0",
+              "id": "once_cell 1.19.0",
               "target": "once_cell"
             },
             {
@@ -9230,7 +9293,7 @@
           "selects": {
             "cfg(windows)": [
               {
-                "id": "once_cell 1.17.0",
+                "id": "once_cell 1.19.0",
                 "target": "once_cell"
               }
             ]
@@ -11921,6 +11984,7 @@
     "dbus 0.9.7",
     "dbus-tokio 0.7.6",
     "fixedbitset 0.4.2",
+    "float-cmp 0.9.0",
     "futures 0.3.28",
     "getrandom 0.2.10",
     "hound 3.5.0",
@@ -11928,7 +11992,8 @@
     "libc 0.2.155",
     "log 0.4.20",
     "nix 0.28.0",
-    "once_cell 1.17.0",
+    "num-traits 0.2.15",
+    "once_cell 1.19.0",
     "openssl 0.10.62",
     "protobuf 3.2.0",
     "protobuf-codegen 3.2.0",

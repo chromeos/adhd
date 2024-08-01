@@ -5,6 +5,8 @@ authors = ["The Chromium OS Authors"]
 edition = "2021"
 
 [dependencies]
+float-cmp = "0.9.0"
 libc = "0.2"
 nix = "0.28.0"
+num-traits = "0.2.15"
 itertools = "0.11.0"
