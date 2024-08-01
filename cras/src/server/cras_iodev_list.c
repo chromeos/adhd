@@ -157,7 +157,7 @@ static bool non_dsp_aec_echo_ref_dev_alive = false;
 static bool aec_on_dsp_is_disallowed = false;
 
 // Returns true for blocking DSP input effects; false for unblocking.
-static bool get_dsp_input_effects_blocked_state() {
+bool get_dsp_input_effects_blocked_state() {
   // TODO(b/272408566) remove this WA when the formal fix is landed
   if (cras_system_get_noise_cancellation_standalone_mode()) {
     return non_dsp_aec_echo_ref_dev_alive;
@@ -358,19 +358,15 @@ static int fill_node_list(struct iodev_list* list,
       node_info->type_enum = node->type;
       node_info->audio_effect = 0;
 
-      node->desired_nc_provider =
-          cras_nc_resolve_provider(node->nc_providers, aux->dsp_nc_allowed,
-                                   aux->ap_nc_allowed, aux->ast_allowed);
-      switch (node->desired_nc_provider) {
-        case CRAS_NC_PROVIDER_NONE:
-          break;
-        case CRAS_NC_PROVIDER_DSP:
-        case CRAS_NC_PROVIDER_AP:
-          node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
-          break;
-        case CRAS_NC_PROVIDER_AST:
-          node_info->audio_effect |= EFFECT_TYPE_STYLE_TRANSFER;
-          break;
+      // TODO(b/353627012): apply all supported audio_effect.
+      // Will affect UI toggle visibility, should handle together.
+      if (node->nc_providers & CRAS_NC_PROVIDER_AST && aux->ast_allowed) {
+        node_info->audio_effect |= EFFECT_TYPE_STYLE_TRANSFER;
+      } else if ((node->nc_providers & CRAS_NC_PROVIDER_DSP &&
+                  aux->dsp_nc_allowed) ||
+                 (node->nc_providers & CRAS_NC_PROVIDER_AP &&
+                  aux->ap_nc_allowed)) {
+        node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
       }
 
       if (cras_system_get_sr_bt_supported() &&
@@ -2514,31 +2510,24 @@ void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
   }
 }
 
-static enum CRAS_NC_PROVIDER resolve_new_nc_provider(struct cras_iodev* dev,
-                                                     bool nc_enabled,
-                                                     bool ast_enabled) {
-  bool enabled = false;
-  switch (dev->active_node->desired_nc_provider) {
-    case CRAS_NC_PROVIDER_NONE:
-      break;
-    case CRAS_NC_PROVIDER_DSP:
-    case CRAS_NC_PROVIDER_AP:
-      enabled = nc_enabled;
-      break;
-    case CRAS_NC_PROVIDER_AST:
-      enabled = ast_enabled;
-      break;
+enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
+    struct cras_iodev* iodev) {
+  if (!iodev->active_node) {
+    return CRAS_NC_PROVIDER_NONE;
   }
-  return enabled ? dev->active_node->desired_nc_provider
-                 : CRAS_NC_PROVIDER_NONE;
+  bool dsp_nc_allowed = (!get_dsp_input_effects_blocked_state() ||
+                         cras_system_get_bypass_block_noise_cancellation()) &&
+                        cras_system_get_noise_cancellation_enabled();
+  bool ap_nc_allowed = cras_s2_get_ap_nc_allowed() &&
+                       cras_system_get_noise_cancellation_enabled();
+  bool ast_allowed = cras_s2_get_style_transfer_allowed() &&
+                     cras_system_get_style_transfer_enabled();
+  return cras_nc_resolve_provider(iodev->active_node->nc_providers,
+                                  dsp_nc_allowed, ap_nc_allowed, ast_allowed);
 }
 
 void cras_iodev_list_reset_for_noise_cancellation() {
-  const bool nc_enabled = cras_system_get_noise_cancellation_enabled();
-  const bool ast_enabled = cras_system_get_style_transfer_enabled();
-
   struct cras_iodev* dev;
-
   DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
     if (!cras_iodev_is_open(dev)) {
       continue;
@@ -2546,13 +2535,13 @@ void cras_iodev_list_reset_for_noise_cancellation() {
     if (!dev->active_node) {
       continue;
     }
-    const enum CRAS_NC_PROVIDER want_provider =
-        resolve_new_nc_provider(dev, nc_enabled, ast_enabled);
-    if (want_provider == dev->active_nc_provider) {
+    const enum CRAS_NC_PROVIDER new_effect_state =
+        cras_iodev_list_resolve_nc_provider(dev);
+    if (new_effect_state == dev->restart_tag_effect_state) {
       continue;
     }
-    syslog(LOG_INFO, "Re-open %s for nc provider: %d -> %d", dev->info.name,
-           dev->active_nc_provider, want_provider);
+    syslog(LOG_INFO, "Re-open %s for nc restart_tag: %d -> %d", dev->info.name,
+           dev->restart_tag_effect_state, new_effect_state);
     possibly_enable_fallback(CRAS_STREAM_INPUT, false);
     restart_device_group(dev->info.idx);
     possibly_disable_fallback(CRAS_STREAM_INPUT);

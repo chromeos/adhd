@@ -703,12 +703,13 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
   bool voice_isolation_forced_enabled =
       (stream->effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&
       (stream->effects & VOICE_ISOLATION);
-  bool nc_provided_by_ap = idev->active_nc_provider == CRAS_NC_PROVIDER_AP;
+  bool nc_provided_by_ap =
+      idev->restart_tag_effect_state == CRAS_NC_PROVIDER_AP;
 
   // Force enable per-stream voice isolation even if noise cancellation
   // UI button is switched off.
   if (voice_isolation_forced_enabled &&
-      idev->active_nc_provider == CRAS_NC_PROVIDER_NONE &&
+      idev->restart_tag_effect_state == CRAS_NC_PROVIDER_NONE &&
       cras_s2_get_ap_nc_allowed()) {
     nc_provided_by_ap = true;
   }

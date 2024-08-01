@@ -29,8 +29,8 @@ enum CrasProcessorEffect cras_processor_get_effect(
       iodev->active_node->position == NODE_POSITION_INTERNAL;
 
   // StyleTransfer
-  if (iodev->active_node->desired_nc_provider == CRAS_NC_PROVIDER_AST &&
-      cras_system_get_style_transfer_supported() &&
+  if (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_AST &&
+      cras_s2_get_style_transfer_allowed() &&
       ((effects & CLIENT_CONTROLLED_VOICE_ISOLATION &&  // client controlled.
         effects & VOICE_ISOLATION) ||
        (!(effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&  // system controlled.

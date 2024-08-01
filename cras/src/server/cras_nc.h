@@ -6,6 +6,7 @@
 #define CRAS_SRC_SERVER_CRAS_NC_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +21,7 @@ enum CRAS_NC_PROVIDER {
 };
 
 static inline enum CRAS_NC_PROVIDER cras_nc_resolve_provider(
-    enum CRAS_NC_PROVIDER nc_providers,
+    uint32_t nc_providers,
     bool dsp_nc_allowed,
     bool ap_nc_allowed,
     bool ast_allowed) {

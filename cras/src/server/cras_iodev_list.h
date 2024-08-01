@@ -291,6 +291,13 @@ int cras_iodev_list_suspend_hotword_streams();
 // Resumes all hotwording streams.
 int cras_iodev_list_resume_hotword_stream();
 
+// Resolve a CRAS_NC_PROVIDER based on the iodev and user config.
+// To be used in iodev open.
+//
+// iodev->active_node must exist.
+enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
+    struct cras_iodev* iodev);
+
 /* Sets the state of noise cancellation for input devices which supports noise
  * cancellation by suspend, enable/disable, then resume.
  */
@@ -341,6 +348,9 @@ void cras_iodev_list_disable_floop_pair(struct cras_floop_pair* pair);
  */
 void cras_iodev_list_set_aec_on_dsp_is_disallowed(unsigned int dev_idx,
                                                   bool is_disallowed);
+
+// Returns true for blocking DSP input effects; false for unblocking.
+bool get_dsp_input_effects_blocked_state();
 
 /* Starts server stream for voice activity detection.
  * Args:

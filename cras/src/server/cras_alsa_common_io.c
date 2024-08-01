@@ -40,11 +40,12 @@ struct cras_ionode* first_plugged_node(struct cras_iodev* iodev) {
 int cras_alsa_common_configure_noise_cancellation(
     struct cras_iodev* iodev,
     struct cras_use_case_mgr* ucm) {
-  cras_iodev_set_active_nc_provider(iodev);
+  iodev->restart_tag_effect_state = cras_iodev_list_resolve_nc_provider(iodev);
 
-  if (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_DSP) {
+  if (iodev->active_node &&
+      iodev->active_node->nc_providers & CRAS_NC_PROVIDER_DSP) {
     bool enable_dsp_noise_cancellation =
-        iodev->active_nc_provider == CRAS_NC_PROVIDER_DSP;
+        iodev->restart_tag_effect_state == CRAS_NC_PROVIDER_DSP;
 
     int rc = ucm_enable_node_noise_cancellation(ucm, iodev->active_node->name,
                                                 enable_dsp_noise_cancellation);
@@ -53,7 +54,7 @@ int cras_alsa_common_configure_noise_cancellation(
     }
 
     enum CRAS_NOISE_CANCELLATION_STATUS nc_status;
-    if (!iodev->active_nc_provider) {
+    if (!iodev->restart_tag_effect_state) {
       nc_status = CRAS_NOISE_CANCELLATION_DISABLED;
     } else if (enable_dsp_noise_cancellation) {
       nc_status = CRAS_NOISE_CANCELLATION_ENABLED;

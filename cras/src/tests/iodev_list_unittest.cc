@@ -2746,8 +2746,8 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
                          1);
 
     // A mismatch of NC providers should cause restarts.
-    d1_.active_nc_provider = CRAS_NC_PROVIDER_NONE;
-    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_DSP;
+    d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_NONE;
+    d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
     cras_system_get_noise_cancellation_enabled_ret = true;
     cras_iodev_list_reset_for_noise_cancellation();
   }
@@ -2768,8 +2768,8 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
                          0);
 
     // A match of NC providers should NOT cause restarts.
-    d1_.active_nc_provider = CRAS_NC_PROVIDER_DSP;
-    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_DSP;
+    d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_DSP;
+    d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
     cras_system_get_noise_cancellation_enabled_ret = true;
     cras_iodev_list_reset_for_noise_cancellation();
   }
@@ -2790,8 +2790,8 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
                          1);
 
     // A match of NC providers but with user disabled should cause restarts.
-    d1_.active_nc_provider = CRAS_NC_PROVIDER_DSP;
-    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_DSP;
+    d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_DSP;
+    d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
     cras_system_get_noise_cancellation_enabled_ret = false;
     cras_iodev_list_reset_for_noise_cancellation();
   }
@@ -2812,8 +2812,8 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
                          0);
 
     // No restarts if not active and user disabled.
-    d1_.active_nc_provider = CRAS_NC_PROVIDER_NONE;
-    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_DSP;
+    d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_NONE;
+    d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
     cras_system_get_noise_cancellation_enabled_ret = false;
     cras_iodev_list_reset_for_noise_cancellation();
   }
@@ -3599,8 +3599,8 @@ TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
                          1);
 
     // A mismatch of NC providers should cause restarts.
-    d1_.active_nc_provider = CRAS_NC_PROVIDER_NONE;
-    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_AST;
+    d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_NONE;
+    d1_.active_node->nc_providers = CRAS_NC_PROVIDER_AST | CRAS_NC_PROVIDER_AP;
     cras_system_get_style_transfer_enabled_ret = true;
     cras_iodev_list_reset_for_style_transfer();
   }
@@ -3621,8 +3621,8 @@ TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
                          0);
 
     // A match of NC providers should NOT cause restarts.
-    d1_.active_nc_provider = CRAS_NC_PROVIDER_AST;
-    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_AST;
+    d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_AST;
+    d1_.active_node->nc_providers = CRAS_NC_PROVIDER_AST | CRAS_NC_PROVIDER_AP;
     cras_system_get_style_transfer_enabled_ret = true;
     cras_iodev_list_reset_for_style_transfer();
   }
@@ -3643,8 +3643,8 @@ TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
                          1);
 
     // A match of NC providers but with user disabled should cause restarts.
-    d1_.active_nc_provider = CRAS_NC_PROVIDER_AST;
-    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_AST;
+    d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_AST;
+    d1_.active_node->nc_providers = CRAS_NC_PROVIDER_AST | CRAS_NC_PROVIDER_AP;
     cras_system_get_style_transfer_enabled_ret = false;
     cras_iodev_list_reset_for_style_transfer();
   }
@@ -3665,8 +3665,8 @@ TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
                          0);
 
     // No restarts if not active and user disabled.
-    d1_.active_nc_provider = CRAS_NC_PROVIDER_NONE;
-    d1_.active_node->desired_nc_provider = CRAS_NC_PROVIDER_AST;
+    d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_NONE;
+    d1_.active_node->nc_providers = CRAS_NC_PROVIDER_AST | CRAS_NC_PROVIDER_AP;
     cras_system_get_noise_cancellation_enabled_ret = false;
     cras_iodev_list_reset_for_style_transfer();
   }

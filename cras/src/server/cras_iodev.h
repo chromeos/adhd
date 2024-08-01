@@ -198,12 +198,8 @@ struct cras_ionode {
   int32_t number_of_volume_steps;
   // NC support status of the ionode.
   // Set when the ionode is constructed and frozen.
-  enum CRAS_NC_PROVIDER nc_providers;
-  // Tells which NC procider should provide NC.
-  // Managed by cras_iodev_list_update_device_list.
-  // Desired means the NC provider we should use for this ionode,
-  // if the user enables NC.
-  enum CRAS_NC_PROVIDER desired_nc_provider;
+  // A bitset of enum CRAS_NC_PROVIDER in cras_nc.h.
+  uint32_t nc_providers;
   // The latency offset given in ms. This value will be directly added
   // when calculating the playback/capture timestamp
   // The value is read in board.ini, with 0 being the default if there is no
@@ -448,8 +444,9 @@ struct cras_iodev {
   struct ewma_power ewma;
   // Indicates that this device is used by the system instead of by the user.
   bool is_utility_device;
-  // The active NC provider in use. Should be set during device open.
-  enum CRAS_NC_PROVIDER active_nc_provider;
+  // The tag of NC effect state for deciding if we need to restart iodev.
+  // Should be set during device open.
+  enum CRAS_NC_PROVIDER restart_tag_effect_state;
   // Indicates that this device ignores capture mute.
   bool ignore_capture_mute;
   // The total number of pinned streams targeting this device from the main
@@ -1249,12 +1246,6 @@ static inline int cras_iodev_get_htimestamp(const struct cras_iodev* iodev,
 
   return 0;
 }
-
-// Sets iodev->active_nc_provider based on the current the iodev and user
-// config. To be used in iodev open.
-//
-// iodev->active_node must exist.
-void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev);
 
 #ifdef __cplusplus
 }  // extern "C"

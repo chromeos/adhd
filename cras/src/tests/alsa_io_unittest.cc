@@ -3337,7 +3337,10 @@ bool cras_iodev_list_get_dsp_nc_allowed() {
   return false;
 }
 
-void cras_iodev_set_active_nc_provider(struct cras_iodev* iodev) {}
+enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
+    struct cras_iodev* iodev) {
+  return CRAS_NC_PROVIDER_NONE;
+}
 
 void cras_iodev_stream_offset_reset_all(struct cras_iodev* iodev) {}
 
