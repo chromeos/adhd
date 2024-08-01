@@ -2789,10 +2789,6 @@ long convert_input_node_gain_from_dBFS(long dBFS, bool is_internal_mic) {
 }
 
 int cras_iodev_list_request_floop(const struct cras_floop_params* params) {
-  if (!cras_feature_enabled(CrOSLateBootAudioFlexibleLoopback)) {
-    return -ENOTSUP;
-  }
-
   struct cras_floop_pair* fpair;
   int count = 0;
   DL_FOREACH (floop_pair_list, fpair) {

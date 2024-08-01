@@ -8,8 +8,6 @@
 
 TEST(Features, GetId) {
   EXPECT_EQ(cras_feature_get_id(&features[3]), 3);
-  EXPECT_EQ(cras_feature_get_id(&features[CrOSLateBootAudioFlexibleLoopback]),
-            CrOSLateBootAudioFlexibleLoopback);
 }
 
 TEST(Features, Name) {
