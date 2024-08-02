@@ -157,7 +157,7 @@ impl LR4 {
             let mut y: f32 = lb0 * (*x) + lb1 * lx1 + lb2 * lx2 - la1 * ly1 - la2 * ly2;
             let mut z: f32 = lb0 * y + lb1 * ly1 + lb2 * ly2 - la1 * lz1 - la2 * lz2;
             lx2 = lx1;
-            lx1 = (*x);
+            lx1 = *x;
             ly2 = ly1;
             ly1 = y;
             lz2 = lz1;
@@ -166,12 +166,12 @@ impl LR4 {
             y = hb0 * (*x) + hb1 * hx1 + hb2 * hx2 - ha1 * hy1 - ha2 * hy2;
             z = hb0 * y + hb1 * hy1 + hb2 * hy2 - ha1 * hz1 - ha2 * hz2;
             hx2 = hx1;
-            hx1 = (*x);
+            hx1 = *x;
             hy2 = hy1;
             hy1 = y;
             hz2 = hz1;
             hz1 = z;
-            (*x) = z + lz1;
+            *x = z + lz1;
         }
 
         lp.x1 = lx1;

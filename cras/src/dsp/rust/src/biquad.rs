@@ -26,6 +26,7 @@ pub struct Biquad {
     pub y2: f32,
 }
 
+#[allow(non_camel_case_types, dead_code)]
 #[repr(C)]
 pub enum BiquadType {
     // BQ_NONE stands for default, which is an identity filter.

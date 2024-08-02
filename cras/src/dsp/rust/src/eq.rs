@@ -43,6 +43,7 @@ impl EQ {
         Ok(())
     }
 
+    #[allow(dead_code)]
     // This is the prototype of the processing loop.
     pub fn process1(&mut self, data: &mut [f32]) {
         for q in self.biquads.iter_mut() {

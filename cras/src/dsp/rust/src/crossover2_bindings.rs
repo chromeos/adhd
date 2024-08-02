@@ -19,6 +19,7 @@ pub unsafe extern "C" fn crossover2_init(xo2: *mut Crossover2, freq1: f32, freq2
     }
 }
 
+#[allow(non_snake_case)]
 #[no_mangle]
 /// Splits input samples to three bands.
 /// Args:

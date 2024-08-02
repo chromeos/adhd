@@ -11,6 +11,7 @@ use crate::biquad::BiquadType;
 pub const CROSSOVER2_NUM_LR4_PAIRS: usize = 3;
 
 #[repr(C)]
+#[allow(non_snake_case)]
 #[derive(Default)]
 /// An LR4 filter is two biquads with the same parameters connected in series:
 ///
@@ -41,6 +42,7 @@ pub struct LR42 {
     z2R: f32,
 }
 
+#[allow(non_snake_case)]
 impl LR42 {
     fn new(enum_type: BiquadType, freq: f64) -> Self {
         let q = Biquad::new_set(enum_type, freq, 0., 0.);
@@ -119,8 +121,8 @@ impl LR42 {
         let ha2: f32 = hp.a2;
 
         for (data0L_i, data0R_i, data1L_i, data1R_i) in izip!(data0L, data0R, data1L, data1R) {
-            let mut xL: f32 = *data0L_i;
-            let mut xR: f32 = *data0R_i;
+            let xL: f32 = *data0L_i;
+            let xR: f32 = *data0R_i;
             let mut yL: f32 = lb0 * xL + lb1 * lx1L + lb2 * lx2L - la1 * ly1L - la2 * ly2L;
             let mut yR: f32 = lb0 * xR + lb1 * lx1R + lb2 * lx2R - la1 * ly1R - la2 * ly2R;
             let mut zL: f32 = lb0 * yL + lb1 * ly1L + lb2 * ly2L - la1 * lz1L - la2 * lz2L;
@@ -335,6 +337,7 @@ impl Crossover2 {
         }
     }
 
+    #[allow(non_snake_case)]
     pub fn process(
         &mut self,
         data0L: &mut [f32],

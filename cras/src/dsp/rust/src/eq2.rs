@@ -56,6 +56,7 @@ impl EQ2 {
         Ok(())
     }
 
+    #[allow(non_snake_case)]
     pub fn process_one(bqs: &mut [Biquad; EQ2_NUM_CHANNELS], data0: &mut [f32], data1: &mut [f32]) {
         let (left, right) = bqs.split_at_mut(1);
         let qL = &mut left[0];
