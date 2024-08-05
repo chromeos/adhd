@@ -244,6 +244,12 @@ int cras_server_metrics_ap_nc_start_status(bool success);
 // Logs the runtime of AP NC in APM in second.
 int cras_server_metrics_ap_nc_runtime(unsigned runtime_second);
 
+// Logs whether Ast has successfully started or not.
+int cras_server_metrics_ast_start_status(bool success);
+
+// Logs the runtime of Ast in APM in second.
+int cras_server_metrics_ast_runtime(unsigned runtime_second);
+
 // Logs failures when opening devices.
 // group_acitve:
 //    false - This is the first iodev opened in its iodev group.

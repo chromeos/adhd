@@ -15,6 +15,14 @@ int cras_server_metrics_ap_nc_runtime(unsigned runtime_second) {
   return 0;
 }
 
+int cras_server_metrics_ast_start_status(bool success) {
+  return 0;
+}
+
+int cras_server_metrics_ast_runtime(unsigned runtime_second) {
+  return 0;
+}
+
 int cras_server_metrics_device_runtime(struct cras_iodev* iodev) {
   return 0;
 }

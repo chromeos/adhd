@@ -820,9 +820,18 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
     apm_destroy(&apm);
     return NULL;
   }
-  if (cp_effect == NoiseCancellation) {
-    cras_server_metrics_ap_nc_start_status(
-        cras_processor_create_result.effect == NoiseCancellation);
+  if (cp_effect != NoEffects) {
+    const bool success = cras_processor_create_result.effect == cp_effect;
+    switch (cp_effect) {
+      case NoiseCancellation:
+        cras_server_metrics_ap_nc_start_status(success);
+        break;
+      case StyleTransfer:
+        cras_server_metrics_ast_start_status(success);
+        break;
+      default:
+        break;
+    }
     apm_state.num_nc++;
   }
   apm->cras_processor = cras_processor_create_result.plugin_processor;
@@ -888,12 +897,20 @@ void cras_stream_apm_stop(struct cras_stream_apm* stream,
 
   active = get_active_apm(actx, stream, idev);
   if (active) {
-    if (active->apm &&
-        active->apm->cras_processor_effect == NoiseCancellation) {
+    if (active->apm && active->apm->cras_processor_effect != NoEffects) {
       struct timespec now, runtime;
       clock_gettime(CLOCK_MONOTONIC_RAW, &now);
       subtract_timespecs(&now, &active->apm->start_ts, &runtime);
-      cras_server_metrics_ap_nc_runtime(runtime.tv_sec);
+      switch (active->apm->cras_processor_effect) {
+        case NoiseCancellation:
+          cras_server_metrics_ap_nc_runtime(runtime.tv_sec);
+          break;
+        case StyleTransfer:
+          cras_server_metrics_ast_runtime(runtime.tv_sec);
+          break;
+        default:
+          break;
+      }
       apm_state.num_nc--;
       apm_state.last_nc_closed = now;
     }
