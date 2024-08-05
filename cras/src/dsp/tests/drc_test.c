@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
   dsp_util_clear_fp_exceptions();
   drc = drc_new(44100);
 
-  drc->emphasis_disabled = 0;
+  drc_set_emphasis_disabled(drc, 0);
   drc_set_param(drc, 0, PARAM_CROSSOVER_LOWER_FREQ, 0);
   drc_set_param(drc, 0, PARAM_ENABLED, 1);
   drc_set_param(drc, 0, PARAM_THRESHOLD, -29);

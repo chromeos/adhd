@@ -90,6 +90,6 @@ pub unsafe extern "C" fn dk_process(dk: *mut DrcKernel, data_channels: *mut *mut
 ///    dk - The DRC kernel.
 ///
 #[no_mangle]
-pub unsafe extern "C" fn dk_get_parameter(dk: *mut DrcKernel) -> DrcKernelParam {
-    dk.as_mut().expect("NULL drc_kernel pointer").param
+pub unsafe extern "C" fn dk_get_parameter(dk: *const DrcKernel) -> DrcKernelParam {
+    dk.as_ref().expect("NULL drc_kernel pointer").param
 }

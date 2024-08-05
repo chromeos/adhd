@@ -104,8 +104,8 @@ pub unsafe extern "C" fn eq2_process(eq2: *mut EQ2, data0: *mut f32, data1: *mut
 
 #[no_mangle]
 /// Get the number of biquads in the EQ2 channel.
-pub unsafe extern "C" fn eq2_len(eq2: *mut EQ2, channel: i32) -> i32 {
-    if let Some(eq2) = eq2.as_mut() {
+pub unsafe extern "C" fn eq2_len(eq2: *const EQ2, channel: i32) -> i32 {
+    if let Some(eq2) = eq2.as_ref() {
         return eq2.n[channel as usize] as i32;
     }
     -1
@@ -113,6 +113,6 @@ pub unsafe extern "C" fn eq2_len(eq2: *mut EQ2, channel: i32) -> i32 {
 
 #[no_mangle]
 /// Get the biquad specified by index from the EQ2 channell
-pub unsafe extern "C" fn eq2_get_bq(eq2: *mut EQ2, channel: i32, index: i32) -> *mut Biquad {
-    &mut ((*eq2).biquads[index as usize][channel as usize])
+pub unsafe extern "C" fn eq2_get_bq(eq2: *const EQ2, channel: i32, index: i32) -> *const Biquad {
+    &((*eq2).biquads[index as usize][channel as usize])
 }

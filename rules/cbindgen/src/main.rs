@@ -90,7 +90,11 @@ fn main() {
         .rename_item("Crossover2", "crossover2")
         .rename_item("LR42", "lr42")
         .rename_item("DrcKernel", "drc_kernel")
-        .rename_item("DrcKernelParam", "drc_kernel_param");
+        .rename_item("DrcKernelParam", "drc_kernel_param")
+        .rename_item("DRC", "drc")
+        .rename_item("DRCComponent", "drc_component")
+        .rename_item("DRC_PARAM", "drc_param")
+        .include_item("DRC_PARAM");
 
     let mut b = b;
     for src in c.with_src {

@@ -13,7 +13,7 @@
 #include "cras/src/dsp/rust/dsp.h"
 #include "user/eq.h"
 
-static void crossover2_convert_lr42(struct lr42* lr4,
+static void crossover2_convert_lr42(const struct lr42* lr4,
                                     struct sof_eq_iir_biquad* cfg) {
   /* In SOF, the biquad filter is implemented similar to the form below:
    * https://en.wikipedia.org/wiki/Digital_biquad_filter#Transposed_direct_form_2
@@ -30,7 +30,7 @@ static void crossover2_convert_lr42(struct lr42* lr4,
   cfg->output_gain = 1 << 14; /* Q2.14 (last 16 bits are redundant) */
 }
 
-int crossover2_convert_params_to_blob(struct crossover2* xo2,
+int crossover2_convert_params_to_blob(const struct crossover2* xo2,
                                       int32_t* xo2_cfg) {
   if (!xo2_cfg || !xo2) {
     return -EINVAL;

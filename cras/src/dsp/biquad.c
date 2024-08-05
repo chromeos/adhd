@@ -17,7 +17,7 @@
 #include "cras/src/dsp/rust/dsp.h"
 #include "user/eq.h"
 
-int biquad_convert_blob(struct biquad* bq,
+int biquad_convert_blob(const struct biquad* bq,
                         int32_t* bq_cfg,
                         float* gain_accum,
                         bool dump_gain) {

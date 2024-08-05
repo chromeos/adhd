@@ -27,7 +27,7 @@ extern "C" {
  * Returns:
  *    0 if the generation is successful. A negative error code otherwise.
  */
-int biquad_convert_blob(struct biquad* bq,
+int biquad_convert_blob(const struct biquad* bq,
                         int32_t* bq_cfg,
                         float* gain_accum,
                         bool dump_gain);

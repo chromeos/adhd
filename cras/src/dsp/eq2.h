@@ -21,7 +21,9 @@ extern "C" {
  * Returns:
  *    0 if the generation is successful. A negative error code otherwise.
  */
-int eq2_convert_channel_response(struct eq2* eq2, int32_t* bq_cfg, int channel);
+int eq2_convert_channel_response(const struct eq2* eq2,
+                                 int32_t* bq_cfg,
+                                 int channel);
 
 /* Convert the parameter set of an EQ2 to the config blob for DSP offload.
  * Args:
@@ -31,7 +33,7 @@ int eq2_convert_channel_response(struct eq2* eq2, int32_t* bq_cfg, int channel);
  * Returns:
  *    0 if the conversion is successful. A negative error code otherwise.
  */
-int eq2_convert_params_to_blob(struct eq2* eq2,
+int eq2_convert_params_to_blob(const struct eq2* eq2,
                                uint32_t** config,
                                size_t* config_size);
 #ifdef __cplusplus

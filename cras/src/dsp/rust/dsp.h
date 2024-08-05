@@ -20,6 +20,26 @@ extern "C" {
 
 #define CROSSOVER2_NUM_LR4_PAIRS 3
 
+/**
+ * The number of compressor kernels (also the number of bands).
+ */
+#define DRC_NUM_KERNELS 3
+
+/**
+ * The number of stages for emphasis and deemphasis filters.
+ */
+#define DRC_EMPHASIS_NUM_STAGES 2
+
+/**
+ * The maximum number of frames can be passed to drc_process() call.
+ */
+#define DRC_PROCESS_MAX_FRAMES 2048
+
+/**
+ * The default value of PARAM_PRE_DELAY in seconds.
+ */
+#define DRC_DEFAULT_PRE_DELAY 0.006
+
 #define DRC_NUM_CHANNELS 2
 
 #define NEG_TWO_DB 0.7943282347242815
@@ -45,7 +65,89 @@ enum biquad_type {
   BQ_ALLPASS,
 };
 
+/**
+ * DRC implements a flexible audio dynamics compression effect such as is
+ * commonly used in musical production and game audio. It lowers the volume of
+ * the loudest parts of the signal and raises the volume of the softest parts,
+ * making the sound richer, fuller, and more controlled.
+ *
+ * This is a three band stereo DRC. There are three compressor kernels, and each
+ * can have its own parameters. If a kernel is disabled, it only delays the
+ * signal and does not compress it.
+ *
+ * ```text
+ *                   INPUT
+ *                     |
+ *                +----------+
+ *                | emphasis |
+ *                +----------+
+ *                     |
+ *               +------------+
+ *               | crossover  |
+ *               +------------+
+ *               /     |      \
+ *      (low band) (mid band) (high band)
+ *             /       |        \
+ *         +------+ +------+ +------+
+ *         |  drc | |  drc | |  drc |
+ *         |kernel| |kernel| |kernel|
+ *         +------+ +------+ +------+
+ *              \      |        /
+ *               \     |       /
+ *              +-------------+
+ *              |     (+)     |
+ *              +-------------+
+ *                     |
+ *              +------------+
+ *              | deemphasis |
+ *              +------------+
+ *                     |
+ *                   OUTPUT
+ * ```
+ *
+ * The parameters of the DRC compressor.
+ *
+ * PARAM_THRESHOLD - The value above which the compression starts, in dB.
+ * PARAM_KNEE - The value above which the knee region starts, in dB.
+ * PARAM_RATIO - The input/output dB ratio after the knee region.
+ * PARAM_ATTACK - The time to reduce the gain by 10dB, in seconds.
+ * PARAM_RELEASE - The time to increase the gain by 10dB, in seconds.
+ * PARAM_PRE_DELAY - The lookahead time for the compressor, in seconds.
+ * PARAM_RELEASE_ZONE[1-4] - The adaptive release curve parameters.
+ * PARAM_POST_GAIN - The static boost value in output, in dB.
+ * PARAM_FILTER_STAGE_GAIN - The gain of each emphasis filter stage.
+ * PARAM_FILTER_STAGE_RATIO - The frequency ratio for each emphasis filter stage
+ *     to the previous stage.
+ * PARAM_FILTER_ANCHOR - The frequency of the first emphasis filter, in
+ *     normalized frequency (in [0, 1], relative to half of the sample rate).
+ * PARAM_CROSSOVER_LOWER_FREQ - The lower frequency of the band, in normalized
+ *     frequency (in [0, 1], relative to half of the sample rate).
+ * PARAM_ENABLED - 1 to enable the compressor, 0 to disable it.
+ *
+ */
+enum drc_param {
+  PARAM_THRESHOLD,
+  PARAM_KNEE,
+  PARAM_RATIO,
+  PARAM_ATTACK,
+  PARAM_RELEASE,
+  PARAM_PRE_DELAY,
+  PARAM_RELEASE_ZONE1,
+  PARAM_RELEASE_ZONE2,
+  PARAM_RELEASE_ZONE3,
+  PARAM_RELEASE_ZONE4,
+  PARAM_POST_GAIN,
+  PARAM_FILTER_STAGE_GAIN,
+  PARAM_FILTER_STAGE_RATIO,
+  PARAM_FILTER_ANCHOR,
+  PARAM_CROSSOVER_LOWER_FREQ,
+  PARAM_ENABLED,
+  PARAM_LAST,
+};
+
 struct dcblock;
+
+struct drc;
 
 struct drc_kernel;
 
@@ -171,6 +273,35 @@ struct crossover {
   struct LR4 hp[3];
 };
 
+/**
+ * The structure is only used for exposing necessary components of drc to
+ * FFI.
+ *
+ */
+struct drc_component {
+  /**
+   * true to disable the emphasis and deemphasis, false to enable it.
+   */
+  bool emphasis_disabled;
+  /**
+   * parameters holds the tweakable compressor parameters.
+   */
+  float parameters[DRC_NUM_KERNELS][16];
+  /**
+   * The emphasis filter and deemphasis filter
+   */
+  const struct eq2 *emphasis_eq;
+  const struct eq2 *deemphasis_eq;
+  /**
+   * The crossover filter
+   */
+  const struct crossover2 *xo2;
+  /**
+   * The compressor kernels
+   */
+  const struct drc_kernel *kernel[DRC_NUM_KERNELS];
+};
+
 struct drc_kernel_param {
   bool enabled;
   /**
@@ -284,6 +415,45 @@ void dcblock_set_config(struct dcblock *dcblock, float r, unsigned long sample_r
 void dcblock_process(struct dcblock *dcblock, float *data, int32_t count);
 
 /**
+ * Allocates a DRC.
+ */
+struct drc *drc_new(float sample_rate);
+
+/**
+ * Initializes a DRC.
+ */
+void drc_init(struct drc *drc);
+
+/**
+ * Frees a DRC.
+ */
+void drc_free(struct drc *drc);
+
+/**
+ * Processes input data using a DRC.
+ * Args:
+ *    drc - The DRC we want to use.
+ *    float **data - Pointers to input/output data. The input must be stereo
+ *        and one channel is pointed by data[0], another pointed by data[1]. The
+ *        output data is stored in the same place.
+ *    frames - The number of frames to process.
+ *
+ */
+void drc_process(struct drc *drc, float **data, int32_t frames);
+
+void drc_set_param(struct drc *drc, int32_t index, uint32_t paramID, float value);
+
+/**
+ * Retrive the components from a DRC structure
+ * Args:
+ *    drc - The DRC kernel.
+ *
+ */
+struct drc_component drc_get_components(struct drc *drc);
+
+void drc_set_emphasis_disabled(struct drc *drc, int32_t value);
+
+/**
  * Initializes a drc kernel
  */
 struct drc_kernel *dk_new(float sample_rate);
@@ -331,7 +501,7 @@ void dk_process(struct drc_kernel *dk, float **data_channels, uint32_t count);
  *    dk - The DRC kernel.
  *
  */
-struct drc_kernel_param dk_get_parameter(struct drc_kernel *dk);
+struct drc_kernel_param dk_get_parameter(const struct drc_kernel *dk);
 
 /**
  * Create an EQ2.
@@ -393,12 +563,12 @@ void eq2_process(struct eq2 *eq2, float *data0, float *data1, int32_t count);
 /**
  * Get the number of biquads in the EQ2 channel.
  */
-int32_t eq2_len(struct eq2 *eq2, int32_t channel);
+int32_t eq2_len(const struct eq2 *eq2, int32_t channel);
 
 /**
  * Get the biquad specified by index from the EQ2 channell
  */
-struct biquad *eq2_get_bq(struct eq2 *eq2, int32_t channel, int32_t index);
+const struct biquad *eq2_get_bq(const struct eq2 *eq2, int32_t channel, int32_t index);
 
 struct eq *eq_new(void);
 
@@ -481,6 +651,45 @@ void dcblock_set_config(struct dcblock *dcblock, float r, unsigned long sample_r
 void dcblock_process(struct dcblock *dcblock, float *data, int32_t count);
 
 /**
+ * Allocates a DRC.
+ */
+struct drc *drc_new(float sample_rate);
+
+/**
+ * Initializes a DRC.
+ */
+void drc_init(struct drc *drc);
+
+/**
+ * Frees a DRC.
+ */
+void drc_free(struct drc *drc);
+
+/**
+ * Processes input data using a DRC.
+ * Args:
+ *    drc - The DRC we want to use.
+ *    float **data - Pointers to input/output data. The input must be stereo
+ *        and one channel is pointed by data[0], another pointed by data[1]. The
+ *        output data is stored in the same place.
+ *    frames - The number of frames to process.
+ *
+ */
+void drc_process(struct drc *drc, float **data, int32_t frames);
+
+void drc_set_param(struct drc *drc, int32_t index, uint32_t paramID, float value);
+
+/**
+ * Retrive the components from a DRC structure
+ * Args:
+ *    drc - The DRC kernel.
+ *
+ */
+struct drc_component drc_get_components(struct drc *drc);
+
+void drc_set_emphasis_disabled(struct drc *drc, int32_t value);
+
+/**
  * Initializes a drc kernel
  */
 struct drc_kernel *dk_new(float sample_rate);
@@ -528,7 +737,7 @@ void dk_process(struct drc_kernel *dk, float **data_channels, uint32_t count);
  *    dk - The DRC kernel.
  *
  */
-struct drc_kernel_param dk_get_parameter(struct drc_kernel *dk);
+struct drc_kernel_param dk_get_parameter(const struct drc_kernel *dk);
 
 /**
  * Create an EQ2.
@@ -590,12 +799,12 @@ void eq2_process(struct eq2 *eq2, float *data0, float *data1, int32_t count);
 /**
  * Get the number of biquads in the EQ2 channel.
  */
-int32_t eq2_len(struct eq2 *eq2, int32_t channel);
+int32_t eq2_len(const struct eq2 *eq2, int32_t channel);
 
 /**
  * Get the biquad specified by index from the EQ2 channell
  */
-struct biquad *eq2_get_bq(struct eq2 *eq2, int32_t channel, int32_t index);
+const struct biquad *eq2_get_bq(const struct eq2 *eq2, int32_t channel, int32_t index);
 
 struct eq *eq_new(void);
 

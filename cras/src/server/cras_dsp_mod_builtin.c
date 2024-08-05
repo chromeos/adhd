@@ -721,7 +721,7 @@ static void drc_configure(struct dsp_module* module) {
   float nyquist = data->sample_rate / 2;
   struct drc* drc = data->drc;
 
-  drc->emphasis_disabled = (int)*data->ports[4];
+  drc_set_emphasis_disabled(drc, (int)*data->ports[4]);
   for (i = 0; i < 3; i++) {
     int k = 5 + i * 8;
     float f = *data->ports[k];

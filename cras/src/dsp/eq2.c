@@ -12,14 +12,14 @@
 #include "cras/src/dsp/rust/dsp.h"
 #include "user/eq.h"
 
-int eq2_convert_channel_response(struct eq2* eq2,
+int eq2_convert_channel_response(const struct eq2* eq2,
                                  int32_t* bq_cfg,
                                  int channel) {
   float accumulated_gain = 1.0;
   int ret;
 
   for (int i = 0; i < eq2_len(eq2, channel); i++) {
-    struct biquad* bq = eq2_get_bq(eq2, channel, i);
+    const struct biquad* bq = eq2_get_bq(eq2, channel, i);
 
     /* For i = 0..(n-2), accumulated_gain is kept accumulating in loop.
      * For i = n-1, the last biquad element, accumulated_gain is dumped to the
@@ -38,7 +38,7 @@ int eq2_convert_channel_response(struct eq2* eq2,
   return 0;
 }
 
-int eq2_convert_params_to_blob(struct eq2* eq2,
+int eq2_convert_params_to_blob(const struct eq2* eq2,
                                uint32_t** config,
                                size_t* config_size) {
   const size_t biquad_size = sizeof(struct sof_eq_iir_biquad);

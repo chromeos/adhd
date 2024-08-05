@@ -1,5 +1,5 @@
 {
-  "checksum": "eaf4e3f491c579c0e41f9c9773f4ecdd4fc3d809efff4591ad83af92f5a58a83",
+  "checksum": "fade509b4eee7c50395810a98977ace70cfd3e4a024a4716fef35e79a100a004",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2665,6 +2665,10 @@
         ],
         "deps": {
           "common": [
+            {
+              "id": "anyhow 1.0.75",
+              "target": "anyhow"
+            },
             {
               "id": "float-cmp 0.9.0",
               "target": "float_cmp"

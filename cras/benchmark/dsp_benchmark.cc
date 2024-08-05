@@ -90,7 +90,7 @@ BENCHMARK_DEFINE_F(BM_Dsp, Drc)(benchmark::State& state) {
   const double NQ = 44100 / 2;  // nyquist frequency
 
   struct drc* drc = drc_new(44100);
-  drc->emphasis_disabled = 0;
+  drc_set_emphasis_disabled(drc, 0);
   drc_set_param(drc, 0, PARAM_CROSSOVER_LOWER_FREQ, 0);
   drc_set_param(drc, 0, PARAM_ENABLED, 1);
   drc_set_param(drc, 0, PARAM_THRESHOLD, -29);

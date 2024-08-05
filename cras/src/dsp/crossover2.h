@@ -13,7 +13,8 @@
 extern "C" {
 #endif
 
-int crossover2_convert_params_to_blob(struct crossover2* xo2, int32_t* xo2_cfg);
+int crossover2_convert_params_to_blob(const struct crossover2* xo2,
+                                      int32_t* xo2_cfg);
 #ifdef __cplusplus
 }  // extern "C"
 #endif
