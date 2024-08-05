@@ -1176,7 +1176,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
       cras_server_metrics_device_open_status(
           iodev, CRAS_DEVICE_OPEN_ERROR_SET_FORMAT, has_open_dev);
       iodev->close_dev(iodev);
-      return rc;
+      goto open_err;
     }
   }
   // Always reset rate_est to ensure rate estimation correctness.
@@ -1188,7 +1188,7 @@ int cras_iodev_open(struct cras_iodev* iodev,
     cras_server_metrics_device_open_status(
         iodev, CRAS_DEVICE_OPEN_ERROR_CONFIGURE, has_open_dev);
     iodev->close_dev(iodev);
-    return rc;
+    goto open_err;
   }
   clock_gettime(CLOCK_MONOTONIC_RAW, &end);
   cras_server_metrics_device_configure_time(iodev, &beg, &end);
@@ -1266,6 +1266,9 @@ int cras_iodev_open(struct cras_iodev* iodev,
                                          has_open_dev);
 
   return 0;
+open_err:
+  cras_iodev_free_dsp(iodev);
+  return rc;
 }
 
 enum CRAS_IODEV_STATE cras_iodev_state(const struct cras_iodev* iodev) {

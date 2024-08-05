@@ -90,6 +90,7 @@ static int is_free_running_ret;
 static int no_stream_called;
 static int no_stream_enable;
 static bool can_start_ret;
+static int configure_dev_ret;
 // This will be used extensively in cras_iodev.
 struct audio_thread_event_log* atlog;
 static unsigned int simple_no_stream_called;
@@ -199,6 +200,7 @@ void ResetStubData() {
   no_stream_called = 0;
   no_stream_enable = 0;
   can_start_ret = 1;
+  configure_dev_ret = 0;
   simple_no_stream_called = 0;
   simple_no_stream_enable = 0;
   dev_stream_playback_frames_ret = 0;
@@ -1344,7 +1346,35 @@ TEST(IoDev, GetBufferInvalidFrames) {
 
 static int configure_dev(struct cras_iodev* iodev) {
   iodev->buffer_size = iodev_buffer_size;
+  return configure_dev_ret;
+}
+
+static int close_dev(struct cras_iodev* iodev) {
   return 0;
+}
+
+TEST(IoDev, OpenFailDspContextCleanUp) {
+  struct cras_iodev iodev;
+  int rc;
+
+  memset(&iodev, 0, sizeof(iodev));
+  iodev.configure_dev = configure_dev;
+  iodev.close_dev = close_dev;
+  iodev.direction = CRAS_STREAM_OUTPUT;
+  iodev.format = &audio_fmt;
+  iodev.get_buffer = get_buffer;
+  iodev.put_buffer = put_buffer;
+  ResetStubData();
+
+  iodev.state = CRAS_IODEV_STATE_CLOSE;
+
+  iodev_buffer_size = 1024;
+  cras_dsp_context_new_return = reinterpret_cast<cras_dsp_context*>(0xf0f);
+  configure_dev_ret = -1;
+  rc = cras_iodev_open(&iodev, 240, &audio_fmt);
+
+  EXPECT_NE(0, rc);
+  EXPECT_EQ(CRAS_IODEV_STATE_CLOSE, iodev.state);
 }
 
 TEST(IoDev, OpenOutputDeviceNoStart) {
