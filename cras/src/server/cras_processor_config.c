@@ -29,11 +29,10 @@ enum CrasProcessorEffect cras_processor_get_effect(
       iodev->active_node->position == NODE_POSITION_INTERNAL;
 
   // StyleTransfer
-  // TODO(cranelw): always check supported when tast is ready.
   if (iodev->active_node->desired_nc_provider == CRAS_NC_PROVIDER_AST &&
+      cras_system_get_style_transfer_supported() &&
       ((effects & CLIENT_CONTROLLED_VOICE_ISOLATION &&  // client controlled.
-        effects & VOICE_ISOLATION &&
-        cras_system_get_style_transfer_supported()) ||
+        effects & VOICE_ISOLATION) ||
        (!(effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&  // system controlled.
         cras_system_get_style_transfer_enabled())) &&
       !beamforming_supported) {  // no beamforming.
