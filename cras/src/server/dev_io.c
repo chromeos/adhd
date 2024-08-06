@@ -1640,7 +1640,7 @@ int dev_io_append_stream(struct open_dev** odevs,
      * buffer level.
      */
     if ((stream->direction == CRAS_STREAM_INPUT) && !dev->streams) {
-      int num_flushed = dev->flush_buffer(dev);
+      int num_flushed = cras_iodev_flush_buffer(dev);
       if (num_flushed < 0) {
         rc = -EIO;
         break;

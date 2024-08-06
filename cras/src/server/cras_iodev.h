@@ -817,6 +817,20 @@ int cras_iodev_fill_odev_zeros(struct cras_iodev* odev,
                                unsigned int frames,
                                bool processing);
 /*
+ * Flush buffer for alignment purposes
+ * Args:
+ *    dev - The device.
+ * Returns:
+ *    Number of frames flushed, negative errno if failed.
+ */
+static inline int cras_iodev_flush_buffer(struct cras_iodev* dev) {
+  if (dev->flush_buffer) {
+    return dev->flush_buffer(dev);
+  }
+  return 0;
+}
+
+/*
  * The default implementation of frames_to_play_in_sleep ops, used when an
  * iodev doesn't have its own logic.
  * The default behavior is to calculate how log it takes for buffer level to
