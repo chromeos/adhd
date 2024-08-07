@@ -973,8 +973,13 @@ function audio_source_canplay() {
 }
 
 function update_source_node(mediaElement) {
-  sourceNode = audioContext.createMediaElementSource(mediaElement);
-  build_graph();
+  // Resume the audioContext to meet the autoplay policy in Chrome.
+  audioContext.resume().then(()=>{
+    sourceNode = audioContext.createMediaElementSource(mediaElement);
+    build_graph();
+  }).catch((e)=>{
+    alert('Cannot resume audioContext:', e);
+  });
 }
 
 function toggle_global_checkbox(name, enable) {
