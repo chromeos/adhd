@@ -163,7 +163,7 @@ fn download_dlcs_until_installed(
     cras_server_metrics_dlc_install_retried_times_on_success: CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc,
 ) {
     let mut retry_sleep = time::Duration::from_secs(30);
-    let max_retry_sleep = time::Duration::from_secs(1800);
+    let max_retry_sleep = time::Duration::from_secs(300);
     let mut todo: Vec<_> = download_config
         .dlcs_to_download
         .iter()
