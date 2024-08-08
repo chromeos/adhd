@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("//:utils.bzl", "require_config")
 
 cc_library(
@@ -85,6 +85,22 @@ cc_binary(
         ":dsp_test_util",
         ":raw",
         "//cras/src/dsp",
+    ],
+)
+
+cc_test(
+    name = "dsp_golden_unittest_rust",
+    srcs = ["dsp_golden_unittest.cc"],
+    data = [
+        "@the_quick_brown_fox_golden_testdata",
+    ],
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//cras/common:check",
+        "//cras/src/dsp/rust",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
     ],
 )
 
