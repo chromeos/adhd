@@ -43,7 +43,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// All supported DLCs in CRAS.
 #[repr(C)]
-#[derive(Clone, Copy, PartialEq, Hash, Eq)]
+#[derive(Clone, Copy, PartialEq, Hash, Eq, Debug)]
 pub enum CrasDlcId {
     CrasDlcSrBt,
     CrasDlcNcAp,
@@ -191,9 +191,13 @@ fn download_dlcs_until_installed(
         if todo_next.is_empty() {
             return;
         }
-        log::info!("retrying DLC installation in {retry_sleep:?}");
+        // The former dlc install could block the latter ones.
+        // If the former dlc is broken, all the latter ones could be blocked.
+        // We tried to avoid this issue by changing the order.
+        todo_next.rotate_left(1);
+        todo = todo_next;
+        log::info!("retrying DLC installation in {retry_sleep:?}, order {todo:?}");
         sleep(retry_sleep);
         retry_sleep = max_retry_sleep.min(retry_sleep * 2);
-        todo = todo_next;
     }
 }
