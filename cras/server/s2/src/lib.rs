@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::collections::HashSet;
+
 use serde::Serialize;
 
 pub mod global;
@@ -14,6 +16,8 @@ struct Input {
     /// Tells whether the DLC manager is ready.
     /// Used by tests to avoid races.
     dlc_manager_ready: bool,
+    dlc_installed: HashSet<String>,
+    dlc_manager_done: bool,
     style_transfer_featured_allowed: bool,
     style_transfer_enabled: bool,
     // cros_config /audio/main cras-config-dir.
@@ -56,6 +60,8 @@ impl S2 {
             ap_nc_segmentation_allowed: false,
             ap_nc_feature_tier_allowed: false,
             dlc_manager_ready: false,
+            dlc_installed: HashSet::new(),
+            dlc_manager_done: false,
             style_transfer_featured_allowed: false,
             style_transfer_enabled: false,
             cras_config_dir: String::new(),
@@ -84,6 +90,16 @@ impl S2 {
         self.update();
     }
 
+    fn set_dlc_installed(&mut self, dlc: &str) {
+        self.input.dlc_installed.insert(dlc.to_string());
+        self.update();
+    }
+
+    fn set_dlc_manager_done(&mut self) {
+        self.input.dlc_manager_done = true;
+        self.update()
+    }
+
     fn set_style_transfer_featured_allowed(&mut self, allowed: bool) {
         self.input.style_transfer_featured_allowed = allowed;
         self.update();
@@ -106,6 +122,8 @@ impl S2 {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::S2;
 
     #[test]
@@ -164,5 +182,27 @@ mod tests {
         s.set_cras_config_dir("omniknight");
         assert!(!s.output.beamforming_supported);
         assert!(s.output.style_transfer_supported);
+    }
+
+    #[test]
+    fn test_dlc() {
+        let mut s = S2::new();
+        assert!(!s.input.dlc_manager_ready);
+        assert!(s.input.dlc_installed.is_empty());
+        assert!(!s.input.dlc_manager_done);
+
+        s.set_dlc_manager_ready();
+        assert!(s.input.dlc_manager_ready);
+
+        s.set_dlc_installed("dlc-1");
+        assert_eq!(s.input.dlc_installed, HashSet::from(["dlc-1".to_string()]));
+        s.set_dlc_installed("dlc-2");
+        assert_eq!(
+            s.input.dlc_installed,
+            HashSet::from(["dlc-1".to_string(), "dlc-2".to_string()])
+        );
+
+        s.set_dlc_manager_done();
+        assert!(s.input.dlc_manager_done);
     }
 }

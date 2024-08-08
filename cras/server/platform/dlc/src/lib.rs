@@ -178,6 +178,7 @@ fn download_dlcs_until_installed(
                     log::info!("successfully installed {dlc}");
                     STATE_CACHE.lock().unwrap().insert(*dlc, state);
                     cras_server_metrics_dlc_install_retried_times_on_success(*dlc, retry_count);
+                    cras_s2::global::set_dlc_installed(&dlc.as_str());
                 }
                 Err(e) => {
                     log::info!("failed to install {dlc}: {e}");
@@ -200,4 +201,5 @@ fn download_dlcs_until_installed(
         sleep(retry_sleep);
         retry_sleep = max_retry_sleep.min(retry_sleep * 2);
     }
+    cras_s2::global::set_dlc_manager_done();
 }

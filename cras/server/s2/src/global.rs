@@ -35,6 +35,14 @@ pub fn set_dlc_manager_ready() {
     state().set_dlc_manager_ready();
 }
 
+pub fn set_dlc_installed(dlc: &str) {
+    state().set_dlc_installed(dlc);
+}
+
+pub fn set_dlc_manager_done() {
+    state().set_dlc_manager_done();
+}
+
 #[no_mangle]
 pub extern "C" fn cras_s2_get_ap_nc_allowed() -> bool {
     state().output.ap_nc_allowed
