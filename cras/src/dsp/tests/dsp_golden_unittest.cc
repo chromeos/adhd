@@ -4,13 +4,24 @@
 
 #include <cstddef>
 #include <fcntl.h>
+#include <gtest/gtest.h>
 #include <stdio.h>
 #include <vector>
 
 #include "cras/common/check.h"
-#include "cras/src/dsp/rust/dsp.h"
 #include "cras/src/dsp/tests/raw.h"
-#include "gtest/gtest.h"
+
+#ifdef CRAS_DSP_RUST
+#include "cras/src/dsp/rust/dsp.h"
+#else
+#include "cras/src/dsp/c/biquad.h"
+#include "cras/src/dsp/c/crossover.h"
+#include "cras/src/dsp/c/crossover2.h"
+#include "cras/src/dsp/c/dcblock.h"
+#include "cras/src/dsp/c/drc.h"
+#include "cras/src/dsp/c/eq.h"
+#include "cras/src/dsp/c/eq2.h"
+#endif
 
 #ifndef min
 #define min(a, b)           \
@@ -188,7 +199,11 @@ TEST(DspTestSuite, DRC) {
 
   struct drc* drc = drc_new(44100);
 
+#ifdef CRAS_DSP_RUST
   drc_set_emphasis_disabled(drc, 0);
+#else
+  drc->emphasis_disabled = 0;
+#endif
   drc_set_param(drc, 0, PARAM_CROSSOVER_LOWER_FREQ, 0);
   drc_set_param(drc, 0, PARAM_ENABLED, 1);
   drc_set_param(drc, 0, PARAM_THRESHOLD, -29);

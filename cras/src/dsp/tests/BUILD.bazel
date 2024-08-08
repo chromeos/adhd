@@ -89,11 +89,28 @@ cc_binary(
 )
 
 cc_test(
+    name = "dsp_golden_unittest_c",
+    srcs = ["dsp_golden_unittest.cc"],
+    data = [
+        "@the_quick_brown_fox_golden_testdata",
+    ],
+    deps = [
+        ":dsp_test_util",
+        ":raw",
+        "//cras/common:check",
+        "//cras/src/dsp/c",
+        "@pkg_config//gtest",
+        "@pkg_config//gtest_main",
+    ],
+)
+
+cc_test(
     name = "dsp_golden_unittest_rust",
     srcs = ["dsp_golden_unittest.cc"],
     data = [
         "@the_quick_brown_fox_golden_testdata",
     ],
+    local_defines = ["CRAS_DSP_RUST"],
     deps = [
         ":dsp_test_util",
         ":raw",

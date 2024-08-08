@@ -1,0 +1,132 @@
+# Copyright 2024 The ChromiumOS Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "c",
+    srcs = [
+        "biquad.c",
+        "crossover.c",
+        "crossover2.c",
+        "dcblock.c",
+        "drc_kernel.c",
+        "eq.c",
+        "eq2.c",
+    ],
+    hdrs = [
+        "crossover.h",
+        "dcblock.h",
+        "eq.h",
+    ],
+    visibility = [
+        ":__subpackages__",
+        "//cras/src/dsp/tests:__pkg__",
+        "//cras/src/server:__pkg__",
+    ],
+    deps = [
+        ":drc",
+        ":drc_math",
+        "//cras/src/common",
+        "//cras/src/server:dsp_types",
+        "@thesofproject_sof",
+    ],
+)
+
+cc_library(
+    name = "eq",
+    srcs = ["eq.c"],
+    hdrs = ["eq.h"],
+    deps = [
+        ":biquad",
+        "@thesofproject_sof",
+    ],
+)
+
+cc_library(
+    name = "eq2",
+    srcs = ["eq2.c"],
+    hdrs = ["eq2.h"],
+    visibility = ["//cras/benchmark:__pkg__"],
+    deps = [
+        ":biquad",
+        "@thesofproject_sof",
+    ],
+)
+
+cc_library(
+    name = "drc",
+    srcs = ["drc.c"],
+    hdrs = ["drc.h"],
+    linkopts = ["-lm"],
+    visibility = ["//cras/benchmark:__pkg__"],
+    deps = [
+        ":crossover2",
+        ":drc_kernel",
+        ":eq2",
+        "//cras/common:check",
+        "//cras/src/dsp:dsp_helpers",
+        "@thesofproject_sof",
+    ],
+)
+
+cc_library(
+    name = "biquad",
+    srcs = ["biquad.c"],
+    hdrs = ["biquad.h"],
+    deps = [
+        "//cras/src/dsp:dsp_helpers",
+        "@thesofproject_sof",
+    ],
+)
+
+cc_library(
+    name = "crossover2",
+    srcs = ["crossover2.c"],
+    hdrs = ["crossover2.h"],
+    deps = [
+        ":biquad",
+        "//cras/src/dsp:dsp_helpers",
+        "@thesofproject_sof",
+    ],
+)
+
+cc_library(
+    name = "drc_kernel",
+    srcs = ["drc_kernel.c"],
+    hdrs = ["drc_kernel.h"],
+    linkopts = ["-lm"],
+    deps = [
+        ":drc_math",
+        "//cras/common:check",
+        "//cras/include",
+    ],
+)
+
+cc_library(
+    name = "drc_math",
+    srcs = ["drc_math.c"],
+    hdrs = ["drc_math.h"],
+)
+
+# Allow tests to not specify all headers.
+cc_library(
+    name = "all_headers",
+    testonly = True,
+    hdrs = glob(include = ["*.h"]),
+    textual_hdrs = glob(include = ["*.c"]),  # Allow including sources
+    visibility = [
+        "//cras/src/tests:__pkg__",
+    ],
+)
+
+# Allow tests to use sources directly
+exports_files(
+    glob(include = [
+        "*.c",
+    ]),
+    visibility = [
+        "//cras/src/tests:__pkg__",
+    ],
+)

@@ -280,7 +280,10 @@ cc_library(
         "cras_dsp_pipeline.h",
         "cras_expr.h",
     ],
-    visibility = ["//cras/src/dsp:__pkg__"],
+    visibility = [
+        "//cras/src/dsp:__pkg__",
+        "//cras/src/dsp/c:__pkg__",
+    ],
     deps = [
         ":iniparser_wrapper",
     ],
