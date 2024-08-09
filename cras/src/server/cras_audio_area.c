@@ -66,8 +66,11 @@ void cras_audio_area_config_channels(struct cras_audio_area* area,
                                      const struct cras_audio_format* fmt) {
   unsigned int i, ch;
 
-  /* For mono, config the channel type to match both front
-   * left and front right.
+  /* For mono, config the channel type to match both front left and front
+   * right. Notice that the stereo-mono conversion is to add up two channels so
+   * the magnitude of mono is louder than stereo. We can't fix it by dividing
+   * by 2 directly because it may cause the recording magnitude decreased for
+   * some camera mic users.
    * TODO(hychao): add more mapping when we have like {FL, FC}
    * for mono + kb mic.
    */
