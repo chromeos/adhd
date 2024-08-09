@@ -35,7 +35,7 @@ struct Output {
 
 fn resolve(input: &Input) -> Output {
     // TODO(b/339785214): Decide this based on config file content.
-    let beamforming_supported = input.cras_config_dir == "omniknight.3mic";
+    let beamforming_supported = input.cras_config_dir.ends_with(".3mic");
     Output {
         ap_nc_allowed: input.ap_nc_featured_allowed
             || input.ap_nc_segmentation_allowed
