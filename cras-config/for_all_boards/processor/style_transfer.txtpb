@@ -16,8 +16,8 @@ pipeline {
           inner_block_size: 480
           inner {
             dlc_plugin {
-              dlc_id: "nuance-dlc"
-              path: "libstyle.so"
+              dlc_id: "nc-ap-dlc"
+              path: "libeffects.so"
               constructor: "plugin_processor_create_ast"
             }
           }

@@ -14,8 +14,8 @@ pipeline {
   processors {
     dlc_plugin {
       dlc_id: "nc-ap-dlc"
-      path: "libdenoiser.so"
-      constructor: "plugin_processor_create"
+      path: "libeffects.so"
+      constructor: "plugin_processor_create_nc"
     }
   }
 }
