@@ -29,6 +29,7 @@ use dsm::ZeroPlayer;
 use dsm::DSM;
 use dsm_param::*;
 pub use error::Error;
+use log::error;
 use log::info;
 use settings::AmpCalibSettings;
 use settings::DeviceSettings;
@@ -126,27 +127,36 @@ impl Amp for Max98373 {
             info!("skip boot time calibration and use vpd values");
             dsm.get_all_vpd_calibration_value()?
         } else {
-            match dsm.check_speaker_over_heated_workflow()? {
-                SpeakerStatus::Hot(previous_calib) => previous_calib,
-                SpeakerStatus::Cold => match self.run_calibration() {
-                    Ok(calibs) => calibs
-                        .iter()
-                        .enumerate()
-                        .map(|(ch, calib_data)| {
-                            dsm.decide_calibration_value_workflow(
-                                ch,
-                                *calib_data,
-                                self.setting.rdc_ranges[ch],
-                            )
-                            .map_err(crate::Error::DSMError)
-                        })
-                        .collect::<Result<Vec<_>>>()?,
-                    Err(e) => {
-                        info!("boot time calibration failed: {}. Use previous values", e);
-                        log_uma_enum(UMACalibrationResult::CaibFailedUsePreviousValue);
-                        dsm.get_all_previous_calibration_value()?
-                    }
+            match dsm.check_speaker_over_heated_workflow() {
+                Ok(status) => match status {
+                    SpeakerStatus::Hot(previous_calib) => previous_calib,
+                    SpeakerStatus::Cold => match self.run_calibration() {
+                        Ok(calibs) => calibs
+                            .iter()
+                            .enumerate()
+                            .map(|(ch, calib_data)| {
+                                dsm.decide_calibration_value_workflow(
+                                    ch,
+                                    *calib_data,
+                                    self.setting.rdc_ranges[ch],
+                                )
+                                .map_err(crate::Error::DSMError)
+                            })
+                            .collect::<Result<Vec<_>>>()?,
+                        Err(e) => {
+                            error!("boot time calibration failed: {}. Use previous values", e);
+                            log_uma_enum(UMACalibrationResult::CaibFailedUsePreviousValue);
+                            dsm.get_all_previous_calibration_value()?
+                        }
+                    },
                 },
+                Err(e) => {
+                    error!(
+                        "Failed to check speaker temperature status: {}. Use previous values",
+                        e
+                    );
+                    dsm.get_all_previous_calibration_value()?
+                }
             }
         };
         self.apply_calibration_value(&calib)?;

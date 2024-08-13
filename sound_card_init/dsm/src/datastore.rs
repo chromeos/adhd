@@ -39,6 +39,15 @@ impl Datastore {
         Ok(datastore)
     }
 
+    /// Checks if the datastore file exists or not
+    pub fn file_exists(snd_card: &str, channel: usize) -> Result<bool> {
+        let path = Self::path(snd_card, channel);
+        match File::open(&path).map_err(|e| Error::FileIOFailed(path.to_owned(), e)) {
+            Ok(..) => return Ok(true),
+            Err(e) => return Err(e),
+        }
+    }
+
     /// Saves a `Datastore` to file.
     pub fn save(&self, snd_card: &str, channel: usize) -> Result<()> {
         let path = Self::path(snd_card, channel);

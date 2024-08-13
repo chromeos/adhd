@@ -208,8 +208,9 @@ impl DSM {
         match self.is_speaker_over_heated() {
             Ok(overheated) => {
                 if overheated {
-                    let calib = self.get_all_previous_calibration_value()?;
                     info!("the speakers are hot, the boot time calibration should be skipped");
+                    info!("Using previous calibration values");
+                    let calib = self.get_all_previous_calibration_value()?;
                     return Ok(SpeakerStatus::Hot(calib));
                 }
                 Ok(SpeakerStatus::Cold)
@@ -218,6 +219,7 @@ impl DSM {
                 // when the shutdown time file is invalid we assume the speakers are overheated
                 // and we can not trigger boot time calibration.
                 info!("{}, the boot time calibration is skipped", e);
+                info!("Using previous calibration values");
                 let calib = self.get_all_previous_calibration_value()?;
                 return Ok(SpeakerStatus::Hot(calib));
             }
@@ -313,6 +315,22 @@ impl DSM {
         }
     }
 
+    /// Reset previous calibrated values to use VPD values instead.
+    ///
+    /// # Errors
+    ///
+    /// * Failed to update Datastore.
+    pub fn reset_previous_calibration_value(&self) -> Result<()> {
+        for ch in 0..self.num_channels {
+            // Only add datastore if it exists
+            match Datastore::file_exists(&self.snd_card, ch) {
+                Ok(..) => Datastore::UseVPD.save(&self.snd_card, ch)?,
+                Err(e) => info!("Datastore file for channel {} is not found, {}", ch, e),
+            }
+        }
+        Ok(())
+    }
+
     /// Gets the calibration values from vpd.
     ///
     /// # Results
@@ -338,9 +356,17 @@ impl DSM {
     ///
     /// * Failed to read datastore.
     pub fn get_all_previous_calibration_value<T: CalibData>(&self) -> Result<Vec<T>> {
-        (0..self.num_channels)
+        let result = (0..self.num_channels)
             .map(|ch| self.get_previous_calibration_value(ch))
-            .collect::<Result<Vec<_>>>()
+            .collect::<Result<Vec<_>>>();
+        match result {
+            Ok(calibs) => return Ok(calibs),
+            Err(e) => {
+                error!("Get previous value failed: {}. Use vpd values", e);
+                self.reset_previous_calibration_value()?;
+                self.get_all_vpd_calibration_value()
+            }
+        }
     }
 
     /// Blocks until the internal speakers are ready.
