@@ -113,28 +113,6 @@ static int poll_fd_for_events(unsigned int events, int fd, int timeout_ms) {
   return 0;
 }
 
-static bool dbus_uint8_is_zero(int dbus_type, void* dbus_value_ptr) {
-  if (dbus_type != DBUS_TYPE_BYTE) {
-    syslog(LOG_ERR,
-           "Mismatched return type, "
-           "expected type id: %d, received type id: %d",
-           DBUS_TYPE_BYTE, dbus_type);
-    return false;
-  }
-  return *(uint8_t*)dbus_value_ptr == 0;
-}
-
-static bool dbus_uint8_is_nonzero(int dbus_type, void* dbus_value_ptr) {
-  if (dbus_type != DBUS_TYPE_BYTE) {
-    syslog(LOG_ERR,
-           "Mismatched return type, "
-           "expected type id: %d, received type id: %d",
-           DBUS_TYPE_BYTE, dbus_type);
-    return false;
-  }
-  return *(uint8_t*)dbus_value_ptr != 0;
-}
-
 static bool dbus_int32_is_nonzero(int dbus_type, void* dbus_value_ptr) {
   if (dbus_type != DBUS_TYPE_INT32) {
     syslog(LOG_ERR,
@@ -144,28 +122,6 @@ static bool dbus_int32_is_nonzero(int dbus_type, void* dbus_value_ptr) {
     return false;
   }
   return *(dbus_int32_t*)dbus_value_ptr != 0;
-}
-
-static bool dbus_bool_is_true(int dbus_type, void* dbus_value_ptr) {
-  if (dbus_type != DBUS_TYPE_BOOLEAN) {
-    syslog(LOG_ERR,
-           "Mismatched return type, "
-           "expected type id: %d, received type id: %d",
-           DBUS_TYPE_BOOLEAN, dbus_type);
-    return false;
-  }
-  return *(dbus_bool_t*)dbus_value_ptr == TRUE;
-}
-
-static bool dbus_bool_is_false(int dbus_type, void* dbus_value_ptr) {
-  if (dbus_type != DBUS_TYPE_BOOLEAN) {
-    syslog(LOG_ERR,
-           "Mismatched return type, "
-           "expected type id: %d, received type id: %d",
-           DBUS_TYPE_BOOLEAN, dbus_type);
-    return false;
-  }
-  return *(dbus_bool_t*)dbus_value_ptr == FALSE;
 }
 
 static bool dbus_int32_as_group_stream_status_is_idle(int dbus_type,
