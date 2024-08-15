@@ -242,12 +242,9 @@ load("//repositories:deps.bzl", "file_deps")
 
 file_deps()
 
-http_archive(
-    name = "the_quick_brown_fox_golden_testdata",
-    build_file = "@//:repositories/the_quick_brown_fox_golden_testdata.BUILD.bazel",
-    sha256 = "47721bea83e6a1f9d259304294d5b3d4ee0f8f17800011023585ae7e28ee1bef",
-    url = "https://storage.googleapis.com/chromiumos-test-assets-public/tast/cros/audio/the-quick-brown-fox_20240808.zip",
-)
+load("//cras/src/dsp/tests:deps.bzl", "cras_dsp_file_deps")
+
+cras_dsp_file_deps()
 
 # Please keep this at the bottom of the WORKSPACE.
 # http_archive_deps_setup can only scan http_archives that are already declared.
