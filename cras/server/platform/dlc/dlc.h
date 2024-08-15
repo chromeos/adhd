@@ -17,19 +17,7 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-#define NUM_CRAS_DLCS 3
-
-#define CRAS_DLC_ID_STRING_MAX_LENGTH 50
-
-/**
- * All supported DLCs in CRAS.
- */
-enum CrasDlcId {
-  CrasDlcSrBt,
-  CrasDlcNcAp,
-  CrasDlcIntelligoBeamforming,
-};
+#include "cras/common/rust_common.h"
 
 struct CrasDlcDownloadConfig {
   bool dlcs_to_download[NUM_CRAS_DLCS];

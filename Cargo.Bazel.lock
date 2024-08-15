@@ -1,5 +1,5 @@
 {
-  "checksum": "fade509b4eee7c50395810a98977ace70cfd3e4a024a4716fef35e79a100a004",
+  "checksum": "ec8622ad7e424559f85247a40b5f3b070428ba7a3012b6ed374ae6a1f5e86867",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2195,6 +2195,10 @@
             {
               "id": "serde_json 1.0.96",
               "target": "serde_json"
+            },
+            {
+              "id": "static_assertions 1.1.0",
+              "target": "static_assertions"
             },
             {
               "id": "syslog 6.0.1",

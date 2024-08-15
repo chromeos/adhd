@@ -18,6 +18,19 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
+#define NUM_CRAS_DLCS 3
+
+#define CRAS_DLC_ID_STRING_MAX_LENGTH 50
+
+/**
+ * All supported DLCs in CRAS.
+ */
+enum CrasDlcId {
+  CrasDlcSrBt,
+  CrasDlcNcAp,
+  CrasDlcIntelligoBeamforming,
+};
+
 enum CRAS_FRA_SIGNAL {
   PeripheralsUsbSoundCard = 0,
   USBAudioConfigureFailed,

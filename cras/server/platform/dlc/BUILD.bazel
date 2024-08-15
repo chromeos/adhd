@@ -11,8 +11,12 @@ cras_rust_library(
     name = "dlc",
     srcs = glob(include = ["src/*.rs"]),
     crate_name = "cras_dlc",
-    visibility = ["//cras/src/server/rust:__pkg__"],
+    visibility = [
+        "//cras/server/platform:__pkg__",
+        "//cras/src/server/rust:__pkg__",
+    ],
     deps = all_crate_deps() + [
+        "//cras/common:rust_common",
         "//cras/server/s2",
         "@pkg_config//dbus-1",
     ],
@@ -24,11 +28,18 @@ cras_cbindgen(
     srcs = glob(include = ["src/*.rs"]),
     out = "dlc.h",
     copyright_year = 2023,
+    extra_args = [
+        "--with-include=cras/common/rust_common.h",
+        "--add-keyword-enum",
+    ],
 )
 
 cc_library(
     name = "cc",
     hdrs = ["dlc.h"],
     visibility = ["//visibility:public"],
-    deps = [":dlc"],
+    deps = [
+        ":dlc",
+        "//cras/common:rust_common_cc",
+    ],
 )

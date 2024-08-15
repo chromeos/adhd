@@ -24,8 +24,8 @@ use audio_processor::processors::ThreadedProcessor;
 use audio_processor::AudioProcessor;
 use audio_processor::Format;
 use audio_processor::ProcessorVec;
+use cras_common::types_internal::CrasDlcId;
 use cras_dlc::get_dlc_state_cached;
-use cras_dlc::CrasDlcId;
 
 mod processor_override;
 

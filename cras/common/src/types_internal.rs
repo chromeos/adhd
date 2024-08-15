@@ -4,7 +4,9 @@
 
 use std::borrow::Cow;
 use std::ffi::CString;
+use std::fmt::Display;
 
+use anyhow::bail;
 use bitflags::bitflags;
 use itertools::Itertools;
 
@@ -42,4 +44,58 @@ pub extern "C" fn cras_stream_active_ap_effects_string(
     CString::new(effect.joined_name().as_ref())
         .unwrap()
         .into_raw()
+}
+
+/// All supported DLCs in CRAS.
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Hash, Eq, Debug)]
+pub enum CrasDlcId {
+    CrasDlcSrBt,
+    CrasDlcNcAp,
+    CrasDlcIntelligoBeamforming,
+}
+
+// The list of DLCs that are installed automatically.
+pub const MANAGED_DLCS: &[CrasDlcId] = &[
+    CrasDlcId::CrasDlcSrBt,
+    CrasDlcId::CrasDlcNcAp,
+    CrasDlcId::CrasDlcIntelligoBeamforming,
+];
+
+pub const NUM_CRAS_DLCS: usize = 3;
+// Assert that NUM_CRAS_DLCS is updated.
+// We cannot assign MANAGED_DLCS.len() to NUM_CRAS_DLCS because cbindgen does
+// not seem to understand it.
+static_assertions::const_assert_eq!(NUM_CRAS_DLCS, MANAGED_DLCS.len());
+
+pub const CRAS_DLC_ID_STRING_MAX_LENGTH: i32 = 50;
+impl CrasDlcId {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            // The length of these strings should be bounded by
+            // CRAS_DLC_ID_STRING_MAX_LENGTH
+            CrasDlcId::CrasDlcSrBt => "sr-bt-dlc",
+            CrasDlcId::CrasDlcNcAp => "nc-ap-dlc",
+            CrasDlcId::CrasDlcIntelligoBeamforming => "intelligo-beamforming-dlc",
+        }
+    }
+}
+
+impl TryFrom<&str> for CrasDlcId {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> anyhow::Result<Self> {
+        for dlc in MANAGED_DLCS {
+            if dlc.as_str() == value {
+                return Ok(dlc.clone());
+            }
+        }
+        bail!("unknown DLC {value}");
+    }
+}
+
+impl Display for CrasDlcId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
 }

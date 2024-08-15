@@ -13,6 +13,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/server/main_message.h"
 #include "cras/server/platform/dlc/dlc.h"
 #include "cras/src/common/cras_metrics.h"

@@ -53,6 +53,12 @@ struct Command {
 
     #[arg(long, default_value = "2023")]
     copyright_year: u32,
+
+    #[arg(
+        long,
+        help = "Add the `enum` keyword to generated enums. Useful if the enums are not automatically prefixed with `enum`."
+    )]
+    add_keyword_enum: bool,
 }
 
 fn main() {
@@ -94,9 +100,15 @@ fn main() {
         .rename_item("DRC", "drc")
         .rename_item("DRCComponent", "drc_component")
         .rename_item("DRC_PARAM", "drc_param")
-        .include_item("DRC_PARAM");
+        .include_item("DRC_PARAM")
+        .include_item("CrasDlcId");
 
     let mut b = b;
+
+    if c.add_keyword_enum {
+        b = b.rename_item("CrasDlcId", "enum CrasDlcId");
+    }
+
     for src in c.with_src {
         b = b.with_src(src);
     }

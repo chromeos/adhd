@@ -365,6 +365,7 @@ dependencies = [
  "once_cell",
  "openssl",
  "serde_json",
+ "static_assertions",
  "syslog",
 ]
 
@@ -373,6 +374,7 @@ name = "cras_dlc"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cras_common",
  "cras_s2",
  "dbus",
  "libc",

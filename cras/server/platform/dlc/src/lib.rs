@@ -8,12 +8,11 @@ mod chromiumos;
 mod stub;
 
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time;
 
-use anyhow::bail;
+use cras_common::types_internal::CrasDlcId;
 use once_cell::sync::Lazy;
 use thiserror::Error;
 
@@ -40,60 +39,6 @@ pub enum Error {
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
-
-/// All supported DLCs in CRAS.
-#[repr(C)]
-#[derive(Clone, Copy, PartialEq, Hash, Eq, Debug)]
-pub enum CrasDlcId {
-    CrasDlcSrBt,
-    CrasDlcNcAp,
-    CrasDlcIntelligoBeamforming,
-}
-
-// The list of DLCs that are installed automatically.
-const MANAGED_DLCS: &[CrasDlcId] = &[
-    CrasDlcId::CrasDlcSrBt,
-    CrasDlcId::CrasDlcNcAp,
-    CrasDlcId::CrasDlcIntelligoBeamforming,
-];
-
-pub const NUM_CRAS_DLCS: usize = 3;
-// Assert that NUM_CRAS_DLCS is updated.
-// We cannot assign MANAGED_DLCS.len() to NUM_CRAS_DLCS because cbindgen does
-// not seem to understand it.
-static_assertions::const_assert_eq!(NUM_CRAS_DLCS, MANAGED_DLCS.len());
-
-pub const CRAS_DLC_ID_STRING_MAX_LENGTH: i32 = 50;
-impl CrasDlcId {
-    fn as_str(&self) -> &'static str {
-        match self {
-            // The length of these strings should be bounded by
-            // CRAS_DLC_ID_STRING_MAX_LENGTH
-            CrasDlcId::CrasDlcSrBt => "sr-bt-dlc",
-            CrasDlcId::CrasDlcNcAp => "nc-ap-dlc",
-            CrasDlcId::CrasDlcIntelligoBeamforming => "intelligo-beamforming-dlc",
-        }
-    }
-}
-
-impl TryFrom<&str> for CrasDlcId {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &str) -> anyhow::Result<Self> {
-        for dlc in MANAGED_DLCS {
-            if dlc.as_str() == value {
-                return Ok(dlc.clone());
-            }
-        }
-        bail!("unknown DLC {value}");
-    }
-}
-
-impl Display for CrasDlcId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
 
 trait ServiceTrait: Sized {
     fn new() -> Result<Self>;
@@ -152,7 +97,7 @@ type CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc =
 
 #[repr(C)]
 pub struct CrasDlcDownloadConfig {
-    pub dlcs_to_download: [bool; NUM_CRAS_DLCS],
+    pub dlcs_to_download: [bool; cras_common::types_internal::NUM_CRAS_DLCS],
 }
 
 fn download_dlcs_until_installed(
@@ -164,7 +109,7 @@ fn download_dlcs_until_installed(
     let mut todo: Vec<_> = download_config
         .dlcs_to_download
         .iter()
-        .zip(MANAGED_DLCS.iter())
+        .zip(cras_common::types_internal::MANAGED_DLCS.iter())
         .filter_map(|(download, id)| if *download { Some(id) } else { None })
         .collect();
     for retry_count in 0..i32::MAX {
