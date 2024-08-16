@@ -2540,8 +2540,9 @@ void cras_iodev_list_reset_for_noise_cancellation() {
     if (new_effect_state == dev->restart_tag_effect_state) {
       continue;
     }
-    syslog(LOG_INFO, "Re-open %s for nc restart_tag: %d -> %d", dev->info.name,
-           dev->restart_tag_effect_state, new_effect_state);
+    syslog(LOG_INFO, "Re-open %s for nc restart_tag: %s -> %s", dev->info.name,
+           cras_nc_provider_to_str(dev->restart_tag_effect_state),
+           cras_nc_provider_to_str(new_effect_state));
     possibly_enable_fallback(CRAS_STREAM_INPUT, false);
     restart_device_group(dev->info.idx);
     possibly_disable_fallback(CRAS_STREAM_INPUT);

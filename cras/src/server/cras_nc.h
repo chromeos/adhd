@@ -20,6 +20,22 @@ enum CRAS_NC_PROVIDER {
   CRAS_NC_PROVIDER_AST = 1 << 2,  // NC is supported by AST.
 };
 
+static inline const char* cras_nc_provider_to_str(
+    enum CRAS_NC_PROVIDER nc_provider) {
+  switch (nc_provider) {
+    case CRAS_NC_PROVIDER_NONE:
+      return "CRAS_NC_PROVIDER_NONE";
+    case CRAS_NC_PROVIDER_DSP:
+      return "CRAS_NC_PROVIDER_DSP";
+    case CRAS_NC_PROVIDER_AP:
+      return "CRAS_NC_PROVIDER_AP";
+    case CRAS_NC_PROVIDER_AST:
+      return "CRAS_NC_PROVIDER_AST";
+    default:
+      return "Invalid NC provider";
+  }
+}
+
 static inline enum CRAS_NC_PROVIDER cras_nc_resolve_provider(
     uint32_t nc_providers,
     bool dsp_nc_allowed,
