@@ -610,7 +610,6 @@ int cras_server_run(unsigned int profile_disable_mask) {
           {
               [CrasDlcSrBt] = cras_system_get_sr_bt_supported(),
               [CrasDlcNcAp] = true,
-              [CrasDlcNuance] = cras_s2_get_style_transfer_supported(),
               [CrasDlcIntelligoBeamforming] =
                   cras_s2_get_beamforming_supported(),
           },

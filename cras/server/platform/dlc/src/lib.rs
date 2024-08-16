@@ -47,7 +47,6 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum CrasDlcId {
     CrasDlcSrBt,
     CrasDlcNcAp,
-    CrasDlcNuance,
     CrasDlcIntelligoBeamforming,
 }
 
@@ -55,11 +54,10 @@ pub enum CrasDlcId {
 const MANAGED_DLCS: &[CrasDlcId] = &[
     CrasDlcId::CrasDlcSrBt,
     CrasDlcId::CrasDlcNcAp,
-    CrasDlcId::CrasDlcNuance,
     CrasDlcId::CrasDlcIntelligoBeamforming,
 ];
 
-pub const NUM_CRAS_DLCS: usize = 4;
+pub const NUM_CRAS_DLCS: usize = 3;
 // Assert that NUM_CRAS_DLCS is updated.
 // We cannot assign MANAGED_DLCS.len() to NUM_CRAS_DLCS because cbindgen does
 // not seem to understand it.
@@ -73,7 +71,6 @@ impl CrasDlcId {
             // CRAS_DLC_ID_STRING_MAX_LENGTH
             CrasDlcId::CrasDlcSrBt => "sr-bt-dlc",
             CrasDlcId::CrasDlcNcAp => "nc-ap-dlc",
-            CrasDlcId::CrasDlcNuance => "nuance-dlc",
             CrasDlcId::CrasDlcIntelligoBeamforming => "intelligo-beamforming-dlc",
         }
     }
