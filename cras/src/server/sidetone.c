@@ -78,6 +78,7 @@ bool is_sidetone_available(enum CRAS_NODE_TYPE output_node_type) {
   switch (output_node_type) {
     case CRAS_NODE_TYPE_HEADPHONE:
     case CRAS_NODE_TYPE_ALSA_LOOPBACK:
+    case CRAS_NODE_TYPE_USB:
       return 1;
     default:
       return 0;
