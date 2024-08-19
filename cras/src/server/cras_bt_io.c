@@ -245,7 +245,7 @@ static int open_dev(struct cras_iodev* iodev) {
     }
 
     // If input iodev open fails, switch profile back to A2DP.
-    if (iodev->direction == CRAS_STREAM_INPUT) {
+    if (rc != -EAGAIN && iodev->direction == CRAS_STREAM_INPUT) {
       possibly_switch_to_a2dp(btio->mgr);
     }
     return rc;

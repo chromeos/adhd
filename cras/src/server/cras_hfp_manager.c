@@ -64,13 +64,57 @@ struct cras_hfp {
   // If an output device started. This is used to determine if
   // a sco start or stop is required.
   int odev_started;
-  // Every successful |StartScoCall| should expect an audio disconnection
-  // event callback. If the event comes before |StopScoCall|, we will
-  // issue a reconnection request.
-  bool is_sco_stopped;
   int hfp_caps;
   enum HFP_CODEC_FORMAT active_codec_format;
   bool sco_pcm_used;
+
+  // Every successful |StartScoCall| should expect an audio disconnection
+  // event callback. If the event comes before |is_sco_stopped|, we will
+  // issue a reconnection request. Note that |StopScoCall| is only called if
+  // CRAS decides to stop the SCO before it acknowledges a disconnection event.
+  //
+  // |is_sco_stopped| is set only when all of the following satisfy:
+  //   (1) There had been at least one successful |StartScoCall|.
+  //   (2) After the last successful |StartScoCall|, either:
+  //      (a) a disconnection event arrived, or
+  //      (b) |StopScoCall| was issued.
+  //   (3) SCO related cleanup is done.
+  //
+  // |is_sco_connected| is |true| in between the last |StartScoCall| and the
+  // arrival of its ensuing disconnection event.
+  //
+  // Below we describe some possible scenarios:
+  //
+  // Scenario 1: CRAS stops the SCO before the disconnection event
+  //
+  //     <--- is_sco_stopped --->
+  // A---B------------------C---A----------------------
+  // <-- is_sco_connected -->   <-- is_sco_connected --
+  //
+  // Scenario 2: CRAS stops the SCO after the disconnection event
+  //
+  //                            <-- is_sco_stopped -->
+  // A----------------------C---B--------------------A----------------------
+  // <-- is_sco_connected -->                        <-- is_sco_connected --
+  //
+  // Where "A" is the moment CRAS starts the SCO, "B" is the moment CRAS stops
+  // the SCO (not necessarily invoking |StopScoCall|) and applies cleanup,
+  // and "C" is the moment CRAS acknowledges a disconnection event.
+  //
+  // A tricky case that we must be aware of is as the following:
+  //
+  // Scenario 3: CRAS starts the next SCO before the disconnection event
+  //
+  //     <----- is_sco_stopped ----->
+  // A---B------------------∀---C---A----------------------
+  // <-- is_sco_connected ------>   <-- is_sco_connected --
+  //
+  // "∀" is used here to mark the timing where CRAS attempts to start the
+  // next SCO, though |is_sco_stopped|, since |is_sco_connected|, we should
+  // reject and possibly retry later to avoid chaos in the order of events.
+  //
+  bool is_sco_stopped;
+  bool is_sco_connected;
 };
 
 void fill_floss_hfp_skt_addr(struct sockaddr_un* addr) {
@@ -188,6 +232,19 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
     goto start_dev;
   }
 
+  // At this point we are about to request for a SCO connection.
+  // We should check if there is dangling connections from previous session.
+  if (hfp->is_sco_connected) {
+    if (!hfp->is_sco_stopped) {
+      syslog(LOG_ERR, "Attempting to start SCO before previous stopped.");
+      return -EPERM;
+    } else {
+      syslog(LOG_WARNING,
+             "Attempting to start SCO before previous disconnected.");
+      return -EAGAIN;
+    }
+  }
+
   int disabled_codecs = FL_HFP_CODEC_BIT_ID_NONE;
   if (!cras_system_get_bt_wbs_enabled()) {
     disabled_codecs |= FL_HFP_CODEC_BIT_ID_MSBC | FL_HFP_CODEC_BIT_ID_LC3;
@@ -237,6 +294,7 @@ int cras_floss_hfp_start(struct cras_hfp* hfp,
          hfp->active_codec_format);
 
   hfp->is_sco_stopped = false;
+  hfp->is_sco_connected = true;
 
   if (hfp->sco_pcm_used) {
     // When sco is offloaded, we do not need to connect to the fd in Floss.
@@ -321,17 +379,20 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
     audio_thread_rm_callback_sync(cras_iodev_list_get_audio_thread(), hfp->fd);
   }
 
-  hfp->is_sco_stopped = true;
+  // If the remote side disconnected, we don't have to make the call.
+  if (hfp->is_sco_connected) {
+    int rc = floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
+    BTLOG(btlog, BT_SCO_DISCONNECT, rc == 0, 0);
+  }
 
-  int rc = floss_media_hfp_stop_sco_call(hfp->fm, hfp->addr);
-  BTLOG(btlog, BT_SCO_DISCONNECT, rc == 0, 0);
+  hfp->is_sco_stopped = true;
 
   if (hfp->fd >= 0) {
     close(hfp->fd);
     hfp->fd = -1;
   }
 
-  return rc;
+  return 0;
 }
 
 // This event is where we learn about unsolicited SCO disconnection.
@@ -339,6 +400,8 @@ int cras_floss_hfp_stop(struct cras_hfp* hfp, enum CRAS_STREAM_DIRECTION dir) {
 // (before/after) |StopScoCall|, so it is not guaranteed to be triggered
 // as a reply to |cras_floss_hfp_stop|.
 void cras_floss_hfp_handle_audio_disconnection(struct cras_hfp* hfp) {
+  hfp->is_sco_connected = false;
+
   if (hfp->is_sco_stopped) {
     return;
   }
