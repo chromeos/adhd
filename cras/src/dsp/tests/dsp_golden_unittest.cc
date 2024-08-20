@@ -23,6 +23,10 @@
 #include "cras/src/dsp/c/eq2.h"
 #endif
 
+#ifdef EXPORT_OUTPUT
+std::string output_dir;
+#endif
+
 #ifndef min
 #define min(a, b)           \
   ({                        \
@@ -36,6 +40,9 @@ class GoldenTestdata {
  private:
   float* expected_output;
   size_t expected_output_size;
+#ifdef EXPORT_OUTPUT
+  std::string output_file;
+#endif
 
  public:
   float* input;
@@ -86,6 +93,21 @@ class GoldenTestdata {
     input = read_raw(
         "external/the_quick_brown_fox_golden_testdata/the-quick-brown-fox.raw",
         &input_size);
+#ifdef EXPORT_OUTPUT
+    if (test == CROSSOVER) {
+      output_file = output_dir + "/the-quick-brown-fox-crossover-out.raw";
+    } else if (test == CROSSOVER2) {
+      output_file = output_dir + "/the-quick-brown-fox-crossover2-out.raw";
+    } else if (test == DCBLOCK) {
+      output_file = output_dir + "/the-quick-brown-fox-dcblock-out.raw";
+    } else if (test == DRC) {
+      output_file = output_dir + "/the-quick-brown-fox-drc-out.raw";
+    } else if (test == EQ) {
+      output_file = output_dir + "/the-quick-brown-fox-eq-out.raw";
+    } else if (test == EQ2) {
+      output_file = output_dir + "/the-quick-brown-fox-eq2-out.raw";
+    }
+#endif
   }
 
   ~GoldenTestdata() {
@@ -100,6 +122,9 @@ class GoldenTestdata {
     for (int i = 0; i < n; i++) {
       EXPECT_NEAR(output[i], expected_output[i], 0.001);
     }
+#ifdef EXPORT_OUTPUT
+    write_raw(output_file.c_str(), output, output_size);
+#endif
   }
 };
 
@@ -324,4 +349,17 @@ TEST(DspTestSuite, EQ2) {
   eq2_free(eq2);
 
   golden_testdata.compare_output(input, input_size);
+}
+
+// Use bazel run to run the main function and generate the golden output.
+int main(int argc, char** argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+#ifdef EXPORT_OUTPUT
+  if (argc != 2) {
+    printf("Usage: dsp_golden_unittest [output_directory]\n");
+    return -1;
+  }
+  output_dir = argv[1];
+#endif
+  return RUN_ALL_TESTS();
 }
