@@ -315,6 +315,24 @@ impl DSM {
         }
     }
 
+    /// Update the datastore.
+    ///
+    /// # Errors
+    ///
+    /// * Failed to update Datastore.
+    pub fn update_datastore<T: CalibData + 'static>(
+        &self,
+        channel: usize,
+        calib_data: T,
+    ) -> Result<()> {
+        Datastore::DSM {
+            rdc: calib_data.rdc(),
+            temp: (self.temp_converter.celsius_to_vpd)(calib_data.temp()),
+        }
+        .save(&self.snd_card, channel)?;
+        Ok(())
+    }
+
     /// Reset previous calibrated values to use VPD values instead.
     ///
     /// # Errors

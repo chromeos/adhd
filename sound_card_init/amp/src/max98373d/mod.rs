@@ -124,8 +124,8 @@ impl Amp for Max98373 {
         dsm.wait_for_speakers_ready()?;
 
         let calib = if !self.setting.boot_time_calibration_enabled {
-            info!("skip boot time calibration and use vpd values");
-            dsm.get_all_vpd_calibration_value()?
+            info!("skip boot time calibration and use previous values");
+            dsm.get_all_previous_calibration_value()?
         } else {
             match dsm.check_speaker_over_heated_workflow() {
                 Ok(status) => match status {
@@ -161,6 +161,61 @@ impl Amp for Max98373 {
         };
         self.apply_calibration_value(&calib)?;
         info!("applied {:?}", calib);
+        Ok(())
+    }
+
+    /// Performs max98373 RMA calibration.
+    ///
+    /// # Errors
+    ///
+    /// If the amplifier fails to complete the calibration.
+    fn rma_calibration(&mut self) -> Result<()> {
+        if !Path::new(&self.setting.dsm_param).exists() {
+            return Err(Error::MissingDSMParam.into());
+        }
+
+        let mut dsm = DSM::new(
+            self.card.name(),
+            self.setting.num_channels(),
+            Self::TEMP_UPPER_LIMIT_CELSIUS,
+            Self::TEMP_LOWER_LIMIT_CELSIUS,
+        );
+
+        // Needs Rdc updates to be done after internal speaker is ready otherwise
+        // it would be overwritten by the DSM blob update.
+        dsm.wait_for_speakers_ready()?;
+
+        let calib = self.run_calibration()?;
+
+        for (ch, calib_data) in calib.iter().enumerate() {
+            if calib_data.temp() > Self::TEMP_UPPER_LIMIT_CELSIUS
+                || calib_data.temp() < Self::TEMP_LOWER_LIMIT_CELSIUS
+            {
+                return Err(Error::InvalidTemperature(
+                    calib_data.temp(),
+                    Self::TEMP_LOWER_LIMIT_CELSIUS,
+                    Self::TEMP_UPPER_LIMIT_CELSIUS,
+                )
+                .into());
+            }
+
+            if calib_data.rdc_ohm() <= self.setting.rdc_ranges[ch].lower
+                || calib_data.rdc_ohm() >= self.setting.rdc_ranges[ch].upper
+            {
+                return Err(Error::InvalidRDC(
+                    calib_data.rdc_ohm(),
+                    self.setting.rdc_ranges[ch].lower,
+                    self.setting.rdc_ranges[ch].upper,
+                )
+                .into());
+            }
+        }
+        for (ch, &calib_data) in calib.iter().enumerate() {
+            dsm.update_datastore(ch, calib_data)?;
+        }
+
+        info!("Apply RMA calibration {:?}", calib);
+        self.apply_calibration_value(&calib)?;
         Ok(())
     }
 

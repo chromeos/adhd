@@ -150,8 +150,8 @@ impl Amp for Max98390 {
         dsm.wait_for_speakers_ready()?;
 
         let calib = if !self.setting.boot_time_calibration_enabled {
-            info!("skip boot time calibration and use vpd values");
-            dsm.get_all_vpd_calibration_value()?
+            info!("skip boot time calibration and use previous calibration values");
+            dsm.get_all_previous_calibration_value()?
         } else {
             match dsm.check_speaker_over_heated_workflow() {
                 Ok(status) => match status {
@@ -186,6 +186,67 @@ impl Amp for Max98390 {
             }
         };
         info!("applied {:?}", calib);
+        self.apply_calibration_value(calib)?;
+        Ok(())
+    }
+
+    /// Performs max98390d RMA calibration.
+    ///
+    /// # Errors
+    ///
+    /// If the amplifier fails to complete the calibration.
+    fn rma_calibration(&mut self) -> Result<()> {
+        for setting in &self.setting.controls {
+            if !Path::new(&setting.dsm_param).exists() {
+                return Err(Error::MissingDSMParam.into());
+            }
+        }
+
+        let mut dsm = DSM::new(
+            self.card.name(),
+            self.setting.num_channels(),
+            Self::TEMP_UPPER_LIMIT_CELSIUS,
+            Self::TEMP_LOWER_LIMIT_CELSIUS,
+        );
+        dsm.set_temp_converter(TempConverter::new(
+            Max98390CalibData::dsm_unit_to_celsius,
+            Max98390CalibData::celsius_to_dsm_unit,
+        ));
+
+        // Needs Rdc updates to be done after internal speaker is ready otherwise
+        // it would be overwritten by the DSM blob update.
+        dsm.wait_for_speakers_ready()?;
+
+        let calib = self.do_calibration()?;
+
+        for (ch, calib_data) in calib.iter().enumerate() {
+            if calib_data.temp() > Self::TEMP_UPPER_LIMIT_CELSIUS
+                || calib_data.temp() < Self::TEMP_LOWER_LIMIT_CELSIUS
+            {
+                return Err(Error::InvalidTemperature(
+                    calib_data.temp(),
+                    Self::TEMP_LOWER_LIMIT_CELSIUS,
+                    Self::TEMP_UPPER_LIMIT_CELSIUS,
+                )
+                .into());
+            }
+
+            if calib_data.rdc_ohm() <= self.setting.rdc_ranges[ch].lower
+                || calib_data.rdc_ohm() >= self.setting.rdc_ranges[ch].upper
+            {
+                return Err(Error::InvalidRDC(
+                    calib_data.rdc_ohm(),
+                    self.setting.rdc_ranges[ch].lower,
+                    self.setting.rdc_ranges[ch].upper,
+                )
+                .into());
+            }
+        }
+        for (ch, &calib_data) in calib.iter().enumerate() {
+            dsm.update_datastore(ch, calib_data)?;
+        }
+
+        info!("Apply RMA calibration {:?}", calib);
         self.apply_calibration_value(calib)?;
         Ok(())
     }
@@ -361,7 +422,7 @@ impl Max98390 {
             })
             .collect::<Result<Vec<Max98390CalibData>>>()?;
         zero_player.stop()?;
-        info!("Boot time calibration results: {:?}", calib);
+        info!("calibration results: {:?}", calib);
         Ok(calib)
     }
 }

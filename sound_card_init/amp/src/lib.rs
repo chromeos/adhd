@@ -17,6 +17,7 @@ use alc1011::ALC1011;
 use cs35l41::CS35L41;
 use dsm::RDCRange;
 use dsm::DSM;
+use log::error;
 use log::info;
 use max98373d::Max98373;
 use max98390d::Max98390;
@@ -100,6 +101,11 @@ pub struct DebugInfo {
 pub trait Amp {
     /// The amplifier boot time calibration flow.
     fn boot_time_calibration(&mut self) -> Result<()>;
+    /// The amplifier RMA calibration flow.
+    fn rma_calibration(&mut self) -> Result<()> {
+        error!("RMA calibration is not implemented");
+        Ok(())
+    }
     /// Get the applied rdc value by channel index.
     fn get_applied_rdc(&mut self, ch: usize) -> Result<f32>;
     /// Get the current rdc value by channel index.

@@ -37,6 +37,7 @@ struct TopLevelCommand {
 #[argh(subcommand)]
 enum Command {
     BootTimeCalibration(BootTimeCalibrationArgs),
+    RMACalibration(RMACalibrationArgs),
     Debug(DebugArgs),
     FakeVPD(FakeVPDArgs),
     SetCalibrationParam(SetCalibrationParamArgs),
@@ -188,6 +189,21 @@ pub struct CurrentRDC {
     pub rdc_in_ohm: Option<f32>,
 }
 
+/// run Amp boot time calibration and apply the calibration result to the Amp
+#[derive(FromArgs, PartialEq, Debug)]
+#[argh(subcommand, name = "rma_calibration")]
+struct RMACalibrationArgs {
+    /// the sound card id
+    #[argh(option)]
+    pub id: String,
+    /// the speaker amp on the device. It should be $(cros_config /audio/main speaker-amp)
+    #[argh(option)]
+    pub amp: String,
+    /// the config file name. It should be $(cros_config /audio/main sound-card-init-conf)
+    #[argh(option)]
+    pub conf: String,
+}
+
 /// Parses the CONF_DIR/${args.conf}.yaml and starts the boot time calibration.
 fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn error::Error>> {
     match &args.cmd {
@@ -268,6 +284,34 @@ fn sound_card_init(args: &TopLevelCommand) -> std::result::Result<(), Box<dyn er
                     log_uma_enum(UMASoundCardInitResult::OK);
                     if let Err(e) = run_time::now_to_file(&param.id) {
                         error!("failed to create sound_card_init run time file: {}", e);
+                    }
+                }
+            }
+        }
+        Command::RMACalibration(param) => {
+            let mut amp = AmpBuilder::new(&param.id, &param.amp, &param.conf).build()?;
+            info!(
+                "cmd: rma_calibration sound_card_id: {}, conf:{}",
+                param.id, param.conf
+            );
+            match amp.rma_calibration() {
+                Err(e) => {
+                    error!(
+                        "sound_card_init: RMA calibration failed: {} sound_card_id: {}. Please re-try the command",
+                        e, param.id
+                    );
+                    if let Err(e) = amp.set_safe_mode(true) {
+                        error!("failed to enable safe_mode: {}", e);
+                    }
+                    return Err(Box::new(e));
+                }
+                Ok(_) => {
+                    if let Err(e) = amp.set_safe_mode(false) {
+                        error!(
+                            "failed to disable safe_mode: {}.  Please re-try the command",
+                            e
+                        );
+                        return Err(Box::new(e));
                     }
                 }
             }
