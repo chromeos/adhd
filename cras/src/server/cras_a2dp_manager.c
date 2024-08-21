@@ -280,14 +280,18 @@ static struct cras_fl_a2dp_codec_config cras_floss_a2dp_get_best_codec(
   return best_codec;
 }
 
-static void collect_peer_supported_a2dp_codecs(
+static int collect_peer_supported_a2dp_codecs(
     struct cras_fl_a2dp_codec_config* codecs) {
   unsigned avail_codec_mask = 0;
   struct cras_fl_a2dp_codec_config* codec;
   DL_FOREACH (codecs, codec) {
+    if (codec->codec_type > 31 || codec->codec_type < 0) {
+      return -EBADMSG;
+    }
     avail_codec_mask |= 1u << codec->codec_type;
   }
   cras_server_metrics_peer_supported_a2dp_codecs(avail_codec_mask);
+  return 0;
 }
 
 struct cras_a2dp* cras_floss_a2dp_create(
@@ -298,7 +302,12 @@ struct cras_a2dp* cras_floss_a2dp_create(
   struct cras_fl_a2dp_codec_config codec =
       cras_floss_a2dp_get_best_codec(codecs);
 
-  collect_peer_supported_a2dp_codecs(codecs);
+  int ret = collect_peer_supported_a2dp_codecs(codecs);
+  if (ret < 0) {
+    syslog(LOG_WARNING,
+           "Failed to create a2dp pcm_iodev for %s due to invalid codec", name);
+    return NULL;
+  }
 
   struct cras_a2dp* a2dp = (struct cras_a2dp*)calloc(1, sizeof(*a2dp));
   if (!a2dp) {
