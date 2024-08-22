@@ -9,6 +9,8 @@ use std::sync::Mutex;
 use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
+use cras_common::types_internal::CrasDlcId;
+
 fn state() -> MutexGuard<'static, crate::S2> {
     static CELL: OnceLock<Mutex<crate::S2>> = OnceLock::new();
     CELL.get_or_init(|| Mutex::new(crate::S2::new()))
@@ -35,7 +37,8 @@ pub fn set_dlc_manager_ready() {
     state().set_dlc_manager_ready();
 }
 
-pub fn set_dlc_installed(dlc: &str) {
+#[no_mangle]
+pub extern "C" fn cras_s2_set_dlc_installed(dlc: CrasDlcId) {
     state().set_dlc_installed(dlc);
 }
 
@@ -95,4 +98,9 @@ pub extern "C" fn cras_s2_get_beamforming_supported() -> bool {
 pub extern "C" fn cras_s2_dump_json() -> *mut c_char {
     let s = serde_json::to_string_pretty(state().deref()).expect("serde_json::to_string_pretty");
     CString::new(s).expect("CString::new").into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_reset_for_testing() {
+    state().reset_for_testing();
 }

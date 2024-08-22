@@ -4,6 +4,7 @@
 
 use std::collections::HashSet;
 
+use cras_common::types_internal::CrasDlcId;
 use serde::Serialize;
 
 pub mod global;
@@ -90,8 +91,8 @@ impl S2 {
         self.update();
     }
 
-    fn set_dlc_installed(&mut self, dlc: &str) {
-        self.input.dlc_installed.insert(dlc.to_string());
+    fn set_dlc_installed(&mut self, dlc: CrasDlcId) {
+        self.input.dlc_installed.insert(dlc.as_str().to_string());
         self.update();
     }
 
@@ -118,11 +119,17 @@ impl S2 {
     fn update(&mut self) {
         self.output = resolve(&self.input);
     }
+
+    fn reset_for_testing(&mut self) {
+        *self = Self::new();
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
+
+    use cras_common::types_internal::CrasDlcId;
 
     use crate::S2;
 
@@ -194,12 +201,18 @@ mod tests {
         s.set_dlc_manager_ready();
         assert!(s.input.dlc_manager_ready);
 
-        s.set_dlc_installed("dlc-1");
-        assert_eq!(s.input.dlc_installed, HashSet::from(["dlc-1".to_string()]));
-        s.set_dlc_installed("dlc-2");
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
         assert_eq!(
             s.input.dlc_installed,
-            HashSet::from(["dlc-1".to_string(), "dlc-2".to_string()])
+            HashSet::from([CrasDlcId::CrasDlcNcAp.as_str().to_string()])
+        );
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming);
+        assert_eq!(
+            s.input.dlc_installed,
+            HashSet::from([
+                CrasDlcId::CrasDlcNcAp.as_str().to_string(),
+                CrasDlcId::CrasDlcIntelligoBeamforming.as_str().to_string()
+            ])
         );
 
         s.set_dlc_manager_done();

@@ -17,7 +17,9 @@ cras_rust_library(
     crate_name = "cras_s2",
     edition = "2021",
     visibility = ["//visibility:public"],
-    deps = all_crate_deps(normal = True),
+    deps = all_crate_deps(normal = True) + [
+        "//cras/common:rust_common",
+    ],
 )
 
 rust_test(
@@ -31,6 +33,10 @@ cras_cbindgen(
     srcs = ["src/global.rs"],
     out = "s2.h",
     copyright_year = 2023,
+    extra_args = [
+        "--with-include=cras/common/rust_common.h",
+        "--add-keyword-enum",
+    ],
 )
 
 cc_library(

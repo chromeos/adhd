@@ -92,8 +92,10 @@ fn reset_overrides() {
     STATE_OVERRIDES.lock().unwrap().clear();
 }
 
-type CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc =
-    extern "C" fn(CrasDlcId, i32) -> libc::c_int;
+// Called when a dlc is installed successfully, with the following arguments:
+// - CrasDlcId: the id of the installed dlc.
+// - i32: the number of retried times.
+type DlcInstallOnSuccessCallback = extern "C" fn(CrasDlcId, i32) -> libc::c_int;
 
 #[repr(C)]
 pub struct CrasDlcDownloadConfig {
@@ -102,7 +104,7 @@ pub struct CrasDlcDownloadConfig {
 
 fn download_dlcs_until_installed(
     download_config: CrasDlcDownloadConfig,
-    cras_server_metrics_dlc_install_retried_times_on_success: CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc,
+    dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
 ) {
     let mut retry_sleep = time::Duration::from_secs(30);
     let max_retry_sleep = time::Duration::from_secs(300);
@@ -119,8 +121,8 @@ fn download_dlcs_until_installed(
                 Ok(state) => {
                     log::info!("successfully installed {dlc}");
                     STATE_CACHE.lock().unwrap().insert(*dlc, state);
-                    cras_server_metrics_dlc_install_retried_times_on_success(*dlc, retry_count);
-                    cras_s2::global::set_dlc_installed(&dlc.as_str());
+                    cras_s2::global::cras_s2_set_dlc_installed(*dlc);
+                    dlc_install_on_success_callback(*dlc, retry_count);
                 }
                 Err(e) => {
                     log::info!("failed to install {dlc}: {e}");

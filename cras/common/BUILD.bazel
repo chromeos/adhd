@@ -33,10 +33,7 @@ cras_rust_library(
     ),
     crate_name = "cras_common",
     edition = "2021",
-    visibility = [
-        "//cras/server/platform:__subpackages__",
-        "//cras/src/server/rust:__pkg__",
-    ],
+    visibility = ["//visibility:public"],
     deps = [
         "@pkg_config//openssl",
     ] + all_crate_deps(normal = True),

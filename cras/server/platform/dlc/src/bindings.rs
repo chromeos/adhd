@@ -12,7 +12,7 @@ use super::get_dlc_state_cached;
 use super::CrasDlcId;
 use super::Result;
 use crate::download_dlcs_until_installed;
-use crate::CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc;
+use crate::DlcInstallOnSuccessCallback;
 
 fn get_dlc_root_path(id: CrasDlcId) -> Result<CString> {
     let dlc_state = get_dlc_state_cached(id);
@@ -73,15 +73,12 @@ pub extern "C" fn cras_dlc_reset_overrides_for_testing() {
 #[no_mangle]
 pub extern "C" fn download_dlcs_until_installed_with_thread(
     download_config: super::CrasDlcDownloadConfig,
-    cras_server_metrics_dlc_install_retried_times_on_success: CrasServerMetricsDlcInstallRetriedTimesOnSuccessFunc,
+    dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
 ) {
     thread::Builder::new()
         .name("cras-dlc".into())
         .spawn(move || {
-            download_dlcs_until_installed(
-                download_config,
-                cras_server_metrics_dlc_install_retried_times_on_success,
-            )
+            download_dlcs_until_installed(download_config, dlc_install_on_success_callback)
         })
         .unwrap();
 }
