@@ -51,14 +51,14 @@ pub struct TwoChannelsControl<'a> {
     id: ElemId,
 }
 impl<'a> Control<'a> for TwoChannelsControl<'a> {
-    type Item = [u8; 42];
+    type Item = [u8; 43];
     fn new(handle: &'a mut Ctl, id: ElemId) -> Self {
         Self { handle, id }
     }
 }
 
 impl<'a> TwoChannelsControl<'a> {
-    pub fn get(&mut self) -> Result<[u8; 42]> {
+    pub fn get(&mut self) -> Result<[u8; 43]> {
         let data = self.load()?;
         Ok(data)
     }
@@ -77,14 +77,14 @@ pub struct FourChannelsControl<'a> {
     id: ElemId,
 }
 impl<'a> Control<'a> for FourChannelsControl<'a> {
-    type Item = [u8; 84];
+    type Item = [u8; 85];
     fn new(handle: &'a mut Ctl, id: ElemId) -> Self {
         Self { handle, id }
     }
 }
 
 impl<'a> FourChannelsControl<'a> {
-    pub fn get(&mut self) -> Result<[u8; 84]> {
+    pub fn get(&mut self) -> Result<[u8; 85]> {
         let data = self.load()?;
         Ok(data)
     }
@@ -320,6 +320,7 @@ impl TAS2563 {
             values.extend(rms_pow.to_be_bytes());
             values.extend(tlimit.to_be_bytes());
         }
+        values.push(0 as u8);
 
         if calib.len() == 2 {
             self.card
