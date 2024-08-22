@@ -32,19 +32,27 @@ struct Output {
     style_transfer_allowed: bool,
     style_transfer_enabled: bool,
     beamforming_supported: bool,
+    beamforming_allowed: bool,
 }
 
 fn resolve(input: &Input) -> Output {
     // TODO(b/339785214): Decide this based on config file content.
     let beamforming_supported = input.cras_config_dir.ends_with(".3mic");
+    let dlc_nc_ap_installed = input
+        .dlc_installed
+        .contains(CrasDlcId::CrasDlcNcAp.as_str());
     Output {
-        ap_nc_allowed: input.ap_nc_featured_allowed
+        ap_nc_allowed: (input.ap_nc_featured_allowed
             || input.ap_nc_segmentation_allowed
-            || input.ap_nc_feature_tier_allowed,
+            || input.ap_nc_feature_tier_allowed)
+            && dlc_nc_ap_installed,
         style_transfer_supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
-        style_transfer_allowed: input.style_transfer_featured_allowed,
+        style_transfer_allowed: input.style_transfer_featured_allowed && dlc_nc_ap_installed,
         style_transfer_enabled: input.style_transfer_enabled,
         beamforming_supported,
+        beamforming_allowed: input
+            .dlc_installed
+            .contains(CrasDlcId::CrasDlcIntelligoBeamforming.as_str()),
     }
 }
 
@@ -139,6 +147,19 @@ mod tests {
         assert_eq!(s.output.ap_nc_allowed, false);
 
         s.set_ap_nc_featured_allowed(true);
+        assert_eq!(s.output.ap_nc_allowed, false);
+
+        s.set_ap_nc_featured_allowed(false);
+        s.set_ap_nc_segmentation_allowed(true);
+        assert_eq!(s.output.ap_nc_allowed, false);
+
+        s.set_ap_nc_segmentation_allowed(false);
+        s.set_ap_nc_feature_tier_allowed(true);
+        assert_eq!(s.output.ap_nc_allowed, false);
+
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+
+        s.set_ap_nc_featured_allowed(true);
         assert_eq!(s.output.ap_nc_allowed, true);
 
         s.set_ap_nc_featured_allowed(false);
@@ -160,6 +181,21 @@ mod tests {
 
         s.set_cras_config_dir("omniknight.3mic");
         assert_eq!(s.output.style_transfer_supported, false);
+    }
+
+    #[test]
+    fn test_style_transfer_allowed() {
+        let mut s = S2::new();
+        assert_eq!(s.output.style_transfer_allowed, false);
+
+        s.set_style_transfer_featured_allowed(true);
+        assert_eq!(s.output.style_transfer_allowed, false);
+
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+        assert_eq!(s.output.style_transfer_allowed, true);
+
+        s.set_style_transfer_featured_allowed(false);
+        assert_eq!(s.output.style_transfer_allowed, false);
     }
 
     #[test]
@@ -185,6 +221,10 @@ mod tests {
         s.set_cras_config_dir("omniknight.3mic");
         assert!(s.output.beamforming_supported);
         assert!(!s.output.style_transfer_supported);
+
+        assert!(!s.output.beamforming_allowed);
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming);
+        assert!(s.output.beamforming_allowed);
 
         s.set_cras_config_dir("omniknight");
         assert!(!s.output.beamforming_supported);

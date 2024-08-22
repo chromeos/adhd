@@ -43,6 +43,8 @@ void cras_s2_load_cras_config_dir(void);
 
 bool cras_s2_get_beamforming_supported(void);
 
+bool cras_s2_get_beamforming_allowed(void);
+
 char *cras_s2_dump_json(void);
 
 void cras_s2_reset_for_testing(void);

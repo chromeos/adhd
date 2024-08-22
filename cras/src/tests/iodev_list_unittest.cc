@@ -14,6 +14,7 @@
 #include "cras/src/common/cras_observer_ops.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_thread_log.h"
 #include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_ramp.h"
@@ -3515,6 +3516,7 @@ TEST_F(IoDevTestSuite, RequestFloop) {
 }
 
 TEST_F(IoDevTestSuite, StyleTransferSupported) {
+  cras_s2_reset_for_testing();
   cras_s2_set_style_transfer_featured_allowed(true);
 
   cras_iodev_list_init();
@@ -3543,17 +3545,26 @@ TEST_F(IoDevTestSuite, StyleTransferSupported) {
   EXPECT_EQ(server_state_stub.num_output_nodes, 1);
 
   ASSERT_EQ(server_state_stub.input_nodes[1].iodev_idx, d1_.info.idx);
-  EXPECT_EQ(server_state_stub.input_nodes[1].audio_effect,
-            EFFECT_TYPE_STYLE_TRANSFER);
+  EXPECT_EQ(server_state_stub.input_nodes[1].audio_effect, 0);
   ASSERT_EQ(server_state_stub.input_nodes[0].iodev_idx, d2_.info.idx);
   EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect, 0);
   ASSERT_EQ(server_state_stub.output_nodes[0].iodev_idx, d3_.info.idx);
   EXPECT_EQ(server_state_stub.output_nodes[0].audio_effect, 0);
 
+  cras_iodev_list_rm(&d1_);
+  cras_s2_set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+  cras_iodev_list_add(&d1_);
+  EXPECT_EQ(server_state_stub.input_nodes[0].audio_effect,
+            EFFECT_TYPE_STYLE_TRANSFER);
+
   cras_iodev_list_deinit();
 }
 
 TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
+  cras_s2_reset_for_testing();
+  cras_s2_set_style_transfer_featured_allowed(true);
+  cras_s2_set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+
   struct cras_rstream rstream;
   int rc;
 

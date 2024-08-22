@@ -95,6 +95,11 @@ pub extern "C" fn cras_s2_get_beamforming_supported() -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_get_beamforming_allowed() -> bool {
+    state().output.beamforming_allowed
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_dump_json() -> *mut c_char {
     let s = serde_json::to_string_pretty(state().deref()).expect("serde_json::to_string_pretty");
     CString::new(s).expect("CString::new").into_raw()

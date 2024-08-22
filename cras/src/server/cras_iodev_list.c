@@ -313,6 +313,7 @@ static void fill_dev_list(struct iodev_list* list,
 // Auxiliary information for fill_node_list.
 struct fill_node_list_auxiliary {
   bool dsp_nc_allowed;
+  bool bf_nc_allowed;
   bool ap_nc_allowed;
   bool ast_allowed;
 };
@@ -321,6 +322,7 @@ static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
   struct fill_node_list_auxiliary aux = {
       .dsp_nc_allowed = !get_dsp_input_effects_blocked_state() ||
                         cras_system_get_bypass_block_noise_cancellation(),
+      .bf_nc_allowed = cras_s2_get_beamforming_allowed(),
       .ap_nc_allowed = cras_s2_get_ap_nc_allowed(),
       .ast_allowed = cras_s2_get_style_transfer_allowed(),
   };
@@ -362,11 +364,17 @@ static int fill_node_list(struct iodev_list* list,
       // Will affect UI toggle visibility, should handle together.
       if (node->nc_providers & CRAS_NC_PROVIDER_AST && aux->ast_allowed) {
         node_info->audio_effect |= EFFECT_TYPE_STYLE_TRANSFER;
-      } else if ((node->nc_providers & CRAS_NC_PROVIDER_DSP &&
-                  aux->dsp_nc_allowed) ||
-                 (node->nc_providers & CRAS_NC_PROVIDER_AP &&
-                  aux->ap_nc_allowed)) {
+      } else if (node->nc_providers & CRAS_NC_PROVIDER_DSP &&
+                 aux->dsp_nc_allowed) {
         node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
+      } else if (node->nc_providers & CRAS_NC_PROVIDER_AP) {
+        const bool use_beamforming =
+            cras_s2_get_beamforming_supported() &&
+            node_info->type_enum == NODE_POSITION_INTERNAL;
+        if ((use_beamforming && aux->bf_nc_allowed) ||
+            (!use_beamforming && aux->ap_nc_allowed)) {
+          node_info->audio_effect |= EFFECT_TYPE_NOISE_CANCELLATION;
+        }
       }
 
       if (cras_system_get_sr_bt_supported() &&
