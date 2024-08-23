@@ -23,7 +23,7 @@ cp compile_commands.json "$OUT"/
 git rev-parse HEAD > "$OUT"/revision
 
 # Extract for superproject
-export KYTHE_CORPUS=chromium.googlesource.com/chromiumos/codesearch//main
+export KYTHE_CORPUS=chrome-internal.googlesource.com/chromeos/superproject//main
 export KYTHE_OUTPUT_DIRECTORY=$(mktemp -d -t kythe.XXXXXXXXXX)
 export KYTHE_ROOT_DIRECTORY="$REPO_ROOT"
 /opt/kythe/tools/runextractor compdb -extractor /opt/kythe/extractors/cxx_extractor
