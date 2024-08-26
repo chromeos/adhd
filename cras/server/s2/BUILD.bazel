@@ -18,6 +18,7 @@ cras_rust_library(
     edition = "2021",
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
+        "//audio_processor",
         "//cras/common:rust_common",
     ],
 )

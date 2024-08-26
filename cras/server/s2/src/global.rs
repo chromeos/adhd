@@ -77,7 +77,7 @@ pub extern "C" fn cras_s2_get_style_transfer_enabled() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn cras_s2_load_cras_config_dir() {
+pub extern "C" fn cras_s2_init() {
     match std::fs::read_to_string("/run/chromeos-config/v1/audio/main/cras-config-dir") {
         Ok(str) => {
             state().set_cras_config_dir(&str);
@@ -86,6 +86,9 @@ pub extern "C" fn cras_s2_load_cras_config_dir() {
             state().set_cras_config_dir("");
             log::info!("Failed to read cras-config-dir: {err}");
         }
+    }
+    if let Err(err) = state().read_beamforming_config() {
+        log::error!("{err}");
     }
 }
 

@@ -1,5 +1,5 @@
 {
-  "checksum": "6552a18409e08d902d41d75034fe7bff20904b637497f2ba52d60bf440e60cc5",
+  "checksum": "382ca216c67a8a6a4f5d13765ce9d62774c138dd2d4f7656c0ba1a71c7abdec5",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -2436,6 +2436,10 @@
         ],
         "deps": {
           "common": [
+            {
+              "id": "anyhow 1.0.75",
+              "target": "anyhow"
+            },
             {
               "id": "libc 0.2.155",
               "target": "libc"

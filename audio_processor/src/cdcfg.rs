@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::cell::RefCell;
+use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -35,6 +37,28 @@ impl ResolverContext for NaiveResolverContext {
 
     fn get_duplicate_channel_0(&self) -> Option<usize> {
         self.duplicate_channel_0
+    }
+}
+
+#[derive(Default)]
+struct DlcIdCollector {
+    dlcs: RefCell<HashSet<String>>,
+}
+
+impl ResolverContext for DlcIdCollector {
+    fn get_wav_dump_root(&self) -> Option<&Path> {
+        None
+    }
+
+    fn get_dlc_root_path(&self, dlc_id: &str) -> anyhow::Result<PathBuf> {
+        self.dlcs.borrow_mut().insert(dlc_id.to_string());
+        // DlcIdCollector is a stub ResolverContext used only to figure out
+        // the required DLCs, we don't have to return the real DLC path.
+        Ok(PathBuf::from("fake-dlc-path"))
+    }
+
+    fn get_duplicate_channel_0(&self) -> Option<usize> {
+        None
     }
 }
 
@@ -133,12 +157,21 @@ pub fn parse(context: &dyn ResolverContext, path: &Path) -> anyhow::Result<Proce
     resolve_str(context, &s)
 }
 
+/// Get all DLC IDs specified in a given processing config.
+pub fn get_required_dlcs(path: &Path) -> anyhow::Result<HashSet<String>> {
+    let resolver = DlcIdCollector::default();
+    parse(&resolver, path)?;
+    Ok(resolver.dlcs.take())
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::path::PathBuf;
 
     use super::resolve_str;
     use super::NaiveResolverContext;
+    use crate::cdcfg::DlcIdCollector;
     use crate::config::Processor;
 
     #[test]
@@ -276,16 +309,41 @@ mod tests {
     #[test]
     fn dlc() {
         let context: NaiveResolverContext = Default::default();
-        let processor = resolve_str(
-            &context,
-            r#"dlc_plugin { dlc_id: "nc-ap-dlc" path: "libdenoiser.so" constructor: "plugin_processor_create" }"#,
-        ).unwrap();
+        let spec = r#"
+pipeline {
+  processors {
+    dlc_plugin { dlc_id: "nc-ap-dlc" path: "libdenoiser.so" constructor: "plugin_processor_create" }
+  }
+  processors {
+    dlc_plugin { dlc_id: "second-dlc" path: "libsecond.so" constructor: "plugin_processor_create2" }
+  }
+}"#;
+        let processor = resolve_str(&context, spec).unwrap();
         assert_eq!(
             processor,
-            Processor::Plugin {
-                path: PathBuf::from("/run/imageloader/nc-ap-dlc/package/root/libdenoiser.so"),
-                constructor: "plugin_processor_create".into()
+            Processor::Pipeline {
+                processors: vec![
+                    Processor::Plugin {
+                        path: PathBuf::from(
+                            "/run/imageloader/nc-ap-dlc/package/root/libdenoiser.so"
+                        ),
+                        constructor: "plugin_processor_create".into(),
+                    },
+                    Processor::Plugin {
+                        path: PathBuf::from(
+                            "/run/imageloader/second-dlc/package/root/libsecond.so"
+                        ),
+                        constructor: "plugin_processor_create2".into(),
+                    }
+                ]
             }
+        );
+
+        let context = DlcIdCollector::default();
+        resolve_str(&context, spec).unwrap();
+        assert_eq!(
+            context.dlcs.borrow().clone(),
+            HashSet::from(["nc-ap-dlc".to_string(), "second-dlc".to_string()])
         );
     }
 

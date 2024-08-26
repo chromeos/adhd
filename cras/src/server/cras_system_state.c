@@ -216,7 +216,7 @@ void cras_system_state_init(const char* device_config_dir,
     syslog(LOG_ERR, "Fatal: no memory to create board config");
     exit(-ENOMEM);
   }
-  cras_s2_load_cras_config_dir();
+  cras_s2_init();
 
   // Initial system state.
   exp_state->state_version = CRAS_SERVER_STATE_VERSION;

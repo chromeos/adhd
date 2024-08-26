@@ -3,11 +3,16 @@
 // found in the LICENSE file.
 
 use std::collections::HashSet;
+use std::path::Path;
 
+use anyhow::Context;
+use audio_processor::cdcfg;
 use cras_common::types_internal::CrasDlcId;
 use serde::Serialize;
 
 pub mod global;
+
+pub const BEAMFORMING_CONFIG_PATH: &str = "/etc/cras/processor/beamforming.txtpb";
 
 #[derive(Default, Serialize)]
 struct Input {
@@ -23,6 +28,9 @@ struct Input {
     style_transfer_enabled: bool,
     // cros_config /audio/main cras-config-dir.
     cras_config_dir: String,
+    // List of DLCs to provide the beamforming feature.
+    // None means beamforming is not supported.
+    beamforming_required_dlcs: Option<HashSet<String>>,
 }
 
 #[derive(Serialize)]
@@ -38,6 +46,10 @@ struct Output {
 fn resolve(input: &Input) -> Output {
     // TODO(b/339785214): Decide this based on config file content.
     let beamforming_supported = input.cras_config_dir.ends_with(".3mic");
+    let beamforming_allowed = match &input.beamforming_required_dlcs {
+        None => false,
+        Some(dlcs) => dlcs.iter().all(|dlc| input.dlc_installed.contains(dlc)),
+    };
     let dlc_nc_ap_installed = input
         .dlc_installed
         .contains(CrasDlcId::CrasDlcNcAp.as_str());
@@ -50,9 +62,7 @@ fn resolve(input: &Input) -> Output {
         style_transfer_allowed: input.style_transfer_featured_allowed && dlc_nc_ap_installed,
         style_transfer_enabled: input.style_transfer_enabled,
         beamforming_supported,
-        beamforming_allowed: input
-            .dlc_installed
-            .contains(CrasDlcId::CrasDlcIntelligoBeamforming.as_str()),
+        beamforming_allowed,
     }
 }
 
@@ -112,6 +122,19 @@ impl S2 {
     fn set_cras_config_dir(&mut self, cras_config_dir: &str) {
         self.input.cras_config_dir = cras_config_dir.into();
         self.update();
+    }
+
+    fn set_beamforming_required_dlcs(&mut self, dlcs: HashSet<String>) {
+        self.input.beamforming_required_dlcs = Some(dlcs);
+        self.update();
+    }
+
+    fn read_beamforming_config(&mut self) -> anyhow::Result<()> {
+        self.set_beamforming_required_dlcs(
+            cdcfg::get_required_dlcs(Path::new(BEAMFORMING_CONFIG_PATH))
+                .context("get_required_dlcs")?,
+        );
+        Ok(())
     }
 
     fn update(&mut self) {
@@ -205,6 +228,9 @@ mod tests {
         let mut s = S2::new();
         s.set_ap_nc_segmentation_allowed(true);
         s.set_style_transfer_featured_allowed(true);
+        s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
+            .as_str()
+            .to_string()]));
         assert!(!s.output.beamforming_supported);
         assert!(s.output.style_transfer_supported);
 
@@ -215,6 +241,13 @@ mod tests {
         assert!(!s.output.beamforming_allowed);
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming);
         assert!(s.output.beamforming_allowed);
+
+        let dlcs = HashSet::from(["does-not-exist".to_string()]);
+        s.set_beamforming_required_dlcs(dlcs);
+        assert!(!s.output.beamforming_allowed);
+        s.input.beamforming_required_dlcs = None;
+        s.update();
+        assert!(!s.output.beamforming_allowed);
 
         s.set_cras_config_dir("omniknight");
         assert!(!s.output.beamforming_supported);

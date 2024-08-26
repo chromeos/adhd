@@ -416,6 +416,8 @@ dependencies = [
 name = "cras_s2"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "audio_processor",
  "cras_common",
  "libc",
  "log",

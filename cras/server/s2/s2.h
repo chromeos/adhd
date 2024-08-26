@@ -39,7 +39,7 @@ void cras_s2_set_style_transfer_enabled(bool enabled);
 
 bool cras_s2_get_style_transfer_enabled(void);
 
-void cras_s2_load_cras_config_dir(void);
+void cras_s2_init(void);
 
 bool cras_s2_get_beamforming_supported(void);
 
