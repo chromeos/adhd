@@ -9,7 +9,7 @@ use serde::Serialize;
 
 pub mod global;
 
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 struct Input {
     ap_nc_featured_allowed: bool,
     ap_nc_segmentation_allowed: bool,
@@ -64,17 +64,7 @@ struct S2 {
 
 impl S2 {
     fn new() -> Self {
-        let input = Input {
-            ap_nc_featured_allowed: false,
-            ap_nc_segmentation_allowed: false,
-            ap_nc_feature_tier_allowed: false,
-            dlc_manager_ready: false,
-            dlc_installed: HashSet::new(),
-            dlc_manager_done: false,
-            style_transfer_featured_allowed: false,
-            style_transfer_enabled: false,
-            cras_config_dir: String::new(),
-        };
+        let input = Default::default();
         let output = resolve(&input);
         Self { input, output }
     }
