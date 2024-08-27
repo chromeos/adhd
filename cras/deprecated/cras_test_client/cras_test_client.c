@@ -1215,6 +1215,7 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         "frame_rate: %u\n"
         "num_channels: %u\n"
         "longest_fetch_sec: %u.%09u\n"
+        "sleep_interval_ts: %u.%09u\n"
         "num_delayed_fetches: %u\n"
         "num_overruns: %u\n"
         "overrun_frames: %u\n"
@@ -1232,6 +1233,8 @@ static void print_aligned_audio_debug_info(const struct audio_debug_info* info,
         (unsigned int)info->streams[i].num_channels,
         (unsigned int)info->streams[i].longest_fetch_sec,
         (unsigned int)info->streams[i].longest_fetch_nsec,
+        (unsigned int)info->streams[i].sleep_interval_ts_sec,
+        (unsigned int)info->streams[i].sleep_interval_ts_nsec,
         (unsigned int)info->streams[i].num_delayed_fetches,
         (unsigned int)info->streams[i].num_overruns,
         (unsigned int)info->streams[i].overrun_frames,

@@ -635,6 +635,8 @@ impl Default for audio_stream_debug_info {
             underrun_duration_nsec: 0,
             webrtc_apm_forward_blocks_processed: 0,
             webrtc_apm_reverse_blocks_processed: 0,
+            sleep_interval_ts_sec: 0,
+            sleep_interval_ts_nsec: 0,
         }
     }
 }

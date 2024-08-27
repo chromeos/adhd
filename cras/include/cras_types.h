@@ -524,6 +524,8 @@ struct __attribute__((__packed__)) audio_stream_debug_info {
   uint32_t underrun_duration_nsec;
   uint64_t webrtc_apm_forward_blocks_processed;
   uint64_t webrtc_apm_reverse_blocks_processed;
+  uint32_t sleep_interval_ts_sec;
+  uint32_t sleep_interval_ts_nsec;
 };
 
 // Debug info shared from server to client.

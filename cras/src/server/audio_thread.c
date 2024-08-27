@@ -594,6 +594,8 @@ static void append_stream_dump_info(struct audio_debug_info* info,
   subtract_timespecs(&now, &stream->stream->start_ts, &time_since);
   si->runtime_sec = time_since.tv_sec;
   si->runtime_nsec = time_since.tv_nsec;
+  si->sleep_interval_ts_sec = stream->stream->sleep_interval_ts.tv_sec;
+  si->sleep_interval_ts_nsec = stream->stream->sleep_interval_ts.tv_nsec;
 }
 
 /* Handle a message sent from main thread to the audio thread.
