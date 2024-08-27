@@ -55,17 +55,6 @@ cc_library(
 )
 
 cc_library(
-    name = "eq",
-    srcs = ["eq.c"],
-    hdrs = ["eq.h"],
-    visibility = ["//cras/benchmark:__pkg__"],
-    deps = [
-        ":biquad",
-        "@thesofproject_sof",
-    ],
-)
-
-cc_library(
     name = "eq2",
     srcs = ["eq2.c"],
     hdrs = ["eq2.h"],
@@ -110,18 +99,6 @@ cc_library(
         ":biquad",
         ":dsp_helpers",
         "@thesofproject_sof",
-    ],
-)
-
-cc_library(
-    name = "drc_kernel",
-    srcs = ["drc_kernel.c"],
-    hdrs = ["drc_kernel.h"],
-    linkopts = ["-lm"],
-    deps = [
-        ":drc_math",
-        "//cras/common:check",
-        "//cras/include",
     ],
 )
 
