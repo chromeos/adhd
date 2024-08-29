@@ -740,7 +740,8 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Number of streams that are not from
   // CLIENT_TYPE_CHROME or CLIENT_TYPE_LACROS
   int32_t num_non_chrome_output_streams;
-  // TODO(b/272408566) remove after formal fix lands.
+  // TODO(b/236216566) remove this WA when DSP AEC is integrated on the only
+  // NC-standalone case.
   // 1 - Noise Cancellation standalone mode, which implies that NC is
   // integrated without AEC on DSP. 0 - otherwise.
   int32_t nc_standalone_mode;

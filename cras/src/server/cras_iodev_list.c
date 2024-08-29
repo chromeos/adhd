@@ -158,7 +158,8 @@ static bool aec_on_dsp_is_disallowed = false;
 
 // Returns true for blocking DSP input effects; false for unblocking.
 bool get_dsp_input_effects_blocked_state() {
-  // TODO(b/272408566) remove this WA when the formal fix is landed
+  // TODO(b/236216566) remove this WA when DSP AEC is integrated on the only
+  // NC-standalone case.
   if (cras_system_get_noise_cancellation_standalone_mode()) {
     return non_dsp_aec_echo_ref_dev_alive;
   }
@@ -533,7 +534,8 @@ static void possibly_disallow_dsp_offload_by_aec_ref(bool disallowed) {
 static bool is_dsp_aec_use_case(const struct cras_ionode* node) {
   /* For NC standalone mode, this checker should be interpreted to
    * old-fashioned use case, i.e. any node but Internal Speaker.
-   * TODO(b/272408566) remove this WA when the formal fix is landed
+   * TODO(b/236216566) remove this WA when DSP AEC is integrated on the only
+   * NC-standalone case.
    */
   if (cras_system_get_noise_cancellation_standalone_mode()) {
     return node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER;
