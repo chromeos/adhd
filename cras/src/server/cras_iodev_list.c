@@ -127,64 +127,24 @@ static int hotword_suspended = 0;
  * system resume. */
 static int hotword_auto_resume = 0;
 
-/*
- * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
- * scenario and will be updated in respective timing.
- *
- * 1. non_dsp_aec_echo_ref_dev_alive
- *     scenario:
- *         detect if there exists an enabled or opened output device which can't
- *         be applied as echo reference for AEC on DSP.
- *     timing for updating state:
- *         check rising edge on enable_dev() & open_dev() of output devices.
- *         check falling edge on disable_dev() & close_dev() of output devices.
- *
- * 2. aec_on_dsp_is_disallowed
- *     scenario:
- *         detect if there exists an input stream requesting AEC on DSP
- *         disallowed while it is supported.
- *     timing for updating state:
- *         check accompanied with dsp_effect_check_conflict(RTC_PROC_AEC) under
- *         update_supported_dsp_effects_activation() in cras_stream_apm.
- *
- * The final NC blocking state is determined by:
- *     nc_blocked_state = (non_dsp_aec_echo_ref_dev_alive ||
- *                         aec_on_dsp_is_disallowed)
- *
- * CRAS will notify Chrome promptly when nc_blocked_state is altered.
- */
-static bool non_dsp_aec_echo_ref_dev_alive = false;
-static bool aec_on_dsp_is_disallowed = false;
-
-// Returns true for blocking DSP input effects; false for unblocking.
-bool get_dsp_input_effects_blocked_state() {
-  // TODO(b/236216566) remove this WA when DSP AEC is integrated on the only
-  // NC-standalone case.
-  if (cras_system_get_noise_cancellation_standalone_mode()) {
-    return non_dsp_aec_echo_ref_dev_alive;
-  }
-
-  return non_dsp_aec_echo_ref_dev_alive || aec_on_dsp_is_disallowed;
-}
-
-static void update_dsp_input_effects_blocked_state(
-    bool new_non_dsp_aec_echo_ref_dev_alive,
-    bool new_aec_on_dsp_is_disallowed) {
-  bool prev_state = get_dsp_input_effects_blocked_state();
-
-  non_dsp_aec_echo_ref_dev_alive = new_non_dsp_aec_echo_ref_dev_alive;
-  aec_on_dsp_is_disallowed = new_aec_on_dsp_is_disallowed;
-
-  if (prev_state != get_dsp_input_effects_blocked_state()) {
-    MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE,
-            get_dsp_input_effects_blocked_state(),
+static void dsp_input_effects_blocked_state_updated() {
+  // On the first call of this function, we can assume
+  // the previous state is "not blocked" because there were
+  // no opened/enabled iodevs and no streams.
+  static bool prev_state = false;
+  bool blocked = cras_s2_get_dsp_input_effects_blocked();
+  if (prev_state != blocked) {
+    prev_state = blocked;
+    bool non_dsp_aec_echo_ref_dev_alive =
+        cras_s2_get_non_dsp_aec_echo_ref_dev_alive();
+    bool aec_on_dsp_is_disallowed = cras_s2_get_aec_on_dsp_is_disallowed();
+    MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE, blocked,
             non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
     syslog(LOG_INFO, "DSP input effects are %s: non_echo=%d disallow=%d",
-           get_dsp_input_effects_blocked_state() ? "deactivated" : "activated",
+           blocked ? "deactivated" : "activated",
            non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
 
-    cras_stream_apm_notify_dsp_input_effects_blocked(
-        get_dsp_input_effects_blocked_state());
+    cras_stream_apm_notify_dsp_input_effects_blocked(blocked);
 
     // notify Chrome for NC blocking state change
     cras_iodev_list_update_device_list();
@@ -193,12 +153,13 @@ static void update_dsp_input_effects_blocked_state(
 }
 
 static void set_non_dsp_aec_echo_ref_dev_alive(bool state) {
-  update_dsp_input_effects_blocked_state(state, aec_on_dsp_is_disallowed);
+  cras_s2_set_non_dsp_aec_echo_ref_dev_alive(state);
+  dsp_input_effects_blocked_state_updated();
 }
 
 static void set_aec_on_dsp_is_disallowed(bool disallowed) {
-  update_dsp_input_effects_blocked_state(non_dsp_aec_echo_ref_dev_alive,
-                                         disallowed);
+  cras_s2_set_aec_on_dsp_is_disallowed(disallowed);
+  dsp_input_effects_blocked_state_updated();
 }
 
 static void idle_dev_check(struct cras_timer* timer, void* data);
@@ -321,7 +282,7 @@ struct fill_node_list_auxiliary {
 
 static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
   struct fill_node_list_auxiliary aux = {
-      .dsp_nc_allowed = !get_dsp_input_effects_blocked_state() ||
+      .dsp_nc_allowed = !cras_s2_get_dsp_input_effects_blocked() ||
                         cras_system_get_bypass_block_noise_cancellation(),
       .bf_nc_allowed = cras_s2_get_beamforming_allowed(),
       .ap_nc_allowed = cras_s2_get_ap_nc_allowed(),
@@ -537,7 +498,7 @@ static bool is_dsp_aec_use_case(const struct cras_ionode* node) {
    * TODO(b/236216566) remove this WA when DSP AEC is integrated on the only
    * NC-standalone case.
    */
-  if (cras_system_get_noise_cancellation_standalone_mode()) {
+  if (cras_s2_get_nc_standalone_mode()) {
     return node->type != CRAS_NODE_TYPE_INTERNAL_SPEAKER;
   }
 
@@ -551,7 +512,7 @@ static bool is_dsp_aec_use_case(const struct cras_ionode* node) {
  */
 static void possibly_set_non_dsp_aec_echo_ref_dev_alive(
     const struct cras_iodev* dev) {
-  if (non_dsp_aec_echo_ref_dev_alive) {
+  if (cras_s2_get_non_dsp_aec_echo_ref_dev_alive()) {
     return;
   }
 
@@ -585,7 +546,7 @@ static void possibly_set_non_dsp_aec_echo_ref_dev_alive(
 static void possibly_clear_non_dsp_aec_echo_ref_dev_alive() {
   struct cras_iodev* dev;
 
-  if (!non_dsp_aec_echo_ref_dev_alive) {
+  if (!cras_s2_get_non_dsp_aec_echo_ref_dev_alive()) {
     return;
   }
 
@@ -1751,8 +1712,6 @@ void cras_iodev_list_init() {
   list_observer = cras_observer_add(&observer_ops, NULL);
   idle_timer = NULL;
   floop_timer = NULL;
-  non_dsp_aec_echo_ref_dev_alive = false;
-  aec_on_dsp_is_disallowed = false;
 
   main_log = main_thread_event_log_init();
 
@@ -2525,7 +2484,7 @@ enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
   if (!iodev->active_node) {
     return CRAS_NC_PROVIDER_NONE;
   }
-  bool dsp_nc_allowed = (!get_dsp_input_effects_blocked_state() ||
+  bool dsp_nc_allowed = (!cras_s2_get_dsp_input_effects_blocked() ||
                          cras_system_get_bypass_block_noise_cancellation()) &&
                         cras_system_get_noise_cancellation_enabled();
   bool ap_nc_allowed = cras_s2_get_ap_nc_allowed() &&

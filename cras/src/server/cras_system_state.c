@@ -253,7 +253,7 @@ void cras_system_state_init(const char* device_config_dir,
       board_config->max_internal_speaker_channels;
   exp_state->max_headphone_channels = board_config->max_headphone_channels;
   exp_state->num_non_chrome_output_streams = 0;
-  exp_state->nc_standalone_mode = board_config->nc_standalone_mode;
+  cras_s2_set_nc_standalone_mode(board_config->nc_standalone_mode);
 
   // TODO(b/271383461): update AP NC availability through libsegmentation.
   exp_state->voice_isolation_supported = board_config->nc_supported | 1;
@@ -1082,10 +1082,6 @@ bool cras_system_state_get_speak_on_mute_detection_enabled() {
 
 int cras_system_state_num_non_chrome_output_streams() {
   return state.exp_state->num_non_chrome_output_streams;
-}
-
-bool cras_system_get_noise_cancellation_standalone_mode() {
-  return !!state.exp_state->nc_standalone_mode;
 }
 
 void cras_system_set_force_respect_ui_gains_enabled(bool enabled) {

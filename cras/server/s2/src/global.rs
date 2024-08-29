@@ -112,3 +112,39 @@ pub extern "C" fn cras_s2_dump_json() -> *mut c_char {
 pub extern "C" fn cras_s2_reset_for_testing() {
     state().reset_for_testing();
 }
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_nc_standalone_mode(nc_standalone_mode: bool) {
+    state().set_nc_standalone_mode(nc_standalone_mode);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_nc_standalone_mode() -> bool {
+    state().input.nc_standalone_mode
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_non_dsp_aec_echo_ref_dev_alive(non_dsp_aec_echo_ref_dev_alive: bool) {
+    state().set_non_dsp_aec_echo_ref_dev_alive(non_dsp_aec_echo_ref_dev_alive);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_non_dsp_aec_echo_ref_dev_alive() -> bool {
+    state().input.non_dsp_aec_echo_ref_dev_alive
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_aec_on_dsp_is_disallowed(aec_on_dsp_is_disallowed: bool) {
+    state().set_aec_on_dsp_is_disallowed(aec_on_dsp_is_disallowed);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_aec_on_dsp_is_disallowed() -> bool {
+    state().input.aec_on_dsp_is_disallowed
+}
+
+#[no_mangle]
+// Returns true for blocking DSP input effects; false for unblocking.
+pub extern "C" fn cras_s2_get_dsp_input_effects_blocked() -> bool {
+    state().output.dsp_input_effects_blocked
+}

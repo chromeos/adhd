@@ -49,6 +49,20 @@ char *cras_s2_dump_json(void);
 
 void cras_s2_reset_for_testing(void);
 
+void cras_s2_set_nc_standalone_mode(bool nc_standalone_mode);
+
+bool cras_s2_get_nc_standalone_mode(void);
+
+void cras_s2_set_non_dsp_aec_echo_ref_dev_alive(bool non_dsp_aec_echo_ref_dev_alive);
+
+bool cras_s2_get_non_dsp_aec_echo_ref_dev_alive(void);
+
+void cras_s2_set_aec_on_dsp_is_disallowed(bool aec_on_dsp_is_disallowed);
+
+bool cras_s2_get_aec_on_dsp_is_disallowed(void);
+
+bool cras_s2_get_dsp_input_effects_blocked(void);
+
 #endif /* CRAS_SERVER_S2_S2_H_ */
 
 #ifdef __cplusplus

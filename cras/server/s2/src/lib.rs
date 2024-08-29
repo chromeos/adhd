@@ -31,6 +31,39 @@ struct Input {
     // List of DLCs to provide the beamforming feature.
     // None means beamforming is not supported.
     beamforming_required_dlcs: Option<HashSet<String>>,
+
+    /*
+     * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
+     * scenario and will be updated in respective timing.
+     *
+     * 1. non_dsp_aec_echo_ref_dev_alive
+     *     scenario:
+     *         detect if there exists an enabled or opened output device which can't
+     *         be applied as echo reference for AEC on DSP.
+     *     timing for updating state:
+     *         check rising edge on enable_dev() & open_dev() of output devices.
+     *         check falling edge on disable_dev() & close_dev() of output devices.
+     *
+     * 2. aec_on_dsp_is_disallowed
+     *     scenario:
+     *         detect if there exists an input stream requesting AEC on DSP
+     *         disallowed while it is supported.
+     *     timing for updating state:
+     *         check in stream_list_changed_cb() for all existing streams.
+     *
+     * The final NC blocking state is determined by:
+     *     nc_blocked_state = (non_dsp_aec_echo_ref_dev_alive ||
+     *                         aec_on_dsp_is_disallowed)
+     *
+     * CRAS will notify Chrome promptly when nc_blocked_state is altered.
+     */
+    non_dsp_aec_echo_ref_dev_alive: bool,
+    aec_on_dsp_is_disallowed: bool,
+    // TODO(b/236216566) remove this WA when DSP AEC is integrated on the only
+    // NC-standalone case.
+    // 1 - Noise Cancellation standalone mode, which implies that NC is
+    // integrated without AEC on DSP. 0 - otherwise.
+    nc_standalone_mode: bool,
 }
 
 #[derive(Serialize)]
@@ -41,6 +74,7 @@ struct Output {
     style_transfer_enabled: bool,
     beamforming_supported: bool,
     beamforming_allowed: bool,
+    dsp_input_effects_blocked: bool,
 }
 
 fn resolve(input: &Input) -> Output {
@@ -63,6 +97,11 @@ fn resolve(input: &Input) -> Output {
         style_transfer_enabled: input.style_transfer_enabled,
         beamforming_supported,
         beamforming_allowed,
+        dsp_input_effects_blocked: if input.nc_standalone_mode {
+            input.non_dsp_aec_echo_ref_dev_alive
+        } else {
+            input.non_dsp_aec_echo_ref_dev_alive || input.aec_on_dsp_is_disallowed
+        },
     }
 }
 
@@ -126,6 +165,21 @@ impl S2 {
 
     fn set_beamforming_required_dlcs(&mut self, dlcs: HashSet<String>) {
         self.input.beamforming_required_dlcs = Some(dlcs);
+        self.update();
+    }
+
+    fn set_nc_standalone_mode(&mut self, nc_standalone_mode: bool) {
+        self.input.nc_standalone_mode = nc_standalone_mode;
+        self.update();
+    }
+
+    fn set_non_dsp_aec_echo_ref_dev_alive(&mut self, non_dsp_aec_echo_ref_dev_alive: bool) {
+        self.input.non_dsp_aec_echo_ref_dev_alive = non_dsp_aec_echo_ref_dev_alive;
+        self.update();
+    }
+
+    fn set_aec_on_dsp_is_disallowed(&mut self, aec_on_dsp_is_disallowed: bool) {
+        self.input.aec_on_dsp_is_disallowed = aec_on_dsp_is_disallowed;
         self.update();
     }
 
@@ -280,5 +334,37 @@ mod tests {
 
         s.set_dlc_manager_done();
         assert!(s.input.dlc_manager_done);
+    }
+
+    #[test]
+    fn test_dsp_blocking() {
+        let mut s = S2::new();
+        assert_eq!(s.input.nc_standalone_mode, false);
+        assert_eq!(s.input.non_dsp_aec_echo_ref_dev_alive, false);
+        assert_eq!(s.input.aec_on_dsp_is_disallowed, false);
+        assert_eq!(s.output.dsp_input_effects_blocked, false);
+
+        s.set_non_dsp_aec_echo_ref_dev_alive(true);
+        assert_eq!(s.input.non_dsp_aec_echo_ref_dev_alive, true);
+        assert_eq!(s.output.dsp_input_effects_blocked, true);
+        s.set_non_dsp_aec_echo_ref_dev_alive(false);
+        assert_eq!(s.input.non_dsp_aec_echo_ref_dev_alive, false);
+        assert_eq!(s.output.dsp_input_effects_blocked, false);
+
+        s.set_aec_on_dsp_is_disallowed(true);
+        assert_eq!(s.input.aec_on_dsp_is_disallowed, true);
+        assert_eq!(s.output.dsp_input_effects_blocked, true);
+
+        // NC standalone mode will ignore aec_on_dsp_is_disallowed
+        s.set_nc_standalone_mode(true);
+        assert_eq!(s.input.nc_standalone_mode, true);
+        assert_eq!(s.output.dsp_input_effects_blocked, false);
+        s.set_nc_standalone_mode(false);
+        assert_eq!(s.input.nc_standalone_mode, false);
+        assert_eq!(s.output.dsp_input_effects_blocked, true);
+
+        s.set_aec_on_dsp_is_disallowed(false);
+        assert_eq!(s.input.aec_on_dsp_is_disallowed, false);
+        assert_eq!(s.output.dsp_input_effects_blocked, false);
     }
 }

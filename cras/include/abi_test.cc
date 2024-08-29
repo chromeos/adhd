@@ -64,7 +64,7 @@ TEST(ABI, CrasServerState) {
   EXPECT_EQ(11132, offsetof(struct cras_server_state, max_headphone_channels));
   EXPECT_EQ(11136,
             offsetof(struct cras_server_state, num_non_chrome_output_streams));
-  EXPECT_EQ(11140, offsetof(struct cras_server_state, nc_standalone_mode));
+  EXPECT_EQ(11140, offsetof(struct cras_server_state, unused));
   EXPECT_EQ(11144,
             offsetof(struct cras_server_state, voice_isolation_supported));
   EXPECT_EQ(11148, offsetof(struct cras_server_state,
