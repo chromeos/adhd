@@ -150,22 +150,24 @@ void audio_thread_destroy(struct audio_thread* thread);
 // Returns the shm fd for the ATlog.
 int audio_thread_event_log_shm_fd();
 
-/* Add a stream to the thread. After this call, the ownership of the stream will
+/* Add streams to the thread. After this call, the ownership of the streams will
  * be passed to the audio thread. Audio thread is responsible to release the
- * stream's resources.
+ * streams' resources.
  * Args:
  *    thread - a pointer to the audio thread.
- *    stream - the new stream to add.
+ *    streams - an array of streams to add.
+ *    num_streams - nunber of streams in the array `streams`.
  *    devs - an array of devices to attach stream.
- *    num_devs - number of devices in the array pointed by devs
+ *    num_devs - number of devices in the array pointed by devs.
  * Returns:
  *    zero on success, negative error from the AUDIO_THREAD enum above when an
  *    the thread can't be added.
  */
-int audio_thread_add_stream(struct audio_thread* thread,
-                            struct cras_rstream* stream,
-                            struct cras_iodev** devs,
-                            unsigned int num_devs);
+int audio_thread_add_streams(struct audio_thread* thread,
+                             struct cras_rstream** streams,
+                             unsigned int num_streams,
+                             struct cras_iodev** devs,
+                             unsigned int num_devs);
 
 /* Begin draining a stream and check the draining status.
  * Args:

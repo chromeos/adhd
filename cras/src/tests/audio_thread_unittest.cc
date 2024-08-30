@@ -403,6 +403,7 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   struct cras_rstream rstream;
   struct cras_rstream rstream2;
   struct cras_rstream rstream3;
+  struct cras_rstream* streams[] = {&rstream};
 
   SetupDevice(&iodev, CRAS_STREAM_INPUT);
   SetupDevice(&iodev2, CRAS_STREAM_INPUT);
@@ -413,7 +414,7 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   thread_add_open_dev(thread_, &iodev);
   thread_add_open_dev(thread_, &iodev2);
 
-  thread_add_stream(thread_, &rstream, iodevs, 2);
+  thread_add_streams(thread_, streams, 1, iodevs, 2);
   EXPECT_NE((void*)NULL, iodev.streams);
   EXPECT_NE((void*)NULL, iodev2.streams);
 
@@ -424,7 +425,8 @@ TEST_F(StreamDeviceSuite, MultipleInputStreamsCopyFirstStreamOffset) {
   cras_rstream_dev_offset_ret[0] = 30;
   cras_rstream_dev_offset_ret[1] = 0;
 
-  thread_add_stream(thread_, &rstream2, iodevs, 2);
+  streams[0] = &rstream2;
+  thread_add_streams(thread_, streams, 1, iodevs, 2);
   EXPECT_EQ(2, cras_rstream_dev_offset_called);
   EXPECT_EQ(&rstream, cras_rstream_dev_offset_rstream_val[0]);
   EXPECT_EQ(iodev.info.idx, cras_rstream_dev_offset_dev_id_val[0]);
@@ -451,14 +453,14 @@ TEST_F(StreamDeviceSuite, InputStreamsSetInputDeviceWakeTime) {
   struct timespec ts_wake_1 = {.tv_sec = 1, .tv_nsec = 500};
   struct timespec ts_wake_2 = {.tv_sec = 1, .tv_nsec = 1000};
   struct open_dev* adev;
+  struct cras_rstream* streams[] = {&rstream1, &rstream2};
 
   SetupDevice(&iodev, CRAS_STREAM_INPUT);
   SetupRstream(&rstream1, CRAS_STREAM_INPUT);
   SetupRstream(&rstream2, CRAS_STREAM_INPUT);
 
   thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream1, iodevs, 1);
-  thread_add_stream(thread_, &rstream2, iodevs, 1);
+  thread_add_streams(thread_, streams, 2, iodevs, 1);
   EXPECT_NE((void*)NULL, iodev.streams);
 
   // Assume device is running.
@@ -492,6 +494,7 @@ TEST_F(StreamDeviceSuite, AddOutputStream) {
   struct cras_audio_shm_header* shm_header;
   struct dev_stream* dev_stream;
   struct open_dev* adev;
+  struct cras_rstream* streams[] = {&rstream};
 
   ResetGlobalStubData();
   SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
@@ -499,7 +502,7 @@ TEST_F(StreamDeviceSuite, AddOutputStream) {
   shm_header = rstream.shm->header;
 
   thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream, &piodev, 1);
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
   dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream);
   /*
@@ -531,6 +534,7 @@ TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
   struct cras_rstream rstream1, rstream2;
   struct dev_stream* dev_stream;
   struct timespec expect_ts;
+  struct cras_rstream* streams[] = {&rstream1};
 
   ResetGlobalStubData();
   SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
@@ -544,7 +548,7 @@ TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
   clock_gettime_retspec.tv_nsec = 500;
   cras_iodev_get_valid_frames_ret = 0;
   expect_ts = clock_gettime_retspec;
-  thread_add_stream(thread_, &rstream1, &piodev, 1);
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
   dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream1);
   EXPECT_EQ(init_cb_ts_.tv_sec, expect_ts.tv_sec);
@@ -565,7 +569,7 @@ TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
   cras_iodev_get_valid_frames_ret = 960;
   rstream1.cb_threshold = 480;
   expect_ts.tv_nsec += 10 * 1000000;
-  thread_add_stream(thread_, &rstream1, &piodev, 1);
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
   dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream1);
   EXPECT_EQ(init_cb_ts_.tv_sec, expect_ts.tv_sec);
@@ -576,7 +580,8 @@ TEST_F(StreamDeviceSuite, OutputStreamFetchTime) {
    * be the earliest next callback time from other streams.
    */
   rstream1.next_cb_ts = expect_ts;
-  thread_add_stream(thread_, &rstream2, &piodev, 1);
+  streams[0] = &rstream2;
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
   dev_stream = iodev.streams->prev;
   EXPECT_EQ(dev_stream->stream, &rstream2);
   EXPECT_EQ(init_cb_ts_.tv_sec, expect_ts.tv_sec);
@@ -594,6 +599,7 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   struct cras_rstream rstream2;
   struct cras_rstream rstream3;
   struct dev_stream* dev_stream;
+  struct cras_rstream* streams[] = {&rstream, &rstream2};
 
   SetupDevice(&iodev, CRAS_STREAM_OUTPUT);
   SetupDevice(&iodev2, CRAS_STREAM_OUTPUT);
@@ -603,10 +609,9 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
 
   // Add first device as open and check 2 streams can be added.
   thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream, &piodev, 1);
+  thread_add_streams(thread_, streams, 2, &piodev, 1);
   dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream);
-  thread_add_stream(thread_, &rstream2, &piodev, 1);
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
 
   // Add second device as open and check no streams are copied over.
@@ -619,7 +624,8 @@ TEST_F(StreamDeviceSuite, AddRemoveMultipleStreamsOnMultipleDevices) {
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
 
   // Add a stream to the second dev and check it isn't also added to the first.
-  thread_add_stream(thread_, &rstream3, &piodev2, 1);
+  streams[0] = &rstream3;
+  thread_add_streams(thread_, streams, 1, &piodev2, 1);
   dev_stream = iodev.streams;
   EXPECT_EQ(dev_stream->stream, &rstream);
   EXPECT_EQ(dev_stream->next->stream, &rstream2);
@@ -662,6 +668,7 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
   struct open_dev* adev;
   struct cras_rstream rstream;
   struct cras_audio_shm_header* shm_header;
+  struct cras_rstream* streams[] = {&rstream};
 
   SetupRstream(&rstream, CRAS_STREAM_OUTPUT);
   shm_header = rstream.shm->header;
@@ -673,7 +680,7 @@ TEST_F(StreamDeviceSuite, FetchStreams) {
 
   // Add the device and add the stream.
   thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream, &piodev, 1);
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
 
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
@@ -819,6 +826,7 @@ TEST_F(StreamDeviceSuite, MixOutputSamples) {
   struct cras_rstream rstream2;
   struct open_dev* adev;
   struct dev_stream* dev_stream;
+  struct cras_rstream* streams[] = {&rstream1};
 
   ResetGlobalStubData();
 
@@ -831,7 +839,7 @@ TEST_F(StreamDeviceSuite, MixOutputSamples) {
 
   // Add the device and add the stream.
   thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream1, &piodev, 1);
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
   adev = thread_->open_devs[CRAS_STREAM_OUTPUT];
 
   // Assume device is running.
@@ -860,7 +868,8 @@ TEST_F(StreamDeviceSuite, MixOutputSamples) {
 
   // Add rstream2. cras_iodev should mix samples from rstream1 but not from
   // rstream2.
-  thread_add_stream(thread_, &rstream2, &piodev, 1);
+  streams[0] = &rstream2;
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
   write_output_samples(&thread_->open_devs[CRAS_STREAM_OUTPUT], adev, nullptr);
   EXPECT_EQ(3, cras_iodev_prepare_output_before_write_samples_called);
   EXPECT_EQ(3, cras_iodev_get_output_buffer_called);
@@ -916,6 +925,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackNoStream) {
 TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
   struct cras_iodev iodev, *piodev = &iodev;
   struct cras_rstream rstream;
+  struct cras_rstream* streams[] = {&rstream};
 
   ResetGlobalStubData();
 
@@ -927,7 +937,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
 
   // Add the device and add the stream.
   thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream, &piodev, 1);
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
 
   // Assume device is running and there is an underrun.
   // It wrote 11 frames into device but new hw_level is only 10.
@@ -952,6 +962,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackUnderrun) {
 TEST_F(StreamDeviceSuite, DoPlaybackSevereUnderrun) {
   struct cras_iodev iodev, *piodev = &iodev;
   struct cras_rstream rstream;
+  struct cras_rstream* streams[] = {&rstream};
 
   ResetGlobalStubData();
 
@@ -963,7 +974,7 @@ TEST_F(StreamDeviceSuite, DoPlaybackSevereUnderrun) {
 
   // Add the device and add the stream.
   thread_add_open_dev(thread_, &iodev);
-  thread_add_stream(thread_, &rstream, &piodev, 1);
+  thread_add_streams(thread_, streams, 1, &piodev, 1);
 
   // Assume device is running and there is a severe underrun.
   cras_audio_thread_event_severe_underrun_called = 0;

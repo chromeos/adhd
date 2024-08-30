@@ -45,6 +45,7 @@
 #include "third_party/utlist/utlist.h"
 
 #define NUM_OPEN_DEVS_MAX 10
+#define NUM_STREAMS_ATTACHED_MAX 256
 #define NUM_FLOOP_PAIRS_MAX 20
 
 #define FOR_ALL_DEVS(list, dir, tmp, func) \
@@ -885,20 +886,24 @@ static void possibly_enable_fallback(enum CRAS_STREAM_DIRECTION dir,
 }
 
 /*
- * Adds stream to one or more open iodevs. If the stream has processing effect
+ * Adds streams to one or more open iodevs. If a stream has processing effect
  * turned on, create new APM instance and add to the list. This makes sure the
  * time consuming APM creation happens in main thread.
  */
-static int add_stream_to_open_devs(struct cras_rstream* stream,
-                                   struct cras_iodev** iodevs,
-                                   unsigned int num_iodevs) {
-  int i;
-  if (stream->stream_apm) {
-    for (i = 0; i < num_iodevs; i++) {
-      cras_stream_apm_add(stream->stream_apm, iodevs[i], iodevs[i]->format);
+static int add_streams_to_open_devs(struct cras_rstream** streams,
+                                    unsigned int num_streams,
+                                    struct cras_iodev** iodevs,
+                                    unsigned int num_iodevs) {
+  for (int j = 0; j < num_streams; j++) {
+    if (streams[j]->stream_apm) {
+      for (int i = 0; i < num_iodevs; i++) {
+        cras_stream_apm_add(streams[j]->stream_apm, iodevs[i],
+                            iodevs[i]->format);
+      }
     }
   }
-  return audio_thread_add_stream(audio_thread, stream, iodevs, num_iodevs);
+  return audio_thread_add_streams(audio_thread, streams, num_streams, iodevs,
+                                  num_iodevs);
 }
 
 // Returns true if dev is one of the fallback devices.
@@ -910,8 +915,10 @@ static inline bool is_fallback_dev(struct cras_iodev* dev) {
 static int init_and_attach_streams(struct cras_iodev* dev) {
   int rc;
   enum CRAS_STREAM_DIRECTION dir = dev->direction;
+  struct cras_rstream* streams[NUM_STREAMS_ATTACHED_MAX];
   struct cras_rstream* stream;
   int dev_enabled = cras_iodev_list_dev_is_enabled(dev);
+  unsigned int num_streams = 0;
 
   /* If called after suspend, for example bluetooth
    * profile switching, don't add back the stream list. */
@@ -965,8 +972,16 @@ static int init_and_attach_streams(struct cras_iodev* dev) {
       syslog(LOG_WARNING, "Enable %s failed, rc = %d", dev->info.name, rc);
       return rc;
     }
-    add_stream_to_open_devs(stream, &dev, 1);
+    if (num_streams == NUM_STREAMS_ATTACHED_MAX) {
+      syslog(LOG_ERR, "The number of streams exceeds the limitation.");
+      break;
+    }
+    streams[num_streams++] = stream;
   }
+  if (num_streams) {
+    add_streams_to_open_devs(streams, num_streams, &dev, 1);
+  }
+
   return 0;
 }
 
@@ -1139,7 +1154,7 @@ static int pinned_stream_added(struct cras_rstream* rstream) {
 
   // Attach the stream to devices that are opened successfully on the first try.
   if (num_open_devs) {
-    int rc = add_stream_to_open_devs(rstream, open_devs, num_open_devs);
+    int rc = add_streams_to_open_devs(&rstream, 1, open_devs, num_open_devs);
     if (rc) {
       syslog(LOG_ERR, "Adding pinned stream to thread failed, rc %d", rc);
       if (!first_err) {
@@ -1238,7 +1253,8 @@ static int stream_added_cb(struct cras_rstream* rstream) {
   // Catch the stream with fallback if it is already enabled
   if (cras_iodev_list_dev_is_enabled(fallback_devs[rstream->direction])) {
     init_device(fallback_devs[rstream->direction], rstream);
-    add_stream_to_open_devs(rstream, &fallback_devs[rstream->direction], 1);
+    add_streams_to_open_devs(&rstream, 1, &fallback_devs[rstream->direction],
+                             1);
   }
 
   /* Add the new stream to all enabled iodevs at once to avoid offset
@@ -1329,7 +1345,7 @@ static int stream_added_cb(struct cras_rstream* rstream) {
     /* Add stream failure is considered critical because it'll
      * trigger client side error. Collect the error type and send
      * for UMA metrics. */
-    rc = add_stream_to_open_devs(rstream, iodevs, num_iodevs);
+    rc = add_streams_to_open_devs(&rstream, 1, iodevs, num_iodevs);
     if (rc == -EIO) {
       cras_server_metrics_stream_add_failure(CRAS_STREAM_ADD_IO_ERROR);
     } else if (rc == -EINVAL) {
@@ -2044,7 +2060,7 @@ int cras_iodev_list_suspend_hotword_streams() {
     }
 
     audio_thread_disconnect_stream(audio_thread, stream, hotword_dev);
-    audio_thread_add_stream(audio_thread, stream, &empty_hotword_dev, 1);
+    audio_thread_add_streams(audio_thread, &stream, 1, &empty_hotword_dev, 1);
   }
   close_pinned_device(hotword_dev);
   hotword_suspended = 1;
@@ -2078,7 +2094,7 @@ int cras_iodev_list_resume_hotword_stream() {
     }
 
     audio_thread_disconnect_stream(audio_thread, stream, empty_hotword_dev);
-    audio_thread_add_stream(audio_thread, stream, &hotword_dev, 1);
+    audio_thread_add_streams(audio_thread, &stream, 1, &hotword_dev, 1);
   }
   close_pinned_device(empty_hotword_dev);
   hotword_suspended = 0;
@@ -2638,7 +2654,7 @@ static int remove_then_reconnect_stream(struct cras_rstream* rstream) {
     cras_stream_apm_remove(rstream->stream_apm, iodevs[i]);
   }
 
-  return add_stream_to_open_devs(rstream, iodevs, num_iodevs);
+  return add_streams_to_open_devs(&rstream, 1, iodevs, num_iodevs);
 }
 
 int cras_iodev_list_set_aec_ref(unsigned int stream_id, unsigned int dev_idx) {
@@ -2781,7 +2797,7 @@ void cras_iodev_list_enable_floop_pair(struct cras_floop_pair* pair) {
         continue;
       }
       struct cras_iodev* devs[] = {&pair->output};
-      add_stream_to_open_devs(stream, devs, 1);
+      add_streams_to_open_devs(&stream, 1, devs, 1);
     }
   }
 }
