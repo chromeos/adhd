@@ -212,6 +212,12 @@ static int output_delay_frames(const struct cras_iodev* iodev) {
   return 0;
 }
 
+// No stream playback case should be handled by input side.
+// Avoid overfilling the buffer with two sources filling zero at the same time.
+static int output_no_stream_playback(struct cras_iodev* odev, int enable) {
+  return 0;
+}
+
 static int output_close_dev(struct cras_iodev* iodev) {
   return 0;
 }
@@ -349,7 +355,7 @@ struct cras_floop_pair* cras_floop_pair_create(
   output->get_buffer = output_get_buffer;
   output->put_buffer = output_put_buffer;
   output->flush_buffer = output_flush_buffer;
-  output->no_stream = cras_iodev_default_no_stream_playback;
+  output->no_stream = output_no_stream_playback;
   common_init_iodev(params, output, "Flexible Loopback (internal)",
                     CRAS_NODE_TYPE_FLOOP_INTERNAL);
 
