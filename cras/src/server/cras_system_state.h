@@ -521,9 +521,6 @@ bool cras_system_state_get_speak_on_mute_detection_enabled();
 // Get number of non-Chrome output streams
 int cras_system_state_num_non_chrome_output_streams();
 
-// Returns true for Noise Cancellation standalone mode; false otherwise.
-bool cras_system_get_noise_cancellation_standalone_mode();
-
 // Sets the flag to enable or disable Force Respect UI Gains.
 void cras_system_set_force_respect_ui_gains_enabled(bool enabled);
 
