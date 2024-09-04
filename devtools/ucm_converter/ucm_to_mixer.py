@@ -84,6 +84,7 @@ def generate_mixer_paths_xml(config_data, output_file):
     """Generates the mixer_paths.xml content using ElementTree and saves it to the output file."""
     # Create root element
     mixer = ET.Element("mixer")
+    mixer.set("enum_mixer_numeric_fallback", "true")
 
     initial_setting = generate_card_initial_setting(config_data)
     for key, value in initial_setting.items():

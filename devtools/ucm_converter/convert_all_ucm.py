@@ -43,7 +43,7 @@ def convert_ucm_configs(base_dir, output_dir, operation):
                 if os.path.isfile(ucm_file):
                     card_name = get_card_name(ucm_file)
                     model_output_dir = os.path.join(
-                        output_dir, model_dir, "etc", f"{card_name}.{model_dir}"
+                        output_dir, model_dir, f"{card_name}.{model_dir}"
                     )
                     os.makedirs(model_output_dir, exist_ok=True)
                     if operation == "mixer":
