@@ -695,6 +695,11 @@ pub struct AudioStreamDebugInfo {
     pub channel_layout: Vec<CRAS_CHANNEL>,
     pub webrtc_apm_forward_blocks_processed: u64,
     pub webrtc_apm_reverse_blocks_processed: u64,
+    #[serde(
+        rename = "underrun_duration_sec",
+        serialize_with = "serialize_duration_secs"
+    )]
+    pub underrun_duration: Duration,
 }
 
 impl TryFrom<audio_stream_debug_info> for AudioStreamDebugInfo {
@@ -731,6 +736,10 @@ impl TryFrom<audio_stream_debug_info> for AudioStreamDebugInfo {
             channel_layout,
             webrtc_apm_forward_blocks_processed: info.webrtc_apm_forward_blocks_processed,
             webrtc_apm_reverse_blocks_processed: info.webrtc_apm_reverse_blocks_processed,
+            underrun_duration: Duration::new(
+                info.underrun_duration_sec.into(),
+                info.underrun_duration_nsec,
+            ),
         })
     }
 }
@@ -760,6 +769,7 @@ impl fmt::Display for AudioStreamDebugInfo {
         writeln!(f, "  Pinned: {}", self.is_pinned)?;
         writeln!(f, "  Pinned device index: {}", self.pinned_dev_idx)?;
         writeln!(f, "  Missed callbacks: {}", self.num_missed_cb)?;
+        writeln!(f, "  Underrun duration: {:?}", self.underrun_duration)?;
         match self.direction {
             CRAS_STREAM_DIRECTION::CRAS_STREAM_OUTPUT => {
                 writeln!(f, "  Volume: {:.2}", self.stream_volume)?
