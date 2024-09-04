@@ -34,14 +34,14 @@ pub enum Error {
     InvalidDatastore,
     #[error("invalid shutdown time")]
     InvalidShutDownTime,
+    #[error(transparent)]
+    IOError(#[from] io::Error),
     #[error("mutex is poisoned")]
     MutexPoisonError,
     #[error("{0}")]
     NewPlayStreamFailed(libcras::BoxError),
     #[error("{0}")]
     NextPlaybackBufferFailed(libcras::BoxError),
-    #[error(transparent)]
-    PlaybackFailed(#[from] io::Error),
     #[error("{0}： {1}")]
     SerdeError(PathBuf, serde_yaml::Error),
     #[error("playback is not started in time")]

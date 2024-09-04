@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::PathBuf;
+use std::process::Command;
 
 use crate::error::Error;
 use crate::error::Result;
@@ -69,6 +70,20 @@ impl VPDTrait for Tas2563VPD {
             Datastore::DSM { rdc: _, temp: _ } => Err(Error::InvalidDatastore),
         }
     }
+}
+
+pub fn update_vpd(channel: usize, vpd: VPD) -> Result<()> {
+    write_to_vpd(&format!("dsm_calib_r0_{}", channel), vpd.dsm_calib_r0)?;
+    write_to_vpd(&format!("dsm_calib_temp_{}", channel), vpd.dsm_calib_temp)?;
+    Ok(())
+}
+
+fn write_to_vpd(key: &str, value: i32) -> Result<()> {
+    let output = Command::new("vpd")
+        .arg("-s")
+        .arg(&format!("{}={}", key, value))
+        .output()?;
+    Ok(())
 }
 
 fn read_vpd_files(file: &str) -> Result<i32> {

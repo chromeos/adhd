@@ -22,6 +22,7 @@ use log::error;
 use log::info;
 use serde::Deserialize;
 use serde::Serialize;
+use vpd::VPD;
 
 use crate::datastore::Datastore;
 pub use crate::error::Error;
@@ -330,6 +331,22 @@ impl DSM {
             temp: (self.temp_converter.celsius_to_vpd)(calib_data.temp()),
         }
         .save(&self.snd_card, channel)?;
+        Ok(())
+    }
+
+    /// Update VPD.
+    ///
+    /// # Errors
+    ///
+    /// * Failed to update Datastore.
+    pub fn update_vpd<T: CalibData + 'static>(&self, channel: usize, calib_data: T) -> Result<()> {
+        let datastore = Datastore::DSM {
+            rdc: calib_data.rdc(),
+            temp: (self.temp_converter.celsius_to_vpd)(calib_data.temp()),
+        };
+
+        let vpd = VPD::new_from_datastore(datastore, channel)?;
+        vpd::update_vpd(channel, vpd)?;
         Ok(())
     }
 
