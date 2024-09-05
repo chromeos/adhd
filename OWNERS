@@ -3,7 +3,6 @@ include chromiumos/owners:v1:/audio/OWNERS.all
 # For AOSP
 cychiang@google.com
 hychao@google.com
-paulhsia@google.com
 yuhsuan@google.com
 eddyhsu@google.com
 
