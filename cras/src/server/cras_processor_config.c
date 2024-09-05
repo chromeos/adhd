@@ -29,13 +29,12 @@ enum CrasProcessorEffect cras_processor_get_effect(
 
   // StyleTransfer
   if (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_AST &&
-      cras_s2_get_style_transfer_allowed() &&
-      ((effects & CLIENT_CONTROLLED_VOICE_ISOLATION &&  // client controlled.
-        effects & VOICE_ISOLATION) ||
-       (!(effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&  // system controlled.
-        cras_system_get_style_transfer_enabled())) &&
-      !beamforming_supported) {  // no beamforming.
-    return StyleTransfer;
+      cras_s2_get_style_transfer_allowed() && !beamforming_supported) {
+    bool enabled =
+        (effects & CLIENT_CONTROLLED_VOICE_ISOLATION)
+            ? (effects & VOICE_ISOLATION)                // client controlled.
+            : cras_system_get_style_transfer_enabled();  // system controlled.
+    return enabled ? StyleTransfer : NoEffects;
   }
 
   // NoiseCancellation
