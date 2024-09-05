@@ -3337,8 +3337,7 @@ bool cras_iodev_list_get_dsp_nc_allowed() {
   return false;
 }
 
-enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
-    struct cras_iodev* iodev) {
+CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(struct cras_iodev* iodev) {
   return CRAS_NC_PROVIDER_NONE;
 }
 

@@ -586,8 +586,7 @@ void cras_iodev_set_node_plugged(struct cras_ionode* ionode, int plugged) {
   cras_iodev_set_node_plugged_value = plugged;
 }
 
-enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
-    struct cras_iodev* iodev) {
+CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(struct cras_iodev* iodev) {
   return CRAS_NC_PROVIDER_NONE;
 }
 

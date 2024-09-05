@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras_types.h"
 
@@ -295,8 +296,7 @@ int cras_iodev_list_resume_hotword_stream();
 // To be used in iodev open.
 //
 // iodev->active_node must exist.
-enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
-    struct cras_iodev* iodev);
+CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(struct cras_iodev* iodev);
 
 /* Sets the state of noise cancellation for input devices which supports noise
  * cancellation by suspend, enable/disable, then resume.

@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <sys/time.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_iodev.h"
@@ -177,7 +178,7 @@ int cras_alsa_common_configure_noise_cancellation(
     struct cras_use_case_mgr* ucm);
 
 // Get the provider for noise cancellation on the node.
-enum CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
+CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
     struct cras_use_case_mgr* ucm,
     const struct cras_ionode* node);
 

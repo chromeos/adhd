@@ -46,6 +46,32 @@ pub extern "C" fn cras_stream_active_ap_effects_string(
         .into_raw()
 }
 
+bitflags! {
+    #[allow(non_camel_case_types)]
+    #[repr(transparent)]
+    #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug)]
+    pub struct CRAS_NC_PROVIDER : u32 {
+        const NONE = 0;      // NC is disabled for this ionode.
+        const DSP = 1 << 0;  // NC is supported by DSP.
+        const AP = 1 << 1;   // NC is supported by AP.
+        const AST = 1 << 2;  // NC is supported by Style Transfer.
+    }
+}
+
+/// Returns the name of the NC provider as a string.
+/// The ownership of the string is static in Rust, so no need to free in C.
+#[no_mangle]
+pub extern "C" fn cras_nc_provider_to_str(nc_provider: CRAS_NC_PROVIDER) -> *const libc::c_char {
+    match nc_provider {
+        CRAS_NC_PROVIDER::NONE => c"CRAS_NC_PROVIDER_NONE",
+        CRAS_NC_PROVIDER::DSP => c"CRAS_NC_PROVIDER_DSP",
+        CRAS_NC_PROVIDER::AP => c"CRAS_NC_PROVIDER_AP",
+        CRAS_NC_PROVIDER::AST => c"CRAS_NC_PROVIDER_AST",
+        _ => c"Invalid NC provider",
+    }
+    .as_ptr()
+}
+
 /// All supported DLCs in CRAS.
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug)]

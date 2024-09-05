@@ -16,7 +16,6 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_main_thread_log.h"
-#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_ramp.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"

@@ -63,6 +63,12 @@ typedef uint64_t CRAS_STREAM_ACTIVE_AP_EFFECT;
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_BEAMFORMING (uint64_t)(1 << 6)
 #define CRAS_STREAM_ACTIVE_AP_EFFECT_PROCESSOR_OVERRIDDEN (uint64_t)(1 << 7)
 
+typedef uint32_t CRAS_NC_PROVIDER;
+#define CRAS_NC_PROVIDER_NONE (uint32_t)0
+#define CRAS_NC_PROVIDER_DSP (uint32_t)(1 << 0)
+#define CRAS_NC_PROVIDER_AP (uint32_t)(1 << 1)
+#define CRAS_NC_PROVIDER_AST (uint32_t)(1 << 2)
+
 /**
  * This function is called from C code to log a FRA event.
  *
@@ -116,6 +122,12 @@ uint32_t pseudonymize_stable_id(uint32_t stable_id);
 char *cras_stream_active_ap_effects_string(CRAS_STREAM_ACTIVE_AP_EFFECT effect);
 
 /**
+ * Returns the name of the NC provider as a string.
+ * The ownership of the string is static in Rust, so no need to free in C.
+ */
+const char *cras_nc_provider_to_str(CRAS_NC_PROVIDER nc_provider);
+
+/**
  * Initialize logging for cras_rust.
  * Recommended to be called before all other cras_rust functions.
  */
@@ -132,6 +144,12 @@ uint32_t pseudonymize_stable_id(uint32_t stable_id);
  * The resulting string should be freed with cras_rust_free_string.
  */
 char *cras_stream_active_ap_effects_string(CRAS_STREAM_ACTIVE_AP_EFFECT effect);
+
+/**
+ * Returns the name of the NC provider as a string.
+ * The ownership of the string is static in Rust, so no need to free in C.
+ */
+const char *cras_nc_provider_to_str(CRAS_NC_PROVIDER nc_provider);
 
 #endif  /* CRAS_COMMON_RUST_COMMON_H_ */
 

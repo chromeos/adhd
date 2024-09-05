@@ -14,6 +14,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_hats.h"
@@ -25,7 +26,6 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_loopback_iodev.h"
 #include "cras/src/server/cras_main_thread_log.h"
-#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_observer.h"
 #include "cras/src/server/cras_rstream.h"
 #include "cras/src/server/cras_server_metrics.h"
@@ -2495,8 +2495,8 @@ void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
   }
 }
 
-enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
-    struct cras_iodev* iodev) {
+// TODO(353627012): replace this function with S2.
+CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(struct cras_iodev* iodev) {
   if (!iodev->active_node) {
     return CRAS_NC_PROVIDER_NONE;
   }
@@ -2507,8 +2507,19 @@ enum CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(
                        cras_system_get_noise_cancellation_enabled();
   bool ast_allowed = cras_s2_get_style_transfer_allowed() &&
                      cras_system_get_style_transfer_enabled();
-  return cras_nc_resolve_provider(iodev->active_node->nc_providers,
-                                  dsp_nc_allowed, ap_nc_allowed, ast_allowed);
+  if (ast_allowed &&
+      (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_AST)) {
+    return CRAS_NC_PROVIDER_AST;
+  }
+  if (dsp_nc_allowed &&
+      (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_DSP)) {
+    return CRAS_NC_PROVIDER_DSP;
+  }
+  if (ap_nc_allowed &&
+      (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_AP)) {
+    return CRAS_NC_PROVIDER_AP;
+  }
+  return CRAS_NC_PROVIDER_NONE;
 }
 
 void cras_iodev_list_reset_for_noise_cancellation() {
@@ -2520,7 +2531,7 @@ void cras_iodev_list_reset_for_noise_cancellation() {
     if (!dev->active_node) {
       continue;
     }
-    const enum CRAS_NC_PROVIDER new_effect_state =
+    const CRAS_NC_PROVIDER new_effect_state =
         cras_iodev_list_resolve_nc_provider(dev);
     if (new_effect_state == dev->restart_tag_effect_state) {
       continue;

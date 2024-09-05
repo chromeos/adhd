@@ -10,7 +10,6 @@
 #include "cras/server/platform/features/features.h"
 #include "cras/server/s2/s2.h"
 #include "cras/src/server/cras_iodev.h"
-#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/rust/include/cras_processor.h"
 #include "cras_types.h"

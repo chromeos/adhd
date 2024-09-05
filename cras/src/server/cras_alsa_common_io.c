@@ -9,6 +9,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_helpers.h"
@@ -16,7 +17,6 @@
 #include "cras/src/server/cras_alsa_ucm.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras_iodev_info.h"
@@ -68,10 +68,10 @@ int cras_alsa_common_configure_noise_cancellation(
   return 0;
 }
 
-enum CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
+CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
     struct cras_use_case_mgr* ucm,
     const struct cras_ionode* node) {
-  enum CRAS_NC_PROVIDER provider = 0;
+  CRAS_NC_PROVIDER provider = 0;
   if ((node->type == CRAS_NODE_TYPE_ALSA_LOOPBACK ||  // Alsa loopback.
        (node->type == CRAS_NODE_TYPE_MIC &&           // Internal mic.
         (node->position == NODE_POSITION_INTERNAL ||

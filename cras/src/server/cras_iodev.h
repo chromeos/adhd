@@ -17,9 +17,9 @@
 #include <stdbool.h>
 #include <time.h>
 
+#include "cras/common/rust_common.h"
 #include "cras/src/common/cras_types_internal.h"
 #include "cras/src/server/cras_dsp.h"
-#include "cras/src/server/cras_nc.h"
 #include "cras/src/server/ewma_power.h"
 #include "cras_iodev_info.h"
 #include "cras_messages.h"
@@ -198,8 +198,8 @@ struct cras_ionode {
   int32_t number_of_volume_steps;
   // NC support status of the ionode.
   // Set when the ionode is constructed and frozen.
-  // A bitset of enum CRAS_NC_PROVIDER in cras_nc.h.
-  uint32_t nc_providers;
+  // A bitset of CRAS_NC_PROVIDER.
+  CRAS_NC_PROVIDER nc_providers;
   // The latency offset given in ms. This value will be directly added
   // when calculating the playback/capture timestamp
   // The value is read in board.ini, with 0 being the default if there is no
@@ -446,7 +446,7 @@ struct cras_iodev {
   bool is_utility_device;
   // The tag of NC effect state for deciding if we need to restart iodev.
   // Should be set during device open.
-  enum CRAS_NC_PROVIDER restart_tag_effect_state;
+  CRAS_NC_PROVIDER restart_tag_effect_state;
   // Indicates that this device ignores capture mute.
   bool ignore_capture_mute;
   // The total number of pinned streams targeting this device from the main
