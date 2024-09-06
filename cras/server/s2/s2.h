@@ -63,7 +63,7 @@ bool cras_s2_get_aec_on_dsp_is_disallowed(void);
 
 bool cras_s2_get_dsp_input_effects_blocked(void);
 
-#endif /* CRAS_SERVER_S2_S2_H_ */
+#endif  /* CRAS_SERVER_S2_S2_H_ */
 
 #ifdef __cplusplus
 }

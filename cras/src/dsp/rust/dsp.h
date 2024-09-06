@@ -820,7 +820,7 @@ int32_t eq_append_biquad_direct(struct eq *eq, const struct biquad *biquad);
 
 void eq_process(struct eq *eq, float *data, int32_t count);
 
-#endif /* CRAS_SRC_DSP_RUST_DSP_H_ */
+#endif  /* CRAS_SRC_DSP_RUST_DSP_H_ */
 
 #ifdef __cplusplus
 }

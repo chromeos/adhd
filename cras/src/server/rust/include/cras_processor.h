@@ -67,7 +67,7 @@ struct CrasProcessorCreateResult cras_processor_create(const struct CrasProcesso
  */
 bool cras_processor_is_override_enabled(void);
 
-#endif /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_PROCESSOR_H_ */
+#endif  /* CRAS_SRC_SERVER_RUST_INCLUDE_CRAS_PROCESSOR_H_ */
 
 #ifdef __cplusplus
 }

@@ -28,7 +28,7 @@ extern "C" {
  */
 void cras_rust_free_string(char *s);
 
-#endif /* CRAS_SRC_SERVER_RUST_INCLUDE_STRING_H_ */
+#endif  /* CRAS_SRC_SERVER_RUST_INCLUDE_STRING_H_ */
 
 #ifdef __cplusplus
 }

@@ -87,7 +87,7 @@ void cras_dlc_reset_overrides_for_testing(void);
 void download_dlcs_until_installed_with_thread(struct CrasDlcDownloadConfig download_config,
                                                DlcInstallOnSuccessCallback dlc_install_on_success_callback);
 
-#endif /* CRAS_SERVER_PLATFORM_DLC_DLC_H_ */
+#endif  /* CRAS_SERVER_PLATFORM_DLC_DLC_H_ */
 
 #ifdef __cplusplus
 }

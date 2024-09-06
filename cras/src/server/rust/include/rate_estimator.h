@@ -93,7 +93,7 @@ int32_t rate_estimator_get_last_add_frames_value_for_test(const struct rate_esti
  */
 uint64_t rate_estimator_get_add_frames_called_count_for_test(const struct rate_estimator *re);
 
-#endif /* CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_ */
+#endif  /* CRAS_SRC_SERVER_RUST_INCLUDE_RATE_ESTIMATOR_H_ */
 
 #ifdef __cplusplus
 }

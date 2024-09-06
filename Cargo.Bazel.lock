@@ -1,5 +1,5 @@
 {
-  "checksum": "382ca216c67a8a6a4f5d13765ce9d62774c138dd2d4f7656c0ba1a71c7abdec5",
+  "checksum": "0e8100b4ba9e70ae4787228f8da76c7df2eff4f217f9d615eb58b3bb28c96644",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -540,67 +540,6 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "atty 0.2.14": {
-      "name": "atty",
-      "version": "0.2.14",
-      "package_url": "https://github.com/softprops/atty",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/atty/0.2.14/download",
-          "sha256": "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "atty",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "atty",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [],
-          "selects": {
-            "cfg(target_os = \"hermit\")": [
-              {
-                "id": "hermit-abi 0.1.19",
-                "target": "hermit_abi"
-              }
-            ],
-            "cfg(unix)": [
-              {
-                "id": "libc 0.2.155",
-                "target": "libc"
-              }
-            ],
-            "cfg(windows)": [
-              {
-                "id": "winapi 0.3.9",
-                "target": "winapi"
-              }
-            ]
-          }
-        },
-        "edition": "2015",
-        "version": "0.2.14"
-      },
-      "license": "MIT",
-      "license_ids": [
-        "MIT"
-      ],
-      "license_file": "LICENSE"
-    },
     "audio_processor 0.1.0": {
       "name": "audio_processor",
       "version": "0.1.0",
@@ -968,11 +907,11 @@
               "target": "peeking_take_while"
             },
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
@@ -1144,14 +1083,14 @@
       ],
       "license_file": "LICENSE-MIT"
     },
-    "cbindgen 0.24.5": {
+    "cbindgen 0.27.0": {
       "name": "cbindgen",
-      "version": "0.24.5",
-      "package_url": "https://github.com/eqrion/cbindgen",
+      "version": "0.27.0",
+      "package_url": "https://github.com/mozilla/cbindgen",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/cbindgen/0.24.5/download",
-          "sha256": "4b922faaf31122819ec80c4047cc684c6979a087366c069611e33649bf98e18d"
+          "url": "https://static.crates.io/crates/cbindgen/0.27.0/download",
+          "sha256": "3fce8dd7fcfcbf3a0a87d8f515194b49d6135acab73e18bd380d1d93bb1a15eb"
         }
       },
       "targets": [
@@ -1195,11 +1134,11 @@
         "deps": {
           "common": [
             {
-              "id": "cbindgen 0.24.5",
+              "id": "cbindgen 0.27.0",
               "target": "build_script_build"
             },
             {
-              "id": "clap 3.2.23",
+              "id": "clap 4.5.4",
               "target": "clap"
             },
             {
@@ -1207,7 +1146,7 @@
               "target": "heck"
             },
             {
-              "id": "indexmap 1.9.3",
+              "id": "indexmap 2.5.0",
               "target": "indexmap"
             },
             {
@@ -1215,11 +1154,11 @@
               "target": "log"
             },
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
@@ -1231,7 +1170,7 @@
               "target": "serde_json"
             },
             {
-              "id": "syn 1.0.107",
+              "id": "syn 2.0.77",
               "target": "syn"
             },
             {
@@ -1239,14 +1178,14 @@
               "target": "tempfile"
             },
             {
-              "id": "toml 0.5.10",
+              "id": "toml 0.8.19",
               "target": "toml"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.24.5"
+        "version": "0.27.0"
       },
       "build_script_attrs": {
         "data_glob": [
@@ -1535,90 +1474,6 @@
       ],
       "license_file": "LICENSE.txt"
     },
-    "clap 3.2.23": {
-      "name": "clap",
-      "version": "3.2.23",
-      "package_url": "https://github.com/clap-rs/clap",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/clap/3.2.23/download",
-          "sha256": "71655c45cb9845d3270c9d6df84ebe72b4dad3c2ba3f7023ad47c144e4e473a5"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "clap",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "clap",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": {
-          "common": [
-            "atty",
-            "color",
-            "default",
-            "std",
-            "strsim",
-            "suggestions",
-            "termcolor"
-          ],
-          "selects": {}
-        },
-        "deps": {
-          "common": [
-            {
-              "id": "atty 0.2.14",
-              "target": "atty"
-            },
-            {
-              "id": "bitflags 1.3.2",
-              "target": "bitflags"
-            },
-            {
-              "id": "clap_lex 0.2.4",
-              "target": "clap_lex"
-            },
-            {
-              "id": "indexmap 1.9.3",
-              "target": "indexmap"
-            },
-            {
-              "id": "strsim 0.10.0",
-              "target": "strsim"
-            },
-            {
-              "id": "termcolor 1.1.3",
-              "target": "termcolor"
-            },
-            {
-              "id": "textwrap 0.16.0",
-              "target": "textwrap"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2021",
-        "version": "3.2.23"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "clap 4.5.4": {
       "name": "clap",
       "version": "4.5.4",
@@ -1802,15 +1657,15 @@
               "target": "heck"
             },
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
-              "id": "syn 2.0.38",
+              "id": "syn 2.0.77",
               "target": "syn"
             }
           ],
@@ -1818,54 +1673,6 @@
         },
         "edition": "2021",
         "version": "4.5.4"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "clap_lex 0.2.4": {
-      "name": "clap_lex",
-      "version": "0.2.4",
-      "package_url": "https://github.com/clap-rs/clap/tree/master/clap_lex",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/clap_lex/0.2.4/download",
-          "sha256": "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "clap_lex",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "clap_lex",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "os_str_bytes 6.4.1",
-              "target": "os_str_bytes"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2021",
-        "version": "0.2.4"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -2113,7 +1920,7 @@
         "deps": {
           "common": [
             {
-              "id": "cbindgen 0.24.5",
+              "id": "cbindgen 0.27.0",
               "target": "cbindgen"
             },
             {
@@ -2747,6 +2554,45 @@
         "version": "1.9.0"
       },
       "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "equivalent 1.0.1": {
+      "name": "equivalent",
+      "version": "1.0.1",
+      "package_url": "https://github.com/cuviper/equivalent",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/equivalent/1.0.1/download",
+          "sha256": "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "equivalent",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "equivalent",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2015",
+        "version": "1.0.1"
+      },
+      "license": "Apache-2.0 OR MIT",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -3593,15 +3439,15 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
-              "id": "syn 2.0.38",
+              "id": "syn 2.0.77",
               "target": "syn"
             }
           ],
@@ -4047,6 +3893,51 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "hashbrown 0.14.5": {
+      "name": "hashbrown",
+      "version": "0.14.5",
+      "package_url": "https://github.com/rust-lang/hashbrown",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/hashbrown/0.14.5/download",
+          "sha256": "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "hashbrown",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "hashbrown",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "raw"
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.14.5"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
     "heck 0.4.1": {
       "name": "heck",
       "version": "0.4.1",
@@ -4363,12 +4254,6 @@
         "compile_data_glob": [
           "**"
         ],
-        "crate_features": {
-          "common": [
-            "std"
-          ],
-          "selects": {}
-        },
         "deps": {
           "common": [
             {
@@ -4398,6 +4283,65 @@
           ],
           "selects": {}
         }
+      },
+      "license": "Apache-2.0 OR MIT",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "indexmap 2.5.0": {
+      "name": "indexmap",
+      "version": "2.5.0",
+      "package_url": "https://github.com/indexmap-rs/indexmap",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/indexmap/2.5.0/download",
+          "sha256": "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "indexmap",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "indexmap",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default",
+            "std"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "equivalent 1.0.1",
+              "target": "equivalent"
+            },
+            {
+              "id": "hashbrown 0.14.5",
+              "target": "hashbrown"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "2.5.0"
       },
       "license": "Apache-2.0 OR MIT",
       "license_ids": [
@@ -6150,11 +6094,11 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
@@ -6259,51 +6203,6 @@
         "MIT"
       ],
       "license_file": "LICENSE-MIT"
-    },
-    "os_str_bytes 6.4.1": {
-      "name": "os_str_bytes",
-      "version": "6.4.1",
-      "package_url": "https://github.com/dylni/os_str_bytes",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/os_str_bytes/6.4.1/download",
-          "sha256": "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "os_str_bytes",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "os_str_bytes",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": {
-          "common": [
-            "raw_os_str"
-          ],
-          "selects": {}
-        },
-        "edition": "2021",
-        "version": "6.4.1"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
     },
     "peeking_take_while 0.1.2": {
       "name": "peeking_take_while",
@@ -6509,14 +6408,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "proc-macro2 1.0.69": {
+    "proc-macro2 1.0.86": {
       "name": "proc-macro2",
-      "version": "1.0.69",
+      "version": "1.0.86",
       "package_url": "https://github.com/dtolnay/proc-macro2",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/proc-macro2/1.0.69/download",
-          "sha256": "134c189feb4956b20f6f547d2cf727d4c0fe06722b20a0eec87ed445a97f92da"
+          "url": "https://static.crates.io/crates/proc-macro2/1.0.86/download",
+          "sha256": "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
         }
       },
       "targets": [
@@ -6560,7 +6459,7 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "build_script_build"
             },
             {
@@ -6571,7 +6470,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "1.0.69"
+        "version": "1.0.86"
       },
       "build_script_attrs": {
         "data_glob": [
@@ -6860,14 +6759,14 @@
       ],
       "license_file": null
     },
-    "quote 1.0.32": {
+    "quote 1.0.37": {
       "name": "quote",
-      "version": "1.0.32",
+      "version": "1.0.37",
       "package_url": "https://github.com/dtolnay/quote",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/quote/1.0.32/download",
-          "sha256": "50f3b39ccfb720540debaa0164757101c08ecb8d326b15358ce76a62c7e85965"
+          "url": "https://static.crates.io/crates/quote/1.0.37/download",
+          "sha256": "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
         }
       },
       "targets": [
@@ -6899,14 +6798,14 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.0.32"
+        "version": "1.0.37"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7728,11 +7627,11 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
@@ -7837,6 +7736,60 @@
         "data_glob": [
           "**"
         ]
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "serde_spanned 0.6.7": {
+      "name": "serde_spanned",
+      "version": "0.6.7",
+      "package_url": "https://github.com/toml-rs/toml",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/serde_spanned/0.6.7/download",
+          "sha256": "eb5b1b31579f3811bf615c144393417496f152e12ac8b7663bf664f4a815306d"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "serde_spanned",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "serde_spanned",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "serde"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "serde 1.0.152",
+              "target": "serde"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.6.7"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -8154,44 +8107,6 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "strsim 0.10.0": {
-      "name": "strsim",
-      "version": "0.10.0",
-      "package_url": "https://github.com/dguo/strsim-rs",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/strsim/0.10.0/download",
-          "sha256": "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "strsim",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "strsim",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "0.10.0"
-      },
-      "license": "MIT",
-      "license_ids": [
-        "MIT"
-      ],
-      "license_file": "LICENSE"
-    },
     "strsim 0.11.1": {
       "name": "strsim",
       "version": "0.11.1",
@@ -8289,11 +8204,11 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
@@ -8322,14 +8237,14 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "syn 2.0.38": {
+    "syn 2.0.77": {
       "name": "syn",
-      "version": "2.0.38",
+      "version": "2.0.77",
       "package_url": "https://github.com/dtolnay/syn",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/syn/2.0.38/download",
-          "sha256": "e96b79aaa137db8f61e26363a0c9b47d8b4ec75da28b7d1d614c2303e232408b"
+          "url": "https://static.crates.io/crates/syn/2.0.77/download",
+          "sha256": "9f35bcdf61fd8e7be6caf75f429fdca8beb3ed76584befb503b1569faee373ed"
         }
       },
       "targets": [
@@ -8356,22 +8271,23 @@
             "clone-impls",
             "default",
             "derive",
+            "extra-traits",
+            "fold",
             "full",
             "parsing",
             "printing",
-            "proc-macro",
-            "quote"
+            "proc-macro"
           ],
           "selects": {}
         },
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
@@ -8382,7 +8298,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "2.0.38"
+        "version": "2.0.77"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -8525,94 +8441,6 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "termcolor 1.1.3": {
-      "name": "termcolor",
-      "version": "1.1.3",
-      "package_url": "https://github.com/BurntSushi/termcolor",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/termcolor/1.1.3/download",
-          "sha256": "bab24d30b911b2376f3a13cc2cd443142f0c81dda04c118693e35b3835757755"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "termcolor",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "termcolor",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [],
-          "selects": {
-            "cfg(windows)": [
-              {
-                "id": "winapi-util 0.1.5",
-                "target": "winapi_util"
-              }
-            ]
-          }
-        },
-        "edition": "2018",
-        "version": "1.1.3"
-      },
-      "license": "Unlicense OR MIT",
-      "license_ids": [
-        "MIT",
-        "Unlicense"
-      ],
-      "license_file": "LICENSE-MIT"
-    },
-    "textwrap 0.16.0": {
-      "name": "textwrap",
-      "version": "0.16.0",
-      "package_url": "https://github.com/mgeisler/textwrap",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/textwrap/0.16.0/download",
-          "sha256": "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "textwrap",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "textwrap",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2021",
-        "version": "0.16.0"
-      },
-      "license": "MIT",
-      "license_ids": [
-        "MIT"
-      ],
-      "license_file": "LICENSE"
-    },
     "thiserror 1.0.50": {
       "name": "thiserror",
       "version": "1.0.50",
@@ -8719,15 +8547,15 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
-              "id": "syn 2.0.38",
+              "id": "syn 2.0.77",
               "target": "syn"
             }
           ],
@@ -8947,14 +8775,14 @@
       ],
       "license_file": "LICENSE"
     },
-    "toml 0.5.10": {
+    "toml 0.8.19": {
       "name": "toml",
-      "version": "0.5.10",
+      "version": "0.8.19",
       "package_url": "https://github.com/toml-rs/toml",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/toml/0.5.10/download",
-          "sha256": "1333c76748e868a4d9d1017b5ab53171dfd095f70c712fdb4653a406547f598f"
+          "url": "https://static.crates.io/crates/toml/0.8.19/download",
+          "sha256": "a1ed1f98e3fdc28d6d910e6737ae6ab1a93bf1985935a1193e68f93eeb68d24e"
         }
       },
       "targets": [
@@ -8978,7 +8806,75 @@
         ],
         "crate_features": {
           "common": [
-            "default"
+            "default",
+            "display",
+            "parse"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "serde 1.0.152",
+              "target": "serde"
+            },
+            {
+              "id": "serde_spanned 0.6.7",
+              "target": "serde_spanned"
+            },
+            {
+              "id": "toml_datetime 0.6.8",
+              "target": "toml_datetime"
+            },
+            {
+              "id": "toml_edit 0.22.20",
+              "target": "toml_edit"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.8.19"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "toml_datetime 0.6.8": {
+      "name": "toml_datetime",
+      "version": "0.6.8",
+      "package_url": "https://github.com/toml-rs/toml",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/toml_datetime/0.6.8/download",
+          "sha256": "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "toml_datetime",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "toml_datetime",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "serde"
           ],
           "selects": {}
         },
@@ -8991,10 +8887,82 @@
           ],
           "selects": {}
         },
-        "edition": "2018",
-        "version": "0.5.10"
+        "edition": "2021",
+        "version": "0.6.8"
       },
-      "license": "MIT/Apache-2.0",
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "toml_edit 0.22.20": {
+      "name": "toml_edit",
+      "version": "0.22.20",
+      "package_url": "https://github.com/toml-rs/toml",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/toml_edit/0.22.20/download",
+          "sha256": "583c44c02ad26b0c3f3066fe629275e50627026c51ac2e595cca4c230ce1ce1d"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "toml_edit",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "toml_edit",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "display",
+            "parse",
+            "serde"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "indexmap 2.5.0",
+              "target": "indexmap"
+            },
+            {
+              "id": "serde 1.0.152",
+              "target": "serde"
+            },
+            {
+              "id": "serde_spanned 0.6.7",
+              "target": "serde_spanned"
+            },
+            {
+              "id": "toml_datetime 0.6.8",
+              "target": "toml_datetime"
+            },
+            {
+              "id": "winnow 0.6.18",
+              "target": "winnow"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.22.20"
+      },
+      "license": "MIT OR Apache-2.0",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -9363,19 +9331,8 @@
         ],
         "crate_features": {
           "common": [
-            "consoleapi",
-            "errhandlingapi",
-            "fileapi",
             "handleapi",
-            "minwinbase",
-            "minwindef",
-            "processenv",
-            "std",
             "sysinfoapi",
-            "winbase",
-            "wincon",
-            "winerror",
-            "winnt",
             "winsock2",
             "ws2ipdef",
             "ws2tcpip"
@@ -9483,56 +9440,6 @@
         "MIT"
       ],
       "license_file": null
-    },
-    "winapi-util 0.1.5": {
-      "name": "winapi-util",
-      "version": "0.1.5",
-      "package_url": "https://github.com/BurntSushi/winapi-util",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/winapi-util/0.1.5/download",
-          "sha256": "70ec6ce85bb158151cae5e5c87f95a8e97d2c0c4b001223f33a334e3ce5de178"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "winapi_util",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": false,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "winapi_util",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [],
-          "selects": {
-            "cfg(windows)": [
-              {
-                "id": "winapi 0.3.9",
-                "target": "winapi"
-              }
-            ]
-          }
-        },
-        "edition": "2018",
-        "version": "0.1.5"
-      },
-      "license": "Unlicense/MIT",
-      "license_ids": [
-        "MIT",
-        "Unlicense"
-      ],
-      "license_file": "LICENSE-MIT"
     },
     "winapi-x86_64-pc-windows-gnu 0.4.0": {
       "name": "winapi-x86_64-pc-windows-gnu",
@@ -11457,6 +11364,52 @@
       ],
       "license_file": "license-apache-2.0"
     },
+    "winnow 0.6.18": {
+      "name": "winnow",
+      "version": "0.6.18",
+      "package_url": "https://github.com/winnow-rs/winnow",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/winnow/0.6.18/download",
+          "sha256": "68a9bda4691f099d435ad181000724da8e5899daa10713c2d432552b9ccd3a6f"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "winnow",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": false,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "winnow",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "alloc",
+            "default",
+            "std"
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.6.18"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE-MIT"
+    },
     "zerocopy 0.7.34": {
       "name": "zerocopy",
       "version": "0.7.34",
@@ -11556,15 +11509,15 @@
         "deps": {
           "common": [
             {
-              "id": "proc-macro2 1.0.69",
+              "id": "proc-macro2 1.0.86",
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.32",
+              "id": "quote 1.0.37",
               "target": "quote"
             },
             {
-              "id": "syn 2.0.38",
+              "id": "syn 2.0.77",
               "target": "syn"
             }
           ],
@@ -11987,7 +11940,7 @@
     "assert_matches 1.5.0",
     "bindgen 0.63.0",
     "bitflags 2.4.0",
-    "cbindgen 0.24.5",
+    "cbindgen 0.27.0",
     "cc 1.0.83",
     "cfg-if 1.0.0",
     "clap 4.5.4",

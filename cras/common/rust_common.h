@@ -133,7 +133,7 @@ uint32_t pseudonymize_stable_id(uint32_t stable_id);
  */
 char *cras_stream_active_ap_effects_string(CRAS_STREAM_ACTIVE_AP_EFFECT effect);
 
-#endif /* CRAS_COMMON_RUST_COMMON_H_ */
+#endif  /* CRAS_COMMON_RUST_COMMON_H_ */
 
 #ifdef __cplusplus
 }
