@@ -9,6 +9,7 @@
 //    while C code remains unaffected.
 #include "cras/server/cras_trace.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/rust/include/rate_estimator.h"
 extern "C" {
 #include "cras/src/server/cras_floop_iodev.c"
 }
@@ -67,10 +68,6 @@ void cras_iodev_init_audio_area(struct cras_iodev* iodev) {}
 
 void cras_iodev_free_audio_area(struct cras_iodev* iodev) {}
 
-int cras_iodev_default_no_stream_playback(struct cras_iodev* odev, int enable) {
-  return 0;
-}
-
 void cras_audio_area_config_buf_pointers(struct cras_audio_area* area,
                                          const struct cras_audio_format* fmt,
                                          uint8_t* base_buffer) {}
@@ -87,6 +84,9 @@ void cras_iodev_list_enable_floop_pair(struct cras_floop_pair* pair) {}
 void cras_iodev_list_disable_floop_pair(struct cras_floop_pair* pair) {}
 
 void cras_iodev_free_resources(struct cras_iodev* iodev) {
+  if (iodev->rate_est) {
+    rate_estimator_destroy(iodev->rate_est);
+  }
   cras_iodev_free_resources_called++;
 }
 }

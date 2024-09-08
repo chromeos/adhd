@@ -19,6 +19,7 @@
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_rstream.h"
+#include "cras/src/server/rust/include/rate_estimator.h"
 #include "cras_audio_format.h"
 #include "cras_types.h"
 #include "cras_util.h"
@@ -313,6 +314,7 @@ static void common_init_iodev(const struct cras_floop_params* params,
   iodev->info.max_supported_channels = loopback_supported_channel_counts[0];
   iodev->is_utility_device = true;
   iodev->ignore_capture_mute = true;
+  iodev->rate_est = rate_estimator_create_stub();
 
   struct cras_ionode* node = (struct cras_ionode*)calloc(1, sizeof(*node));
   node->dev = iodev;
