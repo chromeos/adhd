@@ -548,4 +548,7 @@ struct cras_apm* cras_stream_apm_get(struct cras_stream_apm* stream,
 struct cras_audio_format* cras_stream_apm_get_format(struct cras_apm* apm) {
   return NULL;
 }
+bool cras_iodev_list_is_floop_dev(int dev_idx) {
+  return false;
+}
 }

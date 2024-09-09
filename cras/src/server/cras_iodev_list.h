@@ -356,6 +356,9 @@ void cras_iodev_list_destroy_server_vad_stream(int dev_idx);
 /* Returns true if stream is started by the system instead of by the user */
 bool cras_iodev_list_is_utility_stream(const struct cras_rstream* stream);
 
+/* Returns true if a given dev_idx is a floop device */
+bool cras_iodev_list_is_floop_dev(int dev_idx);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

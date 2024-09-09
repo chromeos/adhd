@@ -22,6 +22,7 @@
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_ewma_power_reporter.h"
 #include "cras/src/server/cras_iodev.h"
+#include "cras/src/server/cras_iodev_list.h"
 #include "cras/src/server/cras_rstream_config.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_stream_apm.h"
@@ -374,9 +375,13 @@ int cras_rstream_create(struct cras_rstream_config* config,
     config->effects |= PRIVATE_DONT_CARE_APM_EFFECTS;
   }
 
-  stream->stream_apm = (stream->direction == CRAS_STREAM_INPUT)
-                           ? cras_stream_apm_create(config->effects)
-                           : NULL;
+  // Create stream_apm for all input streams expect floop streams.
+  stream->stream_apm =
+      (stream->direction == CRAS_STREAM_INPUT) &&
+              !(stream->is_pinned &&
+                cras_iodev_list_is_floop_dev(stream->pinned_dev_idx))
+          ? cras_stream_apm_create(config->effects)
+          : NULL;
   cras_frames_to_time(config->cb_threshold, config->format->frame_rate,
                       &stream->acceptable_fetch_interval);
   syslog(LOG_DEBUG, "stream %x frames %zu, cb_thresh %zu", config->stream_id,

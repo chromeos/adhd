@@ -2882,3 +2882,9 @@ int cras_iodev_list_get_dsp_offload_state(cras_node_id_t node_id) {
   // return enum CRAS_DSP_PROC_STATE by its value
   return (int)dev->dsp_offload_map->state;
 }
+
+bool cras_iodev_list_is_floop_dev(int dev_idx) {
+  struct cras_iodev* dev = find_dev(dev_idx);
+  return dev && dev->active_node &&
+         dev->active_node->type == CRAS_NODE_TYPE_FLOOP;
+}
