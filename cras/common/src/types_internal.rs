@@ -48,6 +48,19 @@ pub extern "C" fn cras_stream_active_ap_effects_string(
         .into_raw()
 }
 
+// The bitmask enum of audio effects. Bit is toggled on for supporting.
+// This should be always aligned to platform2/system_api/dbus/audio/dbus-constants.h.
+bitflags! {
+    #[allow(non_camel_case_types)]
+    #[repr(transparent)]
+    #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug, Serialize)]
+    pub struct EFFECT_TYPE: u32 {
+      const NOISE_CANCELLATION = 1 << 0;
+      const HFP_MIC_SR = 1 << 1;
+      const STYLE_TRANSFER = 1 << 2;
+    }
+}
+
 bitflags! {
     #[allow(non_camel_case_types)]
     #[repr(transparent)]

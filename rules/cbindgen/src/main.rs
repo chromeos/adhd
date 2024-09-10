@@ -101,7 +101,8 @@ fn main() {
         .rename_item("DRCComponent", "drc_component")
         .rename_item("DRC_PARAM", "drc_param")
         .include_item("DRC_PARAM")
-        .include_item("CrasDlcId");
+        .include_item("CrasDlcId")
+        .include_item("EFFECT_TYPE");
 
     let mut b = b;
 
