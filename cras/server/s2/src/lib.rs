@@ -2,12 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
 
 use anyhow::Context;
 use audio_processor::cdcfg;
 use cras_common::types_internal::CrasDlcId;
+use cras_common::types_internal::CRAS_NC_PROVIDER;
 use serde::Serialize;
 
 pub mod global;
@@ -68,13 +70,9 @@ struct Input {
 
 #[derive(Serialize)]
 struct Output {
-    ap_nc_allowed: bool,
-    style_transfer_supported: bool,
-    style_transfer_allowed: bool,
     style_transfer_enabled: bool,
-    beamforming_supported: bool,
-    beamforming_allowed: bool,
     dsp_input_effects_blocked: bool,
+    audio_effects_status: HashMap<CRAS_NC_PROVIDER, AudioEffectStatus>,
 }
 
 fn resolve(input: &Input) -> Output {
@@ -87,22 +85,74 @@ fn resolve(input: &Input) -> Output {
     let dlc_nc_ap_installed = input
         .dlc_installed
         .contains(CrasDlcId::CrasDlcNcAp.as_str());
+    let dsp_input_effects_blocked = if input.nc_standalone_mode {
+        input.non_dsp_aec_echo_ref_dev_alive
+    } else {
+        input.non_dsp_aec_echo_ref_dev_alive || input.aec_on_dsp_is_disallowed
+    };
     Output {
-        ap_nc_allowed: (input.ap_nc_featured_allowed
-            || input.ap_nc_segmentation_allowed
-            || input.ap_nc_feature_tier_allowed)
-            && dlc_nc_ap_installed,
-        style_transfer_supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
-        style_transfer_allowed: input.style_transfer_featured_allowed && dlc_nc_ap_installed,
         style_transfer_enabled: input.style_transfer_enabled,
-        beamforming_supported,
-        beamforming_allowed,
-        dsp_input_effects_blocked: if input.nc_standalone_mode {
-            input.non_dsp_aec_echo_ref_dev_alive
-        } else {
-            input.non_dsp_aec_echo_ref_dev_alive || input.aec_on_dsp_is_disallowed
-        },
+        dsp_input_effects_blocked,
+        audio_effects_status: HashMap::from([
+            (
+                CRAS_NC_PROVIDER::AP,
+                AudioEffectStatus {
+                    supported: true,
+                    allowed: (input.ap_nc_featured_allowed
+                        || input.ap_nc_segmentation_allowed
+                        || input.ap_nc_feature_tier_allowed)
+                        && dlc_nc_ap_installed,
+                },
+            ),
+            (
+                CRAS_NC_PROVIDER::DSP,
+                AudioEffectStatus {
+                    supported: true,
+                    allowed: !dsp_input_effects_blocked,
+                },
+            ),
+            (
+                CRAS_NC_PROVIDER::AST,
+                AudioEffectStatus {
+                    supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
+                    allowed: input.style_transfer_featured_allowed && dlc_nc_ap_installed,
+                },
+            ),
+            (
+                CRAS_NC_PROVIDER::BF,
+                AudioEffectStatus {
+                    supported: beamforming_supported,
+                    allowed: beamforming_allowed,
+                },
+            ),
+        ]),
     }
+}
+
+impl Output {
+    fn get_ap_nc_status(&self) -> &AudioEffectStatus {
+        self.audio_effects_status
+            .get(&CRAS_NC_PROVIDER::AP)
+            .unwrap()
+    }
+
+    fn get_ast_status(&self) -> &AudioEffectStatus {
+        self.audio_effects_status
+            .get(&CRAS_NC_PROVIDER::AST)
+            .unwrap()
+    }
+
+    fn get_bf_status(&self) -> &AudioEffectStatus {
+        self.audio_effects_status
+            .get(&CRAS_NC_PROVIDER::BF)
+            .unwrap()
+    }
+}
+
+#[derive(Default, Serialize)]
+struct AudioEffectStatus {
+    supported: bool,
+    allowed: bool,
 }
 
 #[derive(Serialize)]
@@ -211,58 +261,58 @@ mod tests {
     #[test]
     fn test_ap_nc() {
         let mut s = S2::new();
-        assert_eq!(s.output.ap_nc_allowed, false);
+        assert_eq!(s.output.get_ap_nc_status().allowed, false);
 
         s.set_ap_nc_featured_allowed(true);
-        assert_eq!(s.output.ap_nc_allowed, false);
+        assert_eq!(s.output.get_ap_nc_status().allowed, false);
 
         s.set_ap_nc_featured_allowed(false);
         s.set_ap_nc_segmentation_allowed(true);
-        assert_eq!(s.output.ap_nc_allowed, false);
+        assert_eq!(s.output.get_ap_nc_status().allowed, false);
 
         s.set_ap_nc_segmentation_allowed(false);
         s.set_ap_nc_feature_tier_allowed(true);
-        assert_eq!(s.output.ap_nc_allowed, false);
+        assert_eq!(s.output.get_ap_nc_status().allowed, false);
 
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
 
         s.set_ap_nc_featured_allowed(true);
-        assert_eq!(s.output.ap_nc_allowed, true);
+        assert_eq!(s.output.get_ap_nc_status().allowed, true);
 
         s.set_ap_nc_featured_allowed(false);
         s.set_ap_nc_segmentation_allowed(true);
-        assert_eq!(s.output.ap_nc_allowed, true);
+        assert_eq!(s.output.get_ap_nc_status().allowed, true);
 
         s.set_ap_nc_segmentation_allowed(false);
         s.set_ap_nc_feature_tier_allowed(true);
-        assert_eq!(s.output.ap_nc_allowed, true);
+        assert_eq!(s.output.get_ap_nc_status().allowed, true);
     }
 
     #[test]
     fn test_style_transfer_supported() {
         let mut s = S2::new();
-        assert_eq!(s.output.style_transfer_supported, false);
+        assert_eq!(s.output.get_ast_status().supported, false);
 
         s.set_ap_nc_segmentation_allowed(true);
-        assert_eq!(s.output.style_transfer_supported, true);
+        assert_eq!(s.output.get_ast_status().supported, true);
 
         s.set_cras_config_dir("omniknight.3mic");
-        assert_eq!(s.output.style_transfer_supported, false);
+        assert_eq!(s.output.get_ast_status().supported, false);
     }
 
     #[test]
     fn test_style_transfer_allowed() {
         let mut s = S2::new();
-        assert_eq!(s.output.style_transfer_allowed, false);
+        assert_eq!(s.output.get_ast_status().allowed, false);
 
         s.set_style_transfer_featured_allowed(true);
-        assert_eq!(s.output.style_transfer_allowed, false);
+        assert_eq!(s.output.get_ast_status().allowed, false);
 
         s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
-        assert_eq!(s.output.style_transfer_allowed, true);
+        assert_eq!(s.output.get_ast_status().allowed, true);
 
         s.set_style_transfer_featured_allowed(false);
-        assert_eq!(s.output.style_transfer_allowed, false);
+        assert_eq!(s.output.get_ast_status().allowed, false);
     }
 
     #[test]
@@ -285,27 +335,27 @@ mod tests {
         s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
             .as_str()
             .to_string()]));
-        assert!(!s.output.beamforming_supported);
-        assert!(s.output.style_transfer_supported);
+        assert!(!s.output.get_bf_status().supported);
+        assert!(s.output.get_ast_status().supported);
 
         s.set_cras_config_dir("omniknight.3mic");
-        assert!(s.output.beamforming_supported);
-        assert!(!s.output.style_transfer_supported);
+        assert!(s.output.get_bf_status().supported);
+        assert!(!s.output.get_ast_status().supported);
 
-        assert!(!s.output.beamforming_allowed);
+        assert!(!s.output.get_bf_status().allowed);
         s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming);
-        assert!(s.output.beamforming_allowed);
+        assert!(s.output.get_bf_status().allowed);
 
         let dlcs = HashSet::from(["does-not-exist".to_string()]);
         s.set_beamforming_required_dlcs(dlcs);
-        assert!(!s.output.beamforming_allowed);
+        assert!(!s.output.get_bf_status().allowed);
         s.input.beamforming_required_dlcs = None;
         s.update();
-        assert!(!s.output.beamforming_allowed);
+        assert!(!s.output.get_bf_status().allowed);
 
         s.set_cras_config_dir("omniknight");
-        assert!(!s.output.beamforming_supported);
-        assert!(s.output.style_transfer_supported);
+        assert!(!s.output.get_bf_status().supported);
+        assert!(s.output.get_ast_status().supported);
     }
 
     #[test]

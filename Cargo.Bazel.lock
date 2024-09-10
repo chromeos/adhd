@@ -1,5 +1,5 @@
 {
-  "checksum": "0e8100b4ba9e70ae4787228f8da76c7df2eff4f217f9d615eb58b3bb28c96644",
+  "checksum": "8e1fba18e7a570f96a487ac2bf11ff45d8f7938e5725799bb2f0773e737225b1",
   "crates": {
     "addr2line 0.20.0": {
       "name": "addr2line",
@@ -1034,6 +1034,21 @@
         "compile_data_glob": [
           "**"
         ],
+        "crate_features": {
+          "common": [
+            "serde"
+          ],
+          "selects": {}
+        },
+        "deps": {
+          "common": [
+            {
+              "id": "serde 1.0.152",
+              "target": "serde"
+            }
+          ],
+          "selects": {}
+        },
         "edition": "2021",
         "version": "2.4.0"
       },
@@ -1998,6 +2013,10 @@
             {
               "id": "openssl 0.10.62",
               "target": "openssl"
+            },
+            {
+              "id": "serde 1.0.152",
+              "target": "serde"
             },
             {
               "id": "serde_json 1.0.96",

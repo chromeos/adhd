@@ -3,12 +3,14 @@
 // found in the LICENSE file.
 
 use std::borrow::Cow;
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::fmt::Display;
 
 use anyhow::bail;
 use bitflags::bitflags;
 use itertools::Itertools;
+use serde::Serialize;
 
 bitflags! {
     #[allow(non_camel_case_types)]
@@ -49,12 +51,26 @@ pub extern "C" fn cras_stream_active_ap_effects_string(
 bitflags! {
     #[allow(non_camel_case_types)]
     #[repr(transparent)]
-    #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug)]
+    #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug, Serialize)]
     pub struct CRAS_NC_PROVIDER : u32 {
         const NONE = 0;      // NC is disabled for this ionode.
         const DSP = 1 << 0;  // NC is supported by DSP.
         const AP = 1 << 1;   // NC is supported by AP.
         const AST = 1 << 2;  // NC is supported by Style Transfer.
+        const BF = 1 << 3;   // NC is supported by Beamforming.
+    }
+}
+
+impl CRAS_NC_PROVIDER {
+    fn as_c_str(&self) -> &CStr {
+        match self {
+            &CRAS_NC_PROVIDER::NONE => c"CRAS_NC_PROVIDER_NONE",
+            &CRAS_NC_PROVIDER::DSP => c"CRAS_NC_PROVIDER_DSP",
+            &CRAS_NC_PROVIDER::AP => c"CRAS_NC_PROVIDER_AP",
+            &CRAS_NC_PROVIDER::AST => c"CRAS_NC_PROVIDER_AST",
+            &CRAS_NC_PROVIDER::BF => c"CRAS_NC_PROVIDER_BF",
+            _ => c"Invalid NC provider",
+        }
     }
 }
 
@@ -62,14 +78,7 @@ bitflags! {
 /// The ownership of the string is static in Rust, so no need to free in C.
 #[no_mangle]
 pub extern "C" fn cras_nc_provider_to_str(nc_provider: CRAS_NC_PROVIDER) -> *const libc::c_char {
-    match nc_provider {
-        CRAS_NC_PROVIDER::NONE => c"CRAS_NC_PROVIDER_NONE",
-        CRAS_NC_PROVIDER::DSP => c"CRAS_NC_PROVIDER_DSP",
-        CRAS_NC_PROVIDER::AP => c"CRAS_NC_PROVIDER_AP",
-        CRAS_NC_PROVIDER::AST => c"CRAS_NC_PROVIDER_AST",
-        _ => c"Invalid NC provider",
-    }
-    .as_ptr()
+    nc_provider.as_c_str().as_ptr()
 }
 
 /// All supported DLCs in CRAS.
@@ -123,5 +132,20 @@ impl TryFrom<&str> for CrasDlcId {
 impl Display for CrasDlcId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CRAS_NC_PROVIDER;
+
+    #[test]
+    fn test_cras_nc_provider_as_c_str() {
+        // CRAS_NC_PROVIDER.as_c_str() should return a valid &CStr for
+        // every defined bit.
+        let invalid = CRAS_NC_PROVIDER::AP | CRAS_NC_PROVIDER::DSP;
+        for nc_provider in CRAS_NC_PROVIDER::all().iter() {
+            assert_ne!(nc_provider.as_c_str(), invalid.as_c_str());
+        }
     }
 }

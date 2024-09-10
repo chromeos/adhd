@@ -165,6 +165,9 @@ name = "bitflags"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "byteorder"
@@ -329,6 +332,7 @@ dependencies = [
  "nix 0.28.0",
  "once_cell",
  "openssl",
+ "serde",
  "serde_json",
  "static_assertions",
  "syslog",

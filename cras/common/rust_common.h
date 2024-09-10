@@ -68,6 +68,7 @@ typedef uint32_t CRAS_NC_PROVIDER;
 #define CRAS_NC_PROVIDER_DSP (uint32_t)(1 << 0)
 #define CRAS_NC_PROVIDER_AP (uint32_t)(1 << 1)
 #define CRAS_NC_PROVIDER_AST (uint32_t)(1 << 2)
+#define CRAS_NC_PROVIDER_BF (uint32_t)(1 << 3)
 
 /**
  * This function is called from C code to log a FRA event.
