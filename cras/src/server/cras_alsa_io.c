@@ -482,8 +482,20 @@ static int put_buffer(struct cras_iodev* iodev, unsigned nwritten) {
       syslog(LOG_WARNING, "mmap_buf is NULL");
       return -EINVAL;
     }
-    memcpy(aio->common.mmap_buf, aio->common.sample_buf,
-           (size_t)nwritten * (size_t)format_bytes);
+    if (nwritten > iodev->area->frames) {
+      syslog(LOG_ERR, "nwritten: %d > iodev->area->frames: %d", nwritten,
+             iodev->area->frames);
+      return -EINVAL;
+    }
+
+    // Perform the copy byte-by-byte
+    size_t total_size = (size_t)nwritten * (size_t)format_bytes;
+    char* src = (char*)aio->common.sample_buf;
+    char* dest = (char*)aio->common.mmap_buf;
+    for (size_t i = 0; i < total_size; ++i) {
+      dest[i] = src[i];
+    }
+
     unsigned int max_offset = cras_iodev_max_stream_offset(iodev);
     if (max_offset) {
       memmove(aio->common.sample_buf,
