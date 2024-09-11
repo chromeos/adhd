@@ -704,9 +704,8 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Whether or not Noise Cancellation is
   // supported by at least one input node by the DSP.
   int32_t dsp_noise_cancellation_supported;
-  // Flag to bypass block/unblock Noise
-  // Cancellation mechanism.
-  int32_t bypass_block_noise_cancellation;
+  // Unused, don't remove to keep other fields' offsets.
+  int32_t unused_bypass_block_noise_cancellation;
   // 1 = Pause hotword detection when the system
   // suspends. Hotword detection is resumed after system resumes.
   // 0 = Hotword detection is allowed to continue running after system

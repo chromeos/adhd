@@ -139,11 +139,13 @@ static void dsp_input_effects_blocked_state_updated() {
     bool non_dsp_aec_echo_ref_dev_alive =
         cras_s2_get_non_dsp_aec_echo_ref_dev_alive();
     bool aec_on_dsp_is_disallowed = cras_s2_get_aec_on_dsp_is_disallowed();
+    bool bypass_block = cras_s2_get_bypass_block_dsp_nc();
     MAINLOG(main_log, MAIN_THREAD_NC_BLOCK_STATE, blocked,
             non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
-    syslog(LOG_INFO, "DSP input effects are %s: non_echo=%d disallow=%d",
-           blocked ? "deactivated" : "activated",
-           non_dsp_aec_echo_ref_dev_alive, aec_on_dsp_is_disallowed);
+    syslog(
+        LOG_INFO, "DSP input effects are %s: non_echo=%d disallow=%d bypass=%d",
+        blocked ? "deactivated" : "activated", non_dsp_aec_echo_ref_dev_alive,
+        aec_on_dsp_is_disallowed, bypass_block);
 
     cras_stream_apm_notify_dsp_input_effects_blocked(blocked);
 
@@ -283,8 +285,7 @@ struct fill_node_list_auxiliary {
 
 static struct fill_node_list_auxiliary get_fill_node_list_auxiliary() {
   struct fill_node_list_auxiliary aux = {
-      .dsp_nc_allowed = !cras_s2_get_dsp_input_effects_blocked() ||
-                        cras_system_get_bypass_block_noise_cancellation(),
+      .dsp_nc_allowed = !cras_s2_get_dsp_input_effects_blocked(),
       .bf_nc_allowed = cras_s2_get_beamforming_allowed(),
       .ap_nc_allowed = cras_s2_get_ap_nc_allowed(),
       .ast_allowed = cras_s2_get_style_transfer_allowed(),
@@ -2500,8 +2501,7 @@ CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(struct cras_iodev* iodev) {
   if (!iodev->active_node) {
     return CRAS_NC_PROVIDER_NONE;
   }
-  bool dsp_nc_allowed = (!cras_s2_get_dsp_input_effects_blocked() ||
-                         cras_system_get_bypass_block_noise_cancellation()) &&
+  bool dsp_nc_allowed = !cras_s2_get_dsp_input_effects_blocked() &&
                         cras_system_get_noise_cancellation_enabled();
   bool ap_nc_allowed = cras_s2_get_ap_nc_allowed() &&
                        cras_system_get_noise_cancellation_enabled();

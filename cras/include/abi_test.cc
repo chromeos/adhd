@@ -47,7 +47,7 @@ TEST(ABI, CrasServerState) {
   EXPECT_EQ(11016, offsetof(struct cras_server_state,
                             dsp_noise_cancellation_supported));
   EXPECT_EQ(11020, offsetof(struct cras_server_state,
-                            bypass_block_noise_cancellation));
+                            unused_bypass_block_noise_cancellation));
   EXPECT_EQ(11024,
             offsetof(struct cras_server_state, hotword_pause_at_suspend));
   EXPECT_EQ(11028, offsetof(struct cras_server_state, ns_supported));

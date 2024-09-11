@@ -245,7 +245,6 @@ void cras_system_state_init(const char* device_config_dir,
   // Disable Noise Cancellation as default.
   exp_state->noise_cancellation_enabled = 0;
   exp_state->dsp_noise_cancellation_supported = board_config->nc_supported;
-  exp_state->bypass_block_noise_cancellation = 0;
   exp_state->hotword_pause_at_suspend = board_config->hotword_pause_at_suspend;
   exp_state->hw_echo_ref_disabled = board_config->hw_echo_ref_disabled;
   exp_state->max_internal_mic_gain = board_config->max_internal_mic_gain;
@@ -254,6 +253,7 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->max_headphone_channels = board_config->max_headphone_channels;
   exp_state->num_non_chrome_output_streams = 0;
   cras_s2_set_nc_standalone_mode(board_config->nc_standalone_mode);
+  cras_s2_set_bypass_block_dsp_nc(0);
 
   // TODO(b/271383461): update AP NC availability through libsegmentation.
   exp_state->voice_isolation_supported = board_config->nc_supported | 1;
@@ -613,15 +613,11 @@ bool cras_system_get_dsp_noise_cancellation_supported() {
 void cras_system_set_bypass_block_noise_cancellation(bool bypass) {
   syslog(LOG_DEBUG, "Set bypass_block_noise_cancellation to %s",
          bypass ? "true" : "false");
-  state.exp_state->bypass_block_noise_cancellation = bypass;
+  cras_s2_set_bypass_block_dsp_nc(bypass);
 
   // Update nodes info immediately to adopt bypass status.
   cras_iodev_list_update_device_list();
   cras_iodev_list_notify_nodes_changed();
-}
-
-bool cras_system_get_bypass_block_noise_cancellation() {
-  return !!state.exp_state->bypass_block_noise_cancellation;
 }
 
 void cras_system_set_sr_bt_enabled(bool enabled) {

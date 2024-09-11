@@ -66,6 +66,7 @@ struct Input {
     // 1 - Noise Cancellation standalone mode, which implies that NC is
     // integrated without AEC on DSP. 0 - otherwise.
     nc_standalone_mode: bool,
+    bypass_block_dsp_nc: bool,
 }
 
 #[derive(Serialize)]
@@ -85,7 +86,9 @@ fn resolve(input: &Input) -> Output {
     let dlc_nc_ap_installed = input
         .dlc_installed
         .contains(CrasDlcId::CrasDlcNcAp.as_str());
-    let dsp_input_effects_blocked = if input.nc_standalone_mode {
+    let dsp_input_effects_blocked = if input.bypass_block_dsp_nc {
+        false
+    } else if input.nc_standalone_mode {
         input.non_dsp_aec_echo_ref_dev_alive
     } else {
         input.non_dsp_aec_echo_ref_dev_alive || input.aec_on_dsp_is_disallowed
@@ -230,6 +233,11 @@ impl S2 {
 
     fn set_aec_on_dsp_is_disallowed(&mut self, aec_on_dsp_is_disallowed: bool) {
         self.input.aec_on_dsp_is_disallowed = aec_on_dsp_is_disallowed;
+        self.update();
+    }
+
+    fn set_bypass_block_dsp_nc(&mut self, bypass_block_dsp_nc: bool) {
+        self.input.bypass_block_dsp_nc = bypass_block_dsp_nc;
         self.update();
     }
 
@@ -416,5 +424,20 @@ mod tests {
         s.set_aec_on_dsp_is_disallowed(false);
         assert_eq!(s.input.aec_on_dsp_is_disallowed, false);
         assert_eq!(s.output.dsp_input_effects_blocked, false);
+    }
+
+    #[test]
+    fn test_bypass_block_dsp_nc() {
+        let mut s = S2::new();
+        assert_eq!(s.input.bypass_block_dsp_nc, false);
+
+        s.set_aec_on_dsp_is_disallowed(true);
+        assert_eq!(s.output.dsp_input_effects_blocked, true);
+        s.set_bypass_block_dsp_nc(true);
+        assert_eq!(s.input.bypass_block_dsp_nc, true);
+        assert_eq!(s.output.dsp_input_effects_blocked, false);
+        s.set_bypass_block_dsp_nc(false);
+        assert_eq!(s.input.bypass_block_dsp_nc, false);
+        assert_eq!(s.output.dsp_input_effects_blocked, true);
     }
 }

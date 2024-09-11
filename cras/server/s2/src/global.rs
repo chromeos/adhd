@@ -148,3 +148,13 @@ pub extern "C" fn cras_s2_get_aec_on_dsp_is_disallowed() -> bool {
 pub extern "C" fn cras_s2_get_dsp_input_effects_blocked() -> bool {
     state().output.dsp_input_effects_blocked
 }
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_bypass_block_dsp_nc(bypass_block_dsp_nc: bool) {
+    state().set_bypass_block_dsp_nc(bypass_block_dsp_nc);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_bypass_block_dsp_nc() -> bool {
+    state().input.bypass_block_dsp_nc
+}
