@@ -178,6 +178,39 @@ size_t s16_stereo_to_mono(const uint8_t* _in, size_t in_frames, uint8_t* _out) {
 }
 
 /*
+ * Channel converter: mono to 5 channels.
+ *
+ * Fit the left/right of input to the front left/right of output respectively
+ * and fill others with zero.
+ */
+size_t s16_mono_to_5(size_t left,
+                     size_t right,
+                     const uint8_t* _in,
+                     size_t in_frames,
+                     uint8_t* _out) {
+  size_t i;
+  const int16_t* in = (const int16_t*)_in;
+  int16_t* out = (int16_t*)_out;
+
+  memset(out, 0, sizeof(*out) * 5 * in_frames);
+
+  if (left == -1 || right == -1) {
+    /*
+     * Select the first two channels to convert to as the
+     * default behavior.
+     */
+    left = 0;
+    right = 1;
+  }
+  for (i = 0; i < in_frames; i++) {
+    out[5 * i + left] = in[i];
+    out[5 * i + right] = in[i];
+  }
+
+  return in_frames;
+}
+
+/*
  * Channel converter: mono to 5.1 surround.
  *
  * Fit mono to front center of the output, or split to front left/right
@@ -211,6 +244,39 @@ size_t s16_mono_to_51(size_t left,
     for (i = 0; i < in_frames; i++) {
       out[6 * i] = in[i];
     }
+  }
+
+  return in_frames;
+}
+
+/*
+ * Channel converter: stereo to 5 channels.
+ *
+ * Fit the left/right of input to the front left/right of output respectively
+ * and fill others with zero.
+ */
+size_t s16_stereo_to_5(size_t left,
+                       size_t right,
+                       const uint8_t* _in,
+                       size_t in_frames,
+                       uint8_t* _out) {
+  size_t i;
+  const int16_t* in = (const int16_t*)_in;
+  int16_t* out = (int16_t*)_out;
+
+  memset(out, 0, sizeof(*out) * 5 * in_frames);
+
+  if (left == -1 || right == -1) {
+    /*
+     * Select the first two channels to convert to as the
+     * default behavior.
+     */
+    left = 0;
+    right = 1;
+  }
+  for (i = 0; i < in_frames; i++) {
+    out[5 * i + left] = in[2 * i];
+    out[5 * i + right] = in[2 * i + 1];
   }
 
   return in_frames;

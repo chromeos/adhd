@@ -43,6 +43,15 @@ size_t s16_mono_to_stereo(const uint8_t* in, size_t in_frames, uint8_t* out);
 size_t s16_stereo_to_mono(const uint8_t* in, size_t in_frames, uint8_t* out);
 
 /*
+ * Channel converter: mono to 5 channels.
+ */
+size_t s16_mono_to_5(size_t left,
+                     size_t right,
+                     const uint8_t* in,
+                     size_t in_frames,
+                     uint8_t* out);
+
+/*
  * Channel converter: mono to 5.1 surround.
  */
 size_t s16_mono_to_51(size_t left,
@@ -51,6 +60,15 @@ size_t s16_mono_to_51(size_t left,
                       const uint8_t* in,
                       size_t in_frames,
                       uint8_t* out);
+
+/*
+ * Channel converter: stereo to 5 channels.
+ */
+size_t s16_stereo_to_5(size_t left,
+                       size_t right,
+                       const uint8_t* in,
+                       size_t in_frames,
+                       uint8_t* out);
 
 /*
  * Channel converter: stereo to 5.1 surround.

@@ -229,6 +229,20 @@ static size_t stereo_to_mono(struct cras_fmt_conv* conv,
   return s16_stereo_to_mono(in, in_frames, out);
 }
 
+static size_t mono_to_5(struct cras_fmt_conv* conv,
+                        const uint8_t* in,
+                        size_t in_frames,
+                        uint8_t* out) {
+  size_t left, right;
+
+  // Do not consider FC for the special 5-channel device.
+  // See b/364795766 for more information.
+  left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+  right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+
+  return s16_mono_to_5(left, right, in, in_frames, out);
+}
+
 static size_t mono_to_51(struct cras_fmt_conv* conv,
                          const uint8_t* in,
                          size_t in_frames,
@@ -240,6 +254,20 @@ static size_t mono_to_51(struct cras_fmt_conv* conv,
   center = conv->out_fmt.channel_layout[CRAS_CH_FC];
 
   return s16_mono_to_51(left, right, center, in, in_frames, out);
+}
+
+static size_t stereo_to_5(struct cras_fmt_conv* conv,
+                          const uint8_t* in,
+                          size_t in_frames,
+                          uint8_t* out) {
+  size_t left, right;
+
+  // Do not consider FC for the special 5-channel device.
+  // See b/364795766 for more information.
+  left = conv->out_fmt.channel_layout[CRAS_CH_FL];
+  right = conv->out_fmt.channel_layout[CRAS_CH_FR];
+
+  return s16_stereo_to_5(left, right, in, in_frames, out);
 }
 
 static size_t stereo_to_51(struct cras_fmt_conv* conv,
@@ -534,6 +562,8 @@ struct cras_fmt_conv* cras_fmt_conv_create(const struct cras_audio_format* in,
      * and layout. */
     if (in->num_channels == 1 && out->num_channels == 2) {
       conv->channel_converter = mono_to_stereo;
+    } else if (in->num_channels == 1 && out->num_channels == 5) {
+      conv->channel_converter = mono_to_5;
     } else if (in->num_channels == 1 && out->num_channels == 6) {
       conv->channel_converter = mono_to_51;
     } else if (in->num_channels == 2 && out->num_channels == 1) {
@@ -542,6 +572,8 @@ struct cras_fmt_conv* cras_fmt_conv_create(const struct cras_audio_format* in,
       conv->channel_converter = stereo_to_quad;
     } else if (in->num_channels == 4 && out->num_channels == 2) {
       conv->channel_converter = quad_to_stereo;
+    } else if (in->num_channels == 2 && out->num_channels == 5) {
+      conv->channel_converter = stereo_to_5;
     } else if (in->num_channels == 2 && out->num_channels == 6) {
       conv->channel_converter = stereo_to_51;
     } else if (in->num_channels == 4 && out->num_channels == 6) {
