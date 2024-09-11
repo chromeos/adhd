@@ -67,6 +67,8 @@ void cras_s2_set_bypass_block_dsp_nc(bool bypass_block_dsp_nc);
 
 bool cras_s2_get_bypass_block_dsp_nc(void);
 
+void cras_s2_set_active_input_node_compatible_nc_providers(CRAS_NC_PROVIDER compatible_nc_providers);
+
 #endif  /* CRAS_SERVER_S2_S2_H_ */
 
 #ifdef __cplusplus

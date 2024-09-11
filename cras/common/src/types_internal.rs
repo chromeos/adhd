@@ -64,7 +64,7 @@ bitflags! {
 bitflags! {
     #[allow(non_camel_case_types)]
     #[repr(transparent)]
-    #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug, Serialize)]
+    #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug, Serialize, Default)]
     pub struct CRAS_NC_PROVIDER : u32 {
         const NONE = 0;      // NC is disabled for this ionode.
         const DSP = 1 << 0;  // NC is supported by DSP.

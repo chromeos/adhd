@@ -838,6 +838,18 @@ static void nodes_changed(void* arg) {
   cras_iodev_list_reset_for_noise_cancellation();
 }
 
+void active_node_changed(void* context,
+                         enum CRAS_STREAM_DIRECTION dir,
+                         cras_node_id_t node_id) {
+  if (dir == CRAS_STREAM_INPUT) {
+    struct cras_iodev* dev = find_dev(dev_index_of(node_id));
+    if (dev && dev->active_node) {
+      cras_s2_set_active_input_node_compatible_nc_providers(
+          dev->active_node->nc_providers);
+    }
+  }
+}
+
 static int disable_device(struct enabled_dev* edev, bool force);
 static int enable_device(struct cras_iodev* dev);
 
@@ -1726,6 +1738,7 @@ void cras_iodev_list_init() {
   observer_ops.output_mute_changed = sys_mute_change;
   observer_ops.suspend_changed = sys_suspend_change;
   observer_ops.nodes_changed = nodes_changed;
+  observer_ops.active_node_changed = active_node_changed;
   list_observer = cras_observer_add(&observer_ops, NULL);
   idle_timer = NULL;
   floop_timer = NULL;

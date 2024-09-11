@@ -10,6 +10,7 @@ use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
 use cras_common::types_internal::CrasDlcId;
+use cras_common::types_internal::CRAS_NC_PROVIDER;
 
 fn state() -> MutexGuard<'static, crate::S2> {
     static CELL: OnceLock<Mutex<crate::S2>> = OnceLock::new();
@@ -157,4 +158,11 @@ pub extern "C" fn cras_s2_set_bypass_block_dsp_nc(bypass_block_dsp_nc: bool) {
 #[no_mangle]
 pub extern "C" fn cras_s2_get_bypass_block_dsp_nc() -> bool {
     state().input.bypass_block_dsp_nc
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_active_input_node_compatible_nc_providers(
+    compatible_nc_providers: CRAS_NC_PROVIDER,
+) {
+    state().set_active_input_node_compatible_nc_providers(compatible_nc_providers);
 }

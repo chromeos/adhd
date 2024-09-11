@@ -33,6 +33,7 @@ struct Input {
     // List of DLCs to provide the beamforming feature.
     // None means beamforming is not supported.
     beamforming_required_dlcs: Option<HashSet<String>>,
+    active_input_node_compatible_nc_providers: CRAS_NC_PROVIDER,
 
     /*
      * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
@@ -105,6 +106,9 @@ fn resolve(input: &Input) -> Output {
                         || input.ap_nc_segmentation_allowed
                         || input.ap_nc_feature_tier_allowed)
                         && dlc_nc_ap_installed,
+                    compatible_with_active_input_node: input
+                        .active_input_node_compatible_nc_providers
+                        .contains(CRAS_NC_PROVIDER::AP),
                 },
             ),
             (
@@ -112,6 +116,9 @@ fn resolve(input: &Input) -> Output {
                 AudioEffectStatus {
                     supported: true,
                     allowed: !dsp_input_effects_blocked,
+                    compatible_with_active_input_node: input
+                        .active_input_node_compatible_nc_providers
+                        .contains(CRAS_NC_PROVIDER::DSP),
                 },
             ),
             (
@@ -119,6 +126,9 @@ fn resolve(input: &Input) -> Output {
                 AudioEffectStatus {
                     supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
                     allowed: input.style_transfer_featured_allowed && dlc_nc_ap_installed,
+                    compatible_with_active_input_node: input
+                        .active_input_node_compatible_nc_providers
+                        .contains(CRAS_NC_PROVIDER::AST),
                 },
             ),
             (
@@ -126,6 +136,9 @@ fn resolve(input: &Input) -> Output {
                 AudioEffectStatus {
                     supported: beamforming_supported,
                     allowed: beamforming_allowed,
+                    compatible_with_active_input_node: input
+                        .active_input_node_compatible_nc_providers
+                        .contains(CRAS_NC_PROVIDER::BF),
                 },
             ),
         ]),
@@ -156,6 +169,7 @@ impl Output {
 struct AudioEffectStatus {
     supported: bool,
     allowed: bool,
+    compatible_with_active_input_node: bool,
 }
 
 #[derive(Serialize)]
@@ -218,6 +232,14 @@ impl S2 {
 
     fn set_beamforming_required_dlcs(&mut self, dlcs: HashSet<String>) {
         self.input.beamforming_required_dlcs = Some(dlcs);
+        self.update();
+    }
+
+    fn set_active_input_node_compatible_nc_providers(
+        &mut self,
+        compatible_nc_providers: CRAS_NC_PROVIDER,
+    ) {
+        self.input.active_input_node_compatible_nc_providers = compatible_nc_providers;
         self.update();
     }
 
