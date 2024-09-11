@@ -22,6 +22,9 @@ static void handle_feature_changed() {
 }
 
 int cras_feature_monitor_init() {
+  // S2 initializes the feature states to false regardless of what has been set
+  // in features.inc, so we need a force update for default true features.
+  handle_feature_changed();
   return cras_main_message_add_handler(CRAS_MAIN_FEATURE_CHANGED,
                                        handle_feature_changed, NULL);
 }
