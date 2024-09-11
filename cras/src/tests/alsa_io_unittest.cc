@@ -2772,6 +2772,10 @@ int cras_system_get_using_default_volume_curve_for_usb_audio_device() {
   return sys_using_default_volume_curve_for_usb_audio_device_value;
 }
 
+bool cras_system_get_spatial_audio_enabled() {
+  return false;
+}
+
 //  From cras_alsa_mixer.
 void cras_alsa_mixer_set_dBFS(struct cras_alsa_mixer* m,
                               long dB_level,
@@ -3048,6 +3052,14 @@ int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr* mgr,
 
 int ucm_node_echo_cancellation_exists(struct cras_use_case_mgr* mgr) {
   return ucm_node_echo_cancellation_exists_ret_value;
+}
+
+int ucm_node_spatial_audio_exists(struct cras_use_case_mgr* mgr) {
+  return 0;
+}
+
+int ucm_enable_node_spatial_audio(struct cras_use_case_mgr* mgr, int enable) {
+  return 0;
 }
 
 struct cras_volume_curve* cras_volume_curve_create_simple_step(long max_volume,

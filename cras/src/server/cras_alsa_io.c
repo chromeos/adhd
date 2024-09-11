@@ -22,6 +22,7 @@
 
 #include "cras/common/check.h"
 #include "cras/server/cras_trace.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/common/cras_log.h"
 #include "cras/src/common/cras_string.h"
@@ -85,6 +86,8 @@ struct alsa_io {
   bool dsp_noise_suppression_enabled;
   // If gain control is enabled in DSP
   bool dsp_gain_control_enabled;
+  // If spatial audio is enabled in DSP
+  bool dsp_spatial_audio_enabled;
   // Use case of this device according to UCM.
   enum CRAS_USE_CASE use_case;
   // Pointer to the shared group info. NULL if the device is not in a group.
@@ -2128,6 +2131,18 @@ static void cras_iodev_update_speaker_rotation(struct cras_iodev* iodev) {
   cras_iodev_update_dsp(iodev);
 }
 
+static void cras_iodev_update_spatial_audio(struct cras_iodev* iodev) {
+  struct alsa_io* aio = (struct alsa_io*)iodev;
+  struct cras_use_case_mgr* ucm = aio->common.ucm;
+
+  if (iodev->active_node && ucm_node_spatial_audio_exists(ucm)) {
+    bool enable_dsp_spatial_audio = cras_s2_get_spatial_audio_enabled();
+
+    ucm_enable_node_spatial_audio(ucm, enable_dsp_spatial_audio);
+    aio->dsp_spatial_audio_enabled = enable_dsp_spatial_audio;
+  }
+}
+
 /*
  * Exported Interface.
  */
@@ -2295,6 +2310,11 @@ struct cras_iodev* alsa_iodev_create(
   // HDMI outputs don't have volume adjustment, do it in software.
   if (direction == CRAS_STREAM_OUTPUT && strstr(dev_name, HDMI)) {
     iodev->software_volume_needed = 1;
+  }
+
+  // Only internal speaker supports spatial audio.
+  if (direction == CRAS_STREAM_OUTPUT && strstr(dev_name, INTERNAL_SPEAKER)) {
+    iodev->spatial_audio_changed = cras_iodev_update_spatial_audio;
   }
 
   /* Add this now so that cleanup of the iodev (in case of error or card

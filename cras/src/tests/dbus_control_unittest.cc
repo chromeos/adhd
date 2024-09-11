@@ -323,4 +323,7 @@ void cras_observer_remove(struct cras_observer_client* client) {
 void cras_system_set_force_respect_ui_gains_enabled(bool enabled) {
   return;
 }
+void cras_iodev_list_update_for_spatial_audio() {
+  return;
+}
 }  // extern "C"

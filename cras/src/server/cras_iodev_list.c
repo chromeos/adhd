@@ -2929,3 +2929,16 @@ bool cras_iodev_list_is_floop_dev(int dev_idx) {
   return dev && dev->active_node &&
          dev->active_node->type == CRAS_NODE_TYPE_FLOOP;
 }
+
+static inline void update_spatial_audio_inner(struct cras_iodev* iodev) {
+  if (iodev->spatial_audio_changed) {
+    iodev->spatial_audio_changed(iodev);
+  }
+}
+
+void cras_iodev_list_update_for_spatial_audio() {
+  struct cras_iodev* iodev;
+
+  FOR_ALL_DEVS(devs, CRAS_STREAM_OUTPUT, iodev,
+               update_spatial_audio_inner(iodev));
+}

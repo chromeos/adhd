@@ -194,6 +194,26 @@ int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr* mgr,
                                        const char* node_name,
                                        int enable);
 
+/* Checks if modifier of spatial audio in ucm.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ * Returns:
+ *    1 if it exists, 0 otherwise.
+ */
+int ucm_node_spatial_audio_exists(struct cras_use_case_mgr* mgr);
+
+/* Enables or disables spatial audio. First checks if the modifier is
+ * already enabled or disabled.
+ * Args:
+ *    mgr - The cras_use_case_mgr pointer returned from alsa_ucm_create.
+ *    node_name - The node name.
+ *    enable - Enable device if non-zero.
+ * Returns:
+ *    0 on success or negative error code on failure.
+ */
+int ucm_enable_node_spatial_audio(struct cras_use_case_mgr* mgr, int enable);
+
 /* Enables or disables a UCM device.  First checks if the device is already
  * enabled or disabled.
  * Args:

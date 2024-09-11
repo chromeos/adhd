@@ -65,6 +65,7 @@ static const char rtc_proc_echo_cancellation_modifier[] =
 static const char rtc_proc_noise_suppression_modifier[] =
     "RTC Proc Noise Suppression";
 static const char rtc_proc_gain_control_modifier[] = "RTC Proc Gain Control";
+static const char spatial_audio_modifier[] = "Internal Speaker Spatial Audio";
 
 // SectionModifier prefixes and suffixes.
 static const char hotword_model_prefix[] = "Hotword Model";
@@ -629,6 +630,15 @@ int ucm_enable_node_noise_cancellation(struct cras_use_case_mgr* mgr,
 
   ucm_get_node_noise_cancellation_name(node_name, node_modifier_name);
   return ucm_modifier_try_enable(mgr, enable, node_modifier_name);
+}
+
+int inline ucm_node_spatial_audio_exists(struct cras_use_case_mgr* mgr) {
+  return ucm_mod_exists_with_name(mgr, spatial_audio_modifier);
+}
+
+int inline ucm_enable_node_spatial_audio(struct cras_use_case_mgr* mgr,
+                                         int enable) {
+  return ucm_modifier_try_enable(mgr, enable, spatial_audio_modifier);
 }
 
 int ucm_set_enabled(struct cras_use_case_mgr* mgr,

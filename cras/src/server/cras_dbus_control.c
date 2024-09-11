@@ -1531,6 +1531,7 @@ static DBusHandlerResult handle_set_spatial_audio_enabled(DBusConnection* conn,
   }
 
   cras_s2_set_spatial_audio_enabled(enabled);
+  cras_iodev_list_update_for_spatial_audio();
 
   return send_empty_reply(conn, message);
 }

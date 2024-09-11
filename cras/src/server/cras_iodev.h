@@ -327,6 +327,9 @@ struct cras_iodev {
   // time with MONOTONIC_RAW clock as the timestamp.
   int (*get_htimestamp)(const struct cras_iodev* iodev, struct timespec* ts);
 
+  // Callback when spatial audio is changed in system state
+  void (*spatial_audio_changed)(struct cras_iodev* iodev);
+
   // The audio format being rendered or captured to hardware.
   struct cras_audio_format* format;
   // Rate estimator to estimate the actual device rate.

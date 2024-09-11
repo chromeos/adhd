@@ -193,6 +193,7 @@ cc_test(
         "//cras/common:check",
         "//cras/server:cras_trace",
         "//cras/server/platform/dlc:cc",
+        "//cras/server/s2:cc",
         "//cras/src/common:all_headers",
         "//cras/src/common:cras_log",
         "//cras/src/server:all_headers",
