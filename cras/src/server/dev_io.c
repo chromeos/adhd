@@ -1666,7 +1666,12 @@ int dev_io_append_stream(struct open_dev** odevs,
       bool found_matched_input;
       found_matched_input = find_matched_input_stream_next_cb_ts(
           stream, *idevs, &in_stream_ts, &in_stream_sleep_interval_ts);
-      if (found_matched_input) {
+      // Do not reset next_cb_ts if the stream is already attached to other
+      // devices.
+      if (stream->num_attached_devs) {
+        init_cb_ts.tv_sec = 0;
+        init_cb_ts.tv_nsec = 0;
+      } else if (found_matched_input) {
         init_cb_ts = *in_stream_ts;
         init_sleep_interval_ts = in_stream_sleep_interval_ts;
       } else {
