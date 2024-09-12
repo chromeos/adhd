@@ -71,9 +71,11 @@ typedef uint32_t CRAS_NC_PROVIDER;
 #define CRAS_NC_PROVIDER_BF (uint32_t)(1 << 3)
 
 typedef uint32_t EFFECT_TYPE;
+#define EFFECT_TYPE_NONE (uint32_t)0
 #define EFFECT_TYPE_NOISE_CANCELLATION (uint32_t)(1 << 0)
 #define EFFECT_TYPE_HFP_MIC_SR (uint32_t)(1 << 1)
 #define EFFECT_TYPE_STYLE_TRANSFER (uint32_t)(1 << 2)
+#define EFFECT_TYPE_BEAMFORMING (uint32_t)(1 << 3)
 
 /**
  * This function is called from C code to log a FRA event.

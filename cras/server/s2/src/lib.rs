@@ -10,6 +10,7 @@ use anyhow::Context;
 use audio_processor::cdcfg;
 use cras_common::types_internal::CrasDlcId;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
+use cras_common::types_internal::EFFECT_TYPE;
 use serde::Serialize;
 
 pub mod global;
@@ -75,6 +76,7 @@ struct Output {
     style_transfer_enabled: bool,
     dsp_input_effects_blocked: bool,
     audio_effects_status: HashMap<CRAS_NC_PROVIDER, AudioEffectStatus>,
+    nc_effect_for_ui_toggle: EFFECT_TYPE,
 }
 
 fn resolve(input: &Input) -> Output {
@@ -94,54 +96,91 @@ fn resolve(input: &Input) -> Output {
     } else {
         input.non_dsp_aec_echo_ref_dev_alive || input.aec_on_dsp_is_disallowed
     };
+    let audio_effects_status = HashMap::from([
+        (
+            CRAS_NC_PROVIDER::AP,
+            AudioEffectStatus {
+                supported: true,
+                allowed: (input.ap_nc_featured_allowed
+                    || input.ap_nc_segmentation_allowed
+                    || input.ap_nc_feature_tier_allowed)
+                    && dlc_nc_ap_installed,
+                compatible_with_active_input_node: input
+                    .active_input_node_compatible_nc_providers
+                    .contains(CRAS_NC_PROVIDER::AP),
+            },
+        ),
+        (
+            CRAS_NC_PROVIDER::DSP,
+            AudioEffectStatus {
+                supported: true,
+                allowed: !dsp_input_effects_blocked,
+                compatible_with_active_input_node: input
+                    .active_input_node_compatible_nc_providers
+                    .contains(CRAS_NC_PROVIDER::DSP),
+            },
+        ),
+        (
+            CRAS_NC_PROVIDER::AST,
+            AudioEffectStatus {
+                supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
+                allowed: input.style_transfer_featured_allowed && dlc_nc_ap_installed,
+                compatible_with_active_input_node: input
+                    .active_input_node_compatible_nc_providers
+                    .contains(CRAS_NC_PROVIDER::AST),
+            },
+        ),
+        (
+            CRAS_NC_PROVIDER::BF,
+            AudioEffectStatus {
+                supported: beamforming_supported,
+                allowed: beamforming_allowed,
+                compatible_with_active_input_node: input
+                    .active_input_node_compatible_nc_providers
+                    .contains(CRAS_NC_PROVIDER::BF),
+            },
+        ),
+    ]);
+    let nc_effect_for_ui_toggle = resolve_effect_toggle_type(&audio_effects_status);
+
     Output {
         style_transfer_enabled: input.style_transfer_enabled,
         dsp_input_effects_blocked,
-        audio_effects_status: HashMap::from([
-            (
-                CRAS_NC_PROVIDER::AP,
-                AudioEffectStatus {
-                    supported: true,
-                    allowed: (input.ap_nc_featured_allowed
-                        || input.ap_nc_segmentation_allowed
-                        || input.ap_nc_feature_tier_allowed)
-                        && dlc_nc_ap_installed,
-                    compatible_with_active_input_node: input
-                        .active_input_node_compatible_nc_providers
-                        .contains(CRAS_NC_PROVIDER::AP),
-                },
-            ),
-            (
-                CRAS_NC_PROVIDER::DSP,
-                AudioEffectStatus {
-                    supported: true,
-                    allowed: !dsp_input_effects_blocked,
-                    compatible_with_active_input_node: input
-                        .active_input_node_compatible_nc_providers
-                        .contains(CRAS_NC_PROVIDER::DSP),
-                },
-            ),
-            (
-                CRAS_NC_PROVIDER::AST,
-                AudioEffectStatus {
-                    supported: input.ap_nc_segmentation_allowed && !beamforming_supported,
-                    allowed: input.style_transfer_featured_allowed && dlc_nc_ap_installed,
-                    compatible_with_active_input_node: input
-                        .active_input_node_compatible_nc_providers
-                        .contains(CRAS_NC_PROVIDER::AST),
-                },
-            ),
-            (
-                CRAS_NC_PROVIDER::BF,
-                AudioEffectStatus {
-                    supported: beamforming_supported,
-                    allowed: beamforming_allowed,
-                    compatible_with_active_input_node: input
-                        .active_input_node_compatible_nc_providers
-                        .contains(CRAS_NC_PROVIDER::BF),
-                },
-            ),
-        ]),
+        audio_effects_status,
+        nc_effect_for_ui_toggle,
+    }
+}
+
+fn resolve_effect_toggle_type(
+    audio_effects_status: &HashMap<CRAS_NC_PROVIDER, AudioEffectStatus>,
+) -> EFFECT_TYPE {
+    if audio_effects_status
+        .get(&CRAS_NC_PROVIDER::AST)
+        .unwrap()
+        .supported_and_allowed()
+    // If incompatible with active input node, will still keep
+    // the Style Transfer toggle, just the effect selection will fallback
+    // to AP NC.
+    {
+        EFFECT_TYPE::STYLE_TRANSFER
+    } else if audio_effects_status
+        .get(&CRAS_NC_PROVIDER::BF)
+        .unwrap()
+        .supported_allowed_and_active_inode_compatible()
+    {
+        EFFECT_TYPE::BEAMFORMING
+    } else if audio_effects_status
+        .get(&CRAS_NC_PROVIDER::DSP)
+        .unwrap()
+        .supported_allowed_and_active_inode_compatible()
+        || audio_effects_status
+            .get(&CRAS_NC_PROVIDER::AP)
+            .unwrap()
+            .supported_allowed_and_active_inode_compatible()
+    {
+        EFFECT_TYPE::NOISE_CANCELLATION
+    } else {
+        EFFECT_TYPE::NONE
     }
 }
 
@@ -170,6 +209,25 @@ struct AudioEffectStatus {
     supported: bool,
     allowed: bool,
     compatible_with_active_input_node: bool,
+}
+
+impl AudioEffectStatus {
+    #[cfg(test)]
+    fn new_with_flag_value(value: bool) -> Self {
+        AudioEffectStatus {
+            supported: value,
+            allowed: value,
+            compatible_with_active_input_node: value,
+        }
+    }
+
+    fn supported_and_allowed(&self) -> bool {
+        self.supported && self.allowed
+    }
+
+    fn supported_allowed_and_active_inode_compatible(&self) -> bool {
+        self.supported && self.allowed && self.compatible_with_active_input_node
+    }
 }
 
 #[derive(Serialize)]
@@ -282,10 +340,15 @@ impl S2 {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::collections::HashSet;
 
     use cras_common::types_internal::CrasDlcId;
+    use cras_common::types_internal::CRAS_NC_PROVIDER;
+    use cras_common::types_internal::EFFECT_TYPE;
 
+    use crate::resolve_effect_toggle_type;
+    use crate::AudioEffectStatus;
     use crate::S2;
 
     #[test]
@@ -461,5 +524,62 @@ mod tests {
         s.set_bypass_block_dsp_nc(false);
         assert_eq!(s.input.bypass_block_dsp_nc, false);
         assert_eq!(s.output.dsp_input_effects_blocked, true);
+    }
+
+    #[test]
+    fn test_resolve_effect_toggle_type() {
+        let mut audio_effects_status = HashMap::from([
+            (CRAS_NC_PROVIDER::AP, AudioEffectStatus::default()),
+            (CRAS_NC_PROVIDER::DSP, AudioEffectStatus::default()),
+            (CRAS_NC_PROVIDER::AST, AudioEffectStatus::default()),
+            (CRAS_NC_PROVIDER::BF, AudioEffectStatus::default()),
+        ]);
+        assert_eq!(
+            resolve_effect_toggle_type(&audio_effects_status),
+            EFFECT_TYPE::NONE
+        );
+
+        audio_effects_status.insert(
+            CRAS_NC_PROVIDER::AP,
+            AudioEffectStatus::new_with_flag_value(true),
+        );
+        assert_eq!(
+            resolve_effect_toggle_type(&audio_effects_status),
+            EFFECT_TYPE::NOISE_CANCELLATION
+        );
+        audio_effects_status.insert(
+            CRAS_NC_PROVIDER::AP,
+            AudioEffectStatus::new_with_flag_value(false),
+        );
+        assert_eq!(
+            resolve_effect_toggle_type(&audio_effects_status),
+            EFFECT_TYPE::NONE
+        );
+        audio_effects_status.insert(
+            CRAS_NC_PROVIDER::DSP,
+            AudioEffectStatus::new_with_flag_value(true),
+        );
+        assert_eq!(
+            resolve_effect_toggle_type(&audio_effects_status),
+            EFFECT_TYPE::NOISE_CANCELLATION
+        );
+
+        audio_effects_status.insert(
+            CRAS_NC_PROVIDER::BF,
+            AudioEffectStatus::new_with_flag_value(true),
+        );
+        assert_eq!(
+            resolve_effect_toggle_type(&audio_effects_status),
+            EFFECT_TYPE::BEAMFORMING
+        );
+
+        audio_effects_status.insert(
+            CRAS_NC_PROVIDER::AST,
+            AudioEffectStatus::new_with_flag_value(true),
+        );
+        assert_eq!(
+            resolve_effect_toggle_type(&audio_effects_status),
+            EFFECT_TYPE::STYLE_TRANSFER
+        );
     }
 }

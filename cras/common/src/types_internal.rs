@@ -55,9 +55,11 @@ bitflags! {
     #[repr(transparent)]
     #[derive(Clone, Copy, PartialEq, Hash, Eq, Debug, Serialize)]
     pub struct EFFECT_TYPE: u32 {
+      const NONE = 0;
       const NOISE_CANCELLATION = 1 << 0;
       const HFP_MIC_SR = 1 << 1;
       const STYLE_TRANSFER = 1 << 2;
+      const BEAMFORMING = 1 << 3;
     }
 }
 
