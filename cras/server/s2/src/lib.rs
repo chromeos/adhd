@@ -77,6 +77,9 @@ struct Output {
     dsp_input_effects_blocked: bool,
     audio_effects_status: HashMap<CRAS_NC_PROVIDER, AudioEffectStatus>,
     nc_effect_for_ui_toggle: EFFECT_TYPE,
+    // The NC providers that can be used if the node is compatible and the
+    // effect should be enabled.
+    system_valid_nc_providers: CRAS_NC_PROVIDER,
 }
 
 fn resolve(input: &Input) -> Output {
@@ -142,12 +145,25 @@ fn resolve(input: &Input) -> Output {
         ),
     ]);
     let nc_effect_for_ui_toggle = resolve_effect_toggle_type(&audio_effects_status);
+    // TODO(b/353627012): Set system_valid_nc_providers considering
+    // nc_ui_selected_mode after the "Effect Mode options" in UI is implemented.
+    let system_valid_nc_providers = audio_effects_status
+        .iter()
+        .filter_map(|(provider, status)| {
+            if status.supported_and_allowed() {
+                Some(*provider)
+            } else {
+                None
+            }
+        })
+        .fold(CRAS_NC_PROVIDER::empty(), CRAS_NC_PROVIDER::union);
 
     Output {
         style_transfer_enabled: input.style_transfer_enabled,
         dsp_input_effects_blocked,
         audio_effects_status,
         nc_effect_for_ui_toggle,
+        system_valid_nc_providers,
     }
 }
 
@@ -581,5 +597,35 @@ mod tests {
             resolve_effect_toggle_type(&audio_effects_status),
             EFFECT_TYPE::STYLE_TRANSFER
         );
+    }
+
+    #[test]
+    fn test_system_valid_nc_providers() {
+        // TODO(b/353627012): Set system_valid_nc_providers considering
+        // nc_ui_selected_mode after the "Effect Mode options" in UI is implemented.
+
+        let mut s = S2::new();
+        let mut expected = CRAS_NC_PROVIDER::DSP;
+        assert_eq!(s.output.system_valid_nc_providers, expected);
+
+        s.set_ap_nc_featured_allowed(true);
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+        expected |= CRAS_NC_PROVIDER::AP;
+        assert_eq!(s.output.system_valid_nc_providers, expected);
+
+        s.set_ap_nc_segmentation_allowed(true);
+        s.set_style_transfer_featured_allowed(true);
+        expected |= CRAS_NC_PROVIDER::AST;
+        assert_eq!(s.output.system_valid_nc_providers, expected);
+
+        s.set_beamforming_required_dlcs(HashSet::from([CrasDlcId::CrasDlcIntelligoBeamforming
+            .as_str()
+            .to_string()]));
+        s.set_dlc_installed(CrasDlcId::CrasDlcIntelligoBeamforming);
+        s.set_cras_config_dir("omniknight.3mic");
+        expected |= CRAS_NC_PROVIDER::BF;
+        // TODO(b/353627012): Currently BF and AST are mutually exclusive. Update test when they're not.
+        expected.remove(CRAS_NC_PROVIDER::AST);
+        assert_eq!(s.output.system_valid_nc_providers, expected);
     }
 }
