@@ -290,6 +290,9 @@ impl DSM {
                 rdc_range.lower,
                 rdc_range.upper,
             );
+            if !datastore_exist {
+                Datastore::UseVPD.save(&self.snd_card, channel)?;
+            }
             log_uma_enum(UMACalibrationResult::LargeCalibrationDiff);
             return Ok(previous_calib);
         }
