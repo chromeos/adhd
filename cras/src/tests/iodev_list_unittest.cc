@@ -4057,7 +4057,8 @@ int server_stream_create(struct stream_list* stream_list,
                          unsigned int dev_idx,
                          struct cras_audio_format* format,
                          unsigned int effects,
-                         bool synchronous) {
+                         bool synchronous,
+                         unsigned int block_size) {
   server_stream_create_called++;
   return 0;
 }

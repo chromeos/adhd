@@ -17,9 +17,6 @@
 #include "cras_types.h"
 #include "third_party/utlist/utlist.h"
 
-// Parameters used for server stream.
-static unsigned int server_stream_block_size = 480;
-
 /*
  * Information of a stream created by server. Currently only
  * one server stream is allowed, for each type of server stream.
@@ -54,7 +51,8 @@ int server_stream_create(struct stream_list* stream_list,
                          unsigned int dev_idx,
                          struct cras_audio_format* format,
                          unsigned int effects,
-                         bool synchronous) {
+                         bool synchronous,
+                         unsigned int block_size) {
   int audio_fd = -1;
   int client_shm_fd = -1;
   uint64_t buffer_offsets[2] = {0, 0};
@@ -87,8 +85,8 @@ int server_stream_create(struct stream_list* stream_list,
   cras_rstream_config_init(
       /*client=*/NULL, cras_get_stream_id(SERVER_STREAM_CLIENT_ID, type),
       CRAS_STREAM_TYPE_DEFAULT, CRAS_CLIENT_TYPE_SERVER_STREAM, direction,
-      dev_idx, flags, effects, format, server_stream_block_size,
-      server_stream_block_size, &audio_fd, &client_shm_fd,
+      dev_idx, flags, effects, format, block_size, block_size, &audio_fd,
+      &client_shm_fd,
       /*client_shm_size=*/0, buffer_offsets, &ss->config);
   ss->list = stream_list;
   ss->stream_id = ss->config.stream_id;

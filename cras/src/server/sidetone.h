@@ -20,7 +20,8 @@ struct cras_rstream;
 
 // Create the sidetone input and output streams.
 // Returns true if success.
-bool enable_sidetone(struct stream_list* stream_list);
+bool enable_sidetone(struct stream_list* stream_list,
+                     enum CRAS_NODE_TYPE output_node_type);
 
 // Destroy the sidetone input and output streams.
 void disable_sidetone(struct stream_list* stream_list);

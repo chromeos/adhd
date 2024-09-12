@@ -562,7 +562,8 @@ bool cras_system_set_sidetone_enabled(bool enabled) {
 
     if (enabled) {
       cras_iodev_list_reset_for_sidetone();
-      if (!enable_sidetone(cras_iodev_list_get_stream_list())) {
+      if (!enable_sidetone(cras_iodev_list_get_stream_list(),
+                           active_node.type_enum)) {
         syslog(LOG_ERR, "Failed to enable sidetone");
         state.sidetone_enabled = false;
         return false;

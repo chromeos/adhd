@@ -443,7 +443,7 @@ static void possibly_enable_echo_reference(struct cras_iodev* dev) {
 
   int rc = server_stream_create(stream_list, SERVER_STREAM_ECHO_REF,
                                 dev->echo_reference_dev->info.idx, dev->format,
-                                0, false);
+                                0, false, DEFAULT_SERVER_STREAM_BLOCK_SIZE);
   if (rc) {
     syslog(LOG_ERR, "Failed to create echo ref server stream");
   }
@@ -2837,7 +2837,8 @@ void cras_iodev_list_create_server_vad_stream(int dev_idx) {
       2,
       {0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
   int rc = server_stream_create(stream_list, SERVER_STREAM_VAD, dev_idx,
-                                &srv_stream_fmt, APM_ECHO_CANCELLATION, false);
+                                &srv_stream_fmt, APM_ECHO_CANCELLATION, false,
+                                DEFAULT_SERVER_STREAM_BLOCK_SIZE);
   if (rc) {
     syslog(LOG_ERR, "Fail to create VAD server stream");
   }

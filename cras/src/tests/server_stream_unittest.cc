@@ -53,7 +53,8 @@ TEST(ServerStream, CreateDestroyRace) {
       stream_destroy_noop, stream_callback_noop, nullptr);
 
   const unsigned int dev_idx = 1234;
-  server_stream_create(sl, SERVER_STREAM_ECHO_REF, dev_idx, nullptr, 0, false);
+  server_stream_create(sl, SERVER_STREAM_ECHO_REF, dev_idx, nullptr, 0, false,
+                       DEFAULT_SERVER_STREAM_BLOCK_SIZE);
   server_stream_destroy(sl, SERVER_STREAM_ECHO_REF, dev_idx);
   run_all_pending_tasks();
 

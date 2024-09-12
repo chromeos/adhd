@@ -7,10 +7,8 @@
 #include <syslog.h>
 
 #include "cras/src/server/cras_rstream.h"
-#include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/server_stream.h"
 #include "cras/src/server/stream_list.h"
-#include "cras_iodev_info.h"
 #include "cras_shm.h"
 #include "cras_types.h"
 
@@ -26,20 +24,42 @@
 static uint8_t* tmp_output_samples;
 static struct cras_shm_info tmp_output_samples_info;
 
-bool enable_sidetone(struct stream_list* stream_list) {
+static bool need_echo_cancellation(enum CRAS_NODE_TYPE output_node_type) {
+  switch (output_node_type) {
+    case CRAS_NODE_TYPE_HEADPHONE:
+    case CRAS_NODE_TYPE_ALSA_LOOPBACK:
+    case CRAS_NODE_TYPE_USB:
+    case CRAS_NODE_TYPE_BLUETOOTH:
+      return false;
+    default:
+      return true;
+  }
+}
+
+bool enable_sidetone(struct stream_list* stream_list,
+                     enum CRAS_NODE_TYPE output_node_type) {
+  int effects = 0;
+  int block_size = DEFAULT_SERVER_STREAM_BLOCK_SIZE;
+  if (need_echo_cancellation(output_node_type)) {
+    // Set higher block size so it has higher latency and prevent the audio
+    // being cancelled by the echo cancellation.
+    effects = APM_ECHO_CANCELLATION;
+    block_size = 8192;
+  }
+
   static struct cras_audio_format srv_stream_fmt = {
       SND_PCM_FORMAT_S16_LE,
       48000,
       2,
       {0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
   int rc = server_stream_create(stream_list, SERVER_STREAM_SIDETONE_INPUT, 0,
-                                &srv_stream_fmt, 0, true);
+                                &srv_stream_fmt, effects, true, block_size);
   if (rc) {
     syslog(LOG_ERR, "Failed to create input sidetone stream");
     return false;
   }
   rc = server_stream_create(stream_list, SERVER_STREAM_SIDETONE_OUTPUT, 0,
-                            &srv_stream_fmt, 0, true);
+                            &srv_stream_fmt, 0, true, block_size);
   if (rc) {
     syslog(LOG_ERR,
            "Failed to create output sidetone stream. Destroying input stream");
@@ -74,13 +94,7 @@ void configure_sidetone_streams(struct cras_rstream* input,
   input->pair = output;
 }
 
+// TODO(normanbt): Remove this function
 bool is_sidetone_available(enum CRAS_NODE_TYPE output_node_type) {
-  switch (output_node_type) {
-    case CRAS_NODE_TYPE_HEADPHONE:
-    case CRAS_NODE_TYPE_ALSA_LOOPBACK:
-    case CRAS_NODE_TYPE_USB:
-      return 1;
-    default:
-      return 0;
-  }
+  return true;
 }
