@@ -100,7 +100,6 @@ pub unsafe extern "C" fn drc_set_emphasis_disabled(drc: *mut DRC, value: i32) {
 
 #[cfg(test)]
 mod tests {
-    use crate::drc::DRC;
     use crate::drc::DRC_PARAM;
 
     #[test]
