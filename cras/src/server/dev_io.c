@@ -562,6 +562,10 @@ static int capture_to_streams(struct open_dev* adev,
 
   cras_iodev_update_highest_hw_level(idev, hw_level);
 
+  if (idev->active_node) {
+    cras_trace_hw_level(idev->active_node->type, hw_level);
+  }
+
   ATLOG(atlog, AUDIO_THREAD_READ_AUDIO_TSTAMP, idev->info.idx, hw_tstamp.tv_sec,
         hw_tstamp.tv_nsec);
   if (timespec_is_nonzero(&hw_tstamp)) {
@@ -992,6 +996,10 @@ int write_output_samples(struct open_dev** odevs,
       // previously weren't. Start the empty period.
       adev->empty_pi = pic_polled_interval_create(MIN_EMPTY_PERIOD_SEC);
     }
+  }
+
+  if (odev->active_node) {
+    cras_trace_hw_level(odev->active_node->type, hw_level);
   }
 
   ATLOG(atlog, AUDIO_THREAD_FILL_AUDIO_DONE, hw_level, total_written,

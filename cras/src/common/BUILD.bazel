@@ -151,6 +151,7 @@ cc_library(
     ],
     visibility = [
         "//cras/benchmark:__pkg__",
+        "//cras/server:__pkg__",
         "//cras/src/dsp:__pkg__",
         "//cras/src/libcras:__pkg__",
         "//cras/src/server:__pkg__",

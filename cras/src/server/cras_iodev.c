@@ -18,6 +18,7 @@
 #include <time.h>
 
 #include "cras/common/check.h"
+#include "cras/server/cras_trace.h"
 #include "cras/server/platform/features/features.h"
 #include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_hats.h"
@@ -1687,6 +1688,11 @@ int cras_iodev_output_underrun(struct cras_iodev* odev,
                                unsigned int hw_level,
                                unsigned int frames_written) {
   int rc;
+
+  if (odev->active_node) {
+    cras_trace_underrun(odev->active_node->type, odev->active_node->position);
+  }
+
   ATLOG(atlog, AUDIO_THREAD_UNDERRUN, odev->info.idx, hw_level, frames_written);
   odev->num_underruns++;
   if (cras_apm_state_get_num_nc()) {
@@ -2009,6 +2015,11 @@ void cras_iodev_update_highest_hw_level(struct cras_iodev* iodev,
    */
   if (hw_level == iodev->buffer_size &&
       iodev->largest_cb_level * 3 < iodev->buffer_size) {
+    if (iodev->active_node) {
+      cras_trace_overrun(iodev->active_node->type,
+                         iodev->active_node->position);
+    }
+
     ATLOG(atlog, AUDIO_THREAD_DEV_OVERRUN, iodev->info.idx, hw_level, 0);
     // Only log the event when the first time it happens.
     if (iodev->highest_hw_level != hw_level) {

@@ -2786,7 +2786,7 @@ TEST(IoDev, AecOnDspUseCaseCheck) {
 }
 
 TEST(IoDev, DeviceOverrun) {
-  struct cras_iodev iodev;
+  struct cras_iodev iodev = {};
 
   iodev.buffer_size = 4096;
   iodev.largest_cb_level = 2048;

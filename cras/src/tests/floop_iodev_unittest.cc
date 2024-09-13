@@ -2,9 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// To ensure proper linkage when headers are included in both C and C++ code:
+// 1. Include headers *outside* of any `extern "C"` block.
+// 2. Within headers, use `#ifdef __cplusplus` to enclose function declarations
+//    within an `extern "C"` block. This ensures C++ code sees C linkage,
+//    while C code remains unaffected.
+#include "cras/server/cras_trace.h"
+#include "cras/src/server/cras_iodev.h"
 extern "C" {
 #include "cras/src/server/cras_floop_iodev.c"
-#include "cras/src/server/cras_iodev.h"
 }
 
 #include <gtest/gtest.h>

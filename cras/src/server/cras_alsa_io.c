@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include "cras/common/check.h"
+#include "cras/server/cras_trace.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/common/cras_log.h"
 #include "cras/src/common/cras_string.h"
@@ -457,6 +458,9 @@ static int get_buffer(struct cras_iodev* iodev,
         syslog(LOG_WARNING, "sample_buf is NULL");
         return -EINVAL;
       }
+      if (iodev->active_node) {
+        cras_trace_frames(iodev->active_node->type, nframes);
+      }
       memcpy(aio->common.sample_buf + iodev->input_dsp_offset * format_bytes,
              aio->common.mmap_buf + iodev->input_dsp_offset * format_bytes,
              (nframes - iodev->input_dsp_offset) * format_bytes);
@@ -486,6 +490,10 @@ static int put_buffer(struct cras_iodev* iodev, unsigned nwritten) {
       syslog(LOG_ERR, "nwritten: %d > iodev->area->frames: %d", nwritten,
              iodev->area->frames);
       return -EINVAL;
+    }
+
+    if (iodev->active_node) {
+      cras_trace_frames(iodev->active_node->type, nwritten);
     }
 
     // Perform the copy byte-by-byte

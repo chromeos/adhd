@@ -59,7 +59,9 @@ cc_library(
         "//cras/src/server:__pkg__",
         "//cras/src/tests:__pkg__",
     ],
-    deps = select({
+    deps = [
+        "//cras/src/common:cras_types",
+    ] + select({
         "@adhd//:system_percetto_build": ["@pkg_config//percetto"],
         "//conditions:default": ["@percetto"],
     }),

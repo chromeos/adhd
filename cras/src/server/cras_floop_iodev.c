@@ -13,6 +13,7 @@
 #include <sys/param.h>
 #include <time.h>
 
+#include "cras/server/cras_trace.h"
 #include "cras/src/common/byte_buffer.h"
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
@@ -183,6 +184,9 @@ static int input_put_buffer(struct cras_iodev* iodev, unsigned nframes) {
   struct byte_buffer* buf = floop->buffer;
   unsigned int frame_bytes = cras_get_format_bytes(iodev->format);
 
+  if (iodev->active_node) {
+    cras_trace_frames(iodev->active_node->type, nframes);
+  }
   floop->read_frames += nframes;
   buf_increment_read(buf, (size_t)nframes * (size_t)frame_bytes);
   return 0;
@@ -248,6 +252,10 @@ static int output_put_buffer(struct cras_iodev* iodev, unsigned nframes) {
   struct flexible_loopback* floop = output_to_floop(iodev);
   struct byte_buffer* buf = floop->buffer;
   size_t frame_bytes = cras_get_format_bytes(iodev->format);
+
+  if (iodev->active_node) {
+    cras_trace_frames(iodev->active_node->type, nframes);
+  }
 
   buf_increment_write(buf, (size_t)nframes * frame_bytes);
   return 0;
