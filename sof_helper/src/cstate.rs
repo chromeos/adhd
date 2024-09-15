@@ -409,6 +409,28 @@ fn get_support_components(card: &str) -> Result<Vec<(Control, &dyn Component)>> 
     Ok(support_comps)
 }
 
+// For JSON format printing
+#[derive(serde::Serialize, Debug)]
+struct CompStateInfo {
+    component: String,
+    state: String,
+    mixer: String,
+}
+
+fn print_state_json(support_comps: &[(Control, &dyn Component)]) -> Result<()> {
+    let mut infos: Vec<CompStateInfo> = Vec::new();
+    for (ctl, comp) in support_comps.iter() {
+        let state = comp.get_state(&ctl)?;
+        infos.push(CompStateInfo {
+            component: comp.get_type().to_string(),
+            state: format!("{:?}", state),
+            mixer: format!("numid={},name='{}'", ctl.numid, ctl.name),
+        });
+    }
+    println!("{}", serde_json::to_string(&infos)?);
+    Ok(())
+}
+
 #[derive(PartialEq, Debug, Args)]
 pub struct CstateOptions {
     /// The component type
@@ -417,6 +439,9 @@ pub struct CstateOptions {
     /// Print "On"/"Off"/"Exists" for the state, return error if not exist
     #[arg(long, short, requires = "component")]
     pub expect: bool,
+    /// Print all available states in JSON format, use this without [COMPONENT]
+    #[arg(long, conflicts_with_all = ["component", "expect"])]
+    pub json: bool,
 }
 
 pub fn cstate(args: CstateOptions) -> Result<()> {
@@ -427,6 +452,11 @@ pub fn cstate(args: CstateOptions) -> Result<()> {
     for card in cards.iter() {
         let card_comps = get_support_components(card)?;
         support_comps.extend(card_comps);
+    }
+
+    if args.json {
+        print_state_json(&support_comps[..])?;
+        return Ok(());
     }
 
     let mut expect_state: Option<ControlState> = None;
