@@ -2814,15 +2814,20 @@ int cras_iodev_list_request_floop(const struct cras_floop_params* params) {
 
 void cras_iodev_list_enable_floop_pair(struct cras_floop_pair* pair) {
   struct cras_rstream* stream;
+  struct cras_rstream* streams[NUM_STREAMS_ATTACHED_MAX];
+  unsigned int num_streams = 0;
   DL_FOREACH (stream_list_get(stream_list), stream) {
     if (cras_floop_pair_match_output_stream(pair, stream)) {
       int rc = init_device(&pair->output, stream);
       if (rc != 0) {
         continue;
       }
-      struct cras_iodev* devs[] = {&pair->output};
-      add_streams_to_open_devs(&stream, 1, devs, 1);
+      streams[num_streams++] = stream;
     }
+  }
+  if (num_streams) {
+    struct cras_iodev* devs[] = {&pair->output};
+    add_streams_to_open_devs(streams, num_streams, devs, 1);
   }
 }
 
