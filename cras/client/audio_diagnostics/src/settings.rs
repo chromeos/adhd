@@ -29,6 +29,8 @@ struct Audio {
     output_user_priority: Option<HashMap<AudioNode, i32>>,
     input_preference_set: Option<HashMap<AudioNodeSet, AudioNode>>,
     output_preference_set: Option<HashMap<AudioNodeSet, AudioNode>>,
+    most_recent_activated_input_device_ids: Option<Vec<AudioNode>>,
+    most_recent_activated_output_device_ids: Option<Vec<AudioNode>>,
     // The last_seen field is intentionally dropped to avoid
     // joining feedback reports. See b/279545748#comment11.
 }
@@ -326,7 +328,13 @@ mod tests {
   },
   "output_preference_set": {
     "2356475750 : 0, 1923447123 : 0, 2315562897 : 0": "1923447123 : 0"
-  }
+  },
+  "most_recent_activated_input_device_ids": [
+    "3787040 : 1", "2315562897 : 1", "3962083865 : 1"
+  ],
+  "most_recent_activated_output_device_ids": [
+    "2356475750 : 0", "1923447123 : 0", "2315562897 : 0"
+  ]
 }"#;
         let local_state_string = r#"{"settings":{"audio":@AUDIO_SETTINGS@}}"#
             .replace("@AUDIO_SETTINGS@", audio_settings_str);
@@ -486,6 +494,46 @@ mod tests {
                 stable_id: 1923447123,
                 is_input: false
             }
+        );
+        assert_eq!(
+            *audio
+                .most_recent_activated_input_device_ids
+                .as_ref()
+                .unwrap(),
+            vec![
+                AudioNode {
+                    stable_id: 3787040,
+                    is_input: true,
+                },
+                AudioNode {
+                    stable_id: 2315562897,
+                    is_input: true,
+                },
+                AudioNode {
+                    stable_id: 3962083865,
+                    is_input: true,
+                },
+            ]
+        );
+        assert_eq!(
+            *audio
+                .most_recent_activated_output_device_ids
+                .as_ref()
+                .unwrap(),
+            vec![
+                AudioNode {
+                    stable_id: 2356475750,
+                    is_input: false,
+                },
+                AudioNode {
+                    stable_id: 1923447123,
+                    is_input: false,
+                },
+                AudioNode {
+                    stable_id: 2315562897,
+                    is_input: false,
+                },
+            ]
         );
     }
 }
