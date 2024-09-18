@@ -1548,10 +1548,12 @@ static bool can_use_dsp_input_effects(struct cras_rstream* all_streams) {
 }
 
 static int stream_list_changed_cb(struct cras_rstream* all_streams) {
-  cras_speak_on_mute_detector_streams_changed(all_streams);
   cras_ewma_power_reporter_streams_changed(all_streams);
   // TODO(eddyhsu): utilize multiple endpoint for DSP NC.
   set_aec_on_dsp_is_disallowed(!can_use_dsp_input_effects(all_streams));
+  // TODO(b/368164769): Refactor cras_speak_on_mute_detector_streams_changed so
+  // it doesn't modify all_streams. Reference: b/367182967
+  cras_speak_on_mute_detector_streams_changed(all_streams);
 
   return 0;
 }
