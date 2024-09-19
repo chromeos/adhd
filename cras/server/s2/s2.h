@@ -35,9 +35,9 @@ bool cras_s2_get_style_transfer_allowed(void);
 
 bool cras_s2_get_style_transfer_supported(void);
 
-void cras_s2_set_style_transfer_enabled(bool enabled);
+void cras_s2_set_voice_isolation_ui_enabled(bool enabled);
 
-bool cras_s2_get_style_transfer_enabled(void);
+bool cras_s2_get_voice_isolation_ui_enabled(void);
 
 void cras_s2_init(void);
 

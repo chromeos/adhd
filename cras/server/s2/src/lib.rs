@@ -28,13 +28,13 @@ struct Input {
     dlc_installed: HashSet<String>,
     dlc_manager_done: bool,
     style_transfer_featured_allowed: bool,
-    style_transfer_enabled: bool,
     // cros_config /audio/main cras-config-dir.
     cras_config_dir: String,
     // List of DLCs to provide the beamforming feature.
     // None means beamforming is not supported.
     beamforming_required_dlcs: Option<HashSet<String>>,
     active_input_node_compatible_nc_providers: CRAS_NC_PROVIDER,
+    voice_isolation_ui_enabled: bool,
 
     /*
      * Flags to indicate that Noise Cancellation is blocked. Each flag handles own
@@ -74,7 +74,6 @@ struct Input {
 
 #[derive(Serialize)]
 struct Output {
-    style_transfer_enabled: bool,
     dsp_input_effects_blocked: bool,
     audio_effects_status: HashMap<CRAS_NC_PROVIDER, AudioEffectStatus>,
     nc_effect_for_ui_toggle: EFFECT_TYPE,
@@ -160,7 +159,6 @@ fn resolve(input: &Input) -> Output {
         .fold(CRAS_NC_PROVIDER::empty(), CRAS_NC_PROVIDER::union);
 
     Output {
-        style_transfer_enabled: input.style_transfer_enabled,
         dsp_input_effects_blocked,
         audio_effects_status,
         nc_effect_for_ui_toggle,
@@ -295,8 +293,8 @@ impl S2 {
         self.update();
     }
 
-    fn set_style_transfer_enabled(&mut self, enabled: bool) {
-        self.input.style_transfer_enabled = enabled;
+    fn set_voice_isolation_ui_enabled(&mut self, enabled: bool) {
+        self.input.voice_isolation_ui_enabled = enabled;
         self.update();
     }
 
@@ -431,15 +429,15 @@ mod tests {
     }
 
     #[test]
-    fn test_style_transfer_enabled() {
+    fn test_voice_isolation_ui_enabled() {
         let mut s = S2::new();
-        assert_eq!(s.output.style_transfer_enabled, false);
+        assert_eq!(s.input.voice_isolation_ui_enabled, false);
 
-        s.set_style_transfer_enabled(true);
-        assert_eq!(s.output.style_transfer_enabled, true);
+        s.set_voice_isolation_ui_enabled(true);
+        assert_eq!(s.input.voice_isolation_ui_enabled, true);
 
-        s.set_style_transfer_enabled(false);
-        assert_eq!(s.output.style_transfer_enabled, false);
+        s.set_voice_isolation_ui_enabled(false);
+        assert_eq!(s.input.voice_isolation_ui_enabled, false);
     }
 
     #[test]

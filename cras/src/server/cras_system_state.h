@@ -182,9 +182,6 @@ bool cras_system_get_noise_cancellation_supported();
 // Sets the flag to enable or disable Style Transfer.
 void cras_system_set_style_transfer_enabled(bool enabled);
 
-// Gets the flag of Style Transfer.
-bool cras_system_get_style_transfer_enabled();
-
 // Returns if style transfer is supported.
 bool cras_system_get_style_transfer_supported();
 

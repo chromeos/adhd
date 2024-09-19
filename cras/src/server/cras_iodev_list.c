@@ -2530,7 +2530,7 @@ CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(struct cras_iodev* iodev) {
   bool ap_nc_allowed = cras_s2_get_ap_nc_allowed() &&
                        cras_system_get_noise_cancellation_enabled();
   bool ast_allowed = cras_s2_get_style_transfer_allowed() &&
-                     cras_system_get_style_transfer_enabled();
+                     cras_s2_get_voice_isolation_ui_enabled();
   if (ast_allowed &&
       (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_AST)) {
     return CRAS_NC_PROVIDER_AST;

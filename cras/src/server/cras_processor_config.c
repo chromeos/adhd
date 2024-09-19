@@ -33,7 +33,7 @@ enum CrasProcessorEffect cras_processor_get_effect(
     bool enabled =
         (effects & CLIENT_CONTROLLED_VOICE_ISOLATION)
             ? (effects & VOICE_ISOLATION)                // client controlled.
-            : cras_system_get_style_transfer_enabled();  // system controlled.
+            : cras_s2_get_voice_isolation_ui_enabled();  // system controlled.
     return enabled ? StyleTransfer : NoEffects;
   }
 

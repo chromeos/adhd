@@ -68,13 +68,13 @@ pub extern "C" fn cras_s2_get_style_transfer_supported() -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn cras_s2_set_style_transfer_enabled(enabled: bool) {
-    state().set_style_transfer_enabled(enabled);
+pub extern "C" fn cras_s2_set_voice_isolation_ui_enabled(enabled: bool) {
+    state().set_voice_isolation_ui_enabled(enabled);
 }
 
 #[no_mangle]
-pub extern "C" fn cras_s2_get_style_transfer_enabled() -> bool {
-    state().output.style_transfer_enabled
+pub extern "C" fn cras_s2_get_voice_isolation_ui_enabled() -> bool {
+    state().input.voice_isolation_ui_enabled
 }
 
 #[no_mangle]

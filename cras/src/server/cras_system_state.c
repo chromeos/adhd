@@ -596,16 +596,12 @@ bool cras_system_get_noise_cancellation_supported() {
 
 void cras_system_set_style_transfer_enabled(bool enabled) {
   // When the flag is toggled, propagate to all iodevs immediately.
-  if (cras_system_get_style_transfer_enabled() != enabled) {
+  if (cras_s2_get_voice_isolation_ui_enabled() != enabled) {
     MAINLOG(main_log, MAIN_THREAD_STYLE_TRANSFER, enabled, 0, 0);
     syslog(LOG_DEBUG, "Style Transfer is %s", enabled ? "enabled" : "disabled");
-    cras_s2_set_style_transfer_enabled(enabled);
+    cras_s2_set_voice_isolation_ui_enabled(enabled);
     cras_iodev_list_reset_for_style_transfer();
   }
-}
-
-bool cras_system_get_style_transfer_enabled() {
-  return cras_s2_get_style_transfer_enabled();
 }
 
 bool cras_system_get_style_transfer_supported() {
