@@ -8,10 +8,7 @@ cc_import(
     name = "system_cras_rust",
     linkopts = [
         "-lm",
-    ] + select({
-        "@adhd//:featured_build": ["-lc_fake_feature_library"],
-        "//conditions:default": [],
-    }),
+    ],
     static_library = "libcras_rust.a",
     visibility = ["//visibility:public"],
     deps = [
