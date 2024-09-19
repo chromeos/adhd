@@ -1192,10 +1192,6 @@ bool cras_system_get_dsp_noise_cancellation_supported() {
   return sys_get_noise_cancellation_supported_return_value;
 }
 
-bool cras_system_get_noise_cancellation_enabled() {
-  return false;
-}
-
 bool cras_system_get_style_transfer_supported() {
   return false;
 }

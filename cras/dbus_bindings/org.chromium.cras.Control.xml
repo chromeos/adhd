@@ -367,6 +367,10 @@
       <arg name="enabled" type="b" direction="in"/>
     </method>
 
+    <method name="SetVoiceIsolationUIEnabled">
+      <arg name="enabled" type="b" direction="in"/>
+    </method>
+
     <method name="SetNoiseCancellationEnabled">
       <arg name="enabled" type="b" direction="in"/>
     </method>

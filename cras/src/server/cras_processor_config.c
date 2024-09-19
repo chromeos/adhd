@@ -38,10 +38,9 @@ enum CrasProcessorEffect cras_processor_get_effect(
   }
 
   // NoiseCancellation
-  bool voice_isolation_enabled =
-      (effects & CLIENT_CONTROLLED_VOICE_ISOLATION)
-          ? (effects & VOICE_ISOLATION)
-          : cras_system_get_noise_cancellation_enabled();
+  bool voice_isolation_enabled = (effects & CLIENT_CONTROLLED_VOICE_ISOLATION)
+                                     ? (effects & VOICE_ISOLATION)
+                                     : cras_s2_get_voice_isolation_ui_enabled();
   if (nc_provided_by_ap && voice_isolation_enabled &&
       cras_s2_get_ap_nc_allowed()) {
     if (beamforming_supported) {

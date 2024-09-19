@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unordered_map>
 
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/config/cras_board_config.h"
 #include "cras/src/server/cras_alert.h"
@@ -501,24 +502,24 @@ TEST(SystemStateSuite, SetNoiseCancellationEnabled) {
   ResetStubData();
   do_sys_init();
 
-  bool enabled = cras_system_get_noise_cancellation_enabled();
+  bool enabled = cras_s2_get_voice_isolation_ui_enabled();
 
-  cras_system_set_noise_cancellation_enabled(enabled);
-  EXPECT_EQ(enabled, cras_system_get_noise_cancellation_enabled());
+  cras_system_set_voice_isolation_ui_enabled(enabled);
+  EXPECT_EQ(enabled, cras_s2_get_voice_isolation_ui_enabled());
   EXPECT_EQ(0, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_noise_cancellation_enabled(!enabled);
-  EXPECT_EQ(!enabled, cras_system_get_noise_cancellation_enabled());
+  cras_system_set_voice_isolation_ui_enabled(!enabled);
+  EXPECT_EQ(!enabled, cras_s2_get_voice_isolation_ui_enabled());
   EXPECT_EQ(1, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_noise_cancellation_enabled(!enabled);
-  EXPECT_EQ(!enabled, cras_system_get_noise_cancellation_enabled());
+  cras_system_set_voice_isolation_ui_enabled(!enabled);
+  EXPECT_EQ(!enabled, cras_s2_get_voice_isolation_ui_enabled());
   // cras_iodev_list_reset_for_noise_cancellation shouldn't be called if state
   // is already enabled/disabled.
   EXPECT_EQ(1, cras_iodev_list_reset_for_noise_cancellation_called);
 
-  cras_system_set_noise_cancellation_enabled(enabled);
-  EXPECT_EQ(enabled, cras_system_get_noise_cancellation_enabled());
+  cras_system_set_voice_isolation_ui_enabled(enabled);
+  EXPECT_EQ(enabled, cras_s2_get_voice_isolation_ui_enabled());
   EXPECT_EQ(2, cras_iodev_list_reset_for_noise_cancellation_called);
 
   cras_system_state_deinit();

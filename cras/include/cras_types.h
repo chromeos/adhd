@@ -699,8 +699,8 @@ struct __attribute__((packed, aligned(4))) cras_server_state {
   // Whether Bluetooth wideband speech mic
   // should be deprioritized for selecting as default audio input.
   int32_t deprioritize_bt_wbs_mic;
-  // Whether or not Noise Cancellation is enabled.
-  int32_t noise_cancellation_enabled;
+  // Deprecated, don't remove to keep other fields' offsets.
+  int32_t deprecated_noise_cancellation_enabled;
   // Whether or not Noise Cancellation is
   // supported by at least one input node by the DSP.
   int32_t dsp_noise_cancellation_supported;

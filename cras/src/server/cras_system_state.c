@@ -245,8 +245,6 @@ void cras_system_state_init(const char* device_config_dir,
   exp_state->bt_hfp_offload_finch_applied =
       board_config->bt_hfp_offload_finch_applied;
   exp_state->deprioritize_bt_wbs_mic = board_config->deprioritize_bt_wbs_mic;
-  // Disable Noise Cancellation as default.
-  exp_state->noise_cancellation_enabled = 0;
   exp_state->dsp_noise_cancellation_supported = board_config->nc_supported;
   exp_state->hotword_pause_at_suspend = board_config->hotword_pause_at_suspend;
   exp_state->hw_echo_ref_disabled = board_config->hw_echo_ref_disabled;
@@ -531,13 +529,13 @@ bool cras_system_get_bt_fix_a2dp_packet_size_enabled() {
   return state.bt_fix_a2dp_packet_size;
 }
 
-void cras_system_set_noise_cancellation_enabled(bool enabled) {
+void cras_system_set_voice_isolation_ui_enabled(bool enabled) {
   // When the flag is toggled, propagate to all iodevs immediately.
-  if (cras_system_get_noise_cancellation_enabled() != enabled) {
+  if (cras_s2_get_voice_isolation_ui_enabled() != enabled) {
     MAINLOG(main_log, MAIN_THREAD_NOISE_CANCELLATION, enabled, 0, 0);
-    syslog(LOG_DEBUG, "Noise Cancellation is %s",
+    syslog(LOG_DEBUG, "System Voice Isolation is %s",
            enabled ? "enabled" : "disabled");
-    state.exp_state->noise_cancellation_enabled = enabled;
+    cras_s2_set_voice_isolation_ui_enabled(enabled);
     cras_iodev_list_reset_for_noise_cancellation();
   }
 }
@@ -585,23 +583,9 @@ bool cras_system_get_sidetone_enabled() {
   return state.sidetone_enabled;
 }
 
-bool cras_system_get_noise_cancellation_enabled() {
-  return !!state.exp_state->noise_cancellation_enabled;
-}
-
 bool cras_system_get_noise_cancellation_supported() {
   // TODO(b/316444947): Delete this function.
   return true;
-}
-
-void cras_system_set_style_transfer_enabled(bool enabled) {
-  // When the flag is toggled, propagate to all iodevs immediately.
-  if (cras_s2_get_voice_isolation_ui_enabled() != enabled) {
-    MAINLOG(main_log, MAIN_THREAD_STYLE_TRANSFER, enabled, 0, 0);
-    syslog(LOG_DEBUG, "Style Transfer is %s", enabled ? "enabled" : "disabled");
-    cras_s2_set_voice_isolation_ui_enabled(enabled);
-    cras_iodev_list_reset_for_style_transfer();
-  }
 }
 
 bool cras_system_get_style_transfer_supported() {

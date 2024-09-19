@@ -42,8 +42,8 @@ TEST(ABI, CrasServerState) {
   EXPECT_EQ(11004,
             offsetof(struct cras_server_state, bt_hfp_offload_finch_applied));
   EXPECT_EQ(11008, offsetof(struct cras_server_state, deprioritize_bt_wbs_mic));
-  EXPECT_EQ(11012,
-            offsetof(struct cras_server_state, noise_cancellation_enabled));
+  EXPECT_EQ(11012, offsetof(struct cras_server_state,
+                            deprecated_noise_cancellation_enabled));
   EXPECT_EQ(11016, offsetof(struct cras_server_state,
                             dsp_noise_cancellation_supported));
   EXPECT_EQ(11020, offsetof(struct cras_server_state,

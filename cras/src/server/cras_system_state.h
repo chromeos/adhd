@@ -171,16 +171,10 @@ void cras_system_set_bt_fix_a2dp_packet_size_enabled(bool enabled);
 bool cras_system_get_bt_fix_a2dp_packet_size_enabled();
 
 // Sets the flag to enable or disable Noise Cancellation.
-void cras_system_set_noise_cancellation_enabled(bool enabled);
-
-// Gets the flag of Noise Cancellation.
-bool cras_system_get_noise_cancellation_enabled();
+void cras_system_set_voice_isolation_ui_enabled(bool enabled);
 
 // Returns if Noise Cancellation is supported.
 bool cras_system_get_noise_cancellation_supported();
-
-// Sets the flag to enable or disable Style Transfer.
-void cras_system_set_style_transfer_enabled(bool enabled);
 
 // Returns if style transfer is supported.
 bool cras_system_get_style_transfer_supported();

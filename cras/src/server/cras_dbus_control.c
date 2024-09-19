@@ -1083,7 +1083,7 @@ static DBusHandlerResult handle_set_wbs_enabled(DBusConnection* conn,
   return send_empty_reply(conn, message);
 }
 
-static DBusHandlerResult handle_set_noise_cancellation_enabled(
+static DBusHandlerResult handle_set_voice_isolation_ui_enabled(
     DBusConnection* conn,
     DBusMessage* message,
     void* arg) {
@@ -1095,23 +1095,7 @@ static DBusHandlerResult handle_set_noise_cancellation_enabled(
     return rc;
   }
 
-  cras_system_set_noise_cancellation_enabled(enabled);
-
-  return send_empty_reply(conn, message);
-}
-
-static DBusHandlerResult handle_set_style_transfer_enabled(DBusConnection* conn,
-                                                           DBusMessage* message,
-                                                           void* arg) {
-  int rc;
-  dbus_bool_t enabled;
-
-  rc = get_single_arg(message, DBUS_TYPE_BOOLEAN, &enabled);
-  if (rc) {
-    return rc;
-  }
-
-  cras_system_set_style_transfer_enabled(enabled);
+  cras_system_set_voice_isolation_ui_enabled(enabled);
 
   return send_empty_reply(conn, message);
 }
@@ -1674,8 +1658,11 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
                                          "SetWbsEnabled")) {
     return handle_set_wbs_enabled(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
+                                         "SetVoiceIsolationUIEnabled")) {
+    return handle_set_voice_isolation_ui_enabled(conn, message, arg);
+  } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetNoiseCancellationEnabled")) {
-    return handle_set_noise_cancellation_enabled(conn, message, arg);
+    return handle_set_voice_isolation_ui_enabled(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "IsNoiseCancellationSupported")) {
     return handle_is_noise_cancellation_supported(conn, message, arg);
@@ -1684,7 +1671,7 @@ static DBusHandlerResult handle_control_message(DBusConnection* conn,
     return handle_is_style_transfer_supported(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetStyleTransferEnabled")) {
-    return handle_set_style_transfer_enabled(conn, message, arg);
+    return handle_set_voice_isolation_ui_enabled(conn, message, arg);
   } else if (dbus_message_is_method_call(message, CRAS_CONTROL_INTERFACE,
                                          "SetBypassBlockNoiseCancellation")) {
     return handle_set_bypass_block_noise_cancellation(conn, message, arg);

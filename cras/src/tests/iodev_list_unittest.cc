@@ -121,7 +121,6 @@ static int cras_stream_apm_remove_called;
 static int cras_stream_apm_add_called;
 static struct cras_floop_pair* cras_floop_pair_create_return;
 static bool cras_system_get_sr_bt_supported_return = false;
-static bool cras_system_get_noise_cancellation_enabled_ret = false;
 static int cras_rstream_get_effects_return = 0;
 static std::vector<std::vector<struct cras_iodev*>> iodev_groups;
 static std::function<int(const struct cras_iodev*, const struct cras_rstream*)>
@@ -158,7 +157,7 @@ class IodevTests : public TestBase {
     audio_thread_disconnect_stream_called = 0;
     audio_thread_disconnect_stream_stream = NULL;
     audio_thread_is_dev_open_ret = 0;
-    cras_system_get_noise_cancellation_enabled_ret = false;
+    cras_s2_set_voice_isolation_ui_enabled(false);
 
     sample_rates_[0] = 44100;
     sample_rates_[1] = 48000;
@@ -2770,7 +2769,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
     // A mismatch of NC providers should cause restarts.
     d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_NONE;
     d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
-    cras_system_get_noise_cancellation_enabled_ret = true;
+    cras_s2_set_voice_isolation_ui_enabled(true);
     cras_iodev_list_reset_for_noise_cancellation();
   }
 
@@ -2792,7 +2791,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
     // A match of NC providers should NOT cause restarts.
     d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_DSP;
     d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
-    cras_system_get_noise_cancellation_enabled_ret = true;
+    cras_s2_set_voice_isolation_ui_enabled(true);
     cras_iodev_list_reset_for_noise_cancellation();
   }
 
@@ -2814,7 +2813,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
     // A match of NC providers but with user disabled should cause restarts.
     d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_DSP;
     d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
-    cras_system_get_noise_cancellation_enabled_ret = false;
+    cras_s2_set_voice_isolation_ui_enabled(false);
     cras_iodev_list_reset_for_noise_cancellation();
   }
 
@@ -2836,7 +2835,7 @@ TEST_F(IoDevTestSuite, SetNoiseCancellation) {
     // No restarts if not active and user disabled.
     d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_NONE;
     d1_.active_node->nc_providers = CRAS_NC_PROVIDER_DSP;
-    cras_system_get_noise_cancellation_enabled_ret = false;
+    cras_s2_set_voice_isolation_ui_enabled(false);
     cras_iodev_list_reset_for_noise_cancellation();
   }
 
@@ -3703,7 +3702,7 @@ TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
     // No restarts if not active and user disabled.
     d1_.restart_tag_effect_state = CRAS_NC_PROVIDER_NONE;
     d1_.active_node->nc_providers = CRAS_NC_PROVIDER_AST | CRAS_NC_PROVIDER_AP;
-    cras_system_get_noise_cancellation_enabled_ret = false;
+    cras_s2_set_voice_isolation_ui_enabled(false);
     cras_iodev_list_reset_for_style_transfer();
   }
 
@@ -3809,10 +3808,6 @@ int cras_system_get_mute() {
 
 bool cras_system_get_dsp_noise_cancellation_supported() {
   return true;
-}
-
-bool cras_system_get_noise_cancellation_enabled() {
-  return cras_system_get_noise_cancellation_enabled_ret;
 }
 
 struct audio_thread* audio_thread_create() {

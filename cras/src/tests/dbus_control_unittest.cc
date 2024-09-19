@@ -189,14 +189,11 @@ int cras_floss_set_enabled(bool enable) {
 void cras_system_set_bt_wbs_enabled(bool enabled) {
   return;
 }
-void cras_system_set_noise_cancellation_enabled(bool enable) {
+void cras_system_set_voice_isolation_ui_enabled(bool enable) {
   return;
 }
 bool cras_system_get_noise_cancellation_supported() {
   return true;
-}
-void cras_system_set_style_transfer_enabled(bool enable) {
-  return;
 }
 bool cras_system_get_style_transfer_supported() {
   return false;
