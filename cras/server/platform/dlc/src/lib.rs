@@ -106,8 +106,8 @@ fn download_dlcs_until_installed(
     download_config: CrasDlcDownloadConfig,
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
 ) {
-    let mut retry_sleep = time::Duration::from_secs(30);
-    let max_retry_sleep = time::Duration::from_secs(300);
+    let mut retry_sleep = time::Duration::from_secs(1);
+    let max_retry_sleep = time::Duration::from_secs(120);
     let mut todo: Vec<_> = download_config
         .dlcs_to_download
         .iter()
