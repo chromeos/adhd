@@ -2228,12 +2228,9 @@ void cras_iodev_list_select_node(enum CRAS_STREAM_DIRECTION direction,
     }
   }
 
-  if (direction == CRAS_STREAM_OUTPUT && new_dev && new_dev->active_node) {
-    bool available = is_sidetone_available(new_dev->active_node->type);
-    if (!available) {
-      cras_system_set_sidetone_enabled(false);
-    }
-    cras_observer_notify_sidetone_supported_changed(available);
+  if (direction == CRAS_STREAM_OUTPUT && cras_system_get_sidetone_enabled()) {
+    cras_system_set_sidetone_enabled(false);
+    cras_system_set_sidetone_enabled(true);
   }
 
   cras_iodev_list_notify_active_node_changed(direction);
