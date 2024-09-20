@@ -111,7 +111,7 @@ fn fetch_and_update_blocking(
     match fetch_features_blocking(&FEATURE_LIST) {
         Ok(update) => {
             let mut cache = cache.lock().unwrap();
-            log::info!("features updated: {} (LSB first)", cache);
+            log::info!("features updated: {cache} => {update} (LSB first)");
             if *cache != update {
                 *cache = update;
                 // SAFETY: Assume passed the callback is safe to call.
