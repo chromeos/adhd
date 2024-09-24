@@ -118,6 +118,10 @@ const double MISSED_CB_FREQUENCY_SECONDS_MIN = 10.0;
 const time_t CRAS_METRICS_SHORT_PERIOD_THRESHOLD_SECONDS = 600;
 const time_t CRAS_METRICS_LONG_PERIOD_THRESHOLD_SECONDS = 3600;
 
+const int DLC_INSTALL_ELAPSED_TIME_MIN_SECONDS = 0;
+const int DLC_INSTALL_ELAPSED_TIME_MAX_SECONDS = 60 * 120;
+const int DLC_INSTALL_ELAPSED_TIME_NUM_BUCKETS = 60;
+
 static const char* get_timespec_period_str(struct timespec ts) {
   if (ts.tv_sec < CRAS_METRICS_SHORT_PERIOD_THRESHOLD_SECONDS) {
     return "ShortPeriod";
@@ -158,7 +162,8 @@ enum CRAS_SERVER_METRICS_TYPE {
   DEVICE_SAMPLE_RATE,
   DEVICE_SAMPLES_DROPPED,
   DEVICE_DSP_OFFLOAD_STATUS,
-  DLC_MANAGER_STATUS,
+  DLC_MANAGER_STATUS_ON_SUCCESS,
+  DLC_MANAGER_STATUS_ON_FAILURE,
   HIGHEST_DEVICE_DELAY_INPUT,
   HIGHEST_DEVICE_DELAY_OUTPUT,
   HIGHEST_INPUT_HW_LEVEL,
@@ -276,6 +281,7 @@ struct cras_server_metrics_rtc_data {
 struct cras_server_metrics_dlc_manager_data {
   enum CrasDlcId dlc_id;
   int num_retry_times;
+  int elapsed_seconds;
 };
 
 union cras_server_metrics_data {
@@ -777,13 +783,36 @@ int cras_server_metrics_dlc_install_retried_times_on_success(
   data.dlc_manager_data.dlc_id = dlc_id;
   data.dlc_manager_data.num_retry_times = num_retry_times;
 
-  init_server_metrics_msg(&msg, DLC_MANAGER_STATUS, data);
+  init_server_metrics_msg(&msg, DLC_MANAGER_STATUS_ON_SUCCESS, data);
 
   err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
   if (err < 0) {
     syslog(LOG_WARNING,
            "Failed to send metrics message: "
-           "DLC_MANAGER_STATUS");
+           "DLC_MANAGER_STATUS_ON_SUCCESS");
+    return err;
+  }
+
+  return 0;
+}
+
+int cras_server_metrics_dlc_install_elapsed_time_on_failure(
+    enum CrasDlcId dlc_id,
+    int32_t elapsed_seconds) {
+  struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
+  union cras_server_metrics_data data;
+  int err;
+
+  data.dlc_manager_data.dlc_id = dlc_id;
+  data.dlc_manager_data.elapsed_seconds = elapsed_seconds;
+
+  init_server_metrics_msg(&msg, DLC_MANAGER_STATUS_ON_FAILURE, data);
+
+  err = cras_server_metrics_message_send((struct cras_main_message*)&msg);
+  if (err < 0) {
+    syslog(LOG_WARNING,
+           "Failed to send metrics message: "
+           "DLC_MANAGER_STATUS_ON_FAILURE");
     return err;
   }
 
@@ -1896,6 +1925,19 @@ static void metrics_dlc_install_retried_times_on_success(
   cras_metrics_log_sparse_histogram(metrics_name, data.num_retry_times);
 }
 
+static void metrics_dlc_install_elapsed_time_on_failure(
+    struct cras_server_metrics_dlc_manager_data data) {
+  char metrics_name[METRICS_NAME_BUFFER_SIZE];
+
+  snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
+           "%s.ElapsedTimeHistogramOnFailure.%s", kCrasDlcManagerStatus,
+           metrics_dlc_id_str(data.dlc_id));
+  cras_metrics_log_histogram(metrics_name, data.elapsed_seconds,
+                             DLC_INSTALL_ELAPSED_TIME_MIN_SECONDS,
+                             DLC_INSTALL_ELAPSED_TIME_MAX_SECONDS,
+                             DLC_INSTALL_ELAPSED_TIME_NUM_BUCKETS);
+}
+
 static void metrics_rtc_runtime(struct cras_server_metrics_rtc_data data) {
   char metrics_name[METRICS_NAME_BUFFER_SIZE];
   int value;
@@ -2077,8 +2119,12 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
     case DEVICE_DSP_OFFLOAD_STATUS:
       metrics_device_dsp_offload_status(metrics_msg->data.device_data);
       break;
-    case DLC_MANAGER_STATUS:
+    case DLC_MANAGER_STATUS_ON_SUCCESS:
       metrics_dlc_install_retried_times_on_success(
+          metrics_msg->data.dlc_manager_data);
+      break;
+    case DLC_MANAGER_STATUS_ON_FAILURE:
+      metrics_dlc_install_elapsed_time_on_failure(
           metrics_msg->data.dlc_manager_data);
       break;
     case HIGHEST_DEVICE_DELAY_INPUT:

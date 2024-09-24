@@ -97,6 +97,11 @@ fn reset_overrides() {
 // - i32: the number of retried times.
 type DlcInstallOnSuccessCallback = extern "C" fn(CrasDlcId, i32) -> libc::c_int;
 
+// Called when a dlc failed to install, with the following arguments:
+// - CrasDlcId: the id of the installed dlc.
+// - i32: the elapsed time when the installation failure occurs.
+type DlcInstallOnFailureCallback = extern "C" fn(CrasDlcId, i32) -> libc::c_int;
+
 #[repr(C)]
 pub struct CrasDlcDownloadConfig {
     pub dlcs_to_download: [bool; cras_common::types_internal::NUM_CRAS_DLCS],
@@ -105,7 +110,10 @@ pub struct CrasDlcDownloadConfig {
 fn download_dlcs_until_installed(
     download_config: CrasDlcDownloadConfig,
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
+    dlc_install_on_failure_callback: DlcInstallOnFailureCallback,
 ) {
+    let start_time = time::Instant::now();
+
     let mut retry_sleep = time::Duration::from_secs(1);
     let max_retry_sleep = time::Duration::from_secs(120);
     let mut todo: Vec<_> = download_config
@@ -127,6 +135,7 @@ fn download_dlcs_until_installed(
                 Err(e) => {
                     log::info!("failed to install {dlc}: {e}");
                     todo_next.push(dlc);
+                    dlc_install_on_failure_callback(*dlc, start_time.elapsed().as_secs() as i32);
                 }
             }
         }

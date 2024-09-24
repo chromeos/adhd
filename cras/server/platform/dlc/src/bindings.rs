@@ -12,6 +12,7 @@ use super::get_dlc_state_cached;
 use super::CrasDlcId;
 use super::Result;
 use crate::download_dlcs_until_installed;
+use crate::DlcInstallOnFailureCallback;
 use crate::DlcInstallOnSuccessCallback;
 
 fn get_dlc_root_path(id: CrasDlcId) -> Result<CString> {
@@ -74,11 +75,16 @@ pub extern "C" fn cras_dlc_reset_overrides_for_testing() {
 pub extern "C" fn download_dlcs_until_installed_with_thread(
     download_config: super::CrasDlcDownloadConfig,
     dlc_install_on_success_callback: DlcInstallOnSuccessCallback,
+    dlc_install_on_failure_callback: DlcInstallOnFailureCallback,
 ) {
     thread::Builder::new()
         .name("cras-dlc".into())
         .spawn(move || {
-            download_dlcs_until_installed(download_config, dlc_install_on_success_callback)
+            download_dlcs_until_installed(
+                download_config,
+                dlc_install_on_success_callback,
+                dlc_install_on_failure_callback,
+            )
         })
         .unwrap();
 }

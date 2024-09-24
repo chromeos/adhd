@@ -19,6 +19,8 @@ extern "C" {
 
 static enum CRAS_MAIN_MESSAGE_TYPE type_set;
 static struct timespec clock_gettime_retspec;
+static std::vector<std::tuple<std::string, int, int, int, int>>
+    cras_metrics_log_histogram_called_args;
 static std::vector<std::tuple<std::string, int>>
     cras_metrics_log_sparse_histogram_called_args;
 static int cras_system_state_in_main_thread_ret = 0;
@@ -26,6 +28,7 @@ std::vector<struct cras_server_metrics_message> sent_msgs;
 
 void ResetStubData() {
   type_set = (enum CRAS_MAIN_MESSAGE_TYPE)0;
+  cras_metrics_log_histogram_called_args.clear();
   cras_metrics_log_sparse_histogram_called_args.clear();
   cras_system_state_in_main_thread_ret = 0;
   sent_msgs.clear();
@@ -502,6 +505,7 @@ struct CrasDlcManagerTestParam {
   enum CrasDlcId dlc_id;
   std::string dlc_id_str;
   int num_retry_times;
+  std::vector<int> elapsed_seconds;
 };
 
 class ServerMetricsCrasDlcManagerTest
@@ -513,18 +517,27 @@ class ServerMetricsCrasDlcManagerTest
 
 TEST_P(ServerMetricsCrasDlcManagerTest, TestCrasServerMetricsDlcManagerStatus) {
   const auto& param = GetParam();
+  const std::string prefix = "Cras.DlcManagerStatus";
   cras_system_state_in_main_thread_ret = 1;
+
+  for (int elapsed_secs : param.elapsed_seconds) {
+    cras_server_metrics_dlc_install_elapsed_time_on_failure(param.dlc_id,
+                                                            elapsed_secs);
+
+    ASSERT_EQ(cras_metrics_log_histogram_called_args.size(), 1);
+    EXPECT_EQ(std::get<0>(cras_metrics_log_histogram_called_args.front()),
+              prefix + ".ElapsedTimeHistogramOnFailure." + param.dlc_id_str);
+    EXPECT_EQ(std::get<1>(cras_metrics_log_histogram_called_args.front()),
+              elapsed_secs);
+    cras_metrics_log_histogram_called_args.clear();
+  }
 
   cras_server_metrics_dlc_install_retried_times_on_success(
       param.dlc_id, param.num_retry_times);
 
   ASSERT_EQ(cras_metrics_log_sparse_histogram_called_args.size(), 1);
-
-  std::string prefix = "Cras.DlcManagerStatus";
-  std::string num_retry_times_name =
-      prefix + ".RetriedTimesOnSuccess." + param.dlc_id_str;
   EXPECT_EQ(std::get<0>(cras_metrics_log_sparse_histogram_called_args.front()),
-            num_retry_times_name);
+            prefix + ".RetriedTimesOnSuccess." + param.dlc_id_str);
   EXPECT_EQ(std::get<1>(cras_metrics_log_sparse_histogram_called_args.front()),
             param.num_retry_times);
 }
@@ -537,7 +550,10 @@ INSTANTIATE_TEST_SUITE_P(
                                              .num_retry_times = 0}),
                     CrasDlcManagerTestParam({.dlc_id = CrasDlcSrBt,
                                              .dlc_id_str = "SrBt",
-                                             .num_retry_times = 10})));
+                                             .num_retry_times = 10,
+                                             .elapsed_seconds = {0, 1, 3, 7, 15,
+                                                                 31, 63, 127,
+                                                                 247, 367}})));
 
 extern "C" {
 
@@ -552,7 +568,10 @@ void cras_metrics_log_histogram(const char* name,
                                 int sample,
                                 int min,
                                 int max,
-                                int nbuckets) {}
+                                int nbuckets) {
+  cras_metrics_log_histogram_called_args.emplace_back(name, sample, min, max,
+                                                      nbuckets);
+}
 
 void cras_metrics_log_sparse_histogram(const char* name, int sample) {
   cras_metrics_log_sparse_histogram_called_args.emplace_back(name, sample);

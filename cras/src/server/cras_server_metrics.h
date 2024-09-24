@@ -238,6 +238,11 @@ int cras_server_metrics_dlc_install_retried_times_on_success(
     enum CrasDlcId dlc_id,
     int num_retry_times);
 
+// Logs the elapsed time when cras_dlc_manager fails to download the dlc.
+int cras_server_metrics_dlc_install_elapsed_time_on_failure(
+    enum CrasDlcId dlc_id,
+    int elapsed_seconds);
+
 // Logs whether AP NC has successfully started or not.
 int cras_server_metrics_ap_nc_start_status(bool success);
 
