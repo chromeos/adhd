@@ -12,7 +12,6 @@
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_stream_apm.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/float_buffer.h"
@@ -884,13 +883,6 @@ void cras_apm_reverse_deinit() {}
 bool cras_iodev_support_rtc_proc_on_dsp(const struct cras_iodev* iodev,
                                         enum RTC_PROC_ON_DSP rtc_proc) {
   return false;
-}
-
-enum CrasProcessorEffect cras_processor_get_effect(
-    bool nc_provided_by_ap,
-    const struct cras_iodev* iodev,
-    uint64_t effects) {
-  return NoEffects;
 }
 
 int cras_system_aec_on_dsp_supported() {

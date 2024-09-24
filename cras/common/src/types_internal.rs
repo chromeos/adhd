@@ -23,6 +23,26 @@ pub enum CrasProcessorEffect {
     Overridden,
 }
 
+impl CrasProcessorEffect {
+    fn as_c_str(&self) -> &CStr {
+        match self {
+            CrasProcessorEffect::NoEffects => c"NoEffects",
+            CrasProcessorEffect::Negate => c"Negate",
+            CrasProcessorEffect::NoiseCancellation => c"NoiseCancellation",
+            CrasProcessorEffect::StyleTransfer => c"StyleTransfer",
+            CrasProcessorEffect::Beamforming => c"Beamforming",
+            CrasProcessorEffect::Overridden => c"Overridden",
+        }
+    }
+}
+
+/// Returns the name of the CrasProcessorEffect as a string.
+/// The ownership of the string is static in Rust, so no need to free in C.
+#[no_mangle]
+pub extern "C" fn cras_processor_effect_to_str(effect: CrasProcessorEffect) -> *const libc::c_char {
+    effect.as_c_str().as_ptr()
+}
+
 bitflags! {
     #[allow(non_camel_case_types)]
     #[repr(transparent)]
@@ -98,13 +118,40 @@ impl CRAS_NC_PROVIDER {
             _ => c"Invalid NC provider",
         }
     }
+
+    pub fn joined_name(&self) -> Cow<str> {
+        if self.is_empty() {
+            Cow::Borrowed("none")
+        } else {
+            Cow::Owned(self.iter_names().map(|(s, _)| s.to_lowercase()).join(" "))
+        }
+    }
 }
+
+pub const CRAS_NC_PROVIDER_PREFERENCE_ORDER: &[CRAS_NC_PROVIDER] = &[
+    CRAS_NC_PROVIDER::AST,
+    CRAS_NC_PROVIDER::BF,
+    CRAS_NC_PROVIDER::DSP,
+    CRAS_NC_PROVIDER::AP,
+    CRAS_NC_PROVIDER::NONE,
+];
 
 /// Returns the name of the NC provider as a string.
 /// The ownership of the string is static in Rust, so no need to free in C.
 #[no_mangle]
 pub extern "C" fn cras_nc_provider_to_str(nc_provider: CRAS_NC_PROVIDER) -> *const libc::c_char {
     nc_provider.as_c_str().as_ptr()
+}
+
+/// Returns the names of the bitset of NC providers as a string.
+/// The resulting string should be freed with cras_rust_free_string.
+#[no_mangle]
+pub extern "C" fn cras_nc_providers_bitset_to_str(
+    nc_providers: CRAS_NC_PROVIDER,
+) -> *mut libc::c_char {
+    CString::new(nc_providers.joined_name().as_ref())
+        .unwrap()
+        .into_raw()
 }
 
 /// All supported DLCs in CRAS.
@@ -164,6 +211,7 @@ impl Display for CrasDlcId {
 #[cfg(test)]
 mod tests {
     use super::CRAS_NC_PROVIDER;
+    use super::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 
     #[test]
     fn test_cras_nc_provider_as_c_str() {
@@ -173,5 +221,13 @@ mod tests {
         for nc_provider in CRAS_NC_PROVIDER::all().iter() {
             assert_ne!(nc_provider.as_c_str(), invalid.as_c_str());
         }
+    }
+
+    #[test]
+    fn test_cras_nc_provider_preference_order() {
+        assert_eq!(
+            CRAS_NC_PROVIDER_PREFERENCE_ORDER.len() as u32,
+            CRAS_NC_PROVIDER::all().bits().count_ones() + 1
+        );
     }
 }

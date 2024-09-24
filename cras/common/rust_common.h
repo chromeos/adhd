@@ -133,6 +133,12 @@ int cras_rust_init_logging(void);
 uint32_t pseudonymize_stable_id(uint32_t stable_id);
 
 /**
+ * Returns the name of the CrasProcessorEffect as a string.
+ * The ownership of the string is static in Rust, so no need to free in C.
+ */
+const char *cras_processor_effect_to_str(enum CrasProcessorEffect effect);
+
+/**
  * Returns the names of active effects as a string.
  * The resulting string should be freed with cras_rust_free_string.
  */
@@ -143,6 +149,12 @@ char *cras_stream_active_ap_effects_string(CRAS_STREAM_ACTIVE_AP_EFFECT effect);
  * The ownership of the string is static in Rust, so no need to free in C.
  */
 const char *cras_nc_provider_to_str(CRAS_NC_PROVIDER nc_provider);
+
+/**
+ * Returns the names of the bitset of NC providers as a string.
+ * The resulting string should be freed with cras_rust_free_string.
+ */
+char *cras_nc_providers_bitset_to_str(CRAS_NC_PROVIDER nc_providers);
 
 /**
  * Initialize logging for cras_rust.
@@ -157,6 +169,12 @@ int cras_rust_init_logging(void);
 uint32_t pseudonymize_stable_id(uint32_t stable_id);
 
 /**
+ * Returns the name of the CrasProcessorEffect as a string.
+ * The ownership of the string is static in Rust, so no need to free in C.
+ */
+const char *cras_processor_effect_to_str(enum CrasProcessorEffect effect);
+
+/**
  * Returns the names of active effects as a string.
  * The resulting string should be freed with cras_rust_free_string.
  */
@@ -167,6 +185,12 @@ char *cras_stream_active_ap_effects_string(CRAS_STREAM_ACTIVE_AP_EFFECT effect);
  * The ownership of the string is static in Rust, so no need to free in C.
  */
 const char *cras_nc_provider_to_str(CRAS_NC_PROVIDER nc_provider);
+
+/**
+ * Returns the names of the bitset of NC providers as a string.
+ * The resulting string should be freed with cras_rust_free_string.
+ */
+char *cras_nc_providers_bitset_to_str(CRAS_NC_PROVIDER nc_providers);
 
 #endif  /* CRAS_COMMON_RUST_COMMON_H_ */
 

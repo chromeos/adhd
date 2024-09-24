@@ -11,6 +11,7 @@
 
 #include "audio_processor/c/plugin_processor.h"
 #include "cras/common/check.h"
+#include "cras/common/rust_common.h"
 #include "cras/server/cras_thread.h"
 #include "cras/server/main_message.h"
 #include "cras/server/platform/features/features.h"
@@ -24,13 +25,13 @@
 #include "cras/src/server/cras_audio_area.h"
 #include "cras/src/server/cras_iodev.h"
 #include "cras/src/server/cras_iodev_list.h"
-#include "cras/src/server/cras_processor_config.h"
 #include "cras/src/server/cras_server_metrics.h"
 #include "cras/src/server/cras_speak_on_mute_detector.h"
 #include "cras/src/server/cras_system_state.h"
 #include "cras/src/server/float_buffer.h"
 #include "cras/src/server/iniparser_wrapper.h"
 #include "cras/src/server/rust/include/cras_processor.h"
+#include "cras/src/server/rust/include/string.h"
 #include "cras_audio_format.h"
 #include "third_party/utlist/utlist.h"
 #include "webrtc_apm/webrtc_apm.h"
@@ -701,21 +702,32 @@ struct cras_apm* cras_stream_apm_add(struct cras_stream_apm* stream,
     }
   }
 
-  bool voice_isolation_forced_enabled =
-      (stream->effects & CLIENT_CONTROLLED_VOICE_ISOLATION) &&
-      (stream->effects & VOICE_ISOLATION);
-  bool nc_provided_by_ap =
-      idev->restart_tag_effect_state == CRAS_NC_PROVIDER_AP;
-
-  // Force enable per-stream voice isolation even if noise cancellation
-  // UI button is switched off.
-  if (voice_isolation_forced_enabled &&
-      idev->restart_tag_effect_state == CRAS_NC_PROVIDER_NONE &&
-      cras_s2_get_ap_nc_allowed()) {
-    nc_provided_by_ap = true;
+  CRAS_NC_PROVIDER nc_providers = (idev->active_node)
+                                      ? idev->active_node->nc_providers
+                                      : CRAS_NC_PROVIDER_NONE;
+  bool client_controlled = stream->effects & CLIENT_CONTROLLED_VOICE_ISOLATION;
+  bool client_enabled = stream->effects & VOICE_ISOLATION;
+  enum CrasProcessorEffect cp_effect = cras_s2_get_cras_processor_effect(
+      nc_providers, client_controlled, client_enabled);
+  syslog(LOG_DEBUG, "Setting CrasProcessorEffect for idev: %s",
+         idev->info.name);
+  if (cras_feature_enabled(CrOSLateBootAudioAecRequiredForCrasProcessor) &&
+      !(stream->effects & APM_ECHO_CANCELLATION)) {
+    syslog(LOG_DEBUG,
+           "Set to NoEffects because "
+           "CrOSLateBootAudioAecRequiredForCrasProcessor is enabled while "
+           "stream->effects disallow AEC.");
+    cp_effect = NoEffects;
+  } else {
+    char* nc_providers_str = cras_nc_providers_bitset_to_str(nc_providers);
+    syslog(LOG_DEBUG,
+           "Effect: %s, compatible NC providers: %s, voice isolation "
+           "(client_controlled, client_enabled): (%s, %s)",
+           cras_processor_effect_to_str(cp_effect), nc_providers_str,
+           client_controlled ? "true" : "false",
+           client_enabled ? "true" : "false");
+    cras_rust_free_string(nc_providers_str);
   }
-  enum CrasProcessorEffect cp_effect =
-      cras_processor_get_effect(nc_provided_by_ap, idev, stream->effects);
 
   // TODO(hychao): Remove the check when we enable more effects.
   if (!apm_needed_for_effects(

@@ -10,6 +10,7 @@ use std::sync::MutexGuard;
 use std::sync::OnceLock;
 
 use cras_common::types_internal::CrasDlcId;
+use cras_common::types_internal::CrasProcessorEffect;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
 
 fn state() -> MutexGuard<'static, crate::S2> {
@@ -165,6 +166,26 @@ pub extern "C" fn cras_s2_set_active_input_node_compatible_nc_providers(
     compatible_nc_providers: CRAS_NC_PROVIDER,
 ) {
     state().set_active_input_node_compatible_nc_providers(compatible_nc_providers);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_cras_processor_effect(
+    compatible_nc_providers: CRAS_NC_PROVIDER,
+    client_controlled: bool,
+    client_enabled: bool,
+) -> CrasProcessorEffect {
+    let enabled = if client_controlled {
+        client_enabled
+    } else {
+        state().input.voice_isolation_ui_enabled
+    };
+    match state().resolve_nc_provider(compatible_nc_providers, enabled) {
+        &CRAS_NC_PROVIDER::AP => CrasProcessorEffect::NoiseCancellation,
+        &CRAS_NC_PROVIDER::DSP => CrasProcessorEffect::NoEffects,
+        &CRAS_NC_PROVIDER::AST => CrasProcessorEffect::StyleTransfer,
+        &CRAS_NC_PROVIDER::BF => CrasProcessorEffect::Beamforming,
+        _ => CrasProcessorEffect::NoEffects,
+    }
 }
 
 #[no_mangle]

@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "cras/common/rust_common.h"
+#include "cras/server/s2/s2.h"
 #include "cras/src/common/cras_alsa_card_info.h"
 #include "cras/src/server/audio_thread.h"
 #include "cras/src/server/cras_alsa_helpers.h"
@@ -75,9 +76,13 @@ CRAS_NC_PROVIDER cras_alsa_common_get_nc_providers(
   if ((node->type == CRAS_NODE_TYPE_ALSA_LOOPBACK ||  // Alsa loopback.
        (node->type == CRAS_NODE_TYPE_MIC &&           // Internal mic.
         (node->position == NODE_POSITION_INTERNAL ||
-         node->position == NODE_POSITION_FRONT))) &&
-      cras_system_get_style_transfer_supported()) {  // Supportness.
-    provider |= CRAS_NC_PROVIDER_AST;
+         node->position == NODE_POSITION_FRONT)))) {
+    if (cras_system_get_style_transfer_supported()) {
+      provider |= CRAS_NC_PROVIDER_AST;
+    }
+    if (cras_s2_get_beamforming_supported()) {
+      provider |= CRAS_NC_PROVIDER_BF;
+    }
   }
   if (ucm && cras_system_get_dsp_noise_cancellation_supported() &&
       ucm_node_noise_cancellation_exists(ucm, node->name)) {

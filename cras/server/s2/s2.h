@@ -69,6 +69,10 @@ bool cras_s2_get_bypass_block_dsp_nc(void);
 
 void cras_s2_set_active_input_node_compatible_nc_providers(CRAS_NC_PROVIDER compatible_nc_providers);
 
+enum CrasProcessorEffect cras_s2_get_cras_processor_effect(CRAS_NC_PROVIDER compatible_nc_providers,
+                                                           bool client_controlled,
+                                                           bool client_enabled);
+
 void cras_s2_set_spatial_audio_enabled(bool enabled);
 
 bool cras_s2_get_spatial_audio_enabled(void);

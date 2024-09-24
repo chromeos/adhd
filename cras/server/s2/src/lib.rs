@@ -10,6 +10,7 @@ use anyhow::Context;
 use audio_processor::cdcfg;
 use cras_common::types_internal::CrasDlcId;
 use cras_common::types_internal::CRAS_NC_PROVIDER;
+use cras_common::types_internal::CRAS_NC_PROVIDER_PREFERENCE_ORDER;
 use cras_common::types_internal::EFFECT_TYPE;
 use serde::Serialize;
 
@@ -117,7 +118,9 @@ fn resolve(input: &Input) -> Output {
             CRAS_NC_PROVIDER::DSP,
             AudioEffectStatus {
                 supported: true,
-                allowed: !dsp_input_effects_blocked,
+                allowed: !dsp_input_effects_blocked
+                    // Prevent DSP NC from being selected by client controlled voice isolation.
+                    && input.voice_isolation_ui_enabled,
                 compatible_with_active_input_node: input
                     .active_input_node_compatible_nc_providers
                     .contains(CRAS_NC_PROVIDER::DSP),
@@ -334,6 +337,23 @@ impl S2 {
     fn set_bypass_block_dsp_nc(&mut self, bypass_block_dsp_nc: bool) {
         self.input.bypass_block_dsp_nc = bypass_block_dsp_nc;
         self.update();
+    }
+
+    fn resolve_nc_provider(
+        &self,
+        compatible_nc_providers: CRAS_NC_PROVIDER,
+        enabled: bool,
+    ) -> &CRAS_NC_PROVIDER {
+        if !enabled {
+            return &CRAS_NC_PROVIDER::NONE;
+        }
+        let valid_nc_providers = compatible_nc_providers & self.output.system_valid_nc_providers;
+        for nc_provider in CRAS_NC_PROVIDER_PREFERENCE_ORDER {
+            if valid_nc_providers.contains(*nc_provider) {
+                return nc_provider;
+            }
+        }
+        &CRAS_NC_PROVIDER::NONE
     }
 
     fn read_beamforming_config(&mut self) -> anyhow::Result<()> {
@@ -609,7 +629,11 @@ mod tests {
         // nc_ui_selected_mode after the "Effect Mode options" in UI is implemented.
 
         let mut s = S2::new();
-        let mut expected = CRAS_NC_PROVIDER::DSP;
+        let mut expected = CRAS_NC_PROVIDER::NONE;
+        assert_eq!(s.output.system_valid_nc_providers, expected);
+
+        s.set_voice_isolation_ui_enabled(true);
+        expected |= CRAS_NC_PROVIDER::DSP;
         assert_eq!(s.output.system_valid_nc_providers, expected);
 
         s.set_ap_nc_featured_allowed(true);
@@ -631,6 +655,67 @@ mod tests {
         // TODO(b/353627012): Currently BF and AST are mutually exclusive. Update test when they're not.
         expected.remove(CRAS_NC_PROVIDER::AST);
         assert_eq!(s.output.system_valid_nc_providers, expected);
+    }
+
+    #[test]
+    fn test_resolve_nc_provider() {
+        // TODO(b/353627012): Update test for Beamforming after "effect mode" selection is ready.
+        let mut s = S2::new();
+        s.set_voice_isolation_ui_enabled(true);
+
+        // Set AP NC supported and allowed.
+        s.set_ap_nc_featured_allowed(true);
+        s.set_dlc_installed(CrasDlcId::CrasDlcNcAp);
+        // DSP NC priority is higher than AP NC.
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
+            &CRAS_NC_PROVIDER::DSP
+        );
+        s.set_non_dsp_aec_echo_ref_dev_alive(true);
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
+            &CRAS_NC_PROVIDER::AP
+        );
+        s.set_non_dsp_aec_echo_ref_dev_alive(false);
+
+        // Set AST supported and allowed.
+        s.set_ap_nc_segmentation_allowed(true);
+        s.set_style_transfer_featured_allowed(true);
+        assert_eq!(
+            s.resolve_nc_provider(CRAS_NC_PROVIDER::all(), true),
+            &CRAS_NC_PROVIDER::AST
+        );
+
+        // Test for effect disabled.
+        for i in 0..CRAS_NC_PROVIDER::all().bits() {
+            let compatible_nc_providers = CRAS_NC_PROVIDER::from_bits_truncate(i);
+            assert_eq!(
+                s.resolve_nc_provider(compatible_nc_providers, false),
+                &CRAS_NC_PROVIDER::NONE
+            );
+        }
+
+        // Test for different sets of compatible NC providers.
+        let mut compatible = CRAS_NC_PROVIDER::NONE;
+        assert_eq!(
+            s.resolve_nc_provider(compatible, true),
+            &CRAS_NC_PROVIDER::NONE
+        );
+        compatible |= CRAS_NC_PROVIDER::AP;
+        assert_eq!(
+            s.resolve_nc_provider(compatible, true),
+            &CRAS_NC_PROVIDER::AP
+        );
+        compatible |= CRAS_NC_PROVIDER::DSP;
+        assert_eq!(
+            s.resolve_nc_provider(compatible, true),
+            &CRAS_NC_PROVIDER::DSP
+        );
+        compatible |= CRAS_NC_PROVIDER::AST;
+        assert_eq!(
+            s.resolve_nc_provider(compatible, true),
+            &CRAS_NC_PROVIDER::AST
+        );
     }
 
     #[test]
