@@ -25,21 +25,11 @@ use audio_processor::AudioProcessor;
 use audio_processor::Format;
 use audio_processor::ProcessorVec;
 use cras_common::types_internal::CrasDlcId;
+use cras_common::types_internal::CrasProcessorEffect;
 use cras_dlc::get_dlc_state_cached;
 use cras_s2::BEAMFORMING_CONFIG_PATH;
 
 mod processor_override;
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub enum CrasProcessorEffect {
-    NoEffects,
-    Negate,
-    NoiseCancellation,
-    StyleTransfer,
-    Beamforming,
-    Overridden,
-}
 
 #[repr(C)]
 #[derive(Clone, Debug)]

@@ -18,15 +18,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 #include "audio_processor/c/plugin_processor.h"
-
-enum CrasProcessorEffect {
-  NoEffects,
-  Negate,
-  NoiseCancellation,
-  StyleTransfer,
-  Beamforming,
-  Overridden,
-};
+#include "cras/common/rust_common.h"
 
 struct CrasProcessorCreateResult {
   /**

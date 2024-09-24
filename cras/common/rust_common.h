@@ -48,6 +48,15 @@ enum CRAS_FRA_SIGNAL {
   SecondaryHciDeviceChanged,
 };
 
+enum CrasProcessorEffect {
+  NoEffects,
+  Negate,
+  NoiseCancellation,
+  StyleTransfer,
+  Beamforming,
+  Overridden,
+};
+
 struct cras_fra_kv_t {
   const char *key;
   const char *value;

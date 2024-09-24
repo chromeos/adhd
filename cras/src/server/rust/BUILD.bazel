@@ -55,6 +55,7 @@ cc_test(
     deps = [
         ":cc",
         "//audio_processor/c:plugin_processor",
+        "//cras/common:rust_common_cc",
         "@pkg_config//gtest",
         "@pkg_config//gtest_main",
     ],
@@ -71,7 +72,11 @@ cras_cbindgen(
     name = "cras_processor_h",
     srcs = ["src/cras_processor.rs"],
     out = "include/cras_processor.h",
-    extra_args = ["--with-include=audio_processor/c/plugin_processor.h"],
+    extra_args = [
+        "--with-include=audio_processor/c/plugin_processor.h",
+        "--with-include=cras/common/rust_common.h",
+        "--add-keyword-enum",
+    ],
 )
 
 cras_cbindgen(

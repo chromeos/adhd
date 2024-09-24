@@ -12,6 +12,17 @@ use bitflags::bitflags;
 use itertools::Itertools;
 use serde::Serialize;
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub enum CrasProcessorEffect {
+    NoEffects,
+    Negate,
+    NoiseCancellation,
+    StyleTransfer,
+    Beamforming,
+    Overridden,
+}
+
 bitflags! {
     #[allow(non_camel_case_types)]
     #[repr(transparent)]

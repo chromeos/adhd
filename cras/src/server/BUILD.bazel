@@ -664,6 +664,7 @@ cc_library(
         "//cras/src/common",
         "//cras/src/dsp",
         "//cras/src/server/rust:cc",
+        "//cras/common:rust_common_cc",
     ] + select({
         "//:apm_build": ["@webrtc_apm//webrtc_apm"],
         "//conditions:default": [],

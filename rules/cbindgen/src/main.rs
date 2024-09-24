@@ -102,12 +102,15 @@ fn main() {
         .rename_item("DRC_PARAM", "drc_param")
         .include_item("DRC_PARAM")
         .include_item("CrasDlcId")
-        .include_item("EFFECT_TYPE");
+        .include_item("EFFECT_TYPE")
+        .include_item("CrasProcessorEffect");
 
     let mut b = b;
 
     if c.add_keyword_enum {
-        b = b.rename_item("CrasDlcId", "enum CrasDlcId");
+        b = b
+            .rename_item("CrasDlcId", "enum CrasDlcId")
+            .rename_item("CrasProcessorEffect", "enum CrasProcessorEffect");
     }
 
     for src in c.with_src {
