@@ -504,7 +504,7 @@ INSTANTIATE_TEST_SUITE_P(
 struct CrasDlcManagerTestParam {
   enum CrasDlcId dlc_id;
   std::string dlc_id_str;
-  int num_retry_times;
+  int success_time;
   std::vector<int> elapsed_seconds;
 };
 
@@ -532,14 +532,14 @@ TEST_P(ServerMetricsCrasDlcManagerTest, TestCrasServerMetricsDlcManagerStatus) {
     cras_metrics_log_histogram_called_args.clear();
   }
 
-  cras_server_metrics_dlc_install_retried_times_on_success(
-      param.dlc_id, param.num_retry_times);
+  cras_server_metrics_dlc_install_elapsed_time_on_success(param.dlc_id,
+                                                          param.success_time);
 
-  ASSERT_EQ(cras_metrics_log_sparse_histogram_called_args.size(), 1);
-  EXPECT_EQ(std::get<0>(cras_metrics_log_sparse_histogram_called_args.front()),
-            prefix + ".RetriedTimesOnSuccess." + param.dlc_id_str);
-  EXPECT_EQ(std::get<1>(cras_metrics_log_sparse_histogram_called_args.front()),
-            param.num_retry_times);
+  ASSERT_EQ(cras_metrics_log_histogram_called_args.size(), 1);
+  EXPECT_EQ(std::get<0>(cras_metrics_log_histogram_called_args.front()),
+            prefix + ".ElapsedTimeHistogramOnSuccess." + param.dlc_id_str);
+  EXPECT_EQ(std::get<1>(cras_metrics_log_histogram_called_args.front()),
+            param.success_time);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -547,10 +547,10 @@ INSTANTIATE_TEST_SUITE_P(
     ServerMetricsCrasDlcManagerTest,
     testing::Values(CrasDlcManagerTestParam({.dlc_id = CrasDlcNcAp,
                                              .dlc_id_str = "NcAp",
-                                             .num_retry_times = 0}),
+                                             .success_time = 0}),
                     CrasDlcManagerTestParam({.dlc_id = CrasDlcSrBt,
                                              .dlc_id_str = "SrBt",
-                                             .num_retry_times = 10,
+                                             .success_time = 487,
                                              .elapsed_seconds = {0, 1, 3, 7, 15,
                                                                  31, 63, 127,
                                                                  247, 367}})));

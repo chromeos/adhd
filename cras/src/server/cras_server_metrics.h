@@ -232,11 +232,10 @@ int cras_server_metrics_hfp_mic_sr_status(
     struct cras_iodev* iodev,
     enum CRAS_METRICS_HFP_MIC_SR_STATUS status);
 
-// Logs the number of retries it took for cras_dlc_manager to
-// successfully download dlc_id.
-int cras_server_metrics_dlc_install_retried_times_on_success(
+// Logs the elapsed time when cras_dlc_manager successfully download the dlc.
+int cras_server_metrics_dlc_install_elapsed_time_on_success(
     enum CrasDlcId dlc_id,
-    int num_retry_times);
+    int elapsed_seconds);
 
 // Logs the elapsed time when cras_dlc_manager fails to download the dlc.
 int cras_server_metrics_dlc_install_elapsed_time_on_failure(

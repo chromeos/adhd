@@ -280,7 +280,6 @@ struct cras_server_metrics_rtc_data {
 
 struct cras_server_metrics_dlc_manager_data {
   enum CrasDlcId dlc_id;
-  int num_retry_times;
   int elapsed_seconds;
 };
 
@@ -773,15 +772,15 @@ int cras_server_metrics_hfp_mic_sr_status(
   return 0;
 }
 
-int cras_server_metrics_dlc_install_retried_times_on_success(
+int cras_server_metrics_dlc_install_elapsed_time_on_success(
     enum CrasDlcId dlc_id,
-    int num_retry_times) {
+    int elapsed_seconds) {
   struct cras_server_metrics_message msg = CRAS_MAIN_MESSAGE_INIT;
   union cras_server_metrics_data data;
   int err;
 
   data.dlc_manager_data.dlc_id = dlc_id;
-  data.dlc_manager_data.num_retry_times = num_retry_times;
+  data.dlc_manager_data.elapsed_seconds = elapsed_seconds;
 
   init_server_metrics_msg(&msg, DLC_MANAGER_STATUS_ON_SUCCESS, data);
 
@@ -1914,15 +1913,17 @@ static void metrics_fetch_delay_count(
                            metrics_stream_type_str(data.stream_type));
 }
 
-static void metrics_dlc_install_retried_times_on_success(
+static void metrics_dlc_install_elapsed_time_on_success(
     struct cras_server_metrics_dlc_manager_data data) {
   char metrics_name[METRICS_NAME_BUFFER_SIZE];
 
-  // Logs num_retry_times
   snprintf(metrics_name, METRICS_NAME_BUFFER_SIZE,
-           "%s.RetriedTimesOnSuccess.%s", kCrasDlcManagerStatus,
+           "%s.ElapsedTimeHistogramOnSuccess.%s", kCrasDlcManagerStatus,
            metrics_dlc_id_str(data.dlc_id));
-  cras_metrics_log_sparse_histogram(metrics_name, data.num_retry_times);
+  cras_metrics_log_histogram(metrics_name, data.elapsed_seconds,
+                             DLC_INSTALL_ELAPSED_TIME_MIN_SECONDS,
+                             DLC_INSTALL_ELAPSED_TIME_MAX_SECONDS,
+                             DLC_INSTALL_ELAPSED_TIME_NUM_BUCKETS);
 }
 
 static void metrics_dlc_install_elapsed_time_on_failure(
@@ -2120,7 +2121,7 @@ static void handle_metrics_message(struct cras_main_message* msg, void* arg) {
       metrics_device_dsp_offload_status(metrics_msg->data.device_data);
       break;
     case DLC_MANAGER_STATUS_ON_SUCCESS:
-      metrics_dlc_install_retried_times_on_success(
+      metrics_dlc_install_elapsed_time_on_success(
           metrics_msg->data.dlc_manager_data);
       break;
     case DLC_MANAGER_STATUS_ON_FAILURE:

@@ -10,9 +10,9 @@
 #include "cras/src/server/cras_server_metrics.h"
 
 static int32_t dlc_install_on_success_callback(enum CrasDlcId dlc_id,
-                                               int32_t retry_count) {
-  const int ret = cras_server_metrics_dlc_install_retried_times_on_success(
-      dlc_id, retry_count);
+                                               int32_t elapsed_seconds) {
+  const int ret = cras_server_metrics_dlc_install_elapsed_time_on_success(
+      dlc_id, elapsed_seconds);
 
   struct cras_main_message msg = {
       .length = sizeof(msg),

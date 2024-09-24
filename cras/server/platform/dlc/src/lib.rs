@@ -130,7 +130,7 @@ fn download_dlcs_until_installed(
                     log::info!("successfully installed {dlc}");
                     STATE_CACHE.lock().unwrap().insert(*dlc, state);
                     cras_s2::global::cras_s2_set_dlc_installed(*dlc);
-                    dlc_install_on_success_callback(*dlc, retry_count);
+                    dlc_install_on_success_callback(*dlc, start_time.elapsed().as_secs() as i32);
                 }
                 Err(e) => {
                     log::info!("failed to install {dlc}: {e}");
