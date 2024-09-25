@@ -1435,6 +1435,17 @@ static int possibly_close_enabled_devs(enum CRAS_STREAM_DIRECTION dir) {
     idle_dev_check(NULL, NULL);
   }
 
+  // Flexible loopback (internal) devices are not enabled
+  // and should not have pinned streams.
+  if (dir == CRAS_STREAM_OUTPUT) {
+    struct cras_floop_pair* fpair;
+    DL_FOREACH (floop_pair_list, fpair) {
+      if (cras_iodev_is_open(&fpair->output)) {
+        cras_iodev_list_disable_floop_pair(fpair);
+      }
+    }
+  }
+
   return 0;
 }
 
