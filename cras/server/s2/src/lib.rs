@@ -69,6 +69,7 @@ struct Input {
     // integrated without AEC on DSP. 0 - otherwise.
     nc_standalone_mode: bool,
     bypass_block_dsp_nc: bool,
+    spatial_audio_enabled: bool,
 }
 
 #[derive(Serialize)]
@@ -343,6 +344,11 @@ impl S2 {
                 .context("get_required_dlcs")?,
         );
         Ok(())
+    }
+
+    fn set_spatial_audio_enabled(&mut self, enabled: bool) {
+        self.input.spatial_audio_enabled = enabled;
+        self.update();
     }
 
     fn update(&mut self) {
@@ -627,5 +633,17 @@ mod tests {
         // TODO(b/353627012): Currently BF and AST are mutually exclusive. Update test when they're not.
         expected.remove(CRAS_NC_PROVIDER::AST);
         assert_eq!(s.output.system_valid_nc_providers, expected);
+    }
+
+    #[test]
+    fn test_spatial_audio_enabled() {
+        let mut s = S2::new();
+        assert_eq!(s.input.spatial_audio_enabled, false);
+
+        s.set_spatial_audio_enabled(true);
+        assert_eq!(s.input.spatial_audio_enabled, true);
+
+        s.set_spatial_audio_enabled(false);
+        assert_eq!(s.input.spatial_audio_enabled, false);
     }
 }

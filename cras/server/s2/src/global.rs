@@ -166,3 +166,13 @@ pub extern "C" fn cras_s2_set_active_input_node_compatible_nc_providers(
 ) {
     state().set_active_input_node_compatible_nc_providers(compatible_nc_providers);
 }
+
+#[no_mangle]
+pub extern "C" fn cras_s2_set_spatial_audio_enabled(enabled: bool) {
+    state().set_spatial_audio_enabled(enabled);
+}
+
+#[no_mangle]
+pub extern "C" fn cras_s2_get_spatial_audio_enabled() -> bool {
+    state().input.spatial_audio_enabled
+}
