@@ -295,6 +295,7 @@ static int configure_dev(struct cras_iodev* iodev) {
    * format must be set before opening the device.
    */
   if (iodev->format == NULL) {
+    syslog(LOG_ERR, "cras_alsa_io: configure_dev: iodev->format == NULL");
     return -EINVAL;
   }
   aio->common.free_running = 0;
@@ -311,6 +312,8 @@ static int configure_dev(struct cras_iodev* iodev) {
 
   rc = set_hwparams(iodev);
   if (rc < 0) {
+    syslog(LOG_ERR, "cras_alsa_io: configure_dev: set_hwparams: %s",
+           cras_strerror(rc));
     return rc;
   }
 
@@ -329,6 +332,9 @@ static int configure_dev(struct cras_iodev* iodev) {
   // Set channel map to device
   rc = cras_alsa_set_channel_map(aio->common.handle, iodev->format);
   if (rc < 0) {
+    syslog(LOG_ERR,
+           "cras_alsa_io: configure_dev: cras_alsa_set_channel_map: %s",
+           cras_strerror(rc));
     return rc;
   }
 
@@ -338,6 +344,8 @@ static int configure_dev(struct cras_iodev* iodev) {
   // Configure software params.
   rc = cras_alsa_set_swparams(aio->common.handle);
   if (rc < 0) {
+    syslog(LOG_ERR, "cras_alsa_io: configure_dev: cras_alsa_set_swparams: %s",
+           cras_strerror(rc));
     return rc;
   }
 
@@ -356,6 +364,8 @@ static int configure_dev(struct cras_iodev* iodev) {
 
     ufds = (struct pollfd*)malloc(sizeof(*ufds) * count);
     if (ufds == NULL) {
+      syslog(LOG_ERR, "cras_alsa_io: configure_dev: pollfd: malloc: %s",
+             cras_strerror(errno));
       return -ENOMEM;
     }
 
