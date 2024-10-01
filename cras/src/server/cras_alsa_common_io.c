@@ -41,7 +41,11 @@ struct cras_ionode* first_plugged_node(struct cras_iodev* iodev) {
 int cras_alsa_common_configure_noise_cancellation(
     struct cras_iodev* iodev,
     struct cras_use_case_mgr* ucm) {
-  iodev->restart_tag_effect_state = cras_iodev_list_resolve_nc_provider(iodev);
+  CRAS_NC_PROVIDER nc_providers = (iodev->active_node)
+                                      ? iodev->active_node->nc_providers
+                                      : CRAS_NC_PROVIDER_NONE;
+  iodev->restart_tag_effect_state =
+      cras_s2_get_iodev_restart_tag_for_nc_providers(nc_providers);
 
   if (iodev->active_node &&
       iodev->active_node->nc_providers & CRAS_NC_PROVIDER_DSP) {

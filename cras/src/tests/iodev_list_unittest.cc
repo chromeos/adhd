@@ -3586,6 +3586,7 @@ TEST_F(IoDevTestSuite, StyleTransferSupported) {
 
 TEST_F(IoDevTestSuite, ResetForStyleTransfer) {
   cras_s2_reset_for_testing();
+  cras_s2_set_ap_nc_segmentation_allowed(true);
   cras_s2_set_style_transfer_featured_allowed(true);
   cras_s2_set_dlc_installed(CrasDlcId::CrasDlcNcAp);
 

@@ -73,6 +73,8 @@ enum CrasProcessorEffect cras_s2_get_cras_processor_effect(CRAS_NC_PROVIDER comp
                                                            bool client_controlled,
                                                            bool client_enabled);
 
+CRAS_NC_PROVIDER cras_s2_get_iodev_restart_tag_for_nc_providers(CRAS_NC_PROVIDER compatible_nc_providers);
+
 void cras_s2_set_spatial_audio_enabled(bool enabled);
 
 bool cras_s2_get_spatial_audio_enabled(void);

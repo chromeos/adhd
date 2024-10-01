@@ -2520,32 +2520,6 @@ void cras_iodev_list_unregister_loopback(enum CRAS_LOOPBACK_TYPE type,
   }
 }
 
-// TODO(353627012): replace this function with S2.
-CRAS_NC_PROVIDER cras_iodev_list_resolve_nc_provider(struct cras_iodev* iodev) {
-  if (!iodev->active_node) {
-    return CRAS_NC_PROVIDER_NONE;
-  }
-  bool dsp_nc_allowed = !cras_s2_get_dsp_input_effects_blocked() &&
-                        cras_s2_get_voice_isolation_ui_enabled();
-  bool ap_nc_allowed =
-      cras_s2_get_ap_nc_allowed() && cras_s2_get_voice_isolation_ui_enabled();
-  bool ast_allowed = cras_s2_get_style_transfer_allowed() &&
-                     cras_s2_get_voice_isolation_ui_enabled();
-  if (ast_allowed &&
-      (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_AST)) {
-    return CRAS_NC_PROVIDER_AST;
-  }
-  if (dsp_nc_allowed &&
-      (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_DSP)) {
-    return CRAS_NC_PROVIDER_DSP;
-  }
-  if (ap_nc_allowed &&
-      (iodev->active_node->nc_providers & CRAS_NC_PROVIDER_AP)) {
-    return CRAS_NC_PROVIDER_AP;
-  }
-  return CRAS_NC_PROVIDER_NONE;
-}
-
 void cras_iodev_list_reset_for_noise_cancellation() {
   struct cras_iodev* dev;
   DL_FOREACH (devs[CRAS_STREAM_INPUT].iodevs, dev) {
@@ -2556,7 +2530,8 @@ void cras_iodev_list_reset_for_noise_cancellation() {
       continue;
     }
     const CRAS_NC_PROVIDER new_effect_state =
-        cras_iodev_list_resolve_nc_provider(dev);
+        cras_s2_get_iodev_restart_tag_for_nc_providers(
+            dev->active_node->nc_providers);
     if (new_effect_state == dev->restart_tag_effect_state) {
       continue;
     }

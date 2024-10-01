@@ -189,6 +189,14 @@ pub extern "C" fn cras_s2_get_cras_processor_effect(
 }
 
 #[no_mangle]
+pub extern "C" fn cras_s2_get_iodev_restart_tag_for_nc_providers(
+    compatible_nc_providers: CRAS_NC_PROVIDER,
+) -> CRAS_NC_PROVIDER {
+    let enabled = state().input.voice_isolation_ui_enabled;
+    *(state().resolve_nc_provider(compatible_nc_providers, enabled))
+}
+
+#[no_mangle]
 pub extern "C" fn cras_s2_set_spatial_audio_enabled(enabled: bool) {
     state().set_spatial_audio_enabled(enabled);
 }

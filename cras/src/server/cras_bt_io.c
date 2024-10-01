@@ -12,6 +12,7 @@
 #include <syslog.h>
 #include <time.h>
 
+#include "cras/server/s2/s2.h"
 #include "cras/src/server/cras_bt_device.h"
 #include "cras/src/server/cras_bt_policy.h"
 #include "cras/src/server/cras_iodev.h"
@@ -217,7 +218,11 @@ static int open_dev(struct cras_iodev* iodev) {
   struct cras_iodev* dev = active_profile_dev(iodev);
   int rc;
 
-  iodev->restart_tag_effect_state = cras_iodev_list_resolve_nc_provider(iodev);
+  CRAS_NC_PROVIDER nc_providers = (iodev->active_node)
+                                      ? iodev->active_node->nc_providers
+                                      : CRAS_NC_PROVIDER_NONE;
+  iodev->restart_tag_effect_state =
+      cras_s2_get_iodev_restart_tag_for_nc_providers(nc_providers);
 
   // Make sure not to open when there is a pending profile-switch event.
   if (btio->mgr->is_profile_switching) {
